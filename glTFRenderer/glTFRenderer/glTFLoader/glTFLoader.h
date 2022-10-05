@@ -7,9 +7,13 @@
 class glTFLoader
 {
 public:
+    glTFLoader();
     bool LoadFile(const char* file_path);
 
-private:
+    void Print() const;
     
-    std::vector<std::unique_ptr<glTF_Element_Base>> m_glTF_elements;
+private:
+    unsigned default_scene{};
+    std::vector<std::unique_ptr<glTF_Element_Scene>> m_scenes;
+    std::vector<std::unique_ptr<glTF_Element_Node>> m_nodes;
 };
