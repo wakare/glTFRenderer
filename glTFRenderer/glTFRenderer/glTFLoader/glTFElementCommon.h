@@ -198,17 +198,17 @@ typedef glTF_Element_Template<glTF_Element_Type::EMesh> glTF_Element_Mesh;
 template<>
 struct glTF_Element_Template<glTF_Element_Type::EBuffer> : glTF_Element_Base
 {
-    std::string url;
+    std::string uri;
     size_t byte_length;
 };
 
 typedef glTF_Element_Template<glTF_Element_Type::EBuffer> glTF_Element_Buffer;
 
 // ---------------------------------- Buffer View Type ----------------------------------
-enum class glTF_BufferView_Target
+enum glTF_BufferView_Target
 {
-    EArrayBuffer,
-    EElementArrayBuffer
+    EArrayBuffer        = 34962,
+    EElementArrayBuffer = 34963,
 };
 
 template<>
@@ -230,7 +230,7 @@ enum glTF_Accessor_Component_Type
     EUnsignedByte   = 5121,
     EShort          = 5122,
     EUnsignedShort  = 5123,
-    // Official documentation lost 5124?
+    // Official documentation lost 5124, should be EInt?
     EUnsignedInt    = 5125,
     EFloat          = 5126,
 };
@@ -244,6 +244,7 @@ enum class glTF_Accessor_Element_Type
     EMat2,
     EMat3,
     EMat4,
+    EUnknown,
 };
 
 template<>
@@ -258,68 +259,61 @@ struct glTF_Element_Template<glTF_Element_Type::EAccessor> : glTF_Element_Base
     // TODO: @JACK add sparse member
 };
 
-template<glTF_Accessor_Element_Type Element_type>
+template<glTF_Accessor_Component_Type component_type>
 struct glTF_Element_Accessor_MinMax : glTF_Element_Template<glTF_Element_Type::EAccessor>
 {
     
 };
 
 template <>
-struct glTF_Element_Accessor_MinMax<glTF_Accessor_Element_Type::EScalar> : glTF_Element_Template<glTF_Element_Type::EAccessor>
+struct glTF_Element_Accessor_MinMax<glTF_Accessor_Component_Type::EByte> : glTF_Element_Template<glTF_Element_Type::EAccessor>
 {
-    glm::float32 min;
-    glm::float32 max;
+    std::vector<int8_t> min;
+    std::vector<int8_t> max;
 };
 
 template <>
-struct glTF_Element_Accessor_MinMax<glTF_Accessor_Element_Type::EVec2> : glTF_Element_Template<glTF_Element_Type::EAccessor>
+struct glTF_Element_Accessor_MinMax<glTF_Accessor_Component_Type::EUnsignedByte> : glTF_Element_Template<glTF_Element_Type::EAccessor>
 {
-    glm::vec2 min;
-    glm::vec2 max;
+    std::vector<uint8_t> min;
+    std::vector<uint8_t> max;
 };
 
 template <>
-struct glTF_Element_Accessor_MinMax<glTF_Accessor_Element_Type::EVec3> : glTF_Element_Template<glTF_Element_Type::EAccessor>
+struct glTF_Element_Accessor_MinMax<glTF_Accessor_Component_Type::EShort> : glTF_Element_Template<glTF_Element_Type::EAccessor>
 {
-    glm::vec3 min;
-    glm::vec3 max;
+    std::vector<int16_t> min;
+    std::vector<int16_t> max;
 };
 
 template <>
-struct glTF_Element_Accessor_MinMax<glTF_Accessor_Element_Type::EVec4> : glTF_Element_Template<glTF_Element_Type::EAccessor>
+struct glTF_Element_Accessor_MinMax<glTF_Accessor_Component_Type::EUnsignedShort> : glTF_Element_Template<glTF_Element_Type::EAccessor>
 {
-    glm::vec4 min;
-    glm::vec4 max;
+    std::vector<uint16_t> min;
+    std::vector<uint16_t> max;
 };
 
 template <>
-struct glTF_Element_Accessor_MinMax<glTF_Accessor_Element_Type::EMat2> : glTF_Element_Template<glTF_Element_Type::EAccessor>
+struct glTF_Element_Accessor_MinMax<glTF_Accessor_Component_Type::EUnsignedInt> : glTF_Element_Template<glTF_Element_Type::EAccessor>
 {
-    glm::mat2x2 min;
-    glm::mat2x2 max;
+    std::vector<uint32_t> min;
+    std::vector<uint32_t> max;
 };
 
 template <>
-struct glTF_Element_Accessor_MinMax<glTF_Accessor_Element_Type::EMat3> : glTF_Element_Template<glTF_Element_Type::EAccessor>
+struct glTF_Element_Accessor_MinMax<glTF_Accessor_Component_Type::EFloat> : glTF_Element_Template<glTF_Element_Type::EAccessor>
 {
-    glm::mat3x3 min;
-    glm::mat3x3 max;
+    std::vector<float> min;
+    std::vector<float> max;
 };
 
-template <>
-struct glTF_Element_Accessor_MinMax<glTF_Accessor_Element_Type::EMat4> : glTF_Element_Template<glTF_Element_Type::EAccessor>
-{
-    glm::mat4x4 min;
-    glm::mat4x4 max;
-};
-
-typedef glTF_Element_Accessor_MinMax<glTF_Accessor_Element_Type::EScalar>   glTF_Element_Accessor_Scalar;
-typedef glTF_Element_Accessor_MinMax<glTF_Accessor_Element_Type::EVec2>     glTF_Element_Accessor_Vec2;
-typedef glTF_Element_Accessor_MinMax<glTF_Accessor_Element_Type::EVec3>     glTF_Element_Accessor_Vec3;
-typedef glTF_Element_Accessor_MinMax<glTF_Accessor_Element_Type::EVec4>     glTF_Element_Accessor_Vec4;
-typedef glTF_Element_Accessor_MinMax<glTF_Accessor_Element_Type::EMat2>     glTF_Element_Accessor_Mat2;
-typedef glTF_Element_Accessor_MinMax<glTF_Accessor_Element_Type::EMat3>     glTF_Element_Accessor_Mat3;
-typedef glTF_Element_Accessor_MinMax<glTF_Accessor_Element_Type::EMat4>     glTF_Element_Accessor_Mat4;
+typedef glTF_Element_Template<glTF_Element_Type::EAccessor>                         glTF_Element_Accessor_Base;
+typedef glTF_Element_Accessor_MinMax<glTF_Accessor_Component_Type::EByte>           glTF_Element_Accessor_Byte;
+typedef glTF_Element_Accessor_MinMax<glTF_Accessor_Component_Type::EUnsignedByte>   glTF_Element_Accessor_UByte;
+typedef glTF_Element_Accessor_MinMax<glTF_Accessor_Component_Type::EShort>          glTF_Element_Accessor_Short;
+typedef glTF_Element_Accessor_MinMax<glTF_Accessor_Component_Type::EUnsignedShort>  glTF_Element_Accessor_UShort;
+typedef glTF_Element_Accessor_MinMax<glTF_Accessor_Component_Type::EUnsignedInt>    glTF_Element_Accessor_UInt;
+typedef glTF_Element_Accessor_MinMax<glTF_Accessor_Component_Type::EFloat>          glTF_Element_Accessor_Float;
 
 // ---------------------------------- Asset Type ----------------------------------
 struct glTF_Version
