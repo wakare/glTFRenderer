@@ -5,12 +5,12 @@
 bool ShowGLFWWindow()
 {
     glTFWindow window;
-    if (!window.InitWindow())
+    if (!window.InitAndShowWindow())
     {
         return false;
     }
 
-    window.ShowWindow();
+    window.UpdateWindow();
     return true;
 }
 
