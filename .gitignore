@@ -1,1 +1,4 @@
 *.xml
+glTFRenderer/ThirdParty/libs
+glTFRenderer/glTFRenderer/x64
+glTFRenderer/x64
