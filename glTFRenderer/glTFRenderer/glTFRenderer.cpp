@@ -1,28 +1,16 @@
 #include "glTFLoader/glTFLoader.h"
 
-#include <GLFW/glfw3.h>
+#include "glTFWindow/glTFWindow.h"
 
 bool ShowGLFWWindow()
 {
-    if (!glfwInit())
+    glTFWindow window;
+    if (!window.InitWindow())
     {
         return false;
     }
 
-    GLFWwindow* window = glfwCreateWindow(800, 600, "Hello World", NULL, NULL);
-    if (!window)
-    {
-        glfwTerminate();
-        return false;
-    }
-
-    while (!glfwWindowShouldClose(window))
-    {
-        glfwPollEvents();
-    }
-
-    glfwTerminate();
-    
+    window.ShowWindow();
     return true;
 }
 
