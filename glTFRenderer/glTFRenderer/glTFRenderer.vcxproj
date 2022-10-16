@@ -95,11 +95,13 @@
   <ItemGroup>
     <ClCompile Include="glTFLoader\glTFLoader.cpp" />
     <ClCompile Include="glTFRenderer.cpp" />
+    <ClCompile Include="glTFRHI\glTFRHIDX12.cpp" />
     <ClCompile Include="glTFWindow\glTFWindow.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="glTFLoader\glTFElementCommon.h" />
     <ClInclude Include="glTFLoader\glTFLoader.h" />
+    <ClInclude Include="glTFRHI\glTFRHIDX12.h" />
     <ClInclude Include="glTFWindow\glTFWindow.h" />
   </ItemGroup>
   <ItemGroup>

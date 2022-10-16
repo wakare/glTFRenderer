@@ -4,6 +4,8 @@
 #define GLFW_EXPOSE_NATIVE_WIN32 1
 #include <GLFW/glfw3native.h>
 
+#include <../glTFRenderer/glTFRHI/glTFRHIDX12.h>
+
 bool glTFWindow::InitAndShowWindow()
 {
     if (!glfwInit())
@@ -17,6 +19,8 @@ bool glTFWindow::InitAndShowWindow()
         glfwTerminate();
         return false;
     }
+
+    glTFRHIDX12::InitD3D();
     
     return true;
 }
@@ -29,6 +33,7 @@ void glTFWindow::UpdateWindow()
         glfwPollEvents();
     }
 
+    glTFRHIDX12::WaitForPreviousFrame();
     glfwTerminate();
 }
 
