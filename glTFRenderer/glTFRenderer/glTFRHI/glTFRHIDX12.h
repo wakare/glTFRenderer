@@ -6,7 +6,7 @@ class glTFRHIDX12
 {
 public:
     // function declarations
-    static bool InitD3D(); // initializes direct3d 12
+    static bool InitD3D(UINT Width, UINT Height, HWND hwnd, bool FullScreen); // initializes direct3d 12
 
     static void Update(); // update the game logic
 
@@ -17,21 +17,43 @@ public:
     static void Cleanup(); // release com ojects and clean up memory
 
     static void WaitForPreviousFrame(); // wait until gpu is finished with command list
+
+    static bool Running;
     
 private:
-    bool CreateDeviceDX12();
-    bool CreateCommandQueue();
-    bool CreateSwapChain();
-    bool CreateDescriptorHeap();
-    bool CreateCommandAllocator();
-    bool CreateRootSignature();
-    bool CompileAndCreateShaderByteCode();
-    bool CreatePipelineStateObject();
-    bool CreateFenceEvents();
+    static bool CreateFactory();
+    
+    static bool CreateDeviceDX12();
+    
+    static bool CreateCommandQueue();
+    
+    static bool CreateSwapChain();
+    
+    static bool CreateDescriptorHeap();
+    
+    static bool CreateCommandAllocator();
+    
+    static bool CreateRootSignature();
+    
+    static bool CompileAndCreateShaderByteCode();
+    
+    static bool CreatePipelineStateObject();
+    
+    static bool CreateFenceEvents();
 
     // direct3d stuff
     static constexpr int frameBufferCount = 3; // number of buffers we want, 2 for double buffering, 3 for tripple buffering
 
+    static UINT width;
+    
+    static UINT height;
+
+    static HWND hwnd;
+
+    static bool fullScreen;
+    
+    static IDXGIFactory4* dxgiFactory;
+    
     static ID3D12Device* device; // direct3d device
 
     static IDXGISwapChain3* swapChain; // swapchain used to switch between render targets
