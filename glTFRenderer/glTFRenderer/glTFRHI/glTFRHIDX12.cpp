@@ -61,6 +61,11 @@ D3D12_SHADER_BYTECODE glTFRHIDX12::vertexShaderBytecode = {};
     
 D3D12_SHADER_BYTECODE glTFRHIDX12::pixelShaderBytecode = {};
 
+struct Vertex
+{
+    float data[3];
+};
+
 bool glTFRHIDX12::InitD3D(UINT Width, UINT Height, HWND Hwnd, bool FullScreen)
 {
     // Setup window config parameters
@@ -98,8 +103,23 @@ bool glTFRHIDX12::InitD3D(UINT Width, UINT Height, HWND Hwnd, bool FullScreen)
     {
         return false;
     }
-    
+
+    if (!CreateRootSignature())
+    {
+        return false;
+    }
+
+    if (!CompileAndCreateShaderByteCode())
+    {
+        return false;
+    }
+
     if (!CreateFenceEvents())
+    {
+        return false;
+    }
+    
+    if (!CreatePipelineStateObject())
     {
         return false;
     }
@@ -137,7 +157,7 @@ void glTFRHIDX12::UpdatePipeline()
     // but in this tutorial we are only clearing the rtv, and do not actually need
     // anything but an initial default pipeline, which is what we get by setting
     // the second parameter to NULL
-    hr = commandList->Reset(commandAllocator[frameIndex], NULL);
+    hr = commandList->Reset(commandAllocator[frameIndex], pipelineStateObject);
     if (FAILED(hr))
     {
         Running = false;
@@ -158,6 +178,14 @@ void glTFRHIDX12::UpdatePipeline()
     // Clear the render target by using the ClearRenderTargetView command
     const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
     commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
+
+    // draw triangle
+    commandList->SetGraphicsRootSignature(rootSignature); // set the root signature
+    commandList->RSSetViewports(1, &viewport); // set the viewports
+    commandList->RSSetScissorRects(1, &scissorRect); // set the scissor rects
+    commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // set the primitive topology
+    commandList->IASetVertexBuffers(0, 1, &vertexBufferView); // set the vertex buffer (using the vertex buffer view)
+    commandList->DrawInstanced(3, 1, 0, 0); // finally draw 3 vertices (draw the triangle)
     
     // transition the "frameIndex" render target from the render target state to the present state. If the debug layer is enabled, you will receive a
     // warning if present is called on the render target when it's not in the present state
@@ -225,7 +253,11 @@ void glTFRHIDX12::Cleanup()
         SAFE_RELEASE(renderTargets[i]);
         SAFE_RELEASE(commandAllocator[i]);
         SAFE_RELEASE(fence[i]);
-    };
+    }
+
+    SAFE_RELEASE(pipelineStateObject);
+    SAFE_RELEASE(rootSignature);
+    SAFE_RELEASE(vertexBuffer);
 }
 
 void glTFRHIDX12::WaitForPreviousFrame()
@@ -430,7 +462,7 @@ bool glTFRHIDX12::CreateCommandAllocator()
     }
 
     // create the command list with the first allocator
-    HRESULT hr = device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, commandAllocator[0], NULL, IID_PPV_ARGS(&commandList));
+    HRESULT hr = device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, commandAllocator[0], nullptr, IID_PPV_ARGS(&commandList));
     if (FAILED(hr))
     {
         return false;
@@ -577,6 +609,97 @@ bool glTFRHIDX12::CreatePipelineStateObject()
         return false;
     }
 
+    // Create vertex buffer
+
+    // a triangle
+    Vertex vList[] = {
+        { { 0.0f, 0.5f, 0.5f } },
+        { { 0.5f, -0.5f, 0.5f } },
+        { { -0.5f, -0.5f, 0.5f } },
+    };
+
+    int vBufferSize = sizeof(vList);
+
+    // create default heap
+    // default heap is memory on the GPU. Only the GPU has access to this memory
+    // To get data into this heap, we will have to upload the data using
+    // an upload heap
+    CD3DX12_HEAP_PROPERTIES default_heap_properties(D3D12_HEAP_TYPE_DEFAULT);
+    CD3DX12_RESOURCE_DESC buffer_heap_properties = CD3DX12_RESOURCE_DESC::Buffer(vBufferSize);
+    device->CreateCommittedResource(
+        &default_heap_properties, // a default heap
+        D3D12_HEAP_FLAG_NONE, // no flags
+        &buffer_heap_properties, // resource description for a buffer
+        D3D12_RESOURCE_STATE_COPY_DEST, // we will start this heap in the copy destination state since we will copy data
+                                        // from the upload heap to this heap
+        nullptr, // optimized clear value must be null for this type of resource. used for render targets and depth/stencil buffers
+        IID_PPV_ARGS(&vertexBuffer));
+
+    // we can give resource heaps a name so when we debug with the graphics debugger we know what resource we are looking at
+    vertexBuffer->SetName(L"Vertex Buffer Resource Heap");
+
+    // create upload heap
+    // upload heaps are used to upload data to the GPU. CPU can write to it, GPU can read from it
+    // We will upload the vertex buffer using this heap to the default heap
+    ID3D12Resource* vBufferUploadHeap;
+    CD3DX12_HEAP_PROPERTIES upload_heap_properties(D3D12_HEAP_TYPE_UPLOAD);
+    device->CreateCommittedResource(
+        &upload_heap_properties, // upload heap
+        D3D12_HEAP_FLAG_NONE, // no flags
+        &buffer_heap_properties, // resource description for a buffer
+        D3D12_RESOURCE_STATE_GENERIC_READ, // GPU will read from this buffer and copy its contents to the default heap
+        nullptr,
+        IID_PPV_ARGS(&vBufferUploadHeap));
+    vBufferUploadHeap->SetName(L"Vertex Buffer Upload Resource Heap");
+
+    // store vertex buffer in upload heap
+    D3D12_SUBRESOURCE_DATA vertexData = {};
+    vertexData.pData = reinterpret_cast<BYTE*>(vList); // pointer to our vertex array
+    vertexData.RowPitch = vBufferSize; // size of all our triangle vertex data
+    vertexData.SlicePitch = vBufferSize; // also the size of our triangle vertex data
+
+    commandList->Reset(commandAllocator[frameIndex], pipelineStateObject);
+    
+    // we are now creating a command with the command list to copy the data from
+    // the upload heap to the default heap
+    UpdateSubresources(commandList, vertexBuffer, vBufferUploadHeap, 0, 0, 1, &vertexData);
+
+    // transition the vertex buffer data from copy destination state to vertex buffer state
+    CD3DX12_RESOURCE_BARRIER TransitionToVertexBufferState = CD3DX12_RESOURCE_BARRIER::Transition(vertexBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER); 
+    commandList->ResourceBarrier(1, &TransitionToVertexBufferState);
+
+    // Now we execute the command list to upload the initial assets (triangle data)
+    commandList->Close();
+    ID3D12CommandList* ppCommandLists[] = { commandList };
+    commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+
+    // increment the fence value now, otherwise the buffer might not be uploaded by the time we start drawing
+    fenceValue[frameIndex]++;
+    hr = commandQueue->Signal(fence[frameIndex], fenceValue[frameIndex]);
+    if (FAILED(hr))
+    {
+        Running = false;
+    }
+
+    // create a vertex buffer view for the triangle. We get the GPU memory address to the vertex pointer using the GetGPUVirtualAddress() method
+    vertexBufferView.BufferLocation = vertexBuffer->GetGPUVirtualAddress();
+    vertexBufferView.StrideInBytes = sizeof(Vertex);
+    vertexBufferView.SizeInBytes = vBufferSize;
+
+    // Fill out the Viewport
+    viewport.TopLeftX = 0;
+    viewport.TopLeftY = 0;
+    viewport.Width = width;
+    viewport.Height = height;
+    viewport.MinDepth = 0.0f;
+    viewport.MaxDepth = 1.0f;
+
+    // Fill out a scissor rect
+    scissorRect.left = 0;
+    scissorRect.top = 0;
+    scissorRect.right = width;
+    scissorRect.bottom = height;
+    
     return true;
 }
 
