@@ -64,6 +64,7 @@ D3D12_SHADER_BYTECODE glTFRHIDX12::pixelShaderBytecode = {};
 struct Vertex
 {
     float data[3];
+    float color[4];
 };
 
 bool glTFRHIDX12::InitD3D(UINT Width, UINT Height, HWND Hwnd, bool FullScreen)
@@ -233,8 +234,7 @@ void glTFRHIDX12::Cleanup()
     // wait for the gpu to finish all frames
     for (int i = 0; i < frameBufferCount; ++i)
     {
-        frameIndex = i;
-        WaitForPreviousFrame();
+        WaitForPreviousFrame(i);
     }
     
     // get swapchain out of full screen before exiting
@@ -260,12 +260,12 @@ void glTFRHIDX12::Cleanup()
     SAFE_RELEASE(vertexBuffer);
 }
 
-void glTFRHIDX12::WaitForPreviousFrame()
+void glTFRHIDX12::WaitForPreviousFrame(int previous_frame_index)
 {
     HRESULT hr;
 
     // swap the current rtv buffer index so we draw on the correct buffer
-    frameIndex = swapChain->GetCurrentBackBufferIndex();
+    frameIndex = previous_frame_index;
 
     // if the current fence value is still less than "fenceValue", then we know the GPU has not finished executing
     // the command queue since it has not reached the "commandQueue->Signal(fence, fenceValue)" command
@@ -569,7 +569,8 @@ bool glTFRHIDX12::CreatePipelineStateObject()
 
     D3D12_INPUT_ELEMENT_DESC inputLayout[] =
     {
-        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
     };
 
     // fill out an input layout description structure
@@ -613,9 +614,9 @@ bool glTFRHIDX12::CreatePipelineStateObject()
 
     // a triangle
     Vertex vList[] = {
-        { { 0.0f, 0.5f, 0.5f } },
-        { { 0.5f, -0.5f, 0.5f } },
-        { { -0.5f, -0.5f, 0.5f } },
+        {  0.0f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f },
+        {  0.5f, -0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f} ,
+        {  -0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f },
     };
 
     int vBufferSize = sizeof(vList);

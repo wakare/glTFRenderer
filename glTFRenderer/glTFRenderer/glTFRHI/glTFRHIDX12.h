@@ -16,7 +16,7 @@ public:
 
     static void Cleanup(); // release com ojects and clean up memory
 
-    static void WaitForPreviousFrame(); // wait until gpu is finished with command list
+    static void WaitForPreviousFrame(int previous_frame_index = swapChain->GetCurrentBackBufferIndex()); // wait until gpu is finished with command list
 
     static bool Running;
     
