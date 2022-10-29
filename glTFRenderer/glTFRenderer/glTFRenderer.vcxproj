@@ -96,6 +96,8 @@
     <ClCompile Include="glTFLoader\glTFLoader.cpp" />
     <ClCompile Include="glTFRenderer.cpp" />
     <ClCompile Include="glTFRHI\glTFRHIDX12.cpp" />
+    <ClCompile Include="glTFShaders\pixelShader.hlsl" />
+    <ClCompile Include="glTFShaders\vertexShader.hlsl" />
     <ClCompile Include="glTFWindow\glTFWindow.cpp" />
   </ItemGroup>
   <ItemGroup>

@@ -1,7 +1,8 @@
 #include "glTFRHIDX12.h"
 #include "d3dx12.h"
+#include <d3dcompiler.h>
 
-#define SAFE_RELEASE(x) if(x) { x->Release(); x = NULL; }
+#define SAFE_RELEASE(x) if(x) { (x)->Release(); (x) = NULL; }
 
 // direct3d stuff
 bool glTFRHIDX12::Running = true;
@@ -41,8 +42,28 @@ int glTFRHIDX12::frameIndex = 0; // current rtv we are on
 
 int glTFRHIDX12::rtvDescriptorSize = 0; // size of the rtv descriptor on the device (all front and back buffers will be the same size)
 
+ID3D12PipelineState* glTFRHIDX12::pipelineStateObject = nullptr; // pso containing a pipeline state
+
+ID3D12RootSignature* glTFRHIDX12::rootSignature = nullptr; // root signature defines data shaders will access
+
+D3D12_VIEWPORT glTFRHIDX12::viewport = {}; // area that output from rasterizer will be stretched to.
+
+D3D12_RECT glTFRHIDX12::scissorRect = {}; // the area to draw in. pixels outside that area will not be drawn onto
+
+ID3D12Resource* glTFRHIDX12::vertexBuffer = nullptr; // a default buffer in GPU memory that we will load vertex data for our triangle into
+
+D3D12_VERTEX_BUFFER_VIEW glTFRHIDX12::vertexBufferView = {}; // a structure containing a pointer to the vertex data in gpu memory
+// the total size of the buffer, and the size of each element (vertex)
+
+DXGI_SAMPLE_DESC glTFRHIDX12::swapChainSampleDesc = {};
+
+D3D12_SHADER_BYTECODE glTFRHIDX12::vertexShaderBytecode = {};
+    
+D3D12_SHADER_BYTECODE glTFRHIDX12::pixelShaderBytecode = {};
+
 bool glTFRHIDX12::InitD3D(UINT Width, UINT Height, HWND Hwnd, bool FullScreen)
 {
+    // Setup window config parameters
     width = Width;
     height = Height;
     hwnd = Hwnd;
@@ -53,7 +74,7 @@ bool glTFRHIDX12::InitD3D(UINT Width, UINT Height, HWND Hwnd, bool FullScreen)
         return false;
     }
 
-    if (!CreateDeviceDX12())
+    if (!CreateDevice())
     {
         return false;
     }
@@ -246,7 +267,7 @@ bool glTFRHIDX12::CreateFactory()
     return true;
 }
 
-bool glTFRHIDX12::CreateDeviceDX12()
+bool glTFRHIDX12::CreateDevice()
 {
     IDXGIAdapter1* adapter; // adapters are the graphics card (this includes the embedded graphics on the motherboard)
 
@@ -308,6 +329,7 @@ bool glTFRHIDX12::CreateCommandQueue()
     {
         return false;
     }
+    
     return true;
 }
 
@@ -320,8 +342,7 @@ bool glTFRHIDX12::CreateSwapChain()
     backBufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; // format of the buffer (rgba 32 bits, 8 bits for each chanel)
     
     // describe our multi-sampling. We are not multi-sampling, so we set the count to 1 (we need at least one sample of course)
-    DXGI_SAMPLE_DESC sampleDesc = {};
-    sampleDesc.Count = 1; // multisample count (no multisampling, so we just put 1, since we still need 1 sample)
+    swapChainSampleDesc.Count = 1; // multisample count (no multisampling, so we just put 1, since we still need 1 sample)
     
     // Describe and create the swap chain.
     DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
@@ -330,7 +351,7 @@ bool glTFRHIDX12::CreateSwapChain()
     swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT; // this says the pipeline will render to this swap chain
     swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD; // dxgi will discard the buffer (data) after we call present
     swapChainDesc.OutputWindow = hwnd; // handle to our window
-    swapChainDesc.SampleDesc = sampleDesc; // our multi-sampling description
+    swapChainDesc.SampleDesc = swapChainSampleDesc; // our multi-sampling description
     swapChainDesc.Windowed = !fullScreen; // set to true, then if in fullscreen must call SetFullScreenState with true for full screen to get uncapped fps
     
     IDXGISwapChain* tempSwapChain;
@@ -418,6 +439,144 @@ bool glTFRHIDX12::CreateCommandAllocator()
     // command lists are created in the recording state. our main loop will set it up for recording again so close it now
     commandList->Close();
     
+    return true;
+}
+
+bool glTFRHIDX12::CreateRootSignature()
+{
+    // create root signature
+    HRESULT hr;
+    
+    CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc;
+    rootSignatureDesc.Init(0, nullptr, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+
+    ID3DBlob* signature;
+    hr = D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &signature, nullptr);
+    if (FAILED(hr))
+    {
+        return false;
+    }
+
+    hr = device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&rootSignature));
+    if (FAILED(hr))
+    {
+        return false;
+    }
+
+    return true;
+}
+
+bool glTFRHIDX12::CompileAndCreateShaderByteCode()
+{
+    // create vertex and pixel shaders
+    HRESULT hr;
+    
+    // when debugging, we can compile the shader files at runtime.
+    // but for release versions, we can compile the hlsl shaders
+    // with fxc.exe to create .cso files, which contain the shader
+    // bytecode. We can load the .cso files at runtime to get the
+    // shader bytecode, which of course is faster than compiling
+    // them at runtime
+
+    // compile vertex shader
+    ID3DBlob* vertexShader; // d3d blob for holding vertex shader bytecode
+    ID3DBlob* errorBuff; // a buffer holding the error data if any
+    hr = D3DCompileFromFile(L"glTFShaders/vertexShader.hlsl",
+        nullptr,
+        nullptr,
+        "main",
+        "vs_5_0",
+        D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
+        0,
+        &vertexShader,
+        &errorBuff);
+    if (FAILED(hr))
+    {
+        OutputDebugStringA((char*)errorBuff->GetBufferPointer());
+        return false;
+    }
+
+    // fill out a shader bytecode structure, which is basically just a pointer
+    // to the shader bytecode and the size of the shader bytecode
+    vertexShaderBytecode.BytecodeLength = vertexShader->GetBufferSize();
+    vertexShaderBytecode.pShaderBytecode = vertexShader->GetBufferPointer();
+
+    // compile pixel shader
+    ID3DBlob* pixelShader;
+    hr = D3DCompileFromFile(L"glTFShaders/pixelShader.hlsl",
+        nullptr,
+        nullptr,
+        "main",
+        "ps_5_0",
+        D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
+        0,
+        &pixelShader,
+        &errorBuff);
+    if (FAILED(hr))
+    {
+        OutputDebugStringA((char*)errorBuff->GetBufferPointer());
+        return false;
+    }
+
+    // fill out shader bytecode structure for pixel shader
+    pixelShaderBytecode.BytecodeLength = pixelShader->GetBufferSize();
+    pixelShaderBytecode.pShaderBytecode = pixelShader->GetBufferPointer();
+
+    return true;
+}
+
+bool glTFRHIDX12::CreatePipelineStateObject()
+{
+    // create a pipeline state object (PSO)
+    HRESULT hr;
+    
+    // create input layout
+
+    // The input layout is used by the Input Assembler so that it knows
+    // how to read the vertex data bound to it.
+
+    D3D12_INPUT_ELEMENT_DESC inputLayout[] =
+    {
+        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+    };
+
+    // fill out an input layout description structure
+    D3D12_INPUT_LAYOUT_DESC inputLayoutDesc = {};
+
+    // we can get the number of elements in an array by "sizeof(array) / sizeof(arrayElementType)"
+    inputLayoutDesc.NumElements = sizeof(inputLayout) / sizeof(D3D12_INPUT_ELEMENT_DESC);
+    inputLayoutDesc.pInputElementDescs = inputLayout;
+    
+    // In a real application, you will have many pso's. for each different shader
+    // or different combinations of shaders, different blend states or different rasterizer states,
+    // different topology types (point, line, triangle, patch), or a different number
+    // of render targets you will need a pso
+
+    // VS is the only required shader for a pso. You might be wondering when a case would be where
+    // you only set the VS. It's possible that you have a pso that only outputs data with the stream
+    // output, and not on a render target, which means you would not need anything after the stream
+    // output.
+
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {}; // a structure to define a pso
+    psoDesc.InputLayout = inputLayoutDesc; // the structure describing our input layout
+    psoDesc.pRootSignature = rootSignature; // the root signature that describes the input data this pso needs
+    psoDesc.VS = vertexShaderBytecode; // structure describing where to find the vertex shader bytecode and how large it is
+    psoDesc.PS = pixelShaderBytecode; // same as VS but for pixel shader
+    psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE; // type of topology we are drawing
+    psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM; // format of the render target
+    psoDesc.SampleDesc = swapChainSampleDesc; // must be the same sample description as the swapchain and depth/stencil buffer
+    psoDesc.SampleMask = 0xffffffff; // sample mask has to do with multi-sampling. 0xffffffff means point sampling is done
+    psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT); // a default rasterizer state.
+    psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT); // a default blent state.
+    psoDesc.NumRenderTargets = 1; // we are only binding one render target
+
+    // create the pso
+    hr = device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pipelineStateObject));
+    if (FAILED(hr))
+    {
+        return false;
+    }
+
     return true;
 }
 

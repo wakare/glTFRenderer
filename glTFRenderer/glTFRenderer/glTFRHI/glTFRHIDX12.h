@@ -23,7 +23,7 @@ public:
 private:
     static bool CreateFactory();
     
-    static bool CreateDeviceDX12();
+    static bool CreateDevice();
     
     static bool CreateCommandQueue();
     
@@ -78,4 +78,23 @@ private:
     static int frameIndex; // current rtv we are on
 
     static int rtvDescriptorSize; // size of the rtv descriptor on the device (all front and back buffers will be the same size)
+
+    static ID3D12PipelineState* pipelineStateObject; // pso containing a pipeline state
+
+    static ID3D12RootSignature* rootSignature; // root signature defines data shaders will access
+
+    static D3D12_VIEWPORT viewport; // area that output from rasterizer will be stretched to.
+
+    static D3D12_RECT scissorRect; // the area to draw in. pixels outside that area will not be drawn onto
+
+    static ID3D12Resource* vertexBuffer; // a default buffer in GPU memory that we will load vertex data for our triangle into
+
+    static D3D12_VERTEX_BUFFER_VIEW vertexBufferView; // a structure containing a pointer to the vertex data in gpu memory
+    // the total size of the buffer, and the size of each element (vertex)
+    
+    static DXGI_SAMPLE_DESC swapChainSampleDesc;
+
+    static D3D12_SHADER_BYTECODE vertexShaderBytecode;
+    
+    static D3D12_SHADER_BYTECODE pixelShaderBytecode;
 };
