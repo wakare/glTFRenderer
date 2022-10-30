@@ -97,4 +97,14 @@ private:
     static D3D12_SHADER_BYTECODE vertexShaderBytecode;
     
     static D3D12_SHADER_BYTECODE pixelShaderBytecode;
+
+    static ID3D12Resource* indexBuffer;
+
+    static D3D12_INDEX_BUFFER_VIEW indexBufferView;
+
+    static ID3D12DescriptorHeap* dsDescriptorHeap;
+
+    static ID3D12Resource* depthStencilBuffer;
+
+    static int dsDescriptorSize; // size of the ds descriptor on the device (all front and back buffers will be the same size)
 };
