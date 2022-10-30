@@ -2,6 +2,11 @@
 #include <d3d12.h>
 #include <dxgi1_4.h>
 
+struct ConstantBuffer
+{
+    float colorMultiplier[4];
+};
+
 class glTFRHIDX12
 {
 public:
@@ -107,4 +112,12 @@ private:
     static ID3D12Resource* depthStencilBuffer;
 
     static int dsDescriptorSize; // size of the ds descriptor on the device (all front and back buffers will be the same size)
+
+    static ID3D12DescriptorHeap* mainDescriptorHeap[frameBufferCount];
+    
+    static ID3D12Resource* constantBufferUploadHeap[frameBufferCount];
+
+    static ConstantBuffer cbColorMultiplierData;
+    
+    static UINT8* cbColorMultiplierGPUAddress[frameBufferCount];
 };
