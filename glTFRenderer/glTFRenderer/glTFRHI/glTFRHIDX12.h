@@ -4,7 +4,13 @@
 
 struct ConstantBuffer
 {
-    float colorMultiplier[4];
+    struct 
+    {
+        float x;
+        float y;
+        float z;
+        float w;
+    } colorMultiplier;
 };
 
 class glTFRHIDX12

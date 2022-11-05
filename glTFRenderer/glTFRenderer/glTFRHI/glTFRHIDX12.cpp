@@ -75,7 +75,7 @@ ID3D12DescriptorHeap* glTFRHIDX12::mainDescriptorHeap[frameBufferCount] = {nullp
     
 ID3D12Resource* glTFRHIDX12::constantBufferUploadHeap[frameBufferCount] = {nullptr};
 
-ConstantBuffer cbColorMultiplierData = {};
+ConstantBuffer glTFRHIDX12::cbColorMultiplierData = {};
     
 UINT8* glTFRHIDX12::cbColorMultiplierGPUAddress[frameBufferCount] = {nullptr};
 
@@ -148,7 +148,33 @@ bool glTFRHIDX12::InitD3D(UINT Width, UINT Height, HWND Hwnd, bool FullScreen)
 
 void glTFRHIDX12::Update()
 {
+    // update app logic, such as moving the camera or figuring out what objects are in view
+    static float rIncrement = 0.00002f;
+    static float gIncrement = 0.00006f;
+    static float bIncrement = 0.00009f;
+
+    cbColorMultiplierData.colorMultiplier.x += rIncrement;
+    cbColorMultiplierData.colorMultiplier.y += gIncrement;
+    cbColorMultiplierData.colorMultiplier.z += bIncrement;
+
+    if (cbColorMultiplierData.colorMultiplier.x >= 1.0 || cbColorMultiplierData.colorMultiplier.x <= 0.0)
+    {
+        cbColorMultiplierData.colorMultiplier.x = cbColorMultiplierData.colorMultiplier.x >= 1.0 ? 1.0 : 0.0;
+        rIncrement = -rIncrement;
+    }
+    if (cbColorMultiplierData.colorMultiplier.y >= 1.0 || cbColorMultiplierData.colorMultiplier.y <= 0.0)
+    {
+        cbColorMultiplierData.colorMultiplier.y = cbColorMultiplierData.colorMultiplier.y >= 1.0 ? 1.0 : 0.0;
+        gIncrement = -gIncrement;
+    }
+    if (cbColorMultiplierData.colorMultiplier.z >= 1.0 || cbColorMultiplierData.colorMultiplier.z <= 0.0)
+    {
+        cbColorMultiplierData.colorMultiplier.z = cbColorMultiplierData.colorMultiplier.z >= 1.0 ? 1.0 : 0.0;
+        bIncrement = -bIncrement;
+    }
     
+    // copy our ConstantBuffer instance to the mapped constant buffer resource
+    memcpy(cbColorMultiplierGPUAddress[frameIndex], &cbColorMultiplierData, sizeof(cbColorMultiplierData));
 }
 
 void glTFRHIDX12::UpdatePipeline()
@@ -205,6 +231,13 @@ void glTFRHIDX12::UpdatePipeline()
     
     // draw triangle
     commandList->SetGraphicsRootSignature(rootSignature); // set the root signature
+    // set constant buffer descriptor heap
+    ID3D12DescriptorHeap* descriptorHeaps[] = { mainDescriptorHeap[frameIndex] };
+    commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+
+    // set the root descriptor table 0 to the constant buffer descriptor heap
+    commandList->SetGraphicsRootDescriptorTable(0, mainDescriptorHeap[frameIndex]->GetGPUDescriptorHandleForHeapStart());
+    
     commandList->RSSetViewports(1, &viewport); // set the viewports
     commandList->RSSetScissorRects(1, &scissorRect); // set the scissor rects
     commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // set the primitive topology
@@ -286,6 +319,12 @@ void glTFRHIDX12::Cleanup()
     SAFE_RELEASE(indexBuffer);
     SAFE_RELEASE(depthStencilBuffer);
     SAFE_RELEASE(dsDescriptorHeap);
+
+    for (int i = 0; i < frameBufferCount; ++i)
+    {
+        SAFE_RELEASE(mainDescriptorHeap[i]);
+        SAFE_RELEASE(constantBufferUploadHeap[i]);
+    };
 }
 
 void glTFRHIDX12::WaitForPreviousFrame(int previous_frame_index)
@@ -531,16 +570,32 @@ bool glTFRHIDX12::CreateDescriptorHeap()
     // will be modified and uploaded at least once per frame, so we only use an upload heap
 
     // create a resource heap, descriptor heap, and pointer to cbv for each frame
+    CD3DX12_HEAP_PROPERTIES upload_heap_properties(D3D12_HEAP_TYPE_UPLOAD);
+    CD3DX12_RESOURCE_DESC heap_resource_size = CD3DX12_RESOURCE_DESC::Buffer(1024 * 64);
     for (int i = 0; i < frameBufferCount; ++i)
     {
         hr = device->CreateCommittedResource(
-            &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), // this heap will be used to upload the constant buffer data
+            &upload_heap_properties, // this heap will be used to upload the constant buffer data
             D3D12_HEAP_FLAG_NONE, // no flags
-            &CD3DX12_RESOURCE_DESC::Buffer(1024 * 64), // size of the resource heap. Must be a multiple of 64KB for single-textures and constant buffers
+            &heap_resource_size, // size of the resource heap. Must be a multiple of 64KB for single-textures and constant buffers
             D3D12_RESOURCE_STATE_GENERIC_READ, // will be data that is read from so we keep it in the generic read state
             nullptr, // we do not have use an optimized clear value for constant buffers
             IID_PPV_ARGS(&constantBufferUploadHeap[i]));
         constantBufferUploadHeap[i]->SetName(L"Constant Buffer Upload Resource Heap");
+
+        D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+        cbvDesc.BufferLocation = constantBufferUploadHeap[i]->GetGPUVirtualAddress();
+        cbvDesc.SizeInBytes = (sizeof(ConstantBuffer) + 255) & ~255;    // CB size is required to be 256-byte aligned.
+        device->CreateConstantBufferView(&cbvDesc, mainDescriptorHeap[i]->GetCPUDescriptorHandleForHeapStart());
+    }
+
+    ZeroMemory(&cbColorMultiplierData, sizeof(cbColorMultiplierData));
+    for (int i = 0; i < frameBufferCount; ++i)
+    {
+        CD3DX12_RANGE readRange(0, 0);    // We do not intend to read from this resource on the CPU. (End is less than or equal to begin)
+        hr = constantBufferUploadHeap[i]->Map(0, &readRange, reinterpret_cast<void**>(&cbColorMultiplierGPUAddress[i]));
+        memcpy(cbColorMultiplierGPUAddress[i], &cbColorMultiplierData, sizeof(cbColorMultiplierData));
+    }
     
     return true;
 }
@@ -742,10 +797,10 @@ bool glTFRHIDX12::CreatePipelineStateObject()
     // a triangle
     Vertex vList[] = {
         // first quad (closer to camera, blue)
-        { -0.5f,  0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f },
-        {  0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f },
-        { -0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f },
-        {  0.5f,  0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f },
+        { -0.5f,  0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f },
+        {  0.5f, -0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f },
+        { -0.5f, -0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f },
+        {  0.5f,  0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f },
     };
 
     int vBufferSize = sizeof(vList);
