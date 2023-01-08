@@ -843,7 +843,8 @@ bool glTFRHIDX12::CreatePipelineStateObject()
     vertexData.RowPitch = vBufferSize; // size of all our triangle vertex data
     vertexData.SlicePitch = vBufferSize; // also the size of our triangle vertex data
 
-    commandList->Reset(commandAllocator[frameIndex], pipelineStateObject);
+    //commandList->Reset(commandAllocator[frameIndex], pipelineStateObject);
+    commandList->Reset(commandAllocator[frameIndex], nullptr);
     
     // we are now creating a command with the command list to copy the data from
     // the upload heap to the default heap

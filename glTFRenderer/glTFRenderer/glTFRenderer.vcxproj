@@ -103,6 +103,25 @@
     <FxCompile Include="glTFShaders\vertexShader.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
     </FxCompile>
+    <ClCompile Include="glTFRHI\IRHIResource.cpp" />
+    <ClCompile Include="glTFRHI\RHIConfigSingleton.cpp" />
+    <ClCompile Include="glTFRHI\RHIDX12Impl\DX12CommandAllocator.cpp" />
+    <ClCompile Include="glTFRHI\RHIDX12Impl\DX12CommandList.cpp" />
+    <ClCompile Include="glTFRHI\RHIDX12Impl\DX12CommandQueue.cpp" />
+    <ClCompile Include="glTFRHI\RHIDX12Impl\DX12Device.cpp" />
+    <ClCompile Include="glTFRHI\RHIDX12Impl\DX12Factory.cpp" />
+    <ClCompile Include="glTFRHI\RHIDX12Impl\DX12RenderTarget.cpp" />
+    <ClCompile Include="glTFRHI\RHIDX12Impl\DX12RenderTargetManager.cpp" />
+    <ClCompile Include="glTFRHI\RHIDX12Impl\DX12SwapChain.cpp" />
+    <ClCompile Include="glTFRHI\RHIInterface\IRHICommandAllocator.cpp" />
+    <ClCompile Include="glTFRHI\RHIInterface\IRHICommandList.cpp" />
+    <ClCompile Include="glTFRHI\RHIInterface\IRHICommandQueue.cpp" />
+    <ClCompile Include="glTFRHI\RHIInterface\IRHIDevice.cpp" />
+    <ClCompile Include="glTFRHI\RHIInterface\IRHIFactory.cpp" />
+    <ClCompile Include="glTFRHI\RHIInterface\IRHIRenderTarget.cpp" />
+    <ClCompile Include="glTFRHI\RHIInterface\IRHIRenderTargetManager.cpp" />
+    <ClCompile Include="glTFRHI\RHIInterface\IRHISwapChain.cpp" />
+    <ClCompile Include="glTFRHI\RHIResourceFactory.cpp" />
     <ClCompile Include="glTFWindow\glTFWindow.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -110,6 +129,26 @@
     <ClInclude Include="glTFLoader\glTFLoader.h" />
     <ClInclude Include="glTFRHI\d3dx12.h" />
     <ClInclude Include="glTFRHI\glTFRHIDX12.h" />
+    <ClInclude Include="glTFRHI\IRHIResource.h" />
+    <ClInclude Include="glTFRHI\RHIConfigSingleton.h" />
+    <ClInclude Include="glTFRHI\RHIDX12Impl\DX12CommandAllocator.h" />
+    <ClInclude Include="glTFRHI\RHIDX12Impl\DX12CommandList.h" />
+    <ClInclude Include="glTFRHI\RHIDX12Impl\DX12CommandQueue.h" />
+    <ClInclude Include="glTFRHI\RHIDX12Impl\DX12Device.h" />
+    <ClInclude Include="glTFRHI\RHIDX12Impl\DX12Factory.h" />
+    <ClInclude Include="glTFRHI\RHIDX12Impl\DX12RenderTarget.h" />
+    <ClInclude Include="glTFRHI\RHIDX12Impl\DX12RenderTargetManager.h" />
+    <ClInclude Include="glTFRHI\RHIDX12Impl\DX12SwapChain.h" />
+    <ClInclude Include="glTFRHI\RHIInterface\IRHICommandAllocator.h" />
+    <ClInclude Include="glTFRHI\RHIInterface\IRHICommandList.h" />
+    <ClInclude Include="glTFRHI\RHIInterface\IRHICommandQueue.h" />
+    <ClInclude Include="glTFRHI\RHIInterface\IRHIDevice.h" />
+    <ClInclude Include="glTFRHI\RHIInterface\IRHIFactory.h" />
+    <ClInclude Include="glTFRHI\RHIInterface\IRHIRenderTarget.h" />
+    <ClInclude Include="glTFRHI\RHIInterface\IRHIRenderTargetManager.h" />
+    <ClInclude Include="glTFRHI\RHIInterface\IRHISwapChain.h" />
+    <ClInclude Include="glTFRHI\RHIResourceFactory.h" />
+    <ClInclude Include="glTFRHI\RHIResourceFactoryImpl.hpp" />
     <ClInclude Include="glTFWindow\glTFWindow.h" />
   </ItemGroup>
   <ItemGroup>

@@ -6,7 +6,7 @@
 #include <../glTFRenderer/glTFRHI/glTFRHIDX12.h>
 
 glTFWindow::glTFWindow()
-    : glfw_window(nullptr)
+    : m_glfwWindow(nullptr)
     , width(800)
     , height(600)
 {
@@ -20,8 +20,8 @@ bool glTFWindow::InitAndShowWindow()
         return false;
     }
     
-    glfw_window = glfwCreateWindow(width, height, "Hello World", NULL, NULL);
-    if (!glfw_window)
+    m_glfwWindow = glfwCreateWindow(width, height, "Hello World", NULL, NULL);
+    if (!m_glfwWindow)
     {
         glfwTerminate();
         return false;
@@ -37,7 +37,7 @@ bool glTFWindow::InitAndShowWindow()
 
 void glTFWindow::UpdateWindow()
 {
-    while (!glfwWindowShouldClose(glfw_window) && glTFRHIDX12::Running)
+    while (!glfwWindowShouldClose(m_glfwWindow) && glTFRHIDX12::Running)
     {
         glTFRHIDX12::Update();
         glTFRHIDX12::Render();
@@ -51,7 +51,7 @@ void glTFWindow::UpdateWindow()
 bool glTFWindow::InitDX12()
 {
     // Use this handle to init dx12 context
-    HWND hwnd = glfwGetWin32Window(glfw_window);
+    HWND hwnd = glfwGetWin32Window(m_glfwWindow);
     if (!hwnd)
     {
         return false;
