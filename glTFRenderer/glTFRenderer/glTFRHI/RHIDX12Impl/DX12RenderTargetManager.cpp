@@ -3,6 +3,8 @@
 #include <cassert>
 #include <d3d12.h>
 #include <codecvt>
+
+#include "DX12CommandList.h"
 #include "../RHIResourceFactoryImpl.hpp"
 
 DX12RenderTargetManager::DX12RenderTargetManager()
@@ -201,6 +203,71 @@ std::vector<std::shared_ptr<IRHIRenderTarget>> DX12RenderTargetManager::CreateRe
     }
 
     return outVector;
+}
+
+bool DX12RenderTargetManager::ClearRenderTarget(IRHICommandList& commandList, IRHIRenderTarget* renderTargetArray,
+    size_t renderTargetArrayCount)
+{
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    for (size_t i = 0; i < renderTargetArrayCount; ++i)
+    {
+        auto* dxRenderTarget = dynamic_cast<DX12RenderTarget*>(&renderTargetArray[i]);
+        switch (dxRenderTarget->GetRenderTargetType())
+        {
+        case RHIRenderTargetType::RTV:
+            {
+                assert(m_rtvHandles.find(dxRenderTarget->GetRenderTargetId()) != m_rtvHandles.end());
+                const auto& rtvHandle = m_rtvHandles[dxRenderTarget->GetRenderTargetId()];
+                dxCommandList->ClearRenderTargetView(rtvHandle, dxRenderTarget->m_clearValue.Color, 0, nullptr);    
+            }
+            break;
+
+        case RHIRenderTargetType::DSV:
+            {
+                assert(m_dsvHandles.find(dxRenderTarget->GetRenderTargetId()) != m_dsvHandles.end());
+                const auto& dsvHandle = m_dsvHandles[dxRenderTarget->GetRenderTargetId()];
+                dxCommandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
+                    dxRenderTarget->m_clearValue.DepthStencil.Depth, dxRenderTarget->m_clearValue.DepthStencil.Stencil, 0, nullptr);
+            }
+            break;
+            
+        default:
+            assert(false);
+        }
+    }
+}
+
+bool DX12RenderTargetManager::BindRenderTarget(IRHICommandList& commandList, IRHIRenderTarget* renderTargetArray,
+    size_t renderTargetArraySize, IRHIRenderTarget* depthStencil)
+{
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    if (!renderTargetArraySize)
+    {
+        // Bind zero rt? some bugs must exists.. 
+        assert(false);
+        return false;
+    }
+    
+    std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> renderTargetViews(renderTargetArraySize);
+    for (size_t i = 0; i < renderTargetArraySize; ++i)
+    {
+        auto iter = m_rtvHandles.find(renderTargetArray[i].GetRenderTargetId());
+        assert(iter != m_rtvHandles.end());
+        renderTargetViews[i] = iter->second;
+    }
+
+    D3D12_CPU_DESCRIPTOR_HANDLE* dsHandle = nullptr;
+    if (depthStencil)
+    {
+        auto iter = m_dsvHandles.find(depthStencil->GetRenderTargetId());
+        assert(iter != m_dsvHandles.end());
+        dsHandle = &iter->second;
+    }
+
+    // TODO: Check RTsSingleHandleToDescriptorRange means?
+    dxCommandList->OMSetRenderTargets(renderTargetViews.size(), renderTargetViews.data(), false, dsHandle);
+    
+    return true;
 }
 
 DXGI_FORMAT DX12RenderTargetManager::ConvertToDXFormat(RHIRenderTargetFormat format)

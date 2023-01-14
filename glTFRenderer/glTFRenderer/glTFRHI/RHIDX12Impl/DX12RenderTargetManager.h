@@ -13,6 +13,8 @@ public:
     virtual bool InitRenderTargetManager(IRHIDevice& device, size_t maxRenderTargetCount) override;
     virtual std::shared_ptr<IRHIRenderTarget> CreateRenderTarget(IRHIDevice& device, RHIRenderTargetType type, RHIRenderTargetFormat format, const IRHIRenderTargetDesc& desc) override;
     virtual std::vector<std::shared_ptr<IRHIRenderTarget>> CreateRenderTargetFromSwapChain(IRHIDevice& device, IRHISwapChain& swapChain, IRHIRenderTargetClearValue clearValue) override;
+    virtual bool ClearRenderTarget(IRHICommandList& commandList, IRHIRenderTarget* renderTargetArray, size_t renderTargetArrayCount) override;
+    virtual bool BindRenderTarget(IRHICommandList& commandList, IRHIRenderTarget* renderTargetArray, size_t renderTargetArraySize, /*optional*/ IRHIRenderTarget* depthStencil ) override;
     
 private:
     static DXGI_FORMAT ConvertToDXFormat(RHIRenderTargetFormat format);
