@@ -1,6 +1,6 @@
 #pragma once
 #include "IRHICommandAllocator.h"
-#include "../IRHIResource.h"
+#include "IRHIResource.h"
 
 class IRHICommandList : public IRHIResource
 {

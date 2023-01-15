@@ -1,6 +1,6 @@
 #pragma once
 #include "IRHIDevice.h"
-#include "../IRHIResource.h"
+#include "IRHIResource.h"
 
 enum class RHICommandAllocatorType
 {

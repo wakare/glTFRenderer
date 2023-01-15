@@ -3,7 +3,7 @@
 #include <atomic>
 #include <string>
 
-#include "../IRHIResource.h"
+#include "IRHIResource.h"
 
 struct IRHIDepthStencilClearValue
 {

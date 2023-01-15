@@ -6,15 +6,19 @@
 #include "RHIDX12Impl/DX12CommandQueue.h"
 #include "RHIDX12Impl/DX12Device.h"
 #include "RHIDX12Impl/DX12Factory.h"
+#include "RHIDX12Impl/DX12PipelineStateObject.h"
 #include "RHIDX12Impl/DX12RenderTarget.h"
 #include "RHIDX12Impl/DX12RenderTargetManager.h"
+#include "RHIDX12Impl/DX12RootSignature.h"
 #include "RHIDX12Impl/DX12SwapChain.h"
 #include "RHIInterface/IRHICommandAllocator.h"
 #include "RHIInterface/IRHICommandQueue.h"
 #include "RHIInterface/IRHIDevice.h"
 #include "RHIInterface/IRHIFactory.h"
+#include "RHIInterface/IRHIPipelineStateObject.h"
 #include "RHIInterface/IRHIRenderTarget.h"
 #include "RHIInterface/IRHIRenderTargetManager.h"
+#include "RHIInterface/IRHIRootSignature.h"
 #include "RHIInterface/IRHISwapChain.h"
 
 inline RHIGraphicsAPIType GetGraphicsAPI() {return RHIConfigSingleton::Instance().GetGraphicsAPIType();}
@@ -40,4 +44,8 @@ IMPLEMENT_CREATE_RHI_RESOURCE(IRHISwapChain, DX12SwapChain)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIRenderTarget, DX12RenderTarget)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIRenderTargetManager, DX12RenderTargetManager)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHICommandAllocator, DX12CommandAllocator)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHIRootParameter, DX12RootParameter)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHIStaticSampler, DX12StaticSampler)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHIRootSignature, DX12RootSignature)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHIPipelineStateObject, DX12GraphicsPipelineStateObject)
 

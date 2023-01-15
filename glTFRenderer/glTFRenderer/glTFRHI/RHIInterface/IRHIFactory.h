@@ -1,5 +1,5 @@
 #pragma once
-#include "../IRHIResource.h"
+#include "IRHIResource.h"
 
 class IRHIFactory : public IRHIResource
 {

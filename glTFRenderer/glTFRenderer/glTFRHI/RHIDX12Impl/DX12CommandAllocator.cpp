@@ -9,11 +9,7 @@ DX12CommandAllocator::DX12CommandAllocator()
 bool DX12CommandAllocator::InitCommandAllocator(IRHIDevice& device, RHICommandAllocatorType type)
 {
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
-    HRESULT hr = dxDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_commandAllocator));
-    if (FAILED(hr))
-    {
-        return false;
-    }
+    THROW_IF_FAILED(dxDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_commandAllocator)))
     
     return true;
 }

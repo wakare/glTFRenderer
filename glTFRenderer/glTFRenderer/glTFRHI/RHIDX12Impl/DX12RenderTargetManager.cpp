@@ -24,14 +24,14 @@ bool DX12RenderTargetManager::InitRenderTargetManager(IRHIDevice& device, size_t
     rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
     rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
     rtvHeapDesc.NodeMask = 0;
-    dxDevice->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&m_rtvDescriptorHeap));
+    THROW_IF_FAILED(dxDevice->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&m_rtvDescriptorHeap)))
 
     D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
     dsvHeapDesc.NumDescriptors = maxRenderTargetCount;
     dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
     dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
     dsvHeapDesc.NodeMask = 0;
-    dxDevice->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&m_dsvDescriptorHeap));
+    THROW_IF_FAILED(dxDevice->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&m_dsvDescriptorHeap)))
 
     m_maxRenderTargetCount = maxRenderTargetCount;
     
@@ -114,12 +114,12 @@ std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTarget(IR
     resourceDesc.Flags = flags;
 
     ID3D12Resource* resource = nullptr;
-    dxDevice->CreateCommittedResource(&heapProperties,
+    THROW_IF_FAILED(dxDevice->CreateCommittedResource(&heapProperties,
                                                   D3D12_HEAP_FLAG_NONE,
                                                   &resourceDesc,
                                                   initialState,
                                                   &dxClearValue,
-                                                  IID_PPV_ARGS(&resource));
+                                                  IID_PPV_ARGS(&resource)))
 
     if (!desc.name.empty())
     {
@@ -235,6 +235,8 @@ bool DX12RenderTargetManager::ClearRenderTarget(IRHICommandList& commandList, IR
             assert(false);
         }
     }
+
+    return true;
 }
 
 bool DX12RenderTargetManager::BindRenderTarget(IRHICommandList& commandList, IRHIRenderTarget* renderTargetArray,

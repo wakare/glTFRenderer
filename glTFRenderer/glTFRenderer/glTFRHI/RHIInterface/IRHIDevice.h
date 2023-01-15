@@ -1,6 +1,6 @@
 #pragma once
 #include "IRHIFactory.h"
-#include "../IRHIResource.h"
+#include "IRHIResource.h"
 
 class IRHIDevice : public IRHIResource
 {

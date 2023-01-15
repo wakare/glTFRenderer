@@ -13,11 +13,7 @@ bool DX12CommandQueue::InitCommandQueue(IRHIDevice& device)
     D3D12_COMMAND_QUEUE_DESC cqDesc = {}; // we will be using all the default values
 
     auto dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
-    HRESULT hr = dxDevice->CreateCommandQueue(&cqDesc, IID_PPV_ARGS(&m_commandQueue)); // create the command queue
-    if (FAILED(hr))
-    {
-        return false;
-    }
+    THROW_IF_FAILED(dxDevice->CreateCommandQueue(&cqDesc, IID_PPV_ARGS(&m_commandQueue))) // create the command queue
     
     return true;
 }
