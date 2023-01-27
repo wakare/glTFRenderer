@@ -1,5 +1,5 @@
 #include "DX12SwapChain.h"
-#include <../glTFRenderer/glTFRHI/glTFRHIDX12.h>
+#include "glTFRHIDX12.h"
 
 #include <GLFW/glfw3.h>
 #define GLFW_EXPOSE_NATIVE_WIN32 1
@@ -7,6 +7,7 @@
 
 #include "DX12CommandQueue.h"
 #include "DX12Factory.h"
+#include "../../glTFWindow/glTFWindow.h"
 
 DX12SwapChain::DX12SwapChain()
     : m_frameBufferCount(3)

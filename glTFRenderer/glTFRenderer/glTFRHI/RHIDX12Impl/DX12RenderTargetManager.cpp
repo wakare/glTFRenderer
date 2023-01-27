@@ -5,6 +5,7 @@
 #include <codecvt>
 
 #include "DX12CommandList.h"
+#include "DX12Utils.h"
 #include "../RHIResourceFactoryImpl.hpp"
 
 DX12RenderTargetManager::DX12RenderTargetManager()
@@ -38,7 +39,7 @@ bool DX12RenderTargetManager::InitRenderTargetManager(IRHIDevice& device, size_t
     return true;
 }
 
-std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTarget(IRHIDevice& device, RHIRenderTargetType type, RHIRenderTargetFormat format, const IRHIRenderTargetDesc& desc)
+std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTarget(IRHIDevice& device, RHIRenderTargetType type, RHIDataFormat format, const IRHIRenderTargetDesc& desc)
 {
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
     
@@ -47,7 +48,7 @@ std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTarget(IR
     size_t handleCount = 0;
     D3D12_CPU_DESCRIPTOR_HANDLE handle = {0};
     D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_COMMON;
-    DXGI_FORMAT dxFormat = ConvertToDXFormat(format);
+    DXGI_FORMAT dxFormat = DX12ConverterUtils::ConvertToDXGIFormat(format);
     D3D12_CLEAR_VALUE dxClearValue;
     memcpy(&dxClearValue, &desc.clearValue, sizeof(D3D12_CLEAR_VALUE));
     
@@ -192,7 +193,7 @@ std::vector<std::shared_ptr<IRHIRenderTarget>> DX12RenderTargetManager::CreateRe
 
         std::shared_ptr<IRHIRenderTarget> newRenderTarget = RHIResourceFactory::CreateRHIResource<IRHIRenderTarget>();
         newRenderTarget->SetRenderTargetType(RHIRenderTargetType::RTV);
-        newRenderTarget->SetRenderTargetFormat(RHIRenderTargetFormat::R8G8B8A8_UNORM_SRGB);
+        newRenderTarget->SetRenderTargetFormat(RHIDataFormat::R8G8B8A8_UNORM_SRGB);
         DX12RenderTarget* dxRenderTarget = dynamic_cast<DX12RenderTarget*>(newRenderTarget.get());
         dxRenderTarget->m_texture = resource;
         memcpy(&dxRenderTarget->m_clearValue, &defaultClearValue, sizeof(D3D12_CLEAR_VALUE));
@@ -270,20 +271,4 @@ bool DX12RenderTargetManager::BindRenderTarget(IRHICommandList& commandList, IRH
     dxCommandList->OMSetRenderTargets(renderTargetViews.size(), renderTargetViews.data(), false, dsHandle);
     
     return true;
-}
-
-DXGI_FORMAT DX12RenderTargetManager::ConvertToDXFormat(RHIRenderTargetFormat format)
-{
-    switch (format)
-    {
-        case RHIRenderTargetFormat::R8G8B8A8_UNORM:
-            return DXGI_FORMAT_R8G8B8A8_UNORM;
-
-        case RHIRenderTargetFormat::R8G8B8A8_UNORM_SRGB:
-            return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-        
-        case RHIRenderTargetFormat::Unknown: break;
-    }
-    assert(false);
-    return DXGI_FORMAT_UNKNOWN;
 }

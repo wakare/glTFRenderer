@@ -1,10 +1,12 @@
 #pragma once
+#include "glTFRenderResourceManager.h"
 
 class IRHICommandList;
 
 class glTFRenderPassBase 
 {
 public:
-    virtual bool InitRenderPass() = 0;
-    virtual bool RenderPass(IRHICommandList& commandList) = 0;
+    virtual const char* PassName() = 0;
+    virtual bool InitRenderPass(glTFRenderResourceManager& resourceManager) = 0;
+    virtual bool RenderPass(glTFRenderResourceManager& resourceManager) = 0;
 };

@@ -36,12 +36,6 @@ enum class RHIRenderTargetType
     Unknown,
 };
 
-enum class RHIRenderTargetFormat
-{
-    R8G8B8A8_UNORM,
-    R8G8B8A8_UNORM_SRGB,
-    Unknown,
-};
 
 typedef unsigned RTID; 
 
@@ -53,7 +47,7 @@ public:
     IRHIRenderTarget()
         : m_id(g_renderTargetId++)
         , m_type(RHIRenderTargetType::Unknown)
-        , m_format(RHIRenderTargetFormat::Unknown)
+        , m_format(RHIDataFormat::Unknown)
     {
     }
 
@@ -66,18 +60,18 @@ public:
     }
     RHIRenderTargetType GetRenderTargetType() const { return m_type; }
 
-    void SetRenderTargetFormat(RHIRenderTargetFormat format)
+    void SetRenderTargetFormat(RHIDataFormat format)
     {
-        assert(m_format == RHIRenderTargetFormat::Unknown && format != RHIRenderTargetFormat::Unknown);
+        assert(m_format == RHIDataFormat::Unknown && format != RHIDataFormat::Unknown);
         m_format = format;
     }
 
-    RHIRenderTargetFormat GetRenderTargetFormat() const { return m_format; }
+    RHIDataFormat GetRenderTargetFormat() const { return m_format; }
     
 private:
     RTID m_id;
     RHIRenderTargetType m_type;
-    RHIRenderTargetFormat m_format;
+    RHIDataFormat m_format;
     
     // Construct new id in ctor
     static std::atomic<RTID> g_renderTargetId;

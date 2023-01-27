@@ -1,6 +1,7 @@
 #pragma once
+#include "../glTFRenderPass/glTFRenderPassManager.h"
 
-class GLFWwindow;
+struct GLFWwindow;
 
 class glTFWindow
 {
@@ -9,6 +10,9 @@ public:
     bool InitAndShowWindow();
     void UpdateWindow();
 
+    int GetWidth() const {return m_width; }
+    int GetHeight() const {return m_height; }
+    
     // Can get hwnd by raw window
     GLFWwindow* GetRawWindow() {return m_glfwWindow;}
     const GLFWwindow* GetRawWindow() const {return m_glfwWindow;}
@@ -17,6 +21,8 @@ private:
     bool InitDX12();
     
     GLFWwindow* m_glfwWindow;
-    int width;
-    int height;
+    int m_width;
+    int m_height;
+
+    std::unique_ptr<glTFRenderPassManager> m_passManager;
 };

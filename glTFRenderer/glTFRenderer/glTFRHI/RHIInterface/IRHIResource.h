@@ -4,6 +4,7 @@
 
 class IRHIResource
 {
+    friend class RHIResourceFactory;
 public:
     IRHIResource() = default;
     virtual ~IRHIResource() = default;

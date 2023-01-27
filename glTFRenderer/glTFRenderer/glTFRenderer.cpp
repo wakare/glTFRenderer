@@ -1,5 +1,4 @@
 #include "glTFLoader/glTFLoader.h"
-
 #include "glTFWindow/glTFWindow.h"
 
 bool ShowGLFWWindow()

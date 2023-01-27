@@ -7,9 +7,9 @@ bool glTFShaderUtils::IsShaderFileExist(const char* shaderFilePath)
     return shaderFileStream.good();
 }
 
-bool glTFShaderUtils::LoadShaderFile(const char* shaderFilePath, std::string& outShaderFileContent)
+bool glTFShaderUtils::LoadShaderFile(const char* shaderFilePath, std::wstring& outShaderFileContent)
 {
-    std::fstream shaderFileStream(shaderFilePath, std::ios::in);
+    std::wifstream shaderFileStream(shaderFilePath, std::ios::in);
     if (shaderFileStream.bad())
     {
         return false;

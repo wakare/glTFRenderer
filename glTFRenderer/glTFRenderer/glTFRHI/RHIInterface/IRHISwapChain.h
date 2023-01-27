@@ -1,7 +1,8 @@
 #pragma once
 #include "IRHICommandQueue.h"
 #include "IRHIFactory.h"
-#include "../../glTFWindow/glTFWindow.h"
+
+class glTFWindow;
 
 class IRHISwapChain : public IRHIResource
 {

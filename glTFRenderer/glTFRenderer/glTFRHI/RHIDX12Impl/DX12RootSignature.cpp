@@ -241,3 +241,8 @@ bool DX12RootSignature::InitRootSignature(IRHIDevice& device)
     
     return true;
 }
+
+ID3D12RootSignature* DX12RootSignature::GetRootSignature() const
+{
+    return m_rootSignature;
+}
