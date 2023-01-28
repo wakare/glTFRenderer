@@ -87,18 +87,7 @@ protected:
 class IRHIRootSignature : public IRHIResource
 {
 public:
-    bool AllocateRootSignatureSpace(size_t rootParameterCount, size_t staticSamplerCount)
-    {
-        // Allocate once now
-        if (IsSpaceAllocated())
-        {
-            return false;
-        }
-        
-        m_rootParameters.resize(rootParameterCount);
-        m_staticSampler.resize(staticSamplerCount);
-        return true;
-    }
+    bool AllocateRootSignatureSpace(size_t rootParameterCount, size_t staticSamplerCount);
 
     bool IsSpaceAllocated() const {return !m_rootParameters.empty() || !m_staticSampler.empty(); }
     
@@ -111,6 +100,6 @@ public:
     const IRHIStaticSampler& GetStaticSampler(size_t index) const {return *m_staticSampler[index];}
     
 protected:
-    std::vector<std::unique_ptr<IRHIRootParameter>> m_rootParameters;
-    std::vector<std::unique_ptr<IRHIStaticSampler>> m_staticSampler;
+    std::vector<std::shared_ptr<IRHIRootParameter>> m_rootParameters;
+    std::vector<std::shared_ptr<IRHIStaticSampler>> m_staticSampler;
 };

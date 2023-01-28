@@ -11,13 +11,28 @@
 
 DX12SwapChain::DX12SwapChain()
     : m_frameBufferCount(3)
+    , m_width(0)
+    , m_height(0)
     , m_swapChain(nullptr)
     , m_swapChainSampleDesc({})
 {
 }
 
+unsigned DX12SwapChain::GetWidth()
+{
+    return m_width; 
+}
+
+unsigned DX12SwapChain::GetHeight()
+{
+    return m_height;
+}
+
 bool DX12SwapChain::InitSwapChain(IRHIFactory& factory, IRHICommandQueue& commandQueue, unsigned width, unsigned height, bool fullScreen, glTFWindow& window)
 {
+    m_width = width;
+    m_height = height;
+    
     HWND hwnd = glfwGetWin32Window(window.GetRawWindow());
     
     // -- Create the Swap Chain (double/tripple buffering) -- //

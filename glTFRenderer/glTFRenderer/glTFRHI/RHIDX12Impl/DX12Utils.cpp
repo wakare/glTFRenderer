@@ -24,6 +24,9 @@ DXGI_FORMAT DX12ConverterUtils::ConvertToDXGIFormat(RHIDataFormat format)
     case RHIDataFormat::R32G32B32A32_FLOAT:
         return DXGI_FORMAT_R32G32B32A32_FLOAT;
         
+    case RHIDataFormat::D32_FLOAT:
+        return DXGI_FORMAT_D32_FLOAT;
+        
     case RHIDataFormat::Unknown: break;
     }
     

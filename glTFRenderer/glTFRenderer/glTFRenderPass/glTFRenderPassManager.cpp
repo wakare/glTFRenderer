@@ -1,8 +1,12 @@
 #include "glTFRenderPassManager.h"
 
+#include <assert.h>
+
 glTFRenderPassManager::glTFRenderPassManager(glTFWindow& window)
     : m_window(window)
 {
+    const bool inited = InitRenderPassManager();
+    assert(inited);
 }
 
 bool glTFRenderPassManager::InitRenderPassManager()
@@ -25,12 +29,13 @@ void glTFRenderPassManager::InitAllPass()
 {
     for (const auto& pass : m_passes)
     {
-        pass->InitRenderPass(*m_resourceManager);
+        pass->InitPass(*m_resourceManager);
     }
 }
 
 void glTFRenderPassManager::RenderAllPass()
 {
+    m_resourceManager->TickFrameIndex();
     for (const auto& pass : m_passes)
     {
         pass->RenderPass(*m_resourceManager);

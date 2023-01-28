@@ -3,7 +3,11 @@
 
 #define GLFW_EXPOSE_NATIVE_WIN32 1
 #include <GLFW/glfw3native.h>
+
+#include "../glTFRenderPass/glTFRenderPassTest.h"
 #include "../glTFRHI/RHIDX12Impl/glTFRHIDX12.h"
+
+//#define DEBUG_OLD_VERSION
 
 glTFWindow::glTFWindow()
     : m_glfwWindow(nullptr)
@@ -38,22 +42,28 @@ bool glTFWindow::InitAndShowWindow()
 void glTFWindow::UpdateWindow()
 {
     while (!glfwWindowShouldClose(m_glfwWindow)
-        //&& glTFRHIDX12::Running
+#ifdef DEBUG_OLD_VERSION
+        && glTFRHIDX12::Running
+#endif
         )
     {
-        //glTFRHIDX12::Update();
-        //glTFRHIDX12::Render();
+#ifdef DEBUG_OLD_VERSION
+        glTFRHIDX12::Update();
+        glTFRHIDX12::Render();
+#else
         m_passManager->RenderAllPass();
+#endif
         glfwPollEvents();
     }
-
-    //glTFRHIDX12::WaitForPreviousFrame();
+#ifdef DEBUG_OLD_VERSION
+    glTFRHIDX12::WaitForPreviousFrame();
+#endif
     glfwTerminate();
 }
 
 bool glTFWindow::InitDX12()
 {
-    /*
+#ifdef DEBUG_OLD_VERSION
     // Use this handle to init dx12 context
     HWND hwnd = glfwGetWin32Window(m_glfwWindow);
     if (!hwnd)
@@ -65,10 +75,11 @@ bool glTFWindow::InitDX12()
     {
         return false;
     }
-    */
 
+#else
     m_passManager.reset(new glTFRenderPassManager(*this));
+    m_passManager->AddRenderPass(std::make_unique<glTFRenderPassTest>());
     m_passManager->InitAllPass();
-    
+#endif    
     return true;
 }

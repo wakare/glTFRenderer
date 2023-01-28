@@ -223,7 +223,10 @@ bool DX12RootSignature::InitRootSignature(IRHIDevice& device)
 
     m_description.pStaticSamplers = dxStaticSamplers.data();
     m_description.NumStaticSamplers = m_staticSampler.size();
-
+    
+    // TODO: This flag should be passed by application
+    m_description.Flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+    
     ID3DBlob* signature = nullptr;
     ID3DBlob* error = nullptr;
     if (FAILED(D3D12SerializeRootSignature(&m_description, D3D_ROOT_SIGNATURE_VERSION_1, &signature, &error)))
@@ -236,8 +239,15 @@ bool DX12RootSignature::InitRootSignature(IRHIDevice& device)
     THROW_IF_FAILED(dxDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_rootSignature)))
 
     // TODO: Use ComPtr?
-    signature->Release();
-    error->Release();
+    if (signature)
+    {
+        signature->Release();
+    }
+    
+    if (error)
+    {
+        error->Release();
+    }
     
     return true;
 }

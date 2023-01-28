@@ -22,7 +22,7 @@ class IRHIShader : public IRHIResource
 public:
     IRHIShader(RHIShaderType type = RHIShaderType::Unknown);
     RHIShaderType GetType() const;
-    const std::wstring& GetShaderContent() const;
+    const std::string& GetShaderContent() const;
     void SetShaderCompilePreDefineMacros(const RHIShaderPreDefineMacros& macros);
     
     virtual bool InitShader(const std::string& shaderFilePath, RHIShaderType type) = 0;
@@ -32,7 +32,8 @@ protected:
     bool LoadShader(const std::string& shaderFilePath);
     
     RHIShaderType m_type;
-    std::wstring m_shaderContent;
+    std::string m_shaderContent;
+    std::string m_shaderFilePath;
 
     RHIShaderPreDefineMacros m_macros;
 };

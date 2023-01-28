@@ -49,8 +49,8 @@ std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTarget(IR
     D3D12_CPU_DESCRIPTOR_HANDLE handle = {0};
     D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_COMMON;
     DXGI_FORMAT dxFormat = DX12ConverterUtils::ConvertToDXGIFormat(format);
-    D3D12_CLEAR_VALUE dxClearValue;
-    memcpy(&dxClearValue, &desc.clearValue, sizeof(D3D12_CLEAR_VALUE));
+    D3D12_CLEAR_VALUE dxClearValue{};
+    dxClearValue.Format = dxFormat;
     
     switch (type)
     { 
@@ -67,6 +67,7 @@ std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTarget(IR
             handle = m_rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
             handle.ptr += handleCount * incSize;
             initialState = D3D12_RESOURCE_STATE_RENDER_TARGET;
+            memcpy(dxClearValue.Color, desc.clearValue.clearColor, sizeof(float) * 4);
         }
         break;
         
@@ -82,7 +83,9 @@ std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTarget(IR
             const UINT incSize = dxDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
             handle = m_dsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
             handle.ptr += handleCount * incSize;
-            initialState = D3D12_RESOURCE_STATE_COMMON;
+            initialState = D3D12_RESOURCE_STATE_DEPTH_WRITE;
+            dxClearValue.DepthStencil.Depth = desc.clearValue.clearDS.clearDepth;
+            dxClearValue.DepthStencil.Stencil = desc.clearValue.clearDS.clearStencilValue;
         }
         break;
         
@@ -159,7 +162,7 @@ std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTarget(IR
 }
 
 std::vector<std::shared_ptr<IRHIRenderTarget>> DX12RenderTargetManager::CreateRenderTargetFromSwapChain(
-    IRHIDevice& device, IRHISwapChain& swapChain, IRHIRenderTargetClearValue clearValue)
+    IRHIDevice& device, IRHISwapChain& swapChain, RHIRenderTargetClearValue clearValue)
 {
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
     auto* dxSwapChain = dynamic_cast<DX12SwapChain&>(swapChain).GetSwapChain();

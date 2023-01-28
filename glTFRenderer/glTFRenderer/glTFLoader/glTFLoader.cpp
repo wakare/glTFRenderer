@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iostream>
 
+#include "../glTFUtils/glTFLog.h"
 #include "nlohmann_json/single_include/nlohmann/json.hpp"
 
 #define glTF_PROCESS_SCALAR(JSON_ELEMENT, SCALAR_NAME, SCALAR_TYPE, RESULT) \
@@ -274,11 +275,11 @@ void glTFLoader::Print() const
 {
     for (const auto& scene : m_scenes)
     {
-        std::cout << "[DEBUG] Scene element handle: " << scene->self_handle << std::endl;
+        LOG_FORMAT("[DEBUG] Scene element handle: %d\n", scene->self_handle);
     }
 
     for (const auto& node : m_nodes)
     {
-        std::cout << "[DEBUG] Node element handle: " << node->self_handle << std::endl;
+        LOG_FORMAT("[DEBUG] Node element handle: %d\n", node->self_handle);
     }
 }

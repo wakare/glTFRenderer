@@ -28,13 +28,13 @@ bool DX12Shader::CompileShaderByteCode()
             const std::string& value = m_macros.macroValue[i];
             
             dxShaderMacros.push_back({key.c_str(), value.c_str()});
-            LOG_FORMAT("[DEBUG] Compile with macro %s = %s\n", key.c_str(), value.c_str())
+            LOG_FORMAT("[DEBUG] Compile with macro %s = %s\n", key.c_str(), value.c_str());
         }
     }
     
-    ID3DBlob* shaderCompileResult; // d3d blob for holding vertex shader bytecode
-    ID3DBlob* errorBuff; // a buffer holding the error data if any
-    THROW_IF_FAILED(D3DCompile(m_shaderContent.data(),
+    ID3DBlob* shaderCompileResult = nullptr; // d3d blob for holding vertex shader bytecode
+    ID3DBlob* errorBuff = nullptr; // a buffer holding the error data if any
+    /*THROW_IF_FAILED(D3DCompile(m_shaderContent.data(),
             m_shaderContent.length(),
             nullptr,
             dxShaderMacros.data(),
@@ -44,8 +44,26 @@ bool DX12Shader::CompileShaderByteCode()
             D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
             0,
             &shaderCompileResult,
-            &errorBuff))
+            &errorBuff))*/
 
+    D3DCompile(m_shaderContent.data(),
+            m_shaderContent.length(),
+            nullptr,
+            dxShaderMacros.data(),
+            nullptr,
+            "main",
+            GetShaderCompilerTarget(), 
+            D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
+            0,
+            &shaderCompileResult,
+            &errorBuff);
+
+    if (errorBuff)
+    {
+        LOG_FORMAT("[FATAL] Compile shader file %s failed\nresult: %s\n", m_shaderFilePath.c_str(), static_cast<const char*>(errorBuff->GetBufferPointer()));
+        return false;
+    }
+    
     // store shader bytecode
     m_shaderByteCode.resize(shaderCompileResult->GetBufferSize());
     memcpy(m_shaderByteCode.data(), shaderCompileResult->GetBufferPointer(), shaderCompileResult->GetBufferSize());

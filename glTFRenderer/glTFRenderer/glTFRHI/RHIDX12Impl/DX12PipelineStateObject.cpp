@@ -18,20 +18,39 @@ DX12GraphicsPipelineStateObject::DX12GraphicsPipelineStateObject()
 
 bool DX12GraphicsPipelineStateObject::BindShaderCode(const std::string& shaderFilePath, RHIShaderType type)
 {
-    std::shared_ptr<DX12Shader> dxShader = RHIResourceFactory::CreateRHIResource<DX12Shader>();
+    std::shared_ptr<IRHIShader> dxShader = RHIResourceFactory::CreateRHIResource<IRHIShader>();
     if (!dxShader->InitShader(shaderFilePath, type))
     {
         return false;
     }
 
     // Delay compile shader bytecode util create pso
+
+    assert(m_shaders.find(type) == m_shaders.end());
+    m_shaders[type] = dxShader;
     
     return true;
 }
 
-bool DX12GraphicsPipelineStateObject::BindRenderTargets(const std::vector<IRHIRenderTarget>& renderTargets)
+bool DX12GraphicsPipelineStateObject::BindRenderTargets(const std::vector<IRHIRenderTarget*>& renderTargets)
 {
-    
+    m_bindRenderTargetFormats.clear();
+    for (const auto& renderTarget : renderTargets)
+    {
+        if (renderTarget->GetRenderTargetType() == RHIRenderTargetType::RTV)
+        {
+            m_bindRenderTargetFormats.push_back(DX12ConverterUtils::ConvertToDXGIFormat(renderTarget->GetRenderTargetFormat()));    
+        }
+        else if (renderTarget->GetRenderTargetType() == RHIRenderTargetType::DSV)
+        {
+            m_bindDepthStencilFormat = DX12ConverterUtils::ConvertToDXGIFormat(renderTarget->GetRenderTargetFormat());
+        }
+        else
+        {
+            // Not supported render target type!
+            assert(false);
+        }
+    }
     
     return true;
 }
@@ -62,6 +81,7 @@ bool DX12GraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device
     inputLayoutDesc.pInputElementDescs = dxInputLayouts.data();
 
     // compile shader and set bytecode to pipeline state desc
+    CompileBindShaders();
     auto& bindVS = dynamic_cast<DX12Shader&>(GetBindShader(RHIShaderType::Vertex));
     auto& bindPS = dynamic_cast<DX12Shader&>(GetBindShader(RHIShaderType::Pixel));
 

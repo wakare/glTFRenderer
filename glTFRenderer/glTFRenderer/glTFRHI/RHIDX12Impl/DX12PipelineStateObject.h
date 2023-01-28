@@ -10,7 +10,7 @@ class DX12GraphicsPipelineStateObject : public IRHIPipelineStateObject
 public:
     DX12GraphicsPipelineStateObject();
     virtual bool BindShaderCode(const std::string& shaderFilePath, RHIShaderType type) override;
-    virtual bool BindRenderTargets(const std::vector<IRHIRenderTarget>& renderTargets) override;
+    virtual bool BindRenderTargets(const std::vector<IRHIRenderTarget*>& renderTargets) override;
     virtual bool InitPipelineStateObject(IRHIDevice& device, IRHIRootSignature& rootSignature, IRHISwapChain& swapchain, const std::vector<RHIPipelineInputLayout>& inputLayouts) override;
 
     virtual IRHIShader& GetBindShader(RHIShaderType type) override;
@@ -20,7 +20,7 @@ private:
     bool CompileBindShaders();
     
     D3D12_GRAPHICS_PIPELINE_STATE_DESC m_graphicsPipelineStateDesc;
-    std::map<RHIShaderType, std::shared_ptr<DX12Shader>> m_shaders;
+    std::map<RHIShaderType, std::shared_ptr<IRHIShader>> m_shaders;
     
     std::vector<DXGI_FORMAT> m_bindRenderTargetFormats;
     DXGI_FORMAT m_bindDepthStencilFormat;

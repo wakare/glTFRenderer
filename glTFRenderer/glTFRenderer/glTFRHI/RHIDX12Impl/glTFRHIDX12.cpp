@@ -929,8 +929,8 @@ bool glTFRHIDX12::CreatePipelineStateObject()
     // Fill out the Viewport
     viewport.TopLeftX = 0;
     viewport.TopLeftY = 0;
-    viewport.Width = width;
-    viewport.Height = height;
+    viewport.Width = static_cast<float>(width);
+    viewport.Height = static_cast<float>(height);
     viewport.MinDepth = 0.0f;
     viewport.MaxDepth = 1.0f;
 

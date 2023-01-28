@@ -6,7 +6,9 @@ class DX12SwapChain : public IRHISwapChain
 {
 public:
     DX12SwapChain();
-    
+
+    virtual unsigned GetWidth() override;
+    virtual unsigned GetHeight() override;
     virtual bool InitSwapChain(IRHIFactory& factory,IRHICommandQueue& commandQueue, unsigned width, unsigned height, bool fullScreen, glTFWindow& window) override;
 
     IDXGISwapChain3* GetSwapChain() {return m_swapChain;}
@@ -20,6 +22,8 @@ public:
     
 private:
     unsigned m_frameBufferCount;
+    unsigned m_width;
+    unsigned m_height;
     
     IDXGISwapChain3* m_swapChain;
     DXGI_SAMPLE_DESC m_swapChainSampleDesc;

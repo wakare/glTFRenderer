@@ -43,7 +43,12 @@ bool glTFRenderResourceManager::InitResourceManager(glTFWindow& window)
         m_fences[i] = RHIResourceFactory::CreateRHIResource<IRHIFence>();
         m_fences[i]->InitFence(*m_device);
     }
-    
+
+    m_renderTargetManager = RHIResourceFactory::CreateRHIResource<IRHIRenderTargetManager>();
+    m_renderTargetManager->InitRenderTargetManager(*m_device, 100);
+
+    const RHIRenderTargetClearValue clearValue {{0.0f, 0.0f, 0.0f, 0.0f}};
+    m_swapchainRTs = m_renderTargetManager->CreateRenderTargetFromSwapChain(*m_device, *m_swapchain, clearValue);
     return true;
 }
 
@@ -72,6 +77,11 @@ IRHICommandList& glTFRenderResourceManager::GetCommandList()
     return *m_commandList;
 }
 
+IRHIRenderTargetManager& glTFRenderResourceManager::GetRenderTargetManager()
+{
+    return *m_renderTargetManager;
+}
+
 IRHICommandAllocator& glTFRenderResourceManager::GetCurrentFrameCommandAllocator()
 {
     return *m_commandAllocators[m_currentFrameIndex % backBufferCount];
@@ -80,5 +90,10 @@ IRHICommandAllocator& glTFRenderResourceManager::GetCurrentFrameCommandAllocator
 IRHIFence& glTFRenderResourceManager::GetCurrentFrameFence()
 {
     return *m_fences[m_currentFrameIndex % backBufferCount];
+}
+
+IRHIRenderTarget& glTFRenderResourceManager::GetCurrentFrameSwapchainRT()
+{
+    return *m_swapchainRTs[m_currentFrameIndex & backBufferCount];
 }
 

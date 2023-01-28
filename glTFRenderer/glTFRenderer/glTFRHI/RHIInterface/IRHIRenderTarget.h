@@ -11,7 +11,7 @@ struct IRHIDepthStencilClearValue
     unsigned char clearStencilValue;
 };
 
-struct IRHIRenderTargetClearValue
+struct RHIRenderTargetClearValue
 {
     union 
     {
@@ -25,7 +25,7 @@ struct IRHIRenderTargetDesc
     unsigned width;
     unsigned height;
     bool isUAV;
-    IRHIRenderTargetClearValue clearValue;
+    RHIRenderTargetClearValue clearValue;
     std::string name;
 };
 

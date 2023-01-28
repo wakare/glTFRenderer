@@ -12,6 +12,7 @@ enum class RHIDataFormat
     R8G8B8A8_UNORM_SRGB,
     R32G32B32_FLOAT,
     R32G32B32A32_FLOAT,
+    D32_FLOAT,
     Unknown,
 };
 
