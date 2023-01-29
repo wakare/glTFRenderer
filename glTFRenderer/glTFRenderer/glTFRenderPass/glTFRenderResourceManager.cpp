@@ -8,7 +8,7 @@
 constexpr size_t backBufferCount = 3;
 
 glTFRenderResourceManager::glTFRenderResourceManager()
-    : m_currentFrameIndex(0)
+    : m_currentBackBufferIndex(0)
 {
 }
 
@@ -85,16 +85,16 @@ IRHIRenderTargetManager& glTFRenderResourceManager::GetRenderTargetManager()
 
 IRHICommandAllocator& glTFRenderResourceManager::GetCurrentFrameCommandAllocator()
 {
-    return *m_commandAllocators[m_currentFrameIndex % backBufferCount];
+    return *m_commandAllocators[m_currentBackBufferIndex % backBufferCount];
 }
 
 IRHIFence& glTFRenderResourceManager::GetCurrentFrameFence()
 {
-    return *m_fences[m_currentFrameIndex % backBufferCount];
+    return *m_fences[m_currentBackBufferIndex % backBufferCount];
 }
 
 IRHIRenderTarget& glTFRenderResourceManager::GetCurrentFrameSwapchainRT()
 {
-    return *m_swapchainRTs[m_currentFrameIndex % backBufferCount];
+    return *m_swapchainRTs[m_currentBackBufferIndex % backBufferCount];
 }
 

@@ -1,12 +1,14 @@
 #include "glTFRenderPassManager.h"
 
-#include <assert.h>
+#include <cassert>
+#include <Windows.h>
 
 #include "../glTFRHI/RHIUtils.h"
 #include "../glTFUtils/glTFLog.h"
 
 glTFRenderPassManager::glTFRenderPassManager(glTFWindow& window)
     : m_window(window)
+    , m_frameIndex(0)
 {
     const bool inited = InitRenderPassManager();
     assert(inited);
@@ -32,14 +34,25 @@ void glTFRenderPassManager::InitAllPass()
 {
     for (const auto& pass : m_passes)
     {
-        pass->InitPass(*m_resourceManager);
+        const bool inited = pass->InitPass(*m_resourceManager);
+        assert(inited);
     }
 }
 
 void glTFRenderPassManager::RenderAllPass()
 {
+    static auto now = GetTickCount64();
+    static unsigned frameCountInOneSecond = 0;
+    frameCountInOneSecond++;
+    if (GetTickCount64() - now > 1000)
+    {
+        LOG_FORMAT_FLUSH("[DEBUG] FPS: %d\n", frameCountInOneSecond)
+        frameCountInOneSecond = 0;
+        now = GetTickCount64();
+    }
+    
     m_resourceManager->GetCurrentFrameFence().WaitUtilSignal();
-    LOG_FORMAT_FLUSH("[DEBUG] Render frame %d finished...\n", m_resourceManager->GetCurrentFrameIndex())
+    //LOG_FORMAT_FLUSH("[DEBUG] Render frame %d finished...\n", m_frameIndex++)
     
     // Reset command allocator when previous frame executed finish...
     RHIUtils::Instance().ResetCommandAllocator(m_resourceManager->GetCurrentFrameCommandAllocator());
@@ -47,7 +60,7 @@ void glTFRenderPassManager::RenderAllPass()
     for (const auto& pass : m_passes)
     {
         pass->RenderPass(*m_resourceManager);
-    }
+    } 
 
     RHIUtils::Instance().CloseCommandList(m_resourceManager->GetCommandList()); 
     

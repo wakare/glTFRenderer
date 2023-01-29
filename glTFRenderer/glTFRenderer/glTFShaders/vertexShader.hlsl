@@ -21,7 +21,7 @@ VS_OUTPUT main(VS_INPUT input)
     // just pass vertex position straight through
     VS_OUTPUT output;
     output.pos = float4(input.pos, 1.0f);
-    //output.color = input.color * colorMultiplier;
-    output.color = input.color;
+    output.color = input.color * colorMultiplier;
+    //output.color = input.color;
     return output;
 }

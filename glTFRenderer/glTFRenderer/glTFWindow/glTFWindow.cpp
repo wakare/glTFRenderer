@@ -24,7 +24,7 @@ bool glTFWindow::InitAndShowWindow()
         return false;
     }
     
-    m_glfwWindow = glfwCreateWindow(m_width, m_height, "Hello World", NULL, NULL);
+    m_glfwWindow = glfwCreateWindow(m_width, m_height, "glTFRenderer v0.01      by jackjwang", NULL, NULL);
     if (!m_glfwWindow)
     {
         glfwTerminate();

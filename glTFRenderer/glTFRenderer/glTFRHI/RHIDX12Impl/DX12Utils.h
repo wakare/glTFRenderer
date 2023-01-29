@@ -14,6 +14,7 @@ public:
     static D3D12_HEAP_TYPE ConvertToHeapType(RHIBufferType type);
     static D3D12_RESOURCE_STATES ConvertToResourceState(RHIResourceStateType state);
     static D3D_PRIMITIVE_TOPOLOGY ConvertToPrimitiveTopologyType(RHIPrimitiveTopologyType type);
+    static D3D12_DESCRIPTOR_HEAP_TYPE ConvertToDescriptorHeapType(RHIDescriptorHeapType type);
 };
 
 class DX12Utils : public RHIUtils
@@ -33,11 +34,15 @@ public:
     virtual bool SetVertexBufferView(IRHICommandList& commandList, IRHIVertexBufferView& view) override;
     virtual bool SetIndexBufferView(IRHICommandList& commandList, IRHIIndexBufferView& view) override;
     virtual bool SetPrimitiveTopology(IRHICommandList& commandList, RHIPrimitiveTopologyType type) override;
+
+    virtual bool SetDescriptorHeap(IRHICommandList& commandList, IRHIDescriptorHeap* descriptorArray, size_t descriptorCount) override;
+    virtual bool SetRootParameterAsDescriptorTable(IRHICommandList& commandList, unsigned slotIndex, RHIGPUDescriptorHandle handle) override;
     
     virtual bool UploadDataToDefaultGPUBuffer(IRHICommandList& commandList, IRHIGPUBuffer& uploadBuffer, IRHIGPUBuffer& defaultBuffer, void* data, size_t size) override;
     virtual bool AddBufferBarrierToCommandList(IRHICommandList& commandList, IRHIGPUBuffer& buffer, RHIResourceStateType beforeState, RHIResourceStateType afterState) override;
     virtual bool AddRenderTargetBarrierToCommandList(IRHICommandList& commandList, IRHIRenderTarget& buffer, RHIResourceStateType beforeState, RHIResourceStateType afterState) override;
-
+    virtual bool CreateConstantBufferViewInDescriptorHeap(IRHIDevice& device, IRHIDescriptorHeap& descriptorHeap, IRHIGPUBuffer& buffer, const RHIConstantBufferViewDesc& desc, RHIGPUDescriptorHandle& outGPUHandle) override;
+    
     virtual bool DrawIndexInstanced(IRHICommandList& commandList, unsigned indexCountPerInstance, unsigned instanceCount, unsigned startIndexLocation, unsigned baseVertexLocation, unsigned startInstanceLocation) override;
     virtual bool Present(IRHISwapChain& swapchain) override;
 };

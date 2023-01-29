@@ -19,6 +19,7 @@
 #include "RHIDX12Impl/DX12SwapChain.h"
 #include "RHIDX12Impl/DX12Utils.h"
 #include "RHIDX12Impl/DX12VertexBufferView.h"
+#include "RHIDX12Impl/DX12DescriptorHeap.h"
 #include "RHIInterface/IRHICommandAllocator.h"
 #include "RHIInterface/IRHICommandQueue.h"
 #include "RHIInterface/IRHIDevice.h"
@@ -66,3 +67,4 @@ IMPLEMENT_CREATE_RHI_RESOURCE(IRHIGPUBufferManager, DX12GPUBufferManager)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIShader, DX12Shader)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIVertexBufferView, DX12VertexBufferView)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIIndexBufferView, DX12IndexBufferView)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHIDescriptorHeap, DX12DescriptorHeap)

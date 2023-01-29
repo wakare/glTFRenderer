@@ -31,6 +31,14 @@ enum class RHIPrimitiveTopologyType
     TRIANGLELIST,
 };
 
+enum class RHIDescriptorHeapType
+{
+    CBV_SRV_UAV,
+    SAMPLER,
+    RTV,
+    DSV,
+};
+
 struct RHIRect
 {
     long    left;
@@ -49,7 +57,14 @@ struct RHIViewportDesc
     float MaxDepth;
 };
 
+struct RHIConstantBufferViewDesc
+{
+    uint64_t bufferLocation;
+    size_t bufferSize;
+};
+
 typedef RHIRect RHIScissorRectDesc;
+typedef uint64_t RHIGPUDescriptorHandle;
 
 #define REGISTER_INDEX_TYPE unsigned 
 

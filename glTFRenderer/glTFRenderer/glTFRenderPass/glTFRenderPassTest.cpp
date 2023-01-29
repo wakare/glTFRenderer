@@ -7,6 +7,8 @@
 glTFRenderPassTest::glTFRenderPassTest()
     : m_rootSignatureParameterCount(1)
     , m_rootSignatureStaticSamplerCount(0)
+    , m_cbvGPUHandle(0)
+    , m_colorMultiplier()
 {
 }
 
@@ -142,17 +144,30 @@ bool glTFRenderPassTest::InitPass(glTFRenderResourceManager& resourceManager)
 
     m_vertexBufferView->InitVertexBufferView(*m_vertexBuffer, 0, sizeof(Vertex), sizeof(vList));
     m_indexBufferView->InitIndexBufferView(*m_indexBuffer, 0, RHIDataFormat::R32_UINT, sizeof(iList));
+
+    m_cbvGPUBuffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
+    m_cbvGPUBuffer->InitGPUBuffer(resourceManager.GetDevice(), {L"RenderPass_Test_CBVBuffer", static_cast<size_t>(64 * 1024), RHIBufferType::Upload});
     
-    LOG_FORMAT_FLUSH("[RenderPass_Test] Init Pass resource finished!")
+    m_cbvDescriptorHeap = RHIResourceFactory::CreateRHIResource<IRHIDescriptorHeap>();
+    m_cbvDescriptorHeap->InitDescriptorHeap(resourceManager.GetDevice(), {1, RHIDescriptorHeapType::CBV_SRV_UAV, true});
+
+    RHIUtils::Instance().CreateConstantBufferViewInDescriptorHeap(resourceManager.GetDevice(), *m_cbvDescriptorHeap, *m_cbvGPUBuffer, {0, sizeof(m_colorMultiplier)}, m_cbvGPUHandle);
+    
+    LOG_FORMAT_FLUSH("[RenderPass_Test] Init Pass resource finished!\n")
     
     return true;
 }
 
 bool glTFRenderPassTest::RenderPass(glTFRenderResourceManager& resourceManager)
 {
+    UpdateColorMultiplier();
+    
     RHIUtils::Instance().ResetCommandList(resourceManager.GetCommandList(), resourceManager.GetCurrentFrameCommandAllocator(), *m_pipelineStateObject);
 
     RHIUtils::Instance().SetRootSignature(resourceManager.GetCommandList(), *m_rootSignature);
+
+    RHIUtils::Instance().SetDescriptorHeap(resourceManager.GetCommandList(), m_cbvDescriptorHeap.get(), 1);
+    RHIUtils::Instance().SetRootParameterAsDescriptorTable(resourceManager.GetCommandList(), 0, m_cbvGPUHandle);
     
     RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resourceManager.GetCommandList(), resourceManager.GetCurrentFrameSwapchainRT(),
         RHIResourceStateType::PRESENT, RHIResourceStateType::RENDER_TARGET);
@@ -179,4 +194,35 @@ bool glTFRenderPassTest::RenderPass(glTFRenderResourceManager& resourceManager)
             RHIResourceStateType::RENDER_TARGET, RHIResourceStateType::PRESENT);
     
     return true;
+}
+
+void glTFRenderPassTest::UpdateColorMultiplier()
+{
+    // update app logic, such as moving the camera or figuring out what objects are in view
+    static float rIncrement = 0.00002f;
+    static float gIncrement = 0.00006f;
+    static float bIncrement = 0.00009f;
+
+    m_colorMultiplier.colorMultiplier.x += rIncrement;
+    m_colorMultiplier.colorMultiplier.y += gIncrement;
+    m_colorMultiplier.colorMultiplier.z += bIncrement;
+
+    if (m_colorMultiplier.colorMultiplier.x >= 1.0 || m_colorMultiplier.colorMultiplier.x <= 0.0)
+    {
+        m_colorMultiplier.colorMultiplier.x = m_colorMultiplier.colorMultiplier.x >= 1.0 ? 1.0 : 0.0;
+        rIncrement = -rIncrement;
+    }
+    if (m_colorMultiplier.colorMultiplier.y >= 1.0 || m_colorMultiplier.colorMultiplier.y <= 0.0)
+    {
+        m_colorMultiplier.colorMultiplier.y = m_colorMultiplier.colorMultiplier.y >= 1.0 ? 1.0 : 0.0;
+        gIncrement = -gIncrement;
+    }
+    if (m_colorMultiplier.colorMultiplier.z >= 1.0 || m_colorMultiplier.colorMultiplier.z <= 0.0)
+    {
+        m_colorMultiplier.colorMultiplier.z = m_colorMultiplier.colorMultiplier.z >= 1.0 ? 1.0 : 0.0;
+        bIncrement = -bIncrement;
+    }
+
+    // copy our ConstantBuffer instance to the mapped constant buffer resource
+    m_cbvGPUBuffer->UploadBufferFromCPU(&m_colorMultiplier, sizeof(m_colorMultiplier));
 }

@@ -180,6 +180,7 @@
     </FxCompile>
     <ClCompile Include="glTFRenderPass\glTFRenderResourceManager.cpp" />
     <ClCompile Include="glTFRHI\RHIConfigSingleton.cpp" />
+    <ClCompile Include="glTFRHI\RHIDX12Impl\DX12DescriptorHeap.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12CommandAllocator.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12CommandList.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12CommandQueue.cpp" />
@@ -377,6 +378,7 @@
     <ClInclude Include="glTFRenderPass\glTFRenderResourceManager.h" />
     <ClInclude Include="glTFRHI\RHIConfigSingleton.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\d3dx12.h" />
+    <ClInclude Include="glTFRHI\RHIDX12Impl\DX12DescriptorHeap.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12CommandAllocator.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12CommandList.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12CommandQueue.h" />

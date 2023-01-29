@@ -3,6 +3,7 @@
 #include <map>
 #include <memory>
 
+#include "../RHIInterface/IRHIDescriptorHeap.h"
 #include "../RHIInterface/IRHIRenderTargetManager.h"
 
 class DX12RenderTargetManager : public IRHIRenderTargetManager
@@ -18,9 +19,12 @@ public:
     
 private:    
     size_t                      m_maxRenderTargetCount;
+
+    std::shared_ptr<IRHIDescriptorHeap> m_rtvDescriptorHeap;
+    std::shared_ptr<IRHIDescriptorHeap> m_dsvDescriptorHeap;
     
-    ID3D12DescriptorHeap*       m_rtvDescriptorHeap;
-    ID3D12DescriptorHeap*       m_dsvDescriptorHeap;
+    //ID3D12DescriptorHeap*       m_rtvDescriptorHeap;
+    //ID3D12DescriptorHeap*       m_dsvDescriptorHeap;
 
     // key - renderTarget id, value - resource descriptor handle
     // each rt created within rt manager should be record in this map

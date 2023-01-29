@@ -44,7 +44,7 @@ bool DX12GPUBuffer::UploadBufferFromCPU(void* data, size_t size)
         THROW_IF_FAILED(m_buffer->Map(0, &readRange, reinterpret_cast<void**>(&m_mappedGPUBuffer)))
     }
     
-    assert(size == m_bufferDesc.size);
+    assert(size < m_bufferDesc.size);
     
     memcpy(m_mappedGPUBuffer, data, size);
     return true;

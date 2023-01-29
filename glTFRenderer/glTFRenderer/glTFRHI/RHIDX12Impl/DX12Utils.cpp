@@ -4,6 +4,8 @@
 #include "d3dx12.h"
 #include "DX12CommandList.h"
 #include "DX12CommandQueue.h"
+#include "DX12DescriptorHeap.h"
+#include "DX12Device.h"
 #include "DX12GPUBuffer.h"
 #include "DX12IndexBufferView.h"
 #include "DX12PipelineStateObject.h"
@@ -92,6 +94,26 @@ D3D_PRIMITIVE_TOPOLOGY DX12ConverterUtils::ConvertToPrimitiveTopologyType(RHIPri
 
     assert(false);
     return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+}
+
+D3D12_DESCRIPTOR_HEAP_TYPE DX12ConverterUtils::ConvertToDescriptorHeapType(RHIDescriptorHeapType type)
+{
+    switch (type) {
+        case RHIDescriptorHeapType::CBV_SRV_UAV:
+            return D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+        
+        case RHIDescriptorHeapType::SAMPLER:
+            return D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
+        
+        case RHIDescriptorHeapType::RTV:
+            return D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+        
+        case RHIDescriptorHeapType::DSV:
+            return D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+    }
+
+    assert(false);
+    return D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES;
 }
 
 bool DX12Utils::ResetCommandList(IRHICommandList& commandList, IRHICommandAllocator& commandAllocator)
@@ -197,6 +219,34 @@ bool DX12Utils::SetPrimitiveTopology(IRHICommandList& commandList, RHIPrimitiveT
     return true;
 }
 
+bool DX12Utils::SetDescriptorHeap(IRHICommandList& commandList, IRHIDescriptorHeap* descriptorArray,
+    size_t descriptorCount)
+{
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+
+    std::vector<ID3D12DescriptorHeap*> dxDescriptorHeaps;
+    for (size_t i = 0; i < descriptorCount; ++i)
+    {
+        auto* dxDescriptorHeap = dynamic_cast<DX12DescriptorHeap&>(descriptorArray[i]).GetDescriptorHeap();
+        dxDescriptorHeaps.push_back(dxDescriptorHeap);
+    }
+    
+    dxCommandList->SetDescriptorHeaps(dxDescriptorHeaps.size(), dxDescriptorHeaps.data());
+    
+    return true;
+}
+
+bool DX12Utils::SetRootParameterAsDescriptorTable(IRHICommandList& commandList, unsigned slotIndex,
+    RHIGPUDescriptorHandle handle)
+{
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+
+    D3D12_GPU_DESCRIPTOR_HANDLE dxHandle = {handle} ;
+    dxCommandList->SetGraphicsRootDescriptorTable(slotIndex, dxHandle);
+    
+    return true;
+}
+
 bool DX12Utils::UploadDataToDefaultGPUBuffer(IRHICommandList& commandList, IRHIGPUBuffer& uploadBuffer,
                                              IRHIGPUBuffer& defaultBuffer, void* data, size_t size)
 {
@@ -243,8 +293,26 @@ bool DX12Utils::AddRenderTargetBarrierToCommandList(IRHICommandList& commandList
     return true;
 }
 
+bool DX12Utils::CreateConstantBufferViewInDescriptorHeap(IRHIDevice& device, IRHIDescriptorHeap& descriptorHeap, IRHIGPUBuffer& buffer,
+    const RHIConstantBufferViewDesc& desc, RHIGPUDescriptorHandle& outGPUHandle)
+{
+    //TODO: Process offset for handle 
+    auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
+    auto* dxDescriptorHeap = dynamic_cast<DX12DescriptorHeap&>(descriptorHeap).GetDescriptorHeap();
+    auto* dxBuffer = dynamic_cast<DX12GPUBuffer&>(buffer).GetBuffer();
+    
+    D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+    cbvDesc.BufferLocation = dxBuffer->GetGPUVirtualAddress();
+    cbvDesc.SizeInBytes = (desc.bufferSize + 255) & ~255;    // CB size is required to be 256-byte aligned.
+    dxDevice->CreateConstantBufferView(&cbvDesc, dxDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+
+    outGPUHandle = dxDescriptorHeap->GetGPUDescriptorHandleForHeapStart().ptr;
+    
+    return true;
+}
+
 bool DX12Utils::DrawIndexInstanced(IRHICommandList& commandList, unsigned indexCountPerInstance, unsigned instanceCount,
-    unsigned startIndexLocation, unsigned baseVertexLocation, unsigned startInstanceLocation)
+                                   unsigned startIndexLocation, unsigned baseVertexLocation, unsigned startInstanceLocation)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
     dxCommandList->DrawIndexedInstanced(indexCountPerInstance, instanceCount, startIndexLocation, static_cast<INT>(baseVertexLocation), startInstanceLocation);

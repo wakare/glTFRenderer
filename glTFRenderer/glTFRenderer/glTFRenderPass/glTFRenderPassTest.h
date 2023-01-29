@@ -1,5 +1,6 @@
 #pragma once
 #include "glTFRenderPassBase.h"
+#include "../glTFRHI/RHIInterface/IRHIDescriptorHeap.h"
 #include "../glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
 #include "../glTFRHI/RHIInterface/IRHIRenderTargetManager.h"
 #include "../glTFRHI/RHIInterface/IRHIRootSignature.h"
@@ -7,6 +8,17 @@
 
 class IRHIIndexBufferView;
 class IRHIGPUBuffer;
+
+struct ConstantBufferStruct_ColorMultiplier
+{
+    struct
+    {
+        float x;
+        float y;
+        float z;
+        float w;
+    } colorMultiplier;
+};
 
 // RenderPassTest only draw single triangle for debug RHI code 
 class glTFRenderPassTest : public glTFRenderPassBase
@@ -19,6 +31,8 @@ public:
     virtual bool RenderPass(glTFRenderResourceManager& resourceManager) override;
 
 protected:
+    void UpdateColorMultiplier();
+    
     size_t m_rootSignatureParameterCount;
     size_t m_rootSignatureStaticSamplerCount;
 
@@ -35,4 +49,11 @@ protected:
 
     std::shared_ptr<IRHIVertexBufferView> m_vertexBufferView;
     std::shared_ptr<IRHIIndexBufferView> m_indexBufferView;
+
+    std::shared_ptr<IRHIGPUBuffer> m_cbvGPUBuffer;
+    std::shared_ptr<IRHIDescriptorHeap> m_cbvDescriptorHeap;
+
+    RHIGPUDescriptorHandle m_cbvGPUHandle;
+
+    ConstantBufferStruct_ColorMultiplier m_colorMultiplier;
 };

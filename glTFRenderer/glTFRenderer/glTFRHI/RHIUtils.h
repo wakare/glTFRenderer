@@ -2,6 +2,7 @@
 #include <memory>
 
 #include "RHIInterface/IRHICommandAllocator.h"
+#include "RHIInterface/IRHIDescriptorHeap.h"
 #include "RHIInterface/IRHIIndexBufferView.h"
 #include "RHIInterface/IRHIPipelineStateObject.h"
 #include "RHIInterface/IRHIResource.h"
@@ -28,11 +29,15 @@ public:
     virtual bool SetVertexBufferView(IRHICommandList& commandList, IRHIVertexBufferView& view) = 0;
     virtual bool SetIndexBufferView(IRHICommandList& commandList, IRHIIndexBufferView& view) = 0;
     virtual bool SetPrimitiveTopology(IRHICommandList& commandList, RHIPrimitiveTopologyType type) = 0;
+
+    virtual bool SetDescriptorHeap(IRHICommandList& commandList, IRHIDescriptorHeap* descriptorArray, size_t descriptorCount) = 0;
+    virtual bool SetRootParameterAsDescriptorTable(IRHICommandList& commandList, unsigned slotIndex, RHIGPUDescriptorHandle handle) = 0;
     
     virtual bool UploadDataToDefaultGPUBuffer(IRHICommandList& commandList, IRHIGPUBuffer& uploadBuffer, IRHIGPUBuffer& defaultBuffer, void* data, size_t size) = 0;
     virtual bool AddBufferBarrierToCommandList(IRHICommandList& commandList, IRHIGPUBuffer& buffer, RHIResourceStateType beforeState, RHIResourceStateType afterState) = 0;
     virtual bool AddRenderTargetBarrierToCommandList(IRHICommandList& commandList, IRHIRenderTarget& buffer, RHIResourceStateType beforeState, RHIResourceStateType afterState) = 0;
-
+    virtual bool CreateConstantBufferViewInDescriptorHeap(IRHIDevice& device, IRHIDescriptorHeap& descriptorHeap, IRHIGPUBuffer& buffer, const RHIConstantBufferViewDesc& desc, RHIGPUDescriptorHandle& outGPUHandle) = 0;
+    
     virtual bool DrawIndexInstanced(IRHICommandList& commandList, unsigned indexCountPerInstance, unsigned instanceCount, unsigned startIndexLocation, unsigned baseVertexLocation, unsigned startInstanceLocation) = 0;
     virtual bool Present(IRHISwapChain& swapchain) = 0;
     

@@ -20,4 +20,6 @@ protected:
     
     std::unique_ptr<glTFRenderResourceManager> m_resourceManager;
     std::vector<std::unique_ptr<glTFRenderPassBase>> m_passes;
+
+    unsigned m_frameIndex;
 };

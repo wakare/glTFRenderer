@@ -5,6 +5,7 @@
 #include <codecvt>
 
 #include "DX12CommandList.h"
+#include "DX12DescriptorHeap.h"
 #include "DX12Utils.h"
 #include "../RHIResourceFactoryImpl.hpp"
 
@@ -18,22 +19,13 @@ DX12RenderTargetManager::DX12RenderTargetManager()
 bool DX12RenderTargetManager::InitRenderTargetManager(IRHIDevice& device, size_t maxRenderTargetCount)
 {
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
+
+    m_rtvDescriptorHeap = RHIResourceFactory::CreateRHIResource<IRHIDescriptorHeap>();
+    m_rtvDescriptorHeap->InitDescriptorHeap(device, {static_cast<unsigned>(maxRenderTargetCount), RHIDescriptorHeapType::RTV, false});
+
+    m_dsvDescriptorHeap = RHIResourceFactory::CreateRHIResource<IRHIDescriptorHeap>();
+    m_dsvDescriptorHeap->InitDescriptorHeap(device, {static_cast<unsigned>(maxRenderTargetCount), RHIDescriptorHeapType::DSV, false});
     
-    // Init resource description heap
-    D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
-    rtvHeapDesc.NumDescriptors = maxRenderTargetCount;
-    rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-    rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-    rtvHeapDesc.NodeMask = 0;
-    THROW_IF_FAILED(dxDevice->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&m_rtvDescriptorHeap)))
-
-    D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
-    dsvHeapDesc.NumDescriptors = maxRenderTargetCount;
-    dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-    dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-    dsvHeapDesc.NodeMask = 0;
-    THROW_IF_FAILED(dxDevice->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&m_dsvDescriptorHeap)))
-
     m_maxRenderTargetCount = maxRenderTargetCount;
     
     return true;
@@ -64,7 +56,8 @@ std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTarget(IR
             handleCount = m_rtvHandles.size();
             flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
             const UINT incSize = dxDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-            handle = m_rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+            auto* dxDescriptorHeap = dynamic_cast<DX12DescriptorHeap&>(*m_rtvDescriptorHeap).GetDescriptorHeap();
+            handle = dxDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
             handle.ptr += handleCount * incSize;
             initialState = D3D12_RESOURCE_STATE_RENDER_TARGET;
             memcpy(dxClearValue.Color, desc.clearValue.clearColor, sizeof(float) * 4);
@@ -81,7 +74,8 @@ std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTarget(IR
             handleCount = m_dsvHandles.size();
             flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
             const UINT incSize = dxDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-            handle = m_dsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+            auto* dxDescriptorHeap = dynamic_cast<DX12DescriptorHeap&>(*m_dsvDescriptorHeap).GetDescriptorHeap();
+            handle = dxDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
             handle.ptr += handleCount * incSize;
             initialState = D3D12_RESOURCE_STATE_DEPTH_WRITE;
             dxClearValue.DepthStencil.Depth = desc.clearValue.clearDS.clearDepth;
@@ -166,8 +160,9 @@ std::vector<std::shared_ptr<IRHIRenderTarget>> DX12RenderTargetManager::CreateRe
 {
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
     auto* dxSwapChain = dynamic_cast<DX12SwapChain&>(swapChain).GetSwapChain();
-    
-    D3D12_CPU_DESCRIPTOR_HANDLE handle = m_rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+
+    auto* dxDescriptorHeap = dynamic_cast<DX12DescriptorHeap&>(*m_rtvDescriptorHeap).GetDescriptorHeap();
+    D3D12_CPU_DESCRIPTOR_HANDLE handle = dxDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
     size_t descriptorsCount = m_rtvHandles.size();
     UINT incSize = dxDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
     handle.ptr += descriptorsCount * incSize;
