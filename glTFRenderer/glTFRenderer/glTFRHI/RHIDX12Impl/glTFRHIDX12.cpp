@@ -937,8 +937,8 @@ bool glTFRHIDX12::CreatePipelineStateObject()
     // Fill out a scissor rect
     scissorRect.left = 0;
     scissorRect.top = 0;
-    scissorRect.right = width;
-    scissorRect.bottom = height;
+    scissorRect.right = static_cast<LONG>(width);
+    scissorRect.bottom = static_cast<LONG>(height);
     
     return true;
 }

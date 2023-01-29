@@ -28,6 +28,11 @@ unsigned DX12SwapChain::GetHeight()
     return m_height;
 }
 
+unsigned DX12SwapChain::GetCurrentBackBufferIndex()
+{
+    return m_swapChain->GetCurrentBackBufferIndex();
+}
+
 bool DX12SwapChain::InitSwapChain(IRHIFactory& factory, IRHICommandQueue& commandQueue, unsigned width, unsigned height, bool fullScreen, glTFWindow& window)
 {
     m_width = width;

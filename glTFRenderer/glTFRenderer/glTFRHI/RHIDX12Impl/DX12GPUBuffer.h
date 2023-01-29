@@ -17,5 +17,6 @@ public:
 private:
     ID3D12Resource* m_buffer;
     UINT8* m_mappedGPUBuffer;
+    
     RHIBufferDesc m_bufferDesc;
 };

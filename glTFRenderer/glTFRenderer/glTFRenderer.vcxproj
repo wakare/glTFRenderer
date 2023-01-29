@@ -180,7 +180,6 @@
     </FxCompile>
     <ClCompile Include="glTFRenderPass\glTFRenderResourceManager.cpp" />
     <ClCompile Include="glTFRHI\RHIConfigSingleton.cpp" />
-    <ClCompile Include="glTFRHI\RHIDX12Impl\DX12Barrier.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12CommandAllocator.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12CommandList.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12CommandQueue.cpp" />
@@ -189,6 +188,7 @@
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12Fence.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12GPUBuffer.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12GPUBufferManager.cpp" />
+    <ClCompile Include="glTFRHI\RHIDX12Impl\DX12IndexBufferView.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12PipelineStateObject.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12RenderTarget.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12RenderTargetManager.cpp" />
@@ -196,6 +196,7 @@
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12Shader.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12SwapChain.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12Utils.cpp" />
+    <ClCompile Include="glTFRHI\RHIDX12Impl\DX12VertexBufferView.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\glTFRHIDX12.cpp">
       <RuntimeLibrary>MultiThreadedDebugDll</RuntimeLibrary>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -270,7 +271,6 @@
       <AdditionalIncludeDirectories>D:\Work\DevSpace\glTFRenderer\glTFRenderer\glTFRenderer\ThirdParty;D:\Work\DevSpace\glTFRenderer\glTFRenderer\glTFRenderer\ThirdParty/glm/glm;D:\Work\DevSpace\glTFRenderer\glTFRenderer\glTFRenderer\ThirdParty/glfw/include;</AdditionalIncludeDirectories>
       <LinkCompiled>true</LinkCompiled>
     </ClCompile>
-    <ClCompile Include="glTFRHI\RHIInterface\IRHIBarrier.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHICommandAllocator.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHICommandList.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHICommandQueue.cpp" />
@@ -280,6 +280,7 @@
     <ClCompile Include="glTFRHI\RHIInterface\IRHIFence.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIGPUBuffer.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIGPUBufferManager.cpp" />
+    <ClCompile Include="glTFRHI\RHIInterface\IRHIIndexBufferView.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIPipelineStateObject.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIRenderTarget.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIRenderTargetManager.cpp" />
@@ -360,6 +361,7 @@
     <ClCompile Include="glTFRHI\RHIInterface\IRHIRootSignature.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIShader.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHISwapChain.cpp" />
+    <ClCompile Include="glTFRHI\RHIInterface\IRHIVertexBufferView.cpp" />
     <ClCompile Include="glTFRHI\RHIResourceFactory.cpp" />
     <ClCompile Include="glTFRHI\RHIUtils.cpp" />
     <ClCompile Include="glTFShaders\glTFShaderUtils.cpp" />
@@ -375,7 +377,6 @@
     <ClInclude Include="glTFRenderPass\glTFRenderResourceManager.h" />
     <ClInclude Include="glTFRHI\RHIConfigSingleton.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\d3dx12.h" />
-    <ClInclude Include="glTFRHI\RHIDX12Impl\DX12Barrier.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12CommandAllocator.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12CommandList.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12CommandQueue.h" />
@@ -384,6 +385,7 @@
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12Fence.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12GPUBuffer.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12GPUBufferManager.h" />
+    <ClInclude Include="glTFRHI\RHIDX12Impl\DX12IndexBufferView.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12PipelineStateObject.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12RenderTarget.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12RenderTargetManager.h" />
@@ -391,8 +393,8 @@
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12Shader.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12SwapChain.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12Utils.h" />
+    <ClInclude Include="glTFRHI\RHIDX12Impl\DX12VertexBufferView.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\glTFRHIDX12.h" />
-    <ClInclude Include="glTFRHI\RHIInterface\IRHIBarrier.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHICommandAllocator.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHICommandList.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHICommandQueue.h" />
@@ -402,6 +404,7 @@
     <ClInclude Include="glTFRHI\RHIInterface\IRHIFence.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHIGPUBuffer.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHIGPUBufferManager.h" />
+    <ClInclude Include="glTFRHI\RHIInterface\IRHIIndexBufferView.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHIPipelineStateObject.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHIRenderTarget.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHIRenderTargetManager.h" />
@@ -409,6 +412,7 @@
     <ClInclude Include="glTFRHI\RHIInterface\IRHIRootSignature.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHIShader.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHISwapChain.h" />
+    <ClInclude Include="glTFRHI\RHIInterface\IRHIVertexBufferView.h" />
     <ClInclude Include="glTFRHI\RHIInterface\RHICommon.h" />
     <ClInclude Include="glTFRHI\RHIResourceFactory.h" />
     <ClInclude Include="glTFRHI\RHIResourceFactoryImpl.hpp" />

@@ -275,11 +275,11 @@ void glTFLoader::Print() const
 {
     for (const auto& scene : m_scenes)
     {
-        LOG_FORMAT("[DEBUG] Scene element handle: %d\n", scene->self_handle);
+        LOG_FORMAT_FLUSH("[DEBUG] Scene element handle: %d\n", scene->self_handle);
     }
 
     for (const auto& node : m_nodes)
     {
-        LOG_FORMAT("[DEBUG] Node element handle: %d\n", node->self_handle);
+        LOG_FORMAT_FLUSH("[DEBUG] Node element handle: %d\n", node->self_handle);
     }
 }

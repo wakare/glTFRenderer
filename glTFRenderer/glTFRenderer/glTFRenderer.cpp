@@ -15,12 +15,14 @@ bool ShowGLFWWindow()
 
 int main(int argc, char* argv[])
 {
+    /*
     glTFLoader loader;
     const bool loaded = loader.LoadFile("glTFSamples/Hello_glTF.json");
     if (loaded)
     {
         loader.Print();    
     }
+    */
 
     if (ShowGLFWWindow())
     {

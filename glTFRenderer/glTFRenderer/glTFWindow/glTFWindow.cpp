@@ -52,6 +52,7 @@ void glTFWindow::UpdateWindow()
         glTFRHIDX12::Render();
 #else
         m_passManager->RenderAllPass();
+        
 #endif
         glfwPollEvents();
     }

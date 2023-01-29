@@ -30,7 +30,7 @@ public:
     IRHIRenderTarget& GetCurrentFrameSwapchainRT();
 
     unsigned GetCurrentFrameIndex() const {return m_currentFrameIndex; }
-    void TickFrameIndex() { ++m_currentFrameIndex; }
+    void UpdateFrameIndex() { m_currentFrameIndex = m_swapchain->GetCurrentBackBufferIndex(); }
     
 private:
     // Exist one only
@@ -46,6 +46,7 @@ private:
     std::vector<std::shared_ptr<IRHIFence>> m_fences;
 
     std::vector<std::shared_ptr<IRHIRenderTarget>> m_swapchainRTs;
+    
     
     unsigned m_currentFrameIndex;
 };

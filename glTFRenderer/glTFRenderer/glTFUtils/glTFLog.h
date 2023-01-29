@@ -4,7 +4,9 @@
 #ifdef LOG_OUTPUT_STDOUT
 
 #include <cstdio>
+#define LOG_FLUSH() fflush(stdout);
 #define LOG_FORMAT(...) printf(__VA_ARGS__); fflush(stdout);
+#define LOG_FORMAT_FLUSH(...) LOG_FORMAT(__VA_ARGS__) LOG_FLUSH();
 
 #else
 

@@ -28,7 +28,7 @@ bool DX12Shader::CompileShaderByteCode()
             const std::string& value = m_macros.macroValue[i];
             
             dxShaderMacros.push_back({key.c_str(), value.c_str()});
-            LOG_FORMAT("[DEBUG] Compile with macro %s = %s\n", key.c_str(), value.c_str());
+            LOG_FORMAT_FLUSH("[DEBUG] Compile with macro %s = %s\n", key.c_str(), value.c_str());
         }
     }
     
@@ -60,7 +60,7 @@ bool DX12Shader::CompileShaderByteCode()
 
     if (errorBuff)
     {
-        LOG_FORMAT("[FATAL] Compile shader file %s failed\nresult: %s\n", m_shaderFilePath.c_str(), static_cast<const char*>(errorBuff->GetBufferPointer()));
+        LOG_FORMAT_FLUSH("[FATAL] Compile shader file %s failed\nresult: %s\n", m_shaderFilePath.c_str(), static_cast<const char*>(errorBuff->GetBufferPointer()));
         return false;
     }
     

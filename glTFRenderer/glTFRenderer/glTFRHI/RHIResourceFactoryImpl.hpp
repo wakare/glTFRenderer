@@ -11,12 +11,14 @@
 #include "RHIDX12Impl/DX12Fence.h"
 #include "RHIDX12Impl/DX12GPUBuffer.h"
 #include "RHIDX12Impl/DX12GPUBufferManager.h"
+#include "RHIDX12Impl/DX12IndexBufferView.h"
 #include "RHIDX12Impl/DX12PipelineStateObject.h"
 #include "RHIDX12Impl/DX12RenderTarget.h"
 #include "RHIDX12Impl/DX12RenderTargetManager.h"
 #include "RHIDX12Impl/DX12RootSignature.h"
 #include "RHIDX12Impl/DX12SwapChain.h"
 #include "RHIDX12Impl/DX12Utils.h"
+#include "RHIDX12Impl/DX12VertexBufferView.h"
 #include "RHIInterface/IRHICommandAllocator.h"
 #include "RHIInterface/IRHICommandQueue.h"
 #include "RHIInterface/IRHIDevice.h"
@@ -62,3 +64,5 @@ IMPLEMENT_CREATE_RHI_RESOURCE(IRHIFence, DX12Fence)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIGPUBuffer, DX12GPUBuffer)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIGPUBufferManager, DX12GPUBufferManager)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIShader, DX12Shader)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHIVertexBufferView, DX12VertexBufferView)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHIIndexBufferView, DX12IndexBufferView)

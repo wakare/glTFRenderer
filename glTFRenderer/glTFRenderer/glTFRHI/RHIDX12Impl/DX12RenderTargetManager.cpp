@@ -136,8 +136,8 @@ std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTarget(IR
     renderTarget->SetRenderTargetType(type);
     renderTarget->SetRenderTargetFormat(format);
     auto* dxRenderTarget = dynamic_cast<DX12RenderTarget*>(renderTarget.get());
-    dxRenderTarget->m_texture = resource;
-    dxRenderTarget->m_clearValue = dxClearValue;
+    dxRenderTarget->SetRenderTarget(resource);
+    dxRenderTarget->SetClearValue(dxClearValue);
 
     switch (type) {
         case RHIRenderTargetType::RTV:
@@ -198,8 +198,8 @@ std::vector<std::shared_ptr<IRHIRenderTarget>> DX12RenderTargetManager::CreateRe
         newRenderTarget->SetRenderTargetType(RHIRenderTargetType::RTV);
         newRenderTarget->SetRenderTargetFormat(RHIDataFormat::R8G8B8A8_UNORM_SRGB);
         DX12RenderTarget* dxRenderTarget = dynamic_cast<DX12RenderTarget*>(newRenderTarget.get());
-        dxRenderTarget->m_texture = resource;
-        memcpy(&dxRenderTarget->m_clearValue, &defaultClearValue, sizeof(D3D12_CLEAR_VALUE));
+        dxRenderTarget->SetRenderTarget(resource);
+        dxRenderTarget->SetClearValue(defaultClearValue);
         outVector.push_back(newRenderTarget);
         
         m_rtvHandles[newRenderTarget->GetRenderTargetId()] = handle;
@@ -222,7 +222,7 @@ bool DX12RenderTargetManager::ClearRenderTarget(IRHICommandList& commandList, IR
             {
                 assert(m_rtvHandles.find(dxRenderTarget->GetRenderTargetId()) != m_rtvHandles.end());
                 const auto& rtvHandle = m_rtvHandles[dxRenderTarget->GetRenderTargetId()];
-                dxCommandList->ClearRenderTargetView(rtvHandle, dxRenderTarget->m_clearValue.Color, 0, nullptr);    
+                dxCommandList->ClearRenderTargetView(rtvHandle, dxRenderTarget->GetClearValue().Color, 0, nullptr);    
             }
             break;
 
@@ -231,7 +231,7 @@ bool DX12RenderTargetManager::ClearRenderTarget(IRHICommandList& commandList, IR
                 assert(m_dsvHandles.find(dxRenderTarget->GetRenderTargetId()) != m_dsvHandles.end());
                 const auto& dsvHandle = m_dsvHandles[dxRenderTarget->GetRenderTargetId()];
                 dxCommandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
-                    dxRenderTarget->m_clearValue.DepthStencil.Depth, dxRenderTarget->m_clearValue.DepthStencil.Stencil, 0, nullptr);
+                    dxRenderTarget->GetClearValue().DepthStencil.Depth, dxRenderTarget->GetClearValue().DepthStencil.Stencil, 0, nullptr);
             }
             break;
             
