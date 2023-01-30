@@ -53,9 +53,9 @@ bool glTFRenderPassTest::InitPass(glTFRenderResourceManager& resourceManager)
     
     m_pipelineStateObject->BindRenderTargets(allRts);
     m_pipelineStateObject->BindShaderCode(
-        R"(D:\Work\DevSpace\glTFRenderer\glTFRenderer\glTFRenderer\glTFRenderer\glTFShaders\vertexShader.hlsl)", RHIShaderType::Vertex);
+        R"(glTFShaders\vertexShader.hlsl)", RHIShaderType::Vertex);
     m_pipelineStateObject->BindShaderCode(
-        R"(D:\Work\DevSpace\glTFRenderer\glTFRenderer\glTFRenderer\glTFRenderer\glTFShaders\pixelShader.hlsl)", RHIShaderType::Pixel);
+        R"(glTFShaders\pixelShader.hlsl)", RHIShaderType::Pixel);
 
     std::vector<RHIPipelineInputLayout> inputLayouts;
     inputLayouts.push_back({"POSITION", 0, RHIDataFormat::R32G32B32_FLOAT, 0});
