@@ -7,6 +7,7 @@ class DX12Fence : public IRHIFence
 {
 public:
     DX12Fence();
+    virtual ~DX12Fence() override;
     
     virtual bool InitFence(IRHIDevice& device) override;
     virtual bool SignalWhenCommandQueueFinish(IRHICommandQueue& commandQueue) override;

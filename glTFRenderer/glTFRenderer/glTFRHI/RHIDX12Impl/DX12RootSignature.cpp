@@ -7,6 +7,10 @@ DX12RootParameter::DX12RootParameter()
 {
 }
 
+DX12RootParameter::~DX12RootParameter()
+{
+}
+
 bool DX12RootParameter::InitAsConstant(unsigned constantValue, REGISTER_INDEX_TYPE registerIndex)
 {
     SetType(RHIRootParameterType::Constant);

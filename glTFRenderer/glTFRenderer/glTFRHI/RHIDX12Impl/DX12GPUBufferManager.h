@@ -10,6 +10,7 @@ class DX12GPUBufferManager : public IRHIGPUBufferManager
 {
 public:
     DX12GPUBufferManager();
+    virtual ~DX12GPUBufferManager() override;
     
     virtual bool InitGPUBufferManager(IRHIDevice& device, size_t maxDescriptorCount) override;
     virtual bool CreateGPUBuffer(IRHIDevice& device, const RHIBufferDesc& bufferDesc, size_t& outBufferIndex) override;

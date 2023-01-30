@@ -6,6 +6,7 @@ class DX12Device : public IRHIDevice
 {
 public:
     DX12Device();
+    virtual ~DX12Device() override;
 
     virtual bool InitDevice(IRHIFactory& factory) override;
     

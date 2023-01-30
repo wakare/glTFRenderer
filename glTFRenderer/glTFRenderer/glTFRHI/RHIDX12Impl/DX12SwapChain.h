@@ -6,6 +6,7 @@ class DX12SwapChain : public IRHISwapChain
 {
 public:
     DX12SwapChain();
+    virtual ~DX12SwapChain() override;
 
     virtual unsigned GetWidth() override;
     virtual unsigned GetHeight() override;

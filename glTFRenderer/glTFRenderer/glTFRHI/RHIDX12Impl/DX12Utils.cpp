@@ -116,6 +116,10 @@ D3D12_DESCRIPTOR_HEAP_TYPE DX12ConverterUtils::ConvertToDescriptorHeapType(RHIDe
     return D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES;
 }
 
+DX12Utils::~DX12Utils()
+{
+}
+
 bool DX12Utils::ResetCommandList(IRHICommandList& commandList, IRHICommandAllocator& commandAllocator)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();

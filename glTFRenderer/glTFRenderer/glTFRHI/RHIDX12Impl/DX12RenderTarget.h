@@ -7,6 +7,7 @@ class DX12RenderTarget : public IRHIRenderTarget
 {
 public:
     DX12RenderTarget();
+    virtual ~DX12RenderTarget() override;
 
     void SetRenderTarget(ID3D12Resource* renderTarget) { assert(m_texture == nullptr); m_texture = renderTarget; }
     ID3D12Resource* GetRenderTarget() {return m_texture;}

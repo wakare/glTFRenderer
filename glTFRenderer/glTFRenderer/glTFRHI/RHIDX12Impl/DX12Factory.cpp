@@ -2,10 +2,17 @@
 
 #include <d3d12.h>
 
+#include "DX12Utils.h"
+
 DX12Factory::DX12Factory()
     : m_factory(nullptr)
 {
     
+}
+
+DX12Factory::~DX12Factory()
+{
+    SAFE_RELEASE(m_factory)
 }
 
 bool DX12Factory::InitFactory()

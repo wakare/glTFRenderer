@@ -4,6 +4,7 @@
 
 #include "DX12CommandQueue.h"
 #include "DX12Device.h"
+#include "DX12Utils.h"
 
 DX12Fence::DX12Fence()
     : m_fence(nullptr)
@@ -12,6 +13,11 @@ DX12Fence::DX12Fence()
 {
     m_fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
     assert(m_fenceEvent);
+}
+
+DX12Fence::~DX12Fence()
+{
+    SAFE_RELEASE(m_fence)
 }
 
 bool DX12Fence::InitFence(IRHIDevice& device)

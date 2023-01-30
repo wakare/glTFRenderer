@@ -10,6 +10,7 @@ class DX12RenderTargetManager : public IRHIRenderTargetManager
 {
 public:
     DX12RenderTargetManager();
+    virtual ~DX12RenderTargetManager() override;
     
     virtual bool InitRenderTargetManager(IRHIDevice& device, size_t maxRenderTargetCount) override;
     virtual std::shared_ptr<IRHIRenderTarget> CreateRenderTarget(IRHIDevice& device, RHIRenderTargetType type, RHIDataFormat format, const IRHIRenderTargetDesc& desc) override;

@@ -11,6 +11,11 @@ DX12GPUBufferManager::DX12GPUBufferManager()
 {
 }
 
+DX12GPUBufferManager::~DX12GPUBufferManager()
+{
+    SAFE_RELEASE(m_CBVDescriptorHeap)
+}
+
 bool DX12GPUBufferManager::InitGPUBufferManager(IRHIDevice& device, size_t maxDescriptorCount)
 {
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();

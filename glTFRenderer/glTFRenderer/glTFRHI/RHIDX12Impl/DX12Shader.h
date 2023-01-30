@@ -8,6 +8,7 @@ class DX12Shader : public IRHIShader
 {
 public:
     DX12Shader();
+    virtual ~DX12Shader() override;
     
     bool CompileShaderByteCode();
     const std::vector<unsigned char>& GetShaderByteCode() const;  

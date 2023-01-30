@@ -33,20 +33,15 @@ public:
     void UpdateFrameIndex() { m_currentBackBufferIndex = m_swapchain->GetCurrentBackBufferIndex(); }
     
 private:
-    // Exist one only
     std::shared_ptr<IRHIFactory> m_factory;
     std::shared_ptr<IRHIDevice> m_device;
-    std::shared_ptr<IRHISwapChain> m_swapchain;
     std::shared_ptr<IRHICommandQueue> m_commandQueue;
-    std::shared_ptr<IRHICommandList> m_commandList;
-    std::shared_ptr<IRHIRenderTargetManager> m_renderTargetManager;
-    
-    // Exist one per frame
+    std::shared_ptr<IRHISwapChain> m_swapchain;
     std::vector<std::shared_ptr<IRHICommandAllocator>> m_commandAllocators;
+    std::shared_ptr<IRHICommandList> m_commandList;
     std::vector<std::shared_ptr<IRHIFence>> m_fences;
-
+    std::shared_ptr<IRHIRenderTargetManager> m_renderTargetManager;
     std::vector<std::shared_ptr<IRHIRenderTarget>> m_swapchainRTs;
-    
     
     unsigned m_currentBackBufferIndex;
 };

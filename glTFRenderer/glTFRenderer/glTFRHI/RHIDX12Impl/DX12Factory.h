@@ -7,6 +7,7 @@ class DX12Factory : public IRHIFactory
 {
 public:
     DX12Factory();
+    virtual ~DX12Factory() override;
     
     virtual bool InitFactory() override;
 

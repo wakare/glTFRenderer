@@ -7,6 +7,7 @@
 
 #include "DX12CommandQueue.h"
 #include "DX12Factory.h"
+#include "DX12Utils.h"
 #include "../../glTFWindow/glTFWindow.h"
 
 DX12SwapChain::DX12SwapChain()
@@ -16,6 +17,11 @@ DX12SwapChain::DX12SwapChain()
     , m_swapChain(nullptr)
     , m_swapChainSampleDesc({})
 {
+}
+
+DX12SwapChain::~DX12SwapChain()
+{
+    SAFE_RELEASE(m_swapChain)
 }
 
 unsigned DX12SwapChain::GetWidth()

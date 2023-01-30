@@ -1,6 +1,7 @@
 #pragma once
-#include <memory>
 
+#include <memory>
+#include "RHIInterface/RHICommon.h"
 #include "RHIInterface/IRHICommandAllocator.h"
 #include "RHIInterface/IRHIDescriptorHeap.h"
 #include "RHIInterface/IRHIIndexBufferView.h"

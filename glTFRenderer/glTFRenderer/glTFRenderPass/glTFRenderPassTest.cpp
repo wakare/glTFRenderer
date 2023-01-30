@@ -5,12 +5,16 @@
 #include "../glTFUtils/glTFLog.h"
 
 glTFRenderPassTest::glTFRenderPassTest()
-    : m_rootSignatureParameterCount(1)
+    : glTFRenderPassBase()
+    , m_rootSignatureParameterCount(1)
     , m_rootSignatureStaticSamplerCount(0)
     , m_cbvGPUHandle(0)
     , m_colorMultiplier()
 {
 }
+
+glTFRenderPassTest::~glTFRenderPassTest()
+= default;
 
 const char* glTFRenderPassTest::PassName()
 {

@@ -8,6 +8,11 @@ DX12DescriptorHeap::DX12DescriptorHeap()
 {
 }
 
+DX12DescriptorHeap::~DX12DescriptorHeap()
+{
+    SAFE_RELEASE(m_descriptorHeap)
+}
+
 bool DX12DescriptorHeap::InitDescriptorHeap(IRHIDevice& device, const RHIDescriptorHeapDesc& desc)
 {
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();

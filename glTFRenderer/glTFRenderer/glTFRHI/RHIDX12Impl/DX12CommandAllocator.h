@@ -6,6 +6,8 @@ class DX12CommandAllocator : public IRHICommandAllocator
 {
 public:
     DX12CommandAllocator();
+    virtual ~DX12CommandAllocator() override;
+    
     virtual bool InitCommandAllocator(IRHIDevice& device, RHICommandAllocatorType type) override;
 
     ID3D12CommandAllocator* GetCommandAllocator() const {return m_commandAllocator;}

@@ -71,3 +71,9 @@ void glTFRenderPassManager::RenderAllPass()
     
     m_resourceManager->UpdateFrameIndex();
 }
+
+void glTFRenderPassManager::ExitAllPass()
+{
+    m_resourceManager->GetCurrentFrameFence().WaitUtilSignal();
+    m_passes.clear();
+}

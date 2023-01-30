@@ -16,6 +16,11 @@ DX12RenderTargetManager::DX12RenderTargetManager()
 {
 }
 
+DX12RenderTargetManager::~DX12RenderTargetManager()
+{
+
+}
+
 bool DX12RenderTargetManager::InitRenderTargetManager(IRHIDevice& device, size_t maxRenderTargetCount)
 {
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();

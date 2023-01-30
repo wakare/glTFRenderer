@@ -9,6 +9,8 @@ class DX12GraphicsPipelineStateObject : public IRHIPipelineStateObject
 {
 public:
     DX12GraphicsPipelineStateObject();
+    virtual ~DX12GraphicsPipelineStateObject() override;
+    
     virtual bool BindShaderCode(const std::string& shaderFilePath, RHIShaderType type) override;
     virtual bool BindRenderTargets(const std::vector<IRHIRenderTarget*>& renderTargets) override;
     virtual bool InitPipelineStateObject(IRHIDevice& device, IRHIRootSignature& rootSignature, IRHISwapChain& swapchain, const std::vector<RHIPipelineInputLayout>& inputLayouts) override;

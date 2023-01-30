@@ -1,10 +1,16 @@
 #include "DX12CommandList.h"
 
 #include "DX12Device.h"
+#include "DX12Utils.h"
 
 DX12CommandList::DX12CommandList()
     : m_commandList(nullptr)
 {
+}
+
+DX12CommandList::~DX12CommandList()
+{
+    SAFE_RELEASE(m_commandList);
 }
 
 bool DX12CommandList::InitCommandList(IRHIDevice& device, IRHICommandAllocator& commandAllocator)

@@ -12,7 +12,15 @@
 DX12GPUBuffer::DX12GPUBuffer()
     : m_buffer(nullptr)
     , m_mappedGPUBuffer(nullptr)
+    , m_bufferDesc()
+    , m_mapRange()
 {
+}
+
+DX12GPUBuffer::~DX12GPUBuffer()
+{
+    //m_buffer->Unmap(0, &m_mapRange);
+    SAFE_RELEASE(m_buffer)
 }
 
 bool DX12GPUBuffer::InitGPUBuffer(IRHIDevice& device, const RHIBufferDesc& desc)
@@ -40,8 +48,8 @@ bool DX12GPUBuffer::UploadBufferFromCPU(void* data, size_t size)
     if (!m_mappedGPUBuffer)
     {
         // Try mapping to cpu
-        CD3DX12_RANGE readRange(0, 0);    // We do not intend to read from this resource on the CPU. (End is less than or equal to begin)
-        THROW_IF_FAILED(m_buffer->Map(0, &readRange, reinterpret_cast<void**>(&m_mappedGPUBuffer)))
+        m_mapRange = {0, 0};    // We do not intend to read from this resource on the CPU. (End is less than or equal to begin)
+        THROW_IF_FAILED(m_buffer->Map(0, &m_mapRange, reinterpret_cast<void**>(&m_mappedGPUBuffer)))
     }
     
     assert(size < m_bufferDesc.size);

@@ -3,9 +3,12 @@
 #include <dxgiformat.h>
 
 #include "../RHIUtils.h"
+#include "../../glTFUtils/glTFLog.h"
 
 enum class RHIBufferType;
 enum class RHIDataFormat;
+
+#define SAFE_RELEASE(x) if ((x)) {(x)->Release(); (x) = nullptr; LOG_FORMAT_FLUSH("[Exit] Release %s\n", #x)}
 
 class DX12ConverterUtils
 {
@@ -21,6 +24,8 @@ class DX12Utils : public RHIUtils
 {
     friend class RHIResourceFactory;
 public:
+    virtual ~DX12Utils() override;
+    
     virtual bool ResetCommandList(IRHICommandList& commandList, IRHICommandAllocator& commandAllocator) override;
     virtual bool ResetCommandList(IRHICommandList& commandList, IRHICommandAllocator& commandAllocator, IRHIPipelineStateObject& initPSO) override;
     virtual bool CloseCommandList(IRHICommandList& commandList) override;

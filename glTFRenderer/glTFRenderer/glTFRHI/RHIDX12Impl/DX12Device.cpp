@@ -3,11 +3,17 @@
 #include <dxgi.h>
 
 #include "DX12Factory.h"
+#include "DX12Utils.h"
 
 DX12Device::DX12Device()
     : m_device(nullptr)
 {
     
+}
+
+DX12Device::~DX12Device()
+{
+    SAFE_RELEASE(m_device)
 }
 
 bool DX12Device::InitDevice(IRHIFactory& factory)

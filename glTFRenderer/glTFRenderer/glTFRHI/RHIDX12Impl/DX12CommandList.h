@@ -6,6 +6,8 @@ class DX12CommandList : public IRHICommandList
 {
 public:
     DX12CommandList();
+    virtual ~DX12CommandList() override;
+    
     virtual bool InitCommandList(IRHIDevice& device, IRHICommandAllocator& commandAllocator) override;
 
     ID3D12GraphicsCommandList* GetCommandList() const {return m_commandList;}

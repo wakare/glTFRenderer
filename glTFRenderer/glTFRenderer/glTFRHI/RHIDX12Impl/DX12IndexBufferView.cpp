@@ -8,6 +8,10 @@ DX12IndexBufferView::DX12IndexBufferView()
 {
 }
 
+DX12IndexBufferView::~DX12IndexBufferView()
+{
+}
+
 bool DX12IndexBufferView::InitIndexBufferView(IRHIGPUBuffer& buffer, size_t offset, RHIDataFormat indexFormat,
                                               size_t indexBufferSize)
 {

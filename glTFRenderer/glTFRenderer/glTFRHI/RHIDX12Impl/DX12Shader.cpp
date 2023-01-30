@@ -9,6 +9,10 @@ DX12Shader::DX12Shader()
 {
 }
 
+DX12Shader::~DX12Shader()
+{
+}
+
 bool DX12Shader::CompileShaderByteCode()
 {
     if (m_shaderContent.empty() || m_type == RHIShaderType::Unknown)

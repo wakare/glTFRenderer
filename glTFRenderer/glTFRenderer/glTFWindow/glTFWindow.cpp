@@ -58,6 +58,8 @@ void glTFWindow::UpdateWindow()
     }
 #ifdef DEBUG_OLD_VERSION
     glTFRHIDX12::WaitForPreviousFrame();
+#else
+    m_passManager->ExitAllPass();
 #endif
     glfwTerminate();
 }

@@ -7,6 +7,7 @@ class DX12RootParameter : public IRHIRootParameter
 {
 public:
     DX12RootParameter();
+    virtual ~DX12RootParameter() override;
 
     virtual bool InitAsConstant(unsigned constantValue, REGISTER_INDEX_TYPE registerIndex) override;
     virtual bool InitAsCBV(REGISTER_INDEX_TYPE registerIndex) override;

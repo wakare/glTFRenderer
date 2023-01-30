@@ -7,6 +7,8 @@ class DX12CommandQueue : public IRHICommandQueue
 {
 public:
     DX12CommandQueue();
+    virtual ~DX12CommandQueue() override;
+    
     virtual bool InitCommandQueue(IRHIDevice& device) override;
 
     ID3D12CommandQueue* GetCommandQueue() {return m_commandQueue; }
