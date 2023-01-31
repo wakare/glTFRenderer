@@ -69,11 +69,14 @@ void glTFRenderPassManager::RenderAllPass()
     
     RHIUtils::Instance().Present(m_resourceManager->GetSwapchain());
     
-    m_resourceManager->UpdateFrameIndex();
+    m_resourceManager->UpdateCurrentBackBufferIndex();
 }
 
 void glTFRenderPassManager::ExitAllPass()
 {
     m_resourceManager->GetCurrentFrameFence().WaitUtilSignal();
+    // Reset command allocator when previous frame executed finish...
+    RHIUtils::Instance().ResetCommandAllocator(m_resourceManager->GetCurrentFrameCommandAllocator());
+    
     m_passes.clear();
 }

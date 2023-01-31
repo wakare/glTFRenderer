@@ -30,13 +30,13 @@ public:
     IRHIRenderTarget& GetCurrentFrameSwapchainRT();
 
     unsigned GetCurrentBackBufferIndex() const {return m_currentBackBufferIndex; }
-    void UpdateFrameIndex() { m_currentBackBufferIndex = m_swapchain->GetCurrentBackBufferIndex(); }
+    void UpdateCurrentBackBufferIndex() { m_currentBackBufferIndex = m_swapchain->GetCurrentBackBufferIndex(); }
     
 private:
     std::shared_ptr<IRHIFactory> m_factory;
     std::shared_ptr<IRHIDevice> m_device;
-    std::shared_ptr<IRHICommandQueue> m_commandQueue;
     std::shared_ptr<IRHISwapChain> m_swapchain;
+    std::shared_ptr<IRHICommandQueue> m_commandQueue;
     std::vector<std::shared_ptr<IRHICommandAllocator>> m_commandAllocators;
     std::shared_ptr<IRHICommandList> m_commandList;
     std::vector<std::shared_ptr<IRHIFence>> m_fences;

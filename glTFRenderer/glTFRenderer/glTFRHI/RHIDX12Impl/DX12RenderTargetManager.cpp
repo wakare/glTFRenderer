@@ -135,7 +135,7 @@ std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTarget(IR
     renderTarget->SetRenderTargetType(type);
     renderTarget->SetRenderTargetFormat(format);
     auto* dxRenderTarget = dynamic_cast<DX12RenderTarget*>(renderTarget.get());
-    dxRenderTarget->SetRenderTarget(resource);
+    dxRenderTarget->SetRenderTarget(resource, true);
     dxRenderTarget->SetClearValue(dxClearValue);
 
     switch (type) {
@@ -198,7 +198,7 @@ std::vector<std::shared_ptr<IRHIRenderTarget>> DX12RenderTargetManager::CreateRe
         newRenderTarget->SetRenderTargetType(RHIRenderTargetType::RTV);
         newRenderTarget->SetRenderTargetFormat(RHIDataFormat::R8G8B8A8_UNORM_SRGB);
         DX12RenderTarget* dxRenderTarget = dynamic_cast<DX12RenderTarget*>(newRenderTarget.get());
-        dxRenderTarget->SetRenderTarget(resource);
+        dxRenderTarget->SetRenderTarget(resource, false);
         dxRenderTarget->SetClearValue(defaultClearValue);
         outVector.push_back(newRenderTarget);
         

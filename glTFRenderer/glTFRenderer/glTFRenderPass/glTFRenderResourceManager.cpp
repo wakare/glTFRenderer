@@ -25,7 +25,7 @@ bool glTFRenderResourceManager::InitResourceManager(glTFWindow& window)
     
     m_swapchain = RHIResourceFactory::CreateRHIResource<IRHISwapChain>();
     EXIT_WHEN_FALSE(m_swapchain->InitSwapChain(*m_factory, *m_commandQueue, window.GetWidth(), window.GetHeight(), false,  window))
-    UpdateFrameIndex();
+    UpdateCurrentBackBufferIndex();
     
     m_commandAllocators.resize(backBufferCount);
     for (size_t i = 0; i < backBufferCount; ++i)

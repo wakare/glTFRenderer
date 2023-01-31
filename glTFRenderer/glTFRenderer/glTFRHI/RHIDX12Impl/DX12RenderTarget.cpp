@@ -6,10 +6,14 @@ DX12RenderTarget::DX12RenderTarget()
     : IRHIRenderTarget()
     , m_texture(nullptr)
     , m_clearValue({})
+    , m_releaseInDtor(false)
 {
 }
 
 DX12RenderTarget::~DX12RenderTarget()
 {
-    SAFE_RELEASE(m_texture)
+    if (m_releaseInDtor)
+    {
+        SAFE_RELEASE(m_texture)    
+    }
 }
