@@ -102,6 +102,6 @@ bool glTFImageLoader::LoadImageByFilename(const LPCWSTR filename, RHITextureDesc
     RETURN_IF_FALSE(desc.Init(textureWidth, textureHeight, dataFormat))
     const unsigned bytesPerRow = textureWidth * GetRHIDataFormatBitsPerPixel(dataFormat) / 8;
     THROW_IF_FAILED(wicFrame->CopyPixels(0, bytesPerRow, desc.GetTextureDataSize(), static_cast<BYTE*>(desc.GetTextureData())))
-    
+
     return true;
 }

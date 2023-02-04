@@ -302,7 +302,7 @@ bool DX12Utils::SetGPUHandleToRootParameterSlot(IRHICommandList& commandList, un
     return true;
 }
 
-bool DX12Utils::UploadDataToDefaultGPUBuffer(IRHICommandList& commandList, IRHIGPUBuffer& uploadBuffer,
+bool DX12Utils::UploadBufferDataToDefaultGPUBuffer(IRHICommandList& commandList, IRHIGPUBuffer& uploadBuffer,
                                              IRHIGPUBuffer& defaultBuffer, void* data, size_t size)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
@@ -322,8 +322,28 @@ bool DX12Utils::UploadDataToDefaultGPUBuffer(IRHICommandList& commandList, IRHIG
     return true;
 }
 
+bool DX12Utils::UploadTextureDataToDefaultGPUBuffer(IRHICommandList& commandList, IRHIGPUBuffer& uploadBuffer,
+    IRHIGPUBuffer& defaultBuffer, void* data, size_t rowPitch, size_t slicePitch)
+{
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    auto* dxUploadBuffer = dynamic_cast<DX12GPUBuffer&>(uploadBuffer).GetBuffer();
+    auto* dxDefaultBuffer = dynamic_cast<DX12GPUBuffer&>(defaultBuffer).GetBuffer();
+    
+    // store vertex buffer in upload heap
+    D3D12_SUBRESOURCE_DATA vertexData = {};
+    vertexData.pData = reinterpret_cast<BYTE*>(data); // pointer to our vertex array
+    vertexData.RowPitch = rowPitch; // size of all our triangle vertex data
+    vertexData.SlicePitch = slicePitch; // also the size of our triangle vertex data
+
+    // we are now creating a command with the command list to copy the data from
+    // the upload heap to the default heap
+    UpdateSubresources(dxCommandList, dxDefaultBuffer, dxUploadBuffer, 0, 0, 1, &vertexData);
+
+    return true;
+}
+
 bool DX12Utils::AddBufferBarrierToCommandList(IRHICommandList& commandList, IRHIGPUBuffer& buffer,
-    RHIResourceStateType beforeState, RHIResourceStateType afterState)
+                                              RHIResourceStateType beforeState, RHIResourceStateType afterState)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
     auto* dxBuffer = dynamic_cast<DX12GPUBuffer&>(buffer).GetBuffer();

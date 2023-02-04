@@ -25,7 +25,7 @@ const char* glTFRenderPassTest::PassName()
 struct Vertex
 {
     float data[3];
-    float color[4];
+    float uv[2];
 };
 
 bool glTFRenderPassTest::InitPass(glTFRenderResourceManager& resourceManager)
@@ -78,10 +78,10 @@ bool glTFRenderPassTest::InitPass(glTFRenderResourceManager& resourceManager)
     // a triangle
     Vertex vList[] = {
         // first quad (closer to camera, blue)
-        { -0.5f,  0.5f, 0.5f, 1.0f, 1.0f, 0.0f, 1.0f },
-        {  0.5f, -0.5f, 0.5f, 1.0f, 1.0f, 0.0f, 1.0f },
-        { -0.5f, -0.5f, 0.5f, 1.0f, 1.0f, 0.0f, 1.0f },
-        {  0.5f,  0.5f, 0.5f, 1.0f, 1.0f, 0.0f, 1.0f },
+        { -0.5f,  0.5f, 0.5f, 0.0f, 1.0f },
+        {  0.5f, -0.5f, 0.5f, 1.0f, 0.0f },
+        { -0.5f, -0.5f, 0.5f, 0.0f, 0.0f },
+        {  0.5f,  0.5f, 0.5f, 1.0f, 1.0f },
     };
     
     // a quad (2 triangles)
@@ -112,8 +112,8 @@ bool glTFRenderPassTest::InitPass(glTFRenderResourceManager& resourceManager)
     RETURN_IF_FALSE(m_vertexUploadBuffer->InitGPUBuffer(resourceManager.GetDevice(), vertexUploadBufferDesc ))
     RETURN_IF_FALSE(m_indexUploadBuffer->InitGPUBuffer(resourceManager.GetDevice(), indexUploadBufferDesc ))
     RETURN_IF_FALSE(RHIUtils::Instance().ResetCommandList(resourceManager.GetCommandList(), resourceManager.GetCurrentFrameCommandAllocator()))
-    RETURN_IF_FALSE(RHIUtils::Instance().UploadDataToDefaultGPUBuffer(resourceManager.GetCommandList(), *m_vertexUploadBuffer, *m_vertexBuffer, vList, sizeof(vList)))
-    RETURN_IF_FALSE(RHIUtils::Instance().UploadDataToDefaultGPUBuffer(resourceManager.GetCommandList(), *m_indexUploadBuffer, *m_indexBuffer, iList, sizeof(iList)))
+    RETURN_IF_FALSE(RHIUtils::Instance().UploadBufferDataToDefaultGPUBuffer(resourceManager.GetCommandList(), *m_vertexUploadBuffer, *m_vertexBuffer, vList, sizeof(vList)))
+    RETURN_IF_FALSE(RHIUtils::Instance().UploadBufferDataToDefaultGPUBuffer(resourceManager.GetCommandList(), *m_indexUploadBuffer, *m_indexBuffer, iList, sizeof(iList)))
     RETURN_IF_FALSE(RHIUtils::Instance().AddBufferBarrierToCommandList(resourceManager.GetCommandList(), *m_vertexBuffer, RHIResourceStateType::COPY_DEST, RHIResourceStateType::VERTEX_AND_CONSTANT_BUFFER))
     RETURN_IF_FALSE(RHIUtils::Instance().AddBufferBarrierToCommandList(resourceManager.GetCommandList(), *m_indexBuffer, RHIResourceStateType::COPY_DEST, RHIResourceStateType::INDEX_BUFFER))
     RETURN_IF_FALSE(RHIUtils::Instance().CloseCommandList(resourceManager.GetCommandList()))
@@ -151,6 +151,7 @@ bool glTFRenderPassTest::InitPass(glTFRenderResourceManager& resourceManager)
     
     RETURN_IF_FALSE(RHIUtils::Instance().CloseCommandList(resourceManager.GetCommandList()))
     RETURN_IF_FALSE(RHIUtils::Instance().ExecuteCommandList(resourceManager.GetCommandList(),resourceManager.GetCommandQueue()))
+    resourceManager.GetCurrentFrameFence().SignalWhenCommandQueueFinish(resourceManager.GetCommandQueue());
     
     LOG_FORMAT_FLUSH("[RenderPass_Test] Init Pass resource finished!\n")
     
