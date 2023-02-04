@@ -1,4 +1,5 @@
 #pragma once
+#include <cassert>
 #include <stdexcept>
 
 enum RHICommonEnum
@@ -13,16 +14,31 @@ enum class RHIResourceStateType
     INDEX_BUFFER,
     PRESENT,
     RENDER_TARGET,
+    PIXEL_SHADER_RESOURCE,
 };
 
 enum class RHIDataFormat
 {
     R8G8B8A8_UNORM,
     R8G8B8A8_UNORM_SRGB,
+    B8G8R8A8_UNORM,
+    B8G8R8X8_UNORM,
+    R32G32_FLOAT,
     R32G32B32_FLOAT,
     R32G32B32A32_FLOAT,
+    R16G16B16A16_FLOAT,
+    R16G16B16A16_UNORM,
+    R10G10B10A2_UNORM,
+    R10G10B10_XR_BIAS_A2_UNORM,
+    B5G5R5A1_UNORM,
+    B5G6R5_UNORM,
     D32_FLOAT,
+    R32_FLOAT,
     R32_UINT,
+    R16_FLOAT,
+    R16_UNORM,
+    R8_UNORM,
+    A8_UNORM,
     Unknown,
 };
 
@@ -63,8 +79,33 @@ struct RHIConstantBufferViewDesc
     size_t bufferSize;
 };
 
+enum class RHIShaderVisibleViewDimension
+{
+    UNKNOWN,
+    BUFFER,
+    TEXTURE1D,
+    TEXTURE1DARRAY,
+    TEXTURE2D,
+    TEXTURE2DARRAY,
+    TEXTURE2DMS,
+    TEXTURE2DMSARRAY,
+    TEXTURE3D,
+    TEXTURECUBE,
+    TEXTURECUBEARRAY,
+};
+
+struct RHIShaderResourceViewDesc
+{
+    RHIDataFormat format;
+    RHIShaderVisibleViewDimension dimension;
+    
+    // TODO: figure out this member represent what?
+    //unsigned shader4ComponentMapping;
+};
+
 typedef RHIRect RHIScissorRectDesc;
 typedef uint64_t RHIGPUDescriptorHandle;
+typedef uint64_t RHICPUDescriptorHandle;
 
 #define REGISTER_INDEX_TYPE unsigned 
 
@@ -73,3 +114,33 @@ typedef uint64_t RHIGPUDescriptorHandle;
     { \
         throw std::runtime_error("[ERROR] Detected runtime error in call"); \
     }
+
+#define RETURN_IF_FALSE(x) \
+    if (!(x)) \
+    { return false; }
+
+
+// get the number of bits per pixel for a dxgi format
+inline int GetRHIDataFormatBitsPerPixel(const RHIDataFormat& RHIDataFormat)
+{
+    if (RHIDataFormat == RHIDataFormat::R32G32B32A32_FLOAT) return 128;
+    else if (RHIDataFormat == RHIDataFormat::R16G16B16A16_FLOAT) return 64;
+    else if (RHIDataFormat == RHIDataFormat::R16G16B16A16_UNORM) return 64;
+    else if (RHIDataFormat == RHIDataFormat::R8G8B8A8_UNORM) return 32;
+    else if (RHIDataFormat == RHIDataFormat::B8G8R8A8_UNORM) return 32;
+    else if (RHIDataFormat == RHIDataFormat::B8G8R8X8_UNORM) return 32;
+    else if (RHIDataFormat == RHIDataFormat::R10G10B10_XR_BIAS_A2_UNORM) return 32;
+
+    else if (RHIDataFormat == RHIDataFormat::R10G10B10A2_UNORM) return 32;
+    else if (RHIDataFormat == RHIDataFormat::B5G5R5A1_UNORM) return 16;
+    else if (RHIDataFormat == RHIDataFormat::B5G6R5_UNORM) return 16;
+    else if (RHIDataFormat == RHIDataFormat::R32_FLOAT) return 32;
+    else if (RHIDataFormat == RHIDataFormat::R16_FLOAT) return 16;
+    else if (RHIDataFormat == RHIDataFormat::R16_UNORM) return 16;
+    else if (RHIDataFormat == RHIDataFormat::R8_UNORM) return 8;
+    else if (RHIDataFormat == RHIDataFormat::A8_UNORM) return 8;
+
+    // Unknown format !
+    assert(false);
+    return 32;
+}

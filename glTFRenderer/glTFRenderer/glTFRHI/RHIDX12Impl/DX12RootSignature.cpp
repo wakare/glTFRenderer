@@ -14,7 +14,7 @@ DX12RootParameter::~DX12RootParameter()
 bool DX12RootParameter::InitAsConstant(unsigned constantValue, REGISTER_INDEX_TYPE registerIndex)
 {
     SetType(RHIRootParameterType::Constant);
-
+    m_parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS; 
     m_parameter.Constants.Num32BitValues = constantValue;
     m_parameter.Constants.ShaderRegister = registerIndex;
     m_parameter.Constants.RegisterSpace = 0;
@@ -25,9 +25,9 @@ bool DX12RootParameter::InitAsConstant(unsigned constantValue, REGISTER_INDEX_TY
 bool DX12RootParameter::InitAsCBV(REGISTER_INDEX_TYPE registerIndex)
 {
     SetType(RHIRootParameterType::CBV);
-
-    m_parameter.Constants.ShaderRegister = registerIndex;
-    m_parameter.Constants.RegisterSpace = 0;
+    m_parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+    m_parameter.Descriptor.ShaderRegister = registerIndex;
+    m_parameter.Descriptor.RegisterSpace = 0;
 
     return true;
 }
@@ -35,9 +35,9 @@ bool DX12RootParameter::InitAsCBV(REGISTER_INDEX_TYPE registerIndex)
 bool DX12RootParameter::InitAsSRV(REGISTER_INDEX_TYPE registerIndex)
 {
     SetType(RHIRootParameterType::SRV);
-
-    m_parameter.Constants.ShaderRegister = registerIndex;
-    m_parameter.Constants.RegisterSpace = 0;
+    m_parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
+    m_parameter.Descriptor.ShaderRegister = registerIndex;
+    m_parameter.Descriptor.RegisterSpace = 0;
 
     return true;
 }
@@ -45,9 +45,9 @@ bool DX12RootParameter::InitAsSRV(REGISTER_INDEX_TYPE registerIndex)
 bool DX12RootParameter::InitAsUAV(REGISTER_INDEX_TYPE registerIndex)
 {
     SetType(RHIRootParameterType::UAV);
-
-    m_parameter.Constants.ShaderRegister = registerIndex;
-    m_parameter.Constants.RegisterSpace = 0;
+    m_parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_UAV;
+    m_parameter.Descriptor.ShaderRegister = registerIndex;
+    m_parameter.Descriptor.RegisterSpace = 0;
 
     return true;
 }
@@ -61,7 +61,7 @@ bool DX12RootParameter::InitAsDescriptorTableRange(size_t rangeCount,
     }
     
     SetType(RHIRootParameterType::DescriptorTable);
-
+    m_parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
     static auto _convertDX12RangeType = [](RHIRootParameterDescriptorRangeType type)
     {
         switch (type) {

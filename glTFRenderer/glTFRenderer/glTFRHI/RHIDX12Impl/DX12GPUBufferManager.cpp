@@ -45,7 +45,7 @@ bool DX12GPUBufferManager::CreateGPUBuffer(IRHIDevice& device, const RHIBufferDe
     
     D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
     cbvDesc.BufferLocation = gpuBuffer->GetBuffer()->GetGPUVirtualAddress();
-    cbvDesc.SizeInBytes = (static_cast<unsigned>(bufferDesc.size) + 255) & ~255;    // CB size is required to be 256-byte aligned.
+    cbvDesc.SizeInBytes = (static_cast<unsigned>(bufferDesc.width) + 255) & ~255;    // CB size is required to be 256-byte aligned.
     dxDevice->CreateConstantBufferView(&cbvDesc, m_CBVDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
     
     return true;

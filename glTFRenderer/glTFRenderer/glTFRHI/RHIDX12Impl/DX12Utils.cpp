@@ -16,29 +16,33 @@
 #include "../RHIInterface/IRHIGPUBuffer.h"
 #include "../RHIInterface/RHICommon.h"
 
+#define CONVERT_DXGI_FORMAT_CASE(RHIFormat) case RHIDataFormat::##RHIFormat: return DXGI_FORMAT_##RHIFormat;
+
 DXGI_FORMAT DX12ConverterUtils::ConvertToDXGIFormat(RHIDataFormat format)
 {
     switch (format)
     {
-    case RHIDataFormat::R8G8B8A8_UNORM:
-        return DXGI_FORMAT_R8G8B8A8_UNORM;
-
-    case RHIDataFormat::R8G8B8A8_UNORM_SRGB:
-        return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-
-    case RHIDataFormat::R32G32B32_FLOAT:
-        return DXGI_FORMAT_R32G32B32_FLOAT;
-
-    case RHIDataFormat::R32G32B32A32_FLOAT:
-        return DXGI_FORMAT_R32G32B32A32_FLOAT;
-        
-    case RHIDataFormat::D32_FLOAT:
-        return DXGI_FORMAT_D32_FLOAT;
-
-    case RHIDataFormat::R32_UINT:
-        return DXGI_FORMAT_R32_UINT;
-        
-    case RHIDataFormat::Unknown: break;
+        CONVERT_DXGI_FORMAT_CASE(R8G8B8A8_UNORM)
+        CONVERT_DXGI_FORMAT_CASE(R8G8B8A8_UNORM_SRGB)
+        CONVERT_DXGI_FORMAT_CASE(B8G8R8A8_UNORM)
+        CONVERT_DXGI_FORMAT_CASE(B8G8R8X8_UNORM)
+        CONVERT_DXGI_FORMAT_CASE(R32G32_FLOAT)
+        CONVERT_DXGI_FORMAT_CASE(R32G32B32_FLOAT)
+        CONVERT_DXGI_FORMAT_CASE(R32G32B32A32_FLOAT)
+        CONVERT_DXGI_FORMAT_CASE(R16G16B16A16_FLOAT)
+        CONVERT_DXGI_FORMAT_CASE(R16G16B16A16_UNORM)
+        CONVERT_DXGI_FORMAT_CASE(R10G10B10A2_UNORM)
+        CONVERT_DXGI_FORMAT_CASE(R10G10B10_XR_BIAS_A2_UNORM)
+        CONVERT_DXGI_FORMAT_CASE(B5G5R5A1_UNORM)
+        CONVERT_DXGI_FORMAT_CASE(B5G6R5_UNORM)
+        CONVERT_DXGI_FORMAT_CASE(D32_FLOAT)
+        CONVERT_DXGI_FORMAT_CASE(R32_FLOAT)
+        CONVERT_DXGI_FORMAT_CASE(R32_UINT)
+        CONVERT_DXGI_FORMAT_CASE(R16_FLOAT)
+        CONVERT_DXGI_FORMAT_CASE(R16_UNORM)
+        CONVERT_DXGI_FORMAT_CASE(R8_UNORM)
+        CONVERT_DXGI_FORMAT_CASE(A8_UNORM)    
+        case RHIDataFormat::Unknown: break;
     }
     
     assert(false);
@@ -78,6 +82,9 @@ D3D12_RESOURCE_STATES DX12ConverterUtils::ConvertToResourceState(RHIResourceStat
 
     case RHIResourceStateType::RENDER_TARGET:
         return D3D12_RESOURCE_STATE_RENDER_TARGET;
+
+    case RHIResourceStateType::PIXEL_SHADER_RESOURCE:
+        return D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
     }
 
     assert(false);
@@ -116,8 +123,52 @@ D3D12_DESCRIPTOR_HEAP_TYPE DX12ConverterUtils::ConvertToDescriptorHeapType(RHIDe
     return D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES;
 }
 
+#define COVERT_TO_SRV_DIMENSION_CASE(dimensionType) case RHIShaderVisibleViewDimension::##dimensionType: return D3D12_SRV_DIMENSION_##dimensionType;
+
+D3D12_SRV_DIMENSION DX12ConverterUtils::ConvertToSRVDimensionType(RHIShaderVisibleViewDimension type)
+{
+    switch (type) {
+        COVERT_TO_SRV_DIMENSION_CASE(BUFFER)
+        COVERT_TO_SRV_DIMENSION_CASE(TEXTURE1D)
+        COVERT_TO_SRV_DIMENSION_CASE(TEXTURE1DARRAY)
+        COVERT_TO_SRV_DIMENSION_CASE(TEXTURE2D)
+        COVERT_TO_SRV_DIMENSION_CASE(TEXTURE2DARRAY)
+        COVERT_TO_SRV_DIMENSION_CASE(TEXTURE2DMS)
+        COVERT_TO_SRV_DIMENSION_CASE(TEXTURE2DMSARRAY)
+        COVERT_TO_SRV_DIMENSION_CASE(TEXTURE3D)
+        COVERT_TO_SRV_DIMENSION_CASE(TEXTURECUBE)
+        COVERT_TO_SRV_DIMENSION_CASE(TEXTURECUBEARRAY)
+    }
+
+    return D3D12_SRV_DIMENSION_UNKNOWN;
+}
+
 DX12Utils::~DX12Utils()
 {
+}
+
+int DX12Utils::GetDXGIFormatBitsPerPixel(DXGI_FORMAT& dxgiFormat)
+{
+    if (dxgiFormat == DXGI_FORMAT_R32G32B32A32_FLOAT) return 128;
+    else if (dxgiFormat == DXGI_FORMAT_R16G16B16A16_FLOAT) return 64;
+    else if (dxgiFormat == DXGI_FORMAT_R16G16B16A16_UNORM) return 64;
+    else if (dxgiFormat == DXGI_FORMAT_R8G8B8A8_UNORM) return 32;
+    else if (dxgiFormat == DXGI_FORMAT_B8G8R8A8_UNORM) return 32;
+    else if (dxgiFormat == DXGI_FORMAT_B8G8R8X8_UNORM) return 32;
+    else if (dxgiFormat == DXGI_FORMAT_R10G10B10_XR_BIAS_A2_UNORM) return 32;
+
+    else if (dxgiFormat == DXGI_FORMAT_R10G10B10A2_UNORM) return 32;
+    else if (dxgiFormat == DXGI_FORMAT_B5G5R5A1_UNORM) return 16;
+    else if (dxgiFormat == DXGI_FORMAT_B5G6R5_UNORM) return 16;
+    else if (dxgiFormat == DXGI_FORMAT_R32_FLOAT) return 32;
+    else if (dxgiFormat == DXGI_FORMAT_R16_FLOAT) return 16;
+    else if (dxgiFormat == DXGI_FORMAT_R16_UNORM) return 16;
+    else if (dxgiFormat == DXGI_FORMAT_R8_UNORM) return 8;
+    else if (dxgiFormat == DXGI_FORMAT_A8_UNORM) return 8;
+
+    // Unknown format !
+    assert(false);
+    return 32;
 }
 
 bool DX12Utils::ResetCommandList(IRHICommandList& commandList, IRHICommandAllocator& commandAllocator)
@@ -240,7 +291,7 @@ bool DX12Utils::SetDescriptorHeap(IRHICommandList& commandList, IRHIDescriptorHe
     return true;
 }
 
-bool DX12Utils::SetRootParameterAsDescriptorTable(IRHICommandList& commandList, unsigned slotIndex,
+bool DX12Utils::SetGPUHandleToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex,
     RHIGPUDescriptorHandle handle)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
@@ -297,20 +348,54 @@ bool DX12Utils::AddRenderTargetBarrierToCommandList(IRHICommandList& commandList
     return true;
 }
 
-bool DX12Utils::CreateConstantBufferViewInDescriptorHeap(IRHIDevice& device, IRHIDescriptorHeap& descriptorHeap, IRHIGPUBuffer& buffer,
-    const RHIConstantBufferViewDesc& desc, RHIGPUDescriptorHandle& outGPUHandle)
+bool DX12Utils::CreateConstantBufferViewInDescriptorHeap(IRHIDevice& device, IRHIDescriptorHeap& descriptorHeap, unsigned descriptorOffset,
+                                                         IRHIGPUBuffer& buffer, const RHIConstantBufferViewDesc& desc, RHIGPUDescriptorHandle& outGPUHandle)
 {
     //TODO: Process offset for handle 
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
     auto* dxDescriptorHeap = dynamic_cast<DX12DescriptorHeap&>(descriptorHeap).GetDescriptorHeap();
     auto* dxBuffer = dynamic_cast<DX12GPUBuffer&>(buffer).GetBuffer();
     
+    CD3DX12_CPU_DESCRIPTOR_HANDLE cpuHandle(dxDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+    const UINT descriptorIncrementSize = dxDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    cpuHandle.Offset(descriptorOffset, descriptorIncrementSize);
+    
     D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
     cbvDesc.BufferLocation = dxBuffer->GetGPUVirtualAddress();
     cbvDesc.SizeInBytes = (desc.bufferSize + 255) & ~255;    // CB size is required to be 256-byte aligned.
-    dxDevice->CreateConstantBufferView(&cbvDesc, dxDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+    dxDevice->CreateConstantBufferView(&cbvDesc, cpuHandle);
 
-    outGPUHandle = dxDescriptorHeap->GetGPUDescriptorHandleForHeapStart().ptr;
+    CD3DX12_GPU_DESCRIPTOR_HANDLE gpuHandle(dxDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+    gpuHandle.Offset(descriptorOffset, descriptorIncrementSize);
+    outGPUHandle = gpuHandle.ptr;
+    
+    return true;
+}
+
+bool DX12Utils::CreateShaderResourceViewInDescriptorHeap(IRHIDevice& device, IRHIDescriptorHeap& descriptorHeap,
+                                                         unsigned descriptorOffset, IRHIGPUBuffer& buffer, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& outGPUHandle)
+{
+    //TODO: Process offset for handle 
+    auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
+    auto* dxDescriptorHeap = dynamic_cast<DX12DescriptorHeap&>(descriptorHeap).GetDescriptorHeap();
+    auto* dxBuffer = dynamic_cast<DX12GPUBuffer&>(buffer).GetBuffer();
+    
+    D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+    srvDesc.Format = DX12ConverterUtils::ConvertToDXGIFormat(desc.format);
+    srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    srvDesc.ViewDimension = DX12ConverterUtils::ConvertToSRVDimensionType(desc.dimension);
+
+    // TODO: Config mip levels
+    srvDesc.Texture2D.MipLevels = 1;
+
+    CD3DX12_CPU_DESCRIPTOR_HANDLE cpuHandle(dxDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+    const UINT descriptorIncrementSize = dxDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    cpuHandle.Offset(descriptorOffset, descriptorIncrementSize);
+
+    dxDevice->CreateShaderResourceView(dxBuffer, &srvDesc, cpuHandle);
+    CD3DX12_GPU_DESCRIPTOR_HANDLE gpuHandle(dxDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+    gpuHandle.Offset(descriptorOffset, descriptorIncrementSize);
+    outGPUHandle = gpuHandle.ptr;
     
     return true;
 }

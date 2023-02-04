@@ -4,6 +4,7 @@
 #include "../glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
 #include "../glTFRHI/RHIInterface/IRHIRenderTargetManager.h"
 #include "../glTFRHI/RHIInterface/IRHIRootSignature.h"
+#include "../glTFRHI/RHIInterface/IRHITexture.h"
 #include "../glTFRHI/RHIInterface/IRHIVertexBufferView.h"
 
 class IRHIIndexBufferView;
@@ -52,9 +53,12 @@ protected:
     std::shared_ptr<IRHIIndexBufferView> m_indexBufferView;
 
     std::shared_ptr<IRHIGPUBuffer> m_cbvGPUBuffer;
-    std::shared_ptr<IRHIDescriptorHeap> m_cbvDescriptorHeap;
+    std::shared_ptr<IRHIDescriptorHeap> m_mainDescriptorHeap;
 
     RHIGPUDescriptorHandle m_cbvGPUHandle;
 
     ConstantBufferStruct_ColorMultiplier m_colorMultiplier;
+
+    std::shared_ptr<IRHITexture> m_textureBuffer;
+    RHICPUDescriptorHandle m_textureSRVGPUHandle;
 };

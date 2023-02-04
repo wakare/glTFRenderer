@@ -5,6 +5,14 @@
 
 class IRHIGPUBufferManager;
 
+enum class RHIBufferResourceType
+{
+    Buffer,
+    Tex1D,
+    Tex2D,
+    Tex3D,
+};
+
 enum class RHIBufferType
 {
     Default,
@@ -14,8 +22,12 @@ enum class RHIBufferType
 struct RHIBufferDesc
 {
     std::wstring name;
-    size_t size;
+    size_t width;
+    size_t height;
+    size_t depth;
     RHIBufferType type;
+    RHIDataFormat resourceDataType;
+    RHIBufferResourceType resourceType;  
 };
 
 class IRHIGPUBuffer : public IRHIResource
@@ -23,6 +35,4 @@ class IRHIGPUBuffer : public IRHIResource
 public:
     virtual bool InitGPUBuffer(IRHIDevice& device, const RHIBufferDesc& desc) = 0;
     virtual bool UploadBufferFromCPU(void* data, size_t size) = 0;
-
-    
 };

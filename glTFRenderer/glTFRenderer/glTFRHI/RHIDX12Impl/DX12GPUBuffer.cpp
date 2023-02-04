@@ -19,7 +19,12 @@ DX12GPUBuffer::DX12GPUBuffer()
 
 DX12GPUBuffer::~DX12GPUBuffer()
 {
-    //m_buffer->Unmap(0, &m_mapRange);
+    if (m_mappedGPUBuffer)
+    {
+        m_buffer->Unmap(0, &m_mapRange);
+        m_mappedGPUBuffer = nullptr;
+    }
+    
     SAFE_RELEASE(m_buffer)
 }
 
@@ -28,13 +33,27 @@ bool DX12GPUBuffer::InitGPUBuffer(IRHIDevice& device, const RHIBufferDesc& desc)
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
 
     m_bufferDesc = desc;
-    CD3DX12_HEAP_PROPERTIES upload_heap_properties(DX12ConverterUtils::ConvertToHeapType(desc.type));
-    CD3DX12_RESOURCE_DESC heap_resource_size = CD3DX12_RESOURCE_DESC::Buffer(desc.size);
+    const CD3DX12_HEAP_PROPERTIES heap_properties(DX12ConverterUtils::ConvertToHeapType(desc.type));
+    CD3DX12_RESOURCE_DESC heap_resource_desc;
+    switch (desc.resourceType) {
+        case RHIBufferResourceType::Buffer:
+            heap_resource_desc = CD3DX12_RESOURCE_DESC::Buffer(desc.width); 
+            break;
+        case RHIBufferResourceType::Tex1D:
+            heap_resource_desc = CD3DX12_RESOURCE_DESC::Tex1D(DX12ConverterUtils::ConvertToDXGIFormat(desc.resourceDataType), desc.width);
+            break;
+        case RHIBufferResourceType::Tex2D: 
+            heap_resource_desc = CD3DX12_RESOURCE_DESC::Tex2D(DX12ConverterUtils::ConvertToDXGIFormat(desc.resourceDataType), desc.width, desc.height);
+            break;
+        case RHIBufferResourceType::Tex3D: 
+            heap_resource_desc = CD3DX12_RESOURCE_DESC::Tex3D(DX12ConverterUtils::ConvertToDXGIFormat(desc.resourceDataType), desc.width, desc.height, desc.depth);
+            break;
+    }
 
     THROW_IF_FAILED(dxDevice->CreateCommittedResource(
-            &upload_heap_properties, // this heap will be used to upload the constant buffer data
+            &heap_properties, // this heap will be used to upload the constant buffer data
             D3D12_HEAP_FLAG_NONE, // no flags
-            &heap_resource_size, // size of the resource heap. Must be a multiple of 64KB for single-textures and constant buffers
+            &heap_resource_desc, // size of the resource heap. Must be a multiple of 64KB for single-textures and constant buffers
             desc.type == RHIBufferType::Default ? D3D12_RESOURCE_STATE_COPY_DEST : D3D12_RESOURCE_STATE_GENERIC_READ, // will be data that is read from so we keep it in the generic read state
             nullptr, // we do not have use an optimized clear value for constant buffers
             IID_PPV_ARGS(&m_buffer)))
@@ -52,7 +71,7 @@ bool DX12GPUBuffer::UploadBufferFromCPU(void* data, size_t size)
         THROW_IF_FAILED(m_buffer->Map(0, &m_mapRange, reinterpret_cast<void**>(&m_mappedGPUBuffer)))
     }
     
-    assert(size < m_bufferDesc.size);
+    assert(size < m_bufferDesc.width);
     
     memcpy(m_mappedGPUBuffer, data, size);
     return true;

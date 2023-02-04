@@ -37,6 +37,8 @@ void glTFRenderPassManager::InitAllPass()
         const bool inited = pass->InitPass(*m_resourceManager);
         assert(inited);
     }
+    
+    LOG_FORMAT_FLUSH("[DEBUG] Init all pass finished!\n")
 }
 
 void glTFRenderPassManager::RenderAllPass()

@@ -1,13 +1,14 @@
 #include "glTFRenderPassTest.h"
 
 #include "../glTFRHI/RHIResourceFactoryImpl.hpp"
+#include "../glTFRHI/RHIInterface/glTFImageLoader.h"
 #include "../glTFRHI/RHIInterface/IRHIIndexBufferView.h"
 #include "../glTFUtils/glTFLog.h"
 
 glTFRenderPassTest::glTFRenderPassTest()
     : glTFRenderPassBase()
-    , m_rootSignatureParameterCount(1)
-    , m_rootSignatureStaticSamplerCount(0)
+    , m_rootSignatureParameterCount(2)
+    , m_rootSignatureStaticSamplerCount(1)
     , m_cbvGPUHandle(0)
     , m_colorMultiplier()
 {
@@ -42,10 +43,14 @@ bool glTFRenderPassTest::InitPass(glTFRenderResourceManager& resourceManager)
 
     m_rootSignature = RHIResourceFactory::CreateRHIResource<IRHIRootSignature>();
     m_rootSignature->AllocateRootSignatureSpace(m_rootSignatureParameterCount, m_rootSignatureStaticSamplerCount);
-    auto& rootParameter = m_rootSignature->GetRootParameter(0);
     
-    const RHIRootParameterDescriptorRangeDesc rangeDesc {RHIRootParameterDescriptorRangeType::CBV, 0, 1};
-    rootParameter.InitAsDescriptorTableRange(1, &rangeDesc);
+    const RHIRootParameterDescriptorRangeDesc CBVRangeDesc {RHIRootParameterDescriptorRangeType::CBV, 0, 1};
+    m_rootSignature->GetRootParameter(0).InitAsDescriptorTableRange(1, &CBVRangeDesc);
+
+    const RHIRootParameterDescriptorRangeDesc SRVRangeDesc {RHIRootParameterDescriptorRangeType::SRV, 0, 1};
+    m_rootSignature->GetRootParameter(1).InitAsDescriptorTableRange(1, &SRVRangeDesc);
+    
+    m_rootSignature->GetStaticSampler(0).InitStaticSampler(0, RHIStaticSamplerAddressMode::Clamp, RHIStaticSamplerFilterMode::Linear);
     
     m_rootSignature->InitRootSignature(resourceManager.GetDevice());
     
@@ -63,7 +68,7 @@ bool glTFRenderPassTest::InitPass(glTFRenderResourceManager& resourceManager)
 
     std::vector<RHIPipelineInputLayout> inputLayouts;
     inputLayouts.push_back({"POSITION", 0, RHIDataFormat::R32G32B32_FLOAT, 0});
-    inputLayouts.push_back({"COLOR", 0, RHIDataFormat::R32G32B32A32_FLOAT, 12});
+    inputLayouts.push_back({"TEXCOORD", 0, RHIDataFormat::R32G32_FLOAT, 12});
     
     if (!m_pipelineStateObject->InitPipelineStateObject(resourceManager.GetDevice(), *m_rootSignature, resourceManager.GetSwapchain(), inputLayouts))
     {
@@ -92,50 +97,27 @@ bool glTFRenderPassTest::InitPass(glTFRenderResourceManager& resourceManager)
     m_vertexBuffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
     m_indexBuffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
 
-    RHIBufferDesc vertexBufferDesc = {L"vertexBufferDefaultBuffer", vBufferSize, RHIBufferType::Default};
-    RHIBufferDesc indexBufferDesc = {L"indexBufferDefaultBuffer", iBufferSize, RHIBufferType::Default};
+    RHIBufferDesc vertexBufferDesc = {L"vertexBufferDefaultBuffer", vBufferSize, 1, 1, RHIBufferType::Default, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
+    RHIBufferDesc indexBufferDesc = {L"indexBufferDefaultBuffer", iBufferSize, 1, 1, RHIBufferType::Default, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
     
-    if (!m_vertexBuffer->InitGPUBuffer(resourceManager.GetDevice(), vertexBufferDesc ) ||
-        !m_indexBuffer->InitGPUBuffer(resourceManager.GetDevice(), indexBufferDesc ))
-    {
-        return false;
-    }
+    RETURN_IF_FALSE(m_vertexBuffer->InitGPUBuffer(resourceManager.GetDevice(), vertexBufferDesc ))
+    RETURN_IF_FALSE(m_indexBuffer->InitGPUBuffer(resourceManager.GetDevice(), indexBufferDesc ))
     
     m_vertexUploadBuffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
     m_indexUploadBuffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
 
-    RHIBufferDesc vertexUploadBufferDesc = {L"vertexBufferDefaultBuffer", vBufferSize, RHIBufferType::Upload};
-    RHIBufferDesc indexUploadBufferDesc = {L"indexBufferDefaultBuffer", iBufferSize, RHIBufferType::Upload};
+    RHIBufferDesc vertexUploadBufferDesc = {L"vertexBufferDefaultBuffer", vBufferSize, 1, 1, RHIBufferType::Upload, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
+    RHIBufferDesc indexUploadBufferDesc = {L"indexBufferDefaultBuffer", iBufferSize, 1, 1, RHIBufferType::Upload, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
 
-    if (!m_vertexUploadBuffer->InitGPUBuffer(resourceManager.GetDevice(), vertexUploadBufferDesc ) ||
-        !m_indexUploadBuffer->InitGPUBuffer(resourceManager.GetDevice(), indexUploadBufferDesc ))
-    {
-        return false;
-    }
-
-    if (!RHIUtils::Instance().ResetCommandList(resourceManager.GetCommandList(), resourceManager.GetCurrentFrameCommandAllocator()))
-    {
-        return false;
-    }
-
-    if (!RHIUtils::Instance().UploadDataToDefaultGPUBuffer(resourceManager.GetCommandList(), *m_vertexUploadBuffer, *m_vertexBuffer, vList, sizeof(vList)) ||
-        !RHIUtils::Instance().UploadDataToDefaultGPUBuffer(resourceManager.GetCommandList(), *m_indexUploadBuffer, *m_indexBuffer, iList, sizeof(iList)))
-    {
-        return false;
-    }
-
-    if (!RHIUtils::Instance().AddBufferBarrierToCommandList(resourceManager.GetCommandList(), *m_vertexBuffer, RHIResourceStateType::COPY_DEST, RHIResourceStateType::VERTEX_AND_CONSTANT_BUFFER) ||
-        !RHIUtils::Instance().AddBufferBarrierToCommandList(resourceManager.GetCommandList(), *m_indexBuffer, RHIResourceStateType::COPY_DEST, RHIResourceStateType::INDEX_BUFFER))
-    {
-        return false;
-    }
-
-    
-    if (!RHIUtils::Instance().CloseCommandList(resourceManager.GetCommandList()) ||
-        !RHIUtils::Instance().ExecuteCommandList(resourceManager.GetCommandList(),resourceManager.GetCommandQueue()))
-    {
-        return false;
-    }
+    RETURN_IF_FALSE(m_vertexUploadBuffer->InitGPUBuffer(resourceManager.GetDevice(), vertexUploadBufferDesc ))
+    RETURN_IF_FALSE(m_indexUploadBuffer->InitGPUBuffer(resourceManager.GetDevice(), indexUploadBufferDesc ))
+    RETURN_IF_FALSE(RHIUtils::Instance().ResetCommandList(resourceManager.GetCommandList(), resourceManager.GetCurrentFrameCommandAllocator()))
+    RETURN_IF_FALSE(RHIUtils::Instance().UploadDataToDefaultGPUBuffer(resourceManager.GetCommandList(), *m_vertexUploadBuffer, *m_vertexBuffer, vList, sizeof(vList)))
+    RETURN_IF_FALSE(RHIUtils::Instance().UploadDataToDefaultGPUBuffer(resourceManager.GetCommandList(), *m_indexUploadBuffer, *m_indexBuffer, iList, sizeof(iList)))
+    RETURN_IF_FALSE(RHIUtils::Instance().AddBufferBarrierToCommandList(resourceManager.GetCommandList(), *m_vertexBuffer, RHIResourceStateType::COPY_DEST, RHIResourceStateType::VERTEX_AND_CONSTANT_BUFFER))
+    RETURN_IF_FALSE(RHIUtils::Instance().AddBufferBarrierToCommandList(resourceManager.GetCommandList(), *m_indexBuffer, RHIResourceStateType::COPY_DEST, RHIResourceStateType::INDEX_BUFFER))
+    RETURN_IF_FALSE(RHIUtils::Instance().CloseCommandList(resourceManager.GetCommandList()))
+    RETURN_IF_FALSE(RHIUtils::Instance().ExecuteCommandList(resourceManager.GetCommandList(),resourceManager.GetCommandQueue()))
 
     m_fence = RHIResourceFactory::CreateRHIResource<IRHIFence>();
     m_fence->InitFence(resourceManager.GetDevice());
@@ -150,12 +132,25 @@ bool glTFRenderPassTest::InitPass(glTFRenderResourceManager& resourceManager)
     m_indexBufferView->InitIndexBufferView(*m_indexBuffer, 0, RHIDataFormat::R32_UINT, sizeof(iList));
 
     m_cbvGPUBuffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
-    m_cbvGPUBuffer->InitGPUBuffer(resourceManager.GetDevice(), {L"RenderPass_Test_CBVBuffer", static_cast<size_t>(64 * 1024), RHIBufferType::Upload});
+    m_cbvGPUBuffer->InitGPUBuffer(resourceManager.GetDevice(), {L"RenderPass_Test_CBVBuffer", static_cast<size_t>(64 * 1024), 1, 1, RHIBufferType::Upload, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer });
     
-    m_cbvDescriptorHeap = RHIResourceFactory::CreateRHIResource<IRHIDescriptorHeap>();
-    m_cbvDescriptorHeap->InitDescriptorHeap(resourceManager.GetDevice(), {1, RHIDescriptorHeapType::CBV_SRV_UAV, true});
+    m_mainDescriptorHeap = RHIResourceFactory::CreateRHIResource<IRHIDescriptorHeap>();
+    m_mainDescriptorHeap->InitDescriptorHeap(resourceManager.GetDevice(), {2,  RHIDescriptorHeapType::CBV_SRV_UAV, true});
 
-    RHIUtils::Instance().CreateConstantBufferViewInDescriptorHeap(resourceManager.GetDevice(), *m_cbvDescriptorHeap, *m_cbvGPUBuffer, {0, sizeof(m_colorMultiplier)}, m_cbvGPUHandle);
+    RHIUtils::Instance().CreateConstantBufferViewInDescriptorHeap(resourceManager.GetDevice(), *m_mainDescriptorHeap, 0, *m_cbvGPUBuffer, {0, sizeof(m_colorMultiplier)}, m_cbvGPUHandle);
+    
+    RETURN_IF_FALSE(RHIUtils::Instance().ResetCommandList(resourceManager.GetCommandList(), resourceManager.GetCurrentFrameCommandAllocator()))
+    glTFImageLoader imageLoader;
+    imageLoader.InitImageLoader();
+    
+    m_textureBuffer = RHIResourceFactory::CreateRHIResource<IRHITexture>();
+    RETURN_IF_FALSE(m_textureBuffer->UploadTextureFromFile(resourceManager.GetDevice(), resourceManager.GetCommandList(), imageLoader, L"D:/Work/DevSpace/UE4/UnrealEngine/Engine/Content/Splash/EdIconDefault.bmp"))
+    
+    RHIUtils::Instance().CreateShaderResourceViewInDescriptorHeap(resourceManager.GetDevice(), *m_mainDescriptorHeap, 1,
+                                                                  m_textureBuffer->GetGPUBuffer(), {m_textureBuffer->GetTextureDesc().GetDataFormat(), RHIShaderVisibleViewDimension::TEXTURE2D}, m_textureSRVGPUHandle);
+    
+    RETURN_IF_FALSE(RHIUtils::Instance().CloseCommandList(resourceManager.GetCommandList()))
+    RETURN_IF_FALSE(RHIUtils::Instance().ExecuteCommandList(resourceManager.GetCommandList(),resourceManager.GetCommandQueue()))
     
     LOG_FORMAT_FLUSH("[RenderPass_Test] Init Pass resource finished!\n")
     
@@ -170,8 +165,9 @@ bool glTFRenderPassTest::RenderPass(glTFRenderResourceManager& resourceManager)
 
     RHIUtils::Instance().SetRootSignature(resourceManager.GetCommandList(), *m_rootSignature);
 
-    RHIUtils::Instance().SetDescriptorHeap(resourceManager.GetCommandList(), m_cbvDescriptorHeap.get(), 1);
-    RHIUtils::Instance().SetRootParameterAsDescriptorTable(resourceManager.GetCommandList(), 0, m_cbvGPUHandle);
+    RHIUtils::Instance().SetDescriptorHeap(resourceManager.GetCommandList(), m_mainDescriptorHeap.get(), 1);
+    RHIUtils::Instance().SetGPUHandleToRootParameterSlot(resourceManager.GetCommandList(), 0, m_cbvGPUHandle);
+    RHIUtils::Instance().SetGPUHandleToRootParameterSlot(resourceManager.GetCommandList(), 1, m_textureSRVGPUHandle);
     
     RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resourceManager.GetCommandList(), resourceManager.GetCurrentFrameSwapchainRT(),
         RHIResourceStateType::PRESENT, RHIResourceStateType::RENDER_TARGET);
