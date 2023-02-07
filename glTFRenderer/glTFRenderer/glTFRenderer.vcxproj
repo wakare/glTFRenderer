@@ -70,7 +70,7 @@
       <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);glfw3.lib;D3d12.lib;dxgi.lib;D3DCompiler.lib</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy $(SolutionDir)glTFRenderer\glTFShaders\ShaderSource\ $(OutDir)glTFShaders\ /s /y</Command>
+      <Command>xcopy $(SolutionDir)glTFRenderer\glTFResources\ $(OutDir)glTFResources\ /s /y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -94,6 +94,9 @@
       <AdditionalLibraryDirectories>$(SolutionDir)ThirdParty/libs/$(ConfigurationName)</AdditionalLibraryDirectories>
       <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);glfw3.lib;D3d12.lib;dxgi.lib;D3DCompiler.lib</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy $(SolutionDir)glTFRenderer\glTFResources\ $(OutDir)glTFResources\ /s /y</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="glTFLoader\glTFLoader.cpp" />
@@ -174,18 +177,6 @@
     </ClCompile>
     <ClCompile Include="glTFRenderPass\glTFRenderPassManager.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderPassTest.cpp" />
-    <FxCompile Include="glTFShaders\ShaderSource\pixelShader.hlsl">
-      <ObjectFileOutput>E:\GIT\glTFRenderer\glTFRenderer\glTFRenderer\glTFRenderer\x64\Debug\%(Filename).cso</ObjectFileOutput>
-      <TrackerLogDirectory>x64\Debug\glTFRenderer.tlog\</TrackerLogDirectory>
-      <EntryPointName>main</EntryPointName>
-      <SuppressStartupBanner>true</SuppressStartupBanner>
-      <ShaderModel>4.0_level_9_3</ShaderModel>
-      <MinimalRebuildFromTracking>true</MinimalRebuildFromTracking>
-      <DisableOptimizations>true</DisableOptimizations>
-      <EnableDebuggingInformation>true</EnableDebuggingInformation>
-      <FileType>Document</FileType>
-      <ShaderType>Pixel</ShaderType>
-    </FxCompile>
     <ClCompile Include="glTFRenderPass\glTFRenderResourceManager.cpp" />
     <ClCompile Include="glTFRHI\RHIConfigSingleton.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12DescriptorHeap.cpp" />
@@ -449,20 +440,9 @@
     <ClCompile Include="glTFRHI\RHIInterface\IRHIVertexBufferView.cpp" />
     <ClCompile Include="glTFRHI\RHIResourceFactory.cpp" />
     <ClCompile Include="glTFRHI\RHIUtils.cpp" />
-    <ClCompile Include="glTFShaders\glTFShaderUtils.cpp" />
+    <ClCompile Include="glTFShaderUtils\glTFShaderUtils.cpp" />
     <ClCompile Include="glTFUtils\glTFLog.cpp" />
     <ClCompile Include="glTFWindow\glTFWindow.cpp" />
-    <FxCompile Include="glTFShaders\ShaderSource\vertexShader.hlsl">
-      <ObjectFileOutput>E:\GIT\glTFRenderer\glTFRenderer\glTFRenderer\glTFRenderer\x64\Debug\%(Filename).cso</ObjectFileOutput>
-      <TrackerLogDirectory>x64\Debug\glTFRenderer.tlog\</TrackerLogDirectory>
-      <EntryPointName>main</EntryPointName>
-      <SuppressStartupBanner>true</SuppressStartupBanner>
-      <ShaderModel>4.0_level_9_3</ShaderModel>
-      <MinimalRebuildFromTracking>true</MinimalRebuildFromTracking>
-      <DisableOptimizations>true</DisableOptimizations>
-      <EnableDebuggingInformation>true</EnableDebuggingInformation>
-      <ShaderType>Vertex</ShaderType>
-    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="glTFLoader\glTFElementCommon.h" />
@@ -517,13 +497,17 @@
     <ClInclude Include="glTFRHI\RHIResourceFactory.h" />
     <ClInclude Include="glTFRHI\RHIResourceFactoryImpl.hpp" />
     <ClInclude Include="glTFRHI\RHIUtils.h" />
-    <ClInclude Include="glTFShaders\glTFShaderUtils.h" />
+    <ClInclude Include="glTFShaderUtils\glTFShaderUtils.h" />
     <ClInclude Include="glTFUtils\glTFLog.h" />
     <ClInclude Include="glTFWindow\glTFWindow.h" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="..\..\README.md" />
+    <Content Include="glTFResources\UE4_Logo.bmp" />
     <Content Include="glTFSamples\Hello_glTF.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="glTFResources\ShaderSource" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -62,9 +62,9 @@ bool glTFRenderPassTest::InitPass(glTFRenderResourceManager& resourceManager)
     
     m_pipelineStateObject->BindRenderTargets(allRts);
     m_pipelineStateObject->BindShaderCode(
-        R"(glTFShaders\vertexShader.hlsl)", RHIShaderType::Vertex);
+        R"(glTFResources\ShaderSource\vertexShader.hlsl)", RHIShaderType::Vertex);
     m_pipelineStateObject->BindShaderCode(
-        R"(glTFShaders\pixelShader.hlsl)", RHIShaderType::Pixel);
+        R"(glTFResources\ShaderSource\pixelShader.hlsl)", RHIShaderType::Pixel);
 
     std::vector<RHIPipelineInputLayout> inputLayouts;
     inputLayouts.push_back({"POSITION", 0, RHIDataFormat::R32G32B32_FLOAT, 0});
@@ -120,10 +120,10 @@ bool glTFRenderPassTest::InitPass(glTFRenderResourceManager& resourceManager)
     RETURN_IF_FALSE(RHIUtils::Instance().ExecuteCommandList(resourceManager.GetCommandList(),resourceManager.GetCommandQueue()))
 
     m_fence = RHIResourceFactory::CreateRHIResource<IRHIFence>();
-    m_fence->InitFence(resourceManager.GetDevice());
+    RETURN_IF_FALSE(m_fence->InitFence(resourceManager.GetDevice()))
 
-    m_fence->SignalWhenCommandQueueFinish(resourceManager.GetCommandQueue());
-    m_fence->WaitUtilSignal();
+    RETURN_IF_FALSE(m_fence->SignalWhenCommandQueueFinish(resourceManager.GetCommandQueue()))
+    RETURN_IF_FALSE(m_fence->WaitUtilSignal())
 
     m_vertexBufferView = RHIResourceFactory::CreateRHIResource<IRHIVertexBufferView>();
     m_indexBufferView = RHIResourceFactory::CreateRHIResource<IRHIIndexBufferView>();
@@ -132,26 +132,26 @@ bool glTFRenderPassTest::InitPass(glTFRenderResourceManager& resourceManager)
     m_indexBufferView->InitIndexBufferView(*m_indexBuffer, 0, RHIDataFormat::R32_UINT, sizeof(iList));
 
     m_cbvGPUBuffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
-    m_cbvGPUBuffer->InitGPUBuffer(resourceManager.GetDevice(), {L"RenderPass_Test_CBVBuffer", static_cast<size_t>(64 * 1024), 1, 1, RHIBufferType::Upload, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer });
+    RETURN_IF_FALSE(m_cbvGPUBuffer->InitGPUBuffer(resourceManager.GetDevice(), {L"RenderPass_Test_CBVBuffer", static_cast<size_t>(64 * 1024), 1, 1, RHIBufferType::Upload, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer }))
     
     m_mainDescriptorHeap = RHIResourceFactory::CreateRHIResource<IRHIDescriptorHeap>();
     m_mainDescriptorHeap->InitDescriptorHeap(resourceManager.GetDevice(), {2,  RHIDescriptorHeapType::CBV_SRV_UAV, true});
 
-    RHIUtils::Instance().CreateConstantBufferViewInDescriptorHeap(resourceManager.GetDevice(), *m_mainDescriptorHeap, 0, *m_cbvGPUBuffer, {0, sizeof(m_colorMultiplier)}, m_cbvGPUHandle);
+    RETURN_IF_FALSE(RHIUtils::Instance().CreateConstantBufferViewInDescriptorHeap(resourceManager.GetDevice(), *m_mainDescriptorHeap, 0, *m_cbvGPUBuffer, {0, sizeof(m_colorMultiplier)}, m_cbvGPUHandle))
     
     RETURN_IF_FALSE(RHIUtils::Instance().ResetCommandList(resourceManager.GetCommandList(), resourceManager.GetCurrentFrameCommandAllocator()))
     glTFImageLoader imageLoader;
     imageLoader.InitImageLoader();
     
     m_textureBuffer = RHIResourceFactory::CreateRHIResource<IRHITexture>();
-    RETURN_IF_FALSE(m_textureBuffer->UploadTextureFromFile(resourceManager.GetDevice(), resourceManager.GetCommandList(), imageLoader, L"D:/Work/DevSpace/UE4/UnrealEngine/Engine/Content/Splash/EdIconDefault.bmp"))
+    RETURN_IF_FALSE(m_textureBuffer->UploadTextureFromFile(resourceManager.GetDevice(), resourceManager.GetCommandList(), imageLoader, L"glTFResources/tiger.bmp"))
     
-    RHIUtils::Instance().CreateShaderResourceViewInDescriptorHeap(resourceManager.GetDevice(), *m_mainDescriptorHeap, 1,
-                                                                  m_textureBuffer->GetGPUBuffer(), {m_textureBuffer->GetTextureDesc().GetDataFormat(), RHIShaderVisibleViewDimension::TEXTURE2D}, m_textureSRVGPUHandle);
+    RETURN_IF_FALSE(RHIUtils::Instance().CreateShaderResourceViewInDescriptorHeap(resourceManager.GetDevice(), *m_mainDescriptorHeap, 1,
+                                                                  m_textureBuffer->GetGPUBuffer(), {m_textureBuffer->GetTextureDesc().GetDataFormat(), RHIShaderVisibleViewDimension::TEXTURE2D}, m_textureSRVGPUHandle))
     
     RETURN_IF_FALSE(RHIUtils::Instance().CloseCommandList(resourceManager.GetCommandList()))
     RETURN_IF_FALSE(RHIUtils::Instance().ExecuteCommandList(resourceManager.GetCommandList(),resourceManager.GetCommandQueue()))
-    resourceManager.GetCurrentFrameFence().SignalWhenCommandQueueFinish(resourceManager.GetCommandQueue());
+    RETURN_IF_FALSE(resourceManager.GetCurrentFrameFence().SignalWhenCommandQueueFinish(resourceManager.GetCommandQueue()));
     
     LOG_FORMAT_FLUSH("[RenderPass_Test] Init Pass resource finished!\n")
     

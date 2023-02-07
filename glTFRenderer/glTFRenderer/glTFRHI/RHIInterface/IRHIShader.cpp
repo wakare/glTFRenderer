@@ -1,6 +1,6 @@
 #include "IRHIShader.h"
 
-#include "../../glTFShaders/glTFShaderUtils.h"
+#include "../../glTFShaderUtils/glTFShaderUtils.h"
 
 IRHIShader::IRHIShader(RHIShaderType type)
     :m_type(type)

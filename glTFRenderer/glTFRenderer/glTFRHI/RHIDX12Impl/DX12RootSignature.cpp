@@ -136,7 +136,7 @@ bool DX12StaticSampler::InitStaticSampler(REGISTER_INDEX_TYPE registerIndex, RHI
             break;
         case RHIStaticSamplerFilterMode::Anisotropic:
             {
-            m_description.Filter = D3D12_FILTER_ANISOTROPIC;
+                m_description.Filter = D3D12_FILTER_ANISOTROPIC;
             }
             break;
         default:
