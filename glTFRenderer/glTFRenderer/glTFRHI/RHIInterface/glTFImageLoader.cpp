@@ -108,7 +108,7 @@ bool glTFImageLoader::LoadImageByFilename(const LPCWSTR filename, RHITextureDesc
         &wicDecoder                      // the wic decoder to be created
         ))
 
-    IWICBitmapFrameDecode* wicFrame = nullptr;
+    IWICBitmapFrameDecode* wicFrame = nullptr; 
     IWICFormatConverter* wicConverter = nullptr;
     
     THROW_IF_FAILED(wicDecoder->GetFrame(0, &wicFrame))
@@ -120,7 +120,7 @@ bool glTFImageLoader::LoadImageByFilename(const LPCWSTR filename, RHITextureDesc
     THROW_IF_FAILED(wicFrame->GetSize(&textureWidth, &textureHeight))
 
     RHIDataFormat dataFormat = ConvertToRHIDataFormat(pixelFormat);
-    bool needConvertFormat = dataFormat == RHIDataFormat::Unknown;
+    const bool needConvertFormat = dataFormat == RHIDataFormat::Unknown;
     if (needConvertFormat)
     {
         // Unsupported format, try convert

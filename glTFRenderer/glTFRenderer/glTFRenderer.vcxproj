@@ -440,6 +440,8 @@
     <ClCompile Include="glTFRHI\RHIInterface\IRHIVertexBufferView.cpp" />
     <ClCompile Include="glTFRHI\RHIResourceFactory.cpp" />
     <ClCompile Include="glTFRHI\RHIUtils.cpp" />
+    <ClCompile Include="glTFScene\glTFCamera\glTFCamera.cpp" />
+    <ClCompile Include="glTFScene\glTFSceneObjectBase.cpp" />
     <ClCompile Include="glTFShaderUtils\glTFShaderUtils.cpp" />
     <ClCompile Include="glTFUtils\glTFLog.cpp" />
     <ClCompile Include="glTFWindow\glTFWindow.cpp" />
@@ -497,6 +499,8 @@
     <ClInclude Include="glTFRHI\RHIResourceFactory.h" />
     <ClInclude Include="glTFRHI\RHIResourceFactoryImpl.hpp" />
     <ClInclude Include="glTFRHI\RHIUtils.h" />
+    <ClInclude Include="glTFScene\glTFCamera\glTFCamera.h" />
+    <ClInclude Include="glTFScene\glTFSceneObjectBase.h" />
     <ClInclude Include="glTFShaderUtils\glTFShaderUtils.h" />
     <ClInclude Include="glTFUtils\glTFLog.h" />
     <ClInclude Include="glTFWindow\glTFWindow.h" />
