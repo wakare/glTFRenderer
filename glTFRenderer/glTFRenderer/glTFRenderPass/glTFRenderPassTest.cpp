@@ -11,6 +11,7 @@ glTFRenderPassTest::glTFRenderPassTest()
     , m_rootSignatureStaticSamplerCount(1)
     , m_cbvGPUHandle(0)
     , m_colorMultiplier()
+    , m_textureSRVGPUHandle(0)
 {
 }
 
@@ -22,11 +23,13 @@ const char* glTFRenderPassTest::PassName()
     return "RenderPass_Test";
 }
 
+/*
 struct Vertex
 {
     float data[3];
     float uv[2];
 };
+*/
 
 bool glTFRenderPassTest::InitPass(glTFRenderResourceManager& resourceManager)
 {
@@ -66,15 +69,50 @@ bool glTFRenderPassTest::InitPass(glTFRenderResourceManager& resourceManager)
     m_pipelineStateObject->BindShaderCode(
         R"(glTFResources\ShaderSource\pixelShader.hlsl)", RHIShaderType::Pixel);
 
+    // Init scene objects
+    m_box = std::make_shared<glTFSceneBox>();
+    
     std::vector<RHIPipelineInputLayout> inputLayouts;
-    inputLayouts.push_back({"POSITION", 0, RHIDataFormat::R32G32B32_FLOAT, 0});
-    inputLayouts.push_back({"TEXCOORD", 0, RHIDataFormat::R32G32_FLOAT, 12});
+    const auto& boxVertexLayout = m_box->GetVertexLayout();
+
+    unsigned vertexLayoutOffset = 0;
+    for (const auto& vertexLayout : boxVertexLayout.elements)
+    {
+        switch (vertexLayout.type)
+        {
+            case VertexLayoutType::POSITION:
+                {
+                    inputLayouts.push_back({"POSITION", 0, RHIDataFormat::R32G32B32_FLOAT, vertexLayoutOffset});
+                }
+            break;
+            case VertexLayoutType::NORMAL:
+                {
+                    inputLayouts.push_back({"NORMAL", 0, RHIDataFormat::R32G32B32_FLOAT, vertexLayoutOffset});
+                }
+                break;
+            case VertexLayoutType::UV:
+                {
+                    inputLayouts.push_back({"TEXCOORD", 0, RHIDataFormat::R32G32_FLOAT, vertexLayoutOffset});
+                }
+                break;
+        }
+
+        vertexLayoutOffset += vertexLayout.byteSize;   
+    }
     
     if (!m_pipelineStateObject->InitPipelineStateObject(resourceManager.GetDevice(), *m_rootSignature, resourceManager.GetSwapchain(), inputLayouts))
     {
         return false;
     }
+    
+    const auto& boxVertices = m_box->GetVertexBufferData();
+    const auto& boxIndices = m_box->GetIndexBufferData();
+    
+    // Upload vertex and index buffer
+    m_vertexBuffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
+    m_indexBuffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
 
+    /*
     // a triangle
     Vertex vList[] = {
         // first quad (closer to camera, blue)
@@ -92,13 +130,11 @@ bool glTFRenderPassTest::InitPass(glTFRenderResourceManager& resourceManager)
 
     const size_t vBufferSize = sizeof(vList);
     const size_t iBufferSize = sizeof(iList);
-    
-    // Upload vertex and index buffer
-    m_vertexBuffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
-    m_indexBuffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
+    */
 
-    RHIBufferDesc vertexBufferDesc = {L"vertexBufferDefaultBuffer", vBufferSize, 1, 1, RHIBufferType::Default, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
-    RHIBufferDesc indexBufferDesc = {L"indexBufferDefaultBuffer", iBufferSize, 1, 1, RHIBufferType::Default, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
+    
+    RHIBufferDesc vertexBufferDesc = {L"vertexBufferDefaultBuffer", boxVertices.byteSize, 1, 1, RHIBufferType::Default, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
+    RHIBufferDesc indexBufferDesc = {L"indexBufferDefaultBuffer", boxIndices.byteSize, 1, 1, RHIBufferType::Default, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
     
     RETURN_IF_FALSE(m_vertexBuffer->InitGPUBuffer(resourceManager.GetDevice(), vertexBufferDesc ))
     RETURN_IF_FALSE(m_indexBuffer->InitGPUBuffer(resourceManager.GetDevice(), indexBufferDesc ))
@@ -106,14 +142,15 @@ bool glTFRenderPassTest::InitPass(glTFRenderResourceManager& resourceManager)
     m_vertexUploadBuffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
     m_indexUploadBuffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
 
-    RHIBufferDesc vertexUploadBufferDesc = {L"vertexBufferDefaultBuffer", vBufferSize, 1, 1, RHIBufferType::Upload, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
-    RHIBufferDesc indexUploadBufferDesc = {L"indexBufferDefaultBuffer", iBufferSize, 1, 1, RHIBufferType::Upload, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
+    RHIBufferDesc vertexUploadBufferDesc = {L"vertexBufferDefaultBuffer", boxVertices.byteSize, 1, 1, RHIBufferType::Upload, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
+    RHIBufferDesc indexUploadBufferDesc = {L"indexBufferDefaultBuffer", boxIndices.byteSize, 1, 1, RHIBufferType::Upload, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
 
     RETURN_IF_FALSE(m_vertexUploadBuffer->InitGPUBuffer(resourceManager.GetDevice(), vertexUploadBufferDesc ))
     RETURN_IF_FALSE(m_indexUploadBuffer->InitGPUBuffer(resourceManager.GetDevice(), indexUploadBufferDesc ))
     RETURN_IF_FALSE(RHIUtils::Instance().ResetCommandList(resourceManager.GetCommandList(), resourceManager.GetCurrentFrameCommandAllocator()))
-    RETURN_IF_FALSE(RHIUtils::Instance().UploadBufferDataToDefaultGPUBuffer(resourceManager.GetCommandList(), *m_vertexUploadBuffer, *m_vertexBuffer, vList, sizeof(vList)))
-    RETURN_IF_FALSE(RHIUtils::Instance().UploadBufferDataToDefaultGPUBuffer(resourceManager.GetCommandList(), *m_indexUploadBuffer, *m_indexBuffer, iList, sizeof(iList)))
+    RETURN_IF_FALSE(RHIUtils::Instance().UploadBufferDataToDefaultGPUBuffer(resourceManager.GetCommandList(), *m_vertexUploadBuffer, *m_vertexBuffer, boxVertices.data.get(), boxVertices.byteSize))
+    RETURN_IF_FALSE(RHIUtils::Instance().UploadBufferDataToDefaultGPUBuffer(resourceManager.GetCommandList(), *m_indexUploadBuffer, *m_indexBuffer, boxIndices.data.get(), boxIndices.byteSize))
+    
     RETURN_IF_FALSE(RHIUtils::Instance().AddBufferBarrierToCommandList(resourceManager.GetCommandList(), *m_vertexBuffer, RHIResourceStateType::COPY_DEST, RHIResourceStateType::VERTEX_AND_CONSTANT_BUFFER))
     RETURN_IF_FALSE(RHIUtils::Instance().AddBufferBarrierToCommandList(resourceManager.GetCommandList(), *m_indexBuffer, RHIResourceStateType::COPY_DEST, RHIResourceStateType::INDEX_BUFFER))
     RETURN_IF_FALSE(RHIUtils::Instance().CloseCommandList(resourceManager.GetCommandList()))
@@ -128,8 +165,8 @@ bool glTFRenderPassTest::InitPass(glTFRenderResourceManager& resourceManager)
     m_vertexBufferView = RHIResourceFactory::CreateRHIResource<IRHIVertexBufferView>();
     m_indexBufferView = RHIResourceFactory::CreateRHIResource<IRHIIndexBufferView>();
 
-    m_vertexBufferView->InitVertexBufferView(*m_vertexBuffer, 0, sizeof(Vertex), sizeof(vList));
-    m_indexBufferView->InitIndexBufferView(*m_indexBuffer, 0, RHIDataFormat::R32_UINT, sizeof(iList));
+    m_vertexBufferView->InitVertexBufferView(*m_vertexBuffer, 0, m_box->GetVertexLayout().GetVertexStride(), boxVertices.byteSize);
+    m_indexBufferView->InitIndexBufferView(*m_indexBuffer, 0, RHIDataFormat::R32_UINT, boxIndices.byteSize);
 
     m_cbvGPUBuffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
     RETURN_IF_FALSE(m_cbvGPUBuffer->InitGPUBuffer(resourceManager.GetDevice(), {L"RenderPass_Test_CBVBuffer", static_cast<size_t>(64 * 1024), 1, 1, RHIBufferType::Upload, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer }))

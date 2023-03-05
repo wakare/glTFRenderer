@@ -6,6 +6,7 @@
 #include "../glTFRHI/RHIInterface/IRHIRootSignature.h"
 #include "../glTFRHI/RHIInterface/IRHITexture.h"
 #include "../glTFRHI/RHIInterface/IRHIVertexBufferView.h"
+#include "../glTFScene/glTFSceneBox.h"
 
 class IRHIIndexBufferView;
 class IRHIGPUBuffer;
@@ -61,4 +62,7 @@ protected:
 
     std::shared_ptr<IRHITexture> m_textureBuffer;
     RHICPUDescriptorHandle m_textureSRVGPUHandle;
+
+    // Scene objects
+    std::shared_ptr<glTFSceneBox> m_box;
 };

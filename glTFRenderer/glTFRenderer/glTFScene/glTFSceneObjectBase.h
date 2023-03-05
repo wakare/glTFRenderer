@@ -34,6 +34,8 @@ struct glTFTransform
 class glTFSceneObjectBase
 {
 public:
+    virtual ~glTFSceneObjectBase() = default;
+
     glTFSceneObjectBase()
         : m_transform(glTFTransform::Identity())
     {
@@ -42,6 +44,8 @@ public:
     
     const glTFTransform& GetTransform() const { return m_transform; }
     glTFTransform& GetTransform() {return m_transform; }
+
+    glm::mat4x4 GetTransformMatrix() const {return GetTransform().GetTransformMatrix(); }
     
 protected:
     glTFTransform m_transform;
