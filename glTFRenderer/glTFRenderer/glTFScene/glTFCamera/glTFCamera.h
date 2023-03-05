@@ -5,8 +5,9 @@
 class glTFCamera : public glTFSceneObjectBase
 {
 public:
-    glTFCamera(float projectionWidth, float projectionHeight, float projectionNear, float projectionFar)
+    glTFCamera(float fovAngle, float projectionWidth, float projectionHeight, float projectionNear, float projectionFar)
         : m_dirty(true)
+        , m_projectionFovRadian(fovAngle * glm::pi<float>() / 180.0f)
         , m_projectionWidth(projectionWidth)
         , m_projectionHeight(projectionHeight)
         , m_projectionNear(projectionNear)
@@ -30,8 +31,9 @@ public:
 protected:
     void UpdateViewProjectionMatrix();
     
-    bool m_dirty; 
-    
+    bool m_dirty;
+
+    float m_projectionFovRadian;
     float m_projectionWidth;
     float m_projectionHeight;
     float m_projectionNear;

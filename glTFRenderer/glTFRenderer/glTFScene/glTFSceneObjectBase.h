@@ -41,6 +41,7 @@ public:
     }
     
     const glTFTransform& GetTransform() const { return m_transform; }
+    glTFTransform& GetTransform() {return m_transform; }
     
 protected:
     glTFTransform m_transform;
