@@ -23,14 +23,6 @@ const char* glTFRenderPassTest::PassName()
     return "RenderPass_Test";
 }
 
-/*
-struct Vertex
-{
-    float data[3];
-    float uv[2];
-};
-*/
-
 bool glTFRenderPassTest::InitPass(glTFRenderResourceManager& resourceManager)
 {
     const auto width = resourceManager.GetSwapchain().GetWidth();
@@ -99,7 +91,11 @@ bool glTFRenderPassTest::InitPass(glTFRenderResourceManager& resourceManager)
 
         vertexLayoutOffset += vertexLayout.byteSize;   
     }
-    
+
+    m_camera = std::make_shared<glTFCamera>(45.0f, 800.0f, 600.0f, 0.1f, 1000.0f);
+    m_camera->GetTransform() = glTFTransform::Identity();
+    m_camera->GetTransform().position = {0.0f, 0.0f, -0.5f};
+
     if (!m_pipelineStateObject->InitPipelineStateObject(resourceManager.GetDevice(), *m_rootSignature, resourceManager.GetSwapchain(), inputLayouts))
     {
         return false;
@@ -112,27 +108,6 @@ bool glTFRenderPassTest::InitPass(glTFRenderResourceManager& resourceManager)
     m_vertexBuffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
     m_indexBuffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
 
-    /*
-    // a triangle
-    Vertex vList[] = {
-        // first quad (closer to camera, blue)
-        { -0.5f,  0.5f, 0.5f, 0.0f, 1.0f },
-        {  0.5f, -0.5f, 0.5f, 1.0f, 0.0f },
-        { -0.5f, -0.5f, 0.5f, 0.0f, 0.0f },
-        {  0.5f,  0.5f, 0.5f, 1.0f, 1.0f },
-    };
-    
-    // a quad (2 triangles)
-    DWORD iList[] = {
-        0, 1, 2, // first triangle
-        0, 3, 1 // second triangle
-    };
-
-    const size_t vBufferSize = sizeof(vList);
-    const size_t iBufferSize = sizeof(iList);
-    */
-
-    
     RHIBufferDesc vertexBufferDesc = {L"vertexBufferDefaultBuffer", boxVertices.byteSize, 1, 1, RHIBufferType::Default, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
     RHIBufferDesc indexBufferDesc = {L"indexBufferDefaultBuffer", boxIndices.byteSize, 1, 1, RHIBufferType::Default, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
     
@@ -174,7 +149,8 @@ bool glTFRenderPassTest::InitPass(glTFRenderResourceManager& resourceManager)
     m_mainDescriptorHeap = RHIResourceFactory::CreateRHIResource<IRHIDescriptorHeap>();
     m_mainDescriptorHeap->InitDescriptorHeap(resourceManager.GetDevice(), {2,  RHIDescriptorHeapType::CBV_SRV_UAV, true});
 
-    RETURN_IF_FALSE(RHIUtils::Instance().CreateConstantBufferViewInDescriptorHeap(resourceManager.GetDevice(), *m_mainDescriptorHeap, 0, *m_cbvGPUBuffer, {0, sizeof(m_colorMultiplier)}, m_cbvGPUHandle))
+    //RETURN_IF_FALSE(RHIUtils::Instance().CreateConstantBufferViewInDescriptorHeap(resourceManager.GetDevice(), *m_mainDescriptorHeap, 0, *m_cbvGPUBuffer, {0, sizeof(m_colorMultiplier)}, m_cbvGPUHandle))
+    RETURN_IF_FALSE(RHIUtils::Instance().CreateConstantBufferViewInDescriptorHeap(resourceManager.GetDevice(), *m_mainDescriptorHeap, 0, *m_cbvGPUBuffer, {0, sizeof(m_cbPerObject)}, m_cbvGPUHandle))
     
     RETURN_IF_FALSE(RHIUtils::Instance().ResetCommandList(resourceManager.GetCommandList(), resourceManager.GetCurrentFrameCommandAllocator()))
     glTFImageLoader imageLoader;
@@ -188,7 +164,7 @@ bool glTFRenderPassTest::InitPass(glTFRenderResourceManager& resourceManager)
     
     RETURN_IF_FALSE(RHIUtils::Instance().CloseCommandList(resourceManager.GetCommandList()))
     RETURN_IF_FALSE(RHIUtils::Instance().ExecuteCommandList(resourceManager.GetCommandList(),resourceManager.GetCommandQueue()))
-    RETURN_IF_FALSE(resourceManager.GetCurrentFrameFence().SignalWhenCommandQueueFinish(resourceManager.GetCommandQueue()));
+    RETURN_IF_FALSE(resourceManager.GetCurrentFrameFence().SignalWhenCommandQueueFinish(resourceManager.GetCommandQueue()))
     
     LOG_FORMAT_FLUSH("[RenderPass_Test] Init Pass resource finished!\n")
     
@@ -197,7 +173,8 @@ bool glTFRenderPassTest::InitPass(glTFRenderResourceManager& resourceManager)
 
 bool glTFRenderPassTest::RenderPass(glTFRenderResourceManager& resourceManager)
 {
-    UpdateColorMultiplier();
+    //UpdateColorMultiplier();
+    UpdateConstantBufferPerObject();
     
     RHIUtils::Instance().ResetCommandList(resourceManager.GetCommandList(), resourceManager.GetCurrentFrameCommandAllocator(), *m_pipelineStateObject);
 
@@ -263,4 +240,13 @@ void glTFRenderPassTest::UpdateColorMultiplier()
 
     // copy our ConstantBuffer instance to the mapped constant buffer resource
     m_cbvGPUBuffer->UploadBufferFromCPU(&m_colorMultiplier, sizeof(m_colorMultiplier));
+}
+
+void glTFRenderPassTest::UpdateConstantBufferPerObject()
+{
+    // rotate box per tick
+    m_box->GetTransform().rotation.x += 0.0001f;
+    
+    m_cbPerObject.mvpMat = m_box->GetTransformMatrix() * m_camera->GetTransformMatrix();
+    m_cbvGPUBuffer->UploadBufferFromCPU(&m_cbPerObject, sizeof(m_cbPerObject));
 }

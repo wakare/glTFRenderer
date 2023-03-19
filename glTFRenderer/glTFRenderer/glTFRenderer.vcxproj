@@ -178,6 +178,8 @@
     <ClCompile Include="glTFRenderPass\glTFRenderPassManager.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderPassTest.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderResourceManager.cpp" />
+    <None Include="glTFResources\ShaderSource\pixelShader.hlsl" />
+    <None Include="glTFResources\ShaderSource\vertexShader.hlsl" />
     <ClCompile Include="glTFRHI\RHIConfigSingleton.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12DescriptorHeap.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12CommandAllocator.cpp" />
@@ -442,8 +444,10 @@
     <ClCompile Include="glTFRHI\RHIUtils.cpp" />
     <ClCompile Include="glTFScene\glTFCamera\glTFCamera.cpp" />
     <ClCompile Include="glTFScene\glTFSceneBox.cpp" />
+    <ClCompile Include="glTFScene\glTFSceneGraph.cpp" />
     <ClCompile Include="glTFScene\glTFSceneObjectBase.cpp" />
     <ClCompile Include="glTFScene\glTFScenePrimitive.cpp" />
+    <ClCompile Include="glTFScene\glTFSceneView.cpp" />
     <ClCompile Include="glTFShaderUtils\glTFShaderUtils.cpp" />
     <ClCompile Include="glTFUtils\glTFLog.cpp" />
     <ClCompile Include="glTFWindow\glTFWindow.cpp" />
@@ -503,19 +507,19 @@
     <ClInclude Include="glTFRHI\RHIUtils.h" />
     <ClInclude Include="glTFScene\glTFCamera\glTFCamera.h" />
     <ClInclude Include="glTFScene\glTFSceneBox.h" />
+    <ClInclude Include="glTFScene\glTFSceneGraph.h" />
     <ClInclude Include="glTFScene\glTFSceneObjectBase.h" />
     <ClInclude Include="glTFScene\glTFScenePrimitive.h" />
+    <ClInclude Include="glTFScene\glTFSceneView.h" />
     <ClInclude Include="glTFShaderUtils\glTFShaderUtils.h" />
     <ClInclude Include="glTFUtils\glTFLog.h" />
     <ClInclude Include="glTFWindow\glTFWindow.h" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="..\..\README.md" />
+    <Content Include="glTFResources\tiger.bmp" />
     <Content Include="glTFResources\UE4_Logo.bmp" />
     <Content Include="glTFSamples\Hello_glTF.json" />
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="glTFResources\ShaderSource" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

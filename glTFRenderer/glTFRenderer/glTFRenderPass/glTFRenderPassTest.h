@@ -7,6 +7,7 @@
 #include "../glTFRHI/RHIInterface/IRHITexture.h"
 #include "../glTFRHI/RHIInterface/IRHIVertexBufferView.h"
 #include "../glTFScene/glTFSceneBox.h"
+#include "../glTFScene/glTFCamera/glTFCamera.h"
 
 class IRHIIndexBufferView;
 class IRHIGPUBuffer;
@@ -22,6 +23,11 @@ struct ConstantBufferStruct_ColorMultiplier
     } colorMultiplier;
 };
 
+struct ConstantBufferPerObject
+{
+    glm::mat4x4 mvpMat;
+};
+
 // RenderPassTest only draw single triangle for debug RHI code 
 class glTFRenderPassTest : public glTFRenderPassBase
 {
@@ -30,11 +36,13 @@ public:
     virtual ~glTFRenderPassTest() override;
     
     virtual const char* PassName() override;
+    
     virtual bool InitPass(glTFRenderResourceManager& resourceManager) override;
     virtual bool RenderPass(glTFRenderResourceManager& resourceManager) override;
 
 protected:
     void UpdateColorMultiplier();
+    void UpdateConstantBufferPerObject();
     
     size_t m_rootSignatureParameterCount;
     size_t m_rootSignatureStaticSamplerCount;
@@ -59,10 +67,13 @@ protected:
     RHIGPUDescriptorHandle m_cbvGPUHandle;
 
     ConstantBufferStruct_ColorMultiplier m_colorMultiplier;
-
+    ConstantBufferPerObject m_cbPerObject;
+    
     std::shared_ptr<IRHITexture> m_textureBuffer;
     RHICPUDescriptorHandle m_textureSRVGPUHandle;
 
     // Scene objects
     std::shared_ptr<glTFSceneBox> m_box;
+
+    std::shared_ptr<glTFCamera> m_camera;
 };
