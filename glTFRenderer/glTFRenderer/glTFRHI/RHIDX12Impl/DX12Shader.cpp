@@ -15,7 +15,7 @@ DX12Shader::~DX12Shader()
 
 bool DX12Shader::CompileShaderByteCode()
 {
-    if (m_shaderContent.empty() || m_type == RHIShaderType::Unknown)
+    if (m_shaderContent.empty() || m_type == RHIShaderType::Unknown || m_shaderEntryFunctionName.empty())
     {
         // Not init shader content!
         assert(false);
@@ -38,24 +38,13 @@ bool DX12Shader::CompileShaderByteCode()
     
     ID3DBlob* shaderCompileResult = nullptr; // d3d blob for holding vertex shader bytecode
     ID3DBlob* errorBuff = nullptr; // a buffer holding the error data if any
-    /*THROW_IF_FAILED(D3DCompile(m_shaderContent.data(),
-            m_shaderContent.length(),
-            nullptr,
-            dxShaderMacros.data(),
-            nullptr,
-            "main",
-            GetShaderCompilerTarget(), 
-            D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
-            0,
-            &shaderCompileResult,
-            &errorBuff))*/
-
+    
     D3DCompile(m_shaderContent.data(),
             m_shaderContent.length(),
             nullptr,
             dxShaderMacros.data(),
-            nullptr,
-            "main",
+            D3D_COMPILE_STANDARD_FILE_INCLUDE,
+            m_shaderEntryFunctionName.c_str(),
             GetShaderCompilerTarget(), 
             D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
             0,
@@ -80,10 +69,11 @@ const std::vector<unsigned char>& DX12Shader::GetShaderByteCode() const
     return m_shaderByteCode;
 }
 
-bool DX12Shader::InitShader(const std::string& shaderFilePath, RHIShaderType type)
+bool DX12Shader::InitShader(const std::string& shaderFilePath, RHIShaderType type, const std::string& entryFunctionName)
 {
     assert(m_type == RHIShaderType::Unknown);
     m_type = type;
+    m_shaderEntryFunctionName = entryFunctionName;
     
     if (!LoadShader(shaderFilePath))
     {

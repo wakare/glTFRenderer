@@ -13,7 +13,7 @@ public:
     bool CompileShaderByteCode();
     const std::vector<unsigned char>& GetShaderByteCode() const;  
     
-    virtual bool InitShader(const std::string& shaderFilePath, RHIShaderType type) override;
+    virtual bool InitShader(const std::string& shaderFilePath, RHIShaderType type, const std::string& entryFunctionName) override;
     virtual bool CompileShader() override;
     
 private:

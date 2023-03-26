@@ -1,5 +1,5 @@
 #pragma once
-#include "../glTFSceneObjectBase.h"
+#include "glTFSceneObjectBase.h"
 
 // This class represent abstract camera for viewport, also handle projection view
 class glTFCamera : public glTFSceneObjectBase
@@ -16,7 +16,7 @@ public:
         , m_cacheViewProjectionMatrix(glm::fmat4x4(1.0f))
     {}
 
-    const glm::fmat4x4& GetViewProjectionMatrix()
+    const glm::fmat4x4& GetViewProjectionMatrix() const
     {
         if (m_dirty)
         {
@@ -28,9 +28,9 @@ public:
     void MarkDirty() { m_dirty = true; }
     
 protected:
-    void UpdateViewProjectionMatrix();
+    void UpdateViewProjectionMatrix() const;
     
-    bool m_dirty;
+    mutable bool m_dirty;
 
     float m_projectionFovRadian;
     float m_projectionWidth;
@@ -38,5 +38,5 @@ protected:
     float m_projectionNear;
     float m_projectionFar;
 
-    glm::fmat4x4 m_cacheViewProjectionMatrix;
+    mutable glm::fmat4x4 m_cacheViewProjectionMatrix;
 };

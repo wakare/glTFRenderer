@@ -1,5 +1,6 @@
 #pragma once
 #include "../glTFRenderPass/glTFRenderPassManager.h"
+#include "../glTFScene/glTFSceneGraph.h"
 
 struct GLFWwindow;
 
@@ -25,4 +26,6 @@ private:
     int m_height;
 
     std::unique_ptr<glTFRenderPassManager> m_passManager;
+    std::unique_ptr<glTFSceneGraph> m_sceneGraph;
+    std::unique_ptr<glTFSceneView> m_sceneView;
 };

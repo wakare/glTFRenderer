@@ -29,7 +29,7 @@ class IRHIPipelineStateObject : public IRHIResource
 {
 public:
     IRHIPipelineStateObject(RHIPipelineType type);
-    virtual bool BindShaderCode(const std::string& shaderFilePath, RHIShaderType type) = 0;
+    virtual bool BindShaderCode(const std::string& shaderFilePath, RHIShaderType type, const std::string& entryFunctionName) = 0;
     virtual bool BindRenderTargets(const std::vector<IRHIRenderTarget*>& renderTargets) = 0;
     virtual bool InitPipelineStateObject(IRHIDevice& device, IRHIRootSignature& rootSignature, IRHISwapChain& swapchain, const std::vector<RHIPipelineInputLayout>& inputLayouts) = 0;
 

@@ -3,11 +3,13 @@
 #include <cassert>
 #include <Windows.h>
 
+#include "glTFRenderPassMeshBase.h"
 #include "../glTFRHI/RHIUtils.h"
 #include "../glTFUtils/glTFLog.h"
 
-glTFRenderPassManager::glTFRenderPassManager(glTFWindow& window)
+glTFRenderPassManager::glTFRenderPassManager(glTFWindow& window, glTFSceneView& view)
     : m_window(window)
+    , m_sceneView(view)
     , m_frameIndex(0)
 {
     const bool inited = InitRenderPassManager();
@@ -39,6 +41,43 @@ void glTFRenderPassManager::InitAllPass()
     }
     
     LOG_FORMAT_FLUSH("[DEBUG] Init all pass finished!\n")
+}
+
+void glTFRenderPassManager::UpdateScene()
+{
+    // Gather all scene pass
+    std::vector<glTFRenderPassMeshBase*> allMeshPasses;
+    for (auto& pass : m_passes)
+    {
+        if (auto* meshPass = dynamic_cast<glTFRenderPassMeshBase*>(pass.get()))
+        {
+            allMeshPasses.push_back(meshPass);
+        }
+    }
+
+    if (!allMeshPasses.empty())
+    {
+        for (auto* meshPass : allMeshPasses)
+        {
+            m_sceneView.TraversePrimitiveWithinView([this, meshPass](const glTFSceneNode& node)
+            {
+                if (node.renderStateDirty)
+                {
+                    const glTFScenePrimitive* primitive = dynamic_cast<glTFScenePrimitive*>(node.object.get());
+                    if (primitive)
+                    {
+                        meshPass->AddOrUpdatePrimitiveToMeshPass(*m_resourceManager, *primitive);
+                    }
+
+                    node.renderStateDirty = false;
+                }
+            
+                return true;
+            });
+
+            meshPass->UpdateViewParameters(m_sceneView);
+        }
+    }
 }
 
 void glTFRenderPassManager::RenderAllPass()

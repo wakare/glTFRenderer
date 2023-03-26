@@ -21,10 +21,10 @@ DX12GraphicsPipelineStateObject::~DX12GraphicsPipelineStateObject()
     SAFE_RELEASE(m_pipelineStateObject)
 }
 
-bool DX12GraphicsPipelineStateObject::BindShaderCode(const std::string& shaderFilePath, RHIShaderType type)
+bool DX12GraphicsPipelineStateObject::BindShaderCode(const std::string& shaderFilePath, RHIShaderType type, const std::string& entryFunctionName)
 {
     std::shared_ptr<IRHIShader> dxShader = RHIResourceFactory::CreateRHIResource<IRHIShader>();
-    if (!dxShader->InitShader(shaderFilePath, type))
+    if (!dxShader->InitShader(shaderFilePath, type, entryFunctionName))
     {
         return false;
     }

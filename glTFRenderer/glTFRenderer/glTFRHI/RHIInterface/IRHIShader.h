@@ -25,13 +25,14 @@ public:
     const std::string& GetShaderContent() const;
     void SetShaderCompilePreDefineMacros(const RHIShaderPreDefineMacros& macros);
     
-    virtual bool InitShader(const std::string& shaderFilePath, RHIShaderType type) = 0;
+    virtual bool InitShader(const std::string& shaderFilePath, RHIShaderType type, const std::string& entryFunctionName) = 0;
     virtual bool CompileShader() = 0;
     
 protected:
     bool LoadShader(const std::string& shaderFilePath);
     
     RHIShaderType m_type;
+    std::string m_shaderEntryFunctionName;
     std::string m_shaderContent;
     std::string m_shaderFilePath;
 
