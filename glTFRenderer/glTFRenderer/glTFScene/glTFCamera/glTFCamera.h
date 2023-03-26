@@ -20,7 +20,6 @@ public:
     {
         if (m_dirty)
         {
-            m_dirty = false;
             UpdateViewProjectionMatrix();
         }
         return m_cacheViewProjectionMatrix;

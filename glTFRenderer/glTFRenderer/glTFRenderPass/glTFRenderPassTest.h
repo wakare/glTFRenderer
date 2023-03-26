@@ -12,17 +12,6 @@
 class IRHIIndexBufferView;
 class IRHIGPUBuffer;
 
-struct ConstantBufferStruct_ColorMultiplier
-{
-    struct
-    {
-        float x;
-        float y;
-        float z;
-        float w;
-    } colorMultiplier;
-};
-
 struct ConstantBufferPerObject
 {
     glm::mat4x4 mvpMat;
@@ -41,7 +30,6 @@ public:
     virtual bool RenderPass(glTFRenderResourceManager& resourceManager) override;
 
 protected:
-    void UpdateColorMultiplier();
     void UpdateConstantBufferPerObject();
     
     size_t m_rootSignatureParameterCount;
@@ -66,7 +54,6 @@ protected:
 
     RHIGPUDescriptorHandle m_cbvGPUHandle;
 
-    ConstantBufferStruct_ColorMultiplier m_colorMultiplier;
     ConstantBufferPerObject m_cbPerObject;
     
     std::shared_ptr<IRHITexture> m_textureBuffer;

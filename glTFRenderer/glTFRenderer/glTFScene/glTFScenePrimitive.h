@@ -37,12 +37,16 @@ struct VertexBufferData
 {
     std::unique_ptr<float[]> data;
     size_t byteSize;
+
+    size_t VertexCount() const {return byteSize / sizeof(float); }
 };
 
 struct IndexBufferData
 {
     std::unique_ptr<unsigned[]> data;
     size_t byteSize;
+
+    size_t IndexCount() const {return byteSize / sizeof(unsigned); }
 };
 
 class glTFScenePrimitive : public glTFSceneObjectBase
@@ -53,4 +57,6 @@ public:
     virtual const VertexLayoutDeclaration& GetVertexLayout() const = 0;
     virtual const VertexBufferData& GetVertexBufferData() const = 0;
     virtual const IndexBufferData& GetIndexBufferData() const = 0;
+
+    virtual size_t GetInstanceCount() const { return 1; }
 };

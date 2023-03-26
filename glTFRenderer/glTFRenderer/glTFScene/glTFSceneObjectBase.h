@@ -28,6 +28,11 @@ struct glTFTransform
         result = glm::translate(result, {position.x, position.y, position.z});
         return result;
     }
+
+    glm::fmat4x4 GetTransformInverseMatrix() const
+    {
+        return inverse(GetTransformMatrix());
+    }
 };
 
 // Base class represent transform object in scene
@@ -46,6 +51,7 @@ public:
     glTFTransform& GetTransform() {return m_transform; }
 
     glm::mat4x4 GetTransformMatrix() const {return GetTransform().GetTransformMatrix(); }
+    glm::mat4x4 GetTransformInverseMatrix() const {return GetTransform().GetTransformInverseMatrix(); }
     
 protected:
     glTFTransform m_transform;

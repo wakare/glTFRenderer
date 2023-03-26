@@ -10,7 +10,7 @@ glTFRenderPassTest::glTFRenderPassTest()
     , m_rootSignatureParameterCount(2)
     , m_rootSignatureStaticSamplerCount(1)
     , m_cbvGPUHandle(0)
-    , m_colorMultiplier()
+    , m_cbPerObject()
     , m_textureSRVGPUHandle(0)
 {
 }
@@ -94,7 +94,7 @@ bool glTFRenderPassTest::InitPass(glTFRenderResourceManager& resourceManager)
 
     m_camera = std::make_shared<glTFCamera>(45.0f, 800.0f, 600.0f, 0.1f, 1000.0f);
     m_camera->GetTransform() = glTFTransform::Identity();
-    m_camera->GetTransform().position = {0.0f, 0.0f, -0.5f};
+    m_camera->GetTransform().position = {0.0f, 0.0f, -3.0f};
 
     if (!m_pipelineStateObject->InitPipelineStateObject(resourceManager.GetDevice(), *m_rootSignature, resourceManager.GetSwapchain(), inputLayouts))
     {
@@ -203,7 +203,7 @@ bool glTFRenderPassTest::RenderPass(glTFRenderResourceManager& resourceManager)
     RHIUtils::Instance().SetIndexBufferView(resourceManager.GetCommandList(), *m_indexBufferView);
 
     RHIUtils::Instance().SetPrimitiveTopology( resourceManager.GetCommandList(), RHIPrimitiveTopologyType::TRIANGLELIST);
-    RHIUtils::Instance().DrawIndexInstanced(resourceManager.GetCommandList(), 6, 1, 0, 0, 0);
+    RHIUtils::Instance().DrawIndexInstanced(resourceManager.GetCommandList(), m_box->GetIndexBufferData().IndexCount(), m_box->GetInstanceCount(), 0, 0, 0);
 
     RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resourceManager.GetCommandList(), resourceManager.GetCurrentFrameSwapchainRT(),
             RHIResourceStateType::RENDER_TARGET, RHIResourceStateType::PRESENT);
@@ -211,42 +211,13 @@ bool glTFRenderPassTest::RenderPass(glTFRenderResourceManager& resourceManager)
     return true;
 }
 
-void glTFRenderPassTest::UpdateColorMultiplier()
-{
-    // update app logic, such as moving the camera or figuring out what objects are in view
-    static float rIncrement = 0.00002f;
-    static float gIncrement = 0.00006f;
-    static float bIncrement = 0.00009f;
-
-    m_colorMultiplier.colorMultiplier.x += rIncrement;
-    m_colorMultiplier.colorMultiplier.y += gIncrement;
-    m_colorMultiplier.colorMultiplier.z += bIncrement;
-
-    if (m_colorMultiplier.colorMultiplier.x >= 1.0 || m_colorMultiplier.colorMultiplier.x <= 0.0)
-    {
-        m_colorMultiplier.colorMultiplier.x = m_colorMultiplier.colorMultiplier.x >= 1.0 ? 1.0 : 0.0;
-        rIncrement = -rIncrement;
-    }
-    if (m_colorMultiplier.colorMultiplier.y >= 1.0 || m_colorMultiplier.colorMultiplier.y <= 0.0)
-    {
-        m_colorMultiplier.colorMultiplier.y = m_colorMultiplier.colorMultiplier.y >= 1.0 ? 1.0 : 0.0;
-        gIncrement = -gIncrement;
-    }
-    if (m_colorMultiplier.colorMultiplier.z >= 1.0 || m_colorMultiplier.colorMultiplier.z <= 0.0)
-    {
-        m_colorMultiplier.colorMultiplier.z = m_colorMultiplier.colorMultiplier.z >= 1.0 ? 1.0 : 0.0;
-        bIncrement = -bIncrement;
-    }
-
-    // copy our ConstantBuffer instance to the mapped constant buffer resource
-    m_cbvGPUBuffer->UploadBufferFromCPU(&m_colorMultiplier, sizeof(m_colorMultiplier));
-}
-
 void glTFRenderPassTest::UpdateConstantBufferPerObject()
 {
     // rotate box per tick
     m_box->GetTransform().rotation.x += 0.0001f;
+    m_box->GetTransform().rotation.y += 0.0002f;
+    m_box->GetTransform().rotation.z += 0.0003f;
     
-    m_cbPerObject.mvpMat = m_box->GetTransformMatrix() * m_camera->GetTransformMatrix();
+    m_cbPerObject.mvpMat = m_camera->GetViewProjectionMatrix() * m_box->GetTransformMatrix();
     m_cbvGPUBuffer->UploadBufferFromCPU(&m_cbPerObject, sizeof(m_cbPerObject));
 }
