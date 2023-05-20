@@ -5,7 +5,6 @@
 #include <GLFW/glfw3native.h>
 
 #include "../glTFRenderPass/glTFRenderPassMeshOpaque.h"
-//#include "../glTFRenderPass/glTFRenderPassTest.h"
 #include "../glTFRHI/RHIDX12Impl/glTFRHIDX12.h"
 #include "../glTFScene/glTFSceneBox.h"
 #include "../glTFScene/glTFCamera.h"

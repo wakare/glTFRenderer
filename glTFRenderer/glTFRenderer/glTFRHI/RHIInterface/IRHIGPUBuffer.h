@@ -34,5 +34,6 @@ class IRHIGPUBuffer : public IRHIResource
 {
 public:
     virtual bool InitGPUBuffer(IRHIDevice& device, const RHIBufferDesc& desc) = 0;
-    virtual bool UploadBufferFromCPU(void* data, size_t size) = 0;
+    virtual bool UploadBufferFromCPU(void* data, size_t dataOffset, size_t size) = 0;
+    virtual GPU_BUFFER_HANDLE_TYPE GetGPUBufferHandle() = 0;
 };

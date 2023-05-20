@@ -119,6 +119,7 @@ typedef uint64_t RHICPUDescriptorHandle;
     if (!(x)) \
     { return false; }
 
+#define GPU_BUFFER_HANDLE_TYPE unsigned long long
 
 // get the number of bits per pixel for a dxgi format
 inline int GetRHIDataFormatBitsPerPixel(const RHIDataFormat& RHIDataFormat)

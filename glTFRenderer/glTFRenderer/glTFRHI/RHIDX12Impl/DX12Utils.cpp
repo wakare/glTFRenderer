@@ -291,8 +291,17 @@ bool DX12Utils::SetDescriptorHeap(IRHICommandList& commandList, IRHIDescriptorHe
     return true;
 }
 
-bool DX12Utils::SetGPUHandleToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex,
+bool DX12Utils::SetConstantBufferViewGPUHandleToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex,
     RHIGPUDescriptorHandle handle)
+{
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    dxCommandList->SetGraphicsRootConstantBufferView(slotIndex, handle);
+    
+    return true;
+}
+
+bool DX12Utils::SetDescriptorTableGPUHandleToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex,
+                                                               RHIGPUDescriptorHandle handle)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
 

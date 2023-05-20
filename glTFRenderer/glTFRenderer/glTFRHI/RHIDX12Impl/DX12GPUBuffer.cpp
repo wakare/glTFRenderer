@@ -62,7 +62,7 @@ bool DX12GPUBuffer::InitGPUBuffer(IRHIDevice& device, const RHIBufferDesc& desc)
     return true;
 }
 
-bool DX12GPUBuffer::UploadBufferFromCPU(void* data, size_t size)
+bool DX12GPUBuffer::UploadBufferFromCPU(void* data, size_t dataOffset, size_t size)
 {
     if (!m_mappedGPUBuffer)
     {
@@ -71,8 +71,13 @@ bool DX12GPUBuffer::UploadBufferFromCPU(void* data, size_t size)
         THROW_IF_FAILED(m_buffer->Map(0, &m_mapRange, reinterpret_cast<void**>(&m_mappedGPUBuffer)))
     }
     
-    assert(size < m_bufferDesc.width);
+    assert((dataOffset + size) < m_bufferDesc.width);
     
-    memcpy(m_mappedGPUBuffer, data, size);
+    memcpy(m_mappedGPUBuffer + dataOffset, data, size);
     return true;
+}
+
+GPU_BUFFER_HANDLE_TYPE DX12GPUBuffer::GetGPUBufferHandle()
+{
+    return m_buffer->GetGPUVirtualAddress();
 }

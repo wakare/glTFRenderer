@@ -28,10 +28,14 @@ bool glTFRenderPassMeshBase::InitPass(glTFRenderResourceManager& resourceManager
     m_mainDescriptorHeap->InitDescriptorHeap(resourceManager.GetDevice(), {static_cast<unsigned>(GetMainDescriptorHeapSize()),  RHIDescriptorHeapType::CBV_SRV_UAV, true});
 
     m_perMeshConstantBuffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
+    
     // TODO: Calculate mesh constant buffer size
     RETURN_IF_FALSE(m_perMeshConstantBuffer->InitGPUBuffer(resourceManager.GetDevice(), {L"MeshPassBase_PerMeshConstantBuffer", static_cast<size_t>(64 * 1024), 1, 1, RHIBufferType::Upload, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer }))
-
+    
+    /*m_perMeshConstantBuffer->SetName("MeshBasePass_PerMeshGPUBuffer");
+    
     RETURN_IF_FALSE(RHIUtils::Instance().CreateConstantBufferViewInDescriptorHeap(resourceManager.GetDevice(), *m_mainDescriptorHeap, 0, *m_perMeshConstantBuffer, {0, sizeof(ConstantBufferPerMesh)}, m_perMeshCBHandle))
+    */
     
     return true;
 }

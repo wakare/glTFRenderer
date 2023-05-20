@@ -15,8 +15,8 @@ bool glTFRenderPassMeshOpaque::InitPass(glTFRenderResourceManager& resourceManag
     constexpr size_t rootSignatureStaticSamplerCount = 1;
     m_rootSignature->AllocateRootSignatureSpace(rootSignatureParameterCount, rootSignatureStaticSamplerCount);
     
-    const RHIRootParameterDescriptorRangeDesc CBVRangeDesc {RHIRootParameterDescriptorRangeType::CBV, 0, 1};
-    m_rootSignature->GetRootParameter(0).InitAsDescriptorTableRange(1, &CBVRangeDesc);
+    //const RHIRootParameterDescriptorRangeDesc CBVRangeDesc {RHIRootParameterDescriptorRangeType::CBV, 0, 1};
+    m_rootSignature->GetRootParameter(0).InitAsCBV(0);
 
     const RHIRootParameterDescriptorRangeDesc SRVRangeDesc {RHIRootParameterDescriptorRangeType::SRV, 0, 1};
     m_rootSignature->GetRootParameter(1).InitAsDescriptorTableRange(1, &SRVRangeDesc);
@@ -68,8 +68,8 @@ bool glTFRenderPassMeshOpaque::RenderPass(glTFRenderResourceManager& resourceMan
     RHIUtils::Instance().SetRootSignature(resourceManager.GetCommandList(), *m_rootSignature);
 
     RHIUtils::Instance().SetDescriptorHeap(resourceManager.GetCommandList(), m_mainDescriptorHeap.get(), 1);
-    RHIUtils::Instance().SetGPUHandleToRootParameterSlot(resourceManager.GetCommandList(), 0, m_perMeshCBHandle);
-    RHIUtils::Instance().SetGPUHandleToRootParameterSlot(resourceManager.GetCommandList(), 1, m_textureSRVHandle);
+    
+    RHIUtils::Instance().SetDescriptorTableGPUHandleToRootParameterSlot(resourceManager.GetCommandList(), 1, m_textureSRVHandle);
     
     RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resourceManager.GetCommandList(), resourceManager.GetCurrentFrameSwapchainRT(),
         RHIResourceStateType::PRESENT, RHIResourceStateType::RENDER_TARGET);
@@ -86,11 +86,16 @@ bool glTFRenderPassMeshOpaque::RenderPass(glTFRenderResourceManager& resourceMan
     const RHIScissorRectDesc scissorRect = {0, 0, resourceManager.GetSwapchain().GetWidth(), resourceManager.GetSwapchain().GetHeight() }; 
     RHIUtils::Instance().SetScissorRect(resourceManager.GetCommandList(), scissorRect);
 
+    unsigned meshIndex = 0;
     for (const auto& mesh : m_meshes)
     {
+        const size_t dataOffset = meshIndex++ * sizeof(m_constantBufferPerObject);
+        
         // Upload constant buffer
         m_constantBufferPerObject.worldMat = mesh.second.meshTransformMatrix;
-        m_perMeshConstantBuffer->UploadBufferFromCPU(&m_constantBufferPerObject, sizeof(m_constantBufferPerObject));
+        m_perMeshConstantBuffer->UploadBufferFromCPU(&m_constantBufferPerObject, dataOffset, sizeof(m_constantBufferPerObject));
+
+        RHIUtils::Instance().SetConstantBufferViewGPUHandleToRootParameterSlot(resourceManager.GetCommandList(), 0, m_perMeshConstantBuffer->GetGPUBufferHandle() + dataOffset);
         
         RHIUtils::Instance().SetVertexBufferView(resourceManager.GetCommandList(), *mesh.second.meshVertexBufferView);
         RHIUtils::Instance().SetIndexBufferView(resourceManager.GetCommandList(), *mesh.second.meshIndexBufferView);
