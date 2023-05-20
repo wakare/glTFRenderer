@@ -1,10 +1,5 @@
 #include "glTFResources/ShaderSource/MeshPassCommon.h"
 
-cbuffer ConstantBuffer : register(b0)
-{
-    float4x4 worldMat;
-    float4x4 viewProjectionMat;
-};
 
 VS_OUTPUT main(VS_INPUT input)
 {

@@ -9,3 +9,9 @@ struct VS_OUTPUT
     float4 pos: SV_POSITION;
     float2 texCoord: TEXCOORD;
 };
+
+cbuffer ConstantBuffer : register(b0)
+{
+    float4x4 worldMat;
+    float4x4 viewProjectionMat;
+};

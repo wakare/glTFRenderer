@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include "../glTFUtils/glTFUtils.h"
 #include <glm/glm/glm.hpp>
 #include <glm/glm/gtc/matrix_transform.hpp>
 #include <glm/glm/gtx/euler_angles.hpp>
@@ -40,44 +41,14 @@ struct glTFTransform
     }
 };
 
-typedef unsigned glTFUniqueID;
-class glTFUniqueObject
-{
-public:
-    glTFUniqueObject()
-        : m_uniqueID(_innerUniqueID++) {}
-    
-    glTFUniqueID GetID() const { return m_uniqueID; }
-    
-private:
-    glTFUniqueID m_uniqueID;
-    static glTFUniqueID _innerUniqueID;
-};
-
-
-class ITickable
-{
-public:
-    virtual ~ITickable() = default;
-    virtual void Tick() { assert(m_tickEnable); m_tickFunc(); }
-
-    void SetTickFunc(std::function<void()> tickFunc) {m_tickEnable = true; m_tickFunc = std::move(tickFunc); }
-    bool CanTick() const {return m_tickEnable; }
-    
-protected:
-    std::function<void()> m_tickFunc;
-    bool m_tickEnable {false};
-};
-
 // Base class represent transform object in scene
 class glTFSceneObjectBase : public glTFUniqueObject, public ITickable
 {
 public:
-    ~glTFSceneObjectBase() override = default;
+    ~glTFSceneObjectBase() override;
 
     glTFSceneObjectBase()
-        : glTFUniqueObject()
-        , m_transform(glTFTransform::Identity())
+        : m_transform(glTFTransform::Identity())
     {
         
     }

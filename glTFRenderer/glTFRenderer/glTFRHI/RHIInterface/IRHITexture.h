@@ -38,7 +38,7 @@ private:
 class IRHITexture : public IRHIResource
 {
 public:
-    virtual bool UploadTextureFromFile(IRHIDevice& device, IRHICommandList& commandList, glTFImageLoader& imageLoader, const std::wstring& filePath) = 0;
+    virtual bool UploadTextureFromFile(IRHIDevice& device, IRHICommandList& commandList, glTFImageLoader& imageLoader, const std::string& filePath) = 0;
     virtual IRHIGPUBuffer& GetGPUBuffer() = 0;
     
     const RHITextureDesc& GetTextureDesc() const {return m_textureDesc; }

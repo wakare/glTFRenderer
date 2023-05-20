@@ -29,6 +29,8 @@ struct MeshGPUResource
     size_t meshIndexCount{0};
     
     glm::mat4 meshTransformMatrix;
+
+    glTFUniqueID materialID;
 };
 
 // Drawing all meshes within mesh pass

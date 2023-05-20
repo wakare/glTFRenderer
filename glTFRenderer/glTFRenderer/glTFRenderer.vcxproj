@@ -100,6 +100,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="glTFLoader\glTFLoader.cpp" />
+    <ClCompile Include="glTFMaterial\glTFMaterialBase.cpp" />
+    <ClCompile Include="glTFMaterial\glTFMaterialOpaque.cpp" />
+    <ClCompile Include="glTFMaterial\glTFMaterialTexture.cpp" />
     <ClCompile Include="glTFRenderer.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderPassBase.cpp">
       <RuntimeLibrary>MultiThreadedDebugDll</RuntimeLibrary>
@@ -529,6 +532,10 @@
   <ItemGroup>
     <ClInclude Include="glTFLoader\glTFElementCommon.h" />
     <ClInclude Include="glTFLoader\glTFLoader.h" />
+    <ClInclude Include="glTFMaterial\glTFMaterialBase.h" />
+    <ClInclude Include="glTFMaterial\glTFMaterialCommon.h" />
+    <ClInclude Include="glTFMaterial\glTFMaterialOpaque.h" />
+    <ClInclude Include="glTFMaterial\glTFMaterialTexture.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderPassBase.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderPassManager.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderPassMeshBase.h" />
@@ -589,6 +596,7 @@
     <ClInclude Include="glTFScene\glTFSceneView.h" />
     <ClInclude Include="glTFShaderUtils\glTFShaderUtils.h" />
     <ClInclude Include="glTFUtils\glTFLog.h" />
+    <ClInclude Include="glTFUtils\glTFUtils.h" />
     <ClInclude Include="glTFWindow\glTFWindow.h" />
   </ItemGroup>
   <ItemGroup>
@@ -596,9 +604,6 @@
     <Content Include="glTFResources\tiger.bmp" />
     <Content Include="glTFResources\UE4_Logo.bmp" />
     <Content Include="glTFSamples\Hello_glTF.json" />
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="glTFMaterial" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -64,7 +64,7 @@ void glTFRenderPassManager::UpdateScene()
                 if (node.renderStateDirty)
                 {
                     const glTFScenePrimitive* primitive = dynamic_cast<glTFScenePrimitive*>(node.object.get());
-                    if (primitive)
+                    if (primitive && meshPass->ProcessMaterial(*m_resourceManager, primitive->GetMaterial()))
                     {
                         meshPass->AddOrUpdatePrimitiveToMeshPass(*m_resourceManager, *primitive);
                     }

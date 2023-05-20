@@ -5,6 +5,7 @@
 
 #include "glTFSceneObjectBase.h"
 #include "glTFCamera.h"
+#include "../glTFMaterial/glTFMaterialBase.h"
 
 struct glTFSceneNode
 {

@@ -4,6 +4,7 @@
 #define GLFW_EXPOSE_NATIVE_WIN32 1
 #include <GLFW/glfw3native.h>
 
+#include "../glTFMaterial/glTFMaterialOpaque.h"
 #include "../glTFRenderPass/glTFRenderPassMeshOpaque.h"
 #include "../glTFRHI/RHIDX12Impl/glTFRHIDX12.h"
 #include "../glTFScene/glTFSceneBox.h"
@@ -35,6 +36,8 @@ bool glTFWindow::InitAndShowWindow()
 
     // Create test scene with box
     m_sceneGraph = std::make_unique<glTFSceneGraph>();
+    std::shared_ptr<glTFMaterialTexture> boxMaterialTexture = std::make_shared<glTFMaterialTexture>("glTFResources/tiger.bmp"); 
+    std::shared_ptr<glTFMaterialOpaque> boxAlbedoMaterial = std::make_shared<glTFMaterialOpaque>(boxMaterialTexture);
     
     std::unique_ptr<glTFSceneNode> boxSceneNode = std::make_unique<glTFSceneNode>();
     boxSceneNode->object = std::make_unique<glTFSceneBox>();
@@ -48,6 +51,7 @@ bool glTFWindow::InitAndShowWindow()
         box->GetTransform().rotation.z += 0.0003f;
         boxNode->renderStateDirty = true;
     });
+    ((glTFSceneBox*)boxSceneNode->object.get())->SetMaterial(boxAlbedoMaterial);
     m_sceneGraph->AddSceneNode(std::move(boxSceneNode));
 
     std::unique_ptr<glTFSceneNode> boxSceneNode2 = std::make_unique<glTFSceneNode>();
@@ -62,6 +66,7 @@ bool glTFWindow::InitAndShowWindow()
         box->GetTransform().rotation.z += 0.0003f;
         boxNode2->renderStateDirty = true;
     });
+    ((glTFSceneBox*)boxSceneNode2->object.get())->SetMaterial(boxAlbedoMaterial);
     m_sceneGraph->AddSceneNode(std::move(boxSceneNode2));
     
     std::unique_ptr<glTFCamera> camera = std::make_unique<glTFCamera>(45.0f, 800.0f, 600.0f, 0.1f, 1000.0f);

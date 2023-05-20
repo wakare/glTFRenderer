@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "glTFSceneObjectBase.h"
+#include "../glTFMaterial/glTFMaterialBase.h"
 
 enum class VertexLayoutType
 {
@@ -59,4 +60,9 @@ public:
     virtual const IndexBufferData& GetIndexBufferData() const = 0;
 
     virtual size_t GetInstanceCount() const { return 1; }
+    void SetMaterial(std::shared_ptr<glTFMaterialBase> material);
+    const glTFMaterialBase& GetMaterial() const;
+    
+private:
+    std::shared_ptr<glTFMaterialBase> m_material;
 };
