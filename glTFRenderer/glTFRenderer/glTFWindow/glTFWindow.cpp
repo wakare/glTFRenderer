@@ -6,17 +6,13 @@
 
 #include "../glTFMaterial/glTFMaterialOpaque.h"
 #include "../glTFRenderPass/glTFRenderPassMeshOpaque.h"
-#include "../glTFRHI/RHIDX12Impl/glTFRHIDX12.h"
 #include "../glTFScene/glTFSceneBox.h"
 #include "../glTFScene/glTFCamera.h"
-#include "../glTFUtils/glTFLog.h"
-
-//#define DEBUG_OLD_VERSION
 
 glTFWindow::glTFWindow()
     : m_glfwWindow(nullptr)
-    , m_width(800)
-    , m_height(600)
+    , m_width(1920)
+    , m_height(1080)
 {
     
 }
@@ -134,52 +130,26 @@ bool glTFWindow::InitAndShowWindow()
 
 void glTFWindow::UpdateWindow()
 {
-    while (!glfwWindowShouldClose(m_glfwWindow)
-#ifdef DEBUG_OLD_VERSION
-        && glTFRHIDX12::Running
-#endif
-        )
+    while (!glfwWindowShouldClose(m_glfwWindow))
     {
-#ifdef DEBUG_OLD_VERSION
-        glTFRHIDX12::Update();
-        glTFRHIDX12::Render();
-#else
         m_sceneGraph->Tick();
         m_passManager->UpdateScene();
         m_passManager->RenderAllPass();
-        
-#endif
+
         glfwPollEvents();
     }
-#ifdef DEBUG_OLD_VERSION
-    glTFRHIDX12::WaitForPreviousFrame();
-#else
+
     m_passManager->ExitAllPass();
-#endif
     glfwTerminate();
 }
 
 bool glTFWindow::InitDX12()
 {
-#ifdef DEBUG_OLD_VERSION
-    // Use this handle to init dx12 context
-    HWND hwnd = glfwGetWin32Window(m_glfwWindow);
-    if (!hwnd)
-    {
-        return false;
-    }
-    
-    if (!glTFRHIDX12::InitD3D(m_width, m_height, hwnd, false))
-    {
-        return false;
-    }
-
-#else
     m_passManager.reset(new glTFRenderPassManager(*this, *m_sceneView));
     //m_passManager->AddRenderPass(std::make_unique<glTFRenderPassTest>());
     m_passManager->AddRenderPass(std::make_unique<glTFRenderPassMeshOpaque>());
     m_passManager->InitAllPass();
-#endif    
+    
     return true;
 }
 
@@ -222,7 +192,7 @@ void glTFWindow::KeyCallback(GLFWwindow* window, int key, int scancode, int acti
         break;
     }
 
-    auto cameras = Get().m_sceneGraph->GetSceneCameras();
+    const auto cameras = Get().m_sceneGraph->GetSceneCameras();
     if (!cameras.empty())
     {
         cameras[0]->GetTransform().position += deltaPosition;
@@ -234,13 +204,13 @@ void glTFWindow::CursorPosCallback(GLFWwindow* window, double xpos, double ypos)
 {
     if (Get().m_inputControl.IsKeyPressed(GLFW_KEY_LEFT_CONTROL))
     {
-        double oldCursorPos[2] = {Get().m_inputControl.GetCursorX(), Get().m_inputControl.GetCursorY()};
-        // Do moving
-        auto cameras = Get().m_sceneGraph->GetSceneCameras();
+        // Do rotation
+        const auto cameras = Get().m_sceneGraph->GetSceneCameras();
         if (!cameras.empty())
         {
-            cameras[0]->GetTransform().rotation.y += 0.001f * (oldCursorPos[0] - xpos);
-            cameras[0]->GetTransform().rotation.x += 0.001f * (oldCursorPos[1] - ypos);
+            cameras[0]->GetTransform().rotation.y += 0.001f * (Get().m_inputControl.GetCursorX() - xpos);
+            cameras[0]->GetTransform().rotation.x += 0.001f * (Get().m_inputControl.GetCursorY() - ypos);
+            cameras[0]->MarkDirty();
         }
     }
     
