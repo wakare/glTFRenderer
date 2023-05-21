@@ -19,8 +19,10 @@ public:
     void UpdateScene();
     void RenderAllPass();
     void ExitAllPass();
-    
+
 protected:
+    void ExecuteCommandSection(IRHIPipelineStateObject* PSO, std::function<void()> executeLambda);
+    
     glTFWindow& m_window;
     glTFSceneView& m_sceneView;
     

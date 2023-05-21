@@ -34,35 +34,6 @@ bool glTFRenderPassMeshOpaque::InitPass(glTFRenderResourceManager& resourceManag
 {
     RETURN_IF_FALSE(glTFRenderPassMeshBase::InitPass(resourceManager))
     
-    // Setup root signature and pipeline state object
-    assert(m_rootSignature && m_pipelineStateObject);
-
-    // Init root signature
-    constexpr size_t rootSignatureParameterCount = 2;
-    constexpr size_t rootSignatureStaticSamplerCount = 1;
-    m_rootSignature->AllocateRootSignatureSpace(rootSignatureParameterCount, rootSignatureStaticSamplerCount);
-    
-    //const RHIRootParameterDescriptorRangeDesc CBVRangeDesc {RHIRootParameterDescriptorRangeType::CBV, 0, 1};
-    m_rootSignature->GetRootParameter(0).InitAsCBV(0);
-
-    const RHIRootParameterDescriptorRangeDesc SRVRangeDesc {RHIRootParameterDescriptorRangeType::SRV, 0, 1};
-    m_rootSignature->GetRootParameter(1).InitAsDescriptorTableRange(1, &SRVRangeDesc);
-    
-    m_rootSignature->GetStaticSampler(0).InitStaticSampler(0, RHIStaticSamplerAddressMode::Clamp, RHIStaticSamplerFilterMode::Linear);
-    m_rootSignature->InitRootSignature(resourceManager.GetDevice());
-
-    // Init pipeline state object
-    std::vector<IRHIRenderTarget*> allRts;
-    allRts.push_back(&resourceManager.GetCurrentFrameSwapchainRT());
-    allRts.push_back(m_depthBuffer.get());
-    
-    m_pipelineStateObject->BindRenderTargets(allRts);
-    m_pipelineStateObject->BindShaderCode(
-        R"(glTFResources\ShaderSource\MeshPassCommonVS.hlsl)", RHIShaderType::Vertex, "main");
-    m_pipelineStateObject->BindShaderCode(
-        R"(glTFResources\ShaderSource\MeshPassCommonPS.hlsl)", RHIShaderType::Pixel, "main");
-
-    RETURN_IF_FALSE (m_pipelineStateObject->InitPipelineStateObject(resourceManager.GetDevice(), *m_rootSignature, resourceManager.GetSwapchain(), GetVertexInputLayout()))
     
     // Load image as texture SRV
     RETURN_IF_FALSE(RHIUtils::Instance().ResetCommandList(resourceManager.GetCommandList(), resourceManager.GetCurrentFrameCommandAllocator()))
@@ -83,15 +54,6 @@ bool glTFRenderPassMeshOpaque::RenderPass(glTFRenderResourceManager& resourceMan
     {
         return false;
     }
-
-    RHIUtils::Instance().ResetCommandList(resourceManager.GetCommandList(), resourceManager.GetCurrentFrameCommandAllocator(), *m_pipelineStateObject);
-
-    RHIUtils::Instance().SetRootSignature(resourceManager.GetCommandList(), *m_rootSignature);
-
-    RHIUtils::Instance().SetDescriptorHeap(resourceManager.GetCommandList(), m_mainDescriptorHeap.get(), 1);
-    
-    RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resourceManager.GetCommandList(), resourceManager.GetCurrentFrameSwapchainRT(),
-        RHIResourceStateType::PRESENT, RHIResourceStateType::RENDER_TARGET);
 
     resourceManager.GetRenderTargetManager().BindRenderTarget(resourceManager.GetCommandList(),
         &resourceManager.GetCurrentFrameSwapchainRT(), 1, m_depthBuffer.get());
@@ -129,9 +91,6 @@ bool glTFRenderPassMeshOpaque::RenderPass(glTFRenderResourceManager& resourceMan
         RHIUtils::Instance().SetPrimitiveTopology( resourceManager.GetCommandList(), RHIPrimitiveTopologyType::TRIANGLELIST);
         RHIUtils::Instance().DrawIndexInstanced(resourceManager.GetCommandList(), mesh.second.meshIndexCount, 1, 0, 0, 0);    
     }
-
-    RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resourceManager.GetCommandList(), resourceManager.GetCurrentFrameSwapchainRT(),
-            RHIResourceStateType::RENDER_TARGET, RHIResourceStateType::PRESENT);
     
     return true;
 }
@@ -161,6 +120,61 @@ bool glTFRenderPassMeshOpaque::ProcessMaterial(glTFRenderResourceManager& resour
 size_t glTFRenderPassMeshOpaque::GetMainDescriptorHeapSize()
 {
     return 2;
+}
+
+bool glTFRenderPassMeshOpaque::SetupMainDescriptorHeap(glTFRenderResourceManager& resourceManager)
+{
+    RETURN_IF_FALSE(m_mainDescriptorHeap->InitDescriptorHeap(resourceManager.GetDevice(), {static_cast<unsigned>(GetMainDescriptorHeapSize()),  RHIDescriptorHeapType::CBV_SRV_UAV, true}))
+    return true;
+}
+
+bool glTFRenderPassMeshOpaque::SetupRootSignature(glTFRenderResourceManager& resourceManager)
+{
+    // Init root signature
+    constexpr size_t rootSignatureParameterCount = 2;
+    constexpr size_t rootSignatureStaticSamplerCount = 1;
+    RETURN_IF_FALSE(m_rootSignature->AllocateRootSignatureSpace(rootSignatureParameterCount, rootSignatureStaticSamplerCount))
+    
+    //const RHIRootParameterDescriptorRangeDesc CBVRangeDesc {RHIRootParameterDescriptorRangeType::CBV, 0, 1};
+    m_rootSignature->GetRootParameter(0).InitAsCBV(0);
+
+    const RHIRootParameterDescriptorRangeDesc SRVRangeDesc {RHIRootParameterDescriptorRangeType::SRV, 0, 1};
+    m_rootSignature->GetRootParameter(1).InitAsDescriptorTableRange(1, &SRVRangeDesc);
+    
+    m_rootSignature->GetStaticSampler(0).InitStaticSampler(0, RHIStaticSamplerAddressMode::Clamp, RHIStaticSamplerFilterMode::Linear);
+    RETURN_IF_FALSE(m_rootSignature->InitRootSignature(resourceManager.GetDevice()))
+
+    return true;
+}
+
+bool glTFRenderPassMeshOpaque::SetupPipelineStateObject(glTFRenderResourceManager& resourceManager)
+{
+    // Init pipeline state object
+    
+    const auto width = resourceManager.GetSwapchain().GetWidth();
+    const auto height = resourceManager.GetSwapchain().GetHeight();
+    auto& m_renderTargetManager = resourceManager.GetRenderTargetManager();
+
+    RHIRenderTargetClearValue clearValue{};
+    clearValue.clearDS.clearDepth = 1.0f;
+    clearValue.clearDS.clearStencilValue = 0;
+    
+    m_depthBuffer = m_renderTargetManager.CreateRenderTarget(resourceManager.GetDevice(), RHIRenderTargetType::DSV, RHIDataFormat::D32_FLOAT,
+        IRHIRenderTargetDesc{width, height, false, clearValue, "MeshPassBase_DepthRT"});
+    
+    std::vector<IRHIRenderTarget*> allRts;
+    allRts.push_back(&resourceManager.GetCurrentFrameSwapchainRT());
+    allRts.push_back(m_depthBuffer.get());
+    
+    m_pipelineStateObject->BindRenderTargets(allRts);
+    m_pipelineStateObject->BindShaderCode(
+        R"(glTFResources\ShaderSource\MeshPassCommonVS.hlsl)", RHIShaderType::Vertex, "main");
+    m_pipelineStateObject->BindShaderCode(
+        R"(glTFResources\ShaderSource\MeshPassCommonPS.hlsl)", RHIShaderType::Pixel, "main");
+
+    RETURN_IF_FALSE (m_pipelineStateObject->InitPipelineStateObject(resourceManager.GetDevice(), *m_rootSignature, resourceManager.GetSwapchain(), GetVertexInputLayout()))
+
+    return true;
 }
 
 std::vector<RHIPipelineInputLayout> glTFRenderPassMeshOpaque::GetVertexInputLayout()

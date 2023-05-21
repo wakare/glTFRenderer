@@ -10,22 +10,7 @@ glTFRenderPassMeshBase::glTFRenderPassMeshBase()
 
 bool glTFRenderPassMeshBase::InitPass(glTFRenderResourceManager& resourceManager)
 {
-    const auto width = resourceManager.GetSwapchain().GetWidth();
-    const auto height = resourceManager.GetSwapchain().GetHeight();
-    auto& m_renderTargetManager = resourceManager.GetRenderTargetManager();
-
-    RHIRenderTargetClearValue clearValue{};
-    clearValue.clearDS.clearDepth = 1.0f;
-    clearValue.clearDS.clearStencilValue = 0;
-    
-    m_depthBuffer = m_renderTargetManager.CreateRenderTarget(resourceManager.GetDevice(), RHIRenderTargetType::DSV, RHIDataFormat::D32_FLOAT,
-        IRHIRenderTargetDesc{width, height, false, clearValue, "MeshPassBase_DepthRT"});
-
-    m_rootSignature = RHIResourceFactory::CreateRHIResource<IRHIRootSignature>();
-    m_pipelineStateObject = RHIResourceFactory::CreateRHIResource<IRHIPipelineStateObject>();
-
-    m_mainDescriptorHeap = RHIResourceFactory::CreateRHIResource<IRHIDescriptorHeap>();
-    m_mainDescriptorHeap->InitDescriptorHeap(resourceManager.GetDevice(), {static_cast<unsigned>(GetMainDescriptorHeapSize()),  RHIDescriptorHeapType::CBV_SRV_UAV, true});
+    RETURN_IF_FALSE (glTFRenderPassBase::InitPass(resourceManager))
 
     m_perMeshConstantBuffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
     
@@ -37,7 +22,7 @@ bool glTFRenderPassMeshBase::InitPass(glTFRenderResourceManager& resourceManager
 
 bool glTFRenderPassMeshBase::RenderPass(glTFRenderResourceManager& resourceManager)
 {
-    return true;
+    return glTFRenderPassBase::RenderPass(resourceManager);
 }
 
 bool glTFRenderPassMeshBase::AddOrUpdatePrimitiveToMeshPass(glTFRenderResourceManager& resourceManager, const glTFScenePrimitive& primitive)
@@ -63,8 +48,8 @@ bool glTFRenderPassMeshBase::AddOrUpdatePrimitiveToMeshPass(glTFRenderResourceMa
         auto vertexUploadBuffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
         auto indexUploadBuffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
 
-        RHIBufferDesc vertexUploadBufferDesc = {L"vertexBufferDefaultBuffer", primitiveVertices.byteSize, 1, 1, RHIBufferType::Upload, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
-        RHIBufferDesc indexUploadBufferDesc = {L"indexBufferDefaultBuffer", primitiveIndices.byteSize, 1, 1, RHIBufferType::Upload, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
+        RHIBufferDesc vertexUploadBufferDesc = {L"vertexBufferUploadBuffer", primitiveVertices.byteSize, 1, 1, RHIBufferType::Upload, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
+        RHIBufferDesc indexUploadBufferDesc = {L"indexBufferUploadBuffer", primitiveIndices.byteSize, 1, 1, RHIBufferType::Upload, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
 
         RETURN_IF_FALSE(vertexUploadBuffer->InitGPUBuffer(resourceManager.GetDevice(), vertexUploadBufferDesc ))
         RETURN_IF_FALSE(indexUploadBuffer->InitGPUBuffer(resourceManager.GetDevice(), indexUploadBufferDesc ))

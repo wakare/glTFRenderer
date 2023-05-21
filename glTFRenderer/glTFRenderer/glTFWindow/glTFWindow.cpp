@@ -18,6 +18,8 @@ glTFWindow::glTFWindow()
 }
 
 glTFInputControl::glTFInputControl()
+    : m_cursorX(0.0)
+    , m_cursorY(0.0)
 {
     memset(m_keyStatePressed, 0, sizeof(m_keyStatePressed));
 }
@@ -146,7 +148,6 @@ void glTFWindow::UpdateWindow()
 bool glTFWindow::InitDX12()
 {
     m_passManager.reset(new glTFRenderPassManager(*this, *m_sceneView));
-    //m_passManager->AddRenderPass(std::make_unique<glTFRenderPassTest>());
     m_passManager->AddRenderPass(std::make_unique<glTFRenderPassMeshOpaque>());
     m_passManager->InitAllPass();
     

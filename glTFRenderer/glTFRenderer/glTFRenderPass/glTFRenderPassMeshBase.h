@@ -4,11 +4,9 @@
 #include "glTFRenderPassBase.h"
 #include "../glTFRHI/RHIInterface/IRHIGPUBuffer.h"
 #include "../glTFScene/glTFScenePrimitive.h"
-#include "../glTFRHI/RHIInterface/IRHIRootSignature.h"
 #include "../glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
 #include "../glTFRHI/RHIInterface/IRHIVertexBufferView.h"
 #include "../glTFRHI/RHIInterface/IRHIIndexBufferView.h"
-#include "../glTFRHI/RHIInterface/IRHIDescriptorHeap.h"
 #include "../glTFScene/glTFSceneView.h"
 
 struct ConstantBufferPerMesh
@@ -49,20 +47,15 @@ public:
     void UpdateViewParameters(const glTFSceneView& view);
     
 protected:
-    virtual size_t GetMainDescriptorHeapSize() = 0;
+    
     virtual std::vector<RHIPipelineInputLayout> GetVertexInputLayout() = 0;
     
     ConstantBufferPerMesh m_constantBufferPerObject;
     
     std::shared_ptr<IRHIRenderTarget> m_depthBuffer;
-    std::shared_ptr<IRHIRootSignature> m_rootSignature;
-    std::shared_ptr<IRHIPipelineStateObject> m_pipelineStateObject;
 
     std::shared_ptr<IRHIGPUBuffer> m_perMeshConstantBuffer;
     RHIGPUDescriptorHandle m_perMeshCBHandle;
-    
-    // CBV_SRV_UAV Heaps, can only bind one in render pass
-    std::shared_ptr<IRHIDescriptorHeap> m_mainDescriptorHeap;
     
     std::map<glTFUniqueID, MeshGPUResource> m_meshes;
 

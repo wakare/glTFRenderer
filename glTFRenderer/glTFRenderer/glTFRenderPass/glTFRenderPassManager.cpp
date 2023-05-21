@@ -97,17 +97,27 @@ void glTFRenderPassManager::RenderAllPass()
     
     // Reset command allocator when previous frame executed finish...
     RHIUtils::Instance().ResetCommandAllocator(m_resourceManager->GetCurrentFrameCommandAllocator());
+
+    ExecuteCommandSection(nullptr, [this]()
+    {
+        // Transition swapchain state to render target for shading 
+    RHIUtils::Instance().AddRenderTargetBarrierToCommandList(m_resourceManager->GetCommandList(), m_resourceManager->GetCurrentFrameSwapchainRT(),
+        RHIResourceStateType::PRESENT, RHIResourceStateType::RENDER_TARGET);
+    });
     
     for (const auto& pass : m_passes)
     {
-        pass->RenderPass(*m_resourceManager);
-    } 
-
-    RHIUtils::Instance().CloseCommandList(m_resourceManager->GetCommandList()); 
+        ExecuteCommandSection(&pass->GetPSO(), [this, passPtr = pass.get()]()
+        {
+            passPtr->RenderPass(*m_resourceManager);
+        });
+    }
     
-    RHIUtils::Instance().ExecuteCommandList(m_resourceManager->GetCommandList(), m_resourceManager->GetCommandQueue());
+    ExecuteCommandSection(nullptr, [this](){
+        RHIUtils::Instance().AddRenderTargetBarrierToCommandList(m_resourceManager->GetCommandList(), m_resourceManager->GetCurrentFrameSwapchainRT(),
+            RHIResourceStateType::RENDER_TARGET, RHIResourceStateType::PRESENT);});
+    
     m_resourceManager->GetCurrentFrameFence().SignalWhenCommandQueueFinish(m_resourceManager->GetCommandQueue());
-    
     RHIUtils::Instance().Present(m_resourceManager->GetSwapchain());
     
     m_resourceManager->UpdateCurrentBackBufferIndex();
@@ -120,4 +130,25 @@ void glTFRenderPassManager::ExitAllPass()
     RHIUtils::Instance().ResetCommandAllocator(m_resourceManager->GetCurrentFrameCommandAllocator());
     
     m_passes.clear();
+}
+
+void glTFRenderPassManager::ExecuteCommandSection(IRHIPipelineStateObject* PSO, std::function<void()> executeLambda)
+{
+    if (PSO)
+    {
+        RHIUtils::Instance().ResetCommandList(m_resourceManager->GetCommandList(),
+               m_resourceManager->GetCurrentFrameCommandAllocator(), *PSO);
+    }
+    else
+    {
+        RHIUtils::Instance().ResetCommandList(m_resourceManager->GetCommandList(),
+               m_resourceManager->GetCurrentFrameCommandAllocator());
+    }
+
+    executeLambda();
+
+    RHIUtils::Instance().CloseCommandList(m_resourceManager->GetCommandList());
+    
+    RHIUtils::Instance().ExecuteCommandList(m_resourceManager->GetCommandList(), m_resourceManager->GetCommandQueue());
+    m_resourceManager->GetCurrentFrameFence().SignalWhenCommandQueueFinish(m_resourceManager->GetCommandQueue());
 }
