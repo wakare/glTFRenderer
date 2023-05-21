@@ -262,6 +262,8 @@
     <ClCompile Include="glTFRenderPass\glTFRenderResourceManager.cpp" />
     <None Include="glTFResources\ShaderSource\MeshPassCommonPS.hlsl" />
     <None Include="glTFResources\ShaderSource\MeshPassCommonVS.hlsl" />
+    <None Include="glTFResources\ShaderSource\LightPassPS.hlsl" />
+    <None Include="glTFResources\ShaderSource\LightPassVS.hlsl" />
     <ClCompile Include="glTFRHI\RHIConfigSingleton.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12DescriptorHeap.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12CommandAllocator.cpp" />
@@ -551,6 +553,7 @@
     <ClInclude Include="glTFRenderPass\glTFRenderPassPostprocess.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderResourceManager.h" />
     <None Include="glTFResources\ShaderSource\MeshPassCommon.h" />
+    <ClInclude Include="glTFResources\ShaderSource\LightPassCommon.h" />
     <ClInclude Include="glTFRHI\RHIConfigSingleton.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\d3dx12.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12DescriptorHeap.h" />

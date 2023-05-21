@@ -12,7 +12,7 @@ public:
     glTFSceneView(const glTFSceneGraph& graph);
 
     // Only traverse necessary primitives
-    void TraversePrimitiveWithinView(const std::function<bool(const glTFSceneNode& primitive)>& visitor);
+    void TraverseSceneObjectWithinView(const std::function<bool(const glTFSceneNode& primitive)>& visitor);
 
     glm::mat4 GetViewProjectionMatrix() const;
     

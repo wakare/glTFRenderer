@@ -4,10 +4,16 @@
 glTFRenderPassBase::~glTFRenderPassBase()
 = default;
 
+bool glTFRenderPassBase::ProcessMaterial(glTFRenderResourceManager& resourceManager, const glTFMaterialBase& material)
+{
+    return false;
+}
+
 bool glTFRenderPassBase::InitPass(glTFRenderResourceManager& resourceManager)
 {    
     m_mainDescriptorHeap = RHIResourceFactory::CreateRHIResource<IRHIDescriptorHeap>();
-    RETURN_IF_FALSE(SetupMainDescriptorHeap(resourceManager))
+    RETURN_IF_FALSE(m_mainDescriptorHeap->InitDescriptorHeap(resourceManager.GetDevice(),
+        {static_cast<unsigned>(GetMainDescriptorHeapSize()),  RHIDescriptorHeapType::CBV_SRV_UAV, true}))
 
     m_rootSignature = RHIResourceFactory::CreateRHIResource<IRHIRootSignature>();
     RETURN_IF_FALSE(SetupRootSignature(resourceManager))

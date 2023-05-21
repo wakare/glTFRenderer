@@ -34,8 +34,7 @@ public:
     virtual bool ProcessMaterial(glTFRenderResourceManager& resourceManager,const glTFMaterialBase& material) override; 
     
 protected:
-    size_t GetMainDescriptorHeapSize();
-    virtual bool SetupMainDescriptorHeap(glTFRenderResourceManager& resourceManager) override;
+    virtual size_t GetMainDescriptorHeapSize() override;
     virtual bool SetupRootSignature(glTFRenderResourceManager& resourceManager) override;
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resourceManager) override;
     

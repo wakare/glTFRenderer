@@ -34,12 +34,7 @@ bool glTFRenderPassMeshOpaque::InitPass(glTFRenderResourceManager& resourceManag
 {
     RETURN_IF_FALSE(glTFRenderPassMeshBase::InitPass(resourceManager))
     
-    
-    // Load image as texture SRV
     RETURN_IF_FALSE(RHIUtils::Instance().ResetCommandList(resourceManager.GetCommandList(), resourceManager.GetCurrentFrameCommandAllocator()))
-    glTFImageLoader imageLoader;
-    imageLoader.InitImageLoader();
-    
     RETURN_IF_FALSE(RHIUtils::Instance().CloseCommandList(resourceManager.GetCommandList()))
     RETURN_IF_FALSE(RHIUtils::Instance().ExecuteCommandList(resourceManager.GetCommandList(),resourceManager.GetCommandQueue()))
     RETURN_IF_FALSE(resourceManager.GetCurrentFrameFence().SignalWhenCommandQueueFinish(resourceManager.GetCommandQueue()))
@@ -50,22 +45,7 @@ bool glTFRenderPassMeshOpaque::InitPass(glTFRenderResourceManager& resourceManag
 
 bool glTFRenderPassMeshOpaque::RenderPass(glTFRenderResourceManager& resourceManager)
 {
-    if (!glTFRenderPassMeshBase::RenderPass(resourceManager))
-    {
-        return false;
-    }
-
-    resourceManager.GetRenderTargetManager().BindRenderTarget(resourceManager.GetCommandList(),
-        &resourceManager.GetCurrentFrameSwapchainRT(), 1, m_depthBuffer.get());
-
-    resourceManager.GetRenderTargetManager().ClearRenderTarget(resourceManager.GetCommandList(), &resourceManager.GetCurrentFrameSwapchainRT(), 1);
-    resourceManager.GetRenderTargetManager().ClearRenderTarget(resourceManager.GetCommandList(),m_depthBuffer.get(), 1);
-    
-    const RHIViewportDesc viewport = {0, 0, (float)resourceManager.GetSwapchain().GetWidth(), (float)resourceManager.GetSwapchain().GetHeight(), 0.0f, 1.0f };
-    RHIUtils::Instance().SetViewport(resourceManager.GetCommandList(), viewport);
-
-    const RHIScissorRectDesc scissorRect = {0, 0, resourceManager.GetSwapchain().GetWidth(), resourceManager.GetSwapchain().GetHeight() }; 
-    RHIUtils::Instance().SetScissorRect(resourceManager.GetCommandList(), scissorRect);
+    RETURN_IF_FALSE(glTFRenderPassMeshBase::RenderPass(resourceManager))
 
     unsigned meshIndex = 0;
     const size_t offsetStripe = (sizeof(ConstantBufferPerMesh) + 255) & ~255;
@@ -97,11 +77,8 @@ bool glTFRenderPassMeshOpaque::RenderPass(glTFRenderResourceManager& resourceMan
 
 bool glTFRenderPassMeshOpaque::ProcessMaterial(glTFRenderResourceManager& resourceManager, const glTFMaterialBase& material)
 {
-    if (material.GetMaterialType() != MaterialType::Opaque)
-    {
-        return false;
-    }
-
+    RETURN_IF_FALSE(material.GetMaterialType() == MaterialType::Opaque)
+    
     const auto& OpaqueMaterial = dynamic_cast<const glTFMaterialOpaque&>(material);
 
     if (m_materialTextures.end() == m_materialTextures.find(OpaqueMaterial.GetID()))
@@ -122,14 +99,10 @@ size_t glTFRenderPassMeshOpaque::GetMainDescriptorHeapSize()
     return 2;
 }
 
-bool glTFRenderPassMeshOpaque::SetupMainDescriptorHeap(glTFRenderResourceManager& resourceManager)
-{
-    RETURN_IF_FALSE(m_mainDescriptorHeap->InitDescriptorHeap(resourceManager.GetDevice(), {static_cast<unsigned>(GetMainDescriptorHeapSize()),  RHIDescriptorHeapType::CBV_SRV_UAV, true}))
-    return true;
-}
-
 bool glTFRenderPassMeshOpaque::SetupRootSignature(glTFRenderResourceManager& resourceManager)
 {
+    RETURN_IF_FALSE(glTFRenderPassMeshBase::SetupRootSignature(resourceManager))
+    
     // Init root signature
     constexpr size_t rootSignatureParameterCount = 2;
     constexpr size_t rootSignatureStaticSamplerCount = 1;
@@ -149,24 +122,8 @@ bool glTFRenderPassMeshOpaque::SetupRootSignature(glTFRenderResourceManager& res
 
 bool glTFRenderPassMeshOpaque::SetupPipelineStateObject(glTFRenderResourceManager& resourceManager)
 {
-    // Init pipeline state object
+    RETURN_IF_FALSE(glTFRenderPassMeshBase::SetupPipelineStateObject(resourceManager))
     
-    const auto width = resourceManager.GetSwapchain().GetWidth();
-    const auto height = resourceManager.GetSwapchain().GetHeight();
-    auto& m_renderTargetManager = resourceManager.GetRenderTargetManager();
-
-    RHIRenderTargetClearValue clearValue{};
-    clearValue.clearDS.clearDepth = 1.0f;
-    clearValue.clearDS.clearStencilValue = 0;
-    
-    m_depthBuffer = m_renderTargetManager.CreateRenderTarget(resourceManager.GetDevice(), RHIRenderTargetType::DSV, RHIDataFormat::D32_FLOAT,
-        IRHIRenderTargetDesc{width, height, false, clearValue, "MeshPassBase_DepthRT"});
-    
-    std::vector<IRHIRenderTarget*> allRts;
-    allRts.push_back(&resourceManager.GetCurrentFrameSwapchainRT());
-    allRts.push_back(m_depthBuffer.get());
-    
-    m_pipelineStateObject->BindRenderTargets(allRts);
     m_pipelineStateObject->BindShaderCode(
         R"(glTFResources\ShaderSource\MeshPassCommonVS.hlsl)", RHIShaderType::Vertex, "main");
     m_pipelineStateObject->BindShaderCode(

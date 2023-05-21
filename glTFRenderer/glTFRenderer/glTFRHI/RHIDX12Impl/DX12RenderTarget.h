@@ -20,6 +20,8 @@ public:
 
     void SetClearValue(D3D12_CLEAR_VALUE clearValue) {m_clearValue = clearValue; }
     const D3D12_CLEAR_VALUE& GetClearValue() const {return m_clearValue; }
+
+    ID3D12Resource* GetResource() const;
     
 protected:
     ID3D12Resource* m_texture;

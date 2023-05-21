@@ -48,8 +48,16 @@ bool glTFRenderResourceManager::InitResourceManager(glTFWindow& window)
     m_renderTargetManager = RHIResourceFactory::CreateRHIResource<IRHIRenderTargetManager>();
     m_renderTargetManager->InitRenderTargetManager(*m_device, 100);
 
-    const RHIRenderTargetClearValue clearValue {{0.0f, 0.0f, 0.0f, 0.0f}};
+    RHIRenderTargetClearValue clearValue;
+    clearValue.clearColor = glm::vec4{0.0f, 0.0f, 0.0f, 0.0f};
     m_swapchainRTs = m_renderTargetManager->CreateRenderTargetFromSwapChain(*m_device, *m_swapchain, clearValue);
+
+    RHIRenderTargetClearValue depthClearValue{};
+    depthClearValue.clearDS.clearDepth = 1.0f;
+    depthClearValue.clearDS.clearStencilValue = 0;
+    m_depthTexture = m_renderTargetManager->CreateRenderTarget(*m_device, RHIRenderTargetType::DSV, RHIDataFormat::D32_FLOAT,
+        IRHIRenderTargetDesc{GetSwapchain().GetWidth(), GetSwapchain().GetHeight(), false, depthClearValue, "ResourceManager_DepthRT"});
+    
     return true;
 }
 
@@ -96,5 +104,10 @@ IRHIFence& glTFRenderResourceManager::GetCurrentFrameFence()
 IRHIRenderTarget& glTFRenderResourceManager::GetCurrentFrameSwapchainRT()
 {
     return *m_swapchainRTs[m_currentBackBufferIndex % backBufferCount];
+}
+
+IRHIRenderTarget& glTFRenderResourceManager::GetDepthRT()
+{
+    return *m_depthTexture;
 }
 

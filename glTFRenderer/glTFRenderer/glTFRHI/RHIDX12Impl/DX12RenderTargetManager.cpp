@@ -65,7 +65,7 @@ std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTarget(IR
             handle = dxDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
             handle.ptr += handleCount * incSize;
             initialState = D3D12_RESOURCE_STATE_RENDER_TARGET;
-            memcpy(dxClearValue.Color, desc.clearValue.clearColor, sizeof(float) * 4);
+            memcpy(dxClearValue.Color, &desc.clearValue.clearColor, sizeof(desc.clearValue.clearColor));
         }
         break;
         

@@ -5,7 +5,7 @@ glTFSceneView::glTFSceneView(const glTFSceneGraph& graph)
 {
 }
 
-void glTFSceneView::TraversePrimitiveWithinView(const std::function<bool(const glTFSceneNode& primitive)>& visitor)
+void glTFSceneView::TraverseSceneObjectWithinView(const std::function<bool(const glTFSceneNode& primitive)>& visitor)
 {
     // TODO: Do culling?
     if (m_cameras.empty())

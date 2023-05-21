@@ -46,36 +46,24 @@ void glTFRenderPassManager::InitAllPass()
 void glTFRenderPassManager::UpdateScene()
 {
     // Gather all scene pass
-    std::vector<glTFRenderPassMeshBase*> allMeshPasses;
-    for (auto& pass : m_passes)
+    for (const auto& pass : m_passes)
     {
-        if (auto* meshPass = dynamic_cast<glTFRenderPassMeshBase*>(pass.get()))
+        m_sceneView.TraverseSceneObjectWithinView([this, &pass](const glTFSceneNode& node)
         {
-            allMeshPasses.push_back(meshPass);
-        }
-    }
-
-    if (!allMeshPasses.empty())
-    {
-        for (auto* meshPass : allMeshPasses)
-        {
-            m_sceneView.TraversePrimitiveWithinView([this, meshPass](const glTFSceneNode& node)
+            if (node.renderStateDirty)
             {
-                if (node.renderStateDirty)
+                if (pass->TryProcessSceneObject(*m_resourceManager, *node.object))
                 {
-                    const glTFScenePrimitive* primitive = dynamic_cast<glTFScenePrimitive*>(node.object.get());
-                    if (primitive && meshPass->ProcessMaterial(*m_resourceManager, primitive->GetMaterial()))
-                    {
-                        meshPass->AddOrUpdatePrimitiveToMeshPass(*m_resourceManager, *primitive);
-                    }
-
                     node.renderStateDirty = false;
                 }
+            }
             
-                return true;
-            });
+            return true;
+        });
 
-            meshPass->UpdateViewParameters(m_sceneView);
+        if (auto* meshPass = dynamic_cast<glTFRenderPassMeshBase*>(pass.get()))
+        {
+            meshPass->UpdateViewParameters(m_sceneView);    
         }
     }
 }
@@ -91,9 +79,9 @@ void glTFRenderPassManager::RenderAllPass()
         frameCountInOneSecond = 0;
         now = GetTickCount64();
     }
-    
+
+    // Wait util last frame executed
     m_resourceManager->GetCurrentFrameFence().WaitUtilSignal();
-    //LOG_FORMAT_FLUSH("[DEBUG] Render frame %d finished...\n", m_frameIndex++)
     
     // Reset command allocator when previous frame executed finish...
     RHIUtils::Instance().ResetCommandAllocator(m_resourceManager->GetCurrentFrameCommandAllocator());
@@ -101,7 +89,7 @@ void glTFRenderPassManager::RenderAllPass()
     ExecuteCommandSection(nullptr, [this]()
     {
         // Transition swapchain state to render target for shading 
-    RHIUtils::Instance().AddRenderTargetBarrierToCommandList(m_resourceManager->GetCommandList(), m_resourceManager->GetCurrentFrameSwapchainRT(),
+        RHIUtils::Instance().AddRenderTargetBarrierToCommandList(m_resourceManager->GetCommandList(), m_resourceManager->GetCurrentFrameSwapchainRT(),
         RHIResourceStateType::PRESENT, RHIResourceStateType::RENDER_TARGET);
     });
     
@@ -109,6 +97,12 @@ void glTFRenderPassManager::RenderAllPass()
     {
         ExecuteCommandSection(&pass->GetPSO(), [this, passPtr = pass.get()]()
         {
+            const RHIViewportDesc viewport = {0, 0, (float)m_resourceManager->GetSwapchain().GetWidth(), (float)m_resourceManager->GetSwapchain().GetHeight(), 0.0f, 1.0f };
+            RHIUtils::Instance().SetViewport(m_resourceManager->GetCommandList(), viewport);
+
+            const RHIScissorRectDesc scissorRect = {0, 0, m_resourceManager->GetSwapchain().GetWidth(), m_resourceManager->GetSwapchain().GetHeight() }; 
+            RHIUtils::Instance().SetScissorRect(m_resourceManager->GetCommandList(), scissorRect);
+            
             passPtr->RenderPass(*m_resourceManager);
         });
     }

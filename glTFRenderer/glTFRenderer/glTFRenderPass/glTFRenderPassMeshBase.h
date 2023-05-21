@@ -45,14 +45,13 @@ public:
     bool RemovePrimitiveFromMeshPass(glTFUniqueID meshIDToRemove);
 
     void UpdateViewParameters(const glTFSceneView& view);
+    virtual bool TryProcessSceneObject(glTFRenderResourceManager& resourceManager, const glTFSceneObjectBase& object) override;
     
 protected:
-    
-    virtual std::vector<RHIPipelineInputLayout> GetVertexInputLayout() = 0;
-    
+    virtual bool SetupRootSignature(glTFRenderResourceManager& resourceManager) override;
+    virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resourceManager) override;
+
     ConstantBufferPerMesh m_constantBufferPerObject;
-    
-    std::shared_ptr<IRHIRenderTarget> m_depthBuffer;
 
     std::shared_ptr<IRHIGPUBuffer> m_perMeshConstantBuffer;
     RHIGPUDescriptorHandle m_perMeshCBHandle;
@@ -61,4 +60,6 @@ protected:
 
     // TODO: Resolve input layout with multiple meshes 
     std::vector<RHIPipelineInputLayout> m_vertexInputLayouts;
+
+    std::shared_ptr<IRHIRenderTarget> m_basePassColorRenderTarget;
 };

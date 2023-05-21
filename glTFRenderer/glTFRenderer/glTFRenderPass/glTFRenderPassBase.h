@@ -1,7 +1,9 @@
 #pragma once
 #include "glTFRenderResourceManager.h"
 #include "../glTFMaterial/glTFMaterialBase.h"
+#include "../glTFScene/glTFSceneObjectBase.h"
 
+struct RHIPipelineInputLayout;
 class IRHIRootSignature;
 class IRHIPipelineStateObject;
 class IRHIDescriptorHeap;
@@ -18,21 +20,25 @@ public:
     glTFRenderPassBase& operator=(const glTFRenderPassBase&) = delete;
     glTFRenderPassBase& operator=(glTFRenderPassBase&&) = delete;
 
-    // Which material should process within render pass
-    virtual bool ProcessMaterial(glTFRenderResourceManager& resourceManager, const glTFMaterialBase& material) {return false;} 
-    
     virtual ~glTFRenderPassBase() = 0;
     virtual const char* PassName() = 0;
+    
+    // Which material should process within render pass
+    virtual bool ProcessMaterial(glTFRenderResourceManager& resourceManager, const glTFMaterialBase& material);
     virtual bool InitPass(glTFRenderResourceManager& resourceManager);
     virtual bool RenderPass(glTFRenderResourceManager& resourceManager);
 
+    virtual bool TryProcessSceneObject(glTFRenderResourceManager& resourceManager, const glTFSceneObjectBase& object) = 0;
+    
     IRHIPipelineStateObject& GetPSO() const;
     
 protected:
-    virtual bool SetupMainDescriptorHeap(glTFRenderResourceManager& resourceManager) = 0;
+    // Must be implement in final render pass class
+    virtual size_t GetMainDescriptorHeapSize() = 0;
     virtual bool SetupRootSignature(glTFRenderResourceManager& resourceManager) = 0;
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resourceManager) = 0;
-
+    virtual std::vector<RHIPipelineInputLayout> GetVertexInputLayout() = 0;
+    
     std::shared_ptr<IRHIRootSignature> m_rootSignature;
     
     std::shared_ptr<IRHIPipelineStateObject> m_pipelineStateObject;

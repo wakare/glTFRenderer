@@ -22,7 +22,12 @@ public:
     virtual bool InitPass(glTFRenderResourceManager& resourceManager) override;
     
 protected:
+    // Must be implement in final render pass class
+    virtual bool SetupRootSignature(glTFRenderResourceManager& resourceManager) override;
+    virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resourceManager) override;
+    
     void DrawPostprocessQuad(glTFRenderResourceManager& resourceManager);
+    virtual std::vector<RHIPipelineInputLayout> GetVertexInputLayout() override;
     
 private:
     PostprocessQuadGPUResource m_postprocessQuadResource;

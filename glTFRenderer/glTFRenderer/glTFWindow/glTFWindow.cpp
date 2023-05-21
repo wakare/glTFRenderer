@@ -5,6 +5,7 @@
 #include <GLFW/glfw3native.h>
 
 #include "../glTFMaterial/glTFMaterialOpaque.h"
+#include "../glTFRenderPass/glTFRenderPassLighting.h"
 #include "../glTFRenderPass/glTFRenderPassMeshOpaque.h"
 #include "../glTFScene/glTFSceneBox.h"
 #include "../glTFScene/glTFCamera.h"
@@ -149,6 +150,7 @@ bool glTFWindow::InitDX12()
 {
     m_passManager.reset(new glTFRenderPassManager(*this, *m_sceneView));
     m_passManager->AddRenderPass(std::make_unique<glTFRenderPassMeshOpaque>());
+    m_passManager->AddRenderPass(std::make_unique<glTFRenderPassLighting>());
     m_passManager->InitAllPass();
     
     return true;

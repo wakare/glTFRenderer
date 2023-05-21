@@ -401,13 +401,12 @@ bool DX12Utils::CreateConstantBufferViewInDescriptorHeap(IRHIDevice& device, IRH
     return true;
 }
 
-bool DX12Utils::CreateShaderResourceViewInDescriptorHeap(IRHIDevice& device, IRHIDescriptorHeap& descriptorHeap,
-                                                         unsigned descriptorOffset, IRHIGPUBuffer& buffer, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& outGPUHandle)
+bool CreateShaderResourceViewInDescriptorHeapInnerImpl(IRHIDevice& device, IRHIDescriptorHeap& descriptorHeap,
+                                                         unsigned descriptorOffset, ID3D12Resource* resource, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& outGPUHandle)
 {
     //TODO: Process offset for handle 
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
     auto* dxDescriptorHeap = dynamic_cast<DX12DescriptorHeap&>(descriptorHeap).GetDescriptorHeap();
-    auto* dxBuffer = dynamic_cast<DX12GPUBuffer&>(buffer).GetBuffer();
     
     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
     srvDesc.Format = DX12ConverterUtils::ConvertToDXGIFormat(desc.format);
@@ -421,12 +420,27 @@ bool DX12Utils::CreateShaderResourceViewInDescriptorHeap(IRHIDevice& device, IRH
     const UINT descriptorIncrementSize = dxDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
     cpuHandle.Offset(descriptorOffset, descriptorIncrementSize);
 
-    dxDevice->CreateShaderResourceView(dxBuffer, &srvDesc, cpuHandle);
+    dxDevice->CreateShaderResourceView(resource, &srvDesc, cpuHandle);
     CD3DX12_GPU_DESCRIPTOR_HANDLE gpuHandle(dxDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
     gpuHandle.Offset(descriptorOffset, descriptorIncrementSize);
     outGPUHandle = gpuHandle.ptr;
     
     return true;
+}
+
+bool DX12Utils::CreateShaderResourceViewInDescriptorHeap(IRHIDevice& device, IRHIDescriptorHeap& descriptorHeap,
+                                                         unsigned descriptorOffset, IRHIGPUBuffer& buffer, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& outGPUHandle)
+{
+    auto* dxBuffer = dynamic_cast<DX12GPUBuffer&>(buffer).GetBuffer();
+    return CreateShaderResourceViewInDescriptorHeapInnerImpl(device, descriptorHeap, descriptorOffset, dxBuffer, desc, outGPUHandle);
+}
+
+bool DX12Utils::CreateShaderResourceViewInDescriptorHeap(IRHIDevice& device, IRHIDescriptorHeap& descriptorHeap,
+    unsigned descriptorOffset, IRHIRenderTarget& renderTarget, const RHIShaderResourceViewDesc& desc,
+    RHIGPUDescriptorHandle& outGPUHandle)
+{
+    auto* dxRenderTarget = dynamic_cast<DX12RenderTarget*>(&renderTarget);
+    return CreateShaderResourceViewInDescriptorHeapInnerImpl(device, descriptorHeap, descriptorOffset, dxRenderTarget->GetResource(), desc, outGPUHandle);
 }
 
 bool DX12Utils::DrawIndexInstanced(IRHICommandList& commandList, unsigned indexCountPerInstance, unsigned instanceCount,

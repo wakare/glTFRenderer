@@ -28,6 +28,7 @@ public:
     IRHICommandAllocator& GetCurrentFrameCommandAllocator();
     IRHIFence& GetCurrentFrameFence();
     IRHIRenderTarget& GetCurrentFrameSwapchainRT();
+    IRHIRenderTarget& GetDepthRT();
 
     unsigned GetCurrentBackBufferIndex() const {return m_currentBackBufferIndex; }
     void UpdateCurrentBackBufferIndex() { m_currentBackBufferIndex = m_swapchain->GetCurrentBackBufferIndex(); }
@@ -42,6 +43,7 @@ private:
     std::vector<std::shared_ptr<IRHIFence>> m_fences;
     std::shared_ptr<IRHIRenderTargetManager> m_renderTargetManager;
     std::vector<std::shared_ptr<IRHIRenderTarget>> m_swapchainRTs;
-    
+    std::shared_ptr<IRHIRenderTarget> m_depthTexture;
+
     unsigned m_currentBackBufferIndex;
 };

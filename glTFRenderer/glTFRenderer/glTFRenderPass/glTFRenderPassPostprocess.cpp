@@ -8,6 +8,8 @@ glTFRenderPassPostprocess::glTFRenderPassPostprocess()
 
 bool glTFRenderPassPostprocess::InitPass(glTFRenderResourceManager& resourceManager)
 {
+    RETURN_IF_FALSE(glTFRenderPassBase::InitPass(resourceManager))
+    
     float postprocessVertices[] =
     {
         // position + uv
@@ -19,13 +21,15 @@ bool glTFRenderPassPostprocess::InitPass(glTFRenderResourceManager& resourceMana
 
     unsigned postprocessIndices[] =
     {
-        0, 3, 1,
-        0, 2, 3, 
+        0, 1, 3,
+        0, 3, 2, 
     };
     
     m_postprocessQuadResource.meshVertexBuffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
     m_postprocessQuadResource.meshIndexBuffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
-
+    auto& vertexBufferView = m_postprocessQuadResource.meshVertexBufferView = RHIResourceFactory::CreateRHIResource<IRHIVertexBufferView>();
+    auto& indexBufferView = m_postprocessQuadResource.meshIndexBufferView = RHIResourceFactory::CreateRHIResource<IRHIIndexBufferView>();
+    
     const RHIBufferDesc vertexBufferDesc = {L"vertexBufferDefaultBuffer", sizeof(postprocessVertices), 1, 1, RHIBufferType::Default, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
     const RHIBufferDesc indexBufferDesc = {L"indexBufferDefaultBuffer", sizeof(postprocessIndices), 1, 1, RHIBufferType::Default, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
 
@@ -49,11 +53,42 @@ bool glTFRenderPassPostprocess::InitPass(glTFRenderResourceManager& resourceMana
     RETURN_IF_FALSE(RHIUtils::Instance().AddBufferBarrierToCommandList(resourceManager.GetCommandList(), *m_postprocessQuadResource.meshIndexBuffer, RHIResourceStateType::COPY_DEST, RHIResourceStateType::INDEX_BUFFER))
     RETURN_IF_FALSE(RHIUtils::Instance().CloseCommandList(resourceManager.GetCommandList()))
     RETURN_IF_FALSE(RHIUtils::Instance().ExecuteCommandList(resourceManager.GetCommandList(),resourceManager.GetCommandQueue()))
+
+    vertexBufferView->InitVertexBufferView(*m_postprocessQuadResource.meshVertexBuffer, 0, 20, sizeof(postprocessVertices));
+    indexBufferView->InitIndexBufferView(*m_postprocessQuadResource.meshIndexBuffer, 0, RHIDataFormat::R32_UINT, sizeof(postprocessIndices));
+
+    auto fence = RHIResourceFactory::CreateRHIResource<IRHIFence>();
+    RETURN_IF_FALSE(fence->InitFence(resourceManager.GetDevice()))
+
+    RETURN_IF_FALSE(fence->SignalWhenCommandQueueFinish(resourceManager.GetCommandQueue()))
+    RETURN_IF_FALSE(fence->WaitUtilSignal())
     
+    return true;
+}
+
+bool glTFRenderPassPostprocess::SetupRootSignature(glTFRenderResourceManager& resourceManager)
+{
+    return true;
+}
+
+bool glTFRenderPassPostprocess::SetupPipelineStateObject(glTFRenderResourceManager& resourceManager)
+{
     return true;
 }
 
 void glTFRenderPassPostprocess::DrawPostprocessQuad(glTFRenderResourceManager& resourceManager)
 {
-    
+    RHIUtils::Instance().SetVertexBufferView(resourceManager.GetCommandList(), *m_postprocessQuadResource.meshVertexBufferView);
+    RHIUtils::Instance().SetIndexBufferView(resourceManager.GetCommandList(), *m_postprocessQuadResource.meshIndexBufferView);
+
+    RHIUtils::Instance().SetPrimitiveTopology( resourceManager.GetCommandList(), RHIPrimitiveTopologyType::TRIANGLELIST);
+    RHIUtils::Instance().DrawIndexInstanced(resourceManager.GetCommandList(), 6, 1, 0, 0, 0);    
+}
+
+std::vector<RHIPipelineInputLayout> glTFRenderPassPostprocess::GetVertexInputLayout()
+{
+    std::vector<RHIPipelineInputLayout> inputLayouts;
+    inputLayouts.push_back({"POSITION", 0, RHIDataFormat::R32G32B32_FLOAT, 0});
+    inputLayouts.push_back({"TEXCOORD", 0, RHIDataFormat::R32G32_FLOAT, 12});
+    return inputLayouts;
 }

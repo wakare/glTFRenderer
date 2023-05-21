@@ -2,6 +2,7 @@
 #include <cassert>
 #include <atomic>
 #include <string>
+#include <vec4.hpp>
 
 #include "IRHIResource.h"
 
@@ -15,7 +16,7 @@ struct RHIRenderTargetClearValue
 {
     union 
     {
-        float clearColor[4];
+        glm::vec4 clearColor;
         IRHIDepthStencilClearValue clearDS;
     };
 };
