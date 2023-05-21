@@ -48,12 +48,12 @@ void glTFSceneGraph::TraverseNodes(const std::function<bool(const glTFSceneNode&
     TraverseNodeImpl(visitor, *m_root);
 }
 
-std::vector<const glTFCamera*> glTFSceneGraph::GetSceneCameras() const
+std::vector<glTFCamera*> glTFSceneGraph::GetSceneCameras() const
 {
-    std::vector<const glTFCamera*> cameras;
+    std::vector<glTFCamera*> cameras;
     TraverseNodes([&cameras](const glTFSceneNode& node)
     {
-        if (const auto* camera = dynamic_cast<glTFCamera*>(node.object.get()) )
+        if (auto* camera = dynamic_cast<glTFCamera*>(node.object.get()) )
         {
             cameras.push_back(camera);
         }

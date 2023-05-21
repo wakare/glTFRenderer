@@ -9,6 +9,7 @@
 #include "../glTFRHI/RHIDX12Impl/glTFRHIDX12.h"
 #include "../glTFScene/glTFSceneBox.h"
 #include "../glTFScene/glTFCamera.h"
+#include "../glTFUtils/glTFLog.h"
 
 //#define DEBUG_OLD_VERSION
 
@@ -18,6 +19,12 @@ glTFWindow::glTFWindow()
     , m_height(600)
 {
     
+}
+
+glTFWindow& glTFWindow::Get()
+{
+    static glTFWindow window;
+    return window;
 }
 
 bool glTFWindow::InitAndShowWindow()
@@ -34,10 +41,11 @@ bool glTFWindow::InitAndShowWindow()
         return false;
     }
 
+    glfwSetKeyCallback(m_glfwWindow, KeyCallback);
+
     // Create test scene with box
-    m_sceneGraph = std::make_unique<glTFSceneGraph>();
-    std::shared_ptr<glTFMaterialTexture> boxMaterialTexture = std::make_shared<glTFMaterialTexture>("glTFResources/tiger.bmp"); 
-    std::shared_ptr<glTFMaterialOpaque> boxAlbedoMaterial = std::make_shared<glTFMaterialOpaque>(boxMaterialTexture);
+    m_sceneGraph = std::make_unique<glTFSceneGraph>(); 
+    std::shared_ptr<glTFMaterialOpaque> boxAlbedoMaterial = std::make_shared<glTFMaterialOpaque>(std::make_shared<glTFMaterialTexture>("glTFResources/tiger.bmp"));
     
     std::unique_ptr<glTFSceneNode> boxSceneNode = std::make_unique<glTFSceneNode>();
     boxSceneNode->object = std::make_unique<glTFSceneBox>();
@@ -136,4 +144,47 @@ bool glTFWindow::InitDX12()
     m_passManager->InitAllPass();
 #endif    
     return true;
+}
+
+void glTFWindow::KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+    if (action != GLFW_PRESS &&
+        action != GLFW_REPEAT)
+    {
+        return;
+    }
+    glm::fvec3 deltaPosition = {0.0f, 0.0f, 0.0f};
+    switch (key)
+    {
+    case GLFW_KEY_W:
+        deltaPosition.z += 0.1f;
+        break;
+
+    case GLFW_KEY_A:
+        deltaPosition.x += 0.1f;
+        break;
+
+    case GLFW_KEY_S:
+        deltaPosition.z -= 0.1f;
+        break;
+
+    case GLFW_KEY_D:
+        deltaPosition.x -= 0.1f;
+        break;
+        
+    case GLFW_KEY_Q:
+        deltaPosition.y += 0.1f;
+        break;
+
+    case GLFW_KEY_E:
+        deltaPosition.y -= 0.1f;
+        break;
+    }
+
+    auto cameras = Get().m_sceneGraph->GetSceneCameras();
+    if (!cameras.empty())
+    {
+        cameras[0]->GetTransform().position += deltaPosition;
+        cameras[0]->MarkDirty();
+    }
 }

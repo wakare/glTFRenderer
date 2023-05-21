@@ -3,13 +3,12 @@
 
 bool ShowGLFWWindow()
 {
-    glTFWindow window;
-    if (!window.InitAndShowWindow())
+    if (!glTFWindow::Get().InitAndShowWindow())
     {
         return false;
     }
 
-    window.UpdateWindow();
+    glTFWindow::Get().UpdateWindow();
     return true;
 }
 

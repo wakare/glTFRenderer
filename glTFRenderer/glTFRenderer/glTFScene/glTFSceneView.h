@@ -19,5 +19,5 @@ public:
 private:
     const glTFSceneGraph& m_sceneGraph;
 
-    std::vector<const glTFCamera*> m_cameras;
+    std::vector<glTFCamera*> m_cameras;
 };

@@ -7,7 +7,7 @@ struct GLFWwindow;
 class glTFWindow
 {
 public:
-    glTFWindow();
+    static glTFWindow& Get();
     bool InitAndShowWindow();
     void UpdateWindow();
 
@@ -19,11 +19,14 @@ public:
     const GLFWwindow* GetRawWindow() const {return m_glfwWindow;}
     
 private:
+    glTFWindow();
     bool InitDX12();
     
     GLFWwindow* m_glfwWindow;
     int m_width;
     int m_height;
+
+    static void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 
     std::unique_ptr<glTFRenderPassManager> m_passManager;
     std::unique_ptr<glTFSceneGraph> m_sceneGraph;

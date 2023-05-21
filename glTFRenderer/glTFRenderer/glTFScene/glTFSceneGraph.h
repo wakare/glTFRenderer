@@ -27,7 +27,7 @@ public:
     // visitor return value indicate whether continue visit remained nodes 
     void TraverseNodes(const std::function<bool(const glTFSceneNode&)>& visitor) const;
 
-    std::vector<const glTFCamera*> GetSceneCameras() const;
+    std::vector<glTFCamera*> GetSceneCameras() const;
     
 protected:
     void TraverseNodesInner(const std::function<bool(glTFSceneNode&)>& visitor) const;
