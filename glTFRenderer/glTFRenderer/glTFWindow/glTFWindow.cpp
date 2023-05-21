@@ -21,6 +21,42 @@ glTFWindow::glTFWindow()
     
 }
 
+glTFInputControl::glTFInputControl()
+{
+    memset(m_keyStatePressed, 0, sizeof(m_keyStatePressed));
+}
+
+void glTFInputControl::RecordKeyPressed(int keyCode)
+{
+    m_keyStatePressed[keyCode] = true;
+}
+
+void glTFInputControl::RecordKeyRelease(int keyCode)
+{
+    m_keyStatePressed[keyCode] = false;
+}
+
+bool glTFInputControl::IsKeyPressed(int keyCode) const
+{
+    return m_keyStatePressed[keyCode];
+}
+
+double glTFInputControl::GetCursorX() const
+{
+    return m_cursorX;
+}
+
+double glTFInputControl::GetCursorY() const
+{
+    return m_cursorY;
+}
+
+void glTFInputControl::RecordCursorPos(double X, double Y)
+{
+    m_cursorX = X;
+    m_cursorY = Y;
+}
+
 glTFWindow& glTFWindow::Get()
 {
     static glTFWindow window;
@@ -42,7 +78,8 @@ bool glTFWindow::InitAndShowWindow()
     }
 
     glfwSetKeyCallback(m_glfwWindow, KeyCallback);
-
+    glfwSetCursorPosCallback(m_glfwWindow, CursorPosCallback);
+    
     // Create test scene with box
     m_sceneGraph = std::make_unique<glTFSceneGraph>(); 
     std::shared_ptr<glTFMaterialOpaque> boxAlbedoMaterial = std::make_shared<glTFMaterialOpaque>(std::make_shared<glTFMaterialTexture>("glTFResources/tiger.bmp"));
@@ -148,11 +185,15 @@ bool glTFWindow::InitDX12()
 
 void glTFWindow::KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-    if (action != GLFW_PRESS &&
-        action != GLFW_REPEAT)
+    if (action == GLFW_PRESS)
     {
-        return;
+        Get().m_inputControl.RecordKeyPressed(key);
     }
+    else if (action == GLFW_RELEASE)
+    {
+        Get().m_inputControl.RecordKeyRelease(key);
+    }
+    
     glm::fvec3 deltaPosition = {0.0f, 0.0f, 0.0f};
     switch (key)
     {
@@ -187,4 +228,21 @@ void glTFWindow::KeyCallback(GLFWwindow* window, int key, int scancode, int acti
         cameras[0]->GetTransform().position += deltaPosition;
         cameras[0]->MarkDirty();
     }
+}
+
+void glTFWindow::CursorPosCallback(GLFWwindow* window, double xpos, double ypos)
+{
+    if (Get().m_inputControl.IsKeyPressed(GLFW_KEY_LEFT_CONTROL))
+    {
+        double oldCursorPos[2] = {Get().m_inputControl.GetCursorX(), Get().m_inputControl.GetCursorY()};
+        // Do moving
+        auto cameras = Get().m_sceneGraph->GetSceneCameras();
+        if (!cameras.empty())
+        {
+            cameras[0]->GetTransform().rotation.y += 0.001f * (oldCursorPos[0] - xpos);
+            cameras[0]->GetTransform().rotation.x += 0.001f * (oldCursorPos[1] - ypos);
+        }
+    }
+    
+    Get().m_inputControl.RecordCursorPos(xpos, ypos);
 }
