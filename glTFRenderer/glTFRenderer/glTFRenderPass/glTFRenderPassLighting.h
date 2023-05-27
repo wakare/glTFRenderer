@@ -13,6 +13,7 @@ class glTFRenderPassLighting : public glTFRenderPassPostprocess, public glTFRend
     {
         LightPass_RootParameter_SceneView = 0,
         LightPass_RootParameter_BaseColorAndDepthSRV = 1,
+        LightPass_RootParameter_LightInfos = 2,
         LightPass_RootParameter_Num,
     };
 public:

@@ -11,6 +11,10 @@ glTFRenderPassLighting::glTFRenderPassLighting()
     , m_depthRTSRVHandle(0)
     , m_constantBufferPerLightDraw({})
 {
+    m_constantBufferPerLightDraw.lightInfos[0] = {0.0f, 0.0f, 0.0f, 4.0f};
+    m_constantBufferPerLightDraw.lightInfos[1] = {8.0f, 0.0f, 0.0f, 3.0f};
+    m_constantBufferPerLightDraw.lightInfos[2] = {-8.0f, 0.0f, 0.0f, 2.0f};
+    m_constantBufferPerLightDraw.lightInfos[3] = {0.0f, 0.0f, 1.0f, 4.0f};
 }
 
 const char* glTFRenderPassLighting::PassName()
@@ -66,8 +70,8 @@ bool glTFRenderPassLighting::RenderPass(glTFRenderResourceManager& resourceManag
 
     RETURN_IF_FALSE(resourceManager.GetRenderTargetManager().ClearRenderTarget(resourceManager.GetCommandList(), &resourceManager.GetCurrentFrameSwapchainRT(), 1))
 
-    //RETURN_IF_FALSE(m_constantBufferInGPU->UploadBufferFromCPU(&m_constantBufferPerLightDraw, 0, sizeof(m_constantBufferPerLightDraw)))
-    //RETURN_IF_FALSE(RHIUtils::Instance().SetConstantBufferViewGPUHandleToRootParameterSlot(resourceManager.GetCommandList(), 0, m_constantBufferInGPU->GetGPUBufferHandle()))
+    RETURN_IF_FALSE(m_constantBufferInGPU->UploadBufferFromCPU(&m_constantBufferPerLightDraw, 0, sizeof(m_constantBufferPerLightDraw)))
+    RETURN_IF_FALSE(RHIUtils::Instance().SetConstantBufferViewGPUHandleToRootParameterSlot(resourceManager.GetCommandList(), LightPass_RootParameter_LightInfos, m_constantBufferInGPU->GetGPUBufferHandle()))
     
     DrawPostprocessQuad(resourceManager);
     
@@ -104,6 +108,8 @@ bool glTFRenderPassLighting::SetupRootSignature(glTFRenderResourceManager& resou
     
     const RHIRootParameterDescriptorRangeDesc SRVRangeDesc {RHIRootParameterDescriptorRangeType::SRV, 0, 2};
     m_rootSignature->GetRootParameter(LightPass_RootParameter_BaseColorAndDepthSRV).InitAsDescriptorTableRange(1, &SRVRangeDesc);
+
+    m_rootSignature->GetRootParameter(LightPass_RootParameter_LightInfos).InitAsCBV(2);
     
     m_rootSignature->GetStaticSampler(0).InitStaticSampler(0, RHIStaticSamplerAddressMode::Clamp, RHIStaticSamplerFilterMode::Linear);
     RETURN_IF_FALSE(m_rootSignature->InitRootSignature(resourceManager.GetDevice()))

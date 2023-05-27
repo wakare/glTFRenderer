@@ -9,7 +9,6 @@
 #include "../glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
 #include "../glTFRHI/RHIInterface/IRHIVertexBufferView.h"
 #include "../glTFRHI/RHIInterface/IRHIIndexBufferView.h"
-#include "../glTFScene/glTFSceneView.h"
 
 // Vertex and index gpu buffer data
 struct MeshGPUResource

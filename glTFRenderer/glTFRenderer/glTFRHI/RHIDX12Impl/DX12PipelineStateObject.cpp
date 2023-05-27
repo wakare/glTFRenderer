@@ -88,7 +88,7 @@ bool DX12GraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device
     inputLayoutDesc.pInputElementDescs = dxInputLayouts.data();
 
     // compile shader and set bytecode to pipeline state desc
-    CompileBindShaders();
+    THROW_IF_FAILED(CompileBindShaders())
     auto& bindVS = dynamic_cast<DX12Shader&>(GetBindShader(RHIShaderType::Vertex));
     auto& bindPS = dynamic_cast<DX12Shader&>(GetBindShader(RHIShaderType::Pixel));
 
@@ -137,14 +137,11 @@ IRHIShader& DX12GraphicsPipelineStateObject::GetBindShader(RHIShaderType type)
 
 bool DX12GraphicsPipelineStateObject::CompileBindShaders()
 {
-    if (m_shaders.empty())
-    {
-        return false;
-    }
+    RETURN_IF_FALSE(!m_shaders.empty())
 
     for (const auto& shader : m_shaders)
     {
-        shader.second->CompileShader();
+        RETURN_IF_FALSE(shader.second->CompileShader())
     }
 
     return true;

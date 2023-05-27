@@ -43,7 +43,7 @@ bool glTFRenderPassMeshOpaque::InitPass(glTFRenderResourceManager& resourceManag
     RETURN_IF_FALSE(RHIUtils::Instance().ExecuteCommandList(resourceManager.GetCommandList(),resourceManager.GetCommandQueue()))
     RETURN_IF_FALSE(resourceManager.GetCurrentFrameFence().SignalWhenCommandQueueFinish(resourceManager.GetCommandQueue()))
 
-    LOG_FORMAT("[DEBUG] Init MeshPassOpaque finished!")
+    LOG_FORMAT("[DEBUG] Init MeshPassOpaque finished!\n")
     return true;
 }
 
