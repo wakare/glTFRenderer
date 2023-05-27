@@ -61,9 +61,9 @@ void glTFRenderPassManager::UpdateScene()
             return true;
         });
 
-        if (auto* meshPass = dynamic_cast<glTFRenderPassMeshBase*>(pass.get()))
+        if (auto* sceneViewInterface = dynamic_cast<glTFRenderPassInterfaceSceneView*>(pass.get()))
         {
-            meshPass->UpdateViewParameters(m_sceneView);    
+            sceneViewInterface->UpdateSceneViewData({m_sceneView.GetViewProjectionMatrix()});    
         }
     }
 }

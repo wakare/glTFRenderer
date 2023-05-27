@@ -1,3 +1,6 @@
+#include "glTFResources/ShaderSource/SceneView.h"
+#include "glTFResources/ShaderSource/SceneMesh.h"
+
 struct VS_INPUT
 {
     float3 pos: POSITION;
@@ -8,10 +11,4 @@ struct VS_OUTPUT
 {
     float4 pos: SV_POSITION;
     float2 texCoord: TEXCOORD;
-};
-
-cbuffer ConstantBuffer : register(b0)
-{
-    float4x4 worldMat;
-    float4x4 viewProjectionMat;
 };

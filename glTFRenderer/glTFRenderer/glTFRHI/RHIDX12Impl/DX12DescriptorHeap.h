@@ -10,8 +10,11 @@ public:
     virtual ~DX12DescriptorHeap() override;
     
     virtual bool InitDescriptorHeap(IRHIDevice& device, const RHIDescriptorHeapDesc& desc) override;
+    virtual RHIGPUDescriptorHandle GetHandle(unsigned offsetInDescriptor) override;
+    
     ID3D12DescriptorHeap* GetDescriptorHeap() {return m_descriptorHeap; }
     
 private:
     ID3D12DescriptorHeap* m_descriptorHeap;
+    unsigned m_descriptorIncrementSize;
 };

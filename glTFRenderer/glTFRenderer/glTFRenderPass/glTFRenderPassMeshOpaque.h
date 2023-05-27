@@ -26,6 +26,14 @@ private:
 
 class glTFRenderPassMeshOpaque : public glTFRenderPassMeshBase
 {
+    enum
+    {
+        MeshOpaquePass_RootParameter_SceneView = 0,
+        MeshOpaquePass_RootParameter_SceneMesh = 1,
+        MeshOpaquePass_RootParameter_MeshMaterialTexSRV = 2,
+        MeshOpaquePass_RootParameter_Num,
+    };
+    
 public:
     virtual const char* PassName() override {return "MeshPassOpaque"; }
     virtual bool InitPass(glTFRenderResourceManager& resourceManager) override;

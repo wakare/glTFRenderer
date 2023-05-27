@@ -167,7 +167,7 @@ void glTFWindow::KeyCallback(GLFWwindow* window, int key, int scancode, int acti
         Get().m_inputControl.RecordKeyRelease(key);
     }
     
-    glm::fvec3 deltaPosition = {0.0f, 0.0f, 0.0f};
+    glm::fvec4 deltaPosition = {0.0f, 0.0f, 0.0f, 0.0f};
     switch (key)
     {
     case GLFW_KEY_W:
@@ -198,7 +198,9 @@ void glTFWindow::KeyCallback(GLFWwindow* window, int key, int scancode, int acti
     const auto cameras = Get().m_sceneGraph->GetSceneCameras();
     if (!cameras.empty())
     {
-        cameras[0]->GetTransform().position += deltaPosition;
+        deltaPosition = deltaPosition * cameras[0]->GetTransform().GetTransformInverseMatrix();
+        
+        cameras[0]->GetTransform().position += glm::fvec3(deltaPosition);
         cameras[0]->MarkDirty();
     }
 }
@@ -212,7 +214,7 @@ void glTFWindow::CursorPosCallback(GLFWwindow* window, double xpos, double ypos)
         if (!cameras.empty())
         {
             cameras[0]->GetTransform().rotation.y += 0.001f * (Get().m_inputControl.GetCursorX() - xpos);
-            cameras[0]->GetTransform().rotation.x += 0.001f * (Get().m_inputControl.GetCursorY() - ypos);
+            cameras[0]->GetTransform().rotation.x -= 0.001f * (Get().m_inputControl.GetCursorY() - ypos);
             cameras[0]->MarkDirty();
         }
     }

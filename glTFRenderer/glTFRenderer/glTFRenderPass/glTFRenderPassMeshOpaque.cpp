@@ -39,6 +39,9 @@ bool glTFRenderPassMeshOpaque::InitPass(glTFRenderResourceManager& resourceManag
     RETURN_IF_FALSE(RHIUtils::Instance().ExecuteCommandList(resourceManager.GetCommandList(),resourceManager.GetCommandQueue()))
     RETURN_IF_FALSE(resourceManager.GetCurrentFrameFence().SignalWhenCommandQueueFinish(resourceManager.GetCommandQueue()))
 
+    RETURN_IF_FALSE(glTFRenderPassInterfaceSceneView::InitInterface(resourceManager))
+    RETURN_IF_FALSE(glTFRenderPassInterfaceSceneMesh::InitInterface(resourceManager))
+    
     LOG_FORMAT("[DEBUG] Init MeshPassOpaque finished!")
     return true;
 }
@@ -46,29 +49,24 @@ bool glTFRenderPassMeshOpaque::InitPass(glTFRenderResourceManager& resourceManag
 bool glTFRenderPassMeshOpaque::RenderPass(glTFRenderResourceManager& resourceManager)
 {
     RETURN_IF_FALSE(glTFRenderPassMeshBase::RenderPass(resourceManager))
+    RETURN_IF_FALSE(glTFRenderPassInterfaceSceneView::ApplyInterface(resourceManager, MeshOpaquePass_RootParameter_SceneView))
 
     unsigned meshIndex = 0;
-    const size_t offsetStripe = (sizeof(ConstantBufferPerMesh) + 255) & ~255;
     for (const auto& mesh : m_meshes)
     {
-        const size_t dataOffset = meshIndex++ * offsetStripe;
-        
         // Upload constant buffer
-        m_constantBufferPerObject.worldMat = mesh.second.meshTransformMatrix;
-        m_perMeshConstantBuffer->UploadBufferFromCPU(&m_constantBufferPerObject, dataOffset, sizeof(m_constantBufferPerObject));
-
-        RHIUtils::Instance().SetConstantBufferViewGPUHandleToRootParameterSlot(resourceManager.GetCommandList(), 0, m_perMeshConstantBuffer->GetGPUBufferHandle() + dataOffset);
+        RETURN_IF_FALSE(UpdateSceneMeshData({mesh.second.meshTransformMatrix}))
+        glTFRenderPassInterfaceSceneMesh::ApplyInterface(resourceManager, meshIndex++, MeshOpaquePass_RootParameter_SceneMesh);
 
         // Using texture SRV slot when mesh material is texture
         if (m_materialTextures.find(mesh.second.materialID) != m_materialTextures.end())
         {
-            RHIUtils::Instance().SetDescriptorTableGPUHandleToRootParameterSlot(resourceManager.GetCommandList(), 1, m_materialTextures[mesh.second.materialID]->GetTextureSRVHandle());    
+            RHIUtils::Instance().SetDescriptorTableGPUHandleToRootParameterSlot(resourceManager.GetCommandList(), MeshOpaquePass_RootParameter_MeshMaterialTexSRV, m_materialTextures[mesh.second.materialID]->GetTextureSRVHandle());    
         }
         
         RHIUtils::Instance().SetVertexBufferView(resourceManager.GetCommandList(), *mesh.second.meshVertexBufferView);
         RHIUtils::Instance().SetIndexBufferView(resourceManager.GetCommandList(), *mesh.second.meshIndexBufferView);
-
-        RHIUtils::Instance().SetPrimitiveTopology( resourceManager.GetCommandList(), RHIPrimitiveTopologyType::TRIANGLELIST);
+        
         RHIUtils::Instance().DrawIndexInstanced(resourceManager.GetCommandList(), mesh.second.meshIndexCount, 1, 0, 0, 0);    
     }
     
@@ -104,15 +102,15 @@ bool glTFRenderPassMeshOpaque::SetupRootSignature(glTFRenderResourceManager& res
     RETURN_IF_FALSE(glTFRenderPassMeshBase::SetupRootSignature(resourceManager))
     
     // Init root signature
-    constexpr size_t rootSignatureParameterCount = 2;
+    constexpr size_t rootSignatureParameterCount = MeshOpaquePass_RootParameter_Num;
     constexpr size_t rootSignatureStaticSamplerCount = 1;
     RETURN_IF_FALSE(m_rootSignature->AllocateRootSignatureSpace(rootSignatureParameterCount, rootSignatureStaticSamplerCount))
     
-    //const RHIRootParameterDescriptorRangeDesc CBVRangeDesc {RHIRootParameterDescriptorRangeType::CBV, 0, 1};
-    m_rootSignature->GetRootParameter(0).InitAsCBV(0);
+    m_rootSignature->GetRootParameter(MeshOpaquePass_RootParameter_SceneView).InitAsCBV(0);
+    m_rootSignature->GetRootParameter(MeshOpaquePass_RootParameter_SceneMesh).InitAsCBV(1);
 
     const RHIRootParameterDescriptorRangeDesc SRVRangeDesc {RHIRootParameterDescriptorRangeType::SRV, 0, 1};
-    m_rootSignature->GetRootParameter(1).InitAsDescriptorTableRange(1, &SRVRangeDesc);
+    m_rootSignature->GetRootParameter(MeshOpaquePass_RootParameter_MeshMaterialTexSRV).InitAsDescriptorTableRange(1, &SRVRangeDesc);
     
     m_rootSignature->GetStaticSampler(0).InitStaticSampler(0, RHIStaticSamplerAddressMode::Clamp, RHIStaticSamplerFilterMode::Linear);
     RETURN_IF_FALSE(m_rootSignature->InitRootSignature(resourceManager.GetDevice()))

@@ -55,8 +55,8 @@ bool glTFRenderResourceManager::InitResourceManager(glTFWindow& window)
     RHIRenderTargetClearValue depthClearValue{};
     depthClearValue.clearDS.clearDepth = 1.0f;
     depthClearValue.clearDS.clearStencilValue = 0;
-    m_depthTexture = m_renderTargetManager->CreateRenderTarget(*m_device, RHIRenderTargetType::DSV, RHIDataFormat::D32_FLOAT,
-        IRHIRenderTargetDesc{GetSwapchain().GetWidth(), GetSwapchain().GetHeight(), false, depthClearValue, "ResourceManager_DepthRT"});
+    m_depthTexture = m_renderTargetManager->CreateRenderTarget(*m_device, RHIRenderTargetType::DSV, RHIDataFormat::R32_TYPELESS,
+                                                               RHIDataFormat::D32_FLOAT, IRHIRenderTargetDesc{GetSwapchain().GetWidth(), GetSwapchain().GetHeight(), false, depthClearValue, "ResourceManager_DepthRT"});
     
     return true;
 }

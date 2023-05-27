@@ -1,10 +1,12 @@
 #include "DX12DescriptorHeap.h"
 
+#include "d3dx12.h"
 #include "DX12Device.h"
 #include "DX12Utils.h"
 
 DX12DescriptorHeap::DX12DescriptorHeap()
     : m_descriptorHeap(nullptr)
+    , m_descriptorIncrementSize(0)
 {
 }
 
@@ -25,6 +27,15 @@ bool DX12DescriptorHeap::InitDescriptorHeap(IRHIDevice& device, const RHIDescrip
     dxDesc.NodeMask = 0;
     
     THROW_IF_FAILED(dxDevice->CreateDescriptorHeap(&dxDesc, IID_PPV_ARGS(&m_descriptorHeap)))
+
+    m_descriptorIncrementSize = dxDevice->GetDescriptorHandleIncrementSize(dxDesc.Type);
     
     return true;
+}
+
+RHIGPUDescriptorHandle DX12DescriptorHeap::GetHandle(unsigned offsetInDescriptor)
+{
+    CD3DX12_GPU_DESCRIPTOR_HANDLE gpuHandle(m_descriptorHeap->GetGPUDescriptorHandleForHeapStart());
+    gpuHandle.Offset(offsetInDescriptor, m_descriptorIncrementSize);
+    return  gpuHandle.ptr;
 }

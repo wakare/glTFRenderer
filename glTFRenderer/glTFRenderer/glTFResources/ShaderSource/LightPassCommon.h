@@ -1,3 +1,5 @@
+#include "glTFResources/ShaderSource/SceneView.h"
+
 struct VS_INPUT
 {
     float3 pos: POSITION;

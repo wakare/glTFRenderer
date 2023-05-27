@@ -3,20 +3,13 @@
 #include "../glTFRHI/RHIResourceFactoryImpl.hpp"
 
 glTFRenderPassMeshBase::glTFRenderPassMeshBase()
-    : m_constantBufferPerObject({})
-    , m_perMeshCBHandle(0)
-    , m_basePassColorRenderTarget(nullptr)
+    : m_basePassColorRenderTarget(nullptr)
 {
 }
 
 bool glTFRenderPassMeshBase::InitPass(glTFRenderResourceManager& resourceManager)
 {
     RETURN_IF_FALSE (glTFRenderPassBase::InitPass(resourceManager))
-
-    m_perMeshConstantBuffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
-    
-    // TODO: Calculate mesh constant buffer size
-    RETURN_IF_FALSE(m_perMeshConstantBuffer->InitGPUBuffer(resourceManager.GetDevice(), {L"MeshPassBase_PerMeshConstantBuffer", static_cast<size_t>(64 * 1024), 1, 1, RHIBufferType::Upload, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer }))
     
     return true;
 }
@@ -28,6 +21,7 @@ bool glTFRenderPassMeshBase::RenderPass(glTFRenderResourceManager& resourceManag
 
     RETURN_IF_FALSE(resourceManager.GetRenderTargetManager().ClearRenderTarget(resourceManager.GetCommandList(), m_basePassColorRenderTarget.get(), 1))
     RETURN_IF_FALSE(resourceManager.GetRenderTargetManager().ClearRenderTarget(resourceManager.GetCommandList(), &resourceManager.GetDepthRT(), 1))
+    RHIUtils::Instance().SetPrimitiveTopology( resourceManager.GetCommandList(), RHIPrimitiveTopologyType::TRIANGLELIST);
     
     return glTFRenderPassBase::RenderPass(resourceManager);
 }
@@ -105,11 +99,6 @@ bool glTFRenderPassMeshBase::RemovePrimitiveFromMeshPass(glTFUniqueID meshIDToRe
     return true;
 }
 
-void glTFRenderPassMeshBase::UpdateViewParameters(const glTFSceneView& view)
-{
-    m_constantBufferPerObject.viewProjection = view.GetViewProjectionMatrix();
-}
-
 bool glTFRenderPassMeshBase::SetupRootSignature(glTFRenderResourceManager& resourceManager)
 {
     return true;
@@ -127,7 +116,7 @@ bool glTFRenderPassMeshBase::SetupPipelineStateObject(glTFRenderResourceManager&
     RenderTargetDesc.clearValue.clearColor = {0.0f, 0.0f, 0.0f, 0.0f};
     
     m_basePassColorRenderTarget = resourceManager.GetRenderTargetManager().CreateRenderTarget(
-        resourceManager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R8G8B8A8_UNORM_SRGB, RenderTargetDesc);
+        resourceManager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R8G8B8A8_UNORM_SRGB, RHIDataFormat::R8G8B8A8_UNORM_SRGB, RenderTargetDesc);
     allRts.push_back(m_basePassColorRenderTarget.get());
     allRts.push_back(&resourceManager.GetDepthRT());
 

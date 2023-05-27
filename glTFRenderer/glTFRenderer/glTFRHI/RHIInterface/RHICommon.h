@@ -14,6 +14,8 @@ enum class RHIResourceStateType
     INDEX_BUFFER,
     PRESENT,
     RENDER_TARGET,
+    DEPTH_WRITE,
+    DEPTH_READ,
     PIXEL_SHADER_RESOURCE,
 };
 
@@ -35,6 +37,7 @@ enum class RHIDataFormat
     D32_FLOAT,
     R32_FLOAT,
     R32_UINT,
+    R32_TYPELESS,
     R16_FLOAT,
     R16_UNORM,
     R8_UNORM,
@@ -117,7 +120,7 @@ typedef uint64_t RHICPUDescriptorHandle;
 
 #define RETURN_IF_FALSE(x) \
     if (!(x)) \
-    { return false; }
+    { assert(false); return false; }
 
 #define GPU_BUFFER_HANDLE_TYPE unsigned long long
 
@@ -136,6 +139,8 @@ inline int GetRHIDataFormatBitsPerPixel(const RHIDataFormat& RHIDataFormat)
     else if (RHIDataFormat == RHIDataFormat::B5G5R5A1_UNORM) return 16;
     else if (RHIDataFormat == RHIDataFormat::B5G6R5_UNORM) return 16;
     else if (RHIDataFormat == RHIDataFormat::R32_FLOAT) return 32;
+    else if (RHIDataFormat == RHIDataFormat::R32_UINT) return 32;
+    else if (RHIDataFormat == RHIDataFormat::R32_TYPELESS) return 32;
     else if (RHIDataFormat == RHIDataFormat::R16_FLOAT) return 16;
     else if (RHIDataFormat == RHIDataFormat::R16_UNORM) return 16;
     else if (RHIDataFormat == RHIDataFormat::R8_UNORM) return 8;

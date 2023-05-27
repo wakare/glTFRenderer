@@ -48,7 +48,9 @@ bool DX12GraphicsPipelineStateObject::BindRenderTargets(const std::vector<IRHIRe
         }
         else if (renderTarget->GetRenderTargetType() == RHIRenderTargetType::DSV)
         {
-            m_bindDepthStencilFormat = DX12ConverterUtils::ConvertToDXGIFormat(renderTarget->GetRenderTargetFormat());
+            const RHIDataFormat convertDepthStencilFormat = renderTarget->GetRenderTargetFormat() == RHIDataFormat::R32_TYPELESS ?
+                RHIDataFormat::D32_FLOAT : renderTarget->GetRenderTargetFormat();
+            m_bindDepthStencilFormat = DX12ConverterUtils::ConvertToDXGIFormat(convertDepthStencilFormat);
         }
         else
         {

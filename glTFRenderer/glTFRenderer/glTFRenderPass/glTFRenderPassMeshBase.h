@@ -2,6 +2,8 @@
 #include <map>
 
 #include "glTFRenderPassBase.h"
+#include "glTFRenderPassInterfaceSceneMesh.h"
+#include "glTFRenderPassInterfaceSceneView.h"
 #include "../glTFRHI/RHIInterface/IRHIGPUBuffer.h"
 #include "../glTFScene/glTFScenePrimitive.h"
 #include "../glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
@@ -9,7 +11,7 @@
 #include "../glTFRHI/RHIInterface/IRHIIndexBufferView.h"
 #include "../glTFScene/glTFSceneView.h"
 
-struct ConstantBufferPerMesh
+struct ConstantBufferPerMeshDraw
 {
     glm::mat4 worldMat {glm::mat4(1.0f)};
     glm::mat4 viewProjection {glm::mat4{1.0f}};
@@ -27,12 +29,11 @@ struct MeshGPUResource
     size_t meshIndexCount{0};
     
     glm::mat4 meshTransformMatrix;
-
     glTFUniqueID materialID;
 };
 
 // Drawing all meshes within mesh pass
-class glTFRenderPassMeshBase : public glTFRenderPassBase
+class glTFRenderPassMeshBase : public glTFRenderPassBase, public glTFRenderPassInterfaceSceneView, public glTFRenderPassInterfaceSceneMesh
 {
 public:
     glTFRenderPassMeshBase();
@@ -44,17 +45,11 @@ public:
     bool AddOrUpdatePrimitiveToMeshPass(glTFRenderResourceManager& resourceManager, const glTFScenePrimitive& primitive);
     bool RemovePrimitiveFromMeshPass(glTFUniqueID meshIDToRemove);
 
-    void UpdateViewParameters(const glTFSceneView& view);
     virtual bool TryProcessSceneObject(glTFRenderResourceManager& resourceManager, const glTFSceneObjectBase& object) override;
     
 protected:
     virtual bool SetupRootSignature(glTFRenderResourceManager& resourceManager) override;
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resourceManager) override;
-
-    ConstantBufferPerMesh m_constantBufferPerObject;
-
-    std::shared_ptr<IRHIGPUBuffer> m_perMeshConstantBuffer;
-    RHIGPUDescriptorHandle m_perMeshCBHandle;
     
     std::map<glTFUniqueID, MeshGPUResource> m_meshes;
 

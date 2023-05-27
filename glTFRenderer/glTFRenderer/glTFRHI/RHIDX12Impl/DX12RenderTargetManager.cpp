@@ -36,7 +36,7 @@ bool DX12RenderTargetManager::InitRenderTargetManager(IRHIDevice& device, size_t
     return true;
 }
 
-std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTarget(IRHIDevice& device, RHIRenderTargetType type, RHIDataFormat format, const IRHIRenderTargetDesc& desc)
+std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTarget(IRHIDevice& device, RHIRenderTargetType type, RHIDataFormat resourceFormat, RHIDataFormat descriptorFormat, const IRHIRenderTargetDesc& desc)
 {
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
     
@@ -45,9 +45,10 @@ std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTarget(IR
     size_t handleCount = 0;
     D3D12_CPU_DESCRIPTOR_HANDLE handle = {0};
     D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_COMMON;
-    DXGI_FORMAT dxFormat = DX12ConverterUtils::ConvertToDXGIFormat(format);
+    DXGI_FORMAT dxResourceFormat = DX12ConverterUtils::ConvertToDXGIFormat(resourceFormat);
+    DXGI_FORMAT dxDescriptorFormat = DX12ConverterUtils::ConvertToDXGIFormat(descriptorFormat);
     D3D12_CLEAR_VALUE dxClearValue{};
-    dxClearValue.Format = dxFormat;
+    dxClearValue.Format = dxDescriptorFormat;
     
     switch (type)
     { 
@@ -105,7 +106,7 @@ std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTarget(IR
 
     D3D12_RESOURCE_DESC resourceDesc = {};
     resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-    resourceDesc.Format = dxFormat;
+    resourceDesc.Format = dxResourceFormat;
     resourceDesc.Width = desc.width;
     resourceDesc.Height = desc.height;
     resourceDesc.DepthOrArraySize = 1;
@@ -133,7 +134,7 @@ std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTarget(IR
 
     std::shared_ptr<IRHIRenderTarget> renderTarget = RHIResourceFactory::CreateRHIResource<IRHIRenderTarget>();
     renderTarget->SetRenderTargetType(type);
-    renderTarget->SetRenderTargetFormat(format);
+    renderTarget->SetRenderTargetFormat(resourceFormat);
     auto* dxRenderTarget = dynamic_cast<DX12RenderTarget*>(renderTarget.get());
     dxRenderTarget->SetRenderTarget(resource, true);
     dxRenderTarget->SetClearValue(dxClearValue);
@@ -148,7 +149,7 @@ std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTarget(IR
         case RHIRenderTargetType::DSV:
             {
                 D3D12_DEPTH_STENCIL_VIEW_DESC viewDescription = {};
-                viewDescription.Format = dxFormat;
+                viewDescription.Format = dxDescriptorFormat;
                 viewDescription.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
                 
                 dxDevice->CreateDepthStencilView(resource, &viewDescription, handle);
