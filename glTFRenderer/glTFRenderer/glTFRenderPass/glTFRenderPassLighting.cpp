@@ -21,6 +21,9 @@ const char* glTFRenderPassLighting::PassName()
 bool glTFRenderPassLighting::InitPass(glTFRenderResourceManager& resourceManager)
 {
     RETURN_IF_FALSE(glTFRenderPassPostprocess::InitPass(resourceManager))
+    
+    RETURN_IF_FALSE(RHIUtils::Instance().ResetCommandList(resourceManager.GetCommandList(), resourceManager.GetCurrentFrameCommandAllocator()))
+    
     RETURN_IF_FALSE(glTFRenderPassInterfaceSceneView::InitInterface(resourceManager))
 
     m_constantBufferInGPU = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
@@ -36,6 +39,10 @@ bool glTFRenderPassLighting::InitPass(glTFRenderResourceManager& resourceManager
             RHIDataFormat::Unknown,
             RHIBufferResourceType::Buffer
         }))
+
+    RETURN_IF_FALSE(RHIUtils::Instance().CloseCommandList(resourceManager.GetCommandList()))
+    RETURN_IF_FALSE(RHIUtils::Instance().ExecuteCommandList(resourceManager.GetCommandList(),resourceManager.GetCommandQueue()))
+    RETURN_IF_FALSE(resourceManager.GetCurrentFrameFence().SignalWhenCommandQueueFinish(resourceManager.GetCommandQueue()))
 
     return true;
 }
@@ -59,8 +66,8 @@ bool glTFRenderPassLighting::RenderPass(glTFRenderResourceManager& resourceManag
 
     RETURN_IF_FALSE(resourceManager.GetRenderTargetManager().ClearRenderTarget(resourceManager.GetCommandList(), &resourceManager.GetCurrentFrameSwapchainRT(), 1))
 
-    RETURN_IF_FALSE(m_constantBufferInGPU->UploadBufferFromCPU(&m_constantBufferPerLightDraw, 0, sizeof(m_constantBufferPerLightDraw)))
-    RETURN_IF_FALSE(RHIUtils::Instance().SetConstantBufferViewGPUHandleToRootParameterSlot(resourceManager.GetCommandList(), 0, m_constantBufferInGPU->GetGPUBufferHandle()))
+    //RETURN_IF_FALSE(m_constantBufferInGPU->UploadBufferFromCPU(&m_constantBufferPerLightDraw, 0, sizeof(m_constantBufferPerLightDraw)))
+    //RETURN_IF_FALSE(RHIUtils::Instance().SetConstantBufferViewGPUHandleToRootParameterSlot(resourceManager.GetCommandList(), 0, m_constantBufferInGPU->GetGPUBufferHandle()))
     
     DrawPostprocessQuad(resourceManager);
     

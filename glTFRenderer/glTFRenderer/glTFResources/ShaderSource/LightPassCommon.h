@@ -11,9 +11,10 @@ struct VS_OUTPUT
     float4 pos: SV_POSITION;
     float2 texCoord: TEXCOORD;
 };
-
-cbuffer ConstantBuffer : register(b0)
+/*
+cbuffer ConstantBuffer : register(b3)
 {
     // xyz - position , w - radius 
     float4 PointLightInfo[4];
 };
+*/

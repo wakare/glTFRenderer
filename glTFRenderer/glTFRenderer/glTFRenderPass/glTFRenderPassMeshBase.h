@@ -11,12 +11,6 @@
 #include "../glTFRHI/RHIInterface/IRHIIndexBufferView.h"
 #include "../glTFScene/glTFSceneView.h"
 
-struct ConstantBufferPerMeshDraw
-{
-    glm::mat4 worldMat {glm::mat4(1.0f)};
-    glm::mat4 viewProjection {glm::mat4{1.0f}};
-};
-
 // Vertex and index gpu buffer data
 struct MeshGPUResource
 {

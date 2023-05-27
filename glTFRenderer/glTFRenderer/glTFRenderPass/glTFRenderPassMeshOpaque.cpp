@@ -35,13 +35,14 @@ bool glTFRenderPassMeshOpaque::InitPass(glTFRenderResourceManager& resourceManag
     RETURN_IF_FALSE(glTFRenderPassMeshBase::InitPass(resourceManager))
     
     RETURN_IF_FALSE(RHIUtils::Instance().ResetCommandList(resourceManager.GetCommandList(), resourceManager.GetCurrentFrameCommandAllocator()))
+    
+    RETURN_IF_FALSE(glTFRenderPassInterfaceSceneView::InitInterface(resourceManager))
+    RETURN_IF_FALSE(glTFRenderPassInterfaceSceneMesh::InitInterface(resourceManager))
+    
     RETURN_IF_FALSE(RHIUtils::Instance().CloseCommandList(resourceManager.GetCommandList()))
     RETURN_IF_FALSE(RHIUtils::Instance().ExecuteCommandList(resourceManager.GetCommandList(),resourceManager.GetCommandQueue()))
     RETURN_IF_FALSE(resourceManager.GetCurrentFrameFence().SignalWhenCommandQueueFinish(resourceManager.GetCommandQueue()))
 
-    RETURN_IF_FALSE(glTFRenderPassInterfaceSceneView::InitInterface(resourceManager))
-    RETURN_IF_FALSE(glTFRenderPassInterfaceSceneMesh::InitInterface(resourceManager))
-    
     LOG_FORMAT("[DEBUG] Init MeshPassOpaque finished!")
     return true;
 }

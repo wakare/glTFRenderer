@@ -63,7 +63,7 @@ void glTFRenderPassManager::UpdateScene()
 
         if (auto* sceneViewInterface = dynamic_cast<glTFRenderPassInterfaceSceneView*>(pass.get()))
         {
-            sceneViewInterface->UpdateSceneViewData({m_sceneView.GetViewProjectionMatrix()});    
+            sceneViewInterface->UpdateSceneViewData({m_sceneView.GetViewProjectionMatrix(), inverse(m_sceneView.GetViewProjectionMatrix())});    
         }
     }
 }

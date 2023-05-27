@@ -12,7 +12,7 @@ bool glTFRenderPassInterfaceSceneMesh::InitInterface(glTFRenderResourceManager& 
     // TODO: Calculate mesh constant buffer size
     RETURN_IF_FALSE(m_sceneMeshGPUData->InitGPUBuffer(resourceManager.GetDevice(),
         {
-            L"MeshPassBase_PerMeshConstantBuffer",
+            L"SceneMeshInterface_PerMeshConstantBuffer",
             static_cast<size_t>(SceneMeshGPUBufferMaxSize),
             1,
             1,

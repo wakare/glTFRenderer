@@ -6,7 +6,7 @@ class IRHIGPUBuffer;
 
 struct ConstantBufferSceneMesh
 {
-    glm::mat4 viewProjection {glm::mat4{1.0f}};
+    glm::mat4 worldMat {glm::mat4{1.0f}};
 };
 
 class glTFRenderPassInterfaceSceneMesh : public glTFRenderPassInterfaceBase
