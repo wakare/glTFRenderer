@@ -60,4 +60,5 @@ protected:
     std::vector<RHIPipelineInputLayout> m_vertexInputLayouts;
 
     std::shared_ptr<IRHIRenderTarget> m_basePassColorRenderTarget;
+    std::shared_ptr<IRHIRenderTarget> m_basePassNormalRenderTarget;
 };

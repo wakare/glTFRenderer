@@ -26,3 +26,11 @@ struct VS_OUTPUT
     float2 texCoord: TEXCOORD;
 #endif
 };
+
+#define PS_INPUT VS_OUTPUT
+
+struct PS_OUTPUT
+{
+    float4 baseColor: SV_TARGET0;
+    float4 normal: SV_TARGET1;
+};

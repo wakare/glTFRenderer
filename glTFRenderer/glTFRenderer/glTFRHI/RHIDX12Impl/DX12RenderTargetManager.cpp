@@ -210,13 +210,12 @@ std::vector<std::shared_ptr<IRHIRenderTarget>> DX12RenderTargetManager::CreateRe
     return outVector;
 }
 
-bool DX12RenderTargetManager::ClearRenderTarget(IRHICommandList& commandList, IRHIRenderTarget* renderTargetArray,
-    size_t renderTargetArrayCount)
+bool DX12RenderTargetManager::ClearRenderTarget(IRHICommandList& commandList, const std::vector<IRHIRenderTarget*>& renderTargets)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
-    for (size_t i = 0; i < renderTargetArrayCount; ++i)
+    for (size_t i = 0; i < renderTargets.size(); ++i)
     {
-        auto* dxRenderTarget = dynamic_cast<DX12RenderTarget*>(&renderTargetArray[i]);
+        auto* dxRenderTarget = dynamic_cast<DX12RenderTarget*>(renderTargets[i]);
         switch (dxRenderTarget->GetRenderTargetType())
         {
         case RHIRenderTargetType::RTV:
@@ -244,21 +243,21 @@ bool DX12RenderTargetManager::ClearRenderTarget(IRHICommandList& commandList, IR
     return true;
 }
 
-bool DX12RenderTargetManager::BindRenderTarget(IRHICommandList& commandList, IRHIRenderTarget* renderTargetArray,
-    size_t renderTargetArraySize, IRHIRenderTarget* depthStencil)
+bool DX12RenderTargetManager::BindRenderTarget(IRHICommandList& commandList, const std::vector<IRHIRenderTarget*>& renderTargets,
+                                               IRHIRenderTarget* depthStencil)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
-    if (!renderTargetArraySize)
+    if (renderTargets.empty())
     {
         // Bind zero rt? some bugs must exists.. 
         assert(false);
         return false;
     }
     
-    std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> renderTargetViews(renderTargetArraySize);
-    for (size_t i = 0; i < renderTargetArraySize; ++i)
+    std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> renderTargetViews(renderTargets.size());
+    for (size_t i = 0; i < renderTargetViews.size(); ++i)
     {
-        auto iter = m_rtvHandles.find(renderTargetArray[i].GetRenderTargetId());
+        auto iter = m_rtvHandles.find(renderTargets[i]->GetRenderTargetId());
         assert(iter != m_rtvHandles.end());
         renderTargetViews[i] = iter->second;
     }

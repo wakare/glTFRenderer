@@ -14,8 +14,8 @@ public:
      
      virtual std::shared_ptr<IRHIRenderTarget> CreateRenderTarget(IRHIDevice& device, RHIRenderTargetType type, RHIDataFormat resourceFormat, RHIDataFormat descriptorFormat, const IRHIRenderTargetDesc& desc) = 0;
      virtual std::vector<std::shared_ptr<IRHIRenderTarget>> CreateRenderTargetFromSwapChain(IRHIDevice& device, IRHISwapChain& swapChain, RHIRenderTargetClearValue clearValue) = 0;
-     virtual bool ClearRenderTarget(IRHICommandList& commandList, IRHIRenderTarget* renderTargetArray, size_t renderTargetArrayCount) = 0;
-     virtual bool BindRenderTarget(IRHICommandList& commandList, IRHIRenderTarget* renderTargetArray, size_t renderTargetArraySize, /*optional*/ IRHIRenderTarget* depthStencil ) = 0;
+     virtual bool ClearRenderTarget(IRHICommandList& commandList, const std::vector<IRHIRenderTarget*>& renderTargets) = 0;
+     virtual bool BindRenderTarget(IRHICommandList& commandList, const std::vector<IRHIRenderTarget*>& renderTargets, /*optional*/ IRHIRenderTarget* depthStencil) = 0;
 
      bool RegisterRenderTargetWithTag(const std::string& renderTargetTag, std::shared_ptr<IRHIRenderTarget> renderTarget);
      std::shared_ptr<IRHIRenderTarget> GetRenderTargetWithTag(const std::string& renderTargetTag) const;

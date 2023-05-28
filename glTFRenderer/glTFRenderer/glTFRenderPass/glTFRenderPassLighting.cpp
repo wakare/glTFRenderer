@@ -67,9 +67,9 @@ bool glTFRenderPassLighting::RenderPass(glTFRenderResourceManager& resourceManag
     RETURN_IF_FALSE(RHIUtils::Instance().SetDescriptorTableGPUHandleToRootParameterSlot(resourceManager.GetCommandList(), LightPass_RootParameter_BaseColorAndDepthSRV, m_mainDescriptorHeap->GetHandle(0)))    
 
     RETURN_IF_FALSE(resourceManager.GetRenderTargetManager().BindRenderTarget(resourceManager.GetCommandList(),
-        &resourceManager.GetCurrentFrameSwapchainRT(), 1, nullptr))
+        {&resourceManager.GetCurrentFrameSwapchainRT()}, nullptr))
 
-    RETURN_IF_FALSE(resourceManager.GetRenderTargetManager().ClearRenderTarget(resourceManager.GetCommandList(), &resourceManager.GetCurrentFrameSwapchainRT(), 1))
+    RETURN_IF_FALSE(resourceManager.GetRenderTargetManager().ClearRenderTarget(resourceManager.GetCommandList(), {&resourceManager.GetCurrentFrameSwapchainRT()}))
 
     RETURN_IF_FALSE(m_constantBufferInGPU->UploadBufferFromCPU(&m_constantBufferPerLightDraw, 0, sizeof(m_constantBufferPerLightDraw)))
     RETURN_IF_FALSE(RHIUtils::Instance().SetConstantBufferViewGPUHandleToRootParameterSlot(resourceManager.GetCommandList(), LightPass_RootParameter_LightInfos, m_constantBufferInGPU->GetGPUBufferHandle()))
