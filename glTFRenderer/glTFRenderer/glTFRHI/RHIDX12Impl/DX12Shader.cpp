@@ -34,6 +34,7 @@ bool DX12Shader::CompileShaderByteCode()
             dxShaderMacros.push_back({key.c_str(), value.c_str()});
             LOG_FORMAT_FLUSH("[DEBUG] Compile with macro %s = %s\n", key.c_str(), value.c_str());
         }
+        dxShaderMacros.push_back({nullptr, nullptr});
     }
     
     ID3DBlob* shaderCompileResult = nullptr; // d3d blob for holding vertex shader bytecode

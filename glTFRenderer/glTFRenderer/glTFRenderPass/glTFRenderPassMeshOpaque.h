@@ -26,11 +26,10 @@ private:
 
 class glTFRenderPassMeshOpaque : public glTFRenderPassMeshBase
 {
-    enum
+protected:
+    enum glTFRenderPassMeshOpaqueRootParameterEnum
     {
-        MeshOpaquePass_RootParameter_SceneView = 0,
-        MeshOpaquePass_RootParameter_SceneMesh = 1,
-        MeshOpaquePass_RootParameter_MeshMaterialTexSRV = 2,
+        MeshOpaquePass_RootParameter_MeshMaterialTexSRV = MeshBasePass_RootParameter_Num,
         MeshOpaquePass_RootParameter_Num,
     };
     
@@ -45,6 +44,8 @@ protected:
     virtual size_t GetMainDescriptorHeapSize() override;
     virtual bool SetupRootSignature(glTFRenderResourceManager& resourceManager) override;
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resourceManager) override;
+
+    virtual bool BeginDrawMesh(glTFRenderResourceManager& resourceManager, glTFUniqueID meshID) override;
     
     std::vector<RHIPipelineInputLayout> GetVertexInputLayout() override;
     std::vector<RHIPipelineInputLayout> ResolveVertexInputLayout(const glTFScenePrimitive& primitive);

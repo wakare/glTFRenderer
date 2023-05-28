@@ -178,7 +178,7 @@ enum class glTF_Primitive_Mode
 
 struct glTF_Primitive
 {
-    std::map<glTFAttributeId, std::vector<glTFHandle>> attributes;
+    std::map<glTFAttributeId, glTFHandle> attributes;
     glTFHandle indices;
     glTFHandle material;
     glTF_Primitive_Mode mode;
@@ -257,6 +257,41 @@ struct glTF_Element_Template<glTF_Element_Type::EAccessor> : glTF_Element_Base
     size_t count;
     glTF_Accessor_Element_Type element_type;
     // TODO: @JACK add sparse member
+
+    unsigned GetComponentByteSize() const
+    {
+        switch (component_type) {
+            case EByte: 
+            case EUnsignedByte: return 1;
+            case EShort:
+            case EUnsignedShort: return 2;
+            case EUnsignedInt: 
+            case EFloat: return 4;
+        }
+        GLTF_CHECK(false);
+        return 0;
+    }
+    
+    unsigned GetElementByteSize() const
+    {
+        unsigned elementCount = 0;
+        switch (element_type) {
+            case glTF_Accessor_Element_Type::EScalar:   elementCount = 1; break;
+            case glTF_Accessor_Element_Type::EVec2:     elementCount = 2; break;
+            case glTF_Accessor_Element_Type::EVec3:     elementCount = 3; break;
+            case glTF_Accessor_Element_Type::EVec4:     elementCount = 4; break;
+            case glTF_Accessor_Element_Type::EMat2:     elementCount = 4; break;
+            case glTF_Accessor_Element_Type::EMat3:     elementCount = 9; break;
+            case glTF_Accessor_Element_Type::EMat4:     elementCount = 16; break;
+            case glTF_Accessor_Element_Type::EUnknown: GLTF_CHECK(false); break;
+        }
+        return elementCount * GetComponentByteSize();
+    }
+
+    bool LoadData(std::unique_ptr<float[]>& outData, const glTF_Element_BufferView& bufferView) const
+    {
+        
+    }
 };
 
 template<glTF_Accessor_Component_Type component_type>

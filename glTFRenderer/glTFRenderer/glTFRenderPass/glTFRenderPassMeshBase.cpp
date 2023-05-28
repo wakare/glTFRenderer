@@ -3,7 +3,9 @@
 #include "../glTFRHI/RHIResourceFactoryImpl.hpp"
 
 glTFRenderPassMeshBase::glTFRenderPassMeshBase()
-    : m_basePassColorRenderTarget(nullptr)
+    : glTFRenderPassInterfaceSceneView(MeshBasePass_RootParameter_SceneView, MeshBasePass_RootParameter_SceneView)
+    , glTFRenderPassInterfaceSceneMesh(MeshBasePass_RootParameter_SceneMesh, MeshBasePass_RootParameter_SceneMesh)
+    , m_basePassColorRenderTarget(nullptr)
 {
 }
 
@@ -16,14 +18,36 @@ bool glTFRenderPassMeshBase::InitPass(glTFRenderResourceManager& resourceManager
 
 bool glTFRenderPassMeshBase::RenderPass(glTFRenderResourceManager& resourceManager)
 {
+    RETURN_IF_FALSE(glTFRenderPassBase::RenderPass(resourceManager))
+    
     RETURN_IF_FALSE(resourceManager.GetRenderTargetManager().BindRenderTarget(resourceManager.GetCommandList(),
         m_basePassColorRenderTarget.get(), 1, &resourceManager.GetDepthRT()))
 
     RETURN_IF_FALSE(resourceManager.GetRenderTargetManager().ClearRenderTarget(resourceManager.GetCommandList(), m_basePassColorRenderTarget.get(), 1))
     RETURN_IF_FALSE(resourceManager.GetRenderTargetManager().ClearRenderTarget(resourceManager.GetCommandList(), &resourceManager.GetDepthRT(), 1))
     RHIUtils::Instance().SetPrimitiveTopology( resourceManager.GetCommandList(), RHIPrimitiveTopologyType::TRIANGLELIST);
+
+    RETURN_IF_FALSE(glTFRenderPassInterfaceSceneView::ApplyInterface(resourceManager, MeshBasePass_RootParameter_SceneView))
+
+    for (const auto& mesh : m_meshes)
+    {
+        glTFUniqueID meshID = mesh.first;
+        RETURN_IF_FALSE(BeginDrawMesh(resourceManager, meshID))
+        
+        // Upload constant buffer
+        RETURN_IF_FALSE(UpdateSceneMeshData({mesh.second.meshTransformMatrix}))
+        glTFRenderPassInterfaceSceneMesh::ApplyInterface(resourceManager, meshID, MeshBasePass_RootParameter_SceneMesh);
+        
+        RHIUtils::Instance().SetVertexBufferView(resourceManager.GetCommandList(), *mesh.second.meshVertexBufferView);
+        RHIUtils::Instance().SetIndexBufferView(resourceManager.GetCommandList(), *mesh.second.meshIndexBufferView);
+        
+        RHIUtils::Instance().DrawIndexInstanced(resourceManager.GetCommandList(),
+            mesh.second.meshIndexCount, 1, 0, 0, 0);
+
+        RETURN_IF_FALSE(EndDrawMesh(resourceManager, mesh.first))
+    }
     
-    return glTFRenderPassBase::RenderPass(resourceManager);
+    return true;
 }
 
 bool glTFRenderPassMeshBase::AddOrUpdatePrimitiveToMeshPass(glTFRenderResourceManager& resourceManager, const glTFScenePrimitive& primitive)
@@ -70,17 +94,17 @@ bool glTFRenderPassMeshBase::AddOrUpdatePrimitiveToMeshPass(glTFRenderResourceMa
         RETURN_IF_FALSE(fence->WaitUtilSignal())
         
         vertexBufferView->InitVertexBufferView(*vertexBuffer, 0, primitive.GetVertexLayout().GetVertexStride(), primitiveVertices.byteSize);
-        indexBufferView->InitIndexBufferView(*indexBuffer, 0, RHIDataFormat::R32_UINT, primitiveIndices.byteSize);
+        indexBufferView->InitIndexBufferView(*indexBuffer, 0, primitiveIndices.elementType == IndexBufferElementType::UNSIGNED_INT ? RHIDataFormat::R32_UINT : RHIDataFormat::R16_UINT, primitiveIndices.byteSize);
 
-        m_meshes[meshID].meshVertexCount = primitiveVertices.VertexCount();
-        m_meshes[meshID].meshIndexCount = primitiveIndices.IndexCount();
-        m_meshes[meshID].materialID = primitive.GetMaterial().GetID();
+        m_meshes[meshID].meshVertexCount = primitiveVertices.vertexCount;
+        m_meshes[meshID].meshIndexCount = primitiveIndices.indexCount;
+        m_meshes[meshID].materialID = primitive.HasMaterial() ? primitive.GetMaterial().GetID() : glTFUniqueIDInvalid;
     }
 
     // Only update when transform has changed
     m_meshes[meshID].meshTransformMatrix = primitive.GetTransformMatrix();
     
-    return true;
+    return true; 
 }
 
 bool glTFRenderPassMeshBase::RemovePrimitiveFromMeshPass(glTFUniqueID meshIDToRemove)
@@ -101,6 +125,9 @@ bool glTFRenderPassMeshBase::RemovePrimitiveFromMeshPass(glTFUniqueID meshIDToRe
 
 bool glTFRenderPassMeshBase::SetupRootSignature(glTFRenderResourceManager& resourceManager)
 {
+    RETURN_IF_FALSE(glTFRenderPassInterfaceSceneView::SetupRootSignature(*m_rootSignature))
+    RETURN_IF_FALSE(glTFRenderPassInterfaceSceneMesh::SetupRootSignature(*m_rootSignature))
+    
     return true;
 }
 
@@ -123,7 +150,21 @@ bool glTFRenderPassMeshBase::SetupPipelineStateObject(glTFRenderResourceManager&
     resourceManager.GetRenderTargetManager().RegisterRenderTargetWithTag("BasePassColor", m_basePassColorRenderTarget);
     
     m_pipelineStateObject->BindRenderTargets(allRts);
+
+    auto& shaderMacros = m_pipelineStateObject->GetShaderMacros();
+    glTFRenderPassInterfaceSceneView::UpdateShaderCompileDefine(shaderMacros);
+    glTFRenderPassInterfaceSceneMesh::UpdateShaderCompileDefine(shaderMacros);
     
+    return true;
+}
+
+bool glTFRenderPassMeshBase::BeginDrawMesh(glTFRenderResourceManager& resourceManager, glTFUniqueID meshID)
+{
+    return true;   
+}
+
+bool glTFRenderPassMeshBase::EndDrawMesh(glTFRenderResourceManager& resourceManager, glTFUniqueID meshID)
+{
     return true;
 }
 
@@ -136,5 +177,6 @@ bool glTFRenderPassMeshBase::TryProcessSceneObject(glTFRenderResourceManager& re
         return false;
     }
 
-    return AddOrUpdatePrimitiveToMeshPass(resourceManager, *primitive) && ProcessMaterial(resourceManager, primitive->GetMaterial());
+    return AddOrUpdatePrimitiveToMeshPass(resourceManager, *primitive) &&
+        primitive->HasMaterial() && ProcessMaterial(resourceManager, primitive->GetMaterial());
 }

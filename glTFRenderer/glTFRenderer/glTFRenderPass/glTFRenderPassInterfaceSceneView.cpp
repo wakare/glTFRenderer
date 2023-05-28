@@ -2,6 +2,14 @@
 #include "../glTFRHI/RHIUtils.h"
 #include "../glTFRHI/RHIResourceFactory.h"
 #include "../glTFRHI/RHIInterface/IRHIGPUBuffer.h"
+#include "../glTFUtils/glTFLog.h"
+
+glTFRenderPassInterfaceSceneView::glTFRenderPassInterfaceSceneView(unsigned rootParameterIndex, unsigned registerIndex)
+    : m_rootParameterIndex(rootParameterIndex)
+    , m_registerIndex(registerIndex)
+{
+    
+}
 
 bool glTFRenderPassInterfaceSceneView::InitInterface(glTFRenderResourceManager& resourceManager)
 {
@@ -34,4 +42,17 @@ bool glTFRenderPassInterfaceSceneView::ApplyInterface(glTFRenderResourceManager&
         rootParameterSlotIndex, m_sceneViewGPUData->GetGPUBufferHandle()))
     
     return true;
+}
+
+bool glTFRenderPassInterfaceSceneView::SetupRootSignature(IRHIRootSignature& rootSignature) const
+{
+    return rootSignature.GetRootParameter(m_rootParameterIndex).InitAsCBV(m_registerIndex);
+}
+
+void glTFRenderPassInterfaceSceneView::UpdateShaderCompileDefine(RHIShaderPreDefineMacros& outShaderPreDefineMacros) const
+{
+    char registerIndexValue[16] = {'\0'};
+    (void)snprintf(registerIndexValue, sizeof(registerIndexValue), "register(b%d)", m_registerIndex);
+    outShaderPreDefineMacros.AddMacro("SCENE_VIEW_REGISTER_INDEX", registerIndexValue);
+    LOG_FORMAT("[INFO] Add shader preDefine %s, %s\n", "SCENE_VIEW_REGISTER_INDEX", registerIndexValue);
 }

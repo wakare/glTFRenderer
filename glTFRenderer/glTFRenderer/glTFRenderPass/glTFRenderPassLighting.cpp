@@ -6,7 +6,8 @@
 #include "../glTFRHI/RHIResourceFactory.h"
 
 glTFRenderPassLighting::glTFRenderPassLighting()
-    : m_basePassColorRT(nullptr)
+    : glTFRenderPassInterfaceSceneView(LightPass_RootParameter_SceneView, LightPass_RootParameter_SceneView)
+    , m_basePassColorRT(nullptr)
     , m_basePassColorRTSRVHandle(0)
     , m_depthRTSRVHandle(0)
     , m_constantBufferPerLightDraw({})
@@ -97,14 +98,13 @@ size_t glTFRenderPassLighting::GetMainDescriptorHeapSize()
 
 bool glTFRenderPassLighting::SetupRootSignature(glTFRenderResourceManager& resourceManager)
 {
-    RETURN_IF_FALSE(glTFRenderPassPostprocess::SetupRootSignature(resourceManager))
-    
     // Init root signature
     constexpr size_t rootSignatureParameterCount = LightPass_RootParameter_Num;
     constexpr size_t rootSignatureStaticSamplerCount = 1;
     RETURN_IF_FALSE(m_rootSignature->AllocateRootSignatureSpace(rootSignatureParameterCount, rootSignatureStaticSamplerCount))
 
-    m_rootSignature->GetRootParameter(LightPass_RootParameter_SceneView).InitAsCBV(0);
+    RETURN_IF_FALSE(glTFRenderPassPostprocess::SetupRootSignature(resourceManager))
+    RETURN_IF_FALSE(glTFRenderPassInterfaceSceneView::SetupRootSignature(*m_rootSignature))
     
     const RHIRootParameterDescriptorRangeDesc SRVRangeDesc {RHIRootParameterDescriptorRangeType::SRV, 0, 2};
     m_rootSignature->GetRootParameter(LightPass_RootParameter_BaseColorAndDepthSRV).InitAsDescriptorTableRange(1, &SRVRangeDesc);
@@ -137,7 +137,12 @@ bool glTFRenderPassLighting::SetupPipelineStateObject(glTFRenderResourceManager&
     m_pipelineStateObject->BindShaderCode(
         R"(glTFResources\ShaderSource\LightPassPS.hlsl)", RHIShaderType::Pixel, "main");
 
-    RETURN_IF_FALSE (m_pipelineStateObject->InitPipelineStateObject(resourceManager.GetDevice(), *m_rootSignature, resourceManager.GetSwapchain(), GetVertexInputLayout()))
+    RETURN_IF_FALSE(m_pipelineStateObject->BindInputLayout(GetVertexInputLayout()))
+    
+    auto& shaderMacros = m_pipelineStateObject->GetShaderMacros();
+    glTFRenderPassInterfaceSceneView::UpdateShaderCompileDefine(shaderMacros);
+    
+    RETURN_IF_FALSE (m_pipelineStateObject->InitPipelineStateObject(resourceManager.GetDevice(), *m_rootSignature, resourceManager.GetSwapchain()))
     
     return true;
 }

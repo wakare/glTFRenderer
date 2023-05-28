@@ -5,6 +5,12 @@
 
 const size_t SceneMeshGPUBufferMaxSize = 64 * 1024;
 
+glTFRenderPassInterfaceSceneMesh::glTFRenderPassInterfaceSceneMesh(unsigned rootParameterIndex, unsigned registerIndex)
+    : m_rootParameterIndex(rootParameterIndex)
+    , m_registerIndex(registerIndex)
+{
+}
+
 bool glTFRenderPassInterfaceSceneMesh::InitInterface(glTFRenderResourceManager& resourceManager)
 {
     m_sceneMeshGPUData = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
@@ -42,4 +48,17 @@ bool glTFRenderPassInterfaceSceneMesh::ApplyInterface(glTFRenderResourceManager&
     RETURN_IF_FALSE(RHIUtils::Instance().SetConstantBufferViewGPUHandleToRootParameterSlot(resourceManager.GetCommandList(), rootParameterSlotIndex, m_sceneMeshGPUData->GetGPUBufferHandle() + offsetAligned))
     
     return true;
+}
+
+bool glTFRenderPassInterfaceSceneMesh::SetupRootSignature(IRHIRootSignature& rootSignature) const
+{
+    return rootSignature.GetRootParameter(m_rootParameterIndex).InitAsCBV(m_registerIndex);
+}
+
+void glTFRenderPassInterfaceSceneMesh::UpdateShaderCompileDefine(RHIShaderPreDefineMacros& outShaderPreDefineMacros) const
+{
+    char registerIndexValue[16] = {'\0'};
+    (void)snprintf(registerIndexValue, sizeof(registerIndexValue), "register(b%d)", m_registerIndex);
+    outShaderPreDefineMacros.AddMacro("SCENE_MESH_REGISTER_INDEX", registerIndexValue);
+    LOG_FORMAT("[INFO] Add shader preDefine %s, %s\n", "SCENE_MESH_REGISTER_INDEX", registerIndexValue);
 }

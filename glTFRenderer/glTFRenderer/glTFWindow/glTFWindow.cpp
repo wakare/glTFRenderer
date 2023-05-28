@@ -9,6 +9,8 @@
 #include "../glTFRenderPass/glTFRenderPassMeshOpaque.h"
 #include "../glTFScene/glTFSceneBox.h"
 #include "../glTFScene/glTFCamera.h"
+#include "../glTFLoader/glTFLoader.h"
+#include "../glTFScene/glTFSceneTriangleMesh.h"
 
 glTFWindow::glTFWindow()
     : m_glfwWindow(nullptr)
@@ -62,6 +64,43 @@ glTFWindow& glTFWindow::Get()
     return window;
 }
 
+bool CreateTestScene(glTFSceneGraph& sceneGraph)
+{
+    std::shared_ptr<glTFMaterialOpaque> boxAlbedoMaterial = std::make_shared<glTFMaterialOpaque>(std::make_shared<glTFMaterialTexture>("glTFResources/tiger.bmp"));
+    
+    std::unique_ptr<glTFSceneNode> boxSceneNode = std::make_unique<glTFSceneNode>();
+    boxSceneNode->object = std::make_unique<glTFSceneBox>();
+    boxSceneNode->object->GetTransform().position = {5.0f, 0.0f, 0.0f};
+    auto* boxNode = boxSceneNode.get();
+    boxNode->object->SetTickFunc([boxNode]()
+    {
+        auto* box = boxNode->object.get();
+        box->GetTransform().rotation.x += 0.0001f;
+        box->GetTransform().rotation.y += 0.0002f;
+        box->GetTransform().rotation.z += 0.0003f;
+        boxNode->renderStateDirty = true;
+    });
+    ((glTFSceneBox*)boxSceneNode->object.get())->SetMaterial(boxAlbedoMaterial);
+    sceneGraph.AddSceneNode(std::move(boxSceneNode));
+
+    std::unique_ptr<glTFSceneNode> boxSceneNode2 = std::make_unique<glTFSceneNode>();
+    boxSceneNode2->object = std::make_unique<glTFSceneBox>();
+    boxSceneNode2->object->GetTransform().position = {-5.0f, 0.0f, 0.0f};
+    auto* boxNode2 = boxSceneNode2.get();
+    boxNode2->object->SetTickFunc([boxNode2]()
+    {
+        auto* box = boxNode2->object.get();
+        box->GetTransform().rotation.x += 0.0001f;
+        box->GetTransform().rotation.y += 0.0002f;
+        box->GetTransform().rotation.z += 0.0003f;
+        boxNode2->renderStateDirty = true;
+    });
+    ((glTFSceneBox*)boxSceneNode2->object.get())->SetMaterial(boxAlbedoMaterial);
+    sceneGraph.AddSceneNode(std::move(boxSceneNode2));
+    
+    return true;
+}
+
 bool glTFWindow::InitAndShowWindow()
 {
     if (!glfwInit())
@@ -81,38 +120,8 @@ bool glTFWindow::InitAndShowWindow()
     
     // Create test scene with box
     m_sceneGraph = std::make_unique<glTFSceneGraph>(); 
-    std::shared_ptr<glTFMaterialOpaque> boxAlbedoMaterial = std::make_shared<glTFMaterialOpaque>(std::make_shared<glTFMaterialTexture>("glTFResources/tiger.bmp"));
-    
-    std::unique_ptr<glTFSceneNode> boxSceneNode = std::make_unique<glTFSceneNode>();
-    boxSceneNode->object = std::make_unique<glTFSceneBox>();
-    boxSceneNode->object->GetTransform().position = {5.0f, 0.0f, 0.0f};
-    auto* boxNode = boxSceneNode.get();
-    boxNode->object->SetTickFunc([boxNode]()
-    {
-        auto* box = boxNode->object.get();
-        box->GetTransform().rotation.x += 0.0001f;
-        box->GetTransform().rotation.y += 0.0002f;
-        box->GetTransform().rotation.z += 0.0003f;
-        boxNode->renderStateDirty = true;
-    });
-    ((glTFSceneBox*)boxSceneNode->object.get())->SetMaterial(boxAlbedoMaterial);
-    m_sceneGraph->AddSceneNode(std::move(boxSceneNode));
+    RETURN_IF_FALSE(LoadSceneGraphFromFile("D:\\Work\\DevSpace\\glTFRenderer\\glTFRenderer\\glTFRenderer\\glTFRenderer\\glTFResources\\Models\\Box\\Box.gltf"))
 
-    std::unique_ptr<glTFSceneNode> boxSceneNode2 = std::make_unique<glTFSceneNode>();
-    boxSceneNode2->object = std::make_unique<glTFSceneBox>();
-    boxSceneNode2->object->GetTransform().position = {-5.0f, 0.0f, 0.0f};
-    auto* boxNode2 = boxSceneNode2.get();
-    boxNode2->object->SetTickFunc([boxNode2]()
-    {
-        auto* box = boxNode2->object.get();
-        box->GetTransform().rotation.x += 0.0001f;
-        box->GetTransform().rotation.y += 0.0002f;
-        box->GetTransform().rotation.z += 0.0003f;
-        boxNode2->renderStateDirty = true;
-    });
-    ((glTFSceneBox*)boxSceneNode2->object.get())->SetMaterial(boxAlbedoMaterial);
-    m_sceneGraph->AddSceneNode(std::move(boxSceneNode2));
-    
     std::unique_ptr<glTFCamera> camera = std::make_unique<glTFCamera>(45.0f, 800.0f, 600.0f, 0.1f, 1000.0f);
     camera->GetTransform() = glTFTransform::Identity();
     camera->GetTransform().position = {0.0f, 0.0f, -15.0f};
@@ -120,7 +129,7 @@ bool glTFWindow::InitAndShowWindow()
     std::unique_ptr<glTFSceneNode> cameraNode = std::make_unique<glTFSceneNode>();
     cameraNode->object = std::move(camera);
     m_sceneGraph->AddSceneNode(std::move(cameraNode));
-
+    
     m_sceneView = std::make_unique<glTFSceneView>(*m_sceneGraph);
     
     if (!InitDX12())
@@ -220,4 +229,89 @@ void glTFWindow::CursorPosCallback(GLFWwindow* window, double xpos, double ypos)
     }
     
     Get().m_inputControl.RecordCursorPos(xpos, ypos);
+}
+
+bool glTFWindow::LoadSceneGraphFromFile(const char* filePath)
+{
+    glTFLoader loader;
+    const bool loaded = loader.LoadFile(filePath);
+    if (loaded)
+    {
+        loader.Print();    
+    }
+
+    const auto& sceneNode = loader.m_scenes[loader.default_scene];
+    for (const auto& rootNode : sceneNode->root_nodes)
+    {
+        const auto& node = loader.m_nodes[rootNode];
+        std::unique_ptr<glTFSceneNode> newNode = std::make_unique<glTFSceneNode>();
+        const auto& Mesh = *loader.m_meshes[node->mesh];
+        for (const auto& primitive : Mesh.primitives)
+        {
+            VertexLayoutDeclaration vertexLayout;
+            size_t vertexBufferSize = 0;
+
+            std::vector<char*> vertexDataInGLTFBuffers;
+            
+            // POSITION attribute
+            auto itPosition = primitive.attributes.find(glTF_Attribute_POSITION::attribute_type_id);
+            if (itPosition != primitive.attributes.end())
+            {
+                const glTFHandle accessorHandle = itPosition->second; 
+                const auto& vertexAccessor = *loader.m_accessors[accessorHandle];
+                vertexLayout.elements.push_back({VertexLayoutType::POSITION, vertexAccessor.GetElementByteSize()});
+                vertexBufferSize += vertexAccessor.count * vertexAccessor.GetElementByteSize();
+
+                const auto& vertexBufferView = *loader.m_bufferViews[vertexAccessor.buffer_view];
+                char* bufferStart = loader.m_bufferDatas[vertexBufferView.buffer].get();
+                vertexDataInGLTFBuffers.push_back(bufferStart + vertexBufferView.byte_offset + vertexAccessor.byte_offset);
+            }
+
+            // NORMAL attribute
+            auto itNormal = primitive.attributes.find(glTF_Attribute_NORMAL::attribute_type_id);
+            if (itNormal != primitive.attributes.end())
+            {
+                const glTFHandle accessorHandle = itNormal->second; 
+                const auto& vertexAccessor = *loader.m_accessors[accessorHandle];
+                vertexLayout.elements.push_back({VertexLayoutType::NORMAL, vertexAccessor.GetElementByteSize()});
+                vertexBufferSize += vertexAccessor.count * vertexAccessor.GetElementByteSize();
+
+                const auto& vertexBufferView = *loader.m_bufferViews[vertexAccessor.buffer_view];
+                char* bufferStart =  loader.m_bufferDatas[vertexBufferView.buffer].get();
+                vertexDataInGLTFBuffers.push_back(bufferStart + vertexBufferView.byte_offset + vertexAccessor.byte_offset);
+            }
+
+            std::shared_ptr<VertexBufferData> vertexBufferData = std::make_shared<VertexBufferData>();
+            vertexBufferData->data.reset(new char[vertexBufferSize]);
+            vertexBufferData->byteSize = vertexBufferSize;
+            vertexBufferData->vertexCount = vertexBufferSize /vertexLayout.GetVertexStride();
+            char* vertexDataStart = vertexBufferData->data.get();
+            for (size_t v = 0; v < vertexBufferData->vertexCount; ++v)
+            {
+                // Reformat vertex buffer data
+                for (size_t i = 0; i < vertexLayout.elements.size(); ++i)
+                {
+                    memcpy(vertexDataStart, vertexDataInGLTFBuffers[i], vertexLayout.elements[i].byteSize);
+                    vertexDataInGLTFBuffers[i] += vertexLayout.elements[i].byteSize;
+                    vertexDataStart += vertexLayout.elements[i].byteSize;
+                }
+            }
+            
+            const auto& indexAccessor = *loader.m_accessors[primitive.indices];
+            const auto& indexBufferView = *loader.m_bufferViews[indexAccessor.buffer_view];
+            
+            std::shared_ptr<IndexBufferData> indexBufferData = std::make_shared<IndexBufferData>();
+            indexBufferData->data.reset(new char[indexBufferView.byte_length]);
+            memcpy(indexBufferData->data.get(), loader.m_bufferDatas[indexBufferView.buffer].get() + indexBufferView.byte_offset + indexAccessor.byte_offset, indexBufferView.byte_length);
+            indexBufferData->byteSize = indexBufferView.byte_length;
+            indexBufferData->indexCount = indexAccessor.count;
+            indexBufferData->elementType = indexAccessor.component_type == EUnsignedShort ? IndexBufferElementType::UNSIGNED_SHORT : IndexBufferElementType::UNSIGNED_INT;   
+            
+            newNode->object.reset(new glTFSceneTriangleMesh(vertexLayout, vertexBufferData, indexBufferData));
+        }
+
+        m_sceneGraph->AddSceneNode(std::move(newNode));
+    }
+    
+    return true;
 }

@@ -43,13 +43,16 @@ glTFSceneBox::glTFSceneBox()
         4, 7, 6
     };
     
-    m_vertexBufferData.data.reset(new float[sizeof(boxVertices) / sizeof(float)]);
+    m_vertexBufferData.data.reset(new char[sizeof(boxVertices)]);
     memcpy(m_vertexBufferData.data.get(), boxVertices, sizeof(boxVertices));
     m_vertexBufferData.byteSize = sizeof(boxVertices);
+    m_vertexBufferData.vertexCount = 8;
     
-    m_indexBufferData.data.reset(new unsigned[sizeof(boxIndices) / sizeof(unsigned)]);
+    m_indexBufferData.data.reset(new char[sizeof(boxIndices)]);
     memcpy(m_indexBufferData.data.get(), boxIndices, sizeof(boxIndices));
     m_indexBufferData.byteSize = sizeof(boxIndices);
+    m_indexBufferData.indexCount = sizeof(boxIndices) / sizeof(unsigned);
+    m_indexBufferData.elementType = IndexBufferElementType::UNSIGNED_INT; 
 }
 
 const VertexLayoutDeclaration& glTFSceneBox::GetVertexLayout() const

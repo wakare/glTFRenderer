@@ -40,6 +40,7 @@ enum class RHIDataFormat
     R32_TYPELESS,
     R16_FLOAT,
     R16_UNORM,
+    R16_UINT,
     R8_UNORM,
     A8_UNORM,
     Unknown,
@@ -143,6 +144,7 @@ inline int GetRHIDataFormatBitsPerPixel(const RHIDataFormat& RHIDataFormat)
     else if (RHIDataFormat == RHIDataFormat::R32_TYPELESS) return 32;
     else if (RHIDataFormat == RHIDataFormat::R16_FLOAT) return 16;
     else if (RHIDataFormat == RHIDataFormat::R16_UNORM) return 16;
+    else if (RHIDataFormat == RHIDataFormat::R16_UINT) return 16;
     else if (RHIDataFormat == RHIDataFormat::R8_UNORM) return 8;
     else if (RHIDataFormat == RHIDataFormat::A8_UNORM) return 8;
 

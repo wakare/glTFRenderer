@@ -15,6 +15,11 @@ enum class RHIPipelineType
     Unknown,
 };
 
+#define DECLARE_INPUT_LAYOUT_SEMANTIC_NAME(x) static const char* g_inputLayoutName##x = #x;
+DECLARE_INPUT_LAYOUT_SEMANTIC_NAME(POSITION)
+DECLARE_INPUT_LAYOUT_SEMANTIC_NAME(NORMAL)
+DECLARE_INPUT_LAYOUT_SEMANTIC_NAME(TEXCOORD)
+
 struct RHIPipelineInputLayout
 {
     std::string semanticName;
@@ -31,10 +36,14 @@ public:
     IRHIPipelineStateObject(RHIPipelineType type);
     virtual bool BindShaderCode(const std::string& shaderFilePath, RHIShaderType type, const std::string& entryFunctionName) = 0;
     virtual bool BindRenderTargets(const std::vector<IRHIRenderTarget*>& renderTargets) = 0;
-    virtual bool InitPipelineStateObject(IRHIDevice& device, IRHIRootSignature& rootSignature, IRHISwapChain& swapchain, const std::vector<RHIPipelineInputLayout>& inputLayouts) = 0;
+    bool BindInputLayout(const std::vector<RHIPipelineInputLayout>& inputLayout);
+    virtual bool InitPipelineStateObject(IRHIDevice& device, IRHIRootSignature& rootSignature, IRHISwapChain& swapchain) = 0;
 
     virtual IRHIShader& GetBindShader(RHIShaderType type) = 0;
+    RHIShaderPreDefineMacros& GetShaderMacros();
     
 protected:
     RHIPipelineType m_type;
+    RHIShaderPreDefineMacros m_shaderMacros;
+    std::vector<RHIPipelineInputLayout> m_inputLayout;
 };

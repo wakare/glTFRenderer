@@ -28,7 +28,7 @@ float4 main(VS_OUTPUT input) : SV_TARGET
         float4 PointLightPosition = float4(PointLightInfos[i].xyz, 1.0);
         float PointLightRadius = PointLightInfos[i].w;
         float lightIntensity = 1.0 - saturate(length(worldPosition - PointLightPosition) / PointLightRadius);  
-        FinalLighting += baseColor * lightIntensity;
+        FinalLighting += baseColor * pow(lightIntensity, 2.0);
     }
     
     return FinalLighting;

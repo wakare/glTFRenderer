@@ -13,6 +13,12 @@ enum class RHIShaderType
 
 struct RHIShaderPreDefineMacros
 {
+    void AddMacro(const std::string& key, const std::string& value)
+    {
+        macroKey.push_back(key);
+        macroValue.push_back(value);
+    }
+    
     std::vector<std::string> macroKey;
     std::vector<std::string> macroValue;
 };

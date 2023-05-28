@@ -23,12 +23,14 @@
 #define glTF_PROCESS_NODE_CAMERA(JSON_ELEMENT, RESULT) glTF_PROCESS_SCALAR(JSON_ELEMENT, "camera", glTFHandle, (RESULT)->camera)
 #define glTF_PROCESS_NODE_CHILDREN(JSON_ELEMENT, RESULT) glTF_PRCOESS_VEC(JSON_ELEMENT, "children", glTFHandle, (RESULT)->children)
 
+#define glTF_PROCESS_PRIMITIVE_ATTRIBUTE(JSON_ELEMENT, ATTRIBUTE_NAME, RESULT) glTF_PROCESS_SCALAR(JSON_ELEMENT, #ATTRIBUTE_NAME, glTFHandle, (RESULT)[glTF_Attribute_##ATTRIBUTE_NAME::attribute_type_id])
+
 #define glTF_PROCESS_BUFFER_URI(JSON_ELEMENT, RESULT) glTF_PROCESS_SCALAR(JSON_ELEMENT, "uri", std::string, (RESULT)->uri)
 #define glTF_PROCESS_BUFFER_BYTELENGTH(JSON_ELEMENT, RESULT) glTF_PROCESS_SCALAR(JSON_ELEMENT, "byteLength", glTFHandle, (RESULT)->byte_length)
 
 #define glTF_PROCESS_BUFFERVIEW_BUFFER(JSON_ELEMENT, RESULT) glTF_PROCESS_SCALAR(JSON_ELEMENT, "buffer", unsigned, (RESULT)->buffer)
 #define glTF_PROCESS_BUFFERVIEW_BYTEOFFSET(JSON_ELEMENT, RESULT) glTF_PROCESS_SCALAR(JSON_ELEMENT, "byteOffset", unsigned, (RESULT)->byte_offset)
-#define glTF_PROCESS_BUFFERVIEW_BYTELENGTH(JSON_ELEMENT, RESULT) glTF_PROCESS_SCALAR(JSON_ELEMENT, "bufferLength", unsigned, (RESULT)->byte_length)
+#define glTF_PROCESS_BUFFERVIEW_BYTELENGTH(JSON_ELEMENT, RESULT) glTF_PROCESS_SCALAR(JSON_ELEMENT, "byteLength", unsigned, (RESULT)->byte_length)
 #define glTF_PROCESS_BUFFERVIEW_TARGET(JSON_ELEMENT, RESULT) glTF_PROCESS_SCALAR(JSON_ELEMENT, "target", glTF_BufferView_Target, (RESULT)->target)
 
 #define glTF_PROCESS_ACCESSOR_COUNT(JSON_ELEMENT, RESULT) glTF_PROCESS_SCALAR(JSON_ELEMENT, "count", size_t, (RESULT)->count)
@@ -103,7 +105,7 @@ glTF_Accessor_Element_Type ParseAccessorElementType(const std::string& element_t
 glTFLoader::glTFLoader()
 = default;
 
-bool glTFLoader::LoadFile(const char* file_path)
+bool glTFLoader::LoadFile(const std::string& file_path)
 {
     std::ifstream glTF_file(file_path);
     if (glTF_file.bad())
@@ -152,15 +154,15 @@ bool glTFLoader::LoadFile(const char* file_path)
         }
         else if (raw_data.contains("scale"))
         {
-            
+            //TODO: 
         }
         else if (raw_data.contains("rotation"))
         {
-            
+            //TODO: 
         }
         else if (raw_data.contains("translation"))
         {
-            
+            //TODO: 
         }
         
         m_nodes.push_back(std::move(element));
@@ -173,6 +175,44 @@ bool glTFLoader::LoadFile(const char* file_path)
         {
             m_nodes[child_index]->parent = node->self_handle;
         }
+    }
+
+    // Parse meshes data
+    for (const auto& raw_data : data["meshes"])
+    {
+        std::unique_ptr<glTF_Element_Mesh> element = std::make_unique<glTF_Element_Mesh>();
+        element->self_handle = handle_index++;
+
+        glTF_PROCESS_NAME(raw_data, element)
+        if (raw_data.contains("primitives"))
+        {
+            for (const auto& primitive_raw_data : raw_data["primitives"])
+            {
+                glTF_Primitive primitive;
+                if (primitive_raw_data.contains("attributes"))
+                {
+                    glTF_PROCESS_PRIMITIVE_ATTRIBUTE(primitive_raw_data["attributes"], POSITION, primitive.attributes)
+                    glTF_PROCESS_PRIMITIVE_ATTRIBUTE(primitive_raw_data["attributes"], NORMAL, primitive.attributes)
+                    glTF_PROCESS_PRIMITIVE_ATTRIBUTE(primitive_raw_data["attributes"], TANGENT, primitive.attributes)
+                }
+                
+                if (primitive_raw_data.contains("indices"))
+                {
+                    primitive.indices = primitive_raw_data["indices"].get<glTFHandle>(); 
+                }
+
+                if (primitive_raw_data.contains("mode"))
+                {
+                    primitive.mode = primitive_raw_data["mode"].get<glTF_Primitive_Mode>();
+                }
+
+                // TODO: Handle material node
+
+                element->primitives.push_back(primitive);
+            }
+        }
+
+        m_meshes.push_back(std::move(element));
     }
 
     // Parse buffers data
@@ -265,9 +305,32 @@ bool glTFLoader::LoadFile(const char* file_path)
 
         m_accessors.push_back(std::move(element));
     }
+    
+    std::string directory;
+    const size_t last_slash_idx = file_path.rfind('\\');
+    if (std::string::npos != last_slash_idx)
+    {
+        directory = file_path.substr(0, last_slash_idx);
+    }
+    
+    for (const auto& buffer : m_buffers)
+    {
+        const std::string uriFilePath = directory + "\\" + buffer->uri;
+        std::ifstream uriFileStream(uriFilePath);
+        if (uriFileStream.bad())
+        {
+            GLTF_CHECK(false);
+            continue;
+        }
 
+        m_bufferDatas[buffer->self_handle] = std::make_unique<char[]>(buffer->byte_length);
+        uriFileStream.read(m_bufferDatas[buffer->self_handle].get(), buffer->byte_length);
+        uriFileStream.close();
+    }
+    
     // TODO: @JACK Parse other types
 
+    
     return true;
 }
 

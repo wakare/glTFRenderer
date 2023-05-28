@@ -16,7 +16,7 @@ bool glTFAlbedoMaterialTextureResource::Init(glTFRenderResourceManager& resource
     RETURN_IF_FALSE(m_textureBuffer->UploadTextureFromFile(resourceManager.GetDevice(), resourceManager.GetCommandList(),
         imageLoader, m_sourceTexture.GetTexturePath()))
     
-    RETURN_IF_FALSE(RHIUtils::Instance().CreateShaderResourceViewInDescriptorHeap(resourceManager.GetDevice(), descriptorHeap, 1,
+    RETURN_IF_FALSE(RHIUtils::Instance().CreateShaderResourceViewInDescriptorHeap(resourceManager.GetDevice(), descriptorHeap, 0,
         m_textureBuffer->GetGPUBuffer(), {m_textureBuffer->GetTextureDesc().GetDataFormat(), RHIShaderVisibleViewDimension::TEXTURE2D}, m_textureSRVHandle))
 
     RHIUtils::Instance().CloseCommandList(resourceManager.GetCommandList()); 
@@ -50,26 +50,7 @@ bool glTFRenderPassMeshOpaque::InitPass(glTFRenderResourceManager& resourceManag
 bool glTFRenderPassMeshOpaque::RenderPass(glTFRenderResourceManager& resourceManager)
 {
     RETURN_IF_FALSE(glTFRenderPassMeshBase::RenderPass(resourceManager))
-    RETURN_IF_FALSE(glTFRenderPassInterfaceSceneView::ApplyInterface(resourceManager, MeshOpaquePass_RootParameter_SceneView))
-
-    unsigned meshIndex = 0;
-    for (const auto& mesh : m_meshes)
-    {
-        // Upload constant buffer
-        RETURN_IF_FALSE(UpdateSceneMeshData({mesh.second.meshTransformMatrix}))
-        glTFRenderPassInterfaceSceneMesh::ApplyInterface(resourceManager, meshIndex++, MeshOpaquePass_RootParameter_SceneMesh);
-
-        // Using texture SRV slot when mesh material is texture
-        if (m_materialTextures.find(mesh.second.materialID) != m_materialTextures.end())
-        {
-            RHIUtils::Instance().SetDescriptorTableGPUHandleToRootParameterSlot(resourceManager.GetCommandList(), MeshOpaquePass_RootParameter_MeshMaterialTexSRV, m_materialTextures[mesh.second.materialID]->GetTextureSRVHandle());    
-        }
-        
-        RHIUtils::Instance().SetVertexBufferView(resourceManager.GetCommandList(), *mesh.second.meshVertexBufferView);
-        RHIUtils::Instance().SetIndexBufferView(resourceManager.GetCommandList(), *mesh.second.meshIndexBufferView);
-        
-        RHIUtils::Instance().DrawIndexInstanced(resourceManager.GetCommandList(), mesh.second.meshIndexCount, 1, 0, 0, 0);    
-    }
+    
     
     return true;
 }
@@ -95,21 +76,18 @@ bool glTFRenderPassMeshOpaque::ProcessMaterial(glTFRenderResourceManager& resour
 
 size_t glTFRenderPassMeshOpaque::GetMainDescriptorHeapSize()
 {
-    return 2;
+    return 1;
 }
 
 bool glTFRenderPassMeshOpaque::SetupRootSignature(glTFRenderResourceManager& resourceManager)
 {
-    RETURN_IF_FALSE(glTFRenderPassMeshBase::SetupRootSignature(resourceManager))
-    
     // Init root signature
     constexpr size_t rootSignatureParameterCount = MeshOpaquePass_RootParameter_Num;
     constexpr size_t rootSignatureStaticSamplerCount = 1;
     RETURN_IF_FALSE(m_rootSignature->AllocateRootSignatureSpace(rootSignatureParameterCount, rootSignatureStaticSamplerCount))
     
-    m_rootSignature->GetRootParameter(MeshOpaquePass_RootParameter_SceneView).InitAsCBV(0);
-    m_rootSignature->GetRootParameter(MeshOpaquePass_RootParameter_SceneMesh).InitAsCBV(1);
-
+    RETURN_IF_FALSE(glTFRenderPassMeshBase::SetupRootSignature(resourceManager))
+    
     const RHIRootParameterDescriptorRangeDesc SRVRangeDesc {RHIRootParameterDescriptorRangeType::SRV, 0, 1};
     m_rootSignature->GetRootParameter(MeshOpaquePass_RootParameter_MeshMaterialTexSRV).InitAsDescriptorTableRange(1, &SRVRangeDesc);
     
@@ -128,16 +106,37 @@ bool glTFRenderPassMeshOpaque::SetupPipelineStateObject(glTFRenderResourceManage
     m_pipelineStateObject->BindShaderCode(
         R"(glTFResources\ShaderSource\MeshPassCommonPS.hlsl)", RHIShaderType::Pixel, "main");
 
-    RETURN_IF_FALSE (m_pipelineStateObject->InitPipelineStateObject(resourceManager.GetDevice(), *m_rootSignature, resourceManager.GetSwapchain(), GetVertexInputLayout()))
+    RETURN_IF_FALSE(m_pipelineStateObject->BindInputLayout(GetVertexInputLayout()))
+    
+    RETURN_IF_FALSE (m_pipelineStateObject->InitPipelineStateObject(resourceManager.GetDevice(), *m_rootSignature, resourceManager.GetSwapchain()))
 
     return true;
+}
+
+bool glTFRenderPassMeshOpaque::BeginDrawMesh(glTFRenderResourceManager& resourceManager, glTFUniqueID meshID)
+{
+    // Using texture SRV slot when mesh material is texture
+    glTFUniqueID matID = m_meshes[meshID].materialID;
+    if (matID == glTFUniqueIDInvalid)
+    {
+        return true;
+    }
+    
+    if (m_materialTextures.find(matID) != m_materialTextures.end())
+    {
+        RHIUtils::Instance().SetDescriptorTableGPUHandleToRootParameterSlot(resourceManager.GetCommandList(),
+            MeshOpaquePass_RootParameter_MeshMaterialTexSRV, m_materialTextures[matID]->GetTextureSRVHandle());
+        return true;
+    }
+
+    return false;
 }
 
 std::vector<RHIPipelineInputLayout> glTFRenderPassMeshOpaque::GetVertexInputLayout()
 {
     std::vector<RHIPipelineInputLayout> inputLayouts;
-    inputLayouts.push_back({"POSITION", 0, RHIDataFormat::R32G32B32_FLOAT, 0});
-    inputLayouts.push_back({"TEXCOORD", 0, RHIDataFormat::R32G32_FLOAT, 12});
+    inputLayouts.push_back({g_inputLayoutNamePOSITION, 0, RHIDataFormat::R32G32B32_FLOAT, 0});
+    inputLayouts.push_back({g_inputLayoutNameNORMAL, 0, RHIDataFormat::R32G32B32_FLOAT, 12});
     return inputLayouts;
 }
 
@@ -154,17 +153,17 @@ std::vector<RHIPipelineInputLayout> glTFRenderPassMeshOpaque::ResolveVertexInput
         {
         case VertexLayoutType::POSITION:
             {
-                inputLayouts.push_back({"POSITION", 0, RHIDataFormat::R32G32B32_FLOAT, vertexLayoutOffset});
+                inputLayouts.push_back({g_inputLayoutNamePOSITION, 0, RHIDataFormat::R32G32B32_FLOAT, vertexLayoutOffset});
             }
             break;
         case VertexLayoutType::NORMAL:
             {
-                inputLayouts.push_back({"NORMAL", 0, RHIDataFormat::R32G32B32_FLOAT, vertexLayoutOffset});
+                inputLayouts.push_back({g_inputLayoutNameNORMAL, 0, RHIDataFormat::R32G32B32_FLOAT, vertexLayoutOffset});
             }
             break;
         case VertexLayoutType::UV:
             {
-                inputLayouts.push_back({"TEXCOORD", 0, RHIDataFormat::R32G32_FLOAT, vertexLayoutOffset});
+                inputLayouts.push_back({g_inputLayoutNameTEXCOORD, 0, RHIDataFormat::R32G32_FLOAT, vertexLayoutOffset});
             }
             break;
         }

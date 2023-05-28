@@ -3,6 +3,8 @@
 #include <functional>
 
 typedef unsigned glTFUniqueID;
+#define glTFUniqueIDInvalid UINT_MAX   
+
 class glTFUniqueObject
 {
 public:

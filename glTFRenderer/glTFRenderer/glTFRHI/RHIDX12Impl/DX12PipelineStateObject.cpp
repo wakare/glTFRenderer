@@ -62,7 +62,7 @@ bool DX12GraphicsPipelineStateObject::BindRenderTargets(const std::vector<IRHIRe
     return true;
 }
 
-bool DX12GraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device, IRHIRootSignature& rootSignature, IRHISwapChain& swapchain, const std::vector<RHIPipelineInputLayout>& inputLayouts)
+bool DX12GraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device, IRHIRootSignature& rootSignature, IRHISwapChain& swapchain)
 {
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
     auto* dxRootSignature = dynamic_cast<DX12RootSignature&>(rootSignature).GetRootSignature();
@@ -74,7 +74,7 @@ bool DX12GraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device
     // how to read the vertex data bound to it.
 
     std::vector<D3D12_INPUT_ELEMENT_DESC> dxInputLayouts;
-    for (const auto& inputLayout : inputLayouts)
+    for (const auto& inputLayout : m_inputLayout)
     {
         dxInputLayouts.push_back({inputLayout.semanticName.c_str(), inputLayout.semanticIndex, DX12ConverterUtils::ConvertToDXGIFormat(inputLayout.format),
             0, inputLayout.alignedByteOffset, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0});  
@@ -141,6 +141,7 @@ bool DX12GraphicsPipelineStateObject::CompileBindShaders()
 
     for (const auto& shader : m_shaders)
     {
+        shader.second->SetShaderCompilePreDefineMacros(m_shaderMacros);
         RETURN_IF_FALSE(shader.second->CompileShader())
     }
 

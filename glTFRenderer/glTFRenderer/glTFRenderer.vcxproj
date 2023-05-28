@@ -533,6 +533,7 @@
     <ClCompile Include="glTFScene\glTFSceneGraph.cpp" />
     <ClCompile Include="glTFScene\glTFSceneObjectBase.cpp" />
     <ClCompile Include="glTFScene\glTFScenePrimitive.cpp" />
+    <ClCompile Include="glTFScene\glTFSceneTriangleMesh.cpp" />
     <ClCompile Include="glTFScene\glTFSceneView.cpp" />
     <ClCompile Include="glTFShaderUtils\glTFShaderUtils.cpp" />
     <ClCompile Include="glTFUtils\glTFLog.cpp" />
@@ -612,6 +613,7 @@
     <ClInclude Include="glTFScene\glTFSceneGraph.h" />
     <ClInclude Include="glTFScene\glTFSceneObjectBase.h" />
     <ClInclude Include="glTFScene\glTFScenePrimitive.h" />
+    <ClInclude Include="glTFScene\glTFSceneTriangleMesh.h" />
     <ClInclude Include="glTFScene\glTFSceneView.h" />
     <ClInclude Include="glTFShaderUtils\glTFShaderUtils.h" />
     <ClInclude Include="glTFUtils\glTFLog.h" />
@@ -623,6 +625,9 @@
     <Content Include="glTFResources\tiger.bmp" />
     <Content Include="glTFResources\UE4_Logo.bmp" />
     <Content Include="glTFSamples\Hello_glTF.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="glTFResources\Models\" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

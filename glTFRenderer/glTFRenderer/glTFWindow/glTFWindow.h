@@ -41,13 +41,16 @@ public:
 private:
     glTFWindow();
     bool InitDX12();
+
+    static void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
+    static void CursorPosCallback(GLFWwindow* window, double xpos, double ypos);
+
+    bool LoadSceneGraphFromFile(const char* filePath);
     
     GLFWwindow* m_glfwWindow;
     int m_width;
     int m_height;
-
-    static void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
-    static void CursorPosCallback(GLFWwindow* window, double xpos, double ypos);
+    
     std::unique_ptr<glTFRenderPassManager> m_passManager;
     std::unique_ptr<glTFSceneGraph> m_sceneGraph;
     std::unique_ptr<glTFSceneView> m_sceneView;

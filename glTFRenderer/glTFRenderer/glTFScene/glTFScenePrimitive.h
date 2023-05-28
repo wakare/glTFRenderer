@@ -36,18 +36,24 @@ struct VertexLayoutDeclaration
 
 struct VertexBufferData
 {
-    std::unique_ptr<float[]> data;
+    std::unique_ptr<char[]> data;
     size_t byteSize;
+    size_t vertexCount;
+};
 
-    size_t VertexCount() const {return byteSize / sizeof(float); }
+enum class IndexBufferElementType
+{
+    UNSIGNED_SHORT,
+    UNSIGNED_INT,
 };
 
 struct IndexBufferData
 {
-    std::unique_ptr<unsigned[]> data;
+    IndexBufferElementType elementType;
+    
+    std::unique_ptr<char[]> data;
     size_t byteSize;
-
-    size_t IndexCount() const {return byteSize / sizeof(unsigned); }
+    size_t indexCount;
 };
 
 class glTFScenePrimitive : public glTFSceneObjectBase
@@ -61,6 +67,7 @@ public:
 
     virtual size_t GetInstanceCount() const { return 1; }
     void SetMaterial(std::shared_ptr<glTFMaterialBase> material);
+    bool HasMaterial() const {return m_material != nullptr; }
     const glTFMaterialBase& GetMaterial() const;
     
 private:
