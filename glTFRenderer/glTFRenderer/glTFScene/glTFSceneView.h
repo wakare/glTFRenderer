@@ -15,6 +15,8 @@ public:
     void TraverseSceneObjectWithinView(const std::function<bool(const glTFSceneNode& primitive)>& visitor);
 
     glm::mat4 GetViewProjectionMatrix() const;
+
+    void ApplyMovement(const glm::fvec3& translation, const glm::fvec3& rotation);
     
 private:
     const glTFSceneGraph& m_sceneGraph;

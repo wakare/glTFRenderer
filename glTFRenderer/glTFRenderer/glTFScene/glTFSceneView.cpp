@@ -27,3 +27,13 @@ glm::mat4 glTFSceneView::GetViewProjectionMatrix() const
     // Use first camera as main camera
     return m_cameras[0]->GetViewProjectionMatrix();
 }
+
+void glTFSceneView::ApplyMovement(const glm::fvec3& translation, const glm::fvec3& rotation)
+{
+    for (glTFCamera* camera : m_cameras)
+    {
+        camera->GetTransform().position += glm::fvec3(glm::fvec4(translation, 1.0f) * camera->GetTransform().GetTransformInverseMatrix());
+        camera->GetTransform().rotation += rotation;
+        camera->MarkDirty();
+    }
+}

@@ -3,25 +3,20 @@
 
 #include "../glTFRenderPass/glTFRenderPassManager.h"
 #include "../glTFScene/glTFSceneGraph.h"
+#include "glTFInputManager.h"
 
 struct GLFWwindow;
 
-class glTFInputControl
+class glTFTimer
 {
 public:
-    glTFInputControl();
-    void RecordKeyPressed(int keyCode);
-    void RecordKeyRelease(int keyCode);
-    void RecordCursorPos(double X, double Y);
-    
-    bool IsKeyPressed(int keyCode) const;
-    double GetCursorX() const;
-    double GetCursorY() const;
-    
+    glTFTimer();
+    void RecordFrameBegin();
+    size_t GetDeltaFrameTimeMs() const;
+
 private:
-    bool m_keyStatePressed[GLFW_KEY_LAST] = {false};
-    double m_cursorX;
-    double m_cursorY;
+    size_t m_deltaTick;
+    size_t m_tick;
 };
 
 class glTFWindow
@@ -55,5 +50,6 @@ private:
     std::unique_ptr<glTFSceneGraph> m_sceneGraph;
     std::unique_ptr<glTFSceneView> m_sceneView;
 
-    glTFInputControl m_inputControl;
+    glTFInputManager m_inputControl;
+    glTFTimer m_timer;
 };

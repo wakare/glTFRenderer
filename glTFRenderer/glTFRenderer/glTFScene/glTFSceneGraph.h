@@ -22,7 +22,7 @@ public:
     glTFSceneGraph();
     void AddSceneNode(std::unique_ptr<glTFSceneNode>&& node);
 
-    void Tick();
+    void Tick(size_t deltaTimeMs);
     
     // visitor return value indicate whether continue visit remained nodes 
     void TraverseNodes(const std::function<bool(const glTFSceneNode&)>& visitor) const;

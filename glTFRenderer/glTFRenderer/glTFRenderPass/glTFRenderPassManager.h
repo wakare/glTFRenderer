@@ -16,8 +16,8 @@ public:
 
     void InitAllPass();
 
-    void UpdateScene();
-    void RenderAllPass();
+    void UpdateScene(size_t deltaTimeMs);
+    void RenderAllPass(size_t deltaTimeMs);
     void ExitAllPass();
 
 protected:

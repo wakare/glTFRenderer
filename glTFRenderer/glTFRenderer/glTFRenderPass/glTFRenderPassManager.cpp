@@ -43,7 +43,7 @@ void glTFRenderPassManager::InitAllPass()
     LOG_FORMAT_FLUSH("[DEBUG] Init all pass finished!\n")
 }
 
-void glTFRenderPassManager::UpdateScene()
+void glTFRenderPassManager::UpdateScene(size_t deltaTimeMs)
 {
     // Gather all scene pass
     for (const auto& pass : m_passes)
@@ -68,7 +68,7 @@ void glTFRenderPassManager::UpdateScene()
     }
 }
 
-void glTFRenderPassManager::RenderAllPass()
+void glTFRenderPassManager::RenderAllPass(size_t deltaTimeMs)
 {
     static auto now = GetTickCount64();
     static unsigned frameCountInOneSecond = 0;

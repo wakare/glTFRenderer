@@ -537,6 +537,7 @@
     <ClCompile Include="glTFScene\glTFSceneView.cpp" />
     <ClCompile Include="glTFShaderUtils\glTFShaderUtils.cpp" />
     <ClCompile Include="glTFUtils\glTFLog.cpp" />
+    <ClCompile Include="glTFWindow\glTFInputManager.cpp" />
     <ClCompile Include="glTFWindow\glTFWindow.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -618,6 +619,7 @@
     <ClInclude Include="glTFShaderUtils\glTFShaderUtils.h" />
     <ClInclude Include="glTFUtils\glTFLog.h" />
     <ClInclude Include="glTFUtils\glTFUtils.h" />
+    <ClInclude Include="glTFWindow\glTFInputManager.h" />
     <ClInclude Include="glTFWindow\glTFWindow.h" />
   </ItemGroup>
   <ItemGroup>

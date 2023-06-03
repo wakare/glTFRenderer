@@ -20,42 +20,22 @@ glTFWindow::glTFWindow()
     
 }
 
-glTFInputControl::glTFInputControl()
-    : m_cursorX(0.0)
-    , m_cursorY(0.0)
+glTFTimer::glTFTimer()
+    : m_deltaTick(0)
+    , m_tick(GetTickCount64())
 {
-    memset(m_keyStatePressed, 0, sizeof(m_keyStatePressed));
 }
 
-void glTFInputControl::RecordKeyPressed(int keyCode)
+void glTFTimer::RecordFrameBegin()
 {
-    m_keyStatePressed[keyCode] = true;
+    const size_t now = GetTickCount64();
+    m_deltaTick = now - m_tick;
+    m_tick = now;
 }
 
-void glTFInputControl::RecordKeyRelease(int keyCode)
+size_t glTFTimer::GetDeltaFrameTimeMs() const
 {
-    m_keyStatePressed[keyCode] = false;
-}
-
-bool glTFInputControl::IsKeyPressed(int keyCode) const
-{
-    return m_keyStatePressed[keyCode];
-}
-
-double glTFInputControl::GetCursorX() const
-{
-    return m_cursorX;
-}
-
-double glTFInputControl::GetCursorY() const
-{
-    return m_cursorY;
-}
-
-void glTFInputControl::RecordCursorPos(double X, double Y)
-{
-    m_cursorX = X;
-    m_cursorY = Y;
+    return m_deltaTick;
 }
 
 glTFWindow& glTFWindow::Get()
@@ -144,9 +124,13 @@ void glTFWindow::UpdateWindow()
 {
     while (!glfwWindowShouldClose(m_glfwWindow))
     {
-        m_sceneGraph->Tick();
-        m_passManager->UpdateScene();
-        m_passManager->RenderAllPass();
+        m_timer.RecordFrameBegin();
+        const size_t deltaTimeInMs = m_timer.GetDeltaFrameTimeMs();
+        
+        m_sceneGraph->Tick(deltaTimeInMs);
+        m_inputControl.TickSceneView(*m_sceneView, deltaTimeInMs);
+        m_passManager->UpdateScene(deltaTimeInMs);
+        m_passManager->RenderAllPass(deltaTimeInMs);
 
         glfwPollEvents();
     }
@@ -175,59 +159,10 @@ void glTFWindow::KeyCallback(GLFWwindow* window, int key, int scancode, int acti
     {
         Get().m_inputControl.RecordKeyRelease(key);
     }
-    
-    glm::fvec4 deltaPosition = {0.0f, 0.0f, 0.0f, 0.0f};
-    switch (key)
-    {
-    case GLFW_KEY_W:
-        deltaPosition.z += 0.1f;
-        break;
-
-    case GLFW_KEY_A:
-        deltaPosition.x += 0.1f;
-        break;
-
-    case GLFW_KEY_S:
-        deltaPosition.z -= 0.1f;
-        break;
-
-    case GLFW_KEY_D:
-        deltaPosition.x -= 0.1f;
-        break;
-        
-    case GLFW_KEY_Q:
-        deltaPosition.y += 0.1f;
-        break;
-
-    case GLFW_KEY_E:
-        deltaPosition.y -= 0.1f;
-        break;
-    }
-
-    const auto cameras = Get().m_sceneGraph->GetSceneCameras();
-    if (!cameras.empty())
-    {
-        deltaPosition = deltaPosition * cameras[0]->GetTransform().GetTransformInverseMatrix();
-        
-        cameras[0]->GetTransform().position += glm::fvec3(deltaPosition);
-        cameras[0]->MarkDirty();
-    }
 }
 
 void glTFWindow::CursorPosCallback(GLFWwindow* window, double xpos, double ypos)
-{
-    if (Get().m_inputControl.IsKeyPressed(GLFW_KEY_LEFT_CONTROL))
-    {
-        // Do rotation
-        const auto cameras = Get().m_sceneGraph->GetSceneCameras();
-        if (!cameras.empty())
-        {
-            cameras[0]->GetTransform().rotation.y += 0.001f * (Get().m_inputControl.GetCursorX() - xpos);
-            cameras[0]->GetTransform().rotation.x -= 0.001f * (Get().m_inputControl.GetCursorY() - ypos);
-            cameras[0]->MarkDirty();
-        }
-    }
-    
+{   
     Get().m_inputControl.RecordCursorPos(xpos, ypos);
 }
 

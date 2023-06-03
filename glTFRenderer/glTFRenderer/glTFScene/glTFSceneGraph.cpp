@@ -12,7 +12,7 @@ void glTFSceneGraph::AddSceneNode(std::unique_ptr<glTFSceneNode>&& node)
     m_root->children.push_back(std::move(node));
 }
 
-void glTFSceneGraph::Tick()
+void glTFSceneGraph::Tick(size_t deltaTimeMs)
 {
     TraverseNodesInner([](glTFSceneNode& node)
     {
