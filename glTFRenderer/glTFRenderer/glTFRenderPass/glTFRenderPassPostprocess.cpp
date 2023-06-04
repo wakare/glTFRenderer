@@ -13,10 +13,10 @@ bool glTFRenderPassPostprocess::InitPass(glTFRenderResourceManager& resourceMana
     float postprocessVertices[] =
     {
         // position + uv
-        -1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 
-        -1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
-         1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
-         1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
+        -1.0f, -1.0f, 0.0f, 0.0f, 1.0f, 
+        -1.0f,  1.0f, 0.0f, 0.0f, 0.0f,
+         1.0f, -1.0f, 0.0f, 1.0f, 1.0f,
+         1.0f,  1.0f, 0.0f, 1.0f, 0.0f,
     };
 
     unsigned postprocessIndices[] =

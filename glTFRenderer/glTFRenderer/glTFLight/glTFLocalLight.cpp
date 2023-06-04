@@ -6,6 +6,11 @@ glTFLocalLight::glTFLocalLight(glTFLightType type, const glm::vec3& position)
 {
 }
 
+bool glTFLocalLight::IsLocal() const
+{
+    return true;
+}
+
 void glTFLocalLight::SetPosition(const glm::vec3& position)
 {
     m_position = position;

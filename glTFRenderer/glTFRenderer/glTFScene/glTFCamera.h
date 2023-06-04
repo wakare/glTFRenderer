@@ -12,18 +12,14 @@ public:
         , m_projectionHeight(projectionHeight)
         , m_projectionNear(projectionNear)
         , m_projectionFar(projectionFar)
-        // glm::fmat4x4(1.0f) represent identity matrix
-        , m_cacheViewProjectionMatrix(glm::fmat4x4(1.0f))
+        , m_cacheViewMatrix({1.0f})
+        , m_cacheProjectionMatrix({1.0f})
+        , m_cacheViewProjectionMatrix({1.0f})
     {}
 
-    const glm::fmat4x4& GetViewProjectionMatrix() const
-    {
-        if (m_dirty)
-        {
-            UpdateViewProjectionMatrix();
-        }
-        return m_cacheViewProjectionMatrix;
-    } 
+    const glm::fmat4x4& GetViewProjectionMatrix() const;
+    const glm::fmat4x4& GetViewMatrix() const;
+    const glm::fmat4x4& GetProjectionMatrix() const;
 
     void MarkDirty() { m_dirty = true; }
     
@@ -38,5 +34,7 @@ protected:
     float m_projectionNear;
     float m_projectionFar;
 
+    mutable glm::fmat4x4 m_cacheViewMatrix;
+    mutable glm::fmat4x4 m_cacheProjectionMatrix;
     mutable glm::fmat4x4 m_cacheViewProjectionMatrix;
 };

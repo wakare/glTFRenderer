@@ -2,6 +2,7 @@
 
 IRHIPipelineStateObject::IRHIPipelineStateObject(RHIPipelineType type)
     : m_type(type)
+    , m_cullMode(IRHICullMode::NONE)
 {
 }
 
@@ -31,4 +32,14 @@ bool IRHIPipelineStateObject::BindInputLayout(const std::vector<RHIPipelineInput
 RHIShaderPreDefineMacros& IRHIPipelineStateObject::GetShaderMacros()
 {
     return m_shaderMacros;
+}
+
+void IRHIPipelineStateObject::SetCullMode(IRHICullMode mode)
+{
+    m_cullMode = mode;
+}
+
+IRHICullMode IRHIPipelineStateObject::GetCullMode() const
+{
+    return m_cullMode;
 }

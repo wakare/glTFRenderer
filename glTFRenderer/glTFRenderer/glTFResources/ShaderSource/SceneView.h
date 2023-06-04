@@ -5,5 +5,6 @@
 cbuffer ConstantBuffer : SCENE_VIEW_REGISTER_INDEX
 {
     float4x4 viewProjectionMat;
-    float4x4 inverseViewProjectionMat;
+    float4x4 inverseViewMatrix;
+    float4x4 inverseProjectionMatrix;
 };

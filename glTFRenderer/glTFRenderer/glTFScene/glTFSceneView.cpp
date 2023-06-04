@@ -28,6 +28,28 @@ glm::mat4 glTFSceneView::GetViewProjectionMatrix() const
     return m_cameras[0]->GetViewProjectionMatrix();
 }
 
+glm::mat4 glTFSceneView::GetViewMatrix() const
+{
+    if (m_cameras.empty())
+    {
+        assert(false);
+        return glm::mat4(1.0f);    
+    }
+
+    return m_cameras[0]->GetViewMatrix();
+}
+
+glm::mat4 glTFSceneView::GetProjectionMatrix() const
+{
+    if (m_cameras.empty())
+    {
+        assert(false);
+        return glm::mat4(1.0f);    
+    }
+
+    return m_cameras[0]->GetProjectionMatrix();
+}
+
 void glTFSceneView::ApplyMovement(const glm::fvec3& translation, const glm::fvec3& rotation)
 {
     for (glTFCamera* camera : m_cameras)

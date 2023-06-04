@@ -1,4 +1,5 @@
 #pragma once
+#include "IRHICullMode.h"
 #include "IRHIDevice.h"
 #include "IRHIRootSignature.h"
 #include "IRHIResource.h"
@@ -41,9 +42,13 @@ public:
 
     virtual IRHIShader& GetBindShader(RHIShaderType type) = 0;
     RHIShaderPreDefineMacros& GetShaderMacros();
+
+    void SetCullMode(IRHICullMode mode);
+    IRHICullMode GetCullMode() const;
     
 protected:
     RHIPipelineType m_type;
     RHIShaderPreDefineMacros m_shaderMacros;
+    IRHICullMode m_cullMode;
     std::vector<RHIPipelineInputLayout> m_inputLayout;
 };

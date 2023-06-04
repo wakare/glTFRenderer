@@ -283,7 +283,7 @@ bool DX12Utils::SetPrimitiveTopology(IRHICommandList& commandList, RHIPrimitiveT
 }
 
 bool DX12Utils::SetDescriptorHeap(IRHICommandList& commandList, IRHIDescriptorHeap* descriptorArray,
-    size_t descriptorCount)
+                                  size_t descriptorCount)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
 
@@ -304,6 +304,15 @@ bool DX12Utils::SetConstantBufferViewGPUHandleToRootParameterSlot(IRHICommandLis
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
     dxCommandList->SetGraphicsRootConstantBufferView(slotIndex, handle);
+    
+    return true;
+}
+
+bool DX12Utils::SetShaderResourceViewGPUHandleToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex,
+    RHIGPUDescriptorHandle handle)
+{
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    dxCommandList->SetGraphicsRootShaderResourceView(slotIndex, handle);
     
     return true;
 }

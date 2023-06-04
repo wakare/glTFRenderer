@@ -4,10 +4,17 @@
 class glTFPointLight : public glTFLocalLight
 {
 public:
-    glTFPointLight(const glm::vec3& position = {0.0f, 0.0f, 0.0f}, float radius = 0.0f);
+    glTFPointLight(const glm::vec3& position = {0.0f, 0.0f, 0.0f}, float radius = 0.0f, float falloff = 2.0f);
 
     virtual bool AffectPosition(const glm::vec3& position) const override;
     
+    void SetRadius(float radius);
+    float GetRadius() const;
+
+    void SetFalloff(float falloff);
+    float GetFalloff() const;
+    
 private:
     float m_radius;
+    float m_falloff;
 };

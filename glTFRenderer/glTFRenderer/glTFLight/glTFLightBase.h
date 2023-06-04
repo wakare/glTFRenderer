@@ -1,6 +1,7 @@
 #pragma once
 #include <vec3.hpp>
 
+#include "../glTFScene/glTFSceneObjectBase.h"
 #include "../glTFUtils/glTFUtils.h"
 
 enum class glTFLightType
@@ -12,16 +13,19 @@ enum class glTFLightType
     
 };
 
-class glTFLightBase : public glTFUniqueObject
+class glTFLightBase : public glTFSceneObjectBase
 {
 public:
     glTFLightBase(glTFLightType type);
 
     glTFLightType GetType() const;
-    bool IsLocal() const;
+    virtual bool IsLocal() const = 0;
 
     virtual bool AffectPosition(const glm::vec3& position) const = 0;
+    void SetIntensity(float intensity);
+    float GetIntensity() const;
     
-private:
+protected:
     glTFLightType m_type;
+    float m_intensity;
 };

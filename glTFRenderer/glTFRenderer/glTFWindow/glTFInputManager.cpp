@@ -1,9 +1,7 @@
 #include "glTFInputManager.h"
-#include <memory>
 #include <glm/glm/glm.hpp>
 
 #include "../glTFScene/glTFSceneView.h"
-#include "../glTFUtils/glTFLog.h"
 
 glTFInputManager::glTFInputManager()
     : m_cursorOffset(0.0f)
@@ -91,14 +89,11 @@ void glTFInputManager::TickSceneView(glTFSceneView& View, size_t deltaTimeMs)
     deltaPosition *= translationScale;
     deltaRotation *= rotationScale;
 
-    LOG_FORMAT("[INFO] Apply movement with translation %f %f %f, rotation %f %f %f scale %f\n",
-        deltaPosition.x, deltaPosition.y, deltaPosition.z, deltaRotation.x, deltaRotation.y, deltaRotation.z, translationScale);
-    
     View.ApplyMovement(deltaPosition, deltaRotation);
 }
 
 void glTFInputManager::RecordCursorPos(double X, double Y)
 {
-    m_cursorOffset = {m_cursor.x - X, m_cursor.y - Y};
+    m_cursorOffset += glm::vec2{m_cursor.x - X, m_cursor.y - Y};
     m_cursor = {X, Y};
 }

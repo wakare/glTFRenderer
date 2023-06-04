@@ -4,6 +4,8 @@
 #define GLFW_EXPOSE_NATIVE_WIN32 1
 #include <GLFW/glfw3native.h>
 
+#include "../glTFLight/glTFDirectionalLight.h"
+#include "../glTFLight/glTFPointLight.h"
 #include "../glTFMaterial/glTFMaterialOpaque.h"
 #include "../glTFRenderPass/glTFRenderPassLighting.h"
 #include "../glTFRenderPass/glTFRenderPassMeshOpaque.h"
@@ -102,13 +104,41 @@ bool glTFWindow::InitAndShowWindow()
     m_sceneGraph = std::make_unique<glTFSceneGraph>(); 
     RETURN_IF_FALSE(LoadSceneGraphFromFile("D:\\Work\\DevSpace\\glTFRenderer\\glTFRenderer\\glTFRenderer\\glTFRenderer\\glTFResources\\Models\\Box\\Box.gltf"))
 
+    // Add camera
     std::unique_ptr<glTFCamera> camera = std::make_unique<glTFCamera>(45.0f, 800.0f, 600.0f, 0.1f, 1000.0f);
     camera->GetTransform() = glTFTransform::Identity();
-    camera->GetTransform().position = {0.0f, 0.0f, -15.0f};
-    
+    camera->GetTransform().position = {0.0f, 1.0f, -15.0f};
+
     std::unique_ptr<glTFSceneNode> cameraNode = std::make_unique<glTFSceneNode>();
     cameraNode->object = std::move(camera);
     m_sceneGraph->AddSceneNode(std::move(cameraNode));
+
+    // Add light
+    std::unique_ptr<glTFDirectionalLight> directionalLight = std::make_unique<glTFDirectionalLight>();
+    directionalLight->GetTransform().rotation = {45.0f, 0.0f, 0.0f};
+    directionalLight->SetIntensity(10.0f);
+    
+    std::unique_ptr<glTFSceneNode> directionalLightNode = std::make_unique<glTFSceneNode>();
+    directionalLight->SetTickFunc([lightNode = directionalLightNode.get()]()
+    {
+        lightNode->object->GetTransform().rotation.y += 0.0001f;
+        lightNode->object->GetTransform().rotation.z += 0.0002f;
+        lightNode->object->GetTransform().rotation.x += 0.0003f;
+        lightNode->renderStateDirty = true;
+    });
+    directionalLightNode->object = std::move(directionalLight);
+
+    std::unique_ptr<glTFPointLight> pointLight = std::make_unique<glTFPointLight>();
+    pointLight->GetTransform().position = {0.0f, 5.0f, -5.0f};
+    pointLight->SetRadius(6.0f);
+    pointLight->SetFalloff(1.0f);
+    pointLight->SetIntensity(10000.0f);
+
+    std::unique_ptr<glTFSceneNode> pointLightNode = std::make_unique<glTFSceneNode>();
+    pointLightNode->object = std::move(pointLight);
+
+    //m_sceneGraph->AddSceneNode(std::move(directionalLightNode));
+    m_sceneGraph->AddSceneNode(std::move(pointLightNode));
     
     m_sceneView = std::make_unique<glTFSceneView>(*m_sceneGraph);
     

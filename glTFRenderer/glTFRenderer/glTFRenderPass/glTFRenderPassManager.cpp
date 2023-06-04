@@ -4,6 +4,7 @@
 #include <Windows.h>
 
 #include "glTFRenderPassMeshBase.h"
+#include "../glTFLoader/glTFElementCommon.h"
 #include "../glTFRHI/RHIUtils.h"
 #include "../glTFUtils/glTFLog.h"
 
@@ -60,10 +61,19 @@ void glTFRenderPassManager::UpdateScene(size_t deltaTimeMs)
             
             return true;
         });
+    }
+
+    for (const auto& pass : m_passes)
+    {
+        const bool success = pass->FinishProcessSceneObject(*m_resourceManager);
+        GLTF_CHECK(success);
 
         if (auto* sceneViewInterface = dynamic_cast<glTFRenderPassInterfaceSceneView*>(pass.get()))
         {
-            sceneViewInterface->UpdateSceneViewData({m_sceneView.GetViewProjectionMatrix(), inverse(m_sceneView.GetViewProjectionMatrix())});    
+            sceneViewInterface->UpdateSceneViewData({
+                m_sceneView.GetViewProjectionMatrix(),
+                inverse(m_sceneView.GetViewMatrix()),
+                inverse(m_sceneView.GetProjectionMatrix())});    
         }
     }
 }

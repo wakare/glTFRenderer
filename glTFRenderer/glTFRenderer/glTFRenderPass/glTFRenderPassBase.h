@@ -29,6 +29,7 @@ public:
     virtual bool RenderPass(glTFRenderResourceManager& resourceManager);
 
     virtual bool TryProcessSceneObject(glTFRenderResourceManager& resourceManager, const glTFSceneObjectBase& object) = 0;
+    virtual bool FinishProcessSceneObject(glTFRenderResourceManager& resourceManager) {return true; }
     
     IRHIPipelineStateObject& GetPSO() const;
     

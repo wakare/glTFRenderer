@@ -3,6 +3,7 @@
 #include <memory>
 #include "RHIInterface/RHICommon.h"
 #include "RHIInterface/IRHICommandAllocator.h"
+#include "RHIInterface/IRHICullMode.h"
 #include "RHIInterface/IRHIDescriptorHeap.h"
 #include "RHIInterface/IRHIIndexBufferView.h"
 #include "RHIInterface/IRHIPipelineStateObject.h"
@@ -30,9 +31,10 @@ public:
     virtual bool SetVertexBufferView(IRHICommandList& commandList, IRHIVertexBufferView& view) = 0;
     virtual bool SetIndexBufferView(IRHICommandList& commandList, IRHIIndexBufferView& view) = 0;
     virtual bool SetPrimitiveTopology(IRHICommandList& commandList, RHIPrimitiveTopologyType type) = 0;
-
+    
     virtual bool SetDescriptorHeap(IRHICommandList& commandList, IRHIDescriptorHeap* descriptorArray, size_t descriptorCount) = 0;
     virtual bool SetConstantBufferViewGPUHandleToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex, RHIGPUDescriptorHandle handle) = 0;
+    virtual bool SetShaderResourceViewGPUHandleToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex, RHIGPUDescriptorHandle handle) = 0;
     virtual bool SetDescriptorTableGPUHandleToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex, RHIGPUDescriptorHandle handle) = 0;
     
     virtual bool UploadBufferDataToDefaultGPUBuffer(IRHICommandList& commandList, IRHIGPUBuffer& uploadBuffer, IRHIGPUBuffer& defaultBuffer, void* data, size_t size) = 0;

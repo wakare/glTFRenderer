@@ -2,34 +2,83 @@
 
 Texture2D albedoTex: register(t0);
 Texture2D depthTex: register(t1);
+Texture2D normalTex: register(t2);
+
 SamplerState defaultSampler : register(s0);
 
-cbuffer ConstantBuffer : register(b2)
+cbuffer ConstantBuffer : register(b1)
 {
-    float4 PointLightInfos[4];
+    int PointLightCount;
+    int DirectionalLightCount;
 };
 
-float4 GetWorldPosition(float2 uv)
+struct PointLightInfo
+{
+    float4 positionAndRadius;
+    float4 intensityAndFalloff;
+};
+
+StructuredBuffer<PointLightInfo> g_pointLightInfos : register(t3);
+
+struct DirectionalLightInfo
+{
+    float4 directionalAndIntensity;
+};
+
+StructuredBuffer<DirectionalLightInfo> g_directionalLightInfos : register(t4);
+
+float3 GetWorldPosition(float2 uv)
 {
     float depth = depthTex.Sample(defaultSampler, uv).r;
-    float4 viewportCoord = float4(uv * 2 - 1.0, depth, 1.0);
-    float4 worldPosition = mul(inverseViewProjectionMat, viewportCoord);
-    return worldPosition / worldPosition.w;
+    float4 clipSpaceCoord = float4(uv * 2.0 - 1.0, depth, 1.0);
+    float4 viewSpaceCoord = mul(inverseProjectionMatrix, clipSpaceCoord);
+    viewSpaceCoord /= viewSpaceCoord.w;
+
+    float4 worldSpaceCoord = mul(inverseViewMatrix, viewSpaceCoord);
+    return worldSpaceCoord.xyz;
+}
+
+float3 LightingWithPointLight(float3 worldPosition, float3 baseColor, float3 normal, PointLightInfo pointLightInfo)
+{
+    float3 pointLightPosition = pointLightInfo.positionAndRadius.xyz;
+    float3 normalizedLightDir = normalize(pointLightPosition - worldPosition); 
+    float geometryFalloff = max(0.0, dot(normal, normalizedLightDir));
+    
+    float pointLightRadius = pointLightInfo.positionAndRadius.w;
+    float pointLightFalloff = pointLightInfo.intensityAndFalloff.y;
+    float lightIntensity = 1.0 - saturate(length(worldPosition - pointLightPosition) / pointLightRadius);
+    
+    return baseColor * geometryFalloff * pointLightInfo.intensityAndFalloff.x * pow(lightIntensity, pointLightFalloff);
+}
+
+float3 LightingWithDirectionalLight(float3 worldPosition, float3 baseColor, float3 normal, DirectionalLightInfo directionalLightInfo)
+{
+    float3 normalizedLightDir = normalize(directionalLightInfo.directionalAndIntensity.xyz);
+    float intensity = directionalLightInfo.directionalAndIntensity.w;
+    
+    return baseColor * intensity * max(0.0, dot(normal, normalizedLightDir));
 }
 
 float4 main(VS_OUTPUT input) : SV_TARGET
 {
-    float4 worldPosition = GetWorldPosition(input.texCoord);
-    float4 FinalLighting = (float4)0.0;
-    float4 baseColor = albedoTex.Sample(defaultSampler, input.texCoord);
+    return float4(depthTex.Sample(defaultSampler, input.texCoord).r, 0.0, 0.0, 1.0);
+
+    float2 uv = input.texCoord;
+    uv.y = 1.0 - uv.y;
+    float3 worldPosition = GetWorldPosition(uv);
+    float3 FinalLighting = (float3)0.0;
+    float3 baseColor = albedoTex.Sample(defaultSampler, uv).xyz;
+    float3 normal = normalize(2 * normalTex.Sample(defaultSampler, uv).xyz - 1);
     
-    for (int i = 0; i < 4; ++i)
+    for (int i = 0; i < PointLightCount; ++i)
     {
-        float4 PointLightPosition = float4(PointLightInfos[i].xyz, 1.0);
-        float PointLightRadius = PointLightInfos[i].w;
-        float lightIntensity = 1.0 - saturate(length(worldPosition - PointLightPosition) / PointLightRadius);  
-        FinalLighting += baseColor * pow(lightIntensity, 2.0);
+        FinalLighting += LightingWithPointLight(worldPosition, baseColor, normal, g_pointLightInfos[i]);
+    }
+
+    for (int j = 0; j < DirectionalLightCount; ++j)
+    {
+        FinalLighting += LightingWithDirectionalLight(worldPosition, baseColor, normal, g_directionalLightInfos[j]);
     }
     
-    return FinalLighting;
+    return float4(FinalLighting, 1.0);
 }

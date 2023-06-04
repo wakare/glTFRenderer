@@ -120,6 +120,27 @@ bool DX12GraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device
     psoDesc.SampleDesc = dxSwapchain.GetSwapChainSampleDesc(); // must be the same sample description as the swapchain and depth/stencil buffer
     psoDesc.SampleMask = 0xffffffff; // sample mask has to do with multi-sampling. 0xffffffff means point sampling is done
     psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT); // a default rasterizer state.
+    switch (m_cullMode) {
+        case IRHICullMode::NONE:
+            {
+                psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE::D3D12_CULL_MODE_NONE;    
+            }
+            break;
+        
+        case IRHICullMode::CW:
+            {
+                psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE::D3D12_CULL_MODE_BACK;     
+            }
+            break;
+        
+        case IRHICullMode::CCW:
+            {
+                psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE::D3D12_CULL_MODE_FRONT;     
+            }
+        
+            break;
+        }
+    
     psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT); // a default blent state.
     psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT); 
     psoDesc.NumRenderTargets = m_bindRenderTargetFormats.size(); // we are only binding one render target

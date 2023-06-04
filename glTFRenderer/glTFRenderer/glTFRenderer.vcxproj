@@ -99,6 +99,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="glTFLight\glTFDirectionalLight.cpp" />
     <ClCompile Include="glTFLight\glTFLightBase.cpp">
       <RuntimeLibrary>MultiThreadedDebugDll</RuntimeLibrary>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -364,6 +365,7 @@
     <ClCompile Include="glTFRHI\RHIInterface\IRHICommandAllocator.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHICommandList.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHICommandQueue.cpp" />
+    <ClCompile Include="glTFRHI\RHIInterface\IRHICullMode.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIDescriptorHeap.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIDevice.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIFactory.cpp" />
@@ -541,6 +543,7 @@
     <ClCompile Include="glTFWindow\glTFWindow.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="glTFLight\glTFDirectionalLight.h" />
     <ClInclude Include="glTFLight\glTFLightBase.h" />
     <ClInclude Include="glTFLight\glTFLocalLight.h" />
     <ClInclude Include="glTFLight\glTFPointLight.h" />
@@ -589,6 +592,7 @@
     <ClInclude Include="glTFRHI\RHIInterface\IRHICommandAllocator.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHICommandList.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHICommandQueue.h" />
+    <ClInclude Include="glTFRHI\RHIInterface\IRHICullMode.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHIDescriptorHeap.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHIDevice.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHIFactory.h" />

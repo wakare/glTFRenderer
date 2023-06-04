@@ -19,6 +19,8 @@ bool glTFRenderPassBase::InitPass(glTFRenderResourceManager& resourceManager)
     RETURN_IF_FALSE(SetupRootSignature(resourceManager))
     
     m_pipelineStateObject = RHIResourceFactory::CreateRHIResource<IRHIPipelineStateObject>();
+    // glTF using CCW as front face
+    m_pipelineStateObject->SetCullMode(IRHICullMode::CW);
     RETURN_IF_FALSE(SetupPipelineStateObject(resourceManager))
     
     return true;
