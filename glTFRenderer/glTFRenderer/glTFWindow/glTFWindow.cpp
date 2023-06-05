@@ -107,7 +107,7 @@ bool glTFWindow::InitAndShowWindow()
     // Add camera
     std::unique_ptr<glTFCamera> camera = std::make_unique<glTFCamera>(45.0f, 800.0f, 600.0f, 0.1f, 1000.0f);
     camera->GetTransform() = glTFTransform::Identity();
-    camera->GetTransform().position = {0.0f, 1.0f, -15.0f};
+    camera->GetTransform().position = {0.0f, 1.0f, -5.0f};
 
     std::unique_ptr<glTFSceneNode> cameraNode = std::make_unique<glTFSceneNode>();
     cameraNode->object = std::move(camera);
@@ -129,8 +129,8 @@ bool glTFWindow::InitAndShowWindow()
     directionalLightNode->object = std::move(directionalLight);
 
     std::unique_ptr<glTFPointLight> pointLight = std::make_unique<glTFPointLight>();
-    pointLight->GetTransform().position = {0.0f, 5.0f, -5.0f};
-    pointLight->SetRadius(6.0f);
+    pointLight->GetTransform().position = {0.0f, 1.0f, 0.0f};
+    pointLight->SetRadius(0.7f);
     pointLight->SetFalloff(1.0f);
     pointLight->SetIntensity(10000.0f);
 

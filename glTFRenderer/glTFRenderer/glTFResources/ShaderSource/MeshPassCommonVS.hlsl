@@ -3,7 +3,7 @@
 VS_OUTPUT main(VS_INPUT input)
 {
     VS_OUTPUT output;
-    output.pos = mul (viewProjectionMat, mul(worldMat, float4(input.pos, 1.0)));
+    output.pos = mul (projectionMatrix, mul(viewMatrix, mul(worldMat, float4(input.pos, 1.0))));
 #ifdef HAS_NORMAL
     output.normal = mul(transInvWorldMat, float4(input.normal, 0.0)).xyz * 0.5 + 0.5;
 #endif

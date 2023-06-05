@@ -6,7 +6,7 @@ Texture2D normalTex: register(t2);
 
 SamplerState defaultSampler : register(s0);
 
-cbuffer ConstantBuffer : register(b1)
+cbuffer LightInfoConstantBuffer : register(b1)
 {
     int PointLightCount;
     int DirectionalLightCount;
@@ -30,7 +30,8 @@ StructuredBuffer<DirectionalLightInfo> g_directionalLightInfos : register(t4);
 float3 GetWorldPosition(float2 uv)
 {
     float depth = depthTex.Sample(defaultSampler, uv).r;
-    float4 clipSpaceCoord = float4(uv * 2.0 - 1.0, depth, 1.0);
+    uv.y = 1 - uv.y;
+    float4 clipSpaceCoord = float4(uv * 2 - 1.0, depth, 1.0);
     float4 viewSpaceCoord = mul(inverseProjectionMatrix, clipSpaceCoord);
     viewSpaceCoord /= viewSpaceCoord.w;
 
@@ -61,10 +62,7 @@ float3 LightingWithDirectionalLight(float3 worldPosition, float3 baseColor, floa
 
 float4 main(VS_OUTPUT input) : SV_TARGET
 {
-    return float4(depthTex.Sample(defaultSampler, input.texCoord).r, 0.0, 0.0, 1.0);
-
     float2 uv = input.texCoord;
-    uv.y = 1.0 - uv.y;
     float3 worldPosition = GetWorldPosition(uv);
     float3 FinalLighting = (float3)0.0;
     float3 baseColor = albedoTex.Sample(defaultSampler, uv).xyz;

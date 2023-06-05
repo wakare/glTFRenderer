@@ -39,7 +39,7 @@ bool glTFRenderPassLighting::InitPass(glTFRenderResourceManager& resourceManager
     // TODO: Calculate mesh constant buffer size
     RETURN_IF_FALSE(m_lightInfoGPUConstantBuffer->InitGPUBuffer(resourceManager.GetDevice(),
         {
-            L"LightPass_PerMeshConstantBuffer",
+            L"LightPass_LightInfoConstantBuffer",
             static_cast<size_t>(64 * 1024),
             1,
             1,
