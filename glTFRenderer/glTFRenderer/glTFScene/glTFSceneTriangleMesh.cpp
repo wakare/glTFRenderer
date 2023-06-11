@@ -2,9 +2,12 @@
 
 #include <utility>
 
-glTFSceneTriangleMesh::glTFSceneTriangleMesh(VertexLayoutDeclaration vertexLayout,
-                                             std::shared_ptr<VertexBufferData> vertexBufferData, std::shared_ptr<IndexBufferData> indexBufferData)
-        : m_vertexLayout(std::move(vertexLayout))
+glTFSceneTriangleMesh::glTFSceneTriangleMesh(
+    const glTF_Transform_WithTRS& parentTransformRef,
+    VertexLayoutDeclaration vertexLayout,
+    std::shared_ptr<VertexBufferData> vertexBufferData, std::shared_ptr<IndexBufferData> indexBufferData)
+        : glTFScenePrimitive(parentTransformRef)
+        , m_vertexLayout(std::move(vertexLayout))
         , m_vertexBufferData(std::move(vertexBufferData))
         , m_indexBufferData(std::move(indexBufferData))
 {

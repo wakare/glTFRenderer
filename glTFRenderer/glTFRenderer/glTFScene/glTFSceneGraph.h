@@ -10,9 +10,10 @@
 struct glTFSceneNode
 {
     mutable bool renderStateDirty = true;
-    
-    std::unique_ptr<glTFSceneObjectBase> object;
-    std::vector<std::unique_ptr<glTFSceneNode>> children;
+    glTF_Transform_WithTRS m_transform;
+
+    std::vector<std::unique_ptr<glTFSceneObjectBase>> m_objects;
+    std::vector<std::unique_ptr<glTFSceneNode>> m_children;
 };
 
 // Graph structure to manage scene objects

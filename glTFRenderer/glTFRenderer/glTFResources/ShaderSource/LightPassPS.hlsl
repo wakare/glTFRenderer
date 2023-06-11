@@ -30,8 +30,9 @@ StructuredBuffer<DirectionalLightInfo> g_directionalLightInfos : register(t4);
 float3 GetWorldPosition(float2 uv)
 {
     float depth = depthTex.Sample(defaultSampler, uv).r;
-    uv.y = 1 - uv.y;
-    float4 clipSpaceCoord = float4(uv * 2 - 1.0, depth, 1.0);
+
+    // Flip uv.y is important
+    float4 clipSpaceCoord = float4(2 * uv.x - 1.0, 1 - 2 * uv.y, depth, 1.0);
     float4 viewSpaceCoord = mul(inverseProjectionMatrix, clipSpaceCoord);
     viewSpaceCoord /= viewSpaceCoord.w;
 

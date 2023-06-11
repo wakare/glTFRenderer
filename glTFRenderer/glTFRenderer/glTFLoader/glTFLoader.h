@@ -21,5 +21,5 @@ private:
     std::vector<std::unique_ptr<glTF_Element_BufferView>>       m_bufferViews;
     std::vector<std::unique_ptr<glTF_Element_Accessor_Base>>    m_accessors;
 
-    std::map<glTFHandle, std::unique_ptr<char[]>>               m_bufferDatas;
+    std::map<glTFHandle::HandleIndexType, std::unique_ptr<char[]>>               m_bufferDatas;
 };

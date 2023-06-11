@@ -53,9 +53,12 @@ void glTFRenderPassManager::UpdateScene(size_t deltaTimeMs)
         {
             if (node.renderStateDirty)
             {
-                if (pass->TryProcessSceneObject(*m_resourceManager, *node.object))
+                for (const auto& sceneObject : node.m_objects)
                 {
-                    node.renderStateDirty = false;
+                    if (pass->TryProcessSceneObject(*m_resourceManager, *sceneObject))
+                    {
+                        node.renderStateDirty = false;
+                    }    
                 }
             }
             

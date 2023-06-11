@@ -132,7 +132,7 @@ bool glTFRenderPassLighting::TryProcessSceneObject(glTFRenderResourceManager& re
         {
             const glTFPointLight* pointLight = dynamic_cast<const glTFPointLight*>(light);
             PointLightInfo pointLightInfo{};
-            pointLightInfo.positionAndRadius = glm::vec4(pointLight->GetTransform().position, pointLight->GetRadius());
+            pointLightInfo.positionAndRadius = glm::vec4(glTF_Transform_WithTRS::GetTranslationFromMatrix(pointLight->GetTransformMatrix()), pointLight->GetRadius());
             pointLightInfo.intensityAndFalloff = {pointLight->GetIntensity(), pointLight->GetFalloff(), 0.0f, 0.0f};
             m_cachePointLights[pointLight->GetID()] = pointLightInfo;
         }

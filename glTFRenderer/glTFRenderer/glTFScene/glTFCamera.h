@@ -5,8 +5,9 @@
 class glTFCamera : public glTFSceneObjectBase
 {
 public:
-    glTFCamera(float fovAngle, float projectionWidth, float projectionHeight, float projectionNear, float projectionFar)
-        : m_dirty(true)
+    glTFCamera(const glTF_Transform_WithTRS& parentTransformRef, float fovAngle, float projectionWidth, float projectionHeight, float projectionNear, float projectionFar)
+        : glTFSceneObjectBase(parentTransformRef)
+        , m_dirty(true)
         , m_projectionFovRadian(fovAngle * glm::pi<float>() / 180.0f)
         , m_projectionWidth(projectionWidth)
         , m_projectionHeight(projectionHeight)

@@ -54,8 +54,8 @@ void glTFSceneView::ApplyMovement(const glm::fvec3& translation, const glm::fvec
 {
     for (glTFCamera* camera : m_cameras)
     {
-        camera->GetTransform().position += glm::fvec3(glm::fvec4(translation, 1.0f) * camera->GetTransform().GetTransformInverseMatrix());
-        camera->GetTransform().rotation += rotation;
+        camera->Translate(glm::fvec3(glm::fvec4(translation, 1.0f) * camera->GetTransformInverseMatrix()));
+        camera->Rotate(rotation);
         camera->MarkDirty();
     }
 }

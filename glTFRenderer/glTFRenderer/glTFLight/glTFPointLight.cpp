@@ -1,7 +1,7 @@
 #include "glTFPointLight.h"
 
-glTFPointLight::glTFPointLight(const glm::vec3& position, float radius, float falloff)
-    : glTFLocalLight(glTFLightType::PointLight, position)
+glTFPointLight::glTFPointLight(const glTF_Transform_WithTRS& parentTransformRef, const glm::vec3& position, float radius, float falloff)
+    : glTFLocalLight(parentTransformRef, glTFLightType::PointLight, position)
     , m_radius(radius)
     , m_falloff(falloff)
 {

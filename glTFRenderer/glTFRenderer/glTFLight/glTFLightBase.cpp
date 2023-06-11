@@ -1,7 +1,8 @@
 #include "glTFLightBase.h"
 
-glTFLightBase::glTFLightBase(glTFLightType type)
-    : m_type(type)
+glTFLightBase::glTFLightBase(const glTF_Transform_WithTRS& parentTransformRef, glTFLightType type)
+    : glTFSceneObjectBase(parentTransformRef)
+    , m_type(type)
     , m_intensity(1.0f)
 {
 }

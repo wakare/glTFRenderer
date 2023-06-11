@@ -31,8 +31,8 @@ void glTFCamera::UpdateViewProjectionMatrix() const
 
     // Camera transform is nor equivalent to camera inverse transform matrix because the order of camera translation and rotation 
     //const glm::fmat4x4 cameraInverseTransform = GetTransformInverseMatrix();
-    const glm::mat4 cameraTranslationMatrix = glm::translate(glm::mat4(1.0f), -m_transform.position);
-    const glm::mat4 cameraRotationMatrix = glm::eulerAngleXYZ(-m_transform.rotation.x, -m_transform.rotation.y, -m_transform.rotation.z);
+    const glm::mat4 cameraTranslationMatrix = glm::translate(glm::mat4(1.0f), -m_transform.m_translation);
+    const glm::mat4 cameraRotationMatrix = glm::eulerAngleXYZ(-m_transform.m_rotation.x, -m_transform.m_rotation.y, -m_transform.m_rotation.z);
     m_cacheViewMatrix = cameraRotationMatrix * cameraTranslationMatrix;
     
     m_cacheProjectionMatrix = glm::perspectiveFovLH(m_projectionFovRadian, m_projectionWidth, m_projectionHeight, m_projectionNear, m_projectionFar);

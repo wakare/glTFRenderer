@@ -46,43 +46,6 @@ glTFWindow& glTFWindow::Get()
     return window;
 }
 
-bool CreateTestScene(glTFSceneGraph& sceneGraph)
-{
-    std::shared_ptr<glTFMaterialOpaque> boxAlbedoMaterial = std::make_shared<glTFMaterialOpaque>(std::make_shared<glTFMaterialTexture>("glTFResources/tiger.bmp"));
-    
-    std::unique_ptr<glTFSceneNode> boxSceneNode = std::make_unique<glTFSceneNode>();
-    boxSceneNode->object = std::make_unique<glTFSceneBox>();
-    boxSceneNode->object->GetTransform().position = {5.0f, 0.0f, 0.0f};
-    auto* boxNode = boxSceneNode.get();
-    boxNode->object->SetTickFunc([boxNode]()
-    {
-        auto* box = boxNode->object.get();
-        box->GetTransform().rotation.x += 0.0001f;
-        box->GetTransform().rotation.y += 0.0002f;
-        box->GetTransform().rotation.z += 0.0003f;
-        boxNode->renderStateDirty = true;
-    });
-    ((glTFSceneBox*)boxSceneNode->object.get())->SetMaterial(boxAlbedoMaterial);
-    sceneGraph.AddSceneNode(std::move(boxSceneNode));
-
-    std::unique_ptr<glTFSceneNode> boxSceneNode2 = std::make_unique<glTFSceneNode>();
-    boxSceneNode2->object = std::make_unique<glTFSceneBox>();
-    boxSceneNode2->object->GetTransform().position = {-5.0f, 0.0f, 0.0f};
-    auto* boxNode2 = boxSceneNode2.get();
-    boxNode2->object->SetTickFunc([boxNode2]()
-    {
-        auto* box = boxNode2->object.get();
-        box->GetTransform().rotation.x += 0.0001f;
-        box->GetTransform().rotation.y += 0.0002f;
-        box->GetTransform().rotation.z += 0.0003f;
-        boxNode2->renderStateDirty = true;
-    });
-    ((glTFSceneBox*)boxSceneNode2->object.get())->SetMaterial(boxAlbedoMaterial);
-    sceneGraph.AddSceneNode(std::move(boxSceneNode2));
-    
-    return true;
-}
-
 bool glTFWindow::InitAndShowWindow()
 {
     if (!glfwInit())
@@ -102,42 +65,40 @@ bool glTFWindow::InitAndShowWindow()
     
     // Create test scene with box
     m_sceneGraph = std::make_unique<glTFSceneGraph>(); 
-    RETURN_IF_FALSE(LoadSceneGraphFromFile("D:\\Work\\DevSpace\\glTFRenderer\\glTFRenderer\\glTFRenderer\\glTFRenderer\\glTFResources\\Models\\Box\\Box.gltf"))
+    RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Box\\Box.gltf"))
+    //RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Monster\\Monster.gltf"))
 
     // Add camera
-    std::unique_ptr<glTFCamera> camera = std::make_unique<glTFCamera>(45.0f, 800.0f, 600.0f, 0.1f, 1000.0f);
-    camera->GetTransform() = glTFTransform::Identity();
-    camera->GetTransform().position = {0.0f, 1.0f, -5.0f};
-
     std::unique_ptr<glTFSceneNode> cameraNode = std::make_unique<glTFSceneNode>();
-    cameraNode->object = std::move(camera);
+    std::unique_ptr<glTFCamera> camera = std::make_unique<glTFCamera>(cameraNode->m_transform,
+        45.0f, 800.0f, 600.0f, 0.1f, 1000.0f);
+    camera->Translate({0.0f, 1.0f, -5.0f});
+    cameraNode->m_objects.push_back(std::move(camera));
     m_sceneGraph->AddSceneNode(std::move(cameraNode));
 
     // Add light
-    std::unique_ptr<glTFDirectionalLight> directionalLight = std::make_unique<glTFDirectionalLight>();
-    directionalLight->GetTransform().rotation = {45.0f, 0.0f, 0.0f};
-    directionalLight->SetIntensity(10.0f);
-    
     std::unique_ptr<glTFSceneNode> directionalLightNode = std::make_unique<glTFSceneNode>();
+    std::unique_ptr<glTFDirectionalLight> directionalLight = std::make_unique<glTFDirectionalLight>(directionalLightNode->m_transform);
+    directionalLight->Rotate({45.0f, 0.0f, 0.0f});
+    directionalLight->SetIntensity(10.0f);
     directionalLight->SetTickFunc([lightNode = directionalLightNode.get()]()
     {
-        lightNode->object->GetTransform().rotation.y += 0.0001f;
-        lightNode->object->GetTransform().rotation.z += 0.0002f;
-        lightNode->object->GetTransform().rotation.x += 0.0003f;
+        lightNode->m_transform.m_rotation.y += 0.0001f;
+        lightNode->m_transform.m_rotation.z += 0.0002f;
+        lightNode->m_transform.m_rotation.x += 0.0003f;
         lightNode->renderStateDirty = true;
     });
-    directionalLightNode->object = std::move(directionalLight);
+    directionalLightNode->m_objects.push_back(std::move(directionalLight));
 
-    std::unique_ptr<glTFPointLight> pointLight = std::make_unique<glTFPointLight>();
-    pointLight->GetTransform().position = {0.0f, 1.0f, 0.0f};
+    std::unique_ptr<glTFSceneNode> pointLightNode = std::make_unique<glTFSceneNode>();
+    std::unique_ptr<glTFPointLight> pointLight = std::make_unique<glTFPointLight>(pointLightNode->m_transform);
+    pointLight->Translate({0.0f, 1.0f, 0.0f});
     pointLight->SetRadius(0.7f);
     pointLight->SetFalloff(1.0f);
     pointLight->SetIntensity(10000.0f);
+    pointLightNode->m_objects.push_back(std::move(pointLight));
 
-    std::unique_ptr<glTFSceneNode> pointLightNode = std::make_unique<glTFSceneNode>();
-    pointLightNode->object = std::move(pointLight);
-
-    //m_sceneGraph->AddSceneNode(std::move(directionalLightNode));
+    m_sceneGraph->AddSceneNode(std::move(directionalLightNode));
     m_sceneGraph->AddSceneNode(std::move(pointLightNode));
     
     m_sceneView = std::make_unique<glTFSceneView>(*m_sceneGraph);
@@ -196,22 +157,15 @@ void glTFWindow::CursorPosCallback(GLFWwindow* window, double xpos, double ypos)
     Get().m_inputControl.RecordCursorPos(xpos, ypos);
 }
 
-bool glTFWindow::LoadSceneGraphFromFile(const char* filePath)
+void glTFWindow::recursiveProcessChildrenNodes (const glTFLoader& loader, const glTFHandle& handle, glTFSceneNode& sceneNode)
 {
-    glTFLoader loader;
-    const bool loaded = loader.LoadFile(filePath);
-    if (loaded)
-    {
-        loader.Print();    
-    }
+    const auto& node = loader.m_nodes[handle.node_index];
+    sceneNode.m_transform = node->transform.m_matrix;
 
-    const auto& sceneNode = loader.m_scenes[loader.default_scene];
-    for (const auto& rootNode : sceneNode->root_nodes)
+    if (node->mesh.IsValid())
     {
-        const auto& node = loader.m_nodes[rootNode];
-        std::unique_ptr<glTFSceneNode> newNode = std::make_unique<glTFSceneNode>();
-        const auto& Mesh = *loader.m_meshes[node->mesh];
-        for (const auto& primitive : Mesh.primitives)
+        const auto& mesh = *loader.m_meshes[node->mesh.node_index];
+        for (const auto& primitive : mesh.primitives)
         {
             VertexLayoutDeclaration vertexLayout;
             size_t vertexBufferSize = 0;
@@ -223,12 +177,14 @@ bool glTFWindow::LoadSceneGraphFromFile(const char* filePath)
             if (itPosition != primitive.attributes.end())
             {
                 const glTFHandle accessorHandle = itPosition->second; 
-                const auto& vertexAccessor = *loader.m_accessors[accessorHandle];
+                const auto& vertexAccessor = *loader.m_accessors[accessorHandle.node_index];
                 vertexLayout.elements.push_back({VertexLayoutType::POSITION, vertexAccessor.GetElementByteSize()});
                 vertexBufferSize += vertexAccessor.count * vertexAccessor.GetElementByteSize();
 
-                const auto& vertexBufferView = *loader.m_bufferViews[vertexAccessor.buffer_view];
-                char* bufferStart = loader.m_bufferDatas[vertexBufferView.buffer].get();
+                const auto& vertexBufferView = *loader.m_bufferViews[vertexAccessor.buffer_view.node_index];
+                auto findIt = loader.m_bufferDatas.find(vertexBufferView.buffer.node_index);
+                GLTF_CHECK(findIt != loader.m_bufferDatas.end());
+                char* bufferStart = findIt->second.get();
                 vertexDataInGLTFBuffers.push_back(bufferStart + vertexBufferView.byte_offset + vertexAccessor.byte_offset);
             }
 
@@ -237,12 +193,14 @@ bool glTFWindow::LoadSceneGraphFromFile(const char* filePath)
             if (itNormal != primitive.attributes.end())
             {
                 const glTFHandle accessorHandle = itNormal->second; 
-                const auto& vertexAccessor = *loader.m_accessors[accessorHandle];
+                const auto& vertexAccessor = *loader.m_accessors[accessorHandle.node_index];
                 vertexLayout.elements.push_back({VertexLayoutType::NORMAL, vertexAccessor.GetElementByteSize()});
                 vertexBufferSize += vertexAccessor.count * vertexAccessor.GetElementByteSize();
 
-                const auto& vertexBufferView = *loader.m_bufferViews[vertexAccessor.buffer_view];
-                char* bufferStart =  loader.m_bufferDatas[vertexBufferView.buffer].get();
+                const auto& vertexBufferView = *loader.m_bufferViews[vertexAccessor.buffer_view.node_index];
+                auto findIt = loader.m_bufferDatas.find(vertexBufferView.buffer.node_index);
+                GLTF_CHECK(findIt != loader.m_bufferDatas.end());
+                char* bufferStart = findIt->second.get();
                 vertexDataInGLTFBuffers.push_back(bufferStart + vertexBufferView.byte_offset + vertexAccessor.byte_offset);
             }
 
@@ -262,20 +220,47 @@ bool glTFWindow::LoadSceneGraphFromFile(const char* filePath)
                 }
             }
             
-            const auto& indexAccessor = *loader.m_accessors[primitive.indices];
-            const auto& indexBufferView = *loader.m_bufferViews[indexAccessor.buffer_view];
+            const auto& indexAccessor = *loader.m_accessors[primitive.indices.node_index];
+            const auto& indexBufferView = *loader.m_bufferViews[indexAccessor.buffer_view.node_index];
             
             std::shared_ptr<IndexBufferData> indexBufferData = std::make_shared<IndexBufferData>();
             indexBufferData->data.reset(new char[indexBufferView.byte_length]);
-            memcpy(indexBufferData->data.get(), loader.m_bufferDatas[indexBufferView.buffer].get() + indexBufferView.byte_offset + indexAccessor.byte_offset, indexBufferView.byte_length);
+            auto findIt = loader.m_bufferDatas.find(indexBufferView.buffer.node_index);
+            GLTF_CHECK(findIt != loader.m_bufferDatas.end());
+            const char* bufferStart = findIt->second.get();
+            memcpy(indexBufferData->data.get(), bufferStart + indexBufferView.byte_offset + indexAccessor.byte_offset, indexBufferView.byte_length);
             indexBufferData->byteSize = indexBufferView.byte_length;
             indexBufferData->indexCount = indexAccessor.count;
             indexBufferData->elementType = indexAccessor.component_type == EUnsignedShort ? IndexBufferElementType::UNSIGNED_SHORT : IndexBufferElementType::UNSIGNED_INT;   
             
-            newNode->object.reset(new glTFSceneTriangleMesh(vertexLayout, vertexBufferData, indexBufferData));
+            sceneNode.m_objects.push_back(std::make_unique<glTFSceneTriangleMesh>(sceneNode.m_transform, vertexLayout, vertexBufferData, indexBufferData));
         }
+    }
 
-        m_sceneGraph->AddSceneNode(std::move(newNode));
+    for (const auto& child : node->children)
+    {
+        std::unique_ptr<glTFSceneNode> childNode = std::make_unique<glTFSceneNode>();
+        recursiveProcessChildrenNodes(loader, child, *childNode);
+        sceneNode.m_children.push_back(std::move(childNode));
+    }
+}
+
+bool glTFWindow::LoadSceneGraphFromFile(const char* filePath)
+{
+    glTFLoader loader;
+    const bool loaded = loader.LoadFile(filePath);
+    if (loaded)
+    {
+        loader.Print();    
+    }
+
+    const auto& sceneNode = loader.m_scenes[loader.default_scene];
+    for (const auto& rootNode : sceneNode->root_nodes)
+    {
+        std::unique_ptr<glTFSceneNode> sceneRootNodes = std::make_unique<glTFSceneNode>();
+        recursiveProcessChildrenNodes(loader, rootNode, *sceneRootNodes);
+        
+        m_sceneGraph->AddSceneNode(std::move(sceneRootNodes));
     }
     
     return true;

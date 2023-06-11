@@ -9,16 +9,19 @@ glTFSceneGraph::glTFSceneGraph()
 void glTFSceneGraph::AddSceneNode(std::unique_ptr<glTFSceneNode>&& node)
 {
     assert(node.get());
-    m_root->children.push_back(std::move(node));
+    m_root->m_children.push_back(std::move(node));
 }
 
 void glTFSceneGraph::Tick(size_t deltaTimeMs)
 {
     TraverseNodesInner([](glTFSceneNode& node)
     {
-        if (node.object && node.object->CanTick())
+        for (const auto& sceneObject : node.m_objects)
         {
-            node.object->Tick();
+            if (sceneObject->CanTick())
+            {
+                sceneObject->Tick();
+            }    
         }
         
         return true;
@@ -28,9 +31,9 @@ void glTFSceneGraph::Tick(size_t deltaTimeMs)
 bool TraverseNodeImpl(const std::function<bool(glTFSceneNode&)>& visitor, glTFSceneNode& nodeToVisit)
 {
     bool needVisitorNext = visitor(nodeToVisit);
-    if (needVisitorNext && !nodeToVisit.children.empty())
+    if (needVisitorNext && !nodeToVisit.m_children.empty())
     {
-        for (const auto& child : nodeToVisit.children)
+        for (const auto& child : nodeToVisit.m_children)
         {
             needVisitorNext = TraverseNodeImpl(visitor, *child);
             if (!needVisitorNext)
@@ -53,9 +56,12 @@ std::vector<glTFCamera*> glTFSceneGraph::GetSceneCameras() const
     std::vector<glTFCamera*> cameras;
     TraverseNodes([&cameras](const glTFSceneNode& node)
     {
-        if (auto* camera = dynamic_cast<glTFCamera*>(node.object.get()) )
+        for (const auto& sceneObject : node.m_objects)
         {
-            cameras.push_back(camera);
+            if (auto* camera = dynamic_cast<glTFCamera*>(sceneObject.get()) )
+            {
+                cameras.push_back(camera);
+            }    
         }
             
         return true;

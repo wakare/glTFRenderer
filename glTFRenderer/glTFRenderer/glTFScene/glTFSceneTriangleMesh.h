@@ -4,7 +4,9 @@
 class glTFSceneTriangleMesh : public glTFScenePrimitive
 {
 public:
-    glTFSceneTriangleMesh(VertexLayoutDeclaration vertexLayout, std::shared_ptr<VertexBufferData> vertexBufferData, std::shared_ptr<IndexBufferData> indexBufferData);
+    glTFSceneTriangleMesh(const glTF_Transform_WithTRS& parentTransformRef,
+        VertexLayoutDeclaration vertexLayout, std::shared_ptr<VertexBufferData> vertexBufferData,
+        std::shared_ptr<IndexBufferData> indexBufferData);
     
     virtual const VertexLayoutDeclaration& GetVertexLayout() const override;
     virtual const VertexBufferData& GetVertexBufferData() const override;

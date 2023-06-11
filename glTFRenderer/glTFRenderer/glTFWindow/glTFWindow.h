@@ -5,6 +5,7 @@
 #include "../glTFScene/glTFSceneGraph.h"
 #include "glTFInputManager.h"
 
+class glTFLoader;
 struct GLFWwindow;
 
 class glTFTimer
@@ -40,6 +41,7 @@ private:
     static void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
     static void CursorPosCallback(GLFWwindow* window, double xpos, double ypos);
 
+    void recursiveProcessChildrenNodes(const glTFLoader& loader, const glTFHandle& handle, glTFSceneNode& sceneNode);
     bool LoadSceneGraphFromFile(const char* filePath);
     
     GLFWwindow* m_glfwWindow;

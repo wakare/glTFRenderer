@@ -1,7 +1,7 @@
 #include "glTFDirectionalLight.h"
 
-glTFDirectionalLight::glTFDirectionalLight()
-    :glTFLightBase(glTFLightType::DirectionalLight)
+glTFDirectionalLight::glTFDirectionalLight(const glTF_Transform_WithTRS& parentTransformRef)
+    : glTFLightBase(parentTransformRef, glTFLightType::DirectionalLight)
 {
     
 }

@@ -1,7 +1,7 @@
 #include "glTFLocalLight.h"
 
-glTFLocalLight::glTFLocalLight(glTFLightType type, const glm::vec3& position)
-    : glTFLightBase(type)
+glTFLocalLight::glTFLocalLight(const glTF_Transform_WithTRS& parentTransformRef, glTFLightType type, const glm::vec3& position)
+    : glTFLightBase(parentTransformRef, type)
     , m_position(position)
 {
 }

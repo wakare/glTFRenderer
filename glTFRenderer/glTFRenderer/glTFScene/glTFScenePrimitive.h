@@ -59,7 +59,12 @@ struct IndexBufferData
 class glTFScenePrimitive : public glTFSceneObjectBase
 {
 public:
-    glTFScenePrimitive() = default;
+    glTFScenePrimitive(const glTF_Transform_WithTRS& parentTransformRef,
+                       std::shared_ptr<glTFMaterialBase> m_material = nullptr)
+        : glTFSceneObjectBase(parentTransformRef),
+          m_material(std::move(m_material))
+    {
+    }
 
     virtual const VertexLayoutDeclaration& GetVertexLayout() const = 0;
     virtual const VertexBufferData& GetVertexBufferData() const = 0;

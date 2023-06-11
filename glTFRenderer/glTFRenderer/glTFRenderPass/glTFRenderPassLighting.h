@@ -61,8 +61,8 @@ protected:
     RHIGPUDescriptorHandle m_depthRTSRVHandle;
     RHIGPUDescriptorHandle m_normalRTSRVHandle;
 
-    std::map<glTFHandle, PointLightInfo> m_cachePointLights;
-    std::map<glTFHandle, DirectionalLightInfo> m_cacheDirectionalLights;
+    std::map<glTFHandle::HandleIndexType, PointLightInfo> m_cachePointLights;
+    std::map<glTFHandle::HandleIndexType, DirectionalLightInfo> m_cacheDirectionalLights;
     
     std::shared_ptr<IRHIGPUBuffer> m_lightInfoGPUConstantBuffer;
     std::shared_ptr<IRHIGPUBuffer> m_pointLightInfoGPUStructuredBuffer;

@@ -1,6 +1,9 @@
 #pragma once
 #include <map>
+#include <memory>
 #include <string>
+#include <vector>
+
 #include "glm.hpp"
 
 #define GLTF_CHECK(a) assert(a)
@@ -23,8 +26,38 @@ enum class glTF_Element_Type
     EAsset,
 };
 
-typedef unsigned glTFHandle;
-#define glTF_ELEMENT_INVALID_HANDLE UINT_MAX
+struct glTFHandle
+{
+    using HandleIndexType = unsigned;
+    enum
+    {
+        glTF_ELEMENT_INVALID_HANDLE = UINT_MAX,
+    };
+    
+    std::string node_name;
+    HandleIndexType node_index;
+
+    glTFHandle(std::string name, unsigned index)
+        : node_name(std::move(name))
+        , node_index(index)
+    {
+        
+    }
+
+    glTFHandle()
+        : node_name()
+        , node_index(glTF_ELEMENT_INVALID_HANDLE)
+    {
+        
+    }
+
+    bool IsValid() const
+    {
+        return glTF_ELEMENT_INVALID_HANDLE != node_index;
+    }
+};
+
+//typedef unsigned glTFHandle;
 
 struct glTF_Element_Base
 {
@@ -38,7 +71,7 @@ struct glTF_Element_Base
     glTF_Element_Base& operator=(glTF_Element_Base&& rhs) = delete;
     virtual ~glTF_Element_Base() = default;
 
-    glTFHandle self_handle = glTF_ELEMENT_INVALID_HANDLE;
+    glTFHandle self_handle;
     std::string name;
 };
 
@@ -82,18 +115,13 @@ typedef glTF_Element_Template<glTF_Element_Type::EScene> glTF_Element_Scene;
 // ---------------------------------- Node Type ---------------------------------- 
 struct glTF_Transform
 {
-    glTF_Transform(
-        const glm::vec3& translation,
-        const glm::vec4& rotation,
-        const glm::vec3& scale)
+    glTF_Transform(const glm::mat4& matrix = glm::mat4(1.0f))
+        : m_matrix(matrix)
     {
         // TODO: @JACK implementation?
     }
 
-    glTF_Transform()
-    = default;
-
-    glm::mat4x4 matrix{};
+    glm::mat4 m_matrix{};
 };
 
 template<>
@@ -108,7 +136,7 @@ struct glTF_Element_Template<glTF_Element_Type::ENode> : glTF_Element_Base
     // Root node cannot reference by children node array
     bool IsRoot() const
     {
-        return parent == glTF_ELEMENT_INVALID_HANDLE;
+        return parent.IsValid();
     }
 };
 

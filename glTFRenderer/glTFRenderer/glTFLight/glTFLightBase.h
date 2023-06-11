@@ -16,7 +16,7 @@ enum class glTFLightType
 class glTFLightBase : public glTFSceneObjectBase
 {
 public:
-    glTFLightBase(glTFLightType type);
+    glTFLightBase(const glTF_Transform_WithTRS& parentTransformRef, glTFLightType type);
 
     glTFLightType GetType() const;
     virtual bool IsLocal() const = 0;

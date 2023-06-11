@@ -4,7 +4,7 @@
 class glTFPointLight : public glTFLocalLight
 {
 public:
-    glTFPointLight(const glm::vec3& position = {0.0f, 0.0f, 0.0f}, float radius = 0.0f, float falloff = 2.0f);
+    glTFPointLight(const glTF_Transform_WithTRS& parentTransformRef,const glm::vec3& position = {0.0f, 0.0f, 0.0f}, float radius = 0.0f, float falloff = 2.0f);
 
     virtual bool AffectPosition(const glm::vec3& position) const override;
     
