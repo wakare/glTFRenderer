@@ -62,6 +62,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty;$(SolutionDir)ThirdParty/glm/glm;$(SolutionDir)ThirdParty/glfw/include;</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -85,6 +86,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty;$(SolutionDir)ThirdParty/glm/glm;$(SolutionDir)ThirdParty/glfw/include;</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -628,12 +630,11 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="..\..\README.md" />
+    <Content Include="glTFResources\Models\Box\Box.gltf" />
+    <Content Include="glTFResources\Models\Monster\Monster.gltf" />
     <Content Include="glTFResources\tiger.bmp" />
     <Content Include="glTFResources\UE4_Logo.bmp" />
     <Content Include="glTFSamples\Hello_glTF.json" />
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="glTFResources\Models\" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

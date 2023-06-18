@@ -65,8 +65,8 @@ bool glTFWindow::InitAndShowWindow()
     
     // Create test scene with box
     m_sceneGraph = std::make_unique<glTFSceneGraph>(); 
-    RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Box\\Box.gltf"))
-    //RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Monster\\Monster.gltf"))
+    //RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Box\\Box.gltf"))
+    RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Monster\\Monster.gltf"))
 
     // Add camera
     std::unique_ptr<glTFSceneNode> cameraNode = std::make_unique<glTFSceneNode>();
@@ -159,81 +159,90 @@ void glTFWindow::CursorPosCallback(GLFWwindow* window, double xpos, double ypos)
 
 void glTFWindow::recursiveProcessChildrenNodes (const glTFLoader& loader, const glTFHandle& handle, glTFSceneNode& sceneNode)
 {
-    const auto& node = loader.m_nodes[handle.node_index];
+    const auto& node = loader.m_nodes[loader.ResolveIndex(handle)];
     sceneNode.m_transform = node->transform.m_matrix;
 
-    if (node->mesh.IsValid())
+    for (const auto& mesh_handle : node->meshes)
     {
-        const auto& mesh = *loader.m_meshes[node->mesh.node_index];
-        for (const auto& primitive : mesh.primitives)
+        if (mesh_handle.IsValid())
         {
-            VertexLayoutDeclaration vertexLayout;
-            size_t vertexBufferSize = 0;
+            const auto& mesh = *loader.m_meshes[loader.ResolveIndex(mesh_handle)];
+            for (const auto& primitive : mesh.primitives)
+            {
+                VertexLayoutDeclaration vertexLayout;
+                size_t vertexBufferSize = 0;
 
-            std::vector<char*> vertexDataInGLTFBuffers;
+                std::vector<char*> vertexDataInGLTFBuffers;
             
-            // POSITION attribute
-            auto itPosition = primitive.attributes.find(glTF_Attribute_POSITION::attribute_type_id);
-            if (itPosition != primitive.attributes.end())
-            {
-                const glTFHandle accessorHandle = itPosition->second; 
-                const auto& vertexAccessor = *loader.m_accessors[accessorHandle.node_index];
-                vertexLayout.elements.push_back({VertexLayoutType::POSITION, vertexAccessor.GetElementByteSize()});
-                vertexBufferSize += vertexAccessor.count * vertexAccessor.GetElementByteSize();
-
-                const auto& vertexBufferView = *loader.m_bufferViews[vertexAccessor.buffer_view.node_index];
-                auto findIt = loader.m_bufferDatas.find(vertexBufferView.buffer.node_index);
-                GLTF_CHECK(findIt != loader.m_bufferDatas.end());
-                char* bufferStart = findIt->second.get();
-                vertexDataInGLTFBuffers.push_back(bufferStart + vertexBufferView.byte_offset + vertexAccessor.byte_offset);
-            }
-
-            // NORMAL attribute
-            auto itNormal = primitive.attributes.find(glTF_Attribute_NORMAL::attribute_type_id);
-            if (itNormal != primitive.attributes.end())
-            {
-                const glTFHandle accessorHandle = itNormal->second; 
-                const auto& vertexAccessor = *loader.m_accessors[accessorHandle.node_index];
-                vertexLayout.elements.push_back({VertexLayoutType::NORMAL, vertexAccessor.GetElementByteSize()});
-                vertexBufferSize += vertexAccessor.count * vertexAccessor.GetElementByteSize();
-
-                const auto& vertexBufferView = *loader.m_bufferViews[vertexAccessor.buffer_view.node_index];
-                auto findIt = loader.m_bufferDatas.find(vertexBufferView.buffer.node_index);
-                GLTF_CHECK(findIt != loader.m_bufferDatas.end());
-                char* bufferStart = findIt->second.get();
-                vertexDataInGLTFBuffers.push_back(bufferStart + vertexBufferView.byte_offset + vertexAccessor.byte_offset);
-            }
-
-            std::shared_ptr<VertexBufferData> vertexBufferData = std::make_shared<VertexBufferData>();
-            vertexBufferData->data.reset(new char[vertexBufferSize]);
-            vertexBufferData->byteSize = vertexBufferSize;
-            vertexBufferData->vertexCount = vertexBufferSize /vertexLayout.GetVertexStride();
-            char* vertexDataStart = vertexBufferData->data.get();
-            for (size_t v = 0; v < vertexBufferData->vertexCount; ++v)
-            {
-                // Reformat vertex buffer data
-                for (size_t i = 0; i < vertexLayout.elements.size(); ++i)
+                // POSITION attribute
+                auto itPosition = primitive.attributes.find(glTF_Attribute_POSITION::attribute_type_id);
+                if (itPosition != primitive.attributes.end())
                 {
-                    memcpy(vertexDataStart, vertexDataInGLTFBuffers[i], vertexLayout.elements[i].byteSize);
-                    vertexDataInGLTFBuffers[i] += vertexLayout.elements[i].byteSize;
-                    vertexDataStart += vertexLayout.elements[i].byteSize;
+                    const glTFHandle accessorHandle = itPosition->second; 
+                    const auto& vertexAccessor = *loader.m_accessors[loader.ResolveIndex(accessorHandle)];
+                    vertexLayout.elements.push_back({VertexLayoutType::POSITION, vertexAccessor.GetElementByteSize()});
+                    vertexBufferSize += vertexAccessor.count * vertexAccessor.GetElementByteSize();
+
+                    const auto& vertexBufferView = *loader.m_bufferViews[loader.ResolveIndex(vertexAccessor.buffer_view)];
+                    glTFHandle tempVertexBufferViewHandle = vertexBufferView.buffer;
+                    tempVertexBufferViewHandle.node_index = loader.ResolveIndex(vertexBufferView.buffer);
+                    auto findIt = loader.m_bufferDatas.find(tempVertexBufferViewHandle);
+                    GLTF_CHECK(findIt != loader.m_bufferDatas.end());
+                    char* bufferStart = findIt->second.get();
+                    vertexDataInGLTFBuffers.push_back(bufferStart + vertexBufferView.byte_offset + vertexAccessor.byte_offset);
                 }
+
+                // NORMAL attribute
+                auto itNormal = primitive.attributes.find(glTF_Attribute_NORMAL::attribute_type_id);
+                if (itNormal != primitive.attributes.end())
+                {
+                    const glTFHandle accessorHandle = itNormal->second; 
+                    const auto& vertexAccessor = *loader.m_accessors[loader.ResolveIndex(accessorHandle)];
+                    vertexLayout.elements.push_back({VertexLayoutType::NORMAL, vertexAccessor.GetElementByteSize()});
+                    vertexBufferSize += vertexAccessor.count * vertexAccessor.GetElementByteSize();
+
+                    const auto& vertexBufferView = *loader.m_bufferViews[loader.ResolveIndex(vertexAccessor.buffer_view)];
+                    glTFHandle tempVertexBufferViewHandle = vertexBufferView.buffer;
+                    tempVertexBufferViewHandle.node_index = loader.ResolveIndex(vertexBufferView.buffer);
+                    auto findIt = loader.m_bufferDatas.find(tempVertexBufferViewHandle);
+                    GLTF_CHECK(findIt != loader.m_bufferDatas.end());
+                    char* bufferStart = findIt->second.get();
+                    vertexDataInGLTFBuffers.push_back(bufferStart + vertexBufferView.byte_offset + vertexAccessor.byte_offset);
+                }
+
+                std::shared_ptr<VertexBufferData> vertexBufferData = std::make_shared<VertexBufferData>();
+                vertexBufferData->data.reset(new char[vertexBufferSize]);
+                vertexBufferData->byteSize = vertexBufferSize;
+                vertexBufferData->vertexCount = vertexBufferSize /vertexLayout.GetVertexStride();
+                char* vertexDataStart = vertexBufferData->data.get();
+                for (size_t v = 0; v < vertexBufferData->vertexCount; ++v)
+                {
+                    // Reformat vertex buffer data
+                    for (size_t i = 0; i < vertexLayout.elements.size(); ++i)
+                    {
+                        memcpy(vertexDataStart, vertexDataInGLTFBuffers[i], vertexLayout.elements[i].byteSize);
+                        vertexDataInGLTFBuffers[i] += vertexLayout.elements[i].byteSize;
+                        vertexDataStart += vertexLayout.elements[i].byteSize;
+                    }
+                }
+            
+                const auto& indexAccessor = *loader.m_accessors[loader.ResolveIndex(primitive.indices)];
+                const auto& indexBufferView = *loader.m_bufferViews[loader.ResolveIndex(indexAccessor.buffer_view)];
+            
+                std::shared_ptr<IndexBufferData> indexBufferData = std::make_shared<IndexBufferData>();
+                indexBufferData->data.reset(new char[indexBufferView.byte_length]);
+                glTFHandle tempIndexBufferViewHandle = indexBufferView.buffer;
+                tempIndexBufferViewHandle.node_index = loader.ResolveIndex(indexBufferView.buffer);
+                auto findIt = loader.m_bufferDatas.find(tempIndexBufferViewHandle);
+                GLTF_CHECK(findIt != loader.m_bufferDatas.end());
+                const char* bufferStart = findIt->second.get();
+                memcpy(indexBufferData->data.get(), bufferStart + indexBufferView.byte_offset + indexAccessor.byte_offset, indexBufferView.byte_length);
+                indexBufferData->byteSize = indexBufferView.byte_length;
+                indexBufferData->indexCount = indexAccessor.count;
+                indexBufferData->elementType = indexAccessor.component_type == EUnsignedShort ? IndexBufferElementType::UNSIGNED_SHORT : IndexBufferElementType::UNSIGNED_INT;   
+            
+                sceneNode.m_objects.push_back(std::make_unique<glTFSceneTriangleMesh>(sceneNode.m_transform, vertexLayout, vertexBufferData, indexBufferData));
             }
-            
-            const auto& indexAccessor = *loader.m_accessors[primitive.indices.node_index];
-            const auto& indexBufferView = *loader.m_bufferViews[indexAccessor.buffer_view.node_index];
-            
-            std::shared_ptr<IndexBufferData> indexBufferData = std::make_shared<IndexBufferData>();
-            indexBufferData->data.reset(new char[indexBufferView.byte_length]);
-            auto findIt = loader.m_bufferDatas.find(indexBufferView.buffer.node_index);
-            GLTF_CHECK(findIt != loader.m_bufferDatas.end());
-            const char* bufferStart = findIt->second.get();
-            memcpy(indexBufferData->data.get(), bufferStart + indexBufferView.byte_offset + indexAccessor.byte_offset, indexBufferView.byte_length);
-            indexBufferData->byteSize = indexBufferView.byte_length;
-            indexBufferData->indexCount = indexAccessor.count;
-            indexBufferData->elementType = indexAccessor.component_type == EUnsignedShort ? IndexBufferElementType::UNSIGNED_SHORT : IndexBufferElementType::UNSIGNED_INT;   
-            
-            sceneNode.m_objects.push_back(std::make_unique<glTFSceneTriangleMesh>(sceneNode.m_transform, vertexLayout, vertexBufferData, indexBufferData));
         }
     }
 

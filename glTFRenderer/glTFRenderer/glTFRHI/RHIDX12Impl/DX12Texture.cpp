@@ -1,11 +1,13 @@
+#ifndef _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS
+#define _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS
+#endif 
 #include "DX12Texture.h"
-
-#include <codecvt>
-
 #include "DX12Device.h"
 #include "../RHIResourceFactory.h"
 #include "../RHIUtils.h"
 #include "../RHIInterface/glTFImageLoader.h"
+
+#include <codecvt>
 
 DX12Texture::DX12Texture()
 = default;

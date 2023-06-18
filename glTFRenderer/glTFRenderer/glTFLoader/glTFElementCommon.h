@@ -28,16 +28,17 @@ enum class glTF_Element_Type
 
 struct glTFHandle
 {
-    using HandleIndexType = unsigned;
+    using HandleIndexType = int;
+    using HandleNameType = std::string;
     enum
     {
-        glTF_ELEMENT_INVALID_HANDLE = UINT_MAX,
+        glTF_ELEMENT_INVALID_HANDLE = INT_MAX,
     };
     
-    std::string node_name;
+    HandleNameType node_name;
     HandleIndexType node_index;
 
-    glTFHandle(std::string name, unsigned index)
+    glTFHandle(HandleNameType name, HandleIndexType index)
         : node_name(std::move(name))
         , node_index(index)
     {
@@ -53,7 +54,13 @@ struct glTFHandle
 
     bool IsValid() const
     {
-        return glTF_ELEMENT_INVALID_HANDLE != node_index;
+        return glTF_ELEMENT_INVALID_HANDLE != node_index || !node_name.empty();
+    }
+
+    bool operator<(const glTFHandle& other) const
+    {
+        return node_index < other.node_index ? true : (node_index > other.node_index ? false :
+            node_name < other.node_name);
     }
 };
 
@@ -129,8 +136,9 @@ struct glTF_Element_Template<glTF_Element_Type::ENode> : glTF_Element_Base
 {
     glTFHandle parent{};
     glTFHandle camera{};
-    glTFHandle mesh{};
+    //glTFHandle mesh{};
     glTF_Transform transform;
+    std::vector<glTFHandle> meshes;
     std::vector<glTFHandle> children;
 
     // Root node cannot reference by children node array
