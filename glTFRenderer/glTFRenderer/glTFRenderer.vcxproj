@@ -57,18 +57,19 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <SDLCheck>true</SDLCheck>
+      <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty;$(SolutionDir)ThirdParty/glm/glm;$(SolutionDir)ThirdParty/glfw/include;</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)ThirdParty/libs/$(ConfigurationName)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);glfw3.lib;D3d12.lib;dxgi.lib;D3DCompiler.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);glfw3.lib;D3d12.lib;dxgi.lib;D3DCompiler.lib;</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy $(SolutionDir)glTFRenderer\glTFResources\ $(OutDir)glTFResources\ /s /y</Command>
@@ -81,20 +82,23 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
+      <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty;$(SolutionDir)ThirdParty/glm/glm;$(SolutionDir)ThirdParty/glfw/include;</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)ThirdParty/libs/$(ConfigurationName)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);glfw3.lib;D3d12.lib;dxgi.lib;D3DCompiler.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);;glfw3.lib;D3d12.lib;dxgi.lib;D3DCompiler.lib;</AdditionalDependencies>
+      <IgnoreSpecificDefaultLibraries>
+      </IgnoreSpecificDefaultLibraries>
     </Link>
     <PostBuildEvent>
       <Command>xcopy $(SolutionDir)glTFRenderer\glTFResources\ $(OutDir)glTFResources\ /s /y</Command>
@@ -541,6 +545,7 @@
     <ClCompile Include="glTFScene\glTFSceneView.cpp" />
     <ClCompile Include="glTFShaderUtils\glTFShaderUtils.cpp" />
     <ClCompile Include="glTFUtils\glTFLog.cpp" />
+    <ClCompile Include="glTFUtils\glTFUtils.cpp" />
     <ClCompile Include="glTFWindow\glTFInputManager.cpp" />
     <ClCompile Include="glTFWindow\glTFWindow.cpp" />
   </ItemGroup>
@@ -631,6 +636,14 @@
   <ItemGroup>
     <Content Include="..\..\README.md" />
     <Content Include="glTFResources\Models\Box\Box.gltf" />
+    <Content Include="glTFResources\Models\Buggy\glTF-Binary\Buggy.glb" />
+    <Content Include="glTFResources\Models\Buggy\glTF-Draco\Buggy.bin" />
+    <Content Include="glTFResources\Models\Buggy\glTF-Draco\Buggy.gltf" />
+    <Content Include="glTFResources\Models\Buggy\glTF-Embedded\Buggy.gltf" />
+    <Content Include="glTFResources\Models\Buggy\glTF\Buggy.gltf" />
+    <Content Include="glTFResources\Models\Buggy\glTF\Buggy0.bin" />
+    <Content Include="glTFResources\Models\Buggy\README.md" />
+    <Content Include="glTFResources\Models\Buggy\screenshot\screenshot.png" />
     <Content Include="glTFResources\Models\Monster\Monster.gltf" />
     <Content Include="glTFResources\tiger.bmp" />
     <Content Include="glTFResources\UE4_Logo.bmp" />

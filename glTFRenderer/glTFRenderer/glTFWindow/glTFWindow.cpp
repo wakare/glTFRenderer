@@ -1,9 +1,4 @@
 #include "glTFWindow.h"
-#include <GLFW/glfw3.h>
-
-#define GLFW_EXPOSE_NATIVE_WIN32 1
-#include <GLFW/glfw3native.h>
-
 #include "../glTFLight/glTFDirectionalLight.h"
 #include "../glTFLight/glTFPointLight.h"
 #include "../glTFMaterial/glTFMaterialOpaque.h"
@@ -13,6 +8,11 @@
 #include "../glTFScene/glTFCamera.h"
 #include "../glTFLoader/glTFLoader.h"
 #include "../glTFScene/glTFSceneTriangleMesh.h"
+
+#include <GLFW/glfw3.h>
+
+#define GLFW_EXPOSE_NATIVE_WIN32 1
+#include <GLFW/glfw3native.h>
 
 glTFWindow::glTFWindow()
     : m_glfwWindow(nullptr)
@@ -66,13 +66,14 @@ bool glTFWindow::InitAndShowWindow()
     // Create test scene with box
     m_sceneGraph = std::make_unique<glTFSceneGraph>(); 
     //RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Box\\Box.gltf"))
-    RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Monster\\Monster.gltf"))
+    //RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Monster\\Monster.gltf"))
+    RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Buggy\\glTF\\Buggy.gltf"))
 
     // Add camera
     std::unique_ptr<glTFSceneNode> cameraNode = std::make_unique<glTFSceneNode>();
     std::unique_ptr<glTFCamera> camera = std::make_unique<glTFCamera>(cameraNode->m_transform,
         45.0f, 800.0f, 600.0f, 0.1f, 1000.0f);
-    camera->Translate({0.0f, 1.0f, -5.0f});
+    camera->Translate({0.0f, 1.0f, -50.0f});
     cameraNode->m_objects.push_back(std::move(camera));
     m_sceneGraph->AddSceneNode(std::move(cameraNode));
 
@@ -228,16 +229,18 @@ void glTFWindow::recursiveProcessChildrenNodes (const glTFLoader& loader, const 
             
                 const auto& indexAccessor = *loader.m_accessors[loader.ResolveIndex(primitive.indices)];
                 const auto& indexBufferView = *loader.m_bufferViews[loader.ResolveIndex(indexAccessor.buffer_view)];
-            
+
+                const size_t indexBufferSize = indexAccessor.GetElementByteSize() * indexAccessor.count;
+                
                 std::shared_ptr<IndexBufferData> indexBufferData = std::make_shared<IndexBufferData>();
-                indexBufferData->data.reset(new char[indexBufferView.byte_length]);
+                indexBufferData->data.reset(new char[indexBufferSize]);
                 glTFHandle tempIndexBufferViewHandle = indexBufferView.buffer;
                 tempIndexBufferViewHandle.node_index = loader.ResolveIndex(indexBufferView.buffer);
                 auto findIt = loader.m_bufferDatas.find(tempIndexBufferViewHandle);
                 GLTF_CHECK(findIt != loader.m_bufferDatas.end());
-                const char* bufferStart = findIt->second.get();
-                memcpy(indexBufferData->data.get(), bufferStart + indexBufferView.byte_offset + indexAccessor.byte_offset, indexBufferView.byte_length);
-                indexBufferData->byteSize = indexBufferView.byte_length;
+                const char* bufferStart = findIt->second.get() + indexBufferView.byte_offset + indexAccessor.byte_offset;
+                memcpy(indexBufferData->data.get(), bufferStart, indexBufferSize);
+                indexBufferData->byteSize = indexBufferSize;
                 indexBufferData->indexCount = indexAccessor.count;
                 indexBufferData->elementType = indexAccessor.component_type == EUnsignedShort ? IndexBufferElementType::UNSIGNED_SHORT : IndexBufferElementType::UNSIGNED_INT;   
             
@@ -245,7 +248,7 @@ void glTFWindow::recursiveProcessChildrenNodes (const glTFLoader& loader, const 
             }
         }
     }
-
+    
     for (const auto& child : node->children)
     {
         std::unique_ptr<glTFSceneNode> childNode = std::make_unique<glTFSceneNode>();

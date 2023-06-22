@@ -70,12 +70,12 @@ bool glTFRenderPassMeshBase::AddOrUpdatePrimitiveToMeshPass(glTFRenderResourceMa
     
         RETURN_IF_FALSE(vertexBuffer->InitGPUBuffer(resourceManager.GetDevice(), vertexBufferDesc ))
         RETURN_IF_FALSE(indexBuffer->InitGPUBuffer(resourceManager.GetDevice(), indexBufferDesc ))
-    
-        auto vertexUploadBuffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
-        auto indexUploadBuffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
 
-        RHIBufferDesc vertexUploadBufferDesc = {L"vertexBufferUploadBuffer", primitiveVertices.byteSize, 1, 1, RHIBufferType::Upload, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
-        RHIBufferDesc indexUploadBufferDesc = {L"indexBufferUploadBuffer", primitiveIndices.byteSize, 1, 1, RHIBufferType::Upload, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
+        const auto vertexUploadBuffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
+        const auto indexUploadBuffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
+
+        const RHIBufferDesc vertexUploadBufferDesc = {L"vertexBufferUploadBuffer", primitiveVertices.byteSize, 1, 1, RHIBufferType::Upload, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
+        const RHIBufferDesc indexUploadBufferDesc = {L"indexBufferUploadBuffer", primitiveIndices.byteSize, 1, 1, RHIBufferType::Upload, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
 
         RETURN_IF_FALSE(vertexUploadBuffer->InitGPUBuffer(resourceManager.GetDevice(), vertexUploadBufferDesc ))
         RETURN_IF_FALSE(indexUploadBuffer->InitGPUBuffer(resourceManager.GetDevice(), indexUploadBufferDesc ))

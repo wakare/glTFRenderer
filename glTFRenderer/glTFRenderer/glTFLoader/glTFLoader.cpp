@@ -17,7 +17,8 @@
     if ((JSON_ELEMENT).contains(HANDLE_NAME)) \
     { \
         if ((JSON_ELEMENT)[HANDLE_NAME].is_number_unsigned()) \
-            (RESULT).node_index = (JSON_ELEMENT)[HANDLE_NAME].get<unsigned>(); \
+            {(RESULT).node_index = (JSON_ELEMENT)[HANDLE_NAME].get<unsigned>(); \
+            (RESULT).node_name = std::to_string((RESULT).node_index); } \
         else if ((JSON_ELEMENT)[HANDLE_NAME].is_string()) \
             (RESULT).node_name = (JSON_ELEMENT)[HANDLE_NAME].get<std::string>(); \
         else GLTF_CHECK(false);\
@@ -318,20 +319,23 @@ bool glTFLoader::LoadFile(const std::string& file_path)
     for (const auto& buffer : m_buffers)
     {
         const std::string uriFilePath = directory + "\\" + buffer->uri;
-        std::ifstream uriFileStream(uriFilePath);
+        std::ifstream uriFileStream(uriFilePath, std::ios::binary | std::ios::in | std::ios::ate);
         if (uriFileStream.bad())
         {
             GLTF_CHECK(false);
             continue;
         }
 
-        m_bufferDatas[buffer->self_handle] = std::make_unique<char[]>(buffer->byte_length);
-        uriFileStream.read(m_bufferDatas[buffer->self_handle].get(), buffer->byte_length);
+        const size_t fileSize = uriFileStream.tellg();
+        GLTF_CHECK(fileSize == buffer->byte_length);
+        
+        uriFileStream.seekg(0, std::ios::beg);
+        
+        m_bufferDatas[buffer->self_handle] = std::make_unique<char[]>(fileSize);
+        memset(m_bufferDatas[buffer->self_handle].get(), 0, fileSize);
+        
+        uriFileStream.read(m_bufferDatas[buffer->self_handle].get(), fileSize);
         uriFileStream.close();
-
-        std::ofstream dump_bin_file(uriFilePath + ".dmp");
-        dump_bin_file.write(m_bufferDatas[buffer->self_handle].get(), buffer->byte_length);
-        dump_bin_file.close();
     }
 
     handle_index = 0;

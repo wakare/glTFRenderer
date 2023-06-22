@@ -9,7 +9,7 @@ public:
     IRHIResource() = default;
 
     // Clean resource in virtual dtor!!
-    virtual ~IRHIResource() = 0;
+    virtual ~IRHIResource() = default;
 
     const std::string& GetName() const { return m_resourceName; }
     void SetName(const std::string& name) {m_resourceName = name; }

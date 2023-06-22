@@ -2,7 +2,6 @@
 #include <vec3.hpp>
 
 #include "../glTFScene/glTFSceneObjectBase.h"
-#include "../glTFUtils/glTFUtils.h"
 
 enum class glTFLightType
 {

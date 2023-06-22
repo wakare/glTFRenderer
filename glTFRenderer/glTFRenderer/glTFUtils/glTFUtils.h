@@ -1,6 +1,8 @@
 #pragma once
 #include <cassert>
+#include <fstream>
 #include <functional>
+#include <string>
 
 typedef unsigned glTFUniqueID;
 #define glTFUniqueIDInvalid UINT_MAX   
@@ -32,3 +34,28 @@ protected:
     std::function<void()> m_tickFunc;
     bool m_tickEnable {false};
 };
+
+class glTFDebugFileManager
+{
+public:
+    template <typename DataType>
+    static void OutputDataToFile(const char* file, const DataType* data, size_t count);
+};
+
+template <typename DataType>
+void glTFDebugFileManager::OutputDataToFile(const char* file, const DataType* data, size_t count)
+{
+    std::ofstream out_file_stream(file);
+    if (out_file_stream.bad())
+    {
+        return;
+    }
+
+    const DataType* offset = data;
+    for (size_t i = 0; i < count; ++i)
+    {
+        out_file_stream << std::to_string(*offset++) << std::endl;
+    }
+
+    out_file_stream.close();
+}
