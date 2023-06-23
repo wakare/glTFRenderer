@@ -39,6 +39,7 @@ private:
     bool InitDX12();
 
     static void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
+    static void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
     static void CursorPosCallback(GLFWwindow* window, double xpos, double ypos);
 
     void recursiveProcessChildrenNodes(const glTFLoader& loader, const glTFHandle& handle, glTFSceneNode& sceneNode);

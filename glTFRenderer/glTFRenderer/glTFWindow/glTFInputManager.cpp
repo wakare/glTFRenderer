@@ -20,6 +20,16 @@ void glTFInputManager::RecordKeyRelease(int keyCode)
     m_keyStatePressed[keyCode] = false;
 }
 
+void glTFInputManager::RecordMouseButtonPressed(int buttonCode)
+{
+    m_mouseButtonStatePressed[buttonCode] = true;
+}
+
+void glTFInputManager::RecordMouseButtonRelease(int buttonCode)
+{
+    m_mouseButtonStatePressed[buttonCode] = false;
+}
+
 bool glTFInputManager::IsKeyPressed(int keyCode) const
 {
     return m_keyStatePressed[keyCode];
@@ -69,10 +79,11 @@ void glTFInputManager::TickSceneView(glTFSceneView& View, size_t deltaTimeMs)
     
     // Handle rotation
     glm::fvec3 deltaRotation = glm::fvec3(0.0f);
-    if (m_keyStatePressed[GLFW_KEY_LEFT_CONTROL])
+    if (m_keyStatePressed[GLFW_KEY_LEFT_CONTROL] ||
+        m_mouseButtonStatePressed[GLFW_MOUSE_BUTTON_LEFT])
     {
         deltaRotation.y += m_cursorOffset.x;
-        deltaRotation.x -= m_cursorOffset.y;
+        deltaRotation.x += m_cursorOffset.y;
         m_cursorOffset = {0.0f, 0.0f};
         needApplyMovement = true;
     }

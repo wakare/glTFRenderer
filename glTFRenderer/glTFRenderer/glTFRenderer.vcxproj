@@ -109,6 +109,7 @@
     <ClCompile Include="glTFLight\glTFLightBase.cpp" />
     <ClCompile Include="glTFLight\glTFLocalLight.cpp" />
     <ClCompile Include="glTFLight\glTFPointLight.cpp" />
+    <ClCompile Include="glTFLoader\glTFElementCommon.cpp" />
     <ClCompile Include="glTFLoader\glTFLoader.cpp" />
     <ClCompile Include="glTFMaterial\glTFMaterialBase.cpp" />
     <ClCompile Include="glTFMaterial\glTFMaterialOpaque.cpp" />

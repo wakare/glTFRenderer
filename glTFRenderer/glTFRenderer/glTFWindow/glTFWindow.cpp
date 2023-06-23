@@ -61,6 +61,7 @@ bool glTFWindow::InitAndShowWindow()
     }
 
     glfwSetKeyCallback(m_glfwWindow, KeyCallback);
+    glfwSetMouseButtonCallback(m_glfwWindow, MouseButtonCallback);
     glfwSetCursorPosCallback(m_glfwWindow, CursorPosCallback);
     
     // Create test scene with box
@@ -150,6 +151,18 @@ void glTFWindow::KeyCallback(GLFWwindow* window, int key, int scancode, int acti
     else if (action == GLFW_RELEASE)
     {
         Get().m_inputControl.RecordKeyRelease(key);
+    }
+}
+
+void glTFWindow::MouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
+{
+    if (action == GLFW_PRESS)
+    {
+        Get().m_inputControl.RecordMouseButtonPressed(button);
+    }
+    else if (action == GLFW_RELEASE)
+    {
+        Get().m_inputControl.RecordMouseButtonRelease(button);
     }
 }
 

@@ -390,11 +390,24 @@ void glTFLoader::Print() const
 {
     for (const auto& scene : m_scenes)
     {
-        LOG_FORMAT_FLUSH("[DEBUG] Scene element handle: %d name: %s\n", scene->self_handle.node_index, scene->self_handle.node_name.c_str())
+        LOG_FORMAT("[DEBUG] Scene element handle: %d name: %s\n", scene->self_handle.node_index, scene->self_handle.node_name.c_str())
     }
 
     for (const auto& node : m_nodes)
     {
-        LOG_FORMAT_FLUSH("[DEBUG] Node element handle: %d name: %s\n", node->self_handle.node_index, node->self_handle.node_name.c_str())
+        LOG_FORMAT("[DEBUG] Node element handle: %d name: %s\n", node->self_handle.node_index, node->self_handle.node_name.c_str())
+    }
+
+    for (const auto& mesh : m_meshes)
+    {
+        LOG_FORMAT("[DEBUG] Mesh element handle: %d name: %s\n", mesh->self_handle.node_index, mesh->self_handle.node_name.c_str())
+        for (const auto& primitive : mesh->primitives)
+        {
+            for (const auto& attribute: primitive.attributes)
+            {
+                const std::string attributeName = AttributeName(static_cast<glTF_Attribute>(attribute.first));
+                LOG_FORMAT("[DEBUG] Mesh primitve contains %s\n", attributeName.c_str());
+            }
+        }
     }
 }

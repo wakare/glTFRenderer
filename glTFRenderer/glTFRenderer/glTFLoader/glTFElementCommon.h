@@ -163,6 +163,8 @@ enum glTF_Attribute
     EUnknown    = INT_MAX,
 };
 
+std::string AttributeName(glTF_Attribute attribute);
+
 typedef unsigned glTFAttributeId;
 
 struct glTF_Attribute_Base
