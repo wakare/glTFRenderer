@@ -67,8 +67,8 @@ bool glTFWindow::InitAndShowWindow()
     // Create test scene with box
     m_sceneGraph = std::make_unique<glTFSceneGraph>(); 
     //RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Box\\Box.gltf"))
-    RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Monster\\Monster.gltf"))
-    //RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Buggy\\glTF\\Buggy.gltf"))
+    //RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Monster\\Monster.gltf"))
+    RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Buggy\\glTF\\Buggy.gltf"))
 
     // Add camera
     std::unique_ptr<glTFSceneNode> cameraNode = std::make_unique<glTFSceneNode>();
@@ -171,10 +171,11 @@ void glTFWindow::CursorPosCallback(GLFWwindow* window, double xpos, double ypos)
     Get().m_inputControl.RecordCursorPos(xpos, ypos);
 }
 
-void glTFWindow::recursiveProcessChildrenNodes (const glTFLoader& loader, const glTFHandle& handle, glTFSceneNode& sceneNode)
+void glTFWindow::recursiveProcessChildrenNodes (const glTFLoader& loader, const glTFHandle& handle, const glTFSceneNode& parentNode, glTFSceneNode& sceneNode)
 {
     const auto& node = loader.m_nodes[loader.ResolveIndex(handle)];
     sceneNode.m_transform = node->transform.m_matrix;
+    sceneNode.m_finalTransform = parentNode.m_finalTransform.m_matrix * sceneNode.m_transform.m_matrix; 
 
     for (const auto& mesh_handle : node->meshes)
     {
@@ -257,7 +258,7 @@ void glTFWindow::recursiveProcessChildrenNodes (const glTFLoader& loader, const 
                 indexBufferData->indexCount = indexAccessor.count;
                 indexBufferData->elementType = indexAccessor.component_type == EUnsignedShort ? IndexBufferElementType::UNSIGNED_SHORT : IndexBufferElementType::UNSIGNED_INT;   
             
-                sceneNode.m_objects.push_back(std::make_unique<glTFSceneTriangleMesh>(sceneNode.m_transform, vertexLayout, vertexBufferData, indexBufferData));
+                sceneNode.m_objects.push_back(std::make_unique<glTFSceneTriangleMesh>(sceneNode.m_finalTransform, vertexLayout, vertexBufferData, indexBufferData));
             }
         }
     }
@@ -265,7 +266,7 @@ void glTFWindow::recursiveProcessChildrenNodes (const glTFLoader& loader, const 
     for (const auto& child : node->children)
     {
         std::unique_ptr<glTFSceneNode> childNode = std::make_unique<glTFSceneNode>();
-        recursiveProcessChildrenNodes(loader, child, *childNode);
+        recursiveProcessChildrenNodes(loader, child, sceneNode, *childNode);
         sceneNode.m_children.push_back(std::move(childNode));
     }
 }
@@ -283,7 +284,7 @@ bool glTFWindow::LoadSceneGraphFromFile(const char* filePath)
     for (const auto& rootNode : sceneNode->root_nodes)
     {
         std::unique_ptr<glTFSceneNode> sceneRootNodes = std::make_unique<glTFSceneNode>();
-        recursiveProcessChildrenNodes(loader, rootNode, *sceneRootNodes);
+        recursiveProcessChildrenNodes(loader, rootNode, m_sceneGraph->GetRootNode(), *sceneRootNodes);
         
         m_sceneGraph->AddSceneNode(std::move(sceneRootNodes));
     }

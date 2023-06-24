@@ -3,7 +3,8 @@
 glTFSceneGraph::glTFSceneGraph()
     : m_root(std::make_unique<glTFSceneNode>())
 {
-    
+    m_root->m_transform = glTF_Transform_WithTRS();
+    m_root->m_finalTransform = m_root->m_transform.m_matrix;
 }
 
 void glTFSceneGraph::AddSceneNode(std::unique_ptr<glTFSceneNode>&& node)
@@ -68,6 +69,11 @@ std::vector<glTFCamera*> glTFSceneGraph::GetSceneCameras() const
     });
 
     return cameras;
+}
+
+const glTFSceneNode& glTFSceneGraph::GetRootNode() const
+{
+    return *m_root;
 }
 
 void glTFSceneGraph::TraverseNodesInner(const std::function<bool(glTFSceneNode&)>& visitor) const

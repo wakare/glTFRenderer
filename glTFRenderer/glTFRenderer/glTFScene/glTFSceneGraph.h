@@ -11,6 +11,7 @@ struct glTFSceneNode
 {
     mutable bool renderStateDirty = true;
     glTF_Transform_WithTRS m_transform;
+    glTF_Transform_WithTRS m_finalTransform;
 
     std::vector<std::unique_ptr<glTFSceneObjectBase>> m_objects;
     std::vector<std::unique_ptr<glTFSceneNode>> m_children;
@@ -29,7 +30,7 @@ public:
     void TraverseNodes(const std::function<bool(const glTFSceneNode&)>& visitor) const;
 
     std::vector<glTFCamera*> GetSceneCameras() const;
-    
+    const glTFSceneNode& GetRootNode() const; 
 protected:
     void TraverseNodesInner(const std::function<bool(glTFSceneNode&)>& visitor) const;
     

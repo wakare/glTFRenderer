@@ -51,7 +51,6 @@ bool glTFRenderPassMeshOpaque::RenderPass(glTFRenderResourceManager& resourceMan
 {
     RETURN_IF_FALSE(glTFRenderPassMeshBase::RenderPass(resourceManager))
     
-    
     return true;
 }
 
