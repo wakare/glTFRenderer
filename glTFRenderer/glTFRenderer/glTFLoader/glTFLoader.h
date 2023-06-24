@@ -6,7 +6,8 @@
 
 class glTFLoader
 {
-    friend class glTFWindow;
+    friend class glTFSceneGraph;
+    
 public:
     glTFLoader();
     bool LoadFile(const std::string& file_path);

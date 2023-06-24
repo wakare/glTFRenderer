@@ -3,40 +3,60 @@
 
 #include "glTFCamera.h"
 
-#include <cassert>
+#include "../glTFUtils/glTFLog.h"
 
-
-const glm::fmat4x4& glTFCamera::GetViewProjectionMatrix() const
+glm::fmat4x4 glTFCamera::GetViewProjectionMatrix() const
 {
-    if (m_dirty)
-    {
-        UpdateViewProjectionMatrix();
-    }
-    return m_cacheViewProjectionMatrix;
+    return GetViewMatrix() * GetProjectionMatrix();
 }
 
-const glm::fmat4x4& glTFCamera::GetViewMatrix() const
+glm::fmat4x4 glTFCamera::GetViewMatrix() const
 {
-    return m_cacheViewMatrix;
+    return m_transform.m_matrix;
 }
 
-const glm::fmat4x4& glTFCamera::GetProjectionMatrix() const
+glm::fmat4x4 glTFCamera::GetProjectionMatrix() const
 {
-    return m_cacheProjectionMatrix;
+    return glm::perspectiveFovLH(m_projection_fov_radian, m_projection_width, m_projection_height, m_projection_near, m_projection_far);
 }
 
-void glTFCamera::UpdateViewProjectionMatrix() const
+void glTFCamera::MarkDirty() const
 {
-    assert(m_dirty);
+    m_dirty = true;
+}
 
-    // Camera transform is nor equivalent to camera inverse transform matrix because the order of camera translation and rotation 
-    //const glm::fmat4x4 cameraInverseTransform = GetTransformInverseMatrix();
-    const glm::mat4 cameraTranslationMatrix = glm::translate(glm::mat4(1.0f), -m_transform.m_translation);
-    const glm::mat4 cameraRotationMatrix = glm::eulerAngleXYZ(-m_transform.m_rotation.x, -m_transform.m_rotation.y, -m_transform.m_rotation.z);
-    m_cacheViewMatrix = cameraRotationMatrix * cameraTranslationMatrix;
-    
-    m_cacheProjectionMatrix = glm::perspectiveFovLH(m_projectionFovRadian, m_projectionWidth, m_projectionHeight, m_projectionNear, m_projectionFar);
-    m_cacheViewProjectionMatrix = m_cacheProjectionMatrix * m_cacheViewMatrix;
-    
-    m_dirty = false;
+void glTFCamera::SetCameraMode(CameraMode mode)
+{
+    m_mode = mode;
+}
+
+const CameraMode& glTFCamera::GetCameraMode() const
+{
+    return m_mode;
+}
+
+void glTFCamera::Observe(const glm::vec3& center, float distance)
+{
+    SetCameraMode(CameraMode::Observer);
+    m_observe_center = center;
+    m_observe_distance = distance;
+}
+
+void glTFCamera::LookAtObserve(const glm::vec3& position)
+{
+    const glm::mat4 final_matrix = glm::lookAtLH(position, m_observe_center, {0.0f, 1.0f, 0.0f})
+    * glm::inverse(m_parent_final_transform.m_matrix);
+    m_transform.m_matrix = final_matrix;
+
+    LOG_FORMAT("[INFO] New position %f %f %f \n", position.x, position.y, position.z);
+}
+
+const glm::vec3& glTFCamera::GetObserveCenter() const
+{
+    return m_observe_center;
+}
+
+float glTFCamera::GetObserveDistance() const
+{
+    return m_observe_distance;
 }

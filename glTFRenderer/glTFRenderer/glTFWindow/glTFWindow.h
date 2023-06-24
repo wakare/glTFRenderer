@@ -42,8 +42,7 @@ private:
     static void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
     static void CursorPosCallback(GLFWwindow* window, double xpos, double ypos);
 
-    void recursiveProcessChildrenNodes(const glTFLoader& loader, const glTFHandle& handle, const glTFSceneNode& parentNode, glTFSceneNode& sceneNode);
-    bool LoadSceneGraphFromFile(const char* filePath);
+    bool LoadSceneGraphFromFile(const char* filePath) const;
     
     GLFWwindow* m_glfwWindow;
     int m_width;

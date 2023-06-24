@@ -5,6 +5,8 @@
 #include "glTFScenePrimitive.h"
 #include "glTFCamera.h"
 
+class glTFInputManager;
+
 // Handle render scene graph with specific camera
 class glTFSceneView
 {
@@ -18,10 +20,10 @@ public:
     glm::mat4 GetViewMatrix() const;
     glm::mat4 GetProjectionMatrix() const;
 
-    void ApplyMovement(const glm::fvec3& translation, const glm::fvec3& rotation);
+    void ApplyInput(glTFInputManager& input_manager, size_t delta_time_ms) const;
     
 private:
-    const glTFSceneGraph& m_sceneGraph;
+    const glTFSceneGraph& m_scene_graph;
 
     std::vector<glTFCamera*> m_cameras;
 };

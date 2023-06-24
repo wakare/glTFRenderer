@@ -5,6 +5,7 @@
 #include <glm/glm/gtx/euler_angles.hpp>
 #include <glm/glm/gtx/matrix_decompose.hpp>
 
+#include "glTFAABB.h"
 #include "../glTFUtils/glTFUtils.h"
 #include "../glTFLoader/glTFElementCommon.h"
 
@@ -17,30 +18,14 @@ struct glTF_Transform_WithTRS : glTF_Transform
         const glm::fvec3& scale = {1.0f, 1.0f, 1.0f}
        )
         : glTF_Transform(baseTransform)
-        , m_translation(translation)
-        , m_rotation(rotation)
-        , m_scale(scale)
     {
     }
 
     static const glTF_Transform_WithTRS identity;
     
-    glm::fvec3 m_translation;
-
-    // eulerAngle
-    glm::fvec3 m_rotation;
-    
-    glm::fvec3 m_scale;
-    
     glm::fmat4 GetTransformMatrix() const
     {
-        const glm::mat4 scaleTransform = glm::scale(glm::mat4(1.0f), {m_scale.x, m_scale.y, m_scale.z});
-        const glm::mat4 rotateTransform = glm::eulerAngleXYZ(m_rotation.x, m_rotation.y, m_rotation.z);
-        const glm::mat4 translateTransform = glm::translate(glm::mat4(1.0f), m_translation);
-
-        const glm::mat4 TRSMat = translateTransform * scaleTransform * rotateTransform; 
-
-        return TRSMat * m_matrix;
+        return m_matrix;
     }
 
     glm::fmat4x4 GetTransformInverseMatrix() const
@@ -48,14 +33,28 @@ struct glTF_Transform_WithTRS : glTF_Transform
         return inverse(GetTransformMatrix());
     }
 
+    glm::vec3 GetTranslation() const
+    {
+        return GetTranslationFromMatrix(m_matrix);
+    }
+
+    static bool DecomposeMatrix(const glm::mat4& matrix, glm::vec3& out_translation, glm::quat& out_rotation, glm::vec3& out_scale)
+    {
+        glm::vec3 skew;
+        glm::vec4 perspective;
+        glm::decompose(matrix, out_scale, out_rotation, out_translation, skew,perspective);
+        return true;
+    }
+    
     static glm::fvec3 GetTranslationFromMatrix(const glm::mat4& matrix)
     {
         glm::vec3 scale;
         glm::quat rotation;
         glm::vec3 translation;
-        glm::vec3 skew;
-        glm::vec4 perspective;
-        glm::decompose(matrix, scale, rotation, translation, skew,perspective);
+        
+        const bool decomposed = DecomposeMatrix(matrix, translation, rotation, scale);
+        GLTF_CHECK(decomposed);
+        
         return translation;
     }
 };
@@ -65,20 +64,35 @@ class glTFSceneObjectBase : public glTFUniqueObject, public ITickable
 {
 public:
     glTFSceneObjectBase(const glTF_Transform_WithTRS& parentTransformRef)
-        : m_parentTransform(parentTransformRef)
+        : m_parent_final_transform(parentTransformRef)
         , m_transform(glTF_Transform_WithTRS::identity)
+        , m_dirty(true)
     {
         
     }
 
-    void Translate(const glm::fvec3& translation);
-    void Rotate(const glm::fvec3& rotation);
+    void Translate(const glm::fvec3& translation_delta);
+    void Rotate(const glm::fvec3& rotation_delta);
     void Scale(const glm::fvec3& scale);
     
-    glm::mat4 GetTransformMatrix() const {return m_parentTransform.GetTransformMatrix() * m_transform.GetTransformMatrix(); }
+    const glTF_Transform_WithTRS& GetTransform() const;
+    
+    glm::mat4 GetTransformMatrix() const {return m_parent_final_transform.GetTransformMatrix() *  m_transform.GetTransformMatrix(); }
     glm::mat4 GetTransformInverseMatrix() const {return inverse(GetTransformMatrix()); }
 
+    void SetAABB(const glTF_AABB::AABB& AABB);
+    const glTF_AABB::AABB& GetAABB() const;
+
+    void MarkDirty();
+    bool IsDirty() const;
+    void ResetDirty();
+    
 protected:
-    const glTF_Transform_WithTRS& m_parentTransform;
+    void ResetTransform(const glm::vec3& translation, const glm::vec3& euler, const glm::vec3& scale);
+    
+    const glTF_Transform_WithTRS& m_parent_final_transform;
     glTF_Transform_WithTRS m_transform;
+
+    glTF_AABB::AABB m_AABB;
+    bool m_dirty;
 };

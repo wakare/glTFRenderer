@@ -5,11 +5,13 @@
 
 #include "glTFSceneObjectBase.h"
 #include "glTFCamera.h"
+#include "../glTFLoader/glTFLoader.h"
 #include "../glTFMaterial/glTFMaterialBase.h"
 
 struct glTFSceneNode
 {
-    mutable bool renderStateDirty = true;
+    bool IsDirty() const;
+    
     glTF_Transform_WithTRS m_transform;
     glTF_Transform_WithTRS m_finalTransform;
 
@@ -30,9 +32,13 @@ public:
     void TraverseNodes(const std::function<bool(const glTFSceneNode&)>& visitor) const;
 
     std::vector<glTFCamera*> GetSceneCameras() const;
-    const glTFSceneNode& GetRootNode() const; 
+    const glTFSceneNode& GetRootNode() const;
+
+    bool Init(const glTFLoader& loader);
+    
 protected:
     void TraverseNodesInner(const std::function<bool(glTFSceneNode&)>& visitor) const;
-    
+    void RecursiveInitChildrenNodes(const glTFLoader& loader, const glTFHandle& handle, const glTFSceneNode& parentNode, glTFSceneNode& sceneNode);
+
     std::unique_ptr<glTFSceneNode> m_root; 
 };

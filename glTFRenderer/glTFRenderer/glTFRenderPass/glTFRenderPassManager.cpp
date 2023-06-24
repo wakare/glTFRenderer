@@ -51,13 +51,13 @@ void glTFRenderPassManager::UpdateScene(size_t deltaTimeMs)
     {
         m_sceneView.TraverseSceneObjectWithinView([this, &pass](const glTFSceneNode& node)
         {
-            if (node.renderStateDirty)
+            if (node.IsDirty())
             {
                 for (const auto& sceneObject : node.m_objects)
                 {
                     if (pass->TryProcessSceneObject(*m_resourceManager, *sceneObject))
                     {
-                        node.renderStateDirty = false;
+                        sceneObject->ResetDirty();
                     }    
                 }
             }
