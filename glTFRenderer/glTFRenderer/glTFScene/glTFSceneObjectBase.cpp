@@ -2,49 +2,144 @@
 
 #include <gtx/quaternion.hpp>
 
-#include "../glTFRHI/RHIDX12Impl/DX12CommandAllocator.h"
-#include "../glTFUtils/glTFLog.h"
-
 glTFUniqueID glTFUniqueObject::_innerUniqueID = 0;
 
 const glTF_Transform_WithTRS glTF_Transform_WithTRS::identity;
 
+glTF_Transform_WithTRS::glTF_Transform_WithTRS(const glm::fmat4& matrix): glTF_Transform(matrix),
+                                                                          m_dirty(true), m_translation(), m_rotation(),
+                                                                          m_scale()
+{
+    // Init TRS
+    DecomposeMatrix(matrix, m_translation, m_rotation, m_scale);
+}
+
+glTF_Transform_WithTRS::glTF_Transform_WithTRS(const glTF_Transform_WithTRS& rhs): glTF_Transform(rhs.GetTransformMatrix())
+                                                                                   , m_dirty(true)
+                                                                                   , m_translation(rhs.m_translation)
+                                                                                   , m_rotation(rhs.m_rotation)
+                                                                                   , m_scale(rhs.m_scale)
+{
+        
+}
+
+glTF_Transform_WithTRS& glTF_Transform_WithTRS::operator=(const glTF_Transform_WithTRS& rhs)
+{
+    m_matrix = rhs.m_matrix;
+    m_dirty = true;
+    m_translation = rhs.m_translation;
+    m_rotation = rhs.m_rotation;
+    m_scale = rhs.m_scale;
+        
+    return *this;
+}
+
+glm::fmat4 glTF_Transform_WithTRS::GetTransformMatrix() const
+{
+    if (m_dirty)
+    {
+        Update();
+    }
+        
+    return m_matrix;
+}
+
+glm::fmat4x4 glTF_Transform_WithTRS::GetTransformInverseMatrix() const
+{
+    return inverse(GetTransformMatrix());
+}
+
+const glm::vec3& glTF_Transform_WithTRS::GetTranslation() const
+{
+    return m_translation;
+}
+
+bool glTF_Transform_WithTRS::DecomposeMatrix(const glm::mat4& matrix, glm::vec3& out_translation,
+    glm::quat& out_rotation, glm::vec3& out_scale)
+{
+    glm::vec3 skew;
+    glm::vec4 perspective;
+    glm::decompose(matrix, out_scale, out_rotation, out_translation, skew,perspective);
+    return true;
+}
+
+glm::fvec3 glTF_Transform_WithTRS::GetTranslationFromMatrix(const glm::mat4& matrix)
+{
+    glm::vec3 scale;
+    glm::quat rotation;
+    glm::vec3 translation;
+        
+    const bool decomposed = DecomposeMatrix(matrix, translation, rotation, scale);
+    GLTF_CHECK(decomposed);
+        
+    return translation;
+}
+
+void glTF_Transform_WithTRS::Translate(const glm::fvec3& translation)
+{
+    m_translation = translation;
+    MarkDirty();
+}
+
+void glTF_Transform_WithTRS::Rotate(const glm::quat& rotation)
+{
+    m_rotation = rotation;
+    MarkDirty();
+}
+
+void glTF_Transform_WithTRS::RotateOffset(const glm::quat& rotation)
+{
+    m_rotation *= rotation;
+    MarkDirty();
+}
+
+void glTF_Transform_WithTRS::Scale(const glm::fvec3& scale)
+{
+    m_scale = scale;
+    MarkDirty();
+}
+
+void glTF_Transform_WithTRS::Update() const
+{
+    if (m_dirty)
+    {
+        const glm::mat4 rotation_matrix = glm::toMat4(m_rotation);
+        const glm::mat4 scale_matrix = glm::scale(glm::mat4(1.0f), m_scale);
+        const glm::mat4 translation_matrix = glm::translate(glm::mat4(1.0f), m_translation);
+        
+        m_matrix = translation_matrix * rotation_matrix * scale_matrix;
+        
+        m_dirty = false;
+    }
+}
+
+void glTF_Transform_WithTRS::MarkDirty() const
+{
+    m_dirty = true;
+}
+
 void glTFSceneObjectBase::Translate(const glm::fvec3& translation_delta)
 {
-    m_transform.m_matrix = glm::translate(m_transform.m_matrix, translation_delta);
-    /*
-    glm::vec3 translation, scale;
-    glm::quat rotation;
-    glTF_Transform_WithTRS::DecomposeMatrix(m_transform.m_matrix, translation, rotation, scale);
-    const glm::vec3 new_translation = translation + translation_delta;
-    ResetTransform(new_translation, glm::eulerAngles(rotation), scale);
-    */
+    m_transform.Translate(translation_delta);
     MarkDirty();
 }
 
 void glTFSceneObjectBase::Rotate(const glm::fvec3& rotation_delta)
 {
-    m_transform.m_matrix *= glm::eulerAngleXYZ(rotation_delta.x, rotation_delta.y, rotation_delta.z);
-    /*
-    glm::vec3 translation, scale;
-    glm::quat rotation;
-    glTF_Transform_WithTRS::DecomposeMatrix(m_transform.m_matrix, translation, rotation, scale);
-    const glm::vec3 new_rotation = eulerAngles(rotation) + rotation_delta;
-    ResetTransform(translation, new_rotation, scale);
-    */
+    m_transform.Rotate(rotation_delta);
+    MarkDirty();
+}
+
+void glTFSceneObjectBase::RotateOffset(const glm::fvec3& rotation_delta)
+{
+    m_transform.RotateOffset(rotation_delta);
     MarkDirty();
 }
 
 void glTFSceneObjectBase::Scale(const glm::fvec3& scale)
 {
-    // TODO:
-
+    m_transform.Scale(scale);
     MarkDirty();
-}
-
-const glTF_Transform_WithTRS& glTFSceneObjectBase::GetTransform() const
-{
-    return m_transform;
 }
 
 void glTFSceneObjectBase::SetAABB(const glTF_AABB::AABB& AABB)
@@ -70,20 +165,4 @@ bool glTFSceneObjectBase::IsDirty() const
 void glTFSceneObjectBase::ResetDirty()
 {
     m_dirty = false;    
-}
-
-void glTFSceneObjectBase::ResetTransform(const glm::vec3& translation, const glm::vec3& euler, const glm::vec3& scale)
-{
-    glm::quat rot = glm::toQuat(glm::orientate3(euler));
-    glm::mat4 rot_matrix = glm::toMat4(rot);
-    glm::mat4 translate_matrix = glm::translate(glm::mat4(1.0f), translation);
-    m_transform.m_matrix = rot_matrix * translate_matrix;
-    
-    glm::vec3 new_translation, new_scale;
-    glm::quat new_euler;
-    glTF_Transform_WithTRS::DecomposeMatrix(m_transform.m_matrix, new_translation, new_euler, new_scale);
-    glm::vec3 new_rotation = glm::eulerAngles(new_euler);
-    
-    LOG_FORMAT("[INFO] Translate result %f %f %f old %f %f %f\n rotation %f %f %f old %f %f %f\n", new_translation.x, new_translation.y, new_translation.z,
-        translation.x, translation.y, translation.z, euler.x, euler.y, euler.z, new_rotation.x, new_rotation.y, new_rotation.z);
 }

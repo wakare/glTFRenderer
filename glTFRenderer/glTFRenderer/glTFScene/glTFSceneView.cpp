@@ -39,7 +39,7 @@ glm::mat4 glTFSceneView::GetViewMatrix() const
         return glm::mat4(1.0f);    
     }
 
-    return glm::inverse(m_cameras[0]->GetViewMatrix());
+    return m_cameras[0]->GetViewMatrix();
 }
 
 glm::mat4 glTFSceneView::GetProjectionMatrix() const
@@ -64,6 +64,7 @@ void glTFSceneView::ApplyInput(glTFInputManager& input_manager, size_t delta_tim
     
     bool need_apply_movement = false;
     glm::fvec4 delta_position = {0.0f, 0.0f, 0.0f, 0.0f};
+    glm::fvec3 delta_rotation = glm::fvec3(0.0f);
     
     if (main_camera->GetCameraMode() == CameraMode::Free)
     {
@@ -104,9 +105,33 @@ void glTFSceneView::ApplyInput(glTFInputManager& input_manager, size_t delta_tim
             need_apply_movement = true;
         }
     }
+    else
+    {
+        if (input_manager.IsKeyPressed(GLFW_KEY_W))
+        {
+            delta_rotation.x += 1.0f;
+            need_apply_movement = true;
+        }
     
-    // Handle rotation
-    auto delta_rotation = glm::fvec3(0.0f);
+        if (input_manager.IsKeyPressed(GLFW_KEY_S))
+        {
+            delta_rotation.x -= 1.0f;
+            need_apply_movement = true;
+        }
+    
+        if (input_manager.IsKeyPressed(GLFW_KEY_A))
+        {
+            delta_rotation.y += 1.0f;
+            need_apply_movement = true;
+        }
+    
+        if (input_manager.IsKeyPressed(GLFW_KEY_D))
+        {
+            delta_rotation.y -= 1.0f;
+            need_apply_movement = true;
+        }
+    }
+    
     if (input_manager.IsKeyPressed(GLFW_KEY_LEFT_CONTROL) ||
         input_manager.IsMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT))
     {
@@ -116,7 +141,7 @@ void glTFSceneView::ApplyInput(glTFInputManager& input_manager, size_t delta_tim
         delta_rotation.x += cursor_offset.y;
         if (fabs(delta_rotation.x) > 0.0f || fabs(delta_rotation.y) > 0.0f)
         {
-            need_apply_movement = true;    
+            need_apply_movement = true;
         }
     }
 
@@ -140,14 +165,7 @@ void glTFSceneView::ApplyInput(glTFInputManager& input_manager, size_t delta_tim
     }
     else if (main_camera->GetCameraMode() == CameraMode::Observer)
     {
-        glm::vec3 old_position = main_camera->GetTransform().GetTranslation();
-        glm::vec4 distance = {main_camera->GetObserveCenter() - old_position, 0.0f};
-        distance = glm::eulerAngleXYZ(0.0f, delta_rotation.y, 0.0f) * distance;
-        glm::vec3 new_position = main_camera->GetObserveCenter() + glm::vec3(distance) - old_position;
-        
-        main_camera->Translate(new_position);
-        LOG_FORMAT("[INFO] Translate %f %f %f\n", new_position.x, new_position.y, new_position.z);
-        main_camera->LookAtObserve(main_camera->GetTransform().GetTranslation());
+        main_camera->ObserveRotateXY(delta_rotation.x, delta_rotation.y);
     }
     
     main_camera->MarkDirty();

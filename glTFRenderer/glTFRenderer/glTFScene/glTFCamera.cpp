@@ -12,17 +12,12 @@ glm::fmat4x4 glTFCamera::GetViewProjectionMatrix() const
 
 glm::fmat4x4 glTFCamera::GetViewMatrix() const
 {
-    return m_transform.m_matrix;
+    return m_mode == CameraMode::Free ? m_transform.GetTransformMatrix() : m_observe_matrix;
 }
 
 glm::fmat4x4 glTFCamera::GetProjectionMatrix() const
 {
     return glm::perspectiveFovLH(m_projection_fov_radian, m_projection_width, m_projection_height, m_projection_near, m_projection_far);
-}
-
-void glTFCamera::MarkDirty() const
-{
-    m_dirty = true;
 }
 
 void glTFCamera::SetCameraMode(CameraMode mode)
@@ -42,18 +37,35 @@ void glTFCamera::Observe(const glm::vec3& center, float distance)
     m_observe_distance = distance;
 }
 
-void glTFCamera::LookAtObserve(const glm::vec3& position)
+void glTFCamera::ObserveRotateXY(float rotation_x, float rotation_y)
 {
-    const glm::mat4 final_matrix = glm::lookAtLH(position, m_observe_center, {0.0f, 1.0f, 0.0f})
-    * glm::inverse(m_parent_final_transform.m_matrix);
-    m_transform.m_matrix = final_matrix;
-
-    LOG_FORMAT("[INFO] New position %f %f %f \n", position.x, position.y, position.z);
+    glm::vec4 distance = {GetCameraPosition() - GetObserveCenter(), 0.0f};
+    const glm::mat4 observe_inverse_matrix = glm::inverse(m_observe_matrix); 
+    const glm::fvec3 up = observe_inverse_matrix * glm::fvec4{0.0f, 1.0f, 0.0f, 0.0f};
+    const glm::fvec3 right = observe_inverse_matrix * glm::fvec4{1.0f, 0.0f, 0.0f, 0.0f};
+    glm::mat4 rotation_matrix = glm::mat4{1.0f};
+    rotation_matrix = glm::rotate(rotation_matrix, rotation_y, up);
+    rotation_matrix = glm::rotate(rotation_matrix, rotation_x, right);
+    distance = rotation_matrix * distance;
+    const glm::vec3 new_observe_position = GetObserveCenter() + glm::vec3(distance);
+    SetCameraPosition(new_observe_position);
+    
+    m_observe_matrix = glm::lookAtLH(GetCameraPosition(), m_observe_center, up);
 }
 
 const glm::vec3& glTFCamera::GetObserveCenter() const
 {
     return m_observe_center;
+}
+
+void glTFCamera::SetCameraPosition(const glm::fvec3& position)
+{
+    m_transform.Translate(position);
+}
+
+glm::vec3 glTFCamera::GetCameraPosition() const
+{
+    return m_transform.GetTranslation();
 }
 
 float glTFCamera::GetObserveDistance() const

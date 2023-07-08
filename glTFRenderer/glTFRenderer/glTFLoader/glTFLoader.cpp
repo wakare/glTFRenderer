@@ -176,7 +176,7 @@ bool glTFLoader::LoadFile(const std::string& file_path)
             std::vector<float> matrix_data = raw_data["matrix"].get<std::vector<float>>();
             // TODO: @JACK check memcpy() can work for glm::mat4x4?
             GLTF_CHECK(matrix_data.size() == 16);
-            memcpy(&transform.m_matrix, matrix_data.data(), matrix_data.size() * sizeof(float));
+            transform.SetMatrixData(matrix_data.data());
         }
         else
         {
@@ -213,7 +213,7 @@ bool glTFLoader::LoadFile(const std::string& file_path)
                 matrix *= translationMatrix;
             }
             
-            transform.m_matrix = matrix;
+            transform = matrix;
         }
         
         element->transform = transform;

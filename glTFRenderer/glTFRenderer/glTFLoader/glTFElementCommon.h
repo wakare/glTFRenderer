@@ -128,7 +128,11 @@ struct glTF_Transform
         // TODO: @JACK implementation?
     }
 
-    glm::mat4 m_matrix{};
+    void SetMatrixData(const float* data);
+    const glm::mat4& GetMatrix() const;
+    
+protected:
+    mutable glm::mat4 m_matrix{};
 };
 
 template<>

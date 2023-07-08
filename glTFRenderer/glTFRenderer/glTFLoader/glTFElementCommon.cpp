@@ -1,5 +1,15 @@
 #include "glTFElementCommon.h"
 
+void glTF_Transform::SetMatrixData(const float* data)
+{
+    memcpy(&m_matrix, data, sizeof(m_matrix));
+}
+
+const glm::mat4& glTF_Transform::GetMatrix() const
+{
+    return m_matrix;
+}
+
 std::string AttributeName(glTF_Attribute attribute)
 {
 #define RETURN_ATTRIBUTE_NAME(ATTRIBUTE_NAME) case E##ATTRIBUTE_NAME: return #ATTRIBUTE_NAME;

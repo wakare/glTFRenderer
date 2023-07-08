@@ -66,16 +66,16 @@ bool glTFWindow::InitAndShowWindow()
     
     // Create test scene with box
     m_sceneGraph = std::make_unique<glTFSceneGraph>(); 
-    RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Box\\Box.gltf"))
+    //RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Box\\Box.gltf"))
     //RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Monster\\Monster.gltf"))
-    //RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Buggy\\glTF\\Buggy.gltf"))
+    RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Buggy\\glTF\\Buggy.gltf"))
 
     glTF_AABB::AABB sceneAABB;
     m_sceneGraph->TraverseNodes([&sceneAABB](const glTFSceneNode& node)
     {
         for (const auto& object : node.m_objects)
         {
-            const glTF_AABB::AABB world_AABB = glTF_AABB::AABB::TransformAABB(node.m_finalTransform.m_matrix, object->GetAABB());
+            const glTF_AABB::AABB world_AABB = glTF_AABB::AABB::TransformAABB(node.m_finalTransform.GetTransformMatrix(), object->GetAABB());
             sceneAABB.extend(world_AABB);
         }
         
@@ -102,7 +102,7 @@ bool glTFWindow::InitAndShowWindow()
     directionalLight->SetIntensity(10.0f);
     directionalLight->SetTickFunc([lightNode = directionalLight.get()]()
     {
-        lightNode->Rotate({0.0001f, 0.0002f, 0.0003f});
+        lightNode->RotateOffset({0.001f, 0.002f, 0.003f});
     });
     directionalLightNode->m_objects.push_back(std::move(directionalLight));
 

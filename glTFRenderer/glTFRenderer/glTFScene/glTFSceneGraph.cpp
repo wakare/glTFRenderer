@@ -27,8 +27,7 @@ bool glTFSceneNode::IsDirty() const
 glTFSceneGraph::glTFSceneGraph()
     : m_root(std::make_unique<glTFSceneNode>())
 {
-    m_root->m_transform = glTF_Transform_WithTRS();
-    m_root->m_finalTransform = m_root->m_transform.m_matrix;
+    m_root->m_finalTransform = m_root->m_transform.GetTransformMatrix();
 }
 
 void glTFSceneGraph::AddSceneNode(std::unique_ptr<glTFSceneNode>&& node)
@@ -123,8 +122,8 @@ void glTFSceneGraph::RecursiveInitChildrenNodes(const glTFLoader& loader, const 
     const glTFSceneNode& parentNode, glTFSceneNode& sceneNode)
 {
     const auto& node = loader.m_nodes[loader.ResolveIndex(handle)];
-    sceneNode.m_transform = node->transform.m_matrix;
-    sceneNode.m_finalTransform = parentNode.m_finalTransform.m_matrix * sceneNode.m_transform.m_matrix; 
+    sceneNode.m_transform = node->transform.GetMatrix();
+    sceneNode.m_finalTransform = parentNode.m_finalTransform.GetTransformMatrix() * sceneNode.m_transform.GetTransformMatrix(); 
 
     for (const auto& mesh_handle : node->meshes)
     {

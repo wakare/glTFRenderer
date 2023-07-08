@@ -9,54 +9,43 @@
 #include "../glTFUtils/glTFUtils.h"
 #include "../glTFLoader/glTFElementCommon.h"
 
-struct glTF_Transform_WithTRS : glTF_Transform
+struct glTF_Transform_WithTRS : public glTF_Transform
 {
-    glTF_Transform_WithTRS(
-        const glm::fmat4& baseTransform = glm::fmat4(1.0f),
-        const glm::fvec3& translation = {0.0f, 0.0f, 0.0f},
-        const glm::fvec3& rotation = {0.0f, 0.0f, 0.0f},
-        const glm::fvec3& scale = {1.0f, 1.0f, 1.0f}
-       )
-        : glTF_Transform(baseTransform)
-    {
-    }
+    glTF_Transform_WithTRS(const glm::fmat4& matrix = glm::mat4(1.0f));
 
+    glTF_Transform_WithTRS(const glTF_Transform_WithTRS& rhs);
+
+    glTF_Transform_WithTRS& operator=(const glTF_Transform_WithTRS& rhs);
+
+    ~glTF_Transform_WithTRS() = default;
+    
     static const glTF_Transform_WithTRS identity;
+
+    void Translate(const glm::fvec3& translation);
+    void Rotate(const glm::quat& rotation);
+    void RotateOffset(const glm::quat& rotation);
+    void Scale(const glm::fvec3& scale);
     
-    glm::fmat4 GetTransformMatrix() const
-    {
-        return m_matrix;
-    }
-
-    glm::fmat4x4 GetTransformInverseMatrix() const
-    {
-        return inverse(GetTransformMatrix());
-    }
-
-    glm::vec3 GetTranslation() const
-    {
-        return GetTranslationFromMatrix(m_matrix);
-    }
-
-    static bool DecomposeMatrix(const glm::mat4& matrix, glm::vec3& out_translation, glm::quat& out_rotation, glm::vec3& out_scale)
-    {
-        glm::vec3 skew;
-        glm::vec4 perspective;
-        glm::decompose(matrix, out_scale, out_rotation, out_translation, skew,perspective);
-        return true;
-    }
+    void Update() const;
     
-    static glm::fvec3 GetTranslationFromMatrix(const glm::mat4& matrix)
-    {
-        glm::vec3 scale;
-        glm::quat rotation;
-        glm::vec3 translation;
-        
-        const bool decomposed = DecomposeMatrix(matrix, translation, rotation, scale);
-        GLTF_CHECK(decomposed);
-        
-        return translation;
-    }
+    glm::fmat4 GetTransformMatrix() const;
+
+    glm::fmat4x4 GetTransformInverseMatrix() const;
+
+    const glm::vec3& GetTranslation() const;
+
+    static bool DecomposeMatrix(const glm::mat4& matrix, glm::vec3& out_translation, glm::quat& out_rotation, glm::vec3& out_scale);
+
+    static glm::fvec3 GetTranslationFromMatrix(const glm::mat4& matrix);
+
+    void MarkDirty() const;
+    
+protected:
+    mutable bool m_dirty;
+    
+    glm::fvec3 m_translation;
+    glm::quat m_rotation;
+    glm::fvec3 m_scale;
 };
 
 // Base class represent transform object in scene
@@ -73,10 +62,9 @@ public:
 
     void Translate(const glm::fvec3& translation_delta);
     void Rotate(const glm::fvec3& rotation_delta);
+    void RotateOffset(const glm::fvec3& rotation_delta);
     void Scale(const glm::fvec3& scale);
-    
-    const glTF_Transform_WithTRS& GetTransform() const;
-    
+
     glm::mat4 GetTransformMatrix() const {return m_parent_final_transform.GetTransformMatrix() *  m_transform.GetTransformMatrix(); }
     glm::mat4 GetTransformInverseMatrix() const {return inverse(GetTransformMatrix()); }
 
@@ -88,8 +76,6 @@ public:
     void ResetDirty();
     
 protected:
-    void ResetTransform(const glm::vec3& translation, const glm::vec3& euler, const glm::vec3& scale);
-    
     const glTF_Transform_WithTRS& m_parent_final_transform;
     glTF_Transform_WithTRS m_transform;
 
