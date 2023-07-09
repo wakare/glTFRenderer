@@ -187,8 +187,7 @@ bool glTFLoader::LoadFile(const std::string& file_path)
                 std::vector<float> scale = raw_data["scale"].get<std::vector<float>>();
                 GLTF_CHECK(scale.size() == 3);
                 
-                glm::mat4 scaleMatrix;
-                glm::scale(scaleMatrix, {scale[0], scale[1], scale[2]});
+                glm::mat4 scaleMatrix = glm::scale(glm::mat4(1.0f), {scale[0], scale[1], scale[2]});
 
                 matrix *= scaleMatrix;
             }
@@ -207,9 +206,7 @@ bool glTFLoader::LoadFile(const std::string& file_path)
                 std::vector<float> translation = raw_data["translation"].get<std::vector<float>>();
                 GLTF_CHECK(translation.size() == 3);
                 
-                glm::mat4 translationMatrix;
-                glm::translate(translationMatrix, {translation[0], translation[1], translation[2]});
-
+                glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0f), {translation[0], translation[1], translation[2]});
                 matrix *= translationMatrix;
             }
             

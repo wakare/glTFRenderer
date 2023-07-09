@@ -66,13 +66,13 @@ bool glTFWindow::InitAndShowWindow()
     m_sceneGraph = std::make_unique<glTFSceneGraph>(); 
     //RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Box\\Box.gltf"))
     //RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Monster\\Monster.gltf"))
-    RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Buggy\\glTF\\Buggy.gltf"))
+    //RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Buggy\\glTF\\Buggy.gltf"))
+    RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Sponza\\glTF\\Sponza.gltf"))
 
     // Add camera
     std::unique_ptr<glTFSceneNode> cameraNode = std::make_unique<glTFSceneNode>();
     std::unique_ptr<glTFCamera> camera = std::make_unique<glTFCamera>(m_sceneGraph->GetRootNode().m_finalTransform,
         45.0f, 800.0f, 600.0f, 0.1f, 1000.0f);
-    
     
     cameraNode->m_objects.push_back(std::move(camera));
     m_sceneGraph->AddSceneNode(std::move(cameraNode));
