@@ -22,6 +22,7 @@ struct glTF_Transform_WithTRS : public glTF_Transform
     static const glTF_Transform_WithTRS identity;
 
     void Translate(const glm::fvec3& translation);
+    void TranslateOffset(const glm::fvec3& translation);
     void Rotate(const glm::quat& rotation);
     void RotateOffset(const glm::quat& rotation);
     void Scale(const glm::fvec3& scale);
@@ -61,6 +62,7 @@ public:
     }
 
     void Translate(const glm::fvec3& translation_delta);
+    void TranslateOffset(const glm::fvec3& translation_delta);
     void Rotate(const glm::fvec3& rotation_delta);
     void RotateOffset(const glm::fvec3& rotation_delta);
     void Scale(const glm::fvec3& scale);

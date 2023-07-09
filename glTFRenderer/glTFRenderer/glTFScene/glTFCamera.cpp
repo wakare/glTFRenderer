@@ -30,11 +30,10 @@ const CameraMode& glTFCamera::GetCameraMode() const
     return m_mode;
 }
 
-void glTFCamera::Observe(const glm::vec3& center, float distance)
+void glTFCamera::Observe(const glm::vec3& center)
 {
     SetCameraMode(CameraMode::Observer);
     m_observe_center = center;
-    m_observe_distance = distance;
 }
 
 void glTFCamera::ObserveRotateXY(float rotation_x, float rotation_y)
@@ -66,9 +65,4 @@ void glTFCamera::SetCameraPosition(const glm::fvec3& position)
 glm::vec3 glTFCamera::GetCameraPosition() const
 {
     return m_transform.GetTranslation();
-}
-
-float glTFCamera::GetObserveDistance() const
-{
-    return m_observe_distance;
 }

@@ -23,7 +23,10 @@ public:
     void ApplyInput(glTFInputManager& input_manager, size_t delta_time_ms) const;
     
 private:
+    glTFCamera* GetMainCamera() const;
+    void FocusSceneCenter(glTFCamera& camera) const;
+    void ApplyInputForCamera(glTFInputManager& input_manager, glTFCamera& camera, size_t delta_time_ms) const;
+    
     const glTFSceneGraph& m_scene_graph;
-
     std::vector<glTFCamera*> m_cameras;
 };

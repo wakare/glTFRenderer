@@ -81,6 +81,12 @@ void glTF_Transform_WithTRS::Translate(const glm::fvec3& translation)
     MarkDirty();
 }
 
+void glTF_Transform_WithTRS::TranslateOffset(const glm::fvec3& translation)
+{
+    m_translation += translation;
+    MarkDirty();
+}
+
 void glTF_Transform_WithTRS::Rotate(const glm::quat& rotation)
 {
     m_rotation = rotation;
@@ -121,6 +127,12 @@ void glTF_Transform_WithTRS::MarkDirty() const
 void glTFSceneObjectBase::Translate(const glm::fvec3& translation_delta)
 {
     m_transform.Translate(translation_delta);
+    MarkDirty();
+}
+
+void glTFSceneObjectBase::TranslateOffset(const glm::fvec3& translation_delta)
+{
+    m_transform.TranslateOffset(translation_delta);
     MarkDirty();
 }
 

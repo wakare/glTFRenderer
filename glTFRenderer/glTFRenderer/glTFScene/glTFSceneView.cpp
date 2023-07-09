@@ -1,6 +1,5 @@
 #include "glTFSceneView.h"
 
-#include "../glTFUtils/glTFLog.h"
 #include "../glTFWindow/glTFInputManager.h"
 
 glTFSceneView::glTFSceneView(const glTFSceneGraph& graph)
@@ -56,52 +55,86 @@ glm::mat4 glTFSceneView::GetProjectionMatrix() const
 void glTFSceneView::ApplyInput(glTFInputManager& input_manager, size_t delta_time_ms) const
 {
     // Manipulate one camera
-    glTFCamera* main_camera = m_cameras.empty() ? nullptr : m_cameras[0];
+    glTFCamera* main_camera = GetMainCamera();
     if (!main_camera)
     {
         return;
     }
+
+    // Focus scene center
+    if (input_manager.IsKeyPressed(GLFW_KEY_F))
+    {
+        FocusSceneCenter(*main_camera);
+    }
     
+    ApplyInputForCamera(input_manager, *main_camera, delta_time_ms);
+}
+
+glTFCamera* glTFSceneView::GetMainCamera() const
+{
+    return  m_cameras.empty() ? nullptr : m_cameras[0];
+}
+
+void glTFSceneView::FocusSceneCenter(glTFCamera& camera) const
+{
+    glTF_AABB::AABB sceneAABB;
+    m_scene_graph.TraverseNodes([&sceneAABB](const glTFSceneNode& node)
+    {
+        for (const auto& object : node.m_objects)
+        {
+            const glTF_AABB::AABB world_AABB = glTF_AABB::AABB::TransformAABB(node.m_finalTransform.GetTransformMatrix(), object->GetAABB());
+            sceneAABB.extend(world_AABB);
+        }
+        
+        return true;
+    });
+
+    camera.Translate(sceneAABB.getCenter() - glm::vec3 {0.0f, 0.0f, 2 * sceneAABB.getLongestEdge()});
+    camera.Observe(sceneAABB.getCenter());
+}
+
+void glTFSceneView::ApplyInputForCamera(glTFInputManager& input_manager, glTFCamera& camera, size_t delta_time_ms) const
+{
     bool need_apply_movement = false;
-    glm::fvec4 delta_position = {0.0f, 0.0f, 0.0f, 0.0f};
-    glm::fvec3 delta_rotation = glm::fvec3(0.0f);
+    glm::fvec3 delta_translation = {0.0f, 0.0f, 0.0f};
+    glm::fvec3 delta_rotation = {0.0f, 0.0f, 0.0f};
     
-    if (main_camera->GetCameraMode() == CameraMode::Free)
+    if (camera.GetCameraMode() == CameraMode::Free)
     {
         // Handle movement
         if (input_manager.IsKeyPressed(GLFW_KEY_W))
         {
-            delta_position.z += 1.0f;
+            delta_translation.z += 1.0f;
             need_apply_movement = true;
         }
     
         if (input_manager.IsKeyPressed(GLFW_KEY_S))
         {
-            delta_position.z -= 1.0f;
+            delta_translation.z -= 1.0f;
             need_apply_movement = true;
         }
     
         if (input_manager.IsKeyPressed(GLFW_KEY_A))
         {
-            delta_position.x += 1.0f;
+            delta_translation.x += 1.0f;
             need_apply_movement = true;
         }
     
         if (input_manager.IsKeyPressed(GLFW_KEY_D))
         {
-            delta_position.x -= 1.0f;
+            delta_translation.x -= 1.0f;
             need_apply_movement = true;
         }
     
         if (input_manager.IsKeyPressed(GLFW_KEY_Q))
         {
-            delta_position.y += 1.0f;
+            delta_translation.y += 1.0f;
             need_apply_movement = true;
         }
     
         if (input_manager.IsKeyPressed(GLFW_KEY_E))
         {
-            delta_position.y -= 1.0f;
+            delta_translation.y -= 1.0f;
             need_apply_movement = true;
         }
     }
@@ -130,6 +163,18 @@ void glTFSceneView::ApplyInput(glTFInputManager& input_manager, size_t delta_tim
             delta_rotation.y -= 1.0f;
             need_apply_movement = true;
         }
+
+        if (input_manager.IsKeyPressed(GLFW_KEY_Q))
+        {
+            delta_translation.z += 100.0f;
+            need_apply_movement = true;
+        }
+        
+        if (input_manager.IsKeyPressed(GLFW_KEY_E))
+        {
+            delta_translation.z -= 100.0f;
+            need_apply_movement = true;
+        }
     }
     
     if (input_manager.IsKeyPressed(GLFW_KEY_LEFT_CONTROL) ||
@@ -154,19 +199,22 @@ void glTFSceneView::ApplyInput(glTFInputManager& input_manager, size_t delta_tim
     const float translation_scale = static_cast<float>(delta_time_ms) / 1000.0f;
     const float rotation_scale = static_cast<float>(delta_time_ms) / 1000.0f;
     
-    delta_position *= translation_scale;
-    delta_position.w = 1.0f;
+    delta_translation *= translation_scale;
+    // Convert view space translation to world space
+    delta_translation = glm::inverse(camera.GetViewMatrix()) * glm::fvec4{delta_translation, 0.0f};
+    
     delta_rotation *= rotation_scale;
 
-    if (main_camera->GetCameraMode() == CameraMode::Free)
+    if (camera.GetCameraMode() == CameraMode::Free)
     {
-        main_camera->Translate(delta_position);
-        main_camera->Rotate(delta_rotation);    
+        camera.TranslateOffset(delta_translation);
+        camera.RotateOffset(delta_rotation);    
     }
-    else if (main_camera->GetCameraMode() == CameraMode::Observer)
+    else if (camera.GetCameraMode() == CameraMode::Observer)
     {
-        main_camera->ObserveRotateXY(delta_rotation.x, delta_rotation.y);
+        camera.TranslateOffset(delta_translation);
+        camera.ObserveRotateXY(delta_rotation.x, delta_rotation.y);
     }
     
-    main_camera->MarkDirty();
+    camera.MarkDirty();
 }

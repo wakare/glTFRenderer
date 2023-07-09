@@ -4,10 +4,8 @@
 #include "../glTFMaterial/glTFMaterialOpaque.h"
 #include "../glTFRenderPass/glTFRenderPassLighting.h"
 #include "../glTFRenderPass/glTFRenderPassMeshOpaque.h"
-#include "../glTFScene/glTFSceneBox.h"
 #include "../glTFScene/glTFCamera.h"
 #include "../glTFLoader/glTFLoader.h"
-#include "../glTFScene/glTFSceneTriangleMesh.h"
 
 #include <GLFW/glfw3.h>
 
@@ -70,27 +68,11 @@ bool glTFWindow::InitAndShowWindow()
     //RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Monster\\Monster.gltf"))
     RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Buggy\\glTF\\Buggy.gltf"))
 
-    glTF_AABB::AABB sceneAABB;
-    m_sceneGraph->TraverseNodes([&sceneAABB](const glTFSceneNode& node)
-    {
-        for (const auto& object : node.m_objects)
-        {
-            const glTF_AABB::AABB world_AABB = glTF_AABB::AABB::TransformAABB(node.m_finalTransform.GetTransformMatrix(), object->GetAABB());
-            sceneAABB.extend(world_AABB);
-        }
-        
-        return true;
-    });
-    
     // Add camera
     std::unique_ptr<glTFSceneNode> cameraNode = std::make_unique<glTFSceneNode>();
     std::unique_ptr<glTFCamera> camera = std::make_unique<glTFCamera>(m_sceneGraph->GetRootNode().m_finalTransform,
         45.0f, 800.0f, 600.0f, 0.1f, 1000.0f);
-    //camera->Translate({0.0f, 0.0f, -5.0f});
-    const float observe_distance = 2 * sceneAABB.getLongestEdge();
-    //camera->Translate(sceneAABB.getCenter());
-    camera->Translate(sceneAABB.getCenter() - glm::vec3 {0.0f, 0.0f, observe_distance});
-    camera->Observe(sceneAABB.getCenter(), observe_distance);
+    
     
     cameraNode->m_objects.push_back(std::move(camera));
     m_sceneGraph->AddSceneNode(std::move(cameraNode));

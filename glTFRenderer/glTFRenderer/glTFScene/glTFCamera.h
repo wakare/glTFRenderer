@@ -20,7 +20,6 @@ public:
         , m_projection_near(projectionNear)
         , m_projection_far(projectionFar)
         , m_observe_center({0.0f, 0.0f, 0.0f})
-        , m_observe_distance(1.0f)
         , m_observe_matrix({1.0f})
     {}
 
@@ -31,13 +30,12 @@ public:
     void SetCameraMode(CameraMode mode);
     const CameraMode& GetCameraMode() const;
 
-    void Observe(const glm::vec3& center, float distance);
+    void Observe(const glm::vec3& center);
     void ObserveRotateXY(float rotation_x, float rotation_y);
     
     const glm::vec3& GetObserveCenter() const;
     void SetCameraPosition(const glm::fvec3& position);
     glm::vec3 GetCameraPosition() const;
-    float GetObserveDistance() const;
     
 protected:
     CameraMode m_mode;
@@ -49,6 +47,5 @@ protected:
     float m_projection_far;
 
     glm::vec3 m_observe_center;
-    float m_observe_distance;
     glm::mat4 m_observe_matrix;
 };
