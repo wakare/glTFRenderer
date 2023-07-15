@@ -38,18 +38,21 @@ void glTFCamera::Observe(const glm::vec3& center)
 
 void glTFCamera::ObserveRotateXY(float rotation_x, float rotation_y)
 {
-    glm::vec4 distance = {GetCameraPosition() - GetObserveCenter(), 0.0f};
+    glm::vec4 distance_in_viewspace = m_observe_matrix * glm::fvec4{GetCameraPosition() - GetObserveCenter(), 0.0f};
+    
     const glm::mat4 observe_inverse_matrix = glm::inverse(m_observe_matrix); 
-    const glm::fvec3 up = observe_inverse_matrix * glm::fvec4{0.0f, 1.0f, 0.0f, 0.0f};
-    const glm::fvec3 right = observe_inverse_matrix * glm::fvec4{1.0f, 0.0f, 0.0f, 0.0f};
-    glm::mat4 rotation_matrix = glm::mat4{1.0f};
-    rotation_matrix = glm::rotate(rotation_matrix, rotation_y, up);
-    rotation_matrix = glm::rotate(rotation_matrix, rotation_x, right);
-    distance = rotation_matrix * distance;
-    const glm::vec3 new_observe_position = GetObserveCenter() + glm::vec3(distance);
+
+    const glm::mat4 rotation_matrix = glm::eulerAngleXYZ(rotation_x, rotation_y, 0.0f);
+    distance_in_viewspace = observe_inverse_matrix * rotation_matrix * distance_in_viewspace;
+    const glm::vec3 new_observe_position = GetObserveCenter() + glm::vec3(distance_in_viewspace);
     SetCameraPosition(new_observe_position);
     
-    m_observe_matrix = glm::lookAtLH(GetCameraPosition(), m_observe_center, up);
+    m_observe_matrix = glm::lookAtLH(GetCameraPosition(), m_observe_center, {0.0f, 1.0f, 0.0f});
+}
+
+float glTFCamera::GetObserveDistance() const
+{
+    return glm::length(m_observe_center - GetCameraPosition());
 }
 
 const glm::vec3& glTFCamera::GetObserveCenter() const

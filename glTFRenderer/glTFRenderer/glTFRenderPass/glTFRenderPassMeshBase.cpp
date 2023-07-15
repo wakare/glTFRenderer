@@ -32,7 +32,7 @@ bool glTFRenderPassMeshBase::RenderPass(glTFRenderResourceManager& resourceManag
 
     for (const auto& mesh : m_meshes)
     {
-        glTFUniqueID meshID = mesh.first;
+        const glTFUniqueID meshID = mesh.first;
         RETURN_IF_FALSE(BeginDrawMesh(resourceManager, meshID))
         
         // Upload constant buffer

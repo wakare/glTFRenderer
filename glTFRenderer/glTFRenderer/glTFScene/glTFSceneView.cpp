@@ -166,13 +166,13 @@ void glTFSceneView::ApplyInputForCamera(glTFInputManager& input_manager, glTFCam
 
         if (input_manager.IsKeyPressed(GLFW_KEY_Q))
         {
-            delta_translation.z += 100.0f;
+            delta_translation.z += (camera.GetObserveDistance() + 1.0f);
             need_apply_movement = true;
         }
         
         if (input_manager.IsKeyPressed(GLFW_KEY_E))
         {
-            delta_translation.z -= 100.0f;
+            delta_translation.z -= (camera.GetObserveDistance() + 1.0f);
             need_apply_movement = true;
         }
     }
@@ -182,8 +182,8 @@ void glTFSceneView::ApplyInputForCamera(glTFInputManager& input_manager, glTFCam
     {
         const glm::vec2 cursor_offset = input_manager.GetCursorOffset();
         input_manager.ResetCursorOffset();
-        delta_rotation.y += cursor_offset.x;
-        delta_rotation.x += cursor_offset.y;
+        delta_rotation.y -= cursor_offset.x;
+        delta_rotation.x -= cursor_offset.y;
         if (fabs(delta_rotation.x) > 0.0f || fabs(delta_rotation.y) > 0.0f)
         {
             need_apply_movement = true;

@@ -7,6 +7,7 @@
 #include "../glTFRHI/RHIInterface/IRHIFence.h"
 #include "../glTFRHI/RHIInterface/IRHIRenderTarget.h"
 #include "../glTFRHI/RHIInterface/IRHISwapChain.h"
+#include "glTFRenderMaterialManager.h"
 
 class glTFWindow;
 

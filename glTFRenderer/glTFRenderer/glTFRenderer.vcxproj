@@ -113,8 +113,11 @@
     <ClCompile Include="glTFLoader\glTFLoader.cpp" />
     <ClCompile Include="glTFMaterial\glTFMaterialBase.cpp" />
     <ClCompile Include="glTFMaterial\glTFMaterialOpaque.cpp" />
-    <ClCompile Include="glTFMaterial\glTFMaterialTexture.cpp" />
+    <ClCompile Include="glTFMaterial\glTFMaterialParameterBase.cpp" />
+    <ClCompile Include="glTFMaterial\glTFMaterialPBR.cpp" />
+    <ClCompile Include="glTFMaterial\glTFMaterialParameterTexture.cpp" />
     <ClCompile Include="glTFRenderer.cpp" />
+    <ClCompile Include="glTFRenderPass\glTFRenderMaterialManager.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderPassBase.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderPassInterfaceBase.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderPassInterfaceSceneMesh.cpp" />
@@ -196,7 +199,10 @@
     <ClInclude Include="glTFMaterial\glTFMaterialBase.h" />
     <ClInclude Include="glTFMaterial\glTFMaterialCommon.h" />
     <ClInclude Include="glTFMaterial\glTFMaterialOpaque.h" />
-    <ClInclude Include="glTFMaterial\glTFMaterialTexture.h" />
+    <ClInclude Include="glTFMaterial\glTFMaterialParameterBase.h" />
+    <ClInclude Include="glTFMaterial\glTFMaterialPBR.h" />
+    <ClInclude Include="glTFMaterial\glTFMaterialParameterTexture.h" />
+    <ClInclude Include="glTFRenderPass\glTFRenderMaterialManager.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderPassBase.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderPassInterfaceBase.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderPassInterfaceSceneMesh.h" />

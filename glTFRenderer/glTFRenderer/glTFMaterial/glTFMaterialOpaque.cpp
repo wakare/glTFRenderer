@@ -1,22 +1,18 @@
 #include "glTFMaterialOpaque.h"
 
+#include <utility>
+
 glTFMaterialOpaque::glTFMaterialOpaque()
     : glTFMaterialBase(MaterialType::Opaque)
-    , m_albedo({0.0f, 0.0f, 0.0f})
-    , m_albedoTexture(nullptr)
 {
 }
 
-glTFMaterialOpaque::glTFMaterialOpaque(const glm::vec3& albedo)
-    : glTFMaterialBase(MaterialType::Opaque)
-    , m_albedo(albedo)
-    , m_albedoTexture(nullptr)
+void glTFMaterialOpaque::AddOrUpdateMaterialParameter(glTFMaterialParameterUsage usage, std::shared_ptr<glTFMaterialParameterTexture> parameter)
 {
+    m_parameters[usage] = std::move(parameter);
 }
 
-glTFMaterialOpaque::glTFMaterialOpaque(std::shared_ptr<glTFMaterialTexture> albedoTexture)
-    : glTFMaterialBase(MaterialType::Opaque)
-    , m_albedo({0.0f, 0.0f, 0.0f})
-    , m_albedoTexture(std::move(albedoTexture))
+bool glTFMaterialOpaque::HasValidParameter(glTFMaterialParameterUsage usage) const
 {
+    return m_parameters.find(usage) != m_parameters.end();
 }

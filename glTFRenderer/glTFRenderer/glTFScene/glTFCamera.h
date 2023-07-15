@@ -32,6 +32,7 @@ public:
 
     void Observe(const glm::vec3& center);
     void ObserveRotateXY(float rotation_x, float rotation_y);
+    float GetObserveDistance() const;
     
     const glm::vec3& GetObserveCenter() const;
     void SetCameraPosition(const glm::fvec3& position);
