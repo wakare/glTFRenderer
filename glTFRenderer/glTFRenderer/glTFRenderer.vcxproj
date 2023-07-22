@@ -114,6 +114,7 @@
     <ClCompile Include="glTFMaterial\glTFMaterialBase.cpp" />
     <ClCompile Include="glTFMaterial\glTFMaterialOpaque.cpp" />
     <ClCompile Include="glTFMaterial\glTFMaterialParameterBase.cpp" />
+    <ClCompile Include="glTFMaterial\glTFMaterialParameterFactor.cpp" />
     <ClCompile Include="glTFMaterial\glTFMaterialPBR.cpp" />
     <ClCompile Include="glTFMaterial\glTFMaterialParameterTexture.cpp" />
     <ClCompile Include="glTFRenderer.cpp" />
@@ -200,6 +201,7 @@
     <ClInclude Include="glTFMaterial\glTFMaterialCommon.h" />
     <ClInclude Include="glTFMaterial\glTFMaterialOpaque.h" />
     <ClInclude Include="glTFMaterial\glTFMaterialParameterBase.h" />
+    <ClInclude Include="glTFMaterial\glTFMaterialParameterFactor.h" />
     <ClInclude Include="glTFMaterial\glTFMaterialPBR.h" />
     <ClInclude Include="glTFMaterial\glTFMaterialParameterTexture.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderMaterialManager.h" />
@@ -278,7 +280,6 @@
     <ClInclude Include="glTFWindow\glTFWindow.h" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="..\..\README.md" />
     <Content Include="glTFResources\Models\Box\Box.gltf" />
     <Content Include="glTFResources\Models\Buggy\glTF-Binary\Buggy.glb" />
     <Content Include="glTFResources\Models\Buggy\glTF-Draco\Buggy.bin" />

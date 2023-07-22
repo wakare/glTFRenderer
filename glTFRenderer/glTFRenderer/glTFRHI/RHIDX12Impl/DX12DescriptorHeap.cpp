@@ -33,7 +33,7 @@ bool DX12DescriptorHeap::InitDescriptorHeap(IRHIDevice& device, const RHIDescrip
     return true;
 }
 
-RHIGPUDescriptorHandle DX12DescriptorHeap::GetHandle(unsigned offsetInDescriptor)
+RHIGPUDescriptorHandle DX12DescriptorHeap::GetGPUHandle(unsigned offsetInDescriptor)
 {
     CD3DX12_GPU_DESCRIPTOR_HANDLE gpuHandle(m_descriptorHeap->GetGPUDescriptorHandleForHeapStart());
     gpuHandle.Offset(offsetInDescriptor, m_descriptorIncrementSize);

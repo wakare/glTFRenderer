@@ -28,6 +28,6 @@ private:
     unsigned m_rootParameterIndex;
     unsigned m_registerIndex;
     
-    ConstantBufferSceneMesh m_sceneMeshData;
-    std::shared_ptr<IRHIGPUBuffer> m_sceneMeshGPUData;
+    ConstantBufferSceneMesh m_scene_mesh_data;
+    std::shared_ptr<IRHIGPUBuffer> m_scene_mesh_GPU_data;
 };

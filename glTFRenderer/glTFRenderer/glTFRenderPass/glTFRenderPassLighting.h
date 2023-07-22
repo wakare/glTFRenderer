@@ -50,16 +50,16 @@ protected:
     // Must be implement in final render pass class
     virtual size_t GetMainDescriptorHeapSize() override;
     virtual bool SetupRootSignature(glTFRenderResourceManager& resourceManager) override;
-    virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resourceManager) override;
+    virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;
 
     bool UploadLightInfoGPUBuffer();
     
-    std::shared_ptr<IRHIRenderTarget> m_basePassColorRT;
-    std::shared_ptr<IRHIRenderTarget> m_normalRT;
+    std::shared_ptr<IRHIRenderTarget> m_base_pass_color_RT;
+    std::shared_ptr<IRHIRenderTarget> m_normal_RT;
     
-    RHIGPUDescriptorHandle m_basePassColorRTSRVHandle;
-    RHIGPUDescriptorHandle m_depthRTSRVHandle;
-    RHIGPUDescriptorHandle m_normalRTSRVHandle;
+    RHIGPUDescriptorHandle m_base_pass_color_RT_SRV_Handle;
+    RHIGPUDescriptorHandle m_depth_RT_SRV_Handle;
+    RHIGPUDescriptorHandle m_normal_RT_SRV_Handle;
 
     std::map<glTFHandle::HandleIndexType, PointLightInfo> m_cachePointLights;
     std::map<glTFHandle::HandleIndexType, DirectionalLightInfo> m_cacheDirectionalLights;

@@ -235,20 +235,20 @@ bool DX12Utils::SetRootSignature(IRHICommandList& commandList, IRHIRootSignature
     return true;
 }
 
-bool DX12Utils::SetViewport(IRHICommandList& commandList, const RHIViewportDesc& viewportDesc)
+bool DX12Utils::SetViewport(IRHICommandList& commandList, const RHIViewportDesc& viewport_desc)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>( commandList).GetCommandList();
 
-    D3D12_VIEWPORT viewport = {viewportDesc.TopLeftX, viewportDesc.TopLeftY, viewportDesc.Width, viewportDesc.Height, viewportDesc.MinDepth, viewportDesc.MaxDepth};
+    D3D12_VIEWPORT viewport = {viewport_desc.TopLeftX, viewport_desc.TopLeftY, viewport_desc.Width, viewport_desc.Height, viewport_desc.MinDepth, viewport_desc.MaxDepth};
     dxCommandList->RSSetViewports(1, &viewport);
     
     return true;
 }
 
-bool DX12Utils::SetScissorRect(IRHICommandList& commandList, const RHIScissorRectDesc& scissorRect)
+bool DX12Utils::SetScissorRect(IRHICommandList& commandList, const RHIScissorRectDesc& scissor_rect)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>( commandList).GetCommandList();
-    D3D12_RECT dxScissorRect = {scissorRect.left, scissorRect.top, scissorRect.right, scissorRect.right};
+    D3D12_RECT dxScissorRect = {scissor_rect.left, scissor_rect.top, scissor_rect.right, scissor_rect.right};
     dxCommandList->RSSetScissorRects(1, &dxScissorRect);
     
     return true;
@@ -282,19 +282,19 @@ bool DX12Utils::SetPrimitiveTopology(IRHICommandList& commandList, RHIPrimitiveT
     return true;
 }
 
-bool DX12Utils::SetDescriptorHeap(IRHICommandList& commandList, IRHIDescriptorHeap* descriptorArray,
-                                  size_t descriptorCount)
+bool DX12Utils::SetDescriptorHeapArray(IRHICommandList& commandList, IRHIDescriptorHeap* descriptor_heap_array_data,
+                                  size_t descriptor_heap_array_count)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
 
-    std::vector<ID3D12DescriptorHeap*> dxDescriptorHeaps;
-    for (size_t i = 0; i < descriptorCount; ++i)
+    std::vector<ID3D12DescriptorHeap*> dx_descriptor_heaps;
+    for (size_t i = 0; i < descriptor_heap_array_count; ++i)
     {
-        auto* dxDescriptorHeap = dynamic_cast<DX12DescriptorHeap&>(descriptorArray[i]).GetDescriptorHeap();
-        dxDescriptorHeaps.push_back(dxDescriptorHeap);
+        auto* dx_descriptor_heap = dynamic_cast<DX12DescriptorHeap&>(descriptor_heap_array_data[i]).GetDescriptorHeap();
+        dx_descriptor_heaps.push_back(dx_descriptor_heap);
     }
     
-    dxCommandList->SetDescriptorHeaps(dxDescriptorHeaps.size(), dxDescriptorHeaps.data());
+    dxCommandList->SetDescriptorHeaps(dx_descriptor_heaps.size(), dx_descriptor_heaps.data());
     
     return true;
 }
@@ -381,14 +381,14 @@ bool DX12Utils::AddBufferBarrierToCommandList(IRHICommandList& commandList, IRHI
     return true;
 }
 
-bool DX12Utils::AddRenderTargetBarrierToCommandList(IRHICommandList& commandList, IRHIRenderTarget& renderTarget,
-    RHIResourceStateType beforeState, RHIResourceStateType afterState)
+bool DX12Utils::AddRenderTargetBarrierToCommandList(IRHICommandList& commandList, IRHIRenderTarget& render_target,
+    RHIResourceStateType before_state, RHIResourceStateType after_state)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
-    auto* dxRenderTarget = dynamic_cast<DX12RenderTarget&>(renderTarget).GetRenderTarget();
+    auto* dxRenderTarget = dynamic_cast<DX12RenderTarget&>(render_target).GetRenderTarget();
 
     const CD3DX12_RESOURCE_BARRIER TransitionToVertexBufferState = CD3DX12_RESOURCE_BARRIER::Transition(dxRenderTarget,
-        DX12ConverterUtils::ConvertToResourceState(beforeState), DX12ConverterUtils::ConvertToResourceState(afterState)); 
+        DX12ConverterUtils::ConvertToResourceState(before_state), DX12ConverterUtils::ConvertToResourceState(after_state)); 
     dxCommandList->ResourceBarrier(1, &TransitionToVertexBufferState);
 
     return true;
@@ -418,12 +418,12 @@ bool DX12Utils::CreateConstantBufferViewInDescriptorHeap(IRHIDevice& device, IRH
     return true;
 }
 
-bool CreateShaderResourceViewInDescriptorHeapInnerImpl(IRHIDevice& device, IRHIDescriptorHeap& descriptorHeap,
-                                                         unsigned descriptorOffset, ID3D12Resource* resource, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& outGPUHandle)
+bool CreateShaderResourceViewInDescriptorHeapInnerImpl(IRHIDevice& device, IRHIDescriptorHeap& descriptor_heap,
+                                                         unsigned descriptor_offset, ID3D12Resource* resource, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& out_GPU_handle)
 {
     //TODO: Process offset for handle 
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
-    auto* dxDescriptorHeap = dynamic_cast<DX12DescriptorHeap&>(descriptorHeap).GetDescriptorHeap();
+    auto* dxDescriptorHeap = dynamic_cast<DX12DescriptorHeap&>(descriptor_heap).GetDescriptorHeap();
     
     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
     srvDesc.Format = DX12ConverterUtils::ConvertToDXGIFormat(desc.format);
@@ -435,29 +435,29 @@ bool CreateShaderResourceViewInDescriptorHeapInnerImpl(IRHIDevice& device, IRHID
 
     CD3DX12_CPU_DESCRIPTOR_HANDLE cpuHandle(dxDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
     const UINT descriptorIncrementSize = dxDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-    cpuHandle.Offset(descriptorOffset, descriptorIncrementSize);
+    cpuHandle.Offset(descriptor_offset, descriptorIncrementSize);
 
     dxDevice->CreateShaderResourceView(resource, &srvDesc, cpuHandle);
     CD3DX12_GPU_DESCRIPTOR_HANDLE gpuHandle(dxDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
-    gpuHandle.Offset(descriptorOffset, descriptorIncrementSize);
-    outGPUHandle = gpuHandle.ptr;
+    gpuHandle.Offset(descriptor_offset, descriptorIncrementSize);
+    out_GPU_handle = gpuHandle.ptr;
     
     return true;
 }
 
-bool DX12Utils::CreateShaderResourceViewInDescriptorHeap(IRHIDevice& device, IRHIDescriptorHeap& descriptorHeap,
-                                                         unsigned descriptorOffset, IRHIGPUBuffer& buffer, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& outGPUHandle)
+bool DX12Utils::CreateShaderResourceViewInDescriptorHeap(IRHIDevice& device, IRHIDescriptorHeap& descriptor_heap,
+                                                         unsigned descriptor_offset, IRHIGPUBuffer& buffer, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& out_GPU_handle)
 {
     auto* dxBuffer = dynamic_cast<DX12GPUBuffer&>(buffer).GetBuffer();
-    return CreateShaderResourceViewInDescriptorHeapInnerImpl(device, descriptorHeap, descriptorOffset, dxBuffer, desc, outGPUHandle);
+    return CreateShaderResourceViewInDescriptorHeapInnerImpl(device, descriptor_heap, descriptor_offset, dxBuffer, desc, out_GPU_handle);
 }
 
-bool DX12Utils::CreateShaderResourceViewInDescriptorHeap(IRHIDevice& device, IRHIDescriptorHeap& descriptorHeap,
-    unsigned descriptorOffset, IRHIRenderTarget& renderTarget, const RHIShaderResourceViewDesc& desc,
-    RHIGPUDescriptorHandle& outGPUHandle)
+bool DX12Utils::CreateShaderResourceViewInDescriptorHeap(IRHIDevice& device, IRHIDescriptorHeap& descriptor_heap,
+    unsigned descriptor_offset, IRHIRenderTarget& render_target, const RHIShaderResourceViewDesc& desc,
+    RHIGPUDescriptorHandle& out_GPU_handle)
 {
-    auto* dxRenderTarget = dynamic_cast<DX12RenderTarget*>(&renderTarget);
-    return CreateShaderResourceViewInDescriptorHeapInnerImpl(device, descriptorHeap, descriptorOffset, dxRenderTarget->GetResource(), desc, outGPUHandle);
+    auto* dxRenderTarget = dynamic_cast<DX12RenderTarget*>(&render_target);
+    return CreateShaderResourceViewInDescriptorHeapInnerImpl(device, descriptor_heap, descriptor_offset, dxRenderTarget->GetResource(), desc, out_GPU_handle);
 }
 
 bool DX12Utils::DrawIndexInstanced(IRHICommandList& commandList, unsigned indexCountPerInstance, unsigned instanceCount,

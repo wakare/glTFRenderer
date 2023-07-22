@@ -10,11 +10,11 @@
 
 glTFRenderPassLighting::glTFRenderPassLighting()
     : glTFRenderPassInterfaceSceneView(LightPass_RootParameter_SceneViewCBV, LightPass_RootParameter_SceneViewCBV)
-    , m_basePassColorRT(nullptr)
-    , m_normalRT(nullptr)
-    , m_basePassColorRTSRVHandle(0)
-    , m_depthRTSRVHandle(0)
-    , m_normalRTSRVHandle(0)
+    , m_base_pass_color_RT(nullptr)
+    , m_normal_RT(nullptr)
+    , m_base_pass_color_RT_SRV_Handle(0)
+    , m_depth_RT_SRV_Handle(0)
+    , m_normal_RT_SRV_Handle(0)
     , m_constantBufferPerLightDraw({})
 {
 }
@@ -83,32 +83,40 @@ bool glTFRenderPassLighting::RenderPass(glTFRenderResourceManager& resourceManag
 
     RETURN_IF_FALSE(glTFRenderPassInterfaceSceneView::ApplyInterface(resourceManager, LightPass_RootParameter_SceneViewCBV))
     
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resourceManager.GetCommandList(), *m_basePassColorRT,
+    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resourceManager.GetCommandList(), *m_base_pass_color_RT,
         RHIResourceStateType::RENDER_TARGET, RHIResourceStateType::PIXEL_SHADER_RESOURCE))
 
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resourceManager.GetCommandList(), *m_normalRT,
+    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resourceManager.GetCommandList(), *m_normal_RT,
         RHIResourceStateType::RENDER_TARGET, RHIResourceStateType::PIXEL_SHADER_RESOURCE))
     
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resourceManager.GetCommandList(), resourceManager.GetDepthRT(),
         RHIResourceStateType::DEPTH_WRITE, RHIResourceStateType::PIXEL_SHADER_RESOURCE))
 
-    RETURN_IF_FALSE(RHIUtils::Instance().SetDescriptorTableGPUHandleToRootParameterSlot(resourceManager.GetCommandList(), LightPass_RootParameter_BaseColorAndDepthSRV, m_mainDescriptorHeap->GetHandle(0)))    
+    RETURN_IF_FALSE(RHIUtils::Instance().SetDescriptorTableGPUHandleToRootParameterSlot(resourceManager.GetCommandList(),
+        LightPass_RootParameter_BaseColorAndDepthSRV, m_main_descriptor_heap->GetGPUHandle(0)))    
 
     RETURN_IF_FALSE(resourceManager.GetRenderTargetManager().BindRenderTarget(resourceManager.GetCommandList(),
         {&resourceManager.GetCurrentFrameSwapchainRT()}, nullptr))
 
-    RETURN_IF_FALSE(resourceManager.GetRenderTargetManager().ClearRenderTarget(resourceManager.GetCommandList(), {&resourceManager.GetCurrentFrameSwapchainRT()}))
+    RETURN_IF_FALSE(resourceManager.GetRenderTargetManager().ClearRenderTarget(resourceManager.GetCommandList(),
+        {&resourceManager.GetCurrentFrameSwapchainRT()}))
 
     RETURN_IF_FALSE(UploadLightInfoGPUBuffer())
-    RETURN_IF_FALSE(RHIUtils::Instance().SetConstantBufferViewGPUHandleToRootParameterSlot(resourceManager.GetCommandList(), LightPass_RootParameter_LightInfosCBV, m_lightInfoGPUConstantBuffer->GetGPUBufferHandle()))
-    RHIUtils::Instance().SetShaderResourceViewGPUHandleToRootParameterSlot(resourceManager.GetCommandList(), LightPass_RootParameter_PointLightStructuredBuffer, m_pointLightInfoGPUStructuredBuffer->GetGPUBufferHandle());
-    RHIUtils::Instance().SetShaderResourceViewGPUHandleToRootParameterSlot(resourceManager.GetCommandList(), LightPass_RootParameter_DirectionalLightStructuredBuffer, m_directionalLightInfoGPUStructuredBuffer->GetGPUBufferHandle());
+    RETURN_IF_FALSE(RHIUtils::Instance().SetConstantBufferViewGPUHandleToRootParameterSlot(resourceManager.GetCommandList(),
+        LightPass_RootParameter_LightInfosCBV, m_lightInfoGPUConstantBuffer->GetGPUBufferHandle()))
+    
+    RHIUtils::Instance().SetShaderResourceViewGPUHandleToRootParameterSlot(resourceManager.GetCommandList(),
+        LightPass_RootParameter_PointLightStructuredBuffer, m_pointLightInfoGPUStructuredBuffer->GetGPUBufferHandle());
+    
+    RHIUtils::Instance().SetShaderResourceViewGPUHandleToRootParameterSlot(resourceManager.GetCommandList(),
+        LightPass_RootParameter_DirectionalLightStructuredBuffer, m_directionalLightInfoGPUStructuredBuffer->GetGPUBufferHandle());
+    
     DrawPostprocessQuad(resourceManager);
     
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resourceManager.GetCommandList(), *m_basePassColorRT,
+    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resourceManager.GetCommandList(), *m_base_pass_color_RT,
         RHIResourceStateType::PIXEL_SHADER_RESOURCE, RHIResourceStateType::RENDER_TARGET))
 
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resourceManager.GetCommandList(), *m_normalRT,
+    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resourceManager.GetCommandList(), *m_normal_RT,
         RHIResourceStateType::PIXEL_SHADER_RESOURCE, RHIResourceStateType::RENDER_TARGET))
 
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resourceManager.GetCommandList(), resourceManager.GetDepthRT(),
@@ -190,54 +198,54 @@ bool glTFRenderPassLighting::SetupRootSignature(glTFRenderResourceManager& resou
     // Init root signature
     constexpr size_t rootSignatureParameterCount = LightPass_RootParameter_Num;
     constexpr size_t rootSignatureStaticSamplerCount = 1;
-    RETURN_IF_FALSE(m_rootSignature->AllocateRootSignatureSpace(rootSignatureParameterCount, rootSignatureStaticSamplerCount))
+    RETURN_IF_FALSE(m_root_signature->AllocateRootSignatureSpace(rootSignatureParameterCount, rootSignatureStaticSamplerCount))
 
     RETURN_IF_FALSE(glTFRenderPassPostprocess::SetupRootSignature(resourceManager))
-    RETURN_IF_FALSE(glTFRenderPassInterfaceSceneView::SetupRootSignature(*m_rootSignature))
+    RETURN_IF_FALSE(glTFRenderPassInterfaceSceneView::SetupRootSignature(*m_root_signature))
     
     const RHIRootParameterDescriptorRangeDesc SRVRangeDesc {RHIRootParameterDescriptorRangeType::SRV, 0, 3};
-    m_rootSignature->GetRootParameter(LightPass_RootParameter_BaseColorAndDepthSRV).InitAsDescriptorTableRange(1, &SRVRangeDesc);
+    m_root_signature->GetRootParameter(LightPass_RootParameter_BaseColorAndDepthSRV).InitAsDescriptorTableRange(1, &SRVRangeDesc);
 
-    m_rootSignature->GetRootParameter(LightPass_RootParameter_LightInfosCBV).InitAsCBV(1);
-    m_rootSignature->GetRootParameter(LightPass_RootParameter_PointLightStructuredBuffer).InitAsSRV(3);
-    m_rootSignature->GetRootParameter(LightPass_RootParameter_DirectionalLightStructuredBuffer).InitAsSRV(4);
+    m_root_signature->GetRootParameter(LightPass_RootParameter_LightInfosCBV).InitAsCBV(1);
+    m_root_signature->GetRootParameter(LightPass_RootParameter_PointLightStructuredBuffer).InitAsSRV(3);
+    m_root_signature->GetRootParameter(LightPass_RootParameter_DirectionalLightStructuredBuffer).InitAsSRV(4);
     
-    m_rootSignature->GetStaticSampler(0).InitStaticSampler(0, RHIStaticSamplerAddressMode::Clamp, RHIStaticSamplerFilterMode::Linear);
-    RETURN_IF_FALSE(m_rootSignature->InitRootSignature(resourceManager.GetDevice()))
+    m_root_signature->GetStaticSampler(0).InitStaticSampler(0, RHIStaticSamplerAddressMode::Clamp, RHIStaticSamplerFilterMode::Linear);
+    RETURN_IF_FALSE(m_root_signature->InitRootSignature(resourceManager.GetDevice()))
     
     return true;
 }
 
-bool glTFRenderPassLighting::SetupPipelineStateObject(glTFRenderResourceManager& resourceManager)
+bool glTFRenderPassLighting::SetupPipelineStateObject(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(glTFRenderPassPostprocess::SetupPipelineStateObject(resourceManager))
+    RETURN_IF_FALSE(glTFRenderPassPostprocess::SetupPipelineStateObject(resource_manager))
 
-    std::vector<IRHIRenderTarget*> allRts;
-    allRts.push_back(&resourceManager.GetCurrentFrameSwapchainRT());
-    m_pipelineStateObject->BindRenderTargets(allRts);
+    std::vector<IRHIRenderTarget*> render_targets;
+    render_targets.push_back(&resource_manager.GetCurrentFrameSwapchainRT());
+    m_pipeline_state_object->BindRenderTargets(render_targets);
     
-    m_basePassColorRT = resourceManager.GetRenderTargetManager().GetRenderTargetWithTag("BasePassColor");
-    RETURN_IF_FALSE(RHIUtils::Instance().CreateShaderResourceViewInDescriptorHeap(resourceManager.GetDevice(), *m_mainDescriptorHeap, 0,
-            *m_basePassColorRT, {m_basePassColorRT->GetRenderTargetFormat(), RHIShaderVisibleViewDimension::TEXTURE2D}, m_basePassColorRTSRVHandle))
+    m_base_pass_color_RT = resource_manager.GetRenderTargetManager().GetRenderTargetWithTag("BasePassColor");
+    RETURN_IF_FALSE(RHIUtils::Instance().CreateShaderResourceViewInDescriptorHeap(resource_manager.GetDevice(), *m_main_descriptor_heap, 0,
+            *m_base_pass_color_RT, {m_base_pass_color_RT->GetRenderTargetFormat(), RHIShaderVisibleViewDimension::TEXTURE2D}, m_base_pass_color_RT_SRV_Handle))
 
-    RETURN_IF_FALSE(RHIUtils::Instance().CreateShaderResourceViewInDescriptorHeap(resourceManager.GetDevice(), *m_mainDescriptorHeap, 1,
-            resourceManager.GetDepthRT(), {RHIDataFormat::R32_FLOAT, RHIShaderVisibleViewDimension::TEXTURE2D}, m_depthRTSRVHandle))
+    RETURN_IF_FALSE(RHIUtils::Instance().CreateShaderResourceViewInDescriptorHeap(resource_manager.GetDevice(), *m_main_descriptor_heap, 1,
+            resource_manager.GetDepthRT(), {RHIDataFormat::R32_FLOAT, RHIShaderVisibleViewDimension::TEXTURE2D}, m_depth_RT_SRV_Handle))
 
-    m_normalRT = resourceManager.GetRenderTargetManager().GetRenderTargetWithTag("BasePassNormal");
-    RETURN_IF_FALSE(RHIUtils::Instance().CreateShaderResourceViewInDescriptorHeap(resourceManager.GetDevice(), *m_mainDescriptorHeap, 2,
-            *m_normalRT, {m_normalRT->GetRenderTargetFormat(), RHIShaderVisibleViewDimension::TEXTURE2D}, m_normalRTSRVHandle))
+    m_normal_RT = resource_manager.GetRenderTargetManager().GetRenderTargetWithTag("BasePassNormal");
+    RETURN_IF_FALSE(RHIUtils::Instance().CreateShaderResourceViewInDescriptorHeap(resource_manager.GetDevice(), *m_main_descriptor_heap, 2,
+            *m_normal_RT, {m_normal_RT->GetRenderTargetFormat(), RHIShaderVisibleViewDimension::TEXTURE2D}, m_normal_RT_SRV_Handle))
     
-    m_pipelineStateObject->BindShaderCode(
+    m_pipeline_state_object->BindShaderCode(
         R"(glTFResources\ShaderSource\LightPassVS.hlsl)", RHIShaderType::Vertex, "main");
-    m_pipelineStateObject->BindShaderCode(
+    m_pipeline_state_object->BindShaderCode(
         R"(glTFResources\ShaderSource\LightPassPS.hlsl)", RHIShaderType::Pixel, "main");
 
-    RETURN_IF_FALSE(m_pipelineStateObject->BindInputLayout(GetVertexInputLayout()))
+    RETURN_IF_FALSE(m_pipeline_state_object->BindInputLayout(GetVertexInputLayout()))
     
-    auto& shaderMacros = m_pipelineStateObject->GetShaderMacros();
+    auto& shaderMacros = m_pipeline_state_object->GetShaderMacros();
     glTFRenderPassInterfaceSceneView::UpdateShaderCompileDefine(shaderMacros);
     
-    RETURN_IF_FALSE (m_pipelineStateObject->InitPipelineStateObject(resourceManager.GetDevice(), *m_rootSignature, resourceManager.GetSwapchain()))
+    RETURN_IF_FALSE (m_pipeline_state_object->InitPipelineStateObject(resource_manager.GetDevice(), *m_root_signature, resource_manager.GetSwapchain()))
     
     return true;
 }

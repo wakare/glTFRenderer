@@ -7,9 +7,10 @@
 #include "../glTFRHI/RHIInterface/IRHIFence.h"
 #include "../glTFRHI/RHIInterface/IRHIRenderTarget.h"
 #include "../glTFRHI/RHIInterface/IRHISwapChain.h"
-#include "glTFRenderMaterialManager.h"
+#include "../glTFUtils/glTFUtils.h"
 
 class glTFWindow;
+class glTFRenderMaterialManager;
 
 // Hold all rhi resource
 class glTFRenderResourceManager
@@ -33,6 +34,9 @@ public:
 
     unsigned GetCurrentBackBufferIndex() const {return m_currentBackBufferIndex; }
     void UpdateCurrentBackBufferIndex() { m_currentBackBufferIndex = m_swapchain->GetCurrentBackBufferIndex(); }
+
+	glTFRenderMaterialManager& GetMaterialManager();
+    bool ApplyMaterial(glTFUniqueID material_ID, unsigned slot_index);
     
 private:
     std::shared_ptr<IRHIFactory> m_factory;
@@ -46,5 +50,7 @@ private:
     std::vector<std::shared_ptr<IRHIRenderTarget>> m_swapchainRTs;
     std::shared_ptr<IRHIRenderTarget> m_depthTexture;
 
+    std::shared_ptr<glTFRenderMaterialManager> m_material_manager;
+    
     unsigned m_currentBackBufferIndex;
 };

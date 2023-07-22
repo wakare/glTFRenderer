@@ -10,7 +10,7 @@ public:
     virtual ~DX12DescriptorHeap() override;
     
     virtual bool InitDescriptorHeap(IRHIDevice& device, const RHIDescriptorHeapDesc& desc) override;
-    virtual RHIGPUDescriptorHandle GetHandle(unsigned offsetInDescriptor) override;
+    virtual RHIGPUDescriptorHandle GetGPUHandle(unsigned offsetInDescriptor) override;
     
     ID3D12DescriptorHeap* GetDescriptorHeap() {return m_descriptorHeap; }
     

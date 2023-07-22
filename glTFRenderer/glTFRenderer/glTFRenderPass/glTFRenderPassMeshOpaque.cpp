@@ -1,5 +1,6 @@
 #include "glTFRenderPassMeshOpaque.h"
 
+#include "glTFRenderMaterialManager.h"
 #include "../glTFMaterial/glTFMaterialOpaque.h"
 #include "../glTFRHI/RHIUtils.h"
 #include "../glTFRHI/RHIResourceFactoryImpl.hpp"
@@ -29,21 +30,10 @@ bool glTFRenderPassMeshOpaque::RenderPass(glTFRenderResourceManager& resourceMan
     return true;
 }
 
-bool glTFRenderPassMeshOpaque::ProcessMaterial(glTFRenderResourceManager& resourceManager, const glTFMaterialBase& material)
+bool glTFRenderPassMeshOpaque::ProcessMaterial(glTFRenderResourceManager& resource_manager, const glTFMaterialBase& material)
 {
     RETURN_IF_FALSE(material.GetMaterialType() == MaterialType::Opaque)
-    
-    const auto& OpaqueMaterial = dynamic_cast<const glTFMaterialOpaque&>(material);
-
-    if (m_material_texture_resources.end() == m_material_texture_resources.find(OpaqueMaterial.GetID()))
-    {
-        if (OpaqueMaterial.UsingAlbedoTexture())
-        {
-            m_material_texture_resources[material.GetID()] = std::make_unique<glTFMaterialTextureRenderResource>(OpaqueMaterial.GetAlbedoTexture());
-            const bool init = m_material_texture_resources[material.GetID()]->Init(resourceManager, *m_mainDescriptorHeap);
-            assert(init);
-        }
-    }
+	RETURN_IF_FALSE(resource_manager.GetMaterialManager().InitMaterialRenderResource(resource_manager, *m_main_descriptor_heap, material))
     
     return true;
 }
@@ -56,17 +46,17 @@ size_t glTFRenderPassMeshOpaque::GetMainDescriptorHeapSize()
 bool glTFRenderPassMeshOpaque::SetupRootSignature(glTFRenderResourceManager& resourceManager)
 {
     // Init root signature
-    constexpr size_t rootSignatureParameterCount = MeshOpaquePass_RootParameter_Num;
+    constexpr size_t rootSignatureParameterCount = MeshOpaquePass_RootParameter_LastIndex;
     constexpr size_t rootSignatureStaticSamplerCount = 1;
-    RETURN_IF_FALSE(m_rootSignature->AllocateRootSignatureSpace(rootSignatureParameterCount, rootSignatureStaticSamplerCount))
+    RETURN_IF_FALSE(m_root_signature->AllocateRootSignatureSpace(rootSignatureParameterCount, rootSignatureStaticSamplerCount))
     
     RETURN_IF_FALSE(glTFRenderPassMeshBase::SetupRootSignature(resourceManager))
     
     const RHIRootParameterDescriptorRangeDesc SRVRangeDesc {RHIRootParameterDescriptorRangeType::SRV, 0, 1};
-    m_rootSignature->GetRootParameter(MeshOpaquePass_RootParameter_MeshMaterialTexSRV).InitAsDescriptorTableRange(1, &SRVRangeDesc);
+    m_root_signature->GetRootParameter(MeshOpaquePass_RootParameter_MeshMaterialTexSRV).InitAsDescriptorTableRange(1, &SRVRangeDesc);
     
-    m_rootSignature->GetStaticSampler(0).InitStaticSampler(0, RHIStaticSamplerAddressMode::Clamp, RHIStaticSamplerFilterMode::Linear);
-    RETURN_IF_FALSE(m_rootSignature->InitRootSignature(resourceManager.GetDevice()))
+    m_root_signature->GetStaticSampler(0).InitStaticSampler(0, RHIStaticSamplerAddressMode::Clamp, RHIStaticSamplerFilterMode::Linear);
+    RETURN_IF_FALSE(m_root_signature->InitRootSignature(resourceManager.GetDevice()))
 
     return true;
 }
@@ -75,14 +65,14 @@ bool glTFRenderPassMeshOpaque::SetupPipelineStateObject(glTFRenderResourceManage
 {
     RETURN_IF_FALSE(glTFRenderPassMeshBase::SetupPipelineStateObject(resourceManager))
     
-    m_pipelineStateObject->BindShaderCode(
+    m_pipeline_state_object->BindShaderCode(
         R"(glTFResources\ShaderSource\MeshPassCommonVS.hlsl)", RHIShaderType::Vertex, "main");
-    m_pipelineStateObject->BindShaderCode(
+    m_pipeline_state_object->BindShaderCode(
         R"(glTFResources\ShaderSource\MeshPassCommonPS.hlsl)", RHIShaderType::Pixel, "main");
 
-    RETURN_IF_FALSE(m_pipelineStateObject->BindInputLayout(GetVertexInputLayout()))
+    RETURN_IF_FALSE(m_pipeline_state_object->BindInputLayout(GetVertexInputLayout()))
     
-    RETURN_IF_FALSE (m_pipelineStateObject->InitPipelineStateObject(resourceManager.GetDevice(), *m_rootSignature, resourceManager.GetSwapchain()))
+    RETURN_IF_FALSE (m_pipeline_state_object->InitPipelineStateObject(resourceManager.GetDevice(), *m_root_signature, resourceManager.GetSwapchain()))
 
     return true;
 }
@@ -90,20 +80,13 @@ bool glTFRenderPassMeshOpaque::SetupPipelineStateObject(glTFRenderResourceManage
 bool glTFRenderPassMeshOpaque::BeginDrawMesh(glTFRenderResourceManager& resourceManager, glTFUniqueID meshID)
 {
     // Using texture SRV slot when mesh material is texture
-    glTFUniqueID matID = m_meshes[meshID].materialID;
-    if (matID == glTFUniqueIDInvalid)
+    glTFUniqueID material_ID = m_meshes[meshID].materialID;
+    if (material_ID == glTFUniqueIDInvalid)
     {
         return true;
     }
     
-    if (m_material_texture_resources.find(matID) != m_material_texture_resources.end())
-    {
-        RHIUtils::Instance().SetDescriptorTableGPUHandleToRootParameterSlot(resourceManager.GetCommandList(),
-            MeshOpaquePass_RootParameter_MeshMaterialTexSRV, m_material_texture_resources[matID]->GetTextureSRVHandle());
-        return true;
-    }
-
-    return false;
+	return resourceManager.ApplyMaterial(material_ID, MeshOpaquePass_RootParameter_MeshMaterialTexSRV);
 }
 
 std::vector<RHIPipelineInputLayout> glTFRenderPassMeshOpaque::GetVertexInputLayout()

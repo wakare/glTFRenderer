@@ -37,14 +37,14 @@ public:
     virtual bool ResetCommandAllocator(IRHICommandAllocator& commandAllocator) override;
 
     virtual bool SetRootSignature(IRHICommandList& commandList, IRHIRootSignature& rootSignature) override;
-    virtual bool SetViewport(IRHICommandList& commandList, const RHIViewportDesc& viewportDesc) override;
-    virtual bool SetScissorRect(IRHICommandList& commandList, const RHIScissorRectDesc& scissorRect) override;
+    virtual bool SetViewport(IRHICommandList& commandList, const RHIViewportDesc& viewport_desc) override;
+    virtual bool SetScissorRect(IRHICommandList& commandList, const RHIScissorRectDesc& scissor_rect) override;
 
     virtual bool SetVertexBufferView(IRHICommandList& commandList, IRHIVertexBufferView& view) override;
     virtual bool SetIndexBufferView(IRHICommandList& commandList, IRHIIndexBufferView& view) override;
     virtual bool SetPrimitiveTopology(IRHICommandList& commandList, RHIPrimitiveTopologyType type) override;
 
-    virtual bool SetDescriptorHeap(IRHICommandList& commandList, IRHIDescriptorHeap* descriptorArray, size_t descriptorCount) override;
+    virtual bool SetDescriptorHeapArray(IRHICommandList& commandList, IRHIDescriptorHeap* descriptor_heap_array_data, size_t descriptor_heap_array_count) override;
     virtual bool SetConstantBufferViewGPUHandleToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex, RHIGPUDescriptorHandle handle) override;
     virtual bool SetShaderResourceViewGPUHandleToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex, RHIGPUDescriptorHandle handle) override;
     virtual bool SetDescriptorTableGPUHandleToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex, RHIGPUDescriptorHandle handle) override;
@@ -53,10 +53,10 @@ public:
     virtual bool UploadTextureDataToDefaultGPUBuffer(IRHICommandList& commandList, IRHIGPUBuffer& uploadBuffer, IRHIGPUBuffer& defaultBuffer, void* data, size_t rowPitch, size_t slicePitch) override;
     
     virtual bool AddBufferBarrierToCommandList(IRHICommandList& commandList, IRHIGPUBuffer& buffer, RHIResourceStateType beforeState, RHIResourceStateType afterState) override;
-    virtual bool AddRenderTargetBarrierToCommandList(IRHICommandList& commandList, IRHIRenderTarget& buffer, RHIResourceStateType beforeState, RHIResourceStateType afterState) override;
+    virtual bool AddRenderTargetBarrierToCommandList(IRHICommandList& commandList, IRHIRenderTarget& buffer, RHIResourceStateType before_state, RHIResourceStateType after_state) override;
     virtual bool CreateConstantBufferViewInDescriptorHeap(IRHIDevice& device, IRHIDescriptorHeap& descriptorHeap, unsigned descriptorOffset, IRHIGPUBuffer& buffer, const RHIConstantBufferViewDesc& desc, RHIGPUDescriptorHandle& outGPUHandle) override;
-    virtual bool CreateShaderResourceViewInDescriptorHeap(IRHIDevice& device, IRHIDescriptorHeap& descriptorHeap, unsigned descriptorOffset, IRHIGPUBuffer& buffer, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& outGPUHandle) override;
-    virtual bool CreateShaderResourceViewInDescriptorHeap(IRHIDevice& device, IRHIDescriptorHeap& descriptorHeap, unsigned descriptorOffset, IRHIRenderTarget& renderTarget, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& outGPUHandle) override;
+    virtual bool CreateShaderResourceViewInDescriptorHeap(IRHIDevice& device, IRHIDescriptorHeap& descriptor_heap, unsigned descriptor_offset, IRHIGPUBuffer& buffer, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& out_GPU_handle) override;
+    virtual bool CreateShaderResourceViewInDescriptorHeap(IRHIDevice& device, IRHIDescriptorHeap& descriptor_heap, unsigned descriptor_offset, IRHIRenderTarget& render_target, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& out_GPU_handle) override;
     
     virtual bool DrawIndexInstanced(IRHICommandList& commandList, unsigned indexCountPerInstance, unsigned instanceCount, unsigned startIndexLocation, unsigned baseVertexLocation, unsigned startInstanceLocation) override;
     virtual bool Present(IRHISwapChain& swapchain) override;

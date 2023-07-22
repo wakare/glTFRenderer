@@ -21,7 +21,7 @@ struct MeshGPUResource
     size_t meshVertexCount{0};
     size_t meshIndexCount{0};
     
-    glm::mat4 meshTransformMatrix;
+    glm::mat4 meshTransformMatrix{1.0f};
     glTFUniqueID materialID;
 };
 
@@ -33,7 +33,7 @@ protected:
     {
         MeshBasePass_RootParameter_SceneView = 0,
         MeshBasePass_RootParameter_SceneMesh = 1,
-        MeshBasePass_RootParameter_Num,
+        MeshBasePass_RootParameter_LastIndex,
     };
 public:
     glTFRenderPassMeshBase();

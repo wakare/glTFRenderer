@@ -1,5 +1,6 @@
 #include "glTFRenderResourceManager.h"
 
+#include "glTFRenderMaterialManager.h"
 #include "../glTFRHI/RHIResourceFactoryImpl.hpp"
 #include "../glTFWindow/glTFWindow.h"
 
@@ -8,7 +9,8 @@
 constexpr size_t backBufferCount = 3;
 
 glTFRenderResourceManager::glTFRenderResourceManager()
-    : m_currentBackBufferIndex(0)
+    : m_material_manager(std::make_shared<glTFRenderMaterialManager>())
+    , m_currentBackBufferIndex(0)
 {
 }
 
@@ -109,5 +111,15 @@ IRHIRenderTarget& glTFRenderResourceManager::GetCurrentFrameSwapchainRT()
 IRHIRenderTarget& glTFRenderResourceManager::GetDepthRT()
 {
     return *m_depthTexture;
+}
+
+glTFRenderMaterialManager& glTFRenderResourceManager::GetMaterialManager()
+{
+    return *m_material_manager;
+}
+
+bool glTFRenderResourceManager::ApplyMaterial(glTFUniqueID material_ID, unsigned slot_index)
+{
+    return m_material_manager->ApplyMaterialRenderResource(*this, material_ID, slot_index);
 }
 

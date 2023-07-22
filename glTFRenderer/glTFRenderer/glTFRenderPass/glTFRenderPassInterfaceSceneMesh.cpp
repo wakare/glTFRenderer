@@ -13,10 +13,10 @@ glTFRenderPassInterfaceSceneMesh::glTFRenderPassInterfaceSceneMesh(unsigned root
 
 bool glTFRenderPassInterfaceSceneMesh::InitInterface(glTFRenderResourceManager& resourceManager)
 {
-    m_sceneMeshGPUData = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
+    m_scene_mesh_GPU_data = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
     
     // TODO: Calculate mesh constant buffer size
-    RETURN_IF_FALSE(m_sceneMeshGPUData->InitGPUBuffer(resourceManager.GetDevice(),
+    RETURN_IF_FALSE(m_scene_mesh_GPU_data->InitGPUBuffer(resourceManager.GetDevice(),
         {
             L"SceneMeshInterface_PerMeshConstantBuffer",
             static_cast<size_t>(SceneMeshGPUBufferMaxSize),
@@ -32,7 +32,7 @@ bool glTFRenderPassInterfaceSceneMesh::InitInterface(glTFRenderResourceManager& 
 
 bool glTFRenderPassInterfaceSceneMesh::UpdateSceneMeshData(const ConstantBufferSceneMesh& data)
 {
-    m_sceneMeshData = data;
+    m_scene_mesh_data = data;
     return true;
 }
 
@@ -40,12 +40,13 @@ bool glTFRenderPassInterfaceSceneMesh::ApplyInterface(glTFRenderResourceManager&
     unsigned meshIndex, unsigned rootParameterSlotIndex)
 {
     // Constant buffer must be aligned with 256 bytes
-    const size_t offsetAligned =  meshIndex * ((sizeof(m_sceneMeshData) + 255) & ~255);
+    const size_t offsetAligned =  meshIndex * ((sizeof(m_scene_mesh_data) + 255) & ~255);
 
     assert(offsetAligned < SceneMeshGPUBufferMaxSize);
     
-    RETURN_IF_FALSE(m_sceneMeshGPUData->UploadBufferFromCPU(&m_sceneMeshData, offsetAligned, sizeof(m_sceneMeshData)))
-    RETURN_IF_FALSE(RHIUtils::Instance().SetConstantBufferViewGPUHandleToRootParameterSlot(resourceManager.GetCommandList(), rootParameterSlotIndex, m_sceneMeshGPUData->GetGPUBufferHandle() + offsetAligned))
+    RETURN_IF_FALSE(m_scene_mesh_GPU_data->UploadBufferFromCPU(&m_scene_mesh_data, offsetAligned, sizeof(m_scene_mesh_data)))
+    RETURN_IF_FALSE(RHIUtils::Instance().SetConstantBufferViewGPUHandleToRootParameterSlot(resourceManager.GetCommandList(),
+        rootParameterSlotIndex, m_scene_mesh_GPU_data->GetGPUBufferHandle() + offsetAligned))
     
     return true;
 }

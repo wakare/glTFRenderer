@@ -2,20 +2,20 @@
 
 bool glTFMaterialPBR::HasBaseColor() const
 {
-    return HasValidParameter(glTFMaterialParameterUsage::BASECOLOR);
+    return HasValidParameterTexture(glTFMaterialParameterUsage::BASECOLOR);
 }
 
 bool glTFMaterialPBR::HasNormal() const
 {
-    return HasValidParameter(glTFMaterialParameterUsage::NORMAL);
+    return HasValidParameterTexture(glTFMaterialParameterUsage::NORMAL);
 }
 
 bool glTFMaterialPBR::HasMetallic() const
 {
-    return HasValidParameter(glTFMaterialParameterUsage::METALNESS);
+    return HasValidParameterTexture(glTFMaterialParameterUsage::METALNESS);
 }
 
 bool glTFMaterialPBR::HasRoughness() const
 {
-    return HasValidParameter(glTFMaterialParameterUsage::ROUGHNESS);
+    return HasValidParameterTexture(glTFMaterialParameterUsage::ROUGHNESS);
 }
