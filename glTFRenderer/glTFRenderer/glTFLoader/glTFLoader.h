@@ -32,11 +32,15 @@ private:
     std::vector<std::unique_ptr<glTF_Element_Scene>>            m_scenes;
     std::vector<std::unique_ptr<glTF_Element_Node>>             m_nodes;
     std::vector<std::unique_ptr<glTF_Element_Mesh>>             m_meshes;
+    std::vector<std::unique_ptr<glTF_Element_Image>>			m_images;
+    std::vector<std::unique_ptr<glTF_Element_Texture>>			m_textures;
+    std::vector<std::unique_ptr<glTF_Element_Sampler>>			m_samplers;
+    std::vector<std::unique_ptr<glTF_Element_Material>>			m_materials;
     std::vector<std::unique_ptr<glTF_Element_Buffer>>           m_buffers;
     std::vector<std::unique_ptr<glTF_Element_BufferView>>       m_bufferViews;
     std::vector<std::unique_ptr<glTF_Element_Accessor_Base>>    m_accessors;
 
-    std::map<glTFHandle, std::unique_ptr<char[]>>               m_bufferDatas;
+    std::map<glTFHandle, std::unique_ptr<char[]>>               m_buffer_data;
 
     std::map<glTFHandle::HandleNameType, glTFHandle::HandleIndexType> m_handleResolveMap;
 };

@@ -38,7 +38,7 @@ public:
     
 protected:
     void TraverseNodesInner(const std::function<bool(glTFSceneNode&)>& visitor) const;
-    void RecursiveInitChildrenNodes(const glTFLoader& loader, const glTFHandle& handle, const glTFSceneNode& parentNode, glTFSceneNode& sceneNode);
+    void RecursiveInitSceneNodeFromGLTFLoader(const glTFLoader& loader, const glTFHandle& handle, const glTFSceneNode& parentNode, glTFSceneNode& sceneNode);
 
     std::unique_ptr<glTFSceneNode> m_root; 
 };

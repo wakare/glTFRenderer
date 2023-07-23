@@ -105,7 +105,7 @@ bool glTFSceneGraph::Init(const glTFLoader& loader)
     for (const auto& rootNode : sceneNode->root_nodes)
     {
         std::unique_ptr<glTFSceneNode> sceneRootNodes = std::make_unique<glTFSceneNode>();
-        RecursiveInitChildrenNodes(loader, rootNode, *m_root, *sceneRootNodes);
+        RecursiveInitSceneNodeFromGLTFLoader(loader, rootNode, *m_root, *sceneRootNodes);
         
         AddSceneNode(std::move(sceneRootNodes));
     }
@@ -118,7 +118,7 @@ void glTFSceneGraph::TraverseNodesInner(const std::function<bool(glTFSceneNode&)
     TraverseNodeImpl(visitor, *m_root);
 }
 
-void glTFSceneGraph::RecursiveInitChildrenNodes(const glTFLoader& loader, const glTFHandle& handle,
+void glTFSceneGraph::RecursiveInitSceneNodeFromGLTFLoader(const glTFLoader& loader, const glTFHandle& handle,
     const glTFSceneNode& parentNode, glTFSceneNode& sceneNode)
 {
     const auto& node = loader.m_nodes[loader.ResolveIndex(handle)];
@@ -151,8 +151,8 @@ void glTFSceneGraph::RecursiveInitChildrenNodes(const glTFLoader& loader, const 
                     const auto& vertexBufferView = *loader.m_bufferViews[loader.ResolveIndex(vertexAccessor.buffer_view)];
                     glTFHandle tempVertexBufferViewHandle = vertexBufferView.buffer;
                     tempVertexBufferViewHandle.node_index = loader.ResolveIndex(vertexBufferView.buffer);
-                    auto findIt = loader.m_bufferDatas.find(tempVertexBufferViewHandle);
-                    GLTF_CHECK(findIt != loader.m_bufferDatas.end());
+                    auto findIt = loader.m_buffer_data.find(tempVertexBufferViewHandle);
+                    GLTF_CHECK(findIt != loader.m_buffer_data.end());
                     char* position_data = findIt->second.get() + vertexBufferView.byte_offset + vertexAccessor.byte_offset;
                     vertexDataInGLTFBuffers.push_back(position_data);
                 }
@@ -169,8 +169,8 @@ void glTFSceneGraph::RecursiveInitChildrenNodes(const glTFLoader& loader, const 
                     const auto& vertexBufferView = *loader.m_bufferViews[loader.ResolveIndex(vertexAccessor.buffer_view)];
                     glTFHandle tempVertexBufferViewHandle = vertexBufferView.buffer;
                     tempVertexBufferViewHandle.node_index = loader.ResolveIndex(vertexBufferView.buffer);
-                    auto findIt = loader.m_bufferDatas.find(tempVertexBufferViewHandle);
-                    GLTF_CHECK(findIt != loader.m_bufferDatas.end());
+                    auto findIt = loader.m_buffer_data.find(tempVertexBufferViewHandle);
+                    GLTF_CHECK(findIt != loader.m_buffer_data.end());
                     char* bufferStart = findIt->second.get();
                     vertexDataInGLTFBuffers.push_back(bufferStart + vertexBufferView.byte_offset + vertexAccessor.byte_offset);
                 }
@@ -208,13 +208,14 @@ void glTFSceneGraph::RecursiveInitChildrenNodes(const glTFLoader& loader, const 
                 indexBufferData->data.reset(new char[indexBufferSize]);
                 glTFHandle tempIndexBufferViewHandle = indexBufferView.buffer;
                 tempIndexBufferViewHandle.node_index = loader.ResolveIndex(indexBufferView.buffer);
-                auto findIt = loader.m_bufferDatas.find(tempIndexBufferViewHandle);
-                GLTF_CHECK(findIt != loader.m_bufferDatas.end());
+                auto findIt = loader.m_buffer_data.find(tempIndexBufferViewHandle);
+                GLTF_CHECK(findIt != loader.m_buffer_data.end());
                 const char* bufferStart = findIt->second.get() + indexBufferView.byte_offset + indexAccessor.byte_offset;
                 memcpy(indexBufferData->data.get(), bufferStart, indexBufferSize);
                 indexBufferData->byteSize = indexBufferSize;
                 indexBufferData->indexCount = indexAccessor.count;
-                indexBufferData->elementType = indexAccessor.component_type == EUnsignedShort ? IndexBufferElementType::UNSIGNED_SHORT : IndexBufferElementType::UNSIGNED_INT;   
+                indexBufferData->elementType = indexAccessor.component_type == glTF_Element_Template<glTF_Element_Type::EAccessor>::glTF_Accessor_Component_Type::EUnsignedShort ?
+                    IndexBufferElementType::UNSIGNED_SHORT : IndexBufferElementType::UNSIGNED_INT;   
             
                 sceneNode.m_objects.push_back(std::make_unique<glTFSceneTriangleMesh>(sceneNode.m_finalTransform, vertexLayout, vertexBufferData, indexBufferData));
                 sceneNode.m_objects.back()->SetAABB(meshAABB);
@@ -225,7 +226,7 @@ void glTFSceneGraph::RecursiveInitChildrenNodes(const glTFLoader& loader, const 
     for (const auto& child : node->children)
     {
         std::unique_ptr<glTFSceneNode> childNode = std::make_unique<glTFSceneNode>();
-        RecursiveInitChildrenNodes(loader, child, sceneNode, *childNode);
+        RecursiveInitSceneNodeFromGLTFLoader(loader, child, sceneNode, *childNode);
         sceneNode.m_children.push_back(std::move(childNode));
     }
 }

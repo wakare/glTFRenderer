@@ -280,6 +280,9 @@
     <ClInclude Include="glTFWindow\glTFWindow.h" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="glTFResources\Models\BoxTextured\BoxTextured.gltf" />
+    <Content Include="glTFResources\Models\BoxTextured\BoxTextured0.bin" />
+    <Content Include="glTFResources\Models\BoxTextured\CesiumLogoFlat.png" />
     <Content Include="glTFResources\Models\Box\Box.gltf" />
     <Content Include="glTFResources\Models\Buggy\glTF-Binary\Buggy.glb" />
     <Content Include="glTFResources\Models\Buggy\glTF-Draco\Buggy.bin" />

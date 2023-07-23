@@ -8,7 +8,7 @@
 
 #define GLTF_CHECK(a) assert(a)
 
-enum class glTF_Element_Type
+enum glTF_Element_Type
 {
     EScene,
     ENode,
@@ -155,71 +155,73 @@ struct glTF_Element_Template<glTF_Element_Type::ENode> : glTF_Element_Base
 typedef glTF_Element_Template<glTF_Element_Type::ENode>     glTF_Element_Node;
 
 // ---------------------------------- Mesh Type ----------------------------------
-enum glTF_Attribute
-{
-    EPosition   = 0,
-    ENormal     = 1,
-    ETangent    = 2,
-    EColor      = 100,
-    ETexCoord   = 200,
-    EJoint      = 300,
-    EWeight     = 400,
-    EUnknown    = INT_MAX,
-};
 
-std::string AttributeName(glTF_Attribute attribute);
-
-typedef unsigned glTFAttributeId;
 
 struct glTF_Attribute_Base
 {
+    enum glTF_Attribute
+    {
+        EPosition   = 0,
+        ENormal     = 1,
+        ETangent    = 2,
+        EColor      = 100,
+        ETexCoord   = 200,
+        EJoint      = 300,
+        EWeight     = 400,
+        EUnknown    = INT_MAX,
+    };
+    
     glTF_Attribute_Base() = delete;
 };
 
-template<glTF_Attribute attribute, unsigned index = 0>
+std::string AttributeName(glTF_Attribute_Base::glTF_Attribute attribute);
+
+typedef unsigned glTFAttributeId;
+
+template<glTF_Attribute_Base::glTF_Attribute attribute, unsigned index = 0>
 struct glTF_Attribute_Type : glTF_Attribute_Base
 {
     const static glTFAttributeId attribute_type_id = attribute + index;
     glTF_Attribute_Type() = delete;
 };
 
-typedef glTF_Attribute_Type<glTF_Attribute::EPosition>  glTF_Attribute_POSITION;
-typedef glTF_Attribute_Type<glTF_Attribute::ENormal>    glTF_Attribute_NORMAL;
-typedef glTF_Attribute_Type<glTF_Attribute::ETangent>   glTF_Attribute_TANGENT;
+typedef glTF_Attribute_Type<glTF_Attribute_Base::glTF_Attribute::EPosition>  glTF_Attribute_POSITION;
+typedef glTF_Attribute_Type<glTF_Attribute_Base::glTF_Attribute::ENormal>    glTF_Attribute_NORMAL;
+typedef glTF_Attribute_Type<glTF_Attribute_Base::glTF_Attribute::ETangent>   glTF_Attribute_TANGENT;
 
-typedef glTF_Attribute_Type<glTF_Attribute::EColor, 0>  glTF_Attribute_COLOR_0;
-typedef glTF_Attribute_Type<glTF_Attribute::EColor, 1>  glTF_Attribute_COLOR_1;
-typedef glTF_Attribute_Type<glTF_Attribute::EColor, 2>  glTF_Attribute_COLOR_2;
-typedef glTF_Attribute_Type<glTF_Attribute::EColor, 3>  glTF_Attribute_COLOR_3;
+typedef glTF_Attribute_Type<glTF_Attribute_Base::glTF_Attribute::EColor, 0>  glTF_Attribute_COLOR_0;
+typedef glTF_Attribute_Type<glTF_Attribute_Base::glTF_Attribute::EColor, 1>  glTF_Attribute_COLOR_1;
+typedef glTF_Attribute_Type<glTF_Attribute_Base::glTF_Attribute::EColor, 2>  glTF_Attribute_COLOR_2;
+typedef glTF_Attribute_Type<glTF_Attribute_Base::glTF_Attribute::EColor, 3>  glTF_Attribute_COLOR_3;
 
-typedef glTF_Attribute_Type<glTF_Attribute::ETexCoord, 0>  glTF_Attribute_TexCoord_0;
-typedef glTF_Attribute_Type<glTF_Attribute::ETexCoord, 1>  glTF_Attribute_TexCoord_1;
-typedef glTF_Attribute_Type<glTF_Attribute::ETexCoord, 2>  glTF_Attribute_TexCoord_2;
-typedef glTF_Attribute_Type<glTF_Attribute::ETexCoord, 3>  glTF_Attribute_TexCoord_3;
+typedef glTF_Attribute_Type<glTF_Attribute_Base::glTF_Attribute::ETexCoord, 0>  glTF_Attribute_TEXCOORD_0;
+typedef glTF_Attribute_Type<glTF_Attribute_Base::glTF_Attribute::ETexCoord, 1>  glTF_Attribute_TEXCOORD_1;
+typedef glTF_Attribute_Type<glTF_Attribute_Base::glTF_Attribute::ETexCoord, 2>  glTF_Attribute_TEXCOORD_2;
+typedef glTF_Attribute_Type<glTF_Attribute_Base::glTF_Attribute::ETexCoord, 3>  glTF_Attribute_TEXCOORD_3;
 
-typedef glTF_Attribute_Type<glTF_Attribute::EJoint, 0>  glTF_Attribute_Joint_0;
-typedef glTF_Attribute_Type<glTF_Attribute::EJoint, 1>  glTF_Attribute_Joint_1;
-typedef glTF_Attribute_Type<glTF_Attribute::EJoint, 2>  glTF_Attribute_Joint_2;
-typedef glTF_Attribute_Type<glTF_Attribute::EJoint, 3>  glTF_Attribute_Joint_3;
+typedef glTF_Attribute_Type<glTF_Attribute_Base::glTF_Attribute::EJoint, 0>  glTF_Attribute_Joint_0;
+typedef glTF_Attribute_Type<glTF_Attribute_Base::glTF_Attribute::EJoint, 1>  glTF_Attribute_Joint_1;
+typedef glTF_Attribute_Type<glTF_Attribute_Base::glTF_Attribute::EJoint, 2>  glTF_Attribute_Joint_2;
+typedef glTF_Attribute_Type<glTF_Attribute_Base::glTF_Attribute::EJoint, 3>  glTF_Attribute_Joint_3;
 
-typedef glTF_Attribute_Type<glTF_Attribute::EWeight, 0>  glTF_Attribute_Weight_0;
-typedef glTF_Attribute_Type<glTF_Attribute::EWeight, 1>  glTF_Attribute_Weight_1;
-typedef glTF_Attribute_Type<glTF_Attribute::EWeight, 2>  glTF_Attribute_Weight_2;
-typedef glTF_Attribute_Type<glTF_Attribute::EWeight, 3>  glTF_Attribute_Weight_3;
-
-enum class glTF_Primitive_Mode
-{
-    EPoints         = 0,
-    ELineStrips     = 1,
-    ELineLoops      = 2,
-    ELines          = 3,
-    ETriangles      = 4,
-    ETriangleStrips = 5,
-    ETriangleFans   = 6,
-};
+typedef glTF_Attribute_Type<glTF_Attribute_Base::glTF_Attribute::EWeight, 0>  glTF_Attribute_Weight_0;
+typedef glTF_Attribute_Type<glTF_Attribute_Base::glTF_Attribute::EWeight, 1>  glTF_Attribute_Weight_1;
+typedef glTF_Attribute_Type<glTF_Attribute_Base::glTF_Attribute::EWeight, 2>  glTF_Attribute_Weight_2;
+typedef glTF_Attribute_Type<glTF_Attribute_Base::glTF_Attribute::EWeight, 3>  glTF_Attribute_Weight_3;
 
 struct glTF_Primitive
 {
+    enum glTF_Primitive_Mode
+    {
+        EPoints         = 0,
+        ELineStrips     = 1,
+        ELineLoops      = 2,
+        ELines          = 3,
+        ETriangles      = 4,
+        ETriangleStrips = 5,
+        ETriangleFans   = 6,
+    };
+    
     std::map<glTFAttributeId, glTFHandle> attributes;
     glTFHandle indices;
     glTFHandle material;
@@ -234,6 +236,105 @@ struct glTF_Element_Template<glTF_Element_Type::EMesh> : glTF_Element_Base
 
 typedef glTF_Element_Template<glTF_Element_Type::EMesh> glTF_Element_Mesh;
 
+
+// ---------------------------------- Texture Type ----------------------------------
+template<>
+struct glTF_Element_Template<glTF_Element_Type::EImage> : glTF_Element_Base
+{
+    std::string uri;
+    // TODO: support load image from buffer view
+};
+
+typedef glTF_Element_Template<glTF_Element_Type::EImage> glTF_Element_Image;
+
+template<>
+struct glTF_Element_Template<glTF_Element_Type::ESampler> : glTF_Element_Base
+{
+    enum glTF_Sampler_Filter
+    {
+        ENearest				= 9728,
+        ELinear					= 9729,
+        ENearestMipmapNearest	= 9984,
+        ELinearMipmapNearest	= 9985,
+        ENearestMipmapLinear	= 9986,
+        ELinearMipmapLinear		= 9987,
+    };
+
+    enum glTF_Sampler_Wrapping
+    {
+        EClipToEdge 	= 33071,
+        EMirroredRepeat = 33648,
+        ERepeat 		= 10497,
+        EDefault 		= 10497, 
+    };
+    
+    glTF_Sampler_Filter mag_filter;
+    glTF_Sampler_Filter min_filter;
+    glTF_Sampler_Wrapping warp_s;
+    glTF_Sampler_Wrapping warp_t;
+};
+
+typedef glTF_Element_Template<glTF_Element_Type::ESampler> glTF_Element_Sampler;
+
+template<>
+struct glTF_Element_Template<glTF_Element_Type::ETexture> : glTF_Element_Base
+{
+    glTFHandle sampler;
+    glTFHandle source;
+};
+
+typedef glTF_Element_Template<glTF_Element_Type::ETexture> glTF_Element_Texture;
+
+struct glTF_TextureInfo_Base
+{
+    glTFHandle index;
+    unsigned texCoord_index {0};
+};
+
+struct glTF_TextureInfo_Normal : glTF_TextureInfo_Base
+{
+    // The scalar parameter applied to each normal vector of the texture. This value scales the normal vector in X and Y directions using the formula:
+    // scaledNormal = normalize<sampled normal texture value> * 2.0 - 1.0) * vec3(<normal scale>, <normal scale>, 1.0).
+    float scale {1.0f};
+};
+
+struct glTF_TextureInfo_Occlusion : glTF_TextureInfo_Base
+{
+    // A scalar parameter controlling the amount of occlusion applied. A value of 0.0 means no occlusion. A value of 1.0 means full occlusion.
+    // This value affects the final occlusion value as: 1.0 + strength * (<sampled occlusion texture value> - 1.0).
+    float strength {1.0f};
+};
+
+// ---------------------------------- Material Type ----------------------------------
+struct glTF_Material_PBRMetallicRoughness
+{
+    glm::fvec4 base_color_factor {1.0f, 1.0f, 1.0f, 1.0f};
+    glTF_TextureInfo_Base base_color_texture;
+    
+    float metallic_factor {1.0f};
+    float roughness_factor {1.0f};
+    
+    glTF_TextureInfo_Base metallic_roughness_texture;
+};
+
+template<>
+struct glTF_Element_Template<glTF_Element_Type::EMaterial> : glTF_Element_Base
+{
+    glTF_Material_PBRMetallicRoughness pbr;
+    
+    glTF_TextureInfo_Normal normal_texture;
+    glTF_TextureInfo_Occlusion occlusion_texture;
+    
+    glTF_TextureInfo_Base emissive_texture;
+    glm::fvec3 emissive_factor {0.0f, 0.0f, 0.0f};
+
+    std::string alpha_mode {"OPAQUE"};
+    float alpha_cutoff {0.5f};
+    bool double_sided {false};
+};
+
+typedef glTF_Element_Template<glTF_Element_Type::EMaterial> glTF_Element_Material;
+
 // TODO: @JACK Implement Morph Targets & Skin Mesh
 
 // ---------------------------------- Buffer Type ----------------------------------
@@ -247,15 +348,15 @@ struct glTF_Element_Template<glTF_Element_Type::EBuffer> : glTF_Element_Base
 typedef glTF_Element_Template<glTF_Element_Type::EBuffer> glTF_Element_Buffer;
 
 // ---------------------------------- Buffer View Type ----------------------------------
-enum glTF_BufferView_Target
-{
-    EArrayBuffer        = 34962,
-    EElementArrayBuffer = 34963,
-};
-
 template<>
 struct glTF_Element_Template<glTF_Element_Type::EBufferView> : glTF_Element_Base
 {
+    enum glTF_BufferView_Target
+    {
+        EArrayBuffer        = 34962,
+        EElementArrayBuffer = 34963,
+    };
+
     glTFHandle buffer;
     size_t byte_offset;
     size_t byte_length;
@@ -266,32 +367,32 @@ struct glTF_Element_Template<glTF_Element_Type::EBufferView> : glTF_Element_Base
 typedef glTF_Element_Template<glTF_Element_Type::EBufferView> glTF_Element_BufferView;
 
 // ---------------------------------- Accessor Type ----------------------------------
-enum glTF_Accessor_Component_Type
-{
-    EByte           = 5120,
-    EUnsignedByte   = 5121,
-    EShort          = 5122,
-    EUnsignedShort  = 5123,
-    // Official documentation lost 5124, should be EInt?
-    EUnsignedInt    = 5125,
-    EFloat          = 5126,
-};
-
-enum class glTF_Accessor_Element_Type
-{
-    EScalar,
-    EVec2,
-    EVec3,
-    EVec4,
-    EMat2,
-    EMat3,
-    EMat4,
-    EUnknown,
-};
-
 template<>
 struct glTF_Element_Template<glTF_Element_Type::EAccessor> : glTF_Element_Base
 {
+    enum glTF_Accessor_Component_Type
+    {
+        EByte           = 5120,
+        EUnsignedByte   = 5121,
+        EShort          = 5122,
+        EUnsignedShort  = 5123,
+        // Official documentation lost 5124, should be EInt?
+        EUnsignedInt    = 5125,
+        EFloat          = 5126,
+    };
+
+    enum glTF_Accessor_Element_Type
+    {
+        EScalar,
+        EVec2,
+        EVec3,
+        EVec4,
+        EMat2,
+        EMat3,
+        EMat4,
+        EUnknown,
+    };
+    
     glTFHandle buffer_view;
     size_t byte_offset;
     glTF_Accessor_Component_Type component_type;
@@ -336,61 +437,62 @@ struct glTF_Element_Template<glTF_Element_Type::EAccessor> : glTF_Element_Base
     }
 };
 
-template<glTF_Accessor_Component_Type component_type>
+template<glTF_Element_Template<glTF_Element_Type::EAccessor>::glTF_Accessor_Component_Type component_type>
 struct glTF_Element_Accessor_MinMax : glTF_Element_Template<glTF_Element_Type::EAccessor>
 {
     
 };
 
 template <>
-struct glTF_Element_Accessor_MinMax<glTF_Accessor_Component_Type::EByte> : glTF_Element_Template<glTF_Element_Type::EAccessor>
+struct glTF_Element_Accessor_MinMax<glTF_Element_Template<glTF_Element_Type::EAccessor>::glTF_Accessor_Component_Type::EByte>
+    : glTF_Element_Template<glTF_Element_Type::EAccessor>
 {
     std::vector<int8_t> min;
     std::vector<int8_t> max;
 };
 
 template <>
-struct glTF_Element_Accessor_MinMax<glTF_Accessor_Component_Type::EUnsignedByte> : glTF_Element_Template<glTF_Element_Type::EAccessor>
+struct glTF_Element_Accessor_MinMax<glTF_Element_Template<glTF_Element_Type::EAccessor>::glTF_Accessor_Component_Type::EUnsignedByte> : glTF_Element_Template<glTF_Element_Type::EAccessor>
 {
     std::vector<uint8_t> min;
     std::vector<uint8_t> max;
 };
 
 template <>
-struct glTF_Element_Accessor_MinMax<glTF_Accessor_Component_Type::EShort> : glTF_Element_Template<glTF_Element_Type::EAccessor>
+struct glTF_Element_Accessor_MinMax<glTF_Element_Template<glTF_Element_Type::EAccessor>::glTF_Accessor_Component_Type::EShort> : glTF_Element_Template<glTF_Element_Type::EAccessor>
 {
     std::vector<int16_t> min;
     std::vector<int16_t> max;
 };
 
 template <>
-struct glTF_Element_Accessor_MinMax<glTF_Accessor_Component_Type::EUnsignedShort> : glTF_Element_Template<glTF_Element_Type::EAccessor>
+struct glTF_Element_Accessor_MinMax<glTF_Element_Template<glTF_Element_Type::EAccessor>::glTF_Accessor_Component_Type::EUnsignedShort> : glTF_Element_Template<glTF_Element_Type::EAccessor>
 {
     std::vector<uint16_t> min;
     std::vector<uint16_t> max;
 };
 
 template <>
-struct glTF_Element_Accessor_MinMax<glTF_Accessor_Component_Type::EUnsignedInt> : glTF_Element_Template<glTF_Element_Type::EAccessor>
+struct glTF_Element_Accessor_MinMax<glTF_Element_Template<glTF_Element_Type::EAccessor>::glTF_Accessor_Component_Type::EUnsignedInt> : glTF_Element_Template<glTF_Element_Type::EAccessor>
 {
     std::vector<uint32_t> min;
     std::vector<uint32_t> max;
 };
 
 template <>
-struct glTF_Element_Accessor_MinMax<glTF_Accessor_Component_Type::EFloat> : glTF_Element_Template<glTF_Element_Type::EAccessor>
+struct glTF_Element_Accessor_MinMax<glTF_Element_Template<glTF_Element_Type::EAccessor>::glTF_Accessor_Component_Type::EFloat> : glTF_Element_Template<glTF_Element_Type::EAccessor>
 {
     std::vector<float> min;
     std::vector<float> max;
 };
 
 typedef glTF_Element_Template<glTF_Element_Type::EAccessor>                         glTF_Element_Accessor_Base;
-typedef glTF_Element_Accessor_MinMax<glTF_Accessor_Component_Type::EByte>           glTF_Element_Accessor_Byte;
-typedef glTF_Element_Accessor_MinMax<glTF_Accessor_Component_Type::EUnsignedByte>   glTF_Element_Accessor_UByte;
-typedef glTF_Element_Accessor_MinMax<glTF_Accessor_Component_Type::EShort>          glTF_Element_Accessor_Short;
-typedef glTF_Element_Accessor_MinMax<glTF_Accessor_Component_Type::EUnsignedShort>  glTF_Element_Accessor_UShort;
-typedef glTF_Element_Accessor_MinMax<glTF_Accessor_Component_Type::EUnsignedInt>    glTF_Element_Accessor_UInt;
-typedef glTF_Element_Accessor_MinMax<glTF_Accessor_Component_Type::EFloat>          glTF_Element_Accessor_Float;
+typedef glTF_Element_Accessor_MinMax<glTF_Element_Template<glTF_Element_Type::EAccessor>::glTF_Accessor_Component_Type::EByte>           glTF_Element_Accessor_Byte;
+typedef glTF_Element_Accessor_MinMax<glTF_Element_Template<glTF_Element_Type::EAccessor>::glTF_Accessor_Component_Type::EUnsignedByte>   glTF_Element_Accessor_UByte;
+typedef glTF_Element_Accessor_MinMax<glTF_Element_Template<glTF_Element_Type::EAccessor>::glTF_Accessor_Component_Type::EShort>          glTF_Element_Accessor_Short;
+typedef glTF_Element_Accessor_MinMax<glTF_Element_Template<glTF_Element_Type::EAccessor>::glTF_Accessor_Component_Type::EUnsignedShort>  glTF_Element_Accessor_UShort;
+typedef glTF_Element_Accessor_MinMax<glTF_Element_Template<glTF_Element_Type::EAccessor>::glTF_Accessor_Component_Type::EUnsignedInt>    glTF_Element_Accessor_UInt;
+typedef glTF_Element_Accessor_MinMax<glTF_Element_Template<glTF_Element_Type::EAccessor>::glTF_Accessor_Component_Type::EFloat>          glTF_Element_Accessor_Float;
 
 // ---------------------------------- Asset Type ----------------------------------
 struct glTF_Version

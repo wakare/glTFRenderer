@@ -10,9 +10,9 @@ const glm::mat4& glTF_Transform::GetMatrix() const
     return m_matrix;
 }
 
-std::string AttributeName(glTF_Attribute attribute)
+std::string AttributeName(glTF_Attribute_Base::glTF_Attribute attribute)
 {
-#define RETURN_ATTRIBUTE_NAME(ATTRIBUTE_NAME) case E##ATTRIBUTE_NAME: return #ATTRIBUTE_NAME;
+#define RETURN_ATTRIBUTE_NAME(ATTRIBUTE_NAME) case glTF_Attribute_Base::E##ATTRIBUTE_NAME: return #ATTRIBUTE_NAME;
     
     switch (attribute)
     {

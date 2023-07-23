@@ -45,6 +45,20 @@
         } \
     }
 
+#define glTF_PROCESS_TEXTURE_INFO(JSON_ELEMENT, TEXTURE_INFO_NAME, RESULT) \
+    if ((JSON_ELEMENT).contains((TEXTURE_INFO_NAME))) \
+    { \
+        glTF_PROCESS_HANDLE((JSON_ELEMENT)[(TEXTURE_INFO_NAME)], "index", (RESULT).index) \
+        if ((JSON_ELEMENT)[(TEXTURE_INFO_NAME)].contains("texCoord")) \
+        { \
+            glTF_PROCESS_SCALAR((JSON_ELEMENT)[(TEXTURE_INFO_NAME)], "texCoord", unsigned, (RESULT).texCoord_index) \
+        } \
+        else \
+        { \
+            (RESULT).texCoord_index = 0; \
+        } \
+    }
+
 // Can not use name as handle name!
 #define glTF_PROCESS_NAME_AND_HANDLE(JSON_ELEMENT, HANDLE_NAME, HANDLE_INDEX, RESULT) \
     glTF_PROCESS_SCALAR(JSON_ELEMENT, "name", std::string, (RESULT)->name); \
@@ -62,15 +76,19 @@
 
 #define glTF_PROCESS_PRIMITIVE_ATTRIBUTE(JSON_ELEMENT, ATTRIBUTE_NAME, RESULT) glTF_PROCESS_HANDLE(JSON_ELEMENT, #ATTRIBUTE_NAME, (RESULT)[glTF_Attribute_##ATTRIBUTE_NAME::attribute_type_id])
 #define glTF_PROCESS_PRIMITIVE_INDEX(JSON_ELEMENT, RESULT) glTF_PROCESS_HANDLE(JSON_ELEMENT, "indices", RESULT)
-#define glTF_PROCESS_PRIMITIVE_MODE(JSON_ELEMENT, RESULT) glTF_PROCESS_SCALAR(JSON_ELEMENT, "mode", glTF_Primitive_Mode, RESULT)
+#define glTF_PROCESS_PRIMITIVE_MATERIAL(JSON_ELEMENT, RESULT) glTF_PROCESS_HANDLE(JSON_ELEMENT, "material", RESULT)
+#define glTF_PROCESS_PRIMITIVE_MODE(JSON_ELEMENT, RESULT) glTF_PROCESS_SCALAR(JSON_ELEMENT, "mode", glTF_Primitive::glTF_Primitive_Mode, RESULT)
 
-#define glTF_PROCESS_BUFFER_URI(JSON_ELEMENT, RESULT) glTF_PROCESS_SCALAR(JSON_ELEMENT, "uri", std::string, (RESULT)->uri)
+#define glTF_PROCESS_SAMPLER_FILTER(JSON_ELEMENT, FILTER_NAME, RESULT) glTF_PROCESS_SCALAR(JSON_ELEMENT, FILTER_NAME, glTF_Element_Template<glTF_Element_Type::ESampler>::glTF_Sampler_Filter, RESULT)
+#define glTF_PROCESS_SAMPLER_WRAPPING(JSON_ELEMENT, WARPPING_NAME, RESULT) glTF_PROCESS_SCALAR(JSON_ELEMENT, WARPPING_NAME, glTF_Element_Template<glTF_Element_Type::ESampler>::glTF_Sampler_Wrapping, RESULT)
+
+#define glTF_PROCESS_URI(JSON_ELEMENT, RESULT) glTF_PROCESS_SCALAR(JSON_ELEMENT, "uri", std::string, (RESULT)->uri)
 #define glTF_PROCESS_BUFFER_BYTELENGTH(JSON_ELEMENT, RESULT) glTF_PROCESS_SCALAR(JSON_ELEMENT, "byteLength", unsigned, (RESULT)->byte_length)
 
 #define glTF_PROCESS_BUFFERVIEW_BUFFER(JSON_ELEMENT, RESULT) glTF_PROCESS_HANDLE(JSON_ELEMENT, "buffer", (RESULT)->buffer)
 #define glTF_PROCESS_BUFFERVIEW_BYTEOFFSET(JSON_ELEMENT, RESULT) glTF_PROCESS_SCALAR(JSON_ELEMENT, "byteOffset", unsigned, (RESULT)->byte_offset)
 #define glTF_PROCESS_BUFFERVIEW_BYTELENGTH(JSON_ELEMENT, RESULT) glTF_PROCESS_SCALAR(JSON_ELEMENT, "byteLength", unsigned, (RESULT)->byte_length)
-#define glTF_PROCESS_BUFFERVIEW_TARGET(JSON_ELEMENT, RESULT) glTF_PROCESS_SCALAR(JSON_ELEMENT, "target", glTF_BufferView_Target, (RESULT)->target)
+#define glTF_PROCESS_BUFFERVIEW_TARGET(JSON_ELEMENT, RESULT) glTF_PROCESS_SCALAR(JSON_ELEMENT, "target", glTF_Element_Template<glTF_Element_Type::EBufferView>::glTF_BufferView_Target, (RESULT)->target)
 
 #define glTF_PROCESS_ACCESSOR_COUNT(JSON_ELEMENT, RESULT) glTF_PROCESS_SCALAR(JSON_ELEMENT, "count", size_t, (RESULT)->count)
 #define glTF_PROCESS_ACCESSOR_NORMALIZED(JSON_ELEMENT, RESULT) glTF_PROCESS_SCALAR(JSON_ELEMENT, "normalized", bool, (RESULT)->normalized)
@@ -100,37 +118,37 @@ constexpr hash_t hash_compile_time(const char* str, hash_t last_value = basis)
     return *str ? hash_compile_time(str+1, (*str ^ last_value) * prime) : last_value;  
 }
 
-glTF_Accessor_Element_Type ParseAccessorElementType(const std::string& element_type_string)
+glTF_Element_Template<EAccessor>::glTF_Accessor_Element_Type ParseAccessorElementType(const std::string& element_type_string)
 {
-    glTF_Accessor_Element_Type element_type = glTF_Accessor_Element_Type::EUnknown;
+    glTF_Element_Template<EAccessor>::glTF_Accessor_Element_Type element_type = glTF_Element_Template<EAccessor>::glTF_Accessor_Element_Type::EUnknown;
     switch (hash_compile_time(element_type_string.c_str()))
     {
     case hash_compile_time("SCALAR"):
-        element_type = glTF_Accessor_Element_Type::EScalar;
+        element_type = glTF_Element_Template<EAccessor>::glTF_Accessor_Element_Type::EScalar;
         break;
 
     case hash_compile_time("VEC2"):
-        element_type = glTF_Accessor_Element_Type::EVec2;
+        element_type = glTF_Element_Template<EAccessor>::glTF_Accessor_Element_Type::EVec2;
         break;
 
     case hash_compile_time("VEC3"):
-        element_type = glTF_Accessor_Element_Type::EVec3;
+        element_type = glTF_Element_Template<EAccessor>::glTF_Accessor_Element_Type::EVec3;
         break;
 
     case hash_compile_time("VEC4"):
-        element_type = glTF_Accessor_Element_Type::EVec4;
+        element_type = glTF_Element_Template<EAccessor>::glTF_Accessor_Element_Type::EVec4;
         break;
 
     case hash_compile_time("MAT2"):
-        element_type = glTF_Accessor_Element_Type::EMat2;
+        element_type = glTF_Element_Template<EAccessor>::glTF_Accessor_Element_Type::EMat2;
         break;
 
     case hash_compile_time("MAT3"):
-        element_type = glTF_Accessor_Element_Type::EMat3;
+        element_type = glTF_Element_Template<EAccessor>::glTF_Accessor_Element_Type::EMat3;
         break;
 
     case hash_compile_time("MAT4"):
-        element_type = glTF_Accessor_Element_Type::EMat4;
+        element_type = glTF_Element_Template<EAccessor>::glTF_Accessor_Element_Type::EMat4;
         break;
 
     default:
@@ -234,18 +252,104 @@ bool glTFLoader::LoadFile(const std::string& file_path)
                     glTF_PROCESS_PRIMITIVE_ATTRIBUTE(primitive_raw_data["attributes"], POSITION, primitive.attributes)
                     glTF_PROCESS_PRIMITIVE_ATTRIBUTE(primitive_raw_data["attributes"], NORMAL, primitive.attributes)
                     glTF_PROCESS_PRIMITIVE_ATTRIBUTE(primitive_raw_data["attributes"], TANGENT, primitive.attributes)
+                    glTF_PROCESS_PRIMITIVE_ATTRIBUTE(primitive_raw_data["attributes"], TEXCOORD_0, primitive.attributes)
+                    glTF_PROCESS_PRIMITIVE_ATTRIBUTE(primitive_raw_data["attributes"], TEXCOORD_1, primitive.attributes)
                 }
 
                 glTF_PROCESS_PRIMITIVE_INDEX(primitive_raw_data, primitive.indices)
+                glTF_PROCESS_PRIMITIVE_MATERIAL(primitive_raw_data, primitive.material)
                 glTF_PROCESS_PRIMITIVE_MODE(primitive_raw_data, primitive.mode)
-
-                // TODO: Handle material node
 
                 element->primitives.push_back(primitive);
             }
         }
 
         m_meshes.push_back(std::move(element));
+    }
+
+    // Parse image data
+    handle_index = 0;
+    for (const auto& [handle_name, raw_data] : data["images"].items())
+    {
+        std::unique_ptr<glTF_Element_Image> element = std::make_unique<glTF_Element_Image>();
+
+        glTF_PROCESS_NAME_AND_HANDLE(raw_data, handle_name, handle_index, element)
+
+        if (raw_data.contains("uri"))
+        {
+            glTF_PROCESS_URI(raw_data, element)
+        }
+        else
+        {
+            // TODO: Not support buffer view image now...
+            GLTF_CHECK(false);
+        }
+
+        m_images.push_back(std::move(element));
+    }
+
+    // Parse sample data
+    handle_index = 0;
+    for (const auto& [handle_name, raw_data] : data["samplers"].items())
+    {
+        std::unique_ptr<glTF_Element_Sampler> element = std::make_unique<glTF_Element_Sampler>();
+        
+        glTF_PROCESS_NAME_AND_HANDLE(raw_data, handle_name, handle_index, element)
+
+        glTF_PROCESS_SAMPLER_FILTER(raw_data, "magFilter", element->mag_filter)
+        glTF_PROCESS_SAMPLER_FILTER(raw_data, "minFilter", element->min_filter)
+        glTF_PROCESS_SAMPLER_WRAPPING(raw_data, "wrapS", element->warp_s)
+        glTF_PROCESS_SAMPLER_WRAPPING(raw_data, "wrapT", element->warp_t)
+
+        m_samplers.push_back(std::move(element));
+    }
+    
+    // Parse texture data
+    handle_index = 0;
+    for (const auto& [handle_name, raw_data] : data["textures"].items())
+    {
+        std::unique_ptr<glTF_Element_Texture> element = std::make_unique<glTF_Element_Texture>();
+
+        glTF_PROCESS_NAME_AND_HANDLE(raw_data, handle_name, handle_index, element)
+
+        glTF_PROCESS_HANDLE(raw_data, "sampler", element->sampler)
+        glTF_PROCESS_HANDLE(raw_data, "source", element->source)
+        
+        m_textures.push_back(std::move(element));
+    }
+    
+    // Parse material data
+    handle_index = 0;
+    for (const auto& [handle_name, raw_data] : data["materials"].items())
+    {
+        std::unique_ptr<glTF_Element_Material> element = std::make_unique<glTF_Element_Material>();
+
+        glTF_PROCESS_NAME_AND_HANDLE(raw_data, handle_name, handle_index, element)
+
+		if (raw_data.contains("pbrMetallicRoughness"))
+		{
+		    auto& pbr_data = raw_data["pbrMetallicRoughness"];
+
+		    if (pbr_data.contains("baseColorFactor"))
+		    {
+		        std::vector<float> base_color_data = pbr_data["baseColorFactor"].get<std::vector<float>>();
+		        element->pbr.base_color_factor = {base_color_data[0], base_color_data[1], base_color_data[2], base_color_data[3] }; 
+		    }
+
+		    glTF_PROCESS_SCALAR(pbr_data, "metallicFactor", float, element->pbr.metallic_factor)
+		    glTF_PROCESS_SCALAR(pbr_data, "roughnessFactor", float, element->pbr.roughness_factor)
+
+
+		    glTF_PROCESS_TEXTURE_INFO(pbr_data, "baseColorTexture", element->pbr.base_color_texture)
+		    glTF_PROCESS_TEXTURE_INFO(pbr_data, "metallicRoughnessTexture", element->pbr.metallic_roughness_texture)
+		}
+        else
+        {
+            GLTF_CHECK(false);
+        }
+        
+        // TODO: handle normal texture, occlusion texture, emissive texture, alpha mode and so on...
+        m_materials.push_back(std::move(element));
     }
 
     // Parse buffers data
@@ -255,7 +359,7 @@ bool glTFLoader::LoadFile(const std::string& file_path)
         std::unique_ptr<glTF_Element_Buffer> element = std::make_unique<glTF_Element_Buffer>();
 
         glTF_PROCESS_NAME_AND_HANDLE(raw_data, handle_name, handle_index, element)
-        glTF_PROCESS_BUFFER_URI(raw_data, element)
+        glTF_PROCESS_URI(raw_data, element)
         glTF_PROCESS_BUFFER_BYTELENGTH(raw_data, element)
         
         m_buffers.push_back(std::move(element));
@@ -282,30 +386,31 @@ bool glTFLoader::LoadFile(const std::string& file_path)
     {
         std::unique_ptr<glTF_Element_Accessor_Base> element = nullptr;
         // Resolve accessor component type first
-        glTF_Accessor_Component_Type component_type = raw_data["componentType"].get<glTF_Accessor_Component_Type>();
+        glTF_Element_Template<glTF_Element_Type::EAccessor>::glTF_Accessor_Component_Type component_type =
+            raw_data["componentType"].get<glTF_Element_Template<glTF_Element_Type::EAccessor>::glTF_Accessor_Component_Type>();
         switch (component_type)
         {
-        case EByte:
+        case glTF_Element_Template<glTF_Element_Type::EAccessor>::glTF_Accessor_Component_Type::EByte:
             element = std::make_unique<glTF_Element_Accessor_Byte>();
             break;
             
-        case EUnsignedByte:
+        case glTF_Element_Template<glTF_Element_Type::EAccessor>::glTF_Accessor_Component_Type::EUnsignedByte:
             element = std::make_unique<glTF_Element_Accessor_UByte>();
             break;
             
-        case EShort:
+        case glTF_Element_Template<glTF_Element_Type::EAccessor>::glTF_Accessor_Component_Type::EShort:
             element = std::make_unique<glTF_Element_Accessor_Short>();
             break;
             
-        case EUnsignedShort:
+        case glTF_Element_Template<glTF_Element_Type::EAccessor>::glTF_Accessor_Component_Type::EUnsignedShort:
             element = std::make_unique<glTF_Element_Accessor_UShort>();
             break;
             
-        case EUnsignedInt:
+        case glTF_Element_Template<glTF_Element_Type::EAccessor>::glTF_Accessor_Component_Type::EUnsignedInt:
             element = std::make_unique<glTF_Element_Accessor_UInt>();
             break;
             
-        case EFloat:
+        case glTF_Element_Template<glTF_Element_Type::EAccessor>::glTF_Accessor_Component_Type::EFloat:
             element = std::make_unique<glTF_Element_Accessor_Float>();
             break;
             
@@ -321,7 +426,7 @@ bool glTFLoader::LoadFile(const std::string& file_path)
         }
 
         const std::string element_type_string = raw_data["type"].get<std::string>();
-        glTF_Accessor_Element_Type element_type = ParseAccessorElementType(element_type_string);
+        glTF_Element_Template<EAccessor>::glTF_Accessor_Element_Type element_type = ParseAccessorElementType(element_type_string);
         
         glTF_PROCESS_NAME_AND_HANDLE(raw_data, handle_name, handle_index, element)
         element->element_type = element_type;
@@ -356,10 +461,10 @@ bool glTFLoader::LoadFile(const std::string& file_path)
         
         uriFileStream.seekg(0, std::ios::beg);
         
-        m_bufferDatas[buffer->self_handle] = std::make_unique<char[]>(fileSize);
-        memset(m_bufferDatas[buffer->self_handle].get(), 0, fileSize);
+        m_buffer_data[buffer->self_handle] = std::make_unique<char[]>(fileSize);
+        memset(m_buffer_data[buffer->self_handle].get(), 0, fileSize);
         
-        uriFileStream.read(m_bufferDatas[buffer->self_handle].get(), fileSize);
+        uriFileStream.read(m_buffer_data[buffer->self_handle].get(), fileSize);
         uriFileStream.close();
     }
 
@@ -430,7 +535,7 @@ void glTFLoader::Print() const
         {
             for (const auto& attribute: primitive.attributes)
             {
-                const std::string attributeName = AttributeName(static_cast<glTF_Attribute>(attribute.first));
+                const std::string attributeName = AttributeName(static_cast<glTF_Attribute_Base::glTF_Attribute>(attribute.first));
                 LOG_FORMAT("[DEBUG] Mesh primitve contains %s\n", attributeName.c_str());
             }
         }
