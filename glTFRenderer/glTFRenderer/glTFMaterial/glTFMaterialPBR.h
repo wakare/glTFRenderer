@@ -8,6 +8,4 @@ public:
     bool HasNormal() const;
     bool HasMetallic() const;
     bool HasRoughness() const;
-
-
 };

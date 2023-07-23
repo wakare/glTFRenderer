@@ -24,10 +24,10 @@ protected:
     void ExecuteCommandSection(IRHIPipelineStateObject* PSO, std::function<void()> executeLambda);
     
     glTFWindow& m_window;
-    glTFSceneView& m_sceneView;
+    glTFSceneView& m_scene_view;
     
     std::vector<std::unique_ptr<glTFRenderPassBase>> m_passes;
     std::unique_ptr<glTFRenderResourceManager> m_resourceManager;
     
-    unsigned m_frameIndex;
+    unsigned m_frame_index;
 };

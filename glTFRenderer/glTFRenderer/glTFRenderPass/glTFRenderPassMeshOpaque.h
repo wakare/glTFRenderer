@@ -21,11 +21,8 @@ public:
 protected:
     virtual size_t GetMainDescriptorHeapSize() override;
     virtual bool SetupRootSignature(glTFRenderResourceManager& resourceManager) override;
-    virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resourceManager) override;
+    virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;
 
     virtual bool BeginDrawMesh(glTFRenderResourceManager& resourceManager, glTFUniqueID meshID) override;
-    
-    std::vector<RHIPipelineInputLayout> GetVertexInputLayout() override;
-    std::vector<RHIPipelineInputLayout> ResolveVertexInputLayout(const glTFScenePrimitive& primitive);
 };
  

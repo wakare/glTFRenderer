@@ -74,7 +74,7 @@ bool DX12GraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device
     // how to read the vertex data bound to it.
 
     std::vector<D3D12_INPUT_ELEMENT_DESC> dxInputLayouts;
-    for (const auto& inputLayout : m_inputLayout)
+    for (const auto& inputLayout : m_input_layouts)
     {
         dxInputLayouts.push_back({inputLayout.semanticName.c_str(), inputLayout.semanticIndex, DX12ConverterUtils::ConvertToDXGIFormat(inputLayout.format),
             0, inputLayout.alignedByteOffset, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0});  

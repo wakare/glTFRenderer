@@ -9,28 +9,47 @@ enum class VertexLayoutType
 {
     POSITION,
     NORMAL,
-    UV,
+    TEXCOORD_0,
 };
 
 struct VertexLayoutElement
 {
     VertexLayoutType type;
-    unsigned byteSize;
+    unsigned byte_size;
 };
 
 struct VertexLayoutDeclaration
 {
     std::vector<VertexLayoutElement> elements;
 
-    size_t GetVertexStride() const
+    size_t GetVertexStrideInBytes() const
     {
         size_t stride = 0;
         for (const auto& element : elements)
         {
-            stride += element.byteSize;
+            stride += element.byte_size;
         }
 
         return stride;
+    }
+
+    bool operator==(const VertexLayoutDeclaration& lhs) const
+    {
+        if (elements.size() != lhs.elements.size())
+        {
+            return false;
+        }
+
+        for (size_t i = 0; i < elements.size(); ++i)
+        {
+            if (elements[i].type != lhs.elements[i].type ||
+                elements[i].byte_size != lhs.elements[i].byte_size)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 };
 

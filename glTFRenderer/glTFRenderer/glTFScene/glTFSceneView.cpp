@@ -1,10 +1,50 @@
 #include "glTFSceneView.h"
 
 #include "../glTFWindow/glTFInputManager.h"
+#include "../glTFRenderPass/glTFRenderPassManager.h"
+#include "../glTFRenderPass/glTFRenderPassMeshOpaque.h"
+#include "../glTFRenderPass/glTFRenderPassLighting.h"
 
 glTFSceneView::glTFSceneView(const glTFSceneGraph& graph)
     : m_scene_graph(graph)
 {
+}
+
+bool glTFSceneView::SetupRenderPass(glTFRenderPassManager& out_render_pass_manager) const
+{
+    VertexLayoutDeclaration resolved_vertex_layout;
+	bool has_resolved = false;
+    
+	m_scene_graph.TraverseNodes([&resolved_vertex_layout, &has_resolved](const glTFSceneNode& node)
+	{
+	    for (const auto& scene_object : node.m_objects)
+	    {
+	        if (const auto* primitive = dynamic_cast<const glTFScenePrimitive*>(scene_object.get()))
+	        {
+	            if (!has_resolved)
+	            {
+	                resolved_vertex_layout = primitive->GetVertexLayout();
+	                has_resolved = true;
+	            }
+                else
+                {
+                 	GLTF_CHECK(resolved_vertex_layout == primitive->GetVertexLayout());   
+                }
+            }    
+	    }
+	    
+	    return true;
+	});
+
+	GLTF_CHECK(has_resolved);
+
+	std::unique_ptr<glTFRenderPassMeshOpaque> opaque_pass = std::make_unique<glTFRenderPassMeshOpaque>();
+    opaque_pass->ResolveVertexInputLayout(resolved_vertex_layout);
+    out_render_pass_manager.AddRenderPass(std::move(opaque_pass));
+    
+    out_render_pass_manager.AddRenderPass(std::make_unique<glTFRenderPassLighting>());
+
+    return true;
 }
 
 void glTFSceneView::TraverseSceneObjectWithinView(const std::function<bool(const glTFSceneNode& primitive)>& visitor)

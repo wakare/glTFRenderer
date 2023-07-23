@@ -10,7 +10,10 @@ class glTFLoader
     
 public:
     glTFLoader();
+    
     bool LoadFile(const std::string& file_path);
+	const std::string& GetSceneFileDirectory() const;
+    
     void Print() const;
 
     glTFHandle::HandleIndexType ResolveIndex(const glTFHandle& handle) const
@@ -28,7 +31,9 @@ public:
     }
     
 private:
-    unsigned default_scene{};
+	std::string m_scene_file_directory;
+    
+    unsigned m_default_scene {};
     std::vector<std::unique_ptr<glTF_Element_Scene>>            m_scenes;
     std::vector<std::unique_ptr<glTF_Element_Node>>             m_nodes;
     std::vector<std::unique_ptr<glTF_Element_Mesh>>             m_meshes;

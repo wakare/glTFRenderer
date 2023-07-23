@@ -36,7 +36,7 @@ public:
     
 private:
     glTFWindow();
-    bool InitDX12();
+    bool InitRenderPass();
 
     static void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
     static void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
@@ -49,9 +49,9 @@ private:
     int m_height;
     
     std::unique_ptr<glTFRenderPassManager> m_passManager;
-    std::unique_ptr<glTFSceneGraph> m_sceneGraph;
-    std::unique_ptr<glTFSceneView> m_sceneView;
+    std::unique_ptr<glTFSceneGraph> m_scene_graph;
+    std::unique_ptr<glTFSceneView> m_scene_view;
 
-    glTFInputManager m_inputControl;
+    glTFInputManager m_input_control;
     glTFTimer m_timer;
 };

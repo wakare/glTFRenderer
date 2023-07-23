@@ -4,7 +4,7 @@ glTFSceneBox::glTFSceneBox(const glTF_Transform_WithTRS& parentTransformRef)
     : glTFScenePrimitive(parentTransformRef)
 {
     m_vertexLayout.elements.push_back({VertexLayoutType::POSITION, 12});
-    m_vertexLayout.elements.push_back({VertexLayoutType::UV, 8});
+    m_vertexLayout.elements.push_back({VertexLayoutType::TEXCOORD_0, 8});
 
     /*
      *   6 --  -- 7

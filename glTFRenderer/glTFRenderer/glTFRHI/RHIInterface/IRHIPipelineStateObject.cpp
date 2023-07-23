@@ -6,21 +6,21 @@ IRHIPipelineStateObject::IRHIPipelineStateObject(RHIPipelineType type)
 {
 }
 
-bool IRHIPipelineStateObject::BindInputLayout(const std::vector<RHIPipelineInputLayout>& inputLayout)
+bool IRHIPipelineStateObject::BindInputLayout(const std::vector<RHIPipelineInputLayout>& input_layouts)
 {
-    RETURN_IF_FALSE(!inputLayout.empty())
+    RETURN_IF_FALSE(!input_layouts.empty())
     
-    m_inputLayout = inputLayout;
+    m_input_layouts = input_layouts;
 
     // Add shader pre define macros
-    for (const auto& inputLayout : m_inputLayout)
+    for (const auto& input_layout : m_input_layouts)
     {
-        if (inputLayout.semanticName == g_inputLayoutNameNORMAL)
+        if (input_layout.semanticName == INPUT_LAYOUT_UNIQUE_PARAMETER(NORMAL))
         {
             m_shaderMacros.AddMacro("HAS_NORMAL", "1");
         }
 
-        if (inputLayout.semanticName == g_inputLayoutNameTEXCOORD)
+        if (input_layout.semanticName == INPUT_LAYOUT_UNIQUE_PARAMETER(TEXCOORD))
         {
             m_shaderMacros.AddMacro("HAS_TEXCOORD", "1");
         }

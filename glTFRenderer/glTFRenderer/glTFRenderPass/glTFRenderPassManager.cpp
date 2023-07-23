@@ -3,15 +3,17 @@
 #include <cassert>
 #include <Windows.h>
 
+#include "glTFRenderPassLighting.h"
 #include "glTFRenderPassMeshBase.h"
+#include "glTFRenderPassMeshOpaque.h"
 #include "../glTFLoader/glTFElementCommon.h"
 #include "../glTFRHI/RHIUtils.h"
 #include "../glTFUtils/glTFLog.h"
 
 glTFRenderPassManager::glTFRenderPassManager(glTFWindow& window, glTFSceneView& view)
     : m_window(window)
-    , m_sceneView(view)
-    , m_frameIndex(0)
+    , m_scene_view(view)
+    , m_frame_index(0)
 {
     const bool inited = InitRenderPassManager();
     assert(inited);
@@ -35,10 +37,13 @@ void glTFRenderPassManager::AddRenderPass(std::unique_ptr<glTFRenderPassBase>&& 
 
 void glTFRenderPassManager::InitAllPass()
 {
+	GLTF_CHECK(m_scene_view.SetupRenderPass(*this));
+    
     for (const auto& pass : m_passes)
     {
         const bool inited = pass->InitPass(*m_resourceManager);
         assert(inited);
+        LOG_FORMAT("[DEBUG] Init pass %s finished!\n", pass->PassName())
     }
     
     LOG_FORMAT_FLUSH("[DEBUG] Init all pass finished!\n")
@@ -49,7 +54,7 @@ void glTFRenderPassManager::UpdateScene(size_t deltaTimeMs)
     // Gather all scene pass
     for (const auto& pass : m_passes)
     {
-        m_sceneView.TraverseSceneObjectWithinView([this, &pass](const glTFSceneNode& node)
+        m_scene_view.TraverseSceneObjectWithinView([this, &pass](const glTFSceneNode& node)
         {
             if (node.IsDirty())
             {
@@ -73,12 +78,12 @@ void glTFRenderPassManager::UpdateScene(size_t deltaTimeMs)
 
         if (auto* sceneViewInterface = dynamic_cast<glTFRenderPassInterfaceSceneView*>(pass.get()))
         {
-            void(m_sceneView.GetViewProjectionMatrix());
+            void(m_scene_view.GetViewProjectionMatrix());
             sceneViewInterface->UpdateSceneViewData({
-                m_sceneView.GetViewMatrix(),
-                m_sceneView.GetProjectionMatrix(),
-                inverse(m_sceneView.GetViewMatrix()),
-                inverse(m_sceneView.GetProjectionMatrix())});    
+                m_scene_view.GetViewMatrix(),
+                m_scene_view.GetProjectionMatrix(),
+                inverse(m_scene_view.GetViewMatrix()),
+                inverse(m_scene_view.GetProjectionMatrix())});    
         }
     }
 }

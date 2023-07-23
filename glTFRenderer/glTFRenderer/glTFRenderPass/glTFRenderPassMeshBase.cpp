@@ -94,7 +94,7 @@ bool glTFRenderPassMeshBase::AddOrUpdatePrimitiveToMeshPass(glTFRenderResourceMa
         RETURN_IF_FALSE(fence->SignalWhenCommandQueueFinish(resourceManager.GetCommandQueue()))
         RETURN_IF_FALSE(fence->WaitUtilSignal())
         
-        vertex_buffer_view->InitVertexBufferView(*vertex_buffer, 0, primitive.GetVertexLayout().GetVertexStride(), primitive_vertices.byteSize);
+        vertex_buffer_view->InitVertexBufferView(*vertex_buffer, 0, primitive.GetVertexLayout().GetVertexStrideInBytes(), primitive_vertices.byteSize);
         index_buffer_view->InitIndexBufferView(*index_buffer, 0, primitive_indices.elementType == IndexBufferElementType::UNSIGNED_INT ? RHIDataFormat::R32_UINT : RHIDataFormat::R16_UINT, primitive_indices.byteSize);
 
         m_meshes[meshID].meshVertexCount = primitive_vertices.vertexCount;
@@ -175,6 +175,11 @@ bool glTFRenderPassMeshBase::EndDrawMesh(glTFRenderResourceManager& resourceMana
     return true;
 }
 
+std::vector<RHIPipelineInputLayout> glTFRenderPassMeshBase::GetVertexInputLayout()
+{
+    return m_vertexInputLayouts;
+}
+
 bool glTFRenderPassMeshBase::TryProcessSceneObject(glTFRenderResourceManager& resourceManager, const glTFSceneObjectBase& object)
 {
     const glTFScenePrimitive* primitive = dynamic_cast<const glTFScenePrimitive*>(&object);
@@ -186,4 +191,40 @@ bool glTFRenderPassMeshBase::TryProcessSceneObject(glTFRenderResourceManager& re
 
     return AddOrUpdatePrimitiveToMeshPass(resourceManager, *primitive) &&
         primitive->HasMaterial() && ProcessMaterial(resourceManager, primitive->GetMaterial());
+}
+
+bool glTFRenderPassMeshBase::ResolveVertexInputLayout(const VertexLayoutDeclaration& source_vertex_layout)
+{
+	m_vertexInputLayouts.clear();
+    
+    unsigned vertexLayoutOffset = 0;
+    for (const auto& vertexLayout : source_vertex_layout.elements)
+    {
+        switch (vertexLayout.type)
+        {
+        case VertexLayoutType::POSITION:
+            {
+                GLTF_CHECK(vertexLayout.byte_size == (GetRHIDataFormatBitsPerPixel(RHIDataFormat::R32G32B32_FLOAT) / 8));
+                m_vertexInputLayouts.push_back({INPUT_LAYOUT_UNIQUE_PARAMETER(POSITION), 0, RHIDataFormat::R32G32B32_FLOAT, vertexLayoutOffset});
+            }
+            break;
+        case VertexLayoutType::NORMAL:
+            {
+                GLTF_CHECK(vertexLayout.byte_size == (GetRHIDataFormatBitsPerPixel(RHIDataFormat::R32G32B32_FLOAT) / 8));
+                m_vertexInputLayouts.push_back({INPUT_LAYOUT_UNIQUE_PARAMETER(NORMAL), 0, RHIDataFormat::R32G32B32_FLOAT, vertexLayoutOffset});
+            }
+            break;
+        case VertexLayoutType::TEXCOORD_0:
+            {
+                GLTF_CHECK(vertexLayout.byte_size == (GetRHIDataFormatBitsPerPixel(RHIDataFormat::R32G32_FLOAT) / 8));
+                m_vertexInputLayouts.push_back({INPUT_LAYOUT_UNIQUE_PARAMETER(TEXCOORD), 0, RHIDataFormat::R32G32_FLOAT, vertexLayoutOffset});
+            }
+            break;
+            // TODO: Handle TEXCOORD_1?
+        }
+
+        vertexLayoutOffset += vertexLayout.byte_size;   
+    }
+
+    return true;
 }

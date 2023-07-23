@@ -46,6 +46,8 @@ public:
     bool RemovePrimitiveFromMeshPass(glTFUniqueID meshIDToRemove);
 
     virtual bool TryProcessSceneObject(glTFRenderResourceManager& resourceManager, const glTFSceneObjectBase& object) override;
+
+    bool ResolveVertexInputLayout(const VertexLayoutDeclaration& source_vertex_layout);
     
 protected:
     virtual bool SetupRootSignature(glTFRenderResourceManager& resourceManager) override;
@@ -53,6 +55,8 @@ protected:
 
     virtual bool BeginDrawMesh(glTFRenderResourceManager& resourceManager, glTFUniqueID meshID);
     virtual bool EndDrawMesh(glTFRenderResourceManager& resourceManager, glTFUniqueID meshID);
+
+    virtual std::vector<RHIPipelineInputLayout> GetVertexInputLayout() override;
     
     std::map<glTFUniqueID, MeshGPUResource> m_meshes;
 

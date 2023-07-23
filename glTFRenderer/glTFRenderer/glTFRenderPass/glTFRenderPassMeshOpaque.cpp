@@ -55,24 +55,23 @@ bool glTFRenderPassMeshOpaque::SetupRootSignature(glTFRenderResourceManager& res
     const RHIRootParameterDescriptorRangeDesc SRVRangeDesc {RHIRootParameterDescriptorRangeType::SRV, 0, 1};
     m_root_signature->GetRootParameter(MeshOpaquePass_RootParameter_MeshMaterialTexSRV).InitAsDescriptorTableRange(1, &SRVRangeDesc);
     
-    m_root_signature->GetStaticSampler(0).InitStaticSampler(0, RHIStaticSamplerAddressMode::Clamp, RHIStaticSamplerFilterMode::Linear);
+    m_root_signature->GetStaticSampler(0).InitStaticSampler(0, RHIStaticSamplerAddressMode::Warp, RHIStaticSamplerFilterMode::Linear);
     RETURN_IF_FALSE(m_root_signature->InitRootSignature(resourceManager.GetDevice()))
 
     return true;
 }
 
-bool glTFRenderPassMeshOpaque::SetupPipelineStateObject(glTFRenderResourceManager& resourceManager)
+bool glTFRenderPassMeshOpaque::SetupPipelineStateObject(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(glTFRenderPassMeshBase::SetupPipelineStateObject(resourceManager))
+    RETURN_IF_FALSE(glTFRenderPassMeshBase::SetupPipelineStateObject(resource_manager))
     
     m_pipeline_state_object->BindShaderCode(
         R"(glTFResources\ShaderSource\MeshPassCommonVS.hlsl)", RHIShaderType::Vertex, "main");
     m_pipeline_state_object->BindShaderCode(
         R"(glTFResources\ShaderSource\MeshPassCommonPS.hlsl)", RHIShaderType::Pixel, "main");
-
-    RETURN_IF_FALSE(m_pipeline_state_object->BindInputLayout(GetVertexInputLayout()))
+    m_pipeline_state_object->BindInputLayout(GetVertexInputLayout());
     
-    RETURN_IF_FALSE (m_pipeline_state_object->InitPipelineStateObject(resourceManager.GetDevice(), *m_root_signature, resourceManager.GetSwapchain()))
+    RETURN_IF_FALSE (m_pipeline_state_object->InitPipelineStateObject(resource_manager.GetDevice(), *m_root_signature, resource_manager.GetSwapchain()))
 
     return true;
 }
@@ -87,46 +86,4 @@ bool glTFRenderPassMeshOpaque::BeginDrawMesh(glTFRenderResourceManager& resource
     }
     
 	return resourceManager.ApplyMaterial(material_ID, MeshOpaquePass_RootParameter_MeshMaterialTexSRV);
-}
-
-std::vector<RHIPipelineInputLayout> glTFRenderPassMeshOpaque::GetVertexInputLayout()
-{
-    std::vector<RHIPipelineInputLayout> inputLayouts;
-    inputLayouts.push_back({g_inputLayoutNamePOSITION, 0, RHIDataFormat::R32G32B32_FLOAT, 0});
-    inputLayouts.push_back({g_inputLayoutNameNORMAL, 0, RHIDataFormat::R32G32B32_FLOAT, 12});
-    return inputLayouts;
-}
-
-std::vector<RHIPipelineInputLayout> glTFRenderPassMeshOpaque::ResolveVertexInputLayout(
-    const glTFScenePrimitive& primitive)
-{
-    std::vector<RHIPipelineInputLayout> inputLayouts;
-    const auto& boxVertexLayout = primitive.GetVertexLayout();
-
-    unsigned vertexLayoutOffset = 0;
-    for (const auto& vertexLayout : boxVertexLayout.elements)
-    {
-        switch (vertexLayout.type)
-        {
-        case VertexLayoutType::POSITION:
-            {
-                inputLayouts.push_back({g_inputLayoutNamePOSITION, 0, RHIDataFormat::R32G32B32_FLOAT, vertexLayoutOffset});
-            }
-            break;
-        case VertexLayoutType::NORMAL:
-            {
-                inputLayouts.push_back({g_inputLayoutNameNORMAL, 0, RHIDataFormat::R32G32B32_FLOAT, vertexLayoutOffset});
-            }
-            break;
-        case VertexLayoutType::UV:
-            {
-                inputLayouts.push_back({g_inputLayoutNameTEXCOORD, 0, RHIDataFormat::R32G32_FLOAT, vertexLayoutOffset});
-            }
-            break;
-        }
-
-        vertexLayoutOffset += vertexLayout.byteSize;   
-    }
-
-    return inputLayouts;
 }

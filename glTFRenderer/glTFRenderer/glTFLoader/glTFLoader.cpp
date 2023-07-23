@@ -169,6 +169,11 @@ bool glTFLoader::LoadFile(const std::string& file_path)
     {
         return false;
     }
+
+    // Record scene file directory
+    auto last_slash_index = file_path.find_last_of('/\\');
+    GLTF_CHECK(last_slash_index != std::string::npos);
+    m_scene_file_directory = std::string(file_path.data(), last_slash_index + 1);
     
     nlohmann::json data = nlohmann::json::parse(glTF_file);
     decltype(glTFHandle::node_index) handle_index;
@@ -482,7 +487,7 @@ bool glTFLoader::LoadFile(const std::string& file_path)
     // Parse scene data
     if (data["scene"].is_number_unsigned())
     {
-        default_scene = data["scene"].get<unsigned>();    
+        m_default_scene = data["scene"].get<unsigned>();    
     }
     else if (data["scene"].is_string())
     {
@@ -494,7 +499,7 @@ bool glTFLoader::LoadFile(const std::string& file_path)
         {
             if (m_scenes[i]->name == scene_name || m_scenes[i]->self_handle.node_name == scene_name)
             {
-                default_scene = i;
+                m_default_scene = i;
                 find_default_scene = true;
                 break;
             }
@@ -514,6 +519,11 @@ bool glTFLoader::LoadFile(const std::string& file_path)
     
     // TODO: @JACK Parse other types
     return true;
+}
+
+const std::string& glTFLoader::GetSceneFileDirectory() const
+{
+    return m_scene_file_directory;
 }
 
 void glTFLoader::Print() const

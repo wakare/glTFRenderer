@@ -63,7 +63,7 @@ bool glTFWindow::InitAndShowWindow()
     glfwSetCursorPosCallback(m_glfwWindow, CursorPosCallback);
     
     // Create test scene with box
-    m_sceneGraph = std::make_unique<glTFSceneGraph>();
+    m_scene_graph = std::make_unique<glTFSceneGraph>();
     RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\BoxTextured\\BoxTextured.gltf"))
     //RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Box\\Box.gltf"))
     //RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Monster\\Monster.gltf"))
@@ -72,11 +72,11 @@ bool glTFWindow::InitAndShowWindow()
 
     // Add camera
     std::unique_ptr<glTFSceneNode> cameraNode = std::make_unique<glTFSceneNode>();
-    std::unique_ptr<glTFCamera> camera = std::make_unique<glTFCamera>(m_sceneGraph->GetRootNode().m_finalTransform,
+    std::unique_ptr<glTFCamera> camera = std::make_unique<glTFCamera>(m_scene_graph->GetRootNode().m_finalTransform,
         45.0f, 800.0f, 600.0f, 0.1f, 1000.0f);
     
     cameraNode->m_objects.push_back(std::move(camera));
-    m_sceneGraph->AddSceneNode(std::move(cameraNode));
+    m_scene_graph->AddSceneNode(std::move(cameraNode));
 
     // Add light
     std::unique_ptr<glTFSceneNode> directionalLightNode = std::make_unique<glTFSceneNode>();
@@ -97,12 +97,12 @@ bool glTFWindow::InitAndShowWindow()
     pointLight->SetIntensity(10000.0f);
     pointLightNode->m_objects.push_back(std::move(pointLight));
 
-    m_sceneGraph->AddSceneNode(std::move(directionalLightNode));
-    m_sceneGraph->AddSceneNode(std::move(pointLightNode));
+    m_scene_graph->AddSceneNode(std::move(directionalLightNode));
+    m_scene_graph->AddSceneNode(std::move(pointLightNode));
     
-    m_sceneView = std::make_unique<glTFSceneView>(*m_sceneGraph);
+    m_scene_view = std::make_unique<glTFSceneView>(*m_scene_graph);
     
-    if (!InitDX12())
+    if (!InitRenderPass())
     {
         return false;
     }
@@ -115,12 +115,13 @@ void glTFWindow::UpdateWindow()
     while (!glfwWindowShouldClose(m_glfwWindow))
     {
         m_timer.RecordFrameBegin();
-        const size_t deltaTimeInMs = m_timer.GetDeltaFrameTimeMs();
+        const size_t delta_time_ms = m_timer.GetDeltaFrameTimeMs();
         
-        m_sceneGraph->Tick(deltaTimeInMs);
-        m_inputControl.TickSceneView(*m_sceneView, deltaTimeInMs);
-        m_passManager->UpdateScene(deltaTimeInMs);
-        m_passManager->RenderAllPass(deltaTimeInMs);
+        m_input_control.TickSceneView(*m_scene_view, delta_time_ms);
+        
+        m_scene_graph->Tick(delta_time_ms);
+        m_passManager->UpdateScene(delta_time_ms);
+        m_passManager->RenderAllPass(delta_time_ms);
 
         glfwPollEvents();
     }
@@ -129,11 +130,9 @@ void glTFWindow::UpdateWindow()
     glfwTerminate();
 }
 
-bool glTFWindow::InitDX12()
+bool glTFWindow::InitRenderPass()
 {
-    m_passManager.reset(new glTFRenderPassManager(*this, *m_sceneView));
-    m_passManager->AddRenderPass(std::make_unique<glTFRenderPassMeshOpaque>());
-    m_passManager->AddRenderPass(std::make_unique<glTFRenderPassLighting>());
+    m_passManager.reset(new glTFRenderPassManager(*this, *m_scene_view));
     m_passManager->InitAllPass();
     
     return true;
@@ -143,11 +142,11 @@ void glTFWindow::KeyCallback(GLFWwindow* window, int key, int scancode, int acti
 {
     if (action == GLFW_PRESS)
     {
-        Get().m_inputControl.RecordKeyPressed(key);
+        Get().m_input_control.RecordKeyPressed(key);
     }
     else if (action == GLFW_RELEASE)
     {
-        Get().m_inputControl.RecordKeyRelease(key);
+        Get().m_input_control.RecordKeyRelease(key);
     }
 }
 
@@ -155,17 +154,17 @@ void glTFWindow::MouseButtonCallback(GLFWwindow* window, int button, int action,
 {
     if (action == GLFW_PRESS)
     {
-        Get().m_inputControl.RecordMouseButtonPressed(button);
+        Get().m_input_control.RecordMouseButtonPressed(button);
     }
     else if (action == GLFW_RELEASE)
     {
-        Get().m_inputControl.RecordMouseButtonRelease(button);
+        Get().m_input_control.RecordMouseButtonRelease(button);
     }
 }
 
 void glTFWindow::CursorPosCallback(GLFWwindow* window, double xpos, double ypos)
 {   
-    Get().m_inputControl.RecordCursorPos(xpos, ypos);
+    Get().m_input_control.RecordCursorPos(xpos, ypos);
 }
 
 bool glTFWindow::LoadSceneGraphFromFile(const char* filePath) const
@@ -177,7 +176,7 @@ bool glTFWindow::LoadSceneGraphFromFile(const char* filePath) const
         loader.Print();    
     }
 
-    RETURN_IF_FALSE(m_sceneGraph->Init(loader))
+    RETURN_IF_FALSE(m_scene_graph->Init(loader))
 
     return true;
 }
