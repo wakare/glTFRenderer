@@ -19,7 +19,7 @@ class glTFMaterialTextureRenderResource
 public:
 	glTFMaterialTextureRenderResource(const glTFMaterialParameterTexture& source_texture);
 
-	bool Init(glTFRenderResourceManager& resource_manager, IRHIDescriptorHeap& descriptor_heap);
+	bool Init(glTFRenderResourceManager& resource_manager, IRHIDescriptorHeap& descriptor_heap, unsigned descriptor_offset);
 	RHIGPUDescriptorHandle GetTextureSRVHandle() const;
     
 private:

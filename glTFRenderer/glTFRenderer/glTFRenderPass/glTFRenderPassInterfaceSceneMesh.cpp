@@ -40,7 +40,7 @@ bool glTFRenderPassInterfaceSceneMesh::ApplyInterface(glTFRenderResourceManager&
     unsigned meshIndex, unsigned rootParameterSlotIndex)
 {
     // Constant buffer must be aligned with 256 bytes
-    const size_t offsetAligned =  meshIndex * ((sizeof(m_scene_mesh_data) + 255) & ~255);
+    const size_t offsetAligned = meshIndex * ((sizeof(m_scene_mesh_data) + 255) & ~255);
 
     assert(offsetAligned < SceneMeshGPUBufferMaxSize);
     

@@ -67,6 +67,9 @@ float4 main(VS_OUTPUT input) : SV_TARGET
 {
     float2 uv = input.texCoord;
     float3 worldPosition = GetWorldPosition(uv);
+#ifdef BYPASS
+    float3 FinalLighting = albedoTex.Sample(defaultSampler, uv).xyz;
+#else 
     float3 FinalLighting = (float3)0.0;
     float3 baseColor = albedoTex.Sample(defaultSampler, uv).xyz;
     float3 normal = normalize(2 * normalTex.Sample(defaultSampler, uv).xyz - 1);
@@ -80,6 +83,7 @@ float4 main(VS_OUTPUT input) : SV_TARGET
     {
         FinalLighting += LightingWithDirectionalLight(worldPosition, baseColor, normal, g_directionalLightInfos[j]);
     }
+#endif
     
     return float4(FinalLighting, 1.0);
 }

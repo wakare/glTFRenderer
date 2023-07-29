@@ -73,6 +73,8 @@ bool glTFRenderPassPostprocess::SetupRootSignature(glTFRenderResourceManager& re
 
 bool glTFRenderPassPostprocess::SetupPipelineStateObject(glTFRenderResourceManager& resourceManager)
 {
+    RETURN_IF_FALSE(glTFRenderPassBase::SetupPipelineStateObject(resourceManager));
+    
     return true;
 }
 

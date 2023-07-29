@@ -217,6 +217,7 @@
     <ClInclude Include="glTFRenderPass\glTFRenderResourceManager.h" />
     <None Include="glTFResources\ShaderSource\MeshPassCommon.h" />
     <ClInclude Include="glTFResources\ShaderSource\LightPassCommon.h" />
+    <ClInclude Include="glTFResources\ShaderSource\PassCommon.h" />
     <ClInclude Include="glTFResources\ShaderSource\SceneMesh.h" />
     <ClInclude Include="glTFResources\ShaderSource\SceneView.h" />
     <ClInclude Include="glTFRHI\RHIConfigSingleton.h" />

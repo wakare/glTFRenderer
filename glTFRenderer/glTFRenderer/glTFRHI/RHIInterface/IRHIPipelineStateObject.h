@@ -39,7 +39,7 @@ public:
     IRHIPipelineStateObject(RHIPipelineType type);
     virtual bool BindShaderCode(const std::string& shaderFilePath, RHIShaderType type, const std::string& entryFunctionName) = 0;
     virtual bool BindRenderTargets(const std::vector<IRHIRenderTarget*>& renderTargets) = 0;
-    bool BindInputLayout(const std::vector<RHIPipelineInputLayout>& input_layouts);
+    bool BindInputLayoutAndSetShaderMacros(const std::vector<RHIPipelineInputLayout>& input_layouts);
     virtual bool InitPipelineStateObject(IRHIDevice& device, IRHIRootSignature& rootSignature, IRHISwapChain& swapchain) = 0;
 
     virtual IRHIShader& GetBindShader(RHIShaderType type) = 0;

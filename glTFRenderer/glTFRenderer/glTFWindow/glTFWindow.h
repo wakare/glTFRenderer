@@ -16,7 +16,7 @@ public:
     size_t GetDeltaFrameTimeMs() const;
 
 private:
-    size_t m_deltaTick;
+    size_t m_delta_tick;
     size_t m_tick;
 };
 
@@ -31,8 +31,8 @@ public:
     int GetHeight() const {return m_height; }
     
     // Can get hwnd by raw window
-    GLFWwindow* GetRawWindow() {return m_glfwWindow;}
-    const GLFWwindow* GetRawWindow() const {return m_glfwWindow;}
+    GLFWwindow* GetRawWindow() {return m_glfw_window;}
+    const GLFWwindow* GetRawWindow() const {return m_glfw_window;}
     
 private:
     glTFWindow();
@@ -44,7 +44,7 @@ private:
 
     bool LoadSceneGraphFromFile(const char* filePath) const;
     
-    GLFWwindow* m_glfwWindow;
+    GLFWwindow* m_glfw_window;
     int m_width;
     int m_height;
     

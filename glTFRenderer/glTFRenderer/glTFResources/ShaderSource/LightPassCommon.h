@@ -1,3 +1,4 @@
+#include "glTFResources/ShaderSource/PassCommon.h"
 #include "glTFResources/ShaderSource/SceneView.h"
 
 struct VS_INPUT

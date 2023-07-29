@@ -32,6 +32,8 @@ public:
     virtual bool FinishProcessSceneObject(glTFRenderResourceManager& resourceManager) {return true; }
     
     IRHIPipelineStateObject& GetPSO() const;
+
+    void SetByPass(bool bypass) { m_bypass = bypass; }
     
 protected:
     // Must be implement in final render pass class
@@ -46,4 +48,7 @@ protected:
     
     // CBV_SRV_UAV Heaps, can only bind one in render pass
     std::shared_ptr<IRHIDescriptorHeap> m_main_descriptor_heap;
+
+    // Bypass this pass which determined by scene view?
+    bool m_bypass {false};
 };

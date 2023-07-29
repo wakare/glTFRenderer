@@ -6,7 +6,7 @@ IRHIPipelineStateObject::IRHIPipelineStateObject(RHIPipelineType type)
 {
 }
 
-bool IRHIPipelineStateObject::BindInputLayout(const std::vector<RHIPipelineInputLayout>& input_layouts)
+bool IRHIPipelineStateObject::BindInputLayoutAndSetShaderMacros(const std::vector<RHIPipelineInputLayout>& input_layouts)
 {
     RETURN_IF_FALSE(!input_layouts.empty())
     

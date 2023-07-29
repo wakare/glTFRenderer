@@ -145,9 +145,9 @@ bool glTFImageLoader::LoadImageByFilename(const LPCWSTR filename, RHITextureDesc
 
         THROW_IF_FAILED(wicConverter->Initialize(wicFrame, targetConvertFormat,  WICBitmapDitherTypeErrorDiffusion, 0, 0, WICBitmapPaletteTypeCustom))
         dataFormat = ConvertToRHIDataFormat(targetConvertFormat);
+        
+        assert(needConvertFormat && wicConverter);
     }
-
-    assert(needConvertFormat && wicConverter);
 
     RETURN_IF_FALSE(desc.Init(textureWidth, textureHeight, dataFormat))
     const unsigned bytesPerRow = textureWidth * GetRHIDataFormatBitsPerPixel(dataFormat) / 8;

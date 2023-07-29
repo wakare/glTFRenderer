@@ -8,6 +8,8 @@
 glTFSceneView::glTFSceneView(const glTFSceneGraph& graph)
     : m_scene_graph(graph)
 {
+    // Debug
+    m_render_flags.SetEnableLit(false);
 }
 
 bool glTFSceneView::SetupRenderPass(glTFRenderPassManager& out_render_pass_manager) const
@@ -41,9 +43,11 @@ bool glTFSceneView::SetupRenderPass(glTFRenderPassManager& out_render_pass_manag
 	std::unique_ptr<glTFRenderPassMeshOpaque> opaque_pass = std::make_unique<glTFRenderPassMeshOpaque>();
     opaque_pass->ResolveVertexInputLayout(resolved_vertex_layout);
     out_render_pass_manager.AddRenderPass(std::move(opaque_pass));
-    
-    out_render_pass_manager.AddRenderPass(std::make_unique<glTFRenderPassLighting>());
 
+    std::unique_ptr<glTFRenderPassLighting> lighting_pass = std::make_unique<glTFRenderPassLighting>();
+    lighting_pass->SetByPass(!m_render_flags.IsLit());
+    out_render_pass_manager.AddRenderPass(std::move(lighting_pass));
+    
     return true;
 }
 

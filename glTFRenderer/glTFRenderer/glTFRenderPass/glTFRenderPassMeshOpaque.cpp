@@ -40,7 +40,8 @@ bool glTFRenderPassMeshOpaque::ProcessMaterial(glTFRenderResourceManager& resour
 
 size_t glTFRenderPassMeshOpaque::GetMainDescriptorHeapSize()
 {
-    return 1;
+    // TODO: Calculate heap size
+    return 128;
 }
 
 bool glTFRenderPassMeshOpaque::SetupRootSignature(glTFRenderResourceManager& resourceManager)
@@ -69,7 +70,6 @@ bool glTFRenderPassMeshOpaque::SetupPipelineStateObject(glTFRenderResourceManage
         R"(glTFResources\ShaderSource\MeshPassCommonVS.hlsl)", RHIShaderType::Vertex, "main");
     m_pipeline_state_object->BindShaderCode(
         R"(glTFResources\ShaderSource\MeshPassCommonPS.hlsl)", RHIShaderType::Pixel, "main");
-    m_pipeline_state_object->BindInputLayout(GetVertexInputLayout());
     
     RETURN_IF_FALSE (m_pipeline_state_object->InitPipelineStateObject(resource_manager.GetDevice(), *m_root_signature, resource_manager.GetSwapchain()))
 

@@ -13,7 +13,7 @@
 #include <GLFW/glfw3native.h>
 
 glTFWindow::glTFWindow()
-    : m_glfwWindow(nullptr)
+    : m_glfw_window(nullptr)
     , m_width(1920)
     , m_height(1080)
 {
@@ -21,7 +21,7 @@ glTFWindow::glTFWindow()
 }
 
 glTFTimer::glTFTimer()
-    : m_deltaTick(0)
+    : m_delta_tick(0)
     , m_tick(GetTickCount64())
 {
 }
@@ -29,13 +29,13 @@ glTFTimer::glTFTimer()
 void glTFTimer::RecordFrameBegin()
 {
     const size_t now = GetTickCount64();
-    m_deltaTick = now - m_tick;
+    m_delta_tick = now - m_tick;
     m_tick = now;
 }
 
 size_t glTFTimer::GetDeltaFrameTimeMs() const
 {
-    return m_deltaTick;
+    return m_delta_tick;
 }
 
 glTFWindow& glTFWindow::Get()
@@ -51,24 +51,24 @@ bool glTFWindow::InitAndShowWindow()
         return false;
     }
     
-    m_glfwWindow = glfwCreateWindow(m_width, m_height, "glTFRenderer v0.01      by jackjwang", NULL, NULL);
-    if (!m_glfwWindow)
+    m_glfw_window = glfwCreateWindow(m_width, m_height, "glTFRenderer v0.01      by jackjwang", NULL, NULL);
+    if (!m_glfw_window)
     {
         glfwTerminate();
         return false;
     }
 
-    glfwSetKeyCallback(m_glfwWindow, KeyCallback);
-    glfwSetMouseButtonCallback(m_glfwWindow, MouseButtonCallback);
-    glfwSetCursorPosCallback(m_glfwWindow, CursorPosCallback);
+    glfwSetKeyCallback(m_glfw_window, KeyCallback);
+    glfwSetMouseButtonCallback(m_glfw_window, MouseButtonCallback);
+    glfwSetCursorPosCallback(m_glfw_window, CursorPosCallback);
     
     // Create test scene with box
     m_scene_graph = std::make_unique<glTFSceneGraph>();
-    RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\BoxTextured\\BoxTextured.gltf"))
+    //RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\BoxTextured\\BoxTextured.gltf"))
     //RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Box\\Box.gltf"))
     //RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Monster\\Monster.gltf"))
     //RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Buggy\\glTF\\Buggy.gltf"))
-    //RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Sponza\\glTF\\Sponza.gltf"))
+    RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Sponza\\glTF\\Sponza.gltf"))
 
     // Add camera
     std::unique_ptr<glTFSceneNode> cameraNode = std::make_unique<glTFSceneNode>();
@@ -79,26 +79,26 @@ bool glTFWindow::InitAndShowWindow()
     m_scene_graph->AddSceneNode(std::move(cameraNode));
 
     // Add light
-    std::unique_ptr<glTFSceneNode> directionalLightNode = std::make_unique<glTFSceneNode>();
-    std::unique_ptr<glTFDirectionalLight> directionalLight = std::make_unique<glTFDirectionalLight>(directionalLightNode->m_transform);
+    std::unique_ptr<glTFSceneNode> directional_light_node = std::make_unique<glTFSceneNode>();
+    std::unique_ptr<glTFDirectionalLight> directionalLight = std::make_unique<glTFDirectionalLight>(directional_light_node->m_transform);
     directionalLight->Rotate({45.0f, 0.0f, 0.0f});
     directionalLight->SetIntensity(10.0f);
     directionalLight->SetTickFunc([lightNode = directionalLight.get()]()
     {
         lightNode->RotateOffset({0.001f, 0.002f, 0.003f});
     });
-    directionalLightNode->m_objects.push_back(std::move(directionalLight));
+    directional_light_node->m_objects.push_back(std::move(directionalLight));
 
-    std::unique_ptr<glTFSceneNode> pointLightNode = std::make_unique<glTFSceneNode>();
-    std::unique_ptr<glTFPointLight> pointLight = std::make_unique<glTFPointLight>(pointLightNode->m_transform);
-    pointLight->Translate({0.0f, 1.0f, 0.0f});
-    pointLight->SetRadius(0.7f);
-    pointLight->SetFalloff(1.0f);
-    pointLight->SetIntensity(10000.0f);
-    pointLightNode->m_objects.push_back(std::move(pointLight));
+    std::unique_ptr<glTFSceneNode> point_light_node = std::make_unique<glTFSceneNode>();
+    std::unique_ptr<glTFPointLight> point_light = std::make_unique<glTFPointLight>(point_light_node->m_transform);
+    point_light->Translate({0.0f, 1.0f, 0.0f});
+    point_light->SetRadius(0.7f);
+    point_light->SetFalloff(1.0f);
+    point_light->SetIntensity(10000.0f);
+    point_light_node->m_objects.push_back(std::move(point_light));
 
-    m_scene_graph->AddSceneNode(std::move(directionalLightNode));
-    m_scene_graph->AddSceneNode(std::move(pointLightNode));
+    m_scene_graph->AddSceneNode(std::move(directional_light_node));
+    m_scene_graph->AddSceneNode(std::move(point_light_node));
     
     m_scene_view = std::make_unique<glTFSceneView>(*m_scene_graph);
     
@@ -112,7 +112,7 @@ bool glTFWindow::InitAndShowWindow()
 
 void glTFWindow::UpdateWindow()
 {
-    while (!glfwWindowShouldClose(m_glfwWindow))
+    while (!glfwWindowShouldClose(m_glfw_window))
     {
         m_timer.RecordFrameBegin();
         const size_t delta_time_ms = m_timer.GetDeltaFrameTimeMs();
@@ -170,8 +170,7 @@ void glTFWindow::CursorPosCallback(GLFWwindow* window, double xpos, double ypos)
 bool glTFWindow::LoadSceneGraphFromFile(const char* filePath) const
 {
     glTFLoader loader;
-    const bool loaded = loader.LoadFile(filePath);
-    if (loaded)
+    if (loader.LoadFile(filePath))
     {
         loader.Print();    
     }

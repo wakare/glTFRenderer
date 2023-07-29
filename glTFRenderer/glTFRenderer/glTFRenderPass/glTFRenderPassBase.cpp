@@ -39,3 +39,16 @@ IRHIPipelineStateObject& glTFRenderPassBase::GetPSO() const
 {
     return *m_pipeline_state_object;
 }
+
+bool glTFRenderPassBase::SetupPipelineStateObject(glTFRenderResourceManager& resourceManager)
+{
+    // Set shader macro based vertex attributes
+    RETURN_IF_FALSE(m_pipeline_state_object->BindInputLayoutAndSetShaderMacros(GetVertexInputLayout()))
+
+    if (m_bypass)
+    {
+        m_pipeline_state_object->GetShaderMacros().AddMacro("BYPASS", "1");
+    }
+    
+    return true;
+}

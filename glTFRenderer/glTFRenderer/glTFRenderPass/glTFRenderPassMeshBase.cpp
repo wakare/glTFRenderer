@@ -37,7 +37,8 @@ bool glTFRenderPassMeshBase::RenderPass(glTFRenderResourceManager& resourceManag
         
         // Upload constant buffer
         RETURN_IF_FALSE(UpdateSceneMeshData({mesh.second.meshTransformMatrix, glm::transpose(glm::inverse(mesh.second.meshTransformMatrix))}))
-        glTFRenderPassInterfaceSceneMesh::ApplyInterface(resourceManager, meshID, MeshBasePass_RootParameter_SceneMesh);
+        //glTFRenderPassInterfaceSceneMesh::ApplyInterface(resourceManager, meshID, MeshBasePass_RootParameter_SceneMesh);
+        glTFRenderPassInterfaceSceneMesh::ApplyInterface(resourceManager, 0, MeshBasePass_RootParameter_SceneMesh);
         
         RHIUtils::Instance().SetVertexBufferView(resourceManager.GetCommandList(), *mesh.second.meshVertexBufferView);
         RHIUtils::Instance().SetIndexBufferView(resourceManager.GetCommandList(), *mesh.second.meshIndexBufferView);
@@ -53,14 +54,14 @@ bool glTFRenderPassMeshBase::RenderPass(glTFRenderResourceManager& resourceManag
 
 bool glTFRenderPassMeshBase::AddOrUpdatePrimitiveToMeshPass(glTFRenderResourceManager& resourceManager, const glTFScenePrimitive& primitive)
 {
-    const glTFUniqueID meshID = primitive.GetID();
-    if (m_meshes.find(meshID) == m_meshes.end())
+    const glTFUniqueID mesh_ID = primitive.GetID();
+    if (m_meshes.find(mesh_ID) == m_meshes.end())
     {
         // Upload vertex and index data once
-        const auto& vertex_buffer = m_meshes[meshID].meshVertexBuffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
-        const auto& index_buffer = m_meshes[meshID].meshIndexBuffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
-        const auto& vertex_buffer_view = m_meshes[meshID].meshVertexBufferView = RHIResourceFactory::CreateRHIResource<IRHIVertexBufferView>();
-        const auto& index_buffer_view = m_meshes[meshID].meshIndexBufferView = RHIResourceFactory::CreateRHIResource<IRHIIndexBufferView>();
+        const auto& vertex_buffer = m_meshes[mesh_ID].meshVertexBuffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
+        const auto& index_buffer = m_meshes[mesh_ID].meshIndexBuffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
+        const auto& vertex_buffer_view = m_meshes[mesh_ID].meshVertexBufferView = RHIResourceFactory::CreateRHIResource<IRHIVertexBufferView>();
+        const auto& index_buffer_view = m_meshes[mesh_ID].meshIndexBufferView = RHIResourceFactory::CreateRHIResource<IRHIIndexBufferView>();
         
         const auto& primitive_vertices = primitive.GetVertexBufferData();
         const auto& primitive_indices = primitive.GetIndexBufferData();
@@ -97,13 +98,13 @@ bool glTFRenderPassMeshBase::AddOrUpdatePrimitiveToMeshPass(glTFRenderResourceMa
         vertex_buffer_view->InitVertexBufferView(*vertex_buffer, 0, primitive.GetVertexLayout().GetVertexStrideInBytes(), primitive_vertices.byteSize);
         index_buffer_view->InitIndexBufferView(*index_buffer, 0, primitive_indices.elementType == IndexBufferElementType::UNSIGNED_INT ? RHIDataFormat::R32_UINT : RHIDataFormat::R16_UINT, primitive_indices.byteSize);
 
-        m_meshes[meshID].meshVertexCount = primitive_vertices.vertexCount;
-        m_meshes[meshID].meshIndexCount = primitive_indices.indexCount;
-        m_meshes[meshID].materialID = primitive.HasMaterial() ? primitive.GetMaterial().GetID() : glTFUniqueIDInvalid;
+        m_meshes[mesh_ID].meshVertexCount = primitive_vertices.vertexCount;
+        m_meshes[mesh_ID].meshIndexCount = primitive_indices.indexCount;
+        m_meshes[mesh_ID].materialID = primitive.HasMaterial() ? primitive.GetMaterial().GetID() : glTFUniqueIDInvalid;
     }
 
     // Only update when transform has changed
-    m_meshes[meshID].meshTransformMatrix = primitive.GetTransformMatrix();
+    m_meshes[mesh_ID].meshTransformMatrix = primitive.GetTransformMatrix();
     
     return true; 
 }
@@ -134,6 +135,8 @@ bool glTFRenderPassMeshBase::SetupRootSignature(glTFRenderResourceManager& resou
 
 bool glTFRenderPassMeshBase::SetupPipelineStateObject(glTFRenderResourceManager& resourceManager)
 {
+    RETURN_IF_FALSE(glTFRenderPassBase::SetupPipelineStateObject(resourceManager))
+    
     IRHIRenderTargetDesc RenderTargetBaseColorDesc;
     RenderTargetBaseColorDesc.width = resourceManager.GetSwapchain().GetWidth();
     RenderTargetBaseColorDesc.height = resourceManager.GetSwapchain().GetHeight();
