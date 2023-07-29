@@ -78,7 +78,6 @@ void glTFRenderPassManager::UpdateScene(size_t deltaTimeMs)
 
         if (auto* sceneViewInterface = dynamic_cast<glTFRenderPassInterfaceSceneView*>(pass.get()))
         {
-            void(m_scene_view.GetViewProjectionMatrix());
             sceneViewInterface->UpdateSceneViewData({
                 m_scene_view.GetViewMatrix(),
                 m_scene_view.GetProjectionMatrix(),

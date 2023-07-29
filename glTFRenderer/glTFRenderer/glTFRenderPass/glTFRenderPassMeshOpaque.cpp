@@ -6,26 +6,26 @@
 #include "../glTFRHI/RHIResourceFactoryImpl.hpp"
 #include "../glTFRHI/RHIInterface/glTFImageLoader.h"
 
-bool glTFRenderPassMeshOpaque::InitPass(glTFRenderResourceManager& resourceManager)
+bool glTFRenderPassMeshOpaque::InitPass(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(glTFRenderPassMeshBase::InitPass(resourceManager))
+    RETURN_IF_FALSE(glTFRenderPassMeshBase::InitPass(resource_manager))
     
-    RETURN_IF_FALSE(RHIUtils::Instance().ResetCommandList(resourceManager.GetCommandList(), resourceManager.GetCurrentFrameCommandAllocator()))
+    RETURN_IF_FALSE(RHIUtils::Instance().ResetCommandList(resource_manager.GetCommandList(), resource_manager.GetCurrentFrameCommandAllocator()))
     
-    RETURN_IF_FALSE(glTFRenderPassInterfaceSceneView::InitInterface(resourceManager))
-    RETURN_IF_FALSE(glTFRenderPassInterfaceSceneMesh::InitInterface(resourceManager))
+    RETURN_IF_FALSE(glTFRenderPassInterfaceSceneView::InitInterface(resource_manager))
+    RETURN_IF_FALSE(glTFRenderPassInterfaceSceneMesh::InitInterface(resource_manager))
     
-    RETURN_IF_FALSE(RHIUtils::Instance().CloseCommandList(resourceManager.GetCommandList()))
-    RETURN_IF_FALSE(RHIUtils::Instance().ExecuteCommandList(resourceManager.GetCommandList(),resourceManager.GetCommandQueue()))
-    RETURN_IF_FALSE(resourceManager.GetCurrentFrameFence().SignalWhenCommandQueueFinish(resourceManager.GetCommandQueue()))
+    RETURN_IF_FALSE(RHIUtils::Instance().CloseCommandList(resource_manager.GetCommandList()))
+    RETURN_IF_FALSE(RHIUtils::Instance().ExecuteCommandList(resource_manager.GetCommandList(),resource_manager.GetCommandQueue()))
+    RETURN_IF_FALSE(resource_manager.GetCurrentFrameFence().SignalWhenCommandQueueFinish(resource_manager.GetCommandQueue()))
 
     LOG_FORMAT("[DEBUG] Init MeshPassOpaque finished!\n")
     return true;
 }
 
-bool glTFRenderPassMeshOpaque::RenderPass(glTFRenderResourceManager& resourceManager)
+bool glTFRenderPassMeshOpaque::RenderPass(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(glTFRenderPassMeshBase::RenderPass(resourceManager))
+    RETURN_IF_FALSE(glTFRenderPassMeshBase::RenderPass(resource_manager))
     
     return true;
 }
@@ -44,20 +44,20 @@ size_t glTFRenderPassMeshOpaque::GetMainDescriptorHeapSize()
     return 128;
 }
 
-bool glTFRenderPassMeshOpaque::SetupRootSignature(glTFRenderResourceManager& resourceManager)
+bool glTFRenderPassMeshOpaque::SetupRootSignature(glTFRenderResourceManager& resource_manager)
 {
     // Init root signature
-    constexpr size_t rootSignatureParameterCount = MeshOpaquePass_RootParameter_LastIndex;
-    constexpr size_t rootSignatureStaticSamplerCount = 1;
-    RETURN_IF_FALSE(m_root_signature->AllocateRootSignatureSpace(rootSignatureParameterCount, rootSignatureStaticSamplerCount))
+    constexpr size_t root_signature_parameter_count = MeshOpaquePass_RootParameter_LastIndex;
+    constexpr size_t root_signature_static_sampler_count = 1;
+    RETURN_IF_FALSE(m_root_signature->AllocateRootSignatureSpace(root_signature_parameter_count, root_signature_static_sampler_count))
     
-    RETURN_IF_FALSE(glTFRenderPassMeshBase::SetupRootSignature(resourceManager))
+    RETURN_IF_FALSE(glTFRenderPassMeshBase::SetupRootSignature(resource_manager))
     
-    const RHIRootParameterDescriptorRangeDesc SRVRangeDesc {RHIRootParameterDescriptorRangeType::SRV, 0, 1};
-    m_root_signature->GetRootParameter(MeshOpaquePass_RootParameter_MeshMaterialTexSRV).InitAsDescriptorTableRange(1, &SRVRangeDesc);
+    const RHIRootParameterDescriptorRangeDesc srv_range_desc {RHIRootParameterDescriptorRangeType::SRV, 0, 1};
+    m_root_signature->GetRootParameter(MeshOpaquePass_RootParameter_MeshMaterialTexSRV).InitAsDescriptorTableRange(1, &srv_range_desc);
     
     m_root_signature->GetStaticSampler(0).InitStaticSampler(0, RHIStaticSamplerAddressMode::Warp, RHIStaticSamplerFilterMode::Linear);
-    RETURN_IF_FALSE(m_root_signature->InitRootSignature(resourceManager.GetDevice()))
+    RETURN_IF_FALSE(m_root_signature->InitRootSignature(resource_manager.GetDevice()))
 
     return true;
 }
@@ -76,7 +76,7 @@ bool glTFRenderPassMeshOpaque::SetupPipelineStateObject(glTFRenderResourceManage
     return true;
 }
 
-bool glTFRenderPassMeshOpaque::BeginDrawMesh(glTFRenderResourceManager& resourceManager, glTFUniqueID meshID)
+bool glTFRenderPassMeshOpaque::BeginDrawMesh(glTFRenderResourceManager& resource_manager, glTFUniqueID meshID)
 {
     // Using texture SRV slot when mesh material is texture
     glTFUniqueID material_ID = m_meshes[meshID].materialID;
@@ -85,5 +85,5 @@ bool glTFRenderPassMeshOpaque::BeginDrawMesh(glTFRenderResourceManager& resource
         return true;
     }
     
-	return resourceManager.ApplyMaterial(material_ID, MeshOpaquePass_RootParameter_MeshMaterialTexSRV);
+	return resource_manager.ApplyMaterial(material_ID, MeshOpaquePass_RootParameter_MeshMaterialTexSRV);
 }

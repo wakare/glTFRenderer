@@ -4,6 +4,7 @@
 #include "../glTFRenderPass/glTFRenderPassManager.h"
 #include "../glTFRenderPass/glTFRenderPassMeshOpaque.h"
 #include "../glTFRenderPass/glTFRenderPassLighting.h"
+#include "../glTFUtils/glTFLog.h"
 
 glTFSceneView::glTFSceneView(const glTFSceneGraph& graph)
     : m_scene_graph(graph)
@@ -106,9 +107,16 @@ void glTFSceneView::ApplyInput(glTFInputManager& input_manager, size_t delta_tim
     }
 
     // Focus scene center
-    if (input_manager.IsKeyPressed(GLFW_KEY_F))
+    if (input_manager.IsKeyPressed(GLFW_KEY_O))
     {
-        FocusSceneCenter(*main_camera);
+        if (main_camera->GetCameraMode() == CameraMode::Free)
+        {
+            FocusSceneCenter(*main_camera);    
+        }
+    }
+    else if (input_manager.IsKeyPressed(GLFW_KEY_F))
+    {
+        main_camera->SetCameraMode(CameraMode::Free);
     }
     
     ApplyInputForCamera(input_manager, *main_camera, delta_time_ms);
@@ -160,13 +168,13 @@ void glTFSceneView::ApplyInputForCamera(glTFInputManager& input_manager, glTFCam
     
         if (input_manager.IsKeyPressed(GLFW_KEY_A))
         {
-            delta_translation.x += 1.0f;
+            delta_translation.x -= 1.0f;
             need_apply_movement = true;
         }
     
         if (input_manager.IsKeyPressed(GLFW_KEY_D))
         {
-            delta_translation.x -= 1.0f;
+            delta_translation.x += 1.0f;
             need_apply_movement = true;
         }
     
@@ -224,10 +232,10 @@ void glTFSceneView::ApplyInputForCamera(glTFInputManager& input_manager, glTFCam
     if (input_manager.IsKeyPressed(GLFW_KEY_LEFT_CONTROL) ||
         input_manager.IsMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT))
     {
-        const glm::vec2 cursor_offset = input_manager.GetCursorOffset();
-        input_manager.ResetCursorOffset();
+        const glm::vec2 cursor_offset = input_manager.GetCursorOffsetAndReset();
+        
         delta_rotation.y -= cursor_offset.x;
-        delta_rotation.x -= cursor_offset.y;
+        //delta_rotation.x -= cursor_offset.y;
         if (fabs(delta_rotation.x) > 0.0f || fabs(delta_rotation.y) > 0.0f)
         {
             need_apply_movement = true;
@@ -243,16 +251,16 @@ void glTFSceneView::ApplyInputForCamera(glTFInputManager& input_manager, glTFCam
     const float translation_scale = static_cast<float>(delta_time_ms) / 1000.0f;
     const float rotation_scale = static_cast<float>(delta_time_ms) / 1000.0f;
     
-    delta_translation *= translation_scale;
     // Convert view space translation to world space
     delta_translation = glm::inverse(camera.GetViewMatrix()) * glm::fvec4{delta_translation, 0.0f};
+    delta_translation *= translation_scale;
     
     delta_rotation *= rotation_scale;
 
     if (camera.GetCameraMode() == CameraMode::Free)
     {
         camera.TranslateOffset(delta_translation);
-        camera.RotateOffset(delta_rotation);    
+        camera.RotateOffset(delta_rotation);
     }
     else if (camera.GetCameraMode() == CameraMode::Observer)
     {

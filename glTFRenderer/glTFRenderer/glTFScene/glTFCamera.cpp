@@ -12,7 +12,7 @@ glm::fmat4x4 glTFCamera::GetViewProjectionMatrix() const
 
 glm::fmat4x4 glTFCamera::GetViewMatrix() const
 {
-    return m_mode == CameraMode::Free ? m_transform.GetTransformMatrix() : m_observe_matrix;
+    return m_mode == CameraMode::Free ? glm::inverse(m_transform.GetTransformMatrix()) : m_observe_matrix;
 }
 
 glm::fmat4x4 glTFCamera::GetProjectionMatrix() const

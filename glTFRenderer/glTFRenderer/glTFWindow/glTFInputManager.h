@@ -21,13 +21,14 @@ public:
     bool IsMouseButtonPressed(int mouseButton) const;
     
     void TickSceneView(glTFSceneView& View, size_t deltaTimeMs);
-    glm::fvec2 GetCursorOffset() const;
-    void ResetCursorOffset();
+    glm::fvec2 GetCursorOffsetAndReset();
     
 private:
-    bool m_keyStatePressed[GLFW_KEY_LAST] = {false};
-    bool m_mouseButtonStatePressed[GLFW_MOUSE_BUTTON_MIDDLE + 1] = {false};
+    void ResetCursorOffset();
     
-    glm::fvec2 m_cursorOffset;
+    bool m_key_state_pressed[GLFW_KEY_LAST] = {false};
+    bool m_mouse_button_state_pressed[GLFW_MOUSE_BUTTON_MIDDLE + 1] = {false};
+    
+    glm::fvec2 m_cursor_offset;
     glm::fvec2 m_cursor;
 };
