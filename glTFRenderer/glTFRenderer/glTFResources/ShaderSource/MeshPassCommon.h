@@ -9,6 +9,10 @@ struct VS_INPUT
     float3 normal: NORMAL;
 #endif
     
+#ifdef HAS_TANGENT
+    float3 tangent: TANGENT;
+#endif
+    
 #ifdef HAS_TEXCOORD 
     float2 texCoord: TEXCOORD;
 #endif
@@ -20,6 +24,10 @@ struct VS_OUTPUT
     
 #ifdef HAS_NORMAL
     float3 normal: NORMAL;
+#endif
+
+#ifdef HAS_TANGENT
+    float3 tangent: TANGENT;
 #endif
     
 #ifdef HAS_TEXCOORD

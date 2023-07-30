@@ -81,7 +81,7 @@ bool glTFRenderPassLighting::RenderPass(glTFRenderResourceManager& resourceManag
 {
     RETURN_IF_FALSE(glTFRenderPassPostprocess::RenderPass(resourceManager))
 
-    RETURN_IF_FALSE(glTFRenderPassInterfaceSceneView::ApplyInterface(resourceManager, LightPass_RootParameter_SceneViewCBV))
+    RETURN_IF_FALSE(glTFRenderPassInterfaceSceneView::ApplyInterface(resourceManager))
     
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resourceManager.GetCommandList(), *m_base_pass_color_RT,
         RHIResourceStateType::RENDER_TARGET, RHIResourceStateType::PIXEL_SHADER_RESOURCE))

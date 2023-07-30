@@ -9,6 +9,10 @@ VS_OUTPUT main(VS_INPUT input)
 #ifdef HAS_NORMAL
     output.normal = mul(transInvWorldMat, float4(input.normal, 0.0)).xyz * 0.5 + 0.5;
 #endif
+
+#ifdef HAS_TANGENT
+    output.tangent = input.tangent;
+#endif
     
 #ifdef HAS_TEXCOORD 
     output.texCoord = input.texCoord;

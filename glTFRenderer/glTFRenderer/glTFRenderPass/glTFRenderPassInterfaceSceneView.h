@@ -24,14 +24,14 @@ public:
     
     virtual bool InitInterface(glTFRenderResourceManager& resourceManager) override;
     bool UpdateSceneViewData(const ConstantBufferSceneView& data);
-    bool ApplyInterface(glTFRenderResourceManager& resourceManager, unsigned rootParameterSlotIndex);
+    bool ApplyInterface(glTFRenderResourceManager& resourceManager);
 
     bool SetupRootSignature(IRHIRootSignature& rootSignature) const;
     void UpdateShaderCompileDefine(RHIShaderPreDefineMacros& outShaderPreDefineMacros) const;
     
 private:
-    unsigned m_rootParameterIndex;
-    unsigned m_registerIndex;
-    ConstantBufferSceneView m_sceneViewData;
-    std::shared_ptr<IRHIGPUBuffer> m_sceneViewGPUData;
+    unsigned m_root_parameter_cbv_index;
+    unsigned m_register_index;
+    ConstantBufferSceneView m_scene_view_data;
+    std::shared_ptr<IRHIGPUBuffer> m_scene_view_gpu_data;
 };

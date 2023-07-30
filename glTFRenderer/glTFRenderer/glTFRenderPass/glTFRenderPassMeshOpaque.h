@@ -4,13 +4,6 @@
 
 class glTFRenderPassMeshOpaque : public glTFRenderPassMeshBase
 {
-protected:
-    enum glTFRenderPassMeshOpaqueRootParameterEnum
-    {
-        MeshOpaquePass_RootParameter_MeshMaterialTexSRV = MeshBasePass_RootParameter_LastIndex,
-        MeshOpaquePass_RootParameter_LastIndex,
-    };
-    
 public:
     virtual const char* PassName() override {return "MeshPassOpaque"; }
     virtual bool InitPass(glTFRenderResourceManager& resource_manager) override;

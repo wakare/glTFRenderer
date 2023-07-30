@@ -4,19 +4,17 @@
 #include "../glTFRenderPass/glTFRenderPassManager.h"
 #include "../glTFRenderPass/glTFRenderPassMeshOpaque.h"
 #include "../glTFRenderPass/glTFRenderPassLighting.h"
-#include "../glTFUtils/glTFLog.h"
 
 glTFSceneView::glTFSceneView(const glTFSceneGraph& graph)
     : m_scene_graph(graph)
 {
-    // Debug
-    m_render_flags.SetEnableLit(false);
+    m_render_flags.SetEnableLit(true);
 }
 
 bool glTFSceneView::SetupRenderPass(glTFRenderPassManager& out_render_pass_manager) const
 {
     VertexLayoutDeclaration resolved_vertex_layout;
-	bool has_resolved = false;
+	bool has_resolved = false; 
     
 	m_scene_graph.TraverseNodes([&resolved_vertex_layout, &has_resolved](const glTFSceneNode& node)
 	{
@@ -24,15 +22,14 @@ bool glTFSceneView::SetupRenderPass(glTFRenderPassManager& out_render_pass_manag
 	    {
 	        if (const auto* primitive = dynamic_cast<const glTFScenePrimitive*>(scene_object.get()))
 	        {
-	            if (!has_resolved)
+	            for (const auto& vertex_layout : primitive->GetVertexLayout().elements)
 	            {
-	                resolved_vertex_layout = primitive->GetVertexLayout();
-	                has_resolved = true;
+	                if (!resolved_vertex_layout.HasAttribute(vertex_layout.type))
+	                {
+	                    resolved_vertex_layout.elements.push_back(vertex_layout);
+	                    has_resolved = true;
+	                }
 	            }
-                else
-                {
-                 	GLTF_CHECK(resolved_vertex_layout == primitive->GetVertexLayout());   
-                }
             }    
 	    }
 	    
@@ -124,7 +121,7 @@ void glTFSceneView::ApplyInput(glTFInputManager& input_manager, size_t delta_tim
 
 glTFCamera* glTFSceneView::GetMainCamera() const
 {
-    return  m_cameras.empty() ? nullptr : m_cameras[0];
+    return m_cameras.empty() ? nullptr : m_cameras[0];
 }
 
 void glTFSceneView::FocusSceneCenter(glTFCamera& camera) const

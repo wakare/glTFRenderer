@@ -5,16 +5,16 @@
 #include "../glTFUtils/glTFLog.h"
 
 glTFRenderPassInterfaceSceneView::glTFRenderPassInterfaceSceneView(unsigned rootParameterIndex, unsigned registerIndex)
-    : m_rootParameterIndex(rootParameterIndex)
-    , m_registerIndex(registerIndex)
+    : m_root_parameter_cbv_index(rootParameterIndex)
+    , m_register_index(registerIndex)
 {
     
 }
 
 bool glTFRenderPassInterfaceSceneView::InitInterface(glTFRenderResourceManager& resourceManager)
 {
-    m_sceneViewGPUData = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
-    RETURN_IF_FALSE(m_sceneViewGPUData->InitGPUBuffer(resourceManager.GetDevice(),
+    m_scene_view_gpu_data = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
+    RETURN_IF_FALSE(m_scene_view_gpu_data->InitGPUBuffer(resourceManager.GetDevice(),
         {
             L"SceneViewInterface_GPUBuffer",
             static_cast<size_t>(64 * 1024),
@@ -30,29 +30,28 @@ bool glTFRenderPassInterfaceSceneView::InitInterface(glTFRenderResourceManager& 
 
 bool glTFRenderPassInterfaceSceneView::UpdateSceneViewData(const ConstantBufferSceneView& data)
 {
-    m_sceneViewData = data;
+    m_scene_view_data = data;
     return true;
 }
 
-bool glTFRenderPassInterfaceSceneView::ApplyInterface(glTFRenderResourceManager& resourceManager,
-                                                      unsigned rootParameterSlotIndex)
+bool glTFRenderPassInterfaceSceneView::ApplyInterface(glTFRenderResourceManager& resourceManager)
 {
-    RETURN_IF_FALSE(m_sceneViewGPUData->UploadBufferFromCPU(&m_sceneViewData, 0, sizeof(m_sceneViewData)))
+    RETURN_IF_FALSE(m_scene_view_gpu_data->UploadBufferFromCPU(&m_scene_view_data, 0, sizeof(m_scene_view_data)))
     RETURN_IF_FALSE(RHIUtils::Instance().SetConstantBufferViewGPUHandleToRootParameterSlot(resourceManager.GetCommandList(),
-        rootParameterSlotIndex, m_sceneViewGPUData->GetGPUBufferHandle()))
+        m_root_parameter_cbv_index, m_scene_view_gpu_data->GetGPUBufferHandle()))
     
     return true;
 }
 
 bool glTFRenderPassInterfaceSceneView::SetupRootSignature(IRHIRootSignature& rootSignature) const
 {
-    return rootSignature.GetRootParameter(m_rootParameterIndex).InitAsCBV(m_registerIndex);
+    return rootSignature.GetRootParameter(m_root_parameter_cbv_index).InitAsCBV(m_register_index);
 }
 
 void glTFRenderPassInterfaceSceneView::UpdateShaderCompileDefine(RHIShaderPreDefineMacros& outShaderPreDefineMacros) const
 {
     char registerIndexValue[16] = {'\0'};
-    (void)snprintf(registerIndexValue, sizeof(registerIndexValue), "register(b%d)", m_registerIndex);
+    (void)snprintf(registerIndexValue, sizeof(registerIndexValue), "register(b%d)", m_register_index);
     outShaderPreDefineMacros.AddMacro("SCENE_VIEW_REGISTER_INDEX", registerIndexValue);
     LOG_FORMAT("[INFO] Add shader preDefine %s, %s\n", "SCENE_VIEW_REGISTER_INDEX", registerIndexValue);
 }

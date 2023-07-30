@@ -41,20 +41,17 @@ bool glTFRenderPassMeshOpaque::ProcessMaterial(glTFRenderResourceManager& resour
 size_t glTFRenderPassMeshOpaque::GetMainDescriptorHeapSize()
 {
     // TODO: Calculate heap size
-    return 128;
+    return 256;
 }
 
 bool glTFRenderPassMeshOpaque::SetupRootSignature(glTFRenderResourceManager& resource_manager)
 {
     // Init root signature
-    constexpr size_t root_signature_parameter_count = MeshOpaquePass_RootParameter_LastIndex;
+    constexpr size_t root_signature_parameter_count = MeshBasePass_RootParameter_LastIndex;
     constexpr size_t root_signature_static_sampler_count = 1;
     RETURN_IF_FALSE(m_root_signature->AllocateRootSignatureSpace(root_signature_parameter_count, root_signature_static_sampler_count))
     
     RETURN_IF_FALSE(glTFRenderPassMeshBase::SetupRootSignature(resource_manager))
-    
-    const RHIRootParameterDescriptorRangeDesc srv_range_desc {RHIRootParameterDescriptorRangeType::SRV, 0, 1};
-    m_root_signature->GetRootParameter(MeshOpaquePass_RootParameter_MeshMaterialTexSRV).InitAsDescriptorTableRange(1, &srv_range_desc);
     
     m_root_signature->GetStaticSampler(0).InitStaticSampler(0, RHIStaticSamplerAddressMode::Warp, RHIStaticSamplerFilterMode::Linear);
     RETURN_IF_FALSE(m_root_signature->InitRootSignature(resource_manager.GetDevice()))
@@ -79,11 +76,11 @@ bool glTFRenderPassMeshOpaque::SetupPipelineStateObject(glTFRenderResourceManage
 bool glTFRenderPassMeshOpaque::BeginDrawMesh(glTFRenderResourceManager& resource_manager, glTFUniqueID meshID)
 {
     // Using texture SRV slot when mesh material is texture
-    glTFUniqueID material_ID = m_meshes[meshID].materialID;
+    glTFUniqueID material_ID = m_meshes[meshID].material_id;
     if (material_ID == glTFUniqueIDInvalid)
     {
         return true;
     }
     
-	return resource_manager.ApplyMaterial(material_ID, MeshOpaquePass_RootParameter_MeshMaterialTexSRV);
+	return resource_manager.ApplyMaterial(material_ID, MeshBasePass_RootParameter_SceneMesh_SRV);
 }

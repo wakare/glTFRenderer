@@ -170,6 +170,10 @@ void glTFSceneGraph::RecursiveInitSceneNodeFromGLTFLoader(const glTFLoader& load
                 _process_vertex_attribute(loader, glTF_Attribute_NORMAL::attribute_type_id, VertexLayoutType::NORMAL,
                     primitive, vertexBufferSize, vertexLayout, vertexDataInGLTFBuffers);
 
+                // TANGENT attribute
+                _process_vertex_attribute(loader, glTF_Attribute_TANGENT::attribute_type_id, VertexLayoutType::TANGENT,
+                    primitive, vertexBufferSize, vertexLayout, vertexDataInGLTFBuffers);
+                
                 // TEXCOORD attribute
                 _process_vertex_attribute(loader, glTF_Attribute_TEXCOORD_0::attribute_type_id, VertexLayoutType::TEXCOORD_0,
                     primitive, vertexBufferSize, vertexLayout, vertexDataInGLTFBuffers);
@@ -177,9 +181,9 @@ void glTFSceneGraph::RecursiveInitSceneNodeFromGLTFLoader(const glTFLoader& load
                 std::shared_ptr<VertexBufferData> vertexBufferData = std::make_shared<VertexBufferData>();
                 vertexBufferData->data.reset(new char[vertexBufferSize]);
                 vertexBufferData->byteSize = vertexBufferSize;
-                vertexBufferData->vertexCount = vertexBufferSize /vertexLayout.GetVertexStrideInBytes();
+                vertexBufferData->vertex_count = vertexBufferSize /vertexLayout.GetVertexStrideInBytes();
                 char* vertexDataStart = vertexBufferData->data.get();
-                for (size_t v = 0; v < vertexBufferData->vertexCount; ++v)
+                for (size_t v = 0; v < vertexBufferData->vertex_count; ++v)
                 {
                     // Reformat vertex buffer data
                     for (size_t i = 0; i < vertexLayout.elements.size(); ++i)
@@ -198,41 +202,62 @@ void glTFSceneGraph::RecursiveInitSceneNodeFromGLTFLoader(const glTFLoader& load
                     }
                 }
             
-                const auto& indexAccessor = *loader.m_accessors[loader.ResolveIndex(primitive.indices)];
-                const auto& indexBufferView = *loader.m_bufferViews[loader.ResolveIndex(indexAccessor.buffer_view)];
+                const auto& index_accessor = *loader.m_accessors[loader.ResolveIndex(primitive.indices)];
+                const auto& index_buffer_view = *loader.m_bufferViews[loader.ResolveIndex(index_accessor.buffer_view)];
 
-                const size_t indexBufferSize = indexAccessor.GetElementByteSize() * indexAccessor.count;
+                const size_t index_buffer_size = index_accessor.GetElementByteSize() * index_accessor.count;
                 
-                std::shared_ptr<IndexBufferData> indexBufferData = std::make_shared<IndexBufferData>();
-                indexBufferData->data.reset(new char[indexBufferSize]);
-                glTFHandle tempIndexBufferViewHandle = indexBufferView.buffer;
-                tempIndexBufferViewHandle.node_index = loader.ResolveIndex(indexBufferView.buffer);
+                std::shared_ptr<IndexBufferData> index_buffer_data = std::make_shared<IndexBufferData>();
+                index_buffer_data->data.reset(new char[index_buffer_size]);
+                glTFHandle tempIndexBufferViewHandle = index_buffer_view.buffer;
+                tempIndexBufferViewHandle.node_index = loader.ResolveIndex(index_buffer_view.buffer);
                 auto findIt = loader.m_buffer_data.find(tempIndexBufferViewHandle);
                 GLTF_CHECK(findIt != loader.m_buffer_data.end());
-                const char* bufferStart = findIt->second.get() + indexBufferView.byte_offset + indexAccessor.byte_offset;
-                memcpy(indexBufferData->data.get(), bufferStart, indexBufferSize);
-                indexBufferData->byteSize = indexBufferSize;
-                indexBufferData->indexCount = indexAccessor.count;
-                indexBufferData->elementType = indexAccessor.component_type ==
+                const char* bufferStart = findIt->second.get() + index_buffer_view.byte_offset + index_accessor.byte_offset;
+                memcpy(index_buffer_data->data.get(), bufferStart, index_buffer_size);
+                index_buffer_data->byteSize = index_buffer_size;
+                index_buffer_data->index_count = index_accessor.count;
+                index_buffer_data->elementType = index_accessor.component_type ==
                     glTF_Element_Template<glTF_Element_Type::EAccessor>::glTF_Accessor_Component_Type::EUnsignedShort ?
                     IndexBufferElementType::UNSIGNED_SHORT : IndexBufferElementType::UNSIGNED_INT;   
 
 				std::unique_ptr<glTFSceneTriangleMesh> triangle_mesh =
-				    std::make_unique<glTFSceneTriangleMesh>(sceneNode.m_finalTransform, vertexLayout, vertexBufferData, indexBufferData);
+				    std::make_unique<glTFSceneTriangleMesh>(sceneNode.m_finalTransform, vertexLayout, vertexBufferData, index_buffer_data);
 				std::shared_ptr<glTFMaterialPBR> pbr_material = std::make_shared<glTFMaterialPBR>();
 				triangle_mesh->SetMaterial(pbr_material);
 
                 // Only set base color texture now, support other feature in the future
                 const auto& source_material =
-                    *loader.m_materials[loader.ResolveIndex(primitive.material)]; 
-				const auto& base_color_texture =
-				    *loader.m_textures[loader.ResolveIndex(source_material.pbr.base_color_texture.index)];
-                const auto& texture_image =
-                    *loader.m_images[loader.ResolveIndex(base_color_texture.source)];
-                GLTF_CHECK(!texture_image.uri.empty());
+                    *loader.m_materials[loader.ResolveIndex(primitive.material)];
 
-                pbr_material->AddOrUpdateMaterialParameter(glTFMaterialParameterUsage::BASECOLOR,
-                    std::make_shared<glTFMaterialParameterTexture>(loader.GetSceneFileDirectory() + texture_image.uri, glTFMaterialParameterUsage::BASECOLOR));
+                // Base color texture setting
+                const auto base_color_texture_handle = source_material.pbr.base_color_texture.index;
+                if (base_color_texture_handle.IsValid())
+                {
+                    const auto& base_color_texture = *loader.m_textures[loader.ResolveIndex(base_color_texture_handle)];
+                    const auto& texture_image = *loader.m_images[loader.ResolveIndex(base_color_texture.source)];
+                    GLTF_CHECK(!texture_image.uri.empty());
+
+                    pbr_material->AddOrUpdateMaterialParameter(glTFMaterialParameterUsage::BASECOLOR,
+                        std::make_shared<glTFMaterialParameterTexture>(loader.GetSceneFileDirectory() + texture_image.uri, glTFMaterialParameterUsage::BASECOLOR));    
+                }
+                else
+                {
+                    // No base color texture? handle base color factor in the future
+                    GLTF_CHECK(false);
+                }
+
+                // Normal texture setting
+                const auto normal_texture_handle = source_material.normal_texture.index; 
+                if (normal_texture_handle.IsValid())
+                {
+                    const auto& normal_texture = *loader.m_textures[loader.ResolveIndex(normal_texture_handle)];
+                    const auto& texture_image = *loader.m_images[loader.ResolveIndex(normal_texture.source)];
+                    GLTF_CHECK(!texture_image.uri.empty());
+
+                    pbr_material->AddOrUpdateMaterialParameter(glTFMaterialParameterUsage::NORMAL,
+                        std::make_shared<glTFMaterialParameterTexture>(loader.GetSceneFileDirectory() + texture_image.uri, glTFMaterialParameterUsage::NORMAL));
+                }
                 
                 sceneNode.m_objects.push_back(std::move(triangle_mesh));
                 sceneNode.m_objects.back()->SetAABB(mesh_AABB);

@@ -24,6 +24,11 @@ bool IRHIPipelineStateObject::BindInputLayoutAndSetShaderMacros(const std::vecto
         {
             m_shaderMacros.AddMacro("HAS_TEXCOORD", "1");
         }
+
+        if (input_layout.semanticName == INPUT_LAYOUT_UNIQUE_PARAMETER(TANGENT))
+        {
+            m_shaderMacros.AddMacro("HAS_TANGENT", "1");
+        }
     }
     
     return true;

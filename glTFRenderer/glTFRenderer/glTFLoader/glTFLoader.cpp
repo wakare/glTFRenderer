@@ -260,9 +260,9 @@ bool glTFLoader::LoadFile(const std::string& file_path)
                     glTF_PROCESS_PRIMITIVE_ATTRIBUTE(primitive_raw_data["attributes"], TEXCOORD_0, primitive.attributes)
                     glTF_PROCESS_PRIMITIVE_ATTRIBUTE(primitive_raw_data["attributes"], TEXCOORD_1, primitive.attributes)
                 }
+                glTF_PROCESS_PRIMITIVE_MATERIAL(primitive_raw_data, primitive.material)
 
                 glTF_PROCESS_PRIMITIVE_INDEX(primitive_raw_data, primitive.indices)
-                glTF_PROCESS_PRIMITIVE_MATERIAL(primitive_raw_data, primitive.material)
                 glTF_PROCESS_PRIMITIVE_MODE(primitive_raw_data, primitive.mode)
 
                 element->primitives.push_back(primitive);
@@ -351,6 +351,11 @@ bool glTFLoader::LoadFile(const std::string& file_path)
         else
         {
             GLTF_CHECK(false);
+        }
+
+        if (raw_data.contains("normalTexture"))
+        {
+            glTF_PROCESS_TEXTURE_INFO(raw_data, "normalTexture", element->normal_texture)
         }
         
         // TODO: handle normal texture, occlusion texture, emissive texture, alpha mode and so on...

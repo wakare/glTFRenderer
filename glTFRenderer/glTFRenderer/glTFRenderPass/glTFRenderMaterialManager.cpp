@@ -56,7 +56,21 @@ glTFMaterialRenderResource::glTFMaterialRenderResource(const glTFMaterialBase& s
                 }
                 else if (base_color_parameter.GetParameterType() == Factor)
                 {
-                        
+                    // TODO:
+                }
+            }
+
+            if (opaque_material.HasValidParameter(glTFMaterialParameterUsage::NORMAL))
+            {
+                const auto& normal_parameter = opaque_material.GetMaterialParameter(glTFMaterialParameterUsage::NORMAL);
+                if (normal_parameter.GetParameterType() == Texture)
+                {
+                    const auto& normal_texture = dynamic_cast<const glTFMaterialParameterTexture&>(normal_parameter);
+                    m_textures[glTFMaterialParameterUsage::NORMAL] = std::make_unique<glTFMaterialTextureRenderResource>(normal_texture);
+                }
+                else
+                {
+                    // TODO: 
                 }
             }
         }
@@ -81,8 +95,8 @@ bool glTFMaterialRenderResource::Init(glTFRenderResourceManager& resource_manage
 
 RHIGPUDescriptorHandle glTFMaterialRenderResource::GetTextureGPUHandle() const
 {
-    GLTF_CHECK(!m_textures.empty());
-    return m_textures.begin()->second->GetTextureSRVHandle();
+    GLTF_CHECK(!m_textures.empty() && m_textures.find(glTFMaterialParameterUsage::BASECOLOR) != m_textures.end());
+    return m_textures.find(glTFMaterialParameterUsage::BASECOLOR)->second->GetTextureSRVHandle();
 }
 
 bool glTFRenderMaterialManager::InitMaterialRenderResource(glTFRenderResourceManager& resource_manager, IRHIDescriptorHeap& descriptor_heap, const glTFMaterialBase& material)

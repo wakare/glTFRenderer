@@ -3,65 +3,76 @@
 #include "../glTFRHI/RHIResourceFactoryImpl.hpp"
 
 glTFRenderPassMeshBase::glTFRenderPassMeshBase()
-    : glTFRenderPassInterfaceSceneView(MeshBasePass_RootParameter_SceneView, MeshBasePass_RootParameter_SceneView)
-    , glTFRenderPassInterfaceSceneMesh(MeshBasePass_RootParameter_SceneMesh, MeshBasePass_RootParameter_SceneMesh)
-    , m_basePassColorRenderTarget(nullptr)
-    , m_basePassNormalRenderTarget(nullptr)
+    : glTFRenderPassInterfaceSceneView(MeshBasePass_RootParameter_SceneView_CBV, MeshBasePass_SceneView_CBV_Register)
+    , glTFRenderPassInterfaceSceneMesh(
+        MeshBasePass_RootParameter_SceneMesh_CBV,
+        MeshBasePass_SceneMesh_CBV_Register,
+        MeshBasePass_RootParameter_SceneMesh_SRV,
+        MeshBasePass_SceneMesh_SRV_Register,
+        4)
+    , m_base_pass_color_render_target(nullptr)
+    , m_base_pass_normal_render_target(nullptr)
 {
 }
 
-bool glTFRenderPassMeshBase::InitPass(glTFRenderResourceManager& resourceManager)
+bool glTFRenderPassMeshBase::InitPass(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE (glTFRenderPassBase::InitPass(resourceManager))
+    RETURN_IF_FALSE (glTFRenderPassBase::InitPass(resource_manager))
     
     return true;
 }
 
-bool glTFRenderPassMeshBase::RenderPass(glTFRenderResourceManager& resourceManager)
+bool glTFRenderPassMeshBase::RenderPass(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(glTFRenderPassBase::RenderPass(resourceManager))
+    RETURN_IF_FALSE(glTFRenderPassBase::RenderPass(resource_manager))
 
-    RETURN_IF_FALSE(resourceManager.GetRenderTargetManager().BindRenderTarget(resourceManager.GetCommandList(),
-        {m_basePassColorRenderTarget.get(), m_basePassNormalRenderTarget.get()}, &resourceManager.GetDepthRT()))
+    RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().BindRenderTarget(resource_manager.GetCommandList(),
+        {m_base_pass_color_render_target.get(), m_base_pass_normal_render_target.get()}, &resource_manager.GetDepthRT()))
 
-    RETURN_IF_FALSE(resourceManager.GetRenderTargetManager().ClearRenderTarget(resourceManager.GetCommandList(),
-        {m_basePassColorRenderTarget.get(),m_basePassNormalRenderTarget.get(), &resourceManager.GetDepthRT()}))
-    RHIUtils::Instance().SetPrimitiveTopology( resourceManager.GetCommandList(), RHIPrimitiveTopologyType::TRIANGLELIST);
+    RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().ClearRenderTarget(resource_manager.GetCommandList(),
+        {m_base_pass_color_render_target.get(),m_base_pass_normal_render_target.get(), &resource_manager.GetDepthRT()}))
+    RHIUtils::Instance().SetPrimitiveTopology( resource_manager.GetCommandList(), RHIPrimitiveTopologyType::TRIANGLELIST);
 
-    RETURN_IF_FALSE(glTFRenderPassInterfaceSceneView::ApplyInterface(resourceManager, MeshBasePass_RootParameter_SceneView))
+    RETURN_IF_FALSE(glTFRenderPassInterfaceSceneView::ApplyInterface(resource_manager))
 
     for (const auto& mesh : m_meshes)
     {
         const glTFUniqueID meshID = mesh.first;
-        RETURN_IF_FALSE(BeginDrawMesh(resourceManager, meshID))
+        RETURN_IF_FALSE(BeginDrawMesh(resource_manager, meshID))
         
         // Upload constant buffer
-        RETURN_IF_FALSE(UpdateSceneMeshData({mesh.second.meshTransformMatrix, glm::transpose(glm::inverse(mesh.second.meshTransformMatrix))}))
+        RETURN_IF_FALSE(UpdateSceneMeshData(
+            {
+                mesh.second.meshTransformMatrix,
+                glm::transpose(glm::inverse(mesh.second.meshTransformMatrix)),
+                mesh.second.using_normal_mapping
+            }))
+        
         //glTFRenderPassInterfaceSceneMesh::ApplyInterface(resourceManager, meshID, MeshBasePass_RootParameter_SceneMesh);
-        glTFRenderPassInterfaceSceneMesh::ApplyInterface(resourceManager, 0, MeshBasePass_RootParameter_SceneMesh);
+        glTFRenderPassInterfaceSceneMesh::ApplyInterface(resource_manager, 0);
         
-        RHIUtils::Instance().SetVertexBufferView(resourceManager.GetCommandList(), *mesh.second.meshVertexBufferView);
-        RHIUtils::Instance().SetIndexBufferView(resourceManager.GetCommandList(), *mesh.second.meshIndexBufferView);
+        RHIUtils::Instance().SetVertexBufferView(resource_manager.GetCommandList(), *mesh.second.mesh_vertex_buffer_view);
+        RHIUtils::Instance().SetIndexBufferView(resource_manager.GetCommandList(), *mesh.second.mesh_index_buffer_view);
         
-        RHIUtils::Instance().DrawIndexInstanced(resourceManager.GetCommandList(),
-            mesh.second.meshIndexCount, 1, 0, 0, 0);
+        RHIUtils::Instance().DrawIndexInstanced(resource_manager.GetCommandList(),
+            mesh.second.mesh_index_count, 1, 0, 0, 0);
 
-        RETURN_IF_FALSE(EndDrawMesh(resourceManager, mesh.first))
+        RETURN_IF_FALSE(EndDrawMesh(resource_manager, mesh.first))
     }
     
     return true;
 }
 
-bool glTFRenderPassMeshBase::AddOrUpdatePrimitiveToMeshPass(glTFRenderResourceManager& resourceManager, const glTFScenePrimitive& primitive)
+bool glTFRenderPassMeshBase::AddOrUpdatePrimitiveToMeshPass(glTFRenderResourceManager& resource_manager, const glTFScenePrimitive& primitive)
 {
     const glTFUniqueID mesh_ID = primitive.GetID();
     if (m_meshes.find(mesh_ID) == m_meshes.end())
     {
         // Upload vertex and index data once
-        const auto& vertex_buffer = m_meshes[mesh_ID].meshVertexBuffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
-        const auto& index_buffer = m_meshes[mesh_ID].meshIndexBuffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
-        const auto& vertex_buffer_view = m_meshes[mesh_ID].meshVertexBufferView = RHIResourceFactory::CreateRHIResource<IRHIVertexBufferView>();
-        const auto& index_buffer_view = m_meshes[mesh_ID].meshIndexBufferView = RHIResourceFactory::CreateRHIResource<IRHIIndexBufferView>();
+        const auto& vertex_buffer = m_meshes[mesh_ID].mesh_vertex_buffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
+        const auto& index_buffer = m_meshes[mesh_ID].mesh_index_buffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
+        const auto& vertex_buffer_view = m_meshes[mesh_ID].mesh_vertex_buffer_view = RHIResourceFactory::CreateRHIResource<IRHIVertexBufferView>();
+        const auto& index_buffer_view = m_meshes[mesh_ID].mesh_index_buffer_view = RHIResourceFactory::CreateRHIResource<IRHIIndexBufferView>();
         
         const auto& primitive_vertices = primitive.GetVertexBufferData();
         const auto& primitive_indices = primitive.GetIndexBufferData();
@@ -69,38 +80,39 @@ bool glTFRenderPassMeshBase::AddOrUpdatePrimitiveToMeshPass(glTFRenderResourceMa
         const RHIBufferDesc vertex_buffer_desc = {L"vertexBufferDefaultBuffer", primitive_vertices.byteSize, 1, 1, RHIBufferType::Default, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
         const RHIBufferDesc index_buffer_desc = {L"indexBufferDefaultBuffer", primitive_indices.byteSize, 1, 1, RHIBufferType::Default, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
     
-        RETURN_IF_FALSE(vertex_buffer->InitGPUBuffer(resourceManager.GetDevice(), vertex_buffer_desc ))
-        RETURN_IF_FALSE(index_buffer->InitGPUBuffer(resourceManager.GetDevice(), index_buffer_desc ))
+        RETURN_IF_FALSE(vertex_buffer->InitGPUBuffer(resource_manager.GetDevice(), vertex_buffer_desc ))
+        RETURN_IF_FALSE(index_buffer->InitGPUBuffer(resource_manager.GetDevice(), index_buffer_desc ))
 
-        const auto vertexUploadBuffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
-        const auto indexUploadBuffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
+        const auto vertex_upload_buffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
+        const auto index_upload_buffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
 
-        const RHIBufferDesc vertexUploadBufferDesc = {L"vertexBufferUploadBuffer", primitive_vertices.byteSize, 1, 1, RHIBufferType::Upload, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
-        const RHIBufferDesc indexUploadBufferDesc = {L"indexBufferUploadBuffer", primitive_indices.byteSize, 1, 1, RHIBufferType::Upload, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
+        const RHIBufferDesc vertex_upload_buffer_desc = {L"vertexBufferUploadBuffer", primitive_vertices.byteSize, 1, 1, RHIBufferType::Upload, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
+        const RHIBufferDesc index_upload_buffer_desc = {L"indexBufferUploadBuffer", primitive_indices.byteSize, 1, 1, RHIBufferType::Upload, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
 
-        RETURN_IF_FALSE(vertexUploadBuffer->InitGPUBuffer(resourceManager.GetDevice(), vertexUploadBufferDesc ))
-        RETURN_IF_FALSE(indexUploadBuffer->InitGPUBuffer(resourceManager.GetDevice(), indexUploadBufferDesc ))
-        RETURN_IF_FALSE(RHIUtils::Instance().ResetCommandList(resourceManager.GetCommandList(), resourceManager.GetCurrentFrameCommandAllocator()))
-        RETURN_IF_FALSE(RHIUtils::Instance().UploadBufferDataToDefaultGPUBuffer(resourceManager.GetCommandList(), *vertexUploadBuffer, *vertex_buffer, primitive_vertices.data.get(), primitive_vertices.byteSize))
-        RETURN_IF_FALSE(RHIUtils::Instance().UploadBufferDataToDefaultGPUBuffer(resourceManager.GetCommandList(), *indexUploadBuffer, *index_buffer, primitive_indices.data.get(), primitive_indices.byteSize))
+        RETURN_IF_FALSE(vertex_upload_buffer->InitGPUBuffer(resource_manager.GetDevice(), vertex_upload_buffer_desc ))
+        RETURN_IF_FALSE(index_upload_buffer->InitGPUBuffer(resource_manager.GetDevice(), index_upload_buffer_desc ))
+        RETURN_IF_FALSE(RHIUtils::Instance().ResetCommandList(resource_manager.GetCommandList(), resource_manager.GetCurrentFrameCommandAllocator()))
+        RETURN_IF_FALSE(RHIUtils::Instance().UploadBufferDataToDefaultGPUBuffer(resource_manager.GetCommandList(), *vertex_upload_buffer, *vertex_buffer, primitive_vertices.data.get(), primitive_vertices.byteSize))
+        RETURN_IF_FALSE(RHIUtils::Instance().UploadBufferDataToDefaultGPUBuffer(resource_manager.GetCommandList(), *index_upload_buffer, *index_buffer, primitive_indices.data.get(), primitive_indices.byteSize))
     
-        RETURN_IF_FALSE(RHIUtils::Instance().AddBufferBarrierToCommandList(resourceManager.GetCommandList(), *vertex_buffer, RHIResourceStateType::COPY_DEST, RHIResourceStateType::VERTEX_AND_CONSTANT_BUFFER))
-        RETURN_IF_FALSE(RHIUtils::Instance().AddBufferBarrierToCommandList(resourceManager.GetCommandList(), *index_buffer, RHIResourceStateType::COPY_DEST, RHIResourceStateType::INDEX_BUFFER))
-        RETURN_IF_FALSE(RHIUtils::Instance().CloseCommandList(resourceManager.GetCommandList()))
-        RETURN_IF_FALSE(RHIUtils::Instance().ExecuteCommandList(resourceManager.GetCommandList(),resourceManager.GetCommandQueue()))
+        RETURN_IF_FALSE(RHIUtils::Instance().AddBufferBarrierToCommandList(resource_manager.GetCommandList(), *vertex_buffer, RHIResourceStateType::COPY_DEST, RHIResourceStateType::VERTEX_AND_CONSTANT_BUFFER))
+        RETURN_IF_FALSE(RHIUtils::Instance().AddBufferBarrierToCommandList(resource_manager.GetCommandList(), *index_buffer, RHIResourceStateType::COPY_DEST, RHIResourceStateType::INDEX_BUFFER))
+        RETURN_IF_FALSE(RHIUtils::Instance().CloseCommandList(resource_manager.GetCommandList()))
+        RETURN_IF_FALSE(RHIUtils::Instance().ExecuteCommandList(resource_manager.GetCommandList(),resource_manager.GetCommandQueue()))
 
         const auto fence = RHIResourceFactory::CreateRHIResource<IRHIFence>();
-        RETURN_IF_FALSE(fence->InitFence(resourceManager.GetDevice()))
+        RETURN_IF_FALSE(fence->InitFence(resource_manager.GetDevice()))
 
-        RETURN_IF_FALSE(fence->SignalWhenCommandQueueFinish(resourceManager.GetCommandQueue()))
+        RETURN_IF_FALSE(fence->SignalWhenCommandQueueFinish(resource_manager.GetCommandQueue()))
         RETURN_IF_FALSE(fence->WaitUtilSignal())
         
         vertex_buffer_view->InitVertexBufferView(*vertex_buffer, 0, primitive.GetVertexLayout().GetVertexStrideInBytes(), primitive_vertices.byteSize);
         index_buffer_view->InitIndexBufferView(*index_buffer, 0, primitive_indices.elementType == IndexBufferElementType::UNSIGNED_INT ? RHIDataFormat::R32_UINT : RHIDataFormat::R16_UINT, primitive_indices.byteSize);
 
-        m_meshes[mesh_ID].meshVertexCount = primitive_vertices.vertexCount;
-        m_meshes[mesh_ID].meshIndexCount = primitive_indices.indexCount;
-        m_meshes[mesh_ID].materialID = primitive.HasMaterial() ? primitive.GetMaterial().GetID() : glTFUniqueIDInvalid;
+        m_meshes[mesh_ID].mesh_vertex_count = primitive_vertices.vertex_count;
+        m_meshes[mesh_ID].mesh_index_count = primitive_indices.index_count;
+        m_meshes[mesh_ID].material_id = primitive.HasMaterial() ? primitive.GetMaterial().GetID() : glTFUniqueIDInvalid;
+        m_meshes[mesh_ID].using_normal_mapping = primitive.HasNormalMapping();
     }
 
     // Only update when transform has changed
@@ -109,11 +121,11 @@ bool glTFRenderPassMeshBase::AddOrUpdatePrimitiveToMeshPass(glTFRenderResourceMa
     return true; 
 }
 
-bool glTFRenderPassMeshBase::RemovePrimitiveFromMeshPass(glTFUniqueID meshIDToRemove)
+bool glTFRenderPassMeshBase::RemovePrimitiveFromMeshPass(glTFUniqueID mesh_id_to_remove)
 {
-    if (auto it = (m_meshes.find(meshIDToRemove)) != m_meshes.end())
+    if (auto it = (m_meshes.find(mesh_id_to_remove)) != m_meshes.end())
     {
-        LOG_FORMAT("[DEBUG] Remove mesh id %d", meshIDToRemove)
+        LOG_FORMAT("[DEBUG] Remove mesh id %d", mesh_id_to_remove)
         m_meshes.erase(it);
     }
     else
@@ -125,7 +137,7 @@ bool glTFRenderPassMeshBase::RemovePrimitiveFromMeshPass(glTFUniqueID meshIDToRe
     return true;
 }
 
-bool glTFRenderPassMeshBase::SetupRootSignature(glTFRenderResourceManager& resourceManager)
+bool glTFRenderPassMeshBase::SetupRootSignature(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFRenderPassInterfaceSceneView::SetupRootSignature(*m_root_signature))
     RETURN_IF_FALSE(glTFRenderPassInterfaceSceneMesh::SetupRootSignature(*m_root_signature))
@@ -133,37 +145,37 @@ bool glTFRenderPassMeshBase::SetupRootSignature(glTFRenderResourceManager& resou
     return true;
 }
 
-bool glTFRenderPassMeshBase::SetupPipelineStateObject(glTFRenderResourceManager& resourceManager)
+bool glTFRenderPassMeshBase::SetupPipelineStateObject(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(glTFRenderPassBase::SetupPipelineStateObject(resourceManager))
+    RETURN_IF_FALSE(glTFRenderPassBase::SetupPipelineStateObject(resource_manager))
     
-    IRHIRenderTargetDesc RenderTargetBaseColorDesc;
-    RenderTargetBaseColorDesc.width = resourceManager.GetSwapchain().GetWidth();
-    RenderTargetBaseColorDesc.height = resourceManager.GetSwapchain().GetHeight();
-    RenderTargetBaseColorDesc.name = "BasePassColor";
-    RenderTargetBaseColorDesc.isUAV = true;
-    RenderTargetBaseColorDesc.clearValue.clearColor = {0.0f, 0.0f, 0.0f, 0.0f};
+    IRHIRenderTargetDesc render_target_base_color_desc;
+    render_target_base_color_desc.width = resource_manager.GetSwapchain().GetWidth();
+    render_target_base_color_desc.height = resource_manager.GetSwapchain().GetHeight();
+    render_target_base_color_desc.name = "BasePassColor";
+    render_target_base_color_desc.isUAV = true;
+    render_target_base_color_desc.clearValue.clearColor = {0.0f, 0.0f, 0.0f, 0.0f};
     
-    m_basePassColorRenderTarget = resourceManager.GetRenderTargetManager().CreateRenderTarget(
-        resourceManager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R8G8B8A8_UNORM_SRGB, RHIDataFormat::R8G8B8A8_UNORM_SRGB, RenderTargetBaseColorDesc);
+    m_base_pass_color_render_target = resource_manager.GetRenderTargetManager().CreateRenderTarget(
+        resource_manager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R8G8B8A8_UNORM_SRGB, RHIDataFormat::R8G8B8A8_UNORM_SRGB, render_target_base_color_desc);
 
-    IRHIRenderTargetDesc RenderTargetNormalDesc;
-    RenderTargetNormalDesc.width = resourceManager.GetSwapchain().GetWidth();
-    RenderTargetNormalDesc.height = resourceManager.GetSwapchain().GetHeight();
-    RenderTargetNormalDesc.name = "BasePassNormal";
-    RenderTargetNormalDesc.isUAV = true;
-    RenderTargetNormalDesc.clearValue.clearColor = {0.0f, 0.0f, 0.0f, 0.0f};
-    m_basePassNormalRenderTarget = resourceManager.GetRenderTargetManager().CreateRenderTarget(
-        resourceManager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R8G8B8A8_UNORM_SRGB, RHIDataFormat::R8G8B8A8_UNORM_SRGB, RenderTargetNormalDesc);
+    IRHIRenderTargetDesc render_target_normal_desc;
+    render_target_normal_desc.width = resource_manager.GetSwapchain().GetWidth();
+    render_target_normal_desc.height = resource_manager.GetSwapchain().GetHeight();
+    render_target_normal_desc.name = "BasePassNormal";
+    render_target_normal_desc.isUAV = true;
+    render_target_normal_desc.clearValue.clearColor = {0.0f, 0.0f, 0.0f, 0.0f};
+    m_base_pass_normal_render_target = resource_manager.GetRenderTargetManager().CreateRenderTarget(
+        resource_manager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R8G8B8A8_UNORM_SRGB, RHIDataFormat::R8G8B8A8_UNORM_SRGB, render_target_normal_desc);
 
-    resourceManager.GetRenderTargetManager().RegisterRenderTargetWithTag("BasePassColor", m_basePassColorRenderTarget);
-    resourceManager.GetRenderTargetManager().RegisterRenderTargetWithTag("BasePassNormal", m_basePassNormalRenderTarget);
+    resource_manager.GetRenderTargetManager().RegisterRenderTargetWithTag("BasePassColor", m_base_pass_color_render_target);
+    resource_manager.GetRenderTargetManager().RegisterRenderTargetWithTag("BasePassNormal", m_base_pass_normal_render_target);
     
-    m_pipeline_state_object->BindRenderTargets({m_basePassColorRenderTarget.get(), m_basePassNormalRenderTarget.get(), &resourceManager.GetDepthRT()});
+    m_pipeline_state_object->BindRenderTargets({m_base_pass_color_render_target.get(), m_base_pass_normal_render_target.get(), &resource_manager.GetDepthRT()});
 
-    auto& shaderMacros = m_pipeline_state_object->GetShaderMacros();
-    glTFRenderPassInterfaceSceneView::UpdateShaderCompileDefine(shaderMacros);
-    glTFRenderPassInterfaceSceneMesh::UpdateShaderCompileDefine(shaderMacros);
+    auto& shader_macros = m_pipeline_state_object->GetShaderMacros();
+    glTFRenderPassInterfaceSceneView::UpdateShaderCompileDefine(shader_macros);
+    glTFRenderPassInterfaceSceneMesh::UpdateShaderCompileDefine(shader_macros);
     
     return true;
 }
@@ -180,7 +192,7 @@ bool glTFRenderPassMeshBase::EndDrawMesh(glTFRenderResourceManager& resourceMana
 
 std::vector<RHIPipelineInputLayout> glTFRenderPassMeshBase::GetVertexInputLayout()
 {
-    return m_vertexInputLayouts;
+    return m_vertex_input_layouts;
 }
 
 bool glTFRenderPassMeshBase::TryProcessSceneObject(glTFRenderResourceManager& resourceManager, const glTFSceneObjectBase& object)
@@ -198,35 +210,41 @@ bool glTFRenderPassMeshBase::TryProcessSceneObject(glTFRenderResourceManager& re
 
 bool glTFRenderPassMeshBase::ResolveVertexInputLayout(const VertexLayoutDeclaration& source_vertex_layout)
 {
-	m_vertexInputLayouts.clear();
+	m_vertex_input_layouts.clear();
     
-    unsigned vertexLayoutOffset = 0;
-    for (const auto& vertexLayout : source_vertex_layout.elements)
+    unsigned vertex_layout_offset = 0;
+    for (const auto& vertex_layout : source_vertex_layout.elements)
     {
-        switch (vertexLayout.type)
+        switch (vertex_layout.type)
         {
         case VertexLayoutType::POSITION:
             {
-                GLTF_CHECK(vertexLayout.byte_size == (GetRHIDataFormatBitsPerPixel(RHIDataFormat::R32G32B32_FLOAT) / 8));
-                m_vertexInputLayouts.push_back({INPUT_LAYOUT_UNIQUE_PARAMETER(POSITION), 0, RHIDataFormat::R32G32B32_FLOAT, vertexLayoutOffset});
+                GLTF_CHECK(vertex_layout.byte_size == (GetRHIDataFormatBitsPerPixel(RHIDataFormat::R32G32B32_FLOAT) / 8));
+                m_vertex_input_layouts.push_back({INPUT_LAYOUT_UNIQUE_PARAMETER(POSITION), 0, RHIDataFormat::R32G32B32_FLOAT, vertex_layout_offset});
             }
             break;
         case VertexLayoutType::NORMAL:
             {
-                GLTF_CHECK(vertexLayout.byte_size == (GetRHIDataFormatBitsPerPixel(RHIDataFormat::R32G32B32_FLOAT) / 8));
-                m_vertexInputLayouts.push_back({INPUT_LAYOUT_UNIQUE_PARAMETER(NORMAL), 0, RHIDataFormat::R32G32B32_FLOAT, vertexLayoutOffset});
+                GLTF_CHECK(vertex_layout.byte_size == (GetRHIDataFormatBitsPerPixel(RHIDataFormat::R32G32B32_FLOAT) / 8));
+                m_vertex_input_layouts.push_back({INPUT_LAYOUT_UNIQUE_PARAMETER(NORMAL), 0, RHIDataFormat::R32G32B32_FLOAT, vertex_layout_offset});
+            }
+            break;
+        case VertexLayoutType::TANGENT:
+            {
+                GLTF_CHECK(vertex_layout.byte_size == (GetRHIDataFormatBitsPerPixel(RHIDataFormat::R32G32B32A32_FLOAT) / 8));
+                m_vertex_input_layouts.push_back({INPUT_LAYOUT_UNIQUE_PARAMETER(TANGENT), 0, RHIDataFormat::R32G32B32A32_FLOAT, vertex_layout_offset});
             }
             break;
         case VertexLayoutType::TEXCOORD_0:
             {
-                GLTF_CHECK(vertexLayout.byte_size == (GetRHIDataFormatBitsPerPixel(RHIDataFormat::R32G32_FLOAT) / 8));
-                m_vertexInputLayouts.push_back({INPUT_LAYOUT_UNIQUE_PARAMETER(TEXCOORD), 0, RHIDataFormat::R32G32_FLOAT, vertexLayoutOffset});
+                GLTF_CHECK(vertex_layout.byte_size == (GetRHIDataFormatBitsPerPixel(RHIDataFormat::R32G32_FLOAT) / 8));
+                m_vertex_input_layouts.push_back({INPUT_LAYOUT_UNIQUE_PARAMETER(TEXCOORD), 0, RHIDataFormat::R32G32_FLOAT, vertex_layout_offset});
             }
             break;
             // TODO: Handle TEXCOORD_1?
         }
 
-        vertexLayoutOffset += vertexLayout.byte_size;   
+        vertex_layout_offset += vertex_layout.byte_size;   
     }
 
     return true;

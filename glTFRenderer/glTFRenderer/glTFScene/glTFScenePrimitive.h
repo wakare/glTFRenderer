@@ -9,6 +9,7 @@ enum class VertexLayoutType
 {
     POSITION,
     NORMAL,
+    TANGENT,
     TEXCOORD_0,
 };
 
@@ -22,6 +23,18 @@ struct VertexLayoutDeclaration
 {
     std::vector<VertexLayoutElement> elements;
 
+    bool HasAttribute(VertexLayoutType attribute_type) const
+    {
+        for (const auto& element : elements)
+        {
+            if (element.type == attribute_type)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+    
     size_t GetVertexStrideInBytes() const
     {
         size_t stride = 0;
@@ -57,7 +70,7 @@ struct VertexBufferData
 {
     std::unique_ptr<char[]> data;
     size_t byteSize;
-    size_t vertexCount;
+    size_t vertex_count;
 };
 
 enum class IndexBufferElementType
@@ -72,7 +85,7 @@ struct IndexBufferData
     
     std::unique_ptr<char[]> data;
     size_t byteSize;
-    size_t indexCount;
+    size_t index_count;
 };
 
 class glTFScenePrimitive : public glTFSceneObjectBase
@@ -92,6 +105,7 @@ public:
     virtual size_t GetInstanceCount() const { return 1; }
     void SetMaterial(std::shared_ptr<glTFMaterialBase> material);
     bool HasMaterial() const {return m_material != nullptr; }
+    bool HasNormalMapping() const { return GetVertexLayout().HasAttribute(VertexLayoutType::TANGENT);}
     const glTFMaterialBase& GetMaterial() const;
     
 private:
