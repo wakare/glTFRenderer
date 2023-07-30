@@ -7,7 +7,8 @@ VS_OUTPUT main(VS_INPUT input)
     float4 view_pos = mul(viewMatrix, world_pos);
     output.pos = mul (projectionMatrix, view_pos);
 #ifdef HAS_NORMAL
-    output.normal = mul(transInvWorldMat, float4(input.normal, 0.0)).xyz * 0.5 + 0.5;
+    //output.normal = normalize(mul(worldMat, float4(input.normal, 0.0)).xyz);
+    output.normal = input.normal;
 #endif
 
 #ifdef HAS_TANGENT
