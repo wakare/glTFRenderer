@@ -199,7 +199,7 @@ bool glTFRenderPassMeshBase::TryProcessSceneObject(glTFRenderResourceManager& re
 {
     const glTFScenePrimitive* primitive = dynamic_cast<const glTFScenePrimitive*>(&object);
     
-    if (!primitive)
+    if (!primitive || !primitive->IsVisible())
     {
         return false;
     }

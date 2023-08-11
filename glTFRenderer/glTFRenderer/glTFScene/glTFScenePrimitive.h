@@ -93,8 +93,8 @@ class glTFScenePrimitive : public glTFSceneObjectBase
 public:
     glTFScenePrimitive(const glTF_Transform_WithTRS& parentTransformRef,
                        std::shared_ptr<glTFMaterialBase> m_material = nullptr)
-        : glTFSceneObjectBase(parentTransformRef),
-          m_material(std::move(m_material))
+        : glTFSceneObjectBase(parentTransformRef)
+        , m_material(std::move(m_material))
     {
     }
 

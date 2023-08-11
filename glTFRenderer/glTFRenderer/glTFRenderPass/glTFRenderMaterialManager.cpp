@@ -102,8 +102,11 @@ RHIGPUDescriptorHandle glTFMaterialRenderResource::GetTextureGPUHandle() const
 bool glTFRenderMaterialManager::InitMaterialRenderResource(glTFRenderResourceManager& resource_manager, IRHIDescriptorHeap& descriptor_heap, const glTFMaterialBase& material)
 {
 	const auto material_ID = material.GetID();
-	m_material_render_resources[material_ID] = std::make_unique<glTFMaterialRenderResource>(material);
-    RETURN_IF_FALSE(m_material_render_resources[material_ID]->Init(resource_manager, descriptor_heap))
+    if (m_material_render_resources.find(material_ID) == m_material_render_resources.end())
+    {
+        m_material_render_resources[material_ID] = std::make_unique<glTFMaterialRenderResource>(material);
+        RETURN_IF_FALSE(m_material_render_resources[material_ID]->Init(resource_manager, descriptor_heap))    
+    }
 
     return true;
 }

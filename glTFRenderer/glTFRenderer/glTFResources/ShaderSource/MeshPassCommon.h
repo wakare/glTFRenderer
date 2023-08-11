@@ -10,7 +10,7 @@ struct VS_INPUT
 #endif
     
 #ifdef HAS_TANGENT
-    float3 tangent: TANGENT;
+    float4 tangent: TANGENT;
 #endif
     
 #ifdef HAS_TEXCOORD 
@@ -27,7 +27,7 @@ struct VS_OUTPUT
 #endif
 
 #ifdef HAS_TANGENT
-    float3 tangent: TANGENT;
+    float4 tangent: TANGENT;
 #endif
     
 #ifdef HAS_TEXCOORD

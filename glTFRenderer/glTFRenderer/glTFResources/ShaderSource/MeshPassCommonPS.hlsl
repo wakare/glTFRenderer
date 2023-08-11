@@ -19,16 +19,18 @@ PS_OUTPUT main(PS_INPUT input)
     if (using_normal_mapping)
     {
         float3 normal = 2 * normal_texture.Sample(s0, input.texCoord).xyz - 1.0;
-        float3 bitangent = normalize(cross(input.normal, input.tangent));
-        float3x3 TBN = (float3x3(input.tangent, bitangent, input.normal));
-        output.normal = float4(mul(TBN, normal), 0.0);
+        float3 tmpTangent = normalize(mul(worldMat, float4(input.tangent.xyz, 0.0)).xyz);
+        float3 bitangent = cross(input.normal, tmpTangent) * input.tangent.w;
+        float3 tangent = cross(bitangent, input.normal);
+        float3x3 TBN = transpose(float3x3(tangent, bitangent, input.normal));
+        output.normal = mul(worldMat, float4(mul(TBN, normal), 0.0));
     }
     else
     #endif
     {
         output.normal = float4(input.normal, 0.0);
     }
-    output.normal = normalize(mul(worldMat, output.normal)) * 0.5 + 0.5;
+    output.normal = normalize(output.normal) * 0.5 + 0.5;
 #else
     output.normal = float4(0.0, 0.0, 0.0, 0.0);
 #endif

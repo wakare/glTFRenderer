@@ -57,6 +57,7 @@ public:
         : m_parent_final_transform(parentTransformRef)
         , m_transform(glTF_Transform_WithTRS::identity)
         , m_dirty(true)
+        , m_visible(true)
     {
         
     }
@@ -77,10 +78,15 @@ public:
     bool IsDirty() const;
     void ResetDirty();
     
+    bool IsVisible() const {return m_visible; }
+    void SetVisible(bool visible) {m_visible = visible;}
+    
 protected:
     const glTF_Transform_WithTRS& m_parent_final_transform;
     glTF_Transform_WithTRS m_transform;
 
     glTF_AABB::AABB m_AABB;
     bool m_dirty;
+    
+    bool m_visible;
 };

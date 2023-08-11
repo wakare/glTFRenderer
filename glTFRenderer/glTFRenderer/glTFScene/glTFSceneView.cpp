@@ -18,18 +18,25 @@ bool glTFSceneView::SetupRenderPass(glTFRenderPassManager& out_render_pass_manag
     
 	m_scene_graph.TraverseNodes([&resolved_vertex_layout, &has_resolved](const glTFSceneNode& node)
 	{
-	    for (const auto& scene_object : node.m_objects)
+	    for (auto& scene_object : node.m_objects)
 	    {
-	        if (const auto* primitive = dynamic_cast<const glTFScenePrimitive*>(scene_object.get()))
+	        if (auto* primitive = dynamic_cast<glTFScenePrimitive*>(scene_object.get()))
 	        {
-	            for (const auto& vertex_layout : primitive->GetVertexLayout().elements)
+	            if (!has_resolved)
 	            {
-	                if (!resolved_vertex_layout.HasAttribute(vertex_layout.type))
+	                for (const auto& vertex_layout : primitive->GetVertexLayout().elements)
 	                {
-	                    resolved_vertex_layout.elements.push_back(vertex_layout);
-	                    has_resolved = true;
-	                }
+                        if (!resolved_vertex_layout.HasAttribute(vertex_layout.type))
+                        {
+                            resolved_vertex_layout.elements.push_back(vertex_layout);
+                            has_resolved = true;
+                        }
+                    }    
 	            }
+                else if (!(primitive->GetVertexLayout() == resolved_vertex_layout))
+                {
+                    primitive->SetVisible(false);
+                }
             }    
 	    }
 	    

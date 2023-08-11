@@ -82,10 +82,10 @@ bool glTFWindow::InitAndShowWindow()
     std::unique_ptr<glTFSceneNode> directional_light_node = std::make_unique<glTFSceneNode>();
     std::unique_ptr<glTFDirectionalLight> directionalLight = std::make_unique<glTFDirectionalLight>(directional_light_node->m_transform);
     directionalLight->Rotate({45.0f, 0.0f, 0.0f});
-    directionalLight->SetIntensity(10.0f);
+    directionalLight->SetIntensity(1.0f);
     directionalLight->SetTickFunc([lightNode = directionalLight.get()]()
     {
-        lightNode->RotateOffset({0.001f, 0.002f, 0.003f});
+        lightNode->RotateOffset({0.000f, 20.0f, 0.000f});
     });
     directional_light_node->m_objects.push_back(std::move(directionalLight));
 
