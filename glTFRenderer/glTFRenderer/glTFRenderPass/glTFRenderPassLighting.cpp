@@ -7,6 +7,7 @@
 #include "../glTFLight/glTFLightBase.h"
 #include "../glTFLight/glTFPointLight.h"
 #include "../glTFRHI/RHIResourceFactory.h"
+#include "../glTFUtils/glTFLog.h"
 
 glTFRenderPassLighting::glTFRenderPassLighting()
     : glTFRenderPassInterfaceSceneView(LightPass_RootParameter_SceneViewCBV, LightPass_RootParameter_SceneViewCBV)
@@ -151,6 +152,10 @@ bool glTFRenderPassLighting::TryProcessSceneObject(glTFRenderResourceManager& re
             const glTFDirectionalLight* directionalLight = dynamic_cast<const glTFDirectionalLight*>(light);
             DirectionalLightInfo directionalLightInfo{};
             directionalLightInfo.directionalAndIntensity = glm::vec4(directionalLight->GetDirection(), directionalLight->GetIntensity());
+            LOG_FORMAT("[Light] Directional light updated with direction %f %f %f\n",
+                directionalLightInfo.directionalAndIntensity.x,
+                directionalLightInfo.directionalAndIntensity.y,
+                directionalLightInfo.directionalAndIntensity.z);
             m_cache_directional_lights[directionalLight->GetID()] = directionalLightInfo;
         }
         break;

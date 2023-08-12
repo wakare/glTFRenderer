@@ -1,5 +1,7 @@
 #include "glTFSceneView.h"
 
+#include <gtx/norm.hpp>
+
 #include "../glTFWindow/glTFInputManager.h"
 #include "../glTFRenderPass/glTFRenderPassManager.h"
 #include "../glTFRenderPass/glTFRenderPassMeshOpaque.h"
@@ -263,8 +265,15 @@ void glTFSceneView::ApplyInputForCamera(glTFInputManager& input_manager, glTFCam
 
     if (camera.GetCameraMode() == CameraMode::Free)
     {
-        camera.TranslateOffset(delta_translation);
-        camera.RotateOffset(delta_rotation);
+        if (glm::length2(delta_translation) > 0)
+        {
+            camera.TranslateOffset(delta_translation);    
+        }
+
+        if (glm::length2(delta_rotation) > 0)
+        {
+            camera.RotateOffset(delta_rotation);    
+        }
     }
     else if (camera.GetCameraMode() == CameraMode::Observer)
     {

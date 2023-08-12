@@ -551,7 +551,6 @@ void glTFLoader::Print() const
             for (const auto& attribute: primitive.attributes)
             {
                 const std::string attributeName = AttributeName(static_cast<glTF_Attribute_Base::glTF_Attribute>(attribute.first));
-                LOG_FORMAT("[DEBUG] Mesh primitve contains %s\n", attributeName.c_str());
             }
         }
     }

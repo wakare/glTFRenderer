@@ -1,5 +1,9 @@
 #pragma once
 
+#include <common.hpp>
+#include <common.hpp>
+#include <common.hpp>
+#include <common.hpp>
 #include <glm/glm/glm.hpp>
 #include <glm/glm/gtc/matrix_transform.hpp>
 #include <glm/glm/gtx/euler_angles.hpp>
@@ -23,8 +27,8 @@ struct glTF_Transform_WithTRS : public glTF_Transform
 
     void Translate(const glm::fvec3& translation);
     void TranslateOffset(const glm::fvec3& translation);
-    void Rotate(const glm::quat& rotation);
-    void RotateOffset(const glm::quat& rotation);
+    void RotateEulerAngle(const glm::fvec3& euler_angle);
+    void RotateEulerAngleOffset(const glm::fvec3& euler_angle);
     void Scale(const glm::fvec3& scale);
     
     void Update() const;
@@ -42,10 +46,13 @@ struct glTF_Transform_WithTRS : public glTF_Transform
     void MarkDirty() const;
     
 protected:
+    void UpdateEulerAngleToQuat();
+    
     mutable bool m_dirty;
     
     glm::fvec3 m_translation;
-    glm::quat m_rotation;
+    glm::fvec3 m_euler_angles;
+    glm::quat m_quat;
     glm::fvec3 m_scale;
 };
 

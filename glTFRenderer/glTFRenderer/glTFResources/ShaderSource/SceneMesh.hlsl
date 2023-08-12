@@ -1,3 +1,6 @@
+#ifndef SCENE_MESH
+#define SCENE_MESH
+
 #ifndef SCENE_MESH_REGISTER_CBV_INDEX
 #define SCENE_MESH_REGISTER_CBV_INDEX register(b0) 
 #endif
@@ -19,3 +22,5 @@ cbuffer SceneMeshConstantBuffer : SCENE_MESH_REGISTER_CBV_INDEX
 
 Texture2D baseColor_texture: SCENE_MESH_REGISTER_SRV_INDEX_ZERO;
 Texture2D normal_texture: SCENE_MESH_REGISTER_SRV_INDEX_ONE;
+
+#endif

@@ -1,4 +1,4 @@
-#include "glTFResources/ShaderSource/MeshPassCommon.h"
+#include "glTFResources/ShaderSource/MeshPassCommon.hlsl"
 
 #ifdef HAS_TEXCOORD 
 SamplerState s0 : register(s0);

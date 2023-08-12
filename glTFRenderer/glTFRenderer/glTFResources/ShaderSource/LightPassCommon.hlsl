@@ -1,5 +1,7 @@
-#include "glTFResources/ShaderSource/PassCommon.h"
-#include "glTFResources/ShaderSource/SceneView.h"
+#ifndef LIGHT_PASS_COMMON
+#define LIGHT_PASS_COMMON
+#include "glTFResources/ShaderSource/PassCommon.hlsl"
+#include "glTFResources/ShaderSource/SceneView.hlsl"
 
 struct VS_INPUT
 {
@@ -26,3 +28,6 @@ struct VS_OUTPUT
     float2 texCoord: TEXCOORD;
 #endif
 };
+
+#endif
+

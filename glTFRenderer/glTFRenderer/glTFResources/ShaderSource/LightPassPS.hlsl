@@ -1,4 +1,4 @@
-#include "glTFResources/ShaderSource/LightPassCommon.h"
+#include "glTFResources/ShaderSource/LightPassCommon.hlsl"
 
 Texture2D albedoTex: register(t0);
 Texture2D depthTex: register(t1);
@@ -57,7 +57,7 @@ float3 LightingWithDirectionalLight(float3 worldPosition, float3 baseColor, floa
 {
     float3 normalizedLightDir = normalize(directionalLightInfo.directionalAndIntensity.xyz);
     float intensity = directionalLightInfo.directionalAndIntensity.w;
-    float geometryFalloff = max(0.0, dot(normal, normalizedLightDir));
+    float geometryFalloff = max(0.0, dot(normal, -normalizedLightDir));
     geometryFalloff = pow(geometryFalloff, 2.0);
     
     return baseColor * intensity * geometryFalloff;

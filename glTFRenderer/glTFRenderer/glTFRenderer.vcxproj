@@ -61,7 +61,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty;$(SolutionDir)ThirdParty/glm/glm;$(SolutionDir)ThirdParty/glfw/include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty;$(SolutionDir)ThirdParty/glm/glm;$(SolutionDir)ThirdParty/glfw/include;$(SolutionDir)glTFRenderer;</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     </ClCompile>
@@ -86,7 +86,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty;$(SolutionDir)ThirdParty/glm/glm;$(SolutionDir)ThirdParty/glfw/include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty;$(SolutionDir)ThirdParty/glm/glm;$(SolutionDir)ThirdParty/glfw/include;$(SolutionDir)glTFRenderer;</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     </ClCompile>
@@ -215,11 +215,11 @@
     <ClInclude Include="glTFRenderPass\glTFRenderPassMeshOpaque.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderPassPostprocess.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderResourceManager.h" />
-    <None Include="glTFResources\ShaderSource\MeshPassCommon.h" />
-    <ClInclude Include="glTFResources\ShaderSource\LightPassCommon.h" />
-    <ClInclude Include="glTFResources\ShaderSource\PassCommon.h" />
-    <ClInclude Include="glTFResources\ShaderSource\SceneMesh.h" />
-    <ClInclude Include="glTFResources\ShaderSource\SceneView.h" />
+    <None Include="glTFResources\ShaderSource\MeshPassCommon.hlsl" />
+    <None Include="glTFResources\ShaderSource\LightPassCommon.hlsl" />
+    <None Include="glTFResources\ShaderSource\PassCommon.hlsl" />
+    <None Include="glTFResources\ShaderSource\SceneMesh.hlsl" />
+    <None Include="glTFResources\ShaderSource\SceneView.hlsl" />
     <ClInclude Include="glTFRHI\RHIConfigSingleton.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\d3dx12.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12DescriptorHeap.h" />

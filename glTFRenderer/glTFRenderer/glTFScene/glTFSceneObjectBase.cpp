@@ -7,18 +7,22 @@ glTFUniqueID glTFUniqueObject::_innerUniqueID = 0;
 const glTF_Transform_WithTRS glTF_Transform_WithTRS::identity;
 
 glTF_Transform_WithTRS::glTF_Transform_WithTRS(const glm::fmat4& matrix): glTF_Transform(matrix),
-                                                                          m_dirty(true), m_translation(), m_rotation(),
+                                                                          m_dirty(true),
+                                                                          m_translation(),
+                                                                          m_euler_angles(),
+                                                                          m_quat(),
                                                                           m_scale()
 {
     // Init TRS
-    DecomposeMatrix(matrix, m_translation, m_rotation, m_scale);
+    DecomposeMatrix(matrix, m_translation, m_quat, m_scale);
 }
 
-glTF_Transform_WithTRS::glTF_Transform_WithTRS(const glTF_Transform_WithTRS& rhs): glTF_Transform(rhs.GetTransformMatrix())
-                                                                                   , m_dirty(true)
-                                                                                   , m_translation(rhs.m_translation)
-                                                                                   , m_rotation(rhs.m_rotation)
-                                                                                   , m_scale(rhs.m_scale)
+glTF_Transform_WithTRS::glTF_Transform_WithTRS(const glTF_Transform_WithTRS& rhs): glTF_Transform(rhs.GetTransformMatrix()) ,
+                                                                                m_dirty(true),
+                                                                                m_translation(rhs.m_translation),
+                                                                                m_euler_angles(rhs.m_euler_angles),
+                                                                                m_quat(rhs.m_quat),
+                                                                                m_scale(rhs.m_scale)
 {
         
 }
@@ -28,7 +32,7 @@ glTF_Transform_WithTRS& glTF_Transform_WithTRS::operator=(const glTF_Transform_W
     m_matrix = rhs.m_matrix;
     m_dirty = true;
     m_translation = rhs.m_translation;
-    m_rotation = rhs.m_rotation;
+    m_quat = rhs.m_quat;
     m_scale = rhs.m_scale;
         
     return *this;
@@ -87,16 +91,16 @@ void glTF_Transform_WithTRS::TranslateOffset(const glm::fvec3& translation)
     MarkDirty();
 }
 
-void glTF_Transform_WithTRS::Rotate(const glm::quat& rotation)
+void glTF_Transform_WithTRS::RotateEulerAngle(const glm::fvec3& euler_angle)
 {
-    m_rotation = rotation;
-    MarkDirty();
+    m_euler_angles = euler_angle;
+    UpdateEulerAngleToQuat();
 }
 
-void glTF_Transform_WithTRS::RotateOffset(const glm::quat& rotation)
+void glTF_Transform_WithTRS::RotateEulerAngleOffset(const glm::fvec3& euler_angle)
 {
-    m_rotation *= rotation;
-    MarkDirty();
+    m_euler_angles += euler_angle;
+    UpdateEulerAngleToQuat();
 }
 
 void glTF_Transform_WithTRS::Scale(const glm::fvec3& scale)
@@ -109,7 +113,7 @@ void glTF_Transform_WithTRS::Update() const
 {
     if (m_dirty)
     {
-        const glm::mat4 rotation_matrix = glm::toMat4(m_rotation);
+        const glm::mat4 rotation_matrix = glm::toMat4(m_quat);
         const glm::mat4 scale_matrix = glm::scale(glm::mat4(1.0f), m_scale);
         const glm::mat4 translation_matrix = glm::translate(glm::mat4(1.0f), m_translation);
         
@@ -122,6 +126,12 @@ void glTF_Transform_WithTRS::Update() const
 void glTF_Transform_WithTRS::MarkDirty() const
 {
     m_dirty = true;
+}
+
+void glTF_Transform_WithTRS::UpdateEulerAngleToQuat()
+{
+    m_quat = m_euler_angles;
+    MarkDirty();
 }
 
 void glTFSceneObjectBase::Translate(const glm::fvec3& translation_delta)
@@ -138,13 +148,13 @@ void glTFSceneObjectBase::TranslateOffset(const glm::fvec3& translation_delta)
 
 void glTFSceneObjectBase::Rotate(const glm::fvec3& rotation_delta)
 {
-    m_transform.Rotate(rotation_delta);
+    m_transform.RotateEulerAngle(rotation_delta);
     MarkDirty();
 }
 
 void glTFSceneObjectBase::RotateOffset(const glm::fvec3& rotation_delta)
 {
-    m_transform.RotateOffset(rotation_delta);
+    m_transform.RotateEulerAngleOffset(rotation_delta);
     MarkDirty();
 }
 

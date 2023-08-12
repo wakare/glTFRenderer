@@ -1,4 +1,4 @@
-#include "glTFResources/ShaderSource/LightPassCommon.h"
+#include "glTFResources/ShaderSource/LightPassCommon.hlsl"
 
 VS_OUTPUT main(VS_INPUT input)
 {

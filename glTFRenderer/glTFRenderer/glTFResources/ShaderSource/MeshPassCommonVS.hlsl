@@ -1,4 +1,4 @@
-#include "glTFResources/ShaderSource/MeshPassCommon.h"
+#include "glTFResources/ShaderSource/MeshPassCommon.hlsl"
 
 VS_OUTPUT main(VS_INPUT input)
 {

@@ -1,5 +1,7 @@
-#include "glTFResources/ShaderSource/SceneView.h"
-#include "glTFResources/ShaderSource/SceneMesh.h"
+#ifndef MESH_PASS_COMMON
+#define MESH_PASS_COMMON
+#include "glTFResources/ShaderSource/SceneView.hlsl"
+#include "glTFResources/ShaderSource/SceneMesh.hlsl"
 
 struct VS_INPUT
 {
@@ -42,3 +44,4 @@ struct PS_OUTPUT
     float4 baseColor: SV_TARGET0;
     float4 normal: SV_TARGET1;
 };
+#endif
