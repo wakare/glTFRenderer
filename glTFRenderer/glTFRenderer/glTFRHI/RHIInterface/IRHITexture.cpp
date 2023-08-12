@@ -10,16 +10,6 @@ RHITextureDesc::RHITextureDesc()
     
 }
 
-RHITextureDesc::~RHITextureDesc()
-{
-    if (m_textureData)
-    {
-        free(m_textureData);
-        m_textureData = nullptr;
-        m_textureDataSize = 0;
-    }
-}
-
 bool RHITextureDesc::Init(unsigned width, unsigned height, RHIDataFormat format)
 {
     assert(m_textureData == nullptr);
@@ -29,7 +19,7 @@ bool RHITextureDesc::Init(unsigned width, unsigned height, RHIDataFormat format)
     m_textureFormat = format;
 
     m_textureDataSize = static_cast<size_t>(width * height * GetRHIDataFormatBitsPerPixel(format) / 8);
-    m_textureData = malloc(m_textureDataSize);
+    m_textureData.reset(static_cast<unsigned char*>(malloc(m_textureDataSize))) ;
     RETURN_IF_FALSE(m_textureData)
     
     return true;

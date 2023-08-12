@@ -77,9 +77,16 @@ WICPixelFormatGUID GetConvertToWICFormat(const WICPixelFormatGUID& wicFormatGUID
     else return GUID_WICPixelFormatDontCare;
 }
 
+glTFImageLoader& glTFImageLoader::Instance()
+{
+    static glTFImageLoader _instance;
+    return _instance;
+}
+
 glTFImageLoader::glTFImageLoader()
     : m_wicFactory(nullptr)
 {
+    InitImageLoader();
 }
 
 void glTFImageLoader::InitImageLoader()
@@ -153,11 +160,11 @@ bool glTFImageLoader::LoadImageByFilename(const LPCWSTR filename, RHITextureDesc
     const unsigned bytesPerRow = textureWidth * GetRHIDataFormatBitsPerPixel(dataFormat) / 8;
     if (needConvertFormat)
     {
-        THROW_IF_FAILED(wicConverter->CopyPixels(0, bytesPerRow, desc.GetTextureDataSize(), static_cast<BYTE*>(desc.GetTextureData())))
+        THROW_IF_FAILED(wicConverter->CopyPixels(0, bytesPerRow, desc.GetTextureDataSize(), desc.GetTextureData()))
     }
     else
     {
-        THROW_IF_FAILED(wicFrame->CopyPixels(0, bytesPerRow, desc.GetTextureDataSize(), static_cast<BYTE*>(desc.GetTextureData())))
+        THROW_IF_FAILED(wicFrame->CopyPixels(0, bytesPerRow, desc.GetTextureDataSize(), desc.GetTextureData()))
     }
 
     return true;

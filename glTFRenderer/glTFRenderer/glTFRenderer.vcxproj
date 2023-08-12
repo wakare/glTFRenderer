@@ -126,6 +126,7 @@
     <ClCompile Include="glTFRenderPass\glTFRenderPassLighting.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderPassManager.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderPassMeshBase.cpp" />
+    <ClCompile Include="glTFRenderPass\glTFRenderPassMeshDepth.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderPassMeshOpaque.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderPassPostprocess.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderResourceManager.cpp" />
@@ -212,6 +213,7 @@
     <ClInclude Include="glTFRenderPass\glTFRenderPassLighting.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderPassManager.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderPassMeshBase.h" />
+    <ClInclude Include="glTFRenderPass\glTFRenderPassMeshDepth.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderPassMeshOpaque.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderPassPostprocess.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderResourceManager.h" />

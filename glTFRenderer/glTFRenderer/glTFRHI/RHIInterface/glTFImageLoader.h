@@ -6,10 +6,12 @@ struct RHITextureDesc;
 class glTFImageLoader
 {
 public:
-    glTFImageLoader();
-    void InitImageLoader();
+    static glTFImageLoader& Instance();
     bool LoadImageByFilename(const LPCWSTR filename, RHITextureDesc& desc ) const;
 
 protected:
+    glTFImageLoader();
+    void InitImageLoader();
+    
     IWICImagingFactory* m_wicFactory;
 };

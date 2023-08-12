@@ -2,6 +2,7 @@
 
 #include "IRHIDevice.h"
 #include "IRHIResource.h"
+#include <memory>
 
 class IRHIGPUBuffer;
 class IRHICommandList;
@@ -17,18 +18,16 @@ public:
     RHITextureDesc& operator=(const RHITextureDesc&) = delete;
     RHITextureDesc& operator=(RHITextureDesc&&) = delete;
     
-    ~RHITextureDesc();
-    
     bool Init(unsigned width, unsigned height, RHIDataFormat format);
     
-    void* GetTextureData() const { return m_textureData; }
+    unsigned char* GetTextureData() const { return m_textureData.get(); }
     size_t GetTextureDataSize() const { return m_textureDataSize; }
     RHIDataFormat GetDataFormat() const { return m_textureFormat; }
     unsigned GetTextureWidth() const { return m_textureWidth; }
     unsigned GetTextureHeight() const { return m_textureHeight; }
     
 private:
-    void* m_textureData;
+    std::unique_ptr<unsigned char[]> m_textureData;
     size_t m_textureDataSize;
     unsigned m_textureWidth;
     unsigned m_textureHeight;
@@ -38,7 +37,7 @@ private:
 class IRHITexture : public IRHIResource
 {
 public:
-    virtual bool UploadTextureFromFile(IRHIDevice& device, IRHICommandList& commandList, glTFImageLoader& imageLoader, const std::string& filePath) = 0;
+    virtual bool UploadTextureFromFile(IRHIDevice& device, IRHICommandList& commandList, const std::string& filePath) = 0;
     virtual IRHIGPUBuffer& GetGPUBuffer() = 0;
     
     const RHITextureDesc& GetTextureDesc() const {return m_textureDesc; }

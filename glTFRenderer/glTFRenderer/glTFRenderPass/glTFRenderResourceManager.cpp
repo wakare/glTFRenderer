@@ -118,8 +118,8 @@ glTFRenderMaterialManager& glTFRenderResourceManager::GetMaterialManager()
     return *m_material_manager;
 }
 
-bool glTFRenderResourceManager::ApplyMaterial(glTFUniqueID material_ID, unsigned slot_index)
+bool glTFRenderResourceManager::ApplyMaterial(IRHIDescriptorHeap& descriptor_heap, glTFUniqueID material_ID, unsigned slot_index)
 {
-    return m_material_manager->ApplyMaterialRenderResource(*this, material_ID, slot_index);
+    return m_material_manager->ApplyMaterialRenderResource(*this, descriptor_heap, material_ID, slot_index);
 }
 

@@ -6,33 +6,10 @@
 #include "../glTFRHI/RHIResourceFactoryImpl.hpp"
 #include "../glTFRHI/RHIInterface/glTFImageLoader.h"
 
-bool glTFRenderPassMeshOpaque::InitPass(glTFRenderResourceManager& resource_manager)
-{
-    RETURN_IF_FALSE(glTFRenderPassMeshBase::InitPass(resource_manager))
-    
-    RETURN_IF_FALSE(RHIUtils::Instance().ResetCommandList(resource_manager.GetCommandList(), resource_manager.GetCurrentFrameCommandAllocator()))
-    
-    RETURN_IF_FALSE(glTFRenderPassInterfaceSceneView::InitInterface(resource_manager))
-    RETURN_IF_FALSE(glTFRenderPassInterfaceSceneMesh::InitInterface(resource_manager))
-    
-    RETURN_IF_FALSE(RHIUtils::Instance().CloseCommandList(resource_manager.GetCommandList()))
-    RETURN_IF_FALSE(RHIUtils::Instance().ExecuteCommandList(resource_manager.GetCommandList(),resource_manager.GetCommandQueue()))
-    RETURN_IF_FALSE(resource_manager.GetCurrentFrameFence().SignalWhenCommandQueueFinish(resource_manager.GetCommandQueue()))
-
-    LOG_FORMAT("[DEBUG] Init MeshPassOpaque finished!\n")
-    return true;
-}
-
-bool glTFRenderPassMeshOpaque::RenderPass(glTFRenderResourceManager& resource_manager)
-{
-    RETURN_IF_FALSE(glTFRenderPassMeshBase::RenderPass(resource_manager))
-    
-    return true;
-}
-
 bool glTFRenderPassMeshOpaque::ProcessMaterial(glTFRenderResourceManager& resource_manager, const glTFMaterialBase& material)
 {
     RETURN_IF_FALSE(material.GetMaterialType() == MaterialType::Opaque)
+    // Material texture resource descriptor is alloc within current heap
 	RETURN_IF_FALSE(resource_manager.GetMaterialManager().InitMaterialRenderResource(resource_manager, *m_main_descriptor_heap, material))
     
     return true;
@@ -49,11 +26,11 @@ bool glTFRenderPassMeshOpaque::SetupRootSignature(glTFRenderResourceManager& res
     // Init root signature
     constexpr size_t root_signature_parameter_count = MeshBasePass_RootParameter_LastIndex;
     constexpr size_t root_signature_static_sampler_count = 1;
-    RETURN_IF_FALSE(m_root_signature->AllocateRootSignatureSpace(root_signature_parameter_count, root_signature_static_sampler_count))
     
+    RETURN_IF_FALSE(m_root_signature->AllocateRootSignatureSpace(root_signature_parameter_count, root_signature_static_sampler_count))
     RETURN_IF_FALSE(glTFRenderPassMeshBase::SetupRootSignature(resource_manager))
     
-    m_root_signature->GetStaticSampler(0).InitStaticSampler(0, RHIStaticSamplerAddressMode::Warp, RHIStaticSamplerFilterMode::Linear);
+    RETURN_IF_FALSE(m_root_signature->GetStaticSampler(0).InitStaticSampler(0, RHIStaticSamplerAddressMode::Warp, RHIStaticSamplerFilterMode::Linear))
     RETURN_IF_FALSE(m_root_signature->InitRootSignature(resource_manager.GetDevice()))
 
     return true;
@@ -82,5 +59,5 @@ bool glTFRenderPassMeshOpaque::BeginDrawMesh(glTFRenderResourceManager& resource
         return true;
     }
     
-	return resource_manager.ApplyMaterial(material_ID, MeshBasePass_RootParameter_SceneMesh_SRV);
+	return resource_manager.ApplyMaterial(*m_main_descriptor_heap, material_ID, MeshBasePass_RootParameter_SceneMesh_SRV);
 }

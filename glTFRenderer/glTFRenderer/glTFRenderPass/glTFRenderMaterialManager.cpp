@@ -13,28 +13,38 @@ glTFMaterialTextureRenderResource::glTFMaterialTextureRenderResource(const glTFM
         
 }
 
-bool glTFMaterialTextureRenderResource::Init(glTFRenderResourceManager& resource_manager, IRHIDescriptorHeap& descriptor_heap, unsigned descriptor_offset)
+bool glTFMaterialTextureRenderResource::Init(glTFRenderResourceManager& resource_manager, IRHIDescriptorHeap& descriptor_heap)
 {
-    glTFImageLoader imageLoader;
-    imageLoader.InitImageLoader();
-
     RETURN_IF_FALSE(RHIUtils::Instance().ResetCommandList(resource_manager.GetCommandList(), resource_manager.GetCurrentFrameCommandAllocator()))
     
     m_texture_buffer = RHIResourceFactory::CreateRHIResource<IRHITexture>();
-    RETURN_IF_FALSE(m_texture_buffer->UploadTextureFromFile(resource_manager.GetDevice(), resource_manager.GetCommandList(),
-        imageLoader, m_source_texture.GetTexturePath()))
-
-    RETURN_IF_FALSE(descriptor_heap.CreateShaderResourceViewInDescriptorHeap(resource_manager.GetDevice(), descriptor_heap.GetUsedDescriptorCount(),
-        m_texture_buffer->GetGPUBuffer(), {m_texture_buffer->GetTextureDesc().GetDataFormat(), RHIShaderVisibleViewDimension::TEXTURE2D}, m_texture_SRV_handle));
-
+    RETURN_IF_FALSE(m_texture_buffer->UploadTextureFromFile(resource_manager.GetDevice(), resource_manager.GetCommandList(), m_source_texture.GetTexturePath()))
+    
     RHIUtils::Instance().CloseCommandList(resource_manager.GetCommandList()); 
     RHIUtils::Instance().ExecuteCommandList(resource_manager.GetCommandList(), resource_manager.GetCommandQueue());
+    resource_manager.GetCurrentFrameFence().SignalWhenCommandQueueFinish(resource_manager.GetCommandQueue());
     
     return true;
 }
 
-RHICPUDescriptorHandle glTFMaterialTextureRenderResource::GetTextureSRVHandle() const
+RHICPUDescriptorHandle glTFMaterialTextureRenderResource::CreateOrGetTextureSRVHandle(glTFRenderResourceManager& resource_manager, IRHIDescriptorHeap& descriptor_heap)
 {
+    if (!m_texture_SRV_handle)
+    {
+        // Create SRV within heap
+        GLTF_CHECK(m_texture_buffer);
+        RETURN_IF_FALSE(RHIUtils::Instance().ResetCommandList(resource_manager.GetCommandList(), resource_manager.GetCurrentFrameCommandAllocator()))
+        
+        RETURN_IF_FALSE(descriptor_heap.CreateShaderResourceViewInDescriptorHeap(resource_manager.GetDevice(), descriptor_heap.GetUsedDescriptorCount(),
+        m_texture_buffer->GetGPUBuffer(), {m_texture_buffer->GetTextureDesc().GetDataFormat(), RHIShaderVisibleViewDimension::TEXTURE2D}, m_texture_SRV_handle));
+
+        RHIUtils::Instance().CloseCommandList(resource_manager.GetCommandList()); 
+        RHIUtils::Instance().ExecuteCommandList(resource_manager.GetCommandList(), resource_manager.GetCommandQueue());
+        resource_manager.GetCurrentFrameFence().SignalWhenCommandQueueFinish(resource_manager.GetCommandQueue());
+        
+        GLTF_CHECK(m_texture_SRV_handle);
+    }
+    
     return m_texture_SRV_handle;
 }
 
@@ -84,19 +94,27 @@ glTFMaterialRenderResource::glTFMaterialRenderResource(const glTFMaterialBase& s
 
 bool glTFMaterialRenderResource::Init(glTFRenderResourceManager& resource_manager, IRHIDescriptorHeap& descriptor_heap)
 {
-    unsigned texture_index = 0;
     for (const auto& texture : m_textures)
     {
-        RETURN_IF_FALSE(texture.second->Init(resource_manager, descriptor_heap, texture_index++))
+        RETURN_IF_FALSE(texture.second->Init(resource_manager, descriptor_heap))
     }
     
     return true;
 }
 
-RHIGPUDescriptorHandle glTFMaterialRenderResource::GetTextureGPUHandle() const
+RHIGPUDescriptorHandle glTFMaterialRenderResource::CreateOrGetAllTextureFirstGPUHandle(glTFRenderResourceManager& resource_manager, IRHIDescriptorHeap& descriptor_heap)
 {
-    GLTF_CHECK(!m_textures.empty() && m_textures.find(glTFMaterialParameterUsage::BASECOLOR) != m_textures.end());
-    return m_textures.find(glTFMaterialParameterUsage::BASECOLOR)->second->GetTextureSRVHandle();
+    RHIGPUDescriptorHandle handle = 0;
+    for (const auto& texture : m_textures)
+    {
+        const auto current_handle = texture.second->CreateOrGetTextureSRVHandle(resource_manager, descriptor_heap);
+        if (handle == 0 )
+        {
+            handle = current_handle;
+        }
+    }
+    
+    return handle;
 }
 
 bool glTFRenderMaterialManager::InitMaterialRenderResource(glTFRenderResourceManager& resource_manager, IRHIDescriptorHeap& descriptor_heap, const glTFMaterialBase& material)
@@ -111,21 +129,17 @@ bool glTFRenderMaterialManager::InitMaterialRenderResource(glTFRenderResourceMan
     return true;
 }
 
-const glTFMaterialRenderResource& glTFRenderMaterialManager::GetMaterialResource(glTFUniqueID material_ID) const
+bool glTFRenderMaterialManager::ApplyMaterialRenderResource(glTFRenderResourceManager& resource_manager, IRHIDescriptorHeap& descriptor_heap, glTFUniqueID material_ID, unsigned slot_index)
 {
     const auto find_material_iter = m_material_render_resources.find(material_ID);
     if (find_material_iter == m_material_render_resources.end())
     {
         GLTF_CHECK(false);
     }
-    
-    return *find_material_iter->second;
-}
 
-bool glTFRenderMaterialManager::ApplyMaterialRenderResource(glTFRenderResourceManager& resource_manager, glTFUniqueID material_ID, unsigned slot_index)
-{
+    // Apply base color and normal now 
     RETURN_IF_FALSE(RHIUtils::Instance().SetDescriptorTableGPUHandleToRootParameterSlot(resource_manager.GetCommandList(),
-            slot_index, GetMaterialResource(material_ID).GetTextureGPUHandle()))
+            slot_index, find_material_iter->second->CreateOrGetAllTextureFirstGPUHandle(resource_manager, descriptor_heap)))
 
     return true;
 }

@@ -8,6 +8,7 @@
 #include "../glTFRHI/RHIInterface/IRHIRenderTarget.h"
 #include "../glTFRHI/RHIInterface/IRHISwapChain.h"
 #include "../glTFUtils/glTFUtils.h"
+#include "glTFRHI/RHIInterface/IRHIDescriptorHeap.h"
 
 class glTFWindow;
 class glTFRenderMaterialManager;
@@ -36,7 +37,7 @@ public:
     void UpdateCurrentBackBufferIndex() { m_currentBackBufferIndex = m_swapchain->GetCurrentBackBufferIndex(); }
 
 	glTFRenderMaterialManager& GetMaterialManager();
-    bool ApplyMaterial(glTFUniqueID material_ID, unsigned slot_index);
+    bool ApplyMaterial(IRHIDescriptorHeap& descriptor_heap, glTFUniqueID material_ID, unsigned slot_index);
     
 private:
     std::shared_ptr<IRHIFactory> m_factory;

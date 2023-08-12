@@ -16,11 +16,11 @@ DX12Texture::~DX12Texture()
 {
 }
 
-bool DX12Texture::UploadTextureFromFile(IRHIDevice& device, IRHICommandList& commandList, glTFImageLoader& imageLoader, const std::string& filePath)
+bool DX12Texture::UploadTextureFromFile(IRHIDevice& device, IRHICommandList& commandList, const std::string& filePath)
 {
     std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
     const std::wstring convertPath = converter.from_bytes(filePath);
-    RETURN_IF_FALSE(imageLoader.LoadImageByFilename(convertPath.c_str(), m_textureDesc))
+    RETURN_IF_FALSE(glTFImageLoader::Instance().LoadImageByFilename(convertPath.c_str(), m_textureDesc))
 
     const RHIBufferDesc textureBufferDesc = {L"TextureBuffer_Default", m_textureDesc.GetTextureWidth(), m_textureDesc.GetTextureHeight(), 1,  RHIBufferType::Default, m_textureDesc.GetDataFormat(), RHIBufferResourceType::Tex2D};
     m_textureBuffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();

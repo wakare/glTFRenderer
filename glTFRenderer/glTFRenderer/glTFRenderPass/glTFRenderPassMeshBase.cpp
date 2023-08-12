@@ -18,6 +18,8 @@ glTFRenderPassMeshBase::glTFRenderPassMeshBase()
 bool glTFRenderPassMeshBase::InitPass(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE (glTFRenderPassBase::InitPass(resource_manager))
+    RETURN_IF_FALSE(glTFRenderPassInterfaceSceneView::InitInterface(resource_manager))
+    RETURN_IF_FALSE(glTFRenderPassInterfaceSceneMesh::InitInterface(resource_manager))
     
     return true;
 }
@@ -48,7 +50,6 @@ bool glTFRenderPassMeshBase::RenderPass(glTFRenderResourceManager& resource_mana
                 mesh.second.using_normal_mapping
             }))
         
-        //glTFRenderPassInterfaceSceneMesh::ApplyInterface(resourceManager, meshID, MeshBasePass_RootParameter_SceneMesh);
         glTFRenderPassInterfaceSceneMesh::ApplyInterface(resource_manager, 0);
         
         RHIUtils::Instance().SetVertexBufferView(resource_manager.GetCommandList(), *mesh.second.mesh_vertex_buffer_view);
