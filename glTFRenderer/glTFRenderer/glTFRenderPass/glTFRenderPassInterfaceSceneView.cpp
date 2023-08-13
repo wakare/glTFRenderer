@@ -37,7 +37,7 @@ bool glTFRenderPassInterfaceSceneView::UpdateSceneViewData(const ConstantBufferS
 bool glTFRenderPassInterfaceSceneView::ApplyInterface(glTFRenderResourceManager& resourceManager)
 {
     RETURN_IF_FALSE(m_scene_view_gpu_data->UploadBufferFromCPU(&m_scene_view_data, 0, sizeof(m_scene_view_data)))
-    RETURN_IF_FALSE(RHIUtils::Instance().SetConstantBufferViewGPUHandleToRootParameterSlot(resourceManager.GetCommandList(),
+    RETURN_IF_FALSE(RHIUtils::Instance().SetConstantBufferViewGPUHandleToRootParameterSlot(resourceManager.GetCommandListForRecord(),
         m_root_parameter_cbv_index, m_scene_view_gpu_data->GetGPUBufferHandle()))
     
     return true;

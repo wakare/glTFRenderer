@@ -179,21 +179,12 @@ int DX12Utils::GetDXGIFormatBitsPerPixel(DXGI_FORMAT& dxgiFormat)
     return 32;
 }
 
-bool DX12Utils::ResetCommandList(IRHICommandList& commandList, IRHICommandAllocator& commandAllocator)
-{
-    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
-    auto* dxCommandAllocator = dynamic_cast<DX12CommandAllocator&>(commandAllocator).GetCommandAllocator();
-
-    dxCommandList->Reset(dxCommandAllocator, nullptr);
-    return true;
-}
-
 bool DX12Utils::ResetCommandList(IRHICommandList& commandList, IRHICommandAllocator& commandAllocator,
-    IRHIPipelineStateObject& initPSO)
+                                 IRHIPipelineStateObject* initPSO)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
     auto* dxCommandAllocator = dynamic_cast<DX12CommandAllocator&>(commandAllocator).GetCommandAllocator();
-    auto* dxPSO = dynamic_cast<DX12GraphicsPipelineStateObject&>(initPSO).GetPSO();
+    auto* dxPSO = initPSO ? dynamic_cast<DX12GraphicsPipelineStateObject&>(*initPSO).GetPSO() : nullptr;
     
     dxCommandList->Reset(dxCommandAllocator, dxPSO);
     return true;

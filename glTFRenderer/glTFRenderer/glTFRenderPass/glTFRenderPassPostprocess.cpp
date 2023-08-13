@@ -45,23 +45,19 @@ bool glTFRenderPassPostprocess::InitPass(glTFRenderResourceManager& resourceMana
     RETURN_IF_FALSE(vertexUploadBuffer->InitGPUBuffer(resourceManager.GetDevice(), vertexUploadBufferDesc ))
     RETURN_IF_FALSE(indexUploadBuffer->InitGPUBuffer(resourceManager.GetDevice(), indexUploadBufferDesc ))
     
-    RETURN_IF_FALSE(RHIUtils::Instance().ResetCommandList(resourceManager.GetCommandList(), resourceManager.GetCurrentFrameCommandAllocator()))
-    RETURN_IF_FALSE(RHIUtils::Instance().UploadBufferDataToDefaultGPUBuffer(resourceManager.GetCommandList(), *vertexUploadBuffer, *m_postprocessQuadResource.meshVertexBuffer, postprocessVertices, sizeof(postprocessVertices)))
-    RETURN_IF_FALSE(RHIUtils::Instance().UploadBufferDataToDefaultGPUBuffer(resourceManager.GetCommandList(), *indexUploadBuffer, *m_postprocessQuadResource.meshIndexBuffer, postprocessIndices, sizeof(postprocessIndices)))
+    RETURN_IF_FALSE(RHIUtils::Instance().UploadBufferDataToDefaultGPUBuffer(resourceManager.GetCommandListForRecord(), *vertexUploadBuffer, *m_postprocessQuadResource.meshVertexBuffer, postprocessVertices, sizeof(postprocessVertices)))
+    RETURN_IF_FALSE(RHIUtils::Instance().UploadBufferDataToDefaultGPUBuffer(resourceManager.GetCommandListForRecord(), *indexUploadBuffer, *m_postprocessQuadResource.meshIndexBuffer, postprocessIndices, sizeof(postprocessIndices)))
     
-    RETURN_IF_FALSE(RHIUtils::Instance().AddBufferBarrierToCommandList(resourceManager.GetCommandList(), *m_postprocessQuadResource.meshVertexBuffer, RHIResourceStateType::COPY_DEST, RHIResourceStateType::VERTEX_AND_CONSTANT_BUFFER))
-    RETURN_IF_FALSE(RHIUtils::Instance().AddBufferBarrierToCommandList(resourceManager.GetCommandList(), *m_postprocessQuadResource.meshIndexBuffer, RHIResourceStateType::COPY_DEST, RHIResourceStateType::INDEX_BUFFER))
-    RETURN_IF_FALSE(RHIUtils::Instance().CloseCommandList(resourceManager.GetCommandList()))
-    RETURN_IF_FALSE(RHIUtils::Instance().ExecuteCommandList(resourceManager.GetCommandList(),resourceManager.GetCommandQueue()))
-
+    RETURN_IF_FALSE(RHIUtils::Instance().AddBufferBarrierToCommandList(resourceManager.GetCommandListForRecord(), *m_postprocessQuadResource.meshVertexBuffer, RHIResourceStateType::COPY_DEST, RHIResourceStateType::VERTEX_AND_CONSTANT_BUFFER))
+    RETURN_IF_FALSE(RHIUtils::Instance().AddBufferBarrierToCommandList(resourceManager.GetCommandListForRecord(), *m_postprocessQuadResource.meshIndexBuffer, RHIResourceStateType::COPY_DEST, RHIResourceStateType::INDEX_BUFFER))
+    
     vertexBufferView->InitVertexBufferView(*m_postprocessQuadResource.meshVertexBuffer, 0, 20, sizeof(postprocessVertices));
     indexBufferView->InitIndexBufferView(*m_postprocessQuadResource.meshIndexBuffer, 0, RHIDataFormat::R32_UINT, sizeof(postprocessIndices));
 
     auto fence = RHIResourceFactory::CreateRHIResource<IRHIFence>();
     RETURN_IF_FALSE(fence->InitFence(resourceManager.GetDevice()))
 
-    RETURN_IF_FALSE(fence->SignalWhenCommandQueueFinish(resourceManager.GetCommandQueue()))
-    RETURN_IF_FALSE(fence->WaitUtilSignal())
+    resourceManager.CloseCommandListAndExecute(true);
     
     return true;
 }
@@ -80,11 +76,11 @@ bool glTFRenderPassPostprocess::SetupPipelineStateObject(glTFRenderResourceManag
 
 void glTFRenderPassPostprocess::DrawPostprocessQuad(glTFRenderResourceManager& resourceManager)
 {
-    RHIUtils::Instance().SetVertexBufferView(resourceManager.GetCommandList(), *m_postprocessQuadResource.meshVertexBufferView);
-    RHIUtils::Instance().SetIndexBufferView(resourceManager.GetCommandList(), *m_postprocessQuadResource.meshIndexBufferView);
+    RHIUtils::Instance().SetVertexBufferView(resourceManager.GetCommandListForRecord(), *m_postprocessQuadResource.meshVertexBufferView);
+    RHIUtils::Instance().SetIndexBufferView(resourceManager.GetCommandListForRecord(), *m_postprocessQuadResource.meshIndexBufferView);
 
-    RHIUtils::Instance().SetPrimitiveTopology( resourceManager.GetCommandList(), RHIPrimitiveTopologyType::TRIANGLELIST);
-    RHIUtils::Instance().DrawIndexInstanced(resourceManager.GetCommandList(), 6, 1, 0, 0, 0);    
+    RHIUtils::Instance().SetPrimitiveTopology( resourceManager.GetCommandListForRecord(), RHIPrimitiveTopologyType::TRIANGLELIST);
+    RHIUtils::Instance().DrawIndexInstanced(resourceManager.GetCommandListForRecord(), 6, 1, 0, 0, 0);    
 }
 
 std::vector<RHIPipelineInputLayout> glTFRenderPassPostprocess::GetVertexInputLayout()

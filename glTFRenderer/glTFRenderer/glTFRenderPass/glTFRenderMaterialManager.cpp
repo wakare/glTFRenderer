@@ -15,14 +15,12 @@ glTFMaterialTextureRenderResource::glTFMaterialTextureRenderResource(const glTFM
 
 bool glTFMaterialTextureRenderResource::Init(glTFRenderResourceManager& resource_manager, IRHIDescriptorHeap& descriptor_heap)
 {
-    RETURN_IF_FALSE(RHIUtils::Instance().ResetCommandList(resource_manager.GetCommandList(), resource_manager.GetCurrentFrameCommandAllocator()))
+    auto& command_list = resource_manager.GetCommandListForRecord();
     
     m_texture_buffer = RHIResourceFactory::CreateRHIResource<IRHITexture>();
-    RETURN_IF_FALSE(m_texture_buffer->UploadTextureFromFile(resource_manager.GetDevice(), resource_manager.GetCommandList(), m_source_texture.GetTexturePath()))
+    RETURN_IF_FALSE(m_texture_buffer->UploadTextureFromFile(resource_manager.GetDevice(), command_list, m_source_texture.GetTexturePath()))
     
-    RHIUtils::Instance().CloseCommandList(resource_manager.GetCommandList()); 
-    RHIUtils::Instance().ExecuteCommandList(resource_manager.GetCommandList(), resource_manager.GetCommandQueue());
-    resource_manager.GetCurrentFrameFence().SignalWhenCommandQueueFinish(resource_manager.GetCommandQueue());
+    resource_manager.CloseCommandListAndExecute(true);
     
     return true;
 }
@@ -33,14 +31,9 @@ RHICPUDescriptorHandle glTFMaterialTextureRenderResource::CreateOrGetTextureSRVH
     {
         // Create SRV within heap
         GLTF_CHECK(m_texture_buffer);
-        RETURN_IF_FALSE(RHIUtils::Instance().ResetCommandList(resource_manager.GetCommandList(), resource_manager.GetCurrentFrameCommandAllocator()))
         
         RETURN_IF_FALSE(descriptor_heap.CreateShaderResourceViewInDescriptorHeap(resource_manager.GetDevice(), descriptor_heap.GetUsedDescriptorCount(),
         m_texture_buffer->GetGPUBuffer(), {m_texture_buffer->GetTextureDesc().GetDataFormat(), RHIShaderVisibleViewDimension::TEXTURE2D}, m_texture_SRV_handle));
-
-        RHIUtils::Instance().CloseCommandList(resource_manager.GetCommandList()); 
-        RHIUtils::Instance().ExecuteCommandList(resource_manager.GetCommandList(), resource_manager.GetCommandQueue());
-        resource_manager.GetCurrentFrameFence().SignalWhenCommandQueueFinish(resource_manager.GetCommandQueue());
         
         GLTF_CHECK(m_texture_SRV_handle);
     }
@@ -138,7 +131,7 @@ bool glTFRenderMaterialManager::ApplyMaterialRenderResource(glTFRenderResourceMa
     }
 
     // Apply base color and normal now 
-    RETURN_IF_FALSE(RHIUtils::Instance().SetDescriptorTableGPUHandleToRootParameterSlot(resource_manager.GetCommandList(),
+    RETURN_IF_FALSE(RHIUtils::Instance().SetDescriptorTableGPUHandleToRootParameterSlot(resource_manager.GetCommandListForRecord(),
             slot_index, find_material_iter->second->CreateOrGetAllTextureFirstGPUHandle(resource_manager, descriptor_heap)))
 
     return true;

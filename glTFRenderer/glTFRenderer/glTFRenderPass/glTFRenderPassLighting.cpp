@@ -29,8 +29,6 @@ bool glTFRenderPassLighting::InitPass(glTFRenderResourceManager& resourceManager
 {
     RETURN_IF_FALSE(glTFRenderPassPostprocess::InitPass(resourceManager))
     
-    RETURN_IF_FALSE(RHIUtils::Instance().ResetCommandList(resourceManager.GetCommandList(), resourceManager.GetCurrentFrameCommandAllocator()))
-    
     RETURN_IF_FALSE(glTFRenderPassInterfaceSceneView::InitInterface(resourceManager))
 
     m_light_info_GPU_constant_buffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
@@ -71,10 +69,6 @@ bool glTFRenderPassLighting::InitPass(glTFRenderResourceManager& resourceManager
             RHIBufferResourceType::Buffer
         }))
 
-    RETURN_IF_FALSE(RHIUtils::Instance().CloseCommandList(resourceManager.GetCommandList()))
-    RETURN_IF_FALSE(RHIUtils::Instance().ExecuteCommandList(resourceManager.GetCommandList(),resourceManager.GetCommandQueue()))
-    RETURN_IF_FALSE(resourceManager.GetCurrentFrameFence().SignalWhenCommandQueueFinish(resourceManager.GetCommandQueue()))
-
     return true;
 }
 
@@ -84,43 +78,43 @@ bool glTFRenderPassLighting::RenderPass(glTFRenderResourceManager& resourceManag
 
     RETURN_IF_FALSE(glTFRenderPassInterfaceSceneView::ApplyInterface(resourceManager))
     
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resourceManager.GetCommandList(), *m_base_pass_color_RT,
+    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resourceManager.GetCommandListForRecord(), *m_base_pass_color_RT,
         RHIResourceStateType::RENDER_TARGET, RHIResourceStateType::PIXEL_SHADER_RESOURCE))
 
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resourceManager.GetCommandList(), *m_normal_RT,
+    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resourceManager.GetCommandListForRecord(), *m_normal_RT,
         RHIResourceStateType::RENDER_TARGET, RHIResourceStateType::PIXEL_SHADER_RESOURCE))
     
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resourceManager.GetCommandList(), resourceManager.GetDepthRT(),
+    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resourceManager.GetCommandListForRecord(), resourceManager.GetDepthRT(),
         RHIResourceStateType::DEPTH_WRITE, RHIResourceStateType::PIXEL_SHADER_RESOURCE))
 
-    RETURN_IF_FALSE(RHIUtils::Instance().SetDescriptorTableGPUHandleToRootParameterSlot(resourceManager.GetCommandList(),
+    RETURN_IF_FALSE(RHIUtils::Instance().SetDescriptorTableGPUHandleToRootParameterSlot(resourceManager.GetCommandListForRecord(),
         LightPass_RootParameter_BaseColorAndDepthSRV, m_main_descriptor_heap->GetGPUHandle(0)))    
 
-    RETURN_IF_FALSE(resourceManager.GetRenderTargetManager().BindRenderTarget(resourceManager.GetCommandList(),
+    RETURN_IF_FALSE(resourceManager.GetRenderTargetManager().BindRenderTarget(resourceManager.GetCommandListForRecord(),
         {&resourceManager.GetCurrentFrameSwapchainRT()}, nullptr))
 
-    RETURN_IF_FALSE(resourceManager.GetRenderTargetManager().ClearRenderTarget(resourceManager.GetCommandList(),
+    RETURN_IF_FALSE(resourceManager.GetRenderTargetManager().ClearRenderTarget(resourceManager.GetCommandListForRecord(),
         {&resourceManager.GetCurrentFrameSwapchainRT()}))
 
     RETURN_IF_FALSE(UploadLightInfoGPUBuffer())
-    RETURN_IF_FALSE(RHIUtils::Instance().SetConstantBufferViewGPUHandleToRootParameterSlot(resourceManager.GetCommandList(),
+    RETURN_IF_FALSE(RHIUtils::Instance().SetConstantBufferViewGPUHandleToRootParameterSlot(resourceManager.GetCommandListForRecord(),
         LightPass_RootParameter_LightInfosCBV, m_light_info_GPU_constant_buffer->GetGPUBufferHandle()))
     
-    RHIUtils::Instance().SetShaderResourceViewGPUHandleToRootParameterSlot(resourceManager.GetCommandList(),
+    RHIUtils::Instance().SetShaderResourceViewGPUHandleToRootParameterSlot(resourceManager.GetCommandListForRecord(),
         LightPass_RootParameter_PointLightStructuredBuffer, m_point_light_info_GPU_structured_buffer->GetGPUBufferHandle());
     
-    RHIUtils::Instance().SetShaderResourceViewGPUHandleToRootParameterSlot(resourceManager.GetCommandList(),
+    RHIUtils::Instance().SetShaderResourceViewGPUHandleToRootParameterSlot(resourceManager.GetCommandListForRecord(),
         LightPass_RootParameter_DirectionalLightStructuredBuffer, m_directional_light_info_GPU_structured_buffer->GetGPUBufferHandle());
     
     DrawPostprocessQuad(resourceManager);
     
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resourceManager.GetCommandList(), *m_base_pass_color_RT,
+    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resourceManager.GetCommandListForRecord(), *m_base_pass_color_RT,
         RHIResourceStateType::PIXEL_SHADER_RESOURCE, RHIResourceStateType::RENDER_TARGET))
 
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resourceManager.GetCommandList(), *m_normal_RT,
+    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resourceManager.GetCommandListForRecord(), *m_normal_RT,
         RHIResourceStateType::PIXEL_SHADER_RESOURCE, RHIResourceStateType::RENDER_TARGET))
 
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resourceManager.GetCommandList(), resourceManager.GetDepthRT(),
+    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resourceManager.GetCommandListForRecord(), resourceManager.GetDepthRT(),
         RHIResourceStateType::PIXEL_SHADER_RESOURCE, RHIResourceStateType::DEPTH_WRITE))
     
     return true;

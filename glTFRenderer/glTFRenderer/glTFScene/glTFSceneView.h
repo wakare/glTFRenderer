@@ -7,33 +7,26 @@
 class glTFRenderPassManager;
 class glTFInputManager;
 
-// Flags representation: https://dietertack.medium.com/using-bit-flags-in-c-d39ec6e30f08
-struct glTFSceneViewRenderFlags
+enum glTFSceneViewFlags
 {
-    enum Flags
-    {
-        Lit = 1 << 0,
-    };
+    glTFSceneViewFlags_Lit = 1 << 0,
+};
 
-    void SetFlag(Flags flag) { m_flags |= flag; }
-    void UnsetFlag(Flags flag) { m_flags &= ~static_cast<int>(flag); }
-    bool IsFlagSet(Flags flag) const { return m_flags & flag; }
-    
+struct glTFSceneViewRenderFlags : public glTFFlagsBase<glTFSceneViewFlags>
+{
     void SetEnableLit(bool enable)
     {
         if (enable)
         {
-            SetFlag(Lit);
+            SetFlag(glTFSceneViewFlags_Lit);
         }
         else
         {
-            UnsetFlag(Lit);
+            UnsetFlag(glTFSceneViewFlags_Lit);
         }
     }
     
-    bool IsLit() const {return IsFlagSet(Lit); }
-
-    uint64_t m_flags { 0llu };
+    bool IsLit() const {return IsFlagSet(glTFSceneViewFlags_Lit); }
 };
 
 // Resolve specific render pass with drawable primitive and handle render scene graph with camera

@@ -132,6 +132,8 @@ bool DX12StaticSampler::InitStaticSampler(REGISTER_INDEX_TYPE registerIndex, RHI
         case RHIStaticSamplerFilterMode::Linear:
             {
                 m_description.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+                m_description.MinLOD = 0;
+                m_description.MaxLOD = D3D12_FLOAT32_MAX;
             }
             break;
         case RHIStaticSamplerFilterMode::Anisotropic:

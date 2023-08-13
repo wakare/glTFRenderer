@@ -59,3 +59,27 @@ void glTFDebugFileManager::OutputDataToFile(const char* file, const DataType* da
 
     out_file_stream.close();
 }
+
+// Flags representation: https://dietertack.medium.com/using-bit-flags-in-c-d39ec6e30f08
+template<typename FlagEnumType>
+struct glTFFlagsBase
+{
+    void SetFlag(FlagEnumType flag) { m_flags |= flag; }
+    void UnsetFlag(FlagEnumType flag) { m_flags &= ~static_cast<int>(flag); }
+    bool IsFlagSet(FlagEnumType flag) const { return m_flags & flag; }
+    
+    void SetFlagEnable(FlagEnumType type, bool enable)
+    {
+        if (enable)
+        {
+            SetFlag(type);
+        }
+        else
+        {
+            UnsetFlag(type);
+        }
+    }
+    
+private:
+    uint64_t m_flags { 0llu };
+};

@@ -13,7 +13,7 @@ bool glTFRenderPassBase::InitPass(glTFRenderResourceManager& resourceManager)
 {    
     m_main_descriptor_heap = RHIResourceFactory::CreateRHIResource<IRHIDescriptorHeap>();
     RETURN_IF_FALSE(m_main_descriptor_heap->InitDescriptorHeap(resourceManager.GetDevice(),
-        {static_cast<unsigned>(GetMainDescriptorHeapSize()),  RHIDescriptorHeapType::CBV_SRV_UAV, true}))
+        {static_cast<unsigned>(GetMainDescriptorHeapSize()), RHIDescriptorHeapType::CBV_SRV_UAV, true}))
 
     m_root_signature = RHIResourceFactory::CreateRHIResource<IRHIRootSignature>();
     RETURN_IF_FALSE(SetupRootSignature(resourceManager))
@@ -29,8 +29,16 @@ bool glTFRenderPassBase::InitPass(glTFRenderResourceManager& resourceManager)
 
 bool glTFRenderPassBase::RenderPass(glTFRenderResourceManager& resourceManager)
 {
-    RETURN_IF_FALSE(RHIUtils::Instance().SetDescriptorHeapArray(resourceManager.GetCommandList(), m_main_descriptor_heap.get(), 1))
-    RETURN_IF_FALSE(RHIUtils::Instance().SetRootSignature(resourceManager.GetCommandList(), *m_root_signature))
+    resourceManager.SetCurrentPSO(m_pipeline_state_object);
+    
+    const RHIViewportDesc viewport = {0, 0, (float)resourceManager.GetSwapchain().GetWidth(), (float)resourceManager.GetSwapchain().GetHeight(), 0.0f, 1.0f };
+    RHIUtils::Instance().SetViewport(resourceManager.GetCommandListForRecord(), viewport);
+
+    const RHIScissorRectDesc scissorRect = {0, 0, resourceManager.GetSwapchain().GetWidth(), resourceManager.GetSwapchain().GetHeight() }; 
+    RHIUtils::Instance().SetScissorRect(resourceManager.GetCommandListForRecord(), scissorRect);
+    
+    RETURN_IF_FALSE(RHIUtils::Instance().SetDescriptorHeapArray(resourceManager.GetCommandListForRecord(), m_main_descriptor_heap.get(), 1))
+    RETURN_IF_FALSE(RHIUtils::Instance().SetRootSignature(resourceManager.GetCommandListForRecord(), *m_root_signature))
     
     return true;
 }

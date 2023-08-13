@@ -85,7 +85,7 @@ bool glTFWindow::InitAndShowWindow()
     directionalLight->SetIntensity(1.0f);
     directionalLight->SetTickFunc([lightNode = directionalLight.get()]()
     {
-        lightNode->RotateOffset({0.0f, 0.01f, 0.0f});
+        lightNode->RotateOffset({0.0f, 0.001f, 0.0f});
     });
     directional_light_node->m_objects.push_back(std::move(directionalLight));
     m_scene_graph->AddSceneNode(std::move(directional_light_node));

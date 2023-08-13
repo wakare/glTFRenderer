@@ -30,8 +30,7 @@ public:
     // get the number of bits per pixel for a dxgi format
     static int GetDXGIFormatBitsPerPixel(DXGI_FORMAT& dxgiFormat);
     
-    virtual bool ResetCommandList(IRHICommandList& commandList, IRHICommandAllocator& commandAllocator) override;
-    virtual bool ResetCommandList(IRHICommandList& commandList, IRHICommandAllocator& commandAllocator, IRHIPipelineStateObject& initPSO) override;
+    virtual bool ResetCommandList(IRHICommandList& commandList, IRHICommandAllocator& commandAllocator, IRHIPipelineStateObject* initPSO) override;
     virtual bool CloseCommandList(IRHICommandList& commandList) override;
     virtual bool ExecuteCommandList(IRHICommandList& commandList, IRHICommandQueue& commandQueue) override;
     virtual bool ResetCommandAllocator(IRHICommandAllocator& commandAllocator) override;

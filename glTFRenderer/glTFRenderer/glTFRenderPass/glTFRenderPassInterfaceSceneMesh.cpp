@@ -53,7 +53,7 @@ bool glTFRenderPassInterfaceSceneMesh::ApplyInterface(glTFRenderResourceManager&
     assert(offsetAligned < SceneMeshGPUBufferMaxSize);
     
     RETURN_IF_FALSE(m_scene_mesh_GPU_data->UploadBufferFromCPU(&m_scene_mesh_data, offsetAligned, sizeof(m_scene_mesh_data)))
-    RETURN_IF_FALSE(RHIUtils::Instance().SetConstantBufferViewGPUHandleToRootParameterSlot(resourceManager.GetCommandList(),
+    RETURN_IF_FALSE(RHIUtils::Instance().SetConstantBufferViewGPUHandleToRootParameterSlot(resourceManager.GetCommandListForRecord(),
         m_root_parameter_cbv_index, m_scene_mesh_GPU_data->GetGPUBufferHandle() + offsetAligned))
     
     return true;

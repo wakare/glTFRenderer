@@ -18,8 +18,7 @@ class RHIUtils : public IRHIResource
 {
     friend class RHIResourceFactory;
 public:
-    virtual bool ResetCommandList(IRHICommandList& commandList, IRHICommandAllocator& commandAllocator) = 0;
-    virtual bool ResetCommandList(IRHICommandList& commandList, IRHICommandAllocator& commandAllocator, IRHIPipelineStateObject& initPSO) = 0;
+    virtual bool ResetCommandList(IRHICommandList& commandList, IRHICommandAllocator& commandAllocator, IRHIPipelineStateObject* initPSO = nullptr) = 0;
     virtual bool CloseCommandList(IRHICommandList& commandList) = 0;
     virtual bool ExecuteCommandList(IRHICommandList& commandList, IRHICommandQueue& commandQueue) = 0;
     virtual bool ResetCommandAllocator(IRHICommandAllocator& commandAllocator) = 0;

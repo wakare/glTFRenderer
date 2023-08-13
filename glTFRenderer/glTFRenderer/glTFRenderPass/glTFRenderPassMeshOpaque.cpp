@@ -29,7 +29,8 @@ bool glTFRenderPassMeshOpaque::SetupRootSignature(glTFRenderResourceManager& res
     
     RETURN_IF_FALSE(m_root_signature->AllocateRootSignatureSpace(root_signature_parameter_count, root_signature_static_sampler_count))
     RETURN_IF_FALSE(glTFRenderPassMeshBase::SetupRootSignature(resource_manager))
-    
+
+    // TODO: Init sampler in material resource manager
     RETURN_IF_FALSE(m_root_signature->GetStaticSampler(0).InitStaticSampler(0, RHIStaticSamplerAddressMode::Warp, RHIStaticSamplerFilterMode::Linear))
     RETURN_IF_FALSE(m_root_signature->InitRootSignature(resource_manager.GetDevice()))
 

@@ -99,38 +99,24 @@ void glTFRenderPassManager::RenderAllPass(size_t deltaTimeMs)
         now = GetTickCount64();
     }
 
-    // Wait util last frame executed
-    m_resourceManager->GetCurrentFrameFence().WaitUtilSignal();
-    
-    // Reset command allocator when previous frame executed finish...
-    RHIUtils::Instance().ResetCommandAllocator(m_resourceManager->GetCurrentFrameCommandAllocator());
 
-    ExecuteCommandSection(nullptr, [this]()
-    {
-        // Transition swapchain state to render target for shading 
-        RHIUtils::Instance().AddRenderTargetBarrierToCommandList(m_resourceManager->GetCommandList(), m_resourceManager->GetCurrentFrameSwapchainRT(),
-        RHIResourceStateType::PRESENT, RHIResourceStateType::RENDER_TARGET);
-    });
+    // Transition swapchain state to render target for shading 
+    RHIUtils::Instance().AddRenderTargetBarrierToCommandList(m_resourceManager->GetCommandListForRecord(), m_resourceManager->GetCurrentFrameSwapchainRT(),
+    RHIResourceStateType::PRESENT, RHIResourceStateType::RENDER_TARGET);
     
     for (const auto& pass : m_passes)
     {
-        ExecuteCommandSection(&pass->GetPSO(), [this, passPtr = pass.get()]()
-        {
-            const RHIViewportDesc viewport = {0, 0, (float)m_resourceManager->GetSwapchain().GetWidth(), (float)m_resourceManager->GetSwapchain().GetHeight(), 0.0f, 1.0f };
-            RHIUtils::Instance().SetViewport(m_resourceManager->GetCommandList(), viewport);
-
-            const RHIScissorRectDesc scissorRect = {0, 0, m_resourceManager->GetSwapchain().GetWidth(), m_resourceManager->GetSwapchain().GetHeight() }; 
-            RHIUtils::Instance().SetScissorRect(m_resourceManager->GetCommandList(), scissorRect);
-            
-            passPtr->RenderPass(*m_resourceManager);
-        });
+        pass->RenderPass(*m_resourceManager);
     }
     
-    ExecuteCommandSection(nullptr, [this](){
-        RHIUtils::Instance().AddRenderTargetBarrierToCommandList(m_resourceManager->GetCommandList(), m_resourceManager->GetCurrentFrameSwapchainRT(),
-            RHIResourceStateType::RENDER_TARGET, RHIResourceStateType::PRESENT);});
+    RHIUtils::Instance().AddRenderTargetBarrierToCommandList(m_resourceManager->GetCommandListForRecord(), m_resourceManager->GetCurrentFrameSwapchainRT(),
+            RHIResourceStateType::RENDER_TARGET, RHIResourceStateType::PRESENT);
+
+    m_resourceManager->CloseCommandListAndExecute(true);
     
-    m_resourceManager->GetCurrentFrameFence().SignalWhenCommandQueueFinish(m_resourceManager->GetCommandQueue());
+    // Reset command allocator when previous frame executed finish...
+    m_resourceManager->ResetCommandAllocator();
+    
     RHIUtils::Instance().Present(m_resourceManager->GetSwapchain());
     
     m_resourceManager->UpdateCurrentBackBufferIndex();
@@ -138,30 +124,12 @@ void glTFRenderPassManager::RenderAllPass(size_t deltaTimeMs)
 
 void glTFRenderPassManager::ExitAllPass()
 {
-    m_resourceManager->GetCurrentFrameFence().WaitUtilSignal();
-    // Reset command allocator when previous frame executed finish...
-    RHIUtils::Instance().ResetCommandAllocator(m_resourceManager->GetCurrentFrameCommandAllocator());
-    
     m_passes.clear();
 }
 
 void glTFRenderPassManager::ExecuteCommandSection(IRHIPipelineStateObject* PSO, std::function<void()> executeLambda)
 {
-    if (PSO)
-    {
-        RHIUtils::Instance().ResetCommandList(m_resourceManager->GetCommandList(),
-               m_resourceManager->GetCurrentFrameCommandAllocator(), *PSO);
-    }
-    else
-    {
-        RHIUtils::Instance().ResetCommandList(m_resourceManager->GetCommandList(),
-               m_resourceManager->GetCurrentFrameCommandAllocator());
-    }
-
     executeLambda();
 
-    RHIUtils::Instance().CloseCommandList(m_resourceManager->GetCommandList());
-    
-    RHIUtils::Instance().ExecuteCommandList(m_resourceManager->GetCommandList(), m_resourceManager->GetCommandQueue());
-    m_resourceManager->GetCurrentFrameFence().SignalWhenCommandQueueFinish(m_resourceManager->GetCommandQueue());
+    m_resourceManager->CloseCommandListAndExecute(true);
 }

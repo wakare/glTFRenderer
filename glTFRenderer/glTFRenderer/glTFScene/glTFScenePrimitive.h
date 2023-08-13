@@ -88,6 +88,29 @@ struct IndexBufferData
     size_t index_count;
 };
 
+enum glTFScenePrimitiveFlags
+{
+    glTFScenePrimitiveFlags_NormalMapping = 1 << 0,
+};
+
+struct glTFScenePrimitiveRenderFlags : public glTFFlagsBase<glTFScenePrimitiveFlags>
+{
+    void SetEnableNormalMapping(bool enable)
+    {
+        if (enable)
+        {
+            SetFlag(glTFScenePrimitiveFlags_NormalMapping);
+        }
+        else
+        {
+            UnsetFlag(glTFScenePrimitiveFlags_NormalMapping);
+        }
+    }
+    
+    bool IsNormalMapping() const {return IsFlagSet(glTFScenePrimitiveFlags_NormalMapping); }
+};
+
+
 class glTFScenePrimitive : public glTFSceneObjectBase
 {
 public:
@@ -96,6 +119,7 @@ public:
         : glTFSceneObjectBase(parentTransformRef)
         , m_material(std::move(m_material))
     {
+        m_primitive_flags.SetEnableNormalMapping(true);
     }
 
     virtual const VertexLayoutDeclaration& GetVertexLayout() const = 0;
@@ -105,9 +129,10 @@ public:
     virtual size_t GetInstanceCount() const { return 1; }
     void SetMaterial(std::shared_ptr<glTFMaterialBase> material);
     bool HasMaterial() const {return m_material != nullptr; }
-    bool HasNormalMapping() const { return GetVertexLayout().HasAttribute(VertexLayoutType::TANGENT);}
+    bool HasNormalMapping() const;
     const glTFMaterialBase& GetMaterial() const;
-    
+
 private:
+    glTFScenePrimitiveRenderFlags m_primitive_flags;
     std::shared_ptr<glTFMaterialBase> m_material;
 };
