@@ -41,7 +41,7 @@ public:
 
     virtual const char* PassName() override;
     virtual bool InitPass(glTFRenderResourceManager& resourceManager) override;
-    virtual bool RenderPass(glTFRenderResourceManager& resourceManager) override;
+    virtual bool RenderPass(glTFRenderResourceManager& resource_manager) override;
     
     virtual bool TryProcessSceneObject(glTFRenderResourceManager& resourceManager, const glTFSceneObjectBase& object) override;
     virtual bool FinishProcessSceneObject(glTFRenderResourceManager& resourceManager) override;

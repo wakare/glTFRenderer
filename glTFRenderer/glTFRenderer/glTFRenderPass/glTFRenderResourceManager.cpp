@@ -108,13 +108,18 @@ void glTFRenderResourceManager::CloseCommandListAndExecute(bool wait)
     
     GLTF_CHECK(RHIUtils::Instance().CloseCommandList(command_list)); 
     GLTF_CHECK(RHIUtils::Instance().ExecuteCommandList(command_list, GetCommandQueue()));
+    GLTF_CHECK(GetCurrentFrameFence().SignalWhenCommandQueueFinish(GetCommandQueue()));
     if (wait)
     {
-        GLTF_CHECK(GetCurrentFrameFence().SignalWhenCommandQueueFinish(GetCommandQueue()));
         GetCurrentFrameFence().WaitUtilSignal();
     }
     
     m_command_list_record_state[current_frame_index] = false;
+}
+
+void glTFRenderResourceManager::WaitLastFrameFinish()
+{
+    GetCurrentFrameFence().WaitUtilSignal();
 }
 
 void glTFRenderResourceManager::ResetCommandAllocator()

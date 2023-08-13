@@ -17,12 +17,10 @@ public:
     void InitAllPass();
 
     void UpdateScene(size_t deltaTimeMs);
-    void RenderAllPass(size_t deltaTimeMs);
+    void RenderAllPass(size_t deltaTimeMs) const;
     void ExitAllPass();
 
 protected:
-    void ExecuteCommandSection(IRHIPipelineStateObject* PSO, std::function<void()> executeLambda);
-    
     glTFWindow& m_window;
     glTFSceneView& m_scene_view;
     

@@ -19,8 +19,8 @@ bool glTFMaterialTextureRenderResource::Init(glTFRenderResourceManager& resource
     
     m_texture_buffer = RHIResourceFactory::CreateRHIResource<IRHITexture>();
     RETURN_IF_FALSE(m_texture_buffer->UploadTextureFromFile(resource_manager.GetDevice(), command_list, m_source_texture.GetTexturePath()))
-    
-    resource_manager.CloseCommandListAndExecute(true);
+
+    resource_manager.CloseCommandListAndExecute(false);
     
     return true;
 }

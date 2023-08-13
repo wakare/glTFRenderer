@@ -28,6 +28,8 @@ public:
     IRHICommandQueue& GetCommandQueue();
     IRHICommandList& GetCommandListForRecord();
     void CloseCommandListAndExecute(bool wait);
+
+    void WaitLastFrameFinish();
     void ResetCommandAllocator();
     
     IRHIRenderTargetManager& GetRenderTargetManager();

@@ -28,12 +28,14 @@ bool glTFRenderPassMeshBase::RenderPass(glTFRenderResourceManager& resource_mana
 {
     RETURN_IF_FALSE(glTFRenderPassBase::RenderPass(resource_manager))
 
-    RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().BindRenderTarget(resource_manager.GetCommandListForRecord(),
+    auto& command_list = resource_manager.GetCommandListForRecord();
+    
+    RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().BindRenderTarget(command_list,
         {m_base_pass_color_render_target.get(), m_base_pass_normal_render_target.get()}, &resource_manager.GetDepthRT()))
 
-    RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().ClearRenderTarget(resource_manager.GetCommandListForRecord(),
+    RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().ClearRenderTarget(command_list,
         {m_base_pass_color_render_target.get(),m_base_pass_normal_render_target.get(), &resource_manager.GetDepthRT()}))
-    RHIUtils::Instance().SetPrimitiveTopology( resource_manager.GetCommandListForRecord(), RHIPrimitiveTopologyType::TRIANGLELIST);
+    RHIUtils::Instance().SetPrimitiveTopology( command_list, RHIPrimitiveTopologyType::TRIANGLELIST);
 
     RETURN_IF_FALSE(glTFRenderPassInterfaceSceneView::ApplyInterface(resource_manager))
 
@@ -51,11 +53,11 @@ bool glTFRenderPassMeshBase::RenderPass(glTFRenderResourceManager& resource_mana
             }))
         
         glTFRenderPassInterfaceSceneMesh::ApplyInterface(resource_manager, 0);
+
+        RHIUtils::Instance().SetVertexBufferView(command_list, *mesh.second.mesh_vertex_buffer_view);
+        RHIUtils::Instance().SetIndexBufferView(command_list, *mesh.second.mesh_index_buffer_view);
         
-        RHIUtils::Instance().SetVertexBufferView(resource_manager.GetCommandListForRecord(), *mesh.second.mesh_vertex_buffer_view);
-        RHIUtils::Instance().SetIndexBufferView(resource_manager.GetCommandListForRecord(), *mesh.second.mesh_index_buffer_view);
-        
-        RHIUtils::Instance().DrawIndexInstanced(resource_manager.GetCommandListForRecord(),
+        RHIUtils::Instance().DrawIndexInstanced(command_list,
             mesh.second.mesh_index_count, 1, 0, 0, 0);
 
         RETURN_IF_FALSE(EndDrawMesh(resource_manager, mesh.first))
@@ -92,12 +94,14 @@ bool glTFRenderPassMeshBase::AddOrUpdatePrimitiveToMeshPass(glTFRenderResourceMa
 
         RETURN_IF_FALSE(vertex_upload_buffer->InitGPUBuffer(resource_manager.GetDevice(), vertex_upload_buffer_desc ))
         RETURN_IF_FALSE(index_upload_buffer->InitGPUBuffer(resource_manager.GetDevice(), index_upload_buffer_desc ))
+
+        auto& command_list = resource_manager.GetCommandListForRecord();
         
-        RETURN_IF_FALSE(RHIUtils::Instance().UploadBufferDataToDefaultGPUBuffer(resource_manager.GetCommandListForRecord(), *vertex_upload_buffer, *vertex_buffer, primitive_vertices.data.get(), primitive_vertices.byteSize))
-        RETURN_IF_FALSE(RHIUtils::Instance().UploadBufferDataToDefaultGPUBuffer(resource_manager.GetCommandListForRecord(), *index_upload_buffer, *index_buffer, primitive_indices.data.get(), primitive_indices.byteSize))
+        RETURN_IF_FALSE(RHIUtils::Instance().UploadBufferDataToDefaultGPUBuffer(command_list, *vertex_upload_buffer, *vertex_buffer, primitive_vertices.data.get(), primitive_vertices.byteSize))
+        RETURN_IF_FALSE(RHIUtils::Instance().UploadBufferDataToDefaultGPUBuffer(command_list, *index_upload_buffer, *index_buffer, primitive_indices.data.get(), primitive_indices.byteSize))
     
-        RETURN_IF_FALSE(RHIUtils::Instance().AddBufferBarrierToCommandList(resource_manager.GetCommandListForRecord(), *vertex_buffer, RHIResourceStateType::COPY_DEST, RHIResourceStateType::VERTEX_AND_CONSTANT_BUFFER))
-        RETURN_IF_FALSE(RHIUtils::Instance().AddBufferBarrierToCommandList(resource_manager.GetCommandListForRecord(), *index_buffer, RHIResourceStateType::COPY_DEST, RHIResourceStateType::INDEX_BUFFER))
+        RETURN_IF_FALSE(RHIUtils::Instance().AddBufferBarrierToCommandList(command_list, *vertex_buffer, RHIResourceStateType::COPY_DEST, RHIResourceStateType::VERTEX_AND_CONSTANT_BUFFER))
+        RETURN_IF_FALSE(RHIUtils::Instance().AddBufferBarrierToCommandList(command_list, *index_buffer, RHIResourceStateType::COPY_DEST, RHIResourceStateType::INDEX_BUFFER))
 
         resource_manager.CloseCommandListAndExecute(true);
         

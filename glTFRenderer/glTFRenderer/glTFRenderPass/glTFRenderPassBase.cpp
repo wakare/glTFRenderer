@@ -27,18 +27,20 @@ bool glTFRenderPassBase::InitPass(glTFRenderResourceManager& resourceManager)
     return true;
 }
 
-bool glTFRenderPassBase::RenderPass(glTFRenderResourceManager& resourceManager)
+bool glTFRenderPassBase::RenderPass(glTFRenderResourceManager& resource_manager)
 {
-    resourceManager.SetCurrentPSO(m_pipeline_state_object);
-    
-    const RHIViewportDesc viewport = {0, 0, (float)resourceManager.GetSwapchain().GetWidth(), (float)resourceManager.GetSwapchain().GetHeight(), 0.0f, 1.0f };
-    RHIUtils::Instance().SetViewport(resourceManager.GetCommandListForRecord(), viewport);
+    resource_manager.SetCurrentPSO(m_pipeline_state_object);
 
-    const RHIScissorRectDesc scissorRect = {0, 0, resourceManager.GetSwapchain().GetWidth(), resourceManager.GetSwapchain().GetHeight() }; 
-    RHIUtils::Instance().SetScissorRect(resourceManager.GetCommandListForRecord(), scissorRect);
+    auto& command_list = resource_manager.GetCommandListForRecord();
+
+    const RHIViewportDesc viewport = {0, 0, (float)resource_manager.GetSwapchain().GetWidth(), (float)resource_manager.GetSwapchain().GetHeight(), 0.0f, 1.0f };
+    RHIUtils::Instance().SetViewport(command_list, viewport);
+
+    const RHIScissorRectDesc scissorRect = {0, 0, resource_manager.GetSwapchain().GetWidth(), resource_manager.GetSwapchain().GetHeight() }; 
+    RHIUtils::Instance().SetScissorRect(command_list, scissorRect);
     
-    RETURN_IF_FALSE(RHIUtils::Instance().SetDescriptorHeapArray(resourceManager.GetCommandListForRecord(), m_main_descriptor_heap.get(), 1))
-    RETURN_IF_FALSE(RHIUtils::Instance().SetRootSignature(resourceManager.GetCommandListForRecord(), *m_root_signature))
+    RETURN_IF_FALSE(RHIUtils::Instance().SetDescriptorHeapArray(command_list, m_main_descriptor_heap.get(), 1))
+    RETURN_IF_FALSE(RHIUtils::Instance().SetRootSignature(command_list, *m_root_signature))
     
     return true;
 }

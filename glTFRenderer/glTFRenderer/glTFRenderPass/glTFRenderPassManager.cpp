@@ -87,8 +87,13 @@ void glTFRenderPassManager::UpdateScene(size_t deltaTimeMs)
     }
 }
 
-void glTFRenderPassManager::RenderAllPass(size_t deltaTimeMs)
+void glTFRenderPassManager::RenderAllPass(size_t deltaTimeMs) const
 {
+    m_resourceManager->WaitLastFrameFinish();
+    
+    // Reset command allocator when previous frame executed finish...
+    m_resourceManager->ResetCommandAllocator();
+    
     static auto now = GetTickCount64();
     static unsigned frameCountInOneSecond = 0;
     frameCountInOneSecond++;
@@ -98,7 +103,6 @@ void glTFRenderPassManager::RenderAllPass(size_t deltaTimeMs)
         frameCountInOneSecond = 0;
         now = GetTickCount64();
     }
-
 
     // Transition swapchain state to render target for shading 
     RHIUtils::Instance().AddRenderTargetBarrierToCommandList(m_resourceManager->GetCommandListForRecord(), m_resourceManager->GetCurrentFrameSwapchainRT(),
@@ -112,10 +116,7 @@ void glTFRenderPassManager::RenderAllPass(size_t deltaTimeMs)
     RHIUtils::Instance().AddRenderTargetBarrierToCommandList(m_resourceManager->GetCommandListForRecord(), m_resourceManager->GetCurrentFrameSwapchainRT(),
             RHIResourceStateType::RENDER_TARGET, RHIResourceStateType::PRESENT);
 
-    m_resourceManager->CloseCommandListAndExecute(true);
-    
-    // Reset command allocator when previous frame executed finish...
-    m_resourceManager->ResetCommandAllocator();
+    m_resourceManager->CloseCommandListAndExecute(false);
     
     RHIUtils::Instance().Present(m_resourceManager->GetSwapchain());
     
@@ -125,11 +126,4 @@ void glTFRenderPassManager::RenderAllPass(size_t deltaTimeMs)
 void glTFRenderPassManager::ExitAllPass()
 {
     m_passes.clear();
-}
-
-void glTFRenderPassManager::ExecuteCommandSection(IRHIPipelineStateObject* PSO, std::function<void()> executeLambda)
-{
-    executeLambda();
-
-    m_resourceManager->CloseCommandListAndExecute(true);
 }
