@@ -6,28 +6,31 @@ glTFRenderPassBase::~glTFRenderPassBase()
 
 bool glTFRenderPassBase::ProcessMaterial(glTFRenderResourceManager& resourceManager, const glTFMaterialBase& material)
 {
-    return false;
+    // default do no processing for material
+    return true;
 }
 
-bool glTFRenderPassBase::InitPass(glTFRenderResourceManager& resourceManager)
+bool glTFRenderPassBase::InitPass(glTFRenderResourceManager& resource_manager)
 {    
     m_main_descriptor_heap = RHIResourceFactory::CreateRHIResource<IRHIDescriptorHeap>();
-    RETURN_IF_FALSE(m_main_descriptor_heap->InitDescriptorHeap(resourceManager.GetDevice(),
+    RETURN_IF_FALSE(m_main_descriptor_heap->InitDescriptorHeap(resource_manager.GetDevice(),
         {static_cast<unsigned>(GetMainDescriptorHeapSize()), RHIDescriptorHeapType::CBV_SRV_UAV, true}))
 
     m_root_signature = RHIResourceFactory::CreateRHIResource<IRHIRootSignature>();
-    RETURN_IF_FALSE(SetupRootSignature(resourceManager))
+    RETURN_IF_FALSE(SetupRootSignature(resource_manager))
     
     m_pipeline_state_object = RHIResourceFactory::CreateRHIResource<IRHIPipelineStateObject>();
-    
     // glTF using CCW as front face
     m_pipeline_state_object->SetCullMode(IRHICullMode::CW);
-    RETURN_IF_FALSE(SetupPipelineStateObject(resourceManager))
+    
+
+    RETURN_IF_FALSE(SetupPipelineStateObject(resource_manager))
+    RETURN_IF_FALSE (m_pipeline_state_object->InitPipelineStateObject(resource_manager.GetDevice(), *m_root_signature, resource_manager.GetSwapchain()))
     
     return true;
 }
 
-bool glTFRenderPassBase::RenderPass(glTFRenderResourceManager& resource_manager)
+bool glTFRenderPassBase::PreRenderPass(glTFRenderResourceManager& resource_manager)
 {
     resource_manager.SetCurrentPSO(m_pipeline_state_object);
 
@@ -42,6 +45,16 @@ bool glTFRenderPassBase::RenderPass(glTFRenderResourceManager& resource_manager)
     RETURN_IF_FALSE(RHIUtils::Instance().SetDescriptorHeapArray(command_list, m_main_descriptor_heap.get(), 1))
     RETURN_IF_FALSE(RHIUtils::Instance().SetRootSignature(command_list, *m_root_signature))
     
+    return true;
+}
+
+bool glTFRenderPassBase::RenderPass(glTFRenderResourceManager& resource_manager)
+{
+    return true;
+}
+
+bool glTFRenderPassBase::PostRenderPass(glTFRenderResourceManager& resource_manager)
+{
     return true;
 }
 

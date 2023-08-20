@@ -251,7 +251,7 @@ bool DX12RenderTargetManager::BindRenderTarget(IRHICommandList& commandList, con
                                                IRHIRenderTarget* depthStencil)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
-    if (renderTargets.empty())
+    if (renderTargets.empty() && !depthStencil)
     {
         // Bind zero rt? some bugs must exists.. 
         assert(false);

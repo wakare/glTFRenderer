@@ -64,6 +64,29 @@ bool glTFRenderPassPostprocess::InitPass(glTFRenderResourceManager& resourceMana
     return true;
 }
 
+bool glTFRenderPassPostprocess::PreRenderPass(glTFRenderResourceManager& resource_manager)
+{
+    RETURN_IF_FALSE(glTFRenderPassBase::PreRenderPass(resource_manager))
+    
+    return true;
+}
+
+bool glTFRenderPassPostprocess::RenderPass(glTFRenderResourceManager& resource_manager)
+{
+    RETURN_IF_FALSE(glTFRenderPassBase::RenderPass(resource_manager))
+
+    DrawPostprocessQuad(resource_manager);
+    
+    return true;
+}
+
+bool glTFRenderPassPostprocess::PostRenderPass(glTFRenderResourceManager& resource_manager)
+{
+    RETURN_IF_FALSE(glTFRenderPassBase::PostRenderPass(resource_manager))
+
+    return true;
+}
+
 bool glTFRenderPassPostprocess::SetupRootSignature(glTFRenderResourceManager& resourceManager)
 {
     return true;

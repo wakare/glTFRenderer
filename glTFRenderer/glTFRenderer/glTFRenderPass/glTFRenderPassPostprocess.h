@@ -20,6 +20,10 @@ public:
     glTFRenderPassPostprocess();
 
     virtual bool InitPass(glTFRenderResourceManager& resourceManager) override;
+
+    virtual bool PreRenderPass(glTFRenderResourceManager& resource_manager) override;
+    virtual bool RenderPass(glTFRenderResourceManager& resource_manager) override;
+    virtual bool PostRenderPass(glTFRenderResourceManager& resource_manager) override;
     
 protected:
     // Must be implement in final render pass class

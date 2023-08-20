@@ -1,5 +1,4 @@
 #pragma once
-#include "IRHICullMode.h"
 #include "IRHIDevice.h"
 #include "IRHIRootSignature.h"
 #include "IRHIResource.h"
@@ -34,6 +33,20 @@ struct RHIPipelineInputLayout
     // TODO: support instancing data layout
 };
 
+enum class IRHICullMode
+{
+    NONE,
+    CW,
+    CCW,
+};
+
+enum class IRHIDepthStencilMode
+{
+    DEPTH_READ,
+    DEPTH_WRITE,
+};
+
+
 class IRHIPipelineStateObject : public IRHIResource
 {
 public:
@@ -47,11 +60,14 @@ public:
     RHIShaderPreDefineMacros& GetShaderMacros();
 
     void SetCullMode(IRHICullMode mode);
+    void SetDepthStencilState(IRHIDepthStencilMode state);
+    
     IRHICullMode GetCullMode() const;
     
 protected:
     RHIPipelineType m_type;
     RHIShaderPreDefineMacros m_shaderMacros;
     IRHICullMode m_cullMode;
+    IRHIDepthStencilMode m_depthStencilState;
     std::vector<RHIPipelineInputLayout> m_input_layouts;
 };

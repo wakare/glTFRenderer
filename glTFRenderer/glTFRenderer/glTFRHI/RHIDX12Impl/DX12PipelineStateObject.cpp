@@ -90,21 +90,26 @@ bool DX12GraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device
     // compile shader and set bytecode to pipeline state desc
     THROW_IF_FAILED(CompileBindShaders())
     auto& bindVS = dynamic_cast<DX12Shader&>(GetBindShader(RHIShaderType::Vertex));
-    auto& bindPS = dynamic_cast<DX12Shader&>(GetBindShader(RHIShaderType::Pixel));
-
     D3D12_SHADER_BYTECODE vertexShaderBytecode;
     vertexShaderBytecode.BytecodeLength = bindVS.GetShaderByteCode().size();
     vertexShaderBytecode.pShaderBytecode = bindVS.GetShaderByteCode().data();
 
     D3D12_SHADER_BYTECODE pixelShaderBytecode;
-    pixelShaderBytecode.BytecodeLength = bindPS.GetShaderByteCode().size();
-    pixelShaderBytecode.pShaderBytecode = bindPS.GetShaderByteCode().data();
+    if (m_depthStencilState != IRHIDepthStencilMode::DEPTH_WRITE)
+    {
+        auto& bindPS = dynamic_cast<DX12Shader&>(GetBindShader(RHIShaderType::Pixel));
+        pixelShaderBytecode.BytecodeLength = bindPS.GetShaderByteCode().size();
+        pixelShaderBytecode.pShaderBytecode = bindPS.GetShaderByteCode().data();    
+    }
     
     D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {}; // a structure to define a pso
     psoDesc.InputLayout = inputLayoutDesc; // the structure describing our input layout
     psoDesc.pRootSignature = dxRootSignature; // the root signature that describes the input data this pso needs
     psoDesc.VS = vertexShaderBytecode; // structure describing where to find the vertex shader bytecode and how large it is
-    psoDesc.PS = pixelShaderBytecode; // same as VS but for pixel shader
+    if (m_depthStencilState != IRHIDepthStencilMode::DEPTH_WRITE)
+    {
+        psoDesc.PS = pixelShaderBytecode; // same as VS but for pixel shader    
+    }
     psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE; // type of topology we are drawing
 
     {
@@ -143,7 +148,22 @@ bool DX12GraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device
     
     psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT); // a default blent state.
     psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT); 
-    psoDesc.NumRenderTargets = m_bindRenderTargetFormats.size(); // we are only binding one render target
+    switch (m_depthStencilState) {
+    case IRHIDepthStencilMode::DEPTH_READ:
+        {
+            psoDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC::D3D12_COMPARISON_FUNC_EQUAL;
+            psoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK::D3D12_DEPTH_WRITE_MASK_ZERO;
+        }
+        break;
+    case IRHIDepthStencilMode::DEPTH_WRITE:
+        { 
+        }
+        break;
+    default:
+        { 
+        };
+    } 
+    psoDesc.NumRenderTargets = m_bindRenderTargetFormats.size();
 
     THROW_IF_FAILED(dxDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineStateObject)))
     

@@ -54,6 +54,7 @@ public:
     
     virtual const char* PassName() override {return "MeshPass"; }
     bool InitPass(glTFRenderResourceManager& resource_manager) override;
+    bool PreRenderPass(glTFRenderResourceManager& resource_manager) override;
     bool RenderPass(glTFRenderResourceManager& resource_manager) override;
 
     bool AddOrUpdatePrimitiveToMeshPass(glTFRenderResourceManager& resource_manager, const glTFScenePrimitive& primitive);
@@ -77,6 +78,4 @@ protected:
     // TODO: Resolve input layout with multiple meshes 
     std::vector<RHIPipelineInputLayout> m_vertex_input_layouts;
 
-    std::shared_ptr<IRHIRenderTarget> m_base_pass_color_render_target;
-    std::shared_ptr<IRHIRenderTarget> m_base_pass_normal_render_target;
 };

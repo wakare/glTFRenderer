@@ -3,6 +3,7 @@
 IRHIPipelineStateObject::IRHIPipelineStateObject(RHIPipelineType type)
     : m_type(type)
     , m_cullMode(IRHICullMode::NONE)
+    , m_depthStencilState(IRHIDepthStencilMode::DEPTH_READ)
 {
 }
 
@@ -42,6 +43,11 @@ RHIShaderPreDefineMacros& IRHIPipelineStateObject::GetShaderMacros()
 void IRHIPipelineStateObject::SetCullMode(IRHICullMode mode)
 {
     m_cullMode = mode;
+}
+
+void IRHIPipelineStateObject::SetDepthStencilState(IRHIDepthStencilMode state)
+{
+    m_depthStencilState = state;
 }
 
 IRHICullMode IRHIPipelineStateObject::GetCullMode() const

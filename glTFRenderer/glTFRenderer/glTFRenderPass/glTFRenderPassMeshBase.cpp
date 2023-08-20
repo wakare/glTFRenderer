@@ -10,8 +10,6 @@ glTFRenderPassMeshBase::glTFRenderPassMeshBase()
         MeshBasePass_RootParameter_SceneMesh_SRV,
         MeshBasePass_SceneMesh_SRV_Register,
         4)
-    , m_base_pass_color_render_target(nullptr)
-    , m_base_pass_normal_render_target(nullptr)
 {
 }
 
@@ -24,21 +22,26 @@ bool glTFRenderPassMeshBase::InitPass(glTFRenderResourceManager& resource_manage
     return true;
 }
 
-bool glTFRenderPassMeshBase::RenderPass(glTFRenderResourceManager& resource_manager)
+bool glTFRenderPassMeshBase::PreRenderPass(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(glTFRenderPassBase::RenderPass(resource_manager))
+    RETURN_IF_FALSE(glTFRenderPassBase::PreRenderPass(resource_manager))
 
     auto& command_list = resource_manager.GetCommandListForRecord();
     
-    RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().BindRenderTarget(command_list,
-        {m_base_pass_color_render_target.get(), m_base_pass_normal_render_target.get()}, &resource_manager.GetDepthRT()))
-
-    RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().ClearRenderTarget(command_list,
-        {m_base_pass_color_render_target.get(),m_base_pass_normal_render_target.get(), &resource_manager.GetDepthRT()}))
     RHIUtils::Instance().SetPrimitiveTopology( command_list, RHIPrimitiveTopologyType::TRIANGLELIST);
 
     RETURN_IF_FALSE(glTFRenderPassInterfaceSceneView::ApplyInterface(resource_manager))
 
+    return true;
+}
+
+bool glTFRenderPassMeshBase::RenderPass(glTFRenderResourceManager& resource_manager)
+{
+    RETURN_IF_FALSE(glTFRenderPassBase::RenderPass(resource_manager))    
+
+    auto& command_list = resource_manager.GetCommandListForRecord();
+    
+    // Render meshes
     for (const auto& mesh : m_meshes)
     {
         const glTFUniqueID meshID = mesh.first;
@@ -62,8 +65,6 @@ bool glTFRenderPassMeshBase::RenderPass(glTFRenderResourceManager& resource_mana
 
         RETURN_IF_FALSE(EndDrawMesh(resource_manager, mesh.first))
     }
-    
-    return true;
 }
 
 bool glTFRenderPassMeshBase::AddOrUpdatePrimitiveToMeshPass(glTFRenderResourceManager& resource_manager, const glTFScenePrimitive& primitive)
@@ -137,9 +138,17 @@ bool glTFRenderPassMeshBase::RemovePrimitiveFromMeshPass(glTFUniqueID mesh_id_to
 }
 
 bool glTFRenderPassMeshBase::SetupRootSignature(glTFRenderResourceManager& resource_manager)
-{
+{   
+    // Init root signature
+    constexpr size_t root_signature_parameter_count = MeshBasePass_RootParameter_LastIndex;
+    constexpr size_t root_signature_static_sampler_count = 1;
+    
+    RETURN_IF_FALSE(m_root_signature->AllocateRootSignatureSpace(root_signature_parameter_count, root_signature_static_sampler_count))
+    
     RETURN_IF_FALSE(glTFRenderPassInterfaceSceneView::SetupRootSignature(*m_root_signature))
     RETURN_IF_FALSE(glTFRenderPassInterfaceSceneMesh::SetupRootSignature(*m_root_signature))
+    
+    RETURN_IF_FALSE(m_root_signature->InitRootSignature(resource_manager.GetDevice()))
     
     return true;
 }
@@ -147,30 +156,6 @@ bool glTFRenderPassMeshBase::SetupRootSignature(glTFRenderResourceManager& resou
 bool glTFRenderPassMeshBase::SetupPipelineStateObject(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFRenderPassBase::SetupPipelineStateObject(resource_manager))
-    
-    IRHIRenderTargetDesc render_target_base_color_desc;
-    render_target_base_color_desc.width = resource_manager.GetSwapchain().GetWidth();
-    render_target_base_color_desc.height = resource_manager.GetSwapchain().GetHeight();
-    render_target_base_color_desc.name = "BasePassColor";
-    render_target_base_color_desc.isUAV = true;
-    render_target_base_color_desc.clearValue.clearColor = {0.0f, 0.0f, 0.0f, 0.0f};
-    
-    m_base_pass_color_render_target = resource_manager.GetRenderTargetManager().CreateRenderTarget(
-        resource_manager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R8G8B8A8_UNORM_SRGB, RHIDataFormat::R8G8B8A8_UNORM_SRGB, render_target_base_color_desc);
-
-    IRHIRenderTargetDesc render_target_normal_desc;
-    render_target_normal_desc.width = resource_manager.GetSwapchain().GetWidth();
-    render_target_normal_desc.height = resource_manager.GetSwapchain().GetHeight();
-    render_target_normal_desc.name = "BasePassNormal";
-    render_target_normal_desc.isUAV = true;
-    render_target_normal_desc.clearValue.clearColor = {0.0f, 0.0f, 0.0f, 0.0f};
-    m_base_pass_normal_render_target = resource_manager.GetRenderTargetManager().CreateRenderTarget(
-        resource_manager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R8G8B8A8_UNORM_SRGB, RHIDataFormat::R8G8B8A8_UNORM_SRGB, render_target_normal_desc);
-
-    resource_manager.GetRenderTargetManager().RegisterRenderTargetWithTag("BasePassColor", m_base_pass_color_render_target);
-    resource_manager.GetRenderTargetManager().RegisterRenderTargetWithTag("BasePassNormal", m_base_pass_normal_render_target);
-    
-    m_pipeline_state_object->BindRenderTargets({m_base_pass_color_render_target.get(), m_base_pass_normal_render_target.get(), &resource_manager.GetDepthRT()});
 
     auto& shader_macros = m_pipeline_state_object->GetShaderMacros();
     glTFRenderPassInterfaceSceneView::UpdateShaderCompileDefine(shader_macros);

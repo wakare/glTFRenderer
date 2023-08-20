@@ -72,9 +72,9 @@ bool glTFRenderPassLighting::InitPass(glTFRenderResourceManager& resourceManager
     return true;
 }
 
-bool glTFRenderPassLighting::RenderPass(glTFRenderResourceManager& resource_manager)
+bool glTFRenderPassLighting::PreRenderPass(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(glTFRenderPassPostprocess::RenderPass(resource_manager))
+    RETURN_IF_FALSE(glTFRenderPassPostprocess::PreRenderPass(resource_manager))
 
     RETURN_IF_FALSE(glTFRenderPassInterfaceSceneView::ApplyInterface(resource_manager))
 
@@ -87,7 +87,7 @@ bool glTFRenderPassLighting::RenderPass(glTFRenderResourceManager& resource_mana
         RHIResourceStateType::RENDER_TARGET, RHIResourceStateType::PIXEL_SHADER_RESOURCE))
     
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, resource_manager.GetDepthRT(),
-        RHIResourceStateType::DEPTH_WRITE, RHIResourceStateType::PIXEL_SHADER_RESOURCE))
+        RHIResourceStateType::DEPTH_READ, RHIResourceStateType::PIXEL_SHADER_RESOURCE))
 
     RETURN_IF_FALSE(RHIUtils::Instance().SetDescriptorTableGPUHandleToRootParameterSlot(command_list,
         LightPass_RootParameter_BaseColorAndDepthSRV, m_main_descriptor_heap->GetGPUHandle(0)))    
@@ -108,22 +108,29 @@ bool glTFRenderPassLighting::RenderPass(glTFRenderResourceManager& resource_mana
     RHIUtils::Instance().SetShaderResourceViewGPUHandleToRootParameterSlot(command_list,
         LightPass_RootParameter_DirectionalLightStructuredBuffer, m_directional_light_info_GPU_structured_buffer->GetGPUBufferHandle());
     
-    DrawPostprocessQuad(resource_manager);
+    return true;
+}
+
+bool glTFRenderPassLighting::PostRenderPass(glTFRenderResourceManager& resource_manager)
+{
+    RETURN_IF_FALSE(glTFRenderPassPostprocess::PostRenderPass(resource_manager))
+
+    auto& command_list = resource_manager.GetCommandListForRecord();
     
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_base_pass_color_RT,
-        RHIResourceStateType::PIXEL_SHADER_RESOURCE, RHIResourceStateType::RENDER_TARGET))
+            RHIResourceStateType::PIXEL_SHADER_RESOURCE, RHIResourceStateType::RENDER_TARGET))
 
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_normal_RT,
-        RHIResourceStateType::PIXEL_SHADER_RESOURCE, RHIResourceStateType::RENDER_TARGET))
+            RHIResourceStateType::PIXEL_SHADER_RESOURCE, RHIResourceStateType::RENDER_TARGET))
 
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, resource_manager.GetDepthRT(),
-        RHIResourceStateType::PIXEL_SHADER_RESOURCE, RHIResourceStateType::DEPTH_WRITE))
+            RHIResourceStateType::PIXEL_SHADER_RESOURCE, RHIResourceStateType::DEPTH_READ))
     
     return true;
 }
 
 bool glTFRenderPassLighting::TryProcessSceneObject(glTFRenderResourceManager& resourceManager,
-    const glTFSceneObjectBase& object)
+                                                   const glTFSceneObjectBase& object)
 {
     const glTFLightBase* light = dynamic_cast<const glTFLightBase*>(&object);
     if (!light)
@@ -239,9 +246,6 @@ bool glTFRenderPassLighting::SetupPipelineStateObject(glTFRenderResourceManager&
     
     auto& shaderMacros = m_pipeline_state_object->GetShaderMacros();
     glTFRenderPassInterfaceSceneView::UpdateShaderCompileDefine(shaderMacros);
-    
-    RETURN_IF_FALSE (m_pipeline_state_object->InitPipelineStateObject(resource_manager.GetDevice(), *m_root_signature, resource_manager.GetSwapchain()))
-    
     return true;
 }
 

@@ -158,7 +158,6 @@
     <ClCompile Include="glTFRHI\RHIInterface\IRHICommandAllocator.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHICommandList.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHICommandQueue.cpp" />
-    <ClCompile Include="glTFRHI\RHIInterface\IRHICullMode.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIDescriptorHeap.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIDevice.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIFactory.cpp" />
@@ -247,7 +246,6 @@
     <ClInclude Include="glTFRHI\RHIInterface\IRHICommandAllocator.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHICommandList.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHICommandQueue.h" />
-    <ClInclude Include="glTFRHI\RHIInterface\IRHICullMode.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHIDescriptorHeap.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHIDevice.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHIFactory.h" />

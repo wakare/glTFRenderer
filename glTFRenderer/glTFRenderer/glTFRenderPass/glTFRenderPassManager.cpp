@@ -5,7 +5,6 @@
 
 #include "glTFRenderPassLighting.h"
 #include "glTFRenderPassMeshBase.h"
-#include "glTFRenderPassMeshOpaque.h"
 #include "../glTFLoader/glTFElementCommon.h"
 #include "../glTFRHI/RHIUtils.h"
 #include "../glTFUtils/glTFLog.h"
@@ -16,7 +15,7 @@ glTFRenderPassManager::glTFRenderPassManager(glTFWindow& window, glTFSceneView& 
     , m_frame_index(0)
 {
     const bool inited = InitRenderPassManager();
-    assert(inited);
+    GLTF_CHECK(inited);
 }
 
 bool glTFRenderPassManager::InitRenderPassManager()
@@ -105,16 +104,16 @@ void glTFRenderPassManager::RenderAllPass(size_t deltaTimeMs) const
     }
 
     // Transition swapchain state to render target for shading 
-    RHIUtils::Instance().AddRenderTargetBarrierToCommandList(m_resourceManager->GetCommandListForRecord(), m_resourceManager->GetCurrentFrameSwapchainRT(),
-    RHIResourceStateType::PRESENT, RHIResourceStateType::RENDER_TARGET);
+    RHIUtils::Instance().AddRenderTargetBarrierToCommandList(m_resourceManager->GetCommandListForRecord(), m_resourceManager->GetCurrentFrameSwapchainRT(), RHIResourceStateType::PRESENT, RHIResourceStateType::RENDER_TARGET);
     
     for (const auto& pass : m_passes)
     {
+        pass->PreRenderPass(*m_resourceManager);
         pass->RenderPass(*m_resourceManager);
+        pass->PostRenderPass(*m_resourceManager);
     }
     
-    RHIUtils::Instance().AddRenderTargetBarrierToCommandList(m_resourceManager->GetCommandListForRecord(), m_resourceManager->GetCurrentFrameSwapchainRT(),
-            RHIResourceStateType::RENDER_TARGET, RHIResourceStateType::PRESENT);
+    RHIUtils::Instance().AddRenderTargetBarrierToCommandList(m_resourceManager->GetCommandListForRecord(), m_resourceManager->GetCurrentFrameSwapchainRT(), RHIResourceStateType::RENDER_TARGET, RHIResourceStateType::PRESENT);
 
     m_resourceManager->CloseCommandListAndExecute(false);
     

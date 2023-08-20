@@ -6,6 +6,7 @@
 #include "../glTFRenderPass/glTFRenderPassManager.h"
 #include "../glTFRenderPass/glTFRenderPassMeshOpaque.h"
 #include "../glTFRenderPass/glTFRenderPassLighting.h"
+#include "glTFRenderPass/glTFRenderPassMeshDepth.h"
 
 glTFSceneView::glTFSceneView(const glTFSceneGraph& graph)
     : m_scene_graph(graph)
@@ -47,6 +48,10 @@ bool glTFSceneView::SetupRenderPass(glTFRenderPassManager& out_render_pass_manag
 
 	GLTF_CHECK(has_resolved);
 
+    std::unique_ptr<glTFRenderPassMeshDepth> depth_pass = std::make_unique<glTFRenderPassMeshDepth>();
+    depth_pass->ResolveVertexInputLayout(resolved_vertex_layout);
+    out_render_pass_manager.AddRenderPass(std::move(depth_pass));
+    
 	std::unique_ptr<glTFRenderPassMeshOpaque> opaque_pass = std::make_unique<glTFRenderPassMeshOpaque>();
     opaque_pass->ResolveVertexInputLayout(resolved_vertex_layout);
     out_render_pass_manager.AddRenderPass(std::move(opaque_pass));
