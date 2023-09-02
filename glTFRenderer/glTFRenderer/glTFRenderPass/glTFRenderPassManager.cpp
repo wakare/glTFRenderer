@@ -51,7 +51,16 @@ void glTFRenderPassManager::InitAllPass()
 void glTFRenderPassManager::UpdateScene(size_t deltaTimeMs)
 {
     // Gather all scene pass
+    std::vector<glTFGraphicsPassBase*> graphics_passes;
     for (const auto& pass : m_passes)
+    {
+        if (glTFGraphicsPassBase* graphics_pass = dynamic_cast<glTFGraphicsPassBase*>(pass.get()))
+        {
+            graphics_passes.push_back(graphics_pass);
+        }
+    }
+    
+    for (const auto& pass : graphics_passes)
     {
         m_scene_view.TraverseSceneObjectWithinView([this, &pass](const glTFSceneNode& node)
         {
@@ -70,12 +79,12 @@ void glTFRenderPassManager::UpdateScene(size_t deltaTimeMs)
         });
     }
 
-    for (const auto& pass : m_passes)
+    for (const auto& pass : graphics_passes)
     {
         const bool success = pass->FinishProcessSceneObject(*m_resourceManager);
         GLTF_CHECK(success);
 
-        if (auto* sceneViewInterface = dynamic_cast<glTFRenderPassInterfaceSceneView*>(pass.get()))
+        if (auto* sceneViewInterface = dynamic_cast<glTFRenderPassInterfaceSceneView*>(pass))
         {
             sceneViewInterface->UpdateSceneViewData({
                 m_scene_view.GetViewMatrix(),

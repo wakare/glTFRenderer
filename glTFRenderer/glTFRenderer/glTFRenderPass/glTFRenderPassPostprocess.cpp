@@ -8,7 +8,7 @@ glTFRenderPassPostprocess::glTFRenderPassPostprocess()
 
 bool glTFRenderPassPostprocess::InitPass(glTFRenderResourceManager& resourceManager)
 {
-    RETURN_IF_FALSE(glTFRenderPassBase::InitPass(resourceManager))
+    RETURN_IF_FALSE(glTFGraphicsPassBase::InitPass(resourceManager))
     
     float postprocessVertices[] =
     {
@@ -66,14 +66,14 @@ bool glTFRenderPassPostprocess::InitPass(glTFRenderResourceManager& resourceMana
 
 bool glTFRenderPassPostprocess::PreRenderPass(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(glTFRenderPassBase::PreRenderPass(resource_manager))
+    RETURN_IF_FALSE(glTFGraphicsPassBase::PreRenderPass(resource_manager))
     
     return true;
 }
 
 bool glTFRenderPassPostprocess::RenderPass(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(glTFRenderPassBase::RenderPass(resource_manager))
+    RETURN_IF_FALSE(glTFGraphicsPassBase::RenderPass(resource_manager))
 
     DrawPostprocessQuad(resource_manager);
     
@@ -82,7 +82,7 @@ bool glTFRenderPassPostprocess::RenderPass(glTFRenderResourceManager& resource_m
 
 bool glTFRenderPassPostprocess::PostRenderPass(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(glTFRenderPassBase::PostRenderPass(resource_manager))
+    RETURN_IF_FALSE(glTFGraphicsPassBase::PostRenderPass(resource_manager))
 
     return true;
 }
@@ -94,7 +94,7 @@ bool glTFRenderPassPostprocess::SetupRootSignature(glTFRenderResourceManager& re
 
 bool glTFRenderPassPostprocess::SetupPipelineStateObject(glTFRenderResourceManager& resourceManager)
 {
-    RETURN_IF_FALSE(glTFRenderPassBase::SetupPipelineStateObject(resourceManager));
+    RETURN_IF_FALSE(glTFGraphicsPassBase::SetupPipelineStateObject(resourceManager));
     
     return true;
 }

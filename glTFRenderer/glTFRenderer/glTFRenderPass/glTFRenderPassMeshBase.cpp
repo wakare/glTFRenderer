@@ -15,7 +15,7 @@ glTFRenderPassMeshBase::glTFRenderPassMeshBase()
 
 bool glTFRenderPassMeshBase::InitPass(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE (glTFRenderPassBase::InitPass(resource_manager))
+    RETURN_IF_FALSE(glTFGraphicsPassBase::InitPass(resource_manager))
     RETURN_IF_FALSE(glTFRenderPassInterfaceSceneView::InitInterface(resource_manager))
     RETURN_IF_FALSE(glTFRenderPassInterfaceSceneMesh::InitInterface(resource_manager))
     
@@ -24,7 +24,7 @@ bool glTFRenderPassMeshBase::InitPass(glTFRenderResourceManager& resource_manage
 
 bool glTFRenderPassMeshBase::PreRenderPass(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(glTFRenderPassBase::PreRenderPass(resource_manager))
+    RETURN_IF_FALSE(glTFGraphicsPassBase::PreRenderPass(resource_manager))
 
     auto& command_list = resource_manager.GetCommandListForRecord();
     
@@ -37,7 +37,7 @@ bool glTFRenderPassMeshBase::PreRenderPass(glTFRenderResourceManager& resource_m
 
 bool glTFRenderPassMeshBase::RenderPass(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(glTFRenderPassBase::RenderPass(resource_manager))    
+    RETURN_IF_FALSE(glTFGraphicsPassBase::RenderPass(resource_manager))    
 
     auto& command_list = resource_manager.GetCommandListForRecord();
     
@@ -65,6 +65,8 @@ bool glTFRenderPassMeshBase::RenderPass(glTFRenderResourceManager& resource_mana
 
         RETURN_IF_FALSE(EndDrawMesh(resource_manager, mesh.first))
     }
+
+    return true;
 }
 
 bool glTFRenderPassMeshBase::AddOrUpdatePrimitiveToMeshPass(glTFRenderResourceManager& resource_manager, const glTFScenePrimitive& primitive)
@@ -155,7 +157,7 @@ bool glTFRenderPassMeshBase::SetupRootSignature(glTFRenderResourceManager& resou
 
 bool glTFRenderPassMeshBase::SetupPipelineStateObject(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(glTFRenderPassBase::SetupPipelineStateObject(resource_manager))
+    RETURN_IF_FALSE(glTFGraphicsPassBase::SetupPipelineStateObject(resource_manager))
 
     auto& shader_macros = m_pipeline_state_object->GetShaderMacros();
     glTFRenderPassInterfaceSceneView::UpdateShaderCompileDefine(shader_macros);

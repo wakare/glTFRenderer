@@ -25,18 +25,18 @@ const char* glTFRenderPassLighting::PassName()
     return "LightPass";
 }
 
-bool glTFRenderPassLighting::InitPass(glTFRenderResourceManager& resourceManager)
+bool glTFRenderPassLighting::InitPass(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(glTFRenderPassPostprocess::InitPass(resourceManager))
+    RETURN_IF_FALSE(glTFRenderPassPostprocess::InitPass(resource_manager))
     
-    RETURN_IF_FALSE(glTFRenderPassInterfaceSceneView::InitInterface(resourceManager))
+    RETURN_IF_FALSE(glTFRenderPassInterfaceSceneView::InitInterface(resource_manager))
 
     m_light_info_GPU_constant_buffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
     m_point_light_info_GPU_structured_buffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
     m_directional_light_info_GPU_structured_buffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
     
     // TODO: Calculate mesh constant buffer size
-    RETURN_IF_FALSE(m_light_info_GPU_constant_buffer->InitGPUBuffer(resourceManager.GetDevice(),
+    RETURN_IF_FALSE(m_light_info_GPU_constant_buffer->InitGPUBuffer(resource_manager.GetDevice(),
         {
             L"LightPass_LightInfoConstantBuffer",
             static_cast<size_t>(64 * 1024),
@@ -47,7 +47,7 @@ bool glTFRenderPassLighting::InitPass(glTFRenderResourceManager& resourceManager
             RHIBufferResourceType::Buffer
         }))
 
-    RETURN_IF_FALSE(m_point_light_info_GPU_structured_buffer->InitGPUBuffer(resourceManager.GetDevice(),
+    RETURN_IF_FALSE(m_point_light_info_GPU_structured_buffer->InitGPUBuffer(resource_manager.GetDevice(),
         {
             L"LightPass_PointLightInfoStructuredBuffer",
             static_cast<size_t>(64 * 1024),
@@ -58,7 +58,7 @@ bool glTFRenderPassLighting::InitPass(glTFRenderResourceManager& resourceManager
             RHIBufferResourceType::Buffer
         }))
 
-    RETURN_IF_FALSE(m_directional_light_info_GPU_structured_buffer->InitGPUBuffer(resourceManager.GetDevice(),
+    RETURN_IF_FALSE(m_directional_light_info_GPU_structured_buffer->InitGPUBuffer(resource_manager.GetDevice(),
         {
             L"LightPass_DirectionalLightInfoStructuredBuffer",
             static_cast<size_t>(64 * 1024),
@@ -129,7 +129,7 @@ bool glTFRenderPassLighting::PostRenderPass(glTFRenderResourceManager& resource_
     return true;
 }
 
-bool glTFRenderPassLighting::TryProcessSceneObject(glTFRenderResourceManager& resourceManager,
+bool glTFRenderPassLighting::TryProcessSceneObject(glTFRenderResourceManager& resource_manager,
                                                    const glTFSceneObjectBase& object)
 {
     const glTFLightBase* light = dynamic_cast<const glTFLightBase*>(&object);
@@ -166,9 +166,9 @@ bool glTFRenderPassLighting::TryProcessSceneObject(glTFRenderResourceManager& re
     return true;
 }
 
-bool glTFRenderPassLighting::FinishProcessSceneObject(glTFRenderResourceManager& resourceManager)
+bool glTFRenderPassLighting::FinishProcessSceneObject(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(glTFRenderPassBase::FinishProcessSceneObject(resourceManager))
+    RETURN_IF_FALSE(glTFGraphicsPassBase::FinishProcessSceneObject(resource_manager))
 
     // Update light info gpu buffer
     m_constant_buffer_per_light_draw.pointLightCount = m_cache_point_lights.size();
@@ -197,14 +197,14 @@ size_t glTFRenderPassLighting::GetMainDescriptorHeapSize()
     return 64;
 }
 
-bool glTFRenderPassLighting::SetupRootSignature(glTFRenderResourceManager& resourceManager)
+bool glTFRenderPassLighting::SetupRootSignature(glTFRenderResourceManager& resource_manager)
 {
     // Init root signature
     constexpr size_t rootSignatureParameterCount = LightPass_RootParameter_Num;
     constexpr size_t rootSignatureStaticSamplerCount = 1;
     RETURN_IF_FALSE(m_root_signature->AllocateRootSignatureSpace(rootSignatureParameterCount, rootSignatureStaticSamplerCount))
 
-    RETURN_IF_FALSE(glTFRenderPassPostprocess::SetupRootSignature(resourceManager))
+    RETURN_IF_FALSE(glTFRenderPassPostprocess::SetupRootSignature(resource_manager))
     RETURN_IF_FALSE(glTFRenderPassInterfaceSceneView::SetupRootSignature(*m_root_signature))
     
     const RHIRootParameterDescriptorRangeDesc SRVRangeDesc {RHIRootParameterDescriptorRangeType::SRV, 0, 3};
@@ -215,7 +215,7 @@ bool glTFRenderPassLighting::SetupRootSignature(glTFRenderResourceManager& resou
     m_root_signature->GetRootParameter(LightPass_RootParameter_DirectionalLightStructuredBuffer).InitAsSRV(4);
     
     m_root_signature->GetStaticSampler(0).InitStaticSampler(0, RHIStaticSamplerAddressMode::Clamp, RHIStaticSamplerFilterMode::Linear);
-    RETURN_IF_FALSE(m_root_signature->InitRootSignature(resourceManager.GetDevice()))
+    RETURN_IF_FALSE(m_root_signature->InitRootSignature(resource_manager.GetDevice()))
     
     return true;
 }

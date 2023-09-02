@@ -1,6 +1,7 @@
 #pragma once
 #include <map>
 
+#include "glTFGraphicsPassBase.h"
 #include "glTFRenderPassBase.h"
 #include "glTFRenderPassInterfaceSceneMesh.h"
 #include "glTFRenderPassInterfaceSceneView.h"
@@ -27,7 +28,7 @@ struct MeshGPUResource
 };
 
 // Drawing all meshes within mesh pass
-class glTFRenderPassMeshBase : public glTFRenderPassBase, public glTFRenderPassInterfaceSceneView, public glTFRenderPassInterfaceSceneMesh
+class glTFRenderPassMeshBase : public glTFGraphicsPassBase, public glTFRenderPassInterfaceSceneView, public glTFRenderPassInterfaceSceneMesh
 {
 protected:
     enum glTFRenderPassMeshBaseRootParameterEnum

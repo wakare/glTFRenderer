@@ -118,6 +118,9 @@
     <ClCompile Include="glTFMaterial\glTFMaterialPBR.cpp" />
     <ClCompile Include="glTFMaterial\glTFMaterialParameterTexture.cpp" />
     <ClCompile Include="glTFRenderer.cpp" />
+    <ClCompile Include="glTFRenderPass\glTFComputePassBase.cpp" />
+    <ClCompile Include="glTFRenderPass\glTFComputePassLighting.cpp" />
+    <ClCompile Include="glTFRenderPass\glTFGraphicsPassBase.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderMaterialManager.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderPassBase.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderPassInterfaceBase.cpp" />
@@ -278,6 +281,9 @@
     <ClInclude Include="glTFMaterial\glTFMaterialParameterFactor.h" />
     <ClInclude Include="glTFMaterial\glTFMaterialPBR.h" />
     <ClInclude Include="glTFMaterial\glTFMaterialParameterTexture.h" />
+    <ClInclude Include="glTFRenderPass\glTFComputePassBase.h" />
+    <ClInclude Include="glTFRenderPass\glTFComputePassLighting.h" />
+    <ClInclude Include="glTFRenderPass\glTFGraphicsPassBase.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderMaterialManager.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderPassBase.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderPassInterfaceBase.h" />

@@ -1,4 +1,5 @@
 #pragma once
+#include "glTFGraphicsPassBase.h"
 #include "glTFRenderPassBase.h"
 
 class IRHIIndexBufferView;
@@ -14,7 +15,7 @@ struct PostprocessQuadGPUResource
 };
 
 // Post process pass only draw full screen quad
-class glTFRenderPassPostprocess : public glTFRenderPassBase
+class glTFRenderPassPostprocess : public glTFGraphicsPassBase
 {
 public:
     glTFRenderPassPostprocess();
