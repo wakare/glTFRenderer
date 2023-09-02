@@ -12,17 +12,17 @@ public:
     DX12RenderTargetManager();
     virtual ~DX12RenderTargetManager() override;
     
-    virtual bool InitRenderTargetManager(IRHIDevice& device, size_t maxRenderTargetCount) override;
+    virtual bool InitRenderTargetManager(IRHIDevice& device, size_t max_render_target_count) override;
     virtual std::shared_ptr<IRHIRenderTarget> CreateRenderTarget(IRHIDevice& device, RHIRenderTargetType type, RHIDataFormat resourceFormat, RHIDataFormat descriptorFormat, const IRHIRenderTargetDesc& desc) override;
     virtual std::vector<std::shared_ptr<IRHIRenderTarget>> CreateRenderTargetFromSwapChain(IRHIDevice& device, IRHISwapChain& swapChain, RHIRenderTargetClearValue clearValue) override;
     virtual bool ClearRenderTarget(IRHICommandList& commandList, const std::vector<IRHIRenderTarget*>& renderTargets) override;
     virtual bool BindRenderTarget(IRHICommandList& commandList, const std::vector<IRHIRenderTarget*>& renderTargets, /*optional*/ IRHIRenderTarget* depthStencil) override;
     
 private:    
-    size_t                      m_maxRenderTargetCount;
+    size_t                      m_max_render_target_count;
 
-    std::shared_ptr<IRHIDescriptorHeap> m_rtvDescriptorHeap;
-    std::shared_ptr<IRHIDescriptorHeap> m_dsvDescriptorHeap;
+    std::shared_ptr<IRHIDescriptorHeap> m_rtv_descriptor_heap;
+    std::shared_ptr<IRHIDescriptorHeap> m_dsv_descriptor_heap;
     
     //ID3D12DescriptorHeap*       m_rtvDescriptorHeap;
     //ID3D12DescriptorHeap*       m_dsvDescriptorHeap;

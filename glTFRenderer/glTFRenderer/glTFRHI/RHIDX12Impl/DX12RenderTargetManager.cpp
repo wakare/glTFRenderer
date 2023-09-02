@@ -14,28 +14,26 @@
 #include "../RHIResourceFactoryImpl.hpp"
 
 DX12RenderTargetManager::DX12RenderTargetManager()
-    : m_maxRenderTargetCount(0)
-    , m_rtvDescriptorHeap(nullptr)
-    , m_dsvDescriptorHeap(nullptr)
+    : m_max_render_target_count(0)
+    , m_rtv_descriptor_heap(nullptr)
+    , m_dsv_descriptor_heap(nullptr)
 {
 }
 
 DX12RenderTargetManager::~DX12RenderTargetManager()
-{
+= default;
 
-}
-
-bool DX12RenderTargetManager::InitRenderTargetManager(IRHIDevice& device, size_t maxRenderTargetCount)
+bool DX12RenderTargetManager::InitRenderTargetManager(IRHIDevice& device, size_t max_render_target_count)
 {
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
 
-    m_rtvDescriptorHeap = RHIResourceFactory::CreateRHIResource<IRHIDescriptorHeap>();
-    m_rtvDescriptorHeap->InitDescriptorHeap(device, {static_cast<unsigned>(maxRenderTargetCount), RHIDescriptorHeapType::RTV, false});
+    m_rtv_descriptor_heap = RHIResourceFactory::CreateRHIResource<IRHIDescriptorHeap>();
+    m_rtv_descriptor_heap->InitDescriptorHeap(device, {static_cast<unsigned>(max_render_target_count), RHIDescriptorHeapType::RTV, false});
 
-    m_dsvDescriptorHeap = RHIResourceFactory::CreateRHIResource<IRHIDescriptorHeap>();
-    m_dsvDescriptorHeap->InitDescriptorHeap(device, {static_cast<unsigned>(maxRenderTargetCount), RHIDescriptorHeapType::DSV, false});
+    m_dsv_descriptor_heap = RHIResourceFactory::CreateRHIResource<IRHIDescriptorHeap>();
+    m_dsv_descriptor_heap->InitDescriptorHeap(device, {static_cast<unsigned>(max_render_target_count), RHIDescriptorHeapType::DSV, false});
     
-    m_maxRenderTargetCount = maxRenderTargetCount;
+    m_max_render_target_count = max_render_target_count;
     
     return true;
 }
@@ -58,7 +56,7 @@ std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTarget(IR
     { 
     case RHIRenderTargetType::RTV:
         {
-            if(m_rtvHandles.size() >= m_maxRenderTargetCount)
+            if(m_rtvHandles.size() >= m_max_render_target_count)
             {
                 return nullptr;
             }
@@ -66,7 +64,7 @@ std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTarget(IR
             handleCount = m_rtvHandles.size();
             flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
             const UINT incSize = dxDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-            auto* dxDescriptorHeap = dynamic_cast<DX12DescriptorHeap&>(*m_rtvDescriptorHeap).GetDescriptorHeap();
+            auto* dxDescriptorHeap = dynamic_cast<DX12DescriptorHeap&>(*m_rtv_descriptor_heap).GetDescriptorHeap();
             handle = dxDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
             handle.ptr += handleCount * incSize;
             initialState = D3D12_RESOURCE_STATE_RENDER_TARGET;
@@ -76,7 +74,7 @@ std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTarget(IR
         
     case RHIRenderTargetType::DSV:
         {
-            if(m_dsvHandles.size() >= m_maxRenderTargetCount)
+            if(m_dsvHandles.size() >= m_max_render_target_count)
             {
                 return nullptr;
             }
@@ -84,7 +82,7 @@ std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTarget(IR
             handleCount = m_dsvHandles.size();
             flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
             const UINT incSize = dxDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-            auto* dxDescriptorHeap = dynamic_cast<DX12DescriptorHeap&>(*m_dsvDescriptorHeap).GetDescriptorHeap();
+            auto* dxDescriptorHeap = dynamic_cast<DX12DescriptorHeap&>(*m_dsv_descriptor_heap).GetDescriptorHeap();
             handle = dxDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
             handle.ptr += handleCount * incSize;
             initialState = D3D12_RESOURCE_STATE_DEPTH_WRITE;
@@ -171,7 +169,7 @@ std::vector<std::shared_ptr<IRHIRenderTarget>> DX12RenderTargetManager::CreateRe
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
     auto* dxSwapChain = dynamic_cast<DX12SwapChain&>(swapChain).GetSwapChain();
 
-    auto* dxDescriptorHeap = dynamic_cast<DX12DescriptorHeap&>(*m_rtvDescriptorHeap).GetDescriptorHeap();
+    auto* dxDescriptorHeap = dynamic_cast<DX12DescriptorHeap&>(*m_rtv_descriptor_heap).GetDescriptorHeap();
     D3D12_CPU_DESCRIPTOR_HANDLE handle = dxDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
     size_t descriptorsCount = m_rtvHandles.size();
     UINT incSize = dxDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);

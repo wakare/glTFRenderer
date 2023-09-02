@@ -4,7 +4,7 @@
 #include "../glTFMaterial/glTFMaterialOpaque.h"
 #include "../glTFRHI/RHIUtils.h"
 #include "../glTFRHI/RHIResourceFactoryImpl.hpp"
-#include "../glTFRHI/RHIInterface/glTFImageLoader.h"
+#include "../glTFUtils/glTFImageLoader.h"
 
 glTFRenderPassMeshOpaque::glTFRenderPassMeshOpaque()
     : glTFRenderPassMeshBase()

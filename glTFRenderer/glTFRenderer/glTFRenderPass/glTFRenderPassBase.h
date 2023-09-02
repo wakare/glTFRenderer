@@ -46,7 +46,7 @@ protected:
     
     std::shared_ptr<IRHIRootSignature> m_root_signature;
     
-    std::shared_ptr<IRHIPipelineStateObject> m_pipeline_state_object;
+    std::shared_ptr<IRHIGraphicsPipelineStateObject> m_pipeline_state_object;
     
     // CBV_SRV_UAV Heaps, can only bind one in render pass
     std::shared_ptr<IRHIDescriptorHeap> m_main_descriptor_heap;

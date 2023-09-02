@@ -1,10 +1,35 @@
 #include "IRHIPipelineStateObject.h"
 
+#include "glTFRHI/RHIResourceFactoryImpl.hpp"
+
 IRHIPipelineStateObject::IRHIPipelineStateObject(RHIPipelineType type)
     : m_type(type)
     , m_cullMode(IRHICullMode::NONE)
-    , m_depthStencilState(IRHIDepthStencilMode::DEPTH_READ)
+    , m_depth_stencil_state(IRHIDepthStencilMode::DEPTH_READ)
 {
+}
+
+bool IRHIPipelineStateObject::BindShaderCode(const std::string& shaderFilePath, RHIShaderType type,
+    const std::string& entryFunctionName)
+{
+    std::shared_ptr<IRHIShader> dxShader = RHIResourceFactory::CreateRHIResource<IRHIShader>();
+    if (!dxShader->InitShader(shaderFilePath, type, entryFunctionName))
+    {
+        return false;
+    }
+
+    // Delay compile shader bytecode util create pso
+
+    assert(m_shaders.find(type) == m_shaders.end());
+    m_shaders[type] = dxShader;
+    
+    return true;
+}
+
+IRHIShader& IRHIPipelineStateObject::GetBindShader(RHIShaderType type)
+{
+    assert(m_shaders.find(type) != m_shaders.end());
+    return *m_shaders[type];
 }
 
 bool IRHIPipelineStateObject::BindInputLayoutAndSetShaderMacros(const std::vector<RHIPipelineInputLayout>& input_layouts)
@@ -18,17 +43,17 @@ bool IRHIPipelineStateObject::BindInputLayoutAndSetShaderMacros(const std::vecto
     {
         if (input_layout.semanticName == INPUT_LAYOUT_UNIQUE_PARAMETER(NORMAL))
         {
-            m_shaderMacros.AddMacro("HAS_NORMAL", "1");
+            m_shader_macros.AddMacro("HAS_NORMAL", "1");
         }
 
         if (input_layout.semanticName == INPUT_LAYOUT_UNIQUE_PARAMETER(TEXCOORD))
         {
-            m_shaderMacros.AddMacro("HAS_TEXCOORD", "1");
+            m_shader_macros.AddMacro("HAS_TEXCOORD", "1");
         }
 
         if (input_layout.semanticName == INPUT_LAYOUT_UNIQUE_PARAMETER(TANGENT))
         {
-            m_shaderMacros.AddMacro("HAS_TANGENT", "1");
+            m_shader_macros.AddMacro("HAS_TANGENT", "1");
         }
     }
     
@@ -37,7 +62,18 @@ bool IRHIPipelineStateObject::BindInputLayoutAndSetShaderMacros(const std::vecto
 
 RHIShaderPreDefineMacros& IRHIPipelineStateObject::GetShaderMacros()
 {
-    return m_shaderMacros;
+    return m_shader_macros;
+}
+
+IRHIGraphicsPipelineStateObject::IRHIGraphicsPipelineStateObject()
+    : IRHIPipelineStateObject(RHIPipelineType::Graphics)
+{
+    
+}
+
+IRHIComputePipelineStateObject::IRHIComputePipelineStateObject()
+    : IRHIPipelineStateObject(RHIPipelineType::Compute)
+{
 }
 
 void IRHIPipelineStateObject::SetCullMode(IRHICullMode mode)
@@ -47,7 +83,7 @@ void IRHIPipelineStateObject::SetCullMode(IRHICullMode mode)
 
 void IRHIPipelineStateObject::SetDepthStencilState(IRHIDepthStencilMode state)
 {
-    m_depthStencilState = state;
+    m_depth_stencil_state = state;
 }
 
 IRHICullMode IRHIPipelineStateObject::GetCullMode() const

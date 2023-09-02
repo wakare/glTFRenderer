@@ -1,4 +1,5 @@
 #pragma once
+#include <map>
 #include "IRHIDevice.h"
 #include "IRHIRootSignature.h"
 #include "IRHIResource.h"
@@ -51,23 +52,39 @@ class IRHIPipelineStateObject : public IRHIResource
 {
 public:
     IRHIPipelineStateObject(RHIPipelineType type);
-    virtual bool BindShaderCode(const std::string& shaderFilePath, RHIShaderType type, const std::string& entryFunctionName) = 0;
-    virtual bool BindRenderTargets(const std::vector<IRHIRenderTarget*>& renderTargets) = 0;
+    
+    bool BindShaderCode(const std::string& shaderFilePath, RHIShaderType type, const std::string& entryFunctionName);
+    IRHIShader& GetBindShader(RHIShaderType type);
+    
     bool BindInputLayoutAndSetShaderMacros(const std::vector<RHIPipelineInputLayout>& input_layouts);
-    virtual bool InitPipelineStateObject(IRHIDevice& device, IRHIRootSignature& rootSignature, IRHISwapChain& swapchain) = 0;
-
-    virtual IRHIShader& GetBindShader(RHIShaderType type) = 0;
-    RHIShaderPreDefineMacros& GetShaderMacros();
-
     void SetCullMode(IRHICullMode mode);
     void SetDepthStencilState(IRHIDepthStencilMode state);
     
     IRHICullMode GetCullMode() const;
+    RHIShaderPreDefineMacros& GetShaderMacros();
     
 protected:
     RHIPipelineType m_type;
-    RHIShaderPreDefineMacros m_shaderMacros;
+    RHIShaderPreDefineMacros m_shader_macros;
     IRHICullMode m_cullMode;
-    IRHIDepthStencilMode m_depthStencilState;
+    IRHIDepthStencilMode m_depth_stencil_state;
     std::vector<RHIPipelineInputLayout> m_input_layouts;
+    std::map<RHIShaderType, std::shared_ptr<IRHIShader>> m_shaders;
+};
+
+class IRHIGraphicsPipelineStateObject : public IRHIPipelineStateObject
+{
+public:
+    IRHIGraphicsPipelineStateObject();
+    
+    virtual bool BindRenderTargets(const std::vector<IRHIRenderTarget*>& renderTargets) = 0;
+    virtual bool InitGraphicsPipelineStateObject(IRHIDevice& device, IRHIRootSignature& rootSignature, IRHISwapChain& swapchain) = 0;
+};
+
+class IRHIComputePipelineStateObject : public IRHIPipelineStateObject
+{
+public:
+    IRHIComputePipelineStateObject();
+
+    virtual bool InitComputePipelineStateObject(IRHIDevice& device, IRHIRootSignature& root_signature) = 0; 
 };

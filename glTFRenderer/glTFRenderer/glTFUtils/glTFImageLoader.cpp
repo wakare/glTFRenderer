@@ -3,8 +3,8 @@
 #include <cassert>
 #include <wincodec.h>
 
-#include "IRHITexture.h"
-#include "RHICommon.h"
+#include "../glTFRHI/RHIInterface/IRHITexture.h"
+#include "../glTFRHI/RHIInterface/RHICommon.h"
 
 RHIDataFormat ConvertToRHIDataFormat(const WICPixelFormatGUID& wicFormatGUID)
 {

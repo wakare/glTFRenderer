@@ -5,7 +5,7 @@
 #include "DX12Device.h"
 #include "../RHIResourceFactory.h"
 #include "../RHIUtils.h"
-#include "../RHIInterface/glTFImageLoader.h"
+#include "../../glTFUtils/glTFImageLoader.h"
 
 #include <codecvt>
 

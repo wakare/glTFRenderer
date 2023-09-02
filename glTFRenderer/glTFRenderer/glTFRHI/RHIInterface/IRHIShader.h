@@ -8,6 +8,7 @@ enum class RHIShaderType
 {
     Vertex,
     Pixel,
+    Compute,
     Unknown,
 };
 

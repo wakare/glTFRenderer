@@ -2,7 +2,7 @@
 #include "../glTFMaterial/glTFMaterialOpaque.h"
 #include "../glTFRHI/RHIUtils.h"
 #include "../glTFRHI/RHIResourceFactoryImpl.hpp"
-#include "../glTFRHI/RHIInterface/glTFImageLoader.h"
+#include "../glTFUtils/glTFImageLoader.h"
 #include "../glTFRenderPass/glTFRenderPassManager.h"
 
 glTFMaterialTextureRenderResource::glTFMaterialTextureRenderResource(const glTFMaterialParameterTexture& source_texture)
