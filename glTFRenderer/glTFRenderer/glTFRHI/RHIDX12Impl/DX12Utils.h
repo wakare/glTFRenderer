@@ -56,4 +56,6 @@ public:
 
     virtual bool DrawIndexInstanced(IRHICommandList& commandList, unsigned indexCountPerInstance, unsigned instanceCount, unsigned startIndexLocation, unsigned baseVertexLocation, unsigned startInstanceLocation) override;
     virtual bool Present(IRHISwapChain& swapchain) override;
+
+    virtual bool DiscardResource(IRHICommandList& commandList, IRHIRenderTarget& render_target) override;
 };

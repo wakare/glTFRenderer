@@ -1,11 +1,11 @@
 #pragma once
-#include "glTFRenderResourceManager.h"
+#include "../glTFRenderResourceManager.h"
 
 // glTF render pass interface can composite with render pass class, should be derived in class declaration
-class glTFRenderPassInterfaceBase
+class glTFRenderInterfaceBase
 {
 public:
     virtual bool InitInterface(glTFRenderResourceManager& resourceManager) = 0;
     
-    virtual ~glTFRenderPassInterfaceBase() = default;
+    virtual ~glTFRenderInterfaceBase() = default;
 };

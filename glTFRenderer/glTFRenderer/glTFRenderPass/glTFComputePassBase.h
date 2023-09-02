@@ -1,6 +1,7 @@
 #pragma once
+#include "glTFRenderPassBase.h"
 
-class glTFComputePassBase
+class glTFComputePassBase : public glTFRenderPassBase
 {
 public:
     

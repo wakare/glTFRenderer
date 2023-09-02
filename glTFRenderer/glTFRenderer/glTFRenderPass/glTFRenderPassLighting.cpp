@@ -10,7 +10,7 @@
 #include "../glTFUtils/glTFLog.h"
 
 glTFRenderPassLighting::glTFRenderPassLighting()
-    : glTFRenderPassInterfaceSceneView(LightPass_RootParameter_SceneViewCBV, LightPass_RootParameter_SceneViewCBV)
+    : glTFRenderInterfaceSceneView(LightPass_RootParameter_SceneViewCBV, LightPass_RootParameter_SceneViewCBV)
     , m_base_pass_color_RT(nullptr)
     , m_normal_RT(nullptr)
     , m_base_pass_color_RT_SRV_Handle(0)
@@ -29,7 +29,7 @@ bool glTFRenderPassLighting::InitPass(glTFRenderResourceManager& resource_manage
 {
     RETURN_IF_FALSE(glTFRenderPassPostprocess::InitPass(resource_manager))
     
-    RETURN_IF_FALSE(glTFRenderPassInterfaceSceneView::InitInterface(resource_manager))
+    RETURN_IF_FALSE(glTFRenderInterfaceSceneView::InitInterface(resource_manager))
 
     m_light_info_GPU_constant_buffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
     m_point_light_info_GPU_structured_buffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
@@ -76,7 +76,7 @@ bool glTFRenderPassLighting::PreRenderPass(glTFRenderResourceManager& resource_m
 {
     RETURN_IF_FALSE(glTFRenderPassPostprocess::PreRenderPass(resource_manager))
 
-    RETURN_IF_FALSE(glTFRenderPassInterfaceSceneView::ApplyInterface(resource_manager))
+    RETURN_IF_FALSE(glTFRenderInterfaceSceneView::ApplyInterface(resource_manager))
 
     auto& command_list = resource_manager.GetCommandListForRecord();
     
@@ -125,6 +125,10 @@ bool glTFRenderPassLighting::PostRenderPass(glTFRenderResourceManager& resource_
 
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, resource_manager.GetDepthRT(),
             RHIResourceStateType::PIXEL_SHADER_RESOURCE, RHIResourceStateType::DEPTH_READ))
+
+    RETURN_IF_FALSE(RHIUtils::Instance().DiscardResource(command_list, *m_base_pass_color_RT))
+    RETURN_IF_FALSE(RHIUtils::Instance().DiscardResource(command_list, *m_normal_RT))
+    RETURN_IF_FALSE(RHIUtils::Instance().DiscardResource(command_list, resource_manager.GetDepthRT()))
     
     return true;
 }
@@ -144,8 +148,8 @@ bool glTFRenderPassLighting::TryProcessSceneObject(glTFRenderResourceManager& re
         {
             const glTFPointLight* pointLight = dynamic_cast<const glTFPointLight*>(light);
             PointLightInfo pointLightInfo{};
-            pointLightInfo.positionAndRadius = glm::vec4(glTF_Transform_WithTRS::GetTranslationFromMatrix(pointLight->GetTransformMatrix()), pointLight->GetRadius());
-            pointLightInfo.intensityAndFalloff = {pointLight->GetIntensity(), pointLight->GetFalloff(), 0.0f, 0.0f};
+            pointLightInfo.position_and_radius = glm::vec4(glTF_Transform_WithTRS::GetTranslationFromMatrix(pointLight->GetTransformMatrix()), pointLight->GetRadius());
+            pointLightInfo.intensity_and_falloff = {pointLight->GetIntensity(), pointLight->GetFalloff(), 0.0f, 0.0f};
             m_cache_point_lights[pointLight->GetID()] = pointLightInfo;
         }
         break;
@@ -154,7 +158,7 @@ bool glTFRenderPassLighting::TryProcessSceneObject(glTFRenderResourceManager& re
         {
             const glTFDirectionalLight* directionalLight = dynamic_cast<const glTFDirectionalLight*>(light);
             DirectionalLightInfo directionalLightInfo{};
-            directionalLightInfo.directionalAndIntensity = glm::vec4(directionalLight->GetDirection(), directionalLight->GetIntensity());
+            directionalLightInfo.directional_and_intensity = glm::vec4(directionalLight->GetDirection(), directionalLight->GetIntensity());
             m_cache_directional_lights[directionalLight->GetID()] = directionalLightInfo;
         }
         break;
@@ -171,25 +175,35 @@ bool glTFRenderPassLighting::FinishProcessSceneObject(glTFRenderResourceManager&
     RETURN_IF_FALSE(glTFGraphicsPassBase::FinishProcessSceneObject(resource_manager))
 
     // Update light info gpu buffer
-    m_constant_buffer_per_light_draw.pointLightCount = m_cache_point_lights.size();
-    m_constant_buffer_per_light_draw.directionalLightCount = m_cache_directional_lights.size();
+    m_constant_buffer_per_light_draw.point_light_count = m_cache_point_lights.size();
+    m_constant_buffer_per_light_draw.directional_light_count = m_cache_directional_lights.size();
     
-    m_constant_buffer_per_light_draw.pointLightInfos.resize(m_constant_buffer_per_light_draw.pointLightCount);
-    m_constant_buffer_per_light_draw.directionalInfos.resize(m_constant_buffer_per_light_draw.directionalLightCount);
+    m_constant_buffer_per_light_draw.point_light_infos.resize(m_constant_buffer_per_light_draw.point_light_count);
+    m_constant_buffer_per_light_draw.directional_light_infos.resize(m_constant_buffer_per_light_draw.directional_light_count);
 
     size_t pointLightIndex = 0;
     for (const auto& pointLight : m_cache_point_lights)
     {
-        m_constant_buffer_per_light_draw.pointLightInfos[pointLightIndex++] = pointLight.second;
+        m_constant_buffer_per_light_draw.point_light_infos[pointLightIndex++] = pointLight.second;
     }
 
     size_t directionalLightIndex = 0;
     for (const auto& directionalLight : m_cache_directional_lights)
     {
-        m_constant_buffer_per_light_draw.directionalInfos[directionalLightIndex++] = directionalLight.second;
+        m_constant_buffer_per_light_draw.directional_light_infos[directionalLightIndex++] = directionalLight.second;
     }
     
     return true;
+}
+
+size_t glTFRenderPassLighting::GetRootSignatureParameterCount()
+{
+    return LightPass_RootParameter_Num;
+}
+
+size_t glTFRenderPassLighting::GetRootSignatureSamplerCount()
+{
+    return 1;
 }
 
 size_t glTFRenderPassLighting::GetMainDescriptorHeapSize()
@@ -199,13 +213,8 @@ size_t glTFRenderPassLighting::GetMainDescriptorHeapSize()
 
 bool glTFRenderPassLighting::SetupRootSignature(glTFRenderResourceManager& resource_manager)
 {
-    // Init root signature
-    constexpr size_t rootSignatureParameterCount = LightPass_RootParameter_Num;
-    constexpr size_t rootSignatureStaticSamplerCount = 1;
-    RETURN_IF_FALSE(m_root_signature->AllocateRootSignatureSpace(rootSignatureParameterCount, rootSignatureStaticSamplerCount))
-
     RETURN_IF_FALSE(glTFRenderPassPostprocess::SetupRootSignature(resource_manager))
-    RETURN_IF_FALSE(glTFRenderPassInterfaceSceneView::SetupRootSignature(*m_root_signature))
+    RETURN_IF_FALSE(glTFRenderInterfaceSceneView::SetupRootSignature(*m_root_signature))
     
     const RHIRootParameterDescriptorRangeDesc SRVRangeDesc {RHIRootParameterDescriptorRangeType::SRV, 0, 3};
     m_root_signature->GetRootParameter(LightPass_RootParameter_BaseColorAndDepthSRV).InitAsDescriptorTableRange(1, &SRVRangeDesc);
@@ -215,7 +224,6 @@ bool glTFRenderPassLighting::SetupRootSignature(glTFRenderResourceManager& resou
     m_root_signature->GetRootParameter(LightPass_RootParameter_DirectionalLightStructuredBuffer).InitAsSRV(4);
     
     m_root_signature->GetStaticSampler(0).InitStaticSampler(0, RHIStaticSamplerAddressMode::Clamp, RHIStaticSamplerFilterMode::Linear);
-    RETURN_IF_FALSE(m_root_signature->InitRootSignature(resource_manager.GetDevice()))
     
     return true;
 }
@@ -245,7 +253,7 @@ bool glTFRenderPassLighting::SetupPipelineStateObject(glTFRenderResourceManager&
         R"(glTFResources\ShaderSource\LightPassPS.hlsl)", RHIShaderType::Pixel, "main");
     
     auto& shaderMacros = m_pipeline_state_object->GetShaderMacros();
-    glTFRenderPassInterfaceSceneView::UpdateShaderCompileDefine(shaderMacros);
+    glTFRenderInterfaceSceneView::UpdateShaderCompileDefine(shaderMacros);
     return true;
 }
 
@@ -253,18 +261,18 @@ bool glTFRenderPassLighting::UploadLightInfoGPUBuffer()
 {
     // First upload size of light infos
     RETURN_IF_FALSE(m_light_info_GPU_constant_buffer->UploadBufferFromCPU(&m_constant_buffer_per_light_draw, 0,
-        sizeof(m_constant_buffer_per_light_draw.pointLightCount) + sizeof(m_constant_buffer_per_light_draw.directionalLightCount)))
+        sizeof(m_constant_buffer_per_light_draw.point_light_count) + sizeof(m_constant_buffer_per_light_draw.directional_light_count)))
 
-    if (!m_constant_buffer_per_light_draw.pointLightInfos.empty())
+    if (!m_constant_buffer_per_light_draw.point_light_infos.empty())
     {
-        RETURN_IF_FALSE(m_point_light_info_GPU_structured_buffer->UploadBufferFromCPU(m_constant_buffer_per_light_draw.pointLightInfos.data(),
-            0, m_constant_buffer_per_light_draw.pointLightInfos.size() * sizeof(m_constant_buffer_per_light_draw.pointLightInfos[0])))
+        RETURN_IF_FALSE(m_point_light_info_GPU_structured_buffer->UploadBufferFromCPU(m_constant_buffer_per_light_draw.point_light_infos.data(),
+            0, m_constant_buffer_per_light_draw.point_light_infos.size() * sizeof(m_constant_buffer_per_light_draw.point_light_infos[0])))
     }
 
-    if (!m_constant_buffer_per_light_draw.directionalInfos.empty())
+    if (!m_constant_buffer_per_light_draw.directional_light_infos.empty())
     {
-        RETURN_IF_FALSE(m_directional_light_info_GPU_structured_buffer->UploadBufferFromCPU(m_constant_buffer_per_light_draw.directionalInfos.data(),
-            0, m_constant_buffer_per_light_draw.directionalInfos.size() * sizeof(m_constant_buffer_per_light_draw.directionalInfos[0])))
+        RETURN_IF_FALSE(m_directional_light_info_GPU_structured_buffer->UploadBufferFromCPU(m_constant_buffer_per_light_draw.directional_light_infos.data(),
+            0, m_constant_buffer_per_light_draw.directional_light_infos.size() * sizeof(m_constant_buffer_per_light_draw.directional_light_infos[0])))
     }
     
     return true;

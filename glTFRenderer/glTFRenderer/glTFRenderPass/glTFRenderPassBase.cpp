@@ -11,7 +11,14 @@ bool glTFRenderPassBase::InitPass(glTFRenderResourceManager& resource_manager)
         {static_cast<unsigned>(GetMainDescriptorHeapSize()), RHIDescriptorHeapType::CBV_SRV_UAV, true}))
 
     m_root_signature = RHIResourceFactory::CreateRHIResource<IRHIRootSignature>();
+    
+    // Init root signature
+    const size_t root_signature_parameter_count = GetRootSignatureParameterCount();
+    const size_t root_signature_static_sampler_count = GetRootSignatureSamplerCount();
+    RETURN_IF_FALSE(m_root_signature->AllocateRootSignatureSpace(root_signature_parameter_count, root_signature_static_sampler_count))
+    
     RETURN_IF_FALSE(SetupRootSignature(resource_manager))
+    RETURN_IF_FALSE(m_root_signature->InitRootSignature(resource_manager.GetDevice()))
     
     return true;
 }

@@ -43,6 +43,8 @@ public:
 
     virtual bool DrawIndexInstanced(IRHICommandList& commandList, unsigned indexCountPerInstance, unsigned instanceCount, unsigned startIndexLocation, unsigned baseVertexLocation, unsigned startInstanceLocation) = 0;
     virtual bool Present(IRHISwapChain& swapchain) = 0;
+
+    virtual bool DiscardResource(IRHICommandList& commandList, IRHIRenderTarget& render_target) = 0;
     
     static RHIUtils& Instance();
     

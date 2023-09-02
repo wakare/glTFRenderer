@@ -1,23 +1,19 @@
 #include "glTFRenderPassMeshBase.h"
-#include "../glTFRHI/RHIInterface/IRHIRenderTargetManager.h"
 #include "../glTFRHI/RHIResourceFactoryImpl.hpp"
 
 glTFRenderPassMeshBase::glTFRenderPassMeshBase()
-    : glTFRenderPassInterfaceSceneView(MeshBasePass_RootParameter_SceneView_CBV, MeshBasePass_SceneView_CBV_Register)
-    , glTFRenderPassInterfaceSceneMesh(
+    : glTFRenderInterfaceSceneView(MeshBasePass_RootParameter_SceneView_CBV, MeshBasePass_SceneView_CBV_Register)
+    , glTFRenderInterfaceSceneMesh(
         MeshBasePass_RootParameter_SceneMesh_CBV,
-        MeshBasePass_SceneMesh_CBV_Register,
-        MeshBasePass_RootParameter_SceneMesh_SRV,
-        MeshBasePass_SceneMesh_SRV_Register,
-        4)
+        MeshBasePass_SceneMesh_CBV_Register)
 {
 }
 
 bool glTFRenderPassMeshBase::InitPass(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassBase::InitPass(resource_manager))
-    RETURN_IF_FALSE(glTFRenderPassInterfaceSceneView::InitInterface(resource_manager))
-    RETURN_IF_FALSE(glTFRenderPassInterfaceSceneMesh::InitInterface(resource_manager))
+    RETURN_IF_FALSE(glTFRenderInterfaceSceneView::InitInterface(resource_manager))
+    RETURN_IF_FALSE(glTFRenderInterfaceSceneMesh::InitInterface(resource_manager))
     
     return true;
 }
@@ -30,7 +26,7 @@ bool glTFRenderPassMeshBase::PreRenderPass(glTFRenderResourceManager& resource_m
     
     RHIUtils::Instance().SetPrimitiveTopology( command_list, RHIPrimitiveTopologyType::TRIANGLELIST);
 
-    RETURN_IF_FALSE(glTFRenderPassInterfaceSceneView::ApplyInterface(resource_manager))
+    RETURN_IF_FALSE(glTFRenderInterfaceSceneView::ApplyInterface(resource_manager))
 
     return true;
 }
@@ -48,14 +44,14 @@ bool glTFRenderPassMeshBase::RenderPass(glTFRenderResourceManager& resource_mana
         RETURN_IF_FALSE(BeginDrawMesh(resource_manager, meshID))
         
         // Upload constant buffer
-        RETURN_IF_FALSE(UpdateSceneMeshData(
+        RETURN_IF_FALSE(glTFRenderInterfaceSceneMesh::UpdateConstantBuffer(
             {
                 mesh.second.meshTransformMatrix,
                 glm::transpose(glm::inverse(mesh.second.meshTransformMatrix)),
                 mesh.second.using_normal_mapping
             }))
         
-        glTFRenderPassInterfaceSceneMesh::ApplyInterface(resource_manager, 0);
+        glTFRenderInterfaceSceneMesh::ApplyInterface(resource_manager);
 
         RHIUtils::Instance().SetVertexBufferView(command_list, *mesh.second.mesh_vertex_buffer_view);
         RHIUtils::Instance().SetIndexBufferView(command_list, *mesh.second.mesh_index_buffer_view);
@@ -141,16 +137,9 @@ bool glTFRenderPassMeshBase::RemovePrimitiveFromMeshPass(glTFUniqueID mesh_id_to
 
 bool glTFRenderPassMeshBase::SetupRootSignature(glTFRenderResourceManager& resource_manager)
 {   
-    // Init root signature
-    constexpr size_t root_signature_parameter_count = MeshBasePass_RootParameter_LastIndex;
-    constexpr size_t root_signature_static_sampler_count = 1;
     
-    RETURN_IF_FALSE(m_root_signature->AllocateRootSignatureSpace(root_signature_parameter_count, root_signature_static_sampler_count))
-    
-    RETURN_IF_FALSE(glTFRenderPassInterfaceSceneView::SetupRootSignature(*m_root_signature))
-    RETURN_IF_FALSE(glTFRenderPassInterfaceSceneMesh::SetupRootSignature(*m_root_signature))
-    
-    RETURN_IF_FALSE(m_root_signature->InitRootSignature(resource_manager.GetDevice()))
+    RETURN_IF_FALSE(glTFRenderInterfaceSceneView::SetupRootSignature(*m_root_signature))
+    RETURN_IF_FALSE(glTFRenderInterfaceSceneMesh::SetupRootSignature(*m_root_signature))
     
     return true;
 }
@@ -160,8 +149,8 @@ bool glTFRenderPassMeshBase::SetupPipelineStateObject(glTFRenderResourceManager&
     RETURN_IF_FALSE(glTFGraphicsPassBase::SetupPipelineStateObject(resource_manager))
 
     auto& shader_macros = m_pipeline_state_object->GetShaderMacros();
-    glTFRenderPassInterfaceSceneView::UpdateShaderCompileDefine(shader_macros);
-    glTFRenderPassInterfaceSceneMesh::UpdateShaderCompileDefine(shader_macros);
+    glTFRenderInterfaceSceneView::UpdateShaderCompileDefine(shader_macros);
+    glTFRenderInterfaceSceneMesh::UpdateShaderCompileDefine(shader_macros);
     
     return true;
 }
@@ -234,4 +223,14 @@ bool glTFRenderPassMeshBase::ResolveVertexInputLayout(const VertexLayoutDeclarat
     }
 
     return true;
+}
+
+size_t glTFRenderPassMeshBase::GetRootSignatureParameterCount()
+{
+    return MeshBasePass_RootParameter_LastIndex;
+}
+
+size_t glTFRenderPassMeshBase::GetRootSignatureSamplerCount()
+{
+    return 1;
 }

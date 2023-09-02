@@ -1,31 +1,13 @@
 #pragma once
 #include <map>
 
-#include "glTFRenderPassInterfaceSceneView.h"
+#include "glTFRenderInterface/glTFRenderInterfaceSceneView.h"
 #include "glTFRenderPassPostprocess.h"
+#include "glTFRenderPassCommon.h"
 #include "../glTFLoader/glTFElementCommon.h"
+#include "glTFRenderInterface/glTFRenderInterfaceLighting.h"
 
-struct PointLightInfo
-{
-    glm::float4 positionAndRadius;
-    glm::float4 intensityAndFalloff;
-};
-
-struct DirectionalLightInfo
-{
-    glm::float4 directionalAndIntensity;
-};
-
-struct ConstantBufferPerLightDraw
-{
-    unsigned pointLightCount;
-    unsigned directionalLightCount;
-
-    std::vector<PointLightInfo> pointLightInfos;
-    std::vector<DirectionalLightInfo> directionalInfos;
-};
-
-class glTFRenderPassLighting : public glTFRenderPassPostprocess, public glTFRenderPassInterfaceSceneView
+class glTFRenderPassLighting : public glTFRenderPassPostprocess, public glTFRenderInterfaceSceneView
 {
     enum
     {
@@ -49,6 +31,8 @@ public:
     
 protected:
     // Must be implement in final render pass class
+    virtual size_t GetRootSignatureParameterCount() override;
+    virtual size_t GetRootSignatureSamplerCount() override;
     virtual size_t GetMainDescriptorHeapSize() override;
     virtual bool SetupRootSignature(glTFRenderResourceManager& resource_manager) override;
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;

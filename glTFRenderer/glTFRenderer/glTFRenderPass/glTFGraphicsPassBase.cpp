@@ -18,12 +18,6 @@ bool glTFGraphicsPassBase::InitPass(glTFRenderResourceManager& resource_manager)
     return true;
 }
 
-bool glTFGraphicsPassBase::ProcessMaterial(glTFRenderResourceManager& resourceManager, const glTFMaterialBase& material)
-{
-    // default do no processing for material
-    return true;
-}
-
 std::shared_ptr<IRHIPipelineStateObject> glTFGraphicsPassBase::GetPSO() const
 {
     GLTF_CHECK(m_pipeline_state_object);

@@ -8,6 +8,10 @@
 
 glTFRenderPassMeshOpaque::glTFRenderPassMeshOpaque()
     : glTFRenderPassMeshBase()
+    , glTFRenderInterfaceSceneMeshMaterial(
+    MeshOpaquePass_RootParameter_SceneMesh_SRV,
+    MeshOpaquePass_SceneMesh_SRV_Register,
+    4)
     , m_base_pass_color_render_target(nullptr)
     , m_base_pass_normal_render_target(nullptr)
 {
@@ -19,6 +23,14 @@ bool glTFRenderPassMeshOpaque::ProcessMaterial(glTFRenderResourceManager& resour
     // Material texture resource descriptor is alloc within current heap
 	RETURN_IF_FALSE(resource_manager.GetMaterialManager().InitMaterialRenderResource(resource_manager, *m_main_descriptor_heap, material))
     
+    return true;
+}
+
+bool glTFRenderPassMeshOpaque::InitPass(glTFRenderResourceManager& resource_manager)
+{
+    RETURN_IF_FALSE(glTFRenderPassMeshBase::InitPass(resource_manager))
+    RETURN_IF_FALSE(glTFRenderInterfaceSceneMeshMaterial::InitInterface(resource_manager))
+
     return true;
 }
 
@@ -43,12 +55,18 @@ size_t glTFRenderPassMeshOpaque::GetMainDescriptorHeapSize()
     return 256;
 }
 
+size_t glTFRenderPassMeshOpaque::GetRootSignatureParameterCount()
+{
+    return MeshOpaquePass_RootParameter_LastIndex;
+}
+
 bool glTFRenderPassMeshOpaque::SetupRootSignature(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFRenderPassMeshBase::SetupRootSignature(resource_manager))
     
     // TODO: Init sampler in material resource manager
     RETURN_IF_FALSE(m_root_signature->GetStaticSampler(0).InitStaticSampler(0, RHIStaticSamplerAddressMode::Warp, RHIStaticSamplerFilterMode::Linear))
+    RETURN_IF_FALSE(glTFRenderInterfaceSceneMeshMaterial::SetupRootSignature(*m_root_signature))
     
     return true;
 }
@@ -86,6 +104,9 @@ bool glTFRenderPassMeshOpaque::SetupPipelineStateObject(glTFRenderResourceManage
     
     m_pipeline_state_object->BindRenderTargets({m_base_pass_color_render_target.get(), m_base_pass_normal_render_target.get(), &resource_manager.GetDepthRT()});
     
+    auto& shader_macros = m_pipeline_state_object->GetShaderMacros();
+    glTFRenderInterfaceSceneMeshMaterial::UpdateShaderCompileDefine(shader_macros);
+    
     return true;
 }
 
@@ -98,5 +119,5 @@ bool glTFRenderPassMeshOpaque::BeginDrawMesh(glTFRenderResourceManager& resource
         return true;
     }
     
-	return resource_manager.ApplyMaterial(*m_main_descriptor_heap, material_ID, MeshBasePass_RootParameter_SceneMesh_SRV);
+	return resource_manager.ApplyMaterial(*m_main_descriptor_heap, material_ID, MeshOpaquePass_RootParameter_SceneMesh_SRV);
 }

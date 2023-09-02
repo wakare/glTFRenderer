@@ -2,9 +2,8 @@
 #include <map>
 
 #include "glTFGraphicsPassBase.h"
-#include "glTFRenderPassBase.h"
-#include "glTFRenderPassInterfaceSceneMesh.h"
-#include "glTFRenderPassInterfaceSceneView.h"
+#include "glTFRenderInterface/glTFRenderInterfaceSceneMesh.h"
+#include "glTFRenderInterface/glTFRenderInterfaceSceneView.h"
 #include "../glTFRHI/RHIInterface/IRHIGPUBuffer.h"
 #include "../glTFScene/glTFScenePrimitive.h"
 #include "../glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
@@ -28,16 +27,16 @@ struct MeshGPUResource
 };
 
 // Drawing all meshes within mesh pass
-class glTFRenderPassMeshBase : public glTFGraphicsPassBase, public glTFRenderPassInterfaceSceneView, public glTFRenderPassInterfaceSceneMesh
+class glTFRenderPassMeshBase : public glTFGraphicsPassBase, public glTFRenderInterfaceSceneView, public glTFRenderInterfaceSceneMesh
 {
 protected:
     enum glTFRenderPassMeshBaseRootParameterEnum
     {
         MeshBasePass_RootParameter_SceneView_CBV = 0,
         MeshBasePass_RootParameter_SceneMesh_CBV = 1,
-        MeshBasePass_RootParameter_SceneMesh_SRV = 2,
         MeshBasePass_RootParameter_LastIndex,
     };
+    
     enum glTFRenderPassMeshBaseRegisterIndex
     {
         // Start with b0
@@ -45,9 +44,6 @@ protected:
         
         // Start with b1
         MeshBasePass_SceneMesh_CBV_Register = 1,
-        
-        // Start with t0
-        MeshBasePass_SceneMesh_SRV_Register = 0,
     };
     
 public:
@@ -66,6 +62,9 @@ public:
     bool ResolveVertexInputLayout(const VertexLayoutDeclaration& source_vertex_layout);
     
 protected:
+    virtual size_t GetRootSignatureParameterCount() override;
+    virtual size_t GetRootSignatureSamplerCount() override;
+    
     virtual bool SetupRootSignature(glTFRenderResourceManager& resource_manager) override;
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;
 

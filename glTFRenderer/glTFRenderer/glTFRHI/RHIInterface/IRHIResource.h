@@ -11,8 +11,8 @@ public:
     // Clean resource in virtual dtor!!
     virtual ~IRHIResource() = default;
 
-    const std::string& GetName() const { return m_resourceName; }
-    void SetName(const std::string& name) {m_resourceName = name; }
+    const std::string& GetName() const { return m_resource_name; }
+    void SetName(const std::string& name) {m_resource_name = name; }
     
 private:
     // Disable copy and move ctor and assignment operation
@@ -22,5 +22,5 @@ private:
     IRHIResource(IRHIResource&&) = default;
     IRHIResource& operator=(IRHIResource&&) = default;
 
-    std::string m_resourceName;
+    std::string m_resource_name;
 };

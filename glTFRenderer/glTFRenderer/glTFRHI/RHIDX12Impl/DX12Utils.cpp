@@ -400,3 +400,12 @@ bool DX12Utils::Present(IRHISwapChain& swapchain)
     THROW_IF_FAILED(dxSwapchain->Present(0, 0))
     return true;
 }
+
+bool DX12Utils::DiscardResource(IRHICommandList& commandList, IRHIRenderTarget& render_target)
+{
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    auto* dxResource = dynamic_cast<DX12RenderTarget&>(render_target).GetResource();
+    dxCommandList->DiscardResource(dxResource, nullptr);
+
+    return true;
+}

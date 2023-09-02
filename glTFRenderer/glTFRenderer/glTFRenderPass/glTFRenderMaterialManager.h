@@ -34,7 +34,6 @@ public:
 	glTFMaterialRenderResource(const glTFMaterialBase& source_material);
 	bool Init(glTFRenderResourceManager& resource_manager, IRHIDescriptorHeap& descriptor_heap);
 	
-	
 	RHIGPUDescriptorHandle CreateOrGetAllTextureFirstGPUHandle(glTFRenderResourceManager& resource_manager, IRHIDescriptorHeap& descriptor_heap);
 	
 protected:
