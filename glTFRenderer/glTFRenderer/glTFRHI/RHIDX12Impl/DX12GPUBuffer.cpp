@@ -62,7 +62,7 @@ bool DX12GPUBuffer::InitGPUBuffer(IRHIDevice& device, const RHIBufferDesc& desc)
     return true;
 }
 
-bool DX12GPUBuffer::UploadBufferFromCPU(void* data, size_t dataOffset, size_t size)
+bool DX12GPUBuffer::UploadBufferFromCPU(const void* data, size_t dataOffset, size_t size)
 {
     if (!m_mappedGPUBuffer)
     {

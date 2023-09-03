@@ -8,4 +8,6 @@ public:
     virtual bool InitInterface(glTFRenderResourceManager& resourceManager) = 0;
     
     virtual ~glTFRenderInterfaceBase() = default;
+
+    virtual void UpdateShaderCompileDefine(RHIShaderPreDefineMacros& outShaderPreDefineMacros) const = 0;
 };

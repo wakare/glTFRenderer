@@ -13,7 +13,7 @@ public:
     virtual ~DX12GPUBuffer() override;
     
     virtual bool InitGPUBuffer(IRHIDevice& device, const RHIBufferDesc& desc) override;
-    virtual bool UploadBufferFromCPU(void* data, size_t dataOffset, size_t size) override;
+    virtual bool UploadBufferFromCPU(const void* data, size_t dataOffset, size_t size) override;
     virtual GPU_BUFFER_HANDLE_TYPE GetGPUBufferHandle() override;
     
     ID3D12Resource* GetBuffer() const {return m_buffer;}

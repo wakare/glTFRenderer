@@ -7,16 +7,23 @@
 #include "../glTFLoader/glTFElementCommon.h"
 #include "glTFRenderInterface/glTFRenderInterfaceLighting.h"
 
-class glTFRenderPassLighting : public glTFRenderPassPostprocess, public glTFRenderInterfaceSceneView
+class glTFRenderPassLighting : public glTFRenderPassPostprocess, public glTFRenderInterfaceSceneView, public glTFRenderInterfaceLighting
 {
-    enum
+    enum glTFRenderPassLightingRootParameterIndex
     {
-        LightPass_RootParameter_SceneViewCBV = 0,
-        LightPass_RootParameter_BaseColorAndDepthSRV = 1,
-        LightPass_RootParameter_LightInfosCBV = 2,
-        LightPass_RootParameter_PointLightStructuredBuffer = 3,
-        LightPass_RootParameter_DirectionalLightStructuredBuffer = 4,
+        LightPass_RootParameter_SceneViewCBV                        = 0,
+        LightPass_RootParameter_BaseColorAndDepthSRV                = 1,
+        LightPass_RootParameter_LightInfosCBV                       = 2,
+        LightPass_RootParameter_PointLightStructuredBuffer          = 3,
+        LightPass_RootParameter_DirectionalLightStructuredBuffer    = 4,
         LightPass_RootParameter_Num,
+    };
+    enum glTFRenderPassLightingRegisterIndex
+    {
+        LightPass_SceneView_CBV_Register = 0,   
+        LightPass_LightInfo_CBV_Register = 1,
+        LightPass_PointLight_SRV_Register = 3,
+        LightPass_DirectionalLight_SRV_Register = 4,
     };
 public:
     glTFRenderPassLighting();
@@ -48,10 +55,6 @@ protected:
 
     std::map<glTFHandle::HandleIndexType, PointLightInfo> m_cache_point_lights;
     std::map<glTFHandle::HandleIndexType, DirectionalLightInfo> m_cache_directional_lights;
-    
-    std::shared_ptr<IRHIGPUBuffer> m_light_info_GPU_constant_buffer;
-    std::shared_ptr<IRHIGPUBuffer> m_point_light_info_GPU_structured_buffer;
-    std::shared_ptr<IRHIGPUBuffer> m_directional_light_info_GPU_structured_buffer;
     
     ConstantBufferPerLightDraw m_constant_buffer_per_light_draw;
 };

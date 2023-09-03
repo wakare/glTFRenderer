@@ -423,6 +423,7 @@
       <AdditionalIncludeDirectories>D:\Work\DevSpace\glTFRenderer\glTFRenderer\glTFRenderer\ThirdParty;D:\Work\DevSpace\glTFRenderer\glTFRenderer\glTFRenderer\ThirdParty/glm/glm;D:\Work\DevSpace\glTFRenderer\glTFRenderer\glTFRenderer\ThirdParty/glfw/include;D:\Work\DevSpace\glTFRenderer\glTFRenderer\glTFRenderer\glTFRenderer;</AdditionalIncludeDirectories>
       <LinkCompiled>true</LinkCompiled>
     </ClCompile>
+    <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceStructuredBuffer.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderMaterialManager.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderPassBase.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderPassLighting.cpp" />
@@ -436,6 +437,7 @@
     <None Include="glTFResources\ShaderSource\MeshPassCommonVS.hlsl" />
     <None Include="glTFResources\ShaderSource\LightPassPS.hlsl" />
     <None Include="glTFResources\ShaderSource\LightPassVS.hlsl" />
+    <None Include="glTFResources\ShaderSource\SceneLight.hlsl" />
     <ClCompile Include="glTFRHI\RHIConfigSingleton.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12DescriptorHeap.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12CommandAllocator.cpp" />
@@ -589,6 +591,7 @@
     <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceLighting.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSceneMesh.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSceneView.h" />
+    <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceStructuredBuffer.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderMaterialManager.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderPassBase.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderPassCommon.h" />

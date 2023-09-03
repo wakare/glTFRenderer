@@ -84,11 +84,15 @@ void glTFRenderPassManager::UpdateScene(size_t deltaTimeMs)
 
         if (auto* sceneViewInterface = dynamic_cast<glTFRenderInterfaceSceneView*>(pass))
         {
-            sceneViewInterface->UpdateConstantBuffer({
+            ConstantBufferSceneView temp_view_data =
+            {
                 m_scene_view.GetViewMatrix(),
                 m_scene_view.GetProjectionMatrix(),
                 inverse(m_scene_view.GetViewMatrix()),
-                inverse(m_scene_view.GetProjectionMatrix())});    
+                inverse(m_scene_view.GetProjectionMatrix())
+            };
+            
+            sceneViewInterface->UpdateCPUBuffer(&temp_view_data, sizeof(temp_view_data));    
         }
     }
 }

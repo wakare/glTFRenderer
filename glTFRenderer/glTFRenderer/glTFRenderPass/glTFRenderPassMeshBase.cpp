@@ -44,12 +44,14 @@ bool glTFRenderPassMeshBase::RenderPass(glTFRenderResourceManager& resource_mana
         RETURN_IF_FALSE(BeginDrawMesh(resource_manager, meshID))
         
         // Upload constant buffer
-        RETURN_IF_FALSE(glTFRenderInterfaceSceneMesh::UpdateConstantBuffer(
-            {
-                mesh.second.meshTransformMatrix,
-                glm::transpose(glm::inverse(mesh.second.meshTransformMatrix)),
-                mesh.second.using_normal_mapping
-            }))
+        ConstantBufferSceneMesh temp_mesh_data =
+        {
+            mesh.second.meshTransformMatrix,
+            glm::transpose(glm::inverse(mesh.second.meshTransformMatrix)),
+            mesh.second.using_normal_mapping
+        };
+        
+        RETURN_IF_FALSE(glTFRenderInterfaceSceneMesh::UpdateCPUBuffer(&temp_mesh_data, sizeof(temp_mesh_data)))
         
         glTFRenderInterfaceSceneMesh::ApplyInterface(resource_manager);
 
@@ -138,8 +140,8 @@ bool glTFRenderPassMeshBase::RemovePrimitiveFromMeshPass(glTFUniqueID mesh_id_to
 bool glTFRenderPassMeshBase::SetupRootSignature(glTFRenderResourceManager& resource_manager)
 {   
     
-    RETURN_IF_FALSE(glTFRenderInterfaceSceneView::SetupRootSignature(*m_root_signature))
-    RETURN_IF_FALSE(glTFRenderInterfaceSceneMesh::SetupRootSignature(*m_root_signature))
+    RETURN_IF_FALSE(glTFRenderInterfaceSceneView::ApplyRootSignature(*m_root_signature))
+    RETURN_IF_FALSE(glTFRenderInterfaceSceneMesh::ApplyRootSignature(*m_root_signature))
     
     return true;
 }

@@ -27,9 +27,6 @@ public:
 
         return true;
     }
-
-    virtual void UpdateShaderCompileDefine(RHIShaderPreDefineMacros& outShaderPreDefineMacros) const = 0;
-    
     
 protected:
     unsigned m_root_parameter_srv_index;

@@ -30,34 +30,26 @@ public:
         return true;
     }
 
-    virtual bool UpdateConstantBuffer(const ConstantBufferType& data)
+    virtual bool UpdateCPUBuffer(const void* data, size_t size)
     {
-        m_constant_buffer = data;
-        return true;
+        return m_constant_gpu_data->UploadBufferFromCPU(data, 0, size);
     }
     
-    virtual bool ApplyInterface(glTFRenderResourceManager& resourceManager)
+    virtual bool ApplyInterface(glTFRenderResourceManager& resource_manager)
     {
-        RETURN_IF_FALSE(m_constant_gpu_data->UploadBufferFromCPU(&m_constant_buffer, 0, sizeof(m_constant_buffer)))
-        RETURN_IF_FALSE(RHIUtils::Instance().SetConstantBufferViewGPUHandleToRootParameterSlot(resourceManager.GetCommandListForRecord(),
+        RETURN_IF_FALSE(RHIUtils::Instance().SetConstantBufferViewGPUHandleToRootParameterSlot(resource_manager.GetCommandListForRecord(),
         m_root_parameter_cbv_index, m_constant_gpu_data->GetGPUBufferHandle()))
     
         return true;
     }
 
-    virtual bool SetupRootSignature(IRHIRootSignature& rootSignature) const
+    virtual bool ApplyRootSignature(IRHIRootSignature& rootSignature) const
     {
         return rootSignature.GetRootParameter(m_root_parameter_cbv_index).InitAsCBV(m_register_index);
     }
-    
-    virtual void UpdateShaderCompileDefine(RHIShaderPreDefineMacros& outShaderPreDefineMacros) const = 0;
 
 protected:
     unsigned m_root_parameter_cbv_index;
     unsigned m_register_index;
-    ConstantBufferType m_constant_buffer;
     std::shared_ptr<IRHIGPUBuffer> m_constant_gpu_data;
 };
-
-#define IMPLEMENT_SINGLE_CONSTANT_BUFFER_TYPE(Name) \
-    typedef glTFRenderInterfaceSingleConstantBuffer<Name> glTFRenderInterface##Name;

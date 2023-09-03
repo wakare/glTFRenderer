@@ -4,28 +4,9 @@ Texture2D albedoTex: register(t0);
 Texture2D depthTex: register(t1);
 Texture2D normalTex: register(t2);
 
+#include "glTFResources/ShaderSource/SceneLight.hlsl"
+
 SamplerState defaultSampler : register(s0);
-
-cbuffer LightInfoConstantBuffer : register(b1)
-{
-    int PointLightCount;
-    int DirectionalLightCount;
-};
-
-struct PointLightInfo
-{
-    float4 positionAndRadius;
-    float4 intensityAndFalloff;
-};
-
-StructuredBuffer<PointLightInfo> g_pointLightInfos : register(t3);
-
-struct DirectionalLightInfo
-{
-    float4 directionalAndIntensity;
-};
-
-StructuredBuffer<DirectionalLightInfo> g_directionalLightInfos : register(t4);
 
 float3 GetWorldPosition(float2 uv)
 {
@@ -65,7 +46,11 @@ float3 LightingWithDirectionalLight(float3 worldPosition, float3 baseColor, floa
 
 float4 main(VS_OUTPUT input) : SV_TARGET
 {
+#ifdef HAS_TEXCOORD
     float2 uv = input.texCoord;
+#else
+    float2 uv = 0;
+#endif
     float3 worldPosition = GetWorldPosition(uv);
 #ifdef BYPASS
     float3 FinalLighting = albedoTex.Sample(defaultSampler, uv).xyz;
