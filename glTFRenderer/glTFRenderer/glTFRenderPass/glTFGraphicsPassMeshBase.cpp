@@ -1,7 +1,7 @@
-#include "glTFRenderPassMeshBase.h"
+#include "glTFGraphicsPassMeshBase.h"
 #include "../glTFRHI/RHIResourceFactoryImpl.hpp"
 
-glTFRenderPassMeshBase::glTFRenderPassMeshBase()
+glTFGraphicsPassMeshBase::glTFGraphicsPassMeshBase()
     : glTFRenderInterfaceSceneView(MeshBasePass_RootParameter_SceneView_CBV, MeshBasePass_SceneView_CBV_Register)
     , glTFRenderInterfaceSceneMesh(
         MeshBasePass_RootParameter_SceneMesh_CBV,
@@ -9,7 +9,7 @@ glTFRenderPassMeshBase::glTFRenderPassMeshBase()
 {
 }
 
-bool glTFRenderPassMeshBase::InitPass(glTFRenderResourceManager& resource_manager)
+bool glTFGraphicsPassMeshBase::InitPass(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassBase::InitPass(resource_manager))
     RETURN_IF_FALSE(glTFRenderInterfaceSceneView::InitInterface(resource_manager))
@@ -18,7 +18,7 @@ bool glTFRenderPassMeshBase::InitPass(glTFRenderResourceManager& resource_manage
     return true;
 }
 
-bool glTFRenderPassMeshBase::PreRenderPass(glTFRenderResourceManager& resource_manager)
+bool glTFGraphicsPassMeshBase::PreRenderPass(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassBase::PreRenderPass(resource_manager))
 
@@ -26,12 +26,12 @@ bool glTFRenderPassMeshBase::PreRenderPass(glTFRenderResourceManager& resource_m
     
     RHIUtils::Instance().SetPrimitiveTopology( command_list, RHIPrimitiveTopologyType::TRIANGLELIST);
 
-    RETURN_IF_FALSE(glTFRenderInterfaceSceneView::ApplyInterface(resource_manager))
+    RETURN_IF_FALSE(glTFRenderInterfaceSceneView::ApplyInterface(resource_manager, GetPipelineType() == PipelineType::Graphics))
 
     return true;
 }
 
-bool glTFRenderPassMeshBase::RenderPass(glTFRenderResourceManager& resource_manager)
+bool glTFGraphicsPassMeshBase::RenderPass(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassBase::RenderPass(resource_manager))    
 
@@ -53,7 +53,7 @@ bool glTFRenderPassMeshBase::RenderPass(glTFRenderResourceManager& resource_mana
         
         RETURN_IF_FALSE(glTFRenderInterfaceSceneMesh::UpdateCPUBuffer(&temp_mesh_data, sizeof(temp_mesh_data)))
         
-        glTFRenderInterfaceSceneMesh::ApplyInterface(resource_manager);
+        glTFRenderInterfaceSceneMesh::ApplyInterface(resource_manager, GetPipelineType() == PipelineType::Graphics);
 
         RHIUtils::Instance().SetVertexBufferView(command_list, *mesh.second.mesh_vertex_buffer_view);
         RHIUtils::Instance().SetIndexBufferView(command_list, *mesh.second.mesh_index_buffer_view);
@@ -67,7 +67,7 @@ bool glTFRenderPassMeshBase::RenderPass(glTFRenderResourceManager& resource_mana
     return true;
 }
 
-bool glTFRenderPassMeshBase::AddOrUpdatePrimitiveToMeshPass(glTFRenderResourceManager& resource_manager, const glTFScenePrimitive& primitive)
+bool glTFGraphicsPassMeshBase::AddOrUpdatePrimitiveToMeshPass(glTFRenderResourceManager& resource_manager, const glTFScenePrimitive& primitive)
 {
     const glTFUniqueID mesh_ID = primitive.GetID();
     if (m_meshes.find(mesh_ID) == m_meshes.end())
@@ -121,7 +121,7 @@ bool glTFRenderPassMeshBase::AddOrUpdatePrimitiveToMeshPass(glTFRenderResourceMa
     return true; 
 }
 
-bool glTFRenderPassMeshBase::RemovePrimitiveFromMeshPass(glTFUniqueID mesh_id_to_remove)
+bool glTFGraphicsPassMeshBase::RemovePrimitiveFromMeshPass(glTFUniqueID mesh_id_to_remove)
 {
     if (auto it = (m_meshes.find(mesh_id_to_remove)) != m_meshes.end())
     {
@@ -137,7 +137,7 @@ bool glTFRenderPassMeshBase::RemovePrimitiveFromMeshPass(glTFUniqueID mesh_id_to
     return true;
 }
 
-bool glTFRenderPassMeshBase::SetupRootSignature(glTFRenderResourceManager& resource_manager)
+bool glTFGraphicsPassMeshBase::SetupRootSignature(glTFRenderResourceManager& resource_manager)
 {   
     
     RETURN_IF_FALSE(glTFRenderInterfaceSceneView::ApplyRootSignature(*m_root_signature))
@@ -146,33 +146,33 @@ bool glTFRenderPassMeshBase::SetupRootSignature(glTFRenderResourceManager& resou
     return true;
 }
 
-bool glTFRenderPassMeshBase::SetupPipelineStateObject(glTFRenderResourceManager& resource_manager)
+bool glTFGraphicsPassMeshBase::SetupPipelineStateObject(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassBase::SetupPipelineStateObject(resource_manager))
 
-    auto& shader_macros = m_pipeline_state_object->GetShaderMacros();
+    auto& shader_macros = GetGraphicsPipelineStateObject().GetShaderMacros();
     glTFRenderInterfaceSceneView::UpdateShaderCompileDefine(shader_macros);
     glTFRenderInterfaceSceneMesh::UpdateShaderCompileDefine(shader_macros);
     
     return true;
 }
 
-bool glTFRenderPassMeshBase::BeginDrawMesh(glTFRenderResourceManager& resourceManager, glTFUniqueID meshID)
+bool glTFGraphicsPassMeshBase::BeginDrawMesh(glTFRenderResourceManager& resourceManager, glTFUniqueID meshID)
 {
     return true;   
 }
 
-bool glTFRenderPassMeshBase::EndDrawMesh(glTFRenderResourceManager& resourceManager, glTFUniqueID meshID)
+bool glTFGraphicsPassMeshBase::EndDrawMesh(glTFRenderResourceManager& resourceManager, glTFUniqueID meshID)
 {
     return true;
 }
 
-std::vector<RHIPipelineInputLayout> glTFRenderPassMeshBase::GetVertexInputLayout()
+std::vector<RHIPipelineInputLayout> glTFGraphicsPassMeshBase::GetVertexInputLayout()
 {
     return m_vertex_input_layouts;
 }
 
-bool glTFRenderPassMeshBase::TryProcessSceneObject(glTFRenderResourceManager& resourceManager, const glTFSceneObjectBase& object)
+bool glTFGraphicsPassMeshBase::TryProcessSceneObject(glTFRenderResourceManager& resourceManager, const glTFSceneObjectBase& object)
 {
     const glTFScenePrimitive* primitive = dynamic_cast<const glTFScenePrimitive*>(&object);
     
@@ -185,7 +185,7 @@ bool glTFRenderPassMeshBase::TryProcessSceneObject(glTFRenderResourceManager& re
         primitive->HasMaterial() && ProcessMaterial(resourceManager, primitive->GetMaterial());
 }
 
-bool glTFRenderPassMeshBase::ResolveVertexInputLayout(const VertexLayoutDeclaration& source_vertex_layout)
+bool glTFGraphicsPassMeshBase::ResolveVertexInputLayout(const VertexLayoutDeclaration& source_vertex_layout)
 {
 	m_vertex_input_layouts.clear();
     
@@ -227,12 +227,12 @@ bool glTFRenderPassMeshBase::ResolveVertexInputLayout(const VertexLayoutDeclarat
     return true;
 }
 
-size_t glTFRenderPassMeshBase::GetRootSignatureParameterCount()
+size_t glTFGraphicsPassMeshBase::GetRootSignatureParameterCount()
 {
     return MeshBasePass_RootParameter_LastIndex;
 }
 
-size_t glTFRenderPassMeshBase::GetRootSignatureSamplerCount()
+size_t glTFGraphicsPassMeshBase::GetRootSignatureSamplerCount()
 {
     return 1;
 }

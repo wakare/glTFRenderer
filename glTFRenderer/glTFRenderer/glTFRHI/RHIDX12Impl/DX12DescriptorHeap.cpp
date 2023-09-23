@@ -77,18 +77,32 @@ bool DX12DescriptorHeap::CreateShaderResourceViewInDescriptorHeap(IRHIDevice& de
     IRHIGPUBuffer& buffer, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& out_GPU_handle)
 {
     auto* dxBuffer = dynamic_cast<DX12GPUBuffer&>(buffer).GetBuffer();
-    return CreateShaderResourceViewInDescriptorHeap(device, descriptor_offset, dxBuffer, desc, out_GPU_handle);
+    return CreateSRVInHeap(device, descriptor_offset, dxBuffer, desc, out_GPU_handle);
 }
 
 bool DX12DescriptorHeap::CreateShaderResourceViewInDescriptorHeap(IRHIDevice& device, unsigned descriptor_offset,
     IRHIRenderTarget& render_target, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& out_GPU_handle)
 {
     auto* dxRenderTarget = dynamic_cast<DX12RenderTarget*>(&render_target);
-    return CreateShaderResourceViewInDescriptorHeap(device, descriptor_offset, dxRenderTarget->GetResource(), desc, out_GPU_handle);
+    return CreateSRVInHeap(device, descriptor_offset, dxRenderTarget->GetResource(), desc, out_GPU_handle);
 }
 
-bool DX12DescriptorHeap::CreateShaderResourceViewInDescriptorHeap(IRHIDevice& device, unsigned descriptor_offset,
-    ID3D12Resource* resource, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& out_GPU_handle)
+bool DX12DescriptorHeap::CreateUnOrderAccessViewInDescriptorHeap(IRHIDevice& device, unsigned descriptor_offset,
+    IRHIGPUBuffer& buffer, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& out_GPU_handle)
+{
+    auto* dxBuffer = dynamic_cast<DX12GPUBuffer&>(buffer).GetBuffer();
+    return CreateUAVInHeap(device, descriptor_offset, dxBuffer, desc, out_GPU_handle);
+}
+
+bool DX12DescriptorHeap::CreateUnOrderAccessViewInDescriptorHeap(IRHIDevice& device, unsigned descriptor_offset,
+    IRHIRenderTarget& render_target, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& out_GPU_handle)
+{
+    auto* dxRenderTarget = dynamic_cast<DX12RenderTarget*>(&render_target);
+    return CreateUAVInHeap(device, descriptor_offset, dxRenderTarget->GetResource(), desc, out_GPU_handle);
+}
+
+bool DX12DescriptorHeap::CreateSRVInHeap(IRHIDevice& device, unsigned descriptor_offset,
+                                                                  ID3D12Resource* resource, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& out_GPU_handle)
 {
     //TODO: Process offset for handle 
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
@@ -106,6 +120,33 @@ bool DX12DescriptorHeap::CreateShaderResourceViewInDescriptorHeap(IRHIDevice& de
     cpuHandle.Offset(descriptor_offset, descriptorIncrementSize);
     
     dxDevice->CreateShaderResourceView(resource, &srvDesc, cpuHandle);
+    CD3DX12_GPU_DESCRIPTOR_HANDLE gpuHandle(m_descriptorHeap->GetGPUDescriptorHandleForHeapStart());
+    gpuHandle.Offset(descriptor_offset, descriptorIncrementSize);
+    out_GPU_handle = gpuHandle.ptr;
+    
+    ++m_used_descriptor_count;
+    
+    return true;
+}
+
+bool DX12DescriptorHeap::CreateUAVInHeap(IRHIDevice& device, unsigned descriptor_offset, ID3D12Resource* resource,
+    const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& out_GPU_handle)
+{
+    //TODO: Process offset for handle 
+    auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
+    
+    D3D12_UNORDERED_ACCESS_VIEW_DESC UAVDesc = {};
+    UAVDesc.Format = DX12ConverterUtils::ConvertToDXGIFormat(desc.format);
+    UAVDesc.ViewDimension = DX12ConverterUtils::ConvertToUAVDimensionType(desc.dimension);
+
+    UAVDesc.Texture2D.MipSlice = 0;
+    UAVDesc.Texture2D.PlaneSlice = 0;
+
+    CD3DX12_CPU_DESCRIPTOR_HANDLE cpuHandle(m_descriptorHeap->GetCPUDescriptorHandleForHeapStart());
+    const UINT descriptorIncrementSize = dxDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    cpuHandle.Offset(descriptor_offset, descriptorIncrementSize);
+    
+    dxDevice->CreateUnorderedAccessView(resource, nullptr, &UAVDesc, cpuHandle);
     CD3DX12_GPU_DESCRIPTOR_HANDLE gpuHandle(m_descriptorHeap->GetGPUDescriptorHandleForHeapStart());
     gpuHandle.Offset(descriptor_offset, descriptorIncrementSize);
     out_GPU_handle = gpuHandle.ptr;

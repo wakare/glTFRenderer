@@ -95,6 +95,7 @@ const char* DX12Shader::GetShaderCompilerTarget() const
     switch (m_type) {
         case RHIShaderType::Vertex: return "vs_5_0";
         case RHIShaderType::Pixel: return "ps_5_0";
+        case RHIShaderType::Compute: return "cs_5_0";
     }
 
     assert(false);

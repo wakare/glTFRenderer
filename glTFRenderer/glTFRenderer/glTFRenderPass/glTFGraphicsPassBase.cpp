@@ -13,23 +13,22 @@ bool glTFGraphicsPassBase::InitPass(glTFRenderResourceManager& resource_manager)
     m_pipeline_state_object->SetCullMode(IRHICullMode::CW);
 
     RETURN_IF_FALSE(SetupPipelineStateObject(resource_manager))
-    RETURN_IF_FALSE (m_pipeline_state_object->InitGraphicsPipelineStateObject(resource_manager.GetDevice(), *m_root_signature, resource_manager.GetSwapchain()))
+    RETURN_IF_FALSE (GetGraphicsPipelineStateObject().InitGraphicsPipelineStateObject(resource_manager.GetDevice(), *m_root_signature, resource_manager.GetSwapchain()))
     
     return true;
 }
 
-std::shared_ptr<IRHIPipelineStateObject> glTFGraphicsPassBase::GetPSO() const
+IRHIGraphicsPipelineStateObject& glTFGraphicsPassBase::GetGraphicsPipelineStateObject() const
 {
-    GLTF_CHECK(m_pipeline_state_object);
-    return m_pipeline_state_object;
+    return dynamic_cast<IRHIGraphicsPipelineStateObject&>(*m_pipeline_state_object);
 }
 
-bool glTFGraphicsPassBase::SetupPipelineStateObject(glTFRenderResourceManager& resourceManager)
+bool glTFGraphicsPassBase::SetupPipelineStateObject(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(glTFRenderPassBase::SetupPipelineStateObject(resourceManager))
+    RETURN_IF_FALSE(glTFRenderPassBase::SetupPipelineStateObject(resource_manager))
 
     // Set shader macro based vertex attributes
-    RETURN_IF_FALSE(m_pipeline_state_object->BindInputLayoutAndSetShaderMacros(GetVertexInputLayout()))
+    RETURN_IF_FALSE(GetGraphicsPipelineStateObject().BindInputLayoutAndSetShaderMacros(GetVertexInputLayout()))
 
     return true;
 }

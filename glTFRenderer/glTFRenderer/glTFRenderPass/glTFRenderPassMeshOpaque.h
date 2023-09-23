@@ -1,8 +1,8 @@
 #pragma once
-#include "glTFRenderPassMeshBase.h"
+#include "glTFGraphicsPassMeshBase.h"
 #include "../glTFMaterial/glTFMaterialParameterTexture.h"
 
-class glTFRenderPassMeshOpaque : public glTFRenderPassMeshBase, public glTFRenderInterfaceSceneMeshMaterial
+class glTFRenderPassMeshOpaque : public glTFGraphicsPassMeshBase, public glTFRenderInterfaceSceneMeshMaterial
 {
 protected:
     enum glTFRenderPassMeshOpaqueRootParameterEnum

@@ -1,12 +1,12 @@
-#include "glTFRenderPassPostprocess.h"
+#include "glTFGraphicsPassPostprocess.h"
 
 #include "../glTFRHI/RHIResourceFactoryImpl.hpp"
 
-glTFRenderPassPostprocess::glTFRenderPassPostprocess()
+glTFGraphicsPassPostprocess::glTFGraphicsPassPostprocess()
 {
 }
 
-bool glTFRenderPassPostprocess::InitPass(glTFRenderResourceManager& resourceManager)
+bool glTFGraphicsPassPostprocess::InitPass(glTFRenderResourceManager& resourceManager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassBase::InitPass(resourceManager))
     
@@ -64,14 +64,14 @@ bool glTFRenderPassPostprocess::InitPass(glTFRenderResourceManager& resourceMana
     return true;
 }
 
-bool glTFRenderPassPostprocess::PreRenderPass(glTFRenderResourceManager& resource_manager)
+bool glTFGraphicsPassPostprocess::PreRenderPass(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassBase::PreRenderPass(resource_manager))
     
     return true;
 }
 
-bool glTFRenderPassPostprocess::RenderPass(glTFRenderResourceManager& resource_manager)
+bool glTFGraphicsPassPostprocess::RenderPass(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassBase::RenderPass(resource_manager))
 
@@ -80,26 +80,26 @@ bool glTFRenderPassPostprocess::RenderPass(glTFRenderResourceManager& resource_m
     return true;
 }
 
-bool glTFRenderPassPostprocess::PostRenderPass(glTFRenderResourceManager& resource_manager)
+bool glTFGraphicsPassPostprocess::PostRenderPass(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassBase::PostRenderPass(resource_manager))
 
     return true;
 }
 
-bool glTFRenderPassPostprocess::SetupRootSignature(glTFRenderResourceManager& resourceManager)
+bool glTFGraphicsPassPostprocess::SetupRootSignature(glTFRenderResourceManager& resourceManager)
 {
     return true;
 }
 
-bool glTFRenderPassPostprocess::SetupPipelineStateObject(glTFRenderResourceManager& resourceManager)
+bool glTFGraphicsPassPostprocess::SetupPipelineStateObject(glTFRenderResourceManager& resourceManager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassBase::SetupPipelineStateObject(resourceManager))
     
     return true;
 }
 
-void glTFRenderPassPostprocess::DrawPostprocessQuad(glTFRenderResourceManager& resourceManager)
+void glTFGraphicsPassPostprocess::DrawPostprocessQuad(glTFRenderResourceManager& resourceManager)
 {
     auto& command_list = resourceManager.GetCommandListForRecord();
     
@@ -110,7 +110,7 @@ void glTFRenderPassPostprocess::DrawPostprocessQuad(glTFRenderResourceManager& r
     RHIUtils::Instance().DrawIndexInstanced(command_list, 6, 1, 0, 0, 0);    
 }
 
-std::vector<RHIPipelineInputLayout> glTFRenderPassPostprocess::GetVertexInputLayout()
+std::vector<RHIPipelineInputLayout> glTFGraphicsPassPostprocess::GetVertexInputLayout()
 {
     std::vector<RHIPipelineInputLayout> inputLayouts;
     inputLayouts.push_back({"POSITION", 0, RHIDataFormat::R32G32B32_FLOAT, 0});

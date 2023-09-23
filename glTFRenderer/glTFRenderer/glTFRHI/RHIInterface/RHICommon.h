@@ -16,6 +16,7 @@ enum class RHIResourceStateType
     RENDER_TARGET,
     DEPTH_WRITE,
     DEPTH_READ,
+    UNORDER_ACCESS,
     PIXEL_SHADER_RESOURCE,
 };
 
@@ -83,7 +84,7 @@ struct RHIConstantBufferViewDesc
     size_t bufferSize;
 };
 
-enum class RHIShaderVisibleViewDimension
+enum class RHIResourceDimension
 {
     UNKNOWN,
     BUFFER,
@@ -101,7 +102,7 @@ enum class RHIShaderVisibleViewDimension
 struct RHIShaderResourceViewDesc
 {
     RHIDataFormat format;
-    RHIShaderVisibleViewDimension dimension;
+    RHIResourceDimension dimension;
     
     // TODO: figure out this member represent what?
     //unsigned shader4ComponentMapping;

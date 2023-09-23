@@ -3,8 +3,8 @@
 #include <cassert>
 #include <Windows.h>
 
-#include "glTFRenderPassLighting.h"
-#include "glTFRenderPassMeshBase.h"
+#include "glTFGraphicsPassLighting.h"
+#include "glTFGraphicsPassMeshBase.h"
 #include "../glTFLoader/glTFElementCommon.h"
 #include "../glTFRHI/RHIUtils.h"
 #include "../glTFUtils/glTFLog.h"

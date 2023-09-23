@@ -15,10 +15,10 @@ struct PostprocessQuadGPUResource
 };
 
 // Post process pass only draw full screen quad
-class glTFRenderPassPostprocess : public glTFGraphicsPassBase
+class glTFGraphicsPassPostprocess : public glTFGraphicsPassBase
 {
 public:
-    glTFRenderPassPostprocess();
+    glTFGraphicsPassPostprocess();
 
     virtual bool InitPass(glTFRenderResourceManager& resourceManager) override;
 

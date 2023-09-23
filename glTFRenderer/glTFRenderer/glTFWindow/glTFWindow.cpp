@@ -2,7 +2,7 @@
 #include "../glTFLight/glTFDirectionalLight.h"
 #include "../glTFLight/glTFPointLight.h"
 #include "../glTFMaterial/glTFMaterialOpaque.h"
-#include "../glTFRenderPass/glTFRenderPassLighting.h"
+#include "../glTFRenderPass/glTFGraphicsPassLighting.h"
 #include "../glTFRenderPass/glTFRenderPassMeshOpaque.h"
 #include "../glTFScene/glTFCamera.h"
 #include "../glTFLoader/glTFLoader.h"

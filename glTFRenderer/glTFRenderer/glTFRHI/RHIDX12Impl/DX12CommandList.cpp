@@ -4,22 +4,22 @@
 #include "DX12Utils.h"
 
 DX12CommandList::DX12CommandList()
-    : m_commandList(nullptr)
+    : m_command_list(nullptr)
 {
 }
 
 DX12CommandList::~DX12CommandList()
 {
-    SAFE_RELEASE(m_commandList);
+    SAFE_RELEASE(m_command_list)
 }
 
 bool DX12CommandList::InitCommandList(IRHIDevice& device, IRHICommandAllocator& commandAllocator)
 {
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
     auto* dxCommandAllocator = dynamic_cast<DX12CommandAllocator&>(commandAllocator).GetCommandAllocator();
-    THROW_IF_FAILED(dxDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, dxCommandAllocator, nullptr, IID_PPV_ARGS(&m_commandList)))
+    THROW_IF_FAILED(dxDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, dxCommandAllocator, nullptr, IID_PPV_ARGS(&m_command_list)))
 
     // command lists are created in the recording state. our main loop will set it up for recording again so close it now
-    m_commandList->Close();
+    m_command_list->Close();
     return true;
 }

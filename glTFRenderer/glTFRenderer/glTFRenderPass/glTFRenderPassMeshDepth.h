@@ -1,7 +1,7 @@
 #pragma once
-#include "glTFRenderPassMeshBase.h"
+#include "glTFGraphicsPassMeshBase.h"
 
-class glTFRenderPassMeshDepth : public glTFRenderPassMeshBase
+class glTFRenderPassMeshDepth : public glTFGraphicsPassMeshBase
 {
 public:
     virtual const char* PassName() override {return "MeshPassOpaque"; }

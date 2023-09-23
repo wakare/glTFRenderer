@@ -25,7 +25,7 @@ bool glTFRenderPassBase::InitPass(glTFRenderResourceManager& resource_manager)
 
 bool glTFRenderPassBase::PreRenderPass(glTFRenderResourceManager& resource_manager)
 {
-    resource_manager.SetCurrentPSO(GetPSO());
+    resource_manager.SetCurrentPSO(m_pipeline_state_object);
     
     auto& command_list = resource_manager.GetCommandListForRecord();
     
@@ -36,7 +36,7 @@ bool glTFRenderPassBase::PreRenderPass(glTFRenderResourceManager& resource_manag
     RHIUtils::Instance().SetScissorRect(command_list, scissorRect);
     
     RETURN_IF_FALSE(RHIUtils::Instance().SetDescriptorHeapArray(command_list, m_main_descriptor_heap.get(), 1))
-    RETURN_IF_FALSE(RHIUtils::Instance().SetRootSignature(command_list, *m_root_signature))
+    RETURN_IF_FALSE(RHIUtils::Instance().SetRootSignature(command_list, *m_root_signature, GetPipelineType() == PipelineType::Graphics))
     
     return true;
 }
@@ -55,7 +55,7 @@ bool glTFRenderPassBase::SetupPipelineStateObject(glTFRenderResourceManager& res
 {
     if (m_bypass)
     {
-        GetPSO()->GetShaderMacros().AddMacro("BYPASS", "1");
+        m_pipeline_state_object->GetShaderMacros().AddMacro("BYPASS", "1");
     }
     
     return true;

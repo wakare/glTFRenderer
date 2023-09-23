@@ -1,10 +1,9 @@
+#include "glTFResources/ShaderSource/Interface/LightingInterface.hlsl"
 #include "glTFResources/ShaderSource/LightPassCommon.hlsl"
 
 Texture2D albedoTex: register(t0);
 Texture2D depthTex: register(t1);
 Texture2D normalTex: register(t2);
-
-#include "glTFResources/ShaderSource/SceneLight.hlsl"
 
 SamplerState defaultSampler : register(s0);
 
@@ -19,29 +18,6 @@ float3 GetWorldPosition(float2 uv)
 
     float4 worldSpaceCoord = mul(inverseViewMatrix, viewSpaceCoord);
     return worldSpaceCoord.xyz;
-}
-
-float3 LightingWithPointLight(float3 worldPosition, float3 baseColor, float3 normal, PointLightInfo pointLightInfo)
-{
-    float3 pointLightPosition = pointLightInfo.positionAndRadius.xyz;
-    float3 normalizedLightDir = normalize(pointLightPosition - worldPosition); 
-    float geometryFalloff = max(0.0, dot(normal, normalizedLightDir));
-    
-    float pointLightRadius = pointLightInfo.positionAndRadius.w;
-    float pointLightFalloff = pointLightInfo.intensityAndFalloff.y;
-    float lightIntensity = 1.0 - saturate(length(worldPosition - pointLightPosition) / pointLightRadius);
-    
-    return baseColor * geometryFalloff * pointLightInfo.intensityAndFalloff.x * pow(lightIntensity, pointLightFalloff);
-}
-
-float3 LightingWithDirectionalLight(float3 worldPosition, float3 baseColor, float3 normal, DirectionalLightInfo directionalLightInfo)
-{
-    float3 normalizedLightDir = normalize(directionalLightInfo.directionalAndIntensity.xyz);
-    float intensity = directionalLightInfo.directionalAndIntensity.w;
-    float geometryFalloff = max(0.0, dot(normal, -normalizedLightDir));
-    geometryFalloff = pow(geometryFalloff, 2.0);
-    
-    return baseColor * intensity * geometryFalloff;
 }
 
 float4 main(VS_OUTPUT input) : SV_TARGET

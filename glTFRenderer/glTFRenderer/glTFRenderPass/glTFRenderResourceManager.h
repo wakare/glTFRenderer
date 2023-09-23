@@ -43,7 +43,7 @@ public:
     void UpdateCurrentBackBufferIndex() { m_currentBackBufferIndex = m_swapchain->GetCurrentBackBufferIndex(); }
 
 	glTFRenderMaterialManager& GetMaterialManager();
-    bool ApplyMaterial(IRHIDescriptorHeap& descriptor_heap, glTFUniqueID material_ID, unsigned slot_index);
+    bool ApplyMaterial(IRHIDescriptorHeap& descriptor_heap, glTFUniqueID material_ID, unsigned slot_index, bool isGraphicsPipeline);
     void SetCurrentPSO(std::shared_ptr<IRHIPipelineStateObject> pso);
 private:
     std::shared_ptr<IRHIFactory> m_factory;

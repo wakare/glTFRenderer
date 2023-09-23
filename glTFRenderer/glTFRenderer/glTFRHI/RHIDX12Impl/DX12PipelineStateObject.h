@@ -7,6 +7,9 @@
 
 class IDX12PipelineStateObjectCommon
 {
+public:
+    ID3D12PipelineState* GetPipelineStateObject() const {return m_pipeline_state_object; }
+    
 protected:
     IDX12PipelineStateObjectCommon();
     

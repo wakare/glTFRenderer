@@ -22,4 +22,6 @@ public:
     virtual bool CreateConstantBufferViewInDescriptorHeap(IRHIDevice& device, unsigned descriptorOffset, IRHIGPUBuffer& buffer, const RHIConstantBufferViewDesc& desc, /*output*/ RHIGPUDescriptorHandle& outGPUHandle) = 0;
     virtual bool CreateShaderResourceViewInDescriptorHeap(IRHIDevice& device, unsigned descriptorOffset, IRHIGPUBuffer& buffer, const RHIShaderResourceViewDesc& desc, /*output*/ RHIGPUDescriptorHandle& outGPUHandle) = 0;
     virtual bool CreateShaderResourceViewInDescriptorHeap(IRHIDevice& device, unsigned descriptorOffset, IRHIRenderTarget& renderTarget, const RHIShaderResourceViewDesc& desc, /*output*/ RHIGPUDescriptorHandle& outGPUHandle) = 0;
+    virtual bool CreateUnOrderAccessViewInDescriptorHeap(IRHIDevice& device, unsigned descriptorOffset, IRHIGPUBuffer& buffer, const RHIShaderResourceViewDesc& desc, /*output*/ RHIGPUDescriptorHandle& outGPUHandle) = 0;
+    virtual bool CreateUnOrderAccessViewInDescriptorHeap(IRHIDevice& device, unsigned descriptorOffset, IRHIRenderTarget& renderTarget, const RHIShaderResourceViewDesc& desc, /*output*/ RHIGPUDescriptorHandle& outGPUHandle) = 0;
 };

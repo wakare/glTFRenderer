@@ -198,6 +198,10 @@ bool DX12ComputePipelineStateObject::InitComputePipelineStateObject(IRHIDevice& 
     
     m_compute_pipeline_state_desc.pRootSignature = dxRootSignature;
     m_compute_pipeline_state_desc.CS = compute_shader_bytecode;
+    m_compute_pipeline_state_desc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+    m_compute_pipeline_state_desc.NodeMask = 0;
+    m_compute_pipeline_state_desc.CachedPSO.pCachedBlob = nullptr;
+    m_compute_pipeline_state_desc.CachedPSO.CachedBlobSizeInBytes = 0;
 
     THROW_IF_FAILED(dxDevice->CreateComputePipelineState(&m_compute_pipeline_state_desc, IID_PPV_ARGS(&m_pipeline_state_object)))
     

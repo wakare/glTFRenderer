@@ -1,7 +1,7 @@
 #ifndef MESH_PASS_COMMON
 #define MESH_PASS_COMMON
-#include "glTFResources/ShaderSource/SceneView.hlsl"
-#include "glTFResources/ShaderSource/SceneMesh.hlsl"
+#include "glTFResources/ShaderSource/Interface/SceneView.hlsl"
+#include "glTFResources/ShaderSource/Interface/SceneMesh.hlsl"
 
 struct VS_INPUT
 {

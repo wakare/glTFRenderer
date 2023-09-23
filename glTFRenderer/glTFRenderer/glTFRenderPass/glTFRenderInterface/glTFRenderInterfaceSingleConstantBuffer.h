@@ -35,10 +35,10 @@ public:
         return m_constant_gpu_data->UploadBufferFromCPU(data, 0, size);
     }
     
-    virtual bool ApplyInterface(glTFRenderResourceManager& resource_manager)
+    virtual bool ApplyInterface(glTFRenderResourceManager& resource_manager, bool isGraphicsPipeline)
     {
-        RETURN_IF_FALSE(RHIUtils::Instance().SetConstantBufferViewGPUHandleToRootParameterSlot(resource_manager.GetCommandListForRecord(),
-        m_root_parameter_cbv_index, m_constant_gpu_data->GetGPUBufferHandle()))
+        RETURN_IF_FALSE(RHIUtils::Instance().SetCBVToRootParameterSlot(resource_manager.GetCommandListForRecord(),
+        m_root_parameter_cbv_index, m_constant_gpu_data->GetGPUBufferHandle(), isGraphicsPipeline))
     
         return true;
     }

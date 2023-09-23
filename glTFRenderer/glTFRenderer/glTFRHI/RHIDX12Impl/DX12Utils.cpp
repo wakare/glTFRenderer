@@ -90,6 +90,9 @@ D3D12_RESOURCE_STATES DX12ConverterUtils::ConvertToResourceState(RHIResourceStat
 
     case RHIResourceStateType::DEPTH_READ:
         return D3D12_RESOURCE_STATE_DEPTH_READ;
+
+    case RHIResourceStateType::UNORDER_ACCESS:
+        return D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
         
     case RHIResourceStateType::PIXEL_SHADER_RESOURCE:
         return D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
@@ -131,9 +134,9 @@ D3D12_DESCRIPTOR_HEAP_TYPE DX12ConverterUtils::ConvertToDescriptorHeapType(RHIDe
     return D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES;
 }
 
-#define COVERT_TO_SRV_DIMENSION_CASE(dimensionType) case RHIShaderVisibleViewDimension::##dimensionType: return D3D12_SRV_DIMENSION_##dimensionType;
+#define COVERT_TO_SRV_DIMENSION_CASE(dimensionType) case RHIResourceDimension::##dimensionType: return D3D12_SRV_DIMENSION_##dimensionType;
 
-D3D12_SRV_DIMENSION DX12ConverterUtils::ConvertToSRVDimensionType(RHIShaderVisibleViewDimension type)
+D3D12_SRV_DIMENSION DX12ConverterUtils::ConvertToSRVDimensionType(RHIResourceDimension type)
 {
     switch (type) {
         COVERT_TO_SRV_DIMENSION_CASE(BUFFER)
@@ -150,6 +153,23 @@ D3D12_SRV_DIMENSION DX12ConverterUtils::ConvertToSRVDimensionType(RHIShaderVisib
 
     return D3D12_SRV_DIMENSION_UNKNOWN;
 }
+
+#define COVERT_TO_UAV_DIMENSION_CASE(dimensionType) case RHIResourceDimension::##dimensionType: return D3D12_UAV_DIMENSION_##dimensionType;
+
+D3D12_UAV_DIMENSION DX12ConverterUtils::ConvertToUAVDimensionType(RHIResourceDimension type)
+{
+    switch (type) {
+        COVERT_TO_UAV_DIMENSION_CASE(BUFFER)
+        COVERT_TO_UAV_DIMENSION_CASE(TEXTURE1D)
+        COVERT_TO_UAV_DIMENSION_CASE(TEXTURE1DARRAY)
+        COVERT_TO_UAV_DIMENSION_CASE(TEXTURE2D)
+        COVERT_TO_UAV_DIMENSION_CASE(TEXTURE2DARRAY)
+        COVERT_TO_UAV_DIMENSION_CASE(TEXTURE3D)
+    }
+
+    return D3D12_UAV_DIMENSION_UNKNOWN;
+}
+
 
 DX12Utils::~DX12Utils()
 {
@@ -184,7 +204,7 @@ bool DX12Utils::ResetCommandList(IRHICommandList& commandList, IRHICommandAlloca
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
     auto* dxCommandAllocator = dynamic_cast<DX12CommandAllocator&>(commandAllocator).GetCommandAllocator();
-    auto* dxPSO = initPSO ? dynamic_cast<DX12GraphicsPipelineStateObject&>(*initPSO).GetPSO() : nullptr;
+    auto* dxPSO = initPSO ? dynamic_cast<IDX12PipelineStateObjectCommon&>(*initPSO).GetPipelineStateObject() : nullptr;
     
     dxCommandList->Reset(dxCommandAllocator, dxPSO);
     return true;
@@ -216,12 +236,19 @@ bool DX12Utils::ResetCommandAllocator(IRHICommandAllocator& commandAllocator)
     return true;
 }
 
-bool DX12Utils::SetRootSignature(IRHICommandList& commandList, IRHIRootSignature& rootSignature)
+bool DX12Utils::SetRootSignature(IRHICommandList& commandList, IRHIRootSignature& rootSignature, bool isGraphicsPipeline)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
     auto* dxRootSignature = dynamic_cast<DX12RootSignature&>(rootSignature).GetRootSignature();
-    
-    dxCommandList->SetGraphicsRootSignature(dxRootSignature);
+
+    if (isGraphicsPipeline)
+    {
+        dxCommandList->SetGraphicsRootSignature(dxRootSignature);    
+    }
+    else
+    {
+        dxCommandList->SetComputeRootSignature(dxRootSignature);
+    }
     
     return true;
 }
@@ -290,31 +317,53 @@ bool DX12Utils::SetDescriptorHeapArray(IRHICommandList& commandList, IRHIDescrip
     return true;
 }
 
-bool DX12Utils::SetConstantBufferViewGPUHandleToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex,
-    RHIGPUDescriptorHandle handle)
+bool DX12Utils::SetCBVToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex,
+                                          RHIGPUDescriptorHandle handle, bool isGraphicsPipeline)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
-    dxCommandList->SetGraphicsRootConstantBufferView(slotIndex, handle);
+    if (isGraphicsPipeline)
+    {
+        dxCommandList->SetGraphicsRootConstantBufferView(slotIndex, handle);    
+    }
+    else
+    {
+        dxCommandList->SetComputeRootConstantBufferView(slotIndex, handle);
+    }
     
     return true;
 }
 
-bool DX12Utils::SetShaderResourceViewGPUHandleToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex,
-    RHIGPUDescriptorHandle handle)
+bool DX12Utils::SetSRVToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex,
+                                          RHIGPUDescriptorHandle handle, bool isGraphicsPipeline)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
-    dxCommandList->SetGraphicsRootShaderResourceView(slotIndex, handle);
+    if (isGraphicsPipeline)
+    {
+        dxCommandList->SetGraphicsRootShaderResourceView(slotIndex, handle);    
+    }
+    else
+    {
+        dxCommandList->SetComputeRootShaderResourceView(slotIndex, handle);
+    }
     
     return true;
 }
 
-bool DX12Utils::SetDescriptorTableGPUHandleToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex,
-                                                               RHIGPUDescriptorHandle handle)
+bool DX12Utils::SetDTToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex,
+                                         RHIGPUDescriptorHandle handle, bool isGraphicsPipeline)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
 
-    D3D12_GPU_DESCRIPTOR_HANDLE dxHandle = {handle} ;
-    dxCommandList->SetGraphicsRootDescriptorTable(slotIndex, dxHandle);
+    D3D12_GPU_DESCRIPTOR_HANDLE dxHandle = {handle};
+    if (isGraphicsPipeline)
+    {
+        dxCommandList->SetGraphicsRootDescriptorTable(slotIndex, dxHandle);    
+    }
+    else
+    {
+        dxCommandList->SetComputeRootDescriptorTable(slotIndex, dxHandle);
+    }
+    
     
     return true;
 }
@@ -391,6 +440,14 @@ bool DX12Utils::DrawIndexInstanced(IRHICommandList& commandList, unsigned indexC
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
     dxCommandList->DrawIndexedInstanced(indexCountPerInstance, instanceCount, startIndexLocation, static_cast<INT>(baseVertexLocation), startInstanceLocation);
     
+    return true;
+}
+
+bool DX12Utils::Dispatch(IRHICommandList& commandList, unsigned X, unsigned Y, unsigned Z)
+{
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    dxCommandList->Dispatch(X, Y, Z);
+
     return true;
 }
 

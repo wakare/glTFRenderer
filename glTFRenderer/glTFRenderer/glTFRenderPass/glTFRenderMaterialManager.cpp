@@ -33,7 +33,7 @@ RHICPUDescriptorHandle glTFMaterialTextureRenderResource::CreateOrGetTextureSRVH
         GLTF_CHECK(m_texture_buffer);
         
         RETURN_IF_FALSE(descriptor_heap.CreateShaderResourceViewInDescriptorHeap(resource_manager.GetDevice(), descriptor_heap.GetUsedDescriptorCount(),
-        m_texture_buffer->GetGPUBuffer(), {m_texture_buffer->GetTextureDesc().GetDataFormat(), RHIShaderVisibleViewDimension::TEXTURE2D}, m_texture_SRV_handle));
+        m_texture_buffer->GetGPUBuffer(), {m_texture_buffer->GetTextureDesc().GetDataFormat(), RHIResourceDimension::TEXTURE2D}, m_texture_SRV_handle));
         
         GLTF_CHECK(m_texture_SRV_handle);
     }
@@ -122,7 +122,8 @@ bool glTFRenderMaterialManager::InitMaterialRenderResource(glTFRenderResourceMan
     return true;
 }
 
-bool glTFRenderMaterialManager::ApplyMaterialRenderResource(glTFRenderResourceManager& resource_manager, IRHIDescriptorHeap& descriptor_heap, glTFUniqueID material_ID, unsigned slot_index)
+bool glTFRenderMaterialManager::ApplyMaterialRenderResource(glTFRenderResourceManager& resource_manager, IRHIDescriptorHeap& descriptor_heap, glTFUniqueID material_ID, unsigned slot_index, bool
+                                                            isGraphicsPipeline)
 {
     const auto find_material_iter = m_material_render_resources.find(material_ID);
     if (find_material_iter == m_material_render_resources.end())
@@ -131,8 +132,8 @@ bool glTFRenderMaterialManager::ApplyMaterialRenderResource(glTFRenderResourceMa
     }
 
     // Apply base color and normal now 
-    RETURN_IF_FALSE(RHIUtils::Instance().SetDescriptorTableGPUHandleToRootParameterSlot(resource_manager.GetCommandListForRecord(),
-            slot_index, find_material_iter->second->CreateOrGetAllTextureFirstGPUHandle(resource_manager, descriptor_heap)))
+    RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(resource_manager.GetCommandListForRecord(),
+            slot_index, find_material_iter->second->CreateOrGetAllTextureFirstGPUHandle(resource_manager, descriptor_heap), isGraphicsPipeline))
 
     return true;
 }

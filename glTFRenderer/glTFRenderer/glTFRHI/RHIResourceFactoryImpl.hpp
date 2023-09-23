@@ -27,11 +27,11 @@
 #include "RHIInterface/IRHIFactory.h"
 #include "RHIInterface/IRHIFence.h"
 #include "RHIInterface/IRHIGPUBuffer.h"
-#include "RHIInterface/IRHIPipelineStateObject.h"
 #include "RHIInterface/IRHIRenderTarget.h"
 #include "RHIInterface/IRHIRenderTargetManager.h"
 #include "RHIInterface/IRHIRootSignature.h"
 #include "RHIInterface/IRHISwapChain.h"
+#include "RHIInterface/IRHIPipelineStateObject.h"
 
 inline RHIGraphicsAPIType GetGraphicsAPI() {return RHIConfigSingleton::Instance().GetGraphicsAPIType();}
 

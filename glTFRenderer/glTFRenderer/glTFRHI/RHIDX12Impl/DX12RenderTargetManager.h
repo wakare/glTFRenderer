@@ -23,10 +23,7 @@ private:
 
     std::shared_ptr<IRHIDescriptorHeap> m_rtv_descriptor_heap;
     std::shared_ptr<IRHIDescriptorHeap> m_dsv_descriptor_heap;
-    
-    //ID3D12DescriptorHeap*       m_rtvDescriptorHeap;
-    //ID3D12DescriptorHeap*       m_dsvDescriptorHeap;
-
+     
     // key - renderTarget id, value - resource descriptor handle
     // each rt created within rt manager should be record in this map
     std::map<RTID, D3D12_CPU_DESCRIPTOR_HANDLE> m_rtvHandles;

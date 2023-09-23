@@ -9,11 +9,12 @@ public:
     glTFGraphicsPassBase();
 
     virtual bool InitPass(glTFRenderResourceManager& resource_manager) override;
-    virtual std::shared_ptr<IRHIPipelineStateObject> GetPSO() const override;
     
 protected:
-    virtual std::vector<RHIPipelineInputLayout> GetVertexInputLayout() = 0;
-    virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resourceManager) override;
+    IRHIGraphicsPipelineStateObject& GetGraphicsPipelineStateObject() const;
     
-    std::shared_ptr<IRHIGraphicsPipelineStateObject> m_pipeline_state_object;
+    virtual std::vector<RHIPipelineInputLayout> GetVertexInputLayout() = 0;
+    virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;
+
+    virtual PipelineType GetPipelineType() const override {return PipelineType::Graphics; }
 };

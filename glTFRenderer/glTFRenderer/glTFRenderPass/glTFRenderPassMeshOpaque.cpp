@@ -7,7 +7,7 @@
 #include "../glTFUtils/glTFImageLoader.h"
 
 glTFRenderPassMeshOpaque::glTFRenderPassMeshOpaque()
-    : glTFRenderPassMeshBase()
+    : glTFGraphicsPassMeshBase()
     , glTFRenderInterfaceSceneMeshMaterial(
     MeshOpaquePass_RootParameter_SceneMesh_SRV,
     MeshOpaquePass_SceneMesh_SRV_Register,
@@ -28,7 +28,7 @@ bool glTFRenderPassMeshOpaque::ProcessMaterial(glTFRenderResourceManager& resour
 
 bool glTFRenderPassMeshOpaque::InitPass(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(glTFRenderPassMeshBase::InitPass(resource_manager))
+    RETURN_IF_FALSE(glTFGraphicsPassMeshBase::InitPass(resource_manager))
     RETURN_IF_FALSE(glTFRenderInterfaceSceneMeshMaterial::InitInterface(resource_manager))
 
     return true;
@@ -36,7 +36,7 @@ bool glTFRenderPassMeshOpaque::InitPass(glTFRenderResourceManager& resource_mana
 
 bool glTFRenderPassMeshOpaque::PreRenderPass(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(glTFRenderPassMeshBase::PreRenderPass(resource_manager))
+    RETURN_IF_FALSE(glTFGraphicsPassMeshBase::PreRenderPass(resource_manager))
 
     auto& command_list = resource_manager.GetCommandListForRecord();
     
@@ -62,7 +62,7 @@ size_t glTFRenderPassMeshOpaque::GetRootSignatureParameterCount()
 
 bool glTFRenderPassMeshOpaque::SetupRootSignature(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(glTFRenderPassMeshBase::SetupRootSignature(resource_manager))
+    RETURN_IF_FALSE(glTFGraphicsPassMeshBase::SetupRootSignature(resource_manager))
     
     // TODO: Init sampler in material resource manager
     RETURN_IF_FALSE(m_root_signature->GetStaticSampler(0).InitStaticSampler(0, RHIStaticSamplerAddressMode::Warp, RHIStaticSamplerFilterMode::Linear))
@@ -73,11 +73,11 @@ bool glTFRenderPassMeshOpaque::SetupRootSignature(glTFRenderResourceManager& res
 
 bool glTFRenderPassMeshOpaque::SetupPipelineStateObject(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(glTFRenderPassMeshBase::SetupPipelineStateObject(resource_manager))
+    RETURN_IF_FALSE(glTFGraphicsPassMeshBase::SetupPipelineStateObject(resource_manager))
     
-    m_pipeline_state_object->BindShaderCode(
+    GetGraphicsPipelineStateObject().BindShaderCode(
         R"(glTFResources\ShaderSource\MeshPassCommonVS.hlsl)", RHIShaderType::Vertex, "main");
-    m_pipeline_state_object->BindShaderCode(
+    GetGraphicsPipelineStateObject().BindShaderCode(
         R"(glTFResources\ShaderSource\MeshPassCommonPS.hlsl)", RHIShaderType::Pixel, "main");
 
     IRHIRenderTargetDesc render_target_base_color_desc;
@@ -102,9 +102,9 @@ bool glTFRenderPassMeshOpaque::SetupPipelineStateObject(glTFRenderResourceManage
     resource_manager.GetRenderTargetManager().RegisterRenderTargetWithTag("BasePassColor", m_base_pass_color_render_target);
     resource_manager.GetRenderTargetManager().RegisterRenderTargetWithTag("BasePassNormal", m_base_pass_normal_render_target);
     
-    m_pipeline_state_object->BindRenderTargets({m_base_pass_color_render_target.get(), m_base_pass_normal_render_target.get(), &resource_manager.GetDepthRT()});
+    GetGraphicsPipelineStateObject().BindRenderTargets({m_base_pass_color_render_target.get(), m_base_pass_normal_render_target.get(), &resource_manager.GetDepthRT()});
     
-    auto& shader_macros = m_pipeline_state_object->GetShaderMacros();
+    auto& shader_macros = GetGraphicsPipelineStateObject().GetShaderMacros();
     glTFRenderInterfaceSceneMeshMaterial::UpdateShaderCompileDefine(shader_macros);
     
     return true;
@@ -119,5 +119,6 @@ bool glTFRenderPassMeshOpaque::BeginDrawMesh(glTFRenderResourceManager& resource
         return true;
     }
     
-	return resource_manager.ApplyMaterial(*m_main_descriptor_heap, material_ID, MeshOpaquePass_RootParameter_SceneMesh_SRV);
+	return resource_manager.ApplyMaterial(*m_main_descriptor_heap,
+	    material_ID, MeshOpaquePass_RootParameter_SceneMesh_SRV, GetPipelineType() == PipelineType::Graphics);
 }

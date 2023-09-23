@@ -8,6 +8,12 @@ class IRHIPipelineStateObject;
 class IRHIDescriptorHeap;
 class IRHICommandList;
 
+enum class PipelineType
+{
+    Graphics,
+    Compute,
+};
+
 class glTFRenderPassBase 
 {
 public:
@@ -26,7 +32,6 @@ public:
     virtual bool PreRenderPass(glTFRenderResourceManager& resource_manager);
     virtual bool RenderPass(glTFRenderResourceManager& resource_manager);
     virtual bool PostRenderPass(glTFRenderResourceManager& resource_manager);
-    virtual std::shared_ptr<IRHIPipelineStateObject> GetPSO() const = 0;
 
     // Which material should process within render pass
     virtual bool ProcessMaterial(glTFRenderResourceManager& resourceManager, const glTFMaterialBase& material) {return true; }
@@ -44,10 +49,13 @@ protected:
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resourceManager) = 0;
     
     std::shared_ptr<IRHIRootSignature> m_root_signature;
+    std::shared_ptr<IRHIPipelineStateObject> m_pipeline_state_object;
     
     // CBV_SRV_UAV Heaps, can only bind one in render pass
     std::shared_ptr<IRHIDescriptorHeap> m_main_descriptor_heap;
 
     // Bypass this pass which determined by scene view?
     bool m_bypass {false};
+
+    virtual PipelineType GetPipelineType() const = 0;
 };

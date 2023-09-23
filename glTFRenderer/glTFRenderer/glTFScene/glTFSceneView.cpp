@@ -5,7 +5,8 @@
 #include "../glTFWindow/glTFInputManager.h"
 #include "../glTFRenderPass/glTFRenderPassManager.h"
 #include "../glTFRenderPass/glTFRenderPassMeshOpaque.h"
-#include "../glTFRenderPass/glTFRenderPassLighting.h"
+#include "../glTFRenderPass/glTFGraphicsPassLighting.h"
+#include "glTFRenderPass/glTFComputePassLighting.h"
 #include "glTFRenderPass/glTFRenderPassMeshDepth.h"
 
 glTFSceneView::glTFSceneView(const glTFSceneGraph& graph)
@@ -56,9 +57,14 @@ bool glTFSceneView::SetupRenderPass(glTFRenderPassManager& out_render_pass_manag
     opaque_pass->ResolveVertexInputLayout(resolved_vertex_layout);
     out_render_pass_manager.AddRenderPass(std::move(opaque_pass));
 
-    std::unique_ptr<glTFRenderPassLighting> lighting_pass = std::make_unique<glTFRenderPassLighting>();
+    /*
+    std::unique_ptr<glTFGraphicsPassLighting> lighting_pass = std::make_unique<glTFGraphicsPassLighting>();
     lighting_pass->SetByPass(!m_render_flags.IsLit());
     out_render_pass_manager.AddRenderPass(std::move(lighting_pass));
+    */
+    
+    std::unique_ptr<glTFComputePassLighting> compute_lighting_pass = std::make_unique<glTFComputePassLighting>();
+    out_render_pass_manager.AddRenderPass(std::move(compute_lighting_pass));
     
     return true;
 }

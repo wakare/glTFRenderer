@@ -35,11 +35,11 @@ public:
         return m_gpu_buffer->UploadBufferFromCPU(data, 0, size);
     }
     
-    virtual bool ApplyInterface(glTFRenderResourceManager& resource_manager)
+    virtual bool ApplyInterface(glTFRenderResourceManager& resource_manager, bool isGraphicsPipeline)
     {
         auto& command_list = resource_manager.GetCommandListForRecord();
-        RHIUtils::Instance().SetShaderResourceViewGPUHandleToRootParameterSlot(command_list,
-                m_structured_buffer_index, m_gpu_buffer->GetGPUBufferHandle());
+        RHIUtils::Instance().SetSRVToRootParameterSlot(command_list,
+                                                       m_structured_buffer_index, m_gpu_buffer->GetGPUBufferHandle(), isGraphicsPipeline);
     
         return true;
     }

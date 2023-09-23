@@ -2,14 +2,14 @@
 #include <map>
 
 #include "glTFRenderInterface/glTFRenderInterfaceSceneView.h"
-#include "glTFRenderPassPostprocess.h"
+#include "glTFGraphicsPassPostprocess.h"
 #include "glTFRenderPassCommon.h"
 #include "../glTFLoader/glTFElementCommon.h"
 #include "glTFRenderInterface/glTFRenderInterfaceLighting.h"
 
-class glTFRenderPassLighting : public glTFRenderPassPostprocess, public glTFRenderInterfaceSceneView, public glTFRenderInterfaceLighting
+class glTFGraphicsPassLighting : public glTFGraphicsPassPostprocess, public glTFRenderInterfaceSceneView, public glTFRenderInterfaceLighting
 {
-    enum glTFRenderPassLightingRootParameterIndex
+    enum glTFGraphicsPassLightingRootParameterIndex
     {
         LightPass_RootParameter_SceneViewCBV                        = 0,
         LightPass_RootParameter_BaseColorAndDepthSRV                = 1,
@@ -18,7 +18,7 @@ class glTFRenderPassLighting : public glTFRenderPassPostprocess, public glTFRend
         LightPass_RootParameter_DirectionalLightStructuredBuffer    = 4,
         LightPass_RootParameter_Num,
     };
-    enum glTFRenderPassLightingRegisterIndex
+    enum glTFGraphicsPassLightingRegisterIndex
     {
         LightPass_SceneView_CBV_Register = 0,   
         LightPass_LightInfo_CBV_Register = 1,
@@ -26,7 +26,7 @@ class glTFRenderPassLighting : public glTFRenderPassPostprocess, public glTFRend
         LightPass_DirectionalLight_SRV_Register = 4,
     };
 public:
-    glTFRenderPassLighting();
+    glTFGraphicsPassLighting();
 
     virtual const char* PassName() override;
     virtual bool InitPass(glTFRenderResourceManager& resource_manager) override;

@@ -5,14 +5,12 @@
 
 bool glTFRenderPassMeshDepth::SetupPipelineStateObject(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(glTFRenderPassMeshBase::SetupPipelineStateObject(resource_manager))
+    RETURN_IF_FALSE(glTFGraphicsPassMeshBase::SetupPipelineStateObject(resource_manager))
 
-    m_pipeline_state_object->BindShaderCode(
+    GetGraphicsPipelineStateObject().BindShaderCode(
             R"(glTFResources\ShaderSource\MeshPassCommonVS.hlsl)", RHIShaderType::Vertex, "main");
-    
-    m_pipeline_state_object->BindRenderTargets({&resource_manager.GetDepthRT()});
-
-    m_pipeline_state_object->SetDepthStencilState(IRHIDepthStencilMode::DEPTH_WRITE);
+    GetGraphicsPipelineStateObject().SetDepthStencilState(IRHIDepthStencilMode::DEPTH_WRITE);
+    GetGraphicsPipelineStateObject().BindRenderTargets({&resource_manager.GetDepthRT()});
     
     auto& command_list = resource_manager.GetCommandListForRecord();
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, resource_manager.GetDepthRT(), RHIResourceStateType::DEPTH_WRITE, RHIResourceStateType::DEPTH_READ))
@@ -22,7 +20,7 @@ bool glTFRenderPassMeshDepth::SetupPipelineStateObject(glTFRenderResourceManager
 
 bool glTFRenderPassMeshDepth::PreRenderPass(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(glTFRenderPassMeshBase::PreRenderPass(resource_manager))
+    RETURN_IF_FALSE(glTFGraphicsPassMeshBase::PreRenderPass(resource_manager))
 
     auto& command_list = resource_manager.GetCommandListForRecord();
 
@@ -36,7 +34,7 @@ bool glTFRenderPassMeshDepth::PreRenderPass(glTFRenderResourceManager& resource_
 
 bool glTFRenderPassMeshDepth::PostRenderPass(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(glTFRenderPassMeshBase::PostRenderPass(resource_manager))
+    RETURN_IF_FALSE(glTFGraphicsPassMeshBase::PostRenderPass(resource_manager))
     
     auto& command_list = resource_manager.GetCommandListForRecord();
     

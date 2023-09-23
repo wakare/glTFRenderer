@@ -27,7 +27,7 @@ struct MeshGPUResource
 };
 
 // Drawing all meshes within mesh pass
-class glTFRenderPassMeshBase : public glTFGraphicsPassBase, public glTFRenderInterfaceSceneView, public glTFRenderInterfaceSceneMesh
+class glTFGraphicsPassMeshBase : public glTFGraphicsPassBase, public glTFRenderInterfaceSceneView, public glTFRenderInterfaceSceneMesh
 {
 protected:
     enum glTFRenderPassMeshBaseRootParameterEnum
@@ -47,7 +47,7 @@ protected:
     };
     
 public:
-    glTFRenderPassMeshBase();
+    glTFGraphicsPassMeshBase();
     
     virtual const char* PassName() override {return "MeshPass"; }
     bool InitPass(glTFRenderResourceManager& resource_manager) override;

@@ -1,4 +1,4 @@
-#include "glTFRenderPassLighting.h"
+#include "glTFGraphicsPassLighting.h"
 #include "glTFRenderResourceManager.h"
 #include "../glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
 #include "../glTFRHI/RHIInterface/IRHIRenderTargetManager.h"
@@ -9,7 +9,7 @@
 #include "../glTFRHI/RHIResourceFactory.h"
 #include "../glTFUtils/glTFLog.h"
 
-glTFRenderPassLighting::glTFRenderPassLighting()
+glTFGraphicsPassLighting::glTFGraphicsPassLighting()
     : glTFRenderInterfaceSceneView(LightPass_RootParameter_SceneViewCBV, LightPass_SceneView_CBV_Register)
       , glTFRenderInterfaceLighting(LightPass_RootParameter_LightInfosCBV, LightPass_LightInfo_CBV_Register,
           LightPass_RootParameter_PointLightStructuredBuffer, LightPass_PointLight_SRV_Register,
@@ -23,14 +23,14 @@ glTFRenderPassLighting::glTFRenderPassLighting()
 {
 }
 
-const char* glTFRenderPassLighting::PassName()
+const char* glTFGraphicsPassLighting::PassName()
 {
-    return "LightPass";
+    return "LightGraphicsPass";
 }
 
-bool glTFRenderPassLighting::InitPass(glTFRenderResourceManager& resource_manager)
+bool glTFGraphicsPassLighting::InitPass(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(glTFRenderPassPostprocess::InitPass(resource_manager))
+    RETURN_IF_FALSE(glTFGraphicsPassPostprocess::InitPass(resource_manager))
     
     RETURN_IF_FALSE(glTFRenderInterfaceSceneView::InitInterface(resource_manager))
 
@@ -39,11 +39,11 @@ bool glTFRenderPassLighting::InitPass(glTFRenderResourceManager& resource_manage
     return true;
 }
 
-bool glTFRenderPassLighting::PreRenderPass(glTFRenderResourceManager& resource_manager)
+bool glTFGraphicsPassLighting::PreRenderPass(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(glTFRenderPassPostprocess::PreRenderPass(resource_manager))
+    RETURN_IF_FALSE(glTFGraphicsPassPostprocess::PreRenderPass(resource_manager))
 
-    RETURN_IF_FALSE(glTFRenderInterfaceSceneView::ApplyInterface(resource_manager))
+    RETURN_IF_FALSE(glTFRenderInterfaceSceneView::ApplyInterface(resource_manager, GetPipelineType() == PipelineType::Graphics))
 
     auto& command_list = resource_manager.GetCommandListForRecord();
     
@@ -56,8 +56,8 @@ bool glTFRenderPassLighting::PreRenderPass(glTFRenderResourceManager& resource_m
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, resource_manager.GetDepthRT(),
         RHIResourceStateType::DEPTH_READ, RHIResourceStateType::PIXEL_SHADER_RESOURCE))
 
-    RETURN_IF_FALSE(RHIUtils::Instance().SetDescriptorTableGPUHandleToRootParameterSlot(command_list,
-        LightPass_RootParameter_BaseColorAndDepthSRV, m_main_descriptor_heap->GetGPUHandle(0)))    
+    RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list,
+        LightPass_RootParameter_BaseColorAndDepthSRV, m_main_descriptor_heap->GetGPUHandle(0), GetPipelineType() == PipelineType::Graphics))    
 
     RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().BindRenderTarget(command_list,
         {&resource_manager.GetCurrentFrameSwapchainRT()}, nullptr))
@@ -66,14 +66,14 @@ bool glTFRenderPassLighting::PreRenderPass(glTFRenderResourceManager& resource_m
         {&resource_manager.GetCurrentFrameSwapchainRT()}))
 
     RETURN_IF_FALSE(UploadLightInfoGPUBuffer())
-    RETURN_IF_FALSE(glTFRenderInterfaceLighting::ApplyInterface(resource_manager))
+    RETURN_IF_FALSE(glTFRenderInterfaceLighting::ApplyInterface(resource_manager, GetPipelineType() == PipelineType::Graphics))
 
     return true;
 }
 
-bool glTFRenderPassLighting::PostRenderPass(glTFRenderResourceManager& resource_manager)
+bool glTFGraphicsPassLighting::PostRenderPass(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(glTFRenderPassPostprocess::PostRenderPass(resource_manager))
+    RETURN_IF_FALSE(glTFGraphicsPassPostprocess::PostRenderPass(resource_manager))
 
     auto& command_list = resource_manager.GetCommandListForRecord();
     
@@ -93,7 +93,7 @@ bool glTFRenderPassLighting::PostRenderPass(glTFRenderResourceManager& resource_
     return true;
 }
 
-bool glTFRenderPassLighting::TryProcessSceneObject(glTFRenderResourceManager& resource_manager,
+bool glTFGraphicsPassLighting::TryProcessSceneObject(glTFRenderResourceManager& resource_manager,
                                                    const glTFSceneObjectBase& object)
 {
     const glTFLightBase* light = dynamic_cast<const glTFLightBase*>(&object);
@@ -130,7 +130,7 @@ bool glTFRenderPassLighting::TryProcessSceneObject(glTFRenderResourceManager& re
     return true;
 }
 
-bool glTFRenderPassLighting::FinishProcessSceneObject(glTFRenderResourceManager& resource_manager)
+bool glTFGraphicsPassLighting::FinishProcessSceneObject(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassBase::FinishProcessSceneObject(resource_manager))
 
@@ -156,24 +156,24 @@ bool glTFRenderPassLighting::FinishProcessSceneObject(glTFRenderResourceManager&
     return true;
 }
 
-size_t glTFRenderPassLighting::GetRootSignatureParameterCount()
+size_t glTFGraphicsPassLighting::GetRootSignatureParameterCount()
 {
     return LightPass_RootParameter_Num;
 }
 
-size_t glTFRenderPassLighting::GetRootSignatureSamplerCount()
+size_t glTFGraphicsPassLighting::GetRootSignatureSamplerCount()
 {
     return 1;
 }
 
-size_t glTFRenderPassLighting::GetMainDescriptorHeapSize()
+size_t glTFGraphicsPassLighting::GetMainDescriptorHeapSize()
 {
     return 64;
 }
 
-bool glTFRenderPassLighting::SetupRootSignature(glTFRenderResourceManager& resource_manager)
+bool glTFGraphicsPassLighting::SetupRootSignature(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(glTFRenderPassPostprocess::SetupRootSignature(resource_manager))
+    RETURN_IF_FALSE(glTFGraphicsPassPostprocess::SetupRootSignature(resource_manager))
     RETURN_IF_FALSE(glTFRenderInterfaceSceneView::ApplyRootSignature(*m_root_signature))
     RETURN_IF_FALSE(glTFRenderInterfaceLighting::ApplyRootSignature(*m_root_signature))
     
@@ -184,38 +184,38 @@ bool glTFRenderPassLighting::SetupRootSignature(glTFRenderResourceManager& resou
     return true;
 }
 
-bool glTFRenderPassLighting::SetupPipelineStateObject(glTFRenderResourceManager& resource_manager)
+bool glTFGraphicsPassLighting::SetupPipelineStateObject(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(glTFRenderPassPostprocess::SetupPipelineStateObject(resource_manager))
+    RETURN_IF_FALSE(glTFGraphicsPassPostprocess::SetupPipelineStateObject(resource_manager))
 
     std::vector<IRHIRenderTarget*> render_targets;
     render_targets.push_back(&resource_manager.GetCurrentFrameSwapchainRT());
-    m_pipeline_state_object->BindRenderTargets(render_targets);
+    GetGraphicsPipelineStateObject().BindRenderTargets(render_targets);
     
     m_base_pass_color_RT = resource_manager.GetRenderTargetManager().GetRenderTargetWithTag("BasePassColor");
     RETURN_IF_FALSE(m_main_descriptor_heap->CreateShaderResourceViewInDescriptorHeap(resource_manager.GetDevice(), m_main_descriptor_heap->GetUsedDescriptorCount(),
-            *m_base_pass_color_RT, {m_base_pass_color_RT->GetRenderTargetFormat(), RHIShaderVisibleViewDimension::TEXTURE2D}, m_base_pass_color_RT_SRV_Handle))
+            *m_base_pass_color_RT, {m_base_pass_color_RT->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D}, m_base_pass_color_RT_SRV_Handle))
     
     RETURN_IF_FALSE(m_main_descriptor_heap->CreateShaderResourceViewInDescriptorHeap(resource_manager.GetDevice(), m_main_descriptor_heap->GetUsedDescriptorCount(),
-            resource_manager.GetDepthRT(), {RHIDataFormat::R32_FLOAT, RHIShaderVisibleViewDimension::TEXTURE2D}, m_depth_RT_SRV_Handle))
+            resource_manager.GetDepthRT(), {RHIDataFormat::R32_FLOAT, RHIResourceDimension::TEXTURE2D}, m_depth_RT_SRV_Handle))
     
     m_normal_RT = resource_manager.GetRenderTargetManager().GetRenderTargetWithTag("BasePassNormal");
     RETURN_IF_FALSE(m_main_descriptor_heap->CreateShaderResourceViewInDescriptorHeap(resource_manager.GetDevice(), m_main_descriptor_heap->GetUsedDescriptorCount(),
-            *m_normal_RT, {m_normal_RT->GetRenderTargetFormat(), RHIShaderVisibleViewDimension::TEXTURE2D}, m_normal_RT_SRV_Handle))
+            *m_normal_RT, {m_normal_RT->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D}, m_normal_RT_SRV_Handle))
     
-    m_pipeline_state_object->BindShaderCode(
+    GetGraphicsPipelineStateObject().BindShaderCode(
         R"(glTFResources\ShaderSource\LightPassVS.hlsl)", RHIShaderType::Vertex, "main");
-    m_pipeline_state_object->BindShaderCode(
+    GetGraphicsPipelineStateObject().BindShaderCode(
         R"(glTFResources\ShaderSource\LightPassPS.hlsl)", RHIShaderType::Pixel, "main");
     
-    auto& shaderMacros = m_pipeline_state_object->GetShaderMacros();
+    auto& shaderMacros = GetGraphicsPipelineStateObject().GetShaderMacros();
     glTFRenderInterfaceSceneView::UpdateShaderCompileDefine(shaderMacros);
     glTFRenderInterfaceLighting::UpdateShaderCompileDefine(shaderMacros);
     
     return true;
 }
 
-bool glTFRenderPassLighting::UploadLightInfoGPUBuffer()
+bool glTFGraphicsPassLighting::UploadLightInfoGPUBuffer()
 {
     return glTFRenderInterfaceLighting::UpdateCPUBuffer(m_constant_buffer_per_light_draw);
 }

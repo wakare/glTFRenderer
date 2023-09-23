@@ -5,5 +5,5 @@
 class IRHICommandList : public IRHIResource
 {
 public:
-    virtual bool InitCommandList(IRHIDevice& device, IRHICommandAllocator& commandAllocator) = 0;
+    virtual bool InitCommandList(IRHIDevice& device, IRHICommandAllocator& command_allocator) = 0;
 };

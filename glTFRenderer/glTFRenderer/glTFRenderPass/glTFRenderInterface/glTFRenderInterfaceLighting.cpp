@@ -11,13 +11,13 @@ bool glTFRenderInterfaceLighting::InitInterface(glTFRenderResourceManager& resou
      return true;
 }
 
-bool glTFRenderInterfaceLighting::ApplyInterface(glTFRenderResourceManager& resource_manager)
+bool glTFRenderInterfaceLighting::ApplyInterface(glTFRenderResourceManager& resource_manager, bool isGraphicsPipeline)
 {
-     RETURN_IF_FALSE(glTFRenderInterfaceSingleConstantBuffer<ConstantBufferPerLightDraw>::ApplyInterface(resource_manager))
+     RETURN_IF_FALSE(glTFRenderInterfaceSingleConstantBuffer<ConstantBufferPerLightDraw>::ApplyInterface(resource_manager, isGraphicsPipeline))
 
-     RETURN_IF_FALSE(glTFRenderInterfaceStructuredBuffer<PointLightInfo>::ApplyInterface(resource_manager))
+     RETURN_IF_FALSE(glTFRenderInterfaceStructuredBuffer<PointLightInfo>::ApplyInterface(resource_manager, isGraphicsPipeline))
 
-     RETURN_IF_FALSE(glTFRenderInterfaceStructuredBuffer<DirectionalLightInfo>::ApplyInterface(resource_manager))
+     RETURN_IF_FALSE(glTFRenderInterfaceStructuredBuffer<DirectionalLightInfo>::ApplyInterface(resource_manager, isGraphicsPipeline))
     
      return true;
 }
