@@ -20,6 +20,11 @@ bool glTFComputePassLighting::InitPass(glTFRenderResourceManager& resource_manag
     m_lighting_output_RT = resource_manager.GetRenderTargetManager().CreateRenderTarget(
         resource_manager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R8G8B8A8_UNORM, RHIDataFormat::R8G8B8A8_UNORM, lighting_output_desc);
     
+    auto& command_list = resource_manager.GetCommandListForRecord();
+
+    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_lighting_output_RT,
+        RHIResourceStateType::RENDER_TARGET, RHIResourceStateType::COPY_SOURCE))
+    
     RETURN_IF_FALSE(glTFComputePassBase::InitPass(resource_manager))
     
     RETURN_IF_FALSE(glTFRenderInterfaceSceneView::InitInterface(resource_manager))
@@ -38,7 +43,7 @@ bool glTFComputePassLighting::PreRenderPass(glTFRenderResourceManager& resource_
     auto& command_list = resource_manager.GetCommandListForRecord();
 
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_lighting_output_RT,
-        RHIResourceStateType::RENDER_TARGET, RHIResourceStateType::UNORDER_ACCESS))
+        RHIResourceStateType::COPY_SOURCE, RHIResourceStateType::UNORDER_ACCESS))
     
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_base_color_RT,
         RHIResourceStateType::RENDER_TARGET, RHIResourceStateType::PIXEL_SHADER_RESOURCE))
@@ -70,7 +75,7 @@ bool glTFComputePassLighting::PostRenderPass(glTFRenderResourceManager& resource
     auto& command_list = resource_manager.GetCommandListForRecord();
 
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_lighting_output_RT,
-        RHIResourceStateType::UNORDER_ACCESS, RHIResourceStateType::RENDER_TARGET))
+        RHIResourceStateType::UNORDER_ACCESS, RHIResourceStateType::COPY_SOURCE))
     
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_base_color_RT,
         RHIResourceStateType::PIXEL_SHADER_RESOURCE, RHIResourceStateType::RENDER_TARGET))
@@ -83,6 +88,15 @@ bool glTFComputePassLighting::PostRenderPass(glTFRenderResourceManager& resource
 
     RETURN_IF_FALSE(RHIUtils::Instance().DiscardResource(command_list, *m_base_color_RT))
     RETURN_IF_FALSE(RHIUtils::Instance().DiscardResource(command_list, *m_normal_RT))
+
+    // Copy compute result to swapchain back buffer
+    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, resource_manager.GetCurrentFrameSwapchainRT(),
+        RHIResourceStateType::RENDER_TARGET, RHIResourceStateType::COPY_DEST))
+
+    RETURN_IF_FALSE(RHIUtils::Instance().CopyTexture(command_list, resource_manager.GetCurrentFrameSwapchainRT(), *m_lighting_output_RT))
+
+    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, resource_manager.GetCurrentFrameSwapchainRT(),
+            RHIResourceStateType::COPY_DEST, RHIResourceStateType::RENDER_TARGET))
     
     return true;
 }

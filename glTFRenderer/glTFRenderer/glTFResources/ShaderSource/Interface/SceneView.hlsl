@@ -11,5 +11,8 @@ cbuffer SceneViewConstantBuffer : SCENE_VIEW_REGISTER_INDEX
     float4x4 projectionMatrix;
     float4x4 inverseViewMatrix;
     float4x4 inverseProjectionMatrix;
+
+    uint viewport_width;
+    uint viewport_height;
 };
 #endif

@@ -73,7 +73,7 @@ bool glTFWindow::InitAndShowWindow()
     // Add camera
     std::unique_ptr<glTFSceneNode> cameraNode = std::make_unique<glTFSceneNode>();
     std::unique_ptr<glTFCamera> camera = std::make_unique<glTFCamera>(m_scene_graph->GetRootNode().m_finalTransform,
-        45.0f, 800.0f, 600.0f, 0.1f, 1000.0f);
+        45.0f, m_width, m_height, 0.1f, 1000.0f);
     
     cameraNode->m_objects.push_back(std::move(camera));
     m_scene_graph->AddSceneNode(std::move(cameraNode));

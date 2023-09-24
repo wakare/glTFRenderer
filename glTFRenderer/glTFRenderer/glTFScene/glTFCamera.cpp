@@ -69,3 +69,9 @@ glm::vec3 glTFCamera::GetCameraPosition() const
 {
     return m_transform.GetTranslation();
 }
+
+void glTFCamera::GetCameraViewportSize(unsigned& out_width, unsigned& out_height) const
+{
+    out_width = static_cast<unsigned>(m_projection_width);
+    out_height = static_cast<unsigned>(m_projection_height);
+}

@@ -28,17 +28,19 @@ public:
     
     glTFComputePassLighting()
         : glTFRenderInterfaceSceneView(
-            LightPass_RootParameter_SceneViewCBV, LightPass_SceneView_CBV_Register)
-        , glTFRenderInterfaceLighting(
+              LightPass_RootParameter_SceneViewCBV, LightPass_SceneView_CBV_Register)
+          , glTFRenderInterfaceLighting(
               LightPass_RootParameter_LightInfosCBV, LightPass_LightInfo_CBV_Register,
               LightPass_RootParameter_PointLightStructuredBuffer, LightPass_PointLight_SRV_Register,
               LightPass_RootParameter_DirectionalLightStructuredBuffer, LightPass_DirectionalLight_SRV_Register)
-        , m_base_color_RT(nullptr)
-        , m_normal_RT(nullptr)
-        , m_base_color_SRV(0)
-        , m_depth_SRV(0)
-        , m_normal_SRV(0)
-        , m_constant_buffer_per_light_draw({})
+          , m_base_color_RT(nullptr)
+          , m_normal_RT(nullptr)
+          , m_base_color_SRV(0)
+          , m_depth_SRV(0)
+          , m_normal_SRV(0)
+          , m_output_UAV(0)
+          , m_constant_buffer_per_light_draw({})
+          , m_dispatch_count({0, 0, 0})
     {
     }
 

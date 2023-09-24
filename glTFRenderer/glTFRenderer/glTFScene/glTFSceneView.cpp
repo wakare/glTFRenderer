@@ -139,6 +139,11 @@ void glTFSceneView::ApplyInput(glTFInputManager& input_manager, size_t delta_tim
     ApplyInputForCamera(input_manager, *main_camera, delta_time_ms);
 }
 
+void glTFSceneView::GetViewportSize(unsigned& out_width, unsigned& out_height) const
+{
+    GetMainCamera()->GetCameraViewportSize(out_width, out_height);
+}
+
 glTFCamera* glTFSceneView::GetMainCamera() const
 {
     return m_cameras.empty() ? nullptr : m_cameras[0];

@@ -37,6 +37,8 @@ public:
     const glm::vec3& GetObserveCenter() const;
     void SetCameraPosition(const glm::fvec3& position);
     glm::vec3 GetCameraPosition() const;
+
+    void GetCameraViewportSize(unsigned& out_width, unsigned& out_height) const;
     
 protected:
     CameraMode m_mode;

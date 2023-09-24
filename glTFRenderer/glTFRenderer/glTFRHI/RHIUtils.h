@@ -47,6 +47,7 @@ public:
     virtual bool Present(IRHISwapChain& swapchain) = 0;
 
     virtual bool DiscardResource(IRHICommandList& commandList, IRHIRenderTarget& render_target) = 0;
+    virtual bool CopyTexture(IRHICommandList& commandList, IRHIRenderTarget& dst, IRHIRenderTarget& src) = 0;
     
     static RHIUtils& Instance();
     

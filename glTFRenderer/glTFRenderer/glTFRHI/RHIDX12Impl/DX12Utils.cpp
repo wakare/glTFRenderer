@@ -70,6 +70,9 @@ D3D12_RESOURCE_STATES DX12ConverterUtils::ConvertToResourceState(RHIResourceStat
 {
     switch (state)
     {
+    case RHIResourceStateType::COPY_SOURCE:
+        return D3D12_RESOURCE_STATE_COPY_SOURCE;
+        
     case RHIResourceStateType::COPY_DEST:
         return D3D12_RESOURCE_STATE_COPY_DEST;
         
@@ -464,5 +467,24 @@ bool DX12Utils::DiscardResource(IRHICommandList& commandList, IRHIRenderTarget& 
     auto* dxResource = dynamic_cast<DX12RenderTarget&>(render_target).GetResource();
     dxCommandList->DiscardResource(dxResource, nullptr);
 
+    return true;
+}
+
+bool DX12Utils::CopyTexture(IRHICommandList& commandList, IRHIRenderTarget& dst, IRHIRenderTarget& src)
+{
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    
+    D3D12_TEXTURE_COPY_LOCATION dstLocation;
+    dstLocation.pResource = dynamic_cast<DX12RenderTarget&>(dst).GetResource();
+    dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX; 
+    dstLocation.SubresourceIndex = 0;
+
+    D3D12_TEXTURE_COPY_LOCATION srcLocation;
+    srcLocation.pResource = dynamic_cast<DX12RenderTarget&>(src).GetResource();
+    srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX; 
+    srcLocation.SubresourceIndex = 0;
+    
+    dxCommandList->CopyTextureRegion(&dstLocation, 0, 0, 0, &srcLocation, nullptr);
+    
     return true;
 }

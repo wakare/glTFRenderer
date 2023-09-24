@@ -60,4 +60,6 @@ public:
     virtual bool Present(IRHISwapChain& swapchain) override;
 
     virtual bool DiscardResource(IRHICommandList& commandList, IRHIRenderTarget& render_target) override;
+
+    virtual bool CopyTexture(IRHICommandList& commandList, IRHIRenderTarget& dst, IRHIRenderTarget& src) override;
 };

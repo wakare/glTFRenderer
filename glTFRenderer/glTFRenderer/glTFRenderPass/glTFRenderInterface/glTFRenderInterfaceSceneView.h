@@ -9,6 +9,9 @@ struct ConstantBufferSceneView
     glm::mat4 ProjectionMatrix {glm::mat4{1.0f}};
     glm::mat4 inverseViewMatrix {glm::mat4{1.0f}};
     glm::mat4 inverseProjectionMatrix {glm::mat4{1.0f}};
+
+    unsigned viewport_width;
+    unsigned viewport_height;
 };
 
 class glTFRenderInterfaceSceneView : public glTFRenderInterfaceSingleConstantBuffer<ConstantBufferSceneView>
