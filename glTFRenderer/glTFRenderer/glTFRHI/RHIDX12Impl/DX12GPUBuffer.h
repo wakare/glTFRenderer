@@ -1,10 +1,7 @@
 #pragma once
 
 #include "../RHIInterface/IRHIGPUBuffer.h"
-#include "../RHIInterface/IRHIGPUBufferManager.h"
-#include <d3d12.h>
-
-#include "d3dx12.h"
+#include "DX12Common.h"
 
 class DX12GPUBuffer : public IRHIGPUBuffer
 {
@@ -16,10 +13,10 @@ public:
     virtual bool UploadBufferFromCPU(const void* data, size_t dataOffset, size_t size) override;
     virtual GPU_BUFFER_HANDLE_TYPE GetGPUBufferHandle() override;
     
-    ID3D12Resource* GetBuffer() const {return m_buffer;}
+    ID3D12Resource* GetBuffer() const {return m_buffer.Get();}
     
 private:
-    ID3D12Resource* m_buffer;
+    ComPtr<ID3D12Resource> m_buffer;
     UINT8* m_mappedGPUBuffer;
     
     RHIBufferDesc m_bufferDesc;

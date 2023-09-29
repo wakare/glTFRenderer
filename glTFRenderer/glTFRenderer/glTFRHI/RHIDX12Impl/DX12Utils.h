@@ -8,7 +8,8 @@
 enum class RHIBufferType;
 enum class RHIDataFormat;
 
-#define SAFE_RELEASE(x) if ((x)) {(x)->Release(); (x) = nullptr; LOG_FORMAT_FLUSH("[Exit] Resource %s Release %s\n", GetName().c_str(), #x)}
+#define SAFE_RELEASE(x)
+//#define SAFE_RELEASE(x) if ((x)) {(x)->Release(); (x) = nullptr; LOG_FORMAT_FLUSH("[Exit] Resource %s Release %s\n", GetName().c_str(), #x)}
 
 class DX12ConverterUtils
 {
@@ -62,4 +63,5 @@ public:
     virtual bool DiscardResource(IRHICommandList& commandList, IRHIRenderTarget& render_target) override;
 
     virtual bool CopyTexture(IRHICommandList& commandList, IRHIRenderTarget& dst, IRHIRenderTarget& src) override;
+    virtual bool SupportRayTracing(IRHIDevice& device) override;
 };

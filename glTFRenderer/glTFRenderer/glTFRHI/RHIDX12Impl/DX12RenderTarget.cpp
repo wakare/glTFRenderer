@@ -20,5 +20,5 @@ DX12RenderTarget::~DX12RenderTarget()
 
 ID3D12Resource* DX12RenderTarget::GetResource() const
 {
-    return m_texture;
+    return m_texture.Get();
 }

@@ -1,5 +1,5 @@
 #pragma once
-#include <d3d12.h>
+#include "DX12Common.h"
 
 #include "../RHIInterface/IRHIRenderTarget.h"
 
@@ -16,7 +16,7 @@ public:
         m_releaseInDtor = releaseInDtor;
     }
     
-    ID3D12Resource* GetRenderTarget() {return m_texture;}
+    ID3D12Resource* GetRenderTarget() {return m_texture.Get();}
 
     void SetClearValue(D3D12_CLEAR_VALUE clearValue) {m_clearValue = clearValue; }
     const D3D12_CLEAR_VALUE& GetClearValue() const {return m_clearValue; }
@@ -24,7 +24,7 @@ public:
     ID3D12Resource* GetResource() const;
     
 protected:
-    ID3D12Resource* m_texture;
+    ComPtr<ID3D12Resource> m_texture;
     D3D12_CLEAR_VALUE m_clearValue;
     bool m_releaseInDtor;
 };

@@ -1,5 +1,5 @@
 #pragma once
-#include <d3d12.h>
+#include "DX12Common.h"
 #include <map>
 
 #include "DX12Shader.h"
@@ -8,14 +8,14 @@
 class IDX12PipelineStateObjectCommon
 {
 public:
-    ID3D12PipelineState* GetPipelineStateObject() const {return m_pipeline_state_object; }
+    ID3D12PipelineState* GetPipelineStateObject() const {return m_pipeline_state_object.Get(); }
     
 protected:
     IDX12PipelineStateObjectCommon();
     
     bool CompileBindShaders(const std::map<RHIShaderType, std::shared_ptr<IRHIShader>>& shaders, const RHIShaderPreDefineMacros& shader_macros);
     
-    ID3D12PipelineState* m_pipeline_state_object;
+    ComPtr<ID3D12PipelineState> m_pipeline_state_object;
 };
 
 class DX12GraphicsPipelineStateObject : public IRHIGraphicsPipelineStateObject, public IDX12PipelineStateObjectCommon
@@ -27,7 +27,7 @@ public:
     virtual bool BindRenderTargets(const std::vector<IRHIRenderTarget*>& render_targets) override;
     virtual bool InitGraphicsPipelineStateObject(IRHIDevice& device, IRHIRootSignature& root_signature, IRHISwapChain& swapchain) override;
 
-    ID3D12PipelineState* GetPSO() {return m_pipeline_state_object; }
+    ID3D12PipelineState* GetPSO() {return m_pipeline_state_object.Get(); }
     
 private:
     D3D12_GRAPHICS_PIPELINE_STATE_DESC m_graphics_pipeline_state_desc;

@@ -4,11 +4,7 @@
 
 #include "DX12Utils.h"
 
-DX12Factory::DX12Factory()
-    : m_factory(nullptr)
-{
-    
-}
+DX12Factory::DX12Factory() = default;
 
 DX12Factory::~DX12Factory()
 {

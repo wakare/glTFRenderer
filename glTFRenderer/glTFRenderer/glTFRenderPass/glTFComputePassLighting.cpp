@@ -86,9 +86,6 @@ bool glTFComputePassLighting::PostRenderPass(glTFRenderResourceManager& resource
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, resource_manager.GetDepthRT(),
         RHIResourceStateType::PIXEL_SHADER_RESOURCE, RHIResourceStateType::DEPTH_READ))
 
-    RETURN_IF_FALSE(RHIUtils::Instance().DiscardResource(command_list, *m_base_color_RT))
-    RETURN_IF_FALSE(RHIUtils::Instance().DiscardResource(command_list, *m_normal_RT))
-
     // Copy compute result to swapchain back buffer
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, resource_manager.GetCurrentFrameSwapchainRT(),
         RHIResourceStateType::RENDER_TARGET, RHIResourceStateType::COPY_DEST))

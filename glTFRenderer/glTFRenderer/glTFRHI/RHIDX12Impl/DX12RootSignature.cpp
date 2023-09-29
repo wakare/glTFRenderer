@@ -260,5 +260,5 @@ bool DX12RootSignature::InitRootSignature(IRHIDevice& device)
 
 ID3D12RootSignature* DX12RootSignature::GetRootSignature() const
 {
-    return m_rootSignature;
+    return m_rootSignature.Get();
 }

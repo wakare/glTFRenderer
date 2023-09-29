@@ -52,22 +52,26 @@ bool glTFSceneView::SetupRenderPass(glTFRenderPassManager& out_render_pass_manag
     std::unique_ptr<glTFRenderPassMeshDepth> depth_pass = std::make_unique<glTFRenderPassMeshDepth>();
     depth_pass->ResolveVertexInputLayout(resolved_vertex_layout);
     out_render_pass_manager.AddRenderPass(std::move(depth_pass));
-    
+
 	std::unique_ptr<glTFRenderPassMeshOpaque> opaque_pass = std::make_unique<glTFRenderPassMeshOpaque>();
     opaque_pass->ResolveVertexInputLayout(resolved_vertex_layout);
     out_render_pass_manager.AddRenderPass(std::move(opaque_pass));
 
-    /*
-    std::unique_ptr<glTFGraphicsPassLighting> lighting_pass = std::make_unique<glTFGraphicsPassLighting>();
-    lighting_pass->SetByPass(!m_render_flags.IsLit());
-    out_render_pass_manager.AddRenderPass(std::move(lighting_pass));
-    */
-    
-    std::unique_ptr<glTFComputePassLighting> compute_lighting_pass = std::make_unique<glTFComputePassLighting>();
-    out_render_pass_manager.AddRenderPass(std::move(compute_lighting_pass));
+    const bool use_lighting_cs = true;
+    if (use_lighting_cs)
+    {
+        std::unique_ptr<glTFComputePassLighting> compute_lighting_pass = std::make_unique<glTFComputePassLighting>();
+        out_render_pass_manager.AddRenderPass(std::move(compute_lighting_pass));    
+    }
+    else
+    {
+        std::unique_ptr<glTFGraphicsPassLighting> lighting_pass = std::make_unique<glTFGraphicsPassLighting>();
+        lighting_pass->SetByPass(!m_render_flags.IsLit());
+        out_render_pass_manager.AddRenderPass(std::move(lighting_pass));    
+    }
     
     return true;
-}
+} 
 
 void glTFSceneView::TraverseSceneObjectWithinView(const std::function<bool(const glTFSceneNode& primitive)>& visitor)
 {

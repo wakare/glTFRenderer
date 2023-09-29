@@ -47,7 +47,6 @@ enum class IRHIDepthStencilMode
     DEPTH_WRITE,
 };
 
-
 class IRHIPipelineStateObject : public IRHIResource
 {
 public:
@@ -77,8 +76,8 @@ class IRHIGraphicsPipelineStateObject : public IRHIPipelineStateObject
 public:
     IRHIGraphicsPipelineStateObject();
     
-    virtual bool BindRenderTargets(const std::vector<IRHIRenderTarget*>& renderTargets) = 0;
-    virtual bool InitGraphicsPipelineStateObject(IRHIDevice& device, IRHIRootSignature& rootSignature, IRHISwapChain& swapchain) = 0;
+    virtual bool BindRenderTargets(const std::vector<IRHIRenderTarget*>& render_targets) = 0;
+    virtual bool InitGraphicsPipelineStateObject(IRHIDevice& device, IRHIRootSignature& root_signature, IRHISwapChain& swapchain) = 0;
 };
 
 class IRHIComputePipelineStateObject : public IRHIPipelineStateObject
@@ -87,4 +86,12 @@ public:
     IRHIComputePipelineStateObject();
 
     virtual bool InitComputePipelineStateObject(IRHIDevice& device, IRHIRootSignature& root_signature) = 0; 
+};
+
+class IRHIRayTracingPipelineStateObject : public IRHIPipelineStateObject
+{
+public:
+    IRHIRayTracingPipelineStateObject();
+
+    virtual bool InitRayTracingPipelineStateObject(IRHIDevice& device, IRHIRootSignature& root_signature) = 0;
 };

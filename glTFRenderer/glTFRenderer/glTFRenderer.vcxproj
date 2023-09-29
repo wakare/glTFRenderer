@@ -238,6 +238,7 @@
     <None Include="glTFResources\ShaderSource\LightPassCommon.hlsl" />
     <ClInclude Include="glTFRHI\RHIConfigSingleton.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\d3dx12.h" />
+    <ClInclude Include="glTFRHI\RHIDX12Impl\DX12Common.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12DescriptorHeap.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12CommandAllocator.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12CommandList.h" />

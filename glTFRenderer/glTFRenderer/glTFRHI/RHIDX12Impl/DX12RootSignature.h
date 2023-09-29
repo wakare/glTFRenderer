@@ -1,5 +1,5 @@
 #pragma once
-#include <d3d12.h>
+#include "DX12Common.h"
 
 #include "../RHIInterface/IRHIRootSignature.h"
 
@@ -44,6 +44,6 @@ public:
     ID3D12RootSignature* GetRootSignature() const;
     
 private:
-    ID3D12RootSignature* m_rootSignature;
+    ComPtr<ID3D12RootSignature> m_rootSignature;
     D3D12_ROOT_SIGNATURE_DESC m_description;
 };

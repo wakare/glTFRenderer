@@ -488,3 +488,14 @@ bool DX12Utils::CopyTexture(IRHICommandList& commandList, IRHIRenderTarget& dst,
     
     return true;
 }
+
+bool DX12Utils::SupportRayTracing(IRHIDevice& device)
+{
+    auto* dxAdapter = dynamic_cast<DX12Device&>(device).GetAdapter();
+    ComPtr<ID3D12Device5> testDevice;
+    D3D12_FEATURE_DATA_D3D12_OPTIONS5 featureSupportData = {};
+
+    return SUCCEEDED(D3D12CreateDevice(dxAdapter, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&testDevice)))
+        && SUCCEEDED(testDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &featureSupportData, sizeof(featureSupportData)))
+        && featureSupportData.RaytracingTier != D3D12_RAYTRACING_TIER_NOT_SUPPORTED;
+}

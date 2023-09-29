@@ -31,7 +31,7 @@ bool DX12Fence::InitFence(IRHIDevice& device)
 bool DX12Fence::SignalWhenCommandQueueFinish(IRHICommandQueue& commandQueue)
 {
     auto* dxCommandQueue = dynamic_cast<DX12CommandQueue&>(commandQueue).GetCommandQueue();
-    THROW_IF_FAILED(dxCommandQueue->Signal(m_fence, ++m_fenceCompleteValue))
+    THROW_IF_FAILED(dxCommandQueue->Signal(m_fence.Get(), ++m_fenceCompleteValue))
 
     return true;
 }

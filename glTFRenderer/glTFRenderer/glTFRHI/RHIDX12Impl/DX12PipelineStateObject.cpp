@@ -98,14 +98,6 @@ bool DX12GraphicsPipelineStateObject::InitGraphicsPipelineStateObject(IRHIDevice
         vertexShaderBytecode.BytecodeLength = bindVS.GetShaderByteCode().size();
         vertexShaderBytecode.pShaderBytecode = bindVS.GetShaderByteCode().data();    
     }
-
-    D3D12_SHADER_BYTECODE pixelShaderBytecode;
-    if (m_depth_stencil_state != IRHIDepthStencilMode::DEPTH_WRITE)
-    {
-        auto& bindPS = dynamic_cast<DX12Shader&>(GetBindShader(RHIShaderType::Pixel));
-        pixelShaderBytecode.BytecodeLength = bindPS.GetShaderByteCode().size();
-        pixelShaderBytecode.pShaderBytecode = bindPS.GetShaderByteCode().data();    
-    }
     
     m_graphics_pipeline_state_desc.InputLayout = inputLayoutDesc; // the structure describing our input layout
     m_graphics_pipeline_state_desc.pRootSignature = dxRootSignature; // the root signature that describes the input data this pso needs
@@ -114,6 +106,10 @@ bool DX12GraphicsPipelineStateObject::InitGraphicsPipelineStateObject(IRHIDevice
     // depth pass do not need pixel shader
     if (m_depth_stencil_state != IRHIDepthStencilMode::DEPTH_WRITE)
     {
+        D3D12_SHADER_BYTECODE pixelShaderBytecode;
+        const auto& bindPS = dynamic_cast<DX12Shader&>(GetBindShader(RHIShaderType::Pixel));
+        pixelShaderBytecode.BytecodeLength = bindPS.GetShaderByteCode().size();
+        pixelShaderBytecode.pShaderBytecode = bindPS.GetShaderByteCode().data();    
         m_graphics_pipeline_state_desc.PS = pixelShaderBytecode; // same as VS but for pixel shader    
     }
     
@@ -128,7 +124,6 @@ bool DX12GraphicsPipelineStateObject::InitGraphicsPipelineStateObject(IRHIDevice
     }
     
     m_graphics_pipeline_state_desc.DSVFormat = m_bind_depth_stencil_format;
-    
     m_graphics_pipeline_state_desc.SampleDesc = dxSwapchain.GetSwapChainSampleDesc(); // must be the same sample description as the swapchain and depth/stencil buffer
     m_graphics_pipeline_state_desc.SampleMask = 0xffffffff; // sample mask has to do with multi-sampling. 0xffffffff means point sampling is done
     m_graphics_pipeline_state_desc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT); // a default rasterizer state.

@@ -1,6 +1,9 @@
 #pragma once
+
+#include <dxgi.h>
+
 #include "../RHIInterface/IRHIDevice.h"
-#include <d3d12.h>
+#include "DX12Common.h"
 
 class DX12Device : public IRHIDevice
 {
@@ -10,9 +13,13 @@ public:
 
     virtual bool InitDevice(IRHIFactory& factory) override;
     
-    ID3D12Device* GetDevice() { return m_device;}
-    const ID3D12Device* GetDevice() const {return m_device;}
+    ID3D12Device* GetDevice() { return m_device.Get();}
+    const ID3D12Device* GetDevice() const {return m_device.Get();}
+
+    IDXGIAdapter1* GetAdapter() {return m_adapter.Get(); }
+    const IDXGIAdapter1* GetAdapter() const {return m_adapter.Get(); }
     
 private:
-    ID3D12Device* m_device;
+    ComPtr<ID3D12Device> m_device;
+    ComPtr<IDXGIAdapter1> m_adapter;
 };
