@@ -9,6 +9,7 @@ enum class RHIShaderType
     Vertex,
     Pixel,
     Compute,
+    RayTracing,
     Unknown,
 };
 
@@ -24,6 +25,13 @@ struct RHIShaderPreDefineMacros
     std::vector<std::string> macroValue;
 };
 
+struct RayTracingShaderEntryFunctionNames
+{
+    std::string closest_hit_shader_entry_name;
+    std::string miss_shader_entry_name;
+    std::string any_hit_shader_entry_name;
+};
+
 class IRHIShader : public IRHIResource
 {
 public:
@@ -32,13 +40,14 @@ public:
     const std::string& GetShaderContent() const;
     void SetShaderCompilePreDefineMacros(const RHIShaderPreDefineMacros& macros);
     
-    virtual bool InitShader(const std::string& shaderFilePath, RHIShaderType type, const std::string& entryFunctionName) = 0;
+    virtual bool InitShader(const std::string& shaderFilePath, RHIShaderType type, const std::string& entryFunctionName, RayTracingShaderEntryFunctionNames raytracing_entry_name = RayTracingShaderEntryFunctionNames()) = 0;
     virtual bool CompileShader() = 0;
     
 protected:
     bool LoadShader(const std::string& shaderFilePath);
     
     RHIShaderType m_type;
+    RayTracingShaderEntryFunctionNames m_raytracing_entry_names;
     std::string m_shaderEntryFunctionName;
     std::string m_shaderContent;
     std::string m_shaderFilePath;

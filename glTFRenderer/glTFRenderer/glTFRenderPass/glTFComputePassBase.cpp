@@ -7,11 +7,6 @@ bool glTFComputePassBase::InitPass(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFRenderPassBase::InitPass(resource_manager))
 
-    m_pipeline_state_object = RHIResourceFactory::CreateRHIResource<IRHIComputePipelineStateObject>();
-
-    RETURN_IF_FALSE(SetupPipelineStateObject(resource_manager))
-    RETURN_IF_FALSE (GetComputePipelineStateObject().InitComputePipelineStateObject(resource_manager.GetDevice(), *m_root_signature))
-
     return true;
 }
 
@@ -36,6 +31,11 @@ bool glTFComputePassBase::RenderPass(glTFRenderResourceManager& resource_manager
     RETURN_IF_FALSE(RHIUtils::Instance().Dispatch(command_list, DispatchCount.X, DispatchCount.Y, DispatchCount.Z))
     
     return true;
+}
+
+bool glTFComputePassBase::PostRenderPass(glTFRenderResourceManager& resource_manager)
+{
+    return glTFRenderPassBase::PostRenderPass(resource_manager);
 }
 
 IRHIComputePipelineStateObject& glTFComputePassBase::GetComputePipelineStateObject() const

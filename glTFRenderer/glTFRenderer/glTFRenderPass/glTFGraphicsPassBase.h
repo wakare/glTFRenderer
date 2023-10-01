@@ -9,6 +9,8 @@ public:
     glTFGraphicsPassBase();
 
     virtual bool InitPass(glTFRenderResourceManager& resource_manager) override;
+
+    virtual bool PreRenderPass(glTFRenderResourceManager& resource_manager) override;
     
 protected:
     IRHIGraphicsPipelineStateObject& GetGraphicsPipelineStateObject() const;

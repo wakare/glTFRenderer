@@ -121,6 +121,8 @@
     <ClCompile Include="glTFRenderPass\glTFComputePassBase.cpp" />
     <ClCompile Include="glTFRenderPass\glTFComputePassLighting.cpp" />
     <ClCompile Include="glTFRenderPass\glTFGraphicsPassBase.cpp" />
+    <ClCompile Include="glTFRenderPass\glTFRayTracingPassBase.cpp" />
+    <ClCompile Include="glTFRenderPass\glTFRayTracingPassHelloWorld.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceShaderResourceView.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSingleConstantBuffer.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceBase.cpp" />
@@ -144,6 +146,7 @@
     <None Include="glTFResources\ShaderSource\LightPassPS.hlsl" />
     <None Include="glTFResources\ShaderSource\LightPassVS.hlsl" />
     <None Include="glTFResources\ShaderSource\ComputeShader\LightingCS.hlsl" />
+    <None Include="glTFResources\ShaderSource\RayTracing\RaytracingHelloWorld.hlsl" />
     <ClCompile Include="glTFRHI\RHIConfigSingleton.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12DescriptorHeap.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12CommandAllocator.cpp" />
@@ -217,6 +220,8 @@
     <ClInclude Include="glTFRenderPass\glTFComputePassBase.h" />
     <ClInclude Include="glTFRenderPass\glTFComputePassLighting.h" />
     <ClInclude Include="glTFRenderPass\glTFGraphicsPassBase.h" />
+    <ClInclude Include="glTFRenderPass\glTFRayTracingPassBase.h" />
+    <ClInclude Include="glTFRenderPass\glTFRayTracingPassHelloWorld.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceShaderResourceView.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSingleConstantBuffer.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceBase.h" />

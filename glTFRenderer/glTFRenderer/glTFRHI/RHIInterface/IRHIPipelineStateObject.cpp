@@ -76,6 +76,11 @@ IRHIComputePipelineStateObject::IRHIComputePipelineStateObject()
 {
 }
 
+IRHIRayTracingPipelineStateObject::IRHIRayTracingPipelineStateObject()
+    : IRHIPipelineStateObject(RHIPipelineType::RayTracing)
+{
+}
+
 void IRHIPipelineStateObject::SetCullMode(IRHICullMode mode)
 {
     m_cullMode = mode;

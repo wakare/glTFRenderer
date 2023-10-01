@@ -129,7 +129,6 @@ void glTFRenderPassManager::RenderAllPass(size_t deltaTimeMs) const
     
     RHIUtils::Instance().AddRenderTargetBarrierToCommandList(m_resourceManager->GetCommandListForRecord(), m_resourceManager->GetCurrentFrameSwapchainRT(), RHIResourceStateType::RENDER_TARGET, RHIResourceStateType::PRESENT);
 
-
     // TODO: no waiting causing race with base color and normal?
     m_resourceManager->CloseCommandListAndExecute(true);
     

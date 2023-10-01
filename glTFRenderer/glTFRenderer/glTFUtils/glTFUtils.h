@@ -4,8 +4,17 @@
 #include <functional>
 #include <string>
 
+#include "glTFLog.h"
+
 typedef unsigned glTFUniqueID;
 #define glTFUniqueIDInvalid UINT_MAX   
+
+#ifdef NDEBUG
+#define GLTF_CHECK(a) if (!(a)) {throw "ASSERT!"; }
+#else
+#define GLTF_CHECK(a) assert(a)
+#endif
+
 
 class glTFUniqueObject
 {

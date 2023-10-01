@@ -8,13 +8,20 @@ bool glTFGraphicsPassBase::InitPass(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFRenderPassBase::InitPass(resource_manager))
 
-    m_pipeline_state_object = RHIResourceFactory::CreateRHIResource<IRHIGraphicsPipelineStateObject>();
-    // glTF using CCW as front face
-    m_pipeline_state_object->SetCullMode(IRHICullMode::CW);
+    return true;
+}
 
-    RETURN_IF_FALSE(SetupPipelineStateObject(resource_manager))
-    RETURN_IF_FALSE (GetGraphicsPipelineStateObject().InitGraphicsPipelineStateObject(resource_manager.GetDevice(), *m_root_signature, resource_manager.GetSwapchain()))
-    
+bool glTFGraphicsPassBase::PreRenderPass(glTFRenderResourceManager& resource_manager)
+{
+    RETURN_IF_FALSE(glTFRenderPassBase::PreRenderPass(resource_manager))
+
+    auto& command_list = resource_manager.GetCommandListForRecord();
+    const RHIViewportDesc viewport = {0, 0, (float)resource_manager.GetSwapchain().GetWidth(), (float)resource_manager.GetSwapchain().GetHeight(), 0.0f, 1.0f };
+    RHIUtils::Instance().SetViewport(command_list, viewport);
+
+    const RHIScissorRectDesc scissorRect = {0, 0, resource_manager.GetSwapchain().GetWidth(), resource_manager.GetSwapchain().GetHeight() }; 
+    RHIUtils::Instance().SetScissorRect(command_list, scissorRect);
+
     return true;
 }
 
@@ -29,6 +36,11 @@ bool glTFGraphicsPassBase::SetupPipelineStateObject(glTFRenderResourceManager& r
 
     // Set shader macro based vertex attributes
     RETURN_IF_FALSE(GetGraphicsPipelineStateObject().BindInputLayoutAndSetShaderMacros(GetVertexInputLayout()))
+    
+    RETURN_IF_FALSE(GetGraphicsPipelineStateObject().BindSwapChain(resource_manager.GetSwapchain()))
 
+    // glTF using CCW as front face
+    GetGraphicsPipelineStateObject().SetCullMode(IRHICullMode::CW);
+    
     return true;
 }

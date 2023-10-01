@@ -43,12 +43,12 @@ public:
 
     virtual bool DrawIndexInstanced(IRHICommandList& commandList, unsigned indexCountPerInstance, unsigned instanceCount, unsigned startIndexLocation, unsigned baseVertexLocation, unsigned startInstanceLocation) = 0;
     virtual bool Dispatch(IRHICommandList& commandList, unsigned X, unsigned Y, unsigned Z) = 0;
+    virtual bool TraceRay(IRHICommandList& command_list, unsigned X, unsigned Y, unsigned Z) = 0;
     
     virtual bool Present(IRHISwapChain& swapchain) = 0;
 
     virtual bool DiscardResource(IRHICommandList& commandList, IRHIRenderTarget& render_target) = 0;
     virtual bool CopyTexture(IRHICommandList& commandList, IRHIRenderTarget& dst, IRHIRenderTarget& src) = 0;
-
 
     virtual bool SupportRayTracing(IRHIDevice& device) = 0;
     static RHIUtils& Instance();

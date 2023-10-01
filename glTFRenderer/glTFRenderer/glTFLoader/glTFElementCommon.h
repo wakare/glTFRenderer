@@ -5,12 +5,7 @@
 #include <vector>
 
 #include "glm.hpp"
-
-#ifdef NDEBUG
-#define GLTF_CHECK(a) if (!(a)) {throw "ASSERT!"; }
-#else
-#define GLTF_CHECK(a) assert(a)
-#endif
+#include "glTFUtils/glTFUtils.h"
 
 enum glTF_Element_Type
 {

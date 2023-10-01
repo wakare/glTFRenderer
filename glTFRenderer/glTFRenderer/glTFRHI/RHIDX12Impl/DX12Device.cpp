@@ -68,6 +68,9 @@ bool DX12Device::InitDevice(IRHIFactory& factory)
     {
         return false;
     }
+
+    // Query DXR device
+    THROW_IF_FAILED(m_device->QueryInterface(IID_PPV_ARGS(&m_dxr_device)))
     
     return true;
 }

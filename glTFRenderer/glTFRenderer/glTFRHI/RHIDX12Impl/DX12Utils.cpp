@@ -205,11 +205,28 @@ int DX12Utils::GetDXGIFormatBitsPerPixel(DXGI_FORMAT& dxgiFormat)
 bool DX12Utils::ResetCommandList(IRHICommandList& commandList, IRHICommandAllocator& commandAllocator,
                                  IRHIPipelineStateObject* initPSO)
 {
-    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
-    auto* dxCommandAllocator = dynamic_cast<DX12CommandAllocator&>(commandAllocator).GetCommandAllocator();
-    auto* dxPSO = initPSO ? dynamic_cast<IDX12PipelineStateObjectCommon&>(*initPSO).GetPipelineStateObject() : nullptr;
+    auto* dx_command_list = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    auto* dx_command_allocator = dynamic_cast<DX12CommandAllocator&>(commandAllocator).GetCommandAllocator();
+    if (initPSO)
+    {
+        const auto& dxPSO = dynamic_cast<IDX12PipelineStateObjectCommon&>(*initPSO);
+        
+        if (initPSO->GetPSOType() == RHIPipelineType::RayTracing)
+        {
+            auto* dxr_command_list = dynamic_cast<DX12CommandList&>(commandList).GetDXRCommandList();
+            dxr_command_list->Reset(dx_command_allocator, nullptr);
+            dxr_command_list->SetPipelineState1(dxPSO.GetDXRPipelineStateObject());
+        }
+        else
+        {
+            dx_command_list->Reset(dx_command_allocator, dxPSO.GetPipelineStateObject());    
+        }
+    }
+    else
+    {
+        dx_command_list->Reset(dx_command_allocator, nullptr);    
+    }
     
-    dxCommandList->Reset(dxCommandAllocator, dxPSO);
     return true;
 }
 
@@ -446,10 +463,23 @@ bool DX12Utils::DrawIndexInstanced(IRHICommandList& commandList, unsigned indexC
     return true;
 }
 
-bool DX12Utils::Dispatch(IRHICommandList& commandList, unsigned X, unsigned Y, unsigned Z)
+bool DX12Utils::Dispatch(IRHICommandList& command_list, unsigned X, unsigned Y, unsigned Z)
 {
-    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
     dxCommandList->Dispatch(X, Y, Z);
+
+    return true;
+}
+
+bool DX12Utils::TraceRay(IRHICommandList& command_list, unsigned X, unsigned Y, unsigned Z)
+{
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetDXRCommandList();
+    
+    D3D12_DISPATCH_RAYS_DESC dispatch_rays_desc;
+    dispatch_rays_desc.Width = X;
+    dispatch_rays_desc.Height = Y;
+    dispatch_rays_desc.Depth = Z;
+    dxCommandList->DispatchRays(&dispatch_rays_desc);
 
     return true;
 }

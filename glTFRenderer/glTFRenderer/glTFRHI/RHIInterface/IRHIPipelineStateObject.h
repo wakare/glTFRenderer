@@ -12,6 +12,7 @@ enum class RHIPipelineType
 {
     Graphics,
     Compute,
+    RayTracing,
     //Copy,
     Unknown,
 };
@@ -51,6 +52,8 @@ class IRHIPipelineStateObject : public IRHIResource
 {
 public:
     IRHIPipelineStateObject(RHIPipelineType type);
+
+    virtual bool InitPipelineStateObject(IRHIDevice& device, IRHIRootSignature& root_signature) = 0;
     
     bool BindShaderCode(const std::string& shaderFilePath, RHIShaderType type, const std::string& entryFunctionName);
     IRHIShader& GetBindShader(RHIShaderType type);
@@ -58,7 +61,8 @@ public:
     bool BindInputLayoutAndSetShaderMacros(const std::vector<RHIPipelineInputLayout>& input_layouts);
     void SetCullMode(IRHICullMode mode);
     void SetDepthStencilState(IRHIDepthStencilMode state);
-    
+
+    RHIPipelineType GetPSOType() const {return m_type; }
     IRHICullMode GetCullMode() const;
     RHIShaderPreDefineMacros& GetShaderMacros();
     
@@ -75,23 +79,20 @@ class IRHIGraphicsPipelineStateObject : public IRHIPipelineStateObject
 {
 public:
     IRHIGraphicsPipelineStateObject();
-    
+
+    virtual bool BindSwapChain(const IRHISwapChain& swapchain) = 0;
     virtual bool BindRenderTargets(const std::vector<IRHIRenderTarget*>& render_targets) = 0;
-    virtual bool InitGraphicsPipelineStateObject(IRHIDevice& device, IRHIRootSignature& root_signature, IRHISwapChain& swapchain) = 0;
+    
 };
 
 class IRHIComputePipelineStateObject : public IRHIPipelineStateObject
 {
 public:
     IRHIComputePipelineStateObject();
-
-    virtual bool InitComputePipelineStateObject(IRHIDevice& device, IRHIRootSignature& root_signature) = 0; 
 };
 
 class IRHIRayTracingPipelineStateObject : public IRHIPipelineStateObject
 {
 public:
     IRHIRayTracingPipelineStateObject();
-
-    virtual bool InitRayTracingPipelineStateObject(IRHIDevice& device, IRHIRootSignature& root_signature) = 0;
 };

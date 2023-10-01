@@ -12,6 +12,7 @@ enum class PipelineType
 {
     Graphics,
     Compute,
+    RayTracing,
 };
 
 class glTFRenderPassBase 

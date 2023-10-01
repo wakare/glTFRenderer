@@ -37,6 +37,12 @@ DX12GraphicsPipelineStateObject::~DX12GraphicsPipelineStateObject()
     SAFE_RELEASE(m_pipeline_state_object)
 }
 
+bool DX12GraphicsPipelineStateObject::BindSwapChain(const IRHISwapChain& swapchain)
+{
+    m_swapchain_sample_desc = dynamic_cast<const DX12SwapChain&>(swapchain).GetSwapChainSampleDesc();
+    return true;
+}
+
 bool DX12GraphicsPipelineStateObject::BindRenderTargets(const std::vector<IRHIRenderTarget*>& render_targets)
 {
     m_bind_render_target_formats.clear();
@@ -62,11 +68,10 @@ bool DX12GraphicsPipelineStateObject::BindRenderTargets(const std::vector<IRHIRe
     return true;
 }
 
-bool DX12GraphicsPipelineStateObject::InitGraphicsPipelineStateObject(IRHIDevice& device, IRHIRootSignature& root_signature, IRHISwapChain& swapchain)
+bool DX12GraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device, IRHIRootSignature& root_signature)
 {
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
     auto* dxRootSignature = dynamic_cast<DX12RootSignature&>(root_signature).GetRootSignature();
-    auto& dxSwapchain = dynamic_cast<DX12SwapChain&>(swapchain);
     
     // create input layout
 
@@ -124,7 +129,7 @@ bool DX12GraphicsPipelineStateObject::InitGraphicsPipelineStateObject(IRHIDevice
     }
     
     m_graphics_pipeline_state_desc.DSVFormat = m_bind_depth_stencil_format;
-    m_graphics_pipeline_state_desc.SampleDesc = dxSwapchain.GetSwapChainSampleDesc(); // must be the same sample description as the swapchain and depth/stencil buffer
+    m_graphics_pipeline_state_desc.SampleDesc = m_swapchain_sample_desc; // must be the same sample description as the swapchain and depth/stencil buffer
     m_graphics_pipeline_state_desc.SampleMask = 0xffffffff; // sample mask has to do with multi-sampling. 0xffffffff means point sampling is done
     m_graphics_pipeline_state_desc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT); // a default rasterizer state.
     switch (m_cullMode) {
@@ -177,7 +182,7 @@ DX12ComputePipelineStateObject::DX12ComputePipelineStateObject()
 {
 }
 
-bool DX12ComputePipelineStateObject::InitComputePipelineStateObject(IRHIDevice& device,
+bool DX12ComputePipelineStateObject::InitPipelineStateObject(IRHIDevice& device,
     IRHIRootSignature& root_signature)
 {
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
@@ -199,6 +204,72 @@ bool DX12ComputePipelineStateObject::InitComputePipelineStateObject(IRHIDevice& 
     m_compute_pipeline_state_desc.CachedPSO.CachedBlobSizeInBytes = 0;
 
     THROW_IF_FAILED(dxDevice->CreateComputePipelineState(&m_compute_pipeline_state_desc, IID_PPV_ARGS(&m_pipeline_state_object)))
+    
+    return true;
+}
+
+DX12DXRStateObject::DX12DXRStateObject()
+= default;
+
+bool DX12DXRStateObject::InitPipelineStateObject(IRHIDevice& device, IRHIRootSignature& root_signature)
+{
+    auto* dxrDevice = dynamic_cast<DX12Device&>(device).GetDXRDevice();
+    auto* dxRootSignature = dynamic_cast<DX12RootSignature&>(root_signature).GetRootSignature();
+
+    m_dxr_state_desc.SetStateObjectType(D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE);
+
+    // TODO: Config shader compile with raytracing
+    RETURN_IF_FALSE(CompileBindShaders(m_shaders, m_shader_macros))
+    D3D12_SHADER_BYTECODE raytracing_shader_bytecode;
+    {
+        const auto& bindRTShader = dynamic_cast<DX12Shader&>(GetBindShader(RHIShaderType::RayTracing));
+        raytracing_shader_bytecode.BytecodeLength = bindRTShader.GetShaderByteCode().size();
+        raytracing_shader_bytecode.pShaderBytecode = bindRTShader.GetShaderByteCode().data();    
+    }
+    
+    // Setup DXIL bytecode
+    auto lib = m_dxr_state_desc.CreateSubobject<CD3DX12_DXIL_LIBRARY_SUBOBJECT>();
+    D3D12_SHADER_BYTECODE libdxil = CD3DX12_SHADER_BYTECODE(raytracing_shader_bytecode.pShaderBytecode, raytracing_shader_bytecode.BytecodeLength);
+    lib->SetDXILLibrary(&libdxil);
+    lib->DefineExport(L"MyRaygenShader");
+    lib->DefineExport(L"MyClosestHitShader");
+    lib->DefineExport(L"MyMissShader");
+
+    // Triangle hit group
+    // A hit group specifies closest hit, any hit and intersection shaders to be executed when a ray intersects the geometry's triangle/AABB.
+    // In this sample, we only use triangle geometry with a closest hit shader, so others are not set.
+    auto hitGroup = m_dxr_state_desc.CreateSubobject<CD3DX12_HIT_GROUP_SUBOBJECT>();
+    hitGroup->SetClosestHitShaderImport(L"MyClosestHitShader");
+    hitGroup->SetHitGroupExport(L"MyHitGroup");
+    hitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_TRIANGLES);
+    
+    // Shader config
+    // Defines the maximum sizes in bytes for the ray payload and attribute structure.
+    auto shaderConfig = m_dxr_state_desc.CreateSubobject<CD3DX12_RAYTRACING_SHADER_CONFIG_SUBOBJECT>();
+    UINT payloadSize = 4 * sizeof(float);   // float4 color
+    UINT attributeSize = 2 * sizeof(float); // float2 barycentrics
+    shaderConfig->Config(payloadSize, attributeSize);
+
+    // Local root signature to be used in a ray gen shader.
+    {
+        auto localRootSignature = m_dxr_state_desc.CreateSubobject<CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT>();
+        localRootSignature->SetRootSignature(dxRootSignature);
+        // Shader association
+        auto rootSignatureAssociation = m_dxr_state_desc.CreateSubobject<CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
+        rootSignatureAssociation->SetSubobjectToAssociate(*localRootSignature);
+        rootSignatureAssociation->AddExport(L"MyRaygenShader");
+    }
+
+    // Pipeline config
+    // Defines the maximum TraceRay() recursion depth.
+    auto pipelineConfig = m_dxr_state_desc.CreateSubobject<CD3DX12_RAYTRACING_PIPELINE_CONFIG_SUBOBJECT>();
+    // PERFOMANCE TIP: Set max recursion depth as low as needed 
+    // as drivers may apply optimization strategies for low recursion depths. 
+    UINT maxRecursionDepth = 1; // ~ primary rays only. 
+    pipelineConfig->Config(maxRecursionDepth);
+
+    // Create the state object.
+    THROW_IF_FAILED(dxrDevice->CreateStateObject(m_dxr_state_desc, IID_PPV_ARGS(&m_pipeline_state_object)));
     
     return true;
 }

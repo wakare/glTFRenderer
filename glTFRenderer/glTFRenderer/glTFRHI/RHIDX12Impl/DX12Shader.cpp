@@ -2,7 +2,7 @@
 
 #include <cassert>
 #include <d3dcompiler.h>
-#include "../../glTFUtils/glTFLog.h"
+#include "glTFUtils/glTFUtils.h"
 
 DX12Shader::DX12Shader()
     : IRHIShader()
@@ -15,11 +15,16 @@ DX12Shader::~DX12Shader()
 
 bool DX12Shader::CompileShaderByteCode()
 {
-    if (m_shaderContent.empty() || m_type == RHIShaderType::Unknown || m_shaderEntryFunctionName.empty())
+    if (m_shaderContent.empty() )
     {
         // Not init shader content!
         assert(false);
         return false;
+    }
+
+    if (m_type != RHIShaderType::RayTracing && m_shaderEntryFunctionName.empty())
+    {
+        GLTF_CHECK(false);
     }
     
     assert(m_macros.macroKey.size() == m_macros.macroValue.size());
@@ -32,7 +37,7 @@ bool DX12Shader::CompileShaderByteCode()
             const std::string& value = m_macros.macroValue[i];
             
             dxShaderMacros.push_back({key.c_str(), value.c_str()});
-            LOG_FORMAT_FLUSH("[DEBUG] Compile with macro %s = %s\n", key.c_str(), value.c_str());
+            LOG_FORMAT_FLUSH("[DEBUG] Compile with macro %s = %s\n", key.c_str(), value.c_str())
         }
         dxShaderMacros.push_back({nullptr, nullptr});
     }
@@ -70,11 +75,13 @@ const std::vector<unsigned char>& DX12Shader::GetShaderByteCode() const
     return m_shaderByteCode;
 }
 
-bool DX12Shader::InitShader(const std::string& shaderFilePath, RHIShaderType type, const std::string& entryFunctionName)
+bool DX12Shader::InitShader(const std::string& shaderFilePath, RHIShaderType type, const std::string& entryFunctionName,
+    RayTracingShaderEntryFunctionNames raytracing_entry_names)
 {
     assert(m_type == RHIShaderType::Unknown);
     m_type = type;
     m_shaderEntryFunctionName = entryFunctionName;
+    m_raytracing_entry_names = raytracing_entry_names;
     
     if (!LoadShader(shaderFilePath))
     {
@@ -96,6 +103,9 @@ const char* DX12Shader::GetShaderCompilerTarget() const
         case RHIShaderType::Vertex: return "vs_5_0";
         case RHIShaderType::Pixel: return "ps_5_0";
         case RHIShaderType::Compute: return "cs_5_0";
+
+        // raytracing shader will be compile into lib
+        case RHIShaderType::RayTracing: return "lib_6_3";
     }
 
     assert(false);

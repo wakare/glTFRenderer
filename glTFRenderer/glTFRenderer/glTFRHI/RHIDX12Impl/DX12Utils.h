@@ -57,7 +57,9 @@ public:
     virtual bool AddRenderTargetBarrierToCommandList(IRHICommandList& commandList, IRHIRenderTarget& buffer, RHIResourceStateType before_state, RHIResourceStateType after_state) override;
 
     virtual bool DrawIndexInstanced(IRHICommandList& commandList, unsigned indexCountPerInstance, unsigned instanceCount, unsigned startIndexLocation, unsigned baseVertexLocation, unsigned startInstanceLocation) override;
-    virtual bool Dispatch(IRHICommandList& commandList, unsigned X, unsigned Y, unsigned Z) override;
+    virtual bool Dispatch(IRHICommandList& command_list, unsigned X, unsigned Y, unsigned Z) override;
+    virtual bool TraceRay(IRHICommandList& command_list, unsigned X, unsigned Y, unsigned Z) override;
+    
     virtual bool Present(IRHISwapChain& swapchain) override;
 
     virtual bool DiscardResource(IRHICommandList& commandList, IRHIRenderTarget& render_target) override;
