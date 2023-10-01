@@ -10,15 +10,18 @@ public:
     DX12Shader();
     virtual ~DX12Shader() override;
     
-    bool CompileShaderByteCode();
+    
     const std::vector<unsigned char>& GetShaderByteCode() const;  
     
-    virtual bool InitShader(const std::string& shaderFilePath, RHIShaderType type, const std::string& entryFunctionName,
+    virtual bool InitShader(const std::string& shader_file_path, RHIShaderType type, const std::string& entry_function_name,
         RayTracingShaderEntryFunctionNames raytracing_entry_names) override;
     virtual bool CompileShader() override;
     
 private:
+    bool CompileShaderWithFXC();
+    bool CompileShaderWithDXC();
+    
     const char* GetShaderCompilerTarget() const;
     
-    std::vector<unsigned char> m_shaderByteCode;
+    std::vector<unsigned char> m_shader_byte_code;
 };

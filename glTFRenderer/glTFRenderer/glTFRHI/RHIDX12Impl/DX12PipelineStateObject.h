@@ -4,6 +4,7 @@
 
 #include "DX12Shader.h"
 #include "../RHIInterface/IRHIPipelineStateObject.h"
+#include "glTFUtils/glTFUtils.h"
 
 class IDX12PipelineStateObjectCommon
 {
@@ -55,9 +56,22 @@ class DX12DXRStateObject : public IRHIRayTracingPipelineStateObject, public IDX1
 {
 public:
     DX12DXRStateObject();
-
     virtual bool InitPipelineStateObject(IRHIDevice& device, IRHIRootSignature& root_signature) override;
+    
+    ID3D12StateObjectProperties* GetDXRStateObjectProperties()
+    {
+        if (!m_dxr_pipeline_state_properties.Get())
+        {
+            GLTF_CHECK(m_dxr_pipeline_state.Get());
 
+            THROW_IF_FAILED(m_dxr_pipeline_state.As<ID3D12StateObjectProperties>(&m_dxr_pipeline_state_properties))
+            GLTF_CHECK(m_dxr_pipeline_state_properties.Get());
+        }
+
+        return m_dxr_pipeline_state_properties.Get();
+    }
+    
 protected:
+    ComPtr<ID3D12StateObjectProperties> m_dxr_pipeline_state_properties;
     CD3DX12_STATE_OBJECT_DESC m_dxr_state_desc;
 };

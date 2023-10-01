@@ -11,6 +11,7 @@
 #include "DX12PipelineStateObject.h"
 #include "DX12RenderTarget.h"
 #include "DX12RootSignature.h"
+#include "DX12ShaderTable.h"
 #include "DX12SwapChain.h"
 #include "DX12VertexBufferView.h"
 #include "../RHIInterface/IRHIGPUBuffer.h"
@@ -471,14 +472,27 @@ bool DX12Utils::Dispatch(IRHICommandList& command_list, unsigned X, unsigned Y, 
     return true;
 }
 
-bool DX12Utils::TraceRay(IRHICommandList& command_list, unsigned X, unsigned Y, unsigned Z)
+bool DX12Utils::TraceRay(IRHICommandList& command_list, IRHIShaderTable& shader_table, unsigned X, unsigned Y, unsigned Z)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetDXRCommandList();
+    const auto& dxShaderTable = dynamic_cast<DX12ShaderTable&>(shader_table);
     
-    D3D12_DISPATCH_RAYS_DESC dispatch_rays_desc;
+    D3D12_DISPATCH_RAYS_DESC dispatch_rays_desc = {};
     dispatch_rays_desc.Width = X;
     dispatch_rays_desc.Height = Y;
     dispatch_rays_desc.Depth = Z;
+    
+    dispatch_rays_desc.HitGroupTable.StartAddress = dxShaderTable.GetHitGroupShaderTable()->GetGPUVirtualAddress();
+    dispatch_rays_desc.HitGroupTable.SizeInBytes = dxShaderTable.GetHitGroupShaderTable()->GetDesc().Width;
+    dispatch_rays_desc.HitGroupTable.StrideInBytes = dispatch_rays_desc.HitGroupTable.SizeInBytes;
+
+    dispatch_rays_desc.MissShaderTable.StartAddress = dxShaderTable.GetMissShaderTable()->GetGPUVirtualAddress();
+    dispatch_rays_desc.MissShaderTable.SizeInBytes = dxShaderTable.GetMissShaderTable()->GetDesc().Width;
+    dispatch_rays_desc.MissShaderTable.StrideInBytes = dispatch_rays_desc.MissShaderTable.SizeInBytes;
+
+    dispatch_rays_desc.RayGenerationShaderRecord.StartAddress = dxShaderTable.GetRayGenShaderTable()->GetGPUVirtualAddress();
+    dispatch_rays_desc.RayGenerationShaderRecord.SizeInBytes = dxShaderTable.GetRayGenShaderTable()->GetDesc().Width;
+
     dxCommandList->DispatchRays(&dispatch_rays_desc);
 
     return true;

@@ -269,7 +269,7 @@ bool DX12DXRStateObject::InitPipelineStateObject(IRHIDevice& device, IRHIRootSig
     pipelineConfig->Config(maxRecursionDepth);
 
     // Create the state object.
-    THROW_IF_FAILED(dxrDevice->CreateStateObject(m_dxr_state_desc, IID_PPV_ARGS(&m_pipeline_state_object)));
+    THROW_IF_FAILED(dxrDevice->CreateStateObject(m_dxr_state_desc, IID_PPV_ARGS(&m_dxr_pipeline_state)))
     
     return true;
 }

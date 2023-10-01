@@ -27,6 +27,7 @@ struct RHIShaderPreDefineMacros
 
 struct RayTracingShaderEntryFunctionNames
 {
+    std::string raygen_shader_entry_name;
     std::string closest_hit_shader_entry_name;
     std::string miss_shader_entry_name;
     std::string any_hit_shader_entry_name;
@@ -47,9 +48,11 @@ protected:
     bool LoadShader(const std::string& shaderFilePath);
     
     RHIShaderType m_type;
+    std::string m_shader_file_path;
+    
     RayTracingShaderEntryFunctionNames m_raytracing_entry_names;
-    std::string m_shaderEntryFunctionName;
-    std::string m_shaderContent;
+    std::string m_shader_entry_function_name;
+    std::string m_shader_content;
     std::string m_shaderFilePath;
 
     RHIShaderPreDefineMacros m_macros;

@@ -20,6 +20,7 @@
 #include "RHIDX12Impl/DX12Utils.h"
 #include "RHIDX12Impl/DX12VertexBufferView.h"
 #include "RHIDX12Impl/DX12DescriptorHeap.h"
+#include "RHIDX12Impl/DX12ShaderTable.h"
 #include "RHIDX12Impl/DX12Texture.h"
 #include "RHIInterface/IRHICommandAllocator.h"
 #include "RHIInterface/IRHICommandQueue.h"
@@ -64,6 +65,7 @@ IMPLEMENT_CREATE_RHI_RESOURCE(IRHIRootSignature, DX12RootSignature)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIGraphicsPipelineStateObject, DX12GraphicsPipelineStateObject)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIComputePipelineStateObject, DX12ComputePipelineStateObject)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIRayTracingPipelineStateObject, DX12DXRStateObject)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHIShaderTable, DX12ShaderTable)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIFence, DX12Fence)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIGPUBuffer, DX12GPUBuffer)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIGPUBufferManager, DX12GPUBufferManager)

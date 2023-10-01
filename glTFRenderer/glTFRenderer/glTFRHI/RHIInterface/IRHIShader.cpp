@@ -14,7 +14,7 @@ RHIShaderType IRHIShader::GetType() const
 
 const std::string& IRHIShader::GetShaderContent() const
 {
-    return m_shaderContent;
+    return m_shader_content;
 }
 
 void IRHIShader::SetShaderCompilePreDefineMacros(const RHIShaderPreDefineMacros& macros)
@@ -25,5 +25,5 @@ void IRHIShader::SetShaderCompilePreDefineMacros(const RHIShaderPreDefineMacros&
 bool IRHIShader::LoadShader(const std::string& shaderFilePath)
 {
     m_shaderFilePath = shaderFilePath;
-    return glTFShaderUtils::LoadShaderFile(shaderFilePath.c_str(), m_shaderContent);
+    return glTFShaderUtils::LoadShaderFile(shaderFilePath.c_str(), m_shader_content);
 }

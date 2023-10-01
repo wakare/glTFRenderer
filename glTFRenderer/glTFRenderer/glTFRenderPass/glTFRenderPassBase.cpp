@@ -12,6 +12,23 @@ bool glTFRenderPassBase::InitPass(glTFRenderResourceManager& resource_manager)
 
     m_root_signature = RHIResourceFactory::CreateRHIResource<IRHIRootSignature>();
     
+    switch (GetPipelineType())
+    {
+    case PipelineType::Graphics:
+        m_pipeline_state_object = RHIResourceFactory::CreateRHIResource<IRHIGraphicsPipelineStateObject>();
+        m_root_signature->SetUsage(RHIRootSignatureUsage::Default);
+        break;
+    case PipelineType::Compute:
+        m_pipeline_state_object = RHIResourceFactory::CreateRHIResource<IRHIComputePipelineStateObject>();
+        m_root_signature->SetUsage(RHIRootSignatureUsage::Default);
+        break;
+    case PipelineType::RayTracing:
+        m_pipeline_state_object = RHIResourceFactory::CreateRHIResource<IRHIRayTracingPipelineStateObject>();
+        m_root_signature->SetUsage(RHIRootSignatureUsage::RayTracing);
+        break;
+    default: GLTF_CHECK(false);
+    }
+
     // Init root signature
     const size_t root_signature_parameter_count = GetRootSignatureParameterCount();
     const size_t root_signature_static_sampler_count = GetRootSignatureSamplerCount();
@@ -19,20 +36,6 @@ bool glTFRenderPassBase::InitPass(glTFRenderResourceManager& resource_manager)
     
     RETURN_IF_FALSE(SetupRootSignature(resource_manager))
     RETURN_IF_FALSE(m_root_signature->InitRootSignature(resource_manager.GetDevice()))
-
-    switch (GetPipelineType())
-    {
-    case PipelineType::Graphics:
-        m_pipeline_state_object = RHIResourceFactory::CreateRHIResource<IRHIGraphicsPipelineStateObject>();    
-        break;
-    case PipelineType::Compute:
-        m_pipeline_state_object = RHIResourceFactory::CreateRHIResource<IRHIComputePipelineStateObject>();
-        break;
-    case PipelineType::RayTracing:
-        m_pipeline_state_object = RHIResourceFactory::CreateRHIResource<IRHIRayTracingPipelineStateObject>();
-        break;
-    default: GLTF_CHECK(false);
-    }
     
     RETURN_IF_FALSE(SetupPipelineStateObject(resource_manager))
     RETURN_IF_FALSE(m_pipeline_state_object->InitPipelineStateObject(resource_manager.GetDevice(), *m_root_signature))

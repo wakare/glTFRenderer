@@ -69,7 +69,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)ThirdParty/libs/$(ConfigurationName)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);glfw3.lib;D3d12.lib;dxgi.lib;D3DCompiler.lib;</AdditionalDependencies>
+      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);glfw3.lib;D3d12.lib;dxgi.lib;D3DCompiler.lib;dxcompiler.lib;</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy $(SolutionDir)glTFRenderer\glTFResources\ $(OutDir)glTFResources\ /s /y</Command>
@@ -96,7 +96,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)ThirdParty/libs/$(ConfigurationName)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);;glfw3.lib;D3d12.lib;dxgi.lib;D3DCompiler.lib;</AdditionalDependencies>
+      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);;glfw3.lib;D3d12.lib;dxgi.lib;D3DCompiler.lib;dxcompiler.lib;</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>
       </IgnoreSpecificDefaultLibraries>
     </Link>
@@ -163,6 +163,7 @@
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12RenderTargetManager.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12RootSignature.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12Shader.cpp" />
+    <ClCompile Include="glTFRHI\RHIDX12Impl\DX12ShaderTable.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12SwapChain.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12Texture.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12Utils.cpp" />
@@ -183,6 +184,7 @@
     <ClCompile Include="glTFRHI\RHIInterface\IRHIResource.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIRootSignature.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIShader.cpp" />
+    <ClCompile Include="glTFRHI\RHIInterface\IRHIShaderTable.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHISwapChain.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHITexture.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIVertexBufferView.cpp" />
@@ -259,6 +261,7 @@
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12RenderTargetManager.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12RootSignature.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12Shader.h" />
+    <ClInclude Include="glTFRHI\RHIDX12Impl\DX12ShaderTable.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12SwapChain.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12Texture.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12Utils.h" />
@@ -279,6 +282,7 @@
     <ClInclude Include="glTFRHI\RHIInterface\IRHIResource.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHIRootSignature.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHIShader.h" />
+    <ClInclude Include="glTFRHI\RHIInterface\IRHIShaderTable.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHISwapChain.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHITexture.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHIVertexBufferView.h" />

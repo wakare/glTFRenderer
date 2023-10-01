@@ -44,6 +44,8 @@ void glTFRenderPassManager::InitAllPass()
         assert(inited);
         LOG_FORMAT("[DEBUG] Init pass %s finished!\n", pass->PassName())
     }
+
+    m_resourceManager->CloseCommandListAndExecute(true);
     
     LOG_FORMAT_FLUSH("[DEBUG] Init all pass finished!\n")
 }

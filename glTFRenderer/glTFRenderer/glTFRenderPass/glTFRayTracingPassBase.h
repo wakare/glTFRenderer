@@ -1,6 +1,7 @@
 #pragma once
 
 #include "glTFRenderPassBase.h"
+#include "glTFRHI/RHIInterface/IRHIShaderTable.h"
 
 struct TraceCount
 {
@@ -21,7 +22,8 @@ public:
     virtual bool PostRenderPass(glTFRenderResourceManager& resource_manager) override;
     
     virtual TraceCount GetTraceCount() const = 0;
-
+    virtual IRHIShaderTable& GetShaderTable() const = 0;
+    
 protected:
     IRHIRayTracingPipelineStateObject& GetRayTracingPipelineStateObject() const;
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;

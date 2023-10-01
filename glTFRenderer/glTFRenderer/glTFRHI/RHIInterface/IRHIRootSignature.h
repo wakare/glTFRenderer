@@ -84,11 +84,20 @@ protected:
     RHIStaticSamplerFilterMode m_filterMode;
 };
 
+enum class RHIRootSignatureUsage
+{
+    None,
+    Default,
+    RayTracing,
+};
+
 class IRHIRootSignature : public IRHIResource
 {
 public:
+    IRHIRootSignature();
+    
     bool AllocateRootSignatureSpace(size_t rootParameterCount, size_t staticSamplerCount);
-
+    void SetUsage (RHIRootSignatureUsage usage) {m_usage = usage; }
     bool IsSpaceAllocated() const {return !m_rootParameters.empty() || !m_staticSampler.empty(); }
     
     virtual bool InitRootSignature(IRHIDevice& device) = 0;
@@ -102,4 +111,6 @@ public:
 protected:
     std::vector<std::shared_ptr<IRHIRootParameter>> m_rootParameters;
     std::vector<std::shared_ptr<IRHIStaticSampler>> m_staticSampler;
+
+    RHIRootSignatureUsage m_usage;
 };

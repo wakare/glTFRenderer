@@ -231,7 +231,14 @@ bool DX12RootSignature::InitRootSignature(IRHIDevice& device)
     m_description.NumStaticSamplers = m_staticSampler.size();
     
     // TODO: This flag should be passed by application
-    m_description.Flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+    if (m_usage == RHIRootSignatureUsage::Default)
+    {
+        m_description.Flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;    
+    }
+    else if (m_usage == RHIRootSignatureUsage::RayTracing)
+    {
+        m_description.Flags |= D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE;    
+    }
     
     ID3DBlob* signature = nullptr;
     ID3DBlob* error = nullptr;

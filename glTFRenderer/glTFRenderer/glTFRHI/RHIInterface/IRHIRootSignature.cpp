@@ -2,6 +2,11 @@
 
 #include "../RHIResourceFactoryImpl.hpp"
 
+IRHIRootSignature::IRHIRootSignature()
+    : m_usage(RHIRootSignatureUsage::None)
+{
+}
+
 bool IRHIRootSignature::AllocateRootSignatureSpace(size_t rootParameterCount, size_t staticSamplerCount)
 {
     // Allocate once now

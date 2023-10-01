@@ -15,7 +15,6 @@
 struct RayPayload
 {
     float4 color;
-    uint   recursionDepth;
 };
 
 //RaytracingAccelerationStructure Scene : register(t0, space0);
