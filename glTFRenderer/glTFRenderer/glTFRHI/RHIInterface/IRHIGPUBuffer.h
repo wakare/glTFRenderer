@@ -19,15 +19,24 @@ enum class RHIBufferType
     Upload,
 };
 
+enum class RHIBufferUsage
+{
+    NONE,
+    ALLOW_UNORDER_ACCESS,
+};
+
 struct RHIBufferDesc
 {
     std::wstring name;
     size_t width;
     size_t height;
     size_t depth;
+    
     RHIBufferType type;
     RHIDataFormat resource_data_type;
     RHIBufferResourceType resource_type;
+    RHIResourceStateType state;
+    RHIBufferUsage usage;
 };
 
 class IRHIGPUBuffer : public IRHIResource

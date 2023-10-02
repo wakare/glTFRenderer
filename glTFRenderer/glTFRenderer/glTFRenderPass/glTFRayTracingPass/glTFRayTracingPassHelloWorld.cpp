@@ -33,7 +33,7 @@ bool glTFRayTracingPassHelloWorld::InitPass(glTFRenderResourceManager& resource_
     auto& command_list = resource_manager.GetCommandListForRecord();
 
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_raytracing_output,
-        RHIResourceStateType::COMMON, RHIResourceStateType::UNORDER_ACCESS))
+        RHIResourceStateType::STATE_RENDER_TARGET, RHIResourceStateType::STATE_UNORDER_ACCESS))
 
     m_shader_table = RHIResourceFactory::CreateRHIResource<IRHIShaderTable>();
     RETURN_IF_FALSE(m_shader_table->InitShaderTable(resource_manager.GetDevice(), GetRayTracingPipelineStateObject()))
@@ -43,8 +43,17 @@ bool glTFRayTracingPassHelloWorld::InitPass(glTFRenderResourceManager& resource_
 
 bool glTFRayTracingPassHelloWorld::PreRenderPass(glTFRenderResourceManager& resource_manager)
 {
+    if (!m_raytracing_as)
+    {
+        RETURN_IF_FALSE(BuildAS(resource_manager))
+    }
+    
     RETURN_IF_FALSE(glTFRayTracingPassBase::PreRenderPass(resource_manager))
 
+    auto& command_list = resource_manager.GetCommandListForRecord();
+    RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, 0, m_main_descriptor_heap->GetGPUHandle(0),false))    
+    RETURN_IF_FALSE(RHIUtils::Instance().SetSRVToRootParameterSlot(command_list, 1, m_raytracing_as->GetTLASHandle(), false)) 
+    
     return true;
 }
 
@@ -56,19 +65,19 @@ bool glTFRayTracingPassHelloWorld::PostRenderPass(glTFRenderResourceManager& res
 
     // Copy compute result to swapchain back buffer
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, resource_manager.GetCurrentFrameSwapchainRT(),
-        RHIResourceStateType::RENDER_TARGET, RHIResourceStateType::COPY_DEST))
+        RHIResourceStateType::STATE_RENDER_TARGET, RHIResourceStateType::STATE_COPY_DEST))
 
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_raytracing_output,
-            RHIResourceStateType::UNORDER_ACCESS, RHIResourceStateType::COPY_SOURCE ))
+            RHIResourceStateType::STATE_UNORDER_ACCESS, RHIResourceStateType::STATE_COPY_SOURCE ))
     
     RETURN_IF_FALSE(RHIUtils::Instance().CopyTexture(command_list, resource_manager.GetCurrentFrameSwapchainRT(), *m_raytracing_output))
 
     // Copy compute result to swapchain back buffer
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, resource_manager.GetCurrentFrameSwapchainRT(),
-        RHIResourceStateType::COPY_DEST, RHIResourceStateType::RENDER_TARGET))
+        RHIResourceStateType::STATE_COPY_DEST, RHIResourceStateType::STATE_RENDER_TARGET))
 
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_raytracing_output,
-        RHIResourceStateType::COPY_SOURCE, RHIResourceStateType::UNORDER_ACCESS ))
+        RHIResourceStateType::STATE_COPY_SOURCE, RHIResourceStateType::STATE_UNORDER_ACCESS ))
     
     return true;
 }
@@ -85,7 +94,7 @@ TraceCount glTFRayTracingPassHelloWorld::GetTraceCount() const
 
 size_t glTFRayTracingPassHelloWorld::GetRootSignatureParameterCount()
 {
-    return 1;
+    return 2;
 }
 
 size_t glTFRayTracingPassHelloWorld::GetRootSignatureSamplerCount()
@@ -106,6 +115,8 @@ bool glTFRayTracingPassHelloWorld::SetupRootSignature(glTFRenderResourceManager&
 
     const RHIRootParameterDescriptorRangeDesc UAVRangeDesc {RHIRootParameterDescriptorRangeType::UAV, 0, 1};
     m_root_signature->GetRootParameter(0).InitAsDescriptorTableRange(1, &UAVRangeDesc);
+
+    m_root_signature->GetRootParameter(1).InitAsSRV(0);
     
     return true;
 }
@@ -125,7 +136,10 @@ bool glTFRayTracingPassHelloWorld::SetupPipelineStateObject(glTFRenderResourceMa
 
 bool glTFRayTracingPassHelloWorld::BuildAS(glTFRenderResourceManager& resource_manager)
 {
-
+    GLTF_CHECK(!m_meshes.empty());
+    
+    m_raytracing_as = RHIResourceFactory::CreateRHIResource<IRHIRayTracingAS>();
+    RETURN_IF_FALSE(m_raytracing_as->InitRayTracingAS(resource_manager.GetDevice(), resource_manager.GetCommandListForRecord(), *m_meshes[0].mesh_position_only_buffer, *m_meshes[0].mesh_index_buffer))
     
     return true;
 }

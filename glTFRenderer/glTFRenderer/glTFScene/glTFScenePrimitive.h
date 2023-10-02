@@ -122,7 +122,8 @@ public:
     virtual const VertexLayoutDeclaration& GetVertexLayout() const = 0;
     virtual const VertexBufferData& GetVertexBufferData() const = 0;
     virtual const IndexBufferData& GetIndexBufferData() const = 0;
-
+    virtual const VertexBufferData& GetPositionOnlyBufferData() const = 0;
+    
     virtual size_t GetInstanceCount() const { return 1; }
     void SetMaterial(std::shared_ptr<glTFMaterialBase> material);
     bool HasMaterial() const {return m_material != nullptr; }

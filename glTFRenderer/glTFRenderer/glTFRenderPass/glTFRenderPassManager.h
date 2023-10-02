@@ -25,7 +25,7 @@ protected:
     glTFSceneView& m_scene_view;
     
     std::vector<std::unique_ptr<glTFRenderPassBase>> m_passes;
-    std::unique_ptr<glTFRenderResourceManager> m_resourceManager;
+    std::unique_ptr<glTFRenderResourceManager> m_resource_manager;
     
     unsigned m_frame_index;
 };

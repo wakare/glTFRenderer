@@ -1,6 +1,6 @@
 #pragma once
 #include "glTFRenderResourceManager.h"
-#include "../glTFScene/glTFSceneObjectBase.h"
+#include "glTFScene/glTFSceneObjectBase.h"
 
 class glTFMaterialBase;
 class IRHIRootSignature;

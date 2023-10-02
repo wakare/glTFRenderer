@@ -24,7 +24,7 @@ bool glTFRenderPassBase::InitPass(glTFRenderResourceManager& resource_manager)
         break;
     case PipelineType::RayTracing:
         m_pipeline_state_object = RHIResourceFactory::CreateRHIResource<IRHIRayTracingPipelineStateObject>();
-        m_root_signature->SetUsage(RHIRootSignatureUsage::RayTracing);
+        //m_root_signature->SetUsage(RHIRootSignatureUsage::RayTracing);
         break;
     default: GLTF_CHECK(false);
     }

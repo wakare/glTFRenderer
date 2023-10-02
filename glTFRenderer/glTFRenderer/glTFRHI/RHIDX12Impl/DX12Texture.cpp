@@ -31,7 +31,7 @@ bool DX12Texture::UploadTextureFromFile(IRHIDevice& device, IRHICommandList& com
     RETURN_IF_FALSE(RHIUtils::Instance().UploadTextureDataToDefaultGPUBuffer(commandList, *m_textureUploadBuffer, *m_textureBuffer, m_textureDesc.GetTextureData(), imageBytesPerRow, imageBytesPerRow * m_textureDesc.GetTextureHeight()))
 
     // TODO: Texture source visible should be config by external parameters
-    RETURN_IF_FALSE(RHIUtils::Instance().AddBufferBarrierToCommandList(commandList, *m_textureBuffer, RHIResourceStateType::COPY_DEST, RHIResourceStateType::PIXEL_SHADER_RESOURCE))
+    RETURN_IF_FALSE(RHIUtils::Instance().AddBufferBarrierToCommandList(commandList, *m_textureBuffer, RHIResourceStateType::STATE_COPY_DEST, RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE))
 
     return true;
 }

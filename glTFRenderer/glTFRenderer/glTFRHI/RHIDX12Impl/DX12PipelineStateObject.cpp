@@ -251,6 +251,7 @@ bool DX12DXRStateObject::InitPipelineStateObject(IRHIDevice& device, IRHIRootSig
     shaderConfig->Config(payloadSize, attributeSize);
 
     // Local root signature to be used in a ray gen shader.
+    /*
     {
         auto localRootSignature = m_dxr_state_desc.CreateSubobject<CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT>();
         localRootSignature->SetRootSignature(dxRootSignature);
@@ -259,6 +260,12 @@ bool DX12DXRStateObject::InitPipelineStateObject(IRHIDevice& device, IRHIRootSig
         rootSignatureAssociation->SetSubobjectToAssociate(*localRootSignature);
         rootSignatureAssociation->AddExport(L"MyRaygenShader");
     }
+    */
+
+    // Global root signature
+    // This is a root signature that is shared across all raytracing shaders invoked during a DispatchRays() call.
+    auto globalRootSignature = m_dxr_state_desc.CreateSubobject<CD3DX12_GLOBAL_ROOT_SIGNATURE_SUBOBJECT>();
+    globalRootSignature->SetRootSignature(dxRootSignature);
 
     // Pipeline config
     // Defines the maximum TraceRay() recursion depth.

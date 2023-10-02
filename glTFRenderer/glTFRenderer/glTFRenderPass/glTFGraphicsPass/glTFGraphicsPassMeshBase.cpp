@@ -80,47 +80,14 @@ bool glTFGraphicsPassMeshBase::AddOrUpdatePrimitiveToMeshPass(glTFRenderResource
         const RHIBufferDesc vertex_buffer_desc = {L"vertexBufferDefaultBuffer", primitive.GetVertexBufferData().byteSize, 1, 1, RHIBufferType::Default, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
         m_meshes[mesh_ID].mesh_vertex_buffer_view = m_meshes[mesh_ID].mesh_vertex_buffer->CreateVertexBufferView(device, command_list, vertex_buffer_desc, primitive.GetVertexBufferData());
 
+        m_meshes[mesh_ID].mesh_position_only_buffer = RHIResourceFactory::CreateRHIResource<IRHIVertexBuffer>();
+        const RHIBufferDesc position_only_buffer_desc = {L"positionOnlyBufferDefaultBuffer", primitive.GetPositionOnlyBufferData().byteSize, 1, 1, RHIBufferType::Default, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
+        m_meshes[mesh_ID].mesh_position_only_buffer_view = m_meshes[mesh_ID].mesh_position_only_buffer->CreateVertexBufferView(device, command_list, position_only_buffer_desc, primitive.GetPositionOnlyBufferData());
+
         m_meshes[mesh_ID].mesh_index_buffer = RHIResourceFactory::CreateRHIResource<IRHIIndexBuffer>();
         const RHIBufferDesc index_buffer_desc = {L"indexBufferDefaultBuffer", primitive.GetIndexBufferData().byteSize, 1, 1, RHIBufferType::Default, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
         m_meshes[mesh_ID].mesh_index_buffer_view = m_meshes[mesh_ID].mesh_index_buffer->CreateIndexBufferView(device, command_list, index_buffer_desc, primitive.GetIndexBufferData());
-        /*
-        // Upload vertex and index data once
-        const auto& vertex_buffer = m_meshes[mesh_ID].mesh_vertex_buffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
-        const auto& index_buffer = m_meshes[mesh_ID].mesh_index_buffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
-        const auto& vertex_buffer_view = m_meshes[mesh_ID].mesh_vertex_buffer_view = RHIResourceFactory::CreateRHIResource<IRHIVertexBufferView>();
-        const auto& index_buffer_view = m_meshes[mesh_ID].mesh_index_buffer_view = RHIResourceFactory::CreateRHIResource<IRHIIndexBufferView>();
-        
-        const auto& primitive_vertices = primitive.GetVertexBufferData();
-        const auto& primitive_indices = primitive.GetIndexBufferData();
-
-        const RHIBufferDesc vertex_buffer_desc = {L"vertexBufferDefaultBuffer", primitive_vertices.byteSize, 1, 1, RHIBufferType::Default, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
-        const RHIBufferDesc index_buffer_desc = {L"indexBufferDefaultBuffer", primitive_indices.byteSize, 1, 1, RHIBufferType::Default, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
-    
-        RETURN_IF_FALSE(vertex_buffer->InitGPUBuffer(resource_manager.GetDevice(), vertex_buffer_desc ))
-        RETURN_IF_FALSE(index_buffer->InitGPUBuffer(resource_manager.GetDevice(), index_buffer_desc ))
-
-        const auto vertex_upload_buffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
-        const auto index_upload_buffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
-
-        const RHIBufferDesc vertex_upload_buffer_desc = {L"vertexBufferUploadBuffer", primitive_vertices.byteSize, 1, 1, RHIBufferType::Upload, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
-        const RHIBufferDesc index_upload_buffer_desc = {L"indexBufferUploadBuffer", primitive_indices.byteSize, 1, 1, RHIBufferType::Upload, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
-
-        RETURN_IF_FALSE(vertex_upload_buffer->InitGPUBuffer(resource_manager.GetDevice(), vertex_upload_buffer_desc ))
-        RETURN_IF_FALSE(index_upload_buffer->InitGPUBuffer(resource_manager.GetDevice(), index_upload_buffer_desc ))
-
-        auto& command_list = resource_manager.GetCommandListForRecord();
-        
-        RETURN_IF_FALSE(RHIUtils::Instance().UploadBufferDataToDefaultGPUBuffer(command_list, *vertex_upload_buffer, *vertex_buffer, primitive_vertices.data.get(), primitive_vertices.byteSize))
-        RETURN_IF_FALSE(RHIUtils::Instance().UploadBufferDataToDefaultGPUBuffer(command_list, *index_upload_buffer, *index_buffer, primitive_indices.data.get(), primitive_indices.byteSize))
-    
-        RETURN_IF_FALSE(RHIUtils::Instance().AddBufferBarrierToCommandList(command_list, *vertex_buffer, RHIResourceStateType::COPY_DEST, RHIResourceStateType::VERTEX_AND_CONSTANT_BUFFER))
-        RETURN_IF_FALSE(RHIUtils::Instance().AddBufferBarrierToCommandList(command_list, *index_buffer, RHIResourceStateType::COPY_DEST, RHIResourceStateType::INDEX_BUFFER))
-
-        resource_manager.CloseCommandListAndExecute(true);
-        
-        vertex_buffer_view->InitVertexBufferView(*vertex_buffer, 0, primitive.GetVertexLayout().GetVertexStrideInBytes(), primitive_vertices.byteSize);
-        index_buffer_view->InitIndexBufferView(*index_buffer, 0, primitive_indices.elementType == IndexBufferElementType::UNSIGNED_INT ? RHIDataFormat::R32_UINT : RHIDataFormat::R16_UINT, primitive_indices.byteSize);
-        */
+       
         m_meshes[mesh_ID].mesh_vertex_count = primitive.GetVertexBufferData().vertex_count;
         m_meshes[mesh_ID].mesh_index_count = primitive.GetIndexBufferData().index_count;
         m_meshes[mesh_ID].material_id = primitive.HasMaterial() ? primitive.GetMaterial().GetID() : glTFUniqueIDInvalid;

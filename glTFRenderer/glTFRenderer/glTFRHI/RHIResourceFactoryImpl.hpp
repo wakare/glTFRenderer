@@ -21,6 +21,7 @@
 #include "RHIDX12Impl/DX12VertexBufferView.h"
 #include "RHIDX12Impl/DX12DescriptorHeap.h"
 #include "RHIDX12Impl/DX12IndexBuffer.h"
+#include "RHIDX12Impl/DX12RayTracingAS.h"
 #include "RHIDX12Impl/DX12ShaderTable.h"
 #include "RHIDX12Impl/DX12Texture.h"
 #include "RHIDX12Impl/DX12VertexBuffer.h"
@@ -35,6 +36,7 @@
 #include "RHIInterface/IRHIRootSignature.h"
 #include "RHIInterface/IRHISwapChain.h"
 #include "RHIInterface/IRHIPipelineStateObject.h"
+#include "RHIInterface/IRHIRayTracingAS.h"
 
 inline RHIGraphicsAPIType GetGraphicsAPI() {return RHIConfigSingleton::Instance().GetGraphicsAPIType();}
 
@@ -78,3 +80,4 @@ IMPLEMENT_CREATE_RHI_RESOURCE(IRHIIndexBuffer, DX12IndexBuffer)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIIndexBufferView, DX12IndexBufferView)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIDescriptorHeap, DX12DescriptorHeap)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHITexture, DX12Texture)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHIRayTracingAS, DX12RayTracingAS)

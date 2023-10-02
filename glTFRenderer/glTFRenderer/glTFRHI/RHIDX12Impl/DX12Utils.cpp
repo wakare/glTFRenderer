@@ -1,6 +1,4 @@
 #include "DX12Utils.h"
-#include <cassert>
-
 #include "d3dx12.h"
 #include "DX12CommandList.h"
 #include "DX12CommandQueue.h"
@@ -14,8 +12,8 @@
 #include "DX12ShaderTable.h"
 #include "DX12SwapChain.h"
 #include "DX12VertexBufferView.h"
-#include "../RHIInterface/IRHIGPUBuffer.h"
-#include "../RHIInterface/RHICommon.h"
+#include "glTFRHI/RHIInterface/IRHIGPUBuffer.h"
+#include "glTFRHI/RHIInterface/RHICommon.h"
 
 #define CONVERT_DXGI_FORMAT_CASE(RHIFormat) case RHIDataFormat::##RHIFormat: return DXGI_FORMAT_##RHIFormat;
 
@@ -71,38 +69,44 @@ D3D12_RESOURCE_STATES DX12ConverterUtils::ConvertToResourceState(RHIResourceStat
 {
     switch (state)
     {
-    case RHIResourceStateType::COMMON:
+    case RHIResourceStateType::STATE_COMMON:
         return D3D12_RESOURCE_STATE_COMMON;
+
+    case RHIResourceStateType::STATE_GENERIC_READ:
+        return D3D12_RESOURCE_STATE_GENERIC_READ;
         
-    case RHIResourceStateType::COPY_SOURCE:
+    case RHIResourceStateType::STATE_COPY_SOURCE:
         return D3D12_RESOURCE_STATE_COPY_SOURCE;
         
-    case RHIResourceStateType::COPY_DEST:
+    case RHIResourceStateType::STATE_COPY_DEST:
         return D3D12_RESOURCE_STATE_COPY_DEST;
         
-    case RHIResourceStateType::VERTEX_AND_CONSTANT_BUFFER:
+    case RHIResourceStateType::STATE_VERTEX_AND_CONSTANT_BUFFER:
         return D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
 
-    case RHIResourceStateType::INDEX_BUFFER:
+    case RHIResourceStateType::STATE_INDEX_BUFFER:
         return D3D12_RESOURCE_STATE_INDEX_BUFFER;
 
-    case RHIResourceStateType::PRESENT:
+    case RHIResourceStateType::STATE_PRESENT:
         return D3D12_RESOURCE_STATE_PRESENT;
 
-    case RHIResourceStateType::RENDER_TARGET:
+    case RHIResourceStateType::STATE_RENDER_TARGET:
         return D3D12_RESOURCE_STATE_RENDER_TARGET;
 
-    case RHIResourceStateType::DEPTH_WRITE:
+    case RHIResourceStateType::STATE_DEPTH_WRITE:
         return D3D12_RESOURCE_STATE_DEPTH_WRITE;
 
-    case RHIResourceStateType::DEPTH_READ:
+    case RHIResourceStateType::STATE_DEPTH_READ:
         return D3D12_RESOURCE_STATE_DEPTH_READ;
 
-    case RHIResourceStateType::UNORDER_ACCESS:
+    case RHIResourceStateType::STATE_UNORDER_ACCESS:
         return D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
         
-    case RHIResourceStateType::PIXEL_SHADER_RESOURCE:
+    case RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE:
         return D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+
+    case RHIResourceStateType::STATE_RAYTRACING_ACCELERATION_STRUCTURE:
+        return D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
     }
 
     assert(false);
@@ -398,7 +402,6 @@ bool DX12Utils::SetDTToRootParameterSlot(IRHICommandList& commandList, unsigned 
     {
         dxCommandList->SetComputeRootDescriptorTable(slotIndex, dxHandle);
     }
-    
     
     return true;
 }

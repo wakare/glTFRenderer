@@ -2,28 +2,10 @@
 
 #include "glTFGraphicsPassBase.h"
 #include "glTFScene/glTFScenePrimitive.h"
+#include "glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
+#include "glTFRenderPass/glTFRenderPassMeshResource.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneMesh.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneView.h"
-#include "glTFRHI/RHIInterface/IRHIGPUBuffer.h"
-#include "glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
-#include "glTFRHI/RHIInterface/IRHIVertexBufferView.h"
-#include "glTFRHI/RHIInterface/IRHIIndexBufferView.h"
-
-// Vertex and index gpu buffer data
-struct MeshGPUResource
-{
-    std::shared_ptr<IRHIVertexBuffer> mesh_vertex_buffer;
-    std::shared_ptr<IRHIIndexBuffer> mesh_index_buffer;
-    std::shared_ptr<IRHIVertexBufferView> mesh_vertex_buffer_view;
-    std::shared_ptr<IRHIIndexBufferView> mesh_index_buffer_view;
-
-    size_t mesh_vertex_count{0};
-    size_t mesh_index_count{0};
-    
-    glm::mat4 meshTransformMatrix{1.0f};
-    glTFUniqueID material_id {glTFUniqueIDInvalid};
-    bool using_normal_mapping {false};
-};
 
 // Drawing all meshes within mesh pass
 class glTFGraphicsPassMeshBase : public glTFGraphicsPassBase, public glTFRenderInterfaceSceneView, public glTFRenderInterfaceSceneMesh
@@ -72,7 +54,7 @@ protected:
 
     virtual std::vector<RHIPipelineInputLayout> GetVertexInputLayout() override;
     
-    std::map<glTFUniqueID, MeshGPUResource> m_meshes;
+    std::map<glTFUniqueID, glTFRenderPassMeshResource> m_meshes;
 
     // TODO: Resolve input layout with multiple meshes 
     std::vector<RHIPipelineInputLayout> m_vertex_input_layouts;

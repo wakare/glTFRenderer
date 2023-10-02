@@ -13,7 +13,7 @@ bool glTFGraphicsPassMeshDepth::SetupPipelineStateObject(glTFRenderResourceManag
     GetGraphicsPipelineStateObject().BindRenderTargets({&resource_manager.GetDepthRT()});
     
     auto& command_list = resource_manager.GetCommandListForRecord();
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, resource_manager.GetDepthRT(), RHIResourceStateType::DEPTH_WRITE, RHIResourceStateType::DEPTH_READ))
+    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, resource_manager.GetDepthRT(), RHIResourceStateType::STATE_DEPTH_WRITE, RHIResourceStateType::STATE_DEPTH_READ))
     
     return true;
 }
@@ -24,7 +24,7 @@ bool glTFGraphicsPassMeshDepth::PreRenderPass(glTFRenderResourceManager& resourc
 
     auto& command_list = resource_manager.GetCommandListForRecord();
 
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, resource_manager.GetDepthRT(), RHIResourceStateType::DEPTH_READ, RHIResourceStateType::DEPTH_WRITE))
+    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, resource_manager.GetDepthRT(), RHIResourceStateType::STATE_DEPTH_READ, RHIResourceStateType::STATE_DEPTH_WRITE))
     
     RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().BindRenderTarget(command_list, {}, &resource_manager.GetDepthRT()))
     RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().ClearRenderTarget(command_list, {&resource_manager.GetDepthRT()}))
@@ -38,7 +38,7 @@ bool glTFGraphicsPassMeshDepth::PostRenderPass(glTFRenderResourceManager& resour
     
     auto& command_list = resource_manager.GetCommandListForRecord();
     
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, resource_manager.GetDepthRT(), RHIResourceStateType::DEPTH_WRITE, RHIResourceStateType::DEPTH_READ))
+    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, resource_manager.GetDepthRT(), RHIResourceStateType::STATE_DEPTH_WRITE, RHIResourceStateType::STATE_DEPTH_READ))
     
     return true;
 }

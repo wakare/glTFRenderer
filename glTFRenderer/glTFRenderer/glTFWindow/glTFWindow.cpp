@@ -12,6 +12,8 @@
 #define GLFW_EXPOSE_NATIVE_WIN32 1
 #include <GLFW/glfw3native.h>
 
+#include "glTFScene/glTFSceneBox.h"
+
 glTFWindow::glTFWindow()
     : m_glfw_window(nullptr)
     , m_width(1920)
@@ -64,11 +66,22 @@ bool glTFWindow::InitAndShowWindow()
     
     // Create test scene with box
     m_scene_graph = std::make_unique<glTFSceneGraph>();
-    //RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\BoxTextured\\BoxTextured.gltf"))
-    //RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Box\\Box.gltf"))
-    //RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Monster\\Monster.gltf"))
-    //RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Buggy\\glTF\\Buggy.gltf"))
-    RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Sponza\\glTF\\Sponza.gltf"))
+    bool use_test_box_scene = true;
+    if (use_test_box_scene)
+    {
+        std::unique_ptr<glTFSceneNode> box_node = std::make_unique<glTFSceneNode>();
+        box_node->m_objects.push_back(std::make_unique<glTFSceneBox>(m_scene_graph->GetRootNode().m_finalTransform));
+        m_scene_graph->AddSceneNode(std::move(box_node));
+    }
+    else
+    {
+        //RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\BoxTextured\\BoxTextured.gltf"))
+        //RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Box\\Box.gltf"))
+        //RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Monster\\Monster.gltf"))
+        //RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Buggy\\glTF\\Buggy.gltf"))
+        RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Sponza\\glTF\\Sponza.gltf"))
+    }
+    
 
     // Add camera
     std::unique_ptr<glTFSceneNode> cameraNode = std::make_unique<glTFSceneNode>();

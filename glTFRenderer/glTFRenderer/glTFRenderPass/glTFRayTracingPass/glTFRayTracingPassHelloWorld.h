@@ -1,8 +1,10 @@
 #pragma once
 #include "glTFRayTracingPassBase.h"
+#include "glTFRayTracingPassWithMesh.h"
+#include "glTFRHI/RHIInterface/IRHIRayTracingAS.h"
 #include "glTFRHI/RHIInterface/IRHIShaderTable.h"
 
-class glTFRayTracingPassHelloWorld : public glTFRayTracingPassBase
+class glTFRayTracingPassHelloWorld : public glTFRayTracingPassWithMesh
 {
 public:
     glTFRayTracingPassHelloWorld();
@@ -27,5 +29,6 @@ private:
     
     std::shared_ptr<IRHIShaderTable> m_shader_table;
     std::shared_ptr<IRHIRenderTarget> m_raytracing_output;
+    std::shared_ptr<IRHIRayTracingAS> m_raytracing_as;
     TraceCount m_trace_count;
 };
