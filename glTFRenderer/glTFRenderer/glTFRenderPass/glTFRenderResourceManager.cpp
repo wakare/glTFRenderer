@@ -54,14 +54,16 @@ bool glTFRenderResourceManager::InitResourceManager(glTFWindow& window)
     m_render_target_manager->InitRenderTargetManager(*m_device, 100);
 
     RHIRenderTargetClearValue clearValue;
-    clearValue.clearColor = glm::vec4{0.0f, 0.0f, 0.0f, 0.0f};
+    clearValue.clear_format = RHIDataFormat::R8G8B8A8_UNORM_SRGB;
+    clearValue.clear_color = glm::vec4{0.0f, 0.0f, 0.0f, 0.0f};
     m_swapchain_RTs = m_render_target_manager->CreateRenderTargetFromSwapChain(*m_device, *m_swapchain, clearValue);
 
-    RHIRenderTargetClearValue depthClearValue{};
-    depthClearValue.clearDS.clearDepth = 1.0f;
-    depthClearValue.clearDS.clearStencilValue = 0;
+    RHIRenderTargetClearValue depth_clear_value{};
+    depth_clear_value.clear_format = RHIDataFormat::D32_FLOAT;
+    depth_clear_value.clearDS.clear_depth = 1.0f;
+    depth_clear_value.clearDS.clear_stencil_value = 0;
     m_depth_texture = m_render_target_manager->CreateRenderTarget(*m_device, RHIRenderTargetType::DSV, RHIDataFormat::R32_TYPELESS,
-                                                               RHIDataFormat::D32_FLOAT, IRHIRenderTargetDesc{GetSwapchain().GetWidth(), GetSwapchain().GetHeight(), false, depthClearValue, "ResourceManager_DepthRT"});
+                                                               RHIDataFormat::D32_FLOAT, IRHIRenderTargetDesc{GetSwapchain().GetWidth(), GetSwapchain().GetHeight(), false, depth_clear_value, "ResourceManager_DepthRT"});
     
     return true;
 }

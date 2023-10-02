@@ -3,15 +3,27 @@
 #endif
 
 #include "DX12RenderTargetManager.h"
-
-#include <cassert>
-#include <d3d12.h>
-#include <codecvt>
-
 #include "DX12CommandList.h"
 #include "DX12DescriptorHeap.h"
 #include "DX12Utils.h"
-#include "../RHIResourceFactoryImpl.hpp"
+#include "glTFRHI/RHIResourceFactoryImpl.hpp"
+
+UINT GetDescriptorIncSize(ID3D12Device* device, RHIRenderTargetType type)
+{
+    UINT result = 0;
+    switch (type) {
+    case RHIRenderTargetType::RTV:
+        result = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+        break;
+    case RHIRenderTargetType::DSV:
+        result = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+        break;
+    case RHIRenderTargetType::Unknown:
+        break;
+    default: GLTF_CHECK(false);
+    }
+    return result;
+}
 
 DX12RenderTargetManager::DX12RenderTargetManager()
     : m_max_render_target_count(0)
@@ -25,8 +37,6 @@ DX12RenderTargetManager::~DX12RenderTargetManager()
 
 bool DX12RenderTargetManager::InitRenderTargetManager(IRHIDevice& device, size_t max_render_target_count)
 {
-    auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
-
     m_rtv_descriptor_heap = RHIResourceFactory::CreateRHIResource<IRHIDescriptorHeap>();
     m_rtv_descriptor_heap->InitDescriptorHeap(device, {static_cast<unsigned>(max_render_target_count), RHIDescriptorHeapType::RTV, false});
 
@@ -38,129 +48,61 @@ bool DX12RenderTargetManager::InitRenderTargetManager(IRHIDevice& device, size_t
     return true;
 }
 
-std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTarget(IRHIDevice& device, RHIRenderTargetType type, RHIDataFormat resourceFormat, RHIDataFormat descriptorFormat, const IRHIRenderTargetDesc& desc)
+std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTarget(IRHIDevice& device, RHIRenderTargetType type,
+    RHIDataFormat resource_format, RHIDataFormat descriptor_format, const IRHIRenderTargetDesc& desc)
 {
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
     
     // Check has enough space for descriptor?
-    D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE;
-    size_t handleCount = 0;
-    D3D12_CPU_DESCRIPTOR_HANDLE handle = {0};
-    D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_COMMON;
-    DXGI_FORMAT dxResourceFormat = DX12ConverterUtils::ConvertToDXGIFormat(resourceFormat);
-    DXGI_FORMAT dxDescriptorFormat = DX12ConverterUtils::ConvertToDXGIFormat(descriptorFormat);
-    D3D12_CLEAR_VALUE dxClearValue{};
-    dxClearValue.Format = dxDescriptorFormat;
+    D3D12_RESOURCE_FLAGS flags = (desc.isUAV) ? D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS : D3D12_RESOURCE_FLAG_NONE;
+    const DXGI_FORMAT dxResourceFormat = DX12ConverterUtils::ConvertToDXGIFormat(resource_format);
     
     switch (type)
-    { 
+    {
     case RHIRenderTargetType::RTV:
         {
-            if(m_rtvHandles.size() >= m_max_render_target_count)
-            {
-                return nullptr;
-            }
-            
-            handleCount = m_rtvHandles.size();
-            flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-            const UINT incSize = dxDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-            auto* dxDescriptorHeap = dynamic_cast<DX12DescriptorHeap&>(*m_rtv_descriptor_heap).GetDescriptorHeap();
-            handle = dxDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-            handle.ptr += handleCount * incSize;
-            initialState = D3D12_RESOURCE_STATE_RENDER_TARGET;
-            memcpy(dxClearValue.Color, &desc.clearValue.clearColor, sizeof(desc.clearValue.clearColor));
+            flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
         }
         break;
-        
     case RHIRenderTargetType::DSV:
         {
-            if(m_dsvHandles.size() >= m_max_render_target_count)
-            {
-                return nullptr;
-            }
-            
-            handleCount = m_dsvHandles.size();
-            flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-            const UINT incSize = dxDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-            auto* dxDescriptorHeap = dynamic_cast<DX12DescriptorHeap&>(*m_dsv_descriptor_heap).GetDescriptorHeap();
-            handle = dxDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-            handle.ptr += handleCount * incSize;
-            initialState = D3D12_RESOURCE_STATE_DEPTH_WRITE;
-            dxClearValue.DepthStencil.Depth = desc.clearValue.clearDS.clearDepth;
-            dxClearValue.DepthStencil.Stencil = desc.clearValue.clearDS.clearStencilValue;
+            flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
         }
         break;
-        
-    case RHIRenderTargetType::Unknown:
-        // Fatal error!
-        assert(false);
-        return nullptr;
     }
+    
+    D3D12_HEAP_PROPERTIES heap_properties = {};
+    heap_properties.Type = D3D12_HEAP_TYPE_DEFAULT;
+    heap_properties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
 
-    if (desc.isUAV)
-    {
-        flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-    }
-
-    D3D12_HEAP_PROPERTIES heapProperties = {};
-    heapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
-    heapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-
-    D3D12_RESOURCE_DESC resourceDesc = {};
-    resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-    resourceDesc.Format = dxResourceFormat;
-    resourceDesc.Width = desc.width;
-    resourceDesc.Height = desc.height;
-    resourceDesc.DepthOrArraySize = 1;
-    resourceDesc.MipLevels = 1;
-    resourceDesc.Alignment = 0;
-    resourceDesc.SampleDesc.Count = 1;
-    resourceDesc.SampleDesc.Quality = 0;
-    resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-    resourceDesc.Flags = flags;
+    D3D12_RESOURCE_DESC resource_desc = {};
+    resource_desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+    resource_desc.Format = dxResourceFormat;
+    resource_desc.Width = desc.width;
+    resource_desc.Height = desc.height;
+    resource_desc.DepthOrArraySize = 1;
+    resource_desc.MipLevels = 1;
+    resource_desc.Alignment = 0;
+    resource_desc.SampleDesc.Count = 1;
+    resource_desc.SampleDesc.Quality = 0;
+    resource_desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+    resource_desc.Flags = flags;
 
     ID3D12Resource* resource = nullptr;
-    THROW_IF_FAILED(dxDevice->CreateCommittedResource(&heapProperties,
+    const auto dx_clear_value = DX12ConverterUtils::ConvertToD3DClearValue(desc.clearValue);
+    THROW_IF_FAILED(dxDevice->CreateCommittedResource(&heap_properties,
                                                   D3D12_HEAP_FLAG_NONE,
-                                                  &resourceDesc,
-                                                  initialState,
-                                                  &dxClearValue,
+                                                  &resource_desc,
+                                                  D3D12_RESOURCE_STATE_COMMON,
+                                                  &dx_clear_value,
                                                   IID_PPV_ARGS(&resource)))
 
     if (!desc.name.empty())
     {
-        std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
-        const std::wstring name = converter.from_bytes(desc.name);
-        resource->SetName(name.c_str());
+        resource->SetName(to_wide_string(desc.name).c_str());
     }
 
-    std::shared_ptr<IRHIRenderTarget> renderTarget = RHIResourceFactory::CreateRHIResource<IRHIRenderTarget>();
-    renderTarget->SetRenderTargetType(type);
-    renderTarget->SetRenderTargetFormat(resourceFormat);
-    auto* dxRenderTarget = dynamic_cast<DX12RenderTarget*>(renderTarget.get());
-    dxRenderTarget->SetRenderTarget(resource, true);
-    dxRenderTarget->SetClearValue(dxClearValue);
-
-    switch (type) {
-        case RHIRenderTargetType::RTV:
-            {
-                dxDevice->CreateRenderTargetView(resource, nullptr, handle);
-                m_rtvHandles[renderTarget->GetRenderTargetId()] = handle;
-            }
-            break;
-        case RHIRenderTargetType::DSV:
-            {
-                D3D12_DEPTH_STENCIL_VIEW_DESC viewDescription = {};
-                viewDescription.Format = dxDescriptorFormat;
-                viewDescription.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-                
-                dxDevice->CreateDepthStencilView(resource, &viewDescription, handle);
-                m_dsvHandles[renderTarget->GetRenderTargetId()] = handle;
-            }
-            break;
-    }
-    
-    return renderTarget;
+    return CreateRenderTargetWithResource(device, type, descriptor_format, resource, dx_clear_value);
 }
 
 std::vector<std::shared_ptr<IRHIRenderTarget>> DX12RenderTargetManager::CreateRenderTargetFromSwapChain(
@@ -180,33 +122,14 @@ std::vector<std::shared_ptr<IRHIRenderTarget>> DX12RenderTargetManager::CreateRe
 
     std::vector<std::shared_ptr<IRHIRenderTarget>> outVector = {};
 
-    D3D12_CLEAR_VALUE defaultClearValue = {};
-    defaultClearValue.Format = swapChainDesc.BufferDesc.Format;
-    defaultClearValue.Color[0] = 0.0f;
-    defaultClearValue.Color[1] = 0.0f;
-    defaultClearValue.Color[2] = 0.0f;
-    defaultClearValue.Color[3] = 1.0f;
+    D3D12_CLEAR_VALUE dx_clear_value = DX12ConverterUtils::ConvertToD3DClearValue(clearValue);
 
     for (UINT i = 0; i < swapChainDesc.BufferCount; ++i)
     {
         ID3D12Resource* resource = nullptr;
         dxSwapChain->GetBuffer(i, IID_PPV_ARGS(&resource));
-        D3D12_RENDER_TARGET_VIEW_DESC viewDesc = {};
-        viewDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-        viewDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-        dxDevice->CreateRenderTargetView(resource, &viewDesc, handle);
-        resource->SetName(L"SwapChain RT");
-
-        std::shared_ptr<IRHIRenderTarget> newRenderTarget = RHIResourceFactory::CreateRHIResource<IRHIRenderTarget>();
-        newRenderTarget->SetRenderTargetType(RHIRenderTargetType::RTV);
-        newRenderTarget->SetRenderTargetFormat(RHIDataFormat::R8G8B8A8_UNORM_SRGB);
-        DX12RenderTarget* dxRenderTarget = dynamic_cast<DX12RenderTarget*>(newRenderTarget.get());
-        dxRenderTarget->SetRenderTarget(resource, false);
-        dxRenderTarget->SetClearValue(defaultClearValue);
-        outVector.push_back(newRenderTarget);
-        
-        m_rtvHandles[newRenderTarget->GetRenderTargetId()] = handle;
-        handle.ptr += incSize;
+        auto render_target = CreateRenderTargetWithResource(device, RHIRenderTargetType::RTV, RHIDataFormat::R8G8B8A8_UNORM_SRGB, resource, dx_clear_value);
+        outVector.push_back(render_target);
     }
 
     return outVector;
@@ -276,4 +199,53 @@ bool DX12RenderTargetManager::BindRenderTarget(IRHICommandList& commandList, con
     dxCommandList->OMSetRenderTargets(renderTargetViews.size(), renderTargetViews.data(), false, dsHandle);
     
     return true;
+}
+
+std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTargetWithResource(IRHIDevice& device, RHIRenderTargetType type,
+    RHIDataFormat descriptor_format, ID3D12Resource* texture_resource, const D3D12_CLEAR_VALUE& clear_value)
+{
+    auto* dx_device = dynamic_cast<DX12Device&>(device).GetDevice();
+    auto& heap = (type == RHIRenderTargetType::RTV) ? *m_rtv_descriptor_heap : *m_dsv_descriptor_heap; 
+    auto& heap_descriptor_array = (type == RHIRenderTargetType::RTV) ? m_rtvHandles : m_dsvHandles;
+    
+    auto* dxDescriptorHeap = dynamic_cast<DX12DescriptorHeap&>(heap).GetDescriptorHeap();
+    
+    D3D12_CPU_DESCRIPTOR_HANDLE handle = dxDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+    const size_t descriptors_count = heap_descriptor_array.size();
+    const UINT descriptor_inc_size = GetDescriptorIncSize(dx_device, type);
+    handle.ptr += descriptors_count * descriptor_inc_size;
+    const auto dx_descriptor_format = DX12ConverterUtils::ConvertToDXGIFormat(descriptor_format);
+    
+    switch (type) {
+    case RHIRenderTargetType::RTV:
+        {
+            D3D12_RENDER_TARGET_VIEW_DESC rtv_desc = {};
+            rtv_desc.Format = dx_descriptor_format;
+            rtv_desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+            dx_device->CreateRenderTargetView(texture_resource, &rtv_desc, handle);    
+        }
+        break;
+    case RHIRenderTargetType::DSV:
+        {
+            D3D12_DEPTH_STENCIL_VIEW_DESC dsv_desc = {};
+            dsv_desc.Format = dx_descriptor_format;
+            dsv_desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+            dx_device->CreateDepthStencilView(texture_resource, &dsv_desc, handle);
+        }
+        break;
+    default:
+        GLTF_CHECK(false);
+    }
+    
+    std::shared_ptr<IRHIRenderTarget> render_target = RHIResourceFactory::CreateRHIResource<IRHIRenderTarget>();
+    render_target->SetRenderTargetType(type);
+    render_target->SetRenderTargetFormat(descriptor_format);
+    
+    DX12RenderTarget* dxRenderTarget = dynamic_cast<DX12RenderTarget*>(render_target.get());
+    dxRenderTarget->SetRenderTarget(texture_resource);
+    dxRenderTarget->SetClearValue(clear_value);
+    
+    heap_descriptor_array[render_target->GetRenderTargetId()] = handle;
+    
+    return render_target;
 }

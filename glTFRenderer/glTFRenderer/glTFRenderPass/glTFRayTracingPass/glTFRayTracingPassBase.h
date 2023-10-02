@@ -1,6 +1,6 @@
 #pragma once
 
-#include "glTFRenderPassBase.h"
+#include "glTFRenderPass/glTFRenderPassBase.h"
 #include "glTFRHI/RHIInterface/IRHIShaderTable.h"
 
 struct TraceCount

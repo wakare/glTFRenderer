@@ -1,5 +1,5 @@
 #include "glTFGraphicsPassMeshBase.h"
-#include "../glTFRHI/RHIResourceFactoryImpl.hpp"
+#include "glTFRHI/RHIResourceFactoryImpl.hpp"
 
 glTFGraphicsPassMeshBase::glTFGraphicsPassMeshBase()
     : glTFRenderInterfaceSceneView(MeshBasePass_RootParameter_SceneView_CBV, MeshBasePass_SceneView_CBV_Register)

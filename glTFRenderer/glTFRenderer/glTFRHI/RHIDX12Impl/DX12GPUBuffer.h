@@ -13,12 +13,12 @@ public:
     virtual bool UploadBufferFromCPU(const void* data, size_t dataOffset, size_t size) override;
     virtual GPU_BUFFER_HANDLE_TYPE GetGPUBufferHandle() override;
     
-    ID3D12Resource* GetBuffer() const {return m_buffer.Get();}
+    ID3D12Resource* GetBuffer() const { return m_buffer.Get();}
     
 private:
     ComPtr<ID3D12Resource> m_buffer;
-    UINT8* m_mappedGPUBuffer;
+    UINT8* m_mapped_gpu_buffer;
     
-    RHIBufferDesc m_bufferDesc;
-    CD3DX12_RANGE m_mapRange;
+    RHIBufferDesc m_buffer_desc;
+    CD3DX12_RANGE m_map_range;
 };

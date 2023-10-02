@@ -26,8 +26,8 @@ struct RHIBufferDesc
     size_t height;
     size_t depth;
     RHIBufferType type;
-    RHIDataFormat resourceDataType;
-    RHIBufferResourceType resourceType;  
+    RHIDataFormat resource_data_type;
+    RHIBufferResourceType resource_type;
 };
 
 class IRHIGPUBuffer : public IRHIResource

@@ -1,24 +1,35 @@
 #pragma once
 #include <cassert>
 #include <atomic>
+#include <memory>
 #include <string>
 #include <vec4.hpp>
 
+#include "IRHIGPUBuffer.h"
 #include "IRHIResource.h"
+#include "glTFUtils/glTFUtils.h"
 
 struct IRHIDepthStencilClearValue
 {
-    float clearDepth;
-    unsigned char clearStencilValue;
+    float clear_depth;
+    unsigned char clear_stencil_value;
 };
 
 struct RHIRenderTargetClearValue
 {
+    RHIDataFormat clear_format;
     union 
     {
-        glm::vec4 clearColor;
+        glm::vec4 clear_color;
         IRHIDepthStencilClearValue clearDS;
     };
+};
+
+enum class RHIRenderTargetType
+{
+    RTV,
+    DSV,
+    Unknown,
 };
 
 struct IRHIRenderTargetDesc
@@ -29,14 +40,6 @@ struct IRHIRenderTargetDesc
     RHIRenderTargetClearValue clearValue;
     std::string name;
 };
-
-enum class RHIRenderTargetType
-{
-    RTV,
-    DSV,
-    Unknown,
-};
-
 
 typedef unsigned RTID; 
 
@@ -68,7 +71,7 @@ public:
     }
 
     RHIDataFormat GetRenderTargetFormat() const { return m_format; }
-    
+
 private:
     RTID m_id;
     RHIRenderTargetType m_type;

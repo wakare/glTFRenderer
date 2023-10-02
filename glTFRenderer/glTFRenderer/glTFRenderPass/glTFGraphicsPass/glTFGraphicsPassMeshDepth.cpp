@@ -1,9 +1,9 @@
-#include "glTFRenderPassMeshDepth.h"
+#include "glTFGraphicsPassMeshDepth.h"
 
 #include "glTFRHI/RHIUtils.h"
 #include "glTFRHI/RHIInterface/IRHIRenderTargetManager.h"
 
-bool glTFRenderPassMeshDepth::SetupPipelineStateObject(glTFRenderResourceManager& resource_manager)
+bool glTFGraphicsPassMeshDepth::SetupPipelineStateObject(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::SetupPipelineStateObject(resource_manager))
 
@@ -18,7 +18,7 @@ bool glTFRenderPassMeshDepth::SetupPipelineStateObject(glTFRenderResourceManager
     return true;
 }
 
-bool glTFRenderPassMeshDepth::PreRenderPass(glTFRenderResourceManager& resource_manager)
+bool glTFGraphicsPassMeshDepth::PreRenderPass(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::PreRenderPass(resource_manager))
 
@@ -32,7 +32,7 @@ bool glTFRenderPassMeshDepth::PreRenderPass(glTFRenderResourceManager& resource_
     return true;
 }
 
-bool glTFRenderPassMeshDepth::PostRenderPass(glTFRenderResourceManager& resource_manager)
+bool glTFGraphicsPassMeshDepth::PostRenderPass(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::PostRenderPass(resource_manager))
     
@@ -43,7 +43,7 @@ bool glTFRenderPassMeshDepth::PostRenderPass(glTFRenderResourceManager& resource
     return true;
 }
 
-size_t glTFRenderPassMeshDepth::GetMainDescriptorHeapSize()
+size_t glTFGraphicsPassMeshDepth::GetMainDescriptorHeapSize()
 {
     return 1;
 }

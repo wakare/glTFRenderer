@@ -22,7 +22,8 @@ bool glTFRayTracingPassHelloWorld::InitPass(glTFRenderResourceManager& resource_
     raytracing_output_render_target.height = resource_manager.GetSwapchain().GetHeight();
     raytracing_output_render_target.name = "RayTracingOutput";
     raytracing_output_render_target.isUAV = true;
-    raytracing_output_render_target.clearValue.clearColor = {0.0f, 0.0f, 0.0f, 0.0f};
+    raytracing_output_render_target.clearValue.clear_format = RHIDataFormat::R8G8B8A8_UNORM;
+    raytracing_output_render_target.clearValue.clear_color = {0.0f, 0.0f, 0.0f, 0.0f};
 
     m_raytracing_output = resource_manager.GetRenderTargetManager().CreateRenderTarget(
                 resource_manager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R8G8B8A8_UNORM, RHIDataFormat::R8G8B8A8_UNORM, raytracing_output_render_target);

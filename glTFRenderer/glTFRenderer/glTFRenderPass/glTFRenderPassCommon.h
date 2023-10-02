@@ -1,5 +1,6 @@
 #pragma once
 
+#include <map>
 #include <glm/glm/gtx/compatibility.hpp>
 
 struct LightInfo

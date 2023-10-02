@@ -1,5 +1,5 @@
 #include "glTFGraphicsPassBase.h"
-#include "../glTFRHI/RHIResourceFactoryImpl.hpp"
+#include "glTFRHI/RHIResourceFactoryImpl.hpp"
 
 glTFGraphicsPassBase::glTFGraphicsPassBase()
 = default;

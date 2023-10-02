@@ -1,5 +1,5 @@
 #pragma once
-#include "glTFRenderPassBase.h"
+#include "glTFRenderPass/glTFRenderPassBase.h"
 
 struct DispatchCount
 {

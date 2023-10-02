@@ -1,8 +1,8 @@
 #pragma once
 #include "glTFGraphicsPassMeshBase.h"
-#include "../glTFMaterial/glTFMaterialParameterTexture.h"
+#include "glTFMaterial/glTFMaterialParameterTexture.h"
 
-class glTFRenderPassMeshOpaque : public glTFGraphicsPassMeshBase, public glTFRenderInterfaceSceneMeshMaterial
+class glTFGraphicsPassMeshOpaque : public glTFGraphicsPassMeshBase, public glTFRenderInterfaceSceneMeshMaterial
 {
 protected:
     enum glTFRenderPassMeshOpaqueRootParameterEnum
@@ -18,7 +18,7 @@ protected:
     };
     
 public:
-    glTFRenderPassMeshOpaque();
+    glTFGraphicsPassMeshOpaque();
     
     virtual const char* PassName() override {return "MeshPassOpaque"; }
     virtual bool ProcessMaterial(glTFRenderResourceManager& resource_manager,const glTFMaterialBase& material) override;

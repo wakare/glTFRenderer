@@ -1,12 +1,12 @@
-#include "glTFRenderPassMeshOpaque.h"
+#include "glTFGraphicsPassMeshOpaque.h"
 
-#include "glTFRenderMaterialManager.h"
-#include "../glTFMaterial/glTFMaterialOpaque.h"
-#include "../glTFRHI/RHIUtils.h"
-#include "../glTFRHI/RHIResourceFactoryImpl.hpp"
-#include "../glTFUtils/glTFImageLoader.h"
+#include "glTFRenderPass/glTFRenderMaterialManager.h"
+#include "glTFMaterial/glTFMaterialOpaque.h"
+#include "glTFRHI/RHIUtils.h"
+#include "glTFRHI/RHIResourceFactoryImpl.hpp"
+#include "glTFUtils/glTFImageLoader.h"
 
-glTFRenderPassMeshOpaque::glTFRenderPassMeshOpaque()
+glTFGraphicsPassMeshOpaque::glTFGraphicsPassMeshOpaque()
     : glTFGraphicsPassMeshBase()
     , glTFRenderInterfaceSceneMeshMaterial(
     MeshOpaquePass_RootParameter_SceneMesh_SRV,
@@ -17,7 +17,7 @@ glTFRenderPassMeshOpaque::glTFRenderPassMeshOpaque()
 {
 }
 
-bool glTFRenderPassMeshOpaque::ProcessMaterial(glTFRenderResourceManager& resource_manager, const glTFMaterialBase& material)
+bool glTFGraphicsPassMeshOpaque::ProcessMaterial(glTFRenderResourceManager& resource_manager, const glTFMaterialBase& material)
 {
     RETURN_IF_FALSE(material.GetMaterialType() == MaterialType::Opaque)
     // Material texture resource descriptor is alloc within current heap
@@ -26,7 +26,7 @@ bool glTFRenderPassMeshOpaque::ProcessMaterial(glTFRenderResourceManager& resour
     return true;
 }
 
-bool glTFRenderPassMeshOpaque::InitPass(glTFRenderResourceManager& resource_manager)
+bool glTFGraphicsPassMeshOpaque::InitPass(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::InitPass(resource_manager))
     RETURN_IF_FALSE(glTFRenderInterfaceSceneMeshMaterial::InitInterface(resource_manager))
@@ -34,7 +34,7 @@ bool glTFRenderPassMeshOpaque::InitPass(glTFRenderResourceManager& resource_mana
     return true;
 }
 
-bool glTFRenderPassMeshOpaque::PreRenderPass(glTFRenderResourceManager& resource_manager)
+bool glTFGraphicsPassMeshOpaque::PreRenderPass(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::PreRenderPass(resource_manager))
 
@@ -49,18 +49,18 @@ bool glTFRenderPassMeshOpaque::PreRenderPass(glTFRenderResourceManager& resource
     return true;
 }
 
-size_t glTFRenderPassMeshOpaque::GetMainDescriptorHeapSize()
+size_t glTFGraphicsPassMeshOpaque::GetMainDescriptorHeapSize()
 {
     // TODO: Calculate heap size
     return 256;
 }
 
-size_t glTFRenderPassMeshOpaque::GetRootSignatureParameterCount()
+size_t glTFGraphicsPassMeshOpaque::GetRootSignatureParameterCount()
 {
     return MeshOpaquePass_RootParameter_LastIndex;
 }
 
-bool glTFRenderPassMeshOpaque::SetupRootSignature(glTFRenderResourceManager& resource_manager)
+bool glTFGraphicsPassMeshOpaque::SetupRootSignature(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::SetupRootSignature(resource_manager))
     
@@ -71,7 +71,7 @@ bool glTFRenderPassMeshOpaque::SetupRootSignature(glTFRenderResourceManager& res
     return true;
 }
 
-bool glTFRenderPassMeshOpaque::SetupPipelineStateObject(glTFRenderResourceManager& resource_manager)
+bool glTFGraphicsPassMeshOpaque::SetupPipelineStateObject(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::SetupPipelineStateObject(resource_manager))
     
@@ -85,7 +85,8 @@ bool glTFRenderPassMeshOpaque::SetupPipelineStateObject(glTFRenderResourceManage
     render_target_base_color_desc.height = resource_manager.GetSwapchain().GetHeight();
     render_target_base_color_desc.name = "BasePassColor";
     render_target_base_color_desc.isUAV = true;
-    render_target_base_color_desc.clearValue.clearColor = {0.0f, 0.0f, 0.0f, 0.0f};
+    render_target_base_color_desc.clearValue.clear_format = RHIDataFormat::R8G8B8A8_UNORM_SRGB;
+    render_target_base_color_desc.clearValue.clear_color = {0.0f, 0.0f, 0.0f, 0.0f};
     
     m_base_pass_color_render_target = resource_manager.GetRenderTargetManager().CreateRenderTarget(
         resource_manager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R8G8B8A8_UNORM_SRGB, RHIDataFormat::R8G8B8A8_UNORM_SRGB, render_target_base_color_desc);
@@ -95,7 +96,8 @@ bool glTFRenderPassMeshOpaque::SetupPipelineStateObject(glTFRenderResourceManage
     render_target_normal_desc.height = resource_manager.GetSwapchain().GetHeight();
     render_target_normal_desc.name = "BasePassNormal";
     render_target_normal_desc.isUAV = true;
-    render_target_normal_desc.clearValue.clearColor = {0.0f, 0.0f, 0.0f, 0.0f};
+    render_target_normal_desc.clearValue.clear_format = RHIDataFormat::R8G8B8A8_UNORM_SRGB;
+    render_target_normal_desc.clearValue.clear_color = {0.0f, 0.0f, 0.0f, 0.0f};
     m_base_pass_normal_render_target = resource_manager.GetRenderTargetManager().CreateRenderTarget(
         resource_manager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R8G8B8A8_UNORM_SRGB, RHIDataFormat::R8G8B8A8_UNORM_SRGB, render_target_normal_desc);
 
@@ -110,7 +112,7 @@ bool glTFRenderPassMeshOpaque::SetupPipelineStateObject(glTFRenderResourceManage
     return true;
 }
 
-bool glTFRenderPassMeshOpaque::BeginDrawMesh(glTFRenderResourceManager& resource_manager, glTFUniqueID meshID)
+bool glTFGraphicsPassMeshOpaque::BeginDrawMesh(glTFRenderResourceManager& resource_manager, glTFUniqueID meshID)
 {
     // Using texture SRV slot when mesh material is texture
     glTFUniqueID material_ID = m_meshes[meshID].material_id;

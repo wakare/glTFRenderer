@@ -1,14 +1,13 @@
 #pragma once
-#include <map>
 
 #include "glTFGraphicsPassBase.h"
-#include "glTFRenderInterface/glTFRenderInterfaceSceneMesh.h"
-#include "glTFRenderInterface/glTFRenderInterfaceSceneView.h"
-#include "../glTFRHI/RHIInterface/IRHIGPUBuffer.h"
-#include "../glTFScene/glTFScenePrimitive.h"
-#include "../glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
-#include "../glTFRHI/RHIInterface/IRHIVertexBufferView.h"
-#include "../glTFRHI/RHIInterface/IRHIIndexBufferView.h"
+#include "glTFScene/glTFScenePrimitive.h"
+#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneMesh.h"
+#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneView.h"
+#include "glTFRHI/RHIInterface/IRHIGPUBuffer.h"
+#include "glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
+#include "glTFRHI/RHIInterface/IRHIVertexBufferView.h"
+#include "glTFRHI/RHIInterface/IRHIIndexBufferView.h"
 
 // Vertex and index gpu buffer data
 struct MeshGPUResource

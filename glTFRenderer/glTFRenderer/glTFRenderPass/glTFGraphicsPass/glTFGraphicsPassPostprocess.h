@@ -1,6 +1,6 @@
 #pragma once
 #include "glTFGraphicsPassBase.h"
-#include "glTFRenderPassBase.h"
+#include "glTFRenderPass/glTFRenderPassBase.h"
 
 class IRHIIndexBufferView;
 class IRHIVertexBufferView;

@@ -3,11 +3,11 @@
 #include <cassert>
 #include <Windows.h>
 
-#include "glTFGraphicsPassLighting.h"
-#include "glTFGraphicsPassMeshBase.h"
-#include "../glTFLoader/glTFElementCommon.h"
-#include "../glTFRHI/RHIUtils.h"
-#include "../glTFUtils/glTFLog.h"
+#include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassLighting.h"
+#include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassMeshBase.h"
+#include "glTFLoader/glTFElementCommon.h"
+#include "glTFRHI/RHIUtils.h"
+#include "glTFUtils/glTFLog.h"
 
 glTFRenderPassManager::glTFRenderPassManager(glTFWindow& window, glTFSceneView& view)
     : m_window(window)

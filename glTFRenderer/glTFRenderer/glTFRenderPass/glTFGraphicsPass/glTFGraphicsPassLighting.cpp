@@ -1,13 +1,13 @@
 #include "glTFGraphicsPassLighting.h"
-#include "glTFRenderResourceManager.h"
-#include "../glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
-#include "../glTFRHI/RHIInterface/IRHIRenderTargetManager.h"
-#include "../glTFRHI/RHIUtils.h"
-#include "../glTFLight/glTFDirectionalLight.h"
-#include "../glTFLight/glTFLightBase.h"
-#include "../glTFLight/glTFPointLight.h"
-#include "../glTFRHI/RHIResourceFactory.h"
-#include "../glTFUtils/glTFLog.h"
+#include "glTFRenderPass/glTFRenderResourceManager.h"
+#include "glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
+#include "glTFRHI/RHIInterface/IRHIRenderTargetManager.h"
+#include "glTFRHI/RHIUtils.h"
+#include "glTFLight/glTFDirectionalLight.h"
+#include "glTFLight/glTFLightBase.h"
+#include "glTFLight/glTFPointLight.h"
+#include "glTFRHI/RHIResourceFactory.h"
+#include "glTFUtils/glTFLog.h"
 
 glTFGraphicsPassLighting::glTFGraphicsPassLighting()
     : glTFRenderInterfaceSceneView(LightPass_RootParameter_SceneViewCBV, LightPass_SceneView_CBV_Register)

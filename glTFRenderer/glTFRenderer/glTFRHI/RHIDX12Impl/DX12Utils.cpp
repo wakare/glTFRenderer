@@ -174,6 +174,17 @@ D3D12_UAV_DIMENSION DX12ConverterUtils::ConvertToUAVDimensionType(RHIResourceDim
     return D3D12_UAV_DIMENSION_UNKNOWN;
 }
 
+D3D12_CLEAR_VALUE DX12ConverterUtils::ConvertToD3DClearValue(RHIRenderTargetClearValue clear_value)
+{
+    D3D12_CLEAR_VALUE dx_clear_value = {};
+    dx_clear_value.Format = ConvertToDXGIFormat(clear_value.clear_format);
+    memcpy(dx_clear_value.Color, &clear_value.clear_color, sizeof(clear_value.clear_color));
+    dx_clear_value.DepthStencil.Depth = clear_value.clearDS.clear_depth;
+    dx_clear_value.DepthStencil.Stencil = clear_value.clearDS.clear_stencil_value;
+
+    return dx_clear_value;
+}
+
 
 DX12Utils::~DX12Utils()
 {

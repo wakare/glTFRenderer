@@ -4,6 +4,7 @@
 
 #include "../RHIUtils.h"
 #include "../../glTFUtils/glTFLog.h"
+#include "glTFRHI/RHIInterface/IRHIRenderTarget.h"
 
 enum class RHIBufferType;
 enum class RHIDataFormat;
@@ -21,6 +22,7 @@ public:
     static D3D12_DESCRIPTOR_HEAP_TYPE ConvertToDescriptorHeapType(RHIDescriptorHeapType type);
     static D3D12_SRV_DIMENSION ConvertToSRVDimensionType(RHIResourceDimension type);
     static D3D12_UAV_DIMENSION ConvertToUAVDimensionType(RHIResourceDimension type);
+    static D3D12_CLEAR_VALUE ConvertToD3DClearValue(RHIRenderTargetClearValue clear_value);
 };
 
 class DX12Utils : public RHIUtils

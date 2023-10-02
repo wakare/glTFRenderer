@@ -1,8 +1,8 @@
 #pragma once
 #include "glTFComputePassBase.h"
-#include "glTFRenderPassCommon.h"
-#include "glTFRenderInterface/glTFRenderInterfaceLighting.h"
-#include "glTFRenderInterface/glTFRenderInterfaceSceneView.h"
+#include "glTFRenderPass/glTFRenderPassCommon.h"
+#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceLighting.h"
+#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneView.h"
 
 class glTFComputePassLighting : public glTFComputePassBase, public glTFRenderInterfaceSceneView, public glTFRenderInterfaceLighting
 {

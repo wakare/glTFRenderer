@@ -2,13 +2,13 @@
 
 #include <gtx/norm.hpp>
 
-#include "../glTFWindow/glTFInputManager.h"
-#include "../glTFRenderPass/glTFRenderPassManager.h"
-#include "../glTFRenderPass/glTFRenderPassMeshOpaque.h"
-#include "../glTFRenderPass/glTFGraphicsPassLighting.h"
-#include "glTFRenderPass/glTFComputePassLighting.h"
-#include "glTFRenderPass/glTFRayTracingPassHelloWorld.h"
-#include "glTFRenderPass/glTFRenderPassMeshDepth.h"
+#include "glTFWindow/glTFInputManager.h"
+#include "glTFRenderPass/glTFRenderPassManager.h"
+#include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassMeshOpaque.h"
+#include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassLighting.h"
+#include "glTFRenderPass/glTFComputePass/glTFComputePassLighting.h"
+#include "glTFRenderPass/glTFRayTracingPass/glTFRayTracingPassHelloWorld.h"
+#include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassMeshDepth.h"
 
 glTFSceneView::glTFSceneView(const glTFSceneGraph& graph)
     : m_scene_graph(graph)
@@ -50,7 +50,7 @@ bool glTFSceneView::SetupRenderPass(glTFRenderPassManager& out_render_pass_manag
 
 	GLTF_CHECK(has_resolved);
 
-    const bool debug_raytracing_pipeline = true;
+    const bool debug_raytracing_pipeline = false;
     if (debug_raytracing_pipeline)
     {
         std::unique_ptr<glTFRayTracingPassHelloWorld> raytracing_hello = std::make_unique<glTFRayTracingPassHelloWorld>();
@@ -58,11 +58,11 @@ bool glTFSceneView::SetupRenderPass(glTFRenderPassManager& out_render_pass_manag
     }
     else
     {
-        std::unique_ptr<glTFRenderPassMeshDepth> depth_pass = std::make_unique<glTFRenderPassMeshDepth>();
+        std::unique_ptr<glTFGraphicsPassMeshDepth> depth_pass = std::make_unique<glTFGraphicsPassMeshDepth>();
         depth_pass->ResolveVertexInputLayout(resolved_vertex_layout);
         out_render_pass_manager.AddRenderPass(std::move(depth_pass));
 
-        std::unique_ptr<glTFRenderPassMeshOpaque> opaque_pass = std::make_unique<glTFRenderPassMeshOpaque>();
+        std::unique_ptr<glTFGraphicsPassMeshOpaque> opaque_pass = std::make_unique<glTFGraphicsPassMeshOpaque>();
         opaque_pass->ResolveVertexInputLayout(resolved_vertex_layout);
         out_render_pass_manager.AddRenderPass(std::move(opaque_pass));
 

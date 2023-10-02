@@ -1,7 +1,7 @@
 #include "glTFComputePassLighting.h"
-#include "../glTFLight/glTFDirectionalLight.h"
-#include "../glTFLight/glTFLightBase.h"
-#include "../glTFLight/glTFPointLight.h"
+#include "glTFLight/glTFDirectionalLight.h"
+#include "glTFLight/glTFLightBase.h"
+#include "glTFLight/glTFPointLight.h"
 
 const char* glTFComputePassLighting::PassName()
 {
@@ -15,7 +15,8 @@ bool glTFComputePassLighting::InitPass(glTFRenderResourceManager& resource_manag
     lighting_output_desc.height = resource_manager.GetSwapchain().GetHeight();
     lighting_output_desc.name = "LightingOutput";
     lighting_output_desc.isUAV = true;
-    lighting_output_desc.clearValue.clearColor = {0.0f, 0.0f, 0.0f, 0.0f};
+    lighting_output_desc.clearValue.clear_format = RHIDataFormat::R8G8B8A8_UNORM;
+    lighting_output_desc.clearValue.clear_color = {0.0f, 0.0f, 0.0f, 0.0f};
     
     m_lighting_output_RT = resource_manager.GetRenderTargetManager().CreateRenderTarget(
         resource_manager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R8G8B8A8_UNORM, RHIDataFormat::R8G8B8A8_UNORM, lighting_output_desc);

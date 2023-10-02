@@ -9,16 +9,15 @@ public:
     DX12RenderTarget();
     virtual ~DX12RenderTarget() override;
 
-    void SetRenderTarget(ID3D12Resource* renderTarget, bool releaseInDtor)
+    void SetRenderTarget(ID3D12Resource* renderTarget)
     {
         assert(m_texture == nullptr);
         m_texture = renderTarget;
-        m_releaseInDtor = releaseInDtor;
     }
     
     ID3D12Resource* GetRenderTarget() {return m_texture.Get();}
 
-    void SetClearValue(D3D12_CLEAR_VALUE clearValue) {m_clearValue = clearValue; }
+    void SetClearValue(D3D12_CLEAR_VALUE clear_value) {m_clearValue = clear_value; }
     const D3D12_CLEAR_VALUE& GetClearValue() const {return m_clearValue; }
 
     ID3D12Resource* GetResource() const;
@@ -26,5 +25,4 @@ public:
 protected:
     ComPtr<ID3D12Resource> m_texture;
     D3D12_CLEAR_VALUE m_clearValue;
-    bool m_releaseInDtor;
 };

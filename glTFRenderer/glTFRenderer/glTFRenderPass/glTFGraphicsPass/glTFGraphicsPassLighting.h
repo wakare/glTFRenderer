@@ -1,11 +1,10 @@
 #pragma once
-#include <map>
 
-#include "glTFRenderInterface/glTFRenderInterfaceSceneView.h"
 #include "glTFGraphicsPassPostprocess.h"
-#include "glTFRenderPassCommon.h"
-#include "../glTFLoader/glTFElementCommon.h"
-#include "glTFRenderInterface/glTFRenderInterfaceLighting.h"
+#include "glTFLoader/glTFElementCommon.h"
+#include "glTFRenderPass/glTFRenderPassCommon.h"
+#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneView.h"
+#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceLighting.h"
 
 class glTFGraphicsPassLighting : public glTFGraphicsPassPostprocess, public glTFRenderInterfaceSceneView, public glTFRenderInterfaceLighting
 {

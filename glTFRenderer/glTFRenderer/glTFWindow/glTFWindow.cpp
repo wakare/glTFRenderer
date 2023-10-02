@@ -1,11 +1,11 @@
 #include "glTFWindow.h"
-#include "../glTFLight/glTFDirectionalLight.h"
-#include "../glTFLight/glTFPointLight.h"
-#include "../glTFMaterial/glTFMaterialOpaque.h"
-#include "../glTFRenderPass/glTFGraphicsPassLighting.h"
-#include "../glTFRenderPass/glTFRenderPassMeshOpaque.h"
-#include "../glTFScene/glTFCamera.h"
-#include "../glTFLoader/glTFLoader.h"
+#include "glTFLight/glTFDirectionalLight.h"
+#include "glTFLight/glTFPointLight.h"
+#include "glTFMaterial/glTFMaterialOpaque.h"
+#include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassLighting.h"
+#include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassMeshOpaque.h"
+#include "glTFScene/glTFCamera.h"
+#include "glTFLoader/glTFLoader.h"
 
 #include <GLFW/glfw3.h>
 
