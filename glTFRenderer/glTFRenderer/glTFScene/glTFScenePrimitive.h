@@ -4,6 +4,7 @@
 
 #include "glTFSceneObjectBase.h"
 #include "../glTFMaterial/glTFMaterialBase.h"
+#include "glTFRHI/RHIInterface/RHICommon.h"
 
 enum class VertexLayoutType
 {
@@ -68,20 +69,16 @@ struct VertexLayoutDeclaration
 
 struct VertexBufferData
 {
+    VertexLayoutDeclaration layout;
+    
     std::unique_ptr<char[]> data;
     size_t byteSize;
     size_t vertex_count;
 };
 
-enum class IndexBufferElementType
-{
-    UNSIGNED_SHORT,
-    UNSIGNED_INT,
-};
-
 struct IndexBufferData
 {
-    IndexBufferElementType elementType;
+    RHIDataFormat format;
     
     std::unique_ptr<char[]> data;
     size_t byteSize;

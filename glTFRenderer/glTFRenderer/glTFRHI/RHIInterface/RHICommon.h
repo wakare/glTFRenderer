@@ -9,6 +9,7 @@ enum RHICommonEnum
 
 enum class RHIResourceStateType
 {
+    COMMON,
     COPY_SOURCE,
     COPY_DEST,
     VERTEX_AND_CONSTANT_BUFFER,

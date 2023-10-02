@@ -105,9 +105,12 @@ IRHICommandList& glTFRenderResourceManager::GetCommandListForRecord()
 void glTFRenderResourceManager::CloseCommandListAndExecute(bool wait)
 {
     const auto current_frame_index = m_currentBackBufferIndex % backBufferCount;
-    auto& command_list = *m_command_lists[current_frame_index];
-    GLTF_CHECK(m_command_list_record_state[current_frame_index]);
+    if (!m_command_list_record_state[current_frame_index])
+    {
+        return;
+    }
     
+    auto& command_list = *m_command_lists[current_frame_index];
     GLTF_CHECK(RHIUtils::Instance().CloseCommandList(command_list)); 
     GLTF_CHECK(RHIUtils::Instance().ExecuteCommandList(command_list, GetCommandQueue()));
     GLTF_CHECK(GetCurrentFrameFence().SignalWhenCommandQueueFinish(GetCommandQueue()));
@@ -126,6 +129,7 @@ void glTFRenderResourceManager::WaitLastFrameFinish()
 
 void glTFRenderResourceManager::ResetCommandAllocator()
 {
+    CloseCommandListAndExecute(true);
     RHIUtils::Instance().ResetCommandAllocator(GetCurrentFrameCommandAllocator());
 }
 

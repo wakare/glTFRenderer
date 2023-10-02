@@ -10,7 +10,6 @@ public:
     virtual const IndexBufferData& GetIndexBufferData() const override;
     
 private:
-    VertexLayoutDeclaration m_vertexLayout;
-    VertexBufferData m_vertexBufferData;
+    VertexBufferData m_vertex_buffer_data;
     IndexBufferData m_indexBufferData;
 };

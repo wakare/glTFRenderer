@@ -1,5 +1,6 @@
 #include "glTFGraphicsPassMeshBase.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
+#include "glTFRHI/RHIInterface/IRHIVertexBuffer.h"
 
 glTFGraphicsPassMeshBase::glTFGraphicsPassMeshBase()
     : glTFRenderInterfaceSceneView(MeshBasePass_RootParameter_SceneView_CBV, MeshBasePass_SceneView_CBV_Register)
@@ -69,9 +70,20 @@ bool glTFGraphicsPassMeshBase::RenderPass(glTFRenderResourceManager& resource_ma
 
 bool glTFGraphicsPassMeshBase::AddOrUpdatePrimitiveToMeshPass(glTFRenderResourceManager& resource_manager, const glTFScenePrimitive& primitive)
 {
+    auto& device = resource_manager.GetDevice();
+    auto& command_list = resource_manager.GetCommandListForRecord();
+    
     const glTFUniqueID mesh_ID = primitive.GetID();
     if (m_meshes.find(mesh_ID) == m_meshes.end())
     {
+        m_meshes[mesh_ID].mesh_vertex_buffer = RHIResourceFactory::CreateRHIResource<IRHIVertexBuffer>();
+        const RHIBufferDesc vertex_buffer_desc = {L"vertexBufferDefaultBuffer", primitive.GetVertexBufferData().byteSize, 1, 1, RHIBufferType::Default, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
+        m_meshes[mesh_ID].mesh_vertex_buffer_view = m_meshes[mesh_ID].mesh_vertex_buffer->CreateVertexBufferView(device, command_list, vertex_buffer_desc, primitive.GetVertexBufferData());
+
+        m_meshes[mesh_ID].mesh_index_buffer = RHIResourceFactory::CreateRHIResource<IRHIIndexBuffer>();
+        const RHIBufferDesc index_buffer_desc = {L"indexBufferDefaultBuffer", primitive.GetIndexBufferData().byteSize, 1, 1, RHIBufferType::Default, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
+        m_meshes[mesh_ID].mesh_index_buffer_view = m_meshes[mesh_ID].mesh_index_buffer->CreateIndexBufferView(device, command_list, index_buffer_desc, primitive.GetIndexBufferData());
+        /*
         // Upload vertex and index data once
         const auto& vertex_buffer = m_meshes[mesh_ID].mesh_vertex_buffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
         const auto& index_buffer = m_meshes[mesh_ID].mesh_index_buffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
@@ -108,9 +120,9 @@ bool glTFGraphicsPassMeshBase::AddOrUpdatePrimitiveToMeshPass(glTFRenderResource
         
         vertex_buffer_view->InitVertexBufferView(*vertex_buffer, 0, primitive.GetVertexLayout().GetVertexStrideInBytes(), primitive_vertices.byteSize);
         index_buffer_view->InitIndexBufferView(*index_buffer, 0, primitive_indices.elementType == IndexBufferElementType::UNSIGNED_INT ? RHIDataFormat::R32_UINT : RHIDataFormat::R16_UINT, primitive_indices.byteSize);
-
-        m_meshes[mesh_ID].mesh_vertex_count = primitive_vertices.vertex_count;
-        m_meshes[mesh_ID].mesh_index_count = primitive_indices.index_count;
+        */
+        m_meshes[mesh_ID].mesh_vertex_count = primitive.GetVertexBufferData().vertex_count;
+        m_meshes[mesh_ID].mesh_index_count = primitive.GetIndexBufferData().index_count;
         m_meshes[mesh_ID].material_id = primitive.HasMaterial() ? primitive.GetMaterial().GetID() : glTFUniqueIDInvalid;
         m_meshes[mesh_ID].using_normal_mapping = primitive.HasNormalMapping();
     }

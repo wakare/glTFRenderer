@@ -71,6 +71,9 @@ D3D12_RESOURCE_STATES DX12ConverterUtils::ConvertToResourceState(RHIResourceStat
 {
     switch (state)
     {
+    case RHIResourceStateType::COMMON:
+        return D3D12_RESOURCE_STATE_COMMON;
+        
     case RHIResourceStateType::COPY_SOURCE:
         return D3D12_RESOURCE_STATE_COPY_SOURCE;
         

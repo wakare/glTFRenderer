@@ -136,9 +136,9 @@ void glTFSceneGraph::RecursiveInitSceneNodeFromGLTFLoader(const glTFLoader& load
             for (const auto& primitive : mesh.primitives)
             {
                 VertexLayoutDeclaration vertexLayout;
-                size_t vertexBufferSize = 0;
+                size_t vertex_buffer_size = 0;
 
-                std::vector<char*> vertexDataInGLTFBuffers;
+                std::vector<char*> vertex_data_in_buffers;
 
 				static auto _process_vertex_attribute = [](const glTFLoader& source_loader, glTFAttributeId attribute_ID, VertexLayoutType attribute_type,
 				    const glTF_Primitive& source_primitive, size_t& out_vertex_buffer_size, VertexLayoutDeclaration& out_vertex_layout,
@@ -164,26 +164,27 @@ void glTFSceneGraph::RecursiveInitSceneNodeFromGLTFLoader(const glTFLoader& load
                 
                 // POSITION attribute
 				_process_vertex_attribute(loader, glTF_Attribute_POSITION::attribute_type_id, VertexLayoutType::POSITION,
-				    primitive, vertexBufferSize, vertexLayout, vertexDataInGLTFBuffers);
+				    primitive, vertex_buffer_size, vertexLayout, vertex_data_in_buffers);
 
                 // NORMAL attribute
                 _process_vertex_attribute(loader, glTF_Attribute_NORMAL::attribute_type_id, VertexLayoutType::NORMAL,
-                    primitive, vertexBufferSize, vertexLayout, vertexDataInGLTFBuffers);
+                    primitive, vertex_buffer_size, vertexLayout, vertex_data_in_buffers);
 
                 // TANGENT attribute
                 _process_vertex_attribute(loader, glTF_Attribute_TANGENT::attribute_type_id, VertexLayoutType::TANGENT,
-                    primitive, vertexBufferSize, vertexLayout, vertexDataInGLTFBuffers);
+                    primitive, vertex_buffer_size, vertexLayout, vertex_data_in_buffers);
                 
                 // TEXCOORD attribute
                 _process_vertex_attribute(loader, glTF_Attribute_TEXCOORD_0::attribute_type_id, VertexLayoutType::TEXCOORD_0,
-                    primitive, vertexBufferSize, vertexLayout, vertexDataInGLTFBuffers);
+                    primitive, vertex_buffer_size, vertexLayout, vertex_data_in_buffers);
 
-                std::shared_ptr<VertexBufferData> vertexBufferData = std::make_shared<VertexBufferData>();
-                vertexBufferData->data.reset(new char[vertexBufferSize]);
-                vertexBufferData->byteSize = vertexBufferSize;
-                vertexBufferData->vertex_count = vertexBufferSize /vertexLayout.GetVertexStrideInBytes();
-                char* vertexDataStart = vertexBufferData->data.get();
-                for (size_t v = 0; v < vertexBufferData->vertex_count; ++v)
+                std::shared_ptr<VertexBufferData> vertex_buffer_data = std::make_shared<VertexBufferData>();
+                vertex_buffer_data->data.reset(new char[vertex_buffer_size]);
+                vertex_buffer_data->byteSize = vertex_buffer_size;
+                vertex_buffer_data->vertex_count = vertex_buffer_size / vertexLayout.GetVertexStrideInBytes();
+                vertex_buffer_data->layout = vertexLayout;
+                char* vertex_data_start = vertex_buffer_data->data.get();
+                for (size_t v = 0; v < vertex_buffer_data->vertex_count; ++v)
                 {
                     // Reformat vertex buffer data
                     for (size_t i = 0; i < vertexLayout.elements.size(); ++i)
@@ -192,13 +193,13 @@ void glTFSceneGraph::RecursiveInitSceneNodeFromGLTFLoader(const glTFLoader& load
                         {
                             // Position attribute component type should be float
                             GLTF_CHECK(vertexLayout.elements[i].byte_size == 3 * sizeof(float));
-                            auto position = reinterpret_cast<float*>(vertexDataInGLTFBuffers[i]);
+                            auto position = reinterpret_cast<float*>(vertex_data_in_buffers[i]);
                             mesh_AABB.extend({position[0], position[1], position[2]});
                         }
                         
-                        memcpy(vertexDataStart, vertexDataInGLTFBuffers[i], vertexLayout.elements[i].byte_size);
-                        vertexDataInGLTFBuffers[i] += vertexLayout.elements[i].byte_size;
-                        vertexDataStart += vertexLayout.elements[i].byte_size;
+                        memcpy(vertex_data_start, vertex_data_in_buffers[i], vertexLayout.elements[i].byte_size);
+                        vertex_data_in_buffers[i] += vertexLayout.elements[i].byte_size;
+                        vertex_data_start += vertexLayout.elements[i].byte_size;
                     }
                 }
             
@@ -217,12 +218,12 @@ void glTFSceneGraph::RecursiveInitSceneNodeFromGLTFLoader(const glTFLoader& load
                 memcpy(index_buffer_data->data.get(), bufferStart, index_buffer_size);
                 index_buffer_data->byteSize = index_buffer_size;
                 index_buffer_data->index_count = index_accessor.count;
-                index_buffer_data->elementType = index_accessor.component_type ==
+                index_buffer_data->format = index_accessor.component_type ==
                     glTF_Element_Template<glTF_Element_Type::EAccessor>::glTF_Accessor_Component_Type::EUnsignedShort ?
-                    IndexBufferElementType::UNSIGNED_SHORT : IndexBufferElementType::UNSIGNED_INT;   
+                    RHIDataFormat::R16_UINT : RHIDataFormat::R32_UINT;   
 
 				std::unique_ptr<glTFSceneTriangleMesh> triangle_mesh =
-				    std::make_unique<glTFSceneTriangleMesh>(sceneNode.m_finalTransform, vertexLayout, vertexBufferData, index_buffer_data);
+				    std::make_unique<glTFSceneTriangleMesh>(sceneNode.m_finalTransform, vertex_buffer_data, index_buffer_data);
 				std::shared_ptr<glTFMaterialPBR> pbr_material = std::make_shared<glTFMaterialPBR>();
 				triangle_mesh->SetMaterial(pbr_material);
 

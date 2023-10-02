@@ -12,7 +12,6 @@
 DX12GPUBuffer::DX12GPUBuffer()
     : m_buffer(nullptr)
     , m_mapped_gpu_buffer(nullptr)
-    , m_buffer_desc()
     , m_map_range()
 {
 }

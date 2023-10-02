@@ -3,8 +3,8 @@
 glTFSceneBox::glTFSceneBox(const glTF_Transform_WithTRS& parentTransformRef)
     : glTFScenePrimitive(parentTransformRef)
 {
-    m_vertexLayout.elements.push_back({VertexLayoutType::POSITION, 12});
-    m_vertexLayout.elements.push_back({VertexLayoutType::TEXCOORD_0, 8});
+    m_vertex_buffer_data.layout.elements.push_back({VertexLayoutType::POSITION, 12});
+    m_vertex_buffer_data.layout.elements.push_back({VertexLayoutType::TEXCOORD_0, 8});
 
     /*
      *   6 --  -- 7
@@ -44,26 +44,26 @@ glTFSceneBox::glTFSceneBox(const glTF_Transform_WithTRS& parentTransformRef)
         4, 7, 6
     };
     
-    m_vertexBufferData.data.reset(new char[sizeof(boxVertices)]);
-    memcpy(m_vertexBufferData.data.get(), boxVertices, sizeof(boxVertices));
-    m_vertexBufferData.byteSize = sizeof(boxVertices);
-    m_vertexBufferData.vertex_count = 8;
+    m_vertex_buffer_data.data.reset(new char[sizeof(boxVertices)]);
+    memcpy(m_vertex_buffer_data.data.get(), boxVertices, sizeof(boxVertices));
+    m_vertex_buffer_data.byteSize = sizeof(boxVertices);
+    m_vertex_buffer_data.vertex_count = 8;
     
     m_indexBufferData.data.reset(new char[sizeof(boxIndices)]);
     memcpy(m_indexBufferData.data.get(), boxIndices, sizeof(boxIndices));
     m_indexBufferData.byteSize = sizeof(boxIndices);
     m_indexBufferData.index_count = sizeof(boxIndices) / sizeof(unsigned);
-    m_indexBufferData.elementType = IndexBufferElementType::UNSIGNED_INT; 
+    m_indexBufferData.format = RHIDataFormat::R32_UINT;
 }
 
 const VertexLayoutDeclaration& glTFSceneBox::GetVertexLayout() const
 {
-    return m_vertexLayout;
+    return m_vertex_buffer_data.layout;
 }
 
 const VertexBufferData& glTFSceneBox::GetVertexBufferData() const
 {
-    return m_vertexBufferData;
+    return m_vertex_buffer_data;
 }
 
 const IndexBufferData& glTFSceneBox::GetIndexBufferData() const

@@ -2,8 +2,8 @@
 #include <d3d12.h>
 #include <dxgiformat.h>
 
-#include "../RHIUtils.h"
-#include "../../glTFUtils/glTFLog.h"
+#include "glTFRHI/RHIUtils.h"
+#include "glTFUtils/glTFLog.h"
 #include "glTFRHI/RHIInterface/IRHIRenderTarget.h"
 
 enum class RHIBufferType;

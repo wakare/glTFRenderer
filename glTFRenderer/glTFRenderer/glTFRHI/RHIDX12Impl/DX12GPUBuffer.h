@@ -18,7 +18,5 @@ public:
 private:
     ComPtr<ID3D12Resource> m_buffer;
     UINT8* m_mapped_gpu_buffer;
-    
-    RHIBufferDesc m_buffer_desc;
     CD3DX12_RANGE m_map_range;
 };

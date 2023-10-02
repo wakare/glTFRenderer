@@ -33,7 +33,7 @@ bool glTFRayTracingPassHelloWorld::InitPass(glTFRenderResourceManager& resource_
     auto& command_list = resource_manager.GetCommandListForRecord();
 
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_raytracing_output,
-        RHIResourceStateType::RENDER_TARGET, RHIResourceStateType::UNORDER_ACCESS))
+        RHIResourceStateType::COMMON, RHIResourceStateType::UNORDER_ACCESS))
 
     m_shader_table = RHIResourceFactory::CreateRHIResource<IRHIShaderTable>();
     RETURN_IF_FALSE(m_shader_table->InitShaderTable(resource_manager.GetDevice(), GetRayTracingPipelineStateObject()))
@@ -119,6 +119,13 @@ bool glTFRayTracingPassHelloWorld::SetupPipelineStateObject(glTFRenderResourceMa
     RHIGPUDescriptorHandle UAV;
     RETURN_IF_FALSE(m_main_descriptor_heap->CreateUnOrderAccessViewInDescriptorHeap(resource_manager.GetDevice(), m_main_descriptor_heap->GetUsedDescriptorCount(),
                 *m_raytracing_output, {m_raytracing_output->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D}, UAV))
+    
+    return true;
+}
+
+bool glTFRayTracingPassHelloWorld::BuildAS(glTFRenderResourceManager& resource_manager)
+{
+
     
     return true;
 }

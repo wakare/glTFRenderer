@@ -12,8 +12,8 @@
 // Vertex and index gpu buffer data
 struct MeshGPUResource
 {
-    std::shared_ptr<IRHIGPUBuffer> mesh_vertex_buffer;
-    std::shared_ptr<IRHIGPUBuffer> mesh_index_buffer;
+    std::shared_ptr<IRHIVertexBuffer> mesh_vertex_buffer;
+    std::shared_ptr<IRHIIndexBuffer> mesh_index_buffer;
     std::shared_ptr<IRHIVertexBufferView> mesh_vertex_buffer_view;
     std::shared_ptr<IRHIIndexBufferView> mesh_index_buffer_view;
 

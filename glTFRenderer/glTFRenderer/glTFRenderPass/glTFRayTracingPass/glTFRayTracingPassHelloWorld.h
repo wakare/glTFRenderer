@@ -10,7 +10,6 @@ public:
     virtual const char* PassName() override;
     virtual bool InitPass(glTFRenderResourceManager& resource_manager) override;
     virtual bool PreRenderPass(glTFRenderResourceManager& resource_manager) override;
-    
     virtual bool PostRenderPass(glTFRenderResourceManager& resource_manager) override;
 
     virtual IRHIShaderTable& GetShaderTable() const override;
@@ -24,6 +23,8 @@ protected:
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;
 
 private:
+    bool BuildAS(glTFRenderResourceManager& resource_manager);
+    
     std::shared_ptr<IRHIShaderTable> m_shader_table;
     std::shared_ptr<IRHIRenderTarget> m_raytracing_output;
     TraceCount m_trace_count;

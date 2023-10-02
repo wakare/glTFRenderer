@@ -1,11 +1,15 @@
 #pragma once
+#ifndef _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS
+#define _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS
+#endif
+
 #include <cassert>
 #include <fstream>
 #include <functional>
 #include <string>
 #include <locale>
-#include <codecvt>
 
+#include <codecvt>
 #include "glTFLog.h"
 
 typedef unsigned glTFUniqueID;

@@ -1,6 +1,4 @@
-#ifndef _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS
-#define _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS
-#endif
+
 
 #include "DX12RenderTargetManager.h"
 #include "DX12CommandList.h"
@@ -55,6 +53,7 @@ std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTarget(IR
     
     // Check has enough space for descriptor?
     D3D12_RESOURCE_FLAGS flags = (desc.isUAV) ? D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS : D3D12_RESOURCE_FLAG_NONE;
+    D3D12_RESOURCE_STATES state = D3D12_RESOURCE_STATE_COMMON;
     const DXGI_FORMAT dxResourceFormat = DX12ConverterUtils::ConvertToDXGIFormat(resource_format);
     
     switch (type)
@@ -62,11 +61,13 @@ std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTarget(IR
     case RHIRenderTargetType::RTV:
         {
             flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+            state = D3D12_RESOURCE_STATE_RENDER_TARGET;
         }
         break;
     case RHIRenderTargetType::DSV:
         {
             flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+            state = D3D12_RESOURCE_STATE_DEPTH_WRITE;
         }
         break;
     }
@@ -93,7 +94,7 @@ std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTarget(IR
     THROW_IF_FAILED(dxDevice->CreateCommittedResource(&heap_properties,
                                                   D3D12_HEAP_FLAG_NONE,
                                                   &resource_desc,
-                                                  D3D12_RESOURCE_STATE_COMMON,
+                                                  state,
                                                   &dx_clear_value,
                                                   IID_PPV_ARGS(&resource)))
 

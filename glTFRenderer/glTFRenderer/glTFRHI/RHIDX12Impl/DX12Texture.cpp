@@ -1,25 +1,19 @@
-#ifndef _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS
-#define _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS
-#endif 
 #include "DX12Texture.h"
 #include "DX12Device.h"
-#include "../RHIResourceFactory.h"
-#include "../RHIUtils.h"
-#include "../../glTFUtils/glTFImageLoader.h"
-
-#include <codecvt>
+#include "glTFRHI/RHIResourceFactory.h"
+#include "glTFRHI/RHIUtils.h"
+#include "glTFUtils/glTFImageLoader.h"
+#include "glTFUtils/glTFUtils.h"
 
 DX12Texture::DX12Texture()
 = default;
 
 DX12Texture::~DX12Texture()
-{
-}
+= default;
 
 bool DX12Texture::UploadTextureFromFile(IRHIDevice& device, IRHICommandList& commandList, const std::string& filePath)
 {
-    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-    const std::wstring convertPath = converter.from_bytes(filePath);
+    const std::wstring convertPath = to_wide_string(filePath);
     RETURN_IF_FALSE(glTFImageLoader::Instance().LoadImageByFilename(convertPath.c_str(), m_textureDesc))
 
     const RHIBufferDesc textureBufferDesc = {L"TextureBuffer_Default", m_textureDesc.GetTextureWidth(), m_textureDesc.GetTextureHeight(), 1,  RHIBufferType::Default, m_textureDesc.GetDataFormat(), RHIBufferResourceType::Tex2D};
