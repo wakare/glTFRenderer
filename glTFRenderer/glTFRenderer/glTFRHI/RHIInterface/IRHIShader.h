@@ -20,6 +20,34 @@ struct RHIShaderPreDefineMacros
         macroKey.push_back(key);
         macroValue.push_back(value);
     }
+
+    void AddCBVRegisterDefine(const std::string& key, unsigned register_index)
+    {
+        char format_string[16] = {'\0'};
+        (void)snprintf(format_string, sizeof(format_string), "register(b%u)", register_index);
+        AddMacro(key, format_string);
+    }
+    
+    void AddSRVRegisterDefine(const std::string& key, unsigned register_index)
+    {
+        char format_string[16] = {'\0'};
+        (void)snprintf(format_string, sizeof(format_string), "register(t%u)", register_index);
+        AddMacro(key, format_string);
+    }
+    
+    void AddUAVRegisterDefine(const std::string& key, unsigned register_index)
+    {
+        char format_string[16] = {'\0'};
+        (void)snprintf(format_string, sizeof(format_string), "register(u%u)", register_index);
+        AddMacro(key, format_string);
+    }
+
+    void AddSamplerRegisterDefine(const std::string& key, unsigned register_index)
+    {
+        char format_string[16] = {'\0'};
+        (void)snprintf(format_string, sizeof(format_string), "register(s%u)", register_index);
+        AddMacro(key, format_string);
+    }
     
     std::vector<std::string> macroKey;
     std::vector<std::string> macroValue;

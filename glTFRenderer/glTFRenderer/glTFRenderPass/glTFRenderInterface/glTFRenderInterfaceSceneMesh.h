@@ -14,18 +14,11 @@ struct ConstantBufferSceneMesh
 class glTFRenderInterfaceSceneMesh: public glTFRenderInterfaceSingleConstantBuffer<ConstantBufferSceneMesh>
 {
 public:
-    glTFRenderInterfaceSceneMesh(unsigned root_parameter_cbv_index, unsigned register_index);
-
     virtual void UpdateShaderCompileDefine(RHIShaderPreDefineMacros& outShaderPreDefineMacros) const override;
 };
 
 class glTFRenderInterfaceSceneMeshMaterial : public glTFRenderInterfaceShaderResourceView
 {
 public:
-    glTFRenderInterfaceSceneMeshMaterial(
-        unsigned root_parameter_srv_index,
-        unsigned srv_register_index,
-        unsigned max_srv_count);
-
     virtual void UpdateShaderCompileDefine(RHIShaderPreDefineMacros& outShaderPreDefineMacros) const override;
 };

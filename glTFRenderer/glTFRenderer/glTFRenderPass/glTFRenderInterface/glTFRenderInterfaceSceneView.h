@@ -17,7 +17,5 @@ struct ConstantBufferSceneView
 class glTFRenderInterfaceSceneView : public glTFRenderInterfaceSingleConstantBuffer<ConstantBufferSceneView>
 {
 public:
-    glTFRenderInterfaceSceneView(unsigned root_parameter_cbv_index, unsigned register_index);
-    
     virtual void UpdateShaderCompileDefine(RHIShaderPreDefineMacros& outShaderPreDefineMacros) const override;
 };

@@ -25,6 +25,22 @@ bool glTFSceneNode::IsDirty() const
     return false;
 }
 
+void glTFSceneNode::ResetDirty() const
+{
+    for (const auto& object : m_objects)
+    {
+        if (object->IsDirty())
+        {
+            object->ResetDirty();
+        }
+    }
+
+    for (const auto& child : m_children)
+    {
+        child->ResetDirty();
+    }
+}
+
 glTFSceneGraph::glTFSceneGraph()
     : m_root(std::make_unique<glTFSceneNode>())
 {

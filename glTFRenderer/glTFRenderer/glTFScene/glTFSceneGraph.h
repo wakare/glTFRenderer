@@ -11,6 +11,7 @@
 struct glTFSceneNode
 {
     bool IsDirty() const;
+    void ResetDirty() const;
     
     glTF_Transform_WithTRS m_transform;
     glTF_Transform_WithTRS m_finalTransform;

@@ -18,17 +18,19 @@ public:
     virtual TraceCount GetTraceCount() const override;
     
 protected:
-    virtual size_t GetRootSignatureParameterCount() override;
-    virtual size_t GetRootSignatureSamplerCount() override;
     virtual size_t GetMainDescriptorHeapSize() override;
     virtual bool SetupRootSignature(glTFRenderResourceManager& resource_manager) override;
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;
 
 private:
+    bool UpdateAS(glTFRenderResourceManager& resource_manager);
     bool BuildAS(glTFRenderResourceManager& resource_manager);
     
     std::shared_ptr<IRHIShaderTable> m_shader_table;
     std::shared_ptr<IRHIRenderTarget> m_raytracing_output;
     std::shared_ptr<IRHIRayTracingAS> m_raytracing_as;
     TraceCount m_trace_count;
+
+    RootSignatureAllocation m_output_allocation;
+    RootSignatureAllocation m_raytracing_as_allocation;
 };

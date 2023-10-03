@@ -1,9 +1,9 @@
 #include "glTFRenderMaterialManager.h"
-#include "../glTFMaterial/glTFMaterialOpaque.h"
-#include "../glTFRHI/RHIUtils.h"
-#include "../glTFRHI/RHIResourceFactoryImpl.hpp"
-#include "../glTFUtils/glTFImageLoader.h"
-#include "../glTFRenderPass/glTFRenderPassManager.h"
+#include "glTFMaterial/glTFMaterialOpaque.h"
+#include "glTFRHI/RHIUtils.h"
+#include "glTFRHI/RHIResourceFactoryImpl.hpp"
+#include "glTFUtils/glTFImageLoader.h"
+#include "glTFRenderPass/glTFRenderPassManager.h"
 
 glTFMaterialTextureRenderResource::glTFMaterialTextureRenderResource(const glTFMaterialParameterTexture& source_texture)
         : m_source_texture(source_texture)

@@ -2,6 +2,7 @@
 #include <memory>
 #include <vector>
 
+#include "glTFRenderMeshManager.h"
 #include "../glTFRHI/RHIInterface/IRHICommandList.h"
 #include "../glTFRHI/RHIInterface/IRHIDevice.h"
 #include "../glTFRHI/RHIInterface/IRHIFence.h"
@@ -43,7 +44,11 @@ public:
     void UpdateCurrentBackBufferIndex() { m_currentBackBufferIndex = m_swapchain->GetCurrentBackBufferIndex(); }
 
 	glTFRenderMaterialManager& GetMaterialManager();
+    glTFRenderMeshManager& GetMeshManager();
+    
     bool ApplyMaterial(IRHIDescriptorHeap& descriptor_heap, glTFUniqueID material_ID, unsigned slot_index, bool isGraphicsPipeline);
+    bool TryProcessSceneObject(glTFRenderResourceManager& resource_manager, const glTFSceneObjectBase& object);
+    
     void SetCurrentPSO(std::shared_ptr<IRHIPipelineStateObject> pso);
 private:
     std::shared_ptr<IRHIFactory> m_factory;
@@ -60,6 +65,7 @@ private:
     std::shared_ptr<IRHIRenderTarget> m_depth_texture;
 
     std::shared_ptr<glTFRenderMaterialManager> m_material_manager;
+    std::shared_ptr<glTFRenderMeshManager> m_mesh_manager;
     
     std::shared_ptr<IRHIPipelineStateObject> m_current_pass_pso;
     

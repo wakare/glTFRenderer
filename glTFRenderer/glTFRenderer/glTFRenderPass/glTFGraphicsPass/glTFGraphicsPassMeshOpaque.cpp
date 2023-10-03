@@ -7,12 +7,7 @@
 #include "glTFUtils/glTFImageLoader.h"
 
 glTFGraphicsPassMeshOpaque::glTFGraphicsPassMeshOpaque()
-    : glTFGraphicsPassMeshBase()
-    , glTFRenderInterfaceSceneMeshMaterial(
-    MeshOpaquePass_RootParameter_SceneMesh_SRV,
-    MeshOpaquePass_SceneMesh_SRV_Register,
-    4)
-    , m_base_pass_color_render_target(nullptr)
+    : m_base_pass_color_render_target(nullptr)
     , m_base_pass_normal_render_target(nullptr)
 {
 }
@@ -55,18 +50,13 @@ size_t glTFGraphicsPassMeshOpaque::GetMainDescriptorHeapSize()
     return 256;
 }
 
-size_t glTFGraphicsPassMeshOpaque::GetRootSignatureParameterCount()
-{
-    return MeshOpaquePass_RootParameter_LastIndex;
-}
-
 bool glTFGraphicsPassMeshOpaque::SetupRootSignature(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::SetupRootSignature(resource_manager))
     
     // TODO: Init sampler in material resource manager
-    RETURN_IF_FALSE(m_root_signature->GetStaticSampler(0).InitStaticSampler(0, RHIStaticSamplerAddressMode::Warp, RHIStaticSamplerFilterMode::Linear))
-    RETURN_IF_FALSE(glTFRenderInterfaceSceneMeshMaterial::SetupRootSignature(*m_root_signature))
+    RETURN_IF_FALSE(m_root_signature_helper.AddSampler("DefaultSampler", RHIStaticSamplerAddressMode::Warp, RHIStaticSamplerFilterMode::Linear, m_sampler_allocation))
+    RETURN_IF_FALSE(glTFRenderInterfaceSceneMeshMaterial::SetupRootSignature(m_root_signature_helper))
     
     return true;
 }
@@ -115,12 +105,18 @@ bool glTFGraphicsPassMeshOpaque::SetupPipelineStateObject(glTFRenderResourceMana
 bool glTFGraphicsPassMeshOpaque::BeginDrawMesh(glTFRenderResourceManager& resource_manager, glTFUniqueID meshID)
 {
     // Using texture SRV slot when mesh material is texture
-    glTFUniqueID material_ID = m_meshes[meshID].material_id;
+    auto mesh = resource_manager.GetMeshManager().GetMeshes().find(meshID);
+    if (mesh == resource_manager.GetMeshManager().GetMeshes().end())
+    {
+        return false;
+    }
+
+    const glTFUniqueID material_ID = mesh->second.material_id;
     if (material_ID == glTFUniqueIDInvalid)
     {
         return true;
     }
     
 	return resource_manager.ApplyMaterial(*m_main_descriptor_heap,
-	    material_ID, MeshOpaquePass_RootParameter_SceneMesh_SRV, GetPipelineType() == PipelineType::Graphics);
+	    material_ID, glTFRenderInterfaceSceneMeshMaterial::m_allocation.parameter_index, GetPipelineType() == PipelineType::Graphics);
 }

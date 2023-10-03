@@ -11,7 +11,14 @@ enum class RHIRootParameterDescriptorRangeType
     CBV,
     SRV,
     UAV,
-    Sampler,
+    Unknown,
+};
+
+enum class RHIShaderRegisterType
+{
+    b,
+    t,
+    u,
     Unknown,
 };
 
@@ -88,7 +95,7 @@ enum class RHIRootSignatureUsage
 {
     None,
     Default,
-    RayTracing,
+    LocalRS,
 };
 
 class IRHIRootSignature : public IRHIResource
@@ -97,7 +104,7 @@ public:
     IRHIRootSignature();
     
     bool AllocateRootSignatureSpace(size_t rootParameterCount, size_t staticSamplerCount);
-    void SetUsage (RHIRootSignatureUsage usage) {m_usage = usage; }
+    void SetUsage (RHIRootSignatureUsage usage) { m_usage = usage; }
     bool IsSpaceAllocated() const {return !m_rootParameters.empty() || !m_staticSampler.empty(); }
     
     virtual bool InitRootSignature(IRHIDevice& device) = 0;

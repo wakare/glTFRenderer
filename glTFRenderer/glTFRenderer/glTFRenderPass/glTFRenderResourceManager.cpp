@@ -10,6 +10,7 @@ constexpr size_t backBufferCount = 3;
 
 glTFRenderResourceManager::glTFRenderResourceManager()
     : m_material_manager(std::make_shared<glTFRenderMaterialManager>())
+    , m_mesh_manager(std::make_shared<glTFRenderMeshManager>())
     , m_currentBackBufferIndex(0)
 {
 }
@@ -163,9 +164,27 @@ glTFRenderMaterialManager& glTFRenderResourceManager::GetMaterialManager()
     return *m_material_manager;
 }
 
+glTFRenderMeshManager& glTFRenderResourceManager::GetMeshManager()
+{
+    return *m_mesh_manager;
+}
+
 bool glTFRenderResourceManager::ApplyMaterial(IRHIDescriptorHeap& descriptor_heap, glTFUniqueID material_ID, unsigned slot_index, bool isGraphicsPipeline)
 {
     return m_material_manager->ApplyMaterialRenderResource(*this, descriptor_heap, material_ID, slot_index, isGraphicsPipeline);
+}
+
+bool glTFRenderResourceManager::TryProcessSceneObject(glTFRenderResourceManager& resource_manager,
+    const glTFSceneObjectBase& object)
+{
+    const glTFScenePrimitive* primitive = dynamic_cast<const glTFScenePrimitive*>(&object);
+    
+    if (!primitive || !primitive->IsVisible())
+    {
+        return false;
+    }
+
+    return m_mesh_manager->AddOrUpdatePrimitive(resource_manager, *primitive);
 }
 
 void glTFRenderResourceManager::SetCurrentPSO(std::shared_ptr<IRHIPipelineStateObject> pso)

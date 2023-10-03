@@ -1,17 +1,12 @@
 #pragma once
 #include "glTFRenderInterfaceBase.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
+#include "glTFRHI/RHIInterface/IRHIRootSignatureHelper.h"
 
 template <typename ConstantBufferType>
 class glTFRenderInterfaceSingleConstantBuffer : public glTFRenderInterfaceBase
 {
 public:
-    glTFRenderInterfaceSingleConstantBuffer(unsigned root_parameter_cbv_index, unsigned register_index)
-        : m_root_parameter_cbv_index(root_parameter_cbv_index)
-        , m_register_index(register_index)
-    {
-    }
-
     virtual bool InitInterface(glTFRenderResourceManager& resource_manager) override
     {
         m_constant_gpu_data = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
@@ -38,18 +33,17 @@ public:
     virtual bool ApplyInterface(glTFRenderResourceManager& resource_manager, bool isGraphicsPipeline)
     {
         RETURN_IF_FALSE(RHIUtils::Instance().SetCBVToRootParameterSlot(resource_manager.GetCommandListForRecord(),
-        m_root_parameter_cbv_index, m_constant_gpu_data->GetGPUBufferHandle(), isGraphicsPipeline))
+        m_allocation.parameter_index, m_constant_gpu_data->GetGPUBufferHandle(), isGraphicsPipeline))
     
         return true;
     }
 
-    virtual bool ApplyRootSignature(IRHIRootSignature& rootSignature) const
+    virtual bool ApplyRootSignature(IRHIRootSignatureHelper& rootSignature)
     {
-        return rootSignature.GetRootParameter(m_root_parameter_cbv_index).InitAsCBV(m_register_index);
+        return rootSignature.AddCBVRootParameter("GPUBuffer_SingleConstantBuffer", m_allocation);
     }
 
 protected:
-    unsigned m_root_parameter_cbv_index;
-    unsigned m_register_index;
+    RootSignatureAllocation m_allocation;
     std::shared_ptr<IRHIGPUBuffer> m_constant_gpu_data;
 };

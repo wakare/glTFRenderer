@@ -877,6 +877,7 @@
     <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSceneView.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceStructuredBuffer.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderMaterialManager.cpp" />
+    <ClCompile Include="glTFRenderPass\glTFRenderMeshManager.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderPassBase.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderPassManager.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderPassMeshResource.cpp" />
@@ -930,6 +931,7 @@
     <ClCompile Include="glTFRHI\RHIInterface\IRHIRenderTargetManager.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIResource.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIRootSignature.cpp" />
+    <ClCompile Include="glTFRHI\RHIInterface\IRHIRootSignatureHelper.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIShader.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIShaderTable.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHISwapChain.cpp" />
@@ -986,6 +988,7 @@
     <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSceneView.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceStructuredBuffer.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderMaterialManager.h" />
+    <ClInclude Include="glTFRenderPass\glTFRenderMeshManager.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderPassBase.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderPassCommon.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderPassManager.h" />
@@ -1036,6 +1039,7 @@
     <ClInclude Include="glTFRHI\RHIInterface\IRHIRenderTargetManager.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHIResource.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHIRootSignature.h" />
+    <ClInclude Include="glTFRHI\RHIInterface\IRHIRootSignatureHelper.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHIShader.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHIShaderTable.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHISwapChain.h" />

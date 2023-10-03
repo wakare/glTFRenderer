@@ -12,7 +12,7 @@ DX12RayTracingAS::DX12RayTracingAS()
 bool DX12RayTracingAS::InitRayTracingAS(IRHIDevice& device, IRHICommandList& command_list, IRHIVertexBuffer& vertex_buffer, IRHIIndexBuffer& index_buffer)
 {
     auto* dxr_device = dynamic_cast<DX12Device&>(device).GetDXRDevice();
-    auto* dxr_command_list = dynamic_cast<DX12CommandList&>( command_list).GetDXRCommandList();
+    auto* dxr_command_list = dynamic_cast<DX12CommandList&>(command_list).GetDXRCommandList();
     
     D3D12_RAYTRACING_GEOMETRY_DESC geometry_desc = {};
     geometry_desc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;

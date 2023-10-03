@@ -1,11 +1,11 @@
 #include "glTFResources/ShaderSource/Interface/LightingInterface.hlsl"
 #include "glTFResources/ShaderSource/LightPassCommon.hlsl"
 
-Texture2D albedoTex: register(t0);
-Texture2D depthTex: register(t1);
-Texture2D normalTex: register(t2);
+Texture2D albedoTex: ALBEDO_TEX_REGISTER_INDEX;
+Texture2D depthTex: DEPTH_TEX_REGISTER_INDEX;
+Texture2D normalTex: NORMAL_TEX_REGISTER_INDEX;
 
-SamplerState defaultSampler : register(s0);
+SamplerState defaultSampler : DEFAULT_SAMPLER_REGISTER_INDEX;
 
 float3 GetWorldPosition(float2 uv)
 {

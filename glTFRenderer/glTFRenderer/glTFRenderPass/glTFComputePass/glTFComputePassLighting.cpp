@@ -56,10 +56,10 @@ bool glTFComputePassLighting::PreRenderPass(glTFRenderResourceManager& resource_
         RHIResourceStateType::STATE_DEPTH_READ, RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE))
 
     RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list,
-        LightPass_RootParameter_BaseColorAndDepthSRV, m_main_descriptor_heap->GetGPUHandle(0), GetPipelineType() == PipelineType::Graphics))    
+        m_base_color_and_depth_allocation.parameter_index, m_main_descriptor_heap->GetGPUHandle(0), GetPipelineType() == PipelineType::Graphics))    
 
     RHIUtils::Instance().SetDTToRootParameterSlot(command_list,
-        LightPass_RootParameter_OutputUAV,
+        m_output_allocation.parameter_index,
         m_main_descriptor_heap->GetGPUHandle(3),
         GetPipelineType() == PipelineType::Graphics);
 
@@ -167,16 +167,6 @@ bool glTFComputePassLighting::FinishProcessSceneObject(glTFRenderResourceManager
     return true;
 }
 
-size_t glTFComputePassLighting::GetRootSignatureParameterCount()
-{
-    return LightPass_RootParameter_Num;
-}
-
-size_t glTFComputePassLighting::GetRootSignatureSamplerCount()
-{
-    return 1;
-}
-
 size_t glTFComputePassLighting::GetMainDescriptorHeapSize()
 {
     return 64;
@@ -185,16 +175,12 @@ size_t glTFComputePassLighting::GetMainDescriptorHeapSize()
 bool glTFComputePassLighting::SetupRootSignature(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFComputePassBase::SetupRootSignature(resource_manager))
-    RETURN_IF_FALSE(glTFRenderInterfaceSceneView::ApplyRootSignature(*m_root_signature))
-    RETURN_IF_FALSE(glTFRenderInterfaceLighting::ApplyRootSignature(*m_root_signature))
-    
-    const RHIRootParameterDescriptorRangeDesc SRVRangeDesc {RHIRootParameterDescriptorRangeType::SRV, 0, 3};
-    m_root_signature->GetRootParameter(LightPass_RootParameter_BaseColorAndDepthSRV).InitAsDescriptorTableRange(1, &SRVRangeDesc);
+    RETURN_IF_FALSE(glTFRenderInterfaceSceneView::ApplyRootSignature(m_root_signature_helper))
+    RETURN_IF_FALSE(glTFRenderInterfaceLighting::ApplyRootSignature(m_root_signature_helper))
 
-    const RHIRootParameterDescriptorRangeDesc UAVRangeDesc {RHIRootParameterDescriptorRangeType::UAV, 0, 1};
-    m_root_signature->GetRootParameter(LightPass_RootParameter_OutputUAV).InitAsDescriptorTableRange(1, &UAVRangeDesc);
-    
-    m_root_signature->GetStaticSampler(0).InitStaticSampler(0, RHIStaticSamplerAddressMode::Clamp, RHIStaticSamplerFilterMode::Linear);
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("BaseColorAndDepth", RHIRootParameterDescriptorRangeType::SRV, 3, m_base_color_and_depth_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("Output", RHIRootParameterDescriptorRangeType::UAV, 1, m_output_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddSampler("DefaultSampler", RHIStaticSamplerAddressMode::Clamp, RHIStaticSamplerFilterMode::Linear, m_sampler_allocation))
 
     return true;
 }
@@ -225,6 +211,13 @@ bool glTFComputePassLighting::SetupPipelineStateObject(glTFRenderResourceManager
     auto& shaderMacros = GetComputePipelineStateObject().GetShaderMacros();
     glTFRenderInterfaceSceneView::UpdateShaderCompileDefine(shaderMacros);
     glTFRenderInterfaceLighting::UpdateShaderCompileDefine(shaderMacros);
+
+    // Add albedo, normal, depth register define
+    shaderMacros.AddSRVRegisterDefine("ALBEDO_TEX_REGISTER_INDEX", m_base_color_and_depth_allocation.register_index);
+    shaderMacros.AddSRVRegisterDefine("DEPTH_TEX_REGISTER_INDEX", m_base_color_and_depth_allocation.register_index + 1);
+    shaderMacros.AddSRVRegisterDefine("NORMAL_TEX_REGISTER_INDEX", m_base_color_and_depth_allocation.register_index + 2);
+    shaderMacros.AddUAVRegisterDefine("OUTPUT_TEX_REGISTER_INDEX", m_output_allocation.register_index);
+    shaderMacros.AddSamplerRegisterDefine("DEFAULT_SAMPLER_REGISTER_INDEX", m_sampler_allocation.register_index);
 }
 
 bool glTFComputePassLighting::UploadLightInfoGPUBuffer()

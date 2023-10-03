@@ -8,22 +8,6 @@
 
 class glTFGraphicsPassLighting : public glTFGraphicsPassPostprocess, public glTFRenderInterfaceSceneView, public glTFRenderInterfaceLighting
 {
-    enum glTFGraphicsPassLightingRootParameterIndex
-    {
-        LightPass_RootParameter_SceneViewCBV                        = 0,
-        LightPass_RootParameter_BaseColorAndDepthSRV                = 1,
-        LightPass_RootParameter_LightInfosCBV                       = 2,
-        LightPass_RootParameter_PointLightStructuredBuffer          = 3,
-        LightPass_RootParameter_DirectionalLightStructuredBuffer    = 4,
-        LightPass_RootParameter_Num,
-    };
-    enum glTFGraphicsPassLightingRegisterIndex
-    {
-        LightPass_SceneView_CBV_Register = 0,   
-        LightPass_LightInfo_CBV_Register = 1,
-        LightPass_PointLight_SRV_Register = 3,
-        LightPass_DirectionalLight_SRV_Register = 4,
-    };
 public:
     glTFGraphicsPassLighting();
 
@@ -36,9 +20,6 @@ public:
     virtual bool FinishProcessSceneObject(glTFRenderResourceManager& resource_manager) override;
     
 protected:
-    // Must be implement in final render pass class
-    virtual size_t GetRootSignatureParameterCount() override;
-    virtual size_t GetRootSignatureSamplerCount() override;
     virtual size_t GetMainDescriptorHeapSize() override;
     virtual bool SetupRootSignature(glTFRenderResourceManager& resource_manager) override;
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;
@@ -56,4 +37,7 @@ protected:
     std::map<glTFHandle::HandleIndexType, DirectionalLightInfo> m_cache_directional_lights;
     
     ConstantBufferPerLightDraw m_constant_buffer_per_light_draw;
+
+    RootSignatureAllocation m_base_color_and_depth_allocation;
+    RootSignatureAllocation m_sampler_allocation;
 };

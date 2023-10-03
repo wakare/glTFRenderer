@@ -1,16 +1,13 @@
 #pragma once
 #include "glTFRenderInterfaceBase.h"
+#include "glTFRHI/RHIUtils.h"
+#include "glTFRHI/RHIInterface/IRHIRootSignatureHelper.h"
 
 class glTFRenderInterfaceShaderResourceView : public glTFRenderInterfaceBase
 {
 public:
-    glTFRenderInterfaceShaderResourceView(
-        unsigned root_parameter_srv_index,
-        unsigned srv_register_index,
-        unsigned max_srv_count)
-        : m_root_parameter_srv_index(root_parameter_srv_index)
-        , m_srv_register_index(srv_register_index)
-        , m_max_srv_count(max_srv_count)
+    glTFRenderInterfaceShaderResourceView()
+        : m_max_srv_count(4)
     {
         
     }
@@ -20,16 +17,12 @@ public:
         return true;
     }
     
-    virtual bool SetupRootSignature(IRHIRootSignature& rootSignature) const
+    virtual bool SetupRootSignature(IRHIRootSignatureHelper& rootSignature)
     {
-        const RHIRootParameterDescriptorRangeDesc srv_range_desc {RHIRootParameterDescriptorRangeType::SRV, m_srv_register_index, m_max_srv_count};
-        RETURN_IF_FALSE(rootSignature.GetRootParameter(m_root_parameter_srv_index).InitAsDescriptorTableRange(1, &srv_range_desc))
-
-        return true;
+        return rootSignature.AddTableRootParameter("TableParameter", RHIRootParameterDescriptorRangeType::SRV, m_max_srv_count, m_allocation);
     }
     
 protected:
-    unsigned m_root_parameter_srv_index;
-    unsigned m_srv_register_index;
+    RootSignatureAllocation m_allocation;
     unsigned m_max_srv_count;
 };

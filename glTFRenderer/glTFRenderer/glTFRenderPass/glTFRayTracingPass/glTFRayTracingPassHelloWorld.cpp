@@ -43,16 +43,12 @@ bool glTFRayTracingPassHelloWorld::InitPass(glTFRenderResourceManager& resource_
 
 bool glTFRayTracingPassHelloWorld::PreRenderPass(glTFRenderResourceManager& resource_manager)
 {
-    if (!m_raytracing_as)
-    {
-        RETURN_IF_FALSE(BuildAS(resource_manager))
-    }
-    
+    RETURN_IF_FALSE(UpdateAS(resource_manager))    
     RETURN_IF_FALSE(glTFRayTracingPassBase::PreRenderPass(resource_manager))
 
     auto& command_list = resource_manager.GetCommandListForRecord();
-    RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, 0, m_main_descriptor_heap->GetGPUHandle(0),false))    
-    RETURN_IF_FALSE(RHIUtils::Instance().SetSRVToRootParameterSlot(command_list, 1, m_raytracing_as->GetTLASHandle(), false)) 
+    RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, m_output_allocation.parameter_index, m_main_descriptor_heap->GetGPUHandle(0),false))    
+    RETURN_IF_FALSE(RHIUtils::Instance().SetSRVToRootParameterSlot(command_list, m_raytracing_as_allocation.parameter_index, m_raytracing_as->GetTLASHandle(), false)) 
     
     return true;
 }
@@ -92,16 +88,6 @@ TraceCount glTFRayTracingPassHelloWorld::GetTraceCount() const
     return m_trace_count;
 }
 
-size_t glTFRayTracingPassHelloWorld::GetRootSignatureParameterCount()
-{
-    return 2;
-}
-
-size_t glTFRayTracingPassHelloWorld::GetRootSignatureSamplerCount()
-{
-    return 0;
-}
-
 size_t glTFRayTracingPassHelloWorld::GetMainDescriptorHeapSize()
 {
     return 64;
@@ -113,10 +99,8 @@ bool glTFRayTracingPassHelloWorld::SetupRootSignature(glTFRenderResourceManager&
 
     m_trace_count = {resource_manager.GetSwapchain().GetWidth(), resource_manager.GetSwapchain().GetHeight(), 1};
 
-    const RHIRootParameterDescriptorRangeDesc UAVRangeDesc {RHIRootParameterDescriptorRangeType::UAV, 0, 1};
-    m_root_signature->GetRootParameter(0).InitAsDescriptorTableRange(1, &UAVRangeDesc);
-
-    m_root_signature->GetRootParameter(1).InitAsSRV(0);
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("output", RHIRootParameterDescriptorRangeType::UAV, 1, m_output_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddSRVRootParameter("RaytracingAS", m_raytracing_as_allocation))
     
     return true;
 }
@@ -134,12 +118,23 @@ bool glTFRayTracingPassHelloWorld::SetupPipelineStateObject(glTFRenderResourceMa
     return true;
 }
 
+bool glTFRayTracingPassHelloWorld::UpdateAS(glTFRenderResourceManager& resource_manager)
+{
+    if (!m_raytracing_as)
+    {
+        RETURN_IF_FALSE(BuildAS(resource_manager))
+    }
+
+    return true;
+}
+
 bool glTFRayTracingPassHelloWorld::BuildAS(glTFRenderResourceManager& resource_manager)
 {
-    GLTF_CHECK(!m_meshes.empty());
+    GLTF_CHECK(!resource_manager.GetMeshManager().GetMeshes().empty());
+    const auto test_mesh = resource_manager.GetMeshManager().GetMeshes().begin();
     
     m_raytracing_as = RHIResourceFactory::CreateRHIResource<IRHIRayTracingAS>();
-    RETURN_IF_FALSE(m_raytracing_as->InitRayTracingAS(resource_manager.GetDevice(), resource_manager.GetCommandListForRecord(), *m_meshes[0].mesh_position_only_buffer, *m_meshes[0].mesh_index_buffer))
+    RETURN_IF_FALSE(m_raytracing_as->InitRayTracingAS(resource_manager.GetDevice(), resource_manager.GetCommandListForRecord(), *test_mesh->second.mesh_position_only_buffer, *test_mesh->second.mesh_index_buffer))
     
     return true;
 }

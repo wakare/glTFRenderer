@@ -10,16 +10,12 @@
 #include "glTFUtils/glTFLog.h"
 
 glTFGraphicsPassLighting::glTFGraphicsPassLighting()
-    : glTFRenderInterfaceSceneView(LightPass_RootParameter_SceneViewCBV, LightPass_SceneView_CBV_Register)
-      , glTFRenderInterfaceLighting(LightPass_RootParameter_LightInfosCBV, LightPass_LightInfo_CBV_Register,
-          LightPass_RootParameter_PointLightStructuredBuffer, LightPass_PointLight_SRV_Register,
-          LightPass_RootParameter_DirectionalLightStructuredBuffer, LightPass_DirectionalLight_SRV_Register)
-      , m_base_pass_color_RT(nullptr)
-      , m_normal_RT(nullptr)
-      , m_base_pass_color_RT_SRV_Handle(0)
-      , m_depth_RT_SRV_Handle(0)
-      , m_normal_RT_SRV_Handle(0)
-      , m_constant_buffer_per_light_draw({})
+    : m_base_pass_color_RT(nullptr)
+    , m_normal_RT(nullptr)
+    , m_base_pass_color_RT_SRV_Handle(0)
+    , m_depth_RT_SRV_Handle(0)
+    , m_normal_RT_SRV_Handle(0)
+    , m_constant_buffer_per_light_draw({})
 {
 }
 
@@ -57,7 +53,7 @@ bool glTFGraphicsPassLighting::PreRenderPass(glTFRenderResourceManager& resource
         RHIResourceStateType::STATE_DEPTH_READ, RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE))
 
     RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list,
-        LightPass_RootParameter_BaseColorAndDepthSRV, m_main_descriptor_heap->GetGPUHandle(0), GetPipelineType() == PipelineType::Graphics))    
+        m_base_color_and_depth_allocation.parameter_index, m_main_descriptor_heap->GetGPUHandle(0), GetPipelineType() == PipelineType::Graphics))    
 
     RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().BindRenderTarget(command_list,
         {&resource_manager.GetCurrentFrameSwapchainRT()}, nullptr))
@@ -156,16 +152,6 @@ bool glTFGraphicsPassLighting::FinishProcessSceneObject(glTFRenderResourceManage
     return true;
 }
 
-size_t glTFGraphicsPassLighting::GetRootSignatureParameterCount()
-{
-    return LightPass_RootParameter_Num;
-}
-
-size_t glTFGraphicsPassLighting::GetRootSignatureSamplerCount()
-{
-    return 1;
-}
-
 size_t glTFGraphicsPassLighting::GetMainDescriptorHeapSize()
 {
     return 64;
@@ -174,12 +160,11 @@ size_t glTFGraphicsPassLighting::GetMainDescriptorHeapSize()
 bool glTFGraphicsPassLighting::SetupRootSignature(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassPostprocess::SetupRootSignature(resource_manager))
-    RETURN_IF_FALSE(glTFRenderInterfaceSceneView::ApplyRootSignature(*m_root_signature))
-    RETURN_IF_FALSE(glTFRenderInterfaceLighting::ApplyRootSignature(*m_root_signature))
-    
-    const RHIRootParameterDescriptorRangeDesc SRVRangeDesc {RHIRootParameterDescriptorRangeType::SRV, 0, 3};
-    m_root_signature->GetRootParameter(LightPass_RootParameter_BaseColorAndDepthSRV).InitAsDescriptorTableRange(1, &SRVRangeDesc);
-    m_root_signature->GetStaticSampler(0).InitStaticSampler(0, RHIStaticSamplerAddressMode::Clamp, RHIStaticSamplerFilterMode::Linear);
+    RETURN_IF_FALSE(glTFRenderInterfaceSceneView::ApplyRootSignature(m_root_signature_helper))
+    RETURN_IF_FALSE(glTFRenderInterfaceLighting::ApplyRootSignature(m_root_signature_helper))
+
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("BaseColorAndDepth", RHIRootParameterDescriptorRangeType::SRV, 3, m_base_color_and_depth_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddSampler("DefaultSampler", RHIStaticSamplerAddressMode::Clamp, RHIStaticSamplerFilterMode::Linear, m_sampler_allocation))
     
     return true;
 }
@@ -211,6 +196,12 @@ bool glTFGraphicsPassLighting::SetupPipelineStateObject(glTFRenderResourceManage
     auto& shaderMacros = GetGraphicsPipelineStateObject().GetShaderMacros();
     glTFRenderInterfaceSceneView::UpdateShaderCompileDefine(shaderMacros);
     glTFRenderInterfaceLighting::UpdateShaderCompileDefine(shaderMacros);
+
+    // Add albedo, normal, depth register define
+    shaderMacros.AddSRVRegisterDefine("ALBEDO_TEX_REGISTER_INDEX", m_base_color_and_depth_allocation.register_index);
+    shaderMacros.AddSRVRegisterDefine("DEPTH_TEX_REGISTER_INDEX", m_base_color_and_depth_allocation.register_index + 1);
+    shaderMacros.AddSRVRegisterDefine("NORMAL_TEX_REGISTER_INDEX", m_base_color_and_depth_allocation.register_index + 2);
+    shaderMacros.AddSamplerRegisterDefine("DEFAULT_SAMPLER_REGISTER_INDEX", m_sampler_allocation.register_index);
     
     return true;
 }

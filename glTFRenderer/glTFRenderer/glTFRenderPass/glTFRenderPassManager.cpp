@@ -53,33 +53,39 @@ void glTFRenderPassManager::InitAllPass()
 void glTFRenderPassManager::UpdateScene(size_t deltaTimeMs)
 {
     // Gather all scene pass
-    std::vector<glTFRenderPassBase*> graphics_passes;
-    graphics_passes.reserve(m_passes.size());
+    std::vector<glTFRenderPassBase*> render_passes;
+    render_passes.reserve(m_passes.size());
     for (const auto& pass : m_passes)
     {
-        graphics_passes.push_back(pass.get());
-    }
-    
-    for (const auto& pass : graphics_passes)
-    {
-        m_scene_view.TraverseSceneObjectWithinView([this, &pass](const glTFSceneNode& node)
-        {
-            if (node.IsDirty())
-            {
-                for (const auto& scene_object : node.m_objects)
-                {
-                    if (pass->TryProcessSceneObject(*m_resource_manager, *scene_object))
-                    {
-                        scene_object->ResetDirty();
-                    }    
-                }
-            }
-            
-            return true;
-        });
+        render_passes.push_back(pass.get());
     }
 
-    for (const auto& pass : graphics_passes)
+    std::vector<const glTFSceneNode*> dirty_objects;
+    m_scene_view.TraverseSceneObjectWithinView([this, &dirty_objects](const glTFSceneNode& node)
+    {
+        if (node.IsDirty())
+        {
+            dirty_objects.push_back(&node);
+        }
+
+        return true;
+    });
+
+    for (const auto* node : dirty_objects)
+    {
+        for (const auto& scene_object : node->m_objects)
+        {
+            m_resource_manager->TryProcessSceneObject(*m_resource_manager, *scene_object);
+            for (const auto& pass : render_passes)
+            {
+                pass->TryProcessSceneObject(*m_resource_manager, *scene_object);
+            }
+        }
+
+        node->ResetDirty();
+    }
+
+    for (const auto& pass : render_passes)
     {
         const bool success = pass->FinishProcessSceneObject(*m_resource_manager);
         GLTF_CHECK(success);

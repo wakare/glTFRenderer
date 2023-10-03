@@ -28,24 +28,16 @@ protected:
     };
     
 public:
-    glTFGraphicsPassMeshBase();
-    
     virtual const char* PassName() override {return "MeshPass"; }
     bool InitPass(glTFRenderResourceManager& resource_manager) override;
     bool PreRenderPass(glTFRenderResourceManager& resource_manager) override;
     bool RenderPass(glTFRenderResourceManager& resource_manager) override;
-
-    bool AddOrUpdatePrimitiveToMeshPass(glTFRenderResourceManager& resource_manager, const glTFScenePrimitive& primitive);
-    bool RemovePrimitiveFromMeshPass(glTFUniqueID mesh_id_to_remove);
 
     virtual bool TryProcessSceneObject(glTFRenderResourceManager& resourceManager, const glTFSceneObjectBase& object) override;
 
     bool ResolveVertexInputLayout(const VertexLayoutDeclaration& source_vertex_layout);
     
 protected:
-    virtual size_t GetRootSignatureParameterCount() override;
-    virtual size_t GetRootSignatureSamplerCount() override;
-    
     virtual bool SetupRootSignature(glTFRenderResourceManager& resource_manager) override;
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;
 
@@ -53,8 +45,6 @@ protected:
     virtual bool EndDrawMesh(glTFRenderResourceManager& resourceManager, glTFUniqueID meshID);
 
     virtual std::vector<RHIPipelineInputLayout> GetVertexInputLayout() override;
-    
-    std::map<glTFUniqueID, glTFRenderPassMeshResource> m_meshes;
 
     // TODO: Resolve input layout with multiple meshes 
     std::vector<RHIPipelineInputLayout> m_vertex_input_layouts;

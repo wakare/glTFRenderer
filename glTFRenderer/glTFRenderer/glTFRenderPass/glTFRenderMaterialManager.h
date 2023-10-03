@@ -4,9 +4,8 @@
 #include <memory>
 
 #include "glTFRenderPassBase.h"
-#include "../glTFMaterial/glTFMaterialBase.h"
-#include "../glTFRHI/RHIInterface/IRHITexture.h"
-#include "../glTFUtils/glTFUtils.h"
+#include "glTFRHI/RHIInterface/IRHITexture.h"
+#include "glTFUtils/glTFUtils.h"
 
 enum class glTFMaterialParameterUsage;
 class glTFMaterialBase;

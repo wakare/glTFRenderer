@@ -1,14 +1,5 @@
 #include "glTFGraphicsPassMeshBase.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
-#include "glTFRHI/RHIInterface/IRHIVertexBuffer.h"
-
-glTFGraphicsPassMeshBase::glTFGraphicsPassMeshBase()
-    : glTFRenderInterfaceSceneView(MeshBasePass_RootParameter_SceneView_CBV, MeshBasePass_SceneView_CBV_Register)
-    , glTFRenderInterfaceSceneMesh(
-        MeshBasePass_RootParameter_SceneMesh_CBV,
-        MeshBasePass_SceneMesh_CBV_Register)
-{
-}
 
 bool glTFGraphicsPassMeshBase::InitPass(glTFRenderResourceManager& resource_manager)
 {
@@ -39,7 +30,7 @@ bool glTFGraphicsPassMeshBase::RenderPass(glTFRenderResourceManager& resource_ma
     auto& command_list = resource_manager.GetCommandListForRecord();
     
     // Render meshes
-    for (const auto& mesh : m_meshes)
+    for (const auto& mesh : resource_manager.GetMeshManager().GetMeshes())
     {
         const glTFUniqueID meshID = mesh.first;
         RETURN_IF_FALSE(BeginDrawMesh(resource_manager, meshID))
@@ -68,59 +59,10 @@ bool glTFGraphicsPassMeshBase::RenderPass(glTFRenderResourceManager& resource_ma
     return true;
 }
 
-bool glTFGraphicsPassMeshBase::AddOrUpdatePrimitiveToMeshPass(glTFRenderResourceManager& resource_manager, const glTFScenePrimitive& primitive)
-{
-    auto& device = resource_manager.GetDevice();
-    auto& command_list = resource_manager.GetCommandListForRecord();
-    
-    const glTFUniqueID mesh_ID = primitive.GetID();
-    if (m_meshes.find(mesh_ID) == m_meshes.end())
-    {
-        m_meshes[mesh_ID].mesh_vertex_buffer = RHIResourceFactory::CreateRHIResource<IRHIVertexBuffer>();
-        const RHIBufferDesc vertex_buffer_desc = {L"vertexBufferDefaultBuffer", primitive.GetVertexBufferData().byteSize, 1, 1, RHIBufferType::Default, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
-        m_meshes[mesh_ID].mesh_vertex_buffer_view = m_meshes[mesh_ID].mesh_vertex_buffer->CreateVertexBufferView(device, command_list, vertex_buffer_desc, primitive.GetVertexBufferData());
-
-        m_meshes[mesh_ID].mesh_position_only_buffer = RHIResourceFactory::CreateRHIResource<IRHIVertexBuffer>();
-        const RHIBufferDesc position_only_buffer_desc = {L"positionOnlyBufferDefaultBuffer", primitive.GetPositionOnlyBufferData().byteSize, 1, 1, RHIBufferType::Default, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
-        m_meshes[mesh_ID].mesh_position_only_buffer_view = m_meshes[mesh_ID].mesh_position_only_buffer->CreateVertexBufferView(device, command_list, position_only_buffer_desc, primitive.GetPositionOnlyBufferData());
-
-        m_meshes[mesh_ID].mesh_index_buffer = RHIResourceFactory::CreateRHIResource<IRHIIndexBuffer>();
-        const RHIBufferDesc index_buffer_desc = {L"indexBufferDefaultBuffer", primitive.GetIndexBufferData().byteSize, 1, 1, RHIBufferType::Default, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
-        m_meshes[mesh_ID].mesh_index_buffer_view = m_meshes[mesh_ID].mesh_index_buffer->CreateIndexBufferView(device, command_list, index_buffer_desc, primitive.GetIndexBufferData());
-       
-        m_meshes[mesh_ID].mesh_vertex_count = primitive.GetVertexBufferData().vertex_count;
-        m_meshes[mesh_ID].mesh_index_count = primitive.GetIndexBufferData().index_count;
-        m_meshes[mesh_ID].material_id = primitive.HasMaterial() ? primitive.GetMaterial().GetID() : glTFUniqueIDInvalid;
-        m_meshes[mesh_ID].using_normal_mapping = primitive.HasNormalMapping();
-    }
-
-    // Only update when transform has changed
-    m_meshes[mesh_ID].meshTransformMatrix = primitive.GetTransformMatrix();
-    
-    return true; 
-}
-
-bool glTFGraphicsPassMeshBase::RemovePrimitiveFromMeshPass(glTFUniqueID mesh_id_to_remove)
-{
-    if (auto it = (m_meshes.find(mesh_id_to_remove)) != m_meshes.end())
-    {
-        LOG_FORMAT("[DEBUG] Remove mesh id %d", mesh_id_to_remove)
-        m_meshes.erase(it);
-    }
-    else
-    {
-        LOG_FORMAT("[WARN] Can not find meshID in Pass")
-        assert(false);
-    }
-
-    return true;
-}
-
 bool glTFGraphicsPassMeshBase::SetupRootSignature(glTFRenderResourceManager& resource_manager)
-{   
-    
-    RETURN_IF_FALSE(glTFRenderInterfaceSceneView::ApplyRootSignature(*m_root_signature))
-    RETURN_IF_FALSE(glTFRenderInterfaceSceneMesh::ApplyRootSignature(*m_root_signature))
+{
+    RETURN_IF_FALSE(glTFRenderInterfaceSceneView::ApplyRootSignature(m_root_signature_helper))
+    RETURN_IF_FALSE(glTFRenderInterfaceSceneMesh::ApplyRootSignature(m_root_signature_helper))
     
     return true;
 }
@@ -160,8 +102,7 @@ bool glTFGraphicsPassMeshBase::TryProcessSceneObject(glTFRenderResourceManager& 
         return false;
     }
 
-    return AddOrUpdatePrimitiveToMeshPass(resourceManager, *primitive) &&
-        primitive->HasMaterial() && ProcessMaterial(resourceManager, primitive->GetMaterial());
+    return primitive->HasMaterial() && ProcessMaterial(resourceManager, primitive->GetMaterial());
 }
 
 bool glTFGraphicsPassMeshBase::ResolveVertexInputLayout(const VertexLayoutDeclaration& source_vertex_layout)
@@ -204,14 +145,4 @@ bool glTFGraphicsPassMeshBase::ResolveVertexInputLayout(const VertexLayoutDeclar
     }
 
     return true;
-}
-
-size_t glTFGraphicsPassMeshBase::GetRootSignatureParameterCount()
-{
-    return MeshBasePass_RootParameter_LastIndex;
-}
-
-size_t glTFGraphicsPassMeshBase::GetRootSignatureSamplerCount()
-{
-    return 1;
 }

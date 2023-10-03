@@ -1,5 +1,6 @@
 #pragma once
 #include "glTFRenderResourceManager.h"
+#include "glTFRHI/RHIInterface/IRHIRootSignatureHelper.h"
 #include "glTFScene/glTFSceneObjectBase.h"
 
 class glTFMaterialBase;
@@ -44,12 +45,11 @@ public:
 protected:
     // Must be implement in final render pass class
     virtual size_t GetMainDescriptorHeapSize() = 0;
-    virtual size_t GetRootSignatureParameterCount() = 0;
-    virtual size_t GetRootSignatureSamplerCount() = 0;
     virtual bool SetupRootSignature(glTFRenderResourceManager& resourceManager) = 0;
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resourceManager) = 0;
-    
-    std::shared_ptr<IRHIRootSignature> m_root_signature;
+
+    IRHIRootSignatureHelper m_root_signature_helper;
+    //std::shared_ptr<IRHIRootSignature> m_root_signature;
     std::shared_ptr<IRHIPipelineStateObject> m_pipeline_state_object;
     
     // CBV_SRV_UAV Heaps, can only bind one in render pass

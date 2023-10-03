@@ -4,19 +4,6 @@
 
 class glTFGraphicsPassMeshOpaque : public glTFGraphicsPassMeshBase, public glTFRenderInterfaceSceneMeshMaterial
 {
-protected:
-    enum glTFRenderPassMeshOpaqueRootParameterEnum
-    {
-        MeshOpaquePass_RootParameter_SceneMesh_SRV = MeshBasePass_RootParameter_LastIndex,
-        MeshOpaquePass_RootParameter_LastIndex,
-    };
-    
-    enum glTFRenderPassMeshBaseRegisterIndex
-    {
-        // Start with t0
-        MeshOpaquePass_SceneMesh_SRV_Register = 0,
-    };
-    
 public:
     glTFGraphicsPassMeshOpaque();
     
@@ -27,7 +14,6 @@ public:
     
 protected:
     virtual size_t GetMainDescriptorHeapSize() override;
-    virtual size_t GetRootSignatureParameterCount() override;
     
     virtual bool SetupRootSignature(glTFRenderResourceManager& resource_manager) override;
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;
@@ -36,5 +22,7 @@ protected:
 
     std::shared_ptr<IRHIRenderTarget> m_base_pass_color_render_target;
     std::shared_ptr<IRHIRenderTarget> m_base_pass_normal_render_target;
+
+    RootSignatureAllocation m_sampler_allocation;
 };
  

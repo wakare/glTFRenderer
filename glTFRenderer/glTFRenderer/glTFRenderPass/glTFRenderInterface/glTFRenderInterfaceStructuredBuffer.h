@@ -6,12 +6,6 @@ template <typename StructuredBufferType>
 class glTFRenderInterfaceStructuredBuffer : public glTFRenderInterfaceBase
 {
 public:
-    glTFRenderInterfaceStructuredBuffer(unsigned structured_buffer_index, unsigned register_index)
-        : m_structured_buffer_index(structured_buffer_index)
-        , m_register_index(register_index)
-    {
-    }
-    
     virtual bool InitInterface(glTFRenderResourceManager& resource_manager) override
     {
         m_gpu_buffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
@@ -38,20 +32,19 @@ public:
     virtual bool ApplyInterface(glTFRenderResourceManager& resource_manager, bool isGraphicsPipeline)
     {
         auto& command_list = resource_manager.GetCommandListForRecord();
-        RHIUtils::Instance().SetSRVToRootParameterSlot(command_list,
-                                                       m_structured_buffer_index, m_gpu_buffer->GetGPUBufferHandle(), isGraphicsPipeline);
+        RHIUtils::Instance().SetSRVToRootParameterSlot(command_list, m_allocation.parameter_index,
+            m_gpu_buffer->GetGPUBufferHandle(), isGraphicsPipeline);
     
         return true;
     }
 
-    virtual bool ApplyRootSignature(IRHIRootSignature& rootSignature) const
+    virtual bool ApplyRootSignature(IRHIRootSignatureHelper& rootSignature)
     {
-        return rootSignature.GetRootParameter(m_structured_buffer_index).InitAsSRV(m_register_index);
+        return rootSignature.AddSRVRootParameter("StructuredBuffer", m_allocation);
     }
     
 protected:
-    unsigned m_structured_buffer_index;
-    unsigned m_register_index;
+    RootSignatureAllocation m_allocation;
     
     std::shared_ptr<IRHIGPUBuffer> m_gpu_buffer;
 };

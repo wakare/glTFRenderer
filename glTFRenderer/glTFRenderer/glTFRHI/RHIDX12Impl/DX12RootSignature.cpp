@@ -68,7 +68,6 @@ bool DX12RootParameter::InitAsDescriptorTableRange(size_t rangeCount,
             case RHIRootParameterDescriptorRangeType::CBV: return D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
             case RHIRootParameterDescriptorRangeType::SRV: return D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
             case RHIRootParameterDescriptorRangeType::UAV: return D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
-            case RHIRootParameterDescriptorRangeType::Sampler: return D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
         }
 
         // Unexpected situation
@@ -235,7 +234,7 @@ bool DX12RootSignature::InitRootSignature(IRHIDevice& device)
     {
         m_description.Flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;    
     }
-    else if (m_usage == RHIRootSignatureUsage::RayTracing)
+    else if (m_usage == RHIRootSignatureUsage::LocalRS)
     {
         m_description.Flags |= D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE;    
     }

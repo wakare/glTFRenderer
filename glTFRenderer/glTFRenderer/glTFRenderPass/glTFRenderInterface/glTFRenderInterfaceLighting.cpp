@@ -1,5 +1,7 @@
 #include "glTFRenderInterfaceLighting.h"
 
+#include "glTFRHI/RHIInterface/IRHIRootSignatureHelper.h"
+
 bool glTFRenderInterfaceLighting::InitInterface(glTFRenderResourceManager& resource_manager)
 {
      RETURN_IF_FALSE(glTFRenderInterfaceSingleConstantBuffer<ConstantBufferPerLightDraw>::InitInterface(resource_manager))
@@ -22,7 +24,7 @@ bool glTFRenderInterfaceLighting::ApplyInterface(glTFRenderResourceManager& reso
      return true;
 }
 
-bool glTFRenderInterfaceLighting::ApplyRootSignature(IRHIRootSignature& root_signature) const
+bool glTFRenderInterfaceLighting::ApplyRootSignature(IRHIRootSignatureHelper& root_signature)
 {
      RETURN_IF_FALSE(glTFRenderInterfaceSingleConstantBuffer<ConstantBufferPerLightDraw>::ApplyRootSignature(root_signature))
 
@@ -55,12 +57,12 @@ void glTFRenderInterfaceLighting::UpdateShaderCompileDefine(RHIShaderPreDefineMa
      // Update light info shader define
      char registerIndexValue[16] = {'\0'};
     
-     (void)snprintf(registerIndexValue, sizeof(registerIndexValue), "register(b%d)", glTFRenderInterfaceSingleConstantBuffer::m_register_index);
+     (void)snprintf(registerIndexValue, sizeof(registerIndexValue), "register(b%d)", glTFRenderInterfaceSingleConstantBuffer::m_allocation.register_index);
      outShaderPreDefineMacros.AddMacro("SCENE_LIGHT_LIGHT_INFO_REGISTER_INDEX", registerIndexValue);
     
-     (void)snprintf(registerIndexValue, sizeof(registerIndexValue), "register(t%d)", glTFRenderInterfaceStructuredBuffer<PointLightInfo>::m_register_index);
+     (void)snprintf(registerIndexValue, sizeof(registerIndexValue), "register(t%d)", glTFRenderInterfaceStructuredBuffer<PointLightInfo>::m_allocation.register_index);
      outShaderPreDefineMacros.AddMacro("SCENE_LIGHT_POINT_LIGHT_REGISTER_INDEX", registerIndexValue);
 
-     (void)snprintf(registerIndexValue, sizeof(registerIndexValue), "register(t%d)", glTFRenderInterfaceStructuredBuffer<DirectionalLightInfo>::m_register_index);
+     (void)snprintf(registerIndexValue, sizeof(registerIndexValue), "register(t%d)", glTFRenderInterfaceStructuredBuffer<DirectionalLightInfo>::m_allocation.register_index);
      outShaderPreDefineMacros.AddMacro("SCENE_LIGHT_DIRECTIONAL_LIGHT_REGISTER_INDEX", registerIndexValue);
 }
