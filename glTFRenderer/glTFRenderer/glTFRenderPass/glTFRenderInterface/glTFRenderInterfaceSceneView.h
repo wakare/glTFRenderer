@@ -9,6 +9,7 @@ struct ConstantBufferSceneView
     glm::mat4 ProjectionMatrix {glm::mat4{1.0f}};
     glm::mat4 inverseViewMatrix {glm::mat4{1.0f}};
     glm::mat4 inverseProjectionMatrix {glm::mat4{1.0f}};
+    // TODO: Be careful for adding member to ConstantBuffer with alignment!
     glm::float4 view_position {0.0f};
     unsigned viewport_width {0};
     unsigned viewport_height {0};

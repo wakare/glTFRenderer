@@ -31,7 +31,7 @@ bool glTFRenderMeshManager::AddOrUpdatePrimitive(glTFRenderResourceManager& reso
     }
 
     // Only update when transform has changed
-    m_meshes[mesh_ID].meshTransformMatrix = primitive.GetTransformMatrix();
+    m_meshes[mesh_ID].mesh_transform_matrix = primitive.GetTransformMatrix();
     
     return true; 
 }

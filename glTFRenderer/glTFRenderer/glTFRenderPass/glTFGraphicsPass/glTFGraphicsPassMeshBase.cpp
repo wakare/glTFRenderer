@@ -38,8 +38,8 @@ bool glTFGraphicsPassMeshBase::RenderPass(glTFRenderResourceManager& resource_ma
         // Upload constant buffer
         ConstantBufferSceneMesh temp_mesh_data =
         {
-            mesh.second.meshTransformMatrix,
-            glm::transpose(glm::inverse(mesh.second.meshTransformMatrix)),
+            mesh.second.mesh_transform_matrix,
+            glm::transpose(glm::inverse(mesh.second.mesh_transform_matrix)),
             mesh.second.using_normal_mapping
         };
         

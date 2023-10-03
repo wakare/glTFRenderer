@@ -66,7 +66,7 @@ bool glTFWindow::InitAndShowWindow()
     
     // Create test scene with box
     m_scene_graph = std::make_unique<glTFSceneGraph>();
-    bool use_test_box_scene = true;
+    bool use_test_box_scene = false;
     if (use_test_box_scene)
     {
         std::unique_ptr<glTFSceneNode> box_node = std::make_unique<glTFSceneNode>();

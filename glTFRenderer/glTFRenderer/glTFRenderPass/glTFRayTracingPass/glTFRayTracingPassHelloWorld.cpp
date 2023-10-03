@@ -137,11 +137,8 @@ bool glTFRayTracingPassHelloWorld::UpdateAS(glTFRenderResourceManager& resource_
 
 bool glTFRayTracingPassHelloWorld::BuildAS(glTFRenderResourceManager& resource_manager)
 {
-    GLTF_CHECK(!resource_manager.GetMeshManager().GetMeshes().empty());
-    const auto test_mesh = resource_manager.GetMeshManager().GetMeshes().begin();
-    
     m_raytracing_as = RHIResourceFactory::CreateRHIResource<IRHIRayTracingAS>();
-    RETURN_IF_FALSE(m_raytracing_as->InitRayTracingAS(resource_manager.GetDevice(), resource_manager.GetCommandListForRecord(), *test_mesh->second.mesh_position_only_buffer, *test_mesh->second.mesh_index_buffer))
+    RETURN_IF_FALSE(m_raytracing_as->InitRayTracingAS(resource_manager.GetDevice(), resource_manager.GetCommandListForRecord(), resource_manager.GetMeshManager().GetMeshes()))
     
     return true;
 }
