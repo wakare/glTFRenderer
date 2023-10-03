@@ -29,6 +29,7 @@ bool glTFRayTracingPassHelloWorld::InitPass(glTFRenderResourceManager& resource_
                 resource_manager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R8G8B8A8_UNORM, RHIDataFormat::R8G8B8A8_UNORM, raytracing_output_render_target);
     
     RETURN_IF_FALSE(glTFRayTracingPassBase::InitPass(resource_manager))
+    RETURN_IF_FALSE(glTFRenderInterfaceSceneView::InitInterface(resource_manager))
     
     auto& command_list = resource_manager.GetCommandListForRecord();
 
@@ -45,7 +46,8 @@ bool glTFRayTracingPassHelloWorld::PreRenderPass(glTFRenderResourceManager& reso
 {
     RETURN_IF_FALSE(UpdateAS(resource_manager))    
     RETURN_IF_FALSE(glTFRayTracingPassBase::PreRenderPass(resource_manager))
-
+    RETURN_IF_FALSE(glTFRenderInterfaceSceneView::ApplyInterface(resource_manager, GetPipelineType() == PipelineType::Graphics))
+    
     auto& command_list = resource_manager.GetCommandListForRecord();
     RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, m_output_allocation.parameter_index, m_main_descriptor_heap->GetGPUHandle(0),false))    
     RETURN_IF_FALSE(RHIUtils::Instance().SetSRVToRootParameterSlot(command_list, m_raytracing_as_allocation.parameter_index, m_raytracing_as->GetTLASHandle(), false)) 
@@ -96,7 +98,8 @@ size_t glTFRayTracingPassHelloWorld::GetMainDescriptorHeapSize()
 bool glTFRayTracingPassHelloWorld::SetupRootSignature(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFRayTracingPassBase::SetupRootSignature(resource_manager))
-
+    RETURN_IF_FALSE(glTFRenderInterfaceSceneView::ApplyRootSignature(m_root_signature_helper))
+    
     m_trace_count = {resource_manager.GetSwapchain().GetWidth(), resource_manager.GetSwapchain().GetHeight(), 1};
 
     RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("output", RHIRootParameterDescriptorRangeType::UAV, 1, m_output_allocation))
@@ -109,11 +112,15 @@ bool glTFRayTracingPassHelloWorld::SetupPipelineStateObject(glTFRenderResourceMa
 {
     RETURN_IF_FALSE(glTFRayTracingPassBase::SetupPipelineStateObject(resource_manager))
 
-    GetRayTracingPipelineStateObject().BindShaderCode("glTFResources/ShaderSource/RayTracing/RayTracingHelloWorld.hlsl", RHIShaderType::RayTracing, "");
-
     RHIGPUDescriptorHandle UAV;
     RETURN_IF_FALSE(m_main_descriptor_heap->CreateUnOrderAccessViewInDescriptorHeap(resource_manager.GetDevice(), m_main_descriptor_heap->GetUsedDescriptorCount(),
                 *m_raytracing_output, {m_raytracing_output->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D}, UAV))
+    
+    GetRayTracingPipelineStateObject().BindShaderCode("glTFResources/ShaderSource/RayTracing/RayTracingHelloWorld.hlsl", RHIShaderType::RayTracing, "");
+    auto& shader_macros = GetRayTracingPipelineStateObject().GetShaderMacros();
+    glTFRenderInterfaceSceneView::UpdateShaderCompileDefine(shader_macros);
+    shader_macros.AddSRVRegisterDefine("SCENE_AS_REGISTER_INDEX", m_raytracing_as_allocation.register_index);
+    shader_macros.AddUAVRegisterDefine("OUTPUT_REGISTER_INDEX", m_output_allocation.register_index);
     
     return true;
 }

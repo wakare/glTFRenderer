@@ -100,6 +100,7 @@ void glTFRenderPassManager::UpdateScene(size_t deltaTimeMs)
                 m_scene_view.GetProjectionMatrix(),
                 inverse(m_scene_view.GetViewMatrix()),
                 inverse(m_scene_view.GetProjectionMatrix()),
+                m_scene_view.GetMainCameraWorldPosition(),
                 width, height
             };
             

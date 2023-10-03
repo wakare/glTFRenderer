@@ -43,7 +43,9 @@ public:
     glm::mat4 GetViewProjectionMatrix() const;
     glm::mat4 GetViewMatrix() const;
     glm::mat4 GetProjectionMatrix() const;
-
+    
+    glm::float4 GetMainCameraWorldPosition() const;
+    
     void ApplyInput(glTFInputManager& input_manager, size_t delta_time_ms) const;
     void GetViewportSize(unsigned& out_width, unsigned& out_height) const;
     

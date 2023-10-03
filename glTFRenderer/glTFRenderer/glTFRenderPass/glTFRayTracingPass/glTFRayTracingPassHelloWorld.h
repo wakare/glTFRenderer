@@ -1,10 +1,11 @@
 #pragma once
 #include "glTFRayTracingPassBase.h"
 #include "glTFRayTracingPassWithMesh.h"
+#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneView.h"
 #include "glTFRHI/RHIInterface/IRHIRayTracingAS.h"
 #include "glTFRHI/RHIInterface/IRHIShaderTable.h"
 
-class glTFRayTracingPassHelloWorld : public glTFRayTracingPassWithMesh
+class glTFRayTracingPassHelloWorld : public glTFRayTracingPassWithMesh, public glTFRenderInterfaceSceneView
 {
 public:
     glTFRayTracingPassHelloWorld();

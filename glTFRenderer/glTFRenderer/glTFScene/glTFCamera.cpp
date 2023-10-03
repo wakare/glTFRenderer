@@ -3,8 +3,6 @@
 
 #include "glTFCamera.h"
 
-#include "../glTFUtils/glTFLog.h"
-
 glm::fmat4x4 glTFCamera::GetViewProjectionMatrix() const
 {
     return GetViewMatrix() * GetProjectionMatrix();

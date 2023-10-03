@@ -1,18 +1,6 @@
 #ifndef SCENE_MESH
 #define SCENE_MESH
 
-#ifndef SCENE_MESH_REGISTER_CBV_INDEX
-#define SCENE_MESH_REGISTER_CBV_INDEX register(b0) 
-#endif
-
-#ifndef SCENE_MESH_REGISTER_SRV_INDEX_ZERO
-#define SCENE_MESH_REGISTER_SRV_INDEX_ZERO register(t0)
-#endif
-
-#ifndef SCENE_MESH_REGISTER_SRV_INDEX_ONE
-#define SCENE_MESH_REGISTER_SRV_INDEX_ONE register(t1)
-#endif
-
 cbuffer SceneMeshConstantBuffer : SCENE_MESH_REGISTER_CBV_INDEX
 {
     float4x4 worldMat;

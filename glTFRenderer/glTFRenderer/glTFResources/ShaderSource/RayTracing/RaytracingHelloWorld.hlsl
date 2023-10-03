@@ -12,13 +12,16 @@
 #ifndef RAYTRACING_HLSL
 #define RAYTRACING_HLSL
 
+#include "glTFResources/ShaderSource/Interface/SceneView.hlsl"
+
 struct RayPayload
 {
     float4 color;
 };
 
-RaytracingAccelerationStructure Scene : register(t0, space0);
-RWTexture2D<float4> RenderTarget : register(u0);
+RaytracingAccelerationStructure Scene : SCENE_AS_REGISTER_INDEX;
+RWTexture2D<float4> RenderTarget : OUTPUT_REGISTER_INDEX;
+
 typedef BuiltInTriangleIntersectionAttributes MyAttributes;
 
 [shader("raygeneration")]
@@ -27,15 +30,16 @@ void MyRaygenShader()
     float2 lerpValues = (float2)DispatchRaysIndex() / (float2)DispatchRaysDimensions();
     // Orthographic projection since we're raytracing in screen space.
     float3 rayDir = float3(0, 0, 1);
-    float3 origin = float3(
-        lerp(-5.0, 5.0, lerpValues.x),
-        lerp(5.0, -5.0, lerpValues.y),
-        -10.0f);
+    float3 origin = float3(view_position.xyz);
+    float3 rayOffsetDir = float3(lerpValues - float2(0.5, 0.5), 0.0);
+    float4 rayWorldDir = float4(rayDir + rayOffsetDir, 0.0);
+    rayWorldDir = normalize(mul(inverseViewMatrix, rayWorldDir)); 
+    
     // Trace the ray.
     // Set the ray's extents.
     RayDesc ray;
     ray.Origin = origin;
-    ray.Direction = rayDir;
+    ray.Direction = rayWorldDir.xyz;
     // Set TMin to a non-zero small value to avoid aliasing issues due to floating - point errors.
     // TMin should be kept small to prevent missing geometry at close contact areas.
     ray.TMin = 0.001;
@@ -45,8 +49,7 @@ void MyRaygenShader()
 
     // Write the raytraced color to the output texture.
     RenderTarget[DispatchRaysIndex().xy] = payload.color;
-    
-    //RenderTarget[DispatchRaysIndex().xy] = float4(1.0, 0.0, 0.0, 1.0);
+    //RenderTarget[DispatchRaysIndex().xy] = view_position;
 }
 
 [shader("closesthit")]
