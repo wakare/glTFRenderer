@@ -8,7 +8,7 @@ enum class MaterialType
     Unknown,
 };
 
-class glTFMaterialBase : public glTFUniqueObject
+class glTFMaterialBase : public glTFUniqueObject<glTFMaterialBase>
 {
 public:
     glTFMaterialBase(MaterialType type) : m_type(type) {}

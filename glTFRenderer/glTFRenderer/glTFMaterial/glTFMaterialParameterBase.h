@@ -3,7 +3,7 @@
 #include "../glTFUtils/glTFUtils.h"
 
 // Material parameter may be factor or texture
-class glTFMaterialParameterBase : public glTFUniqueObject
+class glTFMaterialParameterBase : public glTFUniqueObject<glTFMaterialParameterBase>
 {
 public:
     glTFMaterialParameterBase(glTFMaterialParameterType type, glTFMaterialParameterUsage usage);

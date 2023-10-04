@@ -30,6 +30,7 @@ struct RootSignatureParameterElement
     std::pair<unsigned, unsigned> register_range;
     unsigned constant_value;
     RHIRootParameterDescriptorRangeType table_type;
+    bool is_bindless;
 };
 
 struct RootSignatureLayout
@@ -58,7 +59,8 @@ public:
     bool AddCBVRootParameter(const std::string& parameter_name, RootSignatureAllocation& out_allocation);
     bool AddSRVRootParameter(const std::string& parameter_name, RootSignatureAllocation& out_allocation);
     bool AddUAVRootParameter(const std::string& parameter_name, RootSignatureAllocation& out_allocation);
-    bool AddTableRootParameter(const std::string& parameter_name, RHIRootParameterDescriptorRangeType table_type, unsigned table_register_count, RootSignatureAllocation& out_allocation);
+    bool AddTableRootParameter(const std::string& parameter_name, RHIRootParameterDescriptorRangeType table_type, unsigned table_register_count, bool
+                               is_bindless, RootSignatureAllocation& out_allocation);
     bool AddSampler(const std::string& sampler_name, RHIStaticSamplerAddressMode address_mode, RHIStaticSamplerFilterMode filter_mode, RootSignatureAllocation& out_allocation);
 
     bool SetUsage(RHIRootSignatureUsage usage);
@@ -68,7 +70,8 @@ public:
     const RootSignatureLayout& GetRootSignatureLayout() const;
     
 protected:
-    bool AddRootParameterWithRegisterCount(const std::string& parameter_name, RHIRootParameterType type, unsigned register_count, unsigned constant_value, RHIRootParameterDescriptorRangeType table_type, RootSignatureAllocation& out_allocation);
+    bool AddRootParameterWithRegisterCount(const std::string& parameter_name, RHIRootParameterType type, unsigned register_count, unsigned constant_value, RHIRootParameterDescriptorRangeType table_type, bool
+                                           is_bindless, RootSignatureAllocation& out_allocation);
     RHIRootSignatureUsage m_usage;
     RootSignatureLayout m_layout;
     std::shared_ptr<IRHIRootSignature> m_root_signature;

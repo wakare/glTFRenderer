@@ -2,6 +2,8 @@
 
 #include "glTFRenderPass/glTFRenderMaterialManager.h"
 #include "glTFMaterial/glTFMaterialOpaque.h"
+#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSampler.h"
+#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneMaterial.h"
 #include "glTFRHI/RHIUtils.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 #include "glTFUtils/glTFImageLoader.h"
@@ -10,7 +12,13 @@ glTFGraphicsPassMeshOpaque::glTFGraphicsPassMeshOpaque()
     : m_base_pass_color_render_target(nullptr)
     , m_base_pass_normal_render_target(nullptr)
 {
-    AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMeshMaterial>());
+    //AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMeshMaterial>());
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMaterial>());
+    
+    const std::shared_ptr<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Warp, RHIStaticSamplerFilterMode::Linear>> sampler_interface =
+        std::make_shared<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Warp, RHIStaticSamplerFilterMode::Linear>>();
+    sampler_interface->SetSamplerRegisterIndexName("DEFAULT_SAMPLER_REGISTER_INDEX");
+    AddRenderInterface(sampler_interface);
 }
 
 bool glTFGraphicsPassMeshOpaque::ProcessMaterial(glTFRenderResourceManager& resource_manager, const glTFMaterialBase& material)
@@ -53,9 +61,6 @@ size_t glTFGraphicsPassMeshOpaque::GetMainDescriptorHeapSize()
 bool glTFGraphicsPassMeshOpaque::SetupRootSignature(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::SetupRootSignature(resource_manager))
-    
-    // TODO: Init sampler in material resource manager
-    RETURN_IF_FALSE(m_root_signature_helper.AddSampler("DefaultSampler", RHIStaticSamplerAddressMode::Warp, RHIStaticSamplerFilterMode::Linear, m_sampler_allocation))
     
     return true;
 }
@@ -100,6 +105,8 @@ bool glTFGraphicsPassMeshOpaque::SetupPipelineStateObject(glTFRenderResourceMana
 
 bool glTFGraphicsPassMeshOpaque::BeginDrawMesh(glTFRenderResourceManager& resource_manager, glTFUniqueID meshID)
 {
+    return true;
+    
     // Using texture SRV slot when mesh material is texture
     auto mesh = resource_manager.GetMeshManager().GetMeshes().find(meshID);
     if (mesh == resource_manager.GetMeshManager().GetMeshes().end())

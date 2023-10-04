@@ -6,6 +6,7 @@
 #include "glTFLight/glTFDirectionalLight.h"
 #include "glTFLight/glTFLightBase.h"
 #include "glTFLight/glTFPointLight.h"
+#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSampler.h"
 #include "glTFRHI/RHIResourceFactory.h"
 #include "glTFUtils/glTFLog.h"
 
@@ -18,7 +19,11 @@ glTFGraphicsPassLighting::glTFGraphicsPassLighting()
     , m_constant_buffer_per_light_draw({})
 {
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneView>());
-    AddRenderInterface(std::make_shared<glTFRenderInterfaceLighting>() );
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceLighting>());
+    const std::shared_ptr<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Clamp, RHIStaticSamplerFilterMode::Linear>> sampler_interface =
+        std::make_shared<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Clamp, RHIStaticSamplerFilterMode::Linear>>();
+    sampler_interface->SetSamplerRegisterIndexName("DEFAULT_SAMPLER_REGISTER_INDEX");
+    AddRenderInterface(sampler_interface);
 }
 
 const char* glTFGraphicsPassLighting::PassName()
@@ -156,8 +161,7 @@ bool glTFGraphicsPassLighting::SetupRootSignature(glTFRenderResourceManager& res
 {
     RETURN_IF_FALSE(glTFGraphicsPassPostprocess::SetupRootSignature(resource_manager))
 
-    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("BaseColorAndDepth", RHIRootParameterDescriptorRangeType::SRV, 3, m_base_color_and_depth_allocation))
-    RETURN_IF_FALSE(m_root_signature_helper.AddSampler("DefaultSampler", RHIStaticSamplerAddressMode::Clamp, RHIStaticSamplerFilterMode::Linear, m_sampler_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("BaseColorAndDepth", RHIRootParameterDescriptorRangeType::SRV, 3, false, m_base_color_and_depth_allocation))
     
     return true;
 }
@@ -192,7 +196,6 @@ bool glTFGraphicsPassLighting::SetupPipelineStateObject(glTFRenderResourceManage
     shaderMacros.AddSRVRegisterDefine("ALBEDO_TEX_REGISTER_INDEX", m_base_color_and_depth_allocation.register_index);
     shaderMacros.AddSRVRegisterDefine("DEPTH_TEX_REGISTER_INDEX", m_base_color_and_depth_allocation.register_index + 1);
     shaderMacros.AddSRVRegisterDefine("NORMAL_TEX_REGISTER_INDEX", m_base_color_and_depth_allocation.register_index + 2);
-    shaderMacros.AddSamplerRegisterDefine("DEFAULT_SAMPLER_REGISTER_INDEX", m_sampler_allocation.register_index);
     
     return true;
 }

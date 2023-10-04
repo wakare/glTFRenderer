@@ -3,6 +3,7 @@
 #include "glTFAABB.h"
 #include "glTFSceneTriangleMesh.h"
 #include "../glTFMaterial/glTFMaterialPBR.h"
+#include "glTFMaterial/glTFMaterialParameterFactor.h"
 
 bool glTFSceneNode::IsDirty() const
 {
@@ -276,7 +277,9 @@ void glTFSceneGraph::RecursiveInitSceneNodeFromGLTFLoader(const glTFLoader& load
                 else
                 {
                     // No base color texture? handle base color factor in the future
-                    GLTF_CHECK(false);
+                    //GLTF_CHECK(false);
+                    pbr_material->AddOrUpdateMaterialParameter(glTFMaterialParameterUsage::BASECOLOR,
+                        std::make_shared<glTFMaterialParameterFactor<glm::vec4>>(glTFMaterialParameterUsage::BASECOLOR, source_material.pbr.base_color_factor));
                 }
 
                 // Normal texture setting

@@ -50,6 +50,15 @@ protected:
     std::vector<std::shared_ptr<glTFRenderInterfaceBase>> m_sub_interfaces;
 };
 
+class glTFRenderInterfaceBaseWithDefaultImpl : public glTFRenderInterfaceBase
+{
+protected:
+    virtual bool InitInterfaceImpl(glTFRenderResourceManager& resource_manager) override { return true; }
+    virtual bool ApplyInterfaceImpl(glTFRenderResourceManager& resource_manager, bool isGraphicsPipeline) override { return true; }
+    virtual bool ApplyRootSignatureImpl(IRHIRootSignatureHelper& root_signature) override { return true; }
+    virtual void ApplyShaderDefineImpl(RHIShaderPreDefineMacros& out_shader_pre_define_macros) const override {}
+};
+
 class glTFRenderInterfaceWithRSAllocation : public glTFRenderInterfaceBase
 {
 public:

@@ -3,7 +3,6 @@
 #include "glTFGraphicsPassBase.h"
 #include "glTFScene/glTFScenePrimitive.h"
 #include "glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
-#include "glTFRenderPass/glTFRenderPassMeshResource.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneMesh.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneView.h"
 

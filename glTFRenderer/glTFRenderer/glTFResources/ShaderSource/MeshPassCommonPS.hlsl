@@ -1,7 +1,8 @@
 #include "glTFResources/ShaderSource/MeshPassCommon.hlsl"
+#include "glTFResources/ShaderSource/Interface/SceneMaterial.hlsl"
 
 #ifdef HAS_TEXCOORD 
-SamplerState s0 : register(s0);
+SamplerState defaultSampler : DEFAULT_SAMPLER_REGISTER_INDEX;
 #endif
 
 PS_OUTPUT main(PS_INPUT input)
@@ -9,7 +10,9 @@ PS_OUTPUT main(PS_INPUT input)
     PS_OUTPUT output;
 #ifdef HAS_TEXCOORD 
     // return interpolated color
-    output.baseColor = baseColor_texture.Sample(s0, input.texCoord);
+    //output.baseColor = baseColor_texture.Sample(defaultSampler, input.texCoord);
+    //output.baseColor = SampleAlbedoTexture(material_id, input.texCoord);
+    output.baseColor = GetMaterialDebugColor(material_id);
 #else
     output.baseColor = float4(1.0, 1.0, 1.0, 1.0);
 #endif
@@ -18,7 +21,8 @@ PS_OUTPUT main(PS_INPUT input)
     #ifdef HAS_TANGENT
     if (using_normal_mapping)
     {
-        float3 normal = normalize(2 * normal_texture.Sample(s0, input.texCoord).xyz - 1.0);
+        //float3 normal = normalize(2 * normal_texture.Sample(defaultSampler, input.texCoord).xyz - 1.0);
+        float3 normal = normalize(2 * SampleNormalTexture(material_id, input.texCoord).xyz - 1.0);
         float3 tmpTangent = normalize(mul(world_matrix, float4(input.tangent.xyz, 0.0)).xyz);
         float3 bitangent = cross(input.normal, tmpTangent) * input.tangent.w;
         float3 tangent = cross(bitangent, input.normal);

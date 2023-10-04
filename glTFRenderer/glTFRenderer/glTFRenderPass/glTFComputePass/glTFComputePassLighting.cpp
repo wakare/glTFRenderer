@@ -2,6 +2,7 @@
 #include "glTFLight/glTFDirectionalLight.h"
 #include "glTFLight/glTFLightBase.h"
 #include "glTFLight/glTFPointLight.h"
+#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSampler.h"
 
 glTFComputePassLighting::glTFComputePassLighting()
     : m_base_color_RT(nullptr)
@@ -15,6 +16,11 @@ glTFComputePassLighting::glTFComputePassLighting()
 {
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneView>());
     AddRenderInterface(std::make_shared<glTFRenderInterfaceLighting>());
+
+    const std::shared_ptr<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Clamp, RHIStaticSamplerFilterMode::Linear>> sampler_interface =
+        std::make_shared<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Clamp, RHIStaticSamplerFilterMode::Linear>>();
+    sampler_interface->SetSamplerRegisterIndexName("DEFAULT_SAMPLER_REGISTER_INDEX");
+    AddRenderInterface(sampler_interface);
 }
 
 const char* glTFComputePassLighting::PassName()
@@ -55,13 +61,13 @@ bool glTFComputePassLighting::PreRenderPass(glTFRenderResourceManager& resource_
         RHIResourceStateType::STATE_COPY_SOURCE, RHIResourceStateType::STATE_UNORDER_ACCESS))
     
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_base_color_RT,
-        RHIResourceStateType::STATE_RENDER_TARGET, RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE))
+        RHIResourceStateType::STATE_RENDER_TARGET, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE))
 
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_normal_RT,
-        RHIResourceStateType::STATE_RENDER_TARGET, RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE))
+        RHIResourceStateType::STATE_RENDER_TARGET, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE))
     
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, resource_manager.GetDepthRT(),
-        RHIResourceStateType::STATE_DEPTH_READ, RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE))
+        RHIResourceStateType::STATE_DEPTH_READ, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE))
 
     RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list,
         m_base_color_and_depth_allocation.parameter_index, m_main_descriptor_heap->GetGPUHandle(0), GetPipelineType() == PipelineType::Graphics))    
@@ -86,13 +92,13 @@ bool glTFComputePassLighting::PostRenderPass(glTFRenderResourceManager& resource
         RHIResourceStateType::STATE_UNORDER_ACCESS, RHIResourceStateType::STATE_COPY_SOURCE))
     
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_base_color_RT,
-        RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_RENDER_TARGET))
+        RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_RENDER_TARGET))
 
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_normal_RT,
-        RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_RENDER_TARGET))
+        RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_RENDER_TARGET))
 
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, resource_manager.GetDepthRT(),
-        RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_DEPTH_READ))
+        RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_DEPTH_READ))
 
     // Copy compute result to swapchain back buffer
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, resource_manager.GetCurrentFrameSwapchainRT(),
@@ -183,9 +189,8 @@ bool glTFComputePassLighting::SetupRootSignature(glTFRenderResourceManager& reso
 {
     RETURN_IF_FALSE(glTFComputePassBase::SetupRootSignature(resource_manager))
     
-    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("BaseColorAndDepth", RHIRootParameterDescriptorRangeType::SRV, 3, m_base_color_and_depth_allocation))
-    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("Output", RHIRootParameterDescriptorRangeType::UAV, 1, m_output_allocation))
-    RETURN_IF_FALSE(m_root_signature_helper.AddSampler("DefaultSampler", RHIStaticSamplerAddressMode::Clamp, RHIStaticSamplerFilterMode::Linear, m_sampler_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("BaseColorAndDepth", RHIRootParameterDescriptorRangeType::SRV, 3, false, m_base_color_and_depth_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("Output", RHIRootParameterDescriptorRangeType::UAV, 1, false, m_output_allocation))
 
     return true;
 }
@@ -220,7 +225,6 @@ bool glTFComputePassLighting::SetupPipelineStateObject(glTFRenderResourceManager
     shaderMacros.AddSRVRegisterDefine("DEPTH_TEX_REGISTER_INDEX", m_base_color_and_depth_allocation.register_index + 1);
     shaderMacros.AddSRVRegisterDefine("NORMAL_TEX_REGISTER_INDEX", m_base_color_and_depth_allocation.register_index + 2);
     shaderMacros.AddUAVRegisterDefine("OUTPUT_TEX_REGISTER_INDEX", m_output_allocation.register_index);
-    shaderMacros.AddSamplerRegisterDefine("DEFAULT_SAMPLER_REGISTER_INDEX", m_sampler_allocation.register_index);
 
     return true;
 }

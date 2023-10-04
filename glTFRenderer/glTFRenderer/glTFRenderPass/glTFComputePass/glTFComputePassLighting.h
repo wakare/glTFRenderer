@@ -42,5 +42,4 @@ protected:
 
     RootSignatureAllocation m_base_color_and_depth_allocation;
     RootSignatureAllocation m_output_allocation;
-    RootSignatureAllocation m_sampler_allocation;
 };

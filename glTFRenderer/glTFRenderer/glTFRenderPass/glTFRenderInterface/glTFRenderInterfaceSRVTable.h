@@ -13,7 +13,7 @@ public:
     
     virtual bool ApplyRootSignatureImpl(IRHIRootSignatureHelper& rootSignature) override
     {
-        return rootSignature.AddTableRootParameter("TableParameter", RHIRootParameterDescriptorRangeType::SRV, TableRangeCount, m_allocation);
+        return rootSignature.AddTableRootParameter("TableParameter", RHIRootParameterDescriptorRangeType::SRV, TableRangeCount, TableRangeCount == UINT_MAX, m_allocation);
     }
 
     virtual bool ApplyInterfaceImpl(glTFRenderResourceManager& resource_manager, bool isGraphicsPipeline) override

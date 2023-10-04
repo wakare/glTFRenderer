@@ -869,6 +869,8 @@
       <LinkCompiled>true</LinkCompiled>
     </ClCompile>
     <ClCompile Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassWithMesh.cpp" />
+    <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterface32BitConstant.cpp" />
+    <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSampler.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSceneMaterial.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSRVTable.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSingleConstantBuffer.cpp" />
@@ -982,6 +984,8 @@
     <ClInclude Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassBase.h" />
     <ClInclude Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassPathTracing.h" />
     <ClInclude Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassWithMesh.h" />
+    <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterface32BitConstant.h" />
+    <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSampler.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSceneMaterial.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSRVTable.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSingleConstantBuffer.h" />

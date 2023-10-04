@@ -5,19 +5,10 @@
 
 class IRHIRootSignatureHelper;
 
-class glTFRenderInterfaceLighting : public glTFRenderInterfaceBase
+class glTFRenderInterfaceLighting : public glTFRenderInterfaceBaseWithDefaultImpl
 {
 public:
     glTFRenderInterfaceLighting();
-
-    virtual bool InitInterfaceImpl(glTFRenderResourceManager& resource_manager) override;
-
-    virtual bool ApplyInterfaceImpl(glTFRenderResourceManager& resource_manager, bool isGraphicsPipeline) override;
-
-    virtual bool ApplyRootSignatureImpl(IRHIRootSignatureHelper& root_signature) override;
-
     bool UpdateCPUBuffer(const ConstantBufferPerLightDraw& data);
-    
-    virtual void ApplyShaderDefineImpl(RHIShaderPreDefineMacros& out_shader_pre_define_macros) const override;
 };
 

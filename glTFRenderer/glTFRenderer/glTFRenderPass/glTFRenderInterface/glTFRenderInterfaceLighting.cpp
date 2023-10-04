@@ -9,21 +9,6 @@ glTFRenderInterfaceLighting::glTFRenderInterfaceLighting()
      AddInterface(std::make_shared<glTFRenderInterfaceStructuredBuffer<DirectionalLightInfo>>());
 }
 
-bool glTFRenderInterfaceLighting::InitInterfaceImpl(glTFRenderResourceManager& resource_manager)
-{
-     return true;
-}
-
-bool glTFRenderInterfaceLighting::ApplyInterfaceImpl(glTFRenderResourceManager& resource_manager, bool isGraphicsPipeline)
-{
-     return true;
-}
-
-bool glTFRenderInterfaceLighting::ApplyRootSignatureImpl(IRHIRootSignatureHelper& root_signature)
-{
-     return true;
-}
-
 bool glTFRenderInterfaceLighting::UpdateCPUBuffer(const ConstantBufferPerLightDraw& data)
 {
      RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSingleConstantBuffer<ConstantBufferPerLightDraw>>()->UpdateCPUBuffer(&data.light_info, sizeof(data.light_info)))
@@ -39,8 +24,4 @@ bool glTFRenderInterfaceLighting::UpdateCPUBuffer(const ConstantBufferPerLightDr
      }
 
      return true;
-}
-
-void glTFRenderInterfaceLighting::ApplyShaderDefineImpl(RHIShaderPreDefineMacros& out_shader_pre_define_macros) const
-{
 }

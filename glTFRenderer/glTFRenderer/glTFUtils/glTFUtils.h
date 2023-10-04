@@ -33,7 +33,7 @@ inline std::string to_byte_string(const std::wstring& input)
     return converter.to_bytes(input);
 }
 
-
+template<typename T>
 class glTFUniqueObject
 {
 public:
@@ -47,6 +47,9 @@ private:
     glTFUniqueID m_uniqueID;
     static glTFUniqueID _innerUniqueID;
 };
+
+template<typename T>
+glTFUniqueID glTFUniqueObject<T>::_innerUniqueID = 0;
 
 class ITickable
 {

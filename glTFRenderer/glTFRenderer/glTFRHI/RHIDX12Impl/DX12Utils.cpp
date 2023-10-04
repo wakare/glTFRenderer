@@ -102,6 +102,9 @@ D3D12_RESOURCE_STATES DX12ConverterUtils::ConvertToResourceState(RHIResourceStat
     case RHIResourceStateType::STATE_UNORDER_ACCESS:
         return D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
         
+    case RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE:
+        return D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+        
     case RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE:
         return D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 
@@ -352,6 +355,22 @@ bool DX12Utils::SetDescriptorHeapArray(IRHICommandList& commandList, IRHIDescrip
     }
     
     dxCommandList->SetDescriptorHeaps(dx_descriptor_heaps.size(), dx_descriptor_heaps.data());
+    
+    return true;
+}
+
+bool DX12Utils::SetConstant32BitToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex, unsigned data,
+                                                    unsigned count, bool isGraphicsPipeline)
+{
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    if (isGraphicsPipeline)
+    {
+        dxCommandList->SetGraphicsRoot32BitConstant(slotIndex, data, 0);    
+    }
+    else
+    {
+        dxCommandList->SetComputeRoot32BitConstant(slotIndex, data, 0);
+    }
     
     return true;
 }

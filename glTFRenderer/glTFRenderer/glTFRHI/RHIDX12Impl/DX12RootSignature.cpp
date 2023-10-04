@@ -79,16 +79,21 @@ bool DX12RootParameter::InitAsDescriptorTableRange(size_t rangeCount,
     for (size_t i = 0; i < rangeCount; ++i)
     {
         const RHIRootParameterDescriptorRangeDesc& desc = rangeDesc[i]; 
-        D3D12_DESCRIPTOR_RANGE range = {};
-        range.NumDescriptors = desc.descriptorCount;
+        D3D12_DESCRIPTOR_RANGE1 range = {};
+        range.NumDescriptors = desc.descriptor_count;
         range.RangeType = _convertDX12RangeType(desc.type);
-        range.BaseShaderRegister = desc.baseRegisterIndex;
+        range.BaseShaderRegister = desc.base_register_index;
 
         // TODO: this parameter might be used for bindless mode
         range.RegisterSpace = 0;
         
         // TODO: use default value for most situation
         range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+        if (desc.is_bindless_range)
+        {
+            range.Flags |= D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;   
+        }
         
         m_ranges.push_back(range);
     }
@@ -194,7 +199,7 @@ bool DX12StaticSampler::InitStaticSampler(REGISTER_INDEX_TYPE registerIndex, RHI
 }
 
 DX12RootSignature::DX12RootSignature()
-    : m_rootSignature(nullptr)
+    : m_root_signature(nullptr)
     , m_description({})
 {
 }
@@ -209,7 +214,7 @@ bool DX12RootSignature::InitRootSignature(IRHIDevice& device)
     }
 
     // Fill root parameters and static samplers
-    std::vector<D3D12_ROOT_PARAMETER> dxRootParameters(m_rootParameters.size());
+    std::vector<D3D12_ROOT_PARAMETER1> dxRootParameters(m_rootParameters.size());
     for (size_t i = 0; i < dxRootParameters.size(); ++i)
     {
         const DX12RootParameter* dxRootParameter = static_cast<const DX12RootParameter*>(m_rootParameters[i].get());
@@ -241,14 +246,17 @@ bool DX12RootSignature::InitRootSignature(IRHIDevice& device)
     
     ID3DBlob* signature = nullptr;
     ID3DBlob* error = nullptr;
-    if (FAILED(D3D12SerializeRootSignature(&m_description, D3D_ROOT_SIGNATURE_VERSION_1, &signature, &error)))
+    D3D12_VERSIONED_ROOT_SIGNATURE_DESC version_desc = {};
+    version_desc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1; 
+    version_desc.Desc_1_1 = m_description;
+    if (FAILED(D3D12SerializeVersionedRootSignature(&version_desc, &signature, &error)))
     {
         std::cerr << "[ERROR] Serialize root signature failed with reason: " << static_cast<const char*>(error->GetBufferPointer()) << std::endl;
         return false;
     }
     
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
-    THROW_IF_FAILED(dxDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_rootSignature)))
+    THROW_IF_FAILED(dxDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_root_signature)))
 
     // TODO: Use ComPtr?
     if (signature)
@@ -266,5 +274,5 @@ bool DX12RootSignature::InitRootSignature(IRHIDevice& device)
 
 ID3D12RootSignature* DX12RootSignature::GetRootSignature() const
 {
-    return m_rootSignature.Get();
+    return m_root_signature.Get();
 }

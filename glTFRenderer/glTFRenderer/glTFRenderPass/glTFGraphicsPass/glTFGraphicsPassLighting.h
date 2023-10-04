@@ -39,5 +39,4 @@ protected:
     ConstantBufferPerLightDraw m_constant_buffer_per_light_draw;
 
     RootSignatureAllocation m_base_color_and_depth_allocation;
-    RootSignatureAllocation m_sampler_allocation;
 };

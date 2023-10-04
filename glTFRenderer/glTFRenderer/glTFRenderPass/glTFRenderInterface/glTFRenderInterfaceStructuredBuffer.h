@@ -17,7 +17,7 @@ public:
                 1,
                 1,
                 RHIBufferType::Upload,
-                RHIDataFormat::R32G32B32A32_FLOAT,
+                RHIDataFormat::Unknown,
                 RHIBufferResourceType::Buffer
             }))
     

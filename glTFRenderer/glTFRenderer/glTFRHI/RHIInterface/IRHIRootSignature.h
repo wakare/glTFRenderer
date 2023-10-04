@@ -25,8 +25,9 @@ enum class RHIShaderRegisterType
 struct RHIRootParameterDescriptorRangeDesc
 {
     RHIRootParameterDescriptorRangeType type {RHIRootParameterDescriptorRangeType::Unknown} ;
-    REGISTER_INDEX_TYPE baseRegisterIndex;
-    size_t descriptorCount;
+    REGISTER_INDEX_TYPE base_register_index {0};
+    size_t descriptor_count {0};
+    bool is_bindless_range {false};
 };
 
 enum class RHIRootParameterType

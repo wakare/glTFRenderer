@@ -57,7 +57,7 @@ protected:
 };
 
 // Base class represent transform object in scene
-class glTFSceneObjectBase : public glTFUniqueObject, public ITickable
+class glTFSceneObjectBase : public glTFUniqueObject<glTFSceneObjectBase>, public ITickable
 {
 public:
     glTFSceneObjectBase(const glTF_Transform_WithTRS& parentTransformRef)

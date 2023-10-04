@@ -15,12 +15,12 @@ public:
     virtual bool InitAsUAV(REGISTER_INDEX_TYPE registerIndex) override;
     virtual bool InitAsDescriptorTableRange(size_t rangeCount, const RHIRootParameterDescriptorRangeDesc* rangeDesc) override;
 
-    const D3D12_ROOT_PARAMETER& GetParameter() const {return m_parameter;}
-    const std::vector<D3D12_DESCRIPTOR_RANGE>& GetRanges() const {return m_ranges;}
+    const D3D12_ROOT_PARAMETER1& GetParameter() const {return m_parameter;}
+    const std::vector<D3D12_DESCRIPTOR_RANGE1>& GetRanges() const {return m_ranges;}
     
 private:
-    D3D12_ROOT_PARAMETER m_parameter;
-    std::vector<D3D12_DESCRIPTOR_RANGE> m_ranges;
+    D3D12_ROOT_PARAMETER1 m_parameter;
+    std::vector<D3D12_DESCRIPTOR_RANGE1> m_ranges;
 };
 
 class DX12StaticSampler : public IRHIStaticSampler
@@ -44,6 +44,6 @@ public:
     ID3D12RootSignature* GetRootSignature() const;
     
 private:
-    ComPtr<ID3D12RootSignature> m_rootSignature;
-    D3D12_ROOT_SIGNATURE_DESC m_description;
+    ComPtr<ID3D12RootSignature> m_root_signature;
+    D3D12_ROOT_SIGNATURE_DESC1 m_description;
 };

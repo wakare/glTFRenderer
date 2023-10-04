@@ -38,9 +38,9 @@ public:
         return true;
     }
 
-    virtual bool ApplyRootSignatureImpl(IRHIRootSignatureHelper& rootSignature) override
+    virtual bool ApplyRootSignatureImpl(IRHIRootSignatureHelper& root_signature) override
     {
-        return rootSignature.AddCBVRootParameter("GPUBuffer_SingleConstantBuffer", m_allocation);
+        return root_signature.AddCBVRootParameter("GPUBuffer_SingleConstantBuffer", m_allocation);
     }
 
     virtual void ApplyShaderDefineImpl(RHIShaderPreDefineMacros& out_shader_pre_define_macros) const override

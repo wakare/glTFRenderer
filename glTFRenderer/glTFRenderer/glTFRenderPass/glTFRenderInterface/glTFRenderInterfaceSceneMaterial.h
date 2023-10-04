@@ -10,13 +10,8 @@ struct MaterialInfo
 };
 
 // Use material manager class to bind all needed textures in bindless mode
-class glTFRenderInterfaceSceneMaterial : public glTFRenderInterfaceBase
+class glTFRenderInterfaceSceneMaterial : public glTFRenderInterfaceBaseWithDefaultImpl
 {
 public:
     glTFRenderInterfaceSceneMaterial();
-    
-    virtual bool InitInterfaceImpl(glTFRenderResourceManager& resource_manager) override;
-    virtual bool ApplyInterfaceImpl(glTFRenderResourceManager& resource_manager, bool isGraphicsPipeline) override;
-    virtual bool ApplyRootSignatureImpl(IRHIRootSignatureHelper& root_signature) override;
-    virtual void ApplyShaderDefineImpl(RHIShaderPreDefineMacros& out_shader_pre_define_macros) const override;
 };

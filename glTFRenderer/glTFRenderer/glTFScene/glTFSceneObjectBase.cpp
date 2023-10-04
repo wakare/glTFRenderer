@@ -2,8 +2,6 @@
 
 #include <gtx/quaternion.hpp>
 
-glTFUniqueID glTFUniqueObject::_innerUniqueID = 0;
-
 const glTF_Transform_WithTRS glTF_Transform_WithTRS::identity;
 
 glTF_Transform_WithTRS::glTF_Transform_WithTRS(const glm::fmat4& matrix): glTF_Transform(matrix),
