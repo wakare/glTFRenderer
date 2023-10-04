@@ -12,12 +12,16 @@ bool glTFRayTracingPassBase::InitPass(glTFRenderResourceManager& resource_manage
 
 bool glTFRayTracingPassBase::SetupRootSignature(glTFRenderResourceManager& resourceManager)
 {
+    RETURN_IF_FALSE(glTFRenderPassBase::SetupRootSignature(resourceManager))
+    
     return true;
 }
 
 bool glTFRayTracingPassBase::PreRenderPass(glTFRenderResourceManager& resource_manager)
 {
-    return glTFRenderPassBase::PreRenderPass(resource_manager);
+    RETURN_IF_FALSE(glTFRenderPassBase::PreRenderPass(resource_manager))
+    
+    return true;
 }
 
 bool glTFRayTracingPassBase::RenderPass(glTFRenderResourceManager& resource_manager)
@@ -34,12 +38,15 @@ bool glTFRayTracingPassBase::RenderPass(glTFRenderResourceManager& resource_mana
 
 bool glTFRayTracingPassBase::PostRenderPass(glTFRenderResourceManager& resource_manager)
 {
-    return glTFRenderPassBase::PostRenderPass(resource_manager);
+    RETURN_IF_FALSE(glTFRenderPassBase::PostRenderPass(resource_manager))
+
+    return true;
 }
 
 IRHIRayTracingPipelineStateObject& glTFRayTracingPassBase::GetRayTracingPipelineStateObject() const
 {
     GLTF_CHECK(m_pipeline_state_object.get());
+    
     return dynamic_cast<IRHIRayTracingPipelineStateObject&>(*m_pipeline_state_object);
 }
 
