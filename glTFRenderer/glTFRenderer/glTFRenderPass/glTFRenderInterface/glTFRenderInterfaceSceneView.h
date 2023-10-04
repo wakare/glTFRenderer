@@ -5,6 +5,7 @@
 
 struct ConstantBufferSceneView
 {
+    inline static std::string Name = "SCENE_VIEW_REGISTER_INDEX"; 
     glm::mat4 viewMatrix {glm::mat4{1.0f}};
     glm::mat4 ProjectionMatrix {glm::mat4{1.0f}};
     glm::mat4 inverseViewMatrix {glm::mat4{1.0f}};
@@ -17,6 +18,4 @@ struct ConstantBufferSceneView
 
 class glTFRenderInterfaceSceneView : public glTFRenderInterfaceSingleConstantBuffer<ConstantBufferSceneView>
 {
-public:
-    virtual void UpdateShaderCompileDefine(RHIShaderPreDefineMacros& outShaderPreDefineMacros) const override;
 };

@@ -2,10 +2,11 @@
 
 #include "glTFRenderInterfaceShaderResourceView.h"
 #include "glTFRenderInterfaceSingleConstantBuffer.h"
-#include "glm/glm/mat4x4.hpp"
 
 struct ConstantBufferSceneMesh
 {
+    inline static std::string Name = "SCENE_MESH_REGISTER_CBV_INDEX";
+    
     glm::mat4 worldMat {glm::mat4{1.0f}};
     glm::mat4 transInvWorldMat {glm::mat4{1.0f}};
     bool using_normal_mapping {false};
@@ -13,8 +14,6 @@ struct ConstantBufferSceneMesh
 
 class glTFRenderInterfaceSceneMesh: public glTFRenderInterfaceSingleConstantBuffer<ConstantBufferSceneMesh>
 {
-public:
-    virtual void UpdateShaderCompileDefine(RHIShaderPreDefineMacros& outShaderPreDefineMacros) const override;
 };
 
 class glTFRenderInterfaceSceneMeshMaterial : public glTFRenderInterfaceShaderResourceView

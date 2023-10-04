@@ -10,6 +10,7 @@ glTFGraphicsPassMeshOpaque::glTFGraphicsPassMeshOpaque()
     : m_base_pass_color_render_target(nullptr)
     , m_base_pass_normal_render_target(nullptr)
 {
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMeshMaterial>());
 }
 
 bool glTFGraphicsPassMeshOpaque::ProcessMaterial(glTFRenderResourceManager& resource_manager, const glTFMaterialBase& material)
@@ -24,7 +25,6 @@ bool glTFGraphicsPassMeshOpaque::ProcessMaterial(glTFRenderResourceManager& reso
 bool glTFGraphicsPassMeshOpaque::InitPass(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::InitPass(resource_manager))
-    RETURN_IF_FALSE(glTFRenderInterfaceSceneMeshMaterial::InitInterface(resource_manager))
 
     return true;
 }
@@ -56,7 +56,6 @@ bool glTFGraphicsPassMeshOpaque::SetupRootSignature(glTFRenderResourceManager& r
     
     // TODO: Init sampler in material resource manager
     RETURN_IF_FALSE(m_root_signature_helper.AddSampler("DefaultSampler", RHIStaticSamplerAddressMode::Warp, RHIStaticSamplerFilterMode::Linear, m_sampler_allocation))
-    RETURN_IF_FALSE(glTFRenderInterfaceSceneMeshMaterial::SetupRootSignature(m_root_signature_helper))
     
     return true;
 }
@@ -96,9 +95,6 @@ bool glTFGraphicsPassMeshOpaque::SetupPipelineStateObject(glTFRenderResourceMana
     
     GetGraphicsPipelineStateObject().BindRenderTargets({m_base_pass_color_render_target.get(), m_base_pass_normal_render_target.get(), &resource_manager.GetDepthRT()});
     
-    auto& shader_macros = GetGraphicsPipelineStateObject().GetShaderMacros();
-    glTFRenderInterfaceSceneMeshMaterial::UpdateShaderCompileDefine(shader_macros);
-    
     return true;
 }
 
@@ -118,5 +114,5 @@ bool glTFGraphicsPassMeshOpaque::BeginDrawMesh(glTFRenderResourceManager& resour
     }
     
 	return resource_manager.ApplyMaterial(*m_main_descriptor_heap,
-	    material_ID, glTFRenderInterfaceSceneMeshMaterial::m_allocation.parameter_index, GetPipelineType() == PipelineType::Graphics);
+	    material_ID, GetRenderInterface<glTFRenderInterfaceSceneMeshMaterial>()->GetRSAllocation().parameter_index, GetPipelineType() == PipelineType::Graphics);
 }

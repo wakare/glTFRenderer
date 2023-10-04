@@ -3,7 +3,7 @@
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 
 template <typename StructuredBufferType>
-class glTFRenderInterfaceStructuredBuffer : public glTFRenderInterfaceBase
+class glTFRenderInterfaceStructuredBuffer : public glTFRenderInterfaceWithRSAllocation, public glTFRenderInterfaceCanUploadDataFromCPU
 {
 public:
     virtual bool InitInterface(glTFRenderResourceManager& resource_manager) override
@@ -24,12 +24,12 @@ public:
         return true;
     }
 
-    virtual bool UpdateCPUBuffer(const void* data, size_t size)
+    virtual bool UpdateCPUBuffer(const void* data, size_t size) override
     {
         return m_gpu_buffer->UploadBufferFromCPU(data, 0, size);
     }
     
-    virtual bool ApplyInterface(glTFRenderResourceManager& resource_manager, bool isGraphicsPipeline)
+    virtual bool ApplyInterface(glTFRenderResourceManager& resource_manager, bool isGraphicsPipeline) override
     {
         auto& command_list = resource_manager.GetCommandListForRecord();
         RHIUtils::Instance().SetSRVToRootParameterSlot(command_list, m_allocation.parameter_index,
@@ -38,13 +38,20 @@ public:
         return true;
     }
 
-    virtual bool ApplyRootSignature(IRHIRootSignatureHelper& rootSignature)
+    virtual bool ApplyRootSignature(IRHIRootSignatureHelper& rootSignature) override
     {
-        return rootSignature.AddSRVRootParameter("StructuredBuffer", m_allocation);
+        return rootSignature.AddSRVRootParameter(StructuredBufferType::Name, m_allocation);
+    }
+
+    virtual void UpdateShaderCompileDefine(RHIShaderPreDefineMacros& out_shader_pre_define_macros) const override
+    {
+        // Update light info shader define
+        char registerIndexValue[16] = {'\0'};
+    
+        (void)snprintf(registerIndexValue, sizeof(registerIndexValue), "register(t%d)", GetRSAllocation().register_index);
+        out_shader_pre_define_macros.AddMacro(StructuredBufferType::Name, registerIndexValue);
     }
     
 protected:
-    RootSignatureAllocation m_allocation;
-    
     std::shared_ptr<IRHIGPUBuffer> m_gpu_buffer;
 };

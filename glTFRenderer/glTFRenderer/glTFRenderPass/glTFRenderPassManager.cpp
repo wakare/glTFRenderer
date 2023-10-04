@@ -90,7 +90,7 @@ void glTFRenderPassManager::UpdateScene(size_t deltaTimeMs)
         const bool success = pass->FinishProcessSceneObject(*m_resource_manager);
         GLTF_CHECK(success);
 
-        if (auto* sceneViewInterface = dynamic_cast<glTFRenderInterfaceSceneView*>(pass))
+        if (auto* sceneViewInterface = pass->GetRenderInterface<glTFRenderInterfaceSceneView>())
         {
             unsigned width, height;
             m_scene_view.GetViewportSize(width, height);

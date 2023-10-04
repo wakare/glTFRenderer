@@ -12,12 +12,16 @@ bool glTFComputePassBase::InitPass(glTFRenderResourceManager& resource_manager)
 
 bool glTFComputePassBase::SetupRootSignature(glTFRenderResourceManager& resource_manager)
 {
+    RETURN_IF_FALSE(glTFRenderPassBase::SetupRootSignature(resource_manager))
+    
     return true;
 }
 
 bool glTFComputePassBase::PreRenderPass(glTFRenderResourceManager& resource_manager)
 {
-    return glTFRenderPassBase::PreRenderPass(resource_manager);
+    RETURN_IF_FALSE(glTFRenderPassBase::PreRenderPass(resource_manager))
+    
+    return true;
 }
 
 bool glTFComputePassBase::RenderPass(glTFRenderResourceManager& resource_manager)
@@ -35,7 +39,9 @@ bool glTFComputePassBase::RenderPass(glTFRenderResourceManager& resource_manager
 
 bool glTFComputePassBase::PostRenderPass(glTFRenderResourceManager& resource_manager)
 {
-    return glTFRenderPassBase::PostRenderPass(resource_manager);
+    RETURN_IF_FALSE(glTFRenderPassBase::PostRenderPass(resource_manager))
+
+    return true;
 }
 
 IRHIComputePipelineStateObject& glTFComputePassBase::GetComputePipelineStateObject() const

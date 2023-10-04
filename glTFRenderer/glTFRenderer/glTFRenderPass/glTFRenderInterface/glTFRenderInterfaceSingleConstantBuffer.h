@@ -4,7 +4,7 @@
 #include "glTFRHI/RHIInterface/IRHIRootSignatureHelper.h"
 
 template <typename ConstantBufferType>
-class glTFRenderInterfaceSingleConstantBuffer : public glTFRenderInterfaceBase
+class glTFRenderInterfaceSingleConstantBuffer : public glTFRenderInterfaceWithRSAllocation, public glTFRenderInterfaceCanUploadDataFromCPU
 {
 public:
     virtual bool InitInterface(glTFRenderResourceManager& resource_manager) override
@@ -25,12 +25,12 @@ public:
         return true;
     }
 
-    virtual bool UpdateCPUBuffer(const void* data, size_t size)
+    virtual bool UpdateCPUBuffer(const void* data, size_t size) override
     {
         return m_constant_gpu_data->UploadBufferFromCPU(data, 0, size);
     }
     
-    virtual bool ApplyInterface(glTFRenderResourceManager& resource_manager, bool isGraphicsPipeline)
+    virtual bool ApplyInterface(glTFRenderResourceManager& resource_manager, bool isGraphicsPipeline) override
     {
         RETURN_IF_FALSE(RHIUtils::Instance().SetCBVToRootParameterSlot(resource_manager.GetCommandListForRecord(),
         m_allocation.parameter_index, m_constant_gpu_data->GetGPUBufferHandle(), isGraphicsPipeline))
@@ -38,12 +38,20 @@ public:
         return true;
     }
 
-    virtual bool ApplyRootSignature(IRHIRootSignatureHelper& rootSignature)
+    virtual bool ApplyRootSignature(IRHIRootSignatureHelper& rootSignature) override
     {
         return rootSignature.AddCBVRootParameter("GPUBuffer_SingleConstantBuffer", m_allocation);
     }
 
+    virtual void UpdateShaderCompileDefine(RHIShaderPreDefineMacros& out_shader_pre_define_macros) const override
+    {
+        // Update light info shader define
+        char registerIndexValue[16] = {'\0'};
+    
+        (void)snprintf(registerIndexValue, sizeof(registerIndexValue), "register(b%d)", GetRSAllocation().register_index);
+        out_shader_pre_define_macros.AddMacro(ConstantBufferType::Name, registerIndexValue);
+    }
+
 protected:
-    RootSignatureAllocation m_allocation;
     std::shared_ptr<IRHIGPUBuffer> m_constant_gpu_data;
 };

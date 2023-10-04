@@ -2,7 +2,7 @@
 #include "glTFGraphicsPassMeshBase.h"
 #include "glTFMaterial/glTFMaterialParameterTexture.h"
 
-class glTFGraphicsPassMeshOpaque : public glTFGraphicsPassMeshBase, public glTFRenderInterfaceSceneMeshMaterial
+class glTFGraphicsPassMeshOpaque : public glTFGraphicsPassMeshBase
 {
 public:
     glTFGraphicsPassMeshOpaque();

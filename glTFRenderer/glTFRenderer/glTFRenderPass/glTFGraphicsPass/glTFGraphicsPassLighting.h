@@ -6,7 +6,7 @@
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneView.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceLighting.h"
 
-class glTFGraphicsPassLighting : public glTFGraphicsPassPostprocess, public glTFRenderInterfaceSceneView, public glTFRenderInterfaceLighting
+class glTFGraphicsPassLighting : public glTFGraphicsPassPostprocess
 {
 public:
     glTFGraphicsPassLighting();

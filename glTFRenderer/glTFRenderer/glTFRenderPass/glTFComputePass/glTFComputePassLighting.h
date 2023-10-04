@@ -4,20 +4,10 @@
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceLighting.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneView.h"
 
-class glTFComputePassLighting : public glTFComputePassBase, public glTFRenderInterfaceSceneView, public glTFRenderInterfaceLighting
+class glTFComputePassLighting : public glTFComputePassBase
 {
 public:
-    glTFComputePassLighting()
-        : m_base_color_RT(nullptr)
-        , m_normal_RT(nullptr)
-        , m_base_color_SRV(0)
-        , m_depth_SRV(0)
-        , m_normal_SRV(0)
-        , m_output_UAV(0)
-        , m_constant_buffer_per_light_draw({})
-        , m_dispatch_count({0, 0, 0})
-    {
-    }
+    glTFComputePassLighting();
 
     virtual const char* PassName() override;
     virtual bool InitPass(glTFRenderResourceManager& resource_manager) override;

@@ -1,11 +1,15 @@
 #include "glTFGraphicsPassMeshBase.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 
+glTFGraphicsPassMeshBase::glTFGraphicsPassMeshBase()
+{
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneView>());
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMesh>());
+}
+
 bool glTFGraphicsPassMeshBase::InitPass(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassBase::InitPass(resource_manager))
-    RETURN_IF_FALSE(glTFRenderInterfaceSceneView::InitInterface(resource_manager))
-    RETURN_IF_FALSE(glTFRenderInterfaceSceneMesh::InitInterface(resource_manager))
     
     return true;
 }
@@ -17,8 +21,6 @@ bool glTFGraphicsPassMeshBase::PreRenderPass(glTFRenderResourceManager& resource
     auto& command_list = resource_manager.GetCommandListForRecord();
     
     RHIUtils::Instance().SetPrimitiveTopology( command_list, RHIPrimitiveTopologyType::TRIANGLELIST);
-
-    RETURN_IF_FALSE(glTFRenderInterfaceSceneView::ApplyInterface(resource_manager, GetPipelineType() == PipelineType::Graphics))
 
     return true;
 }
@@ -43,9 +45,7 @@ bool glTFGraphicsPassMeshBase::RenderPass(glTFRenderResourceManager& resource_ma
             mesh.second.using_normal_mapping
         };
         
-        RETURN_IF_FALSE(glTFRenderInterfaceSceneMesh::UpdateCPUBuffer(&temp_mesh_data, sizeof(temp_mesh_data)))
-        
-        glTFRenderInterfaceSceneMesh::ApplyInterface(resource_manager, GetPipelineType() == PipelineType::Graphics);
+        RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSceneMesh>()->UpdateCPUBuffer(&temp_mesh_data, sizeof(temp_mesh_data)))
 
         RHIUtils::Instance().SetVertexBufferView(command_list, *mesh.second.mesh_vertex_buffer_view);
         RHIUtils::Instance().SetIndexBufferView(command_list, *mesh.second.mesh_index_buffer_view);
@@ -61,8 +61,7 @@ bool glTFGraphicsPassMeshBase::RenderPass(glTFRenderResourceManager& resource_ma
 
 bool glTFGraphicsPassMeshBase::SetupRootSignature(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(glTFRenderInterfaceSceneView::ApplyRootSignature(m_root_signature_helper))
-    RETURN_IF_FALSE(glTFRenderInterfaceSceneMesh::ApplyRootSignature(m_root_signature_helper))
+    RETURN_IF_FALSE(glTFGraphicsPassBase::SetupRootSignature(resource_manager))
     
     return true;
 }
@@ -71,10 +70,6 @@ bool glTFGraphicsPassMeshBase::SetupPipelineStateObject(glTFRenderResourceManage
 {
     RETURN_IF_FALSE(glTFGraphicsPassBase::SetupPipelineStateObject(resource_manager))
 
-    auto& shader_macros = GetGraphicsPipelineStateObject().GetShaderMacros();
-    glTFRenderInterfaceSceneView::UpdateShaderCompileDefine(shader_macros);
-    glTFRenderInterfaceSceneMesh::UpdateShaderCompileDefine(shader_macros);
-    
     return true;
 }
 

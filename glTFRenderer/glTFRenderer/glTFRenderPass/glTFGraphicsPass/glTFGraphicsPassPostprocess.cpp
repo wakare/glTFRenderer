@@ -87,6 +87,8 @@ bool glTFGraphicsPassPostprocess::PostRenderPass(glTFRenderResourceManager& reso
 
 bool glTFGraphicsPassPostprocess::SetupRootSignature(glTFRenderResourceManager& resourceManager)
 {
+    RETURN_IF_FALSE(glTFGraphicsPassBase::SetupRootSignature(resourceManager))
+    
     return true;
 }
 

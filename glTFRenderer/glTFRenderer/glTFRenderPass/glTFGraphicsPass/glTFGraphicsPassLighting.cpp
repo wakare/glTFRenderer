@@ -17,6 +17,8 @@ glTFGraphicsPassLighting::glTFGraphicsPassLighting()
     , m_normal_RT_SRV_Handle(0)
     , m_constant_buffer_per_light_draw({})
 {
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneView>());
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceLighting>() );
 }
 
 const char* glTFGraphicsPassLighting::PassName()
@@ -27,10 +29,6 @@ const char* glTFGraphicsPassLighting::PassName()
 bool glTFGraphicsPassLighting::InitPass(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassPostprocess::InitPass(resource_manager))
-    
-    RETURN_IF_FALSE(glTFRenderInterfaceSceneView::InitInterface(resource_manager))
-
-    RETURN_IF_FALSE(glTFRenderInterfaceLighting::InitInterface(resource_manager))
 
     return true;
 }
@@ -38,8 +36,6 @@ bool glTFGraphicsPassLighting::InitPass(glTFRenderResourceManager& resource_mana
 bool glTFGraphicsPassLighting::PreRenderPass(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassPostprocess::PreRenderPass(resource_manager))
-
-    RETURN_IF_FALSE(glTFRenderInterfaceSceneView::ApplyInterface(resource_manager, GetPipelineType() == PipelineType::Graphics))
 
     auto& command_list = resource_manager.GetCommandListForRecord();
     
@@ -62,7 +58,6 @@ bool glTFGraphicsPassLighting::PreRenderPass(glTFRenderResourceManager& resource
         {&resource_manager.GetCurrentFrameSwapchainRT()}))
 
     RETURN_IF_FALSE(UploadLightInfoGPUBuffer())
-    RETURN_IF_FALSE(glTFRenderInterfaceLighting::ApplyInterface(resource_manager, GetPipelineType() == PipelineType::Graphics))
 
     return true;
 }
@@ -160,8 +155,6 @@ size_t glTFGraphicsPassLighting::GetMainDescriptorHeapSize()
 bool glTFGraphicsPassLighting::SetupRootSignature(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassPostprocess::SetupRootSignature(resource_manager))
-    RETURN_IF_FALSE(glTFRenderInterfaceSceneView::ApplyRootSignature(m_root_signature_helper))
-    RETURN_IF_FALSE(glTFRenderInterfaceLighting::ApplyRootSignature(m_root_signature_helper))
 
     RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("BaseColorAndDepth", RHIRootParameterDescriptorRangeType::SRV, 3, m_base_color_and_depth_allocation))
     RETURN_IF_FALSE(m_root_signature_helper.AddSampler("DefaultSampler", RHIStaticSamplerAddressMode::Clamp, RHIStaticSamplerFilterMode::Linear, m_sampler_allocation))
@@ -194,9 +187,7 @@ bool glTFGraphicsPassLighting::SetupPipelineStateObject(glTFRenderResourceManage
         R"(glTFResources\ShaderSource\LightPassPS.hlsl)", RHIShaderType::Pixel, "main");
     
     auto& shaderMacros = GetGraphicsPipelineStateObject().GetShaderMacros();
-    glTFRenderInterfaceSceneView::UpdateShaderCompileDefine(shaderMacros);
-    glTFRenderInterfaceLighting::UpdateShaderCompileDefine(shaderMacros);
-
+    
     // Add albedo, normal, depth register define
     shaderMacros.AddSRVRegisterDefine("ALBEDO_TEX_REGISTER_INDEX", m_base_color_and_depth_allocation.register_index);
     shaderMacros.AddSRVRegisterDefine("DEPTH_TEX_REGISTER_INDEX", m_base_color_and_depth_allocation.register_index + 1);
@@ -208,5 +199,5 @@ bool glTFGraphicsPassLighting::SetupPipelineStateObject(glTFRenderResourceManage
 
 bool glTFGraphicsPassLighting::UploadLightInfoGPUBuffer()
 {
-    return glTFRenderInterfaceLighting::UpdateCPUBuffer(m_constant_buffer_per_light_draw);
+    return GetRenderInterface<glTFRenderInterfaceLighting>()->UpdateCPUBuffer(m_constant_buffer_per_light_draw);
 }

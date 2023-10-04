@@ -3,7 +3,7 @@
 #include "glTFRHI/RHIUtils.h"
 #include "glTFRHI/RHIInterface/IRHIRootSignatureHelper.h"
 
-class glTFRenderInterfaceShaderResourceView : public glTFRenderInterfaceBase
+class glTFRenderInterfaceShaderResourceView : public glTFRenderInterfaceWithRSAllocation
 {
 public:
     glTFRenderInterfaceShaderResourceView()
@@ -17,12 +17,16 @@ public:
         return true;
     }
     
-    virtual bool SetupRootSignature(IRHIRootSignatureHelper& rootSignature)
+    virtual bool ApplyRootSignature(IRHIRootSignatureHelper& rootSignature) override
     {
         return rootSignature.AddTableRootParameter("TableParameter", RHIRootParameterDescriptorRangeType::SRV, m_max_srv_count, m_allocation);
     }
+
+    virtual bool ApplyInterface(glTFRenderResourceManager& resource_manager, bool isGraphicsPipeline) override
+    {
+        return true;
+    }
     
 protected:
-    RootSignatureAllocation m_allocation;
     unsigned m_max_srv_count;
 };

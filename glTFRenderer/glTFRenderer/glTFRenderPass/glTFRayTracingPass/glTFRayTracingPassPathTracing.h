@@ -5,10 +5,10 @@
 #include "glTFRHI/RHIInterface/IRHIRayTracingAS.h"
 #include "glTFRHI/RHIInterface/IRHIShaderTable.h"
 
-class glTFRayTracingPassHelloWorld : public glTFRayTracingPassWithMesh, public glTFRenderInterfaceSceneView
+class glTFRayTracingPassPathTracing : public glTFRayTracingPassWithMesh
 {
 public:
-    glTFRayTracingPassHelloWorld();
+    glTFRayTracingPassPathTracing();
 
     virtual const char* PassName() override;
     virtual bool InitPass(glTFRenderResourceManager& resource_manager) override;
