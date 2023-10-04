@@ -11,6 +11,7 @@
 glTFGraphicsPassMeshOpaque::glTFGraphicsPassMeshOpaque()
     : m_base_pass_color_render_target(nullptr)
     , m_base_pass_normal_render_target(nullptr)
+    , m_material_uploaded(false)
 {
     //AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMeshMaterial>());
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMaterial>());
@@ -19,15 +20,6 @@ glTFGraphicsPassMeshOpaque::glTFGraphicsPassMeshOpaque()
         std::make_shared<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Warp, RHIStaticSamplerFilterMode::Linear>>();
     sampler_interface->SetSamplerRegisterIndexName("DEFAULT_SAMPLER_REGISTER_INDEX");
     AddRenderInterface(sampler_interface);
-}
-
-bool glTFGraphicsPassMeshOpaque::ProcessMaterial(glTFRenderResourceManager& resource_manager, const glTFMaterialBase& material)
-{
-    RETURN_IF_FALSE(material.GetMaterialType() == MaterialType::Opaque)
-    // Material texture resource descriptor is alloc within current heap
-	RETURN_IF_FALSE(resource_manager.GetMaterialManager().InitMaterialRenderResource(resource_manager, *m_main_descriptor_heap, material))
-    
-    return true;
 }
 
 bool glTFGraphicsPassMeshOpaque::InitPass(glTFRenderResourceManager& resource_manager)
@@ -48,6 +40,12 @@ bool glTFGraphicsPassMeshOpaque::PreRenderPass(glTFRenderResourceManager& resour
 
     RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().ClearRenderTarget(command_list,
         {m_base_pass_color_render_target.get(), m_base_pass_normal_render_target.get()}))
+
+    if (!m_material_uploaded)
+    {
+        GetRenderInterface<glTFRenderInterfaceSceneMaterial>()->UploadMaterialData(resource_manager, *m_main_descriptor_heap);
+        m_material_uploaded = true;
+    }
     
     return true;
 }
@@ -55,7 +53,7 @@ bool glTFGraphicsPassMeshOpaque::PreRenderPass(glTFRenderResourceManager& resour
 size_t glTFGraphicsPassMeshOpaque::GetMainDescriptorHeapSize()
 {
     // TODO: Calculate heap size
-    return 256;
+    return 512;
 }
 
 bool glTFGraphicsPassMeshOpaque::SetupRootSignature(glTFRenderResourceManager& resource_manager)

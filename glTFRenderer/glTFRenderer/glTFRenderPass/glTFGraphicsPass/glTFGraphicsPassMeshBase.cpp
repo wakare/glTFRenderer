@@ -45,7 +45,7 @@ bool glTFGraphicsPassMeshBase::RenderPass(glTFRenderResourceManager& resource_ma
             mesh.second.material_id, mesh.second.using_normal_mapping
         };
         
-        RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSceneMesh>()->UpdateCPUBuffer(&temp_mesh_data, sizeof(temp_mesh_data)))
+        RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSceneMesh>()->UploadAndApplyDataWithIndex(resource_manager, meshID, temp_mesh_data, true))
 
         RHIUtils::Instance().SetVertexBufferView(command_list, *mesh.second.mesh_vertex_buffer_view);
         RHIUtils::Instance().SetIndexBufferView(command_list, *mesh.second.mesh_index_buffer_view);
@@ -90,14 +90,7 @@ std::vector<RHIPipelineInputLayout> glTFGraphicsPassMeshBase::GetVertexInputLayo
 
 bool glTFGraphicsPassMeshBase::TryProcessSceneObject(glTFRenderResourceManager& resourceManager, const glTFSceneObjectBase& object)
 {
-    const glTFScenePrimitive* primitive = dynamic_cast<const glTFScenePrimitive*>(&object);
-    
-    if (!primitive || !primitive->IsVisible())
-    {
-        return false;
-    }
-
-    return primitive->HasMaterial() && ProcessMaterial(resourceManager, primitive->GetMaterial());
+    return true;
 }
 
 bool glTFGraphicsPassMeshBase::ResolveVertexInputLayout(const VertexLayoutDeclaration& source_vertex_layout)

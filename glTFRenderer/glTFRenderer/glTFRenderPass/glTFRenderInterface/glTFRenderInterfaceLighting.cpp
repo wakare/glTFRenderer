@@ -11,16 +11,16 @@ glTFRenderInterfaceLighting::glTFRenderInterfaceLighting()
 
 bool glTFRenderInterfaceLighting::UpdateCPUBuffer(const ConstantBufferPerLightDraw& data)
 {
-     RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSingleConstantBuffer<ConstantBufferPerLightDraw>>()->UpdateCPUBuffer(&data.light_info, sizeof(data.light_info)))
+     RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSingleConstantBuffer<ConstantBufferPerLightDraw>>()->UploadCPUBuffer(&data.light_info, sizeof(data.light_info)))
      
      if (!data.point_light_infos.empty())
      {
-          RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceStructuredBuffer<PointLightInfo>>()->UpdateCPUBuffer(data.point_light_infos.data(), data.point_light_infos.size() * sizeof(PointLightInfo)))
+          RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceStructuredBuffer<PointLightInfo>>()->UploadCPUBuffer(data.point_light_infos.data(), data.point_light_infos.size() * sizeof(PointLightInfo)))
      }
 
      if (!data.directional_light_infos.empty())
      {
-          RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceStructuredBuffer<DirectionalLightInfo>>()->UpdateCPUBuffer(data.directional_light_infos.data(), data.directional_light_infos.size() * sizeof(DirectionalLightInfo)))
+          RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceStructuredBuffer<DirectionalLightInfo>>()->UploadCPUBuffer(data.directional_light_infos.data(), data.directional_light_infos.size() * sizeof(DirectionalLightInfo)))
      }
 
      return true;

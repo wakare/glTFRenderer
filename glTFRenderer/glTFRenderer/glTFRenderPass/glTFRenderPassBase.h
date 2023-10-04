@@ -37,7 +37,6 @@ public:
     virtual bool PostRenderPass(glTFRenderResourceManager& resource_manager);
 
     // Which material should process within render pass
-    virtual bool ProcessMaterial(glTFRenderResourceManager& resourceManager, const glTFMaterialBase& material) {return true; }
     virtual bool TryProcessSceneObject(glTFRenderResourceManager& resourceManager, const glTFSceneObjectBase& object) {return true; }
     virtual bool FinishProcessSceneObject(glTFRenderResourceManager& resourceManager) {return true; }
     

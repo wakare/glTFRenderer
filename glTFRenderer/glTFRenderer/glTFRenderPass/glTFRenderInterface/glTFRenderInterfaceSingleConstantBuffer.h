@@ -3,18 +3,39 @@
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 #include "glTFRHI/RHIInterface/IRHIRootSignatureHelper.h"
 
-template <typename ConstantBufferType>
+// buffer size must be alignment with 64K
+template <typename ConstantBufferType, size_t max_buffer_size = 64ull * 1024>
 class glTFRenderInterfaceSingleConstantBuffer : public glTFRenderInterfaceWithRSAllocation, public glTFRenderInterfaceCanUploadDataFromCPU
 {
 public:
+    glTFRenderInterfaceSingleConstantBuffer()
+        : m_current_update_index(0)
+    {
+    }
+
+    bool UploadAndApplyDataWithIndex(glTFRenderResourceManager& resource_manager, unsigned index, const ConstantBufferType& data, bool is_graphics_pipeline)
+    {
+        m_current_update_index = index;
+        RETURN_IF_FALSE(UploadCPUBuffer(&data, sizeof(data)))
+        RETURN_IF_FALSE(ApplyInterfaceImpl(resource_manager, is_graphics_pipeline))
+        m_current_update_index = 0;
+
+        return true;
+    }
+    
+    virtual bool UploadCPUBuffer(const void* data, size_t size) override
+    {
+        return m_constant_gpu_data->UploadBufferFromCPU(data, GetCurrentUpdateDataOffsetWithAlignment(), size);
+    }
+
+protected:
     virtual bool InitInterfaceImpl(glTFRenderResourceManager& resource_manager) override
     {
         m_constant_gpu_data = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
-        // TODO: 64k is enough ??
         RETURN_IF_FALSE(m_constant_gpu_data->InitGPUBuffer(resource_manager.GetDevice(),
             {
                 L"GPUBuffer_SingleConstantBuffer",
-                static_cast<size_t>(64 * 1024),
+                max_buffer_size,
                 1,
                 1,
                 RHIBufferType::Upload,
@@ -24,16 +45,12 @@ public:
     
         return true;
     }
-
-    virtual bool UpdateCPUBuffer(const void* data, size_t size) override
-    {
-        return m_constant_gpu_data->UploadBufferFromCPU(data, 0, size);
-    }
     
-    virtual bool ApplyInterfaceImpl(glTFRenderResourceManager& resource_manager, bool isGraphicsPipeline) override
+    virtual bool ApplyInterfaceImpl(glTFRenderResourceManager& resource_manager, bool is_graphics_pipeline) override
     {
+        const RHIGPUDescriptorHandle current_update_handle = m_constant_gpu_data->GetGPUBufferHandle() + GetCurrentUpdateDataOffsetWithAlignment();
         RETURN_IF_FALSE(RHIUtils::Instance().SetCBVToRootParameterSlot(resource_manager.GetCommandListForRecord(),
-        m_allocation.parameter_index, m_constant_gpu_data->GetGPUBufferHandle(), isGraphicsPipeline))
+        m_allocation.parameter_index,current_update_handle, is_graphics_pipeline))
     
         return true;
     }
@@ -52,6 +69,13 @@ public:
         out_shader_pre_define_macros.AddMacro(ConstantBufferType::Name, registerIndexValue);
     }
 
-protected:
+    size_t GetCurrentUpdateDataOffsetWithAlignment() const
+    {
+        const size_t alignment_size = 256 * (sizeof(ConstantBufferType) / 256 + (sizeof(ConstantBufferType) % 256 ? 1 : 0));
+        GLTF_CHECK(m_current_update_index * alignment_size < max_buffer_size);   
+        return m_current_update_index * alignment_size;
+    }
+    
     std::shared_ptr<IRHIGPUBuffer> m_constant_gpu_data;
+    unsigned m_current_update_index;    
 };

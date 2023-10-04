@@ -179,11 +179,17 @@ bool glTFRenderResourceManager::TryProcessSceneObject(glTFRenderResourceManager&
 {
     const glTFScenePrimitive* primitive = dynamic_cast<const glTFScenePrimitive*>(&object);
     
+    if (primitive && primitive->HasMaterial())
+    {    
+        // Material texture resource descriptor is alloc within current heap
+        RETURN_IF_FALSE(resource_manager.GetMaterialManager().InitMaterialRenderResource(resource_manager, primitive->GetMaterial()))
+    }
+    
     if (!primitive || !primitive->IsVisible())
     {
         return false;
     }
-
+    
     return m_mesh_manager->AddOrUpdatePrimitive(resource_manager, *primitive);
 }
 

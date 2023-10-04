@@ -24,7 +24,7 @@ public:
         return true;
     }
 
-    virtual bool UpdateCPUBuffer(const void* data, size_t size) override
+    virtual bool UploadCPUBuffer(const void* data, size_t size) override
     {
         return m_gpu_buffer->UploadBufferFromCPU(data, 0, size);
     }

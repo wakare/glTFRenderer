@@ -9,7 +9,4 @@ cbuffer SceneMeshConstantBuffer : SCENE_MESH_REGISTER_CBV_INDEX
     bool using_normal_mapping;
 };
 
-Texture2D baseColor_texture: SCENE_MESH_REGISTER_SRV_INDEX_ZERO;
-Texture2D normal_texture: SCENE_MESH_REGISTER_SRV_INDEX_ONE;
-
 #endif

@@ -104,7 +104,7 @@ void glTFRenderPassManager::UpdateScene(size_t deltaTimeMs)
                 width, height
             };
             
-            sceneViewInterface->UpdateCPUBuffer(&temp_view_data, sizeof(temp_view_data));    
+            sceneViewInterface->UploadCPUBuffer(&temp_view_data, sizeof(temp_view_data));    
         }
     }
 }

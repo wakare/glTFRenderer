@@ -8,7 +8,6 @@ public:
     glTFGraphicsPassMeshOpaque();
     
     virtual const char* PassName() override {return "MeshPassOpaque"; }
-    virtual bool ProcessMaterial(glTFRenderResourceManager& resource_manager,const glTFMaterialBase& material) override;
     virtual bool InitPass(glTFRenderResourceManager& resource_manager) override;
     bool PreRenderPass(glTFRenderResourceManager& resource_manager) override;
     
@@ -24,5 +23,6 @@ protected:
     std::shared_ptr<IRHIRenderTarget> m_base_pass_normal_render_target;
 
     RootSignatureAllocation m_sampler_allocation;
+    bool m_material_uploaded;
 };
  

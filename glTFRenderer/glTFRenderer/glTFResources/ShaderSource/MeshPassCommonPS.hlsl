@@ -11,8 +11,8 @@ PS_OUTPUT main(PS_INPUT input)
 #ifdef HAS_TEXCOORD 
     // return interpolated color
     //output.baseColor = baseColor_texture.Sample(defaultSampler, input.texCoord);
-    //output.baseColor = SampleAlbedoTexture(material_id, input.texCoord);
-    output.baseColor = GetMaterialDebugColor(material_id);
+    output.baseColor = SampleAlbedoTexture(material_id, input.texCoord);
+    //output.baseColor = GetMaterialDebugColor(material_id);
 #else
     output.baseColor = float4(1.0, 1.0, 1.0, 1.0);
 #endif
