@@ -9,33 +9,18 @@ glTFRenderInterfaceLighting::glTFRenderInterfaceLighting()
      AddInterface(std::make_shared<glTFRenderInterfaceStructuredBuffer<DirectionalLightInfo>>());
 }
 
-bool glTFRenderInterfaceLighting::InitInterface(glTFRenderResourceManager& resource_manager)
+bool glTFRenderInterfaceLighting::InitInterfaceImpl(glTFRenderResourceManager& resource_manager)
 {
-     for (const auto& sub_interface : m_sub_interfaces)
-     {
-          RETURN_IF_FALSE(sub_interface->InitInterface(resource_manager))     
-     }
-     
      return true;
 }
 
-bool glTFRenderInterfaceLighting::ApplyInterface(glTFRenderResourceManager& resource_manager, bool isGraphicsPipeline)
+bool glTFRenderInterfaceLighting::ApplyInterfaceImpl(glTFRenderResourceManager& resource_manager, bool isGraphicsPipeline)
 {
-     for (const auto& sub_interface : m_sub_interfaces)
-     {
-          RETURN_IF_FALSE(sub_interface->ApplyInterface(resource_manager, isGraphicsPipeline))     
-     }
-     
      return true;
 }
 
-bool glTFRenderInterfaceLighting::ApplyRootSignature(IRHIRootSignatureHelper& root_signature)
+bool glTFRenderInterfaceLighting::ApplyRootSignatureImpl(IRHIRootSignatureHelper& root_signature)
 {
-     for (const auto& sub_interface : m_sub_interfaces)
-     {
-          RETURN_IF_FALSE(sub_interface->ApplyRootSignature(root_signature))     
-     }
-     
      return true;
 }
 
@@ -56,10 +41,6 @@ bool glTFRenderInterfaceLighting::UpdateCPUBuffer(const ConstantBufferPerLightDr
      return true;
 }
 
-void glTFRenderInterfaceLighting::UpdateShaderCompileDefine(RHIShaderPreDefineMacros& out_shader_pre_define_macros) const
+void glTFRenderInterfaceLighting::ApplyShaderDefineImpl(RHIShaderPreDefineMacros& out_shader_pre_define_macros) const
 {
-     for (const auto& sub_interface : m_sub_interfaces)
-     {
-          sub_interface->UpdateShaderCompileDefine(out_shader_pre_define_macros);
-     }
 }

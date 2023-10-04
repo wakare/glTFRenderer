@@ -42,7 +42,7 @@ bool glTFGraphicsPassMeshBase::RenderPass(glTFRenderResourceManager& resource_ma
         {
             mesh.second.mesh_transform_matrix,
             glm::transpose(glm::inverse(mesh.second.mesh_transform_matrix)),
-            mesh.second.using_normal_mapping
+            mesh.second.material_id, mesh.second.using_normal_mapping
         };
         
         RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSceneMesh>()->UpdateCPUBuffer(&temp_mesh_data, sizeof(temp_mesh_data)))

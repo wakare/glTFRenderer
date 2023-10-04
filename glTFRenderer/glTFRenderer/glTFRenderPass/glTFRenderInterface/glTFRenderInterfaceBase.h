@@ -8,12 +8,17 @@ class glTFRenderInterfaceBase
 public:
     virtual ~glTFRenderInterfaceBase() = default;
     
-    virtual bool InitInterface(glTFRenderResourceManager& resource_manager) = 0;
-    virtual bool ApplyInterface(glTFRenderResourceManager& resource_manager, bool isGraphicsPipeline) = 0;
-    virtual bool ApplyRootSignature(IRHIRootSignatureHelper& root_signature) = 0;
-    virtual void UpdateShaderCompileDefine(RHIShaderPreDefineMacros& out_shader_pre_define_macros) const = 0;
+    bool InitInterface(glTFRenderResourceManager& resource_manager);
+    bool ApplyInterface(glTFRenderResourceManager& resource_manager, bool isGraphicsPipeline);
+    bool ApplyRootSignature(IRHIRootSignatureHelper& root_signature);
+    void ApplyShaderDefine(RHIShaderPreDefineMacros& out_shader_pre_define_macros) const;
     
 protected:
+    virtual bool InitInterfaceImpl(glTFRenderResourceManager& resource_manager) = 0;
+    virtual bool ApplyInterfaceImpl(glTFRenderResourceManager& resource_manager, bool isGraphicsPipeline) = 0;
+    virtual bool ApplyRootSignatureImpl(IRHIRootSignatureHelper& root_signature) = 0;
+    virtual void ApplyShaderDefineImpl(RHIShaderPreDefineMacros& out_shader_pre_define_macros) const = 0;
+    
     void AddInterface(const std::shared_ptr<glTFRenderInterfaceBase>& render_interface);
     
     template<typename RenderInterface>

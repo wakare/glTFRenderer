@@ -6,7 +6,7 @@ template <typename StructuredBufferType>
 class glTFRenderInterfaceStructuredBuffer : public glTFRenderInterfaceWithRSAllocation, public glTFRenderInterfaceCanUploadDataFromCPU
 {
 public:
-    virtual bool InitInterface(glTFRenderResourceManager& resource_manager) override
+    virtual bool InitInterfaceImpl(glTFRenderResourceManager& resource_manager) override
     {
         m_gpu_buffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
 
@@ -29,7 +29,7 @@ public:
         return m_gpu_buffer->UploadBufferFromCPU(data, 0, size);
     }
     
-    virtual bool ApplyInterface(glTFRenderResourceManager& resource_manager, bool isGraphicsPipeline) override
+    virtual bool ApplyInterfaceImpl(glTFRenderResourceManager& resource_manager, bool isGraphicsPipeline) override
     {
         auto& command_list = resource_manager.GetCommandListForRecord();
         RHIUtils::Instance().SetSRVToRootParameterSlot(command_list, m_allocation.parameter_index,
@@ -38,12 +38,12 @@ public:
         return true;
     }
 
-    virtual bool ApplyRootSignature(IRHIRootSignatureHelper& rootSignature) override
+    virtual bool ApplyRootSignatureImpl(IRHIRootSignatureHelper& rootSignature) override
     {
         return rootSignature.AddSRVRootParameter(StructuredBufferType::Name, m_allocation);
     }
 
-    virtual void UpdateShaderCompileDefine(RHIShaderPreDefineMacros& out_shader_pre_define_macros) const override
+    virtual void ApplyShaderDefineImpl(RHIShaderPreDefineMacros& out_shader_pre_define_macros) const override
     {
         // Update light info shader define
         char registerIndexValue[16] = {'\0'};

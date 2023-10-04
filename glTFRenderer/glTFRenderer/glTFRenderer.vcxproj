@@ -869,8 +869,8 @@
       <LinkCompiled>true</LinkCompiled>
     </ClCompile>
     <ClCompile Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassWithMesh.cpp" />
-    <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceMaterialManager.cpp" />
-    <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceShaderResourceView.cpp" />
+    <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSceneMaterial.cpp" />
+    <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSRVTable.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSingleConstantBuffer.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceBase.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceLighting.cpp" />
@@ -891,6 +891,7 @@
     <None Include="glTFResources\ShaderSource\LightPassVS.hlsl" />
     <None Include="glTFResources\ShaderSource\ComputeShader\LightingCS.hlsl" />
     <None Include="glTFResources\ShaderSource\RayTracing\RaytracingHelloWorld.hlsl" />
+    <None Include="glTFResources\ShaderSource\Interface\SceneMaterial.hlsl" />
     <ClCompile Include="glTFRHI\RHIConfigSingleton.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12DescriptorHeap.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12CommandAllocator.cpp" />
@@ -981,8 +982,8 @@
     <ClInclude Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassBase.h" />
     <ClInclude Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassPathTracing.h" />
     <ClInclude Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassWithMesh.h" />
-    <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceMaterialManager.h" />
-    <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceShaderResourceView.h" />
+    <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSceneMaterial.h" />
+    <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSRVTable.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSingleConstantBuffer.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceBase.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceLighting.h" />

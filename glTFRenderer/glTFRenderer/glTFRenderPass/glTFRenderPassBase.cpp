@@ -90,7 +90,7 @@ bool glTFRenderPassBase::SetupPipelineStateObject(glTFRenderResourceManager& res
     auto& shaderMacros = m_pipeline_state_object->GetShaderMacros();
     for (const auto& render_interface : m_render_interfaces)
     {
-        render_interface->UpdateShaderCompileDefine(shaderMacros);    
+        render_interface->ApplyShaderDefine(shaderMacros);    
     }
     
     return true;

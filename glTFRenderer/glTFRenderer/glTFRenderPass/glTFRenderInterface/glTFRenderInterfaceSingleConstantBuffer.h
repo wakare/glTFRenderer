@@ -7,7 +7,7 @@ template <typename ConstantBufferType>
 class glTFRenderInterfaceSingleConstantBuffer : public glTFRenderInterfaceWithRSAllocation, public glTFRenderInterfaceCanUploadDataFromCPU
 {
 public:
-    virtual bool InitInterface(glTFRenderResourceManager& resource_manager) override
+    virtual bool InitInterfaceImpl(glTFRenderResourceManager& resource_manager) override
     {
         m_constant_gpu_data = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
         // TODO: 64k is enough ??
@@ -30,7 +30,7 @@ public:
         return m_constant_gpu_data->UploadBufferFromCPU(data, 0, size);
     }
     
-    virtual bool ApplyInterface(glTFRenderResourceManager& resource_manager, bool isGraphicsPipeline) override
+    virtual bool ApplyInterfaceImpl(glTFRenderResourceManager& resource_manager, bool isGraphicsPipeline) override
     {
         RETURN_IF_FALSE(RHIUtils::Instance().SetCBVToRootParameterSlot(resource_manager.GetCommandListForRecord(),
         m_allocation.parameter_index, m_constant_gpu_data->GetGPUBufferHandle(), isGraphicsPipeline))
@@ -38,12 +38,12 @@ public:
         return true;
     }
 
-    virtual bool ApplyRootSignature(IRHIRootSignatureHelper& rootSignature) override
+    virtual bool ApplyRootSignatureImpl(IRHIRootSignatureHelper& rootSignature) override
     {
         return rootSignature.AddCBVRootParameter("GPUBuffer_SingleConstantBuffer", m_allocation);
     }
 
-    virtual void UpdateShaderCompileDefine(RHIShaderPreDefineMacros& out_shader_pre_define_macros) const override
+    virtual void ApplyShaderDefineImpl(RHIShaderPreDefineMacros& out_shader_pre_define_macros) const override
     {
         // Update light info shader define
         char registerIndexValue[16] = {'\0'};
