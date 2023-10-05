@@ -40,7 +40,7 @@ bool glTFSceneView::SetupRenderPass(glTFRenderPassManager& out_render_pass_manag
 	            }
                 else if (!(primitive->GetVertexLayout() == resolved_vertex_layout))
                 {
-                    LOG_FORMAT_FLUSH("[DEBUG] primtive id: %d is no-visible becuase vertex layout mismatch", primitive->GetID());
+                    LOG_FORMAT_FLUSH("[DEBUG] primtive id: %d is no-visible becuase vertex layout mismatch\n", primitive->GetID())
                     primitive->SetVisible(false);
                 }
             }    
