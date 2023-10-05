@@ -6,6 +6,8 @@
 
 struct glTFRenderPassMeshResource
 {
+    const glTFScenePrimitive* mesh;
+    
     // Vertex and index gpu buffer data
     std::shared_ptr<IRHIVertexBuffer> mesh_vertex_buffer;
     std::shared_ptr<IRHIVertexBuffer> mesh_position_only_buffer;

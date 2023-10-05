@@ -86,6 +86,11 @@ void IRHIRayTracingPipelineStateObject::AddHitGroupDesc(const RHIRayTracingHitGr
     m_hit_group_descs.push_back(desc);
 }
 
+void IRHIRayTracingPipelineStateObject::AddLocalRSDesc(const RHIRayTracingLocalRSDesc& desc)
+{
+    m_local_rs_descs.push_back(desc);
+}
+
 void IRHIPipelineStateObject::SetCullMode(IRHICullMode mode)
 {
     m_cullMode = mode;

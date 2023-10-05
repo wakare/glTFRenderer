@@ -36,7 +36,7 @@ bool DX12GPUBuffer::InitGPUBuffer(IRHIDevice& device, const RHIBufferDesc& desc)
     CD3DX12_RESOURCE_DESC heap_resource_desc;
     switch (desc.resource_type) {
         case RHIBufferResourceType::Buffer:
-            heap_resource_desc = CD3DX12_RESOURCE_DESC::Buffer(desc.width); 
+            heap_resource_desc = CD3DX12_RESOURCE_DESC::Buffer(desc.width);
             break;
         case RHIBufferResourceType::Tex1D:
             heap_resource_desc = CD3DX12_RESOURCE_DESC::Tex1D(DX12ConverterUtils::ConvertToDXGIFormat(desc.resource_data_type), desc.width);
@@ -47,6 +47,11 @@ bool DX12GPUBuffer::InitGPUBuffer(IRHIDevice& device, const RHIBufferDesc& desc)
         case RHIBufferResourceType::Tex3D: 
             heap_resource_desc = CD3DX12_RESOURCE_DESC::Tex3D(DX12ConverterUtils::ConvertToDXGIFormat(desc.resource_data_type), desc.width, desc.height, desc.depth ,1);
             break;
+    }
+    
+    if (desc.alignment)
+    {
+        heap_resource_desc.Alignment = desc.alignment;
     }
 
     if (desc.usage == RHIBufferUsage::ALLOW_UNORDER_ACCESS)

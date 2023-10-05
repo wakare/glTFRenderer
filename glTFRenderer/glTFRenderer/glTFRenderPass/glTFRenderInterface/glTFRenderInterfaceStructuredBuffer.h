@@ -2,7 +2,7 @@
 #include "glTFRenderInterfaceBase.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 
-template <typename StructuredBufferType>
+template <typename StructuredBufferType, size_t max_heap_size = 64ull * 1024>
 class glTFRenderInterfaceStructuredBuffer : public glTFRenderInterfaceWithRSAllocation, public glTFRenderInterfaceCanUploadDataFromCPU
 {
 public:
@@ -13,7 +13,7 @@ public:
         RETURN_IF_FALSE(m_gpu_buffer->InitGPUBuffer(resource_manager.GetDevice(),
             {
                 L"StructuredBuffer",
-                static_cast<size_t>(64 * 1024),
+                max_heap_size,
                 1,
                 1,
                 RHIBufferType::Upload,

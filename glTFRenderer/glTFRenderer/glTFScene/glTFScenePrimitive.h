@@ -3,7 +3,7 @@
 #include <vector>
 
 #include "glTFSceneObjectBase.h"
-#include "../glTFMaterial/glTFMaterialBase.h"
+#include "glTFMaterial/glTFMaterialBase.h"
 #include "glTFRHI/RHIInterface/RHICommon.h"
 
 enum class VertexLayoutType
@@ -74,6 +74,25 @@ struct VertexBufferData
     std::unique_ptr<char[]> data;
     size_t byteSize;
     size_t vertex_count;
+
+    bool GetVertexAttributeDataByIndex(VertexLayoutType type, unsigned index, void* out_data, size_t& out_attribute_size) const
+    {
+        const char* start_data = data.get() + index * layout.GetVertexStrideInBytes();
+        for (unsigned i = 0; i < layout.elements.size(); ++i)
+        {
+            if (type == layout.elements[i].type)
+            {
+                memcpy(out_data, start_data, layout.elements[i].byte_size);
+                out_attribute_size = layout.elements[i].byte_size;
+                return true;
+            }
+
+            start_data += layout.elements[i].byte_size;
+        }
+
+        out_attribute_size = 0;
+        return false;
+    }
 };
 
 struct IndexBufferData

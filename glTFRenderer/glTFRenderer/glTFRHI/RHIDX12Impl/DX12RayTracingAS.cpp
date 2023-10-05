@@ -136,14 +136,18 @@ bool DX12RayTracingAS::InitRayTracingAS(IRHIDevice& device, IRHICommandList& com
     ))
 
     // Create an instance desc for the bottom-level acceleration structure.
-    std::vector<D3D12_RAYTRACING_INSTANCE_DESC> instance_descs(meshes.size());
+    //std::vector<D3D12_RAYTRACING_INSTANCE_DESC> instance_descs(meshes.size());
+    m_instance_descs.resize(meshes.size());
     blas_index = 0;
     for (const auto& mesh_pair : meshes)
     {
-        D3D12_RAYTRACING_INSTANCE_DESC& instance_desc = instance_descs[blas_index];
+        D3D12_RAYTRACING_INSTANCE_DESC& instance_desc = m_instance_descs[blas_index];
         memcpy(instance_desc.Transform, &mesh_pair.second.mesh_transform_matrix[0][0], sizeof(instance_desc.Transform));
         instance_desc.InstanceID = blas_index;
         instance_desc.InstanceMask = 1;
+
+        // Ray type count * instance offset 
+        instance_desc.InstanceContributionToHitGroupIndex = blas_index;
         instance_desc.AccelerationStructure = m_BLASes[blas_index]->GetGPUBufferHandle();
         ++blas_index;
     }
@@ -152,7 +156,7 @@ bool DX12RayTracingAS::InitRayTracingAS(IRHIDevice& device, IRHICommandList& com
     RETURN_IF_FALSE(m_upload_buffer->InitGPUBuffer(device,
         {
             L"Instance_desc_upload_buffer",
-            instance_descs.size() * sizeof(D3D12_RAYTRACING_INSTANCE_DESC),
+            m_instance_descs.size() * sizeof(D3D12_RAYTRACING_INSTANCE_DESC),
             1,
             1,
             RHIBufferType::Upload,
@@ -162,7 +166,7 @@ bool DX12RayTracingAS::InitRayTracingAS(IRHIDevice& device, IRHICommandList& com
             RHIBufferUsage::NONE
         }))
     
-    m_upload_buffer->UploadBufferFromCPU(instance_descs.data(), 0,  instance_descs.size() * sizeof(D3D12_RAYTRACING_INSTANCE_DESC));
+    m_upload_buffer->UploadBufferFromCPU(m_instance_descs.data(), 0,  m_instance_descs.size() * sizeof(D3D12_RAYTRACING_INSTANCE_DESC));
     
     // Bottom Level Acceleration Structure desc
     std::vector<D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC> BLAS_build_descs(m_blas_build_inputs.size());
@@ -215,5 +219,10 @@ GPU_BUFFER_HANDLE_TYPE DX12RayTracingAS::GetTLASHandle() const
 {
     GLTF_CHECK(m_TLAS);
     return m_TLAS->GetGPUBufferHandle();
+}
+
+const std::vector<D3D12_RAYTRACING_INSTANCE_DESC>& DX12RayTracingAS::GetInstanceDesc() const
+{
+    return m_instance_descs;
 }
 

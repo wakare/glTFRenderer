@@ -35,4 +35,8 @@ private:
     RootSignatureAllocation m_output_allocation;
     RootSignatureAllocation m_raytracing_as_allocation;
     bool m_material_uploaded;
+
+    IRHIRootSignatureHelper m_local_rs;
+
+    RootSignatureAllocation m_local_constant_allocation;
 };

@@ -11,43 +11,43 @@ DX12RootParameter::~DX12RootParameter()
 {
 }
 
-bool DX12RootParameter::InitAsConstant(unsigned constantValue, REGISTER_INDEX_TYPE registerIndex)
+bool DX12RootParameter::InitAsConstant(unsigned constant_value_count, REGISTER_INDEX_TYPE register_index, unsigned space)
 {
     SetType(RHIRootParameterType::Constant);
     m_parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS; 
-    m_parameter.Constants.Num32BitValues = constantValue;
-    m_parameter.Constants.ShaderRegister = registerIndex;
-    m_parameter.Constants.RegisterSpace = 0;
+    m_parameter.Constants.Num32BitValues = constant_value_count;
+    m_parameter.Constants.ShaderRegister = register_index;
+    m_parameter.Constants.RegisterSpace = space;
 
     return true;
 }
 
-bool DX12RootParameter::InitAsCBV(REGISTER_INDEX_TYPE registerIndex)
+bool DX12RootParameter::InitAsCBV(REGISTER_INDEX_TYPE register_index, unsigned space)
 {
     SetType(RHIRootParameterType::CBV);
     m_parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-    m_parameter.Descriptor.ShaderRegister = registerIndex;
-    m_parameter.Descriptor.RegisterSpace = 0;
+    m_parameter.Descriptor.ShaderRegister = register_index;
+    m_parameter.Descriptor.RegisterSpace = space;
 
     return true;
 }
 
-bool DX12RootParameter::InitAsSRV(REGISTER_INDEX_TYPE registerIndex)
+bool DX12RootParameter::InitAsSRV(REGISTER_INDEX_TYPE register_index, unsigned space)
 {
     SetType(RHIRootParameterType::SRV);
     m_parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
-    m_parameter.Descriptor.ShaderRegister = registerIndex;
-    m_parameter.Descriptor.RegisterSpace = 0;
+    m_parameter.Descriptor.ShaderRegister = register_index;
+    m_parameter.Descriptor.RegisterSpace = space;
 
     return true;
 }
 
-bool DX12RootParameter::InitAsUAV(REGISTER_INDEX_TYPE registerIndex)
+bool DX12RootParameter::InitAsUAV(REGISTER_INDEX_TYPE register_index, unsigned space)
 {
     SetType(RHIRootParameterType::UAV);
     m_parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_UAV;
-    m_parameter.Descriptor.ShaderRegister = registerIndex;
-    m_parameter.Descriptor.RegisterSpace = 0;
+    m_parameter.Descriptor.ShaderRegister = register_index;
+    m_parameter.Descriptor.RegisterSpace = space;
 
     return true;
 }

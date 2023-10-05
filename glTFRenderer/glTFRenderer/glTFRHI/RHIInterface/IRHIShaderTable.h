@@ -19,9 +19,9 @@ struct RHIShaderBindingTable
     std::string miss_entry;
     std::string hit_group_entry;
 
-    std::unique_ptr<RHIShaderTableRecordBase> raygen_record;
-    std::unique_ptr<RHIShaderTableRecordBase> miss_record;
-    std::unique_ptr<RHIShaderTableRecordBase> hit_group_record;
+    std::shared_ptr<RHIShaderTableRecordBase> raygen_record;
+    std::shared_ptr<RHIShaderTableRecordBase> miss_record;
+    std::vector<std::shared_ptr<RHIShaderTableRecordBase>> hit_group_records;
 };
 
 class IRHIShaderTable : public IRHIResource

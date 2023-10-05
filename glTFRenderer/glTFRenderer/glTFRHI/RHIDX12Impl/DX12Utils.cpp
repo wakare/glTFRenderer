@@ -359,17 +359,24 @@ bool DX12Utils::SetDescriptorHeapArray(IRHICommandList& commandList, IRHIDescrip
     return true;
 }
 
-bool DX12Utils::SetConstant32BitToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex, unsigned data,
+bool DX12Utils::SetConstant32BitToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex, unsigned* data,
                                                     unsigned count, bool isGraphicsPipeline)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
     if (isGraphicsPipeline)
     {
-        dxCommandList->SetGraphicsRoot32BitConstant(slotIndex, data, 0);    
+        for (unsigned i = 0; i < count; ++i)
+        {
+            dxCommandList->SetGraphicsRoot32BitConstant(slotIndex, data[count], count);    
+        }
+            
     }
     else
     {
-        dxCommandList->SetComputeRoot32BitConstant(slotIndex, data, 0);
+        for (unsigned i = 0; i < count; ++i)
+        {
+            dxCommandList->SetComputeRoot32BitConstant(slotIndex, data[count], count);    
+        }
     }
     
     return true;
@@ -520,11 +527,11 @@ bool DX12Utils::TraceRay(IRHICommandList& command_list, IRHIShaderTable& shader_
     
     dispatch_rays_desc.HitGroupTable.StartAddress = dxShaderTable.GetHitGroupShaderTable()->GetGPUVirtualAddress();
     dispatch_rays_desc.HitGroupTable.SizeInBytes = dxShaderTable.GetHitGroupShaderTable()->GetDesc().Width;
-    dispatch_rays_desc.HitGroupTable.StrideInBytes = dispatch_rays_desc.HitGroupTable.SizeInBytes;
+    dispatch_rays_desc.HitGroupTable.StrideInBytes = dxShaderTable.GetHitGroupStride();
 
     dispatch_rays_desc.MissShaderTable.StartAddress = dxShaderTable.GetMissShaderTable()->GetGPUVirtualAddress();
     dispatch_rays_desc.MissShaderTable.SizeInBytes = dxShaderTable.GetMissShaderTable()->GetDesc().Width;
-    dispatch_rays_desc.MissShaderTable.StrideInBytes = dispatch_rays_desc.MissShaderTable.SizeInBytes;
+    dispatch_rays_desc.MissShaderTable.StrideInBytes = dxShaderTable.GetMissStride();
 
     dispatch_rays_desc.RayGenerationShaderRecord.StartAddress = dxShaderTable.GetRayGenShaderTable()->GetGPUVirtualAddress();
     dispatch_rays_desc.RayGenerationShaderRecord.SizeInBytes = dxShaderTable.GetRayGenShaderTable()->GetDesc().Width;

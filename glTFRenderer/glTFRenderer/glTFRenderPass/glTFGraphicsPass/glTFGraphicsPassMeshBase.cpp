@@ -34,12 +34,15 @@ bool glTFGraphicsPassMeshBase::RenderPass(glTFRenderResourceManager& resource_ma
     // Render meshes
     for (const auto& mesh : resource_manager.GetMeshManager().GetMeshes())
     {
+        if (!mesh.second.mesh->IsVisible())
+        {
+            continue;
+        }
+        
         const glTFUniqueID mesh_id = mesh.first;
         const glTFRenderPassMeshResource& mesh_data = mesh.second;
         RETURN_IF_FALSE(BeginDrawMesh(resource_manager, mesh_id, mesh_data))
         
-        
-
         RHIUtils::Instance().SetVertexBufferView(command_list, *mesh.second.mesh_vertex_buffer_view);
         RHIUtils::Instance().SetIndexBufferView(command_list, *mesh.second.mesh_index_buffer_view);
         

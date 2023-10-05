@@ -14,14 +14,21 @@
 
 #include "glTFResources/ShaderSource/Interface/SceneView.hlsl"
 #include "glTFResources/ShaderSource/Interface/SceneMaterial.hlsl"
+#include "glTFResources/ShaderSource/Interface/SceneMeshInfo.hlsl"
 
 struct RayPayload
 {
     float4 color;
 };
 
-RaytracingAccelerationStructure Scene : SCENE_AS_REGISTER_INDEX;
-RWTexture2D<float4> RenderTarget : OUTPUT_REGISTER_INDEX;
+struct HitGroupCB
+{
+    uint material_id;
+};
+
+RaytracingAccelerationStructure scene : SCENE_AS_REGISTER_INDEX;
+RWTexture2D<float4> render_target : OUTPUT_REGISTER_INDEX;
+ConstantBuffer<HitGroupCB> hit_group_cb : MATERIAL_ID_REGISTER_INDEX;
 
 typedef BuiltInTriangleIntersectionAttributes MyAttributes;
 
@@ -56,18 +63,20 @@ void MyRaygenShader()
     ray.TMin = 0.001;
     ray.TMax = 10000000.0;
     RayPayload payload = { float4(0, 0, 0, 0) };
-    TraceRay(Scene, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, ~0, 0, 1, 0, ray, payload);
+    TraceRay(scene, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, ~0, 0, 1, 0, ray, payload);
 
     // Write the raytraced color to the output texture.
-    RenderTarget[DispatchRaysIndex().xy] = payload.color;
-    //RenderTarget[DispatchRaysIndex().xy] = view_position;
+    render_target[DispatchRaysIndex().xy] = payload.color;
 }
 
 [shader("closesthit")]
 void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 {
-    //payload.color = debug_colors[InstanceID() % 8];
-    payload.color = SampleAlbedoTextureCS(InstanceID(), 0);
+    uint3 vertex_indices = GetMeshTriangleVertexIndex(InstanceID(), PrimitiveIndex());
+    float2 uv = InterpolateVertexWithBarycentrics(vertex_indices, attr.barycentrics).uv;
+    payload.color = SampleAlbedoTextureCS(hit_group_cb.material_id, uv);
+    //payload.color = debug_colors[hit_group_cb.material_id % 8];
+    //payload.color = float4(1 - attr.barycentrics.x - attr.barycentrics.y, attr.barycentrics.x, attr.barycentrics.y, 1.0);
 }
 
 [shader("miss")]

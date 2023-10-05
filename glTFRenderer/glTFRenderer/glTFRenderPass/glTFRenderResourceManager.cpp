@@ -185,12 +185,12 @@ bool glTFRenderResourceManager::TryProcessSceneObject(glTFRenderResourceManager&
         RETURN_IF_FALSE(resource_manager.GetMaterialManager().InitMaterialRenderResource(resource_manager, primitive->GetMaterial()))
     }
     
-    if (!primitive || !primitive->IsVisible())
+    if (!primitive /*|| !primitive->IsVisible()*/)
     {
         return false;
     }
     
-    return m_mesh_manager->AddOrUpdatePrimitive(resource_manager, *primitive);
+    return m_mesh_manager->AddOrUpdatePrimitive(resource_manager, primitive);
 }
 
 void glTFRenderResourceManager::SetCurrentPSO(std::shared_ptr<IRHIPipelineStateObject> pso)

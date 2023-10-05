@@ -28,15 +28,17 @@ enum class RHIBufferUsage
 struct RHIBufferDesc
 {
     std::wstring name;
-    size_t width;
-    size_t height;
-    size_t depth;
+    size_t width {0};
+    size_t height {0};
+    size_t depth {0};
     
-    RHIBufferType type;
+    RHIBufferType type ;
     RHIDataFormat resource_data_type;
     RHIBufferResourceType resource_type;
-    RHIResourceStateType state;
-    RHIBufferUsage usage;
+    RHIResourceStateType state {RHIResourceStateType::STATE_COMMON};
+    RHIBufferUsage usage {RHIBufferUsage::NONE};
+    
+    size_t alignment {0};
 };
 
 class IRHIGPUBuffer : public IRHIResource

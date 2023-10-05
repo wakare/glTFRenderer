@@ -9,10 +9,10 @@ public:
     DX12RootParameter();
     virtual ~DX12RootParameter() override;
 
-    virtual bool InitAsConstant(unsigned constantValue, REGISTER_INDEX_TYPE registerIndex) override;
-    virtual bool InitAsCBV(REGISTER_INDEX_TYPE registerIndex) override;
-    virtual bool InitAsSRV(REGISTER_INDEX_TYPE registerIndex) override;
-    virtual bool InitAsUAV(REGISTER_INDEX_TYPE registerIndex) override;
+    virtual bool InitAsConstant(unsigned constant_value_count, REGISTER_INDEX_TYPE register_index, unsigned space) override;
+    virtual bool InitAsCBV(REGISTER_INDEX_TYPE register_index, unsigned space) override;
+    virtual bool InitAsSRV(REGISTER_INDEX_TYPE register_index, unsigned space) override;
+    virtual bool InitAsUAV(REGISTER_INDEX_TYPE register_index, unsigned space) override;
     virtual bool InitAsDescriptorTableRange(size_t rangeCount, const RHIRootParameterDescriptorRangeDesc* rangeDesc) override;
 
     const D3D12_ROOT_PARAMETER1& GetParameter() const {return m_parameter;}

@@ -51,7 +51,7 @@ bool IRHIRootSignatureHelper::AddRootParameterWithRegisterCount(const std::strin
     element.parameter_index = m_layout.last_parameter_index++;
     if (type == RHIRootParameterType::Constant)
     {
-        element.constant_value = constant_value;
+        element.constant_value_count = constant_value;
     }
     if (type == RHIRootParameterType::DescriptorTable)
     {
@@ -68,15 +68,16 @@ bool IRHIRootSignatureHelper::AddRootParameterWithRegisterCount(const std::strin
     return true;
 }
 
-IRHIRootSignatureHelper::IRHIRootSignatureHelper()
+IRHIRootSignatureHelper::IRHIRootSignatureHelper(unsigned register_space)
     : m_usage(RHIRootSignatureUsage::None)
     , m_contains_bindless_parameter(false)
+    , m_register_space(register_space)
 {
 }
 
-bool IRHIRootSignatureHelper::AddConstantRootParameter(const std::string& parameter_name, unsigned constant_value, RootSignatureAllocation& out_allocation)
+bool IRHIRootSignatureHelper::AddConstantRootParameter(const std::string& parameter_name, unsigned constant_value_count, RootSignatureAllocation& out_allocation)
 {
-    return AddRootParameterWithRegisterCount(parameter_name, RHIRootParameterType::Constant, 1, constant_value, RHIRootParameterDescriptorRangeType::Unknown, false, out_allocation);
+    return AddRootParameterWithRegisterCount(parameter_name, RHIRootParameterType::Constant, 1, constant_value_count, RHIRootParameterDescriptorRangeType::Unknown, false, out_allocation);
 }
 
 bool IRHIRootSignatureHelper::AddCBVRootParameter(const std::string& parameter_name, RootSignatureAllocation& out_allocation)
@@ -125,6 +126,16 @@ bool IRHIRootSignatureHelper::SetUsage(RHIRootSignatureUsage usage)
     return true;
 }
 
+void IRHIRootSignatureHelper::SetRegisterSpace(unsigned space)
+{
+    m_register_space = space;
+}
+
+unsigned IRHIRootSignatureHelper::GetRegisterSpace() const
+{
+    return m_register_space;
+}
+
 bool IRHIRootSignatureHelper::BuildRootSignature(IRHIDevice& device)
 {
     GLTF_CHECK(!m_root_signature);
@@ -140,16 +151,16 @@ bool IRHIRootSignatureHelper::BuildRootSignature(IRHIDevice& device)
         {
             switch (parameter.first) {
             case RHIRootParameterType::Constant:
-                m_root_signature->GetRootParameter(parameter_value.parameter_index).InitAsConstant(parameter_value.constant_value, parameter_value.register_range.first);
+                m_root_signature->GetRootParameter(parameter_value.parameter_index).InitAsConstant(parameter_value.constant_value_count, parameter_value.register_range.first, m_register_space);
                 break;
             case RHIRootParameterType::CBV:
-                m_root_signature->GetRootParameter(parameter_value.parameter_index).InitAsCBV(parameter_value.register_range.first);
+                m_root_signature->GetRootParameter(parameter_value.parameter_index).InitAsCBV(parameter_value.register_range.first, m_register_space);
                 break;
             case RHIRootParameterType::SRV:
-                m_root_signature->GetRootParameter(parameter_value.parameter_index).InitAsSRV(parameter_value.register_range.first);
+                m_root_signature->GetRootParameter(parameter_value.parameter_index).InitAsSRV(parameter_value.register_range.first, m_register_space);
                 break;
             case RHIRootParameterType::UAV:
-                m_root_signature->GetRootParameter(parameter_value.parameter_index).InitAsUAV(parameter_value.register_range.first);
+                m_root_signature->GetRootParameter(parameter_value.parameter_index).InitAsUAV(parameter_value.register_range.first, m_register_space);
                 break;
             case RHIRootParameterType::DescriptorTable:
                 {

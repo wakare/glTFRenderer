@@ -214,7 +214,7 @@ DX12DXRStateObject::DX12DXRStateObject()
 bool DX12DXRStateObject::InitPipelineStateObject(IRHIDevice& device, IRHIRootSignature& root_signature)
 {
     auto* dxrDevice = dynamic_cast<DX12Device&>(device).GetDXRDevice();
-    auto* dxRootSignature = dynamic_cast<DX12RootSignature&>(root_signature).GetRootSignature();
+    auto* dx_root_signature = dynamic_cast<DX12RootSignature&>(root_signature).GetRootSignature();
 
     m_dxr_state_desc.SetStateObjectType(D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE);
 
@@ -278,6 +278,22 @@ bool DX12DXRStateObject::InitPipelineStateObject(IRHIDevice& device, IRHIRootSig
     shaderConfig->Config(payloadSize, attributeSize);
 
     // Local root signature to be used in a ray gen shader.
+    for (const auto& desc : m_local_rs_descs)
+    {
+        const auto local_rs = dynamic_cast<DX12RootSignature&>(*desc.m_root_signature).GetRootSignature();
+        const auto local_rs_sub_object = m_dxr_state_desc.CreateSubobject<CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT>();
+        local_rs_sub_object->SetRootSignature(local_rs);
+        
+        // Shader association
+        const auto rootSignatureAssociation = m_dxr_state_desc.CreateSubobject<CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
+        rootSignatureAssociation->SetSubobjectToAssociate(*local_rs_sub_object);
+
+        for (const auto& export_name : desc.export_names)
+        {
+            auto name = to_wide_string(export_name);
+            rootSignatureAssociation->AddExport(name.c_str());    
+        }
+    }
     /*
     {
         auto localRootSignature = m_dxr_state_desc.CreateSubobject<CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT>();
@@ -291,16 +307,16 @@ bool DX12DXRStateObject::InitPipelineStateObject(IRHIDevice& device, IRHIRootSig
 
     // Global root signature
     // This is a root signature that is shared across all raytracing shaders invoked during a DispatchRays() call.
-    auto globalRootSignature = m_dxr_state_desc.CreateSubobject<CD3DX12_GLOBAL_ROOT_SIGNATURE_SUBOBJECT>();
-    globalRootSignature->SetRootSignature(dxRootSignature);
+    const auto global_root_signature = m_dxr_state_desc.CreateSubobject<CD3DX12_GLOBAL_ROOT_SIGNATURE_SUBOBJECT>();
+    global_root_signature->SetRootSignature(dx_root_signature);
 
     // Pipeline config
     // Defines the maximum TraceRay() recursion depth.
-    auto pipelineConfig = m_dxr_state_desc.CreateSubobject<CD3DX12_RAYTRACING_PIPELINE_CONFIG_SUBOBJECT>();
+    auto pipeline_config = m_dxr_state_desc.CreateSubobject<CD3DX12_RAYTRACING_PIPELINE_CONFIG_SUBOBJECT>();
     // PERFOMANCE TIP: Set max recursion depth as low as needed 
     // as drivers may apply optimization strategies for low recursion depths. 
-    UINT maxRecursionDepth = 1; // ~ primary rays only. 
-    pipelineConfig->Config(maxRecursionDepth);
+    UINT max_recursion_depth = 1; // ~ primary rays only. 
+    pipeline_config->Config(max_recursion_depth);
 
     // Create the state object.
     THROW_IF_FAILED(dxrDevice->CreateStateObject(m_dxr_state_desc, IID_PPV_ARGS(&m_dxr_pipeline_state)))

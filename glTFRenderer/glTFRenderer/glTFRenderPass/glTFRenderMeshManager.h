@@ -6,7 +6,7 @@ class glTFRenderResourceManager;
 class glTFRenderMeshManager
 {
 public:
-    bool AddOrUpdatePrimitive(glTFRenderResourceManager& resource_manager, const glTFScenePrimitive& primitive);
+    bool AddOrUpdatePrimitive(glTFRenderResourceManager& resource_manager, const glTFScenePrimitive* primitive);
     const std::map<glTFUniqueID, glTFRenderPassMeshResource>& GetMeshes() const {return m_meshes; }
     
 protected:

@@ -101,12 +101,20 @@ public:
         std::string m_any_hit_entry_name;
         std::string m_intersection_entry_name;
     };
+
+    struct RHIRayTracingLocalRSDesc
+    {
+        std::shared_ptr<IRHIRootSignature> m_root_signature;
+        std::vector<std::string> export_names;
+    };
     
     IRHIRayTracingPipelineStateObject();
 
     void AddHitGroupDesc(const RHIRayTracingHitGroupDesc& desc);
+    void AddLocalRSDesc(const RHIRayTracingLocalRSDesc& desc);
     const std::vector<RHIRayTracingHitGroupDesc>& GetHitGroupDescs() const {return m_hit_group_descs; }
     
 protected:
     std::vector<RHIRayTracingHitGroupDesc> m_hit_group_descs;
+    std::vector<RHIRayTracingLocalRSDesc> m_local_rs_descs;
 };

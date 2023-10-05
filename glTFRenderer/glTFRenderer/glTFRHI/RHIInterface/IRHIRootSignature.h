@@ -44,10 +44,10 @@ class IRHIRootParameter : public IRHIResource
 {
 public:
     IRHIRootParameter() : m_type(RHIRootParameterType::Unknown) { }
-    virtual bool InitAsConstant(unsigned constantValue, REGISTER_INDEX_TYPE registerIndex) = 0;
-    virtual bool InitAsCBV(REGISTER_INDEX_TYPE registerIndex) = 0;
-    virtual bool InitAsSRV(REGISTER_INDEX_TYPE registerIndex) = 0;
-    virtual bool InitAsUAV(REGISTER_INDEX_TYPE registerIndex) = 0;
+    virtual bool InitAsConstant(unsigned constantValue, REGISTER_INDEX_TYPE register_index, unsigned space) = 0;
+    virtual bool InitAsCBV(REGISTER_INDEX_TYPE registerIndex, unsigned space) = 0;
+    virtual bool InitAsSRV(REGISTER_INDEX_TYPE registerIndex, unsigned space) = 0;
+    virtual bool InitAsUAV(REGISTER_INDEX_TYPE registerIndex, unsigned space) = 0;
     virtual bool InitAsDescriptorTableRange(size_t rangeCount, const RHIRootParameterDescriptorRangeDesc* rangeDesc) = 0;
     
 protected:

@@ -2,6 +2,14 @@
 
 #include "DX12Device.h"
 #include "DX12PipelineStateObject.h"
+#include "DX12RayTracingAS.h"
+
+DX12ShaderTable::DX12ShaderTable()
+    : m_raygen_shader_table_stride(0)
+    , m_miss_shader_table_stride(0)
+    , m_hit_group_shader_table_stride(0)
+{
+}
 
 bool DX12ShaderTable::InitShaderTable(IRHIDevice& device, IRHIPipelineStateObject& pso, IRHIRayTracingAS& as, const std::vector<RHIShaderBindingTable>& sbts)
 {
@@ -14,12 +22,16 @@ bool DX12ShaderTable::InitShaderTable(IRHIDevice& device, IRHIPipelineStateObjec
     
     // Ray gen shader table
     {
-        size_t raygen_buffer_size = ray_count * shader_identifier_size;
+        size_t raygen_record_size = 0;
         for (const auto& sbt : sbts)
         {
-            raygen_buffer_size += sbt.raygen_record ? sbt.raygen_record->GetSize() : 0;
+            size_t sbt_record_size = sbt.raygen_record ? sbt.raygen_record->GetSize() : 0; 
+            raygen_record_size = (sbt_record_size > raygen_record_size) ? sbt_record_size : raygen_record_size;
         }
-
+        m_raygen_shader_table_stride = raygen_record_size + shader_identifier_size;
+        
+        size_t raygen_buffer_size = ray_count * (shader_identifier_size + raygen_record_size);
+        
         const std::unique_ptr<char[]> temporary_buffer = std::make_unique<char[]>(raygen_buffer_size);
         char* data = temporary_buffer.get();
         for (const auto& sbt : sbts)
@@ -33,30 +45,36 @@ bool DX12ShaderTable::InitShaderTable(IRHIDevice& device, IRHIPipelineStateObjec
             if (sbt.raygen_record)
             {
                 memcpy(data, sbt.raygen_record->GetData(), sbt.raygen_record->GetSize());
-                data += sbt.raygen_record->GetSize();
             }
+            data += raygen_record_size;
         }
         
         m_rayGenShaderTable = std::make_shared<DX12GPUBuffer>();
         m_rayGenShaderTable->InitGPUBuffer(device, {
                 L"RayGenShaderTable",
-                static_cast<size_t>(D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT),
+                raygen_buffer_size,
                 1,
                 1,
                 RHIBufferType::Upload,
                 RHIDataFormat::Unknown,
-                RHIBufferResourceType::Buffer
+                RHIBufferResourceType::Buffer,
+                RHIResourceStateType::STATE_COMMON,
+                RHIBufferUsage::NONE
             });
         m_rayGenShaderTable->UploadBufferFromCPU(temporary_buffer.get(), 0, raygen_buffer_size);
     }
 
     // Miss shader table
     {
-        size_t miss_buffer_size = ray_count * shader_identifier_size;
+        size_t miss_record_size = 0;
         for (const auto& sbt : sbts)
         {
-            miss_buffer_size += sbt.miss_record ? sbt.miss_record->GetSize() : 0;
+            size_t sbt_record_size = sbt.miss_record ? sbt.miss_record->GetSize() : 0; 
+            miss_record_size = (sbt_record_size > miss_record_size) ? sbt_record_size : miss_record_size;
         }
+        m_miss_shader_table_stride = miss_record_size + shader_identifier_size;
+        
+        const size_t miss_buffer_size = ray_count * (shader_identifier_size + miss_record_size);
 
         const std::unique_ptr<char[]> temporary_buffer = std::make_unique<char[]>(miss_buffer_size);
         char* data = temporary_buffer.get();
@@ -71,19 +89,21 @@ bool DX12ShaderTable::InitShaderTable(IRHIDevice& device, IRHIPipelineStateObjec
             if (sbt.miss_record)
             {
                 memcpy(data, sbt.miss_record->GetData(), sbt.miss_record->GetSize());
-                data += sbt.miss_record->GetSize();
             }
+            data += miss_record_size;
         }
 
         m_missShaderTable = std::make_shared<DX12GPUBuffer>();
         m_missShaderTable->InitGPUBuffer(device, {
                 L"MissShaderTable",
-                static_cast<size_t>(D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT),
+                miss_buffer_size,
                 1,
                 1,
                 RHIBufferType::Upload,
                 RHIDataFormat::Unknown,
-                RHIBufferResourceType::Buffer
+            RHIBufferResourceType::Buffer,
+            RHIResourceStateType::STATE_COMMON,
+            RHIBufferUsage::NONE
             });
         m_missShaderTable->UploadBufferFromCPU(temporary_buffer.get(), 0, miss_buffer_size);
     }
@@ -91,23 +111,58 @@ bool DX12ShaderTable::InitShaderTable(IRHIDevice& device, IRHIPipelineStateObjec
     // Hit group shader table
     {
         // Build hit group shader record layout
+        const auto& instance_descs = dynamic_cast<DX12RayTracingAS&>(as).GetInstanceDesc();
+        const size_t hit_group_instance_count = instance_descs.size();
         
-        const auto hit_group_shader_entry_name = to_wide_string(sbts.front().hit_group_entry);
-        void* hit_group_shader_identifier = dx_pso_props->GetShaderIdentifier(hit_group_shader_entry_name.c_str());   
+        size_t hit_group_record_size = 0;
+        for (const auto& sbt : sbts)
+        {
+            for (const auto& hit_group_record : sbt.hit_group_records)
+            {
+                size_t sbt_record_size = hit_group_record ? hit_group_record->GetSize() : 0; 
+                hit_group_record_size = (sbt_record_size > hit_group_record_size) ? sbt_record_size : hit_group_record_size;    
+            }
+        }
+        m_hit_group_shader_table_stride = hit_group_record_size + shader_identifier_size;
+
+
+        const size_t hit_group_buffer_size = hit_group_instance_count * ray_count * (shader_identifier_size + hit_group_record_size);
+        const std::unique_ptr<char[]> temporary_buffer = std::make_unique<char[]>(hit_group_buffer_size);
+        char* data = temporary_buffer.get();
+
+        for (const auto& sbt : sbts)
+        {
+            for (size_t i = 0; i < hit_group_instance_count; ++i)
+            {
+                GLTF_CHECK(sbt.hit_group_records.size() == hit_group_instance_count);
+                
+                const auto hit_group_shader_entry_name = to_wide_string(sbts.front().hit_group_entry);
+                const void* hit_group_shader_identifier = dx_pso_props->GetShaderIdentifier(hit_group_shader_entry_name.c_str());
+
+                memcpy(data, hit_group_shader_identifier, shader_identifier_size);
+                data += shader_identifier_size;
+
+                if (sbt.hit_group_records[i])
+                {
+                    memcpy(data, sbt.hit_group_records[i]->GetData(), sbt.hit_group_records[i]->GetSize());
+                }
+                data += hit_group_record_size;
+            }
+        }
         
-        UINT numShaderRecords = 1;
-        UINT shaderRecordSize = shader_identifier_size;
         m_hitGroupShaderTable = std::make_shared<DX12GPUBuffer>();
         m_hitGroupShaderTable->InitGPUBuffer(device, {
                 L"HitGroupShaderTable",
-                static_cast<size_t>(D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT),
+                hit_group_buffer_size,
                 1,
                 1,
                 RHIBufferType::Upload,
                 RHIDataFormat::Unknown,
-                RHIBufferResourceType::Buffer
+                RHIBufferResourceType::Buffer,
+                RHIResourceStateType::STATE_COMMON,
+                RHIBufferUsage::NONE
             });
-        m_hitGroupShaderTable->UploadBufferFromCPU(hit_group_shader_identifier, 0, shader_identifier_size);
+        m_hitGroupShaderTable->UploadBufferFromCPU(temporary_buffer.get(), 0, hit_group_buffer_size);
     }
     
     return true;
