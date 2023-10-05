@@ -17,8 +17,6 @@ protected:
     virtual bool SetupRootSignature(glTFRenderResourceManager& resource_manager) override;
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;
 
-    virtual bool BeginDrawMesh(glTFRenderResourceManager& resource_manager, glTFUniqueID meshID) override;
-
     std::shared_ptr<IRHIRenderTarget> m_base_pass_color_render_target;
     std::shared_ptr<IRHIRenderTarget> m_base_pass_normal_render_target;
 

@@ -99,7 +99,7 @@ D3D12_RESOURCE_STATES DX12ConverterUtils::ConvertToResourceState(RHIResourceStat
     case RHIResourceStateType::STATE_DEPTH_READ:
         return D3D12_RESOURCE_STATE_DEPTH_READ;
 
-    case RHIResourceStateType::STATE_UNORDER_ACCESS:
+    case RHIResourceStateType::STATE_UNORDERED_ACCESS:
         return D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
         
     case RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE:

@@ -78,7 +78,7 @@ bool DX12RayTracingAS::InitRayTracingAS(IRHIDevice& device, IRHICommandList& com
                 RHIBufferType::Default,
                 RHIDataFormat::Unknown,
                 RHIBufferResourceType::Buffer,
-                RHIResourceStateType::STATE_UNORDER_ACCESS,
+                RHIResourceStateType::STATE_COMMON,
                 RHIBufferUsage::ALLOW_UNORDER_ACCESS
             });
         }
@@ -93,7 +93,7 @@ bool DX12RayTracingAS::InitRayTracingAS(IRHIDevice& device, IRHICommandList& com
                 RHIBufferType::Default,
                 RHIDataFormat::Unknown,
                 RHIBufferResourceType::Buffer,
-                RHIResourceStateType::STATE_UNORDER_ACCESS,
+                RHIResourceStateType::STATE_COMMON,
                 RHIBufferUsage::ALLOW_UNORDER_ACCESS
         });    
     }

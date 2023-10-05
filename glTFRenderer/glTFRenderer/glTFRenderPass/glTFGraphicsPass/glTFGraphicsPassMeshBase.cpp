@@ -34,18 +34,11 @@ bool glTFGraphicsPassMeshBase::RenderPass(glTFRenderResourceManager& resource_ma
     // Render meshes
     for (const auto& mesh : resource_manager.GetMeshManager().GetMeshes())
     {
-        const glTFUniqueID meshID = mesh.first;
-        RETURN_IF_FALSE(BeginDrawMesh(resource_manager, meshID))
+        const glTFUniqueID mesh_id = mesh.first;
+        const glTFRenderPassMeshResource& mesh_data = mesh.second;
+        RETURN_IF_FALSE(BeginDrawMesh(resource_manager, mesh_id, mesh_data))
         
-        // Upload constant buffer
-        ConstantBufferSceneMesh temp_mesh_data =
-        {
-            mesh.second.mesh_transform_matrix,
-            glm::transpose(glm::inverse(mesh.second.mesh_transform_matrix)),
-            mesh.second.material_id, mesh.second.using_normal_mapping
-        };
         
-        RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSceneMesh>()->UploadAndApplyDataWithIndex(resource_manager, meshID, temp_mesh_data, true))
 
         RHIUtils::Instance().SetVertexBufferView(command_list, *mesh.second.mesh_vertex_buffer_view);
         RHIUtils::Instance().SetIndexBufferView(command_list, *mesh.second.mesh_index_buffer_view);
@@ -53,7 +46,7 @@ bool glTFGraphicsPassMeshBase::RenderPass(glTFRenderResourceManager& resource_ma
         RHIUtils::Instance().DrawIndexInstanced(command_list,
             mesh.second.mesh_index_count, 1, 0, 0, 0);
 
-        RETURN_IF_FALSE(EndDrawMesh(resource_manager, mesh.first))
+        RETURN_IF_FALSE(EndDrawMesh(resource_manager, mesh_id, mesh_data))
     }
 
     return true;
@@ -73,12 +66,22 @@ bool glTFGraphicsPassMeshBase::SetupPipelineStateObject(glTFRenderResourceManage
     return true;
 }
 
-bool glTFGraphicsPassMeshBase::BeginDrawMesh(glTFRenderResourceManager& resourceManager, glTFUniqueID meshID)
+bool glTFGraphicsPassMeshBase::BeginDrawMesh(glTFRenderResourceManager& resource_manager, glTFUniqueID mesh_id, const glTFRenderPassMeshResource& mesh_data)
 {
+    // Upload constant buffer
+    ConstantBufferSceneMesh temp_mesh_data =
+    {
+        mesh_data.mesh_transform_matrix,
+        glm::transpose(glm::inverse(mesh_data.mesh_transform_matrix)),
+        mesh_data.material_id, mesh_data.using_normal_mapping
+    };
+        
+    RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSceneMesh>()->UploadAndApplyDataWithIndex(resource_manager, mesh_id, temp_mesh_data, true))
+    
     return true;   
 }
 
-bool glTFGraphicsPassMeshBase::EndDrawMesh(glTFRenderResourceManager& resourceManager, glTFUniqueID meshID)
+bool glTFGraphicsPassMeshBase::EndDrawMesh(glTFRenderResourceManager& resourceManager, glTFUniqueID mesh_id, const glTFRenderPassMeshResource& mesh_data)
 {
     return true;
 }

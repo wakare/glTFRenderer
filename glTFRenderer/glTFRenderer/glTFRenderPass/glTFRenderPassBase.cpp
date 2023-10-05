@@ -1,5 +1,5 @@
 #include "glTFRenderPassBase.h"
-#include "../glTFRHI/RHIResourceFactoryImpl.hpp"
+#include "glTFRHI/RHIResourceFactoryImpl.hpp"
 
 glTFRenderPassBase::~glTFRenderPassBase()
 = default;
@@ -14,21 +14,18 @@ bool glTFRenderPassBase::InitPass(glTFRenderResourceManager& resource_manager)
     {
     case PipelineType::Graphics:
         m_pipeline_state_object = RHIResourceFactory::CreateRHIResource<IRHIGraphicsPipelineStateObject>();
-        m_root_signature_helper.SetUsage(RHIRootSignatureUsage::Default);
         break;
     case PipelineType::Compute:
         m_pipeline_state_object = RHIResourceFactory::CreateRHIResource<IRHIComputePipelineStateObject>();
-        m_root_signature_helper.SetUsage(RHIRootSignatureUsage::Default);
         break;
     case PipelineType::RayTracing:
         m_pipeline_state_object = RHIResourceFactory::CreateRHIResource<IRHIRayTracingPipelineStateObject>();
-        // Only local root signature need specific flag
-        // m_root_signature_helper.SetUsage(RHIRootSignatureUsage::Default);
         break;
     default: GLTF_CHECK(false);
     }
 
     // Init root signature
+    m_root_signature_helper.SetUsage(RHIRootSignatureUsage::Default);
     RETURN_IF_FALSE(SetupRootSignature(resource_manager))
     RETURN_IF_FALSE(m_root_signature_helper.BuildRootSignature(resource_manager.GetDevice()))
     

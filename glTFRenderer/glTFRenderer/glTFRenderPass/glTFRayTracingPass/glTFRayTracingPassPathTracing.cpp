@@ -1,5 +1,6 @@
 #include "glTFRayTracingPassPathTracing.h"
 
+#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneMaterial.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 #include "glTFRHI/RHIUtils.h"
 #include "glTFRHI/RHIInterface/IRHIRenderTargetManager.h"
@@ -9,11 +10,12 @@ glTFRayTracingPassPathTracing::glTFRayTracingPassPathTracing()
     , m_trace_count({0, 0, 0})
 {
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneView>());
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMaterial>());
 }
 
 const char* glTFRayTracingPassPathTracing::PassName()
 {
-    return "RayTracingPass_HelloWorld";
+    return "RayTracingPass_PathTracing";
 }
 
 bool glTFRayTracingPassPathTracing::InitPass(glTFRenderResourceManager& resource_manager)
@@ -31,13 +33,12 @@ bool glTFRayTracingPassPathTracing::InitPass(glTFRenderResourceManager& resource
     
     RETURN_IF_FALSE(glTFRayTracingPassBase::InitPass(resource_manager))
     
-    auto& command_list = resource_manager.GetCommandListForRecord();
-
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_raytracing_output,
-        RHIResourceStateType::STATE_RENDER_TARGET, RHIResourceStateType::STATE_UNORDER_ACCESS))
+    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resource_manager.GetCommandListForRecord(), *m_raytracing_output,
+        RHIResourceStateType::STATE_RENDER_TARGET, RHIResourceStateType::STATE_UNORDERED_ACCESS))
 
     m_shader_table = RHIResourceFactory::CreateRHIResource<IRHIShaderTable>();
-    RETURN_IF_FALSE(m_shader_table->InitShaderTable(resource_manager.GetDevice(), GetRayTracingPipelineStateObject()))
+    const auto& bind_rt_shader = GetRayTracingPipelineStateObject().GetBindShader(RHIShaderType::RayTracing);
+    RETURN_IF_FALSE(m_shader_table->InitShaderTable(resource_manager.GetDevice(), GetRayTracingPipelineStateObject(), bind_rt_shader.GetRayTracingEntryFunctionNames()))
     
     return true;
 }
@@ -65,16 +66,15 @@ bool glTFRayTracingPassPathTracing::PostRenderPass(glTFRenderResourceManager& re
         RHIResourceStateType::STATE_RENDER_TARGET, RHIResourceStateType::STATE_COPY_DEST))
 
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_raytracing_output,
-            RHIResourceStateType::STATE_UNORDER_ACCESS, RHIResourceStateType::STATE_COPY_SOURCE ))
+            RHIResourceStateType::STATE_UNORDERED_ACCESS, RHIResourceStateType::STATE_COPY_SOURCE ))
     
     RETURN_IF_FALSE(RHIUtils::Instance().CopyTexture(command_list, resource_manager.GetCurrentFrameSwapchainRT(), *m_raytracing_output))
 
-    // Copy compute result to swapchain back buffer
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, resource_manager.GetCurrentFrameSwapchainRT(),
         RHIResourceStateType::STATE_COPY_DEST, RHIResourceStateType::STATE_RENDER_TARGET))
 
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_raytracing_output,
-        RHIResourceStateType::STATE_COPY_SOURCE, RHIResourceStateType::STATE_UNORDER_ACCESS ))
+        RHIResourceStateType::STATE_COPY_SOURCE, RHIResourceStateType::STATE_UNORDERED_ACCESS ))
     
     return true;
 }
@@ -96,13 +96,14 @@ size_t glTFRayTracingPassPathTracing::GetMainDescriptorHeapSize()
 
 bool glTFRayTracingPassPathTracing::SetupRootSignature(glTFRenderResourceManager& resource_manager)
 {
+    // Non-bindless table parameter should be added first
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("output", RHIRootParameterDescriptorRangeType::UAV, 1, false, m_output_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddSRVRootParameter("RaytracingAS", m_raytracing_as_allocation))
+    
     RETURN_IF_FALSE(glTFRayTracingPassBase::SetupRootSignature(resource_manager))
     
     m_trace_count = {resource_manager.GetSwapchain().GetWidth(), resource_manager.GetSwapchain().GetHeight(), 1};
 
-    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("output", RHIRootParameterDescriptorRangeType::UAV, 1, false, m_output_allocation))
-    RETURN_IF_FALSE(m_root_signature_helper.AddSRVRootParameter("RaytracingAS", m_raytracing_as_allocation))
-    
     return true;
 }
 
@@ -114,7 +115,15 @@ bool glTFRayTracingPassPathTracing::SetupPipelineStateObject(glTFRenderResourceM
     RETURN_IF_FALSE(m_main_descriptor_heap->CreateUnOrderAccessViewInDescriptorHeap(resource_manager.GetDevice(), m_main_descriptor_heap->GetUsedDescriptorCount(),
                 *m_raytracing_output, {m_raytracing_output->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D}, UAV))
     
-    GetRayTracingPipelineStateObject().BindShaderCode("glTFResources/ShaderSource/RayTracing/RayTracingHelloWorld.hlsl", RHIShaderType::RayTracing, "");
+    GetRayTracingPipelineStateObject().BindShaderCode("glTFResources/ShaderSource/RayTracing/RayTracingHelloWorld.hlsl",
+        RHIShaderType::RayTracing, "",
+        {
+            "MyRaygenShader",
+            "MyMissShader",
+            "MyHitGroup",
+            "MyClosestHitShader",
+            ""
+        });
     
     auto& shader_macros = GetRayTracingPipelineStateObject().GetShaderMacros();
     shader_macros.AddSRVRegisterDefine("SCENE_AS_REGISTER_INDEX", m_raytracing_as_allocation.register_index);

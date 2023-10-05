@@ -198,7 +198,7 @@ const std::vector<unsigned char>& DX12Shader::GetShaderByteCode() const
 }
 
 bool DX12Shader::InitShader(const std::string& shader_file_path, RHIShaderType type, const std::string& entry_function_name,
-    RayTracingShaderEntryFunctionNames raytracing_entry_names)
+                            const RayTracingShaderEntryFunctionNames& raytracing_entry_names)
 {
     assert(m_type == RHIShaderType::Unknown);
     m_type = type;

@@ -6,7 +6,7 @@
 class DX12ShaderTable : public IRHIShaderTable
 {
 public:
-    virtual bool InitShaderTable(IRHIDevice& device, IRHIPipelineStateObject& pso) override;
+    virtual bool InitShaderTable(IRHIDevice& device, IRHIPipelineStateObject& pso, const RayTracingShaderEntryFunctionNames& entry_names) override;
 
     ID3D12Resource* GetRayGenShaderTable() const;
     ID3D12Resource* GetMissShaderTable() const;

@@ -100,24 +100,3 @@ bool glTFGraphicsPassMeshOpaque::SetupPipelineStateObject(glTFRenderResourceMana
     
     return true;
 }
-
-bool glTFGraphicsPassMeshOpaque::BeginDrawMesh(glTFRenderResourceManager& resource_manager, glTFUniqueID meshID)
-{
-    return true;
-    
-    // Using texture SRV slot when mesh material is texture
-    auto mesh = resource_manager.GetMeshManager().GetMeshes().find(meshID);
-    if (mesh == resource_manager.GetMeshManager().GetMeshes().end())
-    {
-        return false;
-    }
-
-    const glTFUniqueID material_ID = mesh->second.material_id;
-    if (material_ID == glTFUniqueIDInvalid)
-    {
-        return true;
-    }
-    
-	return resource_manager.ApplyMaterial(*m_main_descriptor_heap,
-	    material_ID, GetRenderInterface<glTFRenderInterfaceSceneMeshMaterial>()->GetRSAllocation().parameter_index, GetPipelineType() == PipelineType::Graphics);
-}

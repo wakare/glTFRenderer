@@ -9,11 +9,11 @@ IRHIPipelineStateObject::IRHIPipelineStateObject(RHIPipelineType type)
 {
 }
 
-bool IRHIPipelineStateObject::BindShaderCode(const std::string& shaderFilePath, RHIShaderType type,
-    const std::string& entryFunctionName)
+bool IRHIPipelineStateObject::BindShaderCode(const std::string& shader_file_path, RHIShaderType type,
+    const std::string& entry_function_name, const RayTracingShaderEntryFunctionNames& raytracing_entry_name)
 {
-    std::shared_ptr<IRHIShader> dxShader = RHIResourceFactory::CreateRHIResource<IRHIShader>();
-    if (!dxShader->InitShader(shaderFilePath, type, entryFunctionName))
+    std::shared_ptr<IRHIShader> shader = RHIResourceFactory::CreateRHIResource<IRHIShader>();
+    if (!shader->InitShader(shader_file_path, type, entry_function_name, raytracing_entry_name))
     {
         return false;
     }
@@ -21,7 +21,7 @@ bool IRHIPipelineStateObject::BindShaderCode(const std::string& shaderFilePath, 
     // Delay compile shader bytecode util create pso
 
     assert(m_shaders.find(type) == m_shaders.end());
-    m_shaders[type] = dxShader;
+    m_shaders[type] = shader;
     
     return true;
 }

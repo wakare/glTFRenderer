@@ -70,6 +70,7 @@ bool IRHIRootSignatureHelper::AddRootParameterWithRegisterCount(const std::strin
 
 IRHIRootSignatureHelper::IRHIRootSignatureHelper()
     : m_usage(RHIRootSignatureUsage::None)
+    , m_contains_bindless_parameter(false)
 {
 }
 
@@ -96,6 +97,15 @@ bool IRHIRootSignatureHelper::AddUAVRootParameter(const std::string& parameter_n
 bool IRHIRootSignatureHelper::AddTableRootParameter(const std::string& parameter_name,
                                                     RHIRootParameterDescriptorRangeType table_type, unsigned table_register_count, bool is_bindless, RootSignatureAllocation& out_allocation)
 {
+    // Can not add more table parameter when bindless parameter exists;
+    if (m_contains_bindless_parameter)
+    {
+        GLTF_CHECK(false);
+        return false;
+    }
+
+    m_contains_bindless_parameter = is_bindless;
+    
     return AddRootParameterWithRegisterCount(parameter_name, RHIRootParameterType::DescriptorTable, table_register_count, 0, table_type, is_bindless, out_allocation);
 }
 

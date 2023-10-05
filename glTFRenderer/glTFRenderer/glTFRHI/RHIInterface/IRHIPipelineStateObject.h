@@ -55,7 +55,7 @@ public:
 
     virtual bool InitPipelineStateObject(IRHIDevice& device, IRHIRootSignature& root_signature) = 0;
     
-    bool BindShaderCode(const std::string& shaderFilePath, RHIShaderType type, const std::string& entryFunctionName);
+    bool BindShaderCode(const std::string& shader_file_path, RHIShaderType type, const std::string& entry_function_name, const RayTracingShaderEntryFunctionNames& raytracing_entry_name = {});
     IRHIShader& GetBindShader(RHIShaderType type);
     
     bool BindInputLayoutAndSetShaderMacros(const std::vector<RHIPipelineInputLayout>& input_layouts);

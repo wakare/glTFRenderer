@@ -75,4 +75,5 @@ protected:
     RHIRootSignatureUsage m_usage;
     RootSignatureLayout m_layout;
     std::shared_ptr<IRHIRootSignature> m_root_signature;
+    bool m_contains_bindless_parameter;
 };

@@ -221,19 +221,24 @@ bool DX12DXRStateObject::InitPipelineStateObject(IRHIDevice& device, IRHIRootSig
     // TODO: Config shader compile with raytracing
     RETURN_IF_FALSE(CompileBindShaders(m_shaders, m_shader_macros))
     D3D12_SHADER_BYTECODE raytracing_shader_bytecode;
+    std::vector<std::string> ray_tracing_entry_names;
     {
         const auto& bindRTShader = dynamic_cast<DX12Shader&>(GetBindShader(RHIShaderType::RayTracing));
         raytracing_shader_bytecode.BytecodeLength = bindRTShader.GetShaderByteCode().size();
-        raytracing_shader_bytecode.pShaderBytecode = bindRTShader.GetShaderByteCode().data();    
+        raytracing_shader_bytecode.pShaderBytecode = bindRTShader.GetShaderByteCode().data();
+        ray_tracing_entry_names = bindRTShader.GetRayTracingEntryFunctionNames().GetValidEntryFunctionNames();
     }
     
     // Setup DXIL bytecode
     auto lib = m_dxr_state_desc.CreateSubobject<CD3DX12_DXIL_LIBRARY_SUBOBJECT>();
     D3D12_SHADER_BYTECODE libdxil = CD3DX12_SHADER_BYTECODE(raytracing_shader_bytecode.pShaderBytecode, raytracing_shader_bytecode.BytecodeLength);
     lib->SetDXILLibrary(&libdxil);
-    lib->DefineExport(L"MyRaygenShader");
-    lib->DefineExport(L"MyClosestHitShader");
-    lib->DefineExport(L"MyMissShader");
+
+    for (const auto& entry_name : ray_tracing_entry_names)
+    {
+        auto entry_width_name = to_wide_string(entry_name);
+        lib->DefineExport(entry_width_name.c_str());    
+    }
 
     // Triangle hit group
     // A hit group specifies closest hit, any hit and intersection shaders to be executed when a ray intersects the geometry's triangle/AABB.

@@ -57,7 +57,8 @@ glTFMaterialRenderResource::glTFMaterialRenderResource(const glTFMaterialBase& s
                 }
                 else if (base_color_parameter.GetParameterType() == Factor)
                 {
-                    // TODO:
+                    const auto& base_color_factor = dynamic_cast<const glTFMaterialParameterFactor<glm::vec4>&>(base_color_parameter);
+                    m_factors[glTFMaterialParameterUsage::BASECOLOR] = std::make_unique<glTFMaterialParameterFactor<glm::vec4>>(base_color_factor);
                 }
             }
 
@@ -71,7 +72,8 @@ glTFMaterialRenderResource::glTFMaterialRenderResource(const glTFMaterialBase& s
                 }
                 else
                 {
-                    // TODO: 
+                    const auto& normal_factor = dynamic_cast<const glTFMaterialParameterFactor<glm::vec4>&>(normal_parameter);
+                    m_factors[glTFMaterialParameterUsage::NORMAL] = std::make_unique<glTFMaterialParameterFactor<glm::vec4>>(normal_factor);
                 }
             }
         }

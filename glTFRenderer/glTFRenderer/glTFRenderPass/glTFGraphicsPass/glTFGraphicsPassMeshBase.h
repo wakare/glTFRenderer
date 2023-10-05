@@ -24,8 +24,8 @@ protected:
     virtual bool SetupRootSignature(glTFRenderResourceManager& resource_manager) override;
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;
 
-    virtual bool BeginDrawMesh(glTFRenderResourceManager& resourceManager, glTFUniqueID meshID);
-    virtual bool EndDrawMesh(glTFRenderResourceManager& resourceManager, glTFUniqueID meshID);
+    virtual bool BeginDrawMesh(glTFRenderResourceManager& resource_manager, glTFUniqueID mesh_id, const glTFRenderPassMeshResource& mesh_data);
+    virtual bool EndDrawMesh(glTFRenderResourceManager& resourceManager, glTFUniqueID mesh_id, const glTFRenderPassMeshResource& mesh_data);
 
     virtual std::vector<RHIPipelineInputLayout> GetVertexInputLayout() override;
 

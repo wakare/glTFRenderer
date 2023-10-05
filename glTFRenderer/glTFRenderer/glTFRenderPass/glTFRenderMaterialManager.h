@@ -4,6 +4,7 @@
 #include <memory>
 
 #include "glTFRenderPassBase.h"
+#include "glTFMaterial/glTFMaterialParameterFactor.h"
 #include "glTFRenderInterface/glTFRenderInterfaceSceneMaterial.h"
 #include "glTFRHI/RHIInterface/IRHITexture.h"
 #include "glTFUtils/glTFUtils.h"
@@ -40,6 +41,7 @@ public:
 protected:
 	const glTFMaterialBase& m_source_material;
 	std::map<glTFMaterialParameterUsage, std::unique_ptr<glTFMaterialTextureRenderResource>> m_textures;
+	std::map<glTFMaterialParameterUsage, std::unique_ptr<glTFMaterialParameterFactor<glm::vec4>>> m_factors;
 	
 };
 

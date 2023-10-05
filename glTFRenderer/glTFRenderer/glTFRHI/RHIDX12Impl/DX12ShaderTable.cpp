@@ -3,25 +3,29 @@
 #include "DX12Device.h"
 #include "DX12PipelineStateObject.h"
 
-bool DX12ShaderTable::InitShaderTable(IRHIDevice& device, IRHIPipelineStateObject& pso)
+bool DX12ShaderTable::InitShaderTable(IRHIDevice& device, IRHIPipelineStateObject& pso, const RayTracingShaderEntryFunctionNames& entry_names)
 {
-    auto* dxPSOProps = dynamic_cast<DX12DXRStateObject&>(pso).GetDXRStateObjectProperties();
+    auto* dx_pso_props = dynamic_cast<DX12DXRStateObject&>(pso).GetDXRStateObjectProperties();
     
-    void* rayGenShaderIdentifier;
-    void* missShaderIdentifier;
-    void* hitGroupShaderIdentifier;
+    void* ray_gen_shader_identifier;
+    void* miss_shader_identifier;
+    void* hit_group_shader_identifier;
 
-    auto GetShaderIdentifiers = [&](auto* stateObjectProperties)
+    auto GetShaderIdentifiers = [&](auto* state_object_properties)
     {
-        rayGenShaderIdentifier = stateObjectProperties->GetShaderIdentifier(L"MyRaygenShader");
-        missShaderIdentifier = stateObjectProperties->GetShaderIdentifier(L"MyMissShader");
-        hitGroupShaderIdentifier = stateObjectProperties->GetShaderIdentifier(L"MyHitGroup");
+        auto raygen_shader_entry_name = to_wide_string(entry_names.raygen_shader_entry_name);
+        auto miss_shader_entry_name = to_wide_string(entry_names.miss_shader_entry_name);
+        auto hit_group_shader_entry_name = to_wide_string(entry_names.hit_group_name);
+        
+        ray_gen_shader_identifier = state_object_properties->GetShaderIdentifier(raygen_shader_entry_name.c_str());
+        miss_shader_identifier = state_object_properties->GetShaderIdentifier(miss_shader_entry_name.c_str());
+        hit_group_shader_identifier = state_object_properties->GetShaderIdentifier(hit_group_shader_entry_name.c_str());
     };
 
     // Get shader identifiers.
     UINT shaderIdentifierSize;
     {
-        GetShaderIdentifiers(dxPSOProps);
+        GetShaderIdentifiers(dx_pso_props);
         shaderIdentifierSize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
     }
 
@@ -39,7 +43,7 @@ bool DX12ShaderTable::InitShaderTable(IRHIDevice& device, IRHIPipelineStateObjec
                 RHIDataFormat::Unknown,
                 RHIBufferResourceType::Buffer
             });
-        m_rayGenShaderTable->UploadBufferFromCPU(rayGenShaderIdentifier, 0, shaderIdentifierSize);
+        m_rayGenShaderTable->UploadBufferFromCPU(ray_gen_shader_identifier, 0, shaderIdentifierSize);
     }
 
     // Miss shader table
@@ -56,7 +60,7 @@ bool DX12ShaderTable::InitShaderTable(IRHIDevice& device, IRHIPipelineStateObjec
                 RHIDataFormat::Unknown,
                 RHIBufferResourceType::Buffer
             });
-        m_missShaderTable->UploadBufferFromCPU(missShaderIdentifier, 0, shaderIdentifierSize);
+        m_missShaderTable->UploadBufferFromCPU(miss_shader_identifier, 0, shaderIdentifierSize);
     }
 
     // Hit group shader table
@@ -73,7 +77,7 @@ bool DX12ShaderTable::InitShaderTable(IRHIDevice& device, IRHIPipelineStateObjec
                 RHIDataFormat::Unknown,
                 RHIBufferResourceType::Buffer
             });
-        m_hitGroupShaderTable->UploadBufferFromCPU(hitGroupShaderIdentifier, 0, shaderIdentifierSize);
+        m_hitGroupShaderTable->UploadBufferFromCPU(hit_group_shader_identifier, 0, shaderIdentifierSize);
     }
     
     return true;

@@ -6,5 +6,5 @@
 class IRHIShaderTable : public IRHIResource
 {
 public:
-    virtual bool InitShaderTable(IRHIDevice& device, IRHIPipelineStateObject& pso) = 0;
+    virtual bool InitShaderTable(IRHIDevice& device, IRHIPipelineStateObject& pso, const RayTracingShaderEntryFunctionNames& entry_names) = 0;
 };

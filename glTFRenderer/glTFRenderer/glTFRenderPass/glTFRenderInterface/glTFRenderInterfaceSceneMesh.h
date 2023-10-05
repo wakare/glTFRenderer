@@ -14,9 +14,3 @@ struct ConstantBufferSceneMesh
 };
 
 typedef glTFRenderInterfaceSingleConstantBuffer<ConstantBufferSceneMesh> glTFRenderInterfaceSceneMesh;
-
-class glTFRenderInterfaceSceneMeshMaterial : public glTFRenderInterfaceSRVTable<2>
-{
-public:
-    glTFRenderInterfaceSceneMeshMaterial();
-};
