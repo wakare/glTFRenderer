@@ -22,6 +22,11 @@ glTFWindow::glTFWindow()
     
 }
 
+bool glTFWindow::InitScene()
+{
+    return true;
+}
+
 glTFTimer::glTFTimer()
     : m_delta_tick(0)
     , m_tick(GetTickCount64())
@@ -112,6 +117,11 @@ bool glTFWindow::InitAndShowWindow()
     m_scene_graph->AddSceneNode(std::move(point_light_node));
 */    
     m_scene_view = std::make_unique<glTFSceneView>(*m_scene_graph);
+
+    if (!InitScene())
+    {
+        return false;
+    }
     
     if (!InitRenderPass())
     {
@@ -131,20 +141,20 @@ void glTFWindow::UpdateWindow()
         m_input_control.TickSceneView(*m_scene_view, delta_time_ms);
         
         m_scene_graph->Tick(delta_time_ms);
-        m_passManager->UpdateScene(delta_time_ms);
-        m_passManager->RenderAllPass(delta_time_ms);
+        m_pass_manager->UpdateScene(delta_time_ms);
+        m_pass_manager->RenderAllPass(delta_time_ms);
 
         glfwPollEvents();
     }
 
-    m_passManager->ExitAllPass();
+    m_pass_manager->ExitAllPass();
     glfwTerminate();
 }
 
 bool glTFWindow::InitRenderPass()
 {
-    m_passManager.reset(new glTFRenderPassManager(*this, *m_scene_view));
-    m_passManager->InitAllPass();
+    m_pass_manager.reset(new glTFRenderPassManager(*this, *m_scene_view));
+    m_pass_manager->InitAllPass();
     
     return true;
 }

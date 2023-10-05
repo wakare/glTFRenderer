@@ -23,6 +23,9 @@ bool DX12RayTracingAS::InitRayTracingAS(IRHIDevice& device, IRHICommandList& com
     for (const auto& mesh_pair : meshes)
     {
         auto& mesh = mesh_pair.second;
+        RHIUtils::Instance().AddBufferBarrierToCommandList(command_list, mesh.mesh_vertex_buffer->GetBuffer(), RHIResourceStateType::STATE_VERTEX_AND_CONSTANT_BUFFER, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE);
+        RHIUtils::Instance().AddBufferBarrierToCommandList(command_list, mesh.mesh_index_buffer->GetBuffer(), RHIResourceStateType::STATE_INDEX_BUFFER, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE);
+
         D3D12_RAYTRACING_GEOMETRY_DESC& geometry_desc = m_blas_geometry_descs[mesh_index];
         geometry_desc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
         geometry_desc.Triangles.IndexBuffer = mesh.mesh_index_buffer->GetBuffer().GetGPUBufferHandle();
@@ -197,6 +200,13 @@ bool DX12RayTracingAS::InitRayTracingAS(IRHIDevice& device, IRHICommandList& com
 
     // Build acceleration structure.
     BuildAccelerationStructure(dxr_command_list);
+
+    for (const auto& mesh_pair : meshes)
+    {
+        auto& mesh = mesh_pair.second;
+        RHIUtils::Instance().AddBufferBarrierToCommandList(command_list, mesh.mesh_vertex_buffer->GetBuffer(), RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_VERTEX_AND_CONSTANT_BUFFER);
+        RHIUtils::Instance().AddBufferBarrierToCommandList(command_list, mesh.mesh_index_buffer->GetBuffer(), RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_INDEX_BUFFER);
+    }
     
     return true;
 }

@@ -13,6 +13,7 @@
 #define RAYTRACING_HLSL
 
 #include "glTFResources/ShaderSource/Interface/SceneView.hlsl"
+#include "glTFResources/ShaderSource/Interface/SceneMaterial.hlsl"
 
 struct RayPayload
 {
@@ -65,7 +66,8 @@ void MyRaygenShader()
 [shader("closesthit")]
 void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 {
-    payload.color = debug_colors[InstanceID() % 8];
+    //payload.color = debug_colors[InstanceID() % 8];
+    payload.color = SampleAlbedoTextureCS(InstanceID(), 0);
 }
 
 [shader("miss")]

@@ -36,6 +36,7 @@ public:
     
 private:
     glTFWindow();
+    bool InitScene();
     bool InitRenderPass();
 
     static void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
@@ -48,7 +49,7 @@ private:
     int m_width;
     int m_height;
     
-    std::unique_ptr<glTFRenderPassManager> m_passManager;
+    std::unique_ptr<glTFRenderPassManager> m_pass_manager;
     std::unique_ptr<glTFSceneGraph> m_scene_graph;
     std::unique_ptr<glTFSceneView> m_scene_view;
 

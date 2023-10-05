@@ -5,9 +5,12 @@
 #include "glTFRHI/RHIUtils.h"
 #include "glTFRHI/RHIInterface/IRHIRenderTargetManager.h"
 
+const char* hit_group_name = "MyHitGroup";
+
 glTFRayTracingPassPathTracing::glTFRayTracingPassPathTracing()
     : m_raytracing_output(nullptr)
     , m_trace_count({0, 0, 0})
+    , m_material_uploaded(false)
 {
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneView>());
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMaterial>());
@@ -36,22 +39,35 @@ bool glTFRayTracingPassPathTracing::InitPass(glTFRenderResourceManager& resource
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resource_manager.GetCommandListForRecord(), *m_raytracing_output,
         RHIResourceStateType::STATE_RENDER_TARGET, RHIResourceStateType::STATE_UNORDERED_ACCESS))
 
+    RETURN_IF_FALSE(UpdateAS(resource_manager))
+    
     m_shader_table = RHIResourceFactory::CreateRHIResource<IRHIShaderTable>();
     const auto& bind_rt_shader = GetRayTracingPipelineStateObject().GetBindShader(RHIShaderType::RayTracing);
-    RETURN_IF_FALSE(m_shader_table->InitShaderTable(resource_manager.GetDevice(), GetRayTracingPipelineStateObject(), bind_rt_shader.GetRayTracingEntryFunctionNames()))
+
+    std::vector<RHIShaderBindingTable> sbts;
+    sbts.push_back({bind_rt_shader.GetRayTracingEntryFunctionNames().raygen_shader_entry_name,
+        bind_rt_shader.GetRayTracingEntryFunctionNames().miss_shader_entry_name,
+        hit_group_name,
+        nullptr, nullptr, nullptr});
+    
+    RETURN_IF_FALSE(m_shader_table->InitShaderTable(resource_manager.GetDevice(), GetRayTracingPipelineStateObject(), *m_raytracing_as, sbts))
     
     return true;
 }
 
 bool glTFRayTracingPassPathTracing::PreRenderPass(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(UpdateAS(resource_manager))    
+    RETURN_IF_FALSE(UpdateAS(resource_manager))
     RETURN_IF_FALSE(glTFRayTracingPassBase::PreRenderPass(resource_manager))
     
     auto& command_list = resource_manager.GetCommandListForRecord();
     RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, m_output_allocation.parameter_index, m_main_descriptor_heap->GetGPUHandle(0),false))    
     RETURN_IF_FALSE(RHIUtils::Instance().SetSRVToRootParameterSlot(command_list, m_raytracing_as_allocation.parameter_index, m_raytracing_as->GetTLASHandle(), false)) 
-    
+    if (!m_material_uploaded)
+    {
+        GetRenderInterface<glTFRenderInterfaceSceneMaterial>()->UploadMaterialData(resource_manager, *m_main_descriptor_heap);
+        m_material_uploaded = true;
+    }
     return true;
 }
 
@@ -91,7 +107,7 @@ TraceCount glTFRayTracingPassPathTracing::GetTraceCount() const
 
 size_t glTFRayTracingPassPathTracing::GetMainDescriptorHeapSize()
 {
-    return 64;
+    return 512;
 }
 
 bool glTFRayTracingPassPathTracing::SetupRootSignature(glTFRenderResourceManager& resource_manager)
@@ -120,14 +136,23 @@ bool glTFRayTracingPassPathTracing::SetupPipelineStateObject(glTFRenderResourceM
         {
             "MyRaygenShader",
             "MyMissShader",
-            "MyHitGroup",
             "MyClosestHitShader",
+            "",
             ""
         });
     
     auto& shader_macros = GetRayTracingPipelineStateObject().GetShaderMacros();
     shader_macros.AddSRVRegisterDefine("SCENE_AS_REGISTER_INDEX", m_raytracing_as_allocation.register_index);
     shader_macros.AddUAVRegisterDefine("OUTPUT_REGISTER_INDEX", m_output_allocation.register_index);
+
+    const auto& bind_rt_shader = GetRayTracingPipelineStateObject().GetBindShader(RHIShaderType::RayTracing);
+    
+    // One ray type mapping one hit group desc
+    GetRayTracingPipelineStateObject().AddHitGroupDesc({hit_group_name,
+        bind_rt_shader.GetRayTracingEntryFunctionNames().closest_hit_shader_entry_name,
+        bind_rt_shader.GetRayTracingEntryFunctionNames().any_hit_shader_entry_name,
+        bind_rt_shader.GetRayTracingEntryFunctionNames().intersection_shader_entry_name
+    });
     
     return true;
 }

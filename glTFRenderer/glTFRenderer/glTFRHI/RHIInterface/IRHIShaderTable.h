@@ -1,10 +1,32 @@
 #pragma once
 #include "IRHIDevice.h"
 #include "IRHIPipelineStateObject.h"
+#include "IRHIRayTracingAS.h"
 #include "IRHIResource.h"
+
+struct RHIShaderTableRecordBase
+{
+    virtual ~RHIShaderTableRecordBase() = default;
+
+    virtual void* GetData() { return nullptr; }
+    virtual size_t GetSize() { return 0; }
+};
+
+// One ray type mapping one SBT (means one raygen shader, one miss shader and one hit group symbol)
+struct RHIShaderBindingTable
+{
+    std::string raygen_entry;
+    std::string miss_entry;
+    std::string hit_group_entry;
+
+    std::unique_ptr<RHIShaderTableRecordBase> raygen_record;
+    std::unique_ptr<RHIShaderTableRecordBase> miss_record;
+    std::unique_ptr<RHIShaderTableRecordBase> hit_group_record;
+};
 
 class IRHIShaderTable : public IRHIResource
 {
 public:
-    virtual bool InitShaderTable(IRHIDevice& device, IRHIPipelineStateObject& pso, const RayTracingShaderEntryFunctionNames& entry_names) = 0;
+    virtual bool InitShaderTable(IRHIDevice& device, IRHIPipelineStateObject& pso, IRHIRayTracingAS& as, const std::vector<RHIShaderBindingTable>& sbts) = 0;
 };
+

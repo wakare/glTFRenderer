@@ -3,36 +3,40 @@
 #include "DX12Device.h"
 #include "DX12PipelineStateObject.h"
 
-bool DX12ShaderTable::InitShaderTable(IRHIDevice& device, IRHIPipelineStateObject& pso, const RayTracingShaderEntryFunctionNames& entry_names)
+bool DX12ShaderTable::InitShaderTable(IRHIDevice& device, IRHIPipelineStateObject& pso, IRHIRayTracingAS& as, const std::vector<RHIShaderBindingTable>& sbts)
 {
     auto* dx_pso_props = dynamic_cast<DX12DXRStateObject&>(pso).GetDXRStateObjectProperties();
+    const auto& hit_group_descs = dynamic_cast<DX12DXRStateObject&>(pso).GetHitGroupDescs();
     
-    void* ray_gen_shader_identifier;
-    void* miss_shader_identifier;
-    void* hit_group_shader_identifier;
-
-    auto GetShaderIdentifiers = [&](auto* state_object_properties)
-    {
-        auto raygen_shader_entry_name = to_wide_string(entry_names.raygen_shader_entry_name);
-        auto miss_shader_entry_name = to_wide_string(entry_names.miss_shader_entry_name);
-        auto hit_group_shader_entry_name = to_wide_string(entry_names.hit_group_name);
-        
-        ray_gen_shader_identifier = state_object_properties->GetShaderIdentifier(raygen_shader_entry_name.c_str());
-        miss_shader_identifier = state_object_properties->GetShaderIdentifier(miss_shader_entry_name.c_str());
-        hit_group_shader_identifier = state_object_properties->GetShaderIdentifier(hit_group_shader_entry_name.c_str());
-    };
-
     // Get shader identifiers.
-    UINT shaderIdentifierSize;
-    {
-        GetShaderIdentifiers(dx_pso_props);
-        shaderIdentifierSize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
-    }
-
+    const UINT shader_identifier_size = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
+    const size_t ray_count = sbts.size();
+    
     // Ray gen shader table
     {
-        UINT numShaderRecords = 1;
-        UINT shaderRecordSize = shaderIdentifierSize;
+        size_t raygen_buffer_size = ray_count * shader_identifier_size;
+        for (const auto& sbt : sbts)
+        {
+            raygen_buffer_size += sbt.raygen_record ? sbt.raygen_record->GetSize() : 0;
+        }
+
+        const std::unique_ptr<char[]> temporary_buffer = std::make_unique<char[]>(raygen_buffer_size);
+        char* data = temporary_buffer.get();
+        for (const auto& sbt : sbts)
+        {
+            const auto raygen_shader_entry_name = to_wide_string(sbt.raygen_entry);
+            const void* ray_gen_shader_identifier = dx_pso_props->GetShaderIdentifier(raygen_shader_entry_name.c_str());
+
+            memcpy(data, ray_gen_shader_identifier, shader_identifier_size);
+            data += shader_identifier_size;
+            
+            if (sbt.raygen_record)
+            {
+                memcpy(data, sbt.raygen_record->GetData(), sbt.raygen_record->GetSize());
+                data += sbt.raygen_record->GetSize();
+            }
+        }
+        
         m_rayGenShaderTable = std::make_shared<DX12GPUBuffer>();
         m_rayGenShaderTable->InitGPUBuffer(device, {
                 L"RayGenShaderTable",
@@ -43,13 +47,34 @@ bool DX12ShaderTable::InitShaderTable(IRHIDevice& device, IRHIPipelineStateObjec
                 RHIDataFormat::Unknown,
                 RHIBufferResourceType::Buffer
             });
-        m_rayGenShaderTable->UploadBufferFromCPU(ray_gen_shader_identifier, 0, shaderIdentifierSize);
+        m_rayGenShaderTable->UploadBufferFromCPU(temporary_buffer.get(), 0, raygen_buffer_size);
     }
 
     // Miss shader table
     {
-        UINT numShaderRecords = 1;
-        UINT shaderRecordSize = shaderIdentifierSize;
+        size_t miss_buffer_size = ray_count * shader_identifier_size;
+        for (const auto& sbt : sbts)
+        {
+            miss_buffer_size += sbt.miss_record ? sbt.miss_record->GetSize() : 0;
+        }
+
+        const std::unique_ptr<char[]> temporary_buffer = std::make_unique<char[]>(miss_buffer_size);
+        char* data = temporary_buffer.get();
+        for (const auto& sbt : sbts)
+        {
+            const auto miss_shader_entry_name = to_wide_string(sbt.miss_entry);
+            const void* miss_shader_identifier = dx_pso_props->GetShaderIdentifier(miss_shader_entry_name.c_str());
+
+            memcpy(data, miss_shader_identifier, shader_identifier_size);
+            data += shader_identifier_size;
+            
+            if (sbt.miss_record)
+            {
+                memcpy(data, sbt.miss_record->GetData(), sbt.miss_record->GetSize());
+                data += sbt.miss_record->GetSize();
+            }
+        }
+
         m_missShaderTable = std::make_shared<DX12GPUBuffer>();
         m_missShaderTable->InitGPUBuffer(device, {
                 L"MissShaderTable",
@@ -60,13 +85,18 @@ bool DX12ShaderTable::InitShaderTable(IRHIDevice& device, IRHIPipelineStateObjec
                 RHIDataFormat::Unknown,
                 RHIBufferResourceType::Buffer
             });
-        m_missShaderTable->UploadBufferFromCPU(miss_shader_identifier, 0, shaderIdentifierSize);
+        m_missShaderTable->UploadBufferFromCPU(temporary_buffer.get(), 0, miss_buffer_size);
     }
 
     // Hit group shader table
     {
+        // Build hit group shader record layout
+        
+        const auto hit_group_shader_entry_name = to_wide_string(sbts.front().hit_group_entry);
+        void* hit_group_shader_identifier = dx_pso_props->GetShaderIdentifier(hit_group_shader_entry_name.c_str());   
+        
         UINT numShaderRecords = 1;
-        UINT shaderRecordSize = shaderIdentifierSize;
+        UINT shaderRecordSize = shader_identifier_size;
         m_hitGroupShaderTable = std::make_shared<DX12GPUBuffer>();
         m_hitGroupShaderTable->InitGPUBuffer(device, {
                 L"HitGroupShaderTable",
@@ -77,7 +107,7 @@ bool DX12ShaderTable::InitShaderTable(IRHIDevice& device, IRHIPipelineStateObjec
                 RHIDataFormat::Unknown,
                 RHIBufferResourceType::Buffer
             });
-        m_hitGroupShaderTable->UploadBufferFromCPU(hit_group_shader_identifier, 0, shaderIdentifierSize);
+        m_hitGroupShaderTable->UploadBufferFromCPU(hit_group_shader_identifier, 0, shader_identifier_size);
     }
     
     return true;

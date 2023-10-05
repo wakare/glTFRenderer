@@ -94,5 +94,19 @@ public:
 class IRHIRayTracingPipelineStateObject : public IRHIPipelineStateObject
 {
 public:
+    struct RHIRayTracingHitGroupDesc
+    {
+        std::string m_export_hit_group_name;
+        std::string m_closest_hit_entry_name;
+        std::string m_any_hit_entry_name;
+        std::string m_intersection_entry_name;
+    };
+    
     IRHIRayTracingPipelineStateObject();
+
+    void AddHitGroupDesc(const RHIRayTracingHitGroupDesc& desc);
+    const std::vector<RHIRayTracingHitGroupDesc>& GetHitGroupDescs() const {return m_hit_group_descs; }
+    
+protected:
+    std::vector<RHIRayTracingHitGroupDesc> m_hit_group_descs;
 };

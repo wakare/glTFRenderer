@@ -143,6 +143,8 @@ void glTFSceneGraph::RecursiveInitSceneNodeFromGLTFLoader(const glTFLoader& load
     sceneNode.m_transform = node->transform.GetMatrix();
     sceneNode.m_finalTransform = parentNode.m_finalTransform.GetTransformMatrix() * sceneNode.m_transform.GetTransformMatrix(); 
 
+    std::map<glTFHandle, std::shared_ptr<glTFMaterialBase>> mesh_materials;
+    
     for (const auto& mesh_handle : node->meshes)
     {
         if (mesh_handle.IsValid())
@@ -195,8 +197,6 @@ void glTFSceneGraph::RecursiveInitSceneNodeFromGLTFLoader(const glTFLoader& load
                 _process_vertex_attribute(loader, glTF_Attribute_TEXCOORD_0::attribute_type_id, VertexLayoutType::TEXCOORD_0,
                     primitive, vertex_buffer_size, vertexLayout, vertex_data_in_buffers);
 
-                
-                
                 std::shared_ptr<VertexBufferData> vertex_buffer_data = std::make_shared<VertexBufferData>();
                 vertex_buffer_data->data.reset(new char[vertex_buffer_size]);
                 vertex_buffer_data->byteSize = vertex_buffer_size;
@@ -255,45 +255,55 @@ void glTFSceneGraph::RecursiveInitSceneNodeFromGLTFLoader(const glTFLoader& load
 
 				std::unique_ptr<glTFSceneTriangleMesh> triangle_mesh =
 				    std::make_unique<glTFSceneTriangleMesh>(sceneNode.m_finalTransform, vertex_buffer_data, index_buffer_data, position_only_data);
-                
-				std::shared_ptr<glTFMaterialPBR> pbr_material = std::make_shared<glTFMaterialPBR>();
-				triangle_mesh->SetMaterial(pbr_material);
 
-                // Only set base color texture now, support other feature in the future
-                const auto& source_material =
-                    *loader.m_materials[loader.ResolveIndex(primitive.material)];
-
-                // Base color texture setting
-                const auto base_color_texture_handle = source_material.pbr.base_color_texture.index;
-                if (base_color_texture_handle.IsValid())
+                const glTFHandle material_id = primitive.material;
+                if (mesh_materials.find(material_id) == mesh_materials.end())
                 {
-                    const auto& base_color_texture = *loader.m_textures[loader.ResolveIndex(base_color_texture_handle)];
-                    const auto& texture_image = *loader.m_images[loader.ResolveIndex(base_color_texture.source)];
-                    GLTF_CHECK(!texture_image.uri.empty());
+                    std::shared_ptr<glTFMaterialPBR> pbr_material = std::make_shared<glTFMaterialPBR>();
+                    triangle_mesh->SetMaterial(pbr_material);
 
-                    pbr_material->AddOrUpdateMaterialParameter(glTFMaterialParameterUsage::BASECOLOR,
-                        std::make_shared<glTFMaterialParameterTexture>(loader.GetSceneFileDirectory() + texture_image.uri, glTFMaterialParameterUsage::BASECOLOR));    
+                    // Only set base color texture now, support other feature in the future
+                    const auto& source_material =
+                        *loader.m_materials[loader.ResolveIndex(material_id)];
+
+                    // Base color texture setting
+                    const auto base_color_texture_handle = source_material.pbr.base_color_texture.index;
+                    if (base_color_texture_handle.IsValid())
+                    {
+                        const auto& base_color_texture = *loader.m_textures[loader.ResolveIndex(base_color_texture_handle)];
+                        const auto& texture_image = *loader.m_images[loader.ResolveIndex(base_color_texture.source)];
+                        GLTF_CHECK(!texture_image.uri.empty());
+
+                        pbr_material->AddOrUpdateMaterialParameter(glTFMaterialParameterUsage::BASECOLOR,
+                            std::make_shared<glTFMaterialParameterTexture>(loader.GetSceneFileDirectory() + texture_image.uri, glTFMaterialParameterUsage::BASECOLOR));    
+                    }
+                    else
+                    {
+                        // No base color texture? handle base color factor in the future
+                        //GLTF_CHECK(false);
+                        pbr_material->AddOrUpdateMaterialParameter(glTFMaterialParameterUsage::BASECOLOR,
+                            std::make_shared<glTFMaterialParameterFactor<glm::vec4>>(glTFMaterialParameterUsage::BASECOLOR, source_material.pbr.base_color_factor));
+                    }
+
+                    // Normal texture setting
+                    const auto normal_texture_handle = source_material.normal_texture.index; 
+                    if (normal_texture_handle.IsValid())
+                    {
+                        const auto& normal_texture = *loader.m_textures[loader.ResolveIndex(normal_texture_handle)];
+                        const auto& texture_image = *loader.m_images[loader.ResolveIndex(normal_texture.source)];
+                        GLTF_CHECK(!texture_image.uri.empty());
+
+                        pbr_material->AddOrUpdateMaterialParameter(glTFMaterialParameterUsage::NORMAL,
+                            std::make_shared<glTFMaterialParameterTexture>(loader.GetSceneFileDirectory() + texture_image.uri, glTFMaterialParameterUsage::NORMAL));
+                    }
+
+                    mesh_materials[material_id] = pbr_material;
                 }
                 else
                 {
-                    // No base color texture? handle base color factor in the future
-                    //GLTF_CHECK(false);
-                    pbr_material->AddOrUpdateMaterialParameter(glTFMaterialParameterUsage::BASECOLOR,
-                        std::make_shared<glTFMaterialParameterFactor<glm::vec4>>(glTFMaterialParameterUsage::BASECOLOR, source_material.pbr.base_color_factor));
+                    triangle_mesh->SetMaterial(mesh_materials[material_id]);
                 }
-
-                // Normal texture setting
-                const auto normal_texture_handle = source_material.normal_texture.index; 
-                if (normal_texture_handle.IsValid())
-                {
-                    const auto& normal_texture = *loader.m_textures[loader.ResolveIndex(normal_texture_handle)];
-                    const auto& texture_image = *loader.m_images[loader.ResolveIndex(normal_texture.source)];
-                    GLTF_CHECK(!texture_image.uri.empty());
-
-                    pbr_material->AddOrUpdateMaterialParameter(glTFMaterialParameterUsage::NORMAL,
-                        std::make_shared<glTFMaterialParameterTexture>(loader.GetSceneFileDirectory() + texture_image.uri, glTFMaterialParameterUsage::NORMAL));
-                }
-                
+				
                 sceneNode.m_objects.push_back(std::move(triangle_mesh));
                 sceneNode.m_objects.back()->SetAABB(mesh_AABB);
             }

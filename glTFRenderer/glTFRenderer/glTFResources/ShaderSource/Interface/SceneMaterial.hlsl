@@ -23,10 +23,22 @@ static float4 material_debug_color[8] =
     float4(0.0, 0.0, 0.0, 1.0),
 };
 
+float4 SampleAlbedoTextureCS(uint material_id, float2 uv)
+{
+    MaterialInfo info = g_material_infos[material_id];
+    return bindless_material_textures[info.albedo_tex_index].SampleLevel(material_sampler, uv, 0, 0);
+}
+
 float4 SampleAlbedoTexture(uint material_id, float2 uv)
 {
     MaterialInfo info = g_material_infos[material_id];
     return bindless_material_textures[info.albedo_tex_index].Sample(material_sampler, uv);
+}
+
+float4 SampleNormalTextureCS(uint material_id, float2 uv)
+{
+    MaterialInfo info = g_material_infos[material_id];
+    return bindless_material_textures[info.normal_tex_index].SampleLevel(material_sampler, uv, 0, 0);
 }
 
 float4 SampleNormalTexture(uint material_id, float2 uv)

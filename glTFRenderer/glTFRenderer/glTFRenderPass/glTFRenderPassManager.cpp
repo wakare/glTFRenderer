@@ -36,6 +36,16 @@ void glTFRenderPassManager::AddRenderPass(std::unique_ptr<glTFRenderPassBase>&& 
 
 void glTFRenderPassManager::InitAllPass()
 {
+    m_scene_view.TraverseSceneObjectWithinView([&](const glTFSceneNode& node)
+    {
+        for (const auto& scene_object : node.m_objects)
+        {
+            m_resource_manager->TryProcessSceneObject(*m_resource_manager, *scene_object);    
+        }
+        
+        return true;
+    });
+    
 	GLTF_CHECK(m_scene_view.SetupRenderPass(*this));
     
     for (const auto& pass : m_passes)

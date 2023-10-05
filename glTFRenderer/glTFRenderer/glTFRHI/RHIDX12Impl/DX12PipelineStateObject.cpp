@@ -243,10 +243,32 @@ bool DX12DXRStateObject::InitPipelineStateObject(IRHIDevice& device, IRHIRootSig
     // Triangle hit group
     // A hit group specifies closest hit, any hit and intersection shaders to be executed when a ray intersects the geometry's triangle/AABB.
     // In this sample, we only use triangle geometry with a closest hit shader, so others are not set.
-    auto hitGroup = m_dxr_state_desc.CreateSubobject<CD3DX12_HIT_GROUP_SUBOBJECT>();
-    hitGroup->SetClosestHitShaderImport(L"MyClosestHitShader");
-    hitGroup->SetHitGroupExport(L"MyHitGroup");
-    hitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_TRIANGLES);
+    for (const auto& hit_group_desc : m_hit_group_descs)
+    {
+        const auto hit_group = m_dxr_state_desc.CreateSubobject<CD3DX12_HIT_GROUP_SUBOBJECT>();
+        if (!hit_group_desc.m_closest_hit_entry_name.empty())
+        {
+            auto import_name = to_wide_string(hit_group_desc.m_closest_hit_entry_name);
+            hit_group->SetClosestHitShaderImport(import_name.c_str());
+        }
+
+        if (!hit_group_desc.m_any_hit_entry_name.empty())
+        {
+            auto import_name = to_wide_string(hit_group_desc.m_any_hit_entry_name);
+            hit_group->SetAnyHitShaderImport(import_name.c_str());
+        }
+
+        if (!hit_group_desc.m_intersection_entry_name.empty())
+        {
+            auto import_name = to_wide_string(hit_group_desc.m_intersection_entry_name);
+            hit_group->SetIntersectionShaderImport(import_name.c_str());
+        }
+
+        auto hit_group_export_name = to_wide_string(hit_group_desc.m_export_hit_group_name);
+        hit_group->SetHitGroupExport(hit_group_export_name.c_str());
+        
+        hit_group->SetHitGroupType(D3D12_HIT_GROUP_TYPE_TRIANGLES);
+    }
     
     // Shader config
     // Defines the maximum sizes in bytes for the ray payload and attribute structure.

@@ -34,4 +34,5 @@ private:
 
     RootSignatureAllocation m_output_allocation;
     RootSignatureAllocation m_raytracing_as_allocation;
+    bool m_material_uploaded;
 };

@@ -57,9 +57,9 @@ struct RayTracingShaderEntryFunctionNames
 {
     std::string raygen_shader_entry_name;
     std::string miss_shader_entry_name;
-    std::string hit_group_name;
     std::string closest_hit_shader_entry_name;
     std::string any_hit_shader_entry_name;
+    std::string intersection_shader_entry_name;
 
     std::vector<std::string> GetValidEntryFunctionNames() const
     {
