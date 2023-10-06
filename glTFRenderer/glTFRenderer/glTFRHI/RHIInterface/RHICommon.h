@@ -2,6 +2,8 @@
 #include <cassert>
 #include <stdexcept>
 
+#include "glTFUtils/glTFLog.h"
+
 enum RHICommonEnum
 {
     RHI_Unknown = 123456,
@@ -121,9 +123,13 @@ typedef uint64_t RHICPUDescriptorHandle;
 #define REGISTER_INDEX_TYPE unsigned 
 
 #define THROW_IF_FAILED(x) \
-    if (FAILED((x))) \
     { \
+    HRESULT result = (x); \
+    if (FAILED(result)) \
+    { \
+        LOG_FORMAT_FLUSH("[ERROR] Failed with error code: %d\n", result); \
         throw std::runtime_error("[ERROR] Detected runtime error in call"); \
+    } \
     }
 
 #define RETURN_IF_FALSE(x) \

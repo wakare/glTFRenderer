@@ -125,7 +125,6 @@ bool DX12ShaderTable::InitShaderTable(IRHIDevice& device, IRHIPipelineStateObjec
         }
         m_hit_group_shader_table_stride = hit_group_record_size + shader_identifier_size;
 
-
         const size_t hit_group_buffer_size = hit_group_instance_count * ray_count * (shader_identifier_size + hit_group_record_size);
         const std::unique_ptr<char[]> temporary_buffer = std::make_unique<char[]>(hit_group_buffer_size);
         char* data = temporary_buffer.get();

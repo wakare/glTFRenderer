@@ -108,6 +108,10 @@ bool DX12Shader::CompileShaderWithDXC()
     compile_argument_strings.emplace_back(L"-I");
     compile_argument_strings.emplace_back(working_directory);
 
+#ifdef DEBUG
+    compile_argument_strings.emplace_back(L"-Od");
+#endif
+    
     if (!m_shader_entry_function_name.empty())
     {
         compile_argument_strings.emplace_back(L"-E");
@@ -160,7 +164,7 @@ bool DX12Shader::CompileShaderWithDXC()
     if (pErrors != nullptr && pErrors->GetStringLength() != 0)
     {
         wprintf(L"Warnings and Errors:\n%S\n", pErrors->GetStringPointer());
-        LOG_FLUSH();
+        LOG_FLUSH()
     }
 
     // Quit if the compilation failed.
@@ -190,17 +194,40 @@ bool DX12Shader::CompileShaderWithDXC()
     CComPtr<IDxcBlob> pShader = nullptr;
     CComPtr<IDxcBlobUtf16> pShaderName = nullptr;
     THROW_IF_FAILED(pResults->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&pShader), &pShaderName))
-    save_dxc_compile_output_to_disk(pShader, m_shader_file_path + ".bin");
     
     m_shader_byte_code.resize(pShader->GetBufferSize());
     memcpy(m_shader_byte_code.data(), pShader->GetBufferPointer(), pShader->GetBufferSize());
 
-    // Save shader pdb file.
-    CComPtr<IDxcBlob> pShaderPDB = nullptr;
-    CComPtr<IDxcBlobUtf16> pShaderPDBName = nullptr;
-    if (SUCCEEDED(pResults->GetOutput(DXC_OUT_PDB, IID_PPV_ARGS(&pShaderPDB), &pShaderPDBName)))
+    std::string output_shader_hash = m_shader_file_path;
+    
+    if (pResults->HasOutput(DXC_OUT_SHADER_HASH))
     {
-        save_dxc_compile_output_to_disk(pShaderPDB, m_shader_file_path + ".pdb");
+        CComPtr<IDxcBlob> shader_hash = nullptr;
+        THROW_IF_FAILED(pResults->GetOutput(DXC_OUT_SHADER_HASH, IID_PPV_ARGS(&shader_hash), nullptr))
+        if (shader_hash && shader_hash->GetBufferSize())
+        {
+            auto* pHashBuf = static_cast<DxcShaderHash*>(shader_hash->GetBufferPointer());
+            char hash_string[32] = {'\0'};
+            for(size_t i = 0; i < _countof(pHashBuf->HashDigest); ++i) {
+                (void)snprintf(hash_string + i, 16, "%X", pHashBuf->HashDigest[i]);
+            }
+
+            const auto last_slash = min(m_shader_file_path.find_last_of('\\'), m_shader_file_path.find_last_of('/'));
+            output_shader_hash = std::string(m_shader_file_path.c_str(), last_slash + 1) + std::string(hash_string);
+        }
+    }
+    
+    
+    save_dxc_compile_output_to_disk( pShader, output_shader_hash + ".bin");
+    if (pResults->HasOutput(DXC_OUT_PDB))
+    {
+        // Save shader pdb file.
+        CComPtr<IDxcBlob> pShaderPDB = nullptr;
+        CComPtr<IDxcBlobUtf16> pShaderPDBName = nullptr;
+        if (SUCCEEDED(pResults->GetOutput(DXC_OUT_PDB, IID_PPV_ARGS(&pShaderPDB), &pShaderPDBName)))
+        {
+            save_dxc_compile_output_to_disk(pShaderPDB, output_shader_hash + ".pdb");
+        }    
     }
     
     return true;

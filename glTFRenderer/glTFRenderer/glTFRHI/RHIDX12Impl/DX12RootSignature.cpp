@@ -244,31 +244,16 @@ bool DX12RootSignature::InitRootSignature(IRHIDevice& device)
         m_description.Flags |= D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE;    
     }
     
-    ID3DBlob* signature = nullptr;
-    ID3DBlob* error = nullptr;
+    ComPtr<ID3DBlob> signature = nullptr;
+    ComPtr<ID3DBlob> error = nullptr;
     D3D12_VERSIONED_ROOT_SIGNATURE_DESC version_desc = {};
     version_desc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1; 
     version_desc.Desc_1_1 = m_description;
-    if (FAILED(D3D12SerializeVersionedRootSignature(&version_desc, &signature, &error)))
-    {
-        std::cerr << "[ERROR] Serialize root signature failed with reason: " << static_cast<const char*>(error->GetBufferPointer()) << std::endl;
-        return false;
-    }
+    THROW_IF_FAILED(D3D12SerializeVersionedRootSignature(&version_desc, &signature, &error))
     
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
     THROW_IF_FAILED(dxDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_root_signature)))
 
-    // TODO: Use ComPtr?
-    if (signature)
-    {
-        signature->Release();
-    }
-    
-    if (error)
-    {
-        error->Release();
-    }
-    
     return true;
 }
 
