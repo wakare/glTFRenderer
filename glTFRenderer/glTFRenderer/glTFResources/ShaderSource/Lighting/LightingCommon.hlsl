@@ -143,19 +143,28 @@ float3 GetLighting(float3 position, float3 base_color, float3 normal)
 }
 
 // return position => light vector with length!
-float3 GetLightDistanceVector(uint index, float3 position)
+bool GetLightDistanceVector(uint index, float3 position, out float3 light_dir, out float distance)
 {
+    light_dir = 0.0;
+    distance = 0.0;
+    
     LightInfo info = g_lightInfos[index];
     if (info.type == LIGHT_TYPE_POINT)
     {
-        return info.position - position;
+        light_dir = info.position - position;
+        distance = length(light_dir);
     }
     else if (info.type == LIGHT_TYPE_DIRECTIONAL)
     {
-        return -info.position * 1e10;
+        light_dir = -info.position;
+        distance = 10000000.0f;
+    }
+    else
+    {
+        return false;
     }
     
-    return float3(0.0, 0.0, 0.0);
+    return true;
 }
 
 float3 GetSkylighting()

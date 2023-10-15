@@ -31,10 +31,12 @@ private:
     
     std::shared_ptr<IRHIShaderTable> m_shader_table;
     std::shared_ptr<IRHIRenderTarget> m_raytracing_output;
+    std::shared_ptr<IRHIRenderTarget> m_raytracing_accumulation_output;
     std::shared_ptr<IRHIRayTracingAS> m_raytracing_as;
     TraceCount m_trace_count;
 
     RootSignatureAllocation m_output_allocation;
+    RootSignatureAllocation m_accumulation_buffer_allocation;
     RootSignatureAllocation m_raytracing_as_allocation;
     bool m_material_uploaded;
 

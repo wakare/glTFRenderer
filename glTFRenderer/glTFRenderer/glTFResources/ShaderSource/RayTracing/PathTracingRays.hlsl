@@ -59,7 +59,7 @@ void TracePrimaryRay(in RaytracingAccelerationStructure tlas, in RayDesc ray, in
 {
     TraceRay(
             tlas,
-            RAY_FLAG_CULL_BACK_FACING_TRIANGLES,
+            RAY_FLAG_FORCE_OPAQUE,
             ~0,
             PATH_TRACING_RAY_INDEX_PRIMARY,
             PATH_TRACING_RAY_COUNT,
@@ -82,7 +82,7 @@ void ShadowRayMiss(inout ShadowRayPayload payload)
     payload.hit = false;
 }
 
-bool TraceShadowRay(RaytracingAccelerationStructure tlas, RayDesc ray)
+bool TraceShadowRay(in RaytracingAccelerationStructure tlas, in RayDesc ray)
 {
     ShadowRayPayload payload;
     payload.hit = true;
