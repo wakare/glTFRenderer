@@ -2,7 +2,7 @@
 
 #include "glTFRenderInterfaceStructuredBuffer.h"
 
-constexpr size_t max_heap_size = 64ull * 64 * 1024;
+constexpr size_t max_heap_size = 256ull * 64 * 1024;
 
 glTFRenderInterfaceSceneMeshInfo::glTFRenderInterfaceSceneMeshInfo()
 {
@@ -48,7 +48,9 @@ bool glTFRenderInterfaceSceneMeshInfo::UpdateSceneMeshData(const glTFRenderMeshM
         {
             SceneMeshVertexInfo vertex_info;
             size_t out_data_size = 0;
-            mesh.second.mesh->GetVertexBufferData().GetVertexAttributeDataByIndex(VertexLayoutType::TEXCOORD_0, i, &vertex_info, out_data_size);
+            mesh.second.mesh->GetVertexBufferData().GetVertexAttributeDataByIndex(VertexLayoutType::NORMAL, i, &vertex_info.normal, out_data_size);
+            mesh.second.mesh->GetVertexBufferData().GetVertexAttributeDataByIndex(VertexLayoutType::TANGENT, i, &vertex_info.tangent, out_data_size);
+            mesh.second.mesh->GetVertexBufferData().GetVertexAttributeDataByIndex(VertexLayoutType::TEXCOORD_0, i, &vertex_info.uv, out_data_size);
             vertex_infos.push_back(vertex_info);
         }
         

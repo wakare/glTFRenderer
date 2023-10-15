@@ -16,7 +16,10 @@ struct SceneMeshIndexInfo
 struct SceneMeshVertexInfo
 {
     inline static std::string Name = "SceneMeshVertexInfo_REGISTER_SRV_INDEX";
-    float uv[2];
+    
+    float normal[4];
+    float tangent[4];
+    float uv[4];
 };
 
 class glTFRenderInterfaceSceneMeshInfo : public glTFRenderInterfaceBaseWithDefaultImpl

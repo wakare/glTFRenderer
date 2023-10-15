@@ -1,4 +1,5 @@
 #include "glTFResources/ShaderSource/MeshPassCommon.hlsl"
+#include "glTFResources/ShaderSource/Math/MathCommon.hlsl"
 #include "glTFResources/ShaderSource/Interface/SceneMaterial.hlsl"
 
 #ifdef HAS_TEXCOORD 
@@ -22,12 +23,16 @@ PS_OUTPUT main(PS_INPUT input)
     if (using_normal_mapping)
     {
         //float3 normal = normalize(2 * normal_texture.Sample(defaultSampler, input.texCoord).xyz - 1.0);
+        
         float3 normal = normalize(2 * SampleNormalTexture(material_id, input.texCoord).xyz - 1.0);
+        output.normal = float4(GetWorldNormal((float3x3)world_matrix, input.normal, input.tangent, normal), 0.0);
+        /*
         float3 tmpTangent = normalize(mul(world_matrix, float4(input.tangent.xyz, 0.0)).xyz);
         float3 bitangent = cross(input.normal, tmpTangent) * input.tangent.w;
         float3 tangent = cross(bitangent, input.normal);
         float3x3 TBN = transpose(float3x3(tangent, bitangent, input.normal));
         output.normal = normalize(mul(world_matrix, float4(mul(TBN, normal), 0.0)));
+        */
     }
     else
     #endif

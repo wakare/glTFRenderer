@@ -4,7 +4,6 @@
 #include "glTFResources/ShaderSource/FrameStat.hlsl"
 #include "glTFResources/ShaderSource/Math/Sample.hlsl"
 #include "glTFResources/ShaderSource/Interface/SceneView.hlsl"
-#include "glTFResources/ShaderSource/Interface/SceneMaterial.hlsl"
 #include "glTFResources/ShaderSource/Lighting/LightingCommon.hlsl"
 #include "glTFResources/ShaderSource/RayTracing/PathTracingRays.hlsl"
 
@@ -14,10 +13,10 @@ RWTexture2D<float4> render_target : OUTPUT_REGISTER_INDEX;
 [shader("raygeneration")]
 void PathTracingRayGen()
 {
-    float2 lerpValues = DispatchRaysIndex().xy / DispatchRaysDimensions().xy;
+    float2 lerpValues = (float2)DispatchRaysIndex().xy / DispatchRaysDimensions().xy;
     // Orthographic projection since we're raytracing in screen space.
-    float3 rayOffsetDir = float3(lerpValues.x - 0.5, 0.5 - lerpValues.y, 1.0);
-    float4 ray_world_dir = normalize(mul(inverseViewMatrix, float4(rayOffsetDir, 0.0))); 
+    float3 ray_offset_dir = float3(lerpValues.x - 0.5, 0.5 - lerpValues.y, 1.0);
+    float4 ray_world_dir = normalize(mul(inverseViewMatrix, float4(ray_offset_dir, 0.0))); 
 
     uint4 rng = initRNG(DispatchRaysIndex().xy, DispatchRaysDimensions().xy, frame_index);
     
@@ -34,18 +33,13 @@ void PathTracingRayGen()
     PrimaryRayPayload payload;
     payload.distance = -1.0;
     payload.material_id = 0;
-    payload.uv = float2(0.0, 0.0);
-    payload.debug = 0.0;
+    payload.albedo = 0.0;
+    payload.normal = 0.0;
 
     float3 radiance = float3(0.0, 0.0, 0.0);
     float3 throughput = float3(1.0, 1.0, 1.0);
 
-    //TracePrimaryRay(scene, ray, payload);
-    TraceRay(scene, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, ~0, 0, 1, 0, ray, payload);
-    radiance = GetMaterialDebugColor(payload.material_id).xyz;
-
-    /*
-    for (uint i = 0; i < 5; ++i)
+    for (uint i = 0; i < 2; ++i)
     {
         TracePrimaryRay(scene, ray, payload);
         if (!IsHit(payload))
@@ -56,11 +50,8 @@ void PathTracingRayGen()
         }
 
         float3 position = ray.Origin + ray.Direction * payload.distance;
-        float4 albedo = SampleAlbedoTextureCS(payload.material_id, payload.uv);
-        float4 normal = SampleNormalTextureCS(payload.material_id, payload.uv);
-        radiance = GetMaterialDebugColor(payload.material_id).xyz;
-        //radiance = float3(payload.debug, payload.debug, payload.debug);
-        break;
+        float4 albedo = payload.albedo;
+        float4 normal = payload.normal;
         
         uint sample_light_index;
         float sample_light_weight;
@@ -70,13 +61,13 @@ void PathTracingRayGen()
             RayDesc visible_ray;
             visible_ray.Direction = light_vector;
             visible_ray.Origin = position;
-            visible_ray.TMin = 0.0;
+            visible_ray.TMin = 0.0001;
             visible_ray.TMax = 1.0;
             if (!TraceShadowRay(scene, visible_ray))
             {
                 // No occluded
                 float3 brdf = albedo.xyz * (1.0 / 3.1415);
-                float geometry_falloff = dot(normal.xyz, normalize(GetLightDistanceVector(sample_light_index, position)));
+                float geometry_falloff = max(dot(normal.xyz, normalize(light_vector)), 0.0);
                 radiance += throughput * sample_light_weight * brdf * GetLightIntensity(sample_light_index, position) * geometry_falloff;
             }
         }
@@ -86,7 +77,8 @@ void PathTracingRayGen()
         {
             float rrProbability = min(0.95f, luminance(throughput));
             if (rrProbability < rand(rng)) break;
-            else throughput /= rrProbability;
+            
+            throughput /= rrProbability;
         }
 
         // sample material to choose next ray
@@ -97,7 +89,6 @@ void PathTracingRayGen()
 
         throughput /= sample_pdf;
     }
-    */
     
     // Write the raytraced color to the output texture.
     render_target[DispatchRaysIndex().xy] = float4(radiance, 1.0);

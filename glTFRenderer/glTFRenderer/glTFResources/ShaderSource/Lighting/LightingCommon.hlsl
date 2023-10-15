@@ -160,7 +160,7 @@ float3 GetLightDistanceVector(uint index, float3 position)
 
 float3 GetSkylighting()
 {
-    return float3(0.0, 1.0, 0.5);
+    return float3(1.0, 1.0, 1.0);
 }
 
 #endif
