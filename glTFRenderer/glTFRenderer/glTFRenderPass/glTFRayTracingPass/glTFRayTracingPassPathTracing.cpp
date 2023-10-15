@@ -63,15 +63,40 @@ bool glTFRayTracingPassPathTracing::InitPass(glTFRenderResourceManager& resource
 
     m_raytracing_output = resource_manager.GetRenderTargetManager().CreateRenderTarget(
                 resource_manager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R8G8B8A8_UNORM, RHIDataFormat::R8G8B8A8_UNORM, raytracing_output_render_target);
+
+    IRHIRenderTargetDesc raytracing_accumulation_render_target;
+    raytracing_accumulation_render_target.width = resource_manager.GetSwapchain().GetWidth();
+    raytracing_accumulation_render_target.height = resource_manager.GetSwapchain().GetHeight();
+    raytracing_accumulation_render_target.name = "RayTracingAccumulationOutput";
+    raytracing_accumulation_render_target.isUAV = true;
+    raytracing_accumulation_render_target.clearValue.clear_format = RHIDataFormat::R32G32B32A32_FLOAT;
+    raytracing_accumulation_render_target.clearValue.clear_color = {0.0f, 0.0f, 0.0f, 0.0f};
     
     m_raytracing_accumulation_output = resource_manager.GetRenderTargetManager().CreateRenderTarget(
-                resource_manager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R8G8B8A8_UNORM, RHIDataFormat::R8G8B8A8_UNORM, raytracing_output_render_target);
+                resource_manager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R32G32B32A32_FLOAT, RHIDataFormat::R32G32B32A32_FLOAT, raytracing_accumulation_render_target);
+    
+    IRHIRenderTargetDesc raytracing_depth_buffer_render_target;
+    raytracing_depth_buffer_render_target.width = resource_manager.GetSwapchain().GetWidth();
+    raytracing_depth_buffer_render_target.height = resource_manager.GetSwapchain().GetHeight();
+    raytracing_depth_buffer_render_target.name = "RayTracingDepthBuffer";
+    raytracing_depth_buffer_render_target.isUAV = true;
+    raytracing_depth_buffer_render_target.clearValue.clear_format = RHIDataFormat::R32G32B32A32_FLOAT;
+    raytracing_depth_buffer_render_target.clearValue.clear_color = {0.0f, 0.0f, 0.0f, 0.0f};
+
+    m_raytracing_depth_buffer = resource_manager.GetRenderTargetManager().CreateRenderTarget(
+                    resource_manager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R32G32B32A32_FLOAT, RHIDataFormat::R32G32B32A32_FLOAT, raytracing_depth_buffer_render_target);
     
     RETURN_IF_FALSE(glTFRayTracingPassBase::InitPass(resource_manager))
     
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resource_manager.GetCommandListForRecord(), *m_raytracing_output,
         RHIResourceStateType::STATE_RENDER_TARGET, RHIResourceStateType::STATE_UNORDERED_ACCESS))
 
+    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resource_manager.GetCommandListForRecord(), *m_raytracing_accumulation_output,
+            RHIResourceStateType::STATE_RENDER_TARGET, RHIResourceStateType::STATE_UNORDERED_ACCESS))
+
+    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resource_manager.GetCommandListForRecord(), *m_raytracing_depth_buffer,
+            RHIResourceStateType::STATE_RENDER_TARGET, RHIResourceStateType::STATE_UNORDERED_ACCESS))
+    
     RETURN_IF_FALSE(UpdateAS(resource_manager))
     
     m_shader_table = RHIResourceFactory::CreateRHIResource<IRHIShaderTable>();
@@ -109,7 +134,8 @@ bool glTFRayTracingPassPathTracing::PreRenderPass(glTFRenderResourceManager& res
     
     auto& command_list = resource_manager.GetCommandListForRecord();
     RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, m_output_allocation.parameter_index, m_main_descriptor_heap->GetGPUHandle(0),false))
-    RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, m_accumulation_buffer_allocation.parameter_index, m_main_descriptor_heap->GetGPUHandle(0),false))
+    RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, m_accumulation_buffer_allocation.parameter_index, m_main_descriptor_heap->GetGPUHandle(1),false))
+    RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, m_depth_buffer_allocation.parameter_index, m_main_descriptor_heap->GetGPUHandle(2),false))
     RETURN_IF_FALSE(RHIUtils::Instance().SetSRVToRootParameterSlot(command_list, m_raytracing_as_allocation.parameter_index, m_raytracing_as->GetTLASHandle(), false)) 
     if (!m_material_uploaded)
     {
@@ -178,6 +204,7 @@ bool glTFRayTracingPassPathTracing::SetupRootSignature(glTFRenderResourceManager
     // Non-bindless table parameter should be added first
     RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("output", RHIRootParameterDescriptorRangeType::UAV, 1, false, m_output_allocation))
     RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("accumulation_buffer", RHIRootParameterDescriptorRangeType::UAV, 1, false, m_accumulation_buffer_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("depth_buffer", RHIRootParameterDescriptorRangeType::UAV, 1, false, m_depth_buffer_allocation))
     RETURN_IF_FALSE(m_root_signature_helper.AddSRVRootParameter("RaytracingAS", m_raytracing_as_allocation))
     
     RETURN_IF_FALSE(glTFRayTracingPassBase::SetupRootSignature(resource_manager))
@@ -197,6 +224,9 @@ bool glTFRayTracingPassPathTracing::SetupPipelineStateObject(glTFRenderResourceM
 
     RETURN_IF_FALSE(m_main_descriptor_heap->CreateUnOrderAccessViewInDescriptorHeap(resource_manager.GetDevice(), m_main_descriptor_heap->GetUsedDescriptorCount(),
                 *m_raytracing_accumulation_output, {m_raytracing_accumulation_output->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D}, UAV))
+
+    RETURN_IF_FALSE(m_main_descriptor_heap->CreateUnOrderAccessViewInDescriptorHeap(resource_manager.GetDevice(), m_main_descriptor_heap->GetUsedDescriptorCount(),
+                *m_raytracing_depth_buffer, {m_raytracing_depth_buffer->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D}, UAV))
     
     GetRayTracingPipelineStateObject().BindShaderCode("glTFResources/ShaderSource/RayTracing/PathTracingMain.hlsl",
         RHIShaderType::RayTracing, "");
@@ -205,6 +235,7 @@ bool glTFRayTracingPassPathTracing::SetupPipelineStateObject(glTFRenderResourceM
     shader_macros.AddSRVRegisterDefine("SCENE_AS_REGISTER_INDEX", m_raytracing_as_allocation.register_index, m_raytracing_as_allocation.space);
     shader_macros.AddUAVRegisterDefine("OUTPUT_REGISTER_INDEX", m_output_allocation.register_index, m_output_allocation.space);
     shader_macros.AddUAVRegisterDefine("ACCUMULATION_OUTPUT_REGISTER_INDEX", m_accumulation_buffer_allocation.register_index, m_accumulation_buffer_allocation.space);
+    shader_macros.AddUAVRegisterDefine("DEPTH_BUFFER_REGISTER_INDEX", m_depth_buffer_allocation.register_index, m_depth_buffer_allocation.space);
     
     const auto& bind_rt_shader = GetRayTracingPipelineStateObject().GetBindShader(RHIShaderType::RayTracing);
     

@@ -10,9 +10,10 @@
 RaytracingAccelerationStructure scene : SCENE_AS_REGISTER_INDEX;
 RWTexture2D<float4> render_target : OUTPUT_REGISTER_INDEX;
 RWTexture2D<float4> accumulation_output : ACCUMULATION_OUTPUT_REGISTER_INDEX;
+RWTexture2D<float4> depth_buffer : DEPTH_BUFFER_REGISTER_INDEX;
 
 static uint path_sample_count_per_pixel = 1;
-static uint path_recursion_depth = 6;
+static uint path_recursion_depth = 8;
 
 [shader("raygeneration")]
 void PathTracingRayGen()
@@ -21,7 +22,8 @@ void PathTracingRayGen()
     uint4 rng = initRNG(DispatchRaysIndex().xy, DispatchRaysDimensions().xy, frame_index);
     
     float3 final_radiance = 0.0;
-
+    float4 pixel_position = 0.0;
+    
     for (uint path_index = 0; path_index < path_sample_count_per_pixel; ++path_index)
     {
         // Orthographic projection since we're raytracing in screen space.
@@ -31,7 +33,7 @@ void PathTracingRayGen()
         // Trace the ray.
         // Set the ray's extents.
         RayDesc ray;
-        ray.Origin = view_position.xyz;
+        ray.Origin = view_position.xyz; 
         ray.Direction = ray_world_dir.xyz;
         // Set TMin to a non-zero small value to avoid aliasing issues due to floating - point errors.
         // TMin should be kept small to prevent missing geometry at close contact areas.
@@ -60,7 +62,12 @@ void PathTracingRayGen()
             float3 position = ray.Origin + ray.Direction * payload.distance;
             float4 albedo = payload.albedo;
             float4 normal = payload.normal;
-        
+
+            if (i == 0)
+            {
+                pixel_position = float4(position, 0.0);
+            }
+            
             uint sample_light_index;
             float sample_light_weight;
             if (SampleLightIndexRIS(rng, 8, position, albedo.xyz, normal.xyz, sample_light_index, sample_light_weight))
@@ -71,15 +78,15 @@ void PathTracingRayGen()
                 {
                     RayDesc visible_ray;
                     visible_ray.Direction = light_vector;
-                    visible_ray.Origin = position;
-                    visible_ray.TMin = 0.000001;
+                    visible_ray.Origin = offsetRay(position, normal.xyz);
+                    visible_ray.TMin = 0.0;
                     visible_ray.TMax = max_distance;
                     
                     if (!TraceShadowRay(scene, visible_ray))
                     {
                         // No occluded
                         float3 brdf = albedo.xyz * (1.0 / 3.1415);
-                        float geometry_falloff = max(dot(normal.xyz, normalize(light_vector)), 0.0);
+                        float geometry_falloff = max(dot(normal.xyz, light_vector), 0.0);
                         radiance += throughput * sample_light_weight * brdf * GetLightIntensity(sample_light_index, position) * geometry_falloff;
                     }
                 }
@@ -95,7 +102,7 @@ void PathTracingRayGen()
             }
 
             // sample material to choose next ray, only diffuse now
-            ray.Origin = position;
+            ray.Origin = offsetRay(position, normal.xyz);
 
             float sample_pdf;
             float3 local_rotation = sampleHemisphere(float2(rand(rng), rand(rng)), sample_pdf);
@@ -105,11 +112,13 @@ void PathTracingRayGen()
             throughput *= (albedo.xyz/sample_pdf);
         }
 
-        final_radiance += radiance;
+        final_radiance += min(radiance, float3(1.0, 1.0, 1.0));
     }
 
     final_radiance /= path_sample_count_per_pixel;
 
+    float4 old_position = depth_buffer[DispatchRaysIndex().xy];
+    
     uint accumulation_frame_count = (uint)accumulation_output[DispatchRaysIndex().xy].w;
     if (accumulation_frame_count == 0)
     {
@@ -118,7 +127,7 @@ void PathTracingRayGen()
     else
     {
         float3 old_radiance = accumulation_output[DispatchRaysIndex().xy].xyz / accumulation_frame_count;
-        if (length(old_radiance - final_radiance) > 100)
+        if (length(old_position - pixel_position) > 0.01)
         {
             accumulation_output[DispatchRaysIndex().xy] = float4(final_radiance, 1.0);
         }
@@ -130,6 +139,7 @@ void PathTracingRayGen()
     
     // Write the raytraced color to the output texture.
     render_target[DispatchRaysIndex().xy] = float4(accumulation_output[DispatchRaysIndex().xy].xyz / accumulation_output[DispatchRaysIndex().xy].w, 1.0);
+    depth_buffer[DispatchRaysIndex().xy]= pixel_position;
 }
 
 #endif // RAYTRACING_HLSL
