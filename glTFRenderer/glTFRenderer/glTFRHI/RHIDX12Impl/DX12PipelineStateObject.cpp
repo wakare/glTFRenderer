@@ -223,10 +223,10 @@ bool DX12DXRStateObject::InitPipelineStateObject(IRHIDevice& device, IRHIRootSig
     D3D12_SHADER_BYTECODE raytracing_shader_bytecode;
     std::vector<std::string> ray_tracing_entry_names;
     {
-        const auto& bindRTShader = dynamic_cast<DX12Shader&>(GetBindShader(RHIShaderType::RayTracing));
-        raytracing_shader_bytecode.BytecodeLength = bindRTShader.GetShaderByteCode().size();
-        raytracing_shader_bytecode.pShaderBytecode = bindRTShader.GetShaderByteCode().data();
-        ray_tracing_entry_names = bindRTShader.GetRayTracingEntryFunctionNames().GetValidEntryFunctionNames();
+        const auto& bind_rt_shader = dynamic_cast<DX12Shader&>(GetBindShader(RHIShaderType::RayTracing));
+        raytracing_shader_bytecode.BytecodeLength = bind_rt_shader.GetShaderByteCode().size();
+        raytracing_shader_bytecode.pShaderBytecode = bind_rt_shader.GetShaderByteCode().data();
+        ray_tracing_entry_names = m_export_function_names;
     }
     
     // Setup DXIL bytecode
@@ -273,9 +273,7 @@ bool DX12DXRStateObject::InitPipelineStateObject(IRHIDevice& device, IRHIRootSig
     // Shader config
     // Defines the maximum sizes in bytes for the ray payload and attribute structure.
     auto shaderConfig = m_dxr_state_desc.CreateSubobject<CD3DX12_RAYTRACING_SHADER_CONFIG_SUBOBJECT>();
-    UINT payloadSize = 4 * sizeof(float);   // float4 color
-    UINT attributeSize = 2 * sizeof(float); // float2 barycentrics
-    shaderConfig->Config(payloadSize, attributeSize);
+    shaderConfig->Config(m_config.payload_size, m_config.attribute_size);
 
     // Local root signature to be used in a ray gen shader.
     for (const auto& desc : m_local_rs_descs)
@@ -294,16 +292,6 @@ bool DX12DXRStateObject::InitPipelineStateObject(IRHIDevice& device, IRHIRootSig
             rootSignatureAssociation->AddExport(name.c_str());    
         }
     }
-    /*
-    {
-        auto localRootSignature = m_dxr_state_desc.CreateSubobject<CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT>();
-        localRootSignature->SetRootSignature(dxRootSignature);
-        // Shader association
-        auto rootSignatureAssociation = m_dxr_state_desc.CreateSubobject<CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
-        rootSignatureAssociation->SetSubobjectToAssociate(*localRootSignature);
-        rootSignatureAssociation->AddExport(L"MyRaygenShader");
-    }
-    */
 
     // Global root signature
     // This is a root signature that is shared across all raytracing shaders invoked during a DispatchRays() call.
@@ -313,10 +301,8 @@ bool DX12DXRStateObject::InitPipelineStateObject(IRHIDevice& device, IRHIRootSig
     // Pipeline config
     // Defines the maximum TraceRay() recursion depth.
     auto pipeline_config = m_dxr_state_desc.CreateSubobject<CD3DX12_RAYTRACING_PIPELINE_CONFIG_SUBOBJECT>();
-    // PERFOMANCE TIP: Set max recursion depth as low as needed 
-    // as drivers may apply optimization strategies for low recursion depths. 
-    UINT max_recursion_depth = 1; // ~ primary rays only. 
-    pipeline_config->Config(max_recursion_depth);
+    GLTF_CHECK(m_config.max_recursion_count > 0);
+    pipeline_config->Config(m_config.max_recursion_count);
 
     // Create the state object.
     THROW_IF_FAILED(dxrDevice->CreateStateObject(m_dxr_state_desc, IID_PPV_ARGS(&m_dxr_pipeline_state)))

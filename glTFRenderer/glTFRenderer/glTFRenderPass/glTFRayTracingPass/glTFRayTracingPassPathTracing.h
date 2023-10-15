@@ -15,6 +15,8 @@ public:
     virtual bool PreRenderPass(glTFRenderResourceManager& resource_manager) override;
     virtual bool PostRenderPass(glTFRenderResourceManager& resource_manager) override;
 
+    virtual bool TryProcessSceneObject(glTFRenderResourceManager& resource_manager, const glTFSceneObjectBase& object) override;
+    
     virtual IRHIShaderTable& GetShaderTable() const override;
     virtual TraceCount GetTraceCount() const override;
     
@@ -39,4 +41,15 @@ private:
     IRHIRootSignatureHelper m_local_rs;
 
     RootSignatureAllocation m_local_constant_allocation;
+
+protected:
+    // Ray function names
+    std::string m_raygen_name;
+    
+    std::string m_primary_ray_closest_hit_name;
+    std::string m_primary_ray_miss_name;
+    std::string m_primary_ray_hit_group_name;
+    
+    std::string m_shadow_ray_miss_name;
+    std::string m_shadow_ray_hit_group_name;
 };

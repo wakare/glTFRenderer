@@ -23,7 +23,6 @@ protected:
     virtual size_t GetMainDescriptorHeapSize() override;
     virtual bool SetupRootSignature(glTFRenderResourceManager& resource_manager) override;
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;
-    bool UploadLightInfoGPUBuffer();
     
     std::shared_ptr<IRHIRenderTarget> m_base_color_RT;
     std::shared_ptr<IRHIRenderTarget> m_normal_RT;
@@ -34,10 +33,6 @@ protected:
     RHIGPUDescriptorHandle m_normal_SRV;
     RHIGPUDescriptorHandle m_output_UAV;
 
-    std::map<glTFHandle::HandleIndexType, PointLightInfo> m_cache_point_lights;
-    std::map<glTFHandle::HandleIndexType, DirectionalLightInfo> m_cache_directional_lights;
-    
-    ConstantBufferPerLightDraw m_constant_buffer_per_light_draw;
     DispatchCount m_dispatch_count;
 
     RootSignatureAllocation m_base_color_and_depth_allocation;

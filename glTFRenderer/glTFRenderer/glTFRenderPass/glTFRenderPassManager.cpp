@@ -6,6 +6,7 @@
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassLighting.h"
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassMeshBase.h"
 #include "glTFLoader/glTFElementCommon.h"
+#include "glTFRenderInterface/glTFRenderInterfaceFrameStat.h"
 #include "glTFRHI/RHIUtils.h"
 #include "glTFUtils/glTFLog.h"
 
@@ -115,6 +116,12 @@ void glTFRenderPassManager::UpdateScene(size_t deltaTimeMs)
             };
             
             sceneViewInterface->UploadCPUBuffer(&temp_view_data, sizeof(temp_view_data));    
+        }
+
+        if (auto* frame_stat = pass->GetRenderInterface<glTFRenderInterfaceFrameStat>())
+        {
+            unsigned current_frame = m_resource_manager->GetCurrentBackBufferIndex();
+            frame_stat->UploadCPUBuffer(&current_frame, sizeof(current_frame));
         }
     }
 }

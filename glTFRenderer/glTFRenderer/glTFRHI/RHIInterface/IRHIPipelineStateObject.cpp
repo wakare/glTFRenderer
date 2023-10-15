@@ -10,10 +10,10 @@ IRHIPipelineStateObject::IRHIPipelineStateObject(RHIPipelineType type)
 }
 
 bool IRHIPipelineStateObject::BindShaderCode(const std::string& shader_file_path, RHIShaderType type,
-    const std::string& entry_function_name, const RayTracingShaderEntryFunctionNames& raytracing_entry_name)
+    const std::string& entry_function_name)
 {
     std::shared_ptr<IRHIShader> shader = RHIResourceFactory::CreateRHIResource<IRHIShader>();
-    if (!shader->InitShader(shader_file_path, type, entry_function_name, raytracing_entry_name))
+    if (!shader->InitShader(shader_file_path, type, entry_function_name))
     {
         return false;
     }
@@ -89,6 +89,16 @@ void IRHIRayTracingPipelineStateObject::AddHitGroupDesc(const RHIRayTracingHitGr
 void IRHIRayTracingPipelineStateObject::AddLocalRSDesc(const RHIRayTracingLocalRSDesc& desc)
 {
     m_local_rs_descs.push_back(desc);
+}
+
+void IRHIRayTracingPipelineStateObject::SetExportFunctionNames(const std::vector<std::string>& export_names)
+{
+    m_export_function_names = export_names;
+}
+
+void IRHIRayTracingPipelineStateObject::SetConfig(const RHIRayTracingConfig& config)
+{
+    m_config = config;
 }
 
 void IRHIPipelineStateObject::SetCullMode(IRHICullMode mode)

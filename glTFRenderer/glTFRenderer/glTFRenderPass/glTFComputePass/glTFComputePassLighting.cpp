@@ -11,7 +11,6 @@ glTFComputePassLighting::glTFComputePassLighting()
     , m_depth_SRV(0)
     , m_normal_SRV(0)
     , m_output_UAV(0)
-    , m_constant_buffer_per_light_draw({})
     , m_dispatch_count({0, 0, 0})
 {
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneView>());
@@ -77,7 +76,7 @@ bool glTFComputePassLighting::PreRenderPass(glTFRenderResourceManager& resource_
         m_main_descriptor_heap->GetGPUHandle(3),
         GetPipelineType() == PipelineType::Graphics);
 
-    RETURN_IF_FALSE(UploadLightInfoGPUBuffer())
+    RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceLighting>()->UpdateCPUBuffer())
 
     return true;
 }
@@ -125,58 +124,14 @@ bool glTFComputePassLighting::TryProcessSceneObject(glTFRenderResourceManager& r
     {
         return false;
     }
-
-    switch (light->GetType())
-    {
-    case glTFLightType::PointLight:
-        {
-            const glTFPointLight* pointLight = dynamic_cast<const glTFPointLight*>(light);
-            PointLightInfo pointLightInfo{};
-            pointLightInfo.position_and_radius = glm::vec4(glTF_Transform_WithTRS::GetTranslationFromMatrix(pointLight->GetTransformMatrix()), pointLight->GetRadius());
-            pointLightInfo.intensity_and_falloff = {pointLight->GetIntensity(), pointLight->GetFalloff(), 0.0f, 0.0f};
-            m_cache_point_lights[pointLight->GetID()] = pointLightInfo;
-        }
-        break;
-        
-    case glTFLightType::DirectionalLight:
-        {
-            const glTFDirectionalLight* directionalLight = dynamic_cast<const glTFDirectionalLight*>(light);
-            DirectionalLightInfo directionalLightInfo{};
-            directionalLightInfo.directional_and_intensity = glm::vec4(directionalLight->GetDirection(), directionalLight->GetIntensity());
-            m_cache_directional_lights[directionalLight->GetID()] = directionalLightInfo;
-        }
-        break;
-    case glTFLightType::SpotLight: break;
-    case glTFLightType::SkyLight: break;
-    default: ;
-    }
     
-    return true;
+    return GetRenderInterface<glTFRenderInterfaceLighting>()->UpdateLightInfo(*light);
 }
 
 bool glTFComputePassLighting::FinishProcessSceneObject(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFComputePassBase::FinishProcessSceneObject(resource_manager))
 
-    // Update light info gpu buffer
-    m_constant_buffer_per_light_draw.light_info.point_light_count = m_cache_point_lights.size();
-    m_constant_buffer_per_light_draw.light_info.directional_light_count = m_cache_directional_lights.size();
-    
-    m_constant_buffer_per_light_draw.point_light_infos.resize(m_constant_buffer_per_light_draw.light_info.point_light_count);
-    m_constant_buffer_per_light_draw.directional_light_infos.resize(m_constant_buffer_per_light_draw.light_info.directional_light_count);
-
-    size_t pointLightIndex = 0;
-    for (const auto& pointLight : m_cache_point_lights)
-    {
-        m_constant_buffer_per_light_draw.point_light_infos[pointLightIndex++] = pointLight.second;
-    }
-
-    size_t directionalLightIndex = 0;
-    for (const auto& directionalLight : m_cache_directional_lights)
-    {
-        m_constant_buffer_per_light_draw.directional_light_infos[directionalLightIndex++] = directionalLight.second;
-    }
-    
     return true;
 }
 
@@ -227,9 +182,4 @@ bool glTFComputePassLighting::SetupPipelineStateObject(glTFRenderResourceManager
     shaderMacros.AddUAVRegisterDefine("OUTPUT_TEX_REGISTER_INDEX", m_output_allocation.register_index, m_base_color_and_depth_allocation.space);
 
     return true;
-}
-
-bool glTFComputePassLighting::UploadLightInfoGPUBuffer()
-{
-    return GetRenderInterface<glTFRenderInterfaceLighting>()->UpdateCPUBuffer(m_constant_buffer_per_light_draw);
 }

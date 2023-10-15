@@ -13,8 +13,7 @@ public:
     
     const std::vector<unsigned char>& GetShaderByteCode() const;  
     
-    virtual bool InitShader(const std::string& shader_file_path, RHIShaderType type, const std::string& entry_function_name,
-                            const RayTracingShaderEntryFunctionNames& raytracing_entry_names) override;
+    virtual bool InitShader(const std::string& shader_file_path, RHIShaderType type, const std::string& entry_function_name) override;
     virtual bool CompileShader() override;
     
 private:

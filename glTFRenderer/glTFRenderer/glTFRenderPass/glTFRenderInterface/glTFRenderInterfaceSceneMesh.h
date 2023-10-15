@@ -1,6 +1,5 @@
 #pragma once
 
-#include "glTFRenderInterfaceSRVTable.h"
 #include "glTFRenderInterfaceSingleConstantBuffer.h"
 
 struct ConstantBufferSceneMesh

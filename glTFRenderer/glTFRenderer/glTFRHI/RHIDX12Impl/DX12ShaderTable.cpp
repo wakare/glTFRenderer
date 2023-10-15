@@ -133,7 +133,7 @@ bool DX12ShaderTable::InitShaderTable(IRHIDevice& device, IRHIPipelineStateObjec
         {
             for (size_t i = 0; i < hit_group_instance_count; ++i)
             {
-                GLTF_CHECK(sbt.hit_group_records.size() == hit_group_instance_count);
+                //GLTF_CHECK(sbt.hit_group_records.size() == hit_group_instance_count);
                 
                 const auto hit_group_shader_entry_name = to_wide_string(sbts.front().hit_group_entry);
                 const void* hit_group_shader_identifier = dx_pso_props->GetShaderIdentifier(hit_group_shader_entry_name.c_str());
@@ -141,7 +141,7 @@ bool DX12ShaderTable::InitShaderTable(IRHIDevice& device, IRHIPipelineStateObjec
                 memcpy(data, hit_group_shader_identifier, shader_identifier_size);
                 data += shader_identifier_size;
 
-                if (sbt.hit_group_records[i])
+                if (sbt.hit_group_records.size() > i && sbt.hit_group_records[i])
                 {
                     memcpy(data, sbt.hit_group_records[i]->GetData(), sbt.hit_group_records[i]->GetSize());
                 }

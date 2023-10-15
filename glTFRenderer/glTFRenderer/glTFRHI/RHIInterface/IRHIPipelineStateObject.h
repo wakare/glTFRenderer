@@ -55,7 +55,8 @@ public:
 
     virtual bool InitPipelineStateObject(IRHIDevice& device, IRHIRootSignature& root_signature) = 0;
     
-    bool BindShaderCode(const std::string& shader_file_path, RHIShaderType type, const std::string& entry_function_name, const RayTracingShaderEntryFunctionNames& raytracing_entry_name = {});
+    bool BindShaderCode(const std::string& shader_file_path, RHIShaderType type, const std::string& entry_function_name);
+    
     IRHIShader& GetBindShader(RHIShaderType type);
     
     bool BindInputLayoutAndSetShaderMacros(const std::vector<RHIPipelineInputLayout>& input_layouts);
@@ -107,14 +108,67 @@ public:
         std::shared_ptr<IRHIRootSignature> m_root_signature;
         std::vector<std::string> export_names;
     };
+
+    struct RHIRayTracingConfig
+    {
+        // Shader config
+        unsigned payload_size;
+        unsigned attribute_size;
+
+        // Pipeline config
+        unsigned max_recursion_count;
+    };
+
+    struct RayTracingShaderEntryFunctionNames
+    {
+        std::string raygen_shader_entry_name;
+        std::string miss_shader_entry_name;
+        std::string closest_hit_shader_entry_name;
+        std::string any_hit_shader_entry_name;
+        std::string intersection_shader_entry_name;
+
+        std::vector<std::string> GetValidEntryFunctionNames() const
+        {
+            std::vector<std::string> result;
+        
+            if (!raygen_shader_entry_name.empty())
+            {
+                result.push_back(raygen_shader_entry_name);
+            }
+
+            if (!miss_shader_entry_name.empty())
+            {
+                result.push_back(miss_shader_entry_name);
+            }
+
+            if (!closest_hit_shader_entry_name.empty())
+            {
+                result.push_back(closest_hit_shader_entry_name);
+            }
+
+            if (!any_hit_shader_entry_name.empty())
+            {
+                result.push_back(any_hit_shader_entry_name);
+            }
+        
+            return result;
+        }
+    };
     
     IRHIRayTracingPipelineStateObject();
 
     void AddHitGroupDesc(const RHIRayTracingHitGroupDesc& desc);
     void AddLocalRSDesc(const RHIRayTracingLocalRSDesc& desc);
+
+    void SetExportFunctionNames(const std::vector<std::string>& export_names);
+    void SetConfig(const RHIRayTracingConfig& config);
+    
     const std::vector<RHIRayTracingHitGroupDesc>& GetHitGroupDescs() const {return m_hit_group_descs; }
     
 protected:
     std::vector<RHIRayTracingHitGroupDesc> m_hit_group_descs;
     std::vector<RHIRayTracingLocalRSDesc> m_local_rs_descs;
+    std::vector<std::string> m_export_function_names;
+    
+    RHIRayTracingConfig m_config;
 };

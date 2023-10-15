@@ -1,4 +1,4 @@
-#include "glTFResources/ShaderSource/Interface/LightingInterface.hlsl"
+#include "glTFResources/ShaderSource/Lighting/LightingCommon.hlsl"
 #include "glTFResources/ShaderSource/LightPassCommon.hlsl"
 
 Texture2D albedoTex: ALBEDO_TEX_REGISTER_INDEX;
@@ -27,24 +27,16 @@ float4 main(VS_OUTPUT input) : SV_TARGET
 #else
     float2 uv = 0;
 #endif
-    float3 worldPosition = GetWorldPosition(uv);
+    float3 world_position = GetWorldPosition(uv);
 #ifdef BYPASS
-    float3 FinalLighting = albedoTex.Sample(defaultSampler, uv).xyz;
+    float3 final_lighting = albedoTex.Sample(defaultSampler, uv).xyz;
 #else 
-    float3 FinalLighting = (float3)0.0;
-    float3 baseColor = albedoTex.Sample(defaultSampler, uv).xyz;
+    float3 final_lighting = (float3)0.0;
+    float3 base_color = albedoTex.Sample(defaultSampler, uv).xyz;
     float3 normal = normalize(2 * normalTex.Sample(defaultSampler, uv).xyz - 1);
     
-    for (int i = 0; i < PointLightCount; ++i)
-    {
-        FinalLighting += LightingWithPointLight(worldPosition, baseColor, normal, g_pointLightInfos[i]);
-    }
-
-    for (int j = 0; j < DirectionalLightCount; ++j)
-    {
-        FinalLighting += LightingWithDirectionalLight(worldPosition, baseColor, normal, g_directionalLightInfos[j]);
-    }
+    final_lighting = GetLighting(world_position, base_color, normal);
 #endif
     
-    return float4(FinalLighting, 1.0);
+    return float4(final_lighting, 1.0);
 }

@@ -53,42 +53,6 @@ struct RHIShaderPreDefineMacros
     std::vector<std::string> macroValue;
 };
 
-struct RayTracingShaderEntryFunctionNames
-{
-    std::string raygen_shader_entry_name;
-    std::string miss_shader_entry_name;
-    std::string closest_hit_shader_entry_name;
-    std::string any_hit_shader_entry_name;
-    std::string intersection_shader_entry_name;
-
-    std::vector<std::string> GetValidEntryFunctionNames() const
-    {
-        std::vector<std::string> result;
-        
-        if (!raygen_shader_entry_name.empty())
-        {
-            result.push_back(raygen_shader_entry_name);
-        }
-
-        if (!miss_shader_entry_name.empty())
-        {
-            result.push_back(miss_shader_entry_name);
-        }
-
-        if (!closest_hit_shader_entry_name.empty())
-        {
-            result.push_back(closest_hit_shader_entry_name);
-        }
-
-        if (!any_hit_shader_entry_name.empty())
-        {
-            result.push_back(any_hit_shader_entry_name);
-        }
-        
-        return result;
-    }
-};
-
 class IRHIShader : public IRHIResource
 {
 public:
@@ -97,19 +61,15 @@ public:
     const std::string& GetShaderContent() const;
     void SetShaderCompilePreDefineMacros(const RHIShaderPreDefineMacros& macros);
     
-    virtual bool InitShader(const std::string& shaderFilePath, RHIShaderType type, const std::string& entryFunctionName, const
-                            RayTracingShaderEntryFunctionNames& raytracing_entry_name = RayTracingShaderEntryFunctionNames()) = 0;
+    virtual bool InitShader(const std::string& shaderFilePath, RHIShaderType type, const std::string& entryFunctionName) = 0;
     virtual bool CompileShader() = 0;
  
-    const RayTracingShaderEntryFunctionNames& GetRayTracingEntryFunctionNames() const { return m_raytracing_entry_names; }
-    
 protected:
     bool LoadShader(const std::string& shaderFilePath);
     
     RHIShaderType m_type;
     std::string m_shader_file_path;
     
-    RayTracingShaderEntryFunctionNames m_raytracing_entry_names;
     std::string m_shader_entry_function_name;
     std::string m_shader_content;
     std::string m_shaderFilePath;

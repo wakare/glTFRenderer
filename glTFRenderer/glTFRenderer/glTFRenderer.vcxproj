@@ -870,6 +870,7 @@
     </ClCompile>
     <ClCompile Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassWithMesh.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterface32BitConstant.cpp" />
+    <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceFrameStat.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSampler.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSceneMaterial.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSceneMeshInfo.cpp" />
@@ -888,14 +889,21 @@
     <ClCompile Include="glTFRenderPass\glTFRenderResourceManager.cpp" />
     <None Include="glTFResources\ShaderSource\Interface\SceneMesh.hlsl" />
     <None Include="glTFResources\ShaderSource\Interface\SceneView.hlsl" />
+    <None Include="glTFResources\ShaderSource\Lighting\LightingCommon.hlsl" />
     <None Include="glTFResources\ShaderSource\MeshPassCommonPS.hlsl" />
     <None Include="glTFResources\ShaderSource\MeshPassCommonVS.hlsl" />
     <None Include="glTFResources\ShaderSource\LightPassPS.hlsl" />
     <None Include="glTFResources\ShaderSource\LightPassVS.hlsl" />
     <None Include="glTFResources\ShaderSource\ComputeShader\LightingCS.hlsl" />
-    <None Include="glTFResources\ShaderSource\RayTracing\RaytracingHelloWorld.hlsl" />
+    <None Include="glTFResources\ShaderSource\RayTracing\PathTracingMain.hlsl" />
     <None Include="glTFResources\ShaderSource\Interface\SceneMaterial.hlsl" />
     <None Include="glTFResources\ShaderSource\Interface\SceneMeshInfo.hlsl" />
+    <None Include="glTFResources\ShaderSource\RayTracing\PathTracingRays.hlsl" />
+    <None Include="glTFResources\ShaderSource\Math\RandomGenerator.hlsl" />
+    <None Include="glTFResources\ShaderSource\Math\Color.hlsl" />
+    <None Include="glTFResources\ShaderSource\FrameStat.hlsl" />
+    <None Include="glTFResources\ShaderSource\Math\Sample.hlsl" />
+    <None Include="glTFResources\ShaderSource\Math\MathCommon.hlsl" />
     <ClCompile Include="glTFRHI\RHIConfigSingleton.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12DescriptorHeap.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12CommandAllocator.cpp" />
@@ -987,6 +995,7 @@
     <ClInclude Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassPathTracing.h" />
     <ClInclude Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassWithMesh.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterface32BitConstant.h" />
+    <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceFrameStat.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSampler.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSceneMaterial.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSceneMeshInfo.h" />
@@ -1163,7 +1172,6 @@
     <Content Include="glTFResources\Models\Sponza\README.md" />
     <Content Include="glTFResources\Models\Sponza\screenshot\large.jpg" />
     <Content Include="glTFResources\Models\Sponza\screenshot\screenshot.jpg" />
-    <None Include="glTFResources\ShaderSource\Interface\LightingInterface.hlsl" />
     <Content Include="glTFResources\tiger.bmp" />
     <Content Include="glTFResources\UE4_Logo.bmp" />
     <Content Include="glTFSamples\Hello_glTF.json" />

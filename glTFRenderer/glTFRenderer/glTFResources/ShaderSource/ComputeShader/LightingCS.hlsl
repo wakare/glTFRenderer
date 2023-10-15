@@ -1,4 +1,4 @@
-#include "glTFResources/ShaderSource/Interface/LightingInterface.hlsl"
+#include "glTFResources/ShaderSource/Lighting/LightingCommon.hlsl"
 #include "glTFResources/ShaderSource/LightPassCommon.hlsl"
 
 Texture2D albedoTex: ALBEDO_TEX_REGISTER_INDEX;
@@ -28,19 +28,10 @@ void main(int3 dispatchThreadID : SV_DispatchThreadID)
 {
     float3 world_position = GetWorldPosition(dispatchThreadID.xy);
     float depth = depthTex.Load(int3(dispatchThreadID.xy, 0)).r;
-    float3 final_lighting = 0.0;
+    
     float3 base_color = albedoTex.Load(int3(dispatchThreadID.xy, 0)).xyz;
     float3 normal = normalize(2 * normalTex.Load(int3(dispatchThreadID.xy, 0)).xyz - 1);
     
-    for (int i = 0; i < PointLightCount; ++i)
-    {
-        final_lighting += LightingWithPointLight(world_position, base_color, normal, g_pointLightInfos[i]);
-    }
-
-    for (int j = 0; j < DirectionalLightCount; ++j)
-    {
-        final_lighting += LightingWithDirectionalLight(world_position, base_color, normal, g_directionalLightInfos[j]);
-    }
-    
+    float3 final_lighting = GetLighting(world_position, base_color, normal);
     Output[dispatchThreadID.xy] = float4(final_lighting, 1.0);
 }
