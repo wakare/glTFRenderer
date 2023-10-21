@@ -151,8 +151,8 @@ bool GetLightDistanceVector(uint index, float3 position, out float3 light_dir, o
     LightInfo info = g_lightInfos[index];
     if (info.type == LIGHT_TYPE_POINT)
     {
-        light_dir = info.position - position;
-        distance = length(light_dir);
+        light_dir = normalize(info.position - position);
+        distance = length(info.position - position);
     }
     else if (info.type == LIGHT_TYPE_DIRECTIONAL)
     {
@@ -169,7 +169,8 @@ bool GetLightDistanceVector(uint index, float3 position, out float3 light_dir, o
 
 float3 GetSkylighting()
 {
-    return float3(1.0, 1.0, 1.0);
+    //return float3(1.0, 1.0, 1.0);
+    return float3(0.0, 0.0, 0.0);
 }
 
 #endif

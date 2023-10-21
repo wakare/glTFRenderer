@@ -13,13 +13,16 @@ RWTexture2D<float4> accumulation_output : ACCUMULATION_OUTPUT_REGISTER_INDEX;
 RWTexture2D<float4> depth_buffer : DEPTH_BUFFER_REGISTER_INDEX;
 
 static uint path_sample_count_per_pixel = 1;
-static uint path_recursion_depth = 8;
+static uint path_recursion_depth = 4;
 
 [shader("raygeneration")]
 void PathTracingRayGen()
 {
-    float2 lerpValues = (float2)DispatchRaysIndex().xy / DispatchRaysDimensions().xy;
     uint4 rng = initRNG(DispatchRaysIndex().xy, DispatchRaysDimensions().xy, frame_index);
+    
+    // Add jitter for origin
+    float2 jitter_offset = float2 (rand(rng), rand(rng)); 
+    float2 lerpValues = (DispatchRaysIndex().xy + jitter_offset) / DispatchRaysDimensions().xy;
     
     float3 final_radiance = 0.0;
     float4 pixel_position = 0.0;
@@ -46,8 +49,8 @@ void PathTracingRayGen()
         payload.albedo = 0.0;
         payload.normal = 0.0;
         
-        float3 radiance = float3(0.0, 0.0, 0.0);
-        float3 throughput = float3(1.0, 1.0, 1.0);
+        float3 radiance = 0.0;
+        float3 throughput = 1.0;
         
         for (uint i = 0; i < path_recursion_depth; ++i)
         {
@@ -70,15 +73,17 @@ void PathTracingRayGen()
             
             uint sample_light_index;
             float sample_light_weight;
-            if (SampleLightIndexRIS(rng, 8, position, albedo.xyz, normal.xyz, sample_light_index, sample_light_weight))
+            if (SampleLightIndexUniform(rng, sample_light_index, sample_light_weight))
+            //if (SampleLightIndexRIS(rng, 8, position, albedo.xyz, normal.xyz, sample_light_index, sample_light_weight))
             {
                 float3 light_vector;
                 float max_distance;
                 if (GetLightDistanceVector(sample_light_index, position, light_vector, max_distance))
                 {
                     RayDesc visible_ray;
+                    visible_ray.Origin = OffsetRay(position, normal.xyz);
+                    //visible_ray.Origin = position;
                     visible_ray.Direction = light_vector;
-                    visible_ray.Origin = offsetRay(position, normal.xyz);
                     visible_ray.TMin = 0.0;
                     visible_ray.TMax = max_distance;
                     
@@ -102,14 +107,14 @@ void PathTracingRayGen()
             }
 
             // sample material to choose next ray, only diffuse now
-            ray.Origin = offsetRay(position, normal.xyz);
+            ray.Origin = OffsetRay(position, normal.xyz);
 
             float sample_pdf;
             float3 local_rotation = sampleHemisphere(float2(rand(rng), rand(rng)), sample_pdf);
             ray.Direction = rotatePoint(invertRotation(getRotationToZAxis(normal.xyz)), local_rotation);
             
             //throughput /= sample_pdf;
-            throughput *= (albedo.xyz/sample_pdf);
+            throughput *= (albedo.xyz / sample_pdf);
         }
 
         final_radiance += min(radiance, float3(1.0, 1.0, 1.0));

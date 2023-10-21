@@ -63,7 +63,7 @@ float3 rotatePoint(float4 q, float3 v) {
 // Clever offset_ray function from Ray Tracing Gems chapter 6
 // Offsets the ray origin from current position p, along normal n (which must be geometric normal)
 // so that no self-intersection can occur.
-float3 offsetRay(const float3 p, const float3 n)
+float3 OffsetRay(const float3 p, const float3 n)
 {
     static const float origin = 1.0f / 32.0f;
     static const float float_scale = 1.0f / 65536.0f;

@@ -88,12 +88,12 @@ bool glTFWindow::InitAndShowWindow()
     }
 
     // Add camera
-    std::unique_ptr<glTFSceneNode> cameraNode = std::make_unique<glTFSceneNode>();
+    std::unique_ptr<glTFSceneNode> camera_node = std::make_unique<glTFSceneNode>();
     std::unique_ptr<glTFCamera> camera = std::make_unique<glTFCamera>(m_scene_graph->GetRootNode().m_finalTransform,
         45.0f, m_width, m_height, 0.1f, 1000.0f);
     
-    cameraNode->m_objects.push_back(std::move(camera));
-    m_scene_graph->AddSceneNode(std::move(cameraNode));
+    camera_node->m_objects.push_back(std::move(camera));
+    
 
     // Add light
     std::unique_ptr<glTFSceneNode> directional_light_node = std::make_unique<glTFSceneNode>();
@@ -105,17 +105,19 @@ bool glTFWindow::InitAndShowWindow()
         lightNode->RotateOffset({0.0f, 0.001f, 0.0f});
     });
     directional_light_node->m_objects.push_back(std::move(directionalLight));
-    m_scene_graph->AddSceneNode(std::move(directional_light_node));
-/*
+    //m_scene_graph->AddSceneNode(std::move(directional_light_node));
+
     std::unique_ptr<glTFSceneNode> point_light_node = std::make_unique<glTFSceneNode>();
     std::unique_ptr<glTFPointLight> point_light = std::make_unique<glTFPointLight>(point_light_node->m_transform);
-    point_light->Translate({0.0f, 1.0f, 0.0f});
-    point_light->SetRadius(10.0f);
+    point_light->Translate({0.0f, 5.0f, 0.0f});
+    point_light->SetRadius(20.0f);
     point_light->SetFalloff(1.0f);
     point_light->SetIntensity(1.0f);
     point_light_node->m_objects.push_back(std::move(point_light));
     m_scene_graph->AddSceneNode(std::move(point_light_node));
-*/    
+    
+    m_scene_graph->AddSceneNode(std::move(camera_node));
+    
     m_scene_view = std::make_unique<glTFSceneView>(*m_scene_graph);
 
     if (!InitScene())
