@@ -88,9 +88,20 @@ inline float LinearToSrgb(float linearColor)
     else return 1.055f * float(pow(linearColor, 1.0f / 2.4f)) - 0.055f;
 }
 
+inline float srgbToLinear(float srgbColor)
+{
+    if (srgbColor < 0.04045f) return srgbColor / 12.92f;
+    else return float(pow((srgbColor + 0.055f) / 1.055f, 2.4f));
+}
+
 inline float3 LinearToSrgb(float3 color)
 {
     return float3(LinearToSrgb(color.x),LinearToSrgb(color.y),LinearToSrgb(color.z));
+}
+
+inline float3 srgbToLinear(float3 color)
+{
+    return float3(srgbToLinear(color.x),srgbToLinear(color.y),srgbToLinear(color.z));
 }
 
 #endif

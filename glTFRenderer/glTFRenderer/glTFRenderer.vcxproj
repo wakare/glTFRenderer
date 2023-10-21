@@ -904,6 +904,7 @@
     <None Include="glTFResources\ShaderSource\FrameStat.hlsl" />
     <None Include="glTFResources\ShaderSource\Math\Sample.hlsl" />
     <None Include="glTFResources\ShaderSource\Math\MathCommon.hlsl" />
+    <None Include="glTFResources\ShaderSource\Math\BRDF.hlsl" />
     <ClCompile Include="glTFRHI\RHIConfigSingleton.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12DescriptorHeap.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12CommandAllocator.cpp" />
