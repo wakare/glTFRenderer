@@ -1,10 +1,12 @@
 #ifndef SCENE_MATERIAL
 #define SCENE_MATERIAL
 
+#define MATERIAL_TEXTURE_INVALID_INDEX 0xffffffff 
 struct MaterialInfo
 {
     uint albedo_tex_index;
     uint normal_tex_index;
+    uint metallic_roughness_tex_index;
 };
 
 StructuredBuffer<MaterialInfo> g_material_infos : SCENE_MATERIAL_INFO_REGISTER_INDEX;
@@ -45,6 +47,19 @@ float4 SampleNormalTexture(uint material_id, float2 uv)
 {
     MaterialInfo info = g_material_infos[material_id];
     return bindless_material_textures[info.normal_tex_index].Sample(material_sampler, uv);
+}
+
+// metalness is sampled in B channel and roughness is sampled in G channel
+float2 SampleMetallicRoughnessTexture(uint material_id, float2 uv)
+{
+    MaterialInfo info = g_material_infos[material_id];
+    return bindless_material_textures[info.metallic_roughness_tex_index].Sample(material_sampler, uv).bg;
+}
+
+float2 SampleMetallicRoughnessTextureCS(uint material_id, float2 uv)
+{
+    MaterialInfo info = g_material_infos[material_id];
+    return bindless_material_textures[info.metallic_roughness_tex_index].SampleLevel(material_sampler, uv, 0, 0).bg;
 }
 
 float4 GetMaterialDebugColor(uint material_id)

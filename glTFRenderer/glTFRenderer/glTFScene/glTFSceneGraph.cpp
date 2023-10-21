@@ -279,8 +279,6 @@ void glTFSceneGraph::RecursiveInitSceneNodeFromGLTFLoader(const glTFLoader& load
                     }
                     else
                     {
-                        // No base color texture? handle base color factor in the future
-                        //GLTF_CHECK(false);
                         pbr_material->AddOrUpdateMaterialParameter(glTFMaterialParameterUsage::BASECOLOR,
                             std::make_shared<glTFMaterialParameterFactor<glm::vec4>>(glTFMaterialParameterUsage::BASECOLOR, source_material.pbr.base_color_factor));
                     }
@@ -295,6 +293,18 @@ void glTFSceneGraph::RecursiveInitSceneNodeFromGLTFLoader(const glTFLoader& load
 
                         pbr_material->AddOrUpdateMaterialParameter(glTFMaterialParameterUsage::NORMAL,
                             std::make_shared<glTFMaterialParameterTexture>(loader.GetSceneFileDirectory() + texture_image.uri, glTFMaterialParameterUsage::NORMAL));
+                    }
+
+                    // Metallic roughness texture setting
+                    const auto metallic_roughness_texture_handle = source_material.pbr.metallic_roughness_texture.index; 
+                    if (metallic_roughness_texture_handle.IsValid())
+                    {
+                        const auto& metallic_roughness_texture = *loader.m_textures[loader.ResolveIndex(metallic_roughness_texture_handle)];
+                        const auto& texture_image = *loader.m_images[loader.ResolveIndex(metallic_roughness_texture.source)];
+                        GLTF_CHECK(!texture_image.uri.empty());
+
+                        pbr_material->AddOrUpdateMaterialParameter(glTFMaterialParameterUsage::METALLIC_ROUGHNESS,
+                            std::make_shared<glTFMaterialParameterTexture>(loader.GetSceneFileDirectory() + texture_image.uri, glTFMaterialParameterUsage::METALLIC_ROUGHNESS));
                     }
 
                     mesh_materials[material_id] = pbr_material;

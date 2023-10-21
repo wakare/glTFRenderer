@@ -1,21 +1,16 @@
 #include "glTFMaterialPBR.h"
 
-bool glTFMaterialPBR::HasBaseColor() const
+bool glTFMaterialPBR::HasBaseColorTexture() const
 {
     return HasValidParameterTexture(glTFMaterialParameterUsage::BASECOLOR);
 }
 
-bool glTFMaterialPBR::HasNormal() const
+bool glTFMaterialPBR::HasNormalTexture() const
 {
     return HasValidParameterTexture(glTFMaterialParameterUsage::NORMAL);
 }
 
-bool glTFMaterialPBR::HasMetallic() const
+bool glTFMaterialPBR::HasMetallicRoughnessTexture() const
 {
-    return HasValidParameterTexture(glTFMaterialParameterUsage::METALNESS);
-}
-
-bool glTFMaterialPBR::HasRoughness() const
-{
-    return HasValidParameterTexture(glTFMaterialParameterUsage::ROUGHNESS);
+    return HasValidParameterTexture(glTFMaterialParameterUsage::METALLIC_ROUGHNESS);
 }

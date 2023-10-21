@@ -22,8 +22,8 @@ typedef BuiltInTriangleIntersectionAttributes PathTracingAttributes;
 
 struct PrimaryRayPayload
 {
-    float4 normal;
-    float4 albedo;
+    float4 normal; // alpha channel store metallic
+    float4 albedo; // alpha channel store roughness
     
     float distance;
     uint material_id;
@@ -44,9 +44,9 @@ void PrimaryRayClosestHit(inout PrimaryRayPayload payload, in PathTracingAttribu
 
     float4 tangent_normal = SampleNormalTextureCS(payload.material_id, vertex_info.uv.xy) * 2 - 1.0;
     float3x4 world_matrix = ObjectToWorld();
-    payload.normal = float4(GetWorldNormal((float3x3)world_matrix, vertex_info.normal.xyz, vertex_info.tangent, tangent_normal.xyz), 0.0);
-
-    payload.albedo = SampleAlbedoTextureCS(payload.material_id, vertex_info.uv.xy);
+    float2 metallic_roughness = SampleMetallicRoughnessTextureCS(payload.material_id, vertex_info.uv.xy);
+    payload.normal = float4(GetWorldNormal((float3x3)world_matrix, vertex_info.normal.xyz, vertex_info.tangent, tangent_normal.xyz), metallic_roughness.r);
+    payload.albedo = float4(SampleAlbedoTextureCS(payload.material_id, vertex_info.uv.xy).xyz, metallic_roughness.g);
 }
 
 [shader("miss")]

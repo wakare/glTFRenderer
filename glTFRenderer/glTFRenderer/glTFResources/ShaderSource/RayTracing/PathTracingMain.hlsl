@@ -14,8 +14,8 @@ RWTexture2D<float4> accumulation_output : ACCUMULATION_OUTPUT_REGISTER_INDEX;
 RWTexture2D<float4> depth_buffer : DEPTH_BUFFER_REGISTER_INDEX;
 
 static uint path_sample_count_per_pixel = 1;
-static uint path_recursion_depth = 2;
-static bool enable_accumulation = true;
+static uint path_recursion_depth = 1;
+static bool enable_accumulation = false;
 
 [shader("raygeneration")]
 void PathTracingRayGen()
@@ -71,12 +71,14 @@ void PathTracingRayGen()
                 pixel_position = float4(position, 0.0);
             }
             
-            float4 albedo = payload.albedo;
-            float4 normal = payload.normal;
+            float3 albedo = payload.albedo;
+            float3 normal = payload.normal;
+            float roughness = payload.albedo.a;
+            float metallic = payload.normal.a;
             float3 view = normalize(view_position.xyz - position);
 
             // Discard hit backface now...
-            if (dot(view, normal) < 0)
+            if (dot(view, normal.xyz) < 0)
             {
                 normal = -normal;
                 //break;
@@ -84,7 +86,7 @@ void PathTracingRayGen()
             
             uint sample_light_index;
             float sample_light_weight;
-            if (SampleLightIndexRIS(rng, 8, position, albedo.xyz, normal.xyz, sample_light_index, sample_light_weight))
+            if (SampleLightIndexRIS(rng, 8, position, albedo, normal, sample_light_index, sample_light_weight))
             {
                 float3 light_vector;
                 float max_distance;
@@ -99,8 +101,8 @@ void PathTracingRayGen()
                     if (!TraceShadowRay(scene, visible_ray))
                     {
                         // No occluded
-                        float3 brdf = EvalCookTorranceBRDF(normal.xyz, view, light_vector, albedo.xyz, 0.0, 1.0);
-                        float geometry_falloff = max(dot(normal.xyz, light_vector), 0.0);
+                        float3 brdf = EvalCookTorranceBRDF(normal, view, light_vector, albedo, metallic, roughness);
+                        float geometry_falloff = max(dot(normal, light_vector), 0.0);
                         radiance += throughput * sample_light_weight * brdf * GetLightIntensity(sample_light_index, position) * geometry_falloff;
                     }
                 }

@@ -76,6 +76,21 @@ glTFMaterialRenderResource::glTFMaterialRenderResource(const glTFMaterialBase& s
                     m_factors[glTFMaterialParameterUsage::NORMAL] = std::make_unique<glTFMaterialParameterFactor<glm::vec4>>(normal_factor);
                 }
             }
+
+            if (opaque_material.HasValidParameter(glTFMaterialParameterUsage::METALLIC_ROUGHNESS))
+            {
+                const auto& metallic_roughness_parameter = opaque_material.GetMaterialParameter(glTFMaterialParameterUsage::METALLIC_ROUGHNESS);
+                if (metallic_roughness_parameter.GetParameterType() == Texture)
+                {
+                    const auto& metallic_roughness_texture = dynamic_cast<const glTFMaterialParameterTexture&>(metallic_roughness_parameter);
+                    m_textures[glTFMaterialParameterUsage::METALLIC_ROUGHNESS] = std::make_unique<glTFMaterialTextureRenderResource>(metallic_roughness_texture);
+                }
+                else
+                {
+                    const auto& metallic_roughness_factor = dynamic_cast<const glTFMaterialParameterFactor<glm::vec4>&>(metallic_roughness_parameter);
+                    m_factors[glTFMaterialParameterUsage::METALLIC_ROUGHNESS] = std::make_unique<glTFMaterialParameterFactor<glm::vec4>>(metallic_roughness_factor);
+                }
+            }
         }
         break;
         
@@ -171,6 +186,13 @@ bool glTFRenderMaterialManager::GatherAllMaterialRenderResource(
         {
             new_material_info.normal_tex_index = gather_material_textures.size();
             gather_material_textures.push_back(find_normal_texture->second.get());        
+        }
+
+        auto find_metallic_roughness_texture = material_textures.find(glTFMaterialParameterUsage::METALLIC_ROUGHNESS);
+        if (find_metallic_roughness_texture != material_textures.end())
+        {
+            new_material_info.metallic_roughness_tex_index = gather_material_textures.size();
+            gather_material_textures.push_back(find_metallic_roughness_texture->second.get());        
         }
     }
     

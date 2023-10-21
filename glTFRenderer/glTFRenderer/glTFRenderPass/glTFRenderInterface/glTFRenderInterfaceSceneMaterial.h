@@ -1,12 +1,14 @@
 ﻿#pragma once
 #include "glTFRenderInterfaceBase.h"
 
+static unsigned material_texture_invalid_index = UINT_MAX;
 struct MaterialInfo
 {
     inline static std::string Name = "SCENE_MATERIAL_INFO_REGISTER_INDEX";
     
-    unsigned albedo_tex_index;
-    unsigned normal_tex_index;
+    unsigned albedo_tex_index {material_texture_invalid_index};
+    unsigned normal_tex_index {material_texture_invalid_index};
+    unsigned metallic_roughness_tex_index {material_texture_invalid_index};
 };
 
 // Use material manager class to bind all needed textures in bindless mode

@@ -10,7 +10,6 @@ enum class glTFMaterialParameterUsage
 {
     BASECOLOR,
     NORMAL,
-    METALNESS,
-    ROUGHNESS,
+    METALLIC_ROUGHNESS,
     UNKNOWN,
 };

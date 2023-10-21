@@ -4,8 +4,7 @@
 class glTFMaterialPBR : public glTFMaterialOpaque
 {
 public:
-    bool HasBaseColor() const;
-    bool HasNormal() const;
-    bool HasMetallic() const;
-    bool HasRoughness() const;
+    bool HasBaseColorTexture() const;
+    bool HasNormalTexture() const;
+    bool HasMetallicRoughnessTexture() const;
 };
