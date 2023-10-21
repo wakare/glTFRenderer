@@ -71,8 +71,8 @@ void PathTracingRayGen()
                 pixel_position = float4(position, 0.0);
             }
             
-            float3 albedo = payload.albedo;
-            float3 normal = payload.normal;
+            float3 albedo = payload.albedo.rgb;
+            float3 normal = payload.normal.rgb;
             float roughness = payload.albedo.a;
             float metallic = payload.normal.a;
             float3 view = normalize(view_position.xyz - position);

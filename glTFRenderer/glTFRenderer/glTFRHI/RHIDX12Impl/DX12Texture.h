@@ -10,7 +10,7 @@ public:
     DX12Texture();
     ~DX12Texture() override;
     
-    virtual bool UploadTextureFromFile(IRHIDevice& device, IRHICommandList& commandList, const std::string& filePath) override;
+    virtual bool UploadTextureFromFile(IRHIDevice& device, IRHICommandList& commandList, const std::string& filePath, bool srgb) override;
     virtual IRHIGPUBuffer& GetGPUBuffer() override;
     
 protected:

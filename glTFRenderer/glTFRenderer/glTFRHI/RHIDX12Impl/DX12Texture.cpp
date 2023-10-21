@@ -11,11 +11,17 @@ DX12Texture::DX12Texture()
 DX12Texture::~DX12Texture()
 = default;
 
-bool DX12Texture::UploadTextureFromFile(IRHIDevice& device, IRHICommandList& commandList, const std::string& filePath)
+bool DX12Texture::UploadTextureFromFile(IRHIDevice& device, IRHICommandList& commandList, const std::string& filePath, bool srgb)
 {
     const std::wstring convertPath = to_wide_string(filePath);
     RETURN_IF_FALSE(glTFImageLoader::Instance().LoadImageByFilename(convertPath.c_str(), m_textureDesc))
 
+    // Handle srgb case
+    if (srgb)
+    {
+        m_textureDesc.SetDataFormat(ConvertToSRGBFormat(m_textureDesc.GetDataFormat()));
+    }
+    
     const RHIBufferDesc textureBufferDesc = {L"TextureBuffer_Default", m_textureDesc.GetTextureWidth(), m_textureDesc.GetTextureHeight(), 1,  RHIBufferType::Default, m_textureDesc.GetDataFormat(), RHIBufferResourceType::Tex2D};
     m_textureBuffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
     RETURN_IF_FALSE(m_textureBuffer->InitGPUBuffer(device, textureBufferDesc))

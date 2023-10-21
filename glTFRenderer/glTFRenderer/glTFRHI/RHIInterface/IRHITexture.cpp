@@ -1,26 +1,26 @@
 #include "IRHITexture.h"
 
 RHITextureDesc::RHITextureDesc()
-    : m_textureData(nullptr)
-    , m_textureDataSize(0)
-    , m_textureWidth(0)
-    , m_textureHeight(0)
-    , m_textureFormat(RHIDataFormat::Unknown)
+    : m_texture_data(nullptr)
+    , m_texture_data_size(0)
+    , m_texture_width(0)
+    , m_texture_height(0)
+    , m_texture_format(RHIDataFormat::Unknown)
 {
     
 }
 
 bool RHITextureDesc::Init(unsigned width, unsigned height, RHIDataFormat format)
 {
-    assert(m_textureData == nullptr);
+    assert(m_texture_data == nullptr);
 
-    m_textureWidth = width;
-    m_textureHeight = height;
-    m_textureFormat = format;
+    m_texture_width = width;
+    m_texture_height = height;
+    m_texture_format = format;
 
-    m_textureDataSize = static_cast<size_t>(width * height * GetRHIDataFormatBitsPerPixel(format) / 8);
-    m_textureData.reset(static_cast<unsigned char*>(malloc(m_textureDataSize))) ;
-    RETURN_IF_FALSE(m_textureData)
+    m_texture_data_size = static_cast<size_t>(width * height * GetRHIDataFormatBitsPerPixel(format) / 8);
+    m_texture_data.reset(static_cast<unsigned char*>(malloc(m_texture_data_size))) ;
+    RETURN_IF_FALSE(m_texture_data)
     
     return true;
 }
