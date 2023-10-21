@@ -1,5 +1,6 @@
 #include "glTFResources/ShaderSource/Lighting/LightingCommon.hlsl"
 #include "glTFResources/ShaderSource/LightPassCommon.hlsl"
+#include "glTFResources/ShaderSource/Math/MathCommon.hlsl"
 
 Texture2D albedoTex: ALBEDO_TEX_REGISTER_INDEX;
 Texture2D depthTex: DEPTH_TEX_REGISTER_INDEX;
@@ -33,5 +34,5 @@ void main(int3 dispatchThreadID : SV_DispatchThreadID)
     float3 normal = normalize(2 * normalTex.Load(int3(dispatchThreadID.xy, 0)).xyz - 1);
     
     float3 final_lighting = GetLighting(world_position, base_color, normal);
-    Output[dispatchThreadID.xy] = float4(final_lighting, 1.0);
+    Output[dispatchThreadID.xy] = float4(LinearToSrgb(final_lighting), 1.0);
 }

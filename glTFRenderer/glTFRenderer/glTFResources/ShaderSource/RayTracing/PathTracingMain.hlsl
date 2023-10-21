@@ -65,7 +65,7 @@ void PathTracingRayGen()
             float3 position = ray.Origin + ray.Direction * payload.distance;
             float4 albedo = payload.albedo;
             float4 normal = payload.normal;
-
+            
             if (i == 0)
             {
                 pixel_position = float4(position, 0.0);
@@ -73,8 +73,7 @@ void PathTracingRayGen()
             
             uint sample_light_index;
             float sample_light_weight;
-            if (SampleLightIndexUniform(rng, sample_light_index, sample_light_weight))
-            //if (SampleLightIndexRIS(rng, 8, position, albedo.xyz, normal.xyz, sample_light_index, sample_light_weight))
+            if (SampleLightIndexRIS(rng, 8, position, albedo.xyz, normal.xyz, sample_light_index, sample_light_weight))
             {
                 float3 light_vector;
                 float max_distance;
@@ -82,7 +81,6 @@ void PathTracingRayGen()
                 {
                     RayDesc visible_ray;
                     visible_ray.Origin = OffsetRay(position, normal.xyz);
-                    //visible_ray.Origin = position;
                     visible_ray.Direction = light_vector;
                     visible_ray.TMin = 0.0;
                     visible_ray.TMax = max_distance;
@@ -143,7 +141,8 @@ void PathTracingRayGen()
     }
     
     // Write the raytraced color to the output texture.
-    render_target[DispatchRaysIndex().xy] = float4(accumulation_output[DispatchRaysIndex().xy].xyz / accumulation_output[DispatchRaysIndex().xy].w, 1.0);
+    float3 final_color_srgb = LinearToSrgb(accumulation_output[DispatchRaysIndex().xy].xyz / accumulation_output[DispatchRaysIndex().xy].w);
+    render_target[DispatchRaysIndex().xy] = float4(final_color_srgb, 1.0);
     depth_buffer[DispatchRaysIndex().xy]= pixel_position;
 }
 

@@ -42,7 +42,7 @@ void PrimaryRayClosestHit(inout PrimaryRayPayload payload, in PathTracingAttribu
     SceneMeshVertexInfo vertex_info = InterpolateVertexWithBarycentrics(
         GetMeshTriangleVertexIndex(InstanceID(), PrimitiveIndex()), attr.barycentrics);
 
-    float4 tangent_normal = SampleNormalTextureCS(payload.material_id, vertex_info.uv.xy);
+    float4 tangent_normal = SampleNormalTextureCS(payload.material_id, vertex_info.uv.xy) * 2 - 1.0;
     float3x4 world_matrix = ObjectToWorld();
     payload.normal = float4(GetWorldNormal((float3x3)world_matrix, vertex_info.normal.xyz, vertex_info.tangent, tangent_normal.xyz), 0.0);
 

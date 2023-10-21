@@ -81,4 +81,16 @@ float3 OffsetRay(const float3 p, const float3 n)
         abs(p.z) < origin ? p.z + float_scale * n.z : p_i.z);
 }
 
+// Conversion between linear and sRGB color spaces
+inline float LinearToSrgb(float linearColor)
+{
+    if (linearColor < 0.0031308f) return linearColor * 12.92f;
+    else return 1.055f * float(pow(linearColor, 1.0f / 2.4f)) - 0.055f;
+}
+
+inline float3 LinearToSrgb(float3 color)
+{
+    return float3(LinearToSrgb(color.x),LinearToSrgb(color.y),LinearToSrgb(color.z));
+}
+
 #endif
