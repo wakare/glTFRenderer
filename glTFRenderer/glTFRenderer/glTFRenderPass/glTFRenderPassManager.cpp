@@ -103,19 +103,7 @@ void glTFRenderPassManager::UpdateScene(size_t deltaTimeMs)
 
         if (auto* sceneViewInterface = pass->GetRenderInterface<glTFRenderInterfaceSceneView>())
         {
-            unsigned width, height;
-            m_scene_view.GetViewportSize(width, height);
-            ConstantBufferSceneView temp_view_data =
-            {
-                m_scene_view.GetViewMatrix(),
-                m_scene_view.GetProjectionMatrix(),
-                inverse(m_scene_view.GetViewMatrix()),
-                inverse(m_scene_view.GetProjectionMatrix()),
-                m_scene_view.GetMainCameraWorldPosition(),
-                width, height
-            };
-            
-            sceneViewInterface->UploadCPUBuffer(&temp_view_data, sizeof(temp_view_data));    
+            sceneViewInterface->UpdateSceneView(m_scene_view);
         }
 
         if (auto* frame_stat = pass->GetRenderInterface<glTFRenderInterfaceFrameStat>())

@@ -11,11 +11,12 @@
 RaytracingAccelerationStructure scene : SCENE_AS_REGISTER_INDEX;
 RWTexture2D<float4> render_target : OUTPUT_REGISTER_INDEX;
 RWTexture2D<float4> accumulation_output : ACCUMULATION_OUTPUT_REGISTER_INDEX;
-RWTexture2D<float4> depth_buffer : DEPTH_BUFFER_REGISTER_INDEX;
+Texture2D<float4> accumulation_backupbuffer : ACCUMULATION_BACKBUFFER_REGISTER_INDEX;
 
 static uint path_sample_count_per_pixel = 1;
-static uint path_recursion_depth = 4;
+static uint path_recursion_depth = 1;
 static bool enable_accumulation = true;
+static bool srgb_convert = true;
 
 [shader("raygeneration")]
 void PathTracingRayGen()
@@ -23,7 +24,8 @@ void PathTracingRayGen()
     uint4 rng = initRNG(DispatchRaysIndex().xy, DispatchRaysDimensions().xy, frame_index);
     
     // Add jitter for origin
-    float2 jitter_offset = float2 (rand(rng), rand(rng)); 
+    //float2 jitter_offset = 0.5 * float2 (rand(rng), rand(rng));
+    float2 jitter_offset = 0.0;
     float2 lerpValues = (DispatchRaysIndex().xy + jitter_offset) / DispatchRaysDimensions().xy;
     
     float3 final_radiance = 0.0;
@@ -32,8 +34,8 @@ void PathTracingRayGen()
     for (uint path_index = 0; path_index < path_sample_count_per_pixel; ++path_index)
     {
         // Orthographic projection since we're raytracing in screen space.
-        float3 ray_offset_dir = float3(lerpValues.x - 0.5, 0.5 - lerpValues.y, 1.0);
-        float4 ray_world_dir = normalize(mul(inverseViewMatrix, float4(ray_offset_dir, 0.0))); 
+        float4 ray_offset_dir = mul(inverseProjectionMatrix, float4(2 * lerpValues.x - 1, 1 - 2 * lerpValues.y, 0.0, 1.0));
+        float4 ray_world_dir = normalize(mul(inverseViewMatrix, float4(ray_offset_dir.xyz / ray_offset_dir.w, 0.0))); 
 
         // Trace the ray.
         // Set the ray's extents.
@@ -50,6 +52,8 @@ void PathTracingRayGen()
         payload.material_id = 0;
         payload.albedo = 0.0;
         payload.normal = 0.0;
+        payload.metallic = 1.0;
+        payload.roughness = 1.0;
         
         float3 radiance = 0.0;
         float3 throughput = 1.0;
@@ -61,14 +65,13 @@ void PathTracingRayGen()
             {
                 // TODO: Sample skylight info
                 radiance += throughput * GetSkylighting();
-                pixel_position = 0.0;
                 break;
             }
 
             float3 position = ray.Origin + ray.Direction * payload.distance;
             if (i == 0)
             {
-                pixel_position = float4(position, 0.0);
+                pixel_position = float4(position, 1.0);
             }
             
             float3 view = normalize(view_position.xyz - position);
@@ -126,38 +129,54 @@ void PathTracingRayGen()
 
         final_radiance += min(radiance, float3(1.0, 1.0, 1.0));
     }
+    
     final_radiance /= path_sample_count_per_pixel;
 
     if (enable_accumulation)
-    {
-        uint accumulation_frame_count = (uint)accumulation_output[DispatchRaysIndex().xy].w;
-        if (accumulation_frame_count == 0)
+    {        
+        float4 ndc_position = mul(prev_projection_matrix, mul(prev_view_matrix, pixel_position));
+        ndc_position /= ndc_position.w;
+                
+        int2 prev_screen_position = 0.5 + float2(ndc_position.x * 0.5 + 0.5, 0.5 - ndc_position.y * 0.5) * float2(viewport_width, viewport_height);
+        if (prev_screen_position.x >= 0 && prev_screen_position.x < viewport_width &&
+            prev_screen_position.y >= 0 && prev_screen_position.y < viewport_height )
         {
-            accumulation_output[DispatchRaysIndex().xy] = float4(final_radiance, 1.0);
+            accumulation_output[DispatchRaysIndex().xy] = accumulation_backupbuffer[prev_screen_position];
         }
         else
         {
-            float3 old_luminance = accumulation_output[DispatchRaysIndex().xy].xyz / accumulation_frame_count;
-            float4 old_position = depth_buffer[DispatchRaysIndex().xy];
-            if (length(old_position - pixel_position) > 0.1 && abs(luminance(old_luminance - final_radiance)) > 0.1)
-            {
-                accumulation_output[DispatchRaysIndex().xy] = float4(final_radiance, 1.0);
-            }
-            else
-            {
-                accumulation_output[DispatchRaysIndex().xy] += float4(final_radiance, 1.0);
-            }
+            accumulation_output[DispatchRaysIndex().xy] = 0.0;
         }
-    
+        
+        accumulation_output[DispatchRaysIndex().xy] += float4(final_radiance, 1.0);
+        float3 final_color = accumulation_output[DispatchRaysIndex().xy].xyz / accumulation_output[DispatchRaysIndex().xy].w;
+
+        /*
+        if (prev_screen_position.x == DispatchRaysIndex().x && prev_screen_position.y == DispatchRaysIndex().y)
+        {
+            final_color = float3(0.0, 1.0, 0.0);
+        }
+        */
+        
         // Write the raytraced color to the output texture.
-        float3 final_color_srgb = LinearToSrgb(accumulation_output[DispatchRaysIndex().xy].xyz / accumulation_output[DispatchRaysIndex().xy].w);
-        render_target[DispatchRaysIndex().xy] = float4(final_color_srgb, 1.0);
-        depth_buffer[DispatchRaysIndex().xy]= pixel_position;
+        if (srgb_convert)
+        {
+            final_color = LinearToSrgb(final_color);
+        }
+        
+        render_target[DispatchRaysIndex().xy] = float4(final_color, 1.0);
     }
     else
     {
-        float3 final_color_srgb = LinearToSrgb(final_radiance);
-        render_target[DispatchRaysIndex().xy] = float4(final_color_srgb, 1.0);
+        if (srgb_convert)
+        {
+            float3 final_color_srgb = LinearToSrgb(final_radiance);
+            render_target[DispatchRaysIndex().xy] = float4(final_color_srgb, 1.0);    
+        }
+        else
+        {
+            render_target[DispatchRaysIndex().xy] = float4(final_radiance, 1.0);
+        }
     }
 }
 
