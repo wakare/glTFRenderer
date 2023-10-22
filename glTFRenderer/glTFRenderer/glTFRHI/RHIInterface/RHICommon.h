@@ -34,6 +34,7 @@ enum class RHIDataFormat
     R8G8B8A8_UNORM,
     R8G8B8A8_UNORM_SRGB,
     B8G8R8A8_UNORM,
+    B8G8R8A8_UNORM_SRGB,
     B8G8R8X8_UNORM,
     R32G32_FLOAT,
     R32G32B32_FLOAT,
@@ -62,6 +63,9 @@ inline RHIDataFormat ConvertToSRGBFormat(RHIDataFormat format)
     {
     case RHIDataFormat::R8G8B8A8_UNORM:
         return RHIDataFormat::R8G8B8A8_UNORM_SRGB;
+
+    case RHIDataFormat::B8G8R8A8_UNORM:
+        return RHIDataFormat::B8G8R8A8_UNORM_SRGB;
         
     default:
         GLTF_CHECK(false);
@@ -165,6 +169,7 @@ inline unsigned GetRHIDataFormatBitsPerPixel(const RHIDataFormat& RHIDataFormat)
     else if (RHIDataFormat == RHIDataFormat::R8G8B8A8_UNORM) return 32;
     else if (RHIDataFormat == RHIDataFormat::R8G8B8A8_UNORM_SRGB) return 32;
     else if (RHIDataFormat == RHIDataFormat::B8G8R8A8_UNORM) return 32;
+    else if (RHIDataFormat == RHIDataFormat::B8G8R8A8_UNORM_SRGB) return 32;
     else if (RHIDataFormat == RHIDataFormat::B8G8R8X8_UNORM) return 32;
     else if (RHIDataFormat == RHIDataFormat::R10G10B10_XR_BIAS_A2_UNORM) return 32;
 

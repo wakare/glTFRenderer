@@ -24,6 +24,7 @@ DXGI_FORMAT DX12ConverterUtils::ConvertToDXGIFormat(RHIDataFormat format)
         CONVERT_DXGI_FORMAT_CASE(R8G8B8A8_UNORM)
         CONVERT_DXGI_FORMAT_CASE(R8G8B8A8_UNORM_SRGB)
         CONVERT_DXGI_FORMAT_CASE(B8G8R8A8_UNORM)
+        CONVERT_DXGI_FORMAT_CASE(B8G8R8A8_UNORM_SRGB)
         CONVERT_DXGI_FORMAT_CASE(B8G8R8X8_UNORM)
         CONVERT_DXGI_FORMAT_CASE(R32G32_FLOAT)
         CONVERT_DXGI_FORMAT_CASE(R32G32B32_FLOAT)
@@ -206,7 +207,9 @@ int DX12Utils::GetDXGIFormatBitsPerPixel(DXGI_FORMAT& dxgiFormat)
     else if (dxgiFormat == DXGI_FORMAT_R16G16B16A16_FLOAT) return 64;
     else if (dxgiFormat == DXGI_FORMAT_R16G16B16A16_UNORM) return 64;
     else if (dxgiFormat == DXGI_FORMAT_R8G8B8A8_UNORM) return 32;
+    else if (dxgiFormat == DXGI_FORMAT_R8G8B8A8_UNORM_SRGB) return 32;
     else if (dxgiFormat == DXGI_FORMAT_B8G8R8A8_UNORM) return 32;
+    else if (dxgiFormat == DXGI_FORMAT_B8G8R8A8_UNORM_SRGB) return 32;
     else if (dxgiFormat == DXGI_FORMAT_B8G8R8X8_UNORM) return 32;
     else if (dxgiFormat == DXGI_FORMAT_R10G10B10_XR_BIAS_A2_UNORM) return 32;
 

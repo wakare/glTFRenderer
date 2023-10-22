@@ -84,8 +84,8 @@ bool glTFWindow::InitAndShowWindow()
         //RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Box\\Box.gltf"))
         //RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Monster\\Monster.gltf"))
         //RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Buggy\\glTF\\Buggy.gltf"))
-        //RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Sponza\\glTF\\Sponza.gltf"))
-        RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\hylian_shield_and_master_sword\\scene.gltf"))
+        RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Sponza\\glTF\\Sponza.gltf"))
+        //RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\hylian_shield_and_master_sword\\scene.gltf"))
     }
 
     // Add camera
@@ -106,7 +106,7 @@ bool glTFWindow::InitAndShowWindow()
         lightNode->RotateOffset({0.0f, 0.001f, 0.0f});
     });
     directional_light_node->m_objects.push_back(std::move(directionalLight));
-    m_scene_graph->AddSceneNode(std::move(directional_light_node));
+    //m_scene_graph->AddSceneNode(std::move(directional_light_node));
 
     std::unique_ptr<glTFSceneNode> point_light_node = std::make_unique<glTFSceneNode>();
     std::unique_ptr<glTFPointLight> point_light = std::make_unique<glTFPointLight>(point_light_node->m_transform);
@@ -115,7 +115,7 @@ bool glTFWindow::InitAndShowWindow()
     point_light->SetFalloff(1.0f);
     point_light->SetIntensity(1.0f);
     point_light_node->m_objects.push_back(std::move(point_light));
-    //m_scene_graph->AddSceneNode(std::move(point_light_node));
+    m_scene_graph->AddSceneNode(std::move(point_light_node));
     
     m_scene_graph->AddSceneNode(std::move(camera_node));
     

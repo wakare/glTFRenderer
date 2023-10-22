@@ -14,8 +14,8 @@ RWTexture2D<float4> accumulation_output : ACCUMULATION_OUTPUT_REGISTER_INDEX;
 RWTexture2D<float4> depth_buffer : DEPTH_BUFFER_REGISTER_INDEX;
 
 static uint path_sample_count_per_pixel = 1;
-static uint path_recursion_depth = 1;
-static bool enable_accumulation = false;
+static uint path_recursion_depth = 4;
+static bool enable_accumulation = true;
 
 [shader("raygeneration")]
 void PathTracingRayGen()
@@ -71,29 +71,25 @@ void PathTracingRayGen()
                 pixel_position = float4(position, 0.0);
             }
             
-            float3 albedo = payload.albedo.rgb;
-            float3 normal = payload.normal.rgb;
-            float roughness = payload.albedo.a;
-            float metallic = payload.normal.a;
             float3 view = normalize(view_position.xyz - position);
 
             // Discard hit backface now...
-            if (dot(view, normal.xyz) < 0)
+            if (dot(view, payload.normal) < 0)
             {
-                normal = -normal;
+                payload.normal = -payload.normal;
                 //break;
             }
             
             uint sample_light_index;
             float sample_light_weight;
-            if (SampleLightIndexRIS(rng, 8, position, albedo, normal, sample_light_index, sample_light_weight))
+            if (SampleLightIndexRIS(rng, 8, position, payload.albedo, payload.normal, sample_light_index, sample_light_weight))
             {
                 float3 light_vector;
                 float max_distance;
                 if (GetLightDistanceVector(sample_light_index, position, light_vector, max_distance))
                 {
                     RayDesc visible_ray;
-                    visible_ray.Origin = OffsetRay(position, normal.xyz);
+                    visible_ray.Origin = OffsetRay(position, payload.normal);
                     visible_ray.Direction = light_vector;
                     visible_ray.TMin = 0.0;
                     visible_ray.TMax = max_distance;
@@ -101,8 +97,8 @@ void PathTracingRayGen()
                     if (!TraceShadowRay(scene, visible_ray))
                     {
                         // No occluded
-                        float3 brdf = EvalCookTorranceBRDF(normal, view, light_vector, albedo, metallic, roughness);
-                        float geometry_falloff = max(dot(normal, light_vector), 0.0);
+                        float3 brdf = EvalCookTorranceBRDF(payload.normal, view, light_vector, payload.albedo, payload.metallic, payload.roughness);
+                        float geometry_falloff = max(dot(payload.normal, light_vector), 0.0);
                         radiance += throughput * sample_light_weight * brdf * GetLightIntensity(sample_light_index, position) * geometry_falloff;
                     }
                 }
@@ -118,14 +114,14 @@ void PathTracingRayGen()
             }
 
             // sample material to choose next ray, only diffuse now
-            ray.Origin = OffsetRay(position, normal.xyz);
+            ray.Origin = OffsetRay(position, payload.normal);
 
             float sample_pdf;
             float3 local_rotation = sampleHemisphere(float2(rand(rng), rand(rng)), sample_pdf);
-            ray.Direction = rotatePoint(invertRotation(getRotationToZAxis(normal.xyz)), local_rotation);
+            ray.Direction = rotatePoint(invertRotation(getRotationToZAxis(payload.normal)), local_rotation);
             
             //throughput /= sample_pdf;
-            throughput *= (albedo.xyz / sample_pdf);
+            throughput *= (payload.albedo / sample_pdf);
         }
 
         final_radiance += min(radiance, float3(1.0, 1.0, 1.0));
