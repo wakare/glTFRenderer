@@ -3,8 +3,9 @@
 #include "glTFResources/ShaderSource/Math/MathCommon.hlsl"
 
 Texture2D albedoTex: ALBEDO_TEX_REGISTER_INDEX;
-Texture2D depthTex: DEPTH_TEX_REGISTER_INDEX;
 Texture2D normalTex: NORMAL_TEX_REGISTER_INDEX;
+
+Texture2D depthTex: DEPTH_TEX_REGISTER_INDEX;
 
 RWTexture2D<float4> Output: OUTPUT_TEX_REGISTER_INDEX;
 SamplerState defaultSampler : DEFAULT_SAMPLER_REGISTER_INDEX;
@@ -28,11 +29,19 @@ float3 GetWorldPosition(int2 texCoord)
 void main(int3 dispatchThreadID : SV_DispatchThreadID)
 {
     float3 world_position = GetWorldPosition(dispatchThreadID.xy);
-    float depth = depthTex.Load(int3(dispatchThreadID.xy, 0)).r;
+
+    float4 albedo_buffer_data = albedoTex.Load(int3(dispatchThreadID.xy, 0));
+    float4 normal_buffer_data = normalTex.Load(int3(dispatchThreadID.xy, 0));
     
-    float3 base_color = albedoTex.Load(int3(dispatchThreadID.xy, 0)).xyz;
-    float3 normal = normalize(2 * normalTex.Load(int3(dispatchThreadID.xy, 0)).xyz - 1);
+    float3 base_color = albedo_buffer_data.xyz;
+    float metallic = albedo_buffer_data.w;
     
-    float3 final_lighting = GetLighting(world_position, base_color, normal);
+    float3 normal = normalize(2 * normal_buffer_data.xyz - 1);
+    float roughness = normal_buffer_data.w;
+
+    float3 view = normalize(view_position.xyz - world_position);
+    
+    float3 final_lighting = GetLighting(world_position, base_color, normal, metallic, roughness, view);
+    
     Output[dispatchThreadID.xy] = float4(LinearToSrgb(final_lighting), 1.0);
 }

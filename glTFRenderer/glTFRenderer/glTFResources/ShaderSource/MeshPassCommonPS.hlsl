@@ -9,12 +9,11 @@ SamplerState defaultSampler : DEFAULT_SAMPLER_REGISTER_INDEX;
 PS_OUTPUT main(PS_INPUT input)
 {
     PS_OUTPUT output;
-#ifdef HAS_TEXCOORD 
-    // return interpolated color
-    //output.baseColor = baseColor_texture.Sample(defaultSampler, input.texCoord);
+#ifdef HAS_TEXCOORD
+    float2 metallic_roughness = SampleMetallicRoughnessTexture(material_id, input.texCoord);
     output.baseColor = SampleAlbedoTexture(material_id, input.texCoord);
-    //output.baseColor = GetMaterialDebugColor(material_id);
 #else
+    float2 metallic_roughness = float2(1.0, 1.0);
     output.baseColor = float4(1.0, 1.0, 1.0, 1.0);
 #endif
 
@@ -22,17 +21,8 @@ PS_OUTPUT main(PS_INPUT input)
     #ifdef HAS_TANGENT
     if (using_normal_mapping)
     {
-        //float3 normal = normalize(2 * normal_texture.Sample(defaultSampler, input.texCoord).xyz - 1.0);
-        
         float3 normal = normalize(2 * SampleNormalTexture(material_id, input.texCoord).xyz - 1.0);
         output.normal = float4(GetWorldNormal((float3x3)world_matrix, input.normal, input.tangent, normal), 0.0);
-        /*
-        float3 tmpTangent = normalize(mul(world_matrix, float4(input.tangent.xyz, 0.0)).xyz);
-        float3 bitangent = cross(input.normal, tmpTangent) * input.tangent.w;
-        float3 tangent = cross(bitangent, input.normal);
-        float3x3 TBN = transpose(float3x3(tangent, bitangent, input.normal));
-        output.normal = normalize(mul(world_matrix, float4(mul(TBN, normal), 0.0)));
-        */
     }
     else
     #endif
@@ -43,5 +33,8 @@ PS_OUTPUT main(PS_INPUT input)
 #else
     output.normal = float4(0.0, 0.0, 0.0, 0.0);
 #endif
+    output.baseColor.w = metallic_roughness.x;
+    output.normal.w = metallic_roughness.y;
+    
     return output;
 }

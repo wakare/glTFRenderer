@@ -85,7 +85,7 @@ void PathTracingRayGen()
             
             uint sample_light_index;
             float sample_light_weight;
-            if (SampleLightIndexRIS(rng, 8, position, payload.albedo, payload.normal, sample_light_index, sample_light_weight))
+            if (SampleLightIndexRIS(rng, 8, position, payload.albedo, payload.normal, payload.metallic, payload.roughness, view, sample_light_index, sample_light_weight))
             {
                 float3 light_vector;
                 float max_distance;

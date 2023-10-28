@@ -57,8 +57,8 @@ float3 EvalCookTorranceBRDF(float3 normal, float3 view, float3 light, float3 bas
 
     float3 diffuse = kd * base_color * ONE_OVER_PI;
     float3 specular = ks * GGX_NDF(normal, half_vector, roughness) * Smith_Geometry(normal, view, light, roughness) /
-        (4 * max(0.0, dot(view, normal)) * max(0.0, dot(light, normal)));
-    
+        (4 * max(0.001, dot(view, normal)) * max(0.001, dot(light, normal)));
+
     return diffuse + specular;
 }
 
