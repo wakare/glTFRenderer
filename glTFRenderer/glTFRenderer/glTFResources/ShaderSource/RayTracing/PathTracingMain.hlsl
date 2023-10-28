@@ -14,7 +14,7 @@ RWTexture2D<float4> accumulation_output : ACCUMULATION_OUTPUT_REGISTER_INDEX;
 Texture2D<float4> accumulation_backupbuffer : ACCUMULATION_BACKBUFFER_REGISTER_INDEX;
 
 static uint path_sample_count_per_pixel = 1;
-static uint path_recursion_depth = 1;
+static uint path_recursion_depth = 3;
 static bool enable_accumulation = true;
 static bool srgb_convert = true;
 
@@ -24,8 +24,8 @@ void PathTracingRayGen()
     uint4 rng = initRNG(DispatchRaysIndex().xy, DispatchRaysDimensions().xy, frame_index);
     
     // Add jitter for origin
-    //float2 jitter_offset = 0.5 * float2 (rand(rng), rand(rng));
-    float2 jitter_offset = 0.0;
+    float2 jitter_offset = float2 (rand(rng), rand(rng)) - 0.5;
+    //float2 jitter_offset = 0.0;
     float2 lerpValues = (DispatchRaysIndex().xy + jitter_offset) / DispatchRaysDimensions().xy;
     
     float3 final_radiance = 0.0;
@@ -141,7 +141,7 @@ void PathTracingRayGen()
         if (prev_screen_position.x >= 0 && prev_screen_position.x < viewport_width &&
             prev_screen_position.y >= 0 && prev_screen_position.y < viewport_height )
         {
-            accumulation_output[DispatchRaysIndex().xy] = accumulation_backupbuffer[prev_screen_position];
+            accumulation_output[DispatchRaysIndex().xy] = accumulation_backupbuffer[prev_screen_position] * 0.99;
         }
         else
         {
@@ -151,13 +151,6 @@ void PathTracingRayGen()
         accumulation_output[DispatchRaysIndex().xy] += float4(final_radiance, 1.0);
         float3 final_color = accumulation_output[DispatchRaysIndex().xy].xyz / accumulation_output[DispatchRaysIndex().xy].w;
 
-        /*
-        if (prev_screen_position.x == DispatchRaysIndex().x && prev_screen_position.y == DispatchRaysIndex().y)
-        {
-            final_color = float3(0.0, 1.0, 0.0);
-        }
-        */
-        
         // Write the raytraced color to the output texture.
         if (srgb_convert)
         {
