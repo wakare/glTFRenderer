@@ -10,11 +10,15 @@
 
 RaytracingAccelerationStructure scene : SCENE_AS_REGISTER_INDEX;
 RWTexture2D<float4> render_target : OUTPUT_REGISTER_INDEX;
+
 RWTexture2D<float4> accumulation_output : ACCUMULATION_OUTPUT_REGISTER_INDEX;
 Texture2D<float4> accumulation_backupbuffer : ACCUMULATION_BACKBUFFER_REGISTER_INDEX;
 
+RWTexture2D<float4> custom_output : CUSTOM_OUTPUT_REGISTER_INDEX;
+Texture2D<float4> custom_backupbuffer : CUSTOM_BACKBUFFER_REGISTER_INDEX;
+
 static uint path_sample_count_per_pixel = 1;
-static uint path_recursion_depth = 3;
+static uint path_recursion_depth = 4;
 static bool enable_accumulation = true;
 static bool srgb_convert = true;
 
@@ -26,15 +30,16 @@ void PathTracingRayGen()
     // Add jitter for origin
     float2 jitter_offset = float2 (rand(rng), rand(rng)) - 0.5;
     //float2 jitter_offset = 0.0;
-    float2 lerpValues = (DispatchRaysIndex().xy + jitter_offset) / DispatchRaysDimensions().xy;
+    float2 lerp_values = (DispatchRaysIndex().xy + jitter_offset) / DispatchRaysDimensions().xy;
     
     float3 final_radiance = 0.0;
     float4 pixel_position = 0.0;
+    float world_depth = 0.0;
     
     for (uint path_index = 0; path_index < path_sample_count_per_pixel; ++path_index)
     {
         // Orthographic projection since we're raytracing in screen space.
-        float4 ray_offset_dir = mul(inverseProjectionMatrix, float4(2 * lerpValues.x - 1, 1 - 2 * lerpValues.y, 0.0, 1.0));
+        float4 ray_offset_dir = mul(inverseProjectionMatrix, float4(2 * lerp_values.x - 1, 1 - 2 * lerp_values.y, 0.0, 1.0));
         float4 ray_world_dir = normalize(mul(inverseViewMatrix, float4(ray_offset_dir.xyz / ray_offset_dir.w, 0.0))); 
 
         // Trace the ray.
@@ -72,6 +77,7 @@ void PathTracingRayGen()
             if (i == 0)
             {
                 pixel_position = float4(position, 1.0);
+                world_depth = payload.distance;
             }
             
             float3 view = normalize(view_position.xyz - position);
@@ -136,19 +142,29 @@ void PathTracingRayGen()
     {        
         float4 ndc_position = mul(prev_projection_matrix, mul(prev_view_matrix, pixel_position));
         ndc_position /= ndc_position.w;
-                
+
+        bool reuse_history = false;
         int2 prev_screen_position = 0.5 + float2(ndc_position.x * 0.5 + 0.5, 0.5 - ndc_position.y * 0.5) * float2(viewport_width, viewport_height);
         if (prev_screen_position.x >= 0 && prev_screen_position.x < viewport_width &&
             prev_screen_position.y >= 0 && prev_screen_position.y < viewport_height )
         {
-            accumulation_output[DispatchRaysIndex().xy] = accumulation_backupbuffer[prev_screen_position] * 0.99;
+            // Reusing history??
+            float4 prev_pixel_world_position = custom_backupbuffer[prev_screen_position];
+            if ((length(prev_pixel_world_position.xyz - pixel_position.xyz)) / world_depth < 0.1)
+            {
+                reuse_history = true;
+                accumulation_output[DispatchRaysIndex().xy] = accumulation_backupbuffer[prev_screen_position] * 0.99;    
+            }
         }
-        else
+        
+        if (!reuse_history)
         {
             accumulation_output[DispatchRaysIndex().xy] = 0.0;
         }
         
         accumulation_output[DispatchRaysIndex().xy] += float4(final_radiance, 1.0);
+        custom_output[DispatchRaysIndex().xy] = pixel_position;
+        
         float3 final_color = accumulation_output[DispatchRaysIndex().xy].xyz / accumulation_output[DispatchRaysIndex().xy].w;
 
         // Write the raytraced color to the output texture.

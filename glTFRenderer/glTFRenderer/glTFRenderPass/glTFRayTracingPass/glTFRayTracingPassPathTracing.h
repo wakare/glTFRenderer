@@ -5,6 +5,37 @@
 #include "glTFRHI/RHIInterface/IRHIRayTracingAS.h"
 #include "glTFRHI/RHIInterface/IRHIShaderTable.h"
 
+
+struct RWTextureResourceWithBackBuffer
+{
+    RWTextureResourceWithBackBuffer(std::string output_register_name, std::string back_register_name);
+    
+    bool CreateResource(glTFRenderResourceManager& resource_manager, const IRHIRenderTargetDesc& desc);
+    bool CreateDescriptors(glTFRenderResourceManager& resource_manager, IRHIDescriptorHeap& main_descriptor);
+    bool RegisterSignature(IRHIRootSignatureHelper& root_signature);
+    bool AddShaderMacros(RHIShaderPreDefineMacros& macros);
+    bool BindRootParameter(glTFRenderResourceManager& resource_manager);
+    bool CopyToBackBuffer(glTFRenderResourceManager& resource_manager);
+
+protected:
+    std::string m_output_register_name;
+    std::string m_back_register_name;
+    
+    std::string GetOutputBufferResourceName() const;
+    std::string GetBackBufferResourceName() const;
+    
+    IRHIRenderTargetDesc m_texture_desc;
+    
+    std::shared_ptr<IRHIRenderTarget> m_writable_buffer;
+    std::shared_ptr<IRHIRenderTarget> m_back_buffer;
+
+    RHIGPUDescriptorHandle m_writable_buffer_handle;
+    RHIGPUDescriptorHandle m_back_buffer_handle;
+    
+    RootSignatureAllocation m_writable_buffer_allocation;
+    RootSignatureAllocation m_back_buffer_allocation;
+};
+
 class glTFRayTracingPassPathTracing : public glTFRayTracingPassWithMesh
 {
 public:
@@ -31,22 +62,23 @@ private:
     
     std::shared_ptr<IRHIShaderTable> m_shader_table;
     std::shared_ptr<IRHIRenderTarget> m_raytracing_output;
-    std::shared_ptr<IRHIRenderTarget> m_raytracing_accumulation_output;
-    std::shared_ptr<IRHIRenderTarget> m_raytracing_accumulation_backbuffer;
     std::shared_ptr<IRHIRayTracingAS> m_raytracing_as;
+    
+    RHIGPUDescriptorHandle m_output_handle;
+    
     TraceCount m_trace_count;
 
     RootSignatureAllocation m_output_allocation;
-    RootSignatureAllocation m_accumulation_buffer_allocation;
     RootSignatureAllocation m_raytracing_as_allocation;
-    RootSignatureAllocation m_accumulation_backbuffer_allocation;
     
-    bool m_material_uploaded;
-
     IRHIRootSignatureHelper m_local_rs;
-
     RootSignatureAllocation m_local_constant_allocation;
 
+    RWTextureResourceWithBackBuffer m_accumulation_resource;
+    RWTextureResourceWithBackBuffer m_custom_resource;
+    
+    bool m_material_uploaded;
+    
 protected:
     // Ray function names
     std::string m_raygen_name;

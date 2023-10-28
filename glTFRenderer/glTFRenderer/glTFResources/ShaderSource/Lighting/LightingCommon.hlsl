@@ -29,9 +29,9 @@ float3 GetLightIntensity(uint index, float3 position)
     LightInfo info = g_lightInfos[index];
     if (info.type == LIGHT_TYPE_POINT)
     {
-        float falloff = 1.0 - saturate(length(position - info.position) / info.radius);
+        float base_intensity = 1.0 - saturate(length(position - info.position) / info.radius);
         // squared distance falloff 
-        return info.intensity * pow(falloff, 2.0);
+        return info.intensity * pow(base_intensity, 2.0);
     }
     else if (info.type == LIGHT_TYPE_DIRECTIONAL)
     {
