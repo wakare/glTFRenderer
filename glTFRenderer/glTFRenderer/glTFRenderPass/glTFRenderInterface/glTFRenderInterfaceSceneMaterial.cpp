@@ -32,7 +32,10 @@ bool glTFRenderInterfaceSceneMaterial::UploadMaterialData(glTFRenderResourceMana
         handle = handle ? handle : new_handle;
     }
 
-    GLTF_CHECK(handle);
+    if (!handle)
+    {
+        return false;
+    }
     
     // Set heap handle to bindless parameter slot
     RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceStructuredBuffer<MaterialInfo>>()->UploadCPUBuffer(material_infos.data(), sizeof(MaterialInfo) * material_infos.size()))

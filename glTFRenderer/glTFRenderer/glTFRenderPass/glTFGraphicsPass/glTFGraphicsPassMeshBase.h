@@ -31,4 +31,8 @@ protected:
 
     // TODO: Resolve input layout with multiple meshes 
     std::vector<RHIPipelineInputLayout> m_vertex_input_layouts;
+
+    std::shared_ptr<IRHIVertexBuffer> m_instance_buffer;
+    std::shared_ptr<IRHIVertexBufferView> m_instance_buffer_view;
+    
 };

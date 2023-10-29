@@ -317,12 +317,12 @@ bool DX12Utils::SetScissorRect(IRHICommandList& commandList, const RHIScissorRec
     return true;
 }
 
-bool DX12Utils::SetVertexBufferView(IRHICommandList& commandList, IRHIVertexBufferView& view)
+bool DX12Utils::SetVertexBufferView(IRHICommandList& commandList, unsigned slot, IRHIVertexBufferView& view)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
     auto& dxVertexBufferView = dynamic_cast<DX12VertexBufferView&>(view).GetVertexBufferView();
 
-    dxCommandList->IASetVertexBuffers(0, 1, &dxVertexBufferView);
+    dxCommandList->IASetVertexBuffers(slot, 1, &dxVertexBufferView);
     
     return true;
 }

@@ -18,6 +18,11 @@ struct VS_INPUT
 #ifdef HAS_TEXCOORD 
     float2 texCoord: TEXCOORD;
 #endif
+
+    float4 instance_matrix_0: INSTANCE_TRANSFORM_MATRIX0;
+    float4 instance_matrix_1: INSTANCE_TRANSFORM_MATRIX1;
+    float4 instance_matrix_2: INSTANCE_TRANSFORM_MATRIX2;
+    float4 instance_matrix_3: INSTANCE_TRANSFORM_MATRIX3;
 };
 
 struct VS_OUTPUT

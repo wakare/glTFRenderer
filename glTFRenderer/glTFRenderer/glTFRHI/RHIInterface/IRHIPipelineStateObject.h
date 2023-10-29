@@ -32,7 +32,9 @@ struct RHIPipelineInputLayout
     RHIDataFormat format;
     unsigned alignedByteOffset;
 
-    // TODO: support instancing data layout
+    unsigned slot;
+
+    bool IsVertexData() const {return slot == 0; }
 };
 
 enum class IRHICullMode

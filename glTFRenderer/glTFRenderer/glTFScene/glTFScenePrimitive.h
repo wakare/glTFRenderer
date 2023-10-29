@@ -12,6 +12,11 @@ enum class VertexLayoutType
     NORMAL,
     TANGENT,
     TEXCOORD_0,
+    
+    INSTANCE_MAT_0,
+    INSTANCE_MAT_1,
+    INSTANCE_MAT_2,
+    INSTANCE_MAT_3,
 };
 
 struct VertexLayoutElement

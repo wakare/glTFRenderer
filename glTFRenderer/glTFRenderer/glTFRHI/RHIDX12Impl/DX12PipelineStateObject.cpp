@@ -84,8 +84,9 @@ bool DX12GraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device
     for (const auto& input_layout : m_input_layouts)
     {
         dx_input_layouts.push_back({input_layout.semanticName.c_str(), input_layout.semanticIndex, DX12ConverterUtils::ConvertToDXGIFormat(input_layout.format),
-            0, input_layout.alignedByteOffset, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0});  
+            input_layout.slot, input_layout.alignedByteOffset, input_layout.IsVertexData() ? D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA : D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 0});  
     }
+    
     
     // fill out an input layout description structure
     D3D12_INPUT_LAYOUT_DESC inputLayoutDesc = {};

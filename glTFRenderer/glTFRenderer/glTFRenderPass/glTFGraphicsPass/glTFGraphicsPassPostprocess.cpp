@@ -103,7 +103,7 @@ void glTFGraphicsPassPostprocess::DrawPostprocessQuad(glTFRenderResourceManager&
 {
     auto& command_list = resourceManager.GetCommandListForRecord();
     
-    RHIUtils::Instance().SetVertexBufferView(command_list, *m_postprocessQuadResource.meshVertexBufferView);
+    RHIUtils::Instance().SetVertexBufferView(command_list, 0, *m_postprocessQuadResource.meshVertexBufferView);
     RHIUtils::Instance().SetIndexBufferView(command_list, *m_postprocessQuadResource.meshIndexBufferView);
 
     RHIUtils::Instance().SetPrimitiveTopology( command_list, RHIPrimitiveTopologyType::TRIANGLELIST);
