@@ -89,11 +89,9 @@ bool glTFGraphicsPassMeshBase::RenderPass(glTFRenderResourceManager& resource_ma
         m_instance_buffer_view = m_instance_buffer->CreateVertexBufferView(resource_manager.GetDevice(), command_list, instance_buffer_desc, instance_buffer);
     }
     
-    
-    
-    for (const auto& instance : mesh_instance_render_resource)
+    for (const auto& instance : mesh_instance_infos)
     {
-        const auto& mesh_data = mesh_render_resources.find(instance.second.m_mesh_render_resource);
+        const auto& mesh_data = mesh_render_resources.find(instance.first);
         if (mesh_data == mesh_render_resources.end())
         {
             // No valid instance data exists..
@@ -105,18 +103,18 @@ bool glTFGraphicsPassMeshBase::RenderPass(glTFRenderResourceManager& resource_ma
             continue;
         }
         
-        RETURN_IF_FALSE(BeginDrawMesh(resource_manager, mesh_data->second, instance.second))
+        RETURN_IF_FALSE(BeginDrawMesh(resource_manager, mesh_data->second, instance.first))
         
         RHIUtils::Instance().SetVertexBufferView(command_list, 0, *mesh_data->second.mesh_vertex_buffer_view);
         RHIUtils::Instance().SetVertexBufferView(command_list, 1, *m_instance_buffer_view);
         RHIUtils::Instance().SetIndexBufferView(command_list, *mesh_data->second.mesh_index_buffer_view);
         
         RHIUtils::Instance().DrawIndexInstanced(command_list,
-            mesh_data->second.mesh_index_count, mesh_instance_infos[instance.second.m_mesh_render_resource].first,
+            mesh_data->second.mesh_index_count, instance.second.first,
             0, 0,
-            mesh_instance_infos[instance.second.m_mesh_render_resource].second);
+            instance.second.second);
 
-        RETURN_IF_FALSE(EndDrawMesh(resource_manager, mesh_data->second, instance.second))
+        //RETURN_IF_FALSE(EndDrawMesh(resource_manager, mesh_data->second, instance.second))
     }
 
     return true;
@@ -136,22 +134,22 @@ bool glTFGraphicsPassMeshBase::SetupPipelineStateObject(glTFRenderResourceManage
     return true;
 }
 
-bool glTFGraphicsPassMeshBase::BeginDrawMesh(glTFRenderResourceManager& resource_manager, const glTFMeshRenderResource& mesh_data, const glTFMeshInstanceRenderResource& instance_data)
+bool glTFGraphicsPassMeshBase::BeginDrawMesh(glTFRenderResourceManager& resource_manager, const glTFMeshRenderResource& mesh_data, unsigned mesh_index)
 {
     // Upload constant buffer
     ConstantBufferSceneMesh temp_mesh_data =
     {
-        instance_data.m_instance_transform,
-        glm::transpose(glm::inverse(instance_data.m_instance_transform)),
+        glm::mat4(1.0f),
+        glm::mat4(1.0f),
         mesh_data.material_id, mesh_data.using_normal_mapping
     };
         
-    RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSceneMesh>()->UploadAndApplyDataWithIndex(resource_manager, instance_data.m_mesh_render_resource, temp_mesh_data, true))
+    RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSceneMesh>()->UploadAndApplyDataWithIndex(resource_manager, mesh_index, temp_mesh_data, true))
     
     return true;   
 }
 
-bool glTFGraphicsPassMeshBase::EndDrawMesh(glTFRenderResourceManager& resource_manager, const glTFMeshRenderResource& mesh_data, const glTFMeshInstanceRenderResource& instance_data)
+bool glTFGraphicsPassMeshBase::EndDrawMesh(glTFRenderResourceManager& resource_manager, const glTFMeshRenderResource& mesh_data, unsigned mesh_index)
 {
     return true;
 }

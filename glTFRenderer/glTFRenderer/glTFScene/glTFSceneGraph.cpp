@@ -144,9 +144,6 @@ void glTFSceneGraph::RecursiveInitSceneNodeFromGLTFLoader(const glTFLoader& load
     sceneNode.m_transform = node->transform.GetMatrix();
     sceneNode.m_finalTransform = parentNode.m_finalTransform.GetTransformMatrix() * sceneNode.m_transform.GetTransformMatrix(); 
 
-    std::map<glTFHandle, std::shared_ptr<glTFMaterialBase>> mesh_materials;
-    std::map<glTFUniqueID, std::shared_ptr<glTFMeshRawData>> mesh_datas;
-    
     for (const auto& mesh_handle : node->meshes)
     {
         if (mesh_handle.IsValid())
@@ -155,14 +152,14 @@ void glTFSceneGraph::RecursiveInitSceneNodeFromGLTFLoader(const glTFLoader& load
             
             for (const auto& primitive : mesh.primitives)
             {
-                if (mesh_datas.find(primitive.GetID()) == mesh_datas.end())
+                if (mesh_datas.find(primitive.Hash()) == mesh_datas.end())
                 {
                     // Create mesh raw data
-                    mesh_datas[primitive.GetID()] = std::make_shared<glTFMeshRawData>(loader, primitive);
+                    mesh_datas[primitive.Hash()] = std::make_shared<glTFMeshRawData>(loader, primitive);
                 }
                 
 				std::unique_ptr<glTFSceneTriangleMesh> triangle_mesh =
-				    std::make_unique<glTFSceneTriangleMesh>(sceneNode.m_finalTransform, mesh_datas[primitive.GetID()]);
+				    std::make_unique<glTFSceneTriangleMesh>(sceneNode.m_finalTransform, mesh_datas[primitive.Hash()]);
 
                 const glTFHandle material_id = primitive.material;
                 if (mesh_materials.find(material_id) == mesh_materials.end())

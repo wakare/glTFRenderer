@@ -208,7 +208,7 @@ typedef glTF_Attribute_Type<glTF_Attribute_Base::glTF_Attribute::EWeight, 1>  gl
 typedef glTF_Attribute_Type<glTF_Attribute_Base::glTF_Attribute::EWeight, 2>  glTF_Attribute_Weight_2;
 typedef glTF_Attribute_Type<glTF_Attribute_Base::glTF_Attribute::EWeight, 3>  glTF_Attribute_Weight_3;
 
-struct glTF_Primitive : glTFUniqueObject<glTF_Primitive>
+struct glTF_Primitive
 {
     enum glTF_Primitive_Mode
     {
@@ -225,6 +225,26 @@ struct glTF_Primitive : glTFUniqueObject<glTF_Primitive>
     glTFHandle indices;
     glTFHandle material;
     glTF_Primitive_Mode mode;
+
+    unsigned Hash() const
+    {
+        unsigned hash = 0;
+        unsigned hash_index = 0;
+        
+        hash += attributes.size() * (hash_index++ * 213124);
+        
+        for (const auto& attribute : attributes)
+        {
+            hash += attribute.first * (hash_index++ * 12315);
+            hash += attribute.second.node_index << (hash_index++ * 136514);
+        }
+
+        hash += indices.node_index * (hash_index++ * 923746);
+        hash += material.node_index * (hash_index++ * 2143);
+
+        hash += mode * (hash++ * 23423);
+        return hash;
+    }
 };
 
 template<>

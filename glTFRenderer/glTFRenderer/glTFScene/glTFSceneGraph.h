@@ -41,5 +41,8 @@ protected:
     void TraverseNodesInner(const std::function<bool(glTFSceneNode&)>& visitor) const;
     void RecursiveInitSceneNodeFromGLTFLoader(const glTFLoader& loader, const glTFHandle& handle, const glTFSceneNode& parentNode, glTFSceneNode& sceneNode);
 
-    std::unique_ptr<glTFSceneNode> m_root; 
+    std::unique_ptr<glTFSceneNode> m_root;
+
+    std::map<glTFHandle, std::shared_ptr<glTFMaterialBase>> mesh_materials;
+    std::map<unsigned, std::shared_ptr<glTFMeshRawData>> mesh_datas;
 };
