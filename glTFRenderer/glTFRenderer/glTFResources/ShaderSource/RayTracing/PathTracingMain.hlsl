@@ -18,7 +18,7 @@ RWTexture2D<float4> custom_output : CUSTOM_OUTPUT_REGISTER_INDEX;
 Texture2D<float4> custom_backupbuffer : CUSTOM_BACKBUFFER_REGISTER_INDEX;
 
 static uint path_sample_count_per_pixel = 1;
-static uint path_recursion_depth = 4;
+static uint path_recursion_depth = 6;
 static bool enable_accumulation = true;
 static bool srgb_convert = true;
 
@@ -150,10 +150,12 @@ void PathTracingRayGen()
         {
             // Reusing history??
             float4 prev_pixel_world_position = custom_backupbuffer[prev_screen_position];
-            if ((length(prev_pixel_world_position.xyz - pixel_position.xyz)) / world_depth < 0.1)
+            float pixel_movement = length(prev_pixel_world_position.xyz - pixel_position.xyz);
+            float accumulation_blend_ratio = 0.999 * max(0.0, 1.0 - pixel_movement / (world_depth)); 
+            //if ((length(prev_pixel_world_position.xyz - pixel_position.xyz)) / world_depth < 0.1)
             {
                 reuse_history = true;
-                accumulation_output[DispatchRaysIndex().xy] = accumulation_backupbuffer[prev_screen_position] * 0.99;    
+                accumulation_output[DispatchRaysIndex().xy] = accumulation_backupbuffer[prev_screen_position] * pow(accumulation_blend_ratio, 8.0);    
             }
         }
         
