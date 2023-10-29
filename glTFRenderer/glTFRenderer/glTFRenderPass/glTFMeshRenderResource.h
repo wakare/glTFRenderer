@@ -4,7 +4,7 @@
 #include "glTFRHI/RHIInterface/IRHIIndexBuffer.h"
 #include "glTFRHI/RHIInterface/IRHIVertexBuffer.h"
 
-struct glTFRenderPassMeshResource
+struct glTFMeshRenderResource
 {
     const glTFScenePrimitive* mesh;
     
@@ -19,7 +19,7 @@ struct glTFRenderPassMeshResource
     size_t mesh_vertex_count{0};
     size_t mesh_index_count{0};
     
-    glm::mat4 mesh_transform_matrix{1.0f};
+    //glm::mat4 mesh_transform_matrix{1.0f};
     glTFUniqueID material_id {glTFUniqueIDInvalid};
     bool using_normal_mapping {false};
 };

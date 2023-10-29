@@ -13,7 +13,7 @@ glTFRenderInterfaceSceneMeshInfo::glTFRenderInterfaceSceneMeshInfo()
 
 bool glTFRenderInterfaceSceneMeshInfo::UpdateSceneMeshData(const glTFRenderMeshManager& mesh_manager)
 {
-    const auto& meshes = mesh_manager.GetMeshes();
+    const auto& meshes = mesh_manager.GetMeshRenderResources();
 
     std::vector<SceneMeshStartIndexInfo> start_index_infos;
     std::vector<SceneMeshVertexInfo> vertex_infos;

@@ -1,4 +1,5 @@
 #pragma once
+#include "glTFMeshRawData.h"
 #include "glTFScenePrimitive.h"
 
 class glTFMeshRawData;
@@ -12,6 +13,7 @@ public:
     virtual const VertexBufferData& GetVertexBufferData() const override;
     virtual const IndexBufferData& GetIndexBufferData() const override;
     virtual const VertexBufferData& GetPositionOnlyBufferData() const override;
+    virtual glTFUniqueID GetMeshRawDataID() const override { return m_raw_data->GetID(); }
     
 private:
     std::shared_ptr<glTFMeshRawData> m_raw_data;

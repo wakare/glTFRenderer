@@ -1,4 +1,6 @@
 ﻿#include "DX12RayTracingAS.h"
+
+#include "glTFRenderPass/glTFRenderMeshManager.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 
 DX12RayTracingAS::DX12RayTracingAS()
@@ -8,19 +10,22 @@ DX12RayTracingAS::DX12RayTracingAS()
     m_upload_buffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
 }
 
-bool DX12RayTracingAS::InitRayTracingAS(IRHIDevice& device, IRHICommandList& command_list, const std::map<glTFUniqueID, glTFRenderPassMeshResource>& meshes)
+bool DX12RayTracingAS::InitRayTracingAS(IRHIDevice& device, IRHICommandList& command_list, const glTFRenderMeshManager& mesh_manager)
 {
     auto* dxr_device = dynamic_cast<DX12Device&>(device).GetDXRDevice();
     auto* dxr_command_list = dynamic_cast<DX12CommandList&>(command_list).GetDXRCommandList();
     
     D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS build_flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
 
-    m_blas_geometry_descs.resize(meshes.size());
-    m_blas_prebuild_infos.resize(meshes.size());
-    m_blas_build_inputs.resize(meshes.size());
+    const auto& mesh_render_resources = mesh_manager.GetMeshRenderResources();
+    const auto& mesh_instances = mesh_manager.GetMeshInstanceRenderResource(); 
+    
+    m_blas_geometry_descs.resize(mesh_render_resources.size());
+    m_blas_prebuild_infos.resize(mesh_render_resources.size());
+    m_blas_build_inputs.resize(mesh_render_resources.size());
     
     unsigned mesh_index = 0;
-    for (const auto& mesh_pair : meshes)
+    for (const auto& mesh_pair : mesh_render_resources)
     {
         auto& mesh = mesh_pair.second;
         RHIUtils::Instance().AddBufferBarrierToCommandList(command_list, mesh.mesh_vertex_buffer->GetBuffer(), RHIResourceStateType::STATE_VERTEX_AND_CONSTANT_BUFFER, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE);
@@ -59,7 +64,7 @@ bool DX12RayTracingAS::InitRayTracingAS(IRHIDevice& device, IRHICommandList& com
     D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS top_level_inputs = {};
     top_level_inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
     top_level_inputs.Flags = build_flags;
-    top_level_inputs.NumDescs = meshes.size();
+    top_level_inputs.NumDescs = mesh_instances.size();
     top_level_inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
 
     D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO top_level_prebuild_info = {};
@@ -67,7 +72,7 @@ bool DX12RayTracingAS::InitRayTracingAS(IRHIDevice& device, IRHICommandList& com
     THROW_IF_FAILED(top_level_prebuild_info.ResultDataMaxSizeInBytes > 0)
 
     // Init scratch buffer
-    m_BLAS_scratch_buffers.resize(meshes.size());
+    m_BLAS_scratch_buffers.resize(mesh_render_resources.size());
     {
         for (unsigned i = 0; i < m_blas_prebuild_infos.size(); ++i)
         {
@@ -102,7 +107,7 @@ bool DX12RayTracingAS::InitRayTracingAS(IRHIDevice& device, IRHICommandList& com
     }
 
     unsigned blas_index = 0;
-    m_BLASes.resize(meshes.size());
+    m_BLASes.resize(mesh_render_resources.size());
     for (const auto& prebuild_info : m_blas_prebuild_infos)
     {
         m_BLASes[blas_index] = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
@@ -136,19 +141,18 @@ bool DX12RayTracingAS::InitRayTracingAS(IRHIDevice& device, IRHICommandList& com
     ))
 
     // Create an instance desc for the bottom-level acceleration structure.
-    //std::vector<D3D12_RAYTRACING_INSTANCE_DESC> instance_descs(meshes.size());
-    m_instance_descs.resize(meshes.size());
+    m_instance_descs.resize(mesh_instances.size());
     blas_index = 0;
-    for (const auto& mesh_pair : meshes)
+    for (const auto& instance : mesh_instances)
     {
         D3D12_RAYTRACING_INSTANCE_DESC& instance_desc = m_instance_descs[blas_index];
-        memcpy(instance_desc.Transform, &mesh_pair.second.mesh_transform_matrix[0][0], sizeof(instance_desc.Transform));
+        memcpy(instance_desc.Transform, &instance.second.m_instance_transform[0][0], sizeof(instance_desc.Transform));
         instance_desc.InstanceID = blas_index;
         instance_desc.InstanceMask = 1;
 
         // Ray type count * instance offset 
         instance_desc.InstanceContributionToHitGroupIndex = blas_index;
-        instance_desc.AccelerationStructure = m_BLASes[blas_index]->GetGPUBufferHandle();
+        instance_desc.AccelerationStructure = m_BLASes[instance.second.m_mesh_render_resource]->GetGPUBufferHandle();
         ++blas_index;
     }
     
@@ -205,7 +209,7 @@ bool DX12RayTracingAS::InitRayTracingAS(IRHIDevice& device, IRHICommandList& com
     // Build acceleration structure.
     BuildAccelerationStructure(dxr_command_list);
 
-    for (const auto& mesh_pair : meshes)
+    for (const auto& mesh_pair : mesh_render_resources)
     {
         auto& mesh = mesh_pair.second;
         RHIUtils::Instance().AddBufferBarrierToCommandList(command_list, mesh.mesh_vertex_buffer->GetBuffer(), RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_VERTEX_AND_CONSTANT_BUFFER);

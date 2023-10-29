@@ -197,9 +197,9 @@ bool glTFRayTracingPassPathTracing::InitPass(glTFRenderResourceManager& resource
     
     m_shader_table = RHIResourceFactory::CreateRHIResource<IRHIShaderTable>();
 
-    const auto& meshes = resource_manager.GetMeshManager().GetMeshes();
+    const auto& meshes = resource_manager.GetMeshManager().GetMeshRenderResources();
     std::vector<std::shared_ptr<RHIShaderTableRecordBase>> hit_group_records(meshes.size());
-    for (const auto& mesh_info : resource_manager.GetMeshManager().GetMeshes())
+    for (const auto& mesh_info : resource_manager.GetMeshManager().GetMeshRenderResources())
     {
         hit_group_records[mesh_info.first] = std::make_shared<RHIShaderBindingTableRecordPathTracing>(mesh_info.second.material_id); 
     }
@@ -391,7 +391,7 @@ bool glTFRayTracingPassPathTracing::UpdateAS(glTFRenderResourceManager& resource
 bool glTFRayTracingPassPathTracing::BuildAS(glTFRenderResourceManager& resource_manager)
 {
     m_raytracing_as = RHIResourceFactory::CreateRHIResource<IRHIRayTracingAS>();
-    RETURN_IF_FALSE(m_raytracing_as->InitRayTracingAS(resource_manager.GetDevice(), resource_manager.GetCommandListForRecord(), resource_manager.GetMeshManager().GetMeshes()))
+    RETURN_IF_FALSE(m_raytracing_as->InitRayTracingAS(resource_manager.GetDevice(), resource_manager.GetCommandListForRecord(), resource_manager.GetMeshManager()))
     
     return true;
 }

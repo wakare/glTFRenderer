@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include <d3d12.h>
 
+#include "glTFRenderPass/glTFRenderMeshManager.h"
 #include "glTFRHI/RHIInterface/IRHIRayTracingAS.h"
 #include "glTFUtils/glTFUtils.h"
 
@@ -9,7 +10,7 @@ class DX12RayTracingAS : public IRHIRayTracingAS
 public:
     DX12RayTracingAS();
     
-    virtual bool InitRayTracingAS(IRHIDevice& device, IRHICommandList& command_list, const std::map<glTFUniqueID, glTFRenderPassMeshResource>& meshes) override;
+    virtual bool InitRayTracingAS(IRHIDevice& device, IRHICommandList& command_list, const glTFRenderMeshManager& mesh_manager) override;
     virtual GPU_BUFFER_HANDLE_TYPE GetTLASHandle() const override;
 
     const std::vector<D3D12_RAYTRACING_INSTANCE_DESC>& GetInstanceDesc() const;

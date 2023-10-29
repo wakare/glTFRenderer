@@ -145,7 +145,7 @@
     <ClCompile Include="glTFRenderPass\glTFRenderMeshManager.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderPassBase.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderPassManager.cpp" />
-    <ClCompile Include="glTFRenderPass\glTFRenderPassMeshResource.cpp" />
+    <ClCompile Include="glTFRenderPass\glTFMeshRenderResource.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderResourceManager.cpp" />
     <None Include="glTFResources\ShaderSource\Interface\SceneMesh.hlsl" />
     <None Include="glTFResources\ShaderSource\Interface\SceneView.hlsl" />
@@ -273,7 +273,7 @@
     <ClInclude Include="glTFRenderPass\glTFRenderPassBase.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderPassCommon.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderPassManager.h" />
-    <ClInclude Include="glTFRenderPass\glTFRenderPassMeshResource.h" />
+    <ClInclude Include="glTFRenderPass\glTFMeshRenderResource.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderResourceManager.h" />
     <None Include="glTFResources\ShaderSource\MeshPassCommon.hlsl" />
     <None Include="glTFResources\ShaderSource\LightPassCommon.hlsl" />
