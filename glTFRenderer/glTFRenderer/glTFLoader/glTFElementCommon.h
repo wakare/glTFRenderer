@@ -208,7 +208,7 @@ typedef glTF_Attribute_Type<glTF_Attribute_Base::glTF_Attribute::EWeight, 1>  gl
 typedef glTF_Attribute_Type<glTF_Attribute_Base::glTF_Attribute::EWeight, 2>  glTF_Attribute_Weight_2;
 typedef glTF_Attribute_Type<glTF_Attribute_Base::glTF_Attribute::EWeight, 3>  glTF_Attribute_Weight_3;
 
-struct glTF_Primitive
+struct glTF_Primitive : glTFUniqueObject<glTF_Primitive>
 {
     enum glTF_Primitive_Mode
     {

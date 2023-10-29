@@ -7,6 +7,7 @@
 class glTFLoader
 {
     friend class glTFSceneGraph;
+    friend class glTFMeshRawData;
     
 public:
     glTFLoader();

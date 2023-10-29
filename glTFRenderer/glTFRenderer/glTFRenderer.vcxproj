@@ -217,6 +217,7 @@
     <ClCompile Include="glTFRHI\RHIUtils.cpp" />
     <ClCompile Include="glTFScene\glTFAABB.cpp" />
     <ClCompile Include="glTFScene\glTFCamera.cpp" />
+    <ClCompile Include="glTFScene\glTFMeshRawData.cpp" />
     <ClCompile Include="glTFScene\glTFSceneBox.cpp" />
     <ClCompile Include="glTFScene\glTFSceneGraph.cpp" />
     <ClCompile Include="glTFScene\glTFSceneObjectBase.cpp" />
@@ -332,6 +333,7 @@
     <ClInclude Include="glTFRHI\RHIUtils.h" />
     <ClInclude Include="glTFScene\glTFAABB.h" />
     <ClInclude Include="glTFScene\glTFCamera.h" />
+    <ClInclude Include="glTFScene\glTFMeshRawData.h" />
     <ClInclude Include="glTFScene\glTFSceneBox.h" />
     <ClInclude Include="glTFScene\glTFSceneGraph.h" />
     <ClInclude Include="glTFScene\glTFSceneObjectBase.h" />
