@@ -7,6 +7,7 @@ struct glTFMeshInstanceRenderResource
 {
     glm::mat4 m_instance_transform;
     glTFUniqueID m_mesh_render_resource;
+    unsigned m_instance_material_id;
 };
 
 class glTFRenderMeshManager

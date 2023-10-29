@@ -23,6 +23,7 @@ struct VS_INPUT
     float4 instance_matrix_1: INSTANCE_TRANSFORM_MATRIX1;
     float4 instance_matrix_2: INSTANCE_TRANSFORM_MATRIX2;
     float4 instance_matrix_3: INSTANCE_TRANSFORM_MATRIX3;
+    uint instance_material_id : INSTANCE_MATERIAL_ID;
 };
 
 struct VS_OUTPUT
@@ -40,6 +41,8 @@ struct VS_OUTPUT
 #ifdef HAS_TEXCOORD
     float2 texCoord: TEXCOORD;
 #endif
+
+    uint vs_material_id: MATERIAL_ID;
 };
 
 #define PS_INPUT VS_OUTPUT

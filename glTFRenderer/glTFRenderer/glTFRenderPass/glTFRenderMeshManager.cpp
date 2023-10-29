@@ -35,6 +35,7 @@ bool glTFRenderMeshManager::AddOrUpdatePrimitive(glTFRenderResourceManager& reso
 
     // Only update when transform has changed
     m_mesh_instances[instance_ID].m_instance_transform = primitive->GetTransformMatrix();
+    m_mesh_instances[instance_ID].m_instance_material_id = primitive->HasMaterial() ? primitive->GetMaterial().GetID() : glTFUniqueIDInvalid;
     m_mesh_instances[instance_ID].m_mesh_render_resource = mesh_ID;
     
     return true; 

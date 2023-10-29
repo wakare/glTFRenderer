@@ -19,5 +19,6 @@ VS_OUTPUT main(VS_INPUT input)
 #ifdef HAS_TEXCOORD 
     output.texCoord = input.texCoord;
 #endif
+    output.vs_material_id = input.instance_material_id;
     return output;
 }

@@ -240,7 +240,7 @@ struct glTF_Primitive
         }
 
         hash += indices.node_index * (hash_index++ * 923746);
-        hash += material.node_index * (hash_index++ * 2143);
+        //hash += material.node_index * (hash_index++ * 2143);
 
         hash += mode * (hash++ * 23423);
         return hash;

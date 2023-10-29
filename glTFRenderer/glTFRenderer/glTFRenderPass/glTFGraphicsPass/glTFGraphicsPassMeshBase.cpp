@@ -1,4 +1,6 @@
 #include "glTFGraphicsPassMeshBase.h"
+
+#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneMesh.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 
 glTFGraphicsPassMeshBase::glTFGraphicsPassMeshBase()
@@ -22,14 +24,6 @@ bool glTFGraphicsPassMeshBase::PreRenderPass(glTFRenderResourceManager& resource
     
     RHIUtils::Instance().SetPrimitiveTopology( command_list, RHIPrimitiveTopologyType::TRIANGLELIST);
 
-    if (!m_instance_buffer)
-    {
-        // Construct instance buffer (64MB means contains 1M instance transform)
-        static unsigned max_instance_buffer_size = 1024 * 1024 * 64;
-        
-        m_instance_buffer = RHIResourceFactory::CreateRHIResource<IRHIVertexBuffer>();    
-    }
-    
     return true;
 }
 
@@ -38,58 +32,11 @@ bool glTFGraphicsPassMeshBase::RenderPass(glTFRenderResourceManager& resource_ma
     RETURN_IF_FALSE(glTFGraphicsPassBase::RenderPass(resource_manager))    
 
     auto& command_list = resource_manager.GetCommandListForRecord();
-    
-    // Render meshes
+
+    RETURN_IF_FALSE(InitInstanceBuffer(resource_manager))
     const auto& mesh_render_resources = resource_manager.GetMeshManager().GetMeshRenderResources();
-    const auto& mesh_instance_render_resource = resource_manager.GetMeshManager().GetMeshInstanceRenderResource();
-    // mesh id -- <instance count, instance start offset>
-    std::map<glTFUniqueID, std::pair<unsigned, unsigned>> mesh_instance_infos;
     
-    VertexBufferData instance_buffer;
-    instance_buffer.layout.elements.push_back({VertexLayoutType::INSTANCE_MAT_0, sizeof(float) * 4});
-    instance_buffer.layout.elements.push_back({VertexLayoutType::INSTANCE_MAT_1, sizeof(float) * 4});
-    instance_buffer.layout.elements.push_back({VertexLayoutType::INSTANCE_MAT_2, sizeof(float) * 4});
-    instance_buffer.layout.elements.push_back({VertexLayoutType::INSTANCE_MAT_3, sizeof(float) * 4});
-
-    instance_buffer.byteSize = mesh_instance_render_resource.size() * sizeof(glm::mat4);
-    instance_buffer.vertex_count = mesh_instance_render_resource.size();
-    
-    instance_buffer.data = std::make_unique<char[]>(instance_buffer.byteSize);
-    size_t instance_index = 0;
-    
-    for (const auto& mesh : mesh_render_resources)
-    {
-        auto mesh_ID = mesh.first;
-        
-        std::vector<glTFUniqueID> instances;
-        // Find all instances with current mesh id
-        for (const auto& instance : mesh_instance_render_resource)
-        {
-            if (instance.second.m_mesh_render_resource == mesh_ID)
-            {
-                instances.push_back(instance.first);
-            }
-        }
-
-        mesh_instance_infos[mesh_ID] = {instances.size(), instance_index/* * sizeof(glm::mat4)*/};
-        
-        for (const auto& instance : instances)
-        {
-            auto instance_data = mesh_instance_render_resource.find(instance);
-            GLTF_CHECK(instance_data != mesh_instance_render_resource.end());
-
-            memcpy(instance_buffer.data.get() + instance_index * sizeof(glm::mat4), &instance_data->second.m_instance_transform, sizeof(glm::mat4)); 
-            ++instance_index;
-        }
-    }
-    
-    if (!m_instance_buffer_view)
-    {
-        const RHIBufferDesc instance_buffer_desc = {L"instanceBufferDefaultBuffer", instance_buffer.byteSize, 1, 1, RHIBufferType::Default, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
-        m_instance_buffer_view = m_instance_buffer->CreateVertexBufferView(resource_manager.GetDevice(), command_list, instance_buffer_desc, instance_buffer);
-    }
-    
-    for (const auto& instance : mesh_instance_infos)
+    for (const auto& instance : m_instance_draw_infos)
     {
         const auto& mesh_data = mesh_render_resources.find(instance.first);
         if (mesh_data == mesh_render_resources.end())
@@ -154,6 +101,62 @@ bool glTFGraphicsPassMeshBase::EndDrawMesh(glTFRenderResourceManager& resource_m
     return true;
 }
 
+bool glTFGraphicsPassMeshBase::InitInstanceBuffer(glTFRenderResourceManager& resource_manager)
+{
+    if (m_instance_buffer_view)
+    {
+        return true;
+    }
+    
+    // Render meshes
+    const auto& mesh_manager = resource_manager.GetMeshManager();
+    
+    const auto& mesh_render_resources = mesh_manager.GetMeshRenderResources();
+    const auto& mesh_instance_render_resource = mesh_manager.GetMeshInstanceRenderResource();
+    
+    VertexBufferData instance_buffer;
+    instance_buffer.layout.elements = m_instance_input_layout.m_instance_layout.elements;
+    instance_buffer.byteSize = mesh_instance_render_resource.size() * sizeof(MeshInstanceInputData);
+    instance_buffer.vertex_count = mesh_instance_render_resource.size();
+    
+    instance_buffer.data = std::make_unique<char[]>(instance_buffer.byteSize);
+    std::vector<MeshInstanceInputData> instance_datas; instance_datas.reserve(mesh_instance_render_resource.size());
+    
+    for (const auto& mesh : mesh_render_resources)
+    {
+        auto mesh_ID = mesh.first;
+        
+        std::vector<glTFUniqueID> instances;
+        // Find all instances with current mesh id
+        for (const auto& instance : mesh_instance_render_resource)
+        {
+            if (instance.second.m_mesh_render_resource == mesh_ID)
+            {
+                instances.push_back(instance.first);
+            }
+        }
+
+        m_instance_draw_infos[mesh_ID] = {instances.size(), instance_datas.size()};
+        
+        for (size_t instance_index = 0; instance_index < instances.size(); ++instance_index)
+        {
+            auto instance_data = mesh_instance_render_resource.find(instances[instance_index]);
+            GLTF_CHECK(instance_data != mesh_instance_render_resource.end());
+            
+            instance_datas.emplace_back( MeshInstanceInputData
+                {instance_data->second.m_instance_transform, instance_data->second.m_instance_material_id});
+        }
+    }
+
+    memcpy(instance_buffer.data.get(), instance_datas.data(), instance_buffer.byteSize);
+    
+    const RHIBufferDesc instance_buffer_desc = {L"instanceBufferDefaultBuffer", instance_buffer.byteSize, 1, 1, RHIBufferType::Default, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
+    m_instance_buffer = RHIResourceFactory::CreateRHIResource<IRHIVertexBuffer>();
+    m_instance_buffer_view = m_instance_buffer->CreateVertexBufferView(resource_manager.GetDevice(), resource_manager.GetCommandListForRecord(), instance_buffer_desc, instance_buffer);
+    
+    return true;
+}
+
 std::vector<RHIPipelineInputLayout> glTFGraphicsPassMeshBase::GetVertexInputLayout()
 {
     return m_vertex_input_layouts;
@@ -203,10 +206,7 @@ bool glTFGraphicsPassMeshBase::ResolveVertexInputLayout(const VertexLayoutDeclar
         vertex_layout_offset += vertex_layout.byte_size;   
     }
 
-    m_vertex_input_layouts.push_back({ "INSTANCE_TRANSFORM_MATRIX", 0, RHIDataFormat::R32G32B32A32_FLOAT, 0, 1 });
-    m_vertex_input_layouts.push_back({ "INSTANCE_TRANSFORM_MATRIX", 1, RHIDataFormat::R32G32B32A32_FLOAT, 16, 1 });
-    m_vertex_input_layouts.push_back({ "INSTANCE_TRANSFORM_MATRIX", 2, RHIDataFormat::R32G32B32A32_FLOAT, 32, 1 });
-    m_vertex_input_layouts.push_back({ "INSTANCE_TRANSFORM_MATRIX", 3, RHIDataFormat::R32G32B32A32_FLOAT, 48, 1 });
-
+    GLTF_CHECK(m_instance_input_layout.ResolveInputInstanceLayout(m_vertex_input_layouts));
+    
     return true;
 }
