@@ -2,6 +2,7 @@
 #include "d3dx12.h"
 #include "DX12CommandList.h"
 #include "DX12CommandQueue.h"
+#include "DX12CommandSignature.h"
 #include "DX12DescriptorHeap.h"
 #include "DX12Device.h"
 #include "DX12GPUBuffer.h"
@@ -37,6 +38,7 @@ DXGI_FORMAT DX12ConverterUtils::ConvertToDXGIFormat(RHIDataFormat format)
         CONVERT_DXGI_FORMAT_CASE(B5G6R5_UNORM)
         CONVERT_DXGI_FORMAT_CASE(D32_FLOAT)
         CONVERT_DXGI_FORMAT_CASE(R32_FLOAT)
+        CONVERT_DXGI_FORMAT_CASE(R32G32B32A32_UINT)
         CONVERT_DXGI_FORMAT_CASE(R32_UINT)
         CONVERT_DXGI_FORMAT_CASE(R32_TYPELESS)
         CONVERT_DXGI_FORMAT_CASE(R16_FLOAT)
@@ -196,12 +198,99 @@ D3D12_CLEAR_VALUE DX12ConverterUtils::ConvertToD3DClearValue(RHIRenderTargetClea
     return dx_clear_value;
 }
 
+D3D12_INDIRECT_ARGUMENT_TYPE DX12ConverterUtils::ConvertToIndirectArgumentType(RHIIndirectArgType type)
+{
+    switch (type) {
+    case RHIIndirectArgType::Draw:
+        return D3D12_INDIRECT_ARGUMENT_TYPE_DRAW;
+        
+    case RHIIndirectArgType::DrawIndexed:
+        return D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED;
+        
+    case RHIIndirectArgType::Dispatch:
+        return D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH;
+        
+    case RHIIndirectArgType::VertexBufferView:
+        return D3D12_INDIRECT_ARGUMENT_TYPE_VERTEX_BUFFER_VIEW;
+        
+    case RHIIndirectArgType::IndexBufferView:
+        return D3D12_INDIRECT_ARGUMENT_TYPE_INDEX_BUFFER_VIEW;
+        
+    case RHIIndirectArgType::Constant:
+        return D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT;
+        
+    case RHIIndirectArgType::ConstantBufferView:
+        return D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT_BUFFER_VIEW;
+        
+    case RHIIndirectArgType::ShaderResourceView:
+        return D3D12_INDIRECT_ARGUMENT_TYPE_SHADER_RESOURCE_VIEW;
+        
+    case RHIIndirectArgType::UnOrderAccessView:
+        return D3D12_INDIRECT_ARGUMENT_TYPE_UNORDERED_ACCESS_VIEW;
+        
+    case RHIIndirectArgType::DispatchRays:
+        return D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH_RAYS;
+        
+    case RHIIndirectArgType::DispatchMesh:
+        return D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH_MESH;
+    }
+
+    GLTF_CHECK(false);
+    return D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH;
+}
+
+D3D12_INDIRECT_ARGUMENT_DESC DX12ConverterUtils::ConvertToIndirectArgumentDesc(const RHIIndirectArgumentDesc& desc)
+{
+    D3D12_INDIRECT_ARGUMENT_DESC result = {};
+
+    result.Type = ConvertToIndirectArgumentType(desc.type);
+    switch (result.Type) {
+    case D3D12_INDIRECT_ARGUMENT_TYPE_DRAW:
+        break;
+    case D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED:
+        break;
+    case D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH:
+        break;
+        
+    case D3D12_INDIRECT_ARGUMENT_TYPE_VERTEX_BUFFER_VIEW:
+        result.VertexBuffer.Slot = desc.desc.vertex_buffer.slot;
+        break;
+    case D3D12_INDIRECT_ARGUMENT_TYPE_INDEX_BUFFER_VIEW:
+        break;
+        
+    case D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT:
+        result.Constant.RootParameterIndex = desc.desc.constant.root_parameter_index;
+        result.Constant.DestOffsetIn32BitValues = desc.desc.constant.dest_offset_in_32bit_value;
+        result.Constant.Num32BitValuesToSet = desc.desc.constant.num_32bit_values_to_set;
+        break;
+        
+    case D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT_BUFFER_VIEW:
+        result.ConstantBufferView.RootParameterIndex = desc.desc.constant_buffer_view.root_parameter_index;
+        break;
+        
+    case D3D12_INDIRECT_ARGUMENT_TYPE_SHADER_RESOURCE_VIEW:
+        result.ShaderResourceView.RootParameterIndex = desc.desc.shader_resource_view.root_parameter_index;
+        break;
+        
+    case D3D12_INDIRECT_ARGUMENT_TYPE_UNORDERED_ACCESS_VIEW:
+        result.UnorderedAccessView.RootParameterIndex = desc.desc.unordered_access_view.root_parameter_index;
+        break;
+        
+    case D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH_RAYS:
+        break;
+    case D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH_MESH:
+        break;
+    }
+    
+    return result;
+}
+
 
 DX12Utils::~DX12Utils()
 {
 }
 
-int DX12Utils::GetDXGIFormatBitsPerPixel(DXGI_FORMAT& dxgiFormat)
+int DX12Utils::GetDXGIFormatBitsPerPixel(const DXGI_FORMAT& dxgiFormat)
 {
     if (dxgiFormat == DXGI_FORMAT_R32G32B32A32_FLOAT) return 128;
     else if (dxgiFormat == DXGI_FORMAT_R16G16B16A16_FLOAT) return 64;
@@ -218,6 +307,7 @@ int DX12Utils::GetDXGIFormatBitsPerPixel(DXGI_FORMAT& dxgiFormat)
     else if (dxgiFormat == DXGI_FORMAT_B5G6R5_UNORM) return 16;
     else if (dxgiFormat == DXGI_FORMAT_R32_FLOAT) return 32;
     else if (dxgiFormat == DXGI_FORMAT_R16_FLOAT) return 16;
+    else if (dxgiFormat == DXGI_FORMAT_R16_UINT) return 16;
     else if (dxgiFormat == DXGI_FORMAT_R16_UNORM) return 16;
     else if (dxgiFormat == DXGI_FORMAT_R8_UNORM) return 8;
     else if (dxgiFormat == DXGI_FORMAT_A8_UNORM) return 8;
@@ -541,6 +631,34 @@ bool DX12Utils::TraceRay(IRHICommandList& command_list, IRHIShaderTable& shader_
 
     dxCommandList->DispatchRays(&dispatch_rays_desc);
 
+    return true;
+}
+
+bool DX12Utils::ExecuteIndirect(IRHICommandList& command_list, IRHICommandSignature& command_signature,
+    unsigned max_count, IRHIGPUBuffer& arguments_buffer, unsigned arguments_buffer_offset)
+{
+    auto* dx_command_list = dynamic_cast<DX12CommandList&>(command_list).GetDXRCommandList();
+    auto* dx_command_signature = dynamic_cast<DX12CommandSignature&>(command_signature).GetCommandSignature();
+
+    auto* dx_arguments_buffer = dynamic_cast<DX12GPUBuffer&>(arguments_buffer).GetBuffer();
+    
+    dx_command_list->ExecuteIndirect(dx_command_signature, max_count, dx_arguments_buffer, arguments_buffer_offset, nullptr, 0 );
+    
+    return true; 
+}
+
+bool DX12Utils::ExecuteIndirect(IRHICommandList& command_list, IRHICommandSignature& command_signature,
+                                unsigned max_count, IRHIGPUBuffer& arguments_buffer, unsigned arguments_buffer_offset, IRHIGPUBuffer& count_buffer,
+                                unsigned count_buffer_offset)
+{
+    auto* dx_command_list = dynamic_cast<DX12CommandList&>(command_list).GetDXRCommandList();
+    auto* dx_command_signature = dynamic_cast<DX12CommandSignature&>(command_signature).GetCommandSignature();
+
+    auto* dx_arguments_buffer = dynamic_cast<DX12GPUBuffer&>(arguments_buffer).GetBuffer();
+    auto* dx_count_buffer = dynamic_cast<DX12GPUBuffer&>(count_buffer).GetBuffer();
+    
+    dx_command_list->ExecuteIndirect(dx_command_signature, max_count, dx_arguments_buffer, arguments_buffer_offset, dx_count_buffer, count_buffer_offset );
+    
     return true;
 }
 

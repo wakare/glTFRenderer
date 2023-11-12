@@ -3,6 +3,7 @@
 #include <dxgiformat.h>
 
 #include "glTFRHI/RHIUtils.h"
+#include "glTFRHI/RHIInterface/IRHICommandSignature.h"
 #include "glTFUtils/glTFLog.h"
 #include "glTFRHI/RHIInterface/IRHIRenderTarget.h"
 
@@ -23,6 +24,8 @@ public:
     static D3D12_SRV_DIMENSION ConvertToSRVDimensionType(RHIResourceDimension type);
     static D3D12_UAV_DIMENSION ConvertToUAVDimensionType(RHIResourceDimension type);
     static D3D12_CLEAR_VALUE ConvertToD3DClearValue(RHIRenderTargetClearValue clear_value);
+    static D3D12_INDIRECT_ARGUMENT_TYPE ConvertToIndirectArgumentType(RHIIndirectArgType type);
+    static D3D12_INDIRECT_ARGUMENT_DESC ConvertToIndirectArgumentDesc(const RHIIndirectArgumentDesc& desc);
 };
 
 class DX12Utils : public RHIUtils
@@ -32,7 +35,7 @@ public:
     virtual ~DX12Utils() override;
     
     // get the number of bits per pixel for a dxgi format
-    static int GetDXGIFormatBitsPerPixel(DXGI_FORMAT& dxgiFormat);
+    static int GetDXGIFormatBitsPerPixel(const DXGI_FORMAT& dxgiFormat);
     
     virtual bool ResetCommandList(IRHICommandList& commandList, IRHICommandAllocator& commandAllocator, IRHIPipelineStateObject* initPSO) override;
     virtual bool CloseCommandList(IRHICommandList& commandList) override;
@@ -62,6 +65,9 @@ public:
     virtual bool DrawIndexInstanced(IRHICommandList& commandList, unsigned indexCountPerInstance, unsigned instanceCount, unsigned startIndexLocation, unsigned baseVertexLocation, unsigned startInstanceLocation) override;
     virtual bool Dispatch(IRHICommandList& command_list, unsigned X, unsigned Y, unsigned Z) override;
     virtual bool TraceRay(IRHICommandList& command_list, IRHIShaderTable& shader_table, unsigned X, unsigned Y, unsigned Z) override;
+
+    virtual bool ExecuteIndirect(IRHICommandList& command_list, IRHICommandSignature& command_signature, unsigned max_count, IRHIGPUBuffer& arguments_buffer, unsigned arguments_buffer_offset) override;
+    virtual bool ExecuteIndirect(IRHICommandList& command_list, IRHICommandSignature& command_signature, unsigned max_count, IRHIGPUBuffer& arguments_buffer, unsigned arguments_buffer_offset, IRHIGPUBuffer& count_buffer, unsigned count_buffer_offset) override;
     
     virtual bool Present(IRHISwapChain& swapchain) override;
 

@@ -19,10 +19,10 @@ PS_OUTPUT main(PS_INPUT input)
 
 #ifdef HAS_NORMAL
     #ifdef HAS_TANGENT
-    if (using_normal_mapping)
+    if (input.normal_mapping)
     {
         float3 normal = normalize(2 * SampleNormalTexture(input.vs_material_id, input.texCoord).xyz - 1.0);
-        output.normal = float4(GetWorldNormal((float3x3)world_matrix, input.normal, input.tangent, normal), 0.0);
+        output.normal = float4(GetWorldNormal(input.world_rotation_matrix, input.normal, input.tangent, normal), 0.0);
     }
     else
     #endif

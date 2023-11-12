@@ -1,7 +1,7 @@
 #ifndef MESH_PASS_COMMON
 #define MESH_PASS_COMMON
 #include "glTFResources/ShaderSource/Interface/SceneView.hlsl"
-#include "glTFResources/ShaderSource/Interface/SceneMesh.hlsl"
+//#include "glTFResources/ShaderSource/Interface/SceneMesh.hlsl"
 
 struct VS_INPUT
 {
@@ -23,7 +23,11 @@ struct VS_INPUT
     float4 instance_matrix_1: INSTANCE_TRANSFORM_MATRIX1;
     float4 instance_matrix_2: INSTANCE_TRANSFORM_MATRIX2;
     float4 instance_matrix_3: INSTANCE_TRANSFORM_MATRIX3;
-    uint instance_material_id : INSTANCE_MATERIAL_ID;
+    
+    uint4 instance_custom_data : INSTANCE_CUSTOM_DATA;
+
+    uint GetMaterialID() {return instance_custom_data.x; }
+    uint NormalMapping() {return instance_custom_data.y;}
 };
 
 struct VS_OUTPUT
@@ -43,6 +47,8 @@ struct VS_OUTPUT
 #endif
 
     uint vs_material_id: MATERIAL_ID;
+    uint normal_mapping: NORMAL_MAPPING;
+    float3x3 world_rotation_matrix: WORLD_ROTATION_MATRIX;
 };
 
 #define PS_INPUT VS_OUTPUT

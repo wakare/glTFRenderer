@@ -2,7 +2,7 @@
 
 #include <dxgi.h>
 
-#include "../RHIInterface/IRHIDevice.h"
+#include "glTFRHI/RHIInterface/IRHIDevice.h"
 #include "DX12Common.h"
 
 class DX12Device : public IRHIDevice

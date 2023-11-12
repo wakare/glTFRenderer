@@ -9,7 +9,8 @@ struct MeshInstanceInputData
 {
     glm::mat4 instance_transform;
     unsigned instance_material_id;
-    unsigned padding[3];
+    unsigned normal_mapping;
+    unsigned padding[2];
 };
 
 struct MeshInstanceInputLayout
@@ -22,7 +23,7 @@ struct MeshInstanceInputLayout
         m_instance_layout.elements.push_back({VertexLayoutType::INSTANCE_MAT_1, sizeof(float) * 4});
         m_instance_layout.elements.push_back({VertexLayoutType::INSTANCE_MAT_2, sizeof(float) * 4});
         m_instance_layout.elements.push_back({VertexLayoutType::INSTANCE_MAT_3, sizeof(float) * 4});
-        m_instance_layout.elements.push_back({VertexLayoutType::INSTANCE_MATERIAL_ID, sizeof(float) * 4});
+        m_instance_layout.elements.push_back({VertexLayoutType::INSTANCE_CUSTOM_DATA, sizeof(unsigned) * 4});
     }
 
     bool ResolveInputInstanceLayout(std::vector<RHIPipelineInputLayout>& out_layout)
@@ -52,9 +53,9 @@ struct MeshInstanceInputLayout
                     out_layout.push_back({ "INSTANCE_TRANSFORM_MATRIX", 3, RHIDataFormat::R32G32B32A32_FLOAT, vertex_layout_offset, 1 });
                 }
                 break;
-            case VertexLayoutType::INSTANCE_MATERIAL_ID:
+            case VertexLayoutType::INSTANCE_CUSTOM_DATA:
                 {
-                    out_layout.push_back({ "INSTANCE_MATERIAL_ID", 0, RHIDataFormat::R32_UINT, vertex_layout_offset, 1 });
+                    out_layout.push_back({ "INSTANCE_CUSTOM_DATA", 0, RHIDataFormat::R32G32B32A32_UINT, vertex_layout_offset, 1 });
                 }
                 break;
             default:
@@ -66,6 +67,29 @@ struct MeshInstanceInputLayout
 
         return true;
     }
+};
+
+struct MeshIndirectDrawCommand
+{
+    MeshIndirectDrawCommand(const IRHIVertexBufferView& vertex_buffer_view, const IRHIVertexBufferView& instance_buffer_view, const IRHIIndexBufferView& index_buffer_view)
+        : vertex_buffer_view(vertex_buffer_view)
+        , vertex_buffer_instance_view(instance_buffer_view)
+        , index_buffer_view(index_buffer_view)
+    {
+        
+    }
+    
+    // VB for mesh
+    RHIIndirectArgumentVertexBufferView vertex_buffer_view;
+
+    // VB for instancing
+    RHIIndirectArgumentVertexBufferView vertex_buffer_instance_view;
+
+    // IB
+    RHIIndirectArgumentIndexBufferView index_buffer_view;
+    
+    // Draw arguments
+    RHIIndirectArgumentDrawIndexed draw_command_argument;
 };
 
 // Drawing all meshes within mesh pass
@@ -93,6 +117,9 @@ protected:
     
     virtual std::vector<RHIPipelineInputLayout> GetVertexInputLayout() override;
 
+    virtual bool UsingIndirectDraw() const { return true; }
+    
+protected:
     // TODO: Resolve input layout with multiple meshes 
     std::vector<RHIPipelineInputLayout> m_vertex_input_layouts;
     MeshInstanceInputLayout m_instance_input_layout;
@@ -103,4 +130,9 @@ protected:
     std::shared_ptr<IRHIVertexBuffer> m_instance_buffer;
     std::shared_ptr<IRHIVertexBufferView> m_instance_buffer_view;
     
+    // Indirect drawing
+    std::shared_ptr<IRHICommandSignature> m_command_signature;
+
+    std::vector<MeshIndirectDrawCommand> m_indirect_arguments;
+    std::shared_ptr<IRHIGPUBuffer> m_indirect_argument_buffer;
 };

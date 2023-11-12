@@ -23,3 +23,18 @@ bool DX12IndexBufferView::InitIndexBufferView(IRHIGPUBuffer& buffer, size_t offs
     
     return true;
 }
+
+RHIGPUDescriptorHandle DX12IndexBufferView::GetGPUHandle() const
+{
+    return m_indexBufferView.BufferLocation;
+}
+
+size_t DX12IndexBufferView::GetSize() const
+{
+    return m_indexBufferView.SizeInBytes;
+}
+
+unsigned DX12IndexBufferView::GetFormat() const
+{
+    return m_indexBufferView.Format;
+}

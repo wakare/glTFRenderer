@@ -3,6 +3,7 @@
 #include <memory>
 #include "RHIInterface/RHICommon.h"
 #include "RHIInterface/IRHICommandAllocator.h"
+#include "RHIInterface/IRHICommandSignature.h"
 #include "RHIInterface/IRHIDescriptorHeap.h"
 #include "RHIInterface/IRHIIndexBufferView.h"
 #include "RHIInterface/IRHIPipelineStateObject.h"
@@ -46,6 +47,9 @@ public:
     virtual bool DrawIndexInstanced(IRHICommandList& commandList, unsigned indexCountPerInstance, unsigned instanceCount, unsigned startIndexLocation, unsigned baseVertexLocation, unsigned startInstanceLocation) = 0;
     virtual bool Dispatch(IRHICommandList& commandList, unsigned X, unsigned Y, unsigned Z) = 0;
     virtual bool TraceRay(IRHICommandList& command_list, IRHIShaderTable& shader_table, unsigned X, unsigned Y, unsigned Z) = 0;
+    
+    virtual bool ExecuteIndirect(IRHICommandList& command_list, IRHICommandSignature& command_signature, unsigned max_count, IRHIGPUBuffer& arguments_buffer, unsigned arguments_buffer_offset) = 0;
+    virtual bool ExecuteIndirect(IRHICommandList& command_list, IRHICommandSignature& command_signature, unsigned max_count, IRHIGPUBuffer& arguments_buffer, unsigned arguments_buffer_offset, IRHIGPUBuffer& count_buffer, unsigned count_buffer_offset) = 0;
     
     virtual bool Present(IRHISwapChain& swapchain) = 0;
 

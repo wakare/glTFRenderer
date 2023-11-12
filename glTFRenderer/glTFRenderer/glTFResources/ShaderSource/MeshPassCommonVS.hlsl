@@ -9,7 +9,7 @@ VS_OUTPUT main(VS_INPUT input)
     float4 view_pos = mul(viewMatrix, world_pos);
     output.pos = mul (projectionMatrix, view_pos);
 #ifdef HAS_NORMAL
-    output.normal = normalize(mul(world_matrix, float4(input.normal, 0.0)).xyz);
+    output.normal = normalize(mul(instance_transform, float4(input.normal, 0.0)).xyz);
 #endif
 
 #ifdef HAS_TANGENT
@@ -19,6 +19,9 @@ VS_OUTPUT main(VS_INPUT input)
 #ifdef HAS_TEXCOORD 
     output.texCoord = input.texCoord;
 #endif
-    output.vs_material_id = input.instance_material_id;
+    output.vs_material_id = input.GetMaterialID();
+    output.normal_mapping = input.NormalMapping();
+    output.world_rotation_matrix = (float3x3)instance_transform;
+    
     return output;
 }

@@ -13,6 +13,10 @@ public:
 
     const D3D12_VERTEX_BUFFER_VIEW& GetVertexBufferView() const {return m_vertexBufferView; }
     
+    virtual RHIGPUDescriptorHandle GetGPUHandle() const override;
+    virtual size_t GetSize() const override;
+    virtual size_t GetStride() const override;
+    
 private:
     D3D12_VERTEX_BUFFER_VIEW m_vertexBufferView;
 };

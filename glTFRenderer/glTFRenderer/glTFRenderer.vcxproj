@@ -166,6 +166,7 @@
     <None Include="glTFResources\ShaderSource\Math\MathCommon.hlsl" />
     <None Include="glTFResources\ShaderSource\Math\BRDF.hlsl" />
     <ClCompile Include="glTFRHI\RHIConfigSingleton.cpp" />
+    <ClCompile Include="glTFRHI\RHIDX12Impl\DX12CommandSignature.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12DescriptorHeap.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12CommandAllocator.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12CommandList.cpp" />
@@ -192,6 +193,7 @@
     <ClCompile Include="glTFRHI\RHIInterface\IRHICommandAllocator.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHICommandList.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHICommandQueue.cpp" />
+    <ClCompile Include="glTFRHI\RHIInterface\IRHICommandSignature.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIDescriptorHeap.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIDevice.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIFactory.cpp" />
@@ -279,6 +281,7 @@
     <None Include="glTFResources\ShaderSource\LightPassCommon.hlsl" />
     <ClInclude Include="glTFRHI\RHIConfigSingleton.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\d3dx12.h" />
+    <ClInclude Include="glTFRHI\RHIDX12Impl\DX12CommandSignature.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12Common.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12DescriptorHeap.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12CommandAllocator.h" />
@@ -306,6 +309,7 @@
     <ClInclude Include="glTFRHI\RHIInterface\IRHICommandAllocator.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHICommandList.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHICommandQueue.h" />
+    <ClInclude Include="glTFRHI\RHIInterface\IRHICommandSignature.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHIDescriptorHeap.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHIDevice.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHIFactory.h" />

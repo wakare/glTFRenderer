@@ -47,6 +47,7 @@ enum class RHIDataFormat
     B5G6R5_UNORM,
     D32_FLOAT,
     R32_FLOAT,
+    R32G32B32A32_UINT,
     R32_UINT,
     R32_TYPELESS,
     R16_FLOAT,
@@ -154,7 +155,9 @@ typedef uint64_t RHICPUDescriptorHandle;
 
 #define RETURN_IF_FALSE(x) \
     if (!(x)) \
-    { assert(false); return false; }
+    { \
+    assert(false); return false; \
+    }
 
 #define GPU_BUFFER_HANDLE_TYPE unsigned long long
 
@@ -162,6 +165,7 @@ typedef uint64_t RHICPUDescriptorHandle;
 inline unsigned GetRHIDataFormatBitsPerPixel(const RHIDataFormat& RHIDataFormat)
 {
     if (RHIDataFormat == RHIDataFormat::R32G32B32A32_FLOAT) return 128;
+    else if (RHIDataFormat == RHIDataFormat::R32G32B32A32_UINT) return 128;
     else if (RHIDataFormat == RHIDataFormat::R32G32B32_FLOAT) return 96;
     else if (RHIDataFormat == RHIDataFormat::R32G32_FLOAT) return 64;
     else if (RHIDataFormat == RHIDataFormat::R16G16B16A16_FLOAT) return 64;

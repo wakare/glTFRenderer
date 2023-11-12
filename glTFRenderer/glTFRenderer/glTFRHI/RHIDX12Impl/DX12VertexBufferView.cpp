@@ -18,3 +18,18 @@ void DX12VertexBufferView::InitVertexBufferView(IRHIGPUBuffer& buffer, size_t of
     m_vertexBufferView.StrideInBytes = static_cast<UINT>(vertexStride);
     m_vertexBufferView.SizeInBytes = static_cast<UINT>(vertexBufferSize);
 }
+
+RHIGPUDescriptorHandle DX12VertexBufferView::GetGPUHandle() const
+{
+    return m_vertexBufferView.BufferLocation;
+}
+
+size_t DX12VertexBufferView::GetSize() const
+{
+    return m_vertexBufferView.SizeInBytes;
+}
+
+size_t DX12VertexBufferView::GetStride() const
+{
+    return m_vertexBufferView.StrideInBytes;
+}

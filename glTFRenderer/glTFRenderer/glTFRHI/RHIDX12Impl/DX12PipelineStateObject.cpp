@@ -29,6 +29,7 @@ bool IDX12PipelineStateObjectCommon::CompileBindShaders(const std::map<RHIShader
 DX12GraphicsPipelineStateObject::DX12GraphicsPipelineStateObject()
     : m_graphics_pipeline_state_desc({})
     , m_bind_depth_stencil_format(DXGI_FORMAT_UNKNOWN)
+    , m_swapchain_sample_desc()
 {
 }
 

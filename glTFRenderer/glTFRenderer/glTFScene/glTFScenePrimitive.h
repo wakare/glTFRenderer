@@ -18,7 +18,7 @@ enum class VertexLayoutType
     INSTANCE_MAT_1,
     INSTANCE_MAT_2,
     INSTANCE_MAT_3,
-    INSTANCE_MATERIAL_ID,
+    INSTANCE_CUSTOM_DATA,
 };
 
 struct VertexLayoutElement

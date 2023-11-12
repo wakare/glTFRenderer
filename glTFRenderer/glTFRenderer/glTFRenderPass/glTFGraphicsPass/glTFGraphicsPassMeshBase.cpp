@@ -24,6 +24,43 @@ bool glTFGraphicsPassMeshBase::PreRenderPass(glTFRenderResourceManager& resource
     
     RHIUtils::Instance().SetPrimitiveTopology( command_list, RHIPrimitiveTopologyType::TRIANGLELIST);
 
+    if (!m_command_signature)
+    {
+        IRHICommandSignatureDesc command_signature_desc;
+        RHIIndirectArgumentDesc vertex_buffer_desc;
+    
+        vertex_buffer_desc.type = RHIIndirectArgType::VertexBufferView;
+        vertex_buffer_desc.desc.vertex_buffer.slot = 0;
+
+        RHIIndirectArgumentDesc vertex_buffer_for_instancing_desc;
+    
+        vertex_buffer_for_instancing_desc.type = RHIIndirectArgType::VertexBufferView;
+        vertex_buffer_for_instancing_desc.desc.vertex_buffer.slot = 1;
+
+        RHIIndirectArgumentDesc index_buffer_desc;
+        index_buffer_desc.type = RHIIndirectArgType::IndexBufferView;
+
+        RHIIndirectArgumentDesc draw_desc;
+        draw_desc.type = RHIIndirectArgType::DrawIndexed;
+    
+        command_signature_desc.m_indirect_arguments.push_back(vertex_buffer_desc);
+        command_signature_desc.m_indirect_arguments.push_back(vertex_buffer_for_instancing_desc);
+        command_signature_desc.m_indirect_arguments.push_back(index_buffer_desc);
+        command_signature_desc.m_indirect_arguments.push_back(draw_desc);
+        command_signature_desc.stride = sizeof(MeshIndirectDrawCommand);
+
+        m_command_signature = RHIResourceFactory::CreateRHIResource<IRHICommandSignature>();
+        m_command_signature->SetCommandSignatureDesc(command_signature_desc);
+        RETURN_IF_FALSE(m_command_signature->InitCommandSignature(resource_manager.GetDevice(), m_root_signature_helper.GetRootSignature()))
+
+        // TODO: resize buffer
+        m_indirect_argument_buffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
+        const RHIBufferDesc indirect_arguments_buffer_desc = {L"indirect_arguments_buffer", 1024ull * 64,
+       1, 1, RHIBufferType::Upload, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
+        
+        RETURN_IF_FALSE(m_indirect_argument_buffer->InitGPUBuffer(resource_manager.GetDevice(), indirect_arguments_buffer_desc ))
+    }
+    
     return true;
 }
 
@@ -35,33 +72,60 @@ bool glTFGraphicsPassMeshBase::RenderPass(glTFRenderResourceManager& resource_ma
 
     RETURN_IF_FALSE(InitInstanceBuffer(resource_manager))
     const auto& mesh_render_resources = resource_manager.GetMeshManager().GetMeshRenderResources();
-    
-    for (const auto& instance : m_instance_draw_infos)
-    {
-        const auto& mesh_data = mesh_render_resources.find(instance.first);
-        if (mesh_data == mesh_render_resources.end())
-        {
-            // No valid instance data exists..
-            continue;
-        }
-        
-        if (!mesh_data->second.mesh->IsVisible())
-        {
-            continue;
-        }
-        
-        RETURN_IF_FALSE(BeginDrawMesh(resource_manager, mesh_data->second, instance.first))
-        
-        RHIUtils::Instance().SetVertexBufferView(command_list, 0, *mesh_data->second.mesh_vertex_buffer_view);
-        RHIUtils::Instance().SetVertexBufferView(command_list, 1, *m_instance_buffer_view);
-        RHIUtils::Instance().SetIndexBufferView(command_list, *mesh_data->second.mesh_index_buffer_view);
-        
-        RHIUtils::Instance().DrawIndexInstanced(command_list,
-            mesh_data->second.mesh_index_count, instance.second.first,
-            0, 0,
-            instance.second.second);
 
-        //RETURN_IF_FALSE(EndDrawMesh(resource_manager, mesh_data->second, instance.second))
+    if (UsingIndirectDraw())
+    {
+        m_indirect_arguments.clear();
+        
+        // Gather all mesh for indirect drawing
+        for (const auto& instance : m_instance_draw_infos)
+        {
+            const auto& mesh_data = mesh_render_resources.find(instance.first);
+            
+            MeshIndirectDrawCommand command(*mesh_data->second.mesh_vertex_buffer_view, *m_instance_buffer_view, *mesh_data->second.mesh_index_buffer_view);
+            command.draw_command_argument.IndexCountPerInstance = mesh_data->second.mesh_index_count;
+            command.draw_command_argument.InstanceCount = instance.second.first;
+            command.draw_command_argument.StartInstanceLocation = instance.second.second;
+            command.draw_command_argument.BaseVertexLocation = 0;
+            command.draw_command_argument.StartIndexLocation = 0;
+
+            m_indirect_arguments.push_back(command);
+        }
+
+        // Copy indirect command to gpu buffer
+        // TODO: Resize buffer
+        RETURN_IF_FALSE(m_indirect_argument_buffer->UploadBufferFromCPU(m_indirect_arguments.data(), 0, sizeof(MeshIndirectDrawCommand) * m_indirect_arguments.size()));
+        RHIUtils::Instance().ExecuteIndirect(command_list, *m_command_signature, m_indirect_arguments.size(), *m_indirect_argument_buffer, 0);
+    }
+    else
+    {
+        for (const auto& instance : m_instance_draw_infos)
+        {
+            const auto& mesh_data = mesh_render_resources.find(instance.first);
+            if (mesh_data == mesh_render_resources.end())
+            {
+                // No valid instance data exists..
+                continue;
+            }
+        
+            if (!mesh_data->second.mesh->IsVisible())
+            {
+                continue;
+            }
+        
+            //RETURN_IF_FALSE(BeginDrawMesh(resource_manager, mesh_data->second, instance.first))
+        
+            RHIUtils::Instance().SetVertexBufferView(command_list, 0, *mesh_data->second.mesh_vertex_buffer_view);
+            RHIUtils::Instance().SetVertexBufferView(command_list, 1, *m_instance_buffer_view);
+            RHIUtils::Instance().SetIndexBufferView(command_list, *mesh_data->second.mesh_index_buffer_view);
+        
+            RHIUtils::Instance().DrawIndexInstanced(command_list,
+                mesh_data->second.mesh_index_count, instance.second.first,
+                0, 0,
+                instance.second.second);
+
+            //RETURN_IF_FALSE(EndDrawMesh(resource_manager, mesh_data->second, instance.second))
+        }    
     }
 
     return true;
@@ -70,7 +134,7 @@ bool glTFGraphicsPassMeshBase::RenderPass(glTFRenderResourceManager& resource_ma
 bool glTFGraphicsPassMeshBase::SetupRootSignature(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassBase::SetupRootSignature(resource_manager))
-    
+
     return true;
 }
 
@@ -144,7 +208,7 @@ bool glTFGraphicsPassMeshBase::InitInstanceBuffer(glTFRenderResourceManager& res
             GLTF_CHECK(instance_data != mesh_instance_render_resource.end());
             
             instance_datas.emplace_back( MeshInstanceInputData
-                {instance_data->second.m_instance_transform, instance_data->second.m_instance_material_id});
+                {instance_data->second.m_instance_transform, instance_data->second.m_instance_material_id, instance_data->second.m_normal_mapping ? 1u : 0u});
         }
     }
 
