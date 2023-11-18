@@ -9,23 +9,32 @@ class glTFRenderInterfaceSingleConstantBuffer : public glTFRenderInterfaceWithRS
 {
 public:
     glTFRenderInterfaceSingleConstantBuffer()
-        : m_current_update_index(0)
     {
     }
 
     bool UploadAndApplyDataWithIndex(glTFRenderResourceManager& resource_manager, unsigned index, const ConstantBufferType& data, bool is_graphics_pipeline)
     {
-        m_current_update_index = index;
-        RETURN_IF_FALSE(UploadCPUBuffer(&data, sizeof(data)))
-        RETURN_IF_FALSE(ApplyInterfaceImpl(resource_manager, is_graphics_pipeline))
-        m_current_update_index = 0;
+        RETURN_IF_FALSE(UploadCPUBuffer(&data, GetDataOffsetWithAlignment(index), sizeof(data)))
+        RETURN_IF_FALSE(ApplyInterfaceWithOffset(resource_manager, index, is_graphics_pipeline))
 
         return true;
     }
     
-    virtual bool UploadCPUBuffer(const void* data, size_t size) override
+    virtual bool UploadCPUBuffer(const void* data, size_t offset, size_t size) override
     {
-        return m_constant_gpu_data->UploadBufferFromCPU(data, GetCurrentUpdateDataOffsetWithAlignment(), size);
+        return m_constant_gpu_data->UploadBufferFromCPU(data, GetDataOffsetWithAlignment(offset), size);
+    }
+
+    RHIGPUDescriptorHandle GetGPUHandle(unsigned offset) const
+    {
+        return m_constant_gpu_data->GetGPUBufferHandle() + GetDataOffsetWithAlignment(offset);
+    }
+
+    size_t GetDataOffsetWithAlignment(unsigned index) const
+    {
+        const size_t alignment_size = 256 * (sizeof(ConstantBufferType) / 256 + (sizeof(ConstantBufferType) % 256 ? 1 : 0));
+        GLTF_CHECK(index * alignment_size < max_buffer_size);   
+        return index * alignment_size;
     }
 
 protected:
@@ -48,9 +57,14 @@ protected:
     
     virtual bool ApplyInterfaceImpl(glTFRenderResourceManager& resource_manager, bool is_graphics_pipeline) override
     {
-        const RHIGPUDescriptorHandle current_update_handle = m_constant_gpu_data->GetGPUBufferHandle() + GetCurrentUpdateDataOffsetWithAlignment();
+        return ApplyInterfaceWithOffset(resource_manager, 0, is_graphics_pipeline);
+    }
+
+    bool ApplyInterfaceWithOffset(glTFRenderResourceManager& resource_manager, unsigned index, bool is_graphics_pipeline) const
+    {
+        const RHIGPUDescriptorHandle current_update_handle = m_constant_gpu_data->GetGPUBufferHandle() + GetDataOffsetWithAlignment(index);
         RETURN_IF_FALSE(RHIUtils::Instance().SetCBVToRootParameterSlot(resource_manager.GetCommandListForRecord(),
-        m_allocation.parameter_index,current_update_handle, is_graphics_pipeline))
+        m_allocation.parameter_index, current_update_handle, is_graphics_pipeline))
     
         return true;
     }
@@ -68,14 +82,6 @@ protected:
         (void)snprintf(registerIndexValue, sizeof(registerIndexValue), "register(b%d)", GetRSAllocation().register_index);
         out_shader_pre_define_macros.AddMacro(ConstantBufferType::Name, registerIndexValue);
     }
-
-    size_t GetCurrentUpdateDataOffsetWithAlignment() const
-    {
-        const size_t alignment_size = 256 * (sizeof(ConstantBufferType) / 256 + (sizeof(ConstantBufferType) % 256 ? 1 : 0));
-        GLTF_CHECK(m_current_update_index * alignment_size < max_buffer_size);   
-        return m_current_update_index * alignment_size;
-    }
     
     std::shared_ptr<IRHIGPUBuffer> m_constant_gpu_data;
-    unsigned m_current_update_index;    
 };

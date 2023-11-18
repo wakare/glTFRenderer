@@ -111,7 +111,7 @@ void glTFRenderPassManager::UpdateScene(size_t deltaTimeMs)
             //unsigned current_frame = m_resource_manager->GetCurrentBackBufferIndex();
             static unsigned _frame_count = 0;
             ++_frame_count;
-            frame_stat->UploadCPUBuffer(&_frame_count, sizeof(_frame_count));
+            frame_stat->UploadCPUBuffer(&_frame_count, 0, sizeof(_frame_count));
         }
     }
 }

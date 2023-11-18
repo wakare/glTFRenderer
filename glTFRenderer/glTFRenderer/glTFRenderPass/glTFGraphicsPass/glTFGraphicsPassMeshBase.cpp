@@ -46,12 +46,17 @@ bool glTFGraphicsPassMeshBase::PreRenderPass(glTFRenderResourceManager& resource
         RHIIndirectArgumentDesc index_buffer_desc;
         index_buffer_desc.type = RHIIndirectArgType::IndexBufferView;
 
+        RHIIndirectArgumentDesc per_draw_constant_buffer_view_desc;
+        per_draw_constant_buffer_view_desc.type = RHIIndirectArgType::ConstantBufferView;
+        per_draw_constant_buffer_view_desc.desc.constant_buffer_view.root_parameter_index = GetRenderInterface<glTFRenderInterfaceSceneMesh>()->GetRSAllocation().parameter_index;
+            
         RHIIndirectArgumentDesc draw_desc;
         draw_desc.type = RHIIndirectArgType::DrawIndexed;
     
         command_signature_desc.m_indirect_arguments.push_back(vertex_buffer_desc);
         command_signature_desc.m_indirect_arguments.push_back(vertex_buffer_for_instancing_desc);
         command_signature_desc.m_indirect_arguments.push_back(index_buffer_desc);
+        command_signature_desc.m_indirect_arguments.push_back(per_draw_constant_buffer_view_desc);
         command_signature_desc.m_indirect_arguments.push_back(draw_desc);
         command_signature_desc.stride = sizeof(MeshIndirectDrawCommand);
 
@@ -88,7 +93,15 @@ bool glTFGraphicsPassMeshBase::RenderPass(glTFRenderResourceManager& resource_ma
         {
             const auto& mesh_data = mesh_render_resources.find(instance.first);
             
-            MeshIndirectDrawCommand command(*mesh_data->second.mesh_vertex_buffer_view, *m_instance_buffer_view, *mesh_data->second.mesh_index_buffer_view);
+            GetRenderInterface<glTFRenderInterfaceSceneMesh>()->UploadCPUBuffer(&instance.second.second, instance.first, sizeof(unsigned));
+            
+            MeshIndirectDrawCommand command
+            (
+                *mesh_data->second.mesh_vertex_buffer_view,
+                *m_instance_buffer_view,
+                *mesh_data->second.mesh_index_buffer_view,
+                {GetRenderInterface<glTFRenderInterfaceSceneMesh>()->GetGPUHandle(instance.first)}
+            );
             command.draw_command_argument.IndexCountPerInstance = mesh_data->second.mesh_index_count;
             command.draw_command_argument.InstanceCount = instance.second.first;
             command.draw_command_argument.StartInstanceLocation = instance.second.second;
@@ -236,7 +249,7 @@ bool glTFGraphicsPassMeshBase::InitVertexAndInstanceBufferForFrame(glTFRenderRes
     m_instance_buffer_view = m_instance_buffer->CreateVertexBufferView(resource_manager.GetDevice(), resource_manager.GetCommandListForRecord(), instance_buffer_desc, instance_buffer);
 
     RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceStructuredBuffer<MeshInstanceInputData>>()->UploadCPUBuffer(
-               instance_datas.data(), instance_datas.size() * sizeof(MeshInstanceInputData)))
+               instance_datas.data(), 0, instance_datas.size() * sizeof(MeshInstanceInputData)))
     
     return true;
 }

@@ -58,9 +58,9 @@ bool glTFRenderInterfaceSceneMeshInfo::UpdateSceneMeshData(const glTFRenderMeshM
         start_index += mesh.second.mesh_index_count;
     }
 
-    GetRenderInterface<glTFRenderInterfaceStructuredBuffer<SceneMeshStartIndexInfo>>()->UploadCPUBuffer(start_index_infos.data(),start_index_infos.size() * sizeof(SceneMeshStartIndexInfo));
-    GetRenderInterface<glTFRenderInterfaceStructuredBuffer<SceneMeshVertexInfo, max_heap_size>>()->UploadCPUBuffer(vertex_infos.data(),vertex_infos.size() * sizeof(SceneMeshVertexInfo));
-    GetRenderInterface<glTFRenderInterfaceStructuredBuffer<SceneMeshIndexInfo, max_heap_size>>()->UploadCPUBuffer(index_infos.data(),index_infos.size() * sizeof(SceneMeshIndexInfo));
+    GetRenderInterface<glTFRenderInterfaceStructuredBuffer<SceneMeshStartIndexInfo>>()->UploadCPUBuffer(start_index_infos.data(),0, start_index_infos.size() * sizeof(SceneMeshStartIndexInfo));
+    GetRenderInterface<glTFRenderInterfaceStructuredBuffer<SceneMeshVertexInfo, max_heap_size>>()->UploadCPUBuffer(vertex_infos.data(),0, vertex_infos.size() * sizeof(SceneMeshVertexInfo));
+    GetRenderInterface<glTFRenderInterfaceStructuredBuffer<SceneMeshIndexInfo, max_heap_size>>()->UploadCPUBuffer(index_infos.data(),0, index_infos.size() * sizeof(SceneMeshIndexInfo));
 
     return true;
 }

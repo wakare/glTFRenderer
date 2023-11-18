@@ -13,12 +13,12 @@ glTFRenderInterfaceLighting::glTFRenderInterfaceLighting()
 bool glTFRenderInterfaceLighting::UpdateCPUBuffer()
 {
      RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSingleConstantBuffer<ConstantBufferPerLightDraw>>()->UploadCPUBuffer(
-          &m_light_buffer_data.light_info, sizeof(m_light_buffer_data.light_info)))
+          &m_light_buffer_data.light_info, 0, sizeof(m_light_buffer_data.light_info)))
      
-     if (!m_light_buffer_data.light_infos.empty())
+     if (!light_infos.empty())
      {
           RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceStructuredBuffer<LightInfo>>()->UploadCPUBuffer(
-               m_light_buffer_data.light_infos.data(), m_light_buffer_data.light_infos.size() * sizeof(LightInfo)))
+               light_infos.data(), 0, light_infos.size() * sizeof(LightInfo)))
      }
 
      return true;
@@ -37,14 +37,14 @@ bool glTFRenderInterfaceLighting::UpdateLightInfo(const glTFLightBase& light)
                point_light_info.intensity = {point_light->GetIntensity(), point_light->GetIntensity(), point_light->GetIntensity()};
                point_light_info.type = static_cast<unsigned>(glTFLightType::PointLight);
 
-               if (m_light_buffer_data.light_indices.find(point_light->GetID()) == m_light_buffer_data.light_indices.end())
+               if (light_indices.find(point_light->GetID()) == light_indices.end())
                {
-                    m_light_buffer_data.light_indices[point_light->GetID()] = m_light_buffer_data.light_infos.size();
-                    m_light_buffer_data.light_infos.push_back(point_light_info);
+                    light_indices[point_light->GetID()] = light_infos.size();
+                    light_infos.push_back(point_light_info);
                }
                else
                {
-                    m_light_buffer_data.light_infos[m_light_buffer_data.light_indices[point_light->GetID()]] = point_light_info;     
+                    light_infos[light_indices[point_light->GetID()]] = point_light_info;     
                }
           }
           break;
@@ -58,14 +58,14 @@ bool glTFRenderInterfaceLighting::UpdateLightInfo(const glTFLightBase& light)
                directional_light_info.intensity = {directional_light->GetIntensity(), directional_light->GetIntensity(), directional_light->GetIntensity()};
                directional_light_info.type = static_cast<unsigned>(glTFLightType::DirectionalLight);
             
-               if (m_light_buffer_data.light_indices.find(directional_light->GetID()) == m_light_buffer_data.light_indices.end())
+               if (light_indices.find(directional_light->GetID()) == light_indices.end())
                {
-                    m_light_buffer_data.light_indices[directional_light->GetID()] = m_light_buffer_data.light_infos.size();
-                    m_light_buffer_data.light_infos.push_back(directional_light_info);
+                    light_indices[directional_light->GetID()] = light_infos.size();
+                    light_infos.push_back(directional_light_info);
                }
                else
                {
-                    m_light_buffer_data.light_infos[m_light_buffer_data.light_indices[directional_light->GetID()]] = directional_light_info;     
+                    light_infos[light_indices[directional_light->GetID()]] = directional_light_info;     
                }
           }
           break;
@@ -74,7 +74,7 @@ bool glTFRenderInterfaceLighting::UpdateLightInfo(const glTFLightBase& light)
      default: ;
      }
 
-     m_light_buffer_data.light_info.light_count = m_light_buffer_data.light_infos.size();
+     m_light_buffer_data.light_info.light_count = light_infos.size();
      
      return true;
 }

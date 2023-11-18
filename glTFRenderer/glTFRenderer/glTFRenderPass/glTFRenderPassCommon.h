@@ -23,7 +23,4 @@ struct ConstantBufferPerLightDraw
     inline static std::string Name = "SCENE_LIGHT_INFO_CONSTANT_REGISTER_INDEX";
     
     LightInfoConstant light_info;
-
-    std::map<unsigned, unsigned> light_indices;
-    std::vector<LightInfo> light_infos;
 };

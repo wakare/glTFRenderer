@@ -24,7 +24,7 @@ bool glTFRenderInterfaceSceneView::UpdateSceneView(const glTFSceneView& view)
     m_scene_view.viewport_width = width;
     m_scene_view.viewport_height = height;
             
-    UploadCPUBuffer(&m_scene_view, sizeof(m_scene_view));
+    UploadCPUBuffer(&m_scene_view, 0, sizeof(m_scene_view));
     
     return true;
 }

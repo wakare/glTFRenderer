@@ -74,10 +74,16 @@ struct MeshInstanceInputLayout
 
 struct MeshIndirectDrawCommand
 {
-    MeshIndirectDrawCommand(const IRHIVertexBufferView& vertex_buffer_view, const IRHIVertexBufferView& instance_buffer_view, const IRHIIndexBufferView& index_buffer_view)
+    MeshIndirectDrawCommand(
+        const IRHIVertexBufferView& vertex_buffer_view,
+        const IRHIVertexBufferView& instance_buffer_view,
+        const IRHIIndexBufferView& index_buffer_view,
+        const RHIIndirectArgumentView& per_draw_constant_buffer_view
+        )
         : vertex_buffer_view(vertex_buffer_view)
         , vertex_buffer_instance_view(instance_buffer_view)
         , index_buffer_view(index_buffer_view)
+        , per_draw_constant_buffer_view(per_draw_constant_buffer_view)
     {
         
     }
@@ -90,6 +96,9 @@ struct MeshIndirectDrawCommand
 
     // IB
     RHIIndirectArgumentIndexBufferView index_buffer_view;
+
+    // Per-draw CBV
+    RHIIndirectArgumentView per_draw_constant_buffer_view; 
     
     // Draw arguments
     RHIIndirectArgumentDrawIndexed draw_command_argument;
@@ -120,7 +129,7 @@ protected:
     
     virtual std::vector<RHIPipelineInputLayout> GetVertexInputLayout() override;
 
-    virtual bool UsingIndirectDraw() const { return false; }
+    virtual bool UsingIndirectDraw() const { return true; }
     virtual bool UsingIndirectDrawCulling() const { return false;}
     
 protected:

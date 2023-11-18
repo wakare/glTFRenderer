@@ -73,5 +73,5 @@ class glTFRenderInterfaceCanUploadDataFromCPU
 public:
     virtual ~glTFRenderInterfaceCanUploadDataFromCPU() = default;
     
-    virtual bool UploadCPUBuffer(const void* data, size_t size) = 0;
+    virtual bool UploadCPUBuffer(const void* data, size_t offset, size_t size) = 0;
 };

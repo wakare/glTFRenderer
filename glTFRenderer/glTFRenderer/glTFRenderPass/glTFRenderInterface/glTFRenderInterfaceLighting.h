@@ -16,5 +16,8 @@ public:
 
 protected:
     ConstantBufferPerLightDraw m_light_buffer_data;
+
+    std::map<unsigned, unsigned> light_indices;
+    std::vector<LightInfo> light_infos;
 };
 

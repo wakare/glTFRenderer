@@ -148,7 +148,7 @@ typedef uint64_t RHICPUDescriptorHandle;
     HRESULT result = (x); \
     if (FAILED(result)) \
     { \
-        LOG_FORMAT_FLUSH("[ERROR] Failed with error code: %d\n", result); \
+        LOG_FORMAT_FLUSH("[ERROR] Failed with error code: %u\n", result); \
         throw std::runtime_error("[ERROR] Detected runtime error in call"); \
     } \
     }
