@@ -48,6 +48,7 @@ bool glTFRenderInterfaceSceneMeshInfo::UpdateSceneMeshData(const glTFRenderMeshM
         {
             SceneMeshVertexInfo vertex_info;
             size_t out_data_size = 0;
+            mesh.second.mesh->GetVertexBufferData().GetVertexAttributeDataByIndex(VertexLayoutType::POSITION, i, &vertex_info.position, out_data_size);
             mesh.second.mesh->GetVertexBufferData().GetVertexAttributeDataByIndex(VertexLayoutType::NORMAL, i, &vertex_info.normal, out_data_size);
             mesh.second.mesh->GetVertexBufferData().GetVertexAttributeDataByIndex(VertexLayoutType::TANGENT, i, &vertex_info.tangent, out_data_size);
             mesh.second.mesh->GetVertexBufferData().GetVertexAttributeDataByIndex(VertexLayoutType::TEXCOORD_0, i, &vertex_info.uv, out_data_size);
@@ -60,6 +61,6 @@ bool glTFRenderInterfaceSceneMeshInfo::UpdateSceneMeshData(const glTFRenderMeshM
     GetRenderInterface<glTFRenderInterfaceStructuredBuffer<SceneMeshStartIndexInfo>>()->UploadCPUBuffer(start_index_infos.data(),start_index_infos.size() * sizeof(SceneMeshStartIndexInfo));
     GetRenderInterface<glTFRenderInterfaceStructuredBuffer<SceneMeshVertexInfo, max_heap_size>>()->UploadCPUBuffer(vertex_infos.data(),vertex_infos.size() * sizeof(SceneMeshVertexInfo));
     GetRenderInterface<glTFRenderInterfaceStructuredBuffer<SceneMeshIndexInfo, max_heap_size>>()->UploadCPUBuffer(index_infos.data(),index_infos.size() * sizeof(SceneMeshIndexInfo));
-    
+
     return true;
 }

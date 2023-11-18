@@ -28,6 +28,7 @@ struct VS_INPUT
 
     uint GetMaterialID() {return instance_custom_data.x; }
     uint NormalMapping() {return instance_custom_data.y;}
+    uint GetMeshID() {return instance_custom_data.z;}
 };
 
 struct VS_OUTPUT
@@ -58,4 +59,15 @@ struct PS_OUTPUT
     float4 baseColor: SV_TARGET0;
     float4 normal: SV_TARGET1;
 };
+
+struct MeshInstanceInputData
+{
+    float4x4 instance_transform;
+    uint instance_material_id;
+    uint normal_mapping;
+    uint mesh_id;
+    uint padding;
+};
+StructuredBuffer<MeshInstanceInputData> g_mesh_instance_input_data : MESH_INSTANCE_INPUT_DATA_REGISTER_SRV_INDEX;
+
 #endif

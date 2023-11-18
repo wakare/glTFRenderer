@@ -7,10 +7,13 @@
 
 struct MeshInstanceInputData
 {
+    inline static std::string Name = "MESH_INSTANCE_INPUT_DATA_REGISTER_SRV_INDEX";
+    
     glm::mat4 instance_transform;
     unsigned instance_material_id;
     unsigned normal_mapping;
-    unsigned padding[2];
+    unsigned mesh_id;
+    unsigned padding;
 };
 
 struct MeshInstanceInputLayout
@@ -102,7 +105,7 @@ public:
     bool PreRenderPass(glTFRenderResourceManager& resource_manager) override;
     bool RenderPass(glTFRenderResourceManager& resource_manager) override;
 
-    virtual bool TryProcessSceneObject(glTFRenderResourceManager& resourceManager, const glTFSceneObjectBase& object) override;
+    virtual bool TryProcessSceneObject(glTFRenderResourceManager& resource_manager, const glTFSceneObjectBase& object) override;
 
     bool ResolveVertexInputLayout(const VertexLayoutDeclaration& source_vertex_layout);
     
@@ -110,14 +113,15 @@ protected:
     virtual bool SetupRootSignature(glTFRenderResourceManager& resource_manager) override;
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;
 
-    virtual bool BeginDrawMesh(glTFRenderResourceManager& resource_manager, const glTFMeshRenderResource& mesh_data, unsigned mesh_index);
+    virtual bool BeginDrawMesh(glTFRenderResourceManager& resource_manager, const glTFMeshRenderResource& mesh_data, unsigned instance_offset);
     virtual bool EndDrawMesh(glTFRenderResourceManager& resource_manager, const glTFMeshRenderResource& mesh_data, unsigned mesh_index);
 
-    bool InitInstanceBuffer(glTFRenderResourceManager& resource_manager);
+    bool InitVertexAndInstanceBufferForFrame(glTFRenderResourceManager& resource_manager);
     
     virtual std::vector<RHIPipelineInputLayout> GetVertexInputLayout() override;
 
-    virtual bool UsingIndirectDraw() const { return true; }
+    virtual bool UsingIndirectDraw() const { return false; }
+    virtual bool UsingIndirectDrawCulling() const { return false;}
     
 protected:
     // TODO: Resolve input layout with multiple meshes 
@@ -126,7 +130,7 @@ protected:
 
     // mesh id -- <instance count, instance start offset>
     std::map<glTFUniqueID, std::pair<unsigned, unsigned>> m_instance_draw_infos;
-    
+
     std::shared_ptr<IRHIVertexBuffer> m_instance_buffer;
     std::shared_ptr<IRHIVertexBufferView> m_instance_buffer_view;
     

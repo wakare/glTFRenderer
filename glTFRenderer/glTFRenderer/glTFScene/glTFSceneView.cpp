@@ -51,7 +51,7 @@ bool glTFSceneView::SetupRenderPass(glTFRenderPassManager& out_render_pass_manag
 
 	GLTF_CHECK(has_resolved);
 
-    const bool debug_raytracing_pipeline = false;
+    const bool debug_raytracing_pipeline = true;
     if (debug_raytracing_pipeline)
     {
         std::unique_ptr<glTFRayTracingPassPathTracing> raytracing_hello = std::make_unique<glTFRayTracingPassPathTracing>();

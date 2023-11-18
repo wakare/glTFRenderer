@@ -15,6 +15,7 @@ StructuredBuffer<SceneMeshIndexInfo> g_mesh_index_info : SceneMeshIndexInfo_REGI
 
 struct SceneMeshVertexInfo
 {
+    float4 position;
     float4 normal;
     float4 tangent;
     float4 uv;
@@ -32,6 +33,10 @@ SceneMeshVertexInfo InterpolateVertexWithBarycentrics(uint3 vertex_index, float2
 {
     SceneMeshVertexInfo result;
 
+    result.position = (g_mesh_vertex_info[vertex_index.x].position * (1 - barycentrics.x - barycentrics.y) +
+            g_mesh_vertex_info[vertex_index.y].position * barycentrics.x +
+            g_mesh_vertex_info[vertex_index.z].position * barycentrics.y);
+    
     result.normal = (g_mesh_vertex_info[vertex_index.x].normal * (1 - barycentrics.x - barycentrics.y) +
             g_mesh_vertex_info[vertex_index.y].normal * barycentrics.x +
             g_mesh_vertex_info[vertex_index.z].normal * barycentrics.y);
