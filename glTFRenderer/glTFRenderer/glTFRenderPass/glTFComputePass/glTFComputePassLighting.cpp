@@ -114,7 +114,7 @@ bool glTFComputePassLighting::PostRenderPass(glTFRenderResourceManager& resource
 DispatchCount glTFComputePassLighting::GetDispatchCount() const
 {
     return m_dispatch_count;
-}
+} 
 
 bool glTFComputePassLighting::TryProcessSceneObject(glTFRenderResourceManager& resource_manager,
                                                     const glTFSceneObjectBase& object)

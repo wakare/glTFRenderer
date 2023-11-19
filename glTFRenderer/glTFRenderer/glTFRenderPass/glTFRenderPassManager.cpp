@@ -46,6 +46,8 @@ void glTFRenderPassManager::InitAllPass()
         
         return true;
     });
+
+    GLTF_CHECK(m_resource_manager->GetMeshManager().BuildMeshRenderResource(*m_resource_manager));
     
 	GLTF_CHECK(m_scene_view.SetupRenderPass(*this));
     

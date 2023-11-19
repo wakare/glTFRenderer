@@ -35,8 +35,7 @@ bool glTFGraphicsPassBase::SetupPipelineStateObject(glTFRenderResourceManager& r
     RETURN_IF_FALSE(glTFRenderPassBase::SetupPipelineStateObject(resource_manager))
 
     // Set shader macro based vertex attributes
-    RETURN_IF_FALSE(GetGraphicsPipelineStateObject().BindInputLayoutAndSetShaderMacros(GetVertexInputLayout()))
-    
+    RETURN_IF_FALSE(GetGraphicsPipelineStateObject().BindInputLayoutAndSetShaderMacros(GetVertexInputLayout(resource_manager)))
     RETURN_IF_FALSE(GetGraphicsPipelineStateObject().BindSwapChain(resource_manager.GetSwapchain()))
 
     // glTF using CCW as front face

@@ -2,7 +2,8 @@
 #include "glTFResources/ShaderSource/Interface/SceneMeshInfo.hlsl"
 #include "glTFResources/ShaderSource/Interface/SceneMesh.hlsl"
 
-/*
+
+#if ENABLE_INPUT_LAYOUT
 VS_OUTPUT main(VS_INPUT input)
 {
     VS_OUTPUT output;
@@ -26,7 +27,9 @@ VS_OUTPUT main(VS_INPUT input)
     output.world_rotation_matrix = (float3x3)instance_transform;
     
     return output;
-}*/
+}
+
+#else
 
 VS_OUTPUT main(uint Vertex_ID : SV_VertexID, uint Instance_ID: SV_InstanceID)
 {
@@ -61,3 +64,5 @@ VS_OUTPUT main(uint Vertex_ID : SV_VertexID, uint Instance_ID: SV_InstanceID)
     
     return output;
 }
+
+#endif

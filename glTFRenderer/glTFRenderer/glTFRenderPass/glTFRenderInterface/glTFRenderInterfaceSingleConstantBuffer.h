@@ -4,7 +4,7 @@
 #include "glTFRHI/RHIInterface/IRHIRootSignatureHelper.h"
 
 // buffer size must be alignment with 64K
-template <typename ConstantBufferType, size_t max_buffer_size = 64ull * 1024>
+template <typename ConstantBufferType, size_t max_buffer_size = 256ull * 1024>
 class glTFRenderInterfaceSingleConstantBuffer : public glTFRenderInterfaceWithRSAllocation, public glTFRenderInterfaceCanUploadDataFromCPU
 {
 public:

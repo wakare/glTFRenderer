@@ -20,6 +20,8 @@ public:
     void RenderAllPass(size_t deltaTimeMs) const;
     void ExitAllPass();
 
+    glTFRenderResourceManager& GetResourceManager() {return *m_resource_manager; }
+    
 protected:
     glTFWindow& m_window;
     glTFSceneView& m_scene_view;

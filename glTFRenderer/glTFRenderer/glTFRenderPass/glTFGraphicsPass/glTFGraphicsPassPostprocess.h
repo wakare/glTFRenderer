@@ -32,7 +32,7 @@ protected:
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resourceManager) override;
     
     void DrawPostprocessQuad(glTFRenderResourceManager& resourceManager);
-    virtual std::vector<RHIPipelineInputLayout> GetVertexInputLayout() override;
+    virtual std::vector<RHIPipelineInputLayout> GetVertexInputLayout(glTFRenderResourceManager& resource_manager) override;
     
 private:
     PostprocessQuadGPUResource m_postprocessQuadResource;

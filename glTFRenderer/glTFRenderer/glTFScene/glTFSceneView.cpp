@@ -38,6 +38,7 @@ bool glTFSceneView::SetupRenderPass(glTFRenderPassManager& out_render_pass_manag
                         }
                     }    
 	            }
+	            
                 else if (!(primitive->GetVertexLayout() == resolved_vertex_layout))
                 {
                     LOG_FORMAT_FLUSH("[WARN] Primtive id: %d is no-visible becuase vertex layout mismatch\n", primitive->GetID())
@@ -48,6 +49,8 @@ bool glTFSceneView::SetupRenderPass(glTFRenderPassManager& out_render_pass_manag
 	    
 	    return true;
 	});
+
+    RETURN_IF_FALSE(out_render_pass_manager.GetResourceManager().GetMeshManager().ResolveVertexInputLayout(resolved_vertex_layout))
 
 	GLTF_CHECK(has_resolved);
 
@@ -60,11 +63,9 @@ bool glTFSceneView::SetupRenderPass(glTFRenderPassManager& out_render_pass_manag
     else
     {
         std::unique_ptr<glTFGraphicsPassMeshDepth> depth_pass = std::make_unique<glTFGraphicsPassMeshDepth>();
-        depth_pass->ResolveVertexInputLayout(resolved_vertex_layout);
         out_render_pass_manager.AddRenderPass(std::move(depth_pass));
 
         std::unique_ptr<glTFGraphicsPassMeshOpaque> opaque_pass = std::make_unique<glTFGraphicsPassMeshOpaque>();
-        opaque_pass->ResolveVertexInputLayout(resolved_vertex_layout);
         out_render_pass_manager.AddRenderPass(std::move(opaque_pass));
 
         const bool use_lighting_cs = true;

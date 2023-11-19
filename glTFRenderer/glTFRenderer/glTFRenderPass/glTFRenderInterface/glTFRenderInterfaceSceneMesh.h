@@ -9,4 +9,4 @@ struct ConstantBufferSceneMesh
     unsigned instance_offset;
 };
 
-typedef glTFRenderInterfaceSingleConstantBuffer<ConstantBufferSceneMesh, 128ull * 1024> glTFRenderInterfaceSceneMesh;
+typedef glTFRenderInterfaceSingleConstantBuffer<ConstantBufferSceneMesh> glTFRenderInterfaceSceneMesh;
