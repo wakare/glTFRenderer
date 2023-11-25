@@ -74,5 +74,8 @@ public:
     virtual bool DiscardResource(IRHICommandList& commandList, IRHIRenderTarget& render_target) override;
 
     virtual bool CopyTexture(IRHICommandList& commandList, IRHIRenderTarget& dst, IRHIRenderTarget& src) override;
+    virtual bool CopyBuffer(IRHICommandList& commandList, IRHIGPUBuffer& dst, size_t dst_offset, IRHIGPUBuffer& src, size_t src_offset, size_t size) override;
+    
     virtual bool SupportRayTracing(IRHIDevice& device) override;
+    virtual unsigned GetAlignmentSizeForUAVCount(unsigned size ) override;
 };

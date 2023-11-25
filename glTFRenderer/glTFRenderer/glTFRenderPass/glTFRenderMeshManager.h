@@ -15,6 +15,8 @@ struct glTFMeshInstanceRenderResource
 
 struct MeshIndirectDrawCommand
 {
+    inline static std::string Name = "INDIRECT_DRAW_DATA_REGISTER_SRV_INDEX";
+    
     MeshIndirectDrawCommand(
         const IRHIVertexBufferView& vertex_buffer_view,
         const IRHIVertexBufferView& instance_buffer_view,
@@ -23,6 +25,7 @@ struct MeshIndirectDrawCommand
         : vertex_buffer_view(vertex_buffer_view)
         , vertex_buffer_instance_view(instance_buffer_view)
         , index_buffer_view(index_buffer_view)
+        , draw_command_argument({0, 0, 0, 0, 0})
     {
         
     }
@@ -120,12 +123,15 @@ public:
     const std::map<glTFUniqueID, glTFMeshRenderResource>& GetMeshRenderResources() const {return m_mesh_render_resources; }
 
     const IRHICommandSignatureDesc& GetCommandSignatureDesc() const {return m_command_signature_desc; }
-    std::vector<RHIPipelineInputLayout> GetVertexInputLayout() const {return m_vertex_input_layouts; }
+    const std::vector<RHIPipelineInputLayout>& GetVertexInputLayout() const {return m_vertex_input_layouts; }
     MeshInstanceInputLayout GetInstanceInputLayout() const {return m_instance_input_layout; }
 
     const std::vector<MeshIndirectDrawCommand>& GetIndirectDrawCommands() const {return m_indirect_arguments; }
     std::shared_ptr<IRHIGPUBuffer> GetIndirectArgumentBuffer() const {return m_indirect_argument_buffer; }
-    
+    std::shared_ptr<IRHIGPUBuffer> GetCulledIndirectArgumentBuffer() const {return m_culled_indirect_commands; }
+    unsigned GetCulledIndirectArgumentBufferCountOffset() const {return m_culled_indirect_command_count_offset; }
+
+    const std::vector<MeshInstanceInputData>& GetInstanceBufferData() const {return m_instance_data; }
     std::shared_ptr<IRHIVertexBuffer> GetInstanceBuffer() const {return m_instance_buffer; }
     std::shared_ptr<IRHIVertexBufferView> GetInstanceBufferView() const {return m_instance_buffer_view; }
     const std::map<glTFUniqueID, std::pair<unsigned, unsigned>>& GetInstanceDrawInfo() const {return m_instance_draw_infos; }
@@ -144,9 +150,13 @@ protected:
     std::vector<MeshIndirectDrawCommand> m_indirect_arguments;
     std::shared_ptr<IRHIGPUBuffer> m_indirect_argument_buffer;
 
+    std::shared_ptr<IRHIGPUBuffer> m_culled_indirect_commands;
+    unsigned m_culled_indirect_command_count_offset;
+    
     // mesh id -- <instance count, instance start offset>
     std::map<glTFUniqueID, std::pair<unsigned, unsigned>> m_instance_draw_infos;
-    
+
+    std::vector<MeshInstanceInputData> m_instance_data;
     std::shared_ptr<IRHIVertexBuffer> m_instance_buffer;
     std::shared_ptr<IRHIVertexBufferView> m_instance_buffer_view;
 };

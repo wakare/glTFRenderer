@@ -139,14 +139,28 @@ bool DX12DescriptorHeap::CreateUAVInHeap(IRHIDevice& device, unsigned descriptor
     UAVDesc.Format = DX12ConverterUtils::ConvertToDXGIFormat(desc.format);
     UAVDesc.ViewDimension = DX12ConverterUtils::ConvertToUAVDimensionType(desc.dimension);
 
-    UAVDesc.Texture2D.MipSlice = 0;
-    UAVDesc.Texture2D.PlaneSlice = 0;
+    if (desc.dimension == RHIResourceDimension::TEXTURE2D)
+    {
+        UAVDesc.Texture2D.MipSlice = 0;
+        UAVDesc.Texture2D.PlaneSlice = 0;    
+    }
+    else if (desc.dimension == RHIResourceDimension::BUFFER)
+    {
+        if (desc.use_count_buffer)
+        {
+            UAVDesc.Buffer.CounterOffsetInBytes = desc.count_buffer_offset;
+        }
+        UAVDesc.Buffer.StructureByteStride = desc.stride;
+        UAVDesc.Buffer.FirstElement = 0;
+        UAVDesc.Buffer.NumElements = desc.count;
+        UAVDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
+    }
 
     CD3DX12_CPU_DESCRIPTOR_HANDLE cpuHandle(m_descriptorHeap->GetCPUDescriptorHandleForHeapStart());
     const UINT descriptorIncrementSize = dxDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
     cpuHandle.Offset(descriptor_offset, descriptorIncrementSize);
     
-    dxDevice->CreateUnorderedAccessView(resource, nullptr, &UAVDesc, cpuHandle);
+    dxDevice->CreateUnorderedAccessView(resource, desc.use_count_buffer ? resource : nullptr, &UAVDesc, cpuHandle);
     CD3DX12_GPU_DESCRIPTOR_HANDLE gpuHandle(m_descriptorHeap->GetGPUDescriptorHandleForHeapStart());
     gpuHandle.Offset(descriptor_offset, descriptorIncrementSize);
     out_GPU_handle = gpuHandle.ptr;

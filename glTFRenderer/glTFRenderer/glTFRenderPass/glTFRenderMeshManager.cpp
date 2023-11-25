@@ -5,6 +5,7 @@
 
 glTFRenderMeshManager::glTFRenderMeshManager()
     : m_command_signature_desc()
+    , m_culled_indirect_command_count_offset(0)
 {
     RHIIndirectArgumentDesc vertex_buffer_desc;
     
@@ -81,7 +82,7 @@ bool glTFRenderMeshManager::BuildMeshRenderResource(glTFRenderResourceManager& r
         instance_buffer.vertex_count = mesh_instance_render_resource.size();
     
         instance_buffer.data = std::make_unique<char[]>(instance_buffer.byteSize);
-        std::vector<MeshInstanceInputData> instance_datas; instance_datas.reserve(mesh_instance_render_resource.size());
+        m_instance_data.reserve(mesh_instance_render_resource.size());
     
         for (const auto& mesh : mesh_render_resources)
         {
@@ -97,14 +98,14 @@ bool glTFRenderMeshManager::BuildMeshRenderResource(glTFRenderResourceManager& r
                 }
             }
 
-            m_instance_draw_infos[mesh_ID] = {instances.size(), instance_datas.size()};
+            m_instance_draw_infos[mesh_ID] = {instances.size(), m_instance_data.size()};
 
             for (size_t instance_index = 0; instance_index < instances.size(); ++instance_index)
             {
                 auto instance_data = mesh_instance_render_resource.find(instances[instance_index]);
                 GLTF_CHECK(instance_data != mesh_instance_render_resource.end());
             
-                instance_datas.emplace_back( MeshInstanceInputData
+                m_instance_data.emplace_back( MeshInstanceInputData
                     {
                         instance_data->second.m_instance_transform,
                         instance_data->second.m_instance_material_id,
@@ -114,7 +115,7 @@ bool glTFRenderMeshManager::BuildMeshRenderResource(glTFRenderResourceManager& r
             }
         }
 
-        memcpy(instance_buffer.data.get(), instance_datas.data(), instance_buffer.byteSize);
+        memcpy(instance_buffer.data.get(), m_instance_data.data(), instance_buffer.byteSize);
     
         const RHIBufferDesc instance_buffer_desc = {L"instanceBufferDefaultBuffer", instance_buffer.byteSize, 1, 1, RHIBufferType::Default, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
         m_instance_buffer = RHIResourceFactory::CreateRHIResource<IRHIVertexBuffer>();
@@ -149,6 +150,13 @@ bool glTFRenderMeshManager::BuildMeshRenderResource(glTFRenderResourceManager& r
     RETURN_IF_FALSE(m_indirect_argument_buffer->InitGPUBuffer(resource_manager.GetDevice(), indirect_arguments_buffer_desc ))
     RETURN_IF_FALSE(m_indirect_argument_buffer->UploadBufferFromCPU(m_indirect_arguments.data(), 0, m_indirect_arguments.size() * sizeof(MeshIndirectDrawCommand)))
     
+    m_culled_indirect_commands = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
+    m_culled_indirect_command_count_offset = RHIUtils::Instance().GetAlignmentSizeForUAVCount(1024ull * 64);
+    
+    const RHIBufferDesc culled_indirect_arguments_buffer_desc = {L"culled_indirect_arguments_buffer", GetCulledIndirectArgumentBufferCountOffset() + /*count buffer*/sizeof(unsigned),
+1, 1, RHIBufferType::Default, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer, RHIResourceStateType::STATE_COPY_DEST, RHIBufferUsage::ALLOW_UNORDER_ACCESS};
+    m_culled_indirect_commands->InitGPUBuffer(resource_manager.GetDevice(), culled_indirect_arguments_buffer_desc);
+
     return true;
 }
 

@@ -50,13 +50,13 @@ bool glTFGraphicsPassMeshBase::RenderPass(glTFRenderResourceManager& resource_ma
 
     if (UsingIndirectDraw())
     {
+        const size_t indirect_command_count = resource_manager.GetMeshManager().GetIndirectDrawCommands().size();
         if (UsingIndirectDrawCulling())
         {
-            
+            RHIUtils::Instance().ExecuteIndirect(command_list, *m_command_signature, indirect_command_count, *resource_manager.GetMeshManager().GetCulledIndirectArgumentBuffer(), 0, *resource_manager.GetMeshManager().GetCulledIndirectArgumentBuffer(), resource_manager.GetMeshManager().GetCulledIndirectArgumentBufferCountOffset());
         }
         else
         {
-            const size_t indirect_command_count = resource_manager.GetMeshManager().GetIndirectDrawCommands().size();
             RHIUtils::Instance().ExecuteIndirect(command_list, *m_command_signature, indirect_command_count, *resource_manager.GetMeshManager().GetIndirectArgumentBuffer(), 0);    
         }
     }
@@ -138,7 +138,8 @@ bool glTFGraphicsPassMeshBase::TryProcessSceneObject(glTFRenderResourceManager& 
     return true;
 }
 
-std::vector<RHIPipelineInputLayout> glTFGraphicsPassMeshBase::GetVertexInputLayout(glTFRenderResourceManager& resource_manager)
+const std::vector<RHIPipelineInputLayout>& glTFGraphicsPassMeshBase::GetVertexInputLayout(
+    glTFRenderResourceManager& resource_manager)
 {
     return resource_manager.GetMeshManager().GetVertexInputLayout();
 }

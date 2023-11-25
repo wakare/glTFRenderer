@@ -4,6 +4,7 @@
 
 #include "glTFWindow/glTFInputManager.h"
 #include "glTFRenderPass/glTFRenderPassManager.h"
+#include "glTFRenderPass/glTFComputePass/glTFComputePassIndirectDrawCulling.h"
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassMeshOpaque.h"
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassLighting.h"
 #include "glTFRenderPass/glTFComputePass/glTFComputePassLighting.h"
@@ -62,6 +63,9 @@ bool glTFSceneView::SetupRenderPass(glTFRenderPassManager& out_render_pass_manag
     }
     else
     {
+        std::unique_ptr<glTFComputePassIndirectDrawCulling> culling_pass = std::make_unique<glTFComputePassIndirectDrawCulling>();
+        out_render_pass_manager.AddRenderPass(std::move(culling_pass));
+        
         std::unique_ptr<glTFGraphicsPassMeshDepth> depth_pass = std::make_unique<glTFGraphicsPassMeshDepth>();
         out_render_pass_manager.AddRenderPass(std::move(depth_pass));
 

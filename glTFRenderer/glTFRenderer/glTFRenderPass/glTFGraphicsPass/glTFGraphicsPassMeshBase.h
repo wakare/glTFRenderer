@@ -19,7 +19,8 @@ public:
     virtual bool TryProcessSceneObject(glTFRenderResourceManager& resource_manager, const glTFSceneObjectBase& object) override;
 
 protected:
-    virtual std::vector<RHIPipelineInputLayout> GetVertexInputLayout(glTFRenderResourceManager& resource_manager) override;
+    virtual const std::vector<RHIPipelineInputLayout>&
+    GetVertexInputLayout(glTFRenderResourceManager& resource_manager) override;
     
     virtual bool SetupRootSignature(glTFRenderResourceManager& resource_manager) override;
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;
@@ -28,7 +29,7 @@ protected:
     virtual bool EndDrawMesh(glTFRenderResourceManager& resource_manager, const glTFMeshRenderResource& mesh_data, unsigned mesh_index);
     
     virtual bool UsingIndirectDraw() const { return true; }
-    virtual bool UsingIndirectDrawCulling() const { return false;}
+    virtual bool UsingIndirectDrawCulling() const { return true;}
     virtual bool UsingInputLayout() const {return true; }
     
 protected:

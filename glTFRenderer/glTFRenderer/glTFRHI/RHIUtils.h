@@ -55,10 +55,13 @@ public:
 
     virtual bool DiscardResource(IRHICommandList& commandList, IRHIRenderTarget& render_target) = 0;
     virtual bool CopyTexture(IRHICommandList& commandList, IRHIRenderTarget& dst, IRHIRenderTarget& src) = 0;
+    virtual bool CopyBuffer(IRHICommandList& commandList, IRHIGPUBuffer& dst, size_t dst_offset, IRHIGPUBuffer& src, size_t src_offset, size_t size) = 0;
 
     virtual bool SupportRayTracing(IRHIDevice& device) = 0;
-    static RHIUtils& Instance();
+    virtual unsigned GetAlignmentSizeForUAVCount(unsigned size) = 0;
     
+    static RHIUtils& Instance();
+
 protected:
     RHIUtils() = default;
 

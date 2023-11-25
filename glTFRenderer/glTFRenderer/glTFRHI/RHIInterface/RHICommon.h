@@ -135,6 +135,12 @@ struct RHIShaderResourceViewDesc
     
     // TODO: figure out this member represent what?
     //unsigned shader4ComponentMapping;
+
+    // UAV buffer desc
+    unsigned stride;
+    unsigned count;
+    bool use_count_buffer;
+    unsigned count_buffer_offset;
 };
 
 typedef RHIRect RHIScissorRectDesc;

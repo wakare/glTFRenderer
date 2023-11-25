@@ -15,7 +15,8 @@ public:
 protected:
     IRHIGraphicsPipelineStateObject& GetGraphicsPipelineStateObject() const;
     
-    virtual std::vector<RHIPipelineInputLayout> GetVertexInputLayout(glTFRenderResourceManager& resource_manager) = 0;
+    virtual const std::vector<RHIPipelineInputLayout>& GetVertexInputLayout(glTFRenderResourceManager& resource_manager)
+    = 0;
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;
 
     virtual PipelineType GetPipelineType() const override {return PipelineType::Graphics; }

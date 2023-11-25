@@ -46,7 +46,7 @@ DXGI_FORMAT DX12ConverterUtils::ConvertToDXGIFormat(RHIDataFormat format)
         CONVERT_DXGI_FORMAT_CASE(R16_UINT)
         CONVERT_DXGI_FORMAT_CASE(R8_UNORM)
         CONVERT_DXGI_FORMAT_CASE(A8_UNORM)    
-        case RHIDataFormat::Unknown: break;
+        case RHIDataFormat::Unknown: return DXGI_FORMAT_UNKNOWN;
     }
     
     assert(false);
@@ -697,6 +697,15 @@ bool DX12Utils::CopyTexture(IRHICommandList& commandList, IRHIRenderTarget& dst,
     return true;
 }
 
+bool DX12Utils::CopyBuffer(IRHICommandList& commandList, IRHIGPUBuffer& dst, size_t dst_offset, IRHIGPUBuffer& src,
+    size_t src_offset, size_t size)
+{
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    dxCommandList->CopyBufferRegion(dynamic_cast<DX12GPUBuffer&>(dst).GetBuffer(), dst_offset, dynamic_cast<DX12GPUBuffer&>(src).GetBuffer(), src_offset, size);
+    
+    return true;
+}
+
 bool DX12Utils::SupportRayTracing(IRHIDevice& device)
 {
     auto* dxAdapter = dynamic_cast<DX12Device&>(device).GetAdapter();
@@ -706,4 +715,10 @@ bool DX12Utils::SupportRayTracing(IRHIDevice& device)
     return SUCCEEDED(D3D12CreateDevice(dxAdapter, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&testDevice)))
         && SUCCEEDED(testDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &featureSupportData, sizeof(featureSupportData)))
         && featureSupportData.RaytracingTier != D3D12_RAYTRACING_TIER_NOT_SUPPORTED;
+}
+
+unsigned DX12Utils::GetAlignmentSizeForUAVCount(unsigned size)
+{
+    const UINT alignment = D3D12_UAV_COUNTER_PLACEMENT_ALIGNMENT;
+    return (size + (alignment - 1)) & ~(alignment - 1);
 }

@@ -86,6 +86,10 @@ bool DX12GPUBuffer::UploadBufferFromCPU(const void* data, size_t dataOffset, siz
     assert((dataOffset + size) <= m_buffer_desc.width);
     
     memcpy(m_mapped_gpu_buffer + dataOffset, data, size);
+    
+    m_buffer->Unmap(0, nullptr);
+    m_mapped_gpu_buffer = nullptr;
+    
     return true;
 }
 

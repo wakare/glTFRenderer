@@ -1,8 +1,25 @@
 #include "glTFComputePassIndirectDrawCulling.h"
 
+#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneMeshInfo.h"
+#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneView.h"
+#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceStructuredBuffer.h"
+#include "glTFRHI/RHIResourceFactoryImpl.hpp"
+
+struct CullingConstant
+{
+    inline static std::string Name = "CULLING_CONSTANT_BUFFER_REGISTER_CBV_INDEX";
+    
+    unsigned command_count;
+};
+
 glTFComputePassIndirectDrawCulling::glTFComputePassIndirectDrawCulling()
     : m_dispatch_count()
 {
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneView>());
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMeshInfo>());
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceStructuredBuffer<MeshInstanceInputData>>());
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceStructuredBuffer<MeshIndirectDrawCommand>>());
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceSingleConstantBuffer<CullingConstant>>());
 }
 
 const char* glTFComputePassIndirectDrawCulling::PassName()
@@ -14,7 +31,50 @@ bool glTFComputePassIndirectDrawCulling::InitPass(glTFRenderResourceManager& res
 {
     RETURN_IF_FALSE(glTFComputePassBase::InitPass(resource_manager))
 
-    // Generate indirect draw command buffer
+    RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSceneMeshInfo>()->UpdateSceneMeshData(resource_manager.GetMeshManager()))
+    
+    const auto& mesh_manager = resource_manager.GetMeshManager();
+        
+    RHIGPUDescriptorHandle handle;
+    RETURN_IF_FALSE(m_main_descriptor_heap->CreateUnOrderAccessViewInDescriptorHeap(resource_manager.GetDevice(), m_main_descriptor_heap->GetUsedDescriptorCount(),
+                *mesh_manager.GetCulledIndirectArgumentBuffer(), {RHIDataFormat::Unknown, RHIResourceDimension::BUFFER, sizeof(MeshIndirectDrawCommand), static_cast<unsigned>(mesh_manager.GetIndirectDrawCommands().size()), true, mesh_manager.GetCulledIndirectArgumentBufferCountOffset()}, handle))
+
+    const unsigned dispatch_thread = static_cast<unsigned>(ceil(mesh_manager.GetIndirectDrawCommands().size() / 64.0f));
+    m_dispatch_count = {dispatch_thread, 1, 1};
+
+    const auto& instance_data = mesh_manager.GetInstanceBufferData();
+    GetRenderInterface<glTFRenderInterfaceStructuredBuffer<MeshInstanceInputData>>()->UploadCPUBuffer(instance_data.data(), 0, instance_data.size() * sizeof(MeshInstanceInputData));
+
+    const auto& indirect_data = mesh_manager.GetIndirectDrawCommands();
+    GetRenderInterface<glTFRenderInterfaceStructuredBuffer<MeshIndirectDrawCommand>>()->UploadCPUBuffer(indirect_data.data(), 0, indirect_data.size() * sizeof(MeshIndirectDrawCommand));
+
+    m_count_reset_buffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
+    m_count_reset_buffer->InitGPUBuffer(resource_manager.GetDevice(), {L"ResetBuffer", 4, 1, 1, RHIBufferType::Upload, RHIDataFormat::R32_UINT,RHIBufferResourceType::Buffer, RHIResourceStateType::STATE_COMMON, RHIBufferUsage::NONE, 0});
+
+    const unsigned size = 0;
+    m_count_reset_buffer->UploadBufferFromCPU(&size, 0, sizeof(unsigned));
+    
+    return true;
+}
+
+bool glTFComputePassIndirectDrawCulling::SetupRootSignature(glTFRenderResourceManager& resourceManager)
+{
+    RETURN_IF_FALSE(glTFComputePassBase::SetupRootSignature(resourceManager))
+
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("Output", RHIRootParameterDescriptorRangeType::UAV, 1, false, m_culled_indirect_command_allocation))
+
+    return true;
+}
+
+bool glTFComputePassIndirectDrawCulling::SetupPipelineStateObject(glTFRenderResourceManager& resourceManager)
+{
+    RETURN_IF_FALSE(glTFComputePassBase::SetupPipelineStateObject(resourceManager))
+
+    GetComputePipelineStateObject().BindShaderCode(
+            R"(glTFResources\ShaderSource\ComputeShader\IndirectCullingCS.hlsl)", RHIShaderType::Compute, "main");
+    
+    auto& shaderMacros = GetComputePipelineStateObject().GetShaderMacros();
+    shaderMacros.AddUAVRegisterDefine("INDIRECT_DRAW_DATA_OUTPUT_REGISTER_UAV_INDEX", m_culled_indirect_command_allocation.register_index, m_culled_indirect_command_allocation.space);
     
     return true;
 }
@@ -23,6 +83,25 @@ bool glTFComputePassIndirectDrawCulling::PreRenderPass(glTFRenderResourceManager
 {
     RETURN_IF_FALSE(glTFComputePassBase::PreRenderPass(resource_manager))
 
+    auto& command_list = resource_manager.GetCommandListForRecord();
+    RHIUtils::Instance().SetDTToRootParameterSlot(command_list,
+        m_culled_indirect_command_allocation.parameter_index,
+        m_main_descriptor_heap->GetGPUHandle(0),
+        GetPipelineType() == PipelineType::Graphics);
+
+    RHIUtils::Instance().AddBufferBarrierToCommandList(command_list, *resource_manager.GetMeshManager().GetCulledIndirectArgumentBuffer(),
+        RHIResourceStateType::STATE_UNORDERED_ACCESS,RHIResourceStateType::STATE_COPY_DEST );
+    
+    // Reset count buffer to zero
+    RHIUtils::Instance().CopyBuffer(command_list, *resource_manager.GetMeshManager().GetCulledIndirectArgumentBuffer(),
+        resource_manager.GetMeshManager().GetCulledIndirectArgumentBufferCountOffset(), *m_count_reset_buffer, 0, sizeof(unsigned));
+
+    RHIUtils::Instance().AddBufferBarrierToCommandList(command_list, *resource_manager.GetMeshManager().GetCulledIndirectArgumentBuffer(),
+            RHIResourceStateType::STATE_COPY_DEST, RHIResourceStateType::STATE_UNORDERED_ACCESS);
+
+    const unsigned command_count = resource_manager.GetMeshManager().GetIndirectDrawCommands().size();
+    GetRenderInterface<glTFRenderInterfaceSingleConstantBuffer<CullingConstant>>()->UploadCPUBuffer(&command_count, 0, sizeof(unsigned));
+    
     return true;
 }
 
@@ -31,9 +110,7 @@ DispatchCount glTFComputePassIndirectDrawCulling::GetDispatchCount() const
     return m_dispatch_count;
 }
 
-bool glTFComputePassIndirectDrawCulling::InitVertexAndInstanceBufferForFrame(
-    glTFRenderResourceManager& resource_manager)
+size_t glTFComputePassIndirectDrawCulling::GetMainDescriptorHeapSize()
 {
-
-    return true;
+    return 64;
 }

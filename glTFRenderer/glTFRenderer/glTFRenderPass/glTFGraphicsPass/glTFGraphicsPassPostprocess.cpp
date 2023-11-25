@@ -110,7 +110,8 @@ void glTFGraphicsPassPostprocess::DrawPostprocessQuad(glTFRenderResourceManager&
     RHIUtils::Instance().DrawIndexInstanced(command_list, 6, 1, 0, 0, 0);    
 }
 
-std::vector<RHIPipelineInputLayout> glTFGraphicsPassPostprocess::GetVertexInputLayout(glTFRenderResourceManager& resource_manager)
+const std::vector<RHIPipelineInputLayout>& glTFGraphicsPassPostprocess::GetVertexInputLayout(
+    glTFRenderResourceManager& resource_manager)
 {
     std::vector<RHIPipelineInputLayout> inputLayouts;
     inputLayouts.push_back({"POSITION", 0, RHIDataFormat::R32G32B32_FLOAT, 0});

@@ -8,13 +8,20 @@ public:
     
     virtual const char* PassName() override;
     virtual bool InitPass(glTFRenderResourceManager& resource_manager) override;
+
+    virtual bool SetupRootSignature(glTFRenderResourceManager& resourceManager) override;
+    virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resourceManager) override;
     
     virtual bool PreRenderPass(glTFRenderResourceManager& resource_manager) override;
     
     virtual DispatchCount GetDispatchCount() const override;
     
 protected:
-    bool InitVertexAndInstanceBufferForFrame(glTFRenderResourceManager& resource_manager);
-
+    virtual size_t GetMainDescriptorHeapSize() override;
+    
+    std::shared_ptr<IRHIGPUBuffer> m_count_reset_buffer;
+    
     DispatchCount m_dispatch_count;
+
+    RootSignatureAllocation m_culled_indirect_command_allocation;
 };
