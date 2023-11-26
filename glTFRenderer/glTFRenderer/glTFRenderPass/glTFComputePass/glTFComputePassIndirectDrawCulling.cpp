@@ -46,7 +46,7 @@ bool glTFComputePassIndirectDrawCulling::InitPass(glTFRenderResourceManager& res
     GetRenderInterface<glTFRenderInterfaceStructuredBuffer<MeshInstanceInputData>>()->UploadCPUBuffer(instance_data.data(), 0, instance_data.size() * sizeof(MeshInstanceInputData));
 
     const auto& indirect_data = mesh_manager.GetIndirectDrawCommands();
-    GetRenderInterface<glTFRenderInterfaceStructuredBuffer<MeshIndirectDrawCommand>>()->UploadCPUBuffer(indirect_data.data(), 0, indirect_data.size() * sizeof(MeshIndirectDrawCommand));
+    GetRenderInterface<glTFRenderInterfaceStructuredBuffer< MeshIndirectDrawCommand>>()->UploadCPUBuffer(indirect_data.data(), 0, indirect_data.size() * sizeof(MeshIndirectDrawCommand));
 
     m_count_reset_buffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
     m_count_reset_buffer->InitGPUBuffer(resource_manager.GetDevice(), {L"ResetBuffer", 4, 1, 1, RHIBufferType::Upload, RHIDataFormat::R32_UINT,RHIBufferResourceType::Buffer, RHIResourceStateType::STATE_COMMON, RHIBufferUsage::NONE, 0});
