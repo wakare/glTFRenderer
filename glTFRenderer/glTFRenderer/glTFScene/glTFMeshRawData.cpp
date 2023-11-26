@@ -81,7 +81,7 @@ glTFMeshRawData::glTFMeshRawData(const glTFLoader& loader, const glTF_Primitive&
 			vertex_data_start += vertexLayout.elements[i].byte_size;
 		}
 	}
-            
+
 	const auto& index_accessor = *loader.m_accessors[loader.ResolveIndex(primitive.indices)];
 	const auto& index_buffer_view = *loader.m_bufferViews[loader.ResolveIndex(index_accessor.buffer_view)];
 

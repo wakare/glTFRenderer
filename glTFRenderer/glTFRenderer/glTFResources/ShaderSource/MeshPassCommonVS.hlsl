@@ -7,7 +7,7 @@
 VS_OUTPUT main(VS_INPUT input)
 {
     VS_OUTPUT output;
-    float4x4 instance_transform = transpose(float4x4(input.instance_matrix_0, input.instance_matrix_1, input.instance_matrix_2, input.instance_matrix_3));
+    float4x4 instance_transform = (float4x4(input.instance_matrix_0, input.instance_matrix_1, input.instance_matrix_2, input.instance_matrix_3));
     float4 world_pos = mul(instance_transform, float4(input.pos, 1.0));
     float4 view_pos = mul(viewMatrix, world_pos);
     output.pos = mul (projectionMatrix, view_pos);
@@ -38,7 +38,7 @@ VS_OUTPUT main(uint Vertex_ID : SV_VertexID, uint Instance_ID: SV_InstanceID)
     uint instance_id = Instance_ID + instance_offset;
     
     MeshInstanceInputData instance_input_data = g_mesh_instance_input_data[instance_id];
-    float4x4 instance_transform = transpose(instance_input_data.instance_transform);
+    float4x4 instance_transform = (instance_input_data.instance_transform);
     
     uint index = g_mesh_index_info[g_mesh_start_info[instance_input_data.mesh_id].start_index].vertex_index + Vertex_ID;
     SceneMeshVertexInfo vertex = g_mesh_vertex_info[index];

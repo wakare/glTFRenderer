@@ -1,7 +1,6 @@
 #ifndef INDIRECT_CULLING
 #define INDIRECT_CULLING
 #include "glTFResources/ShaderSource/Interface/SceneView.hlsl"
-#include "glTFResources/ShaderSource/Interface/SceneMeshInfo.hlsl"
 
 #ifndef threadBlockSize
 #define threadBlockSize 64
@@ -30,12 +29,19 @@ struct IndirectDrawCommand
     
     uint index_count_per_instance;
     uint instance_count;
-    uint start_instance_location;
-    uint vertex_location;
     uint start_index_location;
+    uint vertex_location;
+    uint start_instance_location;
+    
     uint pad;
 };
 StructuredBuffer<IndirectDrawCommand> g_indirect_draw_data : INDIRECT_DRAW_DATA_REGISTER_SRV_INDEX;
+
+struct CullingBoundingBox
+{
+    float4 bounding_box;
+};
+StructuredBuffer<CullingBoundingBox> g_bounding_box_data : CULLING_BOUNDING_BOX_REGISTER_SRV_INDEX;
 
 AppendStructuredBuffer<IndirectDrawCommand> culled_indirect_commands : INDIRECT_DRAW_DATA_OUTPUT_REGISTER_UAV_INDEX;    // UAV: Processed indirect commands
 
@@ -50,29 +56,36 @@ void main(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
     
     uint instance_count = g_indirect_draw_data[index].instance_count;
     bool culled = true;
-    
+
     for (uint instance_index = 0; instance_index < instance_count; ++instance_index)
     {
         uint instance_id = instance_index + g_indirect_draw_data[index].start_instance_location;
         MeshInstanceInputData instance_input_data = g_mesh_instance_input_data[instance_id];
+        
         float4x4 instance_transform = transpose(instance_input_data.instance_transform);
+        CullingBoundingBox box = g_bounding_box_data[instance_input_data.mesh_id];
+        float radius = box.bounding_box.w;
 
-        for (uint vertex_index = 0; vertex_index < g_indirect_draw_data[index].index_count_per_instance; ++vertex_index)
-        {
-            // Cull per vertex
-            uint vertex_info_index = g_mesh_index_info[g_mesh_start_info[instance_input_data.mesh_id].start_index].vertex_index + vertex_index;
-            SceneMeshVertexInfo vertex = g_mesh_vertex_info[vertex_info_index];
+        float4 box_center_world_space = mul(instance_transform, float4(box.bounding_box.xyz, 1.0));
+        float4 box_center_view_space = mul(viewMatrix, box_center_world_space); 
+        box_center_view_space /= box_center_view_space.w;
+        
+        float distance_left_plane = dot(box_center_view_space, left_plane_normal);
+        float distance_right_plane = dot(box_center_view_space, right_plane_normal);
+        float distance_up_plane = dot(box_center_view_space, up_plane_normal);
+        float distance_down_plane = dot(box_center_view_space, down_plane_normal);
 
-            float4x4 mvp_matrix = mul(projectionMatrix, mul(viewMatrix, instance_transform));
-            float4 vertex_ndc_coord = mul(mvp_matrix, float4(vertex.position.xyz, 1.0));
-            vertex_ndc_coord /= vertex_ndc_coord.w;
-            
-            if (abs(vertex_ndc_coord.x) < 1.0 && abs(vertex_ndc_coord.y) < 1.0)
-            {
-                culled = false;
-                break;
-            }
-        }
+        culled &= box_center_view_space.z < (nearZ - radius) || box_center_view_space.z > (farZ + radius)
+            || distance_left_plane < -radius || distance_right_plane < -radius
+            || distance_up_plane < -radius || distance_down_plane < -radius
+            ;
+        
+        /*
+        float4 box_center_ndc_space = mul(projectionMatrix, box_center_view_space);
+        box_center_ndc_space /= box_center_ndc_space.w;
+        //culled &= (abs(box_center_ndc_space.x) > 1.0 || abs(box_center_ndc_space.y) > 1.0);
+        culled &= (abs(box_center_ndc_space.y) > 1.0);
+        */
     }
 
     if (!culled)

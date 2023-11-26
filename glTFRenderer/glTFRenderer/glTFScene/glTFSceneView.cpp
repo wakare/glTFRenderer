@@ -134,14 +134,6 @@ glm::mat4 glTFSceneView::GetProjectionMatrix() const
     return m_cameras[0]->GetProjectionMatrix();
 }
 
-glm::float4 glTFSceneView::GetMainCameraWorldPosition() const
-{
-    glTFCamera* main_camera = GetMainCamera();
-    GLTF_CHECK(main_camera);
-
-    return {main_camera->GetCameraPosition(), 1.0f};
-}
-
 void glTFSceneView::ApplyInput(glTFInputManager& input_manager, size_t delta_time_ms) const
 {
     // Manipulate one camera

@@ -1,6 +1,5 @@
 #include "glTFComputePassIndirectDrawCulling.h"
 
-#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneMeshInfo.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneView.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceStructuredBuffer.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
@@ -12,14 +11,21 @@ struct CullingConstant
     unsigned command_count;
 };
 
+struct CullingBoundingBox
+{
+    inline static std::string Name = "CULLING_BOUNDING_BOX_REGISTER_SRV_INDEX";
+
+    glm::float4 bounding_box;
+};
+
 glTFComputePassIndirectDrawCulling::glTFComputePassIndirectDrawCulling()
     : m_dispatch_count()
 {
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneView>());
-    AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMeshInfo>());
     AddRenderInterface(std::make_shared<glTFRenderInterfaceStructuredBuffer<MeshInstanceInputData>>());
     AddRenderInterface(std::make_shared<glTFRenderInterfaceStructuredBuffer<MeshIndirectDrawCommand>>());
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSingleConstantBuffer<CullingConstant>>());
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceStructuredBuffer<CullingBoundingBox>>());
 }
 
 const char* glTFComputePassIndirectDrawCulling::PassName()
@@ -31,8 +37,6 @@ bool glTFComputePassIndirectDrawCulling::InitPass(glTFRenderResourceManager& res
 {
     RETURN_IF_FALSE(glTFComputePassBase::InitPass(resource_manager))
 
-    RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSceneMeshInfo>()->UpdateSceneMeshData(resource_manager.GetMeshManager()))
-    
     const auto& mesh_manager = resource_manager.GetMeshManager();
         
     RHIGPUDescriptorHandle handle;
@@ -53,6 +57,23 @@ bool glTFComputePassIndirectDrawCulling::InitPass(glTFRenderResourceManager& res
 
     const unsigned size = 0;
     m_count_reset_buffer->UploadBufferFromCPU(&size, 0, sizeof(unsigned));
+
+    // Construct bounding box srv data
+    std::vector<CullingBoundingBox> bounding_boxes;
+    const auto& mesh_data = resource_manager.GetMeshManager().GetMeshRenderResources();
+
+    for (unsigned i = 0; i < mesh_data.size(); ++i)
+    {
+        const auto mesh_iter = mesh_data.find(i);
+        GLTF_CHECK(mesh_iter != mesh_data.end());
+
+        const auto& AABB = mesh_iter->second.mesh->GetAABB();
+        const auto& center = AABB.getCenter();
+        const float radius = length(AABB.getDiagonal()) * 0.5f;
+        bounding_boxes.push_back({glm::float4{center.x,center.y,center.z, radius }});
+    }
+    
+    GetRenderInterface<glTFRenderInterfaceStructuredBuffer<CullingBoundingBox>>()->UploadCPUBuffer(bounding_boxes.data(), 0, bounding_boxes.size() * sizeof(CullingBoundingBox));
     
     return true;
 }

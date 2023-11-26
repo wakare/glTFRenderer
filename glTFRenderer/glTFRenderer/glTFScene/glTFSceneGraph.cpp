@@ -219,7 +219,7 @@ void glTFSceneGraph::RecursiveInitSceneNodeFromGLTFLoader(const glTFLoader& load
                     triangle_mesh->SetMaterial(mesh_materials[material_id]);
                 }
 
-                auto AABB = triangle_mesh->GetAABB();
+                auto AABB = triangle_mesh->GetMeshRawData().GetBoundingBox();
                 sceneNode.m_objects.push_back(std::move(triangle_mesh));
                 sceneNode.m_objects.back()->SetAABB(AABB);
             }

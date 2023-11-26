@@ -16,5 +16,13 @@ cbuffer SceneViewConstantBuffer : SCENE_VIEW_REGISTER_INDEX
     float4 view_position;
     uint viewport_width;
     uint viewport_height;
+    
+    float nearZ;
+    float farZ;
+
+    float4 left_plane_normal;
+    float4 right_plane_normal;
+    float4 up_plane_normal;
+    float4 down_plane_normal;
 };
 #endif

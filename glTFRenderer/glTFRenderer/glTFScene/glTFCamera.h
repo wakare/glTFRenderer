@@ -27,6 +27,13 @@ public:
     glm::fmat4x4 GetViewMatrix() const;
     glm::fmat4x4 GetProjectionMatrix() const;
 
+    float GetAspect() const {return m_projection_width / m_projection_height; }
+    float GetNearZPlane() const {return m_projection_near; }
+    float GetFarZPlane() const {return m_projection_far; }
+
+    float GetFovX() const {return 2.0f * glm::atan(glm::tan(GetFovY() * 0.5f) * GetAspect()); }
+    float GetFovY() const {return m_projection_fov_radian; }
+    
     void SetCameraMode(CameraMode mode);
     const CameraMode& GetCameraMode() const;
 
