@@ -1,58 +1,41 @@
 #pragma once
 #include <GLFW/glfw3.h>
 
-#include "../glTFRenderPass/glTFRenderPassManager.h"
-#include "../glTFScene/glTFSceneGraph.h"
 #include "glTFInputManager.h"
+#include "glTFRenderPass/glTFRenderPassManager.h"
+#include "glTFScene/glTFSceneGraph.h"
 
-class glTFLoader;
 struct GLFWwindow;
-
-class glTFTimer
-{
-public:
-    glTFTimer();
-    void RecordFrameBegin();
-    size_t GetDeltaFrameTimeMs() const;
-
-private:
-    size_t m_delta_tick;
-    size_t m_tick;
-};
 
 class glTFWindow
 {
 public:
     static glTFWindow& Get();
     bool InitAndShowWindow();
-    void UpdateWindow();
+    void UpdateWindow() const;
 
     int GetWidth() const {return m_width; }
     int GetHeight() const {return m_height; }
     
     // Can get hwnd by raw window
-    GLFWwindow* GetRawWindow() {return m_glfw_window;}
-    const GLFWwindow* GetRawWindow() const {return m_glfw_window;}
+    HWND GetHWND() const;
+    
+    void SetTickCallback(const std::function<void()>& tick);
+    void SetExitCallback(const std::function<void()>& exit);
+    void SetInputManager(const std::shared_ptr<glTFInputManager>& input_manager);
     
 private:
     glTFWindow();
-    bool InitScene();
-    bool InitRenderPass();
 
     static void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
     static void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
     static void CursorPosCallback(GLFWwindow* window, double xpos, double ypos);
 
-    bool LoadSceneGraphFromFile(const char* filePath) const;
-    
     GLFWwindow* m_glfw_window;
     int m_width;
     int m_height;
     
-    std::unique_ptr<glTFRenderPassManager> m_pass_manager;
-    std::unique_ptr<glTFSceneGraph> m_scene_graph;
-    std::unique_ptr<glTFSceneView> m_scene_view;
-
-    glTFInputManager m_input_control;
-    glTFTimer m_timer;
+    std::shared_ptr<glTFInputManager> m_input_control;
+    std::function<void()> m_tick_callback;
+    std::function<void()> m_exit_callback;
 };

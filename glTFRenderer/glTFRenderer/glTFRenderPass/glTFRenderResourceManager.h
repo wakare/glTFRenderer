@@ -21,7 +21,7 @@ class glTFRenderResourceManager
 public:
     glTFRenderResourceManager();
     
-    bool InitResourceManager(glTFWindow& window);
+    bool InitResourceManager(unsigned width, unsigned height, HWND handle);
 
     IRHIFactory& GetFactory();
     IRHIDevice& GetDevice();

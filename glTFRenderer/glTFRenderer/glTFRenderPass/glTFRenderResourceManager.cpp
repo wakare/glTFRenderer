@@ -1,8 +1,11 @@
 #include "glTFRenderResourceManager.h"
 
 #include "glTFRenderMaterialManager.h"
-#include "../glTFRHI/RHIResourceFactoryImpl.hpp"
-#include "../glTFWindow/glTFWindow.h"
+#include "glTFRHI/RHIResourceFactoryImpl.hpp"
+#include "glTFWindow/glTFWindow.h"
+
+#define GLFW_EXPOSE_NATIVE_WIN32 1
+#include <GLFW/glfw3native.h>
 
 #define EXIT_WHEN_FALSE(x) if (!(x)) {assert(false); return false;}
 
@@ -15,7 +18,7 @@ glTFRenderResourceManager::glTFRenderResourceManager()
 {
 }
 
-bool glTFRenderResourceManager::InitResourceManager(glTFWindow& window)
+bool glTFRenderResourceManager::InitResourceManager(unsigned width, unsigned height, HWND handle)
 {
     m_factory = RHIResourceFactory::CreateRHIResource<IRHIFactory>();
     EXIT_WHEN_FALSE(m_factory->InitFactory())
@@ -27,7 +30,8 @@ bool glTFRenderResourceManager::InitResourceManager(glTFWindow& window)
     EXIT_WHEN_FALSE(m_command_queue->InitCommandQueue(*m_device))
     
     m_swapchain = RHIResourceFactory::CreateRHIResource<IRHISwapChain>();
-    EXIT_WHEN_FALSE(m_swapchain->InitSwapChain(*m_factory, *m_command_queue, window.GetWidth(), window.GetHeight(), false,  window))
+    EXIT_WHEN_FALSE(m_swapchain->InitSwapChain(*m_factory, *m_command_queue, width, height, false, handle))
+    
     UpdateCurrentBackBufferIndex();
     
     m_command_allocators.resize(backBufferCount);

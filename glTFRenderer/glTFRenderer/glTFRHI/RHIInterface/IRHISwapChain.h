@@ -1,6 +1,7 @@
 #pragma once
 #include "IRHICommandQueue.h"
 #include "IRHIFactory.h"
+#include <Windows.h>
 
 class glTFWindow;
 
@@ -11,5 +12,5 @@ public:
     virtual unsigned GetHeight() = 0;
     virtual unsigned GetCurrentBackBufferIndex() = 0;
     
-    virtual bool InitSwapChain(IRHIFactory& factory, IRHICommandQueue& commandQueue, unsigned width, unsigned height, bool fullScreen, glTFWindow& window) = 0;
+    virtual bool InitSwapChain(IRHIFactory& factory, IRHICommandQueue& commandQueue, unsigned width, unsigned height, bool fullScreen, HWND hwnd) = 0;
 };

@@ -1,8 +1,6 @@
 #include "DX12SwapChain.h"
 
 #include <GLFW/glfw3.h>
-#define GLFW_EXPOSE_NATIVE_WIN32 1
-#include <GLFW/glfw3native.h>
 
 #include "DX12CommandQueue.h"
 #include "DX12Factory.h"
@@ -38,12 +36,10 @@ unsigned DX12SwapChain::GetCurrentBackBufferIndex()
     return m_swapChain->GetCurrentBackBufferIndex();
 }
 
-bool DX12SwapChain::InitSwapChain(IRHIFactory& factory, IRHICommandQueue& commandQueue, unsigned width, unsigned height, bool fullScreen, glTFWindow& window)
+bool DX12SwapChain::InitSwapChain(IRHIFactory& factory, IRHICommandQueue& commandQueue, unsigned width, unsigned height, bool fullScreen, HWND hwnd)
 {
     m_width = width;
     m_height = height;
-    
-    HWND hwnd = glfwGetWin32Window(window.GetRawWindow());
     
     // -- Create the Swap Chain (double/tripple buffering) -- //
     DXGI_MODE_DESC backBufferDesc = {}; // this is to describe our display mode

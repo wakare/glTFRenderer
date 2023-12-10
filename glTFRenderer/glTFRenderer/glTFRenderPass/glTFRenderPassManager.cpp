@@ -2,27 +2,22 @@
 
 #include <cassert>
 #include <Windows.h>
-
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassLighting.h"
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassMeshBase.h"
-#include "glTFLoader/glTFElementCommon.h"
 #include "glTFRenderInterface/glTFRenderInterfaceFrameStat.h"
 #include "glTFRHI/RHIUtils.h"
 #include "glTFUtils/glTFLog.h"
 
-glTFRenderPassManager::glTFRenderPassManager(glTFWindow& window, glTFSceneView& view)
-    : m_window(window)
-    , m_scene_view(view)
+glTFRenderPassManager::glTFRenderPassManager(glTFSceneView& view)
+    : m_scene_view(view)
     , m_frame_index(0)
 {
-    const bool inited = InitRenderPassManager();
-    GLTF_CHECK(inited);
 }
-
-bool glTFRenderPassManager::InitRenderPassManager()
+ 
+bool glTFRenderPassManager::InitRenderPassManager(unsigned width, unsigned height, HWND handle)
 {
     m_resource_manager.reset(new glTFRenderResourceManager());
-    if (!m_resource_manager->InitResourceManager(m_window))
+    if (!m_resource_manager->InitResourceManager(width, height, handle))
     {
         return false;
     }

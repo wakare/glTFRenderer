@@ -9,9 +9,9 @@
 class glTFRenderPassManager
 {
 public:
-    glTFRenderPassManager(glTFWindow& window, glTFSceneView& view);
+    glTFRenderPassManager(glTFSceneView& view);
     
-    bool InitRenderPassManager();
+    bool InitRenderPassManager(unsigned width, unsigned height, HWND handle);
     void AddRenderPass(std::unique_ptr<glTFRenderPassBase>&& pass);
 
     void InitAllPass();
@@ -23,7 +23,6 @@ public:
     glTFRenderResourceManager& GetResourceManager() {return *m_resource_manager; }
     
 protected:
-    glTFWindow& m_window;
     glTFSceneView& m_scene_view;
     
     std::vector<std::unique_ptr<glTFRenderPassBase>> m_passes;

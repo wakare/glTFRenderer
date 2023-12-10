@@ -13,7 +13,7 @@ public:
     virtual unsigned GetHeight() override;
     virtual unsigned GetCurrentBackBufferIndex() override;
     
-    virtual bool InitSwapChain(IRHIFactory& factory,IRHICommandQueue& commandQueue, unsigned width, unsigned height, bool fullScreen, glTFWindow& window) override;
+    virtual bool InitSwapChain(IRHIFactory& factory,IRHICommandQueue& commandQueue, unsigned width, unsigned height, bool fullScreen, HWND hwnd) override;
 
     IDXGISwapChain3* GetSwapChain() {return m_swapChain.Get();}
     const IDXGISwapChain3* GetSwapChain() const {return m_swapChain.Get();}
