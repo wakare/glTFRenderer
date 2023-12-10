@@ -48,29 +48,17 @@ bool glTFApp::InitApp()
     const unsigned height = window.GetHeight();
     GLTF_CHECK(window.InitAndShowWindow());
     
-     // Create test scene with box
+     // Create test scene with filename
     m_scene_graph = std::make_unique<glTFSceneGraph>();
-    bool use_test_box_scene = false;
-    if (use_test_box_scene)
-    {
-        std::unique_ptr<glTFSceneNode> box_node = std::make_unique<glTFSceneNode>();
-        box_node->m_objects.push_back(std::make_unique<glTFSceneBox>(m_scene_graph->GetRootNode().m_finalTransform));
-        m_scene_graph->AddSceneNode(std::move(box_node));
-    }
-    else
-    {
-        //RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\BoxTextured\\BoxTextured.gltf"))
-        //RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Box\\Box.gltf"))
-        //RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Monster\\Monster.gltf"))
-        //RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Buggy\\glTF\\Buggy.gltf"))
-        RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\Sponza\\glTF\\Sponza.gltf"))
-        //RETURN_IF_FALSE(LoadSceneGraphFromFile("glTFResources\\Models\\hylian_shield_and_master_sword\\scene.gltf"))
-    }
+    char file_path [MAX_PATH] = {'\0'};
+    const std::string file_name = "VC";
+    snprintf(file_path, sizeof(file_path), "glTFResources\\Models\\%s\\glTF\\%s.gltf", file_name.c_str(), file_name.c_str());
+    RETURN_IF_FALSE(LoadSceneGraphFromFile(file_path))
 
     // Add camera
     std::unique_ptr<glTFSceneNode> camera_node = std::make_unique<glTFSceneNode>();
     std::unique_ptr<glTFCamera> camera = std::make_unique<glTFCamera>(m_scene_graph->GetRootNode().m_finalTransform,
-        45.0f, width, height, 0.1f, 1000.0f);
+        90.0f, width, height, 0.001f, 1000.0f);
     
     camera_node->m_objects.push_back(std::move(camera));
     

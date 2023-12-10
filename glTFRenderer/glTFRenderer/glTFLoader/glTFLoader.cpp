@@ -344,7 +344,6 @@ bool glTFLoader::LoadFile(const std::string& file_path)
 		    glTF_PROCESS_SCALAR(pbr_data, "metallicFactor", float, element->pbr.metallic_factor)
 		    glTF_PROCESS_SCALAR(pbr_data, "roughnessFactor", float, element->pbr.roughness_factor)
 
-
 		    glTF_PROCESS_TEXTURE_INFO(pbr_data, "baseColorTexture", element->pbr.base_color_texture)
 		    glTF_PROCESS_TEXTURE_INFO(pbr_data, "metallicRoughnessTexture", element->pbr.metallic_roughness_texture)
 		}

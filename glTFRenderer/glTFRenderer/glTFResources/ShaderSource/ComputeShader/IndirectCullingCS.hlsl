@@ -6,6 +6,8 @@
 #define threadBlockSize 64
 #endif
 
+//#define NDC_CULLING
+
 cbuffer CullingConstant: CULLING_CONSTANT_BUFFER_REGISTER_CBV_INDEX
 {
     uint input_indirect_commands_count;
@@ -65,7 +67,7 @@ void main(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
         float4x4 instance_transform = transpose(instance_input_data.instance_transform);
         CullingBoundingBox box = g_bounding_box_data[instance_input_data.mesh_id];
         float4 instance_box_radius = mul(instance_transform, float4(box.bounding_box.w, box.bounding_box.w, box.bounding_box.w, 0.0));
-        float instance_max_radius = max (instance_box_radius.x, max(instance_box_radius.y, instance_box_radius.z));
+        float instance_max_radius = max(instance_box_radius.x, max(instance_box_radius.y, instance_box_radius.z));
 
         float4 box_center_world_space = mul(instance_transform, float4(box.bounding_box.xyz, 1.0));
         float4 box_center_view_space = mul(viewMatrix, box_center_world_space); 
@@ -85,10 +87,12 @@ void main(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
         float distance_down_plane = dot(box_center_view_space, down_plane_normal);
 
         bool instance_culled =        
-            box_center_view_space.z < (nearZ - instance_max_radius) || box_center_view_space.z > (farZ + instance_max_radius)
-            //box_center_view_space.z < (nearZ) || box_center_view_space.z > (farZ)
-            || distance_left_plane < -instance_max_radius || distance_right_plane < -instance_max_radius
-            || distance_up_plane < -instance_max_radius || distance_down_plane < -instance_max_radius
+            box_center_view_space.z < (nearZ - instance_max_radius) ||
+            box_center_view_space.z > (farZ + instance_max_radius) ||
+            distance_left_plane < -instance_max_radius ||
+            distance_right_plane < -instance_max_radius ||
+            distance_up_plane < -instance_max_radius ||
+            distance_down_plane < -instance_max_radius
             ;
 #endif
         culled &= instance_culled;
