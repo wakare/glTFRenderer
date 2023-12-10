@@ -3,6 +3,7 @@
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneView.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceStructuredBuffer.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
+#include "glTFScene/glTFSceneView.h"
 
 struct CullingConstant
 {
@@ -50,7 +51,7 @@ bool glTFComputePassIndirectDrawCulling::InitPass(glTFRenderResourceManager& res
     GetRenderInterface<glTFRenderInterfaceStructuredBuffer<MeshInstanceInputData>>()->UploadCPUBuffer(instance_data.data(), 0, instance_data.size() * sizeof(MeshInstanceInputData));
 
     const auto& indirect_data = mesh_manager.GetIndirectDrawCommands();
-    GetRenderInterface<glTFRenderInterfaceStructuredBuffer< MeshIndirectDrawCommand>>()->UploadCPUBuffer(indirect_data.data(), 0, indirect_data.size() * sizeof(MeshIndirectDrawCommand));
+    GetRenderInterface<glTFRenderInterfaceStructuredBuffer<MeshIndirectDrawCommand>>()->UploadCPUBuffer(indirect_data.data(), 0, indirect_data.size() * sizeof(MeshIndirectDrawCommand));
 
     m_count_reset_buffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
     m_count_reset_buffer->InitGPUBuffer(resource_manager.GetDevice(), {L"ResetBuffer", 4, 1, 1, RHIBufferType::Upload, RHIDataFormat::R32_UINT,RHIBufferResourceType::Buffer, RHIResourceStateType::STATE_COMMON, RHIBufferUsage::NONE, 0});
@@ -103,27 +104,43 @@ bool glTFComputePassIndirectDrawCulling::SetupPipelineStateObject(glTFRenderReso
 bool glTFComputePassIndirectDrawCulling::PreRenderPass(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFComputePassBase::PreRenderPass(resource_manager))
+    if (enable_culling)
+    {
+        auto& command_list = resource_manager.GetCommandListForRecord();
+        RHIUtils::Instance().SetDTToRootParameterSlot(command_list,
+            m_culled_indirect_command_allocation.parameter_index,
+            m_main_descriptor_heap->GetGPUHandle(0),
+            GetPipelineType() == PipelineType::Graphics);
 
-    auto& command_list = resource_manager.GetCommandListForRecord();
-    RHIUtils::Instance().SetDTToRootParameterSlot(command_list,
-        m_culled_indirect_command_allocation.parameter_index,
-        m_main_descriptor_heap->GetGPUHandle(0),
-        GetPipelineType() == PipelineType::Graphics);
-
-    RHIUtils::Instance().AddBufferBarrierToCommandList(command_list, *resource_manager.GetMeshManager().GetCulledIndirectArgumentBuffer(),
-        RHIResourceStateType::STATE_UNORDERED_ACCESS,RHIResourceStateType::STATE_COPY_DEST );
+        RHIUtils::Instance().AddBufferBarrierToCommandList(command_list, *resource_manager.GetMeshManager().GetCulledIndirectArgumentBuffer(),
+            RHIResourceStateType::STATE_UNORDERED_ACCESS,RHIResourceStateType::STATE_COPY_DEST );
     
-    // Reset count buffer to zero
-    RHIUtils::Instance().CopyBuffer(command_list, *resource_manager.GetMeshManager().GetCulledIndirectArgumentBuffer(),
-        resource_manager.GetMeshManager().GetCulledIndirectArgumentBufferCountOffset(), *m_count_reset_buffer, 0, sizeof(unsigned));
+        // Reset count buffer to zero
+        RHIUtils::Instance().CopyBuffer(command_list, *resource_manager.GetMeshManager().GetCulledIndirectArgumentBuffer(),
+            resource_manager.GetMeshManager().GetCulledIndirectArgumentBufferCountOffset(), *m_count_reset_buffer, 0, sizeof(unsigned));
 
-    RHIUtils::Instance().AddBufferBarrierToCommandList(command_list, *resource_manager.GetMeshManager().GetCulledIndirectArgumentBuffer(),
-            RHIResourceStateType::STATE_COPY_DEST, RHIResourceStateType::STATE_UNORDERED_ACCESS);
+        RHIUtils::Instance().AddBufferBarrierToCommandList(command_list, *resource_manager.GetMeshManager().GetCulledIndirectArgumentBuffer(),
+                RHIResourceStateType::STATE_COPY_DEST, RHIResourceStateType::STATE_UNORDERED_ACCESS);
 
-    const unsigned command_count = resource_manager.GetMeshManager().GetIndirectDrawCommands().size();
-    GetRenderInterface<glTFRenderInterfaceSingleConstantBuffer<CullingConstant>>()->UploadCPUBuffer(&command_count, 0, sizeof(unsigned));
+        const unsigned command_count = resource_manager.GetMeshManager().GetIndirectDrawCommands().size();
+        GetRenderInterface<glTFRenderInterfaceSingleConstantBuffer<CullingConstant>>()->UploadCPUBuffer(&command_count, 0, sizeof(unsigned));
+    }
     
     return true;
+}
+
+void glTFComputePassIndirectDrawCulling::UpdateRenderFlags(const glTFSceneViewRenderFlags& render_flags)
+{
+    if (enable_culling != render_flags.IsCulling())
+    {
+        enable_culling = render_flags.IsCulling();
+        LOG_FORMAT_FLUSH("[DEBUG] Enable Culling: %s\n", enable_culling ? "True" : "False")
+    }
+}
+
+bool glTFComputePassIndirectDrawCulling::NeedRendering() const
+{
+    return enable_culling;
 }
 
 DispatchCount glTFComputePassIndirectDrawCulling::GetDispatchCount() const

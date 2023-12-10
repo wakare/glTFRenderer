@@ -67,7 +67,7 @@ bool glTFRenderPassBase::PostRenderPass(glTFRenderResourceManager& resource_mana
     return true;
 }
 
-bool glTFRenderPassBase::SetupRootSignature(glTFRenderResourceManager& resourceManager)
+bool glTFRenderPassBase::SetupRootSignature(glTFRenderResourceManager& resource_manager)
 {
     for (const auto& render_interface : m_render_interfaces)
     {
@@ -77,7 +77,7 @@ bool glTFRenderPassBase::SetupRootSignature(glTFRenderResourceManager& resourceM
     return true;
 }
 
-bool glTFRenderPassBase::SetupPipelineStateObject(glTFRenderResourceManager& resourceManager)
+bool glTFRenderPassBase::SetupPipelineStateObject(glTFRenderResourceManager& resource_manager)
 {
     if (m_bypass)
     {

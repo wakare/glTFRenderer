@@ -10,23 +10,27 @@ class glTFInputManager;
 enum glTFSceneViewFlags
 {
     glTFSceneViewFlags_Lit = 1 << 0,
+    glTFSceneViewFlags_Culling = 1 << 1,
 };
+
+#define ADD_RENDER_FLAGS(value)\
+void SetEnable##value(bool enable)\
+{\
+    if (enable)\
+    {\
+        SetFlag(glTFSceneViewFlags_##value);\
+    }\
+    else\
+    {\
+        UnsetFlag(glTFSceneViewFlags_##value);\
+    }\
+}\
+bool Is##value() const {return IsFlagSet(glTFSceneViewFlags_##value); }
 
 struct glTFSceneViewRenderFlags : public glTFFlagsBase<glTFSceneViewFlags>
 {
-    void SetEnableLit(bool enable)
-    {
-        if (enable)
-        {
-            SetFlag(glTFSceneViewFlags_Lit);
-        }
-        else
-        {
-            UnsetFlag(glTFSceneViewFlags_Lit);
-        }
-    }
-    
-    bool IsLit() const {return IsFlagSet(glTFSceneViewFlags_Lit); }
+    ADD_RENDER_FLAGS(Lit)
+    ADD_RENDER_FLAGS(Culling)
 };
 
 // Resolve specific render pass with drawable primitive and handle render scene graph with camera
@@ -44,10 +48,11 @@ public:
     glm::mat4 GetViewMatrix() const;
     glm::mat4 GetProjectionMatrix() const;
     
-    
-    void ApplyInput(glTFInputManager& input_manager, size_t delta_time_ms) const;
+    void ApplyInput(glTFInputManager& input_manager, size_t delta_time_ms);
     void GetViewportSize(unsigned& out_width, unsigned& out_height) const;
     glTFCamera* GetMainCamera() const;
+
+    const glTFSceneViewRenderFlags& GetRenderFlags() const {return m_render_flags; }
     
 private:
     void FocusSceneCenter(glTFCamera& camera) const;

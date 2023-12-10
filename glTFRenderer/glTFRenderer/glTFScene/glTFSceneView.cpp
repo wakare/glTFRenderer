@@ -15,6 +15,7 @@ glTFSceneView::glTFSceneView(const glTFSceneGraph& graph)
     : m_scene_graph(graph)
 {
     m_render_flags.SetEnableLit(true);
+    m_render_flags.SetEnableCulling(true);
 }
 
 bool glTFSceneView::SetupRenderPass(glTFRenderPassManager& out_render_pass_manager) const
@@ -134,7 +135,7 @@ glm::mat4 glTFSceneView::GetProjectionMatrix() const
     return m_cameras[0]->GetProjectionMatrix();
 }
 
-void glTFSceneView::ApplyInput(glTFInputManager& input_manager, size_t delta_time_ms) const
+void glTFSceneView::ApplyInput(glTFInputManager& input_manager, size_t delta_time_ms)
 {
     // Manipulate one camera
     glTFCamera* main_camera = GetMainCamera();
@@ -146,14 +147,23 @@ void glTFSceneView::ApplyInput(glTFInputManager& input_manager, size_t delta_tim
     // Focus scene center
     if (input_manager.IsKeyPressed(GLFW_KEY_O))
     {
-        if (main_camera->GetCameraMode() == CameraMode::Free)
+        const auto new_camera_mode = main_camera->GetCameraMode() == CameraMode::Free ? CameraMode::Observer : CameraMode::Free;
+        main_camera->SetCameraMode(new_camera_mode);
+        
+        if (new_camera_mode == CameraMode::Observer)
         {
             FocusSceneCenter(*main_camera);    
         }
     }
-    else if (input_manager.IsKeyPressed(GLFW_KEY_F))
+    else if (input_manager.IsKeyPressed(GLFW_KEY_C))
     {
-        main_camera->SetCameraMode(CameraMode::Free);
+        //const bool enable_culling = m_render_flags.IsCulling();
+        m_render_flags.SetEnableCulling(true);
+    }
+    else if (input_manager.IsKeyPressed(GLFW_KEY_V))
+    {
+        //const bool enable_culling = m_render_flags.IsCulling();
+        m_render_flags.SetEnableCulling(false);
     }
     
     ApplyInputForCamera(input_manager, *main_camera, delta_time_ms);

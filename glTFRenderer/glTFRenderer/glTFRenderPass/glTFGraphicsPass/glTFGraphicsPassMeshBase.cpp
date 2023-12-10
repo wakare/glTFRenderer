@@ -44,57 +44,60 @@ bool glTFGraphicsPassMeshBase::RenderPass(glTFRenderResourceManager& resource_ma
 {
     RETURN_IF_FALSE(glTFGraphicsPassBase::RenderPass(resource_manager))    
 
-    auto& command_list = resource_manager.GetCommandListForRecord();
-
-    const auto& mesh_render_resources = resource_manager.GetMeshManager().GetMeshRenderResources();
-
-    if (UsingIndirectDraw())
+    if (NeedRendering())
     {
-        const size_t indirect_command_count = resource_manager.GetMeshManager().GetIndirectDrawCommands().size();
-        if (UsingIndirectDrawCulling())
+        auto& command_list = resource_manager.GetCommandListForRecord();
+
+        const auto& mesh_render_resources = resource_manager.GetMeshManager().GetMeshRenderResources();
+
+        if (UsingIndirectDraw())
         {
-            RHIUtils::Instance().ExecuteIndirect(command_list, *m_command_signature, indirect_command_count, *resource_manager.GetMeshManager().GetCulledIndirectArgumentBuffer(), 0, *resource_manager.GetMeshManager().GetCulledIndirectArgumentBuffer(), resource_manager.GetMeshManager().GetCulledIndirectArgumentBufferCountOffset());
+            const size_t indirect_command_count = resource_manager.GetMeshManager().GetIndirectDrawCommands().size();
+            if (UsingIndirectDrawCulling())
+            {
+                RHIUtils::Instance().ExecuteIndirect(command_list, *m_command_signature, indirect_command_count, *resource_manager.GetMeshManager().GetCulledIndirectArgumentBuffer(), 0, *resource_manager.GetMeshManager().GetCulledIndirectArgumentBuffer(), resource_manager.GetMeshManager().GetCulledIndirectArgumentBufferCountOffset());
+            }
+            else
+            {
+                RHIUtils::Instance().ExecuteIndirect(command_list, *m_command_signature, indirect_command_count, *resource_manager.GetMeshManager().GetIndirectArgumentBuffer(), 0);    
+            }
         }
         else
         {
-            RHIUtils::Instance().ExecuteIndirect(command_list, *m_command_signature, indirect_command_count, *resource_manager.GetMeshManager().GetIndirectArgumentBuffer(), 0);    
+            for (const auto& instance : resource_manager.GetMeshManager().GetInstanceDrawInfo())
+            {
+                const auto& mesh_data = mesh_render_resources.find(instance.first);
+                if (mesh_data == mesh_render_resources.end())
+                {
+                    // No valid instance data exists..
+                    continue;
+                }
+        
+                if (!mesh_data->second.mesh->IsVisible())
+                {
+                    continue;
+                }
+        
+                //RETURN_IF_FALSE(BeginDrawMesh(resource_manager, mesh_data->second, instance.second.second))
+
+                if (UsingInputLayout())
+                {
+                    RHIUtils::Instance().SetVertexBufferView(command_list, 0, *mesh_data->second.mesh_vertex_buffer_view);
+                    RHIUtils::Instance().SetVertexBufferView(command_list, 1, *resource_manager.GetMeshManager().GetInstanceBufferView());    
+                }
+            
+                RHIUtils::Instance().SetIndexBufferView(command_list, *mesh_data->second.mesh_index_buffer_view);
+        
+                RHIUtils::Instance().DrawIndexInstanced(command_list,
+                    mesh_data->second.mesh_index_count, instance.second.first,
+                    0, 0,
+                    instance.second.second);
+
+                //RETURN_IF_FALSE(EndDrawMesh(resource_manager, mesh_data->second, instance.second))
+            }    
         }
     }
-    else
-    {
-        for (const auto& instance : resource_manager.GetMeshManager().GetInstanceDrawInfo())
-        {
-            const auto& mesh_data = mesh_render_resources.find(instance.first);
-            if (mesh_data == mesh_render_resources.end())
-            {
-                // No valid instance data exists..
-                continue;
-            }
-        
-            if (!mesh_data->second.mesh->IsVisible())
-            {
-                continue;
-            }
-        
-            //RETURN_IF_FALSE(BeginDrawMesh(resource_manager, mesh_data->second, instance.second.second))
-
-            if (UsingInputLayout())
-            {
-                RHIUtils::Instance().SetVertexBufferView(command_list, 0, *mesh_data->second.mesh_vertex_buffer_view);
-                RHIUtils::Instance().SetVertexBufferView(command_list, 1, *resource_manager.GetMeshManager().GetInstanceBufferView());    
-            }
-            
-            RHIUtils::Instance().SetIndexBufferView(command_list, *mesh_data->second.mesh_index_buffer_view);
-        
-            RHIUtils::Instance().DrawIndexInstanced(command_list,
-                mesh_data->second.mesh_index_count, instance.second.first,
-                0, 0,
-                instance.second.second);
-
-            //RETURN_IF_FALSE(EndDrawMesh(resource_manager, mesh_data->second, instance.second))
-        }    
-    }
-
+    
     return true;
 }
 

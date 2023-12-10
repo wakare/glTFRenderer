@@ -4,6 +4,7 @@
 #include "glTFRHI/RHIInterface/IRHIRootSignatureHelper.h"
 #include "glTFScene/glTFSceneObjectBase.h"
 
+struct glTFSceneViewRenderFlags;
 class glTFMaterialBase;
 class IRHIRootSignature;
 class IRHIPipelineStateObject;
@@ -38,7 +39,9 @@ public:
 
     virtual bool TryProcessSceneObject(glTFRenderResourceManager& resourceManager, const glTFSceneObjectBase& object) {return true; }
     virtual bool FinishProcessSceneObject(glTFRenderResourceManager& resourceManager) {return true; }
-    
+    virtual void UpdateRenderFlags(const glTFSceneViewRenderFlags& render_flags) {}
+
+    virtual bool NeedRendering() const {return true; }
     void SetByPass(bool bypass) { m_bypass = bypass; }
     
     template<typename RenderInterface>
@@ -70,8 +73,8 @@ public:
 protected:
     // Must be implement in final render pass class
     virtual size_t GetMainDescriptorHeapSize() = 0;
-    virtual bool SetupRootSignature(glTFRenderResourceManager& resourceManager);
-    virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resourceManager) = 0;
+    virtual bool SetupRootSignature(glTFRenderResourceManager& resource_manager);
+    virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) = 0;
     virtual PipelineType GetPipelineType() const = 0;
     void AddRenderInterface(const std::shared_ptr<glTFRenderInterfaceBase>& render_interface);
 

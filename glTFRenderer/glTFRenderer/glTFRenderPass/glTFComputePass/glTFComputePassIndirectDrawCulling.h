@@ -14,14 +14,17 @@ public:
     
     virtual bool PreRenderPass(glTFRenderResourceManager& resource_manager) override;
     
+    virtual void UpdateRenderFlags(const glTFSceneViewRenderFlags& render_flags) override;
+    virtual bool NeedRendering() const override;
+    
     virtual DispatchCount GetDispatchCount() const override;
     
 protected:
     virtual size_t GetMainDescriptorHeapSize() override;
     
     std::shared_ptr<IRHIGPUBuffer> m_count_reset_buffer;
-    
     DispatchCount m_dispatch_count;
-
     RootSignatureAllocation m_culled_indirect_command_allocation;
+    
+    bool enable_culling; 
 };

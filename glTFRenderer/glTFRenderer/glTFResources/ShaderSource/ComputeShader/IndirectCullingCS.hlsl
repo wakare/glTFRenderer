@@ -33,7 +33,7 @@ struct IndirectDrawCommand
     uint vertex_location;
     uint start_instance_location;
     
-    uint pad;
+    uint padding;
 };
 StructuredBuffer<IndirectDrawCommand> g_indirect_draw_data : INDIRECT_DRAW_DATA_REGISTER_SRV_INDEX;
 
@@ -64,28 +64,34 @@ void main(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
         
         float4x4 instance_transform = transpose(instance_input_data.instance_transform);
         CullingBoundingBox box = g_bounding_box_data[instance_input_data.mesh_id];
-        float radius = box.bounding_box.w;
+        float4 instance_box_radius = mul(instance_transform, float4(box.bounding_box.w, box.bounding_box.w, box.bounding_box.w, 0.0));
+        float instance_max_radius = max (instance_box_radius.x, max(instance_box_radius.y, instance_box_radius.z));
 
         float4 box_center_world_space = mul(instance_transform, float4(box.bounding_box.xyz, 1.0));
         float4 box_center_view_space = mul(viewMatrix, box_center_world_space); 
         box_center_view_space /= box_center_view_space.w;
-        
+
+#ifdef NDC_CULLING
+        float4 box_center_ndc = mul(projectionMatrix, box_center_view_space);
+        box_center_ndc /= box_center_ndc.w;
+        bool instance_culled =
+            box_center_ndc.x < -1.0 || box_center_ndc.x > 1.0 ||
+            box_center_ndc.y < -1.0 || box_center_ndc.y > 1.0 ||
+            box_center_ndc.z < 0.0 || box_center_ndc.z > 1.0;
+#else
         float distance_left_plane = dot(box_center_view_space, left_plane_normal);
         float distance_right_plane = dot(box_center_view_space, right_plane_normal);
         float distance_up_plane = dot(box_center_view_space, up_plane_normal);
         float distance_down_plane = dot(box_center_view_space, down_plane_normal);
 
-        culled &= box_center_view_space.z < (nearZ - radius) || box_center_view_space.z > (farZ + radius)
-            || distance_left_plane < -radius || distance_right_plane < -radius
-            || distance_up_plane < -radius || distance_down_plane < -radius
+        bool instance_culled =        
+            box_center_view_space.z < (nearZ - instance_max_radius) || box_center_view_space.z > (farZ + instance_max_radius)
+            //box_center_view_space.z < (nearZ) || box_center_view_space.z > (farZ)
+            || distance_left_plane < -instance_max_radius || distance_right_plane < -instance_max_radius
+            || distance_up_plane < -instance_max_radius || distance_down_plane < -instance_max_radius
             ;
-        
-        /*
-        float4 box_center_ndc_space = mul(projectionMatrix, box_center_view_space);
-        box_center_ndc_space /= box_center_ndc_space.w;
-        //culled &= (abs(box_center_ndc_space.x) > 1.0 || abs(box_center_ndc_space.y) > 1.0);
-        culled &= (abs(box_center_ndc_space.y) > 1.0);
-        */
+#endif
+        culled &= instance_culled;
     }
 
     if (!culled)

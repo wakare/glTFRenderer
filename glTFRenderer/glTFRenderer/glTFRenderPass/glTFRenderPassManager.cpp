@@ -100,6 +100,8 @@ void glTFRenderPassManager::UpdateScene(size_t deltaTimeMs)
 
     for (const auto& pass : render_passes)
     {
+        pass->UpdateRenderFlags(m_scene_view.GetRenderFlags());
+        
         const bool success = pass->FinishProcessSceneObject(*m_resource_manager);
         GLTF_CHECK(success);
 
