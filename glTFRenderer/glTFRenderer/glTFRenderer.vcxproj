@@ -106,6 +106,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="glTFApp\glTFApp.cpp" />
+    <ClCompile Include="glTFApp\glTFAppRenderPipeline.cpp" />
     <ClCompile Include="glTFLight\glTFDirectionalLight.cpp" />
     <ClCompile Include="glTFLight\glTFLightBase.cpp" />
     <ClCompile Include="glTFLight\glTFLocalLight.cpp" />
@@ -163,6 +164,11 @@
     <None Include="glTFResources\ShaderSource\Math\Sample.hlsl" />
     <None Include="glTFResources\ShaderSource\RayTracing\PathTracingMain.hlsl" />
     <None Include="glTFResources\ShaderSource\RayTracing\PathTracingRays.hlsl" />
+    <None Include="glTFResources\ShaderSource\FrameStat.hlsl" />
+    <None Include="glTFResources\ShaderSource\MeshPassCommon.hlsl" />
+    <None Include="glTFResources\ShaderSource\MeshPassCommonPS.hlsl" />
+    <None Include="glTFResources\ShaderSource\MeshPassCommonVS.hlsl" />
+    <ClCompile Include="glTFResources\ShaderSource\LightPassCommon.hlsl" />
     <ClCompile Include="glTFRHI\RHIConfigSingleton.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12CommandSignature.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12DescriptorHeap.cpp" />
@@ -233,6 +239,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="glTFApp\glTFApp.h" />
+    <ClInclude Include="glTFApp\glTFAppRenderPipeline.h" />
     <ClInclude Include="glTFLight\glTFDirectionalLight.h" />
     <ClInclude Include="glTFLight\glTFLightBase.h" />
     <ClInclude Include="glTFLight\glTFLocalLight.h" />
@@ -277,6 +284,8 @@
     <ClInclude Include="glTFRenderPass\glTFRenderPassManager.h" />
     <ClInclude Include="glTFRenderPass\glTFMeshRenderResource.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderResourceManager.h" />
+    <None Include="glTFResources\ShaderSource\MeshPassCommon.h" />
+    <ClInclude Include="glTFResources\ShaderSource\LightPassCommon.h" />
     <ClInclude Include="glTFRHI\RHIConfigSingleton.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\d3dx12.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12CommandSignature.h" />

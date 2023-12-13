@@ -3,7 +3,6 @@
 #include <Windows.h>
 #include "glTFLight/glTFDirectionalLight.h"
 #include "glTFLight/glTFPointLight.h"
-#include "glTFScene/glTFSceneBox.h"
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassLighting.h"
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassMeshOpaque.h"
 #include "glTFLoader/glTFLoader.h"

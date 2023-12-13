@@ -66,6 +66,13 @@ void main(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
         
         float4x4 instance_transform = transpose(instance_input_data.instance_transform);
         CullingBoundingBox box = g_bounding_box_data[instance_input_data.mesh_id];
+
+        /*
+        float4 instance_transform_vec0 = float4(instance_input_data.instance_transform[0].xyz, 0.0);
+        float4 instance_transform_vec1 = float4(instance_input_data.instance_transform[1].xyz, 0.0);
+        float4 instance_transform_vec2 = float4(instance_input_data.instance_transform[2].xyz, 0.0);
+        float instance_max_radius = max(length(instance_transform_vec0), max(length(instance_transform_vec1), length(instance_transform_vec2)));
+        */        
         float4 instance_box_radius = mul(instance_transform, float4(box.bounding_box.w, box.bounding_box.w, box.bounding_box.w, 0.0));
         float instance_max_radius = max(instance_box_radius.x, max(instance_box_radius.y, instance_box_radius.z));
 
