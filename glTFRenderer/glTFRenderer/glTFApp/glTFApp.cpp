@@ -50,7 +50,7 @@ bool glTFApp::InitApp()
      // Create test scene with filename
     m_scene_graph = std::make_unique<glTFSceneGraph>();
     char file_path [MAX_PATH] = {'\0'};
-    const std::string file_name = "VC";
+    const std::string file_name = "Sponza";
     snprintf(file_path, sizeof(file_path), "glTFResources\\Models\\%s\\glTF\\%s.gltf", file_name.c_str(), file_name.c_str());
     RETURN_IF_FALSE(LoadSceneGraphFromFile(file_path))
 

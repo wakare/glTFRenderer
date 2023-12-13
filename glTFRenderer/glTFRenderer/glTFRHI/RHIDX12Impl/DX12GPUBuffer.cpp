@@ -59,8 +59,17 @@ bool DX12GPUBuffer::InitGPUBuffer(IRHIDevice& device, const RHIBufferDesc& desc)
         heap_resource_desc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
     }
 
-    const D3D12_RESOURCE_STATES state = (desc.state == RHIResourceStateType::STATE_UNKNOWN) ? desc.type == RHIBufferType::Default ? D3D12_RESOURCE_STATE_COMMON : D3D12_RESOURCE_STATE_GENERIC_READ :
-                                            DX12ConverterUtils::ConvertToResourceState(desc.state);
+    RHIResourceStateType final_state = desc.state;
+    if (final_state == RHIResourceStateType::STATE_UNKNOWN)
+    {
+        final_state = desc.type == RHIBufferType::Default ? RHIResourceStateType::STATE_COMMON : RHIResourceStateType::STATE_GENERIC_READ;
+    }
+    else if (desc.type == RHIBufferType::Upload)
+    {
+        final_state =  RHIResourceStateType::STATE_GENERIC_READ;
+    }
+    
+    const D3D12_RESOURCE_STATES state = DX12ConverterUtils::ConvertToResourceState(final_state);
     
     THROW_IF_FAILED(dxDevice->CreateCommittedResource(
             &heap_properties, // this heap will be used to upload the constant buffer data

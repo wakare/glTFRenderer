@@ -141,7 +141,9 @@ bool DX12Shader::CompileShaderWithDXC()
     
     // Open source file.  
     CComPtr<IDxcBlobEncoding> pSource = nullptr;
-    pUtils->LoadFile(file_path.c_str(), nullptr, &pSource);
+    THROW_IF_FAILED(pUtils->LoadFile(file_path.c_str(), nullptr, &pSource));
+    GLTF_CHECK(pSource);
+    
     DxcBuffer Source;
     Source.Ptr = pSource->GetBufferPointer();
     Source.Size = pSource->GetBufferSize();
