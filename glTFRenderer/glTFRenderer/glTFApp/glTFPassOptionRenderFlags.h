@@ -5,6 +5,7 @@ enum glTFPassOptionFlags
 {
     glTFPassOptionFlags_Lit = 1 << 0,
     glTFPassOptionFlags_Culling = 1 << 1,
+    glTFPassOptionFlags_Shadow = 1 << 2,
 };
 
 #define ADD_RENDER_FLAGS(value)\
@@ -25,4 +26,5 @@ struct glTFPassOptionRenderFlags : public glTFFlagsBase<glTFPassOptionFlags>
 {
     ADD_RENDER_FLAGS(Lit)
     ADD_RENDER_FLAGS(Culling)
+    ADD_RENDER_FLAGS(Shadow)
 };

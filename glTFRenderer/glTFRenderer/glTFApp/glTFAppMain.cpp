@@ -1,11 +1,8 @@
-#include "glTFApp.h"
+#include "glTFAppMain.h"
 
-#include <Windows.h>
 #include "glTFLight/glTFDirectionalLight.h"
 #include "glTFLight/glTFPointLight.h"
-#include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassLighting.h"
-#include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassMeshOpaque.h"
-#include "glTFLoader/glTFLoader.h"
+#include "glTFWindow/glTFInputManager.h"
 #include "glTFWindow/glTFWindow.h"
 
 glTFTimer::glTFTimer()
@@ -26,33 +23,22 @@ size_t glTFTimer::GetDeltaFrameTimeMs() const
     return m_delta_tick;
 }
 
-bool glTFApp::InitApp()
+glTFAppMain::glTFAppMain(int argc, char* argv[])
 {
-    m_input_manager.reset(new glTFInputManager);
-    
-    auto& window = glTFWindow::Get();
-    
-    //Register window callback with App
-    window.SetTickCallback([this](){
-        TickFrame();
-    });
+    // Parse command arguments
 
-    window.SetExitCallback([this]()
-    {
-        ExitApp(); 
-    });
-    window.SetInputManager(m_input_manager);
-    
+    // Init window
+    auto& window = glTFWindow::Get();
     const unsigned width = window.GetWidth();
     const unsigned height = window.GetHeight();
     GLTF_CHECK(window.InitAndShowWindow());
     
-     // Create test scene with filename
-    m_scene_graph = std::make_unique<glTFSceneGraph>();
+    m_scene_graph.reset(new glTFSceneGraph);
     char file_path [MAX_PATH] = {'\0'};
     const std::string file_name = "Sponza";
     snprintf(file_path, sizeof(file_path), "glTFResources\\Models\\%s\\glTF\\%s.gltf", file_name.c_str(), file_name.c_str());
-    RETURN_IF_FALSE(LoadSceneGraphFromFile(file_path))
+    const bool loaded = LoadSceneGraphFromFile(file_path);
+    GLTF_CHECK(loaded);
 
     // Add camera
     std::unique_ptr<glTFSceneNode> camera_node = std::make_unique<glTFSceneNode>();
@@ -89,35 +75,29 @@ bool glTFApp::InitApp()
     point_light_node->m_objects.push_back(std::move(point_light2));
     m_scene_graph->AddSceneNode(std::move(point_light_node));
     m_scene_graph->AddSceneNode(std::move(camera_node));
-    
-    m_scene_view.reset(new glTFSceneView(*m_scene_graph));
-    m_render_pipeline.reset(new glTFAppRenderPipelineRasterScene);
-    
-    return true;
 }
 
-void glTFApp::RunApp()
+void glTFAppMain::Run()
 {
+    m_input_manager.reset(new glTFInputManager);
+    
+    auto& window = glTFWindow::Get();
+    
+    //Register window callback with App
+    window.SetTickCallback([this](){
+        m_timer.RecordFrameBegin();
+        const size_t time_delta_ms = m_timer.GetDeltaFrameTimeMs();
+        m_scene_graph->Tick(time_delta_ms);
+        m_scene_renderer.TickFrame(*m_scene_graph, *m_input_manager, time_delta_ms);
+        m_input_manager->TickFrame(time_delta_ms);
+    });
+
+    window.SetInputManager(m_input_manager);
+    
     glTFWindow::Get().UpdateWindow();
 }
 
-void glTFApp::TickFrame()
-{
-    m_timer.RecordFrameBegin();
-    const size_t delta_time_ms = m_timer.GetDeltaFrameTimeMs();
-
-    m_input_manager->TickSceneView(*m_scene_view, delta_time_ms);
-    m_input_manager->TickRenderPipeline(*m_render_pipeline, delta_time_ms);
-    
-    m_scene_graph->Tick(delta_time_ms);
-    m_render_pipeline->Tick(*m_scene_graph, *m_scene_view, delta_time_ms);
-}
-
-void glTFApp::ExitApp() const
-{
-}
-
-bool glTFApp::LoadSceneGraphFromFile(const char* filePath) const
+bool glTFAppMain::LoadSceneGraphFromFile(const char* filePath) const
 {
     glTFLoader loader;
     if (loader.LoadFile(filePath))

@@ -1,7 +1,7 @@
 #include "glTFInputManager.h"
 #include <glm/glm/glm.hpp>
 
-#include "../glTFScene/glTFSceneView.h"
+#include "glTFScene/glTFSceneView.h"
 
 glTFInputManager::glTFInputManager()
     : m_cursor_offset(0.0f)
@@ -40,21 +40,24 @@ bool glTFInputManager::IsMouseButtonPressed(int mouse_button) const
     return m_mouse_button_state_pressed[mouse_button];
 }
 
-void glTFInputManager::TickSceneView(glTFSceneView& view, size_t delta_time_ms)
+void glTFInputManager::TickFrame(size_t delta_time_ms)
+{
+    ResetCursorOffset();
+}
+
+void glTFInputManager::TickSceneView(glTFSceneView& view, size_t delta_time_ms) const
 {
     view.ApplyInput(*this, delta_time_ms);
 }
 
-void glTFInputManager::TickRenderPipeline(glTFAppRenderPipelineBase& render_pipeline, size_t delta_time_ms)
+void glTFInputManager::TickRenderPipeline(glTFAppRenderPipelineBase& render_pipeline, size_t delta_time_ms) const
 {
     render_pipeline.ApplyInput(*this, delta_time_ms);
 }
 
-glm::fvec2 glTFInputManager::GetCursorOffsetAndReset()
+glm::fvec2 glTFInputManager::GetCursorOffset() const
 {
-    const auto result = m_cursor_offset;
-    ResetCursorOffset();
-    return result;
+    return m_cursor_offset;
 }
 
 void glTFInputManager::ResetCursorOffset()

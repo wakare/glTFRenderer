@@ -12,7 +12,7 @@ public:
 
     void MarkPipelineDirty() { m_render_pass_dirty = true; }
     virtual void Tick(const glTFSceneGraph& scene_graph, const glTFSceneView& scene_view, size_t delta_time_ms);
-    void ApplyInput(glTFInputManager& input_manager, size_t delta_time_ms);
+    void ApplyInput(const glTFInputManager& input_manager, size_t delta_time_ms);
     
 protected:
     bool RecreateRenderPass(const glTFSceneGraph& scene_graph, const glTFSceneView& scene_view);

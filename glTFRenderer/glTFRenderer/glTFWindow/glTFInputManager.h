@@ -21,11 +21,12 @@ public:
     
     bool IsKeyPressed(int key_code) const;
     bool IsMouseButtonPressed(int mouse_button) const;
+
+    void TickFrame(size_t delta_time_ms);
+    void TickSceneView(glTFSceneView& view, size_t delta_time_ms) const;
+    void TickRenderPipeline(glTFAppRenderPipelineBase& View, size_t delta_time_ms) const;
     
-    void TickSceneView(glTFSceneView& view, size_t delta_time_ms);
-    void TickRenderPipeline(glTFAppRenderPipelineBase& View, size_t delta_time_ms);
-    
-    glm::fvec2 GetCursorOffsetAndReset();
+    glm::fvec2 GetCursorOffset() const;
     
 private:
     void ResetCursorOffset();

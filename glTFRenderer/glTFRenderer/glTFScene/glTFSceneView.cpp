@@ -20,42 +20,20 @@ void glTFSceneView::TraverseSceneObjectWithinView(const std::function<bool(const
 
 glm::mat4 glTFSceneView::GetViewProjectionMatrix() const
 {
-    const auto cameras = m_scene_graph.GetSceneCameras();
-    if (cameras.empty())
-    {
-        assert(false);
-        return glm::mat4(1.0f);    
-    }
-
-    // Use first camera as main camera
-    return cameras[0]->GetViewProjectionMatrix();
+    return GetMainCamera() ? GetMainCamera()->GetViewProjectionMatrix() : glm::mat4(1.0f);
 }
 
 glm::mat4 glTFSceneView::GetViewMatrix() const
 {
-    const auto cameras = m_scene_graph.GetSceneCameras();
-    if (cameras.empty())
-    {
-        assert(false);
-        return glm::mat4(1.0f);    
-    }
-
-    return cameras[0]->GetViewMatrix();
+    return GetMainCamera() ? GetMainCamera()->GetViewMatrix() : glm::mat4(1.0f);
 }
 
 glm::mat4 glTFSceneView::GetProjectionMatrix() const
 {
-    const auto cameras = m_scene_graph.GetSceneCameras();
-    if (cameras.empty())
-    {
-        assert(false);
-        return glm::mat4(1.0f);    
-    }
-
-    return cameras[0]->GetProjectionMatrix();
+    return GetMainCamera() ? GetMainCamera()->GetProjectionMatrix() : glm::mat4(1.0f);
 }
 
-void glTFSceneView::ApplyInput(glTFInputManager& input_manager, size_t delta_time_ms)
+void glTFSceneView::ApplyInput(const glTFInputManager& input_manager, size_t delta_time_ms) const
 {
     // Manipulate one camera
     glTFCamera* main_camera = GetMainCamera();
@@ -67,13 +45,12 @@ void glTFSceneView::ApplyInput(glTFInputManager& input_manager, size_t delta_tim
     // Focus scene center
     if (input_manager.IsKeyPressed(GLFW_KEY_O))
     {
-        const auto new_camera_mode = main_camera->GetCameraMode() == CameraMode::Free ? CameraMode::Observer : CameraMode::Free;
-        main_camera->SetCameraMode(new_camera_mode);
-        
-        if (new_camera_mode == CameraMode::Observer)
-        {
-            FocusSceneCenter(*main_camera);    
-        }
+        main_camera->SetCameraMode(CameraMode::Observer);
+        FocusSceneCenter(*main_camera);    
+    }
+    if (input_manager.IsKeyPressed(GLFW_KEY_F))
+    {
+        main_camera->SetCameraMode(CameraMode::Free);
     }
     
     ApplyInputForCamera(input_manager, *main_camera, delta_time_ms);
@@ -88,6 +65,11 @@ glTFCamera* glTFSceneView::GetMainCamera() const
 {
     const auto cameras = m_scene_graph.GetSceneCameras();
     return cameras.empty() ? nullptr : cameras[0];
+}
+
+void glTFSceneView::Tick(const glTFSceneGraph& scene_graph)
+{
+    
 }
 
 void glTFSceneView::FocusSceneCenter(glTFCamera& camera) const
@@ -108,7 +90,7 @@ void glTFSceneView::FocusSceneCenter(glTFCamera& camera) const
     camera.Observe(sceneAABB.getCenter());
 }
 
-void glTFSceneView::ApplyInputForCamera(glTFInputManager& input_manager, glTFCamera& camera, size_t delta_time_ms) const
+void glTFSceneView::ApplyInputForCamera(const glTFInputManager& input_manager, glTFCamera& camera, size_t delta_time_ms)
 {
     bool need_apply_movement = false;
     glm::fvec3 delta_translation = {0.0f, 0.0f, 0.0f};
@@ -195,7 +177,7 @@ void glTFSceneView::ApplyInputForCamera(glTFInputManager& input_manager, glTFCam
     if (input_manager.IsKeyPressed(GLFW_KEY_LEFT_CONTROL) ||
         input_manager.IsMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT))
     {
-        const glm::vec2 cursor_offset = input_manager.GetCursorOffsetAndReset();
+        const glm::vec2 cursor_offset = input_manager.GetCursorOffset();
         
         delta_rotation.y -= cursor_offset.x;
         delta_rotation.x -= cursor_offset.y;

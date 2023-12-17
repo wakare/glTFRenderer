@@ -1,10 +1,9 @@
-#include "glTFApp/glTFApp.h"
+#include "glTFApp/glTFAppMain.h"
 
 int main(int argc, char* argv[])
 {
-    glTFApp app;
-    app.InitApp();
-    app.RunApp();
+    glTFAppMain app_main(argc, argv);
+    app_main.Run();
         
     return 0;
 }

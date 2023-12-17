@@ -32,7 +32,7 @@ void glTFAppRenderPipelineBase::Tick(const glTFSceneGraph& scene_graph, const gl
     m_pass_manager->RenderAllPass(delta_time_ms);
 }
 
-void glTFAppRenderPipelineBase::ApplyInput(glTFInputManager& input_manager, size_t delta_time_ms)
+void glTFAppRenderPipelineBase::ApplyInput(const glTFInputManager& input_manager, size_t delta_time_ms)
 {
     if (input_manager.IsKeyPressed(GLFW_KEY_C))
     {
