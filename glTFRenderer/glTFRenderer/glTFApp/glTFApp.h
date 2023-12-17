@@ -28,8 +28,7 @@ protected:
     glTFTimer m_timer;
     std::shared_ptr<glTFInputManager> m_input_manager;
 
-    glTFAppRenderPipeline m_render_pipeline;
+    std::unique_ptr<glTFAppRenderPipelineBase> m_render_pipeline;
     std::unique_ptr<glTFSceneView> m_scene_view;
     std::unique_ptr<glTFSceneGraph> m_scene_graph;
-    std::unique_ptr<glTFRenderPassManager> m_pass_manager;
 };

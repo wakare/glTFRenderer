@@ -2,6 +2,8 @@
 #include <glm/glm/glm.hpp>
 #include <GLFW/glfw3.h>
 
+#include "glTFApp/glTFAppRenderPipeline.h"
+
 class glTFSceneView;
 
 class glTFInputManager
@@ -9,18 +11,20 @@ class glTFInputManager
 public:
     glTFInputManager();
     
-    void RecordKeyPressed(int keyCode);
-    void RecordKeyRelease(int keyCode);
+    void RecordKeyPressed(int key_code);
+    void RecordKeyRelease(int key_code);
     
-    void RecordMouseButtonPressed(int buttonCode);
-    void RecordMouseButtonRelease(int buttonCode);
+    void RecordMouseButtonPressed(int button_code);
+    void RecordMouseButtonRelease(int button_code);
     
     void RecordCursorPos(double X, double Y);
     
-    bool IsKeyPressed(int keyCode) const;
-    bool IsMouseButtonPressed(int mouseButton) const;
+    bool IsKeyPressed(int key_code) const;
+    bool IsMouseButtonPressed(int mouse_button) const;
     
-    void TickSceneView(glTFSceneView& View, size_t deltaTimeMs);
+    void TickSceneView(glTFSceneView& view, size_t delta_time_ms);
+    void TickRenderPipeline(glTFAppRenderPipelineBase& View, size_t delta_time_ms);
+    
     glm::fvec2 GetCursorOffsetAndReset();
     
 private:

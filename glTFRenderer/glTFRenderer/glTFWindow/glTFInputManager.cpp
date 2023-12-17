@@ -10,39 +10,44 @@ glTFInputManager::glTFInputManager()
     memset(m_key_state_pressed, 0, sizeof(m_key_state_pressed));
 }
 
-void glTFInputManager::RecordKeyPressed(int keyCode)
+void glTFInputManager::RecordKeyPressed(int key_code)
 {
-    m_key_state_pressed[keyCode] = true;
+    m_key_state_pressed[key_code] = true;
 }
 
-void glTFInputManager::RecordKeyRelease(int keyCode)
+void glTFInputManager::RecordKeyRelease(int key_code)
 {
-    m_key_state_pressed[keyCode] = false;
+    m_key_state_pressed[key_code] = false;
 }
 
-void glTFInputManager::RecordMouseButtonPressed(int buttonCode)
+void glTFInputManager::RecordMouseButtonPressed(int button_code)
 {
-    m_mouse_button_state_pressed[buttonCode] = true;
+    m_mouse_button_state_pressed[button_code] = true;
 }
 
-void glTFInputManager::RecordMouseButtonRelease(int buttonCode)
+void glTFInputManager::RecordMouseButtonRelease(int button_code)
 {
-    m_mouse_button_state_pressed[buttonCode] = false;
+    m_mouse_button_state_pressed[button_code] = false;
 }
 
-bool glTFInputManager::IsKeyPressed(int keyCode) const
+bool glTFInputManager::IsKeyPressed(int key_code) const
 {
-    return m_key_state_pressed[keyCode];
+    return m_key_state_pressed[key_code];
 }
 
-bool glTFInputManager::IsMouseButtonPressed(int mouseButton) const
+bool glTFInputManager::IsMouseButtonPressed(int mouse_button) const
 {
-    return m_mouse_button_state_pressed[mouseButton];
+    return m_mouse_button_state_pressed[mouse_button];
 }
 
-void glTFInputManager::TickSceneView(glTFSceneView& View, size_t deltaTimeMs)
+void glTFInputManager::TickSceneView(glTFSceneView& view, size_t delta_time_ms)
 {
-    View.ApplyInput(*this, deltaTimeMs);
+    view.ApplyInput(*this, delta_time_ms);
+}
+
+void glTFInputManager::TickRenderPipeline(glTFAppRenderPipelineBase& render_pipeline, size_t delta_time_ms)
+{
+    render_pipeline.ApplyInput(*this, delta_time_ms);
 }
 
 glm::fvec2 glTFInputManager::GetCursorOffsetAndReset()

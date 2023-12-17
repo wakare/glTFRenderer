@@ -4,135 +4,55 @@
 
 #include "glTFWindow/glTFInputManager.h"
 #include "glTFRenderPass/glTFRenderPassManager.h"
-#include "glTFRenderPass/glTFComputePass/glTFComputePassIndirectDrawCulling.h"
-#include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassMeshOpaque.h"
-#include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassLighting.h"
 #include "glTFRenderPass/glTFComputePass/glTFComputePassLighting.h"
-#include "glTFRenderPass/glTFRayTracingPass/glTFRayTracingPassPathTracing.h"
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassMeshDepth.h"
 
 glTFSceneView::glTFSceneView(const glTFSceneGraph& graph)
     : m_scene_graph(graph)
 {
-    m_render_flags.SetEnableLit(true);
-    m_render_flags.SetEnableCulling(true);
+
 }
 
-bool glTFSceneView::SetupRenderPass(glTFRenderPassManager& out_render_pass_manager) const
+void glTFSceneView::TraverseSceneObjectWithinView(const std::function<bool(const glTFSceneNode& primitive)>& visitor) const
 {
-    VertexLayoutDeclaration resolved_vertex_layout;
-	bool has_resolved = false; 
-    
-	m_scene_graph.TraverseNodes([&resolved_vertex_layout, &has_resolved](const glTFSceneNode& node)
-	{
-	    for (auto& scene_object : node.m_objects)
-	    {
-	        if (auto* primitive = dynamic_cast<glTFScenePrimitive*>(scene_object.get()))
-	        {
-	            if (!has_resolved)
-	            {
-	                for (const auto& vertex_layout : primitive->GetVertexLayout().elements)
-	                {
-                        if (!resolved_vertex_layout.HasAttribute(vertex_layout.type))
-                        {
-                            resolved_vertex_layout.elements.push_back(vertex_layout);
-                            has_resolved = true;
-                        }
-                    }    
-	            }
-	            
-                else if (!(primitive->GetVertexLayout() == resolved_vertex_layout))
-                {
-                    LOG_FORMAT_FLUSH("[WARN] Primtive id: %d is no-visible becuase vertex layout mismatch\n", primitive->GetID())
-                    primitive->SetVisible(false);
-                }
-            }    
-	    }
-	    
-	    return true;
-	});
-
-    RETURN_IF_FALSE(out_render_pass_manager.GetResourceManager().GetMeshManager().ResolveVertexInputLayout(resolved_vertex_layout))
-
-	GLTF_CHECK(has_resolved);
-
-    const bool debug_raytracing_pipeline = false;
-    if (debug_raytracing_pipeline)
-    {
-        std::unique_ptr<glTFRayTracingPassPathTracing> raytracing_hello = std::make_unique<glTFRayTracingPassPathTracing>();
-        out_render_pass_manager.AddRenderPass(std::move( raytracing_hello));
-    }
-    else
-    {
-        std::unique_ptr<glTFComputePassIndirectDrawCulling> culling_pass = std::make_unique<glTFComputePassIndirectDrawCulling>();
-        out_render_pass_manager.AddRenderPass(std::move(culling_pass));
-        
-        std::unique_ptr<glTFGraphicsPassMeshDepth> depth_pass = std::make_unique<glTFGraphicsPassMeshDepth>();
-        out_render_pass_manager.AddRenderPass(std::move(depth_pass));
-
-        std::unique_ptr<glTFGraphicsPassMeshOpaque> opaque_pass = std::make_unique<glTFGraphicsPassMeshOpaque>();
-        out_render_pass_manager.AddRenderPass(std::move(opaque_pass));
-
-        const bool use_lighting_cs = true;
-        if (use_lighting_cs)
-        {
-            std::unique_ptr<glTFComputePassLighting> compute_lighting_pass = std::make_unique<glTFComputePassLighting>();
-            out_render_pass_manager.AddRenderPass(std::move(compute_lighting_pass));    
-        }
-        else
-        {
-            std::unique_ptr<glTFGraphicsPassLighting> lighting_pass = std::make_unique<glTFGraphicsPassLighting>();
-            lighting_pass->SetByPass(!m_render_flags.IsLit());
-            out_render_pass_manager.AddRenderPass(std::move(lighting_pass));    
-        }    
-    }
-    
-    return true;
-} 
-
-void glTFSceneView::TraverseSceneObjectWithinView(const std::function<bool(const glTFSceneNode& primitive)>& visitor)
-{
-    // TODO: Do culling?
-    if (m_cameras.empty())
-    {
-        m_cameras = m_scene_graph.GetSceneCameras();    
-    }
-    
     m_scene_graph.TraverseNodes(visitor);
 }
 
 glm::mat4 glTFSceneView::GetViewProjectionMatrix() const
 {
-    if (m_cameras.empty())
+    const auto cameras = m_scene_graph.GetSceneCameras();
+    if (cameras.empty())
     {
         assert(false);
         return glm::mat4(1.0f);    
     }
 
     // Use first camera as main camera
-    return m_cameras[0]->GetViewProjectionMatrix();
+    return cameras[0]->GetViewProjectionMatrix();
 }
 
 glm::mat4 glTFSceneView::GetViewMatrix() const
 {
-    if (m_cameras.empty())
+    const auto cameras = m_scene_graph.GetSceneCameras();
+    if (cameras.empty())
     {
         assert(false);
         return glm::mat4(1.0f);    
     }
 
-    return m_cameras[0]->GetViewMatrix();
+    return cameras[0]->GetViewMatrix();
 }
 
 glm::mat4 glTFSceneView::GetProjectionMatrix() const
 {
-    if (m_cameras.empty())
+    const auto cameras = m_scene_graph.GetSceneCameras();
+    if (cameras.empty())
     {
         assert(false);
         return glm::mat4(1.0f);    
     }
 
-    return m_cameras[0]->GetProjectionMatrix();
+    return cameras[0]->GetProjectionMatrix();
 }
 
 void glTFSceneView::ApplyInput(glTFInputManager& input_manager, size_t delta_time_ms)
@@ -155,16 +75,6 @@ void glTFSceneView::ApplyInput(glTFInputManager& input_manager, size_t delta_tim
             FocusSceneCenter(*main_camera);    
         }
     }
-    else if (input_manager.IsKeyPressed(GLFW_KEY_C))
-    {
-        //const bool enable_culling = m_render_flags.IsCulling();
-        m_render_flags.SetEnableCulling(true);
-    }
-    else if (input_manager.IsKeyPressed(GLFW_KEY_V))
-    {
-        //const bool enable_culling = m_render_flags.IsCulling();
-        m_render_flags.SetEnableCulling(false);
-    }
     
     ApplyInputForCamera(input_manager, *main_camera, delta_time_ms);
 }
@@ -176,7 +86,8 @@ void glTFSceneView::GetViewportSize(unsigned& out_width, unsigned& out_height) c
 
 glTFCamera* glTFSceneView::GetMainCamera() const
 {
-    return m_cameras.empty() ? nullptr : m_cameras[0];
+    const auto cameras = m_scene_graph.GetSceneCameras();
+    return cameras.empty() ? nullptr : cameras[0];
 }
 
 void glTFSceneView::FocusSceneCenter(glTFCamera& camera) const

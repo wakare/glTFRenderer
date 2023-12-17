@@ -1,5 +1,6 @@
 #pragma once
 #include "glTFRenderResourceManager.h"
+#include "glTFApp/glTFPassOptionRenderFlags.h"
 #include "glTFRenderInterface/glTFRenderInterfaceBase.h"
 #include "glTFRHI/RHIInterface/IRHIRootSignatureHelper.h"
 #include "glTFScene/glTFSceneObjectBase.h"
@@ -39,7 +40,7 @@ public:
 
     virtual bool TryProcessSceneObject(glTFRenderResourceManager& resourceManager, const glTFSceneObjectBase& object) {return true; }
     virtual bool FinishProcessSceneObject(glTFRenderResourceManager& resourceManager) {return true; }
-    virtual void UpdateRenderFlags(const glTFSceneViewRenderFlags& render_flags) {}
+    virtual void UpdateRenderFlags(const glTFPassOptionRenderFlags& render_flags) {}
 
     virtual bool NeedRendering() const {return true; }
     void SetByPass(bool bypass) { m_bypass = bypass; }

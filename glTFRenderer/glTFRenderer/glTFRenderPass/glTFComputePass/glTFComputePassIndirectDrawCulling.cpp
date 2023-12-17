@@ -129,7 +129,7 @@ bool glTFComputePassIndirectDrawCulling::PreRenderPass(glTFRenderResourceManager
     return true;
 }
 
-void glTFComputePassIndirectDrawCulling::UpdateRenderFlags(const glTFSceneViewRenderFlags& render_flags)
+void glTFComputePassIndirectDrawCulling::UpdateRenderFlags(const glTFPassOptionRenderFlags& render_flags)
 {
     if (enable_culling != render_flags.IsCulling())
     {

@@ -14,7 +14,7 @@ public:
     
     virtual bool PreRenderPass(glTFRenderResourceManager& resource_manager) override;
     
-    virtual void UpdateRenderFlags(const glTFSceneViewRenderFlags& render_flags) override;
+    virtual void UpdateRenderFlags(const glTFPassOptionRenderFlags& render_flags) override;
     virtual bool NeedRendering() const override;
     
     virtual DispatchCount GetDispatchCount() const override;

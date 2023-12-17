@@ -1,23 +1,24 @@
 #include "glTFRenderPassManager.h"
 
-#include <cassert>
-#include <Windows.h>
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassLighting.h"
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassMeshBase.h"
 #include "glTFRenderInterface/glTFRenderInterfaceFrameStat.h"
 #include "glTFRHI/RHIUtils.h"
 #include "glTFUtils/glTFLog.h"
+#include "glTFWindow/glTFWindow.h"
 
-glTFRenderPassManager::glTFRenderPassManager(glTFSceneView& view)
+glTFRenderPassManager::glTFRenderPassManager(const glTFSceneView& view)
     : m_scene_view(view)
     , m_frame_index(0)
 {
 }
  
-bool glTFRenderPassManager::InitRenderPassManager(unsigned width, unsigned height, HWND handle)
+bool glTFRenderPassManager::InitRenderPassManager(const glTFWindow& window)
 {
     m_resource_manager.reset(new glTFRenderResourceManager());
-    if (!m_resource_manager->InitResourceManager(width, height, handle))
+    unsigned viewport_width, viewport_height;
+    m_scene_view.GetViewportSize(viewport_width, viewport_height);
+    if (!m_resource_manager->InitResourceManager(viewport_width, viewport_height, window.GetHWND()))
     {
         return false;
     }
@@ -44,12 +45,10 @@ void glTFRenderPassManager::InitAllPass()
 
     GLTF_CHECK(m_resource_manager->GetMeshManager().BuildMeshRenderResource(*m_resource_manager));
     
-	GLTF_CHECK(m_scene_view.SetupRenderPass(*this));
-    
     for (const auto& pass : m_passes)
     {
         const bool inited = pass->InitPass(*m_resource_manager);
-        assert(inited);
+        GLTF_CHECK(inited);
         LOG_FORMAT("[DEBUG] Init pass %s finished!\n", pass->PassName())
     }
 
@@ -61,13 +60,7 @@ void glTFRenderPassManager::InitAllPass()
 void glTFRenderPassManager::UpdateScene(size_t deltaTimeMs)
 {
     // Gather all scene pass
-    std::vector<glTFRenderPassBase*> render_passes;
-    render_passes.reserve(m_passes.size());
-    for (const auto& pass : m_passes)
-    {
-        render_passes.push_back(pass.get());
-    }
-
+    
     std::vector<const glTFSceneNode*> dirty_objects;
     m_scene_view.TraverseSceneObjectWithinView([this, &dirty_objects](const glTFSceneNode& node)
     {
@@ -84,7 +77,7 @@ void glTFRenderPassManager::UpdateScene(size_t deltaTimeMs)
         for (const auto& scene_object : node->m_objects)
         {
             m_resource_manager->TryProcessSceneObject(*m_resource_manager, *scene_object);
-            for (const auto& pass : render_passes)
+            for (const auto& pass : m_passes)
             {
                 pass->TryProcessSceneObject(*m_resource_manager, *scene_object);
             }
@@ -93,10 +86,8 @@ void glTFRenderPassManager::UpdateScene(size_t deltaTimeMs)
         node->ResetDirty();
     }
 
-    for (const auto& pass : render_passes)
+    for (const auto& pass : m_passes)
     {
-        pass->UpdateRenderFlags(m_scene_view.GetRenderFlags());
-        
         const bool success = pass->FinishProcessSceneObject(*m_resource_manager);
         GLTF_CHECK(success);
 
@@ -112,6 +103,14 @@ void glTFRenderPassManager::UpdateScene(size_t deltaTimeMs)
             ++_frame_count;
             frame_stat->UploadCPUBuffer(&_frame_count, 0, sizeof(_frame_count));
         }
+    }
+}
+
+void glTFRenderPassManager::UpdatePipelineOptions(const glTFPassOptionRenderFlags& pipeline_options)
+{
+    for (const auto& pass : m_passes)
+    {
+        pass->UpdateRenderFlags(pipeline_options);
     }
 }
 

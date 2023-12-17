@@ -5,25 +5,27 @@
 #include "glTFRenderResourceManager.h"
 #include "../glTFScene/glTFSceneGraph.h"
 #include "../glTFScene/glTFSceneView.h"
+#include "glTFApp/glTFPassOptionRenderFlags.h"
 
 class glTFRenderPassManager
 {
 public:
-    glTFRenderPassManager(glTFSceneView& view);
+    glTFRenderPassManager(const glTFSceneView& view);
     
-    bool InitRenderPassManager(unsigned width, unsigned height, HWND handle);
+    bool InitRenderPassManager(const glTFWindow& window);
     void AddRenderPass(std::unique_ptr<glTFRenderPassBase>&& pass);
 
     void InitAllPass();
 
     void UpdateScene(size_t deltaTimeMs);
+    void UpdatePipelineOptions(const glTFPassOptionRenderFlags& pipeline_options);
     void RenderAllPass(size_t deltaTimeMs) const;
     void ExitAllPass();
 
     glTFRenderResourceManager& GetResourceManager() {return *m_resource_manager; }
     
 protected:
-    glTFSceneView& m_scene_view;
+    const glTFSceneView& m_scene_view;
     
     std::vector<std::unique_ptr<glTFRenderPassBase>> m_passes;
     std::unique_ptr<glTFRenderResourceManager> m_resource_manager;

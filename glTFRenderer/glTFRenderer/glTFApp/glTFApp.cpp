@@ -88,13 +88,10 @@ bool glTFApp::InitApp()
     point_light2->SetIntensity(1.0f);
     point_light_node->m_objects.push_back(std::move(point_light2));
     m_scene_graph->AddSceneNode(std::move(point_light_node));
-
     m_scene_graph->AddSceneNode(std::move(camera_node));
     
-    m_scene_view = std::make_unique<glTFSceneView>(*m_scene_graph);
-    m_pass_manager.reset(new glTFRenderPassManager(*m_scene_view));
-    m_pass_manager->InitRenderPassManager(width, height, window.GetHWND());
-    m_pass_manager->InitAllPass();
+    m_scene_view.reset(new glTFSceneView(*m_scene_graph));
+    m_render_pipeline.reset(new glTFAppRenderPipelineRasterScene);
     
     return true;
 }
@@ -108,16 +105,16 @@ void glTFApp::TickFrame()
 {
     m_timer.RecordFrameBegin();
     const size_t delta_time_ms = m_timer.GetDeltaFrameTimeMs();
-        
+
     m_input_manager->TickSceneView(*m_scene_view, delta_time_ms);
+    m_input_manager->TickRenderPipeline(*m_render_pipeline, delta_time_ms);
+    
     m_scene_graph->Tick(delta_time_ms);
-    m_pass_manager->UpdateScene(delta_time_ms);
-    m_pass_manager->RenderAllPass(delta_time_ms);
+    m_render_pipeline->Tick(*m_scene_graph, *m_scene_view, delta_time_ms);
 }
 
 void glTFApp::ExitApp() const
 {
-    m_pass_manager->ExitAllPass();
 }
 
 bool glTFApp::LoadSceneGraphFromFile(const char* filePath) const
