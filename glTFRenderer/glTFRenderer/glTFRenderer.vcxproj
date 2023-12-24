@@ -172,6 +172,7 @@
     <None Include="glTFResources\ShaderSource\MeshPassCommonPS.hlsl" />
     <None Include="glTFResources\ShaderSource\MeshPassCommonVS.hlsl" />
     <None Include="glTFResources\ShaderSource\LightPassCommon.hlsl" />
+    <None Include="glTFResources\ShaderSource\ComputeShader\PathTracingPostProcess.hlsl" />
     <ClCompile Include="glTFRHI\RHIConfigSingleton.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12CommandSignature.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12DescriptorHeap.cpp" />

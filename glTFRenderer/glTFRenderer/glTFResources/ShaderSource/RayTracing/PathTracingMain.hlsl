@@ -10,16 +10,10 @@
 
 RaytracingAccelerationStructure scene : SCENE_AS_REGISTER_INDEX;
 RWTexture2D<float4> render_target : OUTPUT_REGISTER_INDEX;
-
-RWTexture2D<float4> accumulation_output : ACCUMULATION_OUTPUT_REGISTER_INDEX;
-Texture2D<float4> accumulation_backupbuffer : ACCUMULATION_BACKBUFFER_REGISTER_INDEX;
-
-RWTexture2D<float4> custom_output : CUSTOM_OUTPUT_REGISTER_INDEX;
-Texture2D<float4> custom_backupbuffer : CUSTOM_BACKBUFFER_REGISTER_INDEX;
+RWTexture2D<float4> screen_uv_offset : SCREEN_UV_OFFSET_REGISTER_INDEX;
 
 static uint path_sample_count_per_pixel = 1;
-static uint path_recursion_depth = 6;
-static bool enable_accumulation = true;
+static uint path_recursion_depth = 3;
 static bool srgb_convert = true;
 
 [shader("raygeneration")]
@@ -137,7 +131,14 @@ void PathTracingRayGen()
     }
     
     final_radiance /= path_sample_count_per_pixel;
+    render_target[DispatchRaysIndex().xy] = float4(srgb_convert ? LinearToSrgb(final_radiance) : final_radiance, 1.0);
 
+    float4 ndc_position = mul(prev_projection_matrix, mul(prev_view_matrix, pixel_position));
+    ndc_position /= ndc_position.w;
+
+    int2 prev_screen_position = 0.5 + float2(ndc_position.x * 0.5 + 0.5, 0.5 - ndc_position.y * 0.5) * float2(viewport_width, viewport_height);
+    screen_uv_offset[DispatchRaysIndex().xy] = float4(prev_screen_position, 0.0, 0.0);    
+    /*
     if (enable_accumulation)
     {        
         float4 ndc_position = mul(prev_projection_matrix, mul(prev_view_matrix, pixel_position));
@@ -177,18 +178,7 @@ void PathTracingRayGen()
         
         render_target[DispatchRaysIndex().xy] = float4(final_color, 1.0);
     }
-    else
-    {
-        if (srgb_convert)
-        {
-            float3 final_color_srgb = LinearToSrgb(final_radiance);
-            render_target[DispatchRaysIndex().xy] = float4(final_color_srgb, 1.0);    
-        }
-        else
-        {
-            render_target[DispatchRaysIndex().xy] = float4(final_radiance, 1.0);
-        }
-    }
+    */
 }
 
 #endif // RAYTRACING_HLSL
