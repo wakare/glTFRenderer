@@ -13,6 +13,17 @@ private:
     size_t m_tick;
 };
 
+class glTFCmdArgumentProcessor
+{
+public:
+    glTFCmdArgumentProcessor(int argc, char** argv);
+
+    bool IsRasterScene() const {return raster_scene; }
+
+private:
+    bool raster_scene;
+};
+
 class glTFAppMain
 {
 public:
@@ -25,6 +36,6 @@ protected:
     std::shared_ptr<glTFInputManager> m_input_manager;
 
     glTFTimer m_timer;
-    std::shared_ptr<glTFSceneGraph> m_scene_graph;
-    glTFAppSceneRenderer m_scene_renderer;
+    std::unique_ptr<glTFSceneGraph> m_scene_graph;
+    std::unique_ptr<glTFAppSceneRenderer> m_scene_renderer;
 };

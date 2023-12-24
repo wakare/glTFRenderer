@@ -4,7 +4,7 @@
 class glTFAppSceneRenderer
 {
 public:
-    glTFAppSceneRenderer();
+    glTFAppSceneRenderer(bool raster_scene);
     void TickFrame(const glTFSceneGraph& scene_graph, const glTFInputManager& input_manager, size_t delta_time_ms);
     
 protected:

@@ -23,17 +23,34 @@ size_t glTFTimer::GetDeltaFrameTimeMs() const
     return m_delta_tick;
 }
 
+glTFCmdArgumentProcessor::glTFCmdArgumentProcessor(int argc, char** argv)
+    : raster_scene(true)
+{
+    for (int i = 0; i < argc; ++i)
+    {
+        const char* argument = argv[i];
+        if (strcmp(argument, "raytracing") == 0)
+        {
+            raster_scene = false;
+        }
+    }
+}
+
 glTFAppMain::glTFAppMain(int argc, char* argv[])
 {
     // Parse command arguments
-
+    const glTFCmdArgumentProcessor cmd_processor(argc, argv);
+    
+    m_scene_graph.reset(new glTFSceneGraph);
+    m_scene_renderer.reset(new glTFAppSceneRenderer(cmd_processor.IsRasterScene()));
+    m_input_manager.reset(new glTFInputManager);
+    
     // Init window
     auto& window = glTFWindow::Get();
     const unsigned width = window.GetWidth();
     const unsigned height = window.GetHeight();
     GLTF_CHECK(window.InitAndShowWindow());
     
-    m_scene_graph.reset(new glTFSceneGraph);
     char file_path [MAX_PATH] = {'\0'};
     const std::string file_name = "Sponza";
     snprintf(file_path, sizeof(file_path), "glTFResources\\Models\\%s\\glTF\\%s.gltf", file_name.c_str(), file_name.c_str());
@@ -79,8 +96,6 @@ glTFAppMain::glTFAppMain(int argc, char* argv[])
 
 void glTFAppMain::Run()
 {
-    m_input_manager.reset(new glTFInputManager);
-    
     auto& window = glTFWindow::Get();
     
     //Register window callback with App
@@ -88,7 +103,7 @@ void glTFAppMain::Run()
         m_timer.RecordFrameBegin();
         const size_t time_delta_ms = m_timer.GetDeltaFrameTimeMs();
         m_scene_graph->Tick(time_delta_ms);
-        m_scene_renderer.TickFrame(*m_scene_graph, *m_input_manager, time_delta_ms);
+        m_scene_renderer->TickFrame(*m_scene_graph, *m_input_manager, time_delta_ms);
         m_input_manager->TickFrame(time_delta_ms);
     });
 

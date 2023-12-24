@@ -1,8 +1,7 @@
 #include "glTFComputePassLighting.h"
-#include "glTFLight/glTFDirectionalLight.h"
 #include "glTFLight/glTFLightBase.h"
-#include "glTFLight/glTFPointLight.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSampler.h"
+#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneView.h"
 
 glTFComputePassLighting::glTFComputePassLighting()
     : m_base_color_RT(nullptr)
@@ -133,11 +132,6 @@ bool glTFComputePassLighting::FinishProcessSceneObject(glTFRenderResourceManager
     RETURN_IF_FALSE(glTFComputePassBase::FinishProcessSceneObject(resource_manager))
 
     return true;
-}
-
-size_t glTFComputePassLighting::GetMainDescriptorHeapSize()
-{
-    return 64;
 }
 
 bool glTFComputePassLighting::SetupRootSignature(glTFRenderResourceManager& resource_manager)

@@ -125,6 +125,7 @@
     <ClCompile Include="glTFRenderPass\glTFComputePass\glTFComputePassBase.cpp" />
     <ClCompile Include="glTFRenderPass\glTFComputePass\glTFComputePassIndirectDrawCulling.cpp" />
     <ClCompile Include="glTFRenderPass\glTFComputePass\glTFComputePassLighting.cpp" />
+    <ClCompile Include="glTFRenderPass\glTFComputePass\glTFComputePassRayTracingPostprocess.cpp" />
     <ClCompile Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassBase.cpp" />
     <ClCompile Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassLighting.cpp" />
     <ClCompile Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassMeshBase.cpp" />
@@ -260,6 +261,7 @@
     <ClInclude Include="glTFRenderPass\glTFComputePass\glTFComputePassBase.h" />
     <ClInclude Include="glTFRenderPass\glTFComputePass\glTFComputePassIndirectDrawCulling.h" />
     <ClInclude Include="glTFRenderPass\glTFComputePass\glTFComputePassLighting.h" />
+    <ClInclude Include="glTFRenderPass\glTFComputePass\glTFComputePassRayTracingPostprocess.h" />
     <ClInclude Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassBase.h" />
     <ClInclude Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassLighting.h" />
     <ClInclude Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassMeshBase.h" />

@@ -5,7 +5,6 @@
 #include "glTFRHI/RHIInterface/IRHIRayTracingAS.h"
 #include "glTFRHI/RHIInterface/IRHIShaderTable.h"
 
-
 struct RWTextureResourceWithBackBuffer
 {
     RWTextureResourceWithBackBuffer(std::string output_register_name, std::string back_register_name);

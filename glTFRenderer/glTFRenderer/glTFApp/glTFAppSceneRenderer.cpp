@@ -4,9 +4,16 @@
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassMeshOpaque.h"
 #include "glTFWindow/glTFWindow.h"
 
-glTFAppSceneRenderer::glTFAppSceneRenderer()
+glTFAppSceneRenderer::glTFAppSceneRenderer(bool raster_scene)
 {
-    m_render_pipeline.reset(new glTFAppRenderPipelineRasterScene);
+    if (raster_scene)
+    {
+        m_render_pipeline.reset(new glTFAppRenderPipelineRasterScene);    
+    }
+    else
+    {
+        m_render_pipeline.reset(new glTFAppRenderPipelineRayTracingScene);
+    }
 }
 
 void glTFAppSceneRenderer::TickFrame(const glTFSceneGraph& scene_graph, const glTFInputManager& input_manager, size_t delta_time_ms)
