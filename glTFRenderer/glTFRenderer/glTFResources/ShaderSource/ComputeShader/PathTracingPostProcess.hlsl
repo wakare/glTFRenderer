@@ -13,6 +13,8 @@ Texture2D<float4> custom_back_buffer : CUSTOM_BACKBUFFER_REGISTER_INDEX;
 
 RWTexture2D<float4> postprocess_output : POST_PROCESS_OUTPUT_REGISTER_INDEX;
 
+static int color_clamp_range = 1;
+
 [numthreads(8, 8, 1)]
 void main(int3 dispatchThreadID : SV_DispatchThreadID)
 {
@@ -24,12 +26,35 @@ void main(int3 dispatchThreadID : SV_DispatchThreadID)
     
     float4 postprocess_input = postprocess_input_texture.Load(int3(dispatchThreadID.xy, 0));
     float2 prev_screen_uv = screen_uv_offset.Load(int3(dispatchThreadID.xy, 0)).xy;
-
+    int2 prev_screen_coord = int2(round(prev_screen_uv.x * viewport_width), round(prev_screen_uv.y * viewport_height));
     bool reuse_history = prev_screen_uv.x >= 0.0 && prev_screen_uv.x <= 1.0 &&
-        prev_screen_uv.y >= 0.0 && prev_screen_uv.y <= 1.0 ;
-    accumulation_output[dispatchThreadID.xy] = reuse_history ? 0.95 * accumulation_back_buffer[int2(round(prev_screen_uv.x * viewport_width), round(prev_screen_uv.y * viewport_height))] : 0.0;
-        
+        prev_screen_uv.y >= 0.0 && prev_screen_uv.y <= 1.0;
+    float4 accumulation_result = accumulation_back_buffer[prev_screen_coord];
+    
+    // Color clamping
+    float3 min_color = 1.0;
+    float3 max_color = 0.0;
+    float3 clamped_history_color = accumulation_result.xyz / accumulation_result.w;
+    if (accumulation_result.w > 1.0)
+    {
+        for (int x = -color_clamp_range; x <= color_clamp_range; ++x)
+        {
+            for (int y = -color_clamp_range; y <= color_clamp_range; ++y)
+            {
+                int2 neighborhood_coord = max(prev_screen_coord + int2(x, y), 0.0);
+                float4 color = postprocess_input_texture[neighborhood_coord];
+                float3 normalized_color = color.xyz / max(color.w, 0.001);
+                min_color = min(min_color, normalized_color);
+                max_color = max(max_color, normalized_color);
+            }
+        }
+        clamped_history_color = clamp(clamped_history_color, min_color, max_color);
+        accumulation_output[dispatchThreadID.xy] = float4(accumulation_result.w * clamped_history_color, accumulation_result.w);
+    }
+
+    accumulation_output[dispatchThreadID.xy] = reuse_history ? 0.95 * accumulation_result : 0.0;
     accumulation_output[dispatchThreadID.xy] += float4(postprocess_input.xyz, 1.0);
+    
     float3 final_color = accumulation_output[dispatchThreadID.xy].xyz / accumulation_output[dispatchThreadID.xy].w;
     postprocess_output[dispatchThreadID.xy] = float4(final_color, 1.0);
 }

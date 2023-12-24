@@ -23,12 +23,10 @@ void PathTracingRayGen()
     
     // Add jitter for origin
     float2 jitter_offset = float2 (rand(rng), rand(rng)) - 0.5;
-    //float2 jitter_offset = 0.0;
     float2 lerp_values = (DispatchRaysIndex().xy + jitter_offset) / DispatchRaysDimensions().xy;
     
     float3 final_radiance = 0.0;
     float4 pixel_position = 0.0;
-    float world_depth = 0.0;
     
     for (uint path_index = 0; path_index < path_sample_count_per_pixel; ++path_index)
     {
@@ -71,7 +69,6 @@ void PathTracingRayGen()
             if (i == 0)
             {
                 pixel_position = float4(position, 1.0);
-                world_depth = payload.distance;
             }
             
             float3 view = normalize(view_position.xyz - position);
@@ -108,7 +105,7 @@ void PathTracingRayGen()
             }
 
             // Russian Roulette
-            if (i > 2)
+            if (i > 3)
             {
                 float rrProbability = min(0.95f, luminance(throughput));
                 if (rrProbability < rand(rng)) break;
@@ -137,48 +134,7 @@ void PathTracingRayGen()
     ndc_position /= ndc_position.w;
 
     float2 prev_screen_position = float2(ndc_position.x * 0.5 + 0.5, 0.5 - ndc_position.y * 0.5);
-    screen_uv_offset[DispatchRaysIndex().xy] = float4(prev_screen_position, 0.0, 0.0);    
-    /*
-    if (enable_accumulation)
-    {        
-        float4 ndc_position = mul(prev_projection_matrix, mul(prev_view_matrix, pixel_position));
-        ndc_position /= ndc_position.w;
-
-        bool reuse_history = false;
-        int2 prev_screen_position = 0.5 + float2(ndc_position.x * 0.5 + 0.5, 0.5 - ndc_position.y * 0.5) * float2(viewport_width, viewport_height);
-        if (prev_screen_position.x >= 0 && prev_screen_position.x < viewport_width &&
-            prev_screen_position.y >= 0 && prev_screen_position.y < viewport_height )
-        {
-            // Reusing history??
-            float4 prev_pixel_world_position = custom_backupbuffer[prev_screen_position];
-            float pixel_movement = length(prev_pixel_world_position.xyz - pixel_position.xyz);
-            float accumulation_blend_ratio = 0.999 * max(0.0, 1.0 - pixel_movement / (world_depth)); 
-            //if ((length(prev_pixel_world_position.xyz - pixel_position.xyz)) / world_depth < 0.1)
-            {
-                reuse_history = true;
-                accumulation_output[DispatchRaysIndex().xy] = accumulation_backupbuffer[prev_screen_position] * pow(accumulation_blend_ratio, 8.0);    
-            }
-        }
-        
-        if (!reuse_history)
-        {
-            accumulation_output[DispatchRaysIndex().xy] = 0.0;
-        }
-        
-        accumulation_output[DispatchRaysIndex().xy] += float4(final_radiance, 1.0);
-        custom_output[DispatchRaysIndex().xy] = pixel_position;
-        
-        float3 final_color = accumulation_output[DispatchRaysIndex().xy].xyz / accumulation_output[DispatchRaysIndex().xy].w;
-
-        // Write the raytraced color to the output texture.
-        if (srgb_convert)
-        {
-            final_color = LinearToSrgb(final_color);
-        }
-        
-        render_target[DispatchRaysIndex().xy] = float4(final_color, 1.0);
-    }
-    */
+    screen_uv_offset[DispatchRaysIndex().xy] = float4(prev_screen_position, 0.0, 0.0);
 }
 
 #endif // RAYTRACING_HLSL
