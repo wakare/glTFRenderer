@@ -136,7 +136,7 @@ void PathTracingRayGen()
     float4 ndc_position = mul(prev_projection_matrix, mul(prev_view_matrix, pixel_position));
     ndc_position /= ndc_position.w;
 
-    int2 prev_screen_position = 0.5 + float2(ndc_position.x * 0.5 + 0.5, 0.5 - ndc_position.y * 0.5) * float2(viewport_width, viewport_height);
+    float2 prev_screen_position = float2(ndc_position.x * 0.5 + 0.5, 0.5 - ndc_position.y * 0.5);
     screen_uv_offset[DispatchRaysIndex().xy] = float4(prev_screen_position, 0.0, 0.0);    
     /*
     if (enable_accumulation)

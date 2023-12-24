@@ -70,11 +70,11 @@ bool glTFRayTracingPassPathTracing::InitPass(glTFRenderResourceManager& resource
     screen_uv_offset_render_target.height = resource_manager.GetSwapchain().GetHeight();
     screen_uv_offset_render_target.name = "ScreenUVOffset";
     screen_uv_offset_render_target.isUAV = true;
-    screen_uv_offset_render_target.clearValue.clear_format = RHIDataFormat::R8G8B8A8_UNORM;
+    screen_uv_offset_render_target.clearValue.clear_format = RHIDataFormat::R32G32B32A32_FLOAT;
     screen_uv_offset_render_target.clearValue.clear_color = {0.0f, 0.0f, 0.0f, 0.0f};
     
     m_screen_uv_offset_output = resource_manager.GetRenderTargetManager().CreateRenderTarget(
-                    resource_manager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R8G8B8A8_UNORM, RHIDataFormat::R8G8B8A8_UNORM, screen_uv_offset_render_target);
+                    resource_manager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R32G32B32A32_FLOAT, RHIDataFormat::R32G32B32A32_FLOAT, screen_uv_offset_render_target);
     resource_manager.GetRenderTargetManager().RegisterRenderTargetWithTag("RayTracingScreenUVOffset", m_screen_uv_offset_output);
     
     RETURN_IF_FALSE(glTFRayTracingPassBase::InitPass(resource_manager))
