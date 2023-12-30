@@ -110,18 +110,8 @@ bool glTFAppRenderPipelineRasterScene::SetupRenderPipeline()
     std::unique_ptr<glTFGraphicsPassMeshOpaque> opaque_pass = std::make_unique<glTFGraphicsPassMeshOpaque>();
     m_pass_manager->AddRenderPass(std::move(opaque_pass));
 
-    const bool use_lighting_cs = true;
-    if (use_lighting_cs)
-    {
-        std::unique_ptr<glTFComputePassLighting> compute_lighting_pass = std::make_unique<glTFComputePassLighting>();
-        m_pass_manager->AddRenderPass(std::move(compute_lighting_pass));    
-    }
-    else
-    {
-        std::unique_ptr<glTFGraphicsPassLighting> lighting_pass = std::make_unique<glTFGraphicsPassLighting>();
-        lighting_pass->SetByPass(!m_pass_options.IsLit());
-        m_pass_manager->AddRenderPass(std::move(lighting_pass));    
-    }
+    std::unique_ptr<glTFComputePassLighting> compute_lighting_pass = std::make_unique<glTFComputePassLighting>();
+    m_pass_manager->AddRenderPass(std::move(compute_lighting_pass));
 
     return true;
 }

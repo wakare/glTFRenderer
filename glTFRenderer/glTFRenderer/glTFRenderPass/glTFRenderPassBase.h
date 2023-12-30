@@ -43,7 +43,6 @@ public:
     virtual void UpdateRenderFlags(const glTFPassOptionRenderFlags& render_flags) {}
 
     virtual bool NeedRendering() const {return true; }
-    void SetByPass(bool bypass) { m_bypass = bypass; }
     
     template<typename RenderInterface>
     RenderInterface* GetRenderInterface()
@@ -77,11 +76,9 @@ protected:
     virtual bool SetupRootSignature(glTFRenderResourceManager& resource_manager);
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) = 0;
     virtual PipelineType GetPipelineType() const = 0;
+    
     void AddRenderInterface(const std::shared_ptr<glTFRenderInterfaceBase>& render_interface);
 
-    // Bypass this pass which determined by scene view?
-    bool m_bypass {false};
-    
     IRHIRootSignatureHelper m_root_signature_helper;
     
     std::shared_ptr<IRHIPipelineStateObject> m_pipeline_state_object;

@@ -79,11 +79,6 @@ bool glTFRenderPassBase::SetupRootSignature(glTFRenderResourceManager& resource_
 
 bool glTFRenderPassBase::SetupPipelineStateObject(glTFRenderResourceManager& resource_manager)
 {
-    if (m_bypass)
-    {
-        m_pipeline_state_object->GetShaderMacros().AddMacro("BYPASS", "1");
-    }
-
     auto& shaderMacros = m_pipeline_state_object->GetShaderMacros();
     for (const auto& render_interface : m_render_interfaces)
     {

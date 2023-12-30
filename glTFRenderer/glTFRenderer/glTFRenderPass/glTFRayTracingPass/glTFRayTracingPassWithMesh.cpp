@@ -23,6 +23,22 @@ bool glTFRayTracingPassWithMesh::InitPass(glTFRenderResourceManager& resource_ma
     RETURN_IF_FALSE(UpdateAS(resource_manager))
     RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSceneMeshInfo>()->UpdateSceneMeshData(resource_manager.GetMeshManager()))
     RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSceneMaterial>()->UploadMaterialData(resource_manager, *m_main_descriptor_heap))
+    m_shader_table = RHIResourceFactory::CreateRHIResource<IRHIShaderTable>();
+
+    std::vector<RHIShaderBindingTable> sbts;
+    auto& primary_ray_sbt = sbts.emplace_back();
+    primary_ray_sbt.raygen_entry = GetRayGenFunctionName();
+    primary_ray_sbt.miss_entry = GetPrimaryRayMissFunctionName();
+    primary_ray_sbt.hit_group_entry = GetPrimaryRayHitGroupName();
+
+    auto& shadow_ray_sbt = sbts.emplace_back();
+    shadow_ray_sbt.raygen_entry = GetRayGenFunctionName();
+    shadow_ray_sbt.miss_entry = GetShadowRayMissFunctionName();
+    shadow_ray_sbt.hit_group_entry = GetShadowRayHitGroupName();
+    
+    RETURN_IF_FALSE(m_shader_table->InitShaderTable(resource_manager.GetDevice(), GetRayTracingPipelineStateObject(), *m_raytracing_as, sbts))
+
+    m_trace_count = {resource_manager.GetSwapchain().GetWidth(), resource_manager.GetSwapchain().GetHeight(), 1};
     
     return true;
 }
@@ -32,6 +48,8 @@ bool glTFRayTracingPassWithMesh::PreRenderPass(glTFRenderResourceManager& resour
     RETURN_IF_FALSE(glTFRayTracingPassBase::PreRenderPass(resource_manager))
     RETURN_IF_FALSE(UpdateAS(resource_manager))
     RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceLighting>()->UpdateCPUBuffer())
+    RETURN_IF_FALSE(RHIUtils::Instance().SetSRVToRootParameterSlot(resource_manager.GetCommandListForRecord(), m_raytracing_as_allocation.parameter_index, m_raytracing_as->GetTLASHandle(), false)) 
+    
     return true;
 }
 
@@ -55,15 +73,35 @@ bool glTFRayTracingPassWithMesh::TryProcessSceneObject(glTFRenderResourceManager
     return GetRenderInterface<glTFRenderInterfaceLighting>()->UpdateLightInfo(*light);
 }
 
+TraceCount glTFRayTracingPassWithMesh::GetTraceCount() const
+{
+    return m_trace_count;
+}
+
+IRHIShaderTable& glTFRayTracingPassWithMesh::GetShaderTable() const
+{
+    return *m_shader_table;
+}
+
+size_t glTFRayTracingPassWithMesh::GetMainDescriptorHeapSize()
+{
+    return 512;
+}
+
 bool glTFRayTracingPassWithMesh::SetupRootSignature(glTFRenderResourceManager& resource_manager)
 {
+    RETURN_IF_FALSE(m_root_signature_helper.AddSRVRootParameter("raytracing_as", m_raytracing_as_allocation))
     RETURN_IF_FALSE(glTFRayTracingPassBase::SetupRootSignature(resource_manager))
+    
     return true;
 }
 
 bool glTFRayTracingPassWithMesh::SetupPipelineStateObject(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFRayTracingPassBase::SetupPipelineStateObject(resource_manager))
+    
+    auto& shader_macros = GetRayTracingPipelineStateObject().GetShaderMacros();
+    shader_macros.AddSRVRegisterDefine("SCENE_AS_REGISTER_INDEX", m_raytracing_as_allocation.register_index, m_raytracing_as_allocation.space);
     return true;
 }
 
