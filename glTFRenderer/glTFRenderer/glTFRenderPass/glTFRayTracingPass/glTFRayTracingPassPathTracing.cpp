@@ -1,9 +1,4 @@
 #include "glTFRayTracingPassPathTracing.h"
-
-#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceFrameStat.h"
-#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceLighting.h"
-#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneMaterial.h"
-#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneMeshInfo.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 #include "glTFRHI/RHIUtils.h"
 #include "glTFRHI/RHIInterface/IRHIRenderTargetManager.h"
@@ -30,20 +25,11 @@ struct RHIShaderBindingTableRecordPathTracing : RHIShaderTableRecordBase
 glTFRayTracingPassPathTracing::glTFRayTracingPassPathTracing()
     : m_raytracing_output(nullptr)
     , m_screen_uv_offset_output(nullptr)
+    , m_output_handle(0)
+    , m_screen_uv_offset_handle(0)
     , m_trace_count({0, 0, 0})
     , m_material_uploaded(false)
 {
-    AddRenderInterface(std::make_shared<glTFRenderInterfaceFrameStat>());
-    AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneView>());
-    AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMeshInfo>());
-    AddRenderInterface(std::make_shared<glTFRenderInterfaceLighting>());
-    AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMaterial>());
-
-    m_raygen_name = "PathTracingRayGen";
-    m_primary_ray_closest_hit_name = "PrimaryRayClosestHit";
-    m_primary_ray_miss_name = "PrimaryRayMiss";
-    m_primary_ray_hit_group_name = "MyHitGroup";
-    m_shadow_ray_miss_name = "ShadowRayMiss"; 
 }
 
 const char* glTFRayTracingPassPathTracing::PassName()
@@ -77,7 +63,7 @@ bool glTFRayTracingPassPathTracing::InitPass(glTFRenderResourceManager& resource
                     resource_manager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R32G32B32A32_FLOAT, RHIDataFormat::R32G32B32A32_FLOAT, screen_uv_offset_render_target);
     resource_manager.GetRenderTargetManager().RegisterRenderTargetWithTag("RayTracingScreenUVOffset", m_screen_uv_offset_output);
     
-    RETURN_IF_FALSE(glTFRayTracingPassBase::InitPass(resource_manager))
+    RETURN_IF_FALSE(glTFRayTracingPassWithMesh::InitPass(resource_manager))
     
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resource_manager.GetCommandListForRecord(), *m_raytracing_output,
         RHIResourceStateType::STATE_RENDER_TARGET, RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE))
@@ -85,53 +71,39 @@ bool glTFRayTracingPassPathTracing::InitPass(glTFRenderResourceManager& resource
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resource_manager.GetCommandListForRecord(), *m_screen_uv_offset_output,
         RHIResourceStateType::STATE_RENDER_TARGET, RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE))
 
-    RETURN_IF_FALSE(UpdateAS(resource_manager))
-    
     m_shader_table = RHIResourceFactory::CreateRHIResource<IRHIShaderTable>();
 
-    const auto& meshes = resource_manager.GetMeshManager().GetMeshRenderResources();
-    std::vector<std::shared_ptr<RHIShaderTableRecordBase>> hit_group_records(meshes.size());
-    for (const auto& mesh_info : resource_manager.GetMeshManager().GetMeshRenderResources())
-    {
-        hit_group_records[mesh_info.first] = std::make_shared<RHIShaderBindingTableRecordPathTracing>(mesh_info.second.material_id); 
-    }
-    
     std::vector<RHIShaderBindingTable> sbts;
     auto& primary_ray_sbt = sbts.emplace_back();
-    primary_ray_sbt.raygen_entry = m_raygen_name;
-    primary_ray_sbt.miss_entry = m_primary_ray_miss_name;
-    primary_ray_sbt.hit_group_entry = m_primary_ray_hit_group_name; 
-    primary_ray_sbt.hit_group_records = hit_group_records;
+    primary_ray_sbt.raygen_entry = GetRayGenFunctionName();
+    primary_ray_sbt.miss_entry = GetPrimaryRayMissFunctionName();
+    primary_ray_sbt.hit_group_entry = GetPrimaryRayHitGroupName();
 
     auto& shadow_ray_sbt = sbts.emplace_back();
-    shadow_ray_sbt.raygen_entry = m_raygen_name;
-    shadow_ray_sbt.miss_entry = m_shadow_ray_miss_name;
-    shadow_ray_sbt.hit_group_entry = m_shadow_ray_hit_group_name;
+    shadow_ray_sbt.raygen_entry = GetRayGenFunctionName();
+    shadow_ray_sbt.miss_entry = GetShadowRayMissFunctionName();
+    shadow_ray_sbt.hit_group_entry = GetShadowRayHitGroupName();
     
     RETURN_IF_FALSE(m_shader_table->InitShaderTable(resource_manager.GetDevice(), GetRayTracingPipelineStateObject(), *m_raytracing_as, sbts))
 
-    RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSceneMeshInfo>()->UpdateSceneMeshData(resource_manager.GetMeshManager()))
-    
     return true;
 }
 
 bool glTFRayTracingPassPathTracing::PreRenderPass(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(UpdateAS(resource_manager))
-    RETURN_IF_FALSE(glTFRayTracingPassBase::PreRenderPass(resource_manager))
+    RETURN_IF_FALSE(glTFRayTracingPassWithMesh::PreRenderPass(resource_manager))
     
     auto& command_list = resource_manager.GetCommandListForRecord();
     RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, m_output_allocation.parameter_index, m_output_handle, false))
     RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, m_screen_uv_offset_allocation.parameter_index, m_screen_uv_offset_handle, false))
     
     RETURN_IF_FALSE(RHIUtils::Instance().SetSRVToRootParameterSlot(command_list, m_raytracing_as_allocation.parameter_index, m_raytracing_as->GetTLASHandle(), false)) 
-    if (!m_material_uploaded)
+    /*if (!m_material_uploaded)
     {
         GetRenderInterface<glTFRenderInterfaceSceneMaterial>()->UploadMaterialData(resource_manager, *m_main_descriptor_heap);
         m_material_uploaded = true;
     }
-
-    RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceLighting>()->UpdateCPUBuffer())
+    */
 
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_raytracing_output,
             RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_UNORDERED_ACCESS))
@@ -144,7 +116,7 @@ bool glTFRayTracingPassPathTracing::PreRenderPass(glTFRenderResourceManager& res
 
 bool glTFRayTracingPassPathTracing::PostRenderPass(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(glTFRayTracingPassBase::PostRenderPass(resource_manager))
+    RETURN_IF_FALSE(glTFRayTracingPassWithMesh::PostRenderPass(resource_manager))
 
     auto& command_list = resource_manager.GetCommandListForRecord();
 
@@ -155,18 +127,6 @@ bool glTFRayTracingPassPathTracing::PostRenderPass(glTFRenderResourceManager& re
         RHIResourceStateType::STATE_UNORDERED_ACCESS, RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE))
     
     return true;
-}
-
-bool glTFRayTracingPassPathTracing::TryProcessSceneObject(glTFRenderResourceManager& resource_manager,
-    const glTFSceneObjectBase& object)
-{
-    const glTFLightBase* light = dynamic_cast<const glTFLightBase*>(&object);
-    if (!light)
-    {
-        return false;
-    }
-    
-    return GetRenderInterface<glTFRenderInterfaceLighting>()->UpdateLightInfo(*light);
 }
 
 IRHIShaderTable& glTFRayTracingPassPathTracing::GetShaderTable() const
@@ -189,10 +149,9 @@ bool glTFRayTracingPassPathTracing::SetupRootSignature(glTFRenderResourceManager
     // Non-bindless table parameter should be added first
     RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("output", RHIRootParameterDescriptorRangeType::UAV, 1, false, m_output_allocation))
     RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("screen_uv_offset", RHIRootParameterDescriptorRangeType::UAV, 1, false, m_screen_uv_offset_allocation))
-    
     RETURN_IF_FALSE(m_root_signature_helper.AddSRVRootParameter("RaytracingAS", m_raytracing_as_allocation))
     
-    RETURN_IF_FALSE(glTFRayTracingPassBase::SetupRootSignature(resource_manager))
+    RETURN_IF_FALSE(glTFRayTracingPassWithMesh::SetupRootSignature(resource_manager))
     
     m_trace_count = {resource_manager.GetSwapchain().GetWidth(), resource_manager.GetSwapchain().GetHeight(), 1};
 
@@ -201,7 +160,7 @@ bool glTFRayTracingPassPathTracing::SetupRootSignature(glTFRenderResourceManager
 
 bool glTFRayTracingPassPathTracing::SetupPipelineStateObject(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(glTFRayTracingPassBase::SetupPipelineStateObject(resource_manager))
+    RETURN_IF_FALSE(glTFRayTracingPassWithMesh::SetupPipelineStateObject(resource_manager))
 
     RETURN_IF_FALSE(m_main_descriptor_heap->CreateUnOrderAccessViewInDescriptorHeap(
         resource_manager.GetDevice(),
@@ -232,8 +191,8 @@ bool glTFRayTracingPassPathTracing::SetupPipelineStateObject(glTFRenderResourceM
     shader_macros.AddUAVRegisterDefine("SCREEN_UV_OFFSET_REGISTER_INDEX", m_screen_uv_offset_allocation.register_index, m_screen_uv_offset_allocation.space);
 
     // One ray type mapping one hit group desc
-    GetRayTracingPipelineStateObject().AddHitGroupDesc({m_primary_ray_hit_group_name,
-        m_primary_ray_closest_hit_name,
+    GetRayTracingPipelineStateObject().AddHitGroupDesc({GetPrimaryRayHitGroupName(),
+        GetPrimaryRayCHFunctionName(),
         "",
         ""
     });
@@ -263,29 +222,41 @@ bool glTFRayTracingPassPathTracing::SetupPipelineStateObject(glTFRenderResourceM
 
     GetRayTracingPipelineStateObject().SetExportFunctionNames(
         {
-            m_raygen_name,
-            m_primary_ray_closest_hit_name,
-            m_primary_ray_miss_name,
-            m_shadow_ray_miss_name,
+            GetRayGenFunctionName(),
+            GetPrimaryRayCHFunctionName(),
+            GetPrimaryRayMissFunctionName(),
+            GetShadowRayMissFunctionName(),
         });
     
     return true;
 }
 
-bool glTFRayTracingPassPathTracing::UpdateAS(glTFRenderResourceManager& resource_manager)
+const char* glTFRayTracingPassPathTracing::GetRayGenFunctionName()
 {
-    if (!m_raytracing_as)
-    {
-        RETURN_IF_FALSE(BuildAS(resource_manager))
-    }
-
-    return true;
+    return "PathTracingRayGen";
 }
 
-bool glTFRayTracingPassPathTracing::BuildAS(glTFRenderResourceManager& resource_manager)
+const char* glTFRayTracingPassPathTracing::GetPrimaryRayCHFunctionName()
 {
-    m_raytracing_as = RHIResourceFactory::CreateRHIResource<IRHIRayTracingAS>();
-    RETURN_IF_FALSE(m_raytracing_as->InitRayTracingAS(resource_manager.GetDevice(), resource_manager.GetCommandListForRecord(), resource_manager.GetMeshManager()))
-    
-    return true;
+    return "PrimaryRayClosestHit";
+}
+
+const char* glTFRayTracingPassPathTracing::GetPrimaryRayMissFunctionName()
+{
+    return "PrimaryRayMiss";
+}
+
+const char* glTFRayTracingPassPathTracing::GetPrimaryRayHitGroupName()
+{
+    return "MyHitGroup";
+}
+
+const char* glTFRayTracingPassPathTracing::GetShadowRayMissFunctionName()
+{
+    return "ShadowRayMiss";
+}
+
+const char* glTFRayTracingPassPathTracing::GetShadowRayHitGroupName()
+{
+    return "ShadowHitGroup";
 }

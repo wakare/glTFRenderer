@@ -73,12 +73,8 @@ void PathTracingRayGen()
             
             float3 view = normalize(view_position.xyz - position);
 
-            // Discard hit backface now...
-            if (dot(view, payload.normal) < 0)
-            {
-                payload.normal = -payload.normal;
-                //break;
-            }
+            // Flip normal if needed
+            payload.normal = dot(view, payload.normal) < 0 ? -payload.normal : payload.normal;
             
             uint sample_light_index;
             float sample_light_weight;

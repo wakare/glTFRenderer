@@ -1,10 +1,7 @@
 #pragma once
 #include "glTFRayTracingPassBase.h"
 #include "glTFRayTracingPassWithMesh.h"
-#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneView.h"
-#include "glTFRHI/RHIInterface/IRHIRayTracingAS.h"
 #include "glTFRHI/RHIInterface/IRHIShaderTable.h"
-
 
 class glTFRayTracingPassPathTracing : public glTFRayTracingPassWithMesh
 {
@@ -16,8 +13,6 @@ public:
     virtual bool PreRenderPass(glTFRenderResourceManager& resource_manager) override;
     virtual bool PostRenderPass(glTFRenderResourceManager& resource_manager) override;
 
-    virtual bool TryProcessSceneObject(glTFRenderResourceManager& resource_manager, const glTFSceneObjectBase& object) override;
-    
     virtual IRHIShaderTable& GetShaderTable() const override;
     virtual TraceCount GetTraceCount() const override;
     
@@ -27,12 +22,8 @@ protected:
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;
 
 private:
-    bool UpdateAS(glTFRenderResourceManager& resource_manager);
-    bool BuildAS(glTFRenderResourceManager& resource_manager);
-    
     std::shared_ptr<IRHIShaderTable> m_shader_table;
     std::shared_ptr<IRHIRenderTarget> m_raytracing_output;
-    std::shared_ptr<IRHIRayTracingAS> m_raytracing_as;
     std::shared_ptr<IRHIRenderTarget> m_screen_uv_offset_output;
     
     RHIGPUDescriptorHandle m_output_handle;
@@ -51,12 +42,12 @@ private:
     
 protected:
     // Ray function names
-    std::string m_raygen_name;
+    virtual const char* GetRayGenFunctionName() override;
     
-    std::string m_primary_ray_closest_hit_name;
-    std::string m_primary_ray_miss_name;
-    std::string m_primary_ray_hit_group_name;
-    
-    std::string m_shadow_ray_miss_name;
-    std::string m_shadow_ray_hit_group_name;
+    virtual const char* GetPrimaryRayCHFunctionName() override;
+    virtual const char* GetPrimaryRayMissFunctionName() override;
+    virtual const char* GetPrimaryRayHitGroupName() override;
+
+    virtual const char* GetShadowRayMissFunctionName() override;
+    virtual const char* GetShadowRayHitGroupName() override;
 };

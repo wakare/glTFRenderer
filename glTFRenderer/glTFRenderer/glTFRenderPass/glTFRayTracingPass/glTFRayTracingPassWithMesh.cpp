@@ -1,1 +1,86 @@
 #include "glTFRayTracingPassWithMesh.h"
+
+#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceFrameStat.h"
+#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceLighting.h"
+#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneMaterial.h"
+#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneMeshInfo.h"
+#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneView.h"
+#include "glTFRHI/RHIResourceFactoryImpl.hpp"
+
+glTFRayTracingPassWithMesh::glTFRayTracingPassWithMesh()
+{
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceFrameStat>());
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneView>());
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMeshInfo>());
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceLighting>());
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMaterial>());
+}
+
+bool glTFRayTracingPassWithMesh::InitPass(glTFRenderResourceManager& resource_manager)
+{
+    RETURN_IF_FALSE(glTFRayTracingPassBase::InitPass(resource_manager))
+    
+    RETURN_IF_FALSE(UpdateAS(resource_manager))
+    RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSceneMeshInfo>()->UpdateSceneMeshData(resource_manager.GetMeshManager()))
+    RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSceneMaterial>()->UploadMaterialData(resource_manager, *m_main_descriptor_heap))
+    
+    return true;
+}
+
+bool glTFRayTracingPassWithMesh::PreRenderPass(glTFRenderResourceManager& resource_manager)
+{
+    RETURN_IF_FALSE(glTFRayTracingPassBase::PreRenderPass(resource_manager))
+    RETURN_IF_FALSE(UpdateAS(resource_manager))
+    RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceLighting>()->UpdateCPUBuffer())
+    return true;
+}
+
+bool glTFRayTracingPassWithMesh::PostRenderPass(glTFRenderResourceManager& resource_manager)
+{
+    RETURN_IF_FALSE(glTFRayTracingPassBase::PostRenderPass(resource_manager))
+    return true;
+}
+
+bool glTFRayTracingPassWithMesh::TryProcessSceneObject(glTFRenderResourceManager& resource_manager,
+    const glTFSceneObjectBase& object)
+{
+    RETURN_IF_FALSE(glTFRayTracingPassBase::TryProcessSceneObject(resource_manager, object))
+    
+    const glTFLightBase* light = dynamic_cast<const glTFLightBase*>(&object);
+    if (!light)
+    {
+        return false;
+    }
+    
+    return GetRenderInterface<glTFRenderInterfaceLighting>()->UpdateLightInfo(*light);
+}
+
+bool glTFRayTracingPassWithMesh::SetupRootSignature(glTFRenderResourceManager& resource_manager)
+{
+    RETURN_IF_FALSE(glTFRayTracingPassBase::SetupRootSignature(resource_manager))
+    return true;
+}
+
+bool glTFRayTracingPassWithMesh::SetupPipelineStateObject(glTFRenderResourceManager& resource_manager)
+{
+    RETURN_IF_FALSE(glTFRayTracingPassBase::SetupPipelineStateObject(resource_manager))
+    return true;
+}
+
+bool glTFRayTracingPassWithMesh::UpdateAS(glTFRenderResourceManager& resource_manager)
+{
+    if (!m_raytracing_as)
+    {
+        RETURN_IF_FALSE(BuildAS(resource_manager))
+    }
+
+    return true;
+}
+
+bool glTFRayTracingPassWithMesh::BuildAS(glTFRenderResourceManager& resource_manager)
+{
+    m_raytracing_as = RHIResourceFactory::CreateRHIResource<IRHIRayTracingAS>();
+    RETURN_IF_FALSE(m_raytracing_as->InitRayTracingAS(resource_manager.GetDevice(), resource_manager.GetCommandListForRecord(), resource_manager.GetMeshManager()))
+    
+    return true;
+}
