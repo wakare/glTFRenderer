@@ -22,7 +22,7 @@ bool glTFRenderInterfaceSceneMeshInfo::UpdateSceneMeshData(const glTFRenderMeshM
     unsigned start_index = 0;
     for (const auto& mesh : meshes)
     {
-        start_index_infos.push_back({start_index});
+        start_index_infos.push_back({start_index, mesh.second.material_id});
 
         const unsigned vertex_offset = vertex_infos.size();
         if (mesh.second.mesh->GetIndexBufferData().format == RHIDataFormat::R32_UINT)

@@ -4,6 +4,7 @@
 struct SceneMeshStartIndexInfo
 {
     uint start_index;
+    uint material_index;
 };
 StructuredBuffer<SceneMeshStartIndexInfo> g_mesh_start_info : SceneMeshStartIndexInfo_REGISTER_SRV_INDEX;
 
@@ -25,8 +26,14 @@ StructuredBuffer<SceneMeshVertexInfo> g_mesh_vertex_info : SceneMeshVertexInfo_R
 uint3 GetMeshTriangleVertexIndex(uint mesh_id, uint primitive_id)
 {
     uint mesh_start_index = g_mesh_start_info[mesh_id].start_index;
-    uint3 index = uint3(mesh_start_index + 3 * primitive_id, mesh_start_index + 3 * primitive_id + 1, mesh_start_index + 3 * primitive_id + 2);
+    uint primitive_index = mesh_start_index + 3 * primitive_id;
+    uint3 index = uint3(primitive_index, primitive_index + 1, primitive_index + 2);
     return uint3(g_mesh_index_info[index.x].vertex_index, g_mesh_index_info[index.y].vertex_index, g_mesh_index_info[index.z].vertex_index);
+}
+
+uint GetMeshMaterialId(uint mesh_id)
+{
+    return g_mesh_start_info[mesh_id].material_index;
 }
 
 SceneMeshVertexInfo InterpolateVertexWithBarycentrics(uint3 vertex_index, float2 barycentrics)

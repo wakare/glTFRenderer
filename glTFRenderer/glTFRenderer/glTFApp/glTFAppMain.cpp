@@ -90,6 +90,7 @@ glTFAppMain::glTFAppMain(int argc, char* argv[])
         point_light->SetRadius(Rand01() * 10.0f);
         point_light->SetFalloff(Rand01());
         point_light->SetIntensity(Rand01() * 10.0f);
+        /*
         point_light->SetTickFunc([light_node = point_light.get()]()
         {
             glm::vec3 position = glTF_Transform_WithTRS::GetTranslationFromMatrix(light_node->GetTransformMatrix());
@@ -97,6 +98,7 @@ glTFAppMain::glTFAppMain(int argc, char* argv[])
             const glm::vec3 new_position = glm::clamp(position, {-5.0f, -5.0f, -5.0f}, {5.0f, 5.0f, 5.0f});
             light_node->Translate(new_position);
         });
+        */
         point_light_node->m_objects.push_back(std::move(point_light));
     }
     m_scene_graph->AddSceneNode(std::move(point_light_node));

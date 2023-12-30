@@ -5,6 +5,7 @@ struct SceneMeshStartIndexInfo
 {
     inline static std::string Name = "SceneMeshStartIndexInfo_REGISTER_SRV_INDEX";
     unsigned start_index;
+    unsigned material_index;
 };
 
 struct SceneMeshIndexInfo

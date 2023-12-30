@@ -13,7 +13,7 @@ RWTexture2D<float4> render_target : OUTPUT_REGISTER_INDEX;
 RWTexture2D<float4> screen_uv_offset : SCREEN_UV_OFFSET_REGISTER_INDEX;
 
 static uint path_sample_count_per_pixel = 1;
-static uint path_recursion_depth = 3;
+static uint path_recursion_depth = 4;
 static bool srgb_convert = true;
 
 [shader("raygeneration")]

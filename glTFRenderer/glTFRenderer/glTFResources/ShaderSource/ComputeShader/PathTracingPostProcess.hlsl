@@ -14,6 +14,7 @@ Texture2D<float4> custom_back_buffer : CUSTOM_BACKBUFFER_REGISTER_INDEX;
 RWTexture2D<float4> postprocess_output : POST_PROCESS_OUTPUT_REGISTER_INDEX;
 
 static int color_clamp_range = 1;
+static float reuse_history_factor = 0.98;
 
 [numthreads(8, 8, 1)]
 void main(int3 dispatchThreadID : SV_DispatchThreadID)
@@ -52,7 +53,7 @@ void main(int3 dispatchThreadID : SV_DispatchThreadID)
         accumulation_output[dispatchThreadID.xy] = float4(accumulation_result.w * clamped_history_color, accumulation_result.w);
     }
 
-    accumulation_output[dispatchThreadID.xy] = reuse_history ? 0.95 * accumulation_result : 0.0;
+    accumulation_output[dispatchThreadID.xy] = reuse_history ? reuse_history_factor * accumulation_result : 0.0;
     accumulation_output[dispatchThreadID.xy] += float4(postprocess_input.xyz, 1.0);
     
     float3 final_color = accumulation_output[dispatchThreadID.xy].xyz / accumulation_output[dispatchThreadID.xy].w;

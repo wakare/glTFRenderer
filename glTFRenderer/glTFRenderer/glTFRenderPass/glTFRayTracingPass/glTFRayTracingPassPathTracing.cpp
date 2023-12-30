@@ -148,23 +148,6 @@ bool glTFRayTracingPassPathTracing::PostRenderPass(glTFRenderResourceManager& re
 
     auto& command_list = resource_manager.GetCommandListForRecord();
 
-    // Copy compute result to swap chain back buffer
-    /*
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, resource_manager.GetCurrentFrameSwapchainRT(),
-        RHIResourceStateType::STATE_RENDER_TARGET, RHIResourceStateType::STATE_COPY_DEST))
-
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_raytracing_output,
-            RHIResourceStateType::STATE_UNORDERED_ACCESS, RHIResourceStateType::STATE_COPY_SOURCE ))
-    
-    RETURN_IF_FALSE(RHIUtils::Instance().CopyTexture(command_list, resource_manager.GetCurrentFrameSwapchainRT(), *m_raytracing_output))
-
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, resource_manager.GetCurrentFrameSwapchainRT(),
-        RHIResourceStateType::STATE_COPY_DEST, RHIResourceStateType::STATE_RENDER_TARGET))
-
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_raytracing_output,
-        RHIResourceStateType::STATE_COPY_SOURCE, RHIResourceStateType::STATE_UNORDERED_ACCESS ))
-    */
-    
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_raytracing_output,
         RHIResourceStateType::STATE_UNORDERED_ACCESS, RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE))
 
@@ -256,6 +239,7 @@ bool glTFRayTracingPassPathTracing::SetupPipelineStateObject(glTFRenderResourceM
     });
 
     // Local RS setup
+    /*
     m_local_rs.SetRegisterSpace(1);
     m_local_rs.SetUsage(RHIRootSignatureUsage::LocalRS);
     m_local_rs.AddConstantRootParameter("LocalRS_Constant", 1, m_local_constant_allocation);
@@ -269,6 +253,7 @@ bool glTFRayTracingPassPathTracing::SetupPipelineStateObject(glTFRenderResourceM
             m_primary_ray_closest_hit_name
         }
     });
+    */
 
     IRHIRayTracingPipelineStateObject::RHIRayTracingConfig config;
     config.payload_size = sizeof(float) * 10;

@@ -9,12 +9,14 @@
 #define PATH_TRACING_RAY_INDEX_PRIMARY 0
 #define PATH_TRACING_RAY_INDEX_SHADOW 1
 
+/*
 struct HitGroupCB
 {
     uint material_id;
 };
 
 ConstantBuffer<HitGroupCB> hit_group_cb : MATERIAL_ID_REGISTER_INDEX;
+*/
 
 typedef BuiltInTriangleIntersectionAttributes PathTracingAttributes;
 
@@ -41,7 +43,8 @@ bool IsHit(PrimaryRayPayload payload)
 void PrimaryRayClosestHit(inout PrimaryRayPayload payload, in PathTracingAttributes attr)
 {
     payload.distance = RayTCurrent();
-    payload.material_id = hit_group_cb.material_id;
+    //payload.material_id = hit_group_cb.material_id;
+    payload.material_id = GetMeshMaterialId(InstanceID());
     SceneMeshVertexInfo vertex_info = InterpolateVertexWithBarycentrics(
         GetMeshTriangleVertexIndex(InstanceID(), PrimitiveIndex()), attr.barycentrics);
 
