@@ -1,12 +1,11 @@
 #pragma once
 #include "glTFComputePassBase.h"
-#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceLighting.h"
 
-class glTFComputePassLighting : public glTFComputePassBase
+class glTFComputePassReSTIRDirectLighting : public glTFComputePassBase
 {
 public:
-    glTFComputePassLighting();
-
+    glTFComputePassReSTIRDirectLighting();
+    
     virtual const char* PassName() override;
     virtual bool InitPass(glTFRenderResourceManager& resource_manager) override;
     virtual bool PreRenderPass(glTFRenderResourceManager& resource_manager) override;
@@ -21,17 +20,20 @@ protected:
     virtual bool SetupRootSignature(glTFRenderResourceManager& resource_manager) override;
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;
 
+private:
     DispatchCount m_dispatch_count;
     
-    std::shared_ptr<IRHIRenderTarget> m_base_color_RT;
-    std::shared_ptr<IRHIRenderTarget> m_normal_RT;
-    std::shared_ptr<IRHIRenderTarget> m_lighting_output_RT;
-    
-    RHIGPUDescriptorHandle m_base_color_SRV;
-    RHIGPUDescriptorHandle m_depth_SRV;
-    RHIGPUDescriptorHandle m_normal_SRV;
-    RHIGPUDescriptorHandle m_output_UAV;
-
-    RootSignatureAllocation m_base_color_and_depth_allocation;
+    std::shared_ptr<IRHIRenderTarget> m_output;
     RootSignatureAllocation m_output_allocation;
+    RHIGPUDescriptorHandle m_output_handle;
+
+    // External resource
+    std::shared_ptr<IRHIRenderTarget> m_lighting_samples;
+    std::shared_ptr<IRHIRenderTarget> m_screen_uv_offset;
+
+    RHIGPUDescriptorHandle m_lighting_samples_handle;
+    RHIGPUDescriptorHandle m_screen_uv_offset_handle;
+    
+    RootSignatureAllocation m_lighting_samples_allocation;
+    RootSignatureAllocation m_screen_uv_offset_allocation;
 };

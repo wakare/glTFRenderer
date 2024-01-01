@@ -30,6 +30,7 @@ struct RootSignatureParameterElement
     std::string name;
     unsigned parameter_index;
     std::pair<unsigned, unsigned> register_range;
+    unsigned space;
     unsigned constant_value_count;
     RHIRootParameterDescriptorRangeType table_type;
     bool is_bindless;

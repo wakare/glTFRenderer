@@ -69,6 +69,8 @@ bool glTFRenderResourceManager::InitResourceManager(unsigned width, unsigned hei
     depth_clear_value.clearDS.clear_stencil_value = 0;
     m_depth_texture = m_render_target_manager->CreateRenderTarget(*m_device, RHIRenderTargetType::DSV, RHIDataFormat::R32_TYPELESS,
                                                                RHIDataFormat::D32_FLOAT, IRHIRenderTargetDesc{GetSwapchain().GetWidth(), GetSwapchain().GetHeight(), false, depth_clear_value, "ResourceManager_DepthRT"});
+
+    m_frame_resource_managers.resize(backBufferCount);
     
     return true;
 }
@@ -205,5 +207,30 @@ void glTFRenderResourceManager::SetCurrentPSO(std::shared_ptr<IRHIPipelineStateO
     }
     
     m_current_pass_pso = pso;
+}
+
+const glTFRenderResourceFrameManager& glTFRenderResourceManager::GetCurrentFrameResourceManager() const
+{
+    return GetFrameResourceManagerByIndex(GetCurrentBackBufferIndex());
+}
+
+glTFRenderResourceFrameManager& glTFRenderResourceManager::GetCurrentFrameResourceManager()
+{
+    return GetFrameResourceManagerByIndex(GetCurrentBackBufferIndex());
+}
+
+const glTFRenderResourceFrameManager& glTFRenderResourceManager::GetFrameResourceManagerByIndex(unsigned index) const
+{
+    return m_frame_resource_managers[index];
+}
+
+glTFRenderResourceFrameManager& glTFRenderResourceManager::GetFrameResourceManagerByIndex(unsigned index)
+{
+    return m_frame_resource_managers[index];
+}
+
+unsigned glTFRenderResourceManager::GetBackBufferCount()
+{
+    return backBufferCount;
 }
 

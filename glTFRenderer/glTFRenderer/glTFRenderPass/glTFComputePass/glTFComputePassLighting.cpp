@@ -4,13 +4,13 @@
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneView.h"
 
 glTFComputePassLighting::glTFComputePassLighting()
-    : m_base_color_RT(nullptr)
+    : m_dispatch_count({0, 0, 0})
+    , m_base_color_RT(nullptr)
     , m_normal_RT(nullptr)
     , m_base_color_SRV(0)
     , m_depth_SRV(0)
     , m_normal_SRV(0)
     , m_output_UAV(0)
-    , m_dispatch_count({0, 0, 0})
 {
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneView>());
     AddRenderInterface(std::make_shared<glTFRenderInterfaceLighting>());
@@ -70,10 +70,10 @@ bool glTFComputePassLighting::PreRenderPass(glTFRenderResourceManager& resource_
     RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list,
         m_base_color_and_depth_allocation.parameter_index, m_main_descriptor_heap->GetGPUHandle(0), GetPipelineType() == PipelineType::Graphics))    
 
-    RHIUtils::Instance().SetDTToRootParameterSlot(command_list,
+    RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list,
         m_output_allocation.parameter_index,
         m_main_descriptor_heap->GetGPUHandle(3),
-        GetPipelineType() == PipelineType::Graphics);
+        GetPipelineType() == PipelineType::Graphics))
 
     RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceLighting>()->UpdateCPUBuffer())
 
@@ -173,7 +173,7 @@ bool glTFComputePassLighting::SetupPipelineStateObject(glTFRenderResourceManager
     shaderMacros.AddSRVRegisterDefine("ALBEDO_TEX_REGISTER_INDEX", m_base_color_and_depth_allocation.register_index, m_base_color_and_depth_allocation.space);
     shaderMacros.AddSRVRegisterDefine("DEPTH_TEX_REGISTER_INDEX", m_base_color_and_depth_allocation.register_index + 1, m_base_color_and_depth_allocation.space);
     shaderMacros.AddSRVRegisterDefine("NORMAL_TEX_REGISTER_INDEX", m_base_color_and_depth_allocation.register_index + 2, m_base_color_and_depth_allocation.space);
-    shaderMacros.AddUAVRegisterDefine("OUTPUT_TEX_REGISTER_INDEX", m_output_allocation.register_index, m_base_color_and_depth_allocation.space);
+    shaderMacros.AddUAVRegisterDefine("OUTPUT_TEX_REGISTER_INDEX", m_output_allocation.register_index, m_output_allocation.space);
 
     return true;
 }

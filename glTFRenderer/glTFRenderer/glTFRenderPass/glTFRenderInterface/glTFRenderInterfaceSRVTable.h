@@ -34,14 +34,14 @@ public:
 
     virtual void ApplyShaderDefineImpl(RHIShaderPreDefineMacros& out_shader_pre_define_macros) const override
     {
-        char register_index_name[16] = {'\0'};
+        char register_index_name[32] = {'\0'};
 
         GLTF_CHECK(m_names.size() == TableRangeCount);
 
         unsigned register_offset = 0;
         for (const auto& name : m_names)
         {
-            (void)snprintf(register_index_name, sizeof(register_index_name), "register(t%d)", GetRSAllocation().register_index + register_offset);
+            (void)snprintf(register_index_name, sizeof(register_index_name), "register(t%d, space%u)", GetRSAllocation().register_index + register_offset, GetRSAllocation().space);
             out_shader_pre_define_macros.AddMacro(name, register_index_name);
             ++register_offset;
         }
@@ -62,9 +62,9 @@ class glTFRenderInterfaceSRVTableBindless : public glTFRenderInterfaceSRVTable<U
     {
         GLTF_CHECK(m_names.size() == 1);
         
-        char register_index_name[16] = {'\0'};
+        char register_index_name[32] = {'\0'};
 
-        (void)snprintf(register_index_name, sizeof(register_index_name), "register(t%d)", GetRSAllocation().register_index);
+        (void)snprintf(register_index_name, sizeof(register_index_name), "register(t%d, space%u)", GetRSAllocation().register_index, GetRSAllocation().space);
         out_shader_pre_define_macros.AddMacro(m_names.front(), register_index_name);
     }
 };

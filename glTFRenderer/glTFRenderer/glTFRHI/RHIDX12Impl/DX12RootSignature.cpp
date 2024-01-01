@@ -85,7 +85,7 @@ bool DX12RootParameter::InitAsDescriptorTableRange(size_t rangeCount,
         range.BaseShaderRegister = desc.base_register_index;
 
         // TODO: this parameter might be used for bindless mode
-        range.RegisterSpace = 0;
+        range.RegisterSpace = desc.space;
         
         // TODO: use default value for most situation
         range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;

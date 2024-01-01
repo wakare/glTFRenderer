@@ -19,7 +19,7 @@ enum class PipelineType
     RayTracing,
 };
 
-class glTFRenderPassBase 
+class glTFRenderPassBase : public glTFUniqueObject<glTFRenderPassBase>
 {
 public:
     glTFRenderPassBase() = default;

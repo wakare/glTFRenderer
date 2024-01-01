@@ -1,16 +1,19 @@
-#ifndef LIGHTING_CS
-#define LIGHTING_CS
+#ifndef RESTIR_DIRECT_LIGHTING_CS
+#define RESTIR_DIRECT_LIGHTING_CS
 
 #include "glTFResources/ShaderSource/Lighting/LightingCommon.hlsl"
 #include "glTFResources/ShaderSource/LightPassCommon.hlsl"
 #include "glTFResources/ShaderSource/Math/MathCommon.hlsl"
 
-Texture2D albedoTex: ALBEDO_TEX_REGISTER_INDEX;
-Texture2D normalTex: NORMAL_TEX_REGISTER_INDEX;
+Texture2D albedoTex: ALBEDO_REGISTER_INDEX;
+Texture2D normalTex: NORMAL_REGISTER_INDEX;
+Texture2D depthTex: DEPTH_REGISTER_INDEX;
 
-Texture2D depthTex: DEPTH_TEX_REGISTER_INDEX;
+Texture2D LightingSamples : LIGHTING_SAMPLES_REGISTER_INDEX;
+Texture2D ScreenUVOffset : SCREEN_UV_OFFSET_REGISTER_INDEX;
 
 RWTexture2D<float4> Output: OUTPUT_TEX_REGISTER_INDEX;
+
 SamplerState defaultSampler : DEFAULT_SAMPLER_REGISTER_INDEX;
 
 float3 GetWorldPosition(int2 texCoord)
@@ -43,10 +46,19 @@ void main(int3 dispatchThreadID : SV_DispatchThreadID)
     float roughness = normal_buffer_data.w;
 
     float3 view = normalize(view_position.xyz - world_position);
+
+    float4 lighting_sample = LightingSamples.Load(int3(dispatchThreadID.xy, 0));
+    float3 lighting_vector = normalize(lighting_sample.xyz);
+    float lighting_weight = lighting_sample.w;
+    int light_index = round(ScreenUVOffset.Load(int3(dispatchThreadID.xy, 0)).z);
     
-    float3 final_lighting = GetLighting(world_position, base_color, normal, metallic, roughness, view);
+    //float3 final_lighting = GetLighting(world_position, base_color, normal, metallic, roughness, view);
+    float3 brdf = EvalCookTorranceBRDF(normal, view, lighting_vector, base_color, metallic, roughness);
+    float geometry_falloff = max(dot(normal, lighting_vector), 0.0);
+    float3 final_lighting = lighting_weight * brdf * GetLightIntensity(light_index, world_position) * geometry_falloff;
     
     Output[dispatchThreadID.xy] = float4(LinearToSrgb(final_lighting), 1.0);
 }
+
 
 #endif

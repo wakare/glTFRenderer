@@ -17,8 +17,8 @@ public:
      virtual bool ClearRenderTarget(IRHICommandList& commandList, const std::vector<IRHIRenderTarget*>& renderTargets) = 0;
      virtual bool BindRenderTarget(IRHICommandList& commandList, const std::vector<IRHIRenderTarget*>& renderTargets, /*optional*/ IRHIRenderTarget* depthStencil) = 0;
 
-     bool RegisterRenderTargetWithTag(const std::string& renderTargetTag, std::shared_ptr<IRHIRenderTarget> renderTarget);
-     std::shared_ptr<IRHIRenderTarget> GetRenderTargetWithTag(const std::string& renderTargetTag) const;
+     bool RegisterRenderTargetWithTag(const std::string& render_target_tag, std::shared_ptr<IRHIRenderTarget> render_target, unsigned back_buffer_index = 0);
+     std::shared_ptr<IRHIRenderTarget> GetRenderTargetWithTag(const std::string& render_target_tag, unsigned back_buffer_index = 0) const;
      
 protected:
      std::map<std::string, std::shared_ptr<IRHIRenderTarget>> m_registerRenderTargets;

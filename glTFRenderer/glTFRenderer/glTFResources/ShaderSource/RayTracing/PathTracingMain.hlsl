@@ -1,5 +1,5 @@
-#ifndef RAYTRACING_HLSL
-#define RAYTRACING_HLSL
+#ifndef PATH_TRACING_MAIN
+#define PATH_TRACING_MAIN
 
 #include "glTFResources/ShaderSource/FrameStat.hlsl"
 #include "glTFResources/ShaderSource/Math/Sample.hlsl"
@@ -133,4 +133,4 @@ void PathTracingRayGen()
     screen_uv_offset[DispatchRaysIndex().xy] = float4(prev_screen_position, 0.0, 0.0);
 }
 
-#endif // RAYTRACING_HLSL
+#endif // PATH_TRACING_MAIN

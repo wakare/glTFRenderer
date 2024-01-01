@@ -2,13 +2,14 @@
 #include <memory>
 #include <vector>
 
+#include "glTFUtils/glTFUtils.h"
 #include "glTFRenderMeshManager.h"
-#include "../glTFRHI/RHIInterface/IRHICommandList.h"
-#include "../glTFRHI/RHIInterface/IRHIDevice.h"
-#include "../glTFRHI/RHIInterface/IRHIFence.h"
-#include "../glTFRHI/RHIInterface/IRHIRenderTarget.h"
-#include "../glTFRHI/RHIInterface/IRHISwapChain.h"
-#include "../glTFUtils/glTFUtils.h"
+#include "glTFRenderResourceFrameManager.h"
+#include "glTFRHI/RHIInterface/IRHICommandList.h"
+#include "glTFRHI/RHIInterface/IRHIDevice.h"
+#include "glTFRHI/RHIInterface/IRHIFence.h"
+#include "glTFRHI/RHIInterface/IRHIRenderTarget.h"
+#include "glTFRHI/RHIInterface/IRHISwapChain.h"
 #include "glTFRHI/RHIInterface/IRHIDescriptorHeap.h"
 #include "glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
 
@@ -50,6 +51,15 @@ public:
     bool TryProcessSceneObject(glTFRenderResourceManager& resource_manager, const glTFSceneObjectBase& object);
     
     void SetCurrentPSO(std::shared_ptr<IRHIPipelineStateObject> pso);
+
+    const glTFRenderResourceFrameManager& GetCurrentFrameResourceManager() const;
+    glTFRenderResourceFrameManager& GetCurrentFrameResourceManager();
+
+    const glTFRenderResourceFrameManager& GetFrameResourceManagerByIndex(unsigned index) const;
+    glTFRenderResourceFrameManager& GetFrameResourceManagerByIndex(unsigned index);
+    
+    static unsigned GetBackBufferCount();
+    
 private:
     std::shared_ptr<IRHIFactory> m_factory;
     std::shared_ptr<IRHIDevice> m_device;
@@ -68,6 +78,7 @@ private:
     std::shared_ptr<glTFRenderMeshManager> m_mesh_manager;
     
     std::shared_ptr<IRHIPipelineStateObject> m_current_pass_pso;
+    std::vector<glTFRenderResourceFrameManager> m_frame_resource_managers;
     
     unsigned m_currentBackBufferIndex;
 };

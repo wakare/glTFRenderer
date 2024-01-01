@@ -41,29 +41,59 @@ bool IRHIRootSignatureHelper::AddRootParameterWithRegisterCount(const std::strin
     case RHIRootParameterType::Unknown:
     default: GLTF_CHECK(false);
     }
-    
-    unsigned register_start = m_layout.last_register_index[register_type];
-    unsigned register_end = register_start + register_count;
-    
-    RootSignatureParameterElement element;
-    element.name = parameter_name;
-    element.register_range = {register_start, register_end};
-    element.parameter_index = m_layout.last_parameter_index++;
-    if (type == RHIRootParameterType::Constant)
+    if (is_bindless)
     {
-        element.constant_value_count = constant_value;
-    }
-    if (type == RHIRootParameterType::DescriptorTable)
-    {
-        element.table_type = table_type;
-        element.is_bindless = is_bindless;
-    }
-    
-    m_layout.parameter_elements[type].push_back(element);
+        unsigned register_start = 0;
+        unsigned register_end = register_start + register_count;
+        
+        RootSignatureParameterElement element;
+        element.name = parameter_name;
+        element.register_range = {register_start, register_end};
+        element.space = is_bindless ? 1 : 0;
+        element.parameter_index = m_layout.last_parameter_index++;
+        if (type == RHIRootParameterType::Constant)
+        {
+            element.constant_value_count = constant_value;
+        }
+        if (type == RHIRootParameterType::DescriptorTable)
+        {
+            element.table_type = table_type;
+            element.is_bindless = is_bindless;
+        }
 
-    out_allocation.parameter_index = element.parameter_index;
-    out_allocation.register_index = register_start;
-    m_layout.last_register_index[register_type] += register_count;
+        m_layout.parameter_elements[type].push_back(element);
+
+        out_allocation.parameter_index = element.parameter_index;
+        out_allocation.register_index = register_start;
+        out_allocation.space = element.space;
+    }
+    else
+    {
+        unsigned register_start = m_layout.last_register_index[register_type];
+        unsigned register_end = register_start + register_count;
+    
+        RootSignatureParameterElement element;
+        element.name = parameter_name;
+        element.register_range = {register_start, register_end};
+        element.parameter_index = m_layout.last_parameter_index++;
+        element.space = is_bindless ? 1 : 0;
+        if (type == RHIRootParameterType::Constant)
+        {
+            element.constant_value_count = constant_value;
+        }
+        if (type == RHIRootParameterType::DescriptorTable)
+        {
+            element.table_type = table_type;
+            element.is_bindless = is_bindless;
+        }
+    
+        m_layout.parameter_elements[type].push_back(element);
+
+        out_allocation.parameter_index = element.parameter_index;
+        out_allocation.register_index = register_start;
+        out_allocation.space = element.space;
+        m_layout.last_register_index[register_type] += register_count;    
+    }
     
     return true;
 }
@@ -168,6 +198,7 @@ bool IRHIRootSignatureHelper::BuildRootSignature(IRHIDevice& device)
                         {
                             parameter_value.table_type,
                         parameter_value.register_range.first,
+                            parameter_value.space,
                         parameter_value.register_range.second - parameter_value.register_range.first,
                             parameter_value.is_bindless
                         };

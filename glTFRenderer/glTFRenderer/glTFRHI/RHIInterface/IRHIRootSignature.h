@@ -26,6 +26,7 @@ struct RHIRootParameterDescriptorRangeDesc
 {
     RHIRootParameterDescriptorRangeType type {RHIRootParameterDescriptorRangeType::Unknown} ;
     REGISTER_INDEX_TYPE base_register_index {0};
+    unsigned space;
     size_t descriptor_count {0};
     bool is_bindless_range {false};
 };

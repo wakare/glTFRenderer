@@ -33,5 +33,13 @@ public:
 class glTFAppRenderPipelineRayTracingScene : public glTFAppRenderPipelineBase
 {
 public:
+    glTFAppRenderPipelineRayTracingScene()
+        : use_restir_direct_lighting(true)
+    {
+    }
+
     virtual bool SetupRenderPipeline() override;
+
+protected:
+    bool use_restir_direct_lighting;
 };

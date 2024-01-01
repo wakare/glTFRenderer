@@ -1,9 +1,7 @@
 #pragma once
 
 #include "glTFGraphicsPassBase.h"
-#include "glTFScene/glTFScenePrimitive.h"
 #include "glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
-#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneView.h"
 
 // Drawing all meshes within mesh pass
 class glTFGraphicsPassMeshBase : public glTFGraphicsPassBase

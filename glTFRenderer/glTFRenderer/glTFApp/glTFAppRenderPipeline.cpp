@@ -3,10 +3,12 @@
 #include "glTFRenderPass/glTFComputePass/glTFComputePassIndirectDrawCulling.h"
 #include "glTFRenderPass/glTFComputePass/glTFComputePassLighting.h"
 #include "glTFRenderPass/glTFComputePass/glTFComputePassRayTracingPostprocess.h"
+#include "glTFRenderPass/glTFComputePass/glTFComputePassReSTIRDirectLighting.h"
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassLighting.h"
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassMeshDepth.h"
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassMeshOpaque.h"
 #include "glTFRenderPass/glTFRayTracingPass/glTFRayTracingPassPathTracing.h"
+#include "glTFRenderPass/glTFRayTracingPass/glTFRayTracingPassReSTIRDirectLighting.h"
 #include "glTFWindow/glTFWindow.h"
 
 glTFAppRenderPipelineBase::glTFAppRenderPipelineBase()
@@ -118,11 +120,23 @@ bool glTFAppRenderPipelineRasterScene::SetupRenderPipeline()
 
 bool glTFAppRenderPipelineRayTracingScene::SetupRenderPipeline()
 {
-    std::unique_ptr<glTFRayTracingPassPathTracing> ray_tracing_main = std::make_unique<glTFRayTracingPassPathTracing>();
-    m_pass_manager->AddRenderPass(std::move(ray_tracing_main));
+    if (use_restir_direct_lighting)
+    {
+        std::unique_ptr<glTFRayTracingPassReSTIRDirectLighting> restir_direct_lighting = std::make_unique<glTFRayTracingPassReSTIRDirectLighting>();
+        m_pass_manager->AddRenderPass(std::move(restir_direct_lighting));
 
-    std::unique_ptr<glTFComputePassRayTracingPostprocess> ray_tracing_postprocess = std::make_unique<glTFComputePassRayTracingPostprocess>();
-    m_pass_manager->AddRenderPass(std::move(ray_tracing_postprocess));
-    
+        std::unique_ptr<glTFComputePassReSTIRDirectLighting> ray_tracing_postprocess = std::make_unique<glTFComputePassReSTIRDirectLighting>();
+        //m_pass_manager->AddRenderPass(std::move(ray_tracing_postprocess));
+    }
+    else
+    {
+        // fallback to path tracing
+        std::unique_ptr<glTFRayTracingPassPathTracing> ray_tracing_main = std::make_unique<glTFRayTracingPassPathTracing>();
+        m_pass_manager->AddRenderPass(std::move(ray_tracing_main));
+        
+        std::unique_ptr<glTFComputePassRayTracingPostprocess> ray_tracing_postprocess = std::make_unique<glTFComputePassRayTracingPostprocess>();
+        m_pass_manager->AddRenderPass(std::move(ray_tracing_postprocess));
+    }
+
     return true;
 }
