@@ -41,9 +41,6 @@ void main(int3 dispatchThreadID : SV_DispatchThreadID)
     float4 albedo_buffer_data = albedoTex.Load(int3(dispatchThreadID.xy, 0));
     float4 normal_buffer_data = normalTex.Load(int3(dispatchThreadID.xy, 0));
 
-    //Output[dispatchThreadID.xy] = float4(LinearToSrgb(albedo_buffer_data.xyz), 1.0);
-    //return;
-    
     float3 base_color = albedo_buffer_data.xyz;
     float metallic = albedo_buffer_data.w;
     

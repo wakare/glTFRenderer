@@ -59,7 +59,7 @@ void PathTracingRayGen()
     }
     
     albedo_output[DispatchRaysIndex().xy] = float4(payload.albedo, payload.metallic);
-    normal_output[DispatchRaysIndex().xy] = float4(payload.normal, payload.roughness);
+    normal_output[DispatchRaysIndex().xy] = float4(0.5 * payload.normal + 0.5, payload.roughness);
     
     float3 position = ray.Origin + ray.Direction * payload.distance;
     float4 device_coord = mul(projectionMatrix, mul(viewMatrix, float4(position, 1.0)));
@@ -84,7 +84,7 @@ void PathTracingRayGen()
             visible_ray.TMax = max_distance;
 
             bool shadowed = TraceShadowRay(scene, visible_ray);
-            //bool shadowed = false;
+            
             render_target[DispatchRaysIndex().xy] = shadowed ? 0.0 : float4(light_vector, sample_light_weight);
             sample_light_index = shadowed ? -1 : sample_light_index;
         }
