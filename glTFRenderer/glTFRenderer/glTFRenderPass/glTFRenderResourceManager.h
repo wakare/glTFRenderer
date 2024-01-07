@@ -59,6 +59,7 @@ public:
     glTFRenderResourceFrameManager& GetFrameResourceManagerByIndex(unsigned index);
     
     static unsigned GetBackBufferCount();
+    glTFRenderResourceUtils::GBufferSignatureAllocations& GetGBufferAllocations();
     
 private:
     std::shared_ptr<IRHIFactory> m_factory;
@@ -81,4 +82,6 @@ private:
     std::vector<glTFRenderResourceFrameManager> m_frame_resource_managers;
     
     unsigned m_currentBackBufferIndex;
+
+    std::shared_ptr<glTFRenderResourceUtils::GBufferSignatureAllocations> m_GBuffer_allocations;
 };

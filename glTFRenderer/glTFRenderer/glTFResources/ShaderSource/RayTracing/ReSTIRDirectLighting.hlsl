@@ -84,7 +84,8 @@ void PathTracingRayGen()
             visible_ray.TMax = max_distance;
 
             bool shadowed = TraceShadowRay(scene, visible_ray);
-            render_target[DispatchRaysIndex().xy] = shadowed ? 0.0 : float4(light_vector * max_distance, sample_light_weight);
+            //bool shadowed = false;
+            render_target[DispatchRaysIndex().xy] = shadowed ? 0.0 : float4(light_vector, sample_light_weight);
             sample_light_index = shadowed ? -1 : sample_light_index;
         }
     }

@@ -15,6 +15,7 @@ glTFRenderResourceManager::glTFRenderResourceManager()
     : m_material_manager(std::make_shared<glTFRenderMaterialManager>())
     , m_mesh_manager(std::make_shared<glTFRenderMeshManager>())
     , m_currentBackBufferIndex(0)
+    , m_GBuffer_allocations(new glTFRenderResourceUtils::GBufferSignatureAllocations)
 {
 }
 
@@ -232,5 +233,10 @@ glTFRenderResourceFrameManager& glTFRenderResourceManager::GetFrameResourceManag
 unsigned glTFRenderResourceManager::GetBackBufferCount()
 {
     return backBufferCount;
+}
+
+glTFRenderResourceUtils::GBufferSignatureAllocations& glTFRenderResourceManager::GetGBufferAllocations()
+{
+    return *m_GBuffer_allocations;
 }
 

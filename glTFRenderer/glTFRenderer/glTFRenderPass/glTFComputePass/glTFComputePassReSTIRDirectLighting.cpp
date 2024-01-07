@@ -55,6 +55,9 @@ bool glTFComputePassReSTIRDirectLighting::PreRenderPass(glTFRenderResourceManage
     RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list,
         m_output_allocation.parameter_index, m_output_handle, GetPipelineType() == PipelineType::Graphics))
     
+    RETURN_IF_FALSE(GBuffer_output.Bind(GetID(), command_list, resource_manager.GetGBufferAllocations().GetAllocationWithPassId(GetID())))
+    RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceLighting>()->UpdateCPUBuffer())
+    
     return true;
 }
 
@@ -105,8 +108,8 @@ bool glTFComputePassReSTIRDirectLighting::SetupRootSignature(glTFRenderResourceM
 {
     RETURN_IF_FALSE(glTFComputePassBase::SetupRootSignature(resource_manager))
 
-    auto& GBuffer_output = resource_manager.GetCurrentFrameResourceManager().GetGBufferForInit();
-    RETURN_IF_FALSE(GBuffer_output.InitGBufferAllocation(GetID(), m_root_signature_helper, true))
+    auto& allocations = resource_manager.GetGBufferAllocations();
+    RETURN_IF_FALSE(allocations.InitGBufferAllocation(GetID(), m_root_signature_helper, true))
     RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("LightingSamples", RHIRootParameterDescriptorRangeType::SRV, 1, false, m_lighting_samples_allocation))
     RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("ScreenUVOffset", RHIRootParameterDescriptorRangeType::SRV, 1, false, m_screen_uv_offset_allocation))
     RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("Output", RHIRootParameterDescriptorRangeType::UAV, 1, true, m_output_allocation))
@@ -119,7 +122,7 @@ bool glTFComputePassReSTIRDirectLighting::SetupPipelineStateObject(glTFRenderRes
     RETURN_IF_FALSE(glTFComputePassBase::SetupPipelineStateObject(resource_manager))
 
     m_dispatch_count = {resource_manager.GetSwapchain().GetWidth() / 8, resource_manager.GetSwapchain().GetHeight() / 8, 1};
-    
+
     RETURN_IF_FALSE(m_main_descriptor_heap->CreateUnOrderAccessViewInDescriptorHeap(resource_manager.GetDevice(), m_main_descriptor_heap->GetUsedDescriptorCount(),
                 *m_output, {m_output->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D}, m_output_handle))
 
@@ -128,9 +131,12 @@ bool glTFComputePassReSTIRDirectLighting::SetupPipelineStateObject(glTFRenderRes
 
     RETURN_IF_FALSE(m_main_descriptor_heap->CreateShaderResourceViewInDescriptorHeap(resource_manager.GetDevice(), m_main_descriptor_heap->GetUsedDescriptorCount(),
                 *m_screen_uv_offset, {m_screen_uv_offset->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D}, m_screen_uv_offset_handle))
-    
-    auto& GBuffer_output = resource_manager.GetCurrentFrameResourceManager().GetGBufferForInit();
-    RETURN_IF_FALSE(GBuffer_output.InitGBufferSRVs(GetID(), *m_main_descriptor_heap, resource_manager))
+
+    for (unsigned i = 0; i < resource_manager.GetBackBufferCount(); ++i)
+    {
+        auto& GBuffer_output = resource_manager.GetFrameResourceManagerByIndex(i).GetGBufferForInit();
+        RETURN_IF_FALSE(GBuffer_output.InitGBufferSRVs(GetID(), *m_main_descriptor_heap, resource_manager))    
+    }
     
     GetComputePipelineStateObject().BindShaderCode(
         R"(glTFResources\ShaderSource\ComputeShader\ReSTIRDirectLightingCS.hlsl)", RHIShaderType::Compute, "main");
@@ -138,7 +144,8 @@ bool glTFComputePassReSTIRDirectLighting::SetupPipelineStateObject(glTFRenderRes
     auto& shader_macros = GetComputePipelineStateObject().GetShaderMacros();
 
     // Add albedo, normal, depth register define
-    RETURN_IF_FALSE(GBuffer_output.UpdateShaderMacros(GetID(), shader_macros, true))
+    const auto& allocations = resource_manager.GetGBufferAllocations();
+    RETURN_IF_FALSE(allocations.UpdateShaderMacros(GetID(), shader_macros, true))
 
     shader_macros.AddSRVRegisterDefine("LIGHTING_SAMPLES_REGISTER_INDEX", m_lighting_samples_allocation.register_index, m_lighting_samples_allocation.space);
     shader_macros.AddSRVRegisterDefine("SCREEN_UV_OFFSET_REGISTER_INDEX", m_screen_uv_offset_allocation.register_index, m_screen_uv_offset_allocation.space);

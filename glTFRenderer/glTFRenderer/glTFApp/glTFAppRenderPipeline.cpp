@@ -126,7 +126,7 @@ bool glTFAppRenderPipelineRayTracingScene::SetupRenderPipeline()
         m_pass_manager->AddRenderPass(std::move(restir_direct_lighting));
 
         std::unique_ptr<glTFComputePassReSTIRDirectLighting> ray_tracing_postprocess = std::make_unique<glTFComputePassReSTIRDirectLighting>();
-        //m_pass_manager->AddRenderPass(std::move(ray_tracing_postprocess));
+        m_pass_manager->AddRenderPass(std::move(ray_tracing_postprocess));
     }
     else
     {

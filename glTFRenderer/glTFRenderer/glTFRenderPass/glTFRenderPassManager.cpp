@@ -145,8 +145,7 @@ void glTFRenderPassManager::RenderAllPass(size_t deltaTimeMs) const
 
     // TODO: no waiting causing race with base color and normal?
     m_resource_manager->CloseCommandListAndExecute(true);
-    
-    RHIUtils::Instance().Present(m_resource_manager->GetSwapchain());
+        RHIUtils::Instance().Present(m_resource_manager->GetSwapchain());
     
     m_resource_manager->UpdateCurrentBackBufferIndex();
 }

@@ -74,7 +74,7 @@ bool glTFRayTracingPassReSTIRDirectLighting::PreRenderPass(glTFRenderResourceMan
             RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_UNORDERED_ACCESS))
 
     auto& GBuffer_output = resource_manager.GetCurrentFrameResourceManager().GetGBufferForRendering();
-    RETURN_IF_FALSE(GBuffer_output.Bind(GetID(), command_list))
+    RETURN_IF_FALSE(GBuffer_output.Bind(GetID(), command_list, resource_manager.GetGBufferAllocations().GetAllocationWithPassId(GetID())))
     RETURN_IF_FALSE(GBuffer_output.Transition(GetID(), command_list, RHIResourceStateType::STATE_UNORDERED_ACCESS))
     
     return true;
@@ -104,11 +104,8 @@ bool glTFRayTracingPassReSTIRDirectLighting::SetupRootSignature(glTFRenderResour
     RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("ReSTIR_DirectLighting_Samples", RHIRootParameterDescriptorRangeType::UAV, 1, false, m_lighting_samples_allocation))
     RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("Screen_UV_Offset", RHIRootParameterDescriptorRangeType::UAV, 1, false, m_screen_uv_offset_allocation))
 
-    for (unsigned i = 0; i < resource_manager.GetBackBufferCount(); ++i)
-    {
-        auto& GBuffer_output = resource_manager.GetFrameResourceManagerByIndex(i).GetGBufferForInit();
-        RETURN_IF_FALSE(GBuffer_output.InitGBufferAllocation(GetID(), m_root_signature_helper, false))
-    }
+    auto& allocations = resource_manager.GetGBufferAllocations();
+    RETURN_IF_FALSE(allocations.InitGBufferAllocation(GetID(), m_root_signature_helper, false))
     
     RETURN_IF_FALSE(glTFRayTracingPassWithMesh::SetupRootSignature(resource_manager))
     
@@ -151,7 +148,8 @@ bool glTFRayTracingPassReSTIRDirectLighting::SetupPipelineStateObject(glTFRender
     auto& shader_macros = GetRayTracingPipelineStateObject().GetShaderMacros();
     shader_macros.AddUAVRegisterDefine("OUTPUT_REGISTER_INDEX", m_lighting_samples_allocation.register_index, m_lighting_samples_allocation.space);
     shader_macros.AddUAVRegisterDefine("SCREEN_UV_OFFSET_REGISTER_INDEX", m_screen_uv_offset_allocation.register_index, m_screen_uv_offset_allocation.space);
-    RETURN_IF_FALSE(GBuffer_output.UpdateShaderMacros(GetID(), shader_macros, false))
+    const auto& allocations = resource_manager.GetGBufferAllocations();
+    RETURN_IF_FALSE(allocations.UpdateShaderMacros(GetID(), shader_macros, false))
     
     // One ray type mapping one hit group desc
     GetRayTracingPipelineStateObject().AddHitGroupDesc({GetPrimaryRayHitGroupName(),

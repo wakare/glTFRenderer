@@ -6,6 +6,54 @@
 
 namespace glTFRenderResourceUtils
 {
+    bool GBufferSignatureAllocationWithinPass::InitGBufferAllocation(glTFUniqueID pass_id,
+        IRHIRootSignatureHelper& root_signature_helper, bool asSRV)
+    {
+        RETURN_IF_FALSE(root_signature_helper.AddTableRootParameter("Albedo_Output", asSRV ? RHIRootParameterDescriptorRangeType::SRV : RHIRootParameterDescriptorRangeType::UAV, 1, false, m_albedo_allocation))
+        RETURN_IF_FALSE(root_signature_helper.AddTableRootParameter("Normal_Output", asSRV ? RHIRootParameterDescriptorRangeType::SRV : RHIRootParameterDescriptorRangeType::UAV, 1, false, m_normal_allocation))
+        RETURN_IF_FALSE(root_signature_helper.AddTableRootParameter("Depth_Output", asSRV ? RHIRootParameterDescriptorRangeType::SRV : RHIRootParameterDescriptorRangeType::UAV, 1, false, m_depth_allocation))
+    
+        return true;
+    }
+
+    bool GBufferSignatureAllocationWithinPass::UpdateShaderMacros(glTFUniqueID pass_id,
+                                                                  RHIShaderPreDefineMacros& macros, bool asSRV) const
+    {
+        if (asSRV)
+        {
+            macros.AddSRVRegisterDefine("ALBEDO_REGISTER_INDEX", m_albedo_allocation.register_index, m_albedo_allocation.space);
+            macros.AddSRVRegisterDefine("NORMAL_REGISTER_INDEX", m_normal_allocation.register_index, m_normal_allocation.space);
+            macros.AddSRVRegisterDefine("DEPTH_REGISTER_INDEX", m_depth_allocation.register_index, m_depth_allocation.space);    
+        }
+        else
+        {
+            macros.AddUAVRegisterDefine("ALBEDO_REGISTER_INDEX", m_albedo_allocation.register_index, m_albedo_allocation.space);
+            macros.AddUAVRegisterDefine("NORMAL_REGISTER_INDEX", m_normal_allocation.register_index, m_normal_allocation.space);
+            macros.AddUAVRegisterDefine("DEPTH_REGISTER_INDEX", m_depth_allocation.register_index, m_depth_allocation.space);
+        }
+    
+        return true;
+    }
+
+    GBufferSignatureAllocationWithinPass& GBufferSignatureAllocations::GetAllocationWithPassId(glTFUniqueID pass_id)
+    {
+        return m_allocations[pass_id];
+    }
+
+    bool GBufferSignatureAllocations::InitGBufferAllocation(glTFUniqueID pass_id,
+                                                           IRHIRootSignatureHelper& root_signature_helper, bool asSRV)
+    {
+        return m_allocations[pass_id].InitGBufferAllocation(pass_id, root_signature_helper, asSRV);
+    }
+
+    bool GBufferSignatureAllocations::UpdateShaderMacros(glTFUniqueID pass_id, RHIShaderPreDefineMacros& macros,
+        bool asSRV) const
+    {
+        const auto find_it = m_allocations.find(pass_id);
+        GLTF_CHECK(find_it!= m_allocations.end());
+        return find_it->second.UpdateShaderMacros(pass_id, macros, asSRV);
+    }
+
     bool GBufferOutput::InitGBufferOutput(glTFRenderResourceManager& resource_manager, unsigned back_buffer_index)
     {
         RHIDataFormat albedo_format = RHIDataFormat::R8G8B8A8_UNORM;
@@ -127,36 +175,6 @@ namespace glTFRenderResourceUtils
         return true;
     }
 
-    bool GBufferOutput::InitGBufferAllocation(glTFUniqueID pass_id, IRHIRootSignatureHelper& root_signature_helper, bool asSRV)
-    {
-        auto& GBufferPassResource = GetGBufferPassResource(pass_id);
-        
-        RETURN_IF_FALSE(root_signature_helper.AddTableRootParameter("Albedo_Output", asSRV ? RHIRootParameterDescriptorRangeType::SRV : RHIRootParameterDescriptorRangeType::UAV, 1, false, GBufferPassResource.m_albedo_allocation))
-        RETURN_IF_FALSE(root_signature_helper.AddTableRootParameter("Normal_Output", asSRV ? RHIRootParameterDescriptorRangeType::SRV : RHIRootParameterDescriptorRangeType::UAV, 1, false, GBufferPassResource.m_normal_allocation))
-        RETURN_IF_FALSE(root_signature_helper.AddTableRootParameter("Depth_Output", asSRV ? RHIRootParameterDescriptorRangeType::SRV : RHIRootParameterDescriptorRangeType::UAV, 1, false, GBufferPassResource.m_depth_allocation))
-    
-        return true;
-    }
-
-    bool GBufferOutput::UpdateShaderMacros(glTFUniqueID pass_id,RHIShaderPreDefineMacros& macros, bool asSRV) const
-    {
-        auto& GBufferPassResource = GetGBufferPassResource(pass_id);
-        if (asSRV)
-        {
-            macros.AddSRVRegisterDefine("ALBEDO_REGISTER_INDEX", GBufferPassResource.m_albedo_allocation.register_index, GBufferPassResource.m_albedo_allocation.space);
-            macros.AddSRVRegisterDefine("NORMAL_REGISTER_INDEX", GBufferPassResource.m_normal_allocation.register_index, GBufferPassResource.m_normal_allocation.space);
-            macros.AddSRVRegisterDefine("DEPTH_REGISTER_INDEX", GBufferPassResource.m_depth_allocation.register_index, GBufferPassResource.m_depth_allocation.space);    
-        }
-        else
-        {
-            macros.AddUAVRegisterDefine("ALBEDO_REGISTER_INDEX", GBufferPassResource.m_albedo_allocation.register_index, GBufferPassResource.m_albedo_allocation.space);
-            macros.AddUAVRegisterDefine("NORMAL_REGISTER_INDEX", GBufferPassResource.m_normal_allocation.register_index, GBufferPassResource.m_normal_allocation.space);
-            macros.AddUAVRegisterDefine("DEPTH_REGISTER_INDEX", GBufferPassResource.m_depth_allocation.register_index, GBufferPassResource.m_depth_allocation.space);
-        }
-    
-        return true;
-    }
-
     bool GBufferOutput::Transition(glTFUniqueID pass_id,IRHICommandList& command_list, RHIResourceStateType after) const
     {
         if (m_resource_state == after)
@@ -173,13 +191,13 @@ namespace glTFRenderResourceUtils
         return true;
     }
 
-    bool GBufferOutput::Bind(glTFUniqueID pass_id,IRHICommandList& command_list) const
+    bool GBufferOutput::Bind(glTFUniqueID pass_id,IRHICommandList& command_list, const GBufferSignatureAllocationWithinPass& allocation) const
     {
         auto& GBufferPassResource = GetGBufferPassResource(pass_id);
         
-        RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, GBufferPassResource.m_albedo_allocation.parameter_index, GBufferPassResource.m_albedo_handle, false))
-        RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, GBufferPassResource.m_normal_allocation.parameter_index, GBufferPassResource.m_normal_handle, false))
-        RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, GBufferPassResource.m_depth_allocation.parameter_index, GBufferPassResource.m_depth_handle, false))
+        RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, allocation.m_albedo_allocation.parameter_index, GBufferPassResource.m_albedo_handle, false))
+        RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, allocation.m_normal_allocation.parameter_index, GBufferPassResource.m_normal_handle, false))
+        RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, allocation.m_depth_allocation.parameter_index, GBufferPassResource.m_depth_handle, false))
     
         return true;
     }

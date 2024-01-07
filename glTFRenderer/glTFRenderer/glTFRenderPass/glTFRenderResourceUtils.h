@@ -10,16 +10,31 @@ class glTFRenderResourceManager;
 
 namespace glTFRenderResourceUtils
 {
+    struct GBufferSignatureAllocationWithinPass
+    {
+        bool InitGBufferAllocation(glTFUniqueID pass_id, IRHIRootSignatureHelper& root_signature_helper, bool asSRV);
+        bool UpdateShaderMacros(glTFUniqueID pass_id, RHIShaderPreDefineMacros& macros, bool asSRV) const;
+        
+        RootSignatureAllocation m_albedo_allocation;
+        RootSignatureAllocation m_normal_allocation;
+        RootSignatureAllocation m_depth_allocation;
+    };
+
+    struct GBufferSignatureAllocations
+    {
+        bool InitGBufferAllocation(glTFUniqueID pass_id, IRHIRootSignatureHelper& root_signature_helper, bool asSRV);
+        bool UpdateShaderMacros(glTFUniqueID pass_id, RHIShaderPreDefineMacros& macros, bool asSRV) const;
+
+        GBufferSignatureAllocationWithinPass& GetAllocationWithPassId(glTFUniqueID pass_id);
+        
+        std::map<glTFUniqueID, GBufferSignatureAllocationWithinPass> m_allocations;
+    };
+    
     struct GBufferResourceWithinPass
     {
         RHIGPUDescriptorHandle m_albedo_handle;
-        RootSignatureAllocation m_albedo_allocation;
-
         RHIGPUDescriptorHandle m_normal_handle;
-        RootSignatureAllocation m_normal_allocation;
-        
         RHIGPUDescriptorHandle m_depth_handle;
-        RootSignatureAllocation m_depth_allocation;
     };
     
     struct GBufferOutput
@@ -31,11 +46,9 @@ namespace glTFRenderResourceUtils
         bool InitGBufferOutput(glTFRenderResourceManager& resource_manager, unsigned back_buffer_index);
         bool InitGBufferUAVs(glTFUniqueID pass_id, IRHIDescriptorHeap& heap, glTFRenderResourceManager& resource_manager);
         bool InitGBufferSRVs(glTFUniqueID pass_id, IRHIDescriptorHeap& heap, glTFRenderResourceManager& resource_manager);
-        bool InitGBufferAllocation(glTFUniqueID pass_id, IRHIRootSignatureHelper& root_signature_helper, bool asSRV);
         
-        bool UpdateShaderMacros(glTFUniqueID pass_id, RHIShaderPreDefineMacros& macros, bool asSRV) const;
         bool Transition(glTFUniqueID pass_id, IRHICommandList& command_list, RHIResourceStateType after) const;
-        bool Bind(glTFUniqueID pass_id, IRHICommandList& command_list) const;
+        bool Bind(glTFUniqueID pass_id, IRHICommandList& command_list, const GBufferSignatureAllocationWithinPass& allocation) const;
         
     protected:
         GBufferResourceWithinPass& GetGBufferPassResource(glTFUniqueID id);

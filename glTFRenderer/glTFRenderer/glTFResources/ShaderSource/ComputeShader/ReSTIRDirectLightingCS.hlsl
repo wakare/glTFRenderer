@@ -34,10 +34,15 @@ float3 GetWorldPosition(int2 texCoord)
 [numthreads(8, 8, 1)]
 void main(int3 dispatchThreadID : SV_DispatchThreadID)
 {
+    Output[dispatchThreadID.xy] = 0.0;
+    
     float3 world_position = GetWorldPosition(dispatchThreadID.xy);
 
     float4 albedo_buffer_data = albedoTex.Load(int3(dispatchThreadID.xy, 0));
     float4 normal_buffer_data = normalTex.Load(int3(dispatchThreadID.xy, 0));
+
+    //Output[dispatchThreadID.xy] = float4(LinearToSrgb(albedo_buffer_data.xyz), 1.0);
+    //return;
     
     float3 base_color = albedo_buffer_data.xyz;
     float metallic = albedo_buffer_data.w;
@@ -48,15 +53,15 @@ void main(int3 dispatchThreadID : SV_DispatchThreadID)
     float3 view = normalize(view_position.xyz - world_position);
 
     float4 lighting_sample = LightingSamples.Load(int3(dispatchThreadID.xy, 0));
-    float3 lighting_vector = normalize(lighting_sample.xyz);
     float lighting_weight = lighting_sample.w;
+    if (lighting_weight < 1e-3)
+    {
+        return;
+    }
+    
     int light_index = round(ScreenUVOffset.Load(int3(dispatchThreadID.xy, 0)).z);
-    
-    //float3 final_lighting = GetLighting(world_position, base_color, normal, metallic, roughness, view);
-    float3 brdf = EvalCookTorranceBRDF(normal, view, lighting_vector, base_color, metallic, roughness);
-    float geometry_falloff = max(dot(normal, lighting_vector), 0.0);
-    float3 final_lighting = lighting_weight * brdf * GetLightIntensity(light_index, world_position) * geometry_falloff;
-    
+    float3 final_lighting = GetLightingByIndex(light_index, world_position, base_color, normal, metallic, roughness, view);
+
     Output[dispatchThreadID.xy] = float4(LinearToSrgb(final_lighting), 1.0);
 }
 
