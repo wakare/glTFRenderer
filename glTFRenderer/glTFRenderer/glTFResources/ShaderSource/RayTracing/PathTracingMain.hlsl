@@ -75,29 +75,19 @@ void PathTracingRayGen()
 
             // Flip normal if needed
             payload.normal = dot(view, payload.normal) < 0 ? -payload.normal : payload.normal;
+
+            PointLightShadingInfo shading_info;
+            shading_info.albedo = payload.albedo;
+            shading_info.position = position;
+            shading_info.normal = payload.normal;
+            shading_info.metallic = payload.metallic;
+            shading_info.roughness = payload.roughness;
             
             uint sample_light_index;
             float sample_light_weight;
-            if (SampleLightIndexRIS(rng, 8, position, payload.albedo, payload.normal, payload.metallic, payload.roughness, view, sample_light_index, sample_light_weight))
+            if (SampleLightIndexRIS(rng, 8, shading_info, view, false, scene, sample_light_index, sample_light_weight))
             {
-                float3 light_vector;
-                float max_distance;
-                if (GetLightDistanceVector(sample_light_index, position, light_vector, max_distance))
-                {
-                    RayDesc visible_ray;
-                    visible_ray.Origin = OffsetRay(position, payload.normal);
-                    visible_ray.Direction = light_vector;
-                    visible_ray.TMin = 0.0;
-                    visible_ray.TMax = max_distance;
-                    
-                    if (!TraceShadowRay(scene, visible_ray))
-                    {
-                        // No occluded
-                        float3 brdf = EvalCookTorranceBRDF(payload.normal, view, light_vector, payload.albedo, payload.metallic, payload.roughness);
-                        float geometry_falloff = max(dot(payload.normal, light_vector), 0.0);
-                        radiance += throughput * sample_light_weight * brdf * GetLightIntensity(sample_light_index, position) * geometry_falloff;
-                    }
-                }
+                radiance += throughput * sample_light_weight * GetLightingByIndex(sample_light_index, shading_info, view);
             }
 
             // Russian Roulette

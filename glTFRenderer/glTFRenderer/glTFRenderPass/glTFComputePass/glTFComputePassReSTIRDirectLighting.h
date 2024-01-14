@@ -27,6 +27,8 @@ private:
     RootSignatureAllocation m_output_allocation;
     RHIGPUDescriptorHandle m_output_handle;
 
+    glTFRenderResourceUtils::RWTextureResourceWithBackBuffer m_aggregate_samples_output;
+    
     // External resource
     std::shared_ptr<IRHIRenderTarget> m_lighting_samples;
     std::shared_ptr<IRHIRenderTarget> m_screen_uv_offset;

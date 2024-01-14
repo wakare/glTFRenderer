@@ -73,7 +73,7 @@ glTFAppMain::glTFAppMain(int argc, char* argv[])
     std::unique_ptr<glTFSceneNode> directional_light_node = std::make_unique<glTFSceneNode>();
     std::unique_ptr<glTFDirectionalLight> directional_light = std::make_unique<glTFDirectionalLight>(directional_light_node->m_transform);
     directional_light->Rotate({glm::radians(45.0f), 0.0f, 0.0f});
-    directional_light->SetIntensity(10.0f);
+    directional_light->SetIntensity(50.0f);
     directional_light->SetTickFunc([lightNode = directional_light.get()]()
     {
         lightNode->RotateOffset({0.0f, 0.001f, 0.0f});
@@ -89,7 +89,7 @@ glTFAppMain::glTFAppMain(int argc, char* argv[])
         point_light->Translate(location);
         point_light->SetRadius(Rand01() * 10.0f);
         point_light->SetFalloff(Rand01());
-        point_light->SetIntensity(Rand01() * 10.0f);
+        point_light->SetIntensity(30.0);
         /*
         point_light->SetTickFunc([light_node = point_light.get()]()
         {

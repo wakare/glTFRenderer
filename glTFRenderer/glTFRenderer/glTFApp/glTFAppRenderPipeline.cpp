@@ -118,6 +118,11 @@ bool glTFAppRenderPipelineRasterScene::SetupRenderPipeline()
     return true;
 }
 
+glTFAppRenderPipelineRayTracingScene::glTFAppRenderPipelineRayTracingScene()
+    : use_restir_direct_lighting(false)
+{
+}
+
 bool glTFAppRenderPipelineRayTracingScene::SetupRenderPipeline()
 {
     if (use_restir_direct_lighting)

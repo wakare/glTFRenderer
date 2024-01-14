@@ -179,6 +179,7 @@
     <ClCompile Include="glTFRenderPass\glTFRenderResourceUtils.cpp" />
     <None Include="glTFResources\ShaderSource\ComputeShader\ReSTIRDirectLightingCS.hlsl" />
     <None Include="glTFResources\ShaderSource\RayTracing\ReSTIRDirectLighting.hlsl" />
+    <None Include="glTFResources\ShaderSource\Math\ReservoirSample.hlsl" />
     <ClCompile Include="glTFRHI\RHIConfigSingleton.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12CommandSignature.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12DescriptorHeap.cpp" />

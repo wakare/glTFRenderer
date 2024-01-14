@@ -4,6 +4,8 @@
 #include "glTFResources/ShaderSource/Math/RandomGenerator.hlsl"
 #include "glTFResources/ShaderSource/Math/Color.hlsl"
 #include "glTFResources/ShaderSource/Math/BRDF.hlsl"
+#include "glTFResources/ShaderSource/Math/ReservoirSample.hlsl"
+#include "glTFResources/ShaderSource/RayTracing/PathTracingRays.hlsl"
 
 cbuffer LightInfoConstantBuffer : SCENE_LIGHT_INFO_CONSTANT_REGISTER_INDEX
 {
@@ -17,6 +19,16 @@ struct LightInfo
     
     float3 intensity;
     uint type;
+};
+
+struct PointLightShadingInfo
+{
+    float3 position;
+    float3 normal;
+    float metallic;
+    float roughness;
+
+    float3 albedo;
 };
 
 #define LIGHT_TYPE_POINT 0
@@ -110,68 +122,71 @@ float3 GetSkylighting()
     return float3(0.0, 0.0, 0.0);
 }
 
-float3 GetLightingByIndex(uint sample_light_index, float3 position, float3 albedo, float3 normal, float metallic, float roughness, float3 view)
+float3 GetLightingByIndex(uint sample_light_index, PointLightShadingInfo shading_info, float3 view)
 {
     float3 light_vector;
     float max_distance;
-    if (GetLightDistanceVector(sample_light_index, position, light_vector, max_distance))
+    if (GetLightDistanceVector(sample_light_index, shading_info.position, light_vector, max_distance))
     {
         // Assume no occluded
-        float3 brdf = EvalCookTorranceBRDF(normal, view, light_vector, albedo, metallic, roughness);
-        return brdf * GetLightIntensity(sample_light_index, position) * max(dot(normal, light_vector), 0.0);
+        float3 brdf = EvalCookTorranceBRDF(shading_info.normal, shading_info.albedo, shading_info.metallic, shading_info.roughness, view, light_vector);
+        return brdf * GetLightIntensity(sample_light_index, shading_info.position) * max(dot(shading_info.normal, light_vector), 0.0);
     }
 
     return 0.0;
 }
 
-float3 GetLighting(float3 position, float3 albedo, float3 normal, float metallic, float roughness, float3 view)
+float3 GetLighting(PointLightShadingInfo shading_info, float3 view)
 {
     float3 result = 0.0;
     for (uint i = 0; i < light_count; ++i)
     {
-        result += GetLightingByIndex(i, position, albedo, normal, metallic, roughness, view);
+        result += GetLightingByIndex(i, shading_info, view);
     }
 
     return result;
 }
 
-
-bool SampleLightIndexRIS(inout RngStateType rngState, uint candidate_count, float3 position, float3 base_color, float3 normal, float metallic, float roughness, float3 view,  out uint index, out float weight)
+bool IsLightVisible(uint light_index, PointLightShadingInfo shading_info, RaytracingAccelerationStructure scene)
 {
-    index = 0;
-    weight = 0.0;
-    
-    float RIS_total_weight = 0.0;
-    
-    uint sample_index;
-    float sample_weight;
+    float3 light_vector;
+    float light_distance;
+    if (GetLightDistanceVector(light_index, shading_info.position, light_vector, light_distance))
+    {
+        RayDesc visible_ray;
+        visible_ray.Origin = OffsetRay(shading_info.position, shading_info.normal);
+        visible_ray.Direction = light_vector;
+        visible_ray.TMin = 0.0;
+        visible_ray.TMax = light_distance;
+        return !TraceShadowRay(scene, visible_ray);
+    }
+    return false;
+}
 
-    float select_candidate_target = 0.0;
+bool SampleLightIndexRIS(inout RngStateType rngState, uint candidate_count, PointLightShadingInfo shading_info, float3 view, bool check_visibility_for_candidates, RaytracingAccelerationStructure scene, out int index, out float weight)
+{
+    Reservoir samples; samples.Init();
     
     for (uint i = 0; i < candidate_count; ++i)
     {
+        uint sample_index;
+        float sample_weight;
         if (SampleLightIndexUniform(rngState, sample_index, sample_weight))
         {
-            float candidate_target = luminance(GetLightingByIndex(sample_index, position, base_color, normal,  metallic, roughness, view)) ;
-            float sample_RIS_weight = candidate_target * sample_weight;
-            RIS_total_weight += sample_RIS_weight;
-
-            if (rand(rngState) < (sample_RIS_weight / RIS_total_weight))
-            {
-                // update current pick info
-                index = sample_index;
-                select_candidate_target = candidate_target;
-            }
+            float visibility = check_visibility_for_candidates && !IsLightVisible(sample_index, shading_info, scene) ? 0.0 : 1.0;
+            float candidate_target = luminance(GetLightingByIndex(sample_index, shading_info, view));
+            float sample_RIS_weight = candidate_target * sample_weight * visibility ;
+            samples.AddSample(rngState, sample_index, sample_RIS_weight);
         }
     }
 
-    if (RIS_total_weight == 0.0)
+    samples.GetSelectSample(index, weight);
+    if (index >= 0 && !check_visibility_for_candidates && !IsLightVisible(index, shading_info, scene))
     {
-        return false;
+        index = -1;
+        weight = 0.0;
     }
-    
-    weight = RIS_total_weight / (candidate_count * select_candidate_target);
-    return true;
+    return index >= 0;
 }
 
 #endif

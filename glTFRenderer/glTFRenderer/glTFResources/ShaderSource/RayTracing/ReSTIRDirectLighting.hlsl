@@ -7,7 +7,7 @@
 #include "glTFResources/ShaderSource/Lighting/LightingCommon.hlsl"
 
 RaytracingAccelerationStructure scene : SCENE_AS_REGISTER_INDEX;
-RWTexture2D<float4> render_target : OUTPUT_REGISTER_INDEX;
+RWTexture2D<float4> samples_output : OUTPUT_REGISTER_INDEX;
 RWTexture2D<float4> screen_uv_offset : SCREEN_UV_OFFSET_REGISTER_INDEX;
 RWTexture2D<float4> albedo_output : ALBEDO_REGISTER_INDEX;
 RWTexture2D<float4> normal_output : NORMAL_REGISTER_INDEX;
@@ -16,7 +16,7 @@ RWTexture2D<float> depth_output : DEPTH_REGISTER_INDEX;
 [shader("raygeneration")]
 void PathTracingRayGen()
 {
-    render_target[DispatchRaysIndex().xy] = 0.0;
+    samples_output[DispatchRaysIndex().xy] = 0.0;
     screen_uv_offset[DispatchRaysIndex().xy] = 0.0;
     albedo_output[DispatchRaysIndex().xy] = 0.0;
     normal_output[DispatchRaysIndex().xy] = 0.0;
@@ -69,25 +69,18 @@ void PathTracingRayGen()
 
     // Flip normal if needed
     payload.normal = dot(view, payload.normal) < 0 ? -payload.normal : payload.normal;
-        
-    float sample_light_weight;
-    if (SampleLightIndexRIS(rng, 8, position, payload.albedo, payload.normal, payload.metallic, payload.roughness, view, sample_light_index, sample_light_weight))
-    {
-        float3 light_vector;
-        float max_distance;
-        if (GetLightDistanceVector(sample_light_index, position, light_vector, max_distance))
-        {
-            RayDesc visible_ray;
-            visible_ray.Origin = OffsetRay(position, payload.normal);
-            visible_ray.Direction = light_vector;
-            visible_ray.TMin = 0.0;
-            visible_ray.TMax = max_distance;
 
-            bool shadowed = TraceShadowRay(scene, visible_ray);
-            
-            render_target[DispatchRaysIndex().xy] = shadowed ? 0.0 : float4(light_vector, sample_light_weight);
-            sample_light_index = shadowed ? -1 : sample_light_index;
-        }
+    PointLightShadingInfo shading_info;
+    shading_info.albedo = payload.albedo;
+    shading_info.position = position;
+    shading_info.normal = payload.normal;
+    shading_info.metallic = payload.metallic;
+    shading_info.roughness = payload.roughness;
+    
+    float sample_light_weight;
+    if (SampleLightIndexRIS(rng, 16, shading_info, view, false, scene, sample_light_index, sample_light_weight))
+    {
+        samples_output[DispatchRaysIndex().xy] = float4(0.0, 0.0, 0.0, sample_light_weight);
     }
 
     float4 ndc_position = mul(prev_projection_matrix, mul(prev_view_matrix, float4(position, 1.0)));

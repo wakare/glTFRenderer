@@ -4,6 +4,7 @@
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneView.h"
 
 glTFComputePassReSTIRDirectLighting::glTFComputePassReSTIRDirectLighting()
+    : m_aggregate_samples_output("AGGREGATE_OUTPUT_REGISTER_INDEX", "AGGREGATE_BACKBUFFER_REGISTER_INDEX")
 {
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneView>());
     AddRenderInterface(std::make_shared<glTFRenderInterfaceLighting>());
@@ -27,6 +28,16 @@ bool glTFComputePassReSTIRDirectLighting::InitPass(glTFRenderResourceManager& re
     m_output = resource_manager.GetRenderTargetManager().CreateRenderTarget(
         resource_manager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R8G8B8A8_UNORM, RHIDataFormat::R8G8B8A8_UNORM, lighting_output_desc);
 
+    IRHIRenderTargetDesc aggregate_samples_output_desc;
+    aggregate_samples_output_desc.width = resource_manager.GetSwapchain().GetWidth();
+    aggregate_samples_output_desc.height = resource_manager.GetSwapchain().GetHeight();
+    aggregate_samples_output_desc.name = "AggregateOutput";
+    aggregate_samples_output_desc.isUAV = true;
+    aggregate_samples_output_desc.clearValue.clear_format = RHIDataFormat::R32G32B32A32_FLOAT;
+    aggregate_samples_output_desc.clearValue.clear_color = {0.0f, 0.0f, 0.0f, 0.0f};
+    
+    RETURN_IF_FALSE(m_aggregate_samples_output.CreateResource(resource_manager, aggregate_samples_output_desc))
+    
     auto& command_list = resource_manager.GetCommandListForRecord();
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_output, RHIResourceStateType::STATE_RENDER_TARGET, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE))
 
@@ -57,6 +68,8 @@ bool glTFComputePassReSTIRDirectLighting::PreRenderPass(glTFRenderResourceManage
     
     RETURN_IF_FALSE(GBuffer_output.Bind(GetID(), command_list, resource_manager.GetGBufferAllocations().GetAllocationWithPassId(GetID())))
     RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceLighting>()->UpdateCPUBuffer())
+
+    RETURN_IF_FALSE(m_aggregate_samples_output.BindRootParameter(resource_manager))
     
     return true;
 }
@@ -66,7 +79,8 @@ bool glTFComputePassReSTIRDirectLighting::PostRenderPass(glTFRenderResourceManag
     RETURN_IF_FALSE(glTFComputePassBase::PostRenderPass(resource_manager))
 
     auto& command_list = resource_manager.GetCommandListForRecord();
-
+    RETURN_IF_FALSE(m_aggregate_samples_output.CopyToBackBuffer(resource_manager))
+    
     // Copy output to back buffer
     auto& back_buffer = resource_manager.GetCurrentFrameSwapchainRT();
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_output, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_COPY_SOURCE))
@@ -113,7 +127,7 @@ bool glTFComputePassReSTIRDirectLighting::SetupRootSignature(glTFRenderResourceM
     RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("LightingSamples", RHIRootParameterDescriptorRangeType::SRV, 1, false, m_lighting_samples_allocation))
     RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("ScreenUVOffset", RHIRootParameterDescriptorRangeType::SRV, 1, false, m_screen_uv_offset_allocation))
     RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("Output", RHIRootParameterDescriptorRangeType::UAV, 1, true, m_output_allocation))
-    
+    RETURN_IF_FALSE(m_aggregate_samples_output.RegisterSignature(m_root_signature_helper))
     return true;
 }
 
@@ -131,7 +145,9 @@ bool glTFComputePassReSTIRDirectLighting::SetupPipelineStateObject(glTFRenderRes
 
     RETURN_IF_FALSE(m_main_descriptor_heap->CreateShaderResourceViewInDescriptorHeap(resource_manager.GetDevice(), m_main_descriptor_heap->GetUsedDescriptorCount(),
                 *m_screen_uv_offset, {m_screen_uv_offset->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D}, m_screen_uv_offset_handle))
-
+    
+    RETURN_IF_FALSE(m_aggregate_samples_output.CreateDescriptors(resource_manager, *m_main_descriptor_heap))
+    
     for (unsigned i = 0; i < resource_manager.GetBackBufferCount(); ++i)
     {
         auto& GBuffer_output = resource_manager.GetFrameResourceManagerByIndex(i).GetGBufferForInit();
@@ -150,6 +166,7 @@ bool glTFComputePassReSTIRDirectLighting::SetupPipelineStateObject(glTFRenderRes
     shader_macros.AddSRVRegisterDefine("LIGHTING_SAMPLES_REGISTER_INDEX", m_lighting_samples_allocation.register_index, m_lighting_samples_allocation.space);
     shader_macros.AddSRVRegisterDefine("SCREEN_UV_OFFSET_REGISTER_INDEX", m_screen_uv_offset_allocation.register_index, m_screen_uv_offset_allocation.space);
     shader_macros.AddUAVRegisterDefine("OUTPUT_TEX_REGISTER_INDEX", m_output_allocation.register_index, m_output_allocation.space);
+    RETURN_IF_FALSE(m_aggregate_samples_output.AddShaderMacros(shader_macros))
     
     return true;
 }

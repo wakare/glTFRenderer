@@ -14,6 +14,9 @@ Texture2D ScreenUVOffset : SCREEN_UV_OFFSET_REGISTER_INDEX;
 
 RWTexture2D<float4> Output: OUTPUT_TEX_REGISTER_INDEX;
 
+RWTexture2D<float4> aggregate_samples_output : AGGREGATE_OUTPUT_REGISTER_INDEX;
+Texture2D<float4> aggregate_samples_back_buffer : AGGREGATE_BACKBUFFER_REGISTER_INDEX;
+
 SamplerState defaultSampler : DEFAULT_SAMPLER_REGISTER_INDEX;
 
 float3 GetWorldPosition(int2 texCoord)
@@ -41,25 +44,29 @@ void main(int3 dispatchThreadID : SV_DispatchThreadID)
     float4 albedo_buffer_data = albedoTex.Load(int3(dispatchThreadID.xy, 0));
     float4 normal_buffer_data = normalTex.Load(int3(dispatchThreadID.xy, 0));
 
-    float3 base_color = albedo_buffer_data.xyz;
+    float3 albedo = albedo_buffer_data.xyz;
     float metallic = albedo_buffer_data.w;
     
     float3 normal = normalize(2 * normal_buffer_data.xyz - 1);
     float roughness = normal_buffer_data.w;
 
+    PointLightShadingInfo shading_info;
+    shading_info.albedo = albedo;
+    shading_info.position = world_position;
+    shading_info.normal = normal;
+    shading_info.metallic = metallic;
+    shading_info.roughness = roughness;
+    
     float3 view = normalize(view_position.xyz - world_position);
 
     float4 lighting_sample = LightingSamples.Load(int3(dispatchThreadID.xy, 0));
-    float lighting_weight = lighting_sample.w;
-    if (lighting_weight < 1e-3)
-    {
-        return;
-    }
-    
     int light_index = round(ScreenUVOffset.Load(int3(dispatchThreadID.xy, 0)).z);
-    float3 final_lighting = GetLightingByIndex(light_index, world_position, base_color, normal, metallic, roughness, view);
-
-    Output[dispatchThreadID.xy] = float4(LinearToSrgb(final_lighting), 1.0);
+    float lighting_weight = lighting_sample.w;
+    if (lighting_weight >= 0.0 && light_index >= 0)
+    {
+        float3 final_lighting = lighting_weight * GetLightingByIndex(light_index, shading_info, view);
+        Output[dispatchThreadID.xy] = float4(LinearToSrgb(final_lighting), 1.0);    
+    }
 }
 
 

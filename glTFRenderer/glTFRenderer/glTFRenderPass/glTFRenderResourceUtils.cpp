@@ -214,4 +214,107 @@ namespace glTFRenderResourceUtils
 
         return find_it->second;
     }
+
+    RWTextureResourceWithBackBuffer::RWTextureResourceWithBackBuffer(std::string output_register_name,
+                                                                 std::string back_register_name)
+    : m_output_register_name(std::move(output_register_name))
+    , m_back_register_name(std::move(back_register_name))
+    , m_texture_desc()
+    , m_writable_buffer_handle(0)
+    , m_back_buffer_handle(0)
+    {
+    }
+
+    bool RWTextureResourceWithBackBuffer::CreateResource(glTFRenderResourceManager& resource_manager, const IRHIRenderTargetDesc& desc)
+    {
+        m_texture_desc = desc;
+        auto format = m_texture_desc.clearValue.clear_format;
+    
+        m_writable_buffer = resource_manager.GetRenderTargetManager().CreateRenderTarget(
+                        resource_manager.GetDevice(), RHIRenderTargetType::RTV, format, format, m_texture_desc);
+
+        auto back_buffer_format = m_texture_desc;
+        back_buffer_format.isUAV = false;
+
+        m_back_buffer = resource_manager.GetRenderTargetManager().CreateRenderTarget(
+                        resource_manager.GetDevice(), RHIRenderTargetType::RTV, format, format, back_buffer_format);
+
+        RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resource_manager.GetCommandListForRecord(), *m_writable_buffer,
+                    RHIResourceStateType::STATE_RENDER_TARGET, RHIResourceStateType::STATE_UNORDERED_ACCESS))
+
+        RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resource_manager.GetCommandListForRecord(), *m_back_buffer,
+                    RHIResourceStateType::STATE_RENDER_TARGET, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE))
+    
+        return true;
+    }
+
+    bool RWTextureResourceWithBackBuffer::CreateDescriptors(glTFRenderResourceManager& resource_manager,
+        IRHIDescriptorHeap& main_descriptor)
+    {
+        RETURN_IF_FALSE(main_descriptor.CreateUnOrderAccessViewInDescriptorHeap(resource_manager.GetDevice(), main_descriptor.GetUsedDescriptorCount(),
+                    *m_writable_buffer, {m_writable_buffer->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D}, m_writable_buffer_handle))
+
+        RETURN_IF_FALSE(main_descriptor.CreateShaderResourceViewInDescriptorHeap(resource_manager.GetDevice(), main_descriptor.GetUsedDescriptorCount(),
+                    *m_back_buffer, {m_back_buffer->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D}, m_back_buffer_handle))
+    
+        return true;
+    }
+
+    bool RWTextureResourceWithBackBuffer::RegisterSignature(IRHIRootSignatureHelper& root_signature)
+    {
+        RETURN_IF_FALSE(root_signature.AddTableRootParameter(GetOutputBufferResourceName(), RHIRootParameterDescriptorRangeType::UAV, 1, false, m_writable_buffer_allocation))
+        RETURN_IF_FALSE(root_signature.AddTableRootParameter(GetBackBufferResourceName(), RHIRootParameterDescriptorRangeType::SRV, 1, false, m_back_buffer_allocation))
+    
+        return true;
+    }
+
+    bool RWTextureResourceWithBackBuffer::CopyToBackBuffer(glTFRenderResourceManager& resource_manager)
+    {
+        auto& command_list = resource_manager.GetCommandListForRecord();
+    
+        // Copy accumulation buffer to back buffer
+        RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_writable_buffer,
+            RHIResourceStateType::STATE_UNORDERED_ACCESS, RHIResourceStateType::STATE_COPY_SOURCE))
+
+        RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_back_buffer,
+            RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_COPY_DEST))
+
+        RETURN_IF_FALSE(RHIUtils::Instance().CopyTexture(command_list, *m_back_buffer,  *m_writable_buffer))
+    
+        RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_writable_buffer,
+            RHIResourceStateType::STATE_COPY_SOURCE, RHIResourceStateType::STATE_UNORDERED_ACCESS))
+    
+        RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_back_buffer,
+            RHIResourceStateType::STATE_COPY_DEST, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE))
+    
+        return true;
+    }
+
+    std::string RWTextureResourceWithBackBuffer::GetOutputBufferResourceName() const
+    {
+        return m_texture_desc.name;
+    }
+
+    std::string RWTextureResourceWithBackBuffer::GetBackBufferResourceName() const
+    {
+        return GetOutputBufferResourceName() + "_BACK";
+    }
+
+    bool RWTextureResourceWithBackBuffer::AddShaderMacros(RHIShaderPreDefineMacros& macros)
+    {
+        macros.AddUAVRegisterDefine(m_output_register_name, m_writable_buffer_allocation.register_index, m_writable_buffer_allocation.space);
+        macros.AddSRVRegisterDefine(m_back_register_name, m_back_buffer_allocation.register_index, m_back_buffer_allocation.space);
+    
+        return true;
+    }
+
+    bool RWTextureResourceWithBackBuffer::BindRootParameter(glTFRenderResourceManager& resource_manager)
+    {
+        auto& command_list = resource_manager.GetCommandListForRecord();
+    
+        RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, m_writable_buffer_allocation.parameter_index, m_writable_buffer_handle,false))
+        RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, m_back_buffer_allocation.parameter_index, m_back_buffer_handle,false))
+    
+        return true;
+    }
 }
