@@ -78,16 +78,16 @@ void PathTracingRayGen()
     shading_info.roughness = payload.roughness;
     
     float sample_light_weight;
-    if (SampleLightIndexRIS(rng, 16, shading_info, view, false, scene, sample_light_index, sample_light_weight))
+    if (SampleLightIndexRIS(rng, 32, shading_info, view, true, scene, sample_light_index, sample_light_weight))
     {
-        samples_output[DispatchRaysIndex().xy] = float4(0.0, 0.0, 0.0, sample_light_weight);
+        samples_output[DispatchRaysIndex().xy] = float4(sample_light_index, sample_light_weight, 0.0, 0.0);
     }
 
     float4 ndc_position = mul(prev_projection_matrix, mul(prev_view_matrix, float4(position, 1.0)));
     ndc_position /= ndc_position.w;
 
     float2 prev_screen_position = float2(ndc_position.x * 0.5 + 0.5, 0.5 - ndc_position.y * 0.5);
-    screen_uv_offset[DispatchRaysIndex().xy] = float4(prev_screen_position, (float)sample_light_index, 0.0);
+    screen_uv_offset[DispatchRaysIndex().xy] = float4(prev_screen_position, 0.0, 0.0);
 }
 
 #endif

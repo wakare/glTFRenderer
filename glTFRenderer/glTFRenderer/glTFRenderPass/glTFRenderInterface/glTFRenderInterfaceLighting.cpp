@@ -34,7 +34,8 @@ bool glTFRenderInterfaceLighting::UpdateLightInfo(const glTFLightBase& light)
                LightInfo point_light_info{};
                point_light_info.position = glTF_Transform_WithTRS::GetTranslationFromMatrix(point_light->GetTransformMatrix());
                point_light_info.radius = point_light->GetRadius();
-               point_light_info.intensity = {point_light->GetIntensity(), point_light->GetIntensity(), point_light->GetIntensity()};
+
+               point_light_info.intensity = point_light->GetColor() * point_light->GetIntensity();
                point_light_info.type = static_cast<unsigned>(glTFLightType::PointLight);
 
                if (light_indices.find(point_light->GetID()) == light_indices.end())
@@ -55,7 +56,7 @@ bool glTFRenderInterfaceLighting::UpdateLightInfo(const glTFLightBase& light)
                LightInfo directional_light_info{};
                directional_light_info.position = directional_light->GetDirection();
                directional_light_info.radius = 0.0f;
-               directional_light_info.intensity = {directional_light->GetIntensity(), directional_light->GetIntensity(), directional_light->GetIntensity()};
+               directional_light_info.intensity = directional_light->GetColor() * directional_light->GetIntensity();
                directional_light_info.type = static_cast<unsigned>(glTFLightType::DirectionalLight);
             
                if (light_indices.find(directional_light->GetID()) == light_indices.end())

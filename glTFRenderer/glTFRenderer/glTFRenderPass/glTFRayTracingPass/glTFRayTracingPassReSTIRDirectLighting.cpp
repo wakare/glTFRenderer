@@ -19,26 +19,26 @@ bool glTFRayTracingPassReSTIRDirectLighting::InitPass(glTFRenderResourceManager&
     IRHIRenderTargetDesc raytracing_output_render_target;
     raytracing_output_render_target.width = resource_manager.GetSwapchain().GetWidth();
     raytracing_output_render_target.height = resource_manager.GetSwapchain().GetHeight();
-    raytracing_output_render_target.name = "ReSTIR_DirectLighting_Samples";
+    raytracing_output_render_target.name = "ReSTIRDirectLightingSamples";
     raytracing_output_render_target.isUAV = true;
     raytracing_output_render_target.clearValue.clear_format = RHIDataFormat::R32G32B32A32_FLOAT;
     raytracing_output_render_target.clearValue.clear_color = {0.0f, 0.0f, 0.0f, 0.0f};
 
     m_lighting_samples = resource_manager.GetRenderTargetManager().CreateRenderTarget(
                 resource_manager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R32G32B32A32_FLOAT, RHIDataFormat::R32G32B32A32_FLOAT, raytracing_output_render_target);
-    resource_manager.GetRenderTargetManager().RegisterRenderTargetWithTag("ReSTIR_DirectLighting_Samples", m_lighting_samples);
+    resource_manager.GetRenderTargetManager().RegisterRenderTargetWithTag("ReSTIRDirectLightingSamples", m_lighting_samples);
     
     IRHIRenderTargetDesc screen_uv_offset_render_target;
     screen_uv_offset_render_target.width = resource_manager.GetSwapchain().GetWidth();
     screen_uv_offset_render_target.height = resource_manager.GetSwapchain().GetHeight();
-    screen_uv_offset_render_target.name = "Screen_UV_Offset";
+    screen_uv_offset_render_target.name = "RayTracingScreenUVOffset";
     screen_uv_offset_render_target.isUAV = true;
     screen_uv_offset_render_target.clearValue.clear_format = RHIDataFormat::R32G32B32A32_FLOAT;
     screen_uv_offset_render_target.clearValue.clear_color = {0.0f, 0.0f, 0.0f, 0.0f};
     
     m_screen_uv_offset_output = resource_manager.GetRenderTargetManager().CreateRenderTarget(
                     resource_manager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R32G32B32A32_FLOAT, RHIDataFormat::R32G32B32A32_FLOAT, screen_uv_offset_render_target);
-    resource_manager.GetRenderTargetManager().RegisterRenderTargetWithTag("Screen_UV_Offset", m_screen_uv_offset_output);
+    resource_manager.GetRenderTargetManager().RegisterRenderTargetWithTag("RayTracingScreenUVOffset", m_screen_uv_offset_output);
 
     auto& command_list = resource_manager.GetCommandListForRecord();
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_lighting_samples,
@@ -101,8 +101,8 @@ bool glTFRayTracingPassReSTIRDirectLighting::PostRenderPass(glTFRenderResourceMa
 bool glTFRayTracingPassReSTIRDirectLighting::SetupRootSignature(glTFRenderResourceManager& resource_manager)
 {
     // Non-bindless table parameter should be added first
-    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("ReSTIR_DirectLighting_Samples", RHIRootParameterDescriptorRangeType::UAV, 1, false, m_lighting_samples_allocation))
-    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("Screen_UV_Offset", RHIRootParameterDescriptorRangeType::UAV, 1, false, m_screen_uv_offset_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("ReSTIRDirectLightingSamples", RHIRootParameterDescriptorRangeType::UAV, 1, false, m_lighting_samples_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("RayTracingScreenUVOffset", RHIRootParameterDescriptorRangeType::UAV, 1, false, m_screen_uv_offset_allocation))
 
     auto& allocations = resource_manager.GetGBufferAllocations();
     RETURN_IF_FALSE(allocations.InitGBufferAllocation(GetID(), m_root_signature_helper, false))

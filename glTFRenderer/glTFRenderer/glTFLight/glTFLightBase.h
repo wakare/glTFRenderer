@@ -23,8 +23,12 @@ public:
     virtual bool AffectPosition(const glm::vec3& position) const = 0;
     void SetIntensity(float intensity);
     float GetIntensity() const;
+
+    void SetColor(const glm::float3& color);
+    const glm::float3& GetColor() const;
     
 protected:
     glTFLightType m_type;
+    glm::float3 m_color;
     float m_intensity;
 };

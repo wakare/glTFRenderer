@@ -119,7 +119,7 @@ bool glTFAppRenderPipelineRasterScene::SetupRenderPipeline()
 }
 
 glTFAppRenderPipelineRayTracingScene::glTFAppRenderPipelineRayTracingScene()
-    : use_restir_direct_lighting(false)
+    : use_restir_direct_lighting(true)
 {
 }
 
@@ -127,21 +127,21 @@ bool glTFAppRenderPipelineRayTracingScene::SetupRenderPipeline()
 {
     if (use_restir_direct_lighting)
     {
-        std::unique_ptr<glTFRayTracingPassReSTIRDirectLighting> restir_direct_lighting = std::make_unique<glTFRayTracingPassReSTIRDirectLighting>();
-        m_pass_manager->AddRenderPass(std::move(restir_direct_lighting));
+        std::unique_ptr<glTFRayTracingPassReSTIRDirectLighting> restir_lighting_samples_pass = std::make_unique<glTFRayTracingPassReSTIRDirectLighting>();
+        m_pass_manager->AddRenderPass(std::move(restir_lighting_samples_pass));
 
-        std::unique_ptr<glTFComputePassReSTIRDirectLighting> ray_tracing_postprocess = std::make_unique<glTFComputePassReSTIRDirectLighting>();
-        m_pass_manager->AddRenderPass(std::move(ray_tracing_postprocess));
+        std::unique_ptr<glTFComputePassReSTIRDirectLighting> restir_lighting_pass = std::make_unique<glTFComputePassReSTIRDirectLighting>();
+        m_pass_manager->AddRenderPass(std::move(restir_lighting_pass));
     }
     else
     {
         // fallback to path tracing
         std::unique_ptr<glTFRayTracingPassPathTracing> ray_tracing_main = std::make_unique<glTFRayTracingPassPathTracing>();
         m_pass_manager->AddRenderPass(std::move(ray_tracing_main));
-        
-        std::unique_ptr<glTFComputePassRayTracingPostprocess> ray_tracing_postprocess = std::make_unique<glTFComputePassRayTracingPostprocess>();
-        m_pass_manager->AddRenderPass(std::move(ray_tracing_postprocess));
     }
+    
+    std::unique_ptr<glTFComputePassRayTracingPostprocess> ray_tracing_postprocess = std::make_unique<glTFComputePassRayTracingPostprocess>();
+    m_pass_manager->AddRenderPass(std::move(ray_tracing_postprocess));
 
     return true;
 }

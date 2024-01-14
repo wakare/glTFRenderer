@@ -27,3 +27,13 @@ float glTFLightBase::GetIntensity() const
 {
     return m_intensity;
 }
+
+void glTFLightBase::SetColor(const glm::float3& color)
+{
+    m_color = color;
+}
+
+const glm::float3& glTFLightBase::GetColor() const
+{
+    return m_color;
+}

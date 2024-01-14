@@ -165,22 +165,22 @@ bool IsLightVisible(uint light_index, PointLightShadingInfo shading_info, Raytra
 
 bool SampleLightIndexRIS(inout RngStateType rngState, uint candidate_count, PointLightShadingInfo shading_info, float3 view, bool check_visibility_for_candidates, RaytracingAccelerationStructure scene, out int index, out float weight)
 {
-    Reservoir samples; samples.Init();
-    
+    Reservoir samples; InitReservoir(samples);
+
+    float mis_weight = 1.0 / candidate_count;
     for (uint i = 0; i < candidate_count; ++i)
     {
         uint sample_index;
         float sample_weight;
         if (SampleLightIndexUniform(rngState, sample_index, sample_weight))
         {
-            float visibility = check_visibility_for_candidates && !IsLightVisible(sample_index, shading_info, scene) ? 0.0 : 1.0;
-            float candidate_target = luminance(GetLightingByIndex(sample_index, shading_info, view));
-            float sample_RIS_weight = candidate_target * sample_weight * visibility ;
-            samples.AddSample(rngState, sample_index, sample_RIS_weight);
+            bool check_visibility = g_lightInfos[sample_index].type == LIGHT_TYPE_DIRECTIONAL || check_visibility_for_candidates;
+            float visibility = check_visibility && !IsLightVisible(sample_index, shading_info, scene) ? 0.0 : 1.0;
+            AddReservoirSample(rngState, samples, sample_index, mis_weight, luminance(GetLightingByIndex(sample_index, shading_info, view)), sample_weight * visibility);
         }
     }
 
-    samples.GetSelectSample(index, weight);
+    GetReservoirSelectSample(samples, index, weight);
     if (index >= 0 && !check_visibility_for_candidates && !IsLightVisible(index, shading_info, scene))
     {
         index = -1;

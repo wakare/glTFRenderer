@@ -15,7 +15,7 @@ RWTexture2D<float4> postprocess_output : POST_PROCESS_OUTPUT_REGISTER_INDEX;
 
 static bool use_velocity_clump = true;
 static int color_clamp_range = 1;
-static float reuse_history_factor = 0.96;
+static float reuse_history_factor = 0.97;
 
 [numthreads(8, 8, 1)]
 void main(int3 dispatchThreadID : SV_DispatchThreadID)

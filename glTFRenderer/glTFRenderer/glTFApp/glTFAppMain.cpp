@@ -45,6 +45,9 @@ glTFAppMain::glTFAppMain(int argc, char* argv[])
 {
     // Parse command arguments
     const glTFCmdArgumentProcessor cmd_processor(argc, argv);
+
+    // Reset seed for random generator
+    srand(1234);
     
     m_scene_graph.reset(new glTFSceneGraph);
     m_scene_renderer.reset(new glTFAppSceneRenderer(cmd_processor.IsRasterScene()));
@@ -74,6 +77,7 @@ glTFAppMain::glTFAppMain(int argc, char* argv[])
     std::unique_ptr<glTFDirectionalLight> directional_light = std::make_unique<glTFDirectionalLight>(directional_light_node->m_transform);
     directional_light->Rotate({glm::radians(45.0f), 0.0f, 0.0f});
     directional_light->SetIntensity(50.0f);
+    directional_light->SetColor({1.0f, 1.0f,1.0f});
     directional_light->SetTickFunc([lightNode = directional_light.get()]()
     {
         lightNode->RotateOffset({0.0f, 0.001f, 0.0f});
@@ -81,24 +85,28 @@ glTFAppMain::glTFAppMain(int argc, char* argv[])
     directional_light_node->m_objects.push_back(std::move(directional_light));
     m_scene_graph->AddSceneNode(std::move(directional_light_node));
 
+    glm::float3 generator_min = {0.0f, 0.0f,0.0f};
+    glm::float3 generator_radius = {5.0f, 5.0f, 10.0f};
     std::unique_ptr<glTFSceneNode> point_light_node = std::make_unique<glTFSceneNode>();
-    for (size_t i = 0; i < 5; ++i)
+    for (size_t i = 0; i < 20; ++i)
     {
         std::unique_ptr<glTFPointLight> point_light = std::make_unique<glTFPointLight>(point_light_node->m_transform);
-        glm::fvec3 location = { 10.0f * Rand01() - 5.0f, 10.0f * Rand01() - 5.0f, 10.0f * Rand01() - 5.0f};
+        glm::fvec3 location = generator_min + glm::float3{ generator_radius.x * Rand01(), generator_radius.y * Rand01(), generator_radius.z * Rand01()};
+        point_light->SetColor({Rand01(), Rand01(), Rand01()});
         point_light->Translate(location);
         point_light->SetRadius(Rand01() * 10.0f);
         point_light->SetFalloff(Rand01());
         point_light->SetIntensity(30.0);
-        /*
+        
         point_light->SetTickFunc([light_node = point_light.get()]()
         {
             glm::vec3 position = glTF_Transform_WithTRS::GetTranslationFromMatrix(light_node->GetTransformMatrix());
-            position += 0.1f * glm::vec3{2.0f * Rand01() - 1.0f, 2.0f * Rand01() - 1.0f, 2.0f * Rand01() - 1.0f};
+            position += 0.01f * glm::vec3{2.0f * Rand01() - 1.0f, 2.0f * Rand01() - 1.0f, 2.0f * Rand01() - 1.0f};
             const glm::vec3 new_position = glm::clamp(position, {-5.0f, -5.0f, -5.0f}, {5.0f, 5.0f, 5.0f});
             light_node->Translate(new_position);
         });
-        */
+        
+        
         point_light_node->m_objects.push_back(std::move(point_light));
     }
     m_scene_graph->AddSceneNode(std::move(point_light_node));

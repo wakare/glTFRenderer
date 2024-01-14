@@ -70,9 +70,6 @@ bool glTFComputePassRayTracingPostprocess::PreRenderPass(glTFRenderResourceManag
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_post_process_input_RT,
         RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE))
     
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_screen_uv_offset_RT,
-        RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE))
-    
     RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list,
             m_process_input_allocation.parameter_index, m_post_process_input_handle, GetPipelineType() == PipelineType::Graphics))
 
@@ -111,9 +108,6 @@ bool glTFComputePassRayTracingPostprocess::PostRenderPass(glTFRenderResourceMana
         RHIResourceStateType::STATE_COPY_SOURCE, RHIResourceStateType::STATE_UNORDERED_ACCESS ))
 
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_post_process_input_RT,
-        RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE))
-    
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_screen_uv_offset_RT,
         RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE))
     
     return true;
