@@ -36,11 +36,18 @@ bool DX12DescriptorHeap::InitDescriptorHeap(IRHIDevice& device, const RHIDescrip
     return true;
 }
 
+RHICPUDescriptorHandle DX12DescriptorHeap::GetCPUHandle(unsigned offsetInDescriptor)
+{
+    CD3DX12_CPU_DESCRIPTOR_HANDLE cpu_handle(m_descriptorHeap->GetCPUDescriptorHandleForHeapStart());
+    cpu_handle.Offset(offsetInDescriptor, m_descriptorIncrementSize);
+    return cpu_handle.ptr;
+}
+
 RHIGPUDescriptorHandle DX12DescriptorHeap::GetGPUHandle(unsigned offsetInDescriptor)
 {
-    CD3DX12_GPU_DESCRIPTOR_HANDLE gpuHandle(m_descriptorHeap->GetGPUDescriptorHandleForHeapStart());
-    gpuHandle.Offset(offsetInDescriptor, m_descriptorIncrementSize);
-    return gpuHandle.ptr;
+    CD3DX12_GPU_DESCRIPTOR_HANDLE gpu_handle(m_descriptorHeap->GetGPUDescriptorHandleForHeapStart());
+    gpu_handle.Offset(offsetInDescriptor, m_descriptorIncrementSize);
+    return gpu_handle.ptr;
 }
 
 unsigned DX12DescriptorHeap::GetUsedDescriptorCount() const
@@ -101,8 +108,18 @@ bool DX12DescriptorHeap::CreateUnOrderAccessViewInDescriptorHeap(IRHIDevice& dev
     return CreateUAVInHeap(device, descriptor_offset, dxRenderTarget->GetResource(), desc, out_GPU_handle);
 }
 
+D3D12_CPU_DESCRIPTOR_HANDLE DX12DescriptorHeap::GetCPUHandleForHeapStart() const
+{
+    return m_descriptorHeap->GetCPUDescriptorHandleForHeapStart();
+}
+
+D3D12_GPU_DESCRIPTOR_HANDLE DX12DescriptorHeap::GetGPUHandleForHeapStart() const
+{
+    return m_descriptorHeap->GetGPUDescriptorHandleForHeapStart();
+}
+
 bool DX12DescriptorHeap::CreateSRVInHeap(IRHIDevice& device, unsigned descriptor_offset,
-                                                                  ID3D12Resource* resource, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& out_GPU_handle)
+                                         ID3D12Resource* resource, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& out_GPU_handle)
 {
     //TODO: Process offset for handle 
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();

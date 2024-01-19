@@ -16,6 +16,7 @@ class IRHIDescriptorHeap: public IRHIResource
 {
 public:
     virtual bool InitDescriptorHeap(IRHIDevice& device, const RHIDescriptorHeapDesc& desc) = 0;
+    virtual RHICPUDescriptorHandle GetCPUHandle(unsigned offsetInDescriptor) = 0;
     virtual RHIGPUDescriptorHandle GetGPUHandle(unsigned offsetInDescriptor) = 0;
     virtual unsigned GetUsedDescriptorCount() const = 0;
 

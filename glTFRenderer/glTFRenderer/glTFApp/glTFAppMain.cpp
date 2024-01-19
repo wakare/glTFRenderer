@@ -1,5 +1,6 @@
 #include "glTFAppMain.h"
 
+#include "glTFGUI/glTFGUI.h"
 #include "glTFLight/glTFDirectionalLight.h"
 #include "glTFLight/glTFPointLight.h"
 #include "glTFWindow/glTFInputManager.h"
@@ -46,18 +47,57 @@ glTFAppMain::glTFAppMain(int argc, char* argv[])
     // Parse command arguments
     const glTFCmdArgumentProcessor cmd_processor(argc, argv);
 
-    // Reset seed for random generator
-    srand(1234);
-    
-    m_scene_graph.reset(new glTFSceneGraph);
-    m_scene_renderer.reset(new glTFAppSceneRenderer(cmd_processor.IsRasterScene()));
-    m_input_manager.reset(new glTFInputManager);
+    m_GUI.reset(new glTFGUI);
     
     // Init window
     auto& window = glTFWindow::Get();
-    const unsigned width = window.GetWidth();
-    const unsigned height = window.GetHeight();
     GLTF_CHECK(window.InitAndShowWindow());
+    
+    // Register window callback
+    GLTF_CHECK(window.RegisterCallbackEventNative());
+    //GLTF_CHECK(window.RegisterCallbackEventForGUI(*m_GUI));
+    
+    m_scene_graph.reset(new glTFSceneGraph);
+    InitSceneGraph();
+    
+    m_renderer.reset(new glTFAppRenderer(cmd_processor.IsRasterScene(), window));
+    m_input_manager.reset(new glTFInputManager);
+    
+    // Init GUI render context
+    m_renderer->InitGUIContext(*m_GUI, window);
+}
+
+void glTFAppMain::Run()
+{
+    auto& window = glTFWindow::Get();
+    
+    //Register window callback with App
+    window.SetTickCallback([this](){
+        m_timer.RecordFrameBegin();
+        const size_t time_delta_ms = m_timer.GetDeltaFrameTimeMs();
+        m_scene_graph->Tick(time_delta_ms);
+
+        m_renderer->TickRenderingBegin(time_delta_ms);
+        m_renderer->TickSceneRendering(*m_scene_graph, *m_input_manager, time_delta_ms);
+        m_renderer->TickGUIFrameRendering(*m_GUI, time_delta_ms);
+        m_renderer->TickRenderingEnd(time_delta_ms);
+
+        m_input_manager->TickFrame(time_delta_ms);
+    });
+
+    window.SetInputManager(m_input_manager);
+    window.SetExitCallback([this]()
+    {
+        m_GUI->ExitAndClean();
+    });
+    
+    glTFWindow::Get().UpdateWindow();
+}
+
+bool glTFAppMain::InitSceneGraph()
+{
+    // Reset seed for random generator
+    srand(1234);
     
     char file_path [MAX_PATH] = {'\0'};
     const std::string file_name = "Sponza";
@@ -68,7 +108,7 @@ glTFAppMain::glTFAppMain(int argc, char* argv[])
     // Add camera
     std::unique_ptr<glTFSceneNode> camera_node = std::make_unique<glTFSceneNode>();
     std::unique_ptr<glTFCamera> camera = std::make_unique<glTFCamera>(m_scene_graph->GetRootNode().m_finalTransform,
-        90.0f, width, height, 0.001f, 1000.0f);
+        90.0f, GetWidth(), GetHeight(), 0.001f, 1000.0f);
     
     camera_node->m_objects.push_back(std::move(camera));
     
@@ -106,30 +146,13 @@ glTFAppMain::glTFAppMain(int argc, char* argv[])
             light_node->Translate(new_position);
         });
         
-        
         point_light_node->m_objects.push_back(std::move(point_light));
     }
     m_scene_graph->AddSceneNode(std::move(point_light_node));
     
     m_scene_graph->AddSceneNode(std::move(camera_node));
-}
 
-void glTFAppMain::Run()
-{
-    auto& window = glTFWindow::Get();
-    
-    //Register window callback with App
-    window.SetTickCallback([this](){
-        m_timer.RecordFrameBegin();
-        const size_t time_delta_ms = m_timer.GetDeltaFrameTimeMs();
-        m_scene_graph->Tick(time_delta_ms);
-        m_scene_renderer->TickFrame(*m_scene_graph, *m_input_manager, time_delta_ms);
-        m_input_manager->TickFrame(time_delta_ms);
-    });
-
-    window.SetInputManager(m_input_manager);
-    
-    glTFWindow::Get().UpdateWindow();
+    return true;
 }
 
 bool glTFAppMain::LoadSceneGraphFromFile(const char* filePath) const
@@ -141,4 +164,16 @@ bool glTFAppMain::LoadSceneGraphFromFile(const char* filePath) const
     }
 
     return m_scene_graph->Init(loader);
+}
+
+unsigned glTFAppMain::GetWidth() const
+{
+    const auto& window = glTFWindow::Get();
+    return window.GetWidth();
+}
+
+unsigned glTFAppMain::GetHeight() const
+{
+    const auto& window = glTFWindow::Get();
+    return window.GetHeight();
 }

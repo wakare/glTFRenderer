@@ -36,6 +36,11 @@ public:
     
     // get the number of bits per pixel for a dxgi format
     static int GetDXGIFormatBitsPerPixel(const DXGI_FORMAT& dxgiFormat);
+
+    virtual bool InitGUIContext(IRHIDevice& device, IRHIDescriptorHeap& descriptor_heap, unsigned back_buffer_count) override;
+    virtual bool NewGUIFrame() override;
+    virtual bool RenderGUIFrame(IRHICommandList& commandList) override;
+    virtual bool ExitGUI() override;
     
     virtual bool ResetCommandList(IRHICommandList& commandList, IRHICommandAllocator& commandAllocator, IRHIPipelineStateObject* initPSO) override;
     virtual bool CloseCommandList(IRHICommandList& commandList) override;

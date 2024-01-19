@@ -1,5 +1,5 @@
 #pragma once
-#include "glTFAppSceneRenderer.h"
+#include "glTFAppRenderer.h"
 
 class glTFTimer
 {
@@ -31,11 +31,16 @@ public:
     void Run();
     
 protected:
+    bool InitSceneGraph();
     bool LoadSceneGraphFromFile(const char* filePath) const;
+
+    unsigned GetWidth() const;
+    unsigned GetHeight() const;
     
     std::shared_ptr<glTFInputManager> m_input_manager;
 
     glTFTimer m_timer;
     std::unique_ptr<glTFSceneGraph> m_scene_graph;
-    std::unique_ptr<glTFAppSceneRenderer> m_scene_renderer;
+    std::unique_ptr<glTFAppRenderer> m_renderer;
+    std::shared_ptr<glTFGUI> m_GUI;
 };

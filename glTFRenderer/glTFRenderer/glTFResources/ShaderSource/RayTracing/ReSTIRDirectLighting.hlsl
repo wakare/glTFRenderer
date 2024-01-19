@@ -78,7 +78,7 @@ void PathTracingRayGen()
     shading_info.roughness = payload.roughness;
     
     float sample_light_weight;
-    if (SampleLightIndexRIS(rng, 32, shading_info, view, true, scene, sample_light_index, sample_light_weight))
+    if (SampleLightIndexRIS(rng, 16, shading_info, view, false, scene, sample_light_index, sample_light_weight))
     {
         samples_output[DispatchRaysIndex().xy] = float4(sample_light_index, sample_light_weight, 0.0, 0.0);
     }

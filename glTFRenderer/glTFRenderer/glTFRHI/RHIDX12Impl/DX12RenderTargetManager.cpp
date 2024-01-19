@@ -129,7 +129,8 @@ std::vector<std::shared_ptr<IRHIRenderTarget>> DX12RenderTargetManager::CreateRe
     {
         ID3D12Resource* resource = nullptr;
         dxSwapChain->GetBuffer(i, IID_PPV_ARGS(&resource));
-        auto render_target = CreateRenderTargetWithResource(device, RHIRenderTargetType::RTV, RHIDataFormat::R8G8B8A8_UNORM_SRGB, resource, dx_clear_value);
+        //auto render_target = CreateRenderTargetWithResource(device, RHIRenderTargetType::RTV, RHIDataFormat::R8G8B8A8_UNORM_SRGB, resource, dx_clear_value);
+        auto render_target = CreateRenderTargetWithResource(device, RHIRenderTargetType::RTV, RHIDataFormat::R8G8B8A8_UNORM, resource, dx_clear_value);
         outVector.push_back(render_target);
     }
 

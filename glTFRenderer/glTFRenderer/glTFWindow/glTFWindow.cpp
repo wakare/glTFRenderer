@@ -3,7 +3,10 @@
 #include <GLFW/glfw3.h>
 
 #define GLFW_EXPOSE_NATIVE_WIN32 1
+#include <imgui.h>
 #include <GLFW/glfw3native.h>
+
+#include "glTFGUI/glTFGUI.h"
 
 glTFWindow::glTFWindow()
     : m_glfw_window(nullptr)
@@ -32,10 +35,22 @@ bool glTFWindow::InitAndShowWindow()
         glfwTerminate();
         return false;
     }
+    
+    return true;
+}
 
+bool glTFWindow::RegisterCallbackEventNative()
+{
     glfwSetKeyCallback(m_glfw_window, KeyCallback);
     glfwSetMouseButtonCallback(m_glfw_window, MouseButtonCallback);
     glfwSetCursorPosCallback(m_glfw_window, CursorPosCallback);
+    
+    return true;
+}
+
+bool glTFWindow::RegisterCallbackEventForGUI(glTFGUI& GUI)
+{
+    
     
     return true;
 }
@@ -82,6 +97,11 @@ void glTFWindow::SetInputManager(const std::shared_ptr<glTFInputManager>& input_
 
 void glTFWindow::KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
+    if (glTFGUI::HandleKeyBoardEventThisFrame())
+    {
+        return;
+    }
+    
     if (action == GLFW_PRESS)
     {
         Get().m_input_control->RecordKeyPressed(key);
@@ -94,6 +114,11 @@ void glTFWindow::KeyCallback(GLFWwindow* window, int key, int scancode, int acti
 
 void glTFWindow::MouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
 {
+    if (glTFGUI::HandleMouseEventThisFrame())
+    {
+        return;
+    }
+    
     if (action == GLFW_PRESS)
     {
         Get().m_input_control->RecordMouseButtonPressed(button);

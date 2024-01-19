@@ -61,7 +61,7 @@
       <PreprocessorDefinitions>_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty;$(SolutionDir)ThirdParty/glm/glm;$(SolutionDir)ThirdParty/glfw/include;$(SolutionDir)glTFRenderer;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty;$(SolutionDir)ThirdParty/imgui;$(SolutionDir)ThirdParty/glm/glm;$(SolutionDir)ThirdParty/glfw/include;$(SolutionDir)glTFRenderer;</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     </ClCompile>
@@ -86,7 +86,7 @@
       <PreprocessorDefinitions>_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty;$(SolutionDir)ThirdParty/glm/glm;$(SolutionDir)ThirdParty/glfw/include;$(SolutionDir)glTFRenderer;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty;$(SolutionDir)ThirdParty/imgui;$(SolutionDir)ThirdParty/glm/glm;$(SolutionDir)ThirdParty/glfw/include;$(SolutionDir)glTFRenderer;</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     </ClCompile>
@@ -105,10 +105,17 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\ThirdParty\imgui\backends\imgui_impl_dx12.cpp" />
+    <ClCompile Include="..\ThirdParty\imgui\backends\imgui_impl_glfw.cpp" />
+    <ClCompile Include="..\ThirdParty\imgui\imgui.cpp" />
+    <ClCompile Include="..\ThirdParty\imgui\imgui_draw.cpp" />
+    <ClCompile Include="..\ThirdParty\imgui\imgui_tables.cpp" />
+    <ClCompile Include="..\ThirdParty\imgui\imgui_widgets.cpp" />
     <ClCompile Include="glTFApp\glTFAppMain.cpp" />
-    <ClCompile Include="glTFApp\glTFAppSceneRenderer.cpp" />
+    <ClCompile Include="glTFApp\glTFAppRenderer.cpp" />
     <ClCompile Include="glTFApp\glTFAppRenderPipeline.cpp" />
     <ClCompile Include="glTFApp\glTFPassOptionRenderFlags.cpp" />
+    <ClCompile Include="glTFGUI\glTFGUI.cpp" />
     <ClCompile Include="glTFLight\glTFDirectionalLight.cpp" />
     <ClCompile Include="glTFLight\glTFLightBase.cpp" />
     <ClCompile Include="glTFLight\glTFLocalLight.cpp" />
@@ -250,9 +257,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="glTFApp\glTFAppMain.h" />
-    <ClInclude Include="glTFApp\glTFAppSceneRenderer.h" />
+    <ClInclude Include="glTFApp\glTFAppRenderer.h" />
     <ClInclude Include="glTFApp\glTFAppRenderPipeline.h" />
     <ClInclude Include="glTFApp\glTFPassOptionRenderFlags.h" />
+    <ClInclude Include="glTFGUI\glTFGUI.h" />
     <ClInclude Include="glTFLight\glTFDirectionalLight.h" />
     <ClInclude Include="glTFLight\glTFLightBase.h" />
     <ClInclude Include="glTFLight\glTFLocalLight.h" />

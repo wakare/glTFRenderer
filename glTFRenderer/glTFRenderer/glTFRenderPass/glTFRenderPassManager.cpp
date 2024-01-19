@@ -15,14 +15,6 @@ glTFRenderPassManager::glTFRenderPassManager(const glTFSceneView& view)
  
 bool glTFRenderPassManager::InitRenderPassManager(const glTFWindow& window)
 {
-    m_resource_manager.reset(new glTFRenderResourceManager());
-    unsigned viewport_width, viewport_height;
-    m_scene_view.GetViewportSize(viewport_width, viewport_height);
-    if (!m_resource_manager->InitResourceManager(viewport_width, viewport_height, window.GetHWND()))
-    {
-        return false;
-    }
-    
     return true;
 }
 
@@ -31,33 +23,33 @@ void glTFRenderPassManager::AddRenderPass(std::unique_ptr<glTFRenderPassBase>&& 
     m_passes.push_back(std::move(pass));
 }
 
-void glTFRenderPassManager::InitAllPass()
+void glTFRenderPassManager::InitAllPass(glTFRenderResourceManager& resource_manager)
 {
     m_scene_view.TraverseSceneObjectWithinView([&](const glTFSceneNode& node)
     {
         for (const auto& scene_object : node.m_objects)
         {
-            m_resource_manager->TryProcessSceneObject(*m_resource_manager, *scene_object);    
+            resource_manager.TryProcessSceneObject(resource_manager, *scene_object);    
         }
         
         return true;
     });
 
-    GLTF_CHECK(m_resource_manager->GetMeshManager().BuildMeshRenderResource(*m_resource_manager));
+    GLTF_CHECK(resource_manager.GetMeshManager().BuildMeshRenderResource(resource_manager));
     
     for (const auto& pass : m_passes)
     {
-        const bool inited = pass->InitPass(*m_resource_manager);
+        const bool inited = pass->InitPass(resource_manager);
         GLTF_CHECK(inited);
         LOG_FORMAT("[DEBUG] Init pass %s finished!\n", pass->PassName())
     }
 
-    m_resource_manager->CloseCommandListAndExecute(true);
+    resource_manager.CloseCommandListAndExecute(true);
     
     LOG_FORMAT_FLUSH("[DEBUG] Init all pass finished!\n")
 }
 
-void glTFRenderPassManager::UpdateScene(size_t deltaTimeMs)
+void glTFRenderPassManager::UpdateScene(glTFRenderResourceManager& resource_manager, size_t deltaTimeMs)
 {
     // Gather all scene pass
     
@@ -76,10 +68,10 @@ void glTFRenderPassManager::UpdateScene(size_t deltaTimeMs)
     {
         for (const auto& scene_object : node->m_objects)
         {
-            m_resource_manager->TryProcessSceneObject(*m_resource_manager, *scene_object);
+            resource_manager.TryProcessSceneObject(resource_manager, *scene_object);
             for (const auto& pass : m_passes)
             {
-                pass->TryProcessSceneObject(*m_resource_manager, *scene_object);
+                pass->TryProcessSceneObject(resource_manager, *scene_object);
             }
         }
 
@@ -88,7 +80,7 @@ void glTFRenderPassManager::UpdateScene(size_t deltaTimeMs)
 
     for (const auto& pass : m_passes)
     {
-        const bool success = pass->FinishProcessSceneObject(*m_resource_manager);
+        const bool success = pass->FinishProcessSceneObject(resource_manager);
         GLTF_CHECK(success);
 
         if (auto* sceneViewInterface = pass->GetRenderInterface<glTFRenderInterfaceSceneView>())
@@ -106,20 +98,12 @@ void glTFRenderPassManager::UpdateScene(size_t deltaTimeMs)
     }
 }
 
-void glTFRenderPassManager::UpdatePipelineOptions(const glTFPassOptionRenderFlags& pipeline_options)
+void glTFRenderPassManager::RenderBegin(glTFRenderResourceManager& resource_manager, size_t deltaTimeMs)
 {
-    for (const auto& pass : m_passes)
-    {
-        pass->UpdateRenderFlags(pipeline_options);
-    }
-}
-
-void glTFRenderPassManager::RenderAllPass(size_t deltaTimeMs) const
-{
-    m_resource_manager->WaitLastFrameFinish();
+    resource_manager.WaitLastFrameFinish();
     
     // Reset command allocator when previous frame executed finish...
-    m_resource_manager->ResetCommandAllocator();
+    resource_manager.ResetCommandAllocator();
     
     static auto now = GetTickCount64();
     static unsigned frameCountInOneSecond = 0;
@@ -132,22 +116,42 @@ void glTFRenderPassManager::RenderAllPass(size_t deltaTimeMs) const
     }
 
     // Transition swapchain state to render target for shading 
-    RHIUtils::Instance().AddRenderTargetBarrierToCommandList(m_resource_manager->GetCommandListForRecord(), m_resource_manager->GetCurrentFrameSwapchainRT(), RHIResourceStateType::STATE_PRESENT, RHIResourceStateType::STATE_RENDER_TARGET);
-    
+    RHIUtils::Instance().AddRenderTargetBarrierToCommandList(
+        resource_manager.GetCommandListForRecord(),
+        resource_manager.GetCurrentFrameSwapchainRT(),
+        RHIResourceStateType::STATE_PRESENT, RHIResourceStateType::STATE_RENDER_TARGET);
+}
+
+void glTFRenderPassManager::UpdatePipelineOptions(const glTFPassOptionRenderFlags& pipeline_options)
+{
     for (const auto& pass : m_passes)
     {
-        pass->PreRenderPass(*m_resource_manager);
-        pass->RenderPass(*m_resource_manager);
-        pass->PostRenderPass(*m_resource_manager);
+        pass->UpdateRenderFlags(pipeline_options);
     }
-    
-    RHIUtils::Instance().AddRenderTargetBarrierToCommandList(m_resource_manager->GetCommandListForRecord(), m_resource_manager->GetCurrentFrameSwapchainRT(), RHIResourceStateType::STATE_RENDER_TARGET, RHIResourceStateType::STATE_PRESENT);
+}
+
+void glTFRenderPassManager::RenderAllPass(glTFRenderResourceManager& resource_manager, size_t deltaTimeMs) const
+{
+    for (const auto& pass : m_passes)
+    {
+        pass->PreRenderPass(resource_manager);
+        pass->RenderPass(resource_manager);
+        pass->PostRenderPass(resource_manager);
+    }
+}
+
+void glTFRenderPassManager::RenderEnd(glTFRenderResourceManager& resource_manager, size_t deltaTimeMs)
+{
+    RHIUtils::Instance().AddRenderTargetBarrierToCommandList(
+        resource_manager.GetCommandListForRecord(),
+        resource_manager.GetCurrentFrameSwapchainRT(),
+        RHIResourceStateType::STATE_RENDER_TARGET, RHIResourceStateType::STATE_PRESENT);
 
     // TODO: no waiting causing race with base color and normal?
-    m_resource_manager->CloseCommandListAndExecute(true);
-        RHIUtils::Instance().Present(m_resource_manager->GetSwapchain());
+    resource_manager.CloseCommandListAndExecute(true);
+    RHIUtils::Instance().Present(resource_manager.GetSwapchain());
     
-    m_resource_manager->UpdateCurrentBackBufferIndex();
+    resource_manager.UpdateCurrentBackBufferIndex();
 }
 
 void glTFRenderPassManager::ExitAllPass()

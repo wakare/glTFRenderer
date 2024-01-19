@@ -1,4 +1,8 @@
 #include "DX12Utils.h"
+
+#include <imgui/imgui.h>
+#include <imgui/backends/imgui_impl_dx12.h>
+
 #include "d3dx12.h"
 #include "DX12CommandList.h"
 #include "DX12CommandQueue.h"
@@ -315,6 +319,40 @@ int DX12Utils::GetDXGIFormatBitsPerPixel(const DXGI_FORMAT& dxgiFormat)
     // Unknown format !
     assert(false);
     return 32;
+}
+
+bool DX12Utils::InitGUIContext(IRHIDevice& device, IRHIDescriptorHeap& descriptor_heap, unsigned back_buffer_count)
+{
+    auto* dx_device = dynamic_cast<DX12Device&>(device).GetDevice();
+    auto* dx_descriptor_heap = dynamic_cast<DX12DescriptorHeap&>(descriptor_heap).GetDescriptorHeap();
+    
+    ImGui_ImplDX12_Init(dx_device, back_buffer_count,
+        DXGI_FORMAT_R8G8B8A8_UNORM, dx_descriptor_heap,
+        dynamic_cast<DX12DescriptorHeap&>(descriptor_heap).GetCPUHandleForHeapStart(),
+        dynamic_cast<DX12DescriptorHeap&>(descriptor_heap).GetGPUHandleForHeapStart());
+    
+    return true;
+}
+
+bool DX12Utils::NewGUIFrame()
+{
+    ImGui_ImplDX12_NewFrame();
+
+    return true;
+}
+
+bool DX12Utils::RenderGUIFrame(IRHICommandList& commandList)
+{
+    auto* dx_command_list = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), dx_command_list);
+
+    return true;
+}
+
+bool DX12Utils::ExitGUI()
+{
+    ImGui_ImplDX12_Shutdown();
+    return true;
 }
 
 bool DX12Utils::ResetCommandList(IRHICommandList& commandList, IRHICommandAllocator& commandAllocator,

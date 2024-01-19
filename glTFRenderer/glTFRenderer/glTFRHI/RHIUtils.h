@@ -18,7 +18,13 @@ class IRHICommandList;
 class RHIUtils : public IRHIResource
 {
     friend class RHIResourceFactory;
+    
 public:
+    virtual bool InitGUIContext(IRHIDevice& device, IRHIDescriptorHeap& descriptor_heap, unsigned back_buffer_count) = 0;
+    virtual bool NewGUIFrame() = 0;
+    virtual bool RenderGUIFrame(IRHICommandList& commandList) = 0;
+    virtual bool ExitGUI() = 0;
+
     virtual bool ResetCommandList(IRHICommandList& commandList, IRHICommandAllocator& commandAllocator, IRHIPipelineStateObject* initPSO = nullptr) = 0;
     virtual bool CloseCommandList(IRHICommandList& commandList) = 0;
     virtual bool ExecuteCommandList(IRHICommandList& commandList, IRHICommandQueue& commandQueue) = 0;

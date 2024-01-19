@@ -9,9 +9,15 @@ struct GLFWwindow;
 
 class glTFWindow
 {
+    friend class glTFGUI;
+    
 public:
     static glTFWindow& Get();
     bool InitAndShowWindow();
+
+    bool RegisterCallbackEventNative();
+    bool RegisterCallbackEventForGUI(glTFGUI& GUI);
+    
     void UpdateWindow() const;
 
     int GetWidth() const {return m_width; }

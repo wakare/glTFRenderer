@@ -1,5 +1,6 @@
 #include "glTFAppRenderPipeline.h"
 
+#include "glTFGUI/glTFGUI.h"
 #include "glTFRenderPass/glTFComputePass/glTFComputePassIndirectDrawCulling.h"
 #include "glTFRenderPass/glTFComputePass/glTFComputePassLighting.h"
 #include "glTFRenderPass/glTFComputePass/glTFComputePassRayTracingPostprocess.h"
@@ -18,11 +19,16 @@ glTFAppRenderPipelineBase::glTFAppRenderPipelineBase()
     m_pass_options.SetEnableCulling(true);
 }
 
-void glTFAppRenderPipelineBase::Tick(const glTFSceneGraph& scene_graph, const glTFSceneView& scene_view, size_t delta_time_ms)
+void glTFAppRenderPipelineBase::TickFrameRenderingBegin(glTFRenderResourceManager& resource_manager, size_t delta_time_ms)
+{
+    m_pass_manager->RenderBegin(resource_manager, delta_time_ms);
+}
+
+void glTFAppRenderPipelineBase::TickSceneRendering(const glTFSceneGraph& scene_graph, const glTFSceneView& scene_view, glTFRenderResourceManager& resource_manager, size_t delta_time_ms)
 {
     if (m_render_pass_dirty)
     {
-        const bool created = RecreateRenderPass(scene_graph, scene_view);
+        const bool created = RecreateRenderPass(scene_graph, scene_view, resource_manager);
         GLTF_CHECK(created);
         m_render_pass_dirty = false;
     }
@@ -31,8 +37,18 @@ void glTFAppRenderPipelineBase::Tick(const glTFSceneGraph& scene_graph, const gl
     GLTF_CHECK(processed);
 
     m_pass_manager->UpdatePipelineOptions(m_pass_options);
-    m_pass_manager->UpdateScene(delta_time_ms);
-    m_pass_manager->RenderAllPass(delta_time_ms);
+    m_pass_manager->UpdateScene(resource_manager, delta_time_ms);
+    m_pass_manager->RenderAllPass(resource_manager, delta_time_ms);
+}
+
+void glTFAppRenderPipelineBase::TickGUIRendering(glTFGUI& GUI, glTFRenderResourceManager& resource_manager, size_t delta_time_ms)
+{
+    GUI.RenderNewFrame(resource_manager);
+}
+
+void glTFAppRenderPipelineBase::TickFrameRenderingEnd(glTFRenderResourceManager& resource_manager, size_t delta_time_ms)
+{
+    m_pass_manager->RenderEnd(resource_manager, delta_time_ms);
 }
 
 void glTFAppRenderPipelineBase::ApplyInput(const glTFInputManager& input_manager, size_t delta_time_ms)
@@ -48,7 +64,7 @@ void glTFAppRenderPipelineBase::ApplyInput(const glTFInputManager& input_manager
     }
 }
 
-bool glTFAppRenderPipelineBase::RecreateRenderPass(const glTFSceneGraph& scene_graph, const glTFSceneView& scene_view)
+bool glTFAppRenderPipelineBase::RecreateRenderPass(const glTFSceneGraph& scene_graph, const glTFSceneView& scene_view, glTFRenderResourceManager& resource_manager)
 {
     VertexLayoutDeclaration resolved_vertex_layout;
     bool has_resolved = false; 
@@ -88,9 +104,9 @@ bool glTFAppRenderPipelineBase::RecreateRenderPass(const glTFSceneGraph& scene_g
     SetupRenderPipeline();
     
     m_pass_manager->InitRenderPassManager(glTFWindow::Get());
-    RETURN_IF_FALSE(m_pass_manager->GetResourceManager().GetMeshManager().ResolveVertexInputLayout(resolved_vertex_layout))
+    RETURN_IF_FALSE(resource_manager.GetMeshManager().ResolveVertexInputLayout(resolved_vertex_layout))
     
-    m_pass_manager->InitAllPass();
+    m_pass_manager->InitAllPass(resource_manager);
     
     return true;
 }
