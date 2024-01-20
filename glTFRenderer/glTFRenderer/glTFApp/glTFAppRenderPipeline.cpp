@@ -43,7 +43,13 @@ void glTFAppRenderPipelineBase::TickSceneRendering(const glTFSceneGraph& scene_g
 
 void glTFAppRenderPipelineBase::TickGUIRendering(glTFGUI& GUI, glTFRenderResourceManager& resource_manager, size_t delta_time_ms)
 {
-    GUI.RenderNewFrame(resource_manager);
+    GUI.SetupWidgetBegin();
+
+    // Setup all widgets for render passes
+    m_pass_manager->UpdateAllPassGUIWidgets();
+    
+    GUI.SetupWidgetEnd();
+    GUI.RenderWidgets(resource_manager);
 }
 
 void glTFAppRenderPipelineBase::TickFrameRenderingEnd(glTFRenderResourceManager& resource_manager, size_t delta_time_ms)

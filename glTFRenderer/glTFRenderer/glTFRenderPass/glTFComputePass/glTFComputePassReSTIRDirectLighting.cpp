@@ -1,5 +1,7 @@
 #include "glTFComputePassReSTIRDirectLighting.h"
 
+#include <imgui.h>
+
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceFrameStat.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceLighting.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneView.h"
@@ -10,6 +12,7 @@ glTFComputePassReSTIRDirectLighting::glTFComputePassReSTIRDirectLighting()
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneView>());
     AddRenderInterface(std::make_shared<glTFRenderInterfaceLighting>());
     AddRenderInterface(std::make_shared<glTFRenderInterfaceFrameStat>());
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceSingleConstantBuffer<RayTracingDIPostProcessPassOptions>>());
 }
 
 const char* glTFComputePassReSTIRDirectLighting::PassName()
@@ -77,6 +80,8 @@ bool glTFComputePassReSTIRDirectLighting::PreRenderPass(glTFRenderResourceManage
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_output,
        RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_UNORDERED_ACCESS))
 
+    GetRenderInterface<glTFRenderInterfaceSingleConstantBuffer<RayTracingDIPostProcessPassOptions>>()->UploadCPUBuffer(&m_pass_options, 0, sizeof(m_pass_options));
+    
     return true;
 }
 
@@ -90,17 +95,6 @@ bool glTFComputePassReSTIRDirectLighting::PostRenderPass(glTFRenderResourceManag
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_output,
        RHIResourceStateType::STATE_UNORDERED_ACCESS, RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE))
 
-    /*
-    // Copy output to back buffer
-    auto& back_buffer = resource_manager.GetCurrentFrameSwapchainRT();
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_output, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_COPY_SOURCE))
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, back_buffer, RHIResourceStateType::STATE_RENDER_TARGET, RHIResourceStateType::STATE_COPY_DEST))
-
-    RETURN_IF_FALSE(RHIUtils::Instance().CopyTexture(command_list, resource_manager.GetCurrentFrameSwapchainRT(), *m_output))
-    
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_output, RHIResourceStateType::STATE_COPY_SOURCE, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE))
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, back_buffer, RHIResourceStateType::STATE_COPY_DEST, RHIResourceStateType::STATE_RENDER_TARGET))
-    */
     return true;
 }
 
@@ -124,6 +118,16 @@ bool glTFComputePassReSTIRDirectLighting::TryProcessSceneObject(glTFRenderResour
 bool glTFComputePassReSTIRDirectLighting::FinishProcessSceneObject(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFComputePassBase::FinishProcessSceneObject(resource_manager))
+
+    return true;
+}
+
+bool glTFComputePassReSTIRDirectLighting::UpdateGUIWidgets()
+{
+    RETURN_IF_FALSE(glTFComputePassBase::UpdateGUIWidgets())
+
+    ImGui::Checkbox("EnableSpatialReuse", &m_pass_options.enable_spatial_reuse);
+    ImGui::Checkbox("EnableTemporalReuse", &m_pass_options.enable_temporal_reuse);
 
     return true;
 }

@@ -1,5 +1,8 @@
 #include "glTFRayTracingPassReSTIRDirectLighting.h"
 
+#include <imgui.h>
+
+#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSingleConstantBuffer.h"
 #include "glTFRHI/RHIUtils.h"
 #include "glTFRHI/RHIInterface/IRHIRenderTargetManager.h"
 
@@ -7,6 +10,7 @@ glTFRayTracingPassReSTIRDirectLighting::glTFRayTracingPassReSTIRDirectLighting()
     : m_lighting_samples_handle(0)
     , m_screen_uv_offset_handle(0)
 {
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceSingleConstantBuffer<RayTracingDIPassOptions>>());
 }
 
 const char* glTFRayTracingPassReSTIRDirectLighting::PassName()
@@ -76,6 +80,8 @@ bool glTFRayTracingPassReSTIRDirectLighting::PreRenderPass(glTFRenderResourceMan
     auto& GBuffer_output = resource_manager.GetCurrentFrameResourceManager().GetGBufferForRendering();
     RETURN_IF_FALSE(GBuffer_output.Bind(GetID(), command_list, resource_manager.GetGBufferAllocations().GetAllocationWithPassId(GetID())))
     RETURN_IF_FALSE(GBuffer_output.Transition(GetID(), command_list, RHIResourceStateType::STATE_UNORDERED_ACCESS))
+
+    GetRenderInterface<glTFRenderInterfaceSingleConstantBuffer<RayTracingDIPassOptions>>()->UploadCPUBuffer(&m_pass_options, 0, sizeof(m_pass_options));
     
     return true;
 }
@@ -94,6 +100,15 @@ bool glTFRayTracingPassReSTIRDirectLighting::PostRenderPass(glTFRenderResourceMa
     
     auto& GBuffer_output = resource_manager.GetCurrentFrameResourceManager().GetGBufferForRendering();
     RETURN_IF_FALSE(GBuffer_output.Transition(GetID(), command_list, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE))
+    
+    return true;
+}
+
+bool glTFRayTracingPassReSTIRDirectLighting::UpdateGUIWidgets()
+{
+    RETURN_IF_FALSE(glTFRayTracingPassWithMesh::UpdateGUIWidgets())
+
+    ImGui::Checkbox("CheckVisibilityForAllCandidates", &m_pass_options.check_visibility_for_all_candidates);
     
     return true;
 }

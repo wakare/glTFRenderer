@@ -98,22 +98,20 @@ void glTFRenderPassManager::UpdateScene(glTFRenderResourceManager& resource_mana
     }
 }
 
+void glTFRenderPassManager::UpdateAllPassGUIWidgets()
+{
+    for (const auto& pass : m_passes)
+    {
+        pass->UpdateGUIWidgets();
+    }
+}
+
 void glTFRenderPassManager::RenderBegin(glTFRenderResourceManager& resource_manager, size_t deltaTimeMs)
 {
     resource_manager.WaitLastFrameFinish();
     
     // Reset command allocator when previous frame executed finish...
     resource_manager.ResetCommandAllocator();
-    
-    static auto now = GetTickCount64();
-    static unsigned frameCountInOneSecond = 0;
-    frameCountInOneSecond++;
-    if (GetTickCount64() - now > 1000)
-    {
-        LOG_FORMAT_FLUSH("[DEBUG] FPS: %d\n", frameCountInOneSecond)
-        frameCountInOneSecond = 0;
-        now = GetTickCount64();
-    }
 
     // Transition swapchain state to render target for shading 
     RHIUtils::Instance().AddRenderTargetBarrierToCommandList(

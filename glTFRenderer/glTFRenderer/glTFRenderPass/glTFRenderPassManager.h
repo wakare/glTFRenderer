@@ -17,7 +17,8 @@ public:
 
     void InitAllPass(glTFRenderResourceManager& resource_manager);
     void UpdateScene(glTFRenderResourceManager& resource_manager, size_t deltaTimeMs);
-
+    void UpdateAllPassGUIWidgets();
+    
     void RenderBegin(glTFRenderResourceManager& resource_manager, size_t deltaTimeMs);
     void RenderAllPass(glTFRenderResourceManager& resource_manager, size_t deltaTimeMs) const;
     void RenderEnd(glTFRenderResourceManager& resource_manager, size_t deltaTimeMs);

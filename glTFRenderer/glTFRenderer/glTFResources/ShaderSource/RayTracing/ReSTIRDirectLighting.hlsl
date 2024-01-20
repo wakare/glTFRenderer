@@ -13,6 +13,11 @@ RWTexture2D<float4> albedo_output : ALBEDO_REGISTER_INDEX;
 RWTexture2D<float4> normal_output : NORMAL_REGISTER_INDEX;
 RWTexture2D<float> depth_output : DEPTH_REGISTER_INDEX; 
 
+cbuffer RayTracingDIPassOptions: RAY_TRACING_DI_OPTION_CBV_INDEX
+{
+    bool check_visibility_for_all_candidates;
+};
+
 [shader("raygeneration")]
 void PathTracingRayGen()
 {
@@ -78,7 +83,7 @@ void PathTracingRayGen()
     shading_info.roughness = payload.roughness;
     
     float sample_light_weight;
-    if (SampleLightIndexRIS(rng, 16, shading_info, view, false, scene, sample_light_index, sample_light_weight))
+    if (SampleLightIndexRIS(rng, 16, shading_info, view, check_visibility_for_all_candidates, scene, sample_light_index, sample_light_weight))
     {
         samples_output[DispatchRaysIndex().xy] = float4(sample_light_index, sample_light_weight, 0.0, 0.0);
     }

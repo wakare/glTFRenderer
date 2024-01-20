@@ -1,6 +1,12 @@
 #pragma once
 #include "glTFRayTracingPassWithMesh.h"
-#include "glTFRenderPass/glTFRenderResourceUtils.h"
+
+struct RayTracingDIPassOptions
+{
+    inline static std::string Name = "RAY_TRACING_DI_OPTION_CBV_INDEX";
+    
+    bool check_visibility_for_all_candidates;
+};
 
 class glTFRayTracingPassReSTIRDirectLighting : public glTFRayTracingPassWithMesh
 {
@@ -11,7 +17,8 @@ public:
     virtual bool InitPass(glTFRenderResourceManager& resource_manager) override;
     virtual bool PreRenderPass(glTFRenderResourceManager& resource_manager) override;
     virtual bool PostRenderPass(glTFRenderResourceManager& resource_manager) override;
-
+    virtual bool UpdateGUIWidgets() override;
+    
 protected:
     virtual bool SetupRootSignature(glTFRenderResourceManager& resource_manager) override;
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;
@@ -35,4 +42,6 @@ private:
 
     RootSignatureAllocation m_lighting_samples_allocation;
     RootSignatureAllocation m_screen_uv_offset_allocation;
+
+    RayTracingDIPassOptions m_pass_options;
 };

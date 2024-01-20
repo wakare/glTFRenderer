@@ -1,6 +1,14 @@
 #pragma once
 #include "glTFComputePassBase.h"
 
+struct RayTracingDIPostProcessPassOptions
+{
+    inline static std::string Name = "RAY_TRACING_DI_POSTPROCESS_OPTION_CBV_INDEX";
+    
+    bool enable_spatial_reuse;
+    bool enable_temporal_reuse;
+};
+
 class glTFComputePassReSTIRDirectLighting : public glTFComputePassBase
 {
 public:
@@ -15,6 +23,7 @@ public:
     
     virtual bool TryProcessSceneObject(glTFRenderResourceManager& resource_manager, const glTFSceneObjectBase& object) override;
     virtual bool FinishProcessSceneObject(glTFRenderResourceManager& resource_manager) override;
+    virtual bool UpdateGUIWidgets() override;
     
 protected:
     virtual bool SetupRootSignature(glTFRenderResourceManager& resource_manager) override;
@@ -38,4 +47,6 @@ private:
     
     RootSignatureAllocation m_lighting_samples_allocation;
     RootSignatureAllocation m_screen_uv_offset_allocation;
+
+    RayTracingDIPostProcessPassOptions m_pass_options;
 };

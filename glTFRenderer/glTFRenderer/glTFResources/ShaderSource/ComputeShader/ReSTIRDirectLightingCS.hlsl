@@ -20,6 +20,12 @@ Texture2D<float4> aggregate_samples_back_buffer : AGGREGATE_BACKBUFFER_REGISTER_
 
 SamplerState defaultSampler : DEFAULT_SAMPLER_REGISTER_INDEX;
 
+cbuffer RayTracingDIPassOptions: RAY_TRACING_DI_POSTPROCESS_OPTION_CBV_INDEX
+{
+    bool enable_spatial_reuse;
+    bool enable_temporal_reuse;
+};
+
 static int spatial_reuse_range = 0;
 
 float3 GetWorldPosition(int2 texCoord)
@@ -132,9 +138,17 @@ void main(int3 dispatchThreadID : SV_DispatchThreadID)
     
     float3 view = normalize(view_position.xyz - world_position);
 
-    float4 final_samples = LightingSamples.Load(int3(dispatchThreadID.xy, 0));;
-    ReservoirTemporalReuse(rng, dispatchThreadID.xy, shading_info, view, final_samples);
-    ReservoirSpatialReuse(rng, dispatchThreadID.xy, shading_info, view, final_samples);
+    float4 final_samples = LightingSamples.Load(int3(dispatchThreadID.xy, 0));
+    
+    if (enable_temporal_reuse)
+    {
+        ReservoirTemporalReuse(rng, dispatchThreadID.xy, shading_info, view, final_samples);    
+    }
+    
+    if (enable_spatial_reuse)
+    {
+        ReservoirSpatialReuse(rng, dispatchThreadID.xy, shading_info, view, final_samples);    
+    }
     
     int light_index = final_samples.x;
     float lighting_weight = final_samples.y;
