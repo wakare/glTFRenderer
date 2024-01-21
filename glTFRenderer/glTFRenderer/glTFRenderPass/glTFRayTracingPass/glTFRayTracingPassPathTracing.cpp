@@ -32,7 +32,7 @@ glTFRayTracingPassPathTracing::glTFRayTracingPassPathTracing()
 
 const char* glTFRayTracingPassPathTracing::PassName()
 {
-    return "RayTracingPass_PathTracing";
+    return "PathTracingPass";
 }
 
 bool glTFRayTracingPassPathTracing::InitPass(glTFRenderResourceManager& resource_manager)

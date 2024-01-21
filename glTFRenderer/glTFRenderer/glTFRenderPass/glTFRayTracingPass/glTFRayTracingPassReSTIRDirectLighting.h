@@ -6,6 +6,13 @@ ALIGN_FOR_CBV_STRUCT struct RayTracingDIPassOptions
     inline static std::string Name = "RAY_TRACING_DI_OPTION_CBV_INDEX";
     
     bool check_visibility_for_all_candidates;
+    int candidate_light_count;
+
+    RayTracingDIPassOptions()
+        : check_visibility_for_all_candidates(false)
+        , candidate_light_count(8)
+    {
+    }
 };
 
 class glTFRayTracingPassReSTIRDirectLighting : public glTFRayTracingPassWithMesh

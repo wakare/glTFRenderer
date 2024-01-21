@@ -80,7 +80,7 @@ void ReservoirSpatialReuse(inout RngStateType rng_state, uint2 coord, PointLight
     Reservoir reservoir;
     InitReservoir(reservoir);
 
-    float mis_weight = 1.0 / (2 * spatial_reuse_range + 1) * (2 * spatial_reuse_range + 1);
+    float mis_weight = 1.0 / ((2 * spatial_reuse_range + 1) * (2 * spatial_reuse_range + 1));
     for (int x = -spatial_reuse_range; x <= spatial_reuse_range; ++x)
     {
         for (int y = -spatial_reuse_range; y <= spatial_reuse_range; ++y)

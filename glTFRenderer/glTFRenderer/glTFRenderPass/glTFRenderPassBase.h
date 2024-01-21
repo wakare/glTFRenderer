@@ -43,7 +43,7 @@ public:
     virtual void UpdateRenderFlags(const glTFPassOptionRenderFlags& render_flags) {}
 
     virtual bool NeedRendering() const {return true; }
-    virtual bool UpdateGUIWidgets() {return true; }
+    virtual bool UpdateGUIWidgets();
     
     template<typename RenderInterface>
     RenderInterface* GetRenderInterface()

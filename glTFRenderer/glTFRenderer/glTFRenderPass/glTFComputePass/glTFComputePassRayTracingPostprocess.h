@@ -1,6 +1,24 @@
 #pragma once
 #include "glTFComputePassBase.h"
 
+ALIGN_FOR_CBV_STRUCT struct RayTracingPostProcessPassOptions
+{
+    inline static std::string Name = "RAY_TRACING_POSTPROCESS_OPTION_CBV_INDEX";
+
+    BOOL enable_post_process;
+    BOOL use_velocity_clamp;
+    float reuse_history_factor;
+    int color_clamp_range;
+    
+    RayTracingPostProcessPassOptions()
+        : enable_post_process(false)
+        , use_velocity_clamp(false)
+        , reuse_history_factor(0.97f)
+        , color_clamp_range(1)
+    {
+    }
+};
+
 class glTFComputePassRayTracingPostprocess : public glTFComputePassBase
 {
 public:
@@ -15,6 +33,7 @@ public:
     
     virtual bool TryProcessSceneObject(glTFRenderResourceManager& resource_manager, const glTFSceneObjectBase& object) override;
     virtual bool FinishProcessSceneObject(glTFRenderResourceManager& resource_manager) override;
+    virtual bool UpdateGUIWidgets() override;
     
 protected:
     virtual bool SetupRootSignature(glTFRenderResourceManager& resource_manager) override;
@@ -36,5 +55,7 @@ protected:
     RHIGPUDescriptorHandle m_post_process_output_handle;
     RHIGPUDescriptorHandle m_post_process_input_handle;
     RHIGPUDescriptorHandle m_screen_uv_offset_handle;
+
+    RayTracingPostProcessPassOptions m_pass_options;
 };
 

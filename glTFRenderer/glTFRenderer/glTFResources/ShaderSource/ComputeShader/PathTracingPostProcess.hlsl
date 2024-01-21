@@ -13,9 +13,13 @@ Texture2D<float4> custom_back_buffer : CUSTOM_BACKBUFFER_REGISTER_INDEX;
 
 RWTexture2D<float4> postprocess_output : POST_PROCESS_OUTPUT_REGISTER_INDEX;
 
-static bool use_velocity_clump = true;
-static int color_clamp_range = 1;
-static float reuse_history_factor = 0.97;
+cbuffer RayTracingPostProcessPassOptions: RAY_TRACING_POSTPROCESS_OPTION_CBV_INDEX
+{
+    bool enable_post_process;
+    bool use_velocity_clamp;
+    float reuse_history_factor;
+    int color_clamp_range;
+};
 
 [numthreads(8, 8, 1)]
 void main(int3 dispatchThreadID : SV_DispatchThreadID)
@@ -27,13 +31,19 @@ void main(int3 dispatchThreadID : SV_DispatchThreadID)
     }
     
     float4 postprocess_input = postprocess_input_texture.Load(int3(dispatchThreadID.xy, 0));
+    if (!enable_post_process)
+    {
+        postprocess_output[dispatchThreadID.xy] = postprocess_input;
+        return;
+    }
+    
     float2 prev_screen_uv = screen_uv_offset.Load(int3(dispatchThreadID.xy, 0)).xy;
     int2 prev_screen_coord = int2(round(prev_screen_uv.x * viewport_width), round(prev_screen_uv.y * viewport_height));
     bool reuse_history = prev_screen_uv.x >= 0.0 && prev_screen_uv.x <= 1.0 &&
         prev_screen_uv.y >= 0.0 && prev_screen_uv.y <= 1.0;
     float4 accumulation_result = accumulation_back_buffer[prev_screen_coord];
     float velocity_clamp_factor = 1.0;
-    if (use_velocity_clump)
+    if (use_velocity_clamp)
     {
         float2 current_screen_uv = dispatchThreadID.xy / float2(viewport_width, viewport_height);
         float2 current_screen_uv_offset = current_screen_uv - prev_screen_uv;

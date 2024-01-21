@@ -1,4 +1,7 @@
 #include "glTFRenderPassBase.h"
+
+#include <imgui.h>
+
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 
 glTFRenderPassBase::~glTFRenderPassBase()
@@ -64,6 +67,12 @@ bool glTFRenderPassBase::RenderPass(glTFRenderResourceManager& resource_manager)
 
 bool glTFRenderPassBase::PostRenderPass(glTFRenderResourceManager& resource_manager)
 {
+    return true;
+}
+
+bool glTFRenderPassBase::UpdateGUIWidgets()
+{
+    ImGui::Text("%s", PassName());
     return true;
 }
 

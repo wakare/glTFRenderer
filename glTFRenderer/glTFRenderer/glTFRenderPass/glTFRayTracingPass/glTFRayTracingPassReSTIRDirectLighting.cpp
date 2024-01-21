@@ -15,7 +15,7 @@ glTFRayTracingPassReSTIRDirectLighting::glTFRayTracingPassReSTIRDirectLighting()
 
 const char* glTFRayTracingPassReSTIRDirectLighting::PassName()
 {
-    return "RayTracingPass_ReSTIRDirectLighting";
+    return "ReSTIRSamplesGenerationPass";
 }
 
 bool glTFRayTracingPassReSTIRDirectLighting::InitPass(glTFRenderResourceManager& resource_manager)
@@ -107,8 +107,9 @@ bool glTFRayTracingPassReSTIRDirectLighting::PostRenderPass(glTFRenderResourceMa
 bool glTFRayTracingPassReSTIRDirectLighting::UpdateGUIWidgets()
 {
     RETURN_IF_FALSE(glTFRayTracingPassWithMesh::UpdateGUIWidgets())
-
+    
     ImGui::Checkbox("CheckVisibilityForAllCandidates", &m_pass_options.check_visibility_for_all_candidates);
+    ImGui::SliderInt("CandidateLightCount", &m_pass_options.candidate_light_count, 4, 16);
     
     return true;
 }

@@ -17,7 +17,7 @@ glTFComputePassReSTIRDirectLighting::glTFComputePassReSTIRDirectLighting()
 
 const char* glTFComputePassReSTIRDirectLighting::PassName()
 {
-    return "ReSTIR_Direct_Lighting_Pass";
+    return "ReSTIRLightingPass";
 }
 
 bool glTFComputePassReSTIRDirectLighting::InitPass(glTFRenderResourceManager& resource_manager)

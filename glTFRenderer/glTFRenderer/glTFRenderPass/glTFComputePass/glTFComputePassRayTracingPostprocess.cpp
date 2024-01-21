@@ -1,5 +1,7 @@
 #include "glTFComputePassRayTracingPostprocess.h"
 
+#include <imgui.h>
+
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneView.h"
 #include "glTFRHI/RHIUtils.h"
 #include "glTFRHI/RHIInterface/IRHIRenderTargetManager.h"
@@ -10,6 +12,7 @@ glTFComputePassRayTracingPostprocess::glTFComputePassRayTracingPostprocess()
     , m_custom_resource("CUSTOM_OUTPUT_REGISTER_INDEX", "CUSTOM_BACKBUFFER_REGISTER_INDEX")
 {
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneView>());
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceSingleConstantBuffer<RayTracingPostProcessPassOptions>>());
 }
 
 const char* glTFComputePassRayTracingPostprocess::PassName()
@@ -76,6 +79,8 @@ bool glTFComputePassRayTracingPostprocess::PreRenderPass(glTFRenderResourceManag
     RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list,
             m_process_output_allocation.parameter_index, m_post_process_output_handle, GetPipelineType() == PipelineType::Graphics))
 
+    RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSingleConstantBuffer<RayTracingPostProcessPassOptions>>()->UploadCPUBuffer(&m_pass_options, 0, sizeof(m_pass_options)))
+    
     return true;
 }
 
@@ -124,6 +129,19 @@ bool glTFComputePassRayTracingPostprocess::FinishProcessSceneObject(glTFRenderRe
 {
     RETURN_IF_FALSE(glTFComputePassBase::FinishProcessSceneObject(resource_manager))
 
+    return true;
+}
+
+bool glTFComputePassRayTracingPostprocess::UpdateGUIWidgets()
+{
+    RETURN_IF_FALSE(glTFComputePassBase::UpdateGUIWidgets())
+
+    
+    ImGui::Checkbox("EnablePostProcess", (bool*)&m_pass_options.enable_post_process);
+    ImGui::Checkbox("UseVelocityClamp", (bool*)&m_pass_options.use_velocity_clamp);
+    ImGui::SliderFloat("ReuseHistoryFactor", &m_pass_options.reuse_history_factor, 0.0, 1.0);
+    ImGui::SliderInt("ColorClampRange", &m_pass_options.color_clamp_range, 0, 5);
+    
     return true;
 }
 
