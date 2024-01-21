@@ -70,8 +70,11 @@ void ReservoirTemporalReuse(inout RngStateType rng_state, uint2 coord, PointLigh
     }
     
     Reservoir reservoir; InitReservoir(reservoir);
-    AddReservoirSample(rng_state, reservoir, light_index, 0.5, luminance(GetLightingByIndex(light_index, shading_info, view)), light_weight);
-    AddReservoirSample(rng_state, reservoir, old_light_index, 0.5, luminance(GetLightingByIndex(old_light_index, shading_info, view)), old_light_weight);
+    float mis_weight_new = luminance(GetLightingByIndex(light_index, shading_info, view));
+    float mis_weight_old = luminance(GetLightingByIndex(old_light_index, shading_info, view));
+    float inv_mis_total = 1.0 / (mis_weight_new + mis_weight_old);
+    AddReservoirSample(rng_state, reservoir, light_index, mis_weight_new * inv_mis_total, luminance(GetLightingByIndex(light_index, shading_info, view)), light_weight);
+    AddReservoirSample(rng_state, reservoir, old_light_index, mis_weight_old * inv_mis_total, luminance(GetLightingByIndex(old_light_index, shading_info, view)), old_light_weight);
     GetReservoirSelectSample(reservoir, out_sample.x, out_sample.y);
 }
 

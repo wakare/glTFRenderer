@@ -143,7 +143,7 @@ bool glTFAppMain::InitSceneGraph()
         point_light->Translate(location);
         point_light->SetRadius(Rand01() * 10.0f);
         point_light->SetFalloff(Rand01());
-        point_light->SetIntensity(30.0);
+        point_light->SetIntensity(Rand01() * 10.0f);
         /*
         point_light->SetTickFunc([light_node = point_light.get()]()
         {

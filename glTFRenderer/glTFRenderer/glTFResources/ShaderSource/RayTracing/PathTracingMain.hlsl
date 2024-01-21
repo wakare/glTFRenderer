@@ -116,7 +116,7 @@ void PathTracingRayGen()
             throughput *= (payload.albedo / sample_pdf);
         }
 
-        final_radiance += min(radiance, float3(1.0, 1.0, 1.0));
+        final_radiance += radiance;
     }
     
     final_radiance /= samples_per_pixel;
