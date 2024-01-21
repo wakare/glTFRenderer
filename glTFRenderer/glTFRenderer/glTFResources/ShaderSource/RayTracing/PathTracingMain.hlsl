@@ -16,9 +16,10 @@ cbuffer RayTracingPathTracingPassOptions: RAY_TRACING_PATH_TRACING_OPTION_CBV_IN
 {
     int max_bounce_count;
     int candidate_light_count;
+    int samples_per_pixel;
+    bool check_visibility_for_all_candidates;
 };
 
-static uint path_sample_count_per_pixel = 1;
 static bool srgb_convert = true;
 
 [shader("raygeneration")]
@@ -33,7 +34,7 @@ void PathTracingRayGen()
     float3 final_radiance = 0.0;
     float4 pixel_position = 0.0;
     
-    for (uint path_index = 0; path_index < path_sample_count_per_pixel; ++path_index)
+    for (uint path_index = 0; path_index < samples_per_pixel; ++path_index)
     {
         // Orthographic projection since we're raytracing in screen space.
         float4 ray_offset_dir = mul(inverseProjectionMatrix, float4(2 * lerp_values.x - 1, 1 - 2 * lerp_values.y, 0.0, 1.0));
@@ -90,7 +91,7 @@ void PathTracingRayGen()
             
             uint sample_light_index;
             float sample_light_weight;
-            if (SampleLightIndexRIS(rng, candidate_light_count, shading_info, view, false, scene, sample_light_index, sample_light_weight))
+            if (SampleLightIndexRIS(rng, candidate_light_count, shading_info, view, check_visibility_for_all_candidates, scene, sample_light_index, sample_light_weight))
             {
                 radiance += throughput * sample_light_weight * GetLightingByIndex(sample_light_index, shading_info, view);
             }
@@ -118,7 +119,7 @@ void PathTracingRayGen()
         final_radiance += min(radiance, float3(1.0, 1.0, 1.0));
     }
     
-    final_radiance /= path_sample_count_per_pixel;
+    final_radiance /= samples_per_pixel;
     render_target[DispatchRaysIndex().xy] = float4(srgb_convert ? LinearToSrgb(final_radiance) : final_radiance, 1.0);
 
     float4 ndc_position = mul(prev_projection_matrix, mul(prev_view_matrix, pixel_position));

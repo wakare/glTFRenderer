@@ -212,7 +212,9 @@ bool glTFRayTracingPassPathTracing::UpdateGUIWidgets()
     RETURN_IF_FALSE(glTFRayTracingPassWithMesh::UpdateGUIWidgets())
 
     ImGui::SliderInt("MaxBounceCount", &m_pass_options.max_bounce_count, 1, 10);
-    ImGui::SliderInt("CandidateLightCount", &m_pass_options.candidate_light_count, 4, 16);
+    ImGui::SliderInt("CandidateLightCount", &m_pass_options.candidate_light_count, 4, 32);
+    ImGui::SliderInt("SamplesPerPixel", &m_pass_options.samples_per_pixel, 1, 64);
+    ImGui::Checkbox("CheckVisibilityForAllCandidates", (bool*)&m_pass_options.check_visibility_for_all_candidates);
     
     return true;
 }
