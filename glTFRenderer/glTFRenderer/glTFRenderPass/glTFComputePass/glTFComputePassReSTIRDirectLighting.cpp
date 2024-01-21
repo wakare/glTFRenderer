@@ -78,7 +78,7 @@ bool glTFComputePassReSTIRDirectLighting::PreRenderPass(glTFRenderResourceManage
     RETURN_IF_FALSE(m_aggregate_samples_output.BindRootParameter(resource_manager))
     
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_output,
-       RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_UNORDERED_ACCESS))
+       RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_UNORDERED_ACCESS))
 
     GetRenderInterface<glTFRenderInterfaceSingleConstantBuffer<RayTracingDIPostProcessPassOptions>>()->UploadCPUBuffer(&m_pass_options, 0, sizeof(m_pass_options));
     
@@ -93,7 +93,7 @@ bool glTFComputePassReSTIRDirectLighting::PostRenderPass(glTFRenderResourceManag
     RETURN_IF_FALSE(m_aggregate_samples_output.CopyToBackBuffer(resource_manager))
 
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_output,
-       RHIResourceStateType::STATE_UNORDERED_ACCESS, RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE))
+       RHIResourceStateType::STATE_UNORDERED_ACCESS, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE))
 
     return true;
 }
@@ -126,9 +126,10 @@ bool glTFComputePassReSTIRDirectLighting::UpdateGUIWidgets()
 {
     RETURN_IF_FALSE(glTFComputePassBase::UpdateGUIWidgets())
 
-    ImGui::Checkbox("EnableSpatialReuse", &m_pass_options.enable_spatial_reuse);
-    ImGui::Checkbox("EnableTemporalReuse", &m_pass_options.enable_temporal_reuse);
-
+    ImGui::Checkbox("EnableSpatialReuse", (bool*)&m_pass_options.enable_spatial_reuse);
+    ImGui::Checkbox("EnableTemporalReuse", (bool*)&m_pass_options.enable_temporal_reuse);
+    ImGui::SliderInt("SpatialReuseRange", &m_pass_options.spatial_reuse_range, 0, 10);
+    
     return true;
 }
 

@@ -2,7 +2,7 @@
 #include "glTFRenderInterfaceBase.h"
 
 static unsigned material_texture_invalid_index = UINT_MAX;
-struct MaterialInfo
+ALIGN_FOR_CBV_STRUCT struct MaterialInfo
 {
     inline static std::string Name = "SCENE_MATERIAL_INFO_REGISTER_INDEX";
     

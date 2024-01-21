@@ -2,7 +2,7 @@
 
 #include "glTFRenderInterfaceSingleConstantBuffer.h"
 
-struct ConstantBufferSceneMesh
+ALIGN_FOR_CBV_STRUCT struct ConstantBufferSceneMesh
 {
     inline static std::string Name = "SCENE_MESH_REGISTER_CBV_INDEX";
     

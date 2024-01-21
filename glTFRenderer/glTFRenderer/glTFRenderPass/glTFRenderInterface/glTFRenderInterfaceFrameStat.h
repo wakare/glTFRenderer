@@ -2,7 +2,7 @@
 
 #include "glTFRenderInterfaceSingleConstantBuffer.h"
 
-struct ConstantBufferFrameStat
+ALIGN_FOR_CBV_STRUCT struct ConstantBufferFrameStat
 {
     inline static std::string Name = "FRAME_STAT_REGISTER_CBV_INDEX";
     

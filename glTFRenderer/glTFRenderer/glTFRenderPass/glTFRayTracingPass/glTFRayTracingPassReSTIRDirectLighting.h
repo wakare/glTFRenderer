@@ -1,7 +1,7 @@
 #pragma once
 #include "glTFRayTracingPassWithMesh.h"
 
-struct RayTracingDIPassOptions
+ALIGN_FOR_CBV_STRUCT struct RayTracingDIPassOptions
 {
     inline static std::string Name = "RAY_TRACING_DI_OPTION_CBV_INDEX";
     

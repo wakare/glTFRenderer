@@ -1,12 +1,20 @@
 #pragma once
 #include "glTFComputePassBase.h"
 
-struct RayTracingDIPostProcessPassOptions
+ALIGN_FOR_CBV_STRUCT struct RayTracingDIPostProcessPassOptions
 {
     inline static std::string Name = "RAY_TRACING_DI_POSTPROCESS_OPTION_CBV_INDEX";
+
+    int spatial_reuse_range;
+    BOOL enable_spatial_reuse;
+    BOOL enable_temporal_reuse;
     
-    bool enable_spatial_reuse;
-    bool enable_temporal_reuse;
+    RayTracingDIPostProcessPassOptions()
+        : spatial_reuse_range(0)
+        , enable_spatial_reuse(false)
+        , enable_temporal_reuse(false)
+    {
+    }
 };
 
 class glTFComputePassReSTIRDirectLighting : public glTFComputePassBase

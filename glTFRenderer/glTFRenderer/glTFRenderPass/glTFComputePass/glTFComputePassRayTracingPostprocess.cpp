@@ -67,9 +67,6 @@ bool glTFComputePassRayTracingPostprocess::PreRenderPass(glTFRenderResourceManag
 
     auto& command_list = resource_manager.GetCommandListForRecord();
     
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_post_process_input_RT,
-        RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE))
-    
     RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list,
             m_process_input_allocation.parameter_index, m_post_process_input_handle, GetPipelineType() == PipelineType::Graphics))
 
@@ -107,9 +104,6 @@ bool glTFComputePassRayTracingPostprocess::PostRenderPass(glTFRenderResourceMana
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_post_process_output_RT,
         RHIResourceStateType::STATE_COPY_SOURCE, RHIResourceStateType::STATE_UNORDERED_ACCESS ))
 
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_post_process_input_RT,
-        RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE))
-    
     return true;
 }
 

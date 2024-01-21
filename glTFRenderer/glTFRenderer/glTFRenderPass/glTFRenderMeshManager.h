@@ -13,7 +13,7 @@ struct glTFMeshInstanceRenderResource
     bool m_normal_mapping;
 };
 
-struct MeshIndirectDrawCommand
+ALIGN_FOR_CBV_STRUCT struct MeshIndirectDrawCommand
 {
     inline static std::string Name = "INDIRECT_DRAW_DATA_REGISTER_SRV_INDEX";
     
@@ -44,7 +44,7 @@ struct MeshIndirectDrawCommand
 };
 
 
-struct MeshInstanceInputData
+ALIGN_FOR_CBV_STRUCT struct MeshInstanceInputData
 {
     inline static std::string Name = "MESH_INSTANCE_INPUT_DATA_REGISTER_SRV_INDEX";
     

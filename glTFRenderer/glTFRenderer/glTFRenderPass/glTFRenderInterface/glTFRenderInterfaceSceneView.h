@@ -5,7 +5,7 @@
 
 class glTFSceneView;
 
-struct ConstantBufferSceneView
+ALIGN_FOR_CBV_STRUCT struct ConstantBufferSceneView
 {
     inline static std::string Name = "SCENE_VIEW_REGISTER_INDEX"; 
     glm::mat4 view_matrix {glm::mat4{1.0f}};

@@ -7,7 +7,7 @@ struct LightInfoConstant
     unsigned light_count {0};
 };
 
-struct LightInfo
+ALIGN_FOR_CBV_STRUCT struct LightInfo
 {
     inline static std::string Name = "SCENE_LIGHT_INFO_REGISTER_INDEX";
     
@@ -18,7 +18,7 @@ struct LightInfo
     unsigned type;
 };
 
-struct ConstantBufferPerLightDraw
+ALIGN_FOR_CBV_STRUCT struct ConstantBufferPerLightDraw
 {
     inline static std::string Name = "SCENE_LIGHT_INFO_CONSTANT_REGISTER_INDEX";
     

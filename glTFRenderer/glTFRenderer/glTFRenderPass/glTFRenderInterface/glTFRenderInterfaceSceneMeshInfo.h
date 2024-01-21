@@ -1,20 +1,20 @@
 ﻿#pragma once
 #include "glTFRenderInterfaceBase.h"
 
-struct SceneMeshStartIndexInfo
+ALIGN_FOR_CBV_STRUCT struct SceneMeshStartIndexInfo
 {
     inline static std::string Name = "SceneMeshStartIndexInfo_REGISTER_SRV_INDEX";
     unsigned start_index;
     unsigned material_index;
 };
 
-struct SceneMeshIndexInfo
+ALIGN_FOR_CBV_STRUCT struct SceneMeshIndexInfo
 {
     inline static std::string Name = "SceneMeshIndexInfo_REGISTER_SRV_INDEX";
     unsigned vertex_index;
 };
 
-struct SceneMeshVertexInfo
+ALIGN_FOR_CBV_STRUCT struct SceneMeshVertexInfo
 {
     inline static std::string Name = "SceneMeshVertexInfo_REGISTER_SRV_INDEX";
 

@@ -22,11 +22,10 @@ SamplerState defaultSampler : DEFAULT_SAMPLER_REGISTER_INDEX;
 
 cbuffer RayTracingDIPassOptions: RAY_TRACING_DI_POSTPROCESS_OPTION_CBV_INDEX
 {
+    int spatial_reuse_range;
     bool enable_spatial_reuse;
     bool enable_temporal_reuse;
 };
-
-static int spatial_reuse_range = 0;
 
 float3 GetWorldPosition(int2 texCoord)
 {
@@ -43,7 +42,7 @@ float3 GetWorldPosition(int2 texCoord)
     return worldSpaceCoord.xyz;
 }
 
-void ReservoirTemporalReuse(inout RngStateType rng_state, uint2 coord, PointLightShadingInfo shading_info, float3 view, out float4 out_sample)
+void ReservoirTemporalReuse(inout RngStateType rng_state, uint2 coord, PointLightShadingInfo shading_info, float3 view, inout float4 out_sample)
 {
     out_sample = 0.0;
     

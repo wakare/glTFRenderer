@@ -21,6 +21,9 @@ typedef unsigned glTFUniqueID;
 #define GLTF_CHECK(a) assert(a)
 #endif
 
+//#define ALIGN_FOR_CBV_STRUCT __declspec(align(16))
+#define ALIGN_FOR_CBV_STRUCT
+
 inline std::wstring to_wide_string(const std::string& input)
 {
     std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;

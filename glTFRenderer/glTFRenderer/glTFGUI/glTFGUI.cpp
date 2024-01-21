@@ -17,7 +17,6 @@ bool glTFGUI::SetupGUIContext(const glTFWindow& window, glTFRenderResourceManage
     
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
-    //ImGui::StyleColorsLight();
 
     // Setup Platform/Renderer backends
     ImGui_ImplGlfw_InitForOpenGL(window.m_glfw_window, true);

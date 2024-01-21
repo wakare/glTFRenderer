@@ -5,14 +5,14 @@
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 #include "glTFScene/glTFSceneView.h"
 
-struct CullingConstant
+ALIGN_FOR_CBV_STRUCT struct CullingConstant
 {
     inline static std::string Name = "CULLING_CONSTANT_BUFFER_REGISTER_CBV_INDEX";
     
     unsigned command_count;
 };
 
-struct CullingBoundingBox
+ALIGN_FOR_CBV_STRUCT struct CullingBoundingBox
 {
     inline static std::string Name = "CULLING_BOUNDING_BOX_REGISTER_SRV_INDEX";
 
