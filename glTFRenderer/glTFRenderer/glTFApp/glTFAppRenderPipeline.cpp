@@ -24,20 +24,17 @@ void glTFAppRenderPipelineBase::TickFrameRenderingBegin(glTFRenderResourceManage
     m_pass_manager->RenderBegin(resource_manager, delta_time_ms);
 }
 
-void glTFAppRenderPipelineBase::TickSceneRendering(const glTFSceneGraph& scene_graph, const glTFSceneView& scene_view, glTFRenderResourceManager& resource_manager, size_t delta_time_ms)
+void glTFAppRenderPipelineBase::TickSceneRendering(const glTFSceneView& scene_view, glTFRenderResourceManager& resource_manager, size_t delta_time_ms)
 {
     if (m_render_pass_dirty)
     {
-        const bool created = RecreateRenderPass(scene_graph, scene_view, resource_manager);
+        const bool created = RecreateRenderPass(resource_manager);
         GLTF_CHECK(created);
         m_render_pass_dirty = false;
     }
 
-    const bool processed = ProcessDirtySceneObject(scene_graph);
-    GLTF_CHECK(processed);
-
     m_pass_manager->UpdatePipelineOptions(m_pass_options);
-    m_pass_manager->UpdateScene(resource_manager, delta_time_ms);
+    m_pass_manager->UpdateScene(resource_manager, scene_view, delta_time_ms);
     m_pass_manager->RenderAllPass(resource_manager, delta_time_ms);
 }
 
@@ -70,56 +67,15 @@ void glTFAppRenderPipelineBase::ApplyInput(const glTFInputManager& input_manager
     }
 }
 
-bool glTFAppRenderPipelineBase::RecreateRenderPass(const glTFSceneGraph& scene_graph, const glTFSceneView& scene_view, glTFRenderResourceManager& resource_manager)
+bool glTFAppRenderPipelineBase::RecreateRenderPass(glTFRenderResourceManager& resource_manager)
 {
-    VertexLayoutDeclaration resolved_vertex_layout;
-    bool has_resolved = false; 
-    
-    scene_graph.TraverseNodes([&resolved_vertex_layout, &has_resolved](const glTFSceneNode& node)
-    {
-        for (auto& scene_object : node.m_objects)
-        {
-            if (auto* primitive = dynamic_cast<glTFScenePrimitive*>(scene_object.get()))
-            {
-                if (!has_resolved)
-                {
-                    for (const auto& vertex_layout : primitive->GetVertexLayout().elements)
-                    {
-                        if (!resolved_vertex_layout.HasAttribute(vertex_layout.type))
-                        {
-                            resolved_vertex_layout.elements.push_back(vertex_layout);
-                            has_resolved = true;
-                        }
-                    }    
-                }
-	            
-                else if (!(primitive->GetVertexLayout() == resolved_vertex_layout))
-                {
-                    LOG_FORMAT_FLUSH("[WARN] Primtive id: %d is no-visible becuase vertex layout mismatch\n", primitive->GetID())
-                    primitive->SetVisible(false);
-                }
-            }    
-        }
-	    
-        return true;
-    });
-
-    GLTF_CHECK(has_resolved);
-    
-    m_pass_manager.reset(new glTFRenderPassManager(scene_view));
+    m_pass_manager.reset(new glTFRenderPassManager());
     SetupRenderPipeline();
     
     m_pass_manager->InitRenderPassManager(glTFWindow::Get());
-    RETURN_IF_FALSE(resource_manager.GetMeshManager().ResolveVertexInputLayout(resolved_vertex_layout))
     
     m_pass_manager->InitAllPass(resource_manager);
     
-    return true;
-}
-
-bool glTFAppRenderPipelineBase::ProcessDirtySceneObject(const glTFSceneGraph& scene_graph)
-{
-    // TODO: Dynamic update scene objects
     return true;
 }
 

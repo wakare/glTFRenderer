@@ -10,13 +10,13 @@
 class glTFRenderPassManager
 {
 public:
-    glTFRenderPassManager(const glTFSceneView& view);
+    glTFRenderPassManager();
     
     bool InitRenderPassManager(const glTFWindow& window);
     void AddRenderPass(std::unique_ptr<glTFRenderPassBase>&& pass);
 
     void InitAllPass(glTFRenderResourceManager& resource_manager);
-    void UpdateScene(glTFRenderResourceManager& resource_manager, size_t deltaTimeMs);
+    void UpdateScene(glTFRenderResourceManager& resource_manager, const glTFSceneView& scene_view, size_t deltaTimeMs);
     void UpdateAllPassGUIWidgets();
     
     void RenderBegin(glTFRenderResourceManager& resource_manager, size_t deltaTimeMs);
@@ -27,9 +27,6 @@ public:
     void ExitAllPass();
 
 protected:
-    const glTFSceneView& m_scene_view;
-    
     std::vector<std::unique_ptr<glTFRenderPassBase>> m_passes;
-    
     unsigned m_frame_index;
 };

@@ -65,6 +65,7 @@ glTFAppMain::glTFAppMain(int argc, char* argv[])
     
     // Init GUI render context
     m_renderer->InitGUIContext(*m_GUI, window);
+    m_renderer->InitMeshResourceWithSceneGraph(*m_scene_graph);
 }
 
 void glTFAppMain::Run()
@@ -78,7 +79,8 @@ void glTFAppMain::Run()
         m_scene_graph->Tick(time_delta_ms);
 
         m_renderer->TickRenderingBegin(time_delta_ms);
-        m_renderer->TickSceneRendering(*m_scene_graph, *m_input_manager, time_delta_ms);
+        m_renderer->TickSceneUpdate(*m_scene_graph, time_delta_ms);
+        m_renderer->TickSceneRendering(*m_input_manager, time_delta_ms);
         m_renderer->TickGUIFrameRendering(*m_GUI, time_delta_ms);
         m_renderer->TickRenderingEnd(time_delta_ms);
 

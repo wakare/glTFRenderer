@@ -1,15 +1,13 @@
 #include "glTFRenderPassManager.h"
 
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassLighting.h"
-#include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassMeshBase.h"
 #include "glTFRenderInterface/glTFRenderInterfaceFrameStat.h"
 #include "glTFRHI/RHIUtils.h"
 #include "glTFUtils/glTFLog.h"
 #include "glTFWindow/glTFWindow.h"
 
-glTFRenderPassManager::glTFRenderPassManager(const glTFSceneView& view)
-    : m_scene_view(view)
-    , m_frame_index(0)
+glTFRenderPassManager::glTFRenderPassManager()
+    : m_frame_index(0)
 {
 }
  
@@ -25,18 +23,6 @@ void glTFRenderPassManager::AddRenderPass(std::unique_ptr<glTFRenderPassBase>&& 
 
 void glTFRenderPassManager::InitAllPass(glTFRenderResourceManager& resource_manager)
 {
-    m_scene_view.TraverseSceneObjectWithinView([&](const glTFSceneNode& node)
-    {
-        for (const auto& scene_object : node.m_objects)
-        {
-            resource_manager.TryProcessSceneObject(resource_manager, *scene_object);    
-        }
-        
-        return true;
-    });
-
-    GLTF_CHECK(resource_manager.GetMeshManager().BuildMeshRenderResource(resource_manager));
-    
     for (const auto& pass : m_passes)
     {
         const bool inited = pass->InitPass(resource_manager);
@@ -49,12 +35,12 @@ void glTFRenderPassManager::InitAllPass(glTFRenderResourceManager& resource_mana
     LOG_FORMAT_FLUSH("[DEBUG] Init all pass finished!\n")
 }
 
-void glTFRenderPassManager::UpdateScene(glTFRenderResourceManager& resource_manager, size_t deltaTimeMs)
+void glTFRenderPassManager::UpdateScene(glTFRenderResourceManager& resource_manager, const glTFSceneView& scene_view, size_t deltaTimeMs)
 {
     // Gather all scene pass
     
     std::vector<const glTFSceneNode*> dirty_objects;
-    m_scene_view.TraverseSceneObjectWithinView([this, &dirty_objects](const glTFSceneNode& node)
+    scene_view.TraverseSceneObjectWithinView([this, &dirty_objects](const glTFSceneNode& node)
     {
         if (node.IsDirty())
         {
@@ -85,7 +71,7 @@ void glTFRenderPassManager::UpdateScene(glTFRenderResourceManager& resource_mana
 
         if (auto* sceneViewInterface = pass->GetRenderInterface<glTFRenderInterfaceSceneView>())
         {
-            sceneViewInterface->UpdateSceneView(m_scene_view);
+            sceneViewInterface->UpdateSceneView(scene_view);
         }
 
         if (auto* frame_stat = pass->GetRenderInterface<glTFRenderInterfaceFrameStat>())
