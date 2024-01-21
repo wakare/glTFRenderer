@@ -6,6 +6,19 @@
 #include "../glTFMaterial/glTFMaterialPBR.h"
 #include "glTFMaterial/glTFMaterialParameterFactor.h"
 
+void glTFSceneNode::MarkDirty() const
+{
+    for (const auto& object : m_objects)
+    {
+        object->MarkDirty();
+    }
+
+    for (const auto& child : m_children)
+    {
+        child->MarkDirty();
+    }
+}
+
 bool glTFSceneNode::IsDirty() const
 {
     for (const auto& object : m_objects)

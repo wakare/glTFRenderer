@@ -20,13 +20,14 @@ public:
 
     virtual void TickFrameRenderingBegin(glTFRenderResourceManager& resource_manager, size_t delta_time_ms);
     virtual void TickSceneRendering(const glTFSceneView& scene_view, glTFRenderResourceManager& resource_manager, size_t delta_time_ms);
-    virtual void TickGUIRendering(glTFGUI& GUI, glTFRenderResourceManager& resource_manager, size_t delta_time_ms);
+    virtual void TickGUIWidgetUpdate(glTFGUI& GUI, glTFRenderResourceManager& resource_manager, size_t delta_time_ms);
     virtual void TickFrameRenderingEnd(glTFRenderResourceManager& resource_manager, size_t delta_time_ms);
     
     void ApplyInput(const glTFInputManager& input_manager, size_t delta_time_ms);
 
 protected:
     bool RecreateRenderPass(glTFRenderResourceManager& resource_manager);
+    virtual bool UpdateGUIWidgets() { return true; }
     
     bool m_render_pass_dirty;
     
@@ -43,10 +44,10 @@ public:
 class glTFAppRenderPipelineRayTracingScene : public glTFAppRenderPipelineBase
 {
 public:
-    glTFAppRenderPipelineRayTracingScene();
+    glTFAppRenderPipelineRayTracingScene(bool use_restir_direct_lighting);
 
     virtual bool SetupRenderPipeline() override;
 
 protected:
-    bool use_restir_direct_lighting;
+    bool m_use_restir_direct_lighting;
 };

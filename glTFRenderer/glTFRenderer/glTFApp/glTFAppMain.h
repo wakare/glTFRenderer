@@ -33,9 +33,12 @@ public:
 protected:
     bool InitSceneGraph();
     bool LoadSceneGraphFromFile(const char* filePath) const;
+    bool InitRenderer();
 
     unsigned GetWidth() const;
     unsigned GetHeight() const;
+
+    bool UpdateGUIWidgets();
     
     std::shared_ptr<glTFInputManager> m_input_manager;
 
@@ -43,4 +46,8 @@ protected:
     std::unique_ptr<glTFSceneGraph> m_scene_graph;
     std::unique_ptr<glTFAppRenderer> m_renderer;
     std::shared_ptr<glTFGUI> m_GUI;
+
+    bool m_raster_scene;
+    bool m_ReSTIR;
+    bool m_recreate_renderer;
 };

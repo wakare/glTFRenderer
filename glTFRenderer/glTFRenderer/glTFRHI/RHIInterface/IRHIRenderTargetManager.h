@@ -21,5 +21,5 @@ public:
      std::shared_ptr<IRHIRenderTarget> GetRenderTargetWithTag(const std::string& render_target_tag, unsigned back_buffer_index = 0) const;
      
 protected:
-     std::map<std::string, std::shared_ptr<IRHIRenderTarget>> m_registerRenderTargets;
+     std::map<std::string, std::shared_ptr<IRHIRenderTarget>> m_register_render_targets;
 };

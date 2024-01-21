@@ -10,6 +10,7 @@
 
 struct glTFSceneNode
 {
+    void MarkDirty() const;
     bool IsDirty() const;
     void ResetDirty() const;
     

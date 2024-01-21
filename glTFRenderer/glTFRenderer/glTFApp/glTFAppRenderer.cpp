@@ -5,7 +5,7 @@
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassMeshOpaque.h"
 #include "glTFWindow/glTFWindow.h"
 
-glTFAppRenderer::glTFAppRenderer(bool raster_scene, const glTFWindow& window)
+glTFAppRenderer::glTFAppRenderer(bool raster_scene, bool ReSTIR, const glTFWindow& window)
 {
     if (raster_scene)
     {
@@ -13,7 +13,7 @@ glTFAppRenderer::glTFAppRenderer(bool raster_scene, const glTFWindow& window)
     }
     else
     {
-        m_render_pipeline.reset(new glTFAppRenderPipelineRayTracingScene);
+        m_render_pipeline.reset(new glTFAppRenderPipelineRayTracingScene(ReSTIR));
     }
 
     m_resource_manager.reset(new glTFRenderResourceManager());
@@ -84,7 +84,7 @@ void glTFAppRenderer::TickRenderingBegin(size_t delta_time_ms)
     m_render_pipeline->TickFrameRenderingBegin(*m_resource_manager, delta_time_ms);
 }
 
-void glTFAppRenderer::TickSceneUpdate(const glTFSceneGraph& scene_graph, size_t delta_time_ms)
+void glTFAppRenderer::TickSceneUpdating(const glTFSceneGraph& scene_graph, size_t delta_time_ms)
 {
     m_scene_view->Tick(scene_graph);
 }
@@ -97,9 +97,9 @@ void glTFAppRenderer::TickSceneRendering(const glTFInputManager& input_manager, 
     m_render_pipeline->TickSceneRendering(*m_scene_view, *m_resource_manager, delta_time_ms);
 }
 
-void glTFAppRenderer::TickGUIFrameRendering(glTFGUI& GUI, size_t delta_time_ms)
+void glTFAppRenderer::TickGUIWidgetUpdate(glTFGUI& GUI, size_t delta_time_ms)
 {
-    m_render_pipeline->TickGUIRendering(GUI, *m_resource_manager, delta_time_ms);
+    m_render_pipeline->TickGUIWidgetUpdate(GUI, *m_resource_manager, delta_time_ms);
 }
 
 void glTFAppRenderer::TickRenderingEnd(size_t delta_time_ms)

@@ -1,4 +1,8 @@
 #include "glTFRayTracingPassPathTracing.h"
+
+#include <imgui.h>
+
+#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSingleConstantBuffer.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 #include "glTFRHI/RHIUtils.h"
 #include "glTFRHI/RHIInterface/IRHIRenderTargetManager.h"
@@ -28,6 +32,7 @@ glTFRayTracingPassPathTracing::glTFRayTracingPassPathTracing()
     , m_output_handle(0)
     , m_screen_uv_offset_handle(0)
 {
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceSingleConstantBuffer<RayTracingPathTracingPassOptions>>());
 }
 
 const char* glTFRayTracingPassPathTracing::PassName()
@@ -85,6 +90,8 @@ bool glTFRayTracingPassPathTracing::PreRenderPass(glTFRenderResourceManager& res
 
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_screen_uv_offset_output,
             RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_UNORDERED_ACCESS))
+
+    RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSingleConstantBuffer<RayTracingPathTracingPassOptions>>()->UploadCPUBuffer(&m_pass_options, 0, sizeof(m_pass_options)))
     
     return true;
 }
@@ -198,4 +205,14 @@ const char* glTFRayTracingPassPathTracing::GetShadowRayMissFunctionName()
 const char* glTFRayTracingPassPathTracing::GetShadowRayHitGroupName()
 {
     return "ShadowHitGroup";
+}
+
+bool glTFRayTracingPassPathTracing::UpdateGUIWidgets()
+{
+    RETURN_IF_FALSE(glTFRayTracingPassWithMesh::UpdateGUIWidgets())
+
+    ImGui::SliderInt("MaxBounceCount", &m_pass_options.max_bounce_count, 1, 10);
+    ImGui::SliderInt("CandidateLightCount", &m_pass_options.candidate_light_count, 4, 16);
+    
+    return true;
 }

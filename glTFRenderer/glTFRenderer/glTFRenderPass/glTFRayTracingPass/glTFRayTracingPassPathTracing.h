@@ -2,6 +2,20 @@
 #include "glTFRayTracingPassBase.h"
 #include "glTFRayTracingPassWithMesh.h"
 
+ALIGN_FOR_CBV_STRUCT struct RayTracingPathTracingPassOptions
+{
+    inline static std::string Name = "RAY_TRACING_PATH_TRACING_OPTION_CBV_INDEX";
+    
+    int max_bounce_count;
+    int candidate_light_count;
+
+    RayTracingPathTracingPassOptions()
+        : max_bounce_count(2)
+        , candidate_light_count(8)
+    {
+    }
+};
+
 class glTFRayTracingPassPathTracing : public glTFRayTracingPassWithMesh
 {
 public:
@@ -25,6 +39,8 @@ protected:
 
     virtual const char* GetShadowRayMissFunctionName() override;
     virtual const char* GetShadowRayHitGroupName() override;
+
+    virtual bool UpdateGUIWidgets() override;
     
 private:
     std::shared_ptr<IRHIRenderTarget> m_raytracing_output;
@@ -35,4 +51,6 @@ private:
 
     RootSignatureAllocation m_output_allocation;
     RootSignatureAllocation m_screen_uv_offset_allocation;
+
+    RayTracingPathTracingPassOptions m_pass_options;
 };

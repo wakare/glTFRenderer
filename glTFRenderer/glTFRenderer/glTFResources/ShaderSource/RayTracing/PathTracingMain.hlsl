@@ -12,8 +12,13 @@ RaytracingAccelerationStructure scene : SCENE_AS_REGISTER_INDEX;
 RWTexture2D<float4> render_target : OUTPUT_REGISTER_INDEX;
 RWTexture2D<float4> screen_uv_offset : SCREEN_UV_OFFSET_REGISTER_INDEX;
 
+cbuffer RayTracingPathTracingPassOptions: RAY_TRACING_PATH_TRACING_OPTION_CBV_INDEX
+{
+    int max_bounce_count;
+    int candidate_light_count;
+};
+
 static uint path_sample_count_per_pixel = 1;
-static uint path_recursion_depth = 4;
 static bool srgb_convert = true;
 
 [shader("raygeneration")]
@@ -55,7 +60,7 @@ void PathTracingRayGen()
         float3 radiance = 0.0;
         float3 throughput = 1.0;
         
-        for (uint i = 0; i < path_recursion_depth; ++i)
+        for (uint i = 0; i < max_bounce_count; ++i)
         {
             TracePrimaryRay(scene, ray, payload);
             if (!IsHit(payload))
@@ -85,7 +90,7 @@ void PathTracingRayGen()
             
             uint sample_light_index;
             float sample_light_weight;
-            if (SampleLightIndexRIS(rng, 8, shading_info, view, false, scene, sample_light_index, sample_light_weight))
+            if (SampleLightIndexRIS(rng, candidate_light_count, shading_info, view, false, scene, sample_light_index, sample_light_weight))
             {
                 radiance += throughput * sample_light_weight * GetLightingByIndex(sample_light_index, shading_info, view);
             }

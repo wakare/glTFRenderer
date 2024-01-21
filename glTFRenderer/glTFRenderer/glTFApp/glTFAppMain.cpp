@@ -1,5 +1,7 @@
 #include "glTFAppMain.h"
 
+#include <imgui.h>
+
 #include "glTFGUI/glTFGUI.h"
 #include "glTFLight/glTFDirectionalLight.h"
 #include "glTFLight/glTFPointLight.h"
@@ -46,8 +48,8 @@ glTFAppMain::glTFAppMain(int argc, char* argv[])
 {
     // Parse command arguments
     const glTFCmdArgumentProcessor cmd_processor(argc, argv);
-
-    m_GUI.reset(new glTFGUI);
+    m_raster_scene = cmd_processor.IsRasterScene();
+    m_recreate_renderer = true;
     
     // Init window
     auto& window = glTFWindow::Get();
@@ -60,12 +62,7 @@ glTFAppMain::glTFAppMain(int argc, char* argv[])
     m_scene_graph.reset(new glTFSceneGraph);
     InitSceneGraph();
     
-    m_renderer.reset(new glTFAppRenderer(cmd_processor.IsRasterScene(), window));
     m_input_manager.reset(new glTFInputManager);
-    
-    // Init GUI render context
-    m_renderer->InitGUIContext(*m_GUI, window);
-    m_renderer->InitMeshResourceWithSceneGraph(*m_scene_graph);
 }
 
 void glTFAppMain::Run()
@@ -74,14 +71,22 @@ void glTFAppMain::Run()
     
     //Register window callback with App
     window.SetTickCallback([this](){
+        InitRenderer();
+        
         m_timer.RecordFrameBegin();
         const size_t time_delta_ms = m_timer.GetDeltaFrameTimeMs();
         m_scene_graph->Tick(time_delta_ms);
 
         m_renderer->TickRenderingBegin(time_delta_ms);
-        m_renderer->TickSceneUpdate(*m_scene_graph, time_delta_ms);
+        m_renderer->TickSceneUpdating(*m_scene_graph, time_delta_ms);
         m_renderer->TickSceneRendering(*m_input_manager, time_delta_ms);
-        m_renderer->TickGUIFrameRendering(*m_GUI, time_delta_ms);
+        
+        m_GUI->SetupWidgetBegin();
+        UpdateGUIWidgets();
+        m_renderer->TickGUIWidgetUpdate(*m_GUI, time_delta_ms);
+        m_GUI->SetupWidgetEnd();
+        m_GUI->RenderWidgets(m_renderer->GetResourceManager());
+        
         m_renderer->TickRenderingEnd(time_delta_ms);
 
         m_input_manager->TickFrame(time_delta_ms);
@@ -168,6 +173,37 @@ bool glTFAppMain::LoadSceneGraphFromFile(const char* filePath) const
     return m_scene_graph->Init(loader);
 }
 
+bool glTFAppMain::InitRenderer()
+{
+    if (!m_recreate_renderer)
+    {
+        return true;
+    }
+
+    m_recreate_renderer = false;
+    if (m_renderer)
+    {
+        m_renderer->GetResourceManager().WaitAllFrameFinish();
+    }
+    
+    m_renderer.reset(new glTFAppRenderer(m_raster_scene, m_ReSTIR, glTFWindow::Get()));
+    m_renderer->InitMeshResourceWithSceneGraph(*m_scene_graph);
+
+    if (!m_GUI)
+    {
+        m_GUI.reset(new glTFGUI);
+        m_renderer->InitGUIContext(*m_GUI, glTFWindow::Get());
+    }
+
+    m_scene_graph->TraverseNodes([](const glTFSceneNode& node)
+    {
+        node.MarkDirty();
+        return true;
+    });
+    
+    return true;
+}
+
 unsigned glTFAppMain::GetWidth() const
 {
     const auto& window = glTFWindow::Get();
@@ -178,4 +214,15 @@ unsigned glTFAppMain::GetHeight() const
 {
     const auto& window = glTFWindow::Get();
     return window.GetHeight();
+}
+
+bool glTFAppMain::UpdateGUIWidgets()
+{
+    ImGui::Checkbox("RasterScene", &m_raster_scene);
+    ImGui::Checkbox("ReSTIR", &m_ReSTIR);
+    if (ImGui::Button("RecreateRenderer"))
+    {
+        m_recreate_renderer = true;
+    }
+    return true;
 }

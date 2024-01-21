@@ -1,5 +1,7 @@
 #include "glTFAppRenderPipeline.h"
 
+#include <imgui.h>
+
 #include "glTFGUI/glTFGUI.h"
 #include "glTFRenderPass/glTFComputePass/glTFComputePassIndirectDrawCulling.h"
 #include "glTFRenderPass/glTFComputePass/glTFComputePassLighting.h"
@@ -38,15 +40,12 @@ void glTFAppRenderPipelineBase::TickSceneRendering(const glTFSceneView& scene_vi
     m_pass_manager->RenderAllPass(resource_manager, delta_time_ms);
 }
 
-void glTFAppRenderPipelineBase::TickGUIRendering(glTFGUI& GUI, glTFRenderResourceManager& resource_manager, size_t delta_time_ms)
+void glTFAppRenderPipelineBase::TickGUIWidgetUpdate(glTFGUI& GUI, glTFRenderResourceManager& resource_manager, size_t delta_time_ms)
 {
-    GUI.SetupWidgetBegin();
-
+    UpdateGUIWidgets();
+    
     // Setup all widgets for render passes
     m_pass_manager->UpdateAllPassGUIWidgets();
-    
-    GUI.SetupWidgetEnd();
-    GUI.RenderWidgets(resource_manager);
 }
 
 void glTFAppRenderPipelineBase::TickFrameRenderingEnd(glTFRenderResourceManager& resource_manager, size_t delta_time_ms)
@@ -96,14 +95,14 @@ bool glTFAppRenderPipelineRasterScene::SetupRenderPipeline()
     return true;
 }
 
-glTFAppRenderPipelineRayTracingScene::glTFAppRenderPipelineRayTracingScene()
-    : use_restir_direct_lighting(true)
+glTFAppRenderPipelineRayTracingScene::glTFAppRenderPipelineRayTracingScene(bool use_restir_direct_lighting)
+    : m_use_restir_direct_lighting(use_restir_direct_lighting)
 {
 }
 
 bool glTFAppRenderPipelineRayTracingScene::SetupRenderPipeline()
 {
-    if (use_restir_direct_lighting)
+    if (m_use_restir_direct_lighting)
     {
         std::unique_ptr<glTFRayTracingPassReSTIRDirectLighting> restir_lighting_samples_pass = std::make_unique<glTFRayTracingPassReSTIRDirectLighting>();
         m_pass_manager->AddRenderPass(std::move(restir_lighting_samples_pass));

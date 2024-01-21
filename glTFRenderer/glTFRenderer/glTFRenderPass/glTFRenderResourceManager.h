@@ -32,6 +32,7 @@ public:
     void CloseCommandListAndExecute(bool wait);
 
     void WaitLastFrameFinish();
+    void WaitAllFrameFinish() const;
     void ResetCommandAllocator();
     
     IRHIRenderTargetManager& GetRenderTargetManager();
@@ -60,12 +61,13 @@ public:
     
     static unsigned GetBackBufferCount();
     glTFRenderResourceUtils::GBufferSignatureAllocations& GetGBufferAllocations();
-    
+
 private:
-    std::shared_ptr<IRHIFactory> m_factory;
-    std::shared_ptr<IRHIDevice> m_device;
-    std::shared_ptr<IRHISwapChain> m_swapchain;
-    std::shared_ptr<IRHICommandQueue> m_command_queue;
+    static std::shared_ptr<IRHIFactory> m_factory;
+    static std::shared_ptr<IRHIDevice> m_device;
+    static std::shared_ptr<IRHICommandQueue> m_command_queue;
+    static std::shared_ptr<IRHISwapChain> m_swapchain;
+    
     std::vector<std::shared_ptr<IRHICommandAllocator>> m_command_allocators;
     std::vector<std::shared_ptr<IRHICommandList>> m_command_lists;
     std::vector<bool> m_command_list_record_state;

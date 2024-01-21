@@ -11,6 +11,11 @@
 
 constexpr size_t backBufferCount = 3;
 
+std::shared_ptr<IRHIFactory> glTFRenderResourceManager::m_factory = nullptr;
+std::shared_ptr<IRHIDevice> glTFRenderResourceManager::m_device = nullptr;
+std::shared_ptr<IRHICommandQueue> glTFRenderResourceManager::m_command_queue = nullptr;
+std::shared_ptr<IRHISwapChain> glTFRenderResourceManager::m_swapchain = nullptr;
+
 glTFRenderResourceManager::glTFRenderResourceManager()
     : m_material_manager(std::make_shared<glTFRenderMaterialManager>())
     , m_mesh_manager(std::make_shared<glTFRenderMeshManager>())
@@ -21,17 +26,29 @@ glTFRenderResourceManager::glTFRenderResourceManager()
 
 bool glTFRenderResourceManager::InitResourceManager(unsigned width, unsigned height, HWND handle)
 {
-    m_factory = RHIResourceFactory::CreateRHIResource<IRHIFactory>();
-    EXIT_WHEN_FALSE(m_factory->InitFactory())
+    if (!m_factory)
+    {
+        m_factory = RHIResourceFactory::CreateRHIResource<IRHIFactory>();
+        EXIT_WHEN_FALSE(m_factory->InitFactory())    
+    }
     
-    m_device = RHIResourceFactory::CreateRHIResource<IRHIDevice>();
-    EXIT_WHEN_FALSE(m_device->InitDevice(*m_factory))
+    if (!m_device)
+    {
+        m_device = RHIResourceFactory::CreateRHIResource<IRHIDevice>();
+        EXIT_WHEN_FALSE(m_device->InitDevice(*m_factory))    
+    }
+    
+    if (!m_command_queue)
+    {
+        m_command_queue = RHIResourceFactory::CreateRHIResource<IRHICommandQueue>();
+        EXIT_WHEN_FALSE(m_command_queue->InitCommandQueue(*m_device))
+    }
 
-    m_command_queue = RHIResourceFactory::CreateRHIResource<IRHICommandQueue>();
-    EXIT_WHEN_FALSE(m_command_queue->InitCommandQueue(*m_device))
-    
-    m_swapchain = RHIResourceFactory::CreateRHIResource<IRHISwapChain>();
-    EXIT_WHEN_FALSE(m_swapchain->InitSwapChain(*m_factory, *m_command_queue, width, height, false, handle))
+    if (!m_swapchain)
+    {
+        m_swapchain = RHIResourceFactory::CreateRHIResource<IRHISwapChain>();
+        EXIT_WHEN_FALSE(m_swapchain->InitSwapChain(*m_factory, *m_command_queue, width, height, false, handle))    
+    }
     
     UpdateCurrentBackBufferIndex();
     
@@ -133,6 +150,14 @@ void glTFRenderResourceManager::CloseCommandListAndExecute(bool wait)
 void glTFRenderResourceManager::WaitLastFrameFinish()
 {
     GetCurrentFrameFence().WaitUtilSignal();
+}
+
+void glTFRenderResourceManager::WaitAllFrameFinish() const
+{
+    for (unsigned i = 0; i < backBufferCount; ++i)
+    {
+        m_fences[i]->WaitUtilSignal();
+    }
 }
 
 void glTFRenderResourceManager::ResetCommandAllocator()
@@ -239,4 +264,3 @@ glTFRenderResourceUtils::GBufferSignatureAllocations& glTFRenderResourceManager:
 {
     return *m_GBuffer_allocations;
 }
-
