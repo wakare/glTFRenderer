@@ -109,7 +109,7 @@ bool glTFRayTracingPassReSTIRDirectLighting::UpdateGUIWidgets()
     RETURN_IF_FALSE(glTFRayTracingPassWithMesh::UpdateGUIWidgets())
     
     ImGui::Checkbox("CheckVisibilityForAllCandidates", (bool*)&m_pass_options.check_visibility_for_all_candidates);
-    ImGui::SliderInt("CandidateLightCount", &m_pass_options.candidate_light_count, 4, 16);
+    ImGui::SliderInt("CandidateLightCount", &m_pass_options.candidate_light_count, 4, 64);
     
     return true;
 }

@@ -49,6 +49,7 @@ glTFAppMain::glTFAppMain(int argc, char* argv[])
     // Parse command arguments
     const glTFCmdArgumentProcessor cmd_processor(argc, argv);
     m_raster_scene = cmd_processor.IsRasterScene();
+    m_ReSTIR = true;
     m_recreate_renderer = true;
     
     // Init window
@@ -123,7 +124,7 @@ bool glTFAppMain::InitSceneGraph()
     std::unique_ptr<glTFSceneNode> directional_light_node = std::make_unique<glTFSceneNode>();
     std::unique_ptr<glTFDirectionalLight> directional_light = std::make_unique<glTFDirectionalLight>(directional_light_node->m_transform);
     directional_light->Rotate({glm::radians(45.0f), 0.0f, 0.0f});
-    directional_light->SetIntensity(50.0f);
+    directional_light->SetIntensity(10.0f);
     directional_light->SetColor({1.0f, 1.0f,1.0f});
     directional_light->SetTickFunc([lightNode = directional_light.get()]()
     {
@@ -141,9 +142,9 @@ bool glTFAppMain::InitSceneGraph()
         glm::fvec3 location = generator_min + glm::float3{ generator_radius.x * Rand01(), generator_radius.y * Rand01(), generator_radius.z * Rand01()};
         point_light->SetColor({Rand01(), Rand01(), Rand01()});
         point_light->Translate(location);
-        point_light->SetRadius(Rand01() * 10.0f);
+        point_light->SetRadius(Rand01() * 100.0f);
         point_light->SetFalloff(Rand01());
-        point_light->SetIntensity(Rand01() * 10.0f);
+        point_light->SetIntensity(Rand01() * 1.0f);
         /*
         point_light->SetTickFunc([light_node = point_light.get()]()
         {

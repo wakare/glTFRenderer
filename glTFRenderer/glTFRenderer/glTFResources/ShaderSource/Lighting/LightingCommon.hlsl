@@ -21,7 +21,7 @@ struct LightInfo
     uint type;
 };
 
-struct PointLightShadingInfo
+struct PixelLightingShadingInfo
 {
     float3 position;
     float3 normal;
@@ -85,7 +85,7 @@ bool SampleLightIndexUniform(inout RngStateType rng_state, out uint index, out f
         return false;
     }
     
-    index = min(light_count - 1, uint(light_count * rand(rng_state)));
+    index = min(light_count - 1, int((float)light_count * rand(rng_state)));
     weight = light_count;
     
     return true;
@@ -122,7 +122,7 @@ float3 GetSkylighting()
     return float3(0.0, 0.0, 0.0);
 }
 
-float3 GetLightingByIndex(uint sample_light_index, PointLightShadingInfo shading_info, float3 view)
+float3 GetLightingByIndex(uint sample_light_index, PixelLightingShadingInfo shading_info, float3 view)
 {
     float3 light_vector;
     float max_distance;
@@ -136,7 +136,7 @@ float3 GetLightingByIndex(uint sample_light_index, PointLightShadingInfo shading
     return 0.0;
 }
 
-float3 GetLighting(PointLightShadingInfo shading_info, float3 view)
+float3 GetLighting(PixelLightingShadingInfo shading_info, float3 view)
 {
     float3 result = 0.0;
     for (uint i = 0; i < light_count; ++i)
@@ -147,7 +147,7 @@ float3 GetLighting(PointLightShadingInfo shading_info, float3 view)
     return result;
 }
 
-bool IsLightVisible(uint light_index, PointLightShadingInfo shading_info, RaytracingAccelerationStructure scene)
+bool IsLightVisible(uint light_index, PixelLightingShadingInfo shading_info, RaytracingAccelerationStructure scene)
 {
     float3 light_vector;
     float light_distance;
@@ -163,30 +163,37 @@ bool IsLightVisible(uint light_index, PointLightShadingInfo shading_info, Raytra
     return false;
 }
 
-bool SampleLightIndexRIS(inout RngStateType rngState, uint candidate_count, PointLightShadingInfo shading_info, float3 view, bool check_visibility_for_candidates, RaytracingAccelerationStructure scene, out int index, out float weight)
+bool SampleLightIndexRIS(inout RngStateType rngState, uint candidate_count, PixelLightingShadingInfo shading_info, float3 view, bool check_visibility_for_candidates, RaytracingAccelerationStructure scene, out Reservoir sample)
 {
-    Reservoir samples; InitReservoir(samples);
+    InvalidateReservoir(sample);
 
-    float mis_weight = 1.0 / candidate_count;
     for (uint i = 0; i < candidate_count; ++i)
     {
         uint sample_index;
         float sample_weight;
         if (SampleLightIndexUniform(rngState, sample_index, sample_weight))
         {
-            bool check_visibility = g_lightInfos[sample_index].type == LIGHT_TYPE_DIRECTIONAL || check_visibility_for_candidates;
+            bool check_visibility = /*g_lightInfos[sample_index].type == LIGHT_TYPE_DIRECTIONAL ||*/ check_visibility_for_candidates;
             float visibility = check_visibility && !IsLightVisible(sample_index, shading_info, scene) ? 0.0 : 1.0;
-            AddReservoirSample(rngState, samples, sample_index, mis_weight, luminance(GetLightingByIndex(sample_index, shading_info, view)), sample_weight * visibility);
+            AddReservoirSample(rngState, sample, sample_index, 1, 1, luminance(GetLightingByIndex(sample_index, shading_info, view)) * visibility, sample_weight);
         }
     }
 
-    GetReservoirSelectSample(samples, index, weight);
-    if (index >= 0 && !check_visibility_for_candidates && !IsLightVisible(index, shading_info, scene))
+    // If has not checked visibility before, do once check at last
+    if (IsReservoirValid(sample) && !check_visibility_for_candidates)
     {
-        index = -1;
-        weight = 0.0;
+        int index; float weight;
+        GetReservoirSelectSample(sample, index, weight);
+        
+        if (!IsLightVisible(index, shading_info, scene))
+        {
+            InvalidateReservoir(sample);
+        }
     }
-    return index >= 0;
+
+    NormalizeReservoir(sample);
+    
+    return IsReservoirValid(sample);
 }
 
 #endif

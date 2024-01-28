@@ -18,7 +18,7 @@ RWTexture2D<float4> Output: OUTPUT_TEX_REGISTER_INDEX;
 RWTexture2D<float4> aggregate_samples_output : AGGREGATE_OUTPUT_REGISTER_INDEX;
 Texture2D<float4> aggregate_samples_back_buffer : AGGREGATE_BACKBUFFER_REGISTER_INDEX;
 
-SamplerState defaultSampler : DEFAULT_SAMPLER_REGISTER_INDEX;
+static float spatial_reuse_world_position_threshold = 1;
 
 cbuffer RayTracingDIPassOptions: RAY_TRACING_DI_POSTPROCESS_OPTION_CBV_INDEX
 {
@@ -42,83 +42,101 @@ float3 GetWorldPosition(int2 texCoord)
     return worldSpaceCoord.xyz;
 }
 
-void ReservoirTemporalReuse(inout RngStateType rng_state, uint2 coord, PointLightShadingInfo shading_info, float3 view, inout float4 out_sample)
+void ReservoirTemporalReuse(inout RngStateType rng_state, uint2 coord, PixelLightingShadingInfo shading_info, float3 view, float3 world_position, inout Reservoir out_sample)
 {
-    out_sample = 0.0;
-    
-    float4 lighting_sample = LightingSamples.Load(int3(coord, 0));
-    int light_index = round(lighting_sample.x);
-    float light_weight = lighting_sample.y;
-    
     float2 prev_uv = ScreenUVOffset.Load(int3(coord, 0)).xy;
-    uint2 prev_frame_coord = uint2(round(prev_uv.x * viewport_width), round(prev_uv.y * viewport_height));
-    float4 old_lighting_sample = aggregate_samples_back_buffer.Load(int3(prev_frame_coord, 0));
-    int old_light_index = round(old_lighting_sample.x);
-    // temporal ratio to reduce old weight ()
-    float old_light_weight = old_lighting_sample.y;
-
-    if (light_index < 0 || old_light_index < 0)
+    uint2 prev_frame_coordination = uint2(round(prev_uv.x * viewport_width), round(prev_uv.y * viewport_height));
+    if (prev_frame_coordination.x < 0 || prev_frame_coordination.y < 0 ||
+        prev_frame_coordination.x >= viewport_width || prev_frame_coordination.y >= viewport_height)
     {
-        out_sample.xy = old_light_weight < light_weight ? float2(light_index, light_weight): float2(old_light_index, old_light_weight);
-        return;
-    }
-
-    if (light_index == old_light_index)
-    {
-        out_sample.xy = lighting_sample.xy;
         return;
     }
     
-    Reservoir reservoir; InitReservoir(reservoir);
-    float mis_weight_new = luminance(GetLightingByIndex(light_index, shading_info, view));
-    float mis_weight_old = luminance(GetLightingByIndex(old_light_index, shading_info, view));
-    float inv_mis_total = 1.0 / (mis_weight_new + mis_weight_old);
-    AddReservoirSample(rng_state, reservoir, light_index, mis_weight_new * inv_mis_total, luminance(GetLightingByIndex(light_index, shading_info, view)), light_weight);
-    AddReservoirSample(rng_state, reservoir, old_light_index, mis_weight_old * inv_mis_total, luminance(GetLightingByIndex(old_light_index, shading_info, view)), old_light_weight);
-    GetReservoirSelectSample(reservoir, out_sample.x, out_sample.y);
+    float3 prev_normal = DecompressNormalFromTexture(normalTex.Load(int3(prev_frame_coordination, 0)).xyz);
+    float3 prev_position = GetWorldPosition(prev_frame_coordination);
+    if (0.97 > dot(prev_normal, shading_info.normal) ||
+        length(prev_position - world_position) > spatial_reuse_world_position_threshold)
+    {
+        return;
+    }
+    
+    // Merge current reservoir into old reservoir
+    Reservoir reservoir; InvalidateReservoir(reservoir);
+    
+    if (IsReservoirValid(out_sample))
+    {
+        int light_index; float light_weight;
+        GetReservoirSelectSample(out_sample, light_index, light_weight);
+        float target_new = luminance(GetLightingByIndex(light_index, shading_info, view));
+        AddReservoirSample(rng_state, reservoir, light_index, 1, 1, target_new, light_weight);
+    }
+    
+    Reservoir old_sample = UnpackReservoir(aggregate_samples_back_buffer.Load(int3(prev_frame_coordination, 0)));
+    if (IsReservoirValid(old_sample))
+    {
+        NormalizeReservoir(old_sample);
+        
+        int light_index_old; float light_weight_old;
+        GetReservoirSelectSample(old_sample, light_index_old, light_weight_old);
+        float target_old = luminance(GetLightingByIndex(light_index_old, shading_info, view));
+        AddReservoirSample(rng_state, reservoir, light_index_old, 1, 1, target_old, light_weight_old);    
+    }
+
+    NormalizeReservoir(reservoir);
+    out_sample = reservoir;
 }
 
-void ReservoirSpatialReuse(inout RngStateType rng_state, uint2 coord, PointLightShadingInfo shading_info, float3 view, inout float4 out_sample)
+void ReservoirSpatialReuse(inout RngStateType rng_state, uint2 coord, PixelLightingShadingInfo shading_info, float3 view, float3 world_position, inout Reservoir out_sample)
 {
-    Reservoir reservoir;
-    InitReservoir(reservoir);
+    Reservoir reservoir; InvalidateReservoir(reservoir);
 
-    float mis_weight = 1.0 / ((2 * spatial_reuse_range + 1) * (2 * spatial_reuse_range + 1));
+    // TODO: poisson disk sample?
     for (int x = -spatial_reuse_range; x <= spatial_reuse_range; ++x)
     {
         for (int y = -spatial_reuse_range; y <= spatial_reuse_range; ++y)
         {
-            if (x == 0 && y == 0)
-            {
-                AddReservoirSample(rng_state, reservoir, out_sample.x, mis_weight, luminance(GetLightingByIndex(out_sample.x, shading_info, view)), out_sample.y);
-                continue;
-            }
-            
             int2 spatial_reuse_coord = (int2)coord + int2(x, y);
             if (spatial_reuse_coord.x < 0 || spatial_reuse_coord.y < 0 || spatial_reuse_coord.x >= viewport_width || spatial_reuse_coord.y >= viewport_height)
             {
                 continue;
             }
             
-            float4 lighting_sample = LightingSamples.Load(int3(spatial_reuse_coord, 0));
-            int light_index = round(lighting_sample.x);
-            float light_weight = lighting_sample.y;
-            if (light_index >= 0 && light_weight > 0.0)
+            Reservoir sample = UnpackReservoir(LightingSamples.Load(int3(spatial_reuse_coord, 0)));
+            if (IsReservoirValid(sample))
             {
-                AddReservoirSample(rng_state, reservoir, light_index, mis_weight, luminance(GetLightingByIndex(light_index, shading_info, view)), light_weight);
+                // recalculate spatial weight
+                int light_index; float light_weight;
+                GetReservoirSelectSample(sample, light_index, light_weight);
+ 
+                float target_weight = luminance(GetLightingByIndex(light_index, shading_info, view));
+                AddReservoirSample(rng_state, reservoir, light_index, 1, 1, target_weight, light_weight);
             }
         }
     }
     
-    GetReservoirSelectSample(reservoir, out_sample.x, out_sample.y);
+    if (IsReservoirValid(out_sample))
+    {
+        // recalculate spatial weight
+        int light_index; float light_weight;
+        GetReservoirSelectSample(out_sample, light_index, light_weight);
+
+        float target_weight = luminance(GetLightingByIndex(light_index, shading_info, view));
+        AddReservoirSample(rng_state, reservoir, light_index, out_sample.total_count, 1, target_weight, light_weight);
+    }
+    
+    out_sample = reservoir;
 }
 
 [numthreads(8, 8, 1)]
 void main(int3 dispatchThreadID : SV_DispatchThreadID)
 {
-    Output[dispatchThreadID.xy] = 0.0;
-    
-    uint4 rng = initRNG(dispatchThreadID.xy, uint2(viewport_width, viewport_height), frame_index);
+    if (dispatchThreadID.x >= viewport_width ||
+        dispatchThreadID.y >= viewport_height)
+    {
+        return;
+    }
+        
+    RngStateType rng = initRNG(dispatchThreadID.xy, uint2(viewport_width, viewport_height), frame_index);
     
     float3 world_position = GetWorldPosition(dispatchThreadID.xy);
 
@@ -128,10 +146,10 @@ void main(int3 dispatchThreadID : SV_DispatchThreadID)
     float3 albedo = albedo_buffer_data.xyz;
     float metallic = albedo_buffer_data.w;
     
-    float3 normal = normalize(2 * normal_buffer_data.xyz - 1);
+    float3 normal = DecompressNormalFromTexture(normal_buffer_data.xyz);
     float roughness = normal_buffer_data.w;
 
-    PointLightShadingInfo shading_info;
+    PixelLightingShadingInfo shading_info;
     shading_info.albedo = albedo;
     shading_info.position = world_position;
     shading_info.normal = normal;
@@ -139,27 +157,32 @@ void main(int3 dispatchThreadID : SV_DispatchThreadID)
     shading_info.roughness = roughness;
     
     float3 view = normalize(view_position.xyz - world_position);
-
-    float4 final_samples = LightingSamples.Load(int3(dispatchThreadID.xy, 0));
+    
+    float4 sample = LightingSamples.Load(int3(dispatchThreadID.xy, 0));
+    Reservoir reservoir = UnpackReservoir(sample);
     
     if (enable_temporal_reuse)
     {
-        ReservoirTemporalReuse(rng, dispatchThreadID.xy, shading_info, view, final_samples);    
+        ReservoirTemporalReuse(rng, dispatchThreadID.xy, shading_info, view, world_position, reservoir);    
     }
     
     if (enable_spatial_reuse)
     {
-        ReservoirSpatialReuse(rng, dispatchThreadID.xy, shading_info, view, final_samples);    
+        ReservoirSpatialReuse(rng, dispatchThreadID.xy, shading_info, view, world_position, reservoir);    
     }
-    
-    int light_index = final_samples.x;
-    float lighting_weight = final_samples.y;
-    if (lighting_weight > 0.0 && light_index >= 0)
+
+    Output[dispatchThreadID.xy] = 0.0;
+    if (IsReservoirValid(reservoir))
     {
-        float3 final_lighting = lighting_weight * GetLightingByIndex(light_index, shading_info, view);
+        int light_index;
+        float light_weight;
+        GetReservoirSelectSample(reservoir, light_index, light_weight);
+        
+        float3 final_lighting = light_weight * GetLightingByIndex(light_index, shading_info, view);
         Output[dispatchThreadID.xy] = float4(LinearToSrgb(final_lighting), 1.0);
     }
-    aggregate_samples_output[dispatchThreadID.xy] = final_samples;
+    
+    aggregate_samples_output[dispatchThreadID.xy] = PackReservoir(reservoir);
 }
 
 

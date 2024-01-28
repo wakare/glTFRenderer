@@ -18,14 +18,13 @@ cbuffer RayTracingPathTracingPassOptions: RAY_TRACING_PATH_TRACING_OPTION_CBV_IN
     int candidate_light_count;
     int samples_per_pixel;
     bool check_visibility_for_all_candidates;
+    bool ris_light_sampling;
 };
-
-static bool srgb_convert = true;
 
 [shader("raygeneration")]
 void PathTracingRayGen()
 {
-    uint4 rng = initRNG(DispatchRaysIndex().xy, DispatchRaysDimensions().xy, frame_index);
+    RngStateType rng = initRNG(DispatchRaysIndex().xy, DispatchRaysDimensions().xy, frame_index);
     
     // Add jitter for origin
     float2 jitter_offset = float2 (rand(rng), rand(rng)) - 0.5;
@@ -82,16 +81,35 @@ void PathTracingRayGen()
             // Flip normal if needed
             payload.normal = dot(view, payload.normal) < 0 ? -payload.normal : payload.normal;
 
-            PointLightShadingInfo shading_info;
+            PixelLightingShadingInfo shading_info;
             shading_info.albedo = payload.albedo;
             shading_info.position = position;
             shading_info.normal = payload.normal;
             shading_info.metallic = payload.metallic;
             shading_info.roughness = payload.roughness;
+
+            bool has_valid_light_sampling = false;
+            int sample_light_index = -1;
+            float sample_light_weight = 0.0;
             
-            uint sample_light_index;
-            float sample_light_weight;
-            if (SampleLightIndexRIS(rng, candidate_light_count, shading_info, view, check_visibility_for_all_candidates, scene, sample_light_index, sample_light_weight))
+            if (ris_light_sampling)
+            {
+                Reservoir sample;
+                if (SampleLightIndexRIS(rng, candidate_light_count, shading_info, view, check_visibility_for_all_candidates, scene, sample))
+                {
+                    GetReservoirSelectSample(sample, sample_light_index, sample_light_weight);
+                    has_valid_light_sampling = true;
+                }    
+            }
+            else
+            {
+                if (SampleLightIndexUniform(rng, sample_light_index, sample_light_weight))
+                {
+                    has_valid_light_sampling = true;
+                }
+            }
+            
+            if (has_valid_light_sampling)
             {
                 radiance += throughput * sample_light_weight * GetLightingByIndex(sample_light_index, shading_info, view);
             }
@@ -120,7 +138,7 @@ void PathTracingRayGen()
     }
     
     final_radiance /= samples_per_pixel;
-    render_target[DispatchRaysIndex().xy] = float4(srgb_convert ? LinearToSrgb(final_radiance) : final_radiance, 1.0);
+    render_target[DispatchRaysIndex().xy] = float4(LinearToSrgb(final_radiance), 1.0);
 
     float4 ndc_position = mul(prev_projection_matrix, mul(prev_view_matrix, pixel_position));
     ndc_position /= ndc_position.w;

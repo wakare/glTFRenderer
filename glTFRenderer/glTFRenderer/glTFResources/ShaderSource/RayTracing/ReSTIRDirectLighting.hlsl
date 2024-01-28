@@ -23,12 +23,12 @@ cbuffer RayTracingDIPassOptions: RAY_TRACING_DI_OPTION_CBV_INDEX
 void PathTracingRayGen()
 {
     samples_output[DispatchRaysIndex().xy] = 0.0;
-    screen_uv_offset[DispatchRaysIndex().xy] = 0.0;
+    screen_uv_offset[DispatchRaysIndex().xy] = -1.0;
     albedo_output[DispatchRaysIndex().xy] = 0.0;
     normal_output[DispatchRaysIndex().xy] = 0.0;
     depth_output[DispatchRaysIndex().xy] = 1.0;
     
-    uint4 rng = initRNG(DispatchRaysIndex().xy, DispatchRaysDimensions().xy, frame_index);
+    RngStateType rng = initRNG(DispatchRaysIndex().xy, DispatchRaysDimensions().xy, frame_index);
     
     // Add jitter for origin
     float2 jitter_offset = float2 (rand(rng), rand(rng)) - 0.5;
@@ -56,8 +56,6 @@ void PathTracingRayGen()
     payload.metallic = 1.0;
     payload.roughness = 1.0;
 
-    int sample_light_index = -1;
-    
     TracePrimaryRay(scene, ray, payload);
     if (!IsHit(payload))
     {
@@ -76,18 +74,16 @@ void PathTracingRayGen()
     // Flip normal if needed
     payload.normal = dot(view, payload.normal) < 0 ? -payload.normal : payload.normal;
 
-    PointLightShadingInfo shading_info;
+    PixelLightingShadingInfo shading_info;
     shading_info.albedo = payload.albedo;
     shading_info.position = position;
     shading_info.normal = payload.normal;
     shading_info.metallic = payload.metallic;
     shading_info.roughness = payload.roughness;
     
-    float sample_light_weight;
-    if (SampleLightIndexRIS(rng, candidate_light_count, shading_info, view, check_visibility_for_all_candidates, scene, sample_light_index, sample_light_weight))
-    {
-        samples_output[DispatchRaysIndex().xy] = float4(sample_light_index, sample_light_weight, 0.0, 0.0);
-    }
+    Reservoir sample; InvalidateReservoir(sample);
+    SampleLightIndexRIS(rng, candidate_light_count, shading_info, view, check_visibility_for_all_candidates, scene, sample);
+    samples_output[DispatchRaysIndex().xy] = PackReservoir(sample);
 
     float4 ndc_position = mul(prev_projection_matrix, mul(prev_view_matrix, float4(position, 1.0)));
     ndc_position /= ndc_position.w;

@@ -2,7 +2,7 @@
 #define RANDOM_GENERATOR
 
 // Switches between two RNGs
-#define USE_PCG 1
+#define USE_PCG 0
 
  // -------------------------------------------------------------------------
  //    RNG

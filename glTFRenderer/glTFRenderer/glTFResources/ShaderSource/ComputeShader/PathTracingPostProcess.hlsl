@@ -34,50 +34,61 @@ void main(int3 dispatchThreadID : SV_DispatchThreadID)
     if (!enable_post_process)
     {
         postprocess_output[dispatchThreadID.xy] = postprocess_input;
+        accumulation_output[dispatchThreadID.xy] = 0.0;
         return;
     }
     
     float2 prev_screen_uv = screen_uv_offset.Load(int3(dispatchThreadID.xy, 0)).xy;
-    int2 prev_screen_coord = int2(round(prev_screen_uv.x * viewport_width), round(prev_screen_uv.y * viewport_height));
-    bool reuse_history = prev_screen_uv.x >= 0.0 && prev_screen_uv.x <= 1.0 &&
-        prev_screen_uv.y >= 0.0 && prev_screen_uv.y <= 1.0;
-    float4 accumulation_result = accumulation_back_buffer[prev_screen_coord];
-    float velocity_clamp_factor = 1.0;
-    if (use_velocity_clamp)
+    int2 prev_screen_coordination = int2(round(prev_screen_uv.x * viewport_width), round(prev_screen_uv.y * viewport_height));
+    bool reuse_history = prev_screen_coordination.x >= 0 && prev_screen_coordination.x < viewport_width &&
+        prev_screen_coordination.y >= 0 && prev_screen_coordination.y < viewport_height;
+
+    float4 reused_color = 0.0;
+    if (reuse_history)
     {
-        float2 current_screen_uv = dispatchThreadID.xy / float2(viewport_width, viewport_height);
-        float2 current_screen_uv_offset = current_screen_uv - prev_screen_uv;
-        float2 prev_screen_uv_offset = prev_screen_uv - screen_uv_offset.Load(int3(prev_screen_coord, 0)).xy;
-        velocity_clamp_factor = 1.0 - saturate(100.0 * (length(current_screen_uv_offset - prev_screen_uv_offset) - 0.0001));
-    }
-    
-    if (accumulation_result.w > 1.0)
-    {
-        // Color clamping
-        float3 min_color = 1.0;
-        float3 max_color = 0.0;
-        
-        float3 clamped_history_color = accumulation_result.xyz / accumulation_result.w;
-        for (int x = -color_clamp_range; x <= color_clamp_range; ++x)
+        float4 accumulation_result = accumulation_back_buffer.Load(int3(prev_screen_coordination, 0));
+        float velocity_clamp_factor = 1.0;
+        if (use_velocity_clamp)
         {
-            for (int y = -color_clamp_range; y <= color_clamp_range; ++y)
-            {
-                int2 neighborhood_coord = max(prev_screen_coord + int2(x, y), 0.0);
-                float4 color = postprocess_input_texture.Load(int3(neighborhood_coord, 0));
-                float3 normalized_color = color.xyz / max(color.w, 0.001);
-                min_color = min(min_color, normalized_color);
-                max_color = max(max_color, normalized_color);
-            }
+            float2 current_screen_uv = dispatchThreadID.xy / float2(viewport_width, viewport_height);
+            float2 current_screen_uv_offset = current_screen_uv - prev_screen_uv;
+            float2 prev_screen_uv_offset = prev_screen_uv - screen_uv_offset.Load(int3(prev_screen_coordination, 0)).xy;
+            velocity_clamp_factor = 1.0 - saturate(100.0 * (length(current_screen_uv_offset - prev_screen_uv_offset) - 0.0001));
         }
-        clamped_history_color = clamp(clamped_history_color, min_color, max_color);
-        accumulation_output[dispatchThreadID.xy] = float4(accumulation_result.w * clamped_history_color, accumulation_result.w);
+    
+        if (accumulation_result.w > 1.0 && color_clamp_range > 0)
+        {
+            // Color clamping
+            float3 min_color = float3(1.0, 1.0, 1.0);
+            float3 max_color = float3(0.0, 0.0, 0.0);
+        
+            float3 clamped_history_color = accumulation_result.xyz / accumulation_result.w;
+            for (int x = -color_clamp_range; x <= color_clamp_range; ++x)
+            {
+                for (int y = -color_clamp_range; y <= color_clamp_range; ++y)
+                {
+                    int2 neighborhood_coordination = prev_screen_coordination + int2(x, y);
+                    if (neighborhood_coordination.x < 0 || neighborhood_coordination.x >= viewport_width ||
+                        neighborhood_coordination.y < 0 || neighborhood_coordination.y >= viewport_height)
+                    {
+                        continue;
+                    }
+                    
+                    float3 normalized_color = postprocess_input_texture.Load(int3(neighborhood_coordination, 0)).xyz;
+                    min_color = min(min_color, normalized_color);
+                    max_color = max(max_color, normalized_color);
+                }
+            }
+            clamped_history_color = clamp(clamped_history_color, min_color, max_color);
+            accumulation_result = float4(clamped_history_color, 1.0) * accumulation_result.w;
+        }
+        
+        reused_color = reuse_history_factor * velocity_clamp_factor * accumulation_result;
     }
 
-    accumulation_output[dispatchThreadID.xy] = reuse_history ? reuse_history_factor * accumulation_result * velocity_clamp_factor : 0.0;
-    accumulation_output[dispatchThreadID.xy] += float4(postprocess_input.xyz, 1.0);
-    
-    float3 final_color = accumulation_output[dispatchThreadID.xy].xyz / accumulation_output[dispatchThreadID.xy].w;
-    postprocess_output[dispatchThreadID.xy] = float4(final_color, 1.0);
+    float4 final_color = reused_color + float4(postprocess_input.xyz, 1.0);
+    accumulation_output[dispatchThreadID.xy] = final_color;
+    postprocess_output[dispatchThreadID.xy] = final_color / final_color.w;
 }
 
 #endif

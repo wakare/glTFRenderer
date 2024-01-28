@@ -42,7 +42,7 @@ void main(int3 dispatchThreadID : SV_DispatchThreadID)
     float3 normal = normalize(2 * normal_buffer_data.xyz - 1);
     float roughness = normal_buffer_data.w;
 
-    PointLightShadingInfo shading_info;
+    PixelLightingShadingInfo shading_info;
     shading_info.albedo = albedo;
     shading_info.position = world_position;
     shading_info.normal = normal;

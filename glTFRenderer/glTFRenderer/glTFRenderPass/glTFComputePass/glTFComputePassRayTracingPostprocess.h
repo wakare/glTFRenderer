@@ -14,7 +14,7 @@ ALIGN_FOR_CBV_STRUCT struct RayTracingPostProcessPassOptions
         : enable_post_process(false)
         , use_velocity_clamp(false)
         , reuse_history_factor(0.97f)
-        , color_clamp_range(1)
+        , color_clamp_range(0)
     {
     }
 };

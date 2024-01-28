@@ -10,12 +10,14 @@ ALIGN_FOR_CBV_STRUCT struct RayTracingPathTracingPassOptions
     int candidate_light_count;
     int samples_per_pixel;
     BOOL check_visibility_for_all_candidates;
+    BOOL ris_light_sampling;
     
     RayTracingPathTracingPassOptions()
         : max_bounce_count(2)
         , candidate_light_count(8)
         , samples_per_pixel(1)
         , check_visibility_for_all_candidates(true)
+        , ris_light_sampling(true)
     {
     }
 };

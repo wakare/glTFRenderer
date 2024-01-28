@@ -104,4 +104,14 @@ inline float3 srgbToLinear(float3 color)
     return float3(srgbToLinear(color.x),srgbToLinear(color.y),srgbToLinear(color.z));
 }
 
+inline float3 CompressNormalIntoTexture(float3 normal)
+{
+    return normal * 0.5 + 0.5; 
+}
+
+inline float3 DecompressNormalFromTexture(float3 normal_within_texture)
+{
+    return normalize(2 * normal_within_texture - 1);
+}
+
 #endif
