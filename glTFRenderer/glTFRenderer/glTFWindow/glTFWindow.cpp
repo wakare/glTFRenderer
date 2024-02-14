@@ -48,13 +48,6 @@ bool glTFWindow::RegisterCallbackEventNative()
     return true;
 }
 
-bool glTFWindow::RegisterCallbackEventForGUI(glTFGUI& GUI)
-{
-    
-    
-    return true;
-}
-
 void glTFWindow::UpdateWindow() const
 {
     while (!glfwWindowShouldClose(m_glfw_window))

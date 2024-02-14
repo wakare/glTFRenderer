@@ -1,43 +1,13 @@
 #pragma once
-#include <d3d12.h>
-#include <dxgiformat.h>
-
 #include "glTFRHI/RHIUtils.h"
-#include "glTFRHI/RHIInterface/IRHICommandSignature.h"
-//#include "glTFUtils/glTFLog.h"
-#include "glTFRHI/RHIInterface/IRHIRenderTarget.h"
 
-enum class RHIBufferType;
-enum class RHIDataFormat;
-
-#define SAFE_RELEASE(x)
-//#define SAFE_RELEASE(x) if ((x)) {(x)->Release(); (x) = nullptr; LOG_FORMAT_FLUSH("[Exit] Resource %s Release %s\n", GetName().c_str(), #x)}
-
-class DX12ConverterUtils
-{
-public:
-    static DXGI_FORMAT ConvertToDXGIFormat(RHIDataFormat format);
-    static D3D12_HEAP_TYPE ConvertToHeapType(RHIBufferType type);
-    static D3D12_RESOURCE_STATES ConvertToResourceState(RHIResourceStateType state);
-    static D3D_PRIMITIVE_TOPOLOGY ConvertToPrimitiveTopologyType(RHIPrimitiveTopologyType type);
-    static D3D12_DESCRIPTOR_HEAP_TYPE ConvertToDescriptorHeapType(RHIDescriptorHeapType type);
-    static D3D12_SRV_DIMENSION ConvertToSRVDimensionType(RHIResourceDimension type);
-    static D3D12_UAV_DIMENSION ConvertToUAVDimensionType(RHIResourceDimension type);
-    static D3D12_CLEAR_VALUE ConvertToD3DClearValue(RHIRenderTargetClearValue clear_value);
-    static D3D12_INDIRECT_ARGUMENT_TYPE ConvertToIndirectArgumentType(RHIIndirectArgType type);
-    static D3D12_INDIRECT_ARGUMENT_DESC ConvertToIndirectArgumentDesc(const RHIIndirectArgumentDesc& desc);
-};
-
-class DX12Utils : public RHIUtils
+class VulkanUtils : public RHIUtils
 {
     friend class RHIResourceFactory;
-public:
-    DECLARE_NON_COPYABLE(DX12Utils)
-    DX12Utils();
-    virtual ~DX12Utils() override;
     
-    // get the number of bits per pixel for a dxgi format
-    static int GetDXGIFormatBitsPerPixel(const DXGI_FORMAT& dxgiFormat);
+public:
+    DECLARE_NON_COPYABLE(VulkanUtils)
+    virtual ~VulkanUtils() override;
 
     virtual bool InitGUIContext(IRHIDevice& device, IRHIDescriptorHeap& descriptor_heap, unsigned back_buffer_count) override;
     virtual bool NewGUIFrame() override;

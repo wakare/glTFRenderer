@@ -290,6 +290,10 @@ D3D12_INDIRECT_ARGUMENT_DESC DX12ConverterUtils::ConvertToIndirectArgumentDesc(c
 }
 
 
+DX12Utils::DX12Utils()
+{
+}
+
 DX12Utils::~DX12Utils()
 {
 }

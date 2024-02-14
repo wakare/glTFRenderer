@@ -41,7 +41,7 @@
 
 inline RHIGraphicsAPIType GetGraphicsAPI() {return RHIConfigSingleton::Instance().GetGraphicsAPIType();}
 
-#define IMPLEMENT_CREATE_RHI_RESOURCE(IRHIResourceType, DXResourceType) \
+#define IMPLEMENT_CREATE_RHI_RESOURCE(IRHIResourceType, DX12ResourceType) \
 template <> \
 inline std::shared_ptr<IRHIResourceType> RHIResourceFactory::CreateRHIResource() \
 { \
@@ -49,13 +49,15 @@ std::shared_ptr<IRHIResourceType> result = nullptr; \
 switch (GetGraphicsAPI()) \
 { \
 case RHIGraphicsAPIType::RHI_GRAPHICS_API_DX12: \
-result = std::make_shared<DXResourceType>(); \
+result = std::make_shared<DX12ResourceType>(); \
 break; \
 } \
 return result; \
 } \
 
 IMPLEMENT_CREATE_RHI_RESOURCE(RHIUtils, DX12Utils)
+
+
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIFactory, DX12Factory)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIDevice, DX12Device)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHICommandList, DX12CommandList)

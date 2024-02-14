@@ -19,9 +19,11 @@ public:
     glTFCmdArgumentProcessor(int argc, char** argv);
 
     bool IsRasterScene() const {return raster_scene; }
-
+    bool IsVulkanTest() const {return vulkan_test; } 
+    
 private:
     bool raster_scene;
+    bool vulkan_test;
 };
 
 class glTFAppMain
@@ -39,6 +41,7 @@ protected:
     unsigned GetHeight() const;
 
     bool UpdateGUIWidgets();
+    bool VulkanTestRun();
     
     std::shared_ptr<glTFInputManager> m_input_manager;
 
@@ -47,7 +50,10 @@ protected:
     std::unique_ptr<glTFAppRenderer> m_renderer;
     std::shared_ptr<glTFGUI> m_GUI;
 
+    // GUI state
     bool m_raster_scene;
     bool m_ReSTIR;
+    bool m_vulkan_test;
+    
     bool m_recreate_renderer;
 };

@@ -6,7 +6,8 @@
 #include "DX12Utils.h"
 
 DX12Device::DX12Device()
-    : m_device(nullptr)
+    : IRHIDevice()
+    , m_device(nullptr)
     , m_adapter(nullptr)
 {
     

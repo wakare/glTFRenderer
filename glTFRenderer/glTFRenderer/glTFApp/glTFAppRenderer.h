@@ -1,10 +1,25 @@
 #pragma once
 #include "glTFAppRenderPipeline.h"
 
+struct glTFAppRendererConfig
+{
+    bool raster;
+    bool ReSTIR;
+    bool Vulkan;
+
+    glTFAppRendererConfig()
+        : raster(true) 
+        , ReSTIR(false)
+        , Vulkan(false)
+    {
+        
+    }
+};
+
 class glTFAppRenderer
 {
 public:
-    glTFAppRenderer(bool raster_scene, bool ReSTIR, const glTFWindow& window);
+    glTFAppRenderer(const glTFAppRendererConfig& renderer_config, const glTFWindow& window);
     bool InitGUIContext(glTFGUI& GUI, const glTFWindow& window) const;
     bool InitMeshResourceWithSceneGraph(const glTFSceneGraph& scene_graph);
     
@@ -20,4 +35,6 @@ protected:
     std::unique_ptr<glTFAppRenderPipelineBase> m_render_pipeline;
     std::unique_ptr<glTFSceneView> m_scene_view;
     std::unique_ptr<glTFRenderResourceManager> m_resource_manager;
+
+    
 };

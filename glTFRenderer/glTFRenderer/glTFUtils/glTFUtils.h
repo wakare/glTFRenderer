@@ -21,6 +21,12 @@ typedef unsigned glTFUniqueID;
 #define GLTF_CHECK(a) assert(a)
 #endif
 
+#define DECLARE_NON_COPYABLE(ClassName)\
+    ClassName(const ClassName&) = delete;\
+    ClassName(ClassName&&) = delete;\
+    ClassName& operator=(const ClassName&) = delete;\
+    ClassName& operator=(ClassName&&) = delete;
+
 //#define ALIGN_FOR_CBV_STRUCT __declspec(align(16))
 #define ALIGN_FOR_CBV_STRUCT
 

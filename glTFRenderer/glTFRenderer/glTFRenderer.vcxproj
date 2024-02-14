@@ -61,15 +61,15 @@
       <PreprocessorDefinitions>_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty;$(SolutionDir)ThirdParty/imgui;$(SolutionDir)ThirdParty/glm/glm;$(SolutionDir)ThirdParty/glfw/include;$(SolutionDir)glTFRenderer;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty;$(SolutionDir)ThirdParty/imgui;$(SolutionDir)ThirdParty/glm/glm;$(SolutionDir)ThirdParty/glfw/include;$(SolutionDir)glTFRenderer;$(VULKAN_SDK)\include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)ThirdParty/libs/$(ConfigurationName)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);glfw3.lib;D3d12.lib;dxgi.lib;D3DCompiler.lib;dxcompiler.lib;</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)ThirdParty/libs/$(ConfigurationName);$(VULKAN_SDK)\Lib;</AdditionalLibraryDirectories>
+      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);glfw3.lib;D3d12.lib;dxgi.lib;D3DCompiler.lib;dxcompiler.lib;vulkan-1.lib;</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy $(SolutionDir)glTFRenderer\glTFResources\ $(OutDir)glTFResources\ /s /y</Command>
@@ -86,7 +86,7 @@
       <PreprocessorDefinitions>_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty;$(SolutionDir)ThirdParty/imgui;$(SolutionDir)ThirdParty/glm/glm;$(SolutionDir)ThirdParty/glfw/include;$(SolutionDir)glTFRenderer;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty;$(SolutionDir)ThirdParty/imgui;$(SolutionDir)ThirdParty/glm/glm;$(SolutionDir)ThirdParty/glfw/include;$(SolutionDir)glTFRenderer;$(VULKAN_SDK)\include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     </ClCompile>
@@ -95,8 +95,8 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>false</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)ThirdParty/libs/$(ConfigurationName)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);;glfw3.lib;D3d12.lib;dxgi.lib;D3DCompiler.lib;dxcompiler.lib;</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)ThirdParty/libs/$(ConfigurationName);$(VULKAN_SDK)\Lib;</AdditionalLibraryDirectories>
+      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);;glfw3.lib;D3d12.lib;dxgi.lib;D3DCompiler.lib;dxcompiler.lib;vulkan-1.lib;</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>
       </IgnoreSpecificDefaultLibraries>
     </Link>
@@ -115,6 +115,7 @@
     <ClCompile Include="glTFApp\glTFAppRenderer.cpp" />
     <ClCompile Include="glTFApp\glTFAppRenderPipeline.cpp" />
     <ClCompile Include="glTFApp\glTFPassOptionRenderFlags.cpp" />
+    <ClCompile Include="glTFApp\glTFVulkanTest.cpp" />
     <ClCompile Include="glTFGUI\glTFGUI.cpp" />
     <ClCompile Include="glTFLight\glTFDirectionalLight.cpp" />
     <ClCompile Include="glTFLight\glTFLightBase.cpp" />
@@ -239,6 +240,8 @@
     <ClCompile Include="glTFRHI\RHIInterface\IRHIVertexBufferView.cpp" />
     <ClCompile Include="glTFRHI\RHIResourceFactory.cpp" />
     <ClCompile Include="glTFRHI\RHIUtils.cpp" />
+    <ClCompile Include="glTFRHI\RHIVKImpl\VKDevice.cpp" />
+    <ClCompile Include="glTFRHI\RHIVKImpl\VulkanUtils.cpp" />
     <ClCompile Include="glTFScene\glTFAABB.cpp" />
     <ClCompile Include="glTFScene\glTFCamera.cpp" />
     <ClCompile Include="glTFScene\glTFMeshRawData.cpp" />
@@ -260,6 +263,7 @@
     <ClInclude Include="glTFApp\glTFAppRenderer.h" />
     <ClInclude Include="glTFApp\glTFAppRenderPipeline.h" />
     <ClInclude Include="glTFApp\glTFPassOptionRenderFlags.h" />
+    <ClInclude Include="glTFApp\glTFVulkanTest.h" />
     <ClInclude Include="glTFGUI\glTFGUI.h" />
     <ClInclude Include="glTFLight\glTFDirectionalLight.h" />
     <ClInclude Include="glTFLight\glTFLightBase.h" />
@@ -368,6 +372,8 @@
     <ClInclude Include="glTFRHI\RHIResourceFactory.h" />
     <ClInclude Include="glTFRHI\RHIResourceFactoryImpl.hpp" />
     <ClInclude Include="glTFRHI\RHIUtils.h" />
+    <ClInclude Include="glTFRHI\RHIVKImpl\VKDevice.h" />
+    <ClInclude Include="glTFRHI\RHIVKImpl\VulkanUtils.h" />
     <ClInclude Include="glTFScene\glTFAABB.h" />
     <ClInclude Include="glTFScene\glTFCamera.h" />
     <ClInclude Include="glTFScene\glTFMeshRawData.h" />
@@ -383,9 +389,6 @@
     <ClInclude Include="glTFUtils\glTFUtils.h" />
     <ClInclude Include="glTFWindow\glTFInputManager.h" />
     <ClInclude Include="glTFWindow\glTFWindow.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="glTFSamples\Hello_glTF.json" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

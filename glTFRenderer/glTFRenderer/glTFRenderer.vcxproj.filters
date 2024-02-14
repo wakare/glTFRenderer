@@ -42,34 +42,10 @@
     <ClCompile Include="glTFMaterial\glTFMaterialOpaque.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="glTFMaterial\glTFMaterialTexture.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="glTFRenderPass\glTFRenderPassBase.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="glTFRenderPass\glTFRenderPassInterfaceBase.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="glTFRenderPass\glTFRenderPassInterfaceSceneMesh.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="glTFRenderPass\glTFRenderPassInterfaceSceneView.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="glTFRenderPass\glTFRenderPassLighting.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="glTFRenderPass\glTFRenderPassManager.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="glTFRenderPass\glTFRenderPassMeshBase.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="glTFRenderPass\glTFRenderPassMeshOpaque.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="glTFRenderPass\glTFRenderPassPostprocess.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="glTFRenderPass\glTFRenderResourceManager.cpp">
@@ -135,9 +111,6 @@
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12VertexBufferView.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="glTFRHI\RHIInterface\glTFImageLoader.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="glTFRHI\RHIInterface\IRHICommandAllocator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -145,9 +118,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="glTFRHI\RHIInterface\IRHICommandQueue.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="glTFRHI\RHIInterface\IRHICullMode.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="glTFRHI\RHIInterface\IRHIDescriptorHeap.cpp">
@@ -237,6 +207,201 @@
     <ClCompile Include="glTFWindow\glTFInputManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\ThirdParty\imgui\backends\imgui_impl_dx12.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ThirdParty\imgui\backends\imgui_impl_glfw.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ThirdParty\imgui\imgui.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ThirdParty\imgui\imgui_draw.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ThirdParty\imgui\imgui_tables.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ThirdParty\imgui\imgui_widgets.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFApp\glTFAppMain.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFApp\glTFAppRenderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFApp\glTFAppRenderPipeline.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFApp\glTFPassOptionRenderFlags.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFApp\glTFVulkanTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFGUI\glTFGUI.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFLoader\glTFElementCommon.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFMaterial\glTFMaterialParameterBase.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFMaterial\glTFMaterialParameterFactor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFMaterial\glTFMaterialPBR.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFMaterial\glTFMaterialParameterTexture.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRenderPass\glTFComputePass\glTFComputePassBase.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRenderPass\glTFComputePass\glTFComputePassIndirectDrawCulling.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRenderPass\glTFComputePass\glTFComputePassLighting.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRenderPass\glTFComputePass\glTFComputePassRayTracingPostprocess.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRenderPass\glTFComputePass\glTFComputePassReSTIRDirectLighting.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassBase.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassLighting.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassMeshBase.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassPostprocess.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassMeshDepth.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassMeshOpaque.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassBase.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassPathTracing.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassReSTIRDirectLighting.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassWithMesh.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterface32BitConstant.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceFrameStat.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSampler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSceneMaterial.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSceneMeshInfo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSRVTable.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSingleConstantBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceBase.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceLighting.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSceneMesh.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSceneView.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceStructuredBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRenderPass\glTFRenderMaterialManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRenderPass\glTFRenderMeshManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRenderPass\glTFMeshRenderResource.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRenderPass\glTFRenderResourceFrameManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRenderPass\glTFRenderResourceUtils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIDX12Impl\DX12CommandSignature.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIDX12Impl\DX12IndexBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIDX12Impl\DX12RayTracingAS.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIDX12Impl\DX12ShaderTable.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIDX12Impl\DX12VertexBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIInterface\IRHICommandSignature.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIInterface\IRHIIndexBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIInterface\IRHIRayTracingAS.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIInterface\IRHIRootSignatureHelper.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIInterface\IRHIShaderTable.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIInterface\IRHIVertexBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIVKImpl\VKDevice.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIVKImpl\VulkanUtils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFScene\glTFAABB.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFScene\glTFMeshRawData.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFUtils\glTFImageLoader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="glTFLoader\glTFElementCommon.h">
@@ -269,46 +434,13 @@
     <ClInclude Include="glTFMaterial\glTFMaterialOpaque.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="glTFMaterial\glTFMaterialTexture.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="glTFRenderPass\glTFRenderPassBase.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="glTFRenderPass\glTFRenderPassInterfaceBase.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="glTFRenderPass\glTFRenderPassInterfaceSceneMesh.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="glTFRenderPass\glTFRenderPassInterfaceSceneView.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="glTFRenderPass\glTFRenderPassLighting.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="glTFRenderPass\glTFRenderPassManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="glTFRenderPass\glTFRenderPassMeshBase.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="glTFRenderPass\glTFRenderPassMeshOpaque.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="glTFRenderPass\glTFRenderPassPostprocess.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="glTFRenderPass\glTFRenderResourceManager.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="glTFResources\ShaderSource\LightPassCommon.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="glTFResources\ShaderSource\SceneMesh.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="glTFResources\ShaderSource\SceneView.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="glTFRHI\RHIConfigSingleton.h">
@@ -374,9 +506,6 @@
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12VertexBufferView.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="glTFRHI\RHIInterface\glTFImageLoader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="glTFRHI\RHIInterface\IRHICommandAllocator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -384,9 +513,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="glTFRHI\RHIInterface\IRHICommandQueue.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="glTFRHI\RHIInterface\IRHICullMode.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="glTFRHI\RHIInterface\IRHIDescriptorHeap.h">
@@ -482,13 +608,215 @@
     <ClInclude Include="glTFWindow\glTFInputManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="glTFApp\glTFAppMain.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFApp\glTFAppRenderer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFApp\glTFAppRenderPipeline.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFApp\glTFPassOptionRenderFlags.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFApp\glTFVulkanTest.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFGUI\glTFGUI.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFMaterial\glTFMaterialParameterBase.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFMaterial\glTFMaterialParameterFactor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFMaterial\glTFMaterialPBR.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFMaterial\glTFMaterialParameterTexture.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRenderPass\glTFComputePass\glTFComputePassBase.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRenderPass\glTFComputePass\glTFComputePassIndirectDrawCulling.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRenderPass\glTFComputePass\glTFComputePassLighting.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRenderPass\glTFComputePass\glTFComputePassRayTracingPostprocess.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRenderPass\glTFComputePass\glTFComputePassReSTIRDirectLighting.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassBase.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassLighting.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassMeshBase.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassPostprocess.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassMeshDepth.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassMeshOpaque.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassBase.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassPathTracing.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassReSTIRDirectLighting.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassWithMesh.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterface32BitConstant.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceFrameStat.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSampler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSceneMaterial.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSceneMeshInfo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSRVTable.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSingleConstantBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceBase.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceLighting.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSceneMesh.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSceneView.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceStructuredBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRenderPass\glTFRenderMaterialManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRenderPass\glTFRenderMeshManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRenderPass\glTFRenderPassCommon.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRenderPass\glTFMeshRenderResource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRenderPass\glTFRenderResourceFrameManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRenderPass\glTFRenderResourceUtils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIDX12Impl\DX12CommandSignature.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIDX12Impl\DX12Common.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIDX12Impl\DX12IndexBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIDX12Impl\DX12RayTracingAS.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIDX12Impl\DX12ShaderTable.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIDX12Impl\DX12VertexBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIInterface\IRHICommandSignature.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIInterface\IRHIIndexBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIInterface\IRHIRayTracingAS.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIInterface\IRHIRootSignatureHelper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIInterface\IRHIShaderTable.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIInterface\IRHIVertexBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIVKImpl\VKDevice.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIVKImpl\VulkanUtils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFScene\glTFAABB.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFScene\glTFMeshRawData.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFUtils\glTFImageLoader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="glTFResources\ShaderSource\MeshPassCommonPS.hlsl" />
     <None Include="glTFResources\ShaderSource\MeshPassCommonVS.hlsl" />
-    <None Include="glTFResources\ShaderSource\LightPassPS.hlsl" />
-    <None Include="glTFResources\ShaderSource\LightPassVS.hlsl" />
     <None Include="glTFResources\ShaderSource\MeshPassCommon.h">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="glTFResources\ShaderSource\ComputeShader\IndirectCullingCS.hlsl" />
+    <None Include="glTFResources\ShaderSource\ComputeShader\LightingCS.hlsl" />
+    <None Include="glTFResources\ShaderSource\Interface\SceneMaterial.hlsl" />
+    <None Include="glTFResources\ShaderSource\Interface\SceneMesh.hlsl" />
+    <None Include="glTFResources\ShaderSource\Interface\SceneMeshInfo.hlsl" />
+    <None Include="glTFResources\ShaderSource\Interface\SceneView.hlsl" />
+    <None Include="glTFResources\ShaderSource\Lighting\LightingCommon.hlsl" />
+    <None Include="glTFResources\ShaderSource\Math\BRDF.hlsl" />
+    <None Include="glTFResources\ShaderSource\Math\Color.hlsl" />
+    <None Include="glTFResources\ShaderSource\Math\MathCommon.hlsl" />
+    <None Include="glTFResources\ShaderSource\Math\RandomGenerator.hlsl" />
+    <None Include="glTFResources\ShaderSource\Math\Sample.hlsl" />
+    <None Include="glTFResources\ShaderSource\RayTracing\PathTracingMain.hlsl" />
+    <None Include="glTFResources\ShaderSource\RayTracing\PathTracingRays.hlsl" />
+    <None Include="glTFResources\ShaderSource\FrameStat.hlsl" />
+    <None Include="glTFResources\ShaderSource\MeshPassCommon.hlsl" />
+    <None Include="glTFResources\ShaderSource\LightPassCommon.hlsl" />
+    <None Include="glTFResources\ShaderSource\ComputeShader\PathTracingPostProcess.hlsl" />
+    <None Include="glTFResources\ShaderSource\ComputeShader\ReSTIRDirectLightingCS.hlsl" />
+    <None Include="glTFResources\ShaderSource\RayTracing\ReSTIRDirectLighting.hlsl" />
+    <None Include="glTFResources\ShaderSource\Math\ReservoirSample.hlsl" />
+    <None Include="glTFResources\ShaderSource\LightPassCommon.h">
       <Filter>Header Files</Filter>
     </None>
   </ItemGroup>

@@ -16,7 +16,6 @@ public:
     bool InitAndShowWindow();
 
     bool RegisterCallbackEventNative();
-    bool RegisterCallbackEventForGUI(glTFGUI& GUI);
     
     void UpdateWindow() const;
 

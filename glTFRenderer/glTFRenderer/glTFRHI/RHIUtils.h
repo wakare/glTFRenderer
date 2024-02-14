@@ -20,6 +20,8 @@ class RHIUtils : public IRHIResource
     friend class RHIResourceFactory;
     
 public:
+    RHIUtils() = default;
+    
     virtual bool InitGUIContext(IRHIDevice& device, IRHIDescriptorHeap& descriptor_heap, unsigned back_buffer_count) = 0;
     virtual bool NewGUIFrame() = 0;
     virtual bool RenderGUIFrame(IRHICommandList& commandList) = 0;
@@ -69,7 +71,5 @@ public:
     static RHIUtils& Instance();
 
 protected:
-    RHIUtils() = default;
-
     static std::shared_ptr<RHIUtils> g_instance;
 };

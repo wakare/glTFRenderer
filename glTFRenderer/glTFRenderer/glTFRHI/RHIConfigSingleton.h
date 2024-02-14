@@ -3,6 +3,7 @@
 enum class RHIGraphicsAPIType
 {
     RHI_GRAPHICS_API_DX12,
+    RHI_GRAPHICS_API_Vulkan,
     RHI_GRAPHICS_API_NUM,
 };
 
@@ -16,7 +17,8 @@ public:
     }
 
     RHIGraphicsAPIType GetGraphicsAPIType() const {return m_graphicsAPI;}
-
+    void SetGraphicsAPIType(RHIGraphicsAPIType type) {m_graphicsAPI = type; }
+    
 private:
     RHIConfigSingleton();
 

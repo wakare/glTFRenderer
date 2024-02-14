@@ -1,19 +1,21 @@
 #include "glTFAppRenderer.h"
-
 #include "glTFGUI/glTFGUI.h"
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassLighting.h"
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassMeshOpaque.h"
 #include "glTFWindow/glTFWindow.h"
 
-glTFAppRenderer::glTFAppRenderer(bool raster_scene, bool ReSTIR, const glTFWindow& window)
+glTFAppRenderer::glTFAppRenderer(const glTFAppRendererConfig& renderer_config, const glTFWindow& window)
 {
-    if (raster_scene)
+    RHIConfigSingleton::Instance().SetGraphicsAPIType(renderer_config.Vulkan ?
+        RHIGraphicsAPIType::RHI_GRAPHICS_API_Vulkan : RHIGraphicsAPIType::RHI_GRAPHICS_API_DX12);
+    
+    if (renderer_config.raster)
     {
         m_render_pipeline.reset(new glTFAppRenderPipelineRasterScene);    
     }
     else
     {
-        m_render_pipeline.reset(new glTFAppRenderPipelineRayTracingScene(ReSTIR));
+        m_render_pipeline.reset(new glTFAppRenderPipelineRayTracingScene(renderer_config.ReSTIR));
     }
 
     m_resource_manager.reset(new glTFRenderResourceManager());

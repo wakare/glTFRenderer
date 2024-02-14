@@ -2,6 +2,7 @@
 
 #include <imgui.h>
 
+#include "glTFVulkanTest.h"
 #include "glTFGUI/glTFGUI.h"
 #include "glTFLight/glTFDirectionalLight.h"
 #include "glTFLight/glTFPointLight.h"
@@ -33,6 +34,7 @@ size_t glTFTimer::GetDeltaFrameTimeMs() const
 
 glTFCmdArgumentProcessor::glTFCmdArgumentProcessor(int argc, char** argv)
     : raster_scene(true)
+    , vulkan_test(false)
 {
     for (int i = 0; i < argc; ++i)
     {
@@ -40,6 +42,11 @@ glTFCmdArgumentProcessor::glTFCmdArgumentProcessor(int argc, char** argv)
         if (strcmp(argument, "raytracing") == 0)
         {
             raster_scene = false;
+        }
+
+        if (strcmp(argument, "vulkantest") == 0)
+        {
+            vulkan_test = true;
         }
     }
 }
@@ -50,6 +57,7 @@ glTFAppMain::glTFAppMain(int argc, char* argv[])
     const glTFCmdArgumentProcessor cmd_processor(argc, argv);
     m_raster_scene = cmd_processor.IsRasterScene();
     m_ReSTIR = true;
+    m_vulkan_test = cmd_processor.IsVulkanTest();
     m_recreate_renderer = true;
     
     // Init window
@@ -64,40 +72,45 @@ glTFAppMain::glTFAppMain(int argc, char* argv[])
     InitSceneGraph();
     
     m_input_manager.reset(new glTFInputManager);
+    window.SetInputManager(m_input_manager);
 }
 
 void glTFAppMain::Run()
 {
     auto& window = glTFWindow::Get();
-    
-    //Register window callback with App
-    window.SetTickCallback([this](){
-        InitRenderer();
-        
-        m_timer.RecordFrameBegin();
-        const size_t time_delta_ms = m_timer.GetDeltaFrameTimeMs();
-        m_scene_graph->Tick(time_delta_ms);
-
-        m_renderer->TickRenderingBegin(time_delta_ms);
-        m_renderer->TickSceneUpdating(*m_scene_graph, time_delta_ms);
-        m_renderer->TickSceneRendering(*m_input_manager, time_delta_ms);
-        
-        m_GUI->SetupWidgetBegin();
-        UpdateGUIWidgets();
-        m_renderer->TickGUIWidgetUpdate(*m_GUI, time_delta_ms);
-        m_GUI->SetupWidgetEnd();
-        m_GUI->RenderWidgets(m_renderer->GetResourceManager());
-        
-        m_renderer->TickRenderingEnd(time_delta_ms);
-
-        m_input_manager->TickFrame(time_delta_ms);
-    });
-
-    window.SetInputManager(m_input_manager);
-    window.SetExitCallback([this]()
+    if (m_vulkan_test)
     {
-        m_GUI->ExitAndClean();
-    });
+        VulkanTestRun();
+    }
+    else
+    {
+        //Register window callback with App
+        window.SetTickCallback([this](){
+            InitRenderer();
+        
+            m_timer.RecordFrameBegin();
+            const size_t time_delta_ms = m_timer.GetDeltaFrameTimeMs();
+            m_scene_graph->Tick(time_delta_ms);
+
+            m_renderer->TickRenderingBegin(time_delta_ms);
+            m_renderer->TickSceneUpdating(*m_scene_graph, time_delta_ms);
+            m_renderer->TickSceneRendering(*m_input_manager, time_delta_ms);
+        
+            m_GUI->SetupWidgetBegin();
+            UpdateGUIWidgets();
+            m_renderer->TickGUIWidgetUpdate(*m_GUI, time_delta_ms);
+            m_GUI->SetupWidgetEnd();
+            m_GUI->RenderWidgets(m_renderer->GetResourceManager());
+        
+            m_renderer->TickRenderingEnd(time_delta_ms);
+            m_input_manager->TickFrame(time_delta_ms);
+        });
+
+        window.SetExitCallback([this]()
+        {
+            m_GUI->ExitAndClean();
+        });    
+    }
     
     glTFWindow::Get().UpdateWindow();
 }
@@ -186,8 +199,12 @@ bool glTFAppMain::InitRenderer()
     {
         m_renderer->GetResourceManager().WaitAllFrameFinish();
     }
+
+    glTFAppRendererConfig renderer_config;
+    renderer_config.raster = m_raster_scene;
+    renderer_config.ReSTIR = m_ReSTIR;
     
-    m_renderer.reset(new glTFAppRenderer(m_raster_scene, m_ReSTIR, glTFWindow::Get()));
+    m_renderer.reset(new glTFAppRenderer(renderer_config, glTFWindow::Get()));
     m_renderer->InitMeshResourceWithSceneGraph(*m_scene_graph);
 
     if (!m_GUI)
@@ -221,9 +238,19 @@ bool glTFAppMain::UpdateGUIWidgets()
 {
     ImGui::Checkbox("RasterScene", &m_raster_scene);
     ImGui::Checkbox("ReSTIR", &m_ReSTIR);
+    ImGui::Checkbox("Vulkan", &m_vulkan_test);
     if (ImGui::Button("RecreateRenderer"))
     {
         m_recreate_renderer = true;
     }
+    
+    return true;
+}
+
+bool glTFAppMain::VulkanTestRun()
+{
+    glTFVulkanTest test;
+    test.Init();
+    
     return true;
 }

@@ -7,6 +7,8 @@
 #include "glTFRHI/RHIUtils.h"
 #include "glTFWindow/glTFWindow.h"
 
+bool glTFGUI::g_valid = false;
+
 bool glTFGUI::SetupGUIContext(const glTFWindow& window, glTFRenderResourceManager& resource_manager)
 {
     IMGUI_CHECKVERSION();
@@ -35,6 +37,8 @@ bool glTFGUI::SetupGUIContext(const glTFWindow& window, glTFRenderResourceManage
     
     RETURN_IF_FALSE(RHIUtils::Instance().InitGUIContext(resource_manager.GetDevice(), *m_descriptor_heap, resource_manager.GetBackBufferCount()))
 
+    g_valid = true;
+    
     return true;
 }
 
@@ -86,14 +90,19 @@ bool glTFGUI::ExitAndClean()
     return true;
 }
 
+bool glTFGUI::IsValid()
+{
+    return g_valid;
+}
+
 bool glTFGUI::HandleMouseEventThisFrame()
 {
-    return ImGui::GetIO().WantCaptureMouse;
+    return IsValid() ? ImGui::GetIO().WantCaptureMouse : false;
 }
 
 bool glTFGUI::HandleKeyBoardEventThisFrame()
 {
-    return ImGui::GetIO().WantCaptureKeyboard;
+    return IsValid() ? ImGui::GetIO().WantCaptureKeyboard : false;
 }
 
 bool glTFGUI::SetupWidgets()
