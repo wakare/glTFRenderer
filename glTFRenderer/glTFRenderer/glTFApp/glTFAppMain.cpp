@@ -80,7 +80,15 @@ void glTFAppMain::Run()
     auto& window = glTFWindow::Get();
     if (m_vulkan_test)
     {
-        VulkanTestRun();
+        VulkanTestInit();
+        window.SetTickCallback([this]()
+        {
+            VulkanTestUpdate();
+        });
+        window.SetExitCallback([this]()
+        {
+            VulkanTestUnInit();
+        });
     }
     else
     {
@@ -247,10 +255,20 @@ bool glTFAppMain::UpdateGUIWidgets()
     return true;
 }
 
-bool glTFAppMain::VulkanTestRun()
+bool glTFAppMain::VulkanTestInit()
 {
-    glTFVulkanTest test;
-    test.Init();
-    
+    vulkan_test.Init();   
+    return true;
+}
+
+bool glTFAppMain::VulkanTestUpdate()
+{
+    vulkan_test.Update();
+    return true;
+}
+
+bool glTFAppMain::VulkanTestUnInit()
+{
+    vulkan_test.UnInit();
     return true;
 }

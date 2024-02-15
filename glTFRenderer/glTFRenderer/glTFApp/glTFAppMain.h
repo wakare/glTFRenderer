@@ -1,5 +1,6 @@
 #pragma once
 #include "glTFAppRenderer.h"
+#include "glTFVulkanTest.h"
 
 class glTFTimer
 {
@@ -41,8 +42,13 @@ protected:
     unsigned GetHeight() const;
 
     bool UpdateGUIWidgets();
-    bool VulkanTestRun();
-    
+
+    // Only for test
+    glTFVulkanTest vulkan_test;
+    bool VulkanTestInit();
+    bool VulkanTestUpdate();
+    bool VulkanTestUnInit();
+
     std::shared_ptr<glTFInputManager> m_input_manager;
 
     glTFTimer m_timer;

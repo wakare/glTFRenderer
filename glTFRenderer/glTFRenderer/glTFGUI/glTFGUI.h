@@ -15,7 +15,6 @@ public:
     bool ExitAndClean();
 
     static bool IsValid();
-    
     static bool HandleMouseEventThisFrame();
     static bool HandleKeyBoardEventThisFrame();
     

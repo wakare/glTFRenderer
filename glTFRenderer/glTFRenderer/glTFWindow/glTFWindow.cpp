@@ -29,6 +29,10 @@ bool glTFWindow::InitAndShowWindow()
         return false;
     }
     
+    // Do not create opengl context, otherwise swap chain creation will fail
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    
     m_glfw_window = glfwCreateWindow(m_width, m_height, "glTFRenderer v0.01      by jackjwang", NULL, NULL);
     if (!m_glfw_window)
     {
