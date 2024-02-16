@@ -220,6 +220,20 @@ VkExtent2D chooseSwapChainExtent(const VkSurfaceCapabilitiesKHR capabilities)
     return result;
 }
 
+VkShaderModule CreateShaderModule(VkDevice device, const std::vector<unsigned char>& shader_binaries)
+{
+    VkShaderModuleCreateInfo create_shader_module_info{};
+    create_shader_module_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    create_shader_module_info.codeSize = shader_binaries.size();
+    create_shader_module_info.pCode = (unsigned*)shader_binaries.data();
+
+    VkShaderModule shader_module;
+    VkResult result = vkCreateShaderModule(device, &create_shader_module_info, nullptr, &shader_module);
+    GLTF_CHECK(result == VK_SUCCESS);
+
+    return shader_module;
+}
+
 bool glTFVulkanTest::Init()
 {
     uint32_t extensionCount = 0;
@@ -417,7 +431,7 @@ bool glTFVulkanTest::Init()
         GLTF_CHECK(result == VK_SUCCESS);
     }
 
-    // Create graphics pipeline
+    // Create shader module
     std::vector<unsigned char> vertex_shader_binaries;
     glTFShaderUtils::ShaderCompileDesc vertex_shader_compile_desc
     {
@@ -425,7 +439,7 @@ bool glTFVulkanTest::Init()
         glTFShaderUtils::GetShaderCompileTarget(RHIShaderType::Vertex),
         "main",
         {},
-        false
+        true
     };
     glTFShaderUtils::CompileShader(vertex_shader_compile_desc, vertex_shader_binaries);
 
@@ -436,11 +450,260 @@ bool glTFVulkanTest::Init()
         glTFShaderUtils::GetShaderCompileTarget(RHIShaderType::Pixel),
         "main",
         {},
-        false
+        true
     };
     glTFShaderUtils::CompileShader(fragment_shader_compile_desc, fragment_shader_binaries);
+
+    vertex_shader_module = CreateShaderModule(logical_device, vertex_shader_binaries);
+    fragment_shader_module = CreateShaderModule(logical_device, fragment_shader_binaries);
+
+    VkPipelineShaderStageCreateInfo create_vertex_stage_info{};
+    create_vertex_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    create_vertex_stage_info.stage = VK_SHADER_STAGE_VERTEX_BIT;
+    create_vertex_stage_info.module = vertex_shader_module;
+    create_vertex_stage_info.pName = "main";
+
+    VkPipelineShaderStageCreateInfo create_frag_stage_info{};
+    create_frag_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    create_frag_stage_info.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+    create_frag_stage_info.module = fragment_shader_module;
+    create_frag_stage_info.pName = "main";
+
+    VkPipelineShaderStageCreateInfo shader_stages[] = {create_vertex_stage_info, create_frag_stage_info}; 
+
+    VkPipelineVertexInputStateCreateInfo create_vertex_input_state_info {};
+    create_vertex_input_state_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    create_vertex_input_state_info.vertexBindingDescriptionCount = 0;
+    create_vertex_input_state_info.pVertexBindingDescriptions = nullptr;
+    create_vertex_input_state_info.vertexAttributeDescriptionCount = 0;
+    create_vertex_input_state_info.pVertexAttributeDescriptions = nullptr;
+
+    VkPipelineInputAssemblyStateCreateInfo create_input_assembly_info {};
+    create_input_assembly_info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+    create_input_assembly_info.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    create_input_assembly_info.primitiveRestartEnable = VK_FALSE;
+
+    VkViewport viewport{};
+    viewport.x = 0.0f;
+    viewport.y = 0.0f;
+    viewport.width = (float) swap_chain_extent.width;
+    viewport.height = (float) swap_chain_extent.height;
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+
+    VkRect2D scissor{};
+    scissor.offset = {0, 0};
+    scissor.extent = swap_chain_extent;
+
+    std::vector<VkDynamicState> dynamic_states =
+        {
+        VK_DYNAMIC_STATE_VIEWPORT,
+        VK_DYNAMIC_STATE_SCISSOR
+        };
+
+    VkPipelineDynamicStateCreateInfo create_dynamic_state_info {};
+    create_dynamic_state_info.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+    create_dynamic_state_info.dynamicStateCount = static_cast<unsigned>(dynamic_states.size());
+    create_dynamic_state_info.pDynamicStates = dynamic_states.data();
+
+    VkPipelineViewportStateCreateInfo create_viewport_state_info {};
+    create_viewport_state_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+    create_viewport_state_info.viewportCount = 1;
+    create_viewport_state_info.scissorCount = 1;
+    // dynamic state can switch viewport and scissor during draw commands, so no need to fill viewport and scissor now
+    //create_viewport_state_info.pViewports = &viewport;
+    //create_viewport_state_info.pScissors = &scissor;
+
+    VkPipelineRasterizationStateCreateInfo create_rasterizer_info{};
+    create_rasterizer_info.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+    create_rasterizer_info.depthClampEnable = VK_FALSE;
+    create_rasterizer_info.rasterizerDiscardEnable = VK_FALSE;
+    create_rasterizer_info.polygonMode = VK_POLYGON_MODE_FILL;
+    create_rasterizer_info.lineWidth = 1.0f;
+    create_rasterizer_info.cullMode = VK_CULL_MODE_BACK_BIT;
+    create_rasterizer_info.frontFace = VK_FRONT_FACE_CLOCKWISE;
+    create_rasterizer_info.depthBiasEnable = VK_FALSE;
+    create_rasterizer_info.depthBiasConstantFactor = 0.0f;
+    create_rasterizer_info.depthBiasClamp = 0.0f;
+    create_rasterizer_info.depthBiasSlopeFactor = 0.0f;
+
+    VkPipelineMultisampleStateCreateInfo create_msaa_state {};
+    create_msaa_state.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+    create_msaa_state.sampleShadingEnable = VK_FALSE;
+    create_msaa_state.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+    create_msaa_state.minSampleShading = 1.0f;
+    create_msaa_state.pSampleMask = nullptr;
+    create_msaa_state.alphaToCoverageEnable = VK_FALSE;
+    create_msaa_state.alphaToOneEnable = VK_FALSE;
+
+    VkPipelineColorBlendAttachmentState color_blend_attachment_state{};
+    color_blend_attachment_state.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+    color_blend_attachment_state.blendEnable = VK_FALSE;
+    color_blend_attachment_state.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
+    color_blend_attachment_state.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
+    color_blend_attachment_state.colorBlendOp = VK_BLEND_OP_ADD;
+    color_blend_attachment_state.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+    color_blend_attachment_state.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+    color_blend_attachment_state.alphaBlendOp = VK_BLEND_OP_ADD;
+
+    VkPipelineColorBlendStateCreateInfo create_color_blend_state_info {};
+    create_color_blend_state_info.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+    create_color_blend_state_info.logicOpEnable = VK_FALSE;
+    create_color_blend_state_info.logicOp = VK_LOGIC_OP_COPY;
+    create_color_blend_state_info.attachmentCount = 1;
+    create_color_blend_state_info.pAttachments = &color_blend_attachment_state;
+    create_color_blend_state_info.blendConstants[0] = 0.0f;
+    create_color_blend_state_info.blendConstants[1] = 0.0f;
+    create_color_blend_state_info.blendConstants[2] = 0.0f;
+    create_color_blend_state_info.blendConstants[3] = 0.0f;
+
+    VkPipelineLayoutCreateInfo create_pipeline_layout_info {};
+    create_pipeline_layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    create_pipeline_layout_info.setLayoutCount = 0;
+    create_pipeline_layout_info.pSetLayouts = nullptr;
+    create_pipeline_layout_info.pushConstantRangeCount = 0;
+    create_pipeline_layout_info.pPushConstantRanges = nullptr;
+
+    result = vkCreatePipelineLayout(logical_device, &create_pipeline_layout_info, nullptr, &pipeline_layout);
+    GLTF_CHECK(result == VK_SUCCESS);
+
+    // Create render pass
+    VkAttachmentDescription color_attachment {};
+    color_attachment.format = swap_chain_format;
+    color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    color_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    color_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    color_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    color_attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+    VkAttachmentReference color_attachment_ref{};
+    color_attachment_ref.attachment = 0;
+    color_attachment_ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    VkSubpassDescription subpass {};
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.colorAttachmentCount = 1;
+    subpass.pColorAttachments = &color_attachment_ref;
+    
+    VkRenderPassCreateInfo create_render_pass_info{};
+    create_render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    create_render_pass_info.attachmentCount = 1;
+    create_render_pass_info.pAttachments = &color_attachment;
+    create_render_pass_info.subpassCount = 1;
+    create_render_pass_info.pSubpasses = &subpass;
+
+    result = vkCreateRenderPass(logical_device, &create_render_pass_info, nullptr, &render_pass);
+    GLTF_CHECK(result == VK_SUCCESS);
+
+    // Create graphics pipeline
+    VkGraphicsPipelineCreateInfo create_graphics_pipeline_info {};
+    create_graphics_pipeline_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    create_graphics_pipeline_info.stageCount = 2;
+    create_graphics_pipeline_info.pStages = shader_stages;
+    create_graphics_pipeline_info.pVertexInputState = &create_vertex_input_state_info;
+    create_graphics_pipeline_info.pInputAssemblyState = &create_input_assembly_info;
+    create_graphics_pipeline_info.pViewportState = &create_viewport_state_info;
+    create_graphics_pipeline_info.pRasterizationState = &create_rasterizer_info;
+    create_graphics_pipeline_info.pMultisampleState = &create_msaa_state;
+    create_graphics_pipeline_info.pDepthStencilState = nullptr;
+    create_graphics_pipeline_info.pColorBlendState = &create_color_blend_state_info;
+    create_graphics_pipeline_info.pDynamicState = &create_dynamic_state_info;
+    create_graphics_pipeline_info.layout = pipeline_layout;
+    create_graphics_pipeline_info.renderPass = render_pass;
+    create_graphics_pipeline_info.subpass = 0;
+    create_graphics_pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
+    create_graphics_pipeline_info.basePipelineIndex = -1;
+
+    result = vkCreateGraphicsPipelines(logical_device, VK_NULL_HANDLE, 1, &create_graphics_pipeline_info, nullptr, &pipeline);
+    GLTF_CHECK(result == VK_SUCCESS);
+
+    // Create frame buffers
+    swap_chain_frame_buffers.resize(image_views.size());
+
+    for (size_t i = 0; i < image_views.size(); ++i)
+    {
+        VkImageView attachments[] = {image_views[i]};
+
+        VkFramebufferCreateInfo framebuffer_create_info{};
+        framebuffer_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        framebuffer_create_info.renderPass = render_pass;
+        framebuffer_create_info.attachmentCount = 1;
+        framebuffer_create_info.pAttachments = attachments;
+        framebuffer_create_info.width = swap_chain_extent.width;
+        framebuffer_create_info.height = swap_chain_extent.height;
+        framebuffer_create_info.layers = 1;
+
+        result = vkCreateFramebuffer(logical_device, &framebuffer_create_info, nullptr, &swap_chain_frame_buffers[i]);
+        GLTF_CHECK(result == VK_SUCCESS);
+    }
+    
+    // Create command pool
+    VkCommandPoolCreateInfo create_command_pool_info{};
+    create_command_pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    create_command_pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    create_command_pool_info.queueFamilyIndex = queue_family_indices.graphics_family.value();
+
+    result = vkCreateCommandPool(logical_device, &create_command_pool_info, nullptr, &command_pool);
+    GLTF_CHECK(result == VK_SUCCESS);
+
+    // Create command buffer
+    VkCommandBufferAllocateInfo allocate_info{};
+    allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocate_info.commandPool = command_pool;
+    allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocate_info.commandBufferCount = 1;
+
+    result = vkAllocateCommandBuffers(logical_device, &allocate_info, &command_buffer);
+    GLTF_CHECK(result == VK_SUCCESS);
+
     
     return true;
+}
+
+void glTFVulkanTest::RecordCommandBuffer(VkCommandBuffer command_buffer, unsigned image_index)
+{
+    // Create command buffer begin info
+    VkCommandBufferBeginInfo command_buffer_begin_info{};
+    command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    command_buffer_begin_info.flags = 0;
+    command_buffer_begin_info.pInheritanceInfo = nullptr;
+
+    VkResult result = vkBeginCommandBuffer(command_buffer, &command_buffer_begin_info);
+    GLTF_CHECK(result == VK_SUCCESS);
+
+    VkRenderPassBeginInfo render_pass_begin_info{};
+    render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    render_pass_begin_info.renderPass = render_pass;
+    render_pass_begin_info.framebuffer = swap_chain_frame_buffers[image_index];
+    render_pass_begin_info.renderArea.offset = {0, 0};
+    render_pass_begin_info.renderArea.extent = swap_chain_extent;
+    const VkClearValue clear_value = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+    render_pass_begin_info.clearValueCount = 1;
+    render_pass_begin_info.pClearValues = &clear_value;
+    vkCmdBeginRenderPass(command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+    
+    // since define viewport and scissor as dynamic state so do set in command
+    VkViewport viewport{};
+    viewport.x = 0.0f;
+    viewport.y = 0.0f;
+    viewport.width = static_cast<float>(swap_chain_extent.width);
+    viewport.height = static_cast<float>(swap_chain_extent.height);
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+    vkCmdSetViewport(command_buffer, 0, 1, &viewport);
+    
+    VkRect2D scissor{};
+    scissor.offset = {0, 0};
+    scissor.extent = swap_chain_extent;
+    vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+
+    vkCmdDraw(command_buffer, 3, 1, 0, 0);
+
+    result = vkEndCommandBuffer(command_buffer);
+    GLTF_CHECK(result == VK_SUCCESS);
 }
 
 bool glTFVulkanTest::Update()
@@ -450,6 +713,19 @@ bool glTFVulkanTest::Update()
 
 bool glTFVulkanTest::UnInit()
 {
+    vkDestroyCommandPool(logical_device, command_pool, nullptr);
+    
+    for (const auto& frame_buffer:swap_chain_frame_buffers)
+    {
+        vkDestroyFramebuffer(logical_device, frame_buffer, nullptr);
+    }
+    
+    vkDestroyPipeline(logical_device, pipeline, nullptr);
+    vkDestroyRenderPass(logical_device, render_pass, nullptr);
+    vkDestroyPipelineLayout(logical_device, pipeline_layout, nullptr);
+    vkDestroyShaderModule(logical_device, fragment_shader_module, nullptr);
+    vkDestroyShaderModule(logical_device, vertex_shader_module, nullptr);
+    
     for (const auto& image_view : image_views)
     {
         vkDestroyImageView(logical_device, image_view, nullptr);    
