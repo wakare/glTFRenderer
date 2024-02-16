@@ -8,6 +8,7 @@
 #include <set>
 #include <GLFW/glfw3native.h>
 
+#include "glTFShaderUtils/glTFShaderUtils.h"
 #include "glTFWindow/glTFWindow.h"
 
 const std::vector validation_layers =
@@ -415,6 +416,29 @@ bool glTFVulkanTest::Init()
         result = vkCreateImageView(logical_device, &create_image_view_info, nullptr, &image_views[i]);
         GLTF_CHECK(result == VK_SUCCESS);
     }
+
+    // Create graphics pipeline
+    std::vector<unsigned char> vertex_shader_binaries;
+    glTFShaderUtils::ShaderCompileDesc vertex_shader_compile_desc
+    {
+        "glTFResources/ShaderSource/TestShaders/VulkanTestVert.hlsl",
+        glTFShaderUtils::GetShaderCompileTarget(RHIShaderType::Vertex),
+        "main",
+        {},
+        false
+    };
+    glTFShaderUtils::CompileShader(vertex_shader_compile_desc, vertex_shader_binaries);
+
+    std::vector<unsigned char> fragment_shader_binaries;
+    glTFShaderUtils::ShaderCompileDesc fragment_shader_compile_desc
+    {
+        "glTFResources/ShaderSource/TestShaders/VulkanTestFrag.hlsl",
+        glTFShaderUtils::GetShaderCompileTarget(RHIShaderType::Pixel),
+        "main",
+        {},
+        false
+    };
+    glTFShaderUtils::CompileShader(fragment_shader_compile_desc, fragment_shader_binaries);
     
     return true;
 }

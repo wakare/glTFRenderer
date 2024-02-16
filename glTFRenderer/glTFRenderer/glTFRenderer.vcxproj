@@ -188,6 +188,8 @@
     <None Include="glTFResources\ShaderSource\ComputeShader\ReSTIRDirectLightingCS.hlsl" />
     <None Include="glTFResources\ShaderSource\RayTracing\ReSTIRDirectLighting.hlsl" />
     <None Include="glTFResources\ShaderSource\Math\ReservoirSample.hlsl" />
+    <None Include="glTFResources\ShaderSource\TestShaders\VulkanTestFrag.hlsl" />
+    <None Include="glTFResources\ShaderSource\TestShaders\VulkanTestVert.hlsl" />
     <ClCompile Include="glTFRHI\RHIConfigSingleton.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12CommandSignature.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12DescriptorHeap.cpp" />

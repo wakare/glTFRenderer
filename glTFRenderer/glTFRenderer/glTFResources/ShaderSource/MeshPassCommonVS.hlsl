@@ -2,7 +2,6 @@
 #include "glTFResources/ShaderSource/Interface/SceneMeshInfo.hlsl"
 #include "glTFResources/ShaderSource/Interface/SceneMesh.hlsl"
 
-
 #if ENABLE_INPUT_LAYOUT
 VS_OUTPUT main(VS_INPUT input)
 {
