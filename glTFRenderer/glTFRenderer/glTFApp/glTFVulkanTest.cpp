@@ -11,6 +11,8 @@
 #include "glTFShaderUtils/glTFShaderUtils.h"
 #include "glTFWindow/glTFWindow.h"
 
+const int MAX_FRAMES_IN_FLIGHT = 2;
+
 const std::vector validation_layers =
 {
     "VK_LAYER_KHRONOS_validation"
@@ -594,6 +596,17 @@ bool glTFVulkanTest::Init()
     create_render_pass_info.subpassCount = 1;
     create_render_pass_info.pSubpasses = &subpass;
 
+    VkSubpassDependency dependency {};
+    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+    dependency.dstSubpass = 0;
+    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.srcAccessMask = 0;
+    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+    create_render_pass_info.dependencyCount = 1;
+    create_render_pass_info.pDependencies = &dependency;
+    
     result = vkCreateRenderPass(logical_device, &create_render_pass_info, nullptr, &render_pass);
     GLTF_CHECK(result == VK_SUCCESS);
 
@@ -649,15 +662,40 @@ bool glTFVulkanTest::Init()
     GLTF_CHECK(result == VK_SUCCESS);
 
     // Create command buffer
+    command_buffers.resize(MAX_FRAMES_IN_FLIGHT);
+    
     VkCommandBufferAllocateInfo allocate_info{};
     allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocate_info.commandPool = command_pool;
     allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocate_info.commandBufferCount = 1;
+    allocate_info.commandBufferCount = static_cast<unsigned>(command_buffers.size());
 
-    result = vkAllocateCommandBuffers(logical_device, &allocate_info, &command_buffer);
+    result = vkAllocateCommandBuffers(logical_device, &allocate_info, command_buffers.data());
     GLTF_CHECK(result == VK_SUCCESS);
 
+    // Create sync objects
+    image_available_semaphores.resize(MAX_FRAMES_IN_FLIGHT);
+    render_finish_semaphores.resize(MAX_FRAMES_IN_FLIGHT);
+    in_flight_fences.resize(MAX_FRAMES_IN_FLIGHT);
+
+    VkSemaphoreCreateInfo create_semaphore_info{};
+    create_semaphore_info.sType= VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+    VkFenceCreateInfo create_fence_info {};
+    create_fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    create_fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        result = vkCreateSemaphore(logical_device, &create_semaphore_info, nullptr, &image_available_semaphores[i]);
+        GLTF_CHECK(result == VK_SUCCESS);
+
+        result = vkCreateSemaphore(logical_device, &create_semaphore_info, nullptr, &render_finish_semaphores[i]);
+        GLTF_CHECK(result == VK_SUCCESS);
+
+        result = vkCreateFence(logical_device, &create_fence_info, nullptr, &in_flight_fences[i]);
+        GLTF_CHECK(result == VK_SUCCESS);
+    }
     
     return true;
 }
@@ -702,17 +740,76 @@ void glTFVulkanTest::RecordCommandBuffer(VkCommandBuffer command_buffer, unsigne
 
     vkCmdDraw(command_buffer, 3, 1, 0, 0);
 
+    vkCmdEndRenderPass(command_buffer);
+    
     result = vkEndCommandBuffer(command_buffer);
+    
     GLTF_CHECK(result == VK_SUCCESS);
+}
+
+void glTFVulkanTest::DrawFrame()
+{
+    vkWaitForFences(logical_device, 1, &in_flight_fences[current_frame], VK_TRUE, UINT64_MAX);
+    vkResetFences(logical_device, 1, &in_flight_fences[current_frame]);
+
+    unsigned image_index;
+    vkAcquireNextImageKHR(logical_device, swap_chain, UINT64_MAX, image_available_semaphores[current_frame], VK_NULL_HANDLE, &image_index);
+    vkResetCommandBuffer(command_buffers[current_frame], 0);
+
+    RecordCommandBuffer(command_buffers[current_frame], image_index);
+    
+    VkSubmitInfo submit_info{};
+    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+    VkSemaphore wait_semaphores[] = {image_available_semaphores[current_frame]};
+    VkPipelineStageFlags wait_stages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+    submit_info.waitSemaphoreCount = 1;
+    submit_info.pWaitSemaphores = wait_semaphores;
+    submit_info.pWaitDstStageMask = wait_stages;
+
+    submit_info.commandBufferCount = 1;
+    submit_info.pCommandBuffers = &command_buffers[current_frame];
+
+    VkSemaphore signal_semaphores[] = {render_finish_semaphores[current_frame]};
+    submit_info.signalSemaphoreCount = 1;
+    submit_info.pSignalSemaphores = signal_semaphores;
+    
+    VkResult result = vkQueueSubmit(graphics_queue, 1, & submit_info, in_flight_fences[current_frame]);
+    GLTF_CHECK(result == VK_SUCCESS); 
+
+    VkPresentInfoKHR present_info{};
+    present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    present_info.waitSemaphoreCount = 1;
+    present_info.pWaitSemaphores = signal_semaphores;
+    
+    VkSwapchainKHR swap_chains[] = {swap_chain};
+    present_info.pSwapchains = swap_chains;
+    present_info.swapchainCount = 1;
+    present_info.pImageIndices = &image_index;
+    present_info.pResults = nullptr;
+    vkQueuePresentKHR(present_queue, &present_info);
+    
+    current_frame = (current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
 bool glTFVulkanTest::Update()
 {
+    DrawFrame();
     return true;
 }
 
 bool glTFVulkanTest::UnInit()
 {
+    vkDeviceWaitIdle(logical_device);
+    
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        vkDestroySemaphore(logical_device, image_available_semaphores[i], nullptr);
+        vkDestroySemaphore(logical_device, render_finish_semaphores[i], nullptr);
+        vkDestroyFence(logical_device, in_flight_fences[i], nullptr);
+    }
+
+    // No need to free command buffer when command pool is freed
     vkDestroyCommandPool(logical_device, command_pool, nullptr);
     
     for (const auto& frame_buffer:swap_chain_frame_buffers)

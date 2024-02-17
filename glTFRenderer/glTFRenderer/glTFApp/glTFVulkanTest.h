@@ -19,6 +19,7 @@ public:
 
 protected:
     void RecordCommandBuffer(VkCommandBuffer command_buffer, unsigned image_index);
+    void DrawFrame();
     
     VkInstance instance;
     VkPhysicalDevice select_physical_device;
@@ -38,6 +39,12 @@ protected:
     VkPipeline pipeline;
     std::vector<VkFramebuffer> swap_chain_frame_buffers;
     VkCommandPool command_pool;
-    VkCommandBuffer command_buffer;
+    std::vector<VkCommandBuffer> command_buffers;
     VkCommandBufferBeginInfo begin_info;
+
+    std::vector<VkSemaphore> image_available_semaphores;
+    std::vector<VkSemaphore> render_finish_semaphores;
+    std::vector<VkFence> in_flight_fences;
+
+    unsigned current_frame {0};
 };
