@@ -20,6 +20,9 @@ public:
 protected:
     void RecordCommandBuffer(VkCommandBuffer command_buffer, unsigned image_index);
     void DrawFrame();
+    void CreateSwapChainAndRelativeResource();
+    void CleanupSwapChain();
+    void RecreateSwapChain();
     
     VkInstance instance;
     VkPhysicalDevice select_physical_device;
@@ -47,4 +50,5 @@ protected:
     std::vector<VkFence> in_flight_fences;
 
     unsigned current_frame {0};
+    bool window_resized {false};
 };

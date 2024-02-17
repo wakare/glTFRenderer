@@ -35,7 +35,8 @@ private:
     static void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
     static void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
     static void CursorPosCallback(GLFWwindow* window, double xpos, double ypos);
-
+    static void WindowResizedCallback(GLFWwindow* window, int width, int height);
+    
     GLFWwindow* m_glfw_window;
     int m_width;
     int m_height;

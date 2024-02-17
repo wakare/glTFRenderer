@@ -31,8 +31,6 @@ bool glTFWindow::InitAndShowWindow()
     
     // Do not create opengl context, otherwise swap chain creation will fail
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-    
     m_glfw_window = glfwCreateWindow(m_width, m_height, "glTFRenderer v0.01      by jackjwang", NULL, NULL);
     if (!m_glfw_window)
     {
@@ -48,6 +46,7 @@ bool glTFWindow::RegisterCallbackEventNative()
     glfwSetKeyCallback(m_glfw_window, KeyCallback);
     glfwSetMouseButtonCallback(m_glfw_window, MouseButtonCallback);
     glfwSetCursorPosCallback(m_glfw_window, CursorPosCallback);
+    glfwSetFramebufferSizeCallback(m_glfw_window, WindowResizedCallback);
     
     return true;
 }
@@ -129,4 +128,11 @@ void glTFWindow::MouseButtonCallback(GLFWwindow* window, int button, int action,
 void glTFWindow::CursorPosCallback(GLFWwindow* window, double xpos, double ypos)
 {   
     Get().m_input_control->RecordCursorPos(xpos, ypos);
+}
+
+void glTFWindow::WindowResizedCallback(GLFWwindow* window, int width, int height)
+{
+    // TODO: resized handle
+    Get().m_width = width;
+    Get().m_height = height;
 }

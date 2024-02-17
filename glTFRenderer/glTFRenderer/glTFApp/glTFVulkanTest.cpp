@@ -352,86 +352,51 @@ bool glTFVulkanTest::Init()
     vkGetDeviceQueue(logical_device, queue_family_indices.graphics_family.value(), 0, &graphics_queue);
     vkGetDeviceQueue(logical_device, queue_family_indices.present_family.value(), 0, &present_queue);
 
-    // Create SwapChain
     SwapChainSupportDetails detail = QuerySwapChainSupport(select_physical_device, surface);
-
-    VkSurfaceFormatKHR format = chooseSwapChainSurfaceFormat(detail.formats);
-    VkPresentModeKHR mode = chooseSwapChainPresentMode(detail.present_modes);
-    VkExtent2D extent = chooseSwapChainExtent(detail.capabilities);
-
-    // Add one image for back buffer, otherwise wait for last frame rendering
-    unsigned image_count = detail.capabilities.minImageCount + 1;
-    if (detail.capabilities.maxImageCount > 0 && image_count > detail.capabilities.maxImageCount)
-    {
-        image_count = detail.capabilities.maxImageCount;
-    }
-
-    VkSwapchainCreateInfoKHR create_swap_chain_info {};
-    create_swap_chain_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    create_swap_chain_info.surface = surface;
-    create_swap_chain_info.minImageCount = image_count;
-    create_swap_chain_info.imageFormat = format.format;
-    create_swap_chain_info.imageColorSpace = format.colorSpace;
-    create_swap_chain_info.imageExtent = extent;
-    create_swap_chain_info.imageArrayLayers = 1;
-    create_swap_chain_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    VkFormat color_attachment_format = chooseSwapChainSurfaceFormat(detail.formats).format;
     
-    if (queue_family_indices.graphics_family.value() != queue_family_indices.present_family.value())
-    {
-        unsigned family_indices[] = {queue_family_indices.graphics_family.value(), queue_family_indices.present_family.value()}; 
-        create_swap_chain_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-        create_swap_chain_info.queueFamilyIndexCount = 2;
-        create_swap_chain_info.pQueueFamilyIndices = family_indices;
-    }
-    else
-    {
-        create_swap_chain_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        create_swap_chain_info.queueFamilyIndexCount = 0;
-        create_swap_chain_info.pQueueFamilyIndices = nullptr;
-    }
+    // Create render pass
+    VkAttachmentDescription color_attachment {};
+    color_attachment.format = color_attachment_format;
+    color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    color_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    color_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    color_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    color_attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
-    create_swap_chain_info.preTransform = detail.capabilities.currentTransform;
-    create_swap_chain_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    create_swap_chain_info.presentMode = mode;
-    create_swap_chain_info.clipped = VK_TRUE;
-    create_swap_chain_info.oldSwapchain = VK_NULL_HANDLE;
+    VkAttachmentReference color_attachment_ref{};
+    color_attachment_ref.attachment = 0;
+    color_attachment_ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-    result = vkCreateSwapchainKHR(logical_device, &create_swap_chain_info, nullptr, &swap_chain);
+    VkSubpassDescription subpass {};
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.colorAttachmentCount = 1;
+    subpass.pColorAttachments = &color_attachment_ref;
+    
+    VkRenderPassCreateInfo create_render_pass_info{};
+    create_render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    create_render_pass_info.attachmentCount = 1;
+    create_render_pass_info.pAttachments = &color_attachment;
+    create_render_pass_info.subpassCount = 1;
+    create_render_pass_info.pSubpasses = &subpass;
+
+    VkSubpassDependency dependency {};
+    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+    dependency.dstSubpass = 0;
+    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.srcAccessMask = 0;
+    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+    create_render_pass_info.dependencyCount = 1;
+    create_render_pass_info.pDependencies = &dependency;
+    
+    result = vkCreateRenderPass(logical_device, &create_render_pass_info, nullptr, &render_pass);
     GLTF_CHECK(result == VK_SUCCESS);
-
-    unsigned swap_chain_image_count = 0;
-    vkGetSwapchainImagesKHR(logical_device, swap_chain, &swap_chain_image_count, nullptr);
-
-    if (swap_chain_image_count)
-    {
-        images.resize(swap_chain_image_count);
-        vkGetSwapchainImagesKHR(logical_device, swap_chain, &swap_chain_image_count, images.data());
-    }
-
-    swap_chain_format = format.format;
-    swap_chain_extent = extent; 
     
-    image_views.resize(images.size());
-    for (unsigned i = 0; i < image_count; ++i)
-    {
-        VkImageViewCreateInfo create_image_view_info{};
-        create_image_view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        create_image_view_info.image = images[i];
-        create_image_view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        create_image_view_info.format = swap_chain_format;
-        create_image_view_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-        create_image_view_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-        create_image_view_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-        create_image_view_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-        create_image_view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        create_image_view_info.subresourceRange.baseMipLevel = 0;
-        create_image_view_info.subresourceRange.levelCount = 1;
-        create_image_view_info.subresourceRange.baseArrayLayer = 0;
-        create_image_view_info.subresourceRange.layerCount = 1;
-
-        result = vkCreateImageView(logical_device, &create_image_view_info, nullptr, &image_views[i]);
-        GLTF_CHECK(result == VK_SUCCESS);
-    }
+    CreateSwapChainAndRelativeResource();
 
     // Create shader module
     std::vector<unsigned char> vertex_shader_binaries;
@@ -569,47 +534,6 @@ bool glTFVulkanTest::Init()
     result = vkCreatePipelineLayout(logical_device, &create_pipeline_layout_info, nullptr, &pipeline_layout);
     GLTF_CHECK(result == VK_SUCCESS);
 
-    // Create render pass
-    VkAttachmentDescription color_attachment {};
-    color_attachment.format = swap_chain_format;
-    color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    color_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    color_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    color_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    color_attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-    VkAttachmentReference color_attachment_ref{};
-    color_attachment_ref.attachment = 0;
-    color_attachment_ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-    VkSubpassDescription subpass {};
-    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpass.colorAttachmentCount = 1;
-    subpass.pColorAttachments = &color_attachment_ref;
-    
-    VkRenderPassCreateInfo create_render_pass_info{};
-    create_render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    create_render_pass_info.attachmentCount = 1;
-    create_render_pass_info.pAttachments = &color_attachment;
-    create_render_pass_info.subpassCount = 1;
-    create_render_pass_info.pSubpasses = &subpass;
-
-    VkSubpassDependency dependency {};
-    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-    dependency.dstSubpass = 0;
-    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependency.srcAccessMask = 0;
-    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-    create_render_pass_info.dependencyCount = 1;
-    create_render_pass_info.pDependencies = &dependency;
-    
-    result = vkCreateRenderPass(logical_device, &create_render_pass_info, nullptr, &render_pass);
-    GLTF_CHECK(result == VK_SUCCESS);
-
     // Create graphics pipeline
     VkGraphicsPipelineCreateInfo create_graphics_pipeline_info {};
     create_graphics_pipeline_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -632,26 +556,6 @@ bool glTFVulkanTest::Init()
     result = vkCreateGraphicsPipelines(logical_device, VK_NULL_HANDLE, 1, &create_graphics_pipeline_info, nullptr, &pipeline);
     GLTF_CHECK(result == VK_SUCCESS);
 
-    // Create frame buffers
-    swap_chain_frame_buffers.resize(image_views.size());
-
-    for (size_t i = 0; i < image_views.size(); ++i)
-    {
-        VkImageView attachments[] = {image_views[i]};
-
-        VkFramebufferCreateInfo framebuffer_create_info{};
-        framebuffer_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        framebuffer_create_info.renderPass = render_pass;
-        framebuffer_create_info.attachmentCount = 1;
-        framebuffer_create_info.pAttachments = attachments;
-        framebuffer_create_info.width = swap_chain_extent.width;
-        framebuffer_create_info.height = swap_chain_extent.height;
-        framebuffer_create_info.layers = 1;
-
-        result = vkCreateFramebuffer(logical_device, &framebuffer_create_info, nullptr, &swap_chain_frame_buffers[i]);
-        GLTF_CHECK(result == VK_SUCCESS);
-    }
-    
     // Create command pool
     VkCommandPoolCreateInfo create_command_pool_info{};
     create_command_pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -750,10 +654,24 @@ void glTFVulkanTest::RecordCommandBuffer(VkCommandBuffer command_buffer, unsigne
 void glTFVulkanTest::DrawFrame()
 {
     vkWaitForFences(logical_device, 1, &in_flight_fences[current_frame], VK_TRUE, UINT64_MAX);
-    vkResetFences(logical_device, 1, &in_flight_fences[current_frame]);
-
+    
     unsigned image_index;
-    vkAcquireNextImageKHR(logical_device, swap_chain, UINT64_MAX, image_available_semaphores[current_frame], VK_NULL_HANDLE, &image_index);
+    VkResult result = vkAcquireNextImageKHR(logical_device, swap_chain, UINT64_MAX, image_available_semaphores[current_frame], VK_NULL_HANDLE, &image_index);
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || window_resized)
+    {
+        // SwapChain is no longer available
+        RecreateSwapChain();
+        window_resized = false;
+        return;
+    }
+    else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
+    {
+        // format error
+        GLTF_CHECK(false);
+    }
+
+    vkResetFences(logical_device, 1, &in_flight_fences[current_frame]);
+    
     vkResetCommandBuffer(command_buffers[current_frame], 0);
 
     RecordCommandBuffer(command_buffers[current_frame], image_index);
@@ -774,7 +692,8 @@ void glTFVulkanTest::DrawFrame()
     submit_info.signalSemaphoreCount = 1;
     submit_info.pSignalSemaphores = signal_semaphores;
     
-    VkResult result = vkQueueSubmit(graphics_queue, 1, & submit_info, in_flight_fences[current_frame]);
+    result = vkQueueSubmit(graphics_queue, 1, & submit_info, in_flight_fences[current_frame]);
+    
     GLTF_CHECK(result == VK_SUCCESS); 
 
     VkPresentInfoKHR present_info{};
@@ -787,9 +706,152 @@ void glTFVulkanTest::DrawFrame()
     present_info.swapchainCount = 1;
     present_info.pImageIndices = &image_index;
     present_info.pResults = nullptr;
-    vkQueuePresentKHR(present_queue, &present_info);
+    
+    result = vkQueuePresentKHR(present_queue, &present_info);
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || window_resized)
+    {
+        RecreateSwapChain();
+        window_resized = false;
+        return;
+    }
     
     current_frame = (current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
+}
+
+void glTFVulkanTest::CreateSwapChainAndRelativeResource()
+{
+    const QueueFamilyIndices queue_family_indices = FindQueueFamily(select_physical_device, surface);
+    GLTF_CHECK(queue_family_indices.graphics_family.has_value());
+    
+    // Create SwapChain
+    SwapChainSupportDetails detail = QuerySwapChainSupport(select_physical_device, surface);
+
+    VkSurfaceFormatKHR format = chooseSwapChainSurfaceFormat(detail.formats);
+    VkPresentModeKHR mode = chooseSwapChainPresentMode(detail.present_modes);
+    VkExtent2D extent = chooseSwapChainExtent(detail.capabilities);
+
+    // Add one image for back buffer, otherwise wait for last frame rendering
+    unsigned image_count = detail.capabilities.minImageCount + 1;
+    if (detail.capabilities.maxImageCount > 0 && image_count > detail.capabilities.maxImageCount)
+    {
+        image_count = detail.capabilities.maxImageCount;
+    }
+
+    VkSwapchainCreateInfoKHR create_swap_chain_info {};
+    create_swap_chain_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    create_swap_chain_info.surface = surface;
+    create_swap_chain_info.minImageCount = image_count;
+    create_swap_chain_info.imageFormat = format.format;
+    create_swap_chain_info.imageColorSpace = format.colorSpace;
+    create_swap_chain_info.imageExtent = extent;
+    create_swap_chain_info.imageArrayLayers = 1;
+    create_swap_chain_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    
+    if (queue_family_indices.graphics_family.value() != queue_family_indices.present_family.value())
+    {
+        unsigned family_indices[] = {queue_family_indices.graphics_family.value(), queue_family_indices.present_family.value()}; 
+        create_swap_chain_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+        create_swap_chain_info.queueFamilyIndexCount = 2;
+        create_swap_chain_info.pQueueFamilyIndices = family_indices;
+    }
+    else
+    {
+        create_swap_chain_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        create_swap_chain_info.queueFamilyIndexCount = 0;
+        create_swap_chain_info.pQueueFamilyIndices = nullptr;
+    }
+
+    create_swap_chain_info.preTransform = detail.capabilities.currentTransform;
+    create_swap_chain_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    create_swap_chain_info.presentMode = mode;
+    create_swap_chain_info.clipped = VK_TRUE;
+    create_swap_chain_info.oldSwapchain = VK_NULL_HANDLE;
+
+    VkResult result = vkCreateSwapchainKHR(logical_device, &create_swap_chain_info, nullptr, &swap_chain);
+    GLTF_CHECK(result == VK_SUCCESS);
+
+    unsigned swap_chain_image_count = 0;
+    vkGetSwapchainImagesKHR(logical_device, swap_chain, &swap_chain_image_count, nullptr);
+
+    if (swap_chain_image_count)
+    {
+        images.resize(swap_chain_image_count);
+        vkGetSwapchainImagesKHR(logical_device, swap_chain, &swap_chain_image_count, images.data());
+    }
+
+    swap_chain_format = format.format;
+    swap_chain_extent = extent; 
+    
+    image_views.resize(images.size());
+    for (unsigned i = 0; i < image_count; ++i)
+    {
+        VkImageViewCreateInfo create_image_view_info{};
+        create_image_view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        create_image_view_info.image = images[i];
+        create_image_view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        create_image_view_info.format = swap_chain_format;
+        create_image_view_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+        create_image_view_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+        create_image_view_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+        create_image_view_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+        create_image_view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        create_image_view_info.subresourceRange.baseMipLevel = 0;
+        create_image_view_info.subresourceRange.levelCount = 1;
+        create_image_view_info.subresourceRange.baseArrayLayer = 0;
+        create_image_view_info.subresourceRange.layerCount = 1;
+
+        result = vkCreateImageView(logical_device, &create_image_view_info, nullptr, &image_views[i]);
+        GLTF_CHECK(result == VK_SUCCESS);
+    }
+
+    // Create frame buffers
+    swap_chain_frame_buffers.resize(image_views.size());
+
+    for (size_t i = 0; i < image_views.size(); ++i)
+    {
+        VkImageView attachments[] = {image_views[i]};
+
+        VkFramebufferCreateInfo framebuffer_create_info{};
+        framebuffer_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        framebuffer_create_info.renderPass = render_pass;
+        framebuffer_create_info.attachmentCount = 1;
+        framebuffer_create_info.pAttachments = attachments;
+        framebuffer_create_info.width = swap_chain_extent.width;
+        framebuffer_create_info.height = swap_chain_extent.height;
+        framebuffer_create_info.layers = 1;
+
+        result = vkCreateFramebuffer(logical_device, &framebuffer_create_info, nullptr, &swap_chain_frame_buffers[i]);
+        GLTF_CHECK(result == VK_SUCCESS);
+    }
+}
+
+void glTFVulkanTest::CleanupSwapChain()
+{
+    for (const auto& frame_buffer:swap_chain_frame_buffers)
+    {
+        vkDestroyFramebuffer(logical_device, frame_buffer, nullptr);
+    }
+
+    for (const auto& image_view : image_views)
+    {
+        vkDestroyImageView(logical_device, image_view, nullptr);    
+    }
+    vkDestroySwapchainKHR(logical_device, swap_chain, nullptr);
+}
+
+void glTFVulkanTest::RecreateSwapChain()
+{
+    vkDeviceWaitIdle(logical_device);
+    CleanupSwapChain();
+
+    while (glTFWindow::Get().GetWidth() == 0 || glTFWindow::Get().GetHeight() == 0)
+    {
+        // Special case : minimization, wait for resize window
+        Sleep(100);
+        glfwWaitEvents();
+    }
+    
+    CreateSwapChainAndRelativeResource();
 }
 
 bool glTFVulkanTest::Update()
@@ -811,11 +873,10 @@ bool glTFVulkanTest::UnInit()
 
     // No need to free command buffer when command pool is freed
     vkDestroyCommandPool(logical_device, command_pool, nullptr);
+
+    CleanupSwapChain();
     
-    for (const auto& frame_buffer:swap_chain_frame_buffers)
-    {
-        vkDestroyFramebuffer(logical_device, frame_buffer, nullptr);
-    }
+    
     
     vkDestroyPipeline(logical_device, pipeline, nullptr);
     vkDestroyRenderPass(logical_device, render_pass, nullptr);
@@ -823,12 +884,6 @@ bool glTFVulkanTest::UnInit()
     vkDestroyShaderModule(logical_device, fragment_shader_module, nullptr);
     vkDestroyShaderModule(logical_device, vertex_shader_module, nullptr);
     
-    for (const auto& image_view : image_views)
-    {
-        vkDestroyImageView(logical_device, image_view, nullptr);    
-    }
-    
-    vkDestroySwapchainKHR(logical_device, swap_chain, nullptr);
     vkDestroySurfaceKHR(instance, surface, nullptr);
     vkDestroyDevice(logical_device, nullptr);
     vkDestroyInstance(instance, nullptr);    
