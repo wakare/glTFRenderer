@@ -6,15 +6,6 @@
 
 class DX12Shader : public IRHIShader
 {
-public:
-    DX12Shader();
-    virtual ~DX12Shader() override;
-    
-    const std::vector<unsigned char>& GetShaderByteCode() const;  
-    
-    virtual bool InitShader(const std::string& shader_file_path, RHIShaderType type, const std::string& entry_function_name) override;
-    virtual bool CompileShader() override;
-    
-private:
-    std::vector<unsigned char> m_shader_byte_code;
+protected:
+    virtual bool CompileSpirV() override;
 };

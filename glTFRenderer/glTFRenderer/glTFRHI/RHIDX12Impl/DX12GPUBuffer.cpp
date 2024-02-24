@@ -6,6 +6,7 @@
 #include "DX12Utils.h"
 #include <d3d12.h>
 
+#include "DX12ConverterUtils.h"
 #include "DX12Device.h"
 #include "DX12GPUBufferManager.h"
 

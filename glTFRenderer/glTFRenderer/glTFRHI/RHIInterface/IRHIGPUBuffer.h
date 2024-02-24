@@ -5,42 +5,6 @@
 
 class IRHIGPUBufferManager;
 
-enum class RHIBufferResourceType
-{
-    Buffer,
-    Tex1D,
-    Tex2D,
-    Tex3D,
-};
-
-enum class RHIBufferType
-{
-    Default,
-    Upload,
-};
-
-enum class RHIBufferUsage
-{
-    NONE,
-    ALLOW_UNORDER_ACCESS,
-};
-
-struct RHIBufferDesc
-{
-    std::wstring name;
-    size_t width {0};
-    size_t height {0};
-    size_t depth {0};
-    
-    RHIBufferType type ;
-    RHIDataFormat resource_data_type;
-    RHIBufferResourceType resource_type;
-    RHIResourceStateType state {RHIResourceStateType::STATE_COMMON};
-    RHIBufferUsage usage {RHIBufferUsage::NONE};
-    
-    size_t alignment {0};
-};
-
 class IRHIGPUBuffer : public IRHIResource
 {
 public:

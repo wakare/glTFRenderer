@@ -3,8 +3,6 @@
 #include "IRHIFactory.h"
 #include <Windows.h>
 
-class glTFWindow;
-
 class IRHISwapChain : public IRHIResource
 {
 public:

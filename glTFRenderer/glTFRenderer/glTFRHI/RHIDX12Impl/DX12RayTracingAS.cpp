@@ -1,5 +1,6 @@
 ﻿#include "DX12RayTracingAS.h"
 
+#include "DX12ConverterUtils.h"
 #include "glTFRenderPass/glTFRenderMeshManager.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 

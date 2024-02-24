@@ -2,6 +2,7 @@
 
 #include "DX12RenderTargetManager.h"
 #include "DX12CommandList.h"
+#include "DX12ConverterUtils.h"
 #include "DX12DescriptorHeap.h"
 #include "DX12Utils.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"

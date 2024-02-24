@@ -23,8 +23,6 @@ bool glTFGraphicsPassTestTriangle::PreRenderPass(glTFRenderResourceManager& reso
     RETURN_IF_FALSE(glTFGraphicsPassBase::PreRenderPass(resource_manager))
 
     auto& command_list = resource_manager.GetCommandListForRecord();
-    //RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, resource_manager.GetCurrentFrameSwapchainRT(),
-    //    RHIResourceStateType::STATE_PRESENT, RHIResourceStateType::STATE_RENDER_TARGET))
     
     RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().BindRenderTarget(command_list,
         {&resource_manager.GetCurrentFrameSwapchainRT()}, nullptr))
@@ -51,10 +49,6 @@ bool glTFGraphicsPassTestTriangle::PostRenderPass(glTFRenderResourceManager& res
 {
     RETURN_IF_FALSE(glTFGraphicsPassBase::PostRenderPass(resource_manager))
 
-    auto& command_list = resource_manager.GetCommandListForRecord();
-    //RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, resource_manager.GetCurrentFrameSwapchainRT(),
-    //    RHIResourceStateType::STATE_RENDER_TARGET, RHIResourceStateType::STATE_PRESENT))
-    
     return true;
 }
 

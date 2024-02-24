@@ -6,41 +6,6 @@
 #include "IRHIDevice.h"
 #include "IRHIResource.h"
 
-enum class RHIRootParameterDescriptorRangeType
-{
-    CBV,
-    SRV,
-    UAV,
-    Unknown,
-};
-
-enum class RHIShaderRegisterType
-{
-    b,
-    t,
-    u,
-    Unknown,
-};
-
-struct RHIRootParameterDescriptorRangeDesc
-{
-    RHIRootParameterDescriptorRangeType type {RHIRootParameterDescriptorRangeType::Unknown} ;
-    REGISTER_INDEX_TYPE base_register_index {0};
-    unsigned space;
-    size_t descriptor_count {0};
-    bool is_bindless_range {false};
-};
-
-enum class RHIRootParameterType
-{
-    Constant, // 32 bit constant value
-    CBV,
-    SRV,
-    UAV,
-    DescriptorTable,
-    Unknown, // Init as unknown, must be reset to other type
-};
-
 class IRHIRootParameter : public IRHIResource
 {
 public:
@@ -55,24 +20,6 @@ protected:
     void SetType(RHIRootParameterType type) {assert(m_type == RHIRootParameterType::Unknown); m_type = type;}
     
     RHIRootParameterType m_type;
-};
-
-enum class RHIStaticSamplerAddressMode
-{
-    Warp,
-    Mirror,
-    Clamp,
-    Border,
-    MirrorOnce,
-    Unknown,
-};
-
-enum class RHIStaticSamplerFilterMode
-{
-    Point,
-    Linear,
-    Anisotropic,
-    Unknown,
 };
 
 class IRHIStaticSampler : public IRHIResource
@@ -91,13 +38,6 @@ protected:
     REGISTER_INDEX_TYPE m_registerIndex;
     RHIStaticSamplerAddressMode m_addressMode;
     RHIStaticSamplerFilterMode m_filterMode;
-};
-
-enum class RHIRootSignatureUsage
-{
-    None,
-    Default,
-    LocalRS,
 };
 
 class IRHIRootSignature : public IRHIResource

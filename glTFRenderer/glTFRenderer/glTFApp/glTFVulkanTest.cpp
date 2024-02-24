@@ -4,9 +4,10 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #define GLFW_EXPOSE_NATIVE_WIN32
+#include <GLFW/glfw3native.h>
+
 #include <algorithm>
 #include <set>
-#include <GLFW/glfw3native.h>
 
 #include "glTFShaderUtils/glTFShaderUtils.h"
 #include "glTFWindow/glTFWindow.h"

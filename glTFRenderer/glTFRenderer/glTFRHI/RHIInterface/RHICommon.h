@@ -1,13 +1,45 @@
 #pragma once
 #include <cassert>
-#include <stdexcept>
+#include <map>
 
 #include "glTFUtils/glTFLog.h"
 #include "glTFUtils/glTFUtils.h"
+#include "glm.hpp"
+
+typedef uint64_t RHIGPUDescriptorHandle;
+typedef uint64_t RHICPUDescriptorHandle;
+
+#define REGISTER_INDEX_TYPE unsigned 
 
 enum RHICommonEnum
 {
     RHI_Unknown = 123456,
+};
+
+enum class RHISampleCount
+{
+    SAMPLE_1_BIT,
+    SAMPLE_2_BIT,
+    SAMPLE_4_BIT,
+    SAMPLE_8_BIT,
+    SAMPLE_16_BIT,
+    SAMPLE_32_BIT,
+    SAMPLE_64_BIT,
+};
+
+enum class RHIAttachmentLoadOp
+{
+    LOAD_OP_LOAD,
+    LOAD_OP_CLEAR,
+    LOAD_OP_DONT_CARE,
+    LOAD_OP_NONE,
+};
+
+enum class RHIAttachmentStoreOp
+{
+    STORE_OP_STORE,
+    STORE_OP_DONT_CARE,
+    STORE_OP_NONE,
 };
 
 enum class RHIResourceStateType
@@ -96,6 +128,7 @@ struct RHIRect
     long    right;
     long    bottom;
 };
+typedef RHIRect RHIScissorRectDesc;
 
 struct RHIViewportDesc
 {
@@ -142,12 +175,433 @@ struct RHIShaderResourceViewDesc
     bool use_count_buffer;
     unsigned count_buffer_offset;
 };
+struct RHITextureDesc
+{
+public:
+    RHITextureDesc();
+    RHITextureDesc(const RHITextureDesc&) = delete;
+    RHITextureDesc(RHITextureDesc&&) = delete;
 
-typedef RHIRect RHIScissorRectDesc;
-typedef uint64_t RHIGPUDescriptorHandle;
-typedef uint64_t RHICPUDescriptorHandle;
+    RHITextureDesc& operator=(const RHITextureDesc&) = delete;
+    RHITextureDesc& operator=(RHITextureDesc&&) = delete;
+    
+    bool Init(unsigned width, unsigned height, RHIDataFormat format);
+    
+    unsigned char* GetTextureData() const { return m_texture_data.get(); }
+    size_t GetTextureDataSize() const { return m_texture_data_size; }
+    RHIDataFormat GetDataFormat() const { return m_texture_format; }
+    unsigned GetTextureWidth() const { return m_texture_width; }
+    unsigned GetTextureHeight() const { return m_texture_height; }
 
-#define REGISTER_INDEX_TYPE unsigned 
+    void SetDataFormat(RHIDataFormat format) { m_texture_format = format;}
+    
+private:
+    std::unique_ptr<unsigned char[]> m_texture_data;
+    size_t m_texture_data_size;
+    unsigned m_texture_width;
+    unsigned m_texture_height;
+    RHIDataFormat m_texture_format;
+};
+
+
+enum class RHISubPassBindPoint
+{
+    GRAPHICS,
+    COMPUTE,
+    RAYTRACING,
+};
+
+enum class RHIImageLayout
+{
+    UNDEFINED,
+    GENERAL,
+    COLOR_ATTACHMENT,
+};
+
+struct RHISubPassAttachment
+{
+    unsigned attachment_index;
+    RHIImageLayout attachment_layout;
+};
+
+struct RHISubPassInfo
+{
+    RHISubPassBindPoint bind_point;
+    std::vector<RHISubPassAttachment> color_attachments;
+};
+
+struct RHIShaderTableRecordBase
+{
+    virtual ~RHIShaderTableRecordBase() = default;
+
+    virtual void* GetData() { return nullptr; }
+    virtual size_t GetSize() { return 0; }
+};
+
+enum class RHIShaderType
+{
+    Vertex,
+    Pixel,
+    Compute,
+    RayTracing,
+    Unknown,
+};
+
+struct RHIShaderPreDefineMacros
+{
+    void AddMacro(const std::string& key, const std::string& value)
+    {
+        macroKey.push_back(key);
+        macroValue.push_back(value);
+    }
+
+    void AddCBVRegisterDefine(const std::string& key, unsigned register_index, unsigned space = 0)
+    {
+        char format_string[32] = {'\0'};
+        (void)snprintf(format_string, sizeof(format_string), "register(b%u, space%u)", register_index, space);
+        AddMacro(key, format_string);
+    }
+    
+    void AddSRVRegisterDefine(const std::string& key, unsigned register_index, unsigned space = 0)
+    {
+        char format_string[32] = {'\0'};
+        (void)snprintf(format_string, sizeof(format_string), "register(t%u, space%u)", register_index, space);
+        AddMacro(key, format_string);
+    }
+    
+    void AddUAVRegisterDefine(const std::string& key, unsigned register_index, unsigned space = 0)
+    {
+        char format_string[32] = {'\0'};
+        (void)snprintf(format_string, sizeof(format_string), "register(u%u, space%u)", register_index, space);
+        AddMacro(key, format_string);
+    }
+
+    void AddSamplerRegisterDefine(const std::string& key, unsigned register_index, unsigned space = 0)
+    {
+        char format_string[32] = {'\0'};
+        (void)snprintf(format_string, sizeof(format_string), "register(s%u, space%u)", register_index, space);
+        AddMacro(key, format_string);
+    }
+    
+    std::vector<std::string> macroKey;
+    std::vector<std::string> macroValue;
+};
+
+enum class RHIRootParameterDescriptorRangeType
+{
+    CBV,
+    SRV,
+    UAV,
+    Unknown,
+};
+
+enum class RHIShaderRegisterType
+{
+    b,
+    t,
+    u,
+    Unknown,
+};
+
+struct RHIRootParameterDescriptorRangeDesc
+{
+    RHIRootParameterDescriptorRangeType type {RHIRootParameterDescriptorRangeType::Unknown} ;
+    REGISTER_INDEX_TYPE base_register_index {0};
+    unsigned space;
+    size_t descriptor_count {0};
+    bool is_bindless_range {false};
+};
+
+enum class RHIRootParameterType
+{
+    Constant, // 32 bit constant value
+    CBV,
+    SRV,
+    UAV,
+    DescriptorTable,
+    Unknown, // Init as unknown, must be reset to other type
+};
+
+struct RootSignatureAllocation
+{
+    RootSignatureAllocation()
+        : parameter_index(0)
+        , register_index(0)
+        , space(0)
+    {
+    }
+
+    unsigned parameter_index;
+    unsigned register_index;
+    unsigned space;
+};
+
+enum class RHIStaticSamplerAddressMode
+{
+    Warp,
+    Mirror,
+    Clamp,
+    Border,
+    MirrorOnce,
+    Unknown,
+};
+
+enum class RHIStaticSamplerFilterMode
+{
+    Point,
+    Linear,
+    Anisotropic,
+    Unknown,
+};
+
+enum class RHIRootSignatureUsage
+{
+    None,
+    Default,
+    LocalRS,
+};
+
+
+struct RootSignatureStaticSamplerElement
+{
+    std::string sampler_name;
+    unsigned sample_index;
+    RHIStaticSamplerAddressMode address_mode;
+    RHIStaticSamplerFilterMode filter_mode;
+};
+
+struct RootSignatureParameterElement
+{
+    std::string name;
+    unsigned parameter_index;
+    std::pair<unsigned, unsigned> register_range;
+    unsigned space;
+    unsigned constant_value_count;
+    RHIRootParameterDescriptorRangeType table_type;
+    bool is_bindless;
+};
+
+struct RootSignatureLayout
+{
+    RootSignatureLayout()
+        : last_parameter_index(0)
+    {
+    }
+
+    std::map<RHIRootParameterType, std::vector<RootSignatureParameterElement>> parameter_elements;
+    std::vector<RootSignatureStaticSamplerElement> sampler_elements;
+
+    std::map<RHIShaderRegisterType, unsigned> last_register_index;
+    unsigned last_parameter_index;
+    
+    unsigned ParameterCount() const { return last_parameter_index; }
+    unsigned SamplerCount() const {return sampler_elements.size(); }
+};
+
+struct IRHIDepthStencilClearValue
+{
+    float clear_depth;
+    unsigned char clear_stencil_value;
+};
+
+struct RHIRenderTargetClearValue
+{
+    RHIDataFormat clear_format;
+    union 
+    {
+        glm::vec4 clear_color;
+        IRHIDepthStencilClearValue clearDS;
+    };
+};
+
+enum class RHIRenderTargetType
+{
+    RTV,
+    DSV,
+    Unknown,
+};
+
+struct IRHIRenderTargetDesc
+{
+    unsigned width;
+    unsigned height;
+    bool isUAV;
+    RHIRenderTargetClearValue clearValue;
+    std::string name;
+};
+
+typedef unsigned RTID; 
+
+struct RHIPipelineInputLayout
+{
+    std::string semanticName;
+    unsigned semanticIndex;
+    RHIDataFormat format;
+    unsigned alignedByteOffset;
+
+    unsigned slot;
+
+    bool IsVertexData() const {return slot == 0; }
+};
+
+enum class IRHICullMode
+{
+    NONE,
+    CW,
+    CCW,
+};
+
+enum class IRHIDepthStencilMode
+{
+    DEPTH_READ,
+    DEPTH_WRITE,
+};
+
+enum class RHIPipelineType
+{
+    Graphics,
+    Compute,
+    RayTracing,
+    //Copy,
+    Unknown,
+};
+
+enum class RHIBufferResourceType
+{
+    Buffer,
+    Tex1D,
+    Tex2D,
+    Tex3D,
+};
+
+enum class RHIBufferType
+{
+    Default,
+    Upload,
+};
+
+enum class RHIBufferUsage
+{
+    NONE,
+    ALLOW_UNORDER_ACCESS,
+};
+
+struct RHIBufferDesc
+{
+    std::wstring name;
+    size_t width {0};
+    size_t height {0};
+    size_t depth {0};
+    
+    RHIBufferType type ;
+    RHIDataFormat resource_data_type;
+    RHIBufferResourceType resource_type;
+    RHIResourceStateType state {RHIResourceStateType::STATE_COMMON};
+    RHIBufferUsage usage {RHIBufferUsage::NONE};
+    
+    size_t alignment {0};
+};
+
+struct RHIDescriptorHeapDesc
+{
+    unsigned maxDescriptorCount;
+    RHIDescriptorHeapType type;
+    bool shaderVisible;
+};
+
+struct RHIIndirectArgumentDraw
+{
+    unsigned VertexCountPerInstance;
+    unsigned InstanceCount;
+    unsigned StartVertexLocation;
+    unsigned StartInstanceLocation;
+};
+
+struct RHIIndirectArgumentDrawIndexed
+{
+    unsigned IndexCountPerInstance;
+    unsigned InstanceCount;
+    unsigned StartIndexLocation;
+    unsigned BaseVertexLocation;
+    unsigned StartInstanceLocation;
+};
+
+struct RHIIndirectArgumentDispatch
+{
+    unsigned ThreadGroupCountX;
+    unsigned ThreadGroupCountY;
+    unsigned ThreadGroupCountZ;
+};
+
+struct RHIIndirectArgumentView
+{
+    RHIGPUDescriptorHandle handle;
+};
+
+enum class RHIIndirectArgType
+{
+    Draw,
+    DrawIndexed,
+    Dispatch,
+    VertexBufferView,
+    IndexBufferView,
+    Constant,
+    ConstantBufferView,
+    ShaderResourceView,
+    UnOrderAccessView,
+    DispatchRays,
+    DispatchMesh
+};
+
+struct RHIIndirectArgumentDesc
+{
+    RHIIndirectArgType type;
+
+    union 
+    {
+        struct 
+        {
+            unsigned slot;    
+        } vertex_buffer;
+
+        struct 
+        {
+            unsigned root_parameter_index;
+            unsigned dest_offset_in_32bit_value;
+            unsigned num_32bit_values_to_set;
+        } constant;
+
+        struct
+        {
+            unsigned root_parameter_index;
+        } constant_buffer_view;
+        
+        struct
+        {
+            unsigned root_parameter_index;
+        } shader_resource_view;
+        
+        struct
+        {
+            unsigned root_parameter_index;
+        } unordered_access_view;
+    } desc;
+};
+
+struct IRHICommandSignatureDesc
+{
+    std::vector<RHIIndirectArgumentDesc> m_indirect_arguments;
+    unsigned stride;
+};
+
+enum class RHICommandAllocatorType
+{
+    DIRECT,
+    COMPUTE,
+    COPY,
+    BUNDLE,
+    UNKNOWN,
+};
 
 #define THROW_IF_FAILED(x) \
     { \

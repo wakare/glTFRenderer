@@ -1,0 +1,16 @@
+#pragma once
+#include <vulkan/vulkan_core.h>
+
+#include "glTFRHI/RHIInterface/IRHISubPass.h"
+
+class VKSubPass : public IRHISubPass
+{
+public:
+    VKSubPass();
+    
+    virtual bool InitSubPass(const RHISubPassInfo& sub_pass_info) override;
+    VkSubpassDescription GetSubPassDescription() const;
+    
+protected:
+    VkSubpassDescription m_subpass_description;
+};

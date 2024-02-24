@@ -1,5 +1,6 @@
 #include "DX12IndexBufferView.h"
 
+#include "DX12ConverterUtils.h"
 #include "DX12GPUBuffer.h"
 #include "DX12Utils.h"
 

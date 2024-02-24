@@ -8,15 +8,6 @@
 
 class IRHIRenderTarget;
 
-enum class RHIPipelineType
-{
-    Graphics,
-    Compute,
-    RayTracing,
-    //Copy,
-    Unknown,
-};
-
 #define DECLARE_INPUT_LAYOUT_SEMANTIC_NAME(x) static const char* g_inputLayoutName##x = #x;
 DECLARE_INPUT_LAYOUT_SEMANTIC_NAME(POSITION)
 DECLARE_INPUT_LAYOUT_SEMANTIC_NAME(NORMAL)
@@ -24,31 +15,6 @@ DECLARE_INPUT_LAYOUT_SEMANTIC_NAME(TANGENT)
 DECLARE_INPUT_LAYOUT_SEMANTIC_NAME(TEXCOORD)
 
 #define INPUT_LAYOUT_UNIQUE_PARAMETER(x) (g_inputLayoutName##x)
-
-struct RHIPipelineInputLayout
-{
-    std::string semanticName;
-    unsigned semanticIndex;
-    RHIDataFormat format;
-    unsigned alignedByteOffset;
-
-    unsigned slot;
-
-    bool IsVertexData() const {return slot == 0; }
-};
-
-enum class IRHICullMode
-{
-    NONE,
-    CW,
-    CCW,
-};
-
-enum class IRHIDepthStencilMode
-{
-    DEPTH_READ,
-    DEPTH_WRITE,
-};
 
 class IRHIPipelineStateObject : public IRHIResource
 {

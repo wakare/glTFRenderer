@@ -2,8 +2,6 @@
 #include "IRHIDevice.h"
 #include "IRHIResource.h"
 
-struct RHIBufferDesc;
-
 // Hold descriptor heap which store cbv for gpu memory
 class IRHIGPUBufferManager : public IRHIResource
 {

@@ -2,15 +2,6 @@
 #include "IRHIDevice.h"
 #include "IRHIResource.h"
 
-enum class RHICommandAllocatorType
-{
-    DIRECT,
-    COMPUTE,
-    COPY,
-    BUNDLE,
-    UNKNOWN,
-};
-
 class IRHICommandAllocator : public IRHIResource
 {
 public:

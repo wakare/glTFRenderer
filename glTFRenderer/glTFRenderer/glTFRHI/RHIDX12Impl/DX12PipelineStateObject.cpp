@@ -1,5 +1,6 @@
 #include "DX12PipelineStateObject.h"
 #include "d3dx12.h"
+#include "DX12ConverterUtils.h"
 
 #include "DX12Device.h"
 #include "DX12RootSignature.h"

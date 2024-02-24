@@ -5,13 +5,6 @@
 class IRHIRenderTarget;
 class IRHIGPUBuffer;
 
-struct RHIDescriptorHeapDesc
-{
-    unsigned maxDescriptorCount;
-    RHIDescriptorHeapType type;
-    bool shaderVisible;
-};
-
 class IRHIDescriptorHeap: public IRHIResource
 {
 public:

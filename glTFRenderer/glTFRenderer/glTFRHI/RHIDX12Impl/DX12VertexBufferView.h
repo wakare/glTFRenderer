@@ -1,7 +1,7 @@
 #pragma once
 #include <d3d12.h>
 
-#include "../RHIInterface/IRHIVertexBufferView.h"
+#include "glTFRHI/RHIInterface/IRHIVertexBufferView.h"
 
 class DX12VertexBufferView : public IRHIVertexBufferView
 {

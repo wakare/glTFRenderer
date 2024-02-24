@@ -1,5 +1,6 @@
 #include "DX12CommandSignature.h"
 
+#include "DX12ConverterUtils.h"
 #include "DX12Device.h"
 #include "DX12RootSignature.h"
 #include "DX12Utils.h"
