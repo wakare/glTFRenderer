@@ -30,16 +30,19 @@ IRHIGraphicsPipelineStateObject& glTFGraphicsPassBase::GetGraphicsPipelineStateO
     return dynamic_cast<IRHIGraphicsPipelineStateObject&>(*m_pipeline_state_object);
 }
 
+IRHICullMode glTFGraphicsPassBase::GetCullMode()
+{
+    return IRHICullMode::NONE;
+}
+
 bool glTFGraphicsPassBase::SetupPipelineStateObject(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFRenderPassBase::SetupPipelineStateObject(resource_manager))
 
-    // Set shader macro based vertex attributes
-    RETURN_IF_FALSE(GetGraphicsPipelineStateObject().BindInputLayoutAndSetShaderMacros(GetVertexInputLayout(resource_manager)))
     RETURN_IF_FALSE(GetGraphicsPipelineStateObject().BindSwapChain(resource_manager.GetSwapchain()))
 
     // glTF using CCW as front face
-    GetGraphicsPipelineStateObject().SetCullMode(IRHICullMode::CW);
+    GetGraphicsPipelineStateObject().SetCullMode(GetCullMode());
     
     return true;
 }

@@ -206,13 +206,6 @@ DX12RootSignature::DX12RootSignature()
 
 bool DX12RootSignature::InitRootSignature(IRHIDevice& device)
 {
-    if (!IsSpaceAllocated())
-    {
-        // Allocate space before init root signature!!
-        assert(false);
-        return false;
-    }
-
     // Fill root parameters and static samplers
     std::vector<D3D12_ROOT_PARAMETER1> dxRootParameters(m_rootParameters.size());
     for (size_t i = 0; i < dxRootParameters.size(); ++i)
@@ -221,8 +214,8 @@ bool DX12RootSignature::InitRootSignature(IRHIDevice& device)
         dxRootParameters[i] = dxRootParameter->GetParameter();
     }
 
-    m_description.pParameters = dxRootParameters.data();
-    m_description.NumParameters = m_rootParameters.size();
+    m_description.pParameters = dxRootParameters.empty() ? nullptr : dxRootParameters.data();
+    m_description.NumParameters = dxRootParameters.size();
     
     std::vector<D3D12_STATIC_SAMPLER_DESC> dxStaticSamplers(m_staticSampler.size());
     for (size_t i = 0; i < m_staticSampler.size(); ++i)
@@ -231,8 +224,8 @@ bool DX12RootSignature::InitRootSignature(IRHIDevice& device)
         dxStaticSamplers[i] = dxStaticSampler->GetStaticSamplerDesc();
     }
 
-    m_description.pStaticSamplers = dxStaticSamplers.data();
-    m_description.NumStaticSamplers = m_staticSampler.size();
+    m_description.pStaticSamplers = dxStaticSamplers.empty() ? nullptr : dxStaticSamplers.data();
+    m_description.NumStaticSamplers = dxStaticSamplers.size();
     
     // TODO: This flag should be passed by application
     if (m_usage == RHIRootSignatureUsage::Default)

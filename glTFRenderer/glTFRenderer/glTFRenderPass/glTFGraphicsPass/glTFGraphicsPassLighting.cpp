@@ -127,7 +127,7 @@ bool glTFGraphicsPassLighting::SetupPipelineStateObject(glTFRenderResourceManage
 
     std::vector<IRHIRenderTarget*> render_targets;
     render_targets.push_back(&resource_manager.GetCurrentFrameSwapchainRT());
-    GetGraphicsPipelineStateObject().BindRenderTargets(render_targets);
+    GetGraphicsPipelineStateObject().BindRenderTargetFormats(render_targets);
     
     m_base_pass_color_RT = resource_manager.GetRenderTargetManager().GetRenderTargetWithTag("BasePassColor");
     RETURN_IF_FALSE(m_main_descriptor_heap->CreateShaderResourceViewInDescriptorHeap(resource_manager.GetDevice(), m_main_descriptor_heap->GetUsedDescriptorCount(),

@@ -51,3 +51,9 @@ public:
 protected:
     bool m_use_restir_direct_lighting;
 };
+
+class glTFAppRenderPipelineTestTriangle : public glTFAppRenderPipelineBase
+{
+public:
+    virtual bool SetupRenderPipeline() override;
+};

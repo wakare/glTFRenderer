@@ -141,6 +141,7 @@
     <ClCompile Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassPostprocess.cpp" />
     <ClCompile Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassMeshDepth.cpp" />
     <ClCompile Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassMeshOpaque.cpp" />
+    <ClCompile Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassTestTriangle.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassBase.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassPathTracing.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassReSTIRDirectLighting.cpp" />
@@ -188,8 +189,8 @@
     <None Include="glTFResources\ShaderSource\ComputeShader\ReSTIRDirectLightingCS.hlsl" />
     <None Include="glTFResources\ShaderSource\RayTracing\ReSTIRDirectLighting.hlsl" />
     <None Include="glTFResources\ShaderSource\Math\ReservoirSample.hlsl" />
-    <None Include="glTFResources\ShaderSource\TestShaders\VulkanTestFrag.hlsl" />
-    <None Include="glTFResources\ShaderSource\TestShaders\VulkanTestVert.hlsl" />
+    <None Include="glTFResources\ShaderSource\TestShaders\TestTriangleFrag.hlsl" />
+    <None Include="glTFResources\ShaderSource\TestShaders\TestTriangleVert.hlsl" />
     <ClCompile Include="glTFRHI\RHIConfigSingleton.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12CommandSignature.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12DescriptorHeap.cpp" />
@@ -291,6 +292,7 @@
     <ClInclude Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassPostprocess.h" />
     <ClInclude Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassMeshDepth.h" />
     <ClInclude Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassMeshOpaque.h" />
+    <ClInclude Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassTestTriangle.h" />
     <ClInclude Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassBase.h" />
     <ClInclude Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassPathTracing.h" />
     <ClInclude Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassReSTIRDirectLighting.h" />

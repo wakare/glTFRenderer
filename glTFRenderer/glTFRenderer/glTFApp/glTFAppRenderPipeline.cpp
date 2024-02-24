@@ -12,6 +12,7 @@
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassMeshOpaque.h"
 #include "glTFRenderPass/glTFRayTracingPass/glTFRayTracingPassPathTracing.h"
 #include "glTFRenderPass/glTFRayTracingPass/glTFRayTracingPassReSTIRDirectLighting.h"
+#include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassTestTriangle.h"
 #include "glTFWindow/glTFWindow.h"
 
 glTFAppRenderPipelineBase::glTFAppRenderPipelineBase()
@@ -119,6 +120,14 @@ bool glTFAppRenderPipelineRayTracingScene::SetupRenderPipeline()
     
     std::unique_ptr<glTFComputePassRayTracingPostprocess> ray_tracing_postprocess = std::make_unique<glTFComputePassRayTracingPostprocess>();
     m_pass_manager->AddRenderPass(std::move(ray_tracing_postprocess));
+
+    return true;
+}
+
+bool glTFAppRenderPipelineTestTriangle::SetupRenderPipeline()
+{
+    std::unique_ptr<glTFGraphicsPassTestTriangle> culling_pass = std::make_unique<glTFGraphicsPassTestTriangle>();
+    m_pass_manager->AddRenderPass(std::move(culling_pass));
 
     return true;
 }

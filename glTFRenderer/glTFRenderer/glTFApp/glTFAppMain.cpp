@@ -35,6 +35,7 @@ size_t glTFTimer::GetDeltaFrameTimeMs() const
 glTFCmdArgumentProcessor::glTFCmdArgumentProcessor(int argc, char** argv)
     : raster_scene(true)
     , vulkan_test(false)
+    , test_triangle_pass(false)
 {
     for (int i = 0; i < argc; ++i)
     {
@@ -48,6 +49,11 @@ glTFCmdArgumentProcessor::glTFCmdArgumentProcessor(int argc, char** argv)
         {
             vulkan_test = true;
         }
+
+        if (strcmp(argument, "test_triangle_pass") == 0)
+        {
+            test_triangle_pass = true;
+        }
     }
 }
 
@@ -56,8 +62,10 @@ glTFAppMain::glTFAppMain(int argc, char* argv[])
     // Parse command arguments
     const glTFCmdArgumentProcessor cmd_processor(argc, argv);
     m_raster_scene = cmd_processor.IsRasterScene();
-    m_ReSTIR = true;
     m_vulkan_test = cmd_processor.IsVulkanTest();
+    m_test_triangle_pass = cmd_processor.IsTestTrianglePass();
+    
+    m_ReSTIR = true;
     m_recreate_renderer = true;
     
     // Init window
@@ -211,6 +219,8 @@ bool glTFAppMain::InitRenderer()
     glTFAppRendererConfig renderer_config;
     renderer_config.raster = m_raster_scene;
     renderer_config.ReSTIR = m_ReSTIR;
+    renderer_config.test_triangle_pass = m_test_triangle_pass;
+    renderer_config.vulkan = m_vulkan_test;
     
     m_renderer.reset(new glTFAppRenderer(renderer_config, glTFWindow::Get()));
     m_renderer->InitMeshResourceWithSceneGraph(*m_scene_graph);

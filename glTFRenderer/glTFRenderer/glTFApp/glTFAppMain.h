@@ -19,12 +19,14 @@ class glTFCmdArgumentProcessor
 public:
     glTFCmdArgumentProcessor(int argc, char** argv);
 
-    bool IsRasterScene() const {return raster_scene; }
-    bool IsVulkanTest() const {return vulkan_test; } 
+    bool IsRasterScene() const { return raster_scene; }
+    bool IsVulkanTest() const { return vulkan_test; }
+    bool IsTestTrianglePass() const { return test_triangle_pass; }
     
 private:
     bool raster_scene;
     bool vulkan_test;
+    bool test_triangle_pass;
 };
 
 class glTFAppMain
@@ -60,6 +62,7 @@ protected:
     bool m_raster_scene;
     bool m_ReSTIR;
     bool m_vulkan_test;
+    bool m_test_triangle_pass;
     
     bool m_recreate_renderer;
 };

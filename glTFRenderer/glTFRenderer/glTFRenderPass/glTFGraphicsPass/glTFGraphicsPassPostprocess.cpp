@@ -4,9 +4,9 @@
 glTFGraphicsPassPostprocess::glTFGraphicsPassPostprocess()
 = default;
 
-bool glTFGraphicsPassPostprocess::InitPass(glTFRenderResourceManager& resourceManager)
+bool glTFGraphicsPassPostprocess::InitPass(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(glTFGraphicsPassBase::InitPass(resourceManager))
+    RETURN_IF_FALSE(glTFGraphicsPassMeshBase::InitPass(resource_manager))
     
     float postprocessVertices[] =
     {
@@ -31,8 +31,8 @@ bool glTFGraphicsPassPostprocess::InitPass(glTFRenderResourceManager& resourceMa
     const RHIBufferDesc vertexBufferDesc = {L"vertexBufferDefaultBuffer", sizeof(postprocessVertices), 1, 1, RHIBufferType::Default, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
     const RHIBufferDesc indexBufferDesc = {L"indexBufferDefaultBuffer", sizeof(postprocessIndices), 1, 1, RHIBufferType::Default, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
 
-    RETURN_IF_FALSE(m_postprocessQuadResource.meshVertexBuffer->InitGPUBuffer(resourceManager.GetDevice(), vertexBufferDesc ))
-    RETURN_IF_FALSE(m_postprocessQuadResource.meshIndexBuffer->InitGPUBuffer(resourceManager.GetDevice(), indexBufferDesc ))
+    RETURN_IF_FALSE(m_postprocessQuadResource.meshVertexBuffer->InitGPUBuffer(resource_manager.GetDevice(), vertexBufferDesc ))
+    RETURN_IF_FALSE(m_postprocessQuadResource.meshIndexBuffer->InitGPUBuffer(resource_manager.GetDevice(), indexBufferDesc ))
 
     const auto vertexUploadBuffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
     const auto indexUploadBuffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
@@ -40,10 +40,10 @@ bool glTFGraphicsPassPostprocess::InitPass(glTFRenderResourceManager& resourceMa
     const RHIBufferDesc vertexUploadBufferDesc = {L"vertexBufferUploadBuffer", sizeof(postprocessVertices), 1, 1, RHIBufferType::Upload, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
     const RHIBufferDesc indexUploadBufferDesc = {L"indexBufferUploadBuffer", sizeof(postprocessIndices), 1, 1, RHIBufferType::Upload, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
 
-    RETURN_IF_FALSE(vertexUploadBuffer->InitGPUBuffer(resourceManager.GetDevice(), vertexUploadBufferDesc ))
-    RETURN_IF_FALSE(indexUploadBuffer->InitGPUBuffer(resourceManager.GetDevice(), indexUploadBufferDesc ))
+    RETURN_IF_FALSE(vertexUploadBuffer->InitGPUBuffer(resource_manager.GetDevice(), vertexUploadBufferDesc ))
+    RETURN_IF_FALSE(indexUploadBuffer->InitGPUBuffer(resource_manager.GetDevice(), indexUploadBufferDesc ))
 
-    auto& command_list = resourceManager.GetCommandListForRecord();
+    auto& command_list = resource_manager.GetCommandListForRecord();
     
     RETURN_IF_FALSE(RHIUtils::Instance().UploadBufferDataToDefaultGPUBuffer(command_list, *vertexUploadBuffer, *m_postprocessQuadResource.meshVertexBuffer, postprocessVertices, sizeof(postprocessVertices)))
     RETURN_IF_FALSE(RHIUtils::Instance().UploadBufferDataToDefaultGPUBuffer(command_list, *indexUploadBuffer, *m_postprocessQuadResource.meshIndexBuffer, postprocessIndices, sizeof(postprocessIndices)))
@@ -55,23 +55,23 @@ bool glTFGraphicsPassPostprocess::InitPass(glTFRenderResourceManager& resourceMa
     indexBufferView->InitIndexBufferView(*m_postprocessQuadResource.meshIndexBuffer, 0, RHIDataFormat::R32_UINT, sizeof(postprocessIndices));
 
     auto fence = RHIResourceFactory::CreateRHIResource<IRHIFence>();
-    RETURN_IF_FALSE(fence->InitFence(resourceManager.GetDevice()))
+    RETURN_IF_FALSE(fence->InitFence(resource_manager.GetDevice()))
 
-    resourceManager.CloseCommandListAndExecute(true);
+    resource_manager.CloseCommandListAndExecute(true);
     
     return true;
 }
 
 bool glTFGraphicsPassPostprocess::PreRenderPass(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(glTFGraphicsPassBase::PreRenderPass(resource_manager))
+    RETURN_IF_FALSE(glTFGraphicsPassMeshBase::PreRenderPass(resource_manager))
     
     return true;
 }
 
 bool glTFGraphicsPassPostprocess::RenderPass(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(glTFGraphicsPassBase::RenderPass(resource_manager))
+    RETURN_IF_FALSE(glTFGraphicsPassMeshBase::RenderPass(resource_manager))
 
     DrawPostprocessQuad(resource_manager);
     
@@ -80,21 +80,21 @@ bool glTFGraphicsPassPostprocess::RenderPass(glTFRenderResourceManager& resource
 
 bool glTFGraphicsPassPostprocess::PostRenderPass(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(glTFGraphicsPassBase::PostRenderPass(resource_manager))
+    RETURN_IF_FALSE(glTFGraphicsPassMeshBase::PostRenderPass(resource_manager))
 
     return true;
 }
 
 bool glTFGraphicsPassPostprocess::SetupRootSignature(glTFRenderResourceManager& resourceManager)
 {
-    RETURN_IF_FALSE(glTFGraphicsPassBase::SetupRootSignature(resourceManager))
+    RETURN_IF_FALSE(glTFGraphicsPassMeshBase::SetupRootSignature(resourceManager))
     
     return true;
 }
 
 bool glTFGraphicsPassPostprocess::SetupPipelineStateObject(glTFRenderResourceManager& resourceManager)
 {
-    RETURN_IF_FALSE(glTFGraphicsPassBase::SetupPipelineStateObject(resourceManager))
+    RETURN_IF_FALSE(glTFGraphicsPassMeshBase::SetupPipelineStateObject(resourceManager))
     
     return true;
 }

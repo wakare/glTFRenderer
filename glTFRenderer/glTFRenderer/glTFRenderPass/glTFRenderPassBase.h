@@ -12,6 +12,11 @@ class IRHIPipelineStateObject;
 class IRHIDescriptorHeap;
 class IRHICommandList;
 
+enum RenderPassCommonEnum
+{
+    MainDescriptorSize = 64,
+};
+
 enum class PipelineType
 {
     Graphics,
@@ -73,7 +78,7 @@ public:
     
 protected:
     // Must be implement in final render pass class
-    virtual size_t GetMainDescriptorHeapSize() = 0;
+    virtual size_t GetMainDescriptorHeapSize() {return MainDescriptorSize;}
     virtual bool SetupRootSignature(glTFRenderResourceManager& resource_manager);
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) = 0;
     virtual PipelineType GetPipelineType() const = 0;

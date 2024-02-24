@@ -1,5 +1,6 @@
 #pragma once
 #include "glTFGraphicsPassBase.h"
+#include "glTFGraphicsPassMeshBase.h"
 #include "glTFRenderPass/glTFRenderPassBase.h"
 
 class IRHIIndexBufferView;
@@ -15,12 +16,12 @@ struct PostprocessQuadGPUResource
 };
 
 // Post process pass only draw full screen quad
-class glTFGraphicsPassPostprocess : public glTFGraphicsPassBase
+class glTFGraphicsPassPostprocess : public glTFGraphicsPassMeshBase
 {
 public:
     glTFGraphicsPassPostprocess();
 
-    virtual bool InitPass(glTFRenderResourceManager& resourceManager) override;
+    virtual bool InitPass(glTFRenderResourceManager& resource_manager) override;
 
     virtual bool PreRenderPass(glTFRenderResourceManager& resource_manager) override;
     virtual bool RenderPass(glTFRenderResourceManager& resource_manager) override;

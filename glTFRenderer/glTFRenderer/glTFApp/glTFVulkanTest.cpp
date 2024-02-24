@@ -241,7 +241,7 @@ bool glTFVulkanTest::Init()
     uint32_t extensionCount = 0;
     vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
 
-    LOG_FORMAT_FLUSH("Vulkan Init: %d extensions found\n", extensionCount);
+    LOG_FORMAT_FLUSH("Vulkan Init: %d extensions found\n", extensionCount)
 
     // Check validation layer support
     const bool validation_layer_support = CheckVulkanValidationLayerSupport();
@@ -402,7 +402,7 @@ bool glTFVulkanTest::Init()
     std::vector<unsigned char> vertex_shader_binaries;
     glTFShaderUtils::ShaderCompileDesc vertex_shader_compile_desc
     {
-        "glTFResources/ShaderSource/TestShaders/VulkanTestVert.hlsl",
+        "glTFResources/ShaderSource/TestShaders/TestTriangleVert.hlsl",
         glTFShaderUtils::GetShaderCompileTarget(RHIShaderType::Vertex),
         "main",
         {},
@@ -413,7 +413,7 @@ bool glTFVulkanTest::Init()
     std::vector<unsigned char> fragment_shader_binaries;
     glTFShaderUtils::ShaderCompileDesc fragment_shader_compile_desc
     {
-        "glTFResources/ShaderSource/TestShaders/VulkanTestFrag.hlsl",
+        "glTFResources/ShaderSource/TestShaders/TestTriangleFrag.hlsl",
         glTFShaderUtils::GetShaderCompileTarget(RHIShaderType::Pixel),
         "main",
         {},
@@ -875,8 +875,6 @@ bool glTFVulkanTest::UnInit()
     vkDestroyCommandPool(logical_device, command_pool, nullptr);
 
     CleanupSwapChain();
-    
-    
     
     vkDestroyPipeline(logical_device, pipeline, nullptr);
     vkDestroyRenderPass(logical_device, render_pass, nullptr);

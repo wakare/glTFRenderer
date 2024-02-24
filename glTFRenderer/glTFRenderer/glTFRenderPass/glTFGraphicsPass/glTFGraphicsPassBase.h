@@ -7,7 +7,8 @@ class glTFGraphicsPassBase : public glTFRenderPassBase
 {
 public:
     glTFGraphicsPassBase();
-
+    virtual ~glTFGraphicsPassBase() override = default;
+    
     virtual bool InitPass(glTFRenderResourceManager& resource_manager) override;
 
     virtual bool PreRenderPass(glTFRenderResourceManager& resource_manager) override;
@@ -15,8 +16,7 @@ public:
 protected:
     IRHIGraphicsPipelineStateObject& GetGraphicsPipelineStateObject() const;
     
-    virtual const std::vector<RHIPipelineInputLayout>& GetVertexInputLayout(glTFRenderResourceManager& resource_manager)
-    = 0;
+    virtual IRHICullMode GetCullMode();
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;
 
     virtual PipelineType GetPipelineType() const override {return PipelineType::Graphics; }

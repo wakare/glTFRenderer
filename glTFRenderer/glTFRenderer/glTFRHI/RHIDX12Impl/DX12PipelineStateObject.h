@@ -28,7 +28,7 @@ public:
     virtual ~DX12GraphicsPipelineStateObject() override;
 
     virtual bool BindSwapChain(const IRHISwapChain& swapchain) override;
-    virtual bool BindRenderTargets(const std::vector<IRHIRenderTarget*>& render_targets) override;
+    virtual bool BindRenderTargetFormats(const std::vector<IRHIRenderTarget*>& render_targets) override;
     virtual bool InitPipelineStateObject(IRHIDevice& device, IRHIRootSignature& root_signature) override;
 
     ID3D12PipelineState* GetPSO() {return m_pipeline_state_object.Get(); }

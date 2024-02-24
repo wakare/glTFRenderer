@@ -6,16 +6,23 @@
 
 glTFAppRenderer::glTFAppRenderer(const glTFAppRendererConfig& renderer_config, const glTFWindow& window)
 {
-    RHIConfigSingleton::Instance().SetGraphicsAPIType(renderer_config.Vulkan ?
+    RHIConfigSingleton::Instance().SetGraphicsAPIType(renderer_config.vulkan ?
         RHIGraphicsAPIType::RHI_GRAPHICS_API_Vulkan : RHIGraphicsAPIType::RHI_GRAPHICS_API_DX12);
-    
-    if (renderer_config.raster)
+
+    if (renderer_config.test_triangle_pass)
     {
-        m_render_pipeline.reset(new glTFAppRenderPipelineRasterScene);    
+        m_render_pipeline.reset(new glTFAppRenderPipelineTestTriangle);   
     }
     else
     {
-        m_render_pipeline.reset(new glTFAppRenderPipelineRayTracingScene(renderer_config.ReSTIR));
+        if (renderer_config.raster)
+        {
+            m_render_pipeline.reset(new glTFAppRenderPipelineRasterScene);    
+        }
+        else
+        {
+            m_render_pipeline.reset(new glTFAppRenderPipelineRayTracingScene(renderer_config.ReSTIR));
+        }    
     }
 
     m_resource_manager.reset(new glTFRenderResourceManager());

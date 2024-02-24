@@ -136,7 +136,6 @@ bool glTFComputePassRayTracingPostprocess::UpdateGUIWidgets()
 {
     RETURN_IF_FALSE(glTFComputePassBase::UpdateGUIWidgets())
 
-    
     ImGui::Checkbox("EnablePostProcess", (bool*)&m_pass_options.enable_post_process);
     ImGui::Checkbox("UseVelocityClamp", (bool*)&m_pass_options.use_velocity_clamp);
     ImGui::SliderFloat("ReuseHistoryFactor", &m_pass_options.reuse_history_factor, 0.0, 1.0);

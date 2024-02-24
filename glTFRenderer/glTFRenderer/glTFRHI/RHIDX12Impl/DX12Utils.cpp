@@ -633,6 +633,15 @@ bool DX12Utils::AddRenderTargetBarrierToCommandList(IRHICommandList& commandList
     return true;
 }
 
+bool DX12Utils::DrawInstanced(IRHICommandList& commandList, unsigned vertexCountPerInstance, unsigned instanceCount,
+    unsigned startVertexLocation, unsigned startInstanceLocation)
+{
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    dxCommandList->DrawInstanced(vertexCountPerInstance, instanceCount, startVertexLocation, startInstanceLocation);
+    
+    return true;
+}
+
 bool DX12Utils::DrawIndexInstanced(IRHICommandList& commandList, unsigned indexCountPerInstance, unsigned instanceCount,
                                    unsigned startIndexLocation, unsigned baseVertexLocation, unsigned startInstanceLocation)
 {

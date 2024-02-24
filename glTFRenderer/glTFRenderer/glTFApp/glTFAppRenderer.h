@@ -5,12 +5,14 @@ struct glTFAppRendererConfig
 {
     bool raster;
     bool ReSTIR;
-    bool Vulkan;
+    bool vulkan;
+    bool test_triangle_pass;
 
     glTFAppRendererConfig()
         : raster(true) 
         , ReSTIR(false)
-        , Vulkan(false)
+        , vulkan(false)
+        , test_triangle_pass(false)
     {
         
     }

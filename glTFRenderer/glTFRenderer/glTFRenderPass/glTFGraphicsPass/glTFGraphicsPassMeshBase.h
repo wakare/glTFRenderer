@@ -17,8 +17,9 @@ public:
     virtual bool TryProcessSceneObject(glTFRenderResourceManager& resource_manager, const glTFSceneObjectBase& object) override;
 
 protected:
-    virtual const std::vector<RHIPipelineInputLayout>&
-    GetVertexInputLayout(glTFRenderResourceManager& resource_manager) override;
+    virtual const std::vector<RHIPipelineInputLayout>& GetVertexInputLayout(glTFRenderResourceManager& resource_manager);
+
+    virtual IRHICullMode GetCullMode() override;
     
     virtual bool SetupRootSignature(glTFRenderResourceManager& resource_manager) override;
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;

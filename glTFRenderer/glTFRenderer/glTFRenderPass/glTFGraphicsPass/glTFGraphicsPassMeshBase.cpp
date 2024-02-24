@@ -112,7 +112,10 @@ bool glTFGraphicsPassMeshBase::SetupRootSignature(glTFRenderResourceManager& res
 bool glTFGraphicsPassMeshBase::SetupPipelineStateObject(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassBase::SetupPipelineStateObject(resource_manager))
-
+    
+    // Set shader macro based vertex attributes
+    RETURN_IF_FALSE(GetGraphicsPipelineStateObject().BindInputLayoutAndSetShaderMacros(GetVertexInputLayout(resource_manager)))
+    
     auto& shader_macros = GetGraphicsPipelineStateObject().GetShaderMacros();
     shader_macros.AddMacro("ENABLE_INPUT_LAYOUT", UsingInputLayout() ? "1" : "0");
 
@@ -146,4 +149,9 @@ const std::vector<RHIPipelineInputLayout>& glTFGraphicsPassMeshBase::GetVertexIn
     glTFRenderResourceManager& resource_manager)
 {
     return resource_manager.GetMeshManager().GetVertexInputLayout();
+}
+
+IRHICullMode glTFGraphicsPassMeshBase::GetCullMode()
+{
+    return IRHICullMode::CCW;
 }

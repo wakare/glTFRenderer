@@ -44,7 +44,7 @@ bool DX12GraphicsPipelineStateObject::BindSwapChain(const IRHISwapChain& swapcha
     return true;
 }
 
-bool DX12GraphicsPipelineStateObject::BindRenderTargets(const std::vector<IRHIRenderTarget*>& render_targets)
+bool DX12GraphicsPipelineStateObject::BindRenderTargetFormats(const std::vector<IRHIRenderTarget*>& render_targets)
 {
     m_bind_render_target_formats.clear();
     for (const auto& render_target : render_targets)

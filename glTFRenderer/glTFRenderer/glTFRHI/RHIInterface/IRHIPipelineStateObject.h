@@ -84,8 +84,7 @@ public:
     IRHIGraphicsPipelineStateObject();
 
     virtual bool BindSwapChain(const IRHISwapChain& swapchain) = 0;
-    virtual bool BindRenderTargets(const std::vector<IRHIRenderTarget*>& render_targets) = 0;
-    
+    virtual bool BindRenderTargetFormats(const std::vector<IRHIRenderTarget*>& render_targets) = 0;
 };
 
 class IRHIComputePipelineStateObject : public IRHIPipelineStateObject
