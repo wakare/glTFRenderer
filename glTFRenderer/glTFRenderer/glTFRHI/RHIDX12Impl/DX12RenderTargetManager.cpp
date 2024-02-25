@@ -48,7 +48,7 @@ bool DX12RenderTargetManager::InitRenderTargetManager(IRHIDevice& device, size_t
 }
 
 std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTarget(IRHIDevice& device, RHIRenderTargetType type,
-    RHIDataFormat resource_format, RHIDataFormat descriptor_format, const IRHIRenderTargetDesc& desc)
+    RHIDataFormat resource_format, RHIDataFormat descriptor_format, const RHIRenderTargetDesc& desc)
 {
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
     

@@ -19,7 +19,7 @@ public:
 protected:
     virtual const std::vector<RHIPipelineInputLayout>& GetVertexInputLayout(glTFRenderResourceManager& resource_manager);
 
-    virtual IRHICullMode GetCullMode() override;
+    virtual RHICullMode GetCullMode() override;
     
     virtual bool SetupRootSignature(glTFRenderResourceManager& resource_manager) override;
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;

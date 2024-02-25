@@ -28,7 +28,7 @@ const char* glTFComputePassLighting::PassName()
 
 bool glTFComputePassLighting::InitPass(glTFRenderResourceManager& resource_manager)
 {
-    IRHIRenderTargetDesc lighting_output_desc;
+    RHIRenderTargetDesc lighting_output_desc;
     lighting_output_desc.width = resource_manager.GetSwapchain().GetWidth();
     lighting_output_desc.height = resource_manager.GetSwapchain().GetHeight();
     lighting_output_desc.name = "LightingOutput";

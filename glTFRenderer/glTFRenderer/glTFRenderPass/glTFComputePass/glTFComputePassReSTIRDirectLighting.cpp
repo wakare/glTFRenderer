@@ -22,7 +22,7 @@ const char* glTFComputePassReSTIRDirectLighting::PassName()
 
 bool glTFComputePassReSTIRDirectLighting::InitPass(glTFRenderResourceManager& resource_manager)
 {
-    IRHIRenderTargetDesc lighting_output_desc;
+    RHIRenderTargetDesc lighting_output_desc;
     lighting_output_desc.width = resource_manager.GetSwapchain().GetWidth();
     lighting_output_desc.height = resource_manager.GetSwapchain().GetHeight();
     lighting_output_desc.name = "LightingOutput";
@@ -34,7 +34,7 @@ bool glTFComputePassReSTIRDirectLighting::InitPass(glTFRenderResourceManager& re
         resource_manager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R8G8B8A8_UNORM, RHIDataFormat::R8G8B8A8_UNORM, lighting_output_desc);
     resource_manager.GetRenderTargetManager().RegisterRenderTargetWithTag("RayTracingOutput", m_output);
     
-    IRHIRenderTargetDesc aggregate_samples_output_desc;
+    RHIRenderTargetDesc aggregate_samples_output_desc;
     aggregate_samples_output_desc.width = resource_manager.GetSwapchain().GetWidth();
     aggregate_samples_output_desc.height = resource_manager.GetSwapchain().GetHeight();
     aggregate_samples_output_desc.name = "AggregateOutput";

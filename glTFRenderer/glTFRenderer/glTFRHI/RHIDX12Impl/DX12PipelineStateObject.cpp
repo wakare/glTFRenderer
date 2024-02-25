@@ -112,7 +112,7 @@ bool DX12GraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device
     m_graphics_pipeline_state_desc.VS = vertexShaderBytecode; // structure describing where to find the vertex shader bytecode and how large it is
 
     // depth pass do not need pixel shader
-    if (m_depth_stencil_state != IRHIDepthStencilMode::DEPTH_WRITE)
+    if (m_depth_stencil_state != RHIDepthStencilMode::DEPTH_WRITE)
     {
         D3D12_SHADER_BYTECODE pixelShaderBytecode;
         const auto& bindPS = dynamic_cast<DX12Shader&>(GetBindShader(RHIShaderType::Pixel));
@@ -136,19 +136,19 @@ bool DX12GraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device
     m_graphics_pipeline_state_desc.SampleMask = 0xffffffff; // sample mask has to do with multi-sampling. 0xffffffff means point sampling is done
     m_graphics_pipeline_state_desc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT); // a default rasterizer state.
     switch (m_cullMode) {
-        case IRHICullMode::NONE:
+        case RHICullMode::NONE:
             {
                 m_graphics_pipeline_state_desc.RasterizerState.CullMode = D3D12_CULL_MODE::D3D12_CULL_MODE_NONE;    
             }
             break;
         
-        case IRHICullMode::CW:
+        case RHICullMode::CW:
             {
                 m_graphics_pipeline_state_desc.RasterizerState.CullMode = D3D12_CULL_MODE::D3D12_CULL_MODE_BACK;     
             }
             break;
         
-        case IRHICullMode::CCW:
+        case RHICullMode::CCW:
             {
                 m_graphics_pipeline_state_desc.RasterizerState.CullMode = D3D12_CULL_MODE::D3D12_CULL_MODE_FRONT;     
             }
@@ -159,13 +159,13 @@ bool DX12GraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device
     m_graphics_pipeline_state_desc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT); // a default blent state.
     m_graphics_pipeline_state_desc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT); 
     switch (m_depth_stencil_state) {
-    case IRHIDepthStencilMode::DEPTH_READ:
+    case RHIDepthStencilMode::DEPTH_READ:
         {
             m_graphics_pipeline_state_desc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC::D3D12_COMPARISON_FUNC_EQUAL;
             m_graphics_pipeline_state_desc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK::D3D12_DEPTH_WRITE_MASK_ZERO;
         }
         break;
-    case IRHIDepthStencilMode::DEPTH_WRITE:
+    case RHIDepthStencilMode::DEPTH_WRITE:
         { 
         }
         break;

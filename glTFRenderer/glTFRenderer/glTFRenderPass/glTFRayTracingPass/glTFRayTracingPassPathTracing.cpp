@@ -42,7 +42,7 @@ const char* glTFRayTracingPassPathTracing::PassName()
 
 bool glTFRayTracingPassPathTracing::InitPass(glTFRenderResourceManager& resource_manager)
 {
-    IRHIRenderTargetDesc raytracing_output_render_target;
+    RHIRenderTargetDesc raytracing_output_render_target;
     raytracing_output_render_target.width = resource_manager.GetSwapchain().GetWidth();
     raytracing_output_render_target.height = resource_manager.GetSwapchain().GetHeight();
     raytracing_output_render_target.name = "RayTracingOutput";
@@ -54,7 +54,7 @@ bool glTFRayTracingPassPathTracing::InitPass(glTFRenderResourceManager& resource
                 resource_manager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R8G8B8A8_UNORM, RHIDataFormat::R8G8B8A8_UNORM, raytracing_output_render_target);
     resource_manager.GetRenderTargetManager().RegisterRenderTargetWithTag("RayTracingOutput", m_raytracing_output);
     
-    IRHIRenderTargetDesc screen_uv_offset_render_target;
+    RHIRenderTargetDesc screen_uv_offset_render_target;
     screen_uv_offset_render_target.width = resource_manager.GetSwapchain().GetWidth();
     screen_uv_offset_render_target.height = resource_manager.GetSwapchain().GetHeight();
     screen_uv_offset_render_target.name = "ScreenUVOffset";

@@ -10,8 +10,8 @@ public:
     
     virtual bool InitCommandSignature(IRHIDevice& device, IRHIRootSignature& root_signature) = 0;
     
-    void SetCommandSignatureDesc(const IRHICommandSignatureDesc& desc);
+    void SetCommandSignatureDesc(const RHICommandSignatureDesc& desc);
     
 protected:
-    IRHICommandSignatureDesc m_desc;
+    RHICommandSignatureDesc m_desc;
 };

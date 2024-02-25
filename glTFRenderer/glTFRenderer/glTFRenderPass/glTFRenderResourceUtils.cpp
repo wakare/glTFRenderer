@@ -57,7 +57,7 @@ namespace glTFRenderResourceUtils
     bool GBufferOutput::InitGBufferOutput(glTFRenderResourceManager& resource_manager, unsigned back_buffer_index)
     {
         RHIDataFormat albedo_format = RHIDataFormat::R8G8B8A8_UNORM;
-        IRHIRenderTargetDesc albedo_output_desc;
+        RHIRenderTargetDesc albedo_output_desc;
         albedo_output_desc.width = resource_manager.GetSwapchain().GetWidth();
         albedo_output_desc.height = resource_manager.GetSwapchain().GetHeight();
         albedo_output_desc.name = "Albedo_Output";
@@ -70,7 +70,7 @@ namespace glTFRenderResourceUtils
         resource_manager.GetRenderTargetManager().RegisterRenderTargetWithTag("Albedo_Output", m_albedo_output, back_buffer_index);
         
         RHIDataFormat normal_format = RHIDataFormat::R8G8B8A8_UNORM;
-        IRHIRenderTargetDesc normal_output_desc;
+        RHIRenderTargetDesc normal_output_desc;
         normal_output_desc.width = resource_manager.GetSwapchain().GetWidth();
         normal_output_desc.height = resource_manager.GetSwapchain().GetHeight();
         normal_output_desc.name = "Normal_Output";
@@ -83,7 +83,7 @@ namespace glTFRenderResourceUtils
         resource_manager.GetRenderTargetManager().RegisterRenderTargetWithTag("Normal_Output", m_normal_output, back_buffer_index);
         
         RHIDataFormat depth_format = RHIDataFormat::R32_FLOAT;
-        IRHIRenderTargetDesc depth_output_desc;
+        RHIRenderTargetDesc depth_output_desc;
         depth_output_desc.width = resource_manager.GetSwapchain().GetWidth();
         depth_output_desc.height = resource_manager.GetSwapchain().GetHeight();
         depth_output_desc.name = "Depth_Output";
@@ -225,7 +225,7 @@ namespace glTFRenderResourceUtils
     {
     }
 
-    bool RWTextureResourceWithBackBuffer::CreateResource(glTFRenderResourceManager& resource_manager, const IRHIRenderTargetDesc& desc)
+    bool RWTextureResourceWithBackBuffer::CreateResource(glTFRenderResourceManager& resource_manager, const RHIRenderTargetDesc& desc)
     {
         m_texture_desc = desc;
         auto format = m_texture_desc.clearValue.clear_format;

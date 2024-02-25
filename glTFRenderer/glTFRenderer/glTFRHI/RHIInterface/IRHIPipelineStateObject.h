@@ -28,18 +28,18 @@ public:
     IRHIShader& GetBindShader(RHIShaderType type);
     
     bool BindInputLayoutAndSetShaderMacros(const std::vector<RHIPipelineInputLayout>& input_layouts);
-    void SetCullMode(IRHICullMode mode);
-    void SetDepthStencilState(IRHIDepthStencilMode state);
+    void SetCullMode(RHICullMode mode);
+    void SetDepthStencilState(RHIDepthStencilMode state);
 
     RHIPipelineType GetPSOType() const {return m_type; }
-    IRHICullMode GetCullMode() const;
+    RHICullMode GetCullMode() const;
     RHIShaderPreDefineMacros& GetShaderMacros();
     
 protected:
     RHIPipelineType m_type;
     RHIShaderPreDefineMacros m_shader_macros;
-    IRHICullMode m_cullMode;
-    IRHIDepthStencilMode m_depth_stencil_state;
+    RHICullMode m_cullMode;
+    RHIDepthStencilMode m_depth_stencil_state;
     std::vector<RHIPipelineInputLayout> m_input_layouts;
     std::map<RHIShaderType, std::shared_ptr<IRHIShader>> m_shaders;
 };

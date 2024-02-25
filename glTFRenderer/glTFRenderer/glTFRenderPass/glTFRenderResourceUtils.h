@@ -64,7 +64,7 @@ namespace glTFRenderResourceUtils
     {
         RWTextureResourceWithBackBuffer(std::string output_register_name, std::string back_register_name);
     
-        bool CreateResource(glTFRenderResourceManager& resource_manager, const IRHIRenderTargetDesc& desc);
+        bool CreateResource(glTFRenderResourceManager& resource_manager, const RHIRenderTargetDesc& desc);
         bool CreateDescriptors(glTFRenderResourceManager& resource_manager, IRHIDescriptorHeap& main_descriptor);
         bool RegisterSignature(IRHIRootSignatureHelper& root_signature);
         bool AddShaderMacros(RHIShaderPreDefineMacros& macros);
@@ -78,7 +78,7 @@ namespace glTFRenderResourceUtils
         std::string GetOutputBufferResourceName() const;
         std::string GetBackBufferResourceName() const;
     
-        IRHIRenderTargetDesc m_texture_desc;
+        RHIRenderTargetDesc m_texture_desc;
     
         std::shared_ptr<IRHIRenderTarget> m_writable_buffer;
         std::shared_ptr<IRHIRenderTarget> m_back_buffer;

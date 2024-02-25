@@ -4,6 +4,14 @@
 #include "IRHIRayTracingAS.h"
 #include "IRHIResource.h"
 
+struct RHIShaderTableRecordBase
+{
+    virtual ~RHIShaderTableRecordBase() = default;
+
+    virtual void* GetData() { return nullptr; }
+    virtual size_t GetSize() { return 0; }
+};
+
 // One ray type mapping one SBT (means one raygen shader, one miss shader and one hit group symbol)
 struct RHIShaderBindingTable
 {

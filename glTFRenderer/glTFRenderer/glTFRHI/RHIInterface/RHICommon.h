@@ -8,6 +8,7 @@
 
 typedef uint64_t RHIGPUDescriptorHandle;
 typedef uint64_t RHICPUDescriptorHandle;
+typedef unsigned RTID;
 
 #define REGISTER_INDEX_TYPE unsigned 
 
@@ -128,6 +129,7 @@ struct RHIRect
     long    right;
     long    bottom;
 };
+
 typedef RHIRect RHIScissorRectDesc;
 
 struct RHIViewportDesc
@@ -203,7 +205,6 @@ private:
     RHIDataFormat m_texture_format;
 };
 
-
 enum class RHISubPassBindPoint
 {
     GRAPHICS,
@@ -228,14 +229,6 @@ struct RHISubPassInfo
 {
     RHISubPassBindPoint bind_point;
     std::vector<RHISubPassAttachment> color_attachments;
-};
-
-struct RHIShaderTableRecordBase
-{
-    virtual ~RHIShaderTableRecordBase() = default;
-
-    virtual void* GetData() { return nullptr; }
-    virtual size_t GetSize() { return 0; }
 };
 
 enum class RHIShaderType
@@ -361,7 +354,6 @@ enum class RHIRootSignatureUsage
     LocalRS,
 };
 
-
 struct RootSignatureStaticSamplerElement
 {
     std::string sampler_name;
@@ -398,7 +390,7 @@ struct RootSignatureLayout
     unsigned SamplerCount() const {return sampler_elements.size(); }
 };
 
-struct IRHIDepthStencilClearValue
+struct RHIDepthStencilClearValue
 {
     float clear_depth;
     unsigned char clear_stencil_value;
@@ -410,7 +402,7 @@ struct RHIRenderTargetClearValue
     union 
     {
         glm::vec4 clear_color;
-        IRHIDepthStencilClearValue clearDS;
+        RHIDepthStencilClearValue clearDS;
     };
 };
 
@@ -421,7 +413,7 @@ enum class RHIRenderTargetType
     Unknown,
 };
 
-struct IRHIRenderTargetDesc
+struct RHIRenderTargetDesc
 {
     unsigned width;
     unsigned height;
@@ -429,8 +421,6 @@ struct IRHIRenderTargetDesc
     RHIRenderTargetClearValue clearValue;
     std::string name;
 };
-
-typedef unsigned RTID; 
 
 struct RHIPipelineInputLayout
 {
@@ -444,14 +434,14 @@ struct RHIPipelineInputLayout
     bool IsVertexData() const {return slot == 0; }
 };
 
-enum class IRHICullMode
+enum class RHICullMode
 {
     NONE,
     CW,
     CCW,
 };
 
-enum class IRHIDepthStencilMode
+enum class RHIDepthStencilMode
 {
     DEPTH_READ,
     DEPTH_WRITE,
@@ -588,7 +578,7 @@ struct RHIIndirectArgumentDesc
     } desc;
 };
 
-struct IRHICommandSignatureDesc
+struct RHICommandSignatureDesc
 {
     std::vector<RHIIndirectArgumentDesc> m_indirect_arguments;
     unsigned stride;

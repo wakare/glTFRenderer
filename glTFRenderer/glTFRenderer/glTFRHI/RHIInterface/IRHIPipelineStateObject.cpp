@@ -4,8 +4,8 @@
 
 IRHIPipelineStateObject::IRHIPipelineStateObject(RHIPipelineType type)
     : m_type(type)
-    , m_cullMode(IRHICullMode::NONE)
-    , m_depth_stencil_state(IRHIDepthStencilMode::DEPTH_READ)
+    , m_cullMode(RHICullMode::NONE)
+    , m_depth_stencil_state(RHIDepthStencilMode::DEPTH_READ)
 {
 }
 
@@ -101,17 +101,17 @@ void IRHIRayTracingPipelineStateObject::SetConfig(const RHIRayTracingConfig& con
     m_config = config;
 }
 
-void IRHIPipelineStateObject::SetCullMode(IRHICullMode mode)
+void IRHIPipelineStateObject::SetCullMode(RHICullMode mode)
 {
     m_cullMode = mode;
 }
 
-void IRHIPipelineStateObject::SetDepthStencilState(IRHIDepthStencilMode state)
+void IRHIPipelineStateObject::SetDepthStencilState(RHIDepthStencilMode state)
 {
     m_depth_stencil_state = state;
 }
 
-IRHICullMode IRHIPipelineStateObject::GetCullMode() const
+RHICullMode IRHIPipelineStateObject::GetCullMode() const
 {
     return m_cullMode;
 }

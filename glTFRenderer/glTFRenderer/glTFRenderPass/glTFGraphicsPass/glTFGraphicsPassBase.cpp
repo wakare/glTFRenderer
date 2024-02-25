@@ -30,9 +30,9 @@ IRHIGraphicsPipelineStateObject& glTFGraphicsPassBase::GetGraphicsPipelineStateO
     return dynamic_cast<IRHIGraphicsPipelineStateObject&>(*m_pipeline_state_object);
 }
 
-IRHICullMode glTFGraphicsPassBase::GetCullMode()
+RHICullMode glTFGraphicsPassBase::GetCullMode()
 {
-    return IRHICullMode::NONE;
+    return RHICullMode::NONE;
 }
 
 bool glTFGraphicsPassBase::SetupPipelineStateObject(glTFRenderResourceManager& resource_manager)

@@ -122,7 +122,7 @@ public:
     const std::map<glTFUniqueID, glTFMeshInstanceRenderResource>& GetMeshInstanceRenderResource() const {return m_mesh_instances; }
     const std::map<glTFUniqueID, glTFMeshRenderResource>& GetMeshRenderResources() const {return m_mesh_render_resources; }
 
-    const IRHICommandSignatureDesc& GetCommandSignatureDesc() const {return m_command_signature_desc; }
+    const RHICommandSignatureDesc& GetCommandSignatureDesc() const {return m_command_signature_desc; }
     const std::vector<RHIPipelineInputLayout>& GetVertexInputLayout() const {return m_vertex_input_layouts; }
     MeshInstanceInputLayout GetInstanceInputLayout() const {return m_instance_input_layout; }
 
@@ -142,7 +142,7 @@ protected:
     std::map<glTFUniqueID, glTFMeshInstanceRenderResource> m_mesh_instances;
     std::map<glTFUniqueID, glTFMeshRenderResource> m_mesh_render_resources;
 
-    IRHICommandSignatureDesc m_command_signature_desc;
+    RHICommandSignatureDesc m_command_signature_desc;
     
     std::vector<RHIPipelineInputLayout> m_vertex_input_layouts;
     MeshInstanceInputLayout m_instance_input_layout;

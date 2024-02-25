@@ -20,7 +20,7 @@ const char* glTFRayTracingPassReSTIRDirectLighting::PassName()
 
 bool glTFRayTracingPassReSTIRDirectLighting::InitPass(glTFRenderResourceManager& resource_manager)
 {
-    IRHIRenderTargetDesc raytracing_output_render_target;
+    RHIRenderTargetDesc raytracing_output_render_target;
     raytracing_output_render_target.width = resource_manager.GetSwapchain().GetWidth();
     raytracing_output_render_target.height = resource_manager.GetSwapchain().GetHeight();
     raytracing_output_render_target.name = "ReSTIRDirectLightingSamples";
@@ -32,7 +32,7 @@ bool glTFRayTracingPassReSTIRDirectLighting::InitPass(glTFRenderResourceManager&
                 resource_manager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R32G32B32A32_FLOAT, RHIDataFormat::R32G32B32A32_FLOAT, raytracing_output_render_target);
     resource_manager.GetRenderTargetManager().RegisterRenderTargetWithTag("ReSTIRDirectLightingSamples", m_lighting_samples);
     
-    IRHIRenderTargetDesc screen_uv_offset_render_target;
+    RHIRenderTargetDesc screen_uv_offset_render_target;
     screen_uv_offset_render_target.width = resource_manager.GetSwapchain().GetWidth();
     screen_uv_offset_render_target.height = resource_manager.GetSwapchain().GetHeight();
     screen_uv_offset_render_target.name = "RayTracingScreenUVOffset";

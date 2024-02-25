@@ -16,7 +16,7 @@ public:
 protected:
     IRHIGraphicsPipelineStateObject& GetGraphicsPipelineStateObject() const;
     
-    virtual IRHICullMode GetCullMode();
+    virtual RHICullMode GetCullMode();
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;
 
     virtual PipelineType GetPipelineType() const override {return PipelineType::Graphics; }

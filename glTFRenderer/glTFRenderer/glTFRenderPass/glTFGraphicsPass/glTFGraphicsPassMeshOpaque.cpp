@@ -72,7 +72,7 @@ bool glTFGraphicsPassMeshOpaque::SetupPipelineStateObject(glTFRenderResourceMana
     GetGraphicsPipelineStateObject().BindShaderCode(
         R"(glTFResources\ShaderSource\MeshPassCommonPS.hlsl)", RHIShaderType::Pixel, "main");
 
-    IRHIRenderTargetDesc render_target_base_color_desc;
+    RHIRenderTargetDesc render_target_base_color_desc;
     render_target_base_color_desc.width = resource_manager.GetSwapchain().GetWidth();
     render_target_base_color_desc.height = resource_manager.GetSwapchain().GetHeight();
     render_target_base_color_desc.name = "BasePassColor";
@@ -83,7 +83,7 @@ bool glTFGraphicsPassMeshOpaque::SetupPipelineStateObject(glTFRenderResourceMana
     m_base_pass_color_render_target = resource_manager.GetRenderTargetManager().CreateRenderTarget(
         resource_manager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R8G8B8A8_UNORM_SRGB, RHIDataFormat::R8G8B8A8_UNORM_SRGB, render_target_base_color_desc);
 
-    IRHIRenderTargetDesc render_target_normal_desc;
+    RHIRenderTargetDesc render_target_normal_desc;
     render_target_normal_desc.width = resource_manager.GetSwapchain().GetWidth();
     render_target_normal_desc.height = resource_manager.GetSwapchain().GetHeight();
     render_target_normal_desc.name = "BasePassNormal";
