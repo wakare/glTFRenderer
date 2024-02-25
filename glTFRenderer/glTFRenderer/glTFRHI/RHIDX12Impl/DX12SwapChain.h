@@ -11,25 +11,30 @@ public:
 
     virtual unsigned GetWidth() override;
     virtual unsigned GetHeight() override;
-    virtual unsigned GetCurrentBackBufferIndex() override;
     
-    virtual bool InitSwapChain(IRHIFactory& factory,IRHICommandQueue& commandQueue, unsigned width, unsigned height, bool fullScreen, HWND hwnd) override;
+    virtual unsigned GetCurrentBackBufferIndex() override;
+    virtual unsigned GetBackBufferCount() override;
+    
+    virtual bool InitSwapChain(IRHIFactory& factory, IRHIDevice& device, IRHICommandQueue& commandQueue, unsigned width, unsigned height, bool fullScreen, HWND hwnd) override;
+    virtual bool AcquireNewFrame(IRHIDevice& device) override;
+    virtual IRHISemaphore& GetAvailableFrameSemaphore() override;
+    virtual bool Present(IRHICommandQueue& command_queue) override;
+    
+    IDXGISwapChain3* GetSwapChain() {return m_swap_chain.Get();}
+    const IDXGISwapChain3* GetSwapChain() const {return m_swap_chain.Get();}
 
-    IDXGISwapChain3* GetSwapChain() {return m_swapChain.Get();}
-    const IDXGISwapChain3* GetSwapChain() const {return m_swapChain.Get();}
+    DXGI_SAMPLE_DESC& GetSwapChainSampleDesc() {return m_swap_chain_sample_desc;}
+    const DXGI_SAMPLE_DESC& GetSwapChainSampleDesc() const {return m_swap_chain_sample_desc;}
 
-    DXGI_SAMPLE_DESC& GetSwapChainSampleDesc() {return m_swapChainSampleDesc;}
-    const DXGI_SAMPLE_DESC& GetSwapChainSampleDesc() const {return m_swapChainSampleDesc;}
-
-    unsigned GetFrameBufferCount() const {return m_frameBufferCount;}
-    unsigned GetCurrentFrameBufferIndex() const {return m_swapChain->GetCurrentBackBufferIndex();}
+    unsigned GetFrameBufferCount() const {return m_frame_buffer_count;}
+    unsigned GetCurrentFrameBufferIndex() const {return m_swap_chain->GetCurrentBackBufferIndex();}
     
 private:
-    unsigned m_frameBufferCount;
+    unsigned m_frame_buffer_count;
     unsigned m_width;
     unsigned m_height;
     
-    ComPtr<IDXGISwapChain3> m_swapChain;
-    DXGI_SAMPLE_DESC m_swapChainSampleDesc;
+    ComPtr<IDXGISwapChain3> m_swap_chain;
+    DXGI_SAMPLE_DESC m_swap_chain_sample_desc;
 };
 

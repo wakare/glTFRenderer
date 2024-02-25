@@ -73,8 +73,8 @@ bool glTFGraphicsPassMeshOpaque::SetupPipelineStateObject(glTFRenderResourceMana
         R"(glTFResources\ShaderSource\MeshPassCommonPS.hlsl)", RHIShaderType::Pixel, "main");
 
     RHIRenderTargetDesc render_target_base_color_desc;
-    render_target_base_color_desc.width = resource_manager.GetSwapchain().GetWidth();
-    render_target_base_color_desc.height = resource_manager.GetSwapchain().GetHeight();
+    render_target_base_color_desc.width = resource_manager.GetSwapChain().GetWidth();
+    render_target_base_color_desc.height = resource_manager.GetSwapChain().GetHeight();
     render_target_base_color_desc.name = "BasePassColor";
     render_target_base_color_desc.isUAV = true;
     render_target_base_color_desc.clearValue.clear_format = RHIDataFormat::R8G8B8A8_UNORM_SRGB;
@@ -84,8 +84,8 @@ bool glTFGraphicsPassMeshOpaque::SetupPipelineStateObject(glTFRenderResourceMana
         resource_manager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R8G8B8A8_UNORM_SRGB, RHIDataFormat::R8G8B8A8_UNORM_SRGB, render_target_base_color_desc);
 
     RHIRenderTargetDesc render_target_normal_desc;
-    render_target_normal_desc.width = resource_manager.GetSwapchain().GetWidth();
-    render_target_normal_desc.height = resource_manager.GetSwapchain().GetHeight();
+    render_target_normal_desc.width = resource_manager.GetSwapChain().GetWidth();
+    render_target_normal_desc.height = resource_manager.GetSwapChain().GetHeight();
     render_target_normal_desc.name = "BasePassNormal";
     render_target_normal_desc.isUAV = true;
     render_target_normal_desc.clearValue.clear_format = RHIDataFormat::R8G8B8A8_UNORM_SRGB;

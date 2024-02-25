@@ -19,6 +19,8 @@ DECLARE_INPUT_LAYOUT_SEMANTIC_NAME(TEXCOORD)
 class IRHIPipelineStateObject : public IRHIResource
 {
 public:
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIPipelineStateObject)
+    
     IRHIPipelineStateObject(RHIPipelineType type);
 
     virtual bool InitPipelineStateObject(IRHIDevice& device, IRHIRootSignature& root_signature) = 0;

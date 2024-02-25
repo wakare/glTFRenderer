@@ -7,12 +7,14 @@ std::shared_ptr<IRHIIndexBufferView> DX12IndexBuffer::CreateIndexBufferView(IRHI
     m_index_format = index_buffer_data.format;
     m_index_count =index_buffer_data.index_count;
     
+    m_buffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
     m_buffer->InitGPUBuffer(device, desc);
 
     const RHIBufferDesc index_upload_buffer_desc = {L"indexBufferUploadBuffer", index_buffer_data.byteSize,
         1, 1, RHIBufferType::Upload, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
-    
+    m_upload_buffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
     m_upload_buffer->InitGPUBuffer(device, index_upload_buffer_desc );
+    
     RHIUtils::Instance().UploadBufferDataToDefaultGPUBuffer(command_list, *m_upload_buffer, *m_buffer, index_buffer_data.data.get(), index_buffer_data.byteSize);
     RHIUtils::Instance().AddBufferBarrierToCommandList(command_list, *m_buffer, RHIResourceStateType::STATE_COPY_DEST, RHIResourceStateType::STATE_INDEX_BUFFER);
 

@@ -1,5 +1,3 @@
-
-
 #include "DX12RenderTargetManager.h"
 #include "DX12CommandList.h"
 #include "DX12ConverterUtils.h"
@@ -115,8 +113,8 @@ std::vector<std::shared_ptr<IRHIRenderTarget>> DX12RenderTargetManager::CreateRe
 
     auto* dxDescriptorHeap = dynamic_cast<DX12DescriptorHeap&>(*m_rtv_descriptor_heap).GetDescriptorHeap();
     D3D12_CPU_DESCRIPTOR_HANDLE handle = dxDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-    size_t descriptorsCount = m_rtvHandles.size();
-    UINT incSize = dxDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+    const size_t descriptorsCount = m_rtvHandles.size();
+    const UINT incSize = dxDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
     handle.ptr += descriptorsCount * incSize;
 
     DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
@@ -130,7 +128,6 @@ std::vector<std::shared_ptr<IRHIRenderTarget>> DX12RenderTargetManager::CreateRe
     {
         ID3D12Resource* resource = nullptr;
         dxSwapChain->GetBuffer(i, IID_PPV_ARGS(&resource));
-        //auto render_target = CreateRenderTargetWithResource(device, RHIRenderTargetType::RTV, RHIDataFormat::R8G8B8A8_UNORM_SRGB, resource, dx_clear_value);
         auto render_target = CreateRenderTargetWithResource(device, RHIRenderTargetType::RTV, RHIDataFormat::R8G8B8A8_UNORM, resource, dx_clear_value);
         outVector.push_back(render_target);
     }

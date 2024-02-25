@@ -16,10 +16,10 @@ bool glTFGraphicsPassBase::PreRenderPass(glTFRenderResourceManager& resource_man
     RETURN_IF_FALSE(glTFRenderPassBase::PreRenderPass(resource_manager))
 
     auto& command_list = resource_manager.GetCommandListForRecord();
-    const RHIViewportDesc viewport = {0, 0, (float)resource_manager.GetSwapchain().GetWidth(), (float)resource_manager.GetSwapchain().GetHeight(), 0.0f, 1.0f };
+    const RHIViewportDesc viewport = {0, 0, (float)resource_manager.GetSwapChain().GetWidth(), (float)resource_manager.GetSwapChain().GetHeight(), 0.0f, 1.0f };
     RHIUtils::Instance().SetViewport(command_list, viewport);
 
-    const RHIScissorRectDesc scissorRect = {0, 0, resource_manager.GetSwapchain().GetWidth(), resource_manager.GetSwapchain().GetHeight() }; 
+    const RHIScissorRectDesc scissorRect = {0, 0, resource_manager.GetSwapChain().GetWidth(), resource_manager.GetSwapChain().GetHeight() }; 
     RHIUtils::Instance().SetScissorRect(command_list, scissorRect);
 
     return true;
@@ -39,7 +39,7 @@ bool glTFGraphicsPassBase::SetupPipelineStateObject(glTFRenderResourceManager& r
 {
     RETURN_IF_FALSE(glTFRenderPassBase::SetupPipelineStateObject(resource_manager))
 
-    RETURN_IF_FALSE(GetGraphicsPipelineStateObject().BindSwapChain(resource_manager.GetSwapchain()))
+    RETURN_IF_FALSE(GetGraphicsPipelineStateObject().BindSwapChain(resource_manager.GetSwapChain()))
 
     // glTF using CCW as front face
     GetGraphicsPipelineStateObject().SetCullMode(GetCullMode());

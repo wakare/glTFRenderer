@@ -43,11 +43,11 @@ protected:
     SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice device, VkSurfaceKHR surface);
     bool IsSuitableDevice(VkPhysicalDevice device, VkSurfaceKHR surface);
     
-    VkInstance instance;
-    VkSurfaceKHR surface;
-    VkPhysicalDevice selected_physical_device;
-    VkDevice logical_device;
+    VkInstance instance {VK_NULL_HANDLE};
+    VkSurfaceKHR surface {VK_NULL_HANDLE};
+    VkPhysicalDevice selected_physical_device {VK_NULL_HANDLE};
+    VkDevice logical_device {VK_NULL_HANDLE};
 
-    unsigned graphics_queue_index;
-    unsigned present_queue_index;
+    unsigned graphics_queue_index {0};
+    unsigned present_queue_index {0};
 };

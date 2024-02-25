@@ -9,8 +9,9 @@ public:
     virtual ~DX12Fence() override;
     
     virtual bool InitFence(IRHIDevice& device) override;
+    virtual bool CommandQueueWaitForFence(IRHICommandQueue& commandQueue) override;
     virtual bool SignalWhenCommandQueueFinish(IRHICommandQueue& commandQueue) override;
-    virtual bool WaitUtilSignal() override;
+    virtual bool HostWaitUtilSignaled() override;
 
 private:
     ComPtr<ID3D12Fence> m_fence;

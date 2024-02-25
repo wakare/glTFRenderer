@@ -23,8 +23,8 @@ const char* glTFComputePassReSTIRDirectLighting::PassName()
 bool glTFComputePassReSTIRDirectLighting::InitPass(glTFRenderResourceManager& resource_manager)
 {
     RHIRenderTargetDesc lighting_output_desc;
-    lighting_output_desc.width = resource_manager.GetSwapchain().GetWidth();
-    lighting_output_desc.height = resource_manager.GetSwapchain().GetHeight();
+    lighting_output_desc.width = resource_manager.GetSwapChain().GetWidth();
+    lighting_output_desc.height = resource_manager.GetSwapChain().GetHeight();
     lighting_output_desc.name = "LightingOutput";
     lighting_output_desc.isUAV = true;
     lighting_output_desc.clearValue.clear_format = RHIDataFormat::R8G8B8A8_UNORM;
@@ -35,8 +35,8 @@ bool glTFComputePassReSTIRDirectLighting::InitPass(glTFRenderResourceManager& re
     resource_manager.GetRenderTargetManager().RegisterRenderTargetWithTag("RayTracingOutput", m_output);
     
     RHIRenderTargetDesc aggregate_samples_output_desc;
-    aggregate_samples_output_desc.width = resource_manager.GetSwapchain().GetWidth();
-    aggregate_samples_output_desc.height = resource_manager.GetSwapchain().GetHeight();
+    aggregate_samples_output_desc.width = resource_manager.GetSwapChain().GetWidth();
+    aggregate_samples_output_desc.height = resource_manager.GetSwapChain().GetHeight();
     aggregate_samples_output_desc.name = "AggregateOutput";
     aggregate_samples_output_desc.isUAV = true;
     aggregate_samples_output_desc.clearValue.clear_format = RHIDataFormat::R32G32B32A32_FLOAT;
@@ -150,7 +150,7 @@ bool glTFComputePassReSTIRDirectLighting::SetupPipelineStateObject(glTFRenderRes
 {
     RETURN_IF_FALSE(glTFComputePassBase::SetupPipelineStateObject(resource_manager))
 
-    m_dispatch_count = {resource_manager.GetSwapchain().GetWidth() / 8, resource_manager.GetSwapchain().GetHeight() / 8, 1};
+    m_dispatch_count = {resource_manager.GetSwapChain().GetWidth() / 8, resource_manager.GetSwapChain().GetHeight() / 8, 1};
 
     RETURN_IF_FALSE(m_main_descriptor_heap->CreateUnOrderAccessViewInDescriptorHeap(resource_manager.GetDevice(), m_main_descriptor_heap->GetUsedDescriptorCount(),
                 *m_output, {m_output->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D}, m_output_handle))

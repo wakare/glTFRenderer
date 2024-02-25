@@ -8,7 +8,7 @@ class IRHIGPUBufferManager;
 class IRHIGPUBuffer : public IRHIResource
 {
 public:
-    IRHIGPUBuffer();
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIGPUBuffer)
     
     virtual bool InitGPUBuffer(IRHIDevice& device, const RHIBufferDesc& desc) = 0;
     virtual bool UploadBufferFromCPU(const void* data, size_t dataOffset, size_t size) = 0;
@@ -17,5 +17,5 @@ public:
     const RHIBufferDesc& GetBufferDesc() const {return m_buffer_desc; }
     
 protected:
-    RHIBufferDesc m_buffer_desc;
+    RHIBufferDesc m_buffer_desc {};
 };

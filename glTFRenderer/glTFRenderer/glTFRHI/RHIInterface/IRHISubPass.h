@@ -1,7 +1,8 @@
 #pragma once
+#include "IRHIResource.h"
 #include "RHICommon.h"
 
-class IRHISubPass
+class IRHISubPass : public IRHIResource
 {
 public:
     IRHISubPass() = default;

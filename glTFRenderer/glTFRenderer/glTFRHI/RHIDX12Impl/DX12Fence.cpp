@@ -28,6 +28,14 @@ bool DX12Fence::InitFence(IRHIDevice& device)
     return true;
 }
 
+bool DX12Fence::CommandQueueWaitForFence(IRHICommandQueue& commandQueue)
+{
+    auto* dxCommandQueue = dynamic_cast<DX12CommandQueue&>(commandQueue).GetCommandQueue();
+    THROW_IF_FAILED(dxCommandQueue->Wait(m_fence.Get(), m_fenceCompleteValue))
+    
+    return true;
+}
+
 bool DX12Fence::SignalWhenCommandQueueFinish(IRHICommandQueue& commandQueue)
 {
     auto* dxCommandQueue = dynamic_cast<DX12CommandQueue&>(commandQueue).GetCommandQueue();
@@ -36,7 +44,7 @@ bool DX12Fence::SignalWhenCommandQueueFinish(IRHICommandQueue& commandQueue)
     return true;
 }
 
-bool DX12Fence::WaitUtilSignal()
+bool DX12Fence::HostWaitUtilSignaled()
 {
     if (m_fence->GetCompletedValue() != m_fenceCompleteValue)
     {

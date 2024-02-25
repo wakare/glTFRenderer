@@ -26,7 +26,7 @@ public:
 
     IRHIFactory& GetFactory();
     IRHIDevice& GetDevice();
-    IRHISwapChain& GetSwapchain();
+    IRHISwapChain& GetSwapChain();
     IRHICommandQueue& GetCommandQueue();
     IRHICommandList& GetCommandListForRecord();
     void CloseCommandListAndExecute(bool wait);
@@ -42,8 +42,7 @@ public:
     IRHIRenderTarget& GetCurrentFrameSwapchainRT();
     IRHIRenderTarget& GetDepthRT();
 
-    unsigned GetCurrentBackBufferIndex() const {return m_currentBackBufferIndex; }
-    void UpdateCurrentBackBufferIndex() { m_currentBackBufferIndex = m_swapchain->GetCurrentBackBufferIndex(); }
+    static unsigned GetCurrentBackBufferIndex() { return m_swap_chain->GetCurrentBackBufferIndex(); }
 
 	glTFRenderMaterialManager& GetMaterialManager();
     glTFRenderMeshManager& GetMeshManager();
@@ -66,7 +65,7 @@ private:
     static std::shared_ptr<IRHIFactory> m_factory;
     static std::shared_ptr<IRHIDevice> m_device;
     static std::shared_ptr<IRHICommandQueue> m_command_queue;
-    static std::shared_ptr<IRHISwapChain> m_swapchain;
+    static std::shared_ptr<IRHISwapChain> m_swap_chain;
     
     std::vector<std::shared_ptr<IRHICommandAllocator>> m_command_allocators;
     std::vector<std::shared_ptr<IRHICommandList>> m_command_lists;
@@ -83,7 +82,5 @@ private:
     std::shared_ptr<IRHIPipelineStateObject> m_current_pass_pso;
     std::vector<glTFRenderResourceFrameManager> m_frame_resource_managers;
     
-    unsigned m_currentBackBufferIndex;
-
     std::shared_ptr<glTFRenderResourceUtils::GBufferSignatureAllocations> m_GBuffer_allocations;
 };

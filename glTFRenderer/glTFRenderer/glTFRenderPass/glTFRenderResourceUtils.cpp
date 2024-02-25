@@ -58,8 +58,8 @@ namespace glTFRenderResourceUtils
     {
         RHIDataFormat albedo_format = RHIDataFormat::R8G8B8A8_UNORM;
         RHIRenderTargetDesc albedo_output_desc;
-        albedo_output_desc.width = resource_manager.GetSwapchain().GetWidth();
-        albedo_output_desc.height = resource_manager.GetSwapchain().GetHeight();
+        albedo_output_desc.width = resource_manager.GetSwapChain().GetWidth();
+        albedo_output_desc.height = resource_manager.GetSwapChain().GetHeight();
         albedo_output_desc.name = "Albedo_Output";
         albedo_output_desc.isUAV = true;
         albedo_output_desc.clearValue.clear_format = albedo_format;
@@ -71,8 +71,8 @@ namespace glTFRenderResourceUtils
         
         RHIDataFormat normal_format = RHIDataFormat::R8G8B8A8_UNORM;
         RHIRenderTargetDesc normal_output_desc;
-        normal_output_desc.width = resource_manager.GetSwapchain().GetWidth();
-        normal_output_desc.height = resource_manager.GetSwapchain().GetHeight();
+        normal_output_desc.width = resource_manager.GetSwapChain().GetWidth();
+        normal_output_desc.height = resource_manager.GetSwapChain().GetHeight();
         normal_output_desc.name = "Normal_Output";
         normal_output_desc.isUAV = true;
         normal_output_desc.clearValue.clear_format = normal_format;
@@ -84,8 +84,8 @@ namespace glTFRenderResourceUtils
         
         RHIDataFormat depth_format = RHIDataFormat::R32_FLOAT;
         RHIRenderTargetDesc depth_output_desc;
-        depth_output_desc.width = resource_manager.GetSwapchain().GetWidth();
-        depth_output_desc.height = resource_manager.GetSwapchain().GetHeight();
+        depth_output_desc.width = resource_manager.GetSwapChain().GetWidth();
+        depth_output_desc.height = resource_manager.GetSwapChain().GetHeight();
         depth_output_desc.name = "Depth_Output";
         depth_output_desc.isUAV = true;
         depth_output_desc.clearValue.clear_format = depth_format;

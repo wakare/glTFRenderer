@@ -10,6 +10,8 @@
 class IRHIRenderTargetManager : public IRHIResource
 {
 public:
+     DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIRenderTargetManager)
+     
      virtual bool InitRenderTargetManager(IRHIDevice& device, size_t maxRenderTargetCount) = 0;
      
      virtual std::shared_ptr<IRHIRenderTarget> CreateRenderTarget(IRHIDevice& device, RHIRenderTargetType type, RHIDataFormat resourceFormat, RHIDataFormat descriptorFormat, const RHIRenderTargetDesc& desc) = 0;

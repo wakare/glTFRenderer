@@ -11,6 +11,8 @@ class glTFImageLoader;
 class IRHITexture : public IRHIResource
 {
 public:
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHITexture)
+    
     virtual bool UploadTextureFromFile(IRHIDevice& device, IRHICommandList& commandList, const std::string& filePath, bool srgb) = 0;
     virtual IRHIGPUBuffer& GetGPUBuffer() = 0;
     

@@ -6,13 +6,13 @@
 class VKCommandQueue : public IRHICommandQueue
 {
 public:
-    VKCommandQueue();
-    virtual ~VKCommandQueue() override;
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKCommandQueue)
     
     virtual bool InitCommandQueue(IRHIDevice& device) override;
     
+    VkQueue GetGraphicsQueue() const;
     
 protected:
-    VkDevice logical_device;
-    VkQueue graphics_queue;
+    VkDevice logical_device {VK_NULL_HANDLE};
+    VkQueue graphics_queue {VK_NULL_HANDLE};
 };

@@ -231,6 +231,29 @@ struct RHISubPassInfo
     std::vector<RHISubPassAttachment> color_attachments;
 };
 
+enum class RHIPipelineStage
+{
+    COLOR_ATTACHMENT_OUTPUT,
+};
+
+enum class RHIAccessFlags
+{
+    NONE,
+    COLOR_ATTACHMENT_WRITE,
+};
+
+struct RHISubPassDependency
+{
+    unsigned src_subpass;
+    unsigned dst_subpass;
+
+    RHIPipelineStage src_stage;
+    RHIAccessFlags src_access_flags; 
+
+    RHIPipelineStage dst_stage;
+    RHIAccessFlags dst_access_flags;
+};
+
 enum class RHIShaderType
 {
     Vertex,
@@ -478,12 +501,12 @@ enum class RHIBufferUsage
 
 struct RHIBufferDesc
 {
-    std::wstring name;
+    std::wstring name {'\0'};
     size_t width {0};
     size_t height {0};
     size_t depth {0};
     
-    RHIBufferType type ;
+    RHIBufferType type;
     RHIDataFormat resource_data_type;
     RHIBufferResourceType resource_type;
     RHIResourceStateType state {RHIResourceStateType::STATE_COMMON};

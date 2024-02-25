@@ -5,7 +5,7 @@
 class IRHIDevice : public IRHIResource
 {
 public:
-    IRHIDevice() = default;
-    DECLARE_NON_COPYABLE(IRHIDevice)
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIDevice)
+    
     virtual bool InitDevice(IRHIFactory& factory) = 0;
 };

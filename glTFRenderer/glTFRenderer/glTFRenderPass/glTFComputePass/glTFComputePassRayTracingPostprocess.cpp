@@ -23,8 +23,8 @@ const char* glTFComputePassRayTracingPostprocess::PassName()
 bool glTFComputePassRayTracingPostprocess::InitPass(glTFRenderResourceManager& resource_manager)
 {
     RHIRenderTargetDesc raytracing_accumulation_render_target;
-    raytracing_accumulation_render_target.width = resource_manager.GetSwapchain().GetWidth();
-    raytracing_accumulation_render_target.height = resource_manager.GetSwapchain().GetHeight();
+    raytracing_accumulation_render_target.width = resource_manager.GetSwapChain().GetWidth();
+    raytracing_accumulation_render_target.height = resource_manager.GetSwapChain().GetHeight();
     raytracing_accumulation_render_target.name = "RAYTRACING_ACCUMULATION_RESOURCE";
     raytracing_accumulation_render_target.isUAV = true;
     raytracing_accumulation_render_target.clearValue.clear_format = RHIDataFormat::R32G32B32A32_FLOAT;
@@ -33,8 +33,8 @@ bool glTFComputePassRayTracingPostprocess::InitPass(glTFRenderResourceManager& r
     RETURN_IF_FALSE(m_accumulation_resource.CreateResource(resource_manager, raytracing_accumulation_render_target))
 
     RHIRenderTargetDesc raytracing_custom_render_target;
-    raytracing_custom_render_target.width = resource_manager.GetSwapchain().GetWidth();
-    raytracing_custom_render_target.height = resource_manager.GetSwapchain().GetHeight();
+    raytracing_custom_render_target.width = resource_manager.GetSwapChain().GetWidth();
+    raytracing_custom_render_target.height = resource_manager.GetSwapChain().GetHeight();
     raytracing_custom_render_target.name = "RAYTRACING_CUSTOM_RESOURCE";
     raytracing_custom_render_target.isUAV = true;
     raytracing_custom_render_target.clearValue.clear_format = RHIDataFormat::R32G32B32A32_FLOAT;
@@ -43,8 +43,8 @@ bool glTFComputePassRayTracingPostprocess::InitPass(glTFRenderResourceManager& r
     RETURN_IF_FALSE(m_custom_resource.CreateResource(resource_manager, raytracing_custom_render_target))
 
     RHIRenderTargetDesc post_process_output_desc;
-    post_process_output_desc.width = resource_manager.GetSwapchain().GetWidth();
-    post_process_output_desc.height = resource_manager.GetSwapchain().GetHeight();
+    post_process_output_desc.width = resource_manager.GetSwapChain().GetWidth();
+    post_process_output_desc.height = resource_manager.GetSwapChain().GetHeight();
     post_process_output_desc.name = "PostProcessOutput";
     post_process_output_desc.isUAV = true;
     post_process_output_desc.clearValue.clear_format = RHIDataFormat::R8G8B8A8_UNORM;
@@ -148,7 +148,7 @@ bool glTFComputePassRayTracingPostprocess::SetupRootSignature(glTFRenderResource
 {
     RETURN_IF_FALSE(glTFComputePassBase::SetupRootSignature(resource_manager))
 
-    m_dispatch_count = {resource_manager.GetSwapchain().GetWidth() / 8, resource_manager.GetSwapchain().GetHeight() / 8, 1};
+    m_dispatch_count = {resource_manager.GetSwapChain().GetWidth() / 8, resource_manager.GetSwapChain().GetHeight() / 8, 1};
     
     RETURN_IF_FALSE(m_accumulation_resource.RegisterSignature(m_root_signature_helper))
     RETURN_IF_FALSE(m_custom_resource.RegisterSignature(m_root_signature_helper))

@@ -14,12 +14,11 @@ constexpr size_t backBufferCount = 3;
 std::shared_ptr<IRHIFactory> glTFRenderResourceManager::m_factory = nullptr;
 std::shared_ptr<IRHIDevice> glTFRenderResourceManager::m_device = nullptr;
 std::shared_ptr<IRHICommandQueue> glTFRenderResourceManager::m_command_queue = nullptr;
-std::shared_ptr<IRHISwapChain> glTFRenderResourceManager::m_swapchain = nullptr;
+std::shared_ptr<IRHISwapChain> glTFRenderResourceManager::m_swap_chain = nullptr;
 
 glTFRenderResourceManager::glTFRenderResourceManager()
     : m_material_manager(std::make_shared<glTFRenderMaterialManager>())
     , m_mesh_manager(std::make_shared<glTFRenderMeshManager>())
-    , m_currentBackBufferIndex(0)
     , m_GBuffer_allocations(new glTFRenderResourceUtils::GBufferSignatureAllocations)
 {
 }
@@ -44,13 +43,11 @@ bool glTFRenderResourceManager::InitResourceManager(unsigned width, unsigned hei
         EXIT_WHEN_FALSE(m_command_queue->InitCommandQueue(*m_device))
     }
 
-    if (!m_swapchain)
+    if (!m_swap_chain)
     {
-        m_swapchain = RHIResourceFactory::CreateRHIResource<IRHISwapChain>();
-        EXIT_WHEN_FALSE(m_swapchain->InitSwapChain(*m_factory, *m_command_queue, width, height, false, handle))    
+        m_swap_chain = RHIResourceFactory::CreateRHIResource<IRHISwapChain>();
+        EXIT_WHEN_FALSE(m_swap_chain->InitSwapChain(*m_factory, *m_device, *m_command_queue, width, height, false, handle))    
     }
-    
-    UpdateCurrentBackBufferIndex();
     
     m_command_allocators.resize(backBufferCount);
     m_command_lists.resize(backBufferCount);
@@ -79,14 +76,14 @@ bool glTFRenderResourceManager::InitResourceManager(unsigned width, unsigned hei
     RHIRenderTargetClearValue clearValue;
     clearValue.clear_format = RHIDataFormat::R8G8B8A8_UNORM_SRGB;
     clearValue.clear_color = glm::vec4{0.0f, 0.0f, 0.0f, 0.0f};
-    m_swapchain_RTs = m_render_target_manager->CreateRenderTargetFromSwapChain(*m_device, *m_swapchain, clearValue);
+    m_swapchain_RTs = m_render_target_manager->CreateRenderTargetFromSwapChain(*m_device, *m_swap_chain, clearValue);
 
     RHIRenderTargetClearValue depth_clear_value{};
     depth_clear_value.clear_format = RHIDataFormat::D32_FLOAT;
     depth_clear_value.clearDS.clear_depth = 1.0f;
     depth_clear_value.clearDS.clear_stencil_value = 0;
     m_depth_texture = m_render_target_manager->CreateRenderTarget(*m_device, RHIRenderTargetType::DSV, RHIDataFormat::R32_TYPELESS,
-                                                               RHIDataFormat::D32_FLOAT, RHIRenderTargetDesc{GetSwapchain().GetWidth(), GetSwapchain().GetHeight(), false, depth_clear_value, "ResourceManager_DepthRT"});
+                                                               RHIDataFormat::D32_FLOAT, RHIRenderTargetDesc{GetSwapChain().GetWidth(), GetSwapChain().GetHeight(), false, depth_clear_value, "ResourceManager_DepthRT"});
 
     m_frame_resource_managers.resize(backBufferCount);
     
@@ -103,9 +100,9 @@ IRHIDevice& glTFRenderResourceManager::GetDevice()
     return *m_device;
 }
 
-IRHISwapChain& glTFRenderResourceManager::GetSwapchain()
+IRHISwapChain& glTFRenderResourceManager::GetSwapChain()
 {
-    return *m_swapchain;
+    return *m_swap_chain;
 }
 
 IRHICommandQueue& glTFRenderResourceManager::GetCommandQueue()
@@ -115,7 +112,7 @@ IRHICommandQueue& glTFRenderResourceManager::GetCommandQueue()
 
 IRHICommandList& glTFRenderResourceManager::GetCommandListForRecord()
 {
-    const auto current_frame_index = m_currentBackBufferIndex % backBufferCount;
+    const auto current_frame_index = GetCurrentBackBufferIndex() % backBufferCount;
     auto& command_list = *m_command_lists[current_frame_index];
     auto& command_allocator = *m_command_allocators[current_frame_index];
     if (!m_command_list_record_state[current_frame_index])
@@ -129,7 +126,7 @@ IRHICommandList& glTFRenderResourceManager::GetCommandListForRecord()
 
 void glTFRenderResourceManager::CloseCommandListAndExecute(bool wait)
 {
-    const auto current_frame_index = m_currentBackBufferIndex % backBufferCount;
+    const auto current_frame_index = GetCurrentBackBufferIndex() % backBufferCount;
     if (!m_command_list_record_state[current_frame_index])
     {
         return;
@@ -141,7 +138,7 @@ void glTFRenderResourceManager::CloseCommandListAndExecute(bool wait)
     GLTF_CHECK(GetCurrentFrameFence().SignalWhenCommandQueueFinish(GetCommandQueue()));
     if (wait)
     {
-        GetCurrentFrameFence().WaitUtilSignal();
+        GetCurrentFrameFence().HostWaitUtilSignaled();
     }
     
     m_command_list_record_state[current_frame_index] = false;
@@ -149,14 +146,14 @@ void glTFRenderResourceManager::CloseCommandListAndExecute(bool wait)
 
 void glTFRenderResourceManager::WaitLastFrameFinish()
 {
-    GetCurrentFrameFence().WaitUtilSignal();
+    GetCurrentFrameFence().HostWaitUtilSignaled();
 }
 
 void glTFRenderResourceManager::WaitAllFrameFinish() const
 {
     for (unsigned i = 0; i < backBufferCount; ++i)
     {
-        m_fences[i]->WaitUtilSignal();
+        m_fences[i]->HostWaitUtilSignaled();
     }
 }
 
@@ -173,17 +170,17 @@ IRHIRenderTargetManager& glTFRenderResourceManager::GetRenderTargetManager()
 
 IRHICommandAllocator& glTFRenderResourceManager::GetCurrentFrameCommandAllocator()
 {
-    return *m_command_allocators[m_currentBackBufferIndex % backBufferCount];
+    return *m_command_allocators[GetCurrentBackBufferIndex() % backBufferCount];
 }
 
 IRHIFence& glTFRenderResourceManager::GetCurrentFrameFence()
 {
-    return *m_fences[m_currentBackBufferIndex % backBufferCount];
+    return *m_fences[GetCurrentBackBufferIndex() % backBufferCount];
 }
 
 IRHIRenderTarget& glTFRenderResourceManager::GetCurrentFrameSwapchainRT()
 {
-    return *m_swapchain_RTs[m_currentBackBufferIndex % backBufferCount];
+    return *m_swapchain_RTs[GetCurrentBackBufferIndex() % backBufferCount];
 }
 
 IRHIRenderTarget& glTFRenderResourceManager::GetDepthRT()

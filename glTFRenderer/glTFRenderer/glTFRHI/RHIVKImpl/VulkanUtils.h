@@ -8,8 +8,7 @@ class VulkanUtils : public RHIUtils
     friend class RHIResourceFactory;
     
 public:
-    DECLARE_NON_COPYABLE(VulkanUtils)
-    virtual ~VulkanUtils() override;
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VulkanUtils)
 
     virtual bool InitGUIContext(IRHIDevice& device, IRHIDescriptorHeap& descriptor_heap, unsigned back_buffer_count) override;
     virtual bool NewGUIFrame() override;
@@ -49,7 +48,7 @@ public:
     virtual bool ExecuteIndirect(IRHICommandList& command_list, IRHICommandSignature& command_signature, unsigned max_count, IRHIGPUBuffer& arguments_buffer, unsigned arguments_buffer_offset) override;
     virtual bool ExecuteIndirect(IRHICommandList& command_list, IRHICommandSignature& command_signature, unsigned max_count, IRHIGPUBuffer& arguments_buffer, unsigned arguments_buffer_offset, IRHIGPUBuffer& count_buffer, unsigned count_buffer_offset) override;
     
-    virtual bool Present(IRHISwapChain& swapchain) override;
+    virtual bool Present(IRHISwapChain& swap_chain, IRHICommandQueue& command_queue) override;
 
     virtual bool DiscardResource(IRHICommandList& commandList, IRHIRenderTarget& render_target) override;
 

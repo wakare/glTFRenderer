@@ -6,7 +6,7 @@
 class IRHIIndexBuffer : public IRHIResource
 {
 public:
-    IRHIIndexBuffer();
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIIndexBuffer)
     
     virtual std::shared_ptr<IRHIIndexBufferView> CreateIndexBufferView(IRHIDevice& device, IRHICommandList& command_list,
         const RHIBufferDesc& desc, const IndexBufferData& index_buffer_data) = 0;
@@ -16,9 +16,9 @@ public:
     IRHIGPUBuffer& GetBuffer() const {return *m_buffer; }
     
 protected:
-    std::shared_ptr<IRHIGPUBuffer> m_buffer;
-    std::shared_ptr<IRHIGPUBuffer> m_upload_buffer;
+    std::shared_ptr<IRHIGPUBuffer> m_buffer {nullptr};
+    std::shared_ptr<IRHIGPUBuffer> m_upload_buffer {nullptr};
 
-    RHIDataFormat m_index_format;
-    size_t m_index_count;
+    RHIDataFormat m_index_format {RHIDataFormat::Unknown};
+    size_t m_index_count {0};
 };

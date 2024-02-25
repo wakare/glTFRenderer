@@ -29,8 +29,8 @@ const char* glTFComputePassLighting::PassName()
 bool glTFComputePassLighting::InitPass(glTFRenderResourceManager& resource_manager)
 {
     RHIRenderTargetDesc lighting_output_desc;
-    lighting_output_desc.width = resource_manager.GetSwapchain().GetWidth();
-    lighting_output_desc.height = resource_manager.GetSwapchain().GetHeight();
+    lighting_output_desc.width = resource_manager.GetSwapChain().GetWidth();
+    lighting_output_desc.height = resource_manager.GetSwapChain().GetHeight();
     lighting_output_desc.name = "LightingOutput";
     lighting_output_desc.isUAV = true;
     lighting_output_desc.clearValue.clear_format = RHIDataFormat::R8G8B8A8_UNORM;
@@ -148,7 +148,7 @@ bool glTFComputePassLighting::SetupPipelineStateObject(glTFRenderResourceManager
 {
     RETURN_IF_FALSE(glTFComputePassBase::SetupPipelineStateObject(resource_manager))
 
-    m_dispatch_count = {resource_manager.GetSwapchain().GetWidth() / 8, resource_manager.GetSwapchain().GetHeight() / 8, 1};
+    m_dispatch_count = {resource_manager.GetSwapChain().GetWidth() / 8, resource_manager.GetSwapChain().GetHeight() / 8, 1};
     
     m_base_color_RT = resource_manager.GetRenderTargetManager().GetRenderTargetWithTag("BasePassColor");
     RETURN_IF_FALSE(m_main_descriptor_heap->CreateShaderResourceViewInDescriptorHeap(resource_manager.GetDevice(), m_main_descriptor_heap->GetUsedDescriptorCount(),

@@ -6,6 +6,8 @@ class IRHIGPUBuffer;
 class IRHIIndexBufferView : public IRHIResource
 {
 public:
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIIndexBufferView)
+    
     virtual bool InitIndexBufferView(IRHIGPUBuffer& buffer, size_t offset, RHIDataFormat indexFormat, size_t indexBufferSize) = 0;
     
     virtual RHIGPUDescriptorHandle GetGPUHandle() const = 0;

@@ -21,14 +21,6 @@
 #include "glTFRHI/RHIInterface/IRHIGPUBuffer.h"
 #include "glTFRHI/RHIInterface/RHICommon.h"
 
-DX12Utils::DX12Utils()
-{
-}
-
-DX12Utils::~DX12Utils()
-{
-}
-
 bool DX12Utils::InitGUIContext(IRHIDevice& device, IRHIDescriptorHeap& descriptor_heap, unsigned back_buffer_count)
 {
     auto* dx_device = dynamic_cast<DX12Device&>(device).GetDevice();
@@ -417,11 +409,9 @@ bool DX12Utils::ExecuteIndirect(IRHICommandList& command_list, IRHICommandSignat
     return true;
 }
 
-bool DX12Utils::Present(IRHISwapChain& swapchain)
+bool DX12Utils::Present(IRHISwapChain& swap_chain, IRHICommandQueue& command_queue)
 {
-    auto* dxSwapchain = dynamic_cast<DX12SwapChain&>(swapchain).GetSwapChain();
-    THROW_IF_FAILED(dxSwapchain->Present(0, 0))
-    return true;
+    return swap_chain.Present(command_queue);
 }
 
 bool DX12Utils::DiscardResource(IRHICommandList& commandList, IRHIRenderTarget& render_target)

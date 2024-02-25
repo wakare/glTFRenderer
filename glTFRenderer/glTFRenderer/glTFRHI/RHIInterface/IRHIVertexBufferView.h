@@ -5,6 +5,8 @@
 class IRHIVertexBufferView : public IRHIResource
 {
 public:
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIVertexBufferView)
+    
     virtual void InitVertexBufferView(IRHIGPUBuffer& buffer, size_t offset, size_t vertexStride, size_t vertexBufferSize) = 0;
 
     virtual RHIGPUDescriptorHandle GetGPUHandle() const = 0;

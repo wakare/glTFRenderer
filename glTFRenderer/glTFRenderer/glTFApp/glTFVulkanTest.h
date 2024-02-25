@@ -9,9 +9,7 @@
 class glTFVulkanTest
 {
 public:
-    glTFVulkanTest() = default;
-    ~glTFVulkanTest() = default;
-    DECLARE_NON_COPYABLE(glTFVulkanTest)
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFVulkanTest)
     
     bool Init();
     bool Update();
