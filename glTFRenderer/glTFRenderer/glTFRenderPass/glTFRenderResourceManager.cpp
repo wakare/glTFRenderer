@@ -63,13 +63,6 @@ bool glTFRenderResourceManager::InitResourceManager(unsigned width, unsigned hei
         m_command_list_record_state[i] = false;
     }
 
-    m_fences.resize(backBufferCount);
-    for (size_t i = 0; i < backBufferCount; ++i)
-    {
-        m_fences[i] = RHIResourceFactory::CreateRHIResource<IRHIFence>();
-        m_fences[i]->InitFence(*m_device);
-    }
-
     m_render_target_manager = RHIResourceFactory::CreateRHIResource<IRHIRenderTargetManager>();
     m_render_target_manager->InitRenderTargetManager(*m_device, 100);
 
@@ -135,26 +128,17 @@ void glTFRenderResourceManager::CloseCommandListAndExecute(bool wait)
     auto& command_list = *m_command_lists[current_frame_index];
     GLTF_CHECK(RHIUtils::Instance().CloseCommandList(command_list)); 
     GLTF_CHECK(RHIUtils::Instance().ExecuteCommandList(command_list, GetCommandQueue()));
-    GLTF_CHECK(GetCurrentFrameFence().SignalWhenCommandQueueFinish(GetCommandQueue()));
     if (wait)
     {
-        GetCurrentFrameFence().HostWaitUtilSignaled();
+        RHIUtils::Instance().WaitCommandQueueFinish(GetCommandQueue());
     }
     
     m_command_list_record_state[current_frame_index] = false;
 }
 
-void glTFRenderResourceManager::WaitLastFrameFinish()
+void glTFRenderResourceManager::WaitAllFrameFinish()
 {
-    GetCurrentFrameFence().HostWaitUtilSignaled();
-}
-
-void glTFRenderResourceManager::WaitAllFrameFinish() const
-{
-    for (unsigned i = 0; i < backBufferCount; ++i)
-    {
-        m_fences[i]->HostWaitUtilSignaled();
-    }
+    RHIUtils::Instance().WaitCommandQueueFinish(GetCommandQueue());
 }
 
 void glTFRenderResourceManager::ResetCommandAllocator()
@@ -171,11 +155,6 @@ IRHIRenderTargetManager& glTFRenderResourceManager::GetRenderTargetManager()
 IRHICommandAllocator& glTFRenderResourceManager::GetCurrentFrameCommandAllocator()
 {
     return *m_command_allocators[GetCurrentBackBufferIndex() % backBufferCount];
-}
-
-IRHIFence& glTFRenderResourceManager::GetCurrentFrameFence()
-{
-    return *m_fences[GetCurrentBackBufferIndex() % backBufferCount];
 }
 
 IRHIRenderTarget& glTFRenderResourceManager::GetCurrentFrameSwapchainRT()

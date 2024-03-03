@@ -39,8 +39,6 @@ bool glTFGraphicsPassBase::SetupPipelineStateObject(glTFRenderResourceManager& r
 {
     RETURN_IF_FALSE(glTFRenderPassBase::SetupPipelineStateObject(resource_manager))
 
-    RETURN_IF_FALSE(GetGraphicsPipelineStateObject().BindSwapChain(resource_manager.GetSwapChain()))
-
     // glTF using CCW as front face
     GetGraphicsPipelineStateObject().SetCullMode(GetCullMode());
     

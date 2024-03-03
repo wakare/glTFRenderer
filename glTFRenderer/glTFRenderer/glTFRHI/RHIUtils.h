@@ -31,7 +31,8 @@ public:
     virtual bool CloseCommandList(IRHICommandList& commandList) = 0;
     virtual bool ExecuteCommandList(IRHICommandList& commandList, IRHICommandQueue& commandQueue) = 0;
     virtual bool ResetCommandAllocator(IRHICommandAllocator& commandAllocator) = 0;
-
+    virtual bool WaitCommandQueueFinish(IRHICommandQueue& command_queue) = 0;
+    
     virtual bool SetRootSignature(IRHICommandList& commandList, IRHIRootSignature& rootSignature, bool isGraphicsPipeline) = 0;
     virtual bool SetViewport(IRHICommandList& commandList, const RHIViewportDesc& viewportDesc) = 0;
     virtual bool SetScissorRect(IRHICommandList& commandList, const RHIScissorRectDesc& scissorRect) = 0;

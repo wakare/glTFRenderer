@@ -27,12 +27,11 @@ public:
     IRHIFactory& GetFactory();
     IRHIDevice& GetDevice();
     IRHISwapChain& GetSwapChain();
-    IRHICommandQueue& GetCommandQueue();
+    static IRHICommandQueue& GetCommandQueue();
     IRHICommandList& GetCommandListForRecord();
     void CloseCommandListAndExecute(bool wait);
 
-    void WaitLastFrameFinish();
-    void WaitAllFrameFinish() const;
+    static void WaitAllFrameFinish();
     void ResetCommandAllocator();
     
     IRHIRenderTargetManager& GetRenderTargetManager();
@@ -71,7 +70,6 @@ private:
     std::vector<std::shared_ptr<IRHICommandList>> m_command_lists;
     std::vector<bool> m_command_list_record_state;
     
-    std::vector<std::shared_ptr<IRHIFence>> m_fences;
     std::shared_ptr<IRHIRenderTargetManager> m_render_target_manager;
     std::vector<std::shared_ptr<IRHIRenderTarget>> m_swapchain_RTs;
     std::shared_ptr<IRHIRenderTarget> m_depth_texture;

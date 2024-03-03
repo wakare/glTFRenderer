@@ -65,3 +65,8 @@ bool VKRenderPass::InitRenderPass(IRHIDevice& device, const RHIRenderPassInfo& i
     
     return true;
 }
+
+const VkRenderPass& VKRenderPass::GetRenderPass() const
+{
+    return m_render_pass;
+}

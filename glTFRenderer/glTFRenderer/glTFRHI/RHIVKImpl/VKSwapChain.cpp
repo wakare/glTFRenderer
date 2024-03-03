@@ -88,16 +88,10 @@ bool VKSwapChain::InitSwapChain(IRHIFactory& factory, IRHIDevice& device, IRHICo
         vkGetSwapchainImagesKHR(VkDevice.GetDevice(), m_swap_chain, &swap_chain_image_count, m_swap_chain_images.data());
 
         m_frame_available_semaphores.resize(swap_chain_image_count);
-        VkSemaphoreCreateInfo create_semaphore_info{};
-        create_semaphore_info.sType= VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
         for (size_t i = 0; i < swap_chain_image_count; ++i)
         {
             const auto semaphore = std::make_shared<VKSemaphore>();
-            VkSemaphore vk_semaphore { VK_NULL_HANDLE};
-            result = vkCreateSemaphore(VkDevice.GetDevice(), &create_semaphore_info, nullptr, &vk_semaphore);
-            GLTF_CHECK(result == VK_SUCCESS);
-            
-            semaphore->InitSemaphore(vk_semaphore);
+            semaphore->InitSemaphore(device);
             m_frame_available_semaphores[i] = semaphore;
         }
     }

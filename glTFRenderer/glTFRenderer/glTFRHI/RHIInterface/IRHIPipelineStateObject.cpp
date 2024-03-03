@@ -65,6 +65,19 @@ RHIShaderPreDefineMacros& IRHIPipelineStateObject::GetShaderMacros()
     return m_shader_macros;
 }
 
+bool IRHIPipelineStateObject::CompileShaders()
+{
+    RETURN_IF_FALSE(!m_shaders.empty())
+
+    for (const auto& shader : m_shaders)
+    {
+        shader.second->SetShaderCompilePreDefineMacros(m_shader_macros);
+        RETURN_IF_FALSE(shader.second->CompileShader())
+    }
+    
+    return true;
+}
+
 IRHIGraphicsPipelineStateObject::IRHIGraphicsPipelineStateObject()
     : IRHIPipelineStateObject(RHIPipelineType::Graphics)
 {

@@ -10,6 +10,7 @@ public:
     IRHIShader(RHIShaderType type = RHIShaderType::Unknown);
     RHIShaderType GetType() const;
     const std::string& GetShaderContent() const;
+    const std::string& GetMainEntry() const;
     void SetShaderCompilePreDefineMacros(const RHIShaderPreDefineMacros& macros);
     
     bool InitShader(const std::string& shader_file_path, RHIShaderType type, const std::string& entry_function_name);

@@ -15,8 +15,6 @@ public:
 protected:
     IDX12PipelineStateObjectCommon();
     
-    bool CompileBindShaders(const std::map<RHIShaderType, std::shared_ptr<IRHIShader>>& shaders, const RHIShaderPreDefineMacros& shader_macros);
-    
     ComPtr<ID3D12PipelineState> m_pipeline_state_object;
     ComPtr<ID3D12StateObject> m_dxr_pipeline_state;
 };
@@ -27,9 +25,8 @@ public:
     DX12GraphicsPipelineStateObject();
     virtual ~DX12GraphicsPipelineStateObject() override;
 
-    virtual bool BindSwapChain(const IRHISwapChain& swapchain) override;
     virtual bool BindRenderTargetFormats(const std::vector<IRHIRenderTarget*>& render_targets) override;
-    virtual bool InitPipelineStateObject(IRHIDevice& device, IRHIRootSignature& root_signature) override;
+    virtual bool InitPipelineStateObject(IRHIDevice& device, const RHIPipelineStateInfo& pipeline_state_info) override;
 
     ID3D12PipelineState* GetPSO() {return m_pipeline_state_object.Get(); }
     
@@ -38,7 +35,6 @@ private:
     
     D3D12_GRAPHICS_PIPELINE_STATE_DESC m_graphics_pipeline_state_desc;
     DXGI_FORMAT m_bind_depth_stencil_format;
-    DXGI_SAMPLE_DESC m_swapchain_sample_desc;
 };
 
 class DX12ComputePipelineStateObject : public IRHIComputePipelineStateObject, public IDX12PipelineStateObjectCommon
@@ -46,7 +42,7 @@ class DX12ComputePipelineStateObject : public IRHIComputePipelineStateObject, pu
 public:
     DX12ComputePipelineStateObject();
 
-    virtual bool InitPipelineStateObject(IRHIDevice& device, IRHIRootSignature& root_signature) override;
+    virtual bool InitPipelineStateObject(IRHIDevice& device, const RHIPipelineStateInfo& pipeline_state_info) override;
     
 private:
     D3D12_COMPUTE_PIPELINE_STATE_DESC m_compute_pipeline_state_desc;
@@ -56,7 +52,7 @@ class DX12DXRStateObject : public IRHIRayTracingPipelineStateObject, public IDX1
 {
 public:
     DX12DXRStateObject();
-    virtual bool InitPipelineStateObject(IRHIDevice& device, IRHIRootSignature& root_signature) override;
+    virtual bool InitPipelineStateObject(IRHIDevice& device, const RHIPipelineStateInfo& pipeline_state_info) override;
     
     ID3D12StateObjectProperties* GetDXRStateObjectProperties()
     {

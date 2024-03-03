@@ -10,6 +10,7 @@
 #include "DX12ConverterUtils.h"
 #include "DX12DescriptorHeap.h"
 #include "DX12Device.h"
+#include "DX12Fence.h"
 #include "DX12GPUBuffer.h"
 #include "DX12IndexBufferView.h"
 #include "DX12PipelineStateObject.h"
@@ -18,6 +19,7 @@
 #include "DX12ShaderTable.h"
 #include "DX12SwapChain.h"
 #include "DX12VertexBufferView.h"
+#include "glTFRHI/RHIInterface/IRHIFence.h"
 #include "glTFRHI/RHIInterface/IRHIGPUBuffer.h"
 #include "glTFRHI/RHIInterface/RHICommon.h"
 
@@ -95,9 +97,12 @@ bool DX12Utils::ExecuteCommandList(IRHICommandList& commandList, IRHICommandQueu
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
     auto* dxCommandQueue = dynamic_cast<DX12CommandQueue&>(commandQueue).GetCommandQueue();
+    auto& fence = dynamic_cast<DX12CommandQueue&>(commandQueue).GetFence();
     
     ID3D12CommandList* ppCommandLists[] = { dxCommandList };
     dxCommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+
+    dynamic_cast<DX12Fence&>(fence).SignalWhenCommandQueueFinish(commandQueue);
     
     return true;
 }
@@ -107,6 +112,11 @@ bool DX12Utils::ResetCommandAllocator(IRHICommandAllocator& commandAllocator)
     auto* dxCommandAllocator = dynamic_cast<DX12CommandAllocator&>(commandAllocator).GetCommandAllocator();
     THROW_IF_FAILED(dxCommandAllocator->Reset())
     return true;
+}
+
+bool DX12Utils::WaitCommandQueueFinish(IRHICommandQueue& command_queue)
+{
+    return command_queue.WaitCommandQueue();
 }
 
 bool DX12Utils::SetRootSignature(IRHICommandList& commandList, IRHIRootSignature& rootSignature, bool isGraphicsPipeline)

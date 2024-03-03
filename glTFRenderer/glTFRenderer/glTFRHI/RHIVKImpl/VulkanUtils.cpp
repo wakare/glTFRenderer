@@ -4,3 +4,13 @@ bool VulkanUtils::InitGUIContext(IRHIDevice& device, IRHIDescriptorHeap& descrip
 {
     return true;
 }
+
+bool VulkanUtils::WaitCommandQueueFinish(IRHICommandQueue& command_queue)
+{
+    return command_queue.WaitCommandQueue();
+}
+
+bool VulkanUtils::SupportRayTracing(IRHIDevice& device)
+{
+    return false;
+}

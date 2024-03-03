@@ -19,7 +19,8 @@ public:
     virtual bool CloseCommandList(IRHICommandList& commandList) override;
     virtual bool ExecuteCommandList(IRHICommandList& commandList, IRHICommandQueue& commandQueue) override;
     virtual bool ResetCommandAllocator(IRHICommandAllocator& commandAllocator) override;
-
+    virtual bool WaitCommandQueueFinish(IRHICommandQueue& command_queue) override;
+    
     virtual bool SetRootSignature(IRHICommandList& commandList, IRHIRootSignature& rootSignature, bool isGraphicsPipeline) override;
     virtual bool SetViewport(IRHICommandList& commandList, const RHIViewportDesc& viewport_desc) override;
     virtual bool SetScissorRect(IRHICommandList& commandList, const RHIScissorRectDesc& scissor_rect) override;
@@ -57,5 +58,4 @@ public:
     
     virtual bool SupportRayTracing(IRHIDevice& device) override;
     virtual unsigned GetAlignmentSizeForUAVCount(unsigned size ) override;
-    
 };

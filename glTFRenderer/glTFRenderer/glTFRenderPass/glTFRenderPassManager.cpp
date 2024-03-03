@@ -92,7 +92,7 @@ void glTFRenderPassManager::UpdateAllPassGUIWidgets()
 
 void glTFRenderPassManager::RenderBegin(glTFRenderResourceManager& resource_manager, size_t deltaTimeMs)
 {
-    resource_manager.WaitLastFrameFinish();
+    resource_manager.WaitAllFrameFinish();
     
     // Reset command allocator when previous frame executed finish...
     resource_manager.ResetCommandAllocator();

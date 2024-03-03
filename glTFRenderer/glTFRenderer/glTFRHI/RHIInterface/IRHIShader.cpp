@@ -17,6 +17,11 @@ const std::string& IRHIShader::GetShaderContent() const
     return m_shader_content;
 }
 
+const std::string& IRHIShader::GetMainEntry() const
+{
+    return m_shader_entry_function_name;
+}
+
 void IRHIShader::SetShaderCompilePreDefineMacros(const RHIShaderPreDefineMacros& macros)
 {
     m_macros = macros;

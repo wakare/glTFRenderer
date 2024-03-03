@@ -13,6 +13,8 @@ bool glTFRenderPassBase::InitPass(glTFRenderResourceManager& resource_manager)
     RETURN_IF_FALSE(m_main_descriptor_heap->InitDescriptorHeap(resource_manager.GetDevice(),
         {static_cast<unsigned>(GetMainDescriptorHeapSize()), RHIDescriptorHeapType::CBV_SRV_UAV, true}))
 
+    m_render_pass = RHIResourceFactory::CreateRHIResource<IRHIRenderPass>();
+    
     switch (GetPipelineType())
     {
     case PipelineType::Graphics:
@@ -33,7 +35,12 @@ bool glTFRenderPassBase::InitPass(glTFRenderResourceManager& resource_manager)
     RETURN_IF_FALSE(m_root_signature_helper.BuildRootSignature(resource_manager.GetDevice()))
     
     RETURN_IF_FALSE(SetupPipelineStateObject(resource_manager))
-    RETURN_IF_FALSE(m_pipeline_state_object->InitPipelineStateObject(resource_manager.GetDevice(), m_root_signature_helper.GetRootSignature()))
+    RETURN_IF_FALSE(m_pipeline_state_object->InitPipelineStateObject(resource_manager.GetDevice(),
+        {
+            m_root_signature_helper.GetRootSignature(),
+            *m_render_pass,
+            resource_manager.GetSwapChain()
+        }))
 
     for (const auto& render_interface : m_render_interfaces)
     {

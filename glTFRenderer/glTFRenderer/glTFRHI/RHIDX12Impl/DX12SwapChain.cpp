@@ -87,7 +87,7 @@ bool DX12SwapChain::AcquireNewFrame(IRHIDevice& device)
 
 IRHISemaphore& DX12SwapChain::GetAvailableFrameSemaphore()
 {
-    static IRHISemaphore _dummy_semaphore;
+    static RHISemaphoreNull _dummy_semaphore;
     return _dummy_semaphore;
 }
 

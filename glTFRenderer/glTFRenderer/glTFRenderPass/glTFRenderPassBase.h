@@ -86,6 +86,7 @@ protected:
     void AddRenderInterface(const std::shared_ptr<glTFRenderInterfaceBase>& render_interface);
 
     IRHIRootSignatureHelper m_root_signature_helper;
+    std::shared_ptr<IRHIRenderPass> m_render_pass;
     
     std::shared_ptr<IRHIPipelineStateObject> m_pipeline_state_object;
     

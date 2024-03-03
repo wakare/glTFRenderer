@@ -1,20 +1,20 @@
 #include "VKRenderTarget.h"
 
 VKRenderTarget::VKRenderTarget()
-    : device(VK_NULL_HANDLE)
-    , image_view(VK_NULL_HANDLE)
+    : m_device(VK_NULL_HANDLE)
+    , m_image_view(VK_NULL_HANDLE)
 {
     
 }
 
 VKRenderTarget::~VKRenderTarget()
 {
-    vkDestroyImageView(device, image_view, nullptr);
+    vkDestroyImageView(m_device, m_image_view, nullptr);
 }
 
 bool VKRenderTarget::InitRenderTarget(VkDevice vk_device, VkFormat format, VkImage image)
 {
-    device = vk_device;
+    m_device = vk_device;
     
     VkImageViewCreateInfo create_image_view_info{};
     create_image_view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -31,8 +31,13 @@ bool VKRenderTarget::InitRenderTarget(VkDevice vk_device, VkFormat format, VkIma
     create_image_view_info.subresourceRange.baseArrayLayer = 0;
     create_image_view_info.subresourceRange.layerCount = 1;
 
-    VkResult result = vkCreateImageView(vk_device, &create_image_view_info, nullptr, &image_view);
+    VkResult result = vkCreateImageView(vk_device, &create_image_view_info, nullptr, &m_image_view);
     GLTF_CHECK(result == VK_SUCCESS);
 
     return true;
+}
+
+const VkImageView& VKRenderTarget::GetImageView() const
+{
+    return m_image_view;
 }

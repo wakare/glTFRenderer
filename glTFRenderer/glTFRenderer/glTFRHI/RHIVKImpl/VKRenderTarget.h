@@ -10,8 +10,10 @@ public:
     virtual ~VKRenderTarget() override;
     
     bool InitRenderTarget(VkDevice device, VkFormat format, VkImage image);
+
+    const VkImageView& GetImageView() const;
     
 protected:
-    VkDevice device;
-    VkImageView image_view;
+    VkDevice m_device;
+    VkImageView m_image_view;
 };

@@ -1,6 +1,7 @@
 #pragma once
 #include <map>
 #include "IRHIDevice.h"
+#include "IRHIRenderPass.h"
 #include "IRHIRootSignature.h"
 #include "IRHIResource.h"
 #include "IRHIShader.h"
@@ -16,6 +17,21 @@ DECLARE_INPUT_LAYOUT_SEMANTIC_NAME(TEXCOORD)
 
 #define INPUT_LAYOUT_UNIQUE_PARAMETER(x) (g_inputLayoutName##x)
 
+struct RHIPipelineStateInfo
+{
+    RHIPipelineStateInfo(IRHIRootSignature& root_signature, IRHIRenderPass& render_pass, IRHISwapChain& swap_chain)
+        : m_root_signature(root_signature)
+        , m_render_pass(render_pass)
+        , m_swap_chain(swap_chain)
+    {
+        
+    }
+    
+    IRHIRootSignature& m_root_signature;
+    IRHIRenderPass& m_render_pass;
+    IRHISwapChain& m_swap_chain;
+};
+
 class IRHIPipelineStateObject : public IRHIResource
 {
 public:
@@ -23,7 +39,7 @@ public:
     
     IRHIPipelineStateObject(RHIPipelineType type);
 
-    virtual bool InitPipelineStateObject(IRHIDevice& device, IRHIRootSignature& root_signature) = 0;
+    virtual bool InitPipelineStateObject(IRHIDevice& device, const RHIPipelineStateInfo& pipeline_state_info) = 0;
     
     bool BindShaderCode(const std::string& shader_file_path, RHIShaderType type, const std::string& entry_function_name);
     
@@ -38,6 +54,8 @@ public:
     RHIShaderPreDefineMacros& GetShaderMacros();
     
 protected:
+    bool CompileShaders();
+    
     RHIPipelineType m_type;
     RHIShaderPreDefineMacros m_shader_macros;
     RHICullMode m_cullMode;
@@ -51,7 +69,6 @@ class IRHIGraphicsPipelineStateObject : public IRHIPipelineStateObject
 public:
     IRHIGraphicsPipelineStateObject();
 
-    virtual bool BindSwapChain(const IRHISwapChain& swapchain) = 0;
     virtual bool BindRenderTargetFormats(const std::vector<IRHIRenderTarget*>& render_targets) = 0;
 };
 

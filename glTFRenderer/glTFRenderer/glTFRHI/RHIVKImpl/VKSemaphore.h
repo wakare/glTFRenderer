@@ -6,11 +6,15 @@
 class VKSemaphore : public IRHISemaphore
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKSemaphore)
+    VKSemaphore() = default;
+    virtual ~VKSemaphore() override;
+    DECLARE_NON_COPYABLE(VKSemaphore)
+
+    virtual bool InitSemaphore(IRHIDevice& device) override;
     
-    bool InitSemaphore(VkSemaphore semaphore);
     VkSemaphore GetSemaphore() const;
     
 protected:
-    VkSemaphore m_semaphore { VK_NULL_HANDLE};    
+    VkDevice m_device;
+    VkSemaphore m_semaphore {VK_NULL_HANDLE};    
 };

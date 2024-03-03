@@ -8,7 +8,5 @@ public:
     DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIFence)
     
     virtual bool InitFence(IRHIDevice& device) = 0;
-    virtual bool CommandQueueWaitForFence(IRHICommandQueue& commandQueue) = 0;
-    virtual bool SignalWhenCommandQueueFinish(IRHICommandQueue& commandQueue) = 0;
     virtual bool HostWaitUtilSignaled() = 0;
 };

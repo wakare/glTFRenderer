@@ -6,5 +6,7 @@ class IRHICommandQueue : public IRHIResource
 {
 public:
     virtual bool InitCommandQueue(IRHIDevice& device) = 0;
+
+    virtual bool WaitCommandQueue() = 0;
 };
  
