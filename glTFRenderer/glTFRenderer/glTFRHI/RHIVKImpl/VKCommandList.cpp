@@ -1,6 +1,8 @@
 #include "VKCommandList.h"
 
 #include "VKDevice.h"
+#include "glTFRHI/RHIResourceFactoryImpl.hpp"
+#include "glTFRHI/RHIInterface/IRHIFence.h"
 
 VKCommandList::~VKCommandList()
 {
@@ -21,5 +23,37 @@ bool VKCommandList::InitCommandList(IRHIDevice& device, IRHICommandAllocator& co
     const VkResult result = vkAllocateCommandBuffers(vk_device, &allocate_info, &m_command_buffer);
     GLTF_CHECK(result == VK_SUCCESS);
 
+    m_fence = RHIResourceFactory::CreateRHIResource<IRHIFence>();
+    m_fence->InitFence(device);
+
+    m_finished_semaphore = RHIResourceFactory::CreateRHIResource<IRHISemaphore>();
+    m_finished_semaphore->InitSemaphore(device);
+    
+    return true;
+}
+
+bool VKCommandList::WaitCommandList()
+{
+    return m_fence->HostWaitUtilSignaled() && m_fence->ResetFence();
+}
+
+bool VKCommandList::BeginRecordCommandList()
+{
+    VkCommandBufferBeginInfo command_buffer_begin_info{};
+    command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    command_buffer_begin_info.flags = 0;
+    command_buffer_begin_info.pInheritanceInfo = nullptr;
+
+    const VkResult result = vkBeginCommandBuffer(m_command_buffer, &command_buffer_begin_info);
+    GLTF_CHECK(result == VK_SUCCESS);
+
+    return true;
+}
+
+bool VKCommandList::EndRecordCommandList()
+{
+    const VkResult result = vkEndCommandBuffer(m_command_buffer);
+    GLTF_CHECK(result == VK_SUCCESS);
+    
     return true;
 }

@@ -57,6 +57,16 @@ bool DX12Utils::ExitGUI()
     return true;
 }
 
+bool DX12Utils::BeginRenderPass(IRHICommandList& command_list, const RHIBeginRenderPassInfo& begin_render_pass_info)
+{
+    return true;
+}
+
+bool DX12Utils::EndRenderPass(IRHICommandList& command_list)
+{
+    return true;
+}
+
 bool DX12Utils::ResetCommandList(IRHICommandList& commandList, IRHICommandAllocator& commandAllocator,
                                  IRHIPipelineStateObject* initPSO)
 {
@@ -93,16 +103,16 @@ bool DX12Utils::CloseCommandList(IRHICommandList& commandList)
     return true;
 }
 
-bool DX12Utils::ExecuteCommandList(IRHICommandList& commandList, IRHICommandQueue& commandQueue)
+bool DX12Utils::ExecuteCommandList(IRHICommandList& command_list, IRHICommandQueue& command_queue, const RHIExecuteCommandListContext& context)
 {
-    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
-    auto* dxCommandQueue = dynamic_cast<DX12CommandQueue&>(commandQueue).GetCommandQueue();
-    auto& fence = dynamic_cast<DX12CommandQueue&>(commandQueue).GetFence();
+    auto* dx_command_list = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
+    auto* dx_command_queue = dynamic_cast<DX12CommandQueue&>(command_queue).GetCommandQueue();
+    auto& fence = dynamic_cast<DX12CommandList&>(command_list).GetFence();
     
-    ID3D12CommandList* ppCommandLists[] = { dxCommandList };
-    dxCommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+    ID3D12CommandList* ppCommandLists[] = { dx_command_list };
+    dx_command_queue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
-    dynamic_cast<DX12Fence&>(fence).SignalWhenCommandQueueFinish(commandQueue);
+    dynamic_cast<DX12Fence&>(fence).SignalWhenCommandQueueFinish(command_queue);
     
     return true;
 }
@@ -114,9 +124,9 @@ bool DX12Utils::ResetCommandAllocator(IRHICommandAllocator& commandAllocator)
     return true;
 }
 
-bool DX12Utils::WaitCommandQueueFinish(IRHICommandQueue& command_queue)
+bool DX12Utils::WaitCommandListFinish(IRHICommandList& command_list)
 {
-    return command_queue.WaitCommandQueue();
+    return command_list.WaitCommandList();
 }
 
 bool DX12Utils::SetRootSignature(IRHICommandList& commandList, IRHIRootSignature& rootSignature, bool isGraphicsPipeline)
@@ -419,23 +429,23 @@ bool DX12Utils::ExecuteIndirect(IRHICommandList& command_list, IRHICommandSignat
     return true;
 }
 
-bool DX12Utils::Present(IRHISwapChain& swap_chain, IRHICommandQueue& command_queue)
+bool DX12Utils::Present(IRHISwapChain& swap_chain, IRHICommandQueue& command_queue, IRHICommandList& command_list)
 {
-    return swap_chain.Present(command_queue);
+    return swap_chain.Present(command_queue, command_list);
 }
 
-bool DX12Utils::DiscardResource(IRHICommandList& commandList, IRHIRenderTarget& render_target)
+bool DX12Utils::DiscardResource(IRHICommandList& command_list, IRHIRenderTarget& render_target)
 {
-    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
-    auto* dxResource = dynamic_cast<DX12RenderTarget&>(render_target).GetResource();
-    dxCommandList->DiscardResource(dxResource, nullptr);
+    auto* dx_command_list = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
+    auto* dx_resource = dynamic_cast<DX12RenderTarget&>(render_target).GetResource();
+    dx_command_list->DiscardResource(dx_resource, nullptr);
 
     return true;
 }
 
 bool DX12Utils::CopyTexture(IRHICommandList& commandList, IRHIRenderTarget& dst, IRHIRenderTarget& src)
 {
-    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    auto* dx_command_list = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
     
     D3D12_TEXTURE_COPY_LOCATION dstLocation;
     dstLocation.pResource = dynamic_cast<DX12RenderTarget&>(dst).GetResource();
@@ -447,7 +457,7 @@ bool DX12Utils::CopyTexture(IRHICommandList& commandList, IRHIRenderTarget& dst,
     srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX; 
     srcLocation.SubresourceIndex = 0;
     
-    dxCommandList->CopyTextureRegion(&dstLocation, 0, 0, 0, &srcLocation, nullptr);
+    dx_command_list->CopyTextureRegion(&dstLocation, 0, 0, 0, &srcLocation, nullptr);
     
     return true;
 }
@@ -455,8 +465,8 @@ bool DX12Utils::CopyTexture(IRHICommandList& commandList, IRHIRenderTarget& dst,
 bool DX12Utils::CopyBuffer(IRHICommandList& commandList, IRHIGPUBuffer& dst, size_t dst_offset, IRHIGPUBuffer& src,
     size_t src_offset, size_t size)
 {
-    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
-    dxCommandList->CopyBufferRegion(dynamic_cast<DX12GPUBuffer&>(dst).GetBuffer(), dst_offset, dynamic_cast<DX12GPUBuffer&>(src).GetBuffer(), src_offset, size);
+    auto* dx_command_list = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    dx_command_list->CopyBufferRegion(dynamic_cast<DX12GPUBuffer&>(dst).GetBuffer(), dst_offset, dynamic_cast<DX12GPUBuffer&>(src).GetBuffer(), src_offset, size);
     
     return true;
 }

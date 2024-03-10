@@ -2,6 +2,8 @@
 
 #include "DX12Device.h"
 #include "DX12Utils.h"
+#include "glTFRHI/RHIResourceFactoryImpl.hpp"
+#include "glTFRHI/RHIInterface/IRHIFence.h"
 
 DX12CommandList::DX12CommandList()
     : m_command_list(nullptr)
@@ -27,5 +29,26 @@ bool DX12CommandList::InitCommandList(IRHIDevice& device, IRHICommandAllocator& 
     // command lists are created in the recording state. our main loop will set it up for recording again so close it now
     m_command_list->Close();
     
+    m_fence = RHIResourceFactory::CreateRHIResource<IRHIFence>();
+    m_fence->InitFence(device);
+
+    m_finished_semaphore = RHIResourceFactory::CreateRHIResource<IRHISemaphore>();
+    m_finished_semaphore->InitSemaphore(device);
+    
+    return true;
+}
+
+bool DX12CommandList::WaitCommandList()
+{
+    return m_fence->HostWaitUtilSignaled() && m_fence->ResetFence();
+}
+
+bool DX12CommandList::BeginRecordCommandList()
+{
+    return true;
+}
+
+bool DX12CommandList::EndRecordCommandList()
+{
     return true;
 }

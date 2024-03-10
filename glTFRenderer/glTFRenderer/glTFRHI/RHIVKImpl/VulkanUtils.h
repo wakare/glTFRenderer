@@ -14,12 +14,15 @@ public:
     virtual bool NewGUIFrame() override;
     virtual bool RenderGUIFrame(IRHICommandList& commandList) override;
     virtual bool ExitGUI() override;
+
+    virtual bool BeginRenderPass(IRHICommandList& command_list, const RHIBeginRenderPassInfo& begin_render_pass_info) override;
+    virtual bool EndRenderPass(IRHICommandList& command_list) override;
     
     virtual bool ResetCommandList(IRHICommandList& commandList, IRHICommandAllocator& commandAllocator, IRHIPipelineStateObject* initPSO) override;
     virtual bool CloseCommandList(IRHICommandList& commandList) override;
-    virtual bool ExecuteCommandList(IRHICommandList& commandList, IRHICommandQueue& commandQueue) override;
+    virtual bool ExecuteCommandList(IRHICommandList& command_list, IRHICommandQueue& command_queue, const RHIExecuteCommandListContext& context) override;
     virtual bool ResetCommandAllocator(IRHICommandAllocator& commandAllocator) override;
-    virtual bool WaitCommandQueueFinish(IRHICommandQueue& command_queue) override;
+    virtual bool WaitCommandListFinish(IRHICommandList& command_list) override;
     
     virtual bool SetRootSignature(IRHICommandList& commandList, IRHIRootSignature& rootSignature, bool isGraphicsPipeline) override;
     virtual bool SetViewport(IRHICommandList& commandList, const RHIViewportDesc& viewport_desc) override;
@@ -49,7 +52,7 @@ public:
     virtual bool ExecuteIndirect(IRHICommandList& command_list, IRHICommandSignature& command_signature, unsigned max_count, IRHIGPUBuffer& arguments_buffer, unsigned arguments_buffer_offset) override;
     virtual bool ExecuteIndirect(IRHICommandList& command_list, IRHICommandSignature& command_signature, unsigned max_count, IRHIGPUBuffer& arguments_buffer, unsigned arguments_buffer_offset, IRHIGPUBuffer& count_buffer, unsigned count_buffer_offset) override;
     
-    virtual bool Present(IRHISwapChain& swap_chain, IRHICommandQueue& command_queue) override;
+    virtual bool Present(IRHISwapChain& swap_chain, IRHICommandQueue& command_queue, IRHICommandList& command_list) override;
 
     virtual bool DiscardResource(IRHICommandList& commandList, IRHIRenderTarget& render_target) override;
 

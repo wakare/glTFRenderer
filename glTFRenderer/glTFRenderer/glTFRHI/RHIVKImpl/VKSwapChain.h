@@ -10,8 +10,8 @@ public:
     VKSwapChain();
     virtual ~VKSwapChain() override;
 
-    virtual unsigned GetWidth() override;
-    virtual unsigned GetHeight() override;
+    virtual unsigned GetWidth() const override;
+    virtual unsigned GetHeight() const override;
     
     virtual unsigned GetCurrentBackBufferIndex() override;
     virtual unsigned GetBackBufferCount() override;
@@ -19,7 +19,7 @@ public:
     virtual bool InitSwapChain(IRHIFactory& factory, IRHIDevice& device, IRHICommandQueue& commandQueue, unsigned width, unsigned height, bool fullScreen, HWND hwnd) override;
     virtual bool AcquireNewFrame(IRHIDevice& device) override;
     virtual IRHISemaphore& GetAvailableFrameSemaphore() override;
-    virtual bool Present(IRHICommandQueue& command_queue) override;
+    virtual bool Present(IRHICommandQueue& command_queue, IRHICommandList& command_list) override;
     
     VkImage GetSwapChainImageByIndex(unsigned index) const;
     

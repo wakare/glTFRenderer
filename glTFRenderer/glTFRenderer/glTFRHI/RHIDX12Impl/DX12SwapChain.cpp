@@ -22,12 +22,12 @@ DX12SwapChain::~DX12SwapChain()
     SAFE_RELEASE(m_swapChain)
 }
 
-unsigned DX12SwapChain::GetWidth()
+unsigned DX12SwapChain::GetWidth() const
 {
     return m_width; 
 }
 
-unsigned DX12SwapChain::GetHeight()
+unsigned DX12SwapChain::GetHeight() const
 {
     return m_height;
 }
@@ -91,7 +91,7 @@ IRHISemaphore& DX12SwapChain::GetAvailableFrameSemaphore()
     return _dummy_semaphore;
 }
 
-bool DX12SwapChain::Present(IRHICommandQueue& command_queue)
+bool DX12SwapChain::Present(IRHICommandQueue& command_queue, IRHICommandList& command_list)
 {
     THROW_IF_FAILED(m_swap_chain->Present(0, 0))
     return true;

@@ -9,4 +9,5 @@ public:
     
     virtual bool InitFence(IRHIDevice& device) = 0;
     virtual bool HostWaitUtilSignaled() = 0;
+    virtual bool ResetFence() = 0;
 };

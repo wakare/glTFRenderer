@@ -124,14 +124,16 @@ void glTFRenderPassManager::RenderAllPass(glTFRenderResourceManager& resource_ma
 
 void glTFRenderPassManager::RenderEnd(glTFRenderResourceManager& resource_manager, size_t deltaTimeMs)
 {
+    auto& command_list = resource_manager.GetCommandListForRecord();
+    
     RHIUtils::Instance().AddRenderTargetBarrierToCommandList(
-        resource_manager.GetCommandListForRecord(),
+        command_list,
         resource_manager.GetCurrentFrameSwapchainRT(),
         RHIResourceStateType::STATE_RENDER_TARGET, RHIResourceStateType::STATE_PRESENT);
 
     // TODO: no waiting causing race with base color and normal?
     resource_manager.CloseCommandListAndExecute(true);
-    RHIUtils::Instance().Present(resource_manager.GetSwapChain(), resource_manager.GetCommandQueue());
+    RHIUtils::Instance().Present(resource_manager.GetSwapChain(), resource_manager.GetCommandQueue(), command_list);
 }
 
 void glTFRenderPassManager::ExitAllPass()

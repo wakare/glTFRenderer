@@ -11,8 +11,28 @@
 #include "RHIInterface/IRHIShaderTable.h"
 #include "RHIInterface/IRHIVertexBufferView.h"
 
+class IRHIFrameBuffer;
 class IRHIGPUBuffer;
 class IRHICommandList;
+
+struct RHIExecuteCommandListWaitInfo
+{
+    const IRHISemaphore* m_wait_semaphore;
+    RHIPipelineStage wait_stage;
+};
+
+struct RHIExecuteCommandListContext
+{
+    std::vector<RHIExecuteCommandListWaitInfo> wait_infos;
+    std::vector<const IRHISemaphore*> sign_semaphores;
+};
+
+struct RHIBeginRenderPassInfo
+{
+    const IRHIRenderPass* render_pass;
+    const IRHIFrameBuffer* frame_buffer;
+    const IRHISwapChain* swap_chain;
+};
 
 // Singleton for provide combined basic rhi operations
 class RHIUtils : public IRHIResource
@@ -27,11 +47,14 @@ public:
     virtual bool RenderGUIFrame(IRHICommandList& commandList) = 0;
     virtual bool ExitGUI() = 0;
 
+    virtual bool BeginRenderPass(IRHICommandList& command_list, const RHIBeginRenderPassInfo& begin_render_pass_info) = 0;
+    virtual bool EndRenderPass(IRHICommandList& command_list) = 0;
+    
     virtual bool ResetCommandList(IRHICommandList& commandList, IRHICommandAllocator& commandAllocator, IRHIPipelineStateObject* initPSO = nullptr) = 0;
     virtual bool CloseCommandList(IRHICommandList& commandList) = 0;
-    virtual bool ExecuteCommandList(IRHICommandList& commandList, IRHICommandQueue& commandQueue) = 0;
+    virtual bool ExecuteCommandList(IRHICommandList& commandList, IRHICommandQueue& commandQueue, const RHIExecuteCommandListContext& context) = 0;
     virtual bool ResetCommandAllocator(IRHICommandAllocator& commandAllocator) = 0;
-    virtual bool WaitCommandQueueFinish(IRHICommandQueue& command_queue) = 0;
+    virtual bool WaitCommandListFinish(IRHICommandList& command_queue) = 0;
     
     virtual bool SetRootSignature(IRHICommandList& commandList, IRHIRootSignature& rootSignature, bool isGraphicsPipeline) = 0;
     virtual bool SetViewport(IRHICommandList& commandList, const RHIViewportDesc& viewportDesc) = 0;
@@ -62,7 +85,7 @@ public:
     virtual bool ExecuteIndirect(IRHICommandList& command_list, IRHICommandSignature& command_signature, unsigned max_count, IRHIGPUBuffer& arguments_buffer, unsigned arguments_buffer_offset) = 0;
     virtual bool ExecuteIndirect(IRHICommandList& command_list, IRHICommandSignature& command_signature, unsigned max_count, IRHIGPUBuffer& arguments_buffer, unsigned arguments_buffer_offset, IRHIGPUBuffer& count_buffer, unsigned count_buffer_offset) = 0;
     
-    virtual bool Present(IRHISwapChain& swap_chain, IRHICommandQueue& command_queue) = 0;
+    virtual bool Present(IRHISwapChain& swap_chain, IRHICommandQueue& command_queue, IRHICommandList& command_list) = 0;
 
     virtual bool DiscardResource(IRHICommandList& commandList, IRHIRenderTarget& render_target) = 0;
     virtual bool CopyTexture(IRHICommandList& commandList, IRHIRenderTarget& dst, IRHIRenderTarget& src) = 0;

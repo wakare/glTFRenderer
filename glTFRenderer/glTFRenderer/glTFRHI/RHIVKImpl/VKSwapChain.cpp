@@ -1,5 +1,6 @@
 #include "VKSwapChain.h"
 
+#include "VKCommandList.h"
 #include "VKCommandQueue.h"
 #include "VKConverterUtils.h"
 #include "VKDevice.h"
@@ -15,12 +16,12 @@ VKSwapChain::~VKSwapChain()
     vkDestroySwapchainKHR(m_device, m_swap_chain, nullptr);
 }
 
-unsigned VKSwapChain::GetWidth()
+unsigned VKSwapChain::GetWidth() const
 {
     return m_width;
 }
 
-unsigned VKSwapChain::GetHeight()
+unsigned VKSwapChain::GetHeight() const
 {
     return m_height;
 }
@@ -114,15 +115,17 @@ IRHISemaphore& VKSwapChain::GetAvailableFrameSemaphore()
     return *m_frame_available_semaphores[m_current_frame_index];
 }
 
-bool VKSwapChain::Present(IRHICommandQueue& command_queue)
+bool VKSwapChain::Present(IRHICommandQueue& command_queue, IRHICommandList& command_list)
 {
     auto& vk_command_queue = dynamic_cast<VKCommandQueue&>(command_queue);
+    auto& command_render_finished_semaphore = dynamic_cast<VKCommandList&>(command_list).GetSemaphore();
+    auto vk_semaphore = dynamic_cast<VKSemaphore&>(command_render_finished_semaphore).GetSemaphore();
     
     VkPresentInfoKHR present_info{};
     present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     // TODO: semaphore?
-    present_info.waitSemaphoreCount = 0;
-    present_info.pWaitSemaphores = nullptr;
+    present_info.waitSemaphoreCount = 1;
+    present_info.pWaitSemaphores = &vk_semaphore;
     
     VkSwapchainKHR swap_chains[] = {m_swap_chain};
     present_info.pSwapchains = swap_chains;

@@ -12,14 +12,10 @@ public:
     virtual ~DX12CommandQueue() override;
     
     virtual bool InitCommandQueue(IRHIDevice& device) override;
-    virtual bool WaitCommandQueue() override;
     
     ID3D12CommandQueue* GetCommandQueue() {return m_commandQueue; }
     const ID3D12CommandQueue* GetCommandQueue() const {return m_commandQueue; }
-    IRHIFence& GetFence() const {return *m_fence;}
     
 private:
     ID3D12CommandQueue* m_commandQueue;
-
-    std::shared_ptr<IRHIFence> m_fence;
 };

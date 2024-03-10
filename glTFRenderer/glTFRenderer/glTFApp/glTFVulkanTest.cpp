@@ -693,7 +693,7 @@ void glTFVulkanTest::DrawFrame()
     submit_info.signalSemaphoreCount = 1;
     submit_info.pSignalSemaphores = signal_semaphores;
     
-    result = vkQueueSubmit(graphics_queue, 1, & submit_info, in_flight_fences[current_frame]);
+    result = vkQueueSubmit(graphics_queue, 1, &submit_info, in_flight_fences[current_frame]);
     
     GLTF_CHECK(result == VK_SUCCESS); 
 

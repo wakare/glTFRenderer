@@ -110,7 +110,12 @@ IRHICommandList& glTFRenderResourceManager::GetCommandListForRecord()
     auto& command_allocator = *m_command_allocators[current_frame_index];
     if (!m_command_list_record_state[current_frame_index])
     {
-        GLTF_CHECK(RHIUtils::Instance().ResetCommandList(command_list, command_allocator, m_current_pass_pso.get()));
+        const bool reset = RHIUtils::Instance().ResetCommandList(command_list, command_allocator, m_current_pass_pso.get());
+        GLTF_CHECK(reset);
+
+        RHIBeginRenderPassInfo begin_render_pass_info;
+        const bool begin = RHIUtils::Instance().BeginRenderPass(command_list, begin_render_pass_info);
+        
         m_command_list_record_state[current_frame_index] = true;
     }
     
@@ -126,19 +131,31 @@ void glTFRenderResourceManager::CloseCommandListAndExecute(bool wait)
     }
     
     auto& command_list = *m_command_lists[current_frame_index];
-    GLTF_CHECK(RHIUtils::Instance().CloseCommandList(command_list)); 
-    GLTF_CHECK(RHIUtils::Instance().ExecuteCommandList(command_list, GetCommandQueue()));
+    const bool end_render_pass = RHIUtils::Instance().EndRenderPass(command_list);
+    GLTF_CHECK(end_render_pass);
+    
+    const bool closed = RHIUtils::Instance().CloseCommandList(command_list);
+    GLTF_CHECK(closed);
+
+    RHIExecuteCommandListContext context;
+    context.wait_infos.push_back({&m_swap_chain->GetAvailableFrameSemaphore(), RHIPipelineStage::COLOR_ATTACHMENT_OUTPUT});
+    context.sign_semaphores.push_back(&command_list.GetSemaphore());
+    
+    GLTF_CHECK(RHIUtils::Instance().ExecuteCommandList(command_list, GetCommandQueue(), context));
     if (wait)
     {
-        RHIUtils::Instance().WaitCommandQueueFinish(GetCommandQueue());
+        RHIUtils::Instance().WaitCommandListFinish(command_list);
     }
     
     m_command_list_record_state[current_frame_index] = false;
 }
 
-void glTFRenderResourceManager::WaitAllFrameFinish()
+void glTFRenderResourceManager::WaitAllFrameFinish() const
 {
-    RHIUtils::Instance().WaitCommandQueueFinish(GetCommandQueue());
+    for (const auto& command_list : m_command_lists)
+    {
+        RHIUtils::Instance().WaitCommandListFinish(*command_list);
+    }
 }
 
 void glTFRenderResourceManager::ResetCommandAllocator()

@@ -31,7 +31,7 @@ public:
     IRHICommandList& GetCommandListForRecord();
     void CloseCommandListAndExecute(bool wait);
 
-    static void WaitAllFrameFinish();
+    void WaitAllFrameFinish() const;
     void ResetCommandAllocator();
     
     IRHIRenderTargetManager& GetRenderTargetManager();

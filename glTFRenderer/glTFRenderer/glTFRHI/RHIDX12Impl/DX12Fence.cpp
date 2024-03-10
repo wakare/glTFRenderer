@@ -46,3 +46,8 @@ bool DX12Fence::HostWaitUtilSignaled()
     
     return true;
 }
+
+bool DX12Fence::ResetFence()
+{
+    return true;
+}

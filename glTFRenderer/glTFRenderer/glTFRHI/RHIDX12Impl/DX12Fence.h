@@ -10,6 +10,7 @@ public:
     
     virtual bool InitFence(IRHIDevice& device) override;
     virtual bool HostWaitUtilSignaled() override;
+    virtual bool ResetFence() override;
     
     bool SignalWhenCommandQueueFinish(IRHICommandQueue& commandQueue);
     

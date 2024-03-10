@@ -22,3 +22,10 @@ bool VKFence::HostWaitUtilSignaled()
     GLTF_CHECK(result == VK_SUCCESS);
     return true;
 }
+
+bool VKFence::ResetFence()
+{
+    const VkResult result = vkResetFences(m_device, 1, &m_fence);
+    GLTF_CHECK(result == VK_SUCCESS);
+    return true;
+}

@@ -26,6 +26,7 @@
 #include "RHIDX12Impl/DX12Texture.h"
 #include "RHIDX12Impl/DX12VertexBuffer.h"
 #include "RHIDX12Impl/DX12CommandSignature.h"
+
 #include "RHIInterface/IRHICommandAllocator.h"
 #include "RHIInterface/IRHICommandQueue.h"
 #include "RHIInterface/IRHIDevice.h"
@@ -38,6 +39,7 @@
 #include "RHIInterface/IRHISwapChain.h"
 #include "RHIInterface/IRHIPipelineStateObject.h"
 #include "RHIInterface/IRHIRayTracingAS.h"
+#include "RHIInterface/IRHISemaphore.h"
 
 inline RHIGraphicsAPIType GetGraphicsAPI() {return RHIConfigSingleton::Instance().GetGraphicsAPIType();}
 
@@ -56,7 +58,6 @@ return result; \
 } \
 
 IMPLEMENT_CREATE_RHI_RESOURCE(RHIUtils, DX12Utils)
-
 
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIFactory, DX12Factory)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIDevice, DX12Device)
@@ -85,3 +86,4 @@ IMPLEMENT_CREATE_RHI_RESOURCE(IRHIDescriptorHeap, DX12DescriptorHeap)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHITexture, DX12Texture)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIRayTracingAS, DX12RayTracingAS)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHICommandSignature, DX12CommandSignature)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHISemaphore, RHISemaphoreNull)
