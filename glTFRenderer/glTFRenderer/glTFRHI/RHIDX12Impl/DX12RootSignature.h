@@ -1,7 +1,7 @@
 #pragma once
 #include "DX12Common.h"
 
-#include "../RHIInterface/IRHIRootSignature.h"
+#include "glTFRHI/RHIInterface/IRHIRootSignature.h"
 
 class DX12RootParameter : public IRHIRootParameter
 {

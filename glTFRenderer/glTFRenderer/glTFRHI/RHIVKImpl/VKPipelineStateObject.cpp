@@ -19,15 +19,21 @@ VkShaderModule CreateVkShaderModule(VkDevice device, const std::vector<unsigned 
     return shader_module;
 }
 
+VKGraphicsPipelineStateObject::~VKGraphicsPipelineStateObject()
+{
+    vkDestroyPipelineLayout(m_device, m_pipeline_layout, nullptr);
+    vkDestroyPipeline(m_device, m_pipeline, nullptr);
+}
+
 bool VKGraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device, const RHIPipelineStateInfo& pipeline_state_info)
 {
-    VkDevice logical_device = dynamic_cast<VKDevice&>(device).GetDevice();
+    m_device = dynamic_cast<VKDevice&>(device).GetDevice();
     
     // Create shader module
     THROW_IF_FAILED(CompileShaders());
 
-    VkShaderModule vertex_shader_module = CreateVkShaderModule(logical_device, m_shaders[RHIShaderType::Vertex]->GetShaderByteCode());
-    VkShaderModule fragment_shader_module = CreateVkShaderModule(logical_device, m_shaders[RHIShaderType::Pixel]->GetShaderByteCode());
+    VkShaderModule vertex_shader_module = CreateVkShaderModule(m_device, m_shaders[RHIShaderType::Vertex]->GetShaderByteCode());
+    VkShaderModule fragment_shader_module = CreateVkShaderModule(m_device, m_shaders[RHIShaderType::Pixel]->GetShaderByteCode());
 
     VkPipelineShaderStageCreateInfo create_vertex_stage_info{};
     create_vertex_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -137,7 +143,7 @@ bool VKGraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device, 
     create_pipeline_layout_info.pushConstantRangeCount = 0;
     create_pipeline_layout_info.pPushConstantRanges = nullptr;
 
-    VkResult result = vkCreatePipelineLayout(logical_device, &create_pipeline_layout_info, nullptr, &m_pipeline_layout);
+    VkResult result = vkCreatePipelineLayout(m_device, &create_pipeline_layout_info, nullptr, &m_pipeline_layout);
     GLTF_CHECK(result == VK_SUCCESS);
 
     // Create graphics pipeline
@@ -159,7 +165,7 @@ bool VKGraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device, 
     create_graphics_pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
     create_graphics_pipeline_info.basePipelineIndex = -1;
 
-    result = vkCreateGraphicsPipelines(logical_device, VK_NULL_HANDLE, 1, &create_graphics_pipeline_info, nullptr, &m_pipeline);
+    result = vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &create_graphics_pipeline_info, nullptr, &m_pipeline);
     GLTF_CHECK(result == VK_SUCCESS);
     
     return true;

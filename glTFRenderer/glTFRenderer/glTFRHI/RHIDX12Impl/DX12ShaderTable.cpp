@@ -13,8 +13,8 @@ DX12ShaderTable::DX12ShaderTable()
 
 bool DX12ShaderTable::InitShaderTable(IRHIDevice& device, IRHIPipelineStateObject& pso, IRHIRayTracingAS& as, const std::vector<RHIShaderBindingTable>& sbts)
 {
-    auto* dx_pso_props = dynamic_cast<DX12DXRStateObject&>(pso).GetDXRStateObjectProperties();
-    const auto& hit_group_descs = dynamic_cast<DX12DXRStateObject&>(pso).GetHitGroupDescs();
+    auto* dx_pso_props = dynamic_cast<DX12RTPipelineStateObject&>(pso).GetDXRStateObjectProperties();
+    const auto& hit_group_descs = dynamic_cast<DX12RTPipelineStateObject&>(pso).GetHitGroupDescs();
     
     // Get shader identifiers.
     const UINT shader_identifier_size = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;

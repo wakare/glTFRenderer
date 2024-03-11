@@ -113,6 +113,7 @@ IRHICommandList& glTFRenderResourceManager::GetCommandListForRecord()
         const bool reset = RHIUtils::Instance().ResetCommandList(command_list, command_allocator, m_current_pass_pso.get());
         GLTF_CHECK(reset);
 
+        // TODO: fill render pass info
         RHIBeginRenderPassInfo begin_render_pass_info;
         const bool begin = RHIUtils::Instance().BeginRenderPass(command_list, begin_render_pass_info);
         

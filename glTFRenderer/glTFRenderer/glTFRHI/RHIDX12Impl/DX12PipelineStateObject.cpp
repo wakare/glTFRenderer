@@ -190,10 +190,10 @@ bool DX12ComputePipelineStateObject::InitPipelineStateObject(IRHIDevice& device,
     return true;
 }
 
-DX12DXRStateObject::DX12DXRStateObject()
+DX12RTPipelineStateObject::DX12RTPipelineStateObject()
 = default;
 
-bool DX12DXRStateObject::InitPipelineStateObject(IRHIDevice& device, const RHIPipelineStateInfo& pipeline_state_info)
+bool DX12RTPipelineStateObject::InitPipelineStateObject(IRHIDevice& device, const RHIPipelineStateInfo& pipeline_state_info)
 {
     auto* dxrDevice = dynamic_cast<DX12Device&>(device).GetDXRDevice();
     auto* dx_root_signature = dynamic_cast<DX12RootSignature&>(pipeline_state_info.m_root_signature).GetRootSignature();

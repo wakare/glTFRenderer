@@ -6,6 +6,8 @@
 class VKGraphicsPipelineStateObject : public IRHIGraphicsPipelineStateObject
 {
 public:
+    VKGraphicsPipelineStateObject() = default;
+    virtual ~VKGraphicsPipelineStateObject() override;
     DECLARE_NON_COPYABLE(VKGraphicsPipelineStateObject)
     
     virtual bool InitPipelineStateObject(IRHIDevice& device, const RHIPipelineStateInfo& pipeline_state_info) override;
@@ -14,6 +16,7 @@ public:
     const VkPipeline& GetPipeline() const;
     
 protected:
+    VkDevice m_device {VK_NULL_HANDLE};
     VkPipelineLayout m_pipeline_layout {VK_NULL_HANDLE};
     VkPipeline m_pipeline {VK_NULL_HANDLE};
 };

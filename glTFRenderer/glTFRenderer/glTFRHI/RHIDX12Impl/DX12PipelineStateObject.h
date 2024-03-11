@@ -48,10 +48,10 @@ private:
     D3D12_COMPUTE_PIPELINE_STATE_DESC m_compute_pipeline_state_desc;
 };
 
-class DX12DXRStateObject : public IRHIRayTracingPipelineStateObject, public IDX12PipelineStateObjectCommon
+class DX12RTPipelineStateObject : public IRHIRayTracingPipelineStateObject, public IDX12PipelineStateObjectCommon
 {
 public:
-    DX12DXRStateObject();
+    DX12RTPipelineStateObject();
     virtual bool InitPipelineStateObject(IRHIDevice& device, const RHIPipelineStateInfo& pipeline_state_info) override;
     
     ID3D12StateObjectProperties* GetDXRStateObjectProperties()

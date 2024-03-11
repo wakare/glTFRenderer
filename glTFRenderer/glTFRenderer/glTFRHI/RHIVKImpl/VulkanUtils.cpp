@@ -12,6 +12,21 @@ bool VulkanUtils::InitGUIContext(IRHIDevice& device, IRHIDescriptorHeap& descrip
     return true;
 }
 
+bool VulkanUtils::NewGUIFrame()
+{
+    return true;
+}
+
+bool VulkanUtils::RenderGUIFrame(IRHICommandList& commandList)
+{
+    return true;
+}
+
+bool VulkanUtils::ExitGUI()
+{
+    return true;
+}
+
 bool VulkanUtils::BeginRenderPass(IRHICommandList& command_list, const RHIBeginRenderPassInfo& begin_render_pass_info)
 {
     const auto vk_command_buffer = dynamic_cast<const VKCommandList&>(command_list).GetCommandBuffer();
@@ -105,12 +120,154 @@ bool VulkanUtils::WaitCommandListFinish(IRHICommandList& command_list)
     return command_list.WaitCommandList();
 }
 
+bool VulkanUtils::SetRootSignature(IRHICommandList& commandList, IRHIRootSignature& rootSignature,
+    bool isGraphicsPipeline)
+{
+    return true;
+}
+
+bool VulkanUtils::SetViewport(IRHICommandList& commandList, const RHIViewportDesc& viewport_desc)
+{
+    return true;
+}
+
+bool VulkanUtils::SetScissorRect(IRHICommandList& commandList, const RHIScissorRectDesc& scissor_rect)
+{
+    return true;
+}
+
+bool VulkanUtils::SetVertexBufferView(IRHICommandList& commandList, unsigned slot, IRHIVertexBufferView& view)
+{
+    return true;
+}
+
+bool VulkanUtils::SetIndexBufferView(IRHICommandList& commandList, IRHIIndexBufferView& view)
+{
+    return true;
+}
+
+bool VulkanUtils::SetPrimitiveTopology(IRHICommandList& commandList, RHIPrimitiveTopologyType type)
+{
+    return true;
+}
+
+bool VulkanUtils::SetDescriptorHeapArray(IRHICommandList& commandList, IRHIDescriptorHeap* descriptor_heap_array_data,
+    size_t descriptor_heap_array_count)
+{
+    return true;
+}
+
+bool VulkanUtils::SetConstant32BitToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex, unsigned* data,
+    unsigned count, bool isGraphicsPipeline)
+{
+    return true;
+}
+
+bool VulkanUtils::SetCBVToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex,
+    RHIGPUDescriptorHandle handle, bool isGraphicsPipeline)
+{
+    return true;
+}
+
+bool VulkanUtils::SetSRVToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex,
+    RHIGPUDescriptorHandle handle, bool isGraphicsPipeline)
+{
+    return true;
+}
+
+bool VulkanUtils::SetDTToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex,
+    RHIGPUDescriptorHandle handle, bool isGraphicsPipeline)
+{
+    return true;
+}
+
+bool VulkanUtils::UploadBufferDataToDefaultGPUBuffer(IRHICommandList& commandList, IRHIGPUBuffer& uploadBuffer,
+    IRHIGPUBuffer& defaultBuffer, void* data, size_t size)
+{
+    return true;
+}
+
+bool VulkanUtils::UploadTextureDataToDefaultGPUBuffer(IRHICommandList& commandList, IRHIGPUBuffer& uploadBuffer,
+    IRHIGPUBuffer& defaultBuffer, void* data, size_t rowPitch, size_t slicePitch)
+{
+    return true;
+}
+
+bool VulkanUtils::AddBufferBarrierToCommandList(IRHICommandList& commandList, IRHIGPUBuffer& buffer,
+    RHIResourceStateType beforeState, RHIResourceStateType afterState)
+{
+    return true;
+}
+
+bool VulkanUtils::AddRenderTargetBarrierToCommandList(IRHICommandList& commandList, IRHIRenderTarget& buffer,
+    RHIResourceStateType before_state, RHIResourceStateType after_state)
+{
+    return true;
+}
+
+bool VulkanUtils::DrawInstanced(IRHICommandList& commandList, unsigned vertexCountPerInstance, unsigned instanceCount,
+    unsigned startVertexLocation, unsigned startInstanceLocation)
+{
+    return true;
+}
+
+bool VulkanUtils::DrawIndexInstanced(IRHICommandList& commandList, unsigned indexCountPerInstance,
+    unsigned instanceCount, unsigned startIndexLocation, unsigned baseVertexLocation, unsigned startInstanceLocation)
+{
+    return true;
+}
+
+bool VulkanUtils::Dispatch(IRHICommandList& command_list, unsigned X, unsigned Y, unsigned Z)
+{
+    return true;
+}
+
+bool VulkanUtils::TraceRay(IRHICommandList& command_list, IRHIShaderTable& shader_table, unsigned X, unsigned Y,
+    unsigned Z)
+{
+    return true;
+}
+
+bool VulkanUtils::ExecuteIndirect(IRHICommandList& command_list, IRHICommandSignature& command_signature,
+    unsigned max_count, IRHIGPUBuffer& arguments_buffer, unsigned arguments_buffer_offset)
+{
+    return true;
+}
+
+bool VulkanUtils::ExecuteIndirect(IRHICommandList& command_list, IRHICommandSignature& command_signature,
+    unsigned max_count, IRHIGPUBuffer& arguments_buffer, unsigned arguments_buffer_offset, IRHIGPUBuffer& count_buffer,
+    unsigned count_buffer_offset)
+{
+    return true;
+}
+
 bool VulkanUtils::Present(IRHISwapChain& swap_chain, IRHICommandQueue& command_queue, IRHICommandList& command_list)
 {
     return swap_chain.Present(command_queue, command_list);
 }
 
+bool VulkanUtils::DiscardResource(IRHICommandList& commandList, IRHIRenderTarget& render_target)
+{
+    return true;
+}
+
+bool VulkanUtils::CopyTexture(IRHICommandList& commandList, IRHIRenderTarget& dst, IRHIRenderTarget& src)
+{
+    return true;
+}
+
+bool VulkanUtils::CopyBuffer(IRHICommandList& commandList, IRHIGPUBuffer& dst, size_t dst_offset, IRHIGPUBuffer& src,
+    size_t src_offset, size_t size)
+{
+    return true;
+}
+
 bool VulkanUtils::SupportRayTracing(IRHIDevice& device)
 {
     return false;
+}
+
+unsigned VulkanUtils::GetAlignmentSizeForUAVCount(unsigned size)
+{
+    return 0;
 }

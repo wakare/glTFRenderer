@@ -3,6 +3,23 @@
 #include "RHIConfigSingleton.h"
 #include "RHIResourceFactory.h"
 #include "RHIUtils.h"
+
+// Interfaces
+#include "RHIInterface/IRHICommandAllocator.h"
+#include "RHIInterface/IRHICommandQueue.h"
+#include "RHIInterface/IRHIDevice.h"
+#include "RHIInterface/IRHIFactory.h"
+#include "RHIInterface/IRHIFence.h"
+#include "RHIInterface/IRHIGPUBuffer.h"
+#include "RHIInterface/IRHIRenderTarget.h"
+#include "RHIInterface/IRHIRenderTargetManager.h"
+#include "RHIInterface/IRHIRootSignature.h"
+#include "RHIInterface/IRHISwapChain.h"
+#include "RHIInterface/IRHIPipelineStateObject.h"
+#include "RHIInterface/IRHIRayTracingAS.h"
+#include "RHIInterface/IRHISemaphore.h"
+
+// DX12 implements
 #include "RHIDX12Impl/DX12CommandAllocator.h"
 #include "RHIDX12Impl/DX12CommandList.h"
 #include "RHIDX12Impl/DX12CommandQueue.h"
@@ -27,23 +44,38 @@
 #include "RHIDX12Impl/DX12VertexBuffer.h"
 #include "RHIDX12Impl/DX12CommandSignature.h"
 
-#include "RHIInterface/IRHICommandAllocator.h"
-#include "RHIInterface/IRHICommandQueue.h"
-#include "RHIInterface/IRHIDevice.h"
-#include "RHIInterface/IRHIFactory.h"
-#include "RHIInterface/IRHIFence.h"
-#include "RHIInterface/IRHIGPUBuffer.h"
-#include "RHIInterface/IRHIRenderTarget.h"
-#include "RHIInterface/IRHIRenderTargetManager.h"
-#include "RHIInterface/IRHIRootSignature.h"
-#include "RHIInterface/IRHISwapChain.h"
-#include "RHIInterface/IRHIPipelineStateObject.h"
-#include "RHIInterface/IRHIRayTracingAS.h"
-#include "RHIInterface/IRHISemaphore.h"
+// VK implements
+#include "RHIVKImpl/VKCommandList.h"
+#include "RHIVKImpl/VKCommandSignature.h"
+#include "RHIVKImpl/VKComputePipelineStateObject.h"
+#include "RHIVKImpl/VKDescriptorHeap.h"
+#include "RHIVKImpl/VKDevice.h"
+#include "RHIVKImpl/VKFactory.h"
+#include "RHIVKImpl/VKFence.h"
+#include "RHIVKImpl/VKGPUBuffer.h"
+#include "RHIVKImpl/VKGPUBufferManager.h"
+#include "RHIVKImpl/VKIndexBuffer.h"
+#include "RHIVKImpl/VKIndexBufferView.h"
+#include "RHIVKImpl/VKPipelineStateObject.h"
+#include "RHIVKImpl/VKRayTracingAS.h"
+#include "RHIVKImpl/VKRenderTarget.h"
+#include "RHIVKImpl/VKRenderTargetManager.h"
+#include "RHIVKImpl/VKRootParameter.h"
+#include "RHIVKImpl/VKRootSignature.h"
+#include "RHIVKImpl/VKRTPipelineStateObject.h"
+#include "RHIVKImpl/VKSemaphore.h"
+#include "RHIVKImpl/VKShader.h"
+#include "RHIVKImpl/VKShaderTable.h"
+#include "RHIVKImpl/VKStaticSampler.h"
+#include "RHIVKImpl/VKSwapChain.h"
+#include "RHIVKImpl/VKTexture.h"
+#include "RHIVKImpl/VKVertexBuffer.h"
+#include "RHIVKImpl/VKVertexBufferView.h"
+#include "RHIVKImpl/VulkanUtils.h"
 
 inline RHIGraphicsAPIType GetGraphicsAPI() {return RHIConfigSingleton::Instance().GetGraphicsAPIType();}
 
-#define IMPLEMENT_CREATE_RHI_RESOURCE(IRHIResourceType, DX12ResourceType) \
+#define IMPLEMENT_CREATE_RHI_RESOURCE(IRHIResourceType, DX12ResourceType, VKResourceType) \
 template <> \
 inline std::shared_ptr<IRHIResourceType> RHIResourceFactory::CreateRHIResource() \
 { \
@@ -53,37 +85,40 @@ switch (GetGraphicsAPI()) \
 case RHIGraphicsAPIType::RHI_GRAPHICS_API_DX12: \
 result = std::make_shared<DX12ResourceType>(); \
 break; \
+case RHIGraphicsAPIType::RHI_GRAPHICS_API_Vulkan: \
+result = std::make_shared<VKResourceType>(); \
+break; \
 } \
 return result; \
 } \
 
-IMPLEMENT_CREATE_RHI_RESOURCE(RHIUtils, DX12Utils)
+IMPLEMENT_CREATE_RHI_RESOURCE(RHIUtils, DX12Utils, VulkanUtils)
 
-IMPLEMENT_CREATE_RHI_RESOURCE(IRHIFactory, DX12Factory)
-IMPLEMENT_CREATE_RHI_RESOURCE(IRHIDevice, DX12Device)
-IMPLEMENT_CREATE_RHI_RESOURCE(IRHICommandList, DX12CommandList)
-IMPLEMENT_CREATE_RHI_RESOURCE(IRHICommandQueue, DX12CommandQueue)
-IMPLEMENT_CREATE_RHI_RESOURCE(IRHICommandAllocator, DX12CommandAllocator)
-IMPLEMENT_CREATE_RHI_RESOURCE(IRHISwapChain, DX12SwapChain)
-IMPLEMENT_CREATE_RHI_RESOURCE(IRHIRenderTarget, DX12RenderTarget)
-IMPLEMENT_CREATE_RHI_RESOURCE(IRHIRenderTargetManager, DX12RenderTargetManager)
-IMPLEMENT_CREATE_RHI_RESOURCE(IRHIRootParameter, DX12RootParameter)
-IMPLEMENT_CREATE_RHI_RESOURCE(IRHIStaticSampler, DX12StaticSampler)
-IMPLEMENT_CREATE_RHI_RESOURCE(IRHIRootSignature, DX12RootSignature)
-IMPLEMENT_CREATE_RHI_RESOURCE(IRHIGraphicsPipelineStateObject, DX12GraphicsPipelineStateObject)
-IMPLEMENT_CREATE_RHI_RESOURCE(IRHIComputePipelineStateObject, DX12ComputePipelineStateObject)
-IMPLEMENT_CREATE_RHI_RESOURCE(IRHIRayTracingPipelineStateObject, DX12DXRStateObject)
-IMPLEMENT_CREATE_RHI_RESOURCE(IRHIShaderTable, DX12ShaderTable)
-IMPLEMENT_CREATE_RHI_RESOURCE(IRHIFence, DX12Fence)
-IMPLEMENT_CREATE_RHI_RESOURCE(IRHIGPUBuffer, DX12GPUBuffer)
-IMPLEMENT_CREATE_RHI_RESOURCE(IRHIGPUBufferManager, DX12GPUBufferManager)
-IMPLEMENT_CREATE_RHI_RESOURCE(IRHIShader, DX12Shader)
-IMPLEMENT_CREATE_RHI_RESOURCE(IRHIVertexBuffer, DX12VertexBuffer)
-IMPLEMENT_CREATE_RHI_RESOURCE(IRHIVertexBufferView, DX12VertexBufferView)
-IMPLEMENT_CREATE_RHI_RESOURCE(IRHIIndexBuffer, DX12IndexBuffer)
-IMPLEMENT_CREATE_RHI_RESOURCE(IRHIIndexBufferView, DX12IndexBufferView)
-IMPLEMENT_CREATE_RHI_RESOURCE(IRHIDescriptorHeap, DX12DescriptorHeap)
-IMPLEMENT_CREATE_RHI_RESOURCE(IRHITexture, DX12Texture)
-IMPLEMENT_CREATE_RHI_RESOURCE(IRHIRayTracingAS, DX12RayTracingAS)
-IMPLEMENT_CREATE_RHI_RESOURCE(IRHICommandSignature, DX12CommandSignature)
-IMPLEMENT_CREATE_RHI_RESOURCE(IRHISemaphore, RHISemaphoreNull)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHIFactory, DX12Factory, VKFactory)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHIDevice, DX12Device, VKDevice)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHICommandList, DX12CommandList, VKCommandList)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHICommandQueue, DX12CommandQueue, VKCommandQueue)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHICommandAllocator, DX12CommandAllocator, VKCommandAllocator)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHISwapChain, DX12SwapChain, VKSwapChain)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHIRenderTarget, DX12RenderTarget, VKRenderTarget)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHIRenderTargetManager, DX12RenderTargetManager, VKRenderTargetManager)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHIRootParameter, DX12RootParameter, VKRootParameter)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHIStaticSampler, DX12StaticSampler, VKStaticSampler)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHIRootSignature, DX12RootSignature, VKRootSignature)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHIGraphicsPipelineStateObject, DX12GraphicsPipelineStateObject, VKGraphicsPipelineStateObject)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHIComputePipelineStateObject, DX12ComputePipelineStateObject, VKComputePipelineStateObject)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHIRayTracingPipelineStateObject, DX12RTPipelineStateObject, VKRTPipelineStateObject)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHIShaderTable, DX12ShaderTable, VKShaderTable)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHIFence, DX12Fence, VKFence)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHIGPUBuffer, DX12GPUBuffer, VKGPUBuffer)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHIGPUBufferManager, DX12GPUBufferManager, VKGPUBufferManager)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHIShader, DX12Shader, VKShader)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHIVertexBuffer, DX12VertexBuffer, VKVertexBuffer)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHIVertexBufferView, DX12VertexBufferView, VKVertexBufferView)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHIIndexBuffer, DX12IndexBuffer, VKIndexBuffer)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHIIndexBufferView, DX12IndexBufferView, VKIndexBufferView)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHIDescriptorHeap, DX12DescriptorHeap, VKDescriptorHeap)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHITexture, DX12Texture, VKTexture)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHIRayTracingAS, DX12RayTracingAS, VKRayTracingAS)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHICommandSignature, DX12CommandSignature, VKCommandSignature)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHISemaphore, RHISemaphoreNull, VKSemaphore)
