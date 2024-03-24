@@ -23,10 +23,14 @@ public:
     bool IsVulkanTest() const { return vulkan_test; }
     bool IsTestTrianglePass() const { return test_triangle_pass; }
     
+    const std::string& GetSceneName() const;
+    
 private:
     bool raster_scene;
     bool vulkan_test;
     bool test_triangle_pass;
+    
+    std::string scene_name;
 };
 
 class glTFAppMain
@@ -36,7 +40,7 @@ public:
     void Run();
     
 protected:
-    bool InitSceneGraph();
+    bool InitSceneGraph(const std::string& scene_name);
     bool LoadSceneGraphFromFile(const char* filePath) const;
     bool InitRenderer();
 

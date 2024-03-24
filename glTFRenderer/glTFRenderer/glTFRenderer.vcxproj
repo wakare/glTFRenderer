@@ -112,6 +112,7 @@
     <ClCompile Include="..\ThirdParty\imgui\imgui_tables.cpp" />
     <ClCompile Include="..\ThirdParty\imgui\imgui_widgets.cpp" />
     <ClCompile Include="glTFApp\glTFAppMain.cpp" />
+    <ClCompile Include="glTFApp\glTFRadiosityRenderer.cpp" />
     <ClCompile Include="glTFApp\glTFAppRenderer.cpp" />
     <ClCompile Include="glTFApp\glTFAppRenderPipeline.cpp" />
     <ClCompile Include="glTFApp\glTFPassOptionRenderFlags.cpp" />
@@ -144,10 +145,12 @@
     <ClCompile Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassTestTriangle.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassBase.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassPathTracing.cpp" />
+    <ClCompile Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassRadiosityFormFactor.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassReSTIRDirectLighting.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassWithMesh.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterface32BitConstant.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceFrameStat.cpp" />
+    <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceRadiosityScene.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSampler.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSceneMaterial.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSceneMeshInfo.cpp" />
@@ -191,6 +194,7 @@
     <None Include="glTFResources\ShaderSource\Math\ReservoirSample.hlsl" />
     <None Include="glTFResources\ShaderSource\TestShaders\TestTriangleFrag.hlsl" />
     <None Include="glTFResources\ShaderSource\TestShaders\TestTriangleVert.hlsl" />
+    <None Include="glTFResources\ShaderSource\Interface\RadiosityScene.hlsl" />
     <ClCompile Include="glTFRHI\RHIConfigSingleton.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12CommandSignature.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12ConverterUtils.cpp" />
@@ -207,6 +211,7 @@
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12IndexBufferView.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12PipelineStateObject.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12RayTracingAS.cpp" />
+    <ClCompile Include="glTFRHI\RHIDX12Impl\Dx12RenderPass.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12RenderTarget.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12RenderTargetManager.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12RootSignature.cpp" />
@@ -300,6 +305,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="glTFApp\glTFAppMain.h" />
+    <ClInclude Include="glTFApp\glTFRadiosityRenderer.h" />
     <ClInclude Include="glTFApp\glTFAppRenderer.h" />
     <ClInclude Include="glTFApp\glTFAppRenderPipeline.h" />
     <ClInclude Include="glTFApp\glTFPassOptionRenderFlags.h" />
@@ -332,10 +338,12 @@
     <ClInclude Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassTestTriangle.h" />
     <ClInclude Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassBase.h" />
     <ClInclude Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassPathTracing.h" />
+    <ClInclude Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassRadiosityFormFactor.h" />
     <ClInclude Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassReSTIRDirectLighting.h" />
     <ClInclude Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassWithMesh.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterface32BitConstant.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceFrameStat.h" />
+    <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceRadiosityScene.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSampler.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSceneMaterial.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSceneMeshInfo.h" />
@@ -375,6 +383,7 @@
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12IndexBufferView.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12PipelineStateObject.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12RayTracingAS.h" />
+    <ClInclude Include="glTFRHI\RHIDX12Impl\Dx12RenderPass.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12RenderTarget.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12RenderTargetManager.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12RootSignature.h" />

@@ -13,8 +13,8 @@ PS_OUTPUT main(PS_INPUT input)
     float2 metallic_roughness = SampleMetallicRoughnessTexture(input.vs_material_id, input.texCoord);
     output.baseColor = SampleAlbedoTexture(input.vs_material_id, input.texCoord);
 #else
-    float2 metallic_roughness = float2(1.0, 1.0);
-    output.baseColor = float4(1.0, 1.0, 1.0, 1.0);
+    float2 metallic_roughness = SampleMetallicRoughnessTexture(input.vs_material_id, float2(0.0, 0.0));
+    output.baseColor = SampleAlbedoTexture(input.vs_material_id,float2(0.0, 0.0));
 #endif
 
 #ifdef HAS_NORMAL

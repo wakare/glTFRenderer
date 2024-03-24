@@ -56,10 +56,10 @@ bool glTFGraphicsPassLighting::PreRenderPass(glTFRenderResourceManager& resource
         m_base_color_and_depth_allocation.parameter_index, m_main_descriptor_heap->GetGPUHandle(0), GetPipelineType() == PipelineType::Graphics))    
 
     RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().BindRenderTarget(command_list,
-        {&resource_manager.GetCurrentFrameSwapchainRT()}, nullptr))
+        {&resource_manager.GetCurrentFrameSwapChainRT()}, nullptr))
 
     RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().ClearRenderTarget(command_list,
-        {&resource_manager.GetCurrentFrameSwapchainRT()}))
+        {&resource_manager.GetCurrentFrameSwapChainRT()}))
 
     RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceLighting>()->UpdateCPUBuffer())
 
@@ -126,7 +126,7 @@ bool glTFGraphicsPassLighting::SetupPipelineStateObject(glTFRenderResourceManage
     RETURN_IF_FALSE(glTFGraphicsPassPostprocess::SetupPipelineStateObject(resource_manager))
 
     std::vector<IRHIRenderTarget*> render_targets;
-    render_targets.push_back(&resource_manager.GetCurrentFrameSwapchainRT());
+    render_targets.push_back(&resource_manager.GetCurrentFrameSwapChainRT());
     GetGraphicsPipelineStateObject().BindRenderTargetFormats(render_targets);
     
     m_base_pass_color_RT = resource_manager.GetRenderTargetManager().GetRenderTargetWithTag("BasePassColor");

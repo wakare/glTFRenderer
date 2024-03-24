@@ -131,6 +131,12 @@ glTFMaterialRenderResource::GetTextures() const
     return m_textures;
 }
 
+const std::map<glTFMaterialParameterUsage, std::unique_ptr<glTFMaterialParameterFactor<glm::vec4>>>&
+glTFMaterialRenderResource::GetFactors() const
+{
+    return m_factors;
+}
+
 bool glTFRenderMaterialManager::InitMaterialRenderResource(glTFRenderResourceManager& resource_manager, const glTFMaterialBase& material)
 {
 	const auto material_ID = material.GetID();
@@ -194,6 +200,16 @@ bool glTFRenderMaterialManager::GatherAllMaterialRenderResource(
             new_material_info.metallic_roughness_tex_index = gather_material_textures.size();
             gather_material_textures.push_back(find_metallic_roughness_texture->second.get());        
         }
+
+        const auto& factors = material_resource.GetFactors();
+        auto it_color = factors.find(glTFMaterialParameterUsage::BASECOLOR);
+        new_material_info.albedo = it_color == factors.end() ? glm::vec4(1.0f, 1.0f, 1.0f, 1.0f) : it_color->second->GetFactor();
+
+        auto it_normal = factors.find(glTFMaterialParameterUsage::NORMAL);
+        new_material_info.normal = it_normal == factors.end() ? glm::vec4(0.0f, 0.0f, 1.0f, 0.0f) : it_normal->second->GetFactor();
+
+        auto it_metallicAndRoughness = factors.find(glTFMaterialParameterUsage::METALLIC_ROUGHNESS);
+        new_material_info.metallicAndRoughness = it_metallicAndRoughness == factors.end() ? glm::vec4(0.0f, 0.0f, 1.0f, 0.0f) : it_metallicAndRoughness->second->GetFactor();
     }
     
     return true;

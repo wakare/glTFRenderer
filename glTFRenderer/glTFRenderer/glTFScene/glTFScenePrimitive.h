@@ -6,7 +6,7 @@
 #include "glTFMaterial/glTFMaterialBase.h"
 #include "glTFRHI/RHIInterface/RHICommon.h"
 
-enum class VertexLayoutType
+enum class VertexAttributeType
 {
     POSITION,
     NORMAL,
@@ -23,7 +23,7 @@ enum class VertexLayoutType
 
 struct VertexLayoutElement
 {
-    VertexLayoutType type;
+    VertexAttributeType type;
     unsigned byte_size;
 };
 
@@ -31,7 +31,7 @@ struct VertexLayoutDeclaration
 {
     std::vector<VertexLayoutElement> elements;
 
-    bool HasAttribute(VertexLayoutType attribute_type) const
+    bool HasAttribute(VertexAttributeType attribute_type) const
     {
         for (const auto& element : elements)
         {
@@ -82,7 +82,7 @@ struct VertexBufferData
     size_t byteSize;
     size_t vertex_count;
 
-    bool GetVertexAttributeDataByIndex(VertexLayoutType type, unsigned index, void* out_data, size_t& out_attribute_size) const
+    bool GetVertexAttributeDataByIndex(VertexAttributeType type, unsigned index, void* out_data, size_t& out_attribute_size) const
     {
         const char* start_data = data.get() + index * layout.GetVertexStrideInBytes();
         for (unsigned i = 0; i < layout.elements.size(); ++i)
@@ -109,6 +109,9 @@ struct IndexBufferData
     std::unique_ptr<char[]> data;
     size_t byteSize;
     size_t index_count;
+
+    unsigned GetStride() const;
+    unsigned GetIndexByOffset(size_t offset) const;
 };
 
 enum glTFScenePrimitiveFlags
@@ -152,7 +155,6 @@ public:
 
     virtual glTFUniqueID GetMeshRawDataID() const { return 0; } 
     
-    virtual size_t GetInstanceCount() const { return 1; }
     void SetMaterial(std::shared_ptr<glTFMaterialBase> material);
     bool HasMaterial() const {return m_material != nullptr; }
     bool HasNormalMapping() const;

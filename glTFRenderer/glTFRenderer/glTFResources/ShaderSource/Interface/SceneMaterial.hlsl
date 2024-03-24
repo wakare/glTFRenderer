@@ -7,6 +7,11 @@ struct MaterialInfo
     uint albedo_tex_index;
     uint normal_tex_index;
     uint metallic_roughness_tex_index;
+    uint pad;
+    
+    float4 albedo;
+    float4 normal;
+    float4 metallicAndRoughness;
 };
 
 StructuredBuffer<MaterialInfo> g_material_infos : SCENE_MATERIAL_INFO_REGISTER_INDEX;
@@ -36,24 +41,36 @@ struct MaterialSurfaceInfo
 float4 SampleAlbedoTextureCS(uint material_id, float2 uv)
 {
     MaterialInfo info = g_material_infos[material_id];
+    if (MATERIAL_TEXTURE_INVALID_INDEX == info.albedo_tex_index)
+        return info.albedo;
+    
     return bindless_material_textures[info.albedo_tex_index].SampleLevel(material_sampler, uv, 0, 0);
 }
 
 float4 SampleAlbedoTexture(uint material_id, float2 uv)
 {
     MaterialInfo info = g_material_infos[material_id];
+    if (MATERIAL_TEXTURE_INVALID_INDEX == info.albedo_tex_index)
+        return info.albedo;
+    
     return bindless_material_textures[info.albedo_tex_index].Sample(material_sampler, uv);
 }
 
 float4 SampleNormalTextureCS(uint material_id, float2 uv)
 {
     MaterialInfo info = g_material_infos[material_id];
+    if (MATERIAL_TEXTURE_INVALID_INDEX == info.normal_tex_index)
+        return info.normal;
+    
     return bindless_material_textures[info.normal_tex_index].SampleLevel(material_sampler, uv, 0, 0);
 }
 
 float4 SampleNormalTexture(uint material_id, float2 uv)
 {
     MaterialInfo info = g_material_infos[material_id];
+    if (MATERIAL_TEXTURE_INVALID_INDEX == info.normal_tex_index)
+        return info.normal;
+    
     return bindless_material_textures[info.normal_tex_index].Sample(material_sampler, uv);
 }
 
@@ -61,12 +78,18 @@ float4 SampleNormalTexture(uint material_id, float2 uv)
 float2 SampleMetallicRoughnessTexture(uint material_id, float2 uv)
 {
     MaterialInfo info = g_material_infos[material_id];
+    if (MATERIAL_TEXTURE_INVALID_INDEX == info.metallic_roughness_tex_index)
+        return info.metallicAndRoughness.bg;
+    
     return bindless_material_textures[info.metallic_roughness_tex_index].Sample(material_sampler, uv).bg;
 }
 
 float2 SampleMetallicRoughnessTextureCS(uint material_id, float2 uv)
 {
     MaterialInfo info = g_material_infos[material_id];
+    if (MATERIAL_TEXTURE_INVALID_INDEX == info.metallic_roughness_tex_index)
+        return info.metallicAndRoughness.bg;
+    
     return bindless_material_textures[info.metallic_roughness_tex_index].SampleLevel(material_sampler, uv, 0, 0).bg;
 }
 
@@ -114,10 +137,18 @@ MaterialSurfaceInfo GetSurfaceInfoCS(uint material_id, float2 uv)
     {
         surface_info.albedo = bindless_material_textures[material_info.albedo_tex_index].SampleLevel(material_sampler, uv, 0, 0).xyz;
     }
+    else
+    {
+        surface_info.albedo = material_info.albedo.xyz;
+    }
     
     if (material_info.normal_tex_index != MATERIAL_TEXTURE_INVALID_INDEX)
     {
         surface_info.normal = 2 * bindless_material_textures[material_info.normal_tex_index].SampleLevel(material_sampler, uv, 0, 0).xyz - 1.0;
+    }
+    else
+    {
+        surface_info.normal = material_info.normal.xyz;
     }
     
     if (material_info.metallic_roughness_tex_index != MATERIAL_TEXTURE_INVALID_INDEX)
@@ -125,6 +156,11 @@ MaterialSurfaceInfo GetSurfaceInfoCS(uint material_id, float2 uv)
         float2 metallic_roughness = bindless_material_textures[material_info.metallic_roughness_tex_index].SampleLevel(material_sampler, uv, 0, 0).bg;
         surface_info.metallic = metallic_roughness.x;
         surface_info.roughness = metallic_roughness.y;
+    }
+    else
+    {
+        surface_info.metallic = material_info.metallicAndRoughness.b;
+        surface_info.roughness = material_info.metallicAndRoughness.g;
     }
     
     return surface_info;

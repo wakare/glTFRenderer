@@ -1,17 +1,17 @@
 ﻿#pragma once
 #include "glTFRenderInterfaceBase.h"
 
-ALIGN_FOR_CBV_STRUCT struct SceneMeshStartIndexInfo
+ALIGN_FOR_CBV_STRUCT struct SceneMeshDataOffsetInfo
 {
-    inline static std::string Name = "SceneMeshStartIndexInfo_REGISTER_SRV_INDEX";
-    unsigned start_index;
+    inline static std::string Name = "SceneMeshDataOffsetInfo_REGISTER_SRV_INDEX";
+    unsigned start_face_index;
     unsigned material_index;
 };
 
-ALIGN_FOR_CBV_STRUCT struct SceneMeshIndexInfo
+ALIGN_FOR_CBV_STRUCT struct SceneMeshFaceInfo
 {
-    inline static std::string Name = "SceneMeshIndexInfo_REGISTER_SRV_INDEX";
-    unsigned vertex_index;
+    inline static std::string Name = "SceneMeshFaceInfo_REGISTER_SRV_INDEX";
+    unsigned vertex_index[3];
 };
 
 ALIGN_FOR_CBV_STRUCT struct SceneMeshVertexInfo

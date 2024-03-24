@@ -31,7 +31,8 @@ struct RHIBeginRenderPassInfo
 {
     const IRHIRenderPass* render_pass;
     const IRHIFrameBuffer* frame_buffer;
-    const IRHISwapChain* swap_chain;
+    unsigned width;
+    unsigned height;
 };
 
 // Singleton for provide combined basic rhi operations

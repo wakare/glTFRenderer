@@ -7,7 +7,7 @@ glTFMeshRawData::glTFMeshRawData(const glTFLoader& loader, const glTF_Primitive&
 	size_t vertex_buffer_size = 0;
 	std::vector<char*> vertex_data_in_buffers;
 
-	static auto _process_vertex_attribute = [](const glTFLoader& source_loader, glTFAttributeId attribute_ID, VertexLayoutType attribute_type,
+	static auto _process_vertex_attribute = [](const glTFLoader& source_loader, glTFAttributeId attribute_ID, VertexAttributeType attribute_type,
 		const glTF_Primitive& source_primitive, size_t& out_vertex_buffer_size, VertexLayoutDeclaration& out_vertex_layout,
 		std::vector<char*>& out_vertex_data_infos)
 	{
@@ -30,19 +30,19 @@ glTFMeshRawData::glTFMeshRawData(const glTFLoader& loader, const glTF_Primitive&
 	};
                 
 	// POSITION attribute
-	_process_vertex_attribute(loader, glTF_Attribute_POSITION::attribute_type_id, VertexLayoutType::POSITION,
+	_process_vertex_attribute(loader, glTF_Attribute_POSITION::attribute_type_id, VertexAttributeType::POSITION,
 		primitive, vertex_buffer_size, vertexLayout, vertex_data_in_buffers);
 
 	// NORMAL attribute
-	_process_vertex_attribute(loader, glTF_Attribute_NORMAL::attribute_type_id, VertexLayoutType::NORMAL,
+	_process_vertex_attribute(loader, glTF_Attribute_NORMAL::attribute_type_id, VertexAttributeType::NORMAL,
 		primitive, vertex_buffer_size, vertexLayout, vertex_data_in_buffers);
 
 	// TANGENT attribute
-	_process_vertex_attribute(loader, glTF_Attribute_TANGENT::attribute_type_id, VertexLayoutType::TANGENT,
+	_process_vertex_attribute(loader, glTF_Attribute_TANGENT::attribute_type_id, VertexAttributeType::TANGENT,
 		primitive, vertex_buffer_size, vertexLayout, vertex_data_in_buffers);
                 
 	// TEXCOORD attribute
-	_process_vertex_attribute(loader, glTF_Attribute_TEXCOORD_0::attribute_type_id, VertexLayoutType::TEXCOORD_0,
+	_process_vertex_attribute(loader, glTF_Attribute_TEXCOORD_0::attribute_type_id, VertexAttributeType::TEXCOORD_0,
 		primitive, vertex_buffer_size, vertexLayout, vertex_data_in_buffers);
 
 	vertex_buffer_data = std::make_shared<VertexBufferData>();
@@ -56,7 +56,7 @@ glTFMeshRawData::glTFMeshRawData(const glTFLoader& loader, const glTF_Primitive&
 	position_only_data->data.reset(new char[position_only_data_size]);
 	position_only_data->byteSize = position_only_data_size;
 	position_only_data->vertex_count = vertex_buffer_data->vertex_count;
-	position_only_data->layout.elements.push_back({VertexLayoutType::POSITION, 12});
+	position_only_data->layout.elements.push_back({VertexAttributeType::POSITION, 12});
                 
 	char* vertex_data_start = vertex_buffer_data->data.get();
 	char* position_only_data_start = position_only_data->data.get();
@@ -66,7 +66,7 @@ glTFMeshRawData::glTFMeshRawData(const glTFLoader& loader, const glTF_Primitive&
 		// Reformat vertex buffer data
 		for (size_t i = 0; i < vertexLayout.elements.size(); ++i)
 		{
-			if (vertexLayout.elements[i].type == VertexLayoutType::POSITION)
+			if (vertexLayout.elements[i].type == VertexAttributeType::POSITION)
 			{
 				// Position attribute component type should be float
 				GLTF_CHECK(vertexLayout.elements[i].byte_size == 3 * sizeof(float));
@@ -74,6 +74,7 @@ glTFMeshRawData::glTFMeshRawData(const glTFLoader& loader, const glTF_Primitive&
 				m_box.extend({position[0], position[1], position[2]});
 
 				memcpy(position_only_data_start, vertex_data_in_buffers[i], vertexLayout.elements[i].byte_size);
+				position_only_data_start += vertexLayout.elements[i].byte_size;
 			}
                         
 			memcpy(vertex_data_start, vertex_data_in_buffers[i], vertexLayout.elements[i].byte_size);

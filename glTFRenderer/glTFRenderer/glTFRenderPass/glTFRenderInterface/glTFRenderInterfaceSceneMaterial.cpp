@@ -28,19 +28,21 @@ bool glTFRenderInterfaceSceneMaterial::UploadMaterialData(glTFRenderResourceMana
     RHIGPUDescriptorHandle handle = 0;
     for (auto& texture : material_texture_render_resources)
     {
+        if (!texture)
+        {
+            continue;
+        }
         auto new_handle = texture->CreateTextureSRVHandleInHeap(resource_manager, heap);
         handle = handle ? handle : new_handle;
     }
 
-    if (!handle)
-    {
-        return false;
-    }
-    
     // Set heap handle to bindless parameter slot
     RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceStructuredBuffer<MaterialInfo>>()->UploadCPUBuffer(material_infos.data(), 0, sizeof(MaterialInfo) * material_infos.size()))
-    GetRenderInterface<glTFRenderInterfaceSRVTableBindless>()->SetGPUHandle(handle);
-
+    if (handle)
+    {
+        GetRenderInterface<glTFRenderInterfaceSRVTableBindless>()->SetGPUHandle(handle);    
+    }
+    
     return true;
 }
 

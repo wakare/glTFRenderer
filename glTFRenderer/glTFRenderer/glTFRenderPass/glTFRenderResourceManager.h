@@ -5,6 +5,7 @@
 #include "glTFUtils/glTFUtils.h"
 #include "glTFRenderMeshManager.h"
 #include "glTFRenderResourceFrameManager.h"
+#include "glTFApp/glTFRadiosityRenderer.h"
 #include "glTFRHI/RHIInterface/IRHICommandList.h"
 #include "glTFRHI/RHIInterface/IRHIDevice.h"
 #include "glTFRHI/RHIInterface/IRHIFence.h"
@@ -13,6 +14,7 @@
 #include "glTFRHI/RHIInterface/IRHIDescriptorHeap.h"
 #include "glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
 
+class IRHIFrameBuffer;
 class glTFWindow;
 class glTFRenderMaterialManager;
 
@@ -23,7 +25,8 @@ public:
     glTFRenderResourceManager();
     
     bool InitResourceManager(unsigned width, unsigned height, HWND handle);
-
+    bool InitScene(const glTFSceneGraph& scene_graph);
+    
     IRHIFactory& GetFactory();
     IRHIDevice& GetDevice();
     IRHISwapChain& GetSwapChain();
@@ -37,8 +40,8 @@ public:
     IRHIRenderTargetManager& GetRenderTargetManager();
     
     IRHICommandAllocator& GetCurrentFrameCommandAllocator();
-    IRHIFence& GetCurrentFrameFence();
-    IRHIRenderTarget& GetCurrentFrameSwapchainRT();
+    
+    IRHIRenderTarget& GetCurrentFrameSwapChainRT();
     IRHIRenderTarget& GetDepthRT();
 
     static unsigned GetCurrentBackBufferIndex() { return m_swap_chain->GetCurrentBackBufferIndex(); }
@@ -60,7 +63,12 @@ public:
     static unsigned GetBackBufferCount();
     glTFRenderResourceUtils::GBufferSignatureAllocations& GetGBufferAllocations();
 
+    glTFRadiosityRenderer& GetRadiosityRenderer();
+    const glTFRadiosityRenderer& GetRadiosityRenderer() const;
+    
 private:
+    std::shared_ptr<glTFRadiosityRenderer> m_radiosity_renderer;
+    
     static std::shared_ptr<IRHIFactory> m_factory;
     static std::shared_ptr<IRHIDevice> m_device;
     static std::shared_ptr<IRHICommandQueue> m_command_queue;

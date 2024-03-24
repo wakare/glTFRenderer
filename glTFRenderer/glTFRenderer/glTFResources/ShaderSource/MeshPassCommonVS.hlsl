@@ -39,7 +39,7 @@ VS_OUTPUT main(uint Vertex_ID : SV_VertexID, uint Instance_ID: SV_InstanceID)
     MeshInstanceInputData instance_input_data = g_mesh_instance_input_data[instance_id];
     float4x4 instance_transform = (instance_input_data.instance_transform);
     
-    uint index = g_mesh_index_info[g_mesh_start_info[instance_input_data.mesh_id].start_index].vertex_index + Vertex_ID;
+    uint index = g_mesh_face_info[g_mesh_start_info[instance_input_data.mesh_id].start_face_index].vertex_index + Vertex_ID;
     SceneMeshVertexInfo vertex = g_mesh_vertex_info[index];
     
     float4 world_pos = mul(instance_transform, float4(vertex.position.xyz, 1.0));

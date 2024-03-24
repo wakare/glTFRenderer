@@ -169,25 +169,25 @@ bool glTFRenderMeshManager::ResolveVertexInputLayout(const VertexLayoutDeclarati
     {
         switch (vertex_layout.type)
         {
-        case VertexLayoutType::POSITION:
+        case VertexAttributeType::POSITION:
             {
                 GLTF_CHECK(vertex_layout.byte_size == (GetRHIDataFormatBitsPerPixel(RHIDataFormat::R32G32B32_FLOAT) / 8));
                 m_vertex_input_layouts.push_back({INPUT_LAYOUT_UNIQUE_PARAMETER(POSITION), 0, RHIDataFormat::R32G32B32_FLOAT, vertex_layout_offset, 0});
             }
             break;
-        case VertexLayoutType::NORMAL:
+        case VertexAttributeType::NORMAL:
             {
                 GLTF_CHECK(vertex_layout.byte_size == (GetRHIDataFormatBitsPerPixel(RHIDataFormat::R32G32B32_FLOAT) / 8));
                 m_vertex_input_layouts.push_back({INPUT_LAYOUT_UNIQUE_PARAMETER(NORMAL), 0, RHIDataFormat::R32G32B32_FLOAT, vertex_layout_offset, 0});
             }
             break;
-        case VertexLayoutType::TANGENT:
+        case VertexAttributeType::TANGENT:
             {
                 GLTF_CHECK(vertex_layout.byte_size == (GetRHIDataFormatBitsPerPixel(RHIDataFormat::R32G32B32A32_FLOAT) / 8));
                 m_vertex_input_layouts.push_back({INPUT_LAYOUT_UNIQUE_PARAMETER(TANGENT), 0, RHIDataFormat::R32G32B32A32_FLOAT, vertex_layout_offset, 0});
             }
             break;
-        case VertexLayoutType::TEXCOORD_0:
+        case VertexAttributeType::TEXCOORD_0:
             {
                 GLTF_CHECK(vertex_layout.byte_size == (GetRHIDataFormatBitsPerPixel(RHIDataFormat::R32G32_FLOAT) / 8));
                 m_vertex_input_layouts.push_back({INPUT_LAYOUT_UNIQUE_PARAMETER(TEXCOORD), 0, RHIDataFormat::R32G32_FLOAT, vertex_layout_offset, 0});

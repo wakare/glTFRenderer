@@ -2,6 +2,7 @@
 
 #include "glTFRenderPass/glTFRenderMaterialManager.h"
 #include "glTFMaterial/glTFMaterialOpaque.h"
+#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceRadiosityScene.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSampler.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneMaterial.h"
 #include "glTFRHI/RHIUtils.h"
@@ -13,7 +14,7 @@ glTFGraphicsPassMeshOpaque::glTFGraphicsPassMeshOpaque()
     , m_base_pass_normal_render_target(nullptr)
     , m_material_uploaded(false)
 {
-    //AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMeshMaterial>());
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceRadiosityScene>());
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMaterial>());
     
     const std::shared_ptr<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Warp, RHIStaticSamplerFilterMode::Linear>> sampler_interface =

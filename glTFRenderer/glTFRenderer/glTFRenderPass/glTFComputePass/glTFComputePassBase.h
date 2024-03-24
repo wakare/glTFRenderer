@@ -22,7 +22,6 @@ public:
     virtual DispatchCount GetDispatchCount() const = 0; 
     
 protected:
-    virtual size_t GetMainDescriptorHeapSize() override;
     IRHIComputePipelineStateObject& GetComputePipelineStateObject() const;
     
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;

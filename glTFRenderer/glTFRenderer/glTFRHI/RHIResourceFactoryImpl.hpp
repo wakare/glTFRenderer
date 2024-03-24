@@ -18,8 +18,11 @@
 #include "RHIInterface/IRHIPipelineStateObject.h"
 #include "RHIInterface/IRHIRayTracingAS.h"
 #include "RHIInterface/IRHISemaphore.h"
+#include "RHIInterface/IRHIRenderPass.h"
 
 // DX12 implements
+#include "RHIDX12Impl/DX12Utils.h"
+
 #include "RHIDX12Impl/DX12CommandAllocator.h"
 #include "RHIDX12Impl/DX12CommandList.h"
 #include "RHIDX12Impl/DX12CommandQueue.h"
@@ -34,7 +37,6 @@
 #include "RHIDX12Impl/DX12RenderTargetManager.h"
 #include "RHIDX12Impl/DX12RootSignature.h"
 #include "RHIDX12Impl/DX12SwapChain.h"
-#include "RHIDX12Impl/DX12Utils.h"
 #include "RHIDX12Impl/DX12VertexBufferView.h"
 #include "RHIDX12Impl/DX12DescriptorHeap.h"
 #include "RHIDX12Impl/DX12IndexBuffer.h"
@@ -43,8 +45,11 @@
 #include "RHIDX12Impl/DX12Texture.h"
 #include "RHIDX12Impl/DX12VertexBuffer.h"
 #include "RHIDX12Impl/DX12CommandSignature.h"
+#include "RHIDX12Impl/Dx12RenderPass.h"
 
 // VK implements
+#include "RHIVKImpl/VulkanUtils.h"
+
 #include "RHIVKImpl/VKCommandList.h"
 #include "RHIVKImpl/VKCommandSignature.h"
 #include "RHIVKImpl/VKComputePipelineStateObject.h"
@@ -71,7 +76,7 @@
 #include "RHIVKImpl/VKTexture.h"
 #include "RHIVKImpl/VKVertexBuffer.h"
 #include "RHIVKImpl/VKVertexBufferView.h"
-#include "RHIVKImpl/VulkanUtils.h"
+#include "RHIVKImpl/VKRenderPass.h"
 
 inline RHIGraphicsAPIType GetGraphicsAPI() {return RHIConfigSingleton::Instance().GetGraphicsAPIType();}
 
@@ -122,3 +127,4 @@ IMPLEMENT_CREATE_RHI_RESOURCE(IRHITexture, DX12Texture, VKTexture)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIRayTracingAS, DX12RayTracingAS, VKRayTracingAS)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHICommandSignature, DX12CommandSignature, VKCommandSignature)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHISemaphore, RHISemaphoreNull, VKSemaphore)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHIRenderPass, Dx12RenderPass, VKRenderPass)

@@ -1,18 +1,18 @@
 #ifndef SCENE_MESH_INFO
 #define SCENE_MESH_INFO
 
-struct SceneMeshStartIndexInfo
+struct SceneMeshDataOffsetInfo
 {
-    uint start_index;
+    uint start_face_index;
     uint material_index;
 };
-StructuredBuffer<SceneMeshStartIndexInfo> g_mesh_start_info : SceneMeshStartIndexInfo_REGISTER_SRV_INDEX;
+StructuredBuffer<SceneMeshDataOffsetInfo> g_mesh_start_info : SceneMeshDataOffsetInfo_REGISTER_SRV_INDEX;
 
-struct SceneMeshIndexInfo
+struct SceneMeshFaceInfo
 {
-    uint vertex_index;
+    uint3 vertex_index;
 };
-StructuredBuffer<SceneMeshIndexInfo> g_mesh_index_info : SceneMeshIndexInfo_REGISTER_SRV_INDEX;
+StructuredBuffer<SceneMeshFaceInfo> g_mesh_face_info : SceneMeshFaceInfo_REGISTER_SRV_INDEX;
 
 struct SceneMeshVertexInfo
 {
@@ -25,10 +25,8 @@ StructuredBuffer<SceneMeshVertexInfo> g_mesh_vertex_info : SceneMeshVertexInfo_R
 
 uint3 GetMeshTriangleVertexIndex(uint mesh_id, uint primitive_id)
 {
-    uint mesh_start_index = g_mesh_start_info[mesh_id].start_index;
-    uint primitive_index = mesh_start_index + 3 * primitive_id;
-    uint3 index = uint3(primitive_index, primitive_index + 1, primitive_index + 2);
-    return uint3(g_mesh_index_info[index.x].vertex_index, g_mesh_index_info[index.y].vertex_index, g_mesh_index_info[index.z].vertex_index);
+    uint primitive_face_offset = g_mesh_start_info[mesh_id].start_face_index + primitive_id;
+    return g_mesh_face_info[primitive_face_offset].vertex_index;
 }
 
 uint GetMeshMaterialId(uint mesh_id)

@@ -61,11 +61,11 @@ struct MeshInstanceInputLayout
     
     MeshInstanceInputLayout()
     {
-        m_instance_layout.elements.push_back({VertexLayoutType::INSTANCE_MAT_0, sizeof(float) * 4});
-        m_instance_layout.elements.push_back({VertexLayoutType::INSTANCE_MAT_1, sizeof(float) * 4});
-        m_instance_layout.elements.push_back({VertexLayoutType::INSTANCE_MAT_2, sizeof(float) * 4});
-        m_instance_layout.elements.push_back({VertexLayoutType::INSTANCE_MAT_3, sizeof(float) * 4});
-        m_instance_layout.elements.push_back({VertexLayoutType::INSTANCE_CUSTOM_DATA, sizeof(unsigned) * 4});
+        m_instance_layout.elements.push_back({VertexAttributeType::INSTANCE_MAT_0, sizeof(float) * 4});
+        m_instance_layout.elements.push_back({VertexAttributeType::INSTANCE_MAT_1, sizeof(float) * 4});
+        m_instance_layout.elements.push_back({VertexAttributeType::INSTANCE_MAT_2, sizeof(float) * 4});
+        m_instance_layout.elements.push_back({VertexAttributeType::INSTANCE_MAT_3, sizeof(float) * 4});
+        m_instance_layout.elements.push_back({VertexAttributeType::INSTANCE_CUSTOM_DATA, sizeof(unsigned) * 4});
     }
 
     bool ResolveInputInstanceLayout(std::vector<RHIPipelineInputLayout>& out_layout)
@@ -75,27 +75,27 @@ struct MeshInstanceInputLayout
         {
             switch (vertex_layout.type)
             {
-            case VertexLayoutType::INSTANCE_MAT_0:
+            case VertexAttributeType::INSTANCE_MAT_0:
                 {
                     out_layout.push_back({ "INSTANCE_TRANSFORM_MATRIX", 0, RHIDataFormat::R32G32B32A32_FLOAT, vertex_layout_offset, 1 });
                 }
                 break;
-            case VertexLayoutType::INSTANCE_MAT_1:
+            case VertexAttributeType::INSTANCE_MAT_1:
                 {
                     out_layout.push_back({ "INSTANCE_TRANSFORM_MATRIX", 1, RHIDataFormat::R32G32B32A32_FLOAT, vertex_layout_offset, 1 });
                 }
                 break;
-            case VertexLayoutType::INSTANCE_MAT_2:
+            case VertexAttributeType::INSTANCE_MAT_2:
                 {
                     out_layout.push_back({ "INSTANCE_TRANSFORM_MATRIX", 2, RHIDataFormat::R32G32B32A32_FLOAT, vertex_layout_offset, 1 });
                 }
                 break;
-            case VertexLayoutType::INSTANCE_MAT_3:
+            case VertexAttributeType::INSTANCE_MAT_3:
                 {
                     out_layout.push_back({ "INSTANCE_TRANSFORM_MATRIX", 3, RHIDataFormat::R32G32B32A32_FLOAT, vertex_layout_offset, 1 });
                 }
                 break;
-            case VertexLayoutType::INSTANCE_CUSTOM_DATA:
+            case VertexAttributeType::INSTANCE_CUSTOM_DATA:
                 {
                     out_layout.push_back({ "INSTANCE_CUSTOM_DATA", 0, RHIDataFormat::R32G32B32A32_UINT, vertex_layout_offset, 1 });
                 }

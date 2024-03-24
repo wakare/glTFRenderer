@@ -50,7 +50,7 @@ bool glTFGUI::RenderWidgets(glTFRenderResourceManager& resource_manager)
     auto& command_list = resource_manager.GetCommandListForRecord();
     
     RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().BindRenderTarget(command_list,
-        {&resource_manager.GetCurrentFrameSwapchainRT()}, nullptr))
+        {&resource_manager.GetCurrentFrameSwapChainRT()}, nullptr))
     
     RETURN_IF_FALSE(RHIUtils::Instance().SetDescriptorHeapArray(command_list, m_descriptor_heap.get(), 1))
     RETURN_IF_FALSE(RHIUtils::Instance().RenderGUIFrame(command_list))

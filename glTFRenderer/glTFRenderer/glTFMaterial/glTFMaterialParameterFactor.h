@@ -6,7 +6,8 @@ class glTFMaterialParameterFactor : public glTFMaterialParameterBase
 {
 public:
     glTFMaterialParameterFactor(glTFMaterialParameterUsage usage, FactorType factor);
-
+    FactorType GetFactor() const;
+    
 protected:
     FactorType m_factor;
 };
@@ -16,4 +17,10 @@ glTFMaterialParameterFactor<FactorType>::glTFMaterialParameterFactor(glTFMateria
     : glTFMaterialParameterBase(Factor, usage)
 	, m_factor(factor)
 {
+}
+
+template <typename FactorType>
+FactorType glTFMaterialParameterFactor<FactorType>::GetFactor() const
+{
+    return m_factor;
 }

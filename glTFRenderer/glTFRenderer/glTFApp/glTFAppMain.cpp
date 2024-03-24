@@ -9,11 +9,6 @@
 #include "glTFWindow/glTFInputManager.h"
 #include "glTFWindow/glTFWindow.h"
 
-float Rand01()
-{
-    return static_cast<float>(rand()) / RAND_MAX;
-}
-
 glTFTimer::glTFTimer()
     : m_delta_tick(0)
     , m_tick(GetTickCount64())
@@ -39,22 +34,37 @@ glTFCmdArgumentProcessor::glTFCmdArgumentProcessor(int argc, char** argv)
 {
     for (int i = 0; i < argc; ++i)
     {
-        const char* argument = argv[i];
-        if (strcmp(argument, "raytracing") == 0)
+        std::string argument = argv[i];
+        if (argument.find("raytracing") != std::string::npos)
         {
             raster_scene = false;
+            continue;
         }
 
-        if (strcmp(argument, "vulkantest") == 0)
+        if (argument.find("vulkantest") != std::string::npos)
         {
             vulkan_test = true;
+            continue;
         }
 
-        if (strcmp(argument, "test_triangle_pass") == 0)
+        if (argument.find("test_triangle_pass") != std::string::npos)
         {
             test_triangle_pass = true;
+            continue;
+        }
+        
+        const auto scene_name_index = argument.find("scene=");
+        if (scene_name_index != std::string::npos)
+        {
+            scene_name = argument.substr(scene_name_index + 6);
+            continue;
         }
     }
+}
+
+const std::string& glTFCmdArgumentProcessor::GetSceneName() const
+{
+    return scene_name;
 }
 
 glTFAppMain::glTFAppMain(int argc, char* argv[])
@@ -77,7 +87,7 @@ glTFAppMain::glTFAppMain(int argc, char* argv[])
     //GLTF_CHECK(window.RegisterCallbackEventForGUI(*m_GUI));
     
     m_scene_graph.reset(new glTFSceneGraph);
-    InitSceneGraph();
+    InitSceneGraph(cmd_processor.GetSceneName());
     
     m_input_manager.reset(new glTFInputManager);
     window.SetInputManager(m_input_manager);
@@ -111,7 +121,7 @@ void glTFAppMain::Run()
             m_renderer->TickRenderingBegin(time_delta_ms);
             m_renderer->TickSceneUpdating(*m_scene_graph, time_delta_ms);
             m_renderer->TickSceneRendering(*m_input_manager, time_delta_ms);
-        
+            
             m_GUI->SetupWidgetBegin();
             UpdateGUIWidgets();
             m_renderer->TickGUIWidgetUpdate(*m_GUI, time_delta_ms);
@@ -131,15 +141,12 @@ void glTFAppMain::Run()
     glTFWindow::Get().UpdateWindow();
 }
 
-bool glTFAppMain::InitSceneGraph()
+bool glTFAppMain::InitSceneGraph(const std::string& scene_name)
 {
     // Reset seed for random generator
     srand(1234);
     
-    char file_path [MAX_PATH] = {'\0'};
-    const std::string file_name = "Sponza";
-    snprintf(file_path, sizeof(file_path), "glTFResources\\Models\\%s\\glTF\\%s.gltf", file_name.c_str(), file_name.c_str());
-    const bool loaded = LoadSceneGraphFromFile(file_path);
+    const bool loaded = LoadSceneGraphFromFile(scene_name.c_str());
     GLTF_CHECK(loaded);
 
     // Add camera
@@ -153,7 +160,7 @@ bool glTFAppMain::InitSceneGraph()
     std::unique_ptr<glTFSceneNode> directional_light_node = std::make_unique<glTFSceneNode>();
     std::unique_ptr<glTFDirectionalLight> directional_light = std::make_unique<glTFDirectionalLight>(directional_light_node->m_transform);
     directional_light->Rotate({glm::radians(45.0f), 0.0f, 0.0f});
-    directional_light->SetIntensity(10.0f);
+    directional_light->SetIntensity(1.0f);
     directional_light->SetColor({1.0f, 1.0f,1.0f});
     directional_light->SetTickFunc([lightNode = directional_light.get()]()
     {
@@ -162,10 +169,11 @@ bool glTFAppMain::InitSceneGraph()
     directional_light_node->m_objects.push_back(std::move(directional_light));
     m_scene_graph->AddSceneNode(std::move(directional_light_node));
 
+    static unsigned point_light_count = 0;
     glm::float3 generator_min = {0.0f, 0.0f,0.0f};
     glm::float3 generator_radius = {5.0f, 5.0f, 10.0f};
     std::unique_ptr<glTFSceneNode> point_light_node = std::make_unique<glTFSceneNode>();
-    for (size_t i = 0; i < 20; ++i)
+    for (size_t i = 0; i < point_light_count; ++i)
     {
         std::unique_ptr<glTFPointLight> point_light = std::make_unique<glTFPointLight>(point_light_node->m_transform);
         glm::fvec3 location = generator_min + glm::float3{ generator_radius.x * Rand01(), generator_radius.y * Rand01(), generator_radius.z * Rand01()};
@@ -223,7 +231,7 @@ bool glTFAppMain::InitRenderer()
     renderer_config.vulkan = m_vulkan_test;
     
     m_renderer.reset(new glTFAppRenderer(renderer_config, glTFWindow::Get()));
-    m_renderer->InitMeshResourceWithSceneGraph(*m_scene_graph);
+    m_renderer->InitScene(*m_scene_graph);
 
     if (!m_GUI)
     {

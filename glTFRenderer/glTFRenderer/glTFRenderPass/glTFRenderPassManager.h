@@ -29,4 +29,7 @@ public:
 protected:
     std::vector<std::unique_ptr<glTFRenderPassBase>> m_passes;
     unsigned m_frame_index;
+
+    std::shared_ptr<IRHIRenderPass> m_render_pass;
+    std::vector<std::shared_ptr<IRHIFrameBuffer>> m_frame_buffers;    
 };

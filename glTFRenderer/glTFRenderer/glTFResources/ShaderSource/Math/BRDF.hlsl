@@ -48,6 +48,11 @@ bool SampleCookTorranceBRDF(out float3 sample_dir, out float sample_pdf)
     return true;
 }
 
+float3 EvalDiffuseBRDF(float3 base_color)
+{
+    return base_color * ONE_OVER_PI;
+}
+
 float3 EvalCookTorranceBRDF(float3 normal, float3 base_color, float metalness, float roughness, float3 view, float3 light )
 {
     float3 f0 = lerp(float3(0.04, 0.04, 0.04), base_color, metalness);

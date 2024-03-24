@@ -127,3 +127,8 @@ struct glTFFlagsBase
 private:
     uint64_t m_flags { 0llu };
 };
+
+inline float Rand01()
+{
+    return static_cast<float>(rand()) / RAND_MAX;
+}

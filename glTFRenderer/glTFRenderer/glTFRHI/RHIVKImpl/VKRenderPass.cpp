@@ -3,8 +3,15 @@
 #include "VKConverterUtils.h"
 #include "VKDevice.h"
 
+VKRenderPass::~VKRenderPass()
+{
+    vkDestroyRenderPass(m_device, m_render_pass, nullptr);
+}
+
 bool VKRenderPass::InitRenderPass(IRHIDevice& device, const RHIRenderPassInfo& info)
 {
+    m_device = dynamic_cast<VKDevice&>(device).GetDevice();
+    
     VkRenderPassCreateInfo create_render_pass_info{};
     create_render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
     
@@ -26,12 +33,12 @@ bool VKRenderPass::InitRenderPass(IRHIDevice& device, const RHIRenderPassInfo& i
     create_render_pass_info.pAttachments = color_attachments.data();
 
     std::vector<VkSubpassDescription> subpass_descriptions(info.subpass_infos.size());
-    std::vector<std::vector<VkAttachmentReference>> subpass_attachment_referenceses(info.subpass_infos.size());
+    std::vector<std::vector<VkAttachmentReference>> subpass_attachment_references(info.subpass_infos.size());
     for (size_t i = 0; i < info.subpass_infos.size(); ++i)
     {
         const auto& subpass = info.subpass_infos[i];
         
-        auto& subpass_attachment_reference = subpass_attachment_referenceses[i]; 
+        auto& subpass_attachment_reference = subpass_attachment_references[i]; 
         subpass_attachment_reference.resize(subpass.color_attachments.size());
         for (size_t j = 0; j < subpass.color_attachments.size(); ++j)
         {
@@ -60,7 +67,7 @@ bool VKRenderPass::InitRenderPass(IRHIDevice& device, const RHIRenderPassInfo& i
     create_render_pass_info.dependencyCount = subpass_dependencies.size();
     create_render_pass_info.pDependencies = subpass_dependencies.data();
 
-    VkResult result = vkCreateRenderPass(dynamic_cast<VKDevice&>(device).GetDevice(), &create_render_pass_info, nullptr, &m_render_pass);
+    const VkResult result = vkCreateRenderPass(m_device, &create_render_pass_info, nullptr, &m_render_pass);
     GLTF_CHECK(result == VK_SUCCESS);
     
     return true;

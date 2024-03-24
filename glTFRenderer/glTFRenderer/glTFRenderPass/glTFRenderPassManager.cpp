@@ -5,6 +5,7 @@
 #include "glTFRHI/RHIUtils.h"
 #include "glTFUtils/glTFLog.h"
 #include "glTFWindow/glTFWindow.h"
+#include "glTFRHI/RHIResourceFactoryImpl.hpp"
 
 glTFRenderPassManager::glTFRenderPassManager()
     : m_frame_index(0)
@@ -23,6 +24,20 @@ void glTFRenderPassManager::AddRenderPass(std::unique_ptr<glTFRenderPassBase>&& 
 
 void glTFRenderPassManager::InitAllPass(glTFRenderResourceManager& resource_manager)
 {
+    // Generate render pass before initialize sub pass
+    if (!m_render_pass)
+    {
+        RHIRenderPassInfo create_render_pass_info;
+        for (const auto& pass : m_passes)
+        {
+            
+        }
+        
+        m_render_pass = RHIResourceFactory::CreateRHIResource<IRHIRenderPass>();
+        m_render_pass->InitRenderPass(resource_manager.GetDevice(), create_render_pass_info);
+    }
+
+    
     for (const auto& pass : m_passes)
     {
         const bool inited = pass->InitPass(resource_manager);
@@ -97,10 +112,16 @@ void glTFRenderPassManager::RenderBegin(glTFRenderResourceManager& resource_mana
     // Reset command allocator when previous frame executed finish...
     resource_manager.ResetCommandAllocator();
 
+    auto& command_list = resource_manager.GetCommandListForRecord();
+
+    // TODO: fill render pass info
+    RHIBeginRenderPassInfo begin_render_pass_info{};
+    const bool begin = RHIUtils::Instance().BeginRenderPass(command_list, begin_render_pass_info);
+    
     // Transition swapchain state to render target for shading 
     RHIUtils::Instance().AddRenderTargetBarrierToCommandList(
-        resource_manager.GetCommandListForRecord(),
-        resource_manager.GetCurrentFrameSwapchainRT(),
+        command_list,
+        resource_manager.GetCurrentFrameSwapChainRT(),
         RHIResourceStateType::STATE_PRESENT, RHIResourceStateType::STATE_RENDER_TARGET);
 }
 
@@ -128,9 +149,12 @@ void glTFRenderPassManager::RenderEnd(glTFRenderResourceManager& resource_manage
     
     RHIUtils::Instance().AddRenderTargetBarrierToCommandList(
         command_list,
-        resource_manager.GetCurrentFrameSwapchainRT(),
+        resource_manager.GetCurrentFrameSwapChainRT(),
         RHIResourceStateType::STATE_RENDER_TARGET, RHIResourceStateType::STATE_PRESENT);
 
+    const bool end_render_pass = RHIUtils::Instance().EndRenderPass(command_list);
+    GLTF_CHECK(end_render_pass);
+    
     // TODO: no waiting causing race with base color and normal?
     resource_manager.CloseCommandListAndExecute(true);
     RHIUtils::Instance().Present(resource_manager.GetSwapChain(), resource_manager.GetCommandQueue(), command_list);

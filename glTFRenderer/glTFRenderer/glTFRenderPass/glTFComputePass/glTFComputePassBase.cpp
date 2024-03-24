@@ -47,11 +47,6 @@ bool glTFComputePassBase::PostRenderPass(glTFRenderResourceManager& resource_man
     return true;
 }
 
-size_t glTFComputePassBase::GetMainDescriptorHeapSize()
-{
-    return 64;
-}
-
 IRHIComputePipelineStateObject& glTFComputePassBase::GetComputePipelineStateObject() const
 {
     return dynamic_cast<IRHIComputePipelineStateObject&>(*m_pipeline_state_object);

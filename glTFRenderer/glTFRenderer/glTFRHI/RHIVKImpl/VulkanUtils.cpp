@@ -38,7 +38,7 @@ bool VulkanUtils::BeginRenderPass(IRHICommandList& command_list, const RHIBeginR
     render_pass_begin_info.renderPass = vk_render_pass;
     render_pass_begin_info.framebuffer = vk_frame_buffer;
     render_pass_begin_info.renderArea.offset = {0, 0};
-    render_pass_begin_info.renderArea.extent = {begin_render_pass_info.swap_chain->GetWidth(), begin_render_pass_info.swap_chain->GetHeight()};
+    render_pass_begin_info.renderArea.extent = {begin_render_pass_info.width, begin_render_pass_info.height};
     const VkClearValue clear_value = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
     render_pass_begin_info.clearValueCount = 1;
     render_pass_begin_info.pClearValues = &clear_value;

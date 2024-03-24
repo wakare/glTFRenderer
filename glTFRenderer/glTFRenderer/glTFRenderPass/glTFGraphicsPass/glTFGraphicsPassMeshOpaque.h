@@ -1,6 +1,5 @@
 #pragma once
 #include "glTFGraphicsPassMeshBase.h"
-#include "glTFMaterial/glTFMaterialParameterTexture.h"
 
 class glTFGraphicsPassMeshOpaque : public glTFGraphicsPassMeshBase
 {

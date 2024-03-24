@@ -153,5 +153,5 @@ const std::vector<RHIPipelineInputLayout>& glTFGraphicsPassMeshBase::GetVertexIn
 
 RHICullMode glTFGraphicsPassMeshBase::GetCullMode()
 {
-    return RHICullMode::CCW;
+    return RHICullMode::CW;
 }

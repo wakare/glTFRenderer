@@ -175,7 +175,7 @@ bool glTFRayTracingPassReSTIRDirectLighting::SetupPipelineStateObject(glTFRender
     });
 
     IRHIRayTracingPipelineStateObject::RHIRayTracingConfig config;
-    config.payload_size = sizeof(float) * 10;
+    config.payload_size = sizeof(float) * 12;
     config.attribute_size = sizeof(float) * 2;
     config.max_recursion_count = 1;
     GetRayTracingPipelineStateObject().SetConfig(config);

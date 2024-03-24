@@ -9,6 +9,11 @@ ALIGN_FOR_CBV_STRUCT struct MaterialInfo
     unsigned albedo_tex_index {material_texture_invalid_index};
     unsigned normal_tex_index {material_texture_invalid_index};
     unsigned metallic_roughness_tex_index {material_texture_invalid_index};
+    unsigned pad;
+    
+    glm::vec4 albedo {0.0f, 0.0f, 0.0f, 0.0f};
+    glm::vec4 normal {0.0f, 0.0f, 1.0f, 0.0f};
+    glm::vec4 metallicAndRoughness {0.0f, 1.0f, 0.0f, 0.0f};
 };
 
 // Use material manager class to bind all needed textures in bindless mode

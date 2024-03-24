@@ -2,6 +2,7 @@
 
 #include <imgui.h>
 
+#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceRadiosityScene.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSingleConstantBuffer.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 #include "glTFRHI/RHIUtils.h"
@@ -33,6 +34,7 @@ glTFRayTracingPassPathTracing::glTFRayTracingPassPathTracing()
     , m_screen_uv_offset_handle(0)
 {
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSingleConstantBuffer<RayTracingPathTracingPassOptions>>());
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceRadiosityScene>());
 }
 
 const char* glTFRayTracingPassPathTracing::PassName()
@@ -92,6 +94,7 @@ bool glTFRayTracingPassPathTracing::PreRenderPass(glTFRenderResourceManager& res
             RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_UNORDERED_ACCESS))
 
     RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSingleConstantBuffer<RayTracingPathTracingPassOptions>>()->UploadCPUBuffer(&m_pass_options, 0, sizeof(m_pass_options)))
+    RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceRadiosityScene>()->UploadCPUBufferFromRadiosityRenderer(resource_manager.GetRadiosityRenderer()))
     
     return true;
 }
@@ -161,7 +164,7 @@ bool glTFRayTracingPassPathTracing::SetupPipelineStateObject(glTFRenderResourceM
     });
 
     IRHIRayTracingPipelineStateObject::RHIRayTracingConfig config;
-    config.payload_size = sizeof(float) * 10;
+    config.payload_size = sizeof(float) * 12;
     config.attribute_size = sizeof(float) * 2;
     config.max_recursion_count = 1;
     GetRayTracingPipelineStateObject().SetConfig(config);

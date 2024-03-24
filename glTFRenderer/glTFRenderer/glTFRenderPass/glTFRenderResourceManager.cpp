@@ -17,7 +17,8 @@ std::shared_ptr<IRHICommandQueue> glTFRenderResourceManager::m_command_queue = n
 std::shared_ptr<IRHISwapChain> glTFRenderResourceManager::m_swap_chain = nullptr;
 
 glTFRenderResourceManager::glTFRenderResourceManager()
-    : m_material_manager(std::make_shared<glTFRenderMaterialManager>())
+    : m_radiosity_renderer(std::make_shared<glTFRadiosityRenderer>())
+    , m_material_manager(std::make_shared<glTFRenderMaterialManager>())
     , m_mesh_manager(std::make_shared<glTFRenderMeshManager>())
     , m_GBuffer_allocations(new glTFRenderResourceUtils::GBufferSignatureAllocations)
 {
@@ -83,6 +84,50 @@ bool glTFRenderResourceManager::InitResourceManager(unsigned width, unsigned hei
     return true;
 }
 
+bool glTFRenderResourceManager::InitScene(const glTFSceneGraph& scene_graph)
+{
+    VertexLayoutDeclaration resolved_vertex_layout;
+    bool has_resolved = false; 
+    
+    scene_graph.TraverseNodes([&resolved_vertex_layout, &has_resolved, this](const glTFSceneNode& node)
+    {
+        for (auto& scene_object : node.m_objects)
+        {
+            if (auto* primitive = dynamic_cast<glTFScenePrimitive*>(scene_object.get()))
+            {
+                if (!has_resolved)
+                {
+                    for (const auto& vertex_layout : primitive->GetVertexLayout().elements)
+                    {
+                        if (!resolved_vertex_layout.HasAttribute(vertex_layout.type))
+                        {
+                            resolved_vertex_layout.elements.push_back(vertex_layout);
+                            has_resolved = true;
+                        }
+                    }    
+                }
+	            
+                else if (!(primitive->GetVertexLayout() == resolved_vertex_layout))
+                {
+                    LOG_FORMAT_FLUSH("[WARN] Primtive id: %d is no-visible becuase vertex layout mismatch\n", primitive->GetID())
+                    primitive->SetVisible(false);
+                }
+            }
+            TryProcessSceneObject(*this, *scene_object);
+        }
+	    
+        return true;
+    });
+
+    GLTF_CHECK(has_resolved);
+    GetMeshManager().ResolveVertexInputLayout(resolved_vertex_layout);
+    
+    GLTF_CHECK(GetMeshManager().BuildMeshRenderResource(*this));
+    m_radiosity_renderer->InitScene(scene_graph);
+    
+    return true;
+}
+
 IRHIFactory& glTFRenderResourceManager::GetFactory()
 {
     return *m_factory;
@@ -112,10 +157,6 @@ IRHICommandList& glTFRenderResourceManager::GetCommandListForRecord()
     {
         const bool reset = RHIUtils::Instance().ResetCommandList(command_list, command_allocator, m_current_pass_pso.get());
         GLTF_CHECK(reset);
-
-        // TODO: fill render pass info
-        RHIBeginRenderPassInfo begin_render_pass_info;
-        const bool begin = RHIUtils::Instance().BeginRenderPass(command_list, begin_render_pass_info);
         
         m_command_list_record_state[current_frame_index] = true;
     }
@@ -132,8 +173,6 @@ void glTFRenderResourceManager::CloseCommandListAndExecute(bool wait)
     }
     
     auto& command_list = *m_command_lists[current_frame_index];
-    const bool end_render_pass = RHIUtils::Instance().EndRenderPass(command_list);
-    GLTF_CHECK(end_render_pass);
     
     const bool closed = RHIUtils::Instance().CloseCommandList(command_list);
     GLTF_CHECK(closed);
@@ -175,7 +214,7 @@ IRHICommandAllocator& glTFRenderResourceManager::GetCurrentFrameCommandAllocator
     return *m_command_allocators[GetCurrentBackBufferIndex() % backBufferCount];
 }
 
-IRHIRenderTarget& glTFRenderResourceManager::GetCurrentFrameSwapchainRT()
+IRHIRenderTarget& glTFRenderResourceManager::GetCurrentFrameSwapChainRT()
 {
     return *m_swapchain_RTs[GetCurrentBackBufferIndex() % backBufferCount];
 }
@@ -257,4 +296,14 @@ unsigned glTFRenderResourceManager::GetBackBufferCount()
 glTFRenderResourceUtils::GBufferSignatureAllocations& glTFRenderResourceManager::GetGBufferAllocations()
 {
     return *m_GBuffer_allocations;
+}
+
+glTFRadiosityRenderer& glTFRenderResourceManager::GetRadiosityRenderer()
+{
+    return *m_radiosity_renderer; 
+}
+
+const glTFRadiosityRenderer& glTFRenderResourceManager::GetRadiosityRenderer() const
+{
+    return *m_radiosity_renderer;
 }

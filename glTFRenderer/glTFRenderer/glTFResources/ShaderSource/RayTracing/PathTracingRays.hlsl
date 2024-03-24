@@ -32,6 +32,9 @@ struct PrimaryRayPayload
     
     float distance;
     uint material_id;
+
+    uint instance_id;
+    uint primitive_id;
 };
 
 bool IsHit(PrimaryRayPayload payload)
@@ -56,6 +59,9 @@ void PrimaryRayClosestHit(inout PrimaryRayPayload payload, in PathTracingAttribu
     
     payload.metallic = surface_info.metallic;
     payload.roughness = surface_info.roughness;
+
+    payload.instance_id = InstanceID();
+    payload.primitive_id = PrimitiveIndex();
 }
 
 [shader("miss")]

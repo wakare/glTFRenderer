@@ -5,6 +5,7 @@
 #include "glTFResources/ShaderSource/Math/Sample.hlsl"
 #include "glTFResources/ShaderSource/Math/BRDF.hlsl"
 #include "glTFResources/ShaderSource/Interface/SceneView.hlsl"
+#include "glTFResources/ShaderSource/Interface/RadiosityScene.hlsl"
 #include "glTFResources/ShaderSource/Lighting/LightingCommon.hlsl"
 #include "glTFResources/ShaderSource/RayTracing/PathTracingRays.hlsl"
 
@@ -32,6 +33,8 @@ void PathTracingRayGen()
     
     float3 final_radiance = 0.0;
     float4 pixel_position = 0.0;
+
+    bool use_radiosity_rendering = max_bounce_count == 1;
     
     for (uint path_index = 0; path_index < samples_per_pixel; ++path_index)
     {
@@ -132,6 +135,12 @@ void PathTracingRayGen()
             
             //throughput /= sample_pdf;
             throughput *= (payload.albedo / sample_pdf);
+
+            if (use_radiosity_rendering)
+            {
+                float3 radiosity = GetRadiosityFaceInfo(payload.instance_id, payload.primitive_id);
+                radiance += GetLightingWithRadiosity(radiosity, shading_info);
+            }
         }
 
         final_radiance += radiance;
