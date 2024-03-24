@@ -134,10 +134,16 @@ bool glTFRadiosityRenderer::PrecomputeFormFactor()
                     form_factor.second.world_vertices[1] * rand_barycentric_coord0.y +
                     form_factor.second.world_vertices[2] * rand_barycentric_coord0.z;
 
+                LOG_FORMAT_FLUSH("[Radiosity] Triangles vertices: (%f %f %f) (%f %f %f) (%f %f %f) sampled point (%f %f %f)\n",
+                    form_factor.second.world_vertices[0].x, form_factor.second.world_vertices[0].y, form_factor.second.world_vertices[0].z,
+                    form_factor.second.world_vertices[1].x, form_factor.second.world_vertices[1].y, form_factor.second.world_vertices[1].z,
+                    form_factor.second.world_vertices[2].x, form_factor.second.world_vertices[2].y, form_factor.second.world_vertices[2].z,
+                    test_point0.x, test_point0.y, test_point0.z);
+                
                 const glm::vec3 test_point0_edge0 = form_factor.second.world_vertices[1] - form_factor.second.world_vertices[0];
                 const glm::vec3 test_point0_edge1 = form_factor.second.world_vertices[2] - form_factor.second.world_vertices[1];
                 const glm::vec3 test_point0_normal = normalize(glm::cross(test_point0_edge0, test_point0_edge1));
-                
+                    
                 const glm::vec3 test_point1 =
                     other_form_factor.second.world_vertices[0] * rand_barycentric_coord1.x +
                     other_form_factor.second.world_vertices[1] * rand_barycentric_coord1.y +
@@ -169,10 +175,16 @@ bool glTFRadiosityRenderer::PrecomputeFormFactor()
                 {
                     // No occluded, add visibility
                     LOG_FORMAT_FLUSH("[Radiosity] (%f %f %f) -> (%f %f %f) is not occluded\n",
-                        test_point0.x, test_point0.y, test_point0.z,
-                        test_point1.x, test_point1.y, test_point1.z);
+                    test_point0.x, test_point0.y, test_point0.z,
+                    test_point1.x, test_point1.y, test_point1.z);
                     //total_visibility += glm::abs(glm::dot(test_point0_normal, dir) * glm::dot(test_point1_normal, dir));
                     total_visibility += 1.0f;
+                }
+                else
+                {
+                    LOG_FORMAT_FLUSH("[Radiosity] (%f %f %f) -> (%f %f %f) is occluded\n",
+                    test_point0.x, test_point0.y, test_point0.z,
+                    test_point1.x, test_point1.y, test_point1.z);
                 }
             }
             
@@ -183,6 +195,11 @@ bool glTFRadiosityRenderer::PrecomputeFormFactor()
                 form_factor.second.contributed_surfaces[other_form_factor.first] = total_visibility;
                 other_form_factor.second.contributed_surfaces[form_factor.first] = total_visibility;
             }
+        }
+
+        if (form_factor.second.contributed_surfaces.empty())
+        {
+            LOG_FORMAT_FLUSH("[Radiosity] %d is not visible\n", form_factor.first);
         }
     }
 

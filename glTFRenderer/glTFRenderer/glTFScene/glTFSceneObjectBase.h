@@ -1,17 +1,12 @@
 #pragma once
 
-#include <common.hpp>
-#include <common.hpp>
-#include <common.hpp>
-#include <common.hpp>
 #include <glm/glm/glm.hpp>
 #include <glm/glm/gtc/matrix_transform.hpp>
-#include <glm/glm/gtx/euler_angles.hpp>
 #include <glm/glm/gtx/matrix_decompose.hpp>
 
 #include "glTFAABB.h"
-#include "../glTFUtils/glTFUtils.h"
-#include "../glTFLoader/glTFElementCommon.h"
+#include "glTFUtils/glTFUtils.h"
+#include "glTFLoader/glTFElementCommon.h"
 
 struct glTF_Transform_WithTRS : public glTF_Transform
 {

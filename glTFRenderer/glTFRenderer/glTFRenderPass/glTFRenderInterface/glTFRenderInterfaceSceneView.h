@@ -18,17 +18,17 @@ ALIGN_FOR_CBV_STRUCT struct ConstantBufferSceneView
     glm::mat4 prev_projection_matrix {glm::mat4{1.0f}};
     
     // TODO: Be careful for adding member to ConstantBuffer with alignment!
-    glm::float4 view_position {0.0f};
+    glm::vec4 view_position {0.0f};
     unsigned viewport_width {0};
     unsigned viewport_height {0};
 
     float nearZ {0.0f};
     float farZ {0.0f};
 
-    glm::float4 view_left_plane_normal;
-    glm::float4 view_right_plane_normal;
-    glm::float4 view_up_plane_normal;
-    glm::float4 view_down_plane_normal;
+    glm::vec4 view_left_plane_normal;
+    glm::vec4 view_right_plane_normal;
+    glm::vec4 view_up_plane_normal;
+    glm::vec4 view_down_plane_normal;
 };
 
 class glTFRenderInterfaceSceneView : public glTFRenderInterfaceSingleConstantBuffer<ConstantBufferSceneView>

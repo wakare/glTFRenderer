@@ -1,7 +1,6 @@
 #pragma once
 #include <vec3.hpp>
-
-#include "../glTFScene/glTFSceneObjectBase.h"
+#include "glTFScene/glTFSceneObjectBase.h"
 
 enum class glTFLightType
 {
@@ -24,11 +23,11 @@ public:
     void SetIntensity(float intensity);
     float GetIntensity() const;
 
-    void SetColor(const glm::float3& color);
-    const glm::float3& GetColor() const;
+    void SetColor(const glm::vec3& color);
+    const glm::vec3& GetColor() const;
     
 protected:
     glTFLightType m_type;
-    glm::float3 m_color;
+    glm::vec3 m_color;
     float m_intensity;
 };

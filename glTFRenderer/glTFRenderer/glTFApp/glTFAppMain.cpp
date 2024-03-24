@@ -170,13 +170,13 @@ bool glTFAppMain::InitSceneGraph(const std::string& scene_name)
     m_scene_graph->AddSceneNode(std::move(directional_light_node));
 
     static unsigned point_light_count = 0;
-    glm::float3 generator_min = {0.0f, 0.0f,0.0f};
-    glm::float3 generator_radius = {5.0f, 5.0f, 10.0f};
+    glm::vec3 generator_min = {0.0f, 0.0f,0.0f};
+    glm::vec3 generator_radius = {5.0f, 5.0f, 10.0f};
     std::unique_ptr<glTFSceneNode> point_light_node = std::make_unique<glTFSceneNode>();
     for (size_t i = 0; i < point_light_count; ++i)
     {
         std::unique_ptr<glTFPointLight> point_light = std::make_unique<glTFPointLight>(point_light_node->m_transform);
-        glm::fvec3 location = generator_min + glm::float3{ generator_radius.x * Rand01(), generator_radius.y * Rand01(), generator_radius.z * Rand01()};
+        glm::vec3 location = generator_min + glm::vec3{ generator_radius.x * Rand01(), generator_radius.y * Rand01(), generator_radius.z * Rand01()};
         point_light->SetColor({Rand01(), Rand01(), Rand01()});
         point_light->Translate(location);
         point_light->SetRadius(Rand01() * 100.0f);

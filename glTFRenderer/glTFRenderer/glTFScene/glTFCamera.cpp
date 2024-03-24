@@ -2,6 +2,7 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 
 #include "glTFCamera.h"
+#include <glm/glm/gtx/euler_angles.hpp>
 
 glm::fmat4x4 glTFCamera::GetViewProjectionMatrix() const
 {
