@@ -20,4 +20,20 @@ float3 sampleHemisphere(float2 u, out float pdf) {
     return result;
 }
 
+float3 sampleHemisphereCosine(float2 u, out float pdf) {
+
+    float a = sqrt(u.x);
+    float b = TWO_PI * u.y;
+
+    float c = sqrt(1 - u.x);
+    float3 result = float3(
+        c * cos(b),
+        c * sin(b),
+        a);
+
+    pdf = result.z * ONE_OVER_PI;
+
+    return result;
+}
+
 #endif

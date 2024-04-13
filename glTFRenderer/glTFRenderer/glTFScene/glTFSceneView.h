@@ -25,10 +25,14 @@ public:
     
     glTFCamera* GetMainCamera() const;
     void Tick(const glTFSceneGraph& scene_graph);
+
+    bool GetLightingDirty() const;
     
 private:
     void FocusSceneCenter(glTFCamera& camera) const;
     static void ApplyInputForCamera(const glTFInputManager& input_manager, glTFCamera& camera, size_t delta_time_ms);
 
     const glTFSceneGraph& m_scene_graph;
+
+    bool m_lighting_dirty;
 };

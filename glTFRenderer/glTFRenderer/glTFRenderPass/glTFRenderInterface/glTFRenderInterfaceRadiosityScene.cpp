@@ -23,13 +23,15 @@ bool glTFRenderInterfaceRadiosityScene::UploadCPUBufferFromRadiosityRenderer(con
         const MeshInstanceFormFactorData& form_factor_data = data.second;
         unsigned instance_id, face_id;
         DecodeFromFormFactorID(form_factor_data.form_factor_id, instance_id, face_id);
-
-        face_infos.push_back({form_factor_data.irradiance});
+        
         if (current_instance_id != instance_id)
         {
             data_offsets.push_back({static_cast<unsigned>(face_infos.size())});
             current_instance_id = instance_id;
         }
+        
+        const glm::vec4 face_info(form_factor_data.irradiance.x, form_factor_data.irradiance.y, form_factor_data.irradiance.z, 1.0f);
+        face_infos.push_back({face_info});
     }
 
     GetRenderInterface<glTFRenderInterfaceStructuredBuffer<RadiosityDataOffset>>()->UploadCPUBuffer(data_offsets.data(), 0, sizeof(RadiosityDataOffset) * data_offsets.size());

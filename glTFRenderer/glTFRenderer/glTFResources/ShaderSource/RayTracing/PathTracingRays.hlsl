@@ -46,7 +46,6 @@ bool IsHit(PrimaryRayPayload payload)
 void PrimaryRayClosestHit(inout PrimaryRayPayload payload, in PathTracingAttributes attr)
 {
     payload.distance = RayTCurrent();
-    //payload.material_id = hit_group_cb.material_id;
     payload.material_id = GetMeshMaterialId(InstanceID());
     SceneMeshVertexInfo vertex_info = InterpolateVertexWithBarycentrics(
         GetMeshTriangleVertexIndex(InstanceID(), PrimitiveIndex()), attr.barycentrics);

@@ -2,6 +2,8 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "glTFRenderer", "glTFRenderer\glTFRenderer.vcxproj", "{6E8E6EE8-79AB-48ED-9967-F2A7F55DAC9D}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HelloEmbree", "HelloEmbree\HelloEmbree.vcxproj", "{5167CFFF-3C85-4C6C-8E88-94D2AACBF861}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -12,5 +14,9 @@ Global
 		{6E8E6EE8-79AB-48ED-9967-F2A7F55DAC9D}.Debug|x64.Build.0 = Debug|x64
 		{6E8E6EE8-79AB-48ED-9967-F2A7F55DAC9D}.Release|x64.ActiveCfg = Release|x64
 		{6E8E6EE8-79AB-48ED-9967-F2A7F55DAC9D}.Release|x64.Build.0 = Release|x64
+		{5167CFFF-3C85-4C6C-8E88-94D2AACBF861}.Debug|x64.ActiveCfg = Debug|x64
+		{5167CFFF-3C85-4C6C-8E88-94D2AACBF861}.Debug|x64.Build.0 = Debug|x64
+		{5167CFFF-3C85-4C6C-8E88-94D2AACBF861}.Release|x64.ActiveCfg = Release|x64
+		{5167CFFF-3C85-4C6C-8E88-94D2AACBF861}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 EndGlobal

@@ -9,6 +9,7 @@
 
 glTFSceneView::glTFSceneView(const glTFSceneGraph& graph)
     : m_scene_graph(graph)
+    , m_lighting_dirty(true)
 {
 
 }
@@ -69,7 +70,26 @@ glTFCamera* glTFSceneView::GetMainCamera() const
 
 void glTFSceneView::Tick(const glTFSceneGraph& scene_graph)
 {
+    m_lighting_dirty = false;
     
+    scene_graph.TraverseNodes([this](const glTFSceneNode& node)
+    {
+        for (const auto& object : node.m_objects)
+        {
+            if (node.IsDirty() && dynamic_cast<const glTFLightBase*>(object.get()))
+            {
+                m_lighting_dirty = true;
+                return false;
+            }
+        }
+        
+        return true; 
+    });
+}
+
+bool glTFSceneView::GetLightingDirty() const
+{
+    return m_lighting_dirty;
 }
 
 void glTFSceneView::FocusSceneCenter(glTFCamera& camera) const

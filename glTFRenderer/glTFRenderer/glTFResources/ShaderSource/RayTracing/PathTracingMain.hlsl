@@ -20,6 +20,7 @@ cbuffer RayTracingPathTracingPassOptions: RAY_TRACING_PATH_TRACING_OPTION_CBV_IN
     int samples_per_pixel;
     bool check_visibility_for_all_candidates;
     bool ris_light_sampling;
+    bool debug_radiosity;
 };
 
 [shader("raygeneration")]
@@ -34,8 +35,6 @@ void PathTracingRayGen()
     float3 final_radiance = 0.0;
     float4 pixel_position = 0.0;
 
-    bool use_radiosity_rendering = max_bounce_count == 1;
-    
     for (uint path_index = 0; path_index < samples_per_pixel; ++path_index)
     {
         // Orthographic projection since we're raytracing in screen space.
@@ -62,88 +61,92 @@ void PathTracingRayGen()
         
         float3 radiance = 0.0;
         float3 throughput = 1.0;
-        
-        for (uint i = 0; i < max_bounce_count; ++i)
         {
-            TracePrimaryRay(scene, ray, payload);
-            if (!IsHit(payload))
+            for (uint i = 0; i < max_bounce_count; ++i)
             {
-                // TODO: Sample skylight info
-                radiance += throughput * GetSkylighting();
-                break;
-            }
-
-            float3 position = ray.Origin + ray.Direction * payload.distance;
-            if (i == 0)
-            {
-                pixel_position = float4(position, 1.0);
-            }
-            
-            float3 view = normalize(view_position.xyz - position);
-
-            // Flip normal if needed
-            payload.normal = dot(view, payload.normal) < 0 ? -payload.normal : payload.normal;
-
-            PixelLightingShadingInfo shading_info;
-            shading_info.albedo = payload.albedo;
-            shading_info.position = position;
-            shading_info.normal = payload.normal;
-            shading_info.metallic = payload.metallic;
-            shading_info.roughness = payload.roughness;
-
-            bool has_valid_light_sampling = false;
-            int sample_light_index = -1;
-            float sample_light_weight = 0.0;
-            
-            if (ris_light_sampling)
-            {
-                Reservoir sample;
-                if (SampleLightIndexRIS(rng, candidate_light_count, shading_info, view, check_visibility_for_all_candidates, scene, sample))
+                TracePrimaryRay(scene, ray, payload);
+                if (!IsHit(payload))
                 {
-                    GetReservoirSelectSample(sample, sample_light_index, sample_light_weight);
-                    has_valid_light_sampling = true;
-                }    
-            }
-            else
-            {
-                if (SampleLightIndexUniform(rng, sample_light_index, sample_light_weight))
-                {
-                    has_valid_light_sampling = true;
+                    // TODO: Sample skylight info
+                    //radiance += throughput * GetSkylighting();
+                    break;
                 }
-            }
+
+                float3 position = ray.Origin + ray.Direction * payload.distance;
+                if (i == 0)
+                {
+                    pixel_position = float4(position, 1.0);
+                }
             
-            if (has_valid_light_sampling)
-            {
-                radiance += throughput * sample_light_weight * GetLightingByIndex(sample_light_index, shading_info, view);
-            }
+                float3 view = normalize(view_position.xyz - position);
 
-            // Russian Roulette
-            if (i > 3)
-            {
-                float rrProbability = min(0.95f, luminance(throughput));
-                if (rrProbability < rand(rng)) break;
+                // Flip normal if needed
+                payload.normal = dot(view, payload.normal) < 0 ? -payload.normal : payload.normal;
+
+                PixelLightingShadingInfo shading_info;
+                shading_info.albedo = payload.albedo;
+                shading_info.position = position;
+                shading_info.normal = payload.normal;
+                shading_info.metallic = payload.metallic;
+                shading_info.roughness = payload.roughness;
+
+                bool has_valid_light_sampling = false;
+                int sample_light_index = -1;
+                float sample_light_weight = 0.0;
             
-                throughput /= rrProbability;
-            }
-
-            // sample material to choose next ray, only diffuse now
-            ray.Origin = OffsetRay(position, payload.normal);
-
-            float sample_pdf;
-            float3 local_rotation = sampleHemisphere(float2(rand(rng), rand(rng)), sample_pdf);
-            ray.Direction = rotatePoint(invertRotation(getRotationToZAxis(payload.normal)), local_rotation);
+                if (ris_light_sampling)
+                {
+                    Reservoir sample;
+                    if (SampleLightIndexRIS(rng, candidate_light_count, shading_info, view, check_visibility_for_all_candidates, scene, sample))
+                    {
+                        GetReservoirSelectSample(sample, sample_light_index, sample_light_weight);
+                        has_valid_light_sampling = true;
+                    }    
+                }
+                else
+                {
+                    if (SampleLightIndexUniform(rng, sample_light_index, sample_light_weight))
+                    {
+                        has_valid_light_sampling = true;
+                    }
+                }
             
-            //throughput /= sample_pdf;
-            throughput *= (payload.albedo / sample_pdf);
+                if (has_valid_light_sampling)
+                {
+                    radiance += throughput * sample_light_weight * GetLightingByIndex(sample_light_index, shading_info, view);
+                }
 
-            if (use_radiosity_rendering)
-            {
-                float3 radiosity = GetRadiosityFaceInfo(payload.instance_id, payload.primitive_id);
-                radiance += GetLightingWithRadiosity(radiosity, shading_info);
+                // Russian Roulette
+                if (i > 3)
+                {
+                    float rrProbability = min(0.95f, luminance(throughput));
+                    if (rrProbability < rand(rng)) break;
+            
+                    throughput /= rrProbability;
+                }
+
+                // sample material to choose next ray, only diffuse now
+                ray.Origin = OffsetRay(position, shading_info.normal);
+
+                float sample_pdf;
+                //float3 local_rotation = sampleHemisphere(float2(rand(rng), rand(rng)), sample_pdf);
+                float3 local_rotation = sampleHemisphereCosine(float2(rand(rng), rand(rng)), sample_pdf);
+                ray.Direction = rotatePoint(invertRotation(getRotationToZAxis(shading_info.normal)), local_rotation);
+            
+                //throughput /= sample_pdf;
+                throughput *= (shading_info.albedo / sample_pdf);
+
+                if (debug_radiosity)
+                {
+                    float3 radiosity = GetRadiosityFaceInfo(payload.instance_id, payload.primitive_id);
+                    radiance += GetLightingWithRadiosity(radiosity, shading_info);
+                    break;
+                }
             }
         }
 
-        final_radiance += radiance;
+        // Avoid too bright radiance influence
+        final_radiance += clamp(radiance, 0.0, 1.0);
     }
     
     final_radiance /= samples_per_pixel;

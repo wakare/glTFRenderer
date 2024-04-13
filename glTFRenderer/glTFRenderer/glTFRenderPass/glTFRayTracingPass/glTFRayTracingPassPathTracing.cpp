@@ -219,6 +219,7 @@ bool glTFRayTracingPassPathTracing::UpdateGUIWidgets()
     ImGui::SliderInt("SamplesPerPixel", &m_pass_options.samples_per_pixel, 1, 64);
     ImGui::Checkbox("CheckVisibilityForAllCandidates", (bool*)&m_pass_options.check_visibility_for_all_candidates);
     ImGui::Checkbox("RISLightSampling", (bool*)&m_pass_options.ris_light_sampling);
+    ImGui::Checkbox("DebugRadiosity", (bool*)&m_pass_options.debug_radiosity);
     
     return true;
 }

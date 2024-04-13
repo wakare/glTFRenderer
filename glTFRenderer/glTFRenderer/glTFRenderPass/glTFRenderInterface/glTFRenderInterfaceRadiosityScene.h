@@ -12,7 +12,7 @@ ALIGN_FOR_CBV_STRUCT struct RadiosityDataOffset
 ALIGN_FOR_CBV_STRUCT struct RadiosityFaceInfo
 {
     inline static std::string Name = "RadiosityFaceInfo_REGISTER_SRV_INDEX";
-    glm::vec3 radiosity_irradiance;
+    glm::vec4 radiosity_irradiance;
 };
 
 class glTFRenderInterfaceRadiosityScene : public glTFRenderInterfaceBaseWithDefaultImpl

@@ -9,14 +9,14 @@ StructuredBuffer<RadiosityDataOffset> g_radiosity_data_offset : RadiosityDataOff
 
 struct RadiosityFaceInfo
 {
-    float3 radiosity_irradiance;
+    float4 radiosity_irradiance;
 };
 StructuredBuffer<RadiosityFaceInfo> g_radiosity_face_info : RadiosityFaceInfo_REGISTER_SRV_INDEX;
 
 float3 GetRadiosityFaceInfo(uint instance_id, uint face_id)
 {
     uint offset = g_radiosity_data_offset[instance_id].offset + face_id;
-    return g_radiosity_face_info[offset].radiosity_irradiance;
+    return g_radiosity_face_info[offset].radiosity_irradiance.xyz;
 }
 
 #endif
