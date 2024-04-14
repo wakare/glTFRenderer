@@ -319,7 +319,7 @@ bool glTFRadiosityRenderer::UpdateIndirectLighting(const glTFSceneGraph& scene_g
     
     if (recalculate)
     {
-        form_factor_transport_count = 10;
+        form_factor_transport_count = 1;
         for (auto& form_factor : m_form_factors)
         {
             form_factor.second.emissive = {0.0f, 0.0f, 0.0f};

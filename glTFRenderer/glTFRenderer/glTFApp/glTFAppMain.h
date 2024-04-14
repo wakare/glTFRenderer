@@ -69,4 +69,5 @@ protected:
     bool m_test_triangle_pass;
     
     bool m_recreate_renderer;
+    bool m_scene_tick_enable;
 };

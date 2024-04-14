@@ -23,6 +23,19 @@ cbuffer RayTracingPathTracingPassOptions: RAY_TRACING_PATH_TRACING_OPTION_CBV_IN
     bool debug_radiosity;
 };
 
+PixelLightingShadingInfo GetShadingInfoFromPayload(PrimaryRayPayload payload, RayDesc ray)
+{
+    PixelLightingShadingInfo shading_info;
+
+    shading_info.position = ray.Origin + ray.Direction * payload.distance;
+    shading_info.albedo = payload.albedo;
+    shading_info.normal = dot(ray.Direction, payload.normal) < 0.0 ? payload.normal : -payload.normal;
+    shading_info.metallic = payload.metallic;
+    shading_info.roughness = payload.roughness;
+
+    return shading_info;
+}
+
 [shader("raygeneration")]
 void PathTracingRayGen()
 {
@@ -53,11 +66,6 @@ void PathTracingRayGen()
     
         PrimaryRayPayload payload;
         payload.distance = -1.0;
-        payload.material_id = 0;
-        payload.albedo = 0.0;
-        payload.normal = 0.0;
-        payload.metallic = 1.0;
-        payload.roughness = 1.0;
         
         float3 radiance = 0.0;
         float3 throughput = 1.0;
@@ -68,28 +76,18 @@ void PathTracingRayGen()
                 if (!IsHit(payload))
                 {
                     // TODO: Sample skylight info
-                    //radiance += throughput * GetSkylighting();
+                    radiance += throughput * GetSkylighting();
                     break;
                 }
 
-                float3 position = ray.Origin + ray.Direction * payload.distance;
+                PixelLightingShadingInfo shading_info = GetShadingInfoFromPayload(payload, ray);
+                
                 if (i == 0)
                 {
-                    pixel_position = float4(position, 1.0);
+                    pixel_position = float4(shading_info.position, 1.0);
                 }
             
-                float3 view = normalize(view_position.xyz - position);
-
-                // Flip normal if needed
-                payload.normal = dot(view, payload.normal) < 0 ? -payload.normal : payload.normal;
-
-                PixelLightingShadingInfo shading_info;
-                shading_info.albedo = payload.albedo;
-                shading_info.position = position;
-                shading_info.normal = payload.normal;
-                shading_info.metallic = payload.metallic;
-                shading_info.roughness = payload.roughness;
-
+                float3 view = normalize(view_position.xyz - shading_info.position);
                 bool has_valid_light_sampling = false;
                 int sample_light_index = -1;
                 float sample_light_weight = 0.0;
@@ -105,7 +103,7 @@ void PathTracingRayGen()
                 }
                 else
                 {
-                    if (SampleLightIndexUniform(rng, sample_light_index, sample_light_weight))
+                    if (SampleLightIndexUniform(rng, shading_info, scene, check_visibility_for_all_candidates, sample_light_index, sample_light_weight))
                     {
                         has_valid_light_sampling = true;
                     }
@@ -126,7 +124,7 @@ void PathTracingRayGen()
                 }
 
                 // sample material to choose next ray, only diffuse now
-                ray.Origin = OffsetRay(position, shading_info.normal);
+                ray.Origin = OffsetRay(shading_info.position, shading_info.normal);
 
                 float sample_pdf;
                 //float3 local_rotation = sampleHemisphere(float2(rand(rng), rand(rng)), sample_pdf);

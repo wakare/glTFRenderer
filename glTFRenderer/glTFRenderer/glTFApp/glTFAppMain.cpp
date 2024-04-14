@@ -77,6 +77,7 @@ glTFAppMain::glTFAppMain(int argc, char* argv[])
     
     m_ReSTIR = true;
     m_recreate_renderer = true;
+    m_scene_tick_enable = true;
     
     // Init window
     auto& window = glTFWindow::Get();
@@ -116,7 +117,11 @@ void glTFAppMain::Run()
         
             m_timer.RecordFrameBegin();
             const size_t time_delta_ms = m_timer.GetDeltaFrameTimeMs();
-            m_scene_graph->Tick(time_delta_ms);
+            
+            if (m_scene_tick_enable)
+            {    
+                m_scene_graph->Tick(time_delta_ms);    
+            }
 
             m_renderer->TickRenderingBegin(time_delta_ms);
             m_renderer->TickSceneUpdating(*m_scene_graph, time_delta_ms);
@@ -269,6 +274,7 @@ bool glTFAppMain::UpdateGUIWidgets()
     {
         m_recreate_renderer = true;
     }
+    ImGui::Checkbox("TickScene", &m_scene_tick_enable);
     
     return true;
 }
