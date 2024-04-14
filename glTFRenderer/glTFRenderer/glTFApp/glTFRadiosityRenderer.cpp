@@ -315,11 +315,11 @@ bool glTFRadiosityRenderer::PrecomputeFormFactor()
 
 bool glTFRadiosityRenderer::UpdateIndirectLighting(const glTFSceneGraph& scene_graph, bool recalculate)
 {
-    unsigned form_factor_transport_count = 5;
+    unsigned form_factor_transport_count = 1;
     
     if (recalculate)
     {
-        form_factor_transport_count = 1;
+        form_factor_transport_count = 3;
         for (auto& form_factor : m_form_factors)
         {
             form_factor.second.emissive = {0.0f, 0.0f, 0.0f};
@@ -377,7 +377,7 @@ bool glTFRadiosityRenderer::UpdateIndirectLighting(const glTFSceneGraph& scene_g
                                 glm::vec3 dir = -directional_light->GetDirection();
                                 
                                 glTFUniqueID out_id;
-                                if (HasIntersectByEmbree(test_vertex, dir, out_id))
+                                if (!HasIntersectByEmbree(test_vertex, dir, out_id))
                                 {
                                     visibility_points += 1.0f;
                                 }
@@ -386,7 +386,11 @@ bool glTFRadiosityRenderer::UpdateIndirectLighting(const glTFSceneGraph& scene_g
                             visibility_points *= (1.0f / test_count);
                             if (visibility_points > 0.0f)
                             {
-                                form_factor.second.emissive += visibility_points * directional_light->GetColor() * directional_light->GetIntensity() * cosine; 
+                                form_factor.second.emissive += visibility_points * directional_light->GetColor() * directional_light->GetIntensity() * cosine;
+                                if (include_direct_lighting)
+                                {
+                                    form_factor.second.irradiance += form_factor.second.emissive;    
+                                }
                             }
                         }
                         }

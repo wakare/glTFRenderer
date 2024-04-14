@@ -55,7 +55,8 @@ protected:
     
     bool has_built {false};
     bool has_precomputed {false};
-
+    bool include_direct_lighting {false};
+    
     RTCDevice m_device {nullptr};
     RTCScene m_scene {nullptr};
 

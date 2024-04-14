@@ -29,6 +29,7 @@ struct PixelLightingShadingInfo
     float roughness;
 
     float3 albedo;
+    bool backface;
 };
 
 #define LIGHT_TYPE_POINT 0

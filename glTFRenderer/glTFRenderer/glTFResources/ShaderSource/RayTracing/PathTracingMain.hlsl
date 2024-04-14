@@ -26,13 +26,14 @@ cbuffer RayTracingPathTracingPassOptions: RAY_TRACING_PATH_TRACING_OPTION_CBV_IN
 PixelLightingShadingInfo GetShadingInfoFromPayload(PrimaryRayPayload payload, RayDesc ray)
 {
     PixelLightingShadingInfo shading_info;
-
+    
+    shading_info.backface = dot(ray.Direction, payload.normal) > 0.0;
     shading_info.position = ray.Origin + ray.Direction * payload.distance;
     shading_info.albedo = payload.albedo;
-    shading_info.normal = dot(ray.Direction, payload.normal) < 0.0 ? payload.normal : -payload.normal;
+    shading_info.normal = shading_info.backface ? -payload.normal : payload.normal;
     shading_info.metallic = payload.metallic;
     shading_info.roughness = payload.roughness;
-
+    
     return shading_info;
 }
 
@@ -134,10 +135,10 @@ void PathTracingRayGen()
                 //throughput /= sample_pdf;
                 throughput *= (shading_info.albedo / sample_pdf);
 
-                if (debug_radiosity)
+                if (debug_radiosity && !shading_info.backface)
                 {
-                    float3 radiosity = GetRadiosityFaceInfo(payload.instance_id, payload.primitive_id);
-                    radiance += GetLightingWithRadiosity(radiosity, shading_info);
+                    float3 radiosity_radiance = GetRadiosityFaceInfo(payload.instance_id, payload.primitive_id);
+                    radiance += GetLightingWithRadiosity(radiosity_radiance, shading_info);
                     break;
                 }
             }
