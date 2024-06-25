@@ -2,8 +2,6 @@
 #include <glm/glm/glm.hpp>
 #include <GLFW/glfw3.h>
 
-#include "glTFApp/glTFAppRenderPipeline.h"
-
 class glTFSceneView;
 
 class glTFInputManager
@@ -23,8 +21,6 @@ public:
     bool IsMouseButtonPressed(int mouse_button) const;
 
     void TickFrame(size_t delta_time_ms);
-    void TickSceneView(glTFSceneView& view, size_t delta_time_ms) const;
-    void TickRenderPipeline(glTFAppRenderPipelineBase& View, size_t delta_time_ms) const;
     
     glm::fvec2 GetCursorOffset() const;
     

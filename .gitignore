@@ -2,3 +2,12 @@
 glTFRenderer/ThirdParty/libs
 glTFRenderer/glTFRenderer/x64
 glTFRenderer/x64
+glTFRenderer/HelloEmbree
+glTFRenderer/HelloVulkan/x64
+*.exe
+*.dll
+*.lib
+*.tlog
+*.log
+*.obj
+*.idb

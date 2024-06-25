@@ -3,8 +3,8 @@
 
 #include "glTFRenderPassBase.h"
 #include "glTFRenderResourceManager.h"
-#include "../glTFScene/glTFSceneGraph.h"
-#include "../glTFScene/glTFSceneView.h"
+#include "glTFScene/glTFSceneGraph.h"
+#include "glTFScene/glTFSceneView.h"
 #include "glTFApp/glTFPassOptionRenderFlags.h"
 
 class glTFRenderPassManager

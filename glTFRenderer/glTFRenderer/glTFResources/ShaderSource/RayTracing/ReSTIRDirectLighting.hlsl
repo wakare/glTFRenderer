@@ -50,7 +50,6 @@ void PathTracingRayGen()
     
     PrimaryRayPayload payload;
     payload.distance = -1.0;
-    payload.material_id = 0;
     payload.albedo = 0.0;
     payload.normal = 0.0;
     payload.metallic = 1.0;

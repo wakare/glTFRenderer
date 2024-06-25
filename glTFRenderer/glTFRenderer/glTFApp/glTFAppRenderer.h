@@ -1,5 +1,4 @@
 #pragma once
-#include "glTFRadiosityRenderer.h"
 #include "glTFAppRenderPipeline.h"
 
 struct glTFAppRendererConfig
@@ -35,10 +34,7 @@ public:
     glTFRenderResourceManager& GetResourceManager() const {return *m_resource_manager; }
     
 protected:
-    
     std::unique_ptr<glTFAppRenderPipelineBase> m_render_pipeline;
     std::unique_ptr<glTFSceneView> m_scene_view;
     std::unique_ptr<glTFRenderResourceManager> m_resource_manager;
-
-    glTFRadiosityRenderer m_radiosity_renderer;
 };

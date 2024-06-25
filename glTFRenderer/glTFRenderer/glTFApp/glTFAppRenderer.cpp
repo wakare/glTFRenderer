@@ -52,9 +52,8 @@ void glTFAppRenderer::TickSceneUpdating(const glTFSceneGraph& scene_graph, size_
 
 void glTFAppRenderer::TickSceneRendering(const glTFInputManager& input_manager, size_t delta_time_ms)
 {
-    input_manager.TickSceneView(*m_scene_view, delta_time_ms);
-    input_manager.TickRenderPipeline(*m_render_pipeline, delta_time_ms);
-    
+    m_scene_view->ApplyInput(input_manager, delta_time_ms);
+    m_render_pipeline->ApplyInput(input_manager, delta_time_ms);
     m_render_pipeline->TickSceneRendering(*m_scene_view, *m_resource_manager, delta_time_ms);
 }
 

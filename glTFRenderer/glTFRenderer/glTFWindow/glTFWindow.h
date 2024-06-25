@@ -2,9 +2,6 @@
 #include <GLFW/glfw3.h>
 
 #include "glTFInputManager.h"
-#include "glTFRenderPass/glTFRenderPassManager.h"
-#include "glTFScene/glTFSceneGraph.h"
-
 struct GLFWwindow;
 
 class glTFWindow

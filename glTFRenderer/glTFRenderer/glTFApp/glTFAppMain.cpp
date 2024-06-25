@@ -2,7 +2,7 @@
 
 #include <imgui.h>
 
-#include "glTFVulkanTest.h"
+#include "glTFVulkanHelloTest.h"
 #include "glTFGUI/glTFGUI.h"
 #include "glTFLight/glTFDirectionalLight.h"
 #include "glTFLight/glTFPointLight.h"
@@ -31,6 +31,7 @@ glTFCmdArgumentProcessor::glTFCmdArgumentProcessor(int argc, char** argv)
     : raster_scene(true)
     , vulkan_test(false)
     , test_triangle_pass(false)
+    , vulkan(false)
 {
     for (int i = 0; i < argc; ++i)
     {
@@ -52,6 +53,12 @@ glTFCmdArgumentProcessor::glTFCmdArgumentProcessor(int argc, char** argv)
             test_triangle_pass = true;
             continue;
         }
+
+        if (argument.find("vulkan") != std::string::npos)
+        {
+            vulkan = true;
+            continue;
+        }
         
         const auto scene_name_index = argument.find("scene=");
         if (scene_name_index != std::string::npos)
@@ -71,13 +78,13 @@ glTFAppMain::glTFAppMain(int argc, char* argv[])
 {
     // Parse command arguments
     const glTFCmdArgumentProcessor cmd_processor(argc, argv);
-    m_raster_scene = cmd_processor.IsRasterScene();
-    m_vulkan_test = cmd_processor.IsVulkanTest();
-    m_test_triangle_pass = cmd_processor.IsTestTrianglePass();
-    
-    m_ReSTIR = true;
-    m_recreate_renderer = true;
-    m_scene_tick_enable = true;
+    m_app_config.m_raster_scene = cmd_processor.IsRasterScene();
+    m_app_config.m_vulkan_hello_world_sample = cmd_processor.IsVulkanTest();
+    m_app_config.m_test_triangle_pass = cmd_processor.IsTestTrianglePass();
+    m_app_config.m_vulkan = cmd_processor.IsVulkan();
+    m_app_config.m_ReSTIR = true;
+    m_app_config.m_recreate_renderer = true;
+    m_app_config.m_scene_tick_enable = true;
     
     // Init window
     auto& window = glTFWindow::Get();
@@ -85,7 +92,6 @@ glTFAppMain::glTFAppMain(int argc, char* argv[])
     
     // Register window callback
     GLTF_CHECK(window.RegisterCallbackEventNative());
-    //GLTF_CHECK(window.RegisterCallbackEventForGUI(*m_GUI));
     
     m_scene_graph.reset(new glTFSceneGraph);
     InitSceneGraph(cmd_processor.GetSceneName());
@@ -97,16 +103,16 @@ glTFAppMain::glTFAppMain(int argc, char* argv[])
 void glTFAppMain::Run()
 {
     auto& window = glTFWindow::Get();
-    if (m_vulkan_test)
+    if (m_app_config.m_vulkan_hello_world_sample)
     {
-        VulkanTestInit();
+        VulkanHelloWorldInit();
         window.SetTickCallback([this]()
         {
-            VulkanTestUpdate();
+            VulkanHelloWorldUpdate();
         });
         window.SetExitCallback([this]()
         {
-            VulkanTestUnInit();
+            VulkanHelloWorldUnInit();
         });
     }
     else
@@ -118,7 +124,7 @@ void glTFAppMain::Run()
             m_timer.RecordFrameBegin();
             const size_t time_delta_ms = m_timer.GetDeltaFrameTimeMs();
             
-            if (m_scene_tick_enable)
+            if (m_app_config.m_scene_tick_enable)
             {    
                 m_scene_graph->Tick(time_delta_ms);    
             }
@@ -218,22 +224,22 @@ bool glTFAppMain::LoadSceneGraphFromFile(const char* filePath) const
 
 bool glTFAppMain::InitRenderer()
 {
-    if (!m_recreate_renderer)
+    if (!m_app_config.m_recreate_renderer)
     {
         return true;
     }
 
-    m_recreate_renderer = false;
+    m_app_config.m_recreate_renderer = false;
     if (m_renderer)
     {
         m_renderer->GetResourceManager().WaitAllFrameFinish();
     }
 
     glTFAppRendererConfig renderer_config;
-    renderer_config.raster = m_raster_scene;
-    renderer_config.ReSTIR = m_ReSTIR;
-    renderer_config.test_triangle_pass = m_test_triangle_pass;
-    renderer_config.vulkan = m_vulkan_test;
+    renderer_config.raster = m_app_config.m_raster_scene;
+    renderer_config.ReSTIR = m_app_config.m_ReSTIR;
+    renderer_config.test_triangle_pass = m_app_config.m_test_triangle_pass;
+    renderer_config.vulkan = m_app_config.m_vulkan;
     
     m_renderer.reset(new glTFAppRenderer(renderer_config, glTFWindow::Get()));
     m_renderer->InitScene(*m_scene_graph);
@@ -267,32 +273,36 @@ unsigned glTFAppMain::GetHeight() const
 
 bool glTFAppMain::UpdateGUIWidgets()
 {
-    ImGui::Checkbox("RasterScene", &m_raster_scene);
-    ImGui::Checkbox("ReSTIR", &m_ReSTIR);
-    ImGui::Checkbox("Vulkan", &m_vulkan_test);
+    ImGui::Checkbox("RasterScene", &m_app_config.m_raster_scene);
+    if (!m_app_config.m_raster_scene)
+    {
+        ImGui::Checkbox("ReSTIR", &m_app_config.m_ReSTIR);    
+    }
+    
+    ImGui::Checkbox("Vulkan", &m_app_config.m_vulkan);
     if (ImGui::Button("RecreateRenderer"))
     {
-        m_recreate_renderer = true;
+        m_app_config.m_recreate_renderer = true;
     }
-    ImGui::Checkbox("TickScene", &m_scene_tick_enable);
+    ImGui::Checkbox("TickScene", &m_app_config.m_scene_tick_enable);
     
     return true;
 }
 
-bool glTFAppMain::VulkanTestInit()
+bool glTFAppMain::VulkanHelloWorldInit()
 {
-    vulkan_test.Init();   
+    vulkan_hello_test.Init();   
     return true;
 }
 
-bool glTFAppMain::VulkanTestUpdate()
+bool glTFAppMain::VulkanHelloWorldUpdate()
 {
-    vulkan_test.Update();
+    vulkan_hello_test.Update();
     return true;
 }
 
-bool glTFAppMain::VulkanTestUnInit()
+bool glTFAppMain::VulkanHelloWorldUnInit()
 {
-    vulkan_test.UnInit();
+    vulkan_hello_test.UnInit();
     return true;
 }

@@ -1,6 +1,6 @@
 #pragma once
 #include "glTFAppRenderer.h"
-#include "glTFVulkanTest.h"
+#include "glTFVulkanHelloTest.h"
 
 class glTFTimer
 {
@@ -21,6 +21,7 @@ public:
 
     bool IsRasterScene() const { return raster_scene; }
     bool IsVulkanTest() const { return vulkan_test; }
+    bool IsVulkan() const {return vulkan; }
     bool IsTestTrianglePass() const { return test_triangle_pass; }
     
     const std::string& GetSceneName() const;
@@ -29,8 +30,21 @@ private:
     bool raster_scene;
     bool vulkan_test;
     bool test_triangle_pass;
+    bool vulkan;
     
     std::string scene_name;
+};
+
+struct glTFAppConfig
+{
+    bool m_raster_scene;
+    bool m_ReSTIR;
+    bool m_vulkan_hello_world_sample;
+    bool m_test_triangle_pass;
+    bool m_vulkan;
+    
+    bool m_recreate_renderer;
+    bool m_scene_tick_enable;
 };
 
 class glTFAppMain
@@ -50,10 +64,10 @@ protected:
     bool UpdateGUIWidgets();
 
     // Only for test
-    glTFVulkanTest vulkan_test;
-    bool VulkanTestInit();
-    bool VulkanTestUpdate();
-    bool VulkanTestUnInit();
+    glTFVulkanHelloTest vulkan_hello_test;
+    bool VulkanHelloWorldInit();
+    bool VulkanHelloWorldUpdate();
+    bool VulkanHelloWorldUnInit();
 
     std::shared_ptr<glTFInputManager> m_input_manager;
 
@@ -63,11 +77,5 @@ protected:
     std::shared_ptr<glTFGUI> m_GUI;
 
     // GUI state
-    bool m_raster_scene;
-    bool m_ReSTIR;
-    bool m_vulkan_test;
-    bool m_test_triangle_pass;
-    
-    bool m_recreate_renderer;
-    bool m_scene_tick_enable;
+    glTFAppConfig m_app_config;
 };

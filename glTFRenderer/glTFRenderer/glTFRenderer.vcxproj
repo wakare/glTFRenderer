@@ -116,7 +116,7 @@
     <ClCompile Include="glTFApp\glTFAppRenderer.cpp" />
     <ClCompile Include="glTFApp\glTFAppRenderPipeline.cpp" />
     <ClCompile Include="glTFApp\glTFPassOptionRenderFlags.cpp" />
-    <ClCompile Include="glTFApp\glTFVulkanTest.cpp" />
+    <ClCompile Include="glTFApp\glTFVulkanHelloTest.cpp" />
     <ClCompile Include="glTFGUI\glTFGUI.cpp" />
     <ClCompile Include="glTFLight\glTFDirectionalLight.cpp" />
     <ClCompile Include="glTFLight\glTFLightBase.cpp" />
@@ -309,7 +309,7 @@
     <ClInclude Include="glTFApp\glTFAppRenderer.h" />
     <ClInclude Include="glTFApp\glTFAppRenderPipeline.h" />
     <ClInclude Include="glTFApp\glTFPassOptionRenderFlags.h" />
-    <ClInclude Include="glTFApp\glTFVulkanTest.h" />
+    <ClInclude Include="glTFApp\glTFVulkanHelloTest.h" />
     <ClInclude Include="glTFGUI\glTFGUI.h" />
     <ClInclude Include="glTFLight\glTFDirectionalLight.h" />
     <ClInclude Include="glTFLight\glTFLightBase.h" />

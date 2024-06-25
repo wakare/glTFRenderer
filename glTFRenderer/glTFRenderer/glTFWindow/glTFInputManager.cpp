@@ -45,16 +45,6 @@ void glTFInputManager::TickFrame(size_t delta_time_ms)
     ResetCursorOffset();
 }
 
-void glTFInputManager::TickSceneView(glTFSceneView& view, size_t delta_time_ms) const
-{
-    view.ApplyInput(*this, delta_time_ms);
-}
-
-void glTFInputManager::TickRenderPipeline(glTFAppRenderPipelineBase& render_pipeline, size_t delta_time_ms) const
-{
-    render_pipeline.ApplyInput(*this, delta_time_ms);
-}
-
 glm::fvec2 glTFInputManager::GetCursorOffset() const
 {
     return m_cursor_offset;

@@ -4,6 +4,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "glTFRenderer", "glTFRendere
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HelloEmbree", "HelloEmbree\HelloEmbree.vcxproj", "{5167CFFF-3C85-4C6C-8E88-94D2AACBF861}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HelloVulkan", "HelloVulkan\HelloVulkan.vcxproj", "{44715446-E064-4E88-B22E-41D2B6EAFDE2}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RendererCommonLib", "RendererCommonLib\RendererCommonLib.vcxproj", "{9665FFB4-13A1-4481-A217-EAF4785B44F3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -18,5 +22,13 @@ Global
 		{5167CFFF-3C85-4C6C-8E88-94D2AACBF861}.Debug|x64.Build.0 = Debug|x64
 		{5167CFFF-3C85-4C6C-8E88-94D2AACBF861}.Release|x64.ActiveCfg = Release|x64
 		{5167CFFF-3C85-4C6C-8E88-94D2AACBF861}.Release|x64.Build.0 = Release|x64
+		{44715446-E064-4E88-B22E-41D2B6EAFDE2}.Debug|x64.ActiveCfg = Debug|x64
+		{44715446-E064-4E88-B22E-41D2B6EAFDE2}.Debug|x64.Build.0 = Debug|x64
+		{44715446-E064-4E88-B22E-41D2B6EAFDE2}.Release|x64.ActiveCfg = Release|x64
+		{44715446-E064-4E88-B22E-41D2B6EAFDE2}.Release|x64.Build.0 = Release|x64
+		{9665FFB4-13A1-4481-A217-EAF4785B44F3}.Debug|x64.ActiveCfg = Debug|x64
+		{9665FFB4-13A1-4481-A217-EAF4785B44F3}.Debug|x64.Build.0 = Debug|x64
+		{9665FFB4-13A1-4481-A217-EAF4785B44F3}.Release|x64.ActiveCfg = Release|x64
+		{9665FFB4-13A1-4481-A217-EAF4785B44F3}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 EndGlobal

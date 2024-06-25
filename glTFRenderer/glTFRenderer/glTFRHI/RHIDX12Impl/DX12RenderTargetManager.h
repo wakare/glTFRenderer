@@ -3,8 +3,8 @@
 #include <map>
 #include <memory>
 
-#include "../RHIInterface/IRHIDescriptorHeap.h"
-#include "../RHIInterface/IRHIRenderTargetManager.h"
+#include "glTFRHI/RHIInterface/IRHIDescriptorHeap.h"
+#include "glTFRHI/RHIInterface/IRHIRenderTargetManager.h"
 
 class DX12RenderTargetManager : public IRHIRenderTargetManager
 {
