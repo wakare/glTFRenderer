@@ -9,9 +9,6 @@
 #include <string>
 #include <locale>
 
-#include <codecvt>
-#include "glTFLog.h"
-
 typedef unsigned glTFUniqueID;
 #define glTFUniqueIDInvalid UINT_MAX   
 
@@ -34,18 +31,6 @@ typedef unsigned glTFUniqueID;
 
 //#define ALIGN_FOR_CBV_STRUCT __declspec(align(16))
 #define ALIGN_FOR_CBV_STRUCT
-
-inline std::wstring to_wide_string(const std::string& input)
-{
-    std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
-    return converter.from_bytes(input);
-}
-
-inline std::string to_byte_string(const std::wstring& input)
-{
-    std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
-    return converter.to_bytes(input);
-}
 
 template<typename T>
 class glTFUniqueObject

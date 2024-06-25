@@ -3,7 +3,7 @@
 #include "VKDevice.h"
 #include "VKRenderPass.h"
 #include "VKSwapChain.h"
-#include "glTFShaderUtils/glTFShaderUtils.h"
+#include "ShaderUtil/glTFShaderUtils.h"
 
 VkShaderModule CreateVkShaderModule(VkDevice device, const std::vector<unsigned char>& shader_binaries)
 {

@@ -1,8 +1,10 @@
 #pragma once
 #include <GLFW/glfw3.h>
+#include <Windows.h>
+#include <functional>
+#include <memory>
 
 #include "glTFInputManager.h"
-struct GLFWwindow;
 
 class glTFWindow
 {
@@ -21,7 +23,9 @@ public:
     
     // Can get hwnd by raw window
     HWND GetHWND() const;
-    
+    bool NeedHandleInput() const;
+
+    void SetInputHandleCallback(const std::function<bool()>& input_handle_function);
     void SetTickCallback(const std::function<void()>& tick);
     void SetExitCallback(const std::function<void()>& exit);
     void SetInputManager(const std::shared_ptr<glTFInputManager>& input_manager);
@@ -39,6 +43,7 @@ private:
     int m_height;
     
     std::shared_ptr<glTFInputManager> m_input_control;
-    std::function<void()> m_tick_callback;
-    std::function<void()> m_exit_callback;
+    std::function<void()> m_tick_callback {nullptr};
+    std::function<void()> m_exit_callback {nullptr};
+    std::function<bool()> m_handle_input_event {nullptr};
 };

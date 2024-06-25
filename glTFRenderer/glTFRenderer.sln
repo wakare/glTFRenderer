@@ -1,10 +1,16 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "glTFRenderer", "glTFRenderer\glTFRenderer.vcxproj", "{6E8E6EE8-79AB-48ED-9967-F2A7F55DAC9D}"
+	ProjectSection(ProjectDependencies) = postProject
+		{9665FFB4-13A1-4481-A217-EAF4785B44F3} = {9665FFB4-13A1-4481-A217-EAF4785B44F3}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HelloEmbree", "HelloEmbree\HelloEmbree.vcxproj", "{5167CFFF-3C85-4C6C-8E88-94D2AACBF861}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HelloVulkan", "HelloVulkan\HelloVulkan.vcxproj", "{44715446-E064-4E88-B22E-41D2B6EAFDE2}"
+	ProjectSection(ProjectDependencies) = postProject
+		{9665FFB4-13A1-4481-A217-EAF4785B44F3} = {9665FFB4-13A1-4481-A217-EAF4785B44F3}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RendererCommonLib", "RendererCommonLib\RendererCommonLib.vcxproj", "{9665FFB4-13A1-4481-A217-EAF4785B44F3}"
 EndProject

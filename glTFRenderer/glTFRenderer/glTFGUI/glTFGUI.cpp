@@ -5,7 +5,7 @@
 #include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 #include "glTFRHI/RHIUtils.h"
-#include "glTFWindow/glTFWindow.h"
+#include "RenderWindow/glTFWindow.h"
 
 bool glTFGUI::g_valid = false;
 
@@ -37,6 +37,7 @@ bool glTFGUI::SetupGUIContext(const glTFWindow& window, glTFRenderResourceManage
     
     RETURN_IF_FALSE(RHIUtils::Instance().InitGUIContext(resource_manager.GetDevice(), *m_descriptor_heap, resource_manager.GetBackBufferCount()))
 
+    glTFWindow::Get().SetInputHandleCallback([](){return HandleMouseEventThisFrame();});
     g_valid = true;
     
     return true;

@@ -4,8 +4,8 @@
 #include "IRHIRenderPass.h"
 #include "IRHIRootSignature.h"
 #include "IRHIResource.h"
-#include "IRHIShader.h"
 #include "IRHISwapChain.h"
+#include "ShaderUtil/IRHIShader.h"
 
 class IRHIRenderTarget;
 

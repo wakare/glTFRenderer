@@ -1,7 +1,7 @@
 #include "glTFAppRenderer.h"
 #include "glTFGUI/glTFGUI.h"
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassLighting.h"
-#include "glTFWindow/glTFWindow.h"
+#include "RenderWindow/glTFWindow.h"
 
 glTFAppRenderer::glTFAppRenderer(const glTFAppRendererConfig& renderer_config, const glTFWindow& window)
 {

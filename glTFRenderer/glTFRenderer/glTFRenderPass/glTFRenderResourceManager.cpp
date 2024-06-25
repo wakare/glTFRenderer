@@ -2,10 +2,8 @@
 
 #include "glTFRenderMaterialManager.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
-#include "glTFWindow/glTFWindow.h"
-
-#define GLFW_EXPOSE_NATIVE_WIN32 1
-#include <GLFW/glfw3native.h>
+#include "RenderWindow/glTFWindow.h"
+#include "glTFScene/glTFSceneGraph.h"
 
 #define EXIT_WHEN_FALSE(x) if (!(x)) {assert(false); return false;}
 

@@ -2,12 +2,11 @@
 
 #include <imgui.h>
 
-#include "glTFVulkanHelloTest.h"
 #include "glTFGUI/glTFGUI.h"
 #include "glTFLight/glTFDirectionalLight.h"
 #include "glTFLight/glTFPointLight.h"
-#include "glTFWindow/glTFInputManager.h"
-#include "glTFWindow/glTFWindow.h"
+#include "RenderWindow/glTFInputManager.h"
+#include "RenderWindow/glTFWindow.h"
 
 glTFTimer::glTFTimer()
     : m_delta_tick(0)
@@ -29,7 +28,6 @@ size_t glTFTimer::GetDeltaFrameTimeMs() const
 
 glTFCmdArgumentProcessor::glTFCmdArgumentProcessor(int argc, char** argv)
     : raster_scene(true)
-    , vulkan_test(false)
     , test_triangle_pass(false)
     , vulkan(false)
 {
@@ -39,12 +37,6 @@ glTFCmdArgumentProcessor::glTFCmdArgumentProcessor(int argc, char** argv)
         if (argument.find("raytracing") != std::string::npos)
         {
             raster_scene = false;
-            continue;
-        }
-
-        if (argument.find("vulkantest") != std::string::npos)
-        {
-            vulkan_test = true;
             continue;
         }
 
@@ -79,7 +71,6 @@ glTFAppMain::glTFAppMain(int argc, char* argv[])
     // Parse command arguments
     const glTFCmdArgumentProcessor cmd_processor(argc, argv);
     m_app_config.m_raster_scene = cmd_processor.IsRasterScene();
-    m_app_config.m_vulkan_hello_world_sample = cmd_processor.IsVulkanTest();
     m_app_config.m_test_triangle_pass = cmd_processor.IsTestTrianglePass();
     m_app_config.m_vulkan = cmd_processor.IsVulkan();
     m_app_config.m_ReSTIR = true;
@@ -103,19 +94,6 @@ glTFAppMain::glTFAppMain(int argc, char* argv[])
 void glTFAppMain::Run()
 {
     auto& window = glTFWindow::Get();
-    if (m_app_config.m_vulkan_hello_world_sample)
-    {
-        VulkanHelloWorldInit();
-        window.SetTickCallback([this]()
-        {
-            VulkanHelloWorldUpdate();
-        });
-        window.SetExitCallback([this]()
-        {
-            VulkanHelloWorldUnInit();
-        });
-    }
-    else
     {
         //Register window callback with App
         window.SetTickCallback([this](){
@@ -286,23 +264,5 @@ bool glTFAppMain::UpdateGUIWidgets()
     }
     ImGui::Checkbox("TickScene", &m_app_config.m_scene_tick_enable);
     
-    return true;
-}
-
-bool glTFAppMain::VulkanHelloWorldInit()
-{
-    vulkan_hello_test.Init();   
-    return true;
-}
-
-bool glTFAppMain::VulkanHelloWorldUpdate()
-{
-    vulkan_hello_test.Update();
-    return true;
-}
-
-bool glTFAppMain::VulkanHelloWorldUnInit()
-{
-    vulkan_hello_test.UnInit();
     return true;
 }

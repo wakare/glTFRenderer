@@ -1,4 +1,4 @@
-#include "glTFShaderUtils.h"
+#include "ShaderUtil/glTFShaderUtils.h"
 #include <fstream>
 #include <sstream>
 
@@ -6,8 +6,7 @@
 #include <dxcapi.h>
 #include <atlbase.h>
 
-#include "glTFRHI/RHIInterface/RHICommon.h"
-#include "glTFUtils/glTFUtils.h"
+#include "Common.h"
 
 bool glTFShaderUtils::IsShaderFileExist(const char* shaderFilePath)
 {

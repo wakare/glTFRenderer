@@ -8,7 +8,6 @@
 #include "glTFLight/glTFPointLight.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSampler.h"
 #include "glTFRHI/RHIResourceFactory.h"
-#include "glTFUtils/glTFLog.h"
 
 glTFGraphicsPassLighting::glTFGraphicsPassLighting()
     : m_base_pass_color_RT(nullptr)

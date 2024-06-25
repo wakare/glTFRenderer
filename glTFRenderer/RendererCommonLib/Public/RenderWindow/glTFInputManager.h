@@ -1,8 +1,11 @@
 #pragma once
-#include <glm/glm.hpp>
 #include <GLFW/glfw3.h>
 
-class glTFSceneView;
+struct CursorPosition
+{
+    double X;
+    double Y;
+};
 
 class glTFInputManager
 {
@@ -22,7 +25,7 @@ public:
 
     void TickFrame(size_t delta_time_ms);
     
-    glm::fvec2 GetCursorOffset() const;
+    CursorPosition GetCursorOffset() const;
     
 private:
     void ResetCursorOffset();
@@ -30,6 +33,6 @@ private:
     bool m_key_state_pressed[GLFW_KEY_LAST] = {false};
     bool m_mouse_button_state_pressed[GLFW_MOUSE_BUTTON_MIDDLE + 1] = {false};
     
-    glm::fvec2 m_cursor_offset;
-    glm::fvec2 m_cursor;
+    CursorPosition m_cursor_offset;
+    CursorPosition m_cursor;
 };

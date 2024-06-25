@@ -1,8 +1,5 @@
 #pragma once
-#include <d3dcommon.h>
-#include <vector>
-
-#include "../RHIInterface/IRHIShader.h"
+#include "ShaderUtil/IRHIShader.h"
 
 class DX12Shader : public IRHIShader
 {

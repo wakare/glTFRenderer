@@ -6,7 +6,7 @@
 #include "DX12ConverterUtils.h"
 #include "DX12Factory.h"
 #include "DX12Utils.h"
-#include "../../glTFWindow/glTFWindow.h"
+#include "RenderWindow/glTFWindow.h"
 
 DX12SwapChain::DX12SwapChain()
     : m_frame_buffer_count(3)

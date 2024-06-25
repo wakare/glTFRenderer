@@ -15,8 +15,8 @@
 #define GLTF_CHECK(x) 
 #define LOG_FORMAT_FLUSH(x)
 
-#include "glTFShaderUtils.h"
-#include "glTFWindow.h"
+#include "ShaderUtil/glTFShaderUtils.h"
+#include "RenderWindow/glTFWindow.h"
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 

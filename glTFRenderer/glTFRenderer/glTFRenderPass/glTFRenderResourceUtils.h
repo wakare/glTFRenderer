@@ -5,7 +5,7 @@
 #include "glTFRHI/RHIInterface/IRHIDescriptorHeap.h"
 #include "glTFRHI/RHIInterface/IRHIRenderTarget.h"
 #include "glTFRHI/RHIInterface/IRHIRootSignatureHelper.h"
-#include "glTFRHI/RHIInterface/IRHIShader.h"
+#include "ShaderUtil/IRHIShader.h"
 
 class glTFRenderResourceManager;
 

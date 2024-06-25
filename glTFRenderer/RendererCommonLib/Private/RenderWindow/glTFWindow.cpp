@@ -1,12 +1,9 @@
-#include "glTFWindow.h"
-
-#include <GLFW/glfw3.h>
+#include "RenderWindow/glTFWindow.h"
 
 #define GLFW_EXPOSE_NATIVE_WIN32 1
-#include <imgui.h>
+#include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
-
-#include "glTFGUI/glTFGUI.h"
+#include <functional>
 
 glTFWindow::glTFWindow()
     : m_glfw_window(nullptr)
@@ -76,6 +73,21 @@ HWND glTFWindow::GetHWND() const
     return glfwGetWin32Window(m_glfw_window);
 }
 
+bool glTFWindow::NeedHandleInput() const
+{
+    if (m_handle_input_event && m_handle_input_event())
+    {
+        return false;
+    }
+
+    return true;
+}
+
+void glTFWindow::SetInputHandleCallback(const std::function<bool()>& input_handle_function)
+{
+    m_handle_input_event = input_handle_function;
+}
+
 void glTFWindow::SetTickCallback(const std::function<void()>& tick)
 {
     m_tick_callback = tick;
@@ -93,7 +105,7 @@ void glTFWindow::SetInputManager(const std::shared_ptr<glTFInputManager>& input_
 
 void glTFWindow::KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-    if (glTFGUI::HandleKeyBoardEventThisFrame())
+    if (!glTFWindow::Get().NeedHandleInput())
     {
         return;
     }
@@ -110,7 +122,7 @@ void glTFWindow::KeyCallback(GLFWwindow* window, int key, int scancode, int acti
 
 void glTFWindow::MouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
 {
-    if (glTFGUI::HandleMouseEventThisFrame())
+    if (!glTFWindow::Get().NeedHandleInput())
     {
         return;
     }

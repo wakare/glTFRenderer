@@ -5,6 +5,7 @@
 #include "glTFLight/glTFDirectionalLight.h"
 #include "glTFLight/glTFLightBase.h"
 #include "glTFScene/glTFSceneGraph.h"
+#include "Common.h"
 
 float luminance(const glm::vec3& rgb)
 {

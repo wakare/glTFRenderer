@@ -1,5 +1,5 @@
 #include "VKFactory.h"
-
+#include "Common.h"
 #include <GLFW/glfw3.h>
 
 const std::vector validation_layers =

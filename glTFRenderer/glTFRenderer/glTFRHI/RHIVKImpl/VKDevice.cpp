@@ -12,7 +12,7 @@
 #include <set>
 
 #include "VKFactory.h"
-#include "glTFWindow/glTFWindow.h"
+#include "RenderWindow/glTFWindow.h"
 
 const std::vector validation_layers =
 {

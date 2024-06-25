@@ -1,9 +1,9 @@
-#include "glTFInputManager.h"
+#include "RenderWindow/glTFInputManager.h"
 #include <glm/glm.hpp>
 
 glTFInputManager::glTFInputManager()
-    : m_cursor_offset(0.0f)
-    , m_cursor(0.0f)
+    : m_cursor_offset({})
+    , m_cursor({0.0f})
 {
     memset(m_key_state_pressed, 0, sizeof(m_key_state_pressed));
 }
@@ -43,7 +43,7 @@ void glTFInputManager::TickFrame(size_t delta_time_ms)
     ResetCursorOffset();
 }
 
-glm::fvec2 glTFInputManager::GetCursorOffset() const
+CursorPosition glTFInputManager::GetCursorOffset() const
 {
     return m_cursor_offset;
 }
@@ -55,6 +55,6 @@ void glTFInputManager::ResetCursorOffset()
 
 void glTFInputManager::RecordCursorPos(double X, double Y)
 {
-    m_cursor_offset = glm::vec2{m_cursor.x - X, m_cursor.y - Y};
+    m_cursor_offset = {m_cursor.X - X, m_cursor.Y - Y};
     m_cursor = {X, Y};
 }

@@ -3,8 +3,7 @@
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassLighting.h"
 #include "glTFRenderInterface/glTFRenderInterfaceFrameStat.h"
 #include "glTFRHI/RHIUtils.h"
-#include "glTFUtils/glTFLog.h"
-#include "glTFWindow/glTFWindow.h"
+#include "RenderWindow/glTFWindow.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 
 glTFRenderPassManager::glTFRenderPassManager()

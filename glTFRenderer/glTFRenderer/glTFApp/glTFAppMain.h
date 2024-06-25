@@ -1,6 +1,5 @@
 #pragma once
 #include "glTFAppRenderer.h"
-#include "glTFVulkanHelloTest.h"
 
 class glTFTimer
 {
@@ -20,7 +19,6 @@ public:
     glTFCmdArgumentProcessor(int argc, char** argv);
 
     bool IsRasterScene() const { return raster_scene; }
-    bool IsVulkanTest() const { return vulkan_test; }
     bool IsVulkan() const {return vulkan; }
     bool IsTestTrianglePass() const { return test_triangle_pass; }
     
@@ -28,7 +26,6 @@ public:
     
 private:
     bool raster_scene;
-    bool vulkan_test;
     bool test_triangle_pass;
     bool vulkan;
     
@@ -39,7 +36,6 @@ struct glTFAppConfig
 {
     bool m_raster_scene;
     bool m_ReSTIR;
-    bool m_vulkan_hello_world_sample;
     bool m_test_triangle_pass;
     bool m_vulkan;
     
@@ -62,13 +58,6 @@ protected:
     unsigned GetHeight() const;
 
     bool UpdateGUIWidgets();
-
-    // Only for test
-    glTFVulkanHelloTest vulkan_hello_test;
-    bool VulkanHelloWorldInit();
-    bool VulkanHelloWorldUpdate();
-    bool VulkanHelloWorldUnInit();
-
     std::shared_ptr<glTFInputManager> m_input_manager;
 
     glTFTimer m_timer;

@@ -2,10 +2,9 @@
 
 #include <gtx/norm.hpp>
 
-#include "glTFWindow/glTFInputManager.h"
+#include "RenderWindow/glTFInputManager.h"
 #include "glTFRenderPass/glTFRenderPassManager.h"
 #include "glTFRenderPass/glTFComputePass/glTFComputePassLighting.h"
-#include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassMeshDepth.h"
 
 glTFSceneView::glTFSceneView(const glTFSceneGraph& graph)
     : m_scene_graph(graph)
@@ -197,10 +196,10 @@ void glTFSceneView::ApplyInputForCamera(const glTFInputManager& input_manager, g
     if (input_manager.IsKeyPressed(GLFW_KEY_LEFT_CONTROL) ||
         input_manager.IsMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT))
     {
-        const glm::vec2 cursor_offset = input_manager.GetCursorOffset();
+        const auto cursor_offset = input_manager.GetCursorOffset();
         
-        delta_rotation.y -= cursor_offset.x;
-        delta_rotation.x -= cursor_offset.y;
+        delta_rotation.y -= cursor_offset.X;
+        delta_rotation.x -= cursor_offset.Y;
         if (fabs(delta_rotation.x) > 0.0f || fabs(delta_rotation.y) > 0.0f)
         {
             need_apply_movement = true;

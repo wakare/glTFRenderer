@@ -5,8 +5,8 @@
 #include <ext/matrix_transform.hpp>
 #include <glm/glm/gtx/quaternion.hpp>
 
-#include "../glTFUtils/glTFLog.h"
 #include "nlohmann_json/single_include/nlohmann/json.hpp"
+#include "Common.h"
 
 #define glTF_PROCESS_SCALAR(JSON_ELEMENT, SCALAR_NAME, SCALAR_TYPE, RESULT) \
     if ((JSON_ELEMENT).contains(SCALAR_NAME)) \

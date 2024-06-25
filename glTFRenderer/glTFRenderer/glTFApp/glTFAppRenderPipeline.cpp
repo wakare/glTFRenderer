@@ -13,7 +13,7 @@
 #include "glTFRenderPass/glTFRayTracingPass/glTFRayTracingPassPathTracing.h"
 #include "glTFRenderPass/glTFRayTracingPass/glTFRayTracingPassReSTIRDirectLighting.h"
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassTestTriangle.h"
-#include "glTFWindow/glTFWindow.h"
+#include "RenderWindow//glTFWindow.h"
 
 glTFAppRenderPipelineBase::glTFAppRenderPipelineBase()
     : m_render_pass_dirty(true)

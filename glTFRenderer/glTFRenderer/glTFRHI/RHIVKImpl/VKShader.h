@@ -1,5 +1,5 @@
 #pragma once
-#include "glTFRHI/RHIInterface/IRHIShader.h"
+#include "ShaderUtil/IRHIShader.h"
 
 class VKShader : public IRHIShader
 {

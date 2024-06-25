@@ -48,9 +48,11 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(SolutionDir)RendererCommonLib/Public;</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(SolutionDir)RendererCommonLib/Public;</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -68,8 +70,8 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)ThirdParty/libs/$(ConfigurationName);$(VULKAN_SDK)\Lib;</AdditionalLibraryDirectories>
-      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);glfw3.lib;D3d12.lib;dxgi.lib;D3DCompiler.lib;dxcompiler.lib;vulkan-1.lib;</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)ThirdParty/libs/$(ConfigurationName);$(VULKAN_SDK)\Lib;$(SolutionDir)$(Platform)\$(Configuration);</AdditionalLibraryDirectories>
+      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);glfw3.lib;D3d12.lib;dxgi.lib;D3DCompiler.lib;dxcompiler.lib;vulkan-1.lib;RendererCommonLib.lib;</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy $(SolutionDir)glTFRenderer\glTFResources\ $(OutDir)glTFResources\ /s /y</Command>
@@ -95,8 +97,8 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>false</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)ThirdParty/libs/$(ConfigurationName);$(VULKAN_SDK)\Lib;</AdditionalLibraryDirectories>
-      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);;glfw3.lib;D3d12.lib;dxgi.lib;D3DCompiler.lib;dxcompiler.lib;vulkan-1.lib;</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)ThirdParty/libs/$(ConfigurationName);$(VULKAN_SDK)\Lib;$(SolutionDir)$(Platform)\$(Configuration);</AdditionalLibraryDirectories>
+      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);;glfw3.lib;D3d12.lib;dxgi.lib;D3DCompiler.lib;dxcompiler.lib;vulkan-1.lib;RendererCommonLib.lib;</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>
       </IgnoreSpecificDefaultLibraries>
     </Link>
@@ -116,7 +118,6 @@
     <ClCompile Include="glTFApp\glTFAppRenderer.cpp" />
     <ClCompile Include="glTFApp\glTFAppRenderPipeline.cpp" />
     <ClCompile Include="glTFApp\glTFPassOptionRenderFlags.cpp" />
-    <ClCompile Include="glTFApp\glTFVulkanHelloTest.cpp" />
     <ClCompile Include="glTFGUI\glTFGUI.cpp" />
     <ClCompile Include="glTFLight\glTFDirectionalLight.cpp" />
     <ClCompile Include="glTFLight\glTFLightBase.cpp" />
@@ -244,7 +245,6 @@
     <ClCompile Include="glTFRHI\RHIInterface\IRHIRootSignature.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIRootSignatureHelper.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHISemaphore.cpp" />
-    <ClCompile Include="glTFRHI\RHIInterface\IRHIShader.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIShaderTable.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHISubPass.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHISwapChain.cpp" />
@@ -296,12 +296,8 @@
     <ClCompile Include="glTFScene\glTFScenePrimitive.cpp" />
     <ClCompile Include="glTFScene\glTFSceneTriangleMesh.cpp" />
     <ClCompile Include="glTFScene\glTFSceneView.cpp" />
-    <ClCompile Include="glTFShaderUtils\glTFShaderUtils.cpp" />
     <ClCompile Include="glTFUtils\glTFImageLoader.cpp" />
-    <ClCompile Include="glTFUtils\glTFLog.cpp" />
     <ClCompile Include="glTFUtils\glTFUtils.cpp" />
-    <ClCompile Include="glTFWindow\glTFInputManager.cpp" />
-    <ClCompile Include="glTFWindow\glTFWindow.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="glTFApp\glTFAppMain.h" />
@@ -309,7 +305,6 @@
     <ClInclude Include="glTFApp\glTFAppRenderer.h" />
     <ClInclude Include="glTFApp\glTFAppRenderPipeline.h" />
     <ClInclude Include="glTFApp\glTFPassOptionRenderFlags.h" />
-    <ClInclude Include="glTFApp\glTFVulkanHelloTest.h" />
     <ClInclude Include="glTFGUI\glTFGUI.h" />
     <ClInclude Include="glTFLight\glTFDirectionalLight.h" />
     <ClInclude Include="glTFLight\glTFLightBase.h" />
@@ -416,7 +411,6 @@
     <ClInclude Include="glTFRHI\RHIInterface\IRHIRootSignature.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHIRootSignatureHelper.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHISemaphore.h" />
-    <ClInclude Include="glTFRHI\RHIInterface\IRHIShader.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHIShaderTable.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHISubPass.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHISwapChain.h" />
@@ -470,12 +464,8 @@
     <ClInclude Include="glTFScene\glTFScenePrimitive.h" />
     <ClInclude Include="glTFScene\glTFSceneTriangleMesh.h" />
     <ClInclude Include="glTFScene\glTFSceneView.h" />
-    <ClInclude Include="glTFShaderUtils\glTFShaderUtils.h" />
     <ClInclude Include="glTFUtils\glTFImageLoader.h" />
-    <ClInclude Include="glTFUtils\glTFLog.h" />
     <ClInclude Include="glTFUtils\glTFUtils.h" />
-    <ClInclude Include="glTFWindow\glTFInputManager.h" />
-    <ClInclude Include="glTFWindow\glTFWindow.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
