@@ -6,7 +6,7 @@
 #include <glm/glm/gtx/quaternion.hpp>
 
 #include "nlohmann_json/single_include/nlohmann/json.hpp"
-#include "Common.h"
+#include "RendererCommon.h"
 
 #define glTF_PROCESS_SCALAR(JSON_ELEMENT, SCALAR_NAME, SCALAR_TYPE, RESULT) \
     if ((JSON_ELEMENT).contains(SCALAR_NAME)) \

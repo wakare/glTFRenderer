@@ -14,11 +14,13 @@ public:
     bool UnInit();
 
 protected:
-    void RecordCommandBuffer(VkCommandBuffer command_buffer, unsigned image_index);
+    void RecordCommandBufferForDrawTestTriangle(VkCommandBuffer command_buffer, unsigned image_index);
+    void RecordCommandBufferForDynamicRendering(VkCommandBuffer command_buffer, unsigned image_index);
     void DrawFrame();
     void CreateSwapChainAndRelativeResource();
     void CleanupSwapChain();
     void RecreateSwapChain();
+    void TransitionImage(VkCommandBuffer cmd, VkImage image, VkImageLayout old_layout, VkImageLayout new_layout);
     
     VkInstance instance;
     VkPhysicalDevice select_physical_device;
@@ -45,6 +47,8 @@ protected:
     std::vector<VkSemaphore> render_finish_semaphores;
     std::vector<VkFence> in_flight_fences;
 
-    unsigned current_frame {0};
+    unsigned current_frame_clipped {0};
+    unsigned current_frame_real {0};
     bool window_resized {false};
+    bool test_triangle {false};
 };

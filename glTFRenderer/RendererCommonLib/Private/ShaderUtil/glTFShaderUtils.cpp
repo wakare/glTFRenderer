@@ -6,7 +6,7 @@
 #include <dxcapi.h>
 #include <atlbase.h>
 
-#include "Common.h"
+#include "RendererCommon.h"
 
 bool glTFShaderUtils::IsShaderFileExist(const char* shaderFilePath)
 {

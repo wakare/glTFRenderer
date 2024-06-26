@@ -1,6 +1,6 @@
 #include "DX12RootSignature.h"
 #include "DX12Device.h"
-#include "Common.h"
+#include "RendererCommon.h"
 
 DX12RootParameter::DX12RootParameter()
     : m_parameter({})

@@ -535,7 +535,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Public\Common.h" />
+    <ClInclude Include="Public\RendererCommon.h" />
     <ClInclude Include="Public\RenderWindow\glTFInputManager.h" />
     <ClInclude Include="Public\RenderWindow\glTFWindow.h" />
     <ClInclude Include="Public\ShaderUtil\glTFShaderUtils.h" />

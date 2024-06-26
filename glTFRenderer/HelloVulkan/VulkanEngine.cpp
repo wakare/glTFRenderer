@@ -20,15 +20,63 @@
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
-const std::vector validation_layers =
+namespace VulkanEngineRequirements
 {
-    "VK_LAYER_KHRONOS_validation"
-};
+    const std::vector validation_layers =
+    {
+        "VK_LAYER_KHRONOS_validation"
+    };
 
-const std::vector device_extensions =
+    const std::vector device_extensions =
+    {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME
+    };
+
+    VkPhysicalDeviceVulkan13Features require_feature13
+    {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+        .pNext = nullptr,
+        .synchronization2 = true,
+        .dynamicRendering = true,
+    };
+
+    VkPhysicalDeviceVulkan12Features require_feature12
+    {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+        .pNext = &require_feature13,
+        .descriptorIndexing = true,
+        .bufferDeviceAddress = true,
+    };
+
+    bool IsMatchRequireFeatures(const VkPhysicalDeviceVulkan12Features& device_features2, const VkPhysicalDeviceVulkan13Features& device_features3)
+    {
+        return device_features2.descriptorIndexing == require_feature12.descriptorIndexing
+            && device_features2.bufferDeviceAddress == require_feature12.bufferDeviceAddress
+            && device_features3.synchronization2 == require_feature13.synchronization2
+            && device_features3.dynamicRendering == require_feature13.dynamicRendering;
+    }
+}
+
+namespace VulkanEngineQuery
 {
-    VK_KHR_SWAPCHAIN_EXTENSION_NAME
-};
+    VkPhysicalDeviceVulkan13Features query_features13
+    {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+        .pNext = nullptr,
+    };
+    
+    VkPhysicalDeviceVulkan12Features query_feature12
+    {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+        .pNext = &query_features13,
+    };
+
+    VkPhysicalDeviceFeatures2 query_features2
+    {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+        .pNext = &query_feature12
+    };
+}
 
 // Validation layer utils
 bool CheckVulkanValidationLayerSupport()
@@ -39,7 +87,7 @@ bool CheckVulkanValidationLayerSupport()
     std::vector<VkLayerProperties> available_layers(layer_count);
     vkEnumerateInstanceLayerProperties(&layer_count, available_layers.data());
 
-    for (const char* layer_name : validation_layers)
+    for (const char* layer_name : VulkanEngineRequirements::validation_layers)
     {
         bool layer_found = false;
         for (const auto& layer_property : available_layers)
@@ -148,15 +196,22 @@ bool IsSuitableDevice(VkPhysicalDevice device, VkSurfaceKHR surface)
 {
     bool is_suitable = true;
     
-    VkPhysicalDeviceProperties device_properties;
-    VkPhysicalDeviceFeatures device_features;
+    VkPhysicalDeviceProperties device_properties {};
+    VkPhysicalDeviceFeatures device_features {};
 
     vkGetPhysicalDeviceProperties(device, &device_properties);
     vkGetPhysicalDeviceFeatures(device, &device_features);
+    if (device_properties.apiVersion >= VK_MAKE_VERSION(1, 1, 0))
+    {
+        vkGetPhysicalDeviceFeatures2(device, &VulkanEngineQuery::query_features2);
+    }
 
-    is_suitable &= (device_properties.deviceType == VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU &&
-        device_features.geometryShader);
+    is_suitable &= (device_properties.deviceType == VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
+        && device_features.geometryShader
+        );
 
+    // Check feature12 and feature13
+    is_suitable &= VulkanEngineRequirements::IsMatchRequireFeatures(VulkanEngineQuery::query_feature12, VulkanEngineQuery::query_features13);
     is_suitable &= FindQueueFamily(device, surface).IsComplete();
 
     // Check device extensions
@@ -166,7 +221,7 @@ bool IsSuitableDevice(VkPhysicalDevice device, VkSurfaceKHR surface)
     std::vector<VkExtensionProperties> extensions(extension_count);
     vkEnumerateDeviceExtensionProperties(device, nullptr, &extension_count, extensions.data());
 
-    std::set<std::string> require_extensions (device_extensions.begin(), device_extensions.end());
+    std::set<std::string> require_extensions (VulkanEngineRequirements::device_extensions.begin(), VulkanEngineRequirements::device_extensions.end());
     for (const auto& extension : extensions)
     {
         require_extensions.erase(extension.extensionName);
@@ -243,6 +298,44 @@ VkShaderModule CreateShaderModule(VkDevice device, const std::vector<unsigned ch
     return shader_module;
 }
 
+VkImageSubresourceRange GetVkSubresourceRange(VkImageAspectFlags aspect_mask)
+{
+    VkImageSubresourceRange sub_image{};
+    sub_image.aspectMask = aspect_mask;
+    sub_image.baseMipLevel = 0;
+    sub_image.levelCount = VK_REMAINING_MIP_LEVELS;
+    sub_image.baseArrayLayer = 0;
+    sub_image.layerCount = VK_REMAINING_ARRAY_LAYERS;
+
+    return sub_image;
+}
+
+void VulkanEngine::TransitionImage(VkCommandBuffer cmd, VkImage image, VkImageLayout old_layout,
+    VkImageLayout new_layout)
+{
+    VkImageMemoryBarrier2 image_barrier {.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2};
+    image_barrier.pNext = nullptr;
+    image_barrier.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+    image_barrier.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT;
+    image_barrier.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+    image_barrier.dstAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT;
+
+    image_barrier.oldLayout = old_layout;
+    image_barrier.newLayout = new_layout;
+
+    VkImageAspectFlags aspect_flags = (new_layout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL) ?
+        VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+    image_barrier.subresourceRange = GetVkSubresourceRange(aspect_flags);
+    image_barrier.image = image;
+    
+    VkDependencyInfo dep_info {};
+    dep_info.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+    dep_info.pNext = nullptr;
+    dep_info.imageMemoryBarrierCount = 1;
+    dep_info.pImageMemoryBarriers = &image_barrier;
+    vkCmdPipelineBarrier2(cmd, &dep_info);
+}
+
 bool VulkanEngine::Init()
 {
     uint32_t extensionCount = 0;
@@ -261,7 +354,7 @@ bool VulkanEngine::Init()
     app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
     app_info.pEngineName = "No Engine";
     app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    app_info.apiVersion = VK_API_VERSION_1_0;
+    app_info.apiVersion = VK_MAKE_API_VERSION(0, 1, 3, 0);
 
     VkInstanceCreateInfo create_info{};
     create_info.sType = VkStructureType::VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -278,8 +371,8 @@ bool VulkanEngine::Init()
     create_info.enabledExtensionCount = glfw_extension_count;
     create_info.ppEnabledExtensionNames = glfw_extension_names;
     
-    create_info.enabledLayerCount = static_cast<unsigned>(validation_layers.size());
-    create_info.ppEnabledLayerNames = validation_layers.data();
+    create_info.enabledLayerCount = static_cast<unsigned>(VulkanEngineRequirements::validation_layers.size());
+    create_info.ppEnabledLayerNames = VulkanEngineRequirements::validation_layers.data();
 
     VkResult result = vkCreateInstance(&create_info, nullptr, &instance);
     GLTF_CHECK(result == VK_SUCCESS);
@@ -341,17 +434,18 @@ bool VulkanEngine::Init()
     }
 
     // Non features to require now
-    VkPhysicalDeviceFeatures device_features {};
+    //VkPhysicalDeviceFeatures device_features {};
     
     VkDeviceCreateInfo create_device_info{};
     create_device_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     create_device_info.pQueueCreateInfos = queue_create_infos.data();
     create_device_info.queueCreateInfoCount = static_cast<unsigned>(queue_create_infos.size());
-    create_device_info.pEnabledFeatures = &device_features;
-    create_device_info.ppEnabledLayerNames = validation_layers.data();
-    create_device_info.enabledLayerCount = static_cast<unsigned>(validation_layers.size());
-    create_device_info.ppEnabledExtensionNames = device_extensions.data();
-    create_device_info.enabledExtensionCount = static_cast<unsigned>(device_extensions.size());
+    //create_device_info.pEnabledFeatures = &device_features;
+    create_device_info.ppEnabledLayerNames = VulkanEngineRequirements::validation_layers.data();
+    create_device_info.enabledLayerCount = static_cast<unsigned>(VulkanEngineRequirements::validation_layers.size());
+    create_device_info.ppEnabledExtensionNames = VulkanEngineRequirements::device_extensions.data();
+    create_device_info.enabledExtensionCount = static_cast<unsigned>(VulkanEngineRequirements::device_extensions.size());
+    create_device_info.pNext = &VulkanEngineQuery::query_features2;
     
     result = vkCreateDevice(select_physical_device, &create_device_info, nullptr, &logical_device); 
     GLTF_CHECK(result == VK_SUCCESS);
@@ -611,7 +705,7 @@ bool VulkanEngine::Init()
     return true;
 }
 
-void VulkanEngine::RecordCommandBuffer(VkCommandBuffer command_buffer, unsigned image_index)
+void VulkanEngine::RecordCommandBufferForDrawTestTriangle(VkCommandBuffer command_buffer, unsigned image_index)
 {
     // Create command buffer begin info
     VkCommandBufferBeginInfo command_buffer_begin_info{};
@@ -658,12 +752,35 @@ void VulkanEngine::RecordCommandBuffer(VkCommandBuffer command_buffer, unsigned 
     GLTF_CHECK(result == VK_SUCCESS);
 }
 
+void VulkanEngine::RecordCommandBufferForDynamicRendering(VkCommandBuffer command_buffer, unsigned image_index)
+{
+    // Create command buffer begin info
+    VkCommandBufferBeginInfo command_buffer_begin_info{};
+    command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    command_buffer_begin_info.flags = 0;
+    command_buffer_begin_info.pInheritanceInfo = nullptr;
+
+    VkResult result = vkBeginCommandBuffer(command_buffer, &command_buffer_begin_info);
+    GLTF_CHECK(result == VK_SUCCESS);
+    
+    TransitionImage(command_buffer, images[image_index], VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+
+    float flash = std::abs(std::sin(current_frame_real / 1200.0f));
+    VkClearColorValue clear_color_value {{0.0f, 1.0f - flash, flash, 1.0f}};
+    VkImageSubresourceRange clear_range = GetVkSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT);
+    vkCmdClearColorImage(command_buffer, images[image_index], VK_IMAGE_LAYOUT_GENERAL, &clear_color_value, 1, &clear_range);
+
+    TransitionImage(command_buffer, images[image_index], VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+    result = vkEndCommandBuffer(command_buffer);
+    GLTF_CHECK(result == VK_SUCCESS);
+}
+
 void VulkanEngine::DrawFrame()
 {
-    vkWaitForFences(logical_device, 1, &in_flight_fences[current_frame], VK_TRUE, UINT64_MAX);
+    vkWaitForFences(logical_device, 1, &in_flight_fences[current_frame_clipped], VK_TRUE, UINT64_MAX);
     
     unsigned image_index;
-    VkResult result = vkAcquireNextImageKHR(logical_device, swap_chain, UINT64_MAX, image_available_semaphores[current_frame], VK_NULL_HANDLE, &image_index);
+    VkResult result = vkAcquireNextImageKHR(logical_device, swap_chain, UINT64_MAX, image_available_semaphores[current_frame_clipped], VK_NULL_HANDLE, &image_index);
     if (result == VK_ERROR_OUT_OF_DATE_KHR || window_resized)
     {
         // SwapChain is no longer available
@@ -677,29 +794,35 @@ void VulkanEngine::DrawFrame()
         GLTF_CHECK(false);
     }
 
-    vkResetFences(logical_device, 1, &in_flight_fences[current_frame]);
+    vkResetFences(logical_device, 1, &in_flight_fences[current_frame_clipped]);
+    vkResetCommandBuffer(command_buffers[current_frame_clipped], 0);
     
-    vkResetCommandBuffer(command_buffers[current_frame], 0);
-
-    RecordCommandBuffer(command_buffers[current_frame], image_index);
+    if (test_triangle)
+    {
+        RecordCommandBufferForDrawTestTriangle(command_buffers[current_frame_clipped], image_index);
+    }
+    else
+    {
+        RecordCommandBufferForDynamicRendering(command_buffers[current_frame_clipped], image_index);
+    }
     
     VkSubmitInfo submit_info{};
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-    VkSemaphore wait_semaphores[] = {image_available_semaphores[current_frame]};
+    VkSemaphore wait_semaphores[] = {image_available_semaphores[current_frame_clipped]};
     VkPipelineStageFlags wait_stages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
     submit_info.waitSemaphoreCount = 1;
     submit_info.pWaitSemaphores = wait_semaphores;
     submit_info.pWaitDstStageMask = wait_stages;
 
     submit_info.commandBufferCount = 1;
-    submit_info.pCommandBuffers = &command_buffers[current_frame];
+    submit_info.pCommandBuffers = &command_buffers[current_frame_clipped];
 
-    VkSemaphore signal_semaphores[] = {render_finish_semaphores[current_frame]};
+    VkSemaphore signal_semaphores[] = {render_finish_semaphores[current_frame_clipped]};
     submit_info.signalSemaphoreCount = 1;
     submit_info.pSignalSemaphores = signal_semaphores;
     
-    result = vkQueueSubmit(graphics_queue, 1, &submit_info, in_flight_fences[current_frame]);
+    result = vkQueueSubmit(graphics_queue, 1, &submit_info, in_flight_fences[current_frame_clipped]);
     
     GLTF_CHECK(result == VK_SUCCESS); 
 
@@ -721,8 +844,9 @@ void VulkanEngine::DrawFrame()
         window_resized = false;
         return;
     }
-    
-    current_frame = (current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
+
+    current_frame_real++;
+    current_frame_clipped = (current_frame_clipped + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
 void VulkanEngine::CreateSwapChainAndRelativeResource()
@@ -752,7 +876,7 @@ void VulkanEngine::CreateSwapChainAndRelativeResource()
     create_swap_chain_info.imageColorSpace = format.colorSpace;
     create_swap_chain_info.imageExtent = extent;
     create_swap_chain_info.imageArrayLayers = 1;
-    create_swap_chain_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    create_swap_chain_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     
     if (queue_family_indices.graphics_family.value() != queue_family_indices.present_family.value())
     {
