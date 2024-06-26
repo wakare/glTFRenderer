@@ -12,6 +12,9 @@
 #include <set>
 #include <string>
 
+#define VMA_IMPLEMENTATION
+#include "vma/vk_mem_alloc.h"
+
 #define GLTF_CHECK(x) 
 #define LOG_FORMAT_FLUSH(x)
 
@@ -76,6 +79,67 @@ namespace VulkanEngineQuery
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
         .pNext = &query_feature12
     };
+}
+
+VkImageCreateInfo GetImageCreateInfo(VkFormat format, VkImageUsageFlags usage_flags, VkExtent3D extent)
+{
+    VkImageCreateInfo create_info {};
+    create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    create_info.pNext = nullptr;
+    create_info.imageType = VK_IMAGE_TYPE_2D;
+    create_info.format = format;
+    create_info.extent = extent;
+    create_info.mipLevels = 1;
+    create_info.arrayLayers = 1;
+    create_info.samples = VK_SAMPLE_COUNT_1_BIT;
+    create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+    create_info.usage = usage_flags;
+
+    return create_info;
+}
+
+VkImageViewCreateInfo GetImageViewCreateInfo(VkFormat format, VkImage image, VkImageAspectFlags aspect_flags)
+{
+    VkImageViewCreateInfo image_view_create_info{};
+    image_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    image_view_create_info.pNext = nullptr;
+    image_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    image_view_create_info.image = image;
+    image_view_create_info.format = format;
+    image_view_create_info.subresourceRange.baseMipLevel = 0;
+    image_view_create_info.subresourceRange.levelCount = 1;
+    image_view_create_info.subresourceRange.baseArrayLayer = 0;
+    image_view_create_info.subresourceRange.layerCount = 1;
+    image_view_create_info.subresourceRange.aspectMask = aspect_flags;
+
+    return image_view_create_info;
+}
+
+void CopyImageToImage(VkCommandBuffer cmd, VkImage source, VkImage destination, VkExtent2D src_size, VkExtent2D dst_size)
+{
+    VkImageBlit2 blit_region {.sType = VK_STRUCTURE_TYPE_IMAGE_BLIT_2, .pNext = nullptr};
+    blit_region.srcOffsets[1] = VkOffset3D{(int32_t)src_size.width, (int32_t)src_size.height, 1};
+    blit_region.dstOffsets[1] = VkOffset3D{(int32_t)dst_size.width, (int32_t)dst_size.height, 1};
+    blit_region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    blit_region.srcSubresource.baseArrayLayer = 0;
+    blit_region.srcSubresource.layerCount = 1;
+    blit_region.srcSubresource.mipLevel = 0;
+
+    blit_region.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    blit_region.dstSubresource.baseArrayLayer = 0;
+    blit_region.dstSubresource.layerCount = 1;
+    blit_region.dstSubresource.mipLevel = 0;
+
+    VkBlitImageInfo2 blit_info {.sType = VK_STRUCTURE_TYPE_BLIT_IMAGE_INFO_2, .pNext = nullptr};
+    blit_info.dstImage = destination;
+    blit_info.dstImageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    blit_info.srcImage = source;
+    blit_info.srcImageLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+    blit_info.filter = VK_FILTER_LINEAR;
+    blit_info.regionCount = 1;
+    blit_info.pRegions = &blit_region;
+
+    vkCmdBlitImage2(cmd, &blit_info);
 }
 
 // Validation layer utils
@@ -450,6 +514,13 @@ bool VulkanEngine::Init()
     result = vkCreateDevice(select_physical_device, &create_device_info, nullptr, &logical_device); 
     GLTF_CHECK(result == VK_SUCCESS);
 
+    VmaAllocatorCreateInfo allocator_create_info {};
+    allocator_create_info.physicalDevice = select_physical_device;
+    allocator_create_info.device = logical_device;
+    allocator_create_info.instance = instance;
+    allocator_create_info.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
+    vmaCreateAllocator(&allocator_create_info, &vma_allocator);
+    
     vkGetDeviceQueue(logical_device, queue_family_indices.graphics_family.value(), 0, &graphics_queue);
     vkGetDeviceQueue(logical_device, queue_family_indices.present_family.value(), 0, &present_queue);
 
@@ -754,25 +825,12 @@ void VulkanEngine::RecordCommandBufferForDrawTestTriangle(VkCommandBuffer comman
 
 void VulkanEngine::RecordCommandBufferForDynamicRendering(VkCommandBuffer command_buffer, unsigned image_index)
 {
-    // Create command buffer begin info
-    VkCommandBufferBeginInfo command_buffer_begin_info{};
-    command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    command_buffer_begin_info.flags = 0;
-    command_buffer_begin_info.pInheritanceInfo = nullptr;
-
-    VkResult result = vkBeginCommandBuffer(command_buffer, &command_buffer_begin_info);
-    GLTF_CHECK(result == VK_SUCCESS);
-    
-    TransitionImage(command_buffer, images[image_index], VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+    VkImage current_draw_image = draw_image.image;
 
     float flash = std::abs(std::sin(current_frame_real / 1200.0f));
     VkClearColorValue clear_color_value {{0.0f, 1.0f - flash, flash, 1.0f}};
     VkImageSubresourceRange clear_range = GetVkSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT);
-    vkCmdClearColorImage(command_buffer, images[image_index], VK_IMAGE_LAYOUT_GENERAL, &clear_color_value, 1, &clear_range);
-
-    TransitionImage(command_buffer, images[image_index], VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
-    result = vkEndCommandBuffer(command_buffer);
-    GLTF_CHECK(result == VK_SUCCESS);
+    vkCmdClearColorImage(command_buffer, current_draw_image, VK_IMAGE_LAYOUT_GENERAL, &clear_color_value, 1, &clear_range);
 }
 
 void VulkanEngine::DrawFrame()
@@ -794,17 +852,41 @@ void VulkanEngine::DrawFrame()
         GLTF_CHECK(false);
     }
 
+    VkCommandBuffer current_command_buffer = command_buffers[current_frame_clipped];
+    VkImage current_swapchain_image = images[image_index];
+    
     vkResetFences(logical_device, 1, &in_flight_fences[current_frame_clipped]);
-    vkResetCommandBuffer(command_buffers[current_frame_clipped], 0);
+    vkResetCommandBuffer(current_command_buffer, 0);
+
+    // Create command buffer begin info
+    VkCommandBufferBeginInfo command_buffer_begin_info{};
+    command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    command_buffer_begin_info.flags = 0;
+    command_buffer_begin_info.pInheritanceInfo = nullptr;
+
+    result = vkBeginCommandBuffer(current_command_buffer, &command_buffer_begin_info);
+    GLTF_CHECK(result == VK_SUCCESS);
+
+    VkImage current_draw_image = draw_image.image;
+    TransitionImage(current_command_buffer, current_draw_image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
     
     if (test_triangle)
     {
-        RecordCommandBufferForDrawTestTriangle(command_buffers[current_frame_clipped], image_index);
+        RecordCommandBufferForDrawTestTriangle(current_command_buffer, image_index);
     }
     else
     {
-        RecordCommandBufferForDynamicRendering(command_buffers[current_frame_clipped], image_index);
+        RecordCommandBufferForDynamicRendering(current_command_buffer, image_index);
     }
+
+    // Copy image to swapchain
+    TransitionImage(current_command_buffer, draw_image.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+    TransitionImage(current_command_buffer, current_swapchain_image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    CopyImageToImage(current_command_buffer, draw_image.image, current_swapchain_image, draw_extent, swap_chain_extent);
+    TransitionImage(current_command_buffer, current_swapchain_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+
+    result = vkEndCommandBuffer(current_command_buffer);
+    GLTF_CHECK(result == VK_SUCCESS);
     
     VkSubmitInfo submit_info{};
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -816,7 +898,7 @@ void VulkanEngine::DrawFrame()
     submit_info.pWaitDstStageMask = wait_stages;
 
     submit_info.commandBufferCount = 1;
-    submit_info.pCommandBuffers = &command_buffers[current_frame_clipped];
+    submit_info.pCommandBuffers = &current_command_buffer;
 
     VkSemaphore signal_semaphores[] = {render_finish_semaphores[current_frame_clipped]};
     submit_info.signalSemaphoreCount = 1;
@@ -954,10 +1036,32 @@ void VulkanEngine::CreateSwapChainAndRelativeResource()
         result = vkCreateFramebuffer(logical_device, &framebuffer_create_info, nullptr, &swap_chain_frame_buffers[i]);
         GLTF_CHECK(result == VK_SUCCESS);
     }
+
+    draw_image.image_format = VK_FORMAT_R16G16B16A16_SFLOAT;
+    draw_image.image_extent = {swap_chain_extent.width, swap_chain_extent.height, 1};
+
+    VkImageUsageFlags draw_image_usages{};
+    draw_image_usages |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+    draw_image_usages |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    draw_image_usages |= VK_IMAGE_USAGE_STORAGE_BIT;
+    draw_image_usages |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+    VkImageCreateInfo image_create_info = GetImageCreateInfo(draw_image.image_format, draw_image_usages, draw_image.image_extent);
+    VmaAllocationCreateInfo draw_image_allocation_create_info {};
+    draw_image_allocation_create_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+    draw_image_allocation_create_info.requiredFlags = VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    vmaCreateImage(vma_allocator, &image_create_info, &draw_image_allocation_create_info, &draw_image.image, &draw_image.allocation, nullptr);
+    VkImageViewCreateInfo image_view_create_info = GetImageViewCreateInfo(draw_image.image_format, draw_image.image, VK_IMAGE_ASPECT_COLOR_BIT);
+
+    vkCreateImageView(logical_device, &image_view_create_info, nullptr, &draw_image.image_view);
+    draw_extent = {draw_image.image_extent.width, draw_image.image_extent.height};
 }
 
 void VulkanEngine::CleanupSwapChain()
 {
+    vkDestroyImageView(logical_device, draw_image.image_view, nullptr);
+    vmaDestroyImage(vma_allocator, draw_image.image, draw_image.allocation);
+    
     for (const auto& frame_buffer:swap_chain_frame_buffers)
     {
         vkDestroyFramebuffer(logical_device, frame_buffer, nullptr);
@@ -1007,6 +1111,8 @@ bool VulkanEngine::UnInit()
 
     CleanupSwapChain();
     
+    vmaDestroyAllocator(vma_allocator);
+    
     vkDestroyPipeline(logical_device, pipeline, nullptr);
     vkDestroyRenderPass(logical_device, render_pass, nullptr);
     vkDestroyPipelineLayout(logical_device, pipeline_layout, nullptr);
@@ -1019,3 +1125,4 @@ bool VulkanEngine::UnInit()
     
     return true;
 }
+
