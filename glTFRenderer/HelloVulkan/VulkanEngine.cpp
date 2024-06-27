@@ -25,6 +25,14 @@
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
+struct ConstantBufferData
+{
+    float data0[4];
+    float data1[4];
+    float data2[4];
+    float data3[4];
+};
+
 void DescriptorLayoutBuilder::add_binding(uint32_t binding, VkDescriptorType type)
 {
     VkDescriptorSetLayoutBinding newbind {};
@@ -800,6 +808,13 @@ void VulkanEngine::RecordCommandBufferForDynamicRendering(VkCommandBuffer comman
 
     vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute_pipeline);
     vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, _gradientPipelineLayout, 0, 1, &_drawImageDescriptors, 0, nullptr);
+
+    ConstantBufferData constant_buffer_data;
+    constant_buffer_data.data0[0] = 1.0f;
+    constant_buffer_data.data0[1] = 0.0f;
+    constant_buffer_data.data0[2] = flash;
+
+    vkCmdPushConstants(command_buffer, _gradientPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0 ,sizeof(ConstantBufferData), &constant_buffer_data);
     vkCmdDispatch(command_buffer, std::ceil(swap_chain_extent.width / 8.0f), std::ceil(swap_chain_extent.height / 8.0f), 1);
 }
 
@@ -1237,6 +1252,14 @@ void VulkanEngine::InitComputePipeline()
     computeLayout.pSetLayouts = &_drawImageDescriptorLayout;
     computeLayout.setLayoutCount = 1;
 
+    VkPushConstantRange push_constant_range;
+    push_constant_range.offset = 0;
+    push_constant_range.size = sizeof(ConstantBufferData);
+    push_constant_range.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+
+    computeLayout.pPushConstantRanges = &push_constant_range;
+    computeLayout.pushConstantRangeCount = 1;
+    
     VK_CHECK(vkCreatePipelineLayout(logical_device, &computeLayout, nullptr, &_gradientPipelineLayout));
     
     // Create shader module
