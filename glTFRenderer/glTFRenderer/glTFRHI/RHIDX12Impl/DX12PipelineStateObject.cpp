@@ -80,8 +80,7 @@ bool DX12GraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device
     THROW_IF_FAILED(CompileShaders());
     D3D12_SHADER_BYTECODE vertexShaderBytecode;
     {
-        auto& bindVS = dynamic_cast<DX12Shader&>(GetBindShader(RHIShaderType::Vertex));
-    
+        auto& bindVS = GetBindShader(RHIShaderType::Vertex);
         vertexShaderBytecode.BytecodeLength = bindVS.GetShaderByteCode().size();
         vertexShaderBytecode.pShaderBytecode = bindVS.GetShaderByteCode().data();    
     }
@@ -94,7 +93,7 @@ bool DX12GraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device
     if (m_depth_stencil_state != RHIDepthStencilMode::DEPTH_WRITE)
     {
         D3D12_SHADER_BYTECODE pixelShaderBytecode;
-        const auto& bindPS = dynamic_cast<DX12Shader&>(GetBindShader(RHIShaderType::Pixel));
+        const auto& bindPS = GetBindShader(RHIShaderType::Pixel);
         pixelShaderBytecode.BytecodeLength = bindPS.GetShaderByteCode().size();
         pixelShaderBytecode.pShaderBytecode = bindPS.GetShaderByteCode().data();    
         m_graphics_pipeline_state_desc.PS = pixelShaderBytecode; // same as VS but for pixel shader    
@@ -173,7 +172,7 @@ bool DX12ComputePipelineStateObject::InitPipelineStateObject(IRHIDevice& device,
     THROW_IF_FAILED(CompileShaders());
     D3D12_SHADER_BYTECODE compute_shader_bytecode;
     {
-        const auto& bindCS = dynamic_cast<DX12Shader&>(GetBindShader(RHIShaderType::Compute));
+        const auto& bindCS = GetBindShader(RHIShaderType::Compute);
         compute_shader_bytecode.BytecodeLength = bindCS.GetShaderByteCode().size();
         compute_shader_bytecode.pShaderBytecode = bindCS.GetShaderByteCode().data();    
     }
@@ -205,7 +204,7 @@ bool DX12RTPipelineStateObject::InitPipelineStateObject(IRHIDevice& device, cons
     D3D12_SHADER_BYTECODE raytracing_shader_bytecode;
     std::vector<std::string> ray_tracing_entry_names;
     {
-        const auto& bind_rt_shader = dynamic_cast<DX12Shader&>(GetBindShader(RHIShaderType::RayTracing));
+        const auto& bind_rt_shader = GetBindShader(RHIShaderType::RayTracing);
         raytracing_shader_bytecode.BytecodeLength = bind_rt_shader.GetShaderByteCode().size();
         raytracing_shader_bytecode.pShaderBytecode = bind_rt_shader.GetShaderByteCode().data();
         ray_tracing_entry_names = m_export_function_names;

@@ -196,6 +196,7 @@
     <None Include="glTFResources\ShaderSource\TestShaders\TestTriangleFrag.hlsl" />
     <None Include="glTFResources\ShaderSource\TestShaders\TestTriangleVert.hlsl" />
     <None Include="glTFResources\ShaderSource\Interface\RadiosityScene.hlsl" />
+    <None Include="glTFResources\ShaderSource\TestShaders\TestGradientCompute.hlsl" />
     <ClCompile Include="glTFRHI\RHIConfigSingleton.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12CommandSignature.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12ConverterUtils.cpp" />

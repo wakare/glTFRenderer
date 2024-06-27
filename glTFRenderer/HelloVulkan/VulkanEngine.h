@@ -5,6 +5,7 @@
 #include <vulkan/vulkan_core.h>
 
 #include <vector>
+#include <span>
 
 #include "vma/vk_mem_alloc.h"
 
@@ -15,6 +16,31 @@ struct AllocatedImage
     VmaAllocation allocation;
     VkExtent3D image_extent;
     VkFormat image_format;
+};
+
+struct DescriptorLayoutBuilder {
+
+    std::vector<VkDescriptorSetLayoutBinding> bindings;
+
+    void add_binding(uint32_t binding, VkDescriptorType type);
+    void clear();
+    VkDescriptorSetLayout build(VkDevice device, VkShaderStageFlags shaderStages, void* pNext = nullptr, VkDescriptorSetLayoutCreateFlags flags = 0);
+};
+
+struct DescriptorAllocator {
+
+    struct PoolSizeRatio{
+        VkDescriptorType type;
+        float ratio;
+    };
+
+    VkDescriptorPool pool;
+
+    void init_pool(VkDevice device, uint32_t maxSets, std::span<PoolSizeRatio> poolRatios);
+    void clear_descriptors(VkDevice device);
+    void destroy_pool(VkDevice device);
+
+    VkDescriptorSet allocate(VkDevice device, VkDescriptorSetLayout layout);
 };
 
 class VulkanEngine
@@ -31,6 +57,8 @@ protected:
     void CreateSwapChainAndRelativeResource();
     void CleanupSwapChain();
     void RecreateSwapChain();
+    void InitGraphicsPipeline();
+    void InitComputePipeline();
     void TransitionImage(VkCommandBuffer cmd, VkImage image, VkImageLayout old_layout, VkImageLayout new_layout);
     
     VkInstance instance {VK_NULL_HANDLE};
@@ -46,9 +74,11 @@ protected:
     std::vector<VkImageView> image_views;
     VkShaderModule vertex_shader_module {VK_NULL_HANDLE};
     VkShaderModule fragment_shader_module {VK_NULL_HANDLE};
+    VkShaderModule compute_shader_module {VK_NULL_HANDLE};
     VkPipelineLayout pipeline_layout {VK_NULL_HANDLE};
     VkRenderPass render_pass {VK_NULL_HANDLE};
-    VkPipeline pipeline {VK_NULL_HANDLE};
+    VkPipeline graphics_pipeline {VK_NULL_HANDLE};
+    VkPipeline compute_pipeline {VK_NULL_HANDLE};
     std::vector<VkFramebuffer> swap_chain_frame_buffers;
     VkCommandPool command_pool {VK_NULL_HANDLE};
     std::vector<VkCommandBuffer> command_buffers;
@@ -66,4 +96,10 @@ protected:
     VmaAllocator vma_allocator {};
     AllocatedImage draw_image {};
     VkExtent2D draw_extent {};
+
+    DescriptorAllocator globalDescriptorAllocator{};
+    VkDescriptorSet _drawImageDescriptors{};
+    VkDescriptorSetLayout _drawImageDescriptorLayout{};
+    
+    VkPipelineLayout _gradientPipelineLayout{};
 };
