@@ -613,7 +613,7 @@ bool VulkanEngine::Init()
     SwapChainSupportDetails detail = QuerySwapChainSupport(select_physical_device, surface);
     VkFormat color_attachment_format = chooseSwapChainSurfaceFormat(detail.formats).format;
 
-    if (test_triangle)
+    if (init_render_pass)
     {
         // Create render pass
         VkAttachmentDescription color_attachment {};
@@ -752,25 +752,37 @@ bool VulkanEngine::Init()
 
 void VulkanEngine::RecordCommandBufferForDrawTestTriangle(VkCommandBuffer command_buffer, unsigned image_index)
 {
-    // Create command buffer begin info
-    VkCommandBufferBeginInfo command_buffer_begin_info{};
-    command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    command_buffer_begin_info.flags = 0;
-    command_buffer_begin_info.pInheritanceInfo = nullptr;
+    if (init_render_pass)
+    {
+        VkRenderPassBeginInfo render_pass_begin_info{};
+        render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        render_pass_begin_info.renderPass = render_pass;
+        render_pass_begin_info.framebuffer = swap_chain_frame_buffers[image_index];
+        render_pass_begin_info.renderArea.offset = {0, 0};
+        render_pass_begin_info.renderArea.extent = swap_chain_extent;
+        const VkClearValue clear_value = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+        render_pass_begin_info.clearValueCount = 1;
+        render_pass_begin_info.pClearValues = &clear_value;
+        vkCmdBeginRenderPass(command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);    
+    }
+    else
+    {
+        VkRenderingAttachmentInfo color_attachment { .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO};
+        color_attachment.imageView = draw_image.image_view;
+        color_attachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        color_attachment.clearValue.color = {{1.0, 1.0 ,1.0, 1.0}};
+        color_attachment.loadOp = VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        color_attachment.storeOp = VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_STORE;
 
-    VkResult result = vkBeginCommandBuffer(command_buffer, &command_buffer_begin_info);
-    GLTF_CHECK(result == VK_SUCCESS);
-
-    VkRenderPassBeginInfo render_pass_begin_info{};
-    render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    render_pass_begin_info.renderPass = render_pass;
-    render_pass_begin_info.framebuffer = swap_chain_frame_buffers[image_index];
-    render_pass_begin_info.renderArea.offset = {0, 0};
-    render_pass_begin_info.renderArea.extent = swap_chain_extent;
-    const VkClearValue clear_value = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
-    render_pass_begin_info.clearValueCount = 1;
-    render_pass_begin_info.pClearValues = &clear_value;
-    vkCmdBeginRenderPass(command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
+        VkRenderingInfo rendering_info {.sType = VK_STRUCTURE_TYPE_RENDERING_INFO};
+        rendering_info.colorAttachmentCount = 1;
+        rendering_info.pColorAttachments = &color_attachment;
+        rendering_info.renderArea = {{0, 0}, {swap_chain_extent.width, swap_chain_extent.height}};
+        rendering_info.layerCount = 1;
+        
+        vkCmdBeginRendering(command_buffer, &rendering_info);
+    }
+    
     vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphics_pipeline);
     
     // since define viewport and scissor as dynamic state so do set in command
@@ -789,12 +801,15 @@ void VulkanEngine::RecordCommandBufferForDrawTestTriangle(VkCommandBuffer comman
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
     vkCmdDraw(command_buffer, 3, 1, 0, 0);
-
-    vkCmdEndRenderPass(command_buffer);
     
-    result = vkEndCommandBuffer(command_buffer);
-    
-    GLTF_CHECK(result == VK_SUCCESS);
+    if (init_render_pass)
+    {
+        vkCmdEndRenderPass(command_buffer);
+    }
+    else
+    {
+        vkCmdEndRendering(command_buffer);
+    }
 }
 
 void VulkanEngine::RecordCommandBufferForDynamicRendering(VkCommandBuffer command_buffer, unsigned image_index)
@@ -853,21 +868,22 @@ void VulkanEngine::DrawFrame()
     GLTF_CHECK(result == VK_SUCCESS);
 
     VkImage current_draw_image = draw_image.image;
-    TransitionImage(current_command_buffer, current_draw_image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
-    
     if (test_triangle)
     {
+        TransitionImage(current_command_buffer, current_draw_image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
         RecordCommandBufferForDrawTestTriangle(current_command_buffer, image_index);
+        TransitionImage(current_command_buffer, current_draw_image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);   
     }
     else
     {
+        TransitionImage(current_command_buffer, current_draw_image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
         RecordCommandBufferForDynamicRendering(current_command_buffer, image_index);
+        TransitionImage(current_command_buffer, current_draw_image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
     }
 
     // Copy image to swapchain
-    TransitionImage(current_command_buffer, draw_image.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
     TransitionImage(current_command_buffer, current_swapchain_image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-    CopyImageToImage(current_command_buffer, draw_image.image, current_swapchain_image, draw_extent, swap_chain_extent);
+    CopyImageToImage(current_command_buffer, current_draw_image, current_swapchain_image, draw_extent, swap_chain_extent);
     TransitionImage(current_command_buffer, current_swapchain_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
     result = vkEndCommandBuffer(current_command_buffer);
@@ -1003,7 +1019,7 @@ void VulkanEngine::CreateSwapChainAndRelativeResource()
     }
 
     // Create frame buffers
-    if (test_triangle)
+    if (init_render_pass)
     {
         swap_chain_frame_buffers.resize(image_views.size());
 
@@ -1050,7 +1066,7 @@ void VulkanEngine::CleanupSwapChain()
     vkDestroyImageView(logical_device, draw_image.image_view, nullptr);
     vmaDestroyImage(vma_allocator, draw_image.image, draw_image.allocation);
 
-    if (test_triangle)
+    if (init_render_pass)
     {
         for (const auto& frame_buffer:swap_chain_frame_buffers)
         {
@@ -1105,8 +1121,8 @@ void VulkanEngine::InitGraphicsPipeline()
     };
     glTFShaderUtils::CompileShader(fragment_shader_compile_desc, fragment_shader_binaries);
 
-    vertex_shader_module = CreateShaderModule(logical_device, vertex_shader_binaries);
-    fragment_shader_module = CreateShaderModule(logical_device, fragment_shader_binaries);
+    auto vertex_shader_module = CreateShaderModule(logical_device, vertex_shader_binaries);
+    auto fragment_shader_module = CreateShaderModule(logical_device, fragment_shader_binaries);
 
     VkPipelineShaderStageCreateInfo create_vertex_stage_info{};
     create_vertex_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -1218,6 +1234,11 @@ void VulkanEngine::InitGraphicsPipeline()
     VkResult result = vkCreatePipelineLayout(logical_device, &create_pipeline_layout_info, nullptr, &pipeline_layout);
     GLTF_CHECK(result == VK_SUCCESS);
 
+    VkPipelineRenderingCreateInfo pipeline_rendering_create_info {.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO};
+    pipeline_rendering_create_info.colorAttachmentCount = 1;
+    pipeline_rendering_create_info.pColorAttachmentFormats = &draw_image.image_format;
+    pipeline_rendering_create_info.depthAttachmentFormat = VK_FORMAT_UNDEFINED;
+    
     // Create graphics pipeline
     VkGraphicsPipelineCreateInfo create_graphics_pipeline_info {};
     create_graphics_pipeline_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -1232,11 +1253,15 @@ void VulkanEngine::InitGraphicsPipeline()
     create_graphics_pipeline_info.pColorBlendState = &create_color_blend_state_info;
     create_graphics_pipeline_info.pDynamicState = &create_dynamic_state_info;
     create_graphics_pipeline_info.layout = pipeline_layout;
-    create_graphics_pipeline_info.renderPass = render_pass;
+    if (init_render_pass)
+    {
+        create_graphics_pipeline_info.renderPass = render_pass;    
+    }
     create_graphics_pipeline_info.subpass = 0;
     create_graphics_pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
     create_graphics_pipeline_info.basePipelineIndex = -1;
-
+    create_graphics_pipeline_info.pNext = &pipeline_rendering_create_info;
+    
     result = vkCreateGraphicsPipelines(logical_device, VK_NULL_HANDLE, 1, &create_graphics_pipeline_info, nullptr, &graphics_pipeline);
     GLTF_CHECK(result == VK_SUCCESS);
 
@@ -1273,7 +1298,7 @@ void VulkanEngine::InitComputePipeline()
         true
     };
     glTFShaderUtils::CompileShader(compute_shader_compile_desc, compute_shader_binaries);
-    compute_shader_module = CreateShaderModule(logical_device, compute_shader_binaries);
+    auto compute_shader_module = CreateShaderModule(logical_device, compute_shader_binaries);
 
     VkPipelineShaderStageCreateInfo stageinfo{};
     stageinfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -1317,20 +1342,24 @@ bool VulkanEngine::UnInit()
     
     vmaDestroyAllocator(vma_allocator);
 
+    if (init_render_pass)
+    {
+        vkDestroyRenderPass(logical_device, render_pass, nullptr);
+    }
+    
     if (test_triangle)
     {
         vkDestroyPipeline(logical_device, graphics_pipeline, nullptr);
-        vkDestroyRenderPass(logical_device, render_pass, nullptr);
         vkDestroyPipelineLayout(logical_device, pipeline_layout, nullptr);    
     }
     else
     {
-        globalDescriptorAllocator.destroy_pool(logical_device);
-        vkDestroyDescriptorSetLayout(logical_device, _drawImageDescriptorLayout, nullptr);
         vkDestroyPipeline(logical_device, compute_pipeline, nullptr);
         vkDestroyPipelineLayout(logical_device, _gradientPipelineLayout, nullptr);   
     }
     
+    globalDescriptorAllocator.destroy_pool(logical_device);
+    vkDestroyDescriptorSetLayout(logical_device, _drawImageDescriptorLayout, nullptr);
     vkDestroySurfaceKHR(instance, surface, nullptr);
     vkDestroyDevice(logical_device, nullptr);
     vkDestroyInstance(instance, nullptr);    

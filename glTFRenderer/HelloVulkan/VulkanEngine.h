@@ -72,9 +72,6 @@ protected:
     VkFormat swap_chain_format {VK_FORMAT_UNDEFINED};
     VkExtent2D swap_chain_extent {0, 0};
     std::vector<VkImageView> image_views;
-    VkShaderModule vertex_shader_module {VK_NULL_HANDLE};
-    VkShaderModule fragment_shader_module {VK_NULL_HANDLE};
-    VkShaderModule compute_shader_module {VK_NULL_HANDLE};
     VkPipelineLayout pipeline_layout {VK_NULL_HANDLE};
     VkRenderPass render_pass {VK_NULL_HANDLE};
     VkPipeline graphics_pipeline {VK_NULL_HANDLE};
@@ -91,7 +88,8 @@ protected:
     unsigned current_frame_clipped {0};
     unsigned current_frame_real {0};
     bool window_resized {false};
-    bool test_triangle {false};
+    bool test_triangle {true};
+    bool init_render_pass {false};
 
     VmaAllocator vma_allocator {};
     AllocatedImage draw_image {};
@@ -102,4 +100,6 @@ protected:
     VkDescriptorSetLayout _drawImageDescriptorLayout{};
     
     VkPipelineLayout _gradientPipelineLayout{};
+
+    VkPipelineLayout _trianglePipelineLayout{};
 };
