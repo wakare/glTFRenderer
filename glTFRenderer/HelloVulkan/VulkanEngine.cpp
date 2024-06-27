@@ -693,11 +693,11 @@ bool VulkanEngine::Init()
 
     vkUpdateDescriptorSets(logical_device, 1, &drawImageWrite, 0, nullptr);
     
-    if (test_triangle)
+    if (run_graphics_test)
     {
         InitGraphicsPipeline();    
     }
-    else
+    if (run_compute_test)
     {
         InitComputePipeline();
     }
@@ -868,17 +868,18 @@ void VulkanEngine::DrawFrame()
     GLTF_CHECK(result == VK_SUCCESS);
 
     VkImage current_draw_image = draw_image.image;
-    if (test_triangle)
-    {
-        TransitionImage(current_command_buffer, current_draw_image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-        RecordCommandBufferForDrawTestTriangle(current_command_buffer, image_index);
-        TransitionImage(current_command_buffer, current_draw_image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);   
-    }
-    else
+    
+    if (run_compute_test)
     {
         TransitionImage(current_command_buffer, current_draw_image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
         RecordCommandBufferForDynamicRendering(current_command_buffer, image_index);
         TransitionImage(current_command_buffer, current_draw_image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+    }
+    if (run_graphics_test)
+    {
+        TransitionImage(current_command_buffer, current_draw_image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+        RecordCommandBufferForDrawTestTriangle(current_command_buffer, image_index);
+        TransitionImage(current_command_buffer, current_draw_image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);   
     }
 
     // Copy image to swapchain
@@ -1347,12 +1348,13 @@ bool VulkanEngine::UnInit()
         vkDestroyRenderPass(logical_device, render_pass, nullptr);
     }
     
-    if (test_triangle)
+    if (run_graphics_test)
     {
         vkDestroyPipeline(logical_device, graphics_pipeline, nullptr);
         vkDestroyPipelineLayout(logical_device, pipeline_layout, nullptr);    
     }
-    else
+    
+    if (run_compute_test)
     {
         vkDestroyPipeline(logical_device, compute_pipeline, nullptr);
         vkDestroyPipelineLayout(logical_device, _gradientPipelineLayout, nullptr);   

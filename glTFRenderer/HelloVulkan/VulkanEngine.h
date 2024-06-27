@@ -88,7 +88,8 @@ protected:
     unsigned current_frame_clipped {0};
     unsigned current_frame_real {0};
     bool window_resized {false};
-    bool test_triangle {true};
+    bool run_compute_test {true};
+    bool run_graphics_test {true};
     bool init_render_pass {false};
 
     VmaAllocator vma_allocator {};
@@ -100,6 +101,4 @@ protected:
     VkDescriptorSetLayout _drawImageDescriptorLayout{};
     
     VkPipelineLayout _gradientPipelineLayout{};
-
-    VkPipelineLayout _trianglePipelineLayout{};
 };
