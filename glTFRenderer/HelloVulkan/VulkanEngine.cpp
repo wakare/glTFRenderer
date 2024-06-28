@@ -25,6 +25,45 @@
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
+
+
+namespace VulkanEngineRequirements
+{
+    const std::vector validation_layers =
+    {
+        "VK_LAYER_KHRONOS_validation"
+    };
+
+    const std::vector device_extensions =
+    {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME
+    };
+
+    VkPhysicalDeviceVulkan13Features require_feature13
+    {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+        .pNext = nullptr,
+        .synchronization2 = true,
+        .dynamicRendering = true,
+    };
+
+    VkPhysicalDeviceVulkan12Features require_feature12
+    {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+        .pNext = &require_feature13,
+        .descriptorIndexing = true,
+        .bufferDeviceAddress = true,
+    };
+
+    bool IsMatchRequireFeatures(const VkPhysicalDeviceVulkan12Features& device_features2, const VkPhysicalDeviceVulkan13Features& device_features3)
+    {
+        return device_features2.descriptorIndexing == require_feature12.descriptorIndexing
+            && device_features2.bufferDeviceAddress == require_feature12.bufferDeviceAddress
+            && device_features3.synchronization2 == require_feature13.synchronization2
+            && device_features3.dynamicRendering == require_feature13.dynamicRendering;
+    }
+}
+
 struct ConstantBufferData
 {
     float data0[4];
@@ -107,64 +146,6 @@ VkDescriptorSet DescriptorAllocator::allocate(VkDevice device, VkDescriptorSetLa
     VK_CHECK(vkAllocateDescriptorSets(device, &allocInfo, &ds));
 
     return ds;
-}
-
-namespace VulkanEngineRequirements
-{
-    const std::vector validation_layers =
-    {
-        "VK_LAYER_KHRONOS_validation"
-    };
-
-    const std::vector device_extensions =
-    {
-        VK_KHR_SWAPCHAIN_EXTENSION_NAME
-    };
-
-    VkPhysicalDeviceVulkan13Features require_feature13
-    {
-        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
-        .pNext = nullptr,
-        .synchronization2 = true,
-        .dynamicRendering = true,
-    };
-
-    VkPhysicalDeviceVulkan12Features require_feature12
-    {
-        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
-        .pNext = &require_feature13,
-        .descriptorIndexing = true,
-        .bufferDeviceAddress = true,
-    };
-
-    bool IsMatchRequireFeatures(const VkPhysicalDeviceVulkan12Features& device_features2, const VkPhysicalDeviceVulkan13Features& device_features3)
-    {
-        return device_features2.descriptorIndexing == require_feature12.descriptorIndexing
-            && device_features2.bufferDeviceAddress == require_feature12.bufferDeviceAddress
-            && device_features3.synchronization2 == require_feature13.synchronization2
-            && device_features3.dynamicRendering == require_feature13.dynamicRendering;
-    }
-}
-
-namespace VulkanEngineQueryStorage
-{
-    VkPhysicalDeviceVulkan13Features query_features13
-    {
-        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
-        .pNext = nullptr,
-    };
-    
-    VkPhysicalDeviceVulkan12Features query_feature12
-    {
-        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
-        .pNext = &query_features13,
-    };
-
-    VkPhysicalDeviceFeatures2 query_features2
-    {
-        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
-        .pNext = &query_feature12
-    };
 }
 
 VkImageCreateInfo GetImageCreateInfo(VkFormat format, VkImageUsageFlags usage_flags, VkExtent3D extent)
@@ -303,6 +284,30 @@ struct QueueFamilyIndices
         return graphics_family.has_value() && present_family.has_value();
     }
 };
+
+namespace VulkanEngineQueryStorage
+{
+    VkPhysicalDeviceVulkan13Features query_features13
+    {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+        .pNext = nullptr,
+    };
+    
+    VkPhysicalDeviceVulkan12Features query_feature12
+    {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+        .pNext = &query_features13,
+    };
+
+    VkPhysicalDeviceFeatures2 query_features2
+    {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+        .pNext = &query_feature12
+    };
+    
+    QueueFamilyIndices queue_family_indices;
+}
+
 
 QueueFamilyIndices FindQueueFamily(VkPhysicalDevice device, VkSurfaceKHR surface)
 {
@@ -486,6 +491,82 @@ void VulkanEngine::TransitionImage(VkCommandBuffer cmd, VkImage image, VkImageLa
     vkCmdPipelineBarrier2(cmd, &dep_info);
 }
 
+AllocatedBuffer VulkanEngine::AllocateBuffer(size_t allocate_size, VkBufferUsageFlags usage_flags,
+    VmaMemoryUsage memory_usage)
+{
+    // allocate buffer
+    VkBufferCreateInfo bufferInfo = {.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
+    bufferInfo.pNext = nullptr;
+    bufferInfo.size = allocate_size;
+
+    bufferInfo.usage = usage_flags;
+
+    VmaAllocationCreateInfo vmaallocInfo = {};
+    vmaallocInfo.usage = memory_usage;
+    vmaallocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+    AllocatedBuffer newBuffer;
+
+    // allocate the buffer
+    VK_CHECK(vmaCreateBuffer(vma_allocator, &bufferInfo, &vmaallocInfo, &newBuffer.buffer, &newBuffer.allocation,
+        &newBuffer.info));
+
+    return newBuffer;
+}
+
+void VulkanEngine::DestroyBuffer(const AllocatedBuffer& buffer)
+{
+    vmaDestroyBuffer(vma_allocator, buffer.buffer, buffer.allocation);
+}
+
+GPUMeshBuffers VulkanEngine::UploadMesh(std::span<uint32_t> indices, std::span<Vertex> vertices)
+{
+    const size_t vertexBufferSize = vertices.size() * sizeof(Vertex);
+    const size_t indexBufferSize = indices.size() * sizeof(uint32_t);
+
+    GPUMeshBuffers newSurface;
+
+    //create vertex buffer
+    newSurface.vertexBuffer = AllocateBuffer(vertexBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+        VMA_MEMORY_USAGE_GPU_ONLY);
+
+    //find the adress of the vertex buffer
+    VkBufferDeviceAddressInfo deviceAdressInfo{ .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,.buffer = newSurface.vertexBuffer.buffer };
+    newSurface.vertexBufferAddress = vkGetBufferDeviceAddress(logical_device, &deviceAdressInfo);
+
+    //create index buffer
+    newSurface.indexBuffer = AllocateBuffer(indexBufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+        VMA_MEMORY_USAGE_GPU_ONLY);
+
+    AllocatedBuffer staging = AllocateBuffer(vertexBufferSize + indexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
+
+    void* data = staging.allocation->GetMappedData();
+
+    // copy vertex buffer
+    memcpy(data, vertices.data(), vertexBufferSize);
+    // copy index buffer
+    memcpy((char*)data + vertexBufferSize, indices.data(), indexBufferSize);
+
+    ImmediateSubmit([&](VkCommandBuffer cmd) {
+        VkBufferCopy vertexCopy{ 0 };
+        vertexCopy.dstOffset = 0;
+        vertexCopy.srcOffset = 0;
+        vertexCopy.size = vertexBufferSize;
+
+        vkCmdCopyBuffer(cmd, staging.buffer, newSurface.vertexBuffer.buffer, 1, &vertexCopy);
+
+        VkBufferCopy indexCopy{ 0 };
+        indexCopy.dstOffset = 0;
+        indexCopy.srcOffset = vertexBufferSize;
+        indexCopy.size = indexBufferSize;
+
+        vkCmdCopyBuffer(cmd, staging.buffer, newSurface.indexBuffer.buffer, 1, &indexCopy);
+    });
+
+    DestroyBuffer(staging);
+
+    return newSurface;
+}
+
 bool VulkanEngine::Init()
 {
     uint32_t extensionCount = 0;
@@ -566,11 +647,15 @@ bool VulkanEngine::Init()
     }
 
     // Create logic device
-    const QueueFamilyIndices queue_family_indices = FindQueueFamily(select_physical_device, surface);
-    GLTF_CHECK(queue_family_indices.graphics_family.has_value());
+    VulkanEngineQueryStorage::queue_family_indices = FindQueueFamily(select_physical_device, surface);
+    GLTF_CHECK(VulkanEngineQueryStorage::queue_family_indices.graphics_family.has_value());
 
     std::vector<VkDeviceQueueCreateInfo> queue_create_infos;
-    std::set<unsigned> unique_queue_families = {queue_family_indices.graphics_family.value(), queue_family_indices.present_family.value()};
+    std::set<unsigned> unique_queue_families =
+        {
+            VulkanEngineQueryStorage::queue_family_indices.graphics_family.value(),
+            VulkanEngineQueryStorage::queue_family_indices.present_family.value()
+        };
     const float queue_priority = 1.0f;
 
     for (const auto unique_queue_family : unique_queue_families)
@@ -607,8 +692,8 @@ bool VulkanEngine::Init()
     allocator_create_info.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
     vmaCreateAllocator(&allocator_create_info, &vma_allocator);
     
-    vkGetDeviceQueue(logical_device, queue_family_indices.graphics_family.value(), 0, &graphics_queue);
-    vkGetDeviceQueue(logical_device, queue_family_indices.present_family.value(), 0, &present_queue);
+    vkGetDeviceQueue(logical_device, VulkanEngineQueryStorage::queue_family_indices.graphics_family.value(), 0, &graphics_queue);
+    vkGetDeviceQueue(logical_device, VulkanEngineQueryStorage::queue_family_indices.present_family.value(), 0, &present_queue);
 
     SwapChainSupportDetails detail = QuerySwapChainSupport(select_physical_device, surface);
     VkFormat color_attachment_format = chooseSwapChainSurfaceFormat(detail.formats).format;
@@ -706,7 +791,7 @@ bool VulkanEngine::Init()
     VkCommandPoolCreateInfo create_command_pool_info{};
     create_command_pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     create_command_pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    create_command_pool_info.queueFamilyIndex = queue_family_indices.graphics_family.value();
+    create_command_pool_info.queueFamilyIndex = VulkanEngineQueryStorage::queue_family_indices.graphics_family.value();
 
     result = vkCreateCommandPool(logical_device, &create_command_pool_info, nullptr, &command_pool);
     GLTF_CHECK(result == VK_SUCCESS);
@@ -746,6 +831,19 @@ bool VulkanEngine::Init()
         result = vkCreateFence(logical_device, &create_fence_info, nullptr, &in_flight_fences[i]);
         GLTF_CHECK(result == VK_SUCCESS);
     }
+
+    VK_CHECK(vkCreateCommandPool(logical_device, &create_command_pool_info, nullptr, &_immCommandPool));
+    VkCommandBufferAllocateInfo cmd_allocator_info
+    {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+        .pNext = nullptr,
+        .commandPool = _immCommandPool,
+        .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+        .commandBufferCount = 1,
+    };
+    VK_CHECK(vkAllocateCommandBuffers(logical_device, &cmd_allocator_info, &_immCommandBuffer));
+
+    VK_CHECK(vkCreateFence(logical_device, &create_fence_info, nullptr, &_immFence));
     
     return true;
 }
@@ -830,7 +928,7 @@ void VulkanEngine::RecordCommandBufferForDynamicRendering(VkCommandBuffer comman
     constant_buffer_data.data0[2] = flash;
 
     vkCmdPushConstants(command_buffer, _gradientPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0 ,sizeof(ConstantBufferData), &constant_buffer_data);
-    vkCmdDispatch(command_buffer, std::ceil(swap_chain_extent.width / 8.0f), std::ceil(swap_chain_extent.height / 8.0f), 1);
+    vkCmdDispatch(command_buffer, std::ceil(swap_chain_extent.width / 16.0f), std::ceil(swap_chain_extent.height / 16.0f), 1);
 }
 
 void VulkanEngine::DrawFrame()
@@ -1290,6 +1388,7 @@ void VulkanEngine::InitComputePipeline()
     
     // Create shader module
     std::vector<unsigned char> compute_shader_binaries;
+    /*
     glTFShaderUtils::ShaderCompileDesc compute_shader_compile_desc
     {
         "glTFResources/ShaderSource/TestShaders/TestGradientCompute.hlsl",
@@ -1298,6 +1397,19 @@ void VulkanEngine::InitComputePipeline()
         {},
         true
     };
+    glTFShaderUtils::CompileShader(compute_shader_compile_desc, compute_shader_binaries);
+    */
+    glTFShaderUtils::ShaderCompileDesc compute_shader_compile_desc
+    {
+        "glTFResources/ShaderSource/GLSL/SimpleComputeShader.glsl",
+        glTFShaderUtils::GetShaderCompileTarget(RHIShaderType::Compute),
+        "main",
+        {},
+        true,
+        glTFShaderUtils::ShaderFileType::SFT_GLSL,
+        glTFShaderUtils::ShaderType::ST_Compute
+    };
+    
     glTFShaderUtils::CompileShader(compute_shader_compile_desc, compute_shader_binaries);
     auto compute_shader_module = CreateShaderModule(logical_device, compute_shader_binaries);
 
@@ -1328,6 +1440,9 @@ bool VulkanEngine::Update()
 bool VulkanEngine::UnInit()
 {
     vkDeviceWaitIdle(logical_device);
+
+    vkDestroyFence(logical_device, _immFence, nullptr);
+    vkDestroyCommandPool(logical_device, _immCommandPool, nullptr);
     
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
@@ -1369,3 +1484,45 @@ bool VulkanEngine::UnInit()
     return true;
 }
 
+void VulkanEngine::ImmediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function)
+{
+    VK_CHECK(vkResetFences(logical_device, 1, &_immFence));
+    VK_CHECK(vkResetCommandBuffer(_immCommandBuffer, 0));
+
+    VkCommandBuffer cmd = _immCommandBuffer;
+    VkCommandBufferBeginInfo cmdBeginInfo
+    {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+        .pNext = nullptr,
+        .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+        .pInheritanceInfo = nullptr
+    };
+
+    VK_CHECK(vkBeginCommandBuffer(cmd, &cmdBeginInfo));
+
+    function(cmd);
+
+    VK_CHECK(vkEndCommandBuffer(cmd));
+
+    VkCommandBufferSubmitInfo cmdinfo
+    {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+        .pNext = nullptr,
+        .commandBuffer = cmd,
+        .deviceMask = 0
+    };
+    
+    VkSubmitInfo2 submit
+    {
+        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+        .pNext = nullptr,
+        .commandBufferInfoCount = 1,
+        .pCommandBufferInfos = &cmdinfo,
+    };
+
+    // submit command buffer to the queue and execute it.
+    //  _renderFence will now block until the graphic commands finish execution
+    VK_CHECK(vkQueueSubmit2(graphics_queue, 1, &submit, _immFence));
+
+    VK_CHECK(vkWaitForFences(logical_device, 1, &_immFence, true, 9999999999));
+}

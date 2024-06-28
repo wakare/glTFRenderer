@@ -468,6 +468,13 @@
     <ClInclude Include="glTFUtils\glTFImageLoader.h" />
     <ClInclude Include="glTFUtils\glTFUtils.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="glTFResources\ShaderSource\GLSL\SimpleFragShader.glsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="glTFResources\ShaderSource\GLSL\SimpleComputeShader.glsl" />
+    <Content Include="glTFResources\ShaderSource\GLSL\SimpleVertShader.glsl" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

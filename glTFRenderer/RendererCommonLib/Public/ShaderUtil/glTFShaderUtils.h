@@ -7,6 +7,20 @@
 class glTFShaderUtils
 {
 public:
+    enum class ShaderFileType
+    {
+        SFT_HLSL,
+        SFT_GLSL,
+    };
+
+    enum class ShaderType
+    {
+        ST_Vertex,
+        ST_Fragment,
+        ST_Compute,
+        ST_Undefined,
+    };
+    
     struct ShaderCompileDesc
     {
         std::string file_path;
@@ -14,6 +28,8 @@ public:
         std::string entry_function;
         RHIShaderPreDefineMacros shader_macros;
         bool spirv; // Vulkan binary format
+        ShaderFileType file_type;
+        ShaderType shader_type;
     };
     
     static bool IsShaderFileExist(const char* shaderFilePath);

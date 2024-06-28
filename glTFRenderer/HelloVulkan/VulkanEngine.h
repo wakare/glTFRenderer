@@ -1,11 +1,13 @@
 #pragma once
 
 #define VK_USE_PLATFORM_WIN32_KHR
+#include <functional>
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_core.h>
 
 #include <vector>
 #include <span>
+#include <glm/glm.hpp>
 
 #include "vma/vk_mem_alloc.h"
 
@@ -16,6 +18,35 @@ struct AllocatedImage
     VmaAllocation allocation;
     VkExtent3D image_extent;
     VkFormat image_format;
+};
+
+struct AllocatedBuffer {
+    VkBuffer buffer;
+    VmaAllocation allocation;
+    VmaAllocationInfo info;
+};
+
+struct Vertex {
+
+    glm::vec3 position;
+    float uv_x;
+    glm::vec3 normal;
+    float uv_y;
+    glm::vec4 color;
+};
+
+// holds the resources needed for a mesh
+struct GPUMeshBuffers {
+
+    AllocatedBuffer indexBuffer;
+    AllocatedBuffer vertexBuffer;
+    VkDeviceAddress vertexBufferAddress;
+};
+
+// push constants for our mesh object draws
+struct GPUDrawPushConstants {
+    glm::mat4 worldMatrix;
+    VkDeviceAddress vertexBuffer;
 };
 
 struct DescriptorLayoutBuilder {
@@ -51,6 +82,7 @@ public:
     bool UnInit();
 
 protected:
+    void ImmediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function);
     void RecordCommandBufferForDrawTestTriangle(VkCommandBuffer command_buffer, unsigned image_index);
     void RecordCommandBufferForDynamicRendering(VkCommandBuffer command_buffer, unsigned image_index);
     void DrawFrame();
@@ -60,6 +92,10 @@ protected:
     void InitGraphicsPipeline();
     void InitComputePipeline();
     void TransitionImage(VkCommandBuffer cmd, VkImage image, VkImageLayout old_layout, VkImageLayout new_layout);
+    
+    AllocatedBuffer AllocateBuffer(size_t allocate_size, VkBufferUsageFlags usage_flags, VmaMemoryUsage memory_usage);
+    void DestroyBuffer(const AllocatedBuffer& buffer);
+    GPUMeshBuffers UploadMesh(std::span<uint32_t> indices, std::span<Vertex> vertices);
     
     VkInstance instance {VK_NULL_HANDLE};
     VkPhysicalDevice select_physical_device {VK_NULL_HANDLE};
@@ -89,7 +125,7 @@ protected:
     unsigned current_frame_real {0};
     bool window_resized {false};
     bool run_compute_test {true};
-    bool run_graphics_test {true};
+    bool run_graphics_test {false};
     bool init_render_pass {false};
 
     VmaAllocator vma_allocator {};
@@ -101,4 +137,10 @@ protected:
     VkDescriptorSetLayout _drawImageDescriptorLayout{};
     
     VkPipelineLayout _gradientPipelineLayout{};
+    
+    // immediate submit structures
+    VkFence _immFence{VK_NULL_HANDLE};
+    VkCommandBuffer _immCommandBuffer{VK_NULL_HANDLE};
+    VkCommandPool _immCommandPool{VK_NULL_HANDLE};
+    
 };

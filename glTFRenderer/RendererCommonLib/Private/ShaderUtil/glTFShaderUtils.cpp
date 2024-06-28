@@ -1,4 +1,6 @@
 #include "ShaderUtil/glTFShaderUtils.h"
+#define NOMINMAX
+
 #include <fstream>
 #include <sstream>
 
@@ -26,6 +28,7 @@ bool glTFShaderUtils::LoadShaderFile(const char* shaderFilePath, std::string& ou
     buffer << shaderFileStream.rdbuf();
 
     outShaderFileContent = buffer.str();
+	outShaderFileContent += '\0';
     
     return true;
 }
@@ -252,7 +255,7 @@ bool CompileShaderWithDXC(const glTFShaderUtils::ShaderCompileDesc& compile_desc
                 (void)snprintf(hash_string + i, 16, "%X", pHashBuf->HashDigest[i]);
             }
 
-            const auto last_slash = min(compile_desc.file_path.find_last_of('\\'), compile_desc.file_path.find_last_of('/'));
+            const auto last_slash = std::min(compile_desc.file_path.find_last_of('\\'), compile_desc.file_path.find_last_of('/'));
             output_shader_hash = std::string(compile_desc.file_path.c_str(), last_slash + 1) + std::string(hash_string);
         }
     }
@@ -273,6 +276,62 @@ bool CompileShaderWithDXC(const glTFShaderUtils::ShaderCompileDesc& compile_desc
     return true;
 }
 
+struct SpirvHelper
+{
+	static bool GLSLtoSPVExternal(const glTFShaderUtils::ShaderCompileDesc& compile_desc, std::vector<unsigned char> &spirv)
+	{
+		STARTUPINFO startup_info{};
+		PROCESS_INFORMATION process_information{};
+
+		std::string output_spv_file = compile_desc.file_path;
+		output_spv_file = output_spv_file.replace(compile_desc.file_path.find(".glsl"), 5, ".spv");
+		std::remove(output_spv_file.c_str());
+		
+		std::string shader_stage;
+		switch (compile_desc.shader_type) {
+		case glTFShaderUtils::ShaderType::ST_Vertex:
+			shader_stage = "vert";
+			break;
+		case glTFShaderUtils::ShaderType::ST_Fragment:
+			shader_stage = "frag";
+			break;
+		case glTFShaderUtils::ShaderType::ST_Compute:
+			shader_stage = "comp";
+			break;
+		case glTFShaderUtils::ShaderType::ST_Undefined:
+			shader_stage = "";
+			break;
+		}
+		
+		wchar_t executable_path[MAX_PATH];
+		wsprintf(executable_path, L"glslc.exe -fshader-stage=%hs %hs -o %hs", shader_stage.c_str(), compile_desc.file_path.c_str(), output_spv_file.c_str());
+		
+		wchar_t current_working_directory[MAX_PATH];
+		GetCurrentDirectory(MAX_PATH, current_working_directory);
+		
+		bool create = CreateProcess(0, executable_path, NULL, NULL, TRUE, NORMAL_PRIORITY_CLASS, NULL, current_working_directory, &startup_info, &process_information);
+		GLTF_CHECK(create);
+
+		WaitForSingleObject(process_information.hProcess, 100000000);
+		
+		// Loading spv file into binary array
+		std::ifstream spv_file(output_spv_file, std::ios::in | std::ios::binary | std::ios::ate);
+		GLTF_CHECK(spv_file.is_open());
+		auto size = spv_file.tellg();
+		spirv.resize(size);
+		spv_file.seekg(0, std::ios::beg);
+		spv_file.read((char*)spirv.data(), spirv.size());
+		spv_file.close();
+		
+		return true;
+	}
+};
+
+bool CompileShaderWithGLSL2SPIRV(const glTFShaderUtils::ShaderCompileDesc& compile_desc, std::vector<unsigned char>& out_binaries)
+{
+	return SpirvHelper::GLSLtoSPVExternal(compile_desc, out_binaries);
+}
+
 bool glTFShaderUtils::CompileShader(const ShaderCompileDesc& compile_desc, std::vector<unsigned char>& out_binaries )
 {
     if (compile_desc.file_path.empty())
@@ -281,6 +340,16 @@ bool glTFShaderUtils::CompileShader(const ShaderCompileDesc& compile_desc, std::
         return false;
     }
 
-    // Using DXC as default shader compiler
-    return CompileShaderWithDXC(compile_desc, out_binaries);
+    bool result = false;
+    switch (compile_desc.file_type) {
+    case ShaderFileType::SFT_HLSL:
+        result = CompileShaderWithDXC(compile_desc, out_binaries);
+        break;
+    case ShaderFileType::SFT_GLSL:
+        GLTF_CHECK(compile_desc.spirv);
+        result = CompileShaderWithGLSL2SPIRV(compile_desc, out_binaries);
+        break;
+    }
+    
+    return result;
 }
