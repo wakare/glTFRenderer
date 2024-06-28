@@ -37,7 +37,6 @@ struct Vertex {
 
 // holds the resources needed for a mesh
 struct GPUMeshBuffers {
-
     AllocatedBuffer indexBuffer;
     AllocatedBuffer vertexBuffer;
     VkDeviceAddress vertexBufferAddress;
@@ -89,6 +88,7 @@ protected:
     void CreateSwapChainAndRelativeResource();
     void CleanupSwapChain();
     void RecreateSwapChain();
+    void InitMeshBuffer();
     void InitGraphicsPipeline();
     void InitComputePipeline();
     void TransitionImage(VkCommandBuffer cmd, VkImage image, VkImageLayout old_layout, VkImageLayout new_layout);
@@ -125,7 +125,7 @@ protected:
     unsigned current_frame_real {0};
     bool window_resized {false};
     bool run_compute_test {true};
-    bool run_graphics_test {false};
+    bool run_graphics_test {true};
     bool init_render_pass {false};
 
     VmaAllocator vma_allocator {};
@@ -142,5 +142,6 @@ protected:
     VkFence _immFence{VK_NULL_HANDLE};
     VkCommandBuffer _immCommandBuffer{VK_NULL_HANDLE};
     VkCommandPool _immCommandPool{VK_NULL_HANDLE};
-    
+
+    GPUMeshBuffers mesh_buffers{};
 };

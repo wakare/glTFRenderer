@@ -13,6 +13,8 @@
 #include <string>
 
 #define VMA_IMPLEMENTATION
+#include <array>
+
 #include "vma/vk_mem_alloc.h"
 
 #include "ShaderUtil/glTFShaderUtils.h"
@@ -63,14 +65,6 @@ namespace VulkanEngineRequirements
             && device_features3.dynamicRendering == require_feature13.dynamicRendering;
     }
 }
-
-struct ConstantBufferData
-{
-    float data0[4];
-    float data1[4];
-    float data2[4];
-    float data3[4];
-};
 
 void DescriptorLayoutBuilder::add_binding(uint32_t binding, VkDescriptorType type)
 {
@@ -844,6 +838,8 @@ bool VulkanEngine::Init()
     VK_CHECK(vkAllocateCommandBuffers(logical_device, &cmd_allocator_info, &_immCommandBuffer));
 
     VK_CHECK(vkCreateFence(logical_device, &create_fence_info, nullptr, &_immFence));
+
+    InitMeshBuffer();
     
     return true;
 }
@@ -898,7 +894,13 @@ void VulkanEngine::RecordCommandBufferForDrawTestTriangle(VkCommandBuffer comman
     scissor.extent = swap_chain_extent;
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
-    vkCmdDraw(command_buffer, 3, 1, 0, 0);
+    GPUDrawPushConstants push_constants{};
+    push_constants.worldMatrix = glm::mat4{1.0f};
+    push_constants.vertexBuffer = mesh_buffers.vertexBufferAddress;
+    vkCmdPushConstants(command_buffer, pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0 ,sizeof(GPUDrawPushConstants), &push_constants);
+    vkCmdBindIndexBuffer(command_buffer, mesh_buffers.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+    
+    vkCmdDrawIndexed(command_buffer, 6, 1, 0, 0, 0);
     
     if (init_render_pass)
     {
@@ -922,12 +924,6 @@ void VulkanEngine::RecordCommandBufferForDynamicRendering(VkCommandBuffer comman
     vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute_pipeline);
     vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, _gradientPipelineLayout, 0, 1, &_drawImageDescriptors, 0, nullptr);
 
-    ConstantBufferData constant_buffer_data;
-    constant_buffer_data.data0[0] = 1.0f;
-    constant_buffer_data.data0[1] = 0.0f;
-    constant_buffer_data.data0[2] = flash;
-
-    vkCmdPushConstants(command_buffer, _gradientPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0 ,sizeof(ConstantBufferData), &constant_buffer_data);
     vkCmdDispatch(command_buffer, std::ceil(swap_chain_extent.width / 16.0f), std::ceil(swap_chain_extent.height / 16.0f), 1);
 }
 
@@ -1195,28 +1191,59 @@ void VulkanEngine::RecreateSwapChain()
     CreateSwapChainAndRelativeResource();
 }
 
+void VulkanEngine::InitMeshBuffer()
+{
+    std::array<Vertex,4> rect_vertices;
+
+    rect_vertices[0].position = {0.5,-0.5, 0};
+    rect_vertices[1].position = {0.5,0.5, 0};
+    rect_vertices[2].position = {-0.5,-0.5, 0};
+    rect_vertices[3].position = {-0.5,0.5, 0};
+
+    rect_vertices[0].color = {0,0, 0,1};
+    rect_vertices[1].color = { 0.5,0.5,0.5 ,1};
+    rect_vertices[2].color = { 1,0, 0,1 };
+    rect_vertices[3].color = { 0,1, 0,1 };
+
+    std::array<uint32_t,6> rect_indices;
+
+    rect_indices[0] = 0;
+    rect_indices[1] = 1;
+    rect_indices[2] = 2;
+
+    rect_indices[3] = 2;
+    rect_indices[4] = 1;
+    rect_indices[5] = 3;
+
+    mesh_buffers = UploadMesh(rect_indices,rect_vertices);
+}
+
 void VulkanEngine::InitGraphicsPipeline()
 {
     // Create shader module
     std::vector<unsigned char> vertex_shader_binaries;
     glTFShaderUtils::ShaderCompileDesc vertex_shader_compile_desc
     {
-        "glTFResources/ShaderSource/TestShaders/TestTriangleVert.hlsl",
+        "glTFResources/ShaderSource/GLSL/BufferRefVert.glsl",
         glTFShaderUtils::GetShaderCompileTarget(RHIShaderType::Vertex),
         "main",
         {},
-        true
+        true,
+        glTFShaderUtils::ShaderFileType::SFT_GLSL,
+        glTFShaderUtils::ShaderType::ST_Vertex
     };
     glTFShaderUtils::CompileShader(vertex_shader_compile_desc, vertex_shader_binaries);
 
     std::vector<unsigned char> fragment_shader_binaries;
     glTFShaderUtils::ShaderCompileDesc fragment_shader_compile_desc
     {
-        "glTFResources/ShaderSource/TestShaders/TestTriangleFrag.hlsl",
+        "glTFResources/ShaderSource/GLSL/SimpleFragShader.glsl",
         glTFShaderUtils::GetShaderCompileTarget(RHIShaderType::Pixel),
         "main",
         {},
-        true
+        true,
+        glTFShaderUtils::ShaderFileType::SFT_GLSL,
+        glTFShaderUtils::ShaderType::ST_Fragment
     };
     glTFShaderUtils::CompileShader(fragment_shader_compile_desc, fragment_shader_binaries);
 
@@ -1330,6 +1357,14 @@ void VulkanEngine::InitGraphicsPipeline()
     create_pipeline_layout_info.pushConstantRangeCount = 0;
     create_pipeline_layout_info.pPushConstantRanges = nullptr;
 
+    VkPushConstantRange push_constant_range;
+    push_constant_range.offset = 0;
+    push_constant_range.size = sizeof(GPUDrawPushConstants);
+    push_constant_range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+    create_pipeline_layout_info.pPushConstantRanges = &push_constant_range;
+    create_pipeline_layout_info.pushConstantRangeCount = 1;
+
     VkResult result = vkCreatePipelineLayout(logical_device, &create_pipeline_layout_info, nullptr, &pipeline_layout);
     GLTF_CHECK(result == VK_SUCCESS);
 
@@ -1375,14 +1410,6 @@ void VulkanEngine::InitComputePipeline()
     computeLayout.pNext = nullptr;
     computeLayout.pSetLayouts = &_drawImageDescriptorLayout;
     computeLayout.setLayoutCount = 1;
-
-    VkPushConstantRange push_constant_range;
-    push_constant_range.offset = 0;
-    push_constant_range.size = sizeof(ConstantBufferData);
-    push_constant_range.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-
-    computeLayout.pPushConstantRanges = &push_constant_range;
-    computeLayout.pushConstantRangeCount = 1;
     
     VK_CHECK(vkCreatePipelineLayout(logical_device, &computeLayout, nullptr, &_gradientPipelineLayout));
     
@@ -1455,6 +1482,9 @@ bool VulkanEngine::UnInit()
     vkDestroyCommandPool(logical_device, command_pool, nullptr);
 
     CleanupSwapChain();
+
+    DestroyBuffer(mesh_buffers.vertexBuffer);
+    DestroyBuffer(mesh_buffers.indexBuffer);
     
     vmaDestroyAllocator(vma_allocator);
 

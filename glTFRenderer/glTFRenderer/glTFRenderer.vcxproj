@@ -472,6 +472,7 @@
     <None Include="glTFResources\ShaderSource\GLSL\SimpleFragShader.glsl" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="glTFResources\ShaderSource\GLSL\BufferRefVert.glsl" />
     <Content Include="glTFResources\ShaderSource\GLSL\SimpleComputeShader.glsl" />
     <Content Include="glTFResources\ShaderSource\GLSL\SimpleVertShader.glsl" />
   </ItemGroup>
