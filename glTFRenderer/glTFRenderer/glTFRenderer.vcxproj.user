@@ -5,6 +5,7 @@
     <LocalDebuggerCommandArguments>scene=D:\Work\DevSpace\glTFRenderer\glTFRenderer\glTFRenderer\glTFRenderer\glTFResources\Models\Sponza\glTF\Sponza.glTF</LocalDebuggerCommandArguments>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LocalDebuggerCommandArguments>raytracing</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>scene=D:\Work\DevSpace\glTFRenderer\glTFRenderer\glTFRenderer\glTFRenderer\glTFResources\Models\Sponza\glTF\Sponza.glTF</LocalDebuggerCommandArguments>
+    <LocalDebuggerWorkingDirectory>D:\Work\DevSpace\glTFRenderer\glTFRenderer\glTFRenderer\x64\Release</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
 </Project>
