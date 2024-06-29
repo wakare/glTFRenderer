@@ -3,7 +3,7 @@
 #include "glTFRenderInterface/glTFRenderInterfaceSceneMaterial.h"
 #include "glTFRHI/RHIUtils.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
-#include "glTFUtils/glTFImageLoader.h"
+#include "RendererCommon.h"
 #include "glTFRenderPass/glTFRenderPassManager.h"
 
 glTFMaterialTextureRenderResource::glTFMaterialTextureRenderResource(const glTFMaterialParameterTexture& source_texture)

@@ -1,5 +1,5 @@
 #pragma once
-#include "glTFUtils/glTFUtils.h"
+#include "RendererCommon.h"
 
 enum glTFPassOptionFlags
 {

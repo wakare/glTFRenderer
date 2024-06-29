@@ -3,7 +3,7 @@
 
 #include "glTFRenderPass/glTFRenderMeshManager.h"
 #include "glTFRHI/RHIInterface/IRHIRayTracingAS.h"
-#include "glTFUtils/glTFUtils.h"
+#include "RendererCommon.h"
 
 class DX12RayTracingAS : public IRHIRayTracingAS
 {

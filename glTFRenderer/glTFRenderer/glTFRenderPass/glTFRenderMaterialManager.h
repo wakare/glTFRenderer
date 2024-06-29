@@ -7,7 +7,7 @@
 #include "glTFMaterial/glTFMaterialParameterFactor.h"
 #include "glTFRenderInterface/glTFRenderInterfaceSceneMaterial.h"
 #include "glTFRHI/RHIInterface/IRHITexture.h"
-#include "glTFUtils/glTFUtils.h"
+#include "RendererCommon.h"
 
 enum class glTFMaterialParameterUsage;
 class glTFMaterialBase;

@@ -2,7 +2,7 @@
 #include <memory>
 #include <vector>
 
-#include "glTFUtils/glTFUtils.h"
+#include "RendererCommon.h"
 #include "glTFRenderMeshManager.h"
 #include "glTFRenderResourceFrameManager.h"
 #include "glTFApp/glTFRadiosityRenderer.h"

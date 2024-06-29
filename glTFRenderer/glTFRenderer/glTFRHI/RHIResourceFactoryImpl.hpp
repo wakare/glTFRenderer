@@ -48,6 +48,7 @@
 #include "RHIDX12Impl/Dx12RenderPass.h"
 
 // VK implements
+#include "RHIDX12Impl/DX12Shader.h"
 #include "RHIVKImpl/VulkanUtils.h"
 
 #include "RHIVKImpl/VKCommandList.h"

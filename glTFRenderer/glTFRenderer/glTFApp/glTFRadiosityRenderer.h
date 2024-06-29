@@ -1,7 +1,7 @@
 #pragma once
 
 #include "glTFScene/glTFSceneTriangleMesh.h"
-#include "glTFUtils/glTFUtils.h"
+#include "RendererCommon.h"
 #include <embree3/rtcore.h>
 
 struct MeshInstanceFormFactorData

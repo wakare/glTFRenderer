@@ -1,13 +1,12 @@
 #include "glTFGraphicsPassMeshOpaque.h"
 
 #include "glTFRenderPass/glTFRenderMaterialManager.h"
-#include "glTFMaterial/glTFMaterialOpaque.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceRadiosityScene.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSampler.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneMaterial.h"
 #include "glTFRHI/RHIUtils.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
-#include "glTFUtils/glTFImageLoader.h"
+#include "SceneFileLoader/glTFImageLoader.h"
 
 glTFGraphicsPassMeshOpaque::glTFGraphicsPassMeshOpaque()
     : m_base_pass_color_render_target(nullptr)

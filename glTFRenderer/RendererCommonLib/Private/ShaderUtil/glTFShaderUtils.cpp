@@ -1,5 +1,8 @@
 #include "ShaderUtil/glTFShaderUtils.h"
+
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
 
 #include <fstream>
 #include <sstream>
@@ -285,7 +288,7 @@ struct SpirvHelper
 
 		std::string output_spv_file = compile_desc.file_path;
 		output_spv_file = output_spv_file.replace(compile_desc.file_path.find(".glsl"), 5, ".spv");
-		std::remove(output_spv_file.c_str());
+		(void)std::remove(output_spv_file.c_str());
 		
 		std::string shader_stage;
 		switch (compile_desc.shader_type) {
@@ -341,7 +344,8 @@ bool glTFShaderUtils::CompileShader(const ShaderCompileDesc& compile_desc, std::
     }
 
     bool result = false;
-    switch (compile_desc.file_type) {
+    switch (compile_desc.file_type)
+    {
     case ShaderFileType::SFT_HLSL:
         result = CompileShaderWithDXC(compile_desc, out_binaries);
         break;

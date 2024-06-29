@@ -1,6 +1,6 @@
 #pragma once
 #include "glTFMaterialCommon.h"
-#include "../glTFUtils/glTFUtils.h"
+#include "RendererCommon.h"
 
 // Material parameter may be factor or texture
 class glTFMaterialParameterBase : public glTFUniqueObject<glTFMaterialParameterBase>

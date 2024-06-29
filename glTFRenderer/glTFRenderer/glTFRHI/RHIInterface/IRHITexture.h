@@ -2,7 +2,6 @@
 
 #include "IRHIDevice.h"
 #include "IRHIResource.h"
-#include <memory>
 
 class IRHIGPUBuffer;
 class IRHICommandList;

@@ -1,10 +1,12 @@
 #pragma once
 #include <cassert>
 #include <map>
+#include <wincodec.h>
 
-#include "glTFUtils/glTFUtils.h"
+#include "RendererCommon.h"
 #include "glm.hpp"
 
+struct ImageLoadResult;
 typedef uint64_t RHIGPUDescriptorHandle;
 typedef uint64_t RHICPUDescriptorHandle;
 typedef unsigned RTID;
@@ -176,6 +178,7 @@ struct RHIShaderResourceViewDesc
     bool use_count_buffer;
     unsigned count_buffer_offset;
 };
+
 struct RHITextureDesc
 {
 public:
@@ -186,7 +189,7 @@ public:
     RHITextureDesc& operator=(const RHITextureDesc&) = delete;
     RHITextureDesc& operator=(RHITextureDesc&&) = delete;
     
-    bool Init(unsigned width, unsigned height, RHIDataFormat format);
+    bool Init(const ImageLoadResult& image_load_result);
     
     unsigned char* GetTextureData() const { return m_texture_data.get(); }
     size_t GetTextureDataSize() const { return m_texture_data_size; }
@@ -195,7 +198,8 @@ public:
     unsigned GetTextureHeight() const { return m_texture_height; }
 
     void SetDataFormat(RHIDataFormat format) { m_texture_format = format;}
-    
+    static RHIDataFormat ConvertToRHIDataFormat(const WICPixelFormatGUID& wicFormatGUID);
+
 private:
     std::unique_ptr<unsigned char[]> m_texture_data;
     size_t m_texture_data_size;

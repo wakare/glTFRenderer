@@ -1,7 +1,7 @@
 #include "IRHIRootSignatureHelper.h"
 
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
-#include "glTFUtils/glTFUtils.h"
+#include "RendererCommon.h"
 
 bool IRHIRootSignatureHelper::AddRootParameterWithRegisterCount(const std::string& parameter_name, RHIRootParameterType type,
                                                                 unsigned register_count, unsigned constant_value, RHIRootParameterDescriptorRangeType table_type, bool is_bindless, RootSignatureAllocation& out_allocation)

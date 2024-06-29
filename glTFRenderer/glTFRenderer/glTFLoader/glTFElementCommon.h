@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "glm.hpp"
-#include "glTFUtils/glTFUtils.h"
+#include "RendererCommon.h"
 
 enum glTF_Element_Type
 {

@@ -54,8 +54,8 @@ const std::vector<unsigned char>& IRHIShader::GetShaderByteCode() const
     return m_shader_byte_code;
 }
 
-bool IRHIShader::LoadShader(const std::string& shaderFilePath)
+bool IRHIShader::LoadShader(const std::string& shader_file_path)
 {
-    m_shaderFilePath = shaderFilePath;
-    return glTFShaderUtils::LoadShaderFile(shaderFilePath.c_str(), m_shader_content);
+    m_shaderFilePath = shader_file_path;
+    return glTFShaderUtils::LoadShaderFile(shader_file_path.c_str(), m_shader_content);
 }

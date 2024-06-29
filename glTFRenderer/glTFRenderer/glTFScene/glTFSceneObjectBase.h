@@ -5,7 +5,7 @@
 #include <glm/glm/gtx/matrix_decompose.hpp>
 
 #include "glTFAABB.h"
-#include "glTFUtils/glTFUtils.h"
+#include "RendererCommon.h"
 #include "glTFLoader/glTFElementCommon.h"
 
 struct glTF_Transform_WithTRS : public glTF_Transform

@@ -2,9 +2,8 @@
 #include "DX12Common.h"
 #include <map>
 
-#include "DX12Shader.h"
-#include "../RHIInterface/IRHIPipelineStateObject.h"
-#include "glTFUtils/glTFUtils.h"
+#include "glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
+#include "RendererCommon.h"
 
 class IDX12PipelineStateObjectCommon
 {

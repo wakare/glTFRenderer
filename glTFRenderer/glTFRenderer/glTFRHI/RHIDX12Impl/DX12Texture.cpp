@@ -2,8 +2,7 @@
 #include "DX12Device.h"
 #include "glTFRHI/RHIResourceFactory.h"
 #include "glTFRHI/RHIUtils.h"
-#include "glTFUtils/glTFImageLoader.h"
-#include "glTFUtils/glTFUtils.h"
+#include "SceneFileLoader/glTFImageLoader.h"
 
 DX12Texture::DX12Texture()
 = default;
@@ -14,7 +13,9 @@ DX12Texture::~DX12Texture()
 bool DX12Texture::UploadTextureFromFile(IRHIDevice& device, IRHICommandList& commandList, const std::string& filePath, bool srgb)
 {
     const std::wstring convertPath = to_wide_string(filePath);
-    RETURN_IF_FALSE(glTFImageLoader::Instance().LoadImageByFilename(convertPath.c_str(), m_textureDesc))
+    ImageLoadResult result;
+    RETURN_IF_FALSE(glTFImageLoader::Instance().LoadImageByFilename(convertPath.c_str(), result))
+    m_textureDesc.Init(result);
 
     // Handle srgb case
     if (srgb)
