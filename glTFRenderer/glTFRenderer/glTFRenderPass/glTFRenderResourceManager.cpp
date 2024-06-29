@@ -121,7 +121,7 @@ bool glTFRenderResourceManager::InitScene(const glTFSceneGraph& scene_graph)
     GetMeshManager().ResolveVertexInputLayout(resolved_vertex_layout);
     
     GLTF_CHECK(GetMeshManager().BuildMeshRenderResource(*this));
-    m_radiosity_renderer->InitScene(scene_graph);
+    //m_radiosity_renderer->InitScene(scene_graph);
     
     return true;
 }
