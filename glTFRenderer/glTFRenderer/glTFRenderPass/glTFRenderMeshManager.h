@@ -1,6 +1,7 @@
 #pragma once
 #include "glTFMeshRenderResource.h"
 #include "glTFRHI/RHIInterface/IRHICommandSignature.h"
+#include "glTFRHI/RHIInterface/IRHIMemoryManager.h"
 #include "glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
 
 class glTFRenderResourceManager;
@@ -127,8 +128,8 @@ public:
     MeshInstanceInputLayout GetInstanceInputLayout() const {return m_instance_input_layout; }
 
     const std::vector<MeshIndirectDrawCommand>& GetIndirectDrawCommands() const {return m_indirect_arguments; }
-    std::shared_ptr<IRHIGPUBuffer> GetIndirectArgumentBuffer() const {return m_indirect_argument_buffer; }
-    std::shared_ptr<IRHIGPUBuffer> GetCulledIndirectArgumentBuffer() const {return m_culled_indirect_commands; }
+    std::shared_ptr<IRHIBuffer> GetIndirectArgumentBuffer() const {return m_indirect_argument_buffer->m_buffer; }
+    std::shared_ptr<IRHIBuffer> GetCulledIndirectArgumentBuffer() const {return m_culled_indirect_commands->m_buffer; }
     unsigned GetCulledIndirectArgumentBufferCountOffset() const {return m_culled_indirect_command_count_offset; }
 
     const std::vector<MeshInstanceInputData>& GetInstanceBufferData() const {return m_instance_data; }
@@ -148,9 +149,9 @@ protected:
     MeshInstanceInputLayout m_instance_input_layout;
 
     std::vector<MeshIndirectDrawCommand> m_indirect_arguments;
-    std::shared_ptr<IRHIGPUBuffer> m_indirect_argument_buffer;
+    std::shared_ptr<IRHIBufferAllocation> m_indirect_argument_buffer;
 
-    std::shared_ptr<IRHIGPUBuffer> m_culled_indirect_commands;
+    std::shared_ptr<IRHIBufferAllocation> m_culled_indirect_commands;
     unsigned m_culled_indirect_command_count_offset;
     
     // mesh id -- <instance count, instance start offset>

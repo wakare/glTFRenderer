@@ -83,7 +83,7 @@ public:
 protected:
     void ImmediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function);
     void RecordCommandBufferForDrawTestTriangle(VkCommandBuffer command_buffer, unsigned image_index);
-    void RecordCommandBufferForDynamicRendering(VkCommandBuffer command_buffer, unsigned image_index);
+    void RecordCommandBufferForDynamicRendering(VkCommandBuffer command_buffer);
     void DrawFrame();
     void CreateSwapChainAndRelativeResource();
     void CleanupSwapChain();

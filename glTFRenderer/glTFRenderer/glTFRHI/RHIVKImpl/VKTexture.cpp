@@ -8,7 +8,7 @@ bool VKTexture::UploadTextureFromFile(IRHIDevice& device, IRHICommandList& comma
     return true;
 }
 
-IRHIGPUBuffer& VKTexture::GetGPUBuffer()
+IRHIBuffer& VKTexture::GetGPUBuffer()
 {
     static VKGPUBuffer temp;
     return temp;

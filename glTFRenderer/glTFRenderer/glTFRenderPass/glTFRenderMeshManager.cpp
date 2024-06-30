@@ -143,20 +143,37 @@ bool glTFRenderMeshManager::BuildMeshRenderResource(glTFRenderResourceManager& r
         m_indirect_arguments.push_back(command);
     }
 
-    m_indirect_argument_buffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
-    const RHIBufferDesc indirect_arguments_buffer_desc = {L"indirect_arguments_buffer", 1024ull * 64,
-    1, 1, RHIBufferType::Upload, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
-        
-    RETURN_IF_FALSE(m_indirect_argument_buffer->InitGPUBuffer(resource_manager.GetDevice(), indirect_arguments_buffer_desc ))
-    RETURN_IF_FALSE(m_indirect_argument_buffer->UploadBufferFromCPU(m_indirect_arguments.data(), 0, m_indirect_arguments.size() * sizeof(MeshIndirectDrawCommand)))
-    
-    m_culled_indirect_commands = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
-    m_culled_indirect_command_count_offset = RHIUtils::Instance().GetAlignmentSizeForUAVCount(1024ull * 64);
-    
-    const RHIBufferDesc culled_indirect_arguments_buffer_desc = {L"culled_indirect_arguments_buffer", GetCulledIndirectArgumentBufferCountOffset() + /*count buffer*/sizeof(unsigned),
-1, 1, RHIBufferType::Default, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer, RHIResourceStateType::STATE_COPY_DEST, RHIBufferUsage::ALLOW_UNORDER_ACCESS};
-    m_culled_indirect_commands->InitGPUBuffer(resource_manager.GetDevice(), culled_indirect_arguments_buffer_desc);
+    glTFRenderResourceManager::GetMemoryManager().AllocateBufferMemory(
+        glTFRenderResourceManager::GetDevice(),
+    {
+        L"indirect_arguments_buffer",
+        1024ull * 64,
+        1,
+        1,
+        RHIBufferType::Upload,
+        RHIDataFormat::Unknown,
+        RHIBufferResourceType::Buffer},
+        m_indirect_argument_buffer);
 
+    glTFRenderResourceManager::GetMemoryManager().UploadBufferData(*m_indirect_argument_buffer, m_indirect_arguments.data(), 0, m_indirect_arguments.size() * sizeof(MeshIndirectDrawCommand));
+
+    m_culled_indirect_command_count_offset = RHIUtils::Instance().GetAlignmentSizeForUAVCount(1024ull * 64);
+    glTFRenderResourceManager::GetMemoryManager().AllocateBufferMemory(
+    resource_manager.GetDevice(), 
+    {
+        L"culled_indirect_arguments_buffer",
+        GetCulledIndirectArgumentBufferCountOffset() + /*count buffer*/sizeof(unsigned),
+        1,
+        1,
+        RHIBufferType::Default,
+        RHIDataFormat::Unknown,
+        RHIBufferResourceType::Buffer,
+        RHIResourceStateType::STATE_COPY_DEST,
+        RHIBufferUsage::ALLOW_UNORDER_ACCESS
+    },
+    m_culled_indirect_commands
+    );
+    
     return true;
 }
 

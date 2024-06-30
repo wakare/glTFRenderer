@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "glTFRHI/RHIInterface/IRHIShaderTable.h"
 #include "DX12Common.h"
-#include "DX12GPUBuffer.h"
+#include "glTFRHI/RHIInterface/IRHIMemoryManager.h"
 
 class DX12ShaderTable : public IRHIShaderTable
 {
@@ -18,9 +18,9 @@ public:
     size_t GetHitGroupStride() const {return m_hit_group_shader_table_stride; }
     
 protected:
-    std::shared_ptr<DX12GPUBuffer> m_missShaderTable;
-    std::shared_ptr<DX12GPUBuffer> m_hitGroupShaderTable;
-    std::shared_ptr<DX12GPUBuffer> m_rayGenShaderTable;
+    std::shared_ptr<IRHIBufferAllocation> m_missShaderTable;
+    std::shared_ptr<IRHIBufferAllocation> m_hitGroupShaderTable;
+    std::shared_ptr<IRHIBufferAllocation> m_rayGenShaderTable;
 
     size_t m_raygen_shader_table_stride;
     size_t m_miss_shader_table_stride;

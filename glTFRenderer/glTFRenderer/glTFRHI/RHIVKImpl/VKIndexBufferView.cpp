@@ -1,6 +1,6 @@
 #include "VKIndexBufferView.h"
 
-bool VKIndexBufferView::InitIndexBufferView(IRHIGPUBuffer& buffer, size_t offset, RHIDataFormat indexFormat,
+bool VKIndexBufferView::InitIndexBufferView(IRHIBuffer& buffer, size_t offset, RHIDataFormat indexFormat,
     size_t indexBufferSize)
 {
     return true;

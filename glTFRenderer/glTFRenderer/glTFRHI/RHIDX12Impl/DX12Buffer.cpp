@@ -1,4 +1,4 @@
-#include "DX12GPUBuffer.h"
+#include "DX12Buffer.h"
 
 #include <cassert>
 
@@ -8,16 +8,9 @@
 
 #include "DX12ConverterUtils.h"
 #include "DX12Device.h"
-#include "DX12GPUBufferManager.h"
+#include "DX12MemoryManager.h"
 
-DX12GPUBuffer::DX12GPUBuffer()
-    : m_buffer(nullptr)
-    , m_mapped_gpu_buffer(nullptr)
-    , m_map_range()
-{
-}
-
-DX12GPUBuffer::~DX12GPUBuffer()
+DX12Buffer::~DX12Buffer()
 {
     if (m_mapped_gpu_buffer)
     {
@@ -28,7 +21,7 @@ DX12GPUBuffer::~DX12GPUBuffer()
     SAFE_RELEASE(m_buffer)
 }
 
-bool DX12GPUBuffer::InitGPUBuffer(IRHIDevice& device, const RHIBufferDesc& desc)
+bool DX12Buffer::InitGPUBuffer(IRHIDevice& device, const RHIBufferDesc& desc)
 {
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
 
@@ -84,7 +77,7 @@ bool DX12GPUBuffer::InitGPUBuffer(IRHIDevice& device, const RHIBufferDesc& desc)
     return true;
 }
 
-bool DX12GPUBuffer::UploadBufferFromCPU(const void* data, size_t dataOffset, size_t size)
+bool DX12Buffer::UploadBufferFromCPU(const void* data, size_t dataOffset, size_t size)
 {
     if (!m_mapped_gpu_buffer)
     {
@@ -103,7 +96,7 @@ bool DX12GPUBuffer::UploadBufferFromCPU(const void* data, size_t dataOffset, siz
     return true;
 }
 
-GPU_BUFFER_HANDLE_TYPE DX12GPUBuffer::GetGPUBufferHandle()
+GPU_BUFFER_HANDLE_TYPE DX12Buffer::GetGPUBufferHandle()
 {
     return m_buffer->GetGPUVirtualAddress();
 }

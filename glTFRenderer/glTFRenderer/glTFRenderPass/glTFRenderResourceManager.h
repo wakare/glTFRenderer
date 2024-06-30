@@ -12,6 +12,8 @@
 #include "glTFRHI/RHIInterface/IRHIRenderTarget.h"
 #include "glTFRHI/RHIInterface/IRHISwapChain.h"
 #include "glTFRHI/RHIInterface/IRHIDescriptorHeap.h"
+#include "glTFRHI/RHIInterface/IRHIMemoryAllocator.h"
+#include "glTFRHI/RHIInterface/IRHIMemoryManager.h"
 #include "glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
 
 class IRHIFrameBuffer;
@@ -26,11 +28,16 @@ public:
     
     bool InitResourceManager(unsigned width, unsigned height, HWND handle);
     bool InitScene(const glTFSceneGraph& scene_graph);
-    
-    IRHIFactory& GetFactory();
-    IRHIDevice& GetDevice();
-    IRHISwapChain& GetSwapChain();
+
+    static IRHIFactory& GetFactory();
+    static IRHIDevice& GetDevice();
+    static IRHISwapChain& GetSwapChain();
     static IRHICommandQueue& GetCommandQueue();
+    static IRHIMemoryAllocator& GetMemoryAllocator();
+    static IRHIMemoryManager& GetMemoryManager();
+    
+    static unsigned GetCurrentBackBufferIndex();
+    
     IRHICommandList& GetCommandListForRecord();
     void CloseCommandListAndExecute(bool wait);
 
@@ -43,8 +50,6 @@ public:
     
     IRHIRenderTarget& GetCurrentFrameSwapChainRT();
     IRHIRenderTarget& GetDepthRT();
-
-    static unsigned GetCurrentBackBufferIndex() { return m_swap_chain->GetCurrentBackBufferIndex(); }
 
 	glTFRenderMaterialManager& GetMaterialManager();
     glTFRenderMeshManager& GetMeshManager();
@@ -73,6 +78,8 @@ private:
     static std::shared_ptr<IRHIDevice> m_device;
     static std::shared_ptr<IRHICommandQueue> m_command_queue;
     static std::shared_ptr<IRHISwapChain> m_swap_chain;
+    static std::shared_ptr<IRHIMemoryAllocator> m_memory_allocator;
+    static std::shared_ptr<IRHIMemoryManager> m_memory_manager;
     
     std::vector<std::shared_ptr<IRHICommandAllocator>> m_command_allocators;
     std::vector<std::shared_ptr<IRHICommandList>> m_command_lists;

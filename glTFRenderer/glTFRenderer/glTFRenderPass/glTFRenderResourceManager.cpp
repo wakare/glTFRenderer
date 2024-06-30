@@ -13,6 +13,8 @@ std::shared_ptr<IRHIFactory> glTFRenderResourceManager::m_factory = nullptr;
 std::shared_ptr<IRHIDevice> glTFRenderResourceManager::m_device = nullptr;
 std::shared_ptr<IRHICommandQueue> glTFRenderResourceManager::m_command_queue = nullptr;
 std::shared_ptr<IRHISwapChain> glTFRenderResourceManager::m_swap_chain = nullptr;
+std::shared_ptr<IRHIMemoryAllocator> glTFRenderResourceManager::m_memory_allocator = nullptr;
+std::shared_ptr<IRHIMemoryManager> glTFRenderResourceManager::m_memory_manager = nullptr;
 
 glTFRenderResourceManager::glTFRenderResourceManager()
     : m_radiosity_renderer(std::make_shared<glTFRadiosityRenderer>())
@@ -46,6 +48,18 @@ bool glTFRenderResourceManager::InitResourceManager(unsigned width, unsigned hei
     {
         m_swap_chain = RHIResourceFactory::CreateRHIResource<IRHISwapChain>();
         EXIT_WHEN_FALSE(m_swap_chain->InitSwapChain(*m_factory, *m_device, *m_command_queue, width, height, false, handle))    
+    }
+
+    if (!m_memory_allocator)
+    {
+        m_memory_allocator = RHIResourceFactory::CreateRHIResource<IRHIMemoryAllocator>();
+        EXIT_WHEN_FALSE(m_memory_allocator->InitMemoryAllocator(*m_factory, *m_device))
+    }
+
+    if (!m_memory_manager)
+    {
+        m_memory_manager = RHIResourceFactory::CreateRHIResource<IRHIMemoryManager>();
+        EXIT_WHEN_FALSE(m_memory_manager->InitMemoryManager(*m_device, m_memory_allocator, 64))
     }
     
     m_command_allocators.resize(backBufferCount);
@@ -146,6 +160,16 @@ IRHICommandQueue& glTFRenderResourceManager::GetCommandQueue()
     return *m_command_queue;
 }
 
+IRHIMemoryAllocator& glTFRenderResourceManager::GetMemoryAllocator()
+{
+    return *m_memory_allocator;
+}
+
+IRHIMemoryManager& glTFRenderResourceManager::GetMemoryManager()
+{
+    return *m_memory_manager;
+}
+
 IRHICommandList& glTFRenderResourceManager::GetCommandListForRecord()
 {
     const auto current_frame_index = GetCurrentBackBufferIndex() % backBufferCount;
@@ -220,6 +244,11 @@ IRHIRenderTarget& glTFRenderResourceManager::GetCurrentFrameSwapChainRT()
 IRHIRenderTarget& glTFRenderResourceManager::GetDepthRT()
 {
     return *m_depth_texture;
+}
+
+unsigned glTFRenderResourceManager::GetCurrentBackBufferIndex()
+{
+    return m_swap_chain->GetCurrentBackBufferIndex();
 }
 
 glTFRenderMaterialManager& glTFRenderResourceManager::GetMaterialManager()

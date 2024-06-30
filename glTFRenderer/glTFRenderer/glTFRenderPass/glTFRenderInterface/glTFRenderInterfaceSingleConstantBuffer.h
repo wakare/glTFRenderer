@@ -22,12 +22,12 @@ public:
     
     virtual bool UploadCPUBuffer(const void* data, size_t offset, size_t size) override
     {
-        return m_constant_gpu_data->UploadBufferFromCPU(data, GetDataOffsetWithAlignment(offset), size);
+        return glTFRenderResourceManager::GetMemoryManager().UploadBufferData(*m_constant_gpu_data, data, GetDataOffsetWithAlignment(offset), size);
     }
 
     RHIGPUDescriptorHandle GetGPUHandle(unsigned offset) const
     {
-        return m_constant_gpu_data->GetGPUBufferHandle() + GetDataOffsetWithAlignment(offset);
+        return m_constant_gpu_data->m_buffer->GetGPUBufferHandle() + GetDataOffsetWithAlignment(offset);
     }
 
     size_t GetDataOffsetWithAlignment(unsigned index) const
@@ -40,18 +40,18 @@ public:
 protected:
     virtual bool InitInterfaceImpl(glTFRenderResourceManager& resource_manager) override
     {
-        m_constant_gpu_data = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
-        RETURN_IF_FALSE(m_constant_gpu_data->InitGPUBuffer(resource_manager.GetDevice(),
-            {
-                L"GPUBuffer_SingleConstantBuffer",
-                max_buffer_size,
-                1,
-                1,
-                RHIBufferType::Upload,
-                RHIDataFormat::Unknown,
-                RHIBufferResourceType::Buffer
-            }))
-    
+        glTFRenderResourceManager::GetMemoryManager().AllocateBufferMemory(
+        resource_manager.GetDevice(),
+        {
+            L"GPUBuffer_SingleConstantBuffer",
+            max_buffer_size,
+            1,
+            1,
+            RHIBufferType::Upload,
+            RHIDataFormat::Unknown,
+            RHIBufferResourceType::Buffer
+        }, m_constant_gpu_data);
+        
         return true;
     }
     
@@ -62,7 +62,7 @@ protected:
 
     bool ApplyInterfaceWithOffset(glTFRenderResourceManager& resource_manager, unsigned index, bool is_graphics_pipeline) const
     {
-        const RHIGPUDescriptorHandle current_update_handle = m_constant_gpu_data->GetGPUBufferHandle() + GetDataOffsetWithAlignment(index);
+        const RHIGPUDescriptorHandle current_update_handle = m_constant_gpu_data->m_buffer->GetGPUBufferHandle() + GetDataOffsetWithAlignment(index);
         RETURN_IF_FALSE(RHIUtils::Instance().SetCBVToRootParameterSlot(resource_manager.GetCommandListForRecord(),
         m_allocation.parameter_index, current_update_handle, is_graphics_pipeline))
     
@@ -83,5 +83,5 @@ protected:
         out_shader_pre_define_macros.AddMacro(ConstantBufferType::Name, registerIndexValue);
     }
     
-    std::shared_ptr<IRHIGPUBuffer> m_constant_gpu_data;
+    std::shared_ptr<IRHIBufferAllocation> m_constant_gpu_data;
 };

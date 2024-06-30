@@ -129,10 +129,13 @@ typedef unsigned glTFUniqueID;
     ClassName& operator=(const ClassName&) = delete;\
     ClassName& operator=(ClassName&&) = delete;
 
-#define DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(ClassName)\
+#define DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR(ClassName)\
     ClassName() = default;\
-    virtual ~ClassName() = default;\
     DECLARE_NON_COPYABLE(ClassName)
+
+#define DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(ClassName)\
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR(ClassName)\
+    virtual ~ClassName() = default;
 
 //#define ALIGN_FOR_CBV_STRUCT __declspec(align(16))
 #define ALIGN_FOR_CBV_STRUCT

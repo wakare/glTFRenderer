@@ -11,7 +11,7 @@
 #include "DX12DescriptorHeap.h"
 #include "DX12Device.h"
 #include "DX12Fence.h"
-#include "DX12GPUBuffer.h"
+#include "DX12Buffer.h"
 #include "DX12IndexBufferView.h"
 #include "DX12PipelineStateObject.h"
 #include "DX12RenderTarget.h"
@@ -20,7 +20,7 @@
 #include "DX12SwapChain.h"
 #include "DX12VertexBufferView.h"
 #include "glTFRHI/RHIInterface/IRHIFence.h"
-#include "glTFRHI/RHIInterface/IRHIGPUBuffer.h"
+#include "glTFRHI/RHIInterface/IRHIBuffer.h"
 #include "glTFRHI/RHIInterface/RHICommon.h"
 
 bool DX12Utils::InitGUIContext(IRHIDevice& device, IRHIDescriptorHeap& descriptor_heap, unsigned back_buffer_count)
@@ -283,12 +283,12 @@ bool DX12Utils::SetDTToRootParameterSlot(IRHICommandList& commandList, unsigned 
     return true;
 }
 
-bool DX12Utils::UploadBufferDataToDefaultGPUBuffer(IRHICommandList& commandList, IRHIGPUBuffer& uploadBuffer,
-                                             IRHIGPUBuffer& defaultBuffer, void* data, size_t size)
+bool DX12Utils::UploadBufferDataToDefaultGPUBuffer(IRHICommandList& commandList, IRHIBuffer& uploadBuffer,
+                                             IRHIBuffer& defaultBuffer, void* data, size_t size)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
-    auto* dxUploadBuffer = dynamic_cast<DX12GPUBuffer&>(uploadBuffer).GetBuffer();
-    auto* dxDefaultBuffer = dynamic_cast<DX12GPUBuffer&>(defaultBuffer).GetBuffer();
+    auto* dxUploadBuffer = dynamic_cast<DX12Buffer&>(uploadBuffer).GetBuffer();
+    auto* dxDefaultBuffer = dynamic_cast<DX12Buffer&>(defaultBuffer).GetBuffer();
     
     // store vertex buffer in upload heap
     D3D12_SUBRESOURCE_DATA vertexData = {};
@@ -303,12 +303,12 @@ bool DX12Utils::UploadBufferDataToDefaultGPUBuffer(IRHICommandList& commandList,
     return true;
 }
 
-bool DX12Utils::UploadTextureDataToDefaultGPUBuffer(IRHICommandList& commandList, IRHIGPUBuffer& uploadBuffer,
-    IRHIGPUBuffer& defaultBuffer, void* data, size_t rowPitch, size_t slicePitch)
+bool DX12Utils::UploadTextureDataToDefaultGPUBuffer(IRHICommandList& commandList, IRHIBuffer& uploadBuffer,
+    IRHIBuffer& defaultBuffer, void* data, size_t rowPitch, size_t slicePitch)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
-    auto* dxUploadBuffer = dynamic_cast<DX12GPUBuffer&>(uploadBuffer).GetBuffer();
-    auto* dxDefaultBuffer = dynamic_cast<DX12GPUBuffer&>(defaultBuffer).GetBuffer();
+    auto* dxUploadBuffer = dynamic_cast<DX12Buffer&>(uploadBuffer).GetBuffer();
+    auto* dxDefaultBuffer = dynamic_cast<DX12Buffer&>(defaultBuffer).GetBuffer();
     
     // store vertex buffer in upload heap
     D3D12_SUBRESOURCE_DATA vertexData = {};
@@ -323,11 +323,11 @@ bool DX12Utils::UploadTextureDataToDefaultGPUBuffer(IRHICommandList& commandList
     return true;
 }
 
-bool DX12Utils::AddBufferBarrierToCommandList(IRHICommandList& commandList, IRHIGPUBuffer& buffer,
+bool DX12Utils::AddBufferBarrierToCommandList(IRHICommandList& commandList, IRHIBuffer& buffer,
                                               RHIResourceStateType beforeState, RHIResourceStateType afterState)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
-    auto* dxBuffer = dynamic_cast<DX12GPUBuffer&>(buffer).GetBuffer();
+    auto* dxBuffer = dynamic_cast<DX12Buffer&>(buffer).GetBuffer();
     
     CD3DX12_RESOURCE_BARRIER TransitionToVertexBufferState = CD3DX12_RESOURCE_BARRIER::Transition(dxBuffer,
         DX12ConverterUtils::ConvertToResourceState(beforeState), DX12ConverterUtils::ConvertToResourceState(afterState)); 
@@ -402,12 +402,12 @@ bool DX12Utils::TraceRay(IRHICommandList& command_list, IRHIShaderTable& shader_
 }
 
 bool DX12Utils::ExecuteIndirect(IRHICommandList& command_list, IRHICommandSignature& command_signature,
-    unsigned max_count, IRHIGPUBuffer& arguments_buffer, unsigned arguments_buffer_offset)
+    unsigned max_count, IRHIBuffer& arguments_buffer, unsigned arguments_buffer_offset)
 {
     auto* dx_command_list = dynamic_cast<DX12CommandList&>(command_list).GetDXRCommandList();
     auto* dx_command_signature = dynamic_cast<DX12CommandSignature&>(command_signature).GetCommandSignature();
 
-    auto* dx_arguments_buffer = dynamic_cast<DX12GPUBuffer&>(arguments_buffer).GetBuffer();
+    auto* dx_arguments_buffer = dynamic_cast<DX12Buffer&>(arguments_buffer).GetBuffer();
     
     dx_command_list->ExecuteIndirect(dx_command_signature, max_count, dx_arguments_buffer, arguments_buffer_offset, nullptr, 0 );
     
@@ -415,14 +415,14 @@ bool DX12Utils::ExecuteIndirect(IRHICommandList& command_list, IRHICommandSignat
 }
 
 bool DX12Utils::ExecuteIndirect(IRHICommandList& command_list, IRHICommandSignature& command_signature,
-                                unsigned max_count, IRHIGPUBuffer& arguments_buffer, unsigned arguments_buffer_offset, IRHIGPUBuffer& count_buffer,
+                                unsigned max_count, IRHIBuffer& arguments_buffer, unsigned arguments_buffer_offset, IRHIBuffer& count_buffer,
                                 unsigned count_buffer_offset)
 {
     auto* dx_command_list = dynamic_cast<DX12CommandList&>(command_list).GetDXRCommandList();
     auto* dx_command_signature = dynamic_cast<DX12CommandSignature&>(command_signature).GetCommandSignature();
 
-    auto* dx_arguments_buffer = dynamic_cast<DX12GPUBuffer&>(arguments_buffer).GetBuffer();
-    auto* dx_count_buffer = dynamic_cast<DX12GPUBuffer&>(count_buffer).GetBuffer();
+    auto* dx_arguments_buffer = dynamic_cast<DX12Buffer&>(arguments_buffer).GetBuffer();
+    auto* dx_count_buffer = dynamic_cast<DX12Buffer&>(count_buffer).GetBuffer();
     
     dx_command_list->ExecuteIndirect(dx_command_signature, max_count, dx_arguments_buffer, arguments_buffer_offset, dx_count_buffer, count_buffer_offset );
     
@@ -462,11 +462,11 @@ bool DX12Utils::CopyTexture(IRHICommandList& commandList, IRHIRenderTarget& dst,
     return true;
 }
 
-bool DX12Utils::CopyBuffer(IRHICommandList& commandList, IRHIGPUBuffer& dst, size_t dst_offset, IRHIGPUBuffer& src,
+bool DX12Utils::CopyBuffer(IRHICommandList& commandList, IRHIBuffer& dst, size_t dst_offset, IRHIBuffer& src,
     size_t src_offset, size_t size)
 {
     auto* dx_command_list = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
-    dx_command_list->CopyBufferRegion(dynamic_cast<DX12GPUBuffer&>(dst).GetBuffer(), dst_offset, dynamic_cast<DX12GPUBuffer&>(src).GetBuffer(), src_offset, size);
+    dx_command_list->CopyBufferRegion(dynamic_cast<DX12Buffer&>(dst).GetBuffer(), dst_offset, dynamic_cast<DX12Buffer&>(src).GetBuffer(), src_offset, size);
     
     return true;
 }

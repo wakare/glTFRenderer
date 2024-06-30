@@ -1,9 +1,10 @@
 ﻿#pragma once
 #include <memory>
 
-#include "IRHIGPUBuffer.h"
+#include "IRHIBuffer.h"
 #include "IRHIVertexBufferView.h"
 #include "glTFScene/glTFScenePrimitive.h"
+#include "glTFRHI/RHIInterface/IRHIMemoryManager.h"
 
 class IRHIVertexBuffer : public IRHIResource
 {
@@ -15,11 +16,11 @@ public:
 
     const VertexLayoutDeclaration& GetLayout() const {return m_vertex_layout; }
     size_t GetCount() const {return m_vertex_count; }
-    IRHIGPUBuffer& GetBuffer() const {return *m_buffer; }
+    IRHIBuffer& GetBuffer() const {return *m_buffer->m_buffer; }
     
 protected:
-    std::shared_ptr<IRHIGPUBuffer> m_buffer {nullptr};
-    std::shared_ptr<IRHIGPUBuffer> m_upload_buffer {nullptr};
+    std::shared_ptr<IRHIBufferAllocation> m_buffer {nullptr};
+    std::shared_ptr<IRHIBufferAllocation> m_upload_buffer {nullptr};
 
     VertexLayoutDeclaration m_vertex_layout {};
     size_t m_vertex_count {0};

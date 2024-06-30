@@ -9,7 +9,7 @@ public:
     DX12VertexBufferView();
     virtual ~DX12VertexBufferView() override;
     
-    virtual void InitVertexBufferView(IRHIGPUBuffer& buffer, size_t offset, size_t vertexStride, size_t vertexBufferSize) override;
+    virtual void InitVertexBufferView(IRHIBuffer& buffer, size_t offset, size_t vertexStride, size_t vertexBufferSize) override;
 
     const D3D12_VERTEX_BUFFER_VIEW& GetVertexBufferView() const {return m_vertexBufferView; }
     

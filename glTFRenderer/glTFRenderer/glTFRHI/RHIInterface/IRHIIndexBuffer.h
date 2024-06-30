@@ -1,6 +1,7 @@
 ﻿#pragma once
-#include "IRHIGPUBuffer.h"
+#include "IRHIBuffer.h"
 #include "IRHIIndexBufferView.h"
+#include "IRHIMemoryManager.h"
 #include "glTFScene/glTFScenePrimitive.h"
 
 class IRHIIndexBuffer : public IRHIResource
@@ -13,11 +14,11 @@ public:
 
     RHIDataFormat GetFormat() const {return m_index_format; }
     size_t GetCount() const {return m_index_count; }
-    IRHIGPUBuffer& GetBuffer() const {return *m_buffer; }
+    IRHIBuffer& GetBuffer() const {return *m_buffer->m_buffer; }
     
 protected:
-    std::shared_ptr<IRHIGPUBuffer> m_buffer {nullptr};
-    std::shared_ptr<IRHIGPUBuffer> m_upload_buffer {nullptr};
+    std::shared_ptr<IRHIBufferAllocation> m_buffer {nullptr};
+    std::shared_ptr<IRHIBufferAllocation> m_upload_buffer {nullptr};
 
     RHIDataFormat m_index_format {RHIDataFormat::Unknown};
     size_t m_index_count {0};

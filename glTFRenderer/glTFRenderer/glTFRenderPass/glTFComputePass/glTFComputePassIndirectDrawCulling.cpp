@@ -53,11 +53,21 @@ bool glTFComputePassIndirectDrawCulling::InitPass(glTFRenderResourceManager& res
     const auto& indirect_data = mesh_manager.GetIndirectDrawCommands();
     GetRenderInterface<glTFRenderInterfaceStructuredBuffer<MeshIndirectDrawCommand>>()->UploadCPUBuffer(indirect_data.data(), 0, indirect_data.size() * sizeof(MeshIndirectDrawCommand));
 
-    m_count_reset_buffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
-    m_count_reset_buffer->InitGPUBuffer(resource_manager.GetDevice(), {L"ResetBuffer", 4, 1, 1, RHIBufferType::Upload, RHIDataFormat::R32_UINT,RHIBufferResourceType::Buffer, RHIResourceStateType::STATE_COMMON, RHIBufferUsage::NONE, 0});
-
+    glTFRenderResourceManager::GetMemoryManager().AllocateBufferMemory(
+        glTFRenderResourceManager::GetDevice(),
+    {L"ResetBuffer",
+        4,
+        1,
+        1,
+        RHIBufferType::Upload,
+        RHIDataFormat::R32_UINT,
+        RHIBufferResourceType::Buffer,
+        RHIResourceStateType::STATE_COMMON,
+        RHIBufferUsage::NONE,
+        0},
+        m_count_reset_buffer);
     const unsigned size = 0;
-    m_count_reset_buffer->UploadBufferFromCPU(&size, 0, sizeof(unsigned));
+    glTFRenderResourceManager::GetMemoryManager().UploadBufferData(*m_count_reset_buffer, &size, 0, sizeof(unsigned));
 
     // Construct bounding box srv data
     std::vector<CullingBoundingBox> bounding_boxes;
@@ -117,7 +127,7 @@ bool glTFComputePassIndirectDrawCulling::PreRenderPass(glTFRenderResourceManager
     
         // Reset count buffer to zero
         RHIUtils::Instance().CopyBuffer(command_list, *resource_manager.GetMeshManager().GetCulledIndirectArgumentBuffer(),
-            resource_manager.GetMeshManager().GetCulledIndirectArgumentBufferCountOffset(), *m_count_reset_buffer, 0, sizeof(unsigned));
+            resource_manager.GetMeshManager().GetCulledIndirectArgumentBufferCountOffset(), *m_count_reset_buffer->m_buffer, 0, sizeof(unsigned));
 
         RHIUtils::Instance().AddBufferBarrierToCommandList(command_list, *resource_manager.GetMeshManager().GetCulledIndirectArgumentBuffer(),
                 RHIResourceStateType::STATE_COPY_DEST, RHIResourceStateType::STATE_UNORDERED_ACCESS);

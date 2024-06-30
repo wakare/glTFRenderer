@@ -64,7 +64,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty;$(SolutionDir)ThirdParty/imgui;$(SolutionDir)ThirdParty/glm/glm;$(SolutionDir)ThirdParty/glfw/include;$(SolutionDir)glTFRenderer;$(VULKAN_SDK)\include</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -89,7 +89,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty;$(SolutionDir)ThirdParty/imgui;$(SolutionDir)ThirdParty/glm/glm;$(SolutionDir)ThirdParty/glfw/include;$(SolutionDir)glTFRenderer;$(VULKAN_SDK)\include</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -207,13 +207,14 @@
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12Device.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12Factory.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12Fence.cpp" />
-    <ClCompile Include="glTFRHI\RHIDX12Impl\DX12GPUBuffer.cpp" />
-    <ClCompile Include="glTFRHI\RHIDX12Impl\DX12GPUBufferManager.cpp" />
+    <ClCompile Include="glTFRHI\RHIDX12Impl\DX12Buffer.cpp" />
+    <ClCompile Include="glTFRHI\RHIDX12Impl\DX12MemoryManager.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12IndexBuffer.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12IndexBufferView.cpp" />
+    <ClCompile Include="glTFRHI\RHIDX12Impl\DX12MemoryAllocator.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12PipelineStateObject.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12RayTracingAS.cpp" />
-    <ClCompile Include="glTFRHI\RHIDX12Impl\Dx12RenderPass.cpp" />
+    <ClCompile Include="glTFRHI\RHIDX12Impl\DX12RenderPass.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12RenderTarget.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12RenderTargetManager.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12RootSignature.cpp" />
@@ -232,10 +233,11 @@
     <ClCompile Include="glTFRHI\RHIInterface\IRHIDevice.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIFactory.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIFence.cpp" />
-    <ClCompile Include="glTFRHI\RHIInterface\IRHIGPUBuffer.cpp" />
-    <ClCompile Include="glTFRHI\RHIInterface\IRHIGPUBufferManager.cpp" />
+    <ClCompile Include="glTFRHI\RHIInterface\IRHIBuffer.cpp" />
+    <ClCompile Include="glTFRHI\RHIInterface\IRHIMemoryManager.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIIndexBuffer.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIIndexBufferView.cpp" />
+    <ClCompile Include="glTFRHI\RHIInterface\IRHIMemoryAllocator.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIPipelineStateObject.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIRayTracingAS.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIRenderPass.cpp" />
@@ -269,6 +271,7 @@
     <ClCompile Include="glTFRHI\RHIVKImpl\VKGPUBufferManager.cpp" />
     <ClCompile Include="glTFRHI\RHIVKImpl\VKIndexBuffer.cpp" />
     <ClCompile Include="glTFRHI\RHIVKImpl\VKIndexBufferView.cpp" />
+    <ClCompile Include="glTFRHI\RHIVKImpl\VkMemoryAllocator.cpp" />
     <ClCompile Include="glTFRHI\RHIVKImpl\VKPipelineStateObject.cpp" />
     <ClCompile Include="glTFRHI\RHIVKImpl\VKRayTracingAS.cpp" />
     <ClCompile Include="glTFRHI\RHIVKImpl\VKRenderPass.cpp" />
@@ -371,13 +374,14 @@
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12Device.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12Factory.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12Fence.h" />
-    <ClInclude Include="glTFRHI\RHIDX12Impl\DX12GPUBuffer.h" />
-    <ClInclude Include="glTFRHI\RHIDX12Impl\DX12GPUBufferManager.h" />
+    <ClInclude Include="glTFRHI\RHIDX12Impl\DX12Buffer.h" />
+    <ClInclude Include="glTFRHI\RHIDX12Impl\DX12MemoryManager.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12IndexBuffer.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12IndexBufferView.h" />
+    <ClInclude Include="glTFRHI\RHIDX12Impl\DX12MemoryAllocator.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12PipelineStateObject.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12RayTracingAS.h" />
-    <ClInclude Include="glTFRHI\RHIDX12Impl\Dx12RenderPass.h" />
+    <ClInclude Include="glTFRHI\RHIDX12Impl\DX12RenderPass.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12RenderTarget.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12RenderTargetManager.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12RootSignature.h" />
@@ -396,10 +400,11 @@
     <ClInclude Include="glTFRHI\RHIInterface\IRHIDevice.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHIFactory.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHIFence.h" />
-    <ClInclude Include="glTFRHI\RHIInterface\IRHIGPUBuffer.h" />
-    <ClInclude Include="glTFRHI\RHIInterface\IRHIGPUBufferManager.h" />
+    <ClInclude Include="glTFRHI\RHIInterface\IRHIBuffer.h" />
+    <ClInclude Include="glTFRHI\RHIInterface\IRHIMemoryManager.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHIIndexBuffer.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHIIndexBufferView.h" />
+    <ClInclude Include="glTFRHI\RHIInterface\IRHIMemoryAllocator.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHIPipelineStateObject.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHIRayTracingAS.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHIRenderPass.h" />
@@ -435,6 +440,7 @@
     <ClInclude Include="glTFRHI\RHIVKImpl\VKGPUBufferManager.h" />
     <ClInclude Include="glTFRHI\RHIVKImpl\VKIndexBuffer.h" />
     <ClInclude Include="glTFRHI\RHIVKImpl\VKIndexBufferView.h" />
+    <ClInclude Include="glTFRHI\RHIVKImpl\VkMemoryAllocator.h" />
     <ClInclude Include="glTFRHI\RHIVKImpl\VKPipelineStateObject.h" />
     <ClInclude Include="glTFRHI\RHIVKImpl\VKRayTracingAS.h" />
     <ClInclude Include="glTFRHI\RHIVKImpl\VKRenderPass.h" />

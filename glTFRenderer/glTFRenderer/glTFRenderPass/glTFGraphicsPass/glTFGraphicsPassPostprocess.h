@@ -5,12 +5,12 @@
 
 class IRHIIndexBufferView;
 class IRHIVertexBufferView;
-class IRHIGPUBuffer;
+class IRHIBuffer;
 
 struct PostprocessQuadGPUResource
 {
-    std::shared_ptr<IRHIGPUBuffer> meshVertexBuffer;
-    std::shared_ptr<IRHIGPUBuffer> meshIndexBuffer;
+    std::shared_ptr<IRHIBufferAllocation> meshVertexBuffer;
+    std::shared_ptr<IRHIBufferAllocation> meshIndexBuffer;
     std::shared_ptr<IRHIVertexBufferView> meshVertexBufferView;
     std::shared_ptr<IRHIIndexBufferView> meshIndexBufferView;
 };

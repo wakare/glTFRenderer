@@ -579,7 +579,7 @@ bool VulkanEngine::Init()
     app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
     app_info.pEngineName = "No Engine";
     app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    app_info.apiVersion = VK_MAKE_API_VERSION(0, 1, 3, 0);
+    app_info.apiVersion = VK_MAKE_VERSION(1, 3, 0);
 
     VkInstanceCreateInfo create_info{};
     create_info.sType = VkStructureType::VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -912,7 +912,7 @@ void VulkanEngine::RecordCommandBufferForDrawTestTriangle(VkCommandBuffer comman
     }
 }
 
-void VulkanEngine::RecordCommandBufferForDynamicRendering(VkCommandBuffer command_buffer, unsigned image_index)
+void VulkanEngine::RecordCommandBufferForDynamicRendering(VkCommandBuffer command_buffer)
 {
     VkImage current_draw_image = draw_image.image;
 
@@ -966,7 +966,7 @@ void VulkanEngine::DrawFrame()
     if (run_compute_test)
     {
         TransitionImage(current_command_buffer, current_draw_image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
-        RecordCommandBufferForDynamicRendering(current_command_buffer, image_index);
+        RecordCommandBufferForDynamicRendering(current_command_buffer);
         TransitionImage(current_command_buffer, current_draw_image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
     }
     if (run_graphics_test)

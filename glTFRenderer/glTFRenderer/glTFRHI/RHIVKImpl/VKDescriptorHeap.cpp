@@ -21,13 +21,13 @@ unsigned VKDescriptorHeap::GetUsedDescriptorCount() const
 }
 
 bool VKDescriptorHeap::CreateConstantBufferViewInDescriptorHeap(IRHIDevice& device, unsigned descriptorOffset,
-    IRHIGPUBuffer& buffer, const RHIConstantBufferViewDesc& desc, RHIGPUDescriptorHandle& outGPUHandle)
+    IRHIBuffer& buffer, const RHIConstantBufferViewDesc& desc, RHIGPUDescriptorHandle& outGPUHandle)
 {
     return true;
 }
 
 bool VKDescriptorHeap::CreateShaderResourceViewInDescriptorHeap(IRHIDevice& device, unsigned descriptorOffset,
-    IRHIGPUBuffer& buffer, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& outGPUHandle)
+    IRHIBuffer& buffer, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& outGPUHandle)
 {
     return true;
 }
@@ -39,7 +39,7 @@ bool VKDescriptorHeap::CreateShaderResourceViewInDescriptorHeap(IRHIDevice& devi
 }
 
 bool VKDescriptorHeap::CreateUnOrderAccessViewInDescriptorHeap(IRHIDevice& device, unsigned descriptorOffset,
-    IRHIGPUBuffer& buffer, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& outGPUHandle)
+    IRHIBuffer& buffer, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& outGPUHandle)
 {
     return true;
 }

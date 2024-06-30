@@ -181,19 +181,19 @@ bool VulkanUtils::SetDTToRootParameterSlot(IRHICommandList& commandList, unsigne
     return true;
 }
 
-bool VulkanUtils::UploadBufferDataToDefaultGPUBuffer(IRHICommandList& commandList, IRHIGPUBuffer& uploadBuffer,
-    IRHIGPUBuffer& defaultBuffer, void* data, size_t size)
+bool VulkanUtils::UploadBufferDataToDefaultGPUBuffer(IRHICommandList& commandList, IRHIBuffer& uploadBuffer,
+    IRHIBuffer& defaultBuffer, void* data, size_t size)
 {
     return true;
 }
 
-bool VulkanUtils::UploadTextureDataToDefaultGPUBuffer(IRHICommandList& commandList, IRHIGPUBuffer& uploadBuffer,
-    IRHIGPUBuffer& defaultBuffer, void* data, size_t rowPitch, size_t slicePitch)
+bool VulkanUtils::UploadTextureDataToDefaultGPUBuffer(IRHICommandList& commandList, IRHIBuffer& uploadBuffer,
+    IRHIBuffer& defaultBuffer, void* data, size_t rowPitch, size_t slicePitch)
 {
     return true;
 }
 
-bool VulkanUtils::AddBufferBarrierToCommandList(IRHICommandList& commandList, IRHIGPUBuffer& buffer,
+bool VulkanUtils::AddBufferBarrierToCommandList(IRHICommandList& commandList, IRHIBuffer& buffer,
     RHIResourceStateType beforeState, RHIResourceStateType afterState)
 {
     return true;
@@ -229,13 +229,13 @@ bool VulkanUtils::TraceRay(IRHICommandList& command_list, IRHIShaderTable& shade
 }
 
 bool VulkanUtils::ExecuteIndirect(IRHICommandList& command_list, IRHICommandSignature& command_signature,
-    unsigned max_count, IRHIGPUBuffer& arguments_buffer, unsigned arguments_buffer_offset)
+    unsigned max_count, IRHIBuffer& arguments_buffer, unsigned arguments_buffer_offset)
 {
     return true;
 }
 
 bool VulkanUtils::ExecuteIndirect(IRHICommandList& command_list, IRHICommandSignature& command_signature,
-    unsigned max_count, IRHIGPUBuffer& arguments_buffer, unsigned arguments_buffer_offset, IRHIGPUBuffer& count_buffer,
+    unsigned max_count, IRHIBuffer& arguments_buffer, unsigned arguments_buffer_offset, IRHIBuffer& count_buffer,
     unsigned count_buffer_offset)
 {
     return true;
@@ -256,7 +256,7 @@ bool VulkanUtils::CopyTexture(IRHICommandList& commandList, IRHIRenderTarget& ds
     return true;
 }
 
-bool VulkanUtils::CopyBuffer(IRHICommandList& commandList, IRHIGPUBuffer& dst, size_t dst_offset, IRHIGPUBuffer& src,
+bool VulkanUtils::CopyBuffer(IRHICommandList& commandList, IRHIBuffer& dst, size_t dst_offset, IRHIBuffer& src,
     size_t src_offset, size_t size)
 {
     return true;

@@ -3,7 +3,7 @@
 #include "IRHIDevice.h"
 #include "IRHIResource.h"
 
-class IRHIGPUBuffer;
+class IRHIBuffer;
 class IRHICommandList;
 class glTFImageLoader;
 
@@ -13,7 +13,7 @@ public:
     DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHITexture)
     
     virtual bool UploadTextureFromFile(IRHIDevice& device, IRHICommandList& commandList, const std::string& filePath, bool srgb) = 0;
-    virtual IRHIGPUBuffer& GetGPUBuffer() = 0;
+    virtual IRHIBuffer& GetGPUBuffer() = 0;
     
     const RHITextureDesc& GetTextureDesc() const {return m_textureDesc; }
     

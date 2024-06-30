@@ -4,7 +4,7 @@
 #include <dxgiformat.h>
 
 #include "glTFRHI/RHIInterface/IRHICommandSignature.h"
-#include "glTFRHI/RHIInterface/IRHIGPUBuffer.h"
+#include "glTFRHI/RHIInterface/IRHIBuffer.h"
 #include "glTFRHI/RHIInterface/IRHIRenderTarget.h"
 
 class DX12ConverterUtils

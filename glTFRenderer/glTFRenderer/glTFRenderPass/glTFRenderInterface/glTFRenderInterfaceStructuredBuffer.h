@@ -8,32 +8,32 @@ class glTFRenderInterfaceStructuredBuffer : public glTFRenderInterfaceWithRSAllo
 public:
     virtual bool InitInterfaceImpl(glTFRenderResourceManager& resource_manager) override
     {
-        m_gpu_buffer = RHIResourceFactory::CreateRHIResource<IRHIGPUBuffer>();
-
-        RETURN_IF_FALSE(m_gpu_buffer->InitGPUBuffer(resource_manager.GetDevice(),
-            {
-                L"StructuredBuffer",
-                max_heap_size,
-                1,
-                1,
-                RHIBufferType::Upload,
-                RHIDataFormat::Unknown,
-                RHIBufferResourceType::Buffer
-            }))
-    
+        glTFRenderResourceManager::GetMemoryManager().AllocateBufferMemory(
+        resource_manager.GetDevice(),
+        {
+            L"StructuredBuffer",
+            max_heap_size,
+            1,
+            1,
+            RHIBufferType::Upload,
+            RHIDataFormat::Unknown,
+            RHIBufferResourceType::Buffer
+        },
+        m_gpu_buffer);
+        
         return true;
     }
 
     virtual bool UploadCPUBuffer(const void* data, size_t offset, size_t size) override
     {
-        return m_gpu_buffer->UploadBufferFromCPU(data, 0, size);
+        return glTFRenderResourceManager::GetMemoryManager().UploadBufferData(*m_gpu_buffer, data, 0, size);
     }
     
     virtual bool ApplyInterfaceImpl(glTFRenderResourceManager& resource_manager, bool isGraphicsPipeline) override
     {
         auto& command_list = resource_manager.GetCommandListForRecord();
         RHIUtils::Instance().SetSRVToRootParameterSlot(command_list, m_allocation.parameter_index,
-            m_gpu_buffer->GetGPUBufferHandle(), isGraphicsPipeline);
+            m_gpu_buffer->m_buffer->GetGPUBufferHandle(), isGraphicsPipeline);
     
         return true;
     }
@@ -53,5 +53,5 @@ public:
     }
     
 protected:
-    std::shared_ptr<IRHIGPUBuffer> m_gpu_buffer;
+    std::shared_ptr<IRHIBufferAllocation> m_gpu_buffer;
 };

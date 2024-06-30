@@ -22,7 +22,7 @@ public:
 protected:
     virtual size_t GetMainDescriptorHeapSize() override;
     
-    std::shared_ptr<IRHIGPUBuffer> m_count_reset_buffer;
+    std::shared_ptr<IRHIBufferAllocation> m_count_reset_buffer;
     DispatchCount m_dispatch_count;
     RootSignatureAllocation m_culled_indirect_command_allocation;
     
