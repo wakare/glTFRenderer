@@ -184,13 +184,17 @@ struct RHITextureDesc
 public:
     RHITextureDesc();
     RHITextureDesc(const RHITextureDesc&) = delete;
-    RHITextureDesc(RHITextureDesc&&) = delete;
-
     RHITextureDesc& operator=(const RHITextureDesc&) = delete;
-    RHITextureDesc& operator=(RHITextureDesc&&) = delete;
+
+    RHITextureDesc(RHITextureDesc&& desc) noexcept;
+    RHITextureDesc& operator=(RHITextureDesc&& desc) noexcept;
     
     bool Init(const ImageLoadResult& image_load_result);
     
+    // No data copy!!
+    bool Init(const RHITextureDesc& other);
+
+    bool HasTextureData() const {return m_texture_data != nullptr; }
     unsigned char* GetTextureData() const { return m_texture_data.get(); }
     size_t GetTextureDataSize() const { return m_texture_data_size; }
     RHIDataFormat GetDataFormat() const { return m_texture_format; }

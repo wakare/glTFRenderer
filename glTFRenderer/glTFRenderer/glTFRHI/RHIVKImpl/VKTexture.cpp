@@ -2,14 +2,13 @@
 
 #include "VKGPUBuffer.h"
 
-bool VKTexture::UploadTextureFromFile(IRHIDevice& device, IRHICommandList& commandList, const std::string& filePath,
-                                      bool srgb)
-{
-    return true;
-}
-
 IRHIBuffer& VKTexture::GetGPUBuffer()
 {
     static VKGPUBuffer temp;
     return temp;
+}
+
+bool VKTexture::InitTexture(IRHIDevice& device, IRHICommandList& command_list, const RHITextureDesc& desc)
+{
+    return false;
 }

@@ -5,10 +5,11 @@
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 #include "RendererCommon.h"
 #include "glTFRenderPass/glTFRenderPassManager.h"
+#include "SceneFileLoader/glTFImageLoader.h"
 
 glTFMaterialTextureRenderResource::glTFMaterialTextureRenderResource(const glTFMaterialParameterTexture& source_texture)
         : m_source_texture(source_texture)
-        , m_texture_buffer(nullptr)
+        , m_texture(nullptr)
 {
         
 }
@@ -16,10 +17,14 @@ glTFMaterialTextureRenderResource::glTFMaterialTextureRenderResource(const glTFM
 bool glTFMaterialTextureRenderResource::Init(glTFRenderResourceManager& resource_manager)
 {
     auto& command_list = resource_manager.GetCommandListForRecord();
-    
-    m_texture_buffer = RHIResourceFactory::CreateRHIResource<IRHITexture>();
-    RETURN_IF_FALSE(m_texture_buffer->UploadTextureFromFile(resource_manager.GetDevice(), command_list, m_source_texture.GetTexturePath(), m_source_texture.IsSRGB()))
 
+    const std::wstring convertPath = to_wide_string(m_source_texture.GetTexturePath());
+    ImageLoadResult result;
+    RETURN_IF_FALSE(glTFImageLoader::Instance().LoadImageByFilename(convertPath.c_str(), result))
+    RHITextureDesc texture_desc{};
+    texture_desc.Init(result);
+
+    glTFRenderResourceManager::GetMemoryManager().AllocateTextureMemoryAndUpload(glTFRenderResourceManager::GetDevice(), command_list, texture_desc, m_texture);
     resource_manager.CloseCommandListAndExecute(false);
     
     return true;
@@ -29,10 +34,10 @@ RHICPUDescriptorHandle glTFMaterialTextureRenderResource::CreateTextureSRVHandle
 {
     RHICPUDescriptorHandle result = 0;
     
-    GLTF_CHECK(m_texture_buffer);
+    GLTF_CHECK(m_texture);
         
     RETURN_IF_FALSE(descriptor_heap.CreateShaderResourceViewInDescriptorHeap(resource_manager.GetDevice(), descriptor_heap.GetUsedDescriptorCount(),
-    m_texture_buffer->GetGPUBuffer(), {m_texture_buffer->GetTextureDesc().GetDataFormat(), RHIResourceDimension::TEXTURE2D}, result))
+    m_texture->m_texture->GetGPUBuffer(), {m_texture->m_texture->GetTextureDesc().GetDataFormat(), RHIResourceDimension::TEXTURE2D}, result))
         
     GLTF_CHECK(result);
     

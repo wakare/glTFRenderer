@@ -12,6 +12,25 @@ RHITextureDesc::RHITextureDesc()
     
 }
 
+RHITextureDesc::RHITextureDesc(RHITextureDesc&& desc) noexcept
+{
+    m_texture_data = std::move(desc.m_texture_data);
+    m_texture_data_size = desc.m_texture_data_size;
+    m_texture_width = desc.m_texture_width;
+    m_texture_height = desc.m_texture_height;
+    m_texture_format = desc.m_texture_format;
+}
+
+RHITextureDesc& RHITextureDesc::operator=(RHITextureDesc&& desc) noexcept
+{
+    m_texture_data = std::move(desc.m_texture_data);
+    m_texture_data_size = desc.m_texture_data_size;
+    m_texture_width = desc.m_texture_width;
+    m_texture_height = desc.m_texture_height;
+    m_texture_format = desc.m_texture_format;
+    return *this;
+}
+
 bool RHITextureDesc::Init(const ImageLoadResult& image_load_result)
 {
     assert(m_texture_data == nullptr);
@@ -26,6 +45,16 @@ bool RHITextureDesc::Init(const ImageLoadResult& image_load_result)
 
     memcpy(m_texture_data.get(), image_load_result.data.data(), m_texture_data_size);
     
+    return true;
+}
+
+bool RHITextureDesc::Init(const RHITextureDesc& other)
+{
+    //m_texture_data = std::move(other.m_texture_data);
+    m_texture_data_size = other.m_texture_data_size;
+    m_texture_width = other.m_texture_width;
+    m_texture_height = other.m_texture_height;
+    m_texture_format = other.m_texture_format;
     return true;
 }
 

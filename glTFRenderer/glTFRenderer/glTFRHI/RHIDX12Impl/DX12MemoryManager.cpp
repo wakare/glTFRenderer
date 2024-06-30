@@ -47,3 +47,16 @@ bool DX12MemoryManager::UploadBufferData(IRHIBufferAllocation& buffer_allocation
 {
     return buffer_allocation.m_buffer->UploadBufferFromCPU(data, offset, size);
 }
+
+bool DX12MemoryManager::AllocateTextureMemoryAndUpload(IRHIDevice& device, IRHICommandList& command_list,
+                                                       const RHITextureDesc& texture_desc, std::shared_ptr<IRHITextureAllocation>& out_buffer_allocation)
+{
+    std::shared_ptr<IRHITexture> dx12_texture = RHIResourceFactory::CreateRHIResource<IRHITexture>();
+    dx12_texture->InitTexture(device, command_list, texture_desc);
+
+    out_buffer_allocation = std::make_shared<IRHITextureAllocation>();
+    out_buffer_allocation->m_texture = dx12_texture;
+    m_textures.push_back(dx12_texture);
+    
+    return true;
+}

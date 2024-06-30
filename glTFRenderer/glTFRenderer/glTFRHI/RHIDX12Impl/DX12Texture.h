@@ -8,13 +8,13 @@
 class DX12Texture : public IRHITexture
 {
 public:
-    DX12Texture();
-    ~DX12Texture() override;
-    
-    virtual bool UploadTextureFromFile(IRHIDevice& device, IRHICommandList& commandList, const std::string& filePath, bool srgb) override;
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(DX12Texture)
+
     virtual IRHIBuffer& GetGPUBuffer() override;
     
 protected:
-    std::shared_ptr<IRHIBufferAllocation> m_textureBuffer;
-    std::shared_ptr<IRHIBufferAllocation> m_textureUploadBuffer;
+    virtual bool InitTexture(IRHIDevice& device,  IRHICommandList& command_list, const RHITextureDesc& desc) override;
+    
+    std::shared_ptr<IRHIBufferAllocation> m_texture_buffer;
+    std::shared_ptr<IRHIBufferAllocation> m_texture_upload_buffer;
 };

@@ -4,6 +4,8 @@
 class VKTexture : public IRHITexture
 {
 public:
-    virtual bool UploadTextureFromFile(IRHIDevice& device, IRHICommandList& commandList, const std::string& filePath, bool srgb) override;
     virtual IRHIBuffer& GetGPUBuffer() override;
+
+protected:
+    virtual bool InitTexture(IRHIDevice& device, IRHICommandList& command_list, const RHITextureDesc& desc) override;
 };

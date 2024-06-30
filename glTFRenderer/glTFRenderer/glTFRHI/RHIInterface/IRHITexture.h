@@ -1,5 +1,6 @@
 #pragma once
 
+#include "IRHICommandList.h"
 #include "IRHIDevice.h"
 #include "IRHIResource.h"
 
@@ -10,13 +11,16 @@ class glTFImageLoader;
 class IRHITexture : public IRHIResource
 {
 public:
+    friend class IRHIMemoryManager;
+    friend class DX12MemoryManager;
+    
     DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHITexture)
-    
-    virtual bool UploadTextureFromFile(IRHIDevice& device, IRHICommandList& commandList, const std::string& filePath, bool srgb) = 0;
+
     virtual IRHIBuffer& GetGPUBuffer() = 0;
-    
-    const RHITextureDesc& GetTextureDesc() const {return m_textureDesc; }
+    const RHITextureDesc& GetTextureDesc() const {return m_texture_desc; }
     
 protected:
-    RHITextureDesc m_textureDesc = {};
+    virtual bool InitTexture(IRHIDevice& device, IRHICommandList& command_list, const RHITextureDesc& desc) = 0;
+
+    RHITextureDesc m_texture_desc {};
 };

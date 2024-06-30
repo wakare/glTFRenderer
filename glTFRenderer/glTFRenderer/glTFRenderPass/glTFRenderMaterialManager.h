@@ -25,7 +25,7 @@ public:
     
 private:
 	const glTFMaterialParameterTexture& m_source_texture;
-	std::shared_ptr<IRHITexture> m_texture_buffer;
+	std::shared_ptr<IRHITextureAllocation> m_texture;
 };
 
 class glTFMaterialRenderResource
