@@ -11,7 +11,6 @@ public:
     void SetRenderTarget(ID3D12Resource* renderTarget);
     void SetClearValue(D3D12_CLEAR_VALUE clear_value);
     
-    ID3D12Resource* GetRenderTarget();
     const D3D12_CLEAR_VALUE& GetClearValue() const;
     ID3D12Resource* GetResource() const;
     

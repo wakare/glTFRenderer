@@ -130,27 +130,25 @@ bool glTFRayTracingPassPathTracing::SetupPipelineStateObject(glTFRenderResourceM
     RETURN_IF_FALSE(glTFRayTracingPassWithMesh::SetupPipelineStateObject(resource_manager))
 
     RETURN_IF_FALSE(m_main_descriptor_heap->CreateUnOrderAccessViewInDescriptorHeap(
-        resource_manager.GetDevice(),
-        m_main_descriptor_heap->GetUsedDescriptorCount(),
-        *m_raytracing_output,
-        {
+            resource_manager.GetDevice(),
+            *m_raytracing_output,
+            {
             m_raytracing_output->GetRenderTargetFormat(),
             RHIResourceDimension::TEXTURE2D
-        },
-        m_output_handle))
+            },
+            m_output_handle))
 
     RETURN_IF_FALSE(m_main_descriptor_heap->CreateUnOrderAccessViewInDescriptorHeap(
-        resource_manager.GetDevice(),
-        m_main_descriptor_heap->GetUsedDescriptorCount(),
-        *m_screen_uv_offset_output,
-        {
+            resource_manager.GetDevice(),
+            *m_screen_uv_offset_output,
+            {
             m_screen_uv_offset_output->GetRenderTargetFormat(),
             RHIResourceDimension::TEXTURE2D
-        },
-        m_screen_uv_offset_handle))
+            },
+            m_screen_uv_offset_handle))
 
     GetRayTracingPipelineStateObject().BindShaderCode("glTFResources/ShaderSource/RayTracing/PathTracingMain.hlsl",
-        RHIShaderType::RayTracing, "");
+                                                      RHIShaderType::RayTracing, "");
     
     auto& shader_macros = GetRayTracingPipelineStateObject().GetShaderMacros();
     shader_macros.AddUAVRegisterDefine("OUTPUT_REGISTER_INDEX", m_output_allocation.register_index, m_output_allocation.space);

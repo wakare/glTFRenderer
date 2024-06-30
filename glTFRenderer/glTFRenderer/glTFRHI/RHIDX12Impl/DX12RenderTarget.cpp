@@ -24,11 +24,6 @@ void DX12RenderTarget::SetClearValue(D3D12_CLEAR_VALUE clear_value)
     m_clearValue = clear_value;
 }
 
-ID3D12Resource* DX12RenderTarget::GetRenderTarget()
-{
-    return m_texture.Get();
-}
-
 const D3D12_CLEAR_VALUE& DX12RenderTarget::GetClearValue() const
 {
     return m_clearValue;

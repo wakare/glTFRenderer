@@ -133,24 +133,22 @@ bool glTFRayTracingPassReSTIRDirectLighting::SetupPipelineStateObject(glTFRender
     RETURN_IF_FALSE(glTFRayTracingPassWithMesh::SetupPipelineStateObject(resource_manager))
 
     RETURN_IF_FALSE(m_main_descriptor_heap->CreateUnOrderAccessViewInDescriptorHeap(
-        resource_manager.GetDevice(),
-        m_main_descriptor_heap->GetUsedDescriptorCount(),
-        *m_lighting_samples,
-        {
+            resource_manager.GetDevice(),
+            *m_lighting_samples,
+            {
             m_lighting_samples->GetRenderTargetFormat(),
             RHIResourceDimension::TEXTURE2D
-        },
-        m_lighting_samples_handle))
+            },
+            m_lighting_samples_handle))
 
     RETURN_IF_FALSE(m_main_descriptor_heap->CreateUnOrderAccessViewInDescriptorHeap(
-        resource_manager.GetDevice(),
-        m_main_descriptor_heap->GetUsedDescriptorCount(),
-        *m_screen_uv_offset_output,
-        {
+            resource_manager.GetDevice(),
+            *m_screen_uv_offset_output,
+            {
             m_screen_uv_offset_output->GetRenderTargetFormat(),
             RHIResourceDimension::TEXTURE2D
-        },
-        m_screen_uv_offset_handle))
+            },
+            m_screen_uv_offset_handle))
 
     for (unsigned i = 0; i < resource_manager.GetBackBufferCount(); ++i)
     {

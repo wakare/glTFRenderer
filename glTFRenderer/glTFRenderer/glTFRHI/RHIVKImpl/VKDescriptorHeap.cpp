@@ -26,26 +26,26 @@ bool VKDescriptorHeap::CreateConstantBufferViewInDescriptorHeap(IRHIDevice& devi
     return true;
 }
 
-bool VKDescriptorHeap::CreateShaderResourceViewInDescriptorHeap(IRHIDevice& device, unsigned descriptorOffset,
-    IRHIBuffer& buffer, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& outGPUHandle)
+bool VKDescriptorHeap::CreateShaderResourceViewInDescriptorHeap(IRHIDevice& device,
+                                                                IRHIBuffer& buffer, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& outGPUHandle)
 {
     return true;
 }
 
-bool VKDescriptorHeap::CreateShaderResourceViewInDescriptorHeap(IRHIDevice& device, unsigned descriptorOffset,
-    IRHIRenderTarget& renderTarget, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& outGPUHandle)
-{
-    return true;
-}
-
-bool VKDescriptorHeap::CreateUnOrderAccessViewInDescriptorHeap(IRHIDevice& device, unsigned descriptorOffset,
-    IRHIBuffer& buffer, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& outGPUHandle)
+bool VKDescriptorHeap::CreateShaderResourceViewInDescriptorHeap(IRHIDevice& device,
+                                                                IRHIRenderTarget& renderTarget, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& outGPUHandle)
 {
     return true;
 }
 
 bool VKDescriptorHeap::CreateUnOrderAccessViewInDescriptorHeap(IRHIDevice& device, unsigned descriptorOffset,
-    IRHIRenderTarget& renderTarget, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& outGPUHandle)
+    IRHIBuffer& buffer, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& outGPUHandle)
+{
+    return true;
+}
+
+bool VKDescriptorHeap::CreateUnOrderAccessViewInDescriptorHeap(IRHIDevice& device,
+                                                               IRHIRenderTarget& renderTarget, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& outGPUHandle)
 {
     return true;
 }

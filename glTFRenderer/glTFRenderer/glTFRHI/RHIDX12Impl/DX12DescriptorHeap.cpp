@@ -81,18 +81,18 @@ bool DX12DescriptorHeap::CreateConstantBufferViewInDescriptorHeap(IRHIDevice& de
     return true;
 }
 
-bool DX12DescriptorHeap::CreateShaderResourceViewInDescriptorHeap(IRHIDevice& device, unsigned descriptor_offset,
-    IRHIBuffer& buffer, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& out_GPU_handle)
+bool DX12DescriptorHeap::CreateShaderResourceViewInDescriptorHeap(IRHIDevice& device,
+                                                                  IRHIBuffer& buffer, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& out_GPU_handle)
 {
     auto* dxBuffer = dynamic_cast<DX12Buffer&>(buffer).GetBuffer();
-    return CreateSRVInHeap(device, descriptor_offset, dxBuffer, desc, out_GPU_handle);
+    return CreateSRVInHeap(device, m_used_descriptor_count, dxBuffer, desc, out_GPU_handle);
 }
 
-bool DX12DescriptorHeap::CreateShaderResourceViewInDescriptorHeap(IRHIDevice& device, unsigned descriptor_offset,
-    IRHIRenderTarget& render_target, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& out_GPU_handle)
+bool DX12DescriptorHeap::CreateShaderResourceViewInDescriptorHeap(IRHIDevice& device,
+                                                                  IRHIRenderTarget& render_target, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& out_GPU_handle)
 {
     auto* dxRenderTarget = dynamic_cast<DX12RenderTarget*>(&render_target);
-    return CreateSRVInHeap(device, descriptor_offset, dxRenderTarget->GetResource(), desc, out_GPU_handle);
+    return CreateSRVInHeap(device, m_used_descriptor_count, dxRenderTarget->GetResource(), desc, out_GPU_handle);
 }
 
 bool DX12DescriptorHeap::CreateUnOrderAccessViewInDescriptorHeap(IRHIDevice& device, unsigned descriptor_offset,
@@ -102,11 +102,11 @@ bool DX12DescriptorHeap::CreateUnOrderAccessViewInDescriptorHeap(IRHIDevice& dev
     return CreateUAVInHeap(device, descriptor_offset, dxBuffer, desc, out_GPU_handle);
 }
 
-bool DX12DescriptorHeap::CreateUnOrderAccessViewInDescriptorHeap(IRHIDevice& device, unsigned descriptor_offset,
-    IRHIRenderTarget& render_target, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& out_GPU_handle)
+bool DX12DescriptorHeap::CreateUnOrderAccessViewInDescriptorHeap(IRHIDevice& device,
+                                                                 IRHIRenderTarget& render_target, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& out_GPU_handle)
 {
     auto* dxRenderTarget = dynamic_cast<DX12RenderTarget*>(&render_target);
-    return CreateUAVInHeap(device, descriptor_offset, dxRenderTarget->GetResource(), desc, out_GPU_handle);
+    return CreateUAVInHeap(device, m_used_descriptor_count, dxRenderTarget->GetResource(), desc, out_GPU_handle);
 }
 
 D3D12_CPU_DESCRIPTOR_HANDLE DX12DescriptorHeap::GetCPUHandleForHeapStart() const

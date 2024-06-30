@@ -105,35 +105,32 @@ namespace glTFRenderResourceUtils
         auto& GBufferPassResource = GetGBufferPassResource(pass_id);
         
         RETURN_IF_FALSE(heap.CreateUnOrderAccessViewInDescriptorHeap(
-            resource_manager.GetDevice(),
-            heap.GetUsedDescriptorCount(),
-            *m_albedo_output,
-            {
+                resource_manager.GetDevice(),
+                *m_albedo_output,
+                {
                 m_albedo_output->GetRenderTargetFormat(),
                 RHIResourceDimension::TEXTURE2D
-            },
-            GBufferPassResource.m_albedo_handle))
+                },
+                GBufferPassResource.m_albedo_handle))
 
         RETURN_IF_FALSE(heap.CreateUnOrderAccessViewInDescriptorHeap(
-            resource_manager.GetDevice(),
-            heap.GetUsedDescriptorCount(),
-            *m_normal_output,
-            {
+                resource_manager.GetDevice(),
+                *m_normal_output,
+                {
                 m_normal_output->GetRenderTargetFormat(),
                 RHIResourceDimension::TEXTURE2D
-            },
-            GBufferPassResource.m_normal_handle))
+                },
+                GBufferPassResource.m_normal_handle))
 
         RETURN_IF_FALSE(heap.CreateUnOrderAccessViewInDescriptorHeap(
-            resource_manager.GetDevice(),
-            heap.GetUsedDescriptorCount(),
-            *m_depth_output,
-            {
+                resource_manager.GetDevice(),
+                *m_depth_output,
+                {
                 m_depth_output->GetRenderTargetFormat(),
                 RHIResourceDimension::TEXTURE2D
-            },
-            GBufferPassResource.m_depth_handle))
-    
+                },
+                GBufferPassResource.m_depth_handle))
+
         return true;
     }
 
@@ -143,35 +140,32 @@ namespace glTFRenderResourceUtils
         auto& GBufferPassResource = GetGBufferPassResource(pass_id);
         
         RETURN_IF_FALSE(heap.CreateShaderResourceViewInDescriptorHeap(
-            resource_manager.GetDevice(),
-            heap.GetUsedDescriptorCount(),
-            *m_albedo_output,
-            {
+                resource_manager.GetDevice(),
+                *m_albedo_output,
+                {
                 m_albedo_output->GetRenderTargetFormat(),
                 RHIResourceDimension::TEXTURE2D
-            },
-            GBufferPassResource.m_albedo_handle))
+                },
+                GBufferPassResource.m_albedo_handle))
 
         RETURN_IF_FALSE(heap.CreateShaderResourceViewInDescriptorHeap(
-            resource_manager.GetDevice(),
-            heap.GetUsedDescriptorCount(),
-            *m_normal_output,
-            {
+                resource_manager.GetDevice(),
+                *m_normal_output,
+                {
                 m_normal_output->GetRenderTargetFormat(),
                 RHIResourceDimension::TEXTURE2D
-            },
-            GBufferPassResource.m_normal_handle))
+                },
+                GBufferPassResource.m_normal_handle))
 
         RETURN_IF_FALSE(heap.CreateShaderResourceViewInDescriptorHeap(
-            resource_manager.GetDevice(),
-            heap.GetUsedDescriptorCount(),
-            *m_depth_output,
-            {
+                resource_manager.GetDevice(),
+                *m_depth_output,
+                {
                 m_depth_output->GetRenderTargetFormat(),
                 RHIResourceDimension::TEXTURE2D
-            },
-            GBufferPassResource.m_depth_handle))
-    
+                },
+                GBufferPassResource.m_depth_handle))
+
         return true;
     }
 
@@ -251,12 +245,12 @@ namespace glTFRenderResourceUtils
     bool RWTextureResourceWithBackBuffer::CreateDescriptors(glTFRenderResourceManager& resource_manager,
         IRHIDescriptorHeap& main_descriptor)
     {
-        RETURN_IF_FALSE(main_descriptor.CreateUnOrderAccessViewInDescriptorHeap(resource_manager.GetDevice(), main_descriptor.GetUsedDescriptorCount(),
-                    *m_writable_buffer, {m_writable_buffer->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D}, m_writable_buffer_handle))
+        RETURN_IF_FALSE(main_descriptor.CreateUnOrderAccessViewInDescriptorHeap(resource_manager.GetDevice(), *m_writable_buffer,
+                        {m_writable_buffer->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D}, m_writable_buffer_handle))
 
-        RETURN_IF_FALSE(main_descriptor.CreateShaderResourceViewInDescriptorHeap(resource_manager.GetDevice(), main_descriptor.GetUsedDescriptorCount(),
-                    *m_back_buffer, {m_back_buffer->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D}, m_back_buffer_handle))
-    
+        RETURN_IF_FALSE(main_descriptor.CreateShaderResourceViewInDescriptorHeap(resource_manager.GetDevice(), *m_back_buffer,
+                        {m_back_buffer->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D}, m_back_buffer_handle))
+
         return true;
     }
 

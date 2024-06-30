@@ -14,12 +14,30 @@ DX12MemoryManager::~DX12MemoryManager()
 bool DX12MemoryManager::InitMemoryManager(IRHIDevice& device, std::shared_ptr<IRHIMemoryAllocator> memory_allocator, unsigned max_descriptor_count)
 {
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
-    
-    D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
-    heapDesc.NumDescriptors = max_descriptor_count;
-    heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-    heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-    THROW_IF_FAILED(dxDevice->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&m_CBV_SRV_UAV_Heap)))
+
+    m_CBV_SRV_UAV_Heap = RHIResourceFactory::CreateRHIResource<IRHIDescriptorHeap>();
+    m_CBV_SRV_UAV_Heap->InitDescriptorHeap(device,
+        {
+            .maxDescriptorCount = max_descriptor_count,
+            .type = RHIDescriptorHeapType::CBV_SRV_UAV,
+            .shaderVisible = true
+        });
+
+    m_RTV_heap = RHIResourceFactory::CreateRHIResource<IRHIDescriptorHeap>();
+    m_RTV_heap->InitDescriptorHeap(device,
+        {
+            .maxDescriptorCount = max_descriptor_count,
+            .type = RHIDescriptorHeapType::RTV,
+            .shaderVisible = false
+        });
+
+    m_DSV_heap = RHIResourceFactory::CreateRHIResource<IRHIDescriptorHeap>();
+    m_DSV_heap->InitDescriptorHeap(device,
+        {
+            .maxDescriptorCount = max_descriptor_count,
+            .type = RHIDescriptorHeapType::DSV,
+            .shaderVisible = false
+        });
 
     m_allocator = memory_allocator;
     

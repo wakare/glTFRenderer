@@ -36,9 +36,9 @@ RHICPUDescriptorHandle glTFMaterialTextureRenderResource::CreateTextureSRVHandle
     
     GLTF_CHECK(m_texture);
         
-    RETURN_IF_FALSE(descriptor_heap.CreateShaderResourceViewInDescriptorHeap(resource_manager.GetDevice(), descriptor_heap.GetUsedDescriptorCount(),
-    m_texture->m_texture->GetGPUBuffer(), {m_texture->m_texture->GetTextureDesc().GetDataFormat(), RHIResourceDimension::TEXTURE2D}, result))
-        
+    RETURN_IF_FALSE(descriptor_heap.CreateShaderResourceViewInDescriptorHeap(resource_manager.GetDevice(), m_texture->m_texture->GetGPUBuffer(),
+        {m_texture->m_texture->GetTextureDesc().GetDataFormat(), RHIResourceDimension::TEXTURE2D}, result))
+
     GLTF_CHECK(result);
     
     return result;

@@ -340,7 +340,7 @@ bool DX12Utils::AddRenderTargetBarrierToCommandList(IRHICommandList& commandList
     RHIResourceStateType before_state, RHIResourceStateType after_state)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
-    auto* dxRenderTarget = dynamic_cast<DX12RenderTarget&>(render_target).GetRenderTarget();
+    auto* dxRenderTarget = dynamic_cast<DX12RenderTarget&>(render_target).GetResource();
 
     const CD3DX12_RESOURCE_BARRIER TransitionToVertexBufferState = CD3DX12_RESOURCE_BARRIER::Transition(dxRenderTarget,
         DX12ConverterUtils::ConvertToResourceState(before_state), DX12ConverterUtils::ConvertToResourceState(after_state)); 
