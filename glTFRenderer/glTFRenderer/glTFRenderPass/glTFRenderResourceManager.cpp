@@ -87,8 +87,19 @@ bool glTFRenderResourceManager::InitResourceManager(unsigned width, unsigned hei
     depth_clear_value.clear_format = RHIDataFormat::D32_FLOAT;
     depth_clear_value.clearDS.clear_depth = 1.0f;
     depth_clear_value.clearDS.clear_stencil_value = 0;
-    m_depth_texture = m_render_target_manager->CreateRenderTarget(*m_device, RHIRenderTargetType::DSV, RHIDataFormat::R32_TYPELESS,
-                                                               RHIDataFormat::D32_FLOAT, RHIRenderTargetDesc{GetSwapChain().GetWidth(), GetSwapChain().GetHeight(), false, depth_clear_value, "ResourceManager_DepthRT"});
+    
+    RHITextureDesc depth_texture_desc
+    {
+        GetSwapChain().GetWidth(),
+        GetSwapChain().GetHeight(),
+        RHIDataFormat::R32_TYPELESS,
+        false,
+        depth_clear_value,
+        "DEPTH_TEXTURE_OUTPUT"
+    };
+    
+    m_depth_texture = m_render_target_manager->CreateRenderTarget(
+        *m_device, RHIRenderTargetType::DSV, RHIDataFormat::R32_TYPELESS, RHIDataFormat::D32_FLOAT, depth_texture_desc);
 
     m_frame_resource_managers.resize(backBufferCount);
     

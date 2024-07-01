@@ -57,42 +57,54 @@ namespace glTFRenderResourceUtils
     bool GBufferOutput::InitGBufferOutput(glTFRenderResourceManager& resource_manager, unsigned back_buffer_index)
     {
         RHIDataFormat albedo_format = RHIDataFormat::R8G8B8A8_UNORM;
-        RHIRenderTargetDesc albedo_output_desc;
-        albedo_output_desc.width = resource_manager.GetSwapChain().GetWidth();
-        albedo_output_desc.height = resource_manager.GetSwapChain().GetHeight();
-        albedo_output_desc.name = "Albedo_Output";
-        albedo_output_desc.isUAV = true;
-        albedo_output_desc.clearValue.clear_format = albedo_format;
-        albedo_output_desc.clearValue.clear_color = {0.0f, 0.0f, 0.0f, 0.0f};
-
+        RHITextureDesc albedo_output_desc
+        {
+            resource_manager.GetSwapChain().GetWidth(),
+            resource_manager.GetSwapChain().GetHeight(),
+            albedo_format,
+            true,
+            {
+                .clear_format = albedo_format,
+                .clear_color {0.0f, 0.0f, 0.0f, 0.0f}
+            },
+            "ALBEDO_OUTPUT"
+        };
         m_albedo_output = resource_manager.GetRenderTargetManager().CreateRenderTarget(
-                    resource_manager.GetDevice(), RHIRenderTargetType::RTV, albedo_format, albedo_format, albedo_output_desc);
+            resource_manager.GetDevice(), RHIRenderTargetType::RTV, albedo_format, albedo_format, albedo_output_desc);
         resource_manager.GetRenderTargetManager().RegisterRenderTargetWithTag("Albedo_Output", m_albedo_output, back_buffer_index);
         
         RHIDataFormat normal_format = RHIDataFormat::R8G8B8A8_UNORM;
-        RHIRenderTargetDesc normal_output_desc;
-        normal_output_desc.width = resource_manager.GetSwapChain().GetWidth();
-        normal_output_desc.height = resource_manager.GetSwapChain().GetHeight();
-        normal_output_desc.name = "Normal_Output";
-        normal_output_desc.isUAV = true;
-        normal_output_desc.clearValue.clear_format = normal_format;
-        normal_output_desc.clearValue.clear_color = {0.0f, 0.0f, 0.0f, 0.0f};
-
+        RHITextureDesc normal_output_desc
+        {
+            resource_manager.GetSwapChain().GetWidth(),
+            resource_manager.GetSwapChain().GetHeight(),
+            normal_format,
+            true,
+            {
+                .clear_format = normal_format,
+                .clear_color {0.0f, 0.0f, 0.0f, 0.0f}
+            },
+            "NORMAL_OUTPUT"
+        };
         m_normal_output = resource_manager.GetRenderTargetManager().CreateRenderTarget(
-                    resource_manager.GetDevice(), RHIRenderTargetType::RTV, normal_format, normal_format, normal_output_desc);
+            resource_manager.GetDevice(), RHIRenderTargetType::RTV, normal_format, normal_format, normal_output_desc);
         resource_manager.GetRenderTargetManager().RegisterRenderTargetWithTag("Normal_Output", m_normal_output, back_buffer_index);
         
         RHIDataFormat depth_format = RHIDataFormat::R32_FLOAT;
-        RHIRenderTargetDesc depth_output_desc;
-        depth_output_desc.width = resource_manager.GetSwapChain().GetWidth();
-        depth_output_desc.height = resource_manager.GetSwapChain().GetHeight();
-        depth_output_desc.name = "Depth_Output";
-        depth_output_desc.isUAV = true;
-        depth_output_desc.clearValue.clear_format = depth_format;
-        depth_output_desc.clearValue.clear_color = {0.0f, 0.0f, 0.0f, 0.0f};
-
+        RHITextureDesc depth_output_desc
+        {
+            resource_manager.GetSwapChain().GetWidth(),
+            resource_manager.GetSwapChain().GetHeight(),
+            depth_format,
+            true,
+            {
+                .clear_format = depth_format,
+                .clear_color {0.0f, 0.0f, 0.0f, 0.0f}
+            },
+            "DEPTH_OUTPUT"
+        };
         m_depth_output = resource_manager.GetRenderTargetManager().CreateRenderTarget(
-                    resource_manager.GetDevice(), RHIRenderTargetType::RTV, depth_format, depth_format, depth_output_desc);
+            resource_manager.GetDevice(), RHIRenderTargetType::RTV, depth_format, depth_format, depth_output_desc);
         resource_manager.GetRenderTargetManager().RegisterRenderTargetWithTag("Depth_Output", m_depth_output, back_buffer_index);
         
         m_resource_state = RHIResourceStateType::STATE_RENDER_TARGET;
@@ -225,19 +237,16 @@ namespace glTFRenderResourceUtils
     {
     }
 
-    bool RWTextureResourceWithBackBuffer::CreateResource(glTFRenderResourceManager& resource_manager, const RHIRenderTargetDesc& desc)
+    bool RWTextureResourceWithBackBuffer::CreateResource(glTFRenderResourceManager& resource_manager, const RHITextureDesc& desc)
     {
         m_texture_desc = desc;
-        auto format = m_texture_desc.clearValue.clear_format;
+        auto format = m_texture_desc.GetClearValue().clear_format;
     
         m_writable_buffer = resource_manager.GetRenderTargetManager().CreateRenderTarget(
-                        resource_manager.GetDevice(), RHIRenderTargetType::RTV, format, format, m_texture_desc);
-
-        auto back_buffer_format = m_texture_desc;
-        back_buffer_format.isUAV = false;
+            resource_manager.GetDevice(), RHIRenderTargetType::RTV, format, format, m_texture_desc);
 
         m_back_buffer = resource_manager.GetRenderTargetManager().CreateRenderTarget(
-                        resource_manager.GetDevice(), RHIRenderTargetType::RTV, format, format, back_buffer_format);
+            resource_manager.GetDevice(), RHIRenderTargetType::RTV, format, format, m_texture_desc);
 
         RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resource_manager.GetCommandListForRecord(), *m_writable_buffer,
                     RHIResourceStateType::STATE_RENDER_TARGET, RHIResourceStateType::STATE_UNORDERED_ACCESS))
@@ -292,7 +301,7 @@ namespace glTFRenderResourceUtils
 
     std::string RWTextureResourceWithBackBuffer::GetOutputBufferResourceName() const
     {
-        return m_texture_desc.name;
+        return m_texture_desc.GetName();
     }
 
     std::string RWTextureResourceWithBackBuffer::GetBackBufferResourceName() const

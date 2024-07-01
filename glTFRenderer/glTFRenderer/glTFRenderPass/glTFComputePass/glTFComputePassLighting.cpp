@@ -28,13 +28,18 @@ const char* glTFComputePassLighting::PassName()
 
 bool glTFComputePassLighting::InitPass(glTFRenderResourceManager& resource_manager)
 {
-    RHIRenderTargetDesc lighting_output_desc;
-    lighting_output_desc.width = resource_manager.GetSwapChain().GetWidth();
-    lighting_output_desc.height = resource_manager.GetSwapChain().GetHeight();
-    lighting_output_desc.name = "LightingOutput";
-    lighting_output_desc.isUAV = true;
-    lighting_output_desc.clearValue.clear_format = RHIDataFormat::R8G8B8A8_UNORM;
-    lighting_output_desc.clearValue.clear_color = {0.0f, 0.0f, 0.0f, 0.0f};
+    RHITextureDesc lighting_output_desc =
+    {
+        resource_manager.GetSwapChain().GetWidth(),
+        resource_manager.GetSwapChain().GetHeight(),
+        RHIDataFormat::R8G8B8A8_UNORM,
+        true,
+        {
+            .clear_format = RHIDataFormat::R8G8B8A8_UNORM,
+            .clear_color{0.0f, 0.0f, 0.0f, 0.0f}
+        },
+        "LightingOutput"
+    };
     
     m_lighting_output_RT = resource_manager.GetRenderTargetManager().CreateRenderTarget(
         resource_manager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R8G8B8A8_UNORM, RHIDataFormat::R8G8B8A8_UNORM, lighting_output_desc);

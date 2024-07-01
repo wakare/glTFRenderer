@@ -11,8 +11,8 @@ bool VKRenderTargetManager::InitRenderTargetManager(IRHIDevice& device, size_t m
 }
 
 std::shared_ptr<IRHIRenderTarget> VKRenderTargetManager::CreateRenderTarget(IRHIDevice& device,
-    RHIRenderTargetType type, RHIDataFormat resourceFormat, RHIDataFormat descriptorFormat,
-    const RHIRenderTargetDesc& desc)
+                                                                            RHIRenderTargetType type, RHIDataFormat resourceFormat, RHIDataFormat descriptorFormat,
+                                                                            const RHITextureDesc& desc)
 {
     const VkDevice vk_device = dynamic_cast<VKDevice&>(device).GetDevice();
     const auto vk_render_target = std::make_shared<VKRenderTarget>();
@@ -20,7 +20,7 @@ std::shared_ptr<IRHIRenderTarget> VKRenderTargetManager::CreateRenderTarget(IRHI
     VkImageCreateInfo image_create_info{};
     image_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     image_create_info.imageType = VK_IMAGE_TYPE_2D; 
-    image_create_info.extent = {desc.width, desc.height, 1};
+    image_create_info.extent = {desc.GetTextureWidth(), desc.GetTextureHeight(), 1};
     image_create_info.mipLevels = 1;
     image_create_info.arrayLayers = 1;
     image_create_info.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;

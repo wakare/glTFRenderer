@@ -22,28 +22,37 @@ const char* glTFComputePassReSTIRDirectLighting::PassName()
 
 bool glTFComputePassReSTIRDirectLighting::InitPass(glTFRenderResourceManager& resource_manager)
 {
-    RHIRenderTargetDesc lighting_output_desc;
-    lighting_output_desc.width = resource_manager.GetSwapChain().GetWidth();
-    lighting_output_desc.height = resource_manager.GetSwapChain().GetHeight();
-    lighting_output_desc.name = "LightingOutput";
-    lighting_output_desc.isUAV = true;
-    lighting_output_desc.clearValue.clear_format = RHIDataFormat::R8G8B8A8_UNORM;
-    lighting_output_desc.clearValue.clear_color = {0.0f, 0.0f, 0.0f, 0.0f};
+    RHITextureDesc lighting_output_desc
+    {
+        resource_manager.GetSwapChain().GetWidth(),
+        resource_manager.GetSwapChain().GetHeight(),
+        RHIDataFormat::R8G8B8A8_UNORM,
+        true,
+        {
+            .clear_format = RHIDataFormat::R8G8B8A8_UNORM,
+            .clear_color {0.0f, 0.0f, 0.0f, 0.0f}
+        },
+"LIGHTING_OUTPUT"
+    };
     
     m_output = resource_manager.GetRenderTargetManager().CreateRenderTarget(
         resource_manager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R8G8B8A8_UNORM, RHIDataFormat::R8G8B8A8_UNORM, lighting_output_desc);
     resource_manager.GetRenderTargetManager().RegisterRenderTargetWithTag("RayTracingOutput", m_output);
     
-    RHIRenderTargetDesc aggregate_samples_output_desc;
-    aggregate_samples_output_desc.width = resource_manager.GetSwapChain().GetWidth();
-    aggregate_samples_output_desc.height = resource_manager.GetSwapChain().GetHeight();
-    aggregate_samples_output_desc.name = "AggregateOutput";
-    aggregate_samples_output_desc.isUAV = true;
-    aggregate_samples_output_desc.clearValue.clear_format = RHIDataFormat::R32G32B32A32_FLOAT;
-    aggregate_samples_output_desc.clearValue.clear_color = {0.0f, 0.0f, 0.0f, 0.0f};
-    
+    RHITextureDesc aggregate_samples_output_desc
+    {
+        resource_manager.GetSwapChain().GetWidth(),
+        resource_manager.GetSwapChain().GetHeight(),
+        RHIDataFormat::R32G32B32A32_FLOAT,
+        true,
+        {
+            .clear_format = RHIDataFormat::R32G32B32A32_FLOAT,
+            .clear_color {0.0f, 0.0f, 0.0f, 0.0f}
+        },
+    "AGGREGATE_Output"
+    };
     RETURN_IF_FALSE(m_aggregate_samples_output.CreateResource(resource_manager, aggregate_samples_output_desc))
-    
+
     auto& command_list = resource_manager.GetCommandListForRecord();
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_output, RHIResourceStateType::STATE_RENDER_TARGET, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE))
 

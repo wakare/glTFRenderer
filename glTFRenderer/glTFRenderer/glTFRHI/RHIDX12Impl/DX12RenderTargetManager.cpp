@@ -2,7 +2,6 @@
 #include "DX12CommandList.h"
 #include "DX12ConverterUtils.h"
 #include "DX12DescriptorHeap.h"
-#include "DX12Utils.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 
 UINT GetDescriptorIncSize(ID3D12Device* device, RHIRenderTargetType type)
@@ -46,12 +45,12 @@ bool DX12RenderTargetManager::InitRenderTargetManager(IRHIDevice& device, size_t
 }
 
 std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTarget(IRHIDevice& device, RHIRenderTargetType type,
-    RHIDataFormat resource_format, RHIDataFormat descriptor_format, const RHIRenderTargetDesc& desc)
+                                                                              RHIDataFormat resource_format, RHIDataFormat descriptor_format, const RHITextureDesc& desc)
 {
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
     
     // Check has enough space for descriptor?
-    D3D12_RESOURCE_FLAGS flags = (desc.isUAV) ? D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS : D3D12_RESOURCE_FLAG_NONE;
+    D3D12_RESOURCE_FLAGS flags = desc.HasUAVUsage() ? D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS : D3D12_RESOURCE_FLAG_NONE;
     D3D12_RESOURCE_STATES state = D3D12_RESOURCE_STATE_COMMON;
     const DXGI_FORMAT dxResourceFormat = DX12ConverterUtils::ConvertToDXGIFormat(resource_format);
     
@@ -78,8 +77,8 @@ std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTarget(IR
     D3D12_RESOURCE_DESC resource_desc = {};
     resource_desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
     resource_desc.Format = dxResourceFormat;
-    resource_desc.Width = desc.width;
-    resource_desc.Height = desc.height;
+    resource_desc.Width = desc.GetTextureWidth();
+    resource_desc.Height = desc.GetTextureHeight();
     resource_desc.DepthOrArraySize = 1;
     resource_desc.MipLevels = 1;
     resource_desc.Alignment = 0;
@@ -89,7 +88,7 @@ std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTarget(IR
     resource_desc.Flags = flags;
 
     ID3D12Resource* resource = nullptr;
-    const auto dx_clear_value = DX12ConverterUtils::ConvertToD3DClearValue(desc.clearValue);
+    const auto dx_clear_value = DX12ConverterUtils::ConvertToD3DClearValue(desc.GetClearValue());
     THROW_IF_FAILED(dxDevice->CreateCommittedResource(&heap_properties,
                                                   D3D12_HEAP_FLAG_NONE,
                                                   &resource_desc,
@@ -97,9 +96,9 @@ std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTarget(IR
                                                   &dx_clear_value,
                                                   IID_PPV_ARGS(&resource)))
 
-    if (!desc.name.empty())
+    if (!desc.GetName().empty())
     {
-        resource->SetName(to_wide_string(desc.name).c_str());
+        resource->SetName(to_wide_string(desc.GetName()).c_str());
     }
 
     return CreateRenderTargetWithResource(device, type, descriptor_format, resource, dx_clear_value);

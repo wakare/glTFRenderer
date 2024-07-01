@@ -198,39 +198,6 @@ struct RHIShaderResourceViewDesc
     }
 };
 
-struct RHITextureDesc
-{
-public:
-    RHITextureDesc();
-    RHITextureDesc(const RHITextureDesc&) = delete;
-    RHITextureDesc& operator=(const RHITextureDesc&) = delete;
-
-    RHITextureDesc(RHITextureDesc&& desc) noexcept;
-    RHITextureDesc& operator=(RHITextureDesc&& desc) noexcept;
-    
-    bool Init(const ImageLoadResult& image_load_result);
-    
-    // No data copy!!
-    bool Init(const RHITextureDesc& other);
-
-    bool HasTextureData() const {return m_texture_data != nullptr; }
-    unsigned char* GetTextureData() const { return m_texture_data.get(); }
-    size_t GetTextureDataSize() const { return m_texture_data_size; }
-    RHIDataFormat GetDataFormat() const { return m_texture_format; }
-    unsigned GetTextureWidth() const { return m_texture_width; }
-    unsigned GetTextureHeight() const { return m_texture_height; }
-
-    void SetDataFormat(RHIDataFormat format) { m_texture_format = format;}
-    static RHIDataFormat ConvertToRHIDataFormat(const WICPixelFormatGUID& wicFormatGUID);
-
-private:
-    std::unique_ptr<unsigned char[]> m_texture_data;
-    size_t m_texture_data_size;
-    unsigned m_texture_width;
-    unsigned m_texture_height;
-    RHIDataFormat m_texture_format;
-};
-
 enum class RHISubPassBindPoint
 {
     GRAPHICS,
@@ -420,6 +387,47 @@ struct RHIRenderTargetDesc
     bool isUAV;
     RHIRenderTargetClearValue clearValue;
     std::string name;
+};
+
+struct RHITextureDesc
+{
+    RHITextureDesc() = default;
+    RHITextureDesc(const RHITextureDesc&) noexcept;
+    RHITextureDesc& operator=(const RHITextureDesc&) noexcept;
+
+    RHITextureDesc(RHITextureDesc&& desc) noexcept;
+    RHITextureDesc& operator=(RHITextureDesc&& desc) noexcept;
+
+    RHITextureDesc(unsigned width, unsigned height, RHIDataFormat format, bool is_uav, const RHIRenderTargetClearValue& clear_value, std::string name);
+    
+    bool Init(const ImageLoadResult& image_load_result);
+    
+    // No data copy!!
+    bool Init(const RHITextureDesc& other);
+
+    bool HasTextureData() const {return m_texture_data != nullptr; }
+    unsigned char* GetTextureData() const { return m_texture_data.get(); }
+    size_t GetTextureDataSize() const { return m_texture_data_size; }
+    RHIDataFormat GetDataFormat() const { return m_texture_format; }
+    unsigned GetTextureWidth() const { return m_texture_width; }
+    unsigned GetTextureHeight() const { return m_texture_height; }
+
+    void SetDataFormat(RHIDataFormat format) { m_texture_format = format;}
+    static RHIDataFormat ConvertToRHIDataFormat(const WICPixelFormatGUID& wicFormatGUID);
+
+    bool HasUAVUsage() const;
+    const RHIRenderTargetClearValue& GetClearValue() const;
+    const std::string& GetName() const;
+    
+private:
+    std::unique_ptr<unsigned char[]> m_texture_data {nullptr};
+    size_t m_texture_data_size {0};
+    unsigned m_texture_width {0};
+    unsigned m_texture_height {0};
+    RHIDataFormat m_texture_format {RHIDataFormat::Unknown};
+    bool m_isUAV {false};
+    RHIRenderTargetClearValue m_clear_value {};
+    std::string m_name;
 };
 
 struct RHIPipelineInputLayout

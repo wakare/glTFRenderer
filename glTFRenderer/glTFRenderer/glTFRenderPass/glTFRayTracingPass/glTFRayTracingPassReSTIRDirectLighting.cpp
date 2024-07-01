@@ -20,28 +20,36 @@ const char* glTFRayTracingPassReSTIRDirectLighting::PassName()
 
 bool glTFRayTracingPassReSTIRDirectLighting::InitPass(glTFRenderResourceManager& resource_manager)
 {
-    RHIRenderTargetDesc raytracing_output_render_target;
-    raytracing_output_render_target.width = resource_manager.GetSwapChain().GetWidth();
-    raytracing_output_render_target.height = resource_manager.GetSwapChain().GetHeight();
-    raytracing_output_render_target.name = "ReSTIRDirectLightingSamples";
-    raytracing_output_render_target.isUAV = true;
-    raytracing_output_render_target.clearValue.clear_format = RHIDataFormat::R32G32B32A32_FLOAT;
-    raytracing_output_render_target.clearValue.clear_color = {0.0f, 0.0f, 0.0f, 0.0f};
-
+    RHITextureDesc raytracing_output_render_target
+    {
+        resource_manager.GetSwapChain().GetWidth(),
+        resource_manager.GetSwapChain().GetHeight(),
+        RHIDataFormat::R32G32B32A32_FLOAT,
+        true,
+        {
+            .clear_format = RHIDataFormat::R32G32B32A32_FLOAT,
+            .clear_color {0.0f, 0.0f, 0.0f, 0.0f}
+        },
+        "RESTIR_DI_SAMPLE_OUTPUT"
+    };
     m_lighting_samples = resource_manager.GetRenderTargetManager().CreateRenderTarget(
-                resource_manager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R32G32B32A32_FLOAT, RHIDataFormat::R32G32B32A32_FLOAT, raytracing_output_render_target);
+        resource_manager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R32G32B32A32_FLOAT, RHIDataFormat::R32G32B32A32_FLOAT, raytracing_output_render_target);
     resource_manager.GetRenderTargetManager().RegisterRenderTargetWithTag("ReSTIRDirectLightingSamples", m_lighting_samples);
     
-    RHIRenderTargetDesc screen_uv_offset_render_target;
-    screen_uv_offset_render_target.width = resource_manager.GetSwapChain().GetWidth();
-    screen_uv_offset_render_target.height = resource_manager.GetSwapChain().GetHeight();
-    screen_uv_offset_render_target.name = "RayTracingScreenUVOffset";
-    screen_uv_offset_render_target.isUAV = true;
-    screen_uv_offset_render_target.clearValue.clear_format = RHIDataFormat::R32G32B32A32_FLOAT;
-    screen_uv_offset_render_target.clearValue.clear_color = {0.0f, 0.0f, 0.0f, 0.0f};
-    
+    RHITextureDesc screen_uv_offset_render_target
+    {
+        resource_manager.GetSwapChain().GetWidth(),
+        resource_manager.GetSwapChain().GetHeight(),
+        RHIDataFormat::R32G32B32A32_FLOAT,
+        true,
+        {
+            .clear_format = RHIDataFormat::R32G32B32A32_FLOAT,
+            .clear_color {0.0f, 0.0f, 0.0f, 0.0f}
+        },
+        "RAYTRACING_SCREEN_UV_OFFSET_OUTPUT"
+    };
     m_screen_uv_offset_output = resource_manager.GetRenderTargetManager().CreateRenderTarget(
-                    resource_manager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R32G32B32A32_FLOAT, RHIDataFormat::R32G32B32A32_FLOAT, screen_uv_offset_render_target);
+        resource_manager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R32G32B32A32_FLOAT, RHIDataFormat::R32G32B32A32_FLOAT, screen_uv_offset_render_target);
     resource_manager.GetRenderTargetManager().RegisterRenderTargetWithTag("RayTracingScreenUVOffset", m_screen_uv_offset_output);
 
     auto& command_list = resource_manager.GetCommandListForRecord();

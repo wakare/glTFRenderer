@@ -9,6 +9,7 @@ class IRHIRenderTarget : public IRHIResource
 {
 public:
     IRHIRenderTarget();
+    virtual ~IRHIRenderTarget() override = default;
     DECLARE_NON_COPYABLE(IRHIRenderTarget)
 
     unsigned GetRenderTargetId() const {return m_id;}

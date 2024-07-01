@@ -72,24 +72,33 @@ bool glTFGraphicsPassMeshOpaque::SetupPipelineStateObject(glTFRenderResourceMana
     GetGraphicsPipelineStateObject().BindShaderCode(
         R"(glTFResources\ShaderSource\MeshPassCommonPS.hlsl)", RHIShaderType::Pixel, "main");
 
-    RHIRenderTargetDesc render_target_base_color_desc;
-    render_target_base_color_desc.width = resource_manager.GetSwapChain().GetWidth();
-    render_target_base_color_desc.height = resource_manager.GetSwapChain().GetHeight();
-    render_target_base_color_desc.name = "BasePassColor";
-    render_target_base_color_desc.isUAV = true;
-    render_target_base_color_desc.clearValue.clear_format = RHIDataFormat::R8G8B8A8_UNORM_SRGB;
-    render_target_base_color_desc.clearValue.clear_color = {0.0f, 0.0f, 0.0f, 0.0f};
-    
+    RHITextureDesc render_target_base_color_desc
+    {
+        resource_manager.GetSwapChain().GetWidth(),
+        resource_manager.GetSwapChain().GetHeight(),
+        RHIDataFormat::R8G8B8A8_UNORM_SRGB,
+        true,
+        {
+            .clear_format = RHIDataFormat::R8G8B8A8_UNORM_SRGB,
+            .clear_color {0.0f, 0.0f, 0.0f, 0.0f}
+        },
+    "BASEPASS_COLOR_OUTPUT"
+    };
     m_base_pass_color_render_target = resource_manager.GetRenderTargetManager().CreateRenderTarget(
         resource_manager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R8G8B8A8_UNORM_SRGB, RHIDataFormat::R8G8B8A8_UNORM_SRGB, render_target_base_color_desc);
 
-    RHIRenderTargetDesc render_target_normal_desc;
-    render_target_normal_desc.width = resource_manager.GetSwapChain().GetWidth();
-    render_target_normal_desc.height = resource_manager.GetSwapChain().GetHeight();
-    render_target_normal_desc.name = "BasePassNormal";
-    render_target_normal_desc.isUAV = true;
-    render_target_normal_desc.clearValue.clear_format = RHIDataFormat::R8G8B8A8_UNORM_SRGB;
-    render_target_normal_desc.clearValue.clear_color = {0.0f, 0.0f, 0.0f, 0.0f};
+    RHITextureDesc render_target_normal_desc
+    {
+        resource_manager.GetSwapChain().GetWidth(),
+        resource_manager.GetSwapChain().GetHeight(),
+        RHIDataFormat::R8G8B8A8_UNORM_SRGB,
+        true,
+        {
+            .clear_format = RHIDataFormat::R8G8B8A8_UNORM_SRGB,
+            .clear_color {0.0f, 0.0f, 0.0f, 0.0f}
+        },
+        "BASEPASS_NORMAL_OUTPUT"
+    };
     m_base_pass_normal_render_target = resource_manager.GetRenderTargetManager().CreateRenderTarget(
         resource_manager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R8G8B8A8_UNORM_SRGB, RHIDataFormat::R8G8B8A8_UNORM_SRGB, render_target_normal_desc);
 
