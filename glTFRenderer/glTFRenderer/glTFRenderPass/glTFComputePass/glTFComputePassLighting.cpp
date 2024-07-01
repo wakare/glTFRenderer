@@ -68,11 +68,11 @@ bool glTFComputePassLighting::PreRenderPass(glTFRenderResourceManager& resource_
         RHIResourceStateType::STATE_DEPTH_READ, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE))
 
     RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list,
-        m_base_color_and_depth_allocation.parameter_index, m_main_descriptor_heap->GetGPUHandle(0), GetPipelineType() == PipelineType::Graphics))    
+        m_base_color_and_depth_allocation.parameter_index, m_base_color_SRV, GetPipelineType() == PipelineType::Graphics))    
 
     RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list,
         m_output_allocation.parameter_index,
-        m_main_descriptor_heap->GetGPUHandle(3),
+        m_output_UAV,
         GetPipelineType() == PipelineType::Graphics))
 
     RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceLighting>()->UpdateCPUBuffer())
@@ -152,17 +152,17 @@ bool glTFComputePassLighting::SetupPipelineStateObject(glTFRenderResourceManager
     
     m_base_color_RT = resource_manager.GetRenderTargetManager().GetRenderTargetWithTag("BasePassColor");
     RETURN_IF_FALSE(m_main_descriptor_heap->CreateShaderResourceViewInDescriptorHeap(resource_manager.GetDevice(), *m_base_color_RT,
-                {m_base_color_RT->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D}, m_base_color_SRV))
+                {m_base_color_RT->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_base_color_SRV))
 
     RETURN_IF_FALSE(m_main_descriptor_heap->CreateShaderResourceViewInDescriptorHeap(resource_manager.GetDevice(), resource_manager.GetDepthRT(),
-                {RHIDataFormat::R32_FLOAT, RHIResourceDimension::TEXTURE2D}, m_depth_SRV))
+                {RHIDataFormat::R32_FLOAT, RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_depth_SRV))
 
     m_normal_RT = resource_manager.GetRenderTargetManager().GetRenderTargetWithTag("BasePassNormal");
     RETURN_IF_FALSE(m_main_descriptor_heap->CreateShaderResourceViewInDescriptorHeap(resource_manager.GetDevice(), *m_normal_RT,
-                {m_normal_RT->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D}, m_normal_SRV))
+                {m_normal_RT->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_normal_SRV))
 
-    RETURN_IF_FALSE(m_main_descriptor_heap->CreateUnOrderAccessViewInDescriptorHeap(resource_manager.GetDevice(), *m_lighting_output_RT,
-                {m_lighting_output_RT->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D}, m_output_UAV))
+    RETURN_IF_FALSE(m_main_descriptor_heap->CreateShaderResourceViewInDescriptorHeap(resource_manager.GetDevice(), *m_lighting_output_RT,
+                {m_lighting_output_RT->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_UAV}, m_output_UAV))
 
     GetComputePipelineStateObject().BindShaderCode(
         R"(glTFResources\ShaderSource\ComputeShader\LightingCS.hlsl)", RHIShaderType::Compute, "main");

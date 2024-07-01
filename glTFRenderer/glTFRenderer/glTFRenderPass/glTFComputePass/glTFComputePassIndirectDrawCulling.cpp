@@ -40,9 +40,19 @@ bool glTFComputePassIndirectDrawCulling::InitPass(glTFRenderResourceManager& res
 
     const auto& mesh_manager = resource_manager.GetMeshManager();
         
-    RHIGPUDescriptorHandle handle;
-    RETURN_IF_FALSE(m_main_descriptor_heap->CreateUnOrderAccessViewInDescriptorHeap(resource_manager.GetDevice(), m_main_descriptor_heap->GetUsedDescriptorCount(),
-                *mesh_manager.GetCulledIndirectArgumentBuffer(), {RHIDataFormat::Unknown, RHIResourceDimension::BUFFER, sizeof(MeshIndirectDrawCommand), static_cast<unsigned>(mesh_manager.GetIndirectDrawCommands().size()), true, mesh_manager.GetCulledIndirectArgumentBufferCountOffset()}, handle))
+    RETURN_IF_FALSE(m_main_descriptor_heap->CreateShaderResourceViewInDescriptorHeap(
+        resource_manager.GetDevice(),
+        *mesh_manager.GetCulledIndirectArgumentBuffer(),
+        {
+            RHIDataFormat::Unknown,
+            RHIResourceDimension::BUFFER,
+            RHIViewType::RVT_UAV,
+            sizeof(MeshIndirectDrawCommand),
+            static_cast<unsigned>(mesh_manager.GetIndirectDrawCommands().size()),
+            true,
+            mesh_manager.GetCulledIndirectArgumentBufferCountOffset()
+        },
+        m_command_buffer_handle))
 
     const unsigned dispatch_thread = static_cast<unsigned>(ceil(mesh_manager.GetIndirectDrawCommands().size() / 64.0f));
     m_dispatch_count = {dispatch_thread, 1, 1};
@@ -119,7 +129,7 @@ bool glTFComputePassIndirectDrawCulling::PreRenderPass(glTFRenderResourceManager
         auto& command_list = resource_manager.GetCommandListForRecord();
         RHIUtils::Instance().SetDTToRootParameterSlot(command_list,
             m_culled_indirect_command_allocation.parameter_index,
-            m_main_descriptor_heap->GetGPUHandle(0),
+            m_command_buffer_handle,
             GetPipelineType() == PipelineType::Graphics);
 
         RHIUtils::Instance().AddBufferBarrierToCommandList(command_list, *resource_manager.GetMeshManager().GetCulledIndirectArgumentBuffer(),

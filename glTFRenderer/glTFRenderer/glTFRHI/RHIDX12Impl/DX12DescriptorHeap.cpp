@@ -37,20 +37,6 @@ bool DX12DescriptorHeap::InitDescriptorHeap(IRHIDevice& device, const RHIDescrip
     return true;
 }
 
-RHICPUDescriptorHandle DX12DescriptorHeap::GetCPUHandle(unsigned offsetInDescriptor)
-{
-    CD3DX12_CPU_DESCRIPTOR_HANDLE cpu_handle(m_descriptorHeap->GetCPUDescriptorHandleForHeapStart());
-    cpu_handle.Offset(offsetInDescriptor, m_descriptorIncrementSize);
-    return cpu_handle.ptr;
-}
-
-RHIGPUDescriptorHandle DX12DescriptorHeap::GetGPUHandle(unsigned offsetInDescriptor)
-{
-    CD3DX12_GPU_DESCRIPTOR_HANDLE gpu_handle(m_descriptorHeap->GetGPUDescriptorHandleForHeapStart());
-    gpu_handle.Offset(offsetInDescriptor, m_descriptorIncrementSize);
-    return gpu_handle.ptr;
-}
-
 unsigned DX12DescriptorHeap::GetUsedDescriptorCount() const
 {
     return m_used_descriptor_count;
@@ -85,28 +71,40 @@ bool DX12DescriptorHeap::CreateShaderResourceViewInDescriptorHeap(IRHIDevice& de
                                                                   IRHIBuffer& buffer, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& out_GPU_handle)
 {
     auto* dxBuffer = dynamic_cast<DX12Buffer&>(buffer).GetBuffer();
-    return CreateSRVInHeap(device, m_used_descriptor_count, dxBuffer, desc, out_GPU_handle);
+    bool created = false;
+    
+    switch (desc.view_type)
+    {
+    case RHIViewType::RVT_CBV:
+        break;
+    case RHIViewType::RVT_SRV:
+        created = CreateSRVInHeap(device, m_used_descriptor_count, dxBuffer, desc, out_GPU_handle);
+        break;
+    case RHIViewType::RVT_UAV:
+        created = CreateUAVInHeap(device, m_used_descriptor_count, dxBuffer, desc, out_GPU_handle);
+        break;
+    }
+    return created;
 }
 
 bool DX12DescriptorHeap::CreateShaderResourceViewInDescriptorHeap(IRHIDevice& device,
                                                                   IRHIRenderTarget& render_target, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& out_GPU_handle)
 {
     auto* dxRenderTarget = dynamic_cast<DX12RenderTarget*>(&render_target);
-    return CreateSRVInHeap(device, m_used_descriptor_count, dxRenderTarget->GetResource(), desc, out_GPU_handle);
-}
-
-bool DX12DescriptorHeap::CreateUnOrderAccessViewInDescriptorHeap(IRHIDevice& device, unsigned descriptor_offset,
-    IRHIBuffer& buffer, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& out_GPU_handle)
-{
-    auto* dxBuffer = dynamic_cast<DX12Buffer&>(buffer).GetBuffer();
-    return CreateUAVInHeap(device, descriptor_offset, dxBuffer, desc, out_GPU_handle);
-}
-
-bool DX12DescriptorHeap::CreateUnOrderAccessViewInDescriptorHeap(IRHIDevice& device,
-                                                                 IRHIRenderTarget& render_target, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& out_GPU_handle)
-{
-    auto* dxRenderTarget = dynamic_cast<DX12RenderTarget*>(&render_target);
-    return CreateUAVInHeap(device, m_used_descriptor_count, dxRenderTarget->GetResource(), desc, out_GPU_handle);
+    bool created = false;
+    
+    switch (desc.view_type)
+    {
+    case RHIViewType::RVT_CBV:
+        break;
+    case RHIViewType::RVT_SRV:
+        created = CreateSRVInHeap(device, m_used_descriptor_count, dxRenderTarget->GetResource(), desc, out_GPU_handle);
+        break;
+    case RHIViewType::RVT_UAV:
+        created = CreateUAVInHeap(device, m_used_descriptor_count, dxRenderTarget->GetResource(), desc, out_GPU_handle);
+        break;
+    }
+    return created;
 }
 
 D3D12_CPU_DESCRIPTOR_HANDLE DX12DescriptorHeap::GetCPUHandleForHeapStart() const

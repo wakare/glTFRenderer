@@ -155,14 +155,14 @@ bool glTFComputePassRayTracingPostprocess::SetupRootSignature(glTFRenderResource
 
     m_post_process_input_RT = resource_manager.GetRenderTargetManager().GetRenderTargetWithTag("RayTracingOutput");
     RETURN_IF_FALSE(m_main_descriptor_heap->CreateShaderResourceViewInDescriptorHeap(resource_manager.GetDevice(), *m_post_process_input_RT,
-                {m_post_process_input_RT->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D}, m_post_process_input_handle))
+                {m_post_process_input_RT->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_post_process_input_handle))
 
     m_screen_uv_offset_RT = resource_manager.GetRenderTargetManager().GetRenderTargetWithTag("RayTracingScreenUVOffset");
     RETURN_IF_FALSE(m_main_descriptor_heap->CreateShaderResourceViewInDescriptorHeap(resource_manager.GetDevice(), *m_screen_uv_offset_RT,
-                {m_screen_uv_offset_RT->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D}, m_screen_uv_offset_handle))
+                {m_screen_uv_offset_RT->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_screen_uv_offset_handle))
 
-    RETURN_IF_FALSE(m_main_descriptor_heap->CreateUnOrderAccessViewInDescriptorHeap(resource_manager.GetDevice(), *m_post_process_output_RT,
-                        {m_post_process_output_RT->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D}, m_post_process_output_handle))
+    RETURN_IF_FALSE(m_main_descriptor_heap->CreateShaderResourceViewInDescriptorHeap(resource_manager.GetDevice(), *m_post_process_output_RT,
+                        {m_post_process_output_RT->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_UAV}, m_post_process_output_handle))
 
     RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("PostProcessInput", RHIRootParameterDescriptorRangeType::SRV, 1, false, m_process_input_allocation))
     RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("ScreenUVOffset", RHIRootParameterDescriptorRangeType::SRV, 1, false, m_screen_uv_offset_allocation))

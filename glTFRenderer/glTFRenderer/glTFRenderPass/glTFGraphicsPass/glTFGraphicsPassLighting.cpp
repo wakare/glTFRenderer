@@ -1,13 +1,11 @@
 #include "glTFGraphicsPassLighting.h"
-#include "glTFRenderPass/glTFRenderResourceManager.h"
+#include "glTFRHI/RHIUtils.h"
 #include "glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
 #include "glTFRHI/RHIInterface/IRHIRenderTargetManager.h"
-#include "glTFRHI/RHIUtils.h"
-#include "glTFLight/glTFDirectionalLight.h"
-#include "glTFLight/glTFLightBase.h"
-#include "glTFLight/glTFPointLight.h"
-#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSampler.h"
 #include "glTFRHI/RHIResourceFactory.h"
+#include "glTFLight/glTFLightBase.h"
+#include "glTFRenderPass/glTFRenderResourceManager.h"
+#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSampler.h"
 
 glTFGraphicsPassLighting::glTFGraphicsPassLighting()
     : m_base_pass_color_RT(nullptr)
@@ -52,7 +50,7 @@ bool glTFGraphicsPassLighting::PreRenderPass(glTFRenderResourceManager& resource
         RHIResourceStateType::STATE_DEPTH_READ, RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE))
 
     RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list,
-        m_base_color_and_depth_allocation.parameter_index, m_main_descriptor_heap->GetGPUHandle(0), GetPipelineType() == PipelineType::Graphics))    
+        m_base_color_and_depth_allocation.parameter_index, m_base_pass_color_RT_SRV_Handle, GetPipelineType() == PipelineType::Graphics))    
 
     RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().BindRenderTarget(command_list,
         {&resource_manager.GetCurrentFrameSwapChainRT()}, nullptr))
@@ -130,14 +128,14 @@ bool glTFGraphicsPassLighting::SetupPipelineStateObject(glTFRenderResourceManage
     
     m_base_pass_color_RT = resource_manager.GetRenderTargetManager().GetRenderTargetWithTag("BasePassColor");
     RETURN_IF_FALSE(m_main_descriptor_heap->CreateShaderResourceViewInDescriptorHeap(resource_manager.GetDevice(), *m_base_pass_color_RT,
-                {m_base_pass_color_RT->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D}, m_base_pass_color_RT_SRV_Handle))
+                {m_base_pass_color_RT->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_base_pass_color_RT_SRV_Handle))
 
     RETURN_IF_FALSE(m_main_descriptor_heap->CreateShaderResourceViewInDescriptorHeap(resource_manager.GetDevice(), resource_manager.GetDepthRT(),
-                {RHIDataFormat::R32_FLOAT, RHIResourceDimension::TEXTURE2D}, m_depth_RT_SRV_Handle))
+                {RHIDataFormat::R32_FLOAT, RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_depth_RT_SRV_Handle))
 
     m_normal_RT = resource_manager.GetRenderTargetManager().GetRenderTargetWithTag("BasePassNormal");
     RETURN_IF_FALSE(m_main_descriptor_heap->CreateShaderResourceViewInDescriptorHeap(resource_manager.GetDevice(), *m_normal_RT,
-                {m_normal_RT->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D}, m_normal_RT_SRV_Handle))
+                {m_normal_RT->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_normal_RT_SRV_Handle))
 
     GetGraphicsPipelineStateObject().BindShaderCode(
         R"(glTFResources\ShaderSource\LightPassVS.hlsl)", RHIShaderType::Vertex, "main");

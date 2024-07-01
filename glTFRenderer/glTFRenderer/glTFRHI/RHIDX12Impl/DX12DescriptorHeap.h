@@ -10,17 +10,12 @@ public:
     virtual ~DX12DescriptorHeap() override;
     
     virtual bool InitDescriptorHeap(IRHIDevice& device, const RHIDescriptorHeapDesc& desc) override;
-    virtual RHICPUDescriptorHandle GetCPUHandle(unsigned offsetInDescriptor) override;
-    virtual RHIGPUDescriptorHandle GetGPUHandle(unsigned offsetInDescriptor) override;
     unsigned GetUsedDescriptorCount() const override;
 
     virtual bool CreateConstantBufferViewInDescriptorHeap(IRHIDevice& device, unsigned descriptor_offset, IRHIBuffer& buffer, const RHIConstantBufferViewDesc& desc, /*output*/ RHIGPUDescriptorHandle& out_GPU_handle) override;
     virtual bool CreateShaderResourceViewInDescriptorHeap(IRHIDevice& device, IRHIBuffer& buffer, const RHIShaderResourceViewDesc& desc, /*output*/ RHIGPUDescriptorHandle& out_GPU_handle) override;
     virtual bool CreateShaderResourceViewInDescriptorHeap(IRHIDevice& device, IRHIRenderTarget& render_target, const RHIShaderResourceViewDesc& desc, /*output*/ RHIGPUDescriptorHandle& out_GPU_handle) override;
 
-    virtual bool CreateUnOrderAccessViewInDescriptorHeap(IRHIDevice& device, unsigned descriptor_offset, IRHIBuffer& buffer, const RHIShaderResourceViewDesc& desc, /*output*/ RHIGPUDescriptorHandle& out_GPU_handle) override;
-    virtual bool CreateUnOrderAccessViewInDescriptorHeap(IRHIDevice& device, IRHIRenderTarget& render_target, const RHIShaderResourceViewDesc& desc, /*output*/ RHIGPUDescriptorHandle& out_GPU_handle) override;
-    
     ID3D12DescriptorHeap* GetDescriptorHeap() {return m_descriptorHeap; }
     D3D12_CPU_DESCRIPTOR_HANDLE GetCPUHandleForHeapStart() const;
     D3D12_GPU_DESCRIPTOR_HANDLE GetGPUHandleForHeapStart() const;

@@ -164,11 +164,18 @@ enum class RHIResourceDimension
     TEXTURECUBEARRAY,
 };
 
+enum class RHIViewType
+{
+    RVT_CBV,
+    RVT_SRV,
+    RVT_UAV,
+};
+
 struct RHIShaderResourceViewDesc
 {
     RHIDataFormat format;
     RHIResourceDimension dimension;
-    
+    RHIViewType view_type;
     // TODO: figure out this member represent what?
     //unsigned shader4ComponentMapping;
 

@@ -129,21 +129,23 @@ bool glTFRayTracingPassPathTracing::SetupPipelineStateObject(glTFRenderResourceM
 {
     RETURN_IF_FALSE(glTFRayTracingPassWithMesh::SetupPipelineStateObject(resource_manager))
 
-    RETURN_IF_FALSE(m_main_descriptor_heap->CreateUnOrderAccessViewInDescriptorHeap(
+    RETURN_IF_FALSE(m_main_descriptor_heap->CreateShaderResourceViewInDescriptorHeap(
             resource_manager.GetDevice(),
             *m_raytracing_output,
             {
-            m_raytracing_output->GetRenderTargetFormat(),
-            RHIResourceDimension::TEXTURE2D
+                m_raytracing_output->GetRenderTargetFormat(),
+                RHIResourceDimension::TEXTURE2D
+                , RHIViewType::RVT_UAV
             },
             m_output_handle))
 
-    RETURN_IF_FALSE(m_main_descriptor_heap->CreateUnOrderAccessViewInDescriptorHeap(
+    RETURN_IF_FALSE(m_main_descriptor_heap->CreateShaderResourceViewInDescriptorHeap(
             resource_manager.GetDevice(),
             *m_screen_uv_offset_output,
             {
-            m_screen_uv_offset_output->GetRenderTargetFormat(),
-            RHIResourceDimension::TEXTURE2D
+                m_screen_uv_offset_output->GetRenderTargetFormat(),
+                RHIResourceDimension::TEXTURE2D
+                , RHIViewType::RVT_UAV
             },
             m_screen_uv_offset_handle))
 
