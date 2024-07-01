@@ -28,6 +28,7 @@ public:
     
     bool InitResourceManager(unsigned width, unsigned height, HWND handle);
     bool InitScene(const glTFSceneGraph& scene_graph);
+    bool InitMemoryManager();
 
     static IRHIFactory& GetFactory();
     static IRHIDevice& GetDevice();

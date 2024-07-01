@@ -1,6 +1,7 @@
 #include "VKBufferManager.h"
 
-bool VKBufferManager::InitMemoryManager(IRHIDevice& device, std::shared_ptr<IRHIMemoryAllocator> memory_allocator, unsigned maxDescriptorCount)
+bool VKBufferManager::InitMemoryManager(IRHIDevice& device, std::shared_ptr<IRHIMemoryAllocator> memory_allocator, const RHIMemoryManagerDescriptorMaxCapacity&
+                                        max_descriptor_capacity)
 {
     return true;
 }
@@ -19,6 +20,11 @@ bool VKBufferManager::UploadBufferData(IRHIBufferAllocation& buffer_allocation, 
 
 bool VKBufferManager::AllocateTextureMemoryAndUpload(IRHIDevice& device, IRHICommandList& command_list,
     const RHITextureDesc& buffer_desc, std::shared_ptr<IRHITextureAllocation>& out_buffer_allocation)
+{
+    return false;
+}
+
+bool VKBufferManager::CleanAllocatedResource()
 {
     return false;
 }

@@ -152,21 +152,21 @@ bool glTFComputePassReSTIRDirectLighting::SetupPipelineStateObject(glTFRenderRes
 
     m_dispatch_count = {resource_manager.GetSwapChain().GetWidth() / 8, resource_manager.GetSwapChain().GetHeight() / 8, 1};
 
-    RETURN_IF_FALSE(m_main_descriptor_heap->CreateShaderResourceViewInDescriptorHeap(resource_manager.GetDevice(), *m_output,
+    RETURN_IF_FALSE(MainDescriptorHeapRef().CreateShaderResourceViewInDescriptorHeap(resource_manager.GetDevice(), *m_output,
                     {m_output->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_UAV}, m_output_handle))
 
-    RETURN_IF_FALSE(m_main_descriptor_heap->CreateShaderResourceViewInDescriptorHeap(resource_manager.GetDevice(), *m_lighting_samples,
+    RETURN_IF_FALSE(MainDescriptorHeapRef().CreateShaderResourceViewInDescriptorHeap(resource_manager.GetDevice(), *m_lighting_samples,
                         {m_lighting_samples->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_lighting_samples_handle))
 
-    RETURN_IF_FALSE(m_main_descriptor_heap->CreateShaderResourceViewInDescriptorHeap(resource_manager.GetDevice(), *m_screen_uv_offset,
+    RETURN_IF_FALSE(MainDescriptorHeapRef().CreateShaderResourceViewInDescriptorHeap(resource_manager.GetDevice(), *m_screen_uv_offset,
                     {m_screen_uv_offset->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_screen_uv_offset_handle))
 
-    RETURN_IF_FALSE(m_aggregate_samples_output.CreateDescriptors(resource_manager, *m_main_descriptor_heap))
+    RETURN_IF_FALSE(m_aggregate_samples_output.CreateDescriptors(resource_manager, MainDescriptorHeapRef()))
     
     for (unsigned i = 0; i < resource_manager.GetBackBufferCount(); ++i)
     {
         auto& GBuffer_output = resource_manager.GetFrameResourceManagerByIndex(i).GetGBufferForInit();
-        RETURN_IF_FALSE(GBuffer_output.InitGBufferSRVs(GetID(), *m_main_descriptor_heap, resource_manager))    
+        RETURN_IF_FALSE(GBuffer_output.InitGBufferSRVs(GetID(), MainDescriptorHeapRef(), resource_manager))    
     }
     
     GetComputePipelineStateObject().BindShaderCode(

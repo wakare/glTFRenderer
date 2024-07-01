@@ -58,8 +58,7 @@ bool glTFRenderResourceManager::InitResourceManager(unsigned width, unsigned hei
 
     if (!m_memory_manager)
     {
-        m_memory_manager = RHIResourceFactory::CreateRHIResource<IRHIMemoryManager>();
-        EXIT_WHEN_FALSE(m_memory_manager->InitMemoryManager(*m_device, m_memory_allocator, 64))
+        EXIT_WHEN_FALSE(InitMemoryManager());
     }
     
     m_command_allocators.resize(backBufferCount);
@@ -137,6 +136,18 @@ bool glTFRenderResourceManager::InitScene(const glTFSceneGraph& scene_graph)
     GLTF_CHECK(GetMeshManager().BuildMeshRenderResource(*this));
     //m_radiosity_renderer->InitScene(scene_graph);
     
+    return true;
+}
+
+bool glTFRenderResourceManager::InitMemoryManager()
+{
+    m_memory_manager = RHIResourceFactory::CreateRHIResource<IRHIMemoryManager>();
+    EXIT_WHEN_FALSE(m_memory_manager->InitMemoryManager(*m_device, m_memory_allocator,
+        {
+            256,
+            64,
+            64
+        }))
     return true;
 }
 

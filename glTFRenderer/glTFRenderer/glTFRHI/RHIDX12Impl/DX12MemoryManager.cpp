@@ -11,32 +11,33 @@ DX12MemoryManager::~DX12MemoryManager()
     SAFE_RELEASE(m_CBV_SRV_UAV_Heap)
 }
 
-bool DX12MemoryManager::InitMemoryManager(IRHIDevice& device, std::shared_ptr<IRHIMemoryAllocator> memory_allocator, unsigned max_descriptor_count)
+bool DX12MemoryManager::InitMemoryManager(IRHIDevice& device, std::shared_ptr<IRHIMemoryAllocator> memory_allocator, const RHIMemoryManagerDescriptorMaxCapacity&
+                                          max_descriptor_capacity)
 {
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
 
-    m_CBV_SRV_UAV_Heap = RHIResourceFactory::CreateRHIResource<IRHIDescriptorHeap>();
-    m_CBV_SRV_UAV_Heap->InitDescriptorHeap(device,
+    m_CBV_SRV_UAV_heap = RHIResourceFactory::CreateRHIResource<IRHIDescriptorHeap>();
+    m_CBV_SRV_UAV_heap->InitDescriptorHeap(device,
         {
-            .maxDescriptorCount = max_descriptor_count,
+            .max_descriptor_count = max_descriptor_capacity.cbv_srv_uav_size,
             .type = RHIDescriptorHeapType::CBV_SRV_UAV,
-            .shaderVisible = true
+            .shader_visible = true
         });
 
     m_RTV_heap = RHIResourceFactory::CreateRHIResource<IRHIDescriptorHeap>();
     m_RTV_heap->InitDescriptorHeap(device,
         {
-            .maxDescriptorCount = max_descriptor_count,
+            .max_descriptor_count = max_descriptor_capacity.rtv_size,
             .type = RHIDescriptorHeapType::RTV,
-            .shaderVisible = false
+            .shader_visible = false
         });
 
     m_DSV_heap = RHIResourceFactory::CreateRHIResource<IRHIDescriptorHeap>();
     m_DSV_heap->InitDescriptorHeap(device,
         {
-            .maxDescriptorCount = max_descriptor_count,
+            .max_descriptor_count = max_descriptor_capacity.dsv_size,
             .type = RHIDescriptorHeapType::DSV,
-            .shaderVisible = false
+            .shader_visible = false
         });
 
     m_allocator = memory_allocator;
@@ -75,6 +76,19 @@ bool DX12MemoryManager::AllocateTextureMemoryAndUpload(IRHIDevice& device, IRHIC
     out_buffer_allocation = std::make_shared<IRHITextureAllocation>();
     out_buffer_allocation->m_texture = dx12_texture;
     m_textures.push_back(dx12_texture);
+    
+    return true;
+}
+
+bool DX12MemoryManager::CleanAllocatedResource()
+{
+    // Clean all resources
+    m_textures.clear();
+    m_buffers.clear();
+    m_allocator = nullptr;
+    m_CBV_SRV_UAV_heap = nullptr;
+    m_RTV_heap = nullptr;
+    m_DSV_heap = nullptr;
     
     return true;
 }

@@ -27,4 +27,6 @@ private:
     ID3D12DescriptorHeap* m_descriptorHeap;
     unsigned m_descriptorIncrementSize;
     unsigned m_used_descriptor_count;
+
+    std::map<ID3D12Resource*, std::vector<std::pair<RHIShaderResourceViewDesc, RHIGPUDescriptorHandle>>> m_created_descriptors_info;
 };

@@ -184,6 +184,18 @@ struct RHIShaderResourceViewDesc
     unsigned count;
     bool use_count_buffer;
     unsigned count_buffer_offset;
+
+    bool operator==(const RHIShaderResourceViewDesc& other) const
+    {
+        return
+            format == other.format &&
+            dimension == other.dimension &&
+            view_type == other.view_type &&
+            stride == other.stride &&
+            count == other.count &&
+            use_count_buffer == other.use_count_buffer &&
+            count_buffer_offset == other.count_buffer_offset;
+    }
 };
 
 struct RHITextureDesc
@@ -482,9 +494,9 @@ struct RHIBufferDesc
 
 struct RHIDescriptorHeapDesc
 {
-    unsigned maxDescriptorCount;
+    unsigned max_descriptor_count;
     RHIDescriptorHeapType type;
-    bool shaderVisible;
+    bool shader_visible;
 };
 
 struct RHIIndirectArgumentDraw

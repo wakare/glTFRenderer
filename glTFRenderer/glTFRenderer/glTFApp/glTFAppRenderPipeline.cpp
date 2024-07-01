@@ -69,6 +69,9 @@ void glTFAppRenderPipelineBase::ApplyInput(const glTFInputManager& input_manager
 
 bool glTFAppRenderPipelineBase::RecreateRenderPass(glTFRenderResourceManager& resource_manager)
 {
+    resource_manager.GetMemoryManager().CleanAllocatedResource();
+    resource_manager.InitMemoryManager();
+    
     m_pass_manager.reset(new glTFRenderPassManager());
     SetupRenderPipeline();
     
