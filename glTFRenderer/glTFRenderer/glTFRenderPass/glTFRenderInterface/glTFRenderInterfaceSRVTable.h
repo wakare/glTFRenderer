@@ -1,5 +1,6 @@
 #pragma once
 #include "glTFRenderInterfaceBase.h"
+#include "glTFRHI/RHIResourceFactory.h"
 #include "glTFRHI/RHIUtils.h"
 #include "glTFRHI/RHIInterface/IRHIRootSignatureHelper.h"
 
@@ -8,7 +9,6 @@ class glTFRenderInterfaceSRVTable : public glTFRenderInterfaceWithRSAllocation
 {
 public:
     glTFRenderInterfaceSRVTable()
-        : m_handle(0)
     {
     }
 
@@ -24,10 +24,14 @@ public:
 
     virtual bool ApplyInterfaceImpl(glTFRenderResourceManager& resource_manager, bool is_graphics_pipeline) override
     {
-        if (m_handle)
+        if (!m_descriptor_table)
         {
-            RHIUtils::Instance().SetDTToRootParameterSlot(resource_manager.GetCommandListForRecord(), GetRSAllocation().parameter_index, m_handle, is_graphics_pipeline);    
+            m_descriptor_table = RHIResourceFactory::CreateRHIResource<IRHIDescriptorTable>();
+            bool succeed = m_descriptor_table->Build(resource_manager.GetDevice(), m_descriptor_allocations);
+            GLTF_CHECK(succeed);
         }
+
+        RHIUtils::Instance().SetDTToRootParameterSlot(resource_manager.GetCommandListForRecord(), GetRSAllocation().parameter_index, *m_descriptor_table, is_graphics_pipeline);
         
         return true;
     }
@@ -48,11 +52,21 @@ public:
     }
 
     void SetSRVRegisterNames(const std::vector<std::string>& names) {m_names = names;}
-    void SetGPUHandle(RHIGPUDescriptorHandle gpu_handle) {m_handle = gpu_handle; }
+    void AddBufferAllocations(const std::vector<std::shared_ptr<IRHIDescriptorAllocation>>& buffer_allocations)
+    {
+        m_descriptor_allocations.insert(m_descriptor_allocations.end(), buffer_allocations.begin(), buffer_allocations.end());    
+    }
+
+    void AddTextureAllocations(const std::vector<std::shared_ptr<IRHIDescriptorAllocation>>& texture_allocations)
+    {
+        m_descriptor_allocations.insert(m_descriptor_allocations.end(), texture_allocations.begin(), texture_allocations.end());
+    }
+    //void SetGPUHandle(RHIGPUDescriptorHandle gpu_handle) {m_handle = gpu_handle; }
     
 protected:
     std::vector<std::string> m_names;
-    RHIGPUDescriptorHandle m_handle;
+    std::vector<std::shared_ptr<IRHIDescriptorAllocation>> m_descriptor_allocations;
+    std::shared_ptr<IRHIDescriptorTable> m_descriptor_table;
 };
 
 // Bindless specific situation

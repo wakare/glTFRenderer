@@ -25,23 +25,31 @@ bool glTFRenderInterfaceSceneMaterial::UploadMaterialData(glTFRenderResourceMana
     RETURN_IF_FALSE(resource_manager.GetMaterialManager().GatherAllMaterialRenderResource(material_infos, material_texture_render_resources))
 
     // Create all material texture into specific heap
-    RHIGPUDescriptorHandle handle = 0;
+    RHIGPUDescriptorHandle handle = UINT64_MAX;
+
+    std::vector<std::shared_ptr<IRHIDescriptorAllocation>> texture_descriptor_allocations;
+    
     for (auto& texture : material_texture_render_resources)
     {
         if (!texture)
         {
             continue;
         }
-        auto new_handle = texture->CreateTextureSRVHandleInHeap(resource_manager, heap);
-        handle = handle ? handle : new_handle;
+        std::shared_ptr<IRHIDescriptorAllocation> result;
+        auto& texture_resource = *texture->GetTextureAllocation().m_texture;
+        heap.CreateResourceDescriptorInHeap(resource_manager.GetDevice(), texture_resource,
+            {
+                .format = texture_resource.GetTextureDesc().GetDataFormat(),
+                .dimension = RHIResourceDimension::TEXTURE2D,
+                .view_type = RHIViewType::RVT_SRV,
+            },
+            result);
+        texture_descriptor_allocations.push_back(result);
     }
 
     // Set heap handle to bindless parameter slot
     RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceStructuredBuffer<MaterialInfo>>()->UploadCPUBuffer(material_infos.data(), 0, sizeof(MaterialInfo) * material_infos.size()))
-    if (handle)
-    {
-        GetRenderInterface<glTFRenderInterfaceSRVTableBindless>()->SetGPUHandle(handle);    
-    }
+    GetRenderInterface<glTFRenderInterfaceSRVTableBindless>()->AddTextureAllocations(texture_descriptor_allocations);
     
     return true;
 }

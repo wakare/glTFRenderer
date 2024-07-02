@@ -6,25 +6,12 @@
 
 RHITextureDesc::RHITextureDesc(const RHITextureDesc& desc) noexcept
 {
-    m_texture_data_size = desc.m_texture_data_size;
-    m_texture_width = desc.m_texture_width;
-    m_texture_height = desc.m_texture_height;
-    m_texture_format = desc.m_texture_format;
-    m_isUAV = desc.m_isUAV;
-    m_clear_value = desc.m_clear_value;
-    m_name = desc.m_name;
+    Init(desc);
 }
 
 RHITextureDesc& RHITextureDesc::operator=(const RHITextureDesc& desc) noexcept
 {
-    m_texture_data_size = desc.m_texture_data_size;
-    m_texture_width = desc.m_texture_width;
-    m_texture_height = desc.m_texture_height;
-    m_texture_format = desc.m_texture_format;
-    m_isUAV = desc.m_isUAV;
-    m_clear_value = desc.m_clear_value;
-    m_name = desc.m_name;
-
+    Init(desc);
     return *this;
 }
 
@@ -35,7 +22,7 @@ RHITextureDesc::RHITextureDesc(RHITextureDesc&& desc) noexcept
     m_texture_width = desc.m_texture_width;
     m_texture_height = desc.m_texture_height;
     m_texture_format = desc.m_texture_format;
-    m_isUAV = desc.m_isUAV;
+    m_usage = desc.m_usage;
     m_clear_value = desc.m_clear_value;
     m_name = desc.m_name;
 }
@@ -47,20 +34,26 @@ RHITextureDesc& RHITextureDesc::operator=(RHITextureDesc&& desc) noexcept
     m_texture_width = desc.m_texture_width;
     m_texture_height = desc.m_texture_height;
     m_texture_format = desc.m_texture_format;
-    m_isUAV = desc.m_isUAV;
+    m_usage = desc.m_usage;
     m_clear_value = desc.m_clear_value;
     m_name = desc.m_name;
     return *this;
 }
 
-RHITextureDesc::RHITextureDesc(unsigned width, unsigned height, RHIDataFormat format, bool is_uav,
-                               const RHIRenderTargetClearValue& clear_value, std::string name)
-        : m_texture_width(width)
+RHITextureDesc::RHITextureDesc(
+        std::string name,
+        unsigned width,
+        unsigned height,
+        RHIDataFormat format,
+        RHIResourceUsageFlags usage,
+        const RHITextureClearValue& clear_value
+    )
+        : m_name(std::move(name))
+        , m_texture_width(width)
         , m_texture_height(height)
         , m_texture_format(format)
-        , m_isUAV(is_uav)
+        , m_usage(usage)
         , m_clear_value(clear_value)
-        , m_name(std::move(name))
 {
     
 }
@@ -89,7 +82,7 @@ bool RHITextureDesc::Init(const RHITextureDesc& other)
     m_texture_width = other.m_texture_width;
     m_texture_height = other.m_texture_height;
     m_texture_format = other.m_texture_format;
-    m_isUAV = other.m_isUAV;
+    m_usage = other.m_usage;
     m_clear_value = other.m_clear_value;
     m_name = other.m_name;
     
@@ -118,12 +111,7 @@ RHIDataFormat RHITextureDesc::ConvertToRHIDataFormat(const WICPixelFormatGUID& w
     else return RHIDataFormat::Unknown;
 }
 
-bool RHITextureDesc::HasUAVUsage() const
-{
-    return m_isUAV;
-}
-
-const RHIRenderTargetClearValue& RHITextureDesc::GetClearValue() const
+const RHITextureClearValue& RHITextureDesc::GetClearValue() const
 {
     return m_clear_value;
 }

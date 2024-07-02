@@ -67,9 +67,10 @@ public:
     
     virtual bool SetDescriptorHeapArray(IRHICommandList& commandList, IRHIDescriptorHeap* descriptorArray, size_t descriptorCount) = 0;
     virtual bool SetConstant32BitToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex, unsigned* data, unsigned count, bool isGraphicsPipeline) = 0;
-    virtual bool SetCBVToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex, RHIGPUDescriptorHandle handle, bool isGraphicsPipeline) = 0;
-    virtual bool SetSRVToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex, RHIGPUDescriptorHandle handle, bool isGraphicsPipeline) = 0;
-    virtual bool SetDTToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex, RHIGPUDescriptorHandle handle, bool isGraphicsPipeline) = 0;
+    virtual bool SetCBVToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex, const IRHIDescriptorAllocation& handle, bool isGraphicsPipeline) = 0;
+    virtual bool SetSRVToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex, const IRHIDescriptorAllocation& handle, bool isGraphicsPipeline) = 0;
+    virtual bool SetDTToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex, const IRHIDescriptorAllocation& handle, bool isGraphicsPipeline) = 0;
+    virtual bool SetDTToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex, const IRHIDescriptorTable& table_handle, bool isGraphicsPipeline) = 0;
     
     virtual bool UploadBufferDataToDefaultGPUBuffer(IRHICommandList& commandList, IRHIBuffer& uploadBuffer, IRHIBuffer& defaultBuffer, void* data, size_t size) = 0;
     virtual bool UploadTextureDataToDefaultGPUBuffer(IRHICommandList& commandList, IRHIBuffer& uploadBuffer, IRHIBuffer& defaultBuffer, void* data, size_t rowPitch, size_t slicePitch) = 0;

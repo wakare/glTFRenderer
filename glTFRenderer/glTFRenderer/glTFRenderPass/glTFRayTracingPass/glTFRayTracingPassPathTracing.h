@@ -54,8 +54,8 @@ private:
     std::shared_ptr<IRHIRenderTarget> m_raytracing_output;
     std::shared_ptr<IRHIRenderTarget> m_screen_uv_offset_output;
     
-    RHIGPUDescriptorHandle m_output_handle;
-    RHIGPUDescriptorHandle m_screen_uv_offset_handle;
+    std::shared_ptr<IRHIDescriptorAllocation> m_output_handle;
+    std::shared_ptr<IRHIDescriptorAllocation> m_screen_uv_offset_handle;
 
     RootSignatureAllocation m_output_allocation;
     RootSignatureAllocation m_screen_uv_offset_allocation;

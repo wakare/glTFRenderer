@@ -20,7 +20,7 @@ public:
     static D3D12_DESCRIPTOR_HEAP_TYPE ConvertToDescriptorHeapType(RHIDescriptorHeapType type);
     static D3D12_SRV_DIMENSION ConvertToSRVDimensionType(RHIResourceDimension type);
     static D3D12_UAV_DIMENSION ConvertToUAVDimensionType(RHIResourceDimension type);
-    static D3D12_CLEAR_VALUE ConvertToD3DClearValue(RHIRenderTargetClearValue clear_value);
+    static D3D12_CLEAR_VALUE ConvertToD3DClearValue(RHITextureClearValue clear_value);
     static D3D12_INDIRECT_ARGUMENT_TYPE ConvertToIndirectArgumentType(RHIIndirectArgType type);
     static D3D12_INDIRECT_ARGUMENT_DESC ConvertToIndirectArgumentDesc(const RHIIndirectArgumentDesc& desc);
 };

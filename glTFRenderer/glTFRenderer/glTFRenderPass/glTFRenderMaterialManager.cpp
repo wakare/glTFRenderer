@@ -30,18 +30,9 @@ bool glTFMaterialTextureRenderResource::Init(glTFRenderResourceManager& resource
     return true;
 }
 
-RHICPUDescriptorHandle glTFMaterialTextureRenderResource::CreateTextureSRVHandleInHeap(glTFRenderResourceManager& resource_manager, IRHIDescriptorHeap& descriptor_heap) const
+const IRHITextureAllocation& glTFMaterialTextureRenderResource::GetTextureAllocation() const
 {
-    RHICPUDescriptorHandle result = 0;
-    
-    GLTF_CHECK(m_texture);
-        
-    RETURN_IF_FALSE(descriptor_heap.CreateShaderResourceViewInDescriptorHeap(resource_manager.GetDevice(), m_texture->m_texture->GetGPUBuffer(),
-        {m_texture->m_texture->GetTextureDesc().GetDataFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, result))
-
-    GLTF_CHECK(result);
-    
-    return result;
+    return *m_texture;
 }
 
 glTFMaterialRenderResource::glTFMaterialRenderResource(const glTFMaterialBase& source_material)
@@ -115,19 +106,23 @@ bool glTFMaterialRenderResource::Init(glTFRenderResourceManager& resource_manage
     return true;
 }
 
-RHIGPUDescriptorHandle glTFMaterialRenderResource::CreateOrGetAllTextureFirstGPUHandle(glTFRenderResourceManager& resource_manager, IRHIDescriptorHeap& descriptor_heap)
+std::shared_ptr<IRHIDescriptorAllocation> glTFMaterialRenderResource::CreateOrGetAllTextureFirstGPUHandle(glTFRenderResourceManager& resource_manager, IRHIDescriptorHeap& descriptor_heap)
 {
-    RHIGPUDescriptorHandle handle = 0;
+    std::shared_ptr<IRHIDescriptorAllocation> first_allocation;
     for (const auto& texture : m_textures)
     {
-        const auto current_handle = texture.second->CreateTextureSRVHandleInHeap(resource_manager, descriptor_heap);
-        if (handle == 0 )
-        {
-            handle = current_handle;
-        }
+        std::shared_ptr<IRHIDescriptorAllocation> result;
+        const auto& texture_resource = *texture.second->GetTextureAllocation().m_texture;
+        descriptor_heap.CreateResourceDescriptorInHeap(resource_manager.GetDevice(), texture_resource,
+            {
+                .format = texture_resource.GetTextureDesc().GetDataFormat(),
+                .dimension = RHIResourceDimension::TEXTURE2D,
+                .view_type = RHIViewType::RVT_SRV,
+            },
+            result);
     }
     
-    return handle;
+    return first_allocation;
 }
 
 const std::map<glTFMaterialParameterUsage, std::unique_ptr<glTFMaterialTextureRenderResource>>&
@@ -157,16 +152,7 @@ bool glTFRenderMaterialManager::InitMaterialRenderResource(glTFRenderResourceMan
 bool glTFRenderMaterialManager::ApplyMaterialRenderResource(glTFRenderResourceManager& resource_manager, IRHIDescriptorHeap& descriptor_heap, glTFUniqueID material_ID, unsigned slot_index, bool
                                                             isGraphicsPipeline)
 {
-    const auto find_material_iter = m_material_render_resources.find(material_ID);
-    if (find_material_iter == m_material_render_resources.end())
-    {
-        GLTF_CHECK(false);
-    }
-
-    // Apply base color and normal now 
-    RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(resource_manager.GetCommandListForRecord(),
-            slot_index, find_material_iter->second->CreateOrGetAllTextureFirstGPUHandle(resource_manager, descriptor_heap), isGraphicsPipeline))
-
+    GLTF_CHECK(false);   
     return true;
 }
 

@@ -86,7 +86,7 @@ bool DX12RayTracingAS::InitRayTracingAS(IRHIDevice& device, IRHICommandList& com
             RHIDataFormat::Unknown,
             RHIBufferResourceType::Buffer,
             RHIResourceStateType::STATE_COMMON,
-            RHIBufferUsage::ALLOW_UNORDER_ACCESS
+            RUF_ALLOW_UAV
         }, m_BLAS_scratch_buffers[i]);
         }
         glTFRenderResourceManager::GetMemoryManager().AllocateBufferMemory(
@@ -100,7 +100,7 @@ bool DX12RayTracingAS::InitRayTracingAS(IRHIDevice& device, IRHICommandList& com
             RHIDataFormat::Unknown,
             RHIBufferResourceType::Buffer,
             RHIResourceStateType::STATE_COMMON,
-            RHIBufferUsage::ALLOW_UNORDER_ACCESS
+            RUF_ALLOW_UAV
     }, m_scratch_buffer);
     }
 
@@ -119,7 +119,7 @@ bool DX12RayTracingAS::InitRayTracingAS(IRHIDevice& device, IRHICommandList& com
         RHIDataFormat::Unknown,
         RHIBufferResourceType::Buffer,
         RHIResourceStateType::STATE_RAYTRACING_ACCELERATION_STRUCTURE,
-        RHIBufferUsage::ALLOW_UNORDER_ACCESS
+        RUF_ALLOW_UAV
     },
     m_BLASes[blas_index++]
     );
@@ -135,10 +135,12 @@ bool DX12RayTracingAS::InitRayTracingAS(IRHIDevice& device, IRHICommandList& com
             RHIDataFormat::Unknown,
             RHIBufferResourceType::Buffer,
             RHIResourceStateType::STATE_RAYTRACING_ACCELERATION_STRUCTURE,
-            RHIBufferUsage::ALLOW_UNORDER_ACCESS
+            RUF_ALLOW_UAV
         },
         m_TLAS
     );
+    m_TLAS_descriptor_allocation = RHIResourceFactory::CreateRHIResource<IRHIDescriptorAllocation>();
+    m_TLAS_descriptor_allocation->InitFromBuffer(*m_TLAS->m_buffer);
 
     // Create an instance desc for the bottom-level acceleration structure.
     m_instance_descs.resize(mesh_instances.size());
@@ -166,7 +168,6 @@ bool DX12RayTracingAS::InitRayTracingAS(IRHIDevice& device, IRHICommandList& com
         RHIDataFormat::Unknown,
         RHIBufferResourceType::Buffer,
         RHIResourceStateType::STATE_GENERIC_READ,
-        RHIBufferUsage::NONE
     },
 m_upload_buffer);
     glTFRenderResourceManager::GetMemoryManager().UploadBufferData(*m_upload_buffer, m_instance_descs.data(), 0,  m_instance_descs.size() * sizeof(D3D12_RAYTRACING_INSTANCE_DESC));
@@ -218,10 +219,9 @@ m_upload_buffer);
     return true;
 }
 
-GPU_BUFFER_HANDLE_TYPE DX12RayTracingAS::GetTLASHandle() const
+const IRHIDescriptorAllocation& DX12RayTracingAS::GetTLASHandle() const
 {
-    GLTF_CHECK(m_TLAS);
-    return m_TLAS->m_buffer->GetGPUBufferHandle();
+    return *m_TLAS_descriptor_allocation;
 }
 
 const std::vector<D3D12_RAYTRACING_INSTANCE_DESC>& DX12RayTracingAS::GetInstanceDesc() const

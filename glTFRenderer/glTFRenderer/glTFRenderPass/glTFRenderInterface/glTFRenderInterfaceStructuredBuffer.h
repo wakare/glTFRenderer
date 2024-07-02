@@ -20,6 +20,8 @@ public:
             RHIBufferResourceType::Buffer
         },
         m_gpu_buffer);
+        m_constant_buffer_descriptor_allocation = RHIResourceFactory::CreateRHIResource<IRHIDescriptorAllocation>();
+        m_constant_buffer_descriptor_allocation->InitFromBuffer(*m_gpu_buffer->m_buffer);
         
         return true;
     }
@@ -33,7 +35,7 @@ public:
     {
         auto& command_list = resource_manager.GetCommandListForRecord();
         RHIUtils::Instance().SetSRVToRootParameterSlot(command_list, m_allocation.parameter_index,
-            m_gpu_buffer->m_buffer->GetGPUBufferHandle(), isGraphicsPipeline);
+                                                       *m_constant_buffer_descriptor_allocation, isGraphicsPipeline);
     
         return true;
     }
@@ -54,4 +56,5 @@ public:
     
 protected:
     std::shared_ptr<IRHIBufferAllocation> m_gpu_buffer;
+    std::shared_ptr<IRHIDescriptorAllocation> m_constant_buffer_descriptor_allocation;
 };

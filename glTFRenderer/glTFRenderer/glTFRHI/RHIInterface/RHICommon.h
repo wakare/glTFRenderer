@@ -166,9 +166,13 @@ enum class RHIResourceDimension
 
 enum class RHIViewType
 {
+    // GPU descriptor
     RVT_CBV,
     RVT_SRV,
     RVT_UAV,
+    // CPU descriptor
+    RVT_RTV,
+    RVT_DSV,
 };
 
 struct RHIShaderResourceViewDesc
@@ -363,7 +367,7 @@ struct RHIDepthStencilClearValue
     unsigned char clear_stencil_value;
 };
 
-struct RHIRenderTargetClearValue
+struct RHITextureClearValue
 {
     RHIDataFormat clear_format;
     union 
@@ -380,25 +384,26 @@ enum class RHIRenderTargetType
     Unknown,
 };
 
-struct RHIRenderTargetDesc
+enum RHIResourceUsageFlags
 {
-    unsigned width;
-    unsigned height;
-    bool isUAV;
-    RHIRenderTargetClearValue clearValue;
-    std::string name;
+    RUF_NONE                =       0x0,
+    RUF_ALLOW_UAV           =       0x1,
+    RUF_ALLOW_DEPTH_STENCIL =  1 << 0x1,
+    RUF_ALLOW_RENDER_TARGET =  2 << 0x1,
 };
 
 struct RHITextureDesc
 {
     RHITextureDesc() = default;
+    ~RHITextureDesc() = default;
+    
     RHITextureDesc(const RHITextureDesc&) noexcept;
     RHITextureDesc& operator=(const RHITextureDesc&) noexcept;
 
     RHITextureDesc(RHITextureDesc&& desc) noexcept;
     RHITextureDesc& operator=(RHITextureDesc&& desc) noexcept;
 
-    RHITextureDesc(unsigned width, unsigned height, RHIDataFormat format, bool is_uav, const RHIRenderTargetClearValue& clear_value, std::string name);
+    RHITextureDesc(std::string name, unsigned width, unsigned height, RHIDataFormat format, RHIResourceUsageFlags usage, const RHITextureClearValue& clear_value);
     
     bool Init(const ImageLoadResult& image_load_result);
     
@@ -415,19 +420,22 @@ struct RHITextureDesc
     void SetDataFormat(RHIDataFormat format) { m_texture_format = format;}
     static RHIDataFormat ConvertToRHIDataFormat(const WICPixelFormatGUID& wicFormatGUID);
 
-    bool HasUAVUsage() const;
-    const RHIRenderTargetClearValue& GetClearValue() const;
+    RHIResourceUsageFlags GetUsage() const {return m_usage; }
+    bool HasUsageUAV() const {return m_usage & RUF_ALLOW_UAV;}
+    bool HasUsageDepthStencil() const {return m_usage & RUF_ALLOW_DEPTH_STENCIL;}
+    
+    const RHITextureClearValue& GetClearValue() const;
     const std::string& GetName() const;
     
 private:
+    std::string m_name;
     std::unique_ptr<unsigned char[]> m_texture_data {nullptr};
     size_t m_texture_data_size {0};
     unsigned m_texture_width {0};
     unsigned m_texture_height {0};
     RHIDataFormat m_texture_format {RHIDataFormat::Unknown};
-    bool m_isUAV {false};
-    RHIRenderTargetClearValue m_clear_value {};
-    std::string m_name;
+    RHIResourceUsageFlags m_usage {};
+    RHITextureClearValue m_clear_value {};
 };
 
 struct RHIPipelineInputLayout
@@ -478,12 +486,6 @@ enum class RHIBufferType
     Upload,
 };
 
-enum class RHIBufferUsage
-{
-    NONE,
-    ALLOW_UNORDER_ACCESS,
-};
-
 struct RHIBufferDesc
 {
     std::wstring name {'\0'};
@@ -495,9 +497,9 @@ struct RHIBufferDesc
     RHIDataFormat resource_data_type;
     RHIBufferResourceType resource_type;
     RHIResourceStateType state {RHIResourceStateType::STATE_COMMON};
-    RHIBufferUsage usage {RHIBufferUsage::NONE};
-    
+    RHIResourceUsageFlags usage {};
     size_t alignment {0};
+    RHITextureClearValue clear_value{};
 };
 
 struct RHIDescriptorHeapDesc

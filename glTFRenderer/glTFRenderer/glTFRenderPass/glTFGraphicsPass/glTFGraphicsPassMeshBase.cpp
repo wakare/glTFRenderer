@@ -122,24 +122,6 @@ bool glTFGraphicsPassMeshBase::SetupPipelineStateObject(glTFRenderResourceManage
     return true;
 }
 
-bool glTFGraphicsPassMeshBase::BeginDrawMesh(glTFRenderResourceManager& resource_manager, const glTFMeshRenderResource& mesh_data, unsigned instance_offset)
-{
-    // Upload constant buffer
-    ConstantBufferSceneMesh temp_mesh_data =
-    {
-        instance_offset
-    };
-        
-    RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSceneMesh>()->UploadAndApplyDataWithIndex(resource_manager, instance_offset, temp_mesh_data, true))
-    
-    return true;   
-}
-
-bool glTFGraphicsPassMeshBase::EndDrawMesh(glTFRenderResourceManager& resource_manager, const glTFMeshRenderResource& mesh_data, unsigned mesh_index)
-{
-    return true;
-}
-
 bool glTFGraphicsPassMeshBase::TryProcessSceneObject(glTFRenderResourceManager& resource_manager, const glTFSceneObjectBase& object)
 {
     return true;

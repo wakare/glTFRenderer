@@ -59,15 +59,15 @@ namespace glTFRenderResourceUtils
         RHIDataFormat albedo_format = RHIDataFormat::R8G8B8A8_UNORM;
         RHITextureDesc albedo_output_desc
         {
+            "ALBEDO_OUTPUT",
             resource_manager.GetSwapChain().GetWidth(),
             resource_manager.GetSwapChain().GetHeight(),
             albedo_format,
-            true,
+            static_cast<RHIResourceUsageFlags>(RUF_ALLOW_UAV | RUF_ALLOW_RENDER_TARGET),
             {
                 .clear_format = albedo_format,
                 .clear_color {0.0f, 0.0f, 0.0f, 0.0f}
-            },
-            "ALBEDO_OUTPUT"
+            }
         };
         m_albedo_output = resource_manager.GetRenderTargetManager().CreateRenderTarget(
             resource_manager.GetDevice(), RHIRenderTargetType::RTV, albedo_format, albedo_format, albedo_output_desc);
@@ -76,15 +76,15 @@ namespace glTFRenderResourceUtils
         RHIDataFormat normal_format = RHIDataFormat::R8G8B8A8_UNORM;
         RHITextureDesc normal_output_desc
         {
+            "NORMAL_OUTPUT",
             resource_manager.GetSwapChain().GetWidth(),
             resource_manager.GetSwapChain().GetHeight(),
             normal_format,
-            true,
+            static_cast<RHIResourceUsageFlags>(RUF_ALLOW_UAV | RUF_ALLOW_RENDER_TARGET),
             {
                 .clear_format = normal_format,
                 .clear_color {0.0f, 0.0f, 0.0f, 0.0f}
-            },
-            "NORMAL_OUTPUT"
+            }
         };
         m_normal_output = resource_manager.GetRenderTargetManager().CreateRenderTarget(
             resource_manager.GetDevice(), RHIRenderTargetType::RTV, normal_format, normal_format, normal_output_desc);
@@ -93,21 +93,21 @@ namespace glTFRenderResourceUtils
         RHIDataFormat depth_format = RHIDataFormat::R32_FLOAT;
         RHITextureDesc depth_output_desc
         {
+            "DEPTH_OUTPUT",
             resource_manager.GetSwapChain().GetWidth(),
             resource_manager.GetSwapChain().GetHeight(),
             depth_format,
-            true,
+            static_cast<RHIResourceUsageFlags>(RUF_ALLOW_UAV | RUF_ALLOW_RENDER_TARGET),
             {
                 .clear_format = depth_format,
                 .clear_color {0.0f, 0.0f, 0.0f, 0.0f}
-            },
-            "DEPTH_OUTPUT"
+            }
         };
         m_depth_output = resource_manager.GetRenderTargetManager().CreateRenderTarget(
             resource_manager.GetDevice(), RHIRenderTargetType::RTV, depth_format, depth_format, depth_output_desc);
         resource_manager.GetRenderTargetManager().RegisterRenderTargetWithTag("Depth_Output", m_depth_output, back_buffer_index);
         
-        m_resource_state = RHIResourceStateType::STATE_RENDER_TARGET;
+        m_resource_state = RHIResourceStateType::STATE_COMMON;
         
         return true;
     }
@@ -116,35 +116,35 @@ namespace glTFRenderResourceUtils
     {
         auto& GBufferPassResource = GetGBufferPassResource(pass_id);
         
-        RETURN_IF_FALSE(heap.CreateShaderResourceViewInDescriptorHeap(
-                resource_manager.GetDevice(),
-                *m_albedo_output,
-                {
+        RETURN_IF_FALSE(heap.CreateResourceDescriptorInHeap(
+                    resource_manager.GetDevice(),
+                    *m_albedo_output,
+                    {
                     m_albedo_output->GetRenderTargetFormat(),
                     RHIResourceDimension::TEXTURE2D,
                     RHIViewType::RVT_UAV
-                },
-                GBufferPassResource.m_albedo_handle))
+                    },
+                    GBufferPassResource.m_albedo_handle))
 
-        RETURN_IF_FALSE(heap.CreateShaderResourceViewInDescriptorHeap(
-                resource_manager.GetDevice(),
-                *m_normal_output,
-                {
+        RETURN_IF_FALSE(heap.CreateResourceDescriptorInHeap(
+                    resource_manager.GetDevice(),
+                    *m_normal_output,
+                    {
                     m_normal_output->GetRenderTargetFormat(),
                     RHIResourceDimension::TEXTURE2D,
                     RHIViewType::RVT_UAV
-                },
-                GBufferPassResource.m_normal_handle))
+                    },
+                    GBufferPassResource.m_normal_handle))
 
-        RETURN_IF_FALSE(heap.CreateShaderResourceViewInDescriptorHeap(
-                resource_manager.GetDevice(),
-                *m_depth_output,
-                {
+        RETURN_IF_FALSE(heap.CreateResourceDescriptorInHeap(
+                    resource_manager.GetDevice(),
+                    *m_depth_output,
+                    {
                     m_depth_output->GetRenderTargetFormat(),
                     RHIResourceDimension::TEXTURE2D,
                     RHIViewType::RVT_UAV
-                },
-                GBufferPassResource.m_depth_handle))
+                    },
+                    GBufferPassResource.m_depth_handle))
 
         return true;
     }
@@ -154,35 +154,35 @@ namespace glTFRenderResourceUtils
     {
         auto& GBufferPassResource = GetGBufferPassResource(pass_id);
         
-        RETURN_IF_FALSE(heap.CreateShaderResourceViewInDescriptorHeap(
-                resource_manager.GetDevice(),
-                *m_albedo_output,
-                {
+        RETURN_IF_FALSE(heap.CreateResourceDescriptorInHeap(
+                    resource_manager.GetDevice(),
+                    *m_albedo_output,
+                    {
                     m_albedo_output->GetRenderTargetFormat(),
                     RHIResourceDimension::TEXTURE2D,
                     RHIViewType::RVT_SRV
-                },
-                GBufferPassResource.m_albedo_handle))
+                    },
+                    GBufferPassResource.m_albedo_handle))
 
-        RETURN_IF_FALSE(heap.CreateShaderResourceViewInDescriptorHeap(
-                resource_manager.GetDevice(),
-                *m_normal_output,
-                {
+        RETURN_IF_FALSE(heap.CreateResourceDescriptorInHeap(
+                    resource_manager.GetDevice(),
+                    *m_normal_output,
+                    {
                     m_normal_output->GetRenderTargetFormat(),
                     RHIResourceDimension::TEXTURE2D,
                     RHIViewType::RVT_SRV
-                },
-                GBufferPassResource.m_normal_handle))
+                    },
+                    GBufferPassResource.m_normal_handle))
 
-        RETURN_IF_FALSE(heap.CreateShaderResourceViewInDescriptorHeap(
-                resource_manager.GetDevice(),
-                *m_depth_output,
-                {
+        RETURN_IF_FALSE(heap.CreateResourceDescriptorInHeap(
+                    resource_manager.GetDevice(),
+                    *m_depth_output,
+                    {
                     m_depth_output->GetRenderTargetFormat(),
                     RHIResourceDimension::TEXTURE2D,
                     RHIViewType::RVT_SRV
-                },
-                GBufferPassResource.m_depth_handle))
+                    },
+                    GBufferPassResource.m_depth_handle))
 
         return true;
     }
@@ -207,10 +207,10 @@ namespace glTFRenderResourceUtils
     {
         auto& GBufferPassResource = GetGBufferPassResource(pass_id);
         
-        RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, allocation.m_albedo_allocation.parameter_index, GBufferPassResource.m_albedo_handle, false))
-        RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, allocation.m_normal_allocation.parameter_index, GBufferPassResource.m_normal_handle, false))
-        RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, allocation.m_depth_allocation.parameter_index, GBufferPassResource.m_depth_handle, false))
-    
+        RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, allocation.m_albedo_allocation.parameter_index, *GBufferPassResource.m_albedo_handle, false))
+        RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, allocation.m_normal_allocation.parameter_index, *GBufferPassResource.m_normal_handle, false))
+        RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, allocation.m_depth_allocation.parameter_index, *GBufferPassResource.m_depth_handle, false))
+
         return true;
     }
 
@@ -249,10 +249,10 @@ namespace glTFRenderResourceUtils
             resource_manager.GetDevice(), RHIRenderTargetType::RTV, format, format, m_texture_desc);
 
         RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resource_manager.GetCommandListForRecord(), *m_writable_buffer,
-                    RHIResourceStateType::STATE_RENDER_TARGET, RHIResourceStateType::STATE_UNORDERED_ACCESS))
+                    RHIResourceStateType::STATE_COMMON, RHIResourceStateType::STATE_UNORDERED_ACCESS))
 
         RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resource_manager.GetCommandListForRecord(), *m_back_buffer,
-                    RHIResourceStateType::STATE_RENDER_TARGET, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE))
+                    RHIResourceStateType::STATE_COMMON, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE))
     
         return true;
     }
@@ -260,11 +260,11 @@ namespace glTFRenderResourceUtils
     bool RWTextureResourceWithBackBuffer::CreateDescriptors(glTFRenderResourceManager& resource_manager,
         IRHIDescriptorHeap& main_descriptor)
     {
-        RETURN_IF_FALSE(main_descriptor.CreateShaderResourceViewInDescriptorHeap(resource_manager.GetDevice(), *m_writable_buffer,
-                        {m_writable_buffer->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_UAV}, m_writable_buffer_handle))
+        RETURN_IF_FALSE(main_descriptor.CreateResourceDescriptorInHeap(resource_manager.GetDevice(), *m_writable_buffer,
+                            {m_writable_buffer->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_UAV}, m_writable_buffer_handle))
 
-        RETURN_IF_FALSE(main_descriptor.CreateShaderResourceViewInDescriptorHeap(resource_manager.GetDevice(), *m_back_buffer,
-                        {m_back_buffer->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_back_buffer_handle))
+        RETURN_IF_FALSE(main_descriptor.CreateResourceDescriptorInHeap(resource_manager.GetDevice(), *m_back_buffer,
+                            {m_back_buffer->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_back_buffer_handle))
 
         return true;
     }
@@ -321,9 +321,9 @@ namespace glTFRenderResourceUtils
     {
         auto& command_list = resource_manager.GetCommandListForRecord();
     
-        RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, m_writable_buffer_allocation.parameter_index, m_writable_buffer_handle,false))
-        RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, m_back_buffer_allocation.parameter_index, m_back_buffer_handle,false))
-    
+        RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, m_writable_buffer_allocation.parameter_index, *m_writable_buffer_handle,false))
+        RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, m_back_buffer_allocation.parameter_index, *m_back_buffer_handle,false))
+
         return true;
     }
 }

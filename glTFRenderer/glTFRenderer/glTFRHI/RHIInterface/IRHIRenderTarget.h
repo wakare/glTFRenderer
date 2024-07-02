@@ -1,7 +1,9 @@
 #pragma once
 #include <atomic>
 
+#include "IRHIMemoryManager.h"
 #include "IRHIResource.h"
+#include "IRHITexture.h"
 
 class IRHIRenderTargetManager;
 
@@ -12,18 +14,18 @@ public:
     virtual ~IRHIRenderTarget() override = default;
     DECLARE_NON_COPYABLE(IRHIRenderTarget)
 
-    unsigned GetRenderTargetId() const {return m_id;}
-    RHIRenderTargetType GetRenderTargetType() const { return m_type; }
-    RHIDataFormat GetRenderTargetFormat() const { return m_format; }
-    
-    void SetRenderTargetType(RHIRenderTargetType type);
-    void SetRenderTargetFormat(RHIDataFormat format);
+    bool InitRenderTarget(std::shared_ptr<IRHITexture> texture,
+        std::shared_ptr<IRHIDescriptorAllocation> descriptor_allocation);
 
-private:
-    RTID m_id;
-    RHIRenderTargetType m_type;
-    RHIDataFormat m_format;
+    IRHITexture& GetTexture() const;
+    IRHIDescriptorAllocation& GetDescriptorAllocation();
     
-    // Construct new id in ctor
-    static std::atomic<RTID> g_renderTargetId;
+    RHIRenderTargetType GetRenderTargetType() const { return m_descriptor_allocation->m_view_desc.view_type == RHIViewType::RVT_RTV ?
+        RHIRenderTargetType::RTV : RHIRenderTargetType::DSV; }
+    RHIDataFormat GetRenderTargetFormat() const { return m_descriptor_allocation->m_view_desc.format; }
+    RHITextureClearValue GetClearValue() const {return m_texture->GetTextureDesc().GetClearValue(); }
+    
+private:
+    std::shared_ptr<IRHITexture> m_texture;
+    std::shared_ptr<IRHIDescriptorAllocation> m_descriptor_allocation;
 };

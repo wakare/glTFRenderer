@@ -40,10 +40,10 @@ bool glTFComputePassIndirectDrawCulling::InitPass(glTFRenderResourceManager& res
 
     const auto& mesh_manager = resource_manager.GetMeshManager();
         
-    RETURN_IF_FALSE(MainDescriptorHeapRef().CreateShaderResourceViewInDescriptorHeap(
-        resource_manager.GetDevice(),
-        *mesh_manager.GetCulledIndirectArgumentBuffer(),
-        {
+    RETURN_IF_FALSE(MainDescriptorHeapRef().CreateResourceDescriptorInHeap(
+            resource_manager.GetDevice(),
+            *mesh_manager.GetCulledIndirectArgumentBuffer(),
+            {
             RHIDataFormat::Unknown,
             RHIResourceDimension::BUFFER,
             RHIViewType::RVT_UAV,
@@ -51,8 +51,8 @@ bool glTFComputePassIndirectDrawCulling::InitPass(glTFRenderResourceManager& res
             static_cast<unsigned>(mesh_manager.GetIndirectDrawCommands().size()),
             true,
             mesh_manager.GetCulledIndirectArgumentBufferCountOffset()
-        },
-        m_command_buffer_handle))
+            },
+            m_command_buffer_handle))
 
     const unsigned dispatch_thread = static_cast<unsigned>(ceil(mesh_manager.GetIndirectDrawCommands().size() / 64.0f));
     m_dispatch_count = {dispatch_thread, 1, 1};
@@ -73,8 +73,7 @@ bool glTFComputePassIndirectDrawCulling::InitPass(glTFRenderResourceManager& res
         RHIDataFormat::R32_UINT,
         RHIBufferResourceType::Buffer,
         RHIResourceStateType::STATE_COMMON,
-        RHIBufferUsage::NONE,
-        0},
+        },
         m_count_reset_buffer);
     const unsigned size = 0;
     glTFRenderResourceManager::GetMemoryManager().UploadBufferData(*m_count_reset_buffer, &size, 0, sizeof(unsigned));
@@ -129,7 +128,7 @@ bool glTFComputePassIndirectDrawCulling::PreRenderPass(glTFRenderResourceManager
         auto& command_list = resource_manager.GetCommandListForRecord();
         RHIUtils::Instance().SetDTToRootParameterSlot(command_list,
             m_culled_indirect_command_allocation.parameter_index,
-            m_command_buffer_handle,
+            *m_command_buffer_handle,
             GetPipelineType() == PipelineType::Graphics);
 
         RHIUtils::Instance().AddBufferBarrierToCommandList(command_list, *resource_manager.GetMeshManager().GetCulledIndirectArgumentBuffer(),

@@ -26,6 +26,12 @@ bool glTFGraphicsPassMeshOpaque::InitPass(glTFRenderResourceManager& resource_ma
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::InitPass(resource_manager))
 
+    if (!m_material_uploaded)
+    {
+        GetRenderInterface<glTFRenderInterfaceSceneMaterial>()->UploadMaterialData(resource_manager, MainDescriptorHeapRef());
+        m_material_uploaded = true;
+    }
+    
     return true;
 }
 
@@ -41,12 +47,6 @@ bool glTFGraphicsPassMeshOpaque::PreRenderPass(glTFRenderResourceManager& resour
     RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().ClearRenderTarget(command_list,
         {m_base_pass_color_render_target.get(), m_base_pass_normal_render_target.get()}))
 
-    if (!m_material_uploaded)
-    {
-        GetRenderInterface<glTFRenderInterfaceSceneMaterial>()->UploadMaterialData(resource_manager, MainDescriptorHeapRef());
-        m_material_uploaded = true;
-    }
-    
     return true;
 }
 
@@ -71,37 +71,40 @@ bool glTFGraphicsPassMeshOpaque::SetupPipelineStateObject(glTFRenderResourceMana
         R"(glTFResources\ShaderSource\MeshPassCommonVS.hlsl)", RHIShaderType::Vertex, "main");
     GetGraphicsPipelineStateObject().BindShaderCode(
         R"(glTFResources\ShaderSource\MeshPassCommonPS.hlsl)", RHIShaderType::Pixel, "main");
-
+    auto& command_list = resource_manager.GetCommandListForRecord();
+    
     RHITextureDesc render_target_base_color_desc
     {
+        "BASEPASS_COLOR_OUTPUT",
         resource_manager.GetSwapChain().GetWidth(),
         resource_manager.GetSwapChain().GetHeight(),
         RHIDataFormat::R8G8B8A8_UNORM_SRGB,
-        true,
+        static_cast<RHIResourceUsageFlags>(RUF_ALLOW_UAV | RUF_ALLOW_RENDER_TARGET),
         {
             .clear_format = RHIDataFormat::R8G8B8A8_UNORM_SRGB,
             .clear_color {0.0f, 0.0f, 0.0f, 0.0f}
-        },
-    "BASEPASS_COLOR_OUTPUT"
+        }
     };
     m_base_pass_color_render_target = resource_manager.GetRenderTargetManager().CreateRenderTarget(
         resource_manager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R8G8B8A8_UNORM_SRGB, RHIDataFormat::R8G8B8A8_UNORM_SRGB, render_target_base_color_desc);
-
+    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_base_pass_color_render_target, RHIResourceStateType::STATE_COMMON, RHIResourceStateType::STATE_RENDER_TARGET))
+    
     RHITextureDesc render_target_normal_desc
     {
+        "BASEPASS_NORMAL_OUTPUT",
         resource_manager.GetSwapChain().GetWidth(),
         resource_manager.GetSwapChain().GetHeight(),
         RHIDataFormat::R8G8B8A8_UNORM_SRGB,
-        true,
+        static_cast<RHIResourceUsageFlags>(RUF_ALLOW_UAV | RUF_ALLOW_RENDER_TARGET),
         {
             .clear_format = RHIDataFormat::R8G8B8A8_UNORM_SRGB,
             .clear_color {0.0f, 0.0f, 0.0f, 0.0f}
         },
-        "BASEPASS_NORMAL_OUTPUT"
     };
     m_base_pass_normal_render_target = resource_manager.GetRenderTargetManager().CreateRenderTarget(
         resource_manager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R8G8B8A8_UNORM_SRGB, RHIDataFormat::R8G8B8A8_UNORM_SRGB, render_target_normal_desc);
-
+    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_base_pass_normal_render_target, RHIResourceStateType::STATE_COMMON, RHIResourceStateType::STATE_RENDER_TARGET))
+    
     resource_manager.GetRenderTargetManager().RegisterRenderTargetWithTag("BasePassColor", m_base_pass_color_render_target);
     resource_manager.GetRenderTargetManager().RegisterRenderTargetWithTag("BasePassNormal", m_base_pass_normal_render_target);
     

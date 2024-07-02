@@ -1,12 +1,16 @@
 #include "VKRayTracingAS.h"
 
+#include "VKDescriptorHeap.h"
+#include "glTFRHI/RHIInterface/IRHIDescriptorHeap.h"
+
 bool VKRayTracingAS::InitRayTracingAS(IRHIDevice& device, IRHICommandList& command_list,
-    const glTFRenderMeshManager& mesh_manager)
+                                      const glTFRenderMeshManager& mesh_manager)
 {
     return true;
 }
 
-unsigned long long VKRayTracingAS::GetTLASHandle() const
+const IRHIDescriptorAllocation& VKRayTracingAS::GetTLASHandle() const
 {
-    return 0;
+    static VKDescriptorAllocation _dunmmy;
+    return _dunmmy;
 }

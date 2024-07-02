@@ -1,8 +1,19 @@
 #include "VKDescriptorHeap.h"
 
+bool VKDescriptorAllocation::InitFromBuffer(const IRHIBuffer& buffer)
+{
+    return false;
+}
+
+bool VKDescriptorTable::Build(IRHIDevice& device,
+    const std::vector<std::shared_ptr<IRHIDescriptorAllocation>>& descriptor_allocations)
+{
+    return false;
+}
+
 bool VKDescriptorHeap::InitDescriptorHeap(IRHIDevice& device, const RHIDescriptorHeapDesc& desc)
 {
-    return true;
+    return false;
 }
 
 unsigned VKDescriptorHeap::GetUsedDescriptorCount() const
@@ -11,19 +22,26 @@ unsigned VKDescriptorHeap::GetUsedDescriptorCount() const
 }
 
 bool VKDescriptorHeap::CreateConstantBufferViewInDescriptorHeap(IRHIDevice& device, unsigned descriptorOffset,
-    IRHIBuffer& buffer, const RHIConstantBufferViewDesc& desc, RHIGPUDescriptorHandle& outGPUHandle)
+                                                                IRHIBuffer& buffer, const RHIConstantBufferViewDesc& desc, std::shared_ptr<IRHIDescriptorAllocation>& out_allocation)
 {
-    return true;
+    return false;
 }
 
-bool VKDescriptorHeap::CreateShaderResourceViewInDescriptorHeap(IRHIDevice& device,
-                                                                IRHIBuffer& buffer, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& outGPUHandle)
+bool VKDescriptorHeap::CreateResourceDescriptorInHeap(IRHIDevice& device,
+                                                                const IRHIBuffer& buffer, const RHIShaderResourceViewDesc& desc, std::shared_ptr<IRHIDescriptorAllocation>& out_allocation)
 {
-    return true;
+    return false;
 }
 
-bool VKDescriptorHeap::CreateShaderResourceViewInDescriptorHeap(IRHIDevice& device,
-                                                                IRHIRenderTarget& renderTarget, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& outGPUHandle)
+bool VKDescriptorHeap::CreateResourceDescriptorInHeap(IRHIDevice& device, const IRHITexture& texture,
+    const RHIShaderResourceViewDesc& desc, std::shared_ptr<IRHIDescriptorAllocation>& out_allocation)
+{
+    return false;
+}
+
+bool VKDescriptorHeap::CreateResourceDescriptorInHeap(IRHIDevice& device,
+                                                                const IRHIRenderTarget& renderTarget, const RHIShaderResourceViewDesc& desc, std::shared_ptr<IRHIDescriptorAllocation>&
+                                                                out_allocation)
 {
     return true;
 }

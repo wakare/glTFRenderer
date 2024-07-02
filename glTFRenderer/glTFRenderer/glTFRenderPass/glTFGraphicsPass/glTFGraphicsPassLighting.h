@@ -27,9 +27,9 @@ protected:
     std::shared_ptr<IRHIRenderTarget> m_base_pass_color_RT;
     std::shared_ptr<IRHIRenderTarget> m_normal_RT;
     
-    RHIGPUDescriptorHandle m_base_pass_color_RT_SRV_Handle;
-    RHIGPUDescriptorHandle m_depth_RT_SRV_Handle;
-    RHIGPUDescriptorHandle m_normal_RT_SRV_Handle;
+    std::shared_ptr<IRHIDescriptorAllocation> m_base_pass_color_RT_SRV_Handle;
+    std::shared_ptr<IRHIDescriptorAllocation> m_depth_RT_SRV_Handle;
+    std::shared_ptr<IRHIDescriptorAllocation> m_normal_RT_SRV_Handle;
 
     RootSignatureAllocation m_base_color_and_depth_allocation;
 };

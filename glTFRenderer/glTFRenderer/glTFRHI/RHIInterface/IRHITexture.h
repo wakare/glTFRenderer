@@ -16,11 +16,11 @@ public:
     
     DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHITexture)
 
-    virtual IRHIBuffer& GetGPUBuffer() = 0;
     const RHITextureDesc& GetTextureDesc() const {return m_texture_desc; }
     
 protected:
-    virtual bool InitTexture(IRHIDevice& device, IRHICommandList& command_list, const RHITextureDesc& desc) = 0;
+    virtual bool InitTexture(IRHIDevice& device, const RHITextureDesc& desc) = 0;
+    virtual bool InitTextureAndUpload(IRHIDevice& device, IRHICommandList& command_list, const RHITextureDesc& desc) = 0;
 
     RHITextureDesc m_texture_desc {};
 };

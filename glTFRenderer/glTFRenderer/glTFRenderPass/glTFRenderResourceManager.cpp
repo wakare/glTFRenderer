@@ -78,24 +78,24 @@ bool glTFRenderResourceManager::InitResourceManager(unsigned width, unsigned hei
     m_render_target_manager = RHIResourceFactory::CreateRHIResource<IRHIRenderTargetManager>();
     m_render_target_manager->InitRenderTargetManager(*m_device, 100);
 
-    RHIRenderTargetClearValue clearValue;
+    RHITextureClearValue clearValue;
     clearValue.clear_format = RHIDataFormat::R8G8B8A8_UNORM_SRGB;
     clearValue.clear_color = glm::vec4{0.0f, 0.0f, 0.0f, 0.0f};
     m_swapchain_RTs = m_render_target_manager->CreateRenderTargetFromSwapChain(*m_device, *m_swap_chain, clearValue);
 
-    RHIRenderTargetClearValue depth_clear_value{};
+    RHITextureClearValue depth_clear_value{};
     depth_clear_value.clear_format = RHIDataFormat::D32_FLOAT;
     depth_clear_value.clearDS.clear_depth = 1.0f;
     depth_clear_value.clearDS.clear_stencil_value = 0;
     
     RHITextureDesc depth_texture_desc
     {
+        "DEPTH_TEXTURE_OUTPUT",
         GetSwapChain().GetWidth(),
         GetSwapChain().GetHeight(),
         RHIDataFormat::R32_TYPELESS,
-        false,
-        depth_clear_value,
-        "DEPTH_TEXTURE_OUTPUT"
+        RUF_ALLOW_DEPTH_STENCIL,
+        depth_clear_value
     };
     
     m_depth_texture = m_render_target_manager->CreateRenderTarget(

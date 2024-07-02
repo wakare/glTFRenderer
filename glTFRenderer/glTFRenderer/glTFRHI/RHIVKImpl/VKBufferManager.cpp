@@ -18,8 +18,14 @@ bool VKBufferManager::UploadBufferData(IRHIBufferAllocation& buffer_allocation, 
     return true;
 }
 
+bool VKBufferManager::AllocateTextureMemory(IRHIDevice& device, const RHITextureDesc& buffer_desc,
+    std::shared_ptr<IRHITextureAllocation>& out_buffer_allocation)
+{
+    return false;
+}
+
 bool VKBufferManager::AllocateTextureMemoryAndUpload(IRHIDevice& device, IRHICommandList& command_list,
-    const RHITextureDesc& buffer_desc, std::shared_ptr<IRHITextureAllocation>& out_buffer_allocation)
+                                                     const RHITextureDesc& buffer_desc, std::shared_ptr<IRHITextureAllocation>& out_buffer_allocation)
 {
     return false;
 }

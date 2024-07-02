@@ -169,7 +169,7 @@ bool glTFRenderMeshManager::BuildMeshRenderResource(glTFRenderResourceManager& r
         RHIDataFormat::Unknown,
         RHIBufferResourceType::Buffer,
         RHIResourceStateType::STATE_COPY_DEST,
-        RHIBufferUsage::ALLOW_UNORDER_ACCESS
+        RUF_ALLOW_UAV
     },
     m_culled_indirect_commands
     );

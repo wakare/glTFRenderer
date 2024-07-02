@@ -22,7 +22,7 @@ bool VKGPUBuffer::InitGPUBuffer(IRHIDevice& device, const RHIBufferDesc& desc)
     }
 
     bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    if (desc.usage == RHIBufferUsage::ALLOW_UNORDER_ACCESS)
+    if (desc.usage & RUF_ALLOW_UAV)
     {
         bufferInfo.usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
     }

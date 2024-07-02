@@ -13,7 +13,7 @@ bool glTFGraphicsPassMeshDepth::SetupPipelineStateObject(glTFRenderResourceManag
     GetGraphicsPipelineStateObject().BindRenderTargetFormats({&resource_manager.GetDepthRT()});
     
     auto& command_list = resource_manager.GetCommandListForRecord();
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, resource_manager.GetDepthRT(), RHIResourceStateType::STATE_DEPTH_WRITE, RHIResourceStateType::STATE_DEPTH_READ))
+    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, resource_manager.GetDepthRT(), RHIResourceStateType::STATE_COMMON, RHIResourceStateType::STATE_DEPTH_READ))
     
     return true;
 }

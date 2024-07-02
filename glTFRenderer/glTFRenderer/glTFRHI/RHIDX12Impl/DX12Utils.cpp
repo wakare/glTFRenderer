@@ -18,6 +18,7 @@
 #include "DX12RootSignature.h"
 #include "DX12ShaderTable.h"
 #include "DX12SwapChain.h"
+#include "DX12Texture.h"
 #include "DX12VertexBufferView.h"
 #include "glTFRHI/RHIInterface/IRHIFence.h"
 #include "glTFRHI/RHIInterface/IRHIBuffer.h"
@@ -234,43 +235,65 @@ bool DX12Utils::SetConstant32BitToRootParameterSlot(IRHICommandList& commandList
 }
 
 bool DX12Utils::SetCBVToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex,
-                                          RHIGPUDescriptorHandle handle, bool isGraphicsPipeline)
+                                          const IRHIDescriptorAllocation& handle, bool isGraphicsPipeline)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    auto gpu_handle = dynamic_cast<const DX12DescriptorAllocation&>(handle).m_gpu_handle;
+    
     if (isGraphicsPipeline)
     {
-        dxCommandList->SetGraphicsRootConstantBufferView(slotIndex, handle);    
+        dxCommandList->SetGraphicsRootConstantBufferView(slotIndex, gpu_handle);    
     }
     else
     {
-        dxCommandList->SetComputeRootConstantBufferView(slotIndex, handle);
+        dxCommandList->SetComputeRootConstantBufferView(slotIndex, gpu_handle);
     }
     
     return true;
 }
 
 bool DX12Utils::SetSRVToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex,
-                                          RHIGPUDescriptorHandle handle, bool isGraphicsPipeline)
+                                          const IRHIDescriptorAllocation& handle, bool isGraphicsPipeline)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    auto gpu_handle = dynamic_cast<const DX12DescriptorAllocation&>(handle).m_gpu_handle;
+
     if (isGraphicsPipeline)
     {
-        dxCommandList->SetGraphicsRootShaderResourceView(slotIndex, handle);    
+        dxCommandList->SetGraphicsRootShaderResourceView(slotIndex, gpu_handle);    
     }
     else
     {
-        dxCommandList->SetComputeRootShaderResourceView(slotIndex, handle);
+        dxCommandList->SetComputeRootShaderResourceView(slotIndex, gpu_handle);
     }
     
     return true;
 }
 
 bool DX12Utils::SetDTToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex,
-                                         RHIGPUDescriptorHandle handle, bool isGraphicsPipeline)
+                                         const IRHIDescriptorAllocation& handle, bool isGraphicsPipeline)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    D3D12_GPU_DESCRIPTOR_HANDLE dxHandle = {dynamic_cast<const DX12DescriptorAllocation&>(handle).m_gpu_handle};
+    
+    if (isGraphicsPipeline)
+    {
+        dxCommandList->SetGraphicsRootDescriptorTable(slotIndex, dxHandle);    
+    }
+    else
+    {
+        dxCommandList->SetComputeRootDescriptorTable(slotIndex, dxHandle);
+    }
+    
+    return true;
+}
 
-    D3D12_GPU_DESCRIPTOR_HANDLE dxHandle = {handle};
+bool DX12Utils::SetDTToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex,
+    const IRHIDescriptorTable& table_handle, bool isGraphicsPipeline)
+{
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    D3D12_GPU_DESCRIPTOR_HANDLE dxHandle = {dynamic_cast<const DX12DescriptorTable&>(table_handle).m_gpu_handle};
+    
     if (isGraphicsPipeline)
     {
         dxCommandList->SetGraphicsRootDescriptorTable(slotIndex, dxHandle);    
@@ -284,7 +307,7 @@ bool DX12Utils::SetDTToRootParameterSlot(IRHICommandList& commandList, unsigned 
 }
 
 bool DX12Utils::UploadBufferDataToDefaultGPUBuffer(IRHICommandList& commandList, IRHIBuffer& uploadBuffer,
-                                             IRHIBuffer& defaultBuffer, void* data, size_t size)
+                                                   IRHIBuffer& defaultBuffer, void* data, size_t size)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
     auto* dxUploadBuffer = dynamic_cast<DX12Buffer&>(uploadBuffer).GetBuffer();
@@ -340,7 +363,7 @@ bool DX12Utils::AddRenderTargetBarrierToCommandList(IRHICommandList& commandList
     RHIResourceStateType before_state, RHIResourceStateType after_state)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
-    auto* dxRenderTarget = dynamic_cast<DX12RenderTarget&>(render_target).GetResource();
+    auto* dxRenderTarget = dynamic_cast<DX12Texture&>(render_target.GetTexture()).GetRawResource();
 
     const CD3DX12_RESOURCE_BARRIER TransitionToVertexBufferState = CD3DX12_RESOURCE_BARRIER::Transition(dxRenderTarget,
         DX12ConverterUtils::ConvertToResourceState(before_state), DX12ConverterUtils::ConvertToResourceState(after_state)); 
@@ -437,7 +460,7 @@ bool DX12Utils::Present(IRHISwapChain& swap_chain, IRHICommandQueue& command_que
 bool DX12Utils::DiscardResource(IRHICommandList& command_list, IRHIRenderTarget& render_target)
 {
     auto* dx_command_list = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
-    auto* dx_resource = dynamic_cast<DX12RenderTarget&>(render_target).GetResource();
+    auto* dx_resource = dynamic_cast<DX12Texture&>(render_target.GetTexture()).GetRawResource();
     dx_command_list->DiscardResource(dx_resource, nullptr);
 
     return true;
@@ -448,12 +471,12 @@ bool DX12Utils::CopyTexture(IRHICommandList& commandList, IRHIRenderTarget& dst,
     auto* dx_command_list = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
     
     D3D12_TEXTURE_COPY_LOCATION dstLocation;
-    dstLocation.pResource = dynamic_cast<DX12RenderTarget&>(dst).GetResource();
+    dstLocation.pResource = dynamic_cast<DX12Texture&>(dst.GetTexture()).GetRawResource();
     dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX; 
     dstLocation.SubresourceIndex = 0;
 
     D3D12_TEXTURE_COPY_LOCATION srcLocation;
-    srcLocation.pResource = dynamic_cast<DX12RenderTarget&>(src).GetResource();
+    srcLocation.pResource = dynamic_cast<DX12Texture&>(src.GetTexture()).GetRawResource();
     srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX; 
     srcLocation.SubresourceIndex = 0;
     

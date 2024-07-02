@@ -131,3 +131,5 @@ IMPLEMENT_CREATE_RHI_RESOURCE(IRHICommandSignature, DX12CommandSignature, VKComm
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHISemaphore, RHISemaphoreNull, VKSemaphore)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIRenderPass, DX12RenderPass, VKRenderPass)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIMemoryAllocator, DX12MemoryAllocator, VkMemoryAllocator)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHIDescriptorAllocation, DX12DescriptorAllocation, VKDescriptorAllocation)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHIDescriptorTable, DX12DescriptorTable, VKDescriptorTable)

@@ -61,7 +61,6 @@ bool DX12ShaderTable::InitShaderTable(IRHIDevice& device, IRHIPipelineStateObjec
             RHIDataFormat::Unknown,
             RHIBufferResourceType::Buffer,
             RHIResourceStateType::STATE_COMMON,
-            RHIBufferUsage::NONE
         },
         m_rayGenShaderTable);
         glTFRenderResourceManager::GetMemoryManager().UploadBufferData(*m_rayGenShaderTable, temporary_buffer.get(), 0, raygen_buffer_size);
@@ -105,7 +104,6 @@ bool DX12ShaderTable::InitShaderTable(IRHIDevice& device, IRHIPipelineStateObjec
             RHIDataFormat::Unknown,
         RHIBufferResourceType::Buffer,
         RHIResourceStateType::STATE_COMMON,
-        RHIBufferUsage::NONE
         },
         m_missShaderTable);
         glTFRenderResourceManager::GetMemoryManager().UploadBufferData(*m_missShaderTable, temporary_buffer.get(), 0, miss_buffer_size);
@@ -161,7 +159,6 @@ bool DX12ShaderTable::InitShaderTable(IRHIDevice& device, IRHIPipelineStateObjec
             RHIDataFormat::Unknown,
             RHIBufferResourceType::Buffer,
             RHIResourceStateType::STATE_COMMON,
-            RHIBufferUsage::NONE
         },
         m_hitGroupShaderTable);
         glTFRenderResourceManager::GetMemoryManager().UploadBufferData(*m_hitGroupShaderTable, temporary_buffer.get(), 0, hit_group_buffer_size);

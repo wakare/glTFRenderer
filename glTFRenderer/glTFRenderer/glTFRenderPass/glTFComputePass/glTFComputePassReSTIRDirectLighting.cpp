@@ -24,15 +24,15 @@ bool glTFComputePassReSTIRDirectLighting::InitPass(glTFRenderResourceManager& re
 {
     RHITextureDesc lighting_output_desc
     {
+        "LIGHTING_OUTPUT",
         resource_manager.GetSwapChain().GetWidth(),
         resource_manager.GetSwapChain().GetHeight(),
         RHIDataFormat::R8G8B8A8_UNORM,
-        true,
+        static_cast<RHIResourceUsageFlags>(RUF_ALLOW_UAV | RUF_ALLOW_RENDER_TARGET),
         {
             .clear_format = RHIDataFormat::R8G8B8A8_UNORM,
             .clear_color {0.0f, 0.0f, 0.0f, 0.0f}
         },
-"LIGHTING_OUTPUT"
     };
     
     m_output = resource_manager.GetRenderTargetManager().CreateRenderTarget(
@@ -41,20 +41,20 @@ bool glTFComputePassReSTIRDirectLighting::InitPass(glTFRenderResourceManager& re
     
     RHITextureDesc aggregate_samples_output_desc
     {
+        "AGGREGATE_OUTPUT",
         resource_manager.GetSwapChain().GetWidth(),
         resource_manager.GetSwapChain().GetHeight(),
         RHIDataFormat::R32G32B32A32_FLOAT,
-        true,
+        static_cast<RHIResourceUsageFlags>(RUF_ALLOW_UAV | RUF_ALLOW_RENDER_TARGET),
         {
             .clear_format = RHIDataFormat::R32G32B32A32_FLOAT,
             .clear_color {0.0f, 0.0f, 0.0f, 0.0f}
         },
-    "AGGREGATE_Output"
     };
     RETURN_IF_FALSE(m_aggregate_samples_output.CreateResource(resource_manager, aggregate_samples_output_desc))
 
     auto& command_list = resource_manager.GetCommandListForRecord();
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_output, RHIResourceStateType::STATE_RENDER_TARGET, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE))
+    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_output, RHIResourceStateType::STATE_COMMON, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE))
 
     m_lighting_samples = resource_manager.GetRenderTargetManager().GetRenderTargetWithTag("ReSTIRDirectLightingSamples");
     m_screen_uv_offset = resource_manager.GetRenderTargetManager().GetRenderTargetWithTag("RayTracingScreenUVOffset");
@@ -74,14 +74,14 @@ bool glTFComputePassReSTIRDirectLighting::PreRenderPass(glTFRenderResourceManage
     RETURN_IF_FALSE(GBuffer_output.Bind(GetID(), command_list, resource_manager.GetGBufferAllocations().GetAllocationWithPassId(GetID())))
     
     RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list,
-        m_lighting_samples_allocation.parameter_index, m_lighting_samples_handle, GetPipelineType() == PipelineType::Graphics))
+            m_lighting_samples_allocation.parameter_index, *m_lighting_samples_handle, GetPipelineType() == PipelineType::Graphics))
 
     RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list,
-        m_screen_uv_offset_allocation.parameter_index, m_screen_uv_offset_handle, GetPipelineType() == PipelineType::Graphics))
+            m_screen_uv_offset_allocation.parameter_index, *m_screen_uv_offset_handle, GetPipelineType() == PipelineType::Graphics))
 
     RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list,
-        m_output_allocation.parameter_index, m_output_handle, GetPipelineType() == PipelineType::Graphics))
-    
+            m_output_allocation.parameter_index, *m_output_handle, GetPipelineType() == PipelineType::Graphics))
+
     RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceLighting>()->UpdateCPUBuffer())
 
     RETURN_IF_FALSE(m_aggregate_samples_output.BindRootParameter(resource_manager))
@@ -161,14 +161,14 @@ bool glTFComputePassReSTIRDirectLighting::SetupPipelineStateObject(glTFRenderRes
 
     m_dispatch_count = {resource_manager.GetSwapChain().GetWidth() / 8, resource_manager.GetSwapChain().GetHeight() / 8, 1};
 
-    RETURN_IF_FALSE(MainDescriptorHeapRef().CreateShaderResourceViewInDescriptorHeap(resource_manager.GetDevice(), *m_output,
-                    {m_output->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_UAV}, m_output_handle))
+    RETURN_IF_FALSE(MainDescriptorHeapRef().CreateResourceDescriptorInHeap(resource_manager.GetDevice(), *m_output,
+                        {m_output->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_UAV}, m_output_handle))
 
-    RETURN_IF_FALSE(MainDescriptorHeapRef().CreateShaderResourceViewInDescriptorHeap(resource_manager.GetDevice(), *m_lighting_samples,
-                        {m_lighting_samples->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_lighting_samples_handle))
+    RETURN_IF_FALSE(MainDescriptorHeapRef().CreateResourceDescriptorInHeap(resource_manager.GetDevice(), *m_lighting_samples,
+                            {m_lighting_samples->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_lighting_samples_handle))
 
-    RETURN_IF_FALSE(MainDescriptorHeapRef().CreateShaderResourceViewInDescriptorHeap(resource_manager.GetDevice(), *m_screen_uv_offset,
-                    {m_screen_uv_offset->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_screen_uv_offset_handle))
+    RETURN_IF_FALSE(MainDescriptorHeapRef().CreateResourceDescriptorInHeap(resource_manager.GetDevice(), *m_screen_uv_offset,
+                        {m_screen_uv_offset->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_screen_uv_offset_handle))
 
     RETURN_IF_FALSE(m_aggregate_samples_output.CreateDescriptors(resource_manager, MainDescriptorHeapRef()))
     

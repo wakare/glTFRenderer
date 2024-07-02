@@ -12,7 +12,7 @@ public:
     DX12RayTracingAS();
     
     virtual bool InitRayTracingAS(IRHIDevice& device, IRHICommandList& command_list, const glTFRenderMeshManager& mesh_manager) override;
-    virtual GPU_BUFFER_HANDLE_TYPE GetTLASHandle() const override;
+    virtual const IRHIDescriptorAllocation& GetTLASHandle() const override;
 
     const std::vector<D3D12_RAYTRACING_INSTANCE_DESC>& GetInstanceDesc() const;
     
@@ -21,6 +21,7 @@ private:
     std::vector<std::shared_ptr<IRHIBufferAllocation>> m_BLAS_scratch_buffers;
     
     std::shared_ptr<IRHIBufferAllocation> m_TLAS;
+    std::shared_ptr<IRHIDescriptorAllocation> m_TLAS_descriptor_allocation;
     std::shared_ptr<IRHIBufferAllocation> m_scratch_buffer;
     std::shared_ptr<IRHIBufferAllocation> m_upload_buffer;
     

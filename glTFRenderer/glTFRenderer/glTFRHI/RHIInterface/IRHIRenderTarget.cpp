@@ -1,22 +1,26 @@
 #include "IRHIRenderTarget.h"
 
-std::atomic<RTID> IRHIRenderTarget::g_renderTargetId{0};
+#include <utility>
 
 IRHIRenderTarget::IRHIRenderTarget()
-    : m_id(g_renderTargetId++)
-    , m_type(RHIRenderTargetType::Unknown)
-    , m_format(RHIDataFormat::Unknown)
 {
 }
 
-void IRHIRenderTarget::SetRenderTargetType(RHIRenderTargetType type)
+bool IRHIRenderTarget::InitRenderTarget(std::shared_ptr<IRHITexture> texture,
+    std::shared_ptr<IRHIDescriptorAllocation> descriptor_allocation)
 {
-    assert(m_type == RHIRenderTargetType::Unknown && type != RHIRenderTargetType::Unknown);
-    m_type = type;
+    m_texture = std::move(texture);
+    m_descriptor_allocation = std::move(descriptor_allocation);
+    
+    return true;
 }
 
-void IRHIRenderTarget::SetRenderTargetFormat(RHIDataFormat format)
+IRHITexture& IRHIRenderTarget::GetTexture() const
 {
-    assert(m_format == RHIDataFormat::Unknown && format != RHIDataFormat::Unknown);
-    m_format = format;
+    return *m_texture;
+}
+
+IRHIDescriptorAllocation& IRHIRenderTarget::GetDescriptorAllocation()
+{
+    return *m_descriptor_allocation;
 }

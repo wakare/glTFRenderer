@@ -3,7 +3,7 @@
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 #include "glTFRHI/RHIInterface/IRHIRootSignatureHelper.h"
 
-// buffer size must be alignment with 64K
+// buffer size must be alignment with 64K [DX12]
 template <typename ConstantBufferType, size_t max_buffer_size = 256ull * 1024>
 class glTFRenderInterfaceSingleConstantBuffer : public glTFRenderInterfaceWithRSAllocation, public glTFRenderInterfaceCanUploadDataFromCPU
 {
@@ -12,22 +12,11 @@ public:
     {
     }
 
-    bool UploadAndApplyDataWithIndex(glTFRenderResourceManager& resource_manager, unsigned index, const ConstantBufferType& data, bool is_graphics_pipeline)
-    {
-        RETURN_IF_FALSE(UploadCPUBuffer(&data, GetDataOffsetWithAlignment(index), sizeof(data)))
-        RETURN_IF_FALSE(ApplyInterfaceWithOffset(resource_manager, index, is_graphics_pipeline))
-
-        return true;
-    }
-    
     virtual bool UploadCPUBuffer(const void* data, size_t offset, size_t size) override
     {
-        return glTFRenderResourceManager::GetMemoryManager().UploadBufferData(*m_constant_gpu_data, data, GetDataOffsetWithAlignment(offset), size);
-    }
-
-    RHIGPUDescriptorHandle GetGPUHandle(unsigned offset) const
-    {
-        return m_constant_gpu_data->m_buffer->GetGPUBufferHandle() + GetDataOffsetWithAlignment(offset);
+        // TODO: Handle offset with data alignment later
+        GLTF_CHECK(offset == 0);
+        return glTFRenderResourceManager::GetMemoryManager().UploadBufferData(*m_constant_gpu_data, data, /*GetDataOffsetWithAlignment(offset)*/0, size);
     }
 
     size_t GetDataOffsetWithAlignment(unsigned index) const
@@ -51,21 +40,17 @@ protected:
             RHIDataFormat::Unknown,
             RHIBufferResourceType::Buffer
         }, m_constant_gpu_data);
+        m_constant_buffer_descriptor_allocation = RHIResourceFactory::CreateRHIResource<IRHIDescriptorAllocation>();
+        m_constant_buffer_descriptor_allocation->InitFromBuffer(*m_constant_gpu_data->m_buffer);
         
         return true;
     }
     
     virtual bool ApplyInterfaceImpl(glTFRenderResourceManager& resource_manager, bool is_graphics_pipeline) override
     {
-        return ApplyInterfaceWithOffset(resource_manager, 0, is_graphics_pipeline);
-    }
-
-    bool ApplyInterfaceWithOffset(glTFRenderResourceManager& resource_manager, unsigned index, bool is_graphics_pipeline) const
-    {
-        const RHIGPUDescriptorHandle current_update_handle = m_constant_gpu_data->m_buffer->GetGPUBufferHandle() + GetDataOffsetWithAlignment(index);
         RETURN_IF_FALSE(RHIUtils::Instance().SetCBVToRootParameterSlot(resource_manager.GetCommandListForRecord(),
-        m_allocation.parameter_index, current_update_handle, is_graphics_pipeline))
-    
+            m_allocation.parameter_index, *m_constant_buffer_descriptor_allocation, is_graphics_pipeline))
+
         return true;
     }
 
@@ -84,4 +69,5 @@ protected:
     }
     
     std::shared_ptr<IRHIBufferAllocation> m_constant_gpu_data;
+    std::shared_ptr<IRHIDescriptorAllocation> m_constant_buffer_descriptor_allocation;
 };

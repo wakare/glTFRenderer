@@ -38,7 +38,7 @@ std::shared_ptr<IRHIRenderTarget> VKRenderTargetManager::CreateRenderTarget(IRHI
 }
 
 std::vector<std::shared_ptr<IRHIRenderTarget>> VKRenderTargetManager::CreateRenderTargetFromSwapChain(
-    IRHIDevice& device, IRHISwapChain& swapChain, RHIRenderTargetClearValue clearValue)
+    IRHIDevice& device, IRHISwapChain& swapChain, RHITextureClearValue clearValue)
 {
     std::vector<std::shared_ptr<IRHIRenderTarget>> results;
 

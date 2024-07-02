@@ -27,7 +27,7 @@ bool DX12Buffer::InitGPUBuffer(IRHIDevice& device, const RHIBufferDesc& desc)
 
     m_buffer_desc = desc;
     const CD3DX12_HEAP_PROPERTIES heap_properties(DX12ConverterUtils::ConvertToHeapType(desc.type));
-    CD3DX12_RESOURCE_DESC heap_resource_desc;
+    CD3DX12_RESOURCE_DESC heap_resource_desc{};
     switch (desc.resource_type) {
         case RHIBufferResourceType::Buffer:
             heap_resource_desc = CD3DX12_RESOURCE_DESC::Buffer(desc.width);
@@ -48,11 +48,24 @@ bool DX12Buffer::InitGPUBuffer(IRHIDevice& device, const RHIBufferDesc& desc)
         heap_resource_desc.Alignment = desc.alignment;
     }
 
-    if (desc.usage == RHIBufferUsage::ALLOW_UNORDER_ACCESS)
+    if (desc.usage & RUF_ALLOW_UAV)
     {
         heap_resource_desc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
     }
 
+    bool use_clear_value = false;
+    if (desc.usage & RUF_ALLOW_DEPTH_STENCIL)
+    {
+        heap_resource_desc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+        use_clear_value = true;
+    }
+
+    if (desc.usage & RUF_ALLOW_RENDER_TARGET)
+    {
+        heap_resource_desc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+        use_clear_value = true;
+    }
+    
     RHIResourceStateType final_state = desc.state;
     if (final_state == RHIResourceStateType::STATE_UNKNOWN)
     {
@@ -64,13 +77,14 @@ bool DX12Buffer::InitGPUBuffer(IRHIDevice& device, const RHIBufferDesc& desc)
     }
     
     const D3D12_RESOURCE_STATES state = DX12ConverterUtils::ConvertToResourceState(final_state);
+    const auto dx_clear_value = DX12ConverterUtils::ConvertToD3DClearValue(desc.clear_value);
     
     THROW_IF_FAILED(dxDevice->CreateCommittedResource(
             &heap_properties, // this heap will be used to upload the constant buffer data
             D3D12_HEAP_FLAG_NONE, // no flags
             &heap_resource_desc, // size of the resource heap. Must be a multiple of 64KB for single-textures and constant buffers
             state, // will be data that is read from so we keep it in the generic read state
-            nullptr, // we do not have use an optimized clear value for constant buffers
+            use_clear_value ? &dx_clear_value : nullptr, // we do not have use an optimized clear value for constant buffers
             IID_PPV_ARGS(&m_buffer)))
     m_buffer->SetName(desc.name.c_str());
 

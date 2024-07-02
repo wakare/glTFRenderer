@@ -21,8 +21,9 @@ public:
 	glTFMaterialTextureRenderResource(const glTFMaterialParameterTexture& source_texture);
 
 	bool Init(glTFRenderResourceManager& resource_manager);
-	RHIGPUDescriptorHandle CreateTextureSRVHandleInHeap(glTFRenderResourceManager& resource_manager, IRHIDescriptorHeap& descriptor_heap) const;
-    
+	
+	const IRHITextureAllocation& GetTextureAllocation() const;
+	
 private:
 	const glTFMaterialParameterTexture& m_source_texture;
 	std::shared_ptr<IRHITextureAllocation> m_texture;
@@ -34,7 +35,7 @@ public:
 	glTFMaterialRenderResource(const glTFMaterialBase& source_material);
 	bool Init(glTFRenderResourceManager& resource_manager);
 	
-	RHIGPUDescriptorHandle CreateOrGetAllTextureFirstGPUHandle(glTFRenderResourceManager& resource_manager, IRHIDescriptorHeap& descriptor_heap);
+	std::shared_ptr<IRHIDescriptorAllocation> CreateOrGetAllTextureFirstGPUHandle(glTFRenderResourceManager& resource_manager, IRHIDescriptorHeap& descriptor_heap);
 	const std::map<glTFMaterialParameterUsage, std::unique_ptr<glTFMaterialTextureRenderResource>>& GetTextures() const;
 	const std::map<glTFMaterialParameterUsage, std::unique_ptr<glTFMaterialParameterFactor<glm::vec4>>>& GetFactors() const;
 	

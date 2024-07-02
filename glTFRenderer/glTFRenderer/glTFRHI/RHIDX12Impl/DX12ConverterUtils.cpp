@@ -198,7 +198,7 @@ D3D12_UAV_DIMENSION DX12ConverterUtils::ConvertToUAVDimensionType(RHIResourceDim
     return D3D12_UAV_DIMENSION_UNKNOWN;
 }
 
-D3D12_CLEAR_VALUE DX12ConverterUtils::ConvertToD3DClearValue(RHIRenderTargetClearValue clear_value)
+D3D12_CLEAR_VALUE DX12ConverterUtils::ConvertToD3DClearValue(RHITextureClearValue clear_value)
 {
     D3D12_CLEAR_VALUE dx_clear_value = {};
     dx_clear_value.Format = ConvertToDXGIFormat(clear_value.clear_format);

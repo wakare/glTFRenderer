@@ -24,9 +24,6 @@ protected:
     virtual bool SetupRootSignature(glTFRenderResourceManager& resource_manager) override;
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;
 
-    virtual bool BeginDrawMesh(glTFRenderResourceManager& resource_manager, const glTFMeshRenderResource& mesh_data, unsigned instance_offset);
-    virtual bool EndDrawMesh(glTFRenderResourceManager& resource_manager, const glTFMeshRenderResource& mesh_data, unsigned mesh_index);
-    
     virtual bool UsingIndirectDraw() const { return true; }
     virtual bool UsingIndirectDrawCulling() const { return true;}
     virtual bool UsingInputLayout() const {return true; }

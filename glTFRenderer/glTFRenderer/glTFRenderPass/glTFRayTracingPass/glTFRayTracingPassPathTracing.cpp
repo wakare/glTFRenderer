@@ -46,15 +46,15 @@ bool glTFRayTracingPassPathTracing::InitPass(glTFRenderResourceManager& resource
 {
     RHITextureDesc raytracing_output_render_target
     {
+        "RAYTRACING_OUTPUT",
         resource_manager.GetSwapChain().GetWidth(),
         resource_manager.GetSwapChain().GetHeight(),
         RHIDataFormat::R8G8B8A8_UNORM,
-        true,
+        static_cast<RHIResourceUsageFlags>(RUF_ALLOW_UAV | RUF_ALLOW_RENDER_TARGET),
         {
             .clear_format = RHIDataFormat::R8G8B8A8_UNORM,
             .clear_color {0.0f, 0.0f, 0.0f, 0.0f}
-        },
-        "RAYTRACING_OUTPUT"
+        }
     };
     
     m_raytracing_output = resource_manager.GetRenderTargetManager().CreateRenderTarget(
@@ -63,25 +63,25 @@ bool glTFRayTracingPassPathTracing::InitPass(glTFRenderResourceManager& resource
     
     RHITextureDesc screen_uv_offset_render_target
     {
+        "SCREEN_UV_OFFSET_OUTPUT",
         resource_manager.GetSwapChain().GetWidth(),
         resource_manager.GetSwapChain().GetHeight(),
         RHIDataFormat::R32G32B32A32_FLOAT,
-        true,
+        static_cast<RHIResourceUsageFlags>(RUF_ALLOW_UAV | RUF_ALLOW_RENDER_TARGET),
         {
             .clear_format = RHIDataFormat::R32G32B32A32_FLOAT,
             .clear_color {0.0f, 0.0f, 0.0f, 0.0f}
-        },
-        "SCREEN_UV_OFFSET_OUTPUT"
+        }
     };
     m_screen_uv_offset_output = resource_manager.GetRenderTargetManager().CreateRenderTarget(
         resource_manager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R32G32B32A32_FLOAT, RHIDataFormat::R32G32B32A32_FLOAT, screen_uv_offset_render_target);
     resource_manager.GetRenderTargetManager().RegisterRenderTargetWithTag("RayTracingScreenUVOffset", m_screen_uv_offset_output);
     
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resource_manager.GetCommandListForRecord(), *m_raytracing_output,
-        RHIResourceStateType::STATE_RENDER_TARGET, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE))
+        RHIResourceStateType::STATE_COMMON, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE))
     
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resource_manager.GetCommandListForRecord(), *m_screen_uv_offset_output,
-        RHIResourceStateType::STATE_RENDER_TARGET, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE))
+        RHIResourceStateType::STATE_COMMON, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE))
     
     RETURN_IF_FALSE(glTFRayTracingPassWithMesh::InitPass(resource_manager))
     
@@ -93,9 +93,9 @@ bool glTFRayTracingPassPathTracing::PreRenderPass(glTFRenderResourceManager& res
     RETURN_IF_FALSE(glTFRayTracingPassWithMesh::PreRenderPass(resource_manager))
     
     auto& command_list = resource_manager.GetCommandListForRecord();
-    RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, m_output_allocation.parameter_index, m_output_handle, false))
-    RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, m_screen_uv_offset_allocation.parameter_index, m_screen_uv_offset_handle, false))
-    
+    RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, m_output_allocation.parameter_index, *m_output_handle, false))
+    RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, m_screen_uv_offset_allocation.parameter_index, *m_screen_uv_offset_handle, false))
+
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_raytracing_output,
             RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_UNORDERED_ACCESS))
 
@@ -138,25 +138,25 @@ bool glTFRayTracingPassPathTracing::SetupPipelineStateObject(glTFRenderResourceM
 {
     RETURN_IF_FALSE(glTFRayTracingPassWithMesh::SetupPipelineStateObject(resource_manager))
 
-    RETURN_IF_FALSE(MainDescriptorHeapRef().CreateShaderResourceViewInDescriptorHeap(
-            resource_manager.GetDevice(),
-            *m_raytracing_output,
-            {
+    RETURN_IF_FALSE(MainDescriptorHeapRef().CreateResourceDescriptorInHeap(
+                resource_manager.GetDevice(),
+                *m_raytracing_output,
+                {
                 m_raytracing_output->GetRenderTargetFormat(),
                 RHIResourceDimension::TEXTURE2D
                 , RHIViewType::RVT_UAV
-            },
-            m_output_handle))
+                },
+                m_output_handle))
 
-    RETURN_IF_FALSE(MainDescriptorHeapRef().CreateShaderResourceViewInDescriptorHeap(
-            resource_manager.GetDevice(),
-            *m_screen_uv_offset_output,
-            {
+    RETURN_IF_FALSE(MainDescriptorHeapRef().CreateResourceDescriptorInHeap(
+                resource_manager.GetDevice(),
+                *m_screen_uv_offset_output,
+                {
                 m_screen_uv_offset_output->GetRenderTargetFormat(),
                 RHIResourceDimension::TEXTURE2D
                 , RHIViewType::RVT_UAV
-            },
-            m_screen_uv_offset_handle))
+                },
+                m_screen_uv_offset_handle))
 
     GetRayTracingPipelineStateObject().BindShaderCode("glTFResources/ShaderSource/RayTracing/PathTracingMain.hlsl",
                                                       RHIShaderType::RayTracing, "");
