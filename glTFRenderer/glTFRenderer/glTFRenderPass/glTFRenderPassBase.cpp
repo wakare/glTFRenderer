@@ -2,10 +2,8 @@
 
 #include <imgui.h>
 
+#include "glTFRenderResourceManager.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
-
-glTFRenderPassBase::~glTFRenderPassBase()
-= default;
 
 bool glTFRenderPassBase::InitPass(glTFRenderResourceManager& resource_manager)
 {
@@ -116,4 +114,63 @@ IRHIDescriptorHeap& glTFRenderPassBase::MainDescriptorHeapRef()
 {
     return UseStandaloneDescriptorHeap() ? *m_main_descriptor_heap :
         glTFRenderResourceManager::GetMemoryManager().GetDescriptorHeap(RHIDescriptorHeapType::CBV_SRV_UAV);
+}
+
+void glTFRenderPassBase::AddImportTextureResource(const RHITextureDesc& desc, RenderPassResourceTableId id)
+{
+    m_resource_table.m_import_texture_table_entry.emplace_back(desc, id);
+}
+
+void glTFRenderPassBase::AddExportTextureResource(const RHITextureDesc& desc, RenderPassResourceTableId id)
+{
+    m_resource_table.m_export_texture_table_entry.emplace_back(desc, id);
+}
+
+const IRHITexture& glTFRenderPassBase::GetResourceTexture(RenderPassResourceTableId id) const
+{
+    return *GetResourceTextureAllocation(id).m_texture;
+}
+
+const IRHITextureAllocation& glTFRenderPassBase::GetResourceTextureAllocation(RenderPassResourceTableId id) const
+{
+    auto find_texture_allocation = m_resource_location.m_texture_allocations.find(id);
+    GLTF_CHECK(find_texture_allocation != m_resource_location.m_texture_allocations.end() &&
+        find_texture_allocation->second);
+
+    return *find_texture_allocation->second;
+}
+
+bool glTFRenderPassBase::ExportResourceLocation(glTFRenderResourceManager& resource_manager)
+{
+    const auto& resource_table = GetResourceTable();
+    for (const auto& export_texture_info : resource_table.m_export_texture_table_entry)
+    {
+        std::shared_ptr<IRHITextureAllocation> out_texture_allocation;
+        const bool exported = resource_manager.ExportResourceTexture(export_texture_info.first, export_texture_info.second, out_texture_allocation);
+        GLTF_CHECK(exported);
+
+        m_resource_location.m_texture_allocations[export_texture_info.second] = out_texture_allocation;
+    }
+    
+    return true;
+}
+
+bool glTFRenderPassBase::ImportResourceLocation(glTFRenderResourceManager& resource_manager)
+{
+    const auto& resource_table = GetResourceTable();
+    for (const auto& import_texture_info : resource_table.m_import_texture_table_entry)
+    {
+        std::shared_ptr<IRHITextureAllocation> out_texture_allocation;
+        const bool imported = resource_manager.ImportResourceTexture(import_texture_info.first, import_texture_info.second, out_texture_allocation);
+        GLTF_CHECK(imported);
+
+        m_resource_location.m_texture_allocations[import_texture_info.second] = out_texture_allocation;
+    }
+    
+    return true;
+}
+
+const RenderPassResourceTable& glTFRenderPassBase::GetResourceTable() const
+{
+    return m_resource_table;
 }

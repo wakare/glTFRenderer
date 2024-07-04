@@ -88,10 +88,10 @@ bool DX12Texture::InitTextureAndUpload(IRHIDevice& device, IRHICommandList& comm
 
     // TODO: Texture source visible should be config by external parameters
     RETURN_IF_FALSE(RHIUtils::Instance().AddBufferBarrierToCommandList(
-        command_list,
-        *m_texture_buffer->m_buffer,
-        RHIResourceStateType::STATE_COPY_DEST,
-        RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE))
+            command_list,
+            *m_texture_buffer->m_buffer,
+            RHIResourceStateType::STATE_COPY_DEST,
+            RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE))
 
     return true;
 }

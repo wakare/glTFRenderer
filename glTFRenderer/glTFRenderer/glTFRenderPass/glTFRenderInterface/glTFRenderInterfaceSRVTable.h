@@ -1,5 +1,6 @@
 #pragma once
 #include "glTFRenderInterfaceBase.h"
+#include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRHI/RHIResourceFactory.h"
 #include "glTFRHI/RHIUtils.h"
 #include "glTFRHI/RHIInterface/IRHIRootSignatureHelper.h"
@@ -27,7 +28,7 @@ public:
         if (!m_descriptor_table)
         {
             m_descriptor_table = RHIResourceFactory::CreateRHIResource<IRHIDescriptorTable>();
-            bool succeed = m_descriptor_table->Build(resource_manager.GetDevice(), m_descriptor_allocations);
+            bool succeed = m_descriptor_table->Build(glTFRenderResourceManager::GetDevice(), m_descriptor_allocations);
             GLTF_CHECK(succeed);
         }
 

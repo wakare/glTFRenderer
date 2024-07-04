@@ -20,7 +20,7 @@ glTFRenderResourceManager::glTFRenderResourceManager()
     : m_radiosity_renderer(std::make_shared<glTFRadiosityRenderer>())
     , m_material_manager(std::make_shared<glTFRenderMaterialManager>())
     , m_mesh_manager(std::make_shared<glTFRenderMeshManager>())
-    , m_GBuffer_allocations(new glTFRenderResourceUtils::GBufferSignatureAllocations)
+    , m_gBuffer_allocations(new glTFRenderResourceUtils::GBufferSignatureAllocations)
 {
 }
 
@@ -83,24 +83,10 @@ bool glTFRenderResourceManager::InitResourceManager(unsigned width, unsigned hei
     clearValue.clear_color = glm::vec4{0.0f, 0.0f, 0.0f, 0.0f};
     m_swapchain_RTs = m_render_target_manager->CreateRenderTargetFromSwapChain(*m_device, *m_swap_chain, clearValue);
 
-    RHITextureClearValue depth_clear_value{};
-    depth_clear_value.clear_format = RHIDataFormat::D32_FLOAT;
-    depth_clear_value.clearDS.clear_depth = 1.0f;
-    depth_clear_value.clearDS.clear_stencil_value = 0;
-    
-    RHITextureDesc depth_texture_desc
-    {
-        "DEPTH_TEXTURE_OUTPUT",
-        GetSwapChain().GetWidth(),
-        GetSwapChain().GetHeight(),
-        RHIDataFormat::R32_TYPELESS,
-        RUF_ALLOW_DEPTH_STENCIL,
-        depth_clear_value
-    };
-    
     m_depth_texture = m_render_target_manager->CreateRenderTarget(
-        *m_device, RHIRenderTargetType::DSV, RHIDataFormat::R32_TYPELESS, RHIDataFormat::D32_FLOAT, depth_texture_desc);
-
+        *m_device, RHIRenderTargetType::DSV, RHIDataFormat::R32_TYPELESS, RHIDataFormat::D32_FLOAT, RHITextureDesc::MakeDepthTextureDesc(*this));
+    m_export_texture_allocation_map[RenderPassResourceTableId::Depth] = m_depth_texture->GetTextureAllocationSharedPtr();
+    
     m_frame_resource_managers.resize(backBufferCount);
     
     return true;
@@ -344,7 +330,7 @@ unsigned glTFRenderResourceManager::GetBackBufferCount()
 
 glTFRenderResourceUtils::GBufferSignatureAllocations& glTFRenderResourceManager::GetGBufferAllocations()
 {
-    return *m_GBuffer_allocations;
+    return *m_gBuffer_allocations;
 }
 
 glTFRadiosityRenderer& glTFRenderResourceManager::GetRadiosityRenderer()
@@ -355,4 +341,27 @@ glTFRadiosityRenderer& glTFRenderResourceManager::GetRadiosityRenderer()
 const glTFRadiosityRenderer& glTFRenderResourceManager::GetRadiosityRenderer() const
 {
     return *m_radiosity_renderer;
+}
+
+bool glTFRenderResourceManager::ExportResourceTexture(const RHITextureDesc& desc, RenderPassResourceTableId entry_id,
+    std::shared_ptr<IRHITextureAllocation>& out_texture_allocation)
+{
+    // Export texture resource must create it first, add table id to internal tracked map
+    bool created = GetMemoryManager().AllocateTextureMemory(GetDevice(), desc, out_texture_allocation);
+    GLTF_CHECK(created);
+    
+    m_export_texture_allocation_map[entry_id] = out_texture_allocation;
+    
+    return true;
+}
+
+bool glTFRenderResourceManager::ImportResourceTexture(const RHITextureDesc& desc, RenderPassResourceTableId entry_id,
+    std::shared_ptr<IRHITextureAllocation>& out_texture_allocation)
+{
+    // Import texture resource need query table id from tracked map and return allocation
+    auto find_texture = m_export_texture_allocation_map.find(entry_id);
+    GLTF_CHECK(find_texture != m_export_texture_allocation_map.end());
+
+    out_texture_allocation = find_texture->second;
+    return true;
 }

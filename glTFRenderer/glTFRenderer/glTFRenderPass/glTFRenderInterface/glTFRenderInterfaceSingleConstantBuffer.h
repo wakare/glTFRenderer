@@ -1,5 +1,6 @@
 #pragma once
 #include "glTFRenderInterfaceBase.h"
+#include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 #include "glTFRHI/RHIInterface/IRHIRootSignatureHelper.h"
 

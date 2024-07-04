@@ -6,6 +6,7 @@
 #include "RendererCommon.h"
 #include "glm.hpp"
 
+class glTFRenderResourceManager;
 struct ImageLoadResult;
 typedef uint64_t RHIGPUDescriptorHandle;
 typedef uint64_t RHICPUDescriptorHandle;
@@ -373,7 +374,7 @@ struct RHITextureClearValue
     union 
     {
         glm::vec4 clear_color;
-        RHIDepthStencilClearValue clearDS;
+        RHIDepthStencilClearValue clear_depth_stencil;
     };
 };
 
@@ -426,6 +427,17 @@ struct RHITextureDesc
     
     const RHITextureClearValue& GetClearValue() const;
     const std::string& GetName() const;
+
+    static RHITextureDesc MakeFullScreenTextureDesc(const std::string& name, RHIDataFormat format, RHIResourceUsageFlags usage, const RHITextureClearValue& clear_value,const glTFRenderResourceManager& resource_manager);
+    
+    static RHITextureDesc MakeDepthTextureDesc(const glTFRenderResourceManager& resource_manager);
+    static RHITextureDesc MakeScreenUVOffsetTextureDesc(const glTFRenderResourceManager& resource_manager);
+
+    static RHITextureDesc MakeBasePassAlbedoTextureDesc(const glTFRenderResourceManager& resource_manager);
+    static RHITextureDesc MakeBasePassNormalTextureDesc(const glTFRenderResourceManager& resource_manager);
+    static RHITextureDesc MakeLightingPassOutputTextureDesc(const glTFRenderResourceManager& resource_manager);
+    static RHITextureDesc MakeRayTracingSceneOutputTextureDesc(const glTFRenderResourceManager& resource_manager);
+    static RHITextureDesc MakeRayTracingPassReSTIRSampleOutputDesc(const glTFRenderResourceManager& resource_manager);
     
 private:
     std::string m_name;

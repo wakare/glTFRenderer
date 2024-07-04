@@ -1,6 +1,8 @@
 #pragma once
 #include "glTFRenderPass/glTFRenderPassBase.h"
 
+class IRHIComputePipelineStateObject;
+
 struct DispatchCount
 {
     unsigned X;
@@ -23,8 +25,7 @@ public:
     
 protected:
     IRHIComputePipelineStateObject& GetComputePipelineStateObject() const;
-    
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;
-
     virtual PipelineType GetPipelineType() const override {return PipelineType::Compute; }
+    using glTFRenderPassBase::InitResourceTable;
 };

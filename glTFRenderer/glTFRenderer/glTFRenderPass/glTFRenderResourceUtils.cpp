@@ -249,11 +249,11 @@ namespace glTFRenderResourceUtils
             resource_manager.GetDevice(), RHIRenderTargetType::RTV, format, format, m_texture_desc);
 
         RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resource_manager.GetCommandListForRecord(), *m_writable_buffer,
-                    RHIResourceStateType::STATE_COMMON, RHIResourceStateType::STATE_UNORDERED_ACCESS))
+                        RHIResourceStateType::STATE_COMMON, RHIResourceStateType::STATE_UNORDERED_ACCESS))
 
         RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resource_manager.GetCommandListForRecord(), *m_back_buffer,
-                    RHIResourceStateType::STATE_COMMON, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE))
-    
+                        RHIResourceStateType::STATE_COMMON, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE))
+
         return true;
     }
 
@@ -283,19 +283,19 @@ namespace glTFRenderResourceUtils
     
         // Copy accumulation buffer to back buffer
         RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_writable_buffer,
-            RHIResourceStateType::STATE_UNORDERED_ACCESS, RHIResourceStateType::STATE_COPY_SOURCE))
+                RHIResourceStateType::STATE_UNORDERED_ACCESS, RHIResourceStateType::STATE_COPY_SOURCE))
 
         RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_back_buffer,
-            RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_COPY_DEST))
+                RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_COPY_DEST))
 
-        RETURN_IF_FALSE(RHIUtils::Instance().CopyTexture(command_list, *m_back_buffer,  *m_writable_buffer))
-    
+        RETURN_IF_FALSE(RHIUtils::Instance().CopyTexture(command_list, m_back_buffer->GetTexture(), m_writable_buffer->GetTexture()))
+
         RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_writable_buffer,
-            RHIResourceStateType::STATE_COPY_SOURCE, RHIResourceStateType::STATE_UNORDERED_ACCESS))
-    
+                RHIResourceStateType::STATE_COPY_SOURCE, RHIResourceStateType::STATE_UNORDERED_ACCESS))
+
         RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_back_buffer,
-            RHIResourceStateType::STATE_COPY_DEST, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE))
-    
+                RHIResourceStateType::STATE_COPY_DEST, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE))
+
         return true;
     }
 

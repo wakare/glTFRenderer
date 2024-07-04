@@ -346,11 +346,11 @@ bool DX12Utils::UploadTextureDataToDefaultGPUBuffer(IRHICommandList& commandList
     return true;
 }
 
-bool DX12Utils::AddBufferBarrierToCommandList(IRHICommandList& commandList, IRHIBuffer& buffer,
+bool DX12Utils::AddBufferBarrierToCommandList(IRHICommandList& commandList, const IRHIBuffer& buffer,
                                               RHIResourceStateType beforeState, RHIResourceStateType afterState)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
-    auto* dxBuffer = dynamic_cast<DX12Buffer&>(buffer).GetBuffer();
+    auto* dxBuffer = dynamic_cast<const DX12Buffer&>(buffer).GetBuffer();
     
     CD3DX12_RESOURCE_BARRIER TransitionToVertexBufferState = CD3DX12_RESOURCE_BARRIER::Transition(dxBuffer,
         DX12ConverterUtils::ConvertToResourceState(beforeState), DX12ConverterUtils::ConvertToResourceState(afterState)); 
@@ -359,11 +359,24 @@ bool DX12Utils::AddBufferBarrierToCommandList(IRHICommandList& commandList, IRHI
     return true;
 }
 
-bool DX12Utils::AddRenderTargetBarrierToCommandList(IRHICommandList& commandList, IRHIRenderTarget& render_target,
-    RHIResourceStateType before_state, RHIResourceStateType after_state)
+bool DX12Utils::AddTextureBarrierToCommandList(IRHICommandList& commandList, const IRHITexture& buffer,
+                                               RHIResourceStateType beforeState, RHIResourceStateType afterState)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
-    auto* dxRenderTarget = dynamic_cast<DX12Texture&>(render_target.GetTexture()).GetRawResource();
+    auto* dxBuffer = dynamic_cast<const DX12Texture&>(buffer).GetRawResource();
+    
+    CD3DX12_RESOURCE_BARRIER TransitionToVertexBufferState = CD3DX12_RESOURCE_BARRIER::Transition(dxBuffer,
+        DX12ConverterUtils::ConvertToResourceState(beforeState), DX12ConverterUtils::ConvertToResourceState(afterState)); 
+    dxCommandList->ResourceBarrier(1, &TransitionToVertexBufferState);
+
+    return true;
+}
+
+bool DX12Utils::AddRenderTargetBarrierToCommandList(IRHICommandList& commandList, const IRHIRenderTarget& render_target,
+                                                    RHIResourceStateType before_state, RHIResourceStateType after_state)
+{
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    auto* dxRenderTarget = dynamic_cast<const DX12Texture&>(render_target.GetTexture()).GetRawResource();
 
     const CD3DX12_RESOURCE_BARRIER TransitionToVertexBufferState = CD3DX12_RESOURCE_BARRIER::Transition(dxRenderTarget,
         DX12ConverterUtils::ConvertToResourceState(before_state), DX12ConverterUtils::ConvertToResourceState(after_state)); 
@@ -466,17 +479,17 @@ bool DX12Utils::DiscardResource(IRHICommandList& command_list, IRHIRenderTarget&
     return true;
 }
 
-bool DX12Utils::CopyTexture(IRHICommandList& commandList, IRHIRenderTarget& dst, IRHIRenderTarget& src)
+bool DX12Utils::CopyTexture(IRHICommandList& commandList, IRHITexture& dst, IRHITexture& src)
 {
     auto* dx_command_list = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
     
     D3D12_TEXTURE_COPY_LOCATION dstLocation;
-    dstLocation.pResource = dynamic_cast<DX12Texture&>(dst.GetTexture()).GetRawResource();
+    dstLocation.pResource = dynamic_cast<DX12Texture&>(dst).GetRawResource();
     dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX; 
     dstLocation.SubresourceIndex = 0;
 
     D3D12_TEXTURE_COPY_LOCATION srcLocation;
-    srcLocation.pResource = dynamic_cast<DX12Texture&>(src.GetTexture()).GetRawResource();
+    srcLocation.pResource = dynamic_cast<DX12Texture&>(src).GetRawResource();
     srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX; 
     srcLocation.SubresourceIndex = 0;
     

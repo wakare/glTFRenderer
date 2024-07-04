@@ -1,5 +1,6 @@
 #include "glTFComputePassIndirectDrawCulling.h"
 
+#include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneView.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceStructuredBuffer.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
@@ -132,14 +133,14 @@ bool glTFComputePassIndirectDrawCulling::PreRenderPass(glTFRenderResourceManager
             GetPipelineType() == PipelineType::Graphics);
 
         RHIUtils::Instance().AddBufferBarrierToCommandList(command_list, *resource_manager.GetMeshManager().GetCulledIndirectArgumentBuffer(),
-            RHIResourceStateType::STATE_UNORDERED_ACCESS,RHIResourceStateType::STATE_COPY_DEST );
+                                                           RHIResourceStateType::STATE_UNORDERED_ACCESS,RHIResourceStateType::STATE_COPY_DEST );
     
         // Reset count buffer to zero
         RHIUtils::Instance().CopyBuffer(command_list, *resource_manager.GetMeshManager().GetCulledIndirectArgumentBuffer(),
             resource_manager.GetMeshManager().GetCulledIndirectArgumentBufferCountOffset(), *m_count_reset_buffer->m_buffer, 0, sizeof(unsigned));
 
         RHIUtils::Instance().AddBufferBarrierToCommandList(command_list, *resource_manager.GetMeshManager().GetCulledIndirectArgumentBuffer(),
-                RHIResourceStateType::STATE_COPY_DEST, RHIResourceStateType::STATE_UNORDERED_ACCESS);
+                                                           RHIResourceStateType::STATE_COPY_DEST, RHIResourceStateType::STATE_UNORDERED_ACCESS);
 
         const unsigned command_count = resource_manager.GetMeshManager().GetIndirectDrawCommands().size();
         GetRenderInterface<glTFRenderInterfaceSingleConstantBuffer<CullingConstant>>()->UploadCPUBuffer(&command_count, 0, sizeof(unsigned));

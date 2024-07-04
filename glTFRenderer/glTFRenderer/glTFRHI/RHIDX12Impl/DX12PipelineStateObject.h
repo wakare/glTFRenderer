@@ -25,6 +25,7 @@ public:
     virtual ~DX12GraphicsPipelineStateObject() override;
 
     virtual bool BindRenderTargetFormats(const std::vector<IRHIRenderTarget*>& render_targets) override;
+    virtual bool BindRenderTargetFormats(const std::vector<IRHIDescriptorAllocation*>& render_targets) override;
     virtual bool InitPipelineStateObject(IRHIDevice& device, const RHIPipelineStateInfo& pipeline_state_info) override;
 
     ID3D12PipelineState* GetPSO() {return m_pipeline_state_object.Get(); }

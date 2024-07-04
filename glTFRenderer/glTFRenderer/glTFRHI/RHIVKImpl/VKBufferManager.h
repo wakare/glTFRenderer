@@ -1,6 +1,18 @@
 #pragma once
 #include "glTFRHI/RHIInterface/IRHIMemoryManager.h"
 
+class VKBufferAllocation : public IRHIBufferAllocation
+{
+public:
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKBufferAllocation)
+};
+
+class VKTextureAllocation : public IRHITextureAllocation
+{
+public:
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKTextureAllocation)
+};
+
 class VKBufferManager : public IRHIMemoryManager
 {
 public:

@@ -40,10 +40,9 @@ protected:
     virtual const char* GetShadowRayMissFunctionName() override;
     virtual const char* GetShadowRayHitGroupName() override;
     
-private:
-    std::shared_ptr<IRHIRenderTarget> m_lighting_samples;
-    std::shared_ptr<IRHIRenderTarget> m_screen_uv_offset_output;
+    virtual bool InitResourceTable(glTFRenderResourceManager& resource_manager) override;
     
+private:
     std::shared_ptr<IRHIDescriptorAllocation> m_lighting_samples_handle;
     std::shared_ptr<IRHIDescriptorAllocation> m_screen_uv_offset_handle;
 

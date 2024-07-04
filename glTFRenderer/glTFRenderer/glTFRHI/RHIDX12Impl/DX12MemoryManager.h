@@ -13,6 +13,12 @@ public:
     DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(DX12BufferAllocation)
 };
 
+class DX12TextureAllocation : public IRHITextureAllocation
+{
+public:
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(DX12TextureAllocation)
+};
+
 class DX12MemoryManager : public IRHIMemoryManager
 {
 public:

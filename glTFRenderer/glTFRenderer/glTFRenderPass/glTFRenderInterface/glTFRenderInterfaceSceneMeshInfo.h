@@ -24,6 +24,7 @@ ALIGN_FOR_CBV_STRUCT struct SceneMeshVertexInfo
     float uv[4];
 };
 
+class glTFRenderMeshManager;
 class glTFRenderInterfaceSceneMeshInfo : public glTFRenderInterfaceBaseWithDefaultImpl
 {
 public:

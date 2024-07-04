@@ -176,6 +176,12 @@ bool VKGraphicsPipelineStateObject::BindRenderTargetFormats(const std::vector<IR
     return true;
 }
 
+bool VKGraphicsPipelineStateObject::BindRenderTargetFormats(
+    const std::vector<IRHIDescriptorAllocation*>& render_targets)
+{
+    return true;
+}
+
 const VkPipeline& VKGraphicsPipelineStateObject::GetPipeline() const
 {
     return m_pipeline;

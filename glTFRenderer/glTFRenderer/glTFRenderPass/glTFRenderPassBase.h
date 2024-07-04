@@ -1,11 +1,12 @@
 #pragma once
-#include "glTFRenderResourceManager.h"
+#include "glTFRenderPassCommon.h"
 #include "glTFApp/glTFPassOptionRenderFlags.h"
 #include "glTFRenderInterface/glTFRenderInterfaceBase.h"
 #include "glTFRHI/RHIInterface/IRHIRootSignatureHelper.h"
 #include "glTFScene/glTFSceneObjectBase.h"
 
 struct glTFSceneViewRenderFlags;
+class IRHIRenderPass;
 class glTFMaterialBase;
 class IRHIRootSignature;
 class IRHIPipelineStateObject;
@@ -27,27 +28,20 @@ enum class PipelineType
 class glTFRenderPassBase : public glTFUniqueObject<glTFRenderPassBase>
 {
 public:
-    glTFRenderPassBase() = default;
-    
-    glTFRenderPassBase(const glTFRenderPassBase&) = delete;
-    glTFRenderPassBase(glTFRenderPassBase&&) = delete;
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFRenderPassBase)
 
-    glTFRenderPassBase& operator=(const glTFRenderPassBase&) = delete;
-    glTFRenderPassBase& operator=(glTFRenderPassBase&&) = delete;
-
-    virtual ~glTFRenderPassBase() = 0;
-    
     virtual const char* PassName() = 0;
+    
     virtual bool InitPass(glTFRenderResourceManager& resource_manager);
     virtual bool PreRenderPass(glTFRenderResourceManager& resource_manager);
     virtual bool RenderPass(glTFRenderResourceManager& resource_manager);
     virtual bool PostRenderPass(glTFRenderResourceManager& resource_manager);
 
-    virtual bool TryProcessSceneObject(glTFRenderResourceManager& resourceManager, const glTFSceneObjectBase& object) {return true; }
-    virtual bool FinishProcessSceneObject(glTFRenderResourceManager& resourceManager) {return true; }
+    virtual bool TryProcessSceneObject(glTFRenderResourceManager& resource_manager, const glTFSceneObjectBase& object) { return true; }
+    virtual bool FinishProcessSceneObject(glTFRenderResourceManager& resource_manager) { return true; }
     virtual void UpdateRenderFlags(const glTFPassOptionRenderFlags& render_flags) {}
 
-    virtual bool NeedRendering() const {return true; }
+    virtual bool NeedRendering() const { return true; }
     virtual bool UpdateGUIWidgets();
     
     template<typename RenderInterface>
@@ -60,6 +54,7 @@ public:
                 return result;
             }
         }
+        //GLTF_CHECK(false);
         return nullptr;
     }
 
@@ -73,8 +68,16 @@ public:
                 return result;
             }
         }
+        GLTF_CHECK(false);
         return nullptr;
     }
+    
+    // render pass implement this method for requiring global shader resource location
+    virtual bool InitResourceTable(glTFRenderResourceManager& resource_manager) { return true; }
+    bool ExportResourceLocation(glTFRenderResourceManager& resource_manager);
+    bool ImportResourceLocation(glTFRenderResourceManager& resource_manager);
+    
+    const RenderPassResourceTable& GetResourceTable() const;
     
 protected:
     // Must be implement in final render pass class
@@ -85,15 +88,21 @@ protected:
     
     void AddRenderInterface(const std::shared_ptr<glTFRenderInterfaceBase>& render_interface);
     virtual bool UseStandaloneDescriptorHeap() const { return false; }
-    virtual IRHIDescriptorHeap& MainDescriptorHeapRef(); 
+    virtual IRHIDescriptorHeap& MainDescriptorHeapRef();
+
+    void AddImportTextureResource(const RHITextureDesc& desc, RenderPassResourceTableId id);
+    void AddExportTextureResource(const RHITextureDesc& desc, RenderPassResourceTableId id);
+    const IRHITexture& GetResourceTexture(RenderPassResourceTableId id) const;
+    const IRHITextureAllocation& GetResourceTextureAllocation(RenderPassResourceTableId id) const;
     
     IRHIRootSignatureHelper m_root_signature_helper;
     std::shared_ptr<IRHIRenderPass> m_render_pass;
-    
     std::shared_ptr<IRHIPipelineStateObject> m_pipeline_state_object;
-
     std::vector<std::shared_ptr<glTFRenderInterfaceBase>> m_render_interfaces;
 
+    RenderPassResourceTable m_resource_table;
+    RenderPassResourceLocation m_resource_location;
+    
 private:
     // CBV_SRV_UAV Heaps, can only bind one in render pass
     std::shared_ptr<IRHIDescriptorHeap> m_main_descriptor_heap;

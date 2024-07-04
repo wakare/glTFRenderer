@@ -1,5 +1,6 @@
 #pragma once
 #include "glTFRenderInterfaceBase.h"
+#include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 
 template <typename StructuredBufferType, size_t max_heap_size = 64ull * 1024>

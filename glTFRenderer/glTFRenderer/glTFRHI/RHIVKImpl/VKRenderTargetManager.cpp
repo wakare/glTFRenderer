@@ -7,7 +7,7 @@
 
 bool VKRenderTargetManager::InitRenderTargetManager(IRHIDevice& device, size_t maxRenderTargetCount)
 {
-    return true;
+    return false;
 }
 
 std::shared_ptr<IRHIRenderTarget> VKRenderTargetManager::CreateRenderTarget(IRHIDevice& device,
@@ -63,11 +63,25 @@ std::vector<std::shared_ptr<IRHIRenderTarget>> VKRenderTargetManager::CreateRend
 bool VKRenderTargetManager::ClearRenderTarget(IRHICommandList& commandList,
     const std::vector<IRHIRenderTarget*>& renderTargets)
 {
-    return true;
+    return false;
+}
+
+bool VKRenderTargetManager::ClearRenderTarget(IRHICommandList& commandList,
+    const std::vector<std::shared_ptr<IRHIDescriptorAllocation>>& render_targets,
+    const RHITextureClearValue& render_target_clear_value, const RHITextureClearValue& depth_stencil_clear_value)
+{
+    return false;
 }
 
 bool VKRenderTargetManager::BindRenderTarget(IRHICommandList& commandList,
-    const std::vector<IRHIRenderTarget*>& renderTargets, IRHIRenderTarget* depthStencil)
+                                             const std::vector<IRHIRenderTarget*>& renderTargets, IRHIRenderTarget* depthStencil)
 {
-    return true;
+    return false;
+}
+
+bool VKRenderTargetManager::BindRenderTarget(IRHICommandList& commandList,
+    const std::vector<std::shared_ptr<IRHIDescriptorAllocation>>& render_targets,
+    IRHIDescriptorAllocation* depth_stencil)
+{
+    return false;
 }

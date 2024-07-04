@@ -2,6 +2,8 @@
 
 #include <utility>
 
+#include "glTFRenderPass/glTFRenderResourceManager.h"
+#include "glTFRHI/RHIUtils.h"
 #include "SceneFileLoader/glTFImageLoader.h"
 
 RHITextureDesc::RHITextureDesc(const RHITextureDesc& desc) noexcept
@@ -119,4 +121,146 @@ const RHITextureClearValue& RHITextureDesc::GetClearValue() const
 const std::string& RHITextureDesc::GetName() const
 {
     return m_name;
+}
+
+RHITextureDesc RHITextureDesc::MakeFullScreenTextureDesc(const std::string& name, RHIDataFormat format,
+    RHIResourceUsageFlags usage, const RHITextureClearValue& clear_value, const glTFRenderResourceManager& resource_manager)
+{
+    return RHITextureDesc
+    {
+        name,
+        resource_manager.GetSwapChain().GetWidth(),
+        resource_manager.GetSwapChain().GetHeight(),
+        format,
+        usage,
+        clear_value
+    };
+}
+
+RHITextureDesc RHITextureDesc::MakeDepthTextureDesc(const glTFRenderResourceManager& resource_manager)
+{
+    RHITextureDesc texture_desc = MakeFullScreenTextureDesc(
+        "DEPTH_TEXTURE_OUTPUT",
+            RHIDataFormat::R32_TYPELESS,
+            RUF_ALLOW_DEPTH_STENCIL,
+{
+                .clear_format = RHIDataFormat::D32_FLOAT,
+                .clear_depth_stencil{1.0f, 0}
+            },
+            resource_manager
+        );
+
+    return texture_desc;
+}
+
+RHITextureDesc RHITextureDesc::MakeScreenUVOffsetTextureDesc(const glTFRenderResourceManager& resource_manager)
+{
+    RHITextureDesc texture_desc = MakeFullScreenTextureDesc(
+        "SCREEN_UV_OFFSET_OUTPUT",
+            RHIDataFormat::R32G32B32A32_FLOAT,
+            static_cast<RHIResourceUsageFlags>(RUF_ALLOW_UAV | RUF_ALLOW_RENDER_TARGET),
+{
+                .clear_format = RHIDataFormat::R32G32B32A32_FLOAT,
+                .clear_color {0.0f, 0.0f, 0.0f, 0.0f}
+            },
+            resource_manager
+        );
+
+    return texture_desc;
+}
+
+RHITextureDesc RHITextureDesc::MakeBasePassAlbedoTextureDesc(const glTFRenderResourceManager& resource_manager)
+{
+    RHITextureDesc texture_desc = MakeFullScreenTextureDesc(
+        "BASEPASS_ALBEDO_OUTPUT",
+            RHIDataFormat::R8G8B8A8_UNORM_SRGB,
+            static_cast<RHIResourceUsageFlags>(RUF_ALLOW_UAV | RUF_ALLOW_RENDER_TARGET),
+{
+                .clear_format = RHIDataFormat::R8G8B8A8_UNORM_SRGB,
+                .clear_color {0.0f, 0.0f, 0.0f, 0.0f}
+            },
+            resource_manager
+        );
+
+    return texture_desc;
+}
+
+RHITextureDesc RHITextureDesc::MakeBasePassNormalTextureDesc(const glTFRenderResourceManager& resource_manager)
+{
+    RHITextureDesc texture_desc = MakeFullScreenTextureDesc(
+        "BASEPASS_NORMAL_OUTPUT",
+            RHIDataFormat::R8G8B8A8_UNORM_SRGB,
+            static_cast<RHIResourceUsageFlags>(RUF_ALLOW_UAV | RUF_ALLOW_RENDER_TARGET),
+{
+                .clear_format = RHIDataFormat::R8G8B8A8_UNORM_SRGB,
+                .clear_color {0.0f, 0.0f, 0.0f, 0.0f}
+            },
+            resource_manager
+        );
+
+    return texture_desc;
+}
+
+RHITextureDesc RHITextureDesc::MakeLightingPassOutputTextureDesc(
+    const glTFRenderResourceManager& resource_manager)
+{
+    RHITextureDesc texture_desc = MakeFullScreenTextureDesc(
+        "LIGHTING_OUTPUT",
+            RHIDataFormat::R8G8B8A8_UNORM,
+            RUF_ALLOW_UAV,
+{
+                .clear_format = RHIDataFormat::R8G8B8A8_UNORM,
+                .clear_color {0.0f, 0.0f, 0.0f, 0.0f}
+            },
+            resource_manager
+        );
+
+    return texture_desc;
+}
+
+RHITextureDesc RHITextureDesc::MakeRayTracingSceneOutputTextureDesc(
+    const glTFRenderResourceManager& resource_manager)
+{
+    RHITextureDesc texture_desc = MakeFullScreenTextureDesc(
+        "RAYTRACING_OUTPUT",
+            RHIDataFormat::R8G8B8A8_UNORM,
+            static_cast<RHIResourceUsageFlags>(RUF_ALLOW_UAV | RUF_ALLOW_RENDER_TARGET),
+{
+                .clear_format = RHIDataFormat::R8G8B8A8_UNORM,
+                .clear_color {0.0f, 0.0f, 0.0f, 0.0f}
+            },
+            resource_manager
+        );
+
+    return texture_desc;
+}
+
+RHITextureDesc RHITextureDesc::MakeRayTracingPassReSTIRSampleOutputDesc(
+    const glTFRenderResourceManager& resource_manager)
+{
+    RHITextureDesc texture_desc = MakeFullScreenTextureDesc(
+    "RESTIR_DI_SAMPLE_OUTPUT",
+        RHIDataFormat::R32G32B32A32_FLOAT,
+        static_cast<RHIResourceUsageFlags>(RUF_ALLOW_UAV | RUF_ALLOW_RENDER_TARGET),
+{
+            .clear_format = RHIDataFormat::R32G32B32A32_FLOAT,
+            .clear_color {0.0f, 0.0f, 0.0f, 0.0f}
+        },
+        resource_manager
+    );
+
+    return texture_desc;
+}
+
+bool IRHITexture::Transition(IRHICommandList& command_list, RHIResourceStateType new_state)
+{
+    if (m_current_state == new_state)
+    {
+        return true;
+    }
+    
+    RETURN_IF_FALSE(RHIUtils::Instance().AddTextureBarrierToCommandList(command_list, *this, m_current_state, new_state))
+
+    m_current_state = new_state;
+    return true;
 }

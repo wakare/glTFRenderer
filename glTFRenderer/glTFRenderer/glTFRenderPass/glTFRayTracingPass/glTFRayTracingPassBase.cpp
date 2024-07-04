@@ -1,5 +1,6 @@
 #include "glTFRayTracingPassBase.h"
 
+#include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRHI/RHIResourceFactory.h"
 #include "glTFRHI/RHIUtils.h"
 

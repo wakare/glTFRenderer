@@ -15,21 +15,14 @@ public:
                                                                  RHITextureDesc& desc) override;
     virtual std::vector<std::shared_ptr<IRHIRenderTarget>> CreateRenderTargetFromSwapChain(IRHIDevice& device, IRHISwapChain& swapChain, RHITextureClearValue clearValue) override;
     virtual bool ClearRenderTarget(IRHICommandList& commandList, const std::vector<IRHIRenderTarget*>& renderTargets) override;
+    virtual bool ClearRenderTarget(IRHICommandList& commandList, const std::vector<std::shared_ptr<IRHIDescriptorAllocation>>& render_targets, const
+                                   RHITextureClearValue& render_target_clear_value, const RHITextureClearValue& depth_stencil_clear_value) override;
     virtual bool BindRenderTarget(IRHICommandList& commandList, const std::vector<IRHIRenderTarget*>& renderTargets, /*optional*/ IRHIRenderTarget* depthStencil) override;
+    virtual bool BindRenderTarget(IRHICommandList& commandList, const std::vector<std::shared_ptr<IRHIDescriptorAllocation>>& render_targets, /*optional*/ IRHIDescriptorAllocation* depth_stencil) override;
     
 private:
     std::shared_ptr<IRHIRenderTarget> CreateRenderTargetWithResource(IRHIDevice& device, RHIRenderTargetType type, RHIDataFormat descriptor_format,
-        std::shared_ptr<IRHITexture> texture, const D3D12_CLEAR_VALUE& clear_value);
-    
-    //size_t                      m_max_render_target_count;
-
-    //std::shared_ptr<IRHIDescriptorHeap> m_rtv_descriptor_heap;
-    //std::shared_ptr<IRHIDescriptorHeap> m_dsv_descriptor_heap;
-     
-    // key - renderTarget id, value - resource descriptor handle
-    // each rt created within rt manager should be record in this map
-    //std::map<RTID, D3D12_CPU_DESCRIPTOR_HANDLE> m_rtvHandles;
-    //std::map<RTID, D3D12_CPU_DESCRIPTOR_HANDLE> m_dsvHandles;
-
-    std::vector<std::shared_ptr<IRHITexture>> m_external_textures;
+                                                                     std::shared_ptr<IRHITextureAllocation> texture, const D3D12_CLEAR_VALUE& clear_value);
+   
+    std::vector<std::shared_ptr<IRHITextureAllocation>> m_external_textures;
 };

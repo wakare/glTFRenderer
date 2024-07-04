@@ -1,5 +1,6 @@
 #pragma once
 #include "glTFComputePassBase.h"
+#include "glTFRenderPass/glTFRenderResourceUtils.h"
 
 ALIGN_FOR_CBV_STRUCT struct RayTracingPostProcessPassOptions
 {
@@ -34,6 +35,8 @@ public:
     virtual bool TryProcessSceneObject(glTFRenderResourceManager& resource_manager, const glTFSceneObjectBase& object) override;
     virtual bool FinishProcessSceneObject(glTFRenderResourceManager& resource_manager) override;
     virtual bool UpdateGUIWidgets() override;
+
+    virtual bool InitResourceTable(glTFRenderResourceManager& resource_manager) override;
     
 protected:
     virtual bool SetupRootSignature(glTFRenderResourceManager& resource_manager) override;
@@ -41,8 +44,6 @@ protected:
 
     DispatchCount m_dispatch_count;
 
-    std::shared_ptr<IRHIRenderTarget> m_post_process_input_RT;
-    std::shared_ptr<IRHIRenderTarget> m_screen_uv_offset_RT;
     std::shared_ptr<IRHIRenderTarget> m_post_process_output_RT;
 
     glTFRenderResourceUtils::RWTextureResourceWithBackBuffer m_accumulation_resource;

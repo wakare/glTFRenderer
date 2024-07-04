@@ -2,6 +2,7 @@
 
 #include <imgui.h>
 
+#include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceFrameStat.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceLighting.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneView.h"
@@ -22,23 +23,6 @@ const char* glTFComputePassReSTIRDirectLighting::PassName()
 
 bool glTFComputePassReSTIRDirectLighting::InitPass(glTFRenderResourceManager& resource_manager)
 {
-    RHITextureDesc lighting_output_desc
-    {
-        "LIGHTING_OUTPUT",
-        resource_manager.GetSwapChain().GetWidth(),
-        resource_manager.GetSwapChain().GetHeight(),
-        RHIDataFormat::R8G8B8A8_UNORM,
-        static_cast<RHIResourceUsageFlags>(RUF_ALLOW_UAV | RUF_ALLOW_RENDER_TARGET),
-        {
-            .clear_format = RHIDataFormat::R8G8B8A8_UNORM,
-            .clear_color {0.0f, 0.0f, 0.0f, 0.0f}
-        },
-    };
-    
-    m_output = resource_manager.GetRenderTargetManager().CreateRenderTarget(
-        resource_manager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R8G8B8A8_UNORM, RHIDataFormat::R8G8B8A8_UNORM, lighting_output_desc);
-    resource_manager.GetRenderTargetManager().RegisterRenderTargetWithTag("RayTracingOutput", m_output);
-    
     RHITextureDesc aggregate_samples_output_desc
     {
         "AGGREGATE_OUTPUT",
@@ -54,11 +38,9 @@ bool glTFComputePassReSTIRDirectLighting::InitPass(glTFRenderResourceManager& re
     RETURN_IF_FALSE(m_aggregate_samples_output.CreateResource(resource_manager, aggregate_samples_output_desc))
 
     auto& command_list = resource_manager.GetCommandListForRecord();
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_output, RHIResourceStateType::STATE_COMMON, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE))
-
-    m_lighting_samples = resource_manager.GetRenderTargetManager().GetRenderTargetWithTag("ReSTIRDirectLightingSamples");
-    m_screen_uv_offset = resource_manager.GetRenderTargetManager().GetRenderTargetWithTag("RayTracingScreenUVOffset");
     
+    RETURN_IF_FALSE(RHIUtils::Instance().AddTextureBarrierToCommandList(command_list, GetResourceTexture(RenderPassResourceTableId::RayTracingSceneOutput), RHIResourceStateType::STATE_COMMON, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE))
+
     RETURN_IF_FALSE(glTFComputePassBase::InitPass(resource_manager))
 
     return true;
@@ -86,8 +68,8 @@ bool glTFComputePassReSTIRDirectLighting::PreRenderPass(glTFRenderResourceManage
 
     RETURN_IF_FALSE(m_aggregate_samples_output.BindRootParameter(resource_manager))
     
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_output,
-       RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_UNORDERED_ACCESS))
+    RETURN_IF_FALSE(RHIUtils::Instance().AddTextureBarrierToCommandList(command_list, GetResourceTexture(RenderPassResourceTableId::RayTracingSceneOutput),
+           RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_UNORDERED_ACCESS))
 
     GetRenderInterface<glTFRenderInterfaceSingleConstantBuffer<RayTracingDIPostProcessPassOptions>>()->UploadCPUBuffer(&m_pass_options, 0, sizeof(m_pass_options));
     
@@ -101,8 +83,8 @@ bool glTFComputePassReSTIRDirectLighting::PostRenderPass(glTFRenderResourceManag
     auto& command_list = resource_manager.GetCommandListForRecord();
     RETURN_IF_FALSE(m_aggregate_samples_output.CopyToBackBuffer(resource_manager))
 
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_output,
-       RHIResourceStateType::STATE_UNORDERED_ACCESS, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE))
+    RETURN_IF_FALSE(RHIUtils::Instance().AddTextureBarrierToCommandList(command_list, GetResourceTexture(RenderPassResourceTableId::RayTracingSceneOutput),
+           RHIResourceStateType::STATE_UNORDERED_ACCESS, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE))
 
     return true;
 }
@@ -161,14 +143,15 @@ bool glTFComputePassReSTIRDirectLighting::SetupPipelineStateObject(glTFRenderRes
 
     m_dispatch_count = {resource_manager.GetSwapChain().GetWidth() / 8, resource_manager.GetSwapChain().GetHeight() / 8, 1};
 
-    RETURN_IF_FALSE(MainDescriptorHeapRef().CreateResourceDescriptorInHeap(resource_manager.GetDevice(), *m_output,
-                        {m_output->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_UAV}, m_output_handle))
+    auto& raytracing_scene_output = GetResourceTexture(RenderPassResourceTableId::RayTracingSceneOutput);
+    RETURN_IF_FALSE(MainDescriptorHeapRef().CreateResourceDescriptorInHeap(resource_manager.GetDevice(), raytracing_scene_output,
+                        {raytracing_scene_output.GetTextureFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_UAV}, m_output_handle))
 
-    RETURN_IF_FALSE(MainDescriptorHeapRef().CreateResourceDescriptorInHeap(resource_manager.GetDevice(), *m_lighting_samples,
-                            {m_lighting_samples->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_lighting_samples_handle))
+    RETURN_IF_FALSE(MainDescriptorHeapRef().CreateResourceDescriptorInHeap(resource_manager.GetDevice(), GetResourceTexture(RenderPassResourceTableId::RayTracingPass_ReSTIRSample_Output),
+                            {GetResourceTexture(RenderPassResourceTableId::RayTracingPass_ReSTIRSample_Output).GetTextureFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_lighting_samples_handle))
 
-    RETURN_IF_FALSE(MainDescriptorHeapRef().CreateResourceDescriptorInHeap(resource_manager.GetDevice(), *m_screen_uv_offset,
-                        {m_screen_uv_offset->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_screen_uv_offset_handle))
+    RETURN_IF_FALSE(MainDescriptorHeapRef().CreateResourceDescriptorInHeap(resource_manager.GetDevice(), GetResourceTexture(RenderPassResourceTableId::ScreenUVOffset),
+                        {GetResourceTexture(RenderPassResourceTableId::ScreenUVOffset).GetTextureFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_screen_uv_offset_handle))
 
     RETURN_IF_FALSE(m_aggregate_samples_output.CreateDescriptors(resource_manager, MainDescriptorHeapRef()))
     
@@ -192,5 +175,15 @@ bool glTFComputePassReSTIRDirectLighting::SetupPipelineStateObject(glTFRenderRes
     shader_macros.AddUAVRegisterDefine("OUTPUT_TEX_REGISTER_INDEX", m_output_allocation.register_index, m_output_allocation.space);
     RETURN_IF_FALSE(m_aggregate_samples_output.AddShaderMacros(shader_macros))
     
+    return true;
+}
+
+bool glTFComputePassReSTIRDirectLighting::InitResourceTable(glTFRenderResourceManager& resource_manager)
+{
+    RETURN_IF_FALSE(glTFComputePassBase::InitResourceTable(resource_manager))
+
+    AddImportTextureResource(RHITextureDesc::MakeRayTracingPassReSTIRSampleOutputDesc(resource_manager), RenderPassResourceTableId::RayTracingPass_ReSTIRSample_Output);
+    AddImportTextureResource(RHITextureDesc::MakeScreenUVOffsetTextureDesc(resource_manager), RenderPassResourceTableId::ScreenUVOffset);
+    AddExportTextureResource(RHITextureDesc::MakeRayTracingSceneOutputTextureDesc(resource_manager), RenderPassResourceTableId::RayTracingSceneOutput);
     return true;
 }

@@ -15,11 +15,12 @@ protected:
     
     virtual bool SetupRootSignature(glTFRenderResourceManager& resource_manager) override;
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;
-
-    std::shared_ptr<IRHIRenderTarget> m_base_pass_color_render_target;
-    std::shared_ptr<IRHIRenderTarget> m_base_pass_normal_render_target;
-
+    virtual bool InitResourceTable(glTFRenderResourceManager& resource_manager) override;
+    
     RootSignatureAllocation m_sampler_allocation;
     bool m_material_uploaded;
+
+    std::shared_ptr<IRHIDescriptorAllocation> m_albedo_view;
+    std::shared_ptr<IRHIDescriptorAllocation> m_normal_view;
 };
  

@@ -146,7 +146,6 @@
     <ClCompile Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassTestTriangle.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassBase.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassPathTracing.cpp" />
-    <ClCompile Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassRadiosityFormFactor.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassReSTIRDirectLighting.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassWithMesh.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterface32BitConstant.cpp" />
@@ -335,7 +334,6 @@
     <ClInclude Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassTestTriangle.h" />
     <ClInclude Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassBase.h" />
     <ClInclude Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassPathTracing.h" />
-    <ClInclude Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassRadiosityFormFactor.h" />
     <ClInclude Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassReSTIRDirectLighting.h" />
     <ClInclude Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassWithMesh.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterface32BitConstant.h" />

@@ -1,6 +1,7 @@
 #pragma once
 #include "glTFRenderPass/glTFRenderPassBase.h"
 
+class IRHIGraphicsPipelineStateObject;
 class glTFMaterialBase;
 
 class glTFGraphicsPassBase : public glTFRenderPassBase

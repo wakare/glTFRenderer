@@ -199,14 +199,20 @@ bool VulkanUtils::UploadTextureDataToDefaultGPUBuffer(IRHICommandList& commandLi
     return true;
 }
 
-bool VulkanUtils::AddBufferBarrierToCommandList(IRHICommandList& commandList, IRHIBuffer& buffer,
-    RHIResourceStateType beforeState, RHIResourceStateType afterState)
+bool VulkanUtils::AddBufferBarrierToCommandList(IRHICommandList& commandList, const IRHIBuffer& buffer,
+                                                RHIResourceStateType beforeState, RHIResourceStateType afterState)
 {
     return true;
 }
 
-bool VulkanUtils::AddRenderTargetBarrierToCommandList(IRHICommandList& commandList, IRHIRenderTarget& buffer,
-    RHIResourceStateType before_state, RHIResourceStateType after_state)
+bool VulkanUtils::AddTextureBarrierToCommandList(IRHICommandList& commandList, const IRHITexture& buffer,
+                                                 RHIResourceStateType beforeState, RHIResourceStateType afterState)
+{
+    return false;
+}
+
+bool VulkanUtils::AddRenderTargetBarrierToCommandList(IRHICommandList& commandList, const IRHIRenderTarget& buffer,
+                                                      RHIResourceStateType before_state, RHIResourceStateType after_state)
 {
     return true;
 }
@@ -257,7 +263,7 @@ bool VulkanUtils::DiscardResource(IRHICommandList& commandList, IRHIRenderTarget
     return true;
 }
 
-bool VulkanUtils::CopyTexture(IRHICommandList& commandList, IRHIRenderTarget& dst, IRHIRenderTarget& src)
+bool VulkanUtils::CopyTexture(IRHICommandList& commandList, IRHITexture& dst, IRHITexture& src)
 {
     return true;
 }

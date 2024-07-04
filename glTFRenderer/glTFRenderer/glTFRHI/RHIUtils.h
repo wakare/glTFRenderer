@@ -75,8 +75,9 @@ public:
     virtual bool UploadBufferDataToDefaultGPUBuffer(IRHICommandList& commandList, IRHIBuffer& uploadBuffer, IRHIBuffer& defaultBuffer, void* data, size_t size) = 0;
     virtual bool UploadTextureDataToDefaultGPUBuffer(IRHICommandList& commandList, IRHIBuffer& uploadBuffer, IRHIBuffer& defaultBuffer, void* data, size_t rowPitch, size_t slicePitch) = 0;
 
-    virtual bool AddBufferBarrierToCommandList(IRHICommandList& commandList, IRHIBuffer& buffer, RHIResourceStateType beforeState, RHIResourceStateType afterState) = 0;
-    virtual bool AddRenderTargetBarrierToCommandList(IRHICommandList& commandList, IRHIRenderTarget& buffer, RHIResourceStateType beforeState, RHIResourceStateType afterState) = 0;
+    virtual bool AddBufferBarrierToCommandList(IRHICommandList& commandList, const IRHIBuffer& buffer, RHIResourceStateType beforeState, RHIResourceStateType afterState) = 0;
+    virtual bool AddTextureBarrierToCommandList(IRHICommandList& commandList, const IRHITexture& buffer, RHIResourceStateType beforeState, RHIResourceStateType afterState) = 0;
+    virtual bool AddRenderTargetBarrierToCommandList(IRHICommandList& commandList, const IRHIRenderTarget& buffer, RHIResourceStateType beforeState, RHIResourceStateType afterState) = 0;
 
     virtual bool DrawInstanced(IRHICommandList& commandList, unsigned vertexCountPerInstance, unsigned instanceCount, unsigned startVertexLocation, unsigned startInstanceLocation) = 0;
     virtual bool DrawIndexInstanced(IRHICommandList& commandList, unsigned indexCountPerInstance, unsigned instanceCount, unsigned startIndexLocation, unsigned baseVertexLocation, unsigned startInstanceLocation) = 0;
@@ -90,7 +91,7 @@ public:
     virtual bool Present(IRHISwapChain& swap_chain, IRHICommandQueue& command_queue, IRHICommandList& command_list) = 0;
 
     virtual bool DiscardResource(IRHICommandList& commandList, IRHIRenderTarget& render_target) = 0;
-    virtual bool CopyTexture(IRHICommandList& commandList, IRHIRenderTarget& dst, IRHIRenderTarget& src) = 0;
+    virtual bool CopyTexture(IRHICommandList& commandList, IRHITexture& dst, IRHITexture& src) = 0;
     virtual bool CopyBuffer(IRHICommandList& commandList, IRHIBuffer& dst, size_t dst_offset, IRHIBuffer& src, size_t src_offset, size_t size) = 0;
 
     virtual bool SupportRayTracing(IRHIDevice& device) = 0;

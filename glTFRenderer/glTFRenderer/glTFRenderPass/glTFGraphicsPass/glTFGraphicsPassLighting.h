@@ -23,9 +23,7 @@ protected:
     virtual size_t GetMainDescriptorHeapSize() override;
     virtual bool SetupRootSignature(glTFRenderResourceManager& resource_manager) override;
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;
-    
-    std::shared_ptr<IRHIRenderTarget> m_base_pass_color_RT;
-    std::shared_ptr<IRHIRenderTarget> m_normal_RT;
+    virtual bool InitResourceTable(glTFRenderResourceManager& resource_manager) override;
     
     std::shared_ptr<IRHIDescriptorAllocation> m_base_pass_color_RT_SRV_Handle;
     std::shared_ptr<IRHIDescriptorAllocation> m_depth_RT_SRV_Handle;

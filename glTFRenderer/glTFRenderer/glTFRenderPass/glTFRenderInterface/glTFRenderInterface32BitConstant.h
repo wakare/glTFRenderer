@@ -1,5 +1,6 @@
 #pragma once
 #include "glTFRenderInterfaceBase.h"
+#include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRHI/RHIUtils.h"
 
 template<typename UploadStructType, unsigned count>
@@ -9,7 +10,7 @@ public:
     bool Apply32BitConstants(glTFRenderResourceManager& resource_manager, unsigned data, bool isGraphicsPipeline)
     {
         RETURN_IF_FALSE(RHIUtils::Instance().SetConstant32BitToRootParameterSlot(resource_manager.GetCommandListForRecord(),
-            m_allocation.parameter_index, data, count, isGraphicsPipeline))
+            m_allocation.parameter_index, &data, count, isGraphicsPipeline))
 
         return true;
     }

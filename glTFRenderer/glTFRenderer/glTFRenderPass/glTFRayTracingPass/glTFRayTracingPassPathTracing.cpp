@@ -2,6 +2,7 @@
 
 #include <imgui.h>
 
+#include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceRadiosityScene.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSingleConstantBuffer.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
@@ -28,9 +29,7 @@ struct RHIShaderBindingTableRecordPathTracing : RHIShaderTableRecordBase
 };
 
 glTFRayTracingPassPathTracing::glTFRayTracingPassPathTracing()
-    : m_raytracing_output(nullptr)
-    , m_screen_uv_offset_output(nullptr)
-    , m_output_handle(0)
+    : m_raytracing_output_handle(0)
     , m_screen_uv_offset_handle(0)
 {
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSingleConstantBuffer<RayTracingPathTracingPassOptions>>());
@@ -44,45 +43,14 @@ const char* glTFRayTracingPassPathTracing::PassName()
 
 bool glTFRayTracingPassPathTracing::InitPass(glTFRenderResourceManager& resource_manager)
 {
-    RHITextureDesc raytracing_output_render_target
-    {
-        "RAYTRACING_OUTPUT",
-        resource_manager.GetSwapChain().GetWidth(),
-        resource_manager.GetSwapChain().GetHeight(),
-        RHIDataFormat::R8G8B8A8_UNORM,
-        static_cast<RHIResourceUsageFlags>(RUF_ALLOW_UAV | RUF_ALLOW_RENDER_TARGET),
-        {
-            .clear_format = RHIDataFormat::R8G8B8A8_UNORM,
-            .clear_color {0.0f, 0.0f, 0.0f, 0.0f}
-        }
-    };
-    
-    m_raytracing_output = resource_manager.GetRenderTargetManager().CreateRenderTarget(
-        resource_manager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R8G8B8A8_UNORM, RHIDataFormat::R8G8B8A8_UNORM, raytracing_output_render_target);
-    resource_manager.GetRenderTargetManager().RegisterRenderTargetWithTag("RayTracingOutput", m_raytracing_output);
-    
-    RHITextureDesc screen_uv_offset_render_target
-    {
-        "SCREEN_UV_OFFSET_OUTPUT",
-        resource_manager.GetSwapChain().GetWidth(),
-        resource_manager.GetSwapChain().GetHeight(),
-        RHIDataFormat::R32G32B32A32_FLOAT,
-        static_cast<RHIResourceUsageFlags>(RUF_ALLOW_UAV | RUF_ALLOW_RENDER_TARGET),
-        {
-            .clear_format = RHIDataFormat::R32G32B32A32_FLOAT,
-            .clear_color {0.0f, 0.0f, 0.0f, 0.0f}
-        }
-    };
-    m_screen_uv_offset_output = resource_manager.GetRenderTargetManager().CreateRenderTarget(
-        resource_manager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R32G32B32A32_FLOAT, RHIDataFormat::R32G32B32A32_FLOAT, screen_uv_offset_render_target);
-    resource_manager.GetRenderTargetManager().RegisterRenderTargetWithTag("RayTracingScreenUVOffset", m_screen_uv_offset_output);
-    
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resource_manager.GetCommandListForRecord(), *m_raytracing_output,
-        RHIResourceStateType::STATE_COMMON, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE))
-    
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resource_manager.GetCommandListForRecord(), *m_screen_uv_offset_output,
-        RHIResourceStateType::STATE_COMMON, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE))
-    
+    RETURN_IF_FALSE(RHIUtils::Instance().AddTextureBarrierToCommandList(resource_manager.GetCommandListForRecord(),
+            *GetResourceTextureAllocation(RenderPassResourceTableId::RayTracingSceneOutput).m_texture,
+            RHIResourceStateType::STATE_COMMON, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE))
+
+    RETURN_IF_FALSE(RHIUtils::Instance().AddTextureBarrierToCommandList(resource_manager.GetCommandListForRecord(),
+            *GetResourceTextureAllocation(RenderPassResourceTableId::ScreenUVOffset).m_texture,
+            RHIResourceStateType::STATE_COMMON, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE))
+
     RETURN_IF_FALSE(glTFRayTracingPassWithMesh::InitPass(resource_manager))
     
     return true;
@@ -93,14 +61,17 @@ bool glTFRayTracingPassPathTracing::PreRenderPass(glTFRenderResourceManager& res
     RETURN_IF_FALSE(glTFRayTracingPassWithMesh::PreRenderPass(resource_manager))
     
     auto& command_list = resource_manager.GetCommandListForRecord();
-    RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, m_output_allocation.parameter_index, *m_output_handle, false))
+    auto& raytracing_output_allocation = GetResourceTextureAllocation(RenderPassResourceTableId::RayTracingSceneOutput);
+    auto& screen_uv_offset_allocation = GetResourceTextureAllocation(RenderPassResourceTableId::ScreenUVOffset);
+    
+    RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, m_output_allocation.parameter_index, *m_raytracing_output_handle, false))
     RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, m_screen_uv_offset_allocation.parameter_index, *m_screen_uv_offset_handle, false))
 
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_raytracing_output,
-            RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_UNORDERED_ACCESS))
+    RETURN_IF_FALSE(RHIUtils::Instance().AddTextureBarrierToCommandList(command_list, *raytracing_output_allocation.m_texture,
+                RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_UNORDERED_ACCESS))
 
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_screen_uv_offset_output,
-            RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_UNORDERED_ACCESS))
+    RETURN_IF_FALSE(RHIUtils::Instance().AddTextureBarrierToCommandList(command_list, *screen_uv_offset_allocation.m_texture,
+                RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_UNORDERED_ACCESS))
 
     RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSingleConstantBuffer<RayTracingPathTracingPassOptions>>()->UploadCPUBuffer(&m_pass_options, 0, sizeof(m_pass_options)))
     RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceRadiosityScene>()->UploadCPUBufferFromRadiosityRenderer(resource_manager.GetRadiosityRenderer()))
@@ -113,13 +84,16 @@ bool glTFRayTracingPassPathTracing::PostRenderPass(glTFRenderResourceManager& re
     RETURN_IF_FALSE(glTFRayTracingPassWithMesh::PostRenderPass(resource_manager))
 
     auto& command_list = resource_manager.GetCommandListForRecord();
-
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_raytracing_output,
-        RHIResourceStateType::STATE_UNORDERED_ACCESS, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE))
-
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_screen_uv_offset_output,
-        RHIResourceStateType::STATE_UNORDERED_ACCESS, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE))
     
+    auto& raytracing_output_allocation = GetResourceTextureAllocation(RenderPassResourceTableId::RayTracingSceneOutput);
+    auto& screen_uv_offset_allocation = GetResourceTextureAllocation(RenderPassResourceTableId::ScreenUVOffset);
+    
+    RETURN_IF_FALSE(RHIUtils::Instance().AddTextureBarrierToCommandList(command_list, *raytracing_output_allocation.m_texture,
+            RHIResourceStateType::STATE_UNORDERED_ACCESS, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE))
+
+    RETURN_IF_FALSE(RHIUtils::Instance().AddTextureBarrierToCommandList(command_list, *screen_uv_offset_allocation.m_texture,
+            RHIResourceStateType::STATE_UNORDERED_ACCESS, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE))
+
     return true;
 }
 
@@ -137,24 +111,27 @@ bool glTFRayTracingPassPathTracing::SetupRootSignature(glTFRenderResourceManager
 bool glTFRayTracingPassPathTracing::SetupPipelineStateObject(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFRayTracingPassWithMesh::SetupPipelineStateObject(resource_manager))
-
+    
+    auto& raytracing_output_allocation = GetResourceTextureAllocation(RenderPassResourceTableId::RayTracingSceneOutput);
+    auto& screen_uv_offset_allocation = GetResourceTextureAllocation(RenderPassResourceTableId::ScreenUVOffset);
+    
     RETURN_IF_FALSE(MainDescriptorHeapRef().CreateResourceDescriptorInHeap(
                 resource_manager.GetDevice(),
-                *m_raytracing_output,
+                *raytracing_output_allocation.m_texture,
                 {
-                m_raytracing_output->GetRenderTargetFormat(),
-                RHIResourceDimension::TEXTURE2D
-                , RHIViewType::RVT_UAV
+                    raytracing_output_allocation.m_texture->GetTextureDesc().GetDataFormat(),
+                    RHIResourceDimension::TEXTURE2D,
+                    RHIViewType::RVT_UAV
                 },
-                m_output_handle))
+                m_raytracing_output_handle))
 
     RETURN_IF_FALSE(MainDescriptorHeapRef().CreateResourceDescriptorInHeap(
                 resource_manager.GetDevice(),
-                *m_screen_uv_offset_output,
+                *screen_uv_offset_allocation.m_texture,
                 {
-                m_screen_uv_offset_output->GetRenderTargetFormat(),
-                RHIResourceDimension::TEXTURE2D
-                , RHIViewType::RVT_UAV
+                    screen_uv_offset_allocation.m_texture->GetTextureDesc().GetDataFormat(),
+                    RHIResourceDimension::TEXTURE2D,
+                    RHIViewType::RVT_UAV
                 },
                 m_screen_uv_offset_handle))
 
@@ -229,6 +206,16 @@ bool glTFRayTracingPassPathTracing::UpdateGUIWidgets()
     ImGui::Checkbox("CheckVisibilityForAllCandidates", (bool*)&m_pass_options.check_visibility_for_all_candidates);
     ImGui::Checkbox("RISLightSampling", (bool*)&m_pass_options.ris_light_sampling);
     ImGui::Checkbox("DebugRadiosity", (bool*)&m_pass_options.debug_radiosity);
+    
+    return true;
+}
+
+bool glTFRayTracingPassPathTracing::InitResourceTable(glTFRenderResourceManager& resource_manager)
+{
+    RETURN_IF_FALSE(glTFRayTracingPassWithMesh::InitResourceTable(resource_manager))
+
+    AddExportTextureResource(RHITextureDesc::MakeRayTracingSceneOutputTextureDesc(resource_manager), RenderPassResourceTableId::RayTracingSceneOutput);
+    AddExportTextureResource(RHITextureDesc::MakeScreenUVOffsetTextureDesc(resource_manager), RenderPassResourceTableId::ScreenUVOffset);
     
     return true;
 }

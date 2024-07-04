@@ -18,7 +18,10 @@ public:
                                                                   RHITextureDesc& desc) = 0;
      virtual std::vector<std::shared_ptr<IRHIRenderTarget>> CreateRenderTargetFromSwapChain(IRHIDevice& device, IRHISwapChain& swapChain, RHITextureClearValue clearValue) = 0;
      virtual bool ClearRenderTarget(IRHICommandList& commandList, const std::vector<IRHIRenderTarget*>& renderTargets) = 0;
+     virtual bool ClearRenderTarget(IRHICommandList& commandList, const std::vector<std::shared_ptr<IRHIDescriptorAllocation>>& render_targets, const
+                                    RHITextureClearValue& render_target_clear_value, const RHITextureClearValue& depth_stencil_clear_value) = 0;
      virtual bool BindRenderTarget(IRHICommandList& commandList, const std::vector<IRHIRenderTarget*>& renderTargets, /*optional*/ IRHIRenderTarget* depthStencil) = 0;
+     virtual bool BindRenderTarget(IRHICommandList& commandList, const std::vector<std::shared_ptr<IRHIDescriptorAllocation>>& render_targets, /*optional*/ IRHIDescriptorAllocation* depth_stencil) = 0;
 
      bool RegisterRenderTargetWithTag(const std::string& render_target_tag, std::shared_ptr<IRHIRenderTarget> render_target, unsigned back_buffer_index = 0);
      std::shared_ptr<IRHIRenderTarget> GetRenderTargetWithTag(const std::string& render_target_tag, unsigned back_buffer_index = 0) const;

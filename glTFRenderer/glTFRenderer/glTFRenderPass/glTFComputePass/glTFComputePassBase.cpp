@@ -1,5 +1,6 @@
 #include "glTFComputePassBase.h"
 
+#include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRHI/RHIUtils.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 

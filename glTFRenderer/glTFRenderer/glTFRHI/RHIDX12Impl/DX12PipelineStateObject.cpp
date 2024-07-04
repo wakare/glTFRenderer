@@ -50,6 +50,32 @@ bool DX12GraphicsPipelineStateObject::BindRenderTargetFormats(const std::vector<
     return true;
 }
 
+bool DX12GraphicsPipelineStateObject::BindRenderTargetFormats(
+    const std::vector<IRHIDescriptorAllocation*>& render_targets)
+{
+    m_bind_render_target_formats.clear();
+    for (const auto& render_target : render_targets)
+    {
+        if (render_target->m_view_desc.view_type == RHIViewType::RVT_RTV)
+        {
+            m_bind_render_target_formats.push_back(DX12ConverterUtils::ConvertToDXGIFormat(render_target->m_view_desc.format));    
+        }
+        else if (render_target->m_view_desc.view_type == RHIViewType::RVT_DSV)
+        {
+            const RHIDataFormat convert_depth_stencil_format = render_target->m_view_desc.format == RHIDataFormat::R32_TYPELESS ?
+                RHIDataFormat::D32_FLOAT : render_target->m_view_desc.format;
+            m_bind_depth_stencil_format = DX12ConverterUtils::ConvertToDXGIFormat(convert_depth_stencil_format);
+        }
+        else
+        {
+            // Not supported render target type!
+            assert(false);
+        }
+    }
+    
+    return true;
+}
+
 bool DX12GraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device, const RHIPipelineStateInfo& pipeline_state_info)
 {
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();

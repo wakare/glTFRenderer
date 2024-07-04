@@ -4,6 +4,7 @@
 
 #include "RendererCommon.h"
 #include "glTFRenderMeshManager.h"
+#include "glTFRenderPassCommon.h"
 #include "glTFRenderResourceFrameManager.h"
 #include "glTFApp/glTFRadiosityRenderer.h"
 #include "glTFRHI/RHIInterface/IRHICommandList.h"
@@ -71,6 +72,10 @@ public:
 
     glTFRadiosityRenderer& GetRadiosityRenderer();
     const glTFRadiosityRenderer& GetRadiosityRenderer() const;
+
+    // Allocate pass resource and track for export/import
+    bool ExportResourceTexture(const RHITextureDesc& desc, RenderPassResourceTableId entry_id, std::shared_ptr<IRHITextureAllocation>& out_texture_allocation);
+    bool ImportResourceTexture(const RHITextureDesc& desc, RenderPassResourceTableId entry_id, std::shared_ptr<IRHITextureAllocation>& out_texture_allocation);
     
 private:
     std::shared_ptr<glTFRadiosityRenderer> m_radiosity_renderer;
@@ -96,5 +101,7 @@ private:
     std::shared_ptr<IRHIPipelineStateObject> m_current_pass_pso;
     std::vector<glTFRenderResourceFrameManager> m_frame_resource_managers;
     
-    std::shared_ptr<glTFRenderResourceUtils::GBufferSignatureAllocations> m_GBuffer_allocations;
+    std::shared_ptr<glTFRenderResourceUtils::GBufferSignatureAllocations> m_gBuffer_allocations;
+
+    std::map<RenderPassResourceTableId, std::shared_ptr<IRHITextureAllocation>> m_export_texture_allocation_map;
 };

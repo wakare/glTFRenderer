@@ -7,6 +7,7 @@
 #include "IRHISwapChain.h"
 #include "ShaderUtil/IRHIShader.h"
 
+class IRHIDescriptorAllocation;
 class IRHIRenderTarget;
 
 #define DECLARE_INPUT_LAYOUT_SEMANTIC_NAME(x) static const char* g_inputLayoutName##x = #x;
@@ -70,6 +71,7 @@ public:
     IRHIGraphicsPipelineStateObject();
 
     virtual bool BindRenderTargetFormats(const std::vector<IRHIRenderTarget*>& render_targets) = 0;
+    virtual bool BindRenderTargetFormats(const std::vector<IRHIDescriptorAllocation*>& render_targets) = 0;
 };
 
 class IRHIComputePipelineStateObject : public IRHIPipelineStateObject

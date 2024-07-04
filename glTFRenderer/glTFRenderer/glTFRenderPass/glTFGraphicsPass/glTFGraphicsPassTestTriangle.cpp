@@ -1,5 +1,6 @@
 #include "glTFGraphicsPassTestTriangle.h"
 
+#include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRHI/RHIUtils.h"
 #include "glTFRHI/RHIInterface/IRHIRenderTargetManager.h"
 

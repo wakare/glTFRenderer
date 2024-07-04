@@ -1,6 +1,7 @@
 #pragma once
-#include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRHI/RHIInterface/IRHIRootSignatureHelper.h"
+
+class glTFRenderResourceManager;
 
 // glTF render pass interface can composite with render pass class, should be derived in class declaration
 class glTFRenderInterfaceBase

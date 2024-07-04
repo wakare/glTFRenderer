@@ -3,6 +3,8 @@
 #include "glTFGraphicsPassBase.h"
 #include "glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
 
+class IRHICommandSignature;
+
 // Drawing all meshes within mesh pass
 class glTFGraphicsPassMeshBase : public glTFGraphicsPassBase
 {

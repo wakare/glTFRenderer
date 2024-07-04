@@ -8,11 +8,9 @@
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSampler.h"
 
 glTFGraphicsPassLighting::glTFGraphicsPassLighting()
-    : m_base_pass_color_RT(nullptr)
-    , m_normal_RT(nullptr)
-    , m_base_pass_color_RT_SRV_Handle(0)
-    , m_depth_RT_SRV_Handle(0)
-    , m_normal_RT_SRV_Handle(0)
+    : m_base_pass_color_RT_SRV_Handle(nullptr)
+    , m_depth_RT_SRV_Handle(nullptr)
+    , m_normal_RT_SRV_Handle(nullptr)
 {
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneView>());
     AddRenderInterface(std::make_shared<glTFRenderInterfaceLighting>());
@@ -39,15 +37,17 @@ bool glTFGraphicsPassLighting::PreRenderPass(glTFRenderResourceManager& resource
     RETURN_IF_FALSE(glTFGraphicsPassPostprocess::PreRenderPass(resource_manager))
 
     auto& command_list = resource_manager.GetCommandListForRecord();
+    auto& basepass_albedo = GetResourceTexture(RenderPassResourceTableId::BasePass_Albedo);
+    auto& basepass_normal = GetResourceTexture(RenderPassResourceTableId::BasePass_Normal);
     
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_base_pass_color_RT,
-        RHIResourceStateType::STATE_RENDER_TARGET, RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE))
+    RETURN_IF_FALSE(RHIUtils::Instance().AddTextureBarrierToCommandList(command_list, basepass_albedo,
+            RHIResourceStateType::STATE_RENDER_TARGET, RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE))
 
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_normal_RT,
-        RHIResourceStateType::STATE_RENDER_TARGET, RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE))
-    
+    RETURN_IF_FALSE(RHIUtils::Instance().AddTextureBarrierToCommandList(command_list, basepass_normal,
+            RHIResourceStateType::STATE_RENDER_TARGET, RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE))
+
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, resource_manager.GetDepthRT(),
-        RHIResourceStateType::STATE_DEPTH_READ, RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE))
+            RHIResourceStateType::STATE_DEPTH_READ, RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE))
 
     RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list,
             m_base_color_and_depth_allocation.parameter_index, *m_base_pass_color_RT_SRV_Handle, GetPipelineType() == PipelineType::Graphics))
@@ -68,18 +68,20 @@ bool glTFGraphicsPassLighting::PostRenderPass(glTFRenderResourceManager& resourc
     RETURN_IF_FALSE(glTFGraphicsPassPostprocess::PostRenderPass(resource_manager))
 
     auto& command_list = resource_manager.GetCommandListForRecord();
+    auto& basepass_albedo = GetResourceTexture(RenderPassResourceTableId::BasePass_Albedo);
+    auto& basepass_normal = GetResourceTexture(RenderPassResourceTableId::BasePass_Normal);
     
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_base_pass_color_RT,
-            RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_RENDER_TARGET))
+    RETURN_IF_FALSE(RHIUtils::Instance().AddTextureBarrierToCommandList(command_list, basepass_albedo,
+                RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_RENDER_TARGET))
 
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_normal_RT,
-            RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_RENDER_TARGET))
+    RETURN_IF_FALSE(RHIUtils::Instance().AddTextureBarrierToCommandList(command_list, basepass_normal,
+                RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_RENDER_TARGET))
 
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, resource_manager.GetDepthRT(),
-            RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_DEPTH_READ))
+                RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_DEPTH_READ))
 
-    RETURN_IF_FALSE(RHIUtils::Instance().DiscardResource(command_list, *m_base_pass_color_RT))
-    RETURN_IF_FALSE(RHIUtils::Instance().DiscardResource(command_list, *m_normal_RT))
+    //RETURN_IF_FALSE(RHIUtils::Instance().DiscardResource(command_list, basepass_albedo))
+    //RETURN_IF_FALSE(RHIUtils::Instance().DiscardResource(command_list, basepass_normal))
     //RETURN_IF_FALSE(RHIUtils::Instance().DiscardResource(command_list, resource_manager.GetDepthRT()))
     
     return true;
@@ -126,16 +128,17 @@ bool glTFGraphicsPassLighting::SetupPipelineStateObject(glTFRenderResourceManage
     render_targets.push_back(&resource_manager.GetCurrentFrameSwapChainRT());
     GetGraphicsPipelineStateObject().BindRenderTargetFormats(render_targets);
     
-    m_base_pass_color_RT = resource_manager.GetRenderTargetManager().GetRenderTargetWithTag("BasePassColor");
-    RETURN_IF_FALSE(MainDescriptorHeapRef().CreateResourceDescriptorInHeap(resource_manager.GetDevice(), *m_base_pass_color_RT,
-                    {m_base_pass_color_RT->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_base_pass_color_RT_SRV_Handle))
+    auto& basepass_albedo = GetResourceTexture(RenderPassResourceTableId::BasePass_Albedo);
+    auto& basepass_normal = GetResourceTexture(RenderPassResourceTableId::BasePass_Normal);
+    
+    RETURN_IF_FALSE(MainDescriptorHeapRef().CreateResourceDescriptorInHeap(resource_manager.GetDevice(), basepass_albedo,
+                    {basepass_albedo.GetTextureFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_base_pass_color_RT_SRV_Handle))
 
     RETURN_IF_FALSE(MainDescriptorHeapRef().CreateResourceDescriptorInHeap(resource_manager.GetDevice(), resource_manager.GetDepthRT(),
                     {RHIDataFormat::R32_FLOAT, RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_depth_RT_SRV_Handle))
 
-    m_normal_RT = resource_manager.GetRenderTargetManager().GetRenderTargetWithTag("BasePassNormal");
-    RETURN_IF_FALSE(MainDescriptorHeapRef().CreateResourceDescriptorInHeap(resource_manager.GetDevice(), *m_normal_RT,
-                    {m_normal_RT->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_normal_RT_SRV_Handle))
+    RETURN_IF_FALSE(MainDescriptorHeapRef().CreateResourceDescriptorInHeap(resource_manager.GetDevice(), basepass_normal,
+                    {basepass_normal.GetTextureFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_normal_RT_SRV_Handle))
 
     GetGraphicsPipelineStateObject().BindShaderCode(
         R"(glTFResources\ShaderSource\LightPassVS.hlsl)", RHIShaderType::Vertex, "main");
@@ -148,6 +151,16 @@ bool glTFGraphicsPassLighting::SetupPipelineStateObject(glTFRenderResourceManage
     shaderMacros.AddSRVRegisterDefine("ALBEDO_TEX_REGISTER_INDEX", m_base_color_and_depth_allocation.register_index);
     shaderMacros.AddSRVRegisterDefine("DEPTH_TEX_REGISTER_INDEX", m_base_color_and_depth_allocation.register_index + 1);
     shaderMacros.AddSRVRegisterDefine("NORMAL_TEX_REGISTER_INDEX", m_base_color_and_depth_allocation.register_index + 2);
+    
+    return true;
+}
+
+bool glTFGraphicsPassLighting::InitResourceTable(glTFRenderResourceManager& resource_manager)
+{
+    RETURN_IF_FALSE(glTFGraphicsPassPostprocess::InitResourceTable(resource_manager))
+
+    AddImportTextureResource(RHITextureDesc::MakeBasePassAlbedoTextureDesc(resource_manager), RenderPassResourceTableId::BasePass_Albedo);
+    AddImportTextureResource(RHITextureDesc::MakeBasePassNormalTextureDesc(resource_manager), RenderPassResourceTableId::BasePass_Normal);
     
     return true;
 }

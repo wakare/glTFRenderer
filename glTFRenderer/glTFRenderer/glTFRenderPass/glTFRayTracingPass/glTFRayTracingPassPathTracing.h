@@ -49,12 +49,10 @@ protected:
     virtual const char* GetShadowRayHitGroupName() override;
 
     virtual bool UpdateGUIWidgets() override;
+    virtual bool InitResourceTable(glTFRenderResourceManager& resource_manager) override;
     
 private:
-    std::shared_ptr<IRHIRenderTarget> m_raytracing_output;
-    std::shared_ptr<IRHIRenderTarget> m_screen_uv_offset_output;
-    
-    std::shared_ptr<IRHIDescriptorAllocation> m_output_handle;
+    std::shared_ptr<IRHIDescriptorAllocation> m_raytracing_output_handle;
     std::shared_ptr<IRHIDescriptorAllocation> m_screen_uv_offset_handle;
 
     RootSignatureAllocation m_output_allocation;

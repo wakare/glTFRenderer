@@ -24,6 +24,7 @@ void glTFRenderPassManager::AddRenderPass(std::unique_ptr<glTFRenderPassBase>&& 
 void glTFRenderPassManager::InitAllPass(glTFRenderResourceManager& resource_manager)
 {
     // Generate render pass before initialize sub pass
+    /*
     if (!m_render_pass)
     {
         RHIRenderPassInfo create_render_pass_info;
@@ -35,7 +36,23 @@ void glTFRenderPassManager::InitAllPass(glTFRenderResourceManager& resource_mana
         m_render_pass = RHIResourceFactory::CreateRHIResource<IRHIRenderPass>();
         m_render_pass->InitRenderPass(resource_manager.GetDevice(), create_render_pass_info);
     }
+    */
 
+    // Create pass resource and relocation
+    for (const auto& pass : m_passes)
+    {
+        pass->InitResourceTable(resource_manager);
+    }
+    
+    for (const auto& pass : m_passes)
+    {
+        pass->ExportResourceLocation(resource_manager);
+    }
+    
+    for (const auto& pass : m_passes)
+    {
+        pass->ImportResourceLocation(resource_manager);
+    }
     
     for (const auto& pass : m_passes)
     {

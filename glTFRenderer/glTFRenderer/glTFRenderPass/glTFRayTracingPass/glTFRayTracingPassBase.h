@@ -23,9 +23,10 @@ public:
     
     virtual TraceCount GetTraceCount() const = 0;
     virtual IRHIShaderTable& GetShaderTable() const = 0;
-    
+
 protected:
     IRHIRayTracingPipelineStateObject& GetRayTracingPipelineStateObject() const;
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;
     virtual PipelineType GetPipelineType() const override {return PipelineType::RayTracing; }
+    using glTFRenderPassBase::InitResourceTable;
 };

@@ -16,17 +16,15 @@ public:
     
     virtual bool TryProcessSceneObject(glTFRenderResourceManager& resource_manager, const glTFSceneObjectBase& object) override;
     virtual bool FinishProcessSceneObject(glTFRenderResourceManager& resource_manager) override;
+
+    virtual bool InitResourceTable(glTFRenderResourceManager& resource_manager) override;
     
 protected:
     virtual bool SetupRootSignature(glTFRenderResourceManager& resource_manager) override;
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;
 
     DispatchCount m_dispatch_count;
-    
-    std::shared_ptr<IRHIRenderTarget> m_base_color_RT;
-    std::shared_ptr<IRHIRenderTarget> m_normal_RT;
-    std::shared_ptr<IRHIRenderTarget> m_lighting_output_RT;
-    
+
     std::shared_ptr<IRHIDescriptorAllocation> m_base_color_SRV;
     std::shared_ptr<IRHIDescriptorAllocation> m_depth_SRV;
     std::shared_ptr<IRHIDescriptorAllocation> m_normal_SRV;

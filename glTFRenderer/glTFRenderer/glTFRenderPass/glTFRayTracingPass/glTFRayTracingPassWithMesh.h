@@ -20,6 +20,7 @@ protected:
     virtual size_t GetMainDescriptorHeapSize() override;
     virtual bool SetupRootSignature(glTFRenderResourceManager& resource_manager) override;
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;
+    using glTFRayTracingPassBase::InitResourceTable;
     
     bool UpdateAS(glTFRenderResourceManager& resource_manager);
     bool BuildAS(glTFRenderResourceManager& resource_manager);

@@ -1,6 +1,7 @@
 #include "glTFGraphicsPassMeshOpaque.h"
 
 #include "glTFRenderPass/glTFRenderMaterialManager.h"
+#include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceRadiosityScene.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSampler.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneMaterial.h"
@@ -9,9 +10,7 @@
 #include "SceneFileLoader/glTFImageLoader.h"
 
 glTFGraphicsPassMeshOpaque::glTFGraphicsPassMeshOpaque()
-    : m_base_pass_color_render_target(nullptr)
-    , m_base_pass_normal_render_target(nullptr)
-    , m_material_uploaded(false)
+    : m_material_uploaded(false)
 {
     AddRenderInterface(std::make_shared<glTFRenderInterfaceRadiosityScene>());
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMaterial>());
@@ -24,6 +23,20 @@ glTFGraphicsPassMeshOpaque::glTFGraphicsPassMeshOpaque()
 
 bool glTFGraphicsPassMeshOpaque::InitPass(glTFRenderResourceManager& resource_manager)
 {
+    resource_manager.GetMemoryManager().GetDescriptorHeap(RHIDescriptorHeapType::RTV).CreateResourceDescriptorInHeap(resource_manager.GetDevice(), GetResourceTexture(RenderPassResourceTableId::BasePass_Albedo), 
+    {
+        .format = GetResourceTexture(RenderPassResourceTableId::BasePass_Albedo).GetTextureFormat(),
+        .dimension = RHIResourceDimension::TEXTURE2D,
+        .view_type = RHIViewType::RVT_RTV
+    }, m_albedo_view);
+
+    resource_manager.GetMemoryManager().GetDescriptorHeap(RHIDescriptorHeapType::RTV).CreateResourceDescriptorInHeap(resource_manager.GetDevice(), GetResourceTexture(RenderPassResourceTableId::BasePass_Normal), 
+    {
+        .format = GetResourceTexture(RenderPassResourceTableId::BasePass_Normal).GetTextureFormat(),
+        .dimension = RHIResourceDimension::TEXTURE2D,
+        .view_type = RHIViewType::RVT_RTV
+    }, m_normal_view);
+    
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::InitPass(resource_manager))
 
     if (!m_material_uploaded)
@@ -42,10 +55,13 @@ bool glTFGraphicsPassMeshOpaque::PreRenderPass(glTFRenderResourceManager& resour
     auto& command_list = resource_manager.GetCommandListForRecord();
     
     RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().BindRenderTarget(command_list,
-        {m_base_pass_color_render_target.get(), m_base_pass_normal_render_target.get()}, &resource_manager.GetDepthRT()))
+        {m_albedo_view, m_normal_view}, &resource_manager.GetDepthRT().GetDescriptorAllocation()))
 
+    RHITextureClearValue render_target_clear_value = GetResourceTexture(RenderPassResourceTableId::BasePass_Albedo).GetTextureDesc().GetClearValue();
+    RHITextureClearValue depth_stencil_clear_value = resource_manager.GetDepthRT().GetClearValue();
+     
     RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().ClearRenderTarget(command_list,
-        {m_base_pass_color_render_target.get(), m_base_pass_normal_render_target.get()}))
+        {m_albedo_view, m_normal_view}, render_target_clear_value, depth_stencil_clear_value))
 
     return true;
 }
@@ -73,42 +89,21 @@ bool glTFGraphicsPassMeshOpaque::SetupPipelineStateObject(glTFRenderResourceMana
         R"(glTFResources\ShaderSource\MeshPassCommonPS.hlsl)", RHIShaderType::Pixel, "main");
     auto& command_list = resource_manager.GetCommandListForRecord();
     
-    RHITextureDesc render_target_base_color_desc
-    {
-        "BASEPASS_COLOR_OUTPUT",
-        resource_manager.GetSwapChain().GetWidth(),
-        resource_manager.GetSwapChain().GetHeight(),
-        RHIDataFormat::R8G8B8A8_UNORM_SRGB,
-        static_cast<RHIResourceUsageFlags>(RUF_ALLOW_UAV | RUF_ALLOW_RENDER_TARGET),
-        {
-            .clear_format = RHIDataFormat::R8G8B8A8_UNORM_SRGB,
-            .clear_color {0.0f, 0.0f, 0.0f, 0.0f}
-        }
-    };
-    m_base_pass_color_render_target = resource_manager.GetRenderTargetManager().CreateRenderTarget(
-        resource_manager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R8G8B8A8_UNORM_SRGB, RHIDataFormat::R8G8B8A8_UNORM_SRGB, render_target_base_color_desc);
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_base_pass_color_render_target, RHIResourceStateType::STATE_COMMON, RHIResourceStateType::STATE_RENDER_TARGET))
+    RETURN_IF_FALSE(RHIUtils::Instance().AddTextureBarrierToCommandList(command_list, GetResourceTexture(RenderPassResourceTableId::BasePass_Albedo), RHIResourceStateType::STATE_COMMON, RHIResourceStateType::STATE_RENDER_TARGET))
+
+    RETURN_IF_FALSE(RHIUtils::Instance().AddTextureBarrierToCommandList(command_list, GetResourceTexture(RenderPassResourceTableId::BasePass_Normal), RHIResourceStateType::STATE_COMMON, RHIResourceStateType::STATE_RENDER_TARGET))
+
+    GetGraphicsPipelineStateObject().BindRenderTargetFormats({m_albedo_view.get(), m_normal_view.get(), &resource_manager.GetDepthRT().GetDescriptorAllocation()});
     
-    RHITextureDesc render_target_normal_desc
-    {
-        "BASEPASS_NORMAL_OUTPUT",
-        resource_manager.GetSwapChain().GetWidth(),
-        resource_manager.GetSwapChain().GetHeight(),
-        RHIDataFormat::R8G8B8A8_UNORM_SRGB,
-        static_cast<RHIResourceUsageFlags>(RUF_ALLOW_UAV | RUF_ALLOW_RENDER_TARGET),
-        {
-            .clear_format = RHIDataFormat::R8G8B8A8_UNORM_SRGB,
-            .clear_color {0.0f, 0.0f, 0.0f, 0.0f}
-        },
-    };
-    m_base_pass_normal_render_target = resource_manager.GetRenderTargetManager().CreateRenderTarget(
-        resource_manager.GetDevice(), RHIRenderTargetType::RTV, RHIDataFormat::R8G8B8A8_UNORM_SRGB, RHIDataFormat::R8G8B8A8_UNORM_SRGB, render_target_normal_desc);
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_base_pass_normal_render_target, RHIResourceStateType::STATE_COMMON, RHIResourceStateType::STATE_RENDER_TARGET))
-    
-    resource_manager.GetRenderTargetManager().RegisterRenderTargetWithTag("BasePassColor", m_base_pass_color_render_target);
-    resource_manager.GetRenderTargetManager().RegisterRenderTargetWithTag("BasePassNormal", m_base_pass_normal_render_target);
-    
-    GetGraphicsPipelineStateObject().BindRenderTargetFormats({m_base_pass_color_render_target.get(), m_base_pass_normal_render_target.get(), &resource_manager.GetDepthRT()});
+    return true;
+}
+
+bool glTFGraphicsPassMeshOpaque::InitResourceTable(glTFRenderResourceManager& resource_manager)
+{
+    RETURN_IF_FALSE(glTFGraphicsPassMeshBase::InitResourceTable(resource_manager))
+
+    AddExportTextureResource(RHITextureDesc::MakeBasePassAlbedoTextureDesc(resource_manager), RenderPassResourceTableId::BasePass_Albedo);
+    AddExportTextureResource(RHITextureDesc::MakeBasePassNormalTextureDesc(resource_manager), RenderPassResourceTableId::BasePass_Normal);
     
     return true;
 }

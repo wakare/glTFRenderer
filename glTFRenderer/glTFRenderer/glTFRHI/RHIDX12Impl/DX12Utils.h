@@ -49,8 +49,9 @@ public:
     virtual bool UploadBufferDataToDefaultGPUBuffer(IRHICommandList& commandList, IRHIBuffer& uploadBuffer, IRHIBuffer& defaultBuffer, void* data, size_t size) override;
     virtual bool UploadTextureDataToDefaultGPUBuffer(IRHICommandList& commandList, IRHIBuffer& uploadBuffer, IRHIBuffer& defaultBuffer, void* data, size_t rowPitch, size_t slicePitch) override;
     
-    virtual bool AddBufferBarrierToCommandList(IRHICommandList& commandList, IRHIBuffer& buffer, RHIResourceStateType beforeState, RHIResourceStateType afterState) override;
-    virtual bool AddRenderTargetBarrierToCommandList(IRHICommandList& commandList, IRHIRenderTarget& buffer, RHIResourceStateType before_state, RHIResourceStateType after_state) override;
+    virtual bool AddBufferBarrierToCommandList(IRHICommandList& commandList, const IRHIBuffer& buffer, RHIResourceStateType beforeState, RHIResourceStateType afterState) override;
+    virtual bool AddTextureBarrierToCommandList(IRHICommandList& commandList, const IRHITexture& buffer, RHIResourceStateType beforeState, RHIResourceStateType afterState) override;
+    virtual bool AddRenderTargetBarrierToCommandList(IRHICommandList& commandList, const IRHIRenderTarget& buffer, RHIResourceStateType before_state, RHIResourceStateType after_state) override;
 
     virtual bool DrawInstanced(IRHICommandList& commandList, unsigned vertexCountPerInstance, unsigned instanceCount, unsigned startVertexLocation, unsigned startInstanceLocation) override;
     virtual bool DrawIndexInstanced(IRHICommandList& commandList, unsigned indexCountPerInstance, unsigned instanceCount, unsigned startIndexLocation, unsigned baseVertexLocation, unsigned startInstanceLocation) override;
@@ -64,7 +65,7 @@ public:
 
     virtual bool DiscardResource(IRHICommandList& command_list, IRHIRenderTarget& render_target) override;
 
-    virtual bool CopyTexture(IRHICommandList& commandList, IRHIRenderTarget& dst, IRHIRenderTarget& src) override;
+    virtual bool CopyTexture(IRHICommandList& commandList, IRHITexture& dst, IRHITexture& src) override;
     virtual bool CopyBuffer(IRHICommandList& commandList, IRHIBuffer& dst, size_t dst_offset, IRHIBuffer& src, size_t src_offset, size_t size) override;
     
     virtual bool SupportRayTracing(IRHIDevice& device) override;

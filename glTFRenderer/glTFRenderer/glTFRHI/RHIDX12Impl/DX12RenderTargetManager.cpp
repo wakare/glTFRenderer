@@ -39,7 +39,7 @@ std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTarget(IR
     std::shared_ptr<IRHITextureAllocation> texture_allocation;
     glTFRenderResourceManager::GetMemoryManager().AllocateTextureMemory(device, desc, texture_allocation);
 
-    return CreateRenderTargetWithResource(device, type, descriptor_format, texture_allocation->m_texture,
+    return CreateRenderTargetWithResource(device, type, descriptor_format, texture_allocation,
         DX12ConverterUtils::ConvertToD3DClearValue(desc.GetClearValue()));
 }
 
@@ -72,9 +72,11 @@ std::vector<std::shared_ptr<IRHIRenderTarget>> DX12RenderTargetManager::CreateRe
                     .clear_color {0.0f, 0.0f, 0.0f, 0.0f}
                 }
             });
-        m_external_textures.push_back(external_texture);
+        std::shared_ptr<IRHITextureAllocation> external_texture_allocation = RHIResourceFactory::CreateRHIResource<IRHITextureAllocation>();
+        external_texture_allocation->m_texture = external_texture;
+        m_external_textures.push_back(external_texture_allocation);
         
-        auto render_target = CreateRenderTargetWithResource(device, RHIRenderTargetType::RTV, RHIDataFormat::R8G8B8A8_UNORM, external_texture, dx_clear_value);
+        auto render_target = CreateRenderTargetWithResource(device, RHIRenderTargetType::RTV, RHIDataFormat::R8G8B8A8_UNORM, external_texture_allocation, dx_clear_value);
         outVector.push_back(render_target);
     }
 
@@ -102,6 +104,43 @@ bool DX12RenderTargetManager::ClearRenderTarget(IRHICommandList& commandList, co
             {
                 dxCommandList->ClearDepthStencilView({handle}, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
                     dx12_clear_value.DepthStencil.Depth, dx12_clear_value.DepthStencil.Stencil, 0, nullptr);
+            }
+            break;
+            
+        default:
+            GLTF_CHECK(false);
+        }
+    }
+
+    return true;
+}
+
+bool DX12RenderTargetManager::ClearRenderTarget(IRHICommandList& commandList,
+                                                const std::vector<std::shared_ptr<IRHIDescriptorAllocation>>& render_targets, const RHITextureClearValue&
+                                                render_target_clear_value, const RHITextureClearValue& depth_stencil_clear_value)
+{
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    for (size_t i = 0; i < render_targets.size(); ++i)
+    {
+        auto& render_target = *render_targets[i];
+
+        auto dx_render_target_clear_value = DX12ConverterUtils::ConvertToD3DClearValue(render_target_clear_value);
+        auto dx_depth_stencil_clear_value = DX12ConverterUtils::ConvertToD3DClearValue(depth_stencil_clear_value);
+        
+        auto handle = dynamic_cast<DX12DescriptorAllocation&>(render_target).m_cpu_handle;
+        
+        switch (render_target.m_view_desc.view_type)
+        {
+        case RHIViewType::RVT_RTV:
+            {
+                dxCommandList->ClearRenderTargetView({handle}, dx_render_target_clear_value.Color, 0, nullptr);    
+            }
+            break;
+
+        case RHIViewType::RVT_DSV:
+            {
+                dxCommandList->ClearDepthStencilView({handle}, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
+                    dx_render_target_clear_value.DepthStencil.Depth, dx_depth_stencil_clear_value.DepthStencil.Stencil, 0, nullptr);
             }
             break;
             
@@ -144,14 +183,48 @@ bool DX12RenderTargetManager::BindRenderTarget(IRHICommandList& commandList, con
     return true;
 }
 
-std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTargetWithResource(IRHIDevice& device, RHIRenderTargetType type,
-    RHIDataFormat descriptor_format, std::shared_ptr<IRHITexture> texture_resource, const D3D12_CLEAR_VALUE& clear_value)
+bool DX12RenderTargetManager::BindRenderTarget(IRHICommandList& commandList,
+    const std::vector<std::shared_ptr<IRHIDescriptorAllocation>>& render_targets,
+    IRHIDescriptorAllocation* depth_stencil)
 {
-    GLTF_CHECK(texture_resource->GetTextureDesc().GetUsage() & RUF_ALLOW_RENDER_TARGET || texture_resource->GetTextureDesc().GetUsage() & RUF_ALLOW_DEPTH_STENCIL);
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    if (render_targets.empty() && !depth_stencil)
+    {
+        // Bind zero rt? some bugs must exists.. 
+        assert(false);
+        return false;
+    }
+    
+    std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> renderTargetViews(render_targets.size());
+    for (size_t i = 0; i < renderTargetViews.size(); ++i)
+    {
+        auto handle = dynamic_cast<DX12DescriptorAllocation&>(*render_targets[i]).m_cpu_handle;
+        renderTargetViews[i] = {handle};
+    }
+
+    D3D12_CPU_DESCRIPTOR_HANDLE dsHandle{};
+    if (depth_stencil)
+    {
+        auto handle = dynamic_cast<DX12DescriptorAllocation&>(*depth_stencil).m_cpu_handle;
+        dsHandle = {handle};
+    }
+
+    // TODO: Check RTsSingleHandleToDescriptorRange means?
+    dxCommandList->OMSetRenderTargets(renderTargetViews.size(), renderTargetViews.data(), false, depth_stencil ? &dsHandle : nullptr);
+    
+    return true;
+}
+
+std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTargetWithResource(IRHIDevice& device, RHIRenderTargetType type,
+                                                                                          RHIDataFormat descriptor_format, std::shared_ptr<IRHITextureAllocation> texture_resource, const D3D12_CLEAR_VALUE& clear_value)
+{
+    GLTF_CHECK(texture_resource->m_texture->GetTextureDesc().GetUsage() & RUF_ALLOW_RENDER_TARGET ||
+        texture_resource->m_texture->GetTextureDesc().GetUsage() & RUF_ALLOW_DEPTH_STENCIL);
+    
     const bool is_rtv = (type == RHIRenderTargetType::RTV);
     auto& descriptor_heap = glTFRenderResourceManager::GetMemoryManager().GetDescriptorHeap(is_rtv ? RHIDescriptorHeapType::RTV : RHIDescriptorHeapType::DSV);
     std::shared_ptr<IRHIDescriptorAllocation> descriptor_allocation;
-    descriptor_heap.CreateResourceDescriptorInHeap(device, *texture_resource, 
+    descriptor_heap.CreateResourceDescriptorInHeap(device, *texture_resource->m_texture, 
                                                              {
                                                                  .format = descriptor_format,
                                                                  .dimension = RHIResourceDimension::TEXTURE2D,

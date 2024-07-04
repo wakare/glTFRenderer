@@ -1,5 +1,6 @@
 #include "glTFGraphicsPassMeshDepth.h"
 
+#include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRHI/RHIUtils.h"
 #include "glTFRHI/RHIInterface/IRHIRenderTargetManager.h"
 
@@ -14,7 +15,7 @@ bool glTFGraphicsPassMeshDepth::SetupPipelineStateObject(glTFRenderResourceManag
     
     auto& command_list = resource_manager.GetCommandListForRecord();
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, resource_manager.GetDepthRT(), RHIResourceStateType::STATE_COMMON, RHIResourceStateType::STATE_DEPTH_READ))
-    
+
     return true;
 }
 
@@ -25,7 +26,7 @@ bool glTFGraphicsPassMeshDepth::PreRenderPass(glTFRenderResourceManager& resourc
     auto& command_list = resource_manager.GetCommandListForRecord();
 
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, resource_manager.GetDepthRT(), RHIResourceStateType::STATE_DEPTH_READ, RHIResourceStateType::STATE_DEPTH_WRITE))
-    
+
     RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().BindRenderTarget(command_list, {}, &resource_manager.GetDepthRT()))
     RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().ClearRenderTarget(command_list, {&resource_manager.GetDepthRT()}))
 
@@ -39,7 +40,7 @@ bool glTFGraphicsPassMeshDepth::PostRenderPass(glTFRenderResourceManager& resour
     auto& command_list = resource_manager.GetCommandListForRecord();
     
     RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, resource_manager.GetDepthRT(), RHIResourceStateType::STATE_DEPTH_WRITE, RHIResourceStateType::STATE_DEPTH_READ))
-    
+
     return true;
 }
 
