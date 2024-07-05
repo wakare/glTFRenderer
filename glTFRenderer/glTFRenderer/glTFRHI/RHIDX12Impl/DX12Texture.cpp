@@ -24,7 +24,7 @@ bool DX12Texture::InitTexture(IRHIDevice& device, const RHITextureDesc& desc)
     m_texture_desc.Init(desc);
     const RHIBufferDesc textureBufferDesc =
         {
-        L"TextureBuffer_Default",
+        to_wide_string(desc.GetName()),
         m_texture_desc.GetTextureWidth(),
         m_texture_desc.GetTextureHeight(),
         1,
@@ -51,7 +51,7 @@ bool DX12Texture::InitTextureAndUpload(IRHIDevice& device, IRHICommandList& comm
     
     const RHIBufferDesc textureBufferDesc =
         {
-            L"TextureBuffer_Default",
+            to_wide_string(desc.GetName()),
             m_texture_desc.GetTextureWidth(),
             m_texture_desc.GetTextureHeight(),
             1,

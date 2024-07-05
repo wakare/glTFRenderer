@@ -427,6 +427,7 @@ struct RHITextureDesc
     
     const RHITextureClearValue& GetClearValue() const;
     const std::string& GetName() const;
+    void SetName(const std::string& name);
 
     static RHITextureDesc MakeFullScreenTextureDesc(const std::string& name, RHIDataFormat format, RHIResourceUsageFlags usage, const RHITextureClearValue& clear_value,const glTFRenderResourceManager& resource_manager);
     
@@ -438,6 +439,7 @@ struct RHITextureDesc
     static RHITextureDesc MakeLightingPassOutputTextureDesc(const glTFRenderResourceManager& resource_manager);
     static RHITextureDesc MakeRayTracingSceneOutputTextureDesc(const glTFRenderResourceManager& resource_manager);
     static RHITextureDesc MakeRayTracingPassReSTIRSampleOutputDesc(const glTFRenderResourceManager& resource_manager);
+    static RHITextureDesc MakeComputePassRayTracingPostProcessOutputDesc(const glTFRenderResourceManager& resource_manager);
     
 private:
     std::string m_name;

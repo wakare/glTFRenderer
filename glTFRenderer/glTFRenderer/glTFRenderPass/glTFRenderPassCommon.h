@@ -42,6 +42,7 @@ enum class RenderPassResourceTableId
     BasePass_Normal,
     LightingPass_Output,
     RayTracingPass_ReSTIRSample_Output,
+    ComputePass_RayTracingOutputPostProcess_Output,
 };
 
 // Declare resource export/import info for specific render pass

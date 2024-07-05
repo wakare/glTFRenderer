@@ -133,12 +133,6 @@ void glTFRenderPassManager::RenderBegin(glTFRenderResourceManager& resource_mana
     // TODO: fill render pass info
     RHIBeginRenderPassInfo begin_render_pass_info{};
     const bool begin = RHIUtils::Instance().BeginRenderPass(command_list, begin_render_pass_info);
-    
-    // Transition swapchain state to render target for shading 
-    RHIUtils::Instance().AddRenderTargetBarrierToCommandList(
-        command_list,
-        resource_manager.GetCurrentFrameSwapChainRT(),
-        RHIResourceStateType::STATE_PRESENT, RHIResourceStateType::STATE_RENDER_TARGET);
 }
 
 void glTFRenderPassManager::UpdatePipelineOptions(const glTFPassOptionRenderFlags& pipeline_options)
@@ -162,12 +156,8 @@ void glTFRenderPassManager::RenderAllPass(glTFRenderResourceManager& resource_ma
 void glTFRenderPassManager::RenderEnd(glTFRenderResourceManager& resource_manager, size_t deltaTimeMs)
 {
     auto& command_list = resource_manager.GetCommandListForRecord();
+    resource_manager.GetCurrentFrameSwapChainRT().Transition(command_list, RHIResourceStateType::STATE_PRESENT);
     
-    RHIUtils::Instance().AddRenderTargetBarrierToCommandList(
-        command_list,
-        resource_manager.GetCurrentFrameSwapChainRT(),
-        RHIResourceStateType::STATE_RENDER_TARGET, RHIResourceStateType::STATE_PRESENT);
-
     const bool end_render_pass = RHIUtils::Instance().EndRenderPass(command_list);
     GLTF_CHECK(end_render_pass);
     

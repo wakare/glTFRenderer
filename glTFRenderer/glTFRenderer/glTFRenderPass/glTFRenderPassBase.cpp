@@ -126,6 +126,11 @@ void glTFRenderPassBase::AddExportTextureResource(const RHITextureDesc& desc, Re
     m_resource_table.m_export_texture_table_entry.emplace_back(desc, id);
 }
 
+IRHITexture& glTFRenderPassBase::GetResourceTexture(RenderPassResourceTableId id)
+{
+    return *GetResourceTextureAllocation(id).m_texture;
+}
+
 const IRHITexture& glTFRenderPassBase::GetResourceTexture(RenderPassResourceTableId id) const
 {
     return *GetResourceTextureAllocation(id).m_texture;

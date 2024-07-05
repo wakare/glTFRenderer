@@ -26,6 +26,8 @@ public:
         RHIRenderTargetType::RTV : RHIRenderTargetType::DSV; }
     RHIDataFormat GetRenderTargetFormat() const { return m_descriptor_allocation->m_view_desc.format; }
     RHITextureClearValue GetClearValue() const {return m_texture_allocation->m_texture->GetTextureDesc().GetClearValue(); }
+
+    bool Transition(IRHICommandList& command_list, RHIResourceStateType new_state);
     
 private:
     std::shared_ptr<IRHITextureAllocation> m_texture_allocation;

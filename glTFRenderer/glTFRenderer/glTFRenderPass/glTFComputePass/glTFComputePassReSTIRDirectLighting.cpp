@@ -36,11 +36,6 @@ bool glTFComputePassReSTIRDirectLighting::InitPass(glTFRenderResourceManager& re
         },
     };
     RETURN_IF_FALSE(m_aggregate_samples_output.CreateResource(resource_manager, aggregate_samples_output_desc))
-
-    auto& command_list = resource_manager.GetCommandListForRecord();
-    
-    RETURN_IF_FALSE(RHIUtils::Instance().AddTextureBarrierToCommandList(command_list, GetResourceTexture(RenderPassResourceTableId::RayTracingSceneOutput), RHIResourceStateType::STATE_COMMON, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE))
-
     RETURN_IF_FALSE(glTFComputePassBase::InitPass(resource_manager))
 
     return true;
@@ -54,6 +49,9 @@ bool glTFComputePassReSTIRDirectLighting::PreRenderPass(glTFRenderResourceManage
     auto& GBuffer_output = resource_manager.GetCurrentFrameResourceManager().GetGBufferForRendering();
     RETURN_IF_FALSE(GBuffer_output.Transition(GetID(), command_list, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE))
     RETURN_IF_FALSE(GBuffer_output.Bind(GetID(), command_list, resource_manager.GetGBufferAllocations().GetAllocationWithPassId(GetID())))
+    GetResourceTexture(RenderPassResourceTableId::RayTracingSceneOutput).Transition(command_list, RHIResourceStateType::STATE_UNORDERED_ACCESS);
+    GetResourceTexture(RenderPassResourceTableId::ScreenUVOffset).Transition(command_list, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE);
+    GetResourceTexture(RenderPassResourceTableId::RayTracingPass_ReSTIRSample_Output).Transition(command_list, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE);
     
     RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list,
             m_lighting_samples_allocation.parameter_index, *m_lighting_samples_handle, GetPipelineType() == PipelineType::Graphics))
@@ -67,24 +65,15 @@ bool glTFComputePassReSTIRDirectLighting::PreRenderPass(glTFRenderResourceManage
     RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceLighting>()->UpdateCPUBuffer())
 
     RETURN_IF_FALSE(m_aggregate_samples_output.BindRootParameter(resource_manager))
-    
-    RETURN_IF_FALSE(RHIUtils::Instance().AddTextureBarrierToCommandList(command_list, GetResourceTexture(RenderPassResourceTableId::RayTracingSceneOutput),
-           RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_UNORDERED_ACCESS))
-
     GetRenderInterface<glTFRenderInterfaceSingleConstantBuffer<RayTracingDIPostProcessPassOptions>>()->UploadCPUBuffer(&m_pass_options, 0, sizeof(m_pass_options));
-    
+
     return true;
 }
 
 bool glTFComputePassReSTIRDirectLighting::PostRenderPass(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFComputePassBase::PostRenderPass(resource_manager))
-
-    auto& command_list = resource_manager.GetCommandListForRecord();
-    RETURN_IF_FALSE(m_aggregate_samples_output.CopyToBackBuffer(resource_manager))
-
-    RETURN_IF_FALSE(RHIUtils::Instance().AddTextureBarrierToCommandList(command_list, GetResourceTexture(RenderPassResourceTableId::RayTracingSceneOutput),
-           RHIResourceStateType::STATE_UNORDERED_ACCESS, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE))
+    RETURN_IF_FALSE(m_aggregate_samples_output.PostRendering(resource_manager))
 
     return true;
 }

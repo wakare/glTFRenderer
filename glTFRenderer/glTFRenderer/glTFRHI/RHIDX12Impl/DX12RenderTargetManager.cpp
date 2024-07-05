@@ -83,14 +83,17 @@ std::vector<std::shared_ptr<IRHIRenderTarget>> DX12RenderTargetManager::CreateRe
     return outVector;
 }
 
-bool DX12RenderTargetManager::ClearRenderTarget(IRHICommandList& commandList, const std::vector<IRHIRenderTarget*>& renderTargets)
+bool DX12RenderTargetManager::ClearRenderTarget(IRHICommandList& commandList, const std::vector<IRHIRenderTarget*>& render_targets)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
-    for (size_t i = 0; i < renderTargets.size(); ++i)
+    for (size_t i = 0; i < render_targets.size(); ++i)
     {
-        auto* dxRenderTarget = dynamic_cast<DX12RenderTarget*>(renderTargets[i]);
+        auto* dxRenderTarget = dynamic_cast<DX12RenderTarget*>(render_targets[i]);
         auto dx12_clear_value = DX12ConverterUtils::ConvertToD3DClearValue(dxRenderTarget->GetClearValue());
         auto handle = dynamic_cast<DX12DescriptorAllocation&>(dxRenderTarget->GetDescriptorAllocation()).m_cpu_handle;
+
+        GLTF_CHECK(render_targets[i]->GetTexture().GetState() == RHIResourceStateType::STATE_RENDER_TARGET ||
+            render_targets[i]->GetTexture().GetState() == RHIResourceStateType::STATE_DEPTH_WRITE);
         
         switch (dxRenderTarget->GetRenderTargetType())
         {
@@ -128,7 +131,6 @@ bool DX12RenderTargetManager::ClearRenderTarget(IRHICommandList& commandList,
         auto dx_depth_stencil_clear_value = DX12ConverterUtils::ConvertToD3DClearValue(depth_stencil_clear_value);
         
         auto handle = dynamic_cast<DX12DescriptorAllocation&>(render_target).m_cpu_handle;
-        
         switch (render_target.m_view_desc.view_type)
         {
         case RHIViewType::RVT_RTV:

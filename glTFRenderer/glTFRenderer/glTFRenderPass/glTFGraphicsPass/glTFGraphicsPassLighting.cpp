@@ -40,15 +40,11 @@ bool glTFGraphicsPassLighting::PreRenderPass(glTFRenderResourceManager& resource
     auto& basepass_albedo = GetResourceTexture(RenderPassResourceTableId::BasePass_Albedo);
     auto& basepass_normal = GetResourceTexture(RenderPassResourceTableId::BasePass_Normal);
     
-    RETURN_IF_FALSE(RHIUtils::Instance().AddTextureBarrierToCommandList(command_list, basepass_albedo,
-            RHIResourceStateType::STATE_RENDER_TARGET, RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE))
-
-    RETURN_IF_FALSE(RHIUtils::Instance().AddTextureBarrierToCommandList(command_list, basepass_normal,
-            RHIResourceStateType::STATE_RENDER_TARGET, RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE))
-
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, resource_manager.GetDepthRT(),
-            RHIResourceStateType::STATE_DEPTH_READ, RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE))
-
+    basepass_albedo.Transition(command_list, RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE);
+    basepass_normal.Transition(command_list, RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE);
+    resource_manager.GetDepthRT().Transition(command_list, RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE);
+    resource_manager.GetCurrentFrameSwapChainRT().Transition(command_list, RHIResourceStateType::STATE_RENDER_TARGET);
+    
     RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list,
             m_base_color_and_depth_allocation.parameter_index, *m_base_pass_color_RT_SRV_Handle, GetPipelineType() == PipelineType::Graphics))
 
@@ -67,23 +63,6 @@ bool glTFGraphicsPassLighting::PostRenderPass(glTFRenderResourceManager& resourc
 {
     RETURN_IF_FALSE(glTFGraphicsPassPostprocess::PostRenderPass(resource_manager))
 
-    auto& command_list = resource_manager.GetCommandListForRecord();
-    auto& basepass_albedo = GetResourceTexture(RenderPassResourceTableId::BasePass_Albedo);
-    auto& basepass_normal = GetResourceTexture(RenderPassResourceTableId::BasePass_Normal);
-    
-    RETURN_IF_FALSE(RHIUtils::Instance().AddTextureBarrierToCommandList(command_list, basepass_albedo,
-                RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_RENDER_TARGET))
-
-    RETURN_IF_FALSE(RHIUtils::Instance().AddTextureBarrierToCommandList(command_list, basepass_normal,
-                RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_RENDER_TARGET))
-
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, resource_manager.GetDepthRT(),
-                RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_DEPTH_READ))
-
-    //RETURN_IF_FALSE(RHIUtils::Instance().DiscardResource(command_list, basepass_albedo))
-    //RETURN_IF_FALSE(RHIUtils::Instance().DiscardResource(command_list, basepass_normal))
-    //RETURN_IF_FALSE(RHIUtils::Instance().DiscardResource(command_list, resource_manager.GetDepthRT()))
-    
     return true;
 }
 

@@ -44,8 +44,6 @@ protected:
 
     DispatchCount m_dispatch_count;
 
-    std::shared_ptr<IRHIRenderTarget> m_post_process_output_RT;
-
     glTFRenderResourceUtils::RWTextureResourceWithBackBuffer m_accumulation_resource;
     glTFRenderResourceUtils::RWTextureResourceWithBackBuffer m_custom_resource;
 

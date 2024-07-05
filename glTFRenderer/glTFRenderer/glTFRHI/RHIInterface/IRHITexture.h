@@ -20,6 +20,7 @@ public:
     RHIDataFormat GetTextureFormat() const {return  GetTextureDesc().GetDataFormat(); }
     
     bool Transition(IRHICommandList& command_list, RHIResourceStateType new_state);
+    RHIResourceStateType GetState() const;
     
 protected:
     virtual bool InitTexture(IRHIDevice& device, const RHITextureDesc& desc) = 0;

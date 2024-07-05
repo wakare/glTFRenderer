@@ -33,3 +33,8 @@ IRHIDescriptorAllocation& IRHIRenderTarget::GetDescriptorAllocation()
 {
     return *m_descriptor_allocation;
 }
+
+bool IRHIRenderTarget::Transition(IRHICommandList& command_list, RHIResourceStateType new_state)
+{
+    return m_texture_allocation->m_texture->Transition(command_list, new_state);
+}

@@ -28,10 +28,6 @@ const char* glTFComputePassLighting::PassName()
 bool glTFComputePassLighting::InitPass(glTFRenderResourceManager& resource_manager)
 {
     auto& command_list = resource_manager.GetCommandListForRecord();
-
-    RETURN_IF_FALSE(RHIUtils::Instance().AddTextureBarrierToCommandList(command_list, *GetResourceTextureAllocation(RenderPassResourceTableId::LightingPass_Output).m_texture,
-            RHIResourceStateType::STATE_COMMON, RHIResourceStateType::STATE_COPY_SOURCE))
-
     RETURN_IF_FALSE(glTFComputePassBase::InitPass(resource_manager))
     
     return true;
@@ -65,19 +61,12 @@ bool glTFComputePassLighting::PostRenderPass(glTFRenderResourceManager& resource
     RETURN_IF_FALSE(glTFComputePassBase::PostRenderPass(resource_manager))
 
     auto& command_list = resource_manager.GetCommandListForRecord();
-    GetResourceTextureAllocation(RenderPassResourceTableId::LightingPass_Output).m_texture->Transition(command_list, RHIResourceStateType::STATE_COPY_SOURCE);
-    GetResourceTextureAllocation(RenderPassResourceTableId::BasePass_Albedo).m_texture->Transition(command_list, RHIResourceStateType::STATE_RENDER_TARGET);
-    GetResourceTextureAllocation(RenderPassResourceTableId::BasePass_Normal).m_texture->Transition(command_list, RHIResourceStateType::STATE_RENDER_TARGET);
-    GetResourceTextureAllocation(RenderPassResourceTableId::Depth).m_texture->Transition(command_list, RHIResourceStateType::STATE_DEPTH_READ);
     
     // Copy compute result to swapchain back buffer
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, resource_manager.GetCurrentFrameSwapChainRT(),
-            RHIResourceStateType::STATE_RENDER_TARGET, RHIResourceStateType::STATE_COPY_DEST))
-
-    RETURN_IF_FALSE(RHIUtils::Instance().CopyTexture(command_list, resource_manager.GetCurrentFrameSwapChainRT().GetTexture(), *GetResourceTextureAllocation(RenderPassResourceTableId::LightingPass_Output).m_texture))
-
-    RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, resource_manager.GetCurrentFrameSwapChainRT(),
-                RHIResourceStateType::STATE_COPY_DEST, RHIResourceStateType::STATE_RENDER_TARGET))
+    resource_manager.GetCurrentFrameSwapChainRT().Transition(command_list, RHIResourceStateType::STATE_COPY_DEST);
+    GetResourceTexture(RenderPassResourceTableId::LightingPass_Output).Transition(command_list, RHIResourceStateType::STATE_COPY_SOURCE);
+    RETURN_IF_FALSE(RHIUtils::Instance().CopyTexture(command_list,
+        resource_manager.GetCurrentFrameSwapChainRT().GetTexture(), GetResourceTexture(RenderPassResourceTableId::LightingPass_Output)))
 
     return true;
 }

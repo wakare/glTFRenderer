@@ -92,6 +92,8 @@ protected:
 
     void AddImportTextureResource(const RHITextureDesc& desc, RenderPassResourceTableId id);
     void AddExportTextureResource(const RHITextureDesc& desc, RenderPassResourceTableId id);
+    
+    IRHITexture& GetResourceTexture(RenderPassResourceTableId id);
     const IRHITexture& GetResourceTexture(RenderPassResourceTableId id) const;
     const IRHITextureAllocation& GetResourceTextureAllocation(RenderPassResourceTableId id) const;
     

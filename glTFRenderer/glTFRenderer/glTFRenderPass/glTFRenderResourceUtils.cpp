@@ -107,8 +107,6 @@ namespace glTFRenderResourceUtils
             resource_manager.GetDevice(), RHIRenderTargetType::RTV, depth_format, depth_format, depth_output_desc);
         resource_manager.GetRenderTargetManager().RegisterRenderTargetWithTag("Depth_Output", m_depth_output, back_buffer_index);
         
-        m_resource_state = RHIResourceStateType::STATE_COMMON;
-        
         return true;
     }
 
@@ -189,16 +187,9 @@ namespace glTFRenderResourceUtils
 
     bool GBufferOutput::Transition(glTFUniqueID pass_id,IRHICommandList& command_list, RHIResourceStateType after) const
     {
-        if (m_resource_state == after)
-        {
-            return true;
-        }
-        
-        RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_albedo_output, m_resource_state, after);
-        RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_normal_output, m_resource_state, after);
-        RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_depth_output, m_resource_state, after);
-
-        m_resource_state = after;
+        m_albedo_output->Transition(command_list, after);
+        m_normal_output->Transition(command_list, after);
+        m_depth_output->Transition(command_list, after);
         
         return true;
     }
@@ -231,7 +222,6 @@ namespace glTFRenderResourceUtils
                                                                  std::string back_register_name)
     : m_output_register_name(std::move(output_register_name))
     , m_back_register_name(std::move(back_register_name))
-    , m_texture_desc()
     , m_writable_buffer_handle(0)
     , m_back_buffer_handle(0)
     {
@@ -239,21 +229,20 @@ namespace glTFRenderResourceUtils
 
     bool RWTextureResourceWithBackBuffer::CreateResource(glTFRenderResourceManager& resource_manager, const RHITextureDesc& desc)
     {
-        m_texture_desc = desc;
-        auto format = m_texture_desc.GetClearValue().clear_format;
+        m_texture0_desc = desc;
+        m_texture1_desc = desc;
+
+        m_texture0_desc.SetName(m_texture0_desc.GetName() + "_0");
+        m_texture1_desc.SetName(m_texture0_desc.GetName() + "_1");
+        
+        auto format = m_texture0_desc.GetClearValue().clear_format;
     
         m_writable_buffer = resource_manager.GetRenderTargetManager().CreateRenderTarget(
-            resource_manager.GetDevice(), RHIRenderTargetType::RTV, format, format, m_texture_desc);
+            resource_manager.GetDevice(), RHIRenderTargetType::RTV, format, format, m_texture0_desc);
 
         m_back_buffer = resource_manager.GetRenderTargetManager().CreateRenderTarget(
-            resource_manager.GetDevice(), RHIRenderTargetType::RTV, format, format, m_texture_desc);
-
-        RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resource_manager.GetCommandListForRecord(), *m_writable_buffer,
-                        RHIResourceStateType::STATE_COMMON, RHIResourceStateType::STATE_UNORDERED_ACCESS))
-
-        RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(resource_manager.GetCommandListForRecord(), *m_back_buffer,
-                        RHIResourceStateType::STATE_COMMON, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE))
-
+            resource_manager.GetDevice(), RHIRenderTargetType::RTV, format, format, m_texture0_desc);
+        
         return true;
     }
 
@@ -277,31 +266,22 @@ namespace glTFRenderResourceUtils
         return true;
     }
 
-    bool RWTextureResourceWithBackBuffer::CopyToBackBuffer(glTFRenderResourceManager& resource_manager)
+    bool RWTextureResourceWithBackBuffer::PostRendering(glTFRenderResourceManager& resource_manager)
     {
         auto& command_list = resource_manager.GetCommandListForRecord();
     
         // Copy accumulation buffer to back buffer
-        RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_writable_buffer,
-                RHIResourceStateType::STATE_UNORDERED_ACCESS, RHIResourceStateType::STATE_COPY_SOURCE))
-
-        RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_back_buffer,
-                RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE, RHIResourceStateType::STATE_COPY_DEST))
-
+        m_writable_buffer->Transition(command_list, RHIResourceStateType::STATE_COPY_SOURCE);
+        m_back_buffer->Transition(command_list, RHIResourceStateType::STATE_COPY_DEST);
+        
         RETURN_IF_FALSE(RHIUtils::Instance().CopyTexture(command_list, m_back_buffer->GetTexture(), m_writable_buffer->GetTexture()))
-
-        RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_writable_buffer,
-                RHIResourceStateType::STATE_COPY_SOURCE, RHIResourceStateType::STATE_UNORDERED_ACCESS))
-
-        RETURN_IF_FALSE(RHIUtils::Instance().AddRenderTargetBarrierToCommandList(command_list, *m_back_buffer,
-                RHIResourceStateType::STATE_COPY_DEST, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE))
 
         return true;
     }
 
     std::string RWTextureResourceWithBackBuffer::GetOutputBufferResourceName() const
     {
-        return m_texture_desc.GetName();
+        return m_texture0_desc.GetName();
     }
 
     std::string RWTextureResourceWithBackBuffer::GetBackBufferResourceName() const
@@ -320,10 +300,20 @@ namespace glTFRenderResourceUtils
     bool RWTextureResourceWithBackBuffer::BindRootParameter(glTFRenderResourceManager& resource_manager)
     {
         auto& command_list = resource_manager.GetCommandListForRecord();
-    
+        PreRendering(resource_manager);
+        
         RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, m_writable_buffer_allocation.parameter_index, *m_writable_buffer_handle,false))
         RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, m_back_buffer_allocation.parameter_index, *m_back_buffer_handle,false))
 
+        return true;
+    }
+
+    bool RWTextureResourceWithBackBuffer::PreRendering(glTFRenderResourceManager& resource_manager)
+    {
+        auto& command_list = resource_manager.GetCommandListForRecord();
+        m_writable_buffer->Transition(command_list, RHIResourceStateType::STATE_UNORDERED_ACCESS);
+        m_back_buffer->Transition(command_list, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE);
+        
         return true;
     }
 }

@@ -123,8 +123,13 @@ const std::string& RHITextureDesc::GetName() const
     return m_name;
 }
 
+void RHITextureDesc::SetName(const std::string& name)
+{
+    m_name = name;
+}
+
 RHITextureDesc RHITextureDesc::MakeFullScreenTextureDesc(const std::string& name, RHIDataFormat format,
-    RHIResourceUsageFlags usage, const RHITextureClearValue& clear_value, const glTFRenderResourceManager& resource_manager)
+                                                         RHIResourceUsageFlags usage, const RHITextureClearValue& clear_value, const glTFRenderResourceManager& resource_manager)
 {
     return RHITextureDesc
     {
@@ -252,6 +257,23 @@ RHITextureDesc RHITextureDesc::MakeRayTracingPassReSTIRSampleOutputDesc(
     return texture_desc;
 }
 
+RHITextureDesc RHITextureDesc::MakeComputePassRayTracingPostProcessOutputDesc(
+    const glTFRenderResourceManager& resource_manager)
+{
+    RHITextureDesc texture_desc = MakeFullScreenTextureDesc(
+    "POSTPROCESS_OUTPUT",
+        RHIDataFormat::R8G8B8A8_UNORM,
+        static_cast<RHIResourceUsageFlags>(RUF_ALLOW_UAV | RUF_ALLOW_RENDER_TARGET),
+{
+            .clear_format = RHIDataFormat::R8G8B8A8_UNORM,
+            .clear_color {0.0f, 0.0f, 0.0f, 0.0f}
+        },
+        resource_manager
+    );
+
+    return texture_desc;
+}
+
 bool IRHITexture::Transition(IRHICommandList& command_list, RHIResourceStateType new_state)
 {
     if (m_current_state == new_state)
@@ -263,4 +285,9 @@ bool IRHITexture::Transition(IRHICommandList& command_list, RHIResourceStateType
 
     m_current_state = new_state;
     return true;
+}
+
+RHIResourceStateType IRHITexture::GetState() const
+{
+    return m_current_state;
 }
