@@ -87,14 +87,14 @@ bool glTFRayTracingPassPathTracing::SetupPipelineStateObject(glTFRenderResourceM
 {
     RETURN_IF_FALSE(glTFRayTracingPassWithMesh::SetupPipelineStateObject(resource_manager))
     
-    auto& raytracing_output_allocation = GetResourceTextureAllocation(RenderPassResourceTableId::RayTracingSceneOutput);
-    auto& screen_uv_offset_allocation = GetResourceTextureAllocation(RenderPassResourceTableId::ScreenUVOffset);
+    auto& raytracing_output_allocation = GetResourceTexture(RenderPassResourceTableId::RayTracingSceneOutput);
+    auto& screen_uv_offset_allocation = GetResourceTexture(RenderPassResourceTableId::ScreenUVOffset);
     
     RETURN_IF_FALSE(MainDescriptorHeapRef().CreateResourceDescriptorInHeap(
                 resource_manager.GetDevice(),
-                *raytracing_output_allocation.m_texture,
+                raytracing_output_allocation,
                 {
-                    raytracing_output_allocation.m_texture->GetTextureDesc().GetDataFormat(),
+                    raytracing_output_allocation.GetTextureFormat(),
                     RHIResourceDimension::TEXTURE2D,
                     RHIViewType::RVT_UAV
                 },
@@ -102,9 +102,9 @@ bool glTFRayTracingPassPathTracing::SetupPipelineStateObject(glTFRenderResourceM
 
     RETURN_IF_FALSE(MainDescriptorHeapRef().CreateResourceDescriptorInHeap(
                 resource_manager.GetDevice(),
-                *screen_uv_offset_allocation.m_texture,
+                screen_uv_offset_allocation,
                 {
-                    screen_uv_offset_allocation.m_texture->GetTextureDesc().GetDataFormat(),
+                    screen_uv_offset_allocation.GetTextureFormat(),
                     RHIResourceDimension::TEXTURE2D,
                     RHIViewType::RVT_UAV
                 },
