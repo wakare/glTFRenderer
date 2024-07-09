@@ -78,7 +78,7 @@
 #include "RHIVKImpl/VKVertexBuffer.h"
 #include "RHIVKImpl/VKVertexBufferView.h"
 #include "RHIVKImpl/VKRenderPass.h"
-#include "RHIVKImpl/VkMemoryAllocator.h"
+#include "RHIVKImpl/VKMemoryAllocator.h"
 
 inline RHIGraphicsAPIType GetGraphicsAPI() {return RHIConfigSingleton::Instance().GetGraphicsAPIType();}
 
@@ -130,7 +130,7 @@ IMPLEMENT_CREATE_RHI_RESOURCE(IRHIRayTracingAS, DX12RayTracingAS, VKRayTracingAS
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHICommandSignature, DX12CommandSignature, VKCommandSignature)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHISemaphore, RHISemaphoreNull, VKSemaphore)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIRenderPass, DX12RenderPass, VKRenderPass)
-IMPLEMENT_CREATE_RHI_RESOURCE(IRHIMemoryAllocator, DX12MemoryAllocator, VkMemoryAllocator)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHIMemoryAllocator, DX12MemoryAllocator, VKMemoryAllocator)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIDescriptorAllocation, DX12DescriptorAllocation, VKDescriptorAllocation)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIDescriptorTable, DX12DescriptorTable, VKDescriptorTable)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHITextureAllocation, DX12TextureAllocation, VKTextureAllocation)

@@ -67,8 +67,8 @@ bool VKRenderTargetManager::ClearRenderTarget(IRHICommandList& commandList,
 }
 
 bool VKRenderTargetManager::ClearRenderTarget(IRHICommandList& commandList,
-    const std::vector<std::shared_ptr<IRHIDescriptorAllocation>>& render_targets,
-    const RHITextureClearValue& render_target_clear_value, const RHITextureClearValue& depth_stencil_clear_value)
+                                              const std::vector<IRHIDescriptorAllocation*>& render_targets,
+                                              const RHITextureClearValue& render_target_clear_value, const RHITextureClearValue& depth_stencil_clear_value)
 {
     return false;
 }
@@ -80,8 +80,8 @@ bool VKRenderTargetManager::BindRenderTarget(IRHICommandList& commandList,
 }
 
 bool VKRenderTargetManager::BindRenderTarget(IRHICommandList& commandList,
-    const std::vector<std::shared_ptr<IRHIDescriptorAllocation>>& render_targets,
-    IRHIDescriptorAllocation* depth_stencil)
+                                             const std::vector<IRHIDescriptorAllocation*>& render_targets,
+                                             IRHIDescriptorAllocation* depth_stencil)
 {
     return false;
 }

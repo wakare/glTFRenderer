@@ -1,5 +1,6 @@
 #pragma once
 #include "glTFRenderPassCommon.h"
+#include "RenderGraphNodeUtil.h"
 #include "glTFApp/glTFPassOptionRenderFlags.h"
 #include "glTFRenderInterface/glTFRenderInterfaceBase.h"
 #include "glTFRHI/RHIInterface/IRHIRootSignatureHelper.h"
@@ -25,7 +26,7 @@ enum class PipelineType
     RayTracing,
 };
 
-class glTFRenderPassBase : public glTFUniqueObject<glTFRenderPassBase>
+class glTFRenderPassBase : public glTFUniqueObject<glTFRenderPassBase>, public RenderGraphNodeUtil::RenderGraphNode
 {
 public:
     DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFRenderPassBase)
@@ -72,13 +73,6 @@ public:
         return nullptr;
     }
     
-    // render pass implement this method for requiring global shader resource location
-    virtual bool InitResourceTable(glTFRenderResourceManager& resource_manager) { return true; }
-    bool ExportResourceLocation(glTFRenderResourceManager& resource_manager);
-    bool ImportResourceLocation(glTFRenderResourceManager& resource_manager);
-    
-    const RenderPassResourceTable& GetResourceTable() const;
-    
 protected:
     // Must be implement in final render pass class
     virtual size_t GetMainDescriptorHeapSize() {return MainDescriptorSize;}
@@ -90,20 +84,10 @@ protected:
     virtual bool UseStandaloneDescriptorHeap() const { return false; }
     virtual IRHIDescriptorHeap& MainDescriptorHeapRef();
 
-    void AddImportTextureResource(const RHITextureDesc& desc, RenderPassResourceTableId id);
-    void AddExportTextureResource(const RHITextureDesc& desc, RenderPassResourceTableId id);
-    
-    IRHITexture& GetResourceTexture(RenderPassResourceTableId id);
-    const IRHITexture& GetResourceTexture(RenderPassResourceTableId id) const;
-    const IRHITextureAllocation& GetResourceTextureAllocation(RenderPassResourceTableId id) const;
-    
     IRHIRootSignatureHelper m_root_signature_helper;
     std::shared_ptr<IRHIRenderPass> m_render_pass;
     std::shared_ptr<IRHIPipelineStateObject> m_pipeline_state_object;
     std::vector<std::shared_ptr<glTFRenderInterfaceBase>> m_render_interfaces;
-
-    RenderPassResourceTable m_resource_table;
-    RenderPassResourceLocation m_resource_location;
     
 private:
     // CBV_SRV_UAV Heaps, can only bind one in render pass

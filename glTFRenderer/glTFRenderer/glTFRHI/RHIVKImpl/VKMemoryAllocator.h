@@ -2,10 +2,10 @@
 #include <vma/vk_mem_alloc.h>
 #include "glTFRHI/RHIInterface/IRHIMemoryAllocator.h"
 
-class VkMemoryAllocator : public IRHIMemoryAllocator
+class VKMemoryAllocator : public IRHIMemoryAllocator
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VkMemoryAllocator)
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKMemoryAllocator)
     virtual bool InitMemoryAllocator(const IRHIFactory& factory, const IRHIDevice& device) override;
 
 protected:

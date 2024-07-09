@@ -60,14 +60,14 @@ bool glTFGraphicsPassMeshOpaque::PreRenderPass(glTFRenderResourceManager& resour
     GetResourceTexture(RenderPassResourceTableId::BasePass_Normal).Transition(command_list, RHIResourceStateType::STATE_RENDER_TARGET);
     
     RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().BindRenderTarget(command_list,
-        {m_albedo_view, m_normal_view}, &resource_manager.GetDepthRT().GetDescriptorAllocation()))
+            {m_albedo_view.get(), m_normal_view.get()}, &resource_manager.GetDepthRT().GetDescriptorAllocation()))
 
     RHITextureClearValue render_target_clear_value = GetResourceTexture(RenderPassResourceTableId::BasePass_Albedo).GetTextureDesc().GetClearValue();
     RHITextureClearValue depth_stencil_clear_value = resource_manager.GetDepthRT().GetClearValue();
      
     RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().ClearRenderTarget(command_list,
-        {m_albedo_view, m_normal_view}, render_target_clear_value, depth_stencil_clear_value))
-    
+            {m_albedo_view.get(), m_normal_view.get()}, render_target_clear_value, depth_stencil_clear_value))
+
     return true;
 }
 

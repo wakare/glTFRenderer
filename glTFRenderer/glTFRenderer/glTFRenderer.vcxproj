@@ -196,6 +196,7 @@
     <None Include="glTFResources\ShaderSource\TestShaders\TestTriangleVert.hlsl" />
     <None Include="glTFResources\ShaderSource\Interface\RadiosityScene.hlsl" />
     <None Include="glTFResources\ShaderSource\TestShaders\TestGradientCompute.hlsl" />
+    <ClCompile Include="glTFRenderPass\RenderGraphNodeUtil.cpp" />
     <ClCompile Include="glTFRHI\RHIConfigSingleton.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12CommandSignature.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12ConverterUtils.cpp" />
@@ -270,7 +271,7 @@
     <ClCompile Include="glTFRHI\RHIVKImpl\VKBufferManager.cpp" />
     <ClCompile Include="glTFRHI\RHIVKImpl\VKIndexBuffer.cpp" />
     <ClCompile Include="glTFRHI\RHIVKImpl\VKIndexBufferView.cpp" />
-    <ClCompile Include="glTFRHI\RHIVKImpl\VkMemoryAllocator.cpp" />
+    <ClCompile Include="glTFRHI\RHIVKImpl\VKMemoryAllocator.cpp" />
     <ClCompile Include="glTFRHI\RHIVKImpl\VKPipelineStateObject.cpp" />
     <ClCompile Include="glTFRHI\RHIVKImpl\VKRayTracingAS.cpp" />
     <ClCompile Include="glTFRHI\RHIVKImpl\VKRenderPass.cpp" />
@@ -360,6 +361,7 @@
     <None Include="glTFResources\ShaderSource\MeshPassCommon.h" />
     <None Include="glTFResources\ShaderSource\LightPassCommon.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderResourceUtils.h" />
+    <ClInclude Include="glTFRenderPass\RenderGraphNodeUtil.h" />
     <ClInclude Include="glTFRHI\RHIConfigSingleton.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\d3dx12.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12CommandSignature.h" />
@@ -438,7 +440,7 @@
     <ClInclude Include="glTFRHI\RHIVKImpl\VKBufferManager.h" />
     <ClInclude Include="glTFRHI\RHIVKImpl\VKIndexBuffer.h" />
     <ClInclude Include="glTFRHI\RHIVKImpl\VKIndexBufferView.h" />
-    <ClInclude Include="glTFRHI\RHIVKImpl\VkMemoryAllocator.h" />
+    <ClInclude Include="glTFRHI\RHIVKImpl\VKMemoryAllocator.h" />
     <ClInclude Include="glTFRHI\RHIVKImpl\VKPipelineStateObject.h" />
     <ClInclude Include="glTFRHI\RHIVKImpl\VKRayTracingAS.h" />
     <ClInclude Include="glTFRHI\RHIVKImpl\VKRenderPass.h" />

@@ -119,7 +119,7 @@ bool DX12RenderTargetManager::ClearRenderTarget(IRHICommandList& commandList, co
 }
 
 bool DX12RenderTargetManager::ClearRenderTarget(IRHICommandList& commandList,
-                                                const std::vector<std::shared_ptr<IRHIDescriptorAllocation>>& render_targets, const RHITextureClearValue&
+                                                const std::vector<IRHIDescriptorAllocation*>& render_targets, const RHITextureClearValue&
                                                 render_target_clear_value, const RHITextureClearValue& depth_stencil_clear_value)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
@@ -186,8 +186,8 @@ bool DX12RenderTargetManager::BindRenderTarget(IRHICommandList& commandList, con
 }
 
 bool DX12RenderTargetManager::BindRenderTarget(IRHICommandList& commandList,
-    const std::vector<std::shared_ptr<IRHIDescriptorAllocation>>& render_targets,
-    IRHIDescriptorAllocation* depth_stencil)
+                                               const std::vector<IRHIDescriptorAllocation*>& render_targets,
+                                               IRHIDescriptorAllocation* depth_stencil)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
     if (render_targets.empty() && !depth_stencil)

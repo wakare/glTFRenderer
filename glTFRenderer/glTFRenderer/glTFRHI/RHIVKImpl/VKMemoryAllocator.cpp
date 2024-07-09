@@ -1,4 +1,4 @@
-#include "VkMemoryAllocator.h"
+#include "VKMemoryAllocator.h"
 
 #include "VKDevice.h"
 #include "VKFactory.h"
@@ -6,7 +6,7 @@
 #define VMA_IMPLEMENTATION
 #include <vma/vk_mem_alloc.h>
 
-bool VkMemoryAllocator::InitMemoryAllocator(const IRHIFactory& factory, const IRHIDevice& device)
+bool VKMemoryAllocator::InitMemoryAllocator(const IRHIFactory& factory, const IRHIDevice& device)
 {
     const VKFactory& vk_factory = dynamic_cast<const VKFactory&>(factory);
     const VKDevice& vk_device = dynamic_cast<const VKDevice&>(device);
