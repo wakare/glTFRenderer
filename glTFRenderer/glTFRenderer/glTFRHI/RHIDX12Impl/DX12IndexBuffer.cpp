@@ -17,7 +17,7 @@ std::shared_ptr<IRHIIndexBufferView> DX12IndexBuffer::CreateIndexBufferView(IRHI
         1,
         1,
         RHIBufferType::Default,
-        RHIDataFormat::Unknown,
+        RHIDataFormat::UNKNOWN,
         RHIBufferResourceType::Buffer
     },
     m_buffer);
@@ -30,7 +30,7 @@ std::shared_ptr<IRHIIndexBufferView> DX12IndexBuffer::CreateIndexBufferView(IRHI
         1,
         1,
         RHIBufferType::Upload,
-        RHIDataFormat::Unknown,
+        RHIDataFormat::UNKNOWN,
         RHIBufferResourceType::Buffer
     },
     m_upload_buffer);

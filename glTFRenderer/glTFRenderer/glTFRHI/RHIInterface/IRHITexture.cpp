@@ -110,7 +110,7 @@ RHIDataFormat RHITextureDesc::ConvertToRHIDataFormat(const WICPixelFormatGUID& w
     else if (wicFormatGUID == GUID_WICPixelFormat8bppGray) return RHIDataFormat::R8_UNORM;
     else if (wicFormatGUID == GUID_WICPixelFormat8bppAlpha) return RHIDataFormat::A8_UNORM;
 
-    else return RHIDataFormat::Unknown;
+    else return RHIDataFormat::UNKNOWN;
 }
 
 const RHITextureClearValue& RHITextureDesc::GetClearValue() const

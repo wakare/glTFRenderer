@@ -1,7 +1,7 @@
-#include "VKGPUBuffer.h"
+#include "VKBuffer.h"
 #include "VKDevice.h"
 
-bool VKGPUBuffer::InitGPUBuffer(IRHIDevice& device, const RHIBufferDesc& desc)
+bool VKBuffer::InitGPUBuffer(IRHIDevice& device, const RHIBufferDesc& desc)
 {
     m_device = dynamic_cast<VKDevice&>(device).GetDevice();
     
@@ -31,16 +31,11 @@ bool VKGPUBuffer::InitGPUBuffer(IRHIDevice& device, const RHIBufferDesc& desc)
     return true;
 }
 
-bool VKGPUBuffer::UploadBufferFromCPU(const void* data, size_t dataOffset, size_t size)
+bool VKBuffer::UploadBufferFromCPU(const void* data, size_t dataOffset, size_t size)
 {
     //find the adress of the vertex buffer
     VkBufferDeviceAddressInfo deviceAdressInfo{ .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,.buffer = m_buffer };
     VkDeviceAddress buffer_device_address = vkGetBufferDeviceAddress(m_device, &deviceAdressInfo);
 
     return true;
-}
-
-unsigned long long VKGPUBuffer::GetGPUBufferHandle()
-{
-    return 0;
 }

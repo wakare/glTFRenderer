@@ -19,11 +19,6 @@ IRHITexture& IRHIRenderTarget::GetTexture() const
     return *m_texture_allocation->m_texture;
 }
 
-IRHITextureAllocation& IRHIRenderTarget::GetTextureAllocation() const
-{
-    return *m_texture_allocation;
-}
-
 std::shared_ptr<IRHITextureAllocation> IRHIRenderTarget::GetTextureAllocationSharedPtr() const
 {
     return m_texture_allocation;

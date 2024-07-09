@@ -57,7 +57,7 @@ DXGI_FORMAT DX12ConverterUtils::ConvertToDXGIFormat(RHIDataFormat format)
         CONVERT_DXGI_FORMAT_CASE(R16_UINT)
         CONVERT_DXGI_FORMAT_CASE(R8_UNORM)
         CONVERT_DXGI_FORMAT_CASE(A8_UNORM)    
-        case RHIDataFormat::Unknown: return DXGI_FORMAT_UNKNOWN;
+        case RHIDataFormat::UNKNOWN: return DXGI_FORMAT_UNKNOWN;
     }
     
     assert(false);

@@ -267,8 +267,8 @@
     <ClCompile Include="glTFRHI\RHIVKImpl\VKDevice.cpp" />
     <ClCompile Include="glTFRHI\RHIVKImpl\VKFactory.cpp" />
     <ClCompile Include="glTFRHI\RHIVKImpl\VKFence.cpp" />
-    <ClCompile Include="glTFRHI\RHIVKImpl\VKGPUBuffer.cpp" />
-    <ClCompile Include="glTFRHI\RHIVKImpl\VKBufferManager.cpp" />
+    <ClCompile Include="glTFRHI\RHIVKImpl\VKBuffer.cpp" />
+    <ClCompile Include="glTFRHI\RHIVKImpl\VKMemoryManager.cpp" />
     <ClCompile Include="glTFRHI\RHIVKImpl\VKIndexBuffer.cpp" />
     <ClCompile Include="glTFRHI\RHIVKImpl\VKIndexBufferView.cpp" />
     <ClCompile Include="glTFRHI\RHIVKImpl\VKMemoryAllocator.cpp" />
@@ -436,8 +436,8 @@
     <ClInclude Include="glTFRHI\RHIVKImpl\VKDevice.h" />
     <ClInclude Include="glTFRHI\RHIVKImpl\VKFactory.h" />
     <ClInclude Include="glTFRHI\RHIVKImpl\VKFence.h" />
-    <ClInclude Include="glTFRHI\RHIVKImpl\VKGPUBuffer.h" />
-    <ClInclude Include="glTFRHI\RHIVKImpl\VKBufferManager.h" />
+    <ClInclude Include="glTFRHI\RHIVKImpl\VKBuffer.h" />
+    <ClInclude Include="glTFRHI\RHIVKImpl\VKMemoryManager.h" />
     <ClInclude Include="glTFRHI\RHIVKImpl\VKIndexBuffer.h" />
     <ClInclude Include="glTFRHI\RHIVKImpl\VKIndexBufferView.h" />
     <ClInclude Include="glTFRHI\RHIVKImpl\VKMemoryAllocator.h" />

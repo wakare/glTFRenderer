@@ -33,27 +33,26 @@ bool DX12RenderTargetManager::InitRenderTargetManager(IRHIDevice& device, size_t
     return true;
 }
 
-std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTarget(IRHIDevice& device, RHIRenderTargetType type,
-                                                                              RHIDataFormat resource_format, RHIDataFormat descriptor_format, const RHITextureDesc& desc)
+std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTarget(IRHIDevice& device, const RHITextureDesc& texture_desc, const RHIRenderTargetDesc& render_target_desc)
 {
     std::shared_ptr<IRHITextureAllocation> texture_allocation;
-    glTFRenderResourceManager::GetMemoryManager().AllocateTextureMemory(device, desc, texture_allocation);
+    glTFRenderResourceManager::GetMemoryManager().AllocateTextureMemory(device, texture_desc, texture_allocation);
 
-    return CreateRenderTargetWithResource(device, type, descriptor_format, texture_allocation,
-        DX12ConverterUtils::ConvertToD3DClearValue(desc.GetClearValue()));
+    return CreateRenderTargetWithResource(device, render_target_desc.type, render_target_desc.format == RHIDataFormat::UNKNOWN ? texture_desc.GetDataFormat() : render_target_desc.format, texture_allocation,
+        DX12ConverterUtils::ConvertToD3DClearValue(texture_desc.GetClearValue()));
 }
 
 std::vector<std::shared_ptr<IRHIRenderTarget>> DX12RenderTargetManager::CreateRenderTargetFromSwapChain(
-    IRHIDevice& device, IRHISwapChain& swapChain, RHITextureClearValue clearValue)
+    IRHIDevice& device, IRHISwapChain& swap_chain, RHITextureClearValue clear_value)
 {
-    auto* dxSwapChain = dynamic_cast<DX12SwapChain&>(swapChain).GetSwapChain();
+    auto* dxSwapChain = dynamic_cast<DX12SwapChain&>(swap_chain).GetSwapChain();
 
     DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
     dxSwapChain->GetDesc(&swapChainDesc);
 
     std::vector<std::shared_ptr<IRHIRenderTarget>> outVector = {};
 
-    D3D12_CLEAR_VALUE dx_clear_value = DX12ConverterUtils::ConvertToD3DClearValue(clearValue);
+    D3D12_CLEAR_VALUE dx_clear_value = DX12ConverterUtils::ConvertToD3DClearValue(clear_value);
 
     for (UINT i = 0; i < swapChainDesc.BufferCount; ++i)
     {
@@ -63,12 +62,12 @@ std::vector<std::shared_ptr<IRHIRenderTarget>> DX12RenderTargetManager::CreateRe
         dynamic_cast<DX12Texture&>(*external_texture).InitFromExternalResource(resource,
             {
                 "SwapChain_back_buffer",
-                swapChain.GetWidth(),
-                swapChain.GetHeight(),
-                swapChain.GetBackBufferFormat(),
+                swap_chain.GetWidth(),
+                swap_chain.GetHeight(),
+                swap_chain.GetBackBufferFormat(),
                 static_cast<RHIResourceUsageFlags>(RUF_ALLOW_UAV | RUF_ALLOW_RENDER_TARGET),
                 {
-                    .clear_format = swapChain.GetBackBufferFormat(),
+                    .clear_format = swap_chain.GetBackBufferFormat(),
                     .clear_color {0.0f, 0.0f, 0.0f, 0.0f}
                 }
             });
@@ -83,9 +82,9 @@ std::vector<std::shared_ptr<IRHIRenderTarget>> DX12RenderTargetManager::CreateRe
     return outVector;
 }
 
-bool DX12RenderTargetManager::ClearRenderTarget(IRHICommandList& commandList, const std::vector<IRHIRenderTarget*>& render_targets)
+bool DX12RenderTargetManager::ClearRenderTarget(IRHICommandList& command_list, const std::vector<IRHIRenderTarget*>& render_targets)
 {
-    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
     for (size_t i = 0; i < render_targets.size(); ++i)
     {
         auto* dxRenderTarget = dynamic_cast<DX12RenderTarget*>(render_targets[i]);
@@ -118,11 +117,11 @@ bool DX12RenderTargetManager::ClearRenderTarget(IRHICommandList& commandList, co
     return true;
 }
 
-bool DX12RenderTargetManager::ClearRenderTarget(IRHICommandList& commandList,
+bool DX12RenderTargetManager::ClearRenderTarget(IRHICommandList& command_list,
                                                 const std::vector<IRHIDescriptorAllocation*>& render_targets, const RHITextureClearValue&
                                                 render_target_clear_value, const RHITextureClearValue& depth_stencil_clear_value)
 {
-    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
     for (size_t i = 0; i < render_targets.size(); ++i)
     {
         auto& render_target = *render_targets[i];
@@ -154,42 +153,10 @@ bool DX12RenderTargetManager::ClearRenderTarget(IRHICommandList& commandList,
     return true;
 }
 
-bool DX12RenderTargetManager::BindRenderTarget(IRHICommandList& commandList, const std::vector<IRHIRenderTarget*>& renderTargets,
-                                               IRHIRenderTarget* depthStencil)
+bool DX12RenderTargetManager::BindRenderTarget(IRHICommandList& command_list, const std::vector<IRHIRenderTarget*>& render_targets,
+                                               IRHIRenderTarget* depth_stencil)
 {
-    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
-    if (renderTargets.empty() && !depthStencil)
-    {
-        // Bind zero rt? some bugs must exists.. 
-        assert(false);
-        return false;
-    }
-    
-    std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> renderTargetViews(renderTargets.size());
-    for (size_t i = 0; i < renderTargetViews.size(); ++i)
-    {
-        auto handle = dynamic_cast<DX12DescriptorAllocation&>(renderTargets[i]->GetDescriptorAllocation()).m_cpu_handle;
-        renderTargetViews[i] = {handle};
-    }
-
-    D3D12_CPU_DESCRIPTOR_HANDLE dsHandle{};
-    if (depthStencil)
-    {
-        auto handle = dynamic_cast<DX12DescriptorAllocation&>(depthStencil->GetDescriptorAllocation()).m_cpu_handle;
-        dsHandle = {handle};
-    }
-
-    // TODO: Check RTsSingleHandleToDescriptorRange means?
-    dxCommandList->OMSetRenderTargets(renderTargetViews.size(), renderTargetViews.data(), false, depthStencil ? &dsHandle : nullptr);
-    
-    return true;
-}
-
-bool DX12RenderTargetManager::BindRenderTarget(IRHICommandList& commandList,
-                                               const std::vector<IRHIDescriptorAllocation*>& render_targets,
-                                               IRHIDescriptorAllocation* depth_stencil)
-{
-    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
     if (render_targets.empty() && !depth_stencil)
     {
         // Bind zero rt? some bugs must exists.. 
@@ -197,11 +164,43 @@ bool DX12RenderTargetManager::BindRenderTarget(IRHICommandList& commandList,
         return false;
     }
     
-    std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> renderTargetViews(render_targets.size());
-    for (size_t i = 0; i < renderTargetViews.size(); ++i)
+    std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> render_target_views(render_targets.size());
+    for (size_t i = 0; i < render_target_views.size(); ++i)
+    {
+        auto handle = dynamic_cast<DX12DescriptorAllocation&>(render_targets[i]->GetDescriptorAllocation()).m_cpu_handle;
+        render_target_views[i] = {handle};
+    }
+
+    D3D12_CPU_DESCRIPTOR_HANDLE dsHandle{};
+    if (depth_stencil)
+    {
+        auto handle = dynamic_cast<DX12DescriptorAllocation&>(depth_stencil->GetDescriptorAllocation()).m_cpu_handle;
+        dsHandle = {handle};
+    }
+
+    // TODO: Check RTsSingleHandleToDescriptorRange means?
+    dxCommandList->OMSetRenderTargets(render_target_views.size(), render_target_views.data(), false, depth_stencil ? &dsHandle : nullptr);
+    
+    return true;
+}
+
+bool DX12RenderTargetManager::BindRenderTarget(IRHICommandList& command_list,
+                                               const std::vector<IRHIDescriptorAllocation*>& render_targets,
+                                               IRHIDescriptorAllocation* depth_stencil)
+{
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
+    if (render_targets.empty() && !depth_stencil)
+    {
+        // Bind zero rt? some bugs must exists.. 
+        assert(false);
+        return false;
+    }
+    
+    std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> render_target_views(render_targets.size());
+    for (size_t i = 0; i < render_target_views.size(); ++i)
     {
         auto handle = dynamic_cast<DX12DescriptorAllocation&>(*render_targets[i]).m_cpu_handle;
-        renderTargetViews[i] = {handle};
+        render_target_views[i] = {handle};
     }
 
     D3D12_CPU_DESCRIPTOR_HANDLE dsHandle{};
@@ -212,7 +211,7 @@ bool DX12RenderTargetManager::BindRenderTarget(IRHICommandList& commandList,
     }
 
     // TODO: Check RTsSingleHandleToDescriptorRange means?
-    dxCommandList->OMSetRenderTargets(renderTargetViews.size(), renderTargetViews.data(), false, depth_stencil ? &dsHandle : nullptr);
+    dxCommandList->OMSetRenderTargets(render_target_views.size(), render_target_views.data(), false, depth_stencil ? &dsHandle : nullptr);
     
     return true;
 }
@@ -230,7 +229,7 @@ std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTargetWit
                                                              {
                                                                  .format = descriptor_format,
                                                                  .dimension = RHIResourceDimension::TEXTURE2D,
-                                                                 .view_type = is_rtv ? RHIViewType::RVT_RTV : RHIViewType::RVT_DSV 
+                                                                 .view_type = is_rtv ? RHIViewType::RVT_RTV : RHIViewType::RVT_DSV,
                                                              },
                                                              descriptor_allocation);
     

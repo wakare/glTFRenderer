@@ -1,14 +1,11 @@
 #include "DX12MemoryManager.h"
-
-#include <cassert>
-
 #include "d3dx12.h"
 #include "DX12Device.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 
 DX12MemoryManager::~DX12MemoryManager()
 {
-    SAFE_RELEASE(m_CBV_SRV_UAV_Heap)
+    (void)DX12MemoryManager::CleanAllocatedResource();
 }
 
 bool DX12MemoryManager::InitMemoryManager(IRHIDevice& device, std::shared_ptr<IRHIMemoryAllocator> memory_allocator, const RHIMemoryManagerDescriptorMaxCapacity&
@@ -71,7 +68,7 @@ bool DX12MemoryManager::AllocateTextureMemory(IRHIDevice& device, const RHITextu
     std::shared_ptr<IRHITextureAllocation>& out_buffer_allocation)
 {
     std::shared_ptr<IRHITexture> dx12_texture = RHIResourceFactory::CreateRHIResource<IRHITexture>();
-    dx12_texture->InitTexture(device, texture_desc);
+    dynamic_cast<DX12Texture&>(*dx12_texture).InitTexture(device, texture_desc);
 
     m_textures.push_back(dx12_texture);
     out_buffer_allocation = std::make_shared<IRHITextureAllocation>();
@@ -83,7 +80,7 @@ bool DX12MemoryManager::AllocateTextureMemoryAndUpload(IRHIDevice& device, IRHIC
                                                        const RHITextureDesc& texture_desc, std::shared_ptr<IRHITextureAllocation>& out_buffer_allocation)
 {
     std::shared_ptr<IRHITexture> dx12_texture = RHIResourceFactory::CreateRHIResource<IRHITexture>();
-    dx12_texture->InitTextureAndUpload(device, command_list, texture_desc);
+    dynamic_cast<DX12Texture&>(*dx12_texture).InitTextureAndUpload(device, command_list, texture_desc);
 
     out_buffer_allocation = std::make_shared<IRHITextureAllocation>();
     out_buffer_allocation->m_texture = dx12_texture;

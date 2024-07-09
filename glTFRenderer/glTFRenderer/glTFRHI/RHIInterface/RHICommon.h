@@ -90,7 +90,7 @@ enum class RHIDataFormat
     R16_UINT,
     R8_UNORM,
     A8_UNORM,
-    Unknown,
+    UNKNOWN,
 };
 
 inline RHIDataFormat ConvertToSRGBFormat(RHIDataFormat format)
@@ -447,7 +447,7 @@ private:
     size_t m_texture_data_size {0};
     unsigned m_texture_width {0};
     unsigned m_texture_height {0};
-    RHIDataFormat m_texture_format {RHIDataFormat::Unknown};
+    RHIDataFormat m_texture_format {RHIDataFormat::UNKNOWN};
     RHIResourceUsageFlags m_usage {};
     RHITextureClearValue m_clear_value {};
 };

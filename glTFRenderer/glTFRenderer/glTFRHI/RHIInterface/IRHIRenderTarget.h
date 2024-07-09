@@ -7,6 +7,12 @@
 
 class IRHIRenderTargetManager;
 
+struct RHIRenderTargetDesc
+{
+    RHIRenderTargetType type;
+    RHIDataFormat format;
+};
+
 class IRHIRenderTarget : public IRHIResource
 {
 public:
@@ -18,7 +24,6 @@ public:
                           std::shared_ptr<IRHIDescriptorAllocation> descriptor_allocation);
 
     IRHITexture& GetTexture() const;
-    IRHITextureAllocation& GetTextureAllocation() const;
     std::shared_ptr<IRHITextureAllocation> GetTextureAllocationSharedPtr() const;
     IRHIDescriptorAllocation& GetDescriptorAllocation();
     

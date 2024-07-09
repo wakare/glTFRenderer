@@ -12,20 +12,14 @@ class IRHIRenderTargetManager : public IRHIResource
 public:
      DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIRenderTargetManager)
      
-     virtual bool InitRenderTargetManager(IRHIDevice& device, size_t maxRenderTargetCount) = 0;
+     virtual bool InitRenderTargetManager(IRHIDevice& device, size_t max_render_target_count) = 0;
      
-     virtual std::shared_ptr<IRHIRenderTarget> CreateRenderTarget(IRHIDevice& device, RHIRenderTargetType type, RHIDataFormat resourceFormat, RHIDataFormat descriptorFormat, const
-                                                                  RHITextureDesc& desc) = 0;
-     virtual std::vector<std::shared_ptr<IRHIRenderTarget>> CreateRenderTargetFromSwapChain(IRHIDevice& device, IRHISwapChain& swapChain, RHITextureClearValue clearValue) = 0;
-     virtual bool ClearRenderTarget(IRHICommandList& commandList, const std::vector<IRHIRenderTarget*>& renderTargets) = 0;
-     virtual bool ClearRenderTarget(IRHICommandList& commandList, const std::vector<IRHIDescriptorAllocation*>& render_targets, const
+     virtual std::shared_ptr<IRHIRenderTarget> CreateRenderTarget(IRHIDevice& device, const
+                                                                  RHITextureDesc& desc, const RHIRenderTargetDesc& render_target_desc) = 0;
+     virtual std::vector<std::shared_ptr<IRHIRenderTarget>> CreateRenderTargetFromSwapChain(IRHIDevice& device, IRHISwapChain& swap_chain, RHITextureClearValue clear_value) = 0;
+     virtual bool ClearRenderTarget(IRHICommandList& command_list, const std::vector<IRHIRenderTarget*>& render_targets) = 0;
+     virtual bool ClearRenderTarget(IRHICommandList& command_list, const std::vector<IRHIDescriptorAllocation*>& render_targets, const
                                     RHITextureClearValue& render_target_clear_value, const RHITextureClearValue& depth_stencil_clear_value) = 0;
-     virtual bool BindRenderTarget(IRHICommandList& commandList, const std::vector<IRHIRenderTarget*>& renderTargets, /*optional*/ IRHIRenderTarget* depthStencil) = 0;
-     virtual bool BindRenderTarget(IRHICommandList& commandList, const std::vector<IRHIDescriptorAllocation*>& render_targets, /*optional*/ IRHIDescriptorAllocation* depth_stencil) = 0;
-
-     bool RegisterRenderTargetWithTag(const std::string& render_target_tag, std::shared_ptr<IRHIRenderTarget> render_target, unsigned back_buffer_index = 0);
-     std::shared_ptr<IRHIRenderTarget> GetRenderTargetWithTag(const std::string& render_target_tag, unsigned back_buffer_index = 0) const;
-     
-protected:
-     std::map<std::string, std::shared_ptr<IRHIRenderTarget>> m_register_render_targets;
+     virtual bool BindRenderTarget(IRHICommandList& command_list, const std::vector<IRHIRenderTarget*>& render_targets, /*optional*/ IRHIRenderTarget* depth_stencil) = 0;
+     virtual bool BindRenderTarget(IRHICommandList& command_list, const std::vector<IRHIDescriptorAllocation*>& render_targets, /*optional*/ IRHIDescriptorAllocation* depth_stencil) = 0;
 };

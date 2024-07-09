@@ -110,7 +110,7 @@ bool DX12Buffer::UploadBufferFromCPU(const void* data, size_t dataOffset, size_t
     return true;
 }
 
-GPU_BUFFER_HANDLE_TYPE DX12Buffer::GetGPUBufferHandle()
+GPU_BUFFER_HANDLE_TYPE DX12Buffer::GetGPUBufferHandle() const
 {
     return m_buffer->GetGPUVirtualAddress();
 }

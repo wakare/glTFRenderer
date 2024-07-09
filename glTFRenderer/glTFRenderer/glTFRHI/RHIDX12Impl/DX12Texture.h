@@ -12,11 +12,11 @@ public:
     
     ID3D12Resource* GetRawResource() const;
     bool InitFromExternalResource(ID3D12Resource* raw_resource, const RHITextureDesc& desc);
+
+    bool InitTexture(IRHIDevice& device, const RHITextureDesc& desc);
+    bool InitTextureAndUpload(IRHIDevice& device,  IRHICommandList& command_list, const RHITextureDesc& desc);
     
 protected:
-    virtual bool InitTexture(IRHIDevice& device, const RHITextureDesc& desc) override;
-    virtual bool InitTextureAndUpload(IRHIDevice& device,  IRHICommandList& command_list, const RHITextureDesc& desc) override;
-    
     std::shared_ptr<IRHIBufferAllocation> m_texture_buffer;
     std::shared_ptr<IRHIBufferAllocation> m_texture_upload_buffer;
 

@@ -11,7 +11,6 @@ class IRHIBuffer : public IRHIResource
 public:
     DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIBuffer)
     
-    virtual GPU_BUFFER_HANDLE_TYPE GetGPUBufferHandle() = 0;
     const RHIBufferDesc& GetBufferDesc() const {return m_buffer_desc; }
     
 protected:

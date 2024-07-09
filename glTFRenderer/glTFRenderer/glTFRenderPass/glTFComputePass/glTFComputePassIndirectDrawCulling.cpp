@@ -45,7 +45,7 @@ bool glTFComputePassIndirectDrawCulling::InitPass(glTFRenderResourceManager& res
             resource_manager.GetDevice(),
             *mesh_manager.GetCulledIndirectArgumentBuffer(),
             {
-            RHIDataFormat::Unknown,
+            RHIDataFormat::UNKNOWN,
             RHIResourceDimension::BUFFER,
             RHIViewType::RVT_UAV,
             sizeof(MeshIndirectDrawCommand),

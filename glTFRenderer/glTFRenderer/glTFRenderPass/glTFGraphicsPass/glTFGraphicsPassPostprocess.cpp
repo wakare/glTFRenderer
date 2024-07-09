@@ -28,8 +28,8 @@ bool glTFGraphicsPassPostprocess::InitPass(glTFRenderResourceManager& resource_m
     auto& vertexBufferView = m_postprocessQuadResource.meshVertexBufferView = RHIResourceFactory::CreateRHIResource<IRHIVertexBufferView>();
     auto& indexBufferView = m_postprocessQuadResource.meshIndexBufferView = RHIResourceFactory::CreateRHIResource<IRHIIndexBufferView>();
     
-    const RHIBufferDesc vertexBufferDesc = {L"vertexBufferDefaultBuffer", sizeof(postprocessVertices), 1, 1, RHIBufferType::Default, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
-    const RHIBufferDesc indexBufferDesc = {L"indexBufferDefaultBuffer", sizeof(postprocessIndices), 1, 1, RHIBufferType::Default, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
+    const RHIBufferDesc vertexBufferDesc = {L"vertexBufferDefaultBuffer", sizeof(postprocessVertices), 1, 1, RHIBufferType::Default, RHIDataFormat::UNKNOWN, RHIBufferResourceType::Buffer};
+    const RHIBufferDesc indexBufferDesc = {L"indexBufferDefaultBuffer", sizeof(postprocessIndices), 1, 1, RHIBufferType::Default, RHIDataFormat::UNKNOWN, RHIBufferResourceType::Buffer};
 
     glTFRenderResourceManager::GetMemoryManager().AllocateBufferMemory(glTFRenderResourceManager::GetDevice(), vertexBufferDesc, m_postprocessQuadResource.meshVertexBuffer);
     glTFRenderResourceManager::GetMemoryManager().AllocateBufferMemory(glTFRenderResourceManager::GetDevice(), indexBufferDesc, m_postprocessQuadResource.meshIndexBuffer);
@@ -37,8 +37,8 @@ bool glTFGraphicsPassPostprocess::InitPass(glTFRenderResourceManager& resource_m
     auto vertexUploadBuffer = RHIResourceFactory::CreateRHIResource<IRHIBufferAllocation>();
     auto indexUploadBuffer = RHIResourceFactory::CreateRHIResource<IRHIBufferAllocation>();
     
-    const RHIBufferDesc vertexUploadBufferDesc = {L"vertexBufferUploadBuffer", sizeof(postprocessVertices), 1, 1, RHIBufferType::Upload, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
-    const RHIBufferDesc indexUploadBufferDesc = {L"indexBufferUploadBuffer", sizeof(postprocessIndices), 1, 1, RHIBufferType::Upload, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
+    const RHIBufferDesc vertexUploadBufferDesc = {L"vertexBufferUploadBuffer", sizeof(postprocessVertices), 1, 1, RHIBufferType::Upload, RHIDataFormat::UNKNOWN, RHIBufferResourceType::Buffer};
+    const RHIBufferDesc indexUploadBufferDesc = {L"indexBufferUploadBuffer", sizeof(postprocessIndices), 1, 1, RHIBufferType::Upload, RHIDataFormat::UNKNOWN, RHIBufferResourceType::Buffer};
 
     glTFRenderResourceManager::GetMemoryManager().AllocateBufferMemory(glTFRenderResourceManager::GetDevice(), vertexUploadBufferDesc, vertexUploadBuffer);
     glTFRenderResourceManager::GetMemoryManager().AllocateBufferMemory(glTFRenderResourceManager::GetDevice(), indexUploadBufferDesc, indexUploadBuffer);

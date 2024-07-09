@@ -211,12 +211,6 @@ bool VulkanUtils::AddTextureBarrierToCommandList(IRHICommandList& commandList, c
     return false;
 }
 
-bool VulkanUtils::AddRenderTargetBarrierToCommandList(IRHICommandList& commandList, const IRHIRenderTarget& buffer,
-                                                      RHIResourceStateType before_state, RHIResourceStateType after_state)
-{
-    return true;
-}
-
 bool VulkanUtils::DrawInstanced(IRHICommandList& commandList, unsigned vertexCountPerInstance, unsigned instanceCount,
     unsigned startVertexLocation, unsigned startInstanceLocation)
 {

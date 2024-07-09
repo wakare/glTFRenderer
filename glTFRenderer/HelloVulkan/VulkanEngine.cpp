@@ -27,8 +27,6 @@
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
-
-
 namespace VulkanEngineRequirements
 {
     const std::vector validation_layers =

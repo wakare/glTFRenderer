@@ -117,7 +117,7 @@ VkFormat VKConverterUtils::ConvertToFormat(RHIDataFormat format)
     case RHIDataFormat::A8_UNORM:
         result = VK_FORMAT_A8_UNORM_KHR;
         break;
-    case RHIDataFormat::Unknown:
+    case RHIDataFormat::UNKNOWN:
         result = VK_FORMAT_UNDEFINED;
         break;
     }

@@ -17,7 +17,7 @@ public:
             1,
             1,
             RHIBufferType::Upload,
-            RHIDataFormat::Unknown,
+            RHIDataFormat::UNKNOWN,
             RHIBufferResourceType::Buffer
         },
         m_gpu_buffer);

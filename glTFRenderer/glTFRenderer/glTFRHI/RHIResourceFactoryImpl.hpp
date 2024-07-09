@@ -58,8 +58,8 @@
 #include "RHIVKImpl/VKDevice.h"
 #include "RHIVKImpl/VKFactory.h"
 #include "RHIVKImpl/VKFence.h"
-#include "RHIVKImpl/VKGPUBuffer.h"
-#include "RHIVKImpl/VKBufferManager.h"
+#include "RHIVKImpl/VKBuffer.h"
+#include "RHIVKImpl/VKMemoryManager.h"
 #include "RHIVKImpl/VKIndexBuffer.h"
 #include "RHIVKImpl/VKIndexBufferView.h"
 #include "RHIVKImpl/VKPipelineStateObject.h"
@@ -117,8 +117,8 @@ IMPLEMENT_CREATE_RHI_RESOURCE(IRHIComputePipelineStateObject, DX12ComputePipelin
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIRayTracingPipelineStateObject, DX12RTPipelineStateObject, VKRTPipelineStateObject)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIShaderTable, DX12ShaderTable, VKShaderTable)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIFence, DX12Fence, VKFence)
-IMPLEMENT_CREATE_RHI_RESOURCE(IRHIBuffer, DX12Buffer, VKGPUBuffer)
-IMPLEMENT_CREATE_RHI_RESOURCE(IRHIMemoryManager, DX12MemoryManager, VKBufferManager)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHIBuffer, DX12Buffer, VKBuffer)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHIMemoryManager, DX12MemoryManager, VKMemoryManager)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIShader, DX12Shader, VKShader)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIVertexBuffer, DX12VertexBuffer, VKVertexBuffer)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIVertexBufferView, DX12VertexBufferView, VKVertexBufferView)

@@ -13,7 +13,7 @@ public:
     DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKTextureAllocation)
 };
 
-class VKBufferManager : public IRHIMemoryManager
+class VKMemoryManager : public IRHIMemoryManager
 {
 public:
     virtual bool InitMemoryManager(IRHIDevice& device, std::shared_ptr<IRHIMemoryAllocator> memory_allocator, const RHIMemoryManagerDescriptorMaxCapacity&

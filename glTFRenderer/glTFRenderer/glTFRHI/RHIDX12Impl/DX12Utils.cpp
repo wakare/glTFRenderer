@@ -44,9 +44,9 @@ bool DX12Utils::NewGUIFrame()
     return true;
 }
 
-bool DX12Utils::RenderGUIFrame(IRHICommandList& commandList)
+bool DX12Utils::RenderGUIFrame(IRHICommandList& command_list)
 {
-    auto* dx_command_list = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    auto* dx_command_list = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
     ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), dx_command_list);
 
     return true;
@@ -68,10 +68,10 @@ bool DX12Utils::EndRenderPass(IRHICommandList& command_list)
     return true;
 }
 
-bool DX12Utils::ResetCommandList(IRHICommandList& commandList, IRHICommandAllocator& commandAllocator,
+bool DX12Utils::ResetCommandList(IRHICommandList& command_list, IRHICommandAllocator& commandAllocator,
                                  IRHIPipelineStateObject* initPSO)
 {
-    auto* dx_command_list = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    auto* dx_command_list = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
     auto* dx_command_allocator = dynamic_cast<DX12CommandAllocator&>(commandAllocator).GetCommandAllocator();
     if (initPSO)
     {
@@ -79,7 +79,7 @@ bool DX12Utils::ResetCommandList(IRHICommandList& commandList, IRHICommandAlloca
         
         if (initPSO->GetPSOType() == RHIPipelineType::RayTracing)
         {
-            auto* dxr_command_list = dynamic_cast<DX12CommandList&>(commandList).GetDXRCommandList();
+            auto* dxr_command_list = dynamic_cast<DX12CommandList&>(command_list).GetDXRCommandList();
             dxr_command_list->Reset(dx_command_allocator, nullptr);
             dxr_command_list->SetPipelineState1(dxPSO.GetDXRPipelineStateObject());
         }
@@ -96,9 +96,9 @@ bool DX12Utils::ResetCommandList(IRHICommandList& commandList, IRHICommandAlloca
     return true;
 }
 
-bool DX12Utils::CloseCommandList(IRHICommandList& commandList)
+bool DX12Utils::CloseCommandList(IRHICommandList& command_list)
 {
-    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
     dxCommandList->Close();
     
     return true;
@@ -130,9 +130,9 @@ bool DX12Utils::WaitCommandListFinish(IRHICommandList& command_list)
     return command_list.WaitCommandList();
 }
 
-bool DX12Utils::SetRootSignature(IRHICommandList& commandList, IRHIRootSignature& rootSignature, bool isGraphicsPipeline)
+bool DX12Utils::SetRootSignature(IRHICommandList& command_list, IRHIRootSignature& rootSignature, bool isGraphicsPipeline)
 {
-    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
     auto* dxRootSignature = dynamic_cast<DX12RootSignature&>(rootSignature).GetRootSignature();
 
     if (isGraphicsPipeline)
@@ -147,9 +147,9 @@ bool DX12Utils::SetRootSignature(IRHICommandList& commandList, IRHIRootSignature
     return true;
 }
 
-bool DX12Utils::SetViewport(IRHICommandList& commandList, const RHIViewportDesc& viewport_desc)
+bool DX12Utils::SetViewport(IRHICommandList& command_list, const RHIViewportDesc& viewport_desc)
 {
-    auto* dxCommandList = dynamic_cast<DX12CommandList&>( commandList).GetCommandList();
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
 
     D3D12_VIEWPORT viewport = {viewport_desc.TopLeftX, viewport_desc.TopLeftY, viewport_desc.Width, viewport_desc.Height, viewport_desc.MinDepth, viewport_desc.MaxDepth};
     dxCommandList->RSSetViewports(1, &viewport);
@@ -157,18 +157,18 @@ bool DX12Utils::SetViewport(IRHICommandList& commandList, const RHIViewportDesc&
     return true;
 }
 
-bool DX12Utils::SetScissorRect(IRHICommandList& commandList, const RHIScissorRectDesc& scissor_rect)
+bool DX12Utils::SetScissorRect(IRHICommandList& command_list, const RHIScissorRectDesc& scissor_rect)
 {
-    auto* dxCommandList = dynamic_cast<DX12CommandList&>( commandList).GetCommandList();
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>( command_list).GetCommandList();
     D3D12_RECT dxScissorRect = {scissor_rect.left, scissor_rect.top, scissor_rect.right, scissor_rect.right};
     dxCommandList->RSSetScissorRects(1, &dxScissorRect);
     
     return true;
 }
 
-bool DX12Utils::SetVertexBufferView(IRHICommandList& commandList, unsigned slot, IRHIVertexBufferView& view)
+bool DX12Utils::SetVertexBufferView(IRHICommandList& command_list, unsigned slot, IRHIVertexBufferView& view)
 {
-    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
     auto& dxVertexBufferView = dynamic_cast<DX12VertexBufferView&>(view).GetVertexBufferView();
 
     dxCommandList->IASetVertexBuffers(slot, 1, &dxVertexBufferView);
@@ -176,9 +176,9 @@ bool DX12Utils::SetVertexBufferView(IRHICommandList& commandList, unsigned slot,
     return true;
 }
 
-bool DX12Utils::SetIndexBufferView(IRHICommandList& commandList, IRHIIndexBufferView& view)
+bool DX12Utils::SetIndexBufferView(IRHICommandList& command_list, IRHIIndexBufferView& view)
 {
-    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
     auto& dxIndexBufferView = dynamic_cast<DX12IndexBufferView&>(view).GetIndexBufferView();
 
     dxCommandList->IASetIndexBuffer(&dxIndexBufferView);
@@ -186,18 +186,18 @@ bool DX12Utils::SetIndexBufferView(IRHICommandList& commandList, IRHIIndexBuffer
     return true;
 }
 
-bool DX12Utils::SetPrimitiveTopology(IRHICommandList& commandList, RHIPrimitiveTopologyType type)
+bool DX12Utils::SetPrimitiveTopology(IRHICommandList& command_list, RHIPrimitiveTopologyType type)
 {
-    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
     dxCommandList->IASetPrimitiveTopology(DX12ConverterUtils::ConvertToPrimitiveTopologyType(type));
     
     return true;
 }
 
-bool DX12Utils::SetDescriptorHeapArray(IRHICommandList& commandList, IRHIDescriptorHeap* descriptor_heap_array_data,
+bool DX12Utils::SetDescriptorHeapArray(IRHICommandList& command_list, IRHIDescriptorHeap* descriptor_heap_array_data,
                                   size_t descriptor_heap_array_count)
 {
-    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
 
     std::vector<ID3D12DescriptorHeap*> dx_descriptor_heaps;
     for (size_t i = 0; i < descriptor_heap_array_count; ++i)
@@ -211,15 +211,15 @@ bool DX12Utils::SetDescriptorHeapArray(IRHICommandList& commandList, IRHIDescrip
     return true;
 }
 
-bool DX12Utils::SetConstant32BitToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex, unsigned* data,
+bool DX12Utils::SetConstant32BitToRootParameterSlot(IRHICommandList& command_list, unsigned slot_index, unsigned* data,
                                                     unsigned count, bool isGraphicsPipeline)
 {
-    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
     if (isGraphicsPipeline)
     {
         for (unsigned i = 0; i < count; ++i)
         {
-            dxCommandList->SetGraphicsRoot32BitConstant(slotIndex, data[count], count);    
+            dxCommandList->SetGraphicsRoot32BitConstant(slot_index, data[count], count);    
         }
             
     }
@@ -227,89 +227,89 @@ bool DX12Utils::SetConstant32BitToRootParameterSlot(IRHICommandList& commandList
     {
         for (unsigned i = 0; i < count; ++i)
         {
-            dxCommandList->SetComputeRoot32BitConstant(slotIndex, data[count], count);    
+            dxCommandList->SetComputeRoot32BitConstant(slot_index, data[count], count);    
         }
     }
     
     return true;
 }
 
-bool DX12Utils::SetCBVToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex,
+bool DX12Utils::SetCBVToRootParameterSlot(IRHICommandList& command_list, unsigned slot_index,
                                           const IRHIDescriptorAllocation& handle, bool isGraphicsPipeline)
 {
-    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
     auto gpu_handle = dynamic_cast<const DX12DescriptorAllocation&>(handle).m_gpu_handle;
     
     if (isGraphicsPipeline)
     {
-        dxCommandList->SetGraphicsRootConstantBufferView(slotIndex, gpu_handle);    
+        dxCommandList->SetGraphicsRootConstantBufferView(slot_index, gpu_handle);    
     }
     else
     {
-        dxCommandList->SetComputeRootConstantBufferView(slotIndex, gpu_handle);
+        dxCommandList->SetComputeRootConstantBufferView(slot_index, gpu_handle);
     }
     
     return true;
 }
 
-bool DX12Utils::SetSRVToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex,
+bool DX12Utils::SetSRVToRootParameterSlot(IRHICommandList& command_list, unsigned slot_index,
                                           const IRHIDescriptorAllocation& handle, bool isGraphicsPipeline)
 {
-    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
     auto gpu_handle = dynamic_cast<const DX12DescriptorAllocation&>(handle).m_gpu_handle;
 
     if (isGraphicsPipeline)
     {
-        dxCommandList->SetGraphicsRootShaderResourceView(slotIndex, gpu_handle);    
+        dxCommandList->SetGraphicsRootShaderResourceView(slot_index, gpu_handle);    
     }
     else
     {
-        dxCommandList->SetComputeRootShaderResourceView(slotIndex, gpu_handle);
+        dxCommandList->SetComputeRootShaderResourceView(slot_index, gpu_handle);
     }
     
     return true;
 }
 
-bool DX12Utils::SetDTToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex,
+bool DX12Utils::SetDTToRootParameterSlot(IRHICommandList& command_list, unsigned slot_index,
                                          const IRHIDescriptorAllocation& handle, bool isGraphicsPipeline)
 {
-    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
     D3D12_GPU_DESCRIPTOR_HANDLE dxHandle = {dynamic_cast<const DX12DescriptorAllocation&>(handle).m_gpu_handle};
     
     if (isGraphicsPipeline)
     {
-        dxCommandList->SetGraphicsRootDescriptorTable(slotIndex, dxHandle);    
+        dxCommandList->SetGraphicsRootDescriptorTable(slot_index, dxHandle);    
     }
     else
     {
-        dxCommandList->SetComputeRootDescriptorTable(slotIndex, dxHandle);
+        dxCommandList->SetComputeRootDescriptorTable(slot_index, dxHandle);
     }
     
     return true;
 }
 
-bool DX12Utils::SetDTToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex,
+bool DX12Utils::SetDTToRootParameterSlot(IRHICommandList& command_list, unsigned slot_index,
     const IRHIDescriptorTable& table_handle, bool isGraphicsPipeline)
 {
-    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
     D3D12_GPU_DESCRIPTOR_HANDLE dxHandle = {dynamic_cast<const DX12DescriptorTable&>(table_handle).m_gpu_handle};
     
     if (isGraphicsPipeline)
     {
-        dxCommandList->SetGraphicsRootDescriptorTable(slotIndex, dxHandle);    
+        dxCommandList->SetGraphicsRootDescriptorTable(slot_index, dxHandle);    
     }
     else
     {
-        dxCommandList->SetComputeRootDescriptorTable(slotIndex, dxHandle);
+        dxCommandList->SetComputeRootDescriptorTable(slot_index, dxHandle);
     }
     
     return true;
 }
 
-bool DX12Utils::UploadBufferDataToDefaultGPUBuffer(IRHICommandList& commandList, IRHIBuffer& uploadBuffer,
+bool DX12Utils::UploadBufferDataToDefaultGPUBuffer(IRHICommandList& command_list, IRHIBuffer& uploadBuffer,
                                                    IRHIBuffer& defaultBuffer, void* data, size_t size)
 {
-    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
     auto* dxUploadBuffer = dynamic_cast<DX12Buffer&>(uploadBuffer).GetBuffer();
     auto* dxDefaultBuffer = dynamic_cast<DX12Buffer&>(defaultBuffer).GetBuffer();
     
@@ -326,10 +326,10 @@ bool DX12Utils::UploadBufferDataToDefaultGPUBuffer(IRHICommandList& commandList,
     return true;
 }
 
-bool DX12Utils::UploadTextureDataToDefaultGPUBuffer(IRHICommandList& commandList, IRHIBuffer& uploadBuffer,
+bool DX12Utils::UploadTextureDataToDefaultGPUBuffer(IRHICommandList& command_list, IRHIBuffer& uploadBuffer,
     IRHIBuffer& defaultBuffer, void* data, size_t rowPitch, size_t slicePitch)
 {
-    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
     auto* dxUploadBuffer = dynamic_cast<DX12Buffer&>(uploadBuffer).GetBuffer();
     auto* dxDefaultBuffer = dynamic_cast<DX12Buffer&>(defaultBuffer).GetBuffer();
     
@@ -346,10 +346,10 @@ bool DX12Utils::UploadTextureDataToDefaultGPUBuffer(IRHICommandList& commandList
     return true;
 }
 
-bool DX12Utils::AddBufferBarrierToCommandList(IRHICommandList& commandList, const IRHIBuffer& buffer,
+bool DX12Utils::AddBufferBarrierToCommandList(IRHICommandList& command_list, const IRHIBuffer& buffer,
                                               RHIResourceStateType beforeState, RHIResourceStateType afterState)
 {
-    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
     auto* dxBuffer = dynamic_cast<const DX12Buffer&>(buffer).GetBuffer();
     
     CD3DX12_RESOURCE_BARRIER TransitionToVertexBufferState = CD3DX12_RESOURCE_BARRIER::Transition(dxBuffer,
@@ -359,10 +359,10 @@ bool DX12Utils::AddBufferBarrierToCommandList(IRHICommandList& commandList, cons
     return true;
 }
 
-bool DX12Utils::AddTextureBarrierToCommandList(IRHICommandList& commandList, const IRHITexture& buffer,
+bool DX12Utils::AddTextureBarrierToCommandList(IRHICommandList& command_list, const IRHITexture& buffer,
                                                RHIResourceStateType beforeState, RHIResourceStateType afterState)
 {
-    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
     auto* dxBuffer = dynamic_cast<const DX12Texture&>(buffer).GetRawResource();
     
     CD3DX12_RESOURCE_BARRIER TransitionToVertexBufferState = CD3DX12_RESOURCE_BARRIER::Transition(dxBuffer,
@@ -372,33 +372,20 @@ bool DX12Utils::AddTextureBarrierToCommandList(IRHICommandList& commandList, con
     return true;
 }
 
-bool DX12Utils::AddRenderTargetBarrierToCommandList(IRHICommandList& commandList, const IRHIRenderTarget& render_target,
-                                                    RHIResourceStateType before_state, RHIResourceStateType after_state)
+bool DX12Utils::DrawInstanced(IRHICommandList& command_list, unsigned vertex_count_per_instance, unsigned instance_count,
+    unsigned start_vertex_location, unsigned start_instance_location)
 {
-    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
-    auto* dxRenderTarget = dynamic_cast<const DX12Texture&>(render_target.GetTexture()).GetRawResource();
-
-    const CD3DX12_RESOURCE_BARRIER TransitionToVertexBufferState = CD3DX12_RESOURCE_BARRIER::Transition(dxRenderTarget,
-        DX12ConverterUtils::ConvertToResourceState(before_state), DX12ConverterUtils::ConvertToResourceState(after_state)); 
-    dxCommandList->ResourceBarrier(1, &TransitionToVertexBufferState);
-
-    return true;
-}
-
-bool DX12Utils::DrawInstanced(IRHICommandList& commandList, unsigned vertexCountPerInstance, unsigned instanceCount,
-    unsigned startVertexLocation, unsigned startInstanceLocation)
-{
-    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
-    dxCommandList->DrawInstanced(vertexCountPerInstance, instanceCount, startVertexLocation, startInstanceLocation);
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
+    dxCommandList->DrawInstanced(vertex_count_per_instance, instance_count, start_vertex_location, start_instance_location);
     
     return true;
 }
 
-bool DX12Utils::DrawIndexInstanced(IRHICommandList& commandList, unsigned indexCountPerInstance, unsigned instanceCount,
-                                   unsigned startIndexLocation, unsigned baseVertexLocation, unsigned startInstanceLocation)
+bool DX12Utils::DrawIndexInstanced(IRHICommandList& command_list, unsigned index_count_per_instance, unsigned instance_count,
+                                   unsigned start_index_location, unsigned base_vertex_location, unsigned startInstanceLocation)
 {
-    auto* dxCommandList = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
-    dxCommandList->DrawIndexedInstanced(indexCountPerInstance, instanceCount, startIndexLocation, static_cast<INT>(baseVertexLocation), startInstanceLocation);
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
+    dxCommandList->DrawIndexedInstanced(index_count_per_instance, instance_count, start_index_location, static_cast<INT>(base_vertex_location), startInstanceLocation);
     
     return true;
 }
@@ -479,9 +466,9 @@ bool DX12Utils::DiscardResource(IRHICommandList& command_list, IRHIRenderTarget&
     return true;
 }
 
-bool DX12Utils::CopyTexture(IRHICommandList& commandList, IRHITexture& dst, IRHITexture& src)
+bool DX12Utils::CopyTexture(IRHICommandList& command_list, IRHITexture& dst, IRHITexture& src)
 {
-    auto* dx_command_list = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    auto* dx_command_list = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
     
     D3D12_TEXTURE_COPY_LOCATION dstLocation;
     dstLocation.pResource = dynamic_cast<DX12Texture&>(dst).GetRawResource();
@@ -498,10 +485,10 @@ bool DX12Utils::CopyTexture(IRHICommandList& commandList, IRHITexture& dst, IRHI
     return true;
 }
 
-bool DX12Utils::CopyBuffer(IRHICommandList& commandList, IRHIBuffer& dst, size_t dst_offset, IRHIBuffer& src,
+bool DX12Utils::CopyBuffer(IRHICommandList& command_list, IRHIBuffer& dst, size_t dst_offset, IRHIBuffer& src,
     size_t src_offset, size_t size)
 {
-    auto* dx_command_list = dynamic_cast<DX12CommandList&>(commandList).GetCommandList();
+    auto* dx_command_list = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
     dx_command_list->CopyBufferRegion(dynamic_cast<DX12Buffer&>(dst).GetBuffer(), dst_offset, dynamic_cast<DX12Buffer&>(src).GetBuffer(), src_offset, size);
     
     return true;

@@ -12,7 +12,7 @@ std::shared_ptr<IRHIVertexBufferView> DX12VertexBuffer::CreateVertexBufferView(I
     glTFRenderResourceManager::GetMemoryManager().AllocateBufferMemory(device, desc, m_buffer);
 
     const RHIBufferDesc vertex_upload_buffer_desc = {L"vertexBufferUploadBuffer", vertex_buffer_data.byteSize,
-        1, 1, RHIBufferType::Upload, RHIDataFormat::Unknown, RHIBufferResourceType::Buffer};
+        1, 1, RHIBufferType::Upload, RHIDataFormat::UNKNOWN, RHIBufferResourceType::Buffer};
     glTFRenderResourceManager::GetMemoryManager().AllocateBufferMemory(device, vertex_upload_buffer_desc, m_upload_buffer);
     
     RHIUtils::Instance().UploadBufferDataToDefaultGPUBuffer(command_list, *m_upload_buffer->m_buffer, *m_buffer->m_buffer, vertex_buffer_data.data.get(), vertex_buffer_data.byteSize);

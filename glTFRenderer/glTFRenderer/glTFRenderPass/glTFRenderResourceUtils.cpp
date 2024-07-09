@@ -56,39 +56,19 @@ namespace glTFRenderResourceUtils
 
     bool GBufferOutput::InitGBufferOutput(glTFRenderResourceManager& resource_manager, unsigned back_buffer_index)
     {
-        RHIDataFormat albedo_format = RHIDataFormat::R8G8B8A8_UNORM;
-        RHITextureDesc albedo_output_desc
-        {
-            "ALBEDO_OUTPUT",
-            resource_manager.GetSwapChain().GetWidth(),
-            resource_manager.GetSwapChain().GetHeight(),
-            albedo_format,
-            static_cast<RHIResourceUsageFlags>(RUF_ALLOW_UAV | RUF_ALLOW_RENDER_TARGET),
-            {
-                .clear_format = albedo_format,
-                .clear_color {0.0f, 0.0f, 0.0f, 0.0f}
-            }
-        };
         m_albedo_output = resource_manager.GetRenderTargetManager().CreateRenderTarget(
-            resource_manager.GetDevice(), RHIRenderTargetType::RTV, albedo_format, albedo_format, albedo_output_desc);
-        resource_manager.GetRenderTargetManager().RegisterRenderTargetWithTag("Albedo_Output", m_albedo_output, back_buffer_index);
-        
-        RHIDataFormat normal_format = RHIDataFormat::R8G8B8A8_UNORM;
-        RHITextureDesc normal_output_desc
-        {
-            "NORMAL_OUTPUT",
-            resource_manager.GetSwapChain().GetWidth(),
-            resource_manager.GetSwapChain().GetHeight(),
-            normal_format,
-            static_cast<RHIResourceUsageFlags>(RUF_ALLOW_UAV | RUF_ALLOW_RENDER_TARGET),
+            resource_manager.GetDevice(), RHITextureDesc::MakeBasePassAlbedoTextureDesc(resource_manager),
             {
-                .clear_format = normal_format,
-                .clear_color {0.0f, 0.0f, 0.0f, 0.0f}
-            }
-        };
+                .type = RHIRenderTargetType::RTV,
+                .format = RHIDataFormat::UNKNOWN
+            });
+        
         m_normal_output = resource_manager.GetRenderTargetManager().CreateRenderTarget(
-            resource_manager.GetDevice(), RHIRenderTargetType::RTV, normal_format, normal_format, normal_output_desc);
-        resource_manager.GetRenderTargetManager().RegisterRenderTargetWithTag("Normal_Output", m_normal_output, back_buffer_index);
+            resource_manager.GetDevice(), RHITextureDesc::MakeBasePassNormalTextureDesc(resource_manager), 
+            {
+                .type = RHIRenderTargetType::RTV,
+                .format = RHIDataFormat::UNKNOWN
+            });
         
         RHIDataFormat depth_format = RHIDataFormat::R32_FLOAT;
         RHITextureDesc depth_output_desc
@@ -104,8 +84,11 @@ namespace glTFRenderResourceUtils
             }
         };
         m_depth_output = resource_manager.GetRenderTargetManager().CreateRenderTarget(
-            resource_manager.GetDevice(), RHIRenderTargetType::RTV, depth_format, depth_format, depth_output_desc);
-        resource_manager.GetRenderTargetManager().RegisterRenderTargetWithTag("Depth_Output", m_depth_output, back_buffer_index);
+        resource_manager.GetDevice(), depth_output_desc,
+        {
+            .type = RHIRenderTargetType::RTV,
+            .format = RHIDataFormat::UNKNOWN
+        });
         
         return true;
     }
@@ -238,10 +221,18 @@ namespace glTFRenderResourceUtils
         auto format = m_texture0_desc.GetClearValue().clear_format;
     
         m_writable_buffer = resource_manager.GetRenderTargetManager().CreateRenderTarget(
-            resource_manager.GetDevice(), RHIRenderTargetType::RTV, format, format, m_texture0_desc);
+            resource_manager.GetDevice(), m_texture0_desc, 
+            {
+                .type = RHIRenderTargetType::RTV,
+                .format = RHIDataFormat::UNKNOWN
+            });
 
         m_back_buffer = resource_manager.GetRenderTargetManager().CreateRenderTarget(
-            resource_manager.GetDevice(), RHIRenderTargetType::RTV, format, format, m_texture0_desc);
+            resource_manager.GetDevice(), m_texture0_desc, 
+            {
+                .type = RHIRenderTargetType::RTV,
+                .format = RHIDataFormat::UNKNOWN
+            });
         
         return true;
     }

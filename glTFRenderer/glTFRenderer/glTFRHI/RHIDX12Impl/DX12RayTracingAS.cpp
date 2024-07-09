@@ -32,14 +32,14 @@ bool DX12RayTracingAS::InitRayTracingAS(IRHIDevice& device, IRHICommandList& com
 
         D3D12_RAYTRACING_GEOMETRY_DESC& geometry_desc = m_blas_geometry_descs[mesh_index];
         geometry_desc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
-        geometry_desc.Triangles.IndexBuffer = mesh.mesh_index_buffer->GetBuffer().GetGPUBufferHandle();
+        geometry_desc.Triangles.IndexBuffer = dynamic_cast<const DX12Buffer&>(mesh.mesh_index_buffer->GetBuffer()).GetGPUBufferHandle();
         geometry_desc.Triangles.IndexCount = mesh.mesh_index_count;
         geometry_desc.Triangles.IndexFormat = DX12ConverterUtils::ConvertToDXGIFormat(mesh.mesh_index_buffer->GetFormat());
         // Transform may cost much memory and calculation
         geometry_desc.Triangles.Transform3x4 = 0;
         geometry_desc.Triangles.VertexFormat = DXGI_FORMAT_R32G32B32_FLOAT;
         geometry_desc.Triangles.VertexCount = mesh.mesh_vertex_count;
-        geometry_desc.Triangles.VertexBuffer.StartAddress = mesh.mesh_vertex_buffer->GetBuffer().GetGPUBufferHandle();
+        geometry_desc.Triangles.VertexBuffer.StartAddress = dynamic_cast<const DX12Buffer&>(mesh.mesh_vertex_buffer->GetBuffer()).GetGPUBufferHandle();
         geometry_desc.Triangles.VertexBuffer.StrideInBytes = mesh.mesh_vertex_buffer->GetLayout().GetVertexStrideInBytes();
         // Mark the geometry as opaque. 
         // PERFORMANCE TIP: mark geometry as opaque whenever applicable as it can enable important ray processing optimizations.
@@ -83,7 +83,7 @@ bool DX12RayTracingAS::InitRayTracingAS(IRHIDevice& device, IRHICommandList& com
             1,
             1,
             RHIBufferType::Default,
-            RHIDataFormat::Unknown,
+            RHIDataFormat::UNKNOWN,
             RHIBufferResourceType::Buffer,
             RHIResourceStateType::STATE_COMMON,
             RUF_ALLOW_UAV
@@ -97,7 +97,7 @@ bool DX12RayTracingAS::InitRayTracingAS(IRHIDevice& device, IRHICommandList& com
             1,
             1,
             RHIBufferType::Default,
-            RHIDataFormat::Unknown,
+            RHIDataFormat::UNKNOWN,
             RHIBufferResourceType::Buffer,
             RHIResourceStateType::STATE_COMMON,
             RUF_ALLOW_UAV
@@ -116,7 +116,7 @@ bool DX12RayTracingAS::InitRayTracingAS(IRHIDevice& device, IRHICommandList& com
         1,
         1,
         RHIBufferType::Default,
-        RHIDataFormat::Unknown,
+        RHIDataFormat::UNKNOWN,
         RHIBufferResourceType::Buffer,
         RHIResourceStateType::STATE_RAYTRACING_ACCELERATION_STRUCTURE,
         RUF_ALLOW_UAV
@@ -132,7 +132,7 @@ bool DX12RayTracingAS::InitRayTracingAS(IRHIDevice& device, IRHICommandList& com
             1,
             1,
             RHIBufferType::Default,
-            RHIDataFormat::Unknown,
+            RHIDataFormat::UNKNOWN,
             RHIBufferResourceType::Buffer,
             RHIResourceStateType::STATE_RAYTRACING_ACCELERATION_STRUCTURE,
             RUF_ALLOW_UAV
@@ -154,7 +154,7 @@ bool DX12RayTracingAS::InitRayTracingAS(IRHIDevice& device, IRHICommandList& com
 
         // Ray type count * instance offset 
         instance_desc.InstanceContributionToHitGroupIndex = blas_index;
-        instance_desc.AccelerationStructure = m_BLASes[instance.second.m_mesh_render_resource]->m_buffer->GetGPUBufferHandle();
+        instance_desc.AccelerationStructure = dynamic_cast<const DX12Buffer&>(*m_BLASes[instance.second.m_mesh_render_resource]->m_buffer).GetGPUBufferHandle();
         ++blas_index;
     }
 
@@ -165,7 +165,7 @@ bool DX12RayTracingAS::InitRayTracingAS(IRHIDevice& device, IRHICommandList& com
         1,
         1,
         RHIBufferType::Upload,
-        RHIDataFormat::Unknown,
+        RHIDataFormat::UNKNOWN,
         RHIBufferResourceType::Buffer,
         RHIResourceStateType::STATE_GENERIC_READ,
     },
@@ -179,17 +179,17 @@ m_upload_buffer);
     {
         D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC& bottomLevelBuildDesc = BLAS_build_descs[blas_index];
         bottomLevelBuildDesc.Inputs = build_level_input;
-        bottomLevelBuildDesc.ScratchAccelerationStructureData = m_BLAS_scratch_buffers[blas_index]->m_buffer->GetGPUBufferHandle();
-        bottomLevelBuildDesc.DestAccelerationStructureData = m_BLASes[blas_index]->m_buffer->GetGPUBufferHandle();
+        bottomLevelBuildDesc.ScratchAccelerationStructureData = dynamic_cast<const DX12Buffer&>(*m_BLAS_scratch_buffers[blas_index]->m_buffer).GetGPUBufferHandle();
+        bottomLevelBuildDesc.DestAccelerationStructureData = dynamic_cast<const DX12Buffer&>(*m_BLASes[blas_index]->m_buffer).GetGPUBufferHandle();
         ++blas_index;
     }
-
+ 
     // Top Level Acceleration Structure desc
     D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC topLevelBuildDesc = {};
-    top_level_inputs.InstanceDescs = m_upload_buffer->m_buffer->GetGPUBufferHandle();
+    top_level_inputs.InstanceDescs = dynamic_cast<const DX12Buffer&>(*m_upload_buffer->m_buffer).GetGPUBufferHandle();
     topLevelBuildDesc.Inputs = top_level_inputs;
-    topLevelBuildDesc.ScratchAccelerationStructureData = m_scratch_buffer->m_buffer->GetGPUBufferHandle();
-    topLevelBuildDesc.DestAccelerationStructureData = m_TLAS->m_buffer->GetGPUBufferHandle();
+    topLevelBuildDesc.ScratchAccelerationStructureData = dynamic_cast<const DX12Buffer&>(*m_scratch_buffer->m_buffer).GetGPUBufferHandle();
+    topLevelBuildDesc.DestAccelerationStructureData = dynamic_cast<const DX12Buffer&>(*m_TLAS->m_buffer).GetGPUBufferHandle();
 
     auto BuildAccelerationStructure = [&](auto* raytracingCommandList)
     {

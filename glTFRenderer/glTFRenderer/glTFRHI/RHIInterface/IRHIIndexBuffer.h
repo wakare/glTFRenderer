@@ -20,6 +20,6 @@ protected:
     std::shared_ptr<IRHIBufferAllocation> m_buffer {nullptr};
     std::shared_ptr<IRHIBufferAllocation> m_upload_buffer {nullptr};
 
-    RHIDataFormat m_index_format {RHIDataFormat::Unknown};
+    RHIDataFormat m_index_format {RHIDataFormat::UNKNOWN};
     size_t m_index_count {0};
 };

@@ -78,13 +78,18 @@ bool glTFRenderResourceManager::InitResourceManager(unsigned width, unsigned hei
     m_render_target_manager = RHIResourceFactory::CreateRHIResource<IRHIRenderTargetManager>();
     m_render_target_manager->InitRenderTargetManager(*m_device, 100);
 
-    RHITextureClearValue clearValue;
-    clearValue.clear_format = RHIDataFormat::R8G8B8A8_UNORM_SRGB;
-    clearValue.clear_color = glm::vec4{0.0f, 0.0f, 0.0f, 0.0f};
-    m_swapchain_RTs = m_render_target_manager->CreateRenderTargetFromSwapChain(*m_device, *m_swap_chain, clearValue);
+    RHITextureClearValue clear_value;
+    clear_value.clear_format = RHIDataFormat::R8G8B8A8_UNORM_SRGB;
+    clear_value.clear_color = glm::vec4{0.0f, 0.0f, 0.0f, 0.0f};
+    m_swapchain_RTs = m_render_target_manager->CreateRenderTargetFromSwapChain(*m_device, *m_swap_chain, clear_value);
 
     m_depth_texture = m_render_target_manager->CreateRenderTarget(
-        *m_device, RHIRenderTargetType::DSV, RHIDataFormat::R32_TYPELESS, RHIDataFormat::D32_FLOAT, RHITextureDesc::MakeDepthTextureDesc(*this));
+        *m_device, RHITextureDesc::MakeDepthTextureDesc(*this),
+        {
+            .type = RHIRenderTargetType::DSV,
+            .format = RHIDataFormat::D32_FLOAT
+        });
+    
     m_export_texture_allocation_map[RenderPassResourceTableId::Depth] = m_depth_texture->GetTextureAllocationSharedPtr();
     
     m_frame_resource_managers.resize(backBufferCount);

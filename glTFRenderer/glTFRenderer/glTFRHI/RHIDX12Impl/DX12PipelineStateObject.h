@@ -1,7 +1,5 @@
 #pragma once
 #include "DX12Common.h"
-#include <map>
-
 #include "glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
 #include "RendererCommon.h"
 

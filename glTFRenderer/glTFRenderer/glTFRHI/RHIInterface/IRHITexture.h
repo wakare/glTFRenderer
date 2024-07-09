@@ -23,9 +23,6 @@ public:
     RHIResourceStateType GetState() const;
     
 protected:
-    virtual bool InitTexture(IRHIDevice& device, const RHITextureDesc& desc) = 0;
-    virtual bool InitTextureAndUpload(IRHIDevice& device, IRHICommandList& command_list, const RHITextureDesc& desc) = 0;
-
     RHITextureDesc m_texture_desc {};
 
     // Default init texture with state common

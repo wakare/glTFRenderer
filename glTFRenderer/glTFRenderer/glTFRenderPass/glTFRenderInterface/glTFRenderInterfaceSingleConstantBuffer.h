@@ -38,7 +38,7 @@ protected:
             1,
             1,
             RHIBufferType::Upload,
-            RHIDataFormat::Unknown,
+            RHIDataFormat::UNKNOWN,
             RHIBufferResourceType::Buffer
         }, m_constant_gpu_data);
         m_constant_buffer_descriptor_allocation = RHIResourceFactory::CreateRHIResource<IRHIDescriptorAllocation>();

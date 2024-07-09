@@ -25,9 +25,9 @@ protected:
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;
     virtual bool InitResourceTable(glTFRenderResourceManager& resource_manager) override;
     
-    std::shared_ptr<IRHIDescriptorAllocation> m_base_pass_color_RT_SRV_Handle;
-    std::shared_ptr<IRHIDescriptorAllocation> m_depth_RT_SRV_Handle;
-    std::shared_ptr<IRHIDescriptorAllocation> m_normal_RT_SRV_Handle;
+    std::shared_ptr<IRHIDescriptorAllocation> m_base_pass_albedo_allocation;
+    std::shared_ptr<IRHIDescriptorAllocation> m_depth_allocation;
+    std::shared_ptr<IRHIDescriptorAllocation> m_base_pass_normal_allocation;
 
     RootSignatureAllocation m_base_color_and_depth_allocation;
 };
