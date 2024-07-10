@@ -17,8 +17,7 @@ glTFRenderInterfaceSceneMaterial::glTFRenderInterfaceSceneMaterial()
     AddInterface(sampler_interface);
 }
 
-bool glTFRenderInterfaceSceneMaterial::UploadMaterialData(glTFRenderResourceManager& resource_manager,
-                                                          IRHIDescriptorHeap& heap)
+bool glTFRenderInterfaceSceneMaterial::UploadMaterialData(glTFRenderResourceManager& resource_manager)
 {
     std::vector<MaterialInfo> material_infos;
     std::vector<glTFMaterialTextureRenderResource*> material_texture_render_resources;
@@ -37,7 +36,7 @@ bool glTFRenderInterfaceSceneMaterial::UploadMaterialData(glTFRenderResourceMana
         }
         std::shared_ptr<IRHIDescriptorAllocation> result;
         auto& texture_resource = *texture->GetTextureAllocation().m_texture;
-        heap.CreateResourceDescriptorInHeap(resource_manager.GetDevice(), texture_resource,
+        resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), texture_resource,
             {
                 .format = texture_resource.GetTextureDesc().GetDataFormat(),
                 .dimension = RHIResourceDimension::TEXTURE2D,

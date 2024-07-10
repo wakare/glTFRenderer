@@ -13,7 +13,7 @@ bool VKDescriptorTable::Build(IRHIDevice& device,
 
 bool VKDescriptorHeap::InitDescriptorHeap(IRHIDevice& device, const RHIDescriptorHeapDesc& desc)
 {
-    return false;
+    return true;
 }
 
 unsigned VKDescriptorHeap::GetUsedDescriptorCount() const
@@ -28,19 +28,19 @@ bool VKDescriptorHeap::CreateConstantBufferViewInDescriptorHeap(IRHIDevice& devi
 }
 
 bool VKDescriptorHeap::CreateResourceDescriptorInHeap(IRHIDevice& device,
-                                                                const IRHIBuffer& buffer, const RHIShaderResourceViewDesc& desc, std::shared_ptr<IRHIDescriptorAllocation>& out_allocation)
+                                                                const IRHIBuffer& buffer, const RHIDescriptorDesc& desc, std::shared_ptr<IRHIDescriptorAllocation>& out_allocation)
 {
     return false;
 }
 
 bool VKDescriptorHeap::CreateResourceDescriptorInHeap(IRHIDevice& device, const IRHITexture& texture,
-    const RHIShaderResourceViewDesc& desc, std::shared_ptr<IRHIDescriptorAllocation>& out_allocation)
+    const RHIDescriptorDesc& desc, std::shared_ptr<IRHIDescriptorAllocation>& out_allocation)
 {
     return false;
 }
 
 bool VKDescriptorHeap::CreateResourceDescriptorInHeap(IRHIDevice& device,
-                                                                const IRHIRenderTarget& renderTarget, const RHIShaderResourceViewDesc& desc, std::shared_ptr<IRHIDescriptorAllocation>&
+                                                                const IRHIRenderTarget& renderTarget, const RHIDescriptorDesc& desc, std::shared_ptr<IRHIDescriptorAllocation>&
                                                                 out_allocation)
 {
     return true;

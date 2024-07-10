@@ -23,7 +23,7 @@ class glTFRenderInterfaceSceneMaterial : public glTFRenderInterfaceBase
 public:
     glTFRenderInterfaceSceneMaterial();
 
-    bool UploadMaterialData(glTFRenderResourceManager& resource_manager, IRHIDescriptorHeap& heap);
+    bool UploadMaterialData(glTFRenderResourceManager& resource_manager);
     
 protected:
     virtual bool InitInterfaceImpl(glTFRenderResourceManager& resource_manager) override;

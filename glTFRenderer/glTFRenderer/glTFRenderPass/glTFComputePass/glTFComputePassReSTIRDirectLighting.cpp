@@ -133,21 +133,21 @@ bool glTFComputePassReSTIRDirectLighting::SetupPipelineStateObject(glTFRenderRes
     m_dispatch_count = {resource_manager.GetSwapChain().GetWidth() / 8, resource_manager.GetSwapChain().GetHeight() / 8, 1};
 
     auto& raytracing_scene_output = GetResourceTexture(RenderPassResourceTableId::RayTracingSceneOutput);
-    RETURN_IF_FALSE(MainDescriptorHeapRef().CreateResourceDescriptorInHeap(resource_manager.GetDevice(), raytracing_scene_output,
+    RETURN_IF_FALSE(glTFRenderResourceManager::GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), raytracing_scene_output,
                         {raytracing_scene_output.GetTextureFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_UAV}, m_output_handle))
 
-    RETURN_IF_FALSE(MainDescriptorHeapRef().CreateResourceDescriptorInHeap(resource_manager.GetDevice(), GetResourceTexture(RenderPassResourceTableId::RayTracingPass_ReSTIRSample_Output),
+    RETURN_IF_FALSE(glTFRenderResourceManager::GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), GetResourceTexture(RenderPassResourceTableId::RayTracingPass_ReSTIRSample_Output),
                             {GetResourceTexture(RenderPassResourceTableId::RayTracingPass_ReSTIRSample_Output).GetTextureFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_lighting_samples_handle))
 
-    RETURN_IF_FALSE(MainDescriptorHeapRef().CreateResourceDescriptorInHeap(resource_manager.GetDevice(), GetResourceTexture(RenderPassResourceTableId::ScreenUVOffset),
+    RETURN_IF_FALSE(glTFRenderResourceManager::GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), GetResourceTexture(RenderPassResourceTableId::ScreenUVOffset),
                         {GetResourceTexture(RenderPassResourceTableId::ScreenUVOffset).GetTextureFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_screen_uv_offset_handle))
 
-    RETURN_IF_FALSE(m_aggregate_samples_output.CreateDescriptors(resource_manager, MainDescriptorHeapRef()))
-    
+    RETURN_IF_FALSE(m_aggregate_samples_output.CreateDescriptors(resource_manager))
+
     for (unsigned i = 0; i < resource_manager.GetBackBufferCount(); ++i)
     {
         auto& GBuffer_output = resource_manager.GetFrameResourceManagerByIndex(i).GetGBufferForInit();
-        RETURN_IF_FALSE(GBuffer_output.InitGBufferSRVs(GetID(), MainDescriptorHeapRef(), resource_manager))    
+        RETURN_IF_FALSE(GBuffer_output.InitGBufferSRVs(GetID(), resource_manager))
     }
     
     GetComputePipelineStateObject().BindShaderCode(

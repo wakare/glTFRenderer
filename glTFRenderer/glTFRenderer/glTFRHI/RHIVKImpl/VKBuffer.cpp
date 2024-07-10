@@ -1,41 +1,10 @@
 #include "VKBuffer.h"
-#include "VKDevice.h"
 
-bool VKBuffer::InitGPUBuffer(IRHIDevice& device, const RHIBufferDesc& desc)
+bool VKBuffer::InitBuffer(VkDevice device, VkBuffer buffer, const RHIBufferDesc& desc)
 {
-    m_device = dynamic_cast<VKDevice&>(device).GetDevice();
+    m_device = device;
+    m_buffer = buffer;
+    m_buffer_desc = desc;
     
-    m_desc = desc;
-    VkBufferCreateInfo bufferInfo{
-        .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO
-    };
-    switch (desc.resource_type) {
-    case RHIBufferResourceType::Buffer:
-        bufferInfo.size = desc.width;
-        break;
-    case RHIBufferResourceType::Tex1D:
-        break;
-    case RHIBufferResourceType::Tex2D:
-        break;
-    case RHIBufferResourceType::Tex3D:
-        break;
-    }
-
-    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    if (desc.usage & RUF_ALLOW_UAV)
-    {
-        bufferInfo.usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-    }
-
-    vkCreateBuffer(m_device, &bufferInfo, nullptr, &m_buffer);
-    return true;
-}
-
-bool VKBuffer::UploadBufferFromCPU(const void* data, size_t dataOffset, size_t size)
-{
-    //find the adress of the vertex buffer
-    VkBufferDeviceAddressInfo deviceAdressInfo{ .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,.buffer = m_buffer };
-    VkDeviceAddress buffer_device_address = vkGetBufferDeviceAddress(m_device, &deviceAdressInfo);
-
     return true;
 }

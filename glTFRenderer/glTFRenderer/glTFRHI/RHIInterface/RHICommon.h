@@ -122,6 +122,7 @@ enum class RHIDescriptorHeapType
     SAMPLER,
     RTV,
     DSV,
+    UNKNOWN,
 };
 
 struct RHIRect
@@ -176,7 +177,7 @@ enum class RHIViewType
     RVT_DSV,
 };
 
-struct RHIShaderResourceViewDesc
+struct RHIDescriptorDesc
 {
     RHIDataFormat format;
     RHIResourceDimension dimension;
@@ -190,7 +191,7 @@ struct RHIShaderResourceViewDesc
     bool use_count_buffer;
     unsigned count_buffer_offset;
 
-    bool operator==(const RHIShaderResourceViewDesc& other) const
+    bool operator==(const RHIDescriptorDesc& other) const
     {
         return
             format == other.format &&

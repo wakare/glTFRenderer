@@ -93,11 +93,11 @@ namespace glTFRenderResourceUtils
         return true;
     }
 
-    bool GBufferOutput::InitGBufferUAVs(glTFUniqueID pass_id, IRHIDescriptorHeap& heap, glTFRenderResourceManager& resource_manager)
+    bool GBufferOutput::InitGBufferUAVs(glTFUniqueID pass_id, glTFRenderResourceManager& resource_manager)
     {
         auto& GBufferPassResource = GetGBufferPassResource(pass_id);
         
-        RETURN_IF_FALSE(heap.CreateResourceDescriptorInHeap(
+        RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(
                     resource_manager.GetDevice(),
                     *m_albedo_output,
                     {
@@ -107,7 +107,7 @@ namespace glTFRenderResourceUtils
                     },
                     GBufferPassResource.m_albedo_handle))
 
-        RETURN_IF_FALSE(heap.CreateResourceDescriptorInHeap(
+        RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(
                     resource_manager.GetDevice(),
                     *m_normal_output,
                     {
@@ -117,7 +117,7 @@ namespace glTFRenderResourceUtils
                     },
                     GBufferPassResource.m_normal_handle))
 
-        RETURN_IF_FALSE(heap.CreateResourceDescriptorInHeap(
+        RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(
                     resource_manager.GetDevice(),
                     *m_depth_output,
                     {
@@ -130,12 +130,12 @@ namespace glTFRenderResourceUtils
         return true;
     }
 
-    bool GBufferOutput::InitGBufferSRVs(glTFUniqueID pass_id, IRHIDescriptorHeap& heap,
-        glTFRenderResourceManager& resource_manager)
+    bool GBufferOutput::InitGBufferSRVs(glTFUniqueID pass_id,
+                                        glTFRenderResourceManager& resource_manager)
     {
         auto& GBufferPassResource = GetGBufferPassResource(pass_id);
         
-        RETURN_IF_FALSE(heap.CreateResourceDescriptorInHeap(
+        RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(
                     resource_manager.GetDevice(),
                     *m_albedo_output,
                     {
@@ -145,7 +145,7 @@ namespace glTFRenderResourceUtils
                     },
                     GBufferPassResource.m_albedo_handle))
 
-        RETURN_IF_FALSE(heap.CreateResourceDescriptorInHeap(
+        RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(
                     resource_manager.GetDevice(),
                     *m_normal_output,
                     {
@@ -155,7 +155,7 @@ namespace glTFRenderResourceUtils
                     },
                     GBufferPassResource.m_normal_handle))
 
-        RETURN_IF_FALSE(heap.CreateResourceDescriptorInHeap(
+        RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(
                     resource_manager.GetDevice(),
                     *m_depth_output,
                     {
@@ -237,13 +237,12 @@ namespace glTFRenderResourceUtils
         return true;
     }
 
-    bool RWTextureResourceWithBackBuffer::CreateDescriptors(glTFRenderResourceManager& resource_manager,
-        IRHIDescriptorHeap& main_descriptor)
+    bool RWTextureResourceWithBackBuffer::CreateDescriptors(glTFRenderResourceManager& resource_manager)
     {
-        RETURN_IF_FALSE(main_descriptor.CreateResourceDescriptorInHeap(resource_manager.GetDevice(), *m_writable_buffer,
+        RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), *m_writable_buffer,
                             {m_writable_buffer->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_UAV}, m_writable_buffer_handle))
 
-        RETURN_IF_FALSE(main_descriptor.CreateResourceDescriptorInHeap(resource_manager.GetDevice(), *m_back_buffer,
+        RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), *m_back_buffer,
                             {m_back_buffer->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_back_buffer_handle))
 
         return true;

@@ -45,8 +45,8 @@ namespace glTFRenderResourceUtils
         std::shared_ptr<IRHIRenderTarget> m_depth_output;
 
         bool InitGBufferOutput(glTFRenderResourceManager& resource_manager, unsigned back_buffer_index);
-        bool InitGBufferUAVs(glTFUniqueID pass_id, IRHIDescriptorHeap& heap, glTFRenderResourceManager& resource_manager);
-        bool InitGBufferSRVs(glTFUniqueID pass_id, IRHIDescriptorHeap& heap, glTFRenderResourceManager& resource_manager);
+        bool InitGBufferUAVs(glTFUniqueID pass_id, glTFRenderResourceManager& resource_manager);
+        bool InitGBufferSRVs(glTFUniqueID pass_id, glTFRenderResourceManager& resource_manager);
         
         bool Transition(glTFUniqueID pass_id, IRHICommandList& command_list, RHIResourceStateType after) const;
         bool Bind(glTFUniqueID pass_id, IRHICommandList& command_list, const GBufferSignatureAllocationWithinPass& allocation) const;
@@ -64,7 +64,7 @@ namespace glTFRenderResourceUtils
         RWTextureResourceWithBackBuffer(std::string output_register_name, std::string back_register_name);
     
         bool CreateResource(glTFRenderResourceManager& resource_manager, const RHITextureDesc& desc);
-        bool CreateDescriptors(glTFRenderResourceManager& resource_manager, IRHIDescriptorHeap& main_descriptor);
+        bool CreateDescriptors(glTFRenderResourceManager& resource_manager);
         bool RegisterSignature(IRHIRootSignatureHelper& root_signature);
         bool AddShaderMacros(RHIShaderPreDefineMacros& macros);
         bool BindRootParameter(glTFRenderResourceManager& resource_manager);

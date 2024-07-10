@@ -204,6 +204,7 @@
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12CommandAllocator.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12CommandList.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12CommandQueue.cpp" />
+    <ClCompile Include="glTFRHI\RHIDX12Impl\DX12DescriptorManager.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12Device.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12Factory.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12Fence.cpp" />
@@ -230,6 +231,7 @@
     <ClCompile Include="glTFRHI\RHIInterface\IRHICommandQueue.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHICommandSignature.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIDescriptorHeap.cpp" />
+    <ClCompile Include="glTFRHI\RHIInterface\IRHIDescriptorManager.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIDevice.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIFactory.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIFence.cpp" />
@@ -240,6 +242,7 @@
     <ClCompile Include="glTFRHI\RHIInterface\IRHIMemoryAllocator.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIPipelineStateObject.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIRayTracingAS.cpp" />
+    <ClCompile Include="glTFRHI\RHIInterface\IRHIRenderContext.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIRenderPass.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIRenderPassFrameBuffer.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIRenderTarget.cpp" />
@@ -264,6 +267,7 @@
     <ClCompile Include="glTFRHI\RHIVKImpl\VKComputePipelineStateObject.cpp" />
     <ClCompile Include="glTFRHI\RHIVKImpl\VKConverterUtils.cpp" />
     <ClCompile Include="glTFRHI\RHIVKImpl\VKDescriptorHeap.cpp" />
+    <ClCompile Include="glTFRHI\RHIVKImpl\VKDescriptorManager.cpp" />
     <ClCompile Include="glTFRHI\RHIVKImpl\VKDevice.cpp" />
     <ClCompile Include="glTFRHI\RHIVKImpl\VKFactory.cpp" />
     <ClCompile Include="glTFRHI\RHIVKImpl\VKFence.cpp" />
@@ -371,6 +375,7 @@
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12CommandAllocator.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12CommandList.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12CommandQueue.h" />
+    <ClInclude Include="glTFRHI\RHIDX12Impl\DX12DescriptorManager.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12Device.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12Factory.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12Fence.h" />
@@ -397,6 +402,7 @@
     <ClInclude Include="glTFRHI\RHIInterface\IRHICommandQueue.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHICommandSignature.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHIDescriptorHeap.h" />
+    <ClInclude Include="glTFRHI\RHIInterface\IRHIDescriptorManager.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHIDevice.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHIFactory.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHIFence.h" />
@@ -407,6 +413,7 @@
     <ClInclude Include="glTFRHI\RHIInterface\IRHIMemoryAllocator.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHIPipelineStateObject.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHIRayTracingAS.h" />
+    <ClInclude Include="glTFRHI\RHIInterface\IRHIRenderContext.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHIRenderPass.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHIRenderPassFrameBuffer.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHIRenderTarget.h" />
@@ -433,6 +440,7 @@
     <ClInclude Include="glTFRHI\RHIVKImpl\VKComputePipelineStateObject.h" />
     <ClInclude Include="glTFRHI\RHIVKImpl\VKConverterUtils.h" />
     <ClInclude Include="glTFRHI\RHIVKImpl\VKDescriptorHeap.h" />
+    <ClInclude Include="glTFRHI\RHIVKImpl\VKDescriptorManager.h" />
     <ClInclude Include="glTFRHI\RHIVKImpl\VKDevice.h" />
     <ClInclude Include="glTFRHI\RHIVKImpl\VKFactory.h" />
     <ClInclude Include="glTFRHI\RHIVKImpl\VKFence.h" />

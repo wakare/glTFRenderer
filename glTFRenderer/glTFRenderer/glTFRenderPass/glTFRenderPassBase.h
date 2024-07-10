@@ -82,7 +82,6 @@ protected:
     
     void AddRenderInterface(const std::shared_ptr<glTFRenderInterfaceBase>& render_interface);
     virtual bool UseStandaloneDescriptorHeap() const { return false; }
-    virtual IRHIDescriptorHeap& MainDescriptorHeapRef();
 
     IRHIRootSignatureHelper m_root_signature_helper;
     std::shared_ptr<IRHIRenderPass> m_render_pass;

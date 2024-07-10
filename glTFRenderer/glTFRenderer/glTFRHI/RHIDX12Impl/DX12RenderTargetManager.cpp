@@ -223,9 +223,8 @@ std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTargetWit
         texture_resource->m_texture->GetTextureDesc().GetUsage() & RUF_ALLOW_DEPTH_STENCIL);
     
     const bool is_rtv = (type == RHIRenderTargetType::RTV);
-    auto& descriptor_heap = glTFRenderResourceManager::GetMemoryManager().GetDescriptorHeap(is_rtv ? RHIDescriptorHeapType::RTV : RHIDescriptorHeapType::DSV);
     std::shared_ptr<IRHIDescriptorAllocation> descriptor_allocation;
-    descriptor_heap.CreateResourceDescriptorInHeap(device, *texture_resource->m_texture, 
+    glTFRenderResourceManager::GetMemoryManager().GetDescriptorManager().CreateDescriptor(device, *texture_resource->m_texture, 
                                                              {
                                                                  .format = descriptor_format,
                                                                  .dimension = RHIResourceDimension::TEXTURE2D,

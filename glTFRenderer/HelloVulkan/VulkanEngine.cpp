@@ -12,9 +12,9 @@
 #include <set>
 #include <string>
 
-#define VMA_IMPLEMENTATION
 #include <array>
 
+#define VMA_IMPLEMENTATION
 #include "vma/vk_mem_alloc.h"
 
 #include "ShaderUtil/glTFShaderUtils.h"
@@ -493,13 +493,13 @@ AllocatedBuffer VulkanEngine::AllocateBuffer(size_t allocate_size, VkBufferUsage
 
     bufferInfo.usage = usage_flags;
 
-    VmaAllocationCreateInfo vmaallocInfo = {};
-    vmaallocInfo.usage = memory_usage;
-    vmaallocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+    VmaAllocationCreateInfo allocation_create_info = {};
+    allocation_create_info.usage = memory_usage;
+    allocation_create_info.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
     AllocatedBuffer newBuffer;
 
     // allocate the buffer
-    VK_CHECK(vmaCreateBuffer(vma_allocator, &bufferInfo, &vmaallocInfo, &newBuffer.buffer, &newBuffer.allocation,
+    VK_CHECK(vmaCreateBuffer(vma_allocator, &bufferInfo, &allocation_create_info, &newBuffer.buffer, &newBuffer.allocation,
         &newBuffer.info));
 
     return newBuffer;

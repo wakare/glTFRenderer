@@ -20,6 +20,7 @@
 #include "RHIInterface/IRHISemaphore.h"
 #include "RHIInterface/IRHIRenderPass.h"
 #include "RHIInterface/IRHIMemoryAllocator.h"
+#include "RHIInterface/IRHIDescriptorManager.h"
 
 // DX12 implements
 #include "RHIDX12Impl/DX12Utils.h"
@@ -48,6 +49,7 @@
 #include "RHIDX12Impl/DX12CommandSignature.h"
 #include "RHIDX12Impl/Dx12RenderPass.h"
 #include "RHIDX12Impl/DX12MemoryAllocator.h"
+#include "RHIDX12Impl/DX12DescriptorManager.h"
 
 // VK implements
 #include "RHIVKImpl/VulkanUtils.h"
@@ -79,6 +81,7 @@
 #include "RHIVKImpl/VKVertexBufferView.h"
 #include "RHIVKImpl/VKRenderPass.h"
 #include "RHIVKImpl/VKMemoryAllocator.h"
+#include "RHIVKImpl/VKDescriptorManager.h"
 
 inline RHIGraphicsAPIType GetGraphicsAPI() {return RHIConfigSingleton::Instance().GetGraphicsAPIType();}
 
@@ -134,3 +137,4 @@ IMPLEMENT_CREATE_RHI_RESOURCE(IRHIMemoryAllocator, DX12MemoryAllocator, VKMemory
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIDescriptorAllocation, DX12DescriptorAllocation, VKDescriptorAllocation)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIDescriptorTable, DX12DescriptorTable, VKDescriptorTable)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHITextureAllocation, DX12TextureAllocation, VKTextureAllocation)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHIDescriptorManager, DX12DescriptorManager, VKDescriptorManager)

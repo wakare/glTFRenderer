@@ -1,7 +1,11 @@
 #pragma once
 #include "glTFRHI/RHIUtils.h"
 
-#define SAFE_RELEASE(x) 
+#define SAFE_RELEASE(x)
+#define VK_CHECK(x) {\
+VkResult result = (x);\
+assert(result == VK_SUCCESS);\
+}
 
 class VulkanUtils : public RHIUtils
 {

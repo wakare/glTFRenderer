@@ -1,4 +1,6 @@
 #pragma once
+#include <vulkan/vulkan_core.h>
+
 #include "glTFRHI/RHIInterface/IRHIDescriptorHeap.h"
 
 class VKDescriptorAllocation : public IRHIDescriptorAllocation
@@ -21,13 +23,16 @@ public:
 
     virtual bool CreateConstantBufferViewInDescriptorHeap(IRHIDevice& device, unsigned descriptorOffset, IRHIBuffer& buffer, const RHIConstantBufferViewDesc& desc, /*output*/
                                                           std::shared_ptr<IRHIDescriptorAllocation>& out_allocation) override;
-    virtual bool CreateResourceDescriptorInHeap(IRHIDevice& device, const IRHIBuffer& buffer, const RHIShaderResourceViewDesc& desc,
+    virtual bool CreateResourceDescriptorInHeap(IRHIDevice& device, const IRHIBuffer& buffer, const RHIDescriptorDesc& desc,
                                                           /*output*/
                                                           std::shared_ptr<IRHIDescriptorAllocation>& out_allocation) override;
-    virtual bool CreateResourceDescriptorInHeap(IRHIDevice& device, const IRHITexture& texture, const RHIShaderResourceViewDesc& desc,
+    virtual bool CreateResourceDescriptorInHeap(IRHIDevice& device, const IRHITexture& texture, const RHIDescriptorDesc& desc,
                                                           /*output*/
                                                           std::shared_ptr<IRHIDescriptorAllocation>& out_allocation) override;
-    virtual bool CreateResourceDescriptorInHeap(IRHIDevice& device, const IRHIRenderTarget& renderTarget, const RHIShaderResourceViewDesc& desc,
+    virtual bool CreateResourceDescriptorInHeap(IRHIDevice& device, const IRHIRenderTarget& renderTarget, const RHIDescriptorDesc& desc,
                                                           /*output*/
                                                           std::shared_ptr<IRHIDescriptorAllocation>& out_allocation) override;
+    
+protected:
+    VkDescriptorPool m_pool;
 };

@@ -1,19 +1,19 @@
 #include "IRHIMemoryManager.h"
 
-IRHIDescriptorHeap& IRHIMemoryManager::GetDescriptorHeap(RHIDescriptorHeapType type) const
-{
-    switch (type) {
-    case RHIDescriptorHeapType::CBV_SRV_UAV:
-        return *m_CBV_SRV_UAV_heap;
-        break;
-    case RHIDescriptorHeapType::RTV:
-        return *m_RTV_heap;
-        break;
-    case RHIDescriptorHeapType::DSV:
-        return *m_DSV_heap;
-        break;
-    }
+#include "glTFRHI/RHIResourceFactoryImpl.hpp"
 
-    GLTF_CHECK(false);
-    return *m_CBV_SRV_UAV_heap;
+bool IRHIMemoryManager::InitMemoryManager(IRHIDevice& device, const std::shared_ptr<IRHIMemoryAllocator>& memory_allocator,
+                                          const RHIMemoryManagerDescriptorMaxCapacity& max_descriptor_capacity)
+{
+    m_descriptor_manager = RHIResourceFactory::CreateRHIResource<IRHIDescriptorManager>();
+    m_descriptor_manager->Init(device, max_descriptor_capacity);
+
+    m_allocator = memory_allocator;
+    
+    return true;
+}
+
+IRHIDescriptorManager& IRHIMemoryManager::GetDescriptorManager() const
+{
+    return *m_descriptor_manager;
 }

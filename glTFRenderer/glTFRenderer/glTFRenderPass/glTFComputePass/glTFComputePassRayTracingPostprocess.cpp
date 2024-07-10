@@ -157,13 +157,13 @@ bool glTFComputePassRayTracingPostprocess::SetupRootSignature(glTFRenderResource
     auto& raytracing_output = GetResourceTexture(RenderPassResourceTableId::RayTracingSceneOutput);
     auto& screen_uv_offset = GetResourceTexture(RenderPassResourceTableId::ScreenUVOffset);
     
-    RETURN_IF_FALSE(MainDescriptorHeapRef().CreateResourceDescriptorInHeap(resource_manager.GetDevice(), raytracing_output,
+    RETURN_IF_FALSE(glTFRenderResourceManager::GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), raytracing_output,
                     {raytracing_output.GetTextureFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_post_process_input_handle))
 
-    RETURN_IF_FALSE(MainDescriptorHeapRef().CreateResourceDescriptorInHeap(resource_manager.GetDevice(), screen_uv_offset,
+    RETURN_IF_FALSE(glTFRenderResourceManager::GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), screen_uv_offset,
                     {screen_uv_offset.GetTextureFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_screen_uv_offset_handle))
 
-    RETURN_IF_FALSE(MainDescriptorHeapRef().CreateResourceDescriptorInHeap(resource_manager.GetDevice(), GetResourceTexture(RenderPassResourceTableId::ComputePass_RayTracingOutputPostProcess_Output),
+    RETURN_IF_FALSE(glTFRenderResourceManager::GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), GetResourceTexture(RenderPassResourceTableId::ComputePass_RayTracingOutputPostProcess_Output),
                             {GetResourceTexture(RenderPassResourceTableId::ComputePass_RayTracingOutputPostProcess_Output).GetTextureFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_UAV}, m_post_process_output_handle))
 
     RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("PostProcessInput", RHIRootParameterDescriptorRangeType::SRV, 1, false, m_process_input_allocation))
@@ -177,8 +177,8 @@ bool glTFComputePassRayTracingPostprocess::SetupPipelineStateObject(glTFRenderRe
 {
     RETURN_IF_FALSE(glTFComputePassBase::SetupPipelineStateObject(resource_manager))
 
-    RETURN_IF_FALSE(m_accumulation_resource.CreateDescriptors(resource_manager, MainDescriptorHeapRef()))
-    RETURN_IF_FALSE(m_custom_resource.CreateDescriptors(resource_manager, MainDescriptorHeapRef()))
+    RETURN_IF_FALSE(m_accumulation_resource.CreateDescriptors(resource_manager))
+    RETURN_IF_FALSE(m_custom_resource.CreateDescriptors(resource_manager))
 
     GetComputePipelineStateObject().BindShaderCode(
             R"(glTFResources\ShaderSource\ComputeShader\PathTracingPostProcess.hlsl)", RHIShaderType::Compute, "main");

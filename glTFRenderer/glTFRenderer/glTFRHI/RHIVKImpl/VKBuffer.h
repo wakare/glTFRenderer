@@ -5,11 +5,9 @@
 class VKBuffer : public IRHIBuffer
 {
 public:
-    virtual bool InitGPUBuffer(IRHIDevice& device, const RHIBufferDesc& desc) override;
-    virtual bool UploadBufferFromCPU(const void* data, size_t dataOffset, size_t size) override;
-
+    bool InitBuffer(VkDevice device, VkBuffer buffer, const RHIBufferDesc& desc);
+    
 protected:
-    VkDevice m_device {};
-    VkBuffer m_buffer {};
-    RHIBufferDesc m_desc {};
+    VkDevice m_device {VK_NULL_HANDLE};
+    VkBuffer m_buffer {VK_NULL_HANDLE};
 };

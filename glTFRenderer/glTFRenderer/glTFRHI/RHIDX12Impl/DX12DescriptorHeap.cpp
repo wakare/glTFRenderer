@@ -97,7 +97,7 @@ bool DX12DescriptorHeap::CreateConstantBufferViewInDescriptorHeap(IRHIDevice& de
 }
 
 bool DX12DescriptorHeap::CreateResourceDescriptorInHeap(IRHIDevice& device,
-                                                                  const IRHIBuffer& buffer, const RHIShaderResourceViewDesc& desc, std::shared_ptr<IRHIDescriptorAllocation>& out_allocation)
+                                                                  const IRHIBuffer& buffer, const RHIDescriptorDesc& desc, std::shared_ptr<IRHIDescriptorAllocation>& out_allocation)
 {
     auto* resource = dynamic_cast<const DX12Buffer&>(buffer).GetBuffer();
     auto find_resource = m_created_descriptors_info.find(resource);
@@ -141,7 +141,7 @@ bool DX12DescriptorHeap::CreateResourceDescriptorInHeap(IRHIDevice& device,
 }
 
 bool DX12DescriptorHeap::CreateResourceDescriptorInHeap(IRHIDevice& device, const IRHITexture& texture,
-                                                                  const RHIShaderResourceViewDesc& desc, std::shared_ptr<IRHIDescriptorAllocation>& out_allocation)
+                                                                  const RHIDescriptorDesc& desc, std::shared_ptr<IRHIDescriptorAllocation>& out_allocation)
 {
     auto* resource = dynamic_cast<const DX12Texture&>(texture).GetRawResource();
     auto find_resource = m_created_descriptors_info.find(resource);
@@ -185,7 +185,7 @@ bool DX12DescriptorHeap::CreateResourceDescriptorInHeap(IRHIDevice& device, cons
 }
 
 bool DX12DescriptorHeap::CreateResourceDescriptorInHeap(IRHIDevice& device,
-                                                                  const IRHIRenderTarget& render_target, const RHIShaderResourceViewDesc& desc, std::shared_ptr<IRHIDescriptorAllocation>&
+                                                                  const IRHIRenderTarget& render_target, const RHIDescriptorDesc& desc, std::shared_ptr<IRHIDescriptorAllocation>&
                                                                   out_allocation)
 {
     auto* resource = dynamic_cast<const DX12Texture&>(render_target.GetTexture()).GetRawResource();
@@ -241,7 +241,7 @@ D3D12_GPU_DESCRIPTOR_HANDLE DX12DescriptorHeap::GetGPUHandleForHeapStart() const
 }
 
 bool DX12DescriptorHeap::CreateSRVInHeap(IRHIDevice& device, unsigned descriptor_offset,
-                                         ID3D12Resource* resource, const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& out_GPU_handle)
+                                         ID3D12Resource* resource, const RHIDescriptorDesc& desc, RHIGPUDescriptorHandle& out_GPU_handle)
 {
     GLTF_CHECK(m_desc.type == RHIDescriptorHeapType::CBV_SRV_UAV);
     
@@ -271,7 +271,7 @@ bool DX12DescriptorHeap::CreateSRVInHeap(IRHIDevice& device, unsigned descriptor
 }
 
 bool DX12DescriptorHeap::CreateUAVInHeap(IRHIDevice& device, unsigned descriptor_offset, ID3D12Resource* resource,
-    const RHIShaderResourceViewDesc& desc, RHIGPUDescriptorHandle& out_GPU_handle)
+    const RHIDescriptorDesc& desc, RHIGPUDescriptorHandle& out_GPU_handle)
 {
     GLTF_CHECK(m_desc.type == RHIDescriptorHeapType::CBV_SRV_UAV);
     //TODO: Process offset for handle 
@@ -313,7 +313,7 @@ bool DX12DescriptorHeap::CreateUAVInHeap(IRHIDevice& device, unsigned descriptor
 }
 
 bool DX12DescriptorHeap::CreateRTVInHeap(IRHIDevice& device, unsigned descriptor_offset, ID3D12Resource* resource,
-    const RHIShaderResourceViewDesc& desc, RHICPUDescriptorHandle& out_CPU_handle)
+    const RHIDescriptorDesc& desc, RHICPUDescriptorHandle& out_CPU_handle)
 {
     GLTF_CHECK(m_desc.type == RHIDescriptorHeapType::RTV);
     auto* dx_device = dynamic_cast<DX12Device&>(device).GetDevice();
@@ -336,7 +336,7 @@ bool DX12DescriptorHeap::CreateRTVInHeap(IRHIDevice& device, unsigned descriptor
 }
 
 bool DX12DescriptorHeap::CreateDSVInHeap(IRHIDevice& device, unsigned descriptor_offset, ID3D12Resource* resource,
-    const RHIShaderResourceViewDesc& desc, RHICPUDescriptorHandle& out_CPU_handle)
+    const RHIDescriptorDesc& desc, RHICPUDescriptorHandle& out_CPU_handle)
 {
     GLTF_CHECK(m_desc.type == RHIDescriptorHeapType::DSV);
     auto* dx_device = dynamic_cast<DX12Device&>(device).GetDevice();

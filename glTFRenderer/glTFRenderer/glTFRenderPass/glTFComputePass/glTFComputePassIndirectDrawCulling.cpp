@@ -41,7 +41,7 @@ bool glTFComputePassIndirectDrawCulling::InitPass(glTFRenderResourceManager& res
 
     const auto& mesh_manager = resource_manager.GetMeshManager();
         
-    RETURN_IF_FALSE(MainDescriptorHeapRef().CreateResourceDescriptorInHeap(
+    RETURN_IF_FALSE(glTFRenderResourceManager::GetMemoryManager().GetDescriptorManager().CreateDescriptor(
             resource_manager.GetDevice(),
             *mesh_manager.GetCulledIndirectArgumentBuffer(),
             {

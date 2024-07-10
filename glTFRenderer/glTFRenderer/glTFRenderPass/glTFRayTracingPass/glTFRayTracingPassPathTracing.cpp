@@ -90,7 +90,7 @@ bool glTFRayTracingPassPathTracing::SetupPipelineStateObject(glTFRenderResourceM
     auto& raytracing_output_allocation = GetResourceTexture(RenderPassResourceTableId::RayTracingSceneOutput);
     auto& screen_uv_offset_allocation = GetResourceTexture(RenderPassResourceTableId::ScreenUVOffset);
     
-    RETURN_IF_FALSE(MainDescriptorHeapRef().CreateResourceDescriptorInHeap(
+    RETURN_IF_FALSE(glTFRenderResourceManager::GetMemoryManager().GetDescriptorManager().CreateDescriptor(
                 resource_manager.GetDevice(),
                 raytracing_output_allocation,
                 {
@@ -100,7 +100,7 @@ bool glTFRayTracingPassPathTracing::SetupPipelineStateObject(glTFRenderResourceM
                 },
                 m_raytracing_output_handle))
 
-    RETURN_IF_FALSE(MainDescriptorHeapRef().CreateResourceDescriptorInHeap(
+    RETURN_IF_FALSE(glTFRenderResourceManager::GetMemoryManager().GetDescriptorManager().CreateDescriptor(
                 resource_manager.GetDevice(),
                 screen_uv_offset_allocation,
                 {

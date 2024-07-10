@@ -57,7 +57,8 @@ bool glTFRenderPassBase::PreRenderPass(glTFRenderResourceManager& resource_manag
     
     auto& command_list = resource_manager.GetCommandListForRecord();
     
-    RETURN_IF_FALSE(RHIUtils::Instance().SetDescriptorHeapArray(command_list, &MainDescriptorHeapRef(), 1))
+    //RETURN_IF_FALSE(RHIUtils::Instance().SetDescriptorHeapArray(command_list, &MainDescriptorHeapRef(), 1))
+    RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().BindDescriptors(command_list))
     RETURN_IF_FALSE(RHIUtils::Instance().SetRootSignature(command_list, m_root_signature_helper.GetRootSignature(), GetPipelineType() == PipelineType::Graphics))
     
     for (const auto& render_interface : m_render_interfaces)
@@ -108,10 +109,4 @@ bool glTFRenderPassBase::SetupPipelineStateObject(glTFRenderResourceManager& res
 void glTFRenderPassBase::AddRenderInterface(const std::shared_ptr<glTFRenderInterfaceBase>& render_interface)
 {
     m_render_interfaces.push_back(render_interface);
-}
-
-IRHIDescriptorHeap& glTFRenderPassBase::MainDescriptorHeapRef()
-{
-    return UseStandaloneDescriptorHeap() ? *m_main_descriptor_heap :
-        glTFRenderResourceManager::GetMemoryManager().GetDescriptorHeap(RHIDescriptorHeapType::CBV_SRV_UAV);
 }

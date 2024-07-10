@@ -95,7 +95,7 @@ bool glTFRayTracingPassReSTIRDirectLighting::SetupPipelineStateObject(glTFRender
 {
     RETURN_IF_FALSE(glTFRayTracingPassWithMesh::SetupPipelineStateObject(resource_manager))
 
-    RETURN_IF_FALSE(MainDescriptorHeapRef().CreateResourceDescriptorInHeap(
+    RETURN_IF_FALSE(glTFRenderResourceManager::GetMemoryManager().GetDescriptorManager().CreateDescriptor(
                 resource_manager.GetDevice(),
                 GetResourceTexture(RenderPassResourceTableId::RayTracingPass_ReSTIRSample_Output),
                 {
@@ -105,7 +105,7 @@ bool glTFRayTracingPassReSTIRDirectLighting::SetupPipelineStateObject(glTFRender
                 },
                 m_lighting_samples_handle))
 
-    RETURN_IF_FALSE(MainDescriptorHeapRef().CreateResourceDescriptorInHeap(
+    RETURN_IF_FALSE(glTFRenderResourceManager::GetMemoryManager().GetDescriptorManager().CreateDescriptor(
                 resource_manager.GetDevice(),
                 GetResourceTexture(RenderPassResourceTableId::ScreenUVOffset),
                 {
@@ -118,7 +118,7 @@ bool glTFRayTracingPassReSTIRDirectLighting::SetupPipelineStateObject(glTFRender
     for (unsigned i = 0; i < resource_manager.GetBackBufferCount(); ++i)
     {
         auto& GBuffer_output = resource_manager.GetFrameResourceManagerByIndex(i).GetGBufferForInit();
-        RETURN_IF_FALSE(GBuffer_output.InitGBufferUAVs(GetID(), MainDescriptorHeapRef(), resource_manager))
+        RETURN_IF_FALSE(GBuffer_output.InitGBufferUAVs(GetID(), resource_manager))
     }
     
     GetRayTracingPipelineStateObject().BindShaderCode("glTFResources/ShaderSource/RayTracing/ReSTIRDirectLighting.hlsl",

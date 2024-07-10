@@ -3,7 +3,7 @@
 #include "VKDevice.h"
 #include "VKFactory.h"
 
-#define VMA_IMPLEMENTATION
+//#define VMA_IMPLEMENTATION
 #include <vma/vk_mem_alloc.h>
 
 bool VKMemoryAllocator::InitMemoryAllocator(const IRHIFactory& factory, const IRHIDevice& device)
@@ -20,4 +20,9 @@ bool VKMemoryAllocator::InitMemoryAllocator(const IRHIFactory& factory, const IR
     GLTF_CHECK(result == VK_SUCCESS);
     
     return true;
+}
+
+VmaAllocator VKMemoryAllocator::GetAllocator() const
+{
+    return m_vma_allocator;
 }

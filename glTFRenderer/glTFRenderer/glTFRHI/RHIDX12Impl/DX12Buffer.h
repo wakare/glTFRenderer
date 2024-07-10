@@ -12,11 +12,10 @@ public:
     GPU_BUFFER_HANDLE_TYPE GetGPUBufferHandle() const;
     
     ID3D12Resource* GetBuffer() const { return m_buffer.Get();}
+    bool InitGPUBuffer(IRHIDevice& device, const RHIBufferDesc& desc);
+    bool UploadBufferFromCPU(const void* data, size_t dataOffset, size_t size);
     
 private:
-    virtual bool InitGPUBuffer(IRHIDevice& device, const RHIBufferDesc& desc) override;
-    virtual bool UploadBufferFromCPU(const void* data, size_t dataOffset, size_t size) override;
-    
     ComPtr<ID3D12Resource> m_buffer {nullptr};
     UINT8* m_mapped_gpu_buffer {nullptr};
     CD3DX12_RANGE m_map_range {};

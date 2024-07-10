@@ -12,7 +12,7 @@ public:
     virtual ~IRHIDescriptorAllocation() override = default;
     virtual bool InitFromBuffer(const IRHIBuffer& buffer) = 0;
     
-    RHIShaderResourceViewDesc m_view_desc;
+    RHIDescriptorDesc m_view_desc;
 };
 
 class IRHIDescriptorTable : public IRHIResource
@@ -29,13 +29,13 @@ public:
 
     virtual bool CreateConstantBufferViewInDescriptorHeap(IRHIDevice& device, unsigned descriptorOffset, IRHIBuffer& buffer, const RHIConstantBufferViewDesc& desc, /*output*/
                                                           std::shared_ptr<IRHIDescriptorAllocation>& out_allocation) = 0;
-    virtual bool CreateResourceDescriptorInHeap(IRHIDevice& device, const IRHIBuffer& buffer, const RHIShaderResourceViewDesc& desc,
+    virtual bool CreateResourceDescriptorInHeap(IRHIDevice& device, const IRHIBuffer& buffer, const RHIDescriptorDesc& desc,
                                                           /*output*/
                                                           std::shared_ptr<IRHIDescriptorAllocation>& out_allocation) = 0;
-    virtual bool CreateResourceDescriptorInHeap(IRHIDevice& device, const IRHITexture& texture, const RHIShaderResourceViewDesc& desc,
+    virtual bool CreateResourceDescriptorInHeap(IRHIDevice& device, const IRHITexture& texture, const RHIDescriptorDesc& desc,
                                                           /*output*/
                                                           std::shared_ptr<IRHIDescriptorAllocation>& out_allocation) = 0;
-    virtual bool CreateResourceDescriptorInHeap(IRHIDevice& device, const IRHIRenderTarget& render_target, const RHIShaderResourceViewDesc& desc,
+    virtual bool CreateResourceDescriptorInHeap(IRHIDevice& device, const IRHIRenderTarget& render_target, const RHIDescriptorDesc& desc,
                                                           /*output*/
                                                           std::shared_ptr<IRHIDescriptorAllocation>& out_allocation) = 0;
     

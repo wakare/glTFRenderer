@@ -14,8 +14,5 @@ public:
     const RHIBufferDesc& GetBufferDesc() const {return m_buffer_desc; }
     
 protected:
-    virtual bool InitGPUBuffer(IRHIDevice& device, const RHIBufferDesc& desc) = 0;
-    virtual bool UploadBufferFromCPU(const void* data, size_t dataOffset, size_t size) = 0;
-    
     RHIBufferDesc m_buffer_desc {};
 };
