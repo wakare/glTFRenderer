@@ -8,7 +8,7 @@
 
 class glTFWindow
 {
-    friend class glTFGUI;
+    friend class glTFGUIRenderer;
     
 public:
     static glTFWindow& Get();

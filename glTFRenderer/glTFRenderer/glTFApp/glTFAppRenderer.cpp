@@ -1,5 +1,5 @@
 #include "glTFAppRenderer.h"
-#include "glTFGUI/glTFGUI.h"
+#include "glTFGUI/glTFGUIRenderer.h"
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassLighting.h"
 #include "RenderWindow/glTFWindow.h"
 
@@ -10,27 +10,29 @@ glTFAppRenderer::glTFAppRenderer(const glTFAppRendererConfig& renderer_config, c
 
     if (renderer_config.test_triangle_pass)
     {
-        m_render_pipeline.reset(new glTFAppRenderPipelineTestTriangle);   
+        m_scene_renderer.reset(new glTFSceneRendererTestTriangle);   
     }
     else
     {
         if (renderer_config.raster)
         {
-            m_render_pipeline.reset(new glTFAppRenderPipelineRasterScene);    
+            m_scene_renderer.reset(new glTFSceneRendererRasterizer);    
         }
         else
         {
-            m_render_pipeline.reset(new glTFAppRenderPipelineRayTracingScene(renderer_config.ReSTIR));
+            m_scene_renderer.reset(new glTFSceneRendererRayTracer(renderer_config.ReSTIR));
         }    
     }
 
     m_resource_manager.reset(new glTFRenderResourceManager());
     m_resource_manager->InitResourceManager(window.GetWidth(), window.GetHeight(), window.GetHWND());
-}
-
-bool glTFAppRenderer::InitGUIContext(glTFGUI& GUI, const glTFWindow& window) const
-{
-    return GUI.SetupGUIContext(window, *m_resource_manager);
+    
+    m_ui_renderer = std::make_unique<glTFGUIRenderer>();
+    m_ui_renderer->SetupGUIContext(glTFWindow::Get(), GetResourceManager());
+    m_ui_renderer->AddWidgetSetupCallback([this]()
+    {
+        m_scene_renderer->TickGUIWidgetUpdate(*m_ui_renderer, *m_resource_manager, 0);
+    });
 }
 
 bool glTFAppRenderer::InitScene(const glTFSceneGraph& scene_graph)
@@ -41,7 +43,7 @@ bool glTFAppRenderer::InitScene(const glTFSceneGraph& scene_graph)
 
 void glTFAppRenderer::TickRenderingBegin(size_t delta_time_ms)
 {
-    m_render_pipeline->TickFrameRenderingBegin(*m_resource_manager, delta_time_ms);
+    m_scene_renderer->TickFrameRenderingBegin(*m_resource_manager, delta_time_ms);
 }
 
 void glTFAppRenderer::TickSceneUpdating(const glTFSceneGraph& scene_graph, size_t delta_time_ms)
@@ -53,16 +55,22 @@ void glTFAppRenderer::TickSceneUpdating(const glTFSceneGraph& scene_graph, size_
 void glTFAppRenderer::TickSceneRendering(const glTFInputManager& input_manager, size_t delta_time_ms)
 {
     m_scene_view->ApplyInput(input_manager, delta_time_ms);
-    m_render_pipeline->ApplyInput(input_manager, delta_time_ms);
-    m_render_pipeline->TickSceneRendering(*m_scene_view, *m_resource_manager, delta_time_ms);
+    m_scene_renderer->ApplyInput(input_manager, delta_time_ms);
+    m_scene_renderer->TickSceneRendering(*m_scene_view, *m_resource_manager, delta_time_ms);
 }
 
-void glTFAppRenderer::TickGUIWidgetUpdate(glTFGUI& GUI, size_t delta_time_ms)
+void glTFAppRenderer::TickGUIWidgetUpdate(size_t delta_time_ms)
 {
-    m_render_pipeline->TickGUIWidgetUpdate(GUI, *m_resource_manager, delta_time_ms);
+    m_ui_renderer->UpdateWidgets();
+    m_ui_renderer->RenderWidgets(*m_resource_manager);
 }
 
 void glTFAppRenderer::TickRenderingEnd(size_t delta_time_ms)
 {
-    m_render_pipeline->TickFrameRenderingEnd(*m_resource_manager, delta_time_ms);
+    m_scene_renderer->TickFrameRenderingEnd(*m_resource_manager, delta_time_ms);
+}
+
+glTFGUIRenderer& glTFAppRenderer::GetGUIRenderer() const
+{
+    return *m_ui_renderer;
 }

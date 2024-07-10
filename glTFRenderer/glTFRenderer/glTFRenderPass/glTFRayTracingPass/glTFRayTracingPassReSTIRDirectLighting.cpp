@@ -51,7 +51,7 @@ bool glTFRayTracingPassReSTIRDirectLighting::PreRenderPass(glTFRenderResourceMan
     RETURN_IF_FALSE(GBuffer_output.Bind(GetID(), command_list, resource_manager.GetGBufferAllocations().GetAllocationWithPassId(GetID())))
     RETURN_IF_FALSE(GBuffer_output.Transition(GetID(), command_list, RHIResourceStateType::STATE_UNORDERED_ACCESS))
 
-    GetRenderInterface<glTFRenderInterfaceSingleConstantBuffer<RayTracingDIPassOptions>>()->UploadCPUBuffer(&m_pass_options, 0, sizeof(m_pass_options));
+    GetRenderInterface<glTFRenderInterfaceSingleConstantBuffer<RayTracingDIPassOptions>>()->UploadCPUBuffer(resource_manager, &m_pass_options, 0, sizeof(m_pass_options));
     
     return true;
 }
@@ -95,7 +95,7 @@ bool glTFRayTracingPassReSTIRDirectLighting::SetupPipelineStateObject(glTFRender
 {
     RETURN_IF_FALSE(glTFRayTracingPassWithMesh::SetupPipelineStateObject(resource_manager))
 
-    RETURN_IF_FALSE(glTFRenderResourceManager::GetMemoryManager().GetDescriptorManager().CreateDescriptor(
+    RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(
                 resource_manager.GetDevice(),
                 GetResourceTexture(RenderPassResourceTableId::RayTracingPass_ReSTIRSample_Output),
                 {
@@ -105,7 +105,7 @@ bool glTFRayTracingPassReSTIRDirectLighting::SetupPipelineStateObject(glTFRender
                 },
                 m_lighting_samples_handle))
 
-    RETURN_IF_FALSE(glTFRenderResourceManager::GetMemoryManager().GetDescriptorManager().CreateDescriptor(
+    RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(
                 resource_manager.GetDevice(),
                 GetResourceTexture(RenderPassResourceTableId::ScreenUVOffset),
                 {

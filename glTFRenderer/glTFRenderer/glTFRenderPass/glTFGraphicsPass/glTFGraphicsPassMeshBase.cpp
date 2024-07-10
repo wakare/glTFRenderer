@@ -19,7 +19,7 @@ bool glTFGraphicsPassMeshBase::InitPass(glTFRenderResourceManager& resource_mana
 {
     RETURN_IF_FALSE(glTFGraphicsPassBase::InitPass(resource_manager))
     
-    RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSceneMeshInfo>()->UpdateSceneMeshData(resource_manager.GetMeshManager()))
+    RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSceneMeshInfo>()->UpdateSceneMeshData(resource_manager, resource_manager.GetMeshManager()))
     
     return true;
 }

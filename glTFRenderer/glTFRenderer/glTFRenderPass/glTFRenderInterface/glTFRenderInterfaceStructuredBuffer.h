@@ -9,7 +9,7 @@ class glTFRenderInterfaceStructuredBuffer : public glTFRenderInterfaceWithRSAllo
 public:
     virtual bool InitInterfaceImpl(glTFRenderResourceManager& resource_manager) override
     {
-        glTFRenderResourceManager::GetMemoryManager().AllocateBufferMemory(
+        resource_manager.GetMemoryManager().AllocateBufferMemory(
         resource_manager.GetDevice(),
         {
             L"StructuredBuffer",
@@ -27,9 +27,9 @@ public:
         return true;
     }
 
-    virtual bool UploadCPUBuffer(const void* data, size_t offset, size_t size) override
+    virtual bool UploadCPUBuffer(glTFRenderResourceManager& resource_manager, const void* data, size_t offset, size_t size) override
     {
-        return glTFRenderResourceManager::GetMemoryManager().UploadBufferData(*m_gpu_buffer, data, 0, size);
+        return resource_manager.GetMemoryManager().UploadBufferData(*m_gpu_buffer, data, 0, size);
     }
     
     virtual bool ApplyInterfaceImpl(glTFRenderResourceManager& resource_manager, bool isGraphicsPipeline) override

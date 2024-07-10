@@ -59,8 +59,8 @@ bool glTFRayTracingPassPathTracing::PreRenderPass(glTFRenderResourceManager& res
     RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, m_output_allocation.parameter_index, *m_raytracing_output_handle, false))
     RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, m_screen_uv_offset_allocation.parameter_index, *m_screen_uv_offset_handle, false))
 
-    RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSingleConstantBuffer<RayTracingPathTracingPassOptions>>()->UploadCPUBuffer(&m_pass_options, 0, sizeof(m_pass_options)))
-    RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceRadiosityScene>()->UploadCPUBufferFromRadiosityRenderer(resource_manager.GetRadiosityRenderer()))
+    RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSingleConstantBuffer<RayTracingPathTracingPassOptions>>()->UploadCPUBuffer(resource_manager, &m_pass_options, 0, sizeof(m_pass_options)))
+    RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceRadiosityScene>()->UploadCPUBufferFromRadiosityRenderer(resource_manager, resource_manager.GetRadiosityRenderer()))
     
     return true;
 }
@@ -90,7 +90,7 @@ bool glTFRayTracingPassPathTracing::SetupPipelineStateObject(glTFRenderResourceM
     auto& raytracing_output_allocation = GetResourceTexture(RenderPassResourceTableId::RayTracingSceneOutput);
     auto& screen_uv_offset_allocation = GetResourceTexture(RenderPassResourceTableId::ScreenUVOffset);
     
-    RETURN_IF_FALSE(glTFRenderResourceManager::GetMemoryManager().GetDescriptorManager().CreateDescriptor(
+    RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(
                 resource_manager.GetDevice(),
                 raytracing_output_allocation,
                 {
@@ -100,7 +100,7 @@ bool glTFRayTracingPassPathTracing::SetupPipelineStateObject(glTFRenderResourceM
                 },
                 m_raytracing_output_handle))
 
-    RETURN_IF_FALSE(glTFRenderResourceManager::GetMemoryManager().GetDescriptorManager().CreateDescriptor(
+    RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(
                 resource_manager.GetDevice(),
                 screen_uv_offset_allocation,
                 {

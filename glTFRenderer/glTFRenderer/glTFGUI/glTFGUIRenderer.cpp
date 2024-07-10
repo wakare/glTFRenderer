@@ -1,4 +1,4 @@
-#include "glTFGUI.h"
+#include "glTFGUIRenderer.h"
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_glfw.h>
 
@@ -7,9 +7,12 @@
 #include "glTFRHI/RHIUtils.h"
 #include "RenderWindow/glTFWindow.h"
 
-bool glTFGUI::g_valid = false;
+glTFGUIRenderer::~glTFGUIRenderer()
+{
+    ExitAndClean();
+}
 
-bool glTFGUI::SetupGUIContext(const glTFWindow& window, glTFRenderResourceManager& resource_manager)
+bool glTFGUIRenderer::SetupGUIContext(const glTFWindow& window, glTFRenderResourceManager& resource_manager)
 {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -26,24 +29,15 @@ bool glTFGUI::SetupGUIContext(const glTFWindow& window, glTFRenderResourceManage
     ImGui_ImplGlfw_InstallEmscriptenCanvasResizeCallback("#canvas");
 #endif
 
-    m_descriptor_heap = RHIResourceFactory::CreateRHIResource<IRHIDescriptorHeap>();
-    m_descriptor_heap->InitDescriptorHeap(resource_manager.GetDevice(),
-        {
-            1,
-            RHIDescriptorHeapType::CBV_SRV_UAV,
-            true
-        }
-    );
-    
-    RETURN_IF_FALSE(RHIUtils::Instance().InitGUIContext(resource_manager.GetDevice(), *m_descriptor_heap, resource_manager.GetBackBufferCount()))
+    RETURN_IF_FALSE(RHIUtils::Instance().InitGUIContext(resource_manager.GetDevice(), resource_manager.GetMemoryManager().GetDescriptorManager(), resource_manager.GetBackBufferCount()))
 
-    glTFWindow::Get().SetInputHandleCallback([](){return HandleMouseEventThisFrame();});
-    g_valid = true;
+    glTFWindow::Get().SetInputHandleCallback([this](){return HandleMouseEventThisFrame();});
+    m_inited = true;
     
     return true;
 }
 
-bool glTFGUI::RenderWidgets(glTFRenderResourceManager& resource_manager)
+bool glTFGUIRenderer::RenderWidgets(glTFRenderResourceManager& resource_manager)
 {
     // Rendering
     ImGui::Render();
@@ -54,7 +48,7 @@ bool glTFGUI::RenderWidgets(glTFRenderResourceManager& resource_manager)
     RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().BindRenderTarget(command_list,
         {&resource_manager.GetCurrentFrameSwapChainRT()}, nullptr))
     
-    RETURN_IF_FALSE(RHIUtils::Instance().SetDescriptorHeapArray(command_list, m_descriptor_heap.get(), 1))
+    RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().BindGUIDescriptors(command_list))
     RETURN_IF_FALSE(RHIUtils::Instance().RenderGUIFrame(command_list))
 
     resource_manager.CloseCommandListAndExecute(true);
@@ -62,7 +56,21 @@ bool glTFGUI::RenderWidgets(glTFRenderResourceManager& resource_manager)
     return true;
 }
 
-bool glTFGUI::SetupWidgetBegin()
+bool glTFGUIRenderer::UpdateWidgets()
+{
+    SetupWidgetBegin();
+    
+    SetupWidgetsInternal();
+    for (const auto& setup_callback : m_widget_setup_callbacks)
+    {
+        setup_callback();
+    }
+    
+    SetupWidgetEnd();
+    return true;
+}
+
+bool glTFGUIRenderer::SetupWidgetBegin()
 {
     // Start the Dear ImGui frame
     RETURN_IF_FALSE(RHIUtils::Instance().NewGUIFrame())
@@ -70,47 +78,51 @@ bool glTFGUI::SetupWidgetBegin()
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    // Setup constant widgets
-    SetupWidgets();
-    
+    ImGui::Begin("glTFRenderer config");
+
     return true;
 }
 
-bool glTFGUI::SetupWidgetEnd()
+bool glTFGUIRenderer::SetupWidgetEnd()
 {
     ImGui::End();
     
-    return true;
-}
-
-bool glTFGUI::ExitAndClean()
-{
-    RETURN_IF_FALSE(RHIUtils::Instance().ExitGUI())
-    ImGui_ImplGlfw_Shutdown();
-    ImGui::DestroyContext();
+    ImGui::EndFrame();
     
     return true;
 }
 
-bool glTFGUI::IsValid()
+bool glTFGUIRenderer::ExitAndClean()
 {
-    return g_valid;
+    m_widget_setup_callbacks.clear();
+    RETURN_IF_FALSE(RHIUtils::Instance().ExitGUI())
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
+
+    //Reset input handle callback
+    glTFWindow::Get().SetInputHandleCallback([](){return false;});
+    
+    return true;
 }
 
-bool glTFGUI::HandleMouseEventThisFrame()
+bool glTFGUIRenderer::HandleMouseEventThisFrame() const
 {
-    return IsValid() ? ImGui::GetIO().WantCaptureMouse : false;
+    return m_inited ? ImGui::GetIO().WantCaptureMouse : false;
 }
 
-bool glTFGUI::HandleKeyBoardEventThisFrame()
+bool glTFGUIRenderer::HandleKeyBoardEventThisFrame() const
 {
-    return IsValid() ? ImGui::GetIO().WantCaptureKeyboard : false;
+    return m_inited ? ImGui::GetIO().WantCaptureKeyboard : false;
 }
 
-bool glTFGUI::SetupWidgets()
+bool glTFGUIRenderer::AddWidgetSetupCallback(GUIWidgetSetupCallback callback)
 {
-    ImGui::Begin("glTFRenderer config");
+    m_widget_setup_callbacks.push_back(std::move(callback));
+    return true;
+}
 
+bool glTFGUIRenderer::SetupWidgetsInternal()
+{
     const auto& io = ImGui::GetIO();
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 

@@ -31,8 +31,8 @@ bool glTFGraphicsPassPostprocess::InitPass(glTFRenderResourceManager& resource_m
     const RHIBufferDesc vertexBufferDesc = {L"vertexBufferDefaultBuffer", sizeof(postprocessVertices), 1, 1, RHIBufferType::Default, RHIDataFormat::UNKNOWN, RHIBufferResourceType::Buffer};
     const RHIBufferDesc indexBufferDesc = {L"indexBufferDefaultBuffer", sizeof(postprocessIndices), 1, 1, RHIBufferType::Default, RHIDataFormat::UNKNOWN, RHIBufferResourceType::Buffer};
 
-    glTFRenderResourceManager::GetMemoryManager().AllocateBufferMemory(glTFRenderResourceManager::GetDevice(), vertexBufferDesc, m_postprocessQuadResource.meshVertexBuffer);
-    glTFRenderResourceManager::GetMemoryManager().AllocateBufferMemory(glTFRenderResourceManager::GetDevice(), indexBufferDesc, m_postprocessQuadResource.meshIndexBuffer);
+    resource_manager.GetMemoryManager().AllocateBufferMemory(resource_manager.GetDevice(), vertexBufferDesc, m_postprocessQuadResource.meshVertexBuffer);
+    resource_manager.GetMemoryManager().AllocateBufferMemory(resource_manager.GetDevice(), indexBufferDesc, m_postprocessQuadResource.meshIndexBuffer);
     
     auto vertexUploadBuffer = RHIResourceFactory::CreateRHIResource<IRHIBufferAllocation>();
     auto indexUploadBuffer = RHIResourceFactory::CreateRHIResource<IRHIBufferAllocation>();
@@ -40,8 +40,8 @@ bool glTFGraphicsPassPostprocess::InitPass(glTFRenderResourceManager& resource_m
     const RHIBufferDesc vertexUploadBufferDesc = {L"vertexBufferUploadBuffer", sizeof(postprocessVertices), 1, 1, RHIBufferType::Upload, RHIDataFormat::UNKNOWN, RHIBufferResourceType::Buffer};
     const RHIBufferDesc indexUploadBufferDesc = {L"indexBufferUploadBuffer", sizeof(postprocessIndices), 1, 1, RHIBufferType::Upload, RHIDataFormat::UNKNOWN, RHIBufferResourceType::Buffer};
 
-    glTFRenderResourceManager::GetMemoryManager().AllocateBufferMemory(glTFRenderResourceManager::GetDevice(), vertexUploadBufferDesc, vertexUploadBuffer);
-    glTFRenderResourceManager::GetMemoryManager().AllocateBufferMemory(glTFRenderResourceManager::GetDevice(), indexUploadBufferDesc, indexUploadBuffer);
+    resource_manager.GetMemoryManager().AllocateBufferMemory(resource_manager.GetDevice(), vertexUploadBufferDesc, vertexUploadBuffer);
+    resource_manager.GetMemoryManager().AllocateBufferMemory(resource_manager.GetDevice(), indexUploadBufferDesc, indexUploadBuffer);
     
     auto& command_list = resource_manager.GetCommandListForRecord();
     

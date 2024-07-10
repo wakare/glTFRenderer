@@ -13,11 +13,11 @@ public:
     {
     }
 
-    virtual bool UploadCPUBuffer(const void* data, size_t offset, size_t size) override
+    virtual bool UploadCPUBuffer(glTFRenderResourceManager& resource_manager, const void* data, size_t offset, size_t size) override
     {
         // TODO: Handle offset with data alignment later
         GLTF_CHECK(offset == 0);
-        return glTFRenderResourceManager::GetMemoryManager().UploadBufferData(*m_constant_gpu_data, data, /*GetDataOffsetWithAlignment(offset)*/0, size);
+        return resource_manager.GetMemoryManager().UploadBufferData(*m_constant_gpu_data, data, /*GetDataOffsetWithAlignment(offset)*/0, size);
     }
 
     size_t GetDataOffsetWithAlignment(unsigned index) const
@@ -30,7 +30,7 @@ public:
 protected:
     virtual bool InitInterfaceImpl(glTFRenderResourceManager& resource_manager) override
     {
-        glTFRenderResourceManager::GetMemoryManager().AllocateBufferMemory(
+        resource_manager.GetMemoryManager().AllocateBufferMemory(
         resource_manager.GetDevice(),
         {
             L"GPUBuffer_SingleConstantBuffer",

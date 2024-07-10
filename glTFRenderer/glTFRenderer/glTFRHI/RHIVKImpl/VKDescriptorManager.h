@@ -12,4 +12,6 @@ public:
     virtual bool CreateDescriptor(IRHIDevice& device, IRHIRenderTarget& texture, const RHIDescriptorDesc& desc, std::shared_ptr<IRHIDescriptorAllocation>& out_descriptor_allocation) override;
 
     virtual bool BindDescriptors(IRHICommandList& command_list) override;
+    virtual bool BindGUIDescriptors(IRHICommandList& command_list) override;
+
 };

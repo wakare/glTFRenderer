@@ -5,6 +5,7 @@
 #include "RHIInterface/IRHICommandAllocator.h"
 #include "RHIInterface/IRHICommandSignature.h"
 #include "RHIInterface/IRHIDescriptorHeap.h"
+#include "RHIInterface/IRHIDescriptorManager.h"
 #include "RHIInterface/IRHIIndexBufferView.h"
 #include "RHIInterface/IRHIPipelineStateObject.h"
 #include "RHIInterface/IRHIResource.h"
@@ -43,7 +44,7 @@ class RHIUtils : public IRHIResource
 public:
     RHIUtils() = default;
     
-    virtual bool InitGUIContext(IRHIDevice& device, IRHIDescriptorHeap& descriptor_heap, unsigned back_buffer_count) = 0;
+    virtual bool InitGUIContext(IRHIDevice& device, IRHIDescriptorManager& descriptor_heap, unsigned back_buffer_count) = 0;
     virtual bool NewGUIFrame() = 0;
     virtual bool RenderGUIFrame(IRHICommandList& command_list) = 0;
     virtual bool ExitGUI() = 0;

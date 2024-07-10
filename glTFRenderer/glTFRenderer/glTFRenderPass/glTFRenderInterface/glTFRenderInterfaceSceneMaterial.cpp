@@ -47,7 +47,7 @@ bool glTFRenderInterfaceSceneMaterial::UploadMaterialData(glTFRenderResourceMana
     }
 
     // Set heap handle to bindless parameter slot
-    RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceStructuredBuffer<MaterialInfo>>()->UploadCPUBuffer(material_infos.data(), 0, sizeof(MaterialInfo) * material_infos.size()))
+    RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceStructuredBuffer<MaterialInfo>>()->UploadCPUBuffer(resource_manager, material_infos.data(), 0, sizeof(MaterialInfo) * material_infos.size()))
     GetRenderInterface<glTFRenderInterfaceSRVTableBindless>()->AddTextureAllocations(texture_descriptor_allocations);
     
     return true;

@@ -11,7 +11,8 @@ class DX12RayTracingAS : public IRHIRayTracingAS
 public:
     DX12RayTracingAS();
     
-    virtual bool InitRayTracingAS(IRHIDevice& device, IRHICommandList& command_list, const glTFRenderMeshManager& mesh_manager) override;
+    virtual bool InitRayTracingAS(IRHIDevice& device, IRHICommandList& command_list, const glTFRenderMeshManager& mesh_manager, glTFRenderResourceManager
+                                  & resource_manager) override;
     virtual const IRHIDescriptorAllocation& GetTLASHandle() const override;
 
     const std::vector<D3D12_RAYTRACING_INSTANCE_DESC>& GetInstanceDesc() const;

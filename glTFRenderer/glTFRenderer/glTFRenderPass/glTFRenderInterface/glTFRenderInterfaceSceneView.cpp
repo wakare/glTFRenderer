@@ -7,7 +7,7 @@ glTFRenderInterfaceSceneView::glTFRenderInterfaceSceneView()
 {
 }
 
-bool glTFRenderInterfaceSceneView::UpdateSceneView(const glTFSceneView& view)
+bool glTFRenderInterfaceSceneView::UpdateSceneView(glTFRenderResourceManager& resource_manager, const glTFSceneView& view)
 {
     unsigned width, height;
     view.GetViewportSize(width, height);
@@ -45,7 +45,7 @@ bool glTFRenderInterfaceSceneView::UpdateSceneView(const glTFSceneView& view)
     m_scene_view.view_up_plane_normal = glm::normalize(m_scene_view.view_up_plane_normal);
     m_scene_view.view_down_plane_normal = glm::normalize(m_scene_view.view_down_plane_normal);
     
-    UploadCPUBuffer(&m_scene_view, 0, sizeof(m_scene_view));
+    UploadCPUBuffer(resource_manager, &m_scene_view, 0, sizeof(m_scene_view));
     
     return true;
 }

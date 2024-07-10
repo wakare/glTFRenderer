@@ -13,8 +13,8 @@ public:
     ID3D12Resource* GetRawResource() const;
     bool InitFromExternalResource(ID3D12Resource* raw_resource, const RHITextureDesc& desc);
 
-    bool InitTexture(IRHIDevice& device, const RHITextureDesc& desc);
-    bool InitTextureAndUpload(IRHIDevice& device,  IRHICommandList& command_list, const RHITextureDesc& desc);
+    bool InitTexture(IRHIDevice& device, glTFRenderResourceManager& resource_manager, const RHITextureDesc& desc);
+    bool InitTextureAndUpload(IRHIDevice& device, glTFRenderResourceManager& resource_manager, IRHICommandList& command_list, const RHITextureDesc& desc);
     
 protected:
     std::shared_ptr<IRHIBufferAllocation> m_texture_buffer;

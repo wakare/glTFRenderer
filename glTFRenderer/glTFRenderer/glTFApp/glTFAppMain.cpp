@@ -2,7 +2,7 @@
 
 #include <imgui.h>
 
-#include "glTFGUI/glTFGUI.h"
+#include "glTFGUI/glTFGUIRenderer.h"
 #include "glTFLight/glTFDirectionalLight.h"
 #include "glTFLight/glTFPointLight.h"
 #include "RenderWindow/glTFInputManager.h"
@@ -110,20 +110,15 @@ void glTFAppMain::Run()
             m_renderer->TickRenderingBegin(time_delta_ms);
             m_renderer->TickSceneUpdating(*m_scene_graph, time_delta_ms);
             m_renderer->TickSceneRendering(*m_input_manager, time_delta_ms);
-            
-            m_GUI->SetupWidgetBegin();
-            UpdateGUIWidgets();
-            m_renderer->TickGUIWidgetUpdate(*m_GUI, time_delta_ms);
-            m_GUI->SetupWidgetEnd();
-            m_GUI->RenderWidgets(m_renderer->GetResourceManager());
-        
+            m_renderer->TickGUIWidgetUpdate(time_delta_ms);
             m_renderer->TickRenderingEnd(time_delta_ms);
             m_input_manager->TickFrame(time_delta_ms);
         });
 
         window.SetExitCallback([this]()
         {
-            m_GUI->ExitAndClean();
+            // Clear all render resource
+            m_renderer.reset(nullptr);
         });    
     }
     
@@ -206,12 +201,13 @@ bool glTFAppMain::InitRenderer()
     {
         return true;
     }
-
+    
     m_app_config.m_recreate_renderer = false;
     if (m_renderer)
     {
         m_renderer->GetResourceManager().WaitAllFrameFinish();
     }
+    m_renderer = nullptr; 
 
     glTFAppRendererConfig renderer_config;
     renderer_config.raster = m_app_config.m_raster_scene;
@@ -219,14 +215,9 @@ bool glTFAppMain::InitRenderer()
     renderer_config.test_triangle_pass = m_app_config.m_test_triangle_pass;
     renderer_config.vulkan = m_app_config.m_vulkan;
     
-    m_renderer.reset(new glTFAppRenderer(renderer_config, glTFWindow::Get()));
+    m_renderer = std::make_unique<glTFAppRenderer>(renderer_config, glTFWindow::Get());
     m_renderer->InitScene(*m_scene_graph);
-
-    if (!m_GUI)
-    {
-        m_GUI.reset(new glTFGUI);
-        m_renderer->InitGUIContext(*m_GUI, glTFWindow::Get());
-    }
+    m_renderer->GetGUIRenderer().AddWidgetSetupCallback([this](){UpdateGUIWidgets();});
 
     m_scene_graph->TraverseNodes([](const glTFSceneNode& node)
     {

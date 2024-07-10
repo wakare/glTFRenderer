@@ -178,10 +178,10 @@ RHITextureDesc RHITextureDesc::MakeBasePassAlbedoTextureDesc(const glTFRenderRes
 {
     RHITextureDesc texture_desc = MakeFullScreenTextureDesc(
         "BASEPASS_ALBEDO_OUTPUT",
-            RHIDataFormat::R8G8B8A8_UNORM_SRGB,
+            RHIDataFormat::R8G8B8A8_UNORM,
             static_cast<RHIResourceUsageFlags>(RUF_ALLOW_UAV | RUF_ALLOW_RENDER_TARGET),
 {
-                .clear_format = RHIDataFormat::R8G8B8A8_UNORM_SRGB,
+                .clear_format = RHIDataFormat::R8G8B8A8_UNORM,
                 .clear_color {0.0f, 0.0f, 0.0f, 0.0f}
             },
             resource_manager
@@ -194,10 +194,10 @@ RHITextureDesc RHITextureDesc::MakeBasePassNormalTextureDesc(const glTFRenderRes
 {
     RHITextureDesc texture_desc = MakeFullScreenTextureDesc(
         "BASEPASS_NORMAL_OUTPUT",
-            RHIDataFormat::R8G8B8A8_UNORM_SRGB,
+            RHIDataFormat::R8G8B8A8_UNORM,
             static_cast<RHIResourceUsageFlags>(RUF_ALLOW_UAV | RUF_ALLOW_RENDER_TARGET),
 {
-                .clear_format = RHIDataFormat::R8G8B8A8_UNORM_SRGB,
+                .clear_format = RHIDataFormat::R8G8B8A8_UNORM,
                 .clear_color {0.0f, 0.0f, 0.0f, 0.0f}
             },
             resource_manager

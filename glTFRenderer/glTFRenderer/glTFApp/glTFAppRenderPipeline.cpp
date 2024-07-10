@@ -2,7 +2,7 @@
 
 #include <imgui.h>
 
-#include "glTFGUI/glTFGUI.h"
+#include "glTFGUI/glTFGUIRenderer.h"
 #include "glTFRenderPass/glTFComputePass/glTFComputePassIndirectDrawCulling.h"
 #include "glTFRenderPass/glTFComputePass/glTFComputePassLighting.h"
 #include "glTFRenderPass/glTFComputePass/glTFComputePassRayTracingPostprocess.h"
@@ -15,25 +15,24 @@
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassTestTriangle.h"
 #include "RenderWindow//glTFWindow.h"
 
-glTFAppRenderPipelineBase::glTFAppRenderPipelineBase()
-    : m_render_pass_dirty(true)
+glTFSceneRendererBase::glTFSceneRendererBase()
 {
     m_pass_options.SetEnableLit(true);
     m_pass_options.SetEnableCulling(true);
 }
 
-void glTFAppRenderPipelineBase::TickFrameRenderingBegin(glTFRenderResourceManager& resource_manager, size_t delta_time_ms)
+void glTFSceneRendererBase::TickFrameRenderingBegin(glTFRenderResourceManager& resource_manager, size_t delta_time_ms)
 {
     m_pass_manager->RenderBegin(resource_manager, delta_time_ms);
 }
 
-void glTFAppRenderPipelineBase::TickSceneRendering(const glTFSceneView& scene_view, glTFRenderResourceManager& resource_manager, size_t delta_time_ms)
+void glTFSceneRendererBase::TickSceneRendering(const glTFSceneView& scene_view, glTFRenderResourceManager& resource_manager, size_t delta_time_ms)
 {
-    if (m_render_pass_dirty)
+    if (!m_pass_inited)
     {
         const bool created = RecreateRenderPass(resource_manager);
         GLTF_CHECK(created);
-        m_render_pass_dirty = false;
+        m_pass_inited = true;
     }
 
     m_pass_manager->UpdatePipelineOptions(m_pass_options);
@@ -41,7 +40,7 @@ void glTFAppRenderPipelineBase::TickSceneRendering(const glTFSceneView& scene_vi
     m_pass_manager->RenderAllPass(resource_manager, delta_time_ms);
 }
 
-void glTFAppRenderPipelineBase::TickGUIWidgetUpdate(glTFGUI& GUI, glTFRenderResourceManager& resource_manager, size_t delta_time_ms)
+void glTFSceneRendererBase::TickGUIWidgetUpdate(glTFGUIRenderer& GUI, glTFRenderResourceManager& resource_manager, size_t delta_time_ms)
 {
     UpdateGUIWidgets();
     
@@ -49,12 +48,12 @@ void glTFAppRenderPipelineBase::TickGUIWidgetUpdate(glTFGUI& GUI, glTFRenderReso
     m_pass_manager->UpdateAllPassGUIWidgets();
 }
 
-void glTFAppRenderPipelineBase::TickFrameRenderingEnd(glTFRenderResourceManager& resource_manager, size_t delta_time_ms)
+void glTFSceneRendererBase::TickFrameRenderingEnd(glTFRenderResourceManager& resource_manager, size_t delta_time_ms)
 {
     m_pass_manager->RenderEnd(resource_manager, delta_time_ms);
 }
 
-void glTFAppRenderPipelineBase::ApplyInput(const glTFInputManager& input_manager, size_t delta_time_ms)
+void glTFSceneRendererBase::ApplyInput(const glTFInputManager& input_manager, size_t delta_time_ms)
 {
     if (input_manager.IsKeyPressed(GLFW_KEY_C))
     {
@@ -67,22 +66,21 @@ void glTFAppRenderPipelineBase::ApplyInput(const glTFInputManager& input_manager
     }
 }
 
-bool glTFAppRenderPipelineBase::RecreateRenderPass(glTFRenderResourceManager& resource_manager)
+bool glTFSceneRendererBase::RecreateRenderPass(glTFRenderResourceManager& resource_manager)
 {
-    resource_manager.GetMemoryManager().CleanAllocatedResource();
-    resource_manager.InitMemoryManager();
-    
+    //resource_manager.GetMemoryManager().CleanAllocatedResource();
+    //resource_manager.InitMemoryManager();
+
     m_pass_manager.reset(new glTFRenderPassManager());
-    SetupRenderPipeline();
+    SetupSceneRenderer();
     
     m_pass_manager->InitRenderPassManager(glTFWindow::Get());
-    
     m_pass_manager->InitAllPass(resource_manager);
     
     return true;
 }
 
-bool glTFAppRenderPipelineRasterScene::SetupRenderPipeline()
+bool glTFSceneRendererRasterizer::SetupSceneRenderer()
 {
     std::unique_ptr<glTFComputePassIndirectDrawCulling> culling_pass = std::make_unique<glTFComputePassIndirectDrawCulling>();
     m_pass_manager->AddRenderPass(std::move(culling_pass));
@@ -99,12 +97,12 @@ bool glTFAppRenderPipelineRasterScene::SetupRenderPipeline()
     return true;
 }
 
-glTFAppRenderPipelineRayTracingScene::glTFAppRenderPipelineRayTracingScene(bool use_restir_direct_lighting)
+glTFSceneRendererRayTracer::glTFSceneRendererRayTracer(bool use_restir_direct_lighting)
     : m_use_restir_direct_lighting(use_restir_direct_lighting)
 {
 }
 
-bool glTFAppRenderPipelineRayTracingScene::SetupRenderPipeline()
+bool glTFSceneRendererRayTracer::SetupSceneRenderer()
 {
     if (m_use_restir_direct_lighting)
     {
@@ -127,7 +125,7 @@ bool glTFAppRenderPipelineRayTracingScene::SetupRenderPipeline()
     return true;
 }
 
-bool glTFAppRenderPipelineTestTriangle::SetupRenderPipeline()
+bool glTFSceneRendererTestTriangle::SetupSceneRenderer()
 {
     std::unique_ptr<glTFGraphicsPassTestTriangle> culling_pass = std::make_unique<glTFGraphicsPassTestTriangle>();
     m_pass_manager->AddRenderPass(std::move(culling_pass));

@@ -21,7 +21,7 @@ bool glTFRayTracingPassWithMesh::InitPass(glTFRenderResourceManager& resource_ma
     RETURN_IF_FALSE(glTFRayTracingPassBase::InitPass(resource_manager))
     
     RETURN_IF_FALSE(UpdateAS(resource_manager))
-    RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSceneMeshInfo>()->UpdateSceneMeshData(resource_manager.GetMeshManager()))
+    RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSceneMeshInfo>()->UpdateSceneMeshData(resource_manager, resource_manager.GetMeshManager()))
     RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSceneMaterial>()->UploadMaterialData(resource_manager))
     m_shader_table = RHIResourceFactory::CreateRHIResource<IRHIShaderTable>();
 
@@ -36,7 +36,7 @@ bool glTFRayTracingPassWithMesh::InitPass(glTFRenderResourceManager& resource_ma
     shadow_ray_sbt.miss_entry = GetShadowRayMissFunctionName();
     shadow_ray_sbt.hit_group_entry = GetShadowRayHitGroupName();
     
-    RETURN_IF_FALSE(m_shader_table->InitShaderTable(resource_manager.GetDevice(), GetRayTracingPipelineStateObject(), *m_raytracing_as, sbts))
+    RETURN_IF_FALSE(m_shader_table->InitShaderTable(resource_manager.GetDevice(), resource_manager, GetRayTracingPipelineStateObject(), *m_raytracing_as, sbts))
 
     m_trace_count = {resource_manager.GetSwapChain().GetWidth(), resource_manager.GetSwapChain().GetHeight(), 1};
     
@@ -47,7 +47,7 @@ bool glTFRayTracingPassWithMesh::PreRenderPass(glTFRenderResourceManager& resour
 {
     RETURN_IF_FALSE(glTFRayTracingPassBase::PreRenderPass(resource_manager))
     RETURN_IF_FALSE(UpdateAS(resource_manager))
-    RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceLighting>()->UpdateCPUBuffer())
+    RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceLighting>()->UpdateCPUBuffer(resource_manager))
     RETURN_IF_FALSE(RHIUtils::Instance().SetSRVToRootParameterSlot(resource_manager.GetCommandListForRecord(), m_raytracing_as_allocation.parameter_index, m_raytracing_as->GetTLASHandle(), false))
 
     return true;
@@ -118,7 +118,7 @@ bool glTFRayTracingPassWithMesh::UpdateAS(glTFRenderResourceManager& resource_ma
 bool glTFRayTracingPassWithMesh::BuildAS(glTFRenderResourceManager& resource_manager)
 {
     m_raytracing_as = RHIResourceFactory::CreateRHIResource<IRHIRayTracingAS>();
-    RETURN_IF_FALSE(m_raytracing_as->InitRayTracingAS(resource_manager.GetDevice(), resource_manager.GetCommandListForRecord(), resource_manager.GetMeshManager()))
+    RETURN_IF_FALSE(m_raytracing_as->InitRayTracingAS(resource_manager.GetDevice(), resource_manager.GetCommandListForRecord(), resource_manager.GetMeshManager(), resource_manager))
     
     return true;
 }

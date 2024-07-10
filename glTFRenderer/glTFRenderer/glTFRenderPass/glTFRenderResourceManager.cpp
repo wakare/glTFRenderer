@@ -13,8 +13,6 @@ std::shared_ptr<IRHIFactory> glTFRenderResourceManager::m_factory = nullptr;
 std::shared_ptr<IRHIDevice> glTFRenderResourceManager::m_device = nullptr;
 std::shared_ptr<IRHICommandQueue> glTFRenderResourceManager::m_command_queue = nullptr;
 std::shared_ptr<IRHISwapChain> glTFRenderResourceManager::m_swap_chain = nullptr;
-std::shared_ptr<IRHIMemoryAllocator> glTFRenderResourceManager::m_memory_allocator = nullptr;
-std::shared_ptr<IRHIMemoryManager> glTFRenderResourceManager::m_memory_manager = nullptr;
 
 glTFRenderResourceManager::glTFRenderResourceManager()
     : m_radiosity_renderer(std::make_shared<glTFRadiosityRenderer>())
@@ -50,16 +48,9 @@ bool glTFRenderResourceManager::InitResourceManager(unsigned width, unsigned hei
         EXIT_WHEN_FALSE(m_swap_chain->InitSwapChain(*m_factory, *m_device, *m_command_queue, width, height, false, handle))    
     }
 
-    if (!m_memory_allocator)
-    {
-        m_memory_allocator = RHIResourceFactory::CreateRHIResource<IRHIMemoryAllocator>();
-        EXIT_WHEN_FALSE(m_memory_allocator->InitMemoryAllocator(*m_factory, *m_device))
-    }
-
-    if (!m_memory_manager)
-    {
-        EXIT_WHEN_FALSE(InitMemoryManager());
-    }
+    m_memory_allocator = RHIResourceFactory::CreateRHIResource<IRHIMemoryAllocator>();
+    EXIT_WHEN_FALSE(m_memory_allocator->InitMemoryAllocator(*m_factory, *m_device))
+    EXIT_WHEN_FALSE(InitMemoryManager());
     
     m_command_allocators.resize(backBufferCount);
     m_command_lists.resize(backBufferCount);
@@ -81,11 +72,11 @@ bool glTFRenderResourceManager::InitResourceManager(unsigned width, unsigned hei
     RHITextureClearValue clear_value;
     clear_value.clear_format = RHIDataFormat::R8G8B8A8_UNORM_SRGB;
     clear_value.clear_color = glm::vec4{0.0f, 0.0f, 0.0f, 0.0f};
-    m_swapchain_RTs = m_render_target_manager->CreateRenderTargetFromSwapChain(*m_device, *m_swap_chain, clear_value);
+    m_swapchain_RTs = m_render_target_manager->CreateRenderTargetFromSwapChain(*m_device, *this, *m_swap_chain, clear_value);
 
     m_depth_texture = m_render_target_manager->CreateRenderTarget(
-        *m_device, RHITextureDesc::MakeDepthTextureDesc(*this),
-        {
+        *m_device, *this,
+        RHITextureDesc::MakeDepthTextureDesc(*this), {
             .type = RHIRenderTargetType::DSV,
             .format = RHIDataFormat::D32_FLOAT
         });
@@ -173,12 +164,12 @@ IRHICommandQueue& glTFRenderResourceManager::GetCommandQueue()
     return *m_command_queue;
 }
 
-IRHIMemoryAllocator& glTFRenderResourceManager::GetMemoryAllocator()
+IRHIMemoryAllocator& glTFRenderResourceManager::GetMemoryAllocator() const
 {
     return *m_memory_allocator;
 }
 
-IRHIMemoryManager& glTFRenderResourceManager::GetMemoryManager()
+IRHIMemoryManager& glTFRenderResourceManager::GetMemoryManager() const
 {
     return *m_memory_manager;
 }
@@ -352,7 +343,7 @@ bool glTFRenderResourceManager::ExportResourceTexture(const RHITextureDesc& desc
     std::shared_ptr<IRHITextureAllocation>& out_texture_allocation)
 {
     // Export texture resource must create it first, add table id to internal tracked map
-    bool created = GetMemoryManager().AllocateTextureMemory(GetDevice(), desc, out_texture_allocation);
+    bool created = GetMemoryManager().AllocateTextureMemory(GetDevice(), *this, desc, out_texture_allocation);
     GLTF_CHECK(created);
     
     m_export_texture_allocation_map[entry_id] = out_texture_allocation;

@@ -102,12 +102,12 @@ void glTFRenderPassManager::UpdateScene(glTFRenderResourceManager& resource_mana
 
         if (auto* sceneViewInterface = pass->GetRenderInterface<glTFRenderInterfaceSceneView>())
         {
-            sceneViewInterface->UpdateSceneView(scene_view);
+            sceneViewInterface->UpdateSceneView(resource_manager, scene_view);
         }
 
         if (auto* frame_stat = pass->GetRenderInterface<glTFRenderInterfaceFrameStat>())
         {
-            frame_stat->UploadCPUBuffer(&m_frame_index, 0, sizeof(m_frame_index));
+            frame_stat->UploadCPUBuffer(resource_manager, &m_frame_index, 0, sizeof(m_frame_index));
         }
     }
     ++m_frame_index;

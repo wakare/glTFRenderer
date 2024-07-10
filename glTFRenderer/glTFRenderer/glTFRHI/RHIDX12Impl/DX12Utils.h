@@ -17,7 +17,7 @@ class DX12Utils : public RHIUtils
 public:
     DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(DX12Utils)
     
-    virtual bool InitGUIContext(IRHIDevice& device, IRHIDescriptorHeap& descriptor_heap, unsigned back_buffer_count) override;
+    virtual bool InitGUIContext(IRHIDevice& device, IRHIDescriptorManager& descriptor_manager, unsigned back_buffer_count) override;
     virtual bool NewGUIFrame() override;
     virtual bool RenderGUIFrame(IRHICommandList& command_list) override;
     virtual bool ExitGUI() override;

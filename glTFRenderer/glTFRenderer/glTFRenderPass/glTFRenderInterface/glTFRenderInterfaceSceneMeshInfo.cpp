@@ -11,7 +11,7 @@ glTFRenderInterfaceSceneMeshInfo::glTFRenderInterfaceSceneMeshInfo()
     AddInterface(std::make_shared<glTFRenderInterfaceStructuredBuffer<SceneMeshFaceInfo, max_heap_size>>());
 }
 
-bool glTFRenderInterfaceSceneMeshInfo::UpdateSceneMeshData(const glTFRenderMeshManager& mesh_manager)
+bool glTFRenderInterfaceSceneMeshInfo::UpdateSceneMeshData(glTFRenderResourceManager& resource_manager, const glTFRenderMeshManager& mesh_manager)
 {
     const auto& meshes = mesh_manager.GetMeshRenderResources();
 
@@ -51,9 +51,9 @@ bool glTFRenderInterfaceSceneMeshInfo::UpdateSceneMeshData(const glTFRenderMeshM
         start_face_offset += face_count;
     }
 
-    GetRenderInterface<glTFRenderInterfaceStructuredBuffer<SceneMeshDataOffsetInfo>>()->UploadCPUBuffer(start_offset_infos.data(),0, start_offset_infos.size() * sizeof(SceneMeshDataOffsetInfo));
-    GetRenderInterface<glTFRenderInterfaceStructuredBuffer<SceneMeshVertexInfo, max_heap_size>>()->UploadCPUBuffer(vertex_infos.data(),0, vertex_infos.size() * sizeof(SceneMeshVertexInfo));
-    GetRenderInterface<glTFRenderInterfaceStructuredBuffer<SceneMeshFaceInfo, max_heap_size>>()->UploadCPUBuffer(index_infos.data(),0, index_infos.size() * sizeof(SceneMeshFaceInfo));
+    GetRenderInterface<glTFRenderInterfaceStructuredBuffer<SceneMeshDataOffsetInfo>>()->UploadCPUBuffer(resource_manager,start_offset_infos.data(), 0, start_offset_infos.size() * sizeof(SceneMeshDataOffsetInfo));
+    GetRenderInterface<glTFRenderInterfaceStructuredBuffer<SceneMeshVertexInfo, max_heap_size>>()->UploadCPUBuffer(resource_manager,vertex_infos.data(), 0, vertex_infos.size() * sizeof(SceneMeshVertexInfo));
+    GetRenderInterface<glTFRenderInterfaceStructuredBuffer<SceneMeshFaceInfo, max_heap_size>>()->UploadCPUBuffer(resource_manager,index_infos.data(), 0, index_infos.size() * sizeof(SceneMeshFaceInfo));
 
     return true;
 }

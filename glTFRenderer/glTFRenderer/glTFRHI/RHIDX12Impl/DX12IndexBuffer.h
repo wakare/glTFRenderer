@@ -5,5 +5,5 @@ class DX12IndexBuffer : public IRHIIndexBuffer
 {
 public:
     virtual std::shared_ptr<IRHIIndexBufferView> CreateIndexBufferView(IRHIDevice& device, IRHICommandList& command_list,
-        const RHIBufferDesc& desc, const IndexBufferData& index_buffer_data) override;
+                                                                       glTFRenderResourceManager& resource_manager, const RHIBufferDesc& desc, const IndexBufferData& index_buffer_data) override;
 };

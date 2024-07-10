@@ -33,17 +33,17 @@ bool DX12RenderTargetManager::InitRenderTargetManager(IRHIDevice& device, size_t
     return true;
 }
 
-std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTarget(IRHIDevice& device, const RHITextureDesc& texture_desc, const RHIRenderTargetDesc& render_target_desc)
+std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTarget(IRHIDevice& device, glTFRenderResourceManager& resource_manager, const RHITextureDesc& texture_desc, const RHIRenderTargetDesc& render_target_desc)
 {
     std::shared_ptr<IRHITextureAllocation> texture_allocation;
-    glTFRenderResourceManager::GetMemoryManager().AllocateTextureMemory(device, texture_desc, texture_allocation);
+    resource_manager.GetMemoryManager().AllocateTextureMemory(device, resource_manager, texture_desc, texture_allocation);
 
-    return CreateRenderTargetWithResource(device, render_target_desc.type, render_target_desc.format == RHIDataFormat::UNKNOWN ? texture_desc.GetDataFormat() : render_target_desc.format, texture_allocation,
-        DX12ConverterUtils::ConvertToD3DClearValue(texture_desc.GetClearValue()));
+    return CreateRenderTargetWithResource(device, resource_manager, render_target_desc.type, render_target_desc.format == RHIDataFormat::UNKNOWN ? texture_desc.GetDataFormat() : render_target_desc.format,
+                                          texture_allocation, DX12ConverterUtils::ConvertToD3DClearValue(texture_desc.GetClearValue()));
 }
 
 std::vector<std::shared_ptr<IRHIRenderTarget>> DX12RenderTargetManager::CreateRenderTargetFromSwapChain(
-    IRHIDevice& device, IRHISwapChain& swap_chain, RHITextureClearValue clear_value)
+    IRHIDevice& device, glTFRenderResourceManager& resource_manager, IRHISwapChain& swap_chain, RHITextureClearValue clear_value)
 {
     auto* dxSwapChain = dynamic_cast<DX12SwapChain&>(swap_chain).GetSwapChain();
 
@@ -75,7 +75,7 @@ std::vector<std::shared_ptr<IRHIRenderTarget>> DX12RenderTargetManager::CreateRe
         external_texture_allocation->m_texture = external_texture;
         m_external_textures.push_back(external_texture_allocation);
         
-        auto render_target = CreateRenderTargetWithResource(device, RHIRenderTargetType::RTV, RHIDataFormat::R8G8B8A8_UNORM, external_texture_allocation, dx_clear_value);
+        auto render_target = CreateRenderTargetWithResource(device, resource_manager, RHIRenderTargetType::RTV, RHIDataFormat::R8G8B8A8_UNORM, external_texture_allocation, dx_clear_value);
         outVector.push_back(render_target);
     }
 
@@ -216,15 +216,15 @@ bool DX12RenderTargetManager::BindRenderTarget(IRHICommandList& command_list,
     return true;
 }
 
-std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTargetWithResource(IRHIDevice& device, RHIRenderTargetType type,
-                                                                                          RHIDataFormat descriptor_format, std::shared_ptr<IRHITextureAllocation> texture_resource, const D3D12_CLEAR_VALUE& clear_value)
+std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTargetWithResource(IRHIDevice& device, glTFRenderResourceManager& resource_manager,
+    RHIRenderTargetType type, RHIDataFormat descriptor_format, std::shared_ptr<IRHITextureAllocation> texture_resource, const D3D12_CLEAR_VALUE& clear_value)
 {
     GLTF_CHECK(texture_resource->m_texture->GetTextureDesc().GetUsage() & RUF_ALLOW_RENDER_TARGET ||
         texture_resource->m_texture->GetTextureDesc().GetUsage() & RUF_ALLOW_DEPTH_STENCIL);
     
     const bool is_rtv = (type == RHIRenderTargetType::RTV);
     std::shared_ptr<IRHIDescriptorAllocation> descriptor_allocation;
-    glTFRenderResourceManager::GetMemoryManager().GetDescriptorManager().CreateDescriptor(device, *texture_resource->m_texture, 
+    resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(device, *texture_resource->m_texture, 
                                                              {
                                                                  .format = descriptor_format,
                                                                  .dimension = RHIResourceDimension::TEXTURE2D,

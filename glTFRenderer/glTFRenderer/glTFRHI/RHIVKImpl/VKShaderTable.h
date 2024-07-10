@@ -4,5 +4,5 @@
 class VKShaderTable : public IRHIShaderTable
 {
 public:
-    virtual bool InitShaderTable(IRHIDevice& device, IRHIPipelineStateObject& pso, IRHIRayTracingAS& as, const std::vector<RHIShaderBindingTable>& sbts) override;
+    virtual bool InitShaderTable(IRHIDevice& device, glTFRenderResourceManager& resource_manager, IRHIPipelineStateObject& pso, IRHIRayTracingAS& as, const std::vector<RHIShaderBindingTable>& sbts) override;
 };

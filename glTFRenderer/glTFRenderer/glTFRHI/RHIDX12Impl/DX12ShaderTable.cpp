@@ -13,7 +13,7 @@ DX12ShaderTable::DX12ShaderTable()
 {
 }
 
-bool DX12ShaderTable::InitShaderTable(IRHIDevice& device, IRHIPipelineStateObject& pso, IRHIRayTracingAS& as, const std::vector<RHIShaderBindingTable>& sbts)
+bool DX12ShaderTable::InitShaderTable(IRHIDevice& device, glTFRenderResourceManager& resource_manager, IRHIPipelineStateObject& pso, IRHIRayTracingAS& as, const std::vector<RHIShaderBindingTable>& sbts)
 {
     auto* dx_pso_props = dynamic_cast<DX12RTPipelineStateObject&>(pso).GetDXRStateObjectProperties();
     const auto& hit_group_descs = dynamic_cast<DX12RTPipelineStateObject&>(pso).GetHitGroupDescs();
@@ -51,7 +51,7 @@ bool DX12ShaderTable::InitShaderTable(IRHIDevice& device, IRHIPipelineStateObjec
             data += raygen_record_size;
         }
 
-        glTFRenderResourceManager::GetMemoryManager().AllocateBufferMemory(
+        resource_manager.GetMemoryManager().AllocateBufferMemory(
         device, {
             L"RayGenShaderTable",
             raygen_buffer_size,
@@ -63,7 +63,7 @@ bool DX12ShaderTable::InitShaderTable(IRHIDevice& device, IRHIPipelineStateObjec
             RHIResourceStateType::STATE_COMMON,
         },
         m_rayGenShaderTable);
-        glTFRenderResourceManager::GetMemoryManager().UploadBufferData(*m_rayGenShaderTable, temporary_buffer.get(), 0, raygen_buffer_size);
+        resource_manager.GetMemoryManager().UploadBufferData(*m_rayGenShaderTable, temporary_buffer.get(), 0, raygen_buffer_size);
     }
 
     // Miss shader table
@@ -94,7 +94,7 @@ bool DX12ShaderTable::InitShaderTable(IRHIDevice& device, IRHIPipelineStateObjec
             }
             data += miss_record_size;
         }
-        glTFRenderResourceManager::GetMemoryManager().AllocateBufferMemory(
+        resource_manager.GetMemoryManager().AllocateBufferMemory(
         device, {
             L"MissShaderTable",
             miss_buffer_size,
@@ -106,7 +106,7 @@ bool DX12ShaderTable::InitShaderTable(IRHIDevice& device, IRHIPipelineStateObjec
         RHIResourceStateType::STATE_COMMON,
         },
         m_missShaderTable);
-        glTFRenderResourceManager::GetMemoryManager().UploadBufferData(*m_missShaderTable, temporary_buffer.get(), 0, miss_buffer_size);
+        resource_manager.GetMemoryManager().UploadBufferData(*m_missShaderTable, temporary_buffer.get(), 0, miss_buffer_size);
     }
 
     // Hit group shader table
@@ -149,7 +149,7 @@ bool DX12ShaderTable::InitShaderTable(IRHIDevice& device, IRHIPipelineStateObjec
                 data += hit_group_record_size;
             }
         }
-        glTFRenderResourceManager::GetMemoryManager().AllocateBufferMemory(
+        resource_manager.GetMemoryManager().AllocateBufferMemory(
         device, {
             L"HitGroupShaderTable",
             hit_group_buffer_size,
@@ -161,7 +161,7 @@ bool DX12ShaderTable::InitShaderTable(IRHIDevice& device, IRHIPipelineStateObjec
             RHIResourceStateType::STATE_COMMON,
         },
         m_hitGroupShaderTable);
-        glTFRenderResourceManager::GetMemoryManager().UploadBufferData(*m_hitGroupShaderTable, temporary_buffer.get(), 0, hit_group_buffer_size);
+        resource_manager.GetMemoryManager().UploadBufferData(*m_hitGroupShaderTable, temporary_buffer.get(), 0, hit_group_buffer_size);
     }
     
     return true;

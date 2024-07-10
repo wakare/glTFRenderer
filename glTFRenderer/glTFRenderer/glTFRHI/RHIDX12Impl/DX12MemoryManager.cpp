@@ -30,11 +30,11 @@ bool DX12MemoryManager::UploadBufferData(IRHIBufferAllocation& buffer_allocation
     return dynamic_cast<DX12Buffer&>(*buffer_allocation.m_buffer).UploadBufferFromCPU(data, offset, size);
 }
 
-bool DX12MemoryManager::AllocateTextureMemory(IRHIDevice& device, const RHITextureDesc& texture_desc,
-    std::shared_ptr<IRHITextureAllocation>& out_buffer_allocation)
+bool DX12MemoryManager::AllocateTextureMemory(IRHIDevice& device, glTFRenderResourceManager& resource_manager,
+                                              const RHITextureDesc& texture_desc, std::shared_ptr<IRHITextureAllocation>& out_buffer_allocation)
 {
     std::shared_ptr<IRHITexture> dx12_texture = RHIResourceFactory::CreateRHIResource<IRHITexture>();
-    dynamic_cast<DX12Texture&>(*dx12_texture).InitTexture(device, texture_desc);
+    dynamic_cast<DX12Texture&>(*dx12_texture).InitTexture(device, resource_manager, texture_desc);
 
     m_textures.push_back(dx12_texture);
     out_buffer_allocation = std::make_shared<IRHITextureAllocation>();
@@ -42,11 +42,11 @@ bool DX12MemoryManager::AllocateTextureMemory(IRHIDevice& device, const RHITextu
     return true;
 }
 
-bool DX12MemoryManager::AllocateTextureMemoryAndUpload(IRHIDevice& device, IRHICommandList& command_list,
-                                                       const RHITextureDesc& texture_desc, std::shared_ptr<IRHITextureAllocation>& out_buffer_allocation)
+bool DX12MemoryManager::AllocateTextureMemoryAndUpload(IRHIDevice& device, glTFRenderResourceManager& resource_manager,
+                                                       IRHICommandList& command_list, const RHITextureDesc& texture_desc, std::shared_ptr<IRHITextureAllocation>& out_buffer_allocation)
 {
     std::shared_ptr<IRHITexture> dx12_texture = RHIResourceFactory::CreateRHIResource<IRHITexture>();
-    dynamic_cast<DX12Texture&>(*dx12_texture).InitTextureAndUpload(device, command_list, texture_desc);
+    dynamic_cast<DX12Texture&>(*dx12_texture).InitTextureAndUpload(device, resource_manager, command_list, texture_desc);
 
     out_buffer_allocation = std::make_shared<IRHITextureAllocation>();
     out_buffer_allocation->m_texture = dx12_texture;

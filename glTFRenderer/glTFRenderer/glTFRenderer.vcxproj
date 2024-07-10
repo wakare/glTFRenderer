@@ -118,7 +118,7 @@
     <ClCompile Include="glTFApp\glTFAppRenderer.cpp" />
     <ClCompile Include="glTFApp\glTFAppRenderPipeline.cpp" />
     <ClCompile Include="glTFApp\glTFPassOptionRenderFlags.cpp" />
-    <ClCompile Include="glTFGUI\glTFGUI.cpp" />
+    <ClCompile Include="glTFGUI\glTFGUIRenderer.cpp" />
     <ClCompile Include="glTFLight\glTFDirectionalLight.cpp" />
     <ClCompile Include="glTFLight\glTFLightBase.cpp" />
     <ClCompile Include="glTFLight\glTFLocalLight.cpp" />
@@ -311,7 +311,7 @@
     <ClInclude Include="glTFApp\glTFAppRenderer.h" />
     <ClInclude Include="glTFApp\glTFAppRenderPipeline.h" />
     <ClInclude Include="glTFApp\glTFPassOptionRenderFlags.h" />
-    <ClInclude Include="glTFGUI\glTFGUI.h" />
+    <ClInclude Include="glTFGUI\glTFGUIRenderer.h" />
     <ClInclude Include="glTFLight\glTFDirectionalLight.h" />
     <ClInclude Include="glTFLight\glTFLightBase.h" />
     <ClInclude Include="glTFLight\glTFLocalLight.h" />

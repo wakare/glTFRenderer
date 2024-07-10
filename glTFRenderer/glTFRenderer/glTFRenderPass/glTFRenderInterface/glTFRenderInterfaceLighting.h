@@ -11,7 +11,7 @@ class glTFRenderInterfaceLighting : public glTFRenderInterfaceBaseWithDefaultImp
 public:
     glTFRenderInterfaceLighting();
     
-    bool UpdateCPUBuffer();
+    bool UpdateCPUBuffer(glTFRenderResourceManager& resource_manager);
     bool UpdateLightInfo(const glTFLightBase& light);
 
 protected:

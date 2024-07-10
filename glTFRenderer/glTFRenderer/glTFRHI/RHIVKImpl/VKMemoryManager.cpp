@@ -57,8 +57,8 @@ bool VKMemoryManager::UploadBufferData(IRHIBufferAllocation& buffer_allocation, 
     return true;
 }
 
-bool VKMemoryManager::AllocateTextureMemory(IRHIDevice& device, const RHITextureDesc& texture_desc,
-    std::shared_ptr<IRHITextureAllocation>& out_buffer_allocation)
+bool VKMemoryManager::AllocateTextureMemory(IRHIDevice& device, glTFRenderResourceManager& resource_manager,
+                                            const RHITextureDesc& texture_desc, std::shared_ptr<IRHITextureAllocation>& out_buffer_allocation)
 {
     VkImageCreateInfo image_create_info {.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
 
@@ -105,8 +105,8 @@ bool VKMemoryManager::AllocateTextureMemory(IRHIDevice& device, const RHITexture
     return true;
 }
 
-bool VKMemoryManager::AllocateTextureMemoryAndUpload(IRHIDevice& device, IRHICommandList& command_list,
-                                                     const RHITextureDesc& buffer_desc, std::shared_ptr<IRHITextureAllocation>& out_buffer_allocation)
+bool VKMemoryManager::AllocateTextureMemoryAndUpload(IRHIDevice& device, glTFRenderResourceManager& resource_manager,
+                                                     IRHICommandList& command_list, const RHITextureDesc& buffer_desc, std::shared_ptr<IRHITextureAllocation>& out_buffer_allocation)
 {
     return false;
 }

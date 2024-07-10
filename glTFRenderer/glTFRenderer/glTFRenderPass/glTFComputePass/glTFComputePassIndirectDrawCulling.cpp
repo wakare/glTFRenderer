@@ -41,7 +41,7 @@ bool glTFComputePassIndirectDrawCulling::InitPass(glTFRenderResourceManager& res
 
     const auto& mesh_manager = resource_manager.GetMeshManager();
         
-    RETURN_IF_FALSE(glTFRenderResourceManager::GetMemoryManager().GetDescriptorManager().CreateDescriptor(
+    RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(
             resource_manager.GetDevice(),
             *mesh_manager.GetCulledIndirectArgumentBuffer(),
             {
@@ -59,12 +59,12 @@ bool glTFComputePassIndirectDrawCulling::InitPass(glTFRenderResourceManager& res
     m_dispatch_count = {dispatch_thread, 1, 1};
 
     const auto& instance_data = mesh_manager.GetInstanceBufferData();
-    GetRenderInterface<glTFRenderInterfaceStructuredBuffer<MeshInstanceInputData>>()->UploadCPUBuffer(instance_data.data(), 0, instance_data.size() * sizeof(MeshInstanceInputData));
+    GetRenderInterface<glTFRenderInterfaceStructuredBuffer<MeshInstanceInputData>>()->UploadCPUBuffer(resource_manager, instance_data.data(), 0, instance_data.size() * sizeof(MeshInstanceInputData));
 
     const auto& indirect_data = mesh_manager.GetIndirectDrawCommands();
-    GetRenderInterface<glTFRenderInterfaceStructuredBuffer<MeshIndirectDrawCommand>>()->UploadCPUBuffer(indirect_data.data(), 0, indirect_data.size() * sizeof(MeshIndirectDrawCommand));
+    GetRenderInterface<glTFRenderInterfaceStructuredBuffer<MeshIndirectDrawCommand>>()->UploadCPUBuffer(resource_manager, indirect_data.data(), 0, indirect_data.size() * sizeof(MeshIndirectDrawCommand));
 
-    glTFRenderResourceManager::GetMemoryManager().AllocateBufferMemory(
+    resource_manager.GetMemoryManager().AllocateBufferMemory(
         glTFRenderResourceManager::GetDevice(),
     {L"ResetBuffer",
         4,
@@ -77,7 +77,7 @@ bool glTFComputePassIndirectDrawCulling::InitPass(glTFRenderResourceManager& res
         },
         m_count_reset_buffer);
     const unsigned size = 0;
-    glTFRenderResourceManager::GetMemoryManager().UploadBufferData(*m_count_reset_buffer, &size, 0, sizeof(unsigned));
+    resource_manager.GetMemoryManager().UploadBufferData(*m_count_reset_buffer, &size, 0, sizeof(unsigned));
 
     // Construct bounding box srv data
     std::vector<CullingBoundingBox> bounding_boxes;
@@ -94,7 +94,7 @@ bool glTFComputePassIndirectDrawCulling::InitPass(glTFRenderResourceManager& res
         bounding_boxes.push_back({glm::vec4{center.x,center.y,center.z, radius }});
     }
     
-    GetRenderInterface<glTFRenderInterfaceStructuredBuffer<CullingBoundingBox>>()->UploadCPUBuffer(bounding_boxes.data(), 0, bounding_boxes.size() * sizeof(CullingBoundingBox));
+    GetRenderInterface<glTFRenderInterfaceStructuredBuffer<CullingBoundingBox>>()->UploadCPUBuffer(resource_manager, bounding_boxes.data(), 0, bounding_boxes.size() * sizeof(CullingBoundingBox));
     
     return true;
 }
@@ -143,7 +143,7 @@ bool glTFComputePassIndirectDrawCulling::PreRenderPass(glTFRenderResourceManager
                                                            RHIResourceStateType::STATE_COPY_DEST, RHIResourceStateType::STATE_UNORDERED_ACCESS);
 
         const unsigned command_count = resource_manager.GetMeshManager().GetIndirectDrawCommands().size();
-        GetRenderInterface<glTFRenderInterfaceSingleConstantBuffer<CullingConstant>>()->UploadCPUBuffer(&command_count, 0, sizeof(unsigned));
+        GetRenderInterface<glTFRenderInterfaceSingleConstantBuffer<CullingConstant>>()->UploadCPUBuffer(resource_manager, &command_count, 0, sizeof(unsigned));
     }
     
     return true;

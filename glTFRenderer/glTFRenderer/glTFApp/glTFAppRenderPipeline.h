@@ -1,59 +1,56 @@
 #pragma once
 #include "glTFPassOptionRenderFlags.h"
+#include "glTFGUI/glTFGUIRenderer.h"
 #include "glTFRenderPass/glTFRenderPassManager.h"
 
 class glTFRenderResourceManager;
 class glTFInputManager;
 class glTFSceneView;
 class glTFSceneGraph;
-class glTFGUI;
 
-class glTFAppRenderPipelineBase
+class glTFSceneRendererBase
 {
 public:
-    glTFAppRenderPipelineBase();
-    virtual ~glTFAppRenderPipelineBase() {m_pass_manager->ExitAllPass(); }
+    glTFSceneRendererBase();
+    virtual ~glTFSceneRendererBase() {m_pass_manager->ExitAllPass(); }
 
-    virtual bool SetupRenderPipeline() = 0;
-
-    void MarkPipelineDirty() { m_render_pass_dirty = true; }
+    virtual bool SetupSceneRenderer() = 0;
 
     virtual void TickFrameRenderingBegin(glTFRenderResourceManager& resource_manager, size_t delta_time_ms);
     virtual void TickSceneRendering(const glTFSceneView& scene_view, glTFRenderResourceManager& resource_manager, size_t delta_time_ms);
-    virtual void TickGUIWidgetUpdate(glTFGUI& GUI, glTFRenderResourceManager& resource_manager, size_t delta_time_ms);
+    virtual void TickGUIWidgetUpdate(glTFGUIRenderer& GUI, glTFRenderResourceManager& resource_manager, size_t delta_time_ms);
     virtual void TickFrameRenderingEnd(glTFRenderResourceManager& resource_manager, size_t delta_time_ms);
     
     void ApplyInput(const glTFInputManager& input_manager, size_t delta_time_ms);
-
+    
 protected:
     bool RecreateRenderPass(glTFRenderResourceManager& resource_manager);
     virtual bool UpdateGUIWidgets() { return true; }
     
-    bool m_render_pass_dirty;
-    
     glTFPassOptionRenderFlags m_pass_options;
     std::unique_ptr<glTFRenderPassManager> m_pass_manager;
+    bool m_pass_inited {false};
 };
 
-class glTFAppRenderPipelineRasterScene : public glTFAppRenderPipelineBase
+class glTFSceneRendererRasterizer : public glTFSceneRendererBase
 {
 public:
-    virtual bool SetupRenderPipeline() override;
+    virtual bool SetupSceneRenderer() override;
 };
 
-class glTFAppRenderPipelineRayTracingScene : public glTFAppRenderPipelineBase
+class glTFSceneRendererRayTracer : public glTFSceneRendererBase
 {
 public:
-    glTFAppRenderPipelineRayTracingScene(bool use_restir_direct_lighting);
+    glTFSceneRendererRayTracer(bool use_restir_direct_lighting);
 
-    virtual bool SetupRenderPipeline() override;
+    virtual bool SetupSceneRenderer() override;
 
 protected:
     bool m_use_restir_direct_lighting;
 };
 
-class glTFAppRenderPipelineTestTriangle : public glTFAppRenderPipelineBase
+class glTFSceneRendererTestTriangle : public glTFSceneRendererBase
 {
 public:
-    virtual bool SetupRenderPipeline() override;
+    virtual bool SetupSceneRenderer() override;
 };

@@ -12,6 +12,7 @@
 #include "DX12Device.h"
 #include "DX12Fence.h"
 #include "DX12Buffer.h"
+#include "DX12DescriptorManager.h"
 #include "DX12IndexBufferView.h"
 #include "DX12PipelineStateObject.h"
 #include "DX12RenderTarget.h"
@@ -24,15 +25,16 @@
 #include "glTFRHI/RHIInterface/IRHIBuffer.h"
 #include "glTFRHI/RHIInterface/RHICommon.h"
 
-bool DX12Utils::InitGUIContext(IRHIDevice& device, IRHIDescriptorHeap& descriptor_heap, unsigned back_buffer_count)
+bool DX12Utils::InitGUIContext(IRHIDevice& device, IRHIDescriptorManager& descriptor_manager, unsigned back_buffer_count)
 {
     auto* dx_device = dynamic_cast<DX12Device&>(device).GetDevice();
-    auto* dx_descriptor_heap = dynamic_cast<DX12DescriptorHeap&>(descriptor_heap).GetDescriptorHeap();
+    auto& heap = dynamic_cast<DX12DescriptorManager&>(descriptor_manager).GetGUIDescriptorHeap();
+    auto* dx_descriptor_heap = dynamic_cast<DX12DescriptorHeap&>(heap).GetDescriptorHeap();
     
     ImGui_ImplDX12_Init(dx_device, back_buffer_count,
         DXGI_FORMAT_R8G8B8A8_UNORM, dx_descriptor_heap,
-        dynamic_cast<DX12DescriptorHeap&>(descriptor_heap).GetCPUHandleForHeapStart(),
-        dynamic_cast<DX12DescriptorHeap&>(descriptor_heap).GetGPUHandleForHeapStart());
+        dynamic_cast<DX12DescriptorHeap&>(heap).GetAvailableCPUHandle(),
+        dynamic_cast<DX12DescriptorHeap&>(heap).GetAvailableGPUHandle());
     
     return true;
 }

@@ -51,6 +51,9 @@ public:
     ID3D12DescriptorHeap* GetDescriptorHeap() {return m_descriptorHeap; }
     D3D12_CPU_DESCRIPTOR_HANDLE GetCPUHandleForHeapStart() const;
     D3D12_GPU_DESCRIPTOR_HANDLE GetGPUHandleForHeapStart() const;
+
+    D3D12_CPU_DESCRIPTOR_HANDLE GetAvailableCPUHandle() const;
+    D3D12_GPU_DESCRIPTOR_HANDLE GetAvailableGPUHandle() const;
     
 private:
     bool CreateSRVInHeap(IRHIDevice& device, unsigned descriptor_offset, ID3D12Resource* resource, const RHIDescriptorDesc& desc, /*output*/ RHIGPUDescriptorHandle& out_GPU_handle);

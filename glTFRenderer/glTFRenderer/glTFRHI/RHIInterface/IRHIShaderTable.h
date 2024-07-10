@@ -27,6 +27,6 @@ struct RHIShaderBindingTable
 class IRHIShaderTable : public IRHIResource
 {
 public:
-    virtual bool InitShaderTable(IRHIDevice& device, IRHIPipelineStateObject& pso, IRHIRayTracingAS& as, const std::vector<RHIShaderBindingTable>& sbts) = 0;
+    virtual bool InitShaderTable(IRHIDevice& device, glTFRenderResourceManager& resource_manager, IRHIPipelineStateObject& pso, IRHIRayTracingAS& as, const std::vector<RHIShaderBindingTable>& sbts) = 0;
 };
 

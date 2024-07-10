@@ -23,14 +23,14 @@ glTFGraphicsPassMeshOpaque::glTFGraphicsPassMeshOpaque()
 
 bool glTFGraphicsPassMeshOpaque::InitPass(glTFRenderResourceManager& resource_manager)
 {
-    glTFRenderResourceManager::GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), GetResourceTexture(RenderPassResourceTableId::BasePass_Albedo), 
+    resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), GetResourceTexture(RenderPassResourceTableId::BasePass_Albedo), 
     {
         .format = GetResourceTexture(RenderPassResourceTableId::BasePass_Albedo).GetTextureFormat(),
         .dimension = RHIResourceDimension::TEXTURE2D,
         .view_type = RHIViewType::RVT_RTV
     }, m_albedo_view);
 
-    glTFRenderResourceManager::GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), GetResourceTexture(RenderPassResourceTableId::BasePass_Normal), 
+    resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), GetResourceTexture(RenderPassResourceTableId::BasePass_Normal), 
     {
         .format = GetResourceTexture(RenderPassResourceTableId::BasePass_Normal).GetTextureFormat(),
         .dimension = RHIResourceDimension::TEXTURE2D,

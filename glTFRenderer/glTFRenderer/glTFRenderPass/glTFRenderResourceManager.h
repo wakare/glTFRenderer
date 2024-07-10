@@ -35,8 +35,8 @@ public:
     static IRHIDevice& GetDevice();
     static IRHISwapChain& GetSwapChain();
     static IRHICommandQueue& GetCommandQueue();
-    static IRHIMemoryAllocator& GetMemoryAllocator();
-    static IRHIMemoryManager& GetMemoryManager();
+    IRHIMemoryAllocator& GetMemoryAllocator() const;
+    IRHIMemoryManager& GetMemoryManager() const;
     
     static unsigned GetCurrentBackBufferIndex();
     
@@ -84,8 +84,8 @@ private:
     static std::shared_ptr<IRHIDevice> m_device;
     static std::shared_ptr<IRHICommandQueue> m_command_queue;
     static std::shared_ptr<IRHISwapChain> m_swap_chain;
-    static std::shared_ptr<IRHIMemoryAllocator> m_memory_allocator;
-    static std::shared_ptr<IRHIMemoryManager> m_memory_manager;
+    std::shared_ptr<IRHIMemoryAllocator> m_memory_allocator;
+    std::shared_ptr<IRHIMemoryManager> m_memory_manager;
     
     std::vector<std::shared_ptr<IRHICommandAllocator>> m_command_allocators;
     std::vector<std::shared_ptr<IRHICommandList>> m_command_lists;

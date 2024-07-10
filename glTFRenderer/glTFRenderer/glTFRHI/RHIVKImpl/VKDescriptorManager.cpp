@@ -27,3 +27,8 @@ bool VKDescriptorManager::BindDescriptors(IRHICommandList& command_list)
 {
     return false;
 }
+
+bool VKDescriptorManager::BindGUIDescriptors(IRHICommandList& command_list)
+{
+    return false;
+}

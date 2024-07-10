@@ -30,5 +30,5 @@ class glTFRenderInterfaceSceneMeshInfo : public glTFRenderInterfaceBaseWithDefau
 public:
     glTFRenderInterfaceSceneMeshInfo();
 
-    bool UpdateSceneMeshData(const glTFRenderMeshManager& mesh_manager);
+    bool UpdateSceneMeshData(glTFRenderResourceManager& resource_manager, const glTFRenderMeshManager& mesh_manager);
 };

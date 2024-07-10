@@ -57,15 +57,15 @@ namespace glTFRenderResourceUtils
     bool GBufferOutput::InitGBufferOutput(glTFRenderResourceManager& resource_manager, unsigned back_buffer_index)
     {
         m_albedo_output = resource_manager.GetRenderTargetManager().CreateRenderTarget(
-            resource_manager.GetDevice(), RHITextureDesc::MakeBasePassAlbedoTextureDesc(resource_manager),
-            {
+            resource_manager.GetDevice(), resource_manager,
+            RHITextureDesc::MakeBasePassAlbedoTextureDesc(resource_manager), {
                 .type = RHIRenderTargetType::RTV,
                 .format = RHIDataFormat::UNKNOWN
             });
         
         m_normal_output = resource_manager.GetRenderTargetManager().CreateRenderTarget(
-            resource_manager.GetDevice(), RHITextureDesc::MakeBasePassNormalTextureDesc(resource_manager), 
-            {
+            resource_manager.GetDevice(), resource_manager,
+            RHITextureDesc::MakeBasePassNormalTextureDesc(resource_manager), {
                 .type = RHIRenderTargetType::RTV,
                 .format = RHIDataFormat::UNKNOWN
             });
@@ -84,11 +84,11 @@ namespace glTFRenderResourceUtils
             }
         };
         m_depth_output = resource_manager.GetRenderTargetManager().CreateRenderTarget(
-        resource_manager.GetDevice(), depth_output_desc,
-        {
-            .type = RHIRenderTargetType::RTV,
-            .format = RHIDataFormat::UNKNOWN
-        });
+            resource_manager.GetDevice(), resource_manager,
+            depth_output_desc, {
+                .type = RHIRenderTargetType::RTV,
+                .format = RHIDataFormat::UNKNOWN
+            });
         
         return true;
     }
@@ -221,15 +221,15 @@ namespace glTFRenderResourceUtils
         auto format = m_texture0_desc.GetClearValue().clear_format;
     
         m_writable_buffer = resource_manager.GetRenderTargetManager().CreateRenderTarget(
-            resource_manager.GetDevice(), m_texture0_desc, 
-            {
+            resource_manager.GetDevice(), resource_manager,
+            m_texture0_desc, {
                 .type = RHIRenderTargetType::RTV,
                 .format = RHIDataFormat::UNKNOWN
             });
 
         m_back_buffer = resource_manager.GetRenderTargetManager().CreateRenderTarget(
-            resource_manager.GetDevice(), m_texture0_desc, 
-            {
+            resource_manager.GetDevice(), resource_manager,
+            m_texture0_desc, {
                 .type = RHIRenderTargetType::RTV,
                 .format = RHIDataFormat::UNKNOWN
             });

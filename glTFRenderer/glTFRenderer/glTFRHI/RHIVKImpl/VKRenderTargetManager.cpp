@@ -11,7 +11,7 @@ bool VKRenderTargetManager::InitRenderTargetManager(IRHIDevice& device, size_t m
 }
 
 std::shared_ptr<IRHIRenderTarget> VKRenderTargetManager::CreateRenderTarget(IRHIDevice& device,
-                                                                            const RHITextureDesc& texture_desc, const RHIRenderTargetDesc& render_target_desc)
+                                                                            glTFRenderResourceManager& resource_manager, const RHITextureDesc& texture_desc, const RHIRenderTargetDesc& render_target_desc)
 {
     const VkDevice vk_device = dynamic_cast<VKDevice&>(device).GetDevice();
     const auto vk_render_target = std::make_shared<VKRenderTarget>();
@@ -37,7 +37,7 @@ std::shared_ptr<IRHIRenderTarget> VKRenderTargetManager::CreateRenderTarget(IRHI
 }
 
 std::vector<std::shared_ptr<IRHIRenderTarget>> VKRenderTargetManager::CreateRenderTargetFromSwapChain(
-    IRHIDevice& device, IRHISwapChain& swapChain, RHITextureClearValue clearValue)
+    IRHIDevice& device, glTFRenderResourceManager& resource_manager, IRHISwapChain& swapChain, RHITextureClearValue clearValue)
 {
     std::vector<std::shared_ptr<IRHIRenderTarget>> results;
 

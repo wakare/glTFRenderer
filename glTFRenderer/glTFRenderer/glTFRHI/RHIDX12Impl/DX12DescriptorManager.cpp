@@ -29,6 +29,14 @@ bool DX12DescriptorManager::Init(IRHIDevice& device, const RHIMemoryManagerDescr
             .shader_visible = false
         });
 
+    m_ImGUI_Heap = RHIResourceFactory::CreateRHIResource<IRHIDescriptorHeap>();
+    m_ImGUI_Heap->InitDescriptorHeap(device,
+        {
+            .max_descriptor_count = 1,
+            .type = RHIDescriptorHeapType::CBV_SRV_UAV,
+            .shader_visible = true
+        });
+    
     return true;
 }
 
@@ -53,6 +61,11 @@ bool DX12DescriptorManager::CreateDescriptor(IRHIDevice& device, IRHIRenderTarge
 bool DX12DescriptorManager::BindDescriptors(IRHICommandList& command_list)
 {
     return RHIUtils::Instance().SetDescriptorHeapArray(command_list, m_CBV_SRV_UAV_heap.get(), 1);
+}
+
+bool DX12DescriptorManager::BindGUIDescriptors(IRHICommandList& command_list)
+{
+    return RHIUtils::Instance().SetDescriptorHeapArray(command_list, m_ImGUI_Heap.get(), 1);
 }
 
 IRHIDescriptorHeap& DX12DescriptorManager::GetDescriptorHeap(RHIViewType type) const
@@ -88,4 +101,9 @@ IRHIDescriptorHeap& DX12DescriptorManager::GetDescriptorHeap(RHIDescriptorHeapTy
 
     GLTF_CHECK(false);
     return *m_CBV_SRV_UAV_heap;
+}
+
+IRHIDescriptorHeap& DX12DescriptorManager::GetGUIDescriptorHeap() const
+{
+    return *m_ImGUI_Heap;
 }

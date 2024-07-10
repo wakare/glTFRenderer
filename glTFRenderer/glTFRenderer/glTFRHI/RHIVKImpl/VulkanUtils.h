@@ -14,7 +14,7 @@ class VulkanUtils : public RHIUtils
 public:
     DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VulkanUtils)
 
-    virtual bool InitGUIContext(IRHIDevice& device, IRHIDescriptorHeap& descriptor_heap, unsigned back_buffer_count) override;
+    virtual bool InitGUIContext(IRHIDevice& device, IRHIDescriptorManager& descriptor_heap, unsigned back_buffer_count) override;
     virtual bool NewGUIFrame() override;
     virtual bool RenderGUIFrame(IRHICommandList& commandList) override;
     virtual bool ExitGUI() override;

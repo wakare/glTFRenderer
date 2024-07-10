@@ -240,6 +240,20 @@ D3D12_GPU_DESCRIPTOR_HANDLE DX12DescriptorHeap::GetGPUHandleForHeapStart() const
     return m_descriptorHeap->GetGPUDescriptorHandleForHeapStart();
 }
 
+D3D12_CPU_DESCRIPTOR_HANDLE DX12DescriptorHeap::GetAvailableCPUHandle() const
+{
+    CD3DX12_CPU_DESCRIPTOR_HANDLE cpu_handle(GetCPUHandleForHeapStart());
+    cpu_handle.Offset(GetUsedDescriptorCount(), m_descriptor_increment_size);
+    return cpu_handle;
+}
+
+D3D12_GPU_DESCRIPTOR_HANDLE DX12DescriptorHeap::GetAvailableGPUHandle() const
+{
+    CD3DX12_GPU_DESCRIPTOR_HANDLE gpu_handle(GetGPUHandleForHeapStart());
+    gpu_handle.Offset(GetUsedDescriptorCount(), m_descriptor_increment_size);
+    return gpu_handle;
+}
+
 bool DX12DescriptorHeap::CreateSRVInHeap(IRHIDevice& device, unsigned descriptor_offset,
                                          ID3D12Resource* resource, const RHIDescriptorDesc& desc, RHIGPUDescriptorHandle& out_GPU_handle)
 {

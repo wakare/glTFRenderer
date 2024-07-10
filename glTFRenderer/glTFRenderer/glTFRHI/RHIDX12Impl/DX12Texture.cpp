@@ -17,7 +17,7 @@ bool DX12Texture::InitFromExternalResource(ID3D12Resource* raw_resource, const R
     return true;
 }
 
-bool DX12Texture::InitTexture(IRHIDevice& device, const RHITextureDesc& desc)
+bool DX12Texture::InitTexture(IRHIDevice& device, glTFRenderResourceManager& resource_manager, const RHITextureDesc& desc)
 {
     GLTF_CHECK(!desc.HasTextureData());
     
@@ -37,12 +37,12 @@ bool DX12Texture::InitTexture(IRHIDevice& device, const RHITextureDesc& desc)
         desc.GetClearValue()
     };
     
-    RETURN_IF_FALSE(glTFRenderResourceManager::GetMemoryManager().AllocateBufferMemory(device, textureBufferDesc, m_texture_buffer));
+    RETURN_IF_FALSE(resource_manager.GetMemoryManager().AllocateBufferMemory(device, textureBufferDesc, m_texture_buffer));
     
     return true;
 }
 
-bool DX12Texture::InitTextureAndUpload(IRHIDevice& device, IRHICommandList& command_list, const RHITextureDesc& desc)
+bool DX12Texture::InitTextureAndUpload(IRHIDevice& device, glTFRenderResourceManager& resource_manager, IRHICommandList& command_list, const RHITextureDesc& desc)
 {
     GLTF_CHECK(desc.HasTextureData());
     void* texture_data = desc.GetTextureData();
@@ -60,7 +60,7 @@ bool DX12Texture::InitTextureAndUpload(IRHIDevice& device, IRHICommandList& comm
             RHIBufferResourceType::Tex2D
         };
     
-    glTFRenderResourceManager::GetMemoryManager().AllocateBufferMemory(device, textureBufferDesc, m_texture_buffer);
+    resource_manager.GetMemoryManager().AllocateBufferMemory(device, textureBufferDesc, m_texture_buffer);
 
     const size_t bytesPerPixel = GetRHIDataFormatBitsPerPixel(m_texture_desc.GetDataFormat()) / 8;
     const size_t imageBytesPerRow = bytesPerPixel * m_texture_desc.GetTextureWidth(); 
@@ -76,7 +76,7 @@ bool DX12Texture::InitTextureAndUpload(IRHIDevice& device, IRHICommandList& comm
             m_texture_desc.GetDataFormat(),
             RHIBufferResourceType::Buffer
         };
-    glTFRenderResourceManager::GetMemoryManager().AllocateBufferMemory(device, textureUploadBufferDesc, m_texture_upload_buffer);
+    resource_manager.GetMemoryManager().AllocateBufferMemory(device, textureUploadBufferDesc, m_texture_upload_buffer);
 
     RETURN_IF_FALSE(RHIUtils::Instance().UploadTextureDataToDefaultGPUBuffer(
         command_list,

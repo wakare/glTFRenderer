@@ -20,5 +20,5 @@ class glTFRenderInterfaceRadiosityScene : public glTFRenderInterfaceBaseWithDefa
 public:
     glTFRenderInterfaceRadiosityScene();
     
-    bool UploadCPUBufferFromRadiosityRenderer(const glTFRadiosityRenderer& radiosity_renderer);
+    bool UploadCPUBufferFromRadiosityRenderer(glTFRenderResourceManager& resource_manager, const glTFRadiosityRenderer& radiosity_renderer);
 };

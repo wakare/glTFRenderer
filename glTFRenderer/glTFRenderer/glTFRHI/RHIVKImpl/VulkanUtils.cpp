@@ -7,7 +7,7 @@
 #include "VKRenderPass.h"
 #include "VKSemaphore.h"
 
-bool VulkanUtils::InitGUIContext(IRHIDevice& device, IRHIDescriptorHeap& descriptor_heap, unsigned back_buffer_count)
+bool VulkanUtils::InitGUIContext(IRHIDevice& device, IRHIDescriptorManager& descriptor_heap, unsigned back_buffer_count)
 {
     return true;
 }

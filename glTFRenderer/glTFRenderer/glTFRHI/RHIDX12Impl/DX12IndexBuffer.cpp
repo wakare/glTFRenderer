@@ -4,12 +4,12 @@
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 
 std::shared_ptr<IRHIIndexBufferView> DX12IndexBuffer::CreateIndexBufferView(IRHIDevice& device,
-    IRHICommandList& command_list, const RHIBufferDesc& desc, const IndexBufferData& index_buffer_data)
+                                                                            IRHICommandList& command_list, glTFRenderResourceManager& resource_manager, const RHIBufferDesc& desc, const IndexBufferData& index_buffer_data)
 {
     m_index_format = index_buffer_data.format;
     m_index_count = index_buffer_data.index_count;
 
-    glTFRenderResourceManager::GetMemoryManager().AllocateBufferMemory(
+    resource_manager.GetMemoryManager().AllocateBufferMemory(
     device,
     {
         L"indexBufferBuffer",
@@ -22,7 +22,7 @@ std::shared_ptr<IRHIIndexBufferView> DX12IndexBuffer::CreateIndexBufferView(IRHI
     },
     m_buffer);
 
-    glTFRenderResourceManager::GetMemoryManager().AllocateBufferMemory(
+    resource_manager.GetMemoryManager().AllocateBufferMemory(
     device,
     {
         L"indexBufferUploadBuffer",

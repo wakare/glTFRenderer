@@ -63,7 +63,6 @@ protected:
     glTFTimer m_timer;
     std::unique_ptr<glTFSceneGraph> m_scene_graph;
     std::unique_ptr<glTFAppRenderer> m_renderer;
-    std::shared_ptr<glTFGUI> m_GUI;
 
     // GUI state
     glTFAppConfig m_app_config;

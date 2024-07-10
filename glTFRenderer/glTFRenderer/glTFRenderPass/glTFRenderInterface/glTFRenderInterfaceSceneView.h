@@ -36,7 +36,7 @@ class glTFRenderInterfaceSceneView : public glTFRenderInterfaceSingleConstantBuf
 public:
     glTFRenderInterfaceSceneView();
     
-    bool UpdateSceneView(const glTFSceneView& view);
+    bool UpdateSceneView(glTFRenderResourceManager& resource_manager, const glTFSceneView& view);
 
 protected:
     ConstantBufferSceneView m_scene_view;
