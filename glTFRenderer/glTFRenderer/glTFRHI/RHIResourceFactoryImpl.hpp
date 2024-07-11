@@ -39,7 +39,6 @@
 #include "RHIDX12Impl/DX12RootSignature.h"
 #include "RHIDX12Impl/DX12SwapChain.h"
 #include "RHIDX12Impl/DX12VertexBufferView.h"
-#include "RHIDX12Impl/DX12DescriptorHeap.h"
 #include "RHIDX12Impl/DX12IndexBuffer.h"
 #include "RHIDX12Impl/DX12RayTracingAS.h"
 #include "RHIDX12Impl/DX12Shader.h"
@@ -56,7 +55,6 @@
 #include "RHIVKImpl/VKCommandList.h"
 #include "RHIVKImpl/VKCommandSignature.h"
 #include "RHIVKImpl/VKComputePipelineStateObject.h"
-#include "RHIVKImpl/VKDescriptorHeap.h"
 #include "RHIVKImpl/VKDevice.h"
 #include "RHIVKImpl/VKFactory.h"
 #include "RHIVKImpl/VKFence.h"
@@ -127,7 +125,6 @@ IMPLEMENT_CREATE_RHI_RESOURCE(IRHIVertexBuffer, DX12VertexBuffer, VKVertexBuffer
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIVertexBufferView, DX12VertexBufferView, VKVertexBufferView)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIIndexBuffer, DX12IndexBuffer, VKIndexBuffer)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIIndexBufferView, DX12IndexBufferView, VKIndexBufferView)
-IMPLEMENT_CREATE_RHI_RESOURCE(IRHIDescriptorHeap, DX12DescriptorHeap, VKDescriptorHeap)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHITexture, DX12Texture, VKTexture)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIRayTracingAS, DX12RayTracingAS, VKRayTracingAS)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHICommandSignature, DX12CommandSignature, VKCommandSignature)

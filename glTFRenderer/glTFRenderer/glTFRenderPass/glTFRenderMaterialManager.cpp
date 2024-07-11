@@ -106,14 +106,14 @@ bool glTFMaterialRenderResource::Init(glTFRenderResourceManager& resource_manage
     return true;
 }
 
-std::shared_ptr<IRHIDescriptorAllocation> glTFMaterialRenderResource::CreateOrGetAllTextureFirstGPUHandle(glTFRenderResourceManager& resource_manager, IRHIDescriptorHeap& descriptor_heap)
+std::shared_ptr<IRHIDescriptorAllocation> glTFMaterialRenderResource::CreateOrGetAllTextureFirstGPUHandle(glTFRenderResourceManager& resource_manager)
 {
     std::shared_ptr<IRHIDescriptorAllocation> first_allocation;
     for (const auto& texture : m_textures)
     {
         std::shared_ptr<IRHIDescriptorAllocation> result;
         const auto& texture_resource = *texture.second->GetTextureAllocation().m_texture;
-        descriptor_heap.CreateResourceDescriptorInHeap(resource_manager.GetDevice(), texture_resource,
+        resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), texture_resource,
             {
                 .format = texture_resource.GetTextureDesc().GetDataFormat(),
                 .dimension = RHIResourceDimension::TEXTURE2D,
@@ -146,13 +146,6 @@ bool glTFRenderMaterialManager::InitMaterialRenderResource(glTFRenderResourceMan
         RETURN_IF_FALSE(m_material_render_resources[material_ID]->Init(resource_manager))    
     }
 
-    return true;
-}
-
-bool glTFRenderMaterialManager::ApplyMaterialRenderResource(glTFRenderResourceManager& resource_manager, IRHIDescriptorHeap& descriptor_heap, glTFUniqueID material_ID, unsigned slot_index, bool
-                                                            isGraphicsPipeline)
-{
-    GLTF_CHECK(false);   
     return true;
 }
 

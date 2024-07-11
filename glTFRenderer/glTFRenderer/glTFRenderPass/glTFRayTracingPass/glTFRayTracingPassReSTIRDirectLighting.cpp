@@ -96,24 +96,24 @@ bool glTFRayTracingPassReSTIRDirectLighting::SetupPipelineStateObject(glTFRender
     RETURN_IF_FALSE(glTFRayTracingPassWithMesh::SetupPipelineStateObject(resource_manager))
 
     RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(
-                resource_manager.GetDevice(),
-                GetResourceTexture(RenderPassResourceTableId::RayTracingPass_ReSTIRSample_Output),
-                {
+                    resource_manager.GetDevice(),
+                    GetResourceTexture(RenderPassResourceTableId::RayTracingPass_ReSTIRSample_Output),
+                    {
                     GetResourceTexture(RenderPassResourceTableId::RayTracingPass_ReSTIRSample_Output).GetTextureFormat(),
                     RHIResourceDimension::TEXTURE2D,
                     RHIViewType::RVT_UAV
-                },
-                m_lighting_samples_handle))
+                    },
+                    m_lighting_samples_handle))
 
     RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(
-                resource_manager.GetDevice(),
-                GetResourceTexture(RenderPassResourceTableId::ScreenUVOffset),
-                {
+                    resource_manager.GetDevice(),
+                    GetResourceTexture(RenderPassResourceTableId::ScreenUVOffset),
+                    {
                     GetResourceTexture(RenderPassResourceTableId::ScreenUVOffset).GetTextureFormat(),
                     RHIResourceDimension::TEXTURE2D,
                     RHIViewType::RVT_UAV
-                },
-                m_screen_uv_offset_handle))
+                    },
+                    m_screen_uv_offset_handle))
 
     for (unsigned i = 0; i < resource_manager.GetBackBufferCount(); ++i)
     {

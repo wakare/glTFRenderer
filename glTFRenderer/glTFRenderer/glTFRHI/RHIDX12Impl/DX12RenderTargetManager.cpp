@@ -225,12 +225,12 @@ std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTargetWit
     const bool is_rtv = (type == RHIRenderTargetType::RTV);
     std::shared_ptr<IRHIDescriptorAllocation> descriptor_allocation;
     resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(device, *texture_resource->m_texture, 
-                                                             {
-                                                                 .format = descriptor_format,
-                                                                 .dimension = RHIResourceDimension::TEXTURE2D,
-                                                                 .view_type = is_rtv ? RHIViewType::RVT_RTV : RHIViewType::RVT_DSV,
-                                                             },
-                                                             descriptor_allocation);
+        {
+            .format = descriptor_format,
+            .dimension = RHIResourceDimension::TEXTURE2D,
+            .view_type = is_rtv ? RHIViewType::RVT_RTV : RHIViewType::RVT_DSV,
+        },
+        descriptor_allocation);
     
     std::shared_ptr<IRHIRenderTarget> render_target = RHIResourceFactory::CreateRHIResource<IRHIRenderTarget>();
     render_target->InitRenderTarget(texture_resource, descriptor_allocation);

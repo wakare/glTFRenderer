@@ -14,7 +14,7 @@ class VulkanUtils : public RHIUtils
 public:
     DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VulkanUtils)
 
-    virtual bool InitGUIContext(IRHIDevice& device, IRHIDescriptorManager& descriptor_heap, unsigned back_buffer_count) override;
+    virtual bool InitGUIContext(IRHIDevice& device, IRHIDescriptorManager& descriptor_manager, unsigned back_buffer_count) override;
     virtual bool NewGUIFrame() override;
     virtual bool RenderGUIFrame(IRHICommandList& commandList) override;
     virtual bool ExitGUI() override;
@@ -36,7 +36,6 @@ public:
     virtual bool SetIndexBufferView(IRHICommandList& commandList, IRHIIndexBufferView& view) override;
     virtual bool SetPrimitiveTopology(IRHICommandList& commandList, RHIPrimitiveTopologyType type) override;
 
-    virtual bool SetDescriptorHeapArray(IRHICommandList& commandList, IRHIDescriptorHeap* descriptor_heap_array_data, size_t descriptor_heap_array_count) override;
     virtual bool SetConstant32BitToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex, unsigned* data, unsigned count, bool isGraphicsPipeline) override;
     virtual bool SetCBVToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex, const IRHIDescriptorAllocation& handle, bool isGraphicsPipeline) override;
     virtual bool SetSRVToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex, const IRHIDescriptorAllocation& handle, bool isGraphicsPipeline) override;

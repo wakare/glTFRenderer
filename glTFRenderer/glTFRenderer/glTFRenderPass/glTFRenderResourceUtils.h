@@ -2,7 +2,6 @@
 #include <memory>
 
 #include "glTFRHI/RHIInterface/IRHICommandList.h"
-#include "glTFRHI/RHIInterface/IRHIDescriptorHeap.h"
 #include "glTFRHI/RHIInterface/IRHIRenderTarget.h"
 #include "glTFRHI/RHIInterface/IRHIRootSignatureHelper.h"
 #include "ShaderUtil/IRHIShader.h"

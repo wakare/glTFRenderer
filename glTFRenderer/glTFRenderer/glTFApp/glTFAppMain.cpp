@@ -257,12 +257,11 @@ bool glTFAppMain::UpdateGUIWidgets()
         m_app_config.use_rasterizer = false;
     }
     
-    
     if (!m_app_config.use_rasterizer)
     {
         ImGui::Dummy({10.0f, 10.0f});
         ImGui::TextColored({0.0f, 0.0f, 1.0f, 1.0f}, "RayTracer lighting method");
-        if (ImGui::RadioButton("ReSTIR", m_app_config.m_ReSTIR))
+        if (ImGui::RadioButton("ReSTIR_DI", m_app_config.m_ReSTIR))
         {
             m_app_config.m_ReSTIR = true;
         }
@@ -270,11 +269,22 @@ bool glTFAppMain::UpdateGUIWidgets()
         if (ImGui::RadioButton("PathTracing", !m_app_config.m_ReSTIR))
         {
             m_app_config.m_ReSTIR = false;
-        }    
+        }
     }
 
     ImGui::Dummy({10.0f, 10.0f});
-    ImGui::Checkbox("Vulkan", &m_app_config.m_vulkan);
+    ImGui::TextColored({0.0f, 0.0f, 1.0f, 1.0f}, "Graphics API");
+    if (ImGui::RadioButton("DX12", !m_app_config.m_vulkan))
+    {
+        m_app_config.m_vulkan = false;
+    }
+    
+    if (ImGui::RadioButton("Vulkan", m_app_config.m_vulkan))
+    {
+        m_app_config.m_vulkan = true;
+    }
+    
+
 
     ImGui::Dummy({10.0f, 10.0f});
     ImGui::Checkbox("TickSceneUpdate", &m_app_config.m_tick_scene);

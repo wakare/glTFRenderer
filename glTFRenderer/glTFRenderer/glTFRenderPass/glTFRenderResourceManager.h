@@ -12,7 +12,6 @@
 #include "glTFRHI/RHIInterface/IRHIFence.h"
 #include "glTFRHI/RHIInterface/IRHIRenderTarget.h"
 #include "glTFRHI/RHIInterface/IRHISwapChain.h"
-#include "glTFRHI/RHIInterface/IRHIDescriptorHeap.h"
 #include "glTFRHI/RHIInterface/IRHIMemoryAllocator.h"
 #include "glTFRHI/RHIInterface/IRHIMemoryManager.h"
 #include "glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
@@ -56,7 +55,6 @@ public:
 	glTFRenderMaterialManager& GetMaterialManager();
     glTFRenderMeshManager& GetMeshManager();
     
-    bool ApplyMaterial(IRHIDescriptorHeap& descriptor_heap, glTFUniqueID material_ID, unsigned slot_index, bool isGraphicsPipeline);
     bool TryProcessSceneObject(glTFRenderResourceManager& resource_manager, const glTFSceneObjectBase& object);
     
     void SetCurrentPSO(std::shared_ptr<IRHIPipelineStateObject> pso);

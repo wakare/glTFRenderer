@@ -304,8 +304,8 @@
     <ClCompile Include="glTFRHI\RHIInterface\IRHICommandList.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHICommandQueue.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHICommandSignature.cpp" />
-    <ClCompile Include="glTFRHI\RHIInterface\IRHIDescriptorHeap.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIDescriptorManager.cpp" />
+    <ClCompile Include="glTFRHI\RHIInterface\IRHIDescriptorUpdater.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIDevice.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIFactory.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIFence.cpp" />
@@ -340,7 +340,6 @@
     <ClCompile Include="glTFRHI\RHIVKImpl\VKCommandSignature.cpp" />
     <ClCompile Include="glTFRHI\RHIVKImpl\VKComputePipelineStateObject.cpp" />
     <ClCompile Include="glTFRHI\RHIVKImpl\VKConverterUtils.cpp" />
-    <ClCompile Include="glTFRHI\RHIVKImpl\VKDescriptorHeap.cpp" />
     <ClCompile Include="glTFRHI\RHIVKImpl\VKDescriptorManager.cpp" />
     <ClCompile Include="glTFRHI\RHIVKImpl\VKDevice.cpp" />
     <ClCompile Include="glTFRHI\RHIVKImpl\VKFactory.cpp" />
@@ -475,8 +474,8 @@
     <ClInclude Include="glTFRHI\RHIInterface\IRHICommandList.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHICommandQueue.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHICommandSignature.h" />
-    <ClInclude Include="glTFRHI\RHIInterface\IRHIDescriptorHeap.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHIDescriptorManager.h" />
+    <ClInclude Include="glTFRHI\RHIInterface\IRHIDescriptorUpdater.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHIDevice.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHIFactory.h" />
     <ClInclude Include="glTFRHI\RHIInterface\IRHIFence.h" />
@@ -513,7 +512,6 @@
     <ClInclude Include="glTFRHI\RHIVKImpl\VKCommandSignature.h" />
     <ClInclude Include="glTFRHI\RHIVKImpl\VKComputePipelineStateObject.h" />
     <ClInclude Include="glTFRHI\RHIVKImpl\VKConverterUtils.h" />
-    <ClInclude Include="glTFRHI\RHIVKImpl\VKDescriptorHeap.h" />
     <ClInclude Include="glTFRHI\RHIVKImpl\VKDescriptorManager.h" />
     <ClInclude Include="glTFRHI\RHIVKImpl\VKDevice.h" />
     <ClInclude Include="glTFRHI\RHIVKImpl\VKFactory.h" />

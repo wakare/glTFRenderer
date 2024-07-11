@@ -4,37 +4,10 @@
 #include "DX12ConverterUtils.h"
 #include "DX12Device.h"
 #include "DX12Buffer.h"
+#include "DX12DescriptorManager.h"
 #include "DX12RenderTarget.h"
 #include "DX12Texture.h"
 #include "DX12Utils.h"
-
-bool DX12DescriptorAllocation::InitFromBuffer(const IRHIBuffer& buffer)
-{
-    m_gpu_handle = dynamic_cast<const DX12Buffer&>(buffer).GetBuffer()->GetGPUVirtualAddress();
-    return true;
-}
-
-bool DX12DescriptorTable::Build(IRHIDevice& device, const std::vector<std::shared_ptr<IRHIDescriptorAllocation>>& descriptor_allocations)
-{
-    GLTF_CHECK (!descriptor_allocations.empty());
-    
-    auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
-    auto descriptor_increment_size = dxDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-    
-    // Check all allocation gpu handle is consistent!!
-    bool is_consistent_gpu_handle = true;
-
-    CD3DX12_GPU_DESCRIPTOR_HANDLE current_handle ({dynamic_cast<const DX12DescriptorAllocation&>(*descriptor_allocations[0]).m_gpu_handle});
-    m_gpu_handle = current_handle.ptr;
-    
-    for (size_t i = 1; i < descriptor_allocations.size(); ++i)
-    {
-        auto check_handle = current_handle.Offset(1, descriptor_increment_size).ptr;
-        GLTF_CHECK(dynamic_cast<const DX12DescriptorAllocation&>(*descriptor_allocations[i]).m_gpu_handle == check_handle);
-    }
-
-    return true; 
-}
 
 DX12DescriptorHeap::DX12DescriptorHeap()
     : m_descriptorHeap(nullptr)

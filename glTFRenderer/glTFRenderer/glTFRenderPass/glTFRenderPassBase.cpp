@@ -7,13 +7,6 @@
 
 bool glTFRenderPassBase::InitPass(glTFRenderResourceManager& resource_manager)
 {
-    if (UseStandaloneDescriptorHeap())
-    {
-        m_main_descriptor_heap = RHIResourceFactory::CreateRHIResource<IRHIDescriptorHeap>();
-        RETURN_IF_FALSE(m_main_descriptor_heap->InitDescriptorHeap(resource_manager.GetDevice(),
-            {static_cast<unsigned>(GetMainDescriptorHeapSize()), RHIDescriptorHeapType::CBV_SRV_UAV, true}))    
-    }
-
     m_render_pass = RHIResourceFactory::CreateRHIResource<IRHIRenderPass>();
     
     switch (GetPipelineType())

@@ -1,7 +1,6 @@
 #pragma once
 #include <functional>
 
-class IRHIDescriptorHeap;
 class glTFRenderResourceManager;
 class glTFWindow;
 

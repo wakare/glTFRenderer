@@ -42,18 +42,18 @@ bool glTFComputePassIndirectDrawCulling::InitPass(glTFRenderResourceManager& res
     const auto& mesh_manager = resource_manager.GetMeshManager();
         
     RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(
-            resource_manager.GetDevice(),
-            *mesh_manager.GetCulledIndirectArgumentBuffer(),
-            {
-            RHIDataFormat::UNKNOWN,
-            RHIResourceDimension::BUFFER,
-            RHIViewType::RVT_UAV,
-            sizeof(MeshIndirectDrawCommand),
-            static_cast<unsigned>(mesh_manager.GetIndirectDrawCommands().size()),
-            true,
-            mesh_manager.GetCulledIndirectArgumentBufferCountOffset()
-            },
-            m_command_buffer_handle))
+                resource_manager.GetDevice(),
+                *mesh_manager.GetCulledIndirectArgumentBuffer(),
+                {
+                RHIDataFormat::UNKNOWN,
+                RHIResourceDimension::BUFFER,
+                RHIViewType::RVT_UAV,
+                sizeof(MeshIndirectDrawCommand),
+                static_cast<unsigned>(mesh_manager.GetIndirectDrawCommands().size()),
+                true,
+                mesh_manager.GetCulledIndirectArgumentBufferCountOffset()
+                },
+                m_command_buffer_handle))
 
     const unsigned dispatch_thread = static_cast<unsigned>(ceil(mesh_manager.GetIndirectDrawCommands().size() / 64.0f));
     m_dispatch_count = {dispatch_thread, 1, 1};

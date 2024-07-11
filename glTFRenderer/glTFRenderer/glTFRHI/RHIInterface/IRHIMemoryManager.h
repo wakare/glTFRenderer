@@ -1,6 +1,5 @@
 #pragma once
 #include "IRHIBuffer.h"
-#include "IRHIDescriptorHeap.h"
 #include "IRHIDescriptorManager.h"
 #include "IRHIDevice.h"
 #include "IRHIMemoryAllocator.h"

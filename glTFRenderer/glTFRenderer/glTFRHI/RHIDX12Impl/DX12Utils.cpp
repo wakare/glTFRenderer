@@ -31,7 +31,7 @@ bool DX12Utils::InitGUIContext(IRHIDevice& device, IRHIDescriptorManager& descri
     auto& heap = dynamic_cast<DX12DescriptorManager&>(descriptor_manager).GetGUIDescriptorHeap();
     auto* dx_descriptor_heap = dynamic_cast<DX12DescriptorHeap&>(heap).GetDescriptorHeap();
     
-    ImGui_ImplDX12_Init(dx_device, back_buffer_count,
+    ImGui_ImplDX12_Init(dx_device, static_cast<int>(back_buffer_count),
         DXGI_FORMAT_R8G8B8A8_UNORM, dx_descriptor_heap,
         dynamic_cast<DX12DescriptorHeap&>(heap).GetAvailableCPUHandle(),
         dynamic_cast<DX12DescriptorHeap&>(heap).GetAvailableGPUHandle());
@@ -196,7 +196,7 @@ bool DX12Utils::SetPrimitiveTopology(IRHICommandList& command_list, RHIPrimitive
     return true;
 }
 
-bool DX12Utils::SetDescriptorHeapArray(IRHICommandList& command_list, IRHIDescriptorHeap* descriptor_heap_array_data,
+bool DX12Utils::SetDescriptorHeapArray(IRHICommandList& command_list, DX12DescriptorHeap* descriptor_heap_array_data,
                                   size_t descriptor_heap_array_count)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
@@ -511,4 +511,9 @@ unsigned DX12Utils::GetAlignmentSizeForUAVCount(unsigned size)
 {
     const UINT alignment = D3D12_UAV_COUNTER_PLACEMENT_ALIGNMENT;
     return (size + (alignment - 1)) & ~(alignment - 1);
+}
+
+DX12Utils& DX12Utils::DX12Instance()
+{
+    return static_cast<DX12Utils&>(Instance());
 }

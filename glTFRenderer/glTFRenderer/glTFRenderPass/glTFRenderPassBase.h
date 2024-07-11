@@ -11,7 +11,6 @@ class IRHIRenderPass;
 class glTFMaterialBase;
 class IRHIRootSignature;
 class IRHIPipelineStateObject;
-class IRHIDescriptorHeap;
 class IRHICommandList;
 
 enum RenderPassCommonEnum
@@ -81,14 +80,9 @@ protected:
     virtual PipelineType GetPipelineType() const = 0;
     
     void AddRenderInterface(const std::shared_ptr<glTFRenderInterfaceBase>& render_interface);
-    virtual bool UseStandaloneDescriptorHeap() const { return false; }
 
     IRHIRootSignatureHelper m_root_signature_helper;
     std::shared_ptr<IRHIRenderPass> m_render_pass;
     std::shared_ptr<IRHIPipelineStateObject> m_pipeline_state_object;
     std::vector<std::shared_ptr<glTFRenderInterfaceBase>> m_render_interfaces;
-    
-private:
-    // CBV_SRV_UAV Heaps, can only bind one in render pass
-    std::shared_ptr<IRHIDescriptorHeap> m_main_descriptor_heap;
 };

@@ -91,24 +91,24 @@ bool glTFRayTracingPassPathTracing::SetupPipelineStateObject(glTFRenderResourceM
     auto& screen_uv_offset_allocation = GetResourceTexture(RenderPassResourceTableId::ScreenUVOffset);
     
     RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(
-                resource_manager.GetDevice(),
-                raytracing_output_allocation,
-                {
+                    resource_manager.GetDevice(),
+                    raytracing_output_allocation,
+                    {
                     raytracing_output_allocation.GetTextureFormat(),
                     RHIResourceDimension::TEXTURE2D,
                     RHIViewType::RVT_UAV
-                },
-                m_raytracing_output_handle))
+                    },
+                    m_raytracing_output_handle))
 
     RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(
-                resource_manager.GetDevice(),
-                screen_uv_offset_allocation,
-                {
+                    resource_manager.GetDevice(),
+                    screen_uv_offset_allocation,
+                    {
                     screen_uv_offset_allocation.GetTextureFormat(),
                     RHIResourceDimension::TEXTURE2D,
                     RHIViewType::RVT_UAV
-                },
-                m_screen_uv_offset_handle))
+                    },
+                    m_screen_uv_offset_handle))
 
     GetRayTracingPipelineStateObject().BindShaderCode("glTFResources/ShaderSource/RayTracing/PathTracingMain.hlsl",
                                                       RHIShaderType::RayTracing, "");

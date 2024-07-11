@@ -11,7 +11,6 @@
 
 enum class glTFMaterialParameterUsage;
 class glTFMaterialBase;
-class IRHIDescriptorHeap;
 class glTFRenderResourceManager;
 class glTFMaterialParameterTexture;
 
@@ -35,7 +34,7 @@ public:
 	glTFMaterialRenderResource(const glTFMaterialBase& source_material);
 	bool Init(glTFRenderResourceManager& resource_manager);
 	
-	std::shared_ptr<IRHIDescriptorAllocation> CreateOrGetAllTextureFirstGPUHandle(glTFRenderResourceManager& resource_manager, IRHIDescriptorHeap& descriptor_heap);
+	std::shared_ptr<IRHIDescriptorAllocation> CreateOrGetAllTextureFirstGPUHandle(glTFRenderResourceManager& resource_manager);
 	const std::map<glTFMaterialParameterUsage, std::unique_ptr<glTFMaterialTextureRenderResource>>& GetTextures() const;
 	const std::map<glTFMaterialParameterUsage, std::unique_ptr<glTFMaterialParameterFactor<glm::vec4>>>& GetFactors() const;
 	
@@ -50,8 +49,6 @@ class glTFRenderMaterialManager
 {
 public:
 	bool InitMaterialRenderResource(glTFRenderResourceManager& resource_manager, const glTFMaterialBase& material);
-	bool ApplyMaterialRenderResource(glTFRenderResourceManager& resource_manager, IRHIDescriptorHeap& descriptor_heap, glTFUniqueID material_ID, unsigned slot_index, bool
-	                                 isGraphicsPipeline);
 	
 	bool GatherAllMaterialRenderResource(
 		std::vector<MaterialInfo>& gather_material_infos, std::vector<glTFMaterialTextureRenderResource*>&

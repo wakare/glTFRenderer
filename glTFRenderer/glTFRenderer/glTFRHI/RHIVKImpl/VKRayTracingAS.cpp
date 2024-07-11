@@ -1,7 +1,6 @@
 #include "VKRayTracingAS.h"
 
-#include "VKDescriptorHeap.h"
-#include "glTFRHI/RHIInterface/IRHIDescriptorHeap.h"
+#include "VKDescriptorManager.h"
 
 bool VKRayTracingAS::InitRayTracingAS(IRHIDevice& device, IRHICommandList& command_list,
                                       const glTFRenderMeshManager& mesh_manager, glTFRenderResourceManager& resource_manager)

@@ -4,6 +4,7 @@
 //#include "glTFUtils/glTFLog.h"
 #include "glTFRHI/RHIInterface/IRHIRenderTarget.h"
 
+class DX12DescriptorHeap;
 enum class RHIBufferType;
 enum class RHIDataFormat;
 
@@ -39,7 +40,6 @@ public:
     virtual bool SetIndexBufferView(IRHICommandList& command_list, IRHIIndexBufferView& view) override;
     virtual bool SetPrimitiveTopology(IRHICommandList& command_list, RHIPrimitiveTopologyType type) override;
 
-    virtual bool SetDescriptorHeapArray(IRHICommandList& command_list, IRHIDescriptorHeap* descriptor_heap_array_data, size_t descriptor_heap_array_count) override;
     virtual bool SetConstant32BitToRootParameterSlot(IRHICommandList& command_list, unsigned slot_index, unsigned* data, unsigned count, bool isGraphicsPipeline) override;
     virtual bool SetCBVToRootParameterSlot(IRHICommandList& command_list, unsigned slot_index, const IRHIDescriptorAllocation& handle, bool isGraphicsPipeline) override;
     virtual bool SetSRVToRootParameterSlot(IRHICommandList& command_list, unsigned slot_index, const IRHIDescriptorAllocation& handle, bool isGraphicsPipeline) override;
@@ -69,4 +69,8 @@ public:
     
     virtual bool SupportRayTracing(IRHIDevice& device) override;
     virtual unsigned GetAlignmentSizeForUAVCount(unsigned size ) override;
+
+    // DX12 private implementation
+    static DX12Utils& DX12Instance();
+    bool SetDescriptorHeapArray(IRHICommandList& command_list, DX12DescriptorHeap* descriptor_heap_array_data, size_t descriptor_heap_array_count);
 };

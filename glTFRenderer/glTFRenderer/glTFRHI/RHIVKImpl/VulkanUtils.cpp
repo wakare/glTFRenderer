@@ -7,7 +7,7 @@
 #include "VKRenderPass.h"
 #include "VKSemaphore.h"
 
-bool VulkanUtils::InitGUIContext(IRHIDevice& device, IRHIDescriptorManager& descriptor_heap, unsigned back_buffer_count)
+bool VulkanUtils::InitGUIContext(IRHIDevice& device, IRHIDescriptorManager& descriptor_manager, unsigned back_buffer_count)
 {
     return true;
 }
@@ -147,12 +147,6 @@ bool VulkanUtils::SetIndexBufferView(IRHICommandList& commandList, IRHIIndexBuff
 }
 
 bool VulkanUtils::SetPrimitiveTopology(IRHICommandList& commandList, RHIPrimitiveTopologyType type)
-{
-    return true;
-}
-
-bool VulkanUtils::SetDescriptorHeapArray(IRHICommandList& commandList, IRHIDescriptorHeap* descriptor_heap_array_data,
-    size_t descriptor_heap_array_count)
 {
     return true;
 }

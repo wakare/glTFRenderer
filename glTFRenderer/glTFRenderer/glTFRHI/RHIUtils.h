@@ -4,7 +4,6 @@
 #include "RHIInterface/RHICommon.h"
 #include "RHIInterface/IRHICommandAllocator.h"
 #include "RHIInterface/IRHICommandSignature.h"
-#include "RHIInterface/IRHIDescriptorHeap.h"
 #include "RHIInterface/IRHIDescriptorManager.h"
 #include "RHIInterface/IRHIIndexBufferView.h"
 #include "RHIInterface/IRHIPipelineStateObject.h"
@@ -66,7 +65,6 @@ public:
     virtual bool SetIndexBufferView(IRHICommandList& command_list, IRHIIndexBufferView& view) = 0;
     virtual bool SetPrimitiveTopology(IRHICommandList& command_list, RHIPrimitiveTopologyType type) = 0;
     
-    virtual bool SetDescriptorHeapArray(IRHICommandList& command_list, IRHIDescriptorHeap* descriptorArray, size_t descriptorCount) = 0;
     virtual bool SetConstant32BitToRootParameterSlot(IRHICommandList& command_list, unsigned slotIndex, unsigned* data, unsigned count, bool isGraphicsPipeline) = 0;
     virtual bool SetCBVToRootParameterSlot(IRHICommandList& command_list, unsigned slotIndex, const IRHIDescriptorAllocation& handle, bool isGraphicsPipeline) = 0;
     virtual bool SetSRVToRootParameterSlot(IRHICommandList& command_list, unsigned slotIndex, const IRHIDescriptorAllocation& handle, bool isGraphicsPipeline) = 0;
@@ -96,7 +94,7 @@ public:
 
     virtual bool SupportRayTracing(IRHIDevice& device) = 0;
     virtual unsigned GetAlignmentSizeForUAVCount(unsigned size) = 0;
-    
+
     static RHIUtils& Instance();
 
 protected:
