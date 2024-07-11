@@ -1,5 +1,7 @@
 #include "glTFRenderPassManager.h"
 
+#include <imgui.h>
+
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassLighting.h"
 #include "glTFRenderInterface/glTFRenderInterfaceFrameStat.h"
 #include "glTFRHI/RHIUtils.h"
@@ -115,10 +117,17 @@ void glTFRenderPassManager::UpdateScene(glTFRenderResourceManager& resource_mana
 
 void glTFRenderPassManager::UpdateAllPassGUIWidgets()
 {
+    ImGui::Separator();
+    ImGui::Dummy({10.0f, 10.0f});
+    ImGui::TextColored({0.0f, 1.0f, 0.0f, 1.0f}, "Pass Config");
+    
     for (const auto& pass : m_passes)
     {
+        ImGui::Dummy({10.0f, 10.0f});
         pass->UpdateGUIWidgets();
     }
+    
+    ImGui::Separator();
 }
 
 void glTFRenderPassManager::RenderBegin(glTFRenderResourceManager& resource_manager, size_t deltaTimeMs)

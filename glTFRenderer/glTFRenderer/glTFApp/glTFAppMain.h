@@ -34,13 +34,13 @@ private:
 
 struct glTFAppConfig
 {
-    bool m_raster_scene;
+    bool use_rasterizer;
     bool m_ReSTIR;
     bool m_test_triangle_pass;
     bool m_vulkan;
     
     bool m_recreate_renderer;
-    bool m_scene_tick_enable;
+    bool m_tick_scene;
 };
 
 class glTFAppMain

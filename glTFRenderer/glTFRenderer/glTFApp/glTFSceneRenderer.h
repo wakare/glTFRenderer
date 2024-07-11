@@ -1,6 +1,6 @@
 #pragma once
 #include "glTFPassOptionRenderFlags.h"
-#include "glTFGUI/glTFGUIRenderer.h"
+#include "glTFGUIRenderer.h"
 #include "glTFRenderPass/glTFRenderPassManager.h"
 
 class glTFRenderResourceManager;

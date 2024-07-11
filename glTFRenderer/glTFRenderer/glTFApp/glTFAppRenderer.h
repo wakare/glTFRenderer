@@ -1,5 +1,5 @@
 #pragma once
-#include "glTFAppRenderPipeline.h"
+#include "glTFSceneRenderer.h"
 
 struct glTFAppRendererConfig
 {

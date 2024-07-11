@@ -1,5 +1,5 @@
 #include "glTFAppRenderer.h"
-#include "glTFGUI/glTFGUIRenderer.h"
+#include "glTFGUIRenderer.h"
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassLighting.h"
 #include "RenderWindow/glTFWindow.h"
 

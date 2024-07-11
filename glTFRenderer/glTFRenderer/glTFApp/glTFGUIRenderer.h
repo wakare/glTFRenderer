@@ -24,8 +24,6 @@ public:
     bool AddWidgetSetupCallback(GUIWidgetSetupCallback callback);
     
 private:
-    bool SetupWidgetBegin();
-    bool SetupWidgetEnd();
     bool SetupWidgetsInternal();
     
     bool m_inited {false};

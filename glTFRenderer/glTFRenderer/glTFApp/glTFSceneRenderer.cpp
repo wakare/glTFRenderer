@@ -1,8 +1,8 @@
-#include "glTFAppRenderPipeline.h"
+#include "glTFSceneRenderer.h"
 
 #include <imgui.h>
 
-#include "glTFGUI/glTFGUIRenderer.h"
+#include "glTFGUIRenderer.h"
 #include "glTFRenderPass/glTFComputePass/glTFComputePassIndirectDrawCulling.h"
 #include "glTFRenderPass/glTFComputePass/glTFComputePassLighting.h"
 #include "glTFRenderPass/glTFComputePass/glTFComputePassRayTracingPostprocess.h"

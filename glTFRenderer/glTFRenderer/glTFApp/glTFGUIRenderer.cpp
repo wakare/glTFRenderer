@@ -58,20 +58,6 @@ bool glTFGUIRenderer::RenderWidgets(glTFRenderResourceManager& resource_manager)
 
 bool glTFGUIRenderer::UpdateWidgets()
 {
-    SetupWidgetBegin();
-    
-    SetupWidgetsInternal();
-    for (const auto& setup_callback : m_widget_setup_callbacks)
-    {
-        setup_callback();
-    }
-    
-    SetupWidgetEnd();
-    return true;
-}
-
-bool glTFGUIRenderer::SetupWidgetBegin()
-{
     // Start the Dear ImGui frame
     RETURN_IF_FALSE(RHIUtils::Instance().NewGUIFrame())
     
@@ -79,12 +65,13 @@ bool glTFGUIRenderer::SetupWidgetBegin()
     ImGui::NewFrame();
 
     ImGui::Begin("glTFRenderer config");
-
-    return true;
-}
-
-bool glTFGUIRenderer::SetupWidgetEnd()
-{
+    
+    SetupWidgetsInternal();
+    for (const auto& setup_callback : m_widget_setup_callbacks)
+    {
+        setup_callback();
+    }
+    
     ImGui::End();
     
     ImGui::EndFrame();
@@ -123,8 +110,13 @@ bool glTFGUIRenderer::AddWidgetSetupCallback(GUIWidgetSetupCallback callback)
 
 bool glTFGUIRenderer::SetupWidgetsInternal()
 {
+    ImGui::Separator();
+    ImGui::TextColored({1.0f, 0.0f, 0.0f, 1.0f}, "GUI state");
+    
     const auto& io = ImGui::GetIO();
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 
+    ImGui::Separator();
+    
     return true;
 }
