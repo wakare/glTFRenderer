@@ -53,7 +53,10 @@ bool glTFRenderPassBase::PreRenderPass(glTFRenderResourceManager& resource_manag
     
     //RETURN_IF_FALSE(RHIUtils::Instance().SetDescriptorHeapArray(command_list, &MainDescriptorHeapRef(), 1))
     RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().BindDescriptors(command_list))
+    
     RETURN_IF_FALSE(RHIUtils::Instance().SetRootSignature(command_list, m_root_signature_helper.GetRootSignature(), GetPipelineType() == RHIPipelineType::Graphics))
+
+    RETURN_IF_FALSE(m_descriptor_updater->FinalizeUpdateDescriptors(command_list))
     
     for (const auto& render_interface : m_render_interfaces)
     {

@@ -124,7 +124,7 @@ void glTFRenderPassManager::UpdateAllPassGUIWidgets()
     for (const auto& pass : m_passes)
     {
         ImGui::Dummy({10.0f, 10.0f});
-        if (ImGui::TreeNode(pass->PassName()))
+        if (ImGui::TreeNodeEx(pass->PassName(), ImGuiTreeNodeFlags_DefaultOpen))
         {
             pass->UpdateGUIWidgets();
             ImGui::TreePop();

@@ -9,4 +9,6 @@ class IRHIDescriptorUpdater
 public:
     virtual bool BindDescriptor(IRHICommandList& command_list, RHIPipelineType pipeline, unsigned slot, const IRHIDescriptorAllocation& allocation) = 0;
     virtual bool BindDescriptor(IRHICommandList& command_list, RHIPipelineType pipeline, unsigned slot, const IRHIDescriptorTable& allocation_table) = 0;
+
+    virtual bool FinalizeUpdateDescriptors(IRHICommandList& command_list) = 0;
 };

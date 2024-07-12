@@ -56,3 +56,8 @@ bool DX12DescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPip
     DX12Utils::DX12Instance().SetDTToRootParameterSlot(command_list, slot, allocation_table, pipeline==RHIPipelineType::Graphics);
     return true;
 }
+
+bool DX12DescriptorUpdater::FinalizeUpdateDescriptors(IRHICommandList& command_list)
+{
+    return true;
+}
