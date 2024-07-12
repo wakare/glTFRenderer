@@ -157,30 +157,6 @@ bool VulkanUtils::SetConstant32BitToRootParameterSlot(IRHICommandList& commandLi
     return true;
 }
 
-bool VulkanUtils::SetCBVToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex,
-                                            const IRHIDescriptorAllocation& handle, bool isGraphicsPipeline)
-{
-    return true;
-}
-
-bool VulkanUtils::SetSRVToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex,
-                                            const IRHIDescriptorAllocation& handle, bool isGraphicsPipeline)
-{
-    return true;
-}
-
-bool VulkanUtils::SetDTToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex,
-                                           const IRHIDescriptorAllocation& handle, bool isGraphicsPipeline)
-{
-    return true;
-}
-
-bool VulkanUtils::SetDTToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex,
-    const IRHIDescriptorTable& table_handle, bool isGraphicsPipeline)
-{
-    return false;
-}
-
 bool VulkanUtils::UploadBufferDataToDefaultGPUBuffer(IRHICommandList& commandList, IRHIBuffer& uploadBuffer,
                                                      IRHIBuffer& defaultBuffer, void* data, size_t size)
 {

@@ -1,5 +1,6 @@
 #include "DX12DescriptorUpdater.h"
 
+#include "DX12Utils.h"
 #include "glTFRHI/RHIUtils.h"
 #include "glTFRHI/RHIInterface/IRHIDescriptorManager.h"
 
@@ -14,15 +15,15 @@ bool DX12DescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPip
         {
             if (allocation.m_view_desc.view_type == RHIViewType::RVT_CBV)
             {
-                RHIUtils::Instance().SetCBVToRootParameterSlot(command_list, slot, allocation, pipeline==RHIPipelineType::Graphics);    
+                DX12Utils::DX12Instance().SetCBVToRootParameterSlot(command_list, slot, allocation, pipeline==RHIPipelineType::Graphics);    
             }
             else if (allocation.m_view_desc.view_type == RHIViewType::RVT_SRV)
             {
-                RHIUtils::Instance().SetSRVToRootParameterSlot(command_list, slot, allocation, pipeline==RHIPipelineType::Graphics);
+                DX12Utils::DX12Instance().SetSRVToRootParameterSlot(command_list, slot, allocation, pipeline==RHIPipelineType::Graphics);
             }
             else if (allocation.m_view_desc.view_type == RHIViewType::RVT_UAV)
             {
-                RHIUtils::Instance().SetDTToRootParameterSlot(command_list, slot, allocation, pipeline==RHIPipelineType::Graphics);
+                DX12Utils::DX12Instance().SetDTToRootParameterSlot(command_list, slot, allocation, pipeline==RHIPipelineType::Graphics);
             }
             else
             {
@@ -40,7 +41,7 @@ bool DX12DescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPip
     case RHIResourceDimension::TEXTURECUBE:
     case RHIResourceDimension::TEXTURECUBEARRAY:
         {
-            RHIUtils::Instance().SetDTToRootParameterSlot(command_list, slot, allocation, pipeline==RHIPipelineType::Graphics);
+            DX12Utils::DX12Instance().SetDTToRootParameterSlot(command_list, slot, allocation, pipeline==RHIPipelineType::Graphics);
         }
         break;
     }
@@ -52,6 +53,6 @@ bool DX12DescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPip
     const IRHIDescriptorTable& allocation_table)
 {
     // TODO: More check
-    RHIUtils::Instance().SetDTToRootParameterSlot(command_list, slot, allocation_table, pipeline==RHIPipelineType::Graphics);
+    DX12Utils::DX12Instance().SetDTToRootParameterSlot(command_list, slot, allocation_table, pipeline==RHIPipelineType::Graphics);
     return true;
 }

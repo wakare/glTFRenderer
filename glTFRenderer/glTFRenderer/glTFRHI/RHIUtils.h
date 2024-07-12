@@ -66,10 +66,6 @@ public:
     virtual bool SetPrimitiveTopology(IRHICommandList& command_list, RHIPrimitiveTopologyType type) = 0;
     
     virtual bool SetConstant32BitToRootParameterSlot(IRHICommandList& command_list, unsigned slotIndex, unsigned* data, unsigned count, bool isGraphicsPipeline) = 0;
-    virtual bool SetCBVToRootParameterSlot(IRHICommandList& command_list, unsigned slotIndex, const IRHIDescriptorAllocation& handle, bool isGraphicsPipeline) = 0;
-    virtual bool SetSRVToRootParameterSlot(IRHICommandList& command_list, unsigned slotIndex, const IRHIDescriptorAllocation& handle, bool isGraphicsPipeline) = 0;
-    virtual bool SetDTToRootParameterSlot(IRHICommandList& command_list, unsigned slotIndex, const IRHIDescriptorAllocation& handle, bool isGraphicsPipeline) = 0;
-    virtual bool SetDTToRootParameterSlot(IRHICommandList& command_list, unsigned slotIndex, const IRHIDescriptorTable& table_handle, bool isGraphicsPipeline) = 0;
     
     virtual bool UploadBufferDataToDefaultGPUBuffer(IRHICommandList& command_list, IRHIBuffer& uploadBuffer, IRHIBuffer& defaultBuffer, void* data, size_t size) = 0;
     virtual bool UploadTextureDataToDefaultGPUBuffer(IRHICommandList& command_list, IRHIBuffer& uploadBuffer, IRHIBuffer& defaultBuffer, void* data, size_t rowPitch, size_t slicePitch) = 0;

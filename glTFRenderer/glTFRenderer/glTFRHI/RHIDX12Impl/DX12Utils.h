@@ -41,10 +41,6 @@ public:
     virtual bool SetPrimitiveTopology(IRHICommandList& command_list, RHIPrimitiveTopologyType type) override;
 
     virtual bool SetConstant32BitToRootParameterSlot(IRHICommandList& command_list, unsigned slot_index, unsigned* data, unsigned count, bool isGraphicsPipeline) override;
-    virtual bool SetCBVToRootParameterSlot(IRHICommandList& command_list, unsigned slot_index, const IRHIDescriptorAllocation& handle, bool isGraphicsPipeline) override;
-    virtual bool SetSRVToRootParameterSlot(IRHICommandList& command_list, unsigned slot_index, const IRHIDescriptorAllocation& handle, bool isGraphicsPipeline) override;
-    virtual bool SetDTToRootParameterSlot(IRHICommandList& command_list, unsigned slot_index, const IRHIDescriptorAllocation& handle, bool isGraphicsPipeline) override;
-    virtual bool SetDTToRootParameterSlot(IRHICommandList& command_list, unsigned slot_index, const IRHIDescriptorTable& table_handle, bool isGraphicsPipeline) override;
     
     virtual bool UploadBufferDataToDefaultGPUBuffer(IRHICommandList& command_list, IRHIBuffer& uploadBuffer, IRHIBuffer& defaultBuffer, void* data, size_t size) override;
     virtual bool UploadTextureDataToDefaultGPUBuffer(IRHICommandList& command_list, IRHIBuffer& uploadBuffer, IRHIBuffer& defaultBuffer, void* data, size_t rowPitch, size_t slicePitch) override;
@@ -73,4 +69,8 @@ public:
     // DX12 private implementation
     static DX12Utils& DX12Instance();
     bool SetDescriptorHeapArray(IRHICommandList& command_list, DX12DescriptorHeap* descriptor_heap_array_data, size_t descriptor_heap_array_count);
+    bool SetCBVToRootParameterSlot(IRHICommandList& command_list, unsigned slot_index, const IRHIDescriptorAllocation& handle, bool isGraphicsPipeline);
+    bool SetSRVToRootParameterSlot(IRHICommandList& command_list, unsigned slot_index, const IRHIDescriptorAllocation& handle, bool isGraphicsPipeline);
+    bool SetDTToRootParameterSlot(IRHICommandList& command_list, unsigned slot_index, const IRHIDescriptorAllocation& handle, bool isGraphicsPipeline);
+    bool SetDTToRootParameterSlot(IRHICommandList& command_list, unsigned slot_index, const IRHIDescriptorTable& table_handle, bool isGraphicsPipeline);
 };
