@@ -83,11 +83,6 @@ IRHIShaderTable& glTFRayTracingPassWithMesh::GetShaderTable() const
     return *m_shader_table;
 }
 
-size_t glTFRayTracingPassWithMesh::GetMainDescriptorHeapSize()
-{
-    return 512;
-}
-
 bool glTFRayTracingPassWithMesh::SetupRootSignature(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(m_root_signature_helper.AddSRVRootParameter("raytracing_as", m_raytracing_as_allocation))

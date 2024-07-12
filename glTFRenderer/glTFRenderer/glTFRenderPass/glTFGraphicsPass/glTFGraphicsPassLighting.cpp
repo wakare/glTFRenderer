@@ -84,11 +84,6 @@ bool glTFGraphicsPassLighting::FinishProcessSceneObject(glTFRenderResourceManage
     return true;
 }
 
-size_t glTFGraphicsPassLighting::GetMainDescriptorHeapSize()
-{
-    return 64;
-}
-
 bool glTFGraphicsPassLighting::SetupRootSignature(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassPostprocess::SetupRootSignature(resource_manager))

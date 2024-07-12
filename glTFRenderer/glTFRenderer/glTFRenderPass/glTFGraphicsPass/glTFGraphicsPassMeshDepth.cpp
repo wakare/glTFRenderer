@@ -38,8 +38,3 @@ bool glTFGraphicsPassMeshDepth::PostRenderPass(glTFRenderResourceManager& resour
     
     return true;
 }
-
-size_t glTFGraphicsPassMeshDepth::GetMainDescriptorHeapSize()
-{
-    return 1;
-}

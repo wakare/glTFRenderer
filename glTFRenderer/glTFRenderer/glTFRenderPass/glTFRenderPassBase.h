@@ -14,11 +14,6 @@ class IRHIRootSignature;
 class IRHIPipelineStateObject;
 class IRHICommandList;
 
-enum RenderPassCommonEnum
-{
-    MainDescriptorSize = 64,
-};
-
 class glTFRenderPassBase : public glTFUniqueObject<glTFRenderPassBase>, public RenderGraphNodeUtil::RenderGraphNode
 {
 public:
@@ -68,7 +63,6 @@ public:
     
 protected:
     // Must be implement in final render pass class
-    virtual size_t GetMainDescriptorHeapSize() {return MainDescriptorSize;}
     virtual bool SetupRootSignature(glTFRenderResourceManager& resource_manager);
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) = 0;
     virtual RHIPipelineType GetPipelineType() const = 0;

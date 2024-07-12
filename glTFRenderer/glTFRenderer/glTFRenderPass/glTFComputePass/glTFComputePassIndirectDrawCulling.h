@@ -19,7 +19,6 @@ public:
     virtual DispatchCount GetDispatchCount() const override;
     
 protected:
-    virtual size_t GetMainDescriptorHeapSize() override;
     virtual bool UpdateGUIWidgets() override;
     
     std::shared_ptr<IRHIBufferAllocation> m_count_reset_buffer;

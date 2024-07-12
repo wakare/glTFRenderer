@@ -1,7 +1,6 @@
 #pragma once
 
 #include "glTFGraphicsPassBase.h"
-#include "glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
 
 class IRHICommandSignature;
 
@@ -17,7 +16,8 @@ public:
     bool RenderPass(glTFRenderResourceManager& resource_manager) override;
 
     virtual bool TryProcessSceneObject(glTFRenderResourceManager& resource_manager, const glTFSceneObjectBase& object) override;
-
+    virtual bool UpdateGUIWidgets() override;
+    
 protected:
     virtual const std::vector<RHIPipelineInputLayout>& GetVertexInputLayout(glTFRenderResourceManager& resource_manager);
 
@@ -26,11 +26,12 @@ protected:
     virtual bool SetupRootSignature(glTFRenderResourceManager& resource_manager) override;
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;
 
-    virtual bool UsingIndirectDraw() const { return true; }
+    virtual bool UsingIndirectDraw() const { return m_indirect_draw; }
     virtual bool UsingIndirectDrawCulling() const { return true;}
     virtual bool UsingInputLayout() const {return true; }
+
+    bool m_indirect_draw {true};
     
-protected:
     // Indirect drawing
     std::shared_ptr<IRHICommandSignature> m_command_signature;
 };

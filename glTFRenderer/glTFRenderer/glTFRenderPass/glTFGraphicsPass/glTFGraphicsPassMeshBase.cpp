@@ -1,5 +1,7 @@
 #include "glTFGraphicsPassMeshBase.h"
 
+#include <imgui.h>
+
 #include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneMesh.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneMeshInfo.h"
@@ -125,6 +127,15 @@ bool glTFGraphicsPassMeshBase::SetupPipelineStateObject(glTFRenderResourceManage
 
 bool glTFGraphicsPassMeshBase::TryProcessSceneObject(glTFRenderResourceManager& resource_manager, const glTFSceneObjectBase& object)
 {
+    return true;
+}
+
+bool glTFGraphicsPassMeshBase::UpdateGUIWidgets()
+{
+    RETURN_IF_FALSE(glTFGraphicsPassBase::UpdateGUIWidgets())
+
+    ImGui::Checkbox("Indirect Draw", &m_indirect_draw);
+    
     return true;
 }
 

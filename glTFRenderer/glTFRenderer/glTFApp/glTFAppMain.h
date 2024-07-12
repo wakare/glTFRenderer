@@ -51,7 +51,7 @@ public:
     
 protected:
     bool InitSceneGraph(const std::string& scene_name);
-    bool LoadSceneGraphFromFile(const char* filePath) const;
+    bool LoadSceneGraphFromFile(const char* file_path) const;
     bool InitRenderer();
 
     unsigned GetWidth() const;

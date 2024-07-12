@@ -71,12 +71,6 @@ bool glTFGraphicsPassMeshOpaque::PreRenderPass(glTFRenderResourceManager& resour
     return true;
 }
 
-size_t glTFGraphicsPassMeshOpaque::GetMainDescriptorHeapSize()
-{
-    // TODO: Calculate heap size
-    return 512;
-}
-
 bool glTFGraphicsPassMeshOpaque::SetupRootSignature(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::SetupRootSignature(resource_manager))

@@ -161,11 +161,6 @@ DispatchCount glTFComputePassIndirectDrawCulling::GetDispatchCount() const
     return m_dispatch_count;
 }
 
-size_t glTFComputePassIndirectDrawCulling::GetMainDescriptorHeapSize()
-{
-    return 64;
-}
-
 bool glTFComputePassIndirectDrawCulling::UpdateGUIWidgets()
 {
     RETURN_IF_FALSE(glTFComputePassBase::UpdateGUIWidgets())

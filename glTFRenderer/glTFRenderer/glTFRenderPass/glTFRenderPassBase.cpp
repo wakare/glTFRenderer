@@ -75,7 +75,6 @@ bool glTFRenderPassBase::PostRenderPass(glTFRenderResourceManager& resource_mana
 
 bool glTFRenderPassBase::UpdateGUIWidgets()
 {
-    ImGui::Text("%s", PassName());
     return true;
 }
 

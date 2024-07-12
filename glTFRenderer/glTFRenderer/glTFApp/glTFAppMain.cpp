@@ -184,10 +184,10 @@ bool glTFAppMain::InitSceneGraph(const std::string& scene_name)
     return true;
 }
 
-bool glTFAppMain::LoadSceneGraphFromFile(const char* filePath) const
+bool glTFAppMain::LoadSceneGraphFromFile(const char* file_path) const
 {
     glTFLoader loader;
-    if (loader.LoadFile(filePath))
+    if (loader.LoadFile(file_path))
     {
         loader.Print();    
     }
