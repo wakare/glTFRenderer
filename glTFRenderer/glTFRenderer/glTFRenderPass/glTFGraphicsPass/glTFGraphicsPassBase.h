@@ -20,5 +20,5 @@ protected:
     virtual RHICullMode GetCullMode();
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;
 
-    virtual PipelineType GetPipelineType() const override {return PipelineType::Graphics; }
+    virtual RHIPipelineType GetPipelineType() const override {return RHIPipelineType::Graphics; }
 };

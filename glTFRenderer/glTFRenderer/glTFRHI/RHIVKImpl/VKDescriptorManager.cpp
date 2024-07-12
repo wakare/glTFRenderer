@@ -1,6 +1,6 @@
 #include "VKDescriptorManager.h"
 
-bool VKDescriptorAllocation::InitFromBuffer(const IRHIBuffer& buffer)
+bool VKDescriptorAllocation::InitFromBuffer(const IRHIBuffer& buffer, const RHIDescriptorDesc& desc)
 {
     return false;
 }

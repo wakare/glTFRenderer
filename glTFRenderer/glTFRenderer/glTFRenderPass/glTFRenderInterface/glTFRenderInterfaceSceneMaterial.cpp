@@ -58,8 +58,8 @@ bool glTFRenderInterfaceSceneMaterial::InitInterfaceImpl(glTFRenderResourceManag
     return true;
 }
 
-bool glTFRenderInterfaceSceneMaterial::ApplyInterfaceImpl(glTFRenderResourceManager& resource_manager,
-    bool is_graphics_pipeline)
+bool glTFRenderInterfaceSceneMaterial::ApplyInterfaceImpl(IRHICommandList& command_list, RHIPipelineType pipeline_type,
+    IRHIDescriptorUpdater& descriptor_updater)
 {
     return true;
 }

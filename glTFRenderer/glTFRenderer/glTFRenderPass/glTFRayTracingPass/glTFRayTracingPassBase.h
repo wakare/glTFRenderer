@@ -27,6 +27,6 @@ public:
 protected:
     IRHIRayTracingPipelineStateObject& GetRayTracingPipelineStateObject() const;
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;
-    virtual PipelineType GetPipelineType() const override {return PipelineType::RayTracing; }
+    virtual RHIPipelineType GetPipelineType() const override {return RHIPipelineType::RayTracing; }
     using glTFRenderPassBase::InitResourceTable;
 };

@@ -4,7 +4,7 @@
 class VKDescriptorAllocation : public IRHIDescriptorAllocation
 {
 public:
-    virtual bool InitFromBuffer(const IRHIBuffer& buffer) override;
+    virtual bool InitFromBuffer(const IRHIBuffer& buffer, const RHIDescriptorDesc& desc) override;
 };
 
 class VKDescriptorTable : public IRHIDescriptorTable

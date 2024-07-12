@@ -13,5 +13,5 @@ public:
     
     virtual bool InitRayTracingAS(IRHIDevice& device, IRHICommandList& command_list, const glTFRenderMeshManager& mesh_manager, glTFRenderResourceManager
                                   & resource_manager) = 0;
-    virtual const IRHIDescriptorAllocation& GetTLASHandle() const = 0;
+    virtual const IRHIDescriptorAllocation& GetTLASDescriptorSRV() const = 0;
 };

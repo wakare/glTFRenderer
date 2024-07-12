@@ -13,7 +13,7 @@ public:
     
     virtual bool InitRayTracingAS(IRHIDevice& device, IRHICommandList& command_list, const glTFRenderMeshManager& mesh_manager, glTFRenderResourceManager
                                   & resource_manager) override;
-    virtual const IRHIDescriptorAllocation& GetTLASHandle() const override;
+    virtual const IRHIDescriptorAllocation& GetTLASDescriptorSRV() const override;
 
     const std::vector<D3D12_RAYTRACING_INSTANCE_DESC>& GetInstanceDesc() const;
     

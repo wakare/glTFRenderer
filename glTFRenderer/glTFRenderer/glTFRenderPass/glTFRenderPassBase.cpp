@@ -7,17 +7,18 @@
 
 bool glTFRenderPassBase::InitPass(glTFRenderResourceManager& resource_manager)
 {
+    m_descriptor_updater = RHIResourceFactory::CreateRHIResource<IRHIDescriptorUpdater>();
     m_render_pass = RHIResourceFactory::CreateRHIResource<IRHIRenderPass>();
-    
+
     switch (GetPipelineType())
     {
-    case PipelineType::Graphics:
+    case RHIPipelineType::Graphics:
         m_pipeline_state_object = RHIResourceFactory::CreateRHIResource<IRHIGraphicsPipelineStateObject>();
         break;
-    case PipelineType::Compute:
+    case RHIPipelineType::Compute:
         m_pipeline_state_object = RHIResourceFactory::CreateRHIResource<IRHIComputePipelineStateObject>();
         break;
-    case PipelineType::RayTracing:
+    case RHIPipelineType::RayTracing:
         m_pipeline_state_object = RHIResourceFactory::CreateRHIResource<IRHIRayTracingPipelineStateObject>();
         break;
     default: GLTF_CHECK(false);
@@ -52,11 +53,11 @@ bool glTFRenderPassBase::PreRenderPass(glTFRenderResourceManager& resource_manag
     
     //RETURN_IF_FALSE(RHIUtils::Instance().SetDescriptorHeapArray(command_list, &MainDescriptorHeapRef(), 1))
     RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().BindDescriptors(command_list))
-    RETURN_IF_FALSE(RHIUtils::Instance().SetRootSignature(command_list, m_root_signature_helper.GetRootSignature(), GetPipelineType() == PipelineType::Graphics))
+    RETURN_IF_FALSE(RHIUtils::Instance().SetRootSignature(command_list, m_root_signature_helper.GetRootSignature(), GetPipelineType() == RHIPipelineType::Graphics))
     
     for (const auto& render_interface : m_render_interfaces)
     {
-        RETURN_IF_FALSE(render_interface->ApplyInterface(resource_manager, GetPipelineType() == PipelineType::Graphics))    
+        RETURN_IF_FALSE(render_interface->ApplyInterface(resource_manager, GetPipelineType(), *m_descriptor_updater))    
     }
     
     return true;
@@ -102,4 +103,13 @@ bool glTFRenderPassBase::SetupPipelineStateObject(glTFRenderResourceManager& res
 void glTFRenderPassBase::AddRenderInterface(const std::shared_ptr<glTFRenderInterfaceBase>& render_interface)
 {
     m_render_interfaces.push_back(render_interface);
+}
+
+bool glTFRenderPassBase::BindDescriptor(IRHICommandList& command_list, unsigned slot,
+    const IRHIDescriptorAllocation& allocation) const
+{
+    return m_descriptor_updater->BindDescriptor(command_list,
+            GetPipelineType(),
+            slot,
+            allocation);
 }

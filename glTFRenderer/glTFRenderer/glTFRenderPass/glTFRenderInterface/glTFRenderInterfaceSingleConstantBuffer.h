@@ -42,17 +42,19 @@ protected:
             RHIBufferResourceType::Buffer
         }, m_constant_gpu_data);
         m_constant_buffer_descriptor_allocation = RHIResourceFactory::CreateRHIResource<IRHIDescriptorAllocation>();
-        m_constant_buffer_descriptor_allocation->InitFromBuffer(*m_constant_gpu_data->m_buffer);
+        m_constant_buffer_descriptor_allocation->InitFromBuffer(*m_constant_gpu_data->m_buffer,
+            {
+                .format = RHIDataFormat::UNKNOWN,
+                .dimension = RHIResourceDimension::BUFFER,
+                .view_type = RHIViewType::RVT_CBV,
+            });
         
         return true;
     }
-    
-    virtual bool ApplyInterfaceImpl(glTFRenderResourceManager& resource_manager, bool is_graphics_pipeline) override
+    virtual bool ApplyInterfaceImpl(IRHICommandList& command_list, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater) override
     {
-        RETURN_IF_FALSE(RHIUtils::Instance().SetCBVToRootParameterSlot(resource_manager.GetCommandListForRecord(),
-            m_allocation.parameter_index, *m_constant_buffer_descriptor_allocation, is_graphics_pipeline))
-
-        return true;
+        descriptor_updater.BindDescriptor(command_list, pipeline_type, m_allocation.parameter_index, *m_constant_buffer_descriptor_allocation);
+        return true;    
     }
 
     virtual bool ApplyRootSignatureImpl(IRHIRootSignatureHelper& root_signature) override

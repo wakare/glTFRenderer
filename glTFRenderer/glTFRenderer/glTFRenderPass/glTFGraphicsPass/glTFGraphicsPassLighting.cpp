@@ -44,10 +44,9 @@ bool glTFGraphicsPassLighting::PreRenderPass(glTFRenderResourceManager& resource
     basepass_normal.Transition(command_list, RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE);
     resource_manager.GetDepthRT().Transition(command_list, RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE);
     resource_manager.GetCurrentFrameSwapChainRT().Transition(command_list, RHIResourceStateType::STATE_RENDER_TARGET);
-    
-    RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list,
-            m_base_color_and_depth_allocation.parameter_index, *m_base_pass_albedo_allocation, GetPipelineType() == PipelineType::Graphics))
 
+    BindDescriptor(command_list, m_base_color_and_depth_allocation.parameter_index, *m_base_pass_albedo_allocation);
+    
     RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().BindRenderTarget(command_list,
         {&resource_manager.GetCurrentFrameSwapChainRT()}, nullptr))
 

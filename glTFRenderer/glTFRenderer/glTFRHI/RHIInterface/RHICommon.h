@@ -182,9 +182,7 @@ struct RHIDescriptorDesc
     RHIDataFormat format;
     RHIResourceDimension dimension;
     RHIViewType view_type;
-    // TODO: figure out this member represent what?
-    //unsigned shader4ComponentMapping;
-
+    
     // UAV buffer desc
     unsigned stride;
     unsigned count;

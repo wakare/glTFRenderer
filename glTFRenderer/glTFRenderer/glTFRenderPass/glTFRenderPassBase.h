@@ -6,6 +6,7 @@
 #include "glTFRHI/RHIInterface/IRHIRootSignatureHelper.h"
 #include "glTFScene/glTFSceneObjectBase.h"
 
+class IRHIDescriptorUpdater;
 struct glTFSceneViewRenderFlags;
 class IRHIRenderPass;
 class glTFMaterialBase;
@@ -16,13 +17,6 @@ class IRHICommandList;
 enum RenderPassCommonEnum
 {
     MainDescriptorSize = 64,
-};
-
-enum class PipelineType
-{
-    Graphics,
-    Compute,
-    RayTracing,
 };
 
 class glTFRenderPassBase : public glTFUniqueObject<glTFRenderPassBase>, public RenderGraphNodeUtil::RenderGraphNode
@@ -77,11 +71,13 @@ protected:
     virtual size_t GetMainDescriptorHeapSize() {return MainDescriptorSize;}
     virtual bool SetupRootSignature(glTFRenderResourceManager& resource_manager);
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) = 0;
-    virtual PipelineType GetPipelineType() const = 0;
+    virtual RHIPipelineType GetPipelineType() const = 0;
     
     void AddRenderInterface(const std::shared_ptr<glTFRenderInterfaceBase>& render_interface);
-
+    bool BindDescriptor(IRHICommandList& command_list, unsigned slot, const IRHIDescriptorAllocation& allocation) const;
+    
     IRHIRootSignatureHelper m_root_signature_helper;
+    std::shared_ptr<IRHIDescriptorUpdater> m_descriptor_updater;
     std::shared_ptr<IRHIRenderPass> m_render_pass;
     std::shared_ptr<IRHIPipelineStateObject> m_pipeline_state_object;
     std::vector<std::shared_ptr<glTFRenderInterfaceBase>> m_render_interfaces;

@@ -16,7 +16,7 @@ class IRHIDescriptorAllocation : public IRHIResource
 {
 public:
     virtual ~IRHIDescriptorAllocation() override = default;
-    virtual bool InitFromBuffer(const IRHIBuffer& buffer) = 0;
+    virtual bool InitFromBuffer(const IRHIBuffer& buffer, const RHIDescriptorDesc& desc) = 0;
     
     RHIDescriptorDesc m_view_desc;
 };

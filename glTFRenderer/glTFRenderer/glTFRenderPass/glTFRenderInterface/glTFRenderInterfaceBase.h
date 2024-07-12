@@ -1,6 +1,8 @@
 #pragma once
 #include "glTFRHI/RHIInterface/IRHIRootSignatureHelper.h"
 
+class IRHICommandList;
+class IRHIDescriptorUpdater;
 class glTFRenderResourceManager;
 
 // glTF render pass interface can composite with render pass class, should be derived in class declaration
@@ -10,13 +12,13 @@ public:
     virtual ~glTFRenderInterfaceBase() = default;
     
     bool InitInterface(glTFRenderResourceManager& resource_manager);
-    bool ApplyInterface(glTFRenderResourceManager& resource_manager, bool isGraphicsPipeline);
+    bool ApplyInterface(glTFRenderResourceManager& resource_manager, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater);
     bool ApplyRootSignature(IRHIRootSignatureHelper& root_signature);
     void ApplyShaderDefine(RHIShaderPreDefineMacros& out_shader_pre_define_macros) const;
     
 protected:
     virtual bool InitInterfaceImpl(glTFRenderResourceManager& resource_manager) = 0;
-    virtual bool ApplyInterfaceImpl(glTFRenderResourceManager& resource_manager, bool isGraphicsPipeline) = 0;
+    virtual bool ApplyInterfaceImpl(IRHICommandList& command_list, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater) = 0;
     virtual bool ApplyRootSignatureImpl(IRHIRootSignatureHelper& root_signature) = 0;
     virtual void ApplyShaderDefineImpl(RHIShaderPreDefineMacros& out_shader_pre_define_macros) const = 0;
     
@@ -55,7 +57,7 @@ class glTFRenderInterfaceBaseWithDefaultImpl : public glTFRenderInterfaceBase
 {
 protected:
     virtual bool InitInterfaceImpl(glTFRenderResourceManager& resource_manager) override { return true; }
-    virtual bool ApplyInterfaceImpl(glTFRenderResourceManager& resource_manager, bool isGraphicsPipeline) override { return true; }
+    virtual bool ApplyInterfaceImpl(IRHICommandList& command_list, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater) override {return true;}
     virtual bool ApplyRootSignatureImpl(IRHIRootSignatureHelper& root_signature) override { return true; }
     virtual void ApplyShaderDefineImpl(RHIShaderPreDefineMacros& out_shader_pre_define_macros) const override {}
 };

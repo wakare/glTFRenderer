@@ -8,7 +8,7 @@ bool VKRayTracingAS::InitRayTracingAS(IRHIDevice& device, IRHICommandList& comma
     return true;
 }
 
-const IRHIDescriptorAllocation& VKRayTracingAS::GetTLASHandle() const
+const IRHIDescriptorAllocation& VKRayTracingAS::GetTLASDescriptorSRV() const
 {
     static VKDescriptorAllocation _dunmmy;
     return _dunmmy;

@@ -59,26 +59,22 @@ bool glTFComputePassRayTracingPostprocess::PreRenderPass(glTFRenderResourceManag
 {
     RETURN_IF_FALSE(glTFComputePassBase::PreRenderPass(resource_manager))
 
-    RETURN_IF_FALSE(m_accumulation_resource.BindRootParameter(resource_manager))
-    RETURN_IF_FALSE(m_custom_resource.BindRootParameter(resource_manager))
-
     auto& command_list = resource_manager.GetCommandListForRecord();
+    
+    RETURN_IF_FALSE(m_accumulation_resource.BindDescriptors(command_list, GetPipelineType(), *m_descriptor_updater))
+    RETURN_IF_FALSE(m_custom_resource.BindDescriptors(command_list, GetPipelineType(), *m_descriptor_updater))
+
     resource_manager.GetCurrentFrameSwapChainRT().Transition(command_list, RHIResourceStateType::STATE_RENDER_TARGET);
     GetResourceTexture(RenderPassResourceTableId::ComputePass_RayTracingOutputPostProcess_Output).Transition(
             command_list, RHIResourceStateType::STATE_UNORDERED_ACCESS);
 
     GetResourceTexture(RenderPassResourceTableId::ScreenUVOffset).Transition(command_list, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE);
     GetResourceTexture(RenderPassResourceTableId::RayTracingSceneOutput).Transition(command_list, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE);
+
+    BindDescriptor(command_list, m_process_input_allocation.parameter_index, *m_post_process_input_handle);
+    BindDescriptor(command_list, m_screen_uv_offset_allocation.parameter_index, *m_screen_uv_offset_handle);
+    BindDescriptor(command_list, m_process_output_allocation.parameter_index, *m_post_process_output_handle);
     
-    RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list,
-                m_process_input_allocation.parameter_index, *m_post_process_input_handle, GetPipelineType() == PipelineType::Graphics))
-
-    RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list,
-                m_screen_uv_offset_allocation.parameter_index, *m_screen_uv_offset_handle, GetPipelineType() == PipelineType::Graphics))
-
-    RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list,
-                m_process_output_allocation.parameter_index, *m_post_process_output_handle, GetPipelineType() == PipelineType::Graphics))
-
     RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSingleConstantBuffer<RayTracingPostProcessPassOptions>>()->UploadCPUBuffer(resource_manager, &m_pass_options, 0, sizeof(m_pass_options)))
     
     return true;

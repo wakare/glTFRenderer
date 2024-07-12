@@ -1,5 +1,7 @@
 #include "glTFComputePassIndirectDrawCulling.h"
 
+#include <imgui.h>
+
 #include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneView.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceStructuredBuffer.h"
@@ -22,6 +24,7 @@ ALIGN_FOR_CBV_STRUCT struct CullingBoundingBox
 
 glTFComputePassIndirectDrawCulling::glTFComputePassIndirectDrawCulling()
     : m_dispatch_count()
+    , m_enable_culling(true)
 {
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneView>());
     AddRenderInterface(std::make_shared<glTFRenderInterfaceStructuredBuffer<MeshInstanceInputData>>());
@@ -124,13 +127,12 @@ bool glTFComputePassIndirectDrawCulling::SetupPipelineStateObject(glTFRenderReso
 bool glTFComputePassIndirectDrawCulling::PreRenderPass(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFComputePassBase::PreRenderPass(resource_manager))
-    if (enable_culling)
+    if (m_enable_culling)
     {
         auto& command_list = resource_manager.GetCommandListForRecord();
-        RHIUtils::Instance().SetDTToRootParameterSlot(command_list,
+        BindDescriptor(command_list,
             m_culled_indirect_command_allocation.parameter_index,
-            *m_command_buffer_handle,
-            GetPipelineType() == PipelineType::Graphics);
+            *m_command_buffer_handle);
 
         RHIUtils::Instance().AddBufferBarrierToCommandList(command_list, *resource_manager.GetMeshManager().GetCulledIndirectArgumentBuffer(),
                                                            RHIResourceStateType::STATE_UNORDERED_ACCESS,RHIResourceStateType::STATE_COPY_DEST );
@@ -149,18 +151,9 @@ bool glTFComputePassIndirectDrawCulling::PreRenderPass(glTFRenderResourceManager
     return true;
 }
 
-void glTFComputePassIndirectDrawCulling::UpdateRenderFlags(const glTFPassOptionRenderFlags& render_flags)
-{
-    if (enable_culling != render_flags.IsCulling())
-    {
-        enable_culling = render_flags.IsCulling();
-        LOG_FORMAT_FLUSH("[DEBUG] Enable Culling: %s\n", enable_culling ? "True" : "False")
-    }
-}
-
 bool glTFComputePassIndirectDrawCulling::NeedRendering() const
 {
-    return enable_culling;
+    return m_enable_culling;
 }
 
 DispatchCount glTFComputePassIndirectDrawCulling::GetDispatchCount() const
@@ -171,4 +164,13 @@ DispatchCount glTFComputePassIndirectDrawCulling::GetDispatchCount() const
 size_t glTFComputePassIndirectDrawCulling::GetMainDescriptorHeapSize()
 {
     return 64;
+}
+
+bool glTFComputePassIndirectDrawCulling::UpdateGUIWidgets()
+{
+    RETURN_IF_FALSE(glTFComputePassBase::UpdateGUIWidgets())
+
+    ImGui::Checkbox("Enable Culling", &m_enable_culling);
+    
+    return true;
 }

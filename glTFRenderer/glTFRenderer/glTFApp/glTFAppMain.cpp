@@ -242,11 +242,13 @@ unsigned glTFAppMain::GetHeight() const
 
 bool glTFAppMain::UpdateGUIWidgets()
 {
+    constexpr ImVec4 subtitle_color = {1.0f, 0.0f, 1.0f, 1.0f};
+    
     ImGui::Separator();
     ImGui::TextColored({0.0f, 1.0f, 1.0f, 1.0f}, "Config renderer settings");
     
     ImGui::Dummy({10.0f, 10.0f});
-    ImGui::TextColored({0.0f, 0.0f, 1.0f, 1.0f}, "Scene renderer type");
+    ImGui::TextColored(subtitle_color, "Scene renderer type");
     if (ImGui::RadioButton("Rasterizer", m_app_config.use_rasterizer))
     {
         m_app_config.use_rasterizer = true;
@@ -260,7 +262,7 @@ bool glTFAppMain::UpdateGUIWidgets()
     if (!m_app_config.use_rasterizer)
     {
         ImGui::Dummy({10.0f, 10.0f});
-        ImGui::TextColored({0.0f, 0.0f, 1.0f, 1.0f}, "RayTracer lighting method");
+        ImGui::TextColored(subtitle_color, "RayTracer lighting method");
         if (ImGui::RadioButton("ReSTIR_DI", m_app_config.m_ReSTIR))
         {
             m_app_config.m_ReSTIR = true;
@@ -273,7 +275,7 @@ bool glTFAppMain::UpdateGUIWidgets()
     }
 
     ImGui::Dummy({10.0f, 10.0f});
-    ImGui::TextColored({0.0f, 0.0f, 1.0f, 1.0f}, "Graphics API");
+    ImGui::TextColored(subtitle_color, "Graphics API");
     if (ImGui::RadioButton("DX12", !m_app_config.m_vulkan))
     {
         m_app_config.m_vulkan = false;

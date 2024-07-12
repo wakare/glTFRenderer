@@ -6,6 +6,7 @@
 #include "glTFRHI/RHIInterface/IRHIRootSignatureHelper.h"
 #include "ShaderUtil/IRHIShader.h"
 
+class IRHIDescriptorUpdater;
 class glTFRenderResourceManager;
 
 namespace glTFRenderResourceUtils
@@ -48,7 +49,7 @@ namespace glTFRenderResourceUtils
         bool InitGBufferSRVs(glTFUniqueID pass_id, glTFRenderResourceManager& resource_manager);
         
         bool Transition(glTFUniqueID pass_id, IRHICommandList& command_list, RHIResourceStateType after) const;
-        bool Bind(glTFUniqueID pass_id, IRHICommandList& command_list, const GBufferSignatureAllocationWithinPass& allocation) const;
+        bool Bind(glTFUniqueID pass_id, RHIPipelineType pipeline_type, IRHICommandList& command_list, IRHIDescriptorUpdater& updater, const GBufferSignatureAllocationWithinPass& allocation) const;
         
     protected:
         GBufferResourceWithinPass& GetGBufferPassResource(glTFUniqueID id);
@@ -66,8 +67,8 @@ namespace glTFRenderResourceUtils
         bool CreateDescriptors(glTFRenderResourceManager& resource_manager);
         bool RegisterSignature(IRHIRootSignatureHelper& root_signature);
         bool AddShaderMacros(RHIShaderPreDefineMacros& macros);
-        bool BindRootParameter(glTFRenderResourceManager& resource_manager);
-        bool PreRendering(glTFRenderResourceManager& resource_manager);
+        bool BindDescriptors(IRHICommandList& command_list, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& updater);
+        bool PreRendering(IRHICommandList& command_list);
         bool PostRendering(glTFRenderResourceManager& resource_manager);
 
     protected:

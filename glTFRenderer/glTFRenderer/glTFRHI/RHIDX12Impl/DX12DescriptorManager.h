@@ -13,7 +13,7 @@ public:
         , m_cpu_handle(cpu_handle)
     {}
 
-    virtual bool InitFromBuffer(const IRHIBuffer& buffer) override;
+    virtual bool InitFromBuffer(const IRHIBuffer& buffer, const RHIDescriptorDesc& desc) override;
     
     RHIGPUDescriptorHandle m_gpu_handle {UINT64_MAX};
     RHICPUDescriptorHandle m_cpu_handle {UINT64_MAX};

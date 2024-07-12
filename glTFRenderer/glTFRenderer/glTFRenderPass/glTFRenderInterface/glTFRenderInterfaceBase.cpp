@@ -1,5 +1,8 @@
 #include "glTFRenderInterfaceBase.h"
 
+#include "glTFRenderPass/glTFRenderResourceManager.h"
+#include "glTFRHI/RHIInterface/IRHIDescriptorUpdater.h"
+
 bool glTFRenderInterfaceBase::InitInterface(glTFRenderResourceManager& resource_manager)
 {
     for (const auto& sub_interface : m_sub_interfaces)
@@ -12,14 +15,15 @@ bool glTFRenderInterfaceBase::InitInterface(glTFRenderResourceManager& resource_
     return true;
 }
 
-bool glTFRenderInterfaceBase::ApplyInterface(glTFRenderResourceManager& resource_manager, bool isGraphicsPipeline)
+bool glTFRenderInterfaceBase::ApplyInterface(glTFRenderResourceManager& resource_manager, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater)
 {
+    auto& command_list = resource_manager.GetCommandListForRecord();
     for (const auto& sub_interface : m_sub_interfaces)
     {
-        RETURN_IF_FALSE(sub_interface->ApplyInterfaceImpl(resource_manager, isGraphicsPipeline))     
+        RETURN_IF_FALSE(sub_interface->ApplyInterfaceImpl(command_list, pipeline_type, descriptor_updater))     
     }
 
-    RETURN_IF_FALSE(ApplyInterfaceImpl(resource_manager, isGraphicsPipeline))
+    RETURN_IF_FALSE(ApplyInterfaceImpl(command_list, pipeline_type, descriptor_updater))
     
     return true;
 }

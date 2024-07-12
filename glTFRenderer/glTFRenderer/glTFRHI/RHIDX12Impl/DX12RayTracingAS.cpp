@@ -141,7 +141,12 @@ bool DX12RayTracingAS::InitRayTracingAS(IRHIDevice& device, IRHICommandList& com
         m_TLAS
     );
     m_TLAS_descriptor_allocation = RHIResourceFactory::CreateRHIResource<IRHIDescriptorAllocation>();
-    m_TLAS_descriptor_allocation->InitFromBuffer(*m_TLAS->m_buffer);
+    m_TLAS_descriptor_allocation->InitFromBuffer(*m_TLAS->m_buffer,
+        {
+            .format = RHIDataFormat::UNKNOWN,
+            .dimension = RHIResourceDimension::BUFFER,
+            .view_type = RHIViewType::RVT_SRV,
+        });
 
     // Create an instance desc for the bottom-level acceleration structure.
     m_instance_descs.resize(mesh_instances.size());
@@ -220,7 +225,7 @@ m_upload_buffer);
     return true;
 }
 
-const IRHIDescriptorAllocation& DX12RayTracingAS::GetTLASHandle() const
+const IRHIDescriptorAllocation& DX12RayTracingAS::GetTLASDescriptorSRV() const
 {
     return *m_TLAS_descriptor_allocation;
 }

@@ -22,7 +22,12 @@ public:
         },
         m_gpu_buffer);
         m_constant_buffer_descriptor_allocation = RHIResourceFactory::CreateRHIResource<IRHIDescriptorAllocation>();
-        m_constant_buffer_descriptor_allocation->InitFromBuffer(*m_gpu_buffer->m_buffer);
+        m_constant_buffer_descriptor_allocation->InitFromBuffer(*m_gpu_buffer->m_buffer,
+            {
+                .format = RHIDataFormat::UNKNOWN,
+                .dimension = RHIResourceDimension::BUFFER,
+                .view_type = RHIViewType::RVT_SRV,
+            });
         
         return true;
     }
@@ -31,16 +36,13 @@ public:
     {
         return resource_manager.GetMemoryManager().UploadBufferData(*m_gpu_buffer, data, 0, size);
     }
-    
-    virtual bool ApplyInterfaceImpl(glTFRenderResourceManager& resource_manager, bool isGraphicsPipeline) override
+
+    virtual bool ApplyInterfaceImpl(IRHICommandList& command_list, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater) override
     {
-        auto& command_list = resource_manager.GetCommandListForRecord();
-        RHIUtils::Instance().SetSRVToRootParameterSlot(command_list, m_allocation.parameter_index,
-                                                       *m_constant_buffer_descriptor_allocation, isGraphicsPipeline);
-    
+        descriptor_updater.BindDescriptor(command_list, pipeline_type, m_allocation.parameter_index, *m_constant_buffer_descriptor_allocation);
         return true;
     }
-
+    
     virtual bool ApplyRootSignatureImpl(IRHIRootSignatureHelper& rootSignature) override
     {
         return rootSignature.AddSRVRootParameter(StructuredBufferType::Name, m_allocation);

@@ -3,6 +3,7 @@
 #include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRHI/RHIResourceFactory.h"
 #include "glTFRHI/RHIUtils.h"
+#include "glTFRHI/RHIInterface/IRHIDescriptorUpdater.h"
 #include "glTFRHI/RHIInterface/IRHIRootSignatureHelper.h"
 
 template<unsigned TableRangeCount>
@@ -23,7 +24,7 @@ public:
         return rootSignature.AddTableRootParameter("TableParameter", RHIRootParameterDescriptorRangeType::SRV, TableRangeCount, TableRangeCount == UINT_MAX, m_allocation);
     }
 
-    virtual bool ApplyInterfaceImpl(glTFRenderResourceManager& resource_manager, bool is_graphics_pipeline) override
+    virtual bool ApplyInterfaceImpl(IRHICommandList& command_list, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater) override
     {
         if (!m_descriptor_table)
         {
@@ -32,11 +33,11 @@ public:
             GLTF_CHECK(succeed);
         }
 
-        RHIUtils::Instance().SetDTToRootParameterSlot(resource_manager.GetCommandListForRecord(), GetRSAllocation().parameter_index, *m_descriptor_table, is_graphics_pipeline);
+        descriptor_updater.BindDescriptor(command_list, pipeline_type, GetRSAllocation().parameter_index, *m_descriptor_table);
         
         return true;
     }
-
+    
     virtual void ApplyShaderDefineImpl(RHIShaderPreDefineMacros& out_shader_pre_define_macros) const override
     {
         char register_index_name[32] = {'\0'};

@@ -26,6 +26,6 @@ public:
 protected:
     IRHIComputePipelineStateObject& GetComputePipelineStateObject() const;
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;
-    virtual PipelineType GetPipelineType() const override {return PipelineType::Compute; }
+    virtual RHIPipelineType GetPipelineType() const override {return RHIPipelineType::Compute; }
     using glTFRenderPassBase::InitResourceTable;
 };

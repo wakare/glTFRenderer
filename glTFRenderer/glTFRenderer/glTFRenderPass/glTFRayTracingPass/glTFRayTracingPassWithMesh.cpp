@@ -48,7 +48,7 @@ bool glTFRayTracingPassWithMesh::PreRenderPass(glTFRenderResourceManager& resour
     RETURN_IF_FALSE(glTFRayTracingPassBase::PreRenderPass(resource_manager))
     RETURN_IF_FALSE(UpdateAS(resource_manager))
     RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceLighting>()->UpdateCPUBuffer(resource_manager))
-    RETURN_IF_FALSE(RHIUtils::Instance().SetSRVToRootParameterSlot(resource_manager.GetCommandListForRecord(), m_raytracing_as_allocation.parameter_index, m_raytracing_as->GetTLASHandle(), false))
+    BindDescriptor(resource_manager.GetCommandListForRecord(), m_raytracing_as_allocation.parameter_index, m_raytracing_as->GetTLASDescriptorSRV());
 
     return true;
 }

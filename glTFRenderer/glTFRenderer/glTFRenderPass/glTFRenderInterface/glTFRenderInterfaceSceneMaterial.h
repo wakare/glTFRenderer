@@ -26,7 +26,7 @@ public:
     
 protected:
     virtual bool InitInterfaceImpl(glTFRenderResourceManager& resource_manager) override;
-    virtual bool ApplyInterfaceImpl(glTFRenderResourceManager& resource_manager, bool is_graphics_pipeline) override;
+    virtual bool ApplyInterfaceImpl(IRHICommandList& command_list, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater) override;
     virtual bool ApplyRootSignatureImpl(IRHIRootSignatureHelper& root_signature) override;
     virtual void ApplyShaderDefineImpl(RHIShaderPreDefineMacros& out_shader_pre_define_macros) const override;
 };

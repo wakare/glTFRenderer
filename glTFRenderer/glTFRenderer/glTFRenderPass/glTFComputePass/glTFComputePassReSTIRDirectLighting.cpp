@@ -48,23 +48,19 @@ bool glTFComputePassReSTIRDirectLighting::PreRenderPass(glTFRenderResourceManage
     auto& command_list = resource_manager.GetCommandListForRecord();
     auto& GBuffer_output = resource_manager.GetCurrentFrameResourceManager().GetGBufferForRendering();
     RETURN_IF_FALSE(GBuffer_output.Transition(GetID(), command_list, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE))
-    RETURN_IF_FALSE(GBuffer_output.Bind(GetID(), command_list, resource_manager.GetGBufferAllocations().GetAllocationWithPassId(GetID())))
+    RETURN_IF_FALSE(GBuffer_output.Bind(GetID(), GetPipelineType(), command_list, *m_descriptor_updater, resource_manager.GetGBufferAllocations().GetAllocationWithPassId(GetID())))
+    
     GetResourceTexture(RenderPassResourceTableId::RayTracingSceneOutput).Transition(command_list, RHIResourceStateType::STATE_UNORDERED_ACCESS);
     GetResourceTexture(RenderPassResourceTableId::ScreenUVOffset).Transition(command_list, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE);
     GetResourceTexture(RenderPassResourceTableId::RayTracingPass_ReSTIRSample_Output).Transition(command_list, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE);
     
-    RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list,
-            m_lighting_samples_allocation.parameter_index, *m_lighting_samples_handle, GetPipelineType() == PipelineType::Graphics))
-
-    RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list,
-            m_screen_uv_offset_allocation.parameter_index, *m_screen_uv_offset_handle, GetPipelineType() == PipelineType::Graphics))
-
-    RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list,
-            m_output_allocation.parameter_index, *m_output_handle, GetPipelineType() == PipelineType::Graphics))
+    BindDescriptor(command_list, m_lighting_samples_allocation.parameter_index, *m_lighting_samples_handle);
+    BindDescriptor(command_list, m_screen_uv_offset_allocation.parameter_index, *m_screen_uv_offset_handle);
+    BindDescriptor(command_list, m_output_allocation.parameter_index, *m_output_handle);
 
     RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceLighting>()->UpdateCPUBuffer(resource_manager))
 
-    RETURN_IF_FALSE(m_aggregate_samples_output.BindRootParameter(resource_manager))
+    RETURN_IF_FALSE(m_aggregate_samples_output.BindDescriptors(command_list, GetPipelineType(), *m_descriptor_updater))
     GetRenderInterface<glTFRenderInterfaceSingleConstantBuffer<RayTracingDIPostProcessPassOptions>>()->UploadCPUBuffer(resource_manager, &m_pass_options, 0, sizeof(m_pass_options));
 
     return true;

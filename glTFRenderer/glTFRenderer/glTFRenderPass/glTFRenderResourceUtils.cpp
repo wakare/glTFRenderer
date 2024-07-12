@@ -2,6 +2,7 @@
 
 #include "glTFRenderResourceManager.h"
 #include "glTFRHI/RHIUtils.h"
+#include "glTFRHI/RHIInterface/IRHIDescriptorUpdater.h"
 #include "glTFRHI/RHIInterface/IRHIRenderTargetManager.h"
 
 namespace glTFRenderResourceUtils
@@ -177,14 +178,13 @@ namespace glTFRenderResourceUtils
         return true;
     }
 
-    bool GBufferOutput::Bind(glTFUniqueID pass_id,IRHICommandList& command_list, const GBufferSignatureAllocationWithinPass& allocation) const
+    bool GBufferOutput::Bind(glTFUniqueID pass_id, RHIPipelineType pipeline_type, IRHICommandList& command_list, IRHIDescriptorUpdater& updater, const GBufferSignatureAllocationWithinPass& allocation) const
     {
         auto& GBufferPassResource = GetGBufferPassResource(pass_id);
+        updater.BindDescriptor(command_list, pipeline_type, allocation.m_albedo_allocation.parameter_index, *GBufferPassResource.m_albedo_handle);
+        updater.BindDescriptor(command_list, pipeline_type, allocation.m_normal_allocation.parameter_index, *GBufferPassResource.m_normal_handle);
+        updater.BindDescriptor(command_list, pipeline_type, allocation.m_depth_allocation.parameter_index, *GBufferPassResource.m_depth_handle);
         
-        RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, allocation.m_albedo_allocation.parameter_index, *GBufferPassResource.m_albedo_handle, false))
-        RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, allocation.m_normal_allocation.parameter_index, *GBufferPassResource.m_normal_handle, false))
-        RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, allocation.m_depth_allocation.parameter_index, *GBufferPassResource.m_depth_handle, false))
-
         return true;
     }
 
@@ -287,20 +287,18 @@ namespace glTFRenderResourceUtils
         return true;
     }
 
-    bool RWTextureResourceWithBackBuffer::BindRootParameter(glTFRenderResourceManager& resource_manager)
+    bool RWTextureResourceWithBackBuffer::BindDescriptors(IRHICommandList& command_list, RHIPipelineType pipeline_type,
+        IRHIDescriptorUpdater& updater)
     {
-        auto& command_list = resource_manager.GetCommandListForRecord();
-        PreRendering(resource_manager);
+        PreRendering(command_list);
+        updater.BindDescriptor(command_list, pipeline_type, m_writable_buffer_allocation.parameter_index, *m_writable_buffer_handle);
+        updater.BindDescriptor(command_list, pipeline_type, m_back_buffer_allocation.parameter_index, *m_back_buffer_handle);
         
-        RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, m_writable_buffer_allocation.parameter_index, *m_writable_buffer_handle,false))
-        RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list, m_back_buffer_allocation.parameter_index, *m_back_buffer_handle,false))
-
         return true;
     }
 
-    bool RWTextureResourceWithBackBuffer::PreRendering(glTFRenderResourceManager& resource_manager)
+    bool RWTextureResourceWithBackBuffer::PreRendering(IRHICommandList& command_list)
     {
-        auto& command_list = resource_manager.GetCommandListForRecord();
         m_writable_buffer->Transition(command_list, RHIResourceStateType::STATE_UNORDERED_ACCESS);
         m_back_buffer->Transition(command_list, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE);
         

@@ -27,10 +27,7 @@ const char* glTFComputePassLighting::PassName()
 
 bool glTFComputePassLighting::InitPass(glTFRenderResourceManager& resource_manager)
 {
-    auto& command_list = resource_manager.GetCommandListForRecord();
-    RETURN_IF_FALSE(glTFComputePassBase::InitPass(resource_manager))
-    
-    return true;
+    return glTFComputePassBase::InitPass(resource_manager);
 }
 
 bool glTFComputePassLighting::PreRenderPass(glTFRenderResourceManager& resource_manager)
@@ -42,15 +39,10 @@ bool glTFComputePassLighting::PreRenderPass(glTFRenderResourceManager& resource_
     GetResourceTexture(RenderPassResourceTableId::BasePass_Albedo).Transition(command_list, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE);
     GetResourceTexture(RenderPassResourceTableId::BasePass_Normal).Transition(command_list, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE);
     GetResourceTexture(RenderPassResourceTableId::Depth).Transition(command_list, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE);
+
+    BindDescriptor(command_list, m_base_color_and_depth_allocation.parameter_index, *m_base_color_SRV);
+    BindDescriptor(command_list, m_output_allocation.parameter_index, *m_output_UAV);
     
-    RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list,
-            m_base_color_and_depth_allocation.parameter_index, *m_base_color_SRV, GetPipelineType() == PipelineType::Graphics))
-
-    RETURN_IF_FALSE(RHIUtils::Instance().SetDTToRootParameterSlot(command_list,
-            m_output_allocation.parameter_index,
-            *m_output_UAV,
-            GetPipelineType() == PipelineType::Graphics))
-
     RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceLighting>()->UpdateCPUBuffer(resource_manager))
 
     return true;
