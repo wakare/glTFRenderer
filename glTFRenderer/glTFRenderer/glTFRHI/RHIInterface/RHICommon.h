@@ -179,27 +179,94 @@ enum class RHIViewType
 
 struct RHIDescriptorDesc
 {
-    RHIDataFormat format;
-    RHIResourceDimension dimension;
-    RHIViewType view_type;
-    
-    // UAV buffer desc
-    unsigned stride;
-    unsigned count;
-    bool use_count_buffer;
-    unsigned count_buffer_offset;
+    RHIDataFormat m_format;
+    RHIResourceDimension m_dimension;
+    RHIViewType m_view_type;
 
+    RHIDescriptorDesc(RHIDataFormat format, RHIResourceDimension dimension, RHIViewType view_type)
+        : m_format(format)
+        , m_dimension(dimension)
+        , m_view_type(view_type)
+    {}
+
+    bool IsBufferDescriptor() const {return m_dimension == RHIResourceDimension::BUFFER; }
+    bool IsTextureDescriptor() const {return !IsBufferDescriptor(); }
+    
+    virtual ~RHIDescriptorDesc() = default;
+    
     bool operator==(const RHIDescriptorDesc& other) const
     {
         return
-            format == other.format &&
-            dimension == other.dimension &&
-            view_type == other.view_type &&
+            m_format == other.m_format &&
+            m_dimension == other.m_dimension &&
+            m_view_type == other.m_view_type;
+    }
+};
+
+struct RHIUAVStructuredBufferDesc
+{
+    unsigned stride {0};
+    unsigned count {0};
+    bool use_count_buffer {false};
+    unsigned count_buffer_offset {0};
+
+    bool operator==(const RHIUAVStructuredBufferDesc& other) const
+    {
+        return
             stride == other.stride &&
             count == other.count &&
             use_count_buffer == other.use_count_buffer &&
             count_buffer_offset == other.count_buffer_offset;
     }
+};
+
+struct RHIBufferDescriptorDesc : RHIDescriptorDesc
+{
+    RHIBufferDescriptorDesc(RHIDataFormat format, RHIViewType view_type, unsigned size, unsigned offset, const RHIUAVStructuredBufferDesc& uav_structured_desc)
+            : RHIDescriptorDesc(format, RHIResourceDimension::BUFFER, view_type)
+            , m_size(size)
+            , m_offset(offset)
+            , m_uav_structured_buffer_desc(uav_structured_desc)
+    {
+    }
+    
+    RHIBufferDescriptorDesc(RHIDataFormat format, RHIViewType view_type, unsigned size, unsigned offset)
+        : RHIDescriptorDesc(format, RHIResourceDimension::BUFFER, view_type)
+        , m_size(size)
+        , m_offset(offset)
+        , m_uav_structured_buffer_desc({})
+    {
+    }
+    
+    unsigned m_size;
+    unsigned m_offset;
+    
+    union 
+    {
+        // UAV structured buffer desc (valid in view_type is UAV only)
+        RHIUAVStructuredBufferDesc m_uav_structured_buffer_desc;
+    };
+
+    bool operator==(const RHIBufferDescriptorDesc& other) const
+    {
+        if (!RHIDescriptorDesc::operator==(other))
+        {
+            return false;
+        }
+        if (m_view_type == RHIViewType::RVT_UAV)
+        {
+            return m_uav_structured_buffer_desc == other.m_uav_structured_buffer_desc;   
+        }
+        
+        return true;
+    }
+};
+
+struct RHITextureDescriptorDesc : RHIDescriptorDesc
+{
+    RHITextureDescriptorDesc(RHIDataFormat format, RHIResourceDimension dimension, RHIViewType view_type)
+        : RHIDescriptorDesc(format, dimension, view_type)
+    {}
 };
 
 enum class RHISubPassBindPoint

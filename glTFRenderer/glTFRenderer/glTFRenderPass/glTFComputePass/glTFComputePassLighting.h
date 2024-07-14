@@ -25,10 +25,10 @@ protected:
 
     DispatchCount m_dispatch_count;
 
-    std::shared_ptr<IRHIDescriptorAllocation> m_base_color_SRV;
-    std::shared_ptr<IRHIDescriptorAllocation> m_depth_SRV;
-    std::shared_ptr<IRHIDescriptorAllocation> m_normal_SRV;
-    std::shared_ptr<IRHIDescriptorAllocation> m_output_UAV;
+    std::shared_ptr<IRHITextureDescriptorAllocation> m_base_color_SRV;
+    std::shared_ptr<IRHITextureDescriptorAllocation> m_depth_SRV;
+    std::shared_ptr<IRHITextureDescriptorAllocation> m_normal_SRV;
+    std::shared_ptr<IRHITextureDescriptorAllocation> m_output_UAV;
 
     RootSignatureAllocation m_base_color_and_depth_allocation;
     RootSignatureAllocation m_output_allocation;

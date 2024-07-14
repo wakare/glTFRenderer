@@ -21,12 +21,13 @@ public:
             RHIBufferResourceType::Buffer
         },
         m_gpu_buffer);
-        m_constant_buffer_descriptor_allocation = RHIResourceFactory::CreateRHIResource<IRHIDescriptorAllocation>();
+        m_constant_buffer_descriptor_allocation = RHIResourceFactory::CreateRHIResource<IRHIBufferDescriptorAllocation>();
         m_constant_buffer_descriptor_allocation->InitFromBuffer(*m_gpu_buffer->m_buffer,
-            {
-                .format = RHIDataFormat::UNKNOWN,
-                .dimension = RHIResourceDimension::BUFFER,
-                .view_type = RHIViewType::RVT_SRV,
+            RHIBufferDescriptorDesc{
+                RHIDataFormat::UNKNOWN,
+                RHIViewType::RVT_SRV,
+                max_heap_size,
+                0
             });
         
         return true;
@@ -59,5 +60,5 @@ public:
     
 protected:
     std::shared_ptr<IRHIBufferAllocation> m_gpu_buffer;
-    std::shared_ptr<IRHIDescriptorAllocation> m_constant_buffer_descriptor_allocation;
+    std::shared_ptr<IRHIBufferDescriptorAllocation> m_constant_buffer_descriptor_allocation;
 };

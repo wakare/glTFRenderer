@@ -169,15 +169,15 @@ bool DX12ShaderTable::InitShaderTable(IRHIDevice& device, glTFRenderResourceMana
 
 ID3D12Resource* DX12ShaderTable::GetRayGenShaderTable() const
 {
-    return dynamic_cast<const DX12Buffer&>(*m_rayGenShaderTable->m_buffer).GetBuffer();
+    return dynamic_cast<const DX12Buffer&>(*m_rayGenShaderTable->m_buffer).GetRawBuffer();
 }
 
 ID3D12Resource* DX12ShaderTable::GetMissShaderTable() const
 {
-    return dynamic_cast<const DX12Buffer&>(*m_missShaderTable->m_buffer).GetBuffer();
+    return dynamic_cast<const DX12Buffer&>(*m_missShaderTable->m_buffer).GetRawBuffer();
 }
 
 ID3D12Resource* DX12ShaderTable::GetHitGroupShaderTable() const
 {
-    return dynamic_cast<const DX12Buffer&>(*m_hitGroupShaderTable->m_buffer).GetBuffer();
+    return dynamic_cast<const DX12Buffer&>(*m_hitGroupShaderTable->m_buffer).GetRawBuffer();
 }

@@ -102,9 +102,9 @@ void glTFRenderPassManager::UpdateScene(glTFRenderResourceManager& resource_mana
         const bool success = pass->FinishProcessSceneObject(resource_manager);
         GLTF_CHECK(success);
 
-        if (auto* sceneViewInterface = pass->GetRenderInterface<glTFRenderInterfaceSceneView>())
+        if (auto* scene_view_interface = pass->GetRenderInterface<glTFRenderInterfaceSceneView>())
         {
-            sceneViewInterface->UpdateSceneView(resource_manager, scene_view);
+            scene_view_interface->UpdateSceneView(resource_manager, scene_view);
         }
 
         if (auto* frame_stat = pass->GetRenderInterface<glTFRenderInterfaceFrameStat>())

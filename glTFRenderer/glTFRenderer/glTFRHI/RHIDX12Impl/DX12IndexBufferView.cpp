@@ -16,7 +16,7 @@ DX12IndexBufferView::~DX12IndexBufferView()
 bool DX12IndexBufferView::InitIndexBufferView(IRHIBuffer& buffer, size_t offset, RHIDataFormat indexFormat,
                                               size_t indexBufferSize)
 {
-    auto* dxBuffer = dynamic_cast<DX12Buffer&>(buffer).GetBuffer();
+    auto* dxBuffer = dynamic_cast<DX12Buffer&>(buffer).GetRawBuffer();
     
     m_indexBufferView.BufferLocation = dxBuffer->GetGPUVirtualAddress() + offset;
     m_indexBufferView.Format = DX12ConverterUtils::ConvertToDXGIFormat(indexFormat);

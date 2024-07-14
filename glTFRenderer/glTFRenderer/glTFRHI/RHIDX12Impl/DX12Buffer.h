@@ -11,7 +11,7 @@ public:
     
     GPU_BUFFER_HANDLE_TYPE GetGPUBufferHandle() const;
     
-    ID3D12Resource* GetBuffer() const { return m_buffer.Get();}
+    ID3D12Resource* GetRawBuffer() const { return m_buffer.Get();}
     bool InitGPUBuffer(IRHIDevice& device, const RHIBufferDesc& desc);
     bool UploadBufferFromCPU(const void* data, size_t dataOffset, size_t size);
     

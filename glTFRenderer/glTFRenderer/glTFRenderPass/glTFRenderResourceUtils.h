@@ -33,9 +33,9 @@ namespace glTFRenderResourceUtils
     
     struct GBufferResourceWithinPass
     {
-        std::shared_ptr<IRHIDescriptorAllocation> m_albedo_handle;
-        std::shared_ptr<IRHIDescriptorAllocation> m_normal_handle;
-        std::shared_ptr<IRHIDescriptorAllocation> m_depth_handle;
+        std::shared_ptr<IRHITextureDescriptorAllocation> m_albedo_handle;
+        std::shared_ptr<IRHITextureDescriptorAllocation> m_normal_handle;
+        std::shared_ptr<IRHITextureDescriptorAllocation> m_depth_handle;
     };
     
     struct GBufferOutput
@@ -84,8 +84,8 @@ namespace glTFRenderResourceUtils
         std::shared_ptr<IRHIRenderTarget> m_writable_buffer;
         std::shared_ptr<IRHIRenderTarget> m_back_buffer;
 
-        std::shared_ptr<IRHIDescriptorAllocation> m_writable_buffer_handle;
-        std::shared_ptr<IRHIDescriptorAllocation> m_back_buffer_handle;
+        std::shared_ptr<IRHITextureDescriptorAllocation> m_writable_buffer_handle;
+        std::shared_ptr<IRHITextureDescriptorAllocation> m_back_buffer_handle;
     
         RootSignatureAllocation m_writable_buffer_allocation;
         RootSignatureAllocation m_back_buffer_allocation;

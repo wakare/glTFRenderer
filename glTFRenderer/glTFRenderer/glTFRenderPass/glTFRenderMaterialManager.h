@@ -34,7 +34,6 @@ public:
 	glTFMaterialRenderResource(const glTFMaterialBase& source_material);
 	bool Init(glTFRenderResourceManager& resource_manager);
 	
-	std::shared_ptr<IRHIDescriptorAllocation> CreateOrGetAllTextureFirstGPUHandle(glTFRenderResourceManager& resource_manager);
 	const std::map<glTFMaterialParameterUsage, std::unique_ptr<glTFMaterialTextureRenderResource>>& GetTextures() const;
 	const std::map<glTFMaterialParameterUsage, std::unique_ptr<glTFMaterialParameterFactor<glm::vec4>>>& GetFactors() const;
 	

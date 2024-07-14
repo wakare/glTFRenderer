@@ -140,12 +140,13 @@ bool DX12RayTracingAS::InitRayTracingAS(IRHIDevice& device, IRHICommandList& com
         },
         m_TLAS
     );
-    m_TLAS_descriptor_allocation = RHIResourceFactory::CreateRHIResource<IRHIDescriptorAllocation>();
+    m_TLAS_descriptor_allocation = RHIResourceFactory::CreateRHIResource<IRHIBufferDescriptorAllocation>();
     m_TLAS_descriptor_allocation->InitFromBuffer(*m_TLAS->m_buffer,
-        {
-            .format = RHIDataFormat::UNKNOWN,
-            .dimension = RHIResourceDimension::BUFFER,
-            .view_type = RHIViewType::RVT_SRV,
+        RHIBufferDescriptorDesc{
+            RHIDataFormat::UNKNOWN,
+            RHIViewType::RVT_SRV,
+            static_cast<unsigned>(top_level_prebuild_info.ResultDataMaxSizeInBytes),
+            0
         });
 
     // Create an instance desc for the bottom-level acceleration structure.
@@ -205,7 +206,7 @@ m_upload_buffer);
         for (auto& m_BLAS : m_BLASes)
         {
             raytracingCommandList->BuildRaytracingAccelerationStructure(&BLAS_build_descs[blas_index++], 0, nullptr);
-            BLAS_barriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(dynamic_cast<DX12Buffer&>(*m_BLAS->m_buffer).GetBuffer()));
+            BLAS_barriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(dynamic_cast<DX12Buffer&>(*m_BLAS->m_buffer).GetRawBuffer()));
         }
         
         raytracingCommandList->ResourceBarrier(BLAS_barriers.size(), BLAS_barriers.data());

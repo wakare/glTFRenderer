@@ -29,7 +29,7 @@ public:
         if (!m_descriptor_table)
         {
             m_descriptor_table = RHIResourceFactory::CreateRHIResource<IRHIDescriptorTable>();
-            bool succeed = m_descriptor_table->Build(glTFRenderResourceManager::GetDevice(), m_descriptor_allocations);
+            bool succeed = m_descriptor_table->Build(glTFRenderResourceManager::GetDevice(), m_texture_descriptor_allocations);
             GLTF_CHECK(succeed);
         }
 
@@ -56,18 +56,19 @@ public:
     void SetSRVRegisterNames(const std::vector<std::string>& names) {m_names = names;}
     void AddBufferAllocations(const std::vector<std::shared_ptr<IRHIDescriptorAllocation>>& buffer_allocations)
     {
-        m_descriptor_allocations.insert(m_descriptor_allocations.end(), buffer_allocations.begin(), buffer_allocations.end());    
+        m_buffer_descriptor_allocations.insert(m_buffer_descriptor_allocations.end(), buffer_allocations.begin(), buffer_allocations.end());    
     }
 
-    void AddTextureAllocations(const std::vector<std::shared_ptr<IRHIDescriptorAllocation>>& texture_allocations)
+    void AddTextureAllocations(const std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>>& texture_allocations)
     {
-        m_descriptor_allocations.insert(m_descriptor_allocations.end(), texture_allocations.begin(), texture_allocations.end());
+        m_texture_descriptor_allocations.insert(m_texture_descriptor_allocations.end(), texture_allocations.begin(), texture_allocations.end());
     }
     //void SetGPUHandle(RHIGPUDescriptorHandle gpu_handle) {m_handle = gpu_handle; }
     
 protected:
     std::vector<std::string> m_names;
-    std::vector<std::shared_ptr<IRHIDescriptorAllocation>> m_descriptor_allocations;
+    std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>> m_texture_descriptor_allocations;
+    std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>> m_buffer_descriptor_allocations;
     std::shared_ptr<IRHIDescriptorTable> m_descriptor_table;
 };
 

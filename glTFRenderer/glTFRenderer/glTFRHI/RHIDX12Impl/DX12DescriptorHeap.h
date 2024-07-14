@@ -4,6 +4,8 @@
 
 #include "glTFRHI/RHIInterface/RHICommon.h"
 
+class IRHITextureDescriptorAllocation;
+class IRHIBufferDescriptorAllocation;
 class IRHIRenderTarget;
 class IRHITexture;
 struct RHIConstantBufferViewDesc;
@@ -25,13 +27,13 @@ public:
                                                           std::shared_ptr<IRHIDescriptorAllocation>& out_allocation) ;
     virtual bool CreateResourceDescriptorInHeap(IRHIDevice& device, const IRHIBuffer& buffer, const RHIDescriptorDesc& desc,
                                                           /*output*/
-                                                          std::shared_ptr<IRHIDescriptorAllocation>& out_allocation) ;
+                                                          std::shared_ptr<IRHIBufferDescriptorAllocation>& out_allocation) ;
     virtual bool CreateResourceDescriptorInHeap(IRHIDevice& device, const IRHITexture& texture, const RHIDescriptorDesc& desc,
                                                           /*output*/
-                                                          std::shared_ptr<IRHIDescriptorAllocation>& out_allocation) ;
+                                                          std::shared_ptr<IRHITextureDescriptorAllocation>& out_allocation) ;
     virtual bool CreateResourceDescriptorInHeap(IRHIDevice& device, const IRHIRenderTarget& render_target, const RHIDescriptorDesc& desc,
                                                           /*output*/
-                                                          std::shared_ptr<IRHIDescriptorAllocation>& out_allocation) ;
+                                                          std::shared_ptr<IRHITextureDescriptorAllocation>& out_allocation) ;
 
     ID3D12DescriptorHeap* GetDescriptorHeap() {return m_descriptorHeap; }
     D3D12_CPU_DESCRIPTOR_HANDLE GetCPUHandleForHeapStart() const;

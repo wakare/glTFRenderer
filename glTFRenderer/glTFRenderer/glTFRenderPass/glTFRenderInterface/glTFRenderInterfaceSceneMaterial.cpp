@@ -26,7 +26,7 @@ bool glTFRenderInterfaceSceneMaterial::UploadMaterialData(glTFRenderResourceMana
     // Create all material texture into specific heap
     RHIGPUDescriptorHandle handle = UINT64_MAX;
 
-    std::vector<std::shared_ptr<IRHIDescriptorAllocation>> texture_descriptor_allocations;
+    std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>> texture_descriptor_allocations;
     
     for (auto& texture : material_texture_render_resources)
     {
@@ -34,13 +34,13 @@ bool glTFRenderInterfaceSceneMaterial::UploadMaterialData(glTFRenderResourceMana
         {
             continue;
         }
-        std::shared_ptr<IRHIDescriptorAllocation> result;
+        std::shared_ptr<IRHITextureDescriptorAllocation> result;
         auto& texture_resource = *texture->GetTextureAllocation().m_texture;
         resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), texture_resource,
-            {
-                .format = texture_resource.GetTextureDesc().GetDataFormat(),
-                .dimension = RHIResourceDimension::TEXTURE2D,
-                .view_type = RHIViewType::RVT_SRV,
+            RHITextureDescriptorDesc{
+                texture_resource.GetTextureDesc().GetDataFormat(),
+                RHIResourceDimension::TEXTURE2D,
+                RHIViewType::RVT_SRV,
             },
             result);
         texture_descriptor_allocations.push_back(result);

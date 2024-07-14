@@ -3,18 +3,36 @@
 
 class DX12DescriptorHeap;
 
-class DX12DescriptorAllocation : public IRHIDescriptorAllocation
+class DX12BufferDescriptorAllocation : public IRHIBufferDescriptorAllocation
 {
 public:
-    DX12DescriptorAllocation() = default;
+    DX12BufferDescriptorAllocation() = default;
     
-    DX12DescriptorAllocation(RHIGPUDescriptorHandle gpu_handle, RHICPUDescriptorHandle cpu_handle)
+    DX12BufferDescriptorAllocation(RHIGPUDescriptorHandle gpu_handle, RHICPUDescriptorHandle cpu_handle, const RHIBufferDescriptorDesc& desc)
         : m_gpu_handle(gpu_handle)
         , m_cpu_handle(cpu_handle)
-    {}
+    {
+        m_view_desc = desc;
+    }
 
-    virtual bool InitFromBuffer(const IRHIBuffer& buffer, const RHIDescriptorDesc& desc) override;
+    virtual bool InitFromBuffer(const IRHIBuffer& buffer, const RHIBufferDescriptorDesc& desc) override;
     
+    RHIGPUDescriptorHandle m_gpu_handle {UINT64_MAX};
+    RHICPUDescriptorHandle m_cpu_handle {UINT64_MAX};
+};
+
+class DX12TextureDescriptorAllocation : public IRHITextureDescriptorAllocation
+{
+public:
+    DX12TextureDescriptorAllocation() = default;
+    
+    DX12TextureDescriptorAllocation(RHIGPUDescriptorHandle gpu_handle, RHICPUDescriptorHandle cpu_handle, const RHITextureDescriptorDesc& desc)
+        : m_gpu_handle(gpu_handle)
+        , m_cpu_handle(cpu_handle)
+    {
+        m_view_desc = desc;
+    }
+
     RHIGPUDescriptorHandle m_gpu_handle {UINT64_MAX};
     RHICPUDescriptorHandle m_cpu_handle {UINT64_MAX};
 };
@@ -22,7 +40,7 @@ public:
 class DX12DescriptorTable : public IRHIDescriptorTable
 {
 public:
-    virtual bool Build(IRHIDevice& device, const std::vector<std::shared_ptr<IRHIDescriptorAllocation>>& descriptor_allocations) override;
+    virtual bool Build(IRHIDevice& device, const std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>>& descriptor_allocations) override;
 
     RHIGPUDescriptorHandle m_gpu_handle {UINT64_MAX};
 };
@@ -33,9 +51,9 @@ public:
     DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(DX12DescriptorManager)
     
     virtual bool Init(IRHIDevice& device, const RHIMemoryManagerDescriptorMaxCapacity& max_descriptor_capacity) override;
-    virtual bool CreateDescriptor(IRHIDevice& device, const IRHIBuffer& buffer, const RHIDescriptorDesc& desc, std::shared_ptr<IRHIDescriptorAllocation>& out_descriptor_allocation) override;
-    virtual bool CreateDescriptor(IRHIDevice& device, const IRHITexture& texture, const RHIDescriptorDesc& desc, std::shared_ptr<IRHIDescriptorAllocation>& out_descriptor_allocation) override;
-    virtual bool CreateDescriptor(IRHIDevice& device, const IRHIRenderTarget& texture, const RHIDescriptorDesc& desc, std::shared_ptr<IRHIDescriptorAllocation>& out_descriptor_allocation) override;
+    virtual bool CreateDescriptor(IRHIDevice& device, const IRHIBuffer& buffer, const RHIBufferDescriptorDesc& desc, std::shared_ptr<IRHIBufferDescriptorAllocation>& out_descriptor_allocation) override;
+    virtual bool CreateDescriptor(IRHIDevice& device, const IRHITexture& texture, const RHITextureDescriptorDesc& desc, std::shared_ptr<IRHITextureDescriptorAllocation>& out_descriptor_allocation) override;
+    virtual bool CreateDescriptor(IRHIDevice& device, const IRHIRenderTarget& texture, const RHITextureDescriptorDesc& desc, std::shared_ptr<IRHITextureDescriptorAllocation>& out_descriptor_allocation) override;
 
     virtual bool BindDescriptors(IRHICommandList& command_list) override;
     virtual bool BindGUIDescriptors(IRHICommandList& command_list) override;

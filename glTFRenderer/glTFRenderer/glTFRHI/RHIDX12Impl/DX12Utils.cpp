@@ -240,7 +240,7 @@ bool DX12Utils::SetCBVToRootParameterSlot(IRHICommandList& command_list, unsigne
                                           const IRHIDescriptorAllocation& handle, bool isGraphicsPipeline)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
-    auto gpu_handle = dynamic_cast<const DX12DescriptorAllocation&>(handle).m_gpu_handle;
+    auto gpu_handle = dynamic_cast<const DX12BufferDescriptorAllocation&>(handle).m_gpu_handle;
     
     if (isGraphicsPipeline)
     {
@@ -258,7 +258,7 @@ bool DX12Utils::SetSRVToRootParameterSlot(IRHICommandList& command_list, unsigne
                                           const IRHIDescriptorAllocation& handle, bool isGraphicsPipeline)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
-    auto gpu_handle = dynamic_cast<const DX12DescriptorAllocation&>(handle).m_gpu_handle;
+    auto gpu_handle = dynamic_cast<const DX12BufferDescriptorAllocation&>(handle).m_gpu_handle;
 
     if (isGraphicsPipeline)
     {
@@ -276,7 +276,16 @@ bool DX12Utils::SetDTToRootParameterSlot(IRHICommandList& command_list, unsigned
                                          const IRHIDescriptorAllocation& handle, bool isGraphicsPipeline)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
-    D3D12_GPU_DESCRIPTOR_HANDLE dxHandle = {dynamic_cast<const DX12DescriptorAllocation&>(handle).m_gpu_handle};
+    
+    D3D12_GPU_DESCRIPTOR_HANDLE dxHandle{};
+    if (handle.GetDesc().IsBufferDescriptor())
+    {
+        dxHandle = {dynamic_cast<const DX12BufferDescriptorAllocation&>(handle).m_gpu_handle}; 
+    }
+    else
+    {
+        dxHandle = {dynamic_cast<const DX12TextureDescriptorAllocation&>(handle).m_gpu_handle};
+    }
     
     if (isGraphicsPipeline)
     {
@@ -312,8 +321,8 @@ bool DX12Utils::UploadBufferDataToDefaultGPUBuffer(IRHICommandList& command_list
                                                    IRHIBuffer& defaultBuffer, void* data, size_t size)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
-    auto* dxUploadBuffer = dynamic_cast<DX12Buffer&>(uploadBuffer).GetBuffer();
-    auto* dxDefaultBuffer = dynamic_cast<DX12Buffer&>(defaultBuffer).GetBuffer();
+    auto* dxUploadBuffer = dynamic_cast<DX12Buffer&>(uploadBuffer).GetRawBuffer();
+    auto* dxDefaultBuffer = dynamic_cast<DX12Buffer&>(defaultBuffer).GetRawBuffer();
     
     // store vertex buffer in upload heap
     D3D12_SUBRESOURCE_DATA vertexData = {};
@@ -332,8 +341,8 @@ bool DX12Utils::UploadTextureDataToDefaultGPUBuffer(IRHICommandList& command_lis
     IRHIBuffer& defaultBuffer, void* data, size_t rowPitch, size_t slicePitch)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
-    auto* dxUploadBuffer = dynamic_cast<DX12Buffer&>(uploadBuffer).GetBuffer();
-    auto* dxDefaultBuffer = dynamic_cast<DX12Buffer&>(defaultBuffer).GetBuffer();
+    auto* dxUploadBuffer = dynamic_cast<DX12Buffer&>(uploadBuffer).GetRawBuffer();
+    auto* dxDefaultBuffer = dynamic_cast<DX12Buffer&>(defaultBuffer).GetRawBuffer();
     
     // store vertex buffer in upload heap
     D3D12_SUBRESOURCE_DATA vertexData = {};
@@ -352,7 +361,7 @@ bool DX12Utils::AddBufferBarrierToCommandList(IRHICommandList& command_list, con
                                               RHIResourceStateType beforeState, RHIResourceStateType afterState)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
-    auto* dxBuffer = dynamic_cast<const DX12Buffer&>(buffer).GetBuffer();
+    auto* dxBuffer = dynamic_cast<const DX12Buffer&>(buffer).GetRawBuffer();
     
     CD3DX12_RESOURCE_BARRIER TransitionToVertexBufferState = CD3DX12_RESOURCE_BARRIER::Transition(dxBuffer,
         DX12ConverterUtils::ConvertToResourceState(beforeState), DX12ConverterUtils::ConvertToResourceState(afterState)); 
@@ -432,7 +441,7 @@ bool DX12Utils::ExecuteIndirect(IRHICommandList& command_list, IRHICommandSignat
     auto* dx_command_list = dynamic_cast<DX12CommandList&>(command_list).GetDXRCommandList();
     auto* dx_command_signature = dynamic_cast<DX12CommandSignature&>(command_signature).GetCommandSignature();
 
-    auto* dx_arguments_buffer = dynamic_cast<DX12Buffer&>(arguments_buffer).GetBuffer();
+    auto* dx_arguments_buffer = dynamic_cast<DX12Buffer&>(arguments_buffer).GetRawBuffer();
     
     dx_command_list->ExecuteIndirect(dx_command_signature, max_count, dx_arguments_buffer, arguments_buffer_offset, nullptr, 0 );
     
@@ -446,8 +455,8 @@ bool DX12Utils::ExecuteIndirect(IRHICommandList& command_list, IRHICommandSignat
     auto* dx_command_list = dynamic_cast<DX12CommandList&>(command_list).GetDXRCommandList();
     auto* dx_command_signature = dynamic_cast<DX12CommandSignature&>(command_signature).GetCommandSignature();
 
-    auto* dx_arguments_buffer = dynamic_cast<DX12Buffer&>(arguments_buffer).GetBuffer();
-    auto* dx_count_buffer = dynamic_cast<DX12Buffer&>(count_buffer).GetBuffer();
+    auto* dx_arguments_buffer = dynamic_cast<DX12Buffer&>(arguments_buffer).GetRawBuffer();
+    auto* dx_count_buffer = dynamic_cast<DX12Buffer&>(count_buffer).GetRawBuffer();
     
     dx_command_list->ExecuteIndirect(dx_command_signature, max_count, dx_arguments_buffer, arguments_buffer_offset, dx_count_buffer, count_buffer_offset );
     
@@ -491,7 +500,7 @@ bool DX12Utils::CopyBuffer(IRHICommandList& command_list, IRHIBuffer& dst, size_
     size_t src_offset, size_t size)
 {
     auto* dx_command_list = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
-    dx_command_list->CopyBufferRegion(dynamic_cast<DX12Buffer&>(dst).GetBuffer(), dst_offset, dynamic_cast<DX12Buffer&>(src).GetBuffer(), src_offset, size);
+    dx_command_list->CopyBufferRegion(dynamic_cast<DX12Buffer&>(dst).GetRawBuffer(), dst_offset, dynamic_cast<DX12Buffer&>(src).GetRawBuffer(), src_offset, size);
     
     return true;
 }

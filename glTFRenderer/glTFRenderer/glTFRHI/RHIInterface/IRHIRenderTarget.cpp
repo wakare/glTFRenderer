@@ -6,7 +6,7 @@ IRHIRenderTarget::IRHIRenderTarget()
 = default;
 
 bool IRHIRenderTarget::InitRenderTarget(std::shared_ptr<IRHITextureAllocation> texture,
-                                        std::shared_ptr<IRHIDescriptorAllocation> descriptor_allocation)
+                                        std::shared_ptr<IRHITextureDescriptorAllocation> descriptor_allocation)
 {
     m_texture_allocation = std::move(texture);
     m_descriptor_allocation = std::move(descriptor_allocation);
@@ -24,7 +24,7 @@ std::shared_ptr<IRHITextureAllocation> IRHIRenderTarget::GetTextureAllocationSha
     return m_texture_allocation;
 }
 
-IRHIDescriptorAllocation& IRHIRenderTarget::GetDescriptorAllocation()
+IRHITextureDescriptorAllocation& IRHIRenderTarget::GetDescriptorAllocation()
 {
     return *m_descriptor_allocation;
 }

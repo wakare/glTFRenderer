@@ -24,7 +24,7 @@ protected:
     std::shared_ptr<IRHIBufferAllocation> m_count_reset_buffer;
     DispatchCount m_dispatch_count;
     RootSignatureAllocation m_culled_indirect_command_allocation;
-    std::shared_ptr<IRHIDescriptorAllocation> m_command_buffer_handle;
+    std::shared_ptr<IRHIBufferDescriptorAllocation> m_command_buffer_handle;
     
     bool m_enable_culling; 
 };

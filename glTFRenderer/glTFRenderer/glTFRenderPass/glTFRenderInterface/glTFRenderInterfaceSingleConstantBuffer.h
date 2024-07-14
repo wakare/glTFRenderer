@@ -41,12 +41,13 @@ protected:
             RHIDataFormat::UNKNOWN,
             RHIBufferResourceType::Buffer
         }, m_constant_gpu_data);
-        m_constant_buffer_descriptor_allocation = RHIResourceFactory::CreateRHIResource<IRHIDescriptorAllocation>();
+        m_constant_buffer_descriptor_allocation = RHIResourceFactory::CreateRHIResource<IRHIBufferDescriptorAllocation>();
         m_constant_buffer_descriptor_allocation->InitFromBuffer(*m_constant_gpu_data->m_buffer,
-            {
-                .format = RHIDataFormat::UNKNOWN,
-                .dimension = RHIResourceDimension::BUFFER,
-                .view_type = RHIViewType::RVT_CBV,
+            RHIBufferDescriptorDesc{
+                RHIDataFormat::UNKNOWN,
+                RHIViewType::RVT_CBV,
+                max_buffer_size,
+                0
             });
         
         return true;
@@ -72,5 +73,5 @@ protected:
     }
     
     std::shared_ptr<IRHIBufferAllocation> m_constant_gpu_data;
-    std::shared_ptr<IRHIDescriptorAllocation> m_constant_buffer_descriptor_allocation;
+    std::shared_ptr<IRHIBufferDescriptorAllocation> m_constant_buffer_descriptor_allocation;
 };

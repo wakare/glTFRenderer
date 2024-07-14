@@ -1,12 +1,23 @@
 #include "VKDescriptorManager.h"
 
-bool VKDescriptorAllocation::InitFromBuffer(const IRHIBuffer& buffer, const RHIDescriptorDesc& desc)
+#include "VKBuffer.h"
+
+bool VKBufferDescriptorAllocation::InitFromBuffer(const IRHIBuffer& buffer, const RHIBufferDescriptorDesc& desc)
 {
-    return false;
+    m_view_desc = desc;
+    m_buffer = dynamic_cast<const VKBuffer&>(buffer).GetRawBuffer();
+    m_buffer_init = true;
+    return true;
+}
+
+VkBuffer VKBufferDescriptorAllocation::GetRawBuffer() const
+{
+    GLTF_CHECK(m_buffer_init);
+    return m_buffer;
 }
 
 bool VKDescriptorTable::Build(IRHIDevice& device,
-    const std::vector<std::shared_ptr<IRHIDescriptorAllocation>>& descriptor_allocations)
+                              const std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>>& descriptor_allocations)
 {
     return false;
 }
@@ -16,20 +27,20 @@ bool VKDescriptorManager::Init(IRHIDevice& device, const RHIMemoryManagerDescrip
     return false;
 }
 
-bool VKDescriptorManager::CreateDescriptor(IRHIDevice& device, const IRHIBuffer& buffer, const RHIDescriptorDesc& desc,
-                                           std::shared_ptr<IRHIDescriptorAllocation>& out_descriptor_allocation)
+bool VKDescriptorManager::CreateDescriptor(IRHIDevice& device, const IRHIBuffer& buffer, const RHIBufferDescriptorDesc& desc,
+                                           std::shared_ptr<IRHIBufferDescriptorAllocation>& out_descriptor_allocation)
 {
     return false;
 }
 
-bool VKDescriptorManager::CreateDescriptor(IRHIDevice& device, const IRHITexture& texture, const RHIDescriptorDesc& desc,
-                                           std::shared_ptr<IRHIDescriptorAllocation>& out_descriptor_allocation)
+bool VKDescriptorManager::CreateDescriptor(IRHIDevice& device, const IRHITexture& texture, const RHITextureDescriptorDesc& desc,
+                                           std::shared_ptr<IRHITextureDescriptorAllocation>& out_descriptor_allocation)
 {
     return false;
 }
 
-bool VKDescriptorManager::CreateDescriptor(IRHIDevice& device, const IRHIRenderTarget& texture, const RHIDescriptorDesc& desc,
-                                           std::shared_ptr<IRHIDescriptorAllocation>& out_descriptor_allocation)
+bool VKDescriptorManager::CreateDescriptor(IRHIDevice& device, const IRHIRenderTarget& texture, const RHITextureDescriptorDesc& desc,
+                                           std::shared_ptr<IRHITextureDescriptorAllocation>& out_descriptor_allocation)
 {
     return false;
 }

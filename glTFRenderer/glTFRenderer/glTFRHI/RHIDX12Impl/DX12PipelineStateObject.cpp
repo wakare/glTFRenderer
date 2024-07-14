@@ -56,14 +56,14 @@ bool DX12GraphicsPipelineStateObject::BindRenderTargetFormats(
     m_bind_render_target_formats.clear();
     for (const auto& render_target : render_targets)
     {
-        if (render_target->m_view_desc.view_type == RHIViewType::RVT_RTV)
+        if (render_target->GetDesc().m_view_type == RHIViewType::RVT_RTV)
         {
-            m_bind_render_target_formats.push_back(DX12ConverterUtils::ConvertToDXGIFormat(render_target->m_view_desc.format));    
+            m_bind_render_target_formats.push_back(DX12ConverterUtils::ConvertToDXGIFormat(render_target->GetDesc().m_format));    
         }
-        else if (render_target->m_view_desc.view_type == RHIViewType::RVT_DSV)
+        else if (render_target->GetDesc().m_view_type == RHIViewType::RVT_DSV)
         {
-            const RHIDataFormat convert_depth_stencil_format = render_target->m_view_desc.format == RHIDataFormat::R32_TYPELESS ?
-                RHIDataFormat::D32_FLOAT : render_target->m_view_desc.format;
+            const RHIDataFormat convert_depth_stencil_format = render_target->GetDesc().m_format == RHIDataFormat::R32_TYPELESS ?
+                RHIDataFormat::D32_FLOAT : render_target->GetDesc().m_format;
             m_bind_depth_stencil_format = DX12ConverterUtils::ConvertToDXGIFormat(convert_depth_stencil_format);
         }
         else

@@ -3,14 +3,14 @@
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 #include "DX12DescriptorHeap.h"
 
-bool DX12DescriptorAllocation::InitFromBuffer(const IRHIBuffer& buffer, const RHIDescriptorDesc& desc)
+bool DX12BufferDescriptorAllocation::InitFromBuffer(const IRHIBuffer& buffer, const RHIBufferDescriptorDesc& desc)
 {
-    m_gpu_handle = dynamic_cast<const DX12Buffer&>(buffer).GetBuffer()->GetGPUVirtualAddress();
+    m_gpu_handle = dynamic_cast<const DX12Buffer&>(buffer).GetRawBuffer()->GetGPUVirtualAddress();
     m_view_desc = desc;
     return true;
 }
 
-bool DX12DescriptorTable::Build(IRHIDevice& device, const std::vector<std::shared_ptr<IRHIDescriptorAllocation>>& descriptor_allocations)
+bool DX12DescriptorTable::Build(IRHIDevice& device, const std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>>& descriptor_allocations)
 {
     GLTF_CHECK (!descriptor_allocations.empty());
     
@@ -20,13 +20,13 @@ bool DX12DescriptorTable::Build(IRHIDevice& device, const std::vector<std::share
     // Check all allocation gpu handle is consistent!!
     bool is_consistent_gpu_handle = true;
 
-    CD3DX12_GPU_DESCRIPTOR_HANDLE current_handle ({dynamic_cast<const DX12DescriptorAllocation&>(*descriptor_allocations[0]).m_gpu_handle});
+    CD3DX12_GPU_DESCRIPTOR_HANDLE current_handle ({dynamic_cast<const DX12TextureDescriptorAllocation&>(*descriptor_allocations[0]).m_gpu_handle});
     m_gpu_handle = current_handle.ptr;
     
     for (size_t i = 1; i < descriptor_allocations.size(); ++i)
     {
         auto check_handle = current_handle.Offset(1, descriptor_increment_size).ptr;
-        GLTF_CHECK(dynamic_cast<const DX12DescriptorAllocation&>(*descriptor_allocations[i]).m_gpu_handle == check_handle);
+        GLTF_CHECK(dynamic_cast<const DX12TextureDescriptorAllocation&>(*descriptor_allocations[i]).m_gpu_handle == check_handle);
     }
 
     return true; 
@@ -71,24 +71,24 @@ bool DX12DescriptorManager::Init(IRHIDevice& device, const RHIMemoryManagerDescr
 }
 
 bool DX12DescriptorManager::CreateDescriptor(IRHIDevice& device, const IRHIBuffer& buffer,
-                                             const RHIDescriptorDesc& desc, std::shared_ptr<IRHIDescriptorAllocation>& out_descriptor_allocation)
+                                             const RHIBufferDescriptorDesc& desc, std::shared_ptr<IRHIBufferDescriptorAllocation>& out_descriptor_allocation)
 {
-    GLTF_CHECK(desc.dimension != RHIResourceDimension::UNKNOWN);
-    return GetDescriptorHeap(desc.view_type).CreateResourceDescriptorInHeap(device, buffer, desc, out_descriptor_allocation);
+    GLTF_CHECK(desc.m_dimension != RHIResourceDimension::UNKNOWN);
+    return GetDescriptorHeap(desc.m_view_type).CreateResourceDescriptorInHeap(device, buffer, desc, out_descriptor_allocation);
 }
 
 bool DX12DescriptorManager::CreateDescriptor(IRHIDevice& device, const IRHITexture& texture,
-                                             const RHIDescriptorDesc& desc, std::shared_ptr<IRHIDescriptorAllocation>& out_descriptor_allocation)
+                                             const RHITextureDescriptorDesc& desc, std::shared_ptr<IRHITextureDescriptorAllocation>& out_descriptor_allocation)
 {
-    GLTF_CHECK(desc.dimension != RHIResourceDimension::UNKNOWN);
-    return GetDescriptorHeap(desc.view_type).CreateResourceDescriptorInHeap(device, texture, desc, out_descriptor_allocation);
+    GLTF_CHECK(desc.m_dimension != RHIResourceDimension::UNKNOWN);
+    return GetDescriptorHeap(desc.m_view_type).CreateResourceDescriptorInHeap(device, texture, desc, out_descriptor_allocation);
 }
 
 bool DX12DescriptorManager::CreateDescriptor(IRHIDevice& device, const IRHIRenderTarget& texture,
-                                             const RHIDescriptorDesc& desc, std::shared_ptr<IRHIDescriptorAllocation>& out_descriptor_allocation)
+                                             const RHITextureDescriptorDesc& desc, std::shared_ptr<IRHITextureDescriptorAllocation>& out_descriptor_allocation)
 {
-    GLTF_CHECK(desc.dimension != RHIResourceDimension::UNKNOWN);
-    return GetDescriptorHeap(desc.view_type).CreateResourceDescriptorInHeap(device, texture, desc, out_descriptor_allocation);
+    GLTF_CHECK(desc.m_dimension != RHIResourceDimension::UNKNOWN);
+    return GetDescriptorHeap(desc.m_view_type).CreateResourceDescriptorInHeap(device, texture, desc, out_descriptor_allocation);
 }
 
 bool DX12DescriptorManager::BindDescriptors(IRHICommandList& command_list)

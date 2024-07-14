@@ -18,7 +18,7 @@ protected:
     RootSignatureAllocation m_sampler_allocation;
     bool m_material_uploaded;
 
-    std::shared_ptr<IRHIDescriptorAllocation> m_albedo_view;
-    std::shared_ptr<IRHIDescriptorAllocation> m_normal_view;
+    std::shared_ptr<IRHITextureDescriptorAllocation> m_albedo_view;
+    std::shared_ptr<IRHITextureDescriptorAllocation> m_normal_view;
 };
  

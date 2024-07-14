@@ -49,7 +49,7 @@ bool DX12DescriptorHeap::CreateConstantBufferViewInDescriptorHeap(IRHIDevice& de
 {
     //TODO: Process offset for handle 
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
-    auto* dxBuffer = dynamic_cast<DX12Buffer&>(buffer).GetBuffer();
+    auto* dxBuffer = dynamic_cast<DX12Buffer&>(buffer).GetRawBuffer();
     
     CD3DX12_CPU_DESCRIPTOR_HANDLE cpuHandle(m_descriptorHeap->GetCPUDescriptorHandleForHeapStart());
     cpuHandle.Offset(descriptor_offset, m_descriptor_increment_size);
@@ -62,7 +62,13 @@ bool DX12DescriptorHeap::CreateConstantBufferViewInDescriptorHeap(IRHIDevice& de
     CD3DX12_GPU_DESCRIPTOR_HANDLE gpuHandle(m_descriptorHeap->GetGPUDescriptorHandleForHeapStart());
     gpuHandle.Offset(descriptor_offset, m_descriptor_increment_size);
 
-    out_allocation = std::make_shared<DX12DescriptorAllocation>(gpuHandle.ptr, 0);
+    out_allocation = std::make_shared<DX12BufferDescriptorAllocation>(gpuHandle.ptr, 0, RHIBufferDescriptorDesc
+        {
+            RHIDataFormat::UNKNOWN,
+            RHIViewType::RVT_CBV,
+            static_cast<unsigned>(desc.bufferSize),
+            0
+        });
 
     ++m_used_descriptor_count;
     
@@ -70,17 +76,19 @@ bool DX12DescriptorHeap::CreateConstantBufferViewInDescriptorHeap(IRHIDevice& de
 }
 
 bool DX12DescriptorHeap::CreateResourceDescriptorInHeap(IRHIDevice& device,
-                                                                  const IRHIBuffer& buffer, const RHIDescriptorDesc& desc, std::shared_ptr<IRHIDescriptorAllocation>& out_allocation)
+                                                                  const IRHIBuffer& buffer, const RHIDescriptorDesc& desc, std::shared_ptr<IRHIBufferDescriptorAllocation>& out_allocation)
 {
-    auto* resource = dynamic_cast<const DX12Buffer&>(buffer).GetBuffer();
+    auto* resource = dynamic_cast<const DX12Buffer&>(buffer).GetRawBuffer();
     auto find_resource = m_created_descriptors_info.find(resource);
+    auto& buffer_desc = dynamic_cast<const RHIBufferDescriptorDesc&>(desc);
+    
     if (find_resource != m_created_descriptors_info.end())
     {
         for (const auto& created_info : find_resource->second)
         {
             if (created_info.first == desc)
             {
-                out_allocation = std::make_shared<DX12DescriptorAllocation>(created_info.second, 0);
+                out_allocation = std::make_shared<DX12BufferDescriptorAllocation>(created_info.second, 0, buffer_desc);
                 return true;
             }
         }
@@ -90,7 +98,7 @@ bool DX12DescriptorHeap::CreateResourceDescriptorInHeap(IRHIDevice& device,
     RHIGPUDescriptorHandle gpu_handle {0};
     RHICPUDescriptorHandle cpu_handle {0};
     
-    switch (desc.view_type)
+    switch (desc.m_view_type)
     {
     case RHIViewType::RVT_CBV:
         break;
@@ -108,23 +116,23 @@ bool DX12DescriptorHeap::CreateResourceDescriptorInHeap(IRHIDevice& device,
         break;
     }
 
-    out_allocation = std::make_shared<DX12DescriptorAllocation>(gpu_handle, cpu_handle);
-    out_allocation->m_view_desc = desc;
+    out_allocation = std::make_shared<DX12BufferDescriptorAllocation>(gpu_handle, cpu_handle, buffer_desc);
     return created;
 }
 
 bool DX12DescriptorHeap::CreateResourceDescriptorInHeap(IRHIDevice& device, const IRHITexture& texture,
-                                                                  const RHIDescriptorDesc& desc, std::shared_ptr<IRHIDescriptorAllocation>& out_allocation)
+                                                                  const RHIDescriptorDesc& desc, std::shared_ptr<IRHITextureDescriptorAllocation>& out_allocation)
 {
     auto* resource = dynamic_cast<const DX12Texture&>(texture).GetRawResource();
     auto find_resource = m_created_descriptors_info.find(resource);
+    auto& texture_desc = dynamic_cast<const RHITextureDescriptorDesc&>(desc);
     if (find_resource != m_created_descriptors_info.end())
     {
         for (const auto& created_info : find_resource->second)
         {
             if (created_info.first == desc)
             {
-                out_allocation = std::make_shared<DX12DescriptorAllocation>(created_info.second, 0);
+                out_allocation = std::make_shared<DX12TextureDescriptorAllocation>(created_info.second, 0, texture_desc);
                 return true;
             }
         }
@@ -134,7 +142,7 @@ bool DX12DescriptorHeap::CreateResourceDescriptorInHeap(IRHIDevice& device, cons
     RHIGPUDescriptorHandle gpu_handle {0};
     RHICPUDescriptorHandle cpu_handle {0};
     
-    switch (desc.view_type)
+    switch (desc.m_view_type)
     {
     case RHIViewType::RVT_CBV:
         break;
@@ -152,25 +160,24 @@ bool DX12DescriptorHeap::CreateResourceDescriptorInHeap(IRHIDevice& device, cons
         break;
     }
 
-    out_allocation = std::make_shared<DX12DescriptorAllocation>(gpu_handle, cpu_handle);
-    out_allocation->m_view_desc = desc;
+    out_allocation = std::make_shared<DX12TextureDescriptorAllocation>(gpu_handle, cpu_handle, texture_desc);
     return created;
 }
 
 bool DX12DescriptorHeap::CreateResourceDescriptorInHeap(IRHIDevice& device,
-                                                                  const IRHIRenderTarget& render_target, const RHIDescriptorDesc& desc, std::shared_ptr<IRHIDescriptorAllocation>&
+                                                                  const IRHIRenderTarget& render_target, const RHIDescriptorDesc& desc, std::shared_ptr<IRHITextureDescriptorAllocation>&
                                                                   out_allocation)
 {
     auto* resource = dynamic_cast<const DX12Texture&>(render_target.GetTexture()).GetRawResource();
-    
     auto find_resource = m_created_descriptors_info.find(resource);
+    auto& texture_desc = dynamic_cast<const RHITextureDescriptorDesc&>(desc);
     if (find_resource != m_created_descriptors_info.end())
     {
         for (const auto& created_info : find_resource->second)
         {
             if (created_info.first == desc)
             {
-                out_allocation = std::make_shared<DX12DescriptorAllocation>(created_info.second, 0);
+                out_allocation = std::make_shared<DX12TextureDescriptorAllocation>(created_info.second, 0, texture_desc);
                 return true;
             }
         }
@@ -180,7 +187,7 @@ bool DX12DescriptorHeap::CreateResourceDescriptorInHeap(IRHIDevice& device,
     RHIGPUDescriptorHandle gpu_handle {0};
     RHICPUDescriptorHandle cpu_handle {0};
     
-    switch (desc.view_type)
+    switch (desc.m_view_type)
     {
     case RHIViewType::RVT_CBV:
         break;
@@ -198,8 +205,7 @@ bool DX12DescriptorHeap::CreateResourceDescriptorInHeap(IRHIDevice& device,
         break;
     }
 
-    out_allocation = std::make_shared<DX12DescriptorAllocation>(gpu_handle, cpu_handle);
-    out_allocation->m_view_desc = desc;
+    out_allocation = std::make_shared<DX12TextureDescriptorAllocation>(gpu_handle, cpu_handle, texture_desc);
     return created;
 }
 
@@ -236,9 +242,9 @@ bool DX12DescriptorHeap::CreateSRVInHeap(IRHIDevice& device, unsigned descriptor
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
     
     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-    srvDesc.Format = DX12ConverterUtils::ConvertToDXGIFormat(desc.format);
+    srvDesc.Format = DX12ConverterUtils::ConvertToDXGIFormat(desc.m_format);
     srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-    srvDesc.ViewDimension = DX12ConverterUtils::ConvertToSRVDimensionType(desc.dimension);
+    srvDesc.ViewDimension = DX12ConverterUtils::ConvertToSRVDimensionType(desc.m_dimension);
 
     // TODO: Config mip levels
     srvDesc.Texture2D.MipLevels = 1;
@@ -265,30 +271,31 @@ bool DX12DescriptorHeap::CreateUAVInHeap(IRHIDevice& device, unsigned descriptor
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
     
     D3D12_UNORDERED_ACCESS_VIEW_DESC UAVDesc = {};
-    UAVDesc.Format = DX12ConverterUtils::ConvertToDXGIFormat(desc.format);
-    UAVDesc.ViewDimension = DX12ConverterUtils::ConvertToUAVDimensionType(desc.dimension);
+    UAVDesc.Format = DX12ConverterUtils::ConvertToDXGIFormat(desc.m_format);
+    UAVDesc.ViewDimension = DX12ConverterUtils::ConvertToUAVDimensionType(desc.m_dimension);
 
-    if (desc.dimension == RHIResourceDimension::TEXTURE2D)
+    if (desc.m_dimension == RHIResourceDimension::TEXTURE2D)
     {
         UAVDesc.Texture2D.MipSlice = 0;
         UAVDesc.Texture2D.PlaneSlice = 0;    
     }
-    else if (desc.dimension == RHIResourceDimension::BUFFER)
+    else if (desc.m_dimension == RHIResourceDimension::BUFFER)
     {
-        if (desc.use_count_buffer)
+        const RHIBufferDescriptorDesc& buffer_uav_desc = dynamic_cast<const RHIBufferDescriptorDesc&>(desc);
+        if (buffer_uav_desc.m_uav_structured_buffer_desc.use_count_buffer)
         {
-            UAVDesc.Buffer.CounterOffsetInBytes = desc.count_buffer_offset;
+            UAVDesc.Buffer.CounterOffsetInBytes = buffer_uav_desc.m_uav_structured_buffer_desc.count_buffer_offset;
         }
-        UAVDesc.Buffer.StructureByteStride = desc.stride;
+        UAVDesc.Buffer.StructureByteStride = buffer_uav_desc.m_uav_structured_buffer_desc.stride;
         UAVDesc.Buffer.FirstElement = 0;
-        UAVDesc.Buffer.NumElements = desc.count;
+        UAVDesc.Buffer.NumElements = buffer_uav_desc.m_uav_structured_buffer_desc.count;
         UAVDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
     }
 
     CD3DX12_CPU_DESCRIPTOR_HANDLE cpuHandle(m_descriptorHeap->GetCPUDescriptorHandleForHeapStart());
     cpuHandle.Offset(static_cast<int>(descriptor_offset), m_descriptor_increment_size);
     
-    dxDevice->CreateUnorderedAccessView(resource, desc.use_count_buffer ? resource : nullptr, &UAVDesc, cpuHandle);
+    dxDevice->CreateUnorderedAccessView(resource, UAVDesc.Buffer.CounterOffsetInBytes > 0 ? resource : nullptr, &UAVDesc, cpuHandle);
     CD3DX12_GPU_DESCRIPTOR_HANDLE gpuHandle(m_descriptorHeap->GetGPUDescriptorHandleForHeapStart());
     gpuHandle.Offset(static_cast<int>(descriptor_offset), m_descriptor_increment_size);
     out_GPU_handle = gpuHandle.ptr;
@@ -310,7 +317,7 @@ bool DX12DescriptorHeap::CreateRTVInHeap(IRHIDevice& device, unsigned descriptor
     cpu_handle.Offset(static_cast<int>(descriptor_offset), m_descriptor_increment_size);
     
     D3D12_RENDER_TARGET_VIEW_DESC rtv_desc = {};
-    rtv_desc.Format = DX12ConverterUtils::ConvertToDXGIFormat(desc.format);
+    rtv_desc.Format = DX12ConverterUtils::ConvertToDXGIFormat(desc.m_format);
     rtv_desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
     dx_device->CreateRenderTargetView(resource, &rtv_desc, cpu_handle);
 
@@ -333,7 +340,7 @@ bool DX12DescriptorHeap::CreateDSVInHeap(IRHIDevice& device, unsigned descriptor
     cpu_handle.Offset(static_cast<int>(descriptor_offset), m_descriptor_increment_size);
     
     D3D12_DEPTH_STENCIL_VIEW_DESC dsv_desc = {};
-    dsv_desc.Format = DX12ConverterUtils::ConvertToDXGIFormat(desc.format);
+    dsv_desc.Format = DX12ConverterUtils::ConvertToDXGIFormat(desc.m_format);
     dsv_desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
     dx_device->CreateDepthStencilView(resource, &dsv_desc, cpu_handle);
 

@@ -43,19 +43,30 @@ bool glTFComputePassIndirectDrawCulling::InitPass(glTFRenderResourceManager& res
     RETURN_IF_FALSE(glTFComputePassBase::InitPass(resource_manager))
 
     const auto& mesh_manager = resource_manager.GetMeshManager();
-        
+
+    auto& indirect_draw_commands = mesh_manager.GetIndirectDrawCommands();
+    unsigned indirect_draw_total_byte_size = indirect_draw_commands.size() * sizeof(MeshIndirectDrawCommand);
+
+    RHIUAVStructuredBufferDesc uav_structured_buffer_desc
+    {
+            sizeof(MeshIndirectDrawCommand),
+            static_cast<unsigned>(mesh_manager.GetIndirectDrawCommands().size()),
+            true,
+            mesh_manager.GetCulledIndirectArgumentBufferCountOffset()
+    };
+    
+    RHIBufferDescriptorDesc uav_structured_buffer_descriptor_desc
+    {
+        RHIDataFormat::UNKNOWN,
+        RHIViewType::RVT_UAV,
+        indirect_draw_total_byte_size,
+        0,
+        uav_structured_buffer_desc
+    };
     RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(
                 resource_manager.GetDevice(),
                 *mesh_manager.GetCulledIndirectArgumentBuffer(),
-                {
-                RHIDataFormat::UNKNOWN,
-                RHIResourceDimension::BUFFER,
-                RHIViewType::RVT_UAV,
-                sizeof(MeshIndirectDrawCommand),
-                static_cast<unsigned>(mesh_manager.GetIndirectDrawCommands().size()),
-                true,
-                mesh_manager.GetCulledIndirectArgumentBufferCountOffset()
-                },
+                uav_structured_buffer_descriptor_desc,
                 m_command_buffer_handle))
 
     const unsigned dispatch_thread = static_cast<unsigned>(ceil(mesh_manager.GetIndirectDrawCommands().size() / 64.0f));

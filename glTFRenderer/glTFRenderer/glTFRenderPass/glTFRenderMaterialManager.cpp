@@ -106,25 +106,6 @@ bool glTFMaterialRenderResource::Init(glTFRenderResourceManager& resource_manage
     return true;
 }
 
-std::shared_ptr<IRHIDescriptorAllocation> glTFMaterialRenderResource::CreateOrGetAllTextureFirstGPUHandle(glTFRenderResourceManager& resource_manager)
-{
-    std::shared_ptr<IRHIDescriptorAllocation> first_allocation;
-    for (const auto& texture : m_textures)
-    {
-        std::shared_ptr<IRHIDescriptorAllocation> result;
-        const auto& texture_resource = *texture.second->GetTextureAllocation().m_texture;
-        resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), texture_resource,
-            {
-                .format = texture_resource.GetTextureDesc().GetDataFormat(),
-                .dimension = RHIResourceDimension::TEXTURE2D,
-                .view_type = RHIViewType::RVT_SRV,
-            },
-            result);
-    }
-    
-    return first_allocation;
-}
-
 const std::map<glTFMaterialParameterUsage, std::unique_ptr<glTFMaterialTextureRenderResource>>&
 glTFMaterialRenderResource::GetTextures() const
 {

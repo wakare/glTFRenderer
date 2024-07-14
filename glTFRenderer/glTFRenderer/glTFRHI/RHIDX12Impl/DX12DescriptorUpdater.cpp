@@ -6,22 +6,23 @@
 
 bool DX12DescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPipelineType pipeline, unsigned slot, const IRHIDescriptorAllocation& allocation)
 {
-    switch (allocation.m_view_desc.dimension) {
+    const auto& desc = allocation.GetDesc();
+    switch (desc.m_dimension) {
     case RHIResourceDimension::UNKNOWN:
         GLTF_CHECK(false);
         break;
         
     case RHIResourceDimension::BUFFER:
         {
-            if (allocation.m_view_desc.view_type == RHIViewType::RVT_CBV)
+            if (desc.m_view_type == RHIViewType::RVT_CBV)
             {
                 DX12Utils::DX12Instance().SetCBVToRootParameterSlot(command_list, slot, allocation, pipeline==RHIPipelineType::Graphics);    
             }
-            else if (allocation.m_view_desc.view_type == RHIViewType::RVT_SRV)
+            else if (desc.m_view_type == RHIViewType::RVT_SRV)
             {
                 DX12Utils::DX12Instance().SetSRVToRootParameterSlot(command_list, slot, allocation, pipeline==RHIPipelineType::Graphics);
             }
-            else if (allocation.m_view_desc.view_type == RHIViewType::RVT_UAV)
+            else if (desc.m_view_type == RHIViewType::RVT_UAV)
             {
                 DX12Utils::DX12Instance().SetDTToRootParameterSlot(command_list, slot, allocation, pipeline==RHIPipelineType::Graphics);
             }
@@ -57,7 +58,7 @@ bool DX12DescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPip
     return true;
 }
 
-bool DX12DescriptorUpdater::FinalizeUpdateDescriptors(IRHICommandList& command_list)
+bool DX12DescriptorUpdater::FinalizeUpdateDescriptors(IRHICommandList& command_list, IRHIRootSignature& root_signature)
 {
     return true;
 }

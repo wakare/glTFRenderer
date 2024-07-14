@@ -43,12 +43,12 @@ private:
     DispatchCount m_dispatch_count;
     
     RootSignatureAllocation m_output_allocation;
-    std::shared_ptr<IRHIDescriptorAllocation> m_output_handle;
+    std::shared_ptr<IRHITextureDescriptorAllocation> m_output_handle;
 
     glTFRenderResourceUtils::RWTextureResourceWithBackBuffer m_aggregate_samples_output;
     
-    std::shared_ptr<IRHIDescriptorAllocation> m_lighting_samples_handle;
-    std::shared_ptr<IRHIDescriptorAllocation> m_screen_uv_offset_handle;
+    std::shared_ptr<IRHITextureDescriptorAllocation> m_lighting_samples_handle;
+    std::shared_ptr<IRHITextureDescriptorAllocation> m_screen_uv_offset_handle;
     
     RootSignatureAllocation m_lighting_samples_allocation;
     RootSignatureAllocation m_screen_uv_offset_allocation;

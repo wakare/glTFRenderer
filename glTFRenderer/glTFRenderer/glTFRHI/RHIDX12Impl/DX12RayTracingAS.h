@@ -22,7 +22,7 @@ private:
     std::vector<std::shared_ptr<IRHIBufferAllocation>> m_BLAS_scratch_buffers;
     
     std::shared_ptr<IRHIBufferAllocation> m_TLAS;
-    std::shared_ptr<IRHIDescriptorAllocation> m_TLAS_descriptor_allocation;
+    std::shared_ptr<IRHIBufferDescriptorAllocation> m_TLAS_descriptor_allocation;
     std::shared_ptr<IRHIBufferAllocation> m_scratch_buffer;
     std::shared_ptr<IRHIBufferAllocation> m_upload_buffer;
     

@@ -24,17 +24,17 @@ glTFGraphicsPassMeshOpaque::glTFGraphicsPassMeshOpaque()
 bool glTFGraphicsPassMeshOpaque::InitPass(glTFRenderResourceManager& resource_manager)
 {
     resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), GetResourceTexture(RenderPassResourceTableId::BasePass_Albedo), 
-        {
-            .format = GetResourceTexture(RenderPassResourceTableId::BasePass_Albedo).GetTextureFormat(),
-            .dimension = RHIResourceDimension::TEXTURE2D,
-            .view_type = RHIViewType::RVT_RTV
+        RHITextureDescriptorDesc{
+            GetResourceTexture(RenderPassResourceTableId::BasePass_Albedo).GetTextureFormat(),
+            RHIResourceDimension::TEXTURE2D,
+            RHIViewType::RVT_RTV
         }, m_albedo_view);
 
     resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), GetResourceTexture(RenderPassResourceTableId::BasePass_Normal), 
-        {
-            .format = GetResourceTexture(RenderPassResourceTableId::BasePass_Normal).GetTextureFormat(),
-            .dimension = RHIResourceDimension::TEXTURE2D,
-            .view_type = RHIViewType::RVT_RTV
+        RHITextureDescriptorDesc{
+            GetResourceTexture(RenderPassResourceTableId::BasePass_Normal).GetTextureFormat(),
+            RHIResourceDimension::TEXTURE2D,
+            RHIViewType::RVT_RTV
         }, m_normal_view);
     
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::InitPass(resource_manager))

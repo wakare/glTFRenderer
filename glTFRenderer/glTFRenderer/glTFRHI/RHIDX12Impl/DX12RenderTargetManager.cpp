@@ -89,7 +89,7 @@ bool DX12RenderTargetManager::ClearRenderTarget(IRHICommandList& command_list, c
     {
         auto* dxRenderTarget = dynamic_cast<DX12RenderTarget*>(render_targets[i]);
         auto dx12_clear_value = DX12ConverterUtils::ConvertToD3DClearValue(dxRenderTarget->GetClearValue());
-        auto handle = dynamic_cast<DX12DescriptorAllocation&>(dxRenderTarget->GetDescriptorAllocation()).m_cpu_handle;
+        auto handle = dynamic_cast<DX12TextureDescriptorAllocation&>(dxRenderTarget->GetDescriptorAllocation()).m_cpu_handle;
 
         GLTF_CHECK(render_targets[i]->GetTexture().GetState() == RHIResourceStateType::STATE_RENDER_TARGET ||
             render_targets[i]->GetTexture().GetState() == RHIResourceStateType::STATE_DEPTH_WRITE);
@@ -129,8 +129,8 @@ bool DX12RenderTargetManager::ClearRenderTarget(IRHICommandList& command_list,
         auto dx_render_target_clear_value = DX12ConverterUtils::ConvertToD3DClearValue(render_target_clear_value);
         auto dx_depth_stencil_clear_value = DX12ConverterUtils::ConvertToD3DClearValue(depth_stencil_clear_value);
         
-        auto handle = dynamic_cast<DX12DescriptorAllocation&>(render_target).m_cpu_handle;
-        switch (render_target.m_view_desc.view_type)
+        auto handle = dynamic_cast<DX12TextureDescriptorAllocation&>(render_target).m_cpu_handle;
+        switch (render_target.GetDesc().m_view_type)
         {
         case RHIViewType::RVT_RTV:
             {
@@ -167,14 +167,14 @@ bool DX12RenderTargetManager::BindRenderTarget(IRHICommandList& command_list, co
     std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> render_target_views(render_targets.size());
     for (size_t i = 0; i < render_target_views.size(); ++i)
     {
-        auto handle = dynamic_cast<DX12DescriptorAllocation&>(render_targets[i]->GetDescriptorAllocation()).m_cpu_handle;
+        auto handle = dynamic_cast<DX12TextureDescriptorAllocation&>(render_targets[i]->GetDescriptorAllocation()).m_cpu_handle;
         render_target_views[i] = {handle};
     }
 
     D3D12_CPU_DESCRIPTOR_HANDLE dsHandle{};
     if (depth_stencil)
     {
-        auto handle = dynamic_cast<DX12DescriptorAllocation&>(depth_stencil->GetDescriptorAllocation()).m_cpu_handle;
+        auto handle = dynamic_cast<DX12TextureDescriptorAllocation&>(depth_stencil->GetDescriptorAllocation()).m_cpu_handle;
         dsHandle = {handle};
     }
 
@@ -199,14 +199,14 @@ bool DX12RenderTargetManager::BindRenderTarget(IRHICommandList& command_list,
     std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> render_target_views(render_targets.size());
     for (size_t i = 0; i < render_target_views.size(); ++i)
     {
-        auto handle = dynamic_cast<DX12DescriptorAllocation&>(*render_targets[i]).m_cpu_handle;
+        auto handle = dynamic_cast<DX12TextureDescriptorAllocation&>(*render_targets[i]).m_cpu_handle;
         render_target_views[i] = {handle};
     }
 
     D3D12_CPU_DESCRIPTOR_HANDLE dsHandle{};
     if (depth_stencil)
     {
-        auto handle = dynamic_cast<DX12DescriptorAllocation&>(*depth_stencil).m_cpu_handle;
+        auto handle = dynamic_cast<DX12TextureDescriptorAllocation&>(*depth_stencil).m_cpu_handle;
         dsHandle = {handle};
     }
 
@@ -223,12 +223,12 @@ std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTargetWit
         texture_resource->m_texture->GetTextureDesc().GetUsage() & RUF_ALLOW_DEPTH_STENCIL);
     
     const bool is_rtv = (type == RHIRenderTargetType::RTV);
-    std::shared_ptr<IRHIDescriptorAllocation> descriptor_allocation;
+    std::shared_ptr<IRHITextureDescriptorAllocation> descriptor_allocation;
     resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(device, *texture_resource->m_texture, 
-        {
-            .format = descriptor_format,
-            .dimension = RHIResourceDimension::TEXTURE2D,
-            .view_type = is_rtv ? RHIViewType::RVT_RTV : RHIViewType::RVT_DSV,
+        RHITextureDescriptorDesc{
+            descriptor_format,
+            RHIResourceDimension::TEXTURE2D,
+            is_rtv ? RHIViewType::RVT_RTV : RHIViewType::RVT_DSV,
         },
         descriptor_allocation);
     
