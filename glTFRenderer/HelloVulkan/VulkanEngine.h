@@ -2,14 +2,14 @@
 
 #define VK_USE_PLATFORM_WIN32_KHR
 #include <functional>
-#include <vulkan/vulkan.h>
 #include <vulkan/vulkan_core.h>
 
 #include <vector>
 #include <span>
 #include <glm/glm.hpp>
+#include <vma/vk_mem_alloc.h>
 
-#include "vma/vk_mem_alloc.h"
+#include "DescriptorHelper.h"
 
 struct AllocatedImage
 {
@@ -48,29 +48,13 @@ struct GPUDrawPushConstants {
     VkDeviceAddress vertexBuffer;
 };
 
-struct DescriptorLayoutBuilder {
-
-    std::vector<VkDescriptorSetLayoutBinding> bindings;
-
-    void add_binding(uint32_t binding, VkDescriptorType type);
-    void clear();
-    VkDescriptorSetLayout build(VkDevice device, VkShaderStageFlags shaderStages, void* pNext = nullptr, VkDescriptorSetLayoutCreateFlags flags = 0);
-};
-
-struct DescriptorAllocator {
-
-    struct PoolSizeRatio{
-        VkDescriptorType type;
-        float ratio;
-    };
-
-    VkDescriptorPool pool;
-
-    void init_pool(VkDevice device, uint32_t maxSets, std::span<PoolSizeRatio> poolRatios);
-    void clear_descriptors(VkDevice device);
-    void destroy_pool(VkDevice device);
-
-    VkDescriptorSet allocate(VkDevice device, VkDescriptorSetLayout layout);
+struct GPUSceneData {
+    glm::mat4 view;
+    glm::mat4 proj;
+    glm::mat4 viewproj;
+    glm::vec4 ambientColor;
+    glm::vec4 sunlightDirection; // w for sun power
+    glm::vec4 sunlightColor;
 };
 
 class VulkanEngine
@@ -108,7 +92,7 @@ protected:
     VkFormat swap_chain_format {VK_FORMAT_UNDEFINED};
     VkExtent2D swap_chain_extent {0, 0};
     std::vector<VkImageView> image_views;
-    VkPipelineLayout pipeline_layout {VK_NULL_HANDLE};
+    VkPipelineLayout graphics_pipeline_layout {VK_NULL_HANDLE};
     VkRenderPass render_pass {VK_NULL_HANDLE};
     VkPipeline graphics_pipeline {VK_NULL_HANDLE};
     VkPipeline compute_pipeline {VK_NULL_HANDLE};
@@ -120,7 +104,9 @@ protected:
     std::vector<VkSemaphore> image_available_semaphores;
     std::vector<VkSemaphore> render_finish_semaphores;
     std::vector<VkFence> in_flight_fences;
-
+    std::vector<DescriptorAllocatorGrowable> m_frame_descriptors;
+    std::vector<AllocatedBuffer> per_frame_scene_buffers{};
+    
     unsigned current_frame_clipped {0};
     unsigned current_frame_real {0};
     bool window_resized {false};
@@ -144,4 +130,7 @@ protected:
     VkCommandPool _immCommandPool{VK_NULL_HANDLE};
 
     GPUMeshBuffers mesh_buffers{};
+    GPUSceneData sceneData{};
+    
+    VkDescriptorSetLayout _gpuSceneDataDescriptorLayout{VK_NULL_HANDLE};
 };

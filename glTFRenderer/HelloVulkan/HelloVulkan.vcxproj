@@ -164,10 +164,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="DescriptorHelper.cpp" />
     <ClCompile Include="HelloVulkan.cpp" />
     <ClCompile Include="VulkanEngine.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="DescriptorHelper.h" />
+    <ClInclude Include="VulkanCommonHeader.h" />
     <ClInclude Include="VulkanEngine.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

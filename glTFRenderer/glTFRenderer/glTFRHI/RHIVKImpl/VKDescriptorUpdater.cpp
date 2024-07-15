@@ -15,7 +15,7 @@ bool VKDescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPipel
     // bind descriptor set in finalize phase
     draw_image_write.dstSet = VK_NULL_HANDLE;
     
-    if (view_info.m_dimension == RHIResourceDimension::BUFFER)
+    if (view_info.IsBufferDescriptor())
     {
         const auto& buffer_desc = dynamic_cast<const RHIBufferDescriptorDesc&>(view_info);
         // Buffer resource
@@ -24,7 +24,7 @@ bool VKDescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPipel
         buffer_info.range = buffer_desc.m_size;
         buffer_info.offset = buffer_desc.m_offset;
     }
-    else
+    else if (view_info.IsTextureDescriptor())
     {
         // Texture resource
         auto& image_info = m_cache_image_infos.emplace_back();        

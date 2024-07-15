@@ -19,11 +19,7 @@
 
 #include "ShaderUtil/glTFShaderUtils.h"
 #include "RenderWindow/glTFWindow.h"
-
-#define VK_CHECK(x) {\
-    VkResult result = (x);\
-    assert(result == VK_SUCCESS);\
-}
+#include "VulkanCommonHeader.h"
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -64,81 +60,6 @@ namespace VulkanEngineRequirements
     }
 }
 
-void DescriptorLayoutBuilder::add_binding(uint32_t binding, VkDescriptorType type)
-{
-    VkDescriptorSetLayoutBinding newbind {};
-    newbind.binding = binding;
-    newbind.descriptorCount = 1;
-    newbind.descriptorType = type;
-
-    bindings.push_back(newbind);
-}
-
-void DescriptorLayoutBuilder::clear()
-{
-    bindings.clear();
-}
-
-VkDescriptorSetLayout DescriptorLayoutBuilder::build(VkDevice device, VkShaderStageFlags shaderStages, void* pNext, VkDescriptorSetLayoutCreateFlags flags)
-{
-    for (auto& b : bindings) {
-        b.stageFlags |= shaderStages;
-    }
-
-    VkDescriptorSetLayoutCreateInfo info = {.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
-    info.pNext = pNext;
-
-    info.pBindings = bindings.data();
-    info.bindingCount = (uint32_t)bindings.size();
-    info.flags = flags;
-
-    VkDescriptorSetLayout set;
-    VK_CHECK(vkCreateDescriptorSetLayout(device, &info, nullptr, &set));
-
-    return set;
-}
-void DescriptorAllocator::init_pool(VkDevice device, uint32_t maxSets, std::span<PoolSizeRatio> poolRatios)
-{
-    std::vector<VkDescriptorPoolSize> poolSizes;
-    for (PoolSizeRatio ratio : poolRatios) {
-        poolSizes.push_back(VkDescriptorPoolSize{
-            .type = ratio.type,
-            .descriptorCount = uint32_t(ratio.ratio * maxSets)
-        });
-    }
-
-    VkDescriptorPoolCreateInfo pool_info = {.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
-    pool_info.flags = 0;
-    pool_info.maxSets = maxSets;
-    pool_info.poolSizeCount = (uint32_t)poolSizes.size();
-    pool_info.pPoolSizes = poolSizes.data();
-
-    vkCreateDescriptorPool(device, &pool_info, nullptr, &pool);
-}
-
-void DescriptorAllocator::clear_descriptors(VkDevice device)
-{
-    vkResetDescriptorPool(device, pool, 0);
-}
-
-void DescriptorAllocator::destroy_pool(VkDevice device)
-{
-    vkDestroyDescriptorPool(device,pool,nullptr);
-}
-
-VkDescriptorSet DescriptorAllocator::allocate(VkDevice device, VkDescriptorSetLayout layout)
-{
-    VkDescriptorSetAllocateInfo allocInfo = {.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
-    allocInfo.pNext = nullptr;
-    allocInfo.descriptorPool = pool;
-    allocInfo.descriptorSetCount = 1;
-    allocInfo.pSetLayouts = &layout;
-
-    VkDescriptorSet ds;
-    VK_CHECK(vkAllocateDescriptorSets(device, &allocInfo, &ds));
-
-    return ds;
-}
 
 VkImageCreateInfo GetImageCreateInfo(VkFormat format, VkImageUsageFlags usage_flags, VkExtent3D extent)
 {
@@ -559,6 +480,7 @@ GPUMeshBuffers VulkanEngine::UploadMesh(std::span<uint32_t> indices, std::span<V
     return newSurface;
 }
 
+
 bool VulkanEngine::Init()
 {
     uint32_t extensionCount = 0;
@@ -750,25 +672,19 @@ bool VulkanEngine::Init()
         builder.add_binding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
         _drawImageDescriptorLayout = builder.build(logical_device, VK_SHADER_STAGE_COMPUTE_BIT);
     }
+    {
+        DescriptorLayoutBuilder builder;
+        builder.add_binding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+        _gpuSceneDataDescriptorLayout = builder.build(logical_device, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+    }
     
     //allocate a descriptor set for our draw image
     _drawImageDescriptors = globalDescriptorAllocator.allocate(logical_device,_drawImageDescriptorLayout);	
 
-    VkDescriptorImageInfo imgInfo{};
-    imgInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-    imgInfo.imageView = draw_image.image_view;
-	
-    VkWriteDescriptorSet drawImageWrite = {};
-    drawImageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    drawImageWrite.pNext = nullptr;
-	
-    drawImageWrite.dstBinding = 0;
-    drawImageWrite.dstSet = _drawImageDescriptors;
-    drawImageWrite.descriptorCount = 1;
-    drawImageWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-    drawImageWrite.pImageInfo = &imgInfo;
+    DescriptorWriter writer;
+    writer.write_image(0, draw_image.image_view, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 
-    vkUpdateDescriptorSets(logical_device, 1, &drawImageWrite, 0, nullptr);
+    writer.update_set(logical_device,_drawImageDescriptors);
     
     if (run_graphics_test)
     {
@@ -804,6 +720,8 @@ bool VulkanEngine::Init()
     image_available_semaphores.resize(MAX_FRAMES_IN_FLIGHT);
     render_finish_semaphores.resize(MAX_FRAMES_IN_FLIGHT);
     in_flight_fences.resize(MAX_FRAMES_IN_FLIGHT);
+    m_frame_descriptors.resize(MAX_FRAMES_IN_FLIGHT);
+    per_frame_scene_buffers.resize(MAX_FRAMES_IN_FLIGHT);
 
     VkSemaphoreCreateInfo create_semaphore_info{};
     create_semaphore_info.sType= VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -822,6 +740,17 @@ bool VulkanEngine::Init()
 
         result = vkCreateFence(logical_device, &create_fence_info, nullptr, &in_flight_fences[i]);
         GLTF_CHECK(result == VK_SUCCESS);
+
+        // create a descriptor pool
+        std::vector<DescriptorAllocatorGrowable::PoolSizeRatio> frame_sizes = { 
+            { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 3 },
+            { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3 },
+            { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3 },
+            { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4 },
+        };
+
+        m_frame_descriptors[i] = DescriptorAllocatorGrowable{};
+        m_frame_descriptors[i].init(logical_device, 1000, frame_sizes);
     }
 
     VK_CHECK(vkCreateCommandPool(logical_device, &create_command_pool_info, nullptr, &_immCommandPool));
@@ -844,6 +773,14 @@ bool VulkanEngine::Init()
 
 void VulkanEngine::RecordCommandBufferForDrawTestTriangle(VkCommandBuffer command_buffer, unsigned image_index)
 {
+    per_frame_scene_buffers[current_frame_clipped] = AllocateBuffer(sizeof(GPUSceneData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+    memcpy(per_frame_scene_buffers[current_frame_clipped].allocation->GetMappedData(), &sceneData , sizeof(sceneData));
+    VkDescriptorSet per_frame_descriptor_set = m_frame_descriptors[current_frame_clipped].allocate(logical_device, _gpuSceneDataDescriptorLayout);
+    DescriptorWriter descriptor_set_write {};
+    descriptor_set_write.write_buffer(0, per_frame_scene_buffers[current_frame_clipped].buffer, sizeof(GPUSceneData), 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+    descriptor_set_write.update_set(logical_device, per_frame_descriptor_set);
+    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphics_pipeline_layout, 0, 1, &per_frame_descriptor_set, 0, nullptr);
+    
     if (init_render_pass)
     {
         VkRenderPassBeginInfo render_pass_begin_info{};
@@ -892,10 +829,12 @@ void VulkanEngine::RecordCommandBufferForDrawTestTriangle(VkCommandBuffer comman
     scissor.extent = swap_chain_extent;
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
+    /*
     GPUDrawPushConstants push_constants{};
     push_constants.worldMatrix = glm::mat4{1.0f};
     push_constants.vertexBuffer = mesh_buffers.vertexBufferAddress;
-    vkCmdPushConstants(command_buffer, pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0 ,sizeof(GPUDrawPushConstants), &push_constants);
+    vkCmdPushConstants(command_buffer, graphics_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0 ,sizeof(GPUDrawPushConstants), &push_constants);
+    */
     vkCmdBindIndexBuffer(command_buffer, mesh_buffers.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
     
     vkCmdDrawIndexed(command_buffer, 6, 1, 0, 0, 0);
@@ -928,6 +867,8 @@ void VulkanEngine::RecordCommandBufferForDynamicRendering(VkCommandBuffer comman
 void VulkanEngine::DrawFrame()
 {
     vkWaitForFences(logical_device, 1, &in_flight_fences[current_frame_clipped], VK_TRUE, UINT64_MAX);
+    m_frame_descriptors[current_frame_clipped].clear_pools(logical_device);
+    DestroyBuffer(per_frame_scene_buffers[current_frame_clipped]);
     
     unsigned image_index;
     VkResult result = vkAcquireNextImageKHR(logical_device, swap_chain, UINT64_MAX, image_available_semaphores[current_frame_clipped], VK_NULL_HANDLE, &image_index);
@@ -1222,7 +1163,7 @@ void VulkanEngine::InitGraphicsPipeline()
     std::vector<unsigned char> vertex_shader_binaries;
     glTFShaderUtils::ShaderCompileDesc vertex_shader_compile_desc
     {
-        "glTFResources/ShaderSource/GLSL/BufferRefVert.glsl",
+        "glTFResources/ShaderSource/GLSL/SimpleVertShader.glsl",
         glTFShaderUtils::GetShaderCompileTarget(RHIShaderType::Vertex),
         "main",
         {},
@@ -1350,11 +1291,12 @@ void VulkanEngine::InitGraphicsPipeline()
 
     VkPipelineLayoutCreateInfo create_pipeline_layout_info {};
     create_pipeline_layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    create_pipeline_layout_info.setLayoutCount = 0;
-    create_pipeline_layout_info.pSetLayouts = nullptr;
+    create_pipeline_layout_info.setLayoutCount = 1;
+    create_pipeline_layout_info.pSetLayouts = &_gpuSceneDataDescriptorLayout;
     create_pipeline_layout_info.pushConstantRangeCount = 0;
     create_pipeline_layout_info.pPushConstantRanges = nullptr;
 
+    /*
     VkPushConstantRange push_constant_range;
     push_constant_range.offset = 0;
     push_constant_range.size = sizeof(GPUDrawPushConstants);
@@ -1362,8 +1304,9 @@ void VulkanEngine::InitGraphicsPipeline()
 
     create_pipeline_layout_info.pPushConstantRanges = &push_constant_range;
     create_pipeline_layout_info.pushConstantRangeCount = 1;
-
-    VkResult result = vkCreatePipelineLayout(logical_device, &create_pipeline_layout_info, nullptr, &pipeline_layout);
+    */
+    
+    VkResult result = vkCreatePipelineLayout(logical_device, &create_pipeline_layout_info, nullptr, &graphics_pipeline_layout);
     GLTF_CHECK(result == VK_SUCCESS);
 
     VkPipelineRenderingCreateInfo pipeline_rendering_create_info {.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO};
@@ -1384,7 +1327,7 @@ void VulkanEngine::InitGraphicsPipeline()
     create_graphics_pipeline_info.pDepthStencilState = nullptr;
     create_graphics_pipeline_info.pColorBlendState = &create_color_blend_state_info;
     create_graphics_pipeline_info.pDynamicState = &create_dynamic_state_info;
-    create_graphics_pipeline_info.layout = pipeline_layout;
+    create_graphics_pipeline_info.layout = graphics_pipeline_layout;
     if (init_render_pass)
     {
         create_graphics_pipeline_info.renderPass = render_pass;    
@@ -1474,6 +1417,7 @@ bool VulkanEngine::UnInit()
         vkDestroySemaphore(logical_device, image_available_semaphores[i], nullptr);
         vkDestroySemaphore(logical_device, render_finish_semaphores[i], nullptr);
         vkDestroyFence(logical_device, in_flight_fences[i], nullptr);
+        m_frame_descriptors[i].destroy_pools(logical_device);
     }
 
     // No need to free command buffer when command pool is freed
@@ -1494,7 +1438,7 @@ bool VulkanEngine::UnInit()
     if (run_graphics_test)
     {
         vkDestroyPipeline(logical_device, graphics_pipeline, nullptr);
-        vkDestroyPipelineLayout(logical_device, pipeline_layout, nullptr);    
+        vkDestroyPipelineLayout(logical_device, graphics_pipeline_layout, nullptr);    
     }
     
     if (run_compute_test)
