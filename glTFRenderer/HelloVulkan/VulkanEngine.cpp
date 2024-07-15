@@ -404,8 +404,25 @@ void VulkanEngine::TransitionImage(VkCommandBuffer cmd, VkImage image, VkImageLa
     vkCmdPipelineBarrier2(cmd, &dep_info);
 }
 
+void VulkanEngine::CleanUpPerFrameResource(bool all_frame)
+{
+    if (all_frame)
+    {
+        for (unsigned i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+        {
+            m_frame_descriptors[i].clear_pools(logical_device);
+            DestroyBuffer(per_frame_scene_buffers[i]);    
+        }
+    }
+    else
+    {
+        m_frame_descriptors[current_frame_clipped].clear_pools(logical_device);
+        DestroyBuffer(per_frame_scene_buffers[current_frame_clipped]);
+    }
+}
+
 AllocatedBuffer VulkanEngine::AllocateBuffer(size_t allocate_size, VkBufferUsageFlags usage_flags,
-    VmaMemoryUsage memory_usage)
+                                             VmaMemoryUsage memory_usage)
 {
     // allocate buffer
     VkBufferCreateInfo bufferInfo = {.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
@@ -867,8 +884,7 @@ void VulkanEngine::RecordCommandBufferForDynamicRendering(VkCommandBuffer comman
 void VulkanEngine::DrawFrame()
 {
     vkWaitForFences(logical_device, 1, &in_flight_fences[current_frame_clipped], VK_TRUE, UINT64_MAX);
-    m_frame_descriptors[current_frame_clipped].clear_pools(logical_device);
-    DestroyBuffer(per_frame_scene_buffers[current_frame_clipped]);
+    CleanUpPerFrameResource(false);
     
     unsigned image_index;
     VkResult result = vkAcquireNextImageKHR(logical_device, swap_chain, UINT64_MAX, image_available_semaphores[current_frame_clipped], VK_NULL_HANDLE, &image_index);
@@ -1407,6 +1423,8 @@ bool VulkanEngine::Update()
 
 bool VulkanEngine::UnInit()
 {
+    CleanUpPerFrameResource(true);
+    
     vkDeviceWaitIdle(logical_device);
 
     vkDestroyFence(logical_device, _immFence, nullptr);
@@ -1449,6 +1467,7 @@ bool VulkanEngine::UnInit()
     
     globalDescriptorAllocator.destroy_pool(logical_device);
     vkDestroyDescriptorSetLayout(logical_device, _drawImageDescriptorLayout, nullptr);
+    vkDestroyDescriptorSetLayout(logical_device, _gpuSceneDataDescriptorLayout, nullptr);
     vkDestroySurfaceKHR(instance, surface, nullptr);
     vkDestroyDevice(logical_device, nullptr);
     vkDestroyInstance(instance, nullptr);    

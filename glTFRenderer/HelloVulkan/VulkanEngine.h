@@ -76,6 +76,7 @@ protected:
     void InitGraphicsPipeline();
     void InitComputePipeline();
     void TransitionImage(VkCommandBuffer cmd, VkImage image, VkImageLayout old_layout, VkImageLayout new_layout);
+    void CleanUpPerFrameResource(bool all_frame);
     
     AllocatedBuffer AllocateBuffer(size_t allocate_size, VkBufferUsageFlags usage_flags, VmaMemoryUsage memory_usage);
     void DestroyBuffer(const AllocatedBuffer& buffer);
