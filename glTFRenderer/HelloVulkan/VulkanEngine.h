@@ -66,13 +66,18 @@ public:
 
 protected:
     void ImmediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function);
-    void RecordCommandBufferForDrawTestTriangle(VkCommandBuffer command_buffer, unsigned image_index);
-    void RecordCommandBufferForDynamicRendering(VkCommandBuffer command_buffer);
+    void RecordCommandBufferForGraphicsPipeline(VkCommandBuffer command_buffer, unsigned image_index);
+    void RecordCommandBufferForComputePipeline(VkCommandBuffer command_buffer);
     void DrawFrame();
     void CreateSwapChainAndRelativeResource();
     void CleanupSwapChain();
     void RecreateSwapChain();
+    
+    void InitDefaultData();
     void InitMeshBuffer();
+    void InitDefaultImagesAndSamplers();
+    void DestroyDefaultData();
+    
     void InitGraphicsPipeline();
     void InitComputePipeline();
     void TransitionImage(VkCommandBuffer cmd, VkImage image, VkImageLayout old_layout, VkImageLayout new_layout);
@@ -81,7 +86,11 @@ protected:
     AllocatedBuffer AllocateBuffer(size_t allocate_size, VkBufferUsageFlags usage_flags, VmaMemoryUsage memory_usage);
     void DestroyBuffer(const AllocatedBuffer& buffer);
     GPUMeshBuffers UploadMesh(std::span<uint32_t> indices, std::span<Vertex> vertices);
-    
+    AllocatedImage CreateImage(VkExtent3D size, VkFormat format, VkImageUsageFlags usage, bool mipmapped = false);
+    AllocatedImage CreateImage(void* data, VkExtent3D size, VkFormat format, VkImageUsageFlags usage, bool mipmapped = false);
+    void DestroyImage(const AllocatedImage& img);
+
+private:
     VkInstance instance {VK_NULL_HANDLE};
     VkPhysicalDevice select_physical_device {VK_NULL_HANDLE};
     VkDevice logical_device {VK_NULL_HANDLE};
@@ -121,7 +130,7 @@ protected:
 
     DescriptorAllocator globalDescriptorAllocator{};
     VkDescriptorSet _drawImageDescriptors{};
-    VkDescriptorSetLayout _drawImageDescriptorLayout{};
+    VkDescriptorSetLayout compute_pipeline_descriptorset_layout{};
     
     VkPipelineLayout _gradientPipelineLayout{};
     
@@ -133,5 +142,14 @@ protected:
     GPUMeshBuffers mesh_buffers{};
     GPUSceneData sceneData{};
     
-    VkDescriptorSetLayout _gpuSceneDataDescriptorLayout{VK_NULL_HANDLE};
+    VkDescriptorSetLayout graphics_pipeline_descriptorset_layout{VK_NULL_HANDLE};
+
+    // Default images and samplers
+    AllocatedImage _whiteImage {};
+    AllocatedImage _blackImage{};
+    AllocatedImage _greyImage{};
+    AllocatedImage _errorCheckerboardImage{};
+
+    VkSampler _defaultSamplerLinear{};
+    VkSampler _defaultSamplerNearest{};
 };

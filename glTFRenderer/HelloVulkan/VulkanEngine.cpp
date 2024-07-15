@@ -497,6 +497,83 @@ GPUMeshBuffers VulkanEngine::UploadMesh(std::span<uint32_t> indices, std::span<V
     return newSurface;
 }
 
+AllocatedImage VulkanEngine::CreateImage(VkExtent3D size, VkFormat format, VkImageUsageFlags usage, bool mipmapped)
+{
+    AllocatedImage newImage;
+    newImage.image_format = format;
+    newImage.image_extent = size;
+
+    VkImageCreateInfo img_info = GetImageCreateInfo(format, usage, size);
+    if (mipmapped) {
+        img_info.mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(size.width, size.height)))) + 1;
+    }
+
+    // always allocate images on dedicated GPU memory
+    VmaAllocationCreateInfo allocinfo = {};
+    allocinfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+    allocinfo.requiredFlags = VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+    // allocate and create the image
+    VK_CHECK(vmaCreateImage(vma_allocator, &img_info, &allocinfo, &newImage.image, &newImage.allocation, nullptr));
+
+    // if the format is a depth format, we will need to have it use the correct
+    // aspect flag
+    VkImageAspectFlags aspectFlag = VK_IMAGE_ASPECT_COLOR_BIT;
+    if (format == VK_FORMAT_D32_SFLOAT) {
+        aspectFlag = VK_IMAGE_ASPECT_DEPTH_BIT;
+    }
+
+    // build a image-view for the image
+    VkImageViewCreateInfo view_info = GetImageViewCreateInfo(format, newImage.image, aspectFlag);
+    view_info.subresourceRange.levelCount = img_info.mipLevels;
+
+    VK_CHECK(vkCreateImageView(logical_device, &view_info, nullptr, &newImage.image_view));
+
+    return newImage;
+}
+
+AllocatedImage VulkanEngine::CreateImage(void* data, VkExtent3D size, VkFormat format, VkImageUsageFlags usage,
+    bool mipmapped)
+{
+    size_t data_size = size.depth * size.width * size.height * 4;
+    AllocatedBuffer uploadbuffer = AllocateBuffer(data_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+
+    memcpy(uploadbuffer.info.pMappedData, data, data_size);
+
+    AllocatedImage new_image = CreateImage(size, format, usage | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, mipmapped);
+
+    ImmediateSubmit([&](VkCommandBuffer cmd) {
+        TransitionImage(cmd, new_image.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+        VkBufferImageCopy copyRegion = {};
+        copyRegion.bufferOffset = 0;
+        copyRegion.bufferRowLength = 0;
+        copyRegion.bufferImageHeight = 0;
+
+        copyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        copyRegion.imageSubresource.mipLevel = 0;
+        copyRegion.imageSubresource.baseArrayLayer = 0;
+        copyRegion.imageSubresource.layerCount = 1;
+        copyRegion.imageExtent = size;
+
+        // copy the buffer into the image
+        vkCmdCopyBufferToImage(cmd, uploadbuffer.buffer, new_image.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
+            &copyRegion);
+
+        TransitionImage(cmd, new_image.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        });
+
+    DestroyBuffer(uploadbuffer);
+
+    return new_image;
+}
+
+void VulkanEngine::DestroyImage(const AllocatedImage& img)
+{
+    vkDestroyImageView(logical_device, img.image_view, nullptr);
+    vmaDestroyImage(vma_allocator, img.image, img.allocation);
+}
 
 bool VulkanEngine::Init()
 {
@@ -687,21 +764,14 @@ bool VulkanEngine::Init()
     {
         DescriptorLayoutBuilder builder;
         builder.add_binding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
-        _drawImageDescriptorLayout = builder.build(logical_device, VK_SHADER_STAGE_COMPUTE_BIT);
+        compute_pipeline_descriptorset_layout = builder.build(logical_device, VK_SHADER_STAGE_COMPUTE_BIT);
     }
     {
         DescriptorLayoutBuilder builder;
         builder.add_binding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-        _gpuSceneDataDescriptorLayout = builder.build(logical_device, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+        builder.add_binding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+        graphics_pipeline_descriptorset_layout = builder.build(logical_device, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
     }
-    
-    //allocate a descriptor set for our draw image
-    _drawImageDescriptors = globalDescriptorAllocator.allocate(logical_device,_drawImageDescriptorLayout);	
-
-    DescriptorWriter writer;
-    writer.write_image(0, draw_image.image_view, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
-
-    writer.update_set(logical_device,_drawImageDescriptors);
     
     if (run_graphics_test)
     {
@@ -783,21 +853,23 @@ bool VulkanEngine::Init()
 
     VK_CHECK(vkCreateFence(logical_device, &create_fence_info, nullptr, &_immFence));
 
-    InitMeshBuffer();
+    InitDefaultData();
     
     return true;
 }
 
-void VulkanEngine::RecordCommandBufferForDrawTestTriangle(VkCommandBuffer command_buffer, unsigned image_index)
+void VulkanEngine::RecordCommandBufferForGraphicsPipeline(VkCommandBuffer command_buffer, unsigned image_index)
 {
     per_frame_scene_buffers[current_frame_clipped] = AllocateBuffer(sizeof(GPUSceneData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
     memcpy(per_frame_scene_buffers[current_frame_clipped].allocation->GetMappedData(), &sceneData , sizeof(sceneData));
-    VkDescriptorSet per_frame_descriptor_set = m_frame_descriptors[current_frame_clipped].allocate(logical_device, _gpuSceneDataDescriptorLayout);
+    VkDescriptorSet per_frame_descriptor_set = m_frame_descriptors[current_frame_clipped].allocate(logical_device, graphics_pipeline_descriptorset_layout);
+    
     DescriptorWriter descriptor_set_write {};
     descriptor_set_write.write_buffer(0, per_frame_scene_buffers[current_frame_clipped].buffer, sizeof(GPUSceneData), 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+
+    descriptor_set_write.write_image(1, _errorCheckerboardImage.image_view, _defaultSamplerLinear, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
     descriptor_set_write.update_set(logical_device, per_frame_descriptor_set);
-    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphics_pipeline_layout, 0, 1, &per_frame_descriptor_set, 0, nullptr);
-    
+   
     if (init_render_pass)
     {
         VkRenderPassBeginInfo render_pass_begin_info{};
@@ -830,7 +902,9 @@ void VulkanEngine::RecordCommandBufferForDrawTestTriangle(VkCommandBuffer comman
     }
     
     vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphics_pipeline);
-    
+
+    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphics_pipeline_layout, 0, 1, &per_frame_descriptor_set, 0, nullptr);
+
     // since define viewport and scissor as dynamic state so do set in command
     VkViewport viewport{};
     viewport.x = 0.0f;
@@ -866,10 +940,17 @@ void VulkanEngine::RecordCommandBufferForDrawTestTriangle(VkCommandBuffer comman
     }
 }
 
-void VulkanEngine::RecordCommandBufferForDynamicRendering(VkCommandBuffer command_buffer)
+void VulkanEngine::RecordCommandBufferForComputePipeline(VkCommandBuffer command_buffer)
 {
     VkImage current_draw_image = draw_image.image;
+    
+    DescriptorWriter writer;
+    writer.write_image(0, draw_image.image_view, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 
+    //allocate a descriptor set for our draw image
+    _drawImageDescriptors = m_frame_descriptors[current_frame_clipped].allocate(logical_device,compute_pipeline_descriptorset_layout);
+    writer.update_set(logical_device,_drawImageDescriptors);
+    
     float flash = std::abs(std::sin(current_frame_real / 1200.0f));
     VkClearColorValue clear_color_value {{0.0f, 1.0f - flash, flash, 1.0f}};
     VkImageSubresourceRange clear_range = GetVkSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT);
@@ -921,13 +1002,13 @@ void VulkanEngine::DrawFrame()
     if (run_compute_test)
     {
         TransitionImage(current_command_buffer, current_draw_image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
-        RecordCommandBufferForDynamicRendering(current_command_buffer);
+        RecordCommandBufferForComputePipeline(current_command_buffer);
         TransitionImage(current_command_buffer, current_draw_image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
     }
     if (run_graphics_test)
     {
         TransitionImage(current_command_buffer, current_draw_image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-        RecordCommandBufferForDrawTestTriangle(current_command_buffer, image_index);
+        RecordCommandBufferForGraphicsPipeline(current_command_buffer, image_index);
         TransitionImage(current_command_buffer, current_draw_image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);   
     }
 
@@ -1146,6 +1227,12 @@ void VulkanEngine::RecreateSwapChain()
     CreateSwapChainAndRelativeResource();
 }
 
+void VulkanEngine::InitDefaultData()
+{
+    InitMeshBuffer();
+    InitDefaultImagesAndSamplers();
+}
+
 void VulkanEngine::InitMeshBuffer()
 {
     std::array<Vertex,4> rect_vertices;
@@ -1173,6 +1260,55 @@ void VulkanEngine::InitMeshBuffer()
     mesh_buffers = UploadMesh(rect_indices,rect_vertices);
 }
 
+void VulkanEngine::InitDefaultImagesAndSamplers()
+{
+    // 3 default textures, white, grey, black. 1 pixel each
+    uint32_t white = glm::packUnorm4x8(glm::vec4(1, 1, 1, 1));
+    _whiteImage = CreateImage((void*)&white, VkExtent3D{ 1, 1, 1 }, VK_FORMAT_R8G8B8A8_UNORM,
+        VK_IMAGE_USAGE_SAMPLED_BIT);
+
+    uint32_t grey = glm::packUnorm4x8(glm::vec4(0.66f, 0.66f, 0.66f, 1));
+    _greyImage = CreateImage((void*)&grey, VkExtent3D{ 1, 1, 1 }, VK_FORMAT_R8G8B8A8_UNORM,
+        VK_IMAGE_USAGE_SAMPLED_BIT);
+
+    uint32_t black = glm::packUnorm4x8(glm::vec4(0, 0, 0, 0));
+    _blackImage = CreateImage((void*)&black, VkExtent3D{ 1, 1, 1 }, VK_FORMAT_R8G8B8A8_UNORM,
+        VK_IMAGE_USAGE_SAMPLED_BIT);
+
+    //checkerboard image
+    uint32_t magenta = glm::packUnorm4x8(glm::vec4(1, 0, 1, 1));
+    std::array<uint32_t, 16 *16 > pixels; //for 16x16 checkerboard texture
+    for (int x = 0; x < 16; x++) {
+        for (int y = 0; y < 16; y++) {
+            pixels[y*16 + x] = ((x % 2) ^ (y % 2)) ? magenta : black;
+        }
+    }
+    _errorCheckerboardImage = CreateImage(pixels.data(), VkExtent3D{16, 16, 1}, VK_FORMAT_R8G8B8A8_UNORM,
+        VK_IMAGE_USAGE_SAMPLED_BIT);
+
+    VkSamplerCreateInfo sampl = {.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
+
+    sampl.magFilter = VK_FILTER_NEAREST;
+    sampl.minFilter = VK_FILTER_NEAREST;
+
+    vkCreateSampler(logical_device, &sampl, nullptr, &_defaultSamplerNearest);
+
+    sampl.magFilter = VK_FILTER_LINEAR;
+    sampl.minFilter = VK_FILTER_LINEAR;
+    vkCreateSampler(logical_device, &sampl, nullptr, &_defaultSamplerLinear);
+}
+
+void VulkanEngine::DestroyDefaultData()
+{
+    vkDestroySampler(logical_device,_defaultSamplerNearest,nullptr);
+    vkDestroySampler(logical_device,_defaultSamplerLinear,nullptr);
+
+    DestroyImage(_whiteImage);
+    DestroyImage(_greyImage);
+    DestroyImage(_blackImage);
+    DestroyImage(_errorCheckerboardImage);
+}
+
 void VulkanEngine::InitGraphicsPipeline()
 {
     // Create shader module
@@ -1192,7 +1328,7 @@ void VulkanEngine::InitGraphicsPipeline()
     std::vector<unsigned char> fragment_shader_binaries;
     glTFShaderUtils::ShaderCompileDesc fragment_shader_compile_desc
     {
-        "glTFResources/ShaderSource/GLSL/SimpleFragShader.glsl",
+        "glTFResources/ShaderSource/GLSL/CombinedSamplerFrag.glsl",
         glTFShaderUtils::GetShaderCompileTarget(RHIShaderType::Pixel),
         "main",
         {},
@@ -1308,7 +1444,7 @@ void VulkanEngine::InitGraphicsPipeline()
     VkPipelineLayoutCreateInfo create_pipeline_layout_info {};
     create_pipeline_layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     create_pipeline_layout_info.setLayoutCount = 1;
-    create_pipeline_layout_info.pSetLayouts = &_gpuSceneDataDescriptorLayout;
+    create_pipeline_layout_info.pSetLayouts = &graphics_pipeline_descriptorset_layout;
     create_pipeline_layout_info.pushConstantRangeCount = 0;
     create_pipeline_layout_info.pPushConstantRanges = nullptr;
 
@@ -1365,7 +1501,7 @@ void VulkanEngine::InitComputePipeline()
     VkPipelineLayoutCreateInfo computeLayout{};
     computeLayout.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     computeLayout.pNext = nullptr;
-    computeLayout.pSetLayouts = &_drawImageDescriptorLayout;
+    computeLayout.pSetLayouts = &compute_pipeline_descriptorset_layout;
     computeLayout.setLayoutCount = 1;
     
     VK_CHECK(vkCreatePipelineLayout(logical_device, &computeLayout, nullptr, &_gradientPipelineLayout));
@@ -1423,6 +1559,8 @@ bool VulkanEngine::Update()
 
 bool VulkanEngine::UnInit()
 {
+    DestroyDefaultData();
+    
     CleanUpPerFrameResource(true);
     
     vkDeviceWaitIdle(logical_device);
@@ -1466,8 +1604,8 @@ bool VulkanEngine::UnInit()
     }
     
     globalDescriptorAllocator.destroy_pool(logical_device);
-    vkDestroyDescriptorSetLayout(logical_device, _drawImageDescriptorLayout, nullptr);
-    vkDestroyDescriptorSetLayout(logical_device, _gpuSceneDataDescriptorLayout, nullptr);
+    vkDestroyDescriptorSetLayout(logical_device, compute_pipeline_descriptorset_layout, nullptr);
+    vkDestroyDescriptorSetLayout(logical_device, graphics_pipeline_descriptorset_layout, nullptr);
     vkDestroySurfaceKHR(instance, surface, nullptr);
     vkDestroyDevice(logical_device, nullptr);
     vkDestroyInstance(instance, nullptr);    

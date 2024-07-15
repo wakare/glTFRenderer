@@ -1,6 +1,7 @@
 #version 450
 
 layout (location = 0) out vec3 outColor;
+layout (location = 1) out vec2 outUV;
 
 void main() 
 {
@@ -9,6 +10,12 @@ void main()
 		vec3(1.f,1.f, 0.0f),
 		vec3(-1.f,1.f, 0.0f),
 		vec3(0.f,-1.f, 0.0f)
+	);
+
+    const vec2 uvs[3] = vec2[3](
+		vec2(0.0,0.0),
+		vec2(1.0,0.0),
+		vec2(0.5,0.5)
 	);
 
 	//const array of colors for the triangle
@@ -21,4 +28,5 @@ void main()
 	//output the position of each vertex
 	gl_Position = vec4(positions[gl_VertexIndex], 1.0f);
 	outColor = colors[gl_VertexIndex];
+    outUV = uvs[gl_VertexIndex];
 }
