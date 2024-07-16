@@ -8,7 +8,7 @@ glTFAppRenderer::glTFAppRenderer(const glTFAppRendererConfig& renderer_config, c
     RHIConfigSingleton::Instance().SetGraphicsAPIType(renderer_config.vulkan ?
         RHIGraphicsAPIType::RHI_GRAPHICS_API_Vulkan : RHIGraphicsAPIType::RHI_GRAPHICS_API_DX12);
 
-    if (renderer_config.test_triangle_pass)
+    if (renderer_config.test_triangle)
     {
         m_scene_renderer.reset(new glTFSceneRendererTestTriangle);   
     }

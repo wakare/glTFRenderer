@@ -1,7 +1,5 @@
 #include "VKCommandAllocator.h"
-
 #include "VKDevice.h"
-
 
 VKCommandAllocator::~VKCommandAllocator()
 {

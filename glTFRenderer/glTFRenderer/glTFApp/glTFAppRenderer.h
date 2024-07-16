@@ -6,13 +6,15 @@ struct glTFAppRendererConfig
     bool raster;
     bool ReSTIR;
     bool vulkan;
-    bool test_triangle_pass;
+
+    // test sample
+    bool test_triangle;
 
     glTFAppRendererConfig()
         : raster(true) 
         , ReSTIR(false)
         , vulkan(false)
-        , test_triangle_pass(false)
+        , test_triangle(true)
     {
         
     }

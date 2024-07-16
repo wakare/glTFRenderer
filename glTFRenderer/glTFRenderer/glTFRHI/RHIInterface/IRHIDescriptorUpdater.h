@@ -13,5 +13,5 @@ public:
     virtual bool BindDescriptor(IRHICommandList& command_list, RHIPipelineType pipeline, unsigned slot, const IRHIDescriptorAllocation& allocation) = 0;
     virtual bool BindDescriptor(IRHICommandList& command_list, RHIPipelineType pipeline, unsigned slot, const IRHIDescriptorTable& allocation_table) = 0;
 
-    virtual bool FinalizeUpdateDescriptors(IRHICommandList& command_list, IRHIRootSignature& root_signature) = 0;
+    virtual bool FinalizeUpdateDescriptors(IRHIDevice& device, IRHICommandList& command_list, IRHIRootSignature& root_signature) = 0;
 };

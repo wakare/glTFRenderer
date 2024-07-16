@@ -100,7 +100,7 @@ namespace glTFRenderResourceUtils
         
         RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(
                         resource_manager.GetDevice(),
-                        *m_albedo_output,
+                        m_albedo_output->GetTexture(),
                         {
                         m_albedo_output->GetRenderTargetFormat(),
                         RHIResourceDimension::TEXTURE2D,
@@ -110,7 +110,7 @@ namespace glTFRenderResourceUtils
 
         RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(
                         resource_manager.GetDevice(),
-                        *m_normal_output,
+                        m_normal_output->GetTexture(),
                         {
                         m_normal_output->GetRenderTargetFormat(),
                         RHIResourceDimension::TEXTURE2D,
@@ -120,7 +120,7 @@ namespace glTFRenderResourceUtils
 
         RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(
                         resource_manager.GetDevice(),
-                        *m_depth_output,
+                        m_depth_output->GetTexture(),
                         {
                         m_depth_output->GetRenderTargetFormat(),
                         RHIResourceDimension::TEXTURE2D,
@@ -138,7 +138,7 @@ namespace glTFRenderResourceUtils
         
         RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(
                         resource_manager.GetDevice(),
-                        *m_albedo_output,
+                        m_albedo_output->GetTexture(),
                         {
                         m_albedo_output->GetRenderTargetFormat(),
                         RHIResourceDimension::TEXTURE2D,
@@ -148,7 +148,7 @@ namespace glTFRenderResourceUtils
 
         RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(
                         resource_manager.GetDevice(),
-                        *m_normal_output,
+                        m_normal_output->GetTexture(),
                         {
                         m_normal_output->GetRenderTargetFormat(),
                         RHIResourceDimension::TEXTURE2D,
@@ -158,7 +158,7 @@ namespace glTFRenderResourceUtils
 
         RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(
                         resource_manager.GetDevice(),
-                        *m_depth_output,
+                        m_depth_output->GetTexture(),
                         {
                         m_depth_output->GetRenderTargetFormat(),
                         RHIResourceDimension::TEXTURE2D,
@@ -239,10 +239,10 @@ namespace glTFRenderResourceUtils
 
     bool RWTextureResourceWithBackBuffer::CreateDescriptors(glTFRenderResourceManager& resource_manager)
     {
-        RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), *m_writable_buffer,
+        RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), m_writable_buffer->GetTexture(),
                                 {m_writable_buffer->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_UAV}, m_writable_buffer_handle))
 
-        RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), *m_back_buffer,
+        RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), m_back_buffer->GetTexture(),
                                 {m_back_buffer->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_back_buffer_handle))
 
         return true;

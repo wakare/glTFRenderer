@@ -16,6 +16,11 @@ VkBuffer VKBufferDescriptorAllocation::GetRawBuffer() const
     return m_buffer;
 }
 
+VkImageView VKTextureDescriptorAllocation::GetRawImageView() const
+{
+    return m_image_view;
+}
+
 bool VKDescriptorTable::Build(IRHIDevice& device,
                               const std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>>& descriptor_allocations)
 {
@@ -34,12 +39,6 @@ bool VKDescriptorManager::CreateDescriptor(IRHIDevice& device, const IRHIBuffer&
 }
 
 bool VKDescriptorManager::CreateDescriptor(IRHIDevice& device, const IRHITexture& texture, const RHITextureDescriptorDesc& desc,
-                                           std::shared_ptr<IRHITextureDescriptorAllocation>& out_descriptor_allocation)
-{
-    return false;
-}
-
-bool VKDescriptorManager::CreateDescriptor(IRHIDevice& device, const IRHIRenderTarget& texture, const RHITextureDescriptorDesc& desc,
                                            std::shared_ptr<IRHITextureDescriptorAllocation>& out_descriptor_allocation)
 {
     return false;

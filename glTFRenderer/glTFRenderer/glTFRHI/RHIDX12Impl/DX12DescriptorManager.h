@@ -53,7 +53,6 @@ public:
     virtual bool Init(IRHIDevice& device, const RHIMemoryManagerDescriptorMaxCapacity& max_descriptor_capacity) override;
     virtual bool CreateDescriptor(IRHIDevice& device, const IRHIBuffer& buffer, const RHIBufferDescriptorDesc& desc, std::shared_ptr<IRHIBufferDescriptorAllocation>& out_descriptor_allocation) override;
     virtual bool CreateDescriptor(IRHIDevice& device, const IRHITexture& texture, const RHITextureDescriptorDesc& desc, std::shared_ptr<IRHITextureDescriptorAllocation>& out_descriptor_allocation) override;
-    virtual bool CreateDescriptor(IRHIDevice& device, const IRHIRenderTarget& texture, const RHITextureDescriptorDesc& desc, std::shared_ptr<IRHITextureDescriptorAllocation>& out_descriptor_allocation) override;
 
     virtual bool BindDescriptors(IRHICommandList& command_list) override;
     virtual bool BindGUIDescriptors(IRHICommandList& command_list) override;

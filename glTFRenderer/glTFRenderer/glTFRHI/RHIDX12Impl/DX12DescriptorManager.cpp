@@ -84,13 +84,6 @@ bool DX12DescriptorManager::CreateDescriptor(IRHIDevice& device, const IRHITextu
     return GetDescriptorHeap(desc.m_view_type).CreateResourceDescriptorInHeap(device, texture, desc, out_descriptor_allocation);
 }
 
-bool DX12DescriptorManager::CreateDescriptor(IRHIDevice& device, const IRHIRenderTarget& texture,
-                                             const RHITextureDescriptorDesc& desc, std::shared_ptr<IRHITextureDescriptorAllocation>& out_descriptor_allocation)
-{
-    GLTF_CHECK(desc.m_dimension != RHIResourceDimension::UNKNOWN);
-    return GetDescriptorHeap(desc.m_view_type).CreateResourceDescriptorInHeap(device, texture, desc, out_descriptor_allocation);
-}
-
 bool DX12DescriptorManager::BindDescriptors(IRHICommandList& command_list)
 {
     return DX12Utils::DX12Instance().SetDescriptorHeapArray(command_list, m_CBV_SRV_UAV_heap.get(), 1);

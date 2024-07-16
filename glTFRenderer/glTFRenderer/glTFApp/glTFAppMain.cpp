@@ -70,7 +70,7 @@ glTFAppMain::glTFAppMain(int argc, char* argv[])
 {
     // Parse command arguments
     const glTFCmdArgumentProcessor cmd_processor(argc, argv);
-    m_app_config.use_rasterizer = cmd_processor.IsRasterScene();
+    m_app_config.m_use_rasterizer = cmd_processor.IsRasterScene();
     m_app_config.m_test_triangle_pass = cmd_processor.IsTestTrianglePass();
     m_app_config.m_vulkan = cmd_processor.IsVulkan();
     m_app_config.m_ReSTIR = true;
@@ -210,9 +210,9 @@ bool glTFAppMain::InitRenderer()
     m_renderer = nullptr; 
 
     glTFAppRendererConfig renderer_config;
-    renderer_config.raster = m_app_config.use_rasterizer;
+    renderer_config.raster = m_app_config.m_use_rasterizer;
     renderer_config.ReSTIR = m_app_config.m_ReSTIR;
-    renderer_config.test_triangle_pass = m_app_config.m_test_triangle_pass;
+    renderer_config.test_triangle = m_app_config.m_test_triangle_pass;
     renderer_config.vulkan = m_app_config.m_vulkan;
     
     m_renderer = std::make_unique<glTFAppRenderer>(renderer_config, glTFWindow::Get());
@@ -246,32 +246,44 @@ bool glTFAppMain::UpdateGUIWidgets()
     
     ImGui::Separator();
     ImGui::TextColored({0.0f, 1.0f, 1.0f, 1.0f}, "Config renderer settings");
-    
-    ImGui::Dummy({10.0f, 10.0f});
-    ImGui::TextColored(subtitle_color, "Scene renderer type");
-    if (ImGui::RadioButton("Rasterizer", m_app_config.use_rasterizer))
-    {
-        m_app_config.use_rasterizer = true;
-    }
 
-    if (ImGui::RadioButton("RayTracer", !m_app_config.use_rasterizer))
+    ImGui::Dummy({10.0f, 10.0f});
+    ImGui::Checkbox("Test single triangle rendering", &m_app_config.m_test_triangle_pass);
+    if (m_app_config.m_test_triangle_pass)
     {
-        m_app_config.use_rasterizer = false;
+        
     }
-    
-    if (!m_app_config.use_rasterizer)
+    else
     {
         ImGui::Dummy({10.0f, 10.0f});
-        ImGui::TextColored(subtitle_color, "RayTracer lighting method");
-        if (ImGui::RadioButton("ReSTIR_DI", m_app_config.m_ReSTIR))
+        ImGui::TextColored(subtitle_color, "Scene renderer type");
+        if (ImGui::RadioButton("Rasterizer", m_app_config.m_use_rasterizer))
         {
-            m_app_config.m_ReSTIR = true;
+            m_app_config.m_use_rasterizer = true;
         }
 
-        if (ImGui::RadioButton("PathTracing", !m_app_config.m_ReSTIR))
+        if (ImGui::RadioButton("RayTracer", !m_app_config.m_use_rasterizer))
         {
-            m_app_config.m_ReSTIR = false;
+            m_app_config.m_use_rasterizer = false;
         }
+    
+        if (!m_app_config.m_use_rasterizer)
+        {
+            ImGui::Dummy({10.0f, 10.0f});
+            ImGui::TextColored(subtitle_color, "RayTracer lighting method");
+            if (ImGui::RadioButton("ReSTIR_DI", m_app_config.m_ReSTIR))
+            {
+                m_app_config.m_ReSTIR = true;
+            }
+
+            if (ImGui::RadioButton("PathTracing", !m_app_config.m_ReSTIR))
+            {
+                m_app_config.m_ReSTIR = false;
+            }
+        }
+    
+        ImGui::Dummy({10.0f, 10.0f});
+        ImGui::Checkbox("TickSceneUpdate", &m_app_config.m_tick_scene);
     }
 
     ImGui::Dummy({10.0f, 10.0f});
@@ -285,12 +297,6 @@ bool glTFAppMain::UpdateGUIWidgets()
     {
         m_app_config.m_vulkan = true;
     }
-    
-
-
-    ImGui::Dummy({10.0f, 10.0f});
-    ImGui::Checkbox("TickSceneUpdate", &m_app_config.m_tick_scene);
-
     ImGui::Dummy({10.0f, 10.0f});
     if (ImGui::Button("RecreateRenderer"))
     {

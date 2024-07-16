@@ -34,7 +34,7 @@ private:
 
 struct glTFAppConfig
 {
-    bool use_rasterizer;
+    bool m_use_rasterizer;
     bool m_ReSTIR;
     bool m_test_triangle_pass;
     bool m_vulkan;

@@ -107,7 +107,7 @@ bool glTFGraphicsPassLighting::SetupPipelineStateObject(glTFRenderResourceManage
     RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), basepass_albedo,
                         {basepass_albedo.GetTextureFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_base_pass_albedo_allocation))
 
-    RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), resource_manager.GetDepthRT(),
+    RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), resource_manager.GetDepthRT().GetTexture(),
                         {RHIDataFormat::R32_FLOAT, RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_depth_allocation))
 
     RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), basepass_normal,

@@ -15,8 +15,12 @@ protected:
 
 class VKTextureDescriptorAllocation : public IRHITextureDescriptorAllocation
 {
+public:
+    VkImageView GetRawImageView() const;
+    
 protected:
-    bool m_texture_init {false};
+    bool m_image_init {false};
+    VkImageView m_image_view { VK_NULL_HANDLE};
 };
 
 class VKDescriptorTable : public IRHIDescriptorTable
@@ -30,10 +34,9 @@ class VKDescriptorManager : public IRHIDescriptorManager
 public:
     DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKDescriptorManager)
 
-    virtual bool Init(IRHIDevice& device, const RHIMemoryManagerDescriptorMaxCapacity& max_descriptor_capacity);
+    virtual bool Init(IRHIDevice& device, const RHIMemoryManagerDescriptorMaxCapacity& max_descriptor_capacity) override;
     virtual bool CreateDescriptor(IRHIDevice& device, const IRHIBuffer& buffer, const RHIBufferDescriptorDesc& desc, std::shared_ptr<IRHIBufferDescriptorAllocation>& out_descriptor_allocation) override;
     virtual bool CreateDescriptor(IRHIDevice& device, const IRHITexture& texture, const RHITextureDescriptorDesc& desc, std::shared_ptr<IRHITextureDescriptorAllocation>& out_descriptor_allocation) override;
-    virtual bool CreateDescriptor(IRHIDevice& device, const IRHIRenderTarget& texture, const RHITextureDescriptorDesc& desc, std::shared_ptr<IRHITextureDescriptorAllocation>& out_descriptor_allocation) override;
 
     virtual bool BindDescriptors(IRHICommandList& command_list) override;
     virtual bool BindGUIDescriptors(IRHICommandList& command_list) override;

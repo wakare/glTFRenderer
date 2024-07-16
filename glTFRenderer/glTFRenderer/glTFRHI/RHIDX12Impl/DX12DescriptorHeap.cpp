@@ -164,51 +164,6 @@ bool DX12DescriptorHeap::CreateResourceDescriptorInHeap(IRHIDevice& device, cons
     return created;
 }
 
-bool DX12DescriptorHeap::CreateResourceDescriptorInHeap(IRHIDevice& device,
-                                                                  const IRHIRenderTarget& render_target, const RHIDescriptorDesc& desc, std::shared_ptr<IRHITextureDescriptorAllocation>&
-                                                                  out_allocation)
-{
-    auto* resource = dynamic_cast<const DX12Texture&>(render_target.GetTexture()).GetRawResource();
-    auto find_resource = m_created_descriptors_info.find(resource);
-    auto& texture_desc = dynamic_cast<const RHITextureDescriptorDesc&>(desc);
-    if (find_resource != m_created_descriptors_info.end())
-    {
-        for (const auto& created_info : find_resource->second)
-        {
-            if (created_info.first == desc)
-            {
-                out_allocation = std::make_shared<DX12TextureDescriptorAllocation>(created_info.second, 0, texture_desc);
-                return true;
-            }
-        }
-    }
-    
-    bool created = false;
-    RHIGPUDescriptorHandle gpu_handle {0};
-    RHICPUDescriptorHandle cpu_handle {0};
-    
-    switch (desc.m_view_type)
-    {
-    case RHIViewType::RVT_CBV:
-        break;
-    case RHIViewType::RVT_SRV:    
-        created = CreateSRVInHeap(device, m_used_descriptor_count, resource, desc, gpu_handle);
-        break;
-    case RHIViewType::RVT_UAV:
-        created = CreateUAVInHeap(device, m_used_descriptor_count, resource, desc, gpu_handle);
-        break;
-    case RHIViewType::RVT_RTV:
-        created = CreateRTVInHeap(device, m_used_descriptor_count, resource, desc, cpu_handle);
-        break;
-    case RHIViewType::RVT_DSV:
-        created = CreateDSVInHeap(device, m_used_descriptor_count, resource, desc, cpu_handle);
-        break;
-    }
-
-    out_allocation = std::make_shared<DX12TextureDescriptorAllocation>(gpu_handle, cpu_handle, texture_desc);
-    return created;
-}
-
 D3D12_CPU_DESCRIPTOR_HANDLE DX12DescriptorHeap::GetCPUHandleForHeapStart() const
 {
     return m_descriptorHeap->GetCPUDescriptorHandleForHeapStart();

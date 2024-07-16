@@ -58,7 +58,7 @@ bool DX12DescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPip
     return true;
 }
 
-bool DX12DescriptorUpdater::FinalizeUpdateDescriptors(IRHICommandList& command_list, IRHIRootSignature& root_signature)
+bool DX12DescriptorUpdater::FinalizeUpdateDescriptors(IRHIDevice& device, IRHICommandList& command_list, IRHIRootSignature& root_signature)
 {
     return true;
 }

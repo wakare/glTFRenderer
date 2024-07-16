@@ -24,6 +24,8 @@ bool glTFGraphicsPassTestTriangle::PreRenderPass(glTFRenderResourceManager& reso
     RETURN_IF_FALSE(glTFGraphicsPassBase::PreRenderPass(resource_manager))
 
     auto& command_list = resource_manager.GetCommandListForRecord();
+
+    resource_manager.GetCurrentFrameSwapChainRT().Transition(command_list, RHIResourceStateType::STATE_RENDER_TARGET);
     
     RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().BindRenderTarget(command_list,
         {&resource_manager.GetCurrentFrameSwapChainRT()}, nullptr))
