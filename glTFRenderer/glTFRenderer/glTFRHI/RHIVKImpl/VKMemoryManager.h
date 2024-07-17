@@ -31,5 +31,4 @@ public:
 
 protected:
     VmaAllocator GetVmaAllocator() const;
-    std::shared_ptr<IRHIMemoryAllocator> m_memory_allocator;
 };

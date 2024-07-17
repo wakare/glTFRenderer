@@ -108,9 +108,17 @@ void glTFAppMain::Run()
             }
 
             m_renderer->TickRenderingBegin(time_delta_ms);
-            m_renderer->TickSceneUpdating(*m_scene_graph, time_delta_ms);
-            m_renderer->TickSceneRendering(*m_input_manager, time_delta_ms);
-            m_renderer->TickGUIWidgetUpdate(time_delta_ms);
+            if (!m_app_config.m_test_triangle_pass)
+            {
+                m_renderer->TickSceneUpdating(*m_scene_graph, *m_input_manager, time_delta_ms);
+                m_renderer->TickSceneRendering(*m_input_manager, time_delta_ms);
+                m_renderer->TickGUIWidgetUpdate(time_delta_ms);    
+            }
+            else
+            {
+                m_renderer->TickSceneRendering(*m_input_manager, time_delta_ms);
+            }
+            
             m_renderer->TickRenderingEnd(time_delta_ms);
             m_input_manager->TickFrame(time_delta_ms);
         });
@@ -212,13 +220,16 @@ bool glTFAppMain::InitRenderer()
     glTFAppRendererConfig renderer_config;
     renderer_config.raster = m_app_config.m_use_rasterizer;
     renderer_config.ReSTIR = m_app_config.m_ReSTIR;
-    renderer_config.test_triangle = m_app_config.m_test_triangle_pass;
     renderer_config.vulkan = m_app_config.m_vulkan;
+    renderer_config.test_triangle = m_app_config.m_test_triangle_pass;
     
     m_renderer = std::make_unique<glTFAppRenderer>(renderer_config, glTFWindow::Get());
-    m_renderer->InitScene(*m_scene_graph);
-    m_renderer->GetGUIRenderer().AddWidgetSetupCallback([this](){UpdateGUIWidgets();});
-
+    if (!renderer_config.test_triangle)
+    {
+        m_renderer->InitScene(*m_scene_graph);
+        m_renderer->GetGUIRenderer().AddWidgetSetupCallback([this](){UpdateGUIWidgets();});
+    }
+    
     m_scene_graph->TraverseNodes([](const glTFSceneNode& node)
     {
         node.MarkDirty();

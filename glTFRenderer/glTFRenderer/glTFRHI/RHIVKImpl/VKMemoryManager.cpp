@@ -60,22 +60,7 @@ bool VKMemoryManager::UploadBufferData(IRHIBufferAllocation& buffer_allocation, 
 bool VKMemoryManager::AllocateTextureMemory(IRHIDevice& device, glTFRenderResourceManager& resource_manager,
                                             const RHITextureDesc& texture_desc, std::shared_ptr<IRHITextureAllocation>& out_buffer_allocation)
 {
-    VkImageCreateInfo image_create_info {.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
-
-    if (texture_desc.GetUsage() & RUF_ALLOW_UAV)
-    {
-        image_create_info.flags |= VK_IMAGE_USAGE_STORAGE_BIT;
-    }
-
-    if (texture_desc.GetUsage() & RUF_ALLOW_DEPTH_STENCIL)
-    {
-        image_create_info.flags |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-    }
-
-    if (texture_desc.GetUsage() & RUF_ALLOW_RENDER_TARGET)
-    {
-        image_create_info.flags |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-    }
+    VkImageCreateInfo image_create_info {.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, .pNext = nullptr};
 
     image_create_info.format = VKConverterUtils::ConvertToFormat(texture_desc.GetDataFormat());
     image_create_info.extent = {texture_desc.GetTextureWidth(), texture_desc.GetTextureHeight(), 1};
@@ -83,6 +68,23 @@ bool VKMemoryManager::AllocateTextureMemory(IRHIDevice& device, glTFRenderResour
     image_create_info.arrayLayers = 1;
     image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
     image_create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+    image_create_info.imageType = VK_IMAGE_TYPE_2D;
+    
+    image_create_info.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
+    if (texture_desc.GetUsage() & RUF_ALLOW_UAV)
+    {
+        image_create_info.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
+    }
+
+    if (texture_desc.GetUsage() & RUF_ALLOW_DEPTH_STENCIL)
+    {
+        image_create_info.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    }
+
+    if (texture_desc.GetUsage() & RUF_ALLOW_RENDER_TARGET)
+    {
+        image_create_info.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    }
 
     VmaAllocationCreateInfo draw_image_allocation_create_info {};
     draw_image_allocation_create_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
@@ -118,6 +120,6 @@ bool VKMemoryManager::CleanAllocatedResource()
 
 VmaAllocator VKMemoryManager::GetVmaAllocator() const
 {
-    return dynamic_cast<VKMemoryAllocator&>(*m_memory_allocator).GetAllocator();
+    return dynamic_cast<VKMemoryAllocator&>(*m_allocator).GetAllocator();
 }
 

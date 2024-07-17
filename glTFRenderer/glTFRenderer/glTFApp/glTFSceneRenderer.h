@@ -12,7 +12,7 @@ class glTFSceneRendererBase
 {
 public:
     glTFSceneRendererBase();
-    virtual ~glTFSceneRendererBase() {m_pass_manager->ExitAllPass(); }
+    virtual ~glTFSceneRendererBase();
 
     virtual bool SetupSceneRenderer() = 0;
 

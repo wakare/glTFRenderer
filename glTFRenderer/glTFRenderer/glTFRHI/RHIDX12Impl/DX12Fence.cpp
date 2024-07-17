@@ -25,6 +25,8 @@ bool DX12Fence::InitFence(IRHIDevice& device)
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
     THROW_IF_FAILED( dxDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence)))
 
+    SetCanWait(true);
+    
     return true;
 }
 

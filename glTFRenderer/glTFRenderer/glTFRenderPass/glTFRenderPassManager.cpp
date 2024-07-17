@@ -136,18 +136,11 @@ void glTFRenderPassManager::UpdateAllPassGUIWidgets()
 
 void glTFRenderPassManager::RenderBegin(glTFRenderResourceManager& resource_manager, size_t deltaTimeMs)
 {
-    resource_manager.WaitAllFrameFinish();
+    resource_manager.WaitLastFrameFinish();
     
     // Reset command allocator when previous frame executed finish...
     resource_manager.ResetCommandAllocator();
 
-    // TODO: fill render pass info
-    /*
-     *auto& command_list = resource_manager.GetCommandListForRecord();
-    RHIBeginRenderPassInfo begin_render_pass_info{};
-    const bool begin = RHIUtils::Instance().BeginRenderPass(command_list, begin_render_pass_info);
-    */
-    
     // Wait current frame available
     resource_manager.GetSwapChain().AcquireNewFrame(resource_manager.GetDevice());
 }
@@ -174,9 +167,6 @@ void glTFRenderPassManager::RenderEnd(glTFRenderResourceManager& resource_manage
 {
     auto& command_list = resource_manager.GetCommandListForRecord();
     resource_manager.GetCurrentFrameSwapChainRTV().m_source->Transition(command_list, RHIResourceStateType::STATE_PRESENT);
-    
-    const bool end_render_pass = RHIUtils::Instance().EndRenderPass(command_list);
-    GLTF_CHECK(end_render_pass);
     
     // TODO: no waiting causing race with base color and normal?
     resource_manager.CloseCommandListAndExecute(true);

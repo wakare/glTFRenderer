@@ -34,7 +34,13 @@ bool VKCommandList::InitCommandList(IRHIDevice& device, IRHICommandAllocator& co
 
 bool VKCommandList::WaitCommandList()
 {
-    return m_fence->HostWaitUtilSignaled() && m_fence->ResetFence();
+    if (m_fence->CanWait())
+    {
+        m_fence->HostWaitUtilSignaled();
+        m_fence->ResetFence();    
+    }
+    
+    return true;
 }
 
 bool VKCommandList::BeginRecordCommandList()

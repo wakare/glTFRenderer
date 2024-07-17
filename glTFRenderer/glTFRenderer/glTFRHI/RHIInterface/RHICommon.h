@@ -131,10 +131,10 @@ enum class RHIDescriptorHeapType
 
 struct RHIRect
 {
-    long    left;
-    long    top;
-    long    right;
-    long    bottom;
+    unsigned    left;
+    unsigned    top;
+    unsigned    right;
+    unsigned    bottom;
 };
 
 typedef RHIRect RHIScissorRectDesc;

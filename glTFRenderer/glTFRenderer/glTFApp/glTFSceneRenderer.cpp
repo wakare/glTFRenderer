@@ -21,6 +21,14 @@ glTFSceneRendererBase::glTFSceneRendererBase()
     m_pass_options.SetEnableCulling(true);
 }
 
+glTFSceneRendererBase::~glTFSceneRendererBase()
+{
+    if (m_pass_manager)
+    {
+        m_pass_manager->ExitAllPass();
+    }
+}
+
 void glTFSceneRendererBase::TickFrameRenderingBegin(glTFRenderResourceManager& resource_manager, size_t delta_time_ms)
 {
     m_pass_manager->RenderBegin(resource_manager, delta_time_ms);
@@ -36,7 +44,7 @@ void glTFSceneRendererBase::TickSceneRendering(const glTFSceneView& scene_view, 
     }
 
     m_pass_manager->UpdatePipelineOptions(m_pass_options);
-    m_pass_manager->UpdateScene(resource_manager, scene_view, delta_time_ms);
+    //m_pass_manager->UpdateScene(resource_manager, scene_view, delta_time_ms);
     m_pass_manager->RenderAllPass(resource_manager, delta_time_ms);
 }
 

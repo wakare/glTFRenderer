@@ -135,7 +135,7 @@ bool glTFRenderResourceManager::InitScene(const glTFSceneGraph& scene_graph)
     GLTF_CHECK(has_resolved);
     GetMeshManager().ResolveVertexInputLayout(resolved_vertex_layout);
     
-    GLTF_CHECK(GetMeshManager().BuildMeshRenderResource(*this));
+    //GLTF_CHECK(GetMeshManager().BuildMeshRenderResource(*this));
     //m_radiosity_renderer->InitScene(scene_graph);
     
     return true;
@@ -223,6 +223,12 @@ void glTFRenderResourceManager::CloseCommandListAndExecute(bool wait)
     }
     
     m_command_list_record_state[current_frame_index] = false;
+}
+
+void glTFRenderResourceManager::WaitLastFrameFinish() const
+{
+    const auto current_frame_index = GetCurrentBackBufferIndex() % backBufferCount;
+    RHIUtils::Instance().WaitCommandListFinish(*m_command_lists[current_frame_index]);
 }
 
 void glTFRenderResourceManager::WaitAllFrameFinish() const

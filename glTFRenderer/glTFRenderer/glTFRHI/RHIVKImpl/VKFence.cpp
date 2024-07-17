@@ -13,11 +13,15 @@ bool VKFence::InitFence(IRHIDevice& device)
     const VkResult result = vkCreateFence(m_device, &create_fence_info, nullptr, &m_fence);
     GLTF_CHECK(result == VK_SUCCESS);
 
+    SetCanWait(true);
+    
     return true;
 }
 
 bool VKFence::HostWaitUtilSignaled()
 {
+    GLTF_CHECK(CanWait());
+    
     const VkResult result = vkWaitForFences(m_device, 1, &m_fence, VK_TRUE, UINT64_MAX);
     GLTF_CHECK(result == VK_SUCCESS);
     return true;
@@ -25,6 +29,8 @@ bool VKFence::HostWaitUtilSignaled()
 
 bool VKFence::ResetFence()
 {
+    SetCanWait(false);
+    
     const VkResult result = vkResetFences(m_device, 1, &m_fence);
     GLTF_CHECK(result == VK_SUCCESS);
     return true;

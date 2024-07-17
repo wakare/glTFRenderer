@@ -67,7 +67,10 @@ bool VKDescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPipel
 
 bool VKDescriptorUpdater::FinalizeUpdateDescriptors(IRHIDevice& device, IRHICommandList& command_list, IRHIRootSignature& root_signature)
 {
-    GLTF_CHECK(!m_cache_descriptor_writers.empty());
+    if (m_cache_descriptor_writers.empty())
+    {
+        return true;
+    }
     
     auto vk_descriptor_set = dynamic_cast<VKRootSignature&>(root_signature).GetDescriptorSet();
     auto vk_device = dynamic_cast<VKDevice&>(device).GetDevice();

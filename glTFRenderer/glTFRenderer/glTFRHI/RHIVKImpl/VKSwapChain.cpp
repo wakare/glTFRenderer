@@ -145,6 +145,8 @@ bool VKSwapChain::Present(IRHICommandQueue& command_queue, IRHICommandList& comm
 
     const VkResult result = vkQueuePresentKHR(vk_command_queue.GetGraphicsQueue(), &present_info);
     GLTF_CHECK(result == VK_SUCCESS);
+
+    m_current_frame_index = (m_current_frame_index + 1) % m_frame_buffer_count;
     
     return true;
 }

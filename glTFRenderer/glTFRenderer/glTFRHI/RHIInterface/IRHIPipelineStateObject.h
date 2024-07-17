@@ -20,16 +20,14 @@ DECLARE_INPUT_LAYOUT_SEMANTIC_NAME(TEXCOORD)
 
 struct RHIPipelineStateInfo
 {
-    RHIPipelineStateInfo(IRHIRootSignature& root_signature, IRHIRenderPass& render_pass, IRHISwapChain& swap_chain)
+    RHIPipelineStateInfo(IRHIRootSignature& root_signature, IRHISwapChain& swap_chain)
         : m_root_signature(root_signature)
-        , m_render_pass(render_pass)
         , m_swap_chain(swap_chain)
     {
         
     }
     
     IRHIRootSignature& m_root_signature;
-    IRHIRenderPass& m_render_pass;
     IRHISwapChain& m_swap_chain;
 };
 

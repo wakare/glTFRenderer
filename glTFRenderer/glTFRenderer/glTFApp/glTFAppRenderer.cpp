@@ -46,16 +46,17 @@ void glTFAppRenderer::TickRenderingBegin(size_t delta_time_ms)
     m_scene_renderer->TickFrameRenderingBegin(*m_resource_manager, delta_time_ms);
 }
 
-void glTFAppRenderer::TickSceneUpdating(const glTFSceneGraph& scene_graph, size_t delta_time_ms)
+void glTFAppRenderer::TickSceneUpdating(const glTFSceneGraph& scene_graph,const glTFInputManager& input_manager, size_t delta_time_ms)
 {
     m_scene_view->Tick(scene_graph);
     m_resource_manager->GetRadiosityRenderer().UpdateIndirectLighting(scene_graph, m_scene_view->GetLightingDirty());
+
+    m_scene_view->ApplyInput(input_manager, delta_time_ms);
+    m_scene_renderer->ApplyInput(input_manager, delta_time_ms);
 }
 
 void glTFAppRenderer::TickSceneRendering(const glTFInputManager& input_manager, size_t delta_time_ms)
 {
-    m_scene_view->ApplyInput(input_manager, delta_time_ms);
-    m_scene_renderer->ApplyInput(input_manager, delta_time_ms);
     m_scene_renderer->TickSceneRendering(*m_scene_view, *m_resource_manager, delta_time_ms);
 }
 

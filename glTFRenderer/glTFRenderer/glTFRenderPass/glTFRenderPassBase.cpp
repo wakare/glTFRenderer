@@ -8,7 +8,6 @@
 bool glTFRenderPassBase::InitPass(glTFRenderResourceManager& resource_manager)
 {
     m_descriptor_updater = RHIResourceFactory::CreateRHIResource<IRHIDescriptorUpdater>();
-    m_render_pass = RHIResourceFactory::CreateRHIResource<IRHIRenderPass>();
 
     switch (GetPipelineType())
     {
@@ -33,7 +32,6 @@ bool glTFRenderPassBase::InitPass(glTFRenderResourceManager& resource_manager)
     RETURN_IF_FALSE(m_pipeline_state_object->InitPipelineStateObject(resource_manager.GetDevice(),
         {
             m_root_signature_helper.GetRootSignature(),
-            *m_render_pass,
             resource_manager.GetSwapChain()
         }))
 
@@ -53,7 +51,7 @@ bool glTFRenderPassBase::PreRenderPass(glTFRenderResourceManager& resource_manag
     
     RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().BindDescriptors(command_list))
     
-    RETURN_IF_FALSE(RHIUtils::Instance().SetRootSignature(command_list, m_root_signature_helper.GetRootSignature(), *m_pipeline_state_object,   GetPipelineType()))
+    RETURN_IF_FALSE(RHIUtils::Instance().SetRootSignature(command_list, m_root_signature_helper.GetRootSignature(), *m_pipeline_state_object, GetPipelineType()))
 
     RETURN_IF_FALSE(m_descriptor_updater->FinalizeUpdateDescriptors(resource_manager.GetDevice(), command_list, m_root_signature_helper.GetRootSignature()))
     
@@ -61,6 +59,9 @@ bool glTFRenderPassBase::PreRenderPass(glTFRenderResourceManager& resource_manag
     {
         RETURN_IF_FALSE(render_interface->ApplyInterface(resource_manager, GetPipelineType(), *m_descriptor_updater))    
     }
+
+    m_begin_rendering_info.rendering_area_width = resource_manager.GetSwapChain().GetWidth();
+    m_begin_rendering_info.rendering_area_height = resource_manager.GetSwapChain().GetHeight();
     
     return true;
 }

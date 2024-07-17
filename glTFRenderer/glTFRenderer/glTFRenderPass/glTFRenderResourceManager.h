@@ -42,6 +42,7 @@ public:
     IRHICommandList& GetCommandListForRecord();
     void CloseCommandListAndExecute(bool wait);
 
+    void WaitLastFrameFinish() const;
     void WaitAllFrameFinish() const;
     void ResetCommandAllocator();
     

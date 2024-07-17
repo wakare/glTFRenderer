@@ -101,8 +101,25 @@ bool VulkanUtils::ResetCommandList(IRHICommandList& command_list, IRHICommandAll
 {
     const auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetCommandBuffer();
     vkResetCommandBuffer(vk_command_buffer, 0);
+    
+    command_list.BeginRecordCommandList();
 
-    return command_list.BeginRecordCommandList();
+    VkPipeline pso {VK_NULL_HANDLE};
+    switch(init_pso->GetPSOType())
+    {
+    case RHIPipelineType::Graphics:
+        pso = dynamic_cast<const VKGraphicsPipelineStateObject&>(*init_pso).GetPipeline(); 
+        vkCmdBindPipeline(vk_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pso);
+        break;
+    case RHIPipelineType::Compute:
+        break;
+    case RHIPipelineType::RayTracing:
+        break;
+    case RHIPipelineType::Unknown:
+        break;
+    }
+
+    return true;
 }
 
 bool VulkanUtils::CloseCommandList(IRHICommandList& commandList)
@@ -113,7 +130,8 @@ bool VulkanUtils::CloseCommandList(IRHICommandList& commandList)
 bool VulkanUtils::ExecuteCommandList(IRHICommandList& command_list, IRHICommandQueue& command_queue, const RHIExecuteCommandListContext& context)
 {
     const auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetCommandBuffer();
-    const auto vk_fence = dynamic_cast<VKFence&>(dynamic_cast<VKCommandList&>(command_list).GetFence()).GetFence();
+    auto& fence = dynamic_cast<VKFence&>(dynamic_cast<VKCommandList&>(command_list).GetFence());
+    const auto vk_fence = fence.GetFence();
     const auto vk_command_queue= dynamic_cast<VKCommandQueue&>(command_queue).GetGraphicsQueue(); 
     
     VkSubmitInfo submit_info{};
@@ -147,6 +165,8 @@ bool VulkanUtils::ExecuteCommandList(IRHICommandList& command_list, IRHICommandQ
     
     const VkResult result = vkQueueSubmit(vk_command_queue, 1, &submit_info, vk_fence);
     GLTF_CHECK(result == VK_SUCCESS);
+
+    fence.SetCanWait(true);
     
     return true;
 }
@@ -197,8 +217,8 @@ bool VulkanUtils::SetScissorRect(IRHICommandList& command_list, const RHIScissor
     auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetCommandBuffer();
 
     VkRect2D scissor{};
-    scissor.offset = {scissor_rect.left, scissor_rect.bottom};
-    scissor.extent = {scissor_rect.right - scissor_rect.left, scissor_rect.top - scissor_rect.bottom};
+    scissor.offset = {static_cast<int>(scissor_rect.left), static_cast<int>(scissor_rect.top)};
+    scissor.extent = {scissor_rect.right - scissor_rect.left, scissor_rect.bottom - scissor_rect.top };
     vkCmdSetScissor(vk_command_buffer, 0, 1, &scissor);
     
     return true;
@@ -258,7 +278,8 @@ bool VulkanUtils::AddTextureBarrierToCommandList(IRHICommandList& commandList, c
     image_barrier.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
     image_barrier.dstAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT;
 
-    image_barrier.oldLayout = VKConverterUtils::ConvertToImageLayout(beforeState);
+    //image_barrier.oldLayout = VKConverterUtils::ConvertToImageLayout(beforeState);
+    image_barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     image_barrier.newLayout = VKConverterUtils::ConvertToImageLayout(afterState);
 
     VkImageAspectFlags aspect_flags = (image_barrier.newLayout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL) ?
@@ -287,6 +308,8 @@ bool VulkanUtils::AddTextureBarrierToCommandList(IRHICommandList& commandList, c
 bool VulkanUtils::DrawInstanced(IRHICommandList& commandList, unsigned vertexCountPerInstance, unsigned instanceCount,
     unsigned startVertexLocation, unsigned startInstanceLocation)
 {
+    auto vk_command_list = dynamic_cast<VKCommandList&>(commandList).GetCommandBuffer();
+    vkCmdDraw(vk_command_list, vertexCountPerInstance, instanceCount, startVertexLocation, startInstanceLocation);
     return true;
 }
 

@@ -153,7 +153,7 @@ VkFormat VKConverterUtils::ConvertToFormat(RHIDataFormat format)
         break;
     case RHIDataFormat::R32_TYPELESS:
         // TODO: No support format in vk
-        result = VK_FORMAT_R32_SFLOAT;
+        result = VK_FORMAT_D32_SFLOAT;
         break;
     case RHIDataFormat::R16_FLOAT:
         result = VK_FORMAT_R16_SFLOAT;

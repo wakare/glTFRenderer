@@ -137,12 +137,12 @@ bool VKGraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device, 
     create_color_blend_state_info.blendConstants[2] = 0.0f;
     create_color_blend_state_info.blendConstants[3] = 0.0f;
 
-    VkDescriptorSet descriptor_set = dynamic_cast<const VKRootSignature&>(pipeline_state_info.m_root_signature).GetDescriptorSet();
-    
+    VkDescriptorSetLayout descriptor_set = dynamic_cast<const VKRootSignature&>(pipeline_state_info.m_root_signature).GetDescriptorSetLayout();
+
     VkPipelineLayoutCreateInfo create_pipeline_layout_info {};
     create_pipeline_layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    create_pipeline_layout_info.setLayoutCount = 0;
-    create_pipeline_layout_info.pSetLayouts = nullptr;
+    create_pipeline_layout_info.setLayoutCount = 1;
+    create_pipeline_layout_info.pSetLayouts = &descriptor_set;
     create_pipeline_layout_info.pushConstantRangeCount = 0;
     create_pipeline_layout_info.pPushConstantRanges = nullptr;
 
@@ -163,7 +163,6 @@ bool VKGraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device, 
     create_graphics_pipeline_info.pColorBlendState = &create_color_blend_state_info;
     create_graphics_pipeline_info.pDynamicState = &create_dynamic_state_info;
     create_graphics_pipeline_info.layout = m_pipeline_layout;
-    create_graphics_pipeline_info.renderPass = dynamic_cast<VKRenderPass&>(pipeline_state_info.m_render_pass).GetRenderPass();
     create_graphics_pipeline_info.subpass = 0;
     create_graphics_pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
     create_graphics_pipeline_info.basePipelineIndex = -1;

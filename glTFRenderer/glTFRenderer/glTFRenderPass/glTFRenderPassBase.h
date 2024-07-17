@@ -74,7 +74,6 @@ protected:
     RHIBeginRenderingInfo m_begin_rendering_info;
     
     std::shared_ptr<IRHIDescriptorUpdater> m_descriptor_updater;
-    std::shared_ptr<IRHIRenderPass> m_render_pass;
     std::shared_ptr<IRHIPipelineStateObject> m_pipeline_state_object;
     std::vector<std::shared_ptr<glTFRenderInterfaceBase>> m_render_interfaces;
 };

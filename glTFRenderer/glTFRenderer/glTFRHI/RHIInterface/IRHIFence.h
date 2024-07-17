@@ -10,4 +10,10 @@ public:
     virtual bool InitFence(IRHIDevice& device) = 0;
     virtual bool HostWaitUtilSignaled() = 0;
     virtual bool ResetFence() = 0;
+
+    void SetCanWait(bool enable);
+    bool CanWait() const;
+
+protected:
+    bool m_can_wait{true};
 };

@@ -40,7 +40,9 @@ bool DX12CommandList::InitCommandList(IRHIDevice& device, IRHICommandAllocator& 
 
 bool DX12CommandList::WaitCommandList()
 {
-    return m_fence->HostWaitUtilSignaled() && m_fence->ResetFence();
+    m_fence->HostWaitUtilSignaled();
+    m_fence->ResetFence();
+    return true;
 }
 
 bool DX12CommandList::BeginRecordCommandList()

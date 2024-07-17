@@ -264,13 +264,10 @@ bool VKDevice::InitDevice(IRHIFactory& factory)
     }
 
     // Non features to require now
-    VkPhysicalDeviceFeatures device_features {};
-    
     VkDeviceCreateInfo create_device_info{};
     create_device_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     create_device_info.pQueueCreateInfos = queue_create_infos.data();
     create_device_info.queueCreateInfoCount = static_cast<unsigned>(queue_create_infos.size());
-    create_device_info.pEnabledFeatures = &device_features;
     create_device_info.ppEnabledLayerNames = VulkanEngineRequirements::validation_layers.data();
     create_device_info.enabledLayerCount = static_cast<unsigned>(VulkanEngineRequirements::validation_layers.size());
     create_device_info.ppEnabledExtensionNames = VulkanEngineRequirements::device_extensions.data();
