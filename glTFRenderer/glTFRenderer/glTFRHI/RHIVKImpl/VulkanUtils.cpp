@@ -176,13 +176,31 @@ bool VulkanUtils::SetRootSignature(IRHICommandList& command_list, IRHIRootSignat
     return true;
 }
 
-bool VulkanUtils::SetViewport(IRHICommandList& commandList, const RHIViewportDesc& viewport_desc)
+bool VulkanUtils::SetViewport(IRHICommandList& command_list, const RHIViewportDesc& viewport_desc)
 {
+    auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetCommandBuffer();
+    
+    VkViewport viewport{};
+    viewport.x = 0.0f;
+    viewport.y = 0.0f;
+    viewport.width = static_cast<float>(viewport_desc.width);
+    viewport.height = static_cast<float>(viewport_desc.height);
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+    vkCmdSetViewport(vk_command_buffer, 0, 1, &viewport);
+    
     return true;
 }
 
-bool VulkanUtils::SetScissorRect(IRHICommandList& commandList, const RHIScissorRectDesc& scissor_rect)
+bool VulkanUtils::SetScissorRect(IRHICommandList& command_list, const RHIScissorRectDesc& scissor_rect)
 {
+    auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetCommandBuffer();
+
+    VkRect2D scissor{};
+    scissor.offset = {scissor_rect.left, scissor_rect.bottom};
+    scissor.extent = {scissor_rect.right - scissor_rect.left, scissor_rect.top - scissor_rect.bottom};
+    vkCmdSetScissor(vk_command_buffer, 0, 1, &scissor);
+    
     return true;
 }
 

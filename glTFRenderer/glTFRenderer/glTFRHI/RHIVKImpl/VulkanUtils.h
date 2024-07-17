@@ -32,8 +32,8 @@ public:
     virtual bool WaitCommandListFinish(IRHICommandList& command_list) override;
     
     virtual bool SetRootSignature(IRHICommandList& command_list, IRHIRootSignature& root_signature,IRHIPipelineStateObject& pipeline_state_object, RHIPipelineType pipeline_type) override;
-    virtual bool SetViewport(IRHICommandList& commandList, const RHIViewportDesc& viewport_desc) override;
-    virtual bool SetScissorRect(IRHICommandList& commandList, const RHIScissorRectDesc& scissor_rect) override;
+    virtual bool SetViewport(IRHICommandList& command_list, const RHIViewportDesc& viewport_desc) override;
+    virtual bool SetScissorRect(IRHICommandList& command_list, const RHIScissorRectDesc& scissor_rect) override;
 
     virtual bool SetVertexBufferView(IRHICommandList& commandList, unsigned slot, IRHIVertexBufferView& view) override;
     virtual bool SetIndexBufferView(IRHICommandList& commandList, IRHIIndexBufferView& view) override;

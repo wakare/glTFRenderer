@@ -141,12 +141,12 @@ typedef RHIRect RHIScissorRectDesc;
 
 struct RHIViewportDesc
 {
-    float TopLeftX;
-    float TopLeftY;
-    float Width;
-    float Height;
-    float MinDepth;
-    float MaxDepth;
+    float top_left_x;
+    float top_left_y;
+    float width;
+    float height;
+    float min_depth;
+    float max_depth;
 };
 
 struct RHIConstantBufferViewDesc

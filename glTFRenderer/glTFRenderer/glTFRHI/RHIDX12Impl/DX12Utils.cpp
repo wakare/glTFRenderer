@@ -230,7 +230,7 @@ bool DX12Utils::SetViewport(IRHICommandList& command_list, const RHIViewportDesc
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
 
-    D3D12_VIEWPORT viewport = {viewport_desc.TopLeftX, viewport_desc.TopLeftY, viewport_desc.Width, viewport_desc.Height, viewport_desc.MinDepth, viewport_desc.MaxDepth};
+    D3D12_VIEWPORT viewport = {viewport_desc.top_left_x, viewport_desc.top_left_y, viewport_desc.width, viewport_desc.height, viewport_desc.min_depth, viewport_desc.max_depth};
     dxCommandList->RSSetViewports(1, &viewport);
     
     return true;
