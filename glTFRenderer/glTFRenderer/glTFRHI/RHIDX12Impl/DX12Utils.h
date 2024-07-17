@@ -25,6 +25,8 @@ public:
 
     virtual bool BeginRenderPass(IRHICommandList& command_list, const RHIBeginRenderPassInfo& begin_render_pass_info) override;
     virtual bool EndRenderPass(IRHICommandList& command_list) override;
+    virtual bool BeginRendering(IRHICommandList& command_list, const RHIBeginRenderingInfo& begin_rendering_info) override;
+    virtual bool EndRendering(IRHICommandList& command_list) override;
     
     virtual bool ResetCommandList(IRHICommandList& command_list, IRHICommandAllocator& commandAllocator, IRHIPipelineStateObject* initPSO) override;
     virtual bool CloseCommandList(IRHICommandList& command_list) override;

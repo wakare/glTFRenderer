@@ -61,17 +61,21 @@ bool glTFRenderPassBase::PreRenderPass(glTFRenderResourceManager& resource_manag
     {
         RETURN_IF_FALSE(render_interface->ApplyInterface(resource_manager, GetPipelineType(), *m_descriptor_updater))    
     }
-
+    
     return true;
 }
 
 bool glTFRenderPassBase::RenderPass(glTFRenderResourceManager& resource_manager)
 {
+    RHIUtils::Instance().BeginRendering(resource_manager.GetCommandListForRecord(), m_begin_rendering_info);
+
     return true;
 }
 
 bool glTFRenderPassBase::PostRenderPass(glTFRenderResourceManager& resource_manager)
 {
+    RHIUtils::Instance().EndRendering(resource_manager.GetCommandListForRecord());
+    
     return true;
 }
 

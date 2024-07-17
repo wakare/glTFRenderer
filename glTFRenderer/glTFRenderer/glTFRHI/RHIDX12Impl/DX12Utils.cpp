@@ -70,6 +70,83 @@ bool DX12Utils::EndRenderPass(IRHICommandList& command_list)
     return true;
 }
 
+bool DX12Utils::BeginRendering(IRHICommandList& command_list, const RHIBeginRenderingInfo& begin_rendering_info)
+{
+    auto& render_targets = begin_rendering_info.m_render_targets;
+    
+    if (render_targets.empty())
+    {
+        return true;
+    }
+    
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
+    
+    std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> render_target_views;
+
+    bool dsv_init = false;
+    D3D12_CPU_DESCRIPTOR_HANDLE dsHandle{};
+    
+    for (size_t i = 0; i < render_targets.size(); ++i)
+    {
+        auto& render_target = *render_targets[i];
+        auto handle = dynamic_cast<DX12TextureDescriptorAllocation&>(render_target).m_cpu_handle;
+        if (render_target.GetDesc().m_view_type == RHIViewType::RVT_RTV)
+        {
+            render_target.m_source->Transition(command_list, RHIResourceStateType::STATE_RENDER_TARGET);
+            render_target_views.push_back({handle});
+        }
+        else if (render_target.GetDesc().m_view_type == RHIViewType::RVT_DSV)
+        {
+            GLTF_CHECK(!dsv_init);
+            dsv_init = true;
+            render_target.m_source->Transition(command_list, begin_rendering_info.enable_depth_write ? RHIResourceStateType::STATE_DEPTH_WRITE : RHIResourceStateType::STATE_DEPTH_READ);
+            dsHandle = {handle};    
+        }
+    }
+
+    // TODO: Check RTsSingleHandleToDescriptorRange means?
+    dxCommandList->OMSetRenderTargets(render_target_views.size(), render_target_views.data(), false, dsv_init ? &dsHandle : nullptr);
+
+    for (size_t i = 0; i < render_targets.size(); ++i)
+    {
+        auto& render_target = dynamic_cast<const IRHITextureDescriptorAllocation&>(*render_targets[i]);
+        auto clear_value = render_target.m_source->GetTextureDesc().GetClearValue();
+        
+        auto dx_render_target_clear_value = DX12ConverterUtils::ConvertToD3DClearValue(clear_value);
+        auto dx_depth_stencil_clear_value = DX12ConverterUtils::ConvertToD3DClearValue(clear_value);
+        
+        auto handle = dynamic_cast<const DX12TextureDescriptorAllocation&>(render_target).m_cpu_handle;
+        switch (render_target.GetDesc().m_view_type)
+        {
+        case RHIViewType::RVT_RTV:
+            {
+                dxCommandList->ClearRenderTargetView({handle}, dx_render_target_clear_value.Color, 0, nullptr);    
+            }
+            break;
+
+        case RHIViewType::RVT_DSV:
+            {
+                if (begin_rendering_info.enable_depth_write)
+                {
+                    dxCommandList->ClearDepthStencilView({handle}, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
+                        dx_render_target_clear_value.DepthStencil.Depth, dx_depth_stencil_clear_value.DepthStencil.Stencil, 0, nullptr);    
+                }
+            }
+            break;
+            
+        default:
+            GLTF_CHECK(false);
+        }
+    }
+    
+    return true;
+}
+
+bool DX12Utils::EndRendering(IRHICommandList& command_list)
+{
+    return true;
+}
+
 bool DX12Utils::ResetCommandList(IRHICommandList& command_list, IRHICommandAllocator& commandAllocator,
                                  IRHIPipelineStateObject* initPSO)
 {

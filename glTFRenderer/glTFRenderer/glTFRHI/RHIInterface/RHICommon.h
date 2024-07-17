@@ -6,6 +6,10 @@
 #include "RendererCommon.h"
 #include "glm.hpp"
 
+class IRHITextureDescriptorAllocation;
+class IRHIFrameBuffer;
+class IRHIRenderPass;
+class IRHISemaphore;
 class glTFRenderResourceManager;
 struct ImageLoadResult;
 typedef uint64_t RHIGPUDescriptorHandle;
@@ -733,3 +737,31 @@ inline unsigned GetRHIDataFormatBitsPerPixel(const RHIDataFormat& RHIDataFormat)
     assert(false);
     return 32;
 }
+
+struct RHIExecuteCommandListWaitInfo
+{
+    const IRHISemaphore* m_wait_semaphore;
+    RHIPipelineStage wait_stage;
+};
+
+struct RHIExecuteCommandListContext
+{
+    std::vector<RHIExecuteCommandListWaitInfo> wait_infos;
+    std::vector<const IRHISemaphore*> sign_semaphores;
+};
+
+struct RHIBeginRenderPassInfo
+{
+    const IRHIRenderPass* render_pass;
+    const IRHIFrameBuffer* frame_buffer;
+    unsigned width;
+    unsigned height;
+};
+
+struct RHIBeginRenderingInfo
+{
+    std::vector<IRHITextureDescriptorAllocation*> m_render_targets;
+    bool enable_depth_write {false};
+    unsigned rendering_area_width {0};
+    unsigned rendering_area_height {0};
+};

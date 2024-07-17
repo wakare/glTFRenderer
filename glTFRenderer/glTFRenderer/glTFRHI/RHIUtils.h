@@ -15,26 +15,6 @@ class IRHIFrameBuffer;
 class IRHIBuffer;
 class IRHICommandList;
 
-struct RHIExecuteCommandListWaitInfo
-{
-    const IRHISemaphore* m_wait_semaphore;
-    RHIPipelineStage wait_stage;
-};
-
-struct RHIExecuteCommandListContext
-{
-    std::vector<RHIExecuteCommandListWaitInfo> wait_infos;
-    std::vector<const IRHISemaphore*> sign_semaphores;
-};
-
-struct RHIBeginRenderPassInfo
-{
-    const IRHIRenderPass* render_pass;
-    const IRHIFrameBuffer* frame_buffer;
-    unsigned width;
-    unsigned height;
-};
-
 // Singleton for provide combined basic rhi operations
 class RHIUtils : public IRHIResource
 {
@@ -50,6 +30,9 @@ public:
 
     virtual bool BeginRenderPass(IRHICommandList& command_list, const RHIBeginRenderPassInfo& begin_render_pass_info) = 0;
     virtual bool EndRenderPass(IRHICommandList& command_list) = 0;
+
+    virtual bool BeginRendering(IRHICommandList& command_list, const RHIBeginRenderingInfo& begin_rendering_info) = 0;
+    virtual bool EndRendering(IRHICommandList& command_list) = 0;
     
     virtual bool ResetCommandList(IRHICommandList& command_list, IRHICommandAllocator& command_allocator, IRHIPipelineStateObject* initPSO = nullptr) = 0;
     virtual bool CloseCommandList(IRHICommandList& command_list) = 0;

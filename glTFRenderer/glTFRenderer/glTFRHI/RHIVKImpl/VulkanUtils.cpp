@@ -2,6 +2,7 @@
 
 #include "VKCommandList.h"
 #include "VKConverterUtils.h"
+#include "VKDescriptorManager.h"
 #include "VKFence.h"
 #include "VKFrameBuffer.h"
 #include "VKPipelineStateObject.h"
@@ -58,13 +59,50 @@ bool VulkanUtils::EndRenderPass(IRHICommandList& command_list)
     return true;
 }
 
-bool VulkanUtils::ResetCommandList(IRHICommandList& commandList, IRHICommandAllocator& commandAllocator,
-                                   IRHIPipelineStateObject* initPSO)
+bool VulkanUtils::BeginRendering(IRHICommandList& command_list, const RHIBeginRenderingInfo& begin_rendering_info)
 {
-    const auto vk_command_buffer = dynamic_cast<VKCommandList&>(commandList).GetCommandBuffer();
+    const auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetCommandBuffer();
+
+    std::vector<VkRenderingAttachmentInfo> attachment_infos;
+    for (auto& render_target : begin_rendering_info.m_render_targets)
+    {
+        auto& texture_desc = dynamic_cast<const VKTextureDescriptorAllocation&>(*render_target);
+        VkRenderingAttachmentInfo attachment { .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO};
+        attachment.imageView = texture_desc.GetRawImageView();
+        attachment.imageLayout = texture_desc.GetDesc().m_view_type == RHIViewType::RVT_RTV ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL :
+        (begin_rendering_info.enable_depth_write ? VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL);
+        attachment.clearValue.color = {{1.0, 1.0 ,1.0, 1.0}};
+        attachment.loadOp = VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        attachment.storeOp = VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_STORE;
+
+        attachment_infos.push_back(attachment);
+    }
+
+    VkRenderingInfo rendering_info {.sType = VK_STRUCTURE_TYPE_RENDERING_INFO};
+    rendering_info.colorAttachmentCount = attachment_infos.size();
+    rendering_info.pColorAttachments = attachment_infos.data();
+    rendering_info.renderArea = {{0, 0}, {begin_rendering_info.rendering_area_width, begin_rendering_info.rendering_area_height}};
+    rendering_info.layerCount = 1;
+        
+    vkCmdBeginRendering(vk_command_buffer, &rendering_info);
+    
+    return true;
+}
+
+bool VulkanUtils::EndRendering(IRHICommandList& command_list)
+{
+    const auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetCommandBuffer();
+    vkCmdEndRendering(vk_command_buffer);
+    return true;
+}
+
+bool VulkanUtils::ResetCommandList(IRHICommandList& command_list, IRHICommandAllocator& command_allocator,
+                                   IRHIPipelineStateObject* init_pso)
+{
+    const auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetCommandBuffer();
     vkResetCommandBuffer(vk_command_buffer, 0);
 
-    return commandList.BeginRecordCommandList();
+    return command_list.BeginRecordCommandList();
 }
 
 bool VulkanUtils::CloseCommandList(IRHICommandList& commandList)

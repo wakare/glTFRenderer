@@ -6,8 +6,8 @@
 #include "glTFRHI/RHIInterface/IRHIRootSignatureHelper.h"
 #include "glTFScene/glTFSceneObjectBase.h"
 
-class IRHIDescriptorUpdater;
 struct glTFSceneViewRenderFlags;
+class IRHIDescriptorUpdater;
 class IRHIRenderPass;
 class glTFMaterialBase;
 class IRHIRootSignature;
@@ -71,6 +71,8 @@ protected:
     bool BindDescriptor(IRHICommandList& command_list, unsigned slot, const IRHIDescriptorAllocation& allocation) const;
     
     IRHIRootSignatureHelper m_root_signature_helper;
+    RHIBeginRenderingInfo m_begin_rendering_info;
+    
     std::shared_ptr<IRHIDescriptorUpdater> m_descriptor_updater;
     std::shared_ptr<IRHIRenderPass> m_render_pass;
     std::shared_ptr<IRHIPipelineStateObject> m_pipeline_state_object;
