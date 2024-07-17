@@ -15,7 +15,7 @@ public:
                                                                  RHITextureDesc& texture_desc, const RHIRenderTargetDesc& render_target_desc) override;
     virtual std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>> CreateRenderTargetFromSwapChain(IRHIDevice& device, glTFRenderResourceManager& resource_manager, IRHISwapChain& swap_chain, RHITextureClearValue clear_value) override;
     virtual bool ClearRenderTarget(IRHICommandList& command_list, const std::vector<IRHIDescriptorAllocation*>& render_targets) override;
-    virtual bool BindRenderTarget(IRHICommandList& command_list, const std::vector<IRHIDescriptorAllocation*>& render_targets, /*optional*/ IRHIDescriptorAllocation* depth_stencil) override;
+    virtual bool BindRenderTarget(IRHICommandList& command_list, const std::vector<IRHIDescriptorAllocation*>& render_targets) override;
     
 private:
     std::shared_ptr<IRHITextureDescriptorAllocation> CreateRenderTargetWithResource(IRHIDevice& device, glTFRenderResourceManager& resource_manager, RHIRenderTargetType type,

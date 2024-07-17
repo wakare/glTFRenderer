@@ -1,8 +1,6 @@
 #include "glTFGraphicsPassLighting.h"
-#include "glTFRHI/RHIUtils.h"
 #include "glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
 #include "glTFRHI/RHIInterface/IRHIRenderTargetManager.h"
-#include "glTFRHI/RHIResourceFactory.h"
 #include "glTFLight/glTFLightBase.h"
 #include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSampler.h"
@@ -48,7 +46,7 @@ bool glTFGraphicsPassLighting::PreRenderPass(glTFRenderResourceManager& resource
     BindDescriptor(command_list, m_base_color_and_depth_allocation.parameter_index, *m_base_pass_albedo_allocation);
     
     RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().BindRenderTarget(command_list,
-        {&resource_manager.GetCurrentFrameSwapChainRTV()}, nullptr))
+        {&resource_manager.GetCurrentFrameSwapChainRTV()}))
 
     RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().ClearRenderTarget(command_list,
         {&resource_manager.GetCurrentFrameSwapChainRTV()}))

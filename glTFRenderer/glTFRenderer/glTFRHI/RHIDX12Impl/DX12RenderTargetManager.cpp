@@ -123,33 +123,40 @@ bool DX12RenderTargetManager::ClearRenderTarget(IRHICommandList& command_list,
 }
 
 bool DX12RenderTargetManager::BindRenderTarget(IRHICommandList& command_list,
-                                               const std::vector<IRHIDescriptorAllocation*>& render_targets,
-                                               IRHIDescriptorAllocation* depth_stencil)
+                                               const std::vector<IRHIDescriptorAllocation*>& render_targets)
 {
-    auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
-    if (render_targets.empty() && !depth_stencil)
+    if (render_targets.empty())
     {
         // Bind zero rt? some bugs must exists.. 
         assert(false);
         return false;
     }
     
-    std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> render_target_views(render_targets.size());
-    for (size_t i = 0; i < render_target_views.size(); ++i)
-    {
-        auto handle = dynamic_cast<DX12TextureDescriptorAllocation&>(*render_targets[i]).m_cpu_handle;
-        render_target_views[i] = {handle};
-    }
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
+    
+    std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> render_target_views;
 
+    bool dsv_init = false;
     D3D12_CPU_DESCRIPTOR_HANDLE dsHandle{};
-    if (depth_stencil)
+    
+    for (size_t i = 0; i < render_targets.size(); ++i)
     {
-        auto handle = dynamic_cast<DX12TextureDescriptorAllocation&>(*depth_stencil).m_cpu_handle;
-        dsHandle = {handle};
+        auto& render_target = *render_targets[i];
+        auto handle = dynamic_cast<DX12TextureDescriptorAllocation&>(render_target).m_cpu_handle;
+        if (render_target.GetDesc().m_view_type == RHIViewType::RVT_RTV)
+        {
+            render_target_views.push_back({handle});    
+        }
+        else if (render_target.GetDesc().m_view_type == RHIViewType::RVT_DSV)
+        {
+            GLTF_CHECK(!dsv_init);
+            dsv_init = true;
+            dsHandle = {handle};    
+        }
     }
 
     // TODO: Check RTsSingleHandleToDescriptorRange means?
-    dxCommandList->OMSetRenderTargets(render_target_views.size(), render_target_views.data(), false, depth_stencil ? &dsHandle : nullptr);
+    dxCommandList->OMSetRenderTargets(render_target_views.size(), render_target_views.data(), false, dsv_init ? &dsHandle : nullptr);
     
     return true;
 }

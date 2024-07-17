@@ -59,10 +59,9 @@ bool glTFGraphicsPassMeshOpaque::PreRenderPass(glTFRenderResourceManager& resour
     GetResourceTexture(RenderPassResourceTableId::BasePass_Albedo)->Transition(command_list, RHIResourceStateType::STATE_RENDER_TARGET);
     GetResourceTexture(RenderPassResourceTableId::BasePass_Normal)->Transition(command_list, RHIResourceStateType::STATE_RENDER_TARGET);
 
-    std::vector<IRHIDescriptorAllocation*> render_targets{m_albedo_view.get(), m_normal_view.get()};
+    std::vector<IRHIDescriptorAllocation*> render_targets{m_albedo_view.get(), m_normal_view.get(), &resource_manager.GetDepthDSV()};
     
-    RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().BindRenderTarget(command_list,
-            render_targets, &resource_manager.GetDepthDSV()))
+    RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().BindRenderTarget(command_list, render_targets))
 
     RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().ClearRenderTarget(command_list, render_targets))
 

@@ -53,8 +53,7 @@ bool VKRenderTargetManager::ClearRenderTarget(IRHICommandList& commandList,
 }
 
 bool VKRenderTargetManager::BindRenderTarget(IRHICommandList& commandList,
-                                             const std::vector<IRHIDescriptorAllocation*>& render_targets,
-                                             IRHIDescriptorAllocation* depth_stencil)
+                                             const std::vector<IRHIDescriptorAllocation*>& render_targets)
 {
     return false;
 }
