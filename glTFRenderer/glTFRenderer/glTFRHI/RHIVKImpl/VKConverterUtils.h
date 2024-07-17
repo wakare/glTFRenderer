@@ -10,6 +10,7 @@ public:
     
     static VkPipelineBindPoint ConvertToBindPoint(RHISubPassBindPoint bind_point);
     static VkImageLayout ConvertToImageLayout(RHIImageLayout image_layout);
+    static VkImageLayout ConvertToImageLayout(RHIResourceStateType state);
     static VkFormat ConvertToFormat(RHIDataFormat format);
     static VkSampleCountFlagBits ConvertToSampleCount(RHISampleCount sample_count);
     static VkAttachmentLoadOp ConvertToLoadOp(RHIAttachmentLoadOp load_op);

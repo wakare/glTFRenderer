@@ -64,12 +64,12 @@ bool glTFComputePassRayTracingPostprocess::PreRenderPass(glTFRenderResourceManag
     RETURN_IF_FALSE(m_accumulation_resource.BindDescriptors(command_list, GetPipelineType(), *m_descriptor_updater))
     RETURN_IF_FALSE(m_custom_resource.BindDescriptors(command_list, GetPipelineType(), *m_descriptor_updater))
 
-    resource_manager.GetCurrentFrameSwapChainRT().Transition(command_list, RHIResourceStateType::STATE_RENDER_TARGET);
-    GetResourceTexture(RenderPassResourceTableId::ComputePass_RayTracingOutputPostProcess_Output).Transition(
+    resource_manager.GetCurrentFrameSwapChainTexture().Transition(command_list, RHIResourceStateType::STATE_RENDER_TARGET);
+    GetResourceTexture(RenderPassResourceTableId::ComputePass_RayTracingOutputPostProcess_Output)->Transition(
             command_list, RHIResourceStateType::STATE_UNORDERED_ACCESS);
 
-    GetResourceTexture(RenderPassResourceTableId::ScreenUVOffset).Transition(command_list, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE);
-    GetResourceTexture(RenderPassResourceTableId::RayTracingSceneOutput).Transition(command_list, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE);
+    GetResourceTexture(RenderPassResourceTableId::ScreenUVOffset)->Transition(command_list, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE);
+    GetResourceTexture(RenderPassResourceTableId::RayTracingSceneOutput)->Transition(command_list, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE);
 
     BindDescriptor(command_list, m_process_input_allocation.parameter_index, *m_post_process_input_handle);
     BindDescriptor(command_list, m_screen_uv_offset_allocation.parameter_index, *m_screen_uv_offset_handle);
@@ -91,11 +91,13 @@ bool glTFComputePassRayTracingPostprocess::PostRenderPass(glTFRenderResourceMana
     RETURN_IF_FALSE(m_custom_resource.PostRendering(resource_manager))
 
     // Copy compute result to swap chain back buffer
-    resource_manager.GetCurrentFrameSwapChainRT().Transition(command_list, RHIResourceStateType::STATE_COPY_DEST);
-    GetResourceTexture(RenderPassResourceTableId::ComputePass_RayTracingOutputPostProcess_Output).Transition(
+    resource_manager.GetCurrentFrameSwapChainTexture().Transition(command_list, RHIResourceStateType::STATE_COPY_DEST);
+    GetResourceTexture(RenderPassResourceTableId::ComputePass_RayTracingOutputPostProcess_Output)->Transition(
         command_list, RHIResourceStateType::STATE_COPY_SOURCE);
     
-    RETURN_IF_FALSE(RHIUtils::Instance().CopyTexture(command_list, resource_manager.GetCurrentFrameSwapChainRT().GetTexture(), GetResourceTexture(RenderPassResourceTableId::ComputePass_RayTracingOutputPostProcess_Output)))
+    RETURN_IF_FALSE(RHIUtils::Instance().CopyTexture(command_list,
+        resource_manager.GetCurrentFrameSwapChainTexture(),
+        *GetResourceTexture(RenderPassResourceTableId::ComputePass_RayTracingOutputPostProcess_Output)))
     
     return true;
 }
@@ -150,17 +152,17 @@ bool glTFComputePassRayTracingPostprocess::SetupRootSignature(glTFRenderResource
     RETURN_IF_FALSE(m_accumulation_resource.RegisterSignature(m_root_signature_helper))
     RETURN_IF_FALSE(m_custom_resource.RegisterSignature(m_root_signature_helper))
 
-    auto& raytracing_output = GetResourceTexture(RenderPassResourceTableId::RayTracingSceneOutput);
-    auto& screen_uv_offset = GetResourceTexture(RenderPassResourceTableId::ScreenUVOffset);
+    auto raytracing_output = GetResourceTexture(RenderPassResourceTableId::RayTracingSceneOutput);
+    auto screen_uv_offset = GetResourceTexture(RenderPassResourceTableId::ScreenUVOffset);
     
     RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), raytracing_output,
-                        {raytracing_output.GetTextureFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_post_process_input_handle))
+                        {raytracing_output->GetTextureFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_post_process_input_handle))
 
     RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), screen_uv_offset,
-                        {screen_uv_offset.GetTextureFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_screen_uv_offset_handle))
+                        {screen_uv_offset->GetTextureFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_screen_uv_offset_handle))
 
     RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), GetResourceTexture(RenderPassResourceTableId::ComputePass_RayTracingOutputPostProcess_Output),
-                                {GetResourceTexture(RenderPassResourceTableId::ComputePass_RayTracingOutputPostProcess_Output).GetTextureFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_UAV}, m_post_process_output_handle))
+                                {GetResourceTexture(RenderPassResourceTableId::ComputePass_RayTracingOutputPostProcess_Output)->GetTextureFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_UAV}, m_post_process_output_handle))
 
     RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("PostProcessInput", RHIRootParameterDescriptorRangeType::SRV, 1, false, m_process_input_allocation))
     RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("ScreenUVOffset", RHIRootParameterDescriptorRangeType::SRV, 1, false, m_screen_uv_offset_allocation))

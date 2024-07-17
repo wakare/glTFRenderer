@@ -22,7 +22,7 @@ public:
         },
         m_gpu_buffer);
         m_constant_buffer_descriptor_allocation = RHIResourceFactory::CreateRHIResource<IRHIBufferDescriptorAllocation>();
-        m_constant_buffer_descriptor_allocation->InitFromBuffer(*m_gpu_buffer->m_buffer,
+        m_constant_buffer_descriptor_allocation->InitFromBuffer(m_gpu_buffer->m_buffer,
             RHIBufferDescriptorDesc{
                 RHIDataFormat::UNKNOWN,
                 RHIViewType::RVT_SRV,

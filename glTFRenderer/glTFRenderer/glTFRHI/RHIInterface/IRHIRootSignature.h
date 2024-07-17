@@ -6,6 +6,8 @@
 #include "IRHIDevice.h"
 #include "IRHIResource.h"
 
+class IRHIDescriptorManager;
+
 class IRHIRootParameter : public IRHIResource
 {
 public:
@@ -15,7 +17,7 @@ public:
     virtual bool InitAsSRV(REGISTER_INDEX_TYPE registerIndex, unsigned space) = 0;
     virtual bool InitAsUAV(REGISTER_INDEX_TYPE registerIndex, unsigned space) = 0;
     virtual bool InitAsDescriptorTableRange(size_t rangeCount, const RHIRootParameterDescriptorRangeDesc* rangeDesc) = 0;
-    
+ 
 protected:
     void SetType(RHIRootParameterType type) {assert(m_type == RHIRootParameterType::Unknown); m_type = type;}
     
@@ -47,19 +49,19 @@ public:
     
     bool AllocateRootSignatureSpace(size_t rootParameterCount, size_t staticSamplerCount);
     void SetUsage (RHIRootSignatureUsage usage) { m_usage = usage; }
-    bool IsSpaceAllocated() const {return !m_rootParameters.empty() || !m_staticSampler.empty(); }
+    bool IsSpaceAllocated() const {return !m_root_parameters.empty() || !m_static_samplers.empty(); }
     
-    virtual bool InitRootSignature(IRHIDevice& device) = 0;
+    virtual bool InitRootSignature(IRHIDevice& device, IRHIDescriptorManager& descriptor_manager) = 0;
     
-    IRHIRootParameter& GetRootParameter(size_t index) {return *m_rootParameters[index];}
-    const IRHIRootParameter& GetRootParameter(size_t index) const {return *m_rootParameters[index];}
+    IRHIRootParameter& GetRootParameter(size_t index) {return *m_root_parameters[index];}
+    const IRHIRootParameter& GetRootParameter(size_t index) const {return *m_root_parameters[index];}
 
-    IRHIStaticSampler& GetStaticSampler(size_t index) {return *m_staticSampler[index];}
-    const IRHIStaticSampler& GetStaticSampler(size_t index) const {return *m_staticSampler[index];}
+    IRHIStaticSampler& GetStaticSampler(size_t index) {return *m_static_samplers[index];}
+    const IRHIStaticSampler& GetStaticSampler(size_t index) const {return *m_static_samplers[index];}
     
 protected:
-    std::vector<std::shared_ptr<IRHIRootParameter>> m_rootParameters;
-    std::vector<std::shared_ptr<IRHIStaticSampler>> m_staticSampler;
+    std::vector<std::shared_ptr<IRHIRootParameter>> m_root_parameters;
+    std::vector<std::shared_ptr<IRHIStaticSampler>> m_static_samplers;
 
     RHIRootSignatureUsage m_usage;
 };

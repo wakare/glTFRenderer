@@ -45,11 +45,11 @@ unsigned DX12DescriptorHeap::GetUsedDescriptorCount() const
 }
 
 bool DX12DescriptorHeap::CreateConstantBufferViewInDescriptorHeap(IRHIDevice& device, unsigned descriptor_offset,
-                                                                  IRHIBuffer& buffer, const RHIConstantBufferViewDesc& desc, std::shared_ptr<IRHIDescriptorAllocation>& out_allocation)
+                                                                  std::shared_ptr<IRHIBuffer> buffer, const RHIConstantBufferViewDesc& desc, std::shared_ptr<IRHIDescriptorAllocation>& out_allocation)
 {
     //TODO: Process offset for handle 
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
-    auto* dxBuffer = dynamic_cast<DX12Buffer&>(buffer).GetRawBuffer();
+    auto* dxBuffer = dynamic_cast<DX12Buffer&>(*buffer).GetRawBuffer();
     
     CD3DX12_CPU_DESCRIPTOR_HANDLE cpuHandle(m_descriptorHeap->GetCPUDescriptorHandleForHeapStart());
     cpuHandle.Offset(descriptor_offset, m_descriptor_increment_size);
@@ -62,7 +62,7 @@ bool DX12DescriptorHeap::CreateConstantBufferViewInDescriptorHeap(IRHIDevice& de
     CD3DX12_GPU_DESCRIPTOR_HANDLE gpuHandle(m_descriptorHeap->GetGPUDescriptorHandleForHeapStart());
     gpuHandle.Offset(descriptor_offset, m_descriptor_increment_size);
 
-    out_allocation = std::make_shared<DX12BufferDescriptorAllocation>(gpuHandle.ptr, 0, RHIBufferDescriptorDesc
+    out_allocation = std::make_shared<DX12BufferDescriptorAllocation>(gpuHandle.ptr, 0, buffer, RHIBufferDescriptorDesc
         {
             RHIDataFormat::UNKNOWN,
             RHIViewType::RVT_CBV,
@@ -76,9 +76,9 @@ bool DX12DescriptorHeap::CreateConstantBufferViewInDescriptorHeap(IRHIDevice& de
 }
 
 bool DX12DescriptorHeap::CreateResourceDescriptorInHeap(IRHIDevice& device,
-                                                                  const IRHIBuffer& buffer, const RHIDescriptorDesc& desc, std::shared_ptr<IRHIBufferDescriptorAllocation>& out_allocation)
+                                                                  const std::shared_ptr<IRHIBuffer>& buffer, const RHIDescriptorDesc& desc, std::shared_ptr<IRHIBufferDescriptorAllocation>& out_allocation)
 {
-    auto* resource = dynamic_cast<const DX12Buffer&>(buffer).GetRawBuffer();
+    auto* resource = dynamic_cast<const DX12Buffer&>(*buffer).GetRawBuffer();
     auto find_resource = m_created_descriptors_info.find(resource);
     auto& buffer_desc = dynamic_cast<const RHIBufferDescriptorDesc&>(desc);
     
@@ -88,7 +88,7 @@ bool DX12DescriptorHeap::CreateResourceDescriptorInHeap(IRHIDevice& device,
         {
             if (created_info.first == desc)
             {
-                out_allocation = std::make_shared<DX12BufferDescriptorAllocation>(created_info.second, 0, buffer_desc);
+                out_allocation = std::make_shared<DX12BufferDescriptorAllocation>(created_info.second, 0, buffer, buffer_desc);
                 return true;
             }
         }
@@ -116,14 +116,14 @@ bool DX12DescriptorHeap::CreateResourceDescriptorInHeap(IRHIDevice& device,
         break;
     }
 
-    out_allocation = std::make_shared<DX12BufferDescriptorAllocation>(gpu_handle, cpu_handle, buffer_desc);
+    out_allocation = std::make_shared<DX12BufferDescriptorAllocation>(gpu_handle, cpu_handle, buffer, buffer_desc);
     return created;
 }
 
-bool DX12DescriptorHeap::CreateResourceDescriptorInHeap(IRHIDevice& device, const IRHITexture& texture,
+bool DX12DescriptorHeap::CreateResourceDescriptorInHeap(IRHIDevice& device, const std::shared_ptr<IRHITexture>& texture,
                                                                   const RHIDescriptorDesc& desc, std::shared_ptr<IRHITextureDescriptorAllocation>& out_allocation)
 {
-    auto* resource = dynamic_cast<const DX12Texture&>(texture).GetRawResource();
+    auto* resource = dynamic_cast<const DX12Texture&>(*texture).GetRawResource();
     auto find_resource = m_created_descriptors_info.find(resource);
     auto& texture_desc = dynamic_cast<const RHITextureDescriptorDesc&>(desc);
     if (find_resource != m_created_descriptors_info.end())
@@ -132,7 +132,7 @@ bool DX12DescriptorHeap::CreateResourceDescriptorInHeap(IRHIDevice& device, cons
         {
             if (created_info.first == desc)
             {
-                out_allocation = std::make_shared<DX12TextureDescriptorAllocation>(created_info.second, 0, texture_desc);
+                out_allocation = std::make_shared<DX12TextureDescriptorAllocation>(created_info.second, 0, texture, texture_desc);
                 return true;
             }
         }
@@ -160,7 +160,7 @@ bool DX12DescriptorHeap::CreateResourceDescriptorInHeap(IRHIDevice& device, cons
         break;
     }
 
-    out_allocation = std::make_shared<DX12TextureDescriptorAllocation>(gpu_handle, cpu_handle, texture_desc);
+    out_allocation = std::make_shared<DX12TextureDescriptorAllocation>(gpu_handle, cpu_handle, texture, texture_desc);
     return created;
 }
 

@@ -32,7 +32,7 @@ public:
     virtual bool ResetCommandAllocator(IRHICommandAllocator& commandAllocator) override;
     virtual bool WaitCommandListFinish(IRHICommandList& command_queue) override;
     
-    virtual bool SetRootSignature(IRHICommandList& command_list, IRHIRootSignature& rootSignature, bool isGraphicsPipeline) override;
+    virtual bool SetRootSignature(IRHICommandList& command_list, IRHIRootSignature& rootSignature, IRHIPipelineStateObject& pipeline_state_object,RHIPipelineType pipeline_type) override;
     virtual bool SetViewport(IRHICommandList& command_list, const RHIViewportDesc& viewport_desc) override;
     virtual bool SetScissorRect(IRHICommandList& command_list, const RHIScissorRectDesc& scissor_rect) override;
 
@@ -57,8 +57,6 @@ public:
     virtual bool ExecuteIndirect(IRHICommandList& command_list, IRHICommandSignature& command_signature, unsigned max_count, IRHIBuffer& arguments_buffer, unsigned arguments_buffer_offset, IRHIBuffer& count_buffer, unsigned count_buffer_offset) override;
     
     virtual bool Present(IRHISwapChain& swap_chain, IRHICommandQueue& command_queue, IRHICommandList& command_list) override;
-
-    virtual bool DiscardResource(IRHICommandList& command_list, IRHIRenderTarget& render_target) override;
 
     virtual bool CopyTexture(IRHICommandList& command_list, IRHITexture& dst, IRHITexture& src) override;
     virtual bool CopyBuffer(IRHICommandList& command_list, IRHIBuffer& dst, size_t dst_offset, IRHIBuffer& src, size_t src_offset, size_t size) override;

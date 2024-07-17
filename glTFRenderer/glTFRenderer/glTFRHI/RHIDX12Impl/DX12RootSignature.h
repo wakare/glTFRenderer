@@ -40,7 +40,7 @@ class DX12RootSignature : public IRHIRootSignature
 public:
     DX12RootSignature();
     
-    virtual bool InitRootSignature(IRHIDevice& device) override;
+    virtual bool InitRootSignature(IRHIDevice& device, IRHIDescriptorManager& descriptor_manager) override;
     ID3D12RootSignature* GetRootSignature() const;
     
 private:

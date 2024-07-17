@@ -9,13 +9,10 @@ public:
     DX12SwapChain();
     virtual ~DX12SwapChain() override;
 
-    virtual unsigned GetWidth() const override;
-    virtual unsigned GetHeight() const override;
-    
     virtual unsigned GetCurrentBackBufferIndex() override;
     virtual unsigned GetBackBufferCount() override;
     
-    virtual bool InitSwapChain(IRHIFactory& factory, IRHIDevice& device, IRHICommandQueue& commandQueue, unsigned width, unsigned height, bool fullScreen, HWND hwnd) override;
+    virtual bool InitSwapChain(IRHIFactory& factory, IRHIDevice& device, IRHICommandQueue& commandQueue, const RHITextureDesc& swap_chain_buffer_desc, bool fullScreen, HWND hwnd) override;
     virtual bool AcquireNewFrame(IRHIDevice& device) override;
     virtual IRHISemaphore& GetAvailableFrameSemaphore() override;
     virtual bool Present(IRHICommandQueue& command_queue, IRHICommandList& command_list) override;
@@ -31,9 +28,6 @@ public:
     
 private:
     unsigned m_frame_buffer_count;
-    unsigned m_width;
-    unsigned m_height;
-    
     ComPtr<IDXGISwapChain3> m_swap_chain;
     DXGI_SAMPLE_DESC m_swap_chain_sample_desc;
 };

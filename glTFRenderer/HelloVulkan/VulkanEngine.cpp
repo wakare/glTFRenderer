@@ -676,9 +676,6 @@ bool VulkanEngine::Init()
         queue_create_infos.push_back(queue_create_info);
     }
 
-    // Non features to require now
-    //VkPhysicalDeviceFeatures device_features {};
-    
     VkDeviceCreateInfo create_device_info{};
     create_device_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     create_device_info.pQueueCreateInfos = queue_create_infos.data();
@@ -764,7 +761,7 @@ bool VulkanEngine::Init()
     {
         DescriptorLayoutBuilder builder;
         builder.add_binding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
-        compute_pipeline_descriptorset_layout = builder.build(logical_device, VK_SHADER_STAGE_COMPUTE_BIT);
+        compute_pipeline_descriptor_set_layout = builder.build(logical_device, VK_SHADER_STAGE_COMPUTE_BIT);
     }
     {
         DescriptorLayoutBuilder builder;
@@ -948,7 +945,7 @@ void VulkanEngine::RecordCommandBufferForComputePipeline(VkCommandBuffer command
     writer.write_image(0, draw_image.image_view, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 
     //allocate a descriptor set for our draw image
-    _drawImageDescriptors = m_frame_descriptors[current_frame_clipped].allocate(logical_device,compute_pipeline_descriptorset_layout);
+    _drawImageDescriptors = m_frame_descriptors[current_frame_clipped].allocate(logical_device,compute_pipeline_descriptor_set_layout);
     writer.update_set(logical_device,_drawImageDescriptors);
     
     float flash = std::abs(std::sin(current_frame_real / 1200.0f));
@@ -1501,7 +1498,7 @@ void VulkanEngine::InitComputePipeline()
     VkPipelineLayoutCreateInfo computeLayout{};
     computeLayout.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     computeLayout.pNext = nullptr;
-    computeLayout.pSetLayouts = &compute_pipeline_descriptorset_layout;
+    computeLayout.pSetLayouts = &compute_pipeline_descriptor_set_layout;
     computeLayout.setLayoutCount = 1;
     
     VK_CHECK(vkCreatePipelineLayout(logical_device, &computeLayout, nullptr, &_gradientPipelineLayout));
@@ -1604,7 +1601,7 @@ bool VulkanEngine::UnInit()
     }
     
     globalDescriptorAllocator.destroy_pool(logical_device);
-    vkDestroyDescriptorSetLayout(logical_device, compute_pipeline_descriptorset_layout, nullptr);
+    vkDestroyDescriptorSetLayout(logical_device, compute_pipeline_descriptor_set_layout, nullptr);
     vkDestroyDescriptorSetLayout(logical_device, graphics_pipeline_descriptorset_layout, nullptr);
     vkDestroySurfaceKHR(instance, surface, nullptr);
     vkDestroyDevice(logical_device, nullptr);

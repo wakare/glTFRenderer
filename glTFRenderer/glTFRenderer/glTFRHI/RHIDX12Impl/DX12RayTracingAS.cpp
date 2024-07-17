@@ -141,7 +141,7 @@ bool DX12RayTracingAS::InitRayTracingAS(IRHIDevice& device, IRHICommandList& com
         m_TLAS
     );
     m_TLAS_descriptor_allocation = RHIResourceFactory::CreateRHIResource<IRHIBufferDescriptorAllocation>();
-    m_TLAS_descriptor_allocation->InitFromBuffer(*m_TLAS->m_buffer,
+    m_TLAS_descriptor_allocation->InitFromBuffer(m_TLAS->m_buffer,
         RHIBufferDescriptorDesc{
             RHIDataFormat::UNKNOWN,
             RHIViewType::RVT_SRV,

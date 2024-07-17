@@ -44,9 +44,9 @@ bool glTFGUIRenderer::RenderWidgets(glTFRenderResourceManager& resource_manager)
 
     auto& command_list = resource_manager.GetCommandListForRecord();
     
-    resource_manager.GetCurrentFrameSwapChainRT().Transition(command_list, RHIResourceStateType::STATE_RENDER_TARGET);
+    resource_manager.GetCurrentFrameSwapChainTexture().Transition(command_list, RHIResourceStateType::STATE_RENDER_TARGET);
     RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().BindRenderTarget(command_list,
-        {&resource_manager.GetCurrentFrameSwapChainRT()}, nullptr))
+        {&resource_manager.GetCurrentFrameSwapChainRTV()}, nullptr))
     
     RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().BindGUIDescriptors(command_list))
     RETURN_IF_FALSE(RHIUtils::Instance().RenderGUIFrame(command_list))

@@ -42,7 +42,7 @@ protected:
             RHIBufferResourceType::Buffer
         }, m_constant_gpu_data);
         m_constant_buffer_descriptor_allocation = RHIResourceFactory::CreateRHIResource<IRHIBufferDescriptorAllocation>();
-        m_constant_buffer_descriptor_allocation->InitFromBuffer(*m_constant_gpu_data->m_buffer,
+        m_constant_buffer_descriptor_allocation->InitFromBuffer(m_constant_gpu_data->m_buffer,
             RHIBufferDescriptorDesc{
                 RHIDataFormat::UNKNOWN,
                 RHIViewType::RVT_CBV,

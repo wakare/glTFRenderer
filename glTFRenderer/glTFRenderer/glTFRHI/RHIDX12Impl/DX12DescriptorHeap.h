@@ -23,12 +23,12 @@ public:
     virtual bool InitDescriptorHeap(IRHIDevice& device, const RHIDescriptorHeapDesc& desc) ;
     unsigned GetUsedDescriptorCount() const;
 
-    virtual bool CreateConstantBufferViewInDescriptorHeap(IRHIDevice& device, unsigned descriptor_offset, IRHIBuffer& buffer, const RHIConstantBufferViewDesc& desc, /*output*/
+    virtual bool CreateConstantBufferViewInDescriptorHeap(IRHIDevice& device, unsigned descriptor_offset, std::shared_ptr<IRHIBuffer> buffer, const RHIConstantBufferViewDesc& desc, /*output*/
                                                           std::shared_ptr<IRHIDescriptorAllocation>& out_allocation) ;
-    virtual bool CreateResourceDescriptorInHeap(IRHIDevice& device, const IRHIBuffer& buffer, const RHIDescriptorDesc& desc,
+    virtual bool CreateResourceDescriptorInHeap(IRHIDevice& device, const std::shared_ptr<IRHIBuffer>& buffer, const RHIDescriptorDesc& desc,
                                                           /*output*/
                                                           std::shared_ptr<IRHIBufferDescriptorAllocation>& out_allocation) ;
-    virtual bool CreateResourceDescriptorInHeap(IRHIDevice& device, const IRHITexture& texture, const RHIDescriptorDesc& desc,
+    virtual bool CreateResourceDescriptorInHeap(IRHIDevice& device, const std::shared_ptr<IRHITexture>& texture, const RHIDescriptorDesc& desc,
                                                           /*output*/
                                                           std::shared_ptr<IRHITextureDescriptorAllocation>& out_allocation) ;
 

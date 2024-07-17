@@ -12,18 +12,20 @@ class IRHISwapChain : public IRHIResource
 public:
     DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHISwapChain)
     
-    virtual unsigned GetWidth() const = 0;
-    virtual unsigned GetHeight() const = 0;
+    unsigned GetWidth() const;
+    unsigned GetHeight() const;
     RHIDataFormat GetBackBufferFormat() const;
     
     virtual unsigned GetCurrentBackBufferIndex() = 0;
     virtual unsigned GetBackBufferCount() = 0;
 
-    virtual bool InitSwapChain(IRHIFactory& factory, IRHIDevice& device, IRHICommandQueue& commandQueue, unsigned width, unsigned height, bool fullScreen, HWND hwnd) = 0;
+    virtual bool InitSwapChain(IRHIFactory& factory, IRHIDevice& device, IRHICommandQueue& commandQueue, const RHITextureDesc& swap_chain_buffer_desc, bool fullScreen, HWND hwnd) = 0;
     virtual bool AcquireNewFrame(IRHIDevice& device) = 0;
     virtual IRHISemaphore& GetAvailableFrameSemaphore() = 0;
     virtual bool Present(IRHICommandQueue& command_queue, IRHICommandList& command_list) = 0;
 
+    const RHITextureDesc& GetSwapChainBufferDesc() const;
+    
 protected:
-    RHIDataFormat m_back_buffer_format {RHIDataFormat::R8G8B8A8_UNORM};
+    RHITextureDesc m_swap_chain_buffer_desc;
 };

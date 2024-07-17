@@ -25,7 +25,7 @@ public:
     bool SetUsage(RHIRootSignatureUsage usage);
     void SetRegisterSpace(unsigned space);
     unsigned GetRegisterSpace() const;
-    bool BuildRootSignature(IRHIDevice& device);
+    bool BuildRootSignature(IRHIDevice& device, glTFRenderResourceManager& resource_manager);
     
     IRHIRootSignature& GetRootSignature() const;
     std::shared_ptr<IRHIRootSignature> GetRootSignaturePointer() const { return m_root_signature; }

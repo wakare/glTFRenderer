@@ -23,7 +23,7 @@ public:
     bool InitRenderTarget(std::shared_ptr<IRHITextureAllocation> texture,
                           std::shared_ptr<IRHITextureDescriptorAllocation> descriptor_allocation);
 
-    IRHITexture& GetTexture() const;
+    std::shared_ptr<IRHITexture> GetTexture() const;
     std::shared_ptr<IRHITextureAllocation> GetTextureAllocationSharedPtr() const;
     IRHITextureDescriptorAllocation& GetDescriptorAllocation();
     

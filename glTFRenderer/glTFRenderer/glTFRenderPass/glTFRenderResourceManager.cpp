@@ -45,7 +45,15 @@ bool glTFRenderResourceManager::InitResourceManager(unsigned width, unsigned hei
     if (!m_swap_chain)
     {
         m_swap_chain = RHIResourceFactory::CreateRHIResource<IRHISwapChain>();
-        EXIT_WHEN_FALSE(m_swap_chain->InitSwapChain(*m_factory, *m_device, *m_command_queue, width, height, false, handle))    
+        RHITextureDesc swap_chain_texture_desc("swap_chain_back_buffer",
+            width, height,
+            RHIDataFormat::R8G8B8A8_UNORM,
+            static_cast<RHIResourceUsageFlags>(RUF_ALLOW_RENDER_TARGET),
+            {
+                .clear_format = RHIDataFormat::R8G8B8A8_UNORM,
+                .clear_color = {0.0f, 0.0f, 0.0f, 0.0f}
+            });
+        EXIT_WHEN_FALSE(m_swap_chain->InitSwapChain(*m_factory, *m_device, *m_command_queue, swap_chain_texture_desc, false, handle))    
     }
 
     m_memory_allocator = RHIResourceFactory::CreateRHIResource<IRHIMemoryAllocator>();
@@ -72,6 +80,7 @@ bool glTFRenderResourceManager::InitResourceManager(unsigned width, unsigned hei
     RHITextureClearValue clear_value;
     clear_value.clear_format = RHIDataFormat::R8G8B8A8_UNORM_SRGB;
     clear_value.clear_color = glm::vec4{0.0f, 0.0f, 0.0f, 0.0f};
+
     m_swapchain_RTs = m_render_target_manager->CreateRenderTargetFromSwapChain(*m_device, *this, *m_swap_chain, clear_value);
 
     m_depth_texture = m_render_target_manager->CreateRenderTarget(
@@ -81,7 +90,7 @@ bool glTFRenderResourceManager::InitResourceManager(unsigned width, unsigned hei
             .format = RHIDataFormat::D32_FLOAT
         });
     
-    m_export_texture_allocation_map[RenderPassResourceTableId::Depth] = m_depth_texture->GetTextureAllocationSharedPtr();
+    m_export_texture_map[RenderPassResourceTableId::Depth] = m_depth_texture->m_source;
     
     m_frame_resource_managers.resize(backBufferCount);
     
@@ -240,12 +249,27 @@ IRHICommandAllocator& glTFRenderResourceManager::GetCurrentFrameCommandAllocator
     return *m_command_allocators[GetCurrentBackBufferIndex() % backBufferCount];
 }
 
-IRHIRenderTarget& glTFRenderResourceManager::GetCurrentFrameSwapChainRT()
+IRHITexture& glTFRenderResourceManager::GetCurrentFrameSwapChainTexture()
+{
+    return *m_swapchain_RTs[GetCurrentBackBufferIndex() % backBufferCount]->m_source;
+}
+
+IRHITexture& glTFRenderResourceManager::GetDepthTextureRef()
+{
+    return *GetDepthTexture();
+}
+
+std::shared_ptr<IRHITexture> glTFRenderResourceManager::GetDepthTexture()
+{
+    return m_depth_texture->m_source;
+}
+
+IRHITextureDescriptorAllocation& glTFRenderResourceManager::GetCurrentFrameSwapChainRTV()
 {
     return *m_swapchain_RTs[GetCurrentBackBufferIndex() % backBufferCount];
 }
 
-IRHIRenderTarget& glTFRenderResourceManager::GetDepthRT()
+IRHITextureDescriptorAllocation& glTFRenderResourceManager::GetDepthDSV()
 {
     return *m_depth_texture;
 }
@@ -335,23 +359,26 @@ const glTFRadiosityRenderer& glTFRenderResourceManager::GetRadiosityRenderer() c
 }
 
 bool glTFRenderResourceManager::ExportResourceTexture(const RHITextureDesc& desc, RenderPassResourceTableId entry_id,
-    std::shared_ptr<IRHITextureAllocation>& out_texture_allocation)
+    std::shared_ptr<IRHITexture>& out_texture)
 {
     // Export texture resource must create it first, add table id to internal tracked map
+    std::shared_ptr<IRHITextureAllocation> out_texture_allocation;
     bool created = GetMemoryManager().AllocateTextureMemory(GetDevice(), *this, desc, out_texture_allocation);
     GLTF_CHECK(created);
-    
+
+    out_texture = out_texture_allocation->m_texture;
+    m_export_texture_map[entry_id] = out_texture_allocation->m_texture;
     m_export_texture_allocation_map[entry_id] = out_texture_allocation;
     
     return true;
 }
 
 bool glTFRenderResourceManager::ImportResourceTexture(const RHITextureDesc& desc, RenderPassResourceTableId entry_id,
-    std::shared_ptr<IRHITextureAllocation>& out_texture_allocation)
+    std::shared_ptr<IRHITexture>& out_texture_allocation)
 {
     // Import texture resource need query table id from tracked map and return allocation
-    auto find_texture = m_export_texture_allocation_map.find(entry_id);
-    GLTF_CHECK(find_texture != m_export_texture_allocation_map.end());
+    auto find_texture = m_export_texture_map.find(entry_id);
+    GLTF_CHECK(find_texture != m_export_texture_map.end());
 
     out_texture_allocation = find_texture->second;
     return true;

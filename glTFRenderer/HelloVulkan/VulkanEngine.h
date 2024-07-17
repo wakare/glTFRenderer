@@ -130,7 +130,7 @@ private:
 
     DescriptorAllocator globalDescriptorAllocator{};
     VkDescriptorSet _drawImageDescriptors{};
-    VkDescriptorSetLayout compute_pipeline_descriptorset_layout{};
+    VkDescriptorSetLayout compute_pipeline_descriptor_set_layout{};
     
     VkPipelineLayout _gradientPipelineLayout{};
     

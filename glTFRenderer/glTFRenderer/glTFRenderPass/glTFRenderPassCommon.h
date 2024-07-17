@@ -54,5 +54,5 @@ struct RenderPassResourceTable
 
 struct RenderPassResourceLocation
 {
-    std::map<RenderPassResourceTableId, std::shared_ptr<IRHITextureAllocation>> m_texture_allocations;
+    std::map<RenderPassResourceTableId, std::shared_ptr<IRHITexture>> m_texture_allocations;
 };

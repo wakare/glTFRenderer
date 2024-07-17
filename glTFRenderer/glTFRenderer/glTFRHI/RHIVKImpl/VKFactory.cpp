@@ -22,11 +22,11 @@ bool VKFactory::InitFactory()
     // Create vulkan instance
     VkApplicationInfo app_info{};
     app_info.sType = VkStructureType::VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    app_info.pApplicationName = "Hello Triangle (Vulkan)";
+    app_info.pApplicationName = "glTFRenderer (Vulkan)";
     app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
     app_info.pEngineName = "No Engine";
     app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    app_info.apiVersion = VK_API_VERSION_1_0;
+    app_info.apiVersion = VK_MAKE_VERSION(1, 3, 0);
 
     VkInstanceCreateInfo create_info{};
     create_info.sType = VkStructureType::VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;

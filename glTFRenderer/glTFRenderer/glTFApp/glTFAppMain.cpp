@@ -104,7 +104,7 @@ void glTFAppMain::Run()
             
             if (m_app_config.m_tick_scene)
             {    
-                m_scene_graph->Tick(time_delta_ms);    
+                m_scene_graph->Tick(time_delta_ms);
             }
 
             m_renderer->TickRenderingBegin(time_delta_ms);

@@ -2,24 +2,13 @@
 
 #include "glTFRenderResourceManager.h"
 
-IRHITexture& RenderGraphNodeUtil::RenderGraphNode::GetResourceTexture(RenderPassResourceTableId id)
-{
-    return *GetResourceTextureAllocation(id).m_texture;
-}
-
-const IRHITexture& RenderGraphNodeUtil::RenderGraphNode::GetResourceTexture(RenderPassResourceTableId id) const
-{
-    return *GetResourceTextureAllocation(id).m_texture;
-}
-
-const IRHITextureAllocation& RenderGraphNodeUtil::RenderGraphNode::GetResourceTextureAllocation(
-    RenderPassResourceTableId id) const
+std::shared_ptr<IRHITexture> RenderGraphNodeUtil::RenderGraphNode::GetResourceTexture(RenderPassResourceTableId id) const
 {
     auto find_texture_allocation = m_resource_location.m_texture_allocations.find(id);
     GLTF_CHECK(find_texture_allocation != m_resource_location.m_texture_allocations.end() &&
         find_texture_allocation->second);
 
-    return *find_texture_allocation->second;
+    return find_texture_allocation->second;
 }
 
 void RenderGraphNodeUtil::RenderGraphNode::AddImportTextureResource(const RHITextureDesc& desc,
@@ -44,7 +33,7 @@ bool RenderGraphNodeUtil::RenderGraphNode::ExportResourceLocation(glTFRenderReso
     const auto& resource_table = GetResourceTable();
     for (const auto& export_texture_info : resource_table.m_export_texture_table_entry)
     {
-        std::shared_ptr<IRHITextureAllocation> out_texture_allocation;
+        std::shared_ptr<IRHITexture> out_texture_allocation;
         const bool exported = resource_manager.ExportResourceTexture(export_texture_info.first, export_texture_info.second, out_texture_allocation);
         GLTF_CHECK(exported);
 
@@ -59,7 +48,7 @@ bool RenderGraphNodeUtil::RenderGraphNode::ImportResourceLocation(glTFRenderReso
     const auto& resource_table = GetResourceTable();
     for (const auto& import_texture_info : resource_table.m_import_texture_table_entry)
     {
-        std::shared_ptr<IRHITextureAllocation> out_texture_allocation;
+        std::shared_ptr<IRHITexture> out_texture_allocation;
         const bool imported = resource_manager.ImportResourceTexture(import_texture_info.first, import_texture_info.second, out_texture_allocation);
         GLTF_CHECK(imported);
 

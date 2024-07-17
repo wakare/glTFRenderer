@@ -513,6 +513,7 @@
     <ClInclude Include="glTFRHI\RHIVKImpl\VKCommandList.h" />
     <ClInclude Include="glTFRHI\RHIVKImpl\VKCommandQueue.h" />
     <ClInclude Include="glTFRHI\RHIVKImpl\VKCommandSignature.h" />
+    <ClInclude Include="glTFRHI\RHIVKImpl\VKCommon.h" />
     <ClInclude Include="glTFRHI\RHIVKImpl\VKComputePipelineStateObject.h" />
     <ClInclude Include="glTFRHI\RHIVKImpl\VKConverterUtils.h" />
     <ClInclude Include="glTFRHI\RHIVKImpl\VKDescriptorManager.h" />

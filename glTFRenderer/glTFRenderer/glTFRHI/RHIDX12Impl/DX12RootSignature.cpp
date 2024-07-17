@@ -204,23 +204,23 @@ DX12RootSignature::DX12RootSignature()
 {
 }
 
-bool DX12RootSignature::InitRootSignature(IRHIDevice& device)
+bool DX12RootSignature::InitRootSignature(IRHIDevice& device, IRHIDescriptorManager& descriptor_manager)
 {
     // Fill root parameters and static samplers
-    std::vector<D3D12_ROOT_PARAMETER1> dxRootParameters(m_rootParameters.size());
+    std::vector<D3D12_ROOT_PARAMETER1> dxRootParameters(m_root_parameters.size());
     for (size_t i = 0; i < dxRootParameters.size(); ++i)
     {
-        const DX12RootParameter* dxRootParameter = static_cast<const DX12RootParameter*>(m_rootParameters[i].get());
+        const DX12RootParameter* dxRootParameter = static_cast<const DX12RootParameter*>(m_root_parameters[i].get());
         dxRootParameters[i] = dxRootParameter->GetParameter();
     }
 
     m_description.pParameters = dxRootParameters.empty() ? nullptr : dxRootParameters.data();
     m_description.NumParameters = dxRootParameters.size();
     
-    std::vector<D3D12_STATIC_SAMPLER_DESC> dxStaticSamplers(m_staticSampler.size());
-    for (size_t i = 0; i < m_staticSampler.size(); ++i)
+    std::vector<D3D12_STATIC_SAMPLER_DESC> dxStaticSamplers(m_static_samplers.size());
+    for (size_t i = 0; i < m_static_samplers.size(); ++i)
     {
-        const DX12StaticSampler* dxStaticSampler = static_cast<const DX12StaticSampler*>(m_staticSampler[i].get());
+        const DX12StaticSampler* dxStaticSampler = static_cast<const DX12StaticSampler*>(m_static_samplers[i].get());
         dxStaticSamplers[i] = dxStaticSampler->GetStaticSamplerDesc();
     }
 

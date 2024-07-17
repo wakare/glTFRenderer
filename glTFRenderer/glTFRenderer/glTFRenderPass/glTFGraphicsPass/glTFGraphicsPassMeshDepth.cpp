@@ -11,7 +11,7 @@ bool glTFGraphicsPassMeshDepth::SetupPipelineStateObject(glTFRenderResourceManag
     GetGraphicsPipelineStateObject().BindShaderCode(
             R"(glTFResources\ShaderSource\MeshPassCommonVS.hlsl)", RHIShaderType::Vertex, "main");
     GetGraphicsPipelineStateObject().SetDepthStencilState(RHIDepthStencilMode::DEPTH_WRITE);
-    GetGraphicsPipelineStateObject().BindRenderTargetFormats({&resource_manager.GetDepthRT()});
+    GetGraphicsPipelineStateObject().BindRenderTargetFormats({&resource_manager.GetDepthDSV()});
     
     return true;
 }
@@ -21,10 +21,10 @@ bool glTFGraphicsPassMeshDepth::PreRenderPass(glTFRenderResourceManager& resourc
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::PreRenderPass(resource_manager))
 
     auto& command_list = resource_manager.GetCommandListForRecord();
-    resource_manager.GetDepthRT().Transition(command_list, RHIResourceStateType::STATE_DEPTH_WRITE);
+    resource_manager.GetDepthTextureRef().Transition(command_list, RHIResourceStateType::STATE_DEPTH_WRITE);
     
-    RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().BindRenderTarget(command_list, {}, &resource_manager.GetDepthRT()))
-    RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().ClearRenderTarget(command_list, {&resource_manager.GetDepthRT()}))
+    RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().BindRenderTarget(command_list, {}, &resource_manager.GetDepthDSV()))
+    RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().ClearRenderTarget(command_list, {&resource_manager.GetDepthDSV()}))
 
     return true;
 }
@@ -34,7 +34,7 @@ bool glTFGraphicsPassMeshDepth::PostRenderPass(glTFRenderResourceManager& resour
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::PostRenderPass(resource_manager))
     
     auto& command_list = resource_manager.GetCommandListForRecord();
-    resource_manager.GetDepthRT().Transition(command_list, RHIResourceStateType::STATE_DEPTH_READ);
+    resource_manager.GetDepthTextureRef().Transition(command_list, RHIResourceStateType::STATE_DEPTH_READ);
     
     return true;
 }

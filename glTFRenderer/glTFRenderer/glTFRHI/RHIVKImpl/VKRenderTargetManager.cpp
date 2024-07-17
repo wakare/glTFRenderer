@@ -4,76 +4,50 @@
 #include "VKDevice.h"
 #include "VKRenderTarget.h"
 #include "VKSwapChain.h"
+#include "glTFRenderPass/glTFRenderResourceManager.h"
 
 bool VKRenderTargetManager::InitRenderTargetManager(IRHIDevice& device, size_t maxRenderTargetCount)
 {
     return false;
 }
 
-std::shared_ptr<IRHIRenderTarget> VKRenderTargetManager::CreateRenderTarget(IRHIDevice& device,
+std::shared_ptr<IRHITextureDescriptorAllocation> VKRenderTargetManager::CreateRenderTarget(IRHIDevice& device,
                                                                             glTFRenderResourceManager& resource_manager, const RHITextureDesc& texture_desc, const RHIRenderTargetDesc& render_target_desc)
 {
-    const VkDevice vk_device = dynamic_cast<VKDevice&>(device).GetDevice();
-    const auto vk_render_target = std::make_shared<VKRenderTarget>();
+    std::shared_ptr<IRHITextureAllocation> out_texture_allocation;
+    resource_manager.GetMemoryManager().AllocateTextureMemory(device, resource_manager, texture_desc, out_texture_allocation);
 
-    VkImageCreateInfo image_create_info{};
-    image_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    image_create_info.imageType = VK_IMAGE_TYPE_2D; 
-    image_create_info.extent = {texture_desc.GetTextureWidth(), texture_desc.GetTextureHeight(), 1};
-    image_create_info.mipLevels = 1;
-    image_create_info.arrayLayers = 1;
-    image_create_info.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-    image_create_info.format = VKConverterUtils::ConvertToFormat(texture_desc.GetDataFormat());
-    image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
-    image_create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
-    image_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE; 
-
-    VkImage image = VK_NULL_HANDLE;
-    VkResult result = vkCreateImage(vk_device, &image_create_info, nullptr, &image);
-    GLTF_CHECK(result == VK_SUCCESS);
+    std::shared_ptr<IRHITextureDescriptorAllocation> texture_descriptor_allocation;
+    RHITextureDescriptorDesc render_target(render_target_desc.format, RHIResourceDimension::TEXTURE2D,
+        render_target_desc.type == RHIRenderTargetType::DSV ? RHIViewType::RVT_DSV : RHIViewType::RVT_RTV);
+    resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(device, out_texture_allocation->m_texture,
+        render_target, texture_descriptor_allocation);
     
-    vk_render_target->InitRenderTarget(vk_device, VKConverterUtils::ConvertToFormat(texture_desc.GetDataFormat()), image);
-    return nullptr;
+    return texture_descriptor_allocation;
 }
 
-std::vector<std::shared_ptr<IRHIRenderTarget>> VKRenderTargetManager::CreateRenderTargetFromSwapChain(
+std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>> VKRenderTargetManager::CreateRenderTargetFromSwapChain(
     IRHIDevice& device, glTFRenderResourceManager& resource_manager, IRHISwapChain& swapChain, RHITextureClearValue clearValue)
 {
-    std::vector<std::shared_ptr<IRHIRenderTarget>> results;
+    std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>> results;
 
-    const VkDevice vk_device = dynamic_cast<VKDevice&>(device).GetDevice();
     VKSwapChain& vk_swap_chain = dynamic_cast<VKSwapChain&>(swapChain);
     const unsigned back_buffer_count = vk_swap_chain.GetBackBufferCount();
 
     results.resize(back_buffer_count);
     for (unsigned i = 0; i < back_buffer_count; ++i)
     {
-        const VkImage back_buffer_image = vk_swap_chain.GetSwapChainImageByIndex(i);
-
-        const auto vk_render_target = std::make_shared<VKRenderTarget>();
-        vk_render_target->InitRenderTarget(vk_device, VKConverterUtils::ConvertToFormat(vk_swap_chain.GetBackBufferFormat()), back_buffer_image);
-        
-        results[i] = vk_render_target; 
+        auto swap_chain_texture = vk_swap_chain.GetSwapChainImageByIndex(i);
+        RHITextureDescriptorDesc render_target(vk_swap_chain.GetBackBufferFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_RTV);
+        resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(device, swap_chain_texture,
+                render_target, results[i]);
     }
 
     return results;
 }
 
 bool VKRenderTargetManager::ClearRenderTarget(IRHICommandList& commandList,
-    const std::vector<IRHIRenderTarget*>& renderTargets)
-{
-    return false;
-}
-
-bool VKRenderTargetManager::ClearRenderTarget(IRHICommandList& commandList,
-                                              const std::vector<IRHIDescriptorAllocation*>& render_targets,
-                                              const RHITextureClearValue& render_target_clear_value, const RHITextureClearValue& depth_stencil_clear_value)
-{
-    return false;
-}
-
-bool VKRenderTargetManager::BindRenderTarget(IRHICommandList& commandList,
-                                             const std::vector<IRHIRenderTarget*>& renderTargets, IRHIRenderTarget* depthStencil)
+                                              const std::vector<IRHIDescriptorAllocation*>& render_targets)
 {
     return false;
 }

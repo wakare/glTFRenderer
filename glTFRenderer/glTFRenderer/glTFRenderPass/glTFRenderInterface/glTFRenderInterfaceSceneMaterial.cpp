@@ -35,10 +35,10 @@ bool glTFRenderInterfaceSceneMaterial::UploadMaterialData(glTFRenderResourceMana
             continue;
         }
         std::shared_ptr<IRHITextureDescriptorAllocation> result;
-        auto& texture_resource = *texture->GetTextureAllocation().m_texture;
+        auto& texture_resource = texture->GetTextureAllocation().m_texture;
         resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), texture_resource,
             RHITextureDescriptorDesc{
-                texture_resource.GetTextureDesc().GetDataFormat(),
+                texture_resource->GetTextureDesc().GetDataFormat(),
                 RHIResourceDimension::TEXTURE2D,
                 RHIViewType::RVT_SRV,
             },

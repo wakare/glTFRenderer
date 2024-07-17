@@ -2,6 +2,7 @@
 
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 #include "RendererCommon.h"
+#include "glTFRenderPass/glTFRenderResourceManager.h"
 
 bool IRHIRootSignatureHelper::AddRootParameterWithRegisterCount(const std::string& parameter_name, RHIRootParameterType type,
                                                                 unsigned register_count, unsigned constant_value, RHIRootParameterDescriptorRangeType table_type, bool is_bindless, RootSignatureAllocation& out_allocation)
@@ -167,7 +168,7 @@ unsigned IRHIRootSignatureHelper::GetRegisterSpace() const
     return m_register_space;
 }
 
-bool IRHIRootSignatureHelper::BuildRootSignature(IRHIDevice& device)
+bool IRHIRootSignatureHelper::BuildRootSignature(IRHIDevice& device, glTFRenderResourceManager& resource_manager)
 {
     GLTF_CHECK(!m_root_signature);
 
@@ -218,7 +219,7 @@ bool IRHIRootSignatureHelper::BuildRootSignature(IRHIDevice& device)
         m_root_signature->GetStaticSampler(sampler.sample_index).InitStaticSampler(sampler.sample_index, sampler.address_mode, sampler.filter_mode);
     }
     
-    return m_root_signature->InitRootSignature(device);
+    return m_root_signature->InitRootSignature(device, resource_manager.GetMemoryManager().GetDescriptorManager() );
 }
 
 IRHIRootSignature& IRHIRootSignatureHelper::GetRootSignature() const

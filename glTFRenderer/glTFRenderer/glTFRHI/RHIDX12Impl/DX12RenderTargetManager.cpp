@@ -33,16 +33,20 @@ bool DX12RenderTargetManager::InitRenderTargetManager(IRHIDevice& device, size_t
     return true;
 }
 
-std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTarget(IRHIDevice& device, glTFRenderResourceManager& resource_manager, const RHITextureDesc& texture_desc, const RHIRenderTargetDesc& render_target_desc)
+std::shared_ptr<IRHITextureDescriptorAllocation> DX12RenderTargetManager::CreateRenderTarget(IRHIDevice& device, glTFRenderResourceManager& resource_manager, const RHITextureDesc& texture_desc, const RHIRenderTargetDesc& render_target_desc)
 {
     std::shared_ptr<IRHITextureAllocation> texture_allocation;
     resource_manager.GetMemoryManager().AllocateTextureMemory(device, resource_manager, texture_desc, texture_allocation);
 
-    return CreateRenderTargetWithResource(device, resource_manager, render_target_desc.type, render_target_desc.format == RHIDataFormat::UNKNOWN ? texture_desc.GetDataFormat() : render_target_desc.format,
-                                          texture_allocation, DX12ConverterUtils::ConvertToD3DClearValue(texture_desc.GetClearValue()));
+    return CreateRenderTargetWithResource(device,
+        resource_manager,
+        render_target_desc.type,
+        render_target_desc.format == RHIDataFormat::UNKNOWN ? texture_desc.GetDataFormat() : render_target_desc.format,
+        texture_allocation,
+        DX12ConverterUtils::ConvertToD3DClearValue(texture_desc.GetClearValue()));
 }
 
-std::vector<std::shared_ptr<IRHIRenderTarget>> DX12RenderTargetManager::CreateRenderTargetFromSwapChain(
+std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>> DX12RenderTargetManager::CreateRenderTargetFromSwapChain(
     IRHIDevice& device, glTFRenderResourceManager& resource_manager, IRHISwapChain& swap_chain, RHITextureClearValue clear_value)
 {
     auto* dxSwapChain = dynamic_cast<DX12SwapChain&>(swap_chain).GetSwapChain();
@@ -50,7 +54,7 @@ std::vector<std::shared_ptr<IRHIRenderTarget>> DX12RenderTargetManager::CreateRe
     DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
     dxSwapChain->GetDesc(&swapChainDesc);
 
-    std::vector<std::shared_ptr<IRHIRenderTarget>> outVector = {};
+    std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>> outVector = {};
 
     D3D12_CLEAR_VALUE dx_clear_value = DX12ConverterUtils::ConvertToD3DClearValue(clear_value);
 
@@ -82,54 +86,19 @@ std::vector<std::shared_ptr<IRHIRenderTarget>> DX12RenderTargetManager::CreateRe
     return outVector;
 }
 
-bool DX12RenderTargetManager::ClearRenderTarget(IRHICommandList& command_list, const std::vector<IRHIRenderTarget*>& render_targets)
-{
-    auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
-    for (size_t i = 0; i < render_targets.size(); ++i)
-    {
-        auto* dxRenderTarget = dynamic_cast<DX12RenderTarget*>(render_targets[i]);
-        auto dx12_clear_value = DX12ConverterUtils::ConvertToD3DClearValue(dxRenderTarget->GetClearValue());
-        auto handle = dynamic_cast<DX12TextureDescriptorAllocation&>(dxRenderTarget->GetDescriptorAllocation()).m_cpu_handle;
-
-        GLTF_CHECK(render_targets[i]->GetTexture().GetState() == RHIResourceStateType::STATE_RENDER_TARGET ||
-            render_targets[i]->GetTexture().GetState() == RHIResourceStateType::STATE_DEPTH_WRITE);
-        
-        switch (dxRenderTarget->GetRenderTargetType())
-        {
-        case RHIRenderTargetType::RTV:
-            {
-                dxCommandList->ClearRenderTargetView({handle}, dx12_clear_value.Color, 0, nullptr);    
-            }
-            break;
-
-        case RHIRenderTargetType::DSV:
-            {
-                dxCommandList->ClearDepthStencilView({handle}, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
-                    dx12_clear_value.DepthStencil.Depth, dx12_clear_value.DepthStencil.Stencil, 0, nullptr);
-            }
-            break;
-            
-        default:
-            GLTF_CHECK(false);
-        }
-    }
-
-    return true;
-}
-
 bool DX12RenderTargetManager::ClearRenderTarget(IRHICommandList& command_list,
-                                                const std::vector<IRHIDescriptorAllocation*>& render_targets, const RHITextureClearValue&
-                                                render_target_clear_value, const RHITextureClearValue& depth_stencil_clear_value)
+                                                const std::vector<IRHIDescriptorAllocation*>& render_targets)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
     for (size_t i = 0; i < render_targets.size(); ++i)
     {
-        auto& render_target = *render_targets[i];
-
-        auto dx_render_target_clear_value = DX12ConverterUtils::ConvertToD3DClearValue(render_target_clear_value);
-        auto dx_depth_stencil_clear_value = DX12ConverterUtils::ConvertToD3DClearValue(depth_stencil_clear_value);
+        auto& render_target = dynamic_cast<const IRHITextureDescriptorAllocation&>(*render_targets[i]);
+        auto clear_value = render_target.m_source->GetTextureDesc().GetClearValue();
         
-        auto handle = dynamic_cast<DX12TextureDescriptorAllocation&>(render_target).m_cpu_handle;
+        auto dx_render_target_clear_value = DX12ConverterUtils::ConvertToD3DClearValue(clear_value);
+        auto dx_depth_stencil_clear_value = DX12ConverterUtils::ConvertToD3DClearValue(clear_value);
+        
+        auto handle = dynamic_cast<const DX12TextureDescriptorAllocation&>(render_target).m_cpu_handle;
         switch (render_target.GetDesc().m_view_type)
         {
         case RHIViewType::RVT_RTV:
@@ -150,37 +119,6 @@ bool DX12RenderTargetManager::ClearRenderTarget(IRHICommandList& command_list,
         }
     }
 
-    return true;
-}
-
-bool DX12RenderTargetManager::BindRenderTarget(IRHICommandList& command_list, const std::vector<IRHIRenderTarget*>& render_targets,
-                                               IRHIRenderTarget* depth_stencil)
-{
-    auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
-    if (render_targets.empty() && !depth_stencil)
-    {
-        // Bind zero rt? some bugs must exists.. 
-        assert(false);
-        return false;
-    }
-    
-    std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> render_target_views(render_targets.size());
-    for (size_t i = 0; i < render_target_views.size(); ++i)
-    {
-        auto handle = dynamic_cast<DX12TextureDescriptorAllocation&>(render_targets[i]->GetDescriptorAllocation()).m_cpu_handle;
-        render_target_views[i] = {handle};
-    }
-
-    D3D12_CPU_DESCRIPTOR_HANDLE dsHandle{};
-    if (depth_stencil)
-    {
-        auto handle = dynamic_cast<DX12TextureDescriptorAllocation&>(depth_stencil->GetDescriptorAllocation()).m_cpu_handle;
-        dsHandle = {handle};
-    }
-
-    // TODO: Check RTsSingleHandleToDescriptorRange means?
-    dxCommandList->OMSetRenderTargets(render_target_views.size(), render_target_views.data(), false, depth_stencil ? &dsHandle : nullptr);
-    
     return true;
 }
 
@@ -216,7 +154,7 @@ bool DX12RenderTargetManager::BindRenderTarget(IRHICommandList& command_list,
     return true;
 }
 
-std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTargetWithResource(IRHIDevice& device, glTFRenderResourceManager& resource_manager,
+std::shared_ptr<IRHITextureDescriptorAllocation> DX12RenderTargetManager::CreateRenderTargetWithResource(IRHIDevice& device, glTFRenderResourceManager& resource_manager,
     RHIRenderTargetType type, RHIDataFormat descriptor_format, std::shared_ptr<IRHITextureAllocation> texture_resource, const D3D12_CLEAR_VALUE& clear_value)
 {
     GLTF_CHECK(texture_resource->m_texture->GetTextureDesc().GetUsage() & RUF_ALLOW_RENDER_TARGET ||
@@ -224,16 +162,13 @@ std::shared_ptr<IRHIRenderTarget> DX12RenderTargetManager::CreateRenderTargetWit
     
     const bool is_rtv = (type == RHIRenderTargetType::RTV);
     std::shared_ptr<IRHITextureDescriptorAllocation> descriptor_allocation;
-    resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(device, *texture_resource->m_texture, 
+    resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(device, texture_resource->m_texture, 
         RHITextureDescriptorDesc{
             descriptor_format,
             RHIResourceDimension::TEXTURE2D,
             is_rtv ? RHIViewType::RVT_RTV : RHIViewType::RVT_DSV,
         },
         descriptor_allocation);
-    
-    std::shared_ptr<IRHIRenderTarget> render_target = RHIResourceFactory::CreateRHIResource<IRHIRenderTarget>();
-    render_target->InitRenderTarget(texture_resource, descriptor_allocation);
-    
-    return render_target;
+
+    return descriptor_allocation;
 }

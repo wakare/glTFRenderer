@@ -37,6 +37,59 @@ VkImageLayout VKConverterUtils::ConvertToImageLayout(RHIImageLayout image_layout
     return result;
 }
 
+VkImageLayout VKConverterUtils::ConvertToImageLayout(RHIResourceStateType state)
+{
+    switch (state) {
+    case RHIResourceStateType::STATE_UNKNOWN:
+        return VK_IMAGE_LAYOUT_UNDEFINED;
+        break;
+    case RHIResourceStateType::STATE_COMMON:
+        return VK_IMAGE_LAYOUT_GENERAL;
+        break;
+    case RHIResourceStateType::STATE_GENERIC_READ:
+        return VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL;
+        break;
+    case RHIResourceStateType::STATE_COPY_SOURCE:
+        return VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+        break;
+    case RHIResourceStateType::STATE_COPY_DEST:
+        return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        break;
+    case RHIResourceStateType::STATE_VERTEX_AND_CONSTANT_BUFFER:
+    GLTF_CHECK(false);
+        break;
+    case RHIResourceStateType::STATE_INDEX_BUFFER:
+        GLTF_CHECK(false);
+        break;
+    case RHIResourceStateType::STATE_PRESENT:
+        return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        break;
+    case RHIResourceStateType::STATE_RENDER_TARGET:
+        return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        break;
+    case RHIResourceStateType::STATE_DEPTH_WRITE:
+        return VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+        break;
+    case RHIResourceStateType::STATE_DEPTH_READ:
+        return VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL;
+        break;
+    case RHIResourceStateType::STATE_UNORDERED_ACCESS:
+        return VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL;
+        break;
+    case RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE:
+        return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        break;
+    case RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE:
+        return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        break;
+    case RHIResourceStateType::STATE_RAYTRACING_ACCELERATION_STRUCTURE:
+        GLTF_CHECK(false);
+        break;
+    }
+    GLTF_CHECK(false);
+    return VK_IMAGE_LAYOUT_UNDEFINED;
+}
+
 VkFormat VKConverterUtils::ConvertToFormat(RHIDataFormat format)
 {
     VkFormat result = VK_FORMAT_UNDEFINED;

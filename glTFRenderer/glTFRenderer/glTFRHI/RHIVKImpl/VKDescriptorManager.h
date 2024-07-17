@@ -5,17 +5,18 @@
 class VKBufferDescriptorAllocation : public IRHIBufferDescriptorAllocation
 {
 public:
-    virtual bool InitFromBuffer(const IRHIBuffer& buffer, const RHIBufferDescriptorDesc& desc) override;
+    virtual bool InitFromBuffer(const std::shared_ptr<IRHIBuffer>& buffer, const RHIBufferDescriptorDesc& desc) override;
     VkBuffer GetRawBuffer() const;
     
 protected:
     bool m_buffer_init {false};
-    VkBuffer m_buffer {VK_NULL_HANDLE};
 };
 
 class VKTextureDescriptorAllocation : public IRHITextureDescriptorAllocation
 {
 public:
+    bool InitFromImageView(const std::shared_ptr<IRHITexture>& texture, VkImageView image_view, const RHITextureDescriptorDesc& desc);
+    
     VkImageView GetRawImageView() const;
     
 protected:
@@ -35,10 +36,14 @@ public:
     DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKDescriptorManager)
 
     virtual bool Init(IRHIDevice& device, const RHIMemoryManagerDescriptorMaxCapacity& max_descriptor_capacity) override;
-    virtual bool CreateDescriptor(IRHIDevice& device, const IRHIBuffer& buffer, const RHIBufferDescriptorDesc& desc, std::shared_ptr<IRHIBufferDescriptorAllocation>& out_descriptor_allocation) override;
-    virtual bool CreateDescriptor(IRHIDevice& device, const IRHITexture& texture, const RHITextureDescriptorDesc& desc, std::shared_ptr<IRHITextureDescriptorAllocation>& out_descriptor_allocation) override;
+    virtual bool CreateDescriptor(IRHIDevice& device, const std::shared_ptr<IRHIBuffer>& buffer, const RHIBufferDescriptorDesc& desc, std::shared_ptr<IRHIBufferDescriptorAllocation>& out_descriptor_allocation) override;
+    virtual bool CreateDescriptor(IRHIDevice& device, const std::shared_ptr<IRHITexture>& texture, const RHITextureDescriptorDesc& desc, std::shared_ptr<IRHITextureDescriptorAllocation>& out_descriptor_allocation) override;
 
     virtual bool BindDescriptors(IRHICommandList& command_list) override;
     virtual bool BindGUIDescriptors(IRHICommandList& command_list) override;
 
+    VkDescriptorPool GetDesciptorPool() const;
+    
+protected:
+    VkDescriptorPool m_descriptor_pool {VK_NULL_HANDLE};
 };

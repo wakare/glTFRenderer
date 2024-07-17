@@ -3,9 +3,10 @@
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 #include "DX12DescriptorHeap.h"
 
-bool DX12BufferDescriptorAllocation::InitFromBuffer(const IRHIBuffer& buffer, const RHIBufferDescriptorDesc& desc)
+bool DX12BufferDescriptorAllocation::InitFromBuffer(const std::shared_ptr<IRHIBuffer>& buffer, const RHIBufferDescriptorDesc& desc)
 {
-    m_gpu_handle = dynamic_cast<const DX12Buffer&>(buffer).GetRawBuffer()->GetGPUVirtualAddress();
+    m_gpu_handle = dynamic_cast<const DX12Buffer&>(*buffer).GetRawBuffer()->GetGPUVirtualAddress();
+    m_source = buffer;
     m_view_desc = desc;
     return true;
 }
@@ -70,14 +71,14 @@ bool DX12DescriptorManager::Init(IRHIDevice& device, const RHIMemoryManagerDescr
     return true;
 }
 
-bool DX12DescriptorManager::CreateDescriptor(IRHIDevice& device, const IRHIBuffer& buffer,
+bool DX12DescriptorManager::CreateDescriptor(IRHIDevice& device, const std::shared_ptr<IRHIBuffer>& buffer,
                                              const RHIBufferDescriptorDesc& desc, std::shared_ptr<IRHIBufferDescriptorAllocation>& out_descriptor_allocation)
 {
     GLTF_CHECK(desc.m_dimension != RHIResourceDimension::UNKNOWN);
     return GetDescriptorHeap(desc.m_view_type).CreateResourceDescriptorInHeap(device, buffer, desc, out_descriptor_allocation);
 }
 
-bool DX12DescriptorManager::CreateDescriptor(IRHIDevice& device, const IRHITexture& texture,
+bool DX12DescriptorManager::CreateDescriptor(IRHIDevice& device, const std::shared_ptr<IRHITexture>& texture,
                                              const RHITextureDescriptorDesc& desc, std::shared_ptr<IRHITextureDescriptorAllocation>& out_descriptor_allocation)
 {
     GLTF_CHECK(desc.m_dimension != RHIResourceDimension::UNKNOWN);

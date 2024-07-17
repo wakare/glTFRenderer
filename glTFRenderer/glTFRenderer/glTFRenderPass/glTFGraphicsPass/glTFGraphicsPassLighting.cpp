@@ -37,21 +37,21 @@ bool glTFGraphicsPassLighting::PreRenderPass(glTFRenderResourceManager& resource
     RETURN_IF_FALSE(glTFGraphicsPassPostprocess::PreRenderPass(resource_manager))
 
     auto& command_list = resource_manager.GetCommandListForRecord();
-    auto& basepass_albedo = GetResourceTexture(RenderPassResourceTableId::BasePass_Albedo);
-    auto& basepass_normal = GetResourceTexture(RenderPassResourceTableId::BasePass_Normal);
+    auto basepass_albedo = GetResourceTexture(RenderPassResourceTableId::BasePass_Albedo);
+    auto basepass_normal = GetResourceTexture(RenderPassResourceTableId::BasePass_Normal);
     
-    basepass_albedo.Transition(command_list, RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE);
-    basepass_normal.Transition(command_list, RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE);
-    resource_manager.GetDepthRT().Transition(command_list, RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE);
-    resource_manager.GetCurrentFrameSwapChainRT().Transition(command_list, RHIResourceStateType::STATE_RENDER_TARGET);
+    basepass_albedo->Transition(command_list, RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE);
+    basepass_normal->Transition(command_list, RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE);
+    resource_manager.GetDepthTextureRef().Transition(command_list, RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE);
+    resource_manager.GetCurrentFrameSwapChainTexture().Transition(command_list, RHIResourceStateType::STATE_RENDER_TARGET);
 
     BindDescriptor(command_list, m_base_color_and_depth_allocation.parameter_index, *m_base_pass_albedo_allocation);
     
     RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().BindRenderTarget(command_list,
-        {&resource_manager.GetCurrentFrameSwapChainRT()}, nullptr))
+        {&resource_manager.GetCurrentFrameSwapChainRTV()}, nullptr))
 
     RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().ClearRenderTarget(command_list,
-        {&resource_manager.GetCurrentFrameSwapChainRT()}))
+        {&resource_manager.GetCurrentFrameSwapChainRTV()}))
 
     RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceLighting>()->UpdateCPUBuffer(resource_manager))
 
@@ -97,21 +97,21 @@ bool glTFGraphicsPassLighting::SetupPipelineStateObject(glTFRenderResourceManage
 {
     RETURN_IF_FALSE(glTFGraphicsPassPostprocess::SetupPipelineStateObject(resource_manager))
 
-    std::vector<IRHIRenderTarget*> render_targets;
-    render_targets.push_back(&resource_manager.GetCurrentFrameSwapChainRT());
+    std::vector<IRHIDescriptorAllocation*> render_targets;
+    render_targets.push_back(&resource_manager.GetCurrentFrameSwapChainRTV());
     GetGraphicsPipelineStateObject().BindRenderTargetFormats(render_targets);
     
-    auto& basepass_albedo = GetResourceTexture(RenderPassResourceTableId::BasePass_Albedo);
-    auto& basepass_normal = GetResourceTexture(RenderPassResourceTableId::BasePass_Normal);
+    auto basepass_albedo = GetResourceTexture(RenderPassResourceTableId::BasePass_Albedo);
+    auto basepass_normal = GetResourceTexture(RenderPassResourceTableId::BasePass_Normal);
     
     RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), basepass_albedo,
-                        {basepass_albedo.GetTextureFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_base_pass_albedo_allocation))
+                        {basepass_albedo->GetTextureFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_base_pass_albedo_allocation))
 
-    RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), resource_manager.GetDepthRT().GetTexture(),
+    RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), resource_manager.GetDepthTexture(),
                         {RHIDataFormat::R32_FLOAT, RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_depth_allocation))
 
     RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), basepass_normal,
-                        {basepass_normal.GetTextureFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_base_pass_normal_allocation))
+                        {basepass_normal->GetTextureFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_base_pass_normal_allocation))
 
     GetGraphicsPipelineStateObject().BindShaderCode(
         R"(glTFResources\ShaderSource\LightPassVS.hlsl)", RHIShaderType::Vertex, "main");

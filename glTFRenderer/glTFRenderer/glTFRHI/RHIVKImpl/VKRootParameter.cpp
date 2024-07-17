@@ -1,27 +1,56 @@
 #include "VKRootParameter.h"
 
-bool VKRootParameter::InitAsConstant(unsigned constantValue, unsigned register_index, unsigned space)
+bool VKRootParameter::InitAsConstant(unsigned constant_value, unsigned register_index, unsigned space)
 {
+    //TODO: 
+    GLTF_CHECK(false);
+    return false;
+}
+
+bool VKRootParameter::InitAsCBV(unsigned register_index, unsigned space)
+{
+    m_binding.binding = register_index;
+    m_binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    m_binding.descriptorCount = 1;
+    
+    // TODO: optimization shader stage config
+    m_binding.stageFlags = VK_SHADER_STAGE_ALL;
     return true;
 }
 
-bool VKRootParameter::InitAsCBV(unsigned registerIndex, unsigned space)
+bool VKRootParameter::InitAsSRV(unsigned register_index, unsigned space)
 {
+    m_binding.binding = register_index;
+    m_binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    m_binding.descriptorCount = 1;
+    
+    // TODO: optimization shader stage config
+    m_binding.stageFlags = VK_SHADER_STAGE_ALL;
+    
     return true;
 }
 
-bool VKRootParameter::InitAsSRV(unsigned registerIndex, unsigned space)
+bool VKRootParameter::InitAsUAV(unsigned register_index, unsigned space)
 {
+    m_binding.binding = register_index;
+    m_binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    m_binding.descriptorCount = 1;
+    
+    // TODO: optimization shader stage config
+    m_binding.stageFlags = VK_SHADER_STAGE_ALL;
+    
     return true;
 }
 
-bool VKRootParameter::InitAsUAV(unsigned registerIndex, unsigned space)
+bool VKRootParameter::InitAsDescriptorTableRange(size_t range_count,
+    const RHIRootParameterDescriptorRangeDesc* range_desc)
 {
-    return true;
-}
-
-bool VKRootParameter::InitAsDescriptorTableRange(size_t rangeCount,
-    const RHIRootParameterDescriptorRangeDesc* rangeDesc)
-{
+    m_binding.binding = range_desc->base_register_index;
+    m_binding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    m_binding.descriptorCount = range_count;
+    
+    // TODO: optimization shader stage config
+    m_binding.stageFlags = VK_SHADER_STAGE_ALL;
+    
     return true;
 }

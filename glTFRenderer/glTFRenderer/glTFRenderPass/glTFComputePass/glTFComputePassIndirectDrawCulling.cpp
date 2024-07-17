@@ -65,7 +65,7 @@ bool glTFComputePassIndirectDrawCulling::InitPass(glTFRenderResourceManager& res
     };
     RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(
                 resource_manager.GetDevice(),
-                *mesh_manager.GetCulledIndirectArgumentBuffer(),
+                mesh_manager.GetCulledIndirectArgumentBuffer(),
                 uav_structured_buffer_descriptor_desc,
                 m_command_buffer_handle))
 

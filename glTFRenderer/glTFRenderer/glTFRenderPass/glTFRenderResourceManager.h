@@ -48,9 +48,13 @@ public:
     IRHIRenderTargetManager& GetRenderTargetManager();
     
     IRHICommandAllocator& GetCurrentFrameCommandAllocator();
+
+    IRHITexture& GetCurrentFrameSwapChainTexture();
+    IRHITexture& GetDepthTextureRef();
+    std::shared_ptr<IRHITexture> GetDepthTexture();
     
-    IRHIRenderTarget& GetCurrentFrameSwapChainRT();
-    IRHIRenderTarget& GetDepthRT();
+    IRHITextureDescriptorAllocation& GetCurrentFrameSwapChainRTV();
+    IRHITextureDescriptorAllocation& GetDepthDSV();
 
 	glTFRenderMaterialManager& GetMaterialManager();
     glTFRenderMeshManager& GetMeshManager();
@@ -72,8 +76,8 @@ public:
     const glTFRadiosityRenderer& GetRadiosityRenderer() const;
 
     // Allocate pass resource and track for export/import
-    bool ExportResourceTexture(const RHITextureDesc& desc, RenderPassResourceTableId entry_id, std::shared_ptr<IRHITextureAllocation>& out_texture_allocation);
-    bool ImportResourceTexture(const RHITextureDesc& desc, RenderPassResourceTableId entry_id, std::shared_ptr<IRHITextureAllocation>& out_texture_allocation);
+    bool ExportResourceTexture(const RHITextureDesc& desc, RenderPassResourceTableId entry_id, std::shared_ptr<IRHITexture>& out_texture_allocation);
+    bool ImportResourceTexture(const RHITextureDesc& desc, RenderPassResourceTableId entry_id, std::shared_ptr<IRHITexture>& out_texture_allocation);
     
 private:
     std::shared_ptr<glTFRadiosityRenderer> m_radiosity_renderer;
@@ -88,10 +92,10 @@ private:
     std::vector<std::shared_ptr<IRHICommandAllocator>> m_command_allocators;
     std::vector<std::shared_ptr<IRHICommandList>> m_command_lists;
     std::vector<bool> m_command_list_record_state;
-    
+
     std::shared_ptr<IRHIRenderTargetManager> m_render_target_manager;
-    std::vector<std::shared_ptr<IRHIRenderTarget>> m_swapchain_RTs;
-    std::shared_ptr<IRHIRenderTarget> m_depth_texture;
+    std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>> m_swapchain_RTs;
+    std::shared_ptr<IRHITextureDescriptorAllocation> m_depth_texture;
 
     std::shared_ptr<glTFRenderMaterialManager> m_material_manager;
     std::shared_ptr<glTFRenderMeshManager> m_mesh_manager;
@@ -101,5 +105,6 @@ private:
     
     std::shared_ptr<glTFRenderResourceUtils::GBufferSignatureAllocations> m_gBuffer_allocations;
 
+    std::map<RenderPassResourceTableId, std::shared_ptr<IRHITexture>> m_export_texture_map;
     std::map<RenderPassResourceTableId, std::shared_ptr<IRHITextureAllocation>> m_export_texture_allocation_map;
 };

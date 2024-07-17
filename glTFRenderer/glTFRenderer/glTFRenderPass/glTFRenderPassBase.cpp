@@ -27,7 +27,7 @@ bool glTFRenderPassBase::InitPass(glTFRenderResourceManager& resource_manager)
     // Init root signature
     m_root_signature_helper.SetUsage(RHIRootSignatureUsage::Default);
     RETURN_IF_FALSE(SetupRootSignature(resource_manager))
-    RETURN_IF_FALSE(m_root_signature_helper.BuildRootSignature(resource_manager.GetDevice()))
+    RETURN_IF_FALSE(m_root_signature_helper.BuildRootSignature(resource_manager.GetDevice(), resource_manager))
     
     RETURN_IF_FALSE(SetupPipelineStateObject(resource_manager))
     RETURN_IF_FALSE(m_pipeline_state_object->InitPipelineStateObject(resource_manager.GetDevice(),
@@ -53,7 +53,7 @@ bool glTFRenderPassBase::PreRenderPass(glTFRenderResourceManager& resource_manag
     
     RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().BindDescriptors(command_list))
     
-    RETURN_IF_FALSE(RHIUtils::Instance().SetRootSignature(command_list, m_root_signature_helper.GetRootSignature(), GetPipelineType() == RHIPipelineType::Graphics))
+    RETURN_IF_FALSE(RHIUtils::Instance().SetRootSignature(command_list, m_root_signature_helper.GetRootSignature(), *m_pipeline_state_object,   GetPipelineType()))
 
     RETURN_IF_FALSE(m_descriptor_updater->FinalizeUpdateDescriptors(resource_manager.GetDevice(), command_list, m_root_signature_helper.GetRootSignature()))
     
@@ -61,7 +61,7 @@ bool glTFRenderPassBase::PreRenderPass(glTFRenderResourceManager& resource_manag
     {
         RETURN_IF_FALSE(render_interface->ApplyInterface(resource_manager, GetPipelineType(), *m_descriptor_updater))    
     }
-    
+
     return true;
 }
 

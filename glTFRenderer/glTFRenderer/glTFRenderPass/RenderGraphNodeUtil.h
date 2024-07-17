@@ -10,9 +10,7 @@ namespace RenderGraphNodeUtil
     public:
         DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(RenderGraphNode)
         
-        IRHITexture& GetResourceTexture(RenderPassResourceTableId id);
-        const IRHITexture& GetResourceTexture(RenderPassResourceTableId id) const;
-        const IRHITextureAllocation& GetResourceTextureAllocation(RenderPassResourceTableId id) const;
+        std::shared_ptr<IRHITexture> GetResourceTexture(RenderPassResourceTableId id) const;
         
         void AddImportTextureResource(const RHITextureDesc& desc, RenderPassResourceTableId id);
         void AddExportTextureResource(const RHITextureDesc& desc, RenderPassResourceTableId id);

@@ -4,7 +4,6 @@
 #include "glTFRHI/RHIInterface/IRHICommandList.h"
 #include "glTFRHI/RHIInterface/IRHIRenderTarget.h"
 #include "glTFRHI/RHIInterface/IRHIRootSignatureHelper.h"
-#include "ShaderUtil/IRHIShader.h"
 
 class IRHIDescriptorUpdater;
 class glTFRenderResourceManager;
@@ -40,9 +39,9 @@ namespace glTFRenderResourceUtils
     
     struct GBufferOutput
     {
-        std::shared_ptr<IRHIRenderTarget> m_albedo_output;
-        std::shared_ptr<IRHIRenderTarget> m_normal_output;
-        std::shared_ptr<IRHIRenderTarget> m_depth_output;
+        std::shared_ptr<IRHITextureDescriptorAllocation> m_albedo_output;
+        std::shared_ptr<IRHITextureDescriptorAllocation> m_normal_output;
+        std::shared_ptr<IRHITextureDescriptorAllocation> m_depth_output;
 
         bool InitGBufferOutput(glTFRenderResourceManager& resource_manager, unsigned back_buffer_index);
         bool InitGBufferUAVs(glTFUniqueID pass_id, glTFRenderResourceManager& resource_manager);
@@ -81,8 +80,8 @@ namespace glTFRenderResourceUtils
         RHITextureDesc m_texture0_desc;
         RHITextureDesc m_texture1_desc;
     
-        std::shared_ptr<IRHIRenderTarget> m_writable_buffer;
-        std::shared_ptr<IRHIRenderTarget> m_back_buffer;
+        std::shared_ptr<IRHITextureDescriptorAllocation> m_writable_buffer;
+        std::shared_ptr<IRHITextureDescriptorAllocation> m_back_buffer;
 
         std::shared_ptr<IRHITextureDescriptorAllocation> m_writable_buffer_handle;
         std::shared_ptr<IRHITextureDescriptorAllocation> m_back_buffer_handle;

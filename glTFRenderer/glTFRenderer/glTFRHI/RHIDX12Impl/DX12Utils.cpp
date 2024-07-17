@@ -132,12 +132,12 @@ bool DX12Utils::WaitCommandListFinish(IRHICommandList& command_list)
     return command_list.WaitCommandList();
 }
 
-bool DX12Utils::SetRootSignature(IRHICommandList& command_list, IRHIRootSignature& rootSignature, bool isGraphicsPipeline)
+bool DX12Utils::SetRootSignature(IRHICommandList& command_list, IRHIRootSignature& rootSignature,IRHIPipelineStateObject& pipeline_state_object, RHIPipelineType pipeline_type)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
     auto* dxRootSignature = dynamic_cast<DX12RootSignature&>(rootSignature).GetRootSignature();
 
-    if (isGraphicsPipeline)
+    if (pipeline_type == RHIPipelineType::Graphics)
     {
         dxCommandList->SetGraphicsRootSignature(dxRootSignature);    
     }
@@ -466,15 +466,6 @@ bool DX12Utils::ExecuteIndirect(IRHICommandList& command_list, IRHICommandSignat
 bool DX12Utils::Present(IRHISwapChain& swap_chain, IRHICommandQueue& command_queue, IRHICommandList& command_list)
 {
     return swap_chain.Present(command_queue, command_list);
-}
-
-bool DX12Utils::DiscardResource(IRHICommandList& command_list, IRHIRenderTarget& render_target)
-{
-    auto* dx_command_list = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
-    auto* dx_resource = dynamic_cast<DX12Texture&>(render_target.GetTexture()).GetRawResource();
-    dx_command_list->DiscardResource(dx_resource, nullptr);
-
-    return true;
 }
 
 bool DX12Utils::CopyTexture(IRHICommandList& command_list, IRHITexture& dst, IRHITexture& src)

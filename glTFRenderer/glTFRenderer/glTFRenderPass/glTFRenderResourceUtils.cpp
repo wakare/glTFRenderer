@@ -100,9 +100,9 @@ namespace glTFRenderResourceUtils
         
         RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(
                         resource_manager.GetDevice(),
-                        m_albedo_output->GetTexture(),
+                        m_albedo_output->m_source,
                         {
-                        m_albedo_output->GetRenderTargetFormat(),
+                        m_albedo_output->GetDesc().m_format,
                         RHIResourceDimension::TEXTURE2D,
                         RHIViewType::RVT_UAV
                         },
@@ -110,9 +110,9 @@ namespace glTFRenderResourceUtils
 
         RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(
                         resource_manager.GetDevice(),
-                        m_normal_output->GetTexture(),
+                        m_normal_output->m_source,
                         {
-                        m_normal_output->GetRenderTargetFormat(),
+                        m_normal_output->GetDesc().m_format,
                         RHIResourceDimension::TEXTURE2D,
                         RHIViewType::RVT_UAV
                         },
@@ -120,9 +120,9 @@ namespace glTFRenderResourceUtils
 
         RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(
                         resource_manager.GetDevice(),
-                        m_depth_output->GetTexture(),
+                        m_depth_output->m_source,
                         {
-                        m_depth_output->GetRenderTargetFormat(),
+                        m_depth_output->GetDesc().m_format,
                         RHIResourceDimension::TEXTURE2D,
                         RHIViewType::RVT_UAV
                         },
@@ -138,9 +138,9 @@ namespace glTFRenderResourceUtils
         
         RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(
                         resource_manager.GetDevice(),
-                        m_albedo_output->GetTexture(),
+                        m_albedo_output->m_source,
                         {
-                        m_albedo_output->GetRenderTargetFormat(),
+                        m_albedo_output->GetDesc().m_format,
                         RHIResourceDimension::TEXTURE2D,
                         RHIViewType::RVT_SRV
                         },
@@ -148,9 +148,9 @@ namespace glTFRenderResourceUtils
 
         RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(
                         resource_manager.GetDevice(),
-                        m_normal_output->GetTexture(),
+                        m_normal_output->m_source,
                         {
-                        m_normal_output->GetRenderTargetFormat(),
+                        m_normal_output->GetDesc().m_format,
                         RHIResourceDimension::TEXTURE2D,
                         RHIViewType::RVT_SRV
                         },
@@ -158,9 +158,9 @@ namespace glTFRenderResourceUtils
 
         RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(
                         resource_manager.GetDevice(),
-                        m_depth_output->GetTexture(),
+                        m_depth_output->m_source,
                         {
-                        m_depth_output->GetRenderTargetFormat(),
+                        m_depth_output->GetDesc().m_format,
                         RHIResourceDimension::TEXTURE2D,
                         RHIViewType::RVT_SRV
                         },
@@ -171,9 +171,9 @@ namespace glTFRenderResourceUtils
 
     bool GBufferOutput::Transition(glTFUniqueID pass_id,IRHICommandList& command_list, RHIResourceStateType after) const
     {
-        m_albedo_output->Transition(command_list, after);
-        m_normal_output->Transition(command_list, after);
-        m_depth_output->Transition(command_list, after);
+        m_albedo_output->m_source->Transition(command_list, after);
+        m_normal_output->m_source->Transition(command_list, after);
+        m_depth_output->m_source->Transition(command_list, after);
         
         return true;
     }
@@ -239,11 +239,11 @@ namespace glTFRenderResourceUtils
 
     bool RWTextureResourceWithBackBuffer::CreateDescriptors(glTFRenderResourceManager& resource_manager)
     {
-        RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), m_writable_buffer->GetTexture(),
-                                {m_writable_buffer->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_UAV}, m_writable_buffer_handle))
+        RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), m_writable_buffer->m_source,
+                                {m_writable_buffer->GetDesc().m_format, RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_UAV}, m_writable_buffer_handle))
 
-        RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), m_back_buffer->GetTexture(),
-                                {m_back_buffer->GetRenderTargetFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_back_buffer_handle))
+        RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), m_back_buffer->m_source,
+                                {m_back_buffer->GetDesc().m_format, RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_back_buffer_handle))
 
         return true;
     }
@@ -261,10 +261,10 @@ namespace glTFRenderResourceUtils
         auto& command_list = resource_manager.GetCommandListForRecord();
     
         // Copy accumulation buffer to back buffer
-        m_writable_buffer->Transition(command_list, RHIResourceStateType::STATE_COPY_SOURCE);
-        m_back_buffer->Transition(command_list, RHIResourceStateType::STATE_COPY_DEST);
+        m_writable_buffer->m_source->Transition(command_list, RHIResourceStateType::STATE_COPY_SOURCE);
+        m_back_buffer->m_source->Transition(command_list, RHIResourceStateType::STATE_COPY_DEST);
         
-        RETURN_IF_FALSE(RHIUtils::Instance().CopyTexture(command_list, m_back_buffer->GetTexture(), m_writable_buffer->GetTexture()))
+        RETURN_IF_FALSE(RHIUtils::Instance().CopyTexture(command_list, *m_back_buffer->m_source, *m_writable_buffer->m_source))
 
         return true;
     }
@@ -299,8 +299,8 @@ namespace glTFRenderResourceUtils
 
     bool RWTextureResourceWithBackBuffer::PreRendering(IRHICommandList& command_list)
     {
-        m_writable_buffer->Transition(command_list, RHIResourceStateType::STATE_UNORDERED_ACCESS);
-        m_back_buffer->Transition(command_list, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE);
+        m_writable_buffer->m_source->Transition(command_list, RHIResourceStateType::STATE_UNORDERED_ACCESS);
+        m_back_buffer->m_source->Transition(command_list, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE);
         
         return true;
     }

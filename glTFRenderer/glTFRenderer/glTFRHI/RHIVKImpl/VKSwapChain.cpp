@@ -5,6 +5,7 @@
 #include "VKConverterUtils.h"
 #include "VKDevice.h"
 #include "VKSemaphore.h"
+#include "VKTexture.h"
 
 VKSwapChain::VKSwapChain()
     : m_frame_buffer_count(3)
@@ -14,16 +15,6 @@ VKSwapChain::VKSwapChain()
 VKSwapChain::~VKSwapChain()
 {
     vkDestroySwapchainKHR(m_device, m_swap_chain, nullptr);
-}
-
-unsigned VKSwapChain::GetWidth() const
-{
-    return m_width;
-}
-
-unsigned VKSwapChain::GetHeight() const
-{
-    return m_height;
 }
 
 unsigned VKSwapChain::GetCurrentBackBufferIndex()
@@ -36,9 +27,12 @@ unsigned VKSwapChain::GetBackBufferCount()
     return m_frame_buffer_count;
 }
 
-bool VKSwapChain::InitSwapChain(IRHIFactory& factory, IRHIDevice& device, IRHICommandQueue& commandQueue, unsigned width, unsigned height,
+bool VKSwapChain::InitSwapChain(IRHIFactory& factory, IRHIDevice& device, IRHICommandQueue& commandQueue, const RHITextureDesc& swap_chain_buffer_desc,
                                 bool fullScreen, HWND hwnd)
 {
+
+    m_swap_chain_buffer_desc = swap_chain_buffer_desc;
+    
     const VKDevice& VkDevice = dynamic_cast<VKDevice&>(device);
     m_device = VkDevice.GetDevice();
     
@@ -50,11 +44,19 @@ bool VKSwapChain::InitSwapChain(IRHIFactory& factory, IRHIDevice& device, IRHICo
     create_swap_chain_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
     create_swap_chain_info.surface = surface;
     create_swap_chain_info.minImageCount = m_frame_buffer_count;
-    create_swap_chain_info.imageFormat = VKConverterUtils::ConvertToFormat(m_back_buffer_format);
+    create_swap_chain_info.imageFormat = VKConverterUtils::ConvertToFormat(GetBackBufferFormat());
     create_swap_chain_info.imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
-    create_swap_chain_info.imageExtent = {width, height};
+    create_swap_chain_info.imageExtent = {GetWidth(), GetHeight()};
     create_swap_chain_info.imageArrayLayers = 1;
-    create_swap_chain_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    
+    if (m_swap_chain_buffer_desc.GetUsage() & RUF_ALLOW_RENDER_TARGET)
+    {
+        create_swap_chain_info.imageUsage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;    
+    }
+    if (m_swap_chain_buffer_desc.GetUsage() & RUF_ALLOW_UAV)
+    {
+        create_swap_chain_info.imageUsage |= VK_IMAGE_USAGE_STORAGE_BIT;    
+    }
     
     if (graphics_queue_index != present_queue_index)
     {
@@ -85,9 +87,17 @@ bool VKSwapChain::InitSwapChain(IRHIFactory& factory, IRHIDevice& device, IRHICo
     
     if (swap_chain_image_count)
     {
-        m_swap_chain_images.resize(swap_chain_image_count);
-        vkGetSwapchainImagesKHR(VkDevice.GetDevice(), m_swap_chain, &swap_chain_image_count, m_swap_chain_images.data());
+        m_swap_chain_textures.resize(swap_chain_image_count);
+        std::vector<VkImage> internal_textures(swap_chain_image_count);
+        vkGetSwapchainImagesKHR(VkDevice.GetDevice(), m_swap_chain, &swap_chain_image_count, internal_textures.data());
 
+        for (size_t i = 0; i < swap_chain_image_count; ++i)
+        {
+            std::shared_ptr<VKTexture> texture = std::make_shared<VKTexture>();
+            texture->Init(VkDevice.GetDevice(), internal_textures[i], m_swap_chain_buffer_desc);
+            m_swap_chain_textures[i] = texture;
+        }
+        
         m_frame_available_semaphores.resize(swap_chain_image_count);
         for (size_t i = 0; i < swap_chain_image_count; ++i)
         {
@@ -139,8 +149,8 @@ bool VKSwapChain::Present(IRHICommandQueue& command_queue, IRHICommandList& comm
     return true;
 }
 
-VkImage VKSwapChain::GetSwapChainImageByIndex(unsigned index) const
+std::shared_ptr<IRHITexture> VKSwapChain::GetSwapChainImageByIndex(unsigned index) const
 {
-    GLTF_CHECK(index < m_swap_chain_images.size());
-    return m_swap_chain_images[index];
+    GLTF_CHECK(index < m_swap_chain_textures.size());
+    return m_swap_chain_textures[index];
 }

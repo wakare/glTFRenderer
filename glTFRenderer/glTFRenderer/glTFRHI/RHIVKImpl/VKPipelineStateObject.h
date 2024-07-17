@@ -14,7 +14,8 @@ public:
     virtual bool BindRenderTargetFormats(const std::vector<IRHIRenderTarget*>& render_targets) override;
     virtual bool BindRenderTargetFormats(const std::vector<IRHIDescriptorAllocation*>& render_targets) override;
 
-    const VkPipeline& GetPipeline() const;
+    VkPipeline GetPipeline() const;
+    VkPipelineLayout GetPipelineLayout() const;
     
 protected:
     VkDevice m_device {VK_NULL_HANDLE};

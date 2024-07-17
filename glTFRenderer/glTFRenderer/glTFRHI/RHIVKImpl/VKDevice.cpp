@@ -14,15 +14,67 @@
 #include "VKFactory.h"
 #include "RenderWindow/glTFWindow.h"
 
-const std::vector validation_layers =
+namespace VulkanEngineRequirements
 {
-    "VK_LAYER_KHRONOS_validation"
-};
+    const std::vector validation_layers =
+    {
+        "VK_LAYER_KHRONOS_validation"
+    };
 
-const std::vector device_extensions =
+    const std::vector device_extensions =
+    {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME
+    };
+
+    VkPhysicalDeviceVulkan13Features require_feature13
+    {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+        .pNext = nullptr,
+        .synchronization2 = true,
+        .dynamicRendering = true,
+    };
+
+    VkPhysicalDeviceVulkan12Features require_feature12
+    {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+        .pNext = &require_feature13,
+        .descriptorIndexing = true,
+        .bufferDeviceAddress = true,
+    };
+
+    bool IsMatchRequireFeatures(const VkPhysicalDeviceVulkan12Features& device_features2, const VkPhysicalDeviceVulkan13Features& device_features3)
+    {
+        return device_features2.descriptorIndexing == require_feature12.descriptorIndexing
+            && device_features2.bufferDeviceAddress == require_feature12.bufferDeviceAddress
+            && device_features3.synchronization2 == require_feature13.synchronization2
+            && device_features3.dynamicRendering == require_feature13.dynamicRendering;
+    }
+}
+
+
+namespace VulkanEngineQueryStorage
 {
-    VK_KHR_SWAPCHAIN_EXTENSION_NAME
-};
+    VkPhysicalDeviceVulkan13Features query_features13
+    {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+        .pNext = nullptr,
+    };
+    
+    VkPhysicalDeviceVulkan12Features query_feature12
+    {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+        .pNext = &query_features13,
+    };
+
+    VkPhysicalDeviceFeatures2 query_features2
+    {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+        .pNext = &query_feature12
+    };
+    
+    QueueFamilyIndices queue_family_indices;
+}
+
 
 QueueFamilyIndices VKDevice::FindQueueFamily(VkPhysicalDevice device, VkSurfaceKHR surface)
 {
@@ -93,15 +145,22 @@ bool VKDevice::IsSuitableDevice(VkPhysicalDevice device, VkSurfaceKHR surface)
 {
     bool is_suitable = true;
     
-    VkPhysicalDeviceProperties device_properties;
-    VkPhysicalDeviceFeatures device_features;
+    VkPhysicalDeviceProperties device_properties {};
+    VkPhysicalDeviceFeatures device_features {};
 
     vkGetPhysicalDeviceProperties(device, &device_properties);
     vkGetPhysicalDeviceFeatures(device, &device_features);
+    if (device_properties.apiVersion >= VK_MAKE_VERSION(1, 1, 0))
+    {
+        vkGetPhysicalDeviceFeatures2(device, &VulkanEngineQueryStorage::query_features2);
+    }
 
-    is_suitable &= (device_properties.deviceType == VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU &&
-        device_features.geometryShader);
+    is_suitable &= (device_properties.deviceType == VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
+        && device_features.geometryShader
+        );
 
+    // Check feature12 and feature13
+    is_suitable &= VulkanEngineRequirements::IsMatchRequireFeatures(VulkanEngineQueryStorage::query_feature12, VulkanEngineQueryStorage::query_features13);
     is_suitable &= FindQueueFamily(device, surface).IsComplete();
 
     // Check device extensions
@@ -111,7 +170,7 @@ bool VKDevice::IsSuitableDevice(VkPhysicalDevice device, VkSurfaceKHR surface)
     std::vector<VkExtensionProperties> extensions(extension_count);
     vkEnumerateDeviceExtensionProperties(device, nullptr, &extension_count, extensions.data());
 
-    std::set<std::string> require_extensions (device_extensions.begin(), device_extensions.end());
+    std::set<std::string> require_extensions (VulkanEngineRequirements::device_extensions.begin(), VulkanEngineRequirements::device_extensions.end());
     for (const auto& extension : extensions)
     {
         require_extensions.erase(extension.extensionName);
@@ -212,10 +271,12 @@ bool VKDevice::InitDevice(IRHIFactory& factory)
     create_device_info.pQueueCreateInfos = queue_create_infos.data();
     create_device_info.queueCreateInfoCount = static_cast<unsigned>(queue_create_infos.size());
     create_device_info.pEnabledFeatures = &device_features;
-    create_device_info.ppEnabledLayerNames = validation_layers.data();
-    create_device_info.enabledLayerCount = static_cast<unsigned>(validation_layers.size());
-    create_device_info.ppEnabledExtensionNames = device_extensions.data();
-    create_device_info.enabledExtensionCount = static_cast<unsigned>(device_extensions.size());
+    create_device_info.ppEnabledLayerNames = VulkanEngineRequirements::validation_layers.data();
+    create_device_info.enabledLayerCount = static_cast<unsigned>(VulkanEngineRequirements::validation_layers.size());
+    create_device_info.ppEnabledExtensionNames = VulkanEngineRequirements::device_extensions.data();
+    create_device_info.enabledExtensionCount = static_cast<unsigned>(VulkanEngineRequirements::device_extensions.size());
+    
+    create_device_info.pNext = &VulkanEngineQueryStorage::query_features2;
     
     result = vkCreateDevice(selected_physical_device, &create_device_info, nullptr, &logical_device); 
     GLTF_CHECK(result == VK_SUCCESS);

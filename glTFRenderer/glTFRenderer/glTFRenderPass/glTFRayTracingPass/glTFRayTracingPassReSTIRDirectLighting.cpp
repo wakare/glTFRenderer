@@ -41,8 +41,8 @@ bool glTFRayTracingPassReSTIRDirectLighting::PreRenderPass(glTFRenderResourceMan
     
     auto& command_list = resource_manager.GetCommandListForRecord();
     
-    GetResourceTexture(RenderPassResourceTableId::RayTracingPass_ReSTIRSample_Output).Transition(command_list, RHIResourceStateType::STATE_UNORDERED_ACCESS);
-    GetResourceTexture(RenderPassResourceTableId::ScreenUVOffset).Transition(command_list, RHIResourceStateType::STATE_UNORDERED_ACCESS);
+    GetResourceTexture(RenderPassResourceTableId::RayTracingPass_ReSTIRSample_Output)->Transition(command_list, RHIResourceStateType::STATE_UNORDERED_ACCESS);
+    GetResourceTexture(RenderPassResourceTableId::ScreenUVOffset)->Transition(command_list, RHIResourceStateType::STATE_UNORDERED_ACCESS);
 
     BindDescriptor(command_list, m_lighting_samples_allocation.parameter_index, *m_lighting_samples_handle);
     BindDescriptor(command_list, m_screen_uv_offset_allocation.parameter_index, *m_screen_uv_offset_handle);
@@ -99,7 +99,7 @@ bool glTFRayTracingPassReSTIRDirectLighting::SetupPipelineStateObject(glTFRender
                     resource_manager.GetDevice(),
                     GetResourceTexture(RenderPassResourceTableId::RayTracingPass_ReSTIRSample_Output),
                     {
-                    GetResourceTexture(RenderPassResourceTableId::RayTracingPass_ReSTIRSample_Output).GetTextureFormat(),
+                    GetResourceTexture(RenderPassResourceTableId::RayTracingPass_ReSTIRSample_Output)->GetTextureFormat(),
                     RHIResourceDimension::TEXTURE2D,
                     RHIViewType::RVT_UAV
                     },
@@ -109,7 +109,7 @@ bool glTFRayTracingPassReSTIRDirectLighting::SetupPipelineStateObject(glTFRender
                     resource_manager.GetDevice(),
                     GetResourceTexture(RenderPassResourceTableId::ScreenUVOffset),
                     {
-                    GetResourceTexture(RenderPassResourceTableId::ScreenUVOffset).GetTextureFormat(),
+                    GetResourceTexture(RenderPassResourceTableId::ScreenUVOffset)->GetTextureFormat(),
                     RHIResourceDimension::TEXTURE2D,
                     RHIViewType::RVT_UAV
                     },

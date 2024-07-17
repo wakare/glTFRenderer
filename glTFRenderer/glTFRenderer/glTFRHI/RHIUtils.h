@@ -57,7 +57,7 @@ public:
     virtual bool ResetCommandAllocator(IRHICommandAllocator& command_allocator) = 0;
     virtual bool WaitCommandListFinish(IRHICommandList& command_queue) = 0;
     
-    virtual bool SetRootSignature(IRHICommandList& command_list, IRHIRootSignature& root_signature, bool isGraphicsPipeline) = 0;
+    virtual bool SetRootSignature(IRHICommandList& command_list, IRHIRootSignature& root_signature, IRHIPipelineStateObject& pipeline_state_object, RHIPipelineType pipeline_type) = 0;
     virtual bool SetViewport(IRHICommandList& command_list, const RHIViewportDesc& viewportDesc) = 0;
     virtual bool SetScissorRect(IRHICommandList& command_list, const RHIScissorRectDesc& scissorRect) = 0;
     
@@ -84,7 +84,6 @@ public:
     
     virtual bool Present(IRHISwapChain& swap_chain, IRHICommandQueue& command_queue, IRHICommandList& command_list) = 0;
 
-    virtual bool DiscardResource(IRHICommandList& command_list, IRHIRenderTarget& render_target) = 0;
     virtual bool CopyTexture(IRHICommandList& command_list, IRHITexture& dst, IRHITexture& src) = 0;
     virtual bool CopyBuffer(IRHICommandList& command_list, IRHIBuffer& dst, size_t dst_offset, IRHIBuffer& src, size_t src_offset, size_t size) = 0;
 

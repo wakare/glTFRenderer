@@ -25,13 +25,13 @@ bool glTFGraphicsPassTestTriangle::PreRenderPass(glTFRenderResourceManager& reso
 
     auto& command_list = resource_manager.GetCommandListForRecord();
 
-    resource_manager.GetCurrentFrameSwapChainRT().Transition(command_list, RHIResourceStateType::STATE_RENDER_TARGET);
+    resource_manager.GetCurrentFrameSwapChainTexture().Transition(command_list, RHIResourceStateType::STATE_RENDER_TARGET);
     
     RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().BindRenderTarget(command_list,
-        {&resource_manager.GetCurrentFrameSwapChainRT()}, nullptr))
+        {&resource_manager.GetCurrentFrameSwapChainRTV()}, nullptr))
 
     RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().ClearRenderTarget(command_list,
-        {&resource_manager.GetCurrentFrameSwapChainRT()}))
+        {&resource_manager.GetCurrentFrameSwapChainRTV()}))
 
     RHIUtils::Instance().SetPrimitiveTopology( command_list, RHIPrimitiveTopologyType::TRIANGLELIST);
     
@@ -64,8 +64,8 @@ bool glTFGraphicsPassTestTriangle::SetupPipelineStateObject(glTFRenderResourceMa
     GetGraphicsPipelineStateObject().BindShaderCode(
         R"(glTFResources\ShaderSource\TestShaders\TestTriangleFrag.hlsl)", RHIShaderType::Pixel, "main");
     
-    std::vector<IRHIRenderTarget*> render_targets;
-    render_targets.push_back(&resource_manager.GetCurrentFrameSwapChainRT());
+    std::vector<IRHIDescriptorAllocation*> render_targets;
+    render_targets.push_back(&resource_manager.GetCurrentFrameSwapChainRTV());
     GetGraphicsPipelineStateObject().BindRenderTargetFormats(render_targets);
     
     return true;

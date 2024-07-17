@@ -28,7 +28,7 @@ public:
     virtual bool ResetCommandAllocator(IRHICommandAllocator& commandAllocator) override;
     virtual bool WaitCommandListFinish(IRHICommandList& command_list) override;
     
-    virtual bool SetRootSignature(IRHICommandList& commandList, IRHIRootSignature& rootSignature, bool isGraphicsPipeline) override;
+    virtual bool SetRootSignature(IRHICommandList& command_list, IRHIRootSignature& root_signature,IRHIPipelineStateObject& pipeline_state_object, RHIPipelineType pipeline_type) override;
     virtual bool SetViewport(IRHICommandList& commandList, const RHIViewportDesc& viewport_desc) override;
     virtual bool SetScissorRect(IRHICommandList& commandList, const RHIScissorRectDesc& scissor_rect) override;
 
@@ -42,7 +42,7 @@ public:
     virtual bool UploadTextureDataToDefaultGPUBuffer(IRHICommandList& commandList, IRHIBuffer& uploadBuffer, IRHIBuffer& defaultBuffer, void* data, size_t rowPitch, size_t slicePitch) override;
     
     virtual bool AddBufferBarrierToCommandList(IRHICommandList& commandList, const IRHIBuffer& buffer, RHIResourceStateType beforeState, RHIResourceStateType afterState) override;
-    virtual bool AddTextureBarrierToCommandList(IRHICommandList& commandList, const IRHITexture& buffer, RHIResourceStateType beforeState, RHIResourceStateType afterState) override;
+    virtual bool AddTextureBarrierToCommandList(IRHICommandList& commandList, const IRHITexture& texture, RHIResourceStateType beforeState, RHIResourceStateType afterState) override;
     
     virtual bool DrawInstanced(IRHICommandList& commandList, unsigned vertexCountPerInstance, unsigned instanceCount, unsigned startVertexLocation, unsigned startInstanceLocation) override;
     virtual bool DrawIndexInstanced(IRHICommandList& commandList, unsigned indexCountPerInstance, unsigned instanceCount, unsigned startIndexLocation, unsigned baseVertexLocation, unsigned startInstanceLocation) override;
@@ -53,8 +53,6 @@ public:
     virtual bool ExecuteIndirect(IRHICommandList& command_list, IRHICommandSignature& command_signature, unsigned max_count, IRHIBuffer& arguments_buffer, unsigned arguments_buffer_offset, IRHIBuffer& count_buffer, unsigned count_buffer_offset) override;
     
     virtual bool Present(IRHISwapChain& swap_chain, IRHICommandQueue& command_queue, IRHICommandList& command_list) override;
-
-    virtual bool DiscardResource(IRHICommandList& commandList, IRHIRenderTarget& render_target) override;
 
     virtual bool CopyTexture(IRHICommandList& commandList, IRHITexture& dst, IRHITexture& src) override;
     virtual bool CopyBuffer(IRHICommandList& commandList, IRHIBuffer& dst, size_t dst_offset, IRHIBuffer& src, size_t src_offset, size_t size) override;

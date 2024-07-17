@@ -2,6 +2,7 @@
 
 #include "VKDevice.h"
 #include "VKRenderPass.h"
+#include "VKRootSignature.h"
 #include "VKSwapChain.h"
 #include "ShaderUtil/glTFShaderUtils.h"
 
@@ -136,6 +137,8 @@ bool VKGraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device, 
     create_color_blend_state_info.blendConstants[2] = 0.0f;
     create_color_blend_state_info.blendConstants[3] = 0.0f;
 
+    VkDescriptorSet descriptor_set = dynamic_cast<const VKRootSignature&>(pipeline_state_info.m_root_signature).GetDescriptorSet();
+    
     VkPipelineLayoutCreateInfo create_pipeline_layout_info {};
     create_pipeline_layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     create_pipeline_layout_info.setLayoutCount = 0;
@@ -182,7 +185,12 @@ bool VKGraphicsPipelineStateObject::BindRenderTargetFormats(
     return true;
 }
 
-const VkPipeline& VKGraphicsPipelineStateObject::GetPipeline() const
+VkPipeline VKGraphicsPipelineStateObject::GetPipeline() const
 {
     return m_pipeline;
+}
+
+VkPipelineLayout VKGraphicsPipelineStateObject::GetPipelineLayout() const
+{
+    return m_pipeline_layout;
 }

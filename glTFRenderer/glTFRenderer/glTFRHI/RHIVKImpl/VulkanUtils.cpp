@@ -4,8 +4,11 @@
 #include "VKConverterUtils.h"
 #include "VKFence.h"
 #include "VKFrameBuffer.h"
+#include "VKPipelineStateObject.h"
 #include "VKRenderPass.h"
+#include "VKRootSignature.h"
 #include "VKSemaphore.h"
+#include "VKTexture.h"
 
 bool VulkanUtils::InitGUIContext(IRHIDevice& device, IRHIDescriptorManager& descriptor_manager, unsigned back_buffer_count)
 {
@@ -120,9 +123,18 @@ bool VulkanUtils::WaitCommandListFinish(IRHICommandList& command_list)
     return command_list.WaitCommandList();
 }
 
-bool VulkanUtils::SetRootSignature(IRHICommandList& commandList, IRHIRootSignature& rootSignature,
-    bool isGraphicsPipeline)
+bool VulkanUtils::SetRootSignature(IRHICommandList& command_list, IRHIRootSignature& root_signature, IRHIPipelineStateObject& pipeline_state_object,
+    RHIPipelineType pipeline_type)
 {
+    auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetCommandBuffer();
+    auto vk_descriptor_set = dynamic_cast<const VKRootSignature&>(root_signature).GetDescriptorSet();
+    
+    if (pipeline_type == RHIPipelineType::Graphics)
+    {
+        auto vk_pipeline_layout = dynamic_cast<const VKGraphicsPipelineStateObject&>(pipeline_state_object).GetPipelineLayout();
+        vkCmdBindDescriptorSets(vk_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vk_pipeline_layout, 0, 1, &vk_descriptor_set, 0, nullptr);
+    }
+    
     return true;
 }
 
@@ -172,13 +184,48 @@ bool VulkanUtils::UploadTextureDataToDefaultGPUBuffer(IRHICommandList& commandLi
 bool VulkanUtils::AddBufferBarrierToCommandList(IRHICommandList& commandList, const IRHIBuffer& buffer,
                                                 RHIResourceStateType beforeState, RHIResourceStateType afterState)
 {
+    
+    
     return true;
 }
 
-bool VulkanUtils::AddTextureBarrierToCommandList(IRHICommandList& commandList, const IRHITexture& buffer,
+bool VulkanUtils::AddTextureBarrierToCommandList(IRHICommandList& commandList, const IRHITexture& texture,
                                                  RHIResourceStateType beforeState, RHIResourceStateType afterState)
 {
-    return false;
+    auto vk_command_list = dynamic_cast<VKCommandList&>(commandList).GetCommandBuffer();
+    auto vk_image = dynamic_cast<const VKTexture&>(texture).GetRawImage();
+    
+    VkImageMemoryBarrier2 image_barrier {.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2};
+    image_barrier.pNext = nullptr;
+    image_barrier.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+    image_barrier.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT;
+    image_barrier.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+    image_barrier.dstAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT;
+
+    image_barrier.oldLayout = VKConverterUtils::ConvertToImageLayout(beforeState);
+    image_barrier.newLayout = VKConverterUtils::ConvertToImageLayout(afterState);
+
+    VkImageAspectFlags aspect_flags = (image_barrier.newLayout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL) ?
+        VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+
+    VkImageSubresourceRange sub_image{};
+    sub_image.aspectMask = aspect_flags;
+    sub_image.baseMipLevel = 0;
+    sub_image.levelCount = VK_REMAINING_MIP_LEVELS;
+    sub_image.baseArrayLayer = 0;
+    sub_image.layerCount = VK_REMAINING_ARRAY_LAYERS;
+    
+    image_barrier.subresourceRange = sub_image;
+    image_barrier.image = vk_image;
+    
+    VkDependencyInfo dep_info {};
+    dep_info.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+    dep_info.pNext = nullptr;
+    dep_info.imageMemoryBarrierCount = 1;
+    dep_info.pImageMemoryBarriers = &image_barrier;
+    vkCmdPipelineBarrier2(vk_command_list, &dep_info);
+    
+    return true;
 }
 
 bool VulkanUtils::DrawInstanced(IRHICommandList& commandList, unsigned vertexCountPerInstance, unsigned instanceCount,
@@ -220,11 +267,6 @@ bool VulkanUtils::ExecuteIndirect(IRHICommandList& command_list, IRHICommandSign
 bool VulkanUtils::Present(IRHISwapChain& swap_chain, IRHICommandQueue& command_queue, IRHICommandList& command_list)
 {
     return swap_chain.Present(command_queue, command_list);
-}
-
-bool VulkanUtils::DiscardResource(IRHICommandList& commandList, IRHIRenderTarget& render_target)
-{
-    return true;
 }
 
 bool VulkanUtils::CopyTexture(IRHICommandList& commandList, IRHITexture& dst, IRHITexture& src)

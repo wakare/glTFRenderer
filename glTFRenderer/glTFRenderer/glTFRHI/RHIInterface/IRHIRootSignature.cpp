@@ -15,17 +15,17 @@ bool IRHIRootSignature::AllocateRootSignatureSpace(size_t rootParameterCount, si
         return false;
     }
         
-    m_rootParameters.resize(rootParameterCount);
-    m_staticSampler.resize(staticSamplerCount);
+    m_root_parameters.resize(rootParameterCount);
+    m_static_samplers.resize(staticSamplerCount);
 
     for (size_t i = 0; i < rootParameterCount; ++i)
     {
-        m_rootParameters[i] = RHIResourceFactory::CreateRHIResource<IRHIRootParameter>();
+        m_root_parameters[i] = RHIResourceFactory::CreateRHIResource<IRHIRootParameter>();
     }
 
     for (size_t i = 0; i < staticSamplerCount; ++i)
     {
-        m_staticSampler[i] = RHIResourceFactory::CreateRHIResource<IRHIStaticSampler>();
+        m_static_samplers[i] = RHIResourceFactory::CreateRHIResource<IRHIStaticSampler>();
     }
         
     return true;

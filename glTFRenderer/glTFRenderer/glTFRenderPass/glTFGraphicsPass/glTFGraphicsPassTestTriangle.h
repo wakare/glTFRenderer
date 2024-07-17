@@ -13,6 +13,4 @@ public:
     virtual bool RenderPass(glTFRenderResourceManager& resource_manager) override;
     virtual bool PostRenderPass(glTFRenderResourceManager& resource_manager) override;
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;
-    
-protected:
 };

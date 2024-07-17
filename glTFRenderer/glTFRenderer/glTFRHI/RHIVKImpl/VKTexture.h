@@ -6,7 +6,9 @@
 class VKTexture : public IRHITexture
 {
 public:
-    bool Init(VkDevice device, VkImage image);
+    bool Init(VkDevice device, VkImage image, const RHITextureDesc& texture_desc);
+
+    VkImage GetRawImage() const;
     
 protected:
     VkDevice m_device {VK_NULL_HANDLE};

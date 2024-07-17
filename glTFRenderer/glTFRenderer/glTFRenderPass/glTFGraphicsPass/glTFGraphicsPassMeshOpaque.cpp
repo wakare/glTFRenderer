@@ -25,14 +25,14 @@ bool glTFGraphicsPassMeshOpaque::InitPass(glTFRenderResourceManager& resource_ma
 {
     resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), GetResourceTexture(RenderPassResourceTableId::BasePass_Albedo), 
         RHITextureDescriptorDesc{
-            GetResourceTexture(RenderPassResourceTableId::BasePass_Albedo).GetTextureFormat(),
+            GetResourceTexture(RenderPassResourceTableId::BasePass_Albedo)->GetTextureFormat(),
             RHIResourceDimension::TEXTURE2D,
             RHIViewType::RVT_RTV
         }, m_albedo_view);
 
     resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), GetResourceTexture(RenderPassResourceTableId::BasePass_Normal), 
         RHITextureDescriptorDesc{
-            GetResourceTexture(RenderPassResourceTableId::BasePass_Normal).GetTextureFormat(),
+            GetResourceTexture(RenderPassResourceTableId::BasePass_Normal)->GetTextureFormat(),
             RHIResourceDimension::TEXTURE2D,
             RHIViewType::RVT_RTV
         }, m_normal_view);
@@ -55,18 +55,16 @@ bool glTFGraphicsPassMeshOpaque::PreRenderPass(glTFRenderResourceManager& resour
     auto& command_list = resource_manager.GetCommandListForRecord();
     
     // Transition swapchain state to render target for shading
-    resource_manager.GetCurrentFrameSwapChainRT().Transition(command_list, RHIResourceStateType::STATE_RENDER_TARGET);
-    GetResourceTexture(RenderPassResourceTableId::BasePass_Albedo).Transition(command_list, RHIResourceStateType::STATE_RENDER_TARGET);
-    GetResourceTexture(RenderPassResourceTableId::BasePass_Normal).Transition(command_list, RHIResourceStateType::STATE_RENDER_TARGET);
+    resource_manager.GetCurrentFrameSwapChainTexture().Transition(command_list, RHIResourceStateType::STATE_RENDER_TARGET);
+    GetResourceTexture(RenderPassResourceTableId::BasePass_Albedo)->Transition(command_list, RHIResourceStateType::STATE_RENDER_TARGET);
+    GetResourceTexture(RenderPassResourceTableId::BasePass_Normal)->Transition(command_list, RHIResourceStateType::STATE_RENDER_TARGET);
+
+    std::vector<IRHIDescriptorAllocation*> render_targets{m_albedo_view.get(), m_normal_view.get()};
     
     RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().BindRenderTarget(command_list,
-            {m_albedo_view.get(), m_normal_view.get()}, &resource_manager.GetDepthRT().GetDescriptorAllocation()))
+            render_targets, &resource_manager.GetDepthDSV()))
 
-    RHITextureClearValue render_target_clear_value = GetResourceTexture(RenderPassResourceTableId::BasePass_Albedo).GetTextureDesc().GetClearValue();
-    RHITextureClearValue depth_stencil_clear_value = resource_manager.GetDepthRT().GetClearValue();
-     
-    RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().ClearRenderTarget(command_list,
-            {m_albedo_view.get(), m_normal_view.get()}, render_target_clear_value, depth_stencil_clear_value))
+    RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().ClearRenderTarget(command_list, render_targets))
 
     return true;
 }
@@ -88,10 +86,11 @@ bool glTFGraphicsPassMeshOpaque::SetupPipelineStateObject(glTFRenderResourceMana
         R"(glTFResources\ShaderSource\MeshPassCommonPS.hlsl)", RHIShaderType::Pixel, "main");
     auto& command_list = resource_manager.GetCommandListForRecord();
     
-    GetResourceTexture(RenderPassResourceTableId::BasePass_Albedo).Transition(command_list, RHIResourceStateType::STATE_RENDER_TARGET);
-    GetResourceTexture(RenderPassResourceTableId::BasePass_Normal).Transition(command_list, RHIResourceStateType::STATE_RENDER_TARGET);
+    GetResourceTexture(RenderPassResourceTableId::BasePass_Albedo)->Transition(command_list, RHIResourceStateType::STATE_RENDER_TARGET);
+    GetResourceTexture(RenderPassResourceTableId::BasePass_Normal)->Transition(command_list, RHIResourceStateType::STATE_RENDER_TARGET);
     
-    GetGraphicsPipelineStateObject().BindRenderTargetFormats({m_albedo_view.get(), m_normal_view.get(), &resource_manager.GetDepthRT().GetDescriptorAllocation()});
+    GetGraphicsPipelineStateObject().BindRenderTargetFormats({m_albedo_view.get(), m_normal_view.get(),
+        &resource_manager.GetDepthDSV()});
     
     return true;
 }

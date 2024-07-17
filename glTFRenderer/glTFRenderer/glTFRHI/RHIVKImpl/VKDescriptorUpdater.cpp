@@ -69,12 +69,12 @@ bool VKDescriptorUpdater::FinalizeUpdateDescriptors(IRHIDevice& device, IRHIComm
 {
     GLTF_CHECK(!m_cache_descriptor_writers.empty());
     
-    auto vk_Descriptor_set = dynamic_cast<VKRootSignature&>(root_signature).GetDescriptorSet();
+    auto vk_descriptor_set = dynamic_cast<VKRootSignature&>(root_signature).GetDescriptorSet();
     auto vk_device = dynamic_cast<VKDevice&>(device).GetDevice();
     
     for (auto& writer : m_cache_descriptor_writers)
     {
-        writer.dstSet = vk_Descriptor_set;
+        writer.dstSet = vk_descriptor_set;
     }
 
     vkUpdateDescriptorSets(vk_device, m_cache_descriptor_writers.size(), m_cache_descriptor_writers.data(), 0, nullptr);
