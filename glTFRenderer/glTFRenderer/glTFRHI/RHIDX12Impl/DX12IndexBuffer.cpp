@@ -38,8 +38,12 @@ std::shared_ptr<IRHIIndexBufferView> DX12IndexBuffer::CreateIndexBufferView(IRHI
     RHIUtils::Instance().UploadBufferDataToDefaultGPUBuffer(command_list, *m_upload_buffer->m_buffer, *m_buffer->m_buffer, index_buffer_data.data.get(), index_buffer_data.byteSize);
     RHIUtils::Instance().AddBufferBarrierToCommandList(command_list, *m_buffer->m_buffer, RHIResourceStateType::STATE_COPY_DEST, RHIResourceStateType::STATE_INDEX_BUFFER);
 
-    auto vertex_buffer_view = RHIResourceFactory::CreateRHIResource<IRHIIndexBufferView>();
-    vertex_buffer_view->InitIndexBufferView(*m_buffer->m_buffer, 0, index_buffer_data.format, index_buffer_data.byteSize);
+    auto index_buffer_view = RHIResourceFactory::CreateRHIResource<IRHIIndexBufferView>();
+    RHIIndexBufferViewDesc index_buffer_desc{};
+    index_buffer_desc.size = index_buffer_data.byteSize;
+    index_buffer_desc.offset = 0;
+    index_buffer_desc.format = index_buffer_data.format;
+    index_buffer_view->InitIndexBufferView(*m_buffer->m_buffer, index_buffer_desc);
 
-    return vertex_buffer_view;
+    return index_buffer_view;
 }

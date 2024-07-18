@@ -9,7 +9,7 @@ public:
     DX12IndexBufferView();
     virtual ~DX12IndexBufferView() override;
     
-    virtual bool InitIndexBufferView(IRHIBuffer& buffer, size_t offset, RHIDataFormat indexFormat, size_t indexBufferSize) override;
+    virtual bool InitIndexBufferView(IRHIBuffer& buffer, const RHIIndexBufferViewDesc& desc) override;
     
     virtual RHIGPUDescriptorHandle GetGPUHandle() const override;
     virtual size_t GetSize() const override;

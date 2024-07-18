@@ -75,6 +75,13 @@ bool DX12DescriptorManager::CreateDescriptor(IRHIDevice& device, const std::shar
                                              const RHIBufferDescriptorDesc& desc, std::shared_ptr<IRHIBufferDescriptorAllocation>& out_descriptor_allocation)
 {
     GLTF_CHECK(desc.m_dimension != RHIResourceDimension::UNKNOWN);
+    if (desc.IsVBOrIB())
+    {
+        out_descriptor_allocation = RHIResourceFactory::CreateRHIResource<IRHIBufferDescriptorAllocation>();
+        out_descriptor_allocation->InitFromBuffer(buffer, desc);
+        return true;
+    }
+    
     return GetDescriptorHeap(desc.m_view_type).CreateResourceDescriptorInHeap(device, buffer, desc, out_descriptor_allocation);
 }
 
@@ -85,12 +92,12 @@ bool DX12DescriptorManager::CreateDescriptor(IRHIDevice& device, const std::shar
     return GetDescriptorHeap(desc.m_view_type).CreateResourceDescriptorInHeap(device, texture, desc, out_descriptor_allocation);
 }
 
-bool DX12DescriptorManager::BindDescriptors(IRHICommandList& command_list)
+bool DX12DescriptorManager::BindDescriptorContext(IRHICommandList& command_list)
 {
     return DX12Utils::DX12Instance().SetDescriptorHeapArray(command_list, m_CBV_SRV_UAV_heap.get(), 1);
 }
 
-bool DX12DescriptorManager::BindGUIDescriptors(IRHICommandList& command_list)
+bool DX12DescriptorManager::BindGUIDescriptorContext(IRHICommandList& command_list)
 {
     return DX12Utils::DX12Instance().SetDescriptorHeapArray(command_list, m_ImGUI_Heap.get(), 1);
 }

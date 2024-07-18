@@ -30,7 +30,8 @@ public:
     virtual ~VKDevice() override;
 
     virtual bool InitDevice(IRHIFactory& factory) override;
-
+    
+    VkInstance GetInstance() const {return instance; }
     VkSurfaceKHR GetSurface() const {return surface; }
     VkPhysicalDevice GetPhysicalDevice() const {return selected_physical_device; }
     VkDevice GetDevice() const {return logical_device;}

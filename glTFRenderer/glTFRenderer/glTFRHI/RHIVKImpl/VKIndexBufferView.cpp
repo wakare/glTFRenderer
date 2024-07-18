@@ -1,8 +1,10 @@
 #include "VKIndexBufferView.h"
 
-bool VKIndexBufferView::InitIndexBufferView(IRHIBuffer& buffer, size_t offset, RHIDataFormat indexFormat,
-    size_t indexBufferSize)
+bool VKIndexBufferView::InitIndexBufferView(IRHIBuffer& buffer, const RHIIndexBufferViewDesc& desc)
 {
+    
+    m_desc = desc;
+    
     return true;
 }
 

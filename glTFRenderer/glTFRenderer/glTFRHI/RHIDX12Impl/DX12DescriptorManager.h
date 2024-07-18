@@ -1,4 +1,6 @@
 #pragma once
+#include <utility>
+
 #include "glTFRHI/RHIInterface/IRHIDescriptorManager.h"
 
 class DX12DescriptorHeap;
@@ -12,7 +14,7 @@ public:
         : m_gpu_handle(gpu_handle)
         , m_cpu_handle(cpu_handle)
     {
-        m_source = buffer;
+        m_source = std::move(buffer);
         m_view_desc = desc;
     }
 
@@ -31,7 +33,7 @@ public:
         : m_gpu_handle(gpu_handle)
         , m_cpu_handle(cpu_handle)
     {
-        m_source = texture;
+        m_source = std::move(texture);
         m_view_desc = desc;
     }
 
@@ -56,8 +58,8 @@ public:
     virtual bool CreateDescriptor(IRHIDevice& device, const std::shared_ptr<IRHIBuffer>& buffer, const RHIBufferDescriptorDesc& desc, std::shared_ptr<IRHIBufferDescriptorAllocation>& out_descriptor_allocation) override;
     virtual bool CreateDescriptor(IRHIDevice& device, const std::shared_ptr<IRHITexture>& texture, const RHITextureDescriptorDesc& desc, std::shared_ptr<IRHITextureDescriptorAllocation>& out_descriptor_allocation) override;
 
-    virtual bool BindDescriptors(IRHICommandList& command_list) override;
-    virtual bool BindGUIDescriptors(IRHICommandList& command_list) override;
+    virtual bool BindDescriptorContext(IRHICommandList& command_list) override;
+    virtual bool BindGUIDescriptorContext(IRHICommandList& command_list) override;
     
     DX12DescriptorHeap& GetDescriptorHeap(RHIViewType type) const;
     DX12DescriptorHeap& GetDescriptorHeap(RHIDescriptorHeapType type) const;

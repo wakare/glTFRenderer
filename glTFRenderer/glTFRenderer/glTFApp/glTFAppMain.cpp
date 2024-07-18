@@ -117,6 +117,7 @@ void glTFAppMain::Run()
             else
             {
                 m_renderer->TickSceneRendering(*m_input_manager, time_delta_ms);
+                m_renderer->TickGUIWidgetUpdate(time_delta_ms);
             }
             
             m_renderer->TickRenderingEnd(time_delta_ms);
@@ -225,10 +226,7 @@ bool glTFAppMain::InitRenderer()
     
     m_renderer = std::make_unique<glTFAppRenderer>(renderer_config, glTFWindow::Get());
     m_renderer->InitScene(*m_scene_graph);
-    if (!renderer_config.test_triangle)
-    {
-        m_renderer->GetGUIRenderer().AddWidgetSetupCallback([this](){UpdateGUIWidgets();});
-    }
+    m_renderer->GetGUIRenderer().AddWidgetSetupCallback([this](){UpdateGUIWidgets();});
     
     m_scene_graph->TraverseNodes([](const glTFSceneNode& node)
     {

@@ -13,14 +13,15 @@ DX12IndexBufferView::~DX12IndexBufferView()
 {
 }
 
-bool DX12IndexBufferView::InitIndexBufferView(IRHIBuffer& buffer, size_t offset, RHIDataFormat indexFormat,
-                                              size_t indexBufferSize)
+bool DX12IndexBufferView::InitIndexBufferView(IRHIBuffer& buffer, const RHIIndexBufferViewDesc& desc)
 {
     auto* dxBuffer = dynamic_cast<DX12Buffer&>(buffer).GetRawBuffer();
     
-    m_indexBufferView.BufferLocation = dxBuffer->GetGPUVirtualAddress() + offset;
-    m_indexBufferView.Format = DX12ConverterUtils::ConvertToDXGIFormat(indexFormat);
-    m_indexBufferView.SizeInBytes = static_cast<UINT>(indexBufferSize);
+    m_indexBufferView.BufferLocation = dxBuffer->GetGPUVirtualAddress() + desc.offset;
+    m_indexBufferView.Format = DX12ConverterUtils::ConvertToDXGIFormat(desc.format);
+    m_indexBufferView.SizeInBytes = static_cast<UINT>(desc.size);
+
+    m_desc = desc;
     
     return true;
 }

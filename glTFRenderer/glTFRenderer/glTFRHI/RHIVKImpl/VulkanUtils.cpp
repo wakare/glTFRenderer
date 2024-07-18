@@ -1,5 +1,7 @@
 #include "VulkanUtils.h"
 
+#include <backends/imgui_impl_vulkan.h>
+
 #include "VKCommandList.h"
 #include "VKConverterUtils.h"
 #include "VKDescriptorManager.h"
@@ -11,23 +13,53 @@
 #include "VKSemaphore.h"
 #include "VKTexture.h"
 
-bool VulkanUtils::InitGUIContext(IRHIDevice& device, IRHIDescriptorManager& descriptor_manager, unsigned back_buffer_count)
+bool VulkanUtils::InitGUIContext(IRHIDevice& device, IRHICommandQueue& graphics_queue, IRHIDescriptorManager& descriptor_manager, unsigned back_buffer_count)
 {
+    auto& vulkan_device = dynamic_cast<VKDevice&>(device);
+    auto& vulkan_queue = dynamic_cast<VKCommandQueue&>(graphics_queue);
+    auto& vulkan_descriptor_manager = dynamic_cast<VKDescriptorManager&>(descriptor_manager);
+    
+    ImGui_ImplVulkan_InitInfo vulkan_init_info{};
+    vulkan_init_info.Instance = vulkan_device.GetInstance();
+    vulkan_init_info.PhysicalDevice = vulkan_device.GetPhysicalDevice(); 
+    vulkan_init_info.Device = vulkan_device.GetDevice();
+    vulkan_init_info.QueueFamily = vulkan_device.GetGraphicsQueueIndex();
+    vulkan_init_info.Queue = vulkan_queue.GetGraphicsQueue();
+    vulkan_init_info.PipelineCache = VK_NULL_HANDLE;
+    vulkan_init_info.DescriptorPool = vulkan_descriptor_manager.GetDesciptorPool();
+    vulkan_init_info.Subpass = 0;
+    vulkan_init_info.MinImageCount = back_buffer_count;
+    vulkan_init_info.ImageCount = back_buffer_count;
+    vulkan_init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+    vulkan_init_info.UseDynamicRendering = true;
+
+    VkFormat attachments[] = {VK_FORMAT_R8G8B8A8_UNORM};
+    vulkan_init_info.PipelineRenderingCreateInfo = {.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO};
+    vulkan_init_info.PipelineRenderingCreateInfo.pColorAttachmentFormats = attachments;
+    vulkan_init_info.PipelineRenderingCreateInfo.colorAttachmentCount = 1;
+    
+    ImGui_ImplVulkan_Init(&vulkan_init_info);
+    
     return true;
 }
 
 bool VulkanUtils::NewGUIFrame()
 {
+    ImGui_ImplVulkan_NewFrame();
+    
     return true;
 }
 
 bool VulkanUtils::RenderGUIFrame(IRHICommandList& commandList)
 {
+    auto vk_command_buffer = dynamic_cast<VKCommandList&>(commandList).GetCommandBuffer();
+    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), vk_command_buffer);
     return true;
 }
 
 bool VulkanUtils::ExitGUI()
 {
+    ImGui_ImplVulkan_Shutdown();
     return true;
 }
 
@@ -99,6 +131,8 @@ bool VulkanUtils::EndRendering(IRHICommandList& command_list)
 bool VulkanUtils::ResetCommandList(IRHICommandList& command_list, IRHICommandAllocator& command_allocator,
                                    IRHIPipelineStateObject* init_pso)
 {
+    WaitCommandListFinish(command_list);
+    
     const auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetCommandBuffer();
     vkResetCommandBuffer(vk_command_buffer, 0);
     
@@ -121,6 +155,7 @@ bool VulkanUtils::ResetCommandList(IRHICommandList& command_list, IRHICommandAll
         }
     }
 
+    
     return true;
 }
 

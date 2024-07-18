@@ -29,7 +29,7 @@ bool glTFGUIRenderer::SetupGUIContext(const glTFWindow& window, glTFRenderResour
     ImGui_ImplGlfw_InstallEmscriptenCanvasResizeCallback("#canvas");
 #endif
 
-    RETURN_IF_FALSE(RHIUtils::Instance().InitGUIContext(resource_manager.GetDevice(), resource_manager.GetMemoryManager().GetDescriptorManager(), resource_manager.GetBackBufferCount()))
+    RETURN_IF_FALSE(RHIUtils::Instance().InitGUIContext(resource_manager.GetDevice(), resource_manager.GetCommandQueue(), resource_manager.GetMemoryManager().GetDescriptorManager(), resource_manager.GetBackBufferCount()))
 
     glTFWindow::Get().SetInputHandleCallback([this](){return HandleMouseEventThisFrame();});
     m_inited = true;
@@ -44,13 +44,17 @@ bool glTFGUIRenderer::RenderWidgets(glTFRenderResourceManager& resource_manager)
 
     auto& command_list = resource_manager.GetCommandListForRecord();
     
-    resource_manager.GetCurrentFrameSwapChainTexture().Transition(command_list, RHIResourceStateType::STATE_RENDER_TARGET);
-    RETURN_IF_FALSE(resource_manager.GetRenderTargetManager().BindRenderTarget(command_list,
-        {&resource_manager.GetCurrentFrameSwapChainRTV()}))
+    RHIBeginRenderingInfo begin_rendering_info{};
+    begin_rendering_info.rendering_area_width = resource_manager.GetSwapChain().GetWidth();
+    begin_rendering_info.rendering_area_height = resource_manager.GetSwapChain().GetHeight();
+    begin_rendering_info.enable_depth_write = false;
+    begin_rendering_info.m_render_targets = {&resource_manager.GetCurrentFrameSwapChainRTV()};
     
-    RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().BindGUIDescriptors(command_list))
+    RETURN_IF_FALSE(RHIUtils::Instance().BeginRendering(command_list, begin_rendering_info));
+    RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().BindGUIDescriptorContext(command_list))
     RETURN_IF_FALSE(RHIUtils::Instance().RenderGUIFrame(command_list))
-
+    RETURN_IF_FALSE(RHIUtils::Instance().EndRendering(command_list));
+    
     resource_manager.CloseCommandListAndExecute({}, true);
     
     return true;

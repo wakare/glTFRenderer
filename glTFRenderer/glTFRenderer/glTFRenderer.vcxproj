@@ -109,6 +109,7 @@
   <ItemGroup>
     <ClCompile Include="..\ThirdParty\imgui\backends\imgui_impl_dx12.cpp" />
     <ClCompile Include="..\ThirdParty\imgui\backends\imgui_impl_glfw.cpp" />
+    <ClCompile Include="..\ThirdParty\imgui\backends\imgui_impl_vulkan.cpp" />
     <ClCompile Include="..\ThirdParty\imgui\imgui.cpp" />
     <ClCompile Include="..\ThirdParty\imgui\imgui_draw.cpp" />
     <ClCompile Include="..\ThirdParty\imgui\imgui_tables.cpp" />

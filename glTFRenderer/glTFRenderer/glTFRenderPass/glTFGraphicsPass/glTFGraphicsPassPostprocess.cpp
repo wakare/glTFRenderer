@@ -52,7 +52,11 @@ bool glTFGraphicsPassPostprocess::InitPass(glTFRenderResourceManager& resource_m
     RETURN_IF_FALSE(RHIUtils::Instance().AddBufferBarrierToCommandList(command_list, *m_postprocessQuadResource.meshIndexBuffer->m_buffer, RHIResourceStateType::STATE_COPY_DEST, RHIResourceStateType::STATE_INDEX_BUFFER))
 
     vertexBufferView->InitVertexBufferView(*m_postprocessQuadResource.meshVertexBuffer->m_buffer, 0, 20, sizeof(postprocessVertices));
-    indexBufferView->InitIndexBufferView(*m_postprocessQuadResource.meshIndexBuffer->m_buffer, 0, RHIDataFormat::R32_UINT, sizeof(postprocessIndices));
+    RHIIndexBufferViewDesc desc{};
+    desc.size = sizeof(postprocessIndices);
+    desc.offset = 0;
+    desc.format = RHIDataFormat::R32_UINT;
+    indexBufferView->InitIndexBufferView(*m_postprocessQuadResource.meshIndexBuffer->m_buffer, desc);
 
     auto fence = RHIResourceFactory::CreateRHIResource<IRHIFence>();
     RETURN_IF_FALSE(fence->InitFence(resource_manager.GetDevice()))

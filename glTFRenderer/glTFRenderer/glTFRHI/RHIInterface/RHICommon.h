@@ -179,6 +179,9 @@ enum class RHIViewType
     // CPU descriptor
     RVT_RTV,
     RVT_DSV,
+    // Vertex buffer view and index buffer view
+    RVT_VBV,
+    RVT_IBV,
 };
 
 struct RHIDescriptorDesc
@@ -195,6 +198,7 @@ struct RHIDescriptorDesc
 
     bool IsBufferDescriptor() const {return m_dimension == RHIResourceDimension::BUFFER; }
     bool IsTextureDescriptor() const {return !IsBufferDescriptor(); }
+    bool IsVBOrIB() const {return m_view_type == RHIViewType::RVT_VBV || m_view_type == RHIViewType::RVT_IBV; }
     
     virtual ~RHIDescriptorDesc() = default;
     
@@ -457,10 +461,12 @@ enum class RHIRenderTargetType
 
 enum RHIResourceUsageFlags
 {
-    RUF_NONE                =       0x0,
-    RUF_ALLOW_UAV           =       0x1,
-    RUF_ALLOW_DEPTH_STENCIL =  1 << 0x1,
-    RUF_ALLOW_RENDER_TARGET =  2 << 0x1,
+    RUF_NONE                =  0x0,
+    RUF_ALLOW_UAV           =  0x1,
+    RUF_ALLOW_DEPTH_STENCIL =  0x1 << 1,
+    RUF_ALLOW_RENDER_TARGET =  0x1 << 2,
+    RUF_VERTEX_BUFFER       =  0x1 << 3,
+    RUF_INDEX_BUFFER        =  0x1 << 4,
 };
 
 struct RHITextureDesc

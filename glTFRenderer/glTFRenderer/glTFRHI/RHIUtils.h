@@ -23,7 +23,7 @@ class RHIUtils : public IRHIResource
 public:
     RHIUtils() = default;
     
-    virtual bool InitGUIContext(IRHIDevice& device, IRHIDescriptorManager& descriptor_heap, unsigned back_buffer_count) = 0;
+    virtual bool InitGUIContext(IRHIDevice& device, IRHICommandQueue& graphics_queue, IRHIDescriptorManager& descriptor_heap, unsigned back_buffer_count) = 0;
     virtual bool NewGUIFrame() = 0;
     virtual bool RenderGUIFrame(IRHICommandList& command_list) = 0;
     virtual bool ExitGUI() = 0;

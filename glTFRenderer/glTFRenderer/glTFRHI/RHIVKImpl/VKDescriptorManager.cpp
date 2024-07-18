@@ -100,14 +100,14 @@ bool VKDescriptorManager::CreateDescriptor(IRHIDevice& device, const std::shared
     return true;
 }
 
-bool VKDescriptorManager::BindDescriptors(IRHICommandList& command_list)
+bool VKDescriptorManager::BindDescriptorContext(IRHICommandList& command_list)
 {
     return true;
 }
 
-bool VKDescriptorManager::BindGUIDescriptors(IRHICommandList& command_list)
+bool VKDescriptorManager::BindGUIDescriptorContext(IRHICommandList& command_list)
 {
-    return false;
+    return true;
 }
 
 VkDescriptorPool VKDescriptorManager::GetDesciptorPool() const

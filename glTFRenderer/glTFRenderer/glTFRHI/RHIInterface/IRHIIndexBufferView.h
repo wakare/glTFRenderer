@@ -3,16 +3,25 @@
 
 class IRHIBuffer;
 
+struct RHIIndexBufferViewDesc
+{
+    size_t size;
+    size_t offset;
+    RHIDataFormat format;
+};
+
 class IRHIIndexBufferView : public IRHIResource
 {
 public:
     DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIIndexBufferView)
     
-    virtual bool InitIndexBufferView(IRHIBuffer& buffer, size_t offset, RHIDataFormat indexFormat, size_t indexBufferSize) = 0;
+    virtual bool InitIndexBufferView(IRHIBuffer& buffer, const RHIIndexBufferViewDesc& desc) = 0;
     
     virtual RHIGPUDescriptorHandle GetGPUHandle() const = 0;
     virtual size_t GetSize() const = 0;
     virtual unsigned GetFormat() const = 0;
+
+    RHIIndexBufferViewDesc m_desc{};
 };
 
 struct RHIIndirectArgumentIndexBufferView

@@ -39,8 +39,8 @@ public:
     virtual bool CreateDescriptor(IRHIDevice& device, const std::shared_ptr<IRHIBuffer>& buffer, const RHIBufferDescriptorDesc& desc, std::shared_ptr<IRHIBufferDescriptorAllocation>& out_descriptor_allocation) override;
     virtual bool CreateDescriptor(IRHIDevice& device, const std::shared_ptr<IRHITexture>& texture, const RHITextureDescriptorDesc& desc, std::shared_ptr<IRHITextureDescriptorAllocation>& out_descriptor_allocation) override;
 
-    virtual bool BindDescriptors(IRHICommandList& command_list) override;
-    virtual bool BindGUIDescriptors(IRHICommandList& command_list) override;
+    virtual bool BindDescriptorContext(IRHICommandList& command_list) override;
+    virtual bool BindGUIDescriptorContext(IRHICommandList& command_list) override;
 
     VkDescriptorPool GetDesciptorPool() const;
     

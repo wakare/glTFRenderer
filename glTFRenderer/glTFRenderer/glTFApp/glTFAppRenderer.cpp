@@ -28,6 +28,7 @@ glTFAppRenderer::glTFAppRenderer(const glTFAppRendererConfig& renderer_config, c
     m_resource_manager->InitResourceManager(window.GetWidth(), window.GetHeight(), window.GetHWND());
     
     m_ui_renderer = std::make_unique<glTFGUIRenderer>();
+    
     m_ui_renderer->SetupGUIContext(glTFWindow::Get(), GetResourceManager());
     m_ui_renderer->AddWidgetSetupCallback([this]()
     {

@@ -49,7 +49,7 @@ bool glTFRenderPassBase::PreRenderPass(glTFRenderResourceManager& resource_manag
     
     auto& command_list = resource_manager.GetCommandListForRecord();
     
-    RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().BindDescriptors(command_list))
+    RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().BindDescriptorContext(command_list))
     
     RETURN_IF_FALSE(RHIUtils::Instance().SetRootSignature(command_list, m_root_signature_helper.GetRootSignature(), *m_pipeline_state_object, GetPipelineType()))
 
