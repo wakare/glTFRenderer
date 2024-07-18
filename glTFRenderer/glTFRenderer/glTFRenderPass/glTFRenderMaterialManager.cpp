@@ -25,7 +25,7 @@ bool glTFMaterialTextureRenderResource::Init(glTFRenderResourceManager& resource
     texture_desc.Init(result);
 
     resource_manager.GetMemoryManager().AllocateTextureMemoryAndUpload(resource_manager.GetDevice(), resource_manager, command_list, texture_desc, m_texture);
-    resource_manager.CloseCommandListAndExecute(false);
+    resource_manager.CloseCommandListAndExecute({}, false);
     
     return true;
 }

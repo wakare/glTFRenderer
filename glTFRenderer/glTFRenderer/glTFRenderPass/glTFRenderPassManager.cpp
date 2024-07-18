@@ -63,7 +63,7 @@ void glTFRenderPassManager::InitAllPass(glTFRenderResourceManager& resource_mana
         LOG_FORMAT("[DEBUG] Init pass %s finished!\n", pass->PassName())
     }
 
-    resource_manager.CloseCommandListAndExecute(true);
+    resource_manager.CloseCommandListAndExecute({}, true);
     
     LOG_FORMAT_FLUSH("[DEBUG] Init all pass finished!\n")
 }
@@ -167,9 +167,13 @@ void glTFRenderPassManager::RenderEnd(glTFRenderResourceManager& resource_manage
 {
     auto& command_list = resource_manager.GetCommandListForRecord();
     resource_manager.GetCurrentFrameSwapChainRTV().m_source->Transition(command_list, RHIResourceStateType::STATE_PRESENT);
+
+    RHIExecuteCommandListContext context;
+    context.wait_infos.push_back({&resource_manager.GetSwapChain().GetAvailableFrameSemaphore(), RHIPipelineStage::COLOR_ATTACHMENT_OUTPUT});
+    context.sign_semaphores.push_back(&command_list.GetSemaphore());
     
     // TODO: no waiting causing race with base color and normal?
-    resource_manager.CloseCommandListAndExecute(true);
+    resource_manager.CloseCommandListAndExecute(context, true);
     RHIUtils::Instance().Present(resource_manager.GetSwapChain(), resource_manager.GetCommandQueue(), command_list);
 }
 

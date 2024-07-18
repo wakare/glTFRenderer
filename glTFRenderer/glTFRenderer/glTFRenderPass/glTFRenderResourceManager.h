@@ -40,7 +40,7 @@ public:
     static unsigned GetCurrentBackBufferIndex();
     
     IRHICommandList& GetCommandListForRecord();
-    void CloseCommandListAndExecute(bool wait);
+    void CloseCommandListAndExecute(const RHIExecuteCommandListContext& context, bool wait);
 
     void WaitLastFrameFinish() const;
     void WaitAllFrameFinish() const;

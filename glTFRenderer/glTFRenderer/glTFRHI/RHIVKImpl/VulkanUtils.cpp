@@ -103,20 +103,22 @@ bool VulkanUtils::ResetCommandList(IRHICommandList& command_list, IRHICommandAll
     vkResetCommandBuffer(vk_command_buffer, 0);
     
     command_list.BeginRecordCommandList();
-
-    VkPipeline pso {VK_NULL_HANDLE};
-    switch(init_pso->GetPSOType())
+    if (init_pso)
     {
-    case RHIPipelineType::Graphics:
-        pso = dynamic_cast<const VKGraphicsPipelineStateObject&>(*init_pso).GetPipeline(); 
-        vkCmdBindPipeline(vk_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pso);
-        break;
-    case RHIPipelineType::Compute:
-        break;
-    case RHIPipelineType::RayTracing:
-        break;
-    case RHIPipelineType::Unknown:
-        break;
+        VkPipeline pso {VK_NULL_HANDLE};
+        switch(init_pso->GetPSOType())
+        {
+        case RHIPipelineType::Graphics:
+            pso = dynamic_cast<const VKGraphicsPipelineStateObject&>(*init_pso).GetPipeline(); 
+            vkCmdBindPipeline(vk_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pso);
+            break;
+        case RHIPipelineType::Compute:
+            break;
+        case RHIPipelineType::RayTracing:
+            break;
+        case RHIPipelineType::Unknown:
+            break;
+        }
     }
 
     return true;

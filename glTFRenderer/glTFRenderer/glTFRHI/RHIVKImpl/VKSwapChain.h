@@ -17,6 +17,7 @@ public:
     
     virtual bool InitSwapChain(IRHIFactory& factory, IRHIDevice& device, IRHICommandQueue& commandQueue, const RHITextureDesc& swap_chain_buffer_desc, bool fullScreen, HWND hwnd) override;
     virtual bool AcquireNewFrame(IRHIDevice& device) override;
+    
     virtual IRHISemaphore& GetAvailableFrameSemaphore() override;
     virtual bool Present(IRHICommandQueue& command_queue, IRHICommandList& command_list) override;
     

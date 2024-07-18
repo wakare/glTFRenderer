@@ -57,7 +57,7 @@ bool glTFGraphicsPassPostprocess::InitPass(glTFRenderResourceManager& resource_m
     auto fence = RHIResourceFactory::CreateRHIResource<IRHIFence>();
     RETURN_IF_FALSE(fence->InitFence(resource_manager.GetDevice()))
 
-    resource_manager.CloseCommandListAndExecute(true);
+    resource_manager.CloseCommandListAndExecute({}, true);
     
     return true;
 }
