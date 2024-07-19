@@ -179,7 +179,7 @@ bool glTFRadiosityRenderer::AddTriangle(const glTFSceneTriangleMesh& triangle_me
     }
     
     void* vertex_buffer = rtcSetNewGeometryBuffer(mesh, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, 3 * sizeof(float), vertex_count);
-    GLTF_CHECK (triangle_mesh.GetMeshRawData().GetPositionOnlyBuffer().byteSize == (vertex_count * 3 * sizeof(float)));
+    GLTF_CHECK (triangle_mesh.GetMeshRawData().GetPositionOnlyBuffer().byte_size == (vertex_count * 3 * sizeof(float)));
 
     memcpy(vertex_buffer, mesh_positions.data(), (vertex_count * 3 * sizeof(float)));
 

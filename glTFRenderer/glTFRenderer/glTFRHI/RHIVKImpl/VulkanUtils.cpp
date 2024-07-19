@@ -99,13 +99,21 @@ bool VulkanUtils::BeginRendering(IRHICommandList& command_list, const RHIBeginRe
     for (auto& render_target : begin_rendering_info.m_render_targets)
     {
         auto& texture_desc = dynamic_cast<const VKTextureDescriptorAllocation&>(*render_target);
+        bool render_target_view = texture_desc.GetDesc().m_view_type == RHIViewType::RVT_RTV;
+        
         VkRenderingAttachmentInfo attachment { .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO};
         attachment.imageView = texture_desc.GetRawImageView();
-        attachment.imageLayout = texture_desc.GetDesc().m_view_type == RHIViewType::RVT_RTV ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL :
+        attachment.imageLayout = render_target_view ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL :
         (begin_rendering_info.enable_depth_write ? VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL);
         attachment.clearValue.color = {{1.0, 1.0 ,1.0, 1.0}};
-        attachment.loadOp = VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        attachment.storeOp = VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_STORE;
+
+        attachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        if ((render_target_view && begin_rendering_info.clear_render_target) ||
+            (!render_target_view && begin_rendering_info.clear_depth))
+        {
+            attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        }
+        attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
         attachment_infos.push_back(attachment);
     }

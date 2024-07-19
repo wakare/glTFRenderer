@@ -35,6 +35,7 @@ bool glTFRenderMeshManager::AddOrUpdatePrimitive(glTFRenderResourceManager& reso
 {
     auto& device = resource_manager.GetDevice();
     auto& command_list = resource_manager.GetCommandListForRecord();
+    auto& memory_manager = resource_manager.GetMemoryManager();
     
     const glTFUniqueID mesh_ID = primitive->GetMeshRawDataID();
     const glTFUniqueID instance_ID = primitive->GetID();
@@ -43,16 +44,16 @@ bool glTFRenderMeshManager::AddOrUpdatePrimitive(glTFRenderResourceManager& reso
     {
         m_mesh_render_resources[mesh_ID].mesh = primitive;
         m_mesh_render_resources[mesh_ID].mesh_vertex_buffer = RHIResourceFactory::CreateRHIResource<IRHIVertexBuffer>();
-        const RHIBufferDesc vertex_buffer_desc = {L"vertexBufferDefaultBuffer", primitive->GetVertexBufferData().byteSize, 1, 1, RHIBufferType::Default, RHIDataFormat::UNKNOWN, RHIBufferResourceType::Buffer};
-        m_mesh_render_resources[mesh_ID].mesh_vertex_buffer_view = m_mesh_render_resources[mesh_ID].mesh_vertex_buffer->CreateVertexBufferView(device, resource_manager, command_list, vertex_buffer_desc, primitive->GetVertexBufferData());
+        const RHIBufferDesc vertex_buffer_desc = {L"vertexBufferDefaultBuffer", primitive->GetVertexBufferData().byte_size, 1, 1, RHIBufferType::Default, RHIDataFormat::UNKNOWN, RHIBufferResourceType::Buffer};
+        m_mesh_render_resources[mesh_ID].mesh_vertex_buffer_view = m_mesh_render_resources[mesh_ID].mesh_vertex_buffer->CreateVertexBufferView(device, memory_manager, command_list, vertex_buffer_desc, primitive->GetVertexBufferData());
 
         m_mesh_render_resources[mesh_ID].mesh_position_only_buffer = RHIResourceFactory::CreateRHIResource<IRHIVertexBuffer>();
-        const RHIBufferDesc position_only_buffer_desc = {L"positionOnlyBufferDefaultBuffer", primitive->GetPositionOnlyBufferData().byteSize, 1, 1, RHIBufferType::Default, RHIDataFormat::UNKNOWN, RHIBufferResourceType::Buffer};
-        m_mesh_render_resources[mesh_ID].mesh_position_only_buffer_view = m_mesh_render_resources[mesh_ID].mesh_position_only_buffer->CreateVertexBufferView(device, resource_manager, command_list, position_only_buffer_desc, primitive->GetPositionOnlyBufferData());
+        const RHIBufferDesc position_only_buffer_desc = {L"positionOnlyBufferDefaultBuffer", primitive->GetPositionOnlyBufferData().byte_size, 1, 1, RHIBufferType::Default, RHIDataFormat::UNKNOWN, RHIBufferResourceType::Buffer};
+        m_mesh_render_resources[mesh_ID].mesh_position_only_buffer_view = m_mesh_render_resources[mesh_ID].mesh_position_only_buffer->CreateVertexBufferView(device, memory_manager, command_list, position_only_buffer_desc, primitive->GetPositionOnlyBufferData());
 
         m_mesh_render_resources[mesh_ID].mesh_index_buffer = RHIResourceFactory::CreateRHIResource<IRHIIndexBuffer>();
-        const RHIBufferDesc index_buffer_desc = {L"indexBufferDefaultBuffer", primitive->GetIndexBufferData().byteSize, 1, 1, RHIBufferType::Default, RHIDataFormat::UNKNOWN, RHIBufferResourceType::Buffer};
-        m_mesh_render_resources[mesh_ID].mesh_index_buffer_view = m_mesh_render_resources[mesh_ID].mesh_index_buffer->CreateIndexBufferView(device, command_list, resource_manager, index_buffer_desc, primitive->GetIndexBufferData());
+        const RHIBufferDesc index_buffer_desc = {L"indexBufferDefaultBuffer", primitive->GetIndexBufferData().byte_size, 1, 1, RHIBufferType::Default, RHIDataFormat::UNKNOWN, RHIBufferResourceType::Buffer};
+        m_mesh_render_resources[mesh_ID].mesh_index_buffer_view = m_mesh_render_resources[mesh_ID].mesh_index_buffer->CreateIndexBufferView(device, memory_manager, command_list, index_buffer_desc, primitive->GetIndexBufferData());
        
         m_mesh_render_resources[mesh_ID].mesh_vertex_count = primitive->GetVertexBufferData().vertex_count;
         m_mesh_render_resources[mesh_ID].mesh_index_count = primitive->GetIndexBufferData().index_count;
@@ -73,15 +74,16 @@ bool glTFRenderMeshManager::BuildMeshRenderResource(glTFRenderResourceManager& r
 {
     const auto& mesh_render_resources = resource_manager.GetMeshManager().GetMeshRenderResources();
     const auto& mesh_instance_render_resource = resource_manager.GetMeshManager().GetMeshInstanceRenderResource();
+    auto& memory_manager = resource_manager.GetMemoryManager();
     
     if (!m_instance_buffer_view)
     {
         VertexBufferData instance_buffer;
         instance_buffer.layout.elements = m_instance_input_layout.m_instance_layout.elements;
-        instance_buffer.byteSize = mesh_instance_render_resource.size() * sizeof(MeshInstanceInputData);
+        instance_buffer.byte_size = mesh_instance_render_resource.size() * sizeof(MeshInstanceInputData);
         instance_buffer.vertex_count = mesh_instance_render_resource.size();
     
-        instance_buffer.data = std::make_unique<char[]>(instance_buffer.byteSize);
+        instance_buffer.data = std::make_unique<char[]>(instance_buffer.byte_size);
         m_instance_data.reserve(mesh_instance_render_resource.size());
     
         for (const auto& mesh : mesh_render_resources)
@@ -115,11 +117,11 @@ bool glTFRenderMeshManager::BuildMeshRenderResource(glTFRenderResourceManager& r
             }
         }
 
-        memcpy(instance_buffer.data.get(), m_instance_data.data(), instance_buffer.byteSize);
+        memcpy(instance_buffer.data.get(), m_instance_data.data(), instance_buffer.byte_size);
     
-        const RHIBufferDesc instance_buffer_desc = {L"instanceBufferDefaultBuffer", instance_buffer.byteSize, 1, 1, RHIBufferType::Default, RHIDataFormat::UNKNOWN, RHIBufferResourceType::Buffer};
+        const RHIBufferDesc instance_buffer_desc = {L"instanceBufferDefaultBuffer", instance_buffer.byte_size, 1, 1, RHIBufferType::Default, RHIDataFormat::UNKNOWN, RHIBufferResourceType::Buffer};
         m_instance_buffer = RHIResourceFactory::CreateRHIResource<IRHIVertexBuffer>();
-        m_instance_buffer_view = m_instance_buffer->CreateVertexBufferView(resource_manager.GetDevice(), resource_manager, resource_manager.GetCommandListForRecord(), instance_buffer_desc, instance_buffer);
+        m_instance_buffer_view = m_instance_buffer->CreateVertexBufferView(resource_manager.GetDevice(), memory_manager, resource_manager.GetCommandListForRecord(), instance_buffer_desc, instance_buffer);
     }
     
     m_indirect_arguments.clear();

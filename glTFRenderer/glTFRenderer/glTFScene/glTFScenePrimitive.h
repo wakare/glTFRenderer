@@ -79,7 +79,7 @@ struct VertexBufferData
     VertexLayoutDeclaration layout;
     
     std::unique_ptr<char[]> data;
-    size_t byteSize;
+    size_t byte_size;
     size_t vertex_count;
 
     bool GetVertexAttributeDataByIndex(VertexAttributeType type, unsigned index, void* out_data, size_t& out_attribute_size) const
@@ -107,7 +107,7 @@ struct IndexBufferData
     RHIDataFormat format;
     
     std::unique_ptr<char[]> data;
-    size_t byteSize;
+    size_t byte_size;
     size_t index_count;
 
     unsigned GetStride() const;

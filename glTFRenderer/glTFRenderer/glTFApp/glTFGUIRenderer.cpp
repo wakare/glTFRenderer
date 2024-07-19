@@ -49,6 +49,8 @@ bool glTFGUIRenderer::RenderWidgets(glTFRenderResourceManager& resource_manager)
     begin_rendering_info.rendering_area_height = resource_manager.GetSwapChain().GetHeight();
     begin_rendering_info.enable_depth_write = false;
     begin_rendering_info.m_render_targets = {&resource_manager.GetCurrentFrameSwapChainRTV()};
+    begin_rendering_info.clear_render_target = false;
+    begin_rendering_info.clear_depth = false;
     
     RETURN_IF_FALSE(RHIUtils::Instance().BeginRendering(command_list, begin_rendering_info));
     RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().BindGUIDescriptorContext(command_list))

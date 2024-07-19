@@ -57,20 +57,20 @@ glTFSceneBox::glTFSceneBox(const glTF_Transform_WithTRS& parentTransformRef)
     
     m_vertex_buffer_data.data.reset(new char[sizeof(boxVertices)]);
     memcpy(m_vertex_buffer_data.data.get(), boxVertices, sizeof(boxVertices));
-    m_vertex_buffer_data.byteSize = sizeof(boxVertices);
+    m_vertex_buffer_data.byte_size = sizeof(boxVertices);
     m_vertex_buffer_data.vertex_count = 8;
     m_vertex_buffer_data.layout.elements.push_back({VertexAttributeType::POSITION, 12});
     m_vertex_buffer_data.layout.elements.push_back({VertexAttributeType::TEXCOORD_0, 8});
     
     m_indexBufferData.data.reset(new char[sizeof(boxIndices)]);
     memcpy(m_indexBufferData.data.get(), boxIndices, sizeof(boxIndices));
-    m_indexBufferData.byteSize = sizeof(boxIndices);
+    m_indexBufferData.byte_size = sizeof(boxIndices);
     m_indexBufferData.index_count = sizeof(boxIndices) / sizeof(unsigned);
     m_indexBufferData.format = RHIDataFormat::R32_UINT;
 
     m_position_only_buffer_data.data.reset(new char[sizeof(boxVerticesPositionOnly)]);
     memcpy(m_position_only_buffer_data.data.get(), boxVerticesPositionOnly, sizeof(boxVerticesPositionOnly));
-    m_position_only_buffer_data.byteSize = sizeof(boxVerticesPositionOnly);
+    m_position_only_buffer_data.byte_size = sizeof(boxVerticesPositionOnly);
     m_position_only_buffer_data.vertex_count = 8;
     m_position_only_buffer_data.layout.elements.push_back({VertexAttributeType::POSITION, 12});
 }

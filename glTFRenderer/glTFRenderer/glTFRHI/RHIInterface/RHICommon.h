@@ -530,10 +530,10 @@ private:
 
 struct RHIPipelineInputLayout
 {
-    std::string semanticName;
-    unsigned semanticIndex;
+    std::string semantic_name;
+    unsigned semantic_index;
     RHIDataFormat format;
-    unsigned alignedByteOffset;
+    unsigned aligned_byte_offset;
 
     unsigned slot;
 
@@ -767,7 +767,9 @@ struct RHIBeginRenderPassInfo
 struct RHIBeginRenderingInfo
 {
     std::vector<IRHITextureDescriptorAllocation*> m_render_targets;
-    bool enable_depth_write {false};
     unsigned rendering_area_width {0};
     unsigned rendering_area_height {0};
+    bool enable_depth_write {false};
+    bool clear_render_target {false};
+    bool clear_depth {false};
 };

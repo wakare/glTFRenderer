@@ -110,15 +110,11 @@ void glTFAppMain::Run()
             m_renderer->TickRenderingBegin(time_delta_ms);
             if (!m_app_config.m_test_triangle_pass)
             {
-                m_renderer->TickSceneUpdating(*m_scene_graph, *m_input_manager, time_delta_ms);
-                m_renderer->TickSceneRendering(*m_input_manager, time_delta_ms);
-                m_renderer->TickGUIWidgetUpdate(time_delta_ms);    
+                m_renderer->TickSceneUpdating(*m_scene_graph, *m_input_manager, time_delta_ms);  
             }
-            else
-            {
-                m_renderer->TickSceneRendering(*m_input_manager, time_delta_ms);
-                m_renderer->TickGUIWidgetUpdate(time_delta_ms);
-            }
+            
+            m_renderer->TickSceneRendering(*m_input_manager, time_delta_ms);
+            m_renderer->TickGUIWidgetUpdate(time_delta_ms);    
             
             m_renderer->TickRenderingEnd(time_delta_ms);
             m_input_manager->TickFrame(time_delta_ms);
@@ -137,7 +133,7 @@ void glTFAppMain::Run()
 bool glTFAppMain::InitSceneGraph(const std::string& scene_name)
 {
     // Reset seed for random generator
-    srand(1234);
+    srand(1234);  
     
     const bool loaded = LoadSceneGraphFromFile(scene_name.c_str());
     GLTF_CHECK(loaded);

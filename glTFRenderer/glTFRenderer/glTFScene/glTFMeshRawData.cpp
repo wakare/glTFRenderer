@@ -47,14 +47,14 @@ glTFMeshRawData::glTFMeshRawData(const glTFLoader& loader, const glTF_Primitive&
 
 	vertex_buffer_data = std::make_shared<VertexBufferData>();
 	vertex_buffer_data->data.reset(new char[vertex_buffer_size]);
-	vertex_buffer_data->byteSize = vertex_buffer_size;
+	vertex_buffer_data->byte_size = vertex_buffer_size;
 	vertex_buffer_data->vertex_count = vertex_buffer_size / vertexLayout.GetVertexStrideInBytes();
 	vertex_buffer_data->layout = vertexLayout;
 
 	position_only_data = std::make_shared<VertexBufferData>();
 	const size_t position_only_data_size = vertex_buffer_data->vertex_count * 3 * sizeof(float);
 	position_only_data->data.reset(new char[position_only_data_size]);
-	position_only_data->byteSize = position_only_data_size;
+	position_only_data->byte_size = position_only_data_size;
 	position_only_data->vertex_count = vertex_buffer_data->vertex_count;
 	position_only_data->layout.elements.push_back({VertexAttributeType::POSITION, 12});
                 
@@ -96,7 +96,7 @@ glTFMeshRawData::glTFMeshRawData(const glTFLoader& loader, const glTF_Primitive&
 	GLTF_CHECK(findIt != loader.m_buffer_data.end());
 	const char* bufferStart = findIt->second.get() + index_buffer_view.byte_offset + index_accessor.byte_offset;
 	memcpy(index_buffer_data->data.get(), bufferStart, index_buffer_size);
-	index_buffer_data->byteSize = index_buffer_size;
+	index_buffer_data->byte_size = index_buffer_size;
 	index_buffer_data->index_count = index_accessor.count;
 	index_buffer_data->format = index_accessor.component_type ==
 		glTF_Element_Template<glTF_Element_Type::EAccessor>::glTF_Accessor_Component_Type::EUnsignedShort ?

@@ -119,16 +119,19 @@ bool DX12Utils::BeginRendering(IRHICommandList& command_list, const RHIBeginRend
         {
         case RHIViewType::RVT_RTV:
             {
-                dxCommandList->ClearRenderTargetView({handle}, dx_render_target_clear_value.Color, 0, nullptr);    
+                if (begin_rendering_info.clear_render_target)
+                {
+                    dxCommandList->ClearRenderTargetView({handle}, dx_render_target_clear_value.Color, 0, nullptr);    
+                }   
             }
             break;
 
         case RHIViewType::RVT_DSV:
             {
-                if (begin_rendering_info.enable_depth_write)
+                if (begin_rendering_info.clear_depth)
                 {
                     dxCommandList->ClearDepthStencilView({handle}, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
-                        dx_render_target_clear_value.DepthStencil.Depth, dx_depth_stencil_clear_value.DepthStencil.Stencil, 0, nullptr);    
+                        dx_render_target_clear_value.DepthStencil.Depth, dx_depth_stencil_clear_value.DepthStencil.Stencil, 0, nullptr);
                 }
             }
             break;
