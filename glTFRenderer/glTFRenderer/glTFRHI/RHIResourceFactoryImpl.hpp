@@ -2,6 +2,7 @@
 
 #include "RHIConfigSingleton.h"
 #include "RHIResourceFactory.h"
+#include "IRHIIndirectDrawBuilder.h"
 #include "RHIUtils.h"
 
 // Interfaces
@@ -141,3 +142,4 @@ IMPLEMENT_CREATE_RHI_RESOURCE(IRHIDescriptorTable, DX12DescriptorTable, VKDescri
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHITextureAllocation, DX12TextureAllocation, VKTextureAllocation)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIDescriptorManager, DX12DescriptorManager, VKDescriptorManager)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIDescriptorUpdater, DX12DescriptorUpdater, VKDescriptorUpdater)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHIIndirectDrawBuilder, IRHIIndirectDrawBuilder, IRHIIndirectDrawBuilder)

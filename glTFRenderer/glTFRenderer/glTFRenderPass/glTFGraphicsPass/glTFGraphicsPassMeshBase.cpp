@@ -22,6 +22,10 @@ bool glTFGraphicsPassMeshBase::InitPass(glTFRenderResourceManager& resource_mana
     RETURN_IF_FALSE(glTFGraphicsPassBase::InitPass(resource_manager))
     
     RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSceneMeshInfo>()->UpdateSceneMeshData(resource_manager, resource_manager.GetMeshManager()))
+
+    m_command_signature = RHIResourceFactory::CreateRHIResource<IRHICommandSignature>();
+    m_command_signature->SetCommandSignatureDesc(resource_manager.GetMeshManager().GetIndirectDrawBuilder().GetDesc());
+    RETURN_IF_FALSE(m_command_signature->InitCommandSignature(resource_manager.GetDevice(), m_root_signature_helper.GetRootSignature()))
     
     return true;
 }
@@ -33,13 +37,6 @@ bool glTFGraphicsPassMeshBase::PreRenderPass(glTFRenderResourceManager& resource
     auto& command_list = resource_manager.GetCommandListForRecord();
     
     RHIUtils::Instance().SetPrimitiveTopology( command_list, RHIPrimitiveTopologyType::TRIANGLELIST);
-
-    if (!m_command_signature)
-    {
-        m_command_signature = RHIResourceFactory::CreateRHIResource<IRHICommandSignature>();
-        m_command_signature->SetCommandSignatureDesc(resource_manager.GetMeshManager().GetCommandSignatureDesc());
-        RETURN_IF_FALSE(m_command_signature->InitCommandSignature(resource_manager.GetDevice(), m_root_signature_helper.GetRootSignature()))
-    }
 
     return true;
 }
@@ -56,15 +53,7 @@ bool glTFGraphicsPassMeshBase::RenderPass(glTFRenderResourceManager& resource_ma
 
         if (UsingIndirectDraw())
         {
-            const size_t indirect_command_count = resource_manager.GetMeshManager().GetIndirectDrawCommands().size();
-            if (UsingIndirectDrawCulling())
-            {
-                RHIUtils::Instance().ExecuteIndirect(command_list, *m_command_signature, indirect_command_count, *resource_manager.GetMeshManager().GetCulledIndirectArgumentBuffer(), 0, *resource_manager.GetMeshManager().GetCulledIndirectArgumentBuffer(), resource_manager.GetMeshManager().GetCulledIndirectArgumentBufferCountOffset());
-            }
-            else
-            {
-                RHIUtils::Instance().ExecuteIndirect(command_list, *m_command_signature, indirect_command_count, *resource_manager.GetMeshManager().GetIndirectArgumentBuffer(), 0);    
-            }
+            resource_manager.GetMeshManager().GetIndirectDrawBuilder().DrawIndirect(command_list, *m_command_signature, UsingIndirectDrawCulling());
         }
         else
         {

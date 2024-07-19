@@ -3,33 +3,6 @@
 #include "glTFRenderResourceManager.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 
-glTFRenderMeshManager::glTFRenderMeshManager()
-    : m_command_signature_desc()
-    , m_culled_indirect_command_count_offset(0)
-{
-    RHIIndirectArgumentDesc vertex_buffer_desc;
-    
-    vertex_buffer_desc.type = RHIIndirectArgType::VertexBufferView;
-    vertex_buffer_desc.desc.vertex_buffer.slot = 0;
-
-    RHIIndirectArgumentDesc vertex_buffer_for_instancing_desc;
-    
-    vertex_buffer_for_instancing_desc.type = RHIIndirectArgType::VertexBufferView;
-    vertex_buffer_for_instancing_desc.desc.vertex_buffer.slot = 1;
-
-    RHIIndirectArgumentDesc index_buffer_desc;
-    index_buffer_desc.type = RHIIndirectArgType::IndexBufferView;
-
-    RHIIndirectArgumentDesc draw_desc;
-    draw_desc.type = RHIIndirectArgType::DrawIndexed;
-    
-    m_command_signature_desc.m_indirect_arguments.push_back(vertex_buffer_desc);
-    m_command_signature_desc.m_indirect_arguments.push_back(vertex_buffer_for_instancing_desc);
-    m_command_signature_desc.m_indirect_arguments.push_back(index_buffer_desc);
-    m_command_signature_desc.m_indirect_arguments.push_back(draw_desc);
-    m_command_signature_desc.stride = sizeof(MeshIndirectDrawCommand);
-}
-
 bool glTFRenderMeshManager::AddOrUpdatePrimitive(glTFRenderResourceManager& resource_manager,
                                                  const glTFScenePrimitive* primitive)
 {
@@ -124,7 +97,7 @@ bool glTFRenderMeshManager::BuildMeshRenderResource(glTFRenderResourceManager& r
         m_instance_buffer_view = m_instance_buffer->CreateVertexBufferView(resource_manager.GetDevice(), memory_manager, resource_manager.GetCommandListForRecord(), instance_buffer_desc, instance_buffer);
     }
     
-    m_indirect_arguments.clear();
+    std::vector<MeshIndirectDrawCommand> m_indirect_arguments; 
     // Gather all mesh for indirect drawing
     for (const auto& instance : m_instance_draw_infos)
     {
@@ -145,38 +118,47 @@ bool glTFRenderMeshManager::BuildMeshRenderResource(glTFRenderResourceManager& r
         m_indirect_arguments.push_back(command);
     }
 
-    resource_manager.GetMemoryManager().AllocateBufferMemory(
+    std::vector<RHIIndirectArgumentDesc> indirect_argument_descs;
+    
+    RHIIndirectArgumentDesc vertex_buffer_desc;
+    vertex_buffer_desc.type = RHIIndirectArgType::VertexBufferView;
+    vertex_buffer_desc.desc.vertex_buffer.slot = 0;
+    indirect_argument_descs.push_back(vertex_buffer_desc);
+
+    RHIIndirectArgumentDesc vertex_buffer_for_instancing_desc;
+    vertex_buffer_for_instancing_desc.type = RHIIndirectArgType::VertexBufferView;
+    vertex_buffer_for_instancing_desc.desc.vertex_buffer.slot = 1;
+    indirect_argument_descs.push_back(vertex_buffer_for_instancing_desc);
+
+    RHIIndirectArgumentDesc index_buffer_desc;
+    index_buffer_desc.type = RHIIndirectArgType::IndexBufferView;
+    indirect_argument_descs.push_back(index_buffer_desc);
+
+    RHIIndirectArgumentDesc draw_desc;
+    draw_desc.type = RHIIndirectArgType::DrawIndexed;
+    indirect_argument_descs.push_back(draw_desc);
+
+    GLTF_CHECK(!m_indirect_draw_builder);    
+    m_indirect_draw_builder = RHIResourceFactory::CreateRHIResource<IRHIIndirectDrawBuilder>();
+    m_indirect_draw_builder->Init(
         resource_manager.GetDevice(),
-    {
-        L"indirect_arguments_buffer",
-        1024ull * 64,
-        1,
-        1,
-        RHIBufferType::Upload,
-        RHIDataFormat::UNKNOWN,
-        RHIBufferResourceType::Buffer},
-        m_indirect_argument_buffer);
-
-    resource_manager.GetMemoryManager().UploadBufferData(*m_indirect_argument_buffer, m_indirect_arguments.data(), 0, m_indirect_arguments.size() * sizeof(MeshIndirectDrawCommand));
-
-    m_culled_indirect_command_count_offset = RHIUtils::Instance().GetAlignmentSizeForUAVCount(1024ull * 64);
-    resource_manager.GetMemoryManager().AllocateBufferMemory(
-    resource_manager.GetDevice(), 
-    {
-        L"culled_indirect_arguments_buffer",
-        GetCulledIndirectArgumentBufferCountOffset() + /*count buffer*/sizeof(unsigned),
-        1,
-        1,
-        RHIBufferType::Default,
-        RHIDataFormat::UNKNOWN,
-        RHIBufferResourceType::Buffer,
-        RHIResourceStateType::STATE_COPY_DEST,
-        RUF_ALLOW_UAV
-    },
-    m_culled_indirect_commands
-    );
+        resource_manager.GetMemoryManager(),
+        indirect_argument_descs,
+        sizeof(MeshIndirectDrawCommand),
+        m_indirect_arguments.data(),
+        m_indirect_arguments.size() * sizeof(MeshIndirectDrawCommand));
     
     return true;
+}
+
+IRHIIndirectDrawBuilder& glTFRenderMeshManager::GetIndirectDrawBuilder()
+{
+    return *m_indirect_draw_builder;
+}
+
+const IRHIIndirectDrawBuilder& glTFRenderMeshManager::GetIndirectDrawBuilder() const
+{
+    return *m_indirect_draw_builder;
 }
 
 bool glTFRenderMeshManager::ResolveVertexInputLayout(const VertexLayoutDeclaration& source_vertex_layout)

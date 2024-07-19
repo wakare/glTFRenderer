@@ -349,6 +349,7 @@
     <ClCompile Include="glTFRenderPass\glTFTestPass\glTFGraphicsPassTestIndexedTriangle.cpp" />
     <ClCompile Include="glTFRenderPass\RenderGraphNodeUtil.cpp" />
     <None Include="glTFResources\ShaderSource\TestShaders\TestTriangleVertStreamIn.hlsl" />
+    <ClCompile Include="glTFRHI\IRHIIndirectDrawBuilder.cpp" />
     <ClCompile Include="glTFRHI\RHIConfigSingleton.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12CommandSignature.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12ConverterUtils.cpp" />
@@ -521,6 +522,7 @@
     <ClInclude Include="glTFRenderPass\glTFTestPass\glTFGraphicsPassTestTriangleBase.h" />
     <ClInclude Include="glTFRenderPass\glTFTestPass\glTFGraphicsPassTestIndexedTriangle.h" />
     <ClInclude Include="glTFRenderPass\RenderGraphNodeUtil.h" />
+    <ClInclude Include="glTFRHI\IRHIIndirectDrawBuilder.h" />
     <ClInclude Include="glTFRHI\RHIConfigSingleton.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\d3dx12.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12CommandSignature.h" />
