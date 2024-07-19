@@ -28,6 +28,7 @@ bool glTFGraphicsPassMeshDepth::PreRenderPass(glTFRenderResourceManager& resourc
     
     m_begin_rendering_info.m_render_targets = {&resource_manager.GetDepthDSV()};
     m_begin_rendering_info.enable_depth_write = true;
+    m_begin_rendering_info.clear_depth = true;
 
     return true;
 }

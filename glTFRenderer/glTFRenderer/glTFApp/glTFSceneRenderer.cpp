@@ -45,7 +45,7 @@ void glTFSceneRendererBase::TickSceneRendering(const glTFSceneView& scene_view, 
     }
 
     m_pass_manager->UpdatePipelineOptions(m_pass_options);
-    //m_pass_manager->UpdateScene(resource_manager, scene_view, delta_time_ms);
+    m_pass_manager->UpdateScene(resource_manager, scene_view, delta_time_ms);
     m_pass_manager->RenderAllPass(resource_manager, delta_time_ms);
 }
 
