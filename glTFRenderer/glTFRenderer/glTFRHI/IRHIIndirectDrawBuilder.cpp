@@ -1,10 +1,10 @@
 #include "IRHIIndirectDrawBuilder.h"
 
-#include "RHIResourceFactory.h"
+#include "RHIResourceFactoryImpl.hpp"
 #include "RHIUtils.h"
 #include "RHIInterface/IRHIMemoryManager.h"
 
-bool IRHIIndirectDrawBuilder::Init(IRHIDevice& device, IRHIMemoryManager& memory_manager,
+bool IRHIIndirectDrawBuilder::InitIndirectDrawBuilder(IRHIDevice& device, IRHIMemoryManager& memory_manager,
     const std::vector<RHIIndirectArgumentDesc>& indirect_argument_desc, unsigned command_stride, const void* data, size_t size)
 {
     GLTF_CHECK(!m_inited);
@@ -53,6 +53,20 @@ bool IRHIIndirectDrawBuilder::Init(IRHIDevice& device, IRHIMemoryManager& memory
     return true;
 }
 
+std::shared_ptr<IRHICommandSignature> IRHIIndirectDrawBuilder::BuildCommandSignature(IRHIDevice& device,
+    IRHIRootSignature& root_signature) const
+{
+    auto command_signature = RHIResourceFactory::CreateRHIResource<IRHICommandSignature>();
+    command_signature->SetCommandSignatureDesc(m_command_signature_desc);
+    if (!command_signature->InitCommandSignature(device, root_signature))
+    {
+        GLTF_CHECK(false);
+        return nullptr;
+    }
+
+    return command_signature;
+}
+
 unsigned IRHIIndirectDrawBuilder::GetCommandStride() const
 {
     GLTF_CHECK(m_inited);
@@ -77,11 +91,11 @@ unsigned IRHIIndirectDrawBuilder::GetCulledIndirectArgumentBufferCountOffset() c
     return m_culled_indirect_command_count_offset;
 }
 
-bool IRHIIndirectDrawBuilder::DrawIndirect(IRHICommandList& command_list, IRHICommandSignature& command_signature, bool use_dynamic_size)
+bool IRHIIndirectDrawBuilder::DrawIndirect(IRHICommandList& command_list, IRHICommandSignature& command_signature, bool use_dynamic_count)
 {
     GLTF_CHECK(m_inited);
     
-    if (use_dynamic_size)
+    if (use_dynamic_count)
     {
         RHIUtils::Instance().ExecuteIndirect(
             command_list,

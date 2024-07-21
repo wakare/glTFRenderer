@@ -140,7 +140,7 @@ bool glTFRenderMeshManager::BuildMeshRenderResource(glTFRenderResourceManager& r
 
     GLTF_CHECK(!m_indirect_draw_builder);    
     m_indirect_draw_builder = RHIResourceFactory::CreateRHIResource<IRHIIndirectDrawBuilder>();
-    m_indirect_draw_builder->Init(
+    m_indirect_draw_builder->InitIndirectDrawBuilder(
         resource_manager.GetDevice(),
         resource_manager.GetMemoryManager(),
         indirect_argument_descs,

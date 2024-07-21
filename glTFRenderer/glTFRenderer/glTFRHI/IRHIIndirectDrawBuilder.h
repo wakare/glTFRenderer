@@ -17,7 +17,8 @@ class IRHIBufferAllocation;
 class IRHIIndirectDrawBuilder
 {
 public:
-    bool Init(IRHIDevice& device, IRHIMemoryManager& memory_manager, const std::vector<RHIIndirectArgumentDesc>& indirect_argument_desc, unsigned command_stride, const void* data, size_t size);
+    bool InitIndirectDrawBuilder(IRHIDevice& device, IRHIMemoryManager& memory_manager, const std::vector<RHIIndirectArgumentDesc>& indirect_argument_desc, unsigned command_stride, const void* data, size_t size);
+    std::shared_ptr<IRHICommandSignature> BuildCommandSignature(IRHIDevice& device, IRHIRootSignature& root_signature) const;
     
     unsigned GetCommandStride() const;
     
@@ -25,11 +26,11 @@ public:
     std::shared_ptr<IRHIBuffer> GetCulledIndirectArgumentBuffer() const;
     unsigned GetCulledIndirectArgumentBufferCountOffset() const;
 
-    bool DrawIndirect(IRHICommandList& command_list, IRHICommandSignature& command_signature, bool use_dynamic_size);
+    bool DrawIndirect(IRHICommandList& command_list, IRHICommandSignature& command_signature, bool use_dynamic_count);
 
     RHICommandSignatureDesc GetDesc() const;
     bool GetCachedData(const char*& out_data, size_t& out_size ) const;
-    unsigned GetCachedCommandCount() const;
+    unsigned GetCachedCommandCount() const; 
     
 protected:
     bool m_inited {false};

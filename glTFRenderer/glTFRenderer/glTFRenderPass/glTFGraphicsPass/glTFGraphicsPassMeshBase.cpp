@@ -22,10 +22,8 @@ bool glTFGraphicsPassMeshBase::InitPass(glTFRenderResourceManager& resource_mana
     RETURN_IF_FALSE(glTFGraphicsPassBase::InitPass(resource_manager))
     
     RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSceneMeshInfo>()->UpdateSceneMeshData(resource_manager, resource_manager.GetMeshManager()))
-
-    m_command_signature = RHIResourceFactory::CreateRHIResource<IRHICommandSignature>();
-    m_command_signature->SetCommandSignatureDesc(resource_manager.GetMeshManager().GetIndirectDrawBuilder().GetDesc());
-    RETURN_IF_FALSE(m_command_signature->InitCommandSignature(resource_manager.GetDevice(), m_root_signature_helper.GetRootSignature()))
+    m_command_signature = resource_manager.GetMeshManager().GetIndirectDrawBuilder().BuildCommandSignature(resource_manager.GetDevice(), m_root_signature_helper.GetRootSignature());
+    GLTF_CHECK(m_command_signature);
     
     return true;
 }
