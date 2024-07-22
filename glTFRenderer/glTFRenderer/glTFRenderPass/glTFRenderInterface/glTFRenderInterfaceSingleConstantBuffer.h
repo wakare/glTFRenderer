@@ -10,8 +10,7 @@ class glTFRenderInterfaceSingleConstantBuffer : public glTFRenderInterfaceWithRS
 {
 public:
     glTFRenderInterfaceSingleConstantBuffer()
-    {
-    }
+    = default;
 
     virtual bool UploadCPUBuffer(glTFRenderResourceManager& resource_manager, const void* data, size_t offset, size_t size) override
     {
@@ -55,7 +54,7 @@ protected:
     virtual bool ApplyInterfaceImpl(IRHICommandList& command_list, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater) override
     {
         descriptor_updater.BindDescriptor(command_list, pipeline_type, m_allocation.parameter_index, *m_constant_buffer_descriptor_allocation);
-        return true;    
+        return true;
     }
 
     virtual bool ApplyRootSignatureImpl(IRHIRootSignatureHelper& root_signature) override

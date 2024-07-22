@@ -12,7 +12,7 @@
 glTFGraphicsPassMeshBase::glTFGraphicsPassMeshBase()
 {
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneView>());
-    AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMesh>());
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceInstanceDrawIdOffset>());
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMeshInfo>());
     AddRenderInterface(std::make_shared<glTFRenderInterfaceStructuredBuffer<MeshInstanceInputData>>());
 }
@@ -22,6 +22,10 @@ bool glTFGraphicsPassMeshBase::InitPass(glTFRenderResourceManager& resource_mana
     RETURN_IF_FALSE(glTFGraphicsPassBase::InitPass(resource_manager))
     
     RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSceneMeshInfo>()->UpdateSceneMeshData(resource_manager, resource_manager.GetMeshManager()))
+
+    const auto& instance_buffer_data = resource_manager.GetMeshManager().GetInstanceBufferData(); 
+    GetRenderInterface<glTFRenderInterfaceStructuredBuffer<MeshInstanceInputData>>()->UploadCPUBuffer(resource_manager, instance_buffer_data.data(), 0, sizeof(MeshInstanceInputData) * instance_buffer_data.size());
+    
     m_command_signature = resource_manager.GetMeshManager().GetIndirectDrawBuilder().BuildCommandSignature(resource_manager.GetDevice(), m_root_signature_helper.GetRootSignature());
     GLTF_CHECK(m_command_signature);
     
@@ -69,22 +73,24 @@ bool glTFGraphicsPassMeshBase::RenderPass(glTFRenderResourceManager& resource_ma
                     continue;
                 }
         
-                //RETURN_IF_FALSE(BeginDrawMesh(resource_manager, mesh_data->second, instance.second.second))
-
                 if (UsingInputLayout())
                 {
                     RHIUtils::Instance().SetVertexBufferView(command_list, 0, *mesh_data->second.mesh_vertex_buffer_view);
                     RHIUtils::Instance().SetVertexBufferView(command_list, 1, *resource_manager.GetMeshManager().GetInstanceBufferView());    
                 }
-            
+                else
+                {
+                    unsigned instance_offset = instance.second.second;
+                    GetRenderInterface<glTFRenderInterfaceInstanceDrawIdOffset>()->UploadCPUBuffer(resource_manager, &instance_offset, 0, sizeof(instance_offset));
+                    GetRenderInterface<glTFRenderInterfaceInstanceDrawIdOffset>()->ApplyInterface(resource_manager, GetPipelineType(), *m_descriptor_updater);
+                    
+                }
                 RHIUtils::Instance().SetIndexBufferView(command_list, *mesh_data->second.mesh_index_buffer_view);
         
                 RHIUtils::Instance().DrawIndexInstanced(command_list,
                     mesh_data->second.mesh_index_count, instance.second.first,
                     0, 0,
                     instance.second.second);
-
-                //RETURN_IF_FALSE(EndDrawMesh(resource_manager, mesh_data->second, instance.second))
             }    
         }
     }
@@ -110,6 +116,21 @@ bool glTFGraphicsPassMeshBase::SetupPipelineStateObject(glTFRenderResourceManage
     shader_macros.AddMacro("ENABLE_INPUT_LAYOUT", UsingInputLayout() ? "1" : "0");
 
     return true;
+}
+
+bool glTFGraphicsPassMeshBase::UsingIndirectDraw() const
+{
+    return m_indirect_draw;
+}
+
+bool glTFGraphicsPassMeshBase::UsingIndirectDrawCulling() const
+{
+    return true;
+}
+
+bool glTFGraphicsPassMeshBase::UsingInputLayout() const
+{
+    return false;
 }
 
 bool glTFGraphicsPassMeshBase::TryProcessSceneObject(glTFRenderResourceManager& resource_manager, const glTFSceneObjectBase& object)

@@ -6,6 +6,7 @@ ALIGN_FOR_CBV_STRUCT struct SceneMeshDataOffsetInfo
     inline static std::string Name = "SceneMeshDataOffsetInfo_REGISTER_SRV_INDEX";
     unsigned start_face_index;
     unsigned material_index;
+    unsigned start_vertex_index;
 };
 
 ALIGN_FOR_CBV_STRUCT struct SceneMeshFaceInfo

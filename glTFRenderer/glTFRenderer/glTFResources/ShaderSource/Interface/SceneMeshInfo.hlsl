@@ -5,6 +5,7 @@ struct SceneMeshDataOffsetInfo
 {
     uint start_face_index;
     uint material_index;
+    uint start_vertex_index;
 };
 StructuredBuffer<SceneMeshDataOffsetInfo> g_mesh_start_info : SceneMeshDataOffsetInfo_REGISTER_SRV_INDEX;
 

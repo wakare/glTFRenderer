@@ -285,7 +285,7 @@ bool VulkanUtils::SetPrimitiveTopology(IRHICommandList& commandList, RHIPrimitiv
 }
 
 bool VulkanUtils::SetConstant32BitToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex, unsigned* data,
-    unsigned count, bool isGraphicsPipeline)
+    unsigned count, RHIPipelineType pipeline)
 {
     return true;
 }

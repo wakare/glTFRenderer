@@ -14,37 +14,6 @@ struct glTFMeshInstanceRenderResource
     bool m_normal_mapping;
 };
 
-ALIGN_FOR_CBV_STRUCT struct MeshIndirectDrawCommand
-{
-    inline static std::string Name = "INDIRECT_DRAW_DATA_REGISTER_SRV_INDEX";
-    
-    MeshIndirectDrawCommand(
-        const IRHIVertexBufferView& vertex_buffer_view,
-        const IRHIVertexBufferView& instance_buffer_view,
-        const IRHIIndexBufferView& index_buffer_view
-        )
-        : vertex_buffer_view(vertex_buffer_view)
-        , vertex_buffer_instance_view(instance_buffer_view)
-        , index_buffer_view(index_buffer_view)
-        , draw_command_argument({0, 0, 0, 0, 0})
-    {
-        
-    }
-    
-    // VB for mesh
-    RHIIndirectArgumentVertexBufferView vertex_buffer_view;
-
-    // VB for instancing
-    RHIIndirectArgumentVertexBufferView vertex_buffer_instance_view;
-
-    // IB
-    RHIIndirectArgumentIndexBufferView index_buffer_view;
-    
-    // Draw arguments
-    RHIIndirectArgumentDrawIndexed draw_command_argument;
-};
-
-
 ALIGN_FOR_CBV_STRUCT struct MeshInstanceInputData
 {
     inline static std::string Name = "MESH_INSTANCE_INPUT_DATA_REGISTER_SRV_INDEX";

@@ -16,20 +16,28 @@ bool glTFRenderInterfaceSceneMeshInfo::UpdateSceneMeshData(glTFRenderResourceMan
     const auto& meshes = mesh_manager.GetMeshRenderResources();
 
     std::vector<SceneMeshDataOffsetInfo> start_offset_infos;
-    std::vector<SceneMeshVertexInfo> vertex_infos;
-    std::vector<SceneMeshFaceInfo> index_infos;
+    std::vector<SceneMeshVertexInfo> mesh_vertex_infos;
+    std::vector<SceneMeshFaceInfo> mesh_face_vertex_infos;
 
     unsigned start_face_offset = 0;
     for (const auto& mesh : meshes)
     {
-        start_offset_infos.push_back({start_face_offset, mesh.second.material_id});
+        const unsigned vertex_offset = static_cast<unsigned>(mesh_vertex_infos.size());
+        
+        SceneMeshDataOffsetInfo mesh_info =
+        {
+            .start_face_index = start_face_offset,
+            .material_index = mesh.second.material_id,
+            .start_vertex_index = vertex_offset,
+        };
+        
+        start_offset_infos.push_back(mesh_info);
         const size_t face_count = mesh.second.mesh_index_count / 3;
         
-        const unsigned vertex_offset = static_cast<unsigned>(vertex_infos.size());
         const auto& index_buffer = mesh.second.mesh->GetIndexBufferData();
         for (size_t i = 0; i < face_count; ++i)
         {
-            index_infos.push_back(
+            mesh_face_vertex_infos.push_back(
             {
                 vertex_offset + index_buffer.GetIndexByOffset(3 * i),
                 vertex_offset + index_buffer.GetIndexByOffset(3 * i + 1),
@@ -45,15 +53,15 @@ bool glTFRenderInterfaceSceneMeshInfo::UpdateSceneMeshData(glTFRenderResourceMan
             mesh.second.mesh->GetVertexBufferData().GetVertexAttributeDataByIndex(VertexAttributeType::NORMAL, i, &vertex_info.normal, out_data_size);
             mesh.second.mesh->GetVertexBufferData().GetVertexAttributeDataByIndex(VertexAttributeType::TANGENT, i, &vertex_info.tangent, out_data_size);
             mesh.second.mesh->GetVertexBufferData().GetVertexAttributeDataByIndex(VertexAttributeType::TEXCOORD_0, i, &vertex_info.uv, out_data_size);
-            vertex_infos.push_back(vertex_info);
+            mesh_vertex_infos.push_back(vertex_info);
         }
         
         start_face_offset += face_count;
     }
 
     GetRenderInterface<glTFRenderInterfaceStructuredBuffer<SceneMeshDataOffsetInfo>>()->UploadCPUBuffer(resource_manager,start_offset_infos.data(), 0, start_offset_infos.size() * sizeof(SceneMeshDataOffsetInfo));
-    GetRenderInterface<glTFRenderInterfaceStructuredBuffer<SceneMeshVertexInfo, max_heap_size>>()->UploadCPUBuffer(resource_manager,vertex_infos.data(), 0, vertex_infos.size() * sizeof(SceneMeshVertexInfo));
-    GetRenderInterface<glTFRenderInterfaceStructuredBuffer<SceneMeshFaceInfo, max_heap_size>>()->UploadCPUBuffer(resource_manager,index_infos.data(), 0, index_infos.size() * sizeof(SceneMeshFaceInfo));
+    GetRenderInterface<glTFRenderInterfaceStructuredBuffer<SceneMeshVertexInfo, max_heap_size>>()->UploadCPUBuffer(resource_manager,mesh_vertex_infos.data(), 0, mesh_vertex_infos.size() * sizeof(SceneMeshVertexInfo));
+    GetRenderInterface<glTFRenderInterfaceStructuredBuffer<SceneMeshFaceInfo, max_heap_size>>()->UploadCPUBuffer(resource_manager,mesh_face_vertex_infos.data(), 0, mesh_face_vertex_infos.size() * sizeof(SceneMeshFaceInfo));
 
     return true;
 }

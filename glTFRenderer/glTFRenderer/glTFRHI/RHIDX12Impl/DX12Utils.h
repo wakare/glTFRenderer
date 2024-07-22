@@ -42,7 +42,7 @@ public:
     virtual bool SetIndexBufferView(IRHICommandList& command_list, IRHIIndexBufferView& view) override;
     virtual bool SetPrimitiveTopology(IRHICommandList& command_list, RHIPrimitiveTopologyType type) override;
 
-    virtual bool SetConstant32BitToRootParameterSlot(IRHICommandList& command_list, unsigned slot_index, unsigned* data, unsigned count, bool isGraphicsPipeline) override;
+    virtual bool SetConstant32BitToRootParameterSlot(IRHICommandList& command_list, unsigned slot_index, unsigned* data, unsigned count, RHIPipelineType pipeline_type) override;
     
     virtual bool UploadBufferDataToDefaultGPUBuffer(IRHICommandList& command_list, IRHIBuffer& uploadBuffer, IRHIBuffer& defaultBuffer, void* data, size_t size) override;
     virtual bool UploadTextureDataToDefaultGPUBuffer(IRHICommandList& command_list, IRHIBuffer& uploadBuffer, IRHIBuffer& defaultBuffer, void* data, size_t rowPitch, size_t slicePitch) override;

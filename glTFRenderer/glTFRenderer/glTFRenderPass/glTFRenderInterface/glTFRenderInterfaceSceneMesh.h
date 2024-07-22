@@ -1,6 +1,6 @@
 #pragma once
 
-#include "glTFRenderInterfaceSingleConstantBuffer.h"
+#include "glTFRenderInterface32BitConstant.h"
 
 ALIGN_FOR_CBV_STRUCT struct ConstantBufferSceneMesh
 {
@@ -9,4 +9,4 @@ ALIGN_FOR_CBV_STRUCT struct ConstantBufferSceneMesh
     unsigned instance_offset;
 };
 
-typedef glTFRenderInterfaceSingleConstantBuffer<ConstantBufferSceneMesh> glTFRenderInterfaceSceneMesh;
+typedef glTFRenderInterface32BitConstant<ConstantBufferSceneMesh, 1> glTFRenderInterfaceInstanceDrawIdOffset;

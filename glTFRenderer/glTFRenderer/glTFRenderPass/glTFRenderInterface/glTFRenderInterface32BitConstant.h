@@ -2,34 +2,38 @@
 #include "glTFRenderInterfaceBase.h"
 #include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRHI/RHIUtils.h"
+#include <memory>
 
 template<typename UploadStructType, unsigned count>
-class glTFRenderInterface32BitConstant : public glTFRenderInterfaceWithRSAllocation
+class glTFRenderInterface32BitConstant : public glTFRenderInterfaceWithRSAllocation, public glTFRenderInterfaceCanUploadDataFromCPU
 {
 public:
-    bool Apply32BitConstants(glTFRenderResourceManager& resource_manager, unsigned data, bool isGraphicsPipeline)
-    {
-        RETURN_IF_FALSE(RHIUtils::Instance().SetConstant32BitToRootParameterSlot(resource_manager.GetCommandListForRecord(),
-            m_allocation.parameter_index, &data, count, isGraphicsPipeline))
 
+    virtual bool UploadCPUBuffer(glTFRenderResourceManager& resource_manager, const void* data, size_t offset, size_t size)
+    {
+        GLTF_CHECK(sizeof (m_data) == size);
+        memcpy(m_data, static_cast<const char*>(data) + offset, size);
         return true;
     }
-
+    
 protected:
     virtual bool InitInterfaceImpl(glTFRenderResourceManager& resource_manager) override
     {
+        static_assert(sizeof(UploadStructType) == 4);
         return true;
     }
     
     virtual bool ApplyInterfaceImpl(IRHICommandList& command_list, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater) override
     {
-        // Should be apply per draw!
+        RETURN_IF_FALSE(RHIUtils::Instance().SetConstant32BitToRootParameterSlot(command_list,
+           m_allocation.parameter_index, reinterpret_cast<unsigned*>(m_data), count, pipeline_type))
+        
         return true;
     }
     
     virtual bool ApplyRootSignatureImpl(IRHIRootSignatureHelper& root_signature) override
     {
-        return root_signature.AddConstantRootParameter(UploadStructType::Name, 0, m_allocation);
+        return root_signature.AddConstantRootParameter(UploadStructType::Name, count, m_allocation);
     }
     
     virtual void ApplyShaderDefineImpl(RHIShaderPreDefineMacros& out_shader_pre_define_macros) const override
@@ -40,4 +44,6 @@ protected:
         (void)snprintf(registerIndexValue, sizeof(registerIndexValue), "register(b%d, space%u)", GetRSAllocation().register_index, GetRSAllocation().space);
         out_shader_pre_define_macros.AddMacro(UploadStructType::Name, registerIndexValue);
     }
+    
+    UploadStructType m_data[count];
 };

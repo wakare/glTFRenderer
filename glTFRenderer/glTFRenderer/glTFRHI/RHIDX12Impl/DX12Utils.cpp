@@ -293,14 +293,14 @@ bool DX12Utils::SetDescriptorHeapArray(IRHICommandList& command_list, DX12Descri
 }
 
 bool DX12Utils::SetConstant32BitToRootParameterSlot(IRHICommandList& command_list, unsigned slot_index, unsigned* data,
-                                                    unsigned count, bool isGraphicsPipeline)
+                                                    unsigned count, RHIPipelineType pipeline_type)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
-    if (isGraphicsPipeline)
+    if (pipeline_type == RHIPipelineType::Graphics)
     {
         for (unsigned i = 0; i < count; ++i)
         {
-            dxCommandList->SetGraphicsRoot32BitConstant(slot_index, data[count], count);    
+            dxCommandList->SetGraphicsRoot32BitConstant(slot_index, data[i], i);    
         }
             
     }
@@ -308,7 +308,7 @@ bool DX12Utils::SetConstant32BitToRootParameterSlot(IRHICommandList& command_lis
     {
         for (unsigned i = 0; i < count; ++i)
         {
-            dxCommandList->SetComputeRoot32BitConstant(slot_index, data[count], count);    
+            dxCommandList->SetComputeRoot32BitConstant(slot_index, data[i], i);    
         }
     }
     

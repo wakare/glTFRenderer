@@ -26,9 +26,9 @@ protected:
     virtual bool SetupRootSignature(glTFRenderResourceManager& resource_manager) override;
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;
 
-    virtual bool UsingIndirectDraw() const { return m_indirect_draw; }
-    virtual bool UsingIndirectDrawCulling() const { return true;}
-    virtual bool UsingInputLayout() const {return true; }
+    virtual bool UsingIndirectDraw() const;
+    virtual bool UsingIndirectDrawCulling() const;
+    virtual bool UsingInputLayout() const;
 
     bool m_indirect_draw {true};
     
