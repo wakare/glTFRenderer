@@ -105,6 +105,9 @@ public:
     const std::map<glTFUniqueID, std::pair<unsigned, unsigned>>& GetInstanceDrawInfo() const {return m_instance_draw_infos; }
     
     bool ResolveVertexInputLayout(const VertexLayoutDeclaration& source_vertex_layout);
+
+    std::shared_ptr<IRHIIndexBuffer> GetMegaIndexBuffer() const {return m_mega_index_buffer; }
+    std::shared_ptr<IRHIIndexBufferView> GetMegaIndexBufferView() const {return m_mega_index_buffer_view; }
     
 protected:
     std::map<glTFUniqueID, glTFMeshInstanceRenderResource> m_mesh_instances;
@@ -119,7 +122,11 @@ protected:
     std::map<glTFUniqueID, std::pair<unsigned, unsigned>> m_instance_draw_infos;
 
     std::vector<MeshInstanceInputData> m_instance_data;
+    
     std::shared_ptr<IRHIVertexBuffer> m_instance_buffer;
     std::shared_ptr<IRHIVertexBufferView> m_instance_buffer_view;
+
+    std::shared_ptr<IRHIIndexBuffer> m_mega_index_buffer;
+    std::shared_ptr<IRHIIndexBufferView> m_mega_index_buffer_view;
 };
 

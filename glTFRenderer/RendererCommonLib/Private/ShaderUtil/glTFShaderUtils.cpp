@@ -144,6 +144,7 @@ bool CompileShaderWithDXC(const glTFShaderUtils::ShaderCompileDesc& compile_desc
         compile_argument_strings.emplace_back(L"-Fd");
         compile_argument_strings.emplace_back(L"-Qstrip_reflect");  // Strip reflection into a separate blob.
         compile_argument_strings.emplace_back(L"-Qstrip_debug");  // Strip debug into a separate blob.
+        compile_argument_strings.emplace_back(L"-Qembed_debug");
     }
     
 #ifdef DEBUG

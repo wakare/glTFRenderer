@@ -25,17 +25,13 @@ StructuredBuffer<MeshInstanceInputData> g_mesh_instance_input_data : MESH_INSTAN
 
 struct IndirectDrawCommand
 {
-    uint4 vertex_buffer;
-    uint4 instance_buffer;
-    uint4 index_buffer;
-    
     uint index_count_per_instance;
     uint instance_count;
     uint start_index_location;
     uint vertex_location;
     uint start_instance_location;
     
-    uint padding;
+    uint3 padding;
 };
 StructuredBuffer<IndirectDrawCommand> g_indirect_draw_data : INDIRECT_DRAW_DATA_REGISTER_SRV_INDEX;
 

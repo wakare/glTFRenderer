@@ -17,10 +17,11 @@ class IRHIMemoryManager;
 class IRHIBuffer;
 class IRHIBufferAllocation;
 
-ALIGN_FOR_CBV_STRUCT struct MeshIndirectDrawCommand
+__declspec(align(16)) struct MeshIndirectDrawCommand
 {
     inline static std::string Name = "INDIRECT_DRAW_DATA_REGISTER_SRV_INDEX";
-    
+
+    /*
     MeshIndirectDrawCommand(
         const IRHIVertexBufferView& vertex_buffer_view,
         const IRHIVertexBufferView& instance_buffer_view,
@@ -33,18 +34,20 @@ ALIGN_FOR_CBV_STRUCT struct MeshIndirectDrawCommand
     {
         
     }
+    */
+    MeshIndirectDrawCommand() = default;
     
     // VB for mesh
-    RHIIndirectArgumentVertexBufferView vertex_buffer_view;
+    //RHIIndirectArgumentVertexBufferView vertex_buffer_view;
 
     // VB for instancing
-    RHIIndirectArgumentVertexBufferView vertex_buffer_instance_view;
+    //RHIIndirectArgumentVertexBufferView vertex_buffer_instance_view;
 
     // IB
-    RHIIndirectArgumentIndexBufferView index_buffer_view;
+    //RHIIndirectArgumentIndexBufferView index_buffer_view;
     
     // Draw arguments
-    RHIIndirectArgumentDrawIndexed draw_command_argument;
+    RHIIndirectArgumentDrawIndexed draw_command_argument{};
 };
 
 

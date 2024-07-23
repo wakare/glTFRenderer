@@ -11,12 +11,27 @@ public:
     
     virtual bool InitIndexBufferView(IRHIBuffer& buffer, const RHIIndexBufferViewDesc& desc) override;
     
-    virtual RHIGPUDescriptorHandle GetGPUHandle() const override;
-    virtual size_t GetSize() const override;
-    virtual unsigned GetFormat() const override;
+    virtual RHIGPUDescriptorHandle GetGPUHandle() const;
+    virtual size_t GetSize() const;
+    virtual unsigned GetFormat() const;
     
     const D3D12_INDEX_BUFFER_VIEW& GetIndexBufferView() const {return m_indexBufferView; }
     
 private:
     D3D12_INDEX_BUFFER_VIEW m_indexBufferView;
+};
+
+struct RHIIndirectArgumentIndexBufferView
+{
+    RHIIndirectArgumentIndexBufferView(const DX12IndexBufferView& index_buffer_view)
+        : handle(index_buffer_view.GetGPUHandle())
+        , size(index_buffer_view.GetSize())
+        , format(index_buffer_view.GetFormat())
+    {
+        
+    }
+    
+    RHIGPUDescriptorHandle handle;
+    unsigned size;
+    unsigned format; 
 };

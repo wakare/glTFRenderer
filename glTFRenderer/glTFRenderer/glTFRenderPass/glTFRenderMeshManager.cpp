@@ -92,9 +92,76 @@ bool glTFRenderMeshManager::BuildMeshRenderResource(glTFRenderResourceManager& r
 
         memcpy(instance_buffer.data.get(), m_instance_data.data(), instance_buffer.byte_size);
     
-        const RHIBufferDesc instance_buffer_desc = {L"instanceBufferDefaultBuffer", instance_buffer.byte_size, 1, 1, RHIBufferType::Default, RHIDataFormat::UNKNOWN, RHIBufferResourceType::Buffer};
+        const RHIBufferDesc instance_buffer_desc =
+        {
+            L"instanceBufferDefaultBuffer",
+            instance_buffer.byte_size,
+            1,
+            1,
+            RHIBufferType::Default,
+            RHIDataFormat::UNKNOWN,
+            RHIBufferResourceType::Buffer
+        };
+        
         m_instance_buffer = RHIResourceFactory::CreateRHIResource<IRHIVertexBuffer>();
-        m_instance_buffer_view = m_instance_buffer->CreateVertexBufferView(resource_manager.GetDevice(), memory_manager, resource_manager.GetCommandListForRecord(), instance_buffer_desc, instance_buffer);
+        m_instance_buffer_view = m_instance_buffer->CreateVertexBufferView(
+            resource_manager.GetDevice(), memory_manager, resource_manager.GetCommandListForRecord(), instance_buffer_desc, instance_buffer);
+    }
+
+    std::map<glTFUniqueID, size_t> mesh_start_index_map;
+    if (!m_mega_index_buffer_view)
+    {
+        size_t mega_index_buffer_count = 0;
+        size_t mega_index_buffer_byte_size = 0;
+        RHIDataFormat index_format {RHIDataFormat::UNKNOWN};
+        for (const auto& mesh : mesh_render_resources)
+        {
+            mesh_start_index_map[mesh.first] = mega_index_buffer_count;
+            mega_index_buffer_count += mesh.second.mesh_index_count;
+            mega_index_buffer_byte_size += mesh.second.mesh->GetIndexBufferData().byte_size;
+
+            if (index_format == RHIDataFormat::UNKNOWN)
+            {
+                index_format = mesh.second.mesh->GetIndexBufferData().format;    
+            }
+            else
+            {
+                GLTF_CHECK(index_format == mesh.second.mesh->GetIndexBufferData().format);
+            }
+        }
+        
+        auto mega_index_stride_byte_size = GetRHIDataFormatBitsPerPixel(index_format) / 8;
+        
+        IndexBufferData mega_index_buffer_data;
+        mega_index_buffer_data.byte_size = mega_index_buffer_byte_size;
+        mega_index_buffer_data.data = std::make_unique<char[]>(mega_index_buffer_byte_size);
+        mega_index_buffer_data.format = index_format;
+        mega_index_buffer_data.index_count = mega_index_buffer_count;
+        for (const auto& mesh : mesh_render_resources)
+        {
+            auto& index_buffer_data = mesh.second.mesh->GetIndexBufferData();
+            
+            auto start_index_buffer_offset = mesh_start_index_map.find(mesh.first);
+            GLTF_CHECK(start_index_buffer_offset != mesh_start_index_map.end());
+
+            auto offset = start_index_buffer_offset->second * mega_index_stride_byte_size;
+            memcpy(mega_index_buffer_data.data.get() + offset, index_buffer_data.data.get(), index_buffer_data.byte_size);
+        }
+        
+        RHIBufferDesc mega_index_buffer_desc =
+        {
+            L"mega_index_buffer",
+            mega_index_buffer_byte_size,
+            1,
+            1,
+            RHIBufferType::Default,
+            index_format,
+            RHIBufferResourceType::Buffer
+        };
+
+        m_mega_index_buffer = RHIResourceFactory::CreateRHIResource<IRHIIndexBuffer>();
+        m_mega_index_buffer_view = m_mega_index_buffer->CreateIndexBufferView(
+            resource_manager.GetDevice(), memory_manager, resource_manager.GetCommandListForRecord(), mega_index_buffer_desc, mega_index_buffer_data);
     }
     
     std::vector<MeshIndirectDrawCommand> m_indirect_arguments; 
@@ -102,24 +169,22 @@ bool glTFRenderMeshManager::BuildMeshRenderResource(glTFRenderResourceManager& r
     for (const auto& instance : m_instance_draw_infos)
     {
         const auto& mesh_data = mesh_render_resources.find(instance.first);
-            
-        MeshIndirectDrawCommand command
-        (
-            *mesh_data->second.mesh_vertex_buffer_view,
-            *m_instance_buffer_view,
-            *mesh_data->second.mesh_index_buffer_view
-        );
+        auto start_index_buffer_offset = mesh_start_index_map.find(instance.first);
+        GLTF_CHECK(start_index_buffer_offset != mesh_start_index_map.end());
+        
+        MeshIndirectDrawCommand command{};
         command.draw_command_argument.IndexCountPerInstance = mesh_data->second.mesh_index_count;
         command.draw_command_argument.InstanceCount = instance.second.first;
         command.draw_command_argument.StartInstanceLocation = instance.second.second;
         command.draw_command_argument.BaseVertexLocation = 0;
-        command.draw_command_argument.StartIndexLocation = 0;
+        command.draw_command_argument.StartIndexLocation = start_index_buffer_offset->second;
 
         m_indirect_arguments.push_back(command);
     }
 
     std::vector<RHIIndirectArgumentDesc> indirect_argument_descs;
     
+    /*
     RHIIndirectArgumentDesc vertex_buffer_desc;
     vertex_buffer_desc.type = RHIIndirectArgType::VertexBufferView;
     vertex_buffer_desc.desc.vertex_buffer.slot = 0;
@@ -133,11 +198,11 @@ bool glTFRenderMeshManager::BuildMeshRenderResource(glTFRenderResourceManager& r
     RHIIndirectArgumentDesc index_buffer_desc;
     index_buffer_desc.type = RHIIndirectArgType::IndexBufferView;
     indirect_argument_descs.push_back(index_buffer_desc);
-
+*/
     RHIIndirectArgumentDesc draw_desc;
     draw_desc.type = RHIIndirectArgType::DrawIndexed;
     indirect_argument_descs.push_back(draw_desc);
-
+    
     GLTF_CHECK(!m_indirect_draw_builder);    
     m_indirect_draw_builder = RHIResourceFactory::CreateRHIResource<IRHIIndirectDrawBuilder>();
     m_indirect_draw_builder->InitIndirectDrawBuilder(

@@ -54,6 +54,8 @@ bool glTFGraphicsPassMeshBase::RenderPass(glTFRenderResourceManager& resource_ma
 
         if (UsingIndirectDraw())
         {
+            // Bind mega index buffer
+            RHIUtils::Instance().SetIndexBufferView(command_list, *resource_manager.GetMeshManager().GetMegaIndexBufferView());
             resource_manager.GetMeshManager().GetIndirectDrawBuilder().DrawIndirect(command_list, *m_command_signature, UsingIndirectDrawCulling());
         }
         else
@@ -77,6 +79,7 @@ bool glTFGraphicsPassMeshBase::RenderPass(glTFRenderResourceManager& resource_ma
                     RHIUtils::Instance().SetVertexBufferView(command_list, 0, *mesh_data->second.mesh_vertex_buffer_view);
                     RHIUtils::Instance().SetVertexBufferView(command_list, 1, *resource_manager.GetMeshManager().GetInstanceBufferView());    
                 }
+                
                 RHIUtils::Instance().SetIndexBufferView(command_list, *mesh_data->second.mesh_index_buffer_view);
         
                 RHIUtils::Instance().DrawIndexInstanced(command_list,
