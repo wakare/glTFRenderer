@@ -13,7 +13,11 @@ bool DX12BufferDescriptorAllocation::InitFromBuffer(const std::shared_ptr<IRHIBu
 
 bool DX12DescriptorTable::Build(IRHIDevice& device, const std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>>& descriptor_allocations)
 {
-    GLTF_CHECK (!descriptor_allocations.empty());
+    if (descriptor_allocations.empty())
+    {
+        //GLTF_CHECK(false);
+        return true;
+    }
     
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
     auto descriptor_increment_size = dxDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);

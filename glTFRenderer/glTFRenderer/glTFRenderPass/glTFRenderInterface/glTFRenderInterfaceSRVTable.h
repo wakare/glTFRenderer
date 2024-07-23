@@ -26,6 +26,8 @@ public:
 
     virtual bool ApplyInterfaceImpl(IRHICommandList& command_list, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater) override
     {
+        GLTF_CHECK(!m_texture_descriptor_allocations.empty());
+        
         if (!m_descriptor_table)
         {
             m_descriptor_table = RHIResourceFactory::CreateRHIResource<IRHIDescriptorTable>();

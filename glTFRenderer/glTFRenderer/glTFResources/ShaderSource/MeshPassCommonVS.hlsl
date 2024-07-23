@@ -40,7 +40,7 @@ VS_OUTPUT main(uint Vertex_ID : SV_VertexID, uint Instance_ID : SV_InstanceID, u
     uint instance_id = Instance_ID + StartInstanceOffset;
     
     MeshInstanceInputData instance_input_data = g_mesh_instance_input_data[instance_id];
-    float4x4 instance_transform = instance_input_data.instance_transform;
+    float4x4 instance_transform = transpose(instance_input_data.instance_transform);
     
     uint index = g_mesh_start_info[instance_input_data.mesh_id].start_vertex_index + Vertex_ID;
     SceneMeshVertexInfo vertex = g_mesh_vertex_info[index];

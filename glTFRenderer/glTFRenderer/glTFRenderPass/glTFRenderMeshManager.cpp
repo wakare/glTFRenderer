@@ -184,21 +184,6 @@ bool glTFRenderMeshManager::BuildMeshRenderResource(glTFRenderResourceManager& r
 
     std::vector<RHIIndirectArgumentDesc> indirect_argument_descs;
     
-    /*
-    RHIIndirectArgumentDesc vertex_buffer_desc;
-    vertex_buffer_desc.type = RHIIndirectArgType::VertexBufferView;
-    vertex_buffer_desc.desc.vertex_buffer.slot = 0;
-    indirect_argument_descs.push_back(vertex_buffer_desc);
-
-    RHIIndirectArgumentDesc vertex_buffer_for_instancing_desc;
-    vertex_buffer_for_instancing_desc.type = RHIIndirectArgType::VertexBufferView;
-    vertex_buffer_for_instancing_desc.desc.vertex_buffer.slot = 1;
-    indirect_argument_descs.push_back(vertex_buffer_for_instancing_desc);
-
-    RHIIndirectArgumentDesc index_buffer_desc;
-    index_buffer_desc.type = RHIIndirectArgType::IndexBufferView;
-    indirect_argument_descs.push_back(index_buffer_desc);
-*/
     RHIIndirectArgumentDesc draw_desc;
     draw_desc.type = RHIIndirectArgType::DrawIndexed;
     indirect_argument_descs.push_back(draw_desc);

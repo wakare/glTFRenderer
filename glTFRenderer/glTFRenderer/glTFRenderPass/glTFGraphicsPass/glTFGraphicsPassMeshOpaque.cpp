@@ -62,6 +62,7 @@ bool glTFGraphicsPassMeshOpaque::PreRenderPass(glTFRenderResourceManager& resour
     std::vector<IRHITextureDescriptorAllocation*> render_targets{m_albedo_view.get(), m_normal_view.get(), &resource_manager.GetDepthDSV()};
     m_begin_rendering_info.m_render_targets = render_targets;
     m_begin_rendering_info.enable_depth_write = false;
+    m_begin_rendering_info.clear_render_target = true;
     
     return true;
 }
