@@ -29,7 +29,8 @@ bool DX12Device::InitDevice(IRHIFactory& factory)
     {
         return false;
     }
-    
+
+    D3D_FEATURE_LEVEL expect_level = D3D_FEATURE_LEVEL_12_2;
     while (dxFactory->EnumAdapters1(adapterIndex, &m_adapter) != DXGI_ERROR_NOT_FOUND)
     {
         DXGI_ADAPTER_DESC1 desc;
@@ -43,7 +44,7 @@ bool DX12Device::InitDevice(IRHIFactory& factory)
         }
 
         // we want a device that is compatible with direct3d 12 (feature level 11 or higher)
-        HRESULT hr = D3D12CreateDevice(m_adapter.Get(), D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr);
+        HRESULT hr = D3D12CreateDevice(m_adapter.Get(), expect_level, _uuidof(ID3D12Device), nullptr);
         if (SUCCEEDED(hr))
         {
             adapterFound = true;
@@ -61,7 +62,7 @@ bool DX12Device::InitDevice(IRHIFactory& factory)
     // Create the device
     HRESULT hr = D3D12CreateDevice(
         m_adapter.Get(),
-        D3D_FEATURE_LEVEL_11_0,
+        expect_level,
         IID_PPV_ARGS(&m_device)
         );
     

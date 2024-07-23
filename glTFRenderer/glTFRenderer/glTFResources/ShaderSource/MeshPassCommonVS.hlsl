@@ -30,11 +30,14 @@ VS_OUTPUT main(VS_INPUT input)
 
 #else
 
-VS_OUTPUT main(uint Vertex_ID : SV_VertexID, uint Instance_ID : SV_InstanceID)
+// SV_StartInstanceLocation is supported in sm68
+VS_OUTPUT main(uint Vertex_ID : SV_VertexID, uint Instance_ID : SV_InstanceID, uint StartInstanceOffset : SV_StartInstanceLocation )
+// VS_OUTPUT main(uint Vertex_ID : SV_VertexID, uint Instance_ID : SV_InstanceID )
 {
     VS_OUTPUT output;
 
-    uint instance_id = Instance_ID + instance_offset_buffer.instance_offset;
+    //uint instance_id = Instance_ID + instance_offset_buffer.instance_offset;
+    uint instance_id = Instance_ID + StartInstanceOffset;
     
     MeshInstanceInputData instance_input_data = g_mesh_instance_input_data[instance_id];
     float4x4 instance_transform = instance_input_data.instance_transform;

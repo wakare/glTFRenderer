@@ -12,7 +12,6 @@
 glTFGraphicsPassMeshBase::glTFGraphicsPassMeshBase()
 {
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneView>());
-    AddRenderInterface(std::make_shared<glTFRenderInterfaceInstanceDrawIdOffset>());
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMeshInfo>());
     AddRenderInterface(std::make_shared<glTFRenderInterfaceStructuredBuffer<MeshInstanceInputData>>());
 }
@@ -77,13 +76,6 @@ bool glTFGraphicsPassMeshBase::RenderPass(glTFRenderResourceManager& resource_ma
                 {
                     RHIUtils::Instance().SetVertexBufferView(command_list, 0, *mesh_data->second.mesh_vertex_buffer_view);
                     RHIUtils::Instance().SetVertexBufferView(command_list, 1, *resource_manager.GetMeshManager().GetInstanceBufferView());    
-                }
-                else
-                {
-                    unsigned instance_offset = instance.second.second;
-                    GetRenderInterface<glTFRenderInterfaceInstanceDrawIdOffset>()->UploadCPUBuffer(resource_manager, &instance_offset, 0, sizeof(instance_offset));
-                    GetRenderInterface<glTFRenderInterfaceInstanceDrawIdOffset>()->ApplyInterface(resource_manager, GetPipelineType(), *m_descriptor_updater);
-                    
                 }
                 RHIUtils::Instance().SetIndexBufferView(command_list, *mesh_data->second.mesh_index_buffer_view);
         

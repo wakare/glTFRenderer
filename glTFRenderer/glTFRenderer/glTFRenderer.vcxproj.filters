@@ -21,9 +21,6 @@
     <ClCompile Include="glTFLoader\glTFLoader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="glTFWindow\glTFWindow.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="glTFLight\glTFDirectionalLight.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -75,12 +72,6 @@
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12Fence.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="glTFRHI\RHIDX12Impl\DX12GPUBuffer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="glTFRHI\RHIDX12Impl\DX12GPUBufferManager.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12IndexBufferView.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -120,9 +111,6 @@
     <ClCompile Include="glTFRHI\RHIInterface\IRHICommandQueue.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="glTFRHI\RHIInterface\IRHIDescriptorHeap.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="glTFRHI\RHIInterface\IRHIDevice.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -130,12 +118,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="glTFRHI\RHIInterface\IRHIFence.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="glTFRHI\RHIInterface\IRHIGPUBuffer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="glTFRHI\RHIInterface\IRHIGPUBufferManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="glTFRHI\RHIInterface\IRHIIndexBufferView.cpp">
@@ -154,9 +136,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="glTFRHI\RHIInterface\IRHIRootSignature.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="glTFRHI\RHIInterface\IRHIShader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="glTFRHI\RHIInterface\IRHISwapChain.cpp">
@@ -195,18 +174,6 @@
     <ClCompile Include="glTFScene\glTFSceneView.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="glTFShaderUtils\glTFShaderUtils.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="glTFUtils\glTFLog.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="glTFUtils\glTFUtils.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="glTFWindow\glTFInputManager.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\ThirdParty\imgui\backends\imgui_impl_dx12.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -231,16 +198,7 @@
     <ClCompile Include="glTFApp\glTFAppRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="glTFApp\glTFAppRenderPipeline.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="glTFApp\glTFPassOptionRenderFlags.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="glTFApp\glTFVulkanTest.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="glTFGUI\glTFGUI.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="glTFLoader\glTFElementCommon.cpp">
@@ -399,7 +357,187 @@
     <ClCompile Include="glTFScene\glTFMeshRawData.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="glTFUtils\glTFImageLoader.cpp">
+    <ClCompile Include="..\ThirdParty\imgui\backends\imgui_impl_vulkan.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFApp\glTFGUIRenderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFApp\glTFRadiosityRenderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFApp\glTFSceneRenderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceRadiosityScene.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRenderPass\glTFTestPass\glTFGraphicsPassTestTriangleSimplest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRenderPass\glTFTestPass\glTFGraphicsPassTestTriangleBase.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRenderPass\glTFTestPass\glTFGraphicsPassTestIndexedTriangle.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRenderPass\RenderGraphNodeUtil.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\IRHIIndirectDrawBuilder.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIDX12Impl\DX12ConverterUtils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIDX12Impl\DX12DescriptorManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIDX12Impl\DX12DescriptorUpdater.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIDX12Impl\DX12Buffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIDX12Impl\DX12MemoryManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIDX12Impl\DX12MemoryAllocator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIDX12Impl\DX12RenderPass.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIInterface\IRHIDescriptorManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIInterface\IRHIDescriptorUpdater.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIInterface\IRHIBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIInterface\IRHIMemoryManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIInterface\IRHIMemoryAllocator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIInterface\IRHIRenderContext.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIInterface\IRHIRenderPass.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIInterface\IRHIRenderPassFrameBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIInterface\IRHISemaphore.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIInterface\IRHISubPass.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIInterface\IRHIFrameBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIVKImpl\VKCommandAllocator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIVKImpl\VKCommandList.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIVKImpl\VKCommandQueue.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIVKImpl\VKCommandSignature.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIVKImpl\VKComputePipelineStateObject.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIVKImpl\VKConverterUtils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIVKImpl\VKDescriptorManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIVKImpl\VKDescriptorUpdater.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIVKImpl\VKFactory.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIVKImpl\VKFence.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIVKImpl\VKBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIVKImpl\VKMemoryManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIVKImpl\VKIndexBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIVKImpl\VKIndexBufferView.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIVKImpl\VKMemoryAllocator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIVKImpl\VKPipelineStateObject.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIVKImpl\VKRayTracingAS.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIVKImpl\VKRenderPass.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIVKImpl\VKRenderTarget.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIVKImpl\VKRenderTargetManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIVKImpl\VKFrameBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIVKImpl\VKRootParameter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIVKImpl\VKRootSignature.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIVKImpl\VKRTPipelineStateObject.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIVKImpl\VKSemaphore.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIVKImpl\VKShader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIVKImpl\VKShaderTable.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIVKImpl\VKStaticSampler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIVKImpl\VKSubPass.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIVKImpl\VKSwapChain.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIVKImpl\VKTexture.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIVKImpl\VKVertexBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glTFRHI\RHIVKImpl\VKVertexBufferView.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -408,9 +546,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="glTFLoader\glTFLoader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="glTFWindow\glTFWindow.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="glTFLight\glTFDirectionalLight.h">
@@ -470,12 +605,6 @@
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12Fence.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="glTFRHI\RHIDX12Impl\DX12GPUBuffer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="glTFRHI\RHIDX12Impl\DX12GPUBufferManager.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="glTFRHI\RHIDX12Impl\DX12IndexBufferView.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -515,9 +644,6 @@
     <ClInclude Include="glTFRHI\RHIInterface\IRHICommandQueue.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="glTFRHI\RHIInterface\IRHIDescriptorHeap.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="glTFRHI\RHIInterface\IRHIDevice.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -525,12 +651,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="glTFRHI\RHIInterface\IRHIFence.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="glTFRHI\RHIInterface\IRHIGPUBuffer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="glTFRHI\RHIInterface\IRHIGPUBufferManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="glTFRHI\RHIInterface\IRHIIndexBufferView.h">
@@ -549,9 +669,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="glTFRHI\RHIInterface\IRHIRootSignature.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="glTFRHI\RHIInterface\IRHIShader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="glTFRHI\RHIInterface\IRHISwapChain.h">
@@ -596,34 +713,13 @@
     <ClInclude Include="glTFScene\glTFSceneView.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="glTFShaderUtils\glTFShaderUtils.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="glTFUtils\glTFLog.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="glTFUtils\glTFUtils.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="glTFWindow\glTFInputManager.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="glTFApp\glTFAppMain.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="glTFApp\glTFAppRenderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="glTFApp\glTFAppRenderPipeline.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="glTFApp\glTFPassOptionRenderFlags.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="glTFApp\glTFVulkanTest.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="glTFGUI\glTFGUI.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="glTFMaterial\glTFMaterialParameterBase.h">
@@ -785,7 +881,187 @@
     <ClInclude Include="glTFScene\glTFMeshRawData.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="glTFUtils\glTFImageLoader.h">
+    <ClInclude Include="glTFApp\glTFGUIRenderer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFApp\glTFRadiosityRenderer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFApp\glTFSceneRenderer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceRadiosityScene.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRenderPass\glTFTestPass\glTFGraphicsPassTestTriangleSimplest.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRenderPass\glTFTestPass\glTFGraphicsPassTestTriangleBase.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRenderPass\glTFTestPass\glTFGraphicsPassTestIndexedTriangle.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRenderPass\RenderGraphNodeUtil.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\IRHIIndirectDrawBuilder.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIDX12Impl\DX12ConverterUtils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIDX12Impl\DX12DescriptorManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIDX12Impl\DX12DescriptorUpdater.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIDX12Impl\DX12Buffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIDX12Impl\DX12MemoryManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIDX12Impl\DX12MemoryAllocator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIDX12Impl\DX12RenderPass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIInterface\IRHIDescriptorManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIInterface\IRHIDescriptorUpdater.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIInterface\IRHIBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIInterface\IRHIMemoryManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIInterface\IRHIMemoryAllocator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIInterface\IRHIRenderContext.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIInterface\IRHIRenderPass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIInterface\IRHIRenderPassFrameBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIInterface\IRHISemaphore.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIInterface\IRHISubPass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIInterface\IRHIFrameBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIVKImpl\VKCommandAllocator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIVKImpl\VKCommandList.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIVKImpl\VKCommandQueue.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIVKImpl\VKCommandSignature.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIVKImpl\VKCommon.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIVKImpl\VKComputePipelineStateObject.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIVKImpl\VKConverterUtils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIVKImpl\VKDescriptorManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIVKImpl\VKDescriptorUpdater.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIVKImpl\VKFactory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIVKImpl\VKFence.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIVKImpl\VKBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIVKImpl\VKMemoryManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIVKImpl\VKIndexBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIVKImpl\VKIndexBufferView.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIVKImpl\VKMemoryAllocator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIVKImpl\VKPipelineStateObject.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIVKImpl\VKRayTracingAS.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIVKImpl\VKRenderPass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIVKImpl\VKRenderTarget.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIVKImpl\VKRenderTargetManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIVKImpl\VKFrameBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIVKImpl\VKRootParameter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIVKImpl\VKRootSignature.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIVKImpl\VKRTPipelineStateObject.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIVKImpl\VKSemaphore.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIVKImpl\VKShader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIVKImpl\VKShaderTable.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIVKImpl\VKStaticSampler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIVKImpl\VKSubPass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIVKImpl\VKSwapChain.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIVKImpl\VKTexture.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIVKImpl\VKVertexBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glTFRHI\RHIVKImpl\VKVertexBufferView.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -819,5 +1095,13 @@
     <None Include="glTFResources\ShaderSource\LightPassCommon.h">
       <Filter>Header Files</Filter>
     </None>
+    <None Include="glTFResources\ShaderSource\TestShaders\TestTriangleFrag.hlsl" />
+    <None Include="glTFResources\ShaderSource\TestShaders\TestTriangleVert.hlsl" />
+    <None Include="glTFResources\ShaderSource\Interface\RadiosityScene.hlsl" />
+    <None Include="glTFResources\ShaderSource\TestShaders\TestGradientCompute.hlsl" />
+    <None Include="glTFResources\ShaderSource\TestShaders\TestTriangleVertStreamIn.hlsl" />
+    <None Include="glTFResources\ShaderSource\GLSL\SimpleFragShader.glsl" />
+    <None Include="glTFResources\ShaderSource\GLSL\BufferRefVert.glsl" />
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>

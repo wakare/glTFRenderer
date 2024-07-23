@@ -12,18 +12,17 @@
 typedef BuiltInTriangleIntersectionAttributes PathTracingAttributes;
 
 // --------------- Primary Ray --------------------
-
-struct PrimaryRayPayload
+struct [raypayload] PrimaryRayPayload
 {
-    float3 normal;
-    float3 albedo;
+    float3 normal : read(caller) : write(closesthit);
+    float3 albedo : read(caller) : write(closesthit);
     
-    float metallic;
-    float roughness;
-    float distance;
+    float metallic : read(caller) : write(closesthit);
+    float roughness : read(caller) : write(closesthit);
+    float distance : read(caller) : write(closesthit, miss);
 
-    uint instance_id;
-    uint primitive_id;
+    uint instance_id : read(caller) : write(closesthit);
+    uint primitive_id : read(caller) : write(closesthit);
 };
 
 bool IsHit(PrimaryRayPayload payload)
@@ -72,9 +71,9 @@ void TracePrimaryRay(in RaytracingAccelerationStructure tlas, in RayDesc ray, in
 
 // --------------- Shadow Ray --------------------
 
-struct ShadowRayPayload
+struct [raypayload] ShadowRayPayload
 {
-    bool hit;
+    bool hit : read(caller) : write(miss);
 };
 
 [shader("miss")]

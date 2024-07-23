@@ -39,18 +39,12 @@ bool glTFShaderUtils::LoadShaderFile(const char* shaderFilePath, std::string& ou
 std::string glTFShaderUtils::GetShaderCompileTarget(RHIShaderType type)
 {
     switch (type) {
-        // 5.0 is latest target for dx11 version
-        /*
-        case RHIShaderType::Vertex: return "vs_5_0";
-        case RHIShaderType::Pixel: return "ps_5_0";
-        case RHIShaderType::Compute: return "cs_5_0";
-        */
-        case RHIShaderType::Vertex: return "vs_6_3";
-        case RHIShaderType::Pixel: return "ps_6_3";
-        case RHIShaderType::Compute: return "cs_6_3";
+        case RHIShaderType::Vertex: return "vs_6_8";
+        case RHIShaderType::Pixel: return "ps_6_8";
+        case RHIShaderType::Compute: return "cs_6_8";
         
         // raytracing shader will be compile into lib
-        case RHIShaderType::RayTracing: return "lib_6_3";
+        case RHIShaderType::RayTracing: return "lib_6_8";
     }
 
     assert(false);

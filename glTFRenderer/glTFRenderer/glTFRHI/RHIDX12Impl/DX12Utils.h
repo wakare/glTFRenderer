@@ -8,6 +8,7 @@ class DX12DescriptorHeap;
 enum class RHIBufferType;
 enum class RHIDataFormat;
 
+
 #define SAFE_RELEASE(x)
 //#define SAFE_RELEASE(x) if ((x)) {(x)->Release(); (x) = nullptr; LOG_FORMAT_FLUSH("[Exit] Resource %s Release %s\n", GetName().c_str(), #x)}
 
@@ -51,7 +52,7 @@ public:
     virtual bool AddTextureBarrierToCommandList(IRHICommandList& command_list, const IRHITexture& buffer, RHIResourceStateType beforeState, RHIResourceStateType afterState) override;
 
     virtual bool DrawInstanced(IRHICommandList& command_list, unsigned vertex_count_per_instance, unsigned instance_count, unsigned start_vertex_location, unsigned start_instance_location) override;
-    virtual bool DrawIndexInstanced(IRHICommandList& command_list, unsigned index_count_per_instance, unsigned instance_count, unsigned start_index_location, unsigned base_vertex_location, unsigned startInstanceLocation) override;
+    virtual bool DrawIndexInstanced(IRHICommandList& command_list, unsigned index_count_per_instance, unsigned instance_count, unsigned start_index_location, unsigned base_vertex_location, unsigned start_instance_location) override;
     virtual bool Dispatch(IRHICommandList& command_list, unsigned X, unsigned Y, unsigned Z) override;
     virtual bool TraceRay(IRHICommandList& command_list, IRHIShaderTable& shader_table, unsigned X, unsigned Y, unsigned Z) override;
 

@@ -24,6 +24,10 @@
 #include "glTFRHI/RHIInterface/IRHIBuffer.h"
 #include "glTFRHI/RHIInterface/RHICommon.h"
 
+// reference https://devblogs.microsoft.com/directx/gettingstarted-dx12agility/ SDK package is SDK 1.614.1 mapping 614 version
+extern "C" { __declspec(dllexport) extern const UINT D3D12SDKVersion = 614; }
+extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ".\\D3D12\\"; }
+
 bool DX12Utils::InitGUIContext(IRHIDevice& device, IRHICommandQueue& graphics_queue, IRHIDescriptorManager& descriptor_manager, unsigned back_buffer_count)
 {
     auto* dx_device = dynamic_cast<DX12Device&>(device).GetDevice();
@@ -472,10 +476,10 @@ bool DX12Utils::DrawInstanced(IRHICommandList& command_list, unsigned vertex_cou
 }
 
 bool DX12Utils::DrawIndexInstanced(IRHICommandList& command_list, unsigned index_count_per_instance, unsigned instance_count,
-                                   unsigned start_index_location, unsigned base_vertex_location, unsigned startInstanceLocation)
+                                   unsigned start_index_location, unsigned base_vertex_location, unsigned start_instance_location)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
-    dxCommandList->DrawIndexedInstanced(index_count_per_instance, instance_count, start_index_location, static_cast<INT>(base_vertex_location), startInstanceLocation);
+    dxCommandList->DrawIndexedInstanced(index_count_per_instance, instance_count, start_index_location, static_cast<INT>(base_vertex_location), start_instance_location);
     
     return true;
 }
