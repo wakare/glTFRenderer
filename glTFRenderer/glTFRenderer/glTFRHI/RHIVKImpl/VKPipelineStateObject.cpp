@@ -1,5 +1,6 @@
 #include "VKPipelineStateObject.h"
 
+#include "VKConverterUtils.h"
 #include "VKDevice.h"
 #include "VKRenderPass.h"
 #include "VKRootSignature.h"
@@ -50,12 +51,39 @@ bool VKGraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device, 
 
     VkPipelineShaderStageCreateInfo shader_stages[] = {create_vertex_stage_info, create_frag_stage_info}; 
 
+
+    std::map<unsigned, VkVertexInputBindingDescription> binding_records;
+    
+    std::vector<VkVertexInputAttributeDescription> attribute_descriptions;
+    attribute_descriptions.reserve(m_input_layouts.size());
+    for (const auto& input_layout : m_input_layouts)
+    {
+        attribute_descriptions.push_back(
+            {
+                input_layout.layout_location,
+                input_layout.slot,
+                VKConverterUtils::ConvertToFormat(input_layout.format),
+                input_layout.aligned_byte_offset
+            });
+
+        binding_records[input_layout.slot].binding = input_layout.slot;
+        binding_records[input_layout.slot].inputRate = input_layout.frequency == PER_VERTEX ? VK_VERTEX_INPUT_RATE_VERTEX : VK_VERTEX_INPUT_RATE_INSTANCE;
+        binding_records[input_layout.slot].stride += GetRHIDataFormatBytePerPixel(input_layout.format);
+    }
+    
+    std::vector<VkVertexInputBindingDescription> binding_descriptions;
+    binding_descriptions.reserve(binding_records.size());
+    for (const auto& binding_record : binding_records)
+    {
+        binding_descriptions.push_back(binding_record.second);
+    }
+    
     VkPipelineVertexInputStateCreateInfo create_vertex_input_state_info {};
     create_vertex_input_state_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    create_vertex_input_state_info.vertexBindingDescriptionCount = 0;
-    create_vertex_input_state_info.pVertexBindingDescriptions = nullptr;
-    create_vertex_input_state_info.vertexAttributeDescriptionCount = 0;
-    create_vertex_input_state_info.pVertexAttributeDescriptions = nullptr;
+    create_vertex_input_state_info.vertexBindingDescriptionCount = binding_descriptions.size();
+    create_vertex_input_state_info.pVertexBindingDescriptions = binding_descriptions.data();
+    create_vertex_input_state_info.vertexAttributeDescriptionCount = attribute_descriptions.size();
+    create_vertex_input_state_info.pVertexAttributeDescriptions = attribute_descriptions.data();
 
     VkPipelineInputAssemblyStateCreateInfo create_input_assembly_info {};
     create_input_assembly_info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;

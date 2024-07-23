@@ -22,7 +22,10 @@ bool IRHIIndirectDrawBuilder::InitIndirectDrawBuilder(IRHIDevice& device, IRHIMe
         1,
         RHIBufferType::Upload,
         RHIDataFormat::UNKNOWN,
-        RHIBufferResourceType::Buffer},
+        RHIBufferResourceType::Buffer,
+        RHIResourceStateType::STATE_COMMON,
+        static_cast<RHIResourceUsageFlags>(RUF_INDIRECT_BUFFER | RUF_TRANSFER_DST)
+        },
         m_indirect_argument_buffer);
 
     memory_manager.UploadBufferData(*m_indirect_argument_buffer, data, 0, size);
@@ -39,7 +42,7 @@ bool IRHIIndirectDrawBuilder::InitIndirectDrawBuilder(IRHIDevice& device, IRHIMe
         RHIDataFormat::UNKNOWN,
         RHIBufferResourceType::Buffer,
         RHIResourceStateType::STATE_COPY_DEST,
-        RUF_ALLOW_UAV
+        static_cast<RHIResourceUsageFlags>(RUF_INDIRECT_BUFFER | RUF_ALLOW_UAV)
     },
     m_culled_indirect_commands
     );

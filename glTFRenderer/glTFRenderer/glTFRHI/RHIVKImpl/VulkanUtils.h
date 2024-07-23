@@ -35,7 +35,7 @@ public:
     virtual bool SetViewport(IRHICommandList& command_list, const RHIViewportDesc& viewport_desc) override;
     virtual bool SetScissorRect(IRHICommandList& command_list, const RHIScissorRectDesc& scissor_rect) override;
 
-    virtual bool SetVertexBufferView(IRHICommandList& commandList, unsigned slot, IRHIVertexBufferView& view) override;
+    virtual bool SetVertexBufferView(IRHICommandList& command_list, unsigned slot, IRHIVertexBufferView& view) override;
     virtual bool SetIndexBufferView(IRHICommandList& commandList, IRHIIndexBufferView& view) override;
     virtual bool SetPrimitiveTopology(IRHICommandList& commandList, RHIPrimitiveTopologyType type) override;
 

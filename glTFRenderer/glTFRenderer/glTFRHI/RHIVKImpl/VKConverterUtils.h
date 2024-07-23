@@ -17,4 +17,6 @@ public:
     static VkAttachmentStoreOp ConvertToStoreOp(RHIAttachmentStoreOp store_op);
     static VkPipelineStageFlagBits ConvertToPipelineStage(RHIPipelineStage stage);
     static VkAccessFlagBits ConvertToAccessFlags(RHIAccessFlags flags);
+    static VkBufferUsageFlags ConvertToBufferUsage(RHIResourceUsageFlags flags);
+    static VkImageUsageFlags ConvertToImageUsage(RHIResourceUsageFlags flags);
 };

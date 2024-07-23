@@ -17,15 +17,48 @@ bool glTFRenderMeshManager::AddOrUpdatePrimitive(glTFRenderResourceManager& reso
     {
         m_mesh_render_resources[mesh_ID].mesh = primitive;
         m_mesh_render_resources[mesh_ID].mesh_vertex_buffer = RHIResourceFactory::CreateRHIResource<IRHIVertexBuffer>();
-        const RHIBufferDesc vertex_buffer_desc = {L"vertexBufferDefaultBuffer", primitive->GetVertexBufferData().byte_size, 1, 1, RHIBufferType::Default, RHIDataFormat::UNKNOWN, RHIBufferResourceType::Buffer};
+        const RHIBufferDesc vertex_buffer_desc =
+            {
+                L"vertexBufferDefaultBuffer",
+                primitive->GetVertexBufferData().byte_size,
+                1,
+                1,
+                RHIBufferType::Default,
+                RHIDataFormat::UNKNOWN,
+                RHIBufferResourceType::Buffer,
+                RHIResourceStateType::STATE_COMMON,
+                static_cast<RHIResourceUsageFlags>(RUF_VERTEX_BUFFER | RUF_TRANSFER_DST)
+            };
         m_mesh_render_resources[mesh_ID].mesh_vertex_buffer_view = m_mesh_render_resources[mesh_ID].mesh_vertex_buffer->CreateVertexBufferView(device, memory_manager, command_list, vertex_buffer_desc, primitive->GetVertexBufferData());
 
         m_mesh_render_resources[mesh_ID].mesh_position_only_buffer = RHIResourceFactory::CreateRHIResource<IRHIVertexBuffer>();
-        const RHIBufferDesc position_only_buffer_desc = {L"positionOnlyBufferDefaultBuffer", primitive->GetPositionOnlyBufferData().byte_size, 1, 1, RHIBufferType::Default, RHIDataFormat::UNKNOWN, RHIBufferResourceType::Buffer};
+        const RHIBufferDesc position_only_buffer_desc =
+            {
+                L"positionOnlyBufferDefaultBuffer",
+                primitive->GetPositionOnlyBufferData().byte_size,
+                1,
+                1,
+                RHIBufferType::Default,
+                RHIDataFormat::UNKNOWN,
+                RHIBufferResourceType::Buffer,
+                RHIResourceStateType::STATE_COMMON,
+                static_cast<RHIResourceUsageFlags>(RUF_VERTEX_BUFFER | RUF_TRANSFER_DST)
+            };
         m_mesh_render_resources[mesh_ID].mesh_position_only_buffer_view = m_mesh_render_resources[mesh_ID].mesh_position_only_buffer->CreateVertexBufferView(device, memory_manager, command_list, position_only_buffer_desc, primitive->GetPositionOnlyBufferData());
 
         m_mesh_render_resources[mesh_ID].mesh_index_buffer = RHIResourceFactory::CreateRHIResource<IRHIIndexBuffer>();
-        const RHIBufferDesc index_buffer_desc = {L"indexBufferDefaultBuffer", primitive->GetIndexBufferData().byte_size, 1, 1, RHIBufferType::Default, RHIDataFormat::UNKNOWN, RHIBufferResourceType::Buffer};
+        const RHIBufferDesc index_buffer_desc =
+            {
+                L"indexBufferDefaultBuffer",
+                primitive->GetIndexBufferData().byte_size,
+                1,
+                1,
+                RHIBufferType::Default,
+                RHIDataFormat::UNKNOWN,
+                RHIBufferResourceType::Buffer,
+                RHIResourceStateType::STATE_COMMON,
+                static_cast<RHIResourceUsageFlags>(RUF_INDEX_BUFFER | RUF_TRANSFER_DST)
+            };
         m_mesh_render_resources[mesh_ID].mesh_index_buffer_view = m_mesh_render_resources[mesh_ID].mesh_index_buffer->CreateIndexBufferView(device, memory_manager, command_list, index_buffer_desc, primitive->GetIndexBufferData());
        
         m_mesh_render_resources[mesh_ID].mesh_vertex_count = primitive->GetVertexBufferData().vertex_count;
@@ -100,7 +133,9 @@ bool glTFRenderMeshManager::BuildMeshRenderResource(glTFRenderResourceManager& r
             1,
             RHIBufferType::Default,
             RHIDataFormat::UNKNOWN,
-            RHIBufferResourceType::Buffer
+            RHIBufferResourceType::Buffer,
+            RHIResourceStateType::STATE_COMMON,
+            static_cast<RHIResourceUsageFlags>(RUF_VERTEX_BUFFER | RUF_TRANSFER_DST)
         };
         
         m_instance_buffer = RHIResourceFactory::CreateRHIResource<IRHIVertexBuffer>();
@@ -130,7 +165,7 @@ bool glTFRenderMeshManager::BuildMeshRenderResource(glTFRenderResourceManager& r
             }
         }
         
-        auto mega_index_stride_byte_size = GetRHIDataFormatBitsPerPixel(index_format) / 8;
+        auto mega_index_stride_byte_size = GetRHIDataFormatBytePerPixel(index_format);
         
         IndexBufferData mega_index_buffer_data;
         mega_index_buffer_data.byte_size = mega_index_buffer_byte_size;
@@ -156,7 +191,9 @@ bool glTFRenderMeshManager::BuildMeshRenderResource(glTFRenderResourceManager& r
             1,
             RHIBufferType::Default,
             index_format,
-            RHIBufferResourceType::Buffer
+            RHIBufferResourceType::Buffer,
+            RHIResourceStateType::STATE_COMMON,
+            static_cast<RHIResourceUsageFlags>(RUF_INDEX_BUFFER | RUF_TRANSFER_DST)
         };
 
         m_mega_index_buffer = RHIResourceFactory::CreateRHIResource<IRHIIndexBuffer>();
@@ -214,42 +251,9 @@ const IRHIIndirectDrawBuilder& glTFRenderMeshManager::GetIndirectDrawBuilder() c
 bool glTFRenderMeshManager::ResolveVertexInputLayout(const VertexLayoutDeclaration& source_vertex_layout)
 {
     m_vertex_input_layouts.clear();
-    
-    unsigned vertex_layout_offset = 0;
-    for (const auto& vertex_layout : source_vertex_layout.elements)
-    {
-        switch (vertex_layout.type)
-        {
-        case VertexAttributeType::POSITION:
-            {
-                GLTF_CHECK(vertex_layout.byte_size == (GetRHIDataFormatBitsPerPixel(RHIDataFormat::R32G32B32_FLOAT) / 8));
-                m_vertex_input_layouts.push_back({INPUT_LAYOUT_UNIQUE_PARAMETER(POSITION), 0, RHIDataFormat::R32G32B32_FLOAT, vertex_layout_offset, 0});
-            }
-            break;
-        case VertexAttributeType::NORMAL:
-            {
-                GLTF_CHECK(vertex_layout.byte_size == (GetRHIDataFormatBitsPerPixel(RHIDataFormat::R32G32B32_FLOAT) / 8));
-                m_vertex_input_layouts.push_back({INPUT_LAYOUT_UNIQUE_PARAMETER(NORMAL), 0, RHIDataFormat::R32G32B32_FLOAT, vertex_layout_offset, 0});
-            }
-            break;
-        case VertexAttributeType::TANGENT:
-            {
-                GLTF_CHECK(vertex_layout.byte_size == (GetRHIDataFormatBitsPerPixel(RHIDataFormat::R32G32B32A32_FLOAT) / 8));
-                m_vertex_input_layouts.push_back({INPUT_LAYOUT_UNIQUE_PARAMETER(TANGENT), 0, RHIDataFormat::R32G32B32A32_FLOAT, vertex_layout_offset, 0});
-            }
-            break;
-        case VertexAttributeType::TEXCOORD_0:
-            {
-                GLTF_CHECK(vertex_layout.byte_size == (GetRHIDataFormatBitsPerPixel(RHIDataFormat::R32G32_FLOAT) / 8));
-                m_vertex_input_layouts.push_back({INPUT_LAYOUT_UNIQUE_PARAMETER(TEXCOORD), 0, RHIDataFormat::R32G32_FLOAT, vertex_layout_offset, 0});
-            }
-            break;
-            // TODO: Handle TEXCOORD_1?
-        }
 
-        vertex_layout_offset += vertex_layout.byte_size;   
-    }
-
+    m_vertex_input_layout.m_source_vertex_layout = source_vertex_layout;
+    GLTF_CHECK(m_vertex_input_layout.ResolveInputVertexLayout(m_vertex_input_layouts));
     GLTF_CHECK(m_instance_input_layout.ResolveInputInstanceLayout(m_vertex_input_layouts));
     
     return true;

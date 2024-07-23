@@ -11,8 +11,19 @@ std::shared_ptr<IRHIVertexBufferView> DX12VertexBuffer::CreateVertexBufferView(I
     
     memory_manager.AllocateBufferMemory(device, desc, m_buffer);
 
-    const RHIBufferDesc vertex_upload_buffer_desc = {L"vertexBufferUploadBuffer", vertex_buffer_data.byte_size,
-        1, 1, RHIBufferType::Upload, RHIDataFormat::UNKNOWN, RHIBufferResourceType::Buffer};
+    const RHIBufferDesc vertex_upload_buffer_desc =
+        {
+            L"vertexBufferUploadBuffer",
+            vertex_buffer_data.byte_size,
+            1,
+            1,
+            RHIBufferType::Upload,
+            RHIDataFormat::UNKNOWN,
+            RHIBufferResourceType::Buffer,
+            RHIResourceStateType::STATE_COMMON,
+            static_cast<RHIResourceUsageFlags>(RUF_TRANSFER_SRC | RUF_TRANSFER_DST)  
+        };
+    
     memory_manager.AllocateBufferMemory(device, vertex_upload_buffer_desc, m_upload_buffer);
     
     RHIUtils::Instance().UploadBufferDataToDefaultGPUBuffer(command_list, *m_upload_buffer->m_buffer, *m_buffer->m_buffer, vertex_buffer_data.data.get(), vertex_buffer_data.byte_size);

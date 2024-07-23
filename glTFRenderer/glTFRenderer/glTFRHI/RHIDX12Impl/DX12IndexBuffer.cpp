@@ -9,18 +9,7 @@ std::shared_ptr<IRHIIndexBufferView> DX12IndexBuffer::CreateIndexBufferView(IRHI
     m_index_format = index_buffer_data.format;
     m_index_count = index_buffer_data.index_count;
 
-    memory_manager.AllocateBufferMemory(
-    device,
-    {
-        L"indexBufferBuffer",
-        index_buffer_data.byte_size,
-        1,
-        1,
-        RHIBufferType::Default,
-        RHIDataFormat::UNKNOWN,
-        RHIBufferResourceType::Buffer
-    },
-    m_buffer);
+    memory_manager.AllocateBufferMemory( device, desc, m_buffer);
 
     memory_manager.AllocateBufferMemory(
     device,
@@ -31,7 +20,9 @@ std::shared_ptr<IRHIIndexBufferView> DX12IndexBuffer::CreateIndexBufferView(IRHI
         1,
         RHIBufferType::Upload,
         RHIDataFormat::UNKNOWN,
-        RHIBufferResourceType::Buffer
+        RHIBufferResourceType::Buffer,
+        RHIResourceStateType::STATE_COMMON,
+        static_cast<RHIResourceUsageFlags>(RUF_TRANSFER_SRC | RUF_TRANSFER_DST)
     },
     m_upload_buffer);
     

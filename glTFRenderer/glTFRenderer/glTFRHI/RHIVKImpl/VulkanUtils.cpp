@@ -2,16 +2,19 @@
 
 #include <backends/imgui_impl_vulkan.h>
 
+#include "VKBuffer.h"
 #include "VKCommandList.h"
 #include "VKConverterUtils.h"
 #include "VKDescriptorManager.h"
 #include "VKFence.h"
 #include "VKFrameBuffer.h"
+#include "VKIndexBufferView.h"
 #include "VKPipelineStateObject.h"
 #include "VKRenderPass.h"
 #include "VKRootSignature.h"
 #include "VKSemaphore.h"
 #include "VKTexture.h"
+#include "VKVertexBufferView.h"
 
 bool VulkanUtils::InitGUIContext(IRHIDevice& device, IRHICommandQueue& graphics_queue, IRHIDescriptorManager& descriptor_manager, unsigned back_buffer_count)
 {
@@ -269,13 +272,27 @@ bool VulkanUtils::SetScissorRect(IRHICommandList& command_list, const RHIScissor
     return true;
 }
 
-bool VulkanUtils::SetVertexBufferView(IRHICommandList& commandList, unsigned slot, IRHIVertexBufferView& view)
+bool VulkanUtils::SetVertexBufferView(IRHICommandList& command_list, unsigned slot, IRHIVertexBufferView& view)
 {
+    auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetCommandBuffer();
+    auto& vk_vertex_buffer_view = dynamic_cast<const VKVertexBufferView&>(view);
+
+    VkDeviceSize offset = vk_vertex_buffer_view.m_buffer_offset;
+    vkCmdBindVertexBuffers(vk_command_buffer, slot, 1, &vk_vertex_buffer_view.m_buffer, &offset);
+    
     return true;
 }
 
-bool VulkanUtils::SetIndexBufferView(IRHICommandList& commandList, IRHIIndexBufferView& view)
+bool VulkanUtils::SetIndexBufferView(IRHICommandList& command_list, IRHIIndexBufferView& view)
 {
+    auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetCommandBuffer();
+    auto& vk_index_buffer_view = dynamic_cast<const VKIndexBufferView&>(view);
+
+    VkDeviceSize offset = vk_index_buffer_view.m_desc.offset;
+    VkIndexType type = vk_index_buffer_view.m_desc.format == RHIDataFormat::R32_UINT ? VkIndexType::VK_INDEX_TYPE_UINT32 : VkIndexType::VK_INDEX_TYPE_UINT16;
+    
+    vkCmdBindIndexBuffer(vk_command_buffer, vk_index_buffer_view.m_buffer, offset, type);
+    
     return true;
 }
 
@@ -361,6 +378,8 @@ bool VulkanUtils::DrawInstanced(IRHICommandList& commandList, unsigned vertexCou
 bool VulkanUtils::DrawIndexInstanced(IRHICommandList& commandList, unsigned indexCountPerInstance,
     unsigned instanceCount, unsigned startIndexLocation, unsigned baseVertexLocation, unsigned startInstanceLocation)
 {
+    auto vk_command_list = dynamic_cast<VKCommandList&>(commandList).GetCommandBuffer();
+    vkCmdDrawIndexed(vk_command_list, indexCountPerInstance, instanceCount, startIndexLocation, baseVertexLocation, startInstanceLocation);
     return true;
 }
 
@@ -401,6 +420,18 @@ bool VulkanUtils::CopyTexture(IRHICommandList& commandList, IRHITexture& dst, IR
 bool VulkanUtils::CopyBuffer(IRHICommandList& commandList, IRHIBuffer& dst, size_t dst_offset, IRHIBuffer& src,
     size_t src_offset, size_t size)
 {
+    auto vk_command_buffer = dynamic_cast<VKCommandList&>(commandList).GetCommandBuffer();
+    auto src_buffer = dynamic_cast<VKBuffer&>(src).GetRawBuffer();
+    auto dst_buffer = dynamic_cast<VKBuffer&>(dst).GetRawBuffer();
+    
+    VkBufferCopy copy
+    {
+        .srcOffset = src_offset,
+        .dstOffset = dst_offset,
+        .size = size,
+    };
+    
+    vkCmdCopyBuffer(vk_command_buffer, src_buffer, dst_buffer, 1, &copy);
     return true;
 }
 

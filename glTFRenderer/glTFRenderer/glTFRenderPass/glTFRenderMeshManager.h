@@ -25,6 +25,70 @@ ALIGN_FOR_CBV_STRUCT struct MeshInstanceInputData
     unsigned padding;
 };
 
+struct MeshVertexInputLayout
+{
+    VertexLayoutDeclaration m_source_vertex_layout;
+
+    MeshVertexInputLayout()
+    {
+        m_source_vertex_layout.elements.push_back({VertexAttributeType::POSITION, GetRHIDataFormatBytePerPixel(RHIDataFormat::R32G32B32_FLOAT)});
+        m_source_vertex_layout.elements.push_back({VertexAttributeType::NORMAL, GetRHIDataFormatBytePerPixel(RHIDataFormat::R32G32B32_FLOAT)});
+        m_source_vertex_layout.elements.push_back({VertexAttributeType::TANGENT, GetRHIDataFormatBytePerPixel(RHIDataFormat::R32G32B32A32_FLOAT)});
+        m_source_vertex_layout.elements.push_back({VertexAttributeType::TEXCOORD_0, GetRHIDataFormatBytePerPixel(RHIDataFormat::R32G32_FLOAT)});
+    }
+    
+    bool ResolveInputVertexLayout(std::vector<RHIPipelineInputLayout>& m_vertex_input_layouts)
+    {
+        unsigned vertex_layout_offset = 0;
+        unsigned vertex_layout_location = 0;
+        
+        for (const auto& vertex_layout : m_source_vertex_layout.elements)
+        {
+            bool added = false;
+            switch (vertex_layout.type)
+            {
+            case VertexAttributeType::POSITION:
+                {
+                    GLTF_CHECK(vertex_layout.byte_size == (GetRHIDataFormatBytePerPixel(RHIDataFormat::R32G32B32_FLOAT)));
+                    m_vertex_input_layouts.push_back({INPUT_LAYOUT_UNIQUE_PARAMETER(POSITION), 0, RHIDataFormat::R32G32B32_FLOAT, vertex_layout_offset, 0, PER_VERTEX, vertex_layout_location});
+                    added = true;
+                }
+                break;
+            case VertexAttributeType::NORMAL:
+                {
+                    GLTF_CHECK(vertex_layout.byte_size == (GetRHIDataFormatBytePerPixel(RHIDataFormat::R32G32B32_FLOAT)));
+                    m_vertex_input_layouts.push_back({INPUT_LAYOUT_UNIQUE_PARAMETER(NORMAL), 0, RHIDataFormat::R32G32B32_FLOAT, vertex_layout_offset, 0, PER_VERTEX, vertex_layout_location});
+                    added = true;
+                }
+                break;
+            case VertexAttributeType::TANGENT:
+                {
+                    GLTF_CHECK(vertex_layout.byte_size == (GetRHIDataFormatBytePerPixel(RHIDataFormat::R32G32B32A32_FLOAT)));
+                    m_vertex_input_layouts.push_back({INPUT_LAYOUT_UNIQUE_PARAMETER(TANGENT), 0, RHIDataFormat::R32G32B32A32_FLOAT, vertex_layout_offset, 0, PER_VERTEX, vertex_layout_location});
+                    added = true;
+                }
+                break;
+            case VertexAttributeType::TEXCOORD_0:
+                {
+                    GLTF_CHECK(vertex_layout.byte_size == (GetRHIDataFormatBytePerPixel(RHIDataFormat::R32G32_FLOAT)));
+                    m_vertex_input_layouts.push_back({INPUT_LAYOUT_UNIQUE_PARAMETER(TEXCOORD), 0, RHIDataFormat::R32G32_FLOAT, vertex_layout_offset, 0, PER_VERTEX, vertex_layout_location});
+                    added = true;
+                }
+                break;
+                // TODO: Handle TEXCOORD_1?
+            }
+            
+            if (added)
+            {
+                ++vertex_layout_location;
+                vertex_layout_offset += vertex_layout.byte_size;    
+            }
+        }
+        
+        return true;
+    }
+};
+
 struct MeshInstanceInputLayout
 {
     VertexLayoutDeclaration m_instance_layout;
@@ -41,39 +105,40 @@ struct MeshInstanceInputLayout
     bool ResolveInputInstanceLayout(std::vector<RHIPipelineInputLayout>& out_layout)
     {
         unsigned vertex_layout_offset = 0;
+        unsigned vertex_layout_location = 0;
         for (const auto& vertex_layout : m_instance_layout.elements)
         {
             switch (vertex_layout.type)
             {
             case VertexAttributeType::INSTANCE_MAT_0:
                 {
-                    out_layout.push_back({ "INSTANCE_TRANSFORM_MATRIX", 0, RHIDataFormat::R32G32B32A32_FLOAT, vertex_layout_offset, 1 });
+                    out_layout.push_back({ "INSTANCE_TRANSFORM_MATRIX", 0, RHIDataFormat::R32G32B32A32_FLOAT, vertex_layout_offset, 1, PER_INSTANCE, vertex_layout_location });
                 }
                 break;
             case VertexAttributeType::INSTANCE_MAT_1:
                 {
-                    out_layout.push_back({ "INSTANCE_TRANSFORM_MATRIX", 1, RHIDataFormat::R32G32B32A32_FLOAT, vertex_layout_offset, 1 });
+                    out_layout.push_back({ "INSTANCE_TRANSFORM_MATRIX", 1, RHIDataFormat::R32G32B32A32_FLOAT, vertex_layout_offset, 1, PER_INSTANCE, vertex_layout_location });
                 }
                 break;
             case VertexAttributeType::INSTANCE_MAT_2:
                 {
-                    out_layout.push_back({ "INSTANCE_TRANSFORM_MATRIX", 2, RHIDataFormat::R32G32B32A32_FLOAT, vertex_layout_offset, 1 });
+                    out_layout.push_back({ "INSTANCE_TRANSFORM_MATRIX", 2, RHIDataFormat::R32G32B32A32_FLOAT, vertex_layout_offset, 1, PER_INSTANCE, vertex_layout_location });
                 }
                 break;
             case VertexAttributeType::INSTANCE_MAT_3:
                 {
-                    out_layout.push_back({ "INSTANCE_TRANSFORM_MATRIX", 3, RHIDataFormat::R32G32B32A32_FLOAT, vertex_layout_offset, 1 });
+                    out_layout.push_back({ "INSTANCE_TRANSFORM_MATRIX", 3, RHIDataFormat::R32G32B32A32_FLOAT, vertex_layout_offset, 1, PER_INSTANCE, vertex_layout_location });
                 }
                 break;
             case VertexAttributeType::INSTANCE_CUSTOM_DATA:
                 {
-                    out_layout.push_back({ "INSTANCE_CUSTOM_DATA", 0, RHIDataFormat::R32G32B32A32_UINT, vertex_layout_offset, 1 });
+                    out_layout.push_back({ "INSTANCE_CUSTOM_DATA", 0, RHIDataFormat::R32G32B32A32_UINT, vertex_layout_offset, 1, PER_INSTANCE, vertex_layout_location });
                 }
                 break;
             default:
                 return false;
             }
-
+            ++vertex_layout_location;
             vertex_layout_offset += vertex_layout.byte_size;   
         }
 
@@ -114,6 +179,7 @@ protected:
     std::map<glTFUniqueID, glTFMeshRenderResource> m_mesh_render_resources;
 
     std::vector<RHIPipelineInputLayout> m_vertex_input_layouts;
+    MeshVertexInputLayout m_vertex_input_layout;
     MeshInstanceInputLayout m_instance_input_layout;
 
     std::shared_ptr<IRHIIndirectDrawBuilder> m_indirect_draw_builder;

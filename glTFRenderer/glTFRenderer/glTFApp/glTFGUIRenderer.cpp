@@ -55,7 +55,7 @@ bool glTFGUIRenderer::RenderWidgets(glTFRenderResourceManager& resource_manager)
     RETURN_IF_FALSE(RHIUtils::Instance().BeginRendering(command_list, begin_rendering_info));
     RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().BindGUIDescriptorContext(command_list))
     RETURN_IF_FALSE(RHIUtils::Instance().RenderGUIFrame(command_list))
-    RETURN_IF_FALSE(RHIUtils::Instance().EndRendering(command_list));
+    RETURN_IF_FALSE(RHIUtils::Instance().EndRendering(command_list))
     
     resource_manager.CloseCommandListAndExecute({}, true);
     

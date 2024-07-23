@@ -1,8 +1,8 @@
 
 struct VS_INPUT
 {
-    float3 pos : POSITION;
-    float2 uv : TEXCOORD;
+    [[vk::location(0)]] float3 pos : POSITION;
+    [[vk::location(1)]] float2 uv : TEXCOORD;
 };
 
 struct VS_OUTPUT

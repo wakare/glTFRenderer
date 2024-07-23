@@ -279,3 +279,82 @@ VkAccessFlagBits VKConverterUtils::ConvertToAccessFlags(RHIAccessFlags flags)
     
     return result;
 }
+
+VkBufferUsageFlags VKConverterUtils::ConvertToBufferUsage(RHIResourceUsageFlags flags)
+{
+    VkBufferUsageFlags result{};
+    
+    if (flags & RUF_ALLOW_UAV)
+    {
+        result |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;    
+    }
+
+    if (flags & RUF_ALLOW_SRV)
+    {
+        result |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+    }
+    
+    if (flags & RUF_VERTEX_BUFFER)
+    {
+        result |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    }
+
+    if (flags & RUF_INDEX_BUFFER)
+    {
+        result |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+    }
+
+    if (flags & RUF_INDIRECT_BUFFER)
+    {
+        result |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
+    }
+
+    if (flags & RUF_TRANSFER_SRC)
+    {
+        result |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;    
+    }
+    
+    if (flags & RUF_TRANSFER_DST)
+    {
+        result |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;    
+    }
+    
+    return result;
+}
+
+VkImageUsageFlags VKConverterUtils::ConvertToImageUsage(RHIResourceUsageFlags flags)
+{
+    VkImageUsageFlags result{};
+    
+    if (flags & RUF_ALLOW_UAV)
+    {
+        result |= VK_IMAGE_USAGE_STORAGE_BIT;    
+    }
+    
+    if (flags & RUF_ALLOW_SRV)
+    {
+        result |= VK_IMAGE_USAGE_SAMPLED_BIT;
+    }
+
+    if (flags & RUF_ALLOW_DEPTH_STENCIL)
+    {
+        result |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    }
+
+    if (flags & RUF_ALLOW_RENDER_TARGET)
+    {
+        result |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    }
+
+    if (flags & RUF_TRANSFER_SRC)
+    {
+        result |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;    
+    }
+    
+    if (flags & RUF_TRANSFER_DST)
+    {
+        result |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;    
+    }
+    
+    return result;
+}

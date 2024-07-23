@@ -21,7 +21,7 @@ enum class VertexAttributeType
     INSTANCE_CUSTOM_DATA,
 };
 
-struct VertexLayoutElement
+struct VertexAttributeElement
 {
     VertexAttributeType type;
     unsigned byte_size;
@@ -29,7 +29,7 @@ struct VertexLayoutElement
 
 struct VertexLayoutDeclaration
 {
-    std::vector<VertexLayoutElement> elements;
+    std::vector<VertexAttributeElement> elements;
 
     bool HasAttribute(VertexAttributeType attribute_type) const
     {

@@ -463,10 +463,20 @@ enum RHIResourceUsageFlags
 {
     RUF_NONE                =  0x0,
     RUF_ALLOW_UAV           =  0x1,
-    RUF_ALLOW_DEPTH_STENCIL =  0x1 << 1,
-    RUF_ALLOW_RENDER_TARGET =  0x1 << 2,
-    RUF_VERTEX_BUFFER       =  0x1 << 3,
-    RUF_INDEX_BUFFER        =  0x1 << 4,
+    RUF_ALLOW_SRV           =  0x1 << 1,
+    
+    // TEXTURE
+    RUF_ALLOW_DEPTH_STENCIL =  0x1 << 2,
+    RUF_ALLOW_RENDER_TARGET =  0x1 << 3,
+    
+    // BUFFER
+    RUF_VERTEX_BUFFER       =  0x1 << 4,
+    RUF_INDEX_BUFFER        =  0x1 << 5,
+    RUF_INDIRECT_BUFFER     =  0x1 << 6,
+
+    // COMMON
+    RUF_TRANSFER_SRC        =  0x1 << 7,
+    RUF_TRANSFER_DST        =  0x1 << 8,
 };
 
 struct RHITextureDesc
@@ -498,8 +508,6 @@ struct RHITextureDesc
     static RHIDataFormat ConvertToRHIDataFormat(const WICPixelFormatGUID& wicFormatGUID);
 
     RHIResourceUsageFlags GetUsage() const {return m_usage; }
-    bool HasUsageUAV() const {return m_usage & RUF_ALLOW_UAV;}
-    bool HasUsageDepthStencil() const {return m_usage & RUF_ALLOW_DEPTH_STENCIL;}
     
     const RHITextureClearValue& GetClearValue() const;
     const std::string& GetName() const;
@@ -528,16 +536,29 @@ private:
     RHITextureClearValue m_clear_value {};
 };
 
+enum RHIAttributeFrequency
+{
+    PER_VERTEX,
+    PER_INSTANCE,
+};
+
 struct RHIPipelineInputLayout
 {
+    // DX streaming usage
     std::string semantic_name;
     unsigned semantic_index;
+    
     RHIDataFormat format;
     unsigned aligned_byte_offset;
-
     unsigned slot;
+    
+    RHIAttributeFrequency frequency;
 
-    bool IsVertexData() const {return slot == 0; }
+    // VK streaming usage
+    unsigned layout_location;
+
+    bool IsVertexData() const { return frequency == PER_VERTEX; }
+    bool IsInstanceData() const { return frequency == PER_INSTANCE; }
 };
 
 enum class RHICullMode
@@ -742,6 +763,11 @@ inline unsigned GetRHIDataFormatBitsPerPixel(const RHIDataFormat& RHIDataFormat)
     // Unknown format !
     assert(false);
     return 32;
+}
+
+inline unsigned GetRHIDataFormatBytePerPixel(const RHIDataFormat& RHIDataFormat)
+{
+    return GetRHIDataFormatBitsPerPixel(RHIDataFormat) / 8;
 }
 
 struct RHIExecuteCommandListWaitInfo

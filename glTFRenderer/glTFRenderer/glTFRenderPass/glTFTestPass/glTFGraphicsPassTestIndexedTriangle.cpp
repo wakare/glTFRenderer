@@ -12,8 +12,8 @@ struct Vertex
 Vertex vertices[] =
 {
     Vertex({-0.5f, -0.5f,  0.0f}, {0.0f, 0.0f}),
-    Vertex({0.5f,  -0.5f,  0.0f}, {0.0f, 0.0f}),
-    Vertex({0.0f,  0.5f,  0.0f}, {0.0f, 0.0f}),
+    Vertex({0.5f,  -0.5f,  0.0f}, {1.0f, 0.0f}),
+    Vertex({0.0f,  0.5f,  0.0f}, {0.0f, 1.0f}),
 };
 
 unsigned indices[] =
@@ -68,12 +68,18 @@ bool glTFGraphicsPassTestIndexedTriangle::SetupPipelineStateObject(glTFRenderRes
     position_input_layout.slot = 0;
     position_input_layout.semantic_index = 0;
     position_input_layout.semantic_name = "POSITION";
+    position_input_layout.aligned_byte_offset = 0;
+    position_input_layout.frequency = PER_VERTEX;
+    position_input_layout.layout_location = 0;
 
     RHIPipelineInputLayout uv_input_layout{};
     uv_input_layout.format = RHIDataFormat::R32G32_FLOAT;
     uv_input_layout.slot = 0;
     uv_input_layout.semantic_index = 0;
     uv_input_layout.semantic_name = "TEXCOORD";
+    uv_input_layout.aligned_byte_offset = 12;
+    uv_input_layout.frequency = PER_VERTEX;
+    uv_input_layout.layout_location = 1;
     
     // Set shader macro based vertex attributes
     RETURN_IF_FALSE(GetGraphicsPipelineStateObject().BindInputLayoutAndSetShaderMacros({position_input_layout, uv_input_layout}));
@@ -101,7 +107,7 @@ bool glTFGraphicsPassTestIndexedTriangle::InitVertexBufferAndIndexBuffer(glTFRen
     vertex_buffer_desc.width = vertex_buffer_data_size;
     vertex_buffer_desc.height = 1;
     vertex_buffer_desc.depth = 1;
-    vertex_buffer_desc.usage = RUF_VERTEX_BUFFER;
+    vertex_buffer_desc.usage = static_cast<RHIResourceUsageFlags>(RUF_VERTEX_BUFFER | RUF_TRANSFER_DST);
     
     m_vertex_buffer_view = m_vertex_buffer->CreateVertexBufferView(
         resource_manager.GetDevice(),
@@ -125,7 +131,7 @@ bool glTFGraphicsPassTestIndexedTriangle::InitVertexBufferAndIndexBuffer(glTFRen
     index_buffer_desc.width = index_buffer_data_size;
     index_buffer_desc.height = 1;
     index_buffer_desc.depth = 1;
-    index_buffer_desc.usage = RUF_INDEX_BUFFER;
+    index_buffer_desc.usage = static_cast<RHIResourceUsageFlags>(RUF_INDEX_BUFFER | RUF_TRANSFER_DST);;
     
     m_index_buffer = RHIResourceFactory::CreateRHIResource<IRHIIndexBuffer>();
     m_index_buffer_view = m_index_buffer->CreateIndexBufferView(

@@ -27,7 +27,18 @@ bool DX12MemoryManager::AllocateBufferMemory(IRHIDevice& device, const RHIBuffer
 
 bool DX12MemoryManager::UploadBufferData(IRHIBufferAllocation& buffer_allocation, const void* data, size_t offset, size_t size)
 {
-    return dynamic_cast<DX12Buffer&>(*buffer_allocation.m_buffer).UploadBufferFromCPU(data, offset, size);
+    bool upload = false;
+    if (buffer_allocation.m_buffer->GetBufferDesc().type == RHIBufferType::Upload)
+    {
+        // CPU visible buffer
+        upload = dynamic_cast<DX12Buffer&>(*buffer_allocation.m_buffer).UploadBufferFromCPU(data, offset, size);
+    }
+    else
+    {
+        GLTF_CHECK(false);
+    }
+    
+    return upload;
 }
 
 bool DX12MemoryManager::AllocateTextureMemory(IRHIDevice& device, glTFRenderResourceManager& resource_manager,

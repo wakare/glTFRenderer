@@ -13,18 +13,16 @@
 bool VKMemoryManager::AllocateBufferMemory(IRHIDevice& device, const RHIBufferDesc& buffer_desc,
     std::shared_ptr<IRHIBufferAllocation>& out_buffer_allocation)
 {
+    GLTF_CHECK(buffer_desc.usage);
+    
     // allocate buffer
     VkBufferCreateInfo bufferInfo = {.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
     bufferInfo.pNext = nullptr;
     bufferInfo.size = buffer_desc.width;
-
-    if (buffer_desc.usage & RUF_ALLOW_UAV)
-    {
-        bufferInfo.usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;    
-    }
+    bufferInfo.usage = VKConverterUtils::ConvertToBufferUsage(buffer_desc.usage); 
     
     VmaAllocationCreateInfo allocation_create_info = {};
-    allocation_create_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+    allocation_create_info.usage = buffer_desc.type == RHIBufferType::Upload ? VMA_MEMORY_USAGE_CPU_TO_GPU : VMA_MEMORY_USAGE_GPU_ONLY;
     allocation_create_info.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
     VkBuffer out_buffer;
@@ -69,23 +67,8 @@ bool VKMemoryManager::AllocateTextureMemory(IRHIDevice& device, glTFRenderResour
     image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
     image_create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
     image_create_info.imageType = VK_IMAGE_TYPE_2D;
+    image_create_info.usage = VKConverterUtils::ConvertToImageUsage(texture_desc.GetUsage());
     
-    image_create_info.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
-    if (texture_desc.GetUsage() & RUF_ALLOW_UAV)
-    {
-        image_create_info.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
-    }
-
-    if (texture_desc.GetUsage() & RUF_ALLOW_DEPTH_STENCIL)
-    {
-        image_create_info.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-    }
-
-    if (texture_desc.GetUsage() & RUF_ALLOW_RENDER_TARGET)
-    {
-        image_create_info.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-    }
-
     VmaAllocationCreateInfo draw_image_allocation_create_info {};
     draw_image_allocation_create_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
     draw_image_allocation_create_info.requiredFlags = static_cast<VkMemoryPropertyFlags>(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
