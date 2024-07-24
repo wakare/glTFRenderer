@@ -29,11 +29,11 @@ public:
     virtual bool BeginRendering(IRHICommandList& command_list, const RHIBeginRenderingInfo& begin_rendering_info) override;
     virtual bool EndRendering(IRHICommandList& command_list) override;
     
-    virtual bool ResetCommandList(IRHICommandList& command_list, IRHICommandAllocator& commandAllocator, IRHIPipelineStateObject* initPSO) override;
+    virtual bool ResetCommandList(IRHICommandList& command_list, IRHICommandAllocator& command_allocator, IRHIPipelineStateObject* init_pso) override;
     virtual bool CloseCommandList(IRHICommandList& command_list) override;
     virtual bool ExecuteCommandList(IRHICommandList& command_list, IRHICommandQueue& command_queue, const RHIExecuteCommandListContext& context) override;
-    virtual bool ResetCommandAllocator(IRHICommandAllocator& commandAllocator) override;
-    virtual bool WaitCommandListFinish(IRHICommandList& command_queue) override;
+    virtual bool ResetCommandAllocator(IRHICommandAllocator& command_allocator) override;
+    virtual bool WaitCommandListFinish(IRHICommandList& command_list) override;
     
     virtual bool SetRootSignature(IRHICommandList& command_list, IRHIRootSignature& rootSignature, IRHIPipelineStateObject& pipeline_state_object,RHIPipelineType pipeline_type) override;
     virtual bool SetViewport(IRHICommandList& command_list, const RHIViewportDesc& viewport_desc) override;
@@ -44,9 +44,6 @@ public:
     virtual bool SetPrimitiveTopology(IRHICommandList& command_list, RHIPrimitiveTopologyType type) override;
 
     virtual bool SetConstant32BitToRootParameterSlot(IRHICommandList& command_list, unsigned slot_index, unsigned* data, unsigned count, RHIPipelineType pipeline_type) override;
-    
-    virtual bool UploadBufferDataToDefaultGPUBuffer(IRHICommandList& command_list, IRHIBuffer& uploadBuffer, IRHIBuffer& defaultBuffer, void* data, size_t size) override;
-    virtual bool UploadTextureDataToDefaultGPUBuffer(IRHICommandList& command_list, IRHIBuffer& uploadBuffer, IRHIBuffer& defaultBuffer, void* data, size_t rowPitch, size_t slicePitch) override;
     
     virtual bool AddBufferBarrierToCommandList(IRHICommandList& command_list, const IRHIBuffer& buffer, RHIResourceStateType beforeState, RHIResourceStateType afterState) override;
     virtual bool AddTextureBarrierToCommandList(IRHICommandList& command_list, const IRHITexture& buffer, RHIResourceStateType beforeState, RHIResourceStateType afterState) override;
@@ -69,6 +66,10 @@ public:
 
     // DX12 private implementation
     static DX12Utils& DX12Instance();
+
+    bool UploadBufferDataToDefaultGPUBuffer(IRHICommandList& command_list, IRHIBuffer& upload_buffer, IRHIBuffer& default_buffer, void* data, size_t size);
+    bool UploadTextureDataToDefaultGPUBuffer(IRHICommandList& command_list, IRHIBuffer& upload_buffer, IRHIBuffer& default_buffer, void* data, size_t row_pitch, size_t slice_pitch);
+    
     bool SetDescriptorHeapArray(IRHICommandList& command_list, DX12DescriptorHeap* descriptor_heap_array_data, size_t descriptor_heap_array_count);
     bool SetCBVToRootParameterSlot(IRHICommandList& command_list, unsigned slot_index, const IRHIDescriptorAllocation& handle, bool isGraphicsPipeline);
     bool SetSRVToRootParameterSlot(IRHICommandList& command_list, unsigned slot_index, const IRHIDescriptorAllocation& handle, bool isGraphicsPipeline);

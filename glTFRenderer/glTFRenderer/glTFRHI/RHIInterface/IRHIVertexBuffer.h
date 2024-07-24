@@ -11,8 +11,12 @@ class IRHIVertexBuffer : public IRHIResource
 public:
     DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIVertexBuffer)
     
-    virtual std::shared_ptr<IRHIVertexBufferView> CreateVertexBufferView(IRHIDevice& device, IRHIMemoryManager& memory_manager,
-                                                                         IRHICommandList& command_list, const RHIBufferDesc& desc, const VertexBufferData& vertex_buffer_data) = 0;
+    std::shared_ptr<IRHIVertexBufferView> CreateVertexBufferView(
+        IRHIDevice& device,
+        IRHIMemoryManager& memory_manager,
+        IRHICommandList& command_list,
+        const RHIBufferDesc& desc,
+        const VertexBufferData& vertex_buffer_data);
 
     const VertexLayoutDeclaration& GetLayout() const {return m_vertex_layout; }
     size_t GetCount() const {return m_vertex_count; }

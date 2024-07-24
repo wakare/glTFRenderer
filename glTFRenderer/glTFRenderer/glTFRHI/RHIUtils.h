@@ -50,9 +50,6 @@ public:
     
     virtual bool SetConstant32BitToRootParameterSlot(IRHICommandList& command_list, unsigned slotIndex, unsigned* data, unsigned count, RHIPipelineType pipeline_type) = 0;
     
-    virtual bool UploadBufferDataToDefaultGPUBuffer(IRHICommandList& command_list, IRHIBuffer& uploadBuffer, IRHIBuffer& defaultBuffer, void* data, size_t size) = 0;
-    virtual bool UploadTextureDataToDefaultGPUBuffer(IRHICommandList& command_list, IRHIBuffer& uploadBuffer, IRHIBuffer& defaultBuffer, void* data, size_t rowPitch, size_t slicePitch) = 0;
-
     virtual bool AddBufferBarrierToCommandList(IRHICommandList& command_list, const IRHIBuffer& buffer, RHIResourceStateType beforeState, RHIResourceStateType afterState) = 0;
     virtual bool AddTextureBarrierToCommandList(IRHICommandList& command_list, const IRHITexture& buffer, RHIResourceStateType beforeState, RHIResourceStateType afterState) = 0;
 

@@ -1,6 +1,7 @@
 #include "DX12Texture.h"
 #include "DX12Buffer.h"
 #include "DX12Device.h"
+#include "DX12Utils.h"
 #include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRHI/RHIUtils.h"
 #include "SceneFileLoader/glTFImageLoader.h"
@@ -78,7 +79,7 @@ bool DX12Texture::InitTextureAndUpload(IRHIDevice& device, glTFRenderResourceMan
         };
     resource_manager.GetMemoryManager().AllocateBufferMemory(device, textureUploadBufferDesc, m_texture_upload_buffer);
 
-    RETURN_IF_FALSE(RHIUtils::Instance().UploadTextureDataToDefaultGPUBuffer(
+    RETURN_IF_FALSE(DX12Utils::DX12Instance().UploadTextureDataToDefaultGPUBuffer(
         command_list,
         *m_texture_upload_buffer->m_buffer,
         *m_texture_buffer->m_buffer,

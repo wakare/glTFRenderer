@@ -31,8 +31,10 @@ bool glTFGraphicsPassPostprocess::InitPass(glTFRenderResourceManager& resource_m
     const RHIBufferDesc vertexBufferDesc = {L"vertexBufferDefaultBuffer", sizeof(postprocessVertices), 1, 1, RHIBufferType::Default, RHIDataFormat::UNKNOWN, RHIBufferResourceType::Buffer};
     const RHIBufferDesc indexBufferDesc = {L"indexBufferDefaultBuffer", sizeof(postprocessIndices), 1, 1, RHIBufferType::Default, RHIDataFormat::UNKNOWN, RHIBufferResourceType::Buffer};
 
-    resource_manager.GetMemoryManager().AllocateBufferMemory(resource_manager.GetDevice(), vertexBufferDesc, m_postprocessQuadResource.meshVertexBuffer);
-    resource_manager.GetMemoryManager().AllocateBufferMemory(resource_manager.GetDevice(), indexBufferDesc, m_postprocessQuadResource.meshIndexBuffer);
+    auto& memory_manager = resource_manager.GetMemoryManager();
+    
+    memory_manager.AllocateBufferMemory(resource_manager.GetDevice(), vertexBufferDesc, m_postprocessQuadResource.meshVertexBuffer);
+    memory_manager.AllocateBufferMemory(resource_manager.GetDevice(), indexBufferDesc, m_postprocessQuadResource.meshIndexBuffer);
     
     auto vertexUploadBuffer = RHIResourceFactory::CreateRHIResource<IRHIBufferAllocation>();
     auto indexUploadBuffer = RHIResourceFactory::CreateRHIResource<IRHIBufferAllocation>();
@@ -40,13 +42,16 @@ bool glTFGraphicsPassPostprocess::InitPass(glTFRenderResourceManager& resource_m
     const RHIBufferDesc vertexUploadBufferDesc = {L"vertexBufferUploadBuffer", sizeof(postprocessVertices), 1, 1, RHIBufferType::Upload, RHIDataFormat::UNKNOWN, RHIBufferResourceType::Buffer};
     const RHIBufferDesc indexUploadBufferDesc = {L"indexBufferUploadBuffer", sizeof(postprocessIndices), 1, 1, RHIBufferType::Upload, RHIDataFormat::UNKNOWN, RHIBufferResourceType::Buffer};
 
-    resource_manager.GetMemoryManager().AllocateBufferMemory(resource_manager.GetDevice(), vertexUploadBufferDesc, vertexUploadBuffer);
-    resource_manager.GetMemoryManager().AllocateBufferMemory(resource_manager.GetDevice(), indexUploadBufferDesc, indexUploadBuffer);
+    memory_manager.AllocateBufferMemory(resource_manager.GetDevice(), vertexUploadBufferDesc, vertexUploadBuffer);
+    memory_manager.AllocateBufferMemory(resource_manager.GetDevice(), indexUploadBufferDesc, indexUploadBuffer);
     
     auto& command_list = resource_manager.GetCommandListForRecord();
-    
-    RETURN_IF_FALSE(RHIUtils::Instance().UploadBufferDataToDefaultGPUBuffer(command_list, *vertexUploadBuffer->m_buffer, *m_postprocessQuadResource.meshVertexBuffer->m_buffer, postprocessVertices, sizeof(postprocessVertices)))
-    RETURN_IF_FALSE(RHIUtils::Instance().UploadBufferDataToDefaultGPUBuffer(command_list, *indexUploadBuffer->m_buffer, *m_postprocessQuadResource.meshIndexBuffer->m_buffer, postprocessIndices, sizeof(postprocessIndices)))
+
+    memory_manager.UploadBufferData(*vertexUploadBuffer, postprocessVertices, 0, sizeof(postprocessVertices));
+    memory_manager.UploadBufferData(*indexUploadBuffer, postprocessIndices, 0, sizeof(postprocessIndices));
+
+    RHIUtils::Instance().CopyBuffer(command_list, *m_postprocessQuadResource.meshVertexBuffer->m_buffer, 0, *vertexUploadBuffer->m_buffer, 0, sizeof(postprocessVertices));
+    RHIUtils::Instance().CopyBuffer(command_list, *m_postprocessQuadResource.meshIndexBuffer->m_buffer, 0, *indexUploadBuffer->m_buffer, 0, sizeof(postprocessIndices));
     
     RETURN_IF_FALSE(RHIUtils::Instance().AddBufferBarrierToCommandList(command_list, *m_postprocessQuadResource.meshVertexBuffer->m_buffer, RHIResourceStateType::STATE_COPY_DEST, RHIResourceStateType::STATE_VERTEX_AND_CONSTANT_BUFFER))
     RETURN_IF_FALSE(RHIUtils::Instance().AddBufferBarrierToCommandList(command_list, *m_postprocessQuadResource.meshIndexBuffer->m_buffer, RHIResourceStateType::STATE_COPY_DEST, RHIResourceStateType::STATE_INDEX_BUFFER))

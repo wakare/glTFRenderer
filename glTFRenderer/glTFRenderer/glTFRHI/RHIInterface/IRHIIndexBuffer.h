@@ -9,8 +9,12 @@ class IRHIIndexBuffer : public IRHIResource
 public:
     DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIIndexBuffer)
     
-    virtual std::shared_ptr<IRHIIndexBufferView> CreateIndexBufferView(IRHIDevice& device, IRHIMemoryManager& memory_manager, IRHICommandList& command_list,
-                                                                        const RHIBufferDesc& desc, const IndexBufferData& index_buffer_data) = 0;
+    std::shared_ptr<IRHIIndexBufferView> CreateIndexBufferView(
+        IRHIDevice& device,
+        IRHIMemoryManager& memory_manager,
+        IRHICommandList& command_list,
+        const RHIBufferDesc& desc,
+        const IndexBufferData& index_buffer_data);
 
     RHIDataFormat GetFormat() const {return m_index_format; }
     size_t GetCount() const {return m_index_count; }

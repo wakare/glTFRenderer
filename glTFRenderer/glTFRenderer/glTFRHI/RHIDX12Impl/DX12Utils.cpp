@@ -153,16 +153,16 @@ bool DX12Utils::EndRendering(IRHICommandList& command_list)
     return true;
 }
 
-bool DX12Utils::ResetCommandList(IRHICommandList& command_list, IRHICommandAllocator& commandAllocator,
-                                 IRHIPipelineStateObject* initPSO)
+bool DX12Utils::ResetCommandList(IRHICommandList& command_list, IRHICommandAllocator& command_allocator,
+                                 IRHIPipelineStateObject* init_pso)
 {
     auto* dx_command_list = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
-    auto* dx_command_allocator = dynamic_cast<DX12CommandAllocator&>(commandAllocator).GetCommandAllocator();
-    if (initPSO)
+    auto* dx_command_allocator = dynamic_cast<DX12CommandAllocator&>(command_allocator).GetCommandAllocator();
+    if (init_pso)
     {
-        const auto& dxPSO = dynamic_cast<IDX12PipelineStateObjectCommon&>(*initPSO);
+        const auto& dxPSO = dynamic_cast<IDX12PipelineStateObjectCommon&>(*init_pso);
         
-        if (initPSO->GetPSOType() == RHIPipelineType::RayTracing)
+        if (init_pso->GetPSOType() == RHIPipelineType::RayTracing)
         {
             auto* dxr_command_list = dynamic_cast<DX12CommandList&>(command_list).GetDXRCommandList();
             dxr_command_list->Reset(dx_command_allocator, nullptr);
@@ -203,9 +203,9 @@ bool DX12Utils::ExecuteCommandList(IRHICommandList& command_list, IRHICommandQue
     return true;
 }
 
-bool DX12Utils::ResetCommandAllocator(IRHICommandAllocator& commandAllocator)
+bool DX12Utils::ResetCommandAllocator(IRHICommandAllocator& command_allocator)
 {
-    auto* dxCommandAllocator = dynamic_cast<DX12CommandAllocator&>(commandAllocator).GetCommandAllocator();
+    auto* dxCommandAllocator = dynamic_cast<DX12CommandAllocator&>(command_allocator).GetCommandAllocator();
     THROW_IF_FAILED(dxCommandAllocator->Reset())
     return true;
 }
@@ -400,12 +400,12 @@ bool DX12Utils::SetDTToRootParameterSlot(IRHICommandList& command_list, unsigned
     return true;
 }
 
-bool DX12Utils::UploadBufferDataToDefaultGPUBuffer(IRHICommandList& command_list, IRHIBuffer& uploadBuffer,
-                                                   IRHIBuffer& defaultBuffer, void* data, size_t size)
+bool DX12Utils::UploadBufferDataToDefaultGPUBuffer(IRHICommandList& command_list, IRHIBuffer& upload_buffer,
+                                                   IRHIBuffer& default_buffer, void* data, size_t size)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
-    auto* dxUploadBuffer = dynamic_cast<DX12Buffer&>(uploadBuffer).GetRawBuffer();
-    auto* dxDefaultBuffer = dynamic_cast<DX12Buffer&>(defaultBuffer).GetRawBuffer();
+    auto* dxUploadBuffer = dynamic_cast<DX12Buffer&>(upload_buffer).GetRawBuffer();
+    auto* dxDefaultBuffer = dynamic_cast<DX12Buffer&>(default_buffer).GetRawBuffer();
     
     // store vertex buffer in upload heap
     D3D12_SUBRESOURCE_DATA vertexData = {};
@@ -420,18 +420,18 @@ bool DX12Utils::UploadBufferDataToDefaultGPUBuffer(IRHICommandList& command_list
     return true;
 }
 
-bool DX12Utils::UploadTextureDataToDefaultGPUBuffer(IRHICommandList& command_list, IRHIBuffer& uploadBuffer,
-    IRHIBuffer& defaultBuffer, void* data, size_t rowPitch, size_t slicePitch)
+bool DX12Utils::UploadTextureDataToDefaultGPUBuffer(IRHICommandList& command_list, IRHIBuffer& upload_buffer,
+    IRHIBuffer& default_buffer, void* data, size_t row_pitch, size_t slice_pitch)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
-    auto* dxUploadBuffer = dynamic_cast<DX12Buffer&>(uploadBuffer).GetRawBuffer();
-    auto* dxDefaultBuffer = dynamic_cast<DX12Buffer&>(defaultBuffer).GetRawBuffer();
+    auto* dxUploadBuffer = dynamic_cast<DX12Buffer&>(upload_buffer).GetRawBuffer();
+    auto* dxDefaultBuffer = dynamic_cast<DX12Buffer&>(default_buffer).GetRawBuffer();
     
     // store vertex buffer in upload heap
     D3D12_SUBRESOURCE_DATA vertexData = {};
     vertexData.pData = reinterpret_cast<BYTE*>(data); // pointer to our vertex array
-    vertexData.RowPitch = rowPitch; // size of all our triangle vertex data
-    vertexData.SlicePitch = slicePitch; // also the size of our triangle vertex data
+    vertexData.RowPitch = row_pitch; // size of all our triangle vertex data
+    vertexData.SlicePitch = slice_pitch; // also the size of our triangle vertex data
 
     // we are now creating a command with the command list to copy the data from
     // the upload heap to the default heap

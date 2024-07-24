@@ -53,9 +53,9 @@ bool VulkanUtils::NewGUIFrame()
     return true;
 }
 
-bool VulkanUtils::RenderGUIFrame(IRHICommandList& commandList)
+bool VulkanUtils::RenderGUIFrame(IRHICommandList& command_list)
 {
-    auto vk_command_buffer = dynamic_cast<VKCommandList&>(commandList).GetCommandBuffer();
+    auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetCommandBuffer();
     ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), vk_command_buffer);
     return true;
 }
@@ -170,9 +170,9 @@ bool VulkanUtils::ResetCommandList(IRHICommandList& command_list, IRHICommandAll
     return true;
 }
 
-bool VulkanUtils::CloseCommandList(IRHICommandList& commandList)
+bool VulkanUtils::CloseCommandList(IRHICommandList& command_list)
 {
-    return commandList.EndRecordCommandList();
+    return command_list.EndRecordCommandList();
 }
 
 bool VulkanUtils::ExecuteCommandList(IRHICommandList& command_list, IRHICommandQueue& command_queue, const RHIExecuteCommandListContext& context)
@@ -219,7 +219,7 @@ bool VulkanUtils::ExecuteCommandList(IRHICommandList& command_list, IRHICommandQ
     return true;
 }
 
-bool VulkanUtils::ResetCommandAllocator(IRHICommandAllocator& commandAllocator)
+bool VulkanUtils::ResetCommandAllocator(IRHICommandAllocator& command_allocator)
 {
     return true;
 }
@@ -272,13 +272,13 @@ bool VulkanUtils::SetScissorRect(IRHICommandList& command_list, const RHIScissor
     return true;
 }
 
-bool VulkanUtils::SetVertexBufferView(IRHICommandList& command_list, unsigned slot, IRHIVertexBufferView& view)
+bool VulkanUtils::SetVertexBufferView(IRHICommandList& command_list, unsigned binding_slot_index, IRHIVertexBufferView& view)
 {
     auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetCommandBuffer();
     auto& vk_vertex_buffer_view = dynamic_cast<const VKVertexBufferView&>(view);
 
     VkDeviceSize offset = vk_vertex_buffer_view.m_buffer_offset;
-    vkCmdBindVertexBuffers(vk_command_buffer, slot, 1, &vk_vertex_buffer_view.m_buffer, &offset);
+    vkCmdBindVertexBuffers(vk_command_buffer, binding_slot_index, 1, &vk_vertex_buffer_view.m_buffer, &offset);
     
     return true;
 }
@@ -296,41 +296,29 @@ bool VulkanUtils::SetIndexBufferView(IRHICommandList& command_list, IRHIIndexBuf
     return true;
 }
 
-bool VulkanUtils::SetPrimitiveTopology(IRHICommandList& commandList, RHIPrimitiveTopologyType type)
+bool VulkanUtils::SetPrimitiveTopology(IRHICommandList& command_list, RHIPrimitiveTopologyType type)
 {
     return true;
 }
 
-bool VulkanUtils::SetConstant32BitToRootParameterSlot(IRHICommandList& commandList, unsigned slotIndex, unsigned* data,
+bool VulkanUtils::SetConstant32BitToRootParameterSlot(IRHICommandList& command_list, unsigned slot_index, unsigned* data,
     unsigned count, RHIPipelineType pipeline)
 {
     return true;
 }
 
-bool VulkanUtils::UploadBufferDataToDefaultGPUBuffer(IRHICommandList& commandList, IRHIBuffer& uploadBuffer,
-                                                     IRHIBuffer& defaultBuffer, void* data, size_t size)
-{
-    return true;
-}
-
-bool VulkanUtils::UploadTextureDataToDefaultGPUBuffer(IRHICommandList& commandList, IRHIBuffer& uploadBuffer,
-    IRHIBuffer& defaultBuffer, void* data, size_t rowPitch, size_t slicePitch)
-{
-    return true;
-}
-
-bool VulkanUtils::AddBufferBarrierToCommandList(IRHICommandList& commandList, const IRHIBuffer& buffer,
-                                                RHIResourceStateType beforeState, RHIResourceStateType afterState)
+bool VulkanUtils::AddBufferBarrierToCommandList(IRHICommandList& command_list, const IRHIBuffer& buffer,
+                                                RHIResourceStateType before_state, RHIResourceStateType after_state)
 {
     
     
     return true;
 }
 
-bool VulkanUtils::AddTextureBarrierToCommandList(IRHICommandList& commandList, const IRHITexture& texture,
-                                                 RHIResourceStateType beforeState, RHIResourceStateType afterState)
+bool VulkanUtils::AddTextureBarrierToCommandList(IRHICommandList& command_list, const IRHITexture& texture,
+                                                 RHIResourceStateType before_state, RHIResourceStateType after_state)
 {
-    auto vk_command_list = dynamic_cast<VKCommandList&>(commandList).GetCommandBuffer();
+    auto vk_command_list = dynamic_cast<VKCommandList&>(command_list).GetCommandBuffer();
     auto vk_image = dynamic_cast<const VKTexture&>(texture).GetRawImage();
     
     VkImageMemoryBarrier2 image_barrier {.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2};
@@ -342,7 +330,7 @@ bool VulkanUtils::AddTextureBarrierToCommandList(IRHICommandList& commandList, c
 
     //image_barrier.oldLayout = VKConverterUtils::ConvertToImageLayout(beforeState);
     image_barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    image_barrier.newLayout = VKConverterUtils::ConvertToImageLayout(afterState);
+    image_barrier.newLayout = VKConverterUtils::ConvertToImageLayout(after_state);
 
     VkImageAspectFlags aspect_flags = (image_barrier.newLayout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL) ?
         VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
@@ -367,19 +355,19 @@ bool VulkanUtils::AddTextureBarrierToCommandList(IRHICommandList& commandList, c
     return true;
 }
 
-bool VulkanUtils::DrawInstanced(IRHICommandList& commandList, unsigned vertexCountPerInstance, unsigned instanceCount,
-    unsigned startVertexLocation, unsigned startInstanceLocation)
+bool VulkanUtils::DrawInstanced(IRHICommandList& command_list, unsigned vertex_count_per_instance, unsigned instance_count,
+    unsigned start_vertex_location, unsigned start_instance_location)
 {
-    auto vk_command_list = dynamic_cast<VKCommandList&>(commandList).GetCommandBuffer();
-    vkCmdDraw(vk_command_list, vertexCountPerInstance, instanceCount, startVertexLocation, startInstanceLocation);
+    auto vk_command_list = dynamic_cast<VKCommandList&>(command_list).GetCommandBuffer();
+    vkCmdDraw(vk_command_list, vertex_count_per_instance, instance_count, start_vertex_location, start_instance_location);
     return true;
 }
 
-bool VulkanUtils::DrawIndexInstanced(IRHICommandList& commandList, unsigned indexCountPerInstance,
-    unsigned instanceCount, unsigned startIndexLocation, unsigned baseVertexLocation, unsigned startInstanceLocation)
+bool VulkanUtils::DrawIndexInstanced(IRHICommandList& command_list, unsigned index_count_per_instance,
+    unsigned instance_count, unsigned start_index_location, unsigned base_vertex_location, unsigned start_instance_location)
 {
-    auto vk_command_list = dynamic_cast<VKCommandList&>(commandList).GetCommandBuffer();
-    vkCmdDrawIndexed(vk_command_list, indexCountPerInstance, instanceCount, startIndexLocation, baseVertexLocation, startInstanceLocation);
+    auto vk_command_list = dynamic_cast<VKCommandList&>(command_list).GetCommandBuffer();
+    vkCmdDrawIndexed(vk_command_list, index_count_per_instance, instance_count, start_index_location, base_vertex_location, start_instance_location);
     return true;
 }
 
@@ -412,15 +400,15 @@ bool VulkanUtils::Present(IRHISwapChain& swap_chain, IRHICommandQueue& command_q
     return swap_chain.Present(command_queue, command_list);
 }
 
-bool VulkanUtils::CopyTexture(IRHICommandList& commandList, IRHITexture& dst, IRHITexture& src)
+bool VulkanUtils::CopyTexture(IRHICommandList& command_list, IRHITexture& dst, IRHITexture& src)
 {
     return true;
 }
 
-bool VulkanUtils::CopyBuffer(IRHICommandList& commandList, IRHIBuffer& dst, size_t dst_offset, IRHIBuffer& src,
+bool VulkanUtils::CopyBuffer(IRHICommandList& command_list, IRHIBuffer& dst, size_t dst_offset, IRHIBuffer& src,
     size_t src_offset, size_t size)
 {
-    auto vk_command_buffer = dynamic_cast<VKCommandList&>(commandList).GetCommandBuffer();
+    auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetCommandBuffer();
     auto src_buffer = dynamic_cast<VKBuffer&>(src).GetRawBuffer();
     auto dst_buffer = dynamic_cast<VKBuffer&>(dst).GetRawBuffer();
     
