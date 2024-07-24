@@ -55,10 +55,10 @@ void glTFRenderPassManager::InitAllPass(glTFRenderResourceManager& resource_mana
     {
         pass->ImportResourceLocation(resource_manager);
     }
-    
+
     for (const auto& pass : m_passes)
     {
-        const bool inited = pass->InitPass(resource_manager);
+        const bool inited = pass->InitRenderInterface(resource_manager) && pass->InitPass(resource_manager);
         GLTF_CHECK(inited);
         LOG_FORMAT("[DEBUG] Init pass %s finished!\n", pass->PassName())
     }

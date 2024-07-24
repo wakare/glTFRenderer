@@ -20,7 +20,8 @@ public:
     DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFRenderPassBase)
 
     virtual const char* PassName() = 0;
-    
+
+    virtual bool InitRenderInterface(glTFRenderResourceManager& resource_manager);
     virtual bool InitPass(glTFRenderResourceManager& resource_manager);
     virtual bool PreRenderPass(glTFRenderResourceManager& resource_manager);
     virtual bool RenderPass(glTFRenderResourceManager& resource_manager);

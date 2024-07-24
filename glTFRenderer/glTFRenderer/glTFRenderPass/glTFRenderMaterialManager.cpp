@@ -22,7 +22,7 @@ bool glTFMaterialTextureRenderResource::Init(glTFRenderResourceManager& resource
     ImageLoadResult result;
     RETURN_IF_FALSE(glTFImageLoader::Instance().LoadImageByFilename(convertPath.c_str(), result))
     RHITextureDesc texture_desc{};
-    texture_desc.Init(result);
+    texture_desc.InitWithLoadedData(result);
 
     resource_manager.GetMemoryManager().AllocateTextureMemoryAndUpload(resource_manager.GetDevice(), resource_manager, command_list, texture_desc, m_texture);
     resource_manager.CloseCommandListAndExecute({}, false);

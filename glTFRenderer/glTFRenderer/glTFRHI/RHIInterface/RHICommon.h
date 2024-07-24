@@ -65,6 +65,7 @@ enum class RHIResourceStateType
     STATE_UNORDERED_ACCESS,
     STATE_NON_PIXEL_SHADER_RESOURCE,
     STATE_PIXEL_SHADER_RESOURCE,
+    STATE_ALL_SHADER_RESOURCE,
     STATE_RAYTRACING_ACCELERATION_STRUCTURE,
 };
 
@@ -492,14 +493,18 @@ struct RHITextureDesc
 
     RHITextureDesc(std::string name, unsigned width, unsigned height, RHIDataFormat format, RHIResourceUsageFlags usage, const RHITextureClearValue& clear_value);
     
-    bool Init(const ImageLoadResult& image_load_result);
+    bool InitWithLoadedData(const ImageLoadResult& image_load_result);
     
     // No data copy!!
-    bool Init(const RHITextureDesc& other);
+    bool InitWithoutCopyData(const RHITextureDesc& other);
 
+    // Texture data attribute
+    bool SetTextureData(const char* data, size_t byte_size);
     bool HasTextureData() const {return m_texture_data != nullptr; }
     unsigned char* GetTextureData() const { return m_texture_data.get(); }
     size_t GetTextureDataSize() const { return m_texture_data_size; }
+
+    // Common attribute
     RHIDataFormat GetDataFormat() const { return m_texture_format; }
     unsigned GetTextureWidth() const { return m_texture_width; }
     unsigned GetTextureHeight() const { return m_texture_height; }

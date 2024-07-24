@@ -48,23 +48,7 @@ bool DX12Buffer::InitGPUBuffer(IRHIDevice& device, const RHIBufferDesc& desc)
         heap_resource_desc.Alignment = desc.alignment;
     }
 
-    if (desc.usage & RUF_ALLOW_UAV)
-    {
-        heap_resource_desc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-    }
-
-    bool use_clear_value = false;
-    if (desc.usage & RUF_ALLOW_DEPTH_STENCIL)
-    {
-        heap_resource_desc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-        use_clear_value = true;
-    }
-
-    if (desc.usage & RUF_ALLOW_RENDER_TARGET)
-    {
-        heap_resource_desc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-        use_clear_value = true;
-    }
+    heap_resource_desc.Flags = DX12ConverterUtils::ConvertToResourceFlags(desc.usage);
     
     RHIResourceStateType final_state = desc.state;
     if (final_state == RHIResourceStateType::STATE_UNKNOWN)
@@ -78,7 +62,7 @@ bool DX12Buffer::InitGPUBuffer(IRHIDevice& device, const RHIBufferDesc& desc)
     
     const D3D12_RESOURCE_STATES state = DX12ConverterUtils::ConvertToResourceState(final_state);
     const auto dx_clear_value = DX12ConverterUtils::ConvertToD3DClearValue(desc.clear_value);
-    
+    bool use_clear_value = desc.usage & (RUF_ALLOW_DEPTH_STENCIL | RUF_ALLOW_RENDER_TARGET);
     THROW_IF_FAILED(dxDevice->CreateCommittedResource(
             &heap_properties, // this heap will be used to upload the constant buffer data
             D3D12_HEAP_FLAG_NONE, // no flags

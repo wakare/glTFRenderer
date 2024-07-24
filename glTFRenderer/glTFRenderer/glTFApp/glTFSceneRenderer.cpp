@@ -12,6 +12,7 @@
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassMeshOpaque.h"
 #include "glTFRenderPass/glTFRayTracingPass/glTFRayTracingPassPathTracing.h"
 #include "glTFRenderPass/glTFRayTracingPass/glTFRayTracingPassReSTIRDirectLighting.h"
+#include "glTFRenderPass/glTFTestPass/glTFGraphicsPassTestIndexedTextureTriangle.h"
 #include "glTFRenderPass/glTFTestPass/glTFGraphicsPassTestIndexedTriangle.h"
 #include "glTFRenderPass/glTFTestPass/glTFGraphicsPassTestTriangleSimplest.h"
 #include "RenderWindow//glTFWindow.h"
@@ -137,7 +138,8 @@ bool glTFSceneRendererRayTracer::SetupSceneRenderer()
 bool glTFSceneRendererTestTriangle::SetupSceneRenderer()
 {
     //std::unique_ptr<glTFGraphicsPassTestTriangleSimplest> test_triangle_pass = std::make_unique<glTFGraphicsPassTestTriangleSimplest>();
-    std::unique_ptr<glTFGraphicsPassTestIndexedTriangle> test_triangle_pass = std::make_unique<glTFGraphicsPassTestIndexedTriangle>();
+    //std::unique_ptr<glTFGraphicsPassTestIndexedTriangle> test_triangle_pass = std::make_unique<glTFGraphicsPassTestIndexedTriangle>();
+    std::unique_ptr<glTFGraphicsPassTestIndexedTextureTriangle> test_triangle_pass = std::make_unique<glTFGraphicsPassTestIndexedTextureTriangle>();
     m_pass_manager->AddRenderPass(std::move(test_triangle_pass));
 
     return true;

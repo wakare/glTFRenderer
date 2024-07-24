@@ -43,6 +43,12 @@ enum class RenderPassResourceTableId
     LightingPass_Output,
     RayTracingPass_ReSTIRSample_Output,
     ComputePass_RayTracingOutputPostProcess_Output,
+
+    // Custom for test pass
+    TestPass_Custom0,
+    TestPass_Custom1,
+    TestPass_Custom2,
+    TestPass_Custom3,
 };
 
 // Declare resource export/import info for specific render pass

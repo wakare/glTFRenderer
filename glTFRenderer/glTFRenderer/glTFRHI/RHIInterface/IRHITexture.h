@@ -17,7 +17,7 @@ public:
     DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHITexture)
 
     const RHITextureDesc& GetTextureDesc() const {return m_texture_desc; }
-    RHIDataFormat GetTextureFormat() const {return  GetTextureDesc().GetDataFormat(); }
+    RHIDataFormat GetTextureFormat() const {return GetTextureDesc().GetDataFormat(); }
     
     bool Transition(IRHICommandList& command_list, RHIResourceStateType new_state);
     RHIResourceStateType GetState() const;

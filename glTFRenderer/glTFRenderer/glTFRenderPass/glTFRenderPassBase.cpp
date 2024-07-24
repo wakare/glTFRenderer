@@ -5,6 +5,11 @@
 #include "glTFRenderResourceManager.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 
+bool glTFRenderPassBase::InitRenderInterface(glTFRenderResourceManager& resource_manager)
+{
+    return true;
+}
+
 bool glTFRenderPassBase::InitPass(glTFRenderResourceManager& resource_manager)
 {
     m_descriptor_updater = RHIResourceFactory::CreateRHIResource<IRHIDescriptorUpdater>();

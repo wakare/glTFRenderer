@@ -23,4 +23,5 @@ public:
     static D3D12_CLEAR_VALUE ConvertToD3DClearValue(RHITextureClearValue clear_value);
     static D3D12_INDIRECT_ARGUMENT_TYPE ConvertToIndirectArgumentType(RHIIndirectArgType type);
     static D3D12_INDIRECT_ARGUMENT_DESC ConvertToIndirectArgumentDesc(const RHIIndirectArgumentDesc& desc);
+    static D3D12_RESOURCE_FLAGS ConvertToResourceFlags(RHIResourceUsageFlags usage);
 };

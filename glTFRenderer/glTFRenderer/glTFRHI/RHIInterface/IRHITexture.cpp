@@ -8,12 +8,12 @@
 
 RHITextureDesc::RHITextureDesc(const RHITextureDesc& desc) noexcept
 {
-    Init(desc);
+    InitWithoutCopyData(desc);
 }
 
 RHITextureDesc& RHITextureDesc::operator=(const RHITextureDesc& desc) noexcept
 {
-    Init(desc);
+    InitWithoutCopyData(desc);
     return *this;
 }
 
@@ -60,7 +60,7 @@ RHITextureDesc::RHITextureDesc(
     
 }
 
-bool RHITextureDesc::Init(const ImageLoadResult& image_load_result)
+bool RHITextureDesc::InitWithLoadedData(const ImageLoadResult& image_load_result)
 {
     assert(m_texture_data == nullptr);
 
@@ -77,7 +77,7 @@ bool RHITextureDesc::Init(const ImageLoadResult& image_load_result)
     return true;
 }
 
-bool RHITextureDesc::Init(const RHITextureDesc& other)
+bool RHITextureDesc::InitWithoutCopyData(const RHITextureDesc& other)
 {
     //m_texture_data = std::move(other.m_texture_data);
     m_texture_data_size = other.m_texture_data_size;
@@ -88,6 +88,17 @@ bool RHITextureDesc::Init(const RHITextureDesc& other)
     m_clear_value = other.m_clear_value;
     m_name = other.m_name;
     
+    return true;
+}
+
+bool RHITextureDesc::SetTextureData(const char* data, size_t byte_size)
+{
+    GLTF_CHECK(!HasTextureData());
+
+    m_texture_data = std::make_unique<unsigned char[]>(byte_size);
+    m_texture_data_size = byte_size;
+    memcpy(m_texture_data.get(), data, byte_size);
+
     return true;
 }
 

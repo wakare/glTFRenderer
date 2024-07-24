@@ -22,7 +22,7 @@ bool DX12Texture::InitTexture(IRHIDevice& device, glTFRenderResourceManager& res
 {
     GLTF_CHECK(!desc.HasTextureData());
     
-    m_texture_desc.Init(desc);
+    m_texture_desc.InitWithoutCopyData(desc);
     const RHIBufferDesc textureBufferDesc =
         {
         to_wide_string(desc.GetName()),
@@ -48,7 +48,7 @@ bool DX12Texture::InitTextureAndUpload(IRHIDevice& device, glTFRenderResourceMan
     GLTF_CHECK(desc.HasTextureData());
     void* texture_data = desc.GetTextureData();
     
-    m_texture_desc.Init(desc);
+    m_texture_desc.InitWithoutCopyData(desc);
     
     const RHIBufferDesc textureBufferDesc =
         {
@@ -78,7 +78,10 @@ bool DX12Texture::InitTextureAndUpload(IRHIDevice& device, glTFRenderResourceMan
             RHIBufferResourceType::Buffer
         };
     resource_manager.GetMemoryManager().AllocateBufferMemory(device, textureUploadBufferDesc, m_texture_upload_buffer);
-
+    
+    m_texture_upload_buffer->m_buffer->Transition(command_list, RHIResourceStateType::STATE_COPY_SOURCE);
+    Transition(command_list, RHIResourceStateType::STATE_COPY_DEST);
+    
     RETURN_IF_FALSE(DX12Utils::DX12Instance().UploadTextureDataToDefaultGPUBuffer(
         command_list,
         *m_texture_upload_buffer->m_buffer,

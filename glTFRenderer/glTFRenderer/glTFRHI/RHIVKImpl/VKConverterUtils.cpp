@@ -82,6 +82,9 @@ VkImageLayout VKConverterUtils::ConvertToImageLayout(RHIResourceStateType state)
     case RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE:
         return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         break;
+    case RHIResourceStateType::STATE_ALL_SHADER_RESOURCE:
+        return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        break;
     case RHIResourceStateType::STATE_RAYTRACING_ACCELERATION_STRUCTURE:
         GLTF_CHECK(false);
         break;

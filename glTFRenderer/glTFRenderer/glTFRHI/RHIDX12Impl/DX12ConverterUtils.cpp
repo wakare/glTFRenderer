@@ -122,6 +122,9 @@ D3D12_RESOURCE_STATES DX12ConverterUtils::ConvertToResourceState(RHIResourceStat
     case RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE:
         return D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 
+    case RHIResourceStateType::STATE_ALL_SHADER_RESOURCE:
+        return D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE;
+        
     case RHIResourceStateType::STATE_RAYTRACING_ACCELERATION_STRUCTURE:
         return D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
     }
@@ -293,5 +296,26 @@ D3D12_INDIRECT_ARGUMENT_DESC DX12ConverterUtils::ConvertToIndirectArgumentDesc(c
         break;
     }
     
+    return result;
+}
+
+D3D12_RESOURCE_FLAGS DX12ConverterUtils::ConvertToResourceFlags(RHIResourceUsageFlags usage)
+{
+    D3D12_RESOURCE_FLAGS result {};
+    if (usage & RUF_ALLOW_UAV)
+    {
+        result |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+    }
+
+    if (usage & RUF_ALLOW_DEPTH_STENCIL)
+    {
+        result |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+    }
+
+    if (usage & RUF_ALLOW_RENDER_TARGET)
+    {
+        result |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+    }
+
     return result;
 }

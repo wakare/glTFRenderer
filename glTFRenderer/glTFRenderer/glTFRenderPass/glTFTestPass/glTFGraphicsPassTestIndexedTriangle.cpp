@@ -131,7 +131,7 @@ bool glTFGraphicsPassTestIndexedTriangle::InitVertexBufferAndIndexBuffer(glTFRen
     index_buffer_desc.width = index_buffer_data_size;
     index_buffer_desc.height = 1;
     index_buffer_desc.depth = 1;
-    index_buffer_desc.usage = static_cast<RHIResourceUsageFlags>(RUF_INDEX_BUFFER | RUF_TRANSFER_DST);;
+    index_buffer_desc.usage = static_cast<RHIResourceUsageFlags>(RUF_INDEX_BUFFER | RUF_TRANSFER_DST);
     
     m_index_buffer = RHIResourceFactory::CreateRHIResource<IRHIIndexBuffer>();
     m_index_buffer_view = m_index_buffer->CreateIndexBufferView(
