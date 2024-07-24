@@ -13,6 +13,12 @@ public:
     
     const RHIBufferDesc& GetBufferDesc() const {return m_buffer_desc; }
     
+    bool Transition(IRHICommandList& command_list, RHIResourceStateType new_state);
+    RHIResourceStateType GetState() const;
+    
 protected:
     RHIBufferDesc m_buffer_desc {};
+
+    // Default init buffer with state common
+    RHIResourceStateType m_current_state {RHIResourceStateType::STATE_COMMON};
 };

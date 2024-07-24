@@ -52,10 +52,10 @@ bool glTFGraphicsPassPostprocess::InitPass(glTFRenderResourceManager& resource_m
 
     RHIUtils::Instance().CopyBuffer(command_list, *m_postprocessQuadResource.meshVertexBuffer->m_buffer, 0, *vertexUploadBuffer->m_buffer, 0, sizeof(postprocessVertices));
     RHIUtils::Instance().CopyBuffer(command_list, *m_postprocessQuadResource.meshIndexBuffer->m_buffer, 0, *indexUploadBuffer->m_buffer, 0, sizeof(postprocessIndices));
-    
-    RETURN_IF_FALSE(RHIUtils::Instance().AddBufferBarrierToCommandList(command_list, *m_postprocessQuadResource.meshVertexBuffer->m_buffer, RHIResourceStateType::STATE_COPY_DEST, RHIResourceStateType::STATE_VERTEX_AND_CONSTANT_BUFFER))
-    RETURN_IF_FALSE(RHIUtils::Instance().AddBufferBarrierToCommandList(command_list, *m_postprocessQuadResource.meshIndexBuffer->m_buffer, RHIResourceStateType::STATE_COPY_DEST, RHIResourceStateType::STATE_INDEX_BUFFER))
 
+    m_postprocessQuadResource.meshVertexBuffer->m_buffer->Transition(command_list, RHIResourceStateType::STATE_VERTEX_AND_CONSTANT_BUFFER);
+    m_postprocessQuadResource.meshIndexBuffer->m_buffer->Transition(command_list, RHIResourceStateType::STATE_INDEX_BUFFER);
+    
     vertexBufferView->InitVertexBufferView(*m_postprocessQuadResource.meshVertexBuffer->m_buffer, 0, 20, sizeof(postprocessVertices));
     RHIIndexBufferViewDesc desc{};
     desc.size = sizeof(postprocessIndices);

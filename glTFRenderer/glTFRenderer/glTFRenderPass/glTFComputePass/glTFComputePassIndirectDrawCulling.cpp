@@ -144,16 +144,13 @@ bool glTFComputePassIndirectDrawCulling::PreRenderPass(glTFRenderResourceManager
             m_culled_indirect_command_allocation.parameter_index,
             *m_command_buffer_handle);
         auto& indirect_argument_buffer = *resource_manager.GetMeshManager().GetIndirectDrawBuilder().GetCulledIndirectArgumentBuffer();
+        indirect_argument_buffer.Transition(command_list, RHIResourceStateType::STATE_COPY_DEST );
         
-        RHIUtils::Instance().AddBufferBarrierToCommandList(command_list, indirect_argument_buffer,
-                                                           RHIResourceStateType::STATE_UNORDERED_ACCESS,RHIResourceStateType::STATE_COPY_DEST );
-    
         // Reset count buffer to zero
         RHIUtils::Instance().CopyBuffer(command_list, indirect_argument_buffer,
             resource_manager.GetMeshManager().GetIndirectDrawBuilder().GetCulledIndirectArgumentBufferCountOffset(), *m_count_reset_buffer->m_buffer, 0, sizeof(unsigned));
 
-        RHIUtils::Instance().AddBufferBarrierToCommandList(command_list, indirect_argument_buffer,
-                                                           RHIResourceStateType::STATE_COPY_DEST, RHIResourceStateType::STATE_UNORDERED_ACCESS);
+        indirect_argument_buffer.Transition(command_list, RHIResourceStateType::STATE_UNORDERED_ACCESS );
 
         const char* cached_data;
         size_t cached_data_size;

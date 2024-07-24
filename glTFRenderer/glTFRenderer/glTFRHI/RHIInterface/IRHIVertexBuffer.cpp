@@ -27,8 +27,10 @@ std::shared_ptr<IRHIVertexBufferView> IRHIVertexBuffer::CreateVertexBufferView(I
     
     memory_manager.AllocateBufferMemory(device, vertex_upload_buffer_desc, m_upload_buffer);
     memory_manager.UploadBufferData(*m_upload_buffer, vertex_buffer_data.data.get(), 0, vertex_buffer_data.byte_size);
+    
+    m_buffer->m_buffer->Transition(command_list, RHIResourceStateType::STATE_COPY_DEST);
     RHIUtils::Instance().CopyBuffer(command_list, *m_buffer->m_buffer, 0, *m_upload_buffer->m_buffer, 0, vertex_buffer_data.byte_size);
-    RHIUtils::Instance().AddBufferBarrierToCommandList(command_list, *m_buffer->m_buffer, RHIResourceStateType::STATE_COPY_DEST, RHIResourceStateType::STATE_VERTEX_AND_CONSTANT_BUFFER);
+    m_buffer->m_buffer->Transition(command_list, RHIResourceStateType::STATE_VERTEX_AND_CONSTANT_BUFFER);
 
     auto vertex_buffer_view = RHIResourceFactory::CreateRHIResource<IRHIVertexBufferView>();
     vertex_buffer_view->InitVertexBufferView(*m_buffer->m_buffer, 0, vertex_buffer_data.layout.GetVertexStrideInBytes(), vertex_buffer_data.byte_size);

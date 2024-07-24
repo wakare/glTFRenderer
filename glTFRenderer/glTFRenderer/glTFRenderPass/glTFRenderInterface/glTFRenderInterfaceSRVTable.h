@@ -26,7 +26,10 @@ public:
 
     virtual bool ApplyInterfaceImpl(IRHICommandList& command_list, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater) override
     {
-        GLTF_CHECK(!m_texture_descriptor_allocations.empty());
+        if (m_texture_descriptor_allocations.empty())
+        {
+            return true;
+        }
         
         if (!m_descriptor_table)
         {
@@ -56,21 +59,15 @@ public:
     }
 
     void SetSRVRegisterNames(const std::vector<std::string>& names) {m_names = names;}
-    void AddBufferAllocations(const std::vector<std::shared_ptr<IRHIDescriptorAllocation>>& buffer_allocations)
-    {
-        m_buffer_descriptor_allocations.insert(m_buffer_descriptor_allocations.end(), buffer_allocations.begin(), buffer_allocations.end());    
-    }
-
+    
     void AddTextureAllocations(const std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>>& texture_allocations)
     {
         m_texture_descriptor_allocations.insert(m_texture_descriptor_allocations.end(), texture_allocations.begin(), texture_allocations.end());
     }
-    //void SetGPUHandle(RHIGPUDescriptorHandle gpu_handle) {m_handle = gpu_handle; }
     
 protected:
     std::vector<std::string> m_names;
     std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>> m_texture_descriptor_allocations;
-    std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>> m_buffer_descriptor_allocations;
     std::shared_ptr<IRHIDescriptorTable> m_descriptor_table;
 };
 

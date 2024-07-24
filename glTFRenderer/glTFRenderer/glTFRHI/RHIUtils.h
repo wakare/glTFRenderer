@@ -41,8 +41,8 @@ public:
     virtual bool WaitCommandListFinish(IRHICommandList& command_queue) = 0;
     
     virtual bool SetRootSignature(IRHICommandList& command_list, IRHIRootSignature& root_signature, IRHIPipelineStateObject& pipeline_state_object, RHIPipelineType pipeline_type) = 0;
-    virtual bool SetViewport(IRHICommandList& command_list, const RHIViewportDesc& viewportDesc) = 0;
-    virtual bool SetScissorRect(IRHICommandList& command_list, const RHIScissorRectDesc& scissorRect) = 0;
+    virtual bool SetViewport(IRHICommandList& command_list, const RHIViewportDesc& viewport_desc) = 0;
+    virtual bool SetScissorRect(IRHICommandList& command_list, const RHIScissorRectDesc& scissor_rect) = 0;
     
     virtual bool SetVertexBufferView(IRHICommandList& command_list, unsigned slot, IRHIVertexBufferView& view) = 0;
     virtual bool SetIndexBufferView(IRHICommandList& command_list, IRHIIndexBufferView& view) = 0;
