@@ -340,6 +340,7 @@ enum class RHIShaderRegisterType
     b,
     t,
     u,
+    s,
     Unknown,
 };
 
@@ -359,6 +360,7 @@ enum class RHIRootParameterType
     SRV,
     UAV,
     DescriptorTable,
+    Sampler,
     Unknown, // Init as unknown, must be reset to other type
 };
 
@@ -368,12 +370,14 @@ struct RootSignatureAllocation
         : parameter_index(0)
         , register_index(0)
         , space(0)
+        , type(RHIRootParameterType::Unknown)
     {
     }
 
     unsigned parameter_index;
     unsigned register_index;
     unsigned space;
+    RHIRootParameterType type;
 };
 
 enum class RHIStaticSamplerAddressMode
@@ -404,6 +408,7 @@ enum class RHIRootSignatureUsage
 struct RootSignatureStaticSamplerElement
 {
     std::string sampler_name;
+    unsigned register_space;
     unsigned sample_index;
     RHIStaticSamplerAddressMode address_mode;
     RHIStaticSamplerFilterMode filter_mode;

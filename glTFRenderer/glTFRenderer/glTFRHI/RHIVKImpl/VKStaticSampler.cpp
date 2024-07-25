@@ -2,7 +2,7 @@
 
 #include "VKDevice.h"
 
-bool VKStaticSampler::InitStaticSampler(IRHIDevice& device, unsigned register_index, RHIStaticSamplerAddressMode address_mode,
+bool VKStaticSampler::InitStaticSampler(IRHIDevice& device, unsigned space, unsigned register_index, RHIStaticSamplerAddressMode address_mode,
                                         RHIStaticSamplerFilterMode filter_mode)
 {
     VkSamplerCreateInfo sampler_desc{.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};

@@ -34,7 +34,7 @@ public:
     {
     }
 
-    virtual bool InitStaticSampler(IRHIDevice& device, REGISTER_INDEX_TYPE registerIndex, RHIStaticSamplerAddressMode addressMode, RHIStaticSamplerFilterMode filterMode) = 0;
+    virtual bool InitStaticSampler(IRHIDevice& device, unsigned space, REGISTER_INDEX_TYPE registerIndex, RHIStaticSamplerAddressMode addressMode, RHIStaticSamplerFilterMode filterMode) = 0;
     
 protected:
     REGISTER_INDEX_TYPE m_registerIndex;

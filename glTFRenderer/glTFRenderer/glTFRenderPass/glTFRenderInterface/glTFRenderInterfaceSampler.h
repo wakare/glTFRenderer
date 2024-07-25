@@ -29,10 +29,16 @@ protected:
     virtual void ApplyShaderDefineImpl(RHIShaderPreDefineMacros& out_shader_pre_define_macros) const override
     {
         // Update light info shader define
-        char registerIndexValue[32] = {'\0'};
-    
+        char registerIndexValue[64] = {'\0'};
+        
+        // DX macro
         (void)snprintf(registerIndexValue, sizeof(registerIndexValue), "register(s%d, space%u)", GetRSAllocation().register_index, GetRSAllocation().space);
         out_shader_pre_define_macros.AddMacro(m_register_index_name, registerIndexValue);
+
+        // VK macro
+        //(void)snprintf(registerIndexValue, sizeof(registerIndexValue), "[[vk::binding(%d, %u)]]", GetRSAllocation().parameter_index, GetRSAllocation().space);
+        //out_shader_pre_define_macros.AddMacro(m_register_index_name, registerIndexValue);
+        
     }
 
 protected:

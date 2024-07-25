@@ -1,11 +1,13 @@
 #pragma once
 
+#include <set>
+
 #include "IRHIRootSignature.h"
 
 class IRHIRootSignatureHelper
 {
 public:
-    IRHIRootSignatureHelper(unsigned register_space = 0);
+    IRHIRootSignatureHelper(int register_space = 0);
 
     // Only copy layout
     IRHIRootSignatureHelper(const IRHIRootSignatureHelper& other) = delete;
@@ -23,8 +25,6 @@ public:
     bool AddSampler(const std::string& sampler_name, RHIStaticSamplerAddressMode address_mode, RHIStaticSamplerFilterMode filter_mode, RootSignatureAllocation& out_allocation);
 
     bool SetUsage(RHIRootSignatureUsage usage);
-    void SetRegisterSpace(unsigned space);
-    unsigned GetRegisterSpace() const;
     bool BuildRootSignature(IRHIDevice& device, glTFRenderResourceManager& resource_manager);
     
     IRHIRootSignature& GetRootSignature() const;
@@ -33,12 +33,41 @@ public:
     const RootSignatureLayout& GetRootSignatureLayout() const;
     
 protected:
-    bool AddRootParameterWithRegisterCount(const std::string& parameter_name, RHIRootParameterType type, unsigned register_count, unsigned constant_value, RHIRootParameterDescriptorRangeType table_type, bool
-                                           is_bindless, RootSignatureAllocation& out_allocation);
+    struct RootParameterInfo
+    {
+        std::string parameter_name;
+        RHIRootParameterType type;
+        unsigned register_count;
+        
+        union
+        {
+            struct ConstantParameterInfo
+            {
+                unsigned constant_value;
+            } constant_parameter_info;
+
+            struct TableParameterInfo
+            {
+                RHIRootParameterDescriptorRangeType table_type;
+                bool is_bindless;
+            } table_parameter_info;
+
+            struct SamplerParameterInfo
+            {
+                RHIStaticSamplerAddressMode address_mode;
+                RHIStaticSamplerFilterMode filter_mode;
+            } sampler_parameter_info;
+        };
+    };
+    bool AddRootParameterWithRegisterCount( const RootParameterInfo& parameter_info, RootSignatureAllocation& out_allocation);
+    
     RHIRootSignatureUsage m_usage;
     RootSignatureLayout m_layout;
     std::shared_ptr<IRHIRootSignature> m_root_signature;
     bool m_contains_bindless_parameter;
 
-    unsigned m_register_space;
+    int m_current_space;
+    int m_normal_resource_space;
+    int m_sampler_space;
+    std::set<int> m_bindless_spaces;
 };

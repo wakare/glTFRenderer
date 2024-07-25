@@ -6,7 +6,7 @@
 class VKStaticSampler : public IRHIStaticSampler
 {
 public:
-    virtual bool InitStaticSampler(IRHIDevice& device, REGISTER_INDEX_TYPE register_index, RHIStaticSamplerAddressMode address_mode, RHIStaticSamplerFilterMode filter_mode) override;
+    virtual bool InitStaticSampler(IRHIDevice& device, unsigned space, REGISTER_INDEX_TYPE register_index, RHIStaticSamplerAddressMode address_mode, RHIStaticSamplerFilterMode filter_mode) override;
 
     VkDescriptorSetLayoutBinding GetRawLayoutBinding() const;
     VkSampler GetRawSampler() const;
