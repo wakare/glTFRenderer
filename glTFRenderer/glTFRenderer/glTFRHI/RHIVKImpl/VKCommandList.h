@@ -18,7 +18,7 @@ public:
     virtual bool BeginRecordCommandList() override;
     virtual bool EndRecordCommandList() override;
     
-    VkCommandBuffer GetCommandBuffer() const {return m_command_buffer; }
+    VkCommandBuffer GetRawCommandBuffer() const {return m_command_buffer; }
     
 protected:
     VkCommandBuffer m_command_buffer {VK_NULL_HANDLE};

@@ -10,8 +10,11 @@
 #define VMA_IMPLEMENTATION
 #include <vma/vk_mem_alloc.h>
 
+#include "VKCommandList.h"
+#include "glTFRenderPass/glTFRenderResourceManager.h"
+
 bool VKMemoryManager::AllocateBufferMemory(IRHIDevice& device, const RHIBufferDesc& buffer_desc,
-    std::shared_ptr<IRHIBufferAllocation>& out_buffer_allocation)
+                                           std::shared_ptr<IRHIBufferAllocation>& out_buffer_allocation)
 {
     GLTF_CHECK(buffer_desc.usage);
     
@@ -86,14 +89,50 @@ bool VKMemoryManager::AllocateTextureMemory(IRHIDevice& device, glTFRenderResour
 
     vk_buffer_allocation.m_texture = RHIResourceFactory::CreateRHIResource<IRHITexture>();
     GLTF_CHECK(dynamic_cast<VKTexture&>(*vk_buffer_allocation.m_texture).Init(dynamic_cast<VKDevice&>(device).GetDevice(), out_image, texture_desc));
-    
+
     return true;
 }
 
 bool VKMemoryManager::AllocateTextureMemoryAndUpload(IRHIDevice& device, glTFRenderResourceManager& resource_manager,
-                                                     IRHICommandList& command_list, const RHITextureDesc& buffer_desc, std::shared_ptr<IRHITextureAllocation>& out_buffer_allocation)
+                                                     IRHICommandList& command_list, const RHITextureDesc& texture_desc, std::shared_ptr<IRHITextureAllocation>& out_buffer_allocation)
 {
-    return false;
+    AllocateTextureMemory(device, resource_manager, texture_desc, out_buffer_allocation);
+
+    auto& memory_manager = resource_manager.GetMemoryManager();
+    RHIBufferDesc upload_buffer_desc{};
+    upload_buffer_desc.width = texture_desc.GetTextureDataSize();
+    upload_buffer_desc.height = 1;
+    upload_buffer_desc.depth = 1;
+    upload_buffer_desc.type = RHIBufferType::Upload;
+    upload_buffer_desc.resource_type = RHIBufferResourceType::Buffer;
+    upload_buffer_desc.usage = RUF_TRANSFER_SRC;
+
+    std::shared_ptr<IRHIBufferAllocation> buffer_allocation;
+    memory_manager.AllocateBufferMemory(device, upload_buffer_desc, buffer_allocation);
+    memory_manager.UploadBufferData(*buffer_allocation, texture_desc.GetTextureData(), 0, texture_desc.GetTextureDataSize());
+
+    auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
+    auto vk_buffer = dynamic_cast<VKBuffer&>(*buffer_allocation->m_buffer).GetRawBuffer();
+    auto vk_image = dynamic_cast<VKTexture&>(*out_buffer_allocation->m_texture).GetRawImage();
+
+    out_buffer_allocation->m_texture->Transition(command_list, RHIResourceStateType::STATE_COPY_DEST);
+    auto vk_image_layout = VKConverterUtils::ConvertToImageLayout(out_buffer_allocation->m_texture->GetState());
+    
+    VkBufferImageCopy copy_info{};
+    copy_info.bufferOffset = 0;
+    copy_info.bufferImageHeight = 0;
+    copy_info.bufferRowLength = 0;
+    copy_info.imageOffset = VkOffset3D(0.0f, 0.0f, 0.0f);
+    copy_info.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    copy_info.imageSubresource.layerCount = 1;
+    copy_info.imageSubresource.mipLevel = 0;
+    copy_info.imageSubresource.baseArrayLayer = 0;
+    copy_info.imageExtent = VkExtent3D(texture_desc.GetTextureWidth(), texture_desc.GetTextureHeight(), 1);
+    vkCmdCopyBufferToImage(vk_command_buffer, vk_buffer, vk_image, vk_image_layout, 1, &copy_info);
+    
+    resource_manager.CloseCurrentCommandListAndExecute({}, true);
+    
+    return true;
 }
 
 bool VKMemoryManager::CleanAllocatedResource()

@@ -30,3 +30,8 @@ bool IRHIRootSignature::AllocateRootSignatureSpace(size_t rootParameterCount, si
         
     return true;
 }
+
+bool IRHIRootSignature::HasSampler() const
+{
+    return !m_static_samplers.empty();
+}

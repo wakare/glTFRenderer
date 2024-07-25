@@ -123,7 +123,7 @@ DX12StaticSampler::DX12StaticSampler()
     m_description.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 }
 
-bool DX12StaticSampler::InitStaticSampler(REGISTER_INDEX_TYPE registerIndex, RHIStaticSamplerAddressMode addressMode, RHIStaticSamplerFilterMode filterMode)
+bool DX12StaticSampler::InitStaticSampler(IRHIDevice& device, REGISTER_INDEX_TYPE registerIndex, RHIStaticSamplerAddressMode addressMode, RHIStaticSamplerFilterMode filterMode)
 {
     m_description.ShaderRegister = registerIndex;
     

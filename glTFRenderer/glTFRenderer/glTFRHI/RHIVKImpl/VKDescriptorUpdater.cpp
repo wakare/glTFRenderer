@@ -71,8 +71,9 @@ bool VKDescriptorUpdater::FinalizeUpdateDescriptors(IRHIDevice& device, IRHIComm
     {
         return true;
     }
-    
-    auto vk_descriptor_set = dynamic_cast<VKRootSignature&>(root_signature).GetDescriptorSet();
+
+    // Can not write to static sampler descriptor layout
+    auto vk_descriptor_set = dynamic_cast<VKRootSignature&>(root_signature).GetDescriptorSetResource();
     auto vk_device = dynamic_cast<VKDevice&>(device).GetDevice();
     
     for (auto& writer : m_cache_descriptor_writers)

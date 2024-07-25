@@ -34,7 +34,7 @@ public:
     {
     }
 
-    virtual bool InitStaticSampler(REGISTER_INDEX_TYPE registerIndex, RHIStaticSamplerAddressMode addressMode, RHIStaticSamplerFilterMode filterMode) = 0;
+    virtual bool InitStaticSampler(IRHIDevice& device, REGISTER_INDEX_TYPE registerIndex, RHIStaticSamplerAddressMode addressMode, RHIStaticSamplerFilterMode filterMode) = 0;
     
 protected:
     REGISTER_INDEX_TYPE m_registerIndex;
@@ -50,6 +50,7 @@ public:
     bool AllocateRootSignatureSpace(size_t rootParameterCount, size_t staticSamplerCount);
     void SetUsage (RHIRootSignatureUsage usage) { m_usage = usage; }
     bool IsSpaceAllocated() const {return !m_root_parameters.empty() || !m_static_samplers.empty(); }
+    bool HasSampler() const;
     
     virtual bool InitRootSignature(IRHIDevice& device, IRHIDescriptorManager& descriptor_manager) = 0;
     

@@ -27,7 +27,7 @@ class DX12StaticSampler : public IRHIStaticSampler
 {
 public:
     DX12StaticSampler();
-    virtual bool InitStaticSampler(REGISTER_INDEX_TYPE registerIndex, RHIStaticSamplerAddressMode addressMode, RHIStaticSamplerFilterMode filterMode) override;
+    virtual bool InitStaticSampler(IRHIDevice& device, REGISTER_INDEX_TYPE registerIndex, RHIStaticSamplerAddressMode addressMode, RHIStaticSamplerFilterMode filterMode) override;
 
     const D3D12_STATIC_SAMPLER_DESC& GetStaticSamplerDesc() const {return m_description;}
     

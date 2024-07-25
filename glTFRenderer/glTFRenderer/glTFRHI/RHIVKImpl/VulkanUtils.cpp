@@ -55,7 +55,7 @@ bool VulkanUtils::NewGUIFrame()
 
 bool VulkanUtils::RenderGUIFrame(IRHICommandList& command_list)
 {
-    auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetCommandBuffer();
+    auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
     ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), vk_command_buffer);
     return true;
 }
@@ -68,7 +68,7 @@ bool VulkanUtils::ExitGUI()
 
 bool VulkanUtils::BeginRenderPass(IRHICommandList& command_list, const RHIBeginRenderPassInfo& begin_render_pass_info)
 {
-    const auto vk_command_buffer = dynamic_cast<const VKCommandList&>(command_list).GetCommandBuffer();
+    const auto vk_command_buffer = dynamic_cast<const VKCommandList&>(command_list).GetRawCommandBuffer();
     const auto vk_render_pass = dynamic_cast<const VKRenderPass&>(*begin_render_pass_info.render_pass).GetRenderPass();
     const auto vk_frame_buffer = dynamic_cast<const VKFrameBuffer&>(*begin_render_pass_info.frame_buffer).GetFrameBuffer();
         
@@ -88,7 +88,7 @@ bool VulkanUtils::BeginRenderPass(IRHICommandList& command_list, const RHIBeginR
 
 bool VulkanUtils::EndRenderPass(IRHICommandList& command_list)
 {
-    const auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetCommandBuffer();
+    const auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
     vkCmdEndRenderPass(vk_command_buffer);
 
     return true;
@@ -96,7 +96,7 @@ bool VulkanUtils::EndRenderPass(IRHICommandList& command_list)
 
 bool VulkanUtils::BeginRendering(IRHICommandList& command_list, const RHIBeginRenderingInfo& begin_rendering_info)
 {
-    const auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetCommandBuffer();
+    const auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
 
     std::vector<VkRenderingAttachmentInfo> attachment_infos;
     for (auto& render_target : begin_rendering_info.m_render_targets)
@@ -134,7 +134,7 @@ bool VulkanUtils::BeginRendering(IRHICommandList& command_list, const RHIBeginRe
 
 bool VulkanUtils::EndRendering(IRHICommandList& command_list)
 {
-    const auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetCommandBuffer();
+    const auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
     vkCmdEndRendering(vk_command_buffer);
     return true;
 }
@@ -144,7 +144,7 @@ bool VulkanUtils::ResetCommandList(IRHICommandList& command_list, IRHICommandAll
 {
     WaitCommandListFinish(command_list);
     
-    const auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetCommandBuffer();
+    const auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
     vkResetCommandBuffer(vk_command_buffer, 0);
     
     command_list.BeginRecordCommandList();
@@ -166,7 +166,6 @@ bool VulkanUtils::ResetCommandList(IRHICommandList& command_list, IRHICommandAll
         }
     }
 
-    
     return true;
 }
 
@@ -177,7 +176,7 @@ bool VulkanUtils::CloseCommandList(IRHICommandList& command_list)
 
 bool VulkanUtils::ExecuteCommandList(IRHICommandList& command_list, IRHICommandQueue& command_queue, const RHIExecuteCommandListContext& context)
 {
-    const auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetCommandBuffer();
+    const auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
     auto& fence = dynamic_cast<VKFence&>(dynamic_cast<VKCommandList&>(command_list).GetFence());
     const auto vk_fence = fence.GetFence();
     const auto vk_command_queue= dynamic_cast<VKCommandQueue&>(command_queue).GetGraphicsQueue(); 
@@ -232,13 +231,19 @@ bool VulkanUtils::WaitCommandListFinish(IRHICommandList& command_list)
 bool VulkanUtils::SetRootSignature(IRHICommandList& command_list, IRHIRootSignature& root_signature, IRHIPipelineStateObject& pipeline_state_object,
     RHIPipelineType pipeline_type)
 {
-    auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetCommandBuffer();
-    auto vk_descriptor_set = dynamic_cast<const VKRootSignature&>(root_signature).GetDescriptorSet();
+    auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
+    auto& vk_root_signature = dynamic_cast<const VKRootSignature&>(root_signature);
+    std::vector<VkDescriptorSet> descriptor_sets;
+    descriptor_sets.push_back(vk_root_signature.GetDescriptorSetResource());
+    if (vk_root_signature.HasSampler())
+    {
+        descriptor_sets.push_back(vk_root_signature.GetDescriptorSetSampler());
+    }
     
     if (pipeline_type == RHIPipelineType::Graphics)
     {
         auto vk_pipeline_layout = dynamic_cast<const VKGraphicsPipelineStateObject&>(pipeline_state_object).GetPipelineLayout();
-        vkCmdBindDescriptorSets(vk_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vk_pipeline_layout, 0, 1, &vk_descriptor_set, 0, nullptr);
+        vkCmdBindDescriptorSets(vk_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vk_pipeline_layout, 0, descriptor_sets.size(), descriptor_sets.data(), 0, nullptr);
     }
     
     return true;
@@ -246,7 +251,7 @@ bool VulkanUtils::SetRootSignature(IRHICommandList& command_list, IRHIRootSignat
 
 bool VulkanUtils::SetViewport(IRHICommandList& command_list, const RHIViewportDesc& viewport_desc)
 {
-    auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetCommandBuffer();
+    auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
     
     VkViewport viewport{};
     viewport.x = 0.0f;
@@ -262,7 +267,7 @@ bool VulkanUtils::SetViewport(IRHICommandList& command_list, const RHIViewportDe
 
 bool VulkanUtils::SetScissorRect(IRHICommandList& command_list, const RHIScissorRectDesc& scissor_rect)
 {
-    auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetCommandBuffer();
+    auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
 
     VkRect2D scissor{};
     scissor.offset = {static_cast<int>(scissor_rect.left), static_cast<int>(scissor_rect.top)};
@@ -274,7 +279,7 @@ bool VulkanUtils::SetScissorRect(IRHICommandList& command_list, const RHIScissor
 
 bool VulkanUtils::SetVertexBufferView(IRHICommandList& command_list, unsigned binding_slot_index, IRHIVertexBufferView& view)
 {
-    auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetCommandBuffer();
+    auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
     auto& vk_vertex_buffer_view = dynamic_cast<const VKVertexBufferView&>(view);
 
     VkDeviceSize offset = vk_vertex_buffer_view.m_buffer_offset;
@@ -285,7 +290,7 @@ bool VulkanUtils::SetVertexBufferView(IRHICommandList& command_list, unsigned bi
 
 bool VulkanUtils::SetIndexBufferView(IRHICommandList& command_list, IRHIIndexBufferView& view)
 {
-    auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetCommandBuffer();
+    auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
     auto& vk_index_buffer_view = dynamic_cast<const VKIndexBufferView&>(view);
 
     VkDeviceSize offset = vk_index_buffer_view.m_desc.offset;
@@ -318,7 +323,7 @@ bool VulkanUtils::AddBufferBarrierToCommandList(IRHICommandList& command_list, c
 bool VulkanUtils::AddTextureBarrierToCommandList(IRHICommandList& command_list, const IRHITexture& texture,
                                                  RHIResourceStateType before_state, RHIResourceStateType after_state)
 {
-    auto vk_command_list = dynamic_cast<VKCommandList&>(command_list).GetCommandBuffer();
+    auto vk_command_list = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
     auto vk_image = dynamic_cast<const VKTexture&>(texture).GetRawImage();
     
     VkImageMemoryBarrier2 image_barrier {.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2};
@@ -358,7 +363,7 @@ bool VulkanUtils::AddTextureBarrierToCommandList(IRHICommandList& command_list, 
 bool VulkanUtils::DrawInstanced(IRHICommandList& command_list, unsigned vertex_count_per_instance, unsigned instance_count,
     unsigned start_vertex_location, unsigned start_instance_location)
 {
-    auto vk_command_list = dynamic_cast<VKCommandList&>(command_list).GetCommandBuffer();
+    auto vk_command_list = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
     vkCmdDraw(vk_command_list, vertex_count_per_instance, instance_count, start_vertex_location, start_instance_location);
     return true;
 }
@@ -366,7 +371,7 @@ bool VulkanUtils::DrawInstanced(IRHICommandList& command_list, unsigned vertex_c
 bool VulkanUtils::DrawIndexInstanced(IRHICommandList& command_list, unsigned index_count_per_instance,
     unsigned instance_count, unsigned start_index_location, unsigned base_vertex_location, unsigned start_instance_location)
 {
-    auto vk_command_list = dynamic_cast<VKCommandList&>(command_list).GetCommandBuffer();
+    auto vk_command_list = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
     vkCmdDrawIndexed(vk_command_list, index_count_per_instance, instance_count, start_index_location, base_vertex_location, start_instance_location);
     return true;
 }
@@ -408,7 +413,7 @@ bool VulkanUtils::CopyTexture(IRHICommandList& command_list, IRHITexture& dst, I
 bool VulkanUtils::CopyBuffer(IRHICommandList& command_list, IRHIBuffer& dst, size_t dst_offset, IRHIBuffer& src,
     size_t src_offset, size_t size)
 {
-    auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetCommandBuffer();
+    auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
     auto src_buffer = dynamic_cast<VKBuffer&>(src).GetRawBuffer();
     auto dst_buffer = dynamic_cast<VKBuffer&>(dst).GetRawBuffer();
     

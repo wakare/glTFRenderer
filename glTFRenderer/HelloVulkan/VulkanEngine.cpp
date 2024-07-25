@@ -1283,16 +1283,16 @@ void VulkanEngine::InitDefaultImagesAndSamplers()
     _errorCheckerboardImage = CreateImage(pixels.data(), VkExtent3D{16, 16, 1}, VK_FORMAT_R8G8B8A8_UNORM,
         VK_IMAGE_USAGE_SAMPLED_BIT);
 
-    VkSamplerCreateInfo sampl = {.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
+    VkSamplerCreateInfo sample = {.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
 
-    sampl.magFilter = VK_FILTER_NEAREST;
-    sampl.minFilter = VK_FILTER_NEAREST;
+    sample.magFilter = VK_FILTER_NEAREST;
+    sample.minFilter = VK_FILTER_NEAREST;
 
-    vkCreateSampler(logical_device, &sampl, nullptr, &_defaultSamplerNearest);
+    vkCreateSampler(logical_device, &sample, nullptr, &_defaultSamplerNearest);
 
-    sampl.magFilter = VK_FILTER_LINEAR;
-    sampl.minFilter = VK_FILTER_LINEAR;
-    vkCreateSampler(logical_device, &sampl, nullptr, &_defaultSamplerLinear);
+    sample.magFilter = VK_FILTER_LINEAR;
+    sample.minFilter = VK_FILTER_LINEAR;
+    vkCreateSampler(logical_device, &sample, nullptr, &_defaultSamplerLinear);
 }
 
 void VulkanEngine::DestroyDefaultData()

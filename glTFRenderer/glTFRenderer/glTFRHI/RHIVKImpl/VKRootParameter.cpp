@@ -54,3 +54,8 @@ bool VKRootParameter::InitAsDescriptorTableRange(size_t range_count,
     
     return true;
 }
+
+VkDescriptorSetLayoutBinding VKRootParameter::GetRawLayoutBinding() const
+{
+    return m_binding;
+}

@@ -12,5 +12,8 @@ public:
     virtual bool InitAsUAV(REGISTER_INDEX_TYPE register_index, unsigned space) override;
     virtual bool InitAsDescriptorTableRange(size_t range_count, const RHIRootParameterDescriptorRangeDesc* range_desc) override;
 
-    VkDescriptorSetLayoutBinding m_binding;
+    VkDescriptorSetLayoutBinding GetRawLayoutBinding() const;
+    
+protected:
+    VkDescriptorSetLayoutBinding m_binding{};
 };

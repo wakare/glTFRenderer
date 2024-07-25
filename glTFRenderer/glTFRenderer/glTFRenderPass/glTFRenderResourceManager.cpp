@@ -199,7 +199,7 @@ IRHICommandList& glTFRenderResourceManager::GetCommandListForRecord()
     return command_list;
 }
 
-void glTFRenderResourceManager::CloseCommandListAndExecute(const RHIExecuteCommandListContext& context, bool wait)
+void glTFRenderResourceManager::CloseCurrentCommandListAndExecute(const RHIExecuteCommandListContext& context, bool wait)
 {
     const auto current_frame_index = GetCurrentBackBufferIndex() % backBufferCount;
     if (!m_command_list_record_state[current_frame_index])
@@ -237,7 +237,7 @@ void glTFRenderResourceManager::WaitAllFrameFinish() const
 
 void glTFRenderResourceManager::ResetCommandAllocator()
 {
-    CloseCommandListAndExecute({}, true);
+    CloseCurrentCommandListAndExecute({}, true);
     RHIUtils::Instance().ResetCommandAllocator(GetCurrentFrameCommandAllocator());
 }
 
@@ -314,7 +314,7 @@ void glTFRenderResourceManager::SetCurrentPSO(std::shared_ptr<IRHIPipelineStateO
 {
     if (m_current_pass_pso != pso)
     {
-        CloseCommandListAndExecute({}, false);    
+        CloseCurrentCommandListAndExecute({}, false);    
     }
     
     m_current_pass_pso = pso;

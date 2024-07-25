@@ -46,10 +46,9 @@ bool glTFGraphicsPassTestIndexedTextureTriangle::InitPass(glTFRenderResourceMana
     bool inited = InitVertexBufferAndIndexBuffer(resource_manager);
     GLTF_CHECK(inited);
 
-    auto& command_list = resource_manager.GetCommandListForRecord();
-    
     // Init sampled texture content
-    RHITextureDesc sampled_texture_desc = RHITextureDesc::MakeFullScreenTextureDesc(
+    RHITextureDesc sampled_texture_desc =
+        RHITextureDesc::MakeFullScreenTextureDesc(
             "sampled_texture",
             RHIDataFormat::R32G32B32A32_FLOAT,
             static_cast<RHIResourceUsageFlags>(RUF_ALLOW_SRV | RUF_TRANSFER_DST),
@@ -78,15 +77,15 @@ bool glTFGraphicsPassTestIndexedTextureTriangle::InitPass(glTFRenderResourceMana
     resource_manager.GetMemoryManager().AllocateTextureMemoryAndUpload(
         resource_manager.GetDevice(),
         resource_manager,
-        command_list,
+        resource_manager.GetCommandListForRecord(),
         sampled_texture_desc,
         m_sampled_texture);
     
     RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), m_sampled_texture->m_texture,
                         {m_sampled_texture->m_texture->GetTextureFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_sampled_texture_allocation))
 
-    m_sampled_texture->m_texture->Transition(command_list, RHIResourceStateType::STATE_ALL_SHADER_RESOURCE);
-    command_list.WaitCommandList();
+    m_sampled_texture->m_texture->Transition(resource_manager.GetCommandListForRecord(), RHIResourceStateType::STATE_ALL_SHADER_RESOURCE);
+    
     return true;
 }
 
@@ -96,7 +95,7 @@ bool glTFGraphicsPassTestIndexedTextureTriangle::PreRenderPass(glTFRenderResourc
 
     auto& command_list = resource_manager.GetCommandListForRecord();
 
-    //m_sampled_texture->m_texture->Transition(command_list, RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE);
+    m_sampled_texture->m_texture->Transition(command_list, RHIResourceStateType::STATE_ALL_SHADER_RESOURCE);
     BindDescriptor(command_list, m_sampled_texture_root_signature_allocation.parameter_index, *m_sampled_texture_allocation);
     
     return true;

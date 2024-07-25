@@ -58,8 +58,6 @@ bool glTFRenderPassBase::PreRenderPass(glTFRenderResourceManager& resource_manag
     
     RETURN_IF_FALSE(RHIUtils::Instance().SetRootSignature(command_list, m_root_signature_helper.GetRootSignature(), *m_pipeline_state_object, GetPipelineType()))
 
-    RETURN_IF_FALSE(m_descriptor_updater->FinalizeUpdateDescriptors(resource_manager.GetDevice(), command_list, m_root_signature_helper.GetRootSignature()))
-    
     for (const auto& render_interface : m_render_interfaces)
     {
         RETURN_IF_FALSE(render_interface->ApplyInterface(resource_manager, GetPipelineType(), *m_descriptor_updater))    
@@ -75,6 +73,8 @@ bool glTFRenderPassBase::PreRenderPass(glTFRenderResourceManager& resource_manag
 
 bool glTFRenderPassBase::RenderPass(glTFRenderResourceManager& resource_manager)
 {
+    RETURN_IF_FALSE(m_descriptor_updater->FinalizeUpdateDescriptors(resource_manager.GetDevice(), resource_manager.GetCommandListForRecord(), m_root_signature_helper.GetRootSignature()))
+    
     RHIUtils::Instance().BeginRendering(resource_manager.GetCommandListForRecord(), m_begin_rendering_info);
 
     return true;
