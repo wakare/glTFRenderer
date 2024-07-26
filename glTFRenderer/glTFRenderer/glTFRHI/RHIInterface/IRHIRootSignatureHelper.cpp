@@ -271,7 +271,6 @@ bool IRHIRootSignatureHelper::BuildRootSignature(IRHIDevice& device, glTFRenderR
         }
     }
 
-    
     for (const auto& sampler : m_layout.sampler_elements)
     {
         m_root_signature->GetStaticSampler(sampler.sample_index).InitStaticSampler(resource_manager.GetDevice(), sampler.register_space, sampler.sample_index, sampler.address_mode, sampler.filter_mode);

@@ -39,10 +39,10 @@ bool glTFComputePassLighting::PreRenderPass(glTFRenderResourceManager& resource_
     GetResourceTexture(RenderPassResourceTableId::BasePass_Normal)->Transition(command_list, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE);
     GetResourceTexture(RenderPassResourceTableId::Depth)->Transition(command_list, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE);
 
-    BindDescriptor(command_list, m_albedo_allocation.parameter_index, *m_base_color_SRV);
-    BindDescriptor(command_list, m_depth_allocation.parameter_index, *m_depth_SRV);
-    BindDescriptor(command_list, m_normal_allocation.parameter_index, *m_normal_SRV);
-    BindDescriptor(command_list, m_output_allocation.parameter_index, *m_output_UAV);
+    BindDescriptor(command_list, m_albedo_allocation.space, m_albedo_allocation.parameter_index, *m_base_color_SRV);
+    BindDescriptor(command_list, m_depth_allocation.space, m_depth_allocation.parameter_index, *m_depth_SRV);
+    BindDescriptor(command_list, m_normal_allocation.space, m_normal_allocation.parameter_index, *m_normal_SRV);
+    BindDescriptor(command_list, m_output_allocation.space, m_output_allocation.parameter_index, *m_output_UAV);
     
     RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceLighting>()->UpdateCPUBuffer(resource_manager))
 

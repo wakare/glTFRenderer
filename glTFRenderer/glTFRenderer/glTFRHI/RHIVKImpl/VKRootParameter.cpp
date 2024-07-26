@@ -2,13 +2,15 @@
 
 bool VKRootParameter::InitAsConstant(unsigned constant_value, unsigned register_index, unsigned space)
 {
-    //TODO: 
+    m_register_space = space;
     GLTF_CHECK(false);
     return false;
 }
 
 bool VKRootParameter::InitAsCBV(unsigned register_index, unsigned space)
 {
+    m_register_space = space;
+    
     m_binding.binding = register_index;
     m_binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     m_binding.descriptorCount = 1;
@@ -20,6 +22,8 @@ bool VKRootParameter::InitAsCBV(unsigned register_index, unsigned space)
 
 bool VKRootParameter::InitAsSRV(unsigned register_index, unsigned space)
 {
+    m_register_space = space;
+    
     m_binding.binding = register_index;
     m_binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     m_binding.descriptorCount = 1;
@@ -32,6 +36,8 @@ bool VKRootParameter::InitAsSRV(unsigned register_index, unsigned space)
 
 bool VKRootParameter::InitAsUAV(unsigned register_index, unsigned space)
 {
+    m_register_space = space;
+    
     m_binding.binding = register_index;
     m_binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     m_binding.descriptorCount = 1;
@@ -45,6 +51,8 @@ bool VKRootParameter::InitAsUAV(unsigned register_index, unsigned space)
 bool VKRootParameter::InitAsDescriptorTableRange(size_t range_count,
     const RHIRootParameterDescriptorRangeDesc* range_desc)
 {
+    m_register_space = range_desc->space;
+    
     m_binding.binding = range_desc->base_register_index;
     m_binding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     m_binding.descriptorCount = range_count;
@@ -58,4 +66,9 @@ bool VKRootParameter::InitAsDescriptorTableRange(size_t range_count,
 VkDescriptorSetLayoutBinding VKRootParameter::GetRawLayoutBinding() const
 {
     return m_binding;
+}
+
+unsigned VKRootParameter::GetRegisterSpace() const
+{
+    return m_register_space;
 }

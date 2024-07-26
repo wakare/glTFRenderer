@@ -166,13 +166,8 @@ bool VKGraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device, 
     create_color_blend_state_info.blendConstants[3] = 0.0f;
 
     auto& root_signature = dynamic_cast<const VKRootSignature&>(pipeline_state_info.m_root_signature);
-    std::vector<VkDescriptorSetLayout> layouts;
-    layouts.push_back(root_signature.GetDescriptorSetLayoutResource());
-    if (root_signature.HasSampler())
-    {
-        layouts.push_back(root_signature.GetDescriptorSetLayoutSampler());
-    }
-
+    const std::vector<VkDescriptorSetLayout>& layouts = root_signature.GetDescriptorSetLayouts();
+    
     VkPipelineLayoutCreateInfo create_pipeline_layout_info {};
     create_pipeline_layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     create_pipeline_layout_info.setLayoutCount = layouts.size();

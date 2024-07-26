@@ -400,7 +400,11 @@ struct RootSignatureAllocation
         }
     
         (void)snprintf(registerIndexValue, sizeof(registerIndexValue), "register(%s%d, space%u)", register_name.c_str(), register_index, space);
-        out_shader_macros.AddMacro(parameter_name, registerIndexValue);  
+        out_shader_macros.AddMacro(parameter_name, registerIndexValue);
+
+        // VK layout shader macro
+        (void)snprintf(registerIndexValue, sizeof(registerIndexValue), "[[vk::binding(%d, %d)]]", register_index, space);
+        out_shader_macros.AddMacro(parameter_name + "_VK", registerIndexValue);
     }
 
     std::string parameter_name;

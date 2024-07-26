@@ -118,11 +118,12 @@ void glTFRenderPassBase::AddRenderInterface(const std::shared_ptr<glTFRenderInte
     m_render_interfaces.push_back(render_interface);
 }
 
-bool glTFRenderPassBase::BindDescriptor(IRHICommandList& command_list, unsigned slot,
+bool glTFRenderPassBase::BindDescriptor(IRHICommandList& command_list, unsigned space, unsigned slot,
     const IRHIDescriptorAllocation& allocation) const
 {
     return m_descriptor_updater->BindDescriptor(command_list,
             GetPipelineType(),
+            space,
             slot,
             allocation);
 }

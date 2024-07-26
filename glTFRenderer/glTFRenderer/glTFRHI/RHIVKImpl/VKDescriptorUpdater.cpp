@@ -5,7 +5,7 @@
 #include "VKRootSignature.h"
 
 bool VKDescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPipelineType pipeline,
-                                         unsigned slot, const IRHIDescriptorAllocation& allocation)
+                                         unsigned space, unsigned slot, const IRHIDescriptorAllocation& allocation)
 {
     const auto& view_info = allocation.GetDesc();
     
@@ -54,12 +54,12 @@ bool VKDescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPipel
         draw_image_write.pImageInfo = &image_info;
     }
     
-    m_cache_descriptor_writers.push_back(draw_image_write);
+    m_cache_descriptor_writers[space].push_back(draw_image_write);
     
     return true;
 }
 
-bool VKDescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPipelineType pipeline, unsigned slot,
+bool VKDescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPipelineType pipeline, unsigned space, unsigned slot,
     const IRHIDescriptorTable& allocation_table)
 {
     return false;
@@ -73,15 +73,20 @@ bool VKDescriptorUpdater::FinalizeUpdateDescriptors(IRHIDevice& device, IRHIComm
     }
 
     // Can not write to static sampler descriptor layout
-    auto vk_descriptor_set = dynamic_cast<VKRootSignature&>(root_signature).GetDescriptorSetResource();
+    const auto& vk_descriptor_sets = dynamic_cast<VKRootSignature&>(root_signature).GetDescriptorSets();
     auto vk_device = dynamic_cast<VKDevice&>(device).GetDevice();
     
-    for (auto& writer : m_cache_descriptor_writers)
+    for (auto& writer_info : m_cache_descriptor_writers)
     {
-        writer.dstSet = vk_descriptor_set;
+        const auto& write_set = vk_descriptor_sets[writer_info.first];
+        for (auto& writer : writer_info.second )
+        {
+            writer.dstSet = write_set;    
+        }
+
+        vkUpdateDescriptorSets(vk_device, writer_info.second.size(), writer_info.second.data(), 0, nullptr);
     }
 
-    vkUpdateDescriptorSets(vk_device, m_cache_descriptor_writers.size(), m_cache_descriptor_writers.data(), 0, nullptr);
     m_cache_descriptor_writers.clear();
     
     return true;

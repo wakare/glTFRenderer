@@ -13,7 +13,9 @@ public:
     virtual bool InitAsDescriptorTableRange(size_t range_count, const RHIRootParameterDescriptorRangeDesc* range_desc) override;
 
     VkDescriptorSetLayoutBinding GetRawLayoutBinding() const;
+    unsigned GetRegisterSpace() const;
     
 protected:
+    unsigned m_register_space{0};
     VkDescriptorSetLayoutBinding m_binding{};
 };

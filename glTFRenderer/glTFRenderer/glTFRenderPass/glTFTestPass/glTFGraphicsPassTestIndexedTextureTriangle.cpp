@@ -95,7 +95,7 @@ bool glTFGraphicsPassTestIndexedTextureTriangle::PreRenderPass(glTFRenderResourc
     auto& command_list = resource_manager.GetCommandListForRecord();
 
     m_sampled_texture->m_texture->Transition(command_list, RHIResourceStateType::STATE_ALL_SHADER_RESOURCE);
-    BindDescriptor(command_list, m_sampled_texture_root_signature_allocation.parameter_index, *m_sampled_texture_allocation);
+    BindDescriptor(command_list, m_sampled_texture_root_signature_allocation.space, m_sampled_texture_root_signature_allocation.parameter_index, *m_sampled_texture_allocation);
     
     return true;
 }
@@ -118,7 +118,7 @@ bool glTFGraphicsPassTestIndexedTextureTriangle::SetupRootSignature(glTFRenderRe
 {
     RETURN_IF_FALSE(glTFGraphicsPassTestTriangleBase::SetupRootSignature(resource_manager))
 
-    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("OUTPUT_TEX_REGISTER_INDEX", RHIRootParameterDescriptorRangeType::SRV, 1, false, m_sampled_texture_root_signature_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("SAMPLED_TEX_REGISTER_INDEX", RHIRootParameterDescriptorRangeType::SRV, 1, false, m_sampled_texture_root_signature_allocation))
 
     return true;
 }

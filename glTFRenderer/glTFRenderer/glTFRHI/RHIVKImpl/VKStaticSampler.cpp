@@ -64,6 +64,8 @@ bool VKStaticSampler::InitStaticSampler(IRHIDevice& device, unsigned space, unsi
     m_sampler_binding.stageFlags = VK_SHADER_STAGE_ALL;
     m_sampler_binding.pImmutableSamplers = &m_sampler;
 
+    m_register_space = space;
+    
     return true;
 }
 
@@ -75,4 +77,9 @@ VkDescriptorSetLayoutBinding VKStaticSampler::GetRawLayoutBinding() const
 VkSampler VKStaticSampler::GetRawSampler() const
 {
     return m_sampler;
+}
+
+unsigned VKStaticSampler::GetRegisterSpace() const
+{
+    return m_register_space;
 }

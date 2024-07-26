@@ -69,7 +69,7 @@ protected:
     virtual RHIPipelineType GetPipelineType() const = 0;
     
     void AddRenderInterface(const std::shared_ptr<glTFRenderInterfaceBase>& render_interface);
-    bool BindDescriptor(IRHICommandList& command_list, unsigned slot, const IRHIDescriptorAllocation& allocation) const;
+    bool BindDescriptor(IRHICommandList& command_list, unsigned space, unsigned slot, const IRHIDescriptorAllocation& allocation) const;
     
     IRHIRootSignatureHelper m_root_signature_helper;
     RHIBeginRenderingInfo m_begin_rendering_info;

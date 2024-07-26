@@ -10,8 +10,10 @@ public:
 
     VkDescriptorSetLayoutBinding GetRawLayoutBinding() const;
     VkSampler GetRawSampler() const;
+    unsigned GetRegisterSpace() const;
     
 protected:
+    unsigned m_register_space{0};
     VkDescriptorSetLayoutBinding m_sampler_binding{};
     VkSampler m_sampler{};
 };

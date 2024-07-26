@@ -11,75 +11,48 @@ bool VKRootSignature::InitRootSignature(IRHIDevice& device, IRHIDescriptorManage
     auto vk_device = dynamic_cast<VKDevice&>(device).GetDevice();
     auto vk_descriptor_pool = dynamic_cast<VKDescriptorManager&>(descriptor_manager).GetDesciptorPool();
 
-    // Create descriptor set layout for resource
+    std::map<unsigned, std::vector<VkDescriptorSetLayoutBinding>> space_bindings;
+    for (const auto& parameter : m_root_parameters)
     {
-        std::vector<VkDescriptorSetLayoutBinding> descriptor_set_layout_bindings;
-        descriptor_set_layout_bindings.reserve(m_root_parameters.size());
-        for (const auto& parameter : m_root_parameters)
-        {
-            descriptor_set_layout_bindings.push_back(dynamic_cast<const VKRootParameter&>(*parameter).GetRawLayoutBinding());
-        }
-
-        VkDescriptorSetLayoutCreateInfo descriptor_set_layout_create_info{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, .pNext = nullptr};
-        descriptor_set_layout_create_info.pBindings = descriptor_set_layout_bindings.data();
-        descriptor_set_layout_create_info.bindingCount = descriptor_set_layout_bindings.size();
-
-        VK_CHECK(vkCreateDescriptorSetLayout(vk_device, &descriptor_set_layout_create_info, nullptr, &m_descriptor_set_layout_resource));
-
-        VkDescriptorSetAllocateInfo descriptor_set_allocate_info{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, .pNext = nullptr};
-        descriptor_set_allocate_info.descriptorPool = vk_descriptor_pool;
-        descriptor_set_allocate_info.descriptorSetCount = 1;
-        descriptor_set_allocate_info.pSetLayouts = &m_descriptor_set_layout_resource;
-    
-        VK_CHECK(vkAllocateDescriptorSets(vk_device, &descriptor_set_allocate_info, &m_descriptor_set_resource));
+        VKRootParameter& vk_root_parameter = dynamic_cast<VKRootParameter&>(*parameter);
+        space_bindings[vk_root_parameter.GetRegisterSpace()].push_back(vk_root_parameter.GetRawLayoutBinding());
     }
     
-    
-    // Create descriptor set layout for sampler
-    if (HasSampler())
+    for (const auto& parameter : m_static_samplers)
     {
-        std::vector<VkDescriptorSetLayoutBinding> descriptor_set_layout_bindings;
-        descriptor_set_layout_bindings.reserve(m_static_samplers.size());
-        for (const auto& parameter : m_static_samplers)
-        {
-            descriptor_set_layout_bindings.push_back(dynamic_cast<const VKStaticSampler&>(*parameter).GetRawLayoutBinding());
-        }
-
-        VkDescriptorSetLayoutCreateInfo descriptor_set_layout_create_info{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, .pNext = nullptr};
-        descriptor_set_layout_create_info.pBindings = descriptor_set_layout_bindings.data();
-        descriptor_set_layout_create_info.bindingCount = descriptor_set_layout_bindings.size();
-
-        VK_CHECK(vkCreateDescriptorSetLayout(vk_device, &descriptor_set_layout_create_info, nullptr, &m_descriptor_set_layout_sampler));
-        
-        VkDescriptorSetAllocateInfo descriptor_set_allocate_info{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, .pNext = nullptr};
-        descriptor_set_allocate_info.descriptorPool = vk_descriptor_pool;
-        descriptor_set_allocate_info.descriptorSetCount = 1;
-        descriptor_set_allocate_info.pSetLayouts = &m_descriptor_set_layout_sampler;
-        
-        VK_CHECK(vkAllocateDescriptorSets(vk_device, &descriptor_set_allocate_info, &m_descriptor_set_sampler));
+        VKStaticSampler& vk_static_sampler = dynamic_cast<VKStaticSampler&>(*parameter);
+        space_bindings[vk_static_sampler.GetRegisterSpace()].push_back(vk_static_sampler.GetRawLayoutBinding());
     }
 
+    m_descriptor_set_layouts.resize(space_bindings.size());
+    for (size_t i = 0; i < m_descriptor_set_layouts.size(); ++i)
+    {
+        const auto& binding = space_bindings[i];
+        
+        VkDescriptorSetLayoutCreateInfo descriptor_set_layout_create_info{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, .pNext = nullptr};
+        descriptor_set_layout_create_info.pBindings = binding.data();
+        descriptor_set_layout_create_info.bindingCount = binding.size();
+
+        VK_CHECK(vkCreateDescriptorSetLayout(vk_device, &descriptor_set_layout_create_info, nullptr, &m_descriptor_set_layouts[i]));
+    }
+    
+    VkDescriptorSetAllocateInfo descriptor_set_allocate_info{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, .pNext = nullptr};
+    descriptor_set_allocate_info.descriptorPool = vk_descriptor_pool;
+    descriptor_set_allocate_info.descriptorSetCount = m_descriptor_set_layouts.size();
+    descriptor_set_allocate_info.pSetLayouts = m_descriptor_set_layouts.data();
+
+    m_descriptor_sets.resize(space_bindings.size());
+    VK_CHECK(vkAllocateDescriptorSets(vk_device, &descriptor_set_allocate_info, m_descriptor_sets.data()));
+    
     return true;
 }
 
-VkDescriptorSetLayout VKRootSignature::GetDescriptorSetLayoutResource() const
+const std::vector<VkDescriptorSet>& VKRootSignature::GetDescriptorSets() const
 {
-    return m_descriptor_set_layout_resource;
+    return m_descriptor_sets;
 }
 
-VkDescriptorSetLayout VKRootSignature::GetDescriptorSetLayoutSampler() const
+const std::vector<VkDescriptorSetLayout>& VKRootSignature::GetDescriptorSetLayouts() const
 {
-    GLTF_CHECK(HasSampler());
-    return m_descriptor_set_layout_sampler;
-}
-
-VkDescriptorSet VKRootSignature::GetDescriptorSetResource() const
-{
-    return m_descriptor_set_resource;
-}
-
-VkDescriptorSet VKRootSignature::GetDescriptorSetSampler() const
-{
-    GLTF_CHECK(HasSampler());
-    return m_descriptor_set_sampler;
+    return m_descriptor_set_layouts;
 }

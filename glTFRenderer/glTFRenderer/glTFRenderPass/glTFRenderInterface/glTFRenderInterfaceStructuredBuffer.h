@@ -46,7 +46,7 @@ public:
 
     virtual bool ApplyInterfaceImpl(IRHICommandList& command_list, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater) override
     {
-        descriptor_updater.BindDescriptor(command_list, pipeline_type, m_allocation.parameter_index, *m_constant_buffer_descriptor_allocation);
+        descriptor_updater.BindDescriptor(command_list, pipeline_type,  m_allocation.space, m_allocation.parameter_index, *m_constant_buffer_descriptor_allocation);
         return true;
     }
     

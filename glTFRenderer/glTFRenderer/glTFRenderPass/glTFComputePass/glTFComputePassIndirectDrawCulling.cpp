@@ -141,6 +141,7 @@ bool glTFComputePassIndirectDrawCulling::PreRenderPass(glTFRenderResourceManager
     {
         auto& command_list = resource_manager.GetCommandListForRecord();
         BindDescriptor(command_list,
+            m_culled_indirect_command_allocation.space,
             m_culled_indirect_command_allocation.parameter_index,
             *m_command_buffer_handle);
         auto& indirect_argument_buffer = *resource_manager.GetMeshManager().GetIndirectDrawBuilder().GetCulledIndirectArgumentBuffer();

@@ -4,7 +4,7 @@
 #include "glTFRHI/RHIUtils.h"
 #include "glTFRHI/RHIInterface/IRHIDescriptorManager.h"
 
-bool DX12DescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPipelineType pipeline, unsigned slot, const IRHIDescriptorAllocation& allocation)
+bool DX12DescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPipelineType pipeline, unsigned space, unsigned slot, const IRHIDescriptorAllocation& allocation)
 {
     const auto& desc = allocation.GetDesc();
     switch (desc.m_dimension) {
@@ -50,7 +50,7 @@ bool DX12DescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPip
     return true;
 }
 
-bool DX12DescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPipelineType pipeline, unsigned slot,
+bool DX12DescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPipelineType pipeline, unsigned space, unsigned slot,
     const IRHIDescriptorTable& allocation_table)
 {
     // TODO: More check

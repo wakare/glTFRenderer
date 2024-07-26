@@ -233,12 +233,7 @@ bool VulkanUtils::SetRootSignature(IRHICommandList& command_list, IRHIRootSignat
 {
     auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
     auto& vk_root_signature = dynamic_cast<const VKRootSignature&>(root_signature);
-    std::vector<VkDescriptorSet> descriptor_sets;
-    descriptor_sets.push_back(vk_root_signature.GetDescriptorSetResource());
-    if (vk_root_signature.HasSampler())
-    {
-        descriptor_sets.push_back(vk_root_signature.GetDescriptorSetSampler());
-    }
+    const std::vector<VkDescriptorSet>& descriptor_sets = vk_root_signature.GetDescriptorSets();
     
     if (pipeline_type == RHIPipelineType::Graphics)
     {
