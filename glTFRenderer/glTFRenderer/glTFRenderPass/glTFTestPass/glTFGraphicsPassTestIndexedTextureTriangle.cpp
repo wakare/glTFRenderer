@@ -118,7 +118,7 @@ bool glTFGraphicsPassTestIndexedTextureTriangle::SetupRootSignature(glTFRenderRe
 {
     RETURN_IF_FALSE(glTFGraphicsPassTestTriangleBase::SetupRootSignature(resource_manager))
 
-    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("sampled_texture", RHIRootParameterDescriptorRangeType::SRV, 1, false, m_sampled_texture_root_signature_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("OUTPUT_TEX_REGISTER_INDEX", RHIRootParameterDescriptorRangeType::SRV, 1, false, m_sampled_texture_root_signature_allocation))
 
     return true;
 }
@@ -158,7 +158,7 @@ bool glTFGraphicsPassTestIndexedTextureTriangle::SetupPipelineStateObject(glTFRe
     RETURN_IF_FALSE(GetGraphicsPipelineStateObject().BindInputLayoutAndSetShaderMacros({position_input_layout, uv_input_layout}));
     
     auto& shaderMacros = GetGraphicsPipelineStateObject().GetShaderMacros();
-    shaderMacros.AddUAVRegisterDefine("OUTPUT_TEX_REGISTER_INDEX", m_sampled_texture_root_signature_allocation.register_index, m_sampled_texture_root_signature_allocation.space);
+    m_sampled_texture_root_signature_allocation.AddShaderDefine(shaderMacros);
     
     return true;
 }

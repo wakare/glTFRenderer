@@ -80,8 +80,8 @@ bool glTFRayTracingPassReSTIRDirectLighting::UpdateGUIWidgets()
 bool glTFRayTracingPassReSTIRDirectLighting::SetupRootSignature(glTFRenderResourceManager& resource_manager)
 {
     // Non-bindless table parameter should be added first
-    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("ReSTIRDirectLightingSamples", RHIRootParameterDescriptorRangeType::UAV, 1, false, m_lighting_samples_allocation))
-    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("RayTracingScreenUVOffset", RHIRootParameterDescriptorRangeType::UAV, 1, false, m_screen_uv_offset_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("OUTPUT_REGISTER_INDEX", RHIRootParameterDescriptorRangeType::UAV, 1, false, m_lighting_samples_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("SCREEN_UV_OFFSET_REGISTER_INDEX", RHIRootParameterDescriptorRangeType::UAV, 1, false, m_screen_uv_offset_allocation))
 
     auto& allocations = resource_manager.GetGBufferAllocations();
     RETURN_IF_FALSE(allocations.InitGBufferAllocation(GetID(), m_root_signature_helper, false))
@@ -125,8 +125,8 @@ bool glTFRayTracingPassReSTIRDirectLighting::SetupPipelineStateObject(glTFRender
         RHIShaderType::RayTracing, "");
     
     auto& shader_macros = GetRayTracingPipelineStateObject().GetShaderMacros();
-    shader_macros.AddUAVRegisterDefine("OUTPUT_REGISTER_INDEX", m_lighting_samples_allocation.register_index, m_lighting_samples_allocation.space);
-    shader_macros.AddUAVRegisterDefine("SCREEN_UV_OFFSET_REGISTER_INDEX", m_screen_uv_offset_allocation.register_index, m_screen_uv_offset_allocation.space);
+    m_lighting_samples_allocation.AddShaderDefine(shader_macros);
+    m_screen_uv_offset_allocation.AddShaderDefine(shader_macros);
     const auto& allocations = resource_manager.GetGBufferAllocations();
     RETURN_IF_FALSE(allocations.UpdateShaderMacros(GetID(), shader_macros, false))
     

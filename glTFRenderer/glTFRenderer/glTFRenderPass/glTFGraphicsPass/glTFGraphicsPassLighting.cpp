@@ -7,7 +7,7 @@
 
 glTFGraphicsPassLighting::glTFGraphicsPassLighting()
     : m_base_pass_albedo_allocation(nullptr)
-    , m_depth_allocation(nullptr)
+    , m_depth_texture_allocation(nullptr)
     , m_base_pass_normal_allocation(nullptr)
 {
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneView>());
@@ -41,7 +41,9 @@ bool glTFGraphicsPassLighting::PreRenderPass(glTFRenderResourceManager& resource
     basepass_normal->Transition(command_list, RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE);
     resource_manager.GetDepthTextureRef().Transition(command_list, RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE);
 
-    BindDescriptor(command_list, m_base_color_and_depth_allocation.parameter_index, *m_base_pass_albedo_allocation);
+    BindDescriptor(command_list, m_albedo_allocation.parameter_index, *m_base_pass_albedo_allocation);
+    BindDescriptor(command_list, m_depth_allocation.parameter_index, *m_depth_texture_allocation);
+    BindDescriptor(command_list, m_normal_allocation.parameter_index, *m_base_pass_normal_allocation);
 
     RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceLighting>()->UpdateCPUBuffer(resource_manager))
 
@@ -81,7 +83,10 @@ bool glTFGraphicsPassLighting::SetupRootSignature(glTFRenderResourceManager& res
 {
     RETURN_IF_FALSE(glTFGraphicsPassPostprocess::SetupRootSignature(resource_manager))
 
-    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("BaseColorAndDepth", RHIRootParameterDescriptorRangeType::SRV, 3, false, m_base_color_and_depth_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("ALBEDO_TEX_REGISTER_INDEX", RHIRootParameterDescriptorRangeType::SRV, 1, false, m_albedo_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("DEPTH_TEX_REGISTER_INDEX", RHIRootParameterDescriptorRangeType::SRV, 1, false, m_depth_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("NORMAL_TEX_REGISTER_INDEX", RHIRootParameterDescriptorRangeType::SRV, 1, false, m_normal_allocation))
+    
     
     return true;
 }
@@ -101,7 +106,7 @@ bool glTFGraphicsPassLighting::SetupPipelineStateObject(glTFRenderResourceManage
                         {basepass_albedo->GetTextureFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_base_pass_albedo_allocation))
 
     RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), resource_manager.GetDepthTexture(),
-                        {RHIDataFormat::R32_FLOAT, RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_depth_allocation))
+                        {RHIDataFormat::R32_FLOAT, RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_depth_texture_allocation))
 
     RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), basepass_normal,
                         {basepass_normal->GetTextureFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_base_pass_normal_allocation))
@@ -114,9 +119,9 @@ bool glTFGraphicsPassLighting::SetupPipelineStateObject(glTFRenderResourceManage
     auto& shaderMacros = GetGraphicsPipelineStateObject().GetShaderMacros();
     
     // Add albedo, normal, depth register define
-    shaderMacros.AddSRVRegisterDefine("ALBEDO_TEX_REGISTER_INDEX", m_base_color_and_depth_allocation.register_index);
-    shaderMacros.AddSRVRegisterDefine("DEPTH_TEX_REGISTER_INDEX", m_base_color_and_depth_allocation.register_index + 1);
-    shaderMacros.AddSRVRegisterDefine("NORMAL_TEX_REGISTER_INDEX", m_base_color_and_depth_allocation.register_index + 2);
+    m_albedo_allocation.AddShaderDefine(shaderMacros);
+    m_depth_allocation.AddShaderDefine(shaderMacros);
+    m_normal_allocation.AddShaderDefine(shaderMacros);
     
     return true;
 }

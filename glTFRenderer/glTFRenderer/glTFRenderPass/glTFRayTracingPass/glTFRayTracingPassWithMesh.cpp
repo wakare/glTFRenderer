@@ -85,7 +85,7 @@ IRHIShaderTable& glTFRayTracingPassWithMesh::GetShaderTable() const
 
 bool glTFRayTracingPassWithMesh::SetupRootSignature(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(m_root_signature_helper.AddSRVRootParameter("raytracing_as", m_raytracing_as_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddSRVRootParameter("SCENE_AS_REGISTER_INDEX", m_raytracing_as_allocation))
     RETURN_IF_FALSE(glTFRayTracingPassBase::SetupRootSignature(resource_manager))
     
     return true;
@@ -96,7 +96,7 @@ bool glTFRayTracingPassWithMesh::SetupPipelineStateObject(glTFRenderResourceMana
     RETURN_IF_FALSE(glTFRayTracingPassBase::SetupPipelineStateObject(resource_manager))
     
     auto& shader_macros = GetRayTracingPipelineStateObject().GetShaderMacros();
-    shader_macros.AddSRVRegisterDefine("SCENE_AS_REGISTER_INDEX", m_raytracing_as_allocation.register_index, m_raytracing_as_allocation.space);
+    m_raytracing_as_allocation.AddShaderDefine(shader_macros);
     return true;
 }
 

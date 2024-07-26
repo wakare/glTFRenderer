@@ -115,9 +115,9 @@ bool glTFComputePassReSTIRDirectLighting::SetupRootSignature(glTFRenderResourceM
 
     auto& allocations = resource_manager.GetGBufferAllocations();
     RETURN_IF_FALSE(allocations.InitGBufferAllocation(GetID(), m_root_signature_helper, true))
-    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("LightingSamples", RHIRootParameterDescriptorRangeType::SRV, 1, false, m_lighting_samples_allocation))
-    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("ScreenUVOffset", RHIRootParameterDescriptorRangeType::SRV, 1, false, m_screen_uv_offset_allocation))
-    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("Output", RHIRootParameterDescriptorRangeType::UAV, 1, true, m_output_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("LIGHTING_SAMPLES_REGISTER_INDEX", RHIRootParameterDescriptorRangeType::SRV, 1, false, m_lighting_samples_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("SCREEN_UV_OFFSET_REGISTER_INDEX", RHIRootParameterDescriptorRangeType::SRV, 1, false, m_screen_uv_offset_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("OUTPUT_TEX_REGISTER_INDEX", RHIRootParameterDescriptorRangeType::UAV, 1, true, m_output_allocation))
     RETURN_IF_FALSE(m_aggregate_samples_output.RegisterSignature(m_root_signature_helper))
     return true;
 }
@@ -155,9 +155,9 @@ bool glTFComputePassReSTIRDirectLighting::SetupPipelineStateObject(glTFRenderRes
     const auto& allocations = resource_manager.GetGBufferAllocations();
     RETURN_IF_FALSE(allocations.UpdateShaderMacros(GetID(), shader_macros, true))
 
-    shader_macros.AddSRVRegisterDefine("LIGHTING_SAMPLES_REGISTER_INDEX", m_lighting_samples_allocation.register_index, m_lighting_samples_allocation.space);
-    shader_macros.AddSRVRegisterDefine("SCREEN_UV_OFFSET_REGISTER_INDEX", m_screen_uv_offset_allocation.register_index, m_screen_uv_offset_allocation.space);
-    shader_macros.AddUAVRegisterDefine("OUTPUT_TEX_REGISTER_INDEX", m_output_allocation.register_index, m_output_allocation.space);
+    m_lighting_samples_allocation.AddShaderDefine(shader_macros);
+    m_screen_uv_offset_allocation.AddShaderDefine(shader_macros);
+    m_output_allocation.AddShaderDefine(shader_macros);
     RETURN_IF_FALSE(m_aggregate_samples_output.AddShaderMacros(shader_macros))
     
     return true;

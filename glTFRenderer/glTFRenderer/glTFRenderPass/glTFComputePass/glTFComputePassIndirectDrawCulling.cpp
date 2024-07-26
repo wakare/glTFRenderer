@@ -116,7 +116,7 @@ bool glTFComputePassIndirectDrawCulling::SetupRootSignature(glTFRenderResourceMa
 {
     RETURN_IF_FALSE(glTFComputePassBase::SetupRootSignature(resourceManager))
 
-    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("Output", RHIRootParameterDescriptorRangeType::UAV, 1, false, m_culled_indirect_command_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("INDIRECT_DRAW_DATA_OUTPUT_REGISTER_UAV_INDEX", RHIRootParameterDescriptorRangeType::UAV, 1, false, m_culled_indirect_command_allocation))
 
     return true;
 }
@@ -129,7 +129,7 @@ bool glTFComputePassIndirectDrawCulling::SetupPipelineStateObject(glTFRenderReso
             R"(glTFResources\ShaderSource\ComputeShader\IndirectCullingCS.hlsl)", RHIShaderType::Compute, "main");
     
     auto& shaderMacros = GetComputePipelineStateObject().GetShaderMacros();
-    shaderMacros.AddUAVRegisterDefine("INDIRECT_DRAW_DATA_OUTPUT_REGISTER_UAV_INDEX", m_culled_indirect_command_allocation.register_index, m_culled_indirect_command_allocation.space);
+    m_culled_indirect_command_allocation.AddShaderDefine(shaderMacros);
     
     return true;
 }

@@ -10,9 +10,9 @@ namespace glTFRenderResourceUtils
     bool GBufferSignatureAllocationWithinPass::InitGBufferAllocation(glTFUniqueID pass_id,
         IRHIRootSignatureHelper& root_signature_helper, bool asSRV)
     {
-        RETURN_IF_FALSE(root_signature_helper.AddTableRootParameter("Albedo_Output", asSRV ? RHIRootParameterDescriptorRangeType::SRV : RHIRootParameterDescriptorRangeType::UAV, 1, false, m_albedo_allocation))
-        RETURN_IF_FALSE(root_signature_helper.AddTableRootParameter("Normal_Output", asSRV ? RHIRootParameterDescriptorRangeType::SRV : RHIRootParameterDescriptorRangeType::UAV, 1, false, m_normal_allocation))
-        RETURN_IF_FALSE(root_signature_helper.AddTableRootParameter("Depth_Output", asSRV ? RHIRootParameterDescriptorRangeType::SRV : RHIRootParameterDescriptorRangeType::UAV, 1, false, m_depth_allocation))
+        RETURN_IF_FALSE(root_signature_helper.AddTableRootParameter("ALBEDO_REGISTER_INDEX", asSRV ? RHIRootParameterDescriptorRangeType::SRV : RHIRootParameterDescriptorRangeType::UAV, 1, false, m_albedo_allocation))
+        RETURN_IF_FALSE(root_signature_helper.AddTableRootParameter("NORMAL_REGISTER_INDEX", asSRV ? RHIRootParameterDescriptorRangeType::SRV : RHIRootParameterDescriptorRangeType::UAV, 1, false, m_normal_allocation))
+        RETURN_IF_FALSE(root_signature_helper.AddTableRootParameter("DEPTH_REGISTER_INDEX", asSRV ? RHIRootParameterDescriptorRangeType::SRV : RHIRootParameterDescriptorRangeType::UAV, 1, false, m_depth_allocation))
     
         return true;
     }
@@ -20,19 +20,9 @@ namespace glTFRenderResourceUtils
     bool GBufferSignatureAllocationWithinPass::UpdateShaderMacros(glTFUniqueID pass_id,
                                                                   RHIShaderPreDefineMacros& macros, bool asSRV) const
     {
-        if (asSRV)
-        {
-            macros.AddSRVRegisterDefine("ALBEDO_REGISTER_INDEX", m_albedo_allocation.register_index, m_albedo_allocation.space);
-            macros.AddSRVRegisterDefine("NORMAL_REGISTER_INDEX", m_normal_allocation.register_index, m_normal_allocation.space);
-            macros.AddSRVRegisterDefine("DEPTH_REGISTER_INDEX", m_depth_allocation.register_index, m_depth_allocation.space);    
-        }
-        else
-        {
-            macros.AddUAVRegisterDefine("ALBEDO_REGISTER_INDEX", m_albedo_allocation.register_index, m_albedo_allocation.space);
-            macros.AddUAVRegisterDefine("NORMAL_REGISTER_INDEX", m_normal_allocation.register_index, m_normal_allocation.space);
-            macros.AddUAVRegisterDefine("DEPTH_REGISTER_INDEX", m_depth_allocation.register_index, m_depth_allocation.space);
-        }
-    
+        m_albedo_allocation.AddShaderDefine(macros);
+        m_normal_allocation.AddShaderDefine(macros);
+        m_depth_allocation.AddShaderDefine(macros);
         return true;
     }
 
@@ -250,8 +240,8 @@ namespace glTFRenderResourceUtils
 
     bool RWTextureResourceWithBackBuffer::RegisterSignature(IRHIRootSignatureHelper& root_signature)
     {
-        RETURN_IF_FALSE(root_signature.AddTableRootParameter(GetOutputBufferResourceName(), RHIRootParameterDescriptorRangeType::UAV, 1, false, m_writable_buffer_allocation))
-        RETURN_IF_FALSE(root_signature.AddTableRootParameter(GetBackBufferResourceName(), RHIRootParameterDescriptorRangeType::SRV, 1, false, m_back_buffer_allocation))
+        RETURN_IF_FALSE(root_signature.AddTableRootParameter(m_output_register_name, RHIRootParameterDescriptorRangeType::UAV, 1, false, m_writable_buffer_allocation))
+        RETURN_IF_FALSE(root_signature.AddTableRootParameter(m_back_register_name, RHIRootParameterDescriptorRangeType::SRV, 1, false, m_back_buffer_allocation))
     
         return true;
     }
@@ -281,9 +271,9 @@ namespace glTFRenderResourceUtils
 
     bool RWTextureResourceWithBackBuffer::AddShaderMacros(RHIShaderPreDefineMacros& macros)
     {
-        macros.AddUAVRegisterDefine(m_output_register_name, m_writable_buffer_allocation.register_index, m_writable_buffer_allocation.space);
-        macros.AddSRVRegisterDefine(m_back_register_name, m_back_buffer_allocation.register_index, m_back_buffer_allocation.space);
-    
+        m_writable_buffer_allocation.AddShaderDefine(macros);
+        m_back_buffer_allocation.AddShaderDefine(macros);
+        
         return true;
     }
 

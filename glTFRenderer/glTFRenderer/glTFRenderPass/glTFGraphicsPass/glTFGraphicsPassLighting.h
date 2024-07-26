@@ -1,7 +1,6 @@
 #pragma once
 
 #include "glTFGraphicsPassPostprocess.h"
-#include "glTFRenderPass/glTFRenderPassCommon.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceLighting.h"
 
 class glTFGraphicsPassLighting : public glTFGraphicsPassPostprocess
@@ -23,8 +22,10 @@ protected:
     virtual bool InitResourceTable(glTFRenderResourceManager& resource_manager) override;
     
     std::shared_ptr<IRHITextureDescriptorAllocation> m_base_pass_albedo_allocation;
-    std::shared_ptr<IRHITextureDescriptorAllocation> m_depth_allocation;
+    std::shared_ptr<IRHITextureDescriptorAllocation> m_depth_texture_allocation;
     std::shared_ptr<IRHITextureDescriptorAllocation> m_base_pass_normal_allocation;
 
-    RootSignatureAllocation m_base_color_and_depth_allocation;
+    RootSignatureAllocation m_albedo_allocation;
+    RootSignatureAllocation m_depth_allocation;
+    RootSignatureAllocation m_normal_allocation;
 };

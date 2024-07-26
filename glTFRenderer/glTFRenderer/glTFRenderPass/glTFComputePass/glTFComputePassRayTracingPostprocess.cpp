@@ -164,9 +164,9 @@ bool glTFComputePassRayTracingPostprocess::SetupRootSignature(glTFRenderResource
     RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), GetResourceTexture(RenderPassResourceTableId::ComputePass_RayTracingOutputPostProcess_Output),
                                 {GetResourceTexture(RenderPassResourceTableId::ComputePass_RayTracingOutputPostProcess_Output)->GetTextureFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_UAV}, m_post_process_output_handle))
 
-    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("PostProcessInput", RHIRootParameterDescriptorRangeType::SRV, 1, false, m_process_input_allocation))
-    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("ScreenUVOffset", RHIRootParameterDescriptorRangeType::SRV, 1, false, m_screen_uv_offset_allocation))
-    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("PostProcessOutput", RHIRootParameterDescriptorRangeType::UAV, 1, false, m_process_output_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("POST_PROCESS_INPUT_REGISTER_INDEX", RHIRootParameterDescriptorRangeType::SRV, 1, false, m_process_input_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("SCREEN_UV_OFFSET_REGISTER_INDEX", RHIRootParameterDescriptorRangeType::SRV, 1, false, m_screen_uv_offset_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("POST_PROCESS_OUTPUT_REGISTER_INDEX", RHIRootParameterDescriptorRangeType::UAV, 1, false, m_process_output_allocation))
 
     return true;
 }
@@ -185,9 +185,9 @@ bool glTFComputePassRayTracingPostprocess::SetupPipelineStateObject(glTFRenderRe
     RETURN_IF_FALSE(m_accumulation_resource.AddShaderMacros(shader_macros))
     RETURN_IF_FALSE(m_custom_resource.AddShaderMacros(shader_macros))
     
-    shader_macros.AddSRVRegisterDefine("POST_PROCESS_INPUT_REGISTER_INDEX", m_process_input_allocation.register_index, m_process_input_allocation.space);
-    shader_macros.AddSRVRegisterDefine("SCREEN_UV_OFFSET_REGISTER_INDEX", m_screen_uv_offset_allocation.register_index, m_screen_uv_offset_allocation.space);
-    shader_macros.AddUAVRegisterDefine("POST_PROCESS_OUTPUT_REGISTER_INDEX", m_process_output_allocation.register_index, m_process_output_allocation.space);
+    m_process_input_allocation.AddShaderDefine(shader_macros);
+    m_screen_uv_offset_allocation.AddShaderDefine(shader_macros);
+    m_process_output_allocation.AddShaderDefine(shader_macros);
     
     return true;
 }

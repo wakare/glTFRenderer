@@ -30,6 +30,8 @@ protected:
     std::shared_ptr<IRHITextureDescriptorAllocation> m_normal_SRV;
     std::shared_ptr<IRHITextureDescriptorAllocation> m_output_UAV;
 
-    RootSignatureAllocation m_base_color_and_depth_allocation;
+    RootSignatureAllocation m_albedo_allocation;
+    RootSignatureAllocation m_depth_allocation;
+    RootSignatureAllocation m_normal_allocation;
     RootSignatureAllocation m_output_allocation;
 };
