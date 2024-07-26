@@ -64,11 +64,7 @@ protected:
 
     virtual void ApplyShaderDefineImpl(RHIShaderPreDefineMacros& out_shader_pre_define_macros) const override
     {
-        // Update light info shader define
-        char registerIndexValue[32] = {'\0'};
-    
-        (void)snprintf(registerIndexValue, sizeof(registerIndexValue), "register(b%d, space%u)", GetRSAllocation().register_index, GetRSAllocation().space);
-        out_shader_pre_define_macros.AddMacro(ConstantBufferType::Name, registerIndexValue);
+        AddRootSignatureShaderRegisterDefine(out_shader_pre_define_macros, ConstantBufferType::Name);
     }
     
     std::shared_ptr<IRHIBufferAllocation> m_constant_gpu_data;

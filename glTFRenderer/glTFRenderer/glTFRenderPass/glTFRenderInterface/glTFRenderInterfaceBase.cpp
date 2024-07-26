@@ -54,3 +54,31 @@ void glTFRenderInterfaceBase::AddInterface(const std::shared_ptr<glTFRenderInter
 {
     m_sub_interfaces.push_back(render_interface);
 }
+
+void glTFRenderInterfaceWithRSAllocation::AddRootSignatureShaderRegisterDefine(
+    RHIShaderPreDefineMacros& out_shader_pre_define_macros, const std::string& name, unsigned register_offset ) const
+{
+    char registerIndexValue[64] = {'\0'};
+
+    std::string register_name;
+    switch (GetRSAllocation().register_type) {
+    case RHIShaderRegisterType::b:
+        register_name = "b";
+        break;
+    case RHIShaderRegisterType::t:
+        register_name = "t";
+        break;
+    case RHIShaderRegisterType::u:
+        register_name = "u";
+        break;
+    case RHIShaderRegisterType::s:
+        register_name = "s";
+        break;
+    case RHIShaderRegisterType::Unknown:
+        GLTF_CHECK(false);
+        break;
+    }
+    
+    (void)snprintf(registerIndexValue, sizeof(registerIndexValue), "register(%s%d, space%u)", register_name.c_str(), GetRSAllocation().register_index + register_offset, GetRSAllocation().space);
+    out_shader_pre_define_macros.AddMacro(name, registerIndexValue);
+}

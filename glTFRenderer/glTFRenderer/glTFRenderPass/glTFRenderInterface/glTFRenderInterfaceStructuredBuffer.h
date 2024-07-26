@@ -51,11 +51,7 @@ public:
 
     virtual void ApplyShaderDefineImpl(RHIShaderPreDefineMacros& out_shader_pre_define_macros) const override
     {
-        // Update light info shader define
-        char registerIndexValue[32] = {'\0'};
-    
-        (void)snprintf(registerIndexValue, sizeof(registerIndexValue), "register(t%d, space%u)", GetRSAllocation().register_index, GetRSAllocation().space);
-        out_shader_pre_define_macros.AddMacro(StructuredBufferType::Name, registerIndexValue);
+        AddRootSignatureShaderRegisterDefine(out_shader_pre_define_macros, StructuredBufferType::Name);
     }
     
 protected:

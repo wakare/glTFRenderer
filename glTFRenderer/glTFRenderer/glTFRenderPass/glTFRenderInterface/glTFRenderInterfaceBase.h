@@ -66,6 +66,8 @@ class glTFRenderInterfaceWithRSAllocation : public glTFRenderInterfaceBase
 {
 public:
     const RootSignatureAllocation& GetRSAllocation() const {return m_allocation; }
+
+    void AddRootSignatureShaderRegisterDefine(RHIShaderPreDefineMacros& out_shader_pre_define_macros, const std::string& name, unsigned register_offset = 0) const;
     
 protected:
     RootSignatureAllocation m_allocation;

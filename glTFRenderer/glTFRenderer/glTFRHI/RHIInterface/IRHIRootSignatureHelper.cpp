@@ -9,8 +9,6 @@ bool IRHIRootSignatureHelper::AddRootParameterWithRegisterCount(const RootParame
     RHIShaderRegisterType register_type = RHIShaderRegisterType::Unknown;
     switch (parameter_info.type) {
     case RHIRootParameterType::Constant:
-        register_type = RHIShaderRegisterType::b;
-        break;
     case RHIRootParameterType::CBV:
         register_type = RHIShaderRegisterType::b;
         break;
@@ -46,6 +44,7 @@ bool IRHIRootSignatureHelper::AddRootParameterWithRegisterCount(const RootParame
     }
 
     out_allocation.type = parameter_info.type;
+    out_allocation.register_type = register_type;
     if (parameter_info.type == RHIRootParameterType::Sampler)
     {
         out_allocation.parameter_index = m_layout.sampler_elements.size();

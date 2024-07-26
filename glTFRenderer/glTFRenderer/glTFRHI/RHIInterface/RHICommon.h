@@ -371,6 +371,7 @@ struct RootSignatureAllocation
         , register_index(0)
         , space(0)
         , type(RHIRootParameterType::Unknown)
+        , register_type(RHIShaderRegisterType::Unknown)
     {
     }
 
@@ -378,6 +379,7 @@ struct RootSignatureAllocation
     unsigned register_index;
     unsigned space;
     RHIRootParameterType type;
+    RHIShaderRegisterType register_type;
 };
 
 enum class RHIStaticSamplerAddressMode
