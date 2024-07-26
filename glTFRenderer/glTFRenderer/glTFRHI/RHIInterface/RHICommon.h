@@ -367,7 +367,8 @@ enum class RHIRootParameterType
 struct RootSignatureAllocation
 {
     RootSignatureAllocation()
-        : parameter_index(0)
+        : parameter_name("")
+        , parameter_index(0)
         , register_index(0)
         , space(0)
         , type(RHIRootParameterType::Unknown)
@@ -375,6 +376,34 @@ struct RootSignatureAllocation
     {
     }
 
+    void AddShaderDefine(RHIShaderPreDefineMacros& out_shader_macros) const
+    {
+        char registerIndexValue[64] = {'\0'};
+
+        std::string register_name;
+        switch (register_type) {
+        case RHIShaderRegisterType::b:
+            register_name = "b";
+            break;
+        case RHIShaderRegisterType::t:
+            register_name = "t";
+            break;
+        case RHIShaderRegisterType::u:
+            register_name = "u";
+            break;
+        case RHIShaderRegisterType::s:
+            register_name = "s";
+            break;
+        case RHIShaderRegisterType::Unknown:
+            GLTF_CHECK(false);
+            break;
+        }
+    
+        (void)snprintf(registerIndexValue, sizeof(registerIndexValue), "register(%s%d, space%u)", register_name.c_str(), register_index, space);
+        out_shader_macros.AddMacro(parameter_name, registerIndexValue);  
+    }
+
+    std::string parameter_name;
     unsigned parameter_index;
     unsigned register_index;
     unsigned space;

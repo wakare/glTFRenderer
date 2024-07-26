@@ -9,8 +9,9 @@ template <typename ConstantBufferType, size_t max_buffer_size = 256ull * 1024>
 class glTFRenderInterfaceSingleConstantBuffer : public glTFRenderInterfaceWithRSAllocation, public glTFRenderInterfaceCanUploadDataFromCPU
 {
 public:
-    glTFRenderInterfaceSingleConstantBuffer()
-    = default;
+    glTFRenderInterfaceSingleConstantBuffer(const char* name = ConstantBufferType::Name.c_str())
+        : glTFRenderInterfaceWithRSAllocation(name)
+    {}
 
     virtual bool UploadCPUBuffer(glTFRenderResourceManager& resource_manager, const void* data, size_t offset, size_t size) override
     {
@@ -59,14 +60,9 @@ protected:
 
     virtual bool ApplyRootSignatureImpl(IRHIRootSignatureHelper& root_signature) override
     {
-        return root_signature.AddCBVRootParameter("GPUBuffer_SingleConstantBuffer", m_allocation);
+        return root_signature.AddCBVRootParameter(ConstantBufferType::Name, m_allocation);
     }
 
-    virtual void ApplyShaderDefineImpl(RHIShaderPreDefineMacros& out_shader_pre_define_macros) const override
-    {
-        AddRootSignatureShaderRegisterDefine(out_shader_pre_define_macros, ConstantBufferType::Name);
-    }
-    
     std::shared_ptr<IRHIBufferAllocation> m_constant_gpu_data;
     std::shared_ptr<IRHIBufferDescriptorAllocation> m_constant_buffer_descriptor_allocation;
 };

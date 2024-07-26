@@ -1,9 +1,9 @@
 #include "glTFGraphicsPassLighting.h"
 #include "glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
-#include "glTFRHI/RHIInterface/IRHIRenderTargetManager.h"
 #include "glTFLight/glTFLightBase.h"
 #include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSampler.h"
+#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneView.h"
 
 glTFGraphicsPassLighting::glTFGraphicsPassLighting()
     : m_base_pass_albedo_allocation(nullptr)
@@ -13,8 +13,7 @@ glTFGraphicsPassLighting::glTFGraphicsPassLighting()
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneView>());
     AddRenderInterface(std::make_shared<glTFRenderInterfaceLighting>());
     const std::shared_ptr<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Clamp, RHIStaticSamplerFilterMode::Linear>> sampler_interface =
-        std::make_shared<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Clamp, RHIStaticSamplerFilterMode::Linear>>();
-    sampler_interface->SetSamplerRegisterIndexName("DEFAULT_SAMPLER_REGISTER_INDEX");
+        std::make_shared<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Clamp, RHIStaticSamplerFilterMode::Linear>>("DEFAULT_SAMPLER_REGISTER_INDEX");
     AddRenderInterface(sampler_interface);
 }
 

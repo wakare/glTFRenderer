@@ -7,6 +7,12 @@ template <typename StructuredBufferType, size_t max_heap_size = 64ull * 1024>
 class glTFRenderInterfaceStructuredBuffer : public glTFRenderInterfaceWithRSAllocation, public glTFRenderInterfaceCanUploadDataFromCPU
 {
 public:
+    glTFRenderInterfaceStructuredBuffer(const char* name = StructuredBufferType::Name.c_str())
+        : glTFRenderInterfaceWithRSAllocation(name)
+    {
+        
+    }
+    
     virtual bool InitInterfaceImpl(glTFRenderResourceManager& resource_manager) override
     {
         resource_manager.GetMemoryManager().AllocateBufferMemory(
@@ -49,11 +55,6 @@ public:
         return rootSignature.AddSRVRootParameter(StructuredBufferType::Name, m_allocation);
     }
 
-    virtual void ApplyShaderDefineImpl(RHIShaderPreDefineMacros& out_shader_pre_define_macros) const override
-    {
-        AddRootSignatureShaderRegisterDefine(out_shader_pre_define_macros, StructuredBufferType::Name);
-    }
-    
 protected:
     std::shared_ptr<IRHIBufferAllocation> m_gpu_buffer;
     std::shared_ptr<IRHIBufferDescriptorAllocation> m_constant_buffer_descriptor_allocation;

@@ -4,6 +4,7 @@
 
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassLighting.h"
 #include "glTFRenderInterface/glTFRenderInterfaceFrameStat.h"
+#include "glTFRenderInterface/glTFRenderInterfaceSceneView.h"
 #include "glTFRHI/RHIUtils.h"
 #include "RenderWindow/glTFWindow.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"

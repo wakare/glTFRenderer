@@ -49,7 +49,7 @@ protected:
         }
         return nullptr;
     }
-        
+
     std::vector<std::shared_ptr<glTFRenderInterfaceBase>> m_sub_interfaces;
 };
 
@@ -60,16 +60,22 @@ protected:
     virtual bool ApplyInterfaceImpl(IRHICommandList& command_list, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater) override {return true;}
     virtual bool ApplyRootSignatureImpl(IRHIRootSignatureHelper& root_signature) override { return true; }
     virtual void ApplyShaderDefineImpl(RHIShaderPreDefineMacros& out_shader_pre_define_macros) const override {}
+    
 };
 
 class glTFRenderInterfaceWithRSAllocation : public glTFRenderInterfaceBase
 {
 public:
+    glTFRenderInterfaceWithRSAllocation(const char* name)
+        : m_name(name)
+    {}
+    
     const RootSignatureAllocation& GetRSAllocation() const {return m_allocation; }
 
-    void AddRootSignatureShaderRegisterDefine(RHIShaderPreDefineMacros& out_shader_pre_define_macros, const std::string& name, unsigned register_offset = 0) const;
+    virtual void ApplyShaderDefineImpl(RHIShaderPreDefineMacros& out_shader_pre_define_macros) const override;
     
 protected:
+    std::string m_name;
     RootSignatureAllocation m_allocation;
 };
 
@@ -77,6 +83,5 @@ class glTFRenderInterfaceCanUploadDataFromCPU
 {
 public:
     virtual ~glTFRenderInterfaceCanUploadDataFromCPU() = default;
-    
     virtual bool UploadCPUBuffer(glTFRenderResourceManager& resource_manager, const void* data, size_t offset, size_t size) = 0;
 };

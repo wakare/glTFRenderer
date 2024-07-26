@@ -42,7 +42,8 @@ bool IRHIRootSignatureHelper::AddRootParameterWithRegisterCount(const RootParame
     case RHIRootParameterType::Unknown:
     default: GLTF_CHECK(false);
     }
-
+    
+    out_allocation.parameter_name = parameter_info.parameter_name;
     out_allocation.type = parameter_info.type;
     out_allocation.register_type = register_type;
     if (parameter_info.type == RHIRootParameterType::Sampler)

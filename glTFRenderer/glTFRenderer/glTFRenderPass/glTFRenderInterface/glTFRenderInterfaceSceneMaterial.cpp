@@ -7,13 +7,11 @@
 
 glTFRenderInterfaceSceneMaterial::glTFRenderInterfaceSceneMaterial()
 {
-    AddInterface(std::make_shared<glTFRenderInterfaceStructuredBuffer<MaterialInfo>>());
-    AddInterface(std::make_shared<glTFRenderInterfaceSRVTableBindless>());
+    AddInterface(std::make_shared<glTFRenderInterfaceStructuredBuffer<MaterialInfo>>(MaterialInfo::Name.c_str()));
+    AddInterface(std::make_shared<glTFRenderInterfaceSRVTableBindless>("SCENE_MATERIAL_TEXTURE_REGISTER_INDEX"));
 
-    GetRenderInterface<glTFRenderInterfaceSRVTableBindless>()->SetSRVRegisterNames({"SCENE_MATERIAL_TEXTURE_REGISTER_INDEX"});
     std::shared_ptr<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Warp, RHIStaticSamplerFilterMode::Linear>> sampler_interface =
-        std::make_shared<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Warp, RHIStaticSamplerFilterMode::Linear>>();
-    sampler_interface->SetSamplerRegisterIndexName("SCENE_MATERIAL_SAMPLER_REGISTER_INDEX");
+        std::make_shared<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Warp, RHIStaticSamplerFilterMode::Linear>>("SCENE_MATERIAL_SAMPLER_REGISTER_INDEX");
     AddInterface(sampler_interface);
 }
 

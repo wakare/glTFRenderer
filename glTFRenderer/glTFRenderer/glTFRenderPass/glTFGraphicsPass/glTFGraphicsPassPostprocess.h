@@ -1,5 +1,4 @@
 #pragma once
-#include "glTFGraphicsPassBase.h"
 #include "glTFGraphicsPassMeshBase.h"
 #include "glTFRenderPass/glTFRenderPassBase.h"
 

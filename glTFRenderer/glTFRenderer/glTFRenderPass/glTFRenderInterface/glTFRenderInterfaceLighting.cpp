@@ -2,12 +2,11 @@
 
 #include "glTFLight/glTFDirectionalLight.h"
 #include "glTFLight/glTFPointLight.h"
-#include "glTFRHI/RHIInterface/IRHIRootSignatureHelper.h"
 
 glTFRenderInterfaceLighting::glTFRenderInterfaceLighting()
 {
-     AddInterface(std::make_shared<glTFRenderInterfaceSingleConstantBuffer<ConstantBufferPerLightDraw>>());
-     AddInterface(std::make_shared<glTFRenderInterfaceStructuredBuffer<LightInfo>>());
+     AddInterface(std::make_shared<glTFRenderInterfaceSingleConstantBuffer<ConstantBufferPerLightDraw>>(ConstantBufferPerLightDraw::Name.c_str()));
+     AddInterface(std::make_shared<glTFRenderInterfaceStructuredBuffer<LightInfo>>(LightInfo::Name.c_str()));
 }
 
 bool glTFRenderInterfaceLighting::UpdateCPUBuffer(glTFRenderResourceManager& resource_manager)

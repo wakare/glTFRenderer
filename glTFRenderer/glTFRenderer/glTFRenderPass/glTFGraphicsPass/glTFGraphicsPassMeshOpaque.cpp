@@ -16,8 +16,7 @@ glTFGraphicsPassMeshOpaque::glTFGraphicsPassMeshOpaque()
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMaterial>());
     
     const std::shared_ptr<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Warp, RHIStaticSamplerFilterMode::Linear>> sampler_interface =
-        std::make_shared<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Warp, RHIStaticSamplerFilterMode::Linear>>();
-    sampler_interface->SetSamplerRegisterIndexName("DEFAULT_SAMPLER_REGISTER_INDEX");
+        std::make_shared<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Warp, RHIStaticSamplerFilterMode::Linear>>("DEFAULT_SAMPLER_REGISTER_INDEX");
     AddRenderInterface(sampler_interface);
 }
 

@@ -32,8 +32,7 @@ bool glTFGraphicsPassTestIndexedTextureTriangle::InitRenderInterface(glTFRenderR
     RETURN_IF_FALSE(glTFGraphicsPassTestTriangleBase::InitRenderInterface(resource_manager))
     
     const std::shared_ptr<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Clamp, RHIStaticSamplerFilterMode::Linear>> sampler_interface =
-            std::make_shared<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Clamp, RHIStaticSamplerFilterMode::Linear>>();
-    sampler_interface->SetSamplerRegisterIndexName("DEFAULT_SAMPLER_REGISTER_INDEX");
+            std::make_shared<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Clamp, RHIStaticSamplerFilterMode::Linear>>("DEFAULT_SAMPLER_REGISTER_INDEX");
     AddRenderInterface(sampler_interface);
     
     return true;

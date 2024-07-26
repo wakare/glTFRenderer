@@ -6,9 +6,9 @@ constexpr size_t max_heap_size = 256ull * 64 * 1024;
 
 glTFRenderInterfaceSceneMeshInfo::glTFRenderInterfaceSceneMeshInfo()
 {
-    AddInterface(std::make_shared<glTFRenderInterfaceStructuredBuffer<SceneMeshDataOffsetInfo>>());
-    AddInterface(std::make_shared<glTFRenderInterfaceStructuredBuffer<SceneMeshVertexInfo, max_heap_size>>());
-    AddInterface(std::make_shared<glTFRenderInterfaceStructuredBuffer<SceneMeshFaceInfo, max_heap_size>>());
+    AddInterface(std::make_shared<glTFRenderInterfaceStructuredBuffer<SceneMeshDataOffsetInfo>>(SceneMeshDataOffsetInfo::Name.c_str()));
+    AddInterface(std::make_shared<glTFRenderInterfaceStructuredBuffer<SceneMeshVertexInfo, max_heap_size>>(SceneMeshVertexInfo::Name.c_str()));
+    AddInterface(std::make_shared<glTFRenderInterfaceStructuredBuffer<SceneMeshFaceInfo, max_heap_size>>(SceneMeshFaceInfo::Name.c_str()));
 }
 
 bool glTFRenderInterfaceSceneMeshInfo::UpdateSceneMeshData(glTFRenderResourceManager& resource_manager, const glTFRenderMeshManager& mesh_manager)

@@ -3,7 +3,8 @@
 #include "glTFScene/glTFSceneView.h"
 
 glTFRenderInterfaceSceneView::glTFRenderInterfaceSceneView()
-    : m_scene_view({})
+    : glTFRenderInterfaceSingleConstantBuffer(ConstantBufferSceneView::Name.c_str())
+    , m_scene_view({})
 {
 }
 

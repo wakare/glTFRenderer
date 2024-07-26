@@ -8,7 +8,12 @@ template<typename UploadStructType, unsigned count>
 class glTFRenderInterface32BitConstant : public glTFRenderInterfaceWithRSAllocation, public glTFRenderInterfaceCanUploadDataFromCPU
 {
 public:
-
+    glTFRenderInterface32BitConstant(const char* name)
+        : glTFRenderInterfaceWithRSAllocation(name)
+    {
+        
+    }
+    
     virtual bool UploadCPUBuffer(glTFRenderResourceManager& resource_manager, const void* data, size_t offset, size_t size)
     {
         GLTF_CHECK(sizeof (m_data) == size);
@@ -34,11 +39,6 @@ protected:
     virtual bool ApplyRootSignatureImpl(IRHIRootSignatureHelper& root_signature) override
     {
         return root_signature.AddConstantRootParameter(UploadStructType::Name, count, m_allocation);
-    }
-    
-    virtual void ApplyShaderDefineImpl(RHIShaderPreDefineMacros& out_shader_pre_define_macros) const override
-    {
-        AddRootSignatureShaderRegisterDefine(out_shader_pre_define_macros, UploadStructType::Name);
     }
     
     UploadStructType m_data[count];

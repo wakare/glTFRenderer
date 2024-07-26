@@ -1,9 +1,7 @@
 #pragma once
 
 #include "glTFGraphicsPassPostprocess.h"
-#include "glTFLoader/glTFElementCommon.h"
 #include "glTFRenderPass/glTFRenderPassCommon.h"
-#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneView.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceLighting.h"
 
 class glTFGraphicsPassLighting : public glTFGraphicsPassPostprocess
