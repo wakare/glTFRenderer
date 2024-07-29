@@ -26,19 +26,17 @@ void RootSignatureAllocation::AddShaderDefine(RHIShaderPreDefineMacros& out_shad
         break;
     }
 
-    
+    memset(shader_resource_declaration, 0, sizeof(shader_resource_declaration));
     if (RHIConfigSingleton::Instance().GetGraphicsAPIType() == RHIGraphicsAPIType::RHI_GRAPHICS_API_DX12)
     {
-        memset(shader_resource_declaration, 0, sizeof(shader_resource_declaration));
         (void)snprintf(shader_resource_declaration, sizeof(shader_resource_declaration), "register(%s%d, space%u)", register_name.c_str(), register_index, space);
-        out_shader_macros.AddMacro(parameter_name, shader_resource_declaration);    
+            
     }
     else
     {
-        memset(shader_resource_declaration, 0, sizeof(shader_resource_declaration));
-        // VK layout shader macro
-        (void)snprintf(shader_resource_declaration, sizeof(shader_resource_declaration), "[[vk::binding(%d, %d)]]", register_index, space);
-        out_shader_macros.AddMacro(parameter_name, shader_resource_declaration);
+        (void)snprintf(shader_resource_declaration, sizeof(shader_resource_declaration), "[[vk::binding(%d, %d)]]", register_index, space);   
     }
+    
+    out_shader_macros.AddMacro(parameter_name, shader_resource_declaration);
     out_shader_macros.AddMacro("DX_SHADER", RHIConfigSingleton::Instance().GetGraphicsAPIType() == RHIGraphicsAPIType::RHI_GRAPHICS_API_DX12 ? "1" : "0");
 }
