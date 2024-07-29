@@ -16,6 +16,64 @@
 #include "VKTexture.h"
 #include "VKVertexBufferView.h"
 
+VkAccessFlags2 GetAccessFlagFromResourceState(RHIResourceStateType state)
+{
+    VkAccessFlags2 result{};
+
+    switch (state) {
+    case RHIResourceStateType::STATE_UNKNOWN:
+        result = VK_ACCESS_2_NONE;
+        break;
+    case RHIResourceStateType::STATE_COMMON:
+        result = VK_ACCESS_2_NONE;
+        break;
+    case RHIResourceStateType::STATE_GENERIC_READ:
+        result = VK_ACCESS_2_MEMORY_READ_BIT;
+        break;
+    case RHIResourceStateType::STATE_COPY_SOURCE:
+        result = VK_ACCESS_2_TRANSFER_READ_BIT;
+        break;
+    case RHIResourceStateType::STATE_COPY_DEST:
+        result = VK_ACCESS_2_TRANSFER_WRITE_BIT;
+        break;
+    case RHIResourceStateType::STATE_VERTEX_AND_CONSTANT_BUFFER:
+        result = VK_ACCESS_2_VERTEX_ATTRIBUTE_READ_BIT;
+        break;
+    case RHIResourceStateType::STATE_INDEX_BUFFER:
+        result = VK_ACCESS_2_INDEX_READ_BIT;
+        break;
+    case RHIResourceStateType::STATE_PRESENT:
+        result = VK_ACCESS_2_MEMORY_READ_BIT;
+        break;
+    case RHIResourceStateType::STATE_RENDER_TARGET:
+        result = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+        break;
+    case RHIResourceStateType::STATE_DEPTH_WRITE:
+        result = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        break;
+    case RHIResourceStateType::STATE_DEPTH_READ:
+        result = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+        break;
+    case RHIResourceStateType::STATE_UNORDERED_ACCESS:
+        result = VK_ACCESS_2_SHADER_WRITE_BIT;
+        break;
+    case RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE:
+        result = VK_ACCESS_2_SHADER_READ_BIT;
+        break;
+    case RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE:
+        result = VK_ACCESS_2_SHADER_READ_BIT;
+        break;
+    case RHIResourceStateType::STATE_ALL_SHADER_RESOURCE:
+        result = VK_ACCESS_2_SHADER_READ_BIT;
+        break;
+    case RHIResourceStateType::STATE_RAYTRACING_ACCELERATION_STRUCTURE:
+        result = VK_ACCESS_2_ACCELERATION_STRUCTURE_READ_BIT_KHR;
+        break;
+    }
+    
+    return result;
+}
+
 bool VulkanUtils::InitGUIContext(IRHIDevice& device, IRHICommandQueue& graphics_queue, IRHIDescriptorManager& descriptor_manager, unsigned back_buffer_count)
 {
     auto& vulkan_device = dynamic_cast<VKDevice&>(device);
@@ -298,6 +356,10 @@ bool VulkanUtils::SetIndexBufferView(IRHICommandList& command_list, IRHIIndexBuf
 
 bool VulkanUtils::SetPrimitiveTopology(IRHICommandList& command_list, RHIPrimitiveTopologyType type)
 {
+    auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
+    VkPrimitiveTopology topology = VKConverterUtils::ConvertToPrimitiveTopology(type);
+    vkCmdSetPrimitiveTopology(vk_command_buffer, topology);
+    
     return true;
 }
 
@@ -310,7 +372,27 @@ bool VulkanUtils::SetConstant32BitToRootParameterSlot(IRHICommandList& command_l
 bool VulkanUtils::AddBufferBarrierToCommandList(IRHICommandList& command_list, const IRHIBuffer& buffer,
                                                 RHIResourceStateType before_state, RHIResourceStateType after_state)
 {
+    auto vk_command_list = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
+    auto vk_buffer = dynamic_cast<const VKBuffer&>(buffer).GetRawBuffer();
     
+    VkBufferMemoryBarrier2 buffer_barrier {.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2};
+    buffer_barrier.pNext = nullptr;
+    buffer_barrier.buffer = vk_buffer;
+    buffer_barrier.offset = 0;
+    buffer_barrier.size = buffer.GetBufferDesc().width;
+    
+    buffer_barrier.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+    buffer_barrier.srcAccessMask = GetAccessFlagFromResourceState(before_state);
+    buffer_barrier.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+    buffer_barrier.dstAccessMask = GetAccessFlagFromResourceState(after_state);
+
+    VkDependencyInfo dep_info {};
+    dep_info.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+    dep_info.pNext = nullptr;
+    dep_info.bufferMemoryBarrierCount = 1;
+    dep_info.pBufferMemoryBarriers = &buffer_barrier;
+    
+    vkCmdPipelineBarrier2(vk_command_list, &dep_info);
     
     return true;
 }
@@ -324,9 +406,9 @@ bool VulkanUtils::AddTextureBarrierToCommandList(IRHICommandList& command_list, 
     VkImageMemoryBarrier2 image_barrier {.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2};
     image_barrier.pNext = nullptr;
     image_barrier.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
-    image_barrier.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT;
+    image_barrier.srcAccessMask = GetAccessFlagFromResourceState(before_state);
     image_barrier.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
-    image_barrier.dstAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT;
+    image_barrier.dstAccessMask = GetAccessFlagFromResourceState(after_state);
 
     //image_barrier.oldLayout = VKConverterUtils::ConvertToImageLayout(beforeState);
     image_barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -402,6 +484,31 @@ bool VulkanUtils::Present(IRHISwapChain& swap_chain, IRHICommandQueue& command_q
 
 bool VulkanUtils::CopyTexture(IRHICommandList& command_list, IRHITexture& dst, IRHITexture& src)
 {
+    auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
+    auto& vk_image_src = dynamic_cast<VKTexture&>(src);
+    auto& vk_image_dst = dynamic_cast<VKTexture&>(dst);
+
+    GLTF_CHECK(vk_image_src.GetTextureDesc().GetTextureWidth() == vk_image_dst.GetTextureDesc().GetTextureWidth() &&
+        vk_image_src.GetTextureDesc().GetTextureHeight() == vk_image_dst.GetTextureDesc().GetTextureHeight());
+    
+    VkImageCopy image_copy{};
+    image_copy.extent = {vk_image_src.GetTextureDesc().GetTextureWidth(), vk_image_src.GetTextureDesc().GetTextureHeight(), 1};
+    image_copy.srcOffset = {0, 0, 0};
+    image_copy.dstOffset = {0, 0, 0};
+    image_copy.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    image_copy.srcSubresource.layerCount = 1;
+    image_copy.srcSubresource.mipLevel = 0;
+    image_copy.srcSubresource.baseArrayLayer = 0;
+    image_copy.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    image_copy.dstSubresource.layerCount = 1;
+    image_copy.dstSubresource.mipLevel = 0;
+    image_copy.dstSubresource.baseArrayLayer = 0;
+
+    VkImageLayout src_layout = VKConverterUtils::ConvertToImageLayout(vk_image_src.GetState());
+    VkImageLayout dst_layout = VKConverterUtils::ConvertToImageLayout(vk_image_dst.GetState());
+    
+    vkCmdCopyImage(vk_command_buffer, vk_image_src.GetRawImage(), src_layout, vk_image_dst.GetRawImage(), dst_layout, 1, &image_copy);
+    
     return true;
 }
 

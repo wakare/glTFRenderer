@@ -19,4 +19,5 @@ public:
     static VkAccessFlagBits ConvertToAccessFlags(RHIAccessFlags flags);
     static VkBufferUsageFlags ConvertToBufferUsage(RHIResourceUsageFlags flags);
     static VkImageUsageFlags ConvertToImageUsage(RHIResourceUsageFlags flags);
+    static VkPrimitiveTopology ConvertToPrimitiveTopology(RHIPrimitiveTopologyType type);
 };

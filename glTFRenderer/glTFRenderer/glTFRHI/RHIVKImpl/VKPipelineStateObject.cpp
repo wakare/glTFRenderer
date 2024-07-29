@@ -106,7 +106,8 @@ bool VKGraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device, 
     std::vector<VkDynamicState> dynamic_states =
         {
         VK_DYNAMIC_STATE_VIEWPORT,
-        VK_DYNAMIC_STATE_SCISSOR
+        VK_DYNAMIC_STATE_SCISSOR,
+        VK_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY
         };
 
     VkPipelineDynamicStateCreateInfo create_dynamic_state_info {};

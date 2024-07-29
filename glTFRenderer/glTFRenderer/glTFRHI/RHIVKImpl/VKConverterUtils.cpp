@@ -361,3 +361,17 @@ VkImageUsageFlags VKConverterUtils::ConvertToImageUsage(RHIResourceUsageFlags fl
     
     return result;
 }
+
+VkPrimitiveTopology VKConverterUtils::ConvertToPrimitiveTopology(RHIPrimitiveTopologyType type)
+{
+    VkPrimitiveTopology result = VK_PRIMITIVE_TOPOLOGY_MAX_ENUM;
+    switch (type) {
+    case RHIPrimitiveTopologyType::TRIANGLELIST:
+        result = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        break;
+    default:
+        GLTF_CHECK(false);
+    }
+    
+    return result;
+}
