@@ -16,11 +16,11 @@ public:
         return _instance;
     }
 
-    RHIGraphicsAPIType GetGraphicsAPIType() const {return m_graphicsAPI;}
-    void SetGraphicsAPIType(RHIGraphicsAPIType type) {m_graphicsAPI = type; }
+    RHIGraphicsAPIType GetGraphicsAPIType() const {return m_graphics_api;}
+    void SetGraphicsAPIType(RHIGraphicsAPIType type) {m_graphics_api = type; }
     
 private:
     RHIConfigSingleton();
 
-    RHIGraphicsAPIType m_graphicsAPI;
+    RHIGraphicsAPIType m_graphics_api;
 };

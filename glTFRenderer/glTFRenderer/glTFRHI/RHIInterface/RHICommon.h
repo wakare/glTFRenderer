@@ -376,36 +376,7 @@ struct RootSignatureAllocation
     {
     }
 
-    void AddShaderDefine(RHIShaderPreDefineMacros& out_shader_macros) const
-    {
-        char registerIndexValue[64] = {'\0'};
-
-        std::string register_name;
-        switch (register_type) {
-        case RHIShaderRegisterType::b:
-            register_name = "b";
-            break;
-        case RHIShaderRegisterType::t:
-            register_name = "t";
-            break;
-        case RHIShaderRegisterType::u:
-            register_name = "u";
-            break;
-        case RHIShaderRegisterType::s:
-            register_name = "s";
-            break;
-        case RHIShaderRegisterType::Unknown:
-            GLTF_CHECK(false);
-            break;
-        }
-    
-        (void)snprintf(registerIndexValue, sizeof(registerIndexValue), "register(%s%d, space%u)", register_name.c_str(), register_index, space);
-        out_shader_macros.AddMacro(parameter_name, registerIndexValue);
-
-        // VK layout shader macro
-        (void)snprintf(registerIndexValue, sizeof(registerIndexValue), "[[vk::binding(%d, %d)]]", register_index, space);
-        out_shader_macros.AddMacro(parameter_name + "_VK", registerIndexValue);
-    }
+    void AddShaderDefine(RHIShaderPreDefineMacros& out_shader_macros) const;
 
     std::string parameter_name;
     unsigned parameter_index;

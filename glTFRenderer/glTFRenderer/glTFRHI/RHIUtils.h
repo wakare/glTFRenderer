@@ -69,7 +69,7 @@ public:
 
     virtual bool SupportRayTracing(IRHIDevice& device) = 0;
     virtual unsigned GetAlignmentSizeForUAVCount(unsigned size) = 0;
-
+    
     static RHIUtils& Instance();
 
 protected:

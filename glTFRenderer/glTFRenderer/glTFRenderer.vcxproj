@@ -416,6 +416,7 @@
     <ClCompile Include="glTFRHI\RHIInterface\IRHIVertexBuffer.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIVertexBufferView.cpp" />
     <ClCompile Include="glTFRHI\RHIInterface\IRHIFrameBuffer.cpp" />
+    <ClCompile Include="glTFRHI\RHIInterface\RHICommon.cpp" />
     <ClCompile Include="glTFRHI\RHIResourceFactory.cpp" />
     <ClCompile Include="glTFRHI\RHIUtils.cpp" />
     <ClCompile Include="glTFRHI\RHIVKImpl\VKCommandAllocator.cpp" />
