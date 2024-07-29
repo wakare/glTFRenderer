@@ -1,3 +1,5 @@
+#include "glTFResources/ShaderSource/ShaderDeclarationUtil.hlsl"
+
 struct VSOutput
 {
     float4 pos : SV_POSITION;
@@ -9,8 +11,8 @@ struct PSOutput
     float4 color : SV_TARGET0;
 };
 
-SAMPLED_TEX_REGISTER_INDEX_VK Texture2D sampled_texture : SAMPLED_TEX_REGISTER_INDEX;
-DEFAULT_SAMPLER_REGISTER_INDEX_VK SamplerState default_sampler : DEFAULT_SAMPLER_REGISTER_INDEX;
+DECLARE_RESOURCE(Texture2D sampled_texture, SAMPLED_TEX_REGISTER_INDEX)
+DECLARE_RESOURCE(SamplerState default_sampler, DEFAULT_SAMPLER_REGISTER_INDEX)
 
 PSOutput main(VSOutput input)
 {

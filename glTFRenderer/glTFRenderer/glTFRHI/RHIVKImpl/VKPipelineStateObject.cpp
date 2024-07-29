@@ -2,7 +2,6 @@
 
 #include "VKConverterUtils.h"
 #include "VKDevice.h"
-#include "VKRenderPass.h"
 #include "VKRootSignature.h"
 #include "VKSwapChain.h"
 #include "ShaderUtil/glTFShaderUtils.h"

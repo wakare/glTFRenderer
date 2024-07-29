@@ -353,6 +353,7 @@
     <None Include="glTFResources\ShaderSource\TestShaders\TestTriangleVertStreamIn.hlsl" />
     <None Include="glTFResources\ShaderSource\TestShaders\TestTexturedTriangleFrag.hlsl" />
     <None Include="glTFResources\ShaderSource\TestShaders\TestTexturedTriangleVert.hlsl" />
+    <None Include="glTFResources\ShaderSource\ShaderDeclarationUtil.hlsl" />
     <ClCompile Include="glTFRHI\IRHIIndirectDrawBuilder.cpp" />
     <ClCompile Include="glTFRHI\RHIConfigSingleton.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12CommandSignature.cpp" />
