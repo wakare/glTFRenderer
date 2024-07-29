@@ -1,9 +1,10 @@
 #include "glTFResources/ShaderSource/MeshPassCommon.hlsl"
 #include "glTFResources/ShaderSource/Math/MathCommon.hlsl"
 #include "glTFResources/ShaderSource/Interface/SceneMaterial.hlsl"
+#include "glTFResources/ShaderSource/ShaderDeclarationUtil.hlsl"
 
 #ifdef HAS_TEXCOORD 
-SamplerState defaultSampler : DEFAULT_SAMPLER_REGISTER_INDEX;
+DECLARE_RESOURCE(SamplerState defaultSampler, DEFAULT_SAMPLER_REGISTER_INDEX);
 #endif
 
 PS_OUTPUT main(PS_INPUT input)

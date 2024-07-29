@@ -1,19 +1,21 @@
 #ifndef SCENE_MESH_INFO
 #define SCENE_MESH_INFO
 
+#include "glTFResources/ShaderSource/ShaderDeclarationUtil.hlsl"
+
 struct SceneMeshDataOffsetInfo
 {
     uint start_face_index;
     uint material_index;
     uint start_vertex_index;
 };
-StructuredBuffer<SceneMeshDataOffsetInfo> g_mesh_start_info : SceneMeshDataOffsetInfo_REGISTER_SRV_INDEX;
+DECLARE_RESOURCE(StructuredBuffer<SceneMeshDataOffsetInfo> g_mesh_start_info , SceneMeshDataOffsetInfo_REGISTER_SRV_INDEX);
 
 struct SceneMeshFaceInfo
 {
     uint3 vertex_index;
 };
-StructuredBuffer<SceneMeshFaceInfo> g_mesh_face_info : SceneMeshFaceInfo_REGISTER_SRV_INDEX;
+DECLARE_RESOURCE(StructuredBuffer<SceneMeshFaceInfo> g_mesh_face_info , SceneMeshFaceInfo_REGISTER_SRV_INDEX);
 
 struct SceneMeshVertexInfo
 {
@@ -22,7 +24,7 @@ struct SceneMeshVertexInfo
     float4 tangent;
     float4 uv;
 };
-StructuredBuffer<SceneMeshVertexInfo> g_mesh_vertex_info : SceneMeshVertexInfo_REGISTER_SRV_INDEX;
+DECLARE_RESOURCE(StructuredBuffer<SceneMeshVertexInfo> g_mesh_vertex_info , SceneMeshVertexInfo_REGISTER_SRV_INDEX);
 
 uint3 GetMeshTriangleVertexIndex(uint mesh_id, uint primitive_id)
 {

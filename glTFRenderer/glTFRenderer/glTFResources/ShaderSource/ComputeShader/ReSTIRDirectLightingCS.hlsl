@@ -5,22 +5,23 @@
 #include "glTFResources/ShaderSource/LightPassCommon.hlsl"
 #include "glTFResources/ShaderSource/Math/MathCommon.hlsl"
 #include "glTFResources/ShaderSource/FrameStat.hlsl"
+#include "glTFResources/ShaderSource/ShaderDeclarationUtil.hlsl"
 
-Texture2D albedoTex: ALBEDO_REGISTER_INDEX;
-Texture2D normalTex: NORMAL_REGISTER_INDEX;
-Texture2D depthTex: DEPTH_REGISTER_INDEX;
+DECLARE_RESOURCE(Texture2D albedoTex, ALBEDO_REGISTER_INDEX);
+DECLARE_RESOURCE(Texture2D normalTex, NORMAL_REGISTER_INDEX);
+DECLARE_RESOURCE(Texture2D depthTex, DEPTH_REGISTER_INDEX);
 
-Texture2D LightingSamples : LIGHTING_SAMPLES_REGISTER_INDEX;
-Texture2D ScreenUVOffset : SCREEN_UV_OFFSET_REGISTER_INDEX;
+DECLARE_RESOURCE(Texture2D LightingSamples , LIGHTING_SAMPLES_REGISTER_INDEX);
+DECLARE_RESOURCE(Texture2D ScreenUVOffset , SCREEN_UV_OFFSET_REGISTER_INDEX);
 
-RWTexture2D<float4> Output: OUTPUT_TEX_REGISTER_INDEX;
+DECLARE_RESOURCE(RWTexture2D<float4> Output, OUTPUT_TEX_REGISTER_INDEX);
 
-RWTexture2D<float4> aggregate_samples_output : AGGREGATE_OUTPUT_REGISTER_INDEX;
-Texture2D<float4> aggregate_samples_back_buffer : AGGREGATE_BACKBUFFER_REGISTER_INDEX;
+DECLARE_RESOURCE(RWTexture2D<float4> aggregate_samples_output , AGGREGATE_OUTPUT_REGISTER_INDEX);
+DECLARE_RESOURCE(Texture2D<float4> aggregate_samples_back_buffer , AGGREGATE_BACKBUFFER_REGISTER_INDEX);
 
 static float spatial_reuse_world_position_threshold = 1;
 
-cbuffer RayTracingDIPassOptions: RAY_TRACING_DI_POSTPROCESS_OPTION_CBV_INDEX
+DECLARE_RESOURCE(cbuffer RayTracingDIPassOptions, RAY_TRACING_DI_POSTPROCESS_OPTION_CBV_INDEX)
 {
     int spatial_reuse_range;
     bool enable_spatial_reuse;

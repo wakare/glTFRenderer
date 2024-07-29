@@ -1,14 +1,13 @@
 #ifndef INDIRECT_CULLING
 #define INDIRECT_CULLING
 #include "glTFResources/ShaderSource/Interface/SceneView.hlsl"
+#include "glTFResources/ShaderSource/ShaderDeclarationUtil.hlsl"
 
 #ifndef threadBlockSize
 #define threadBlockSize 64
 #endif
 
-//#define NDC_CULLING
-
-cbuffer CullingConstant: CULLING_CONSTANT_BUFFER_REGISTER_CBV_INDEX
+DECLARE_RESOURCE(cbuffer CullingConstant, CULLING_CONSTANT_BUFFER_REGISTER_CBV_INDEX)
 {
     uint input_indirect_commands_count;
 };
@@ -21,7 +20,7 @@ struct MeshInstanceInputData
     uint mesh_id;
     uint padding;
 };
-StructuredBuffer<MeshInstanceInputData> g_mesh_instance_input_data : MESH_INSTANCE_INPUT_DATA_REGISTER_SRV_INDEX;
+DECLARE_RESOURCE(StructuredBuffer<MeshInstanceInputData> g_mesh_instance_input_data, MESH_INSTANCE_INPUT_DATA_REGISTER_SRV_INDEX);
 
 struct IndirectDrawCommand
 {
@@ -33,15 +32,15 @@ struct IndirectDrawCommand
     
     uint3 padding;
 };
-StructuredBuffer<IndirectDrawCommand> g_indirect_draw_data : INDIRECT_DRAW_DATA_REGISTER_SRV_INDEX;
+DECLARE_RESOURCE(StructuredBuffer<IndirectDrawCommand> g_indirect_draw_data, INDIRECT_DRAW_DATA_REGISTER_SRV_INDEX);
 
 struct CullingBoundingBox
 {
     float4 bounding_box;
 };
-StructuredBuffer<CullingBoundingBox> g_bounding_box_data : CULLING_BOUNDING_BOX_REGISTER_SRV_INDEX;
+DECLARE_RESOURCE(StructuredBuffer<CullingBoundingBox> g_bounding_box_data, CULLING_BOUNDING_BOX_REGISTER_SRV_INDEX);
 
-AppendStructuredBuffer<IndirectDrawCommand> culled_indirect_commands : INDIRECT_DRAW_DATA_OUTPUT_REGISTER_UAV_INDEX;    // UAV: Processed indirect commands
+DECLARE_RESOURCE(AppendStructuredBuffer<IndirectDrawCommand> culled_indirect_commands, INDIRECT_DRAW_DATA_OUTPUT_REGISTER_UAV_INDEX);
 
 [numthreads(threadBlockSize, 1, 1)]
 void main(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)

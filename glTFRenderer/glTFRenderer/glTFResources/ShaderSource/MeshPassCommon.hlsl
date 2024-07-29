@@ -1,7 +1,7 @@
 #ifndef MESH_PASS_COMMON
 #define MESH_PASS_COMMON
 #include "glTFResources/ShaderSource/Interface/SceneView.hlsl"
-//#include "glTFResources/ShaderSource/Interface/SceneMesh.hlsl"
+#include "glTFResources/ShaderSource/ShaderDeclarationUtil.hlsl"
 
 struct VS_INPUT
 {
@@ -68,6 +68,6 @@ struct MeshInstanceInputData
     uint mesh_id;
     uint padding;
 };
-StructuredBuffer<MeshInstanceInputData> g_mesh_instance_input_data : MESH_INSTANCE_INPUT_DATA_REGISTER_SRV_INDEX;
+DECLARE_RESOURCE(StructuredBuffer<MeshInstanceInputData> g_mesh_instance_input_data, MESH_INSTANCE_INPUT_DATA_REGISTER_SRV_INDEX);
 
 #endif

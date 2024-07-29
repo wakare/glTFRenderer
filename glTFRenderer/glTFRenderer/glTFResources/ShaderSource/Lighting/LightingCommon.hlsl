@@ -6,8 +6,9 @@
 #include "glTFResources/ShaderSource/Math/BRDF.hlsl"
 #include "glTFResources/ShaderSource/Math/ReservoirSample.hlsl"
 #include "glTFResources/ShaderSource/RayTracing/PathTracingRays.hlsl"
+#include "glTFResources/ShaderSource/ShaderDeclarationUtil.hlsl"
 
-cbuffer LightInfoConstantBuffer : SCENE_LIGHT_INFO_CONSTANT_REGISTER_INDEX
+DECLARE_RESOURCE(cbuffer LightInfoConstantBuffer, SCENE_LIGHT_INFO_CONSTANT_REGISTER_INDEX)
 {
     int light_count;
 };
@@ -35,7 +36,7 @@ struct PixelLightingShadingInfo
 #define LIGHT_TYPE_POINT 0
 #define LIGHT_TYPE_DIRECTIONAL 1
 
-StructuredBuffer<LightInfo> g_lightInfos : SCENE_LIGHT_INFO_REGISTER_INDEX;
+DECLARE_RESOURCE(StructuredBuffer<LightInfo> g_lightInfos, SCENE_LIGHT_INFO_REGISTER_INDEX);
 
 float3 GetLightIntensity(uint index, float3 position)
 {

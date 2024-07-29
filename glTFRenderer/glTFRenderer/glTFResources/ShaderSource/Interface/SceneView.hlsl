@@ -1,7 +1,9 @@
 #ifndef SCENE_VIEW
 #define SCENE_VIEW
 
-cbuffer SceneViewConstantBuffer : SCENE_VIEW_REGISTER_INDEX
+#include "glTFResources/ShaderSource/ShaderDeclarationUtil.hlsl"
+
+DECLARE_RESOURCE(cbuffer SceneViewConstantBuffer , SCENE_VIEW_REGISTER_INDEX)
 {
     // Current matrix
     float4x4 viewMatrix;

@@ -1,6 +1,8 @@
 #ifndef SCENE_MATERIAL
 #define SCENE_MATERIAL
 
+#include "glTFResources/ShaderSource/ShaderDeclarationUtil.hlsl"
+
 #define MATERIAL_TEXTURE_INVALID_INDEX 0xffffffff 
 struct MaterialInfo
 {
@@ -14,9 +16,9 @@ struct MaterialInfo
     float4 metallicAndRoughness;
 };
 
-StructuredBuffer<MaterialInfo> g_material_infos : SCENE_MATERIAL_INFO_REGISTER_INDEX;
-Texture2D<float4> bindless_material_textures[] : SCENE_MATERIAL_TEXTURE_REGISTER_INDEX;
-SamplerState material_sampler : SCENE_MATERIAL_SAMPLER_REGISTER_INDEX;
+DECLARE_RESOURCE(StructuredBuffer<MaterialInfo> g_material_infos , SCENE_MATERIAL_INFO_REGISTER_INDEX);
+DECLARE_RESOURCE(Texture2D<float4> bindless_material_textures[] , SCENE_MATERIAL_TEXTURE_REGISTER_INDEX);
+DECLARE_RESOURCE(SamplerState material_sampler , SCENE_MATERIAL_SAMPLER_REGISTER_INDEX);
 
 static float4 material_debug_color[8] =
 {

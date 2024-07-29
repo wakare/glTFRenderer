@@ -8,10 +8,11 @@
 #include "glTFResources/ShaderSource/Interface/RadiosityScene.hlsl"
 #include "glTFResources/ShaderSource/Lighting/LightingCommon.hlsl"
 #include "glTFResources/ShaderSource/RayTracing/PathTracingRays.hlsl"
+#include "glTFResources/ShaderSource/ShaderDeclarationUtil.hlsl"
 
-RaytracingAccelerationStructure scene : SCENE_AS_REGISTER_INDEX;
-RWTexture2D<float4> render_target : OUTPUT_REGISTER_INDEX;
-RWTexture2D<float4> screen_uv_offset : SCREEN_UV_OFFSET_REGISTER_INDEX;
+DECLARE_RESOURCE(RaytracingAccelerationStructure scene , SCENE_AS_REGISTER_INDEX);
+DECLARE_RESOURCE(RWTexture2D<float4> render_target , OUTPUT_REGISTER_INDEX);
+DECLARE_RESOURCE(RWTexture2D<float4> screen_uv_offset , SCREEN_UV_OFFSET_REGISTER_INDEX);
 
 cbuffer RayTracingPathTracingPassOptions: RAY_TRACING_PATH_TRACING_OPTION_CBV_INDEX
 {

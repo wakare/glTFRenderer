@@ -522,8 +522,6 @@
     <ClInclude Include="glTFRenderPass\glTFMeshRenderResource.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderResourceFrameManager.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderResourceManager.h" />
-    <None Include="glTFResources\ShaderSource\MeshPassCommon.h" />
-    <None Include="glTFResources\ShaderSource\LightPassCommon.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderResourceUtils.h" />
     <ClInclude Include="glTFRenderPass\glTFTestPass\glTFGraphicsPassTestIndexedTextureTriangle.h" />
     <ClInclude Include="glTFRenderPass\glTFTestPass\glTFGraphicsPassTestTriangleSimplest.h" />

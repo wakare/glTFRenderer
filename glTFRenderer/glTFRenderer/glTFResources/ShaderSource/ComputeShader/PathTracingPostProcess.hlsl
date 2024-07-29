@@ -1,19 +1,20 @@
 #ifndef PATH_TRACING_POST_PROCESS
 #define PATH_TRACING_POST_PROCESS
 #include "glTFResources/ShaderSource/Interface/SceneView.hlsl"
+#include "glTFResources/ShaderSource/ShaderDeclarationUtil.hlsl"
 
-Texture2D<float4> postprocess_input_texture : POST_PROCESS_INPUT_REGISTER_INDEX;
-Texture2D<float4> screen_uv_offset : SCREEN_UV_OFFSET_REGISTER_INDEX;
+DECLARE_RESOURCE(Texture2D<float4> postprocess_input_texture, POST_PROCESS_INPUT_REGISTER_INDEX);
+DECLARE_RESOURCE(Texture2D<float4> screen_uv_offset, SCREEN_UV_OFFSET_REGISTER_INDEX);
 
-RWTexture2D<float4> accumulation_output : ACCUMULATION_OUTPUT_REGISTER_INDEX;
-Texture2D<float4> accumulation_back_buffer : ACCUMULATION_BACKBUFFER_REGISTER_INDEX;
+DECLARE_RESOURCE(RWTexture2D<float4> accumulation_output, ACCUMULATION_OUTPUT_REGISTER_INDEX);
+DECLARE_RESOURCE(Texture2D<float4> accumulation_back_buffer, ACCUMULATION_BACKBUFFER_REGISTER_INDEX);
 
-RWTexture2D<float4> custom_output : CUSTOM_OUTPUT_REGISTER_INDEX;
-Texture2D<float4> custom_back_buffer : CUSTOM_BACKBUFFER_REGISTER_INDEX;
+DECLARE_RESOURCE(RWTexture2D<float4> custom_output, CUSTOM_OUTPUT_REGISTER_INDEX);
+DECLARE_RESOURCE(Texture2D<float4> custom_back_buffer, CUSTOM_BACKBUFFER_REGISTER_INDEX);
 
-RWTexture2D<float4> postprocess_output : POST_PROCESS_OUTPUT_REGISTER_INDEX;
+DECLARE_RESOURCE(RWTexture2D<float4> postprocess_output, POST_PROCESS_OUTPUT_REGISTER_INDEX);
 
-cbuffer RayTracingPostProcessPassOptions: RAY_TRACING_POSTPROCESS_OPTION_CBV_INDEX
+DECLARE_RESOURCE(cbuffer RayTracingPostProcessPassOptions, RAY_TRACING_POSTPROCESS_OPTION_CBV_INDEX)
 {
     bool enable_post_process;
     bool use_velocity_clamp;

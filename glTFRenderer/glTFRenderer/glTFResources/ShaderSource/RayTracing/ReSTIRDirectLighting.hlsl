@@ -5,13 +5,14 @@
 #include "glTFResources/ShaderSource/RayTracing/PathTracingRays.hlsl"
 #include "glTFResources/ShaderSource/Interface/SceneView.hlsl"
 #include "glTFResources/ShaderSource/Lighting/LightingCommon.hlsl"
+#include "glTFResources/ShaderSource/ShaderDeclarationUtil.hlsl"
 
-RaytracingAccelerationStructure scene : SCENE_AS_REGISTER_INDEX;
-RWTexture2D<float4> samples_output : OUTPUT_REGISTER_INDEX;
-RWTexture2D<float4> screen_uv_offset : SCREEN_UV_OFFSET_REGISTER_INDEX;
-RWTexture2D<float4> albedo_output : ALBEDO_REGISTER_INDEX;
-RWTexture2D<float4> normal_output : NORMAL_REGISTER_INDEX;
-RWTexture2D<float> depth_output : DEPTH_REGISTER_INDEX; 
+DECLARE_RESOURCE(RaytracingAccelerationStructure scene , SCENE_AS_REGISTER_INDEX);
+DECLARE_RESOURCE(RWTexture2D<float4> samples_output , OUTPUT_REGISTER_INDEX);
+DECLARE_RESOURCE(RWTexture2D<float4> screen_uv_offset , SCREEN_UV_OFFSET_REGISTER_INDEX);
+DECLARE_RESOURCE(RWTexture2D<float4> albedo_output , ALBEDO_REGISTER_INDEX);
+DECLARE_RESOURCE(RWTexture2D<float4> normal_output , NORMAL_REGISTER_INDEX);
+DECLARE_RESOURCE(RWTexture2D<float> depth_output , DEPTH_REGISTER_INDEX); 
 
 cbuffer RayTracingDIPassOptions: RAY_TRACING_DI_OPTION_CBV_INDEX
 {

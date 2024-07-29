@@ -4,14 +4,15 @@
 #include "glTFResources/ShaderSource/Lighting/LightingCommon.hlsl"
 #include "glTFResources/ShaderSource/LightPassCommon.hlsl"
 #include "glTFResources/ShaderSource/Math/MathCommon.hlsl"
+#include "glTFResources/ShaderSource/ShaderDeclarationUtil.hlsl"
 
-Texture2D albedoTex: ALBEDO_TEX_REGISTER_INDEX;
-Texture2D normalTex: NORMAL_TEX_REGISTER_INDEX;
+DECLARE_RESOURCE(Texture2D albedoTex, ALBEDO_TEX_REGISTER_INDEX);
+DECLARE_RESOURCE(Texture2D normalTex, NORMAL_TEX_REGISTER_INDEX);
 
-Texture2D depthTex: DEPTH_TEX_REGISTER_INDEX;
+DECLARE_RESOURCE(Texture2D depthTex, DEPTH_TEX_REGISTER_INDEX);
 
-RWTexture2D<float4> Output: OUTPUT_TEX_REGISTER_INDEX;
-SamplerState defaultSampler : DEFAULT_SAMPLER_REGISTER_INDEX;
+DECLARE_RESOURCE(RWTexture2D<float4> Output, OUTPUT_TEX_REGISTER_INDEX);
+DECLARE_RESOURCE(SamplerState defaultSampler, DEFAULT_SAMPLER_REGISTER_INDEX);
 
 float3 GetWorldPosition(int2 texCoord)
 {
