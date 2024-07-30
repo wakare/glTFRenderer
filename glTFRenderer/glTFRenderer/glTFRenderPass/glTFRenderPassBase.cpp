@@ -105,12 +105,11 @@ bool glTFRenderPassBase::SetupRootSignature(glTFRenderResourceManager& resource_
 bool glTFRenderPassBase::SetupPipelineStateObject(glTFRenderResourceManager& resource_manager)
 {
     auto& shader_macros = m_pipeline_state_object->GetShaderMacros();
+    GetVertexStreamingManager(resource_manager).ConfigShaderMacros(shader_macros);
     for (const auto& render_interface : m_render_interfaces)
     {
         render_interface->ApplyShaderDefine(shader_macros);    
     }
-
-    GetVertexStreamingManager(resource_manager).ConfigShaderMacros(shader_macros);
     
     return true;
 }

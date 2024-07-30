@@ -38,5 +38,4 @@ void RootSignatureAllocation::AddShaderDefine(RHIShaderPreDefineMacros& out_shad
     }
     
     out_shader_macros.AddMacro(parameter_name, shader_resource_declaration);
-    out_shader_macros.AddMacro("DX_SHADER", RHIConfigSingleton::Instance().GetGraphicsAPIType() == RHIGraphicsAPIType::RHI_GRAPHICS_API_DX12 ? "1" : "0");
 }

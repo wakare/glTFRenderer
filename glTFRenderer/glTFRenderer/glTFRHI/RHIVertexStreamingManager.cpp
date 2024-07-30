@@ -1,4 +1,6 @@
 #include "RHIVertexStreamingManager.h"
+
+#include "RHIConfigSingleton.h"
 #include "RHIInterface/IRHIPipelineStateObject.h"
 
 MeshVertexInputLayout::MeshVertexInputLayout()
@@ -128,6 +130,7 @@ bool RHIVertexStreamingManager::Init(const VertexLayoutDeclaration& vertex_layou
 void RHIVertexStreamingManager::ConfigShaderMacros(RHIShaderPreDefineMacros& shader_macros) const
 {
     // Add shader pre define macros
+    unsigned attribute_location = 0;
     for (const auto& input_layout : m_vertex_attributes)
     {
         if (input_layout.semantic_name == INPUT_LAYOUT_UNIQUE_PARAMETER(NORMAL))
@@ -144,6 +147,15 @@ void RHIVertexStreamingManager::ConfigShaderMacros(RHIShaderPreDefineMacros& sha
         {
             shader_macros.AddMacro("HAS_TANGENT", "1");
         }
+
+        if (RHIConfigSingleton::Instance().GetGraphicsAPIType() == RHIGraphicsAPIType::RHI_GRAPHICS_API_Vulkan)
+        {
+            char vulkan_attribute_location[64] = {'\0'};
+            (void)snprintf(vulkan_attribute_location, sizeof(vulkan_attribute_location), "[[vk::location(%d)]]", attribute_location);
+            shader_macros.AddMacro(input_layout.semantic_name + "_VK", vulkan_attribute_location);
+        }
+
+        attribute_location++;
     }
 }
 

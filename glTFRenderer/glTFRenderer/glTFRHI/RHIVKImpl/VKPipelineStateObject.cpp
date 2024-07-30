@@ -51,7 +51,6 @@ bool VKGraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device,
 
     VkPipelineShaderStageCreateInfo shader_stages[] = {create_vertex_stage_info, create_frag_stage_info}; 
 
-
     std::map<unsigned, VkVertexInputBindingDescription> binding_records;
     
     std::vector<VkVertexInputAttributeDescription> attribute_descriptions;

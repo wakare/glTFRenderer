@@ -1,8 +1,10 @@
 
+#include "glTFResources/ShaderSource/ShaderDeclarationUtil.hlsl"
+
 struct VS_INPUT
 {
-    [[vk::location(0)]] float3 pos : POSITION;
-    [[vk::location(1)]] float2 uv : TEXCOORD;
+    DECLARE_ATTRIBUTE_LOCATION(float3 pos, POSITION);
+    DECLARE_ATTRIBUTE_LOCATION(float2 uv, TEXCOORD);
 };
 
 struct VS_OUTPUT

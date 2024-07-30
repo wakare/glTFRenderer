@@ -120,6 +120,19 @@ bool glTFGraphicsPassTestIndexedTextureTriangle::SetupRootSignature(glTFRenderRe
 
     RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("SAMPLED_TEX_REGISTER_INDEX", RHIRootParameterDescriptorRangeType::SRV, 1, false, m_sampled_texture_root_signature_allocation))
 
+    VertexAttributeElement position_attribute;
+    position_attribute.type = VertexAttributeType::VERTEX_POSITION;
+    position_attribute.byte_size = GetBytePerPixelByFormat(RHIDataFormat::R32G32B32_FLOAT);
+    VertexAttributeElement uv_attribute;
+    uv_attribute.type = VertexAttributeType::VERTEX_TEXCOORD0;
+    uv_attribute.byte_size = GetBytePerPixelByFormat(RHIDataFormat::R32G32_FLOAT);
+    
+    VertexLayoutDeclaration vertex_layout_declaration{};
+    vertex_layout_declaration.elements.push_back(position_attribute);
+    vertex_layout_declaration.elements.push_back(uv_attribute);
+    
+    m_vertex_streaming_manager.Init(vertex_layout_declaration, false);
+    
     return true;
 }
 
@@ -138,19 +151,6 @@ bool glTFGraphicsPassTestIndexedTextureTriangle::SetupPipelineStateObject(glTFRe
 
     auto& shaderMacros = GetGraphicsPipelineStateObject().GetShaderMacros();
     m_sampled_texture_root_signature_allocation.AddShaderDefine(shaderMacros);
-
-    VertexAttributeElement position_attribute;
-    position_attribute.type = VertexAttributeType::VERTEX_POSITION;
-    position_attribute.byte_size = GetBytePerPixelByFormat(RHIDataFormat::R32G32B32_FLOAT);
-    VertexAttributeElement uv_attribute;
-    uv_attribute.type = VertexAttributeType::VERTEX_TEXCOORD0;
-    uv_attribute.byte_size = GetBytePerPixelByFormat(RHIDataFormat::R32G32_FLOAT);
-    
-    VertexLayoutDeclaration vertex_layout_declaration{};
-    vertex_layout_declaration.elements.push_back(position_attribute);
-    vertex_layout_declaration.elements.push_back(uv_attribute);
-    
-    m_vertex_streaming_manager.Init(vertex_layout_declaration, false);
     
     return true;
 }
