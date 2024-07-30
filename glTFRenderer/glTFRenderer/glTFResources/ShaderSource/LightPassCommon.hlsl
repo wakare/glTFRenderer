@@ -5,14 +5,14 @@
 
 struct VS_INPUT
 {
-    float3 pos: POSITION;
+    DECLARE_ATTRIBUTE_LOCATION(float3 pos, POSITION);
     
 #ifdef HAS_NORMAL 
-    float3 normal: NORMAL;
+    DECLARE_ATTRIBUTE_LOCATION(float3 normal, NORMAL);
 #endif
     
 #ifdef HAS_TEXCOORD 
-    float2 texCoord: TEXCOORD;
+    DECLARE_ATTRIBUTE_LOCATION(float2 texCoord, TEXCOORD);
 #endif
 };
 
