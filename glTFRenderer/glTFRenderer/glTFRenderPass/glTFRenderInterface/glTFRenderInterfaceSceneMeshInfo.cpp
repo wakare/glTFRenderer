@@ -49,10 +49,10 @@ bool glTFRenderInterfaceSceneMeshInfo::UpdateSceneMeshData(glTFRenderResourceMan
         {
             SceneMeshVertexInfo vertex_info;
             size_t out_data_size = 0;
-            mesh.second.mesh->GetVertexBufferData().GetVertexAttributeDataByIndex(VertexAttributeType::POSITION, i, &vertex_info.position, out_data_size);
-            mesh.second.mesh->GetVertexBufferData().GetVertexAttributeDataByIndex(VertexAttributeType::NORMAL, i, &vertex_info.normal, out_data_size);
-            mesh.second.mesh->GetVertexBufferData().GetVertexAttributeDataByIndex(VertexAttributeType::TANGENT, i, &vertex_info.tangent, out_data_size);
-            mesh.second.mesh->GetVertexBufferData().GetVertexAttributeDataByIndex(VertexAttributeType::TEXCOORD_0, i, &vertex_info.uv, out_data_size);
+            mesh.second.mesh->GetVertexBufferData().GetVertexAttributeDataByIndex(VertexAttributeType::VERTEX_POSITION, i, &vertex_info.position, out_data_size);
+            mesh.second.mesh->GetVertexBufferData().GetVertexAttributeDataByIndex(VertexAttributeType::VERTEX_NORMAL, i, &vertex_info.normal, out_data_size);
+            mesh.second.mesh->GetVertexBufferData().GetVertexAttributeDataByIndex(VertexAttributeType::VERTEX_TANGENT, i, &vertex_info.tangent, out_data_size);
+            mesh.second.mesh->GetVertexBufferData().GetVertexAttributeDataByIndex(VertexAttributeType::VERTEX_TEXCOORD0, i, &vertex_info.uv, out_data_size);
             mesh_vertex_infos.push_back(vertex_info);
         }
         

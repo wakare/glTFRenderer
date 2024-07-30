@@ -749,7 +749,7 @@ enum class RHICommandAllocatorType
 #define GPU_BUFFER_HANDLE_TYPE unsigned long long
 
 // get the number of bits per pixel for a dxgi format
-inline unsigned GetRHIDataFormatBitsPerPixel(const RHIDataFormat& RHIDataFormat)
+inline unsigned GetBitPerPixelByFormat(const RHIDataFormat& RHIDataFormat)
 {
     if (RHIDataFormat == RHIDataFormat::R32G32B32A32_FLOAT) return 128;
     else if (RHIDataFormat == RHIDataFormat::R32G32B32A32_UINT) return 128;
@@ -781,9 +781,9 @@ inline unsigned GetRHIDataFormatBitsPerPixel(const RHIDataFormat& RHIDataFormat)
     return 32;
 }
 
-inline unsigned GetRHIDataFormatBytePerPixel(const RHIDataFormat& RHIDataFormat)
+inline unsigned GetBytePerPixelByFormat(const RHIDataFormat& RHIDataFormat)
 {
-    return GetRHIDataFormatBitsPerPixel(RHIDataFormat) / 8;
+    return GetBitPerPixelByFormat(RHIDataFormat) / 8;
 }
 
 struct RHIExecuteCommandListWaitInfo

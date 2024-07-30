@@ -1,6 +1,7 @@
 #pragma once
 #include "glTFGraphicsPassMeshBase.h"
 #include "glTFRenderPass/glTFRenderPassBase.h"
+#include "glTFRHI/RHIVertexStreamingManager.h"
 
 class IRHIIndexBufferView;
 class IRHIVertexBufferView;
@@ -32,9 +33,9 @@ protected:
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resourceManager) override;
     
     void DrawPostprocessQuad(glTFRenderResourceManager& resourceManager);
-    virtual const std::vector<RHIPipelineInputLayout>&
-    GetVertexInputLayout(glTFRenderResourceManager& resource_manager) override;
+    virtual const RHIVertexStreamingManager& GetVertexStreamingManager(glTFRenderResourceManager& resource_manager) const override;
     
 private:
     PostprocessQuadGPUResource m_postprocessQuadResource;
+    RHIVertexStreamingManager m_vertex_streaming_manager;
 };

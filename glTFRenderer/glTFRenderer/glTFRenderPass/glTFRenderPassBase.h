@@ -7,6 +7,7 @@
 #include "glTFScene/glTFSceneObjectBase.h"
 
 struct glTFSceneViewRenderFlags;
+class RHIVertexStreamingManager;
 class IRHIDescriptorUpdater;
 class IRHIRenderPass;
 class glTFMaterialBase;
@@ -70,6 +71,8 @@ protected:
     
     void AddRenderInterface(const std::shared_ptr<glTFRenderInterfaceBase>& render_interface);
     bool BindDescriptor(IRHICommandList& command_list, unsigned space, unsigned slot, const IRHIDescriptorAllocation& allocation) const;
+    
+    virtual const RHIVertexStreamingManager& GetVertexStreamingManager(glTFRenderResourceManager& resource_manager) const;
     
     IRHIRootSignatureHelper m_root_signature_helper;
     RHIBeginRenderingInfo m_begin_rendering_info;

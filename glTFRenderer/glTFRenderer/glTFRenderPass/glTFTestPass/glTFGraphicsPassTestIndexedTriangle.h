@@ -1,5 +1,6 @@
 #pragma once
 #include "glTFGraphicsPassTestTriangleBase.h"
+#include "glTFRHI/RHIVertexStreamingManager.h"
 
 struct IndexBufferData;
 struct VertexBufferData;
@@ -29,4 +30,6 @@ protected:
 
     std::shared_ptr<IRHIVertexBufferView> m_vertex_buffer_view;
     std::shared_ptr<IRHIIndexBufferView> m_index_buffer_view;
+
+    RHIVertexStreamingManager m_vertex_streaming_manager;
 };

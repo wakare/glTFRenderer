@@ -63,7 +63,7 @@ bool DX12Texture::InitTextureAndUpload(IRHIDevice& device, glTFRenderResourceMan
     
     resource_manager.GetMemoryManager().AllocateBufferMemory(device, textureBufferDesc, m_texture_buffer);
 
-    const size_t bytesPerPixel = GetRHIDataFormatBytePerPixel(m_texture_desc.GetDataFormat());
+    const size_t bytesPerPixel = GetBytePerPixelByFormat(m_texture_desc.GetDataFormat());
     const size_t imageBytesPerRow = bytesPerPixel * m_texture_desc.GetTextureWidth(); 
     const UINT64 textureUploadBufferSize = ((imageBytesPerRow + 255 ) & ~255) * (m_texture_desc.GetTextureHeight() - 1) + imageBytesPerRow;
     

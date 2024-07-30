@@ -1,5 +1,6 @@
 #pragma once
 #include "glTFGraphicsPassTestTriangleBase.h"
+#include "glTFRHI/RHIVertexStreamingManager.h"
 
 struct IndexBufferData;
 struct VertexBufferData;
@@ -23,7 +24,8 @@ public:
 
 protected:
     bool InitVertexBufferAndIndexBuffer(glTFRenderResourceManager& resource_manager);
-
+    virtual const RHIVertexStreamingManager& GetVertexStreamingManager(glTFRenderResourceManager& resource_manager) const;
+    
     std::shared_ptr<VertexBufferData> m_vertex_buffer_data;
     std::shared_ptr<IndexBufferData> m_index_buffer_data;
     
@@ -36,4 +38,6 @@ protected:
     RootSignatureAllocation m_sampled_texture_root_signature_allocation;
     std::shared_ptr<IRHITextureAllocation> m_sampled_texture;
     std::shared_ptr<IRHITextureDescriptorAllocation> m_sampled_texture_allocation;
+
+    RHIVertexStreamingManager m_vertex_streaming_manager;
 };

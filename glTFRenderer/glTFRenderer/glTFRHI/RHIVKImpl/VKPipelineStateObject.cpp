@@ -26,7 +26,8 @@ VKGraphicsPipelineStateObject::~VKGraphicsPipelineStateObject()
     vkDestroyPipeline(m_device, m_pipeline, nullptr);
 }
 
-bool VKGraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device, const RHIPipelineStateInfo& pipeline_state_info)
+bool VKGraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device,
+    const IRHIRootSignature& root_signature, IRHISwapChain& swap_chain, const std::vector<RHIPipelineInputLayout>& input_layouts)
 {
     m_device = dynamic_cast<VKDevice&>(device).GetDevice();
     
@@ -54,8 +55,8 @@ bool VKGraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device, 
     std::map<unsigned, VkVertexInputBindingDescription> binding_records;
     
     std::vector<VkVertexInputAttributeDescription> attribute_descriptions;
-    attribute_descriptions.reserve(m_input_layouts.size());
-    for (const auto& input_layout : m_input_layouts)
+    attribute_descriptions.reserve(input_layouts.size());
+    for (const auto& input_layout : input_layouts)
     {
         attribute_descriptions.push_back(
             {
@@ -67,7 +68,7 @@ bool VKGraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device, 
 
         binding_records[input_layout.slot].binding = input_layout.slot;
         binding_records[input_layout.slot].inputRate = input_layout.frequency == PER_VERTEX ? VK_VERTEX_INPUT_RATE_VERTEX : VK_VERTEX_INPUT_RATE_INSTANCE;
-        binding_records[input_layout.slot].stride += GetRHIDataFormatBytePerPixel(input_layout.format);
+        binding_records[input_layout.slot].stride += GetBytePerPixelByFormat(input_layout.format);
     }
     
     std::vector<VkVertexInputBindingDescription> binding_descriptions;
@@ -91,8 +92,8 @@ bool VKGraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device, 
 
     VkRect2D scissor{};
     scissor.offset = {0, 0};
-    scissor.extent = VkExtent2D{dynamic_cast<VKSwapChain&>(pipeline_state_info.m_swap_chain).GetWidth(),
-        dynamic_cast<VKSwapChain&>(pipeline_state_info.m_swap_chain).GetHeight()};
+    scissor.extent = VkExtent2D{dynamic_cast<VKSwapChain&>(swap_chain).GetWidth(),
+        dynamic_cast<VKSwapChain&>(swap_chain).GetHeight()};
     
     VkViewport viewport{};
     viewport.x = 0.0f;
@@ -165,8 +166,8 @@ bool VKGraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device, 
     create_color_blend_state_info.blendConstants[2] = 0.0f;
     create_color_blend_state_info.blendConstants[3] = 0.0f;
 
-    auto& root_signature = dynamic_cast<const VKRootSignature&>(pipeline_state_info.m_root_signature);
-    const std::vector<VkDescriptorSetLayout>& layouts = root_signature.GetDescriptorSetLayouts();
+    auto& vk_root_signature = dynamic_cast<const VKRootSignature&>(root_signature);
+    const std::vector<VkDescriptorSetLayout>& layouts = vk_root_signature.GetDescriptorSetLayouts();
     
     VkPipelineLayoutCreateInfo create_pipeline_layout_info {};
     create_pipeline_layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;

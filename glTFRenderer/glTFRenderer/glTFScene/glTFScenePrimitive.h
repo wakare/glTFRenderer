@@ -8,10 +8,11 @@
 
 enum class VertexAttributeType
 {
-    POSITION,
-    NORMAL,
-    TANGENT,
-    TEXCOORD_0,
+    // Vertex
+    VERTEX_POSITION,
+    VERTEX_NORMAL,
+    VERTEX_TANGENT,
+    VERTEX_TEXCOORD0,
 
     // Instance
     INSTANCE_MAT_0,

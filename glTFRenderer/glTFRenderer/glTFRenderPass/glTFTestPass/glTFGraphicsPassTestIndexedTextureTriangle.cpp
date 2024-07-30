@@ -54,14 +54,14 @@ bool glTFGraphicsPassTestIndexedTextureTriangle::InitPass(glTFRenderResourceMana
             RHITextureClearValue{},
             resource_manager);
 
-    size_t texture_data_byte_size = sampled_texture_desc.GetTextureWidth() * sampled_texture_desc.GetTextureHeight() * GetRHIDataFormatBytePerPixel(sampled_texture_desc.GetDataFormat());
+    size_t texture_data_byte_size = sampled_texture_desc.GetTextureWidth() * sampled_texture_desc.GetTextureHeight() * GetBytePerPixelByFormat(sampled_texture_desc.GetDataFormat());
     std::unique_ptr<char[]> texture_data = std::make_unique<char[]>(texture_data_byte_size);
     
     for (unsigned w = 0; w < sampled_texture_desc.GetTextureWidth(); ++w)
     {
         for (unsigned h = 0; h < sampled_texture_desc.GetTextureHeight(); ++h)
         {
-            float* texture_pixel_data = reinterpret_cast<float*>(texture_data.get() + GetRHIDataFormatBytePerPixel(sampled_texture_desc.GetDataFormat()) * (
+            float* texture_pixel_data = reinterpret_cast<float*>(texture_data.get() + GetBytePerPixelByFormat(sampled_texture_desc.GetDataFormat()) * (
                 sampled_texture_desc.GetTextureWidth() * h + w));
 
             // Fill out RGBA channel
@@ -136,29 +136,21 @@ bool glTFGraphicsPassTestIndexedTextureTriangle::SetupPipelineStateObject(glTFRe
     render_targets.push_back(&resource_manager.GetCurrentFrameSwapChainRTV());
     GetGraphicsPipelineStateObject().BindRenderTargetFormats(render_targets);
 
-    RHIPipelineInputLayout position_input_layout{};
-    position_input_layout.format = RHIDataFormat::R32G32B32_FLOAT;
-    position_input_layout.slot = 0;
-    position_input_layout.semantic_index = 0;
-    position_input_layout.semantic_name = "POSITION";
-    position_input_layout.aligned_byte_offset = 0;
-    position_input_layout.frequency = PER_VERTEX;
-    position_input_layout.layout_location = 0;
-
-    RHIPipelineInputLayout uv_input_layout{};
-    uv_input_layout.format = RHIDataFormat::R32G32_FLOAT;
-    uv_input_layout.slot = 0;
-    uv_input_layout.semantic_index = 0;
-    uv_input_layout.semantic_name = "TEXCOORD";
-    uv_input_layout.aligned_byte_offset = 12;
-    uv_input_layout.frequency = PER_VERTEX;
-    uv_input_layout.layout_location = 1;
-
-    // Set shader macro based vertex attributes
-    RETURN_IF_FALSE(GetGraphicsPipelineStateObject().BindInputLayoutAndSetShaderMacros({position_input_layout, uv_input_layout}));
-    
     auto& shaderMacros = GetGraphicsPipelineStateObject().GetShaderMacros();
     m_sampled_texture_root_signature_allocation.AddShaderDefine(shaderMacros);
+
+    VertexAttributeElement position_attribute;
+    position_attribute.type = VertexAttributeType::VERTEX_POSITION;
+    position_attribute.byte_size = GetBytePerPixelByFormat(RHIDataFormat::R32G32B32_FLOAT);
+    VertexAttributeElement uv_attribute;
+    uv_attribute.type = VertexAttributeType::VERTEX_TEXCOORD0;
+    uv_attribute.byte_size = GetBytePerPixelByFormat(RHIDataFormat::R32G32_FLOAT);
+    
+    VertexLayoutDeclaration vertex_layout_declaration{};
+    vertex_layout_declaration.elements.push_back(position_attribute);
+    vertex_layout_declaration.elements.push_back(uv_attribute);
+    
+    m_vertex_streaming_manager.Init(vertex_layout_declaration, false);
     
     return true;
 }
@@ -172,8 +164,8 @@ bool glTFGraphicsPassTestIndexedTextureTriangle::InitVertexBufferAndIndexBuffer(
     
     m_vertex_buffer_data->data = std::make_unique<char[]>(vertex_buffer_data_size);
     m_vertex_buffer_data->byte_size = vertex_buffer_data_size;
-    m_vertex_buffer_data->layout.elements.push_back({VertexAttributeType::POSITION, 12});
-    m_vertex_buffer_data->layout.elements.push_back({VertexAttributeType::TEXCOORD_0, 8});
+    m_vertex_buffer_data->layout.elements.push_back({VertexAttributeType::VERTEX_POSITION, 12});
+    m_vertex_buffer_data->layout.elements.push_back({VertexAttributeType::VERTEX_TEXCOORD0, 8});
     m_vertex_buffer_data->vertex_count = vertex_count;
     memcpy(m_vertex_buffer_data->data.get(), textured_vertices, sizeof(textured_vertices));
     
@@ -219,4 +211,10 @@ bool glTFGraphicsPassTestIndexedTextureTriangle::InitVertexBufferAndIndexBuffer(
         *m_index_buffer_data);
     
     return true;
+}
+
+const RHIVertexStreamingManager& glTFGraphicsPassTestIndexedTextureTriangle::GetVertexStreamingManager(
+    glTFRenderResourceManager& resource_manager) const
+{
+    return m_vertex_streaming_manager;
 }

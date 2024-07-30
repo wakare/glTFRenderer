@@ -120,7 +120,7 @@ bool glTFRenderResourceManager::InitScene(const glTFSceneGraph& scene_graph)
                     }    
                 }
 	            
-                else if (!(primitive->GetVertexLayout() == resolved_vertex_layout))
+                else if ((primitive->GetVertexLayout() != resolved_vertex_layout))
                 {
                     LOG_FORMAT_FLUSH("[WARN] Primtive id: %d is no-visible becuase vertex layout mismatch\n", primitive->GetID())
                     primitive->SetVisible(false);

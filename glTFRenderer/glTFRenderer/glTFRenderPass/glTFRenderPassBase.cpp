@@ -35,10 +35,10 @@ bool glTFRenderPassBase::InitPass(glTFRenderResourceManager& resource_manager)
     
     RETURN_IF_FALSE(SetupPipelineStateObject(resource_manager))
     RETURN_IF_FALSE(m_pipeline_state_object->InitPipelineStateObject(resource_manager.GetDevice(),
-        {
             m_root_signature_helper.GetRootSignature(),
-            resource_manager.GetSwapChain()
-        }))
+            resource_manager.GetSwapChain(),
+            GetVertexStreamingManager(resource_manager).GetVertexAttributes()
+        ))
 
     for (const auto& render_interface : m_render_interfaces)
     {
@@ -104,11 +104,13 @@ bool glTFRenderPassBase::SetupRootSignature(glTFRenderResourceManager& resource_
 
 bool glTFRenderPassBase::SetupPipelineStateObject(glTFRenderResourceManager& resource_manager)
 {
-    auto& shaderMacros = m_pipeline_state_object->GetShaderMacros();
+    auto& shader_macros = m_pipeline_state_object->GetShaderMacros();
     for (const auto& render_interface : m_render_interfaces)
     {
-        render_interface->ApplyShaderDefine(shaderMacros);    
+        render_interface->ApplyShaderDefine(shader_macros);    
     }
+
+    GetVertexStreamingManager(resource_manager).ConfigShaderMacros(shader_macros);
     
     return true;
 }
@@ -126,4 +128,11 @@ bool glTFRenderPassBase::BindDescriptor(IRHICommandList& command_list, unsigned 
             space,
             slot,
             allocation);
+}
+
+const RHIVertexStreamingManager& glTFRenderPassBase::GetVertexStreamingManager(
+    glTFRenderResourceManager& resource_manager) const
+{
+    static RHIVertexStreamingManager _internal_vertex_streaming_manager;
+    return _internal_vertex_streaming_manager;
 }

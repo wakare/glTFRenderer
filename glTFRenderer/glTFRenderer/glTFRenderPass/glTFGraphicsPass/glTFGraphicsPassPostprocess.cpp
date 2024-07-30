@@ -104,6 +104,20 @@ bool glTFGraphicsPassPostprocess::SetupRootSignature(glTFRenderResourceManager& 
 bool glTFGraphicsPassPostprocess::SetupPipelineStateObject(glTFRenderResourceManager& resourceManager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::SetupPipelineStateObject(resourceManager))
+
+    VertexAttributeElement position;
+    position.type = VertexAttributeType::VERTEX_POSITION;
+    position.byte_size = GetBytePerPixelByFormat(RHIDataFormat::R32G32B32_FLOAT);
+    
+    VertexAttributeElement uv;
+    uv.type = VertexAttributeType::VERTEX_TEXCOORD0;
+    uv.byte_size = GetBytePerPixelByFormat(RHIDataFormat::R32G32_FLOAT);
+    
+    VertexLayoutDeclaration declaration;
+    declaration.elements.push_back(position);
+    declaration.elements.push_back(uv);
+    
+    m_vertex_streaming_manager.Init(declaration);
     
     return true;
 }
@@ -119,11 +133,8 @@ void glTFGraphicsPassPostprocess::DrawPostprocessQuad(glTFRenderResourceManager&
     RHIUtils::Instance().DrawIndexInstanced(command_list, 6, 1, 0, 0, 0);    
 }
 
-const std::vector<RHIPipelineInputLayout>& glTFGraphicsPassPostprocess::GetVertexInputLayout(
-    glTFRenderResourceManager& resource_manager)
+const RHIVertexStreamingManager& glTFGraphicsPassPostprocess::GetVertexStreamingManager(
+    glTFRenderResourceManager& resource_manager) const
 {
-    std::vector<RHIPipelineInputLayout> inputLayouts;
-    inputLayouts.push_back({"POSITION", 0, RHIDataFormat::R32G32B32_FLOAT, 0});
-    inputLayouts.push_back({"TEXCOORD", 0, RHIDataFormat::R32G32_FLOAT, 12});
-    return inputLayouts;
+    return m_vertex_streaming_manager;
 }

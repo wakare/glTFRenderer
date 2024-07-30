@@ -32,34 +32,6 @@ IRHIShader& IRHIPipelineStateObject::GetBindShader(RHIShaderType type)
     return *m_shaders[type];
 }
 
-bool IRHIPipelineStateObject::BindInputLayoutAndSetShaderMacros(const std::vector<RHIPipelineInputLayout>& input_layouts)
-{
-    RETURN_IF_FALSE(!input_layouts.empty())
-    
-    m_input_layouts = input_layouts;
-
-    // Add shader pre define macros
-    for (const auto& input_layout : m_input_layouts)
-    {
-        if (input_layout.semantic_name == INPUT_LAYOUT_UNIQUE_PARAMETER(NORMAL))
-        {
-            m_shader_macros.AddMacro("HAS_NORMAL", "1");
-        }
-
-        if (input_layout.semantic_name == INPUT_LAYOUT_UNIQUE_PARAMETER(TEXCOORD))
-        {
-            m_shader_macros.AddMacro("HAS_TEXCOORD", "1");
-        }
-
-        if (input_layout.semantic_name == INPUT_LAYOUT_UNIQUE_PARAMETER(TANGENT))
-        {
-            m_shader_macros.AddMacro("HAS_TANGENT", "1");
-        }
-    }
-    
-    return true;
-}
-
 RHIShaderPreDefineMacros& IRHIPipelineStateObject::GetShaderMacros()
 {
     return m_shader_macros;

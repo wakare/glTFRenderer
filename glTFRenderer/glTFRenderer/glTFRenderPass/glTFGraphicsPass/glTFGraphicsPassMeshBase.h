@@ -2,6 +2,7 @@
 
 #include "glTFGraphicsPassBase.h"
 
+class RHIVertexStreamingManager;
 class IRHICommandSignature;
 
 // Drawing all meshes within mesh pass
@@ -19,8 +20,6 @@ public:
     virtual bool UpdateGUIWidgets() override;
     
 protected:
-    virtual const std::vector<RHIPipelineInputLayout>& GetVertexInputLayout(glTFRenderResourceManager& resource_manager);
-
     virtual RHICullMode GetCullMode() override;
     
     virtual bool SetupRootSignature(glTFRenderResourceManager& resource_manager) override;
@@ -30,6 +29,8 @@ protected:
     virtual bool UsingIndirectDrawCulling() const;
     virtual bool UsingInputLayout() const;
 
+    virtual const RHIVertexStreamingManager& GetVertexStreamingManager(glTFRenderResourceManager& resource_manager) const override;
+    
     bool m_indirect_draw {true};
     
     // Indirect drawing

@@ -174,7 +174,7 @@ bool glTFRadiosityRenderer::AddTriangle(const glTFSceneTriangleMesh& triangle_me
     
     for (size_t i = 0; i < vertex_count; ++i)
     {
-        triangle_mesh_vertices.GetVertexAttributeDataByIndex(VertexAttributeType::POSITION, i, &mesh_positions[i].x, stride);
+        triangle_mesh_vertices.GetVertexAttributeDataByIndex(VertexAttributeType::VERTEX_POSITION, i, &mesh_positions[i].x, stride);
         mesh_positions[i] = glm::vec3(triangle_mesh.GetTransformMatrix() * glm::vec4(mesh_positions[i], 1.0f));
     }
     

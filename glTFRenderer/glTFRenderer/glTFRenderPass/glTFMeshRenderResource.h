@@ -19,7 +19,6 @@ struct glTFMeshRenderResource
     size_t mesh_vertex_count{0};
     size_t mesh_index_count{0};
     
-    //glm::mat4 mesh_transform_matrix{1.0f};
     glTFUniqueID material_id {glTFUniqueIDInvalid};
     bool using_normal_mapping {false};
 };

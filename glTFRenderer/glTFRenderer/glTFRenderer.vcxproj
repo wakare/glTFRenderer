@@ -420,6 +420,7 @@
     <ClCompile Include="glTFRHI\RHIInterface\RHICommon.cpp" />
     <ClCompile Include="glTFRHI\RHIResourceFactory.cpp" />
     <ClCompile Include="glTFRHI\RHIUtils.cpp" />
+    <ClCompile Include="glTFRHI\RHIVertexStreamingManager.cpp" />
     <ClCompile Include="glTFRHI\RHIVKImpl\VKCommandAllocator.cpp" />
     <ClCompile Include="glTFRHI\RHIVKImpl\VKCommandList.cpp" />
     <ClCompile Include="glTFRHI\RHIVKImpl\VKCommandQueue.cpp" />
@@ -597,6 +598,7 @@
     <ClInclude Include="glTFRHI\RHIResourceFactory.h" />
     <ClInclude Include="glTFRHI\RHIResourceFactoryImpl.hpp" />
     <ClInclude Include="glTFRHI\RHIUtils.h" />
+    <ClInclude Include="glTFRHI\RHIVertexStreamingManager.h" />
     <ClInclude Include="glTFRHI\RHIVKImpl\VKCommandAllocator.h" />
     <ClInclude Include="glTFRHI\RHIVKImpl\VKCommandList.h" />
     <ClInclude Include="glTFRHI\RHIVKImpl\VKCommandQueue.h" />

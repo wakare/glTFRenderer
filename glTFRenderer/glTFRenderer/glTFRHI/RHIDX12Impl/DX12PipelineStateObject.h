@@ -24,7 +24,7 @@ public:
 
     virtual bool BindRenderTargetFormats(const std::vector<IRHIRenderTarget*>& render_targets) override;
     virtual bool BindRenderTargetFormats(const std::vector<IRHIDescriptorAllocation*>& render_targets) override;
-    virtual bool InitPipelineStateObject(IRHIDevice& device, const RHIPipelineStateInfo& pipeline_state_info) override;
+    virtual bool InitPipelineStateObject(IRHIDevice& device, const IRHIRootSignature& root_signature, IRHISwapChain& swap_chain, const std::vector<RHIPipelineInputLayout>& input_layouts) override;
 
     ID3D12PipelineState* GetPSO() {return m_pipeline_state_object.Get(); }
     
@@ -40,7 +40,7 @@ class DX12ComputePipelineStateObject : public IRHIComputePipelineStateObject, pu
 public:
     DX12ComputePipelineStateObject();
 
-    virtual bool InitPipelineStateObject(IRHIDevice& device, const RHIPipelineStateInfo& pipeline_state_info) override;
+    virtual bool InitPipelineStateObject(IRHIDevice& device, const IRHIRootSignature& root_signature, IRHISwapChain& swap_chain, const std::vector<RHIPipelineInputLayout>& input_layouts) override;
     
 private:
     D3D12_COMPUTE_PIPELINE_STATE_DESC m_compute_pipeline_state_desc;
@@ -50,7 +50,7 @@ class DX12RTPipelineStateObject : public IRHIRayTracingPipelineStateObject, publ
 {
 public:
     DX12RTPipelineStateObject();
-    virtual bool InitPipelineStateObject(IRHIDevice& device, const RHIPipelineStateInfo& pipeline_state_info) override;
+    virtual bool InitPipelineStateObject(IRHIDevice& device, const IRHIRootSignature& root_signature, IRHISwapChain& swap_chain, const std::vector<RHIPipelineInputLayout>& input_layouts) override;
     
     ID3D12StateObjectProperties* GetDXRStateObjectProperties()
     {

@@ -3,7 +3,6 @@
 #include <imgui.h>
 
 #include "glTFRenderPass/glTFRenderResourceManager.h"
-#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneMesh.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneMeshInfo.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneView.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceStructuredBuffer.h"
@@ -104,12 +103,9 @@ bool glTFGraphicsPassMeshBase::SetupPipelineStateObject(glTFRenderResourceManage
 {
     RETURN_IF_FALSE(glTFGraphicsPassBase::SetupPipelineStateObject(resource_manager))
     
-    // Set shader macro based vertex attributes
-    RETURN_IF_FALSE(GetGraphicsPipelineStateObject().BindInputLayoutAndSetShaderMacros(GetVertexInputLayout(resource_manager)))
-    
     auto& shader_macros = GetGraphicsPipelineStateObject().GetShaderMacros();
     shader_macros.AddMacro("ENABLE_INPUT_LAYOUT", UsingInputLayout() ? "1" : "0");
-
+    
     return true;
 }
 
@@ -128,6 +124,11 @@ bool glTFGraphicsPassMeshBase::UsingInputLayout() const
     return false;
 }
 
+const RHIVertexStreamingManager& glTFGraphicsPassMeshBase::GetVertexStreamingManager(glTFRenderResourceManager& resource_manager) const
+{
+    return resource_manager.GetMeshManager().GetVertexStreamingManager();
+}
+
 bool glTFGraphicsPassMeshBase::TryProcessSceneObject(glTFRenderResourceManager& resource_manager, const glTFSceneObjectBase& object)
 {
     return true;
@@ -140,12 +141,6 @@ bool glTFGraphicsPassMeshBase::UpdateGUIWidgets()
     ImGui::Checkbox("Indirect Draw", &m_indirect_draw);
     
     return true;
-}
-
-const std::vector<RHIPipelineInputLayout>& glTFGraphicsPassMeshBase::GetVertexInputLayout(
-    glTFRenderResourceManager& resource_manager)
-{
-    return resource_manager.GetMeshManager().GetVertexInputLayout();
 }
 
 RHICullMode glTFGraphicsPassMeshBase::GetCullMode()

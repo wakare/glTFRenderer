@@ -10,26 +10,14 @@
 class IRHIDescriptorAllocation;
 class IRHIRenderTarget;
 
-#define DECLARE_INPUT_LAYOUT_SEMANTIC_NAME(x) static const char* g_inputLayoutName##x = #x;
+#define DECLARE_INPUT_LAYOUT_SEMANTIC_NAME(x) static const char* g_inputLayoutName_##x = #x;
+
 DECLARE_INPUT_LAYOUT_SEMANTIC_NAME(POSITION)
 DECLARE_INPUT_LAYOUT_SEMANTIC_NAME(NORMAL)
 DECLARE_INPUT_LAYOUT_SEMANTIC_NAME(TANGENT)
 DECLARE_INPUT_LAYOUT_SEMANTIC_NAME(TEXCOORD)
 
-#define INPUT_LAYOUT_UNIQUE_PARAMETER(x) (g_inputLayoutName##x)
-
-struct RHIPipelineStateInfo
-{
-    RHIPipelineStateInfo(IRHIRootSignature& root_signature, IRHISwapChain& swap_chain)
-        : m_root_signature(root_signature)
-        , m_swap_chain(swap_chain)
-    {
-        
-    }
-    
-    IRHIRootSignature& m_root_signature;
-    IRHISwapChain& m_swap_chain;
-};
+#define INPUT_LAYOUT_UNIQUE_PARAMETER(x) (g_inputLayoutName_##x)
 
 class IRHIPipelineStateObject : public IRHIResource
 {
@@ -38,13 +26,12 @@ public:
     
     IRHIPipelineStateObject(RHIPipelineType type);
 
-    virtual bool InitPipelineStateObject(IRHIDevice& device, const RHIPipelineStateInfo& pipeline_state_info) = 0;
+    virtual bool InitPipelineStateObject(IRHIDevice& device, const IRHIRootSignature& root_signature, IRHISwapChain& swap_chain, const std::vector<RHIPipelineInputLayout>& input_layouts) = 0;
     
     bool BindShaderCode(const std::string& shader_file_path, RHIShaderType type, const std::string& entry_function_name);
     
     IRHIShader& GetBindShader(RHIShaderType type);
     
-    bool BindInputLayoutAndSetShaderMacros(const std::vector<RHIPipelineInputLayout>& input_layouts);
     void SetCullMode(RHICullMode mode);
     void SetDepthStencilState(RHIDepthStencilMode state);
 
@@ -59,7 +46,6 @@ protected:
     RHIShaderPreDefineMacros m_shader_macros;
     RHICullMode m_cullMode;
     RHIDepthStencilMode m_depth_stencil_state;
-    std::vector<RHIPipelineInputLayout> m_input_layouts;
     std::map<RHIShaderType, std::shared_ptr<IRHIShader>> m_shaders;
 };
 

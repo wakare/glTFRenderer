@@ -13,7 +13,7 @@ bool glTFRenderMeshManager::AddOrUpdatePrimitive(glTFRenderResourceManager& reso
     const glTFUniqueID mesh_ID = primitive->GetMeshRawDataID();
     const glTFUniqueID instance_ID = primitive->GetID();
     
-    if (m_mesh_render_resources.find(mesh_ID) == m_mesh_render_resources.end())
+    if (!m_mesh_render_resources.contains(mesh_ID))
     {
         m_mesh_render_resources[mesh_ID].mesh = primitive;
         m_mesh_render_resources[mesh_ID].mesh_vertex_buffer = RHIResourceFactory::CreateRHIResource<IRHIVertexBuffer>();
@@ -85,7 +85,7 @@ bool glTFRenderMeshManager::BuildMeshRenderResource(glTFRenderResourceManager& r
     if (!m_instance_buffer_view)
     {
         VertexBufferData instance_buffer;
-        instance_buffer.layout.elements = m_instance_input_layout.m_instance_layout.elements;
+        instance_buffer.layout.elements = GetVertexStreamingManager().GetInstanceInputLayout().m_instance_layout.elements;
         instance_buffer.byte_size = mesh_instance_render_resource.size() * sizeof(MeshInstanceInputData);
         instance_buffer.vertex_count = mesh_instance_render_resource.size();
     
@@ -165,7 +165,7 @@ bool glTFRenderMeshManager::BuildMeshRenderResource(glTFRenderResourceManager& r
             }
         }
         
-        auto mega_index_stride_byte_size = GetRHIDataFormatBytePerPixel(index_format);
+        auto mega_index_stride_byte_size = GetBytePerPixelByFormat(index_format);
         
         IndexBufferData mega_index_buffer_data;
         mega_index_buffer_data.byte_size = mega_index_buffer_byte_size;
@@ -250,11 +250,10 @@ const IRHIIndirectDrawBuilder& glTFRenderMeshManager::GetIndirectDrawBuilder() c
 
 bool glTFRenderMeshManager::ResolveVertexInputLayout(const VertexLayoutDeclaration& source_vertex_layout)
 {
-    m_vertex_input_layouts.clear();
+    return m_vertex_streaming_manager.Init(source_vertex_layout);
+}
 
-    m_vertex_input_layout.m_source_vertex_layout = source_vertex_layout;
-    GLTF_CHECK(m_vertex_input_layout.ResolveInputVertexLayout(m_vertex_input_layouts));
-    GLTF_CHECK(m_instance_input_layout.ResolveInputInstanceLayout(m_vertex_input_layouts));
-    
-    return true;
+const RHIVertexStreamingManager& glTFRenderMeshManager::GetVertexStreamingManager() const
+{
+    return m_vertex_streaming_manager;
 }

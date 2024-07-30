@@ -3,8 +3,6 @@
 #include <vector>
 
 #include "RHIInterface/IRHICommandSignature.h"
-#include "RHIInterface/IRHIIndexBufferView.h"
-#include "RHIInterface/IRHIVertexBufferView.h"
 #include "RHIInterface/RHICommon.h"
 
 class IRHIIndexBufferView;
@@ -21,30 +19,7 @@ __declspec(align(16)) struct MeshIndirectDrawCommand
 {
     inline static std::string Name = "INDIRECT_DRAW_DATA_REGISTER_SRV_INDEX";
 
-    /*
-    MeshIndirectDrawCommand(
-        const IRHIVertexBufferView& vertex_buffer_view,
-        const IRHIVertexBufferView& instance_buffer_view,
-        const IRHIIndexBufferView& index_buffer_view
-        )
-        : vertex_buffer_view(vertex_buffer_view)
-        , vertex_buffer_instance_view(instance_buffer_view)
-        , index_buffer_view(index_buffer_view)
-        , draw_command_argument({0, 0, 0, 0, 0})
-    {
-        
-    }
-    */
     MeshIndirectDrawCommand() = default;
-    
-    // VB for mesh
-    //RHIIndirectArgumentVertexBufferView vertex_buffer_view;
-
-    // VB for instancing
-    //RHIIndirectArgumentVertexBufferView vertex_buffer_instance_view;
-
-    // IB
-    //RHIIndirectArgumentIndexBufferView index_buffer_view;
     
     // Draw arguments
     RHIIndirectArgumentDrawIndexed draw_command_argument{};

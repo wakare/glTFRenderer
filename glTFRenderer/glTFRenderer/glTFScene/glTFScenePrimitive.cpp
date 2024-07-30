@@ -51,7 +51,7 @@ bool glTFScenePrimitive::HasNormalMapping() const
         return false;
     }
     
-    const bool contains_tangent = GetVertexLayout().HasAttribute(VertexAttributeType::TANGENT);
+    const bool contains_tangent = GetVertexLayout().HasAttribute(VertexAttributeType::VERTEX_TANGENT);
     bool contains_normal_texture = false;
     if (HasMaterial() && GetMaterial().GetMaterialType() == MaterialType::Opaque)
     {

@@ -76,10 +76,10 @@ bool DX12GraphicsPipelineStateObject::BindRenderTargetFormats(
     return true;
 }
 
-bool DX12GraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device, const RHIPipelineStateInfo& pipeline_state_info)
+bool DX12GraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device, const IRHIRootSignature& root_signature, IRHISwapChain& swap_chain, const std::vector<RHIPipelineInputLayout>& input_layouts)
 {
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
-    auto* dxRootSignature = dynamic_cast<DX12RootSignature&>(pipeline_state_info.m_root_signature).GetRootSignature();
+    auto* dxRootSignature = dynamic_cast<const DX12RootSignature&>(root_signature).GetRootSignature();
     
     // create input layout
 
@@ -87,9 +87,9 @@ bool DX12GraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device
     // how to read the vertex data bound to it.
 
     std::vector<D3D12_INPUT_ELEMENT_DESC> dx_input_layouts;
-    dx_input_layouts.reserve(m_input_layouts.size());
+    dx_input_layouts.reserve(input_layouts.size());
     
-    for (const auto& input_layout : m_input_layouts)
+    for (const auto& input_layout : input_layouts)
     {
         dx_input_layouts.push_back(
             {
@@ -144,7 +144,7 @@ bool DX12GraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device
     }
     
     m_graphics_pipeline_state_desc.DSVFormat = m_bind_depth_stencil_format;
-    m_graphics_pipeline_state_desc.SampleDesc = dynamic_cast<DX12SwapChain&>(pipeline_state_info.m_swap_chain).GetSwapChainSampleDesc(); // must be the same sample description as the swapchain and depth/stencil buffer
+    m_graphics_pipeline_state_desc.SampleDesc = dynamic_cast<DX12SwapChain&>(swap_chain).GetSwapChainSampleDesc(); // must be the same sample description as the swapchain and depth/stencil buffer
     m_graphics_pipeline_state_desc.SampleMask = 0xffffffff; // sample mask has to do with multi-sampling. 0xffffffff means point sampling is done
     m_graphics_pipeline_state_desc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT); // a default rasterizer state.
     switch (m_cullMode) {
@@ -198,10 +198,10 @@ DX12ComputePipelineStateObject::DX12ComputePipelineStateObject()
 }
 
 bool DX12ComputePipelineStateObject::InitPipelineStateObject(IRHIDevice& device,
-    const RHIPipelineStateInfo& pipeline_state_info)
+    const IRHIRootSignature& root_signature, IRHISwapChain& swap_chain, const std::vector<RHIPipelineInputLayout>& input_layouts)
 {
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
-    auto* dxRootSignature = dynamic_cast<DX12RootSignature&>(pipeline_state_info.m_root_signature).GetRootSignature();
+    auto* dxRootSignature = dynamic_cast<const DX12RootSignature&>(root_signature).GetRootSignature();
 
     THROW_IF_FAILED(CompileShaders());
     D3D12_SHADER_BYTECODE compute_shader_bytecode;
@@ -226,10 +226,11 @@ bool DX12ComputePipelineStateObject::InitPipelineStateObject(IRHIDevice& device,
 DX12RTPipelineStateObject::DX12RTPipelineStateObject()
 = default;
 
-bool DX12RTPipelineStateObject::InitPipelineStateObject(IRHIDevice& device, const RHIPipelineStateInfo& pipeline_state_info)
+bool DX12RTPipelineStateObject::InitPipelineStateObject(IRHIDevice& device, const IRHIRootSignature& root_signature,
+    IRHISwapChain& swap_chain, const std::vector<RHIPipelineInputLayout>& input_layouts)
 {
     auto* dxrDevice = dynamic_cast<DX12Device&>(device).GetDXRDevice();
-    auto* dx_root_signature = dynamic_cast<DX12RootSignature&>(pipeline_state_info.m_root_signature).GetRootSignature();
+    auto* dx_root_signature = dynamic_cast<const DX12RootSignature&>(root_signature).GetRootSignature();
 
     m_dxr_state_desc.SetStateObjectType(D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE);
 
