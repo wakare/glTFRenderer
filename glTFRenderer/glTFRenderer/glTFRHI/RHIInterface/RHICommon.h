@@ -368,7 +368,8 @@ struct RootSignatureAllocation
 {
     RootSignatureAllocation()
         : parameter_name("")
-        , parameter_index(0)
+        , global_parameter_index(0)
+        , local_space_parameter_index(0)
         , register_index(0)
         , space(0)
         , type(RHIRootParameterType::Unknown)
@@ -379,7 +380,8 @@ struct RootSignatureAllocation
     void AddShaderDefine(RHIShaderPreDefineMacros& out_shader_macros) const;
 
     std::string parameter_name;
-    unsigned parameter_index;
+    unsigned global_parameter_index;
+    unsigned local_space_parameter_index;
     unsigned register_index;
     unsigned space;
     RHIRootParameterType type;
@@ -423,7 +425,8 @@ struct RootSignatureStaticSamplerElement
 struct RootSignatureParameterElement
 {
     std::string name;
-    unsigned parameter_index;
+    unsigned global_parameter_index;
+    unsigned local_space_parameter_index;
     std::pair<unsigned, unsigned> register_range;
     unsigned space;
     unsigned constant_value_count;

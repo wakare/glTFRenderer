@@ -4,6 +4,11 @@
 #include "RendererCommon.h"
 #include "glTFRenderPass/glTFRenderResourceManager.h"
 
+void IRHIRootSignatureHelper::IncrementRegisterSpaceIndex()
+{
+    ++m_current_space;
+}
+
 bool IRHIRootSignatureHelper::AddRootParameterWithRegisterCount(const RootParameterInfo& parameter_info, RootSignatureAllocation& out_allocation)
 {
     RHIShaderRegisterType register_type = RHIShaderRegisterType::Unknown;
@@ -46,9 +51,10 @@ bool IRHIRootSignatureHelper::AddRootParameterWithRegisterCount(const RootParame
     out_allocation.parameter_name = parameter_info.parameter_name;
     out_allocation.type = parameter_info.type;
     out_allocation.register_type = register_type;
+    
     if (parameter_info.type == RHIRootParameterType::Sampler)
     {
-        out_allocation.parameter_index = m_layout.sampler_elements.size();
+        out_allocation.global_parameter_index = m_layout.sampler_elements.size();
         out_allocation.register_index = m_layout.sampler_elements.size();
 
         if (m_sampler_space < 0)
@@ -56,16 +62,18 @@ bool IRHIRootSignatureHelper::AddRootParameterWithRegisterCount(const RootParame
             if (m_current_space == m_normal_resource_space ||
                 m_bindless_spaces.contains(m_current_space))
             {
-               // Must use new space
-               ++m_current_space;
+                IncrementRegisterSpaceIndex();
             }
             m_sampler_space = m_current_space;
         }
         out_allocation.space = m_sampler_space;
+        out_allocation.local_space_parameter_index = m_space_available_attribute_index[(out_allocation.space)]; 
+        m_space_available_attribute_index[(out_allocation.space)]++;
+        
         RootSignatureStaticSamplerElement sampler_element{};
         sampler_element.sampler_name = parameter_info.parameter_name;
         sampler_element.register_space = out_allocation.space;
-        sampler_element.sample_index = out_allocation.parameter_index;
+        sampler_element.sample_index = out_allocation.local_space_parameter_index;
         sampler_element.address_mode = parameter_info.sampler_parameter_info.address_mode;
         sampler_element.filter_mode = parameter_info.sampler_parameter_info.filter_mode; 
         m_layout.sampler_elements.push_back(sampler_element);
@@ -74,7 +82,7 @@ bool IRHIRootSignatureHelper::AddRootParameterWithRegisterCount(const RootParame
     {
         RootSignatureParameterElement element{};
         element.name = parameter_info.parameter_name;
-        element.parameter_index = m_layout.last_parameter_index++;
+        element.global_parameter_index = m_layout.last_parameter_index++;
         
         if (parameter_info.type == RHIRootParameterType::Constant)
         {
@@ -95,7 +103,7 @@ bool IRHIRootSignatureHelper::AddRootParameterWithRegisterCount(const RootParame
                 m_current_space == m_normal_resource_space ||
                 m_bindless_spaces.contains(m_current_space))
             {
-                m_current_space++;
+                IncrementRegisterSpaceIndex();
             }
             element.space = m_current_space;
             m_bindless_spaces.emplace(element.space);
@@ -111,17 +119,21 @@ bool IRHIRootSignatureHelper::AddRootParameterWithRegisterCount(const RootParame
             {
                 if (m_current_space == m_sampler_space || m_bindless_spaces.contains(m_current_space))
                 {
-                    m_current_space++;
+                    IncrementRegisterSpaceIndex();
                 }
                 m_normal_resource_space = m_current_space;
             }
             element.space = m_normal_resource_space;
         }
         
-        m_layout.parameter_elements[parameter_info.type].push_back(element);
         out_allocation.register_index = element.register_range.first;
-        out_allocation.parameter_index = element.parameter_index;
+        out_allocation.global_parameter_index = element.global_parameter_index;
         out_allocation.space = element.space;
+        out_allocation.local_space_parameter_index = m_space_available_attribute_index[(out_allocation.space)];
+        m_space_available_attribute_index[(out_allocation.space)]++;
+        
+        element.local_space_parameter_index = out_allocation.local_space_parameter_index;
+        m_layout.parameter_elements[parameter_info.type].push_back(element);
     }
     
     return true;
@@ -241,28 +253,28 @@ bool IRHIRootSignatureHelper::BuildRootSignature(IRHIDevice& device, glTFRenderR
         {
             switch (parameter.first) {
             case RHIRootParameterType::Constant:
-                m_root_signature->GetRootParameter(parameter_value.parameter_index).InitAsConstant(parameter_value.constant_value_count, parameter_value.register_range.first, parameter_value.space);
+                m_root_signature->GetRootParameter(parameter_value.global_parameter_index).InitAsConstant(parameter_value.constant_value_count, parameter_value.register_range.first, parameter_value.space);
                 break;
             case RHIRootParameterType::CBV:
-                m_root_signature->GetRootParameter(parameter_value.parameter_index).InitAsCBV(parameter_value.parameter_index, parameter_value.register_range.first, parameter_value.space);
+                m_root_signature->GetRootParameter(parameter_value.global_parameter_index).InitAsCBV(parameter_value.local_space_parameter_index, parameter_value.register_range.first, parameter_value.space);
                 break;
             case RHIRootParameterType::SRV:
-                m_root_signature->GetRootParameter(parameter_value.parameter_index).InitAsSRV(parameter_value.parameter_index, parameter_value.register_range.first, parameter_value.space);
+                m_root_signature->GetRootParameter(parameter_value.global_parameter_index).InitAsSRV(parameter_value.local_space_parameter_index, parameter_value.register_range.first, parameter_value.space);
                 break;
             case RHIRootParameterType::UAV:
-                m_root_signature->GetRootParameter(parameter_value.parameter_index).InitAsUAV(parameter_value.parameter_index, parameter_value.register_range.first, parameter_value.space);
+                m_root_signature->GetRootParameter(parameter_value.global_parameter_index).InitAsUAV(parameter_value.local_space_parameter_index, parameter_value.register_range.first, parameter_value.space);
                 break;
             case RHIRootParameterType::DescriptorTable:
                 {
                     RHIRootParameterDescriptorRangeDesc range_desc =
                         {
                             parameter_value.table_type,
-                        parameter_value.register_range.first,
+                            parameter_value.register_range.first,
                             parameter_value.space,
-                        parameter_value.register_range.second - parameter_value.register_range.first,
+                            parameter_value.register_range.second - parameter_value.register_range.first,
                             parameter_value.is_bindless
                         };
-                    m_root_signature->GetRootParameter(parameter_value.parameter_index).InitAsDescriptorTableRange(parameter_value.parameter_index,  1, &range_desc);
+                    m_root_signature->GetRootParameter(parameter_value.global_parameter_index).InitAsDescriptorTableRange(parameter_value.local_space_parameter_index,  1, &range_desc);
                 }
                 break;
             case RHIRootParameterType::Unknown:

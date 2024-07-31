@@ -95,7 +95,7 @@ bool glTFGraphicsPassTestIndexedTextureTriangle::PreRenderPass(glTFRenderResourc
     auto& command_list = resource_manager.GetCommandListForRecord();
 
     m_sampled_texture->m_texture->Transition(command_list, RHIResourceStateType::STATE_ALL_SHADER_RESOURCE);
-    BindDescriptor(command_list, m_sampled_texture_root_signature_allocation.space, m_sampled_texture_root_signature_allocation.parameter_index, *m_sampled_texture_allocation);
+    BindDescriptor(command_list, m_sampled_texture_root_signature_allocation.space, m_sampled_texture_root_signature_allocation.global_parameter_index, *m_sampled_texture_allocation);
     
     return true;
 }

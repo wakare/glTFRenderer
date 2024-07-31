@@ -7,11 +7,11 @@ bool VKRootParameter::InitAsConstant(unsigned constant_value, unsigned register_
     return false;
 }
 
-bool VKRootParameter::InitAsCBV(unsigned attribute_index, unsigned register_index, unsigned space)
+bool VKRootParameter::InitAsCBV(unsigned local_attribute_index, unsigned register_index, unsigned space)
 {
     m_register_space = space;
     
-    m_binding.binding = attribute_index;
+    m_binding.binding = local_attribute_index;
     m_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     m_binding.descriptorCount = 1;
     
@@ -20,11 +20,11 @@ bool VKRootParameter::InitAsCBV(unsigned attribute_index, unsigned register_inde
     return true;
 }
 
-bool VKRootParameter::InitAsSRV(unsigned attribute_index, unsigned register_index, unsigned space)
+bool VKRootParameter::InitAsSRV(unsigned local_attribute_index, unsigned register_index, unsigned space)
 {
     m_register_space = space;
     
-    m_binding.binding = attribute_index;
+    m_binding.binding = local_attribute_index;
     m_binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     m_binding.descriptorCount = 1;
     
@@ -34,11 +34,11 @@ bool VKRootParameter::InitAsSRV(unsigned attribute_index, unsigned register_inde
     return true;
 }
 
-bool VKRootParameter::InitAsUAV(unsigned attribute_index, unsigned register_index, unsigned space)
+bool VKRootParameter::InitAsUAV(unsigned local_attribute_index, unsigned register_index, unsigned space)
 {
     m_register_space = space;
     
-    m_binding.binding = attribute_index;
+    m_binding.binding = local_attribute_index;
     m_binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     m_binding.descriptorCount = 1;
     
@@ -48,12 +48,12 @@ bool VKRootParameter::InitAsUAV(unsigned attribute_index, unsigned register_inde
     return true;
 }
 
-bool VKRootParameter::InitAsDescriptorTableRange(unsigned attribute_index, size_t range_count,
+bool VKRootParameter::InitAsDescriptorTableRange(unsigned local_attribute_index, size_t range_count,
     const RHIRootParameterDescriptorRangeDesc* range_desc)
 {
     m_register_space = range_desc->space;
     
-    m_binding.binding = attribute_index;
+    m_binding.binding = local_attribute_index;
     m_binding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     m_binding.descriptorCount = range_count;
     

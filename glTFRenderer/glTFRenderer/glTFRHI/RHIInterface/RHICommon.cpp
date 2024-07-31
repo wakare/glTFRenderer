@@ -34,7 +34,7 @@ void RootSignatureAllocation::AddShaderDefine(RHIShaderPreDefineMacros& out_shad
     }
     else
     {
-        (void)snprintf(shader_resource_declaration, sizeof(shader_resource_declaration), "[[vk::binding(%d, %d)]]", register_index, space);   
+        (void)snprintf(shader_resource_declaration, sizeof(shader_resource_declaration), "[[vk::binding(%d, %d)]]", local_space_parameter_index, space);   
     }
     
     out_shader_macros.AddMacro(parameter_name, shader_resource_declaration);

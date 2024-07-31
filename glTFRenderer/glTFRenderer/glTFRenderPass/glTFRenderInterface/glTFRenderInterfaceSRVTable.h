@@ -39,7 +39,7 @@ public:
             GLTF_CHECK(succeed);
         }
 
-        descriptor_updater.BindDescriptor(command_list, pipeline_type, GetRSAllocation().space, GetRSAllocation().parameter_index, *m_descriptor_table);
+        descriptor_updater.BindDescriptor(command_list, pipeline_type, GetRSAllocation().space, GetRSAllocation().global_parameter_index, *m_descriptor_table);
         
         return true;
     }

@@ -59,6 +59,8 @@ protected:
             } sampler_parameter_info;
         };
     };
+    void IncrementRegisterSpaceIndex();
+    
     bool AddRootParameterWithRegisterCount( const RootParameterInfo& parameter_info, RootSignatureAllocation& out_allocation);
     
     RHIRootSignatureUsage m_usage;
@@ -70,4 +72,6 @@ protected:
     int m_normal_resource_space;
     int m_sampler_space;
     std::set<int> m_bindless_spaces;
+
+    std::map<unsigned, unsigned> m_space_available_attribute_index;
 };

@@ -44,8 +44,8 @@ bool glTFRayTracingPassReSTIRDirectLighting::PreRenderPass(glTFRenderResourceMan
     GetResourceTexture(RenderPassResourceTableId::RayTracingPass_ReSTIRSample_Output)->Transition(command_list, RHIResourceStateType::STATE_UNORDERED_ACCESS);
     GetResourceTexture(RenderPassResourceTableId::ScreenUVOffset)->Transition(command_list, RHIResourceStateType::STATE_UNORDERED_ACCESS);
 
-    BindDescriptor(command_list, m_lighting_samples_allocation.space, m_lighting_samples_allocation.parameter_index, *m_lighting_samples_handle);
-    BindDescriptor(command_list, m_screen_uv_offset_allocation.space, m_screen_uv_offset_allocation.parameter_index, *m_screen_uv_offset_handle);
+    BindDescriptor(command_list, m_lighting_samples_allocation.space, m_lighting_samples_allocation.global_parameter_index, *m_lighting_samples_handle);
+    BindDescriptor(command_list, m_screen_uv_offset_allocation.space, m_screen_uv_offset_allocation.global_parameter_index, *m_screen_uv_offset_handle);
     
     auto& GBuffer_output = resource_manager.GetCurrentFrameResourceManager().GetGBufferForRendering();
     RETURN_IF_FALSE(GBuffer_output.Bind(GetID(), GetPipelineType(), command_list, *m_descriptor_updater, resource_manager.GetGBufferAllocations().GetAllocationWithPassId(GetID())))

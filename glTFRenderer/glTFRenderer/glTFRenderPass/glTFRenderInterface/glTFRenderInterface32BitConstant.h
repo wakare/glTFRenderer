@@ -31,7 +31,7 @@ protected:
     virtual bool ApplyInterfaceImpl(IRHICommandList& command_list, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater) override
     {
         RETURN_IF_FALSE(RHIUtils::Instance().SetConstant32BitToRootParameterSlot(command_list,
-           m_allocation.parameter_index, reinterpret_cast<unsigned*>(m_data), count, pipeline_type))
+           m_allocation.global_parameter_index, reinterpret_cast<unsigned*>(m_data), count, pipeline_type))
         
         return true;
     }

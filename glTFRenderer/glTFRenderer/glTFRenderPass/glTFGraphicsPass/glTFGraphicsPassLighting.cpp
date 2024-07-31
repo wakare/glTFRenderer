@@ -41,9 +41,9 @@ bool glTFGraphicsPassLighting::PreRenderPass(glTFRenderResourceManager& resource
     basepass_normal->Transition(command_list, RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE);
     resource_manager.GetDepthTextureRef().Transition(command_list, RHIResourceStateType::STATE_PIXEL_SHADER_RESOURCE);
 
-    BindDescriptor(command_list, m_albedo_allocation.space, m_albedo_allocation.parameter_index, *m_base_pass_albedo_allocation);
-    BindDescriptor(command_list, m_depth_allocation.space, m_depth_allocation.parameter_index, *m_depth_texture_allocation);
-    BindDescriptor(command_list, m_normal_allocation.space, m_normal_allocation.parameter_index, *m_base_pass_normal_allocation);
+    BindDescriptor(command_list, m_albedo_allocation.space, m_albedo_allocation.global_parameter_index, *m_base_pass_albedo_allocation);
+    BindDescriptor(command_list, m_depth_allocation.space, m_depth_allocation.global_parameter_index, *m_depth_texture_allocation);
+    BindDescriptor(command_list, m_normal_allocation.space, m_normal_allocation.global_parameter_index, *m_base_pass_normal_allocation);
 
     RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceLighting>()->UpdateCPUBuffer(resource_manager))
 
