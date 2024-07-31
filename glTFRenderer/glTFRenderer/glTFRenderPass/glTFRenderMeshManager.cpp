@@ -85,7 +85,7 @@ bool glTFRenderMeshManager::BuildMeshRenderResource(glTFRenderResourceManager& r
     if (!m_instance_buffer_view)
     {
         VertexBufferData instance_buffer;
-        instance_buffer.layout.elements = GetVertexStreamingManager().GetInstanceInputLayout().m_instance_layout.elements;
+        instance_buffer.layout.elements = GetVertexStreamingManager().GetInstanceInputLayout();
         instance_buffer.byte_size = mesh_instance_render_resource.size() * sizeof(MeshInstanceInputData);
         instance_buffer.vertex_count = mesh_instance_render_resource.size();
     

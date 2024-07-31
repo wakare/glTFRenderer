@@ -13,10 +13,10 @@ class IRHIRootParameter : public IRHIResource
 public:
     IRHIRootParameter() : m_type(RHIRootParameterType::Unknown) { }
     virtual bool InitAsConstant(unsigned constantValue, REGISTER_INDEX_TYPE register_index, unsigned space) = 0;
-    virtual bool InitAsCBV(REGISTER_INDEX_TYPE registerIndex, unsigned space) = 0;
-    virtual bool InitAsSRV(REGISTER_INDEX_TYPE registerIndex, unsigned space) = 0;
-    virtual bool InitAsUAV(REGISTER_INDEX_TYPE registerIndex, unsigned space) = 0;
-    virtual bool InitAsDescriptorTableRange(size_t rangeCount, const RHIRootParameterDescriptorRangeDesc* rangeDesc) = 0;
+    virtual bool InitAsCBV(unsigned attribute_index, REGISTER_INDEX_TYPE register_index, unsigned space) = 0;
+    virtual bool InitAsSRV(unsigned attribute_index, REGISTER_INDEX_TYPE register_index, unsigned space) = 0;
+    virtual bool InitAsUAV(unsigned attribute_index, REGISTER_INDEX_TYPE register_index, unsigned space) = 0;
+    virtual bool InitAsDescriptorTableRange(unsigned attribute_index, size_t rangeCount, const RHIRootParameterDescriptorRangeDesc* rangeDesc) = 0;
  
 protected:
     void SetType(RHIRootParameterType type) {assert(m_type == RHIRootParameterType::Unknown); m_type = type;}

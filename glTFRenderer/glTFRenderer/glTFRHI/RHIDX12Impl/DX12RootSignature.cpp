@@ -22,7 +22,7 @@ bool DX12RootParameter::InitAsConstant(unsigned constant_value_count, REGISTER_I
     return true;
 }
 
-bool DX12RootParameter::InitAsCBV(REGISTER_INDEX_TYPE register_index, unsigned space)
+bool DX12RootParameter::InitAsCBV(unsigned attribute_index, REGISTER_INDEX_TYPE register_index, unsigned space)
 {
     SetType(RHIRootParameterType::CBV);
     m_parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
@@ -32,7 +32,7 @@ bool DX12RootParameter::InitAsCBV(REGISTER_INDEX_TYPE register_index, unsigned s
     return true;
 }
 
-bool DX12RootParameter::InitAsSRV(REGISTER_INDEX_TYPE register_index, unsigned space)
+bool DX12RootParameter::InitAsSRV(unsigned attribute_index, REGISTER_INDEX_TYPE register_index, unsigned space)
 {
     SetType(RHIRootParameterType::SRV);
     m_parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
@@ -42,7 +42,7 @@ bool DX12RootParameter::InitAsSRV(REGISTER_INDEX_TYPE register_index, unsigned s
     return true;
 }
 
-bool DX12RootParameter::InitAsUAV(REGISTER_INDEX_TYPE register_index, unsigned space)
+bool DX12RootParameter::InitAsUAV(unsigned attribute_index, REGISTER_INDEX_TYPE register_index, unsigned space)
 {
     SetType(RHIRootParameterType::UAV);
     m_parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_UAV;
@@ -52,7 +52,7 @@ bool DX12RootParameter::InitAsUAV(REGISTER_INDEX_TYPE register_index, unsigned s
     return true;
 }
 
-bool DX12RootParameter::InitAsDescriptorTableRange(size_t rangeCount,
+bool DX12RootParameter::InitAsDescriptorTableRange(unsigned attribute_index, size_t rangeCount,
     const RHIRootParameterDescriptorRangeDesc* rangeDesc)
 {
     if (rangeCount == 0 || rangeDesc == nullptr)

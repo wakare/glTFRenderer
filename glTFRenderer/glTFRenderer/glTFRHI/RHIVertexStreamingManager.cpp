@@ -1,22 +1,14 @@
 #include "RHIVertexStreamingManager.h"
 
-#include "RHIConfigSingleton.h"
-#include "RHIInterface/IRHIPipelineStateObject.h"
+#include "glTFRHI/RHIConfigSingleton.h"
+#include "glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
 
-MeshVertexInputLayout::MeshVertexInputLayout()
-{
-    m_source_vertex_layout.elements.push_back({VertexAttributeType::VERTEX_POSITION, GetBytePerPixelByFormat(RHIDataFormat::R32G32B32_FLOAT)});
-    m_source_vertex_layout.elements.push_back({VertexAttributeType::VERTEX_NORMAL, GetBytePerPixelByFormat(RHIDataFormat::R32G32B32_FLOAT)});
-    m_source_vertex_layout.elements.push_back({VertexAttributeType::VERTEX_TANGENT, GetBytePerPixelByFormat(RHIDataFormat::R32G32B32A32_FLOAT)});
-    m_source_vertex_layout.elements.push_back({VertexAttributeType::VERTEX_TEXCOORD0, GetBytePerPixelByFormat(RHIDataFormat::R32G32_FLOAT)});
-}
-
-bool MeshVertexInputLayout::ResolveInputVertexLayout(std::vector<RHIPipelineInputLayout>& m_vertex_input_layouts) const
+bool RHIVertexStreamingManager::Init(const VertexLayoutDeclaration& vertex_layout_declaration, bool has_instance)
 {
     unsigned vertex_layout_offset = 0;
     unsigned vertex_layout_location = 0;
         
-    for (const auto& vertex_layout : m_source_vertex_layout.elements)
+    for (const auto& vertex_layout : vertex_layout_declaration.elements)
     {
         bool added = false;
         switch (vertex_layout.type)
@@ -24,32 +16,31 @@ bool MeshVertexInputLayout::ResolveInputVertexLayout(std::vector<RHIPipelineInpu
         case VertexAttributeType::VERTEX_POSITION:
             {
                 GLTF_CHECK(vertex_layout.byte_size == (GetBytePerPixelByFormat(RHIDataFormat::R32G32B32_FLOAT)));
-                m_vertex_input_layouts.push_back({INPUT_LAYOUT_UNIQUE_PARAMETER(POSITION), 0, RHIDataFormat::R32G32B32_FLOAT, vertex_layout_offset, 0, PER_VERTEX, vertex_layout_location});
+                m_vertex_attributes.push_back({INPUT_LAYOUT_UNIQUE_PARAMETER(POSITION), 0, RHIDataFormat::R32G32B32_FLOAT, vertex_layout_offset, 0, PER_VERTEX, vertex_layout_location});
                 added = true;
             }
             break;
         case VertexAttributeType::VERTEX_NORMAL:
             {
                 GLTF_CHECK(vertex_layout.byte_size == (GetBytePerPixelByFormat(RHIDataFormat::R32G32B32_FLOAT)));
-                m_vertex_input_layouts.push_back({INPUT_LAYOUT_UNIQUE_PARAMETER(NORMAL), 0, RHIDataFormat::R32G32B32_FLOAT, vertex_layout_offset, 0, PER_VERTEX, vertex_layout_location});
+                m_vertex_attributes.push_back({INPUT_LAYOUT_UNIQUE_PARAMETER(NORMAL), 0, RHIDataFormat::R32G32B32_FLOAT, vertex_layout_offset, 0, PER_VERTEX, vertex_layout_location});
                 added = true;
             }
             break;
         case VertexAttributeType::VERTEX_TANGENT:
             {
                 GLTF_CHECK(vertex_layout.byte_size == (GetBytePerPixelByFormat(RHIDataFormat::R32G32B32A32_FLOAT)));
-                m_vertex_input_layouts.push_back({INPUT_LAYOUT_UNIQUE_PARAMETER(TANGENT), 0, RHIDataFormat::R32G32B32A32_FLOAT, vertex_layout_offset, 0, PER_VERTEX, vertex_layout_location});
+                m_vertex_attributes.push_back({INPUT_LAYOUT_UNIQUE_PARAMETER(TANGENT), 0, RHIDataFormat::R32G32B32A32_FLOAT, vertex_layout_offset, 0, PER_VERTEX, vertex_layout_location});
                 added = true;
             }
             break;
         case VertexAttributeType::VERTEX_TEXCOORD0:
             {
                 GLTF_CHECK(vertex_layout.byte_size == (GetBytePerPixelByFormat(RHIDataFormat::R32G32_FLOAT)));
-                m_vertex_input_layouts.push_back({INPUT_LAYOUT_UNIQUE_PARAMETER(TEXCOORD), 0, RHIDataFormat::R32G32_FLOAT, vertex_layout_offset, 0, PER_VERTEX, vertex_layout_location});
+                m_vertex_attributes.push_back({INPUT_LAYOUT_UNIQUE_PARAMETER(TEXCOORD), 0, RHIDataFormat::R32G32_FLOAT, vertex_layout_offset, 0, PER_VERTEX, vertex_layout_location});
                 added = true;
             }
             break;
-            // TODO: Handle TEXCOORD_1?
         }
             
         if (added)
@@ -58,70 +49,24 @@ bool MeshVertexInputLayout::ResolveInputVertexLayout(std::vector<RHIPipelineInpu
             vertex_layout_offset += vertex_layout.byte_size;    
         }
     }
-        
-    return true;
-}
-
-MeshInstanceInputLayout::MeshInstanceInputLayout()
-{
-    m_instance_layout.elements.push_back({VertexAttributeType::INSTANCE_MAT_0, sizeof(float) * 4});
-    m_instance_layout.elements.push_back({VertexAttributeType::INSTANCE_MAT_1, sizeof(float) * 4});
-    m_instance_layout.elements.push_back({VertexAttributeType::INSTANCE_MAT_2, sizeof(float) * 4});
-    m_instance_layout.elements.push_back({VertexAttributeType::INSTANCE_MAT_3, sizeof(float) * 4});
-    m_instance_layout.elements.push_back({VertexAttributeType::INSTANCE_CUSTOM_DATA, sizeof(unsigned) * 4});
-}
-
-bool MeshInstanceInputLayout::ResolveInputInstanceLayout(std::vector<RHIPipelineInputLayout>& out_layout) const
-{
-    unsigned vertex_layout_offset = 0;
-    unsigned vertex_layout_location = 0;
-    for (const auto& vertex_layout : m_instance_layout.elements)
-    {
-        switch (vertex_layout.type)
-        {
-        case VertexAttributeType::INSTANCE_MAT_0:
-            {
-                out_layout.push_back({ "INSTANCE_TRANSFORM_MATRIX", 0, RHIDataFormat::R32G32B32A32_FLOAT, vertex_layout_offset, 1, PER_INSTANCE, vertex_layout_location });
-            }
-            break;
-        case VertexAttributeType::INSTANCE_MAT_1:
-            {
-                out_layout.push_back({ "INSTANCE_TRANSFORM_MATRIX", 1, RHIDataFormat::R32G32B32A32_FLOAT, vertex_layout_offset, 1, PER_INSTANCE, vertex_layout_location });
-            }
-            break;
-        case VertexAttributeType::INSTANCE_MAT_2:
-            {
-                out_layout.push_back({ "INSTANCE_TRANSFORM_MATRIX", 2, RHIDataFormat::R32G32B32A32_FLOAT, vertex_layout_offset, 1, PER_INSTANCE, vertex_layout_location });
-            }
-            break;
-        case VertexAttributeType::INSTANCE_MAT_3:
-            {
-                out_layout.push_back({ "INSTANCE_TRANSFORM_MATRIX", 3, RHIDataFormat::R32G32B32A32_FLOAT, vertex_layout_offset, 1, PER_INSTANCE, vertex_layout_location });
-            }
-            break;
-        case VertexAttributeType::INSTANCE_CUSTOM_DATA:
-            {
-                out_layout.push_back({ "INSTANCE_CUSTOM_DATA", 0, RHIDataFormat::R32G32B32A32_UINT, vertex_layout_offset, 1, PER_INSTANCE, vertex_layout_location });
-            }
-            break;
-        default:
-            return false;
-        }
-        ++vertex_layout_location;
-        vertex_layout_offset += vertex_layout.byte_size;   
-    }
-
-    return true;
-}
-
-
-bool RHIVertexStreamingManager::Init(const VertexLayoutDeclaration& vertex_layout, bool has_instance)
-{
-    m_vertex_input_layout.m_source_vertex_layout = vertex_layout;
-    GLTF_CHECK(m_vertex_input_layout.ResolveInputVertexLayout(m_vertex_attributes));
+    
     if (has_instance)
     {
-        GLTF_CHECK(m_instance_input_layout.ResolveInputInstanceLayout(m_vertex_attributes));    
+        if (RHIConfigSingleton::Instance().GetGraphicsAPIType() == RHIGraphicsAPIType::RHI_GRAPHICS_API_DX12)
+        {
+            vertex_layout_offset = 0;
+            vertex_layout_location = 0;
+        }
+        
+        m_vertex_attributes.push_back({ "INSTANCE_TRANSFORM_MATRIX", 0, RHIDataFormat::R32G32B32A32_FLOAT, vertex_layout_offset, 1, PER_INSTANCE, vertex_layout_location++ });
+        vertex_layout_offset += GetBytePerPixelByFormat(RHIDataFormat::R32G32B32A32_FLOAT);
+        m_vertex_attributes.push_back({ "INSTANCE_TRANSFORM_MATRIX", 1, RHIDataFormat::R32G32B32A32_FLOAT, vertex_layout_offset, 1, PER_INSTANCE, vertex_layout_location++ });
+        vertex_layout_offset += GetBytePerPixelByFormat(RHIDataFormat::R32G32B32A32_FLOAT);
+        m_vertex_attributes.push_back({ "INSTANCE_TRANSFORM_MATRIX", 2, RHIDataFormat::R32G32B32A32_FLOAT, vertex_layout_offset, 1, PER_INSTANCE, vertex_layout_location++ });
+        vertex_layout_offset += GetBytePerPixelByFormat(RHIDataFormat::R32G32B32A32_FLOAT);
+        m_vertex_attributes.push_back({ "INSTANCE_TRANSFORM_MATRIX", 3, RHIDataFormat::R32G32B32A32_FLOAT, vertex_layout_offset, 1, PER_INSTANCE, vertex_layout_location++ });
+        vertex_layout_offset += GetBytePerPixelByFormat(RHIDataFormat::R32G32B32A32_FLOAT);
+        m_vertex_attributes.push_back({ "INSTANCE_CUSTOM_DATA", 0, RHIDataFormat::R32G32B32A32_UINT, vertex_layout_offset, 1, PER_INSTANCE, vertex_layout_location++ });
     }
     
     return true;
@@ -152,16 +97,22 @@ void RHIVertexStreamingManager::ConfigShaderMacros(RHIShaderPreDefineMacros& sha
         {
             char vulkan_attribute_location[64] = {'\0'};
             (void)snprintf(vulkan_attribute_location, sizeof(vulkan_attribute_location), "[[vk::location(%d)]]", attribute_location);
-            shader_macros.AddMacro(input_layout.semantic_name + "_VK", vulkan_attribute_location);
+            shader_macros.AddMacro(input_layout.semantic_name + std::to_string(input_layout.semantic_index) + "_VK", vulkan_attribute_location);
         }
 
         attribute_location++;
     }
 }
 
-const MeshInstanceInputLayout& RHIVertexStreamingManager::GetInstanceInputLayout() const
+std::vector<VertexAttributeElement> RHIVertexStreamingManager::GetInstanceInputLayout() const
 {
-    return m_instance_input_layout;
+    std::vector<VertexAttributeElement> results;
+    results.push_back({VertexAttributeType::INSTANCE_MAT_0, GetBytePerPixelByFormat(RHIDataFormat::R32G32B32A32_FLOAT)});
+    results.push_back({VertexAttributeType::INSTANCE_MAT_1, GetBytePerPixelByFormat(RHIDataFormat::R32G32B32A32_FLOAT)});
+    results.push_back({VertexAttributeType::INSTANCE_MAT_2, GetBytePerPixelByFormat(RHIDataFormat::R32G32B32A32_FLOAT)});
+    results.push_back({VertexAttributeType::INSTANCE_MAT_3, GetBytePerPixelByFormat(RHIDataFormat::R32G32B32A32_FLOAT)});
+    results.push_back({VertexAttributeType::INSTANCE_CUSTOM_DATA, GetBytePerPixelByFormat(RHIDataFormat::R32G32B32A32_UINT)});
+    return results;
 }
 
 const std::vector<RHIPipelineInputLayout>& RHIVertexStreamingManager::GetVertexAttributes() const

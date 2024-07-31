@@ -244,13 +244,13 @@ bool IRHIRootSignatureHelper::BuildRootSignature(IRHIDevice& device, glTFRenderR
                 m_root_signature->GetRootParameter(parameter_value.parameter_index).InitAsConstant(parameter_value.constant_value_count, parameter_value.register_range.first, parameter_value.space);
                 break;
             case RHIRootParameterType::CBV:
-                m_root_signature->GetRootParameter(parameter_value.parameter_index).InitAsCBV(parameter_value.register_range.first, parameter_value.space);
+                m_root_signature->GetRootParameter(parameter_value.parameter_index).InitAsCBV(parameter_value.parameter_index, parameter_value.register_range.first, parameter_value.space);
                 break;
             case RHIRootParameterType::SRV:
-                m_root_signature->GetRootParameter(parameter_value.parameter_index).InitAsSRV(parameter_value.register_range.first, parameter_value.space);
+                m_root_signature->GetRootParameter(parameter_value.parameter_index).InitAsSRV(parameter_value.parameter_index, parameter_value.register_range.first, parameter_value.space);
                 break;
             case RHIRootParameterType::UAV:
-                m_root_signature->GetRootParameter(parameter_value.parameter_index).InitAsUAV(parameter_value.register_range.first, parameter_value.space);
+                m_root_signature->GetRootParameter(parameter_value.parameter_index).InitAsUAV(parameter_value.parameter_index, parameter_value.register_range.first, parameter_value.space);
                 break;
             case RHIRootParameterType::DescriptorTable:
                 {
@@ -262,7 +262,7 @@ bool IRHIRootSignatureHelper::BuildRootSignature(IRHIDevice& device, glTFRenderR
                         parameter_value.register_range.second - parameter_value.register_range.first,
                             parameter_value.is_bindless
                         };
-                    m_root_signature->GetRootParameter(parameter_value.parameter_index).InitAsDescriptorTableRange(1, &range_desc);
+                    m_root_signature->GetRootParameter(parameter_value.parameter_index).InitAsDescriptorTableRange(parameter_value.parameter_index,  1, &range_desc);
                 }
                 break;
             case RHIRootParameterType::Unknown:

@@ -7,10 +7,10 @@ class VKRootParameter : public IRHIRootParameter
 {
 public:
     virtual bool InitAsConstant(unsigned constant_value, REGISTER_INDEX_TYPE register_index, unsigned space) override;
-    virtual bool InitAsCBV(REGISTER_INDEX_TYPE register_index, unsigned space) override;
-    virtual bool InitAsSRV(REGISTER_INDEX_TYPE register_index, unsigned space) override;
-    virtual bool InitAsUAV(REGISTER_INDEX_TYPE register_index, unsigned space) override;
-    virtual bool InitAsDescriptorTableRange(size_t range_count, const RHIRootParameterDescriptorRangeDesc* range_desc) override;
+    virtual bool InitAsCBV(unsigned attribute_index, REGISTER_INDEX_TYPE register_index, unsigned space) override;
+    virtual bool InitAsSRV(unsigned attribute_index, REGISTER_INDEX_TYPE register_index, unsigned space) override;
+    virtual bool InitAsUAV(unsigned attribute_index, REGISTER_INDEX_TYPE register_index, unsigned space) override;
+    virtual bool InitAsDescriptorTableRange(unsigned attribute_index,size_t range_count, const RHIRootParameterDescriptorRangeDesc* range_desc) override;
 
     VkDescriptorSetLayoutBinding GetRawLayoutBinding() const;
     unsigned GetRegisterSpace() const;

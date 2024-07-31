@@ -5,18 +5,18 @@
 
 struct VS_INPUT
 {
-    DECLARE_ATTRIBUTE_LOCATION(float3 pos, POSITION);
+    DECLARE_ATTRIBUTE_LOCATION(float3 pos, POSITION0);
     
 #ifdef HAS_NORMAL 
-    DECLARE_ATTRIBUTE_LOCATION(float3 normal, NORMAL);
+    DECLARE_ATTRIBUTE_LOCATION(float3 normal, NORMAL0);
 #endif
     
 #ifdef HAS_TANGENT
-    DECLARE_ATTRIBUTE_LOCATION(float4 tangent, TANGENT);
+    DECLARE_ATTRIBUTE_LOCATION(float4 tangent, TANGENT0);
 #endif
     
 #ifdef HAS_TEXCOORD 
-    DECLARE_ATTRIBUTE_LOCATION(float2 texCoord, TEXCOORD);
+    DECLARE_ATTRIBUTE_LOCATION(float2 texCoord, TEXCOORD0);
 #endif
 
     DECLARE_ATTRIBUTE_LOCATION(float4 instance_matrix_0, INSTANCE_TRANSFORM_MATRIX0);
@@ -24,7 +24,7 @@ struct VS_INPUT
     DECLARE_ATTRIBUTE_LOCATION(float4 instance_matrix_2, INSTANCE_TRANSFORM_MATRIX2);
     DECLARE_ATTRIBUTE_LOCATION(float4 instance_matrix_3, INSTANCE_TRANSFORM_MATRIX3);
     
-    DECLARE_ATTRIBUTE_LOCATION(uint4 instance_custom_data, INSTANCE_CUSTOM_DATA);
+    DECLARE_ATTRIBUTE_LOCATION(uint4 instance_custom_data, INSTANCE_CUSTOM_DATA0);
 
     uint GetMaterialID() {return instance_custom_data.x; }
     uint NormalMapping() {return instance_custom_data.y;}
