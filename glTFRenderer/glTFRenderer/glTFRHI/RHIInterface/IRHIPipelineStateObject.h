@@ -29,7 +29,8 @@ public:
     virtual bool InitPipelineStateObject(IRHIDevice& device, const IRHIRootSignature& root_signature, IRHISwapChain& swap_chain, const std::vector<RHIPipelineInputLayout>& input_layouts) = 0;
     
     bool BindShaderCode(const std::string& shader_file_path, RHIShaderType type, const std::string& entry_function_name);
-    
+
+    bool HasBindShader(RHIShaderType type) const;
     IRHIShader& GetBindShader(RHIShaderType type);
     
     void SetCullMode(RHICullMode mode);

@@ -108,11 +108,7 @@ void glTFAppMain::Run()
             }
 
             m_renderer->TickRenderingBegin(time_delta_ms);
-            if (!m_app_config.m_test_triangle_pass)
-            {
-                m_renderer->TickSceneUpdating(*m_scene_graph, *m_input_manager, time_delta_ms);  
-            }
-            
+            m_renderer->TickSceneUpdating(*m_scene_graph, *m_input_manager, time_delta_ms);
             m_renderer->TickSceneRendering(*m_input_manager, time_delta_ms);
             m_renderer->TickGUIWidgetUpdate(time_delta_ms);    
             

@@ -124,7 +124,7 @@ bool DX12GraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device
     m_graphics_pipeline_state_desc.VS = vertexShaderBytecode; // structure describing where to find the vertex shader bytecode and how large it is
 
     // depth pass do not need pixel shader
-    if (m_depth_stencil_state != RHIDepthStencilMode::DEPTH_WRITE)
+    if (HasBindShader(RHIShaderType::Pixel))
     {
         D3D12_SHADER_BYTECODE pixelShaderBytecode;
         const auto& bindPS = GetBindShader(RHIShaderType::Pixel);

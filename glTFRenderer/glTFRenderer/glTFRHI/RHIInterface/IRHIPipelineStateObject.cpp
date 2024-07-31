@@ -26,6 +26,11 @@ bool IRHIPipelineStateObject::BindShaderCode(const std::string& shader_file_path
     return true;
 }
 
+bool IRHIPipelineStateObject::HasBindShader(RHIShaderType type) const
+{
+    return m_shaders.contains(type);
+}
+
 IRHIShader& IRHIPipelineStateObject::GetBindShader(RHIShaderType type)
 {
     assert(m_shaders.find(type) != m_shaders.end());

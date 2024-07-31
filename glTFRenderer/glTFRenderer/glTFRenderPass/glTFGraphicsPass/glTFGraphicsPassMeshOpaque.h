@@ -16,7 +16,6 @@ protected:
     virtual bool InitResourceTable(glTFRenderResourceManager& resource_manager) override;
     
     RootSignatureAllocation m_sampler_allocation;
-    bool m_material_uploaded;
 
     std::shared_ptr<IRHITextureDescriptorAllocation> m_albedo_view;
     std::shared_ptr<IRHITextureDescriptorAllocation> m_normal_view;

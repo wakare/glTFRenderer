@@ -10,7 +10,6 @@
 #include "SceneFileLoader/glTFImageLoader.h"
 
 glTFGraphicsPassMeshOpaque::glTFGraphicsPassMeshOpaque()
-    : m_material_uploaded(false)
 {
     AddRenderInterface(std::make_shared<glTFRenderInterfaceRadiosityScene>());
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMaterial>());
@@ -38,11 +37,7 @@ bool glTFGraphicsPassMeshOpaque::InitPass(glTFRenderResourceManager& resource_ma
     
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::InitPass(resource_manager))
 
-    if (!m_material_uploaded)
-    {
-        GetRenderInterface<glTFRenderInterfaceSceneMaterial>()->UploadMaterialData(resource_manager);
-        m_material_uploaded = true;
-    }
+    GetRenderInterface<glTFRenderInterfaceSceneMaterial>()->UploadMaterialData(resource_manager);
     
     return true;
 }
