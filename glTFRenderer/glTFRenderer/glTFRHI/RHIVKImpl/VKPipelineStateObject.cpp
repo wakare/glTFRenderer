@@ -97,9 +97,9 @@ bool VKGraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device,
     
     VkViewport viewport{};
     viewport.x = 0.0f;
-    viewport.y = 0.0f;
+    viewport.y = scissor.extent.height;
     viewport.width = (float) scissor.extent.width;
-    viewport.height = (float) scissor.extent.height;
+    viewport.height = (float) -scissor.extent.height;
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
 
