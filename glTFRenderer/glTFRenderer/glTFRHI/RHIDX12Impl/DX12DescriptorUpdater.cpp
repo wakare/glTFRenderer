@@ -4,7 +4,7 @@
 #include "glTFRHI/RHIUtils.h"
 #include "glTFRHI/RHIInterface/IRHIDescriptorManager.h"
 
-bool DX12DescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPipelineType pipeline, unsigned space, unsigned slot, const IRHIDescriptorAllocation& allocation)
+bool DX12DescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPipelineType pipeline, const RootSignatureAllocation& root_signature_allocation, const IRHIDescriptorAllocation& allocation)
 {
     const auto& desc = allocation.GetDesc();
     switch (desc.m_dimension) {
@@ -16,15 +16,15 @@ bool DX12DescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPip
         {
             if (desc.m_view_type == RHIViewType::RVT_CBV)
             {
-                DX12Utils::DX12Instance().SetCBVToRootParameterSlot(command_list, slot, allocation, pipeline==RHIPipelineType::Graphics);    
+                DX12Utils::DX12Instance().SetCBVToRootParameterSlot(command_list, root_signature_allocation.global_parameter_index, allocation, pipeline==RHIPipelineType::Graphics);    
             }
             else if (desc.m_view_type == RHIViewType::RVT_SRV)
             {
-                DX12Utils::DX12Instance().SetSRVToRootParameterSlot(command_list, slot, allocation, pipeline==RHIPipelineType::Graphics);
+                DX12Utils::DX12Instance().SetSRVToRootParameterSlot(command_list, root_signature_allocation.global_parameter_index, allocation, pipeline==RHIPipelineType::Graphics);
             }
             else if (desc.m_view_type == RHIViewType::RVT_UAV)
             {
-                DX12Utils::DX12Instance().SetDTToRootParameterSlot(command_list, slot, allocation, pipeline==RHIPipelineType::Graphics);
+                DX12Utils::DX12Instance().SetDTToRootParameterSlot(command_list, root_signature_allocation.global_parameter_index, allocation, pipeline==RHIPipelineType::Graphics);
             }
             else
             {
@@ -42,7 +42,7 @@ bool DX12DescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPip
     case RHIResourceDimension::TEXTURECUBE:
     case RHIResourceDimension::TEXTURECUBEARRAY:
         {
-            DX12Utils::DX12Instance().SetDTToRootParameterSlot(command_list, slot, allocation, pipeline==RHIPipelineType::Graphics);
+            DX12Utils::DX12Instance().SetDTToRootParameterSlot(command_list, root_signature_allocation.global_parameter_index, allocation, pipeline==RHIPipelineType::Graphics);
         }
         break;
     }
@@ -50,11 +50,11 @@ bool DX12DescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPip
     return true;
 }
 
-bool DX12DescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPipelineType pipeline, unsigned space, unsigned slot,
+bool DX12DescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPipelineType pipeline, const RootSignatureAllocation& root_signature_allocation,
     const IRHIDescriptorTable& allocation_table)
 {
     // TODO: More check
-    DX12Utils::DX12Instance().SetDTToRootParameterSlot(command_list, slot, allocation_table, pipeline==RHIPipelineType::Graphics);
+    DX12Utils::DX12Instance().SetDTToRootParameterSlot(command_list, root_signature_allocation.global_parameter_index, allocation_table, pipeline==RHIPipelineType::Graphics);
     return true;
 }
 

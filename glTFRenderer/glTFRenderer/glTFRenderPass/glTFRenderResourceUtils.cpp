@@ -171,9 +171,9 @@ namespace glTFRenderResourceUtils
     bool GBufferOutput::Bind(glTFUniqueID pass_id, RHIPipelineType pipeline_type, IRHICommandList& command_list, IRHIDescriptorUpdater& updater, const GBufferSignatureAllocationWithinPass& allocation) const
     {
         auto& GBufferPassResource = GetGBufferPassResource(pass_id);
-        updater.BindDescriptor(command_list, pipeline_type, allocation.m_albedo_allocation.space, allocation.m_albedo_allocation.global_parameter_index, *GBufferPassResource.m_albedo_handle);
-        updater.BindDescriptor(command_list, pipeline_type, allocation.m_normal_allocation.space, allocation.m_normal_allocation.global_parameter_index, *GBufferPassResource.m_normal_handle);
-        updater.BindDescriptor(command_list, pipeline_type, allocation.m_depth_allocation.space, allocation.m_depth_allocation.global_parameter_index, *GBufferPassResource.m_depth_handle);
+        updater.BindDescriptor(command_list, pipeline_type, allocation.m_albedo_allocation, *GBufferPassResource.m_albedo_handle);
+        updater.BindDescriptor(command_list, pipeline_type, allocation.m_normal_allocation, *GBufferPassResource.m_normal_handle);
+        updater.BindDescriptor(command_list, pipeline_type, allocation.m_depth_allocation, *GBufferPassResource.m_depth_handle);
         
         return true;
     }
@@ -281,8 +281,8 @@ namespace glTFRenderResourceUtils
         IRHIDescriptorUpdater& updater)
     {
         PreRendering(command_list);
-        updater.BindDescriptor(command_list, pipeline_type, m_writable_buffer_allocation.space, m_writable_buffer_allocation.global_parameter_index, *m_writable_buffer_handle);
-        updater.BindDescriptor(command_list, pipeline_type, m_back_buffer_allocation.space, m_back_buffer_allocation.global_parameter_index, *m_back_buffer_handle);
+        updater.BindDescriptor(command_list, pipeline_type, m_writable_buffer_allocation, *m_writable_buffer_handle);
+        updater.BindDescriptor(command_list, pipeline_type, m_back_buffer_allocation, *m_back_buffer_handle);
         
         return true;
     }

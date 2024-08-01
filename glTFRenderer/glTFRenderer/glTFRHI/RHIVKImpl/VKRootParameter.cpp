@@ -52,15 +52,20 @@ bool VKRootParameter::InitAsDescriptorTableRange(unsigned local_attribute_index,
     const RHIRootParameterDescriptorRangeDesc* range_desc)
 {
     m_register_space = range_desc->space;
+    m_bindless = (range_desc->descriptor_count == UINT_MAX);
     
     m_binding.binding = local_attribute_index;
     m_binding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-    m_binding.descriptorCount = range_count;
+    m_binding.descriptorCount = m_bindless ? 1024 : range_desc->descriptor_count;
     
-    // TODO: optimization shader stage config
     m_binding.stageFlags = VK_SHADER_STAGE_ALL;
     
     return true;
+}
+
+bool VKRootParameter::IsBindless() const
+{
+    return m_bindless;
 }
 
 VkDescriptorSetLayoutBinding VKRootParameter::GetRawLayoutBinding() const

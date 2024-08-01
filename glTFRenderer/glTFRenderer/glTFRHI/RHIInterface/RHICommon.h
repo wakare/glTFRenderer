@@ -477,21 +477,22 @@ enum class RHIRenderTargetType
 enum RHIResourceUsageFlags
 {
     RUF_NONE                =  0x0,
-    RUF_ALLOW_UAV           =  0x1,
-    RUF_ALLOW_SRV           =  0x1 << 1,
+    RUF_ALLOW_CBV           =  0x1,
+    RUF_ALLOW_UAV           =  0x1 << 1,
+    RUF_ALLOW_SRV           =  0x1 << 2,
     
     // TEXTURE
-    RUF_ALLOW_DEPTH_STENCIL =  0x1 << 2,
-    RUF_ALLOW_RENDER_TARGET =  0x1 << 3,
+    RUF_ALLOW_DEPTH_STENCIL =  0x1 << 3,
+    RUF_ALLOW_RENDER_TARGET =  0x1 << 4,
     
     // BUFFER
-    RUF_VERTEX_BUFFER       =  0x1 << 4,
-    RUF_INDEX_BUFFER        =  0x1 << 5,
-    RUF_INDIRECT_BUFFER     =  0x1 << 6,
+    RUF_VERTEX_BUFFER       =  0x1 << 5,
+    RUF_INDEX_BUFFER        =  0x1 << 6,
+    RUF_INDIRECT_BUFFER     =  0x1 << 7,
 
     // COMMON
-    RUF_TRANSFER_SRC        =  0x1 << 7,
-    RUF_TRANSFER_DST        =  0x1 << 8,
+    RUF_TRANSFER_SRC        =  0x1 << 8,
+    RUF_TRANSFER_DST        =  0x1 << 9,
 };
 
 struct RHITextureDesc

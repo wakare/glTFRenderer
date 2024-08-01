@@ -9,30 +9,43 @@
 bool VKRootSignature::InitRootSignature(IRHIDevice& device, IRHIDescriptorManager& descriptor_manager)
 {
     auto vk_device = dynamic_cast<VKDevice&>(device).GetDevice();
-    auto vk_descriptor_pool = dynamic_cast<VKDescriptorManager&>(descriptor_manager).GetDesciptorPool();
+    auto vk_descriptor_pool = dynamic_cast<VKDescriptorManager&>(descriptor_manager).GetDescriptorPool();
 
     std::map<unsigned, std::vector<VkDescriptorSetLayoutBinding>> space_bindings;
+    std::map<unsigned, std::vector<VkDescriptorBindingFlags>> space_bind_flags;
     for (const auto& parameter : m_root_parameters)
     {
         VKRootParameter& vk_root_parameter = dynamic_cast<VKRootParameter&>(*parameter);
         space_bindings[vk_root_parameter.GetRegisterSpace()].push_back(vk_root_parameter.GetRawLayoutBinding());
+
+        //VkDescriptorBindingFlags flag = vk_root_parameter.IsBindless() ? VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT : 0;
+        VkDescriptorBindingFlags flag = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
+        space_bind_flags[vk_root_parameter.GetRegisterSpace()].push_back(flag);
     }
     
     for (const auto& parameter : m_static_samplers)
     {
         VKStaticSampler& vk_static_sampler = dynamic_cast<VKStaticSampler&>(*parameter);
         space_bindings[vk_static_sampler.GetRegisterSpace()].push_back(vk_static_sampler.GetRawLayoutBinding());
+        space_bind_flags[vk_static_sampler.GetRegisterSpace()].push_back({0});
     }
 
     m_descriptor_set_layouts.resize(space_bindings.size());
     for (size_t i = 0; i < m_descriptor_set_layouts.size(); ++i)
     {
         const auto& binding = space_bindings[i];
+        const auto& flags = space_bind_flags[i];
+
+        VkDescriptorSetLayoutBindingFlagsCreateInfo flags_create_info{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO};
+        flags_create_info.pNext = nullptr;
+        flags_create_info.pBindingFlags = flags.data();
+        flags_create_info.bindingCount = flags.size();
         
-        VkDescriptorSetLayoutCreateInfo descriptor_set_layout_create_info{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, .pNext = nullptr};
+        VkDescriptorSetLayoutCreateInfo descriptor_set_layout_create_info{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, .pNext = &flags_create_info};
         descriptor_set_layout_create_info.pBindings = binding.data();
         descriptor_set_layout_create_info.bindingCount = binding.size();
-
+        descriptor_set_layout_create_info.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
+        
         VK_CHECK(vkCreateDescriptorSetLayout(vk_device, &descriptor_set_layout_create_info, nullptr, &m_descriptor_set_layouts[i]));
     }
     

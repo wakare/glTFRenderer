@@ -87,7 +87,7 @@ bool VulkanUtils::InitGUIContext(IRHIDevice& device, IRHICommandQueue& graphics_
     vulkan_init_info.QueueFamily = vulkan_device.GetGraphicsQueueIndex();
     vulkan_init_info.Queue = vulkan_queue.GetGraphicsQueue();
     vulkan_init_info.PipelineCache = VK_NULL_HANDLE;
-    vulkan_init_info.DescriptorPool = vulkan_descriptor_manager.GetDesciptorPool();
+    vulkan_init_info.DescriptorPool = vulkan_descriptor_manager.GetDescriptorPool();
     vulkan_init_info.Subpass = 0;
     vulkan_init_info.MinImageCount = back_buffer_count;
     vulkan_init_info.ImageCount = back_buffer_count;
@@ -156,7 +156,8 @@ bool VulkanUtils::BeginRendering(IRHICommandList& command_list, const RHIBeginRe
 {
     const auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
 
-    std::vector<VkRenderingAttachmentInfo> attachment_infos;
+    std::vector<VkRenderingAttachmentInfo> color_attachment_infos;
+    std::vector<VkRenderingAttachmentInfo> depth_attachment_infos;
     for (auto& render_target : begin_rendering_info.m_render_targets)
     {
         auto& texture_desc = dynamic_cast<const VKTextureDescriptorAllocation&>(*render_target);
@@ -176,12 +177,20 @@ bool VulkanUtils::BeginRendering(IRHICommandList& command_list, const RHIBeginRe
         }
         attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
-        attachment_infos.push_back(attachment);
+        if (render_target_view)
+        {
+            color_attachment_infos.push_back(attachment);
+        }
+        else
+        {
+            depth_attachment_infos.push_back(attachment);
+        }
     }
 
     VkRenderingInfo rendering_info {.sType = VK_STRUCTURE_TYPE_RENDERING_INFO};
-    rendering_info.colorAttachmentCount = attachment_infos.size();
-    rendering_info.pColorAttachments = attachment_infos.data();
+    rendering_info.colorAttachmentCount = color_attachment_infos.size();
+    rendering_info.pColorAttachments = color_attachment_infos.data();
+    rendering_info.pDepthAttachment = depth_attachment_infos.empty() ? nullptr : depth_attachment_infos.data();
     rendering_info.renderArea = {{0, 0}, {begin_rendering_info.rendering_area_width, begin_rendering_info.rendering_area_height}};
     rendering_info.layerCount = 1;
         

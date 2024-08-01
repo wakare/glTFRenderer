@@ -17,7 +17,9 @@ public:
     virtual bool InitAsSRV(unsigned attribute_index, REGISTER_INDEX_TYPE register_index, unsigned space) = 0;
     virtual bool InitAsUAV(unsigned attribute_index, REGISTER_INDEX_TYPE register_index, unsigned space) = 0;
     virtual bool InitAsDescriptorTableRange(unsigned attribute_index, size_t rangeCount, const RHIRootParameterDescriptorRangeDesc* rangeDesc) = 0;
- 
+
+    virtual bool IsBindless() const {return false; }
+    
 protected:
     void SetType(RHIRootParameterType type) {assert(m_type == RHIRootParameterType::Unknown); m_type = type;}
     

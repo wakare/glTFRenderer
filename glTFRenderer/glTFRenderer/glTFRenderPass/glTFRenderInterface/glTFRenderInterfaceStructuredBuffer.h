@@ -24,7 +24,9 @@ public:
             1,
             RHIBufferType::Upload,
             RHIDataFormat::UNKNOWN,
-            RHIBufferResourceType::Buffer
+            RHIBufferResourceType::Buffer,
+            RHIResourceStateType::STATE_COMMON,
+            RUF_ALLOW_SRV,
         },
         m_gpu_buffer);
         m_constant_buffer_descriptor_allocation = RHIResourceFactory::CreateRHIResource<IRHIBufferDescriptorAllocation>();
@@ -46,7 +48,7 @@ public:
 
     virtual bool ApplyInterfaceImpl(IRHICommandList& command_list, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater) override
     {
-        descriptor_updater.BindDescriptor(command_list, pipeline_type,  m_allocation.space, m_allocation.global_parameter_index, *m_constant_buffer_descriptor_allocation);
+        descriptor_updater.BindDescriptor(command_list, pipeline_type,  m_allocation, *m_constant_buffer_descriptor_allocation);
         return true;
     }
     

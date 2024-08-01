@@ -4,6 +4,7 @@
 #include "VKDevice.h"
 #include "VKRootSignature.h"
 #include "VKSwapChain.h"
+#include "glTFRHI/RHIInterface/IRHIDescriptorManager.h"
 #include "ShaderUtil/glTFShaderUtils.h"
 
 VkShaderModule CreateVkShaderModule(VkDevice device, const std::vector<unsigned char>& shader_binaries)
@@ -178,6 +179,17 @@ bool VKGraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device,
     VkResult result = vkCreatePipelineLayout(m_device, &create_pipeline_layout_info, nullptr, &m_pipeline_layout);
     GLTF_CHECK(result == VK_SUCCESS);
 
+    VkPipelineDepthStencilStateCreateInfo depth_stencil_state_create_info{.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO};
+    depth_stencil_state_create_info.pNext = nullptr;
+    depth_stencil_state_create_info.depthTestEnable = true;
+    depth_stencil_state_create_info.depthWriteEnable = true;
+    depth_stencil_state_create_info.depthCompareOp = VkCompareOp::VK_COMPARE_OP_LESS_OR_EQUAL;
+    
+    VkPipelineRenderingCreateInfo pipeline_rendering_create_info {.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO};
+    pipeline_rendering_create_info.colorAttachmentCount = m_bind_render_target_formats.size();
+    pipeline_rendering_create_info.pColorAttachmentFormats = m_bind_render_target_formats.data();
+    pipeline_rendering_create_info.depthAttachmentFormat = m_bind_depth_stencil_format;
+
     // Create graphics pipeline
     VkGraphicsPipelineCreateInfo create_graphics_pipeline_info {};
     create_graphics_pipeline_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -188,13 +200,14 @@ bool VKGraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device,
     create_graphics_pipeline_info.pViewportState = &create_viewport_state_info;
     create_graphics_pipeline_info.pRasterizationState = &create_rasterizer_info;
     create_graphics_pipeline_info.pMultisampleState = &create_msaa_state;
-    create_graphics_pipeline_info.pDepthStencilState = nullptr;
+    create_graphics_pipeline_info.pDepthStencilState = &depth_stencil_state_create_info;
     create_graphics_pipeline_info.pColorBlendState = &create_color_blend_state_info;
     create_graphics_pipeline_info.pDynamicState = &create_dynamic_state_info;
     create_graphics_pipeline_info.layout = m_pipeline_layout;
     create_graphics_pipeline_info.subpass = 0;
     create_graphics_pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
     create_graphics_pipeline_info.basePipelineIndex = -1;
+    create_graphics_pipeline_info.pNext = &pipeline_rendering_create_info;
 
     result = vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &create_graphics_pipeline_info, nullptr, &m_pipeline);
     GLTF_CHECK(result == VK_SUCCESS);
@@ -202,14 +215,31 @@ bool VKGraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device,
     return true;
 }
 
-bool VKGraphicsPipelineStateObject::BindRenderTargetFormats(const std::vector<IRHIRenderTarget*>& render_targets)
-{
-    return true;
-}
-
 bool VKGraphicsPipelineStateObject::BindRenderTargetFormats(
     const std::vector<IRHIDescriptorAllocation*>& render_targets)
 {
+    m_bind_render_target_formats.clear();
+    m_bind_depth_stencil_format = VK_FORMAT_UNDEFINED;
+
+    for (const auto& render_target : render_targets)
+    {
+        if (render_target->GetDesc().m_view_type == RHIViewType::RVT_RTV)
+        {
+            m_bind_render_target_formats.push_back(VKConverterUtils::ConvertToFormat(render_target->GetDesc().m_format));    
+        }
+        else if (render_target->GetDesc().m_view_type == RHIViewType::RVT_DSV)
+        {
+            const RHIDataFormat convert_depth_stencil_format = render_target->GetDesc().m_format == RHIDataFormat::R32_TYPELESS ?
+                RHIDataFormat::D32_FLOAT : render_target->GetDesc().m_format;
+            m_bind_depth_stencil_format = VKConverterUtils::ConvertToFormat(convert_depth_stencil_format);
+        }
+        else
+        {
+            // Not supported render target type!
+            assert(false);
+        }
+    }
+    
     return true;
 }
 

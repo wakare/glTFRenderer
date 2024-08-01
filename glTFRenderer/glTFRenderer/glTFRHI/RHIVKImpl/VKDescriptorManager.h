@@ -28,6 +28,11 @@ class VKDescriptorTable : public IRHIDescriptorTable
 {
 public:
     virtual bool Build(IRHIDevice& device, const std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>>& descriptor_allocations) override;
+
+    const std::vector<VkDescriptorImageInfo>& GetImageInfos() const;
+    
+protected:
+    std::vector<VkDescriptorImageInfo> m_image_infos;
 };
 
 class VKDescriptorManager : public IRHIDescriptorManager
@@ -42,7 +47,7 @@ public:
     virtual bool BindDescriptorContext(IRHICommandList& command_list) override;
     virtual bool BindGUIDescriptorContext(IRHICommandList& command_list) override;
 
-    VkDescriptorPool GetDesciptorPool() const;
+    VkDescriptorPool GetDescriptorPool() const;
     
 protected:
     VkDescriptorPool m_descriptor_pool {VK_NULL_HANDLE};

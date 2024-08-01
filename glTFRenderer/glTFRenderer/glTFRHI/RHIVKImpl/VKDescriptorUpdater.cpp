@@ -5,12 +5,12 @@
 #include "VKRootSignature.h"
 
 bool VKDescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPipelineType pipeline,
-                                         unsigned space, unsigned slot, const IRHIDescriptorAllocation& allocation)
+                                         const RootSignatureAllocation& root_signature_allocation, const IRHIDescriptorAllocation& allocation)
 {
     const auto& view_info = allocation.GetDesc();
     
     VkWriteDescriptorSet draw_image_write = {.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, .pNext = nullptr};
-    draw_image_write.dstBinding = slot;
+    draw_image_write.dstBinding = root_signature_allocation.local_space_parameter_index;
     draw_image_write.descriptorCount = 1;
     
     // bind descriptor set in finalize phase
@@ -24,6 +24,20 @@ bool VKDescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPipel
         buffer_info.buffer = dynamic_cast<const VKBufferDescriptorAllocation&>(allocation).GetRawBuffer();
         buffer_info.range = buffer_desc.m_size;
         buffer_info.offset = buffer_desc.m_offset;
+        
+        switch (view_info.m_view_type)
+        {
+        case RHIViewType::RVT_CBV:
+            draw_image_write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            break;
+        case RHIViewType::RVT_SRV:
+            draw_image_write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+            break;
+        case RHIViewType::RVT_UAV:
+            draw_image_write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+            break;
+        }
+        draw_image_write.pBufferInfo = &buffer_info;
     }
     else if (view_info.IsTextureDescriptor())
     {
@@ -54,15 +68,29 @@ bool VKDescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPipel
         draw_image_write.pImageInfo = &image_info;
     }
     
-    m_cache_descriptor_writers[space].push_back(draw_image_write);
+    m_cache_descriptor_writers[root_signature_allocation.space].push_back(draw_image_write);
     
     return true;
 }
 
-bool VKDescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPipelineType pipeline, unsigned space, unsigned slot,
+bool VKDescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPipelineType pipeline, const RootSignatureAllocation& root_signature_allocation,
     const IRHIDescriptorTable& allocation_table)
 {
-    return false;
+    const auto& image_infos = dynamic_cast<const VKDescriptorTable&>(allocation_table).GetImageInfos();
+    
+    for (size_t i = 0; i < image_infos.size(); ++i)
+    {
+        VkWriteDescriptorSet draw_image_write = {.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, .pNext = nullptr};
+        draw_image_write.dstBinding = root_signature_allocation.local_space_parameter_index;
+        draw_image_write.descriptorCount = 1;
+        draw_image_write.dstSet = VK_NULL_HANDLE;
+        draw_image_write.dstArrayElement = i;
+        draw_image_write.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+        draw_image_write.pImageInfo = &image_infos[i];
+        m_cache_descriptor_writers[root_signature_allocation.space].push_back(draw_image_write);
+    }
+    
+    return true;
 }
 
 bool VKDescriptorUpdater::FinalizeUpdateDescriptors(IRHIDevice& device, IRHICommandList& command_list, IRHIRootSignature& root_signature)
@@ -88,6 +116,8 @@ bool VKDescriptorUpdater::FinalizeUpdateDescriptors(IRHIDevice& device, IRHIComm
     }
 
     m_cache_descriptor_writers.clear();
+    m_cache_buffer_infos.clear();
+    m_cache_image_infos.clear();
     
     return true;
 }

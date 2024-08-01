@@ -55,7 +55,6 @@ class IRHIGraphicsPipelineStateObject : public IRHIPipelineStateObject
 public:
     IRHIGraphicsPipelineStateObject();
 
-    virtual bool BindRenderTargetFormats(const std::vector<IRHIRenderTarget*>& render_targets) = 0;
     virtual bool BindRenderTargetFormats(const std::vector<IRHIDescriptorAllocation*>& render_targets) = 0;
 };
 

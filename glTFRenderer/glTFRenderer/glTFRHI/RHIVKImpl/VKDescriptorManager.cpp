@@ -38,7 +38,23 @@ VkImageView VKTextureDescriptorAllocation::GetRawImageView() const
 bool VKDescriptorTable::Build(IRHIDevice& device,
                               const std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>>& descriptor_allocations)
 {
-    return false;
+    GLTF_CHECK(!descriptor_allocations.empty());
+    
+    for (const auto& descriptor : descriptor_allocations)
+    {
+        VkImageView view = dynamic_cast<const VKTextureDescriptorAllocation&>(*descriptor).GetRawImageView();
+        VkDescriptorImageInfo image_info{};
+        image_info.imageView = view;
+        image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        m_image_infos.push_back(image_info);
+    }
+    
+    return true;
+}
+
+const std::vector<VkDescriptorImageInfo>& VKDescriptorTable::GetImageInfos() const
+{
+    return m_image_infos;
 }
 
 bool VKDescriptorManager::Init(IRHIDevice& device, const RHIMemoryManagerDescriptorMaxCapacity& max_descriptor_capacity)
@@ -56,6 +72,7 @@ bool VKDescriptorManager::Init(IRHIDevice& device, const RHIMemoryManagerDescrip
     descriptor_pool_create_info.poolSizeCount = pool_sizes.size();
     descriptor_pool_create_info.pPoolSizes = pool_sizes.data();
     descriptor_pool_create_info.maxSets = 64;
+    descriptor_pool_create_info.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
     
     VK_CHECK(vkCreateDescriptorPool(vk_device, &descriptor_pool_create_info, nullptr, &m_descriptor_pool));
     
@@ -110,7 +127,7 @@ bool VKDescriptorManager::BindGUIDescriptorContext(IRHICommandList& command_list
     return true;
 }
 
-VkDescriptorPool VKDescriptorManager::GetDesciptorPool() const
+VkDescriptorPool VKDescriptorManager::GetDescriptorPool() const
 {
     return m_descriptor_pool;
 }

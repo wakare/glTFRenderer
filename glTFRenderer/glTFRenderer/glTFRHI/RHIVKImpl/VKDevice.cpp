@@ -66,6 +66,12 @@ namespace VulkanEngineQueryStorage
         .pNext = &query_features13,
     };
 
+    VkPhysicalDeviceDescriptorIndexingFeatures descriptor_indexing_features
+    {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES,
+        .pNext = &query_feature12
+    };
+    
     VkPhysicalDeviceFeatures2 query_features2
     {
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
@@ -155,6 +161,15 @@ bool VKDevice::IsSuitableDevice(VkPhysicalDevice device, VkSurfaceKHR surface)
         vkGetPhysicalDeviceFeatures2(device, &VulkanEngineQueryStorage::query_features2);
     }
 
+    /*
+    GLTF_CHECK(VulkanEngineQueryStorage::descriptor_indexing_features.shaderSampledImageArrayNonUniformIndexing &&
+    VulkanEngineQueryStorage::descriptor_indexing_features.descriptorBindingSampledImageUpdateAfterBind &&
+    VulkanEngineQueryStorage::descriptor_indexing_features.shaderUniformBufferArrayNonUniformIndexing &&
+    VulkanEngineQueryStorage::descriptor_indexing_features.descriptorBindingUniformBufferUpdateAfterBind &&
+    VulkanEngineQueryStorage::descriptor_indexing_features.shaderStorageBufferArrayNonUniformIndexing &&
+    VulkanEngineQueryStorage::descriptor_indexing_features.descriptorBindingStorageBufferUpdateAfterBind);
+    */
+    
     is_suitable &= (device_properties.deviceType == VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
         && device_features.geometryShader
         );

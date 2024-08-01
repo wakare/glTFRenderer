@@ -5,7 +5,7 @@
 #include "glTFRHI/RHIInterface/IRHIRootSignatureHelper.h"
 
 // buffer size must be alignment with 64K [DX12]
-template <typename ConstantBufferType, size_t max_buffer_size = 256ull * 1024>
+template <typename ConstantBufferType, size_t max_buffer_size = 64ull * 1024>
 class glTFRenderInterfaceSingleConstantBuffer : public glTFRenderInterfaceWithRSAllocation, public glTFRenderInterfaceCanUploadDataFromCPU
 {
 public:
@@ -39,7 +39,9 @@ protected:
             1,
             RHIBufferType::Upload,
             RHIDataFormat::UNKNOWN,
-            RHIBufferResourceType::Buffer
+            RHIBufferResourceType::Buffer,
+            RHIResourceStateType::STATE_COMMON,
+            RHIResourceUsageFlags::RUF_ALLOW_CBV,
         }, m_constant_gpu_data);
         m_constant_buffer_descriptor_allocation = RHIResourceFactory::CreateRHIResource<IRHIBufferDescriptorAllocation>();
         m_constant_buffer_descriptor_allocation->InitFromBuffer(m_constant_gpu_data->m_buffer,
@@ -54,7 +56,7 @@ protected:
     }
     virtual bool ApplyInterfaceImpl(IRHICommandList& command_list, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater) override
     {
-        descriptor_updater.BindDescriptor(command_list, pipeline_type, m_allocation.space, m_allocation.global_parameter_index, *m_constant_buffer_descriptor_allocation);
+        descriptor_updater.BindDescriptor(command_list, pipeline_type, m_allocation, *m_constant_buffer_descriptor_allocation);
         return true;
     }
 

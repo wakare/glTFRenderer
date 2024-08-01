@@ -286,15 +286,20 @@ VkAccessFlagBits VKConverterUtils::ConvertToAccessFlags(RHIAccessFlags flags)
 VkBufferUsageFlags VKConverterUtils::ConvertToBufferUsage(RHIResourceUsageFlags flags)
 {
     VkBufferUsageFlags result{};
+
+    if (flags & RUF_ALLOW_CBV)
+    {
+        result |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+    }
+    
+    if (flags & RUF_ALLOW_SRV)
+    {
+        result |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+    }
     
     if (flags & RUF_ALLOW_UAV)
     {
         result |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;    
-    }
-
-    if (flags & RUF_ALLOW_SRV)
-    {
-        result |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
     }
     
     if (flags & RUF_VERTEX_BUFFER)
