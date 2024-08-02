@@ -28,6 +28,9 @@ bool glTFGraphicsPassTestSceneRendering::InitPass(glTFRenderResourceManager& res
 
     GetRenderInterface<glTFRenderInterfaceSceneMaterial>()->UploadMaterialData(resource_manager);
     
+    m_command_signature = resource_manager.GetMeshManager().GetIndirectDrawBuilder().BuildCommandSignature(resource_manager.GetDevice(), m_root_signature_helper.GetRootSignature());
+    GLTF_CHECK(m_command_signature);
+    
     return true;
 }
 
@@ -41,7 +44,7 @@ bool glTFGraphicsPassTestSceneRendering::SetupPipelineStateObject(glTFRenderReso
         R"(glTFResources\ShaderSource\TestShaders\TestSceneRenderingFrag.hlsl)", RHIShaderType::Pixel, "main");
 
     auto& shader_macros = GetGraphicsPipelineStateObject().GetShaderMacros();
-    shader_macros.AddMacro("ENABLE_INPUT_LAYOUT", "1");
+    shader_macros.AddMacro("ENABLE_INPUT_LAYOUT", m_indirect_draw ? "0" : "1");
     
     std::vector<IRHIDescriptorAllocation*> render_targets;
     render_targets.push_back(&resource_manager.GetCurrentFrameSwapChainRTV());
@@ -75,31 +78,40 @@ bool glTFGraphicsPassTestSceneRendering::RenderPass(glTFRenderResourceManager& r
     auto& command_list = resource_manager.GetCommandListForRecord();
     const auto& mesh_render_resources = resource_manager.GetMeshManager().GetMeshRenderResources();
 
-    for (const auto& instance : resource_manager.GetMeshManager().GetInstanceDrawInfo())
+    if (m_indirect_draw)
     {
-        const auto& mesh_data = mesh_render_resources.find(instance.first);
-        if (mesh_data == mesh_render_resources.end())
+        // Bind mega index buffer
+        RHIUtils::Instance().SetIndexBufferView(command_list, *resource_manager.GetMeshManager().GetMegaIndexBufferView());
+        resource_manager.GetMeshManager().GetIndirectDrawBuilder().DrawIndirect(command_list, *m_command_signature, false);
+    }
+    else
+    {
+        for (const auto& instance : resource_manager.GetMeshManager().GetInstanceDrawInfo())
         {
-            // No valid instance data exists..
-            continue;
-        }
+            const auto& mesh_data = mesh_render_resources.find(instance.first);
+            if (mesh_data == mesh_render_resources.end())
+            {
+                // No valid instance data exists..
+                continue;
+            }
         
-        if (!mesh_data->second.mesh->IsVisible())
-        {
-            continue;
-        }
+            if (!mesh_data->second.mesh->IsVisible())
+            {
+                continue;
+            }
      
-        {
-            RHIUtils::Instance().SetVertexBufferView(command_list, 0, *mesh_data->second.mesh_vertex_buffer_view);
-            RHIUtils::Instance().SetVertexBufferView(command_list, 1, *resource_manager.GetMeshManager().GetInstanceBufferView());    
-        }
+            {
+                RHIUtils::Instance().SetVertexBufferView(command_list, 0, *mesh_data->second.mesh_vertex_buffer_view);
+                RHIUtils::Instance().SetVertexBufferView(command_list, 1, *resource_manager.GetMeshManager().GetInstanceBufferView());    
+            }
                 
-        RHIUtils::Instance().SetIndexBufferView(command_list, *mesh_data->second.mesh_index_buffer_view);
+            RHIUtils::Instance().SetIndexBufferView(command_list, *mesh_data->second.mesh_index_buffer_view);
         
-        RHIUtils::Instance().DrawIndexInstanced(command_list,
-            mesh_data->second.mesh_index_count, instance.second.first,
-            0, 0,
-            instance.second.second);
+            RHIUtils::Instance().DrawIndexInstanced(command_list,
+                mesh_data->second.mesh_index_count, instance.second.first,
+                0, 0,
+                instance.second.second);
+        }
     }
     
     return true;
@@ -108,5 +120,5 @@ bool glTFGraphicsPassTestSceneRendering::RenderPass(glTFRenderResourceManager& r
 const RHIVertexStreamingManager& glTFGraphicsPassTestSceneRendering::GetVertexStreamingManager(
     glTFRenderResourceManager& resource_manager) const
 {
-    return resource_manager.GetMeshManager().GetVertexStreamingManager();
+    return m_indirect_draw ? m_dummy_vertex_streaming_manager : resource_manager.GetMeshManager().GetVertexStreamingManager();
 }

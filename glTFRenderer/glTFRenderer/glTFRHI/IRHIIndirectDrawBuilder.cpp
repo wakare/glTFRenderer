@@ -52,7 +52,7 @@ bool IRHIIndirectDrawBuilder::InitIndirectDrawBuilder(IRHIDevice& device, IRHIMe
     m_cached_command_count = size / command_stride;
     m_cached_data = std::make_unique<char[]>(size);
     memcpy(m_cached_data.get(), data, size);
-
+    
     return true;
 }
 
@@ -73,7 +73,7 @@ std::shared_ptr<IRHICommandSignature> IRHIIndirectDrawBuilder::BuildCommandSigna
 unsigned IRHIIndirectDrawBuilder::GetCommandStride() const
 {
     GLTF_CHECK(m_inited);
-    return m_command_stride;
+    return  m_command_signature_desc.stride;
 }
 
 std::shared_ptr<IRHIBuffer> IRHIIndirectDrawBuilder::GetIndirectArgumentBuffer() const
@@ -116,7 +116,8 @@ bool IRHIIndirectDrawBuilder::DrawIndirect(IRHICommandList& command_list, IRHICo
             command_signature,
             m_cached_command_count,
             *m_indirect_argument_buffer->m_buffer,
-            0);
+            0,
+            GetCommandStride());
     }
     
     return true;

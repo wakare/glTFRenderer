@@ -1,5 +1,8 @@
 #pragma once
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassBase.h"
+#include "glTFRHI/RHIVertexStreamingManager.h"
+
+class IRHICommandSignature;
 
 class glTFGraphicsPassTestSceneRendering : public glTFGraphicsPassBase
 {
@@ -15,4 +18,8 @@ public:
 
 protected:
     virtual const RHIVertexStreamingManager& GetVertexStreamingManager(glTFRenderResourceManager& resource_manager) const override;
+
+    std::shared_ptr<IRHICommandSignature> m_command_signature;
+    bool m_indirect_draw{true};
+    RHIVertexStreamingManager m_dummy_vertex_streaming_manager;
 };

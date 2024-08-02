@@ -449,16 +449,16 @@ bool VulkanUtils::AddTextureBarrierToCommandList(IRHICommandList& command_list, 
 bool VulkanUtils::DrawInstanced(IRHICommandList& command_list, unsigned vertex_count_per_instance, unsigned instance_count,
     unsigned start_vertex_location, unsigned start_instance_location)
 {
-    auto vk_command_list = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
-    vkCmdDraw(vk_command_list, vertex_count_per_instance, instance_count, start_vertex_location, start_instance_location);
+    auto command_buffer = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
+    vkCmdDraw(command_buffer, vertex_count_per_instance, instance_count, start_vertex_location, start_instance_location);
     return true;
 }
 
 bool VulkanUtils::DrawIndexInstanced(IRHICommandList& command_list, unsigned index_count_per_instance,
     unsigned instance_count, unsigned start_index_location, unsigned base_vertex_location, unsigned start_instance_location)
 {
-    auto vk_command_list = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
-    vkCmdDrawIndexed(vk_command_list, index_count_per_instance, instance_count, start_index_location, base_vertex_location, start_instance_location);
+    auto command_buffer = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
+    vkCmdDrawIndexed(command_buffer, index_count_per_instance, instance_count, start_index_location, base_vertex_location, start_instance_location);
     return true;
 }
 
@@ -474,8 +474,13 @@ bool VulkanUtils::TraceRay(IRHICommandList& command_list, IRHIShaderTable& shade
 }
 
 bool VulkanUtils::ExecuteIndirect(IRHICommandList& command_list, IRHICommandSignature& command_signature,
-    unsigned max_count, IRHIBuffer& arguments_buffer, unsigned arguments_buffer_offset)
+    unsigned max_count, IRHIBuffer& arguments_buffer, unsigned arguments_buffer_offset, unsigned command_stride)
 {
+    auto command_buffer = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
+    auto indirect_buffer = dynamic_cast<VKBuffer&>(arguments_buffer).GetRawBuffer();
+    
+    vkCmdDrawIndexedIndirect(command_buffer, indirect_buffer, arguments_buffer_offset, max_count, command_stride);
+
     return true;
 }
 

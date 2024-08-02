@@ -52,10 +52,6 @@ bool RHIVertexStreamingManager::Init(const VertexLayoutDeclaration& vertex_layou
     
     if (has_instance)
     {
-        if (RHIConfigSingleton::Instance().GetGraphicsAPIType() == RHIGraphicsAPIType::RHI_GRAPHICS_API_DX12)
-        {
-            vertex_layout_location = 0;
-        }
         vertex_layout_offset = 0;
         
         m_vertex_attributes.push_back({ "INSTANCE_TRANSFORM_MATRIX", 0, RHIDataFormat::R32G32B32A32_FLOAT, vertex_layout_offset, 1, PER_INSTANCE, vertex_layout_location++ });

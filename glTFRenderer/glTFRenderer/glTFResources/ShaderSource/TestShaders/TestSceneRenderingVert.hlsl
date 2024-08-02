@@ -3,6 +3,30 @@
 #include "glTFResources/ShaderSource/Interface/SceneView.hlsl"
 #include "glTFResources/ShaderSource/ShaderDeclarationUtil.hlsl"
 
+struct VS_OUTPUT
+{
+    float4 pos: SV_POSITION;
+    float3 normal: NORMAL;
+    float4 tangent: TANGENT;
+    float2 texCoord: TEXCOORD;
+
+    uint vs_material_id: MATERIAL_ID;
+    uint normal_mapping: NORMAL_MAPPING;
+    float3x3 world_rotation_matrix: WORLD_ROTATION_MATRIX;
+};
+
+struct MeshInstanceInputData
+{
+    float4x4 instance_transform;
+    uint instance_material_id;
+    uint normal_mapping;
+    uint mesh_id;
+    uint padding;
+};
+DECLARE_RESOURCE(StructuredBuffer<MeshInstanceInputData> g_mesh_instance_input_data, MESH_INSTANCE_INPUT_DATA_REGISTER_SRV_INDEX);
+
+#if ENABLE_INPUT_LAYOUT
+
 struct VS_INPUT
 {
     DECLARE_ATTRIBUTE_LOCATION(float3 pos, POSITION0);
@@ -31,38 +55,6 @@ struct VS_INPUT
     uint GetMeshID() {return instance_custom_data.z;}
 };
 
-struct VS_OUTPUT
-{
-    float4 pos: SV_POSITION;
-    
-#ifdef HAS_NORMAL
-    float3 normal: NORMAL;
-#endif
-
-#ifdef HAS_TANGENT
-    float4 tangent: TANGENT;
-#endif
-    
-#ifdef HAS_TEXCOORD
-    float2 texCoord: TEXCOORD;
-#endif
-
-    uint vs_material_id: MATERIAL_ID;
-    uint normal_mapping: NORMAL_MAPPING;
-    float3x3 world_rotation_matrix: WORLD_ROTATION_MATRIX;
-};
-
-struct MeshInstanceInputData
-{
-    float4x4 instance_transform;
-    uint instance_material_id;
-    uint normal_mapping;
-    uint mesh_id;
-    uint padding;
-};
-DECLARE_RESOURCE(StructuredBuffer<MeshInstanceInputData> g_mesh_instance_input_data, MESH_INSTANCE_INPUT_DATA_REGISTER_SRV_INDEX);
-
-#if ENABLE_INPUT_LAYOUT
 VS_OUTPUT main(VS_INPUT input)
 {
     VS_OUTPUT output;
@@ -91,13 +83,19 @@ VS_OUTPUT main(VS_INPUT input)
 #else
 
 // SV_StartInstanceLocation is supported in sm68
+#if DX_SHADER
 VS_OUTPUT main(uint Vertex_ID : SV_VertexID, uint Instance_ID : SV_InstanceID, uint StartInstanceOffset : SV_StartInstanceLocation )
-// VS_OUTPUT main(uint Vertex_ID : SV_VertexID, uint Instance_ID : SV_InstanceID )
+#else
+VS_OUTPUT main(uint Vertex_ID : SV_VertexID, uint Instance_ID : SV_InstanceID )
+#endif
 {
     VS_OUTPUT output;
 
-    //uint instance_id = Instance_ID + instance_offset_buffer.instance_offset;
+#if DX_SHADER
     uint instance_id = Instance_ID + StartInstanceOffset;
+#else
+    uint instance_id = Instance_ID;
+#endif
     
     MeshInstanceInputData instance_input_data = g_mesh_instance_input_data[instance_id];
     float4x4 instance_transform = transpose(instance_input_data.instance_transform);
@@ -107,18 +105,11 @@ VS_OUTPUT main(uint Vertex_ID : SV_VertexID, uint Instance_ID : SV_InstanceID, u
     
     float4 world_pos = mul(instance_transform, float4(vertex.position.xyz, 1.0));
     float4 view_pos = mul(viewMatrix, world_pos);
-    output.pos = mul (projectionMatrix, view_pos);
-#ifdef HAS_NORMAL
-    output.normal = normalize(mul(instance_transform, float4(vertex.normal.xyz, 0.0)).xyz);
-#endif
-
-#ifdef HAS_TANGENT
-    output.tangent = vertex.tangent;
-#endif
     
-#ifdef HAS_TEXCOORD 
+    output.pos = mul (projectionMatrix, view_pos);
+    output.normal = normalize(mul(instance_transform, float4(vertex.normal.xyz, 0.0)).xyz);
+    output.tangent = vertex.tangent;
     output.texCoord = vertex.uv.xy;
-#endif
     
     output.vs_material_id = instance_input_data.instance_material_id;
     output.normal_mapping = instance_input_data.normal_mapping;
