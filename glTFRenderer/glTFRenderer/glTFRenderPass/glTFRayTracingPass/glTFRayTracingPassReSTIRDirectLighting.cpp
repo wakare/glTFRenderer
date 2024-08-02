@@ -11,12 +11,19 @@ glTFRayTracingPassReSTIRDirectLighting::glTFRayTracingPassReSTIRDirectLighting()
     : m_lighting_samples_handle(0)
     , m_screen_uv_offset_handle(0)
 {
-    AddRenderInterface(std::make_shared<glTFRenderInterfaceSingleConstantBuffer<RayTracingDIPassOptions>>());
+    
 }
 
 const char* glTFRayTracingPassReSTIRDirectLighting::PassName()
 {
     return "ReSTIRSamplesGenerationPass";
+}
+
+bool glTFRayTracingPassReSTIRDirectLighting::InitRenderInterface(glTFRenderResourceManager& resource_manager)
+{
+    RETURN_IF_FALSE(glTFRayTracingPassWithMesh::InitRenderInterface(resource_manager))
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceSingleConstantBuffer<RayTracingDIPassOptions>>());
+    return true;
 }
 
 bool glTFRayTracingPassReSTIRDirectLighting::InitPass(glTFRenderResourceManager& resource_manager)

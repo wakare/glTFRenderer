@@ -10,16 +10,24 @@ glTFGraphicsPassLighting::glTFGraphicsPassLighting()
     , m_depth_texture_allocation(nullptr)
     , m_base_pass_normal_allocation(nullptr)
 {
-    AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneView>());
-    AddRenderInterface(std::make_shared<glTFRenderInterfaceLighting>());
-    const std::shared_ptr<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Clamp, RHIStaticSamplerFilterMode::Linear>> sampler_interface =
-        std::make_shared<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Clamp, RHIStaticSamplerFilterMode::Linear>>("DEFAULT_SAMPLER_REGISTER_INDEX");
-    AddRenderInterface(sampler_interface);
 }
 
 const char* glTFGraphicsPassLighting::PassName()
 {
     return "GraphicsPassLighting";
+}
+
+bool glTFGraphicsPassLighting::InitRenderInterface(glTFRenderResourceManager& resource_manager)
+{
+    RETURN_IF_FALSE(glTFGraphicsPassPostprocess::InitRenderInterface(resource_manager))
+
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneView>());
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceLighting>());
+    const std::shared_ptr<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Clamp, RHIStaticSamplerFilterMode::Linear>> sampler_interface =
+        std::make_shared<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Clamp, RHIStaticSamplerFilterMode::Linear>>("DEFAULT_SAMPLER_REGISTER_INDEX");
+    AddRenderInterface(sampler_interface);
+    
+    return true;
 }
 
 bool glTFGraphicsPassLighting::InitPass(glTFRenderResourceManager& resource_manager)

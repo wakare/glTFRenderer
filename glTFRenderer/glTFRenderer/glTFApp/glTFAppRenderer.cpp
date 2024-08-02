@@ -72,6 +72,11 @@ void glTFAppRenderer::TickRenderingEnd(size_t delta_time_ms)
     m_scene_renderer->TickFrameRenderingEnd(*m_resource_manager, delta_time_ms);
 }
 
+void glTFAppRenderer::WaitForExit()
+{
+    m_resource_manager->WaitAllFrameFinish();
+}
+
 glTFGUIRenderer& glTFAppRenderer::GetGUIRenderer() const
 {
     return *m_ui_renderer;

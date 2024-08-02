@@ -9,11 +9,20 @@
 
 glTFRayTracingPassWithMesh::glTFRayTracingPassWithMesh()
 {
+    
+}
+
+bool glTFRayTracingPassWithMesh::InitRenderInterface(glTFRenderResourceManager& resource_manager)
+{
+    RETURN_IF_FALSE(glTFRayTracingPassBase::InitRenderInterface(resource_manager))
+    
     AddRenderInterface(std::make_shared<glTFRenderInterfaceFrameStat>());
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneView>());
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMeshInfo>());
     AddRenderInterface(std::make_shared<glTFRenderInterfaceLighting>());
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMaterial>());
+    
+    return true;
 }
 
 bool glTFRayTracingPassWithMesh::InitPass(glTFRenderResourceManager& resource_manager)
@@ -22,7 +31,7 @@ bool glTFRayTracingPassWithMesh::InitPass(glTFRenderResourceManager& resource_ma
     
     RETURN_IF_FALSE(UpdateAS(resource_manager))
     RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSceneMeshInfo>()->UpdateSceneMeshData(resource_manager, resource_manager.GetMeshManager()))
-    RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSceneMaterial>()->UploadMaterialData(resource_manager))
+    //RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSceneMaterial>()->UploadMaterialData(resource_manager))
     m_shader_table = RHIResourceFactory::CreateRHIResource<IRHIShaderTable>();
 
     std::vector<RHIShaderBindingTable> sbts;

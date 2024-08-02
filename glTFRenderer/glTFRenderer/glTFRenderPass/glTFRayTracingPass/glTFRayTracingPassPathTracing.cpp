@@ -32,13 +32,21 @@ glTFRayTracingPassPathTracing::glTFRayTracingPassPathTracing()
     : m_raytracing_output_handle(0)
     , m_screen_uv_offset_handle(0)
 {
-    AddRenderInterface(std::make_shared<glTFRenderInterfaceSingleConstantBuffer<RayTracingPathTracingPassOptions>>());
-    AddRenderInterface(std::make_shared<glTFRenderInterfaceRadiosityScene>());
 }
 
 const char* glTFRayTracingPassPathTracing::PassName()
 {
     return "PathTracingPass";
+}
+
+bool glTFRayTracingPassPathTracing::InitRenderInterface(glTFRenderResourceManager& resource_manager)
+{
+    RETURN_IF_FALSE(glTFRayTracingPassWithMesh::InitRenderInterface(resource_manager))
+
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceSingleConstantBuffer<RayTracingPathTracingPassOptions>>());
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceRadiosityScene>());
+    
+    return true;
 }
 
 bool glTFRayTracingPassPathTracing::InitPass(glTFRenderResourceManager& resource_manager)

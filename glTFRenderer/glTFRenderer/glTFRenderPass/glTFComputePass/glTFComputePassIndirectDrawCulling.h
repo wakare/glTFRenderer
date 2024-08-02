@@ -7,6 +7,8 @@ public:
     glTFComputePassIndirectDrawCulling();
     
     virtual const char* PassName() override;
+
+    virtual bool InitRenderInterface(glTFRenderResourceManager& resource_manager) override;
     virtual bool InitPass(glTFRenderResourceManager& resource_manager) override;
 
     virtual bool SetupRootSignature(glTFRenderResourceManager& resourceManager) override;

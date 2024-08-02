@@ -51,6 +51,51 @@ bool glTFRenderInterfaceSceneMaterial::UploadMaterialData(glTFRenderResourceMana
     return true;
 }
 
+bool glTFRenderInterfaceSceneMaterial::PreInitInterfaceImpl(glTFRenderResourceManager& resource_manager)
+{
+    RETURN_IF_FALSE(glTFRenderInterfaceBase::PreInitInterfaceImpl(resource_manager))
+
+    std::vector<MaterialInfo> material_infos;
+    std::vector<glTFMaterialTextureRenderResource*> material_texture_render_resources;
+    RETURN_IF_FALSE(resource_manager.GetMaterialManager().GatherAllMaterialRenderResource(material_infos, material_texture_render_resources))
+    std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>> texture_descriptor_allocations;
+    
+    for (auto& texture : material_texture_render_resources)
+    {
+        if (!texture)
+        {
+            continue;
+        }
+        std::shared_ptr<IRHITextureDescriptorAllocation> result;
+        auto& texture_resource = texture->GetTextureAllocation().m_texture;
+        resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), texture_resource,
+            RHITextureDescriptorDesc{
+                texture_resource->GetTextureDesc().GetDataFormat(),
+                RHIResourceDimension::TEXTURE2D,
+                RHIViewType::RVT_SRV,
+            },
+            result);
+        texture_descriptor_allocations.push_back(result);
+    }
+    
+    (GetRenderInterface<glTFRenderInterfaceSRVTableBindless>()->AddTextureAllocations(texture_descriptor_allocations));
+    
+    return true;
+}
+
+bool glTFRenderInterfaceSceneMaterial::PostInitInterfaceImpl(glTFRenderResourceManager& resource_manager)
+{
+    RETURN_IF_FALSE(glTFRenderInterfaceBase::PostInitInterfaceImpl(resource_manager))
+    
+    std::vector<MaterialInfo> material_infos;
+    std::vector<glTFMaterialTextureRenderResource*> material_texture_render_resources;
+    
+    RETURN_IF_FALSE(resource_manager.GetMaterialManager().GatherAllMaterialRenderResource(material_infos, material_texture_render_resources))
+    RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceStructuredBuffer<MaterialInfo>>()->UploadCPUBuffer(resource_manager, material_infos.data(), 0, sizeof(MaterialInfo) * material_infos.size()))
+    
+    return true;
+}
+
 bool glTFRenderInterfaceSceneMaterial::InitInterfaceImpl(glTFRenderResourceManager& resource_manager)
 {
     return true;

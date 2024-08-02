@@ -10,15 +10,23 @@
 glTFComputePassReSTIRDirectLighting::glTFComputePassReSTIRDirectLighting()
     : m_aggregate_samples_output("AGGREGATE_OUTPUT_REGISTER_INDEX", "AGGREGATE_BACKBUFFER_REGISTER_INDEX")
 {
-    AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneView>());
-    AddRenderInterface(std::make_shared<glTFRenderInterfaceLighting>());
-    AddRenderInterface(std::make_shared<glTFRenderInterfaceFrameStat>());
-    AddRenderInterface(std::make_shared<glTFRenderInterfaceSingleConstantBuffer<RayTracingDIPostProcessPassOptions>>());
 }
 
 const char* glTFComputePassReSTIRDirectLighting::PassName()
 {
     return "ReSTIRLightingPass";
+}
+
+bool glTFComputePassReSTIRDirectLighting::InitRenderInterface(glTFRenderResourceManager& resource_manager)
+{
+    RETURN_IF_FALSE(glTFComputePassBase::InitRenderInterface(resource_manager))
+
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneView>());
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceLighting>());
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceFrameStat>());
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceSingleConstantBuffer<RayTracingDIPostProcessPassOptions>>());
+    
+    return true;
 }
 
 bool glTFComputePassReSTIRDirectLighting::InitPass(glTFRenderResourceManager& resource_manager)

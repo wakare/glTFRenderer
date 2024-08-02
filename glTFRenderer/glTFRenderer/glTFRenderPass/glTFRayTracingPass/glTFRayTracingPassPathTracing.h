@@ -30,6 +30,7 @@ public:
     glTFRayTracingPassPathTracing();
 
     virtual const char* PassName() override;
+    virtual bool InitRenderInterface(glTFRenderResourceManager& resource_manager) override;
     virtual bool InitPass(glTFRenderResourceManager& resource_manager) override;
     virtual bool PreRenderPass(glTFRenderResourceManager& resource_manager) override;
     virtual bool PostRenderPass(glTFRenderResourceManager& resource_manager) override;

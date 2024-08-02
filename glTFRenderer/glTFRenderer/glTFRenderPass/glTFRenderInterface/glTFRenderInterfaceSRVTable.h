@@ -17,6 +17,18 @@ public:
 
     virtual bool InitInterfaceImpl(glTFRenderResourceManager& resource_manager) override
     {
+        if (m_texture_descriptor_allocations.empty())
+        {
+            return true;
+        }
+        
+        if (!m_descriptor_table)
+        {
+            m_descriptor_table = RHIResourceFactory::CreateRHIResource<IRHIDescriptorTable>();
+            bool succeed = m_descriptor_table->Build(resource_manager.GetDevice(), m_texture_descriptor_allocations);
+            GLTF_CHECK(succeed);
+        }
+        
         return true;
     }
     
@@ -27,18 +39,6 @@ public:
 
     virtual bool ApplyInterfaceImpl(IRHICommandList& command_list, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater) override
     {
-        if (m_texture_descriptor_allocations.empty())
-        {
-            return true;
-        }
-        
-        if (!m_descriptor_table)
-        {
-            m_descriptor_table = RHIResourceFactory::CreateRHIResource<IRHIDescriptorTable>();
-            bool succeed = m_descriptor_table->Build(glTFRenderResourceManager::GetDevice(), m_texture_descriptor_allocations);
-            GLTF_CHECK(succeed);
-        }
-
         descriptor_updater.BindDescriptor(command_list, pipeline_type, GetRSAllocation(), *m_descriptor_table);
         
         return true;

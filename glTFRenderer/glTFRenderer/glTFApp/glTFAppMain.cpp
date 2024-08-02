@@ -118,6 +118,7 @@ void glTFAppMain::Run()
 
         window.SetExitCallback([this]()
         {
+            m_renderer->WaitForExit();
             // Clear all render resource
             m_renderer.reset(nullptr);
         });    

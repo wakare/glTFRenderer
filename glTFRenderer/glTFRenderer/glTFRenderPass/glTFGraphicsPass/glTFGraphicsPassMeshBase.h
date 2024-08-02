@@ -11,7 +11,7 @@ class glTFGraphicsPassMeshBase : public glTFGraphicsPassBase
 public:
     glTFGraphicsPassMeshBase();
     virtual const char* PassName() override {return "MeshPass"; }
-    
+    virtual bool InitRenderInterface(glTFRenderResourceManager& resource_manager) override;
     bool InitPass(glTFRenderResourceManager& resource_manager) override;
     bool PreRenderPass(glTFRenderResourceManager& resource_manager) override;
     bool RenderPass(glTFRenderResourceManager& resource_manager) override;

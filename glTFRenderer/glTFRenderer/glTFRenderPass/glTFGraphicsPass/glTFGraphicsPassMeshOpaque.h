@@ -7,6 +7,7 @@ public:
     glTFGraphicsPassMeshOpaque();
     
     virtual const char* PassName() override {return "MeshPassOpaque"; }
+    virtual bool InitRenderInterface(glTFRenderResourceManager& resource_manager) override;
     virtual bool InitPass(glTFRenderResourceManager& resource_manager) override;
     bool PreRenderPass(glTFRenderResourceManager& resource_manager) override;
     

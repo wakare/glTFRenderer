@@ -9,6 +9,7 @@ class glTFGraphicsPassTestSceneRendering : public glTFGraphicsPassBase
 public:
     glTFGraphicsPassTestSceneRendering();
     virtual const char* PassName() override {return "TestSceneRendering"; }
+    virtual bool InitRenderInterface(glTFRenderResourceManager& resource_manager) override;
     
     bool InitPass(glTFRenderResourceManager& resource_manager) override;
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;

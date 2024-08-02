@@ -9,6 +9,12 @@
 
 glTFGraphicsPassTestSceneRendering::glTFGraphicsPassTestSceneRendering()
 {
+    
+}
+
+bool glTFGraphicsPassTestSceneRendering::InitRenderInterface(glTFRenderResourceManager& resource_manager)
+{
+    RETURN_IF_FALSE(glTFGraphicsPassBase::InitRenderInterface(resource_manager))
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneView>());
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMeshInfo>());
     AddRenderInterface(std::make_shared<glTFRenderInterfaceStructuredBuffer<MeshInstanceInputData>>());
@@ -16,17 +22,15 @@ glTFGraphicsPassTestSceneRendering::glTFGraphicsPassTestSceneRendering()
         std::make_shared<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Warp, RHIStaticSamplerFilterMode::Linear>>("DEFAULT_SAMPLER_REGISTER_INDEX");
     AddRenderInterface(sampler_interface);
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMaterial>());
+    //GetRenderInterface<glTFRenderInterfaceSceneMaterial>()->UploadMaterialData(resource_manager);
+    
+    return true;
 }
 
 bool glTFGraphicsPassTestSceneRendering::InitPass(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassBase::InitPass(resource_manager));
     RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSceneMeshInfo>()->UpdateSceneMeshData(resource_manager, resource_manager.GetMeshManager()))
-
-    const auto& instance_buffer_data = resource_manager.GetMeshManager().GetInstanceBufferData(); 
-    GetRenderInterface<glTFRenderInterfaceStructuredBuffer<MeshInstanceInputData>>()->UploadCPUBuffer(resource_manager, instance_buffer_data.data(), 0, sizeof(MeshInstanceInputData) * instance_buffer_data.size());
-
-    GetRenderInterface<glTFRenderInterfaceSceneMaterial>()->UploadMaterialData(resource_manager);
     
     m_command_signature = resource_manager.GetMeshManager().GetIndirectDrawBuilder().BuildCommandSignature(resource_manager.GetDevice(), m_root_signature_helper.GetRootSignature());
     GLTF_CHECK(m_command_signature);
@@ -67,7 +71,10 @@ bool glTFGraphicsPassTestSceneRendering::PreRenderPass(glTFRenderResourceManager
     m_begin_rendering_info.enable_depth_write = true;
     m_begin_rendering_info.clear_depth = true;
     m_begin_rendering_info.clear_render_target = true;
-    
+
+    const auto& instance_buffer_data = resource_manager.GetMeshManager().GetInstanceBufferData(); 
+    GetRenderInterface<glTFRenderInterfaceStructuredBuffer<MeshInstanceInputData>>()->UploadCPUBuffer(resource_manager, instance_buffer_data.data(), 0, sizeof(MeshInstanceInputData) * instance_buffer_data.size());
+
     return true;
 }
 

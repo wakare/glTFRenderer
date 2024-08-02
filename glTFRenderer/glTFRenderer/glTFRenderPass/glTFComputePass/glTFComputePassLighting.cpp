@@ -11,17 +11,26 @@ glTFComputePassLighting::glTFComputePassLighting()
     , m_normal_SRV(nullptr)
     , m_output_UAV(nullptr)
 {
+    
+}
+
+const char* glTFComputePassLighting::PassName()
+{
+    return "LightComputePass";
+}
+
+bool glTFComputePassLighting::InitRenderInterface(glTFRenderResourceManager& resource_manager)
+{
+    RETURN_IF_FALSE(glTFComputePassBase::InitRenderInterface(resource_manager))
+    
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneView>());
     AddRenderInterface(std::make_shared<glTFRenderInterfaceLighting>());
 
     const std::shared_ptr<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Clamp, RHIStaticSamplerFilterMode::Linear>> sampler_interface =
         std::make_shared<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Clamp, RHIStaticSamplerFilterMode::Linear>>("DEFAULT_SAMPLER_REGISTER_INDEX");
     AddRenderInterface(sampler_interface);
-}
-
-const char* glTFComputePassLighting::PassName()
-{
-    return "LightComputePass";
+    
+    return true;
 }
 
 bool glTFComputePassLighting::InitPass(glTFRenderResourceManager& resource_manager)

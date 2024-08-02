@@ -11,12 +11,23 @@
 
 glTFGraphicsPassMeshOpaque::glTFGraphicsPassMeshOpaque()
 {
+    
+}
+
+bool glTFGraphicsPassMeshOpaque::InitRenderInterface(glTFRenderResourceManager& resource_manager)
+{
+    RETURN_IF_FALSE(glTFGraphicsPassMeshBase::InitRenderInterface(resource_manager))
+
     AddRenderInterface(std::make_shared<glTFRenderInterfaceRadiosityScene>());
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMaterial>());
     
     const std::shared_ptr<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Warp, RHIStaticSamplerFilterMode::Linear>> sampler_interface =
         std::make_shared<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Warp, RHIStaticSamplerFilterMode::Linear>>("DEFAULT_SAMPLER_REGISTER_INDEX");
     AddRenderInterface(sampler_interface);
+    
+    //GetRenderInterface<glTFRenderInterfaceSceneMaterial>()->UploadMaterialData(resource_manager);
+    
+    return true;
 }
 
 bool glTFGraphicsPassMeshOpaque::InitPass(glTFRenderResourceManager& resource_manager)
@@ -36,8 +47,6 @@ bool glTFGraphicsPassMeshOpaque::InitPass(glTFRenderResourceManager& resource_ma
         }, m_normal_view);
     
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::InitPass(resource_manager))
-
-    GetRenderInterface<glTFRenderInterfaceSceneMaterial>()->UploadMaterialData(resource_manager);
     
     return true;
 }

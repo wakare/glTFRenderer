@@ -11,13 +11,21 @@ glTFComputePassRayTracingPostprocess::glTFComputePassRayTracingPostprocess()
     , m_accumulation_resource("ACCUMULATION_OUTPUT_REGISTER_INDEX", "ACCUMULATION_BACKBUFFER_REGISTER_INDEX")
     , m_custom_resource("CUSTOM_OUTPUT_REGISTER_INDEX", "CUSTOM_BACKBUFFER_REGISTER_INDEX")
 {
-    AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneView>());
-    AddRenderInterface(std::make_shared<glTFRenderInterfaceSingleConstantBuffer<RayTracingPostProcessPassOptions>>());
 }
 
 const char* glTFComputePassRayTracingPostprocess::PassName()
 {
     return "RayTracingPostProcessPass";
+}
+
+bool glTFComputePassRayTracingPostprocess::InitRenderInterface(glTFRenderResourceManager& resource_manager)
+{
+    RETURN_IF_FALSE(glTFComputePassBase::InitRenderInterface(resource_manager))
+
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneView>());
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceSingleConstantBuffer<RayTracingPostProcessPassOptions>>());
+    
+    return true;
 }
 
 bool glTFComputePassRayTracingPostprocess::InitPass(glTFRenderResourceManager& resource_manager)

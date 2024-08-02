@@ -10,9 +10,18 @@
 
 glTFGraphicsPassMeshBase::glTFGraphicsPassMeshBase()
 {
+    
+}
+
+bool glTFGraphicsPassMeshBase::InitRenderInterface(glTFRenderResourceManager& resource_manager)
+{
+    RETURN_IF_FALSE(glTFGraphicsPassBase::InitRenderInterface(resource_manager))
+    
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneView>());
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMeshInfo>());
     AddRenderInterface(std::make_shared<glTFRenderInterfaceStructuredBuffer<MeshInstanceInputData>>());
+    
+    return true;
 }
 
 bool glTFGraphicsPassMeshBase::InitPass(glTFRenderResourceManager& resource_manager)
