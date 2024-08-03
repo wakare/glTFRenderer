@@ -28,6 +28,11 @@
 extern "C" { __declspec(dllexport) extern const UINT D3D12SDKVersion = 614; }
 extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ".\\D3D12\\"; }
 
+bool DX12Utils::InitGraphicsAPI()
+{
+    return true;
+}
+
 bool DX12Utils::InitGUIContext(IRHIDevice& device, IRHICommandQueue& graphics_queue, IRHIDescriptorManager& descriptor_manager, unsigned back_buffer_count)
 {
     auto* dx_device = dynamic_cast<DX12Device&>(device).GetDevice();

@@ -174,7 +174,8 @@ void glTFRenderPassManager::RenderEnd(glTFRenderResourceManager& resource_manage
     context.sign_semaphores.push_back(&command_list.GetSemaphore());
     
     // TODO: no waiting causing race with base color and normal?
-    resource_manager.CloseCurrentCommandListAndExecute(context, true);
+    //resource_manager.CloseCurrentCommandListAndExecute(context, true);
+    resource_manager.CloseCurrentCommandListAndExecute(context, false);
     RHIUtils::Instance().Present(resource_manager.GetSwapChain(), resource_manager.GetCommandQueue(), command_list);
 }
 

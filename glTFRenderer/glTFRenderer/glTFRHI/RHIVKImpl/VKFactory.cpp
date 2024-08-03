@@ -48,6 +48,8 @@ bool VKFactory::InitFactory()
 
     VkResult result = vkCreateInstance(&create_info, nullptr, &m_instance);
     GLTF_CHECK(result == VK_SUCCESS);
+
+    VolkUtils::LoadInstance(m_instance);
     
     return true;
 }

@@ -1,6 +1,6 @@
 #pragma once
 #include "glTFRHI/RHIInterface/IRHIBuffer.h"
-#include <vulkan/vulkan_core.h>
+#include "VolkUtils.h"
 
 class VKBuffer : public IRHIBuffer
 {

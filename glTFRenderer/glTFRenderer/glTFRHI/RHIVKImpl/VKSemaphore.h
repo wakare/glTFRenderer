@@ -1,6 +1,5 @@
 #pragma once
-#include <vulkan/vulkan_core.h>
-
+#include "VolkUtils.h"
 #include "glTFRHI/RHIInterface/IRHISemaphore.h"
 
 class VKSemaphore : public IRHISemaphore

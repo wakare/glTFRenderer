@@ -75,6 +75,11 @@ std::shared_ptr<IRHIBufferDescriptorAllocation> glTFRenderInterfaceBase::CreateB
     return RHIResourceFactory::CreateRHIResource<IRHIBufferDescriptorAllocation>();
 }
 
+std::shared_ptr<IRHIDescriptorTable> glTFRenderInterfaceBase::CreateDescriptorTable()
+{
+    return RHIResourceFactory::CreateRHIResource<IRHIDescriptorTable>();
+}
+
 void glTFRenderInterfaceWithRSAllocation::ApplyShaderDefineImpl(
     RHIShaderPreDefineMacros& out_shader_pre_define_macros ) const
 {

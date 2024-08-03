@@ -1,5 +1,8 @@
 #include "VulkanUtils.h"
 
+#define IMGUI_IMPL_VULKAN_HAS_DYNAMIC_RENDERING
+#define IMGUI_IMPL_VULKAN_USE_VOLK
+#define VK_NO_PROTOTYPES
 #include <backends/imgui_impl_vulkan.h>
 
 #include "VKBuffer.h"
@@ -16,6 +19,7 @@
 #include "VKTexture.h"
 #include "VKVertexBufferView.h"
 #include "VKCommandQueue.h"
+#include "VolkUtils.h"
 
 VkAccessFlags2 GetAccessFlagFromResourceState(RHIResourceStateType state)
 {
@@ -75,6 +79,11 @@ VkAccessFlags2 GetAccessFlagFromResourceState(RHIResourceStateType state)
     return result;
 }
 
+bool VulkanUtils::InitGraphicsAPI()
+{
+    return VolkUtils::InitVolk();
+}
+
 bool VulkanUtils::InitGUIContext(IRHIDevice& device, IRHICommandQueue& graphics_queue, IRHIDescriptorManager& descriptor_manager, unsigned back_buffer_count)
 {
     auto& vulkan_device = dynamic_cast<VKDevice&>(device);
@@ -99,7 +108,7 @@ bool VulkanUtils::InitGUIContext(IRHIDevice& device, IRHICommandQueue& graphics_
     vulkan_init_info.PipelineRenderingCreateInfo = {.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO};
     vulkan_init_info.PipelineRenderingCreateInfo.pColorAttachmentFormats = attachments;
     vulkan_init_info.PipelineRenderingCreateInfo.colorAttachmentCount = 1;
-    
+
     ImGui_ImplVulkan_Init(&vulkan_init_info);
     
     return true;

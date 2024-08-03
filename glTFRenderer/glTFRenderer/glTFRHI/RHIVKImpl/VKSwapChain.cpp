@@ -164,8 +164,7 @@ bool VKSwapChain::Present(IRHICommandQueue& command_queue, IRHICommandList& comm
 bool VKSwapChain::HostWaitPresentFinished(IRHIDevice& device)
 {
     auto vk_device = dynamic_cast<VKDevice&>(device).GetDevice();
-    //VK_CHECK(vkWaitForPresentKHR(vk_device, m_swap_chain, m_present_id_count, UINT64_MAX))
-    vkWaitForPresentKHR(vk_device, m_swap_chain, m_present_id_count, UINT64_MAX);
+    VK_CHECK(vkWaitForPresentKHR(vk_device, m_swap_chain, m_present_id_count, UINT64_MAX))
     return true;
 }
 

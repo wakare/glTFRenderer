@@ -1,6 +1,5 @@
 #include "VKSubPass.h"
-#include <vulkan/vulkan_core.h>
-
+#include "VolkUtils.h"
 #include "VKConverterUtils.h"
 
 VKSubPass::VKSubPass()

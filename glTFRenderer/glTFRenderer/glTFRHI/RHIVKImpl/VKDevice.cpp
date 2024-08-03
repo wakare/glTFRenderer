@@ -1,7 +1,5 @@
-#include "VKDevice.h"
-
 #define VK_USE_PLATFORM_WIN32_KHR
-#include <vulkan/vulkan.h>
+#include "VKDevice.h"
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -313,6 +311,8 @@ bool VKDevice::InitDevice(IRHIFactory& factory)
     result = vkCreateDevice(selected_physical_device, &create_device_info, nullptr, &logical_device); 
     GLTF_CHECK(result == VK_SUCCESS);
 
+    VolkUtils::LoadDevice(logical_device);
+    
     graphics_queue_index = queue_family_indices.graphics_family.value();
     present_queue_index = queue_family_indices.present_family.value();
 

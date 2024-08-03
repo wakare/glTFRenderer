@@ -2,7 +2,7 @@
 #include <optional>
 
 #include "glTFRHI/RHIInterface/IRHIDevice.h"
-#include <vulkan/vulkan_core.h>
+#include "VolkUtils.h"
 
 // Check queue family valid
 struct QueueFamilyIndices

@@ -16,6 +16,8 @@ public:
         return _instance;
     }
 
+    static bool InitGraphicsAPI();
+    
     RHIGraphicsAPIType GetGraphicsAPIType() const {return m_graphics_api;}
     void SetGraphicsAPIType(RHIGraphicsAPIType type) {m_graphics_api = type; }
     

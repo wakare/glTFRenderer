@@ -8,7 +8,8 @@ glTFAppRenderer::glTFAppRenderer(const glTFAppRendererConfig& renderer_config, c
 {
     RHIConfigSingleton::Instance().SetGraphicsAPIType(renderer_config.vulkan ?
         RHIGraphicsAPIType::RHI_GRAPHICS_API_Vulkan : RHIGraphicsAPIType::RHI_GRAPHICS_API_DX12);
-
+    RHIConfigSingleton::Instance().InitGraphicsAPI();
+    
     if (renderer_config.test_triangle)
     {
         m_scene_renderer.reset(new glTFSceneRendererTestTriangle);   
@@ -75,8 +76,8 @@ void glTFAppRenderer::TickRenderingEnd(size_t delta_time_ms)
 
 void glTFAppRenderer::WaitForExit()
 {
-    m_resource_manager->WaitPresentFinished();
     m_resource_manager->WaitAllFrameFinish();
+    m_resource_manager->WaitPresentFinished();
 }
 
 glTFGUIRenderer& glTFAppRenderer::GetGUIRenderer() const

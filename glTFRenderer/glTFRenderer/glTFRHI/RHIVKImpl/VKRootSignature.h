@@ -1,6 +1,6 @@
 #pragma once
 #include "glTFRHI/RHIInterface/IRHIRootSignature.h"
-#include <vulkan/vulkan_core.h>
+#include "VolkUtils.h"
 
 class VKRootSignature : public IRHIRootSignature
 {
