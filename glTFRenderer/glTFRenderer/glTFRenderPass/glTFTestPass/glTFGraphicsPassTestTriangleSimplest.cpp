@@ -2,6 +2,7 @@
 
 #include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRHI/RHIUtils.h"
+#include "glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
 
 const char* glTFGraphicsPassTestTriangleSimplest::PassName()
 {

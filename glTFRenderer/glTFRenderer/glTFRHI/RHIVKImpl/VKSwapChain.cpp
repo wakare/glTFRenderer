@@ -2,13 +2,13 @@
 
 #include "VKCommandList.h"
 #include "VKCommandQueue.h"
+#include "VKCommon.h"
 #include "VKConverterUtils.h"
 #include "VKDevice.h"
 #include "VKSemaphore.h"
 #include "VKTexture.h"
 
 VKSwapChain::VKSwapChain()
-    : m_frame_buffer_count(3)
 {
 }
 
@@ -143,11 +143,29 @@ bool VKSwapChain::Present(IRHICommandQueue& command_queue, IRHICommandList& comm
     present_info.pImageIndices = &m_current_frame_index;
     present_info.pResults = nullptr;
 
+    VkPresentIdKHR present_id{};
+    present_id.sType = VK_STRUCTURE_TYPE_PRESENT_ID_KHR;
+    present_id.pNext = nullptr;
+    present_id.swapchainCount = 1;
+    
+    m_present_id_count++;
+    present_id.pPresentIds = &m_present_id_count;
+    
+    present_info.pNext = &present_id;
+
     const VkResult result = vkQueuePresentKHR(vk_command_queue.GetGraphicsQueue(), &present_info);
     GLTF_CHECK(result == VK_SUCCESS);
 
     m_current_frame_index = (m_current_frame_index + 1) % m_frame_buffer_count;
     
+    return true;
+}
+
+bool VKSwapChain::HostWaitPresentFinished(IRHIDevice& device)
+{
+    auto vk_device = dynamic_cast<VKDevice&>(device).GetDevice();
+    //VK_CHECK(vkWaitForPresentKHR(vk_device, m_swap_chain, m_present_id_count, UINT64_MAX))
+    vkWaitForPresentKHR(vk_device, m_swap_chain, m_present_id_count, UINT64_MAX);
     return true;
 }
 

@@ -23,7 +23,8 @@ public:
     virtual bool AcquireNewFrame(IRHIDevice& device) = 0;
     virtual IRHISemaphore& GetAvailableFrameSemaphore() = 0;
     virtual bool Present(IRHICommandQueue& command_queue, IRHICommandList& command_list) = 0;
-
+    virtual bool HostWaitPresentFinished(IRHIDevice& device) = 0;
+    
     const RHITextureDesc& GetSwapChainBufferDesc() const;
     
 protected:

@@ -1,7 +1,7 @@
 #pragma once
-#include "VKCommandAllocator.h"
+#include <vulkan/vulkan_core.h>
+
 #include "glTFRHI/RHIInterface/IRHICommandList.h"
-#include "glTFRHI/RHIInterface/IRHISemaphore.h"
 
 class IRHIFence;
 

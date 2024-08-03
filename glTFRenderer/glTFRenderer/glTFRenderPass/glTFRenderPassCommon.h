@@ -4,8 +4,9 @@
 #include <glm/glm/gtx/compatibility.hpp>
 
 #include "RendererCommon.h"
-#include "glTFRHI/RHIInterface/IRHIMemoryManager.h"
 #include "glTFRHI/RHIInterface/RHICommon.h"
+
+class IRHITexture;
 
 struct LightInfoConstant
 {

@@ -23,13 +23,14 @@ namespace VulkanEngineRequirements
 
     const std::vector device_extensions =
     {
-        VK_KHR_SWAPCHAIN_EXTENSION_NAME
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+        VK_KHR_PRESENT_WAIT_EXTENSION_NAME,
+        VK_KHR_PRESENT_ID_EXTENSION_NAME
     };
 
     VkPhysicalDeviceVulkan13Features require_feature13
     {
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
-        .pNext = nullptr,
         .synchronization2 = true,
         .dynamicRendering = true,
     };
@@ -37,17 +38,34 @@ namespace VulkanEngineRequirements
     VkPhysicalDeviceVulkan12Features require_feature12
     {
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
-        .pNext = &require_feature13,
         .descriptorIndexing = true,
         .bufferDeviceAddress = true,
     };
+    
+    VkPhysicalDevicePresentIdFeaturesKHR require_present_id_features
+    {
+        .sType = VK_STRUCTURE_TYPE_PRESENT_ID_KHR,
+        .presentId = true,
+    };
 
-    bool IsMatchRequireFeatures(const VkPhysicalDeviceVulkan12Features& device_features2, const VkPhysicalDeviceVulkan13Features& device_features3)
+    VkPhysicalDevicePresentWaitFeaturesKHR require_present_wait_features
+    {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_WAIT_FEATURES_KHR,
+        .presentWait = true,
+    };
+    
+    bool IsMatchRequireFeatures(
+        const VkPhysicalDeviceVulkan12Features& device_features2,
+        const VkPhysicalDeviceVulkan13Features& device_features3,
+        const VkPhysicalDevicePresentIdFeaturesKHR& present_id_feature,
+        const VkPhysicalDevicePresentWaitFeaturesKHR& present_wait_feature)
     {
         return device_features2.descriptorIndexing == require_feature12.descriptorIndexing
             && device_features2.bufferDeviceAddress == require_feature12.bufferDeviceAddress
             && device_features3.synchronization2 == require_feature13.synchronization2
-            && device_features3.dynamicRendering == require_feature13.dynamicRendering;
+            && device_features3.dynamicRendering == require_feature13.dynamicRendering
+            && present_id_feature.presentId == require_present_id_features.presentId
+            && present_wait_feature.presentWait == require_present_wait_features.presentWait;
     }
 }
 
@@ -66,16 +84,22 @@ namespace VulkanEngineQueryStorage
         .pNext = &query_features13,
     };
 
-    VkPhysicalDeviceDescriptorIndexingFeatures descriptor_indexing_features
+    VkPhysicalDevicePresentIdFeaturesKHR present_id_features
     {
-        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES,
-        .pNext = &query_feature12
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_ID_FEATURES_KHR,
+        .pNext = &query_feature12,
+    };
+
+    VkPhysicalDevicePresentWaitFeaturesKHR present_wait_features
+    {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_WAIT_FEATURES_KHR,
+        .pNext = &present_id_features,
     };
     
     VkPhysicalDeviceFeatures2 query_features2
     {
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
-        .pNext = &query_feature12
+        .pNext = &present_wait_features
     };
     
     QueueFamilyIndices queue_family_indices;
@@ -161,21 +185,17 @@ bool VKDevice::IsSuitableDevice(VkPhysicalDevice device, VkSurfaceKHR surface)
         vkGetPhysicalDeviceFeatures2(device, &VulkanEngineQueryStorage::query_features2);
     }
 
-    /*
-    GLTF_CHECK(VulkanEngineQueryStorage::descriptor_indexing_features.shaderSampledImageArrayNonUniformIndexing &&
-    VulkanEngineQueryStorage::descriptor_indexing_features.descriptorBindingSampledImageUpdateAfterBind &&
-    VulkanEngineQueryStorage::descriptor_indexing_features.shaderUniformBufferArrayNonUniformIndexing &&
-    VulkanEngineQueryStorage::descriptor_indexing_features.descriptorBindingUniformBufferUpdateAfterBind &&
-    VulkanEngineQueryStorage::descriptor_indexing_features.shaderStorageBufferArrayNonUniformIndexing &&
-    VulkanEngineQueryStorage::descriptor_indexing_features.descriptorBindingStorageBufferUpdateAfterBind);
-    */
-    
     is_suitable &= (device_properties.deviceType == VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
         && device_features.geometryShader
         );
 
     // Check feature12 and feature13
-    is_suitable &= VulkanEngineRequirements::IsMatchRequireFeatures(VulkanEngineQueryStorage::query_feature12, VulkanEngineQueryStorage::query_features13);
+    is_suitable &= VulkanEngineRequirements::IsMatchRequireFeatures(
+        VulkanEngineQueryStorage::query_feature12,
+        VulkanEngineQueryStorage::query_features13,
+        VulkanEngineQueryStorage::present_id_features,
+        VulkanEngineQueryStorage::present_wait_features
+        );
     is_suitable &= FindQueueFamily(device, surface).IsComplete();
 
     // Check device extensions

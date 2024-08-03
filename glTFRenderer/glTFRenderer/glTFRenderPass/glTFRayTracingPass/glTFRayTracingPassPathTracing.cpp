@@ -3,11 +3,10 @@
 #include <imgui.h>
 
 #include "glTFRenderPass/glTFRenderResourceManager.h"
-#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceRadiosityScene.h"
+//#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceRadiosityScene.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSingleConstantBuffer.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 #include "glTFRHI/RHIUtils.h"
-#include "glTFRHI/RHIInterface/IRHIRenderTargetManager.h"
 
 struct RHIShaderBindingTableRecordPathTracing : RHIShaderTableRecordBase
 {
@@ -44,7 +43,7 @@ bool glTFRayTracingPassPathTracing::InitRenderInterface(glTFRenderResourceManage
     RETURN_IF_FALSE(glTFRayTracingPassWithMesh::InitRenderInterface(resource_manager))
 
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSingleConstantBuffer<RayTracingPathTracingPassOptions>>());
-    AddRenderInterface(std::make_shared<glTFRenderInterfaceRadiosityScene>());
+    //AddRenderInterface(std::make_shared<glTFRenderInterfaceRadiosityScene>());
     
     return true;
 }
@@ -68,7 +67,7 @@ bool glTFRayTracingPassPathTracing::PreRenderPass(glTFRenderResourceManager& res
     BindDescriptor(command_list, m_screen_uv_offset_allocation, *m_screen_uv_offset_handle);
     
     RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSingleConstantBuffer<RayTracingPathTracingPassOptions>>()->UploadCPUBuffer(resource_manager, &m_pass_options, 0, sizeof(m_pass_options)))
-    RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceRadiosityScene>()->UploadCPUBufferFromRadiosityRenderer(resource_manager, resource_manager.GetRadiosityRenderer()))
+    //RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceRadiosityScene>()->UploadCPUBufferFromRadiosityRenderer(resource_manager, resource_manager.GetRadiosityRenderer()))
     
     return true;
 }

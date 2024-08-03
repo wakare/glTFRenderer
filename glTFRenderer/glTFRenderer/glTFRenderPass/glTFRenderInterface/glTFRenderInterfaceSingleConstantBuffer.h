@@ -1,7 +1,7 @@
 #pragma once
 #include "glTFRenderInterfaceBase.h"
 #include "glTFRenderPass/glTFRenderResourceManager.h"
-#include "glTFRHI/RHIResourceFactoryImpl.hpp"
+#include "glTFRHI/RHIInterface/IRHIDescriptorUpdater.h"
 #include "glTFRHI/RHIInterface/IRHIRootSignatureHelper.h"
 
 // buffer size must be alignment with 64K [DX12]
@@ -43,7 +43,7 @@ protected:
             RHIResourceStateType::STATE_COMMON,
             RHIResourceUsageFlags::RUF_ALLOW_CBV,
         }, m_constant_gpu_data);
-        m_constant_buffer_descriptor_allocation = RHIResourceFactory::CreateRHIResource<IRHIBufferDescriptorAllocation>();
+        m_constant_buffer_descriptor_allocation = CreateBufferDescriptor();
         m_constant_buffer_descriptor_allocation->InitFromBuffer(m_constant_gpu_data->m_buffer,
             RHIBufferDescriptorDesc{
                 RHIDataFormat::UNKNOWN,

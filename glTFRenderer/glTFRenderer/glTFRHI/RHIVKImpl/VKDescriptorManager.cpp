@@ -72,7 +72,7 @@ bool VKDescriptorManager::Init(IRHIDevice& device, const RHIMemoryManagerDescrip
     descriptor_pool_create_info.poolSizeCount = pool_sizes.size();
     descriptor_pool_create_info.pPoolSizes = pool_sizes.data();
     descriptor_pool_create_info.maxSets = 64;
-    descriptor_pool_create_info.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
+    descriptor_pool_create_info.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT | VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
     
     VK_CHECK(vkCreateDescriptorPool(vk_device, &descriptor_pool_create_info, nullptr, &m_descriptor_pool));
     

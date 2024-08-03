@@ -1,6 +1,7 @@
 #include "glTFAppRenderer.h"
 #include "glTFGUIRenderer.h"
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassLighting.h"
+#include "glTFRHI/RHIConfigSingleton.h"
 #include "RenderWindow/glTFWindow.h"
 
 glTFAppRenderer::glTFAppRenderer(const glTFAppRendererConfig& renderer_config, const glTFWindow& window)
@@ -50,7 +51,7 @@ void glTFAppRenderer::TickRenderingBegin(size_t delta_time_ms)
 void glTFAppRenderer::TickSceneUpdating(const glTFSceneGraph& scene_graph,const glTFInputManager& input_manager, size_t delta_time_ms)
 {
     m_scene_view->Tick(scene_graph);
-    m_resource_manager->GetRadiosityRenderer().UpdateIndirectLighting(scene_graph, m_scene_view->GetLightingDirty());
+    //m_resource_manager->GetRadiosityRenderer().UpdateIndirectLighting(scene_graph, m_scene_view->GetLightingDirty());
 
     m_scene_view->ApplyInput(input_manager, delta_time_ms);
     m_scene_renderer->ApplyInput(input_manager, delta_time_ms);
@@ -74,6 +75,7 @@ void glTFAppRenderer::TickRenderingEnd(size_t delta_time_ms)
 
 void glTFAppRenderer::WaitForExit()
 {
+    m_resource_manager->WaitPresentFinished();
     m_resource_manager->WaitAllFrameFinish();
 }
 

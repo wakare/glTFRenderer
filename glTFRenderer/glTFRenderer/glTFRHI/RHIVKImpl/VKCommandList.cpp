@@ -3,6 +3,7 @@
 #include "VKDevice.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 #include "glTFRHI/RHIInterface/IRHIFence.h"
+#include "VKCommandAllocator.h"
 
 VKCommandList::~VKCommandList()
 {

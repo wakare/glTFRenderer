@@ -6,6 +6,7 @@
 #include "glTFRHI/RHIInterface/IRHIRootSignatureHelper.h"
 #include "glTFScene/glTFSceneObjectBase.h"
 
+class IRHIDescriptorAllocation;
 struct glTFSceneViewRenderFlags;
 class RHIVertexStreamingManager;
 class IRHIDescriptorUpdater;

@@ -2,23 +2,18 @@
 #include <memory>
 #include <vector>
 
-#include "RendererCommon.h"
 #include "glTFRenderMeshManager.h"
 #include "glTFRenderPassCommon.h"
 #include "glTFRenderResourceFrameManager.h"
-#include "glTFApp/glTFRadiosityRenderer.h"
-#include "glTFRHI/RHIInterface/IRHICommandList.h"
-#include "glTFRHI/RHIInterface/IRHIDevice.h"
-#include "glTFRHI/RHIInterface/IRHIFence.h"
-#include "glTFRHI/RHIInterface/IRHIRenderTarget.h"
-#include "glTFRHI/RHIInterface/IRHISwapChain.h"
-#include "glTFRHI/RHIInterface/IRHIMemoryAllocator.h"
-#include "glTFRHI/RHIInterface/IRHIMemoryManager.h"
-#include "glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
 
+class glTFSceneGraph;
 class IRHIFrameBuffer;
 class glTFWindow;
 class glTFRenderMaterialManager;
+class IRHIFactory;
+class IRHISwapChain;
+class IRHICommandQueue;
+class IRHIPipelineStateObject;
 
 // Hold all rhi resource
 class glTFRenderResourceManager
@@ -42,6 +37,7 @@ public:
     IRHICommandList& GetCommandListForRecord();
     void CloseCurrentCommandListAndExecute(const RHIExecuteCommandListContext& context, bool wait);
 
+    void WaitPresentFinished();
     void WaitLastFrameFinish() const;
     void WaitAllFrameFinish() const;
     void ResetCommandAllocator();
@@ -73,15 +69,15 @@ public:
     static unsigned GetBackBufferCount();
     glTFRenderResourceUtils::GBufferSignatureAllocations& GetGBufferAllocations();
 
-    glTFRadiosityRenderer& GetRadiosityRenderer();
-    const glTFRadiosityRenderer& GetRadiosityRenderer() const;
+    //glTFRadiosityRenderer& GetRadiosityRenderer();
+    //const glTFRadiosityRenderer& GetRadiosityRenderer() const;
 
     // Allocate pass resource and track for export/import
     bool ExportResourceTexture(const RHITextureDesc& desc, RenderPassResourceTableId entry_id, std::shared_ptr<IRHITexture>& out_texture_allocation);
     bool ImportResourceTexture(const RHITextureDesc& desc, RenderPassResourceTableId entry_id, std::shared_ptr<IRHITexture>& out_texture_allocation);
     
 private:
-    std::shared_ptr<glTFRadiosityRenderer> m_radiosity_renderer;
+    //std::shared_ptr<glTFRadiosityRenderer> m_radiosity_renderer;
     
     static std::shared_ptr<IRHIFactory> m_factory;
     static std::shared_ptr<IRHIDevice> m_device;

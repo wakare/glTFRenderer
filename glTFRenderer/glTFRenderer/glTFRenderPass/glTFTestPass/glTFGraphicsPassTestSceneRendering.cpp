@@ -6,6 +6,8 @@
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneMeshInfo.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneView.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceStructuredBuffer.h"
+#include "glTFRHI/RHIUtils.h"
+#include "glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
 
 glTFGraphicsPassTestSceneRendering::glTFGraphicsPassTestSceneRendering()
 {

@@ -1,7 +1,7 @@
 #pragma once
 #include "glTFRenderInterfaceBase.h"
 #include "glTFRenderPass/glTFRenderResourceManager.h"
-#include "glTFRHI/RHIResourceFactoryImpl.hpp"
+#include "glTFRHI/RHIInterface/IRHIDescriptorUpdater.h"
 
 template <typename StructuredBufferType, size_t max_heap_size = 64ull * 1024>
 class glTFRenderInterfaceStructuredBuffer : public glTFRenderInterfaceWithRSAllocation, public glTFRenderInterfaceCanUploadDataFromCPU
@@ -29,7 +29,7 @@ public:
             RUF_ALLOW_SRV,
         },
         m_gpu_buffer);
-        m_constant_buffer_descriptor_allocation = RHIResourceFactory::CreateRHIResource<IRHIBufferDescriptorAllocation>();
+        m_constant_buffer_descriptor_allocation = CreateBufferDescriptor();
         m_constant_buffer_descriptor_allocation->InitFromBuffer(m_gpu_buffer->m_buffer,
             RHIBufferDescriptorDesc{
                 RHIDataFormat::UNKNOWN,

@@ -16,6 +16,7 @@ public:
     virtual bool AcquireNewFrame(IRHIDevice& device) override;
     virtual IRHISemaphore& GetAvailableFrameSemaphore() override;
     virtual bool Present(IRHICommandQueue& command_queue, IRHICommandList& command_list) override;
+    virtual bool HostWaitPresentFinished(IRHIDevice& device) override;
     
     IDXGISwapChain3* GetSwapChain() {return m_swap_chain.Get();}
     const IDXGISwapChain3* GetSwapChain() const {return m_swap_chain.Get();}

@@ -3,13 +3,12 @@
 #include <map>
 #include <memory>
 
-#include "glTFRenderPassBase.h"
 #include "glTFMaterial/glTFMaterialParameterFactor.h"
 #include "glTFRenderInterface/glTFRenderInterfaceSceneMaterial.h"
-#include "glTFRHI/RHIInterface/IRHITexture.h"
 #include "RendererCommon.h"
 
 enum class glTFMaterialParameterUsage;
+class IRHITextureAllocation;
 class glTFMaterialBase;
 class glTFRenderResourceManager;
 class glTFMaterialParameterTexture;

@@ -4,6 +4,8 @@
 class IRHIRootSignature;
 class IRHICommandList;
 class IRHIDescriptorAllocation;
+class IRHIDescriptorTable;
+class IRHIDevice;
 
 class IRHIDescriptorUpdater
 {

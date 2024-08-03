@@ -1,6 +1,6 @@
 #pragma once
-#include <vulkan/vulkan_core.h>
 
+#include <vulkan/vulkan_core.h>
 #include "glTFRHI/RHIInterface/IRHICommandQueue.h"
 
 class VKCommandQueue : public IRHICommandQueue

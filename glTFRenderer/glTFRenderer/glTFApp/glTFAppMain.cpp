@@ -207,6 +207,7 @@ bool glTFAppMain::InitRenderer()
     m_app_config.m_recreate_renderer = false;
     if (m_renderer)
     {
+        m_renderer->GetResourceManager().WaitPresentFinished();
         m_renderer->GetResourceManager().WaitAllFrameFinish();
     }
     m_renderer = nullptr; 

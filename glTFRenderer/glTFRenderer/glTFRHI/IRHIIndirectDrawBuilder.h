@@ -2,7 +2,6 @@
 #include <memory>
 #include <vector>
 
-#include "RHIInterface/IRHICommandSignature.h"
 #include "RHIInterface/RHICommon.h"
 
 class IRHIIndexBufferView;

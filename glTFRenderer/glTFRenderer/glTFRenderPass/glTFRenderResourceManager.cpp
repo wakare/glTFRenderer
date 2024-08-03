@@ -15,8 +15,7 @@ std::shared_ptr<IRHICommandQueue> glTFRenderResourceManager::m_command_queue = n
 std::shared_ptr<IRHISwapChain> glTFRenderResourceManager::m_swap_chain = nullptr;
 
 glTFRenderResourceManager::glTFRenderResourceManager()
-    : m_radiosity_renderer(std::make_shared<glTFRadiosityRenderer>())
-    , m_material_manager(std::make_shared<glTFRenderMaterialManager>())
+    : m_material_manager(std::make_shared<glTFRenderMaterialManager>())
     , m_mesh_manager(std::make_shared<glTFRenderMeshManager>())
     , m_gBuffer_allocations(new glTFRenderResourceUtils::GBufferSignatureAllocations)
 {
@@ -221,6 +220,11 @@ void glTFRenderResourceManager::CloseCurrentCommandListAndExecute(const RHIExecu
     m_command_list_record_state[current_frame_index] = false;
 }
 
+void glTFRenderResourceManager::WaitPresentFinished()
+{
+    m_swap_chain->HostWaitPresentFinished(GetDevice());
+}
+
 void glTFRenderResourceManager::WaitLastFrameFinish() const
 {
     const auto current_frame_index = GetCurrentBackBufferIndex() % backBufferCount;
@@ -349,7 +353,7 @@ glTFRenderResourceUtils::GBufferSignatureAllocations& glTFRenderResourceManager:
 {
     return *m_gBuffer_allocations;
 }
-
+/*
 glTFRadiosityRenderer& glTFRenderResourceManager::GetRadiosityRenderer()
 {
     return *m_radiosity_renderer; 
@@ -359,7 +363,7 @@ const glTFRadiosityRenderer& glTFRenderResourceManager::GetRadiosityRenderer() c
 {
     return *m_radiosity_renderer;
 }
-
+*/
 bool glTFRenderResourceManager::ExportResourceTexture(const RHITextureDesc& desc, RenderPassResourceTableId entry_id,
     std::shared_ptr<IRHITexture>& out_texture)
 {

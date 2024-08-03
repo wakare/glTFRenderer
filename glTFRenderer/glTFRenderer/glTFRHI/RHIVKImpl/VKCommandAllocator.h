@@ -1,5 +1,5 @@
 #pragma once
-#include "VKCommandQueue.h"
+#include <vulkan/vulkan_core.h>
 #include "glTFRHI/RHIInterface/IRHICommandAllocator.h"
 
 class VKCommandAllocator : public IRHICommandAllocator

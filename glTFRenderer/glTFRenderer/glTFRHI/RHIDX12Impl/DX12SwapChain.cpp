@@ -91,3 +91,8 @@ bool DX12SwapChain::Present(IRHICommandQueue& command_queue, IRHICommandList& co
     THROW_IF_FAILED(m_swap_chain->Present(0, 0))
     return true;
 }
+
+bool DX12SwapChain::HostWaitPresentFinished(IRHIDevice& device)
+{
+    return true;
+}

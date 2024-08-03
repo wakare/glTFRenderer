@@ -3,6 +3,7 @@
 #include "glTFRenderPass/glTFRenderPassBase.h"
 #include "glTFRHI/RHIVertexStreamingManager.h"
 
+class IRHIBufferAllocation;
 class IRHIIndexBufferView;
 class IRHIVertexBufferView;
 class IRHIBuffer;

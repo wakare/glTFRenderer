@@ -6,6 +6,8 @@
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceFrameStat.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceLighting.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneView.h"
+#include "glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
+#include "glTFRHI/RHIInterface/IRHISwapChain.h"
 
 glTFComputePassReSTIRDirectLighting::glTFComputePassReSTIRDirectLighting()
     : m_aggregate_samples_output("AGGREGATE_OUTPUT_REGISTER_INDEX", "AGGREGATE_BACKBUFFER_REGISTER_INDEX")

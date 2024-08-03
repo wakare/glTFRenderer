@@ -1,16 +1,22 @@
 #pragma once
 
 #include <memory>
-#include "RHIInterface/RHICommon.h"
-#include "RHIInterface/IRHICommandAllocator.h"
-#include "RHIInterface/IRHICommandSignature.h"
-#include "RHIInterface/IRHIDescriptorManager.h"
-#include "RHIInterface/IRHIIndexBufferView.h"
-#include "RHIInterface/IRHIPipelineStateObject.h"
-#include "RHIInterface/IRHIResource.h"
-#include "RHIInterface/IRHIShaderTable.h"
-#include "RHIInterface/IRHIVertexBufferView.h"
 
+#include "RHIInterface/IRHIResource.h"
+#include "RHIInterface/RHICommon.h"
+
+class IRHISwapChain;
+class IRHIShaderTable;
+class IRHICommandSignature;
+class IRHITexture;
+class IRHIVertexBufferView;
+class IRHIIndexBufferView;
+class IRHIRootSignature;
+class IRHIPipelineStateObject;
+class IRHICommandAllocator;
+class IRHIDescriptorManager;
+class IRHICommandQueue;
+class IRHIDevice;
 class IRHIFrameBuffer;
 class IRHIBuffer;
 class IRHICommandList;

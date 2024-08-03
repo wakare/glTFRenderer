@@ -3,6 +3,9 @@
 #include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSampler.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneView.h"
+#include "glTFRHI/RHIUtils.h"
+#include "glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
+#include "glTFRHI/RHIInterface/IRHISwapChain.h"
 
 glTFComputePassLighting::glTFComputePassLighting()
     : m_dispatch_count({0, 0, 0})

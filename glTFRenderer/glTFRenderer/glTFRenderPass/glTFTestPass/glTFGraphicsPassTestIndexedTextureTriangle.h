@@ -2,6 +2,7 @@
 #include "glTFGraphicsPassTestTriangleBase.h"
 #include "glTFRHI/RHIVertexStreamingManager.h"
 
+class IRHITextureAllocation;
 struct IndexBufferData;
 struct VertexBufferData;
 class IRHIIndexBufferView;

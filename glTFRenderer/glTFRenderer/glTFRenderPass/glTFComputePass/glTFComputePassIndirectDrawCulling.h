@@ -1,6 +1,8 @@
 #pragma once
 #include "glTFComputePassBase.h"
 
+class IRHIBufferAllocation;
+
 class glTFComputePassIndirectDrawCulling : public glTFComputePassBase
 {
 public:

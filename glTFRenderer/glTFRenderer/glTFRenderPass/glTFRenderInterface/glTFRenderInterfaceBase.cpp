@@ -2,6 +2,7 @@
 
 #include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRHI/RHIInterface/IRHIDescriptorUpdater.h"
+#include "glTFRHI/RHIResourceFactoryImpl.hpp"
 
 bool glTFRenderInterfaceBase::InitInterface(glTFRenderResourceManager& resource_manager)
 {
@@ -67,6 +68,11 @@ void glTFRenderInterfaceBase::ApplyShaderDefine(RHIShaderPreDefineMacros& out_sh
 void glTFRenderInterfaceBase::AddInterface(const std::shared_ptr<glTFRenderInterfaceBase>& render_interface)
 {
     m_sub_interfaces.push_back(render_interface);
+}
+
+std::shared_ptr<IRHIBufferDescriptorAllocation> glTFRenderInterfaceBase::CreateBufferDescriptor()
+{
+    return RHIResourceFactory::CreateRHIResource<IRHIBufferDescriptorAllocation>();
 }
 
 void glTFRenderInterfaceWithRSAllocation::ApplyShaderDefineImpl(

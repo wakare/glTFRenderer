@@ -1,6 +1,7 @@
 #pragma once
 #include "glTFRHI/RHIInterface/IRHIRootSignatureHelper.h"
 
+class IRHIBufferDescriptorAllocation;
 class IRHICommandList;
 class IRHIDescriptorUpdater;
 class glTFRenderResourceManager;
@@ -26,6 +27,8 @@ protected:
     virtual void ApplyShaderDefineImpl(RHIShaderPreDefineMacros& out_shader_pre_define_macros) const = 0;
     
     void AddInterface(const std::shared_ptr<glTFRenderInterfaceBase>& render_interface);
+
+    static std::shared_ptr<IRHIBufferDescriptorAllocation> CreateBufferDescriptor();
     
     template<typename RenderInterface>
     const RenderInterface* GetRenderInterface() const

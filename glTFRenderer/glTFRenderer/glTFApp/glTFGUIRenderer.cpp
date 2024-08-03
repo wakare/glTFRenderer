@@ -3,7 +3,8 @@
 #include <imgui/backends/imgui_impl_glfw.h>
 
 #include "glTFRenderPass/glTFRenderResourceManager.h"
-#include "glTFRHI/RHIResourceFactoryImpl.hpp"
+#include "glTFRHI/RHIInterface/IRHISwapChain.h"
+//#include "glTFRHI/RHIResourceFactoryImpl.hpp"
 #include "glTFRHI/RHIUtils.h"
 #include "RenderWindow/glTFWindow.h"
 

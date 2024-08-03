@@ -57,6 +57,8 @@
 #include "RHIVKImpl/VulkanUtils.h"
 #include "RHIVKImpl/VKCommandList.h"
 #include "RHIVKImpl/VKCommandSignature.h"
+#include "RHIVKImpl/VKCommandQueue.h"
+#include "RHIVKImpl/VKCommandAllocator.h"
 #include "RHIVKImpl/VKComputePipelineStateObject.h"
 #include "RHIVKImpl/VKDevice.h"
 #include "RHIVKImpl/VKFactory.h"

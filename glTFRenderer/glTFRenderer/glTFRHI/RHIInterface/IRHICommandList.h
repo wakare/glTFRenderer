@@ -1,9 +1,10 @@
 #pragma once
-#include "IRHICommandAllocator.h"
 #include "IRHIResource.h"
 
+class IRHIDevice;
 class IRHIFence;
 class IRHISemaphore;
+class IRHICommandAllocator;
 
 class IRHICommandList : public IRHIResource
 {

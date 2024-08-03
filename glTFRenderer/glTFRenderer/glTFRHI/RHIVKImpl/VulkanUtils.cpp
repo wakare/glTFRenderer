@@ -15,6 +15,7 @@
 #include "VKSemaphore.h"
 #include "VKTexture.h"
 #include "VKVertexBufferView.h"
+#include "VKCommandQueue.h"
 
 VkAccessFlags2 GetAccessFlagFromResourceState(RHIResourceStateType state)
 {

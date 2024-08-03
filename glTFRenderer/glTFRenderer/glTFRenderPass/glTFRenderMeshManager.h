@@ -2,8 +2,6 @@
 #include "glTFMeshRenderResource.h"
 #include "glTFRHI/IRHIIndirectDrawBuilder.h"
 #include "glTFRHI/RHIVertexStreamingManager.h"
-#include "glTFRHI/RHIInterface/IRHIMemoryManager.h"
-#include "glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
 
 class glTFRenderResourceManager;
 

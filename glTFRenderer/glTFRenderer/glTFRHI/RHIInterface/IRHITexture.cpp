@@ -4,6 +4,7 @@
 
 #include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRHI/RHIUtils.h"
+#include "glTFRHI/RHIInterface/IRHISwapChain.h"
 #include "SceneFileLoader/glTFImageLoader.h"
 
 RHITextureDesc::RHITextureDesc(const RHITextureDesc& desc) noexcept

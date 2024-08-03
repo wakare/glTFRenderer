@@ -3,8 +3,6 @@
 
 #include "glTFRHI/RHIInterface/IRHIDescriptorUpdater.h"
 
-class IRHIRootSignature;
-
 class VKDescriptorUpdater : public IRHIDescriptorUpdater
 {
 public:

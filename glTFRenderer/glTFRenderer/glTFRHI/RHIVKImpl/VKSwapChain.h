@@ -20,12 +20,14 @@ public:
     
     virtual IRHISemaphore& GetAvailableFrameSemaphore() override;
     virtual bool Present(IRHICommandQueue& command_queue, IRHICommandList& command_list) override;
+    virtual bool HostWaitPresentFinished(IRHIDevice& device) override;
     
     std::shared_ptr<IRHITexture> GetSwapChainImageByIndex(unsigned index) const;
     
 protected:
-    unsigned m_frame_buffer_count;
+    unsigned m_frame_buffer_count {3};
     unsigned m_current_frame_index {0};
+    uint64_t m_present_id_count {0};
     
     VkDevice m_device {VK_NULL_HANDLE};
     VkSwapchainKHR m_swap_chain{VK_NULL_HANDLE};
