@@ -271,6 +271,7 @@
     <None Include="glTFResources\ShaderSource\TestShaders\TestTriangleVert.hlsl" />
     <None Include="glTFResources\ShaderSource\Interface\RadiosityScene.hlsl" />
     <None Include="glTFResources\ShaderSource\TestShaders\TestGradientCompute.hlsl" />
+    <ClCompile Include="glTFRenderPass\glTFTestPass\glTFComputePassTestFillColor.cpp" />
     <ClCompile Include="glTFRenderPass\glTFTestPass\glTFGraphicsPassTestIndexedTextureTriangle.cpp" />
     <ClCompile Include="glTFRenderPass\glTFTestPass\glTFGraphicsPassTestSceneRendering.cpp" />
     <ClCompile Include="glTFRenderPass\glTFTestPass\glTFGraphicsPassTestTriangleSimplest.cpp">
@@ -357,6 +358,7 @@
     <None Include="glTFResources\ShaderSource\ShaderDeclarationUtil.hlsl" />
     <None Include="glTFResources\ShaderSource\TestShaders\TestSceneRenderingFrag.hlsl" />
     <None Include="glTFResources\ShaderSource\TestShaders\TestSceneRenderingVert.hlsl" />
+    <None Include="glTFResources\ShaderSource\TestShaders\TestFillColorCS.hlsl" />
     <ClCompile Include="glTFRHI\IRHIIndirectDrawBuilder.cpp" />
     <ClCompile Include="glTFRHI\RHIConfigSingleton.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12CommandSignature.cpp" />
@@ -602,6 +604,7 @@
     <ClInclude Include="glTFRenderPass\glTFRenderResourceFrameManager.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderResourceManager.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderResourceUtils.h" />
+    <ClInclude Include="glTFRenderPass\glTFTestPass\glTFComputePassTestFillColor.h" />
     <ClInclude Include="glTFRenderPass\glTFTestPass\glTFGraphicsPassTestIndexedTextureTriangle.h" />
     <ClInclude Include="glTFRenderPass\glTFTestPass\glTFGraphicsPassTestSceneRendering.h" />
     <ClInclude Include="glTFRenderPass\glTFTestPass\glTFGraphicsPassTestTriangleSimplest.h" />

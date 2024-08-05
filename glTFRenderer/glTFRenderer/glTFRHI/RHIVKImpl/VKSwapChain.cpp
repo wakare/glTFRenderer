@@ -53,9 +53,15 @@ bool VKSwapChain::InitSwapChain(IRHIFactory& factory, IRHIDevice& device, IRHICo
     {
         create_swap_chain_info.imageUsage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;    
     }
+    
     if (m_swap_chain_buffer_desc.GetUsage() & RUF_ALLOW_UAV)
     {
         create_swap_chain_info.imageUsage |= VK_IMAGE_USAGE_STORAGE_BIT;    
+    }
+
+    if (m_swap_chain_buffer_desc.GetUsage() & RUF_TRANSFER_DST)
+    {
+        create_swap_chain_info.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     }
     
     if (graphics_queue_index != present_queue_index)

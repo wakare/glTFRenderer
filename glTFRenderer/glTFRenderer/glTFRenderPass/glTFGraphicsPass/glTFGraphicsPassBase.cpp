@@ -27,6 +27,24 @@ bool glTFGraphicsPassBase::PreRenderPass(glTFRenderResourceManager& resource_man
     return true;
 }
 
+bool glTFGraphicsPassBase::RenderPass(glTFRenderResourceManager& resource_manager)
+{
+    RETURN_IF_FALSE(glTFRenderPassBase::RenderPass(resource_manager))
+    
+    RHIUtils::Instance().BeginRendering(resource_manager.GetCommandListForRecord(), m_begin_rendering_info);
+    
+    return true;
+}
+
+bool glTFGraphicsPassBase::PostRenderPass(glTFRenderResourceManager& resource_manager)
+{
+    RETURN_IF_FALSE(glTFRenderPassBase::PostRenderPass(resource_manager))
+
+    RHIUtils::Instance().EndRendering(resource_manager.GetCommandListForRecord());
+    
+    return true;
+}
+
 IRHIGraphicsPipelineStateObject& glTFGraphicsPassBase::GetGraphicsPipelineStateObject() const
 {
     return dynamic_cast<IRHIGraphicsPipelineStateObject&>(*m_pipeline_state_object);

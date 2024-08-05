@@ -1,0 +1,23 @@
+#pragma once
+#include "glTFRenderPass/glTFComputePass/glTFComputePassBase.h"
+
+class glTFComputePassTestFillColor : public glTFComputePassBase
+{
+public:
+    virtual const char* PassName() override;
+    
+    virtual bool PreRenderPass(glTFRenderResourceManager& resource_manager) override;
+    virtual bool PostRenderPass(glTFRenderResourceManager& resource_manager) override;
+    
+    virtual bool SetupRootSignature(glTFRenderResourceManager& resource_manager) override;
+    virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;
+    
+    virtual bool InitResourceTable(glTFRenderResourceManager& resource_manager) override;
+    virtual DispatchCount GetDispatchCount() const override;
+    
+protected:
+    DispatchCount m_dispatch_count{};
+    
+    std::shared_ptr<IRHITextureDescriptorAllocation> m_output_UAV;
+    RootSignatureAllocation m_output_allocation;
+};

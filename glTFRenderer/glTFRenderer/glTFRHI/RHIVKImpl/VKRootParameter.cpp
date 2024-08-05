@@ -55,7 +55,8 @@ bool VKRootParameter::InitAsDescriptorTableRange(unsigned local_attribute_index,
     m_bindless = (range_desc->descriptor_count == UINT_MAX);
     
     m_binding.binding = local_attribute_index;
-    m_binding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    m_binding.descriptorType = range_desc->type == RHIRootParameterDescriptorRangeType::SRV ?
+        VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE : VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
     m_binding.descriptorCount = m_bindless ? 1024 : range_desc->descriptor_count;
     
     m_binding.stageFlags = VK_SHADER_STAGE_ALL;

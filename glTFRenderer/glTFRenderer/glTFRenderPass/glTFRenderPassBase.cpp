@@ -75,14 +75,14 @@ bool glTFRenderPassBase::RenderPass(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(m_descriptor_updater->FinalizeUpdateDescriptors(resource_manager.GetDevice(), resource_manager.GetCommandListForRecord(), m_root_signature_helper.GetRootSignature()))
     
-    RHIUtils::Instance().BeginRendering(resource_manager.GetCommandListForRecord(), m_begin_rendering_info);
+    //RHIUtils::Instance().BeginRendering(resource_manager.GetCommandListForRecord(), m_begin_rendering_info);
 
     return true;
 }
 
 bool glTFRenderPassBase::PostRenderPass(glTFRenderResourceManager& resource_manager)
 {
-    RHIUtils::Instance().EndRendering(resource_manager.GetCommandListForRecord());
+    //RHIUtils::Instance().EndRendering(resource_manager.GetCommandListForRecord());
     
     return true;
 }

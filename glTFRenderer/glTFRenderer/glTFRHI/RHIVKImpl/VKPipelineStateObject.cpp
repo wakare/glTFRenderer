@@ -7,7 +7,7 @@
 #include "glTFRHI/RHIInterface/IRHIDescriptorManager.h"
 #include "ShaderUtil/glTFShaderUtils.h"
 
-VkShaderModule CreateVkShaderModule(VkDevice device, const std::vector<unsigned char>& shader_binaries)
+VkShaderModule VKGraphicsPipelineStateObject::CreateVkShaderModule(VkDevice device, const std::vector<unsigned char>& shader_binaries)
 {
     VkShaderModuleCreateInfo create_shader_module_info{};
     create_shader_module_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;

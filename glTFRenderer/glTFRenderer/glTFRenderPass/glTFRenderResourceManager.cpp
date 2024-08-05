@@ -47,7 +47,7 @@ bool glTFRenderResourceManager::InitResourceManager(unsigned width, unsigned hei
         RHITextureDesc swap_chain_texture_desc("swap_chain_back_buffer",
             width, height,
             RHIDataFormat::R8G8B8A8_UNORM,
-            static_cast<RHIResourceUsageFlags>(RUF_ALLOW_RENDER_TARGET),
+            static_cast<RHIResourceUsageFlags>(RUF_ALLOW_RENDER_TARGET | RUF_TRANSFER_DST),
             {
                 .clear_format = RHIDataFormat::R8G8B8A8_UNORM,
                 .clear_color = {0.0f, 0.0f, 0.0f, 0.0f}

@@ -19,6 +19,7 @@
 #include "VKTexture.h"
 #include "VKVertexBufferView.h"
 #include "VKCommandQueue.h"
+#include "VKComputePipelineStateObject.h"
 #include "VolkUtils.h"
 
 VkAccessFlags2 GetAccessFlagFromResourceState(RHIResourceStateType state)
@@ -235,6 +236,8 @@ bool VulkanUtils::ResetCommandList(IRHICommandList& command_list, IRHICommandAll
             vkCmdBindPipeline(vk_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pso);
             break;
         case RHIPipelineType::Compute:
+            pso = dynamic_cast<const VKComputePipelineStateObject&>(*init_pso).GetPipeline(); 
+            vkCmdBindPipeline(vk_command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, pso);
             break;
         case RHIPipelineType::RayTracing:
             break;
@@ -311,11 +314,17 @@ bool VulkanUtils::SetRootSignature(IRHICommandList& command_list, IRHIRootSignat
     auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
     auto& vk_root_signature = dynamic_cast<const VKRootSignature&>(root_signature);
     const std::vector<VkDescriptorSet>& descriptor_sets = vk_root_signature.GetDescriptorSets();
-    
+
     if (pipeline_type == RHIPipelineType::Graphics)
     {
         auto vk_pipeline_layout = dynamic_cast<const VKGraphicsPipelineStateObject&>(pipeline_state_object).GetPipelineLayout();
         vkCmdBindDescriptorSets(vk_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vk_pipeline_layout, 0, descriptor_sets.size(), descriptor_sets.data(), 0, nullptr);
+    }
+
+    if (pipeline_type == RHIPipelineType::Compute)
+    {
+        auto vk_pipeline_layout = dynamic_cast<const VKComputePipelineStateObject&>(pipeline_state_object).GetPipelineLayout();
+        vkCmdBindDescriptorSets(vk_command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, vk_pipeline_layout, 0, descriptor_sets.size(), descriptor_sets.data(), 0, nullptr);
     }
     
     return true;
@@ -474,6 +483,8 @@ bool VulkanUtils::DrawIndexInstanced(IRHICommandList& command_list, unsigned ind
 
 bool VulkanUtils::Dispatch(IRHICommandList& command_list, unsigned X, unsigned Y, unsigned Z)
 {
+    auto command_buffer = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
+    vkCmdDispatch(command_buffer, X, Y, Z);
     return true;
 }
 

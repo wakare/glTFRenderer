@@ -1,11 +1,22 @@
 #pragma once
+#include "VolkUtils.h"
 #include "glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
 
 class VKComputePipelineStateObject : public IRHIComputePipelineStateObject
 {
 public:
-    VKComputePipelineStateObject() = default;
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR(VKComputePipelineStateObject)
     virtual ~VKComputePipelineStateObject() override;
 
     virtual bool InitPipelineStateObject(IRHIDevice& device, const IRHIRootSignature& root_signature, IRHISwapChain& swap_chain, const std::vector<RHIPipelineInputLayout>& input_layouts) override;
+    VkPipeline GetPipeline() const;
+    VkPipelineLayout GetPipelineLayout() const;
+    
+protected:
+    VkShaderModule CreateVkShaderModule(VkDevice device, const std::vector<unsigned char>& shader_binaries);
+    
+    VkDevice m_device{VK_NULL_HANDLE};
+    VkShaderModule m_compute_shader_module{VK_NULL_HANDLE};
+    VkPipelineLayout m_pipeline_layout{VK_NULL_HANDLE};
+    VkPipeline m_pipeline {VK_NULL_HANDLE};
 };
