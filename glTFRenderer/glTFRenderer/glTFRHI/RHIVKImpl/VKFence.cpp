@@ -2,6 +2,11 @@
 
 #include "VKCommandQueue.h"
 
+VKFence::~VKFence()
+{
+    vkDestroyFence(m_device, m_fence, nullptr);
+}
+
 bool VKFence::InitFence(IRHIDevice& device)
 {
     m_device = dynamic_cast<VKDevice&>(device).GetDevice();

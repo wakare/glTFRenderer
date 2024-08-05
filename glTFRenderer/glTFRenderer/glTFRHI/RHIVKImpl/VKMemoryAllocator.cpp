@@ -45,6 +45,11 @@ bool VKMemoryAllocator::InitMemoryAllocator(const IRHIFactory& factory, const IR
     return true;
 }
 
+void VKMemoryAllocator::DestroyMemoryAllocator()
+{
+    vmaDestroyAllocator(m_vma_allocator);
+}
+
 VmaAllocator VKMemoryAllocator::GetAllocator() const
 {
     return m_vma_allocator;

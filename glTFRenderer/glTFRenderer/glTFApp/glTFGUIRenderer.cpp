@@ -10,7 +10,7 @@
 
 glTFGUIRenderer::~glTFGUIRenderer()
 {
-    ExitAndClean();
+    //ExitAndClean();
 }
 
 bool glTFGUIRenderer::SetupGUIContext(const glTFWindow& window, glTFRenderResourceManager& resource_manager)
@@ -58,7 +58,7 @@ bool glTFGUIRenderer::RenderWidgets(glTFRenderResourceManager& resource_manager)
     RETURN_IF_FALSE(RHIUtils::Instance().RenderGUIFrame(command_list))
     RETURN_IF_FALSE(RHIUtils::Instance().EndRendering(command_list))
     
-    resource_manager.CloseCurrentCommandListAndExecute({}, true);
+    resource_manager.CloseCurrentCommandListAndExecute({}, false);
     
     return true;
 }

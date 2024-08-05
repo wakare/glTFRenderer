@@ -5,6 +5,7 @@
 class VKTexture : public IRHITexture
 {
 public:
+    virtual ~VKTexture() override;
     bool Init(VkDevice device, VkImage image, const RHITextureDesc& texture_desc);
 
     VkImage GetRawImage() const;

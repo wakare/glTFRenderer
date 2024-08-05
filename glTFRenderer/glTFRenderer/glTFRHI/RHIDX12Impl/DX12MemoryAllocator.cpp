@@ -5,3 +5,8 @@ bool DX12MemoryAllocator::InitMemoryAllocator(const IRHIFactory& factory, const 
     // Dummy implement
     return true;
 }
+
+void DX12MemoryAllocator::DestroyMemoryAllocator()
+{
+    
+}

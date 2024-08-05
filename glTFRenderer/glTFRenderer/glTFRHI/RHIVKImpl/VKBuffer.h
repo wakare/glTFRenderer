@@ -5,6 +5,8 @@
 class VKBuffer : public IRHIBuffer
 {
 public:
+    virtual ~VKBuffer() override;
+    
     bool InitBuffer(VkDevice device, VkBuffer buffer, const RHIBufferDesc& desc);
     VkBuffer GetRawBuffer() const;
     

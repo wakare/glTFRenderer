@@ -2,6 +2,11 @@
 
 #include "VKDevice.h"
 
+VKStaticSampler::~VKStaticSampler()
+{
+    vkDestroySampler(m_device, m_sampler, nullptr);
+}
+
 bool VKStaticSampler::InitStaticSampler(IRHIDevice& device, unsigned space, unsigned register_index, RHIStaticSamplerAddressMode address_mode,
                                         RHIStaticSamplerFilterMode filter_mode)
 {
@@ -55,8 +60,8 @@ bool VKStaticSampler::InitStaticSampler(IRHIDevice& device, unsigned space, unsi
         break;
     }
 
-    auto vk_device = dynamic_cast<VKDevice&>(device).GetDevice();
-    vkCreateSampler(vk_device, &sampler_desc, nullptr, &m_sampler);
+    m_device = dynamic_cast<VKDevice&>(device).GetDevice();
+    vkCreateSampler(m_device, &sampler_desc, nullptr, &m_sampler);
     
     m_sampler_binding.binding = register_index;
     m_sampler_binding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;

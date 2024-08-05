@@ -1,5 +1,10 @@
 #include "VKBuffer.h"
 
+VKBuffer::~VKBuffer()
+{
+    //vkDestroyBuffer(m_device, m_buffer, nullptr);
+}
+
 bool VKBuffer::InitBuffer(VkDevice device, VkBuffer buffer, const RHIBufferDesc& desc)
 {
     m_device = device;

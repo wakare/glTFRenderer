@@ -6,9 +6,17 @@
 #include "VKCommon.h"
 #include "VKStaticSampler.h"
 
+VKRootSignature::~VKRootSignature()
+{
+    for (const auto& descriptor_set_layout : m_descriptor_set_layouts)
+    {
+        vkDestroyDescriptorSetLayout(m_device, descriptor_set_layout, nullptr);    
+    }
+}
+
 bool VKRootSignature::InitRootSignature(IRHIDevice& device, IRHIDescriptorManager& descriptor_manager)
 {
-    auto vk_device = dynamic_cast<VKDevice&>(device).GetDevice();
+    m_device = dynamic_cast<VKDevice&>(device).GetDevice();
     auto vk_descriptor_pool = dynamic_cast<VKDescriptorManager&>(descriptor_manager).GetDescriptorPool();
 
     std::map<unsigned, std::vector<VkDescriptorSetLayoutBinding>> space_bindings;
@@ -46,7 +54,7 @@ bool VKRootSignature::InitRootSignature(IRHIDevice& device, IRHIDescriptorManage
         descriptor_set_layout_create_info.bindingCount = binding.size();
         descriptor_set_layout_create_info.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
         
-        VK_CHECK(vkCreateDescriptorSetLayout(vk_device, &descriptor_set_layout_create_info, nullptr, &m_descriptor_set_layouts[i]));
+        VK_CHECK(vkCreateDescriptorSetLayout(m_device, &descriptor_set_layout_create_info, nullptr, &m_descriptor_set_layouts[i]));
     }
     
     VkDescriptorSetAllocateInfo descriptor_set_allocate_info{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, .pNext = nullptr};
@@ -55,7 +63,7 @@ bool VKRootSignature::InitRootSignature(IRHIDevice& device, IRHIDescriptorManage
     descriptor_set_allocate_info.pSetLayouts = m_descriptor_set_layouts.data();
 
     m_descriptor_sets.resize(space_bindings.size());
-    VK_CHECK(vkAllocateDescriptorSets(vk_device, &descriptor_set_allocate_info, m_descriptor_sets.data()));
+    VK_CHECK(vkAllocateDescriptorSets(m_device, &descriptor_set_allocate_info, m_descriptor_sets.data()));
     
     return true;
 }

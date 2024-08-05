@@ -23,6 +23,8 @@ VkShaderModule CreateVkShaderModule(VkDevice device, const std::vector<unsigned 
 
 VKGraphicsPipelineStateObject::~VKGraphicsPipelineStateObject()
 {
+    vkDestroyShaderModule(m_device, m_vertex_shader_module, nullptr);
+    vkDestroyShaderModule(m_device, m_fragment_shader_module, nullptr);
     vkDestroyPipelineLayout(m_device, m_pipeline_layout, nullptr);
     vkDestroyPipeline(m_device, m_pipeline, nullptr);
 }
@@ -35,19 +37,19 @@ bool VKGraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device,
     // Create shader module
     THROW_IF_FAILED(CompileShaders());
 
-    VkShaderModule vertex_shader_module = CreateVkShaderModule(m_device, m_shaders[RHIShaderType::Vertex]->GetShaderByteCode());
-    VkShaderModule fragment_shader_module = CreateVkShaderModule(m_device, m_shaders[RHIShaderType::Pixel]->GetShaderByteCode());
+    m_vertex_shader_module = CreateVkShaderModule(m_device, m_shaders[RHIShaderType::Vertex]->GetShaderByteCode());
+    m_fragment_shader_module = CreateVkShaderModule(m_device, m_shaders[RHIShaderType::Pixel]->GetShaderByteCode());
 
     VkPipelineShaderStageCreateInfo create_vertex_stage_info{};
     create_vertex_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     create_vertex_stage_info.stage = VK_SHADER_STAGE_VERTEX_BIT;
-    create_vertex_stage_info.module = vertex_shader_module;
+    create_vertex_stage_info.module = m_vertex_shader_module;
     create_vertex_stage_info.pName = m_shaders[RHIShaderType::Vertex]->GetMainEntry().c_str();
 
     VkPipelineShaderStageCreateInfo create_frag_stage_info{};
     create_frag_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     create_frag_stage_info.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    create_frag_stage_info.module = fragment_shader_module;
+    create_frag_stage_info.module = m_fragment_shader_module;
     create_frag_stage_info.pName = m_shaders[RHIShaderType::Pixel]->GetMainEntry().c_str();
 
     VkPipelineShaderStageCreateInfo shader_stages[] = {create_vertex_stage_info, create_frag_stage_info}; 

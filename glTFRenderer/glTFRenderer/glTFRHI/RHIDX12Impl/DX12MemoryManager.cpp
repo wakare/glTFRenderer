@@ -3,11 +3,6 @@
 #include "DX12Device.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 
-DX12MemoryManager::~DX12MemoryManager()
-{
-    (void)DX12MemoryManager::CleanAllocatedResource();
-}
-
 bool DX12MemoryManager::AllocateBufferMemory(IRHIDevice& device, const RHIBufferDesc& buffer_desc,
     std::shared_ptr<IRHIBufferAllocation>& out_buffer_allocation)
 {

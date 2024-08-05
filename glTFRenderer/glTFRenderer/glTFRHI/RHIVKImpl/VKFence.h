@@ -5,6 +5,8 @@
 class VKFence : public IRHIFence
 {
 public:
+    virtual ~VKFence() override;
+    
     virtual bool InitFence(IRHIDevice& device) override;
     virtual bool HostWaitUtilSignaled() override;
     virtual bool ResetFence() override;

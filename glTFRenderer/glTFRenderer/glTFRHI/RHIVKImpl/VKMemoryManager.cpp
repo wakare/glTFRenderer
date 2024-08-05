@@ -45,6 +45,8 @@ bool VKMemoryManager::AllocateBufferMemory(IRHIDevice& device, const RHIBufferDe
     VkDevice vk_device = dynamic_cast<VKDevice&>(device).GetDevice();
     dynamic_cast<VKBuffer&>(*buffer_allocation.m_buffer).InitBuffer(vk_device, out_buffer, buffer_desc);
 
+    m_buffer_allocations.push_back(out_buffer_allocation);
+    
     return true;
 }
 
@@ -59,7 +61,7 @@ bool VKMemoryManager::UploadBufferData(IRHIBufferAllocation& buffer_allocation, 
 }
 
 bool VKMemoryManager::AllocateTextureMemory(IRHIDevice& device, glTFRenderResourceManager& resource_manager,
-                                            const RHITextureDesc& texture_desc, std::shared_ptr<IRHITextureAllocation>& out_buffer_allocation)
+                                            const RHITextureDesc& texture_desc, std::shared_ptr<IRHITextureAllocation>& out_texture_allocation)
 {
     VkImageCreateInfo image_create_info {.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, .pNext = nullptr};
 
@@ -82,21 +84,23 @@ bool VKMemoryManager::AllocateTextureMemory(IRHIDevice& device, glTFRenderResour
     
     VK_CHECK(vmaCreateImage(GetVmaAllocator(), &image_create_info, &draw_image_allocation_create_info, &out_image, &out_allocation, &out_allocation_info))
 
-    out_buffer_allocation = std::make_shared<VKTextureAllocation>();
-    auto& vk_buffer_allocation = dynamic_cast<VKTextureAllocation&>(*out_buffer_allocation);
-    vk_buffer_allocation.m_allocation = out_allocation;
-    vk_buffer_allocation.m_allocation_info = out_allocation_info;
+    out_texture_allocation = std::make_shared<VKTextureAllocation>();
+    auto& vk_texture_allocation = dynamic_cast<VKTextureAllocation&>(*out_texture_allocation);
+    vk_texture_allocation.m_allocation = out_allocation;
+    vk_texture_allocation.m_allocation_info = out_allocation_info;
 
-    vk_buffer_allocation.m_texture = RHIResourceFactory::CreateRHIResource<IRHITexture>();
-    GLTF_CHECK(dynamic_cast<VKTexture&>(*vk_buffer_allocation.m_texture).Init(dynamic_cast<VKDevice&>(device).GetDevice(), out_image, texture_desc));
+    vk_texture_allocation.m_texture = RHIResourceFactory::CreateRHIResource<IRHITexture>();
+    GLTF_CHECK(dynamic_cast<VKTexture&>(*vk_texture_allocation.m_texture).Init(dynamic_cast<VKDevice&>(device).GetDevice(), out_image, texture_desc));
 
+    m_texture_allocations.push_back(out_texture_allocation);
+    
     return true;
 }
 
 bool VKMemoryManager::AllocateTextureMemoryAndUpload(IRHIDevice& device, glTFRenderResourceManager& resource_manager,
-                                                     IRHICommandList& command_list, const RHITextureDesc& texture_desc, std::shared_ptr<IRHITextureAllocation>& out_buffer_allocation)
+                                                     IRHICommandList& command_list, const RHITextureDesc& texture_desc, std::shared_ptr<IRHITextureAllocation>& out_texture_allocation)
 {
-    AllocateTextureMemory(device, resource_manager, texture_desc, out_buffer_allocation);
+    AllocateTextureMemory(device, resource_manager, texture_desc, out_texture_allocation);
 
     auto& memory_manager = resource_manager.GetMemoryManager();
     RHIBufferDesc upload_buffer_desc{};
@@ -113,10 +117,10 @@ bool VKMemoryManager::AllocateTextureMemoryAndUpload(IRHIDevice& device, glTFRen
 
     auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
     auto vk_buffer = dynamic_cast<VKBuffer&>(*buffer_allocation->m_buffer).GetRawBuffer();
-    auto vk_image = dynamic_cast<VKTexture&>(*out_buffer_allocation->m_texture).GetRawImage();
+    auto vk_image = dynamic_cast<VKTexture&>(*out_texture_allocation->m_texture).GetRawImage();
 
-    out_buffer_allocation->m_texture->Transition(command_list, RHIResourceStateType::STATE_COPY_DEST);
-    auto vk_image_layout = VKConverterUtils::ConvertToImageLayout(out_buffer_allocation->m_texture->GetState());
+    out_texture_allocation->m_texture->Transition(command_list, RHIResourceStateType::STATE_COPY_DEST);
+    auto vk_image_layout = VKConverterUtils::ConvertToImageLayout(out_texture_allocation->m_texture->GetState());
     
     VkBufferImageCopy copy_info{};
     copy_info.bufferOffset = 0;
@@ -137,6 +141,22 @@ bool VKMemoryManager::AllocateTextureMemoryAndUpload(IRHIDevice& device, glTFRen
 
 bool VKMemoryManager::CleanAllocatedResource()
 {
+    for (auto& buffer_allocation : m_buffer_allocations)
+    {
+        const auto& vk_buffer_allocation = dynamic_cast<const VKBufferAllocation&>(*buffer_allocation);
+        VkBuffer vk_buffer = dynamic_cast<const VKBuffer&>(*vk_buffer_allocation.m_buffer).GetRawBuffer();
+        
+        vmaDestroyBuffer(GetVmaAllocator(), vk_buffer, vk_buffer_allocation.m_allocation);
+    }
+
+    for (const auto& texture_allocation : m_texture_allocations)
+    {
+        const auto& vk_texture_allocation = dynamic_cast<const VKTextureAllocation&>(*texture_allocation);
+        VkImage vk_image = dynamic_cast<const VKTexture&>(*vk_texture_allocation.m_texture).GetRawImage();
+
+        vmaDestroyImage(GetVmaAllocator(), vk_image, vk_texture_allocation.m_allocation);
+    }
+    
     return true;
 }
 

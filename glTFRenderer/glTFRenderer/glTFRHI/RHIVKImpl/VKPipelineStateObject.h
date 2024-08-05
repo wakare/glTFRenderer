@@ -17,6 +17,8 @@ public:
     
 protected:
     VkDevice m_device {VK_NULL_HANDLE};
+    VkShaderModule m_vertex_shader_module{VK_NULL_HANDLE};
+    VkShaderModule m_fragment_shader_module{VK_NULL_HANDLE};
     VkPipelineLayout m_pipeline_layout {VK_NULL_HANDLE};
     VkPipeline m_pipeline {VK_NULL_HANDLE};
 

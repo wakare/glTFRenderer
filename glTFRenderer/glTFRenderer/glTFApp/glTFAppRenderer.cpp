@@ -78,6 +78,10 @@ void glTFAppRenderer::WaitForExit()
 {
     m_resource_manager->WaitAllFrameFinish();
     m_resource_manager->WaitPresentFinished();
+    m_ui_renderer->ExitAndClean();
+    
+    m_resource_manager->GetMemoryManager().CleanAllocatedResource();
+    m_resource_manager->GetMemoryAllocator().DestroyMemoryAllocator();
 }
 
 glTFGUIRenderer& glTFAppRenderer::GetGUIRenderer() const
