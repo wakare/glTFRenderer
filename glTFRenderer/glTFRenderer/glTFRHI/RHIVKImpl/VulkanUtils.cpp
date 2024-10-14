@@ -442,7 +442,7 @@ bool VulkanUtils::AddTextureBarrierToCommandList(IRHICommandList& command_list, 
     image_barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     image_barrier.newLayout = VKConverterUtils::ConvertToImageLayout(after_state);
 
-    VkImageAspectFlags aspect_flags = (image_barrier.newLayout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL) ?
+    VkImageAspectFlags aspect_flags = (texture.GetTextureDesc().GetUsage() & RUF_ALLOW_DEPTH_STENCIL) ?
         VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
 
     VkImageSubresourceRange sub_image{};

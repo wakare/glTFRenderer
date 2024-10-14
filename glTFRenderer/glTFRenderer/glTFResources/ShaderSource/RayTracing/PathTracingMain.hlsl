@@ -6,7 +6,7 @@
 #include "glTFResources/ShaderSource/Math/BRDF.hlsl"
 #include "glTFResources/ShaderSource/Interface/SceneView.hlsl"
 #include "glTFResources/ShaderSource/Interface/RadiosityScene.hlsl"
-#include "glTFResources/ShaderSource/Lighting/LightingCommon.hlsl"
+#include "glTFResources/ShaderSource/RayTracing/LightSampling.hlsl"
 #include "glTFResources/ShaderSource/RayTracing/PathTracingRays.hlsl"
 #include "glTFResources/ShaderSource/ShaderDeclarationUtil.hlsl"
 

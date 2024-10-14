@@ -37,22 +37,29 @@ bool VKGraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device,
     // Create shader module
     THROW_IF_FAILED(CompileShaders());
 
+    std::vector<VkPipelineShaderStageCreateInfo> shader_stages;
+    
+    GLTF_CHECK(m_shaders.contains(RHIShaderType::Vertex));
     m_vertex_shader_module = CreateVkShaderModule(m_device, m_shaders[RHIShaderType::Vertex]->GetShaderByteCode());
-    m_fragment_shader_module = CreateVkShaderModule(m_device, m_shaders[RHIShaderType::Pixel]->GetShaderByteCode());
+    {
+        VkPipelineShaderStageCreateInfo create_vertex_stage_info{};
+        create_vertex_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        create_vertex_stage_info.stage = VK_SHADER_STAGE_VERTEX_BIT;
+        create_vertex_stage_info.module = m_vertex_shader_module;
+        create_vertex_stage_info.pName = m_shaders[RHIShaderType::Vertex]->GetMainEntry().c_str();
+        shader_stages.push_back(create_vertex_stage_info);    
+    }
 
-    VkPipelineShaderStageCreateInfo create_vertex_stage_info{};
-    create_vertex_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    create_vertex_stage_info.stage = VK_SHADER_STAGE_VERTEX_BIT;
-    create_vertex_stage_info.module = m_vertex_shader_module;
-    create_vertex_stage_info.pName = m_shaders[RHIShaderType::Vertex]->GetMainEntry().c_str();
-
-    VkPipelineShaderStageCreateInfo create_frag_stage_info{};
-    create_frag_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    create_frag_stage_info.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    create_frag_stage_info.module = m_fragment_shader_module;
-    create_frag_stage_info.pName = m_shaders[RHIShaderType::Pixel]->GetMainEntry().c_str();
-
-    VkPipelineShaderStageCreateInfo shader_stages[] = {create_vertex_stage_info, create_frag_stage_info}; 
+    if (m_shaders.contains(RHIShaderType::Pixel))
+    {
+        m_fragment_shader_module = CreateVkShaderModule(m_device, m_shaders[RHIShaderType::Pixel]->GetShaderByteCode());
+        VkPipelineShaderStageCreateInfo create_frag_stage_info{};
+        create_frag_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        create_frag_stage_info.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+        create_frag_stage_info.module = m_fragment_shader_module;
+        create_frag_stage_info.pName = m_shaders[RHIShaderType::Pixel]->GetMainEntry().c_str();
+        shader_stages.push_back(create_frag_stage_info);
+    }
 
     std::map<unsigned, VkVertexInputBindingDescription> binding_records;
     
@@ -147,22 +154,27 @@ bool VKGraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device,
     create_msaa_state.alphaToCoverageEnable = VK_FALSE;
     create_msaa_state.alphaToOneEnable = VK_FALSE;
 
-    VkPipelineColorBlendAttachmentState color_blend_attachment_state{};
-    color_blend_attachment_state.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-    color_blend_attachment_state.blendEnable = VK_FALSE;
-    color_blend_attachment_state.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
-    color_blend_attachment_state.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
-    color_blend_attachment_state.colorBlendOp = VK_BLEND_OP_ADD;
-    color_blend_attachment_state.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-    color_blend_attachment_state.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-    color_blend_attachment_state.alphaBlendOp = VK_BLEND_OP_ADD;
+    std::vector<VkPipelineColorBlendAttachmentState> color_blend_attachment_states;
+    for (const auto& bind_render_target : m_bind_render_target_formats)
+    {
+        VkPipelineColorBlendAttachmentState color_blend_attachment_state{};
+        color_blend_attachment_state.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+        color_blend_attachment_state.blendEnable = VK_FALSE;
+        color_blend_attachment_state.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
+        color_blend_attachment_state.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
+        color_blend_attachment_state.colorBlendOp = VK_BLEND_OP_ADD;
+        color_blend_attachment_state.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+        color_blend_attachment_state.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+        color_blend_attachment_state.alphaBlendOp = VK_BLEND_OP_ADD;
+        color_blend_attachment_states.push_back(color_blend_attachment_state);
+    }    
 
     VkPipelineColorBlendStateCreateInfo create_color_blend_state_info {};
     create_color_blend_state_info.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
     create_color_blend_state_info.logicOpEnable = VK_FALSE;
     create_color_blend_state_info.logicOp = VK_LOGIC_OP_COPY;
-    create_color_blend_state_info.attachmentCount = 1;
-    create_color_blend_state_info.pAttachments = &color_blend_attachment_state;
+    create_color_blend_state_info.attachmentCount = color_blend_attachment_states.size();
+    create_color_blend_state_info.pAttachments = color_blend_attachment_states.data();
     create_color_blend_state_info.blendConstants[0] = 0.0f;
     create_color_blend_state_info.blendConstants[1] = 0.0f;
     create_color_blend_state_info.blendConstants[2] = 0.0f;
@@ -195,8 +207,8 @@ bool VKGraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device,
     // Create graphics pipeline
     VkGraphicsPipelineCreateInfo create_graphics_pipeline_info {};
     create_graphics_pipeline_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-    create_graphics_pipeline_info.stageCount = 2;
-    create_graphics_pipeline_info.pStages = shader_stages;
+    create_graphics_pipeline_info.stageCount = shader_stages.size();
+    create_graphics_pipeline_info.pStages = shader_stages.data();
     create_graphics_pipeline_info.pVertexInputState = &create_vertex_input_state_info;
     create_graphics_pipeline_info.pInputAssemblyState = &create_input_assembly_info;
     create_graphics_pipeline_info.pViewportState = &create_viewport_state_info;

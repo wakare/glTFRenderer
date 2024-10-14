@@ -359,6 +359,7 @@
     <None Include="glTFResources\ShaderSource\TestShaders\TestSceneRenderingFrag.hlsl" />
     <None Include="glTFResources\ShaderSource\TestShaders\TestSceneRenderingVert.hlsl" />
     <None Include="glTFResources\ShaderSource\TestShaders\TestFillColorCS.hlsl" />
+    <None Include="glTFResources\ShaderSource\RayTracing\LightSampling.hlsl" />
     <ClCompile Include="glTFRHI\IRHIIndirectDrawBuilder.cpp" />
     <ClCompile Include="glTFRHI\RHIConfigSingleton.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12CommandSignature.cpp" />

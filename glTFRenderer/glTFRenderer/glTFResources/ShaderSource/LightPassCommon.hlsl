@@ -1,5 +1,6 @@
 #ifndef LIGHT_PASS_COMMON
 #define LIGHT_PASS_COMMON
+
 #include "glTFResources/ShaderSource/Interface/SceneView.hlsl"
 #include "glTFResources/ShaderSource/ShaderDeclarationUtil.hlsl"
 

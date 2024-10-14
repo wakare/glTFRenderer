@@ -24,7 +24,7 @@ ALIGN_FOR_CBV_STRUCT struct CullingBoundingBox
 
 glTFComputePassIndirectDrawCulling::glTFComputePassIndirectDrawCulling()
     : m_dispatch_count()
-    , m_enable_culling(true)
+    , m_enable_culling(false)
 {
 }
 
@@ -58,10 +58,10 @@ bool glTFComputePassIndirectDrawCulling::InitPass(glTFRenderResourceManager& res
     
     RHIUAVStructuredBufferDesc uav_structured_buffer_desc
     {
-            sizeof(MeshIndirectDrawCommand),
-            static_cast<unsigned>(mesh_manager.GetIndirectDrawBuilder().GetCachedCommandCount()),
-            true,
-            mesh_manager.GetIndirectDrawBuilder().GetCulledIndirectArgumentBufferCountOffset()
+        sizeof(MeshIndirectDrawCommand),
+        static_cast<unsigned>(mesh_manager.GetIndirectDrawBuilder().GetCachedCommandCount()),
+        true,
+        mesh_manager.GetIndirectDrawBuilder().GetCulledIndirectArgumentBufferCountOffset()
     };
     
     RHIBufferDescriptorDesc uav_structured_buffer_descriptor_desc
@@ -91,6 +91,7 @@ bool glTFComputePassIndirectDrawCulling::InitPass(glTFRenderResourceManager& res
         RHIDataFormat::R32_UINT,
         RHIBufferResourceType::Buffer,
         RHIResourceStateType::STATE_COMMON,
+        RUF_TRANSFER_SRC
         },
         m_count_reset_buffer);
     const unsigned size = 0;
@@ -127,7 +128,7 @@ bool glTFComputePassIndirectDrawCulling::SetupRootSignature(glTFRenderResourceMa
 {
     RETURN_IF_FALSE(glTFComputePassBase::SetupRootSignature(resourceManager))
 
-    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("INDIRECT_DRAW_DATA_OUTPUT_REGISTER_UAV_INDEX", RHIRootParameterDescriptorRangeType::UAV, 1, false, m_culled_indirect_command_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddUAVRootParameter("INDIRECT_DRAW_DATA_OUTPUT_REGISTER_UAV_INDEX", m_culled_indirect_command_allocation))
 
     return true;
 }

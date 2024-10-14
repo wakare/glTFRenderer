@@ -74,7 +74,7 @@ VkImageLayout VKConverterUtils::ConvertToImageLayout(RHIResourceStateType state)
         return VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL;
         break;
     case RHIResourceStateType::STATE_UNORDERED_ACCESS:
-        return VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL;
+        return VK_IMAGE_LAYOUT_GENERAL;
         break;
     case RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE:
         return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
