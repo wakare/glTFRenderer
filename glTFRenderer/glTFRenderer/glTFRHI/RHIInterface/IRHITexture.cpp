@@ -161,7 +161,7 @@ RHITextureDesc RHITextureDesc::MakeDepthTextureDesc(const glTFRenderResourceMana
     RHITextureDesc texture_desc = MakeFullScreenTextureDesc(
         "DEPTH_TEXTURE_OUTPUT",
             RHIDataFormat::R32_TYPELESS,
-            RUF_ALLOW_DEPTH_STENCIL,
+            static_cast<RHIResourceUsageFlags>(RUF_ALLOW_DEPTH_STENCIL | RUF_ALLOW_SRV),
 {
                 .clear_format = RHIDataFormat::D32_FLOAT,
                 .clear_depth_stencil{1.0f, 0}
@@ -193,7 +193,7 @@ RHITextureDesc RHITextureDesc::MakeBasePassAlbedoTextureDesc(const glTFRenderRes
     RHITextureDesc texture_desc = MakeFullScreenTextureDesc(
         "BASEPASS_ALBEDO_OUTPUT",
             RHIDataFormat::R8G8B8A8_UNORM,
-            static_cast<RHIResourceUsageFlags>(RUF_ALLOW_UAV | RUF_ALLOW_RENDER_TARGET),
+            static_cast<RHIResourceUsageFlags>(RUF_ALLOW_SRV | RUF_ALLOW_UAV | RUF_ALLOW_RENDER_TARGET ),
 {
                 .clear_format = RHIDataFormat::R8G8B8A8_UNORM,
                 .clear_color {0.0f, 0.0f, 0.0f, 0.0f}
@@ -209,7 +209,7 @@ RHITextureDesc RHITextureDesc::MakeBasePassNormalTextureDesc(const glTFRenderRes
     RHITextureDesc texture_desc = MakeFullScreenTextureDesc(
         "BASEPASS_NORMAL_OUTPUT",
             RHIDataFormat::R8G8B8A8_UNORM,
-            static_cast<RHIResourceUsageFlags>(RUF_ALLOW_UAV | RUF_ALLOW_RENDER_TARGET),
+            static_cast<RHIResourceUsageFlags>(RUF_ALLOW_SRV | RUF_ALLOW_UAV | RUF_ALLOW_RENDER_TARGET),
 {
                 .clear_format = RHIDataFormat::R8G8B8A8_UNORM,
                 .clear_color {0.0f, 0.0f, 0.0f, 0.0f}

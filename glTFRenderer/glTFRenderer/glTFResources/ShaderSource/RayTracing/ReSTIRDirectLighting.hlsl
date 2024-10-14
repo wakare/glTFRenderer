@@ -4,7 +4,7 @@
 #include "glTFResources/ShaderSource/FrameStat.hlsl"
 #include "glTFResources/ShaderSource/RayTracing/PathTracingRays.hlsl"
 #include "glTFResources/ShaderSource/Interface/SceneView.hlsl"
-#include "glTFResources/ShaderSource/Lighting/LightingCommon.hlsl"
+#include "glTFResources/ShaderSource/RayTracing/LightSampling.hlsl"
 #include "glTFResources/ShaderSource/ShaderDeclarationUtil.hlsl"
 
 DECLARE_RESOURCE(RaytracingAccelerationStructure scene , SCENE_AS_REGISTER_INDEX);

@@ -1,6 +1,5 @@
 #include "glTFResources/ShaderSource/MeshPassCommon.hlsl"
 #include "glTFResources/ShaderSource/Interface/SceneMeshInfo.hlsl"
-#include "glTFResources/ShaderSource/Interface/SceneMesh.hlsl"
 
 #if ENABLE_INPUT_LAYOUT
 VS_OUTPUT main(VS_INPUT input)
@@ -30,14 +29,19 @@ VS_OUTPUT main(VS_INPUT input)
 
 #else
 
+#if DX_SHADER
 // SV_StartInstanceLocation is supported in sm68
 VS_OUTPUT main(uint Vertex_ID : SV_VertexID, uint Instance_ID : SV_InstanceID, uint StartInstanceOffset : SV_StartInstanceLocation )
-// VS_OUTPUT main(uint Vertex_ID : SV_VertexID, uint Instance_ID : SV_InstanceID )
+#else
+VS_OUTPUT main(uint Vertex_ID : SV_VertexID, uint Instance_ID : SV_InstanceID )
+#endif
 {
     VS_OUTPUT output;
-
-    //uint instance_id = Instance_ID + instance_offset_buffer.instance_offset;
+#if DX_SHADER
     uint instance_id = Instance_ID + StartInstanceOffset;
+#else
+    uint instance_id = Instance_ID;
+#endif
     
     MeshInstanceInputData instance_input_data = g_mesh_instance_input_data[instance_id];
     float4x4 instance_transform = transpose(instance_input_data.instance_transform);

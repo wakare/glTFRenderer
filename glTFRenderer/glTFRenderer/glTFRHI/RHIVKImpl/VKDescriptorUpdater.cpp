@@ -50,6 +50,7 @@ bool VKDescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPipel
         image_info.sampler = VK_NULL_HANDLE;
         
         switch (view_info.m_view_type) {
+        case RHIViewType::RVT_DSV:
         case RHIViewType::RVT_SRV:
             image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;    
             draw_image_write.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
@@ -60,7 +61,6 @@ bool VKDescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPipel
             break;
         case RHIViewType::RVT_CBV:
         case RHIViewType::RVT_RTV:
-        case RHIViewType::RVT_DSV:
             // cpu descriptor should bind with other API
             GLTF_CHECK(false);
             break;

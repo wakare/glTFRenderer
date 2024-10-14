@@ -74,7 +74,7 @@ bool VKDescriptorManager::Init(IRHIDevice& device, const RHIMemoryManagerDescrip
 
     // TODO: re-design descriptor capacity
     std::vector<VkDescriptorPoolSize> pool_sizes;
-    pool_sizes.push_back({VkDescriptorType::VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, max_descriptor_capacity.cbv_srv_uav_size});
+    pool_sizes.push_back({VkDescriptorType::VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, max_descriptor_capacity.cbv_srv_uav_size});
     pool_sizes.push_back({VkDescriptorType::VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, max_descriptor_capacity.cbv_srv_uav_size});
     pool_sizes.push_back({VkDescriptorType::VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, max_descriptor_capacity.cbv_srv_uav_size});
     pool_sizes.push_back({VkDescriptorType::VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, max_descriptor_capacity.cbv_srv_uav_size});

@@ -2,7 +2,8 @@
 #define LIGHTING_CS
 
 #include "glTFResources/ShaderSource/Lighting/LightingCommon.hlsl"
-#include "glTFResources/ShaderSource/LightPassCommon.hlsl"
+#include "glTFResources/ShaderSource/Interface/SceneView.hlsl"
+//#include "glTFResources/ShaderSource/LightPassCommon.hlsl"
 #include "glTFResources/ShaderSource/Math/MathCommon.hlsl"
 #include "glTFResources/ShaderSource/ShaderDeclarationUtil.hlsl"
 

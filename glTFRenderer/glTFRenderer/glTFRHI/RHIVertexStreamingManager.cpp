@@ -94,6 +94,10 @@ void RHIVertexStreamingManager::ConfigShaderMacros(RHIShaderPreDefineMacros& sha
             char vulkan_attribute_location[64] = {'\0'};
             (void)snprintf(vulkan_attribute_location, sizeof(vulkan_attribute_location), "[[vk::location(%d)]]", attribute_location);
             shader_macros.AddMacro(input_layout.semantic_name + std::to_string(input_layout.semantic_index) + "_VK", vulkan_attribute_location);
+            if (input_layout.semantic_index == 0)
+            {
+                shader_macros.AddMacro(input_layout.semantic_name + "_VK", vulkan_attribute_location);
+            }
         }
 
         attribute_location++;
