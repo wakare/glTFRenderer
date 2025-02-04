@@ -137,7 +137,7 @@ bool glTFComputePassLighting::SetupPipelineStateObject(glTFRenderResourceManager
 
     auto depth = GetResourceTexture(RenderPassResourceTableId::Depth);
     RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), depth,
-                        {RHIDataFormat::D32_FLOAT, RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_DSV}, m_depth_SRV))
+                        {RHIDataFormat::R32_FLOAT, RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_depth_SRV))
 
     auto normal = GetResourceTexture(RenderPassResourceTableId::BasePass_Normal);
     RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), normal,

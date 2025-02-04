@@ -162,7 +162,7 @@ RHITextureDesc RHITextureDesc::MakeDepthTextureDesc(const glTFRenderResourceMana
         "DEPTH_TEXTURE_OUTPUT",
             RHIDataFormat::R32_TYPELESS,
             static_cast<RHIResourceUsageFlags>(RUF_ALLOW_DEPTH_STENCIL | RUF_ALLOW_SRV),
-{
+            {
                 .clear_format = RHIDataFormat::D32_FLOAT,
                 .clear_depth_stencil{1.0f, 0}
             },

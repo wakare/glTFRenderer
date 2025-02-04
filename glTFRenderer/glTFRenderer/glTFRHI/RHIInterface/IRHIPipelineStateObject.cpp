@@ -105,6 +105,11 @@ void IRHIPipelineStateObject::SetDepthStencilState(RHIDepthStencilMode state)
     m_depth_stencil_state = state;
 }
 
+RHIDepthStencilMode IRHIPipelineStateObject::GetDepthStencilState() const
+{
+    return m_depth_stencil_state;
+}
+
 RHICullMode IRHIPipelineStateObject::GetCullMode() const
 {
     return m_cullMode;

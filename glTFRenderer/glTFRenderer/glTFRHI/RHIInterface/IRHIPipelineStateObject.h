@@ -35,7 +35,8 @@ public:
     
     void SetCullMode(RHICullMode mode);
     void SetDepthStencilState(RHIDepthStencilMode state);
-
+    RHIDepthStencilMode GetDepthStencilState() const;
+    
     RHIPipelineType GetPSOType() const {return m_type; }
     RHICullMode GetCullMode() const;
     RHIShaderPreDefineMacros& GetShaderMacros();

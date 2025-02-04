@@ -70,8 +70,7 @@ bool glTFGraphicsPassTestSceneRendering::PreRenderPass(glTFRenderResourceManager
     RHIUtils::Instance().SetPrimitiveTopology( command_list, RHIPrimitiveTopologyType::TRIANGLELIST);
     
     m_begin_rendering_info.m_render_targets = {&resource_manager.GetCurrentFrameSwapChainRTV(), &resource_manager.GetDepthDSV()};
-    m_begin_rendering_info.enable_depth_write = true;
-    m_begin_rendering_info.clear_depth = true;
+    m_begin_rendering_info.enable_depth_write = GetGraphicsPipelineStateObject().GetDepthStencilState() == RHIDepthStencilMode::DEPTH_WRITE;
     m_begin_rendering_info.clear_render_target = true;
 
     const auto& instance_buffer_data = resource_manager.GetMeshManager().GetInstanceBufferData(); 

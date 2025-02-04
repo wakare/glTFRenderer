@@ -7,7 +7,6 @@
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneMaterial.h"
 #include "glTFRHI/RHIUtils.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
-#include "SceneFileLoader/glTFImageLoader.h"
 
 glTFGraphicsPassMeshOpaque::glTFGraphicsPassMeshOpaque()
 {
@@ -61,12 +60,13 @@ bool glTFGraphicsPassMeshOpaque::PreRenderPass(glTFRenderResourceManager& resour
     resource_manager.GetCurrentFrameSwapChainTexture().Transition(command_list, RHIResourceStateType::STATE_RENDER_TARGET);
     GetResourceTexture(RenderPassResourceTableId::BasePass_Albedo)->Transition(command_list, RHIResourceStateType::STATE_RENDER_TARGET);
     GetResourceTexture(RenderPassResourceTableId::BasePass_Normal)->Transition(command_list, RHIResourceStateType::STATE_RENDER_TARGET);
+    resource_manager.GetDepthTexture()->Transition(command_list, RHIResourceStateType::STATE_DEPTH_READ);
 
     std::vector<IRHITextureDescriptorAllocation*> render_targets{m_albedo_view.get(), m_normal_view.get(), &resource_manager.GetDepthDSV()};
     m_begin_rendering_info.m_render_targets = render_targets;
-    m_begin_rendering_info.enable_depth_write = false;
+    m_begin_rendering_info.enable_depth_write = GetGraphicsPipelineStateObject().GetDepthStencilState() == RHIDepthStencilMode::DEPTH_WRITE;
     m_begin_rendering_info.clear_render_target = true;
-    
+
     return true;
 }
 
@@ -86,9 +86,6 @@ bool glTFGraphicsPassMeshOpaque::SetupPipelineStateObject(glTFRenderResourceMana
     GetGraphicsPipelineStateObject().BindShaderCode(
         R"(glTFResources\ShaderSource\MeshPassCommonPS.hlsl)", RHIShaderType::Pixel, "main");
     auto& command_list = resource_manager.GetCommandListForRecord();
-    
-    GetResourceTexture(RenderPassResourceTableId::BasePass_Albedo)->Transition(command_list, RHIResourceStateType::STATE_RENDER_TARGET);
-    GetResourceTexture(RenderPassResourceTableId::BasePass_Normal)->Transition(command_list, RHIResourceStateType::STATE_RENDER_TARGET);
     
     GetGraphicsPipelineStateObject().BindRenderTargetFormats({m_albedo_view.get(), m_normal_view.get(),
         &resource_manager.GetDepthDSV()});
