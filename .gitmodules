@@ -7,3 +7,6 @@
 [submodule "glTFRenderer/ThirdParty/glfw"]
 	path = glTFRenderer/ThirdParty/glfw
 	url = https://github.com/glfw/glfw.git
+[submodule "glTFRenderer/ThirdParty/imgui"]
+	path = glTFRenderer/ThirdParty/imgui
+	url = https://github.com/ocornut/imgui.git
