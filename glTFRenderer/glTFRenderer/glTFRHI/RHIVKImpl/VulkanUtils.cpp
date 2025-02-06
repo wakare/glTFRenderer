@@ -182,7 +182,7 @@ bool VulkanUtils::BeginRendering(IRHICommandList& command_list, const RHIBeginRe
 
         attachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         if ((render_target_view && begin_rendering_info.clear_render_target) ||
-            (!render_target_view && begin_rendering_info.clear_depth))
+            (!render_target_view && begin_rendering_info.enable_depth_write))
         {
             attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         }

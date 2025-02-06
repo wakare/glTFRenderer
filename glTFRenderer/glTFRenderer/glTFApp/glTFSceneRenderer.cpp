@@ -97,8 +97,8 @@ bool glTFSceneRendererRasterizer::SetupSceneRenderer()
     std::unique_ptr<glTFComputePassIndirectDrawCulling> culling_pass = std::make_unique<glTFComputePassIndirectDrawCulling>();
     m_pass_manager->AddRenderPass(std::move(culling_pass));
         
-    std::unique_ptr<glTFGraphicsPassMeshDepth> depth_pass = std::make_unique<glTFGraphicsPassMeshDepth>();
-    m_pass_manager->AddRenderPass(std::move(depth_pass));
+    //std::unique_ptr<glTFGraphicsPassMeshDepth> depth_pass = std::make_unique<glTFGraphicsPassMeshDepth>();
+    //m_pass_manager->AddRenderPass(std::move(depth_pass));
 
     std::unique_ptr<glTFGraphicsPassMeshOpaque> opaque_pass = std::make_unique<glTFGraphicsPassMeshOpaque>();
     m_pass_manager->AddRenderPass(std::move(opaque_pass));

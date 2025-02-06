@@ -64,7 +64,7 @@ bool glTFGraphicsPassMeshOpaque::PreRenderPass(glTFRenderResourceManager& resour
 
     std::vector<IRHITextureDescriptorAllocation*> render_targets{m_albedo_view.get(), m_normal_view.get(), &resource_manager.GetDepthDSV()};
     m_begin_rendering_info.m_render_targets = render_targets;
-    m_begin_rendering_info.enable_depth_write = false;
+    m_begin_rendering_info.enable_depth_write = GetGraphicsPipelineStateObject().GetDepthStencilMode() == RHIDepthStencilMode::DEPTH_WRITE;
     m_begin_rendering_info.clear_render_target = true;
     
     return true;
@@ -92,7 +92,7 @@ bool glTFGraphicsPassMeshOpaque::SetupPipelineStateObject(glTFRenderResourceMana
     
     GetGraphicsPipelineStateObject().BindRenderTargetFormats({m_albedo_view.get(), m_normal_view.get(),
         &resource_manager.GetDepthDSV()});
-    
+    GetGraphicsPipelineStateObject().SetDepthStencilState(RHIDepthStencilMode::DEPTH_WRITE);
     return true;
 }
 

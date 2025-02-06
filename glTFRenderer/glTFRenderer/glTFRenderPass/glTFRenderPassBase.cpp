@@ -66,7 +66,6 @@ bool glTFRenderPassBase::PreRenderPass(glTFRenderResourceManager& resource_manag
     m_begin_rendering_info.rendering_area_width = resource_manager.GetSwapChain().GetWidth();
     m_begin_rendering_info.rendering_area_height = resource_manager.GetSwapChain().GetHeight();
     m_begin_rendering_info.clear_render_target = false;
-    m_begin_rendering_info.clear_depth = false;
     
     return true;
 }

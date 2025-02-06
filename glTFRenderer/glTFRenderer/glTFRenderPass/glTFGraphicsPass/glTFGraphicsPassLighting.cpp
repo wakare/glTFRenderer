@@ -56,7 +56,7 @@ bool glTFGraphicsPassLighting::PreRenderPass(glTFRenderResourceManager& resource
     RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceLighting>()->UpdateCPUBuffer(resource_manager))
 
     m_begin_rendering_info.m_render_targets = {&resource_manager.GetCurrentFrameSwapChainRTV()};
-    m_begin_rendering_info.enable_depth_write = false;
+    m_begin_rendering_info.enable_depth_write = GetGraphicsPipelineStateObject().GetDepthStencilMode() == RHIDepthStencilMode::DEPTH_WRITE;;
     
     return true;
 }

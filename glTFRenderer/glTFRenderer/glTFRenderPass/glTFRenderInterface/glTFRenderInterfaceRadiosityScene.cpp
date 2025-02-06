@@ -7,7 +7,7 @@ glTFRenderInterfaceRadiosityScene::glTFRenderInterfaceRadiosityScene()
     AddInterface(std::make_shared<glTFRenderInterfaceStructuredBuffer<RadiosityDataOffset>>(RadiosityDataOffset::Name.c_str()));
     AddInterface(std::make_shared<glTFRenderInterfaceStructuredBuffer<RadiosityFaceInfo>>(RadiosityFaceInfo::Name.c_str()));
 }
-
+/*
 bool glTFRenderInterfaceRadiosityScene::UploadCPUBufferFromRadiosityRenderer(glTFRenderResourceManager& resource_manager, const glTFRadiosityRenderer& radiosity_renderer)
 {
     const auto& radiosity_data = radiosity_renderer.GetRadiosityData();
@@ -39,3 +39,4 @@ bool glTFRenderInterfaceRadiosityScene::UploadCPUBufferFromRadiosityRenderer(glT
     
     return true;
 }
+*/

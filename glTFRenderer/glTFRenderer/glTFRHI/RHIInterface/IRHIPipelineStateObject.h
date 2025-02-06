@@ -34,10 +34,12 @@ public:
     IRHIShader& GetBindShader(RHIShaderType type);
     
     void SetCullMode(RHICullMode mode);
+    RHICullMode GetCullMode() const;
+    
     void SetDepthStencilState(RHIDepthStencilMode state);
+    RHIDepthStencilMode GetDepthStencilMode() const;
 
     RHIPipelineType GetPSOType() const {return m_type; }
-    RHICullMode GetCullMode() const;
     RHIShaderPreDefineMacros& GetShaderMacros();
     
 protected:

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "glTFRenderInterfaceBase.h"
-#include "glTFApp/glTFRadiosityRenderer.h"
+//#include "glTFApp/glTFRadiosityRenderer.h"
 
 ALIGN_FOR_CBV_STRUCT struct RadiosityDataOffset
 {
@@ -20,5 +20,5 @@ class glTFRenderInterfaceRadiosityScene : public glTFRenderInterfaceBaseWithDefa
 public:
     glTFRenderInterfaceRadiosityScene();
     
-    bool UploadCPUBufferFromRadiosityRenderer(glTFRenderResourceManager& resource_manager, const glTFRadiosityRenderer& radiosity_renderer);
+    //bool UploadCPUBufferFromRadiosityRenderer(glTFRenderResourceManager& resource_manager, const glTFRadiosityRenderer& radiosity_renderer);
 };

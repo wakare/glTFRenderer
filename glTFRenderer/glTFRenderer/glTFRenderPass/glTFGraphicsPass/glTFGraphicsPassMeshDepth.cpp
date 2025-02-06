@@ -28,8 +28,7 @@ bool glTFGraphicsPassMeshDepth::PreRenderPass(glTFRenderResourceManager& resourc
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::PreRenderPass(resource_manager))
     
     m_begin_rendering_info.m_render_targets = {&resource_manager.GetDepthDSV()};
-    m_begin_rendering_info.enable_depth_write = true;
-    m_begin_rendering_info.clear_depth = true;
+    m_begin_rendering_info.enable_depth_write = GetGraphicsPipelineStateObject().GetDepthStencilMode() == RHIDepthStencilMode::DEPTH_WRITE;;
 
     return true;
 }
@@ -40,6 +39,8 @@ bool glTFGraphicsPassMeshDepth::PostRenderPass(glTFRenderResourceManager& resour
     
     auto& command_list = resource_manager.GetCommandListForRecord();
     resource_manager.GetDepthTextureRef().Transition(command_list, RHIResourceStateType::STATE_DEPTH_READ);
+
+    resource_manager.CloseCurrentCommandListAndExecute({}, true);
     
     return true;
 }

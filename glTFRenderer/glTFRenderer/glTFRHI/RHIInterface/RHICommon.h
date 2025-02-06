@@ -817,5 +817,4 @@ struct RHIBeginRenderingInfo
     unsigned rendering_area_height {0};
     bool enable_depth_write {false};
     bool clear_render_target {false};
-    bool clear_depth {false};
 };
