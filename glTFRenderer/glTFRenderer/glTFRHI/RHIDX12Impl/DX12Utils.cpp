@@ -250,7 +250,12 @@ bool DX12Utils::SetViewport(IRHICommandList& command_list, const RHIViewportDesc
 bool DX12Utils::SetScissorRect(IRHICommandList& command_list, const RHIScissorRectDesc& scissor_rect)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>( command_list).GetCommandList();
-    D3D12_RECT dxScissorRect = {scissor_rect.left, scissor_rect.top, scissor_rect.right, scissor_rect.bottom};
+    D3D12_RECT dxScissorRect =
+        {
+            static_cast<LONG>(scissor_rect.left), static_cast<LONG>(scissor_rect.top),
+            static_cast<LONG>(scissor_rect.right), static_cast<LONG>(scissor_rect.bottom)
+        };
+    
     dxCommandList->RSSetScissorRects(1, &dxScissorRect);
     
     return true;

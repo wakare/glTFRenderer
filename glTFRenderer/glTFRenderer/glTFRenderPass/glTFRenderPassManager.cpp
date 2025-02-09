@@ -73,7 +73,8 @@ void glTFRenderPassManager::UpdateScene(glTFRenderResourceManager& resource_mana
 {
     // Update scene view and upload buffer
     auto scene_view_constant_buffer = scene_view.CreateSceneViewConstantBuffer(resource_manager);
-    resource_manager.GetMemoryManager().UploadBufferData(*resource_manager.GetPersistentData().m_scene_view_buffer, &scene_view_constant_buffer, 0, sizeof(scene_view_constant_buffer));
+    auto& upload_scene_view_buffer= resource_manager.GetPerFrameRenderResourceData()[resource_manager.GetCurrentBackBufferIndex()];
+    resource_manager.GetMemoryManager().UploadBufferData(*upload_scene_view_buffer.m_scene_view_buffer, &scene_view_constant_buffer, 0, sizeof(scene_view_constant_buffer));
     
     std::vector<const glTFSceneNode*> dirty_objects;
     scene_view.TraverseSceneObjectWithinView([this, &dirty_objects](const glTFSceneNode& node)

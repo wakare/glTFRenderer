@@ -36,7 +36,8 @@ public:
         return rootSignature.AddTableRootParameter(m_name, RHIRootParameterDescriptorRangeType::SRV, TableRangeCount, TableRangeCount == UINT_MAX, m_allocation);
     }
 
-    virtual bool ApplyInterfaceImpl(IRHICommandList& command_list, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater) override
+    virtual bool ApplyInterfaceImpl(IRHICommandList& command_list, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater, unsigned
+                                    frame_index) override
     {
         descriptor_updater.BindDescriptor(command_list, pipeline_type, GetRSAllocation(), *m_descriptor_table);
         

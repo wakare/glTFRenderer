@@ -102,7 +102,7 @@ bool glTFRenderInterfaceSceneMaterial::InitInterfaceImpl(glTFRenderResourceManag
 }
 
 bool glTFRenderInterfaceSceneMaterial::ApplyInterfaceImpl(IRHICommandList& command_list, RHIPipelineType pipeline_type,
-    IRHIDescriptorUpdater& descriptor_updater)
+                                                          IRHIDescriptorUpdater& descriptor_updater, unsigned frame_index)
 {
     return true;
 }

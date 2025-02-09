@@ -146,9 +146,13 @@ bool glTFRenderResourceManager::InitScene(const glTFSceneGraph& scene_graph)
     scene_view_buffer_desc.resource_data_type = RHIDataFormat::UNKNOWN;
     scene_view_buffer_desc.state = RHIResourceStateType::STATE_COMMON;
     scene_view_buffer_desc.usage = RHIResourceUsageFlags::RUF_ALLOW_CBV;
-    
-    const bool buffer_allocated = GetMemoryManager().AllocateBufferMemory(GetDevice(), scene_view_buffer_desc, m_persistent_data.m_scene_view_buffer);
-    GLTF_CHECK(buffer_allocated);
+
+    m_per_frame_render_resource_data.resize(GetBackBufferCount());
+    for (auto& per_frame_render_resource : m_per_frame_render_resource_data)
+    {
+        const bool buffer_allocated = GetMemoryManager().AllocateBufferMemory(GetDevice(), scene_view_buffer_desc, per_frame_render_resource.m_scene_view_buffer);
+        GLTF_CHECK(buffer_allocated);    
+    }
     
     return true;
 }
@@ -403,7 +407,7 @@ bool glTFRenderResourceManager::ImportResourceTexture(const RHITextureDesc& desc
     return true;
 }
 
-const glTFPersistentData& glTFRenderResourceManager::GetPersistentData() const
+const std::vector<glTFPerFrameRenderResourceData>& glTFRenderResourceManager::GetPerFrameRenderResourceData() const
 {
-    return m_persistent_data;
+    return m_per_frame_render_resource_data;
 }

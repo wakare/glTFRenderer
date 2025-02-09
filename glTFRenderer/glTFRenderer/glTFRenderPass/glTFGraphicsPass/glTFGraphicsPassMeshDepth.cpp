@@ -39,8 +39,6 @@ bool glTFGraphicsPassMeshDepth::PostRenderPass(glTFRenderResourceManager& resour
     
     auto& command_list = resource_manager.GetCommandListForRecord();
     resource_manager.GetDepthTextureRef().Transition(command_list, RHIResourceStateType::STATE_DEPTH_READ);
-
-    resource_manager.CloseCurrentCommandListAndExecute({}, true);
     
     return true;
 }

@@ -35,11 +35,11 @@ bool glTFRenderInterfaceBase::ApplyInterface(glTFRenderResourceManager& resource
     auto& command_list = resource_manager.GetCommandListForRecord();
     for (const auto& sub_interface : m_sub_interfaces)
     {
-        RETURN_IF_FALSE(sub_interface->ApplyInterfaceImpl(command_list, pipeline_type, descriptor_updater))     
+        RETURN_IF_FALSE(sub_interface->ApplyInterfaceImpl(command_list, pipeline_type,  descriptor_updater,resource_manager.GetCurrentBackBufferIndex()))
     }
 
-    RETURN_IF_FALSE(ApplyInterfaceImpl(command_list, pipeline_type, descriptor_updater))
-    
+    RETURN_IF_FALSE(ApplyInterfaceImpl(command_list, pipeline_type, descriptor_updater, resource_manager.GetCurrentBackBufferIndex()))
+
     return true;
 }
 
