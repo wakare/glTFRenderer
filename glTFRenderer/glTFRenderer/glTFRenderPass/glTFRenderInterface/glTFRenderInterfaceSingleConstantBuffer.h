@@ -28,7 +28,7 @@ public:
     }
 
 protected:
-    virtual bool InitInterfaceImpl(glTFRenderResourceManager& resource_manager) override
+    bool CreateConstantBuffer(glTFRenderResourceManager& resource_manager, std::shared_ptr<IRHIBufferAllocation>& out_buffer)
     {
         resource_manager.GetMemoryManager().AllocateBufferMemory(
         resource_manager.GetDevice(),
@@ -42,15 +42,32 @@ protected:
             RHIBufferResourceType::Buffer,
             RHIResourceStateType::STATE_COMMON,
             RHIResourceUsageFlags::RUF_ALLOW_CBV,
-        }, m_constant_gpu_data);
-        m_constant_buffer_descriptor_allocation = CreateBufferDescriptor();
-        m_constant_buffer_descriptor_allocation->InitFromBuffer(m_constant_gpu_data->m_buffer,
+        }, out_buffer);
+
+        return !!out_buffer;
+    }
+
+    bool CreateConstantBufferDescriptor(std::shared_ptr<IRHIBufferAllocation> buffer, std::shared_ptr<IRHIBufferDescriptorAllocation>& out_descriptor)
+    {
+        out_descriptor = CreateBufferDescriptor();
+        out_descriptor->InitFromBuffer(buffer->m_buffer,
             RHIBufferDescriptorDesc{
                 RHIDataFormat::UNKNOWN,
                 RHIViewType::RVT_CBV,
                 max_buffer_size,
                 0
             });
+
+        return !!out_descriptor;
+    }
+    
+    virtual bool InitInterfaceImpl(glTFRenderResourceManager& resource_manager) override
+    {
+        const bool create_buffer = CreateConstantBuffer(resource_manager, m_constant_gpu_data);
+        GLTF_CHECK(create_buffer);
+
+        const bool create_descriptor = CreateConstantBufferDescriptor(m_constant_gpu_data, m_constant_buffer_descriptor_allocation); 
+        GLTF_CHECK(create_descriptor);
         
         return true;
     }

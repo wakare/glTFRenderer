@@ -7,6 +7,32 @@
 class glTFRenderPassManager;
 class glTFInputManager;
 
+struct ConstantBufferSceneView
+{
+    inline static std::string Name = "SCENE_VIEW_REGISTER_INDEX"; 
+    glm::mat4 view_matrix {glm::mat4{1.0f}};
+    glm::mat4 projection_matrix {glm::mat4{1.0f}};
+    glm::mat4 inverse_view_matrix {glm::mat4{1.0f}};
+    glm::mat4 inverse_projection_matrix {glm::mat4{1.0f}};
+    
+    // Prev matrix
+    glm::mat4 prev_view_matrix {glm::mat4{1.0f}};
+    glm::mat4 prev_projection_matrix {glm::mat4{1.0f}};
+    
+    // TODO: Be careful for adding member to ConstantBuffer with alignment!
+    glm::vec4 view_position {0.0f};
+    unsigned viewport_width {0};
+    unsigned viewport_height {0};
+
+    float nearZ {0.0f};
+    float farZ {0.0f};
+
+    glm::vec4 view_left_plane_normal;
+    glm::vec4 view_right_plane_normal;
+    glm::vec4 view_up_plane_normal;
+    glm::vec4 view_down_plane_normal;
+};
+
 // Resolve specific render pass with drawable primitive and handle render scene graph with camera
 class glTFSceneView
 {
@@ -27,6 +53,8 @@ public:
     void Tick(const glTFSceneGraph& scene_graph);
 
     bool GetLightingDirty() const;
+
+    ConstantBufferSceneView CreateSceneViewConstantBuffer(glTFRenderResourceManager& resource_manager) const;   
     
 private:
     void FocusSceneCenter(glTFCamera& camera) const;

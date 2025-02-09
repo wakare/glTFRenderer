@@ -91,6 +91,49 @@ bool glTFSceneView::GetLightingDirty() const
     return m_lighting_dirty;
 }
 
+ConstantBufferSceneView glTFSceneView::CreateSceneViewConstantBuffer(glTFRenderResourceManager& resource_manager) const
+{
+    ConstantBufferSceneView scene_view;
+    
+    unsigned width, height;
+    GetViewportSize(width, height);
+
+    auto* camera = GetMainCamera();
+    GLTF_CHECK(camera);
+    
+    scene_view.prev_view_matrix = scene_view.view_matrix;
+    scene_view.prev_projection_matrix = scene_view.projection_matrix;
+    
+    scene_view.view_matrix = GetViewMatrix();
+    scene_view.projection_matrix = GetProjectionMatrix();
+    scene_view.inverse_view_matrix = glm::inverse(scene_view.view_matrix);
+    scene_view.inverse_projection_matrix = glm::inverse(scene_view.projection_matrix);
+
+    scene_view.view_position = {camera->GetCameraPosition(), 1.0f};
+    scene_view.viewport_width = width;
+    scene_view.viewport_height = height;
+
+    scene_view.nearZ = camera->GetNearZPlane();
+    scene_view.farZ = camera->GetFarZPlane();
+
+    glm::mat4 rotate_right_plane = glm::rotate(glm::identity<glm::mat4>(), camera->GetFovX() * 0.5f, {0.0, 1.0, 0.0}); 
+    scene_view.view_right_plane_normal = rotate_right_plane * glm::vec4{-1.0f, 0.0f, 0.0f, 0.0f};
+    scene_view.view_left_plane_normal = scene_view.view_right_plane_normal;
+    scene_view.view_left_plane_normal.x = -scene_view.view_left_plane_normal.x;
+
+    glm::mat4 rotate_up_plane = glm::rotate(glm::identity<glm::mat4>(), camera->GetFovY() * 0.5f, {-1.0, 0.0, 0.0});
+    scene_view.view_up_plane_normal = rotate_up_plane * glm::vec4{0.0f, -1.0f, 0.0f, 0.0f};
+    scene_view.view_down_plane_normal = scene_view.view_up_plane_normal;
+    scene_view.view_down_plane_normal.y = -scene_view.view_down_plane_normal.y;
+
+    scene_view.view_left_plane_normal = glm::normalize(scene_view.view_left_plane_normal);
+    scene_view.view_right_plane_normal = glm::normalize(scene_view.view_right_plane_normal);
+    scene_view.view_up_plane_normal = glm::normalize(scene_view.view_up_plane_normal);
+    scene_view.view_down_plane_normal = glm::normalize(scene_view.view_down_plane_normal);
+
+    return scene_view;
+}
+
 void glTFSceneView::FocusSceneCenter(glTFCamera& camera) const
 {
     glTF_AABB::AABB sceneAABB;

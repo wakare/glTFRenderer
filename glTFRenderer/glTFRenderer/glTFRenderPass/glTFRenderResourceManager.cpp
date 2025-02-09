@@ -135,7 +135,20 @@ bool glTFRenderResourceManager::InitScene(const glTFSceneGraph& scene_graph)
     GetMeshManager().ResolveVertexInputLayout(resolved_vertex_layout);
     
     GLTF_CHECK(GetMeshManager().BuildMeshRenderResource(*this));
-    //m_radiosity_renderer->InitScene(scene_graph);
+
+    RHIBufferDesc scene_view_buffer_desc;
+    scene_view_buffer_desc.name = L"SceneViewConstantBuffer";
+    scene_view_buffer_desc.width = 64ull * 1024;
+    scene_view_buffer_desc.height = 1;
+    scene_view_buffer_desc.depth = 1;
+    scene_view_buffer_desc.type = RHIBufferType::Upload;
+    scene_view_buffer_desc.resource_type = RHIBufferResourceType::Buffer;
+    scene_view_buffer_desc.resource_data_type = RHIDataFormat::UNKNOWN;
+    scene_view_buffer_desc.state = RHIResourceStateType::STATE_COMMON;
+    scene_view_buffer_desc.usage = RHIResourceUsageFlags::RUF_ALLOW_CBV;
+    
+    const bool buffer_allocated = GetMemoryManager().AllocateBufferMemory(GetDevice(), scene_view_buffer_desc, m_persistent_data.m_scene_view_buffer);
+    GLTF_CHECK(buffer_allocated);
     
     return true;
 }
@@ -388,4 +401,9 @@ bool glTFRenderResourceManager::ImportResourceTexture(const RHITextureDesc& desc
 
     out_texture_allocation = find_texture->second;
     return true;
+}
+
+const glTFPersistentData& glTFRenderResourceManager::GetPersistentData() const
+{
+    return m_persistent_data;
 }

@@ -15,6 +15,11 @@ class IRHISwapChain;
 class IRHICommandQueue;
 class IRHIPipelineStateObject;
 
+struct glTFPersistentData
+{
+    std::shared_ptr<IRHIBufferAllocation> m_scene_view_buffer;
+};
+
 // Hold all rhi resource
 class glTFRenderResourceManager
 {
@@ -75,6 +80,8 @@ public:
     // Allocate pass resource and track for export/import
     bool ExportResourceTexture(const RHITextureDesc& desc, RenderPassResourceTableId entry_id, std::shared_ptr<IRHITexture>& out_texture_allocation);
     bool ImportResourceTexture(const RHITextureDesc& desc, RenderPassResourceTableId entry_id, std::shared_ptr<IRHITexture>& out_texture_allocation);
+
+    const glTFPersistentData& GetPersistentData() const;
     
 private:
     //std::shared_ptr<glTFRadiosityRenderer> m_radiosity_renderer;
@@ -104,4 +111,6 @@ private:
 
     std::map<RenderPassResourceTableId, std::shared_ptr<IRHITexture>> m_export_texture_map;
     std::map<RenderPassResourceTableId, std::shared_ptr<IRHITextureAllocation>> m_export_texture_allocation_map;
+
+    glTFPersistentData m_persistent_data;
 };
