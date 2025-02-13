@@ -11,7 +11,6 @@ public:
     virtual bool ApplyInterfaceImpl(IRHICommandList& command_list, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater, unsigned
                                     frame_index) override;
     virtual bool ApplyRootSignatureImpl(IRHIRootSignatureHelper& root_signature) override;
-    
 protected:
     std::vector<std::shared_ptr<IRHIBufferDescriptorAllocation>> m_scene_view_buffer_allocations;
 };

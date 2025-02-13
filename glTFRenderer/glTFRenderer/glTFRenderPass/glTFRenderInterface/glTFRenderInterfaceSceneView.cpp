@@ -2,7 +2,7 @@
 
 #include "glTFScene/glTFSceneView.h"
 
-const static char* SceneViewBufferName = "SceneView";
+const static char* SceneViewBufferName = "SCENE_VIEW_REGISTER_INDEX";
 
 glTFRenderInterfaceSceneView::glTFRenderInterfaceSceneView()
     : glTFRenderInterfaceWithRSAllocation(SceneViewBufferName)
