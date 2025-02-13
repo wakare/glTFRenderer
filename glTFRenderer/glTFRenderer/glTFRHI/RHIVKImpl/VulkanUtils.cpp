@@ -90,6 +90,11 @@ bool VulkanUtils::InitGUIContext(IRHIDevice& device, IRHICommandQueue& graphics_
     auto& vulkan_device = dynamic_cast<VKDevice&>(device);
     auto& vulkan_queue = dynamic_cast<VKCommandQueue&>(graphics_queue);
     auto& vulkan_descriptor_manager = dynamic_cast<VKDescriptorManager&>(descriptor_manager);
+    VkInstance instance = vulkan_device.GetInstance();
+    ImGui_ImplVulkan_LoadFunctions([](const char* function_name, void* instance)
+    {
+        return vkGetInstanceProcAddr(*static_cast<VkInstance*>(instance), function_name);
+    }, &instance);
     
     ImGui_ImplVulkan_InitInfo vulkan_init_info{};
     vulkan_init_info.Instance = vulkan_device.GetInstance();
