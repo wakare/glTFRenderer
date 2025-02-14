@@ -5,6 +5,13 @@ class IRHITexture;
 
 namespace RenderGraphNodeUtil
 {
+    class RenderGraphNodeFinalOutput
+    {
+    public:
+        // Copy this output texture to back buffer
+        std::shared_ptr<IRHITexture> final_color_output;
+    };
+    
     class RenderGraphNode
     {
     public:
@@ -21,6 +28,7 @@ namespace RenderGraphNodeUtil
         bool ImportResourceLocation(glTFRenderResourceManager& resource_manager);
     
         const RenderPassResourceTable& GetResourceTable() const;
+        virtual bool ModifyFinalOutput(RenderGraphNodeFinalOutput& final_output) {return true;}
         
     protected:
         RenderPassResourceTable m_resource_table;

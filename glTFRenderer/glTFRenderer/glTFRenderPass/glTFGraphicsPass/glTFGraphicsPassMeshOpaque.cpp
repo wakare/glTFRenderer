@@ -70,6 +70,13 @@ bool glTFGraphicsPassMeshOpaque::PreRenderPass(glTFRenderResourceManager& resour
     return true;
 }
 
+bool glTFGraphicsPassMeshOpaque::ModifyFinalOutput(RenderGraphNodeUtil::RenderGraphNodeFinalOutput& final_output)
+{
+    final_output.final_color_output = GetResourceTexture(RenderPassResourceTableId::BasePass_Albedo);
+    
+    return true;
+}
+
 bool glTFGraphicsPassMeshOpaque::SetupRootSignature(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::SetupRootSignature(resource_manager))

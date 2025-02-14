@@ -64,16 +64,7 @@ bool glTFComputePassLighting::PreRenderPass(glTFRenderResourceManager& resource_
 bool glTFComputePassLighting::PostRenderPass(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFComputePassBase::PostRenderPass(resource_manager))
-
-    auto& command_list = resource_manager.GetCommandListForRecord();
     
-    // Copy compute result to swapchain back buffer
-    resource_manager.GetCurrentFrameSwapChainTexture().Transition(command_list, RHIResourceStateType::STATE_COPY_DEST);
-    GetResourceTexture(RenderPassResourceTableId::LightingPass_Output)->Transition(command_list, RHIResourceStateType::STATE_COPY_SOURCE);
-    RETURN_IF_FALSE(RHIUtils::Instance().CopyTexture(command_list,
-        resource_manager.GetCurrentFrameSwapChainTexture(),
-        *GetResourceTexture(RenderPassResourceTableId::LightingPass_Output)))
-
     return true;
 }
 
@@ -113,6 +104,13 @@ bool glTFComputePassLighting::InitResourceTable(glTFRenderResourceManager& resou
     return true;
 }
 
+bool glTFComputePassLighting::ModifyFinalOutput(RenderGraphNodeUtil::RenderGraphNodeFinalOutput& final_output)
+{
+    final_output.final_color_output = GetResourceTexture(RenderPassResourceTableId::LightingPass_Output);
+    
+    return true;
+}
+
 bool glTFComputePassLighting::SetupRootSignature(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFComputePassBase::SetupRootSignature(resource_manager))
@@ -137,7 +135,7 @@ bool glTFComputePassLighting::SetupPipelineStateObject(glTFRenderResourceManager
 
     auto depth = GetResourceTexture(RenderPassResourceTableId::Depth);
     RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), depth,
-                        {RHIDataFormat::D32_FLOAT, RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_DSV}, m_depth_SRV))
+                        {RHIDataFormat::R32_FLOAT, RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_depth_SRV))
 
     auto normal = GetResourceTexture(RenderPassResourceTableId::BasePass_Normal);
     RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), normal,

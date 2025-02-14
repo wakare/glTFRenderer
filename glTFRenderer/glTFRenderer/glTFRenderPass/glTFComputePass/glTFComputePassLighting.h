@@ -19,6 +19,7 @@ public:
     virtual bool FinishProcessSceneObject(glTFRenderResourceManager& resource_manager) override;
 
     virtual bool InitResourceTable(glTFRenderResourceManager& resource_manager) override;
+    virtual bool ModifyFinalOutput(RenderGraphNodeUtil::RenderGraphNodeFinalOutput& final_output) override;
     
 protected:
     virtual bool SetupRootSignature(glTFRenderResourceManager& resource_manager) override;

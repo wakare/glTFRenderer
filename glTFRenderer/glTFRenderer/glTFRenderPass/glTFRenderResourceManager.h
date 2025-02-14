@@ -5,6 +5,7 @@
 #include "glTFRenderMeshManager.h"
 #include "glTFRenderPassCommon.h"
 #include "glTFRenderResourceFrameManager.h"
+#include "RenderGraphNodeUtil.h"
 
 class glTFSceneGraph;
 class IRHIFrameBuffer;
@@ -82,6 +83,8 @@ public:
     bool ImportResourceTexture(const RHITextureDesc& desc, RenderPassResourceTableId entry_id, std::shared_ptr<IRHITexture>& out_texture_allocation);
 
     const std::vector<glTFPerFrameRenderResourceData>& GetPerFrameRenderResourceData() const;
+
+    RenderGraphNodeUtil::RenderGraphNodeFinalOutput& GetFinalOutput();
     
 private:
     //std::shared_ptr<glTFRadiosityRenderer> m_radiosity_renderer;
@@ -113,4 +116,6 @@ private:
     std::map<RenderPassResourceTableId, std::shared_ptr<IRHITextureAllocation>> m_export_texture_allocation_map;
 
     std::vector<glTFPerFrameRenderResourceData> m_per_frame_render_resource_data;
+
+    RenderGraphNodeUtil::RenderGraphNodeFinalOutput m_final_output;
 };

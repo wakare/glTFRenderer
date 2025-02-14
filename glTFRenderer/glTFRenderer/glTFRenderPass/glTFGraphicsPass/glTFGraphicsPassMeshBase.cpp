@@ -53,7 +53,7 @@ bool glTFGraphicsPassMeshBase::RenderPass(glTFRenderResourceManager& resource_ma
 {
     RETURN_IF_FALSE(glTFGraphicsPassBase::RenderPass(resource_manager))    
 
-    if (NeedRendering())
+    if (IsRenderingEnabled())
     {
         auto& command_list = resource_manager.GetCommandListForRecord();
 

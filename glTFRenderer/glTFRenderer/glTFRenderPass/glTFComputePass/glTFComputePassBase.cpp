@@ -29,7 +29,7 @@ bool glTFComputePassBase::RenderPass(glTFRenderResourceManager& resource_manager
 {
     RETURN_IF_FALSE(glTFRenderPassBase::RenderPass(resource_manager))
     
-    if (NeedRendering())
+    if (IsRenderingEnabled())
     {
         auto& command_list = resource_manager.GetCommandListForRecord();
 

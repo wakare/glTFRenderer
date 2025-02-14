@@ -157,9 +157,26 @@ void glTFRenderPassManager::RenderAllPass(glTFRenderResourceManager& resource_ma
 {
     for (const auto& pass : m_passes)
     {
-        pass->PreRenderPass(resource_manager);
-        pass->RenderPass(resource_manager);
-        pass->PostRenderPass(resource_manager);
+        if (pass->IsRenderingEnabled())
+        {
+            pass->ModifyFinalOutput(resource_manager.GetFinalOutput());
+        
+            pass->PreRenderPass(resource_manager);
+            pass->RenderPass(resource_manager);
+            pass->PostRenderPass(resource_manager);            
+        }
+    }
+    
+    auto& command_list = resource_manager.GetCommandListForRecord();
+    // Copy compute result to swapchain back buffer
+    if (resource_manager.GetFinalOutput().final_color_output)
+    {
+        resource_manager.GetCurrentFrameSwapChainTexture().Transition(command_list, RHIResourceStateType::STATE_COPY_DEST);
+        resource_manager.GetFinalOutput().final_color_output->Transition(command_list, RHIResourceStateType::STATE_COPY_SOURCE);
+        bool copy = RHIUtils::Instance().CopyTexture(command_list,
+            resource_manager.GetCurrentFrameSwapChainTexture(),
+            *resource_manager.GetFinalOutput().final_color_output);
+        GLTF_CHECK(copy);
     }
 }
 

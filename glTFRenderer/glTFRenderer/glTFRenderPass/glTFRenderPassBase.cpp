@@ -88,6 +88,7 @@ bool glTFRenderPassBase::PostRenderPass(glTFRenderResourceManager& resource_mana
 
 bool glTFRenderPassBase::UpdateGUIWidgets()
 {
+    ImGui::Checkbox("Rendering Enabled", &m_rendering_enabled);
     return true;
 }
 

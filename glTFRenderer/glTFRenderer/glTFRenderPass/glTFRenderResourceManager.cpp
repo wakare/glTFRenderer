@@ -411,3 +411,8 @@ const std::vector<glTFPerFrameRenderResourceData>& glTFRenderResourceManager::Ge
 {
     return m_per_frame_render_resource_data;
 }
+
+RenderGraphNodeUtil::RenderGraphNodeFinalOutput& glTFRenderResourceManager::GetFinalOutput()
+{
+    return m_final_output;
+}

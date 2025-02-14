@@ -173,7 +173,7 @@ bool glTFComputePassIndirectDrawCulling::PreRenderPass(glTFRenderResourceManager
     return true;
 }
 
-bool glTFComputePassIndirectDrawCulling::NeedRendering() const
+bool glTFComputePassIndirectDrawCulling::IsRenderingEnabled() const
 {
     return m_enable_culling;
 }

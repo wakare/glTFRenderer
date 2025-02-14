@@ -22,7 +22,7 @@ public:
     DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFRenderPassBase)
 
     virtual const char* PassName() = 0;
-
+    
     virtual bool InitRenderInterface(glTFRenderResourceManager& resource_manager);
     virtual bool InitPass(glTFRenderResourceManager& resource_manager);
     virtual bool PreRenderPass(glTFRenderResourceManager& resource_manager);
@@ -33,7 +33,7 @@ public:
     virtual bool FinishProcessSceneObject(glTFRenderResourceManager& resource_manager) { return true; }
     virtual void UpdateRenderFlags(const glTFPassOptionRenderFlags& render_flags) {}
 
-    virtual bool NeedRendering() const { return true; }
+    virtual bool IsRenderingEnabled() const { return m_rendering_enabled; }
     virtual bool UpdateGUIWidgets();
     
     template<typename RenderInterface>
@@ -74,6 +74,8 @@ protected:
     bool BindDescriptor(IRHICommandList& command_list, const RootSignatureAllocation& root_signature_allocation, const IRHIDescriptorAllocation& allocation) const;
     
     virtual const RHIVertexStreamingManager& GetVertexStreamingManager(glTFRenderResourceManager& resource_manager) const;
+
+    bool m_rendering_enabled = true;
     
     IRHIRootSignatureHelper m_root_signature_helper;
     RHIBeginRenderingInfo m_begin_rendering_info;

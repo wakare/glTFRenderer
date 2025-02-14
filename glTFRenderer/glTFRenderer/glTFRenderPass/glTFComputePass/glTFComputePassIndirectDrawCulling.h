@@ -18,7 +18,7 @@ public:
     
     virtual bool PreRenderPass(glTFRenderResourceManager& resource_manager) override;
     
-    virtual bool NeedRendering() const override;
+    virtual bool IsRenderingEnabled() const override;
     
     virtual DispatchCount GetDispatchCount() const override;
     
