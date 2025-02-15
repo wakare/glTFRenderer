@@ -40,17 +40,24 @@ struct CullingBoundingBox
 };
 DECLARE_RESOURCE(StructuredBuffer<CullingBoundingBox> g_bounding_box_data, CULLING_BOUNDING_BOX_REGISTER_SRV_INDEX);
 
-DECLARE_RESOURCE(AppendStructuredBuffer<IndirectDrawCommand> culled_indirect_commands, INDIRECT_DRAW_DATA_OUTPUT_REGISTER_UAV_INDEX);
+DECLARE_RESOURCE(RWStructuredBuffer<IndirectDrawCommand> culled_indirect_commands, INDIRECT_DRAW_DATA_OUTPUT_REGISTER_UAV_INDEX);
+DECLARE_RESOURCE(RWByteAddressBuffer indirect_command_count_buffer, INDIRECT_COMMAND_COUNT_BUFFER_REGISTER_UAV_INDEX);
 
 [numthreads(threadBlockSize, 1, 1)]
-void main(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
+void main(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex, uint3 threadID : SV_DispatchThreadID)
 {
     uint index = (groupId.x * threadBlockSize) + groupIndex;
     if (index >= input_indirect_commands_count)
     {
         return;
     }
-    
+
+    if (threadID.x == 0)
+    {
+        indirect_command_count_buffer.Store(0, 0);
+    }
+    GroupMemoryBarrierWithGroupSync();
+
     uint instance_count = g_indirect_draw_data[index].instance_count;
     bool culled = true;
 
@@ -102,7 +109,11 @@ void main(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
 
     if (!culled)
     {
-        culled_indirect_commands.Append(g_indirect_draw_data[index]);    
+        //culled_indirect_commands.Append(g_indirect_draw_data[index]);
+        
+        uint output_index;
+        indirect_command_count_buffer.InterlockedAdd(0, 1, output_index);
+        culled_indirect_commands[output_index] = g_indirect_draw_data[index];
     }
 }
 

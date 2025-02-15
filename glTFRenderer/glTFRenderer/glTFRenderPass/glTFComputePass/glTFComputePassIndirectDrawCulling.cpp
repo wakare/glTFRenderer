@@ -59,9 +59,7 @@ bool glTFComputePassIndirectDrawCulling::InitPass(glTFRenderResourceManager& res
     RHIUAVStructuredBufferDesc uav_structured_buffer_desc
     {
         sizeof(MeshIndirectDrawCommand),
-        static_cast<unsigned>(mesh_manager.GetIndirectDrawBuilder().GetCachedCommandCount()),
-        true,
-        mesh_manager.GetIndirectDrawBuilder().GetCulledIndirectArgumentBufferCountOffset()
+        (mesh_manager.GetIndirectDrawBuilder().GetCachedCommandCount()),
     };
     
     RHIBufferDescriptorDesc uav_structured_buffer_descriptor_desc
@@ -76,27 +74,33 @@ bool glTFComputePassIndirectDrawCulling::InitPass(glTFRenderResourceManager& res
                 resource_manager.GetDevice(),
                 mesh_manager.GetIndirectDrawBuilder().GetCulledIndirectArgumentBuffer(),
                 uav_structured_buffer_descriptor_desc,
-                m_command_buffer_handle))
+                m_culled_command_output_descriptor))
+
+    RHIUAVStructuredBufferDesc count_buffer_desc
+    {
+        sizeof(unsigned),
+        1,
+        false,
+    };
+    RHIBufferDescriptorDesc count_buffer_descriptor_desc
+    {
+        RHIDataFormat::R32_UINT,
+        RHIViewType::RVT_UAV,
+        static_cast<unsigned>(mesh_manager.GetIndirectDrawBuilder().GetCountBuffer()->GetBufferDesc().width),
+        0,
+        count_buffer_desc
+    };
+
+    RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(
+                resource_manager.GetDevice(),
+                mesh_manager.GetIndirectDrawBuilder().GetCountBuffer(),
+                count_buffer_descriptor_desc,
+                m_culled_count_output_descriptor))
+    
 
     const unsigned dispatch_thread = static_cast<unsigned>(ceil(mesh_manager.GetIndirectDrawBuilder().GetCachedCommandCount() / 64.0f));
     m_dispatch_count = {dispatch_thread, 1, 1};
 
-    resource_manager.GetMemoryManager().AllocateBufferMemory(
-        resource_manager.GetDevice(),
-    {L"ResetBuffer",
-        4,
-        1,
-        1,
-        RHIBufferType::Upload,
-        RHIDataFormat::R32_UINT,
-        RHIBufferResourceType::Buffer,
-        RHIResourceStateType::STATE_COMMON,
-        RUF_TRANSFER_SRC
-        },
-        m_count_reset_buffer);
-    const unsigned size = 0;
-    resource_manager.GetMemoryManager().UploadBufferData(*m_count_reset_buffer, &size, 0, sizeof(unsigned));
-    
     mesh_manager.GetIndirectDrawBuilder().GetCachedData(cached_data, cached_data_size);
     
     const auto& instance_data = mesh_manager.GetInstanceBufferData();
@@ -120,7 +124,6 @@ bool glTFComputePassIndirectDrawCulling::InitPass(glTFRenderResourceManager& res
     
     GetRenderInterface<glTFRenderInterfaceStructuredBuffer<CullingBoundingBox>>()->UploadCPUBuffer(resource_manager, bounding_boxes.data(), 0, bounding_boxes.size() * sizeof(CullingBoundingBox));
     
-    
     return true;
 }
 
@@ -129,6 +132,7 @@ bool glTFComputePassIndirectDrawCulling::SetupRootSignature(glTFRenderResourceMa
     RETURN_IF_FALSE(glTFComputePassBase::SetupRootSignature(resourceManager))
 
     RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("INDIRECT_DRAW_DATA_OUTPUT_REGISTER_UAV_INDEX", RHIRootParameterDescriptorRangeType::UAV, 1, false, m_culled_indirect_command_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("INDIRECT_COMMAND_COUNT_BUFFER_REGISTER_UAV_INDEX", RHIRootParameterDescriptorRangeType::UAV, 1, false, m_culled_count_output_allocation))
 
     return true;
 }
@@ -142,7 +146,7 @@ bool glTFComputePassIndirectDrawCulling::SetupPipelineStateObject(glTFRenderReso
     
     auto& shaderMacros = GetComputePipelineStateObject().GetShaderMacros();
     m_culled_indirect_command_allocation.AddShaderDefine(shaderMacros);
-    
+    m_culled_count_output_allocation.AddShaderDefine(shaderMacros);
     return true;
 }
 
@@ -152,22 +156,22 @@ bool glTFComputePassIndirectDrawCulling::PreRenderPass(glTFRenderResourceManager
     if (m_enable_culling)
     {
         auto& command_list = resource_manager.GetCommandListForRecord();
-        BindDescriptor(command_list,
-            m_culled_indirect_command_allocation,
-            *m_command_buffer_handle);
         auto& indirect_argument_buffer = *resource_manager.GetMeshManager().GetIndirectDrawBuilder().GetCulledIndirectArgumentBuffer();
-        indirect_argument_buffer.Transition(command_list, RHIResourceStateType::STATE_COPY_DEST );
-        
-        // Reset count buffer to zero
-        RHIUtils::Instance().CopyBuffer(command_list, indirect_argument_buffer,
-            resource_manager.GetMeshManager().GetIndirectDrawBuilder().GetCulledIndirectArgumentBufferCountOffset(), *m_count_reset_buffer->m_buffer, 0, sizeof(unsigned));
-
         indirect_argument_buffer.Transition(command_list, RHIResourceStateType::STATE_UNORDERED_ACCESS );
 
+        resource_manager.GetMeshManager().GetIndirectDrawBuilder().ResetCountBuffer(resource_manager.GetMemoryManager());
         const char* cached_data;
         size_t cached_data_size;
         resource_manager.GetMeshManager().GetIndirectDrawBuilder().GetCachedData(cached_data, cached_data_size);
         GetRenderInterface<glTFRenderInterfaceSingleConstantBuffer<CullingConstant>>()->UploadCPUBuffer(resource_manager, &cached_data_size, 0, sizeof(unsigned));
+        
+        BindDescriptor(command_list,
+            m_culled_indirect_command_allocation,
+            *m_culled_command_output_descriptor);
+        
+        BindDescriptor(command_list,
+            m_culled_count_output_allocation,
+            *m_culled_count_output_descriptor);
     }
     
     return true;

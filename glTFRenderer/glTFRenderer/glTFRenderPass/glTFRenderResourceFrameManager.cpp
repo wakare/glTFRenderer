@@ -1,7 +1,6 @@
 #include "glTFRenderResourceFrameManager.h"
 
 glTFRenderResourceFrameManager::glTFRenderResourceFrameManager()
-    : m_GBuffer()
 {
 }
 

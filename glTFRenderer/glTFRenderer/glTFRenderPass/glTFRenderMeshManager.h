@@ -50,7 +50,7 @@ public:
     std::shared_ptr<IRHIIndexBufferView> GetMegaIndexBufferView() const {return m_mega_index_buffer_view; }
 
     const RHIVertexStreamingManager& GetVertexStreamingManager() const;
-    
+
 protected:
     std::map<glTFUniqueID, glTFMeshInstanceRenderResource> m_mesh_instances;
     std::map<glTFUniqueID, glTFMeshRenderResource> m_mesh_render_resources;

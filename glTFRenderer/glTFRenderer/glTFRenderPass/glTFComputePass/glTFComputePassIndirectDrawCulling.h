@@ -25,10 +25,12 @@ public:
 protected:
     virtual bool UpdateGUIWidgets() override;
     
-    std::shared_ptr<IRHIBufferAllocation> m_count_reset_buffer;
     DispatchCount m_dispatch_count;
     RootSignatureAllocation m_culled_indirect_command_allocation;
-    std::shared_ptr<IRHIBufferDescriptorAllocation> m_command_buffer_handle;
+    std::shared_ptr<IRHIBufferDescriptorAllocation> m_culled_command_output_descriptor;
+    
+    RootSignatureAllocation m_culled_count_output_allocation;
+    std::shared_ptr<IRHIBufferDescriptorAllocation> m_culled_count_output_descriptor;
     
     bool m_enable_culling; 
 };

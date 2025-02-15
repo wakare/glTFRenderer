@@ -241,7 +241,7 @@ bool DX12DescriptorHeap::CreateUAVInHeap(IRHIDevice& device, unsigned descriptor
         {
             UAVDesc.Buffer.CounterOffsetInBytes = buffer_uav_desc.m_uav_structured_buffer_desc.count_buffer_offset;
         }
-        UAVDesc.Buffer.StructureByteStride = buffer_uav_desc.m_uav_structured_buffer_desc.stride;
+        UAVDesc.Buffer.StructureByteStride = buffer_uav_desc.m_uav_structured_buffer_desc.is_structured_buffer ? buffer_uav_desc.m_uav_structured_buffer_desc.stride : 0;
         UAVDesc.Buffer.FirstElement = 0;
         UAVDesc.Buffer.NumElements = buffer_uav_desc.m_uav_structured_buffer_desc.count;
         UAVDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;

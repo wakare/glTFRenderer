@@ -30,12 +30,11 @@ bool IRHIIndirectDrawBuilder::InitIndirectDrawBuilder(IRHIDevice& device, IRHIMe
 
     memory_manager.UploadBufferData(*m_indirect_argument_buffer, data, 0, size);
 
-    m_culled_indirect_command_count_offset = RHIUtils::Instance().GetAlignmentSizeForUAVCount(size);
     memory_manager.AllocateBufferMemory(
     device, 
     {
         L"culled_indirect_arguments_buffer",
-        GetCulledIndirectArgumentBufferCountOffset() + /*count buffer*/sizeof(unsigned),
+        RHIUtils::Instance().GetAlignmentSizeForUAVCount(size),
         1,
         1,
         RHIBufferType::Default,
@@ -46,7 +45,23 @@ bool IRHIIndirectDrawBuilder::InitIndirectDrawBuilder(IRHIDevice& device, IRHIMe
     },
     m_culled_indirect_commands
     );
+    
+    memory_manager.AllocateBufferMemory(
+            device,
+        {L"CountBuffer",
+            4,
+            1,
+            1,
+            RHIBufferType::Default,
+            RHIDataFormat::R32_UINT,
+            RHIBufferResourceType::Buffer,
+            RHIResourceStateType::STATE_COMMON,
+            static_cast<RHIResourceUsageFlags>(RUF_TRANSFER_SRC | RUF_ALLOW_UAV),
+            },
+            m_count_buffer);
 
+    ResetCountBuffer(memory_manager);
+    
     // Cache data in host side
     m_cached_data_size = size;
     m_cached_command_count = size / command_stride;
@@ -88,10 +103,10 @@ std::shared_ptr<IRHIBuffer> IRHIIndirectDrawBuilder::GetCulledIndirectArgumentBu
     return m_culled_indirect_commands->m_buffer;
 }
 
-unsigned IRHIIndirectDrawBuilder::GetCulledIndirectArgumentBufferCountOffset() const
+std::shared_ptr<IRHIBuffer> IRHIIndirectDrawBuilder::GetCountBuffer() const
 {
     GLTF_CHECK(m_inited);
-    return m_culled_indirect_command_count_offset;
+    return m_count_buffer->m_buffer;
 }
 
 bool IRHIIndirectDrawBuilder::DrawIndirect(IRHICommandList& command_list, IRHICommandSignature& command_signature, bool use_dynamic_count)
@@ -106,8 +121,8 @@ bool IRHIIndirectDrawBuilder::DrawIndirect(IRHICommandList& command_list, IRHICo
             m_cached_command_count,
             *m_culled_indirect_commands->m_buffer,
             0,
-            *m_culled_indirect_commands->m_buffer,
-            m_culled_indirect_command_count_offset);    
+            *m_count_buffer->m_buffer,
+            0);    
     }
     else
     {
@@ -142,4 +157,13 @@ unsigned IRHIIndirectDrawBuilder::GetCachedCommandCount() const
 {
     GLTF_CHECK(m_inited);
     return m_cached_command_count;
+}
+
+bool IRHIIndirectDrawBuilder::ResetCountBuffer(IRHIMemoryManager& memory_manager)
+{
+    return true;
+    /*
+    unsigned reset_count = 0;
+    return memory_manager.UploadBufferData(*m_count_buffer, &reset_count, 0, sizeof(unsigned));
+    */
 }

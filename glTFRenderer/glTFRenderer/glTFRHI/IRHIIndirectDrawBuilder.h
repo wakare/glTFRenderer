@@ -35,7 +35,7 @@ public:
     
     std::shared_ptr<IRHIBuffer> GetIndirectArgumentBuffer() const;
     std::shared_ptr<IRHIBuffer> GetCulledIndirectArgumentBuffer() const;
-    unsigned GetCulledIndirectArgumentBufferCountOffset() const;
+    std::shared_ptr<IRHIBuffer> GetCountBuffer() const;
 
     bool DrawIndirect(IRHICommandList& command_list, IRHICommandSignature& command_signature, bool use_dynamic_count);
 
@@ -43,14 +43,16 @@ public:
     bool GetCachedData(const char*& out_data, size_t& out_size ) const;
     unsigned GetCachedCommandCount() const; 
     
+    bool ResetCountBuffer(IRHIMemoryManager& memory_manager);
+    
 protected:
     bool m_inited {false};
     
     RHICommandSignatureDesc m_command_signature_desc{};
     std::shared_ptr<IRHIBufferAllocation> m_indirect_argument_buffer;
     std::shared_ptr<IRHIBufferAllocation> m_culled_indirect_commands;
-    unsigned m_culled_indirect_command_count_offset {0};
-
+    std::shared_ptr<IRHIBufferAllocation> m_count_buffer;
+    
     unsigned m_command_stride {0};
     
     std::unique_ptr<char[]> m_cached_data;

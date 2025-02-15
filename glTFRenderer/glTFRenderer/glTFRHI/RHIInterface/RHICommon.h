@@ -216,14 +216,16 @@ struct RHIUAVStructuredBufferDesc
 {
     unsigned stride {0};
     unsigned count {0};
+    bool is_structured_buffer {true};
     bool use_count_buffer {false};
     unsigned count_buffer_offset {0};
-
+    
     bool operator==(const RHIUAVStructuredBufferDesc& other) const
     {
         return
             stride == other.stride &&
             count == other.count &&
+            is_structured_buffer == other.is_structured_buffer &&
             use_count_buffer == other.use_count_buffer &&
             count_buffer_offset == other.count_buffer_offset;
     }
