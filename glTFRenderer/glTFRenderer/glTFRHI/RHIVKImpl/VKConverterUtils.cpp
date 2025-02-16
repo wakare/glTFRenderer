@@ -173,6 +173,9 @@ VkFormat VKConverterUtils::ConvertToFormat(RHIDataFormat format)
     case RHIDataFormat::A8_UNORM:
         result = VK_FORMAT_A8_UNORM_KHR;
         break;
+    case RHIDataFormat::D32_SAMPLE_RESERVED:
+        result = VK_FORMAT_D32_SFLOAT;
+        break;
     case RHIDataFormat::UNKNOWN:
         result = VK_FORMAT_UNDEFINED;
         break;

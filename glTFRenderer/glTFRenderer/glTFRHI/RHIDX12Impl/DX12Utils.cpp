@@ -543,7 +543,7 @@ bool DX12Utils::ExecuteIndirect(IRHICommandList& command_list, IRHICommandSignat
 
 bool DX12Utils::ExecuteIndirect(IRHICommandList& command_list, IRHICommandSignature& command_signature,
                                 unsigned max_count, IRHIBuffer& arguments_buffer, unsigned arguments_buffer_offset, IRHIBuffer& count_buffer,
-                                unsigned count_buffer_offset)
+                                unsigned count_buffer_offset, unsigned command_stride)
 {
     auto* dx_command_list = dynamic_cast<DX12CommandList&>(command_list).GetDXRCommandList();
     auto* dx_command_signature = dynamic_cast<DX12CommandSignature&>(command_signature).GetCommandSignature();

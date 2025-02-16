@@ -56,7 +56,7 @@ bool IRHIIndirectDrawBuilder::InitIndirectDrawBuilder(IRHIDevice& device, IRHIMe
             RHIDataFormat::R32_UINT,
             RHIBufferResourceType::Buffer,
             RHIResourceStateType::STATE_COMMON,
-            static_cast<RHIResourceUsageFlags>(RUF_TRANSFER_SRC | RUF_ALLOW_UAV),
+            static_cast<RHIResourceUsageFlags>(RUF_TRANSFER_SRC | RUF_ALLOW_UAV | RUF_INDIRECT_BUFFER),
             },
             m_count_buffer);
 
@@ -122,7 +122,8 @@ bool IRHIIndirectDrawBuilder::DrawIndirect(IRHICommandList& command_list, IRHICo
             *m_culled_indirect_commands->m_buffer,
             0,
             *m_count_buffer->m_buffer,
-            0);    
+            0,
+            GetCommandStride());
     }
     else
     {

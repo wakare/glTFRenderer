@@ -8,7 +8,7 @@ public:
     DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR(VKGraphicsPipelineStateObject)
     virtual ~VKGraphicsPipelineStateObject() override;
     
-    virtual bool InitPipelineStateObject(IRHIDevice& device, const IRHIRootSignature& root_signature, IRHISwapChain& swap_chain, const std::vector<RHIPipelineInputLayout>& input_layouts) override;
+    virtual bool InitPipelineStateObject(IRHIDevice& device, const IRHIRootSignature& root_signature, IRHISwapChain& swap_chain) override;
     virtual bool BindRenderTargetFormats(const std::vector<IRHIDescriptorAllocation*>& render_targets) override;
 
     VkPipeline GetPipeline() const;

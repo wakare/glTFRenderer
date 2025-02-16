@@ -26,7 +26,7 @@ public:
     
     IRHIPipelineStateObject(RHIPipelineType type);
 
-    virtual bool InitPipelineStateObject(IRHIDevice& device, const IRHIRootSignature& root_signature, IRHISwapChain& swap_chain, const std::vector<RHIPipelineInputLayout>& input_layouts) = 0;
+    virtual bool InitPipelineStateObject(IRHIDevice& device, const IRHIRootSignature& root_signature, IRHISwapChain& swap_chain) = 0;
     
     bool BindShaderCode(const std::string& shader_file_path, RHIShaderType type, const std::string& entry_function_name);
 
@@ -39,6 +39,8 @@ public:
     void SetDepthStencilState(RHIDepthStencilMode state);
     RHIDepthStencilMode GetDepthStencilMode() const;
 
+    void SetInputLayouts(const std::vector<RHIPipelineInputLayout>& input_layouts);
+    
     RHIPipelineType GetPSOType() const {return m_type; }
     RHIShaderPreDefineMacros& GetShaderMacros();
     
@@ -49,6 +51,7 @@ protected:
     RHIShaderPreDefineMacros m_shader_macros;
     RHICullMode m_cullMode;
     RHIDepthStencilMode m_depth_stencil_state;
+    std::vector<RHIPipelineInputLayout> m_input_layouts;
     std::map<RHIShaderType, std::shared_ptr<IRHIShader>> m_shaders;
 };
 

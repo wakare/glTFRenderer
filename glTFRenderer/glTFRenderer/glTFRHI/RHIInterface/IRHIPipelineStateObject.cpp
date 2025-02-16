@@ -110,6 +110,11 @@ RHIDepthStencilMode IRHIPipelineStateObject::GetDepthStencilMode() const
     return m_depth_stencil_state;
 }
 
+void IRHIPipelineStateObject::SetInputLayouts(const std::vector<RHIPipelineInputLayout>& input_layouts)
+{
+    m_input_layouts = input_layouts;
+}
+
 RHICullMode IRHIPipelineStateObject::GetCullMode() const
 {
     return m_cullMode;

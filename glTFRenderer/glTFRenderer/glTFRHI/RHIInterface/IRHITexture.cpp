@@ -226,7 +226,7 @@ RHITextureDesc RHITextureDesc::MakeLightingPassOutputTextureDesc(
     RHITextureDesc texture_desc = MakeFullScreenTextureDesc(
         "LIGHTING_OUTPUT",
             RHIDataFormat::R8G8B8A8_UNORM,
-            RUF_ALLOW_UAV,
+            static_cast<RHIResourceUsageFlags>(RUF_ALLOW_UAV | RUF_TRANSFER_SRC),
             {
                 .clear_format = RHIDataFormat::R8G8B8A8_UNORM,
                 .clear_color {0.0f, 0.0f, 0.0f, 0.0f}

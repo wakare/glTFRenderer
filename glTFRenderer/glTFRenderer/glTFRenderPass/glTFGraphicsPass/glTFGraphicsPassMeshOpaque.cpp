@@ -25,8 +25,6 @@ bool glTFGraphicsPassMeshOpaque::InitRenderInterface(glTFRenderResourceManager& 
         std::make_shared<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Warp, RHIStaticSamplerFilterMode::Linear>>("DEFAULT_SAMPLER_REGISTER_INDEX");
     AddRenderInterface(sampler_interface);
     
-    //GetRenderInterface<glTFRenderInterfaceSceneMaterial>()->UploadMaterialData(resource_manager);
-    
     return true;
 }
 

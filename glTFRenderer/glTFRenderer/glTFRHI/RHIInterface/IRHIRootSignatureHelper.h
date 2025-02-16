@@ -20,8 +20,16 @@ public:
     bool AddCBVRootParameter(const std::string& parameter_name, RootSignatureAllocation& out_allocation);
     bool AddSRVRootParameter(const std::string& parameter_name, RootSignatureAllocation& out_allocation);
     bool AddUAVRootParameter(const std::string& parameter_name, RootSignatureAllocation& out_allocation);
-    bool AddTableRootParameter(const std::string& parameter_name, RHIRootParameterDescriptorRangeType table_type, unsigned table_register_count, bool
-                               is_bindless, RootSignatureAllocation& out_allocation);
+
+    struct TableRootParameterDesc
+    {
+        RHIRootParameterDescriptorRangeType table_type;
+        unsigned table_register_count;
+        bool is_buffer;
+        bool is_bindless;
+    };
+    
+    bool AddTableRootParameter(const std::string& parameter_name, const TableRootParameterDesc& desc, RootSignatureAllocation& out_allocation);
     bool AddSampler(const std::string& sampler_name, RHIStaticSamplerAddressMode address_mode, RHIStaticSamplerFilterMode filter_mode, RootSignatureAllocation& out_allocation);
 
     bool SetUsage(RHIRootSignatureUsage usage);
@@ -38,6 +46,7 @@ protected:
         std::string parameter_name;
         RHIRootParameterType type;
         unsigned register_count;
+        bool is_buffer;
         
         union
         {

@@ -33,7 +33,7 @@ public:
     
     virtual bool ApplyRootSignatureImpl(IRHIRootSignatureHelper& rootSignature) override
     {
-        return rootSignature.AddTableRootParameter(m_name, RHIRootParameterDescriptorRangeType::SRV, TableRangeCount, TableRangeCount == UINT_MAX, m_allocation);
+        return rootSignature.AddTableRootParameter(m_name, {RHIRootParameterDescriptorRangeType::SRV, TableRangeCount, false, TableRangeCount == UINT_MAX}, m_allocation);
     }
 
     virtual bool ApplyInterfaceImpl(IRHICommandList& command_list, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater, unsigned

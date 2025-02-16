@@ -40,7 +40,7 @@ bool glTFComputePassTestFillColor::SetupRootSignature(glTFRenderResourceManager&
 {
     RETURN_IF_FALSE(glTFComputePassBase::SetupRootSignature(resource_manager))
     
-    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("OUTPUT_TEX_REGISTER_INDEX", RHIRootParameterDescriptorRangeType::UAV, 1, false, m_output_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("OUTPUT_TEX_REGISTER_INDEX", {RHIRootParameterDescriptorRangeType::UAV, 1, false, false}, m_output_allocation))
     m_dispatch_count = {resource_manager.GetSwapChain().GetWidth() / 8, resource_manager.GetSwapChain().GetHeight() / 8, 1};
     
     return true;

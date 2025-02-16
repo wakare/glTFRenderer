@@ -511,9 +511,15 @@ bool VulkanUtils::ExecuteIndirect(IRHICommandList& command_list, IRHICommandSign
 }
 
 bool VulkanUtils::ExecuteIndirect(IRHICommandList& command_list, IRHICommandSignature& command_signature,
-    unsigned max_count, IRHIBuffer& arguments_buffer, unsigned arguments_buffer_offset, IRHIBuffer& count_buffer,
-    unsigned count_buffer_offset)
+                                  unsigned max_count, IRHIBuffer& arguments_buffer, unsigned arguments_buffer_offset, IRHIBuffer& count_buffer,
+                                  unsigned count_buffer_offset, unsigned command_stride)
 {
+    auto command_buffer = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
+    auto indirect_buffer = dynamic_cast<VKBuffer&>(arguments_buffer).GetRawBuffer();
+    auto indirect_count_buffer = dynamic_cast<VKBuffer&>(count_buffer).GetRawBuffer();
+    
+    vkCmdDrawIndexedIndirectCount(command_buffer, indirect_buffer, arguments_buffer_offset, indirect_count_buffer, 0, max_count, command_stride);
+
     return true;
 }
 
@@ -577,5 +583,7 @@ bool VulkanUtils::SupportRayTracing(IRHIDevice& device)
 
 unsigned VulkanUtils::GetAlignmentSizeForUAVCount(unsigned size)
 {
+    const UINT alignment = 32;
+    return (size + (alignment - 1)) & ~(alignment - 1);
     return 0;
 }

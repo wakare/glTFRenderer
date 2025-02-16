@@ -174,9 +174,9 @@ bool glTFComputePassRayTracingPostprocess::SetupRootSignature(glTFRenderResource
     RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), GetResourceTexture(RenderPassResourceTableId::ComputePass_RayTracingOutputPostProcess_Output),
                                 {GetResourceTexture(RenderPassResourceTableId::ComputePass_RayTracingOutputPostProcess_Output)->GetTextureFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_UAV}, m_post_process_output_handle))
 
-    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("POST_PROCESS_INPUT_REGISTER_INDEX", RHIRootParameterDescriptorRangeType::SRV, 1, false, m_process_input_allocation))
-    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("SCREEN_UV_OFFSET_REGISTER_INDEX", RHIRootParameterDescriptorRangeType::SRV, 1, false, m_screen_uv_offset_allocation))
-    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("POST_PROCESS_OUTPUT_REGISTER_INDEX", RHIRootParameterDescriptorRangeType::UAV, 1, false, m_process_output_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("POST_PROCESS_INPUT_REGISTER_INDEX", {RHIRootParameterDescriptorRangeType::SRV, 1, false, false}, m_process_input_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("SCREEN_UV_OFFSET_REGISTER_INDEX", {RHIRootParameterDescriptorRangeType::SRV, 1, false, false}, m_screen_uv_offset_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("POST_PROCESS_OUTPUT_REGISTER_INDEX", {RHIRootParameterDescriptorRangeType::UAV, 1, false, false}, m_process_output_allocation))
 
     return true;
 }

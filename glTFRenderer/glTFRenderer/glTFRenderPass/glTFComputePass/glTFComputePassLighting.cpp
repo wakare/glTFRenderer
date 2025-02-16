@@ -115,10 +115,10 @@ bool glTFComputePassLighting::SetupRootSignature(glTFRenderResourceManager& reso
 {
     RETURN_IF_FALSE(glTFComputePassBase::SetupRootSignature(resource_manager))
     
-    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("ALBEDO_TEX_REGISTER_INDEX", RHIRootParameterDescriptorRangeType::SRV, 1, false, m_albedo_allocation))
-    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("DEPTH_TEX_REGISTER_INDEX", RHIRootParameterDescriptorRangeType::SRV, 1, false, m_depth_allocation))
-    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("NORMAL_TEX_REGISTER_INDEX", RHIRootParameterDescriptorRangeType::SRV, 1, false, m_normal_allocation))
-    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("OUTPUT_TEX_REGISTER_INDEX", RHIRootParameterDescriptorRangeType::UAV, 1, false, m_output_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("ALBEDO_TEX_REGISTER_INDEX", {RHIRootParameterDescriptorRangeType::SRV, 1, false, false}, m_albedo_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("DEPTH_TEX_REGISTER_INDEX", {RHIRootParameterDescriptorRangeType::SRV, 1, false, false}, m_depth_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("NORMAL_TEX_REGISTER_INDEX", {RHIRootParameterDescriptorRangeType::SRV, 1, false, false}, m_normal_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("OUTPUT_TEX_REGISTER_INDEX", {RHIRootParameterDescriptorRangeType::UAV, 1, false, false}, m_output_allocation))
 
     return true;
 }
@@ -135,7 +135,7 @@ bool glTFComputePassLighting::SetupPipelineStateObject(glTFRenderResourceManager
 
     auto depth = GetResourceTexture(RenderPassResourceTableId::Depth);
     RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), depth,
-                        {RHIDataFormat::R32_FLOAT, RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_depth_SRV))
+                        {RHIDataFormat::D32_SAMPLE_RESERVED, RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_depth_SRV))
 
     auto normal = GetResourceTexture(RenderPassResourceTableId::BasePass_Normal);
     RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), normal,

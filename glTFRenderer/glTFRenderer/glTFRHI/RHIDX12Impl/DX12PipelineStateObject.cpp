@@ -53,7 +53,7 @@ bool DX12GraphicsPipelineStateObject::BindRenderTargetFormats(
     return true;
 }
 
-bool DX12GraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device, const IRHIRootSignature& root_signature, IRHISwapChain& swap_chain, const std::vector<RHIPipelineInputLayout>& input_layouts)
+bool DX12GraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device, const IRHIRootSignature& root_signature, IRHISwapChain& swap_chain)
 {
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
     auto* dxRootSignature = dynamic_cast<const DX12RootSignature&>(root_signature).GetRootSignature();
@@ -64,9 +64,9 @@ bool DX12GraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device
     // how to read the vertex data bound to it.
 
     std::vector<D3D12_INPUT_ELEMENT_DESC> dx_input_layouts;
-    dx_input_layouts.reserve(input_layouts.size());
+    dx_input_layouts.reserve(m_input_layouts.size());
     
-    for (const auto& input_layout : input_layouts)
+    for (const auto& input_layout : m_input_layouts)
     {
         dx_input_layouts.push_back(
             {
@@ -177,7 +177,7 @@ DX12ComputePipelineStateObject::DX12ComputePipelineStateObject()
 }
 
 bool DX12ComputePipelineStateObject::InitPipelineStateObject(IRHIDevice& device,
-    const IRHIRootSignature& root_signature, IRHISwapChain& swap_chain, const std::vector<RHIPipelineInputLayout>& input_layouts)
+                                                             const IRHIRootSignature& root_signature, IRHISwapChain& swap_chain)
 {
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
     auto* dxRootSignature = dynamic_cast<const DX12RootSignature&>(root_signature).GetRootSignature();
@@ -206,7 +206,7 @@ DX12RTPipelineStateObject::DX12RTPipelineStateObject()
 = default;
 
 bool DX12RTPipelineStateObject::InitPipelineStateObject(IRHIDevice& device, const IRHIRootSignature& root_signature,
-    IRHISwapChain& swap_chain, const std::vector<RHIPipelineInputLayout>& input_layouts)
+                                                        IRHISwapChain& swap_chain)
 {
     auto* dxrDevice = dynamic_cast<DX12Device&>(device).GetDXRDevice();
     auto* dx_root_signature = dynamic_cast<const DX12RootSignature&>(root_signature).GetRootSignature();

@@ -82,8 +82,8 @@ bool glTFRayTracingPassPathTracing::PostRenderPass(glTFRenderResourceManager& re
 bool glTFRayTracingPassPathTracing::SetupRootSignature(glTFRenderResourceManager& resource_manager)
 {
     // Non-bindless table parameter should be added first
-    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("OUTPUT_REGISTER_INDEX", RHIRootParameterDescriptorRangeType::UAV, 1, false, m_output_allocation))
-    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("SCREEN_UV_OFFSET_REGISTER_INDEX", RHIRootParameterDescriptorRangeType::UAV, 1, false, m_screen_uv_offset_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("OUTPUT_REGISTER_INDEX", {RHIRootParameterDescriptorRangeType::UAV, 1, false, false}, m_output_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("SCREEN_UV_OFFSET_REGISTER_INDEX", {RHIRootParameterDescriptorRangeType::UAV, 1, false, false}, m_screen_uv_offset_allocation))
     
     RETURN_IF_FALSE(glTFRayTracingPassWithMesh::SetupRootSignature(resource_manager))
     

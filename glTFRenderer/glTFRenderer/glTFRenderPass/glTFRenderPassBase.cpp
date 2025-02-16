@@ -36,8 +36,7 @@ bool glTFRenderPassBase::InitPass(glTFRenderResourceManager& resource_manager)
     RETURN_IF_FALSE(SetupPipelineStateObject(resource_manager))
     RETURN_IF_FALSE(m_pipeline_state_object->InitPipelineStateObject(resource_manager.GetDevice(),
             m_root_signature_helper.GetRootSignature(),
-            resource_manager.GetSwapChain(),
-            GetVertexStreamingManager(resource_manager).GetVertexAttributes()
+            resource_manager.GetSwapChain()
         ))
 
     for (const auto& render_interface : m_render_interfaces)

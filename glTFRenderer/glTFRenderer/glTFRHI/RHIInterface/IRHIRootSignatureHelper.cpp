@@ -83,6 +83,7 @@ bool IRHIRootSignatureHelper::AddRootParameterWithRegisterCount(const RootParame
         RootSignatureParameterElement element{};
         element.name = parameter_info.parameter_name;
         element.global_parameter_index = m_layout.last_parameter_index++;
+        element.is_buffer = parameter_info.is_buffer;
         
         if (parameter_info.type == RHIRootParameterType::Constant)
         {
@@ -197,17 +198,18 @@ bool IRHIRootSignatureHelper::AddUAVRootParameter(const std::string& parameter_n
 }
 
 bool IRHIRootSignatureHelper::AddTableRootParameter(const std::string& parameter_name,
-                                                    RHIRootParameterDescriptorRangeType table_type, unsigned table_register_count, bool is_bindless, RootSignatureAllocation& out_allocation)
+                                                    const TableRootParameterDesc& desc, RootSignatureAllocation& out_allocation)
 {
     RootParameterInfo info
     {
         .parameter_name = parameter_name,
         .type = RHIRootParameterType::DescriptorTable,
-        .register_count = table_register_count,
+        .register_count = desc.table_register_count,
+        .is_buffer = desc.is_buffer,
         .table_parameter_info =
         {
-            .table_type = table_type,
-            .is_bindless = is_bindless,
+            .table_type = desc.table_type,
+            .is_bindless = desc.is_bindless,
         }
     };
     
@@ -272,7 +274,8 @@ bool IRHIRootSignatureHelper::BuildRootSignature(IRHIDevice& device, glTFRenderR
                             parameter_value.register_range.first,
                             parameter_value.space,
                             parameter_value.register_range.second - parameter_value.register_range.first,
-                            parameter_value.is_bindless
+                            parameter_value.is_bindless,
+                            parameter_value.is_buffer
                         };
                     m_root_signature->GetRootParameter(parameter_value.global_parameter_index).InitAsDescriptorTableRange(parameter_value.local_space_parameter_index,  1, &range_desc);
                 }

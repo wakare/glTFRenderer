@@ -118,7 +118,7 @@ bool glTFGraphicsPassTestIndexedTextureTriangle::SetupRootSignature(glTFRenderRe
 {
     RETURN_IF_FALSE(glTFGraphicsPassTestTriangleBase::SetupRootSignature(resource_manager))
 
-    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("SAMPLED_TEX_REGISTER_INDEX", RHIRootParameterDescriptorRangeType::SRV, 1, false, m_sampled_texture_root_signature_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("SAMPLED_TEX_REGISTER_INDEX", {RHIRootParameterDescriptorRangeType::SRV, 1, false, false}, m_sampled_texture_root_signature_allocation))
 
     VertexAttributeElement position_attribute;
     position_attribute.type = VertexAttributeType::VERTEX_POSITION;

@@ -95,6 +95,7 @@ enum class RHIDataFormat
     R16_UINT,
     R8_UNORM,
     A8_UNORM,
+    D32_SAMPLE_RESERVED,
     UNKNOWN,
 };
 
@@ -353,6 +354,7 @@ struct RHIRootParameterDescriptorRangeDesc
     unsigned space;
     size_t descriptor_count {0};
     bool is_bindless_range {false};
+    bool is_buffer {false};
 };
 
 enum class RHIRootParameterType
@@ -434,6 +436,7 @@ struct RootSignatureParameterElement
     unsigned constant_value_count;
     RHIRootParameterDescriptorRangeType table_type;
     bool is_bindless;
+    bool is_buffer;
 };
 
 struct RootSignatureLayout

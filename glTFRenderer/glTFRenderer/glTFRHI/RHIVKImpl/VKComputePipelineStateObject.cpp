@@ -26,7 +26,7 @@ VKComputePipelineStateObject::~VKComputePipelineStateObject()
 }
 
 bool VKComputePipelineStateObject::InitPipelineStateObject(IRHIDevice& device,
-    const IRHIRootSignature& root_signature, IRHISwapChain& swap_chain, const std::vector<RHIPipelineInputLayout>& input_layouts)
+                                                           const IRHIRootSignature& root_signature, IRHISwapChain& swap_chain)
 {
     m_device = dynamic_cast<VKDevice&>(device).GetDevice();
     

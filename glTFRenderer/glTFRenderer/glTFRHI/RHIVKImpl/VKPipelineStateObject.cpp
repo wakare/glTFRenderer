@@ -30,7 +30,7 @@ VKGraphicsPipelineStateObject::~VKGraphicsPipelineStateObject()
 }
 
 bool VKGraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device,
-    const IRHIRootSignature& root_signature, IRHISwapChain& swap_chain, const std::vector<RHIPipelineInputLayout>& input_layouts)
+                                                            const IRHIRootSignature& root_signature, IRHISwapChain& swap_chain)
 {
     m_device = dynamic_cast<VKDevice&>(device).GetDevice();
     
@@ -64,8 +64,8 @@ bool VKGraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device,
     std::map<unsigned, VkVertexInputBindingDescription> binding_records;
     
     std::vector<VkVertexInputAttributeDescription> attribute_descriptions;
-    attribute_descriptions.reserve(input_layouts.size());
-    for (const auto& input_layout : input_layouts)
+    attribute_descriptions.reserve(m_input_layouts.size());
+    for (const auto& input_layout : m_input_layouts)
     {
         attribute_descriptions.push_back(
             {

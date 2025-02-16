@@ -10,9 +10,9 @@ namespace glTFRenderResourceUtils
     bool GBufferSignatureAllocationWithinPass::InitGBufferAllocation(glTFUniqueID pass_id,
         IRHIRootSignatureHelper& root_signature_helper, bool asSRV)
     {
-        RETURN_IF_FALSE(root_signature_helper.AddTableRootParameter("ALBEDO_REGISTER_INDEX", asSRV ? RHIRootParameterDescriptorRangeType::SRV : RHIRootParameterDescriptorRangeType::UAV, 1, false, m_albedo_allocation))
-        RETURN_IF_FALSE(root_signature_helper.AddTableRootParameter("NORMAL_REGISTER_INDEX", asSRV ? RHIRootParameterDescriptorRangeType::SRV : RHIRootParameterDescriptorRangeType::UAV, 1, false, m_normal_allocation))
-        RETURN_IF_FALSE(root_signature_helper.AddTableRootParameter("DEPTH_REGISTER_INDEX", asSRV ? RHIRootParameterDescriptorRangeType::SRV : RHIRootParameterDescriptorRangeType::UAV, 1, false, m_depth_allocation))
+        RETURN_IF_FALSE(root_signature_helper.AddTableRootParameter("ALBEDO_REGISTER_INDEX", {asSRV ? RHIRootParameterDescriptorRangeType::SRV : RHIRootParameterDescriptorRangeType::UAV, 1, false, false}, m_albedo_allocation))
+        RETURN_IF_FALSE(root_signature_helper.AddTableRootParameter("NORMAL_REGISTER_INDEX", {asSRV ? RHIRootParameterDescriptorRangeType::SRV : RHIRootParameterDescriptorRangeType::UAV, 1, false, false}, m_normal_allocation))
+        RETURN_IF_FALSE(root_signature_helper.AddTableRootParameter("DEPTH_REGISTER_INDEX", {asSRV ? RHIRootParameterDescriptorRangeType::SRV : RHIRootParameterDescriptorRangeType::UAV, 1, false, false}, m_depth_allocation))
     
         return true;
     }
@@ -240,8 +240,8 @@ namespace glTFRenderResourceUtils
 
     bool RWTextureResourceWithBackBuffer::RegisterSignature(IRHIRootSignatureHelper& root_signature)
     {
-        RETURN_IF_FALSE(root_signature.AddTableRootParameter(m_output_register_name, RHIRootParameterDescriptorRangeType::UAV, 1, false, m_writable_buffer_allocation))
-        RETURN_IF_FALSE(root_signature.AddTableRootParameter(m_back_register_name, RHIRootParameterDescriptorRangeType::SRV, 1, false, m_back_buffer_allocation))
+        RETURN_IF_FALSE(root_signature.AddTableRootParameter(m_output_register_name, {RHIRootParameterDescriptorRangeType::UAV, 1, false, false}, m_writable_buffer_allocation))
+        RETURN_IF_FALSE(root_signature.AddTableRootParameter(m_back_register_name, {RHIRootParameterDescriptorRangeType::SRV, 1, false, false}, m_back_buffer_allocation))
     
         return true;
     }

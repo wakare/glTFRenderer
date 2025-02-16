@@ -113,7 +113,10 @@ bool VKDescriptorManager::CreateDescriptor(IRHIDevice& device, const std::shared
     image_view_create_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
     image_view_create_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
     image_view_create_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-    image_view_create_info.subresourceRange.aspectMask = desc.m_view_type == RHIViewType::RVT_DSV? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+    
+    image_view_create_info.subresourceRange.aspectMask = desc.m_view_type == RHIViewType::RVT_DSV ? VK_IMAGE_ASPECT_DEPTH_BIT :
+        desc.m_format == RHIDataFormat::D32_SAMPLE_RESERVED ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+    
     image_view_create_info.subresourceRange.baseMipLevel = 0;
     image_view_create_info.subresourceRange.levelCount = 1;
     image_view_create_info.subresourceRange.baseArrayLayer = 0;

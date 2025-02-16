@@ -113,6 +113,11 @@ bool glTFGraphicsPassMeshBase::SetupPipelineStateObject(glTFRenderResourceManage
     
     auto& shader_macros = GetGraphicsPipelineStateObject().GetShaderMacros();
     shader_macros.AddMacro("ENABLE_INPUT_LAYOUT", UsingInputLayout() ? "1" : "0");
+
+    if (UsingInputLayout())
+    {
+        GetGraphicsPipelineStateObject().SetInputLayouts(GetVertexStreamingManager(resource_manager).GetVertexAttributes());    
+    }
     
     return true;
 }
