@@ -18,19 +18,24 @@ namespace RenderGraphNodeUtil
         DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(RenderGraphNode)
         
         std::shared_ptr<IRHITexture> GetResourceTexture(RenderPassResourceTableId id) const;
+        std::shared_ptr<IRHITextureDescriptorAllocation> GetResourceDescriptor(RenderPassResourceTableId id) const;
         
-        void AddImportTextureResource(const RHITextureDesc& desc, RenderPassResourceTableId id);
-        void AddExportTextureResource(const RHITextureDesc& desc, RenderPassResourceTableId id);
+        void AddImportTextureResource(RenderPassResourceTableId id, const RHITextureDesc& desc, const RHITextureDescriptorDesc& descriptor_desc);
+        void AddExportTextureResource(RenderPassResourceTableId id, const RHITextureDesc& texture_desc, const RHITextureDescriptorDesc& descriptor_desc);
         
         // render pass implement this method for requiring global shader resource location
-        virtual bool InitResourceTable(glTFRenderResourceManager& resource_manager); 
+        virtual bool InitResourceTable(glTFRenderResourceManager& resource_manager);
         bool ExportResourceLocation(glTFRenderResourceManager& resource_manager);
         bool ImportResourceLocation(glTFRenderResourceManager& resource_manager);
     
         const RenderPassResourceTable& GetResourceTable() const;
         virtual bool ModifyFinalOutput(RenderGraphNodeFinalOutput& final_output) {return true;}
+
+        void UpdateFrameIndex(const glTFRenderResourceManager& resource_manager);
         
     protected:
+        unsigned m_current_frame_index = 0;
+        
         RenderPassResourceTable m_resource_table;
         RenderPassResourceLocation m_resource_location;
     };

@@ -79,8 +79,8 @@ public:
     //const glTFRadiosityRenderer& GetRadiosityRenderer() const;
 
     // Allocate pass resource and track for export/import
-    bool ExportResourceTexture(const RHITextureDesc& desc, RenderPassResourceTableId entry_id, std::shared_ptr<IRHITexture>& out_texture_allocation);
-    bool ImportResourceTexture(const RHITextureDesc& desc, RenderPassResourceTableId entry_id, std::shared_ptr<IRHITexture>& out_texture_allocation);
+    bool ExportResourceTexture(const RHITextureDesc& desc, RenderPassResourceTableId entry_id, std::vector<std::shared_ptr<IRHITexture>>& out_texture_allocation);
+    bool ImportResourceTexture(const RHITextureDesc& desc, RenderPassResourceTableId entry_id, std::vector<std::shared_ptr<IRHITexture>>& out_texture_allocation);
 
     const std::vector<glTFPerFrameRenderResourceData>& GetPerFrameRenderResourceData() const;
 
@@ -102,7 +102,6 @@ private:
 
     std::shared_ptr<IRHIRenderTargetManager> m_render_target_manager;
     std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>> m_swapchain_RTs;
-    std::shared_ptr<IRHITextureDescriptorAllocation> m_depth_texture;
 
     std::shared_ptr<glTFRenderMaterialManager> m_material_manager;
     std::shared_ptr<glTFRenderMeshManager> m_mesh_manager;
@@ -112,8 +111,9 @@ private:
     
     std::shared_ptr<glTFRenderResourceUtils::GBufferSignatureAllocations> m_gBuffer_allocations;
 
-    std::map<RenderPassResourceTableId, std::shared_ptr<IRHITexture>> m_export_texture_map;
-    std::map<RenderPassResourceTableId, std::shared_ptr<IRHITextureAllocation>> m_export_texture_allocation_map;
+    std::map<RenderPassResourceTableId, std::vector<std::shared_ptr<IRHITexture>>> m_export_texture_map;
+    std::map<RenderPassResourceTableId, std::vector<std::shared_ptr<IRHITextureAllocation>>> m_export_texture_allocation_map;
+    std::map<RenderPassResourceTableId, std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>>> m_export_texture_descriptor_map;
 
     std::vector<glTFPerFrameRenderResourceData> m_per_frame_render_resource_data;
 

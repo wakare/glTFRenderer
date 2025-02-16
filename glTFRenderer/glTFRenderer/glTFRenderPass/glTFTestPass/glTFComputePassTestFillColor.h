@@ -18,6 +18,5 @@ public:
 protected:
     DispatchCount m_dispatch_count{};
     
-    std::shared_ptr<IRHITextureDescriptorAllocation> m_output_UAV;
     RootSignatureAllocation m_output_allocation;
 };

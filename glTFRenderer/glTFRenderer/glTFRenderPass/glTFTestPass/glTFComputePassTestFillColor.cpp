@@ -14,8 +14,8 @@ bool glTFComputePassTestFillColor::PreRenderPass(glTFRenderResourceManager& reso
     RETURN_IF_FALSE(glTFComputePassBase::PreRenderPass(resource_manager))
 
     auto& command_list = resource_manager.GetCommandListForRecord();
-    BindDescriptor(command_list, m_output_allocation, *m_output_UAV);
     GetResourceTexture(RenderPassResourceTableId::LightingPass_Output)->Transition(command_list, RHIResourceStateType::STATE_UNORDERED_ACCESS);
+    BindDescriptor(command_list, m_output_allocation, *GetResourceDescriptor(RenderPassResourceTableId::LightingPass_Output));
     
     return true;
 }
@@ -50,10 +50,6 @@ bool glTFComputePassTestFillColor::SetupPipelineStateObject(glTFRenderResourceMa
 {
     RETURN_IF_FALSE(glTFComputePassBase::SetupPipelineStateObject(resource_manager))
     
-    auto lighting_output = GetResourceTexture(RenderPassResourceTableId::LightingPass_Output);
-    RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), lighting_output,
-                        {lighting_output->GetTextureFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_UAV}, m_output_UAV))
-    
     GetComputePipelineStateObject().BindShaderCode(
         R"(glTFResources\ShaderSource\TestShaders\TestFillColorCS.hlsl)", RHIShaderType::Compute, "main");
     
@@ -77,7 +73,8 @@ bool glTFComputePassTestFillColor::InitResourceTable(glTFRenderResourceManager& 
         },
         resource_manager
         );
-    AddExportTextureResource(output_texture_desc, RenderPassResourceTableId::LightingPass_Output);
+    AddExportTextureResource(RenderPassResourceTableId::LightingPass_Output, output_texture_desc, 
+    {output_texture_desc.GetDataFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_UAV});
 
     return true;
 }

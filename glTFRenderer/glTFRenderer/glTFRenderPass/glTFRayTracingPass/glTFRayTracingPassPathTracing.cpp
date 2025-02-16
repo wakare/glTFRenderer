@@ -28,8 +28,6 @@ struct RHIShaderBindingTableRecordPathTracing : RHIShaderTableRecordBase
 };
 
 glTFRayTracingPassPathTracing::glTFRayTracingPassPathTracing()
-    : m_raytracing_output_handle(0)
-    , m_screen_uv_offset_handle(0)
 {
 }
 
@@ -63,8 +61,8 @@ bool glTFRayTracingPassPathTracing::PreRenderPass(glTFRenderResourceManager& res
     GetResourceTexture(RenderPassResourceTableId::RayTracingSceneOutput)->Transition(command_list, RHIResourceStateType::STATE_UNORDERED_ACCESS);
     GetResourceTexture(RenderPassResourceTableId::ScreenUVOffset)->Transition(command_list, RHIResourceStateType::STATE_UNORDERED_ACCESS);
 
-    BindDescriptor(command_list, m_output_allocation, *m_raytracing_output_handle);
-    BindDescriptor(command_list, m_screen_uv_offset_allocation, *m_screen_uv_offset_handle);
+    BindDescriptor(command_list, m_output_allocation, *GetResourceDescriptor(RenderPassResourceTableId::RayTracingSceneOutput));
+    BindDescriptor(command_list, m_screen_uv_offset_allocation, *GetResourceDescriptor(RenderPassResourceTableId::ScreenUVOffset));
     
     RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSingleConstantBuffer<RayTracingPathTracingPassOptions>>()->UploadCPUBuffer(resource_manager, &m_pass_options, 0, sizeof(m_pass_options)))
     //RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceRadiosityScene>()->UploadCPUBufferFromRadiosityRenderer(resource_manager, resource_manager.GetRadiosityRenderer()))
@@ -94,29 +92,6 @@ bool glTFRayTracingPassPathTracing::SetupPipelineStateObject(glTFRenderResourceM
 {
     RETURN_IF_FALSE(glTFRayTracingPassWithMesh::SetupPipelineStateObject(resource_manager))
     
-    auto raytracing_output_allocation = GetResourceTexture(RenderPassResourceTableId::RayTracingSceneOutput);
-    auto screen_uv_offset_allocation = GetResourceTexture(RenderPassResourceTableId::ScreenUVOffset);
-    
-    RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(
-                    resource_manager.GetDevice(),
-                    raytracing_output_allocation,
-                    {
-                    raytracing_output_allocation->GetTextureFormat(),
-                    RHIResourceDimension::TEXTURE2D,
-                    RHIViewType::RVT_UAV
-                    },
-                    m_raytracing_output_handle))
-
-    RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(
-                    resource_manager.GetDevice(),
-                    screen_uv_offset_allocation,
-                    {
-                    screen_uv_offset_allocation->GetTextureFormat(),
-                    RHIResourceDimension::TEXTURE2D,
-                    RHIViewType::RVT_UAV
-                    },
-                    m_screen_uv_offset_handle))
-
     GetRayTracingPipelineStateObject().BindShaderCode("glTFResources/ShaderSource/RayTracing/PathTracingMain.hlsl",
                                                       RHIShaderType::RayTracing, "");
     
@@ -196,8 +171,20 @@ bool glTFRayTracingPassPathTracing::InitResourceTable(glTFRenderResourceManager&
 {
     RETURN_IF_FALSE(glTFRayTracingPassWithMesh::InitResourceTable(resource_manager))
 
-    AddExportTextureResource(RHITextureDesc::MakeRayTracingSceneOutputTextureDesc(resource_manager), RenderPassResourceTableId::RayTracingSceneOutput);
-    AddExportTextureResource(RHITextureDesc::MakeScreenUVOffsetTextureDesc(resource_manager), RenderPassResourceTableId::ScreenUVOffset);
+    auto output_desc = RHITextureDesc::MakeRayTracingSceneOutputTextureDesc(resource_manager);
+    AddExportTextureResource(RenderPassResourceTableId::RayTracingSceneOutput, RHITextureDesc::MakeRayTracingSceneOutputTextureDesc(resource_manager), 
+    {
+                    output_desc.GetDataFormat(),
+                    RHIResourceDimension::TEXTURE2D,
+                    RHIViewType::RVT_UAV
+                    });
+    auto uv_offset_desc = RHITextureDesc::MakeScreenUVOffsetTextureDesc(resource_manager);
+    AddExportTextureResource(RenderPassResourceTableId::ScreenUVOffset, uv_offset_desc, 
+    {
+                    uv_offset_desc.GetDataFormat(),
+                    RHIResourceDimension::TEXTURE2D,
+                    RHIViewType::RVT_UAV
+                    });
     
     return true;
 }

@@ -8,8 +8,6 @@
 #include "glTFRHI/RHIInterface/IRHIRenderTargetManager.h"
 
 glTFRayTracingPassReSTIRDirectLighting::glTFRayTracingPassReSTIRDirectLighting()
-    : m_lighting_samples_handle(0)
-    , m_screen_uv_offset_handle(0)
 {
     
 }
@@ -51,8 +49,8 @@ bool glTFRayTracingPassReSTIRDirectLighting::PreRenderPass(glTFRenderResourceMan
     GetResourceTexture(RenderPassResourceTableId::RayTracingPass_ReSTIRSample_Output)->Transition(command_list, RHIResourceStateType::STATE_UNORDERED_ACCESS);
     GetResourceTexture(RenderPassResourceTableId::ScreenUVOffset)->Transition(command_list, RHIResourceStateType::STATE_UNORDERED_ACCESS);
 
-    BindDescriptor(command_list, m_lighting_samples_allocation, *m_lighting_samples_handle);
-    BindDescriptor(command_list, m_screen_uv_offset_allocation, *m_screen_uv_offset_handle);
+    BindDescriptor(command_list, m_lighting_samples_allocation, *GetResourceDescriptor(RenderPassResourceTableId::RayTracingPass_ReSTIRSample_Output));
+    BindDescriptor(command_list, m_screen_uv_offset_allocation, *GetResourceDescriptor(RenderPassResourceTableId::ScreenUVOffset));
     
     auto& GBuffer_output = resource_manager.GetCurrentFrameResourceManager().GetGBufferForRendering();
     RETURN_IF_FALSE(GBuffer_output.Bind(GetID(), GetPipelineType(), command_list, *m_descriptor_updater, resource_manager.GetGBufferAllocations().GetAllocationWithPassId(GetID())))
@@ -101,26 +99,6 @@ bool glTFRayTracingPassReSTIRDirectLighting::SetupRootSignature(glTFRenderResour
 bool glTFRayTracingPassReSTIRDirectLighting::SetupPipelineStateObject(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFRayTracingPassWithMesh::SetupPipelineStateObject(resource_manager))
-
-    RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(
-                    resource_manager.GetDevice(),
-                    GetResourceTexture(RenderPassResourceTableId::RayTracingPass_ReSTIRSample_Output),
-                    {
-                    GetResourceTexture(RenderPassResourceTableId::RayTracingPass_ReSTIRSample_Output)->GetTextureFormat(),
-                    RHIResourceDimension::TEXTURE2D,
-                    RHIViewType::RVT_UAV
-                    },
-                    m_lighting_samples_handle))
-
-    RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(
-                    resource_manager.GetDevice(),
-                    GetResourceTexture(RenderPassResourceTableId::ScreenUVOffset),
-                    {
-                    GetResourceTexture(RenderPassResourceTableId::ScreenUVOffset)->GetTextureFormat(),
-                    RHIResourceDimension::TEXTURE2D,
-                    RHIViewType::RVT_UAV
-                    },
-                    m_screen_uv_offset_handle))
 
     for (unsigned i = 0; i < resource_manager.GetBackBufferCount(); ++i)
     {
@@ -195,8 +173,21 @@ bool glTFRayTracingPassReSTIRDirectLighting::InitResourceTable(glTFRenderResourc
 {
     RETURN_IF_FALSE(glTFRayTracingPassWithMesh::InitResourceTable(resource_manager))
 
-    AddExportTextureResource(RHITextureDesc::MakeScreenUVOffsetTextureDesc(resource_manager), RenderPassResourceTableId::ScreenUVOffset);
-    AddExportTextureResource(RHITextureDesc::MakeRayTracingSceneOutputTextureDesc(resource_manager), RenderPassResourceTableId::RayTracingPass_ReSTIRSample_Output);
+    auto uv_offset_desc = RHITextureDesc::MakeScreenUVOffsetTextureDesc(resource_manager);
+    AddExportTextureResource(RenderPassResourceTableId::ScreenUVOffset, uv_offset_desc, 
+    {
+                uv_offset_desc.GetDataFormat(),
+                RHIResourceDimension::TEXTURE2D,
+                RHIViewType::RVT_UAV
+                });
+    
+    auto output_desc = RHITextureDesc::MakeRayTracingSceneOutputTextureDesc(resource_manager);
+    AddExportTextureResource(RenderPassResourceTableId::RayTracingPass_ReSTIRSample_Output, output_desc, 
+    {
+                    output_desc.GetDataFormat(),
+                    RHIResourceDimension::TEXTURE2D,
+                    RHIViewType::RVT_UAV
+                    });
     
     return true;
 }

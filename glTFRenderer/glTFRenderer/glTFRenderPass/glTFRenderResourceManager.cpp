@@ -82,14 +82,18 @@ bool glTFRenderResourceManager::InitResourceManager(unsigned width, unsigned hei
 
     m_swapchain_RTs = m_render_target_manager->CreateRenderTargetFromSwapChain(*m_device, *this, *m_swap_chain, clear_value);
 
-    m_depth_texture = m_render_target_manager->CreateRenderTarget(
-        *m_device, *this,
-        RHITextureDesc::MakeDepthTextureDesc(*this), {
-            .type = RHIRenderTargetType::DSV,
-            .format = RHIDataFormat::D32_FLOAT
-        });
+    for (unsigned i = 0; i < GetBackBufferCount(); ++i)
+    {
+        auto depth_texture = m_render_target_manager->CreateRenderTarget(
+            *m_device, *this,
+            RHITextureDesc::MakeDepthTextureDesc(*this), {
+                .type = RHIRenderTargetType::DSV,
+                .format = RHIDataFormat::D32_FLOAT
+            });
     
-    m_export_texture_map[RenderPassResourceTableId::Depth] = m_depth_texture->m_source;
+        m_export_texture_map[RenderPassResourceTableId::Depth].push_back(depth_texture->m_source);
+        m_export_texture_descriptor_map[RenderPassResourceTableId::Depth].push_back(depth_texture);
+    }
     
     m_frame_resource_managers.resize(backBufferCount);
     
@@ -284,7 +288,7 @@ IRHITexture& glTFRenderResourceManager::GetDepthTextureRef()
 
 std::shared_ptr<IRHITexture> glTFRenderResourceManager::GetDepthTexture()
 {
-    return m_depth_texture->m_source;
+    return m_export_texture_map[RenderPassResourceTableId::Depth][GetCurrentBackBufferIndex()];
 }
 
 IRHITextureDescriptorAllocation& glTFRenderResourceManager::GetCurrentFrameSwapChainRTV()
@@ -294,7 +298,7 @@ IRHITextureDescriptorAllocation& glTFRenderResourceManager::GetCurrentFrameSwapC
 
 IRHITextureDescriptorAllocation& glTFRenderResourceManager::GetDepthDSV()
 {
-    return *m_depth_texture;
+    return *m_export_texture_descriptor_map[RenderPassResourceTableId::Depth][GetCurrentBackBufferIndex()];
 }
 
 unsigned glTFRenderResourceManager::GetCurrentBackBufferIndex()
@@ -382,22 +386,25 @@ const glTFRadiosityRenderer& glTFRenderResourceManager::GetRadiosityRenderer() c
 }
 */
 bool glTFRenderResourceManager::ExportResourceTexture(const RHITextureDesc& desc, RenderPassResourceTableId entry_id,
-    std::shared_ptr<IRHITexture>& out_texture)
+    std::vector<std::shared_ptr<IRHITexture>>& out_texture)
 {
-    // Export texture resource must create it first, add table id to internal tracked map
-    std::shared_ptr<IRHITextureAllocation> out_texture_allocation;
-    bool created = GetMemoryManager().AllocateTextureMemory(GetDevice(), *this, desc, out_texture_allocation);
-    GLTF_CHECK(created);
+    for (unsigned i = 0; i < GetBackBufferCount(); ++i)
+    {
+        // Export texture resource must create it first, add table id to internal tracked map
+        std::shared_ptr<IRHITextureAllocation> out_texture_allocation;
+        bool created = GetMemoryManager().AllocateTextureMemory(GetDevice(), *this, desc, out_texture_allocation);
+        GLTF_CHECK(created);
 
-    out_texture = out_texture_allocation->m_texture;
-    m_export_texture_map[entry_id] = out_texture_allocation->m_texture;
-    m_export_texture_allocation_map[entry_id] = out_texture_allocation;
+        out_texture.push_back(out_texture_allocation->m_texture);
+        m_export_texture_map[entry_id].push_back(out_texture_allocation->m_texture);
+        m_export_texture_allocation_map[entry_id].push_back(out_texture_allocation);
+    }
     
     return true;
 }
 
 bool glTFRenderResourceManager::ImportResourceTexture(const RHITextureDesc& desc, RenderPassResourceTableId entry_id,
-    std::shared_ptr<IRHITexture>& out_texture_allocation)
+    std::vector<std::shared_ptr<IRHITexture>>& out_texture_allocation)
 {
     // Import texture resource need query table id from tracked map and return allocation
     auto find_texture = m_export_texture_map.find(entry_id);

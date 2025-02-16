@@ -30,20 +30,6 @@ bool glTFGraphicsPassMeshOpaque::InitRenderInterface(glTFRenderResourceManager& 
 
 bool glTFGraphicsPassMeshOpaque::InitPass(glTFRenderResourceManager& resource_manager)
 {
-    resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), GetResourceTexture(RenderPassResourceTableId::BasePass_Albedo), 
-        RHITextureDescriptorDesc{
-            GetResourceTexture(RenderPassResourceTableId::BasePass_Albedo)->GetTextureFormat(),
-            RHIResourceDimension::TEXTURE2D,
-            RHIViewType::RVT_RTV
-        }, m_albedo_view);
-
-    resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), GetResourceTexture(RenderPassResourceTableId::BasePass_Normal), 
-        RHITextureDescriptorDesc{
-            GetResourceTexture(RenderPassResourceTableId::BasePass_Normal)->GetTextureFormat(),
-            RHIResourceDimension::TEXTURE2D,
-            RHIViewType::RVT_RTV
-        }, m_normal_view);
-    
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::InitPass(resource_manager))
     
     return true;
@@ -60,7 +46,13 @@ bool glTFGraphicsPassMeshOpaque::PreRenderPass(glTFRenderResourceManager& resour
     GetResourceTexture(RenderPassResourceTableId::BasePass_Albedo)->Transition(command_list, RHIResourceStateType::STATE_RENDER_TARGET);
     GetResourceTexture(RenderPassResourceTableId::BasePass_Normal)->Transition(command_list, RHIResourceStateType::STATE_RENDER_TARGET);
 
-    std::vector<IRHITextureDescriptorAllocation*> render_targets{m_albedo_view.get(), m_normal_view.get(), &resource_manager.GetDepthDSV()};
+    std::vector<IRHITextureDescriptorAllocation*> render_targets
+        {
+            GetResourceDescriptor(RenderPassResourceTableId::BasePass_Albedo).get(),
+            GetResourceDescriptor(RenderPassResourceTableId::BasePass_Normal).get(),
+            &resource_manager.GetDepthDSV()
+        };
+    
     m_begin_rendering_info.m_render_targets = render_targets;
     m_begin_rendering_info.enable_depth_write = GetGraphicsPipelineStateObject().GetDepthStencilMode() == RHIDepthStencilMode::DEPTH_WRITE;
     m_begin_rendering_info.clear_render_target = true;
@@ -95,10 +87,12 @@ bool glTFGraphicsPassMeshOpaque::SetupPipelineStateObject(glTFRenderResourceMana
     GetResourceTexture(RenderPassResourceTableId::BasePass_Albedo)->Transition(command_list, RHIResourceStateType::STATE_RENDER_TARGET);
     GetResourceTexture(RenderPassResourceTableId::BasePass_Normal)->Transition(command_list, RHIResourceStateType::STATE_RENDER_TARGET);
     
-    GetGraphicsPipelineStateObject().BindRenderTargetFormats({m_albedo_view.get(), m_normal_view.get(),
-        &resource_manager.GetDepthDSV()});
-    
-    //GetGraphicsPipelineStateObject().SetDepthStencilState(RHIDepthStencilMode::DEPTH_WRITE);
+    GetGraphicsPipelineStateObject().BindRenderTargetFormats(
+        {
+            GetResourceDescriptor(RenderPassResourceTableId::BasePass_Albedo).get(),
+            GetResourceDescriptor(RenderPassResourceTableId::BasePass_Albedo).get(),
+            &resource_manager.GetDepthDSV()
+        });
     
     return true;
 }
@@ -107,8 +101,21 @@ bool glTFGraphicsPassMeshOpaque::InitResourceTable(glTFRenderResourceManager& re
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::InitResourceTable(resource_manager))
 
-    AddExportTextureResource(RHITextureDesc::MakeBasePassAlbedoTextureDesc(resource_manager), RenderPassResourceTableId::BasePass_Albedo);
-    AddExportTextureResource(RHITextureDesc::MakeBasePassNormalTextureDesc(resource_manager), RenderPassResourceTableId::BasePass_Normal);
+    auto albedo_desc = RHITextureDesc::MakeBasePassAlbedoTextureDesc(resource_manager); 
+    AddExportTextureResource(RenderPassResourceTableId::BasePass_Albedo, albedo_desc, 
+    {
+        albedo_desc.GetDataFormat(),
+        RHIResourceDimension::TEXTURE2D,
+        RHIViewType::RVT_RTV
+    });
+
+    auto normal_desc = RHITextureDesc::MakeBasePassNormalTextureDesc(resource_manager);
+    AddExportTextureResource(RenderPassResourceTableId::BasePass_Normal, normal_desc, 
+    {
+        normal_desc.GetDataFormat(),
+        RHIResourceDimension::TEXTURE2D,
+        RHIViewType::RVT_RTV
+    });
     
     return true;
 }

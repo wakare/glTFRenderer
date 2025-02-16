@@ -59,8 +59,6 @@ bool IRHIIndirectDrawBuilder::InitIndirectDrawBuilder(IRHIDevice& device, IRHIMe
             static_cast<RHIResourceUsageFlags>(RUF_TRANSFER_SRC | RUF_ALLOW_UAV | RUF_INDIRECT_BUFFER),
             },
             m_count_buffer);
-
-    ResetCountBuffer(memory_manager);
     
     // Cache data in host side
     m_cached_data_size = size;

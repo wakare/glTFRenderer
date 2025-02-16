@@ -159,6 +159,7 @@ void glTFRenderPassManager::RenderAllPass(glTFRenderResourceManager& resource_ma
     {
         if (pass->IsRenderingEnabled())
         {
+            pass->UpdateFrameIndex(resource_manager);
             pass->ModifyFinalOutput(resource_manager.GetFinalOutput());
         
             pass->PreRenderPass(resource_manager);

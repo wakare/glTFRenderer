@@ -53,9 +53,6 @@ protected:
     virtual bool InitResourceTable(glTFRenderResourceManager& resource_manager) override;
     
 private:
-    std::shared_ptr<IRHITextureDescriptorAllocation> m_raytracing_output_handle;
-    std::shared_ptr<IRHITextureDescriptorAllocation> m_screen_uv_offset_handle;
-
     RootSignatureAllocation m_output_allocation;
     RootSignatureAllocation m_screen_uv_offset_allocation;
 

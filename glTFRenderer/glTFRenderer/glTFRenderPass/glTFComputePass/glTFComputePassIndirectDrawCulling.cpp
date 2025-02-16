@@ -174,7 +174,6 @@ bool glTFComputePassIndirectDrawCulling::PreRenderPass(glTFRenderResourceManager
         auto& indirect_argument_buffer = *resource_manager.GetMeshManager().GetIndirectDrawBuilder().GetCulledIndirectArgumentBuffer();
         indirect_argument_buffer.Transition(command_list, RHIResourceStateType::STATE_UNORDERED_ACCESS );
 
-        resource_manager.GetMeshManager().GetIndirectDrawBuilder().ResetCountBuffer(resource_manager.GetMemoryManager());
         const char* cached_data;
         size_t cached_data_size;
         resource_manager.GetMeshManager().GetIndirectDrawBuilder().GetCachedData(cached_data, cached_data_size);

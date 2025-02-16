@@ -56,10 +56,14 @@ enum class RenderPassResourceTableId
 struct RenderPassResourceTable
 {
     std::vector<std::pair<RHITextureDesc, RenderPassResourceTableId>> m_export_texture_table_entry;
+    std::map<RenderPassResourceTableId, RHITextureDescriptorDesc> m_export_descriptor_table_entry;
+    
     std::vector<std::pair<RHITextureDesc, RenderPassResourceTableId>> m_import_texture_table_entry;
+    std::map<RenderPassResourceTableId, RHITextureDescriptorDesc> m_import_descriptor_table_entry;
 };
 
 struct RenderPassResourceLocation
 {
-    std::map<RenderPassResourceTableId, std::shared_ptr<IRHITexture>> m_texture_allocations;
+    std::map<RenderPassResourceTableId, std::vector<std::shared_ptr<IRHITexture>>> m_texture_allocations;
+    std::map<RenderPassResourceTableId, std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>>> m_texture_descriptor_allocations;
 };

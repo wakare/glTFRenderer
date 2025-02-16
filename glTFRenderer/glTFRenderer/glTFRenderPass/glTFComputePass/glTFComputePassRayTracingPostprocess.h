@@ -52,10 +52,6 @@ protected:
     RootSignatureAllocation m_process_input_allocation;
     RootSignatureAllocation m_screen_uv_offset_allocation;
 
-    std::shared_ptr<IRHITextureDescriptorAllocation> m_post_process_output_handle;
-    std::shared_ptr<IRHITextureDescriptorAllocation> m_post_process_input_handle;
-    std::shared_ptr<IRHITextureDescriptorAllocation> m_screen_uv_offset_handle;
-
     RayTracingPostProcessPassOptions m_pass_options;
 };
 

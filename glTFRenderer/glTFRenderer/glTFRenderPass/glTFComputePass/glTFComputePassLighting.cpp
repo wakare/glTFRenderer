@@ -9,10 +9,6 @@
 
 glTFComputePassLighting::glTFComputePassLighting()
     : m_dispatch_count({0, 0, 0})
-    , m_base_color_SRV(nullptr)
-    , m_depth_SRV(nullptr)
-    , m_normal_SRV(nullptr)
-    , m_output_UAV(nullptr)
 {
     
 }
@@ -51,10 +47,10 @@ bool glTFComputePassLighting::PreRenderPass(glTFRenderResourceManager& resource_
     GetResourceTexture(RenderPassResourceTableId::BasePass_Normal)->Transition(command_list, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE);
     GetResourceTexture(RenderPassResourceTableId::Depth)->Transition(command_list, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE);
 
-    BindDescriptor(command_list, m_albedo_allocation, *m_base_color_SRV);
-    BindDescriptor(command_list, m_depth_allocation, *m_depth_SRV);
-    BindDescriptor(command_list, m_normal_allocation, *m_normal_SRV);
-    BindDescriptor(command_list, m_output_allocation, *m_output_UAV);
+    BindDescriptor(command_list, m_albedo_allocation, *GetResourceDescriptor(RenderPassResourceTableId::BasePass_Albedo));
+    BindDescriptor(command_list, m_depth_allocation, *GetResourceDescriptor(RenderPassResourceTableId::Depth));
+    BindDescriptor(command_list, m_normal_allocation, *GetResourceDescriptor(RenderPassResourceTableId::BasePass_Normal));
+    BindDescriptor(command_list, m_output_allocation, *GetResourceDescriptor(RenderPassResourceTableId::LightingPass_Output));
     
     RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceLighting>()->UpdateCPUBuffer(resource_manager))
 
@@ -96,10 +92,21 @@ bool glTFComputePassLighting::InitResourceTable(glTFRenderResourceManager& resou
 {
     RETURN_IF_FALSE(glTFComputePassBase::InitResourceTable(resource_manager))
 
-    AddExportTextureResource(RHITextureDesc::MakeLightingPassOutputTextureDesc(resource_manager), RenderPassResourceTableId::LightingPass_Output);
-    AddImportTextureResource(RHITextureDesc::MakeDepthTextureDesc(resource_manager), RenderPassResourceTableId::Depth);
-    AddImportTextureResource(RHITextureDesc::MakeBasePassAlbedoTextureDesc(resource_manager), RenderPassResourceTableId::BasePass_Albedo);
-    AddImportTextureResource(RHITextureDesc::MakeBasePassNormalTextureDesc(resource_manager), RenderPassResourceTableId::BasePass_Normal);
+    auto lighting_output_desc = RHITextureDesc::MakeLightingPassOutputTextureDesc(resource_manager);
+    AddExportTextureResource(RenderPassResourceTableId::LightingPass_Output, lighting_output_desc, 
+        {lighting_output_desc.GetDataFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_UAV});
+    
+    auto depth_desc = RHITextureDesc::MakeDepthTextureDesc(resource_manager);
+    AddImportTextureResource(RenderPassResourceTableId::Depth, depth_desc,
+        {RHIDataFormat::D32_SAMPLE_RESERVED, RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV});
+
+    auto albedo_desc = RHITextureDesc::MakeBasePassAlbedoTextureDesc(resource_manager);
+    AddImportTextureResource(RenderPassResourceTableId::BasePass_Albedo, albedo_desc,
+        {albedo_desc.GetDataFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV});
+
+    auto normal_desc = RHITextureDesc::MakeBasePassNormalTextureDesc(resource_manager);
+    AddImportTextureResource(RenderPassResourceTableId::BasePass_Normal, normal_desc,
+        {normal_desc.GetDataFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV});
 
     return true;
 }
@@ -129,22 +136,6 @@ bool glTFComputePassLighting::SetupPipelineStateObject(glTFRenderResourceManager
 
     m_dispatch_count = {resource_manager.GetSwapChain().GetWidth() / 8, resource_manager.GetSwapChain().GetHeight() / 8, 1};
     
-    auto albedo = GetResourceTexture(RenderPassResourceTableId::BasePass_Albedo);
-    RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), albedo,
-                        {albedo->GetTextureFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_base_color_SRV))
-
-    auto depth = GetResourceTexture(RenderPassResourceTableId::Depth);
-    RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), depth,
-                        {RHIDataFormat::D32_SAMPLE_RESERVED, RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_depth_SRV))
-
-    auto normal = GetResourceTexture(RenderPassResourceTableId::BasePass_Normal);
-    RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), normal,
-                        {normal->GetTextureFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_normal_SRV))
-
-    auto lighting_output = GetResourceTexture(RenderPassResourceTableId::LightingPass_Output);
-    RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), lighting_output,
-                        {lighting_output->GetTextureFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_UAV}, m_output_UAV))
-
     GetComputePipelineStateObject().BindShaderCode(
         R"(glTFResources\ShaderSource\ComputeShader\LightingCS.hlsl)", RHIShaderType::Compute, "main");
     
