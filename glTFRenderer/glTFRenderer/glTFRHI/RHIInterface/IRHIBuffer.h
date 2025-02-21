@@ -1,6 +1,5 @@
 #pragma once
 #include "IRHICommandList.h"
-#include "IRHIDevice.h"
 #include "IRHIResource.h"
 
 class IRHIBuffer : public IRHIResource

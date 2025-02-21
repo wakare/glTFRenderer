@@ -10,7 +10,7 @@
 
 glTFGUIRenderer::~glTFGUIRenderer()
 {
-    //ExitAndClean();
+    ExitAndClean();
 }
 
 bool glTFGUIRenderer::SetupGUIContext(const glTFWindow& window, glTFRenderResourceManager& resource_manager)

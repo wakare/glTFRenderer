@@ -8,6 +8,7 @@ glTFAppRenderer::glTFAppRenderer(const glTFAppRendererConfig& renderer_config, c
 {
     RHIConfigSingleton::Instance().SetGraphicsAPIType(renderer_config.vulkan ?
         RHIGraphicsAPIType::RHI_GRAPHICS_API_Vulkan : RHIGraphicsAPIType::RHI_GRAPHICS_API_DX12);
+    
     RHIConfigSingleton::Instance().InitGraphicsAPI();
     
     if (renderer_config.test_triangle)

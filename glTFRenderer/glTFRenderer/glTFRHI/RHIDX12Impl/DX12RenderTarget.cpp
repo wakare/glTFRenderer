@@ -8,5 +8,4 @@ DX12RenderTarget::DX12RenderTarget()
 
 DX12RenderTarget::~DX12RenderTarget()
 {
-    SAFE_RELEASE(m_texture)
 }

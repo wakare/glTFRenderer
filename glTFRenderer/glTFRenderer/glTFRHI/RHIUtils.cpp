@@ -13,3 +13,8 @@ RHIUtils& RHIUtils::Instance()
 
     return *g_instance;
 }
+
+void RHIUtils::ResetInstance()
+{
+    g_instance = RHIResourceFactory::CreateRHIResource<RHIUtils>();
+}

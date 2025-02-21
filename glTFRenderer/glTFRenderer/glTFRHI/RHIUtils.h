@@ -80,6 +80,7 @@ public:
     virtual unsigned GetAlignmentSizeForUAVCount(unsigned size) = 0;
     
     static RHIUtils& Instance();
+    static void ResetInstance();
 
 protected:
     static std::shared_ptr<RHIUtils> g_instance;

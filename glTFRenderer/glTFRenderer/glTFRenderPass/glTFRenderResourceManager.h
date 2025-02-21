@@ -31,14 +31,14 @@ public:
     bool InitScene(const glTFSceneGraph& scene_graph);
     bool InitMemoryManager();
 
-    static IRHIFactory& GetFactory();
-    static IRHIDevice& GetDevice();
-    static IRHISwapChain& GetSwapChain();
-    static IRHICommandQueue& GetCommandQueue();
+    IRHIFactory& GetFactory() const;
+    IRHIDevice& GetDevice() const;
+    IRHISwapChain& GetSwapChain() const;
+    IRHICommandQueue& GetCommandQueue() const;
     IRHIMemoryAllocator& GetMemoryAllocator() const;
     IRHIMemoryManager& GetMemoryManager() const;
     
-    static unsigned GetCurrentBackBufferIndex();
+    unsigned GetCurrentBackBufferIndex() const;
     
     IRHICommandList& GetCommandListForRecord();
     void CloseCurrentCommandListAndExecute(const RHIExecuteCommandListContext& context, bool wait);
@@ -89,10 +89,10 @@ public:
 private:
     //std::shared_ptr<glTFRadiosityRenderer> m_radiosity_renderer;
     
-    static std::shared_ptr<IRHIFactory> m_factory;
-    static std::shared_ptr<IRHIDevice> m_device;
-    static std::shared_ptr<IRHICommandQueue> m_command_queue;
-    static std::shared_ptr<IRHISwapChain> m_swap_chain;
+    std::shared_ptr<IRHIFactory> m_factory;
+    std::shared_ptr<IRHIDevice> m_device;
+    std::shared_ptr<IRHICommandQueue> m_command_queue;
+    std::shared_ptr<IRHISwapChain> m_swap_chain;
     std::shared_ptr<IRHIMemoryAllocator> m_memory_allocator;
     std::shared_ptr<IRHIMemoryManager> m_memory_manager;
     

@@ -17,7 +17,7 @@ DX12SwapChain::DX12SwapChain()
 
 DX12SwapChain::~DX12SwapChain()
 {
-    SAFE_RELEASE(m_swapChain)
+    SAFE_RELEASE(m_swap_chain)
 }
 
 unsigned DX12SwapChain::GetCurrentBackBufferIndex()

@@ -9,11 +9,6 @@
 
 constexpr size_t backBufferCount = 3;
 
-std::shared_ptr<IRHIFactory> glTFRenderResourceManager::m_factory = nullptr;
-std::shared_ptr<IRHIDevice> glTFRenderResourceManager::m_device = nullptr;
-std::shared_ptr<IRHICommandQueue> glTFRenderResourceManager::m_command_queue = nullptr;
-std::shared_ptr<IRHISwapChain> glTFRenderResourceManager::m_swap_chain = nullptr;
-
 glTFRenderResourceManager::glTFRenderResourceManager()
     : m_material_manager(std::make_shared<glTFRenderMaterialManager>())
     , m_mesh_manager(std::make_shared<glTFRenderMeshManager>())
@@ -23,41 +18,29 @@ glTFRenderResourceManager::glTFRenderResourceManager()
 
 bool glTFRenderResourceManager::InitResourceManager(unsigned width, unsigned height, HWND handle)
 {
-    if (!m_factory)
-    {
-        m_factory = RHIResourceFactory::CreateRHIResource<IRHIFactory>();
-        EXIT_WHEN_FALSE(m_factory->InitFactory())    
-    }
+    m_factory = RHIResourceFactory::CreateRHIResource<IRHIFactory>();
+    EXIT_WHEN_FALSE(m_factory->InitFactory())  
     
-    if (!m_device)
-    {
-        m_device = RHIResourceFactory::CreateRHIResource<IRHIDevice>();
-        EXIT_WHEN_FALSE(m_device->InitDevice(*m_factory))    
-    }
+    m_device = RHIResourceFactory::CreateRHIResource<IRHIDevice>();
+    EXIT_WHEN_FALSE(m_device->InitDevice(*m_factory))
     
-    if (!m_command_queue)
-    {
-        m_command_queue = RHIResourceFactory::CreateRHIResource<IRHICommandQueue>();
-        EXIT_WHEN_FALSE(m_command_queue->InitCommandQueue(*m_device))
-    }
+    m_command_queue = RHIResourceFactory::CreateRHIResource<IRHICommandQueue>();
+    EXIT_WHEN_FALSE(m_command_queue->InitCommandQueue(*m_device))
 
-    if (!m_swap_chain)
-    {
-        m_swap_chain = RHIResourceFactory::CreateRHIResource<IRHISwapChain>();
-        RHITextureDesc swap_chain_texture_desc("swap_chain_back_buffer",
-            width, height,
-            RHIDataFormat::R8G8B8A8_UNORM,
-            static_cast<RHIResourceUsageFlags>(RUF_ALLOW_RENDER_TARGET | RUF_TRANSFER_DST),
-            {
-                .clear_format = RHIDataFormat::R8G8B8A8_UNORM,
-                .clear_color = {0.0f, 0.0f, 0.0f, 0.0f}
-            });
-        EXIT_WHEN_FALSE(m_swap_chain->InitSwapChain(*m_factory, *m_device, *m_command_queue, swap_chain_texture_desc, false, handle))    
-    }
+    m_swap_chain = RHIResourceFactory::CreateRHIResource<IRHISwapChain>();
+    RHITextureDesc swap_chain_texture_desc("swap_chain_back_buffer",
+        width, height,
+        RHIDataFormat::R8G8B8A8_UNORM,
+        static_cast<RHIResourceUsageFlags>(RUF_ALLOW_RENDER_TARGET | RUF_TRANSFER_DST),
+        {
+            .clear_format = RHIDataFormat::R8G8B8A8_UNORM,
+            .clear_color = {0.0f, 0.0f, 0.0f, 0.0f}
+        });
+    EXIT_WHEN_FALSE(m_swap_chain->InitSwapChain(*m_factory, *m_device, *m_command_queue, swap_chain_texture_desc, false, handle))    
 
     m_memory_allocator = RHIResourceFactory::CreateRHIResource<IRHIMemoryAllocator>();
     EXIT_WHEN_FALSE(m_memory_allocator->InitMemoryAllocator(*m_factory, *m_device))
-    EXIT_WHEN_FALSE(InitMemoryManager());
+    EXIT_WHEN_FALSE(InitMemoryManager())
     
     m_command_allocators.resize(backBufferCount);
     m_command_lists.resize(backBufferCount);
@@ -173,22 +156,22 @@ bool glTFRenderResourceManager::InitMemoryManager()
     return true;
 }
 
-IRHIFactory& glTFRenderResourceManager::GetFactory()
+IRHIFactory& glTFRenderResourceManager::GetFactory() const
 {
     return *m_factory;
 }
 
-IRHIDevice& glTFRenderResourceManager::GetDevice()
+IRHIDevice& glTFRenderResourceManager::GetDevice() const
 {
     return *m_device;
 }
 
-IRHISwapChain& glTFRenderResourceManager::GetSwapChain()
+IRHISwapChain& glTFRenderResourceManager::GetSwapChain() const
 {
     return *m_swap_chain;
 }
 
-IRHICommandQueue& glTFRenderResourceManager::GetCommandQueue()
+IRHICommandQueue& glTFRenderResourceManager::GetCommandQueue() const
 {
     return *m_command_queue;
 }
@@ -301,7 +284,7 @@ IRHITextureDescriptorAllocation& glTFRenderResourceManager::GetDepthDSV()
     return *m_export_texture_descriptor_map[RenderPassResourceTableId::Depth][GetCurrentBackBufferIndex()];
 }
 
-unsigned glTFRenderResourceManager::GetCurrentBackBufferIndex()
+unsigned glTFRenderResourceManager::GetCurrentBackBufferIndex() const
 {
     return m_swap_chain->GetCurrentBackBufferIndex();
 }

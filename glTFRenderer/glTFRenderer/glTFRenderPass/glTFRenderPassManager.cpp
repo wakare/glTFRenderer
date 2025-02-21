@@ -4,7 +4,6 @@
 
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassLighting.h"
 #include "glTFRenderInterface/glTFRenderInterfaceFrameStat.h"
-#include "glTFRenderInterface/glTFRenderInterfaceSceneView.h"
 #include "glTFRHI/RHIUtils.h"
 #include "RenderWindow/glTFWindow.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
@@ -27,20 +26,6 @@ void glTFRenderPassManager::AddRenderPass(std::unique_ptr<glTFRenderPassBase>&& 
 void glTFRenderPassManager::InitAllPass(glTFRenderResourceManager& resource_manager)
 {
     // Generate render pass before initialize sub pass
-    /*
-    if (!m_render_pass)
-    {
-        RHIRenderPassInfo create_render_pass_info;
-        for (const auto& pass : m_passes)
-        {
-            
-        }
-        
-        m_render_pass = RHIResourceFactory::CreateRHIResource<IRHIRenderPass>();
-        m_render_pass->InitRenderPass(resource_manager.GetDevice(), create_render_pass_info);
-    }
-    */
-
     // Create pass resource and relocation
     for (const auto& pass : m_passes)
     {
@@ -65,7 +50,6 @@ void glTFRenderPassManager::InitAllPass(glTFRenderResourceManager& resource_mana
     }
 
     resource_manager.CloseCurrentCommandListAndExecute({}, true);
-    
     LOG_FORMAT_FLUSH("[DEBUG] Init all pass finished!\n")
 }
 
@@ -190,8 +174,6 @@ void glTFRenderPassManager::RenderEnd(glTFRenderResourceManager& resource_manage
     context.wait_infos.push_back({&resource_manager.GetSwapChain().GetAvailableFrameSemaphore(), RHIPipelineStage::COLOR_ATTACHMENT_OUTPUT});
     context.sign_semaphores.push_back(&command_list.GetSemaphore());
     
-    // TODO: no waiting causing race with base color and normal?
-    //resource_manager.CloseCurrentCommandListAndExecute(context, true);
     resource_manager.CloseCurrentCommandListAndExecute(context, false);
     RHIUtils::Instance().Present(resource_manager.GetSwapChain(), resource_manager.GetCommandQueue(), command_list);
 }

@@ -2,6 +2,7 @@
 #include <d3d12.h>
 #include <memory>
 
+#include "glTFRHI/RHIInterface/IRHIResource.h"
 #include "glTFRHI/RHIInterface/RHICommon.h"
 
 class IRHITextureDescriptorAllocation;
@@ -14,11 +15,11 @@ struct RHIDescriptorHeapDesc;
 class IRHIDevice;
 class IRHIDescriptorAllocation;
 
-class DX12DescriptorHeap
+class DX12DescriptorHeap : public IRHIResource
 {
 public:
     DX12DescriptorHeap();
-    ~DX12DescriptorHeap();
+    virtual ~DX12DescriptorHeap() override;
     
     virtual bool InitDescriptorHeap(IRHIDevice& device, const RHIDescriptorHeapDesc& desc) ;
     unsigned GetUsedDescriptorCount() const;
