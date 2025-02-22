@@ -30,12 +30,6 @@ bool DX12Fence::SignalWhenCommandQueueFinish(IRHICommandQueue& commandQueue)
 
 bool DX12Fence::Release(glTFRenderResourceManager&)
 {
-    if (!need_release)
-    {
-        return true;
-    }
-
-    need_release = false;
     SAFE_RELEASE(m_fence)
     
     return true;

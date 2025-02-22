@@ -8,8 +8,7 @@
 class DX12Device : public IRHIDevice
 {
 public:
-    DX12Device();
-    virtual ~DX12Device() override;
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(DX12Device)
 
     virtual bool InitDevice(IRHIFactory& factory) override;
     

@@ -8,7 +8,7 @@ class DX12DescriptorHeap;
 enum class RHIBufferType;
 enum class RHIDataFormat;
 
-#define SAFE_RELEASE(x) if ((x)) {/*(x)->Release();*/ (x) = nullptr; LOG_FORMAT_FLUSH("[Exit] Resource %s Release %s\n", GetName().c_str(), #x)}
+#define SAFE_RELEASE(x) if ((x)) {/*(x)->Release();*/ (x).Reset(); LOG_FORMAT_FLUSH("[Exit] Resource %s Release %s\n", GetName().c_str(), #x)}
 
 class DX12Utils : public RHIUtils
 {
@@ -65,6 +65,8 @@ public:
     virtual bool SupportRayTracing(IRHIDevice& device) override;
     virtual unsigned GetAlignmentSizeForUAVCount(unsigned size ) override;
 
+    virtual void ReportLiveObjects() override;
+    
     // DX12 private implementation
     static DX12Utils& DX12Instance();
 

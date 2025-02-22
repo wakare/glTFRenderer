@@ -61,4 +61,6 @@ public:
     
     virtual bool SupportRayTracing(IRHIDevice& device) override;
     virtual unsigned GetAlignmentSizeForUAVCount(unsigned size ) override;
+
+    virtual void ReportLiveObjects() override;
 };

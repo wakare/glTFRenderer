@@ -10,7 +10,7 @@ class DX12CommandList : public IRHICommandList
 public:
     DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(DX12CommandList)
     
-    virtual bool InitCommandList(IRHIDevice& device, IRHICommandAllocator& commandAllocator) override;
+    virtual bool InitCommandList(IRHIDevice& device, IRHICommandAllocator& command_allocator) override;
     virtual bool WaitCommandList() override;
     virtual bool BeginRecordCommandList() override;
     virtual bool EndRecordCommandList() override;

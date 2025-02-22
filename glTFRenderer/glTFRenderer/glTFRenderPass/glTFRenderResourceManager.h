@@ -22,10 +22,10 @@ struct glTFPerFrameRenderResourceData
 };
 
 // Hold all rhi resource
-class glTFRenderResourceManager
+class glTFRenderResourceManager final
 {
 public:
-    glTFRenderResourceManager();
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFRenderResourceManager)
     
     bool InitResourceManager(unsigned width, unsigned height, HWND handle);
     bool InitScene(const glTFSceneGraph& scene_graph);
@@ -35,6 +35,8 @@ public:
     IRHIDevice& GetDevice() const;
     IRHISwapChain& GetSwapChain() const;
     IRHICommandQueue& GetCommandQueue() const;
+
+    bool IsMemoryManagerValid() const;
     IRHIMemoryManager& GetMemoryManager() const;
     
     unsigned GetCurrentBackBufferIndex() const;

@@ -6,9 +6,9 @@
 
 bool DX12Factory::InitFactory()
 {
-    ID3D12Debug* debugController = nullptr;
-    THROW_IF_FAILED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController)))
-    debugController->EnableDebugLayer();
+    ID3D12Debug* debug_controller = nullptr;
+    THROW_IF_FAILED(D3D12GetDebugInterface(IID_PPV_ARGS(&debug_controller)))
+    debug_controller->EnableDebugLayer();
     
     // -- Create the Device -- //
     HRESULT hr = CreateDXGIFactory2(DXGI_CREATE_FACTORY_DEBUG, IID_PPV_ARGS(&m_factory));
@@ -24,13 +24,7 @@ bool DX12Factory::InitFactory()
 
 bool DX12Factory::Release(glTFRenderResourceManager&)
 {
-    if (!need_release)
-    {
-        return true;
-    }
-    
-    need_release = false;
-    SAFE_RELEASE(m_factory);
+    SAFE_RELEASE(m_factory)
     
     return true;
 }

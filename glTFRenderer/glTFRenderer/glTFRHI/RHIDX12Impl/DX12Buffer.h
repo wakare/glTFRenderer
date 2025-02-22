@@ -6,8 +6,9 @@
 class DX12Buffer : public IRHIBuffer
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR(DX12Buffer)
-    virtual ~DX12Buffer() override;
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(DX12Buffer)
+    
+    bool Release(glTFRenderResourceManager&) override;
     
     GPU_BUFFER_HANDLE_TYPE GetGPUBufferHandle() const;
     

@@ -8,6 +8,7 @@
 #include "DX12RenderTarget.h"
 #include "DX12Texture.h"
 #include "DX12Utils.h"
+#include "glTFRHI/RHIResourceFactoryImpl.hpp"
 
 bool DX12DescriptorHeap::InitDescriptorHeap(IRHIDevice& device, const RHIDescriptorHeapDesc& desc)
 {
@@ -50,13 +51,16 @@ bool DX12DescriptorHeap::CreateConstantBufferViewInDescriptorHeap(IRHIDevice& de
     CD3DX12_GPU_DESCRIPTOR_HANDLE gpuHandle(m_descriptorHeap->GetGPUDescriptorHandleForHeapStart());
     gpuHandle.Offset(descriptor_offset, m_descriptor_increment_size);
 
-    out_allocation = std::make_shared<DX12BufferDescriptorAllocation>(gpuHandle.ptr, 0, buffer, RHIBufferDescriptorDesc
+    out_allocation = RHIResourceFactory::CreateRHIResource<IRHIBufferDescriptorAllocation>();
+    dynamic_cast<IRHIBufferDescriptorAllocation&>(*out_allocation).InitFromBuffer(buffer, RHIBufferDescriptorDesc
         {
             RHIDataFormat::UNKNOWN,
             RHIViewType::RVT_CBV,
             static_cast<unsigned>(desc.bufferSize),
             0
         });
+    
+    dynamic_cast<DX12BufferDescriptorAllocation&>(*out_allocation).InitHandle(gpuHandle.ptr, 0);
 
     ++m_used_descriptor_count;
     
@@ -76,7 +80,10 @@ bool DX12DescriptorHeap::CreateResourceDescriptorInHeap(IRHIDevice& device,
         {
             if (created_info.first == desc)
             {
-                out_allocation = std::make_shared<DX12BufferDescriptorAllocation>(created_info.second, 0, buffer, buffer_desc);
+                out_allocation = RHIResourceFactory::CreateRHIResource<IRHIBufferDescriptorAllocation>();
+                out_allocation->InitFromBuffer(buffer, buffer_desc);
+    
+                dynamic_cast<DX12BufferDescriptorAllocation&>(*out_allocation).InitHandle(created_info.second, 0);
                 return true;
             }
         }
@@ -104,7 +111,10 @@ bool DX12DescriptorHeap::CreateResourceDescriptorInHeap(IRHIDevice& device,
         break;
     }
 
-    out_allocation = std::make_shared<DX12BufferDescriptorAllocation>(gpu_handle, cpu_handle, buffer, buffer_desc);
+    out_allocation = RHIResourceFactory::CreateRHIResource<IRHIBufferDescriptorAllocation>();
+    out_allocation->InitFromBuffer(buffer, buffer_desc);
+    dynamic_cast<DX12BufferDescriptorAllocation&>(*out_allocation).InitHandle(gpu_handle, cpu_handle);
+    
     return created;
 }
 
@@ -154,12 +164,6 @@ bool DX12DescriptorHeap::CreateResourceDescriptorInHeap(IRHIDevice& device, cons
 
 bool DX12DescriptorHeap::Release(glTFRenderResourceManager&)
 {
-    if (!need_release)
-    {
-        return true;
-    }
-
-    need_release = false;
     SAFE_RELEASE(m_descriptorHeap)
     
     return true;
@@ -202,8 +206,19 @@ bool DX12DescriptorHeap::CreateSRVInHeap(IRHIDevice& device, unsigned descriptor
     srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
     srvDesc.ViewDimension = DX12ConverterUtils::ConvertToSRVDimensionType(desc.m_dimension);
 
-    // TODO: Config mip levels
-    srvDesc.Texture2D.MipLevels = 1;
+    if (desc.m_dimension == RHIResourceDimension::TEXTURE2D)
+    {
+        // TODO: Config mip levels
+        srvDesc.Texture2D.MipLevels = 1;  
+    }
+    else if (desc.m_dimension == RHIResourceDimension::BUFFER)
+    {
+        const RHIBufferDescriptorDesc& buffer_srv_desc = dynamic_cast<const RHIBufferDescriptorDesc&>(desc);
+        srvDesc.Buffer.StructureByteStride = buffer_srv_desc.m_uav_structured_buffer_desc.is_structured_buffer ? buffer_srv_desc.m_uav_structured_buffer_desc.stride : 0;
+        srvDesc.Buffer.FirstElement = 0;
+        srvDesc.Buffer.NumElements = buffer_srv_desc.m_uav_structured_buffer_desc.count;
+        srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+    }
 
     CD3DX12_CPU_DESCRIPTOR_HANDLE cpuHandle(m_descriptorHeap->GetCPUDescriptorHandleForHeapStart());
     cpuHandle.Offset(descriptor_offset, m_descriptor_increment_size);

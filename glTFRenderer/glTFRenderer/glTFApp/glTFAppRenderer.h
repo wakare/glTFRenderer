@@ -33,7 +33,7 @@ public:
     void TickGUIWidgetUpdate(size_t delta_time_ms);
     void TickRenderingEnd(size_t delta_time_ms);
 
-    void WaitForExit();
+    void WaitRenderingFinishAndCleanupAllResource() const;
     
     glTFGUIRenderer& GetGUIRenderer() const;
     glTFRenderResourceManager& GetResourceManager() const {return *m_resource_manager; }

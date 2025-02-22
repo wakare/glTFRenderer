@@ -30,7 +30,6 @@ protected:
     
     void AddInterface(const std::shared_ptr<glTFRenderInterfaceBase>& render_interface);
 
-    static std::shared_ptr<IRHIBufferDescriptorAllocation> CreateBufferDescriptor();
     static std::shared_ptr<IRHIDescriptorTable> CreateDescriptorTable();
     
     template<typename RenderInterface>

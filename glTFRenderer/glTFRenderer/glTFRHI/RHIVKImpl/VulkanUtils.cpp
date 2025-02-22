@@ -587,3 +587,8 @@ unsigned VulkanUtils::GetAlignmentSizeForUAVCount(unsigned size)
     return (size + (alignment - 1)) & ~(alignment - 1);
     return 0;
 }
+
+void VulkanUtils::ReportLiveObjects()
+{
+    
+}

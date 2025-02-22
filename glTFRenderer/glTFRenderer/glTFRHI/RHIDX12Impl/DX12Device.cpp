@@ -5,19 +5,6 @@
 #include "DX12Factory.h"
 #include "DX12Utils.h"
 
-DX12Device::DX12Device()
-    : IRHIDevice()
-    , m_device(nullptr)
-    , m_adapter(nullptr)
-{
-    
-}
-
-DX12Device::~DX12Device()
-{
-    SAFE_RELEASE(m_device)
-}
-
 bool DX12Device::InitDevice(IRHIFactory& factory)
 {
     int adapterIndex = 0; // we'll start looking for directx 12  compatible graphics devices starting at index 0
@@ -81,13 +68,9 @@ bool DX12Device::InitDevice(IRHIFactory& factory)
 
 bool DX12Device::Release(glTFRenderResourceManager&)
 {
-    if (!need_release)
-    {
-        return true;
-    }
-
-    need_release = false;
     SAFE_RELEASE(m_device)
+    SAFE_RELEASE(m_adapter)
+    SAFE_RELEASE(m_dxr_device)
     
     return true;
 }

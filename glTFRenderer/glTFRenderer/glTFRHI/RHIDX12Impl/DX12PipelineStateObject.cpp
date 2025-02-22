@@ -8,6 +8,7 @@
 #include "DX12SwapChain.h"
 #include "DX12Utils.h"
 #include "../RHIResourceFactoryImpl.hpp"
+#include "glTFRenderPass/glTFRenderResourceManager.h"
 
 IDX12PipelineStateObjectCommon::IDX12PipelineStateObjectCommon()
     : m_pipeline_state_object(nullptr)
@@ -169,6 +170,10 @@ bool DX12GraphicsPipelineStateObject::Release(glTFRenderResourceManager& resourc
     }
     
     need_release = true;
+    auto& command_list = resource_manager.GetCommandListForRecord();
+    dynamic_cast<DX12CommandList&>(command_list).GetCommandList()->ClearState(m_pipeline_state_object.Get());
+    resource_manager.CloseCurrentCommandListAndExecute({}, true);
+    
     SAFE_RELEASE(m_pipeline_state_object);
     SAFE_RELEASE(m_dxr_pipeline_state);
     
@@ -327,14 +332,9 @@ bool DX12RTPipelineStateObject::InitPipelineStateObject(IRHIDevice& device, cons
 
 bool DX12RTPipelineStateObject::Release(glTFRenderResourceManager& resource_manager)
 {
-    if (!need_release)
-    {
-        return true;
-    }
-    
-    need_release = true;
     SAFE_RELEASE(m_pipeline_state_object);
     SAFE_RELEASE(m_dxr_pipeline_state);
+    SAFE_RELEASE(m_dxr_pipeline_state_properties);
     
     return true;
 }

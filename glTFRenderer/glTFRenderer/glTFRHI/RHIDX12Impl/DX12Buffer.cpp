@@ -10,7 +10,7 @@
 #include "DX12Device.h"
 #include "DX12MemoryManager.h"
 
-DX12Buffer::~DX12Buffer()
+bool DX12Buffer::Release(glTFRenderResourceManager& gl_tf_render_resource_manager)
 {
     if (m_mapped_gpu_buffer)
     {
@@ -19,6 +19,7 @@ DX12Buffer::~DX12Buffer()
     }
     
     SAFE_RELEASE(m_buffer)
+    return true;
 }
 
 bool DX12Buffer::InitGPUBuffer(IRHIDevice& device, const RHIBufferDesc& desc)

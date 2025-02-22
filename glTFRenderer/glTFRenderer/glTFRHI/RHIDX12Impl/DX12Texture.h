@@ -17,9 +17,10 @@ public:
     bool InitTexture(IRHIDevice& device, glTFRenderResourceManager& resource_manager, const RHITextureDesc& desc);
     bool InitTextureAndUpload(IRHIDevice& device, glTFRenderResourceManager& resource_manager, IRHICommandList& command_list, const RHITextureDesc& desc);
     
+    virtual bool Release(glTFRenderResourceManager&) override;
+    
 protected:
     std::shared_ptr<IRHIBufferAllocation> m_texture_buffer;
-    std::shared_ptr<IRHIBufferAllocation> m_texture_upload_buffer;
 
     // Only valid when real resource creation is from external
     ComPtr<ID3D12Resource> m_raw_resource {nullptr};

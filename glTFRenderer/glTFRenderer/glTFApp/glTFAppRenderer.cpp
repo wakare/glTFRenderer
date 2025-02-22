@@ -3,6 +3,7 @@
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassLighting.h"
 #include "glTFRHI/RHIConfigSingleton.h"
 #include "glTFRHI/RHIResourceFactory.h"
+#include "glTFRHI/RHIUtils.h"
 #include "RenderWindow/glTFWindow.h"
 
 glTFAppRenderer::glTFAppRenderer(const glTFAppRendererConfig& renderer_config, const glTFWindow& window)
@@ -28,6 +29,8 @@ glTFAppRenderer::glTFAppRenderer(const glTFAppRendererConfig& renderer_config, c
         }    
     }
 
+    RHIUtils::Instance().ReportLiveObjects();
+    
     m_resource_manager.reset(new glTFRenderResourceManager());
     m_resource_manager->InitResourceManager(window.GetWidth(), window.GetHeight(), window.GetHWND());
     
@@ -83,7 +86,7 @@ void glTFAppRenderer::TickRenderingEnd(size_t delta_time_ms)
     m_scene_renderer->TickFrameRenderingEnd(*m_resource_manager, delta_time_ms);
 }
 
-void glTFAppRenderer::WaitForExit()
+void glTFAppRenderer::WaitRenderingFinishAndCleanupAllResource() const
 {
     m_resource_manager->WaitAllFrameFinish();
     m_resource_manager->WaitPresentFinished();
@@ -93,7 +96,10 @@ void glTFAppRenderer::WaitForExit()
         m_ui_renderer->ExitAndClean();    
     }
     
-    m_resource_manager->GetMemoryManager().ReleaseAllResource(*m_resource_manager);
+    if (m_resource_manager->IsMemoryManagerValid())
+    {
+        m_resource_manager->GetMemoryManager().ReleaseAllResource(*m_resource_manager);    
+    }
     
     const bool cleanup = RHIResourceFactory::CleanupResources(*m_resource_manager);
     GLTF_CHECK(cleanup);

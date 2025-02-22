@@ -9,10 +9,10 @@ public:
     
     virtual bool InitCommandAllocator(IRHIDevice& device, RHICommandAllocatorType type) override;
 
-    ID3D12CommandAllocator* GetCommandAllocator() const {return m_commandAllocator.Get();}
+    ID3D12CommandAllocator* GetCommandAllocator() const {return m_command_allocator.Get();}
     
     virtual bool Release(glTFRenderResourceManager&) override;
     
 private:
-    ComPtr<ID3D12CommandAllocator> m_commandAllocator;
+    ComPtr<ID3D12CommandAllocator> m_command_allocator;
 };

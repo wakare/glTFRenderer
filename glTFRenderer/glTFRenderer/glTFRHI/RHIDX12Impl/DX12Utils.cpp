@@ -3,6 +3,7 @@
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_dx12.h>
 
+#include <dxgidebug.h>
 #include "d3dx12.h"
 #include "DX12CommandList.h"
 #include "DX12CommandQueue.h"
@@ -297,7 +298,7 @@ bool DX12Utils::SetDescriptorHeapArray(IRHICommandList& command_list, DX12Descri
     std::vector<ID3D12DescriptorHeap*> dx_descriptor_heaps;
     for (size_t i = 0; i < descriptor_heap_array_count; ++i)
     {
-        auto* dx_descriptor_heap = dynamic_cast<DX12DescriptorHeap&>(descriptor_heap_array_data[i]).GetDescriptorHeap();
+        auto* dx_descriptor_heap = descriptor_heap_array_data[i].GetDescriptorHeap();
         dx_descriptor_heaps.push_back(dx_descriptor_heap);
     }
     
@@ -604,6 +605,16 @@ unsigned DX12Utils::GetAlignmentSizeForUAVCount(unsigned size)
 {
     const UINT alignment = D3D12_UAV_COUNTER_PLACEMENT_ALIGNMENT;
     return (size + (alignment - 1)) & ~(alignment - 1);
+}
+
+void DX12Utils::ReportLiveObjects()
+{
+    LOG_FLUSH("[DX12] Report Live Objects---------------------------------\n");
+    ComPtr<IDXGIDebug1> dxgi_debug;
+    if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(dxgi_debug.GetAddressOf()))))
+    {
+        dxgi_debug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_FLAGS(DXGI_DEBUG_RLO_DETAIL | DXGI_DEBUG_RLO_IGNORE_INTERNAL));
+    }
 }
 
 DX12Utils& DX12Utils::DX12Instance()

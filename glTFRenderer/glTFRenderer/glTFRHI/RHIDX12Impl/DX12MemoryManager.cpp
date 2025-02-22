@@ -2,8 +2,9 @@
 #include "d3dx12.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 
+
 bool DX12MemoryManager::AllocateBufferMemory(IRHIDevice& device, const RHIBufferDesc& buffer_desc,
-    std::shared_ptr<IRHIBufferAllocation>& out_buffer_allocation)
+                                             std::shared_ptr<IRHIBufferAllocation>& out_buffer_allocation)
 {
     std::shared_ptr<IRHIBuffer> dx12_buffer = RHIResourceFactory::CreateRHIResource<IRHIBuffer>();
     if (!dynamic_cast<DX12Buffer&>(*dx12_buffer).InitGPUBuffer(device, buffer_desc))

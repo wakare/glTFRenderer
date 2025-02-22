@@ -16,14 +16,12 @@ bool glTFRenderInterfaceSceneView::InitInterfaceImpl(glTFRenderResourceManager& 
     {
         auto& buffer_allocation = m_scene_view_buffer_allocations[i];
         const auto& scene_view_buffer = resource_manager.GetPerFrameRenderResourceData()[i].m_scene_view_buffer;
-        buffer_allocation = CreateBufferDescriptor();
-        buffer_allocation->InitFromBuffer(scene_view_buffer->m_buffer,
-            RHIBufferDescriptorDesc{
+        resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), scene_view_buffer->m_buffer, RHIBufferDescriptorDesc{
                 RHIDataFormat::UNKNOWN,
                 RHIViewType::RVT_CBV,
                 static_cast<unsigned>(scene_view_buffer->m_buffer->GetBufferDesc().width),
                 0
-            });
+            }, buffer_allocation);
     }
     
     return true;

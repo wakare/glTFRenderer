@@ -60,10 +60,10 @@ std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>> DX12RenderTargetMa
 
     for (UINT i = 0; i < swapChainDesc.BufferCount; ++i)
     {
-        ID3D12Resource* resource = nullptr;
+        ComPtr<ID3D12Resource> resource = nullptr;
         dxSwapChain->GetBuffer(i, IID_PPV_ARGS(&resource));
         std::shared_ptr<IRHITexture> external_texture = RHIResourceFactory::CreateRHIResource<IRHITexture>();
-        dynamic_cast<DX12Texture&>(*external_texture).InitFromExternalResource(resource,
+        dynamic_cast<DX12Texture&>(*external_texture).InitFromExternalResource(resource.Get(),
             {
                 "SwapChain_back_buffer",
                 swap_chain.GetWidth(),

@@ -9,15 +9,12 @@
 
 constexpr size_t backBufferCount = 3;
 
-glTFRenderResourceManager::glTFRenderResourceManager()
-    : m_material_manager(std::make_shared<glTFRenderMaterialManager>())
-    , m_mesh_manager(std::make_shared<glTFRenderMeshManager>())
-    , m_gBuffer_allocations(new glTFRenderResourceUtils::GBufferSignatureAllocations)
-{
-}
-
 bool glTFRenderResourceManager::InitResourceManager(unsigned width, unsigned height, HWND handle)
 {
+    m_material_manager = std::make_shared<glTFRenderMaterialManager>();
+    m_mesh_manager = std::make_shared<glTFRenderMeshManager>();
+    m_gBuffer_allocations = std::make_shared<glTFRenderResourceUtils::GBufferSignatureAllocations>();
+    
     m_factory = RHIResourceFactory::CreateRHIResource<IRHIFactory>();
     EXIT_WHEN_FALSE(m_factory->InitFactory())  
     
@@ -26,7 +23,8 @@ bool glTFRenderResourceManager::InitResourceManager(unsigned width, unsigned hei
     
     m_command_queue = RHIResourceFactory::CreateRHIResource<IRHICommandQueue>();
     EXIT_WHEN_FALSE(m_command_queue->InitCommandQueue(*m_device))
-
+    
+    
     m_swap_chain = RHIResourceFactory::CreateRHIResource<IRHISwapChain>();
     RHITextureDesc swap_chain_texture_desc("swap_chain_back_buffer",
         width, height,
@@ -36,6 +34,7 @@ bool glTFRenderResourceManager::InitResourceManager(unsigned width, unsigned hei
             .clear_format = RHIDataFormat::R8G8B8A8_UNORM,
             .clear_color = {0.0f, 0.0f, 0.0f, 0.0f}
         });
+    
     EXIT_WHEN_FALSE(m_swap_chain->InitSwapChain(*m_factory, *m_device, *m_command_queue, swap_chain_texture_desc, false, handle))    
 
     EXIT_WHEN_FALSE(InitMemoryManager())
@@ -53,9 +52,10 @@ bool glTFRenderResourceManager::InitResourceManager(unsigned width, unsigned hei
         m_command_lists[i]->InitCommandList(*m_device, *m_command_allocators[i]);
         m_command_list_record_state[i] = false;
     }
-
+    
     m_render_target_manager = RHIResourceFactory::CreateRHIResource<IRHIRenderTargetManager>();
     m_render_target_manager->InitRenderTargetManager(*m_device, 100);
+
 
     RHITextureClearValue clear_value;
     clear_value.clear_format = RHIDataFormat::R8G8B8A8_UNORM_SRGB;
@@ -174,8 +174,14 @@ IRHICommandQueue& glTFRenderResourceManager::GetCommandQueue() const
     return *m_command_queue;
 }
 
+bool glTFRenderResourceManager::IsMemoryManagerValid() const
+{
+    return !!m_memory_manager;
+}
+
 IRHIMemoryManager& glTFRenderResourceManager::GetMemoryManager() const
 {
+    GLTF_CHECK(IsMemoryManagerValid());
     return *m_memory_manager;
 }
 
@@ -219,7 +225,10 @@ void glTFRenderResourceManager::CloseCurrentCommandListAndExecute(const RHIExecu
 
 void glTFRenderResourceManager::WaitPresentFinished()
 {
-    m_swap_chain->HostWaitPresentFinished(GetDevice());
+    if (m_swap_chain)
+    {
+        m_swap_chain->HostWaitPresentFinished(GetDevice());    
+    }
 }
 
 void glTFRenderResourceManager::WaitLastFrameFinish() const

@@ -47,16 +47,15 @@ protected:
         return !!out_buffer;
     }
 
-    bool CreateConstantBufferDescriptor(std::shared_ptr<IRHIBufferAllocation> buffer, std::shared_ptr<IRHIBufferDescriptorAllocation>& out_descriptor)
+    static bool CreateConstantBufferDescriptor(glTFRenderResourceManager& resource_manager, std::shared_ptr<IRHIBufferAllocation> buffer, std::shared_ptr<IRHIBufferDescriptorAllocation>& out_descriptor)
     {
-        out_descriptor = CreateBufferDescriptor();
-        out_descriptor->InitFromBuffer(buffer->m_buffer,
+        resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), buffer->m_buffer,
             RHIBufferDescriptorDesc{
                 RHIDataFormat::UNKNOWN,
                 RHIViewType::RVT_CBV,
                 max_buffer_size,
                 0
-            });
+            }, out_descriptor);
 
         return !!out_descriptor;
     }
@@ -66,7 +65,7 @@ protected:
         const bool create_buffer = CreateConstantBuffer(resource_manager, m_constant_gpu_data);
         GLTF_CHECK(create_buffer);
 
-        const bool create_descriptor = CreateConstantBufferDescriptor(m_constant_gpu_data, m_constant_buffer_descriptor_allocation); 
+        const bool create_descriptor = CreateConstantBufferDescriptor(resource_manager, m_constant_gpu_data, m_constant_buffer_descriptor_allocation); 
         GLTF_CHECK(create_descriptor);
         
         return true;

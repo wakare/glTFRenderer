@@ -5,6 +5,7 @@
 #include "glTFGUIRenderer.h"
 #include "glTFLight/glTFDirectionalLight.h"
 #include "glTFLight/glTFPointLight.h"
+#include "glTFRHI/RHIUtils.h"
 #include "RenderWindow/glTFInputManager.h"
 #include "RenderWindow/glTFWindow.h"
 
@@ -110,17 +111,19 @@ void glTFAppMain::Run()
             m_renderer->TickRenderingBegin(time_delta_ms);
             m_renderer->TickSceneUpdating(*m_scene_graph, *m_input_manager, time_delta_ms);
             m_renderer->TickSceneRendering(*m_input_manager, time_delta_ms);
-            m_renderer->TickGUIWidgetUpdate(time_delta_ms);    
-            
+            m_renderer->TickGUIWidgetUpdate(time_delta_ms);
             m_renderer->TickRenderingEnd(time_delta_ms);
+            
             m_input_manager->TickFrame(time_delta_ms);
         });
 
         window.SetExitCallback([this]()
         {
-            m_renderer->WaitForExit();
+            m_renderer->WaitRenderingFinishAndCleanupAllResource();
             // Clear all render resource
             m_renderer.reset(nullptr);
+
+            RHIUtils::Instance().ReportLiveObjects();
         });    
     }
     
@@ -207,8 +210,7 @@ bool glTFAppMain::InitRenderer()
     m_app_config.m_recreate_renderer = false;
     if (m_renderer)
     {
-        m_renderer->GetResourceManager().WaitPresentFinished();
-        m_renderer->GetResourceManager().WaitAllFrameFinish();
+        m_renderer->WaitRenderingFinishAndCleanupAllResource();
     }
     m_renderer = nullptr; 
 

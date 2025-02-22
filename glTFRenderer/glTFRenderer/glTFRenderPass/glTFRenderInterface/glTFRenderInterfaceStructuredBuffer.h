@@ -29,14 +29,22 @@ public:
             RUF_ALLOW_SRV,
         },
         m_gpu_buffer);
-        m_constant_buffer_descriptor_allocation = CreateBufferDescriptor();
-        m_constant_buffer_descriptor_allocation->InitFromBuffer(m_gpu_buffer->m_buffer,
+
+        RHISRVStructuredBufferDesc desc =
+        {
+            sizeof(StructuredBufferType),
+            max_heap_size / sizeof(StructuredBufferType),
+            true,
+        };
+        
+        resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), m_gpu_buffer->m_buffer,
             RHIBufferDescriptorDesc{
                 RHIDataFormat::UNKNOWN,
                 RHIViewType::RVT_SRV,
                 max_heap_size,
-                0
-            });
+                0,
+                desc
+            }, m_structured_buffer_descriptor_allocation);
         
         return true;
     }
@@ -49,16 +57,16 @@ public:
     virtual bool ApplyInterfaceImpl(IRHICommandList& command_list, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater, unsigned
                                     frame_index) override
     {
-        descriptor_updater.BindDescriptor(command_list, pipeline_type,  m_allocation, *m_constant_buffer_descriptor_allocation);
+        descriptor_updater.BindDescriptor(command_list, pipeline_type,  m_allocation, *m_structured_buffer_descriptor_allocation);
         return true;
     }
     
-    virtual bool ApplyRootSignatureImpl(IRHIRootSignatureHelper& rootSignature) override
+    virtual bool ApplyRootSignatureImpl(IRHIRootSignatureHelper& root_signature) override
     {
-        return rootSignature.AddSRVRootParameter(StructuredBufferType::Name, m_allocation);
+        return root_signature.AddSRVRootParameter(StructuredBufferType::Name, m_allocation);
     }
 
 protected:
     std::shared_ptr<IRHIBufferAllocation> m_gpu_buffer;
-    std::shared_ptr<IRHIBufferDescriptorAllocation> m_constant_buffer_descriptor_allocation;
+    std::shared_ptr<IRHIBufferDescriptorAllocation> m_structured_buffer_descriptor_allocation;
 };

@@ -4,10 +4,10 @@
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 #include "glTFRHI/RHIInterface/IRHIFence.h"
 
-bool DX12CommandList::InitCommandList(IRHIDevice& device, IRHICommandAllocator& commandAllocator)
+bool DX12CommandList::InitCommandList(IRHIDevice& device, IRHICommandAllocator& command_allocator)
 {
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
-    auto* dxCommandAllocator = dynamic_cast<DX12CommandAllocator&>(commandAllocator).GetCommandAllocator();
+    auto* dxCommandAllocator = dynamic_cast<DX12CommandAllocator&>(command_allocator).GetCommandAllocator();
     THROW_IF_FAILED(dxDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, dxCommandAllocator, nullptr, IID_PPV_ARGS(&m_command_list)))
 
     // Query DXR command list
@@ -46,14 +46,7 @@ bool DX12CommandList::EndRecordCommandList()
 
 bool DX12CommandList::Release(glTFRenderResourceManager&)
 {
-    if (!need_release)
-    {
-        return true;
-    }
-
-    need_release = false;
     SAFE_RELEASE(m_command_list)
-    SAFE_RELEASE(m_dxr_command_list)
     
     return true;
 }

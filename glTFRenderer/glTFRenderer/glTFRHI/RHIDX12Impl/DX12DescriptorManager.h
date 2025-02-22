@@ -8,16 +8,10 @@ class DX12DescriptorHeap;
 class DX12BufferDescriptorAllocation : public IRHIBufferDescriptorAllocation
 {
 public:
-    DX12BufferDescriptorAllocation() = default;
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(DX12BufferDescriptorAllocation)
     
-    DX12BufferDescriptorAllocation(RHIGPUDescriptorHandle gpu_handle, RHICPUDescriptorHandle cpu_handle, std::shared_ptr<IRHIBuffer> buffer, const RHIBufferDescriptorDesc& desc)
-        : m_gpu_handle(gpu_handle)
-        , m_cpu_handle(cpu_handle)
-    {
-        m_source = std::move(buffer);
-        m_view_desc = desc;
-    }
-
+    bool InitHandle(RHIGPUDescriptorHandle gpu_handle, RHICPUDescriptorHandle cpu_handle);
+    
     virtual bool InitFromBuffer(const std::shared_ptr<IRHIBuffer>& buffer, const RHIBufferDescriptorDesc& desc) override;
     
     RHIGPUDescriptorHandle m_gpu_handle {UINT64_MAX};

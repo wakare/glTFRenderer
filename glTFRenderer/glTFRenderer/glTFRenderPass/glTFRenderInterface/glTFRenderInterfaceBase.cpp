@@ -70,11 +70,6 @@ void glTFRenderInterfaceBase::AddInterface(const std::shared_ptr<glTFRenderInter
     m_sub_interfaces.push_back(render_interface);
 }
 
-std::shared_ptr<IRHIBufferDescriptorAllocation> glTFRenderInterfaceBase::CreateBufferDescriptor()
-{
-    return RHIResourceFactory::CreateRHIResource<IRHIBufferDescriptorAllocation>();
-}
-
 std::shared_ptr<IRHIDescriptorTable> glTFRenderInterfaceBase::CreateDescriptorTable()
 {
     return RHIResourceFactory::CreateRHIResource<IRHIDescriptorTable>();

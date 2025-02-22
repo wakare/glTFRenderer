@@ -258,12 +258,6 @@ ID3D12RootSignature* DX12RootSignature::GetRootSignature() const
 
 bool DX12RootSignature::Release(glTFRenderResourceManager&)
 {
-    if (!need_release)
-    {
-        return true;
-    }
-
-    need_release = false;
     SAFE_RELEASE(m_root_signature)
     
     return true;

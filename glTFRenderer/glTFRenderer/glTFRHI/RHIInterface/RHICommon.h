@@ -232,6 +232,21 @@ struct RHIUAVStructuredBufferDesc
     }
 };
 
+struct RHISRVStructuredBufferDesc
+{
+    unsigned stride {0};
+    unsigned count {0};
+    bool is_structured_buffer {true};
+
+    bool operator==(const RHISRVStructuredBufferDesc& other) const
+    {
+        return
+            stride == other.stride &&
+            count == other.count &&
+            is_structured_buffer == other.is_structured_buffer;
+    }
+};
+
 struct RHIBufferDescriptorDesc : RHIDescriptorDesc
 {
     RHIBufferDescriptorDesc(RHIDataFormat format, RHIViewType view_type, unsigned size, unsigned offset, const RHIUAVStructuredBufferDesc& uav_structured_desc)
@@ -239,6 +254,14 @@ struct RHIBufferDescriptorDesc : RHIDescriptorDesc
             , m_size(size)
             , m_offset(offset)
             , m_uav_structured_buffer_desc(uav_structured_desc)
+    {
+    }
+
+    RHIBufferDescriptorDesc(RHIDataFormat format, RHIViewType view_type, unsigned size, unsigned offset, const RHISRVStructuredBufferDesc& srv_structured_desc)
+            : RHIDescriptorDesc(format, RHIResourceDimension::BUFFER, view_type)
+            , m_size(size)
+            , m_offset(offset)
+            , m_srv_structured_buffer_desc(srv_structured_desc)
     {
     }
     
@@ -255,7 +278,7 @@ struct RHIBufferDescriptorDesc : RHIDescriptorDesc
     
     union 
     {
-        // UAV structured buffer desc (valid in view_type is UAV only)
+        RHISRVStructuredBufferDesc m_srv_structured_buffer_desc;
         RHIUAVStructuredBufferDesc m_uav_structured_buffer_desc;
     };
 
@@ -265,7 +288,12 @@ struct RHIBufferDescriptorDesc : RHIDescriptorDesc
         {
             return false;
         }
-        if (m_view_type == RHIViewType::RVT_UAV)
+
+        if (m_view_type == RHIViewType::RVT_SRV)
+        {
+            return m_srv_structured_buffer_desc == other.m_srv_structured_buffer_desc;
+        }
+        else if (m_view_type == RHIViewType::RVT_UAV)
         {
             return m_uav_structured_buffer_desc == other.m_uav_structured_buffer_desc;   
         }

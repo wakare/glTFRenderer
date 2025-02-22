@@ -74,7 +74,7 @@ bool DX12Texture::InitTextureAndUpload(IRHIDevice& device, glTFRenderResourceMan
     const size_t imageBytesPerRow = bytesPerPixel * m_texture_desc.GetTextureWidth(); 
     const UINT64 textureUploadBufferSize = ((imageBytesPerRow + 255 ) & ~255) * (m_texture_desc.GetTextureHeight() - 1) + imageBytesPerRow;
     
-    const RHIBufferDesc textureUploadBufferDesc =
+    const RHIBufferDesc texture_upload_buffer_desc =
         {
             L"TextureBuffer_Upload",
             textureUploadBufferSize,
@@ -84,7 +84,9 @@ bool DX12Texture::InitTextureAndUpload(IRHIDevice& device, glTFRenderResourceMan
             m_texture_desc.GetDataFormat(),
             RHIBufferResourceType::Buffer
         };
-    resource_manager.GetMemoryManager().AllocateBufferMemory(device, textureUploadBufferDesc, m_texture_upload_buffer);
+
+    std::shared_ptr<IRHIBufferAllocation> m_texture_upload_buffer;
+    resource_manager.GetMemoryManager().AllocateBufferMemory(device, texture_upload_buffer_desc, m_texture_upload_buffer);
     
     m_texture_upload_buffer->m_buffer->Transition(command_list, RHIResourceStateType::STATE_COPY_SOURCE);
     Transition(command_list, RHIResourceStateType::STATE_COPY_DEST);
@@ -96,6 +98,12 @@ bool DX12Texture::InitTextureAndUpload(IRHIDevice& device, glTFRenderResourceMan
         texture_data,
         imageBytesPerRow,
         imageBytesPerRow * m_texture_desc.GetTextureHeight()))
+    
+    return true;
+}
 
+bool DX12Texture::Release(glTFRenderResourceManager& gl_tf_render_resource_manager)
+{
+    SAFE_RELEASE(m_raw_resource);
     return true;
 }

@@ -20,12 +20,6 @@ bool DX12CommandQueue::InitCommandQueue(IRHIDevice& device)
 
 bool DX12CommandQueue::Release(glTFRenderResourceManager&)
 {
-    if (!need_release)
-    {
-        return true;
-    }
-
-    need_release = false;
     SAFE_RELEASE(m_command_queue)
     return true;
 }

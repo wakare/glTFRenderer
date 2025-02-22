@@ -3,9 +3,15 @@
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 #include "DX12DescriptorHeap.h"
 
+bool DX12BufferDescriptorAllocation::InitHandle(RHIGPUDescriptorHandle gpu_handle, RHICPUDescriptorHandle cpu_handle)
+{
+    m_gpu_handle = gpu_handle;
+    m_cpu_handle = cpu_handle;
+    return true;
+}
+
 bool DX12BufferDescriptorAllocation::InitFromBuffer(const std::shared_ptr<IRHIBuffer>& buffer, const RHIBufferDescriptorDesc& desc)
 {
-    m_gpu_handle = dynamic_cast<const DX12Buffer&>(*buffer).GetRawBuffer()->GetGPUVirtualAddress();
     m_source = buffer;
     m_view_desc = desc;
     return true;
@@ -88,6 +94,17 @@ bool DX12DescriptorManager::CreateDescriptor(IRHIDevice& device, const std::shar
     {
         out_descriptor_allocation = RHIResourceFactory::CreateRHIResource<IRHIBufferDescriptorAllocation>();
         out_descriptor_allocation->InitFromBuffer(buffer, desc);
+        return true;
+    }
+
+    // Root buffer descriptor do not allocate within heap
+    if ((desc.m_view_type == RHIViewType::RVT_SRV && desc.m_srv_structured_buffer_desc.is_structured_buffer) ||
+        desc.m_view_type == RHIViewType::RVT_CBV)
+    {
+        out_descriptor_allocation = RHIResourceFactory::CreateRHIResource<IRHIBufferDescriptorAllocation>();
+        out_descriptor_allocation->InitFromBuffer(buffer, desc);
+        auto gpu_handle = dynamic_cast<DX12Buffer&>(*buffer).GetRawBuffer()->GetGPUVirtualAddress();
+        dynamic_cast<DX12BufferDescriptorAllocation&>(*out_descriptor_allocation).InitHandle(gpu_handle, 0);
         return true;
     }
     
