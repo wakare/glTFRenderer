@@ -48,7 +48,7 @@ public:
     virtual bool SetConstant32BitToRootParameterSlot(IRHICommandList& command_list, unsigned slot_index, unsigned* data, unsigned count, RHIPipelineType pipeline_type) override;
     
     virtual bool AddBufferBarrierToCommandList(IRHICommandList& command_list, const IRHIBuffer& buffer, RHIResourceStateType beforeState, RHIResourceStateType afterState) override;
-    virtual bool AddTextureBarrierToCommandList(IRHICommandList& command_list, const IRHITexture& buffer, RHIResourceStateType beforeState, RHIResourceStateType afterState) override;
+    virtual bool AddTextureBarrierToCommandList(IRHICommandList& command_list, IRHITexture& buffer, RHIResourceStateType beforeState, RHIResourceStateType afterState) override;
 
     virtual bool DrawInstanced(IRHICommandList& command_list, unsigned vertex_count_per_instance, unsigned instance_count, unsigned start_vertex_location, unsigned start_instance_location) override;
     virtual bool DrawIndexInstanced(IRHICommandList& command_list, unsigned index_count_per_instance, unsigned instance_count, unsigned start_index_location, unsigned base_vertex_location, unsigned start_instance_location) override;

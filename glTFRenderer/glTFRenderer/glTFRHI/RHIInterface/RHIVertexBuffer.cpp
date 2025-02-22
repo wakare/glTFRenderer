@@ -1,9 +1,9 @@
-﻿#include "IRHIVertexBuffer.h"
+﻿#include "RHIVertexBuffer.h"
 
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 #include "glTFRHI/RHIUtils.h"
 
-std::shared_ptr<IRHIVertexBufferView> IRHIVertexBuffer::CreateVertexBufferView(IRHIDevice& device,
+std::shared_ptr<IRHIVertexBufferView> RHIVertexBuffer::CreateVertexBufferView(IRHIDevice& device,
                                                                                IRHIMemoryManager& memory_manager, IRHICommandList& command_list, const RHIBufferDesc& desc,
                                                                                const VertexBufferData& vertex_buffer_data)
 {

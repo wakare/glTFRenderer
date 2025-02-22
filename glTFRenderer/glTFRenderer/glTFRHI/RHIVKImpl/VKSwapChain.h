@@ -8,8 +8,7 @@ class IRHITexture;
 class VKSwapChain : public IRHISwapChain
 {
 public:
-    VKSwapChain();
-    virtual ~VKSwapChain() override;
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKSwapChain)
 
     virtual unsigned GetCurrentBackBufferIndex() override;
     virtual unsigned GetBackBufferCount() override;
@@ -20,6 +19,7 @@ public:
     virtual IRHISemaphore& GetAvailableFrameSemaphore() override;
     virtual bool Present(IRHICommandQueue& command_queue, IRHICommandList& command_list) override;
     virtual bool HostWaitPresentFinished(IRHIDevice& device) override;
+    virtual bool Release(glTFRenderResourceManager&) override;
     
     std::shared_ptr<IRHITexture> GetSwapChainImageByIndex(unsigned index) const;
     

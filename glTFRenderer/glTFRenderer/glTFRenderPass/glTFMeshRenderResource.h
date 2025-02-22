@@ -1,17 +1,17 @@
 #pragma once
 #include <memory>
 
-#include "glTFRHI/RHIInterface/IRHIIndexBuffer.h"
-#include "glTFRHI/RHIInterface/IRHIVertexBuffer.h"
+#include "glTFRHI/RHIInterface/RHIIndexBuffer.h"
+#include "glTFRHI/RHIInterface/RHIVertexBuffer.h"
 
 struct glTFMeshRenderResource
 {
     const glTFScenePrimitive* mesh;
     
     // Vertex and index gpu buffer data
-    std::shared_ptr<IRHIVertexBuffer> mesh_vertex_buffer;
-    std::shared_ptr<IRHIVertexBuffer> mesh_position_only_buffer;
-    std::shared_ptr<IRHIIndexBuffer> mesh_index_buffer;
+    std::shared_ptr<RHIVertexBuffer> mesh_vertex_buffer;
+    std::shared_ptr<RHIVertexBuffer> mesh_position_only_buffer;
+    std::shared_ptr<RHIIndexBuffer> mesh_index_buffer;
     std::shared_ptr<IRHIVertexBufferView> mesh_vertex_buffer_view;
     std::shared_ptr<IRHIVertexBufferView> mesh_position_only_buffer_view;
     std::shared_ptr<IRHIIndexBufferView> mesh_index_buffer_view;

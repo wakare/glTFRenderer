@@ -4,3 +4,8 @@ bool DX12RenderPass::InitRenderPass(IRHIDevice& device, const RHIRenderPassInfo&
 {
     return true;
 }
+
+bool DX12RenderPass::Release(glTFRenderResourceManager&)
+{
+    return true;
+}

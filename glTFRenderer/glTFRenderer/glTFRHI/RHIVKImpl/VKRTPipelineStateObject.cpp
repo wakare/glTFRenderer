@@ -5,3 +5,8 @@ bool VKRTPipelineStateObject::InitPipelineStateObject(IRHIDevice& device,
 {
     return true;
 }
+
+bool VKRTPipelineStateObject::Release(glTFRenderResourceManager&)
+{
+    return true;
+}

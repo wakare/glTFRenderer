@@ -54,12 +54,13 @@ class DX12DescriptorManager : public IRHIDescriptorManager
 public:
     DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(DX12DescriptorManager)
     
-    virtual bool Init(IRHIDevice& device, const RHIMemoryManagerDescriptorMaxCapacity& max_descriptor_capacity) override;
+    virtual bool Init(IRHIDevice& device, const DescriptorAllocationInfo& max_descriptor_capacity) override;
     virtual bool CreateDescriptor(IRHIDevice& device, const std::shared_ptr<IRHIBuffer>& buffer, const RHIBufferDescriptorDesc& desc, std::shared_ptr<IRHIBufferDescriptorAllocation>& out_descriptor_allocation) override;
     virtual bool CreateDescriptor(IRHIDevice& device, const std::shared_ptr<IRHITexture>& texture, const RHITextureDescriptorDesc& desc, std::shared_ptr<IRHITextureDescriptorAllocation>& out_descriptor_allocation) override;
 
     virtual bool BindDescriptorContext(IRHICommandList& command_list) override;
     virtual bool BindGUIDescriptorContext(IRHICommandList& command_list) override;
+    virtual bool Release(glTFRenderResourceManager&) override;
     
     DX12DescriptorHeap& GetDescriptorHeap(RHIViewType type) const;
     DX12DescriptorHeap& GetDescriptorHeap(RHIDescriptorHeapType type) const;

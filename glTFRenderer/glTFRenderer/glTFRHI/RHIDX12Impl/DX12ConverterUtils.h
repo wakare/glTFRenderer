@@ -3,8 +3,6 @@
 #include <d3d12.h>
 #include <dxgiformat.h>
 
-#include "glTFRHI/RHIInterface/IRHICommandSignature.h"
-#include "glTFRHI/RHIInterface/IRHIBuffer.h"
 #include "glTFRHI/RHIInterface/IRHIRenderTarget.h"
 
 class DX12ConverterUtils

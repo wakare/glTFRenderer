@@ -430,7 +430,7 @@ bool VulkanUtils::AddBufferBarrierToCommandList(IRHICommandList& command_list, c
     return true;
 }
 
-bool VulkanUtils::AddTextureBarrierToCommandList(IRHICommandList& command_list, const IRHITexture& texture,
+bool VulkanUtils::AddTextureBarrierToCommandList(IRHICommandList& command_list, IRHITexture& texture,
                                                  RHIResourceStateType before_state, RHIResourceStateType after_state)
 {
     auto vk_command_list = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();

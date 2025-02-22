@@ -5,11 +5,6 @@
 #include "glTFRHI/RHIInterface/IRHIFence.h"
 #include "VKCommandAllocator.h"
 
-VKCommandList::~VKCommandList()
-{
-    // Nothing to do
-}
-
 bool VKCommandList::InitCommandList(IRHIDevice& device, IRHICommandAllocator& command_allocator)
 {
     const VkCommandPool vk_command_pool = dynamic_cast<VKCommandAllocator&>(command_allocator).GetCommandPool();
@@ -29,6 +24,8 @@ bool VKCommandList::InitCommandList(IRHIDevice& device, IRHICommandAllocator& co
 
     m_finished_semaphore = RHIResourceFactory::CreateRHIResource<IRHISemaphore>();
     m_finished_semaphore->InitSemaphore(device);
+
+    need_release = true;
     
     return true;
 }
@@ -61,6 +58,19 @@ bool VKCommandList::EndRecordCommandList()
 {
     const VkResult result = vkEndCommandBuffer(m_command_buffer);
     GLTF_CHECK(result == VK_SUCCESS);
+    
+    return true;
+}
+
+bool VKCommandList::Release(glTFRenderResourceManager&)
+{
+    if (!need_release)
+    {
+        return true;
+    }
+    
+    // No need to destroy command buffer
+    need_release = false;
     
     return true;
 }

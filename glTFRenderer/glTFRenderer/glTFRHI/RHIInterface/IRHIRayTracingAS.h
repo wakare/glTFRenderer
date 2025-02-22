@@ -6,7 +6,7 @@
 class IRHIDescriptorAllocation;
 class glTFRenderMeshManager;
 
-class IRHIRayTracingAS : public IRHIResource
+class IRHIRayTracingAS
 {
 public:
     DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIRayTracingAS)

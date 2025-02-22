@@ -1,6 +1,7 @@
 #pragma once
-#include "IRHICommandQueue.h"
 #include "IRHIResource.h"
+
+class IRHIDevice;
 
 class IRHIFence : public IRHIResource
 {

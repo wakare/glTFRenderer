@@ -5,6 +5,7 @@
 #include "VKDevice.h"
 #include "VKTexture.h"
 #include "VKCommon.h"
+#include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRHI/RHIInterface/IRHIMemoryManager.h"
 
 bool VKBufferDescriptorAllocation::InitFromBuffer(const std::shared_ptr<IRHIBuffer>& buffer, const RHIBufferDescriptorDesc& desc)
@@ -12,6 +13,8 @@ bool VKBufferDescriptorAllocation::InitFromBuffer(const std::shared_ptr<IRHIBuff
     m_view_desc = desc;
     m_source = buffer;
     m_buffer_init = true;
+    need_release = false;
+    
     return true;
 }
 
@@ -21,24 +24,35 @@ VkBuffer VKBufferDescriptorAllocation::GetRawBuffer() const
     return dynamic_cast<const VKBuffer&>(*m_source).GetRawBuffer();
 }
 
-VKTextureDescriptorAllocation::~VKTextureDescriptorAllocation()
-{
-    vkDestroyImageView(m_device, m_image_view, nullptr);
-}
-
 bool VKTextureDescriptorAllocation::InitFromImageView(const std::shared_ptr<IRHITexture>& texture, VkDevice device, VkImageView image_view, const RHITextureDescriptorDesc& desc)
 {
     m_view_desc = desc;
     m_source = texture;
     m_image_view = image_view;
     m_image_init = true;
-    m_device = device;
+    need_release = true;
+    
     return true;
 }
 
 VkImageView VKTextureDescriptorAllocation::GetRawImageView() const
 {
     return m_image_view;
+}
+
+bool VKTextureDescriptorAllocation::Release(glTFRenderResourceManager& resource_manager)
+{
+    if (!need_release)
+    {
+        return true;
+    }
+
+    need_release = false;
+
+    auto vk_device = dynamic_cast<const VKDevice&>(resource_manager.GetDevice()).GetDevice();
+    vkDestroyImageView(vk_device, m_image_view, nullptr);
+    
+    return true;
 }
 
 bool VKDescriptorTable::Build(IRHIDevice& device,
@@ -63,14 +77,9 @@ const std::vector<VkDescriptorImageInfo>& VKDescriptorTable::GetImageInfos() con
     return m_image_infos;
 }
 
-VKDescriptorManager::~VKDescriptorManager()
+bool VKDescriptorManager::Init(IRHIDevice& device, const DescriptorAllocationInfo& max_descriptor_capacity)
 {
-    vkDestroyDescriptorPool(m_device, m_descriptor_pool, nullptr);
-}
-
-bool VKDescriptorManager::Init(IRHIDevice& device, const RHIMemoryManagerDescriptorMaxCapacity& max_descriptor_capacity)
-{
-    m_device = dynamic_cast<VKDevice&>(device).GetDevice();
+    m_device = dynamic_cast<const VKDevice&>(device).GetDevice();
 
     // TODO: re-design descriptor capacity
     std::vector<VkDescriptorPoolSize> pool_sizes;
@@ -86,6 +95,7 @@ bool VKDescriptorManager::Init(IRHIDevice& device, const RHIMemoryManagerDescrip
     descriptor_pool_create_info.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT | VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
     
     VK_CHECK(vkCreateDescriptorPool(m_device, &descriptor_pool_create_info, nullptr, &m_descriptor_pool));
+    need_release = true;
     
     return true;
 }
@@ -138,6 +148,19 @@ bool VKDescriptorManager::BindDescriptorContext(IRHICommandList& command_list)
 
 bool VKDescriptorManager::BindGUIDescriptorContext(IRHICommandList& command_list)
 {
+    return true;
+}
+
+bool VKDescriptorManager::Release(glTFRenderResourceManager&)
+{
+    if (!need_release)
+    {
+        return true;
+    }
+
+    need_release = false;
+    vkDestroyDescriptorPool(m_device, m_descriptor_pool, nullptr);
+
     return true;
 }
 

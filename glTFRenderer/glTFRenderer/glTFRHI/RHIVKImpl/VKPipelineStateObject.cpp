@@ -21,14 +21,6 @@ VkShaderModule VKGraphicsPipelineStateObject::CreateVkShaderModule(VkDevice devi
     return shader_module;
 }
 
-VKGraphicsPipelineStateObject::~VKGraphicsPipelineStateObject()
-{
-    vkDestroyShaderModule(m_device, m_vertex_shader_module, nullptr);
-    vkDestroyShaderModule(m_device, m_fragment_shader_module, nullptr);
-    vkDestroyPipelineLayout(m_device, m_pipeline_layout, nullptr);
-    vkDestroyPipeline(m_device, m_pipeline, nullptr);
-}
-
 bool VKGraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device,
                                                             const IRHIRootSignature& root_signature, IRHISwapChain& swap_chain)
 {
@@ -225,6 +217,8 @@ bool VKGraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device,
 
     result = vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &create_graphics_pipeline_info, nullptr, &m_pipeline);
     GLTF_CHECK(result == VK_SUCCESS);
+
+    need_release = true;
     
     return true;
 }
@@ -265,4 +259,20 @@ VkPipeline VKGraphicsPipelineStateObject::GetPipeline() const
 VkPipelineLayout VKGraphicsPipelineStateObject::GetPipelineLayout() const
 {
     return m_pipeline_layout;
+}
+
+bool VKGraphicsPipelineStateObject::Release(glTFRenderResourceManager&)
+{
+    if (!need_release)
+    {
+        return true;
+    }
+
+    need_release = false;
+    vkDestroyShaderModule(m_device, m_vertex_shader_module, nullptr);
+    vkDestroyShaderModule(m_device, m_fragment_shader_module, nullptr);
+    vkDestroyPipelineLayout(m_device, m_pipeline_layout, nullptr);
+    vkDestroyPipeline(m_device, m_pipeline, nullptr);
+    
+    return true;
 }

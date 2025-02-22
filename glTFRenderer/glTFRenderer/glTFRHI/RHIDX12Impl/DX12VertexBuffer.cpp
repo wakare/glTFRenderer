@@ -1,1 +1,0 @@
-﻿#include "DX12VertexBuffer.h"

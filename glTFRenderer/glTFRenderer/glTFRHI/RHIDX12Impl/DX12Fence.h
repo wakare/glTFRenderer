@@ -2,11 +2,12 @@
 #include "DX12Common.h"
 #include "glTFRHI/RHIInterface/IRHIFence.h"
 
+class IRHICommandQueue;
+
 class DX12Fence : public IRHIFence
 {
 public:
-    DX12Fence();
-    virtual ~DX12Fence() override;
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(DX12Fence)
     
     virtual bool InitFence(IRHIDevice& device) override;
     virtual bool HostWaitUtilSignaled() override;
@@ -14,8 +15,10 @@ public:
     
     bool SignalWhenCommandQueueFinish(IRHICommandQueue& commandQueue);
     
+    virtual bool Release(glTFRenderResourceManager&) override;
+    
 private:
-    ComPtr<ID3D12Fence> m_fence;
-    UINT64 m_fenceCompleteValue;
-    HANDLE m_fenceEvent;
+    ComPtr<ID3D12Fence> m_fence {nullptr};
+    UINT64 m_fenceCompleteValue {0};
+    HANDLE m_fenceEvent {nullptr};
 };

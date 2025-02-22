@@ -8,18 +8,6 @@
 #include "DX12Utils.h"
 #include "RenderWindow/glTFWindow.h"
 
-DX12SwapChain::DX12SwapChain()
-    : m_frame_buffer_count(3)
-    , m_swap_chain(nullptr)
-    , m_swap_chain_sample_desc({})
-{
-}
-
-DX12SwapChain::~DX12SwapChain()
-{
-    SAFE_RELEASE(m_swap_chain)
-}
-
 unsigned DX12SwapChain::GetCurrentBackBufferIndex()
 {
     return m_swap_chain->GetCurrentBackBufferIndex();
@@ -71,6 +59,8 @@ bool DX12SwapChain::InitSwapChain(IRHIFactory& factory, IRHIDevice& device, IRHI
     
     m_swap_chain = static_cast<IDXGISwapChain3*>(tempSwapChain);
     GLTF_CHECK(m_swap_chain);
+
+    need_release = true;
     
     return true;
 }
@@ -94,5 +84,18 @@ bool DX12SwapChain::Present(IRHICommandQueue& command_queue, IRHICommandList& co
 
 bool DX12SwapChain::HostWaitPresentFinished(IRHIDevice& device)
 {
+    return true;
+}
+
+bool DX12SwapChain::Release(glTFRenderResourceManager&)
+{
+    if (!need_release)
+    {
+        return true;
+    }
+
+    need_release = false;
+    SAFE_RELEASE(m_swap_chain)
+
     return true;
 }

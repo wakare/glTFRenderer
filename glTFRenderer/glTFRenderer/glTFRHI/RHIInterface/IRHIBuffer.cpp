@@ -18,3 +18,9 @@ RHIResourceStateType IRHIBuffer::GetState() const
 {
     return m_current_state;
 }
+
+bool IRHIBuffer::Release(glTFRenderResourceManager&)
+{
+    // release buffer in IRHIBufferAllocation class
+    return true;
+}

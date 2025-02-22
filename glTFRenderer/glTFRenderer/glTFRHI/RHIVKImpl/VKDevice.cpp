@@ -104,6 +104,20 @@ namespace VulkanEngineQueryStorage
 }
 
 
+bool VKDevice::Release(glTFRenderResourceManager&)
+{
+    if (need_release)
+    {
+        return true;
+    }
+
+    need_release = false;
+    vkDestroySurfaceKHR(instance, surface, nullptr);
+    vkDestroyDevice(logical_device, nullptr);
+    
+    return true;
+}
+
 QueueFamilyIndices VKDevice::FindQueueFamily(VkPhysicalDevice device, VkSurfaceKHR surface)
 {
     unsigned queue_family_count = 0;
@@ -219,23 +233,6 @@ bool VKDevice::IsSuitableDevice(VkPhysicalDevice device, VkSurfaceKHR surface)
     return is_suitable;
 }
 
-VKDevice::VKDevice()
-    : instance(VK_NULL_HANDLE)
-    , surface(VK_NULL_HANDLE)
-    , selected_physical_device(VK_NULL_HANDLE)
-    , logical_device(VK_NULL_HANDLE)
-    , graphics_queue_index(0)
-    , present_queue_index(0)
-{
-    
-}
-
-VKDevice::~VKDevice()
-{
-    vkDestroySurfaceKHR(instance, surface, nullptr);
-    vkDestroyDevice(logical_device, nullptr);
-}
-
 bool VKDevice::InitDevice(IRHIFactory& factory)
 {
     instance = dynamic_cast<VKFactory&>(factory).GetInstance();
@@ -318,6 +315,8 @@ bool VKDevice::InitDevice(IRHIFactory& factory)
 
     // TODO: Ensure graphics and present queue are the same now
     GLTF_CHECK(graphics_queue_index == present_queue_index);
+    
+    need_release = true;
     
     return true;
 }

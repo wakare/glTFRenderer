@@ -38,9 +38,9 @@ bool DX12DescriptorTable::Build(IRHIDevice& device, const std::vector<std::share
 }
 
 
-bool DX12DescriptorManager::Init(IRHIDevice& device, const RHIMemoryManagerDescriptorMaxCapacity& max_descriptor_capacity)
+bool DX12DescriptorManager::Init(IRHIDevice& device, const DescriptorAllocationInfo& max_descriptor_capacity)
 {
-    m_CBV_SRV_UAV_heap = std::make_shared<DX12DescriptorHeap>();
+    m_CBV_SRV_UAV_heap = RHIResourceFactory::CreateRHIResource<DX12DescriptorHeap>();
     m_CBV_SRV_UAV_heap->InitDescriptorHeap(device,
         {
             .max_descriptor_count = max_descriptor_capacity.cbv_srv_uav_size,
@@ -48,7 +48,7 @@ bool DX12DescriptorManager::Init(IRHIDevice& device, const RHIMemoryManagerDescr
             .shader_visible = true
         });
 
-    m_RTV_heap = std::make_shared<DX12DescriptorHeap>();
+    m_RTV_heap = RHIResourceFactory::CreateRHIResource<DX12DescriptorHeap>();
     m_RTV_heap->InitDescriptorHeap(device,
         {
             .max_descriptor_count = max_descriptor_capacity.rtv_size,
@@ -56,7 +56,7 @@ bool DX12DescriptorManager::Init(IRHIDevice& device, const RHIMemoryManagerDescr
             .shader_visible = false
         });
 
-    m_DSV_heap = std::make_shared<DX12DescriptorHeap>();
+    m_DSV_heap = RHIResourceFactory::CreateRHIResource<DX12DescriptorHeap>();
     m_DSV_heap->InitDescriptorHeap(device,
         {
             .max_descriptor_count = max_descriptor_capacity.dsv_size,
@@ -64,7 +64,7 @@ bool DX12DescriptorManager::Init(IRHIDevice& device, const RHIMemoryManagerDescr
             .shader_visible = false
         });
 
-    m_ImGUI_Heap = std::make_shared<DX12DescriptorHeap>();
+    m_ImGUI_Heap = RHIResourceFactory::CreateRHIResource<DX12DescriptorHeap>();
     m_ImGUI_Heap->InitDescriptorHeap(device,
         {
             .max_descriptor_count = 1,
@@ -104,6 +104,11 @@ bool DX12DescriptorManager::BindDescriptorContext(IRHICommandList& command_list)
 bool DX12DescriptorManager::BindGUIDescriptorContext(IRHICommandList& command_list)
 {
     return DX12Utils::DX12Instance().SetDescriptorHeapArray(command_list, m_ImGUI_Heap.get(), 1);
+}
+
+bool DX12DescriptorManager::Release(glTFRenderResourceManager&)
+{
+    return true;
 }
 
 DX12DescriptorHeap& DX12DescriptorManager::GetDescriptorHeap(RHIViewType type) const

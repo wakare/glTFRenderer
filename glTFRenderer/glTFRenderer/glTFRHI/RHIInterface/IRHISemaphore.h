@@ -16,4 +16,5 @@ public:
     DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(RHISemaphoreNull)
     
     virtual bool InitSemaphore(IRHIDevice& device) override;
+    virtual bool Release(glTFRenderResourceManager&) override;
 };

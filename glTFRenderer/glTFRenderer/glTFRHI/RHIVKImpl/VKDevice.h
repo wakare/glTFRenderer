@@ -26,9 +26,8 @@ struct SwapChainSupportDetails
 class VKDevice : public IRHIDevice
 {
 public:
-    VKDevice();
-    virtual ~VKDevice() override;
-
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKDevice)
+    
     virtual bool InitDevice(IRHIFactory& factory) override;
     
     VkInstance GetInstance() const {return instance; }
@@ -38,6 +37,8 @@ public:
     
     unsigned GetGraphicsQueueIndex() const {return graphics_queue_index; }
     unsigned GetPresentQueueIndex() const {return present_queue_index; }
+
+    virtual bool Release(glTFRenderResourceManager&) override;
     
 protected:
     QueueFamilyIndices FindQueueFamily(VkPhysicalDevice device, VkSurfaceKHR surface);

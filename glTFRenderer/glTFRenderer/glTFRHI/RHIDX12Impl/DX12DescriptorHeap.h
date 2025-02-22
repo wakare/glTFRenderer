@@ -1,9 +1,8 @@
 #pragma once
-#include <d3d12.h>
-#include <memory>
-
+#include "DX12Common.h"
 #include "glTFRHI/RHIInterface/IRHIResource.h"
 #include "glTFRHI/RHIInterface/RHICommon.h"
+#include <memory>
 
 class IRHITextureDescriptorAllocation;
 class IRHIBufferDescriptorAllocation;
@@ -18,8 +17,7 @@ class IRHIDescriptorAllocation;
 class DX12DescriptorHeap : public IRHIResource
 {
 public:
-    DX12DescriptorHeap();
-    virtual ~DX12DescriptorHeap() override;
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(DX12DescriptorHeap)
     
     virtual bool InitDescriptorHeap(IRHIDevice& device, const RHIDescriptorHeapDesc& desc) ;
     unsigned GetUsedDescriptorCount() const;
@@ -33,7 +31,9 @@ public:
                                                           /*output*/
                                                           std::shared_ptr<IRHITextureDescriptorAllocation>& out_allocation) ;
 
-    ID3D12DescriptorHeap* GetDescriptorHeap() {return m_descriptorHeap; }
+    virtual bool Release(glTFRenderResourceManager&) override;
+    
+    ID3D12DescriptorHeap* GetDescriptorHeap() {return m_descriptorHeap.Get(); }
     D3D12_CPU_DESCRIPTOR_HANDLE GetCPUHandleForHeapStart() const;
     D3D12_GPU_DESCRIPTOR_HANDLE GetGPUHandleForHeapStart() const;
 
@@ -48,9 +48,9 @@ private:
 
     RHIDescriptorHeapDesc m_desc{};
     
-    ID3D12DescriptorHeap* m_descriptorHeap;
-    unsigned m_descriptor_increment_size;
-    unsigned m_used_descriptor_count;
+    ComPtr<ID3D12DescriptorHeap> m_descriptorHeap {nullptr};
+    unsigned m_descriptor_increment_size {0};
+    unsigned m_used_descriptor_count {0};
 
     std::map<ID3D12Resource*, std::vector<std::pair<RHIDescriptorDesc, RHIGPUDescriptorHandle>>> m_created_descriptors_info;
 };

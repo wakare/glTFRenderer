@@ -1,7 +1,7 @@
-﻿#include "IRHIIndexBuffer.h"
+﻿#include "RHIIndexBuffer.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 
-std::shared_ptr<IRHIIndexBufferView> IRHIIndexBuffer::CreateIndexBufferView(IRHIDevice& device,
+std::shared_ptr<IRHIIndexBufferView> RHIIndexBuffer::CreateIndexBufferView(IRHIDevice& device,
     IRHIMemoryManager& memory_manager, IRHICommandList& command_list, const RHIBufferDesc& desc,
     const IndexBufferData& index_buffer_data)
 {

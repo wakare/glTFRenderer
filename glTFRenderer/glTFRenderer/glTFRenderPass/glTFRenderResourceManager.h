@@ -35,7 +35,6 @@ public:
     IRHIDevice& GetDevice() const;
     IRHISwapChain& GetSwapChain() const;
     IRHICommandQueue& GetCommandQueue() const;
-    IRHIMemoryAllocator& GetMemoryAllocator() const;
     IRHIMemoryManager& GetMemoryManager() const;
     
     unsigned GetCurrentBackBufferIndex() const;
@@ -93,7 +92,6 @@ private:
     std::shared_ptr<IRHIDevice> m_device;
     std::shared_ptr<IRHICommandQueue> m_command_queue;
     std::shared_ptr<IRHISwapChain> m_swap_chain;
-    std::shared_ptr<IRHIMemoryAllocator> m_memory_allocator;
     std::shared_ptr<IRHIMemoryManager> m_memory_manager;
     
     std::vector<std::shared_ptr<IRHICommandAllocator>> m_command_allocators;

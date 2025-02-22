@@ -5,11 +5,10 @@
 class VKSemaphore : public IRHISemaphore
 {
 public:
-    VKSemaphore() = default;
-    virtual ~VKSemaphore() override;
-    DECLARE_NON_COPYABLE(VKSemaphore)
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKSemaphore)
 
     virtual bool InitSemaphore(IRHIDevice& device) override;
+    virtual bool Release(glTFRenderResourceManager&) override;
     
     VkSemaphore GetSemaphore() const;
     

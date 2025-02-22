@@ -1,10 +1,10 @@
-#include "IRHIIndirectDrawBuilder.h"
+#include "RHIIndirectDrawBuilder.h"
 
 #include "RHIResourceFactoryImpl.hpp"
 #include "RHIUtils.h"
 #include "RHIInterface/IRHIMemoryManager.h"
 
-bool IRHIIndirectDrawBuilder::InitIndirectDrawBuilder(IRHIDevice& device, IRHIMemoryManager& memory_manager,
+bool RHIIndirectDrawBuilder::InitIndirectDrawBuilder(IRHIDevice& device, IRHIMemoryManager& memory_manager,
     const std::vector<RHIIndirectArgumentDesc>& indirect_argument_desc, unsigned command_stride, const void* data, size_t size)
 {
     GLTF_CHECK(!m_inited);
@@ -69,7 +69,7 @@ bool IRHIIndirectDrawBuilder::InitIndirectDrawBuilder(IRHIDevice& device, IRHIMe
     return true;
 }
 
-std::shared_ptr<IRHICommandSignature> IRHIIndirectDrawBuilder::BuildCommandSignature(IRHIDevice& device,
+std::shared_ptr<IRHICommandSignature> RHIIndirectDrawBuilder::BuildCommandSignature(IRHIDevice& device,
     IRHIRootSignature& root_signature) const
 {
     auto command_signature = RHIResourceFactory::CreateRHIResource<IRHICommandSignature>();
@@ -83,31 +83,31 @@ std::shared_ptr<IRHICommandSignature> IRHIIndirectDrawBuilder::BuildCommandSigna
     return command_signature;
 }
 
-unsigned IRHIIndirectDrawBuilder::GetCommandStride() const
+unsigned RHIIndirectDrawBuilder::GetCommandStride() const
 {
     GLTF_CHECK(m_inited);
     return  m_command_signature_desc.stride;
 }
 
-std::shared_ptr<IRHIBuffer> IRHIIndirectDrawBuilder::GetIndirectArgumentBuffer() const
+std::shared_ptr<IRHIBuffer> RHIIndirectDrawBuilder::GetIndirectArgumentBuffer() const
 {
     GLTF_CHECK(m_inited);
     return m_indirect_argument_buffer->m_buffer;
 }
 
-std::shared_ptr<IRHIBuffer> IRHIIndirectDrawBuilder::GetCulledIndirectArgumentBuffer() const
+std::shared_ptr<IRHIBuffer> RHIIndirectDrawBuilder::GetCulledIndirectArgumentBuffer() const
 {
     GLTF_CHECK(m_inited);
     return m_culled_indirect_commands->m_buffer;
 }
 
-std::shared_ptr<IRHIBuffer> IRHIIndirectDrawBuilder::GetCountBuffer() const
+std::shared_ptr<IRHIBuffer> RHIIndirectDrawBuilder::GetCountBuffer() const
 {
     GLTF_CHECK(m_inited);
     return m_count_buffer->m_buffer;
 }
 
-bool IRHIIndirectDrawBuilder::DrawIndirect(IRHICommandList& command_list, IRHICommandSignature& command_signature, bool use_dynamic_count)
+bool RHIIndirectDrawBuilder::DrawIndirect(IRHICommandList& command_list, IRHICommandSignature& command_signature, bool use_dynamic_count)
 {
     GLTF_CHECK(m_inited);
     
@@ -137,13 +137,13 @@ bool IRHIIndirectDrawBuilder::DrawIndirect(IRHICommandList& command_list, IRHICo
     return true;
 }
 
-RHICommandSignatureDesc IRHIIndirectDrawBuilder::GetDesc() const
+RHICommandSignatureDesc RHIIndirectDrawBuilder::GetDesc() const
 {
     GLTF_CHECK(m_inited);
     return m_command_signature_desc;
 }
 
-bool IRHIIndirectDrawBuilder::GetCachedData(const char*& out_data, size_t& out_size) const
+bool RHIIndirectDrawBuilder::GetCachedData(const char*& out_data, size_t& out_size) const
 {
     GLTF_CHECK(m_inited);
     out_data = m_cached_data.get();
@@ -152,13 +152,13 @@ bool IRHIIndirectDrawBuilder::GetCachedData(const char*& out_data, size_t& out_s
     return true;
 }
 
-unsigned IRHIIndirectDrawBuilder::GetCachedCommandCount() const
+unsigned RHIIndirectDrawBuilder::GetCachedCommandCount() const
 {
     GLTF_CHECK(m_inited);
     return m_cached_command_count;
 }
 
-bool IRHIIndirectDrawBuilder::ResetCountBuffer(IRHIMemoryManager& memory_manager)
+bool RHIIndirectDrawBuilder::ResetCountBuffer(IRHIMemoryManager& memory_manager)
 {
     return true;
     /*

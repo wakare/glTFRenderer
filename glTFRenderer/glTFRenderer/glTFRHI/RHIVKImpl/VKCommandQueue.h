@@ -12,6 +12,8 @@ public:
     
     VkQueue GetGraphicsQueue() const;
     
+    virtual bool Release(glTFRenderResourceManager&) override;
+    
 protected:
     VkDevice logical_device {VK_NULL_HANDLE};
     VkQueue graphics_queue {VK_NULL_HANDLE};

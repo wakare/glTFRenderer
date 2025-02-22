@@ -6,14 +6,6 @@
 #include "VKCommon.h"
 #include "VKStaticSampler.h"
 
-VKRootSignature::~VKRootSignature()
-{
-    for (const auto& descriptor_set_layout : m_descriptor_set_layouts)
-    {
-        vkDestroyDescriptorSetLayout(m_device, descriptor_set_layout, nullptr);    
-    }
-}
-
 bool VKRootSignature::InitRootSignature(IRHIDevice& device, IRHIDescriptorManager& descriptor_manager)
 {
     m_device = dynamic_cast<VKDevice&>(device).GetDevice();
@@ -64,6 +56,23 @@ bool VKRootSignature::InitRootSignature(IRHIDevice& device, IRHIDescriptorManage
 
     m_descriptor_sets.resize(space_bindings.size());
     VK_CHECK(vkAllocateDescriptorSets(m_device, &descriptor_set_allocate_info, m_descriptor_sets.data()));
+    need_release = true;
+    
+    return true;
+}
+
+bool VKRootSignature::Release(glTFRenderResourceManager&)
+{
+    if (!need_release)
+    {
+        return true;
+    }
+
+    need_release = false;
+    for (const auto& descriptor_set_layout : m_descriptor_set_layouts)
+    {
+        vkDestroyDescriptorSetLayout(m_device, descriptor_set_layout, nullptr);    
+    }
     
     return true;
 }

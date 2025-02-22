@@ -2,11 +2,6 @@
 
 #include "VKDevice.h"
 
-VKSemaphore::~VKSemaphore()
-{
-    vkDestroySemaphore(m_device, m_semaphore, nullptr);
-}
-
 bool VKSemaphore::InitSemaphore(IRHIDevice& device)
 {
     m_device = dynamic_cast<VKDevice&>(device).GetDevice();
@@ -16,6 +11,21 @@ bool VKSemaphore::InitSemaphore(IRHIDevice& device)
 
     const VkResult result = vkCreateSemaphore(m_device, &create_semaphore_info, nullptr, &m_semaphore);
     GLTF_CHECK(result == VK_SUCCESS);
+
+    need_release = true;
+    
+    return true;
+}
+
+bool VKSemaphore::Release(glTFRenderResourceManager&)
+{
+    if (!need_release)
+    {
+        return true;
+    }
+    
+    need_release = false;
+    vkDestroySemaphore(m_device, m_semaphore, nullptr);
 
     return true;
 }

@@ -25,7 +25,7 @@ __declspec(align(16)) struct MeshIndirectDrawCommand
 };
 
 
-class IRHIIndirectDrawBuilder
+class RHIIndirectDrawBuilder
 {
 public:
     bool InitIndirectDrawBuilder(IRHIDevice& device, IRHIMemoryManager& memory_manager, const std::vector<RHIIndirectArgumentDesc>& indirect_argument_desc, unsigned command_stride, const void* data, size_t size);

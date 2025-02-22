@@ -8,10 +8,12 @@
 
 class IRHIDescriptorManager;
 
-class IRHIRootParameter : public IRHIResource
+class IRHIRootParameter
 {
 public:
     IRHIRootParameter() : m_type(RHIRootParameterType::Unknown) { }
+    DECLARE_NON_COPYABLE_AND_VDTOR(IRHIRootParameter)
+    
     virtual bool InitAsConstant(unsigned constantValue, REGISTER_INDEX_TYPE register_index, unsigned space) = 0;
     virtual bool InitAsCBV(unsigned attribute_index, REGISTER_INDEX_TYPE register_index, unsigned space) = 0;
     virtual bool InitAsSRV(unsigned attribute_index, REGISTER_INDEX_TYPE register_index, unsigned space) = 0;

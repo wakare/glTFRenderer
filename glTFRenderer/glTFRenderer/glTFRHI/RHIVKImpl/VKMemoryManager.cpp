@@ -5,13 +5,22 @@
 #include "VKConverterUtils.h"
 #include "VKTexture.h"
 #include "VulkanUtils.h"
-#include "glTFRHI/RHIResourceFactory.h"
+#include "glTFRHI/RHIResourceFactoryImpl.hpp"
 
 #define VMA_IMPLEMENTATION
 #include <vma/vk_mem_alloc.h>
 
 #include "VKCommandList.h"
 #include "glTFRenderPass/glTFRenderResourceManager.h"
+
+bool VKMemoryManager::InitMemoryManager(IRHIDevice& device, const IRHIFactory& factory,
+                                        const DescriptorAllocationInfo& max_descriptor_capacity)
+{
+    RETURN_IF_FALSE(IRHIMemoryManager::InitMemoryManager(device, factory, max_descriptor_capacity))
+
+    m_allocator = RHIResourceFactory::CreateRHIResource<IRHIMemoryAllocator>();
+    return m_allocator->InitMemoryAllocator(factory, device);
+}
 
 bool VKMemoryManager::AllocateBufferMemory(IRHIDevice& device, const RHIBufferDesc& buffer_desc,
                                            std::shared_ptr<IRHIBufferAllocation>& out_buffer_allocation)
@@ -40,10 +49,11 @@ bool VKMemoryManager::AllocateBufferMemory(IRHIDevice& device, const RHIBufferDe
     auto& buffer_allocation = dynamic_cast<VKBufferAllocation&>(*out_buffer_allocation);
     buffer_allocation.m_allocation = out_allocation;
     buffer_allocation.m_allocation_info = out_allocation_info;
-
     buffer_allocation.m_buffer = RHIResourceFactory::CreateRHIResource<IRHIBuffer>();
+    out_buffer_allocation->SetNeedRelease();
+
     VkDevice vk_device = dynamic_cast<VKDevice&>(device).GetDevice();
-    dynamic_cast<VKBuffer&>(*buffer_allocation.m_buffer).InitBuffer(vk_device, out_buffer, buffer_desc);
+    dynamic_cast<VKBuffer&>(*buffer_allocation.m_buffer).InitBuffer(out_buffer, buffer_desc);
 
     m_buffer_allocations.push_back(out_buffer_allocation);
     
@@ -139,7 +149,60 @@ bool VKMemoryManager::AllocateTextureMemoryAndUpload(IRHIDevice& device, glTFRen
     return true;
 }
 
-bool VKMemoryManager::CleanAllocatedResource()
+bool VKMemoryManager::ReleaseMemoryAllocation(glTFRenderResourceManager& resource_manager,
+    IRHIMemoryAllocation& memory_allocation)
+{
+    const auto* raw_pointer = &memory_allocation;
+
+    switch (memory_allocation.GetAllocationType()) {
+    case IRHIMemoryAllocation::BUFFER:
+        {
+            const auto& vk_buffer_allocation = dynamic_cast<const VKBufferAllocation&>(memory_allocation);
+            VkBuffer vk_buffer = dynamic_cast<const VKBuffer&>(*vk_buffer_allocation.m_buffer).GetRawBuffer();
+        
+            vmaDestroyBuffer(GetVmaAllocator(), vk_buffer, vk_buffer_allocation.m_allocation);
+
+            bool removed = false;
+            for (auto iter = m_buffer_allocations.begin(); iter != m_buffer_allocations.end(); ++iter)
+            {
+                if (iter->get() == raw_pointer)
+                {
+                    m_buffer_allocations.erase(iter);
+                    removed = true;
+                    break;
+                }
+            }
+
+            GLTF_CHECK(removed);
+        }
+        break;
+    case IRHIMemoryAllocation::TEXTURE:
+        {
+            const auto& vk_texture_allocation = dynamic_cast<const VKTextureAllocation&>(memory_allocation);
+            VkImage vk_image = dynamic_cast<const VKTexture&>(*vk_texture_allocation.m_texture).GetRawImage();
+
+            vmaDestroyImage(GetVmaAllocator(), vk_image, vk_texture_allocation.m_allocation);
+
+            bool removed = false;
+            for (auto iter = m_texture_allocations.begin(); iter != m_texture_allocations.end(); ++iter)
+            {
+                if (iter->get() == raw_pointer)
+                {
+                    m_texture_allocations.erase(iter);
+                    removed = true;
+                    break;
+                }
+            }
+
+            GLTF_CHECK(removed);
+        }
+        break;
+    }
+
+    return true;
+}
+
+bool VKMemoryManager::ReleaseAllResource(glTFRenderResourceManager& resource_manager)
 {
     for (auto& buffer_allocation : m_buffer_allocations)
     {
@@ -156,6 +219,8 @@ bool VKMemoryManager::CleanAllocatedResource()
 
         vmaDestroyImage(GetVmaAllocator(), vk_image, vk_texture_allocation.m_allocation);
     }
+    
+    m_allocator->Release(resource_manager);
     
     return true;
 }

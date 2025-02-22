@@ -1,22 +1,18 @@
 #include "VKBuffer.h"
 
-VKBuffer::~VKBuffer()
-{
-    //vkDestroyBuffer(m_device, m_buffer, nullptr);
-}
+#include "glTFRenderPass/glTFRenderResourceManager.h"
 
-bool VKBuffer::InitBuffer(VkDevice device, VkBuffer buffer, const RHIBufferDesc& desc)
+bool VKBuffer::InitBuffer(VkBuffer buffer, const RHIBufferDesc& desc)
 {
-    m_device = device;
     m_buffer = buffer;
     m_buffer_desc = desc;
-    m_buffer_init = true;
+    need_release = true;
     
     return true;
 }
 
 VkBuffer VKBuffer::GetRawBuffer() const
 {
-    GLTF_CHECK(m_buffer_init);
+    GLTF_CHECK(need_release);
     return m_buffer;
 }

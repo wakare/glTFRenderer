@@ -7,16 +7,6 @@ const std::vector validation_layers =
     "VK_LAYER_KHRONOS_validation"
 };
 
-VKFactory::VKFactory()
-    : m_instance(VK_NULL_HANDLE)
-{
-}
-
-VKFactory::~VKFactory()
-{
-    vkDestroyInstance(m_instance, nullptr);
-}
-
 bool VKFactory::InitFactory()
 {
     // Create vulkan instance
@@ -50,6 +40,20 @@ bool VKFactory::InitFactory()
     GLTF_CHECK(result == VK_SUCCESS);
 
     VolkUtils::LoadInstance(m_instance);
+    need_release = true;
+    
+    return true;
+}
+
+bool VKFactory::Release(glTFRenderResourceManager&)
+{
+    if (!need_release)
+    {
+        return true;
+    }
+
+    need_release = false;
+    vkDestroyInstance(m_instance, nullptr);
     
     return true;
 }

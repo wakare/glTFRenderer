@@ -14,6 +14,8 @@ public:
     
     bool Transition(IRHICommandList& command_list, RHIResourceStateType new_state);
     RHIResourceStateType GetState() const;
+
+    bool Release(glTFRenderResourceManager&) override;
     
 protected:
     RHIBufferDesc m_buffer_desc {};

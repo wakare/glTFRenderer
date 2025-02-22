@@ -13,12 +13,10 @@ struct RHIRenderTargetDesc
     RHIDataFormat format;
 };
 
-class IRHIRenderTarget : public IRHIResource
+class IRHIRenderTarget
 {
 public:
-    IRHIRenderTarget();
-    virtual ~IRHIRenderTarget() override = default;
-    DECLARE_NON_COPYABLE(IRHIRenderTarget)
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIRenderTarget)
 
     bool InitRenderTarget(std::shared_ptr<IRHITextureAllocation> texture,
                           std::shared_ptr<IRHITextureDescriptorAllocation> descriptor_allocation);

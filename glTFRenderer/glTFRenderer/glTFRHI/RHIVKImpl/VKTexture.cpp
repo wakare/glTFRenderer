@@ -2,11 +2,6 @@
 
 #include "VKBuffer.h"
 
-VKTexture::~VKTexture()
-{
-    //vkDestroyImage(m_device, m_image, nullptr);
-}
-
 bool VKTexture::Init(VkDevice device, VkImage image, const RHITextureDesc& texture_desc)
 {
     m_texture_desc = texture_desc;

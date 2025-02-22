@@ -38,8 +38,6 @@ bool glTFRenderResourceManager::InitResourceManager(unsigned width, unsigned hei
         });
     EXIT_WHEN_FALSE(m_swap_chain->InitSwapChain(*m_factory, *m_device, *m_command_queue, swap_chain_texture_desc, false, handle))    
 
-    m_memory_allocator = RHIResourceFactory::CreateRHIResource<IRHIMemoryAllocator>();
-    EXIT_WHEN_FALSE(m_memory_allocator->InitMemoryAllocator(*m_factory, *m_device))
     EXIT_WHEN_FALSE(InitMemoryManager())
     
     m_command_allocators.resize(backBufferCount);
@@ -147,12 +145,12 @@ bool glTFRenderResourceManager::InitScene(const glTFSceneGraph& scene_graph)
 bool glTFRenderResourceManager::InitMemoryManager()
 {
     m_memory_manager = RHIResourceFactory::CreateRHIResource<IRHIMemoryManager>();
-    EXIT_WHEN_FALSE(m_memory_manager->InitMemoryManager(*m_device, m_memory_allocator,
-        {
+    EXIT_WHEN_FALSE(m_memory_manager->InitMemoryManager(*m_device, *m_factory,
+            {
             256,
             64,
             64
-        }))
+            }))
     return true;
 }
 
@@ -174,11 +172,6 @@ IRHISwapChain& glTFRenderResourceManager::GetSwapChain() const
 IRHICommandQueue& glTFRenderResourceManager::GetCommandQueue() const
 {
     return *m_command_queue;
-}
-
-IRHIMemoryAllocator& glTFRenderResourceManager::GetMemoryAllocator() const
-{
-    return *m_memory_allocator;
 }
 
 IRHIMemoryManager& glTFRenderResourceManager::GetMemoryManager() const

@@ -22,12 +22,12 @@ class IRHIBuffer;
 class IRHICommandList;
 
 // Singleton for provide combined basic rhi operations
-class RHIUtils : public IRHIResource
+class RHIUtils
 {
     friend class RHIResourceFactory;
     
 public:
-    RHIUtils() = default;
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(RHIUtils)
 
     virtual bool InitGraphicsAPI() = 0;
     
@@ -59,7 +59,7 @@ public:
     virtual bool SetConstant32BitToRootParameterSlot(IRHICommandList& command_list, unsigned slotIndex, unsigned* data, unsigned count, RHIPipelineType pipeline_type) = 0;
     
     virtual bool AddBufferBarrierToCommandList(IRHICommandList& command_list, const IRHIBuffer& buffer, RHIResourceStateType beforeState, RHIResourceStateType afterState) = 0;
-    virtual bool AddTextureBarrierToCommandList(IRHICommandList& command_list, const IRHITexture& buffer, RHIResourceStateType beforeState, RHIResourceStateType afterState) = 0;
+    virtual bool AddTextureBarrierToCommandList(IRHICommandList& command_list, IRHITexture& buffer, RHIResourceStateType beforeState, RHIResourceStateType afterState) = 0;
 
     virtual bool DrawInstanced(IRHICommandList& command_list, unsigned vertexCountPerInstance, unsigned instanceCount, unsigned startVertexLocation, unsigned startInstanceLocation) = 0;
     virtual bool DrawIndexInstanced(IRHICommandList& command_list, unsigned indexCountPerInstance, unsigned instanceCount, unsigned startIndexLocation, unsigned baseVertexLocation, unsigned startInstanceLocation) = 0;

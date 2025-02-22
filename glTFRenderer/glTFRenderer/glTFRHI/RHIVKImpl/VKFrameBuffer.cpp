@@ -5,11 +5,6 @@
 #include "VKRenderTarget.h"
 #include "VKSwapChain.h"
 
-VKFrameBuffer::~VKFrameBuffer()
-{
-    vkDestroyFramebuffer(m_device, m_frame_buffer, nullptr);
-}
-
 bool VKFrameBuffer::InitFrameBuffer(IRHIDevice& device, IRHISwapChain& swap_chain, const RHIFrameBufferInfo& info)
 {
     m_device = dynamic_cast<VKDevice&>(device).GetDevice();
@@ -32,6 +27,8 @@ bool VKFrameBuffer::InitFrameBuffer(IRHIDevice& device, IRHISwapChain& swap_chai
 
     const VkResult result = vkCreateFramebuffer(m_device, &framebuffer_create_info, nullptr, &m_frame_buffer);
     GLTF_CHECK(result == VK_SUCCESS);
+
+    need_release = true;
     
     return true;
 }
@@ -39,4 +36,16 @@ bool VKFrameBuffer::InitFrameBuffer(IRHIDevice& device, IRHISwapChain& swap_chai
 const VkFramebuffer& VKFrameBuffer::GetFrameBuffer() const
 {
     return m_frame_buffer;
+}
+
+bool VKFrameBuffer::Release(glTFRenderResourceManager&)
+{
+    if (!need_release)
+    {
+        return true;
+    }
+
+    need_release = false;
+    vkDestroyFramebuffer(m_device, m_frame_buffer, nullptr);
+    return true;
 }

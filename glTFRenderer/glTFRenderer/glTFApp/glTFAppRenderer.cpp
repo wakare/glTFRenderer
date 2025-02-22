@@ -2,6 +2,7 @@
 #include "glTFGUIRenderer.h"
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassLighting.h"
 #include "glTFRHI/RHIConfigSingleton.h"
+#include "glTFRHI/RHIResourceFactory.h"
 #include "RenderWindow/glTFWindow.h"
 
 glTFAppRenderer::glTFAppRenderer(const glTFAppRendererConfig& renderer_config, const glTFWindow& window)
@@ -81,8 +82,10 @@ void glTFAppRenderer::WaitForExit()
     m_resource_manager->WaitPresentFinished();
     m_ui_renderer->ExitAndClean();
     
-    m_resource_manager->GetMemoryManager().CleanAllocatedResource();
-    m_resource_manager->GetMemoryAllocator().DestroyMemoryAllocator();
+    m_resource_manager->GetMemoryManager().ReleaseAllResource(*m_resource_manager);
+    
+    const bool cleanup = RHIResourceFactory::CleanupResources(*m_resource_manager);
+    GLTF_CHECK(cleanup);
 }
 
 glTFGUIRenderer& glTFAppRenderer::GetGUIRenderer() const

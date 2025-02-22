@@ -73,6 +73,21 @@ bool DX12Device::InitDevice(IRHIFactory& factory)
 
     // Query DXR device
     THROW_IF_FAILED(m_device->QueryInterface(IID_PPV_ARGS(&m_dxr_device)))
+
+    need_release = true;
+    
+    return true;
+}
+
+bool DX12Device::Release(glTFRenderResourceManager&)
+{
+    if (!need_release)
+    {
+        return true;
+    }
+
+    need_release = false;
+    SAFE_RELEASE(m_device)
     
     return true;
 }

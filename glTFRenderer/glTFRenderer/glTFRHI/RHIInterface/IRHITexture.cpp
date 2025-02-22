@@ -305,3 +305,8 @@ RHIResourceStateType IRHITexture::GetState() const
 {
     return m_current_state;
 }
+
+bool IRHITexture::Release(glTFRenderResourceManager&)
+{
+    return true;
+}

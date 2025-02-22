@@ -5,12 +5,11 @@
 class VKRenderPass : public IRHIRenderPass
 {
 public:
-    VKRenderPass() = default;
-    virtual ~VKRenderPass() override;
-    DECLARE_NON_COPYABLE(VKRenderPass)
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKRenderPass)
     
     virtual bool InitRenderPass(IRHIDevice& device, const RHIRenderPassInfo& info) override;
-
+    virtual bool Release(glTFRenderResourceManager&) override;
+    
     const VkRenderPass& GetRenderPass() const;
     
 protected:

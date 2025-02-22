@@ -10,7 +10,7 @@ struct RHIIndexBufferViewDesc
     RHIDataFormat format;
 };
 
-class IRHIIndexBufferView : public IRHIResource
+class IRHIIndexBufferView
 {
 public:
     DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIIndexBufferView)

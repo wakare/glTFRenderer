@@ -1,6 +1,5 @@
 #pragma once
 #include "glTFGraphicsPassMeshBase.h"
-#include "glTFRenderPass/glTFRenderPassBase.h"
 #include "glTFRHI/RHIVertexStreamingManager.h"
 
 class IRHIBufferAllocation;

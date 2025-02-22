@@ -58,6 +58,21 @@ bool DX12CommandSignature::InitCommandSignature(IRHIDevice& device, IRHIRootSign
     command_signature_desc.ByteStride =  m_desc.stride;
 
     THROW_IF_FAILED(dx_device->CreateCommandSignature(&command_signature_desc, need_bind_root_signature ? dx_root_signature : nullptr, IID_PPV_ARGS(&m_command_signature)))
+
+    need_release = true;
+    
+    return true;
+}
+
+bool DX12CommandSignature::Release(glTFRenderResourceManager&)
+{
+    if (!need_release)
+    {
+        return true;
+    }
+    
+    need_release = false;
+    SAFE_RELEASE(m_command_signature);
     
     return true;
 }

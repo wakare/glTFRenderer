@@ -2,7 +2,7 @@
 #include "IRHIBuffer.h"
 #include "IRHIResource.h"
 
-class IRHIVertexBufferView : public IRHIResource
+class IRHIVertexBufferView
 {
 public:
     DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIVertexBufferView)

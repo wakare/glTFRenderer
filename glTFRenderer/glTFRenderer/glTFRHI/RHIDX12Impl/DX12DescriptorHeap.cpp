@@ -9,18 +9,6 @@
 #include "DX12Texture.h"
 #include "DX12Utils.h"
 
-DX12DescriptorHeap::DX12DescriptorHeap()
-    : m_descriptorHeap(nullptr)
-    , m_descriptor_increment_size(0)
-    , m_used_descriptor_count(0)
-{
-}
-
-DX12DescriptorHeap::~DX12DescriptorHeap()
-{
-    SAFE_RELEASE(m_descriptorHeap)
-}
-
 bool DX12DescriptorHeap::InitDescriptorHeap(IRHIDevice& device, const RHIDescriptorHeapDesc& desc)
 {
     m_desc = desc;
@@ -123,7 +111,7 @@ bool DX12DescriptorHeap::CreateResourceDescriptorInHeap(IRHIDevice& device,
 bool DX12DescriptorHeap::CreateResourceDescriptorInHeap(IRHIDevice& device, const std::shared_ptr<IRHITexture>& texture,
                                                                   const RHIDescriptorDesc& desc, std::shared_ptr<IRHITextureDescriptorAllocation>& out_allocation)
 {
-    auto* resource = dynamic_cast<const DX12Texture&>(*texture).GetRawResource();
+    auto* resource = dynamic_cast<DX12Texture&>(*texture).GetRawResource();
     auto find_resource = m_created_descriptors_info.find(resource);
     auto& texture_desc = dynamic_cast<const RHITextureDescriptorDesc&>(desc);
     if (find_resource != m_created_descriptors_info.end())
@@ -162,6 +150,19 @@ bool DX12DescriptorHeap::CreateResourceDescriptorInHeap(IRHIDevice& device, cons
 
     out_allocation = std::make_shared<DX12TextureDescriptorAllocation>(gpu_handle, cpu_handle, texture, texture_desc);
     return created;
+}
+
+bool DX12DescriptorHeap::Release(glTFRenderResourceManager&)
+{
+    if (!need_release)
+    {
+        return true;
+    }
+
+    need_release = false;
+    SAFE_RELEASE(m_descriptorHeap)
+    
+    return true;
 }
 
 D3D12_CPU_DESCRIPTOR_HANDLE DX12DescriptorHeap::GetCPUHandleForHeapStart() const

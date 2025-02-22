@@ -8,15 +8,6 @@
 #include "VKSemaphore.h"
 #include "VKTexture.h"
 
-VKSwapChain::VKSwapChain()
-{
-}
-
-VKSwapChain::~VKSwapChain()
-{
-    vkDestroySwapchainKHR(m_device, m_swap_chain, nullptr);
-}
-
 unsigned VKSwapChain::GetCurrentBackBufferIndex()
 {
     return m_current_frame_index;
@@ -113,6 +104,8 @@ bool VKSwapChain::InitSwapChain(IRHIFactory& factory, IRHIDevice& device, IRHICo
         }
     }
     
+    need_release = true;
+    
     return true;
 }
 
@@ -171,6 +164,19 @@ bool VKSwapChain::HostWaitPresentFinished(IRHIDevice& device)
 {
     auto vk_device = dynamic_cast<VKDevice&>(device).GetDevice();
     VK_CHECK(vkWaitForPresentKHR(vk_device, m_swap_chain, m_present_id_count, UINT64_MAX))
+    return true;
+}
+
+bool VKSwapChain::Release(glTFRenderResourceManager&)
+{
+    if (!need_release)
+    {
+        return true;
+    }
+    
+    need_release = false;
+    vkDestroySwapchainKHR(m_device, m_swap_chain, nullptr);
+
     return true;
 }
 

@@ -41,13 +41,23 @@ bool VKMemoryAllocator::InitMemoryAllocator(const IRHIFactory& factory, const IR
     vma_allocator_create_info.pVulkanFunctions = &vma_vulkan_func;
     VkResult result = vmaCreateAllocator(&vma_allocator_create_info, &m_vma_allocator);
     GLTF_CHECK(result == VK_SUCCESS);
+
+    need_release = true;
     
     return true;
 }
 
-void VKMemoryAllocator::DestroyMemoryAllocator()
+bool VKMemoryAllocator::Release(glTFRenderResourceManager&)
 {
+    if (!need_release)
+    {
+        return true;
+    }
+
+    need_release = false;
     vmaDestroyAllocator(m_vma_allocator);
+    
+    return true;
 }
 
 VmaAllocator VKMemoryAllocator::GetAllocator() const

@@ -5,13 +5,15 @@
 class VKFence : public IRHIFence
 {
 public:
-    virtual ~VKFence() override;
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKFence)
     
     virtual bool InitFence(IRHIDevice& device) override;
     virtual bool HostWaitUtilSignaled() override;
     virtual bool ResetFence() override;
 
     VkFence GetFence() const {return m_fence; }
+    
+    virtual bool Release(glTFRenderResourceManager&) override;
     
 protected:
     VkDevice m_device {VK_NULL_HANDLE};

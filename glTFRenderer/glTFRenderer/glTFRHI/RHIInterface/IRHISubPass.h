@@ -5,8 +5,7 @@
 class IRHISubPass : public IRHIResource
 {
 public:
-    IRHISubPass() = default;
-    virtual ~IRHISubPass() = default;
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHISubPass)
     
     virtual bool InitSubPass(const RHISubPassInfo& sub_pass_info) = 0;
 };

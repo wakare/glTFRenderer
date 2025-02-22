@@ -6,9 +6,8 @@
 class DX12SwapChain : public IRHISwapChain
 {
 public:
-    DX12SwapChain();
-    virtual ~DX12SwapChain() override;
-
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(DX12SwapChain)
+    
     virtual unsigned GetCurrentBackBufferIndex() override;
     virtual unsigned GetBackBufferCount() override;
     
@@ -17,6 +16,7 @@ public:
     virtual IRHISemaphore& GetAvailableFrameSemaphore() override;
     virtual bool Present(IRHICommandQueue& command_queue, IRHICommandList& command_list) override;
     virtual bool HostWaitPresentFinished(IRHIDevice& device) override;
+    virtual bool Release(glTFRenderResourceManager&) override;
     
     IDXGISwapChain3* GetSwapChain() {return m_swap_chain.Get();}
     const IDXGISwapChain3* GetSwapChain() const {return m_swap_chain.Get();}
@@ -28,8 +28,8 @@ public:
     unsigned GetCurrentFrameBufferIndex() const {return m_swap_chain->GetCurrentBackBufferIndex();}
     
 private:
-    unsigned m_frame_buffer_count;
-    ComPtr<IDXGISwapChain3> m_swap_chain;
-    DXGI_SAMPLE_DESC m_swap_chain_sample_desc;
+    unsigned m_frame_buffer_count {3};
+    ComPtr<IDXGISwapChain3> m_swap_chain {nullptr};
+    DXGI_SAMPLE_DESC m_swap_chain_sample_desc {};
 };
 

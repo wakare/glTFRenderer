@@ -3,11 +3,6 @@
 #include "VKConverterUtils.h"
 #include "VKDevice.h"
 
-VKRenderPass::~VKRenderPass()
-{
-    vkDestroyRenderPass(m_device, m_render_pass, nullptr);
-}
-
 bool VKRenderPass::InitRenderPass(IRHIDevice& device, const RHIRenderPassInfo& info)
 {
     m_device = dynamic_cast<VKDevice&>(device).GetDevice();
@@ -69,7 +64,22 @@ bool VKRenderPass::InitRenderPass(IRHIDevice& device, const RHIRenderPassInfo& i
 
     const VkResult result = vkCreateRenderPass(m_device, &create_render_pass_info, nullptr, &m_render_pass);
     GLTF_CHECK(result == VK_SUCCESS);
+
+    need_release = true;
     
+    return true;
+}
+
+bool VKRenderPass::Release(glTFRenderResourceManager&)
+{
+    if (!need_release)
+    {
+        return true;
+    }
+    
+    need_release = false;
+    vkDestroyRenderPass(m_device, m_render_pass, nullptr);
+
     return true;
 }
 

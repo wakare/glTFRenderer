@@ -1,21 +1,8 @@
 #include "DX12CommandList.h"
 
 #include "DX12Device.h"
-#include "DX12Utils.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 #include "glTFRHI/RHIInterface/IRHIFence.h"
-
-DX12CommandList::DX12CommandList()
-    : m_command_list(nullptr)
-    , m_dxr_command_list(nullptr)
-{
-}
-
-DX12CommandList::~DX12CommandList()
-{
-    SAFE_RELEASE(m_command_list)
-    SAFE_RELEASE(m_dxr_command_list)
-}
 
 bool DX12CommandList::InitCommandList(IRHIDevice& device, IRHICommandAllocator& commandAllocator)
 {
@@ -35,6 +22,8 @@ bool DX12CommandList::InitCommandList(IRHIDevice& device, IRHICommandAllocator& 
     m_finished_semaphore = RHIResourceFactory::CreateRHIResource<IRHISemaphore>();
     m_finished_semaphore->InitSemaphore(device);
     
+    need_release = true;
+    
     return true;
 }
 
@@ -52,5 +41,19 @@ bool DX12CommandList::BeginRecordCommandList()
 
 bool DX12CommandList::EndRecordCommandList()
 {
+    return true;
+}
+
+bool DX12CommandList::Release(glTFRenderResourceManager&)
+{
+    if (!need_release)
+    {
+        return true;
+    }
+
+    need_release = false;
+    SAFE_RELEASE(m_command_list)
+    SAFE_RELEASE(m_dxr_command_list)
+    
     return true;
 }

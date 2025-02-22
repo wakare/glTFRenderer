@@ -14,17 +14,6 @@ IDX12PipelineStateObjectCommon::IDX12PipelineStateObjectCommon()
 {
 }
 
-DX12GraphicsPipelineStateObject::DX12GraphicsPipelineStateObject()
-    : m_graphics_pipeline_state_desc({})
-    , m_bind_depth_stencil_format(DXGI_FORMAT_UNKNOWN)
-{
-}
-
-DX12GraphicsPipelineStateObject::~DX12GraphicsPipelineStateObject()
-{
-    SAFE_RELEASE(m_pipeline_state_object)
-}
-
 bool DX12GraphicsPipelineStateObject::BindRenderTargetFormats(
     const std::vector<IRHIDescriptorAllocation*>& render_targets)
 {
@@ -167,6 +156,21 @@ bool DX12GraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device
     m_graphics_pipeline_state_desc.NumRenderTargets = m_bind_render_target_formats.size();
 
     THROW_IF_FAILED(dxDevice->CreateGraphicsPipelineState(&m_graphics_pipeline_state_desc, IID_PPV_ARGS(&m_pipeline_state_object)))
+    need_release = true;
+    
+    return true;
+}
+
+bool DX12GraphicsPipelineStateObject::Release(glTFRenderResourceManager& resource_manager)
+{
+    if (!need_release)
+    {
+        return true;
+    }
+    
+    need_release = true;
+    SAFE_RELEASE(m_pipeline_state_object);
+    SAFE_RELEASE(m_dxr_pipeline_state);
     
     return true;
 }
@@ -198,6 +202,21 @@ bool DX12ComputePipelineStateObject::InitPipelineStateObject(IRHIDevice& device,
     m_compute_pipeline_state_desc.CachedPSO.CachedBlobSizeInBytes = 0;
 
     THROW_IF_FAILED(dxDevice->CreateComputePipelineState(&m_compute_pipeline_state_desc, IID_PPV_ARGS(&m_pipeline_state_object)))
+    need_release = true;
+    
+    return true;
+}
+
+bool DX12ComputePipelineStateObject::Release(glTFRenderResourceManager& resource_manager)
+{
+    if (!need_release)
+    {
+        return true;
+    }
+    
+    need_release = true;
+    SAFE_RELEASE(m_pipeline_state_object);
+    SAFE_RELEASE(m_dxr_pipeline_state);
     
     return true;
 }
@@ -301,6 +320,21 @@ bool DX12RTPipelineStateObject::InitPipelineStateObject(IRHIDevice& device, cons
 
     // Create the state object.
     THROW_IF_FAILED(dxrDevice->CreateStateObject(m_dxr_state_desc, IID_PPV_ARGS(&m_dxr_pipeline_state)))
+    need_release = true;
+    
+    return true;
+}
+
+bool DX12RTPipelineStateObject::Release(glTFRenderResourceManager& resource_manager)
+{
+    if (!need_release)
+    {
+        return true;
+    }
+    
+    need_release = true;
+    SAFE_RELEASE(m_pipeline_state_object);
+    SAFE_RELEASE(m_dxr_pipeline_state);
     
     return true;
 }

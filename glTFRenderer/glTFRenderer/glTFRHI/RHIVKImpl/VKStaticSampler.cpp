@@ -2,11 +2,6 @@
 
 #include "VKDevice.h"
 
-VKStaticSampler::~VKStaticSampler()
-{
-    vkDestroySampler(m_device, m_sampler, nullptr);
-}
-
 bool VKStaticSampler::InitStaticSampler(IRHIDevice& device, unsigned space, unsigned register_index, RHIStaticSamplerAddressMode address_mode,
                                         RHIStaticSamplerFilterMode filter_mode)
 {
@@ -70,6 +65,7 @@ bool VKStaticSampler::InitStaticSampler(IRHIDevice& device, unsigned space, unsi
     m_sampler_binding.pImmutableSamplers = &m_sampler;
 
     m_register_space = space;
+    need_release = true;
     
     return true;
 }
@@ -87,4 +83,17 @@ VkSampler VKStaticSampler::GetRawSampler() const
 unsigned VKStaticSampler::GetRegisterSpace() const
 {
     return m_register_space;
+}
+
+bool VKStaticSampler::Release(glTFRenderResourceManager&)
+{
+    if (!need_release)
+    {
+        return true;
+    }
+
+    need_release = false;
+    vkDestroySampler(m_device, m_sampler, nullptr);
+
+    return true;
 }

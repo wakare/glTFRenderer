@@ -2,6 +2,8 @@
 #include "VolkUtils.h"
 #include "glTFRHI/RHIInterface/IRHIDescriptorManager.h"
 
+class IRHIFactory;
+
 class VKBufferDescriptorAllocation : public IRHIBufferDescriptorAllocation
 {
 public:
@@ -15,14 +17,16 @@ protected:
 class VKTextureDescriptorAllocation : public IRHITextureDescriptorAllocation
 {
 public:
-    virtual ~VKTextureDescriptorAllocation() override;
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKTextureDescriptorAllocation)
+    
     bool InitFromImageView(const std::shared_ptr<IRHITexture>& texture, VkDevice device, VkImageView image_view, const RHITextureDescriptorDesc& desc);
     
     VkImageView GetRawImageView() const;
+
+    virtual bool Release(glTFRenderResourceManager&) override;
     
 protected:
     bool m_image_init {false};
-    VkDevice m_device {VK_NULL_HANDLE};
     VkImageView m_image_view {VK_NULL_HANDLE};
 };
 
@@ -40,19 +44,19 @@ protected:
 class VKDescriptorManager : public IRHIDescriptorManager
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR(VKDescriptorManager)
-    virtual ~VKDescriptorManager() override;
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKDescriptorManager)
 
-    virtual bool Init(IRHIDevice& device, const RHIMemoryManagerDescriptorMaxCapacity& max_descriptor_capacity) override;
+    virtual bool Init(IRHIDevice& device, const DescriptorAllocationInfo& max_descriptor_capacity) override;
     virtual bool CreateDescriptor(IRHIDevice& device, const std::shared_ptr<IRHIBuffer>& buffer, const RHIBufferDescriptorDesc& desc, std::shared_ptr<IRHIBufferDescriptorAllocation>& out_descriptor_allocation) override;
     virtual bool CreateDescriptor(IRHIDevice& device, const std::shared_ptr<IRHITexture>& texture, const RHITextureDescriptorDesc& desc, std::shared_ptr<IRHITextureDescriptorAllocation>& out_descriptor_allocation) override;
 
     virtual bool BindDescriptorContext(IRHICommandList& command_list) override;
     virtual bool BindGUIDescriptorContext(IRHICommandList& command_list) override;
-
+    virtual bool Release(glTFRenderResourceManager&) override;
+    
     VkDescriptorPool GetDescriptorPool() const;
     
 protected:
-    VkDevice m_device{VK_NULL_HANDLE};
+    VkDevice m_device {VK_NULL_HANDLE};
     VkDescriptorPool m_descriptor_pool {VK_NULL_HANDLE};
 };

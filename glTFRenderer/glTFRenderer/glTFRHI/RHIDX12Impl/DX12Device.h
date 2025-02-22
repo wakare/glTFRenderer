@@ -21,10 +21,11 @@ public:
     
     IDXGIAdapter1* GetAdapter() {return m_adapter.Get(); }
     const IDXGIAdapter1* GetAdapter() const {return m_adapter.Get(); }
+
+    virtual bool Release(glTFRenderResourceManager&) override;
     
 private:
     ComPtr<ID3D12Device> m_device;
     ComPtr<IDXGIAdapter1> m_adapter;
-
     ComPtr<ID3D12Device5> m_dxr_device;
 };

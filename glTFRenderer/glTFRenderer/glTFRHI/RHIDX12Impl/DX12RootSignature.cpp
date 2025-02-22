@@ -1,15 +1,8 @@
 #include "DX12RootSignature.h"
 #include "DX12Device.h"
+#include "DX12Utils.h"
 #include "RendererCommon.h"
-
-DX12RootParameter::DX12RootParameter()
-    : m_parameter({})
-{
-}
-
-DX12RootParameter::~DX12RootParameter()
-{
-}
+#include "glTFRHI/RHIVKImpl/VulkanUtils.h"
 
 bool DX12RootParameter::InitAsConstant(unsigned constant_value_count, REGISTER_INDEX_TYPE register_index, unsigned space)
 {
@@ -199,6 +192,11 @@ bool DX12StaticSampler::InitStaticSampler(IRHIDevice& device, unsigned space, RE
     return true;
 }
 
+bool DX12StaticSampler::Release(glTFRenderResourceManager&)
+{
+    return true;
+}
+
 DX12RootSignature::DX12RootSignature()
     : m_root_signature(nullptr)
     , m_description({})
@@ -248,10 +246,25 @@ bool DX12RootSignature::InitRootSignature(IRHIDevice& device, IRHIDescriptorMana
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
     THROW_IF_FAILED(dxDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_root_signature)))
 
+    need_release = true;
+    
     return true;
 }
 
 ID3D12RootSignature* DX12RootSignature::GetRootSignature() const
 {
     return m_root_signature.Get();
+}
+
+bool DX12RootSignature::Release(glTFRenderResourceManager&)
+{
+    if (!need_release)
+    {
+        return true;
+    }
+
+    need_release = false;
+    SAFE_RELEASE(m_root_signature)
+    
+    return true;
 }

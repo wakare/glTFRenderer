@@ -1,6 +1,6 @@
 #pragma once
 #include "glTFMeshRenderResource.h"
-#include "glTFRHI/IRHIIndirectDrawBuilder.h"
+#include "glTFRHI/RHIIndirectDrawBuilder.h"
 #include "glTFRHI/RHIVertexStreamingManager.h"
 
 class glTFRenderResourceManager;
@@ -35,18 +35,18 @@ public:
     const std::map<glTFUniqueID, glTFMeshInstanceRenderResource>& GetMeshInstanceRenderResource() const {return m_mesh_instances; }
     const std::map<glTFUniqueID, glTFMeshRenderResource>& GetMeshRenderResources() const {return m_mesh_render_resources; }
 
-    IRHIIndirectDrawBuilder& GetIndirectDrawBuilder();
-    const IRHIIndirectDrawBuilder& GetIndirectDrawBuilder() const;
+    RHIIndirectDrawBuilder& GetIndirectDrawBuilder();
+    const RHIIndirectDrawBuilder& GetIndirectDrawBuilder() const;
     
     const std::vector<MeshInstanceInputData>& GetInstanceBufferData() const {return m_instance_data; }
     
-    std::shared_ptr<IRHIVertexBuffer> GetInstanceBuffer() const {return m_instance_buffer; }
+    std::shared_ptr<RHIVertexBuffer> GetInstanceBuffer() const {return m_instance_buffer; }
     std::shared_ptr<IRHIVertexBufferView> GetInstanceBufferView() const {return m_instance_buffer_view; }
     const std::map<glTFUniqueID, std::pair<unsigned, unsigned>>& GetInstanceDrawInfo() const {return m_instance_draw_infos; }
     
     bool ResolveVertexInputLayout(const VertexLayoutDeclaration& source_vertex_layout);
 
-    std::shared_ptr<IRHIIndexBuffer> GetMegaIndexBuffer() const {return m_mega_index_buffer; }
+    std::shared_ptr<RHIIndexBuffer> GetMegaIndexBuffer() const {return m_mega_index_buffer; }
     std::shared_ptr<IRHIIndexBufferView> GetMegaIndexBufferView() const {return m_mega_index_buffer_view; }
 
     const RHIVertexStreamingManager& GetVertexStreamingManager() const;
@@ -55,17 +55,17 @@ protected:
     std::map<glTFUniqueID, glTFMeshInstanceRenderResource> m_mesh_instances;
     std::map<glTFUniqueID, glTFMeshRenderResource> m_mesh_render_resources;
 
-    std::shared_ptr<IRHIIndirectDrawBuilder> m_indirect_draw_builder;
+    std::shared_ptr<RHIIndirectDrawBuilder> m_indirect_draw_builder;
     
     // mesh id -- <instance count, instance start offset>
     std::map<glTFUniqueID, std::pair<unsigned, unsigned>> m_instance_draw_infos;
 
     std::vector<MeshInstanceInputData> m_instance_data;
     
-    std::shared_ptr<IRHIVertexBuffer> m_instance_buffer;
+    std::shared_ptr<RHIVertexBuffer> m_instance_buffer;
     std::shared_ptr<IRHIVertexBufferView> m_instance_buffer_view;
 
-    std::shared_ptr<IRHIIndexBuffer> m_mega_index_buffer;
+    std::shared_ptr<RHIIndexBuffer> m_mega_index_buffer;
     std::shared_ptr<IRHIIndexBufferView> m_mega_index_buffer_view;
 
     RHIVertexStreamingManager m_vertex_streaming_manager;

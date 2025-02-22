@@ -8,11 +8,6 @@
 #include "glTFRHI/RHIUtils.h"
 #include "RenderWindow/glTFWindow.h"
 
-glTFGUIRenderer::~glTFGUIRenderer()
-{
-    ExitAndClean();
-}
-
 bool glTFGUIRenderer::SetupGUIContext(const glTFWindow& window, glTFRenderResourceManager& resource_manager)
 {
     IMGUI_CHECKVERSION();

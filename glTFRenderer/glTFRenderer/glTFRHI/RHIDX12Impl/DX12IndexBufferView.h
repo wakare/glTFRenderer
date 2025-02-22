@@ -1,7 +1,7 @@
 #pragma once
 #include <d3d12.h>
 
-#include "../RHIInterface/IRHIIndexBufferView.h"
+#include "glTFRHI/RHIInterface/IRHIIndexBufferView.h"
 
 class DX12IndexBufferView : public IRHIIndexBufferView
 {

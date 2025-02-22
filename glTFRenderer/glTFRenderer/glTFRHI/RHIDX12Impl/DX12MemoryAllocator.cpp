@@ -6,7 +6,7 @@ bool DX12MemoryAllocator::InitMemoryAllocator(const IRHIFactory& factory, const 
     return true;
 }
 
-void DX12MemoryAllocator::DestroyMemoryAllocator()
+bool DX12MemoryAllocator::Release(glTFRenderResourceManager&)
 {
-    
+    return true;
 }

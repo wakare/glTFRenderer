@@ -5,15 +5,14 @@
 class VKCommandAllocator : public IRHICommandAllocator
 {
 public:
-    VKCommandAllocator() = default;
-    virtual ~VKCommandAllocator() override;
-    DECLARE_NON_COPYABLE(VKCommandAllocator)
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKCommandAllocator)
     
     virtual bool InitCommandAllocator(IRHIDevice& device, RHICommandAllocatorType type) override;
 
     const VkCommandPool& GetCommandPool() const;
+
+    bool Release(glTFRenderResourceManager&) override;
     
 protected:
-    VkDevice m_device {VK_NULL_HANDLE};
     VkCommandPool m_command_pool {VK_NULL_HANDLE};
 };

@@ -7,9 +7,7 @@ class IRHIFence;
 class VKCommandList : public IRHICommandList
 {
 public:
-    VKCommandList() = default;
-    virtual ~VKCommandList() override;
-    DECLARE_NON_COPYABLE(VKCommandList)
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKCommandList)
     
     virtual bool InitCommandList(IRHIDevice& device, IRHICommandAllocator& command_allocator) override;
     virtual bool WaitCommandList() override;
@@ -18,6 +16,8 @@ public:
     virtual bool EndRecordCommandList() override;
     
     VkCommandBuffer GetRawCommandBuffer() const {return m_command_buffer; }
+
+    virtual bool Release(glTFRenderResourceManager&) override;
     
 protected:
     VkCommandBuffer m_command_buffer {VK_NULL_HANDLE};

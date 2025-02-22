@@ -6,9 +6,16 @@
 #include "glTFRHI/RHIUtils.h"
 #include "SceneFileLoader/glTFImageLoader.h"
 
-ID3D12Resource* DX12Texture::GetRawResource() const
+ID3D12Resource* DX12Texture::GetRawResource()
 {
-    return m_raw_resource ? m_raw_resource : dynamic_cast<const DX12Buffer&>(*m_texture_buffer->m_buffer).GetRawBuffer();
+    return m_raw_resource ? m_raw_resource.Get() :
+        dynamic_cast<const DX12Buffer&>(*m_texture_buffer->m_buffer).GetRawBuffer();
+}
+
+const ID3D12Resource* DX12Texture::GetRawResource() const
+{
+    return m_raw_resource ? m_raw_resource.Get() :
+        dynamic_cast<const DX12Buffer&>(*m_texture_buffer->m_buffer).GetRawBuffer();
 }
 
 bool DX12Texture::InitFromExternalResource(ID3D12Resource* raw_resource, const RHITextureDesc& desc)

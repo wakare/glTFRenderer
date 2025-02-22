@@ -10,10 +10,24 @@ bool VKCommandQueue::InitCommandQueue(IRHIDevice& device)
     // TODO: Create graphics queue now
     vkGetDeviceQueue(logical_device, graphics_queue_index, 0, &graphics_queue);
     
+    need_release = true;
+    
     return true;
 }
 
 VkQueue VKCommandQueue::GetGraphicsQueue() const
 {
     return graphics_queue;
+}
+
+bool VKCommandQueue::Release(glTFRenderResourceManager&)
+{
+    if (!need_release)
+    {
+        return true;
+    }
+
+    need_release = false;
+
+    return true;
 }

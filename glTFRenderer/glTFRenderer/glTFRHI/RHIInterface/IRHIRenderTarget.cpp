@@ -2,9 +2,6 @@
 
 #include <utility>
 
-IRHIRenderTarget::IRHIRenderTarget()
-= default;
-
 bool IRHIRenderTarget::InitRenderTarget(std::shared_ptr<IRHITextureAllocation> texture,
                                         std::shared_ptr<IRHITextureDescriptorAllocation> descriptor_allocation)
 {

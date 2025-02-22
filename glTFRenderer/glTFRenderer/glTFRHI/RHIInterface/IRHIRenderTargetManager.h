@@ -7,7 +7,7 @@
 #include "IRHIRenderTarget.h"
 #include "IRHISwapChain.h"
 
-class IRHIRenderTargetManager : public IRHIResource
+class IRHIRenderTargetManager
 {
 public:
      DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIRenderTargetManager)

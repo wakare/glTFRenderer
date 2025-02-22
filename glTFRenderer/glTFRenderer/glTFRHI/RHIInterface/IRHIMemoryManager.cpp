@@ -1,14 +1,24 @@
 #include "IRHIMemoryManager.h"
 
+#include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 
-bool IRHIMemoryManager::InitMemoryManager(IRHIDevice& device, const std::shared_ptr<IRHIMemoryAllocator>& memory_allocator,
-                                          const RHIMemoryManagerDescriptorMaxCapacity& max_descriptor_capacity)
+bool IRHIMemoryAllocation::Release(glTFRenderResourceManager& resource_manager)
+{
+    if (!need_release)
+    {
+        return true;
+    }
+
+    need_release = false;
+    return resource_manager.GetMemoryManager().ReleaseMemoryAllocation(resource_manager, *this);
+}
+
+bool IRHIMemoryManager::InitMemoryManager(IRHIDevice& device,
+                                          const IRHIFactory& factory, const DescriptorAllocationInfo& descriptor_allocation_info)
 {
     m_descriptor_manager = RHIResourceFactory::CreateRHIResource<IRHIDescriptorManager>();
-    m_descriptor_manager->Init(device, max_descriptor_capacity);
-
-    m_allocator = memory_allocator;
+    m_descriptor_manager->Init(device, descriptor_allocation_info);
     
     return true;
 }

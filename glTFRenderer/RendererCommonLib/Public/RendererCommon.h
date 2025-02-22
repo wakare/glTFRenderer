@@ -105,6 +105,10 @@ typedef unsigned glTFUniqueID;
     ClassName() = default;\
     DECLARE_NON_COPYABLE(ClassName)
 
+#define DECLARE_NON_COPYABLE_AND_VDTOR(ClassName)\
+    virtual ~ClassName() = default;\
+    DECLARE_NON_COPYABLE(ClassName)
+
 #define DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(ClassName)\
     DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR(ClassName)\
     virtual ~ClassName() = default;

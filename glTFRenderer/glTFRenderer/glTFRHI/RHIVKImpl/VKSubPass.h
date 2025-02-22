@@ -8,6 +8,8 @@ public:
     VKSubPass();
     
     virtual bool InitSubPass(const RHISubPassInfo& sub_pass_info) override;
+    virtual bool Release(glTFRenderResourceManager&) override;
+    
     VkSubpassDescription GetSubPassDescription() const;
     
 protected:

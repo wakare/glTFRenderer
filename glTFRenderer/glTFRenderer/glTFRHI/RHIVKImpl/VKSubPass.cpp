@@ -25,6 +25,11 @@ bool VKSubPass::InitSubPass(const RHISubPassInfo& sub_pass_info)
     return true;
 }
 
+bool VKSubPass::Release(glTFRenderResourceManager&)
+{
+    return true;
+}
+
 VkSubpassDescription VKSubPass::GetSubPassDescription() const
 {
     return m_subpass_description;

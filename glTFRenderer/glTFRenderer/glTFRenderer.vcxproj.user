@@ -2,7 +2,7 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LocalDebuggerWorkingDirectory>D:\Work\DevSpace\glTFRenderer\glTFRenderer\glTFRenderer\x64\Debug</LocalDebuggerWorkingDirectory>
-    <LocalDebuggerCommandArguments>scene=D:\Work\DevSpace\glTFRenderer\glTFRenderer\glTFRenderer\glTFRenderer\glTFResources\Models\Sponza\glTF\Sponza.glTF </LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>scene=D:\Work\DevSpace\glTFRenderer\glTFRenderer\glTFRenderer\glTFRenderer\glTFResources\Models\Sponza\glTF\Sponza.glTF vulkan</LocalDebuggerCommandArguments>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LocalDebuggerCommandArguments>scene=D:\Work\DevSpace\glTFRenderer\glTFRenderer\glTFRenderer\glTFRenderer\glTFResources\Models\Sponza\glTF\Sponza.glTF</LocalDebuggerCommandArguments>

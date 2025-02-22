@@ -5,7 +5,8 @@
 class VKTexture : public IRHITexture
 {
 public:
-    virtual ~VKTexture() override;
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKTexture)
+    
     bool Init(VkDevice device, VkImage image, const RHITextureDesc& texture_desc);
 
     VkImage GetRawImage() const;

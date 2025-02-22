@@ -8,7 +8,7 @@
 class IRHICommandList;
 class IRHIRenderTarget;
 class IRHITexture;
-struct RHIMemoryManagerDescriptorMaxCapacity;
+struct DescriptorAllocationInfo;
 class IRHIBuffer;
 class IRHIDevice;
 
@@ -17,6 +17,8 @@ class IRHIDescriptorAllocation : public IRHIResource
 public:
     DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIDescriptorAllocation)
 
+    virtual bool Release(glTFRenderResourceManager&) override;
+    
     virtual const RHIDescriptorDesc& GetDesc() const = 0;
 };
 
@@ -43,15 +45,17 @@ class IRHIDescriptorTable : public IRHIResource
 {
 public:
     virtual bool Build(IRHIDevice& device, const std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>>& descriptor_allocations) = 0;
+
+    virtual bool Release(glTFRenderResourceManager&) override;
 };
 
 // Handle descriptor initialization and binding
-class IRHIDescriptorManager
+class IRHIDescriptorManager : public IRHIResource
 {
 public:
     DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIDescriptorManager)
     
-    virtual bool Init(IRHIDevice& device, const RHIMemoryManagerDescriptorMaxCapacity& max_descriptor_capacity) = 0;
+    virtual bool Init(IRHIDevice& device, const DescriptorAllocationInfo& max_descriptor_capacity) = 0;
     virtual bool CreateDescriptor(IRHIDevice& device, const std::shared_ptr<IRHIBuffer>& buffer, const RHIBufferDescriptorDesc& desc, std::shared_ptr<IRHIBufferDescriptorAllocation>& out_descriptor_allocation) = 0;
     virtual bool CreateDescriptor(IRHIDevice& device, const std::shared_ptr<IRHITexture> & texture, const RHITextureDescriptorDesc& desc, std::shared_ptr<IRHITextureDescriptorAllocation>& out_descriptor_allocation) = 0;
 

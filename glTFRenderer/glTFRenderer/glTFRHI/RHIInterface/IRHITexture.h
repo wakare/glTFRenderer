@@ -21,6 +21,8 @@ public:
     
     bool Transition(IRHICommandList& command_list, RHIResourceStateType new_state);
     RHIResourceStateType GetState() const;
+
+    virtual bool Release(glTFRenderResourceManager&) override;
     
 protected:
     RHITextureDesc m_texture_desc {};

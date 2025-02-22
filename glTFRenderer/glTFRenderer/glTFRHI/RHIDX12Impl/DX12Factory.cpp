@@ -4,13 +4,6 @@
 
 #include "DX12Utils.h"
 
-DX12Factory::DX12Factory() = default;
-
-DX12Factory::~DX12Factory()
-{
-    SAFE_RELEASE(m_factory)
-}
-
 bool DX12Factory::InitFactory()
 {
     ID3D12Debug* debugController = nullptr;
@@ -23,6 +16,21 @@ bool DX12Factory::InitFactory()
     {
         return false;
     }
+
+    need_release = true;
+    
+    return true;
+}
+
+bool DX12Factory::Release(glTFRenderResourceManager&)
+{
+    if (!need_release)
+    {
+        return true;
+    }
+    
+    need_release = false;
+    SAFE_RELEASE(m_factory);
     
     return true;
 }

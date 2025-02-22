@@ -6,10 +6,10 @@
 class VKFactory : public IRHIFactory
 {
 public:
-    VKFactory();
-    virtual ~VKFactory() override;
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKFactory)
     
     virtual bool InitFactory() override;
+    virtual bool Release(glTFRenderResourceManager&) override;
     
     VkInstance GetInstance() const {return m_instance; }
     

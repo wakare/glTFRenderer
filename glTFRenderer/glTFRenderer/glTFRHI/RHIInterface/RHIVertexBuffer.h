@@ -6,10 +6,10 @@
 #include "glTFScene/glTFScenePrimitive.h"
 #include "glTFRHI/RHIInterface/IRHIMemoryManager.h"
 
-class IRHIVertexBuffer : public IRHIResource
+class RHIVertexBuffer final
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIVertexBuffer)
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(RHIVertexBuffer)
     
     std::shared_ptr<IRHIVertexBufferView> CreateVertexBufferView(
         IRHIDevice& device,

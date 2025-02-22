@@ -1,7 +1,6 @@
 #pragma once
 #include "glTFRHI/RHIUtils.h"
 
-#define SAFE_RELEASE(x)
 #define VK_CHECK(x) {\
 VkResult result = (x);\
 assert(result == VK_SUCCESS);\
@@ -44,7 +43,7 @@ public:
     virtual bool SetConstant32BitToRootParameterSlot(IRHICommandList& command_list, unsigned slot_index, unsigned* data, unsigned count, RHIPipelineType pipeline) override;
     
     virtual bool AddBufferBarrierToCommandList(IRHICommandList& command_list, const IRHIBuffer& buffer, RHIResourceStateType before_state, RHIResourceStateType after_state) override;
-    virtual bool AddTextureBarrierToCommandList(IRHICommandList& command_list, const IRHITexture& texture, RHIResourceStateType before_state, RHIResourceStateType after_state) override;
+    virtual bool AddTextureBarrierToCommandList(IRHICommandList& command_list, IRHITexture& texture, RHIResourceStateType before_state, RHIResourceStateType after_state) override;
     
     virtual bool DrawInstanced(IRHICommandList& command_list, unsigned vertex_count_per_instance, unsigned instance_count, unsigned start_vertex_location, unsigned start_instance_location) override;
     virtual bool DrawIndexInstanced(IRHICommandList& command_list, unsigned index_count_per_instance, unsigned instance_count, unsigned start_index_location, unsigned base_vertex_location, unsigned start_instance_location) override;

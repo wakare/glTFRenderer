@@ -463,11 +463,11 @@ bool DX12Utils::AddBufferBarrierToCommandList(IRHICommandList& command_list, con
     return true;
 }
 
-bool DX12Utils::AddTextureBarrierToCommandList(IRHICommandList& command_list, const IRHITexture& buffer,
+bool DX12Utils::AddTextureBarrierToCommandList(IRHICommandList& command_list, IRHITexture& buffer,
                                                RHIResourceStateType beforeState, RHIResourceStateType afterState)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
-    auto* dxBuffer = dynamic_cast<const DX12Texture&>(buffer).GetRawResource();
+    auto* dxBuffer = dynamic_cast<DX12Texture&>(buffer).GetRawResource();
     
     CD3DX12_RESOURCE_BARRIER TransitionToVertexBufferState = CD3DX12_RESOURCE_BARRIER::Transition(dxBuffer,
         DX12ConverterUtils::ConvertToResourceState(beforeState), DX12ConverterUtils::ConvertToResourceState(afterState)); 
