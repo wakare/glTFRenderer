@@ -6,6 +6,7 @@
 #include "DX12ConverterUtils.h"
 #include "DX12Factory.h"
 #include "DX12Utils.h"
+#include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRHI/RHIResourceFactory.h"
 #include "RenderWindow/glTFWindow.h"
 
@@ -19,7 +20,7 @@ unsigned DX12SwapChain::GetBackBufferCount()
     return m_frame_buffer_count;
 }
 
-bool DX12SwapChain::InitSwapChain(IRHIFactory& factory, IRHIDevice& device, IRHICommandQueue& command_queue, const RHITextureDesc& swap_chain_buffer_desc, bool fullScreen, HWND hwnd)
+bool DX12SwapChain::InitSwapChain(IRHIFactory& factory, IRHIDevice& device, IRHICommandQueue& command_queue, const RHITextureDesc& swap_chain_buffer_desc, bool full_screen, HWND hwnd)
 {
     m_swap_chain_buffer_desc = swap_chain_buffer_desc;
     
@@ -47,7 +48,7 @@ bool DX12SwapChain::InitSwapChain(IRHIFactory& factory, IRHIDevice& device, IRHI
     swap_chain_desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD; // dxgi will discard the buffer (data) after we call present
     swap_chain_desc.OutputWindow = hwnd; // handle to our window
     swap_chain_desc.SampleDesc = m_swap_chain_sample_desc; // our multi-sampling description
-    swap_chain_desc.Windowed = !fullScreen; // set to true, then if in fullscreen must call SetFullScreenState with true for full screen to get uncapped fps
+    swap_chain_desc.Windowed = !full_screen; // set to true, then if in fullscreen must call SetFullScreenState with true for full screen to get uncapped fps
 
     auto dx_factory = dynamic_cast<DX12Factory&>(factory).GetFactory();
     auto dx_command_queue = dynamic_cast<DX12CommandQueue&>(command_queue).GetCommandQueue();
@@ -96,8 +97,11 @@ bool DX12SwapChain::HostWaitPresentFinished(IRHIDevice& device)
     return true;
 }
 
-bool DX12SwapChain::Release(glTFRenderResourceManager&)
+bool DX12SwapChain::Release(glTFRenderResourceManager& resource_manager)
 {
+    auto factory = dynamic_cast<DX12Factory&>(resource_manager.GetFactory()).GetFactory();
+    factory->MakeWindowAssociation(glTFWindow::Get().GetHWND(), DXGI_MWA_NO_ALT_ENTER);
+
     SAFE_RELEASE(m_swap_chain)
 
     return true;
