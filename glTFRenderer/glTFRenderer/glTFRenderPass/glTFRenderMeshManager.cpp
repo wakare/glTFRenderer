@@ -16,7 +16,7 @@ bool glTFRenderMeshManager::AddOrUpdatePrimitive(glTFRenderResourceManager& reso
     if (!m_mesh_render_resources.contains(mesh_ID))
     {
         m_mesh_render_resources[mesh_ID].mesh = primitive;
-        m_mesh_render_resources[mesh_ID].mesh_vertex_buffer = RHIResourceFactory::CreateRHIResource<RHIVertexBuffer>();
+        m_mesh_render_resources[mesh_ID].mesh_vertex_buffer = std::make_shared<RHIVertexBuffer>();
         const RHIBufferDesc vertex_buffer_desc =
             {
                 L"vertexBufferDefaultBuffer",
@@ -31,7 +31,7 @@ bool glTFRenderMeshManager::AddOrUpdatePrimitive(glTFRenderResourceManager& reso
             };
         m_mesh_render_resources[mesh_ID].mesh_vertex_buffer_view = m_mesh_render_resources[mesh_ID].mesh_vertex_buffer->CreateVertexBufferView(device, memory_manager, command_list, vertex_buffer_desc, primitive->GetVertexBufferData());
 
-        m_mesh_render_resources[mesh_ID].mesh_position_only_buffer = RHIResourceFactory::CreateRHIResource<RHIVertexBuffer>();
+        m_mesh_render_resources[mesh_ID].mesh_position_only_buffer = std::make_shared<RHIVertexBuffer>();
         const RHIBufferDesc position_only_buffer_desc =
             {
                 L"positionOnlyBufferDefaultBuffer",
@@ -46,7 +46,7 @@ bool glTFRenderMeshManager::AddOrUpdatePrimitive(glTFRenderResourceManager& reso
             };
         m_mesh_render_resources[mesh_ID].mesh_position_only_buffer_view = m_mesh_render_resources[mesh_ID].mesh_position_only_buffer->CreateVertexBufferView(device, memory_manager, command_list, position_only_buffer_desc, primitive->GetPositionOnlyBufferData());
 
-        m_mesh_render_resources[mesh_ID].mesh_index_buffer = RHIResourceFactory::CreateRHIResource<RHIIndexBuffer>();
+        m_mesh_render_resources[mesh_ID].mesh_index_buffer = std::make_shared<RHIIndexBuffer>();
         const RHIBufferDesc index_buffer_desc =
             {
                 L"indexBufferDefaultBuffer",
@@ -138,7 +138,7 @@ bool glTFRenderMeshManager::BuildMeshRenderResource(glTFRenderResourceManager& r
             static_cast<RHIResourceUsageFlags>(RUF_VERTEX_BUFFER | RUF_TRANSFER_DST)
         };
         
-        m_instance_buffer = RHIResourceFactory::CreateRHIResource<RHIVertexBuffer>();
+        m_instance_buffer = std::make_shared<RHIVertexBuffer>();
         m_instance_buffer_view = m_instance_buffer->CreateVertexBufferView(
             resource_manager.GetDevice(), memory_manager, resource_manager.GetCommandListForRecord(), instance_buffer_desc, instance_buffer);
     }
@@ -196,7 +196,7 @@ bool glTFRenderMeshManager::BuildMeshRenderResource(glTFRenderResourceManager& r
             static_cast<RHIResourceUsageFlags>(RUF_INDEX_BUFFER | RUF_TRANSFER_DST)
         };
 
-        m_mega_index_buffer = RHIResourceFactory::CreateRHIResource<RHIIndexBuffer>();
+        m_mega_index_buffer = std::make_shared<RHIIndexBuffer>();
         m_mega_index_buffer_view = m_mega_index_buffer->CreateIndexBufferView(
             resource_manager.GetDevice(), memory_manager, resource_manager.GetCommandListForRecord(), mega_index_buffer_desc, mega_index_buffer_data);
     }

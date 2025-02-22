@@ -13,11 +13,13 @@ public:
     template<typename Type>
     static std::shared_ptr<Type> CreateRHIResource()
     {
-        return std::make_shared<Type>();
+        GLTF_CHECK(false);
+        return nullptr;
     }
     
     static bool CleanupResources(glTFRenderResourceManager& resource_manager);
+    static bool AddResource(const std::shared_ptr<IRHIResource>& resource);
     
 protected:
-    static std::vector<IRHIResource*> resources;
+    static std::vector<std::shared_ptr<IRHIResource>> resources;
 };

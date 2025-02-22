@@ -15,7 +15,7 @@ bool VKCommandAllocator::InitCommandAllocator(IRHIDevice& device, RHICommandAllo
     auto vk_device = dynamic_cast<VKDevice&>(device).GetDevice();
     const VkResult result = vkCreateCommandPool(vk_device, &create_command_pool_info, nullptr, &m_command_pool);
     GLTF_CHECK(result == VK_SUCCESS);
-
+    
     need_release = true;
     
     return true;

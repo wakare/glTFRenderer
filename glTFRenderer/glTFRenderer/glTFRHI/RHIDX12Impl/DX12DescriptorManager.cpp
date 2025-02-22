@@ -37,6 +37,11 @@ bool DX12DescriptorTable::Build(IRHIDevice& device, const std::vector<std::share
     return true; 
 }
 
+template<>
+    std::shared_ptr<DX12DescriptorHeap> RHIResourceFactory::CreateRHIResource()
+{
+    return std::make_shared<DX12DescriptorHeap>();
+}
 
 bool DX12DescriptorManager::Init(IRHIDevice& device, const DescriptorAllocationInfo& max_descriptor_capacity)
 {

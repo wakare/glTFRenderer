@@ -216,11 +216,16 @@ bool glTFAppMain::InitRenderer()
     renderer_config.raster = m_app_config.m_use_rasterizer;
     renderer_config.ReSTIR = m_app_config.m_ReSTIR;
     renderer_config.vulkan = m_app_config.m_vulkan;
+    renderer_config.ui = false;
     renderer_config.test_triangle = m_app_config.m_test_triangle_pass;
     
     m_renderer = std::make_unique<glTFAppRenderer>(renderer_config, glTFWindow::Get());
     m_renderer->InitScene(*m_scene_graph);
-    m_renderer->GetGUIRenderer().AddWidgetSetupCallback([this](){UpdateGUIWidgets();});
+    
+    if (renderer_config.ui)
+    {
+        m_renderer->GetGUIRenderer().AddWidgetSetupCallback([this](){UpdateGUIWidgets();});    
+    }
     
     m_scene_graph->TraverseNodes([](const glTFSceneNode& node)
     {

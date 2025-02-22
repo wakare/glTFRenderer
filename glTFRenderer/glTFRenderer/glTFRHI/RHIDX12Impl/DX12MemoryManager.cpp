@@ -12,7 +12,7 @@ bool DX12MemoryManager::AllocateBufferMemory(IRHIDevice& device, const RHIBuffer
         return false;
     }
 
-    out_buffer_allocation = std::make_shared<DX12BufferAllocation>();
+    out_buffer_allocation = RHIResourceFactory::CreateRHIResource<IRHIBufferAllocation>();
     out_buffer_allocation->m_buffer = dx12_buffer;
     out_buffer_allocation->SetNeedRelease();
     
@@ -43,8 +43,9 @@ bool DX12MemoryManager::AllocateTextureMemory(IRHIDevice& device, glTFRenderReso
     std::shared_ptr<IRHITexture> dx12_texture = RHIResourceFactory::CreateRHIResource<IRHITexture>();
     dynamic_cast<DX12Texture&>(*dx12_texture).InitTexture(device, resource_manager, texture_desc);
 
-    out_texture_allocation = std::make_shared<IRHITextureAllocation>();
+    out_texture_allocation = RHIResourceFactory::CreateRHIResource<IRHITextureAllocation>();
     out_texture_allocation->m_texture = dx12_texture;
+    out_texture_allocation->SetNeedRelease();
     
     m_texture_allocations.push_back(out_texture_allocation);
     
@@ -57,8 +58,9 @@ bool DX12MemoryManager::AllocateTextureMemoryAndUpload(IRHIDevice& device, glTFR
     std::shared_ptr<IRHITexture> dx12_texture = RHIResourceFactory::CreateRHIResource<IRHITexture>();
     dynamic_cast<DX12Texture&>(*dx12_texture).InitTextureAndUpload(device, resource_manager, command_list, texture_desc);
 
-    out_texture_allocation = std::make_shared<IRHITextureAllocation>();
+    out_texture_allocation = RHIResourceFactory::CreateRHIResource<IRHITextureAllocation>();
     out_texture_allocation->m_texture = dx12_texture;
+    out_texture_allocation->SetNeedRelease();
 
     m_texture_allocations.push_back(out_texture_allocation);
     
@@ -73,40 +75,27 @@ bool DX12MemoryManager::ReleaseMemoryAllocation(glTFRenderResourceManager& resou
     switch (memory_allocation.GetAllocationType()) {
     case IRHIMemoryAllocation::BUFFER:
         {
-            bool removed = false;
             for (auto iter = m_buffer_allocations.begin(); iter != m_buffer_allocations.end(); ++iter)
             {
                 if (iter->get() == raw_pointer)
                 {
                     m_buffer_allocations.erase(iter);
-                    removed = true;
                     break;
                 }
             }
-
-            auto buffer_resource = dynamic_cast<DX12Buffer&>(*dynamic_cast<DX12BufferAllocation&>(*raw_pointer).m_buffer).GetRawBuffer();
-            buffer_resource->Release();
-            
-            GLTF_CHECK(removed);
         }
         
         break;
     case IRHIMemoryAllocation::TEXTURE:
         {
-            bool removed = false;
             for (auto iter = m_texture_allocations.begin(); iter != m_texture_allocations.end(); ++iter)
             {
                 if (iter->get() == raw_pointer)
                 {
                     m_texture_allocations.erase(iter);
-                    removed = true;
                     break;
                 }
             }
-            auto texture_resource = dynamic_cast<DX12Texture&>(*dynamic_cast<DX12TextureAllocation&>(*raw_pointer).m_texture).GetRawResource();
-            texture_resource->Release();
-            
-            GLTF_CHECK(removed);
         }
         break;
     }
@@ -117,18 +106,6 @@ bool DX12MemoryManager::ReleaseMemoryAllocation(glTFRenderResourceManager& resou
 bool DX12MemoryManager::ReleaseAllResource(glTFRenderResourceManager& resource_manager)
 {
     // Clean all resources
-    for (auto& texture  :m_texture_allocations)
-    {
-        auto texture_resource = dynamic_cast<DX12Texture&>(*dynamic_cast<DX12TextureAllocation&>(*texture).m_texture).GetRawResource();
-        texture_resource->Release();
-    }
-
-    for (auto& buffer  :m_buffer_allocations)
-    {
-        auto texture_resource = dynamic_cast<DX12Buffer&>(*dynamic_cast<DX12BufferAllocation&>(*buffer).m_buffer).GetRawBuffer();
-        texture_resource->Release();
-    }
-    
     m_texture_allocations.clear();
     m_buffer_allocations.clear();
     

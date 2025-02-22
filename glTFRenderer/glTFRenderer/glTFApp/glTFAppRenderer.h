@@ -6,7 +6,8 @@ struct glTFAppRendererConfig
     bool raster;
     bool ReSTIR;
     bool vulkan;
-
+    bool ui;
+    
     // test sample
     bool test_triangle;
 

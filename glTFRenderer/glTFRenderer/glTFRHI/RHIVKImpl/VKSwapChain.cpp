@@ -7,6 +7,7 @@
 #include "VKDevice.h"
 #include "VKSemaphore.h"
 #include "VKTexture.h"
+#include "glTFRHI/RHIResourceFactoryImpl.hpp"
 
 unsigned VKSwapChain::GetCurrentBackBufferIndex()
 {
@@ -90,15 +91,15 @@ bool VKSwapChain::InitSwapChain(IRHIFactory& factory, IRHIDevice& device, IRHICo
 
         for (size_t i = 0; i < swap_chain_image_count; ++i)
         {
-            std::shared_ptr<VKTexture> texture = std::make_shared<VKTexture>();
-            texture->Init(VkDevice.GetDevice(), internal_textures[i], m_swap_chain_buffer_desc);
+            std::shared_ptr<IRHITexture> texture = RHIResourceFactory::CreateRHIResource<IRHITexture>();
+            dynamic_cast<VKTexture&>(*texture).Init(VkDevice.GetDevice(), internal_textures[i], m_swap_chain_buffer_desc);
             m_swap_chain_textures[i] = texture;
         }
         
         m_frame_available_semaphores.resize(swap_chain_image_count);
         for (size_t i = 0; i < swap_chain_image_count; ++i)
         {
-            const auto semaphore = std::make_shared<VKSemaphore>();
+            const auto semaphore = RHIResourceFactory::CreateRHIResource<IRHISemaphore>();
             semaphore->InitSemaphore(device);
             m_frame_available_semaphores[i] = semaphore;
         }

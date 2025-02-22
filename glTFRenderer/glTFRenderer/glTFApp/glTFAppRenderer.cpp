@@ -31,13 +31,15 @@ glTFAppRenderer::glTFAppRenderer(const glTFAppRendererConfig& renderer_config, c
     m_resource_manager.reset(new glTFRenderResourceManager());
     m_resource_manager->InitResourceManager(window.GetWidth(), window.GetHeight(), window.GetHWND());
     
-    m_ui_renderer = std::make_unique<glTFGUIRenderer>();
-    
-    m_ui_renderer->SetupGUIContext(glTFWindow::Get(), GetResourceManager());
-    m_ui_renderer->AddWidgetSetupCallback([this]()
+    if (renderer_config.ui)
     {
-        m_scene_renderer->TickGUIWidgetUpdate(*m_ui_renderer, *m_resource_manager, 0);
-    });
+        m_ui_renderer = std::make_unique<glTFGUIRenderer>();
+        m_ui_renderer->SetupGUIContext(glTFWindow::Get(), GetResourceManager());
+        m_ui_renderer->AddWidgetSetupCallback([this]()
+        {
+            m_scene_renderer->TickGUIWidgetUpdate(*m_ui_renderer, *m_resource_manager, 0);
+        });    
+    }
 }
 
 bool glTFAppRenderer::InitScene(const glTFSceneGraph& scene_graph)
@@ -67,6 +69,11 @@ void glTFAppRenderer::TickSceneRendering(const glTFInputManager& input_manager, 
 
 void glTFAppRenderer::TickGUIWidgetUpdate(size_t delta_time_ms)
 {
+    if (!m_ui_renderer)
+    {
+        return;
+    }
+    
     m_ui_renderer->UpdateWidgets();
     m_ui_renderer->RenderWidgets(*m_resource_manager);
 }
@@ -80,7 +87,11 @@ void glTFAppRenderer::WaitForExit()
 {
     m_resource_manager->WaitAllFrameFinish();
     m_resource_manager->WaitPresentFinished();
-    m_ui_renderer->ExitAndClean();
+    
+    if (m_ui_renderer)
+    {
+        m_ui_renderer->ExitAndClean();    
+    }
     
     m_resource_manager->GetMemoryManager().ReleaseAllResource(*m_resource_manager);
     

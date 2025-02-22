@@ -106,7 +106,7 @@ namespace VulkanEngineQueryStorage
 
 bool VKDevice::Release(glTFRenderResourceManager&)
 {
-    if (need_release)
+    if (!need_release)
     {
         return true;
     }

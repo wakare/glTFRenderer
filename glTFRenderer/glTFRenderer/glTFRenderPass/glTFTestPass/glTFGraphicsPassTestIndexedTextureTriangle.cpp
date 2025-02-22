@@ -169,7 +169,7 @@ bool glTFGraphicsPassTestIndexedTextureTriangle::InitVertexBufferAndIndexBuffer(
     m_vertex_buffer_data->vertex_count = vertex_count;
     memcpy(m_vertex_buffer_data->data.get(), textured_vertices, sizeof(textured_vertices));
     
-    m_vertex_buffer = RHIResourceFactory::CreateRHIResource<RHIVertexBuffer>();
+    m_vertex_buffer = std::make_shared<RHIVertexBuffer>();
     RHIBufferDesc vertex_buffer_desc{};
     vertex_buffer_desc.name = L"TestIndexedTriangle_vertex_buffer";
     vertex_buffer_desc.type = RHIBufferType::Default;
@@ -202,7 +202,7 @@ bool glTFGraphicsPassTestIndexedTextureTriangle::InitVertexBufferAndIndexBuffer(
     index_buffer_desc.depth = 1;
     index_buffer_desc.usage = static_cast<RHIResourceUsageFlags>(RUF_INDEX_BUFFER | RUF_TRANSFER_DST);
     
-    m_index_buffer = RHIResourceFactory::CreateRHIResource<RHIIndexBuffer>();
+    m_index_buffer = std::make_shared<RHIIndexBuffer>();
     m_index_buffer_view = m_index_buffer->CreateIndexBufferView(
         resource_manager.GetDevice(),
         resource_manager.GetMemoryManager(), 

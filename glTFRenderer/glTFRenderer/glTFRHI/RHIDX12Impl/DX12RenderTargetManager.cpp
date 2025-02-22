@@ -77,6 +77,7 @@ std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>> DX12RenderTargetMa
             });
         std::shared_ptr<IRHITextureAllocation> external_texture_allocation = RHIResourceFactory::CreateRHIResource<IRHITextureAllocation>();
         external_texture_allocation->m_texture = external_texture;
+        external_texture_allocation->SetNeedRelease();
         m_external_textures.push_back(external_texture_allocation);
         
         auto render_target = CreateRenderTargetWithResource(device, resource_manager, RHIRenderTargetType::RTV, RHIDataFormat::R8G8B8A8_UNORM, external_texture_allocation, dx_clear_value);

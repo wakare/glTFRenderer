@@ -6,6 +6,7 @@
 #include "VKTexture.h"
 #include "VKCommon.h"
 #include "glTFRenderPass/glTFRenderResourceManager.h"
+#include "glTFRHI/RHIResourceFactoryImpl.hpp"
 #include "glTFRHI/RHIInterface/IRHIMemoryManager.h"
 
 bool VKBufferDescriptorAllocation::InitFromBuffer(const std::shared_ptr<IRHIBuffer>& buffer, const RHIBufferDescriptorDesc& desc)
@@ -103,7 +104,7 @@ bool VKDescriptorManager::Init(IRHIDevice& device, const DescriptorAllocationInf
 bool VKDescriptorManager::CreateDescriptor(IRHIDevice& device, const std::shared_ptr<IRHIBuffer>& buffer, const RHIBufferDescriptorDesc& desc,
                                            std::shared_ptr<IRHIBufferDescriptorAllocation>& out_descriptor_allocation)
 {
-    std::shared_ptr<VKBufferDescriptorAllocation> allocation = std::make_shared<VKBufferDescriptorAllocation>();
+    std::shared_ptr<IRHIBufferDescriptorAllocation> allocation = RHIResourceFactory::CreateRHIResource<IRHIBufferDescriptorAllocation>();
     allocation->InitFromBuffer(buffer, desc);
     out_descriptor_allocation = allocation;
     return true;
@@ -134,8 +135,8 @@ bool VKDescriptorManager::CreateDescriptor(IRHIDevice& device, const std::shared
 
     VkImageView out_image_view = VK_NULL_HANDLE;
     VK_CHECK(vkCreateImageView(vk_device, &image_view_create_info, nullptr, &out_image_view));
-    std::shared_ptr<VKTextureDescriptorAllocation> allocation = std::make_shared<VKTextureDescriptorAllocation>();
-    allocation->InitFromImageView(texture, vk_device, out_image_view, desc);
+    std::shared_ptr<IRHITextureDescriptorAllocation> allocation = RHIResourceFactory::CreateRHIResource<IRHITextureDescriptorAllocation>();
+    dynamic_cast<VKTextureDescriptorAllocation&>(*allocation).InitFromImageView(texture, vk_device, out_image_view, desc);
     out_descriptor_allocation = allocation;
     
     return true;

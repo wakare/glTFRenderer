@@ -98,9 +98,9 @@ case RHIGraphicsAPIType::RHI_GRAPHICS_API_Vulkan: \
 result = std::make_shared<VKResourceType>(); \
 break; \
 } \
-if (auto rhi_resource = dynamic_cast<IRHIResource*>(result.get()))\
+if (auto rhi_resource = dynamic_pointer_cast<IRHIResource>(result))\
 {\
-    resources.push_back(rhi_resource);\
+    AddResource(rhi_resource);\
 }\
 return result; \
 } \
@@ -132,10 +132,13 @@ IMPLEMENT_CREATE_RHI_RESOURCE(IRHIRayTracingAS, DX12RayTracingAS, VKRayTracingAS
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHICommandSignature, DX12CommandSignature, VKCommandSignature)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHISemaphore, RHISemaphoreNull, VKSemaphore)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIRenderPass, DX12RenderPass, VKRenderPass)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHIDescriptorTable, DX12DescriptorTable, VKDescriptorTable)
+
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHIBufferAllocation, DX12BufferAllocation, VKBufferAllocation)
+IMPLEMENT_CREATE_RHI_RESOURCE(IRHITextureAllocation, DX12TextureAllocation, VKTextureAllocation)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIBufferDescriptorAllocation, DX12BufferDescriptorAllocation, VKBufferDescriptorAllocation)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHITextureDescriptorAllocation, DX12TextureDescriptorAllocation, VKTextureDescriptorAllocation)
-IMPLEMENT_CREATE_RHI_RESOURCE(IRHIDescriptorTable, DX12DescriptorTable, VKDescriptorTable)
-IMPLEMENT_CREATE_RHI_RESOURCE(IRHITextureAllocation, DX12TextureAllocation, VKTextureAllocation)
+
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIDescriptorManager, DX12DescriptorManager, VKDescriptorManager)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIDescriptorUpdater, DX12DescriptorUpdater, VKDescriptorUpdater)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIMemoryManager, DX12MemoryManager, VKMemoryManager)
