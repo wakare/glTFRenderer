@@ -108,12 +108,7 @@ bool glTFComputePassLighting::InitResourceTable(glTFRenderResourceManager& resou
     AddImportTextureResource(RenderPassResourceTableId::BasePass_Normal, normal_desc,
         {normal_desc.GetDataFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV});
 
-    return true;
-}
-
-bool glTFComputePassLighting::ModifyFinalOutput(RenderGraphNodeUtil::RenderGraphNodeFinalOutput& final_output)
-{
-    final_output.final_color_output = GetResourceTexture(RenderPassResourceTableId::LightingPass_Output);
+    AddFinalOutputCandidate(RenderPassResourceTableId::LightingPass_Output);
     
     return true;
 }

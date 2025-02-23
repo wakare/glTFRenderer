@@ -7,7 +7,6 @@
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneMaterial.h"
 #include "glTFRHI/RHIUtils.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
-#include "SceneFileLoader/glTFImageLoader.h"
 
 glTFGraphicsPassMeshOpaque::glTFGraphicsPassMeshOpaque()
 {
@@ -56,13 +55,6 @@ bool glTFGraphicsPassMeshOpaque::PreRenderPass(glTFRenderResourceManager& resour
     m_begin_rendering_info.m_render_targets = render_targets;
     m_begin_rendering_info.enable_depth_write = GetGraphicsPipelineStateObject().GetDepthStencilMode() == RHIDepthStencilMode::DEPTH_WRITE;
     m_begin_rendering_info.clear_render_target = true;
-    
-    return true;
-}
-
-bool glTFGraphicsPassMeshOpaque::ModifyFinalOutput(RenderGraphNodeUtil::RenderGraphNodeFinalOutput& final_output)
-{
-    final_output.final_color_output = GetResourceTexture(RenderPassResourceTableId::BasePass_Albedo);
     
     return true;
 }
@@ -116,6 +108,9 @@ bool glTFGraphicsPassMeshOpaque::InitResourceTable(glTFRenderResourceManager& re
         RHIResourceDimension::TEXTURE2D,
         RHIViewType::RVT_RTV
     });
+
+    AddFinalOutputCandidate(RenderPassResourceTableId::BasePass_Albedo);
+    AddFinalOutputCandidate(RenderPassResourceTableId::BasePass_Normal);
     
     return true;
 }

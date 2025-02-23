@@ -209,7 +209,7 @@ RHITextureDesc RHITextureDesc::MakeBasePassNormalTextureDesc(const glTFRenderRes
     RHITextureDesc texture_desc = MakeFullScreenTextureDesc(
         "BASEPASS_NORMAL_OUTPUT",
             RHIDataFormat::R8G8B8A8_UNORM,
-            static_cast<RHIResourceUsageFlags>(RUF_ALLOW_SRV | RUF_ALLOW_UAV | RUF_ALLOW_RENDER_TARGET),
+            static_cast<RHIResourceUsageFlags>(RUF_ALLOW_SRV | RUF_ALLOW_UAV | RUF_ALLOW_RENDER_TARGET | RUF_TRANSFER_SRC),
 {
                 .clear_format = RHIDataFormat::R8G8B8A8_UNORM,
                 .clear_color {0.0f, 0.0f, 0.0f, 0.0f}

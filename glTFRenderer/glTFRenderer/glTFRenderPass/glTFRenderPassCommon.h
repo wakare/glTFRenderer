@@ -52,6 +52,31 @@ enum class RenderPassResourceTableId
     TestPass_Custom3,
 };
 
+std::string RenderPassResourceTableName(RenderPassResourceTableId id);
+
+#define RETURN_RESOURCE_TABLE_NAME(id) case RenderPassResourceTableId::id: return std::string(#id);
+inline std::string RenderPassResourceTableName(RenderPassResourceTableId id)
+{
+    switch (id) {
+        RETURN_RESOURCE_TABLE_NAME(Depth)
+        RETURN_RESOURCE_TABLE_NAME(ScreenUVOffset)
+        RETURN_RESOURCE_TABLE_NAME(RayTracingSceneOutput)
+        RETURN_RESOURCE_TABLE_NAME(BasePass_Albedo)
+        RETURN_RESOURCE_TABLE_NAME(BasePass_Normal)
+        RETURN_RESOURCE_TABLE_NAME(LightingPass_Output)
+        RETURN_RESOURCE_TABLE_NAME(RayTracingPass_ReSTIRSample_Output)
+        RETURN_RESOURCE_TABLE_NAME(ComputePass_RayTracingOutputPostProcess_Output)
+        RETURN_RESOURCE_TABLE_NAME(TestPass_Custom0)
+        RETURN_RESOURCE_TABLE_NAME(TestPass_Custom1)
+        RETURN_RESOURCE_TABLE_NAME(TestPass_Custom2)
+        RETURN_RESOURCE_TABLE_NAME(TestPass_Custom3)
+    }
+
+    // Must add enum case to this function
+    GLTF_CHECK(false);
+    return "Unknown";
+}
+
 // Declare resource export/import info for specific render pass
 struct RenderPassResourceTable
 {

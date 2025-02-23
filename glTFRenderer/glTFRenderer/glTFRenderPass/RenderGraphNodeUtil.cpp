@@ -106,3 +106,8 @@ void RenderGraphNodeUtil::RenderGraphNode::UpdateFrameIndex(const glTFRenderReso
 {
     m_current_frame_index = resource_manager.GetCurrentBackBufferIndex();
 }
+
+void RenderGraphNodeUtil::RenderGraphNode::AddFinalOutputCandidate(RenderPassResourceTableId id)
+{
+    m_final_output_candidates.push_back(id);
+}

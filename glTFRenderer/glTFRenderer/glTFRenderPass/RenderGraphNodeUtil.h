@@ -32,9 +32,13 @@ namespace RenderGraphNodeUtil
         virtual bool ModifyFinalOutput(RenderGraphNodeFinalOutput& final_output) {return true;}
 
         void UpdateFrameIndex(const glTFRenderResourceManager& resource_manager);
+        void AddFinalOutputCandidate(RenderPassResourceTableId id);
         
     protected:
         unsigned m_current_frame_index = 0;
+
+        int m_final_output_index = 0;
+        std::vector<RenderPassResourceTableId> m_final_output_candidates;
         
         RenderPassResourceTable m_resource_table;
         RenderPassResourceLocation m_resource_location;

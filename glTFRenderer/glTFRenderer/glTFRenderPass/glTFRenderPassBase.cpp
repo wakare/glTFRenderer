@@ -88,6 +88,33 @@ bool glTFRenderPassBase::PostRenderPass(glTFRenderResourceManager& resource_mana
 bool glTFRenderPassBase::UpdateGUIWidgets()
 {
     ImGui::Checkbox("Rendering Enabled", &m_rendering_enabled);
+
+    if (!m_final_output_candidates.empty())
+    {
+        constexpr ImVec4 subtitle_color = {1.0f, 0.0f, 1.0f, 1.0f};
+        ImGui::TextColored(subtitle_color, "Final Output");
+        for (int i = 0; i < m_final_output_candidates.size(); ++i)
+        {
+            auto label = RenderPassResourceTableName(m_final_output_candidates[i]);
+            if (ImGui::RadioButton(label.c_str(), m_final_output_index == i))
+            {
+                m_final_output_index = i;
+            }
+        }    
+    }
+    
+    return true;
+}
+
+bool glTFRenderPassBase::ModifyFinalOutput(RenderGraphNodeUtil::RenderGraphNodeFinalOutput& final_output)
+{
+    RETURN_IF_FALSE(RenderGraphNode::ModifyFinalOutput(final_output))
+    
+    if (!m_final_output_candidates.empty())
+    {
+        final_output.final_color_output = GetResourceTexture(m_final_output_candidates[m_final_output_index]);    
+    }
+    
     return true;
 }
 

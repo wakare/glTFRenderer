@@ -35,6 +35,8 @@ public:
 
     virtual bool IsRenderingEnabled() const { return m_rendering_enabled; }
     virtual bool UpdateGUIWidgets();
+
+    virtual bool ModifyFinalOutput(RenderGraphNodeUtil::RenderGraphNodeFinalOutput& final_output) override;
     
     template<typename RenderInterface>
     RenderInterface* GetRenderInterface()
