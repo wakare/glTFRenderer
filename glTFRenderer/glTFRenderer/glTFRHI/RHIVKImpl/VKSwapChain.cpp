@@ -114,9 +114,10 @@ bool VKSwapChain::AcquireNewFrame(IRHIDevice& device)
 {
     const VKDevice& VkDevice = dynamic_cast<VKDevice&>(device);
     const VkSemaphore current_vk_semaphore = dynamic_cast<const VKSemaphore&>(GetAvailableFrameSemaphore()).GetSemaphore();
-    const VkResult result = vkAcquireNextImageKHR(VkDevice.GetDevice(), m_swap_chain, UINT64_MAX, current_vk_semaphore, VK_NULL_HANDLE, &m_next_image_index);
-    GLTF_CHECK(result == VK_SUCCESS);
 
+    const VkResult result = vkAcquireNextImageKHR(VkDevice.GetDevice(), m_swap_chain, UINT64_MAX, current_vk_semaphore, VK_NULL_HANDLE, &m_image_index);
+    GLTF_CHECK(result == VK_SUCCESS);
+    
     return true;
 }
 
@@ -140,7 +141,7 @@ bool VKSwapChain::Present(IRHICommandQueue& command_queue, IRHICommandList& comm
     VkSwapchainKHR swap_chains[] = {m_swap_chain};
     present_info.pSwapchains = swap_chains;
     present_info.swapchainCount = 1;
-    present_info.pImageIndices = &m_next_image_index;
+    present_info.pImageIndices = &m_image_index;
     present_info.pResults = nullptr;
 
     VkPresentIdKHR present_id{};
@@ -155,8 +156,8 @@ bool VKSwapChain::Present(IRHICommandQueue& command_queue, IRHICommandList& comm
 
     const VkResult result = vkQueuePresentKHR(vk_command_queue.GetGraphicsQueue(), &present_info);
     GLTF_CHECK(result == VK_SUCCESS);
-    
-    m_current_frame_index = (m_next_image_index + 1) % m_frame_buffer_count;
+
+    m_current_frame_index = (m_current_frame_index + 1) % GetBackBufferCount();
     
     return true;
 }

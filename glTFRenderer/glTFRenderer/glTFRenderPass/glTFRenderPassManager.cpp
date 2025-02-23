@@ -175,7 +175,9 @@ void glTFRenderPassManager::RenderEnd(glTFRenderResourceManager& resource_manage
     context.sign_semaphores.push_back(&command_list.GetSemaphore());
     
     resource_manager.CloseCurrentCommandListAndExecute(context, false);
+    
     RHIUtils::Instance().Present(resource_manager.GetSwapChain(), resource_manager.GetCommandQueue(), command_list);
+    resource_manager.CloseCurrentCommandListAndExecute({}, false);
 }
 
 void glTFRenderPassManager::ExitAllPass()

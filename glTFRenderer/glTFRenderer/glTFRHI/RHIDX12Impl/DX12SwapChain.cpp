@@ -83,7 +83,7 @@ IRHISemaphore& DX12SwapChain::GetAvailableFrameSemaphore()
 
 bool DX12SwapChain::Present(IRHICommandQueue& command_queue, IRHICommandList& command_list)
 {
-    THROW_IF_FAILED(m_swap_chain->Present(0, 0))
+    THROW_IF_FAILED(m_swap_chain->Present(1, 0))
     dynamic_cast<DX12Fence&>(*m_fence).SignalWhenCommandQueueFinish(command_queue);
     
     return true;

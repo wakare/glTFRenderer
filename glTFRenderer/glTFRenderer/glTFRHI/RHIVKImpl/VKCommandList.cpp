@@ -64,13 +64,5 @@ bool VKCommandList::EndRecordCommandList()
 
 bool VKCommandList::Release(glTFRenderResourceManager&)
 {
-    if (!need_release)
-    {
-        return true;
-    }
-    
-    // No need to destroy command buffer
-    need_release = false;
-    
     return true;
 }

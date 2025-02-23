@@ -26,11 +26,12 @@ public:
 protected:
     unsigned m_frame_buffer_count {3};
     unsigned m_current_frame_index {0};
-    unsigned m_next_image_index {0};
+    unsigned m_image_index {0};
     uint64_t m_present_id_count {0};
     
     VkDevice m_device {VK_NULL_HANDLE};
     VkSwapchainKHR m_swap_chain{VK_NULL_HANDLE};
     std::vector<std::shared_ptr<IRHITexture>> m_swap_chain_textures;
     std::vector<std::shared_ptr<IRHISemaphore>> m_frame_available_semaphores;
+    std::map<unsigned, std::shared_ptr<IRHISemaphore>> m_frame_semaphore_wait_infos;
 };
