@@ -50,6 +50,7 @@ void main(int3 dispatchThreadID : SV_DispatchThreadID)
     shading_info.normal = normal;
     shading_info.metallic = metallic;
     shading_info.roughness = roughness;
+    shading_info.backface = false;
     
     float3 view = normalize(view_position.xyz - world_position);
     
