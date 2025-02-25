@@ -13,7 +13,8 @@ public:
     virtual unsigned GetCurrentBackBufferIndex() override;
     virtual unsigned GetBackBufferCount() override;
     
-    virtual bool InitSwapChain(IRHIFactory& factory, IRHIDevice& device, IRHICommandQueue& commandQueue, const RHITextureDesc& swap_chain_buffer_desc, bool fullScreen, HWND hwnd) override;
+    virtual bool InitSwapChain(IRHIFactory& factory, IRHIDevice& device, IRHICommandQueue& commandQueue, const RHITextureDesc& swap_chain_buffer_desc, const
+                               RHISwapChainDesc& swap_chain_desc) override;
     virtual bool AcquireNewFrame(IRHIDevice& device) override;
     
     virtual IRHISemaphore& GetAvailableFrameSemaphore() override;

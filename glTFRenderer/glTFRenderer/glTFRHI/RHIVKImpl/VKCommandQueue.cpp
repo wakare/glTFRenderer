@@ -28,6 +28,7 @@ bool VKCommandQueue::Release(glTFRenderResourceManager&)
     }
 
     need_release = false;
-
+    vkQueueWaitIdle(graphics_queue);
+    
     return true;
 }

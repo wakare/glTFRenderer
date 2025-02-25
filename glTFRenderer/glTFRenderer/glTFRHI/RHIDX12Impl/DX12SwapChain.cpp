@@ -20,9 +20,11 @@ unsigned DX12SwapChain::GetBackBufferCount()
     return m_frame_buffer_count;
 }
 
-bool DX12SwapChain::InitSwapChain(IRHIFactory& factory, IRHIDevice& device, IRHICommandQueue& command_queue, const RHITextureDesc& swap_chain_buffer_desc, bool full_screen, HWND hwnd)
+bool DX12SwapChain::InitSwapChain(IRHIFactory& factory, IRHIDevice& device, IRHICommandQueue& command_queue, const RHITextureDesc& swap_chain_buffer_desc, const
+                                  RHISwapChainDesc& swap_chain_desc)
 {
     m_swap_chain_buffer_desc = swap_chain_buffer_desc;
+    m_swap_chain_mode = swap_chain_desc.chain_mode;
     
     // -- Create the Swap Chain (double/tripple buffering) -- //
     DXGI_MODE_DESC back_buffer_desc = {}; // this is to describe our display mode
@@ -34,28 +36,32 @@ bool DX12SwapChain::InitSwapChain(IRHIFactory& factory, IRHIDevice& device, IRHI
     m_swap_chain_sample_desc.Count = 1; // multisample count (no multisampling, so we just put 1, since we still need 1 sample)
     
     // Describe and create the swap chain.
-    DXGI_SWAP_CHAIN_DESC swap_chain_desc = {};
-    swap_chain_desc.BufferCount = m_frame_buffer_count; // number of buffers we have
-    swap_chain_desc.BufferDesc = back_buffer_desc; // our back buffer description
+    DXGI_SWAP_CHAIN_DESC dxgi_swap_chain_desc = {};
+    dxgi_swap_chain_desc.BufferCount = m_frame_buffer_count; // number of buffers we have
+    dxgi_swap_chain_desc.BufferDesc = back_buffer_desc; // our back buffer description
     if (swap_chain_buffer_desc.GetUsage() & RUF_ALLOW_RENDER_TARGET)
     {
-        swap_chain_desc.BufferUsage |= DXGI_USAGE_RENDER_TARGET_OUTPUT; // this says the pipeline will render to this swap chain
+        dxgi_swap_chain_desc.BufferUsage |= DXGI_USAGE_RENDER_TARGET_OUTPUT; // this says the pipeline will render to this swap chain
     }
     if (swap_chain_buffer_desc.GetUsage() & RUF_ALLOW_UAV)
     {
-        swap_chain_desc.BufferUsage |= DXGI_USAGE_UNORDERED_ACCESS; // this says the pipeline will render to this swap chain
+        dxgi_swap_chain_desc.BufferUsage |= DXGI_USAGE_UNORDERED_ACCESS; // this says the pipeline will render to this swap chain
     }
-    swap_chain_desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD; // dxgi will discard the buffer (data) after we call present
-    swap_chain_desc.OutputWindow = hwnd; // handle to our window
-    swap_chain_desc.SampleDesc = m_swap_chain_sample_desc; // our multi-sampling description
-    swap_chain_desc.Windowed = !full_screen; // set to true, then if in fullscreen must call SetFullScreenState with true for full screen to get uncapped fps
+    dxgi_swap_chain_desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD; // dxgi will discard the buffer (data) after we call present
+    dxgi_swap_chain_desc.OutputWindow = swap_chain_desc.hwnd; // handle to our window
+    dxgi_swap_chain_desc.SampleDesc = m_swap_chain_sample_desc; // our multi-sampling description
+    dxgi_swap_chain_desc.Windowed = !swap_chain_desc.full_screen; // set to true, then if in fullscreen must call SetFullScreenState with true for full screen to get uncapped fps
+    if (m_swap_chain_mode == MAILBOX)
+    {
+        dxgi_swap_chain_desc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+    }
 
     auto dx_factory = dynamic_cast<DX12Factory&>(factory).GetFactory();
     auto dx_command_queue = dynamic_cast<DX12CommandQueue&>(command_queue).GetCommandQueue();
     ComPtr<IDXGISwapChain> temp_swap_chain;
     dx_factory->CreateSwapChain(
         dx_command_queue, // the queue will be flushed once the swap chain is created
-        &swap_chain_desc, // give it the swap chain description we created above
+        &dxgi_swap_chain_desc, // give it the swap chain description we created above
         &temp_swap_chain // store the created swap chain in a temp IDXGISwapChain interface
         );
     
@@ -83,7 +89,9 @@ IRHISemaphore& DX12SwapChain::GetAvailableFrameSemaphore()
 
 bool DX12SwapChain::Present(IRHICommandQueue& command_queue, IRHICommandList& command_list)
 {
-    THROW_IF_FAILED(m_swap_chain->Present(1, 0))
+    auto sync_interval = m_swap_chain_mode == VSYNC ? 1 : 0;
+    UINT flag = m_swap_chain_mode == VSYNC ? 0 : DXGI_PRESENT_ALLOW_TEARING ;
+    THROW_IF_FAILED(m_swap_chain->Present(sync_interval, flag))
     dynamic_cast<DX12Fence&>(*m_fence).SignalWhenCommandQueueFinish(command_queue);
     
     return true;

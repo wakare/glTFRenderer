@@ -16,4 +16,5 @@ public:
     
 private:
     ComPtr<IDXGIFactory4> m_factory;
+    ComPtr<ID3D12Debug> m_debug_controller;
 };

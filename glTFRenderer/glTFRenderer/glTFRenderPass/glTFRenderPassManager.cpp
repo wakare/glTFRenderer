@@ -176,7 +176,7 @@ void glTFRenderPassManager::RenderEnd(glTFRenderResourceManager& resource_manage
     
     resource_manager.CloseCurrentCommandListAndExecute(context, false);
     
-    RHIUtils::Instance().Present(resource_manager.GetSwapChain(), resource_manager.GetCommandQueue(), command_list);
+    RHIUtils::Instance().Present(resource_manager.GetSwapChain(), resource_manager.GetCommandQueue(), resource_manager.GetCommandListForRecord());
     resource_manager.CloseCurrentCommandListAndExecute({}, false);
 }
 

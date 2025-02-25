@@ -24,7 +24,6 @@ bool glTFRenderResourceManager::InitResourceManager(unsigned width, unsigned hei
     m_command_queue = RHIResourceFactory::CreateRHIResource<IRHICommandQueue>();
     EXIT_WHEN_FALSE(m_command_queue->InitCommandQueue(*m_device))
     
-    
     m_swap_chain = RHIResourceFactory::CreateRHIResource<IRHISwapChain>();
     RHITextureDesc swap_chain_texture_desc("swap_chain_back_buffer",
         width, height,
@@ -34,8 +33,12 @@ bool glTFRenderResourceManager::InitResourceManager(unsigned width, unsigned hei
             .clear_format = RHIDataFormat::R8G8B8A8_UNORM,
             .clear_color = {0.0f, 0.0f, 0.0f, 0.0f}
         });
-    
-    EXIT_WHEN_FALSE(m_swap_chain->InitSwapChain(*m_factory, *m_device, *m_command_queue, swap_chain_texture_desc, false, handle))    
+
+    RHISwapChainDesc swap_chain_desc;
+    swap_chain_desc.hwnd = handle;
+    swap_chain_desc.chain_mode = VSYNC;
+    swap_chain_desc.full_screen = false;
+    EXIT_WHEN_FALSE(m_swap_chain->InitSwapChain(*m_factory, *m_device, *m_command_queue, swap_chain_texture_desc, swap_chain_desc ))
 
     EXIT_WHEN_FALSE(InitMemoryManager())
     
@@ -243,6 +246,9 @@ void glTFRenderResourceManager::WaitAllFrameFinish() const
     {
         RHIUtils::Instance().WaitCommandListFinish(*command_list);
     }
+
+    // Wait queue
+    RHIUtils::Instance().WaitCommandQueueIdle(*m_command_queue);
 }
 
 void glTFRenderResourceManager::ResetCommandAllocator()

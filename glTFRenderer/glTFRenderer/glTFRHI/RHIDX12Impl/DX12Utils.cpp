@@ -221,6 +221,16 @@ bool DX12Utils::WaitCommandListFinish(IRHICommandList& command_list)
     return command_list.WaitCommandList();
 }
 
+bool DX12Utils::WaitCommandQueueIdle(IRHICommandQueue& command_queue)
+{
+    return true;
+}
+
+bool DX12Utils::WaitDeviceIdle(IRHIDevice& device)
+{
+    return true;
+}
+
 bool DX12Utils::SetRootSignature(IRHICommandList& command_list, IRHIRootSignature& rootSignature,IRHIPipelineStateObject& pipeline_state_object, RHIPipelineType pipeline_type)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
