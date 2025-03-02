@@ -19,12 +19,12 @@ unsigned VKSwapChain::GetBackBufferCount()
     return m_frame_buffer_count;
 }
 
-bool VKSwapChain::InitSwapChain(IRHIFactory& factory, IRHIDevice& device, IRHICommandQueue& commandQueue, const RHITextureDesc& swap_chain_buffer_desc,
-                                bool fullScreen, HWND hwnd)
+bool VKSwapChain::InitSwapChain(IRHIFactory& factory, IRHIDevice& device, IRHICommandQueue& commandQueue, const RHITextureDesc& swap_chain_buffer_desc, const
+                                RHISwapChainDesc& swap_chain_desc)
 {
-
     m_swap_chain_buffer_desc = swap_chain_buffer_desc;
-    
+    m_swap_chain_mode = swap_chain_desc.chain_mode;
+
     const VKDevice& VkDevice = dynamic_cast<VKDevice&>(device);
     m_device = VkDevice.GetDevice();
     
@@ -73,7 +73,15 @@ bool VKSwapChain::InitSwapChain(IRHIFactory& factory, IRHIDevice& device, IRHICo
     //create_swap_chain_info.preTransform = detail.capabilities.currentTransform;
     create_swap_chain_info.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
     create_swap_chain_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    create_swap_chain_info.presentMode = VK_PRESENT_MODE_FIFO_KHR;
+    switch (m_swap_chain_mode) {
+    case VSYNC:
+        create_swap_chain_info.presentMode = VK_PRESENT_MODE_FIFO_KHR;
+        break;
+    case MAILBOX:
+        create_swap_chain_info.presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
+        break;
+    }
+    
     create_swap_chain_info.clipped = VK_TRUE;
     create_swap_chain_info.oldSwapchain = VK_NULL_HANDLE;
 
@@ -166,6 +174,7 @@ bool VKSwapChain::HostWaitPresentFinished(IRHIDevice& device)
 {
     auto vk_device = dynamic_cast<VKDevice&>(device).GetDevice();
     VK_CHECK(vkWaitForPresentKHR(vk_device, m_swap_chain, m_present_id_count, UINT64_MAX))
+    
     return true;
 }
 

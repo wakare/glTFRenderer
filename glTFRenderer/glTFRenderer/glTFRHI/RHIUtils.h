@@ -46,7 +46,9 @@ public:
     virtual bool CloseCommandList(IRHICommandList& command_list) = 0;
     virtual bool ExecuteCommandList(IRHICommandList& command_list, IRHICommandQueue& command_queue, const RHIExecuteCommandListContext& context) = 0;
     virtual bool ResetCommandAllocator(IRHICommandAllocator& command_allocator) = 0;
-    virtual bool WaitCommandListFinish(IRHICommandList& command_queue) = 0;
+    virtual bool WaitCommandListFinish(IRHICommandList& command_list) = 0;
+    virtual bool WaitCommandQueueIdle(IRHICommandQueue& command_queue) = 0;
+    virtual bool WaitDeviceIdle(IRHIDevice& device) = 0;
     
     virtual bool SetRootSignature(IRHICommandList& command_list, IRHIRootSignature& root_signature, IRHIPipelineStateObject& pipeline_state_object, RHIPipelineType pipeline_type) = 0;
     virtual bool SetViewport(IRHICommandList& command_list, const RHIViewportDesc& viewport_desc) = 0;

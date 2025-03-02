@@ -327,8 +327,24 @@ bool VulkanUtils::WaitCommandListFinish(IRHICommandList& command_list)
     return command_list.WaitCommandList();
 }
 
+bool VulkanUtils::WaitCommandQueueIdle(IRHICommandQueue& command_queue)
+{
+    VKCommandQueue& vk_command_queue = dynamic_cast<VKCommandQueue&>(command_queue);
+    vkQueueWaitIdle(vk_command_queue.GetGraphicsQueue());
+    
+    return true;
+}
+
+bool VulkanUtils::WaitDeviceIdle(IRHIDevice& device)
+{
+    VKDevice& vk_device = dynamic_cast<VKDevice&>(device);
+    VK_CHECK(vkDeviceWaitIdle(vk_device.GetDevice()));
+    
+    return true;
+}
+
 bool VulkanUtils::SetRootSignature(IRHICommandList& command_list, IRHIRootSignature& root_signature, IRHIPipelineStateObject& pipeline_state_object,
-    RHIPipelineType pipeline_type)
+                                   RHIPipelineType pipeline_type)
 {
     auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
     auto& vk_root_signature = dynamic_cast<const VKRootSignature&>(root_signature);
