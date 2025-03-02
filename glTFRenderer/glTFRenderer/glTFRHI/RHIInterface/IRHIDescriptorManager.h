@@ -8,9 +8,9 @@
 class IRHICommandList;
 class IRHIRenderTarget;
 class IRHITexture;
-struct DescriptorAllocationInfo;
 class IRHIBuffer;
 class IRHIDevice;
+struct DescriptorAllocationInfo;
 
 class IRHIDescriptorAllocation : public IRHIResource
 {

@@ -17,7 +17,7 @@ bool glTFGraphicsPassMeshOpaque::InitRenderInterface(glTFRenderResourceManager& 
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::InitRenderInterface(resource_manager))
 
-    AddRenderInterface(std::make_shared<glTFRenderInterfaceRadiosityScene>());
+    //AddRenderInterface(std::make_shared<glTFRenderInterfaceRadiosityScene>());
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMaterial>());
     
     const std::shared_ptr<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Warp, RHIStaticSamplerFilterMode::Linear>> sampler_interface =

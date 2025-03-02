@@ -8,11 +8,6 @@
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceStructuredBuffer.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 
-glTFGraphicsPassMeshBase::glTFGraphicsPassMeshBase()
-{
-    
-}
-
 bool glTFGraphicsPassMeshBase::InitRenderInterface(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassBase::InitRenderInterface(resource_manager))

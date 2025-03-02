@@ -148,3 +148,8 @@ bool glTFSceneRendererTestTriangle::SetupSceneRenderer()
 
     return true;
 }
+
+bool glTFSceneRendererVTPlane::SetupSceneRenderer()
+{
+    return true;
+}

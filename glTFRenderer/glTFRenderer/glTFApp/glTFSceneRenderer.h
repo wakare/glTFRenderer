@@ -54,3 +54,8 @@ class glTFSceneRendererTestTriangle : public glTFSceneRendererBase
 public:
     virtual bool SetupSceneRenderer() override;
 };
+
+class glTFSceneRendererVTPlane : public glTFSceneRendererBase
+{
+    virtual bool SetupSceneRenderer() override;
+};

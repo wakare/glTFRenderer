@@ -9,7 +9,8 @@ class IRHICommandSignature;
 class glTFGraphicsPassMeshBase : public glTFGraphicsPassBase
 {
 public:
-    glTFGraphicsPassMeshBase();
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFGraphicsPassMeshBase)
+    
     virtual const char* PassName() override {return "MeshPass"; }
     virtual bool InitRenderInterface(glTFRenderResourceManager& resource_manager) override;
     bool InitPass(glTFRenderResourceManager& resource_manager) override;
