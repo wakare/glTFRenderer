@@ -9,11 +9,15 @@ struct MaterialInfo
     uint albedo_tex_index;
     uint normal_tex_index;
     uint metallic_roughness_tex_index;
-    uint pad;
+    uint virtual_texture_flag;
     
     float4 albedo;
     float4 normal;
     float4 metallicAndRoughness;
+
+    bool IsVTAlbedo() { return virtual_texture_flag & 0x1; }
+    bool IsVTNormal() { return virtual_texture_flag & 0x10; }
+    bool IsVTMetialRoughness() { return virtual_texture_flag & 0x100; }
 };
 
 DECLARE_RESOURCE(StructuredBuffer<MaterialInfo> g_material_infos , SCENE_MATERIAL_INFO_REGISTER_INDEX);
@@ -52,8 +56,15 @@ float4 SampleAlbedoTextureCS(uint material_id, float2 uv)
 float4 SampleAlbedoTexture(uint material_id, float2 uv)
 {
     MaterialInfo info = g_material_infos[material_id];
+    if (info.IsVTAlbedo())
+    {
+           
+    }
+    
     if (MATERIAL_TEXTURE_INVALID_INDEX == info.albedo_tex_index)
+    {
         return info.albedo;
+    }
     
     return bindless_material_textures[info.albedo_tex_index].Sample(material_sampler, uv);
 }

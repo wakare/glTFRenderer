@@ -1,0 +1,6 @@
+#ifndef VIRTUALTEXTUREUTIL_H
+#define VIRTUALTEXTUREUTIL_H
+
+
+
+#endif
