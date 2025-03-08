@@ -1,5 +1,6 @@
 #include "DX12MemoryManager.h"
 #include "d3dx12.h"
+#include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 
 
@@ -56,14 +57,14 @@ bool DX12MemoryManager::AllocateTextureMemory(IRHIDevice& device, glTFRenderReso
 bool DX12MemoryManager::AllocateTextureMemoryAndUpload(IRHIDevice& device, glTFRenderResourceManager& resource_manager,
                                                        IRHICommandList& command_list, const RHITextureDesc& texture_desc, std::shared_ptr<IRHITextureAllocation>& out_texture_allocation)
 {
-    std::shared_ptr<IRHITexture> dx12_texture = RHIResourceFactory::CreateRHIResource<IRHITexture>();
-    dynamic_cast<DX12Texture&>(*dx12_texture).InitTextureAndUpload(device, resource_manager, command_list, texture_desc);
-
-    out_texture_allocation = RHIResourceFactory::CreateRHIResource<IRHITextureAllocation>();
-    out_texture_allocation->m_texture = dx12_texture;
-    out_texture_allocation->SetNeedRelease();
-
-    m_texture_allocations.push_back(out_texture_allocation);
+    GLTF_CHECK(texture_desc.HasTextureData());
+    AllocateTextureMemory(device, resource_manager, texture_desc, out_texture_allocation);
+    RHITextureUploadInfo upload_info
+    {
+        texture_desc.GetTextureData(),
+        texture_desc.GetTextureDataSize()
+    };
+    RHIUtils::Instance().UploadTextureData(command_list, resource_manager.GetMemoryManager(), device, *out_texture_allocation->m_texture, upload_info);
     
     return true;
 }

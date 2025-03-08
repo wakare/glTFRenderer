@@ -606,6 +606,43 @@ bool VulkanUtils::CopyBuffer(IRHICommandList& command_list, IRHIBuffer& dst, siz
     return true;
 }
 
+bool VulkanUtils::UploadTextureData(IRHICommandList& command_list, IRHIMemoryManager& memory_manager,
+    IRHIDevice& device, IRHITexture& dst_texture, const RHITextureUploadInfo& upload_info)
+{
+    RHIBufferDesc upload_buffer_desc{};
+    upload_buffer_desc.width = upload_info.data_size;
+    upload_buffer_desc.height = 1;
+    upload_buffer_desc.depth = 1;
+    upload_buffer_desc.type = RHIBufferType::Upload;
+    upload_buffer_desc.resource_type = RHIBufferResourceType::Buffer;
+    upload_buffer_desc.usage = RUF_TRANSFER_SRC;
+
+    std::shared_ptr<IRHIBufferAllocation> buffer_allocation;
+    memory_manager.AllocateBufferMemory(device, upload_buffer_desc, buffer_allocation);
+    memory_manager.UploadBufferData(*buffer_allocation, upload_info.data.get(), 0, upload_info.data_size);
+
+    auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
+    auto vk_buffer = dynamic_cast<VKBuffer&>(*buffer_allocation->m_buffer).GetRawBuffer();
+    auto vk_image = dynamic_cast<VKTexture&>(dst_texture).GetRawImage();
+
+    dst_texture.Transition(command_list, RHIResourceStateType::STATE_COPY_DEST);
+    auto vk_image_layout = VKConverterUtils::ConvertToImageLayout(dst_texture.GetState());
+    
+    VkBufferImageCopy copy_info{};
+    copy_info.bufferOffset = 0;
+    copy_info.bufferImageHeight = 0;
+    copy_info.bufferRowLength = 0;
+    copy_info.imageOffset = VkOffset3D(0.0f, 0.0f, 0.0f);
+    copy_info.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    copy_info.imageSubresource.layerCount = 1;
+    copy_info.imageSubresource.mipLevel = 0;
+    copy_info.imageSubresource.baseArrayLayer = 0;
+    copy_info.imageExtent = VkExtent3D(dst_texture.GetTextureDesc().GetTextureWidth(), dst_texture.GetTextureDesc().GetTextureHeight(), 1);
+    vkCmdCopyBufferToImage(vk_command_buffer, vk_buffer, vk_image, vk_image_layout, 1, &copy_info);
+    
+    return true;
+}
+
 bool VulkanUtils::SupportRayTracing(IRHIDevice& device)
 {
     return false;

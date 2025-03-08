@@ -84,6 +84,7 @@ bool glTFGraphicsPassTestIndexedTextureTriangle::InitPass(glTFRenderResourceMana
                         {m_sampled_texture->m_texture->GetTextureFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV}, m_sampled_texture_allocation))
 
     m_sampled_texture->m_texture->Transition(resource_manager.GetCommandListForRecord(), RHIResourceStateType::STATE_ALL_SHADER_RESOURCE);
+    resource_manager.CloseCurrentCommandListAndExecute({}, true);
     
     return true;
 }

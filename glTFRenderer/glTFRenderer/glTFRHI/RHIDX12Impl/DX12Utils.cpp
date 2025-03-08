@@ -444,19 +444,16 @@ bool DX12Utils::UploadBufferDataToDefaultGPUBuffer(IRHICommandList& command_list
 bool DX12Utils::UploadTextureDataToDefaultGPUBuffer(IRHICommandList& command_list, IRHIBuffer& upload_buffer,
     IRHIBuffer& default_buffer, void* data, size_t row_pitch, size_t slice_pitch)
 {
-    auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
-    auto* dxUploadBuffer = dynamic_cast<DX12Buffer&>(upload_buffer).GetRawBuffer();
-    auto* dxDefaultBuffer = dynamic_cast<DX12Buffer&>(default_buffer).GetRawBuffer();
+    auto* dx_command_list = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
+    auto* dx_upload_buffer = dynamic_cast<DX12Buffer&>(upload_buffer).GetRawBuffer();
+    auto* dx_default_buffer = dynamic_cast<DX12Buffer&>(default_buffer).GetRawBuffer();
     
-    // store vertex buffer in upload heap
-    D3D12_SUBRESOURCE_DATA vertexData = {};
-    vertexData.pData = reinterpret_cast<BYTE*>(data); // pointer to our vertex array
-    vertexData.RowPitch = row_pitch; // size of all our triangle vertex data
-    vertexData.SlicePitch = slice_pitch; // also the size of our triangle vertex data
+    D3D12_SUBRESOURCE_DATA upload_data = {};
+    upload_data.pData = static_cast<BYTE*>(data);
+    upload_data.RowPitch = row_pitch;
+    upload_data.SlicePitch = slice_pitch;
 
-    // we are now creating a command with the command list to copy the data from
-    // the upload heap to the default heap
-    UpdateSubresources(dxCommandList, dxDefaultBuffer, dxUploadBuffer, 0, 0, 1, &vertexData);
+    UpdateSubresources(dx_command_list, dx_default_buffer, dx_upload_buffer, 0, 0, 1, &upload_data);
 
     return true;
 }
@@ -596,6 +593,42 @@ bool DX12Utils::CopyBuffer(IRHICommandList& command_list, IRHIBuffer& dst, size_
 {
     auto* dx_command_list = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
     dx_command_list->CopyBufferRegion(dynamic_cast<DX12Buffer&>(dst).GetRawBuffer(), dst_offset, dynamic_cast<DX12Buffer&>(src).GetRawBuffer(), src_offset, size);
+    
+    return true;
+}
+
+bool DX12Utils::UploadTextureData(IRHICommandList& command_list, IRHIMemoryManager& memory_manager,
+                                  IRHIDevice& device, IRHITexture& dst_texture, const RHITextureUploadInfo& upload_info)
+{
+    const size_t bytes_per_pixel = GetBytePerPixelByFormat(dst_texture.GetTextureFormat());
+    const size_t image_bytes_per_row = bytes_per_pixel * dst_texture.GetTextureDesc().GetTextureWidth(); 
+    const UINT64 texture_upload_buffer_size = ((image_bytes_per_row + 255 ) & ~255) * (dst_texture.GetTextureDesc().GetTextureHeight() - 1) + image_bytes_per_row;
+    
+    const RHIBufferDesc texture_upload_buffer_desc =
+        {
+        L"TextureBuffer_Upload",
+        upload_info.data_size,
+        1,
+        1,
+        RHIBufferType::Upload,
+        dst_texture.GetTextureFormat(),
+        RHIBufferResourceType::Buffer
+    };
+
+    std::shared_ptr<IRHIBufferAllocation> m_texture_upload_buffer;
+    memory_manager.AllocateBufferMemory(device, texture_upload_buffer_desc, m_texture_upload_buffer);
+
+    m_texture_upload_buffer->m_buffer->Transition(command_list, RHIResourceStateType::STATE_COPY_SOURCE);
+
+    auto dst_texture_buffer = dynamic_cast<DX12Texture&>(dst_texture).GetTextureAllocation()->m_buffer;
+    
+    RETURN_IF_FALSE(DX12Utils::DX12Instance().UploadTextureDataToDefaultGPUBuffer(
+        command_list,
+        *m_texture_upload_buffer->m_buffer,
+        *dst_texture_buffer,
+        upload_info.data.get(),
+        image_bytes_per_row,
+        image_bytes_per_row * dst_texture.GetTextureDesc().GetTextureHeight()))
     
     return true;
 }

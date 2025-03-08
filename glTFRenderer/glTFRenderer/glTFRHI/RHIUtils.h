@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "RHIInterface/IRHIResource.h"
+#include "RHIInterface/IRHITexture.h"
 #include "RHIInterface/RHICommon.h"
 
 class IRHISwapChain;
@@ -20,6 +21,12 @@ class IRHIDevice;
 class IRHIFrameBuffer;
 class IRHIBuffer;
 class IRHICommandList;
+
+struct RHITextureUploadInfo
+{
+    std::shared_ptr<unsigned char[]> data;
+    size_t data_size {0};
+};
 
 // Singleton for provide combined basic rhi operations
 class RHIUtils
@@ -78,6 +85,8 @@ public:
     virtual bool CopyTexture(IRHICommandList& command_list, IRHITexture& dst, IRHITexture& src) = 0;
     virtual bool CopyBuffer(IRHICommandList& command_list, IRHIBuffer& dst, size_t dst_offset, IRHIBuffer& src, size_t src_offset, size_t size) = 0;
 
+    virtual bool UploadTextureData(IRHICommandList& command_list, IRHIMemoryManager& memory_manager, IRHIDevice& device, IRHITexture& dst, const RHITextureUploadInfo& upload_info) = 0;
+    
     virtual bool SupportRayTracing(IRHIDevice& device) = 0;
     virtual unsigned GetAlignmentSizeForUAVCount(unsigned size) = 0;
 

@@ -550,7 +550,7 @@ struct RHITextureDesc
     // Texture data attribute
     bool SetTextureData(const char* data, size_t byte_size);
     bool HasTextureData() const {return m_texture_data != nullptr; }
-    unsigned char* GetTextureData() const { return m_texture_data.get(); }
+    std::shared_ptr<unsigned char[]> GetTextureData() const { return m_texture_data; }
     size_t GetTextureDataSize() const { return m_texture_data_size; }
 
     // Common attribute
@@ -581,7 +581,7 @@ struct RHITextureDesc
     
 private:
     std::string m_name;
-    std::unique_ptr<unsigned char[]> m_texture_data {nullptr};
+    std::shared_ptr<unsigned char[]> m_texture_data {nullptr};
     size_t m_texture_data_size {0};
     unsigned m_texture_width {0};
     unsigned m_texture_height {0};
