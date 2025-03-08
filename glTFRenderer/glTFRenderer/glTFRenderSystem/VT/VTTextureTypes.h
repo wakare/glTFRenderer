@@ -1,0 +1,67 @@
+#pragma once
+#include <map>
+#include <queue>
+#include <set>
+
+#include "VTPageDataAccessor.h"
+#include "VTPageTable.h"
+
+// Size -- width and height
+class VTLogicalTexture
+{
+public:
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VTLogicalTexture)
+    
+    bool InitLogicalTexture(int size, int texture_id);
+    int GetTextureId() const;
+    int GetSize() const;
+    
+protected:
+    int m_texture_id {-1};
+    int m_size {-1};
+};
+
+class VTPageLRU
+{
+public:
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VTPageLRU)
+
+    void AddPage(const VTPage& page);
+    void RemovePage(const VTPage& page);
+    void TouchPage(const VTPage& page);
+
+    const VTPage& GetPageForFree() const;
+    
+protected:
+    std::set<VTPage> m_pages;
+    std::list<VTPage> m_lru_pages;
+};
+
+struct VTPhysicalPageAllocationInfo
+{
+    VTPage page;
+    int X;
+    int Y;
+    std::shared_ptr<char[]> page_data;
+};
+
+class VTPhysicalTexture
+{
+public:
+    VTPhysicalTexture(int size, int page_size, int border);
+
+    void ProcessRequestResult(const std::vector<VTPageData>& results);
+
+    const std::map<VTPage::HashType, VTPhysicalPageAllocationInfo>& GetPageAllocationInfos() const;
+    
+protected:
+    bool GetAvailablePagesAndErase(int& x, int& y);
+    
+    int m_page_table_size{0};
+    int m_page_size{0};
+    int m_border{0};
+
+    std::vector<std::pair<int, int>> m_available_pages;
+    std::map<VTPage::HashType, VTPhysicalPageAllocationInfo> m_page_allocations;
+    VTPageLRU m_page_lru_cache;
+};

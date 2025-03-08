@@ -80,6 +80,7 @@ enum class RHIDataFormat
     R32G32B32_FLOAT,
     R32G32B32A32_FLOAT,
     R16G16B16A16_FLOAT,
+    R16G16B16A16_UINT,
     R16G16B16A16_UNORM,
     R10G10B10A2_UNORM,
     R10G10B10_XR_BIAS_A2_UNORM,
@@ -793,6 +794,7 @@ inline unsigned GetBitPerPixelByFormat(const RHIDataFormat& RHIDataFormat)
     else if (RHIDataFormat == RHIDataFormat::R32G32B32_FLOAT) return 96;
     else if (RHIDataFormat == RHIDataFormat::R32G32_FLOAT) return 64;
     else if (RHIDataFormat == RHIDataFormat::R16G16B16A16_FLOAT) return 64;
+    else if (RHIDataFormat == RHIDataFormat::R16G16B16A16_UINT) return 64;
     else if (RHIDataFormat == RHIDataFormat::R16G16B16A16_UNORM) return 64;
     else if (RHIDataFormat == RHIDataFormat::R8G8B8A8_UNORM) return 32;
     else if (RHIDataFormat == RHIDataFormat::R8G8B8A8_UNORM_SRGB) return 32;

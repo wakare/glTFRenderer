@@ -218,6 +218,7 @@
     <ClCompile Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassPostprocess.cpp" />
     <ClCompile Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassMeshDepth.cpp" />
     <ClCompile Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassMeshOpaque.cpp" />
+    <ClCompile Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassVTPlane.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassBase.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassPathTracing.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassReSTIRDirectLighting.cpp" />
@@ -359,6 +360,14 @@
     <None Include="glTFResources\ShaderSource\TestShaders\TestSceneRenderingVert.hlsl" />
     <None Include="glTFResources\ShaderSource\TestShaders\TestFillColorCS.hlsl" />
     <None Include="glTFResources\ShaderSource\RayTracing\LightSampling.hlsl" />
+    <ClCompile Include="glTFRenderSystem\RenderSystemBase.cpp" />
+    <ClCompile Include="glTFRenderSystem\VT\VirtualTextureSystem.cpp" />
+    <ClCompile Include="glTFRenderSystem\VT\VTPageDataAccessor.cpp" />
+    <ClCompile Include="glTFRenderSystem\VT\VTPageStreamer.cpp" />
+    <ClCompile Include="glTFRenderSystem\VT\VTPageTable.cpp" />
+    <ClCompile Include="glTFRenderSystem\VT\VTTextureTypes.cpp" />
+    <ClCompile Include="glTFRenderSystem\VT\VTQuadTree.cpp" />
+    <ClCompile Include="glTFResources\ShaderSource\VirtualTextureUtil.hlsl" />
     <ClCompile Include="glTFRHI\RHIIndirectDrawBuilder.cpp" />
     <ClCompile Include="glTFRHI\RHIConfigSingleton.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12CommandSignature.cpp" />
@@ -573,6 +582,7 @@
     <ClInclude Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassPostprocess.h" />
     <ClInclude Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassMeshDepth.h" />
     <ClInclude Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassMeshOpaque.h" />
+    <ClInclude Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassVTPlane.h" />
     <ClInclude Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassBase.h" />
     <ClInclude Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassPathTracing.h" />
     <ClInclude Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassReSTIRDirectLighting.h" />
@@ -606,6 +616,13 @@
     <ClInclude Include="glTFRenderPass\glTFTestPass\glTFGraphicsPassTestTriangleBase.h" />
     <ClInclude Include="glTFRenderPass\glTFTestPass\glTFGraphicsPassTestIndexedTriangle.h" />
     <ClInclude Include="glTFRenderPass\RenderGraphNodeUtil.h" />
+    <ClInclude Include="glTFRenderSystem\RenderSystemBase.h" />
+    <ClInclude Include="glTFRenderSystem\VT\VirtualTextureSystem.h" />
+    <ClInclude Include="glTFRenderSystem\VT\VTPageDataAccessor.h" />
+    <ClInclude Include="glTFRenderSystem\VT\VTPageStreamer.h" />
+    <ClInclude Include="glTFRenderSystem\VT\VTPageTable.h" />
+    <ClInclude Include="glTFRenderSystem\VT\VTTextureTypes.h" />
+    <ClInclude Include="glTFRenderSystem\VT\VTQuadTree.h" />
     <ClInclude Include="glTFRHI\RHIIndirectDrawBuilder.h" />
     <ClInclude Include="glTFRHI\RHIConfigSingleton.h" />
     <ClInclude Include="glTFRHI\RHIDX12Impl\d3dx12.h" />

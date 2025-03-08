@@ -126,6 +126,9 @@ VkFormat VKConverterUtils::ConvertToFormat(RHIDataFormat format)
     case RHIDataFormat::R16G16B16A16_FLOAT:
         result = VK_FORMAT_R16G16B16A16_SFLOAT;
         break;
+    case RHIDataFormat::R16G16B16A16_UINT:
+        result = VK_FORMAT_R16G16B16A16_UINT;
+        break;
     case RHIDataFormat::R16G16B16A16_UNORM:
         result = VK_FORMAT_R16G16B16A16_UNORM;
         break;
