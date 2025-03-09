@@ -18,9 +18,9 @@ public:
     
     DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VirtualTextureSystem)
 
-    virtual bool InitRenderSystem() override;
+    virtual bool InitRenderSystem(glTFRenderResourceManager& resource_manager) override;
     virtual void ShutdownRenderSystem() override;
-    virtual void TickRenderSystem() override;
+    virtual void TickRenderSystem(glTFRenderResourceManager& resource_manager) override;
 
     bool RegisterTexture(std::shared_ptr<VTLogicalTexture> texture);
     

@@ -48,15 +48,18 @@ struct VTPhysicalPageAllocationInfo
 class VTPhysicalTexture
 {
 public:
-    VTPhysicalTexture(int size, int page_size, int border);
-
+    VTPhysicalTexture(int texture_size, int page_size, int border);
     void ProcessRequestResult(const std::vector<VTPageData>& results);
 
+    bool InitRenderResource(glTFRenderResourceManager& resource_manager);
+    void UpdateRenderResource(glTFRenderResourceManager& resource_manager);
+    
     const std::map<VTPage::HashType, VTPhysicalPageAllocationInfo>& GetPageAllocationInfos() const;
     
 protected:
     bool GetAvailablePagesAndErase(int& x, int& y);
     
+    int m_texture_size{0};
     int m_page_table_size{0};
     int m_page_size{0};
     int m_border{0};
@@ -64,4 +67,7 @@ protected:
     std::vector<std::pair<int, int>> m_available_pages;
     std::map<VTPage::HashType, VTPhysicalPageAllocationInfo> m_page_allocations;
     VTPageLRU m_page_lru_cache;
+
+    std::shared_ptr<IRHITextureAllocation> m_physical_texture;
+    std::shared_ptr<VTTextureData> m_physical_texture_data;
 };

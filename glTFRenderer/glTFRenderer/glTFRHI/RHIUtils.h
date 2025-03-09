@@ -28,6 +28,23 @@ struct RHITextureUploadInfo
     size_t data_size {0};
 };
 
+struct RHITextureMipUploadInfo : public RHITextureUploadInfo
+{
+    unsigned int mip_level{0};
+};
+
+struct RHICopyTextureInfo
+{
+    int dst_x{0};
+    int dst_y{0};
+    unsigned int src_mip_level{0};
+    unsigned int dst_mip_level{0};
+
+    // Only used in uploading buffer to texture
+    unsigned int src_width{0};
+    unsigned int src_height{0};
+};
+
 // Singleton for provide combined basic rhi operations
 class RHIUtils
 {
@@ -82,16 +99,18 @@ public:
     
     virtual bool Present(IRHISwapChain& swap_chain, IRHICommandQueue& command_queue, IRHICommandList& command_list) = 0;
 
-    virtual bool CopyTexture(IRHICommandList& command_list, IRHITexture& dst, IRHITexture& src) = 0;
+    virtual bool CopyTexture(IRHICommandList& command_list, IRHITexture& dst, IRHITexture& src, const RHICopyTextureInfo& copy_info) = 0;
+    virtual bool CopyTexture(IRHICommandList& command_list, IRHITexture& dst, IRHIBuffer& src, const RHICopyTextureInfo& copy_info) = 0;
     virtual bool CopyBuffer(IRHICommandList& command_list, IRHIBuffer& dst, size_t dst_offset, IRHIBuffer& src, size_t src_offset, size_t size) = 0;
-
-    virtual bool UploadTextureData(IRHICommandList& command_list, IRHIMemoryManager& memory_manager, IRHIDevice& device, IRHITexture& dst, const RHITextureUploadInfo& upload_info) = 0;
     
     virtual bool SupportRayTracing(IRHIDevice& device) = 0;
     virtual unsigned GetAlignmentSizeForUAVCount(unsigned size) = 0;
 
     virtual void ReportLiveObjects() = 0;
-    
+
+    bool UploadTextureData(IRHICommandList& command_list, IRHIMemoryManager& memory_manager, IRHIDevice& device, IRHITexture& dst, const RHITextureUploadInfo& upload_info) ;
+    bool UploadTextureMipData(IRHICommandList& command_list, IRHIMemoryManager& memory_manager, IRHIDevice& device, IRHITexture& dst, const RHITextureMipUploadInfo& upload_info);
+
     static RHIUtils& Instance();
     static void ResetInstance();
     

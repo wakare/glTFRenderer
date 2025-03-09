@@ -1,6 +1,6 @@
 #include "VirtualTextureSystem.h"
 
-bool VirtualTextureSystem::InitRenderSystem()
+bool VirtualTextureSystem::InitRenderSystem(glTFRenderResourceManager& resource_manager)
 {
     
     return true;
@@ -11,7 +11,7 @@ void VirtualTextureSystem::ShutdownRenderSystem()
     
 }
 
-void VirtualTextureSystem::TickRenderSystem()
+void VirtualTextureSystem::TickRenderSystem(glTFRenderResourceManager& resource_manager)
 {
     DrawFeedBackPass();
 
@@ -32,19 +32,26 @@ void VirtualTextureSystem::TickRenderSystem()
 
     for (auto& logical_texture_info : m_logical_texture_infos)
     {
-        auto& physical_texture = logical_texture_info.second.first;
         auto& page_table  = logical_texture_info.second.second;
-
+        page_table->Invalidate();
         for (const auto& page_allocation : page_allocations)
         {
             if (page_allocation.second.page.tex == page_table->GetTextureId())
             {
-                page_table->UpdatePage(page_allocation.second.page);
+                page_table->TouchPage(page_allocation.second.page);
             }
         }
+        page_table->UpdateTextureData();
     }
 
     // Upload page table to texture resource
+    for (auto& logical_texture_info : m_logical_texture_infos)
+    {
+        auto& page_table  = logical_texture_info.second.second;
+        page_table->UpdateRenderResource(resource_manager);
+    }
+
+    m_physical_texture->UpdateRenderResource(resource_manager);
 }
 
 bool VirtualTextureSystem::RegisterTexture(std::shared_ptr<VTLogicalTexture> texture)

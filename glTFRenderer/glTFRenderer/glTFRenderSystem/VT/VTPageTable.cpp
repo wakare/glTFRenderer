@@ -10,9 +10,19 @@ bool VTPageTable::InitVTPageTable(int tex_id, int page_table_size, int page_size
 {
     m_tex_id = tex_id;
     m_page_table_size = page_table_size;
+    m_page_table_mip_count = 1 + log2(m_page_table_size);
+    
     m_quad_tree = std::make_shared<VTQuadTree>();
     const bool inited = m_quad_tree->InitQuadTree(page_table_size, page_size);
     GLTF_CHECK(inited);
+
+    m_page_texture_datas.resize(m_page_table_mip_count);
+    unsigned int mip_size = m_page_table_size;
+    for (unsigned int i = 0; i < m_page_table_mip_count; i++)
+    {
+        m_page_texture_datas[i] = std::make_shared<VTTextureData>(mip_size, mip_size, RHIDataFormat::R16G16B16A16_UINT);
+        mip_size = mip_size >> 1;
+    }
     
     return true;
 }
@@ -27,7 +37,7 @@ bool VTPageTable::InitRenderResource(glTFRenderResourceManager& resource_manager
         RHIDataFormat::R16G16B16A16_UINT,
         static_cast<RHIResourceUsageFlags>(RUF_ALLOW_SRV | RUF_TRANSFER_DST),
         {
-            RHIDataFormat::R8G8B8A8_UNORM,
+            RHIDataFormat::R16G16B16A16_UINT,
             glm::vec4{0,0,0,0}
         }
     );
@@ -40,10 +50,33 @@ bool VTPageTable::InitRenderResource(glTFRenderResourceManager& resource_manager
 
 void VTPageTable::UpdateRenderResource(glTFRenderResourceManager& resource_manager)
 {
-    //RHIUtils::Instance().
+    if (!m_page_texture)
+    {
+        InitRenderResource(resource_manager);
+    }
+
+    unsigned mip = 0;
+    for (const auto& texture_data : m_page_texture_datas)
+    {
+        const RHITextureMipUploadInfo upload_info
+        {
+            {
+                texture_data->GetData(),
+                texture_data->GetDataSize()
+            },
+            ++mip,
+        };
+    
+        RHIUtils::Instance().UploadTextureMipData(resource_manager.GetCommandListForRecord(), resource_manager.GetMemoryManager(), resource_manager.GetDevice(), *m_page_texture->m_texture, upload_info );    
+    }
 }
 
-bool VTPageTable::UpdatePage(const VTPage& page)
+void VTPageTable::Invalidate()
+{
+    m_quad_tree->Invalidate();
+}
+
+bool VTPageTable::TouchPage(const VTPage& page)
 {
     GLTF_CHECK(page.tex == m_tex_id);
     
@@ -51,6 +84,16 @@ bool VTPageTable::UpdatePage(const VTPage& page)
     m_quad_tree->Touch(page.X, page.Y, touch_level);
 
     return true;
+}
+
+void VTPageTable::UpdateTextureData()
+{
+    auto update_data = [this](const QuadTreeNode& node)
+    {
+        
+    };
+
+    m_quad_tree->TraverseLambda(update_data);
 }
 
 int VTPageTable::GetTextureId() const

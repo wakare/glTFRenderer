@@ -105,9 +105,9 @@ bool glTFComputePassRayTracingPostprocess::PostRenderPass(glTFRenderResourceMana
         command_list, RHIResourceStateType::STATE_COPY_SOURCE);
     
     RETURN_IF_FALSE(RHIUtils::Instance().CopyTexture(command_list,
-        resource_manager.GetCurrentFrameSwapChainTexture(),
-        *GetResourceTexture(RenderPassResourceTableId::ComputePass_RayTracingOutputPostProcess_Output)))
-    
+            resource_manager.GetCurrentFrameSwapChainTexture(),
+            *GetResourceTexture(RenderPassResourceTableId::ComputePass_RayTracingOutputPostProcess_Output), {}))
+
     return true;
 }
 

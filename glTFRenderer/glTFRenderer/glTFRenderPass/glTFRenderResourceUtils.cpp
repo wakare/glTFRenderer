@@ -254,7 +254,7 @@ namespace glTFRenderResourceUtils
         m_writable_buffer->m_source->Transition(command_list, RHIResourceStateType::STATE_COPY_SOURCE);
         m_back_buffer->m_source->Transition(command_list, RHIResourceStateType::STATE_COPY_DEST);
         
-        RETURN_IF_FALSE(RHIUtils::Instance().CopyTexture(command_list, *m_back_buffer->m_source, *m_writable_buffer->m_source))
+        RETURN_IF_FALSE(RHIUtils::Instance().CopyTexture(command_list, *m_back_buffer->m_source, *m_writable_buffer->m_source, {}))
 
         return true;
     }

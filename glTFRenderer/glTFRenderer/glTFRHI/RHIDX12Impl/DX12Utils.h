@@ -61,11 +61,10 @@ public:
     
     virtual bool Present(IRHISwapChain& swap_chain, IRHICommandQueue& command_queue, IRHICommandList& command_list) override;
 
-    virtual bool CopyTexture(IRHICommandList& command_list, IRHITexture& dst, IRHITexture& src) override;
+    virtual bool CopyTexture(IRHICommandList& command_list, IRHITexture& dst, IRHITexture& src, const RHICopyTextureInfo& copy_info) override;
+    virtual bool CopyTexture(IRHICommandList& command_list, IRHITexture& dst, IRHIBuffer& src, const RHICopyTextureInfo& copy_info) override;
     virtual bool CopyBuffer(IRHICommandList& command_list, IRHIBuffer& dst, size_t dst_offset, IRHIBuffer& src, size_t src_offset, size_t size) override;
 
-    virtual bool UploadTextureData(IRHICommandList& command_list, IRHIMemoryManager& memory_manager, IRHIDevice& device, IRHITexture& dst_texture, const RHITextureUploadInfo& upload_info) override;
-    
     virtual bool SupportRayTracing(IRHIDevice& device) override;
     virtual unsigned GetAlignmentSizeForUAVCount(unsigned size ) override;
 

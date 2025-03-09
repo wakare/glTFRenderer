@@ -2,6 +2,9 @@
 
 #include <utility>
 
+#include "glTFRenderPass/glTFRenderResourceManager.h"
+#include "glTFRHI/RHIUtils.h"
+
 bool VTLogicalTexture::InitLogicalTexture(int size, int texture_id)
 {
     GLTF_CHECK(size >= 0 && texture_id >= 0);
@@ -55,9 +58,11 @@ const VTPage& VTPageLRU::GetPageForFree() const
     return m_lru_pages.back();
 }
 
-VTPhysicalTexture::VTPhysicalTexture(int size, int page_size, int border)
-    : m_page_table_size(size), m_page_size(page_size), m_border(border)
+VTPhysicalTexture::VTPhysicalTexture(int texture_size, int page_size, int border)
+    : m_texture_size(texture_size), m_page_size(page_size), m_border(border)
 {
+    m_page_table_size = m_texture_size / (m_page_size + 2 * m_border);
+    
     for (int x = 0; x < m_page_table_size; x++)
     {
         for (int y = 0; y < m_page_table_size; y++)
@@ -65,6 +70,8 @@ VTPhysicalTexture::VTPhysicalTexture(int size, int page_size, int border)
             m_available_pages.emplace_back(x, y);
         }
     }
+
+    m_physical_texture_data = std::make_shared<VTTextureData>(m_texture_size, m_texture_size, RHIDataFormat::R8G8B8A8_UNORM);
 }
 
 void VTPhysicalTexture::ProcessRequestResult(const std::vector<VTPageData>& results)
@@ -90,6 +97,42 @@ void VTPhysicalTexture::ProcessRequestResult(const std::vector<VTPageData>& resu
         page_allocation.page = result.page;
         page_allocation.page_data = result.data;
     }
+}
+
+bool VTPhysicalTexture::InitRenderResource(glTFRenderResourceManager& resource_manager)
+{
+    RHITextureDesc page_table_texture_desc
+    (
+        "Physical Texture",
+        m_texture_size,
+        m_texture_size,
+        RHIDataFormat::R8G8B8A8_UNORM,
+        static_cast<RHIResourceUsageFlags>(RUF_ALLOW_SRV | RUF_TRANSFER_DST),
+        {
+            RHIDataFormat::R8G8B8A8_UNORM,
+            glm::vec4{0,0,0,0}
+        }
+    );
+    
+    const bool allocated = resource_manager.GetMemoryManager().AllocateTextureMemory(resource_manager.GetDevice(), resource_manager, page_table_texture_desc, m_physical_texture);
+    GLTF_CHECK(allocated);
+    return true;
+}
+
+void VTPhysicalTexture::UpdateRenderResource(glTFRenderResourceManager& resource_manager)
+{
+    if (!m_physical_texture)
+    {
+        InitRenderResource(resource_manager);
+    }
+
+    const RHITextureUploadInfo upload_info
+    {
+        m_physical_texture_data->GetData(),
+        m_physical_texture_data->GetDataSize(),
+    };
+    
+    RHIUtils::Instance().UploadTextureData(resource_manager.GetCommandListForRecord(), resource_manager.GetMemoryManager(), resource_manager.GetDevice(), *m_physical_texture->m_texture, upload_info );
 }
 
 const std::map<VTPage::HashType, VTPhysicalPageAllocationInfo>& VTPhysicalTexture::GetPageAllocationInfos() const

@@ -12,7 +12,7 @@ static bool ContainsPoint(int x, int y, int width, int height, int px, int py)
 }
 
 QuadTreeNode::QuadTreeNode(int x, int y, int width, int height, int level)
-    : X(x), Y(y), Width(width), Height(height), Level(level)
+    : Valid(true), X(x), Y(y), Width(width), Height(height), Level(level)
 {
     
 }
@@ -33,6 +33,9 @@ bool QuadTreeNode::Touch(int x, int y, int level)
     {
         return true;
     }
+
+    // Mark valid
+    SetValid(true, false);
 
     // Allocate child
     int child_width = Width / 2;
@@ -66,9 +69,64 @@ bool QuadTreeNode::Touch(int x, int y, int level)
     return child_node->Touch(x, y, level);
 }
 
+void QuadTreeNode::SetValid(bool valid, bool recursive)
+{
+    Valid = valid;
+    if (recursive)
+    {
+        for (auto& child : m_children)
+        {
+            child->SetValid(valid, recursive);
+        }    
+    }
+}
+
+void QuadTreeNode::TraverseLambda(std::function<void(const QuadTreeNode&)> callback, bool recursive) const
+{
+    callback(*this);
+    
+    if (recursive)
+    {
+        for (auto& child : m_children)
+        {
+            child->TraverseLambda(callback, recursive);
+        }
+    }
+}
+
 bool QuadTreeNode::IsLeaf() const
 {
     return m_children.empty();
+}
+
+bool QuadTreeNode::IsValid() const
+{
+    return Valid;
+}
+
+int QuadTreeNode::GetX() const
+{
+    return X;
+}
+
+int QuadTreeNode::GetY() const
+{
+    return Y;
+}
+
+int QuadTreeNode::GetWidth() const
+{
+    return Width;
+}
+
+int QuadTreeNode::GetHeight() const
+{
+    return Height;
+}
+
+int QuadTreeNode::GetLevel() const
+{
+    return Level;
 }
 
 bool VTQuadTree::InitQuadTree(int page_table_size, int page_size)
@@ -88,6 +146,16 @@ bool VTQuadTree::Touch(int x, int y, int level)
 {
     GLTF_CHECK(m_root != nullptr);
     return m_root->Touch(x, y, level);
+}
+
+void VTQuadTree::Invalidate()
+{
+    m_root->SetValid(false, true);   
+}
+
+void VTQuadTree::TraverseLambda(std::function<void(const QuadTreeNode&)> callback) const
+{
+    m_root->TraverseLambda(callback, true);
 }
 
 int VTQuadTree::GetLevel(int mip) const

@@ -3,6 +3,7 @@
 #include <map>
 #include <memory>
 
+#include "VTCommon.h"
 #include "VTQuadTree.h"
 #include "glTFRHI/RHIInterface/IRHIMemoryManager.h"
 
@@ -48,8 +49,9 @@ public:
     bool InitRenderResource(glTFRenderResourceManager& resource_manager);
     void UpdateRenderResource(glTFRenderResourceManager& resource_manager);
 
-    // Add page or update last access time
-    bool UpdatePage(const VTPage& page);
+    void Invalidate();
+    bool TouchPage(const VTPage& page);
+    void UpdateTextureData();
 
     int GetTextureId() const;
     const std::map<VTPage::HashType, PhysicalPageOffset>& GetPageTable() const; 
@@ -57,9 +59,12 @@ public:
 protected:
     int m_tex_id {-1};
     unsigned int m_page_table_size {0};
+    unsigned int m_page_table_mip_count {0};
+    
     std::shared_ptr<VTQuadTree> m_quad_tree;
     std::map<VTPage::HashType, VTPage> m_pages;
     std::map<VTPage::HashType, PhysicalPageOffset> m_page_table;
 
     std::shared_ptr<IRHITextureAllocation> m_page_texture;
+    std::vector<std::shared_ptr<VTTextureData>> m_page_texture_datas;
 };

@@ -558,26 +558,29 @@ bool VulkanUtils::Present(IRHISwapChain& swap_chain, IRHICommandQueue& command_q
     return swap_chain.Present(command_queue, command_list);
 }
 
-bool VulkanUtils::CopyTexture(IRHICommandList& command_list, IRHITexture& dst, IRHITexture& src)
+bool VulkanUtils::CopyTexture(IRHICommandList& command_list, IRHITexture& dst, IRHITexture& src, const RHICopyTextureInfo& copy_info)
 {
+    dst.Transition(command_list, RHIResourceStateType::STATE_COPY_DEST);
+    src.Transition(command_list, RHIResourceStateType::STATE_COPY_SOURCE);
+
     auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
     auto& vk_image_src = dynamic_cast<VKTexture&>(src);
     auto& vk_image_dst = dynamic_cast<VKTexture&>(dst);
 
-    GLTF_CHECK(vk_image_src.GetTextureDesc().GetTextureWidth() == vk_image_dst.GetTextureDesc().GetTextureWidth() &&
-        vk_image_src.GetTextureDesc().GetTextureHeight() == vk_image_dst.GetTextureDesc().GetTextureHeight());
+    auto copy_width = copy_info.src_width ? copy_info.src_width : dst.GetTextureDesc().GetTextureWidth();
+    auto copy_height = copy_info.src_height ? copy_info.src_height : dst.GetTextureDesc().GetTextureHeight();
     
     VkImageCopy image_copy{};
-    image_copy.extent = {vk_image_src.GetTextureDesc().GetTextureWidth(), vk_image_src.GetTextureDesc().GetTextureHeight(), 1};
+    image_copy.extent = {copy_width, copy_height, 1};
     image_copy.srcOffset = {0, 0, 0};
-    image_copy.dstOffset = {0, 0, 0};
+    image_copy.dstOffset = {copy_info.dst_x, copy_info.dst_y, 0};
     image_copy.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     image_copy.srcSubresource.layerCount = 1;
-    image_copy.srcSubresource.mipLevel = 0;
+    image_copy.srcSubresource.mipLevel = copy_info.src_mip_level;
     image_copy.srcSubresource.baseArrayLayer = 0;
     image_copy.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     image_copy.dstSubresource.layerCount = 1;
-    image_copy.dstSubresource.mipLevel = 0;
+    image_copy.dstSubresource.mipLevel = copy_info.dst_mip_level;
     image_copy.dstSubresource.baseArrayLayer = 0;
 
     VkImageLayout src_layout = VKConverterUtils::ConvertToImageLayout(vk_image_src.GetState());
@@ -588,9 +591,41 @@ bool VulkanUtils::CopyTexture(IRHICommandList& command_list, IRHITexture& dst, I
     return true;
 }
 
-bool VulkanUtils::CopyBuffer(IRHICommandList& command_list, IRHIBuffer& dst, size_t dst_offset, IRHIBuffer& src,
-    size_t src_offset, size_t size)
+bool VulkanUtils::CopyTexture(IRHICommandList& command_list, IRHITexture& dst, IRHIBuffer& src,
+    const RHICopyTextureInfo& copy_info)
 {
+    dst.Transition(command_list, RHIResourceStateType::STATE_COPY_DEST);
+    src.Transition(command_list, RHIResourceStateType::STATE_COPY_SOURCE);
+    
+    auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
+    auto vk_buffer = dynamic_cast<VKBuffer&>(src).GetRawBuffer();
+    auto vk_image = dynamic_cast<VKTexture&>(dst).GetRawImage();
+    auto vk_image_layout = VKConverterUtils::ConvertToImageLayout(dst.GetState());
+
+    auto copy_width = copy_info.src_width ? copy_info.src_width : dst.GetTextureDesc().GetTextureWidth();
+    auto copy_height = copy_info.src_height ? copy_info.src_height : dst.GetTextureDesc().GetTextureHeight();
+    
+    VkBufferImageCopy image_copy_info{};
+    image_copy_info.bufferOffset = 0;
+    image_copy_info.bufferImageHeight = 0;
+    image_copy_info.bufferRowLength = 0;
+    image_copy_info.imageOffset = VkOffset3D(copy_info.dst_x, copy_info.dst_y, 0.0f);
+    image_copy_info.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    image_copy_info.imageSubresource.layerCount = 1;
+    image_copy_info.imageSubresource.mipLevel = copy_info.dst_mip_level;
+    image_copy_info.imageSubresource.baseArrayLayer = 0;
+    image_copy_info.imageExtent = VkExtent3D(copy_width, copy_height, 1);
+    vkCmdCopyBufferToImage(vk_command_buffer, vk_buffer, vk_image, vk_image_layout, 1, &image_copy_info);
+    
+    return true;
+}
+
+bool VulkanUtils::CopyBuffer(IRHICommandList& command_list, IRHIBuffer& dst, size_t dst_offset, IRHIBuffer& src,
+                             size_t src_offset, size_t size)
+{
+    dst.Transition(command_list, RHIResourceStateType::STATE_COPY_DEST);
+    src.Transition(command_list, RHIResourceStateType::STATE_COPY_SOURCE);
+
     auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
     auto src_buffer = dynamic_cast<VKBuffer&>(src).GetRawBuffer();
     auto dst_buffer = dynamic_cast<VKBuffer&>(dst).GetRawBuffer();
@@ -603,43 +638,6 @@ bool VulkanUtils::CopyBuffer(IRHICommandList& command_list, IRHIBuffer& dst, siz
     };
     
     vkCmdCopyBuffer(vk_command_buffer, src_buffer, dst_buffer, 1, &copy);
-    return true;
-}
-
-bool VulkanUtils::UploadTextureData(IRHICommandList& command_list, IRHIMemoryManager& memory_manager,
-    IRHIDevice& device, IRHITexture& dst_texture, const RHITextureUploadInfo& upload_info)
-{
-    RHIBufferDesc upload_buffer_desc{};
-    upload_buffer_desc.width = upload_info.data_size;
-    upload_buffer_desc.height = 1;
-    upload_buffer_desc.depth = 1;
-    upload_buffer_desc.type = RHIBufferType::Upload;
-    upload_buffer_desc.resource_type = RHIBufferResourceType::Buffer;
-    upload_buffer_desc.usage = RUF_TRANSFER_SRC;
-
-    std::shared_ptr<IRHIBufferAllocation> buffer_allocation;
-    memory_manager.AllocateBufferMemory(device, upload_buffer_desc, buffer_allocation);
-    memory_manager.UploadBufferData(*buffer_allocation, upload_info.data.get(), 0, upload_info.data_size);
-
-    auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
-    auto vk_buffer = dynamic_cast<VKBuffer&>(*buffer_allocation->m_buffer).GetRawBuffer();
-    auto vk_image = dynamic_cast<VKTexture&>(dst_texture).GetRawImage();
-
-    dst_texture.Transition(command_list, RHIResourceStateType::STATE_COPY_DEST);
-    auto vk_image_layout = VKConverterUtils::ConvertToImageLayout(dst_texture.GetState());
-    
-    VkBufferImageCopy copy_info{};
-    copy_info.bufferOffset = 0;
-    copy_info.bufferImageHeight = 0;
-    copy_info.bufferRowLength = 0;
-    copy_info.imageOffset = VkOffset3D(0.0f, 0.0f, 0.0f);
-    copy_info.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    copy_info.imageSubresource.layerCount = 1;
-    copy_info.imageSubresource.mipLevel = 0;
-    copy_info.imageSubresource.baseArrayLayer = 0;
-    copy_info.imageExtent = VkExtent3D(dst_texture.GetTextureDesc().GetTextureWidth(), dst_texture.GetTextureDesc().GetTextureHeight(), 1);
-    vkCmdCopyBufferToImage(vk_command_buffer, vk_buffer, vk_image, vk_image_layout, 1, &copy_info);
-    
     return true;
 }
 

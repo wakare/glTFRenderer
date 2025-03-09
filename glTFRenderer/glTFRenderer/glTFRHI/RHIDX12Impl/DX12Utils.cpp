@@ -569,66 +569,88 @@ bool DX12Utils::Present(IRHISwapChain& swap_chain, IRHICommandQueue& command_que
     return swap_chain.Present(command_queue, command_list);
 }
 
-bool DX12Utils::CopyTexture(IRHICommandList& command_list, IRHITexture& dst, IRHITexture& src)
+bool DX12Utils::CopyTexture(IRHICommandList& command_list, IRHITexture& dst, IRHITexture& src, const RHICopyTextureInfo& copy_info)
 {
     auto* dx_command_list = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
+    dst.Transition(command_list, RHIResourceStateType::STATE_COPY_DEST);
+    src.Transition(command_list, RHIResourceStateType::STATE_COPY_SOURCE);
     
     D3D12_TEXTURE_COPY_LOCATION dstLocation;
     dstLocation.pResource = dynamic_cast<DX12Texture&>(dst).GetRawResource();
     dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX; 
-    dstLocation.SubresourceIndex = 0;
+    dstLocation.SubresourceIndex = copy_info.dst_mip_level;
 
     D3D12_TEXTURE_COPY_LOCATION srcLocation;
     srcLocation.pResource = dynamic_cast<DX12Texture&>(src).GetRawResource();
     srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX; 
-    srcLocation.SubresourceIndex = 0;
+    srcLocation.SubresourceIndex = copy_info.src_mip_level;
     
-    dx_command_list->CopyTextureRegion(&dstLocation, 0, 0, 0, &srcLocation, nullptr);
+    auto copy_width = copy_info.src_width ? copy_info.src_width : dst.GetTextureDesc().GetTextureWidth();
+    auto copy_height = copy_info.src_height ? copy_info.src_height : dst.GetTextureDesc().GetTextureHeight();
+    
+    D3D12_BOX src_box{};
+    src_box.left = 0;
+    src_box.right = copy_width;
+    src_box.top = 0;
+    src_box.bottom = copy_height;
+    src_box.front = 0;
+    src_box.back = 1;
+    
+    dx_command_list->CopyTextureRegion(&dstLocation, copy_info.dst_x, copy_info.dst_y, 0, &srcLocation, &src_box);
+    
+    return true;
+}
+
+bool DX12Utils::CopyTexture(IRHICommandList& command_list, IRHITexture& dst, IRHIBuffer& src,
+    const RHICopyTextureInfo& copy_info)
+{
+    auto* dx_command_list = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
+    dst.Transition(command_list, RHIResourceStateType::STATE_COPY_DEST);
+    src.Transition(command_list, RHIResourceStateType::STATE_COPY_SOURCE);
+    
+    auto copy_width = copy_info.src_width ? copy_info.src_width : dst.GetTextureDesc().GetTextureWidth();
+    auto copy_height = copy_info.src_height ? copy_info.src_height : dst.GetTextureDesc().GetTextureHeight();
+    
+    D3D12_TEXTURE_COPY_LOCATION dstLocation;
+    dstLocation.pResource = dynamic_cast<DX12Texture&>(dst).GetRawResource();
+    dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX; 
+    dstLocation.SubresourceIndex = copy_info.dst_mip_level;
+
+    D3D12_TEXTURE_COPY_LOCATION srcLocation = {};
+    srcLocation.pResource = dynamic_cast<DX12Buffer&>(src).GetRawBuffer();
+    srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+
+    D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint = {};
+    footprint.Offset = 0;
+    footprint.Footprint.Width = copy_width;
+    footprint.Footprint.Height = copy_height;
+    footprint.Footprint.Depth = 1;
+    footprint.Footprint.RowPitch = (footprint.Footprint.Width * GetBytePerPixelByFormat(dst.GetTextureFormat()) + 255) & ~255; // 256 对齐
+    footprint.Footprint.Format = DX12ConverterUtils::ConvertToDXGIFormat(dst.GetTextureFormat());
+
+    srcLocation.PlacedFootprint = footprint;
+    
+    D3D12_BOX src_box{};
+    src_box.left = 0;
+    src_box.right = copy_width;
+    src_box.top = 0;
+    src_box.bottom = copy_height;
+    src_box.front = 0;
+    src_box.back = 1;
+    
+    dx_command_list->CopyTextureRegion(&dstLocation, copy_info.dst_x, copy_info.dst_y, 0, &srcLocation, &src_box);
     
     return true;
 }
 
 bool DX12Utils::CopyBuffer(IRHICommandList& command_list, IRHIBuffer& dst, size_t dst_offset, IRHIBuffer& src,
-    size_t src_offset, size_t size)
+                           size_t src_offset, size_t size)
 {
     auto* dx_command_list = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
+    
+    dst.Transition(command_list, RHIResourceStateType::STATE_COPY_DEST);
+    src.Transition(command_list, RHIResourceStateType::STATE_COPY_SOURCE);
     dx_command_list->CopyBufferRegion(dynamic_cast<DX12Buffer&>(dst).GetRawBuffer(), dst_offset, dynamic_cast<DX12Buffer&>(src).GetRawBuffer(), src_offset, size);
-    
-    return true;
-}
-
-bool DX12Utils::UploadTextureData(IRHICommandList& command_list, IRHIMemoryManager& memory_manager,
-                                  IRHIDevice& device, IRHITexture& dst_texture, const RHITextureUploadInfo& upload_info)
-{
-    const size_t bytes_per_pixel = GetBytePerPixelByFormat(dst_texture.GetTextureFormat());
-    const size_t image_bytes_per_row = bytes_per_pixel * dst_texture.GetTextureDesc().GetTextureWidth(); 
-    const UINT64 texture_upload_buffer_size = ((image_bytes_per_row + 255 ) & ~255) * (dst_texture.GetTextureDesc().GetTextureHeight() - 1) + image_bytes_per_row;
-    
-    const RHIBufferDesc texture_upload_buffer_desc =
-        {
-        L"TextureBuffer_Upload",
-        upload_info.data_size,
-        1,
-        1,
-        RHIBufferType::Upload,
-        dst_texture.GetTextureFormat(),
-        RHIBufferResourceType::Buffer
-    };
-
-    std::shared_ptr<IRHIBufferAllocation> m_texture_upload_buffer;
-    memory_manager.AllocateBufferMemory(device, texture_upload_buffer_desc, m_texture_upload_buffer);
-
-    m_texture_upload_buffer->m_buffer->Transition(command_list, RHIResourceStateType::STATE_COPY_SOURCE);
-
-    auto dst_texture_buffer = dynamic_cast<DX12Texture&>(dst_texture).GetTextureAllocation()->m_buffer;
-    
-    RETURN_IF_FALSE(DX12Utils::DX12Instance().UploadTextureDataToDefaultGPUBuffer(
-        command_list,
-        *m_texture_upload_buffer->m_buffer,
-        *dst_texture_buffer,
-        upload_info.data.get(),
-        image_bytes_per_row,
-        image_bytes_per_row * dst_texture.GetTextureDesc().GetTextureHeight()))
     
     return true;
 }

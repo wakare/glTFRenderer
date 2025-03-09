@@ -30,9 +30,9 @@ bool glTFComputePassTestFillColor::PostRenderPass(glTFRenderResourceManager& res
     resource_manager.GetCurrentFrameSwapChainTexture().Transition(command_list, RHIResourceStateType::STATE_COPY_DEST);
     GetResourceTexture(RenderPassResourceTableId::LightingPass_Output)->Transition(command_list, RHIResourceStateType::STATE_COPY_SOURCE);
     RETURN_IF_FALSE(RHIUtils::Instance().CopyTexture(command_list,
-        resource_manager.GetCurrentFrameSwapChainTexture(),
-        *GetResourceTexture(RenderPassResourceTableId::LightingPass_Output)))
-    
+            resource_manager.GetCurrentFrameSwapChainTexture(),
+            *GetResourceTexture(RenderPassResourceTableId::LightingPass_Output), {}))
+
     return true;
 }
 

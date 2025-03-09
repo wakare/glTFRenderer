@@ -159,8 +159,8 @@ void glTFRenderPassManager::RenderAllPass(glTFRenderResourceManager& resource_ma
         resource_manager.GetCurrentFrameSwapChainTexture().Transition(command_list, RHIResourceStateType::STATE_COPY_DEST);
         resource_manager.GetFinalOutput().final_color_output->Transition(command_list, RHIResourceStateType::STATE_COPY_SOURCE);
         bool copy = RHIUtils::Instance().CopyTexture(command_list,
-            resource_manager.GetCurrentFrameSwapChainTexture(),
-            *resource_manager.GetFinalOutput().final_color_output);
+                                                     resource_manager.GetCurrentFrameSwapChainTexture(),
+                                                     *resource_manager.GetFinalOutput().final_color_output, {});
         GLTF_CHECK(copy);
     }
 }

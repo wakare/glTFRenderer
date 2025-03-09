@@ -1,4 +1,5 @@
 #pragma once
+#include <functional>
 #include <memory>
 #include <vector>
 
@@ -11,9 +12,19 @@ public:
     bool Contains(int x, int y) const;
     bool Touch(int x, int y, int level);
     bool IsLeaf() const;
+    bool IsValid() const;
+
+    int GetX() const;
+    int GetY() const;
+    int GetWidth() const;
+    int GetHeight() const;
+    int GetLevel() const;
+    
+    void SetValid(bool valid, bool recursive);
+    void TraverseLambda(std::function<void(const QuadTreeNode&)> callback, bool recursive) const;
     
 protected:
-    
+    bool Valid;
     int X;
     int Y;
     int Width;
@@ -28,6 +39,9 @@ class VTQuadTree
 public:
     bool InitQuadTree(int page_table_size, int page_size);
     bool Touch(int x, int y, int level);
+    void Invalidate();
+    void TraverseLambda(std::function<void(const QuadTreeNode&)> callback) const;
+    
     int GetLevel(int mip) const;
     
 protected:

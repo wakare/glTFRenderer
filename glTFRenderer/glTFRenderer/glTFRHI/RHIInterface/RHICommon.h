@@ -555,8 +555,8 @@ struct RHITextureDesc
 
     // Common attribute
     RHIDataFormat GetDataFormat() const { return m_texture_format; }
-    unsigned GetTextureWidth() const { return m_texture_width; }
-    unsigned GetTextureHeight() const { return m_texture_height; }
+    unsigned GetTextureWidth(unsigned mip = 0) const { return m_texture_width >> mip; }
+    unsigned GetTextureHeight(unsigned mip = 0) const { return m_texture_height >> mip; }
 
     void SetDataFormat(RHIDataFormat format) { m_texture_format = format;}
     static RHIDataFormat ConvertToRHIDataFormat(const WICPixelFormatGUID& wicFormatGUID);
