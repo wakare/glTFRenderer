@@ -25,7 +25,7 @@ bool RHIUtils::UploadTextureData(IRHICommandList& command_list, IRHIMemoryManage
     };
 
     std::shared_ptr<IRHIBufferAllocation> m_texture_upload_buffer;
-    memory_manager.AllocateBufferMemory(device, texture_upload_buffer_desc, m_texture_upload_buffer);
+    memory_manager.AllocateTempUploadBufferMemory(device, texture_upload_buffer_desc, m_texture_upload_buffer);
     memory_manager.UploadBufferData(*m_texture_upload_buffer, upload_info.data.get(), 0, upload_info.data_size);
     CopyTexture(command_list, dst, *m_texture_upload_buffer->m_buffer, {});
     
@@ -56,7 +56,7 @@ bool RHIUtils::UploadTextureMipData(IRHICommandList& command_list, IRHIMemoryMan
     };
 
     std::shared_ptr<IRHIBufferAllocation> m_texture_upload_buffer;
-    memory_manager.AllocateBufferMemory(device, texture_upload_buffer_desc, m_texture_upload_buffer);
+    memory_manager.AllocateTempUploadBufferMemory(device, texture_upload_buffer_desc, m_texture_upload_buffer);
     memory_manager.UploadBufferData(*m_texture_upload_buffer, upload_info.data.get(), 0, upload_info.data_size);
 
     RHICopyTextureInfo m_texture_upload_copy_info

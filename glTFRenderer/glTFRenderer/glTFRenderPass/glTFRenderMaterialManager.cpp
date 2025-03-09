@@ -8,7 +8,8 @@
 #include "SceneFileLoader/glTFImageLoader.h"
 
 glTFMaterialTextureRenderResource::glTFMaterialTextureRenderResource(const glTFMaterialParameterTexture& source_texture)
-        : m_source_texture(source_texture)
+        : m_vt(false)
+        , m_source_texture(source_texture)
         , m_texture(nullptr)
 {
         
@@ -24,21 +25,44 @@ bool glTFMaterialTextureRenderResource::Init(glTFRenderResourceManager& resource
     RHITextureDesc texture_desc{};
     texture_desc.InitWithLoadedData(result);
 
-    resource_manager.GetMemoryManager().AllocateTextureMemoryAndUpload(resource_manager.GetDevice(), resource_manager, command_list, texture_desc, m_texture);
+    if (texture_desc.GetTextureWidth() > VT_TEXTURE_SIZE ||
+        texture_desc.GetTextureHeight() > VT_TEXTURE_SIZE)
+    {
+        m_vt = true;
+    }
 
-    // wait for upload??
-    resource_manager.CloseCurrentCommandListAndExecute({}, false);
+    if (m_vt)
+    {
+        m_virtual_texture = std::make_shared<VTLogicalTexture>();
+        m_virtual_texture->InitLogicalTexture(texture_desc);
+    }
+    else
+    {
+        resource_manager.GetMemoryManager().AllocateTextureMemoryAndUpload(resource_manager.GetDevice(), resource_manager, command_list, texture_desc, m_texture);
+        // wait for upload??
+        resource_manager.CloseCurrentCommandListAndExecute({}, false);    
+    }
     
     return true;
 }
 
+bool glTFMaterialTextureRenderResource::IsVT() const
+{
+    return m_vt;
+}
+
+std::shared_ptr<VTLogicalTexture> glTFMaterialTextureRenderResource::GetVTTexture() const
+{
+    return m_virtual_texture;
+}
+
 const IRHITextureAllocation& glTFMaterialTextureRenderResource::GetTextureAllocation() const
 {
+    GLTF_CHECK(!IsVT());
     return *m_texture;
 }
 
 glTFMaterialRenderResource::glTFMaterialRenderResource(const glTFMaterialBase& source_material)
-    : m_source_material(source_material)
 {
     switch (source_material.GetMaterialType())
     {
@@ -120,7 +144,13 @@ glTFMaterialRenderResource::GetFactors() const
     return m_factors;
 }
 
-bool glTFRenderMaterialManager::InitMaterialRenderResource(glTFRenderResourceManager& resource_manager, const glTFMaterialBase& material)
+const std::map<glTFMaterialParameterUsage, std::unique_ptr<VTLogicalTexture>>& glTFMaterialRenderResource::
+    GetVirtualTextures() const
+{
+    return m_virtual_textures;
+}
+
+bool glTFRenderMaterialManager::AddMaterialRenderResource(glTFRenderResourceManager& resource_manager, const glTFMaterialBase& material)
 {
 	const auto material_ID = material.GetID();
     if (m_material_render_resources.find(material_ID) == m_material_render_resources.end())
@@ -132,57 +162,9 @@ bool glTFRenderMaterialManager::InitMaterialRenderResource(glTFRenderResourceMan
     return true;
 }
 
-bool glTFRenderMaterialManager::GatherAllMaterialRenderResource( std::vector<MaterialInfo>& gather_material_infos,
-    std::vector<const glTFMaterialTextureRenderResource*>& gather_material_textures,
-    std::vector<const VTLogicalTexture*>& virtual_textures ) const
+const std::map<glTFUniqueID, std::unique_ptr<glTFMaterialRenderResource>>& glTFRenderMaterialManager::
+    GetMaterialRenderResources() const
 {
-    gather_material_infos.resize(m_material_render_resources.size());
-    gather_material_textures.reserve(m_material_render_resources.size() * 2);
-    
-    for (const auto& material_info : m_material_render_resources)
-    {
-        const auto material_id = material_info.first;
-        
-        const auto& material_resource = *material_info.second;
-        const auto& material_textures = material_resource.GetTextures();
-        MaterialInfo& new_material_info = gather_material_infos[material_id];
-        
-        auto find_albedo_texture = material_textures.find(glTFMaterialParameterUsage::BASECOLOR);
-        if (find_albedo_texture != material_textures.end())
-        {
-            new_material_info.albedo_tex_index = gather_material_textures.size();
-            gather_material_textures.push_back(find_albedo_texture->second.get());        
-        }
-
-        auto find_normal_texture = material_textures.find(glTFMaterialParameterUsage::NORMAL);
-        if (find_normal_texture != material_textures.end())
-        {
-            new_material_info.normal_tex_index = gather_material_textures.size();
-            gather_material_textures.push_back(find_normal_texture->second.get());        
-        }
-
-        auto find_metallic_roughness_texture = material_textures.find(glTFMaterialParameterUsage::METALLIC_ROUGHNESS);
-        if (find_metallic_roughness_texture != material_textures.end())
-        {
-            new_material_info.metallic_roughness_tex_index = gather_material_textures.size();
-            gather_material_textures.push_back(find_metallic_roughness_texture->second.get());        
-        }
-
-        const auto& factors = material_resource.GetFactors();
-        auto it_color = factors.find(glTFMaterialParameterUsage::BASECOLOR);
-        new_material_info.albedo = it_color == factors.end() ? glm::vec4(1.0f, 1.0f, 1.0f, 1.0f) : it_color->second->GetFactor();
-
-        auto it_normal = factors.find(glTFMaterialParameterUsage::NORMAL);
-        new_material_info.normal = it_normal == factors.end() ? glm::vec4(0.0f, 0.0f, 1.0f, 0.0f) : it_normal->second->GetFactor();
-
-        auto it_metallicAndRoughness = factors.find(glTFMaterialParameterUsage::METALLIC_ROUGHNESS);
-        new_material_info.metallicAndRoughness = it_metallicAndRoughness == factors.end() ? glm::vec4(0.0f, 0.0f, 1.0f, 0.0f) : it_metallicAndRoughness->second->GetFactor();
-    }
-
-    for (const auto& virtual_texture : m_virtual_textures)
-    {
-        virtual_textures.push_back(virtual_texture.second.get());
-    }
-    
-    return true;
+    return m_material_render_resources;
 }
+

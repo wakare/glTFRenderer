@@ -24,5 +24,4 @@ public:
     virtual bool AllocateTextureMemory(IRHIDevice& device, glTFRenderResourceManager& resource_manager, const RHITextureDesc& texture_desc, std::shared_ptr<IRHITextureAllocation>& out_texture_allocation) override;
     virtual bool AllocateTextureMemoryAndUpload(IRHIDevice& device, glTFRenderResourceManager& resource_manager, IRHICommandList& command_list, const RHITextureDesc& texture_desc, std::shared_ptr<IRHITextureAllocation>& out_texture_allocation) override;
     virtual bool ReleaseMemoryAllocation(glTFRenderResourceManager& resource_manager, IRHIMemoryAllocation& memory_allocation) override;
-    virtual bool ReleaseAllResource(glTFRenderResourceManager& resource_manager) override;
 };

@@ -30,6 +30,12 @@ bool VTPageTable::InitVTPageTable(int tex_id, int page_table_size, int page_size
 
 bool VTPageTable::InitRenderResource(glTFRenderResourceManager& resource_manager)
 {
+    if (m_render_resource_init)
+    {
+        return true;
+    }
+
+    m_render_resource_init = true;
     RHITextureDesc page_table_texture_desc
     (
         "Page Table",
@@ -129,4 +135,9 @@ int VTPageTable::GetTextureId() const
 const std::map<VTPage::HashType, VTPageTable::PhysicalPageOffset>& VTPageTable::GetPageTable() const
 {
     return m_page_table;
+}
+
+std::shared_ptr<IRHITextureAllocation> VTPageTable::GetTextureAllocation() const
+{
+    return m_page_texture;
 }

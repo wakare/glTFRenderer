@@ -7,6 +7,7 @@
 #include "glTFRenderResourceFrameManager.h"
 #include "RenderGraphNodeUtil.h"
 
+class RenderSystemBase;
 class glTFSceneGraph;
 class IRHIFrameBuffer;
 class glTFWindow;
@@ -48,6 +49,7 @@ public:
     void WaitLastFrameFinish() const;
     void WaitAllFrameFinish() const;
     void ResetCommandAllocator();
+    void WaitAndClean();
     
     IRHIRenderTargetManager& GetRenderTargetManager();
     
@@ -86,6 +88,13 @@ public:
     const std::vector<glTFPerFrameRenderResourceData>& GetPerFrameRenderResourceData() const;
 
     RenderGraphNodeUtil::RenderGraphNodeFinalOutput& GetFinalOutput();
+
+    void AddRenderSystem(std::shared_ptr<RenderSystemBase> render_system);
+
+    template<typename system_type>
+    std::shared_ptr<system_type> GetRenderSystem(); 
+
+    void TickFrame();
     
 private:
     //std::shared_ptr<glTFRadiosityRenderer> m_radiosity_renderer;
@@ -118,4 +127,20 @@ private:
     std::vector<glTFPerFrameRenderResourceData> m_per_frame_render_resource_data;
 
     RenderGraphNodeUtil::RenderGraphNodeFinalOutput m_final_output;
+
+    std::vector<std::shared_ptr<RenderSystemBase>> m_render_systems;
 };
+
+template <typename system_type>
+std::shared_ptr<system_type> glTFRenderResourceManager::GetRenderSystem()
+{
+    for (auto& render_system : m_render_systems)
+    {
+        if (std::shared_ptr<system_type> pointer = dynamic_pointer_cast<system_type>(render_system))
+        {
+            return pointer;
+        }
+    }
+    
+    return nullptr;
+}

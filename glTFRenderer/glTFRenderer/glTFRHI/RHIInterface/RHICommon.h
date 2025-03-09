@@ -489,6 +489,12 @@ struct RHIDepthStencilClearValue
 {
     float clear_depth;
     unsigned char clear_stencil_value;
+
+    bool operator==(const RHIDepthStencilClearValue& other) const
+    {
+        return clear_depth == other.clear_depth &&
+            clear_stencil_value == other.clear_stencil_value;
+    }
 };
 
 struct RHITextureClearValue
@@ -499,6 +505,13 @@ struct RHITextureClearValue
         glm::vec4 clear_color;
         RHIDepthStencilClearValue clear_depth_stencil;
     };
+
+    bool operator==(const RHITextureClearValue& rhs) const
+    {
+        return clear_format == rhs.clear_format &&
+            clear_color == rhs.clear_color &&
+            clear_depth_stencil == rhs.clear_depth_stencil;
+    }
 };
 
 enum class RHIRenderTargetType
@@ -665,6 +678,20 @@ struct RHIBufferDesc
     RHIResourceUsageFlags usage {};
     size_t alignment {0};
     RHITextureClearValue clear_value{};
+
+    bool operator==(const RHIBufferDesc& rhs) const
+    {
+        return
+            width == rhs.width && height == rhs.height && depth == rhs.depth &&
+            type == rhs.type &&
+            resource_data_type == rhs.resource_data_type &&
+            resource_type == rhs.resource_type &&
+            usage == rhs.usage &&
+            state == rhs.state &&
+            alignment == rhs.alignment 
+            //&& clear_value == rhs.clear_value
+        ;
+    }
 };
 
 struct RHIDescriptorHeapDesc

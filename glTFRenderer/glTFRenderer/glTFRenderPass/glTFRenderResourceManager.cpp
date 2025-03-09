@@ -1,6 +1,7 @@
 #include "glTFRenderResourceManager.h"
 
 #include "glTFRenderMaterialManager.h"
+#include "glTFRenderSystem/VT/VirtualTextureSystem.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 #include "RenderWindow/glTFWindow.h"
 #include "glTFScene/glTFSceneGraph.h"
@@ -80,6 +81,13 @@ bool glTFRenderResourceManager::InitResourceManager(unsigned width, unsigned hei
     }
     
     m_frame_resource_managers.resize(backBufferCount);
+
+    AddRenderSystem(std::make_shared<VirtualTextureSystem>());
+
+    for (auto& render_system : m_render_systems)
+    {
+        render_system->InitRenderSystem(*this);
+    }
     
     return true;
 }
@@ -246,6 +254,11 @@ void glTFRenderResourceManager::WaitAllFrameFinish() const
     {
         RHIUtils::Instance().WaitCommandListFinish(*command_list);
     }
+    
+    for (auto& render_system : m_render_systems)
+    {
+        render_system->ShutdownRenderSystem();
+    }
 
     // Wait queue
     RHIUtils::Instance().WaitCommandQueueIdle(*m_command_queue);
@@ -255,6 +268,14 @@ void glTFRenderResourceManager::ResetCommandAllocator()
 {
     CloseCurrentCommandListAndExecute({}, true);
     RHIUtils::Instance().ResetCommandAllocator(GetCurrentFrameCommandAllocator());
+}
+
+void glTFRenderResourceManager::WaitAndClean()
+{
+    if (IsMemoryManagerValid())
+    {
+        GetMemoryManager().ReleaseAllResource(*this);    
+    }
 }
 
 IRHIRenderTargetManager& glTFRenderResourceManager::GetRenderTargetManager()
@@ -315,7 +336,7 @@ bool glTFRenderResourceManager::TryProcessSceneObject(glTFRenderResourceManager&
     if (primitive && primitive->HasMaterial())
     {    
         // Material texture resource descriptor is alloc within current heap
-        RETURN_IF_FALSE(resource_manager.GetMaterialManager().InitMaterialRenderResource(resource_manager, primitive->GetMaterial()))
+        RETURN_IF_FALSE(resource_manager.GetMaterialManager().AddMaterialRenderResource(resource_manager, primitive->GetMaterial()))
     }
     
     if (!primitive /*|| !primitive->IsVisible()*/)
@@ -365,17 +386,7 @@ glTFRenderResourceUtils::GBufferSignatureAllocations& glTFRenderResourceManager:
 {
     return *m_gBuffer_allocations;
 }
-/*
-glTFRadiosityRenderer& glTFRenderResourceManager::GetRadiosityRenderer()
-{
-    return *m_radiosity_renderer; 
-}
 
-const glTFRadiosityRenderer& glTFRenderResourceManager::GetRadiosityRenderer() const
-{
-    return *m_radiosity_renderer;
-}
-*/
 bool glTFRenderResourceManager::ExportResourceTexture(const RHITextureDesc& desc, RenderPassResourceTableId entry_id,
     std::vector<std::shared_ptr<IRHITexture>>& out_texture)
 {
@@ -413,4 +424,19 @@ const std::vector<glTFPerFrameRenderResourceData>& glTFRenderResourceManager::Ge
 RenderGraphNodeUtil::RenderGraphNodeFinalOutput& glTFRenderResourceManager::GetFinalOutput()
 {
     return m_final_output;
+}
+
+void glTFRenderResourceManager::AddRenderSystem(std::shared_ptr<RenderSystemBase> render_system)
+{
+    m_render_systems.push_back(render_system);
+}
+
+void glTFRenderResourceManager::TickFrame()
+{
+    for (auto& render_system : m_render_systems)
+    {
+        render_system->TickRenderSystem(*this);
+    }
+
+    m_memory_manager->TickFrame();
 }

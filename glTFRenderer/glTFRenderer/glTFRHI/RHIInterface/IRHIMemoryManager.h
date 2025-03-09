@@ -65,6 +65,30 @@ struct DescriptorAllocationInfo
     unsigned dsv_size;
 };
 
+struct TempBufferInfo
+{
+    enum
+    {
+        TEMP_BUFFER_FRAME_LIFE_TIME = 3,
+    };
+    
+    RHIBufferDesc desc;
+    std::shared_ptr<IRHIBufferAllocation> allocation;
+    int remain_frame_to_reuse;
+};
+
+class RHITempBufferPool
+{
+public:
+    bool TryGetBuffer(const RHIBufferDesc& buffer_desc, std::shared_ptr<IRHIBufferAllocation>& out_buffer);
+    void AddBufferToPool(const TempBufferInfo& buffer_info);
+    void TickFrame();
+    void Clear();
+    
+protected:
+    std::vector<TempBufferInfo> m_temp_upload_buffer_allocations;
+};
+
 // Hold descriptor heap which store cbv for gpu memory
 class IRHIMemoryManager 
 {
@@ -78,13 +102,16 @@ public:
     virtual bool UploadBufferData(IRHIBufferAllocation& buffer_allocation, const void* data, size_t offset, size_t size) = 0;
     virtual bool AllocateTextureMemory(IRHIDevice& device, glTFRenderResourceManager& resource_manager, const RHITextureDesc& buffer_desc, std::shared_ptr<IRHITextureAllocation>& out_buffer_allocation) = 0;
     virtual bool AllocateTextureMemoryAndUpload(IRHIDevice& device, glTFRenderResourceManager& resource_manager, IRHICommandList& command_list, const RHITextureDesc& buffer_desc, std::shared_ptr<IRHITextureAllocation>& out_buffer_allocation) = 0;
-    virtual bool ReleaseAllResource(glTFRenderResourceManager& resource_manager) = 0;
-
     virtual bool ReleaseMemoryAllocation(glTFRenderResourceManager& resource_manager, IRHIMemoryAllocation& memory_allocation) = 0;
+    virtual bool ReleaseAllResource(glTFRenderResourceManager& resource_manager);
     
     IRHIDescriptorManager& GetDescriptorManager() const;
+    void TickFrame();
+    bool AllocateTempUploadBufferMemory(IRHIDevice& device, const RHIBufferDesc& buffer_desc, std::shared_ptr<IRHIBufferAllocation>& out_buffer_allocation);
     
 protected:
+    RHITempBufferPool m_temp_buffer_pool;
+    
     std::vector<std::shared_ptr<IRHIBufferAllocation>> m_buffer_allocations;
     std::vector<std::shared_ptr<IRHITextureAllocation>> m_texture_allocations;
     

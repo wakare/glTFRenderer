@@ -23,6 +23,10 @@ public:
     virtual void TickRenderSystem(glTFRenderResourceManager& resource_manager) override;
 
     bool RegisterTexture(std::shared_ptr<VTLogicalTexture> texture);
+    bool InitRenderResource(glTFRenderResourceManager& resource_manager);
+
+    const std::map<int, std::pair<std::shared_ptr<VTLogicalTexture>, std::shared_ptr<VTPageTable>>>& GetLogicalTextureInfos() const;
+    std::shared_ptr<VTPhysicalTexture> GetPhysicalTexture() const;
     
 protected:
     void DrawFeedBackPass();

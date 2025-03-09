@@ -54,6 +54,7 @@ bool glTFAppRenderer::InitScene(const glTFSceneGraph& scene_graph)
 void glTFAppRenderer::TickRenderingBegin(size_t delta_time_ms)
 {
     m_scene_renderer->TickFrameRenderingBegin(*m_resource_manager, delta_time_ms);
+    m_resource_manager->TickFrame();
 }
 
 void glTFAppRenderer::TickSceneUpdating(const glTFSceneGraph& scene_graph,const glTFInputManager& input_manager, size_t delta_time_ms)
@@ -95,11 +96,8 @@ void glTFAppRenderer::WaitRenderingFinishAndCleanupAllResource() const
     {
         m_ui_renderer->ExitAndClean();    
     }
-    
-    if (m_resource_manager->IsMemoryManagerValid())
-    {
-        m_resource_manager->GetMemoryManager().ReleaseAllResource(*m_resource_manager);    
-    }
+
+    m_resource_manager->WaitAndClean();
     
     const bool cleanup = RHIResourceFactory::CleanupResources(*m_resource_manager);
     GLTF_CHECK(cleanup);

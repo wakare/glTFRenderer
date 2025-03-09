@@ -14,6 +14,40 @@ bool IRHIMemoryAllocation::Release(glTFRenderResourceManager& resource_manager)
     return resource_manager.GetMemoryManager().ReleaseMemoryAllocation(resource_manager, *this);
 }
 
+bool RHITempBufferPool::TryGetBuffer(const RHIBufferDesc& buffer_desc,
+    std::shared_ptr<IRHIBufferAllocation>& out_buffer)
+{
+    for (auto& temp_upload_buffer : m_temp_upload_buffer_allocations)
+    {
+        if (temp_upload_buffer.desc == buffer_desc && temp_upload_buffer.remain_frame_to_reuse <= 0)
+        {
+            out_buffer = temp_upload_buffer.allocation;
+            temp_upload_buffer.remain_frame_to_reuse = TempBufferInfo::TEMP_BUFFER_FRAME_LIFE_TIME;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void RHITempBufferPool::AddBufferToPool(const TempBufferInfo& buffer_info)
+{
+    m_temp_upload_buffer_allocations.push_back(buffer_info);
+}
+
+void RHITempBufferPool::TickFrame()
+{
+    for (auto& temp_upload_buffer : m_temp_upload_buffer_allocations)
+    {
+        temp_upload_buffer.remain_frame_to_reuse--;
+    }
+}
+
+void RHITempBufferPool::Clear()
+{
+    m_temp_upload_buffer_allocations.clear();
+}
+
 bool IRHIMemoryManager::InitMemoryManager(IRHIDevice& device,
                                           const IRHIFactory& factory, const DescriptorAllocationInfo& descriptor_allocation_info)
 {
@@ -23,7 +57,40 @@ bool IRHIMemoryManager::InitMemoryManager(IRHIDevice& device,
     return true;
 }
 
+bool IRHIMemoryManager::ReleaseAllResource(glTFRenderResourceManager& resource_manager)
+{
+    m_texture_allocations.clear();
+    m_buffer_allocations.clear();
+    m_temp_buffer_pool.Clear();
+    return true;
+}
+
 IRHIDescriptorManager& IRHIMemoryManager::GetDescriptorManager() const
 {
     return *m_descriptor_manager;
+}
+
+void IRHIMemoryManager::TickFrame()
+{
+    m_temp_buffer_pool.TickFrame();
+}
+
+bool IRHIMemoryManager::AllocateTempUploadBufferMemory(IRHIDevice& device, const RHIBufferDesc& buffer_desc,
+                                                       std::shared_ptr<IRHIBufferAllocation>& out_buffer_allocation)
+{
+    if (m_temp_buffer_pool.TryGetBuffer(buffer_desc, out_buffer_allocation))
+    {
+        return true;
+    }
+
+    RETURN_IF_FALSE(AllocateBufferMemory(device, buffer_desc, out_buffer_allocation))
+    
+    TempBufferInfo temp_buffer_info;
+    temp_buffer_info.desc = buffer_desc;
+    temp_buffer_info.remain_frame_to_reuse = TempBufferInfo::TEMP_BUFFER_FRAME_LIFE_TIME;
+    temp_buffer_info.allocation = out_buffer_allocation;
+
+    m_temp_buffer_pool.AddBufferToPool(temp_buffer_info);
+
+    return true;
 }

@@ -196,6 +196,8 @@ bool VKMemoryManager::ReleaseAllResource(glTFRenderResourceManager& resource_man
     }
     
     m_allocator->Release(resource_manager);
+
+    RETURN_IF_FALSE(IRHIMemoryManager::ReleaseAllResource(resource_manager));
     
     return true;
 }

@@ -11,13 +11,16 @@ class VTLogicalTexture
 public:
     DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VTLogicalTexture)
     
-    bool InitLogicalTexture(int size, int texture_id);
+    bool InitLogicalTexture(const RHITextureDesc& desc);
     int GetTextureId() const;
     int GetSize() const;
     
 protected:
     int m_texture_id {-1};
     int m_size {-1};
+
+    std::shared_ptr<unsigned char[]> m_texture_data {nullptr};
+    size_t m_texture_data_size {0};
 };
 
 class VTPageLRU
@@ -47,9 +50,12 @@ public:
     void UpdateRenderResource(glTFRenderResourceManager& resource_manager);
     
     const std::map<VTPage::HashType, VTPhysicalPageAllocationInfo>& GetPageAllocationInfos() const;
+    std::shared_ptr<IRHITextureAllocation> GetTextureAllocation() const;
     
 protected:
     bool GetAvailablePagesAndErase(int& x, int& y);
+
+    bool m_render_resource_init {false};
     
     int m_texture_size{0};
     int m_page_table_size{0};

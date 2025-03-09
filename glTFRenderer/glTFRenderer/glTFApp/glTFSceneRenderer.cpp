@@ -78,11 +78,6 @@ void glTFSceneRendererBase::ApplyInput(const glTFInputManager& input_manager, si
     }
 }
 
-void glTFSceneRendererBase::AddRenderSystem(const std::shared_ptr<RenderSystemBase>& system)
-{
-    m_render_systems.push_back(system);
-}
-
 bool glTFSceneRendererBase::RecreateRenderPass(glTFRenderResourceManager& resource_manager)
 {
     m_pass_manager.reset(new glTFRenderPassManager());

@@ -19,14 +19,14 @@ public:
     void ApplyShaderDefine(RHIShaderPreDefineMacros& out_shader_pre_define_macros) const;
     
 protected:
-    virtual bool PreInitInterfaceImpl(glTFRenderResourceManager& resource_manager) {return true;}
-    virtual bool InitInterfaceImpl(glTFRenderResourceManager& resource_manager) {return true;}
-    virtual bool PostInitInterfaceImpl(glTFRenderResourceManager& resource_manager) {return true;}
+    virtual bool PreInitInterfaceImpl(glTFRenderResourceManager& resource_manager);
+    virtual bool InitInterfaceImpl(glTFRenderResourceManager& resource_manager);
+    virtual bool PostInitInterfaceImpl(glTFRenderResourceManager& resource_manager);
     
     virtual bool ApplyInterfaceImpl(IRHICommandList& command_list, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater, unsigned
-                                    frame_index) {return true;}
-    virtual bool ApplyRootSignatureImpl(IRHIRootSignatureHelper& root_signature) {return true;}
-    virtual void ApplyShaderDefineImpl(RHIShaderPreDefineMacros& out_shader_pre_define_macros) const {}
+                                    frame_index);
+    virtual bool ApplyRootSignatureImpl(IRHIRootSignatureHelper& root_signature);
+    virtual void ApplyShaderDefineImpl(RHIShaderPreDefineMacros& out_shader_pre_define_macros) const;
     
     void AddInterface(const std::shared_ptr<glTFRenderInterfaceBase>& render_interface);
 

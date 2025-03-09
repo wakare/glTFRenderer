@@ -6,12 +6,16 @@
 #include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRHI/RHIUtils.h"
 
-bool VTLogicalTexture::InitLogicalTexture(int size, int texture_id)
+bool VTLogicalTexture::InitLogicalTexture(const RHITextureDesc& desc)
 {
-    GLTF_CHECK(size >= 0 && texture_id >= 0);
-    
-    m_texture_id = texture_id;
-    m_size = size;
+    GLTF_CHECK(desc.GetTextureWidth() > 0 && desc.GetTextureHeight() > 0 && desc.GetTextureWidth() == desc.GetTextureHeight());
+
+    static unsigned _inner_texture_id = 0;
+    m_texture_id = _inner_texture_id++;
+    m_size = desc.GetTextureWidth();
+
+    m_texture_data = desc.GetTextureData();
+    m_texture_data_size = desc.GetTextureDataSize();
     
     return true;
 }
@@ -113,6 +117,12 @@ void VTPhysicalTexture::UpdateTextureData()
 
 bool VTPhysicalTexture::InitRenderResource(glTFRenderResourceManager& resource_manager)
 {
+    if (m_render_resource_init)
+    {
+        return true;
+    }
+
+    m_render_resource_init = true;
     RHITextureDesc page_table_texture_desc
     (
         "Physical Texture",
@@ -128,6 +138,7 @@ bool VTPhysicalTexture::InitRenderResource(glTFRenderResourceManager& resource_m
     
     const bool allocated = resource_manager.GetMemoryManager().AllocateTextureMemory(resource_manager.GetDevice(), resource_manager, page_table_texture_desc, m_physical_texture);
     GLTF_CHECK(allocated);
+    
     return true;
 }
 
@@ -150,6 +161,11 @@ void VTPhysicalTexture::UpdateRenderResource(glTFRenderResourceManager& resource
 const std::map<VTPage::HashType, VTPhysicalPageAllocationInfo>& VTPhysicalTexture::GetPageAllocationInfos() const
 {
     return m_page_allocations;
+}
+
+std::shared_ptr<IRHITextureAllocation> VTPhysicalTexture::GetTextureAllocation() const
+{
+    return m_physical_texture;
 }
 
 bool VTPhysicalTexture::GetAvailablePagesAndErase(int& x, int& y)

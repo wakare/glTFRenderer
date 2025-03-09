@@ -2,7 +2,9 @@
 
 bool VirtualTextureSystem::InitRenderSystem(glTFRenderResourceManager& resource_manager)
 {
-    
+    m_page_streamer = std::make_shared<VTPageStreamer>();
+    m_physical_texture = std::make_shared<VTPhysicalTexture>(2048, 64, 1);
+
     return true;
 }
 
@@ -63,6 +65,29 @@ bool VirtualTextureSystem::RegisterTexture(std::shared_ptr<VTLogicalTexture> tex
     m_logical_texture_infos[texture->GetTextureId()] = std::make_pair(texture, page_table);
     
     return true;
+}
+
+bool VirtualTextureSystem::InitRenderResource(glTFRenderResourceManager& resource_manager)
+{
+    RETURN_IF_FALSE(m_physical_texture->InitRenderResource(resource_manager));
+    
+    for (const auto& logical_texture_info : m_logical_texture_infos)
+    {
+        RETURN_IF_FALSE(logical_texture_info.second.second->InitRenderResource(resource_manager));
+    }
+
+    return true;
+}
+
+const std::map<int, std::pair<std::shared_ptr<VTLogicalTexture>, std::shared_ptr<VTPageTable>>>& VirtualTextureSystem::
+GetLogicalTextureInfos() const
+{
+    return m_logical_texture_infos;
+}
+
+std::shared_ptr<VTPhysicalTexture> VirtualTextureSystem::GetPhysicalTexture() const
+{
+    return m_physical_texture;
 }
 
 void VirtualTextureSystem::DrawFeedBackPass()

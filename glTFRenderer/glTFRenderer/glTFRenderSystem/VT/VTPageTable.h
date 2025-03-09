@@ -26,9 +26,13 @@ public:
 
     int GetTextureId() const;
     const std::map<VTPage::HashType, PhysicalPageOffset>& GetPageTable() const; 
+
+    std::shared_ptr<IRHITextureAllocation> GetTextureAllocation() const;
     
 protected:
+    bool m_render_resource_init {false};
     int m_tex_id {-1};
+    
     unsigned int m_page_table_size {0};
     unsigned int m_page_table_mip_count {0};
     

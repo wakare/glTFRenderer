@@ -2,6 +2,7 @@
 
 void VTPageStreamer::AddPageRequest(const VTPage& page)
 {
+    m_pending_requests.push(page);
 }
 
 void VTPageStreamer::Tick()

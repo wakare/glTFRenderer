@@ -104,12 +104,3 @@ bool DX12MemoryManager::ReleaseMemoryAllocation(glTFRenderResourceManager& resou
 
     return true;
 }
-
-bool DX12MemoryManager::ReleaseAllResource(glTFRenderResourceManager& resource_manager)
-{
-    // Clean all resources
-    m_texture_allocations.clear();
-    m_buffer_allocations.clear();
-    
-    return true;
-}
