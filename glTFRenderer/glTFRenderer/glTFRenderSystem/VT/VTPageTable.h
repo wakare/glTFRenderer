@@ -1,39 +1,10 @@
 #pragma once
-#include <cstdint>
 #include <map>
 #include <memory>
 
 #include "VTCommon.h"
 #include "VTQuadTree.h"
 #include "glTFRHI/RHIInterface/IRHIMemoryManager.h"
-
-struct VTPage
-{
-    using OffsetType = uint16_t;
-    using MipType = uint8_t;
-    using HashType = uint64_t;
-    
-    OffsetType X;
-    OffsetType Y;
-    MipType mip;
-    int tex; // logical texture id 
-
-    HashType PageHash() const
-    {
-        HashType hash = tex << 11 | mip << 8 | X << 4 | Y;
-        return hash;
-    }
-
-    bool operator==(const VTPage& rhs) const
-    {
-        return PageHash() == rhs.PageHash();
-    }
-
-    bool operator<(const VTPage& rhs) const
-    {
-        return PageHash() < rhs.PageHash();
-    }
-};
 
 class VTPageTable
 {
@@ -50,7 +21,7 @@ public:
     void UpdateRenderResource(glTFRenderResourceManager& resource_manager);
 
     void Invalidate();
-    bool TouchPage(const VTPage& page);
+    bool TouchPageAllocation(const VTPhysicalPageAllocationInfo& page_allocation);
     void UpdateTextureData();
 
     int GetTextureId() const;

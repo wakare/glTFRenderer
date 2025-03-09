@@ -4,7 +4,6 @@
 #include <set>
 
 #include "VTPageDataAccessor.h"
-#include "VTPageTable.h"
 
 // Size -- width and height
 class VTLogicalTexture
@@ -37,19 +36,12 @@ protected:
     std::list<VTPage> m_lru_pages;
 };
 
-struct VTPhysicalPageAllocationInfo
-{
-    VTPage page;
-    int X;
-    int Y;
-    std::shared_ptr<char[]> page_data;
-};
-
 class VTPhysicalTexture
 {
 public:
     VTPhysicalTexture(int texture_size, int page_size, int border);
     void ProcessRequestResult(const std::vector<VTPageData>& results);
+    void UpdateTextureData();
 
     bool InitRenderResource(glTFRenderResourceManager& resource_manager);
     void UpdateRenderResource(glTFRenderResourceManager& resource_manager);

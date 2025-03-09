@@ -2,6 +2,7 @@
 
 #include <utility>
 
+#include "VirtualTextureSystem.h"
 #include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRHI/RHIUtils.h"
 
@@ -96,6 +97,17 @@ void VTPhysicalTexture::ProcessRequestResult(const std::vector<VTPageData>& resu
         GLTF_CHECK(found && result.loaded);
         page_allocation.page = result.page;
         page_allocation.page_data = result.data;
+    }
+}
+
+void VTPhysicalTexture::UpdateTextureData()
+{
+    m_physical_texture_data->ResetTextureData();
+    for (const auto& page_allocation : m_page_allocations)
+    {
+        unsigned page_offset_x = page_allocation.second.X * (VirtualTextureSystem::VT_PAGE_SIZE + 2 * m_border) + m_border;
+        unsigned page_offset_y = page_allocation.second.Y * (VirtualTextureSystem::VT_PAGE_SIZE + 2 * m_border) + m_border;
+        m_physical_texture_data->UpdateRegionDataWithPixelData(page_offset_x, page_offset_y, VirtualTextureSystem::VT_PAGE_SIZE, VirtualTextureSystem::VT_PAGE_SIZE, page_allocation.second.page_data.get());
     }
 }
 

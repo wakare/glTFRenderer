@@ -73,11 +73,12 @@ bool VKMemoryManager::UploadBufferData(IRHIBufferAllocation& buffer_allocation, 
 bool VKMemoryManager::AllocateTextureMemory(IRHIDevice& device, glTFRenderResourceManager& resource_manager,
                                             const RHITextureDesc& texture_desc, std::shared_ptr<IRHITextureAllocation>& out_texture_allocation)
 {
+    uint32_t mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texture_desc.GetTextureWidth(), texture_desc.GetTextureHeight())))) + 1;
     VkImageCreateInfo image_create_info {.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, .pNext = nullptr};
 
     image_create_info.format = VKConverterUtils::ConvertToFormat(texture_desc.GetDataFormat());
     image_create_info.extent = {texture_desc.GetTextureWidth(), texture_desc.GetTextureHeight(), 1};
-    image_create_info.mipLevels = 1;
+    image_create_info.mipLevels = mipLevels;
     image_create_info.arrayLayers = 1;
     image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
     image_create_info.tiling = VK_IMAGE_TILING_OPTIMAL;

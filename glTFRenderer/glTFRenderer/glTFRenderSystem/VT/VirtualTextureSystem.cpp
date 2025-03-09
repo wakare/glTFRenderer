@@ -38,7 +38,7 @@ void VirtualTextureSystem::TickRenderSystem(glTFRenderResourceManager& resource_
         {
             if (page_allocation.second.page.tex == page_table->GetTextureId())
             {
-                page_table->TouchPage(page_allocation.second.page);
+                page_table->TouchPageAllocation(page_allocation.second);
             }
         }
         page_table->UpdateTextureData();
@@ -50,7 +50,8 @@ void VirtualTextureSystem::TickRenderSystem(glTFRenderResourceManager& resource_
         auto& page_table  = logical_texture_info.second.second;
         page_table->UpdateRenderResource(resource_manager);
     }
-
+    
+    m_physical_texture->UpdateTextureData();
     m_physical_texture->UpdateRenderResource(resource_manager);
 }
 

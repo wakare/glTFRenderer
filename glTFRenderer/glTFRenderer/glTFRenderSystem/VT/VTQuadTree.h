@@ -10,7 +10,7 @@ public:
     QuadTreeNode(int x, int y, int width, int height, int level);
     
     bool Contains(int x, int y) const;
-    bool Touch(int x, int y, int level);
+    bool Touch(int x, int y, int page_x, int page_y, int level);
     bool IsLeaf() const;
     bool IsValid() const;
 
@@ -18,6 +18,9 @@ public:
     int GetY() const;
     int GetWidth() const;
     int GetHeight() const;
+
+    int GetPageX() const;
+    int GetPageY() const;
     int GetLevel() const;
     
     void SetValid(bool valid, bool recursive);
@@ -29,6 +32,9 @@ protected:
     int Y;
     int Width;
     int Height;
+
+    int PageX;
+    int PageY;
     int Level;
 
     std::vector<std::shared_ptr<QuadTreeNode>> m_children;
@@ -38,7 +44,7 @@ class VTQuadTree
 {
 public:
     bool InitQuadTree(int page_table_size, int page_size);
-    bool Touch(int x, int y, int level);
+    bool Touch(int x, int y, int page_x, int page_y, int level);
     void Invalidate();
     void TraverseLambda(std::function<void(const QuadTreeNode&)> callback) const;
     

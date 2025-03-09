@@ -3,6 +3,7 @@
 #include <vulkan/vulkan_core.h>
 
 #include "RendererCommon.h"
+#include "VTTextureTypes.h"
 #include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRHI/RHIUtils.h"
 
@@ -64,7 +65,7 @@ void VTPageTable::UpdateRenderResource(glTFRenderResourceManager& resource_manag
                 texture_data->GetData(),
                 texture_data->GetDataSize()
             },
-            ++mip,
+            mip++,
         };
     
         RHIUtils::Instance().UploadTextureMipData(resource_manager.GetCommandListForRecord(), resource_manager.GetMemoryManager(), resource_manager.GetDevice(), *m_page_texture->m_texture, upload_info );    
@@ -76,24 +77,48 @@ void VTPageTable::Invalidate()
     m_quad_tree->Invalidate();
 }
 
-bool VTPageTable::TouchPage(const VTPage& page)
+bool VTPageTable::TouchPageAllocation(const VTPhysicalPageAllocationInfo& page_allocation)
 {
-    GLTF_CHECK(page.tex == m_tex_id);
+    GLTF_CHECK(page_allocation.page.tex == m_tex_id);
     
-    int touch_level = m_quad_tree->GetLevel(page.mip);
-    m_quad_tree->Touch(page.X, page.Y, touch_level);
+    int touch_level = m_quad_tree->GetLevel(page_allocation.page.mip);
+    m_quad_tree->Touch(page_allocation.page.X, page_allocation.page.Y, page_allocation.X, page_allocation.Y, touch_level);
 
     return true;
 }
 
 void VTPageTable::UpdateTextureData()
 {
-    auto update_data = [this](const QuadTreeNode& node)
-    {
-        
+    struct PixelRGBA16 {
+        uint16_t r;
+        uint16_t g;
+        uint16_t b;
+        uint16_t a;
     };
+    
+    for (int i = 0; i < m_page_texture_datas.size(); i++)
+    {
+        auto& texture_data = m_page_texture_datas[i];
+        auto update_data = [this, &texture_data](const QuadTreeNode& node)
+        {
+            if (!node.IsValid())
+            {
+                return;
+            }
 
-    m_quad_tree->TraverseLambda(update_data);
+            PixelRGBA16 pixel_data
+            {
+                static_cast<uint16_t>(node.GetPageX()),
+                static_cast<uint16_t>(node.GetPageY()),
+                static_cast<uint16_t>(node.GetLevel()),
+                1
+            };
+            
+            texture_data->UpdateRegionDataWithPixelData(node.GetX(), node.GetY(), node.GetWidth(), node.GetHeight(), &pixel_data);
+        };
+
+        m_quad_tree->TraverseLambda(update_data);    
+    }
 }
 
 int VTPageTable::GetTextureId() const

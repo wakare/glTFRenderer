@@ -12,9 +12,8 @@ static bool ContainsPoint(int x, int y, int width, int height, int px, int py)
 }
 
 QuadTreeNode::QuadTreeNode(int x, int y, int width, int height, int level)
-    : Valid(true), X(x), Y(y), Width(width), Height(height), Level(level)
+    : Valid(true), X(x), Y(y), Width(width), Height(height), PageX(-1), PageY(-1), Level(level)
 {
-    
 }
 
 bool QuadTreeNode::Contains(int x, int y) const
@@ -22,7 +21,7 @@ bool QuadTreeNode::Contains(int x, int y) const
     return ContainsPoint(X, Y, Width, Height, x, y);
 }
 
-bool QuadTreeNode::Touch(int x, int y, int level)
+bool QuadTreeNode::Touch(int x, int y, int page_x, int page_y, int level)
 {
     if (!Contains(x, y))
     {
@@ -31,6 +30,8 @@ bool QuadTreeNode::Touch(int x, int y, int level)
 
     if (level == Level)
     {
+        PageX = page_x;
+        PageY = page_y;
         return true;
     }
 
@@ -66,7 +67,7 @@ bool QuadTreeNode::Touch(int x, int y, int level)
         return false;
     }
     
-    return child_node->Touch(x, y, level);
+    return child_node->Touch(x, y, page_x, page_y, level);
 }
 
 void QuadTreeNode::SetValid(bool valid, bool recursive)
@@ -124,6 +125,16 @@ int QuadTreeNode::GetHeight() const
     return Height;
 }
 
+int QuadTreeNode::GetPageX() const
+{
+    return PageX;
+}
+
+int QuadTreeNode::GetPageY() const
+{
+    return PageY;
+}
+
 int QuadTreeNode::GetLevel() const
 {
     return Level;
@@ -142,10 +153,10 @@ bool VTQuadTree::InitQuadTree(int page_table_size, int page_size)
     return true;
 }
 
-bool VTQuadTree::Touch(int x, int y, int level)
+bool VTQuadTree::Touch(int x, int y, int page_x, int page_y, int level)
 {
     GLTF_CHECK(m_root != nullptr);
-    return m_root->Touch(x, y, level);
+    return m_root->Touch(x, y, page_x, page_y, level);
 }
 
 void VTQuadTree::Invalidate()
