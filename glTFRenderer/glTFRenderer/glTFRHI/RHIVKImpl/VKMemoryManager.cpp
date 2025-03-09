@@ -52,7 +52,6 @@ bool VKMemoryManager::AllocateBufferMemory(IRHIDevice& device, const RHIBufferDe
     buffer_allocation.m_buffer = RHIResourceFactory::CreateRHIResource<IRHIBuffer>();
     out_buffer_allocation->SetNeedRelease();
 
-    VkDevice vk_device = dynamic_cast<VKDevice&>(device).GetDevice();
     dynamic_cast<VKBuffer&>(*buffer_allocation.m_buffer).InitBuffer(out_buffer, buffer_desc);
 
     m_buffer_allocations.push_back(out_buffer_allocation);

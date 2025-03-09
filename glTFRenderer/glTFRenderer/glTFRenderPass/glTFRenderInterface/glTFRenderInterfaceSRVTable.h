@@ -14,7 +14,7 @@ public:
     {
     }
 
-    virtual bool InitInterfaceImpl(glTFRenderResourceManager& resource_manager) override
+    virtual bool PostInitInterfaceImpl(glTFRenderResourceManager& resource_manager) override
     {
         if (m_texture_descriptor_allocations.empty())
         {
@@ -31,9 +31,9 @@ public:
         return true;
     }
     
-    virtual bool ApplyRootSignatureImpl(IRHIRootSignatureHelper& rootSignature) override
+    virtual bool ApplyRootSignatureImpl(IRHIRootSignatureHelper& root_signature) override
     {
-        return rootSignature.AddTableRootParameter(m_name, {RHIRootParameterDescriptorRangeType::SRV, TableRangeCount, false, TableRangeCount == UINT_MAX}, m_allocation);
+        return root_signature.AddTableRootParameter(m_name, {RHIRootParameterDescriptorRangeType::SRV, TableRangeCount, false, TableRangeCount == UINT_MAX}, m_allocation);
     }
 
     virtual bool ApplyInterfaceImpl(IRHICommandList& command_list, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater, unsigned

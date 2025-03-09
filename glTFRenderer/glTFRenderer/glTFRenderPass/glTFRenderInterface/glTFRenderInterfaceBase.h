@@ -20,13 +20,13 @@ public:
     
 protected:
     virtual bool PreInitInterfaceImpl(glTFRenderResourceManager& resource_manager) {return true;}
-    virtual bool InitInterfaceImpl(glTFRenderResourceManager& resource_manager) = 0;
+    virtual bool InitInterfaceImpl(glTFRenderResourceManager& resource_manager) {return true;}
     virtual bool PostInitInterfaceImpl(glTFRenderResourceManager& resource_manager) {return true;}
     
     virtual bool ApplyInterfaceImpl(IRHICommandList& command_list, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater, unsigned
-                                    frame_index) = 0;
-    virtual bool ApplyRootSignatureImpl(IRHIRootSignatureHelper& root_signature) = 0;
-    virtual void ApplyShaderDefineImpl(RHIShaderPreDefineMacros& out_shader_pre_define_macros) const = 0;
+                                    frame_index) {return true;}
+    virtual bool ApplyRootSignatureImpl(IRHIRootSignatureHelper& root_signature) {return true;}
+    virtual void ApplyShaderDefineImpl(RHIShaderPreDefineMacros& out_shader_pre_define_macros) const {}
     
     void AddInterface(const std::shared_ptr<glTFRenderInterfaceBase>& render_interface);
 

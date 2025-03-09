@@ -6,26 +6,23 @@
 
 bool glTFRenderInterfaceBase::InitInterface(glTFRenderResourceManager& resource_manager)
 {
+    RETURN_IF_FALSE(PreInitInterfaceImpl(resource_manager))
     for (const auto& sub_interface : m_sub_interfaces)
     {
         RETURN_IF_FALSE(sub_interface->PreInitInterfaceImpl(resource_manager))
     }
     
-    RETURN_IF_FALSE(PreInitInterfaceImpl(resource_manager))
-    
+    RETURN_IF_FALSE(InitInterfaceImpl(resource_manager))    
     for (const auto& sub_interface : m_sub_interfaces)
     {
         RETURN_IF_FALSE(sub_interface->InitInterfaceImpl(resource_manager))     
     }
 
-    RETURN_IF_FALSE(InitInterfaceImpl(resource_manager))
-
+    RETURN_IF_FALSE(PostInitInterfaceImpl(resource_manager))
     for (const auto& sub_interface : m_sub_interfaces)
     {
         RETURN_IF_FALSE(sub_interface->PostInitInterfaceImpl(resource_manager))
     }
-    
-    RETURN_IF_FALSE(PostInitInterfaceImpl(resource_manager))
     
     return true;
 }

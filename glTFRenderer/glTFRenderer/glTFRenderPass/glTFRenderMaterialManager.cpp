@@ -132,9 +132,9 @@ bool glTFRenderMaterialManager::InitMaterialRenderResource(glTFRenderResourceMan
     return true;
 }
 
-bool glTFRenderMaterialManager::GatherAllMaterialRenderResource(
-    std::vector<MaterialInfo>& gather_material_infos, std::vector<glTFMaterialTextureRenderResource*>&
-    gather_material_textures) const
+bool glTFRenderMaterialManager::GatherAllMaterialRenderResource( std::vector<MaterialInfo>& gather_material_infos,
+    std::vector<const glTFMaterialTextureRenderResource*>& gather_material_textures,
+    std::vector<const VTLogicalTexture*>& virtual_textures ) const
 {
     gather_material_infos.resize(m_material_render_resources.size());
     gather_material_textures.reserve(m_material_render_resources.size() * 2);
@@ -177,6 +177,11 @@ bool glTFRenderMaterialManager::GatherAllMaterialRenderResource(
 
         auto it_metallicAndRoughness = factors.find(glTFMaterialParameterUsage::METALLIC_ROUGHNESS);
         new_material_info.metallicAndRoughness = it_metallicAndRoughness == factors.end() ? glm::vec4(0.0f, 0.0f, 1.0f, 0.0f) : it_metallicAndRoughness->second->GetFactor();
+    }
+
+    for (const auto& virtual_texture : m_virtual_textures)
+    {
+        virtual_textures.push_back(virtual_texture.second.get());
     }
     
     return true;

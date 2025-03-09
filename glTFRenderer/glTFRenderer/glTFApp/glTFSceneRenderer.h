@@ -2,6 +2,7 @@
 #include "glTFPassOptionRenderFlags.h"
 #include "glTFGUIRenderer.h"
 #include "glTFRenderPass/glTFRenderPassManager.h"
+#include "glTFRenderSystem/RenderSystemBase.h"
 
 class glTFRenderResourceManager;
 class glTFInputManager;
@@ -22,7 +23,8 @@ public:
     virtual void TickFrameRenderingEnd(glTFRenderResourceManager& resource_manager, size_t delta_time_ms);
     
     void ApplyInput(const glTFInputManager& input_manager, size_t delta_time_ms);
-    
+    void AddRenderSystem(const std::shared_ptr<RenderSystemBase>& system);
+        
 protected:
     bool RecreateRenderPass(glTFRenderResourceManager& resource_manager);
     virtual bool UpdateGUIWidgets() { return true; }
@@ -30,6 +32,8 @@ protected:
     glTFPassOptionRenderFlags m_pass_options;
     std::unique_ptr<glTFRenderPassManager> m_pass_manager;
     bool m_pass_inited {false};
+
+    std::vector<std::shared_ptr<RenderSystemBase>> m_render_systems;
 };
 
 class glTFSceneRendererRasterizer : public glTFSceneRendererBase

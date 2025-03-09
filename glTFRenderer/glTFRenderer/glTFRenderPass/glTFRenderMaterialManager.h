@@ -6,6 +6,7 @@
 #include "glTFMaterial/glTFMaterialParameterFactor.h"
 #include "glTFRenderInterface/glTFRenderInterfaceSceneMaterial.h"
 #include "RendererCommon.h"
+#include "glTFRenderSystem/VT/VTTextureTypes.h"
 
 enum class glTFMaterialParameterUsage;
 class IRHITextureAllocation;
@@ -48,10 +49,11 @@ class glTFRenderMaterialManager
 public:
 	bool InitMaterialRenderResource(glTFRenderResourceManager& resource_manager, const glTFMaterialBase& material);
 	
-	bool GatherAllMaterialRenderResource(
-		std::vector<MaterialInfo>& gather_material_infos, std::vector<glTFMaterialTextureRenderResource*>&
-		gather_material_textures) const;
+	bool GatherAllMaterialRenderResource( std::vector<MaterialInfo>& gather_material_infos,
+		std::vector<const glTFMaterialTextureRenderResource*>& gather_material_textures,
+		std::vector<const VTLogicalTexture*>& virtual_textures) const;
 	
 protected:
 	std::map<glTFUniqueID, std::unique_ptr<glTFMaterialRenderResource>> m_material_render_resources;
+	std::map<glTFUniqueID, std::shared_ptr<VTLogicalTexture>> m_virtual_textures;
 };

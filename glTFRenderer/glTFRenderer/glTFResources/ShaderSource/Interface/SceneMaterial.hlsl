@@ -2,6 +2,7 @@
 #define SCENE_MATERIAL
 
 #include "glTFResources/ShaderSource/ShaderDeclarationUtil.hlsl"
+//#include "glTFResources/ShaderSource/Interface/VirtualTexture.hlsl"
 
 #define MATERIAL_TEXTURE_INVALID_INDEX 0xffffffff 
 struct MaterialInfo
