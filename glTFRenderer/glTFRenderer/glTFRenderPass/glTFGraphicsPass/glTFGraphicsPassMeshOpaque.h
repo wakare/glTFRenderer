@@ -4,18 +4,14 @@
 class glTFGraphicsPassMeshOpaque : public glTFGraphicsPassMeshBase
 {
 public:
-    glTFGraphicsPassMeshOpaque();
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFGraphicsPassMeshOpaque)
     
     virtual const char* PassName() override {return "MeshPassOpaque"; }
-    virtual bool InitRenderInterface(glTFRenderResourceManager& resource_manager) override;
-    virtual bool InitPass(glTFRenderResourceManager& resource_manager) override;
-    bool PreRenderPass(glTFRenderResourceManager& resource_manager) override;
     
 protected:
-    virtual bool SetupRootSignature(glTFRenderResourceManager& resource_manager) override;
+    virtual bool InitRenderInterface(glTFRenderResourceManager& resource_manager) override;
+    virtual bool PreRenderPass(glTFRenderResourceManager& resource_manager) override;
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;
     virtual bool InitResourceTable(glTFRenderResourceManager& resource_manager) override;
-    
-    RootSignatureAllocation m_sampler_allocation;
 };
  

@@ -12,7 +12,7 @@ public:
 
     bool InitFromExternalResource(ID3D12Resource* raw_resource, const RHITextureDesc& desc);
 
-    bool InitTexture(IRHIDevice& device, glTFRenderResourceManager& resource_manager, const RHITextureDesc& desc);
+    bool InitTexture(std::shared_ptr<IRHIBufferAllocation> buffer, const RHITextureDesc& desc);
     
     virtual bool Release(glTFRenderResourceManager&) override;
     

@@ -1,4 +1,6 @@
 #include "DX12Texture.h"
+
+#include <utility>
 #include "DX12Buffer.h"
 #include "DX12Device.h"
 #include "DX12Utils.h"
@@ -30,26 +32,10 @@ bool DX12Texture::InitFromExternalResource(ID3D12Resource* raw_resource, const R
     return true;
 }
 
-bool DX12Texture::InitTexture(IRHIDevice& device, glTFRenderResourceManager& resource_manager, const RHITextureDesc& desc)
+bool DX12Texture::InitTexture(std::shared_ptr<IRHIBufferAllocation> buffer, const RHITextureDesc& desc)
 {
     m_texture_desc.InitWithoutCopyData(desc);
-    const RHIBufferDesc textureBufferDesc =
-        {
-        to_wide_string(desc.GetName()),
-        m_texture_desc.GetTextureWidth(),
-        m_texture_desc.GetTextureHeight(),
-        1,
-        RHIBufferType::Default,
-        m_texture_desc.GetDataFormat(),
-        RHIBufferResourceType::Tex2D,
-        RHIResourceStateType::STATE_COMMON,
-        desc.GetUsage(),
-        0,
-        desc.GetClearValue()
-    };
-    
-    RETURN_IF_FALSE(resource_manager.GetMemoryManager().AllocateBufferMemory(device, textureBufferDesc, m_texture_buffer));
-    
+    m_texture_buffer = std::move(buffer);
     return true;
 }
 

@@ -63,6 +63,8 @@ bool glTFRenderInterfaceSceneMaterial::PostInitInterfaceImpl(glTFRenderResourceM
                     case glTFMaterialParameterUsage::METALLIC_ROUGHNESS:
                         out_vt_flags |= MaterialInfo::VT_FLAG_SPECULAR;
                         break;
+                    default:
+                        GLTF_CHECK(false);
                     }
                 }
                 else

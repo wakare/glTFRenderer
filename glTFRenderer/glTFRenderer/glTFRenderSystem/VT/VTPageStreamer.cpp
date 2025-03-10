@@ -1,5 +1,10 @@
 #include "VTPageStreamer.h"
 
+VTPageStreamer::VTPageStreamer()
+{
+    m_data_accessor = std::make_shared<VTPageDataAccessor>();
+}
+
 void VTPageStreamer::AddPageRequest(const VTPage& page)
 {
     m_pending_requests.push(page);
@@ -21,7 +26,7 @@ void VTPageStreamer::Tick()
     }
 }
 
-const std::vector<VTPageData>& VTPageStreamer::GetRequestResultsAndClean()
+std::vector<VTPageData> VTPageStreamer::GetRequestResultsAndClean()
 {
     auto result = m_request_results;
     m_request_results.clear();

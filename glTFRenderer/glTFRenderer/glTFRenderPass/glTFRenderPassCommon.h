@@ -41,6 +41,7 @@ enum class RenderPassResourceTableId
     // Pass specific
     BasePass_Albedo,
     BasePass_Normal,
+    BasePass_VT_Feedback,
     LightingPass_Output,
     RayTracingPass_ReSTIRSample_Output,
     ComputePass_RayTracingOutputPostProcess_Output,

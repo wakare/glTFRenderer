@@ -42,9 +42,27 @@ bool DX12MemoryManager::UploadBufferData(IRHIBufferAllocation& buffer_allocation
 bool DX12MemoryManager::AllocateTextureMemory(IRHIDevice& device, glTFRenderResourceManager& resource_manager,
                                               const RHITextureDesc& texture_desc, std::shared_ptr<IRHITextureAllocation>& out_texture_allocation)
 {
-    std::shared_ptr<IRHITexture> dx12_texture = RHIResourceFactory::CreateRHIResource<IRHITexture>();
-    dynamic_cast<DX12Texture&>(*dx12_texture).InitTexture(device, resource_manager, texture_desc);
+    const RHIBufferDesc textureBufferDesc =
+    {
+        to_wide_string(texture_desc.GetName()),
+        texture_desc.GetTextureWidth(),
+        texture_desc.GetTextureHeight(),
+        1,
+        RHIBufferType::Default,
+        texture_desc.GetDataFormat(),
+        RHIBufferResourceType::Tex2D,
+        RHIResourceStateType::STATE_COMMON,
+        texture_desc.GetUsage(),
+        0,
+        texture_desc.GetClearValue()
+    };
 
+    std::shared_ptr<IRHIBufferAllocation> texture_buffer;
+    RETURN_IF_FALSE(resource_manager.GetMemoryManager().AllocateBufferMemory(device, textureBufferDesc, texture_buffer))
+
+    std::shared_ptr<IRHITexture> dx12_texture = RHIResourceFactory::CreateRHIResource<IRHITexture>();
+    dynamic_cast<DX12Texture&>(*dx12_texture).InitTexture(texture_buffer, texture_desc);
+    
     out_texture_allocation = RHIResourceFactory::CreateRHIResource<IRHITextureAllocation>();
     out_texture_allocation->m_texture = dx12_texture;
     out_texture_allocation->SetNeedRelease();

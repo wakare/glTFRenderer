@@ -21,7 +21,8 @@ public:
     
     bool Transition(IRHICommandList& command_list, RHIResourceStateType new_state);
     RHIResourceStateType GetState() const;
-
+    bool CanReadBack() const;
+    
     virtual bool Release(glTFRenderResourceManager&) override;
     
 protected:

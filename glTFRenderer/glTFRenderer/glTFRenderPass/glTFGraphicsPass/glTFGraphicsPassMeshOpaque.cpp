@@ -8,28 +8,12 @@
 #include "glTFRHI/RHIUtils.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 
-glTFGraphicsPassMeshOpaque::glTFGraphicsPassMeshOpaque()
-{
-    
-}
-
 bool glTFGraphicsPassMeshOpaque::InitRenderInterface(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::InitRenderInterface(resource_manager))
 
-    //AddRenderInterface(std::make_shared<glTFRenderInterfaceRadiosityScene>());
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMaterial>());
-    
-    const std::shared_ptr<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Warp, RHIStaticSamplerFilterMode::Linear>> sampler_interface =
-        std::make_shared<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Warp, RHIStaticSamplerFilterMode::Linear>>("DEFAULT_SAMPLER_REGISTER_INDEX");
-    AddRenderInterface(sampler_interface);
-    
-    return true;
-}
-
-bool glTFGraphicsPassMeshOpaque::InitPass(glTFRenderResourceManager& resource_manager)
-{
-    RETURN_IF_FALSE(glTFGraphicsPassMeshBase::InitPass(resource_manager))
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Warp, RHIStaticSamplerFilterMode::Linear>>("DEFAULT_SAMPLER_REGISTER_INDEX"));
     
     return true;
 }
@@ -59,13 +43,6 @@ bool glTFGraphicsPassMeshOpaque::PreRenderPass(glTFRenderResourceManager& resour
     return true;
 }
 
-bool glTFGraphicsPassMeshOpaque::SetupRootSignature(glTFRenderResourceManager& resource_manager)
-{
-    RETURN_IF_FALSE(glTFGraphicsPassMeshBase::SetupRootSignature(resource_manager))
-    
-    return true;
-}
-
 bool glTFGraphicsPassMeshOpaque::SetupPipelineStateObject(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::SetupPipelineStateObject(resource_manager))
@@ -82,7 +59,7 @@ bool glTFGraphicsPassMeshOpaque::SetupPipelineStateObject(glTFRenderResourceMana
     GetGraphicsPipelineStateObject().BindRenderTargetFormats(
         {
             GetResourceDescriptor(RenderPassResourceTableId::BasePass_Albedo).get(),
-            GetResourceDescriptor(RenderPassResourceTableId::BasePass_Albedo).get(),
+            GetResourceDescriptor(RenderPassResourceTableId::BasePass_Normal).get(),
             &resource_manager.GetDepthDSV()
         });
     

@@ -5,9 +5,12 @@
 class VTPageStreamer
 {
 public:
+    VTPageStreamer();
+    DECLARE_NON_COPYABLE_AND_VDTOR(VTPageStreamer)
+    
     void AddPageRequest(const VTPage& page);
     void Tick();
-    const std::vector<VTPageData>& GetRequestResultsAndClean();
+    std::vector<VTPageData> GetRequestResultsAndClean();
     
 protected:    
     std::shared_ptr<VTPageDataAccessor> m_data_accessor;

@@ -540,6 +540,7 @@ enum RHIResourceUsageFlags
     // COMMON
     RUF_TRANSFER_SRC        =  0x1 << 8,
     RUF_TRANSFER_DST        =  0x1 << 9,
+    RUF_READBACK            =  0x1 << 10,
 };
 
 struct RHITextureDesc
@@ -574,6 +575,7 @@ struct RHITextureDesc
     void SetDataFormat(RHIDataFormat format) { m_texture_format = format;}
     static RHIDataFormat ConvertToRHIDataFormat(const WICPixelFormatGUID& wicFormatGUID);
 
+    bool HasUsage(RHIResourceUsageFlags usage) const;
     RHIResourceUsageFlags GetUsage() const {return m_usage; }
     
     const RHITextureClearValue& GetClearValue() const;
@@ -591,6 +593,8 @@ struct RHITextureDesc
     static RHITextureDesc MakeRayTracingSceneOutputTextureDesc(const glTFRenderResourceManager& resource_manager);
     static RHITextureDesc MakeRayTracingPassReSTIRSampleOutputDesc(const glTFRenderResourceManager& resource_manager);
     static RHITextureDesc MakeComputePassRayTracingPostProcessOutputDesc(const glTFRenderResourceManager& resource_manager);
+
+    static RHITextureDesc MakeBasePassVTFeedbackDesc(const glTFRenderResourceManager& resource_manager);
     
 private:
     std::string m_name;
