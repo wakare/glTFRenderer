@@ -82,13 +82,15 @@ bool glTFRenderInterfaceSceneMaterial::PostInitInterfaceImpl(glTFRenderResourceM
             }
         };
 
+        material_info.vt_flags = 0;
         process_texture(glTFMaterialParameterUsage::BASECOLOR, material_info.albedo_tex_index, material_info.vt_flags);
         process_texture(glTFMaterialParameterUsage::NORMAL, material_info.normal_tex_index, material_info.vt_flags);
         process_texture(glTFMaterialParameterUsage::METALLIC_ROUGHNESS, material_info.metallic_roughness_tex_index, material_info.vt_flags);
 
         RETURN_IF_FALSE(resource_manager.GetRenderSystem<VirtualTextureSystem>()->InitRenderResource(resource_manager));
     }
-    
+
+    GetRenderInterface<glTFRenderInterfaceSRVTableBindless>()->AddTextureAllocations(texture_descriptor_allocations);
     RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceStructuredBuffer<MaterialInfo>>()->UploadCPUBuffer(resource_manager, material_infos.data(), 0, sizeof(MaterialInfo) * material_infos.size()))
 
     RETURN_IF_FALSE(glTFRenderInterfaceBase::PostInitInterfaceImpl(resource_manager))
