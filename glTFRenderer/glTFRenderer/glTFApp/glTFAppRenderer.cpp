@@ -1,6 +1,7 @@
 #include "glTFAppRenderer.h"
 #include "glTFGUIRenderer.h"
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassLighting.h"
+#include "glTFRenderSystem/VT/VirtualTextureSystem.h"
 #include "glTFRHI/RHIConfigSingleton.h"
 #include "glTFRHI/RHIResourceFactory.h"
 #include "glTFRHI/RHIUtils.h"
@@ -32,7 +33,18 @@ glTFAppRenderer::glTFAppRenderer(const glTFAppRendererConfig& renderer_config, c
     RHIUtils::Instance().ReportLiveObjects();
     
     m_resource_manager.reset(new glTFRenderResourceManager());
+
     m_resource_manager->InitResourceManager(window.GetWidth(), window.GetHeight(), window.GetHWND());
+
+    // Init render systems
+    if (renderer_config.virtual_texture)
+    {
+        auto vt_system = std::make_shared<VirtualTextureSystem>();
+        m_render_systems.push_back(vt_system);
+        m_resource_manager->AddRenderSystem(vt_system);
+    }
+
+    m_resource_manager->InitRenderSystems();
     
     if (renderer_config.ui)
     {
@@ -55,13 +67,16 @@ void glTFAppRenderer::TickRenderingBegin(size_t delta_time_ms)
 {
     m_scene_renderer->TickFrameRenderingBegin(*m_resource_manager, delta_time_ms);
     m_resource_manager->TickFrame();
+    
+    for (const auto& render_system : m_render_systems)
+    {
+        render_system->TickRenderSystem(*m_resource_manager);
+    }
 }
 
 void glTFAppRenderer::TickSceneUpdating(const glTFSceneGraph& scene_graph,const glTFInputManager& input_manager, size_t delta_time_ms)
 {
     m_scene_view->Tick(scene_graph);
-    //m_resource_manager->GetRadiosityRenderer().UpdateIndirectLighting(scene_graph, m_scene_view->GetLightingDirty());
-
     m_scene_view->ApplyInput(input_manager, delta_time_ms);
     m_scene_renderer->ApplyInput(input_manager, delta_time_ms);
 }

@@ -1,11 +1,20 @@
 #include "VirtualTextureSystem.h"
 
+#include "glTFRenderPass/glTFRenderPassManager.h"
+#include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassMeshVT.h"
+
 bool VirtualTextureSystem::InitRenderSystem(glTFRenderResourceManager& resource_manager)
 {
     m_page_streamer = std::make_shared<VTPageStreamer>();
     m_physical_texture = std::make_shared<VTPhysicalTexture>(2048, 64, 1);
-
+    m_feedback_pass = std::make_shared<glTFGraphicsPassMeshVT>();
+    
     return true;
+}
+
+void VirtualTextureSystem::SetupPass(glTFRenderPassManager& pass_manager)
+{
+    pass_manager.AddRenderPass(m_feedback_pass);
 }
 
 void VirtualTextureSystem::ShutdownRenderSystem()

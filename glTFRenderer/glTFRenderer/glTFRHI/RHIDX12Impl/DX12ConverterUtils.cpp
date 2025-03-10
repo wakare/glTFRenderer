@@ -304,6 +304,7 @@ D3D12_INDIRECT_ARGUMENT_DESC DX12ConverterUtils::ConvertToIndirectArgumentDesc(c
 D3D12_RESOURCE_FLAGS DX12ConverterUtils::ConvertToResourceFlags(RHIResourceUsageFlags usage)
 {
     D3D12_RESOURCE_FLAGS result {};
+    
     if (usage & RUF_ALLOW_UAV)
     {
         result |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;

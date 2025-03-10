@@ -82,6 +82,10 @@ bool glTFSceneRendererBase::RecreateRenderPass(glTFRenderResourceManager& resour
 {
     m_pass_manager.reset(new glTFRenderPassManager());
     SetupSceneRenderer();
+    for (const auto& render_system : resource_manager.GetRenderSystems())
+    {
+        render_system->SetupPass(*m_pass_manager);
+    }
     
     m_pass_manager->InitRenderPassManager(resource_manager);
     m_pass_manager->InitAllPass(resource_manager);
@@ -91,17 +95,10 @@ bool glTFSceneRendererBase::RecreateRenderPass(glTFRenderResourceManager& resour
 
 bool glTFSceneRendererRasterizer::SetupSceneRenderer()
 {
-    std::unique_ptr<glTFComputePassIndirectDrawCulling> culling_pass = std::make_unique<glTFComputePassIndirectDrawCulling>();
-    m_pass_manager->AddRenderPass(std::move(culling_pass));
-        
-    std::unique_ptr<glTFGraphicsPassMeshDepth> depth_pass = std::make_unique<glTFGraphicsPassMeshDepth>();
-    m_pass_manager->AddRenderPass(std::move(depth_pass));
-
-    std::unique_ptr<glTFGraphicsPassMeshOpaque> opaque_pass = std::make_unique<glTFGraphicsPassMeshOpaque>();
-    m_pass_manager->AddRenderPass(std::move(opaque_pass));
-
-    std::unique_ptr<glTFComputePassLighting> compute_lighting_pass = std::make_unique<glTFComputePassLighting>();
-    m_pass_manager->AddRenderPass(std::move(compute_lighting_pass));
+    m_pass_manager->AddRenderPass(std::make_shared<glTFComputePassIndirectDrawCulling>());
+    m_pass_manager->AddRenderPass(std::make_shared<glTFGraphicsPassMeshDepth>());
+    m_pass_manager->AddRenderPass(std::make_shared<glTFGraphicsPassMeshOpaque>());
+    m_pass_manager->AddRenderPass(std::make_shared<glTFComputePassLighting>());
 
     return true;
 }
@@ -115,21 +112,16 @@ bool glTFSceneRendererRayTracer::SetupSceneRenderer()
 {
     if (m_use_restir_direct_lighting)
     {
-        std::unique_ptr<glTFRayTracingPassReSTIRDirectLighting> restir_lighting_samples_pass = std::make_unique<glTFRayTracingPassReSTIRDirectLighting>();
-        m_pass_manager->AddRenderPass(std::move(restir_lighting_samples_pass));
-
-        std::unique_ptr<glTFComputePassReSTIRDirectLighting> restir_lighting_pass = std::make_unique<glTFComputePassReSTIRDirectLighting>();
-        m_pass_manager->AddRenderPass(std::move(restir_lighting_pass));
+        m_pass_manager->AddRenderPass(std::make_shared<glTFRayTracingPassReSTIRDirectLighting>());
+        m_pass_manager->AddRenderPass(std::make_shared<glTFComputePassReSTIRDirectLighting>());
     }
     else
     {
         // fallback to path tracing
-        std::unique_ptr<glTFRayTracingPassPathTracing> ray_tracing_main = std::make_unique<glTFRayTracingPassPathTracing>();
-        m_pass_manager->AddRenderPass(std::move(ray_tracing_main));
+        m_pass_manager->AddRenderPass(std::make_shared<glTFRayTracingPassPathTracing>());
     }
     
-    std::unique_ptr<glTFComputePassRayTracingPostprocess> ray_tracing_postprocess = std::make_unique<glTFComputePassRayTracingPostprocess>();
-    m_pass_manager->AddRenderPass(std::move(ray_tracing_postprocess));
+    m_pass_manager->AddRenderPass(std::make_shared<glTFComputePassRayTracingPostprocess>());
 
     return true;
 }
@@ -140,8 +132,7 @@ bool glTFSceneRendererTestTriangle::SetupSceneRenderer()
     //std::unique_ptr<glTFGraphicsPassTestIndexedTriangle> test_triangle_pass = std::make_unique<glTFGraphicsPassTestIndexedTriangle>();
     //std::unique_ptr<glTFGraphicsPassTestIndexedTextureTriangle> test_triangle_pass = std::make_unique<glTFGraphicsPassTestIndexedTextureTriangle>();
     //std::unique_ptr<glTFGraphicsPassTestSceneRendering> test_triangle_pass = std::make_unique<glTFGraphicsPassTestSceneRendering>();
-    std::unique_ptr<glTFComputePassTestFillColor> test_triangle_pass = std::make_unique<glTFComputePassTestFillColor>();
-    m_pass_manager->AddRenderPass(std::move(test_triangle_pass));
+    m_pass_manager->AddRenderPass(std::make_shared<glTFComputePassTestFillColor>());
 
     return true;
 }

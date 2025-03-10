@@ -7,17 +7,19 @@ struct glTFAppRendererConfig
     bool ReSTIR;
     bool vulkan;
     bool ui;
+    bool virtual_texture;
     
     // test sample
     bool test_triangle;
 
     glTFAppRendererConfig()
-        : raster(true) 
+        : raster(true)
         , ReSTIR(false)
         , vulkan(false)
+        , ui(false)
+        , virtual_texture(true)
         , test_triangle(true)
     {
-        
     }
 };
 
@@ -43,4 +45,6 @@ protected:
     std::unique_ptr<glTFGUIRenderer> m_ui_renderer;
     std::unique_ptr<glTFSceneView> m_scene_view;
     std::unique_ptr<glTFRenderResourceManager> m_resource_manager;
+
+    std::vector<std::shared_ptr<RenderSystemBase>> m_render_systems;
 };

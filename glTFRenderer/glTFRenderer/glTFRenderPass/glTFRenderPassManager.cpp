@@ -18,7 +18,7 @@ bool glTFRenderPassManager::InitRenderPassManager(glTFRenderResourceManager& res
     return true;
 }
 
-void glTFRenderPassManager::AddRenderPass(std::unique_ptr<glTFRenderPassBase>&& pass)
+void glTFRenderPassManager::AddRenderPass(std::shared_ptr<glTFRenderPassBase> pass)
 {
     m_passes.push_back(std::move(pass));
 }

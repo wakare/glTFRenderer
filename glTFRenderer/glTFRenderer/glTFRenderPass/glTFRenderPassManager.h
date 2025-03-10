@@ -12,7 +12,7 @@ public:
     glTFRenderPassManager();
     
     bool InitRenderPassManager(glTFRenderResourceManager& resource_manager);
-    void AddRenderPass(std::unique_ptr<glTFRenderPassBase>&& pass);
+    void AddRenderPass(std::shared_ptr<glTFRenderPassBase> pass);
 
     void InitAllPass(glTFRenderResourceManager& resource_manager);
     void UpdateScene(glTFRenderResourceManager& resource_manager, const glTFSceneView& scene_view, size_t delta_time_ms);
@@ -26,7 +26,7 @@ public:
     void ExitAllPass();
 
 protected:
-    std::vector<std::unique_ptr<glTFRenderPassBase>> m_passes;
+    std::vector<std::shared_ptr<glTFRenderPassBase>> m_passes;
     unsigned m_frame_index;
 
     std::shared_ptr<IRHIRenderPass> m_render_pass;

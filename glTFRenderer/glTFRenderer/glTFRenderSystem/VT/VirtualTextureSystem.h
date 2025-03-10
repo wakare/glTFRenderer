@@ -7,6 +7,8 @@
 #include "VTTextureTypes.h"
 #include "glTFRenderSystem/RenderSystemBase.h"
 
+class glTFRenderPassBase;
+
 class VirtualTextureSystem : public RenderSystemBase
 {
 public:
@@ -19,6 +21,7 @@ public:
     DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VirtualTextureSystem)
 
     virtual bool InitRenderSystem(glTFRenderResourceManager& resource_manager) override;
+    virtual void SetupPass(glTFRenderPassManager& pass_manager) override;
     virtual void ShutdownRenderSystem() override;
     virtual void TickRenderSystem(glTFRenderResourceManager& resource_manager) override;
 
@@ -36,4 +39,6 @@ protected:
     std::map<int, std::pair<std::shared_ptr<VTLogicalTexture>, std::shared_ptr<VTPageTable>>> m_logical_texture_infos;
     std::shared_ptr<VTPageStreamer> m_page_streamer;
     std::shared_ptr<VTPhysicalTexture> m_physical_texture;
+
+    std::shared_ptr<glTFRenderPassBase> m_feedback_pass;
 };

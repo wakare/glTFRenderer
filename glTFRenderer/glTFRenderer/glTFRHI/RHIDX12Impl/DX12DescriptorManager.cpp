@@ -28,9 +28,6 @@ bool DX12DescriptorTable::Build(IRHIDevice& device, const std::vector<std::share
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
     auto descriptor_increment_size = dxDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
     
-    // Check all allocation gpu handle is consistent!!
-    bool is_consistent_gpu_handle = true;
-
     CD3DX12_GPU_DESCRIPTOR_HANDLE current_handle ({dynamic_cast<const DX12TextureDescriptorAllocation&>(*descriptor_allocations[0]).m_gpu_handle});
     m_gpu_handle = current_handle.ptr;
     

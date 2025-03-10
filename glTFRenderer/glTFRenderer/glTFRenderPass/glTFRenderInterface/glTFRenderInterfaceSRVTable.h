@@ -41,6 +41,11 @@ public:
     {
         if (m_descriptor_table)
         {
+            // Important: Must do transition because DX may do transition when bind SRV table 
+            for (const auto& entry : m_texture_descriptor_allocations)
+            {
+                entry->m_source->Transition(command_list, RHIResourceStateType::STATE_ALL_SHADER_RESOURCE);
+            }
             descriptor_updater.BindDescriptor(command_list, pipeline_type, GetRSAllocation(), *m_descriptor_table);
         }
         

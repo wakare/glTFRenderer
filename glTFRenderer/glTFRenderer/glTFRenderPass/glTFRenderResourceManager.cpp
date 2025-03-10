@@ -82,13 +82,6 @@ bool glTFRenderResourceManager::InitResourceManager(unsigned width, unsigned hei
     
     m_frame_resource_managers.resize(backBufferCount);
 
-    AddRenderSystem(std::make_shared<VirtualTextureSystem>());
-
-    for (auto& render_system : m_render_systems)
-    {
-        render_system->InitRenderSystem(*this);
-    }
-    
     return true;
 }
 
@@ -162,6 +155,15 @@ bool glTFRenderResourceManager::InitMemoryManager()
             64,
             64
             }))
+    return true;
+}
+
+bool glTFRenderResourceManager::InitRenderSystems()
+{
+    for (auto& render_system : m_render_systems)
+    {
+        render_system->InitRenderSystem(*this);
+    }
     return true;
 }
 
@@ -431,12 +433,12 @@ void glTFRenderResourceManager::AddRenderSystem(std::shared_ptr<RenderSystemBase
     m_render_systems.push_back(render_system);
 }
 
+std::vector<std::shared_ptr<RenderSystemBase>> glTFRenderResourceManager::GetRenderSystems() const
+{
+    return m_render_systems;
+}
+
 void glTFRenderResourceManager::TickFrame()
 {
-    for (auto& render_system : m_render_systems)
-    {
-        render_system->TickRenderSystem(*this);
-    }
-
     m_memory_manager->TickFrame();
 }

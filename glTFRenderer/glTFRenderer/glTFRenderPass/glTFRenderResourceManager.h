@@ -31,7 +31,8 @@ public:
     bool InitResourceManager(unsigned width, unsigned height, HWND handle);
     bool InitScene(const glTFSceneGraph& scene_graph);
     bool InitMemoryManager();
-
+    bool InitRenderSystems();
+    
     IRHIFactory& GetFactory() const;
     IRHIDevice& GetDevice() const;
     IRHISwapChain& GetSwapChain() const;
@@ -92,7 +93,9 @@ public:
     void AddRenderSystem(std::shared_ptr<RenderSystemBase> render_system);
 
     template<typename system_type>
-    std::shared_ptr<system_type> GetRenderSystem(); 
+    std::shared_ptr<system_type> GetRenderSystem();
+
+    std::vector<std::shared_ptr<RenderSystemBase>> GetRenderSystems() const;
 
     void TickFrame();
     
