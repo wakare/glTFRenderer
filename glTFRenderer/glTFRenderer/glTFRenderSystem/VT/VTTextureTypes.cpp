@@ -5,6 +5,7 @@
 #include "VirtualTextureSystem.h"
 #include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRHI/RHIUtils.h"
+#include "glTFRHI/RHIInterface/IRHISwapChain.h"
 
 bool VTLogicalTexture::InitLogicalTexture(const RHITextureDesc& desc)
 {
@@ -20,6 +21,34 @@ bool VTLogicalTexture::InitLogicalTexture(const RHITextureDesc& desc)
     return true;
 }
 
+bool VTLogicalTexture::InitRenderResource(glTFRenderResourceManager& resource_manager)
+{
+    if (m_render_resource_init)
+    {
+        return true;
+    }
+
+    m_render_resource_init = true;
+    
+    RHITextureDesc feedback_texture_desc
+    (
+        "Feedback Texture",
+        resource_manager.GetSwapChain().GetWidth(),
+        resource_manager.GetSwapChain().GetHeight(),
+        RHIDataFormat::R8G8B8A8_UNORM,
+        static_cast<RHIResourceUsageFlags>(RUF_ALLOW_UAV | RUF_TRANSFER_DST),
+        {
+            RHIDataFormat::R8G8B8A8_UNORM,
+            glm::vec4{0,0,0,0}
+        }
+    );
+    
+    const bool allocated = resource_manager.GetMemoryManager().AllocateTextureMemory(resource_manager.GetDevice(), resource_manager, feedback_texture_desc, m_feedback_texture);
+    GLTF_CHECK(allocated);
+    
+    return true;
+}
+
 int VTLogicalTexture::GetTextureId() const
 {
     return m_texture_id;
@@ -28,6 +57,11 @@ int VTLogicalTexture::GetTextureId() const
 int VTLogicalTexture::GetSize() const
 {
     return m_size;
+}
+
+std::shared_ptr<IRHITextureAllocation> VTLogicalTexture::GetTextureAllocation() const
+{
+    return m_feedback_texture;
 }
 
 void VTPageLRU::AddPage(const VTPage& page)

@@ -1,6 +1,5 @@
 #include "glTFRenderMaterialManager.h"
 #include "glTFMaterial/glTFMaterialOpaque.h"
-#include "glTFRenderInterface/glTFRenderInterfaceSceneMaterial.h"
 #include "glTFRHI/RHIUtils.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 #include "RendererCommon.h"

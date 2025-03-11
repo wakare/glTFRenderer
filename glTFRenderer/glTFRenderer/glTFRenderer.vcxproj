@@ -49,11 +49,11 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(SolutionDir)RendererCommonLib/Public;</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(SolutionDir)RendererCommonLib/Public;$(SolutionDir)ThirdParty;$(SolutionDir)glTFRenderer;$(SolutionDir)ThirdParty;$(SolutionDir)ThirdParty/imgui;$(SolutionDir)ThirdParty/glm/glm;$(SolutionDir)ThirdParty/glfw/include;$(SolutionDir)ThirdParty/embree;$(SolutionDir)glTFRenderer;$(VULKAN_SDK)\include;$(VULKAN_SDK)\include\volk;</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(SolutionDir)RendererCommonLib/Public;</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(SolutionDir)RendererCommonLib/Public;$(SolutionDir)ThirdParty;$(SolutionDir)glTFRenderer;$(SolutionDir)ThirdParty;$(SolutionDir)ThirdParty/imgui;$(SolutionDir)ThirdParty/glm/glm;$(SolutionDir)ThirdParty/glfw/include;$(SolutionDir)ThirdParty/embree;$(SolutionDir)glTFRenderer;$(VULKAN_SDK)\include;$(VULKAN_SDK)\include\volk;</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -64,7 +64,7 @@
       <PreprocessorDefinitions>IMGUI_IMPL_VULKAN_USE_VOLK;VK_NO_PROTOTYPES;NOMINMAX;_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty;$(SolutionDir)ThirdParty/imgui;$(SolutionDir)ThirdParty/glm/glm;$(SolutionDir)ThirdParty/glfw/include;$(SolutionDir)glTFRenderer;$(VULKAN_SDK)\include;$(VULKAN_SDK)\include\volk;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty;$(SolutionDir)ThirdParty/imgui;$(SolutionDir)ThirdParty/glm/glm;$(SolutionDir)ThirdParty/glfw/include;$(SolutionDir)ThirdParty/embree;$(SolutionDir)glTFRenderer;$(VULKAN_SDK)\include;$(VULKAN_SDK)\include\volk;</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     </ClCompile>
@@ -89,7 +89,7 @@
       <PreprocessorDefinitions>IMGUI_IMPL_VULKAN_USE_VOLK;VK_NO_PROTOTYPES;NOMINMAX;_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty;$(SolutionDir)ThirdParty/imgui;$(SolutionDir)ThirdParty/glm/glm;$(SolutionDir)ThirdParty/glfw/include;$(SolutionDir)glTFRenderer;$(VULKAN_SDK)\include;$(VULKAN_SDK)\include\volk;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty;$(SolutionDir)ThirdParty/imgui;$(SolutionDir)ThirdParty/glm/glm;$(SolutionDir)ThirdParty/glfw/include;$(SolutionDir)glTFRenderer;$(SolutionDir)ThirdParty/embree;$(VULKAN_SDK)\include;$(VULKAN_SDK)\include\volk;</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     </ClCompile>
@@ -218,7 +218,7 @@
     <ClCompile Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassPostprocess.cpp" />
     <ClCompile Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassMeshDepth.cpp" />
     <ClCompile Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassMeshOpaque.cpp" />
-    <ClCompile Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassVTPlane.cpp" />
+    <ClCompile Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassMeshVT.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassBase.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassPathTracing.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassReSTIRDirectLighting.cpp" />
@@ -229,13 +229,14 @@
     <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSampler.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSceneMaterial.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSceneMeshInfo.cpp" />
-    <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSRVTable.cpp" />
+    <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceTextureTable.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSingleConstantBuffer.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceBase.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceLighting.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSceneMesh.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSceneView.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceStructuredBuffer.cpp" />
+    <ClCompile Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceVT.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderMaterialManager.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderMeshManager.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRenderPassBase.cpp" />
@@ -367,6 +368,8 @@
     <ClCompile Include="glTFRenderSystem\VT\VTPageTable.cpp" />
     <ClCompile Include="glTFRenderSystem\VT\VTTextureTypes.cpp" />
     <ClCompile Include="glTFRenderSystem\VT\VTQuadTree.cpp" />
+    <None Include="glTFResources\ShaderSource\Interface\VirtualTexture.hlsl" />
+    <None Include="glTFResources\ShaderSource\MeshPassVTFeedBackPS.hlsl" />
     <ClCompile Include="glTFResources\ShaderSource\VirtualTextureUtil.hlsl" />
     <ClCompile Include="glTFRHI\RHIIndirectDrawBuilder.cpp" />
     <ClCompile Include="glTFRHI\RHIConfigSingleton.cpp" />
@@ -582,7 +585,7 @@
     <ClInclude Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassPostprocess.h" />
     <ClInclude Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassMeshDepth.h" />
     <ClInclude Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassMeshOpaque.h" />
-    <ClInclude Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassVTPlane.h" />
+    <ClInclude Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassMeshVT.h" />
     <ClInclude Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassBase.h" />
     <ClInclude Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassPathTracing.h" />
     <ClInclude Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassReSTIRDirectLighting.h" />
@@ -593,13 +596,14 @@
     <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSampler.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSceneMaterial.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSceneMeshInfo.h" />
-    <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSRVTable.h" />
+    <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceTextureTable.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSingleConstantBuffer.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceBase.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceLighting.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSceneMesh.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceSceneView.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceStructuredBuffer.h" />
+    <ClInclude Include="glTFRenderPass\glTFRenderInterface\glTFRenderInterfaceVT.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderMaterialManager.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderMeshManager.h" />
     <ClInclude Include="glTFRenderPass\glTFRenderPassBase.h" />
@@ -618,6 +622,7 @@
     <ClInclude Include="glTFRenderPass\RenderGraphNodeUtil.h" />
     <ClInclude Include="glTFRenderSystem\RenderSystemBase.h" />
     <ClInclude Include="glTFRenderSystem\VT\VirtualTextureSystem.h" />
+    <ClInclude Include="glTFRenderSystem\VT\VTCommon.h" />
     <ClInclude Include="glTFRenderSystem\VT\VTPageDataAccessor.h" />
     <ClInclude Include="glTFRenderSystem\VT\VTPageStreamer.h" />
     <ClInclude Include="glTFRenderSystem\VT\VTPageTable.h" />

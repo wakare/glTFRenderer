@@ -4,7 +4,6 @@
 #include <memory>
 
 #include "glTFMaterial/glTFMaterialParameterFactor.h"
-#include "glTFRenderInterface/glTFRenderInterfaceSceneMaterial.h"
 #include "RendererCommon.h"
 #include "glTFRenderSystem/VT/VTTextureTypes.h"
 

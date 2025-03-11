@@ -19,6 +19,7 @@ struct MaterialInfo
     bool IsVTAlbedo() { return virtual_texture_flag & 0x1; }
     bool IsVTNormal() { return virtual_texture_flag & 0x2; }
     bool IsVTMetialRoughness() { return virtual_texture_flag & 0x4; }
+    bool HasVT() { return virtual_texture_flag != 0; }
 };
 
 DECLARE_RESOURCE(StructuredBuffer<MaterialInfo> g_material_infos , SCENE_MATERIAL_INFO_REGISTER_INDEX);
@@ -57,10 +58,12 @@ float4 SampleAlbedoTextureCS(uint material_id, float2 uv)
 float4 SampleAlbedoTexture(uint material_id, float2 uv)
 {
     MaterialInfo info = g_material_infos[material_id];
+#ifdef VT_READ_DATA
     if (info.IsVTAlbedo())
     {
          return SampleVTPageTable(info.albedo_tex_index, uv);  
     }
+#endif
     
     if (MATERIAL_TEXTURE_INVALID_INDEX == info.albedo_tex_index)
     {

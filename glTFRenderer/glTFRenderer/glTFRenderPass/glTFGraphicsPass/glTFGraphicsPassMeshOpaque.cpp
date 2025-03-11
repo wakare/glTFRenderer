@@ -12,7 +12,9 @@ bool glTFGraphicsPassMeshOpaque::InitRenderInterface(glTFRenderResourceManager& 
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::InitRenderInterface(resource_manager))
 
-    AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMaterial>());
+    SceneMaterialInterfaceConfig config;
+    config.vt_feed_back = false;
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMaterial>(config));
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Warp, RHIStaticSamplerFilterMode::Linear>>("DEFAULT_SAMPLER_REGISTER_INDEX"));
     
     return true;

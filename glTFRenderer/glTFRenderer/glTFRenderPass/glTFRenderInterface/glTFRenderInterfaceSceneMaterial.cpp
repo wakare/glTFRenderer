@@ -1,17 +1,17 @@
 ﻿#include "glTFRenderInterfaceSceneMaterial.h"
 
 #include "glTFRenderInterfaceSampler.h"
-#include "glTFRenderInterfaceSRVTable.h"
+#include "glTFRenderInterfaceTextureTable.h"
 #include "glTFRenderInterfaceStructuredBuffer.h"
 #include "glTFRenderInterfaceVT.h"
 #include "glTFRenderPass/glTFRenderMaterialManager.h"
 #include "glTFRenderSystem/VT/VirtualTextureSystem.h"
 
-glTFRenderInterfaceSceneMaterial::glTFRenderInterfaceSceneMaterial()
+glTFRenderInterfaceSceneMaterial::glTFRenderInterfaceSceneMaterial(const SceneMaterialInterfaceConfig& config)
 {
     AddInterface(std::make_shared<glTFRenderInterfaceStructuredBuffer<MaterialInfo>>(MaterialInfo::Name.c_str()));
-    AddInterface(std::make_shared<glTFRenderInterfaceSRVTableBindless>("SCENE_MATERIAL_TEXTURE_REGISTER_INDEX"));
-    AddInterface(std::make_shared<glTFRenderInterfaceVT>());
+    AddInterface(std::make_shared<glTFRenderInterfaceTextureTableBindless<RHIRootParameterDescriptorRangeType::SRV>>("SCENE_MATERIAL_TEXTURE_REGISTER_INDEX"));
+    AddInterface(std::make_shared<glTFRenderInterfaceVT>(config.vt_feed_back));
     
     std::shared_ptr<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Warp, RHIStaticSamplerFilterMode::Linear>> sampler_interface =
         std::make_shared<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Warp, RHIStaticSamplerFilterMode::Linear>>("SCENE_MATERIAL_SAMPLER_REGISTER_INDEX");
@@ -51,7 +51,6 @@ bool glTFRenderInterfaceSceneMaterial::PostInitInterfaceImpl(glTFRenderResourceM
                     auto virtual_texture = texture->GetVTTexture();
                     resource_manager.GetRenderSystem<VirtualTextureSystem>()->RegisterTexture(virtual_texture);
                     
-                    GetRenderInterface<glTFRenderInterfaceVT>()->AddVirtualTexture(virtual_texture);
                     out_texture_index = virtual_texture->GetTextureId();
                     switch (usage) {
                     case glTFMaterialParameterUsage::BASECOLOR:
@@ -92,9 +91,8 @@ bool glTFRenderInterfaceSceneMaterial::PostInitInterfaceImpl(glTFRenderResourceM
         RETURN_IF_FALSE(resource_manager.GetRenderSystem<VirtualTextureSystem>()->InitRenderResource(resource_manager));
     }
 
-    GetRenderInterface<glTFRenderInterfaceSRVTableBindless>()->AddTextureAllocations(texture_descriptor_allocations);
+    GetRenderInterface<glTFRenderInterfaceTextureTableBindless<RHIRootParameterDescriptorRangeType::SRV>>()->AddTextureAllocations(texture_descriptor_allocations);
     RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceStructuredBuffer<MaterialInfo>>()->UploadCPUBuffer(resource_manager, material_infos.data(), 0, sizeof(MaterialInfo) * material_infos.size()))
-
     RETURN_IF_FALSE(glTFRenderInterfaceBase::PostInitInterfaceImpl(resource_manager))
 
     return true;

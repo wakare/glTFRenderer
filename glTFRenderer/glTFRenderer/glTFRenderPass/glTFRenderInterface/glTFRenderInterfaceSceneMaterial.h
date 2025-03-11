@@ -23,11 +23,16 @@ ALIGN_FOR_CBV_STRUCT struct MaterialInfo
     glm::vec4 metallicAndRoughness {0.0f, 1.0f, 0.0f, 0.0f};
 };
 
+struct SceneMaterialInterfaceConfig
+{
+    bool vt_feed_back;
+};
+
 // Use material manager class to bind all needed textures in bindless mode
 class glTFRenderInterfaceSceneMaterial : public glTFRenderInterfaceBase
 {
 public:
-    glTFRenderInterfaceSceneMaterial();
+    glTFRenderInterfaceSceneMaterial(const SceneMaterialInterfaceConfig& config);
 
     bool UploadMaterialData(glTFRenderResourceManager& resource_manager);
     

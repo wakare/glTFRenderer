@@ -109,3 +109,13 @@ protected:
     std::shared_ptr<unsigned char[]> m_data;
     size_t m_data_size;
 };
+
+ALIGN_FOR_CBV_STRUCT struct VTLogicalTextureInfo
+{
+    inline static std::string Name = "VT_LOGICAL_TEXTURE_INFO_REGISTER_INDEX";
+    
+    unsigned logical_texture_output_index;
+    unsigned logical_texture_size;
+    unsigned padding[2];
+};
+

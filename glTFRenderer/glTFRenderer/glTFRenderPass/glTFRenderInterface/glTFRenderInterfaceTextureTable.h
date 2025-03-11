@@ -5,11 +5,11 @@
 #include "glTFRHI/RHIInterface/IRHIDescriptorUpdater.h"
 #include "glTFRHI/RHIInterface/IRHIRootSignatureHelper.h"
 
-template<unsigned TableRangeCount>
-class glTFRenderInterfaceSRVTable : public glTFRenderInterfaceWithRSAllocation
+template<unsigned TableRangeCount, RHIRootParameterDescriptorRangeType TextureType>
+class glTFRenderInterfaceTextureTable : public glTFRenderInterfaceWithRSAllocation
 {
 public:
-    glTFRenderInterfaceSRVTable(const char* name)
+    glTFRenderInterfaceTextureTable(const char* name)
         : glTFRenderInterfaceWithRSAllocation(name)
     {
     }
@@ -33,7 +33,7 @@ public:
     
     virtual bool ApplyRootSignatureImpl(IRHIRootSignatureHelper& root_signature) override
     {
-        return root_signature.AddTableRootParameter(m_name, {RHIRootParameterDescriptorRangeType::SRV, TableRangeCount, false, TableRangeCount == UINT_MAX}, m_allocation);
+        return root_signature.AddTableRootParameter(m_name, {TextureType, TableRangeCount, false, TableRangeCount == UINT_MAX}, m_allocation);
     }
 
     virtual bool ApplyInterfaceImpl(IRHICommandList& command_list, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater, unsigned
@@ -44,7 +44,14 @@ public:
             // Important: Must do transition because DX may do transition when bind SRV table 
             for (const auto& entry : m_texture_descriptor_allocations)
             {
-                entry->m_source->Transition(command_list, RHIResourceStateType::STATE_ALL_SHADER_RESOURCE);
+                if (TextureType== RHIRootParameterDescriptorRangeType::SRV)
+                {
+                    entry->m_source->Transition(command_list, RHIResourceStateType::STATE_ALL_SHADER_RESOURCE);    
+                }
+                else if (TextureType== RHIRootParameterDescriptorRangeType::UAV)
+                {
+                    entry->m_source->Transition(command_list, RHIResourceStateType::STATE_UNORDERED_ACCESS);
+                }
             }
             descriptor_updater.BindDescriptor(command_list, pipeline_type, GetRSAllocation(), *m_descriptor_table);
         }
@@ -63,10 +70,11 @@ protected:
 };
 
 // Bindless specific situation
-class glTFRenderInterfaceSRVTableBindless : public glTFRenderInterfaceSRVTable<UINT_MAX>
+template<RHIRootParameterDescriptorRangeType TextureType>
+class glTFRenderInterfaceTextureTableBindless : public glTFRenderInterfaceTextureTable<UINT_MAX, TextureType>
 {
 public:
-    glTFRenderInterfaceSRVTableBindless(const char* name)
-        : glTFRenderInterfaceSRVTable<UINT_MAX>(name)
+    glTFRenderInterfaceTextureTableBindless(const char* name)
+        : glTFRenderInterfaceTextureTable<UINT_MAX, TextureType>(name)
     {}
 };
