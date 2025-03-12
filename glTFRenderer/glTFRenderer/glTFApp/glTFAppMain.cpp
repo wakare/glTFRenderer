@@ -120,10 +120,11 @@ void glTFAppMain::Run()
         window.SetExitCallback([this]()
         {
             m_renderer->WaitRenderingFinishAndCleanupAllResource();
-            // Clear all render resource
-            m_renderer.reset(nullptr);
 
             RHIUtils::Instance().ReportLiveObjects();
+            
+            // Clear all render resource
+            m_renderer.reset(nullptr);
         });    
     }
     

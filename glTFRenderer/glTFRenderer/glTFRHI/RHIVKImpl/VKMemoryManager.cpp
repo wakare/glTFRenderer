@@ -72,7 +72,7 @@ bool VKMemoryManager::UploadBufferData(IRHIBufferAllocation& buffer_allocation, 
 bool VKMemoryManager::AllocateTextureMemory(IRHIDevice& device, glTFRenderResourceManager& resource_manager,
                                             const RHITextureDesc& texture_desc, std::shared_ptr<IRHITextureAllocation>& out_texture_allocation)
 {
-    uint32_t mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texture_desc.GetTextureWidth(), texture_desc.GetTextureHeight())))) + 1;
+    uint32_t mipLevels = texture_desc.HasUsage(RUF_CONTAINS_MIPMAP) ? static_cast<uint32_t>(std::floor(std::log2(std::max(texture_desc.GetTextureWidth(), texture_desc.GetTextureHeight())))) + 1 : 1;
     VkImageCreateInfo image_create_info {.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, .pNext = nullptr};
 
     image_create_info.format = VKConverterUtils::ConvertToFormat(texture_desc.GetDataFormat());

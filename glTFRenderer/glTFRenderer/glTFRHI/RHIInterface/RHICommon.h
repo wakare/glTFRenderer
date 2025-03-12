@@ -540,7 +540,10 @@ enum RHIResourceUsageFlags
     // COMMON
     RUF_TRANSFER_SRC        =  0x1 << 8,
     RUF_TRANSFER_DST        =  0x1 << 9,
+
+    // OTHERs
     RUF_READBACK            =  0x1 << 10,
+    RUF_CONTAINS_MIPMAP     =  0x1 << 11,
 };
 
 struct RHITextureDesc

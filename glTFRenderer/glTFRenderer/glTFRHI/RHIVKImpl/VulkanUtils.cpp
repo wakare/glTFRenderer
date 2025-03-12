@@ -553,11 +553,6 @@ bool VulkanUtils::ExecuteIndirect(IRHICommandList& command_list, IRHICommandSign
     return true;
 }
 
-bool VulkanUtils::Present(IRHISwapChain& swap_chain, IRHICommandQueue& command_queue, IRHICommandList& command_list)
-{
-    return swap_chain.Present(command_queue, command_list);
-}
-
 bool VulkanUtils::CopyTexture(IRHICommandList& command_list, IRHITexture& dst, IRHITexture& src, const RHICopyTextureInfo& copy_info)
 {
     dst.Transition(command_list, RHIResourceStateType::STATE_COPY_DEST);

@@ -97,7 +97,7 @@ public:
     virtual bool ExecuteIndirect(IRHICommandList& command_list, IRHICommandSignature& command_signature, unsigned max_count, IRHIBuffer& arguments_buffer, unsigned arguments_buffer_offset, IRHIBuffer& count_buffer, unsigned count_buffer_offset, unsigned
                                  command_stride) = 0;
     
-    virtual bool Present(IRHISwapChain& swap_chain, IRHICommandQueue& command_queue, IRHICommandList& command_list) = 0;
+    
 
     virtual bool CopyTexture(IRHICommandList& command_list, IRHITexture& dst, IRHITexture& src, const RHICopyTextureInfo& copy_info) = 0;
     virtual bool CopyTexture(IRHICommandList& command_list, IRHITexture& dst, IRHIBuffer& src, const RHICopyTextureInfo& copy_info) = 0;
@@ -110,6 +110,7 @@ public:
 
     bool UploadTextureData(IRHICommandList& command_list, IRHIMemoryManager& memory_manager, IRHIDevice& device, IRHITexture& dst, const RHITextureUploadInfo& upload_info) ;
     bool UploadTextureMipData(IRHICommandList& command_list, IRHIMemoryManager& memory_manager, IRHIDevice& device, IRHITexture& dst, const RHITextureMipUploadInfo& upload_info);
+    bool Present(IRHISwapChain& swap_chain, IRHICommandQueue& command_queue, IRHICommandList& command_list);
 
     static RHIUtils& Instance();
     static void ResetInstance();

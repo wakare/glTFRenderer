@@ -35,10 +35,10 @@ bool VTLogicalTexture::InitRenderResource(glTFRenderResourceManager& resource_ma
         "Feedback Texture",
         resource_manager.GetSwapChain().GetWidth(),
         resource_manager.GetSwapChain().GetHeight(),
-        RHIDataFormat::R8G8B8A8_UNORM,
+        RHIDataFormat::R16G16B16A16_UINT,
         static_cast<RHIResourceUsageFlags>(RUF_ALLOW_UAV | RUF_TRANSFER_DST),
         {
-            RHIDataFormat::R8G8B8A8_UNORM,
+            RHIDataFormat::R16G16B16A16_UINT,
             glm::vec4{0,0,0,0}
         }
     );

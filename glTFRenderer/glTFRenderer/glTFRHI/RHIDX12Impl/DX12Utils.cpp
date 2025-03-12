@@ -564,11 +564,6 @@ bool DX12Utils::ExecuteIndirect(IRHICommandList& command_list, IRHICommandSignat
     return true;
 }
 
-bool DX12Utils::Present(IRHISwapChain& swap_chain, IRHICommandQueue& command_queue, IRHICommandList& command_list)
-{
-    return swap_chain.Present(command_queue, command_list);
-}
-
 bool DX12Utils::CopyTexture(IRHICommandList& command_list, IRHITexture& dst, IRHITexture& src, const RHICopyTextureInfo& copy_info)
 {
     auto* dx_command_list = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();

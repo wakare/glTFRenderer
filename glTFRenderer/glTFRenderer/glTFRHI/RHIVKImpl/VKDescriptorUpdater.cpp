@@ -22,7 +22,7 @@ bool VKDescriptorUpdater::BindTextureDescriptorTable(IRHICommandList& command_li
         // Buffer resource
         auto& buffer_info = m_cache_buffer_infos.emplace_back();
         buffer_info.buffer = dynamic_cast<const VKBufferDescriptorAllocation&>(allocation).GetRawBuffer();
-        buffer_info.range = buffer_desc.m_size;
+        buffer_info.range = VK_WHOLE_SIZE;
         buffer_info.offset = buffer_desc.m_offset;
         
         switch (view_info.m_view_type)

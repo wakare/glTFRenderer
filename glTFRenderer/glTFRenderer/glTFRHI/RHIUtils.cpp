@@ -70,6 +70,11 @@ bool RHIUtils::UploadTextureMipData(IRHICommandList& command_list, IRHIMemoryMan
     return true;
 }
 
+bool RHIUtils::Present(IRHISwapChain& swap_chain, IRHICommandQueue& command_queue, IRHICommandList& command_list)
+{
+    return swap_chain.Present(command_queue, command_list);
+}
+
 RHIUtils& RHIUtils::Instance()
 {
     if (!g_instance)

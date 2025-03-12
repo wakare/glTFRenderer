@@ -59,8 +59,6 @@ public:
     virtual bool ExecuteIndirect(IRHICommandList& command_list, IRHICommandSignature& command_signature, unsigned max_count, IRHIBuffer& arguments_buffer, unsigned arguments_buffer_offset, IRHIBuffer& count_buffer, unsigned count_buffer_offset, unsigned
                                  command_stride) override;
     
-    virtual bool Present(IRHISwapChain& swap_chain, IRHICommandQueue& command_queue, IRHICommandList& command_list) override;
-
     virtual bool CopyTexture(IRHICommandList& command_list, IRHITexture& dst, IRHITexture& src, const RHICopyTextureInfo& copy_info) override;
     virtual bool CopyTexture(IRHICommandList& command_list, IRHITexture& dst, IRHIBuffer& src, const RHICopyTextureInfo& copy_info) override;
     virtual bool CopyBuffer(IRHICommandList& command_list, IRHIBuffer& dst, size_t dst_offset, IRHIBuffer& src, size_t src_offset, size_t size) override;

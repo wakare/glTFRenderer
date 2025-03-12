@@ -27,6 +27,7 @@ bool DX12Buffer::InitGPUBuffer(IRHIDevice& device, const RHIBufferDesc& desc)
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
 
     m_buffer_desc = desc;
+    const bool contains_mipmap = desc.usage & RUF_CONTAINS_MIPMAP;
     const CD3DX12_HEAP_PROPERTIES heap_properties(DX12ConverterUtils::ConvertToHeapType(desc.type));
     CD3DX12_RESOURCE_DESC heap_resource_desc{};
     switch (desc.resource_type) {
@@ -36,11 +37,11 @@ bool DX12Buffer::InitGPUBuffer(IRHIDevice& device, const RHIBufferDesc& desc)
         case RHIBufferResourceType::Tex1D:
             heap_resource_desc = CD3DX12_RESOURCE_DESC::Tex1D(DX12ConverterUtils::ConvertToDXGIFormat(desc.resource_data_type), desc.width);
             break;
-        case RHIBufferResourceType::Tex2D: 
-            heap_resource_desc = CD3DX12_RESOURCE_DESC::Tex2D(DX12ConverterUtils::ConvertToDXGIFormat(desc.resource_data_type), desc.width, desc.height,  1, 0);
+    case RHIBufferResourceType::Tex2D: 
+            heap_resource_desc = CD3DX12_RESOURCE_DESC::Tex2D(DX12ConverterUtils::ConvertToDXGIFormat(desc.resource_data_type), desc.width, desc.height,  1, contains_mipmap ? 0 : 1);
             break;
-        case RHIBufferResourceType::Tex3D: 
-            heap_resource_desc = CD3DX12_RESOURCE_DESC::Tex3D(DX12ConverterUtils::ConvertToDXGIFormat(desc.resource_data_type), desc.width, desc.height, desc.depth ,0);
+    case RHIBufferResourceType::Tex3D: 
+            heap_resource_desc = CD3DX12_RESOURCE_DESC::Tex3D(DX12ConverterUtils::ConvertToDXGIFormat(desc.resource_data_type), desc.width, desc.height, desc.depth ,contains_mipmap ? 0 : 1);
             break;
     }
     

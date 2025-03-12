@@ -42,7 +42,7 @@ bool VTPageTable::InitRenderResource(glTFRenderResourceManager& resource_manager
         m_page_table_size,
         m_page_table_size,
         RHIDataFormat::R16G16B16A16_UINT,
-        static_cast<RHIResourceUsageFlags>(RUF_ALLOW_SRV | RUF_TRANSFER_DST),
+        static_cast<RHIResourceUsageFlags>(RUF_ALLOW_SRV | RUF_TRANSFER_DST | RUF_CONTAINS_MIPMAP),
         {
             RHIDataFormat::R16G16B16A16_UINT,
             glm::vec4{0,0,0,0}
