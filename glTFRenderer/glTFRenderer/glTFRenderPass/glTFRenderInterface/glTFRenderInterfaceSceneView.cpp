@@ -30,7 +30,7 @@ bool glTFRenderInterfaceSceneView::InitInterfaceImpl(glTFRenderResourceManager& 
 bool glTFRenderInterfaceSceneView::ApplyInterfaceImpl(IRHICommandList& command_list, RHIPipelineType pipeline_type,
     IRHIDescriptorUpdater& descriptor_updater, unsigned frame_index)
 {
-    descriptor_updater.BindDescriptor(command_list, pipeline_type, m_allocation, *m_scene_view_buffer_allocations[frame_index % m_scene_view_buffer_allocations.size() ]);
+    descriptor_updater.BindTextureDescriptorTable(command_list, pipeline_type, m_allocation, *m_scene_view_buffer_allocations[frame_index % m_scene_view_buffer_allocations.size() ]);
     return true;
     
 }

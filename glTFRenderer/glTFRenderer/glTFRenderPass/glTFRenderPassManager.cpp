@@ -2,6 +2,7 @@
 
 #include <imgui.h>
 
+#include "glTFRenderMaterialManager.h"
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassLighting.h"
 #include "glTFRenderInterface/glTFRenderInterfaceFrameStat.h"
 #include "glTFRHI/RHIUtils.h"
@@ -55,34 +56,17 @@ void glTFRenderPassManager::InitAllPass(glTFRenderResourceManager& resource_mana
 
 void glTFRenderPassManager::UpdateScene(glTFRenderResourceManager& resource_manager, const glTFSceneView& scene_view, size_t delta_time_ms)
 {
-    // Update scene view and upload buffer
-    auto scene_view_constant_buffer = scene_view.CreateSceneViewConstantBuffer(resource_manager);
-    auto& upload_scene_view_buffer= resource_manager.GetPerFrameRenderResourceData()[resource_manager.GetCurrentBackBufferIndex()];
-    resource_manager.GetMemoryManager().UploadBufferData(*upload_scene_view_buffer.m_scene_view_buffer, &scene_view_constant_buffer, 0, sizeof(scene_view_constant_buffer));
-    
-    std::vector<const glTFSceneNode*> dirty_objects;
-    scene_view.TraverseSceneObjectWithinView([this, &dirty_objects](const glTFSceneNode& node)
-    {
-        if (node.IsDirty())
-        {
-            dirty_objects.push_back(&node);
-        }
-
-        return true;
-    });
+    std::vector<const glTFSceneNode*> dirty_objects = scene_view.GetDirtySceneNodes();
 
     for (const auto* node : dirty_objects)
     {
         for (const auto& scene_object : node->m_objects)
         {
-            resource_manager.TryProcessSceneObject(resource_manager, *scene_object);
             for (const auto& pass : m_passes)
             {
                 pass->TryProcessSceneObject(resource_manager, *scene_object);
             }
         }
-
-        node->ResetDirty();
     }
     
     for (const auto& pass : m_passes)
@@ -95,7 +79,6 @@ void glTFRenderPassManager::UpdateScene(glTFRenderResourceManager& resource_mana
             frame_stat->UploadCPUBuffer(resource_manager, &m_frame_index, 0, sizeof(m_frame_index));
         }
     }
-    
     ++m_frame_index;
 }
 

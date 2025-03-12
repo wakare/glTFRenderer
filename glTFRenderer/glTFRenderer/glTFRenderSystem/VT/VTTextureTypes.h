@@ -12,7 +12,9 @@ public:
     DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VTLogicalTexture)
     
     bool InitLogicalTexture(const RHITextureDesc& desc);
+    
     bool InitRenderResource(glTFRenderResourceManager& resource_manager);
+    void UpdateRenderResource(glTFRenderResourceManager& resource_manager);
     
     int GetTextureId() const;
     int GetSize() const;

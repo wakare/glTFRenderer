@@ -49,6 +49,11 @@ bool VTLogicalTexture::InitRenderResource(glTFRenderResourceManager& resource_ma
     return true;
 }
 
+void VTLogicalTexture::UpdateRenderResource(glTFRenderResourceManager& resource_manager)
+{
+    InitRenderResource(resource_manager);
+}
+
 int VTLogicalTexture::GetTextureId() const
 {
     return m_texture_id;

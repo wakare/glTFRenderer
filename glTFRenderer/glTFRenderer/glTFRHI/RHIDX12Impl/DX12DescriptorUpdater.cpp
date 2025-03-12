@@ -4,7 +4,7 @@
 #include "glTFRHI/RHIUtils.h"
 #include "glTFRHI/RHIInterface/IRHIDescriptorManager.h"
 
-bool DX12DescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPipelineType pipeline, const RootSignatureAllocation& root_signature_allocation, const IRHIDescriptorAllocation& allocation)
+bool DX12DescriptorUpdater::BindTextureDescriptorTable(IRHICommandList& command_list, RHIPipelineType pipeline, const RootSignatureAllocation& root_signature_allocation, const IRHIDescriptorAllocation& allocation)
 {
     const auto& desc = allocation.GetDesc();
     switch (desc.m_dimension) {
@@ -50,8 +50,8 @@ bool DX12DescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPip
     return true;
 }
 
-bool DX12DescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPipelineType pipeline, const RootSignatureAllocation& root_signature_allocation,
-    const IRHIDescriptorTable& allocation_table)
+bool DX12DescriptorUpdater::BindTextureDescriptorTable(IRHICommandList& command_list, RHIPipelineType pipeline, const RootSignatureAllocation& root_signature_allocation,
+                                                       const IRHIDescriptorTable& allocation_table, RHIRootParameterDescriptorRangeType descriptor_type)
 {
     // TODO: More check
     DX12Utils::DX12Instance().SetDTToRootParameterSlot(command_list, root_signature_allocation.global_parameter_index, allocation_table, pipeline==RHIPipelineType::Graphics);

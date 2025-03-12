@@ -18,6 +18,11 @@ void glTFSceneView::TraverseSceneObjectWithinView(const std::function<bool(const
     m_scene_graph.TraverseNodes(visitor);
 }
 
+std::vector<const glTFSceneNode*> glTFSceneView::GetDirtySceneNodes() const
+{
+    return m_frame_dirty_nodes;
+}
+
 glm::mat4 glTFSceneView::GetViewProjectionMatrix() const
 {
     return GetMainCamera() ? GetMainCamera()->GetViewProjectionMatrix() : glm::mat4(1.0f);
@@ -85,6 +90,27 @@ void glTFSceneView::Tick(const glTFSceneGraph& scene_graph)
         return true; 
     });
 }
+
+void glTFSceneView::GatherDirtySceneNodes()
+{
+    m_frame_dirty_nodes.clear();
+    
+    TraverseSceneObjectWithinView([this](const glTFSceneNode& node)
+    {
+        if (node.IsDirty())
+        {
+            m_frame_dirty_nodes.push_back(&node);
+        }
+
+        return true;
+    });
+
+    for (auto* node : m_frame_dirty_nodes)
+    {
+        node->ResetDirty();
+    }
+}
+
 
 bool glTFSceneView::GetLightingDirty() const
 {

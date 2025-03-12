@@ -7,6 +7,7 @@
 #include "glTFRenderResourceFrameManager.h"
 #include "RenderGraphNodeUtil.h"
 
+class glTFSceneView;
 class RenderSystemBase;
 class glTFSceneGraph;
 class IRHIFrameBuffer;
@@ -98,6 +99,8 @@ public:
     std::vector<std::shared_ptr<RenderSystemBase>> GetRenderSystems() const;
 
     void TickFrame();
+    void TickSceneUpdating(const glTFSceneView& scene_view, glTFRenderResourceManager& resource_manager, size_t delta_time_ms);
+
     
 private:
     //std::shared_ptr<glTFRadiosityRenderer> m_radiosity_renderer;

@@ -18,6 +18,7 @@ public:
     virtual bool SetupSceneRenderer() = 0;
 
     virtual void TickFrameRenderingBegin(glTFRenderResourceManager& resource_manager, size_t delta_time_ms);
+    virtual void TickSceneUpdating(const glTFSceneView& scene_view, glTFRenderResourceManager& resource_manager, size_t delta_time_ms);
     virtual void TickSceneRendering(const glTFSceneView& scene_view, glTFRenderResourceManager& resource_manager, size_t delta_time_ms);
     virtual void TickGUIWidgetUpdate(glTFGUIRenderer& GUI, glTFRenderResourceManager& resource_manager, size_t delta_time_ms);
     virtual void TickFrameRenderingEnd(glTFRenderResourceManager& resource_manager, size_t delta_time_ms);

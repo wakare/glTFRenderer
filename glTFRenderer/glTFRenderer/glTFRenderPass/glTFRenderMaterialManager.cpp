@@ -4,6 +4,7 @@
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 #include "RendererCommon.h"
 #include "glTFRenderPass/glTFRenderPassManager.h"
+#include "glTFRenderSystem/VT/VirtualTextureSystem.h"
 #include "SceneFileLoader/glTFImageLoader.h"
 
 glTFMaterialTextureRenderResource::glTFMaterialTextureRenderResource(const glTFMaterialParameterTexture& source_texture)
@@ -159,6 +160,24 @@ bool glTFRenderMaterialManager::AddMaterialRenderResource(glTFRenderResourceMana
     }
 
     return true;
+}
+
+void glTFRenderMaterialManager::Tick(glTFRenderResourceManager& resource_manager)
+{
+    // VT registration
+    for (const auto& material : m_material_render_resources)
+    {
+        for (const auto& texture : material.second->GetTextures())
+        {
+            if (auto vt = texture.second->GetVTTexture())
+            {
+                if (!resource_manager.GetRenderSystem<VirtualTextureSystem>()->HasTexture(vt))
+                {
+                    resource_manager.GetRenderSystem<VirtualTextureSystem>()->RegisterTexture(vt);    
+                }
+            }
+        }
+    }
 }
 
 const std::map<glTFUniqueID, std::unique_ptr<glTFMaterialRenderResource>>& glTFRenderMaterialManager::

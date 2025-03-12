@@ -67,22 +67,27 @@ void glTFAppRenderer::TickRenderingBegin(size_t delta_time_ms)
 {
     m_scene_renderer->TickFrameRenderingBegin(*m_resource_manager, delta_time_ms);
     m_resource_manager->TickFrame();
-    
-    for (const auto& render_system : m_render_systems)
-    {
-        render_system->TickRenderSystem(*m_resource_manager);
-    }
 }
 
 void glTFAppRenderer::TickSceneUpdating(const glTFSceneGraph& scene_graph,const glTFInputManager& input_manager, size_t delta_time_ms)
 {
     m_scene_view->Tick(scene_graph);
     m_scene_view->ApplyInput(input_manager, delta_time_ms);
+    m_scene_view->GatherDirtySceneNodes();
+
+    m_resource_manager->TickSceneUpdating(*m_scene_view, *m_resource_manager, delta_time_ms);
+    
     m_scene_renderer->ApplyInput(input_manager, delta_time_ms);
+    m_scene_renderer->TickSceneUpdating(*m_scene_view, *m_resource_manager, delta_time_ms);
 }
 
 void glTFAppRenderer::TickSceneRendering(const glTFInputManager& input_manager, size_t delta_time_ms)
 {
+    for (const auto& render_system : m_render_systems)
+    {
+        render_system->TickRenderSystem(*m_resource_manager);
+    }
+    
     m_scene_renderer->TickSceneRendering(*m_scene_view, *m_resource_manager, delta_time_ms);
 }
 

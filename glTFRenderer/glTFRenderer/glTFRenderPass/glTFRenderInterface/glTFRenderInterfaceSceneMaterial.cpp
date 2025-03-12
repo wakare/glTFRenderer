@@ -49,8 +49,6 @@ bool glTFRenderInterfaceSceneMaterial::PostInitInterfaceImpl(glTFRenderResourceM
                 if (texture->IsVT())
                 {
                     auto virtual_texture = texture->GetVTTexture();
-                    resource_manager.GetRenderSystem<VirtualTextureSystem>()->RegisterTexture(virtual_texture);
-                    
                     out_texture_index = virtual_texture->GetTextureId();
                     switch (usage) {
                     case glTFMaterialParameterUsage::BASECOLOR:

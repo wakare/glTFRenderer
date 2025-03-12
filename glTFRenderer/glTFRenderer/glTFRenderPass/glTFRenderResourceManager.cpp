@@ -5,6 +5,7 @@
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 #include "RenderWindow/glTFWindow.h"
 #include "glTFScene/glTFSceneGraph.h"
+#include "glTFScene/glTFSceneView.h"
 
 #define EXIT_WHEN_FALSE(x) if (!(x)) {assert(false); return false;}
 
@@ -441,4 +442,27 @@ std::vector<std::shared_ptr<RenderSystemBase>> glTFRenderResourceManager::GetRen
 void glTFRenderResourceManager::TickFrame()
 {
     m_memory_manager->TickFrame();
+}
+
+void glTFRenderResourceManager::TickSceneUpdating(const glTFSceneView& scene_view,
+    glTFRenderResourceManager& resource_manager, size_t delta_time_ms)
+{
+    // Update scene view and upload buffer
+    auto scene_view_constant_buffer = scene_view.CreateSceneViewConstantBuffer(resource_manager);
+    auto& upload_scene_view_buffer= resource_manager.GetPerFrameRenderResourceData()[resource_manager.GetCurrentBackBufferIndex()];
+    resource_manager.GetMemoryManager().UploadBufferData(*upload_scene_view_buffer.m_scene_view_buffer, &scene_view_constant_buffer, 0, sizeof(scene_view_constant_buffer));
+
+    std::vector<const glTFSceneNode*> dirty_objects = scene_view.GetDirtySceneNodes();
+
+    for (const auto* node : dirty_objects)
+    {
+        for (const auto& scene_object : node->m_objects)
+        {
+            resource_manager.TryProcessSceneObject(resource_manager, *scene_object);
+        }
+
+        node->ResetDirty();
+    }
+
+    resource_manager.GetMaterialManager().Tick(resource_manager);
 }

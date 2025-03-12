@@ -38,6 +38,10 @@ void glTFSceneRendererBase::TickFrameRenderingBegin(glTFRenderResourceManager& r
     m_pass_manager->RenderBegin(resource_manager, delta_time_ms);
 }
 
+void glTFSceneRendererBase::TickSceneUpdating(const glTFSceneView& scene_view, glTFRenderResourceManager& resource_manager, size_t delta_time_ms)
+{
+}
+
 void glTFSceneRendererBase::TickSceneRendering(const glTFSceneView& scene_view, glTFRenderResourceManager& resource_manager, size_t delta_time_ms)
 {
     if (!m_pass_inited)
@@ -46,9 +50,9 @@ void glTFSceneRendererBase::TickSceneRendering(const glTFSceneView& scene_view, 
         GLTF_CHECK(created);
         m_pass_inited = true;
     }
-
-    m_pass_manager->UpdatePipelineOptions(m_pass_options);
+    
     m_pass_manager->UpdateScene(resource_manager, scene_view, delta_time_ms);
+    m_pass_manager->UpdatePipelineOptions(m_pass_options);
     m_pass_manager->RenderAllPass(resource_manager, delta_time_ms);
 }
 

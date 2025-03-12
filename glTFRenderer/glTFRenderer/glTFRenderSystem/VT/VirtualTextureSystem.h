@@ -25,6 +25,7 @@ public:
     virtual void ShutdownRenderSystem() override;
     virtual void TickRenderSystem(glTFRenderResourceManager& resource_manager) override;
 
+    bool HasTexture(std::shared_ptr<VTLogicalTexture> texture) const;
     bool RegisterTexture(std::shared_ptr<VTLogicalTexture> texture);
     bool InitRenderResource(glTFRenderResourceManager& resource_manager);
 

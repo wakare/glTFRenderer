@@ -4,7 +4,7 @@
 #include "VKDevice.h"
 #include "VKRootSignature.h"
 
-bool VKDescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPipelineType pipeline,
+bool VKDescriptorUpdater::BindTextureDescriptorTable(IRHICommandList& command_list, RHIPipelineType pipeline,
                                          const RootSignatureAllocation& root_signature_allocation, const IRHIDescriptorAllocation& allocation)
 {
     const auto& view_info = allocation.GetDesc();
@@ -73,10 +73,21 @@ bool VKDescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPipel
     return true;
 }
 
-bool VKDescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPipelineType pipeline, const RootSignatureAllocation& root_signature_allocation,
-    const IRHIDescriptorTable& allocation_table)
+bool VKDescriptorUpdater::BindTextureDescriptorTable(IRHICommandList& command_list, RHIPipelineType pipeline, const RootSignatureAllocation& root_signature_allocation,
+                                                     const IRHIDescriptorTable& allocation_table, RHIRootParameterDescriptorRangeType descriptor_type)
 {
     const auto& image_infos = dynamic_cast<const VKDescriptorTable&>(allocation_table).GetImageInfos();
+
+    VkDescriptorType type = VK_DESCRIPTOR_TYPE_MAX_ENUM;
+    switch (descriptor_type)
+    {
+    case RHIRootParameterDescriptorRangeType::SRV:
+        type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+        break;
+    case RHIRootParameterDescriptorRangeType::UAV:
+        type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+        break;
+    }
     
     for (size_t i = 0; i < image_infos.size(); ++i)
     {
@@ -85,7 +96,7 @@ bool VKDescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPipel
         draw_image_write.descriptorCount = 1;
         draw_image_write.dstSet = VK_NULL_HANDLE;
         draw_image_write.dstArrayElement = i;
-        draw_image_write.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+        draw_image_write.descriptorType = type;
         draw_image_write.pImageInfo = &image_infos[i];
         m_cache_descriptor_writers[root_signature_allocation.space].push_back(draw_image_write);
     }

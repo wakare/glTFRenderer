@@ -66,7 +66,16 @@ bool VKDescriptorTable::Build(IRHIDevice& device,
         VkImageView view = dynamic_cast<const VKTextureDescriptorAllocation&>(*descriptor).GetRawImageView();
         VkDescriptorImageInfo image_info{};
         image_info.imageView = view;
-        image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        switch (descriptor->GetDesc().m_view_type) {
+        case RHIViewType::RVT_SRV:
+            image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            break;
+        case RHIViewType::RVT_UAV:
+            image_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+            break;
+        default:
+            GLTF_CHECK(false);
+        }
         m_image_infos.push_back(image_info);
     }
     

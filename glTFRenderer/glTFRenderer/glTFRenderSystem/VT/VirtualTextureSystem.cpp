@@ -44,6 +44,7 @@ void VirtualTextureSystem::TickRenderSystem(glTFRenderResourceManager& resource_
     for (auto& logical_texture_info : m_logical_texture_infos)
     {
         auto& page_table  = logical_texture_info.second.second;
+        auto& logical_texture = logical_texture_info.second.first;
         page_table->Invalidate();
         for (const auto& page_allocation : page_allocations)
         {
@@ -53,6 +54,7 @@ void VirtualTextureSystem::TickRenderSystem(glTFRenderResourceManager& resource_
             }
         }
         page_table->UpdateTextureData();
+        logical_texture->UpdateRenderResource(resource_manager);
     }
 
     // Upload page table to texture resource
@@ -64,6 +66,11 @@ void VirtualTextureSystem::TickRenderSystem(glTFRenderResourceManager& resource_
     
     m_physical_texture->UpdateTextureData();
     m_physical_texture->UpdateRenderResource(resource_manager);
+}
+
+bool VirtualTextureSystem::HasTexture(std::shared_ptr<VTLogicalTexture> texture) const
+{
+    return m_logical_texture_infos.contains(texture->GetTextureId());
 }
 
 bool VirtualTextureSystem::RegisterTexture(std::shared_ptr<VTLogicalTexture> texture)
