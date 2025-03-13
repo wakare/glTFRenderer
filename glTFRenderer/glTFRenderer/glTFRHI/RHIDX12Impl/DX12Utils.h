@@ -62,7 +62,9 @@ public:
     virtual bool CopyTexture(IRHICommandList& command_list, IRHITexture& dst, IRHITexture& src, const RHICopyTextureInfo& copy_info) override;
     virtual bool CopyTexture(IRHICommandList& command_list, IRHITexture& dst, IRHIBuffer& src, const RHICopyTextureInfo& copy_info) override;
     virtual bool CopyBuffer(IRHICommandList& command_list, IRHIBuffer& dst, size_t dst_offset, IRHIBuffer& src, size_t src_offset, size_t size) override;
-
+    
+    virtual bool ClearUAVTexture(IRHICommandList& command_list, const IRHITextureDescriptorAllocation& texture_descriptor) override;
+    
     virtual bool SupportRayTracing(IRHIDevice& device) override;
     virtual unsigned GetAlignmentSizeForUAVCount(unsigned size ) override;
 

@@ -48,8 +48,10 @@ public:
                 {
                     entry->m_source->Transition(command_list, RHIResourceStateType::STATE_ALL_SHADER_RESOURCE);    
                 }
-                else if (TextureType== RHIRootParameterDescriptorRangeType::UAV)
+                else if (TextureType == RHIRootParameterDescriptorRangeType::UAV)
                 {
+                    // Default behavior: clear uav content
+                    RHIUtils::Instance().ClearUAVTexture(command_list, *entry);
                     entry->m_source->Transition(command_list, RHIResourceStateType::STATE_UNORDERED_ACCESS);
                 }
             }

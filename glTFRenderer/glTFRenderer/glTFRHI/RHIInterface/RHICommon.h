@@ -71,34 +71,73 @@ enum class RHIResourceStateType
 
 enum class RHIDataFormat
 {
+    // Float type
+    R32G32_FLOAT,
+    R32G32B32_FLOAT,
+    R32G32B32A32_FLOAT,
+    R16G16B16A16_FLOAT,
+    R16G16B16A16_UNORM,
+    R10G10B10A2_UNORM,
+    R10G10B10_XR_BIAS_A2_UNORM,
     R8G8B8A8_UNORM,
     R8G8B8A8_UNORM_SRGB,
     B8G8R8A8_UNORM,
     B8G8R8A8_UNORM_SRGB,
     B8G8R8X8_UNORM,
-    R32G32_FLOAT,
-    R32G32B32_FLOAT,
-    R32G32B32A32_FLOAT,
-    R16G16B16A16_FLOAT,
-    R16G16B16A16_UINT,
-    R16G16B16A16_UNORM,
-    R10G10B10A2_UNORM,
-    R10G10B10_XR_BIAS_A2_UNORM,
     B5G5R5A1_UNORM,
     B5G6R5_UNORM,
     D32_FLOAT,
     R32_FLOAT,
-    R32G32B32A32_UINT,
-    R32_UINT,
-    R32_TYPELESS,
     R16_FLOAT,
     R16_UNORM,
-    R16_UINT,
     R8_UNORM,
     A8_UNORM,
+    
+    // Uint type
+    R32G32B32A32_UINT,
+    R16G16B16A16_UINT,
+    R32_UINT,
+    R32_TYPELESS,
+    R16_UINT,
+    
     D32_SAMPLE_RESERVED,
+    
     UNKNOWN,
 };
+
+inline bool IsFloatDataFormat(RHIDataFormat format)
+{
+    switch (format) {
+    case RHIDataFormat::R32G32_FLOAT:
+    case RHIDataFormat::R32G32B32_FLOAT:
+    case RHIDataFormat::R32G32B32A32_FLOAT:
+    case RHIDataFormat::R16G16B16A16_FLOAT:
+    case RHIDataFormat::R16G16B16A16_UNORM:
+    case RHIDataFormat::R10G10B10A2_UNORM:
+    case RHIDataFormat::R10G10B10_XR_BIAS_A2_UNORM:
+    case RHIDataFormat::R8G8B8A8_UNORM:
+    case RHIDataFormat::R8G8B8A8_UNORM_SRGB:
+    case RHIDataFormat::B8G8R8A8_UNORM:
+    case RHIDataFormat::B8G8R8A8_UNORM_SRGB:
+    case RHIDataFormat::B8G8R8X8_UNORM:
+    case RHIDataFormat::B5G5R5A1_UNORM:
+    case RHIDataFormat::B5G6R5_UNORM:
+    case RHIDataFormat::D32_FLOAT:
+    case RHIDataFormat::R32_FLOAT:
+    case RHIDataFormat::R16_FLOAT:
+    case RHIDataFormat::R16_UNORM:
+    case RHIDataFormat::R8_UNORM:
+    case RHIDataFormat::A8_UNORM:
+        return true;
+    }
+
+    return false;
+}
+
+inline bool IsUintDataFormat(RHIDataFormat format)
+{
+    return !IsFloatDataFormat(format);
+}
 
 inline RHIDataFormat ConvertToSRGBFormat(RHIDataFormat format)
 {

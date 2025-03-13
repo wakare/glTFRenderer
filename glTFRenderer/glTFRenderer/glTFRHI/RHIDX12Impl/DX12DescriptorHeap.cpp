@@ -83,7 +83,7 @@ bool DX12DescriptorHeap::CreateResourceDescriptorInHeap(IRHIDevice& device,
                 out_allocation = RHIResourceFactory::CreateRHIResource<IRHIBufferDescriptorAllocation>();
                 out_allocation->InitFromBuffer(buffer, buffer_desc);
     
-                dynamic_cast<DX12BufferDescriptorAllocation&>(*out_allocation).InitHandle(created_info.second, 0);
+                dynamic_cast<DX12BufferDescriptorAllocation&>(*out_allocation).InitHandle(created_info.second.second, created_info.second.first);
                 return true;
             }
         }
@@ -98,10 +98,10 @@ bool DX12DescriptorHeap::CreateResourceDescriptorInHeap(IRHIDevice& device,
     case RHIViewType::RVT_CBV:
         break;
     case RHIViewType::RVT_SRV:    
-        created = CreateSRVInHeap(device, m_used_descriptor_count, resource, desc, gpu_handle);
+        created = CreateSRVInHeap(device, m_used_descriptor_count, resource, desc, cpu_handle, gpu_handle);
         break;
     case RHIViewType::RVT_UAV:
-        created = CreateUAVInHeap(device, m_used_descriptor_count, resource, desc, gpu_handle);
+        created = CreateUAVInHeap(device, m_used_descriptor_count, resource, desc, cpu_handle, gpu_handle);
         break;
     case RHIViewType::RVT_RTV:
         created = CreateRTVInHeap(device, m_used_descriptor_count, resource, desc, cpu_handle);
@@ -130,7 +130,7 @@ bool DX12DescriptorHeap::CreateResourceDescriptorInHeap(IRHIDevice& device, cons
         {
             if (created_info.first == desc)
             {
-                out_allocation = std::make_shared<DX12TextureDescriptorAllocation>(created_info.second, 0, texture, texture_desc);
+                out_allocation = std::make_shared<DX12TextureDescriptorAllocation>(created_info.second.second, created_info.second.first, texture, texture_desc);
                 return true;
             }
         }
@@ -145,10 +145,10 @@ bool DX12DescriptorHeap::CreateResourceDescriptorInHeap(IRHIDevice& device, cons
     case RHIViewType::RVT_CBV:
         break;
     case RHIViewType::RVT_SRV:    
-        created = CreateSRVInHeap(device, m_used_descriptor_count, resource, desc, gpu_handle);
+        created = CreateSRVInHeap(device, m_used_descriptor_count, resource, desc, cpu_handle, gpu_handle);
         break;
     case RHIViewType::RVT_UAV:
-        created = CreateUAVInHeap(device, m_used_descriptor_count, resource, desc, gpu_handle);
+        created = CreateUAVInHeap(device, m_used_descriptor_count, resource, desc, cpu_handle, gpu_handle);
         break;
     case RHIViewType::RVT_RTV:
         created = CreateRTVInHeap(device, m_used_descriptor_count, resource, desc, cpu_handle);
@@ -194,7 +194,7 @@ D3D12_GPU_DESCRIPTOR_HANDLE DX12DescriptorHeap::GetAvailableGPUHandle() const
 }
 
 bool DX12DescriptorHeap::CreateSRVInHeap(IRHIDevice& device, unsigned descriptor_offset,
-                                         ID3D12Resource* resource, const RHIDescriptorDesc& desc, RHIGPUDescriptorHandle& out_GPU_handle)
+                                         ID3D12Resource* resource, const RHIDescriptorDesc& desc, RHICPUDescriptorHandle& out_CPU_handle, RHIGPUDescriptorHandle& out_GPU_handle)
 {
     GLTF_CHECK(m_desc.type == RHIDescriptorHeapType::CBV_SRV_UAV);
     
@@ -222,6 +222,7 @@ bool DX12DescriptorHeap::CreateSRVInHeap(IRHIDevice& device, unsigned descriptor
 
     CD3DX12_CPU_DESCRIPTOR_HANDLE cpuHandle(m_descriptorHeap->GetCPUDescriptorHandleForHeapStart());
     cpuHandle.Offset(descriptor_offset, m_descriptor_increment_size);
+    out_CPU_handle = cpuHandle.ptr;
     
     dxDevice->CreateShaderResourceView(resource, &srvDesc, cpuHandle);
     CD3DX12_GPU_DESCRIPTOR_HANDLE gpuHandle(m_descriptorHeap->GetGPUDescriptorHandleForHeapStart());
@@ -229,13 +230,13 @@ bool DX12DescriptorHeap::CreateSRVInHeap(IRHIDevice& device, unsigned descriptor
     out_GPU_handle = gpuHandle.ptr;
     
     ++m_used_descriptor_count;
-    m_created_descriptors_info[resource].emplace_back(desc, out_GPU_handle);
+    m_created_descriptors_info[resource].emplace_back(desc, std::pair{out_CPU_handle, out_GPU_handle} );
     
     return true;
 }
 
 bool DX12DescriptorHeap::CreateUAVInHeap(IRHIDevice& device, unsigned descriptor_offset, ID3D12Resource* resource,
-    const RHIDescriptorDesc& desc, RHIGPUDescriptorHandle& out_GPU_handle)
+                                         const RHIDescriptorDesc& desc, RHICPUDescriptorHandle& out_CPU_handle, RHIGPUDescriptorHandle& out_GPU_handle)
 {
     GLTF_CHECK(m_desc.type == RHIDescriptorHeapType::CBV_SRV_UAV);
     //TODO: Process offset for handle 
@@ -265,6 +266,7 @@ bool DX12DescriptorHeap::CreateUAVInHeap(IRHIDevice& device, unsigned descriptor
 
     CD3DX12_CPU_DESCRIPTOR_HANDLE cpuHandle(m_descriptorHeap->GetCPUDescriptorHandleForHeapStart());
     cpuHandle.Offset(static_cast<int>(descriptor_offset), m_descriptor_increment_size);
+    out_CPU_handle = cpuHandle.ptr;
     
     dxDevice->CreateUnorderedAccessView(resource, UAVDesc.Buffer.CounterOffsetInBytes > 0 ? resource : nullptr, &UAVDesc, cpuHandle);
     CD3DX12_GPU_DESCRIPTOR_HANDLE gpuHandle(m_descriptorHeap->GetGPUDescriptorHandleForHeapStart());
@@ -272,7 +274,7 @@ bool DX12DescriptorHeap::CreateUAVInHeap(IRHIDevice& device, unsigned descriptor
     out_GPU_handle = gpuHandle.ptr;
     
     ++m_used_descriptor_count;
-    m_created_descriptors_info[resource].emplace_back(desc, out_GPU_handle);
+    m_created_descriptors_info[resource].emplace_back(desc, std::pair{out_CPU_handle, out_GPU_handle});
     
     return true;
 }
@@ -295,7 +297,7 @@ bool DX12DescriptorHeap::CreateRTVInHeap(IRHIDevice& device, unsigned descriptor
     out_CPU_handle = cpu_handle.ptr;
     
     ++m_used_descriptor_count;
-    m_created_descriptors_info[resource].emplace_back(desc, out_CPU_handle);
+    m_created_descriptors_info[resource].emplace_back(desc, std::pair{out_CPU_handle, 0});
 
     return true;
 }
@@ -318,7 +320,7 @@ bool DX12DescriptorHeap::CreateDSVInHeap(IRHIDevice& device, unsigned descriptor
     out_CPU_handle = cpu_handle.ptr;
     
     ++m_used_descriptor_count;
-    m_created_descriptors_info[resource].emplace_back(desc, out_CPU_handle);
+    m_created_descriptors_info[resource].emplace_back(desc, std::pair{out_CPU_handle, 0});
 
     return true;
 }

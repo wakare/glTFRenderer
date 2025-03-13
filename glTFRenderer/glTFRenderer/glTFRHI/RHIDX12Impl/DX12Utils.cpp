@@ -611,9 +611,9 @@ bool DX12Utils::CopyTexture(IRHICommandList& command_list, IRHITexture& dst, IRH
     dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX; 
     dstLocation.SubresourceIndex = copy_info.dst_mip_level;
 
-    D3D12_TEXTURE_COPY_LOCATION srcLocation = {};
-    srcLocation.pResource = dynamic_cast<DX12Buffer&>(src).GetRawBuffer();
-    srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+    D3D12_TEXTURE_COPY_LOCATION src_location = {};
+    src_location.pResource = dynamic_cast<DX12Buffer&>(src).GetRawBuffer();
+    src_location.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
 
     D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint = {};
     footprint.Offset = 0;
@@ -623,7 +623,7 @@ bool DX12Utils::CopyTexture(IRHICommandList& command_list, IRHITexture& dst, IRH
     footprint.Footprint.RowPitch = (footprint.Footprint.Width * GetBytePerPixelByFormat(dst.GetTextureFormat()) + 255) & ~255; // 256 对齐
     footprint.Footprint.Format = DX12ConverterUtils::ConvertToDXGIFormat(dst.GetTextureFormat());
 
-    srcLocation.PlacedFootprint = footprint;
+    src_location.PlacedFootprint = footprint;
     
     D3D12_BOX src_box{};
     src_box.left = 0;
@@ -633,7 +633,7 @@ bool DX12Utils::CopyTexture(IRHICommandList& command_list, IRHITexture& dst, IRH
     src_box.front = 0;
     src_box.back = 1;
     
-    dx_command_list->CopyTextureRegion(&dstLocation, copy_info.dst_x, copy_info.dst_y, 0, &srcLocation, &src_box);
+    dx_command_list->CopyTextureRegion(&dstLocation, copy_info.dst_x, copy_info.dst_y, 0, &src_location, &src_box);
     
     return true;
 }
@@ -646,6 +646,27 @@ bool DX12Utils::CopyBuffer(IRHICommandList& command_list, IRHIBuffer& dst, size_
     dst.Transition(command_list, RHIResourceStateType::STATE_COPY_DEST);
     src.Transition(command_list, RHIResourceStateType::STATE_COPY_SOURCE);
     dx_command_list->CopyBufferRegion(dynamic_cast<DX12Buffer&>(dst).GetRawBuffer(), dst_offset, dynamic_cast<DX12Buffer&>(src).GetRawBuffer(), src_offset, size);
+    
+    return true;
+}
+
+bool DX12Utils::ClearUAVTexture(IRHICommandList& command_list, const IRHITextureDescriptorAllocation& texture_descriptor)
+{
+    auto* dx_command_list = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
+    const auto& dx_texture_descriptor = dynamic_cast<const DX12TextureDescriptorAllocation&>(texture_descriptor);
+    auto* dx_texture_resource = dynamic_cast<DX12Texture&>(*dx_texture_descriptor.m_source).GetRawResource();
+    
+    GLTF_CHECK(texture_descriptor.m_view_desc->m_view_type == RHIViewType::RVT_UAV);
+    if (IsFloatDataFormat(texture_descriptor.m_view_desc->m_format))
+    {
+        float clear_value[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+        dx_command_list->ClearUnorderedAccessViewFloat(D3D12_GPU_DESCRIPTOR_HANDLE(dx_texture_descriptor.m_gpu_handle), D3D12_CPU_DESCRIPTOR_HANDLE(dx_texture_descriptor.m_cpu_handle),  dx_texture_resource, clear_value, 0, nullptr);
+    }
+    else
+    {
+        static UINT clear_value[4] = {0, 0, 0, 0};
+        dx_command_list->ClearUnorderedAccessViewUint(D3D12_GPU_DESCRIPTOR_HANDLE(dx_texture_descriptor.m_gpu_handle), D3D12_CPU_DESCRIPTOR_HANDLE(dx_texture_descriptor.m_cpu_handle),  dx_texture_resource, clear_value, 0, nullptr);
+    }
     
     return true;
 }

@@ -41,8 +41,10 @@ public:
     D3D12_GPU_DESCRIPTOR_HANDLE GetAvailableGPUHandle() const;
     
 private:
-    bool CreateSRVInHeap(IRHIDevice& device, unsigned descriptor_offset, ID3D12Resource* resource, const RHIDescriptorDesc& desc, /*output*/ RHIGPUDescriptorHandle& out_GPU_handle);
-    bool CreateUAVInHeap(IRHIDevice& device, unsigned descriptor_offset, ID3D12Resource* resource, const RHIDescriptorDesc& desc, /*output*/ RHIGPUDescriptorHandle& out_GPU_handle);
+    bool CreateSRVInHeap(IRHIDevice& device, unsigned descriptor_offset, ID3D12Resource* resource, const RHIDescriptorDesc& desc, RHICPUDescriptorHandle
+                         & out_CPU_handle,/*output*/ RHIGPUDescriptorHandle& out_GPU_handle);
+    bool CreateUAVInHeap(IRHIDevice& device, unsigned descriptor_offset, ID3D12Resource* resource, const RHIDescriptorDesc& desc, RHICPUDescriptorHandle
+                         & out_CPU_handle,/*output*/ RHIGPUDescriptorHandle& out_GPU_handle);
     bool CreateRTVInHeap(IRHIDevice& device, unsigned descriptor_offset, ID3D12Resource* resource, const RHIDescriptorDesc& desc, /*output*/ RHICPUDescriptorHandle& out_CPU_handle);
     bool CreateDSVInHeap(IRHIDevice& device, unsigned descriptor_offset, ID3D12Resource* resource, const RHIDescriptorDesc& desc, /*output*/ RHICPUDescriptorHandle& out_CPU_handle);
 
@@ -52,5 +54,5 @@ private:
     unsigned m_descriptor_increment_size {0};
     unsigned m_used_descriptor_count {0};
 
-    std::map<ID3D12Resource*, std::vector<std::pair<RHIDescriptorDesc, RHIGPUDescriptorHandle>>> m_created_descriptors_info;
+    std::map<ID3D12Resource*, std::vector<std::pair<RHIDescriptorDesc, std::pair<RHICPUDescriptorHandle, RHIGPUDescriptorHandle>>>> m_created_descriptors_info;
 };

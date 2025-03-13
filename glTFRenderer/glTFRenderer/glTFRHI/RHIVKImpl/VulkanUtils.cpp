@@ -636,6 +636,36 @@ bool VulkanUtils::CopyBuffer(IRHICommandList& command_list, IRHIBuffer& dst, siz
     return true;
 }
 
+bool VulkanUtils::ClearUAVTexture(IRHICommandList& command_list, const IRHITextureDescriptorAllocation& texture_descriptor)
+{
+    VKCommandList& vk_command_list = dynamic_cast<VKCommandList&>(command_list);
+    VkCommandBuffer vk_command_buffer = vk_command_list.GetRawCommandBuffer();
+
+    const VKTextureDescriptorAllocation& descriptor_allocation = dynamic_cast<const VKTextureDescriptorAllocation&>(texture_descriptor);
+    VkImage vk_texture = dynamic_cast<const VKTexture&>(*descriptor_allocation.m_source).GetRawImage();
+
+    descriptor_allocation.m_source->Transition(command_list, RHIResourceStateType::STATE_COMMON);
+    
+    VkClearColorValue clearColor = {{ 0.0f, 0.0f, 0.0f, 0.0f }};
+    
+    VkImageSubresourceRange clearRange{};
+    clearRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    clearRange.baseMipLevel = 0;
+    clearRange.levelCount = 1;
+    clearRange.baseArrayLayer = 0;
+    clearRange.layerCount = 1;
+    
+    vkCmdClearColorImage(
+        vk_command_buffer,
+        vk_texture,
+        VK_IMAGE_LAYOUT_GENERAL,
+        &clearColor,
+        1, &clearRange
+    );
+    
+    return true;
+}
+
 bool VulkanUtils::SupportRayTracing(IRHIDevice& device)
 {
     return false;
