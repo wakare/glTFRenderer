@@ -48,14 +48,24 @@ template<>
 
 bool DX12DescriptorManager::Init(IRHIDevice& device, const DescriptorAllocationInfo& max_descriptor_capacity)
 {
-    m_CBV_SRV_UAV_heap = RHIResourceFactory::CreateRHIResource<DX12DescriptorHeap>();
-    m_CBV_SRV_UAV_heap->InitDescriptorHeap(device,
+    m_CBV_SRV_UAV_gpu_heap = RHIResourceFactory::CreateRHIResource<DX12DescriptorHeap>();
+    m_CBV_SRV_UAV_gpu_heap->InitDescriptorHeap(device,
         {
             .max_descriptor_count = max_descriptor_capacity.cbv_srv_uav_size,
-            .type = RHIDescriptorHeapType::CBV_SRV_UAV,
+            .type = RHIDescriptorHeapType::CBV_SRV_UAV_GPU,
             .shader_visible = true
         });
 
+    /*
+    m_CBV_SRV_UAV_cpu_heap = RHIResourceFactory::CreateRHIResource<DX12DescriptorHeap>();
+    m_CBV_SRV_UAV_cpu_heap->InitDescriptorHeap(device,
+        {
+            .max_descriptor_count = max_descriptor_capacity.cbv_srv_uav_size,
+            .type = RHIDescriptorHeapType::CBV_SRV_UAV_CPU,
+            .shader_visible = false
+        });
+    */
+    
     m_RTV_heap = RHIResourceFactory::CreateRHIResource<DX12DescriptorHeap>();
     m_RTV_heap->InitDescriptorHeap(device,
         {
@@ -76,7 +86,7 @@ bool DX12DescriptorManager::Init(IRHIDevice& device, const DescriptorAllocationI
     m_ImGUI_Heap->InitDescriptorHeap(device,
         {
             .max_descriptor_count = 1,
-            .type = RHIDescriptorHeapType::CBV_SRV_UAV,
+            .type = RHIDescriptorHeapType::CBV_SRV_UAV_GPU,
             .shader_visible = true
         });
     
@@ -117,7 +127,7 @@ bool DX12DescriptorManager::CreateDescriptor(IRHIDevice& device, const std::shar
 
 bool DX12DescriptorManager::BindDescriptorContext(IRHICommandList& command_list)
 {
-    return DX12Utils::DX12Instance().SetDescriptorHeapArray(command_list, m_CBV_SRV_UAV_heap.get(), 1);
+    return DX12Utils::DX12Instance().SetDescriptorHeapArray(command_list, m_CBV_SRV_UAV_gpu_heap.get(), 1);
 }
 
 bool DX12DescriptorManager::BindGUIDescriptorContext(IRHICommandList& command_list)
@@ -137,7 +147,7 @@ DX12DescriptorHeap& DX12DescriptorManager::GetDescriptorHeap(RHIViewType type) c
     case RHIViewType::RVT_CBV:
     case RHIViewType::RVT_SRV:
     case RHIViewType::RVT_UAV:
-        return GetDescriptorHeap(RHIDescriptorHeapType::CBV_SRV_UAV);
+        return GetDescriptorHeap(RHIDescriptorHeapType::CBV_SRV_UAV_GPU);
     case RHIViewType::RVT_RTV:
         return GetDescriptorHeap(RHIDescriptorHeapType::RTV);
     case RHIViewType::RVT_DSV:
@@ -150,8 +160,8 @@ DX12DescriptorHeap& DX12DescriptorManager::GetDescriptorHeap(RHIViewType type) c
 DX12DescriptorHeap& DX12DescriptorManager::GetDescriptorHeap(RHIDescriptorHeapType type) const
 {
     switch (type) {
-    case RHIDescriptorHeapType::CBV_SRV_UAV:
-        return *m_CBV_SRV_UAV_heap;
+    case RHIDescriptorHeapType::CBV_SRV_UAV_GPU:
+        return *m_CBV_SRV_UAV_gpu_heap;
         break;
     case RHIDescriptorHeapType::RTV:
         return *m_RTV_heap;
@@ -162,7 +172,7 @@ DX12DescriptorHeap& DX12DescriptorManager::GetDescriptorHeap(RHIDescriptorHeapTy
     }
 
     GLTF_CHECK(false);
-    return *m_CBV_SRV_UAV_heap;
+    return *m_CBV_SRV_UAV_gpu_heap;
 }
 
 DX12DescriptorHeap& DX12DescriptorManager::GetGUIDescriptorHeap() const

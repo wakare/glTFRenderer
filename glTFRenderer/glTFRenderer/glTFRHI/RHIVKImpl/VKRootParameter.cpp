@@ -49,13 +49,13 @@ bool VKRootParameter::InitAsUAV(unsigned local_attribute_index, unsigned registe
 }
 
 bool VKRootParameter::InitAsDescriptorTableRange(unsigned local_attribute_index, size_t range_count,
-    const RHIRootParameterDescriptorRangeDesc* range_desc)
+    const RHIDescriptorRangeDesc* range_desc)
 {
     m_register_space = range_desc->space;
     m_bindless = (range_desc->descriptor_count == UINT_MAX);
     
     m_binding.binding = local_attribute_index;
-    m_binding.descriptorType = range_desc->type == RHIRootParameterDescriptorRangeType::SRV ?
+    m_binding.descriptorType = range_desc->type == RHIDescriptorRangeType::SRV ?
         range_desc->is_buffer ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER : VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE :
         range_desc->is_buffer ? VK_DESCRIPTOR_TYPE_STORAGE_BUFFER : VK_DESCRIPTOR_TYPE_STORAGE_IMAGE ;
     m_binding.descriptorCount = m_bindless ? 1024 : range_desc->descriptor_count;

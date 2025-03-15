@@ -7,12 +7,6 @@
 #include "glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
 #include "glTFRHI/RHIInterface/IRHISwapChain.h"
 
-glTFComputePassLighting::glTFComputePassLighting()
-    : m_dispatch_count({0, 0, 0})
-{
-    
-}
-
 const char* glTFComputePassLighting::PassName()
 {
     return "LightComputePass";
@@ -30,11 +24,6 @@ bool glTFComputePassLighting::InitRenderInterface(glTFRenderResourceManager& res
     AddRenderInterface(sampler_interface);
     
     return true;
-}
-
-bool glTFComputePassLighting::InitPass(glTFRenderResourceManager& resource_manager)
-{
-    return glTFComputePassBase::InitPass(resource_manager);
 }
 
 bool glTFComputePassLighting::PreRenderPass(glTFRenderResourceManager& resource_manager)
@@ -57,16 +46,9 @@ bool glTFComputePassLighting::PreRenderPass(glTFRenderResourceManager& resource_
     return true;
 }
 
-bool glTFComputePassLighting::PostRenderPass(glTFRenderResourceManager& resource_manager)
+DispatchCount glTFComputePassLighting::GetDispatchCount(glTFRenderResourceManager& resource_manager) const
 {
-    RETURN_IF_FALSE(glTFComputePassBase::PostRenderPass(resource_manager))
-    
-    return true;
-}
-
-DispatchCount glTFComputePassLighting::GetDispatchCount() const
-{
-    return m_dispatch_count;
+    return {resource_manager.GetSwapChain().GetWidth() / 8, resource_manager.GetSwapChain().GetHeight() / 8, 1};
 } 
 
 bool glTFComputePassLighting::TryProcessSceneObject(glTFRenderResourceManager& resource_manager,
@@ -79,13 +61,6 @@ bool glTFComputePassLighting::TryProcessSceneObject(glTFRenderResourceManager& r
     }
     
     return GetRenderInterface<glTFRenderInterfaceLighting>()->UpdateLightInfo(*light);
-}
-
-bool glTFComputePassLighting::FinishProcessSceneObject(glTFRenderResourceManager& resource_manager)
-{
-    RETURN_IF_FALSE(glTFComputePassBase::FinishProcessSceneObject(resource_manager))
-
-    return true;
 }
 
 bool glTFComputePassLighting::InitResourceTable(glTFRenderResourceManager& resource_manager)
@@ -117,10 +92,10 @@ bool glTFComputePassLighting::SetupRootSignature(glTFRenderResourceManager& reso
 {
     RETURN_IF_FALSE(glTFComputePassBase::SetupRootSignature(resource_manager))
     
-    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("ALBEDO_TEX_REGISTER_INDEX", {RHIRootParameterDescriptorRangeType::SRV, 1, false, false}, m_albedo_allocation))
-    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("DEPTH_TEX_REGISTER_INDEX", {RHIRootParameterDescriptorRangeType::SRV, 1, false, false}, m_depth_allocation))
-    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("NORMAL_TEX_REGISTER_INDEX", {RHIRootParameterDescriptorRangeType::SRV, 1, false, false}, m_normal_allocation))
-    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("OUTPUT_TEX_REGISTER_INDEX", {RHIRootParameterDescriptorRangeType::UAV, 1, false, false}, m_output_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("ALBEDO_TEX_REGISTER_INDEX", {RHIDescriptorRangeType::SRV, 1, false, false}, m_albedo_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("DEPTH_TEX_REGISTER_INDEX", {RHIDescriptorRangeType::SRV, 1, false, false}, m_depth_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("NORMAL_TEX_REGISTER_INDEX", {RHIDescriptorRangeType::SRV, 1, false, false}, m_normal_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("OUTPUT_TEX_REGISTER_INDEX", {RHIDescriptorRangeType::UAV, 1, false, false}, m_output_allocation))
 
     return true;
 }
@@ -128,8 +103,6 @@ bool glTFComputePassLighting::SetupRootSignature(glTFRenderResourceManager& reso
 bool glTFComputePassLighting::SetupPipelineStateObject(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFComputePassBase::SetupPipelineStateObject(resource_manager))
-
-    m_dispatch_count = {resource_manager.GetSwapChain().GetWidth() / 8, resource_manager.GetSwapChain().GetHeight() / 8, 1};
     
     GetComputePipelineStateObject().BindShaderCode(
         R"(glTFResources\ShaderSource\ComputeShader\LightingCS.hlsl)", RHIShaderType::Compute, "main");

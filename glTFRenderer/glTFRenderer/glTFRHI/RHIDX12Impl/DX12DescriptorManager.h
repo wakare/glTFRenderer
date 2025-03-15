@@ -61,7 +61,8 @@ public:
     DX12DescriptorHeap& GetGUIDescriptorHeap() const;
     
 protected:
-    std::shared_ptr<DX12DescriptorHeap> m_CBV_SRV_UAV_heap {nullptr};
+    std::shared_ptr<DX12DescriptorHeap> m_CBV_SRV_UAV_gpu_heap {nullptr};
+    std::shared_ptr<DX12DescriptorHeap> m_CBV_SRV_UAV_cpu_heap {nullptr};
     std::shared_ptr<DX12DescriptorHeap> m_RTV_heap {nullptr};
     std::shared_ptr<DX12DescriptorHeap> m_DSV_heap {nullptr};
     std::shared_ptr<DX12DescriptorHeap> m_ImGUI_Heap {nullptr};

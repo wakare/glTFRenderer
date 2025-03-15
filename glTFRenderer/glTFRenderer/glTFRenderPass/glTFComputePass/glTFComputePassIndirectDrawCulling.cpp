@@ -133,7 +133,7 @@ bool glTFComputePassIndirectDrawCulling::SetupRootSignature(glTFRenderResourceMa
 
     RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("INDIRECT_DRAW_DATA_OUTPUT_REGISTER_UAV_INDEX",
         {
-            RHIRootParameterDescriptorRangeType::UAV,
+            RHIDescriptorRangeType::UAV,
             1,
             true,
             false
@@ -142,7 +142,7 @@ bool glTFComputePassIndirectDrawCulling::SetupRootSignature(glTFRenderResourceMa
     
     RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("INDIRECT_COMMAND_COUNT_BUFFER_REGISTER_UAV_INDEX",
     {
-        RHIRootParameterDescriptorRangeType::UAV,
+        RHIDescriptorRangeType::UAV,
         1,
         true,
         false
@@ -196,7 +196,7 @@ bool glTFComputePassIndirectDrawCulling::IsRenderingEnabled() const
     return m_enable_culling;
 }
 
-DispatchCount glTFComputePassIndirectDrawCulling::GetDispatchCount() const
+DispatchCount glTFComputePassIndirectDrawCulling::GetDispatchCount(glTFRenderResourceManager& resource_manager) const
 {
     return m_dispatch_count;
 }

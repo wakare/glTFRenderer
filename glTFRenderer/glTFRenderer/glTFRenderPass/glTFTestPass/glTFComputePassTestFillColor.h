@@ -13,10 +13,8 @@ public:
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;
     
     virtual bool InitResourceTable(glTFRenderResourceManager& resource_manager) override;
-    virtual DispatchCount GetDispatchCount() const override;
+    virtual DispatchCount GetDispatchCount(glTFRenderResourceManager& resource_manager) const override;
     
 protected:
-    DispatchCount m_dispatch_count{};
-    
     RootSignatureAllocation m_output_allocation;
 };

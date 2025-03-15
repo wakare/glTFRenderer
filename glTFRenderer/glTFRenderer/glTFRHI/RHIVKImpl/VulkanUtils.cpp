@@ -27,7 +27,7 @@ VkAccessFlags2 GetAccessFlagFromResourceState(RHIResourceStateType state)
     VkAccessFlags2 result{};
 
     switch (state) {
-    case RHIResourceStateType::STATE_UNKNOWN:
+    case RHIResourceStateType::STATE_UNDEFINED:
         result = VK_ACCESS_2_NONE;
         break;
     case RHIResourceStateType::STATE_COMMON:

@@ -51,7 +51,7 @@ bool DX12DescriptorUpdater::BindTextureDescriptorTable(IRHICommandList& command_
 }
 
 bool DX12DescriptorUpdater::BindTextureDescriptorTable(IRHICommandList& command_list, RHIPipelineType pipeline, const RootSignatureAllocation& root_signature_allocation,
-                                                       const IRHIDescriptorTable& allocation_table, RHIRootParameterDescriptorRangeType descriptor_type)
+                                                       const IRHIDescriptorTable& allocation_table, RHIDescriptorRangeType descriptor_type)
 {
     // TODO: More check
     DX12Utils::DX12Instance().SetDTToRootParameterSlot(command_list, root_signature_allocation.global_parameter_index, allocation_table, pipeline==RHIPipelineType::Graphics);

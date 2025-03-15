@@ -208,6 +208,7 @@
     <ClCompile Include="glTFMaterial\glTFMaterialParameterTexture.cpp" />
     <ClCompile Include="glTFRenderer.cpp" />
     <ClCompile Include="glTFRenderPass\glTFComputePass\glTFComputePassBase.cpp" />
+    <ClCompile Include="glTFRenderPass\glTFComputePass\glTFComputePassClearUAV.cpp" />
     <ClCompile Include="glTFRenderPass\glTFComputePass\glTFComputePassIndirectDrawCulling.cpp" />
     <ClCompile Include="glTFRenderPass\glTFComputePass\glTFComputePassLighting.cpp" />
     <ClCompile Include="glTFRenderPass\glTFComputePass\glTFComputePassRayTracingPostprocess.cpp" />
@@ -370,6 +371,7 @@
     <ClCompile Include="glTFRenderSystem\VT\VTQuadTree.cpp" />
     <None Include="glTFResources\ShaderSource\Interface\VirtualTexture.hlsl" />
     <None Include="glTFResources\ShaderSource\MeshPassVTFeedBackPS.hlsl" />
+    <None Include="glTFResources\ShaderSource\ComputeShader\ClearUAVCS.hlsl" />
     <ClCompile Include="glTFResources\ShaderSource\VirtualTextureUtil.hlsl" />
     <ClCompile Include="glTFRHI\RHIIndirectDrawBuilder.cpp" />
     <ClCompile Include="glTFRHI\RHIConfigSingleton.cpp" />
@@ -575,6 +577,7 @@
     <ClInclude Include="glTFMaterial\glTFMaterialPBR.h" />
     <ClInclude Include="glTFMaterial\glTFMaterialParameterTexture.h" />
     <ClInclude Include="glTFRenderPass\glTFComputePass\glTFComputePassBase.h" />
+    <ClInclude Include="glTFRenderPass\glTFComputePass\glTFComputePassClearUAV.h" />
     <ClInclude Include="glTFRenderPass\glTFComputePass\glTFComputePassIndirectDrawCulling.h" />
     <ClInclude Include="glTFRenderPass\glTFComputePass\glTFComputePassLighting.h" />
     <ClInclude Include="glTFRenderPass\glTFComputePass\glTFComputePassRayTracingPostprocess.h" />

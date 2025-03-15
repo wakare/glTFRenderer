@@ -46,7 +46,7 @@ bool DX12RootParameter::InitAsUAV(unsigned attribute_index, REGISTER_INDEX_TYPE 
 }
 
 bool DX12RootParameter::InitAsDescriptorTableRange(unsigned attribute_index, size_t rangeCount,
-    const RHIRootParameterDescriptorRangeDesc* rangeDesc)
+    const RHIDescriptorRangeDesc* rangeDesc)
 {
     if (rangeCount == 0 || rangeDesc == nullptr)
     {
@@ -55,12 +55,12 @@ bool DX12RootParameter::InitAsDescriptorTableRange(unsigned attribute_index, siz
     
     SetType(RHIRootParameterType::DescriptorTable);
     m_parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-    static auto _convertDX12RangeType = [](RHIRootParameterDescriptorRangeType type)
+    static auto _convertDX12RangeType = [](RHIDescriptorRangeType type)
     {
         switch (type) {
-            case RHIRootParameterDescriptorRangeType::CBV: return D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-            case RHIRootParameterDescriptorRangeType::SRV: return D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-            case RHIRootParameterDescriptorRangeType::UAV: return D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+            case RHIDescriptorRangeType::CBV: return D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+            case RHIDescriptorRangeType::SRV: return D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+            case RHIDescriptorRangeType::UAV: return D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
         }
 
         // Unexpected situation
@@ -71,7 +71,7 @@ bool DX12RootParameter::InitAsDescriptorTableRange(unsigned attribute_index, siz
     assert(m_ranges.empty());
     for (size_t i = 0; i < rangeCount; ++i)
     {
-        const RHIRootParameterDescriptorRangeDesc& desc = rangeDesc[i]; 
+        const RHIDescriptorRangeDesc& desc = rangeDesc[i]; 
         D3D12_DESCRIPTOR_RANGE1 range = {};
         range.NumDescriptors = desc.descriptor_count;
         range.RangeType = _convertDX12RangeType(desc.type);

@@ -40,7 +40,7 @@ VkImageLayout VKConverterUtils::ConvertToImageLayout(RHIImageLayout image_layout
 VkImageLayout VKConverterUtils::ConvertToImageLayout(RHIResourceStateType state)
 {
     switch (state) {
-    case RHIResourceStateType::STATE_UNKNOWN:
+    case RHIResourceStateType::STATE_UNDEFINED:
         return VK_IMAGE_LAYOUT_UNDEFINED;
         break;
     case RHIResourceStateType::STATE_COMMON:

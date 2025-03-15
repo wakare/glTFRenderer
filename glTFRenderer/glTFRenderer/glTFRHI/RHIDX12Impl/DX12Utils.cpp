@@ -659,13 +659,15 @@ bool DX12Utils::ClearUAVTexture(IRHICommandList& command_list, const IRHITexture
     GLTF_CHECK(texture_descriptor.m_view_desc->m_view_type == RHIViewType::RVT_UAV);
     if (IsFloatDataFormat(texture_descriptor.m_view_desc->m_format))
     {
-        float clear_value[4] = {0.0f, 0.0f, 0.0f, 0.0f};
-        dx_command_list->ClearUnorderedAccessViewFloat(D3D12_GPU_DESCRIPTOR_HANDLE(dx_texture_descriptor.m_gpu_handle), D3D12_CPU_DESCRIPTOR_HANDLE(dx_texture_descriptor.m_cpu_handle),  dx_texture_resource, clear_value, 0, nullptr);
+        static float clear_value[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+        dx_command_list->ClearUnorderedAccessViewFloat(D3D12_GPU_DESCRIPTOR_HANDLE(dx_texture_descriptor.m_gpu_handle),
+            D3D12_CPU_DESCRIPTOR_HANDLE(dx_texture_descriptor.m_cpu_handle),  dx_texture_resource, clear_value, 0, nullptr);
     }
     else
     {
         static UINT clear_value[4] = {0, 0, 0, 0};
-        dx_command_list->ClearUnorderedAccessViewUint(D3D12_GPU_DESCRIPTOR_HANDLE(dx_texture_descriptor.m_gpu_handle), D3D12_CPU_DESCRIPTOR_HANDLE(dx_texture_descriptor.m_cpu_handle),  dx_texture_resource, clear_value, 0, nullptr);
+        dx_command_list->ClearUnorderedAccessViewUint(D3D12_GPU_DESCRIPTOR_HANDLE(dx_texture_descriptor.m_gpu_handle),
+            D3D12_CPU_DESCRIPTOR_HANDLE(dx_texture_descriptor.m_cpu_handle),  dx_texture_resource, clear_value, 0, nullptr);
     }
     
     return true;

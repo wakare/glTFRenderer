@@ -5,7 +5,7 @@
 #include "glTFRHI/RHIInterface/IRHIDescriptorUpdater.h"
 #include "glTFRHI/RHIInterface/IRHIRootSignatureHelper.h"
 
-template<unsigned TableRangeCount, RHIRootParameterDescriptorRangeType TextureType>
+template<unsigned TableRangeCount, RHIDescriptorRangeType TextureType>
 class glTFRenderInterfaceTextureTable : public glTFRenderInterfaceWithRSAllocation
 {
 public:
@@ -16,7 +16,7 @@ public:
 
     virtual bool PostInitInterfaceImpl(glTFRenderResourceManager& resource_manager) override
     {
-        if (m_texture_descriptor_allocations.empty())
+        if (m_textures.empty())
         {
             return true;
         }
@@ -24,7 +24,34 @@ public:
         if (!m_descriptor_table)
         {
             m_descriptor_table = CreateDescriptorTable();
-            bool succeed = m_descriptor_table->Build(resource_manager.GetDevice(), m_texture_descriptor_allocations);
+            for (const auto& texture : m_textures)
+            {
+                std::shared_ptr<IRHITextureDescriptorAllocation> result;
+                if (TextureType == RHIDescriptorRangeType::SRV)
+                {
+                    resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), texture,
+                            RHITextureDescriptorDesc{
+                                texture->GetTextureDesc().GetDataFormat(),
+                                RHIResourceDimension::TEXTURE2D,
+                                RHIViewType::RVT_SRV,
+                            },
+                            result);    
+                }
+                else if (TextureType == RHIDescriptorRangeType::UAV)
+                {
+                    resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), texture,
+                            RHITextureDescriptorDesc{
+                                texture->GetTextureDesc().GetDataFormat(),
+                                RHIResourceDimension::TEXTURE2D,
+                                RHIViewType::RVT_UAV,
+                            },
+                            result);
+                }
+                
+                m_texture_descriptors.push_back(result);
+            }
+            
+            bool succeed = m_descriptor_table->Build(resource_manager.GetDevice(), m_texture_descriptors);
             GLTF_CHECK(succeed);
         }
         
@@ -42,17 +69,17 @@ public:
         if (m_descriptor_table)
         {
             // Important: Must do transition because DX may do transition when bind SRV table 
-            for (const auto& entry : m_texture_descriptor_allocations)
+            for (const auto& entry : m_texture_descriptors)
             {
-                if (TextureType== RHIRootParameterDescriptorRangeType::SRV)
+                auto& texture = entry->m_source;
+                
+                if (TextureType== RHIDescriptorRangeType::SRV)
                 {
-                    entry->m_source->Transition(command_list, RHIResourceStateType::STATE_ALL_SHADER_RESOURCE);    
+                    texture->Transition(command_list, RHIResourceStateType::STATE_ALL_SHADER_RESOURCE);    
                 }
-                else if (TextureType == RHIRootParameterDescriptorRangeType::UAV)
+                else if (TextureType == RHIDescriptorRangeType::UAV)
                 {
-                    // Default behavior: clear uav content
-                    RHIUtils::Instance().ClearUAVTexture(command_list, *entry);
-                    entry->m_source->Transition(command_list, RHIResourceStateType::STATE_UNORDERED_ACCESS);
+                    texture->Transition(command_list, RHIResourceStateType::STATE_UNORDERED_ACCESS);
                 }
             }
             descriptor_updater.BindTextureDescriptorTable(command_list, pipeline_type, GetRSAllocation(), *m_descriptor_table, TextureType);
@@ -61,18 +88,29 @@ public:
         return true;
     }
     
-    void AddTextureAllocations(const std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>>& texture_allocations)
+    void AddTexture(const std::vector<std::shared_ptr<IRHITexture>>& texture)
     {
-        m_texture_descriptor_allocations.insert(m_texture_descriptor_allocations.end(), texture_allocations.begin(), texture_allocations.end());
+        for (const auto& texture : texture)
+        {
+            if (!texture)
+            {
+                GLTF_CHECK(false);
+                return;
+            }
+        }
+        
+        m_textures.insert(m_textures.end(), texture.begin(), texture.end());
     }
     
 protected:
-    std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>> m_texture_descriptor_allocations;
+    std::vector<std::shared_ptr<IRHITexture>> m_textures;
+    std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>> m_texture_descriptors;
+    
     std::shared_ptr<IRHIDescriptorTable> m_descriptor_table;
 };
 
 // Bindless specific situation
-template<RHIRootParameterDescriptorRangeType TextureType>
+template<RHIDescriptorRangeType TextureType>
 class glTFRenderInterfaceTextureTableBindless : public glTFRenderInterfaceTextureTable<UINT_MAX, TextureType>
 {
 public:

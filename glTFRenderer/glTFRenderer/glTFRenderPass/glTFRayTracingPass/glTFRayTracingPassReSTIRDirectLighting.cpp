@@ -85,8 +85,8 @@ bool glTFRayTracingPassReSTIRDirectLighting::UpdateGUIWidgets()
 bool glTFRayTracingPassReSTIRDirectLighting::SetupRootSignature(glTFRenderResourceManager& resource_manager)
 {
     // Non-bindless table parameter should be added first
-    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("OUTPUT_REGISTER_INDEX", {RHIRootParameterDescriptorRangeType::UAV, 1, false, false}, m_lighting_samples_allocation))
-    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("SCREEN_UV_OFFSET_REGISTER_INDEX", {RHIRootParameterDescriptorRangeType::UAV, 1, false, false}, m_screen_uv_offset_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("OUTPUT_REGISTER_INDEX", {RHIDescriptorRangeType::UAV, 1, false, false}, m_lighting_samples_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("SCREEN_UV_OFFSET_REGISTER_INDEX", {RHIDescriptorRangeType::UAV, 1, false, false}, m_screen_uv_offset_allocation))
 
     auto& allocations = resource_manager.GetGBufferAllocations();
     RETURN_IF_FALSE(allocations.InitGBufferAllocation(GetID(), m_root_signature_helper, false))

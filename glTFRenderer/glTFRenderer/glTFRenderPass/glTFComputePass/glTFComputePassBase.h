@@ -21,7 +21,7 @@ public:
     virtual bool RenderPass(glTFRenderResourceManager& resource_manager) override;
     virtual bool PostRenderPass(glTFRenderResourceManager& resource_manager) override;
     
-    virtual DispatchCount GetDispatchCount() const = 0; 
+    virtual DispatchCount GetDispatchCount(glTFRenderResourceManager& resource_manager) const = 0; 
     
 protected:
     IRHIComputePipelineStateObject& GetComputePipelineStateObject() const;

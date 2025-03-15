@@ -10,7 +10,7 @@
 glTFRenderInterfaceSceneMaterial::glTFRenderInterfaceSceneMaterial(const SceneMaterialInterfaceConfig& config)
 {
     AddInterface(std::make_shared<glTFRenderInterfaceStructuredBuffer<MaterialInfo>>(MaterialInfo::Name.c_str()));
-    AddInterface(std::make_shared<glTFRenderInterfaceTextureTableBindless<RHIRootParameterDescriptorRangeType::SRV>>("SCENE_MATERIAL_TEXTURE_REGISTER_INDEX"));
+    AddInterface(std::make_shared<glTFRenderInterfaceTextureTableBindless<RHIDescriptorRangeType::SRV>>("SCENE_MATERIAL_TEXTURE_REGISTER_INDEX"));
     AddInterface(std::make_shared<glTFRenderInterfaceVT>(config.vt_feed_back));
     
     std::shared_ptr<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Warp, RHIStaticSamplerFilterMode::Linear>> sampler_interface =
@@ -22,7 +22,7 @@ bool glTFRenderInterfaceSceneMaterial::PostInitInterfaceImpl(glTFRenderResourceM
 {
     const auto& material_resources = resource_manager.GetMaterialManager().GetMaterialRenderResources();
     std::vector<MaterialInfo> material_infos; material_infos.resize(material_resources.size());
-    std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>> texture_descriptor_allocations;
+    std::vector<std::shared_ptr<IRHITexture>> scene_material_textures;
     
     for (const auto& material_resource : material_resources)
     {
@@ -66,17 +66,8 @@ bool glTFRenderInterfaceSceneMaterial::PostInitInterfaceImpl(glTFRenderResourceM
                 }
                 else
                 {
-                    std::shared_ptr<IRHITextureDescriptorAllocation> result;
-                    auto& texture_resource = texture->GetTextureAllocation().m_texture;
-                    resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), texture_resource,
-                        RHITextureDescriptorDesc{
-                            texture_resource->GetTextureDesc().GetDataFormat(),
-                            RHIResourceDimension::TEXTURE2D,
-                            RHIViewType::RVT_SRV,
-                        },
-                        result);
-                    out_texture_index = texture_descriptor_allocations.size();
-                    texture_descriptor_allocations.push_back(result);
+                    out_texture_index = scene_material_textures.size();
+                    scene_material_textures.push_back(texture->GetTextureAllocation().m_texture);
                 }
             }
         };
@@ -89,7 +80,7 @@ bool glTFRenderInterfaceSceneMaterial::PostInitInterfaceImpl(glTFRenderResourceM
         RETURN_IF_FALSE(resource_manager.GetRenderSystem<VirtualTextureSystem>()->InitRenderResource(resource_manager));
     }
 
-    GetRenderInterface<glTFRenderInterfaceTextureTableBindless<RHIRootParameterDescriptorRangeType::SRV>>()->AddTextureAllocations(texture_descriptor_allocations);
+    GetRenderInterface<glTFRenderInterfaceTextureTableBindless<RHIDescriptorRangeType::SRV>>()->AddTexture(scene_material_textures);
     RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceStructuredBuffer<MaterialInfo>>()->UploadCPUBuffer(resource_manager, material_infos.data(), 0, sizeof(MaterialInfo) * material_infos.size()))
     RETURN_IF_FALSE(glTFRenderInterfaceBase::PostInitInterfaceImpl(resource_manager))
 

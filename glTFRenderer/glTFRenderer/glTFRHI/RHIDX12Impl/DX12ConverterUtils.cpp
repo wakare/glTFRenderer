@@ -85,6 +85,7 @@ D3D12_RESOURCE_STATES DX12ConverterUtils::ConvertToResourceState(RHIResourceStat
 {
     switch (state)
     {
+    case RHIResourceStateType::STATE_UNDEFINED:
     case RHIResourceStateType::STATE_COMMON:
         return D3D12_RESOURCE_STATE_COMMON;
 
@@ -150,7 +151,7 @@ D3D_PRIMITIVE_TOPOLOGY DX12ConverterUtils::ConvertToPrimitiveTopologyType(RHIPri
 D3D12_DESCRIPTOR_HEAP_TYPE DX12ConverterUtils::ConvertToDescriptorHeapType(RHIDescriptorHeapType type)
 {
     switch (type) {
-        case RHIDescriptorHeapType::CBV_SRV_UAV:
+        case RHIDescriptorHeapType::CBV_SRV_UAV_GPU:
             return D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
         
         case RHIDescriptorHeapType::SAMPLER:

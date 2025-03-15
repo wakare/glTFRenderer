@@ -51,7 +51,7 @@ enum class RHIAttachmentStoreOp
 
 enum class RHIResourceStateType
 {
-    STATE_UNKNOWN,
+    STATE_UNDEFINED,
     STATE_COMMON,
     STATE_GENERIC_READ,
     STATE_COPY_SOURCE,
@@ -164,7 +164,8 @@ enum class RHIPrimitiveTopologyType
 
 enum class RHIDescriptorHeapType
 {
-    CBV_SRV_UAV,
+    CBV_SRV_UAV_GPU,
+    CBV_SRV_UAV_CPU,
     SAMPLER,
     RTV,
     DSV,
@@ -398,7 +399,7 @@ struct RHISubPassDependency
     RHIAccessFlags dst_access_flags;
 };
 
-enum class RHIRootParameterDescriptorRangeType
+enum class RHIDescriptorRangeType
 {
     CBV,
     SRV,
@@ -415,9 +416,9 @@ enum class RHIShaderRegisterType
     Unknown,
 };
 
-struct RHIRootParameterDescriptorRangeDesc
+struct RHIDescriptorRangeDesc
 {
-    RHIRootParameterDescriptorRangeType type {RHIRootParameterDescriptorRangeType::Unknown} ;
+    RHIDescriptorRangeType type {RHIDescriptorRangeType::Unknown} ;
     REGISTER_INDEX_TYPE base_register_index {0};
     unsigned space;
     size_t descriptor_count {0};
@@ -502,7 +503,7 @@ struct RootSignatureParameterElement
     std::pair<unsigned, unsigned> register_range;
     unsigned space;
     unsigned constant_value_count;
-    RHIRootParameterDescriptorRangeType table_type;
+    RHIDescriptorRangeType table_type;
     bool is_bindless;
     bool is_buffer;
 };
@@ -580,9 +581,10 @@ enum RHIResourceUsageFlags
     RUF_TRANSFER_SRC        =  0x1 << 8,
     RUF_TRANSFER_DST        =  0x1 << 9,
 
-    // OTHERs
+    // Others
     RUF_READBACK            =  0x1 << 10,
     RUF_CONTAINS_MIPMAP     =  0x1 << 11,
+    RUF_SUPPORT_CLEAR_VALUE =  0x1 << 12,
 };
 
 struct RHITextureDesc

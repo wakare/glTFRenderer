@@ -23,7 +23,7 @@ public:
 
     struct TableRootParameterDesc
     {
-        RHIRootParameterDescriptorRangeType table_type;
+        RHIDescriptorRangeType table_type;
         unsigned table_register_count;
         bool is_buffer;
         bool is_bindless;
@@ -57,7 +57,7 @@ protected:
 
             struct TableParameterInfo
             {
-                RHIRootParameterDescriptorRangeType table_type;
+                RHIDescriptorRangeType table_type;
                 bool is_bindless;
             } table_parameter_info;
 

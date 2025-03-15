@@ -74,17 +74,17 @@ bool VKDescriptorUpdater::BindTextureDescriptorTable(IRHICommandList& command_li
 }
 
 bool VKDescriptorUpdater::BindTextureDescriptorTable(IRHICommandList& command_list, RHIPipelineType pipeline, const RootSignatureAllocation& root_signature_allocation,
-                                                     const IRHIDescriptorTable& allocation_table, RHIRootParameterDescriptorRangeType descriptor_type)
+                                                     const IRHIDescriptorTable& allocation_table, RHIDescriptorRangeType descriptor_type)
 {
     const auto& image_infos = dynamic_cast<const VKDescriptorTable&>(allocation_table).GetImageInfos();
 
     VkDescriptorType type = VK_DESCRIPTOR_TYPE_MAX_ENUM;
     switch (descriptor_type)
     {
-    case RHIRootParameterDescriptorRangeType::SRV:
+    case RHIDescriptorRangeType::SRV:
         type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
         break;
-    case RHIRootParameterDescriptorRangeType::UAV:
+    case RHIDescriptorRangeType::UAV:
         type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
         break;
     }

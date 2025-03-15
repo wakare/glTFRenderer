@@ -7,6 +7,8 @@ bool VirtualTextureSystem::InitRenderSystem(glTFRenderResourceManager& resource_
 {
     m_page_streamer = std::make_shared<VTPageStreamer>();
     m_physical_texture = std::make_shared<VTPhysicalTexture>(2048, 64, 1);
+
+    m_clear_feedback_pass = std::make_shared<glTFComputePassClearUAV>();
     m_feedback_pass = std::make_shared<glTFGraphicsPassMeshVT>();
     
     return true;
@@ -14,6 +16,7 @@ bool VirtualTextureSystem::InitRenderSystem(glTFRenderResourceManager& resource_
 
 void VirtualTextureSystem::SetupPass(glTFRenderPassManager& pass_manager)
 {
+    pass_manager.AddRenderPass(m_clear_feedback_pass);
     pass_manager.AddRenderPass(m_feedback_pass);
 }
 
@@ -86,12 +89,15 @@ bool VirtualTextureSystem::RegisterTexture(std::shared_ptr<VTLogicalTexture> tex
 bool VirtualTextureSystem::InitRenderResource(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(m_physical_texture->InitRenderResource(resource_manager));
-    
+
+    std::vector<std::shared_ptr<IRHITexture>> feedback_textures; 
     for (const auto& logical_texture_info : m_logical_texture_infos)
     {
         RETURN_IF_FALSE(logical_texture_info.second.second->InitRenderResource(resource_manager));
+        feedback_textures.push_back(logical_texture_info.second.first->GetTextureAllocation()->m_texture);
     }
-
+    
+    m_clear_feedback_pass->AddUAVTextures(feedback_textures);
     return true;
 }
 

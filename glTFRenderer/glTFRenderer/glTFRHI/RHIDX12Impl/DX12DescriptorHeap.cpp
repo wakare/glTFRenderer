@@ -196,7 +196,7 @@ D3D12_GPU_DESCRIPTOR_HANDLE DX12DescriptorHeap::GetAvailableGPUHandle() const
 bool DX12DescriptorHeap::CreateSRVInHeap(IRHIDevice& device, unsigned descriptor_offset,
                                          ID3D12Resource* resource, const RHIDescriptorDesc& desc, RHICPUDescriptorHandle& out_CPU_handle, RHIGPUDescriptorHandle& out_GPU_handle)
 {
-    GLTF_CHECK(m_desc.type == RHIDescriptorHeapType::CBV_SRV_UAV);
+    GLTF_CHECK(m_desc.type == RHIDescriptorHeapType::CBV_SRV_UAV_GPU);
     
     //TODO: Process offset for handle 
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
@@ -238,7 +238,7 @@ bool DX12DescriptorHeap::CreateSRVInHeap(IRHIDevice& device, unsigned descriptor
 bool DX12DescriptorHeap::CreateUAVInHeap(IRHIDevice& device, unsigned descriptor_offset, ID3D12Resource* resource,
                                          const RHIDescriptorDesc& desc, RHICPUDescriptorHandle& out_CPU_handle, RHIGPUDescriptorHandle& out_GPU_handle)
 {
-    GLTF_CHECK(m_desc.type == RHIDescriptorHeapType::CBV_SRV_UAV);
+    GLTF_CHECK(m_desc.type == RHIDescriptorHeapType::CBV_SRV_UAV_GPU);
     //TODO: Process offset for handle 
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
     

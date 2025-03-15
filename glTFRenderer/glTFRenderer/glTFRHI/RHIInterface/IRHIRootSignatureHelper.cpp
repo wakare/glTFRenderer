@@ -26,16 +26,16 @@ bool IRHIRootSignatureHelper::AddRootParameterWithRegisterCount(const RootParame
     case RHIRootParameterType::DescriptorTable:
         {
             switch (parameter_info.table_parameter_info.table_type) {
-            case RHIRootParameterDescriptorRangeType::CBV:
+            case RHIDescriptorRangeType::CBV:
                 register_type = RHIShaderRegisterType::b;
                 break;
-            case RHIRootParameterDescriptorRangeType::SRV:
+            case RHIDescriptorRangeType::SRV:
                 register_type = RHIShaderRegisterType::t;
                 break;
-            case RHIRootParameterDescriptorRangeType::UAV:
+            case RHIDescriptorRangeType::UAV:
                 register_type = RHIShaderRegisterType::u;
                 break;
-            case RHIRootParameterDescriptorRangeType::Unknown:
+            case RHIDescriptorRangeType::Unknown:
                 GLTF_CHECK(false);
             default: ;
             }
@@ -268,7 +268,7 @@ bool IRHIRootSignatureHelper::BuildRootSignature(IRHIDevice& device, glTFRenderR
                 break;
             case RHIRootParameterType::DescriptorTable:
                 {
-                    RHIRootParameterDescriptorRangeDesc range_desc =
+                    RHIDescriptorRangeDesc range_desc =
                         {
                             parameter_value.table_type,
                             parameter_value.register_range.first,

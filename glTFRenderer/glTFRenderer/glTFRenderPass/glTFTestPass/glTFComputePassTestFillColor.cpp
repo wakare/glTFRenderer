@@ -40,8 +40,7 @@ bool glTFComputePassTestFillColor::SetupRootSignature(glTFRenderResourceManager&
 {
     RETURN_IF_FALSE(glTFComputePassBase::SetupRootSignature(resource_manager))
     
-    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("OUTPUT_TEX_REGISTER_INDEX", {RHIRootParameterDescriptorRangeType::UAV, 1, false, false}, m_output_allocation))
-    m_dispatch_count = {resource_manager.GetSwapChain().GetWidth() / 8, resource_manager.GetSwapChain().GetHeight() / 8, 1};
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("OUTPUT_TEX_REGISTER_INDEX", {RHIDescriptorRangeType::UAV, 1, false, false}, m_output_allocation))
     
     return true;
 }
@@ -79,7 +78,7 @@ bool glTFComputePassTestFillColor::InitResourceTable(glTFRenderResourceManager& 
     return true;
 }
 
-DispatchCount glTFComputePassTestFillColor::GetDispatchCount() const
+DispatchCount glTFComputePassTestFillColor::GetDispatchCount(glTFRenderResourceManager& resource_manager) const
 {
-    return m_dispatch_count;
+    return {resource_manager.GetSwapChain().GetWidth() / 8, resource_manager.GetSwapChain().GetHeight() / 8, 1};
 }

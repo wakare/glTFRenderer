@@ -5,6 +5,7 @@
 #include "VTPageStreamer.h"
 #include "VTPageTable.h"
 #include "VTTextureTypes.h"
+#include "glTFRenderPass/glTFComputePass/glTFComputePassClearUAV.h"
 #include "glTFRenderSystem/RenderSystemBase.h"
 
 class glTFRenderPassBase;
@@ -41,5 +42,6 @@ protected:
     std::shared_ptr<VTPageStreamer> m_page_streamer;
     std::shared_ptr<VTPhysicalTexture> m_physical_texture;
 
+    std::shared_ptr<glTFComputePassClearUAV> m_clear_feedback_pass;
     std::shared_ptr<glTFRenderPassBase> m_feedback_pass;
 };

@@ -53,7 +53,7 @@ bool DX12Buffer::InitGPUBuffer(IRHIDevice& device, const RHIBufferDesc& desc)
     heap_resource_desc.Flags = DX12ConverterUtils::ConvertToResourceFlags(desc.usage);
     
     RHIResourceStateType final_state = desc.state;
-    if (final_state == RHIResourceStateType::STATE_UNKNOWN)
+    if (final_state == RHIResourceStateType::STATE_UNDEFINED)
     {
         final_state = desc.type == RHIBufferType::Default ? RHIResourceStateType::STATE_COMMON : RHIResourceStateType::STATE_GENERIC_READ;
     }

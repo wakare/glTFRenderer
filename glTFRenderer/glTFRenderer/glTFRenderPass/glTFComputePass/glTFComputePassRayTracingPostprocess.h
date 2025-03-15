@@ -31,7 +31,7 @@ public:
     virtual bool PreRenderPass(glTFRenderResourceManager& resource_manager) override;
     virtual bool PostRenderPass(glTFRenderResourceManager& resource_manager) override;
 
-    virtual DispatchCount GetDispatchCount() const override;
+    virtual DispatchCount GetDispatchCount(glTFRenderResourceManager& resource_manager) const override;
     
     virtual bool TryProcessSceneObject(glTFRenderResourceManager& resource_manager, const glTFSceneObjectBase& object) override;
     virtual bool FinishProcessSceneObject(glTFRenderResourceManager& resource_manager) override;
@@ -42,8 +42,6 @@ public:
 protected:
     virtual bool SetupRootSignature(glTFRenderResourceManager& resource_manager) override;
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;
-
-    DispatchCount m_dispatch_count;
 
     glTFRenderResourceUtils::RWTextureResourceWithBackBuffer m_accumulation_resource;
     glTFRenderResourceUtils::RWTextureResourceWithBackBuffer m_custom_resource;

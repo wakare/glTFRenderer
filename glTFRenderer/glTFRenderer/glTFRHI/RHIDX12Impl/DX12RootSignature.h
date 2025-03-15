@@ -12,7 +12,7 @@ public:
     virtual bool InitAsCBV(unsigned attribute_index, REGISTER_INDEX_TYPE register_index, unsigned space) override;
     virtual bool InitAsSRV(unsigned attribute_index, REGISTER_INDEX_TYPE register_index, unsigned space) override;
     virtual bool InitAsUAV(unsigned attribute_index, REGISTER_INDEX_TYPE register_index, unsigned space) override;
-    virtual bool InitAsDescriptorTableRange(unsigned attribute_index, size_t rangeCount, const RHIRootParameterDescriptorRangeDesc* rangeDesc) override;
+    virtual bool InitAsDescriptorTableRange(unsigned attribute_index, size_t rangeCount, const RHIDescriptorRangeDesc* rangeDesc) override;
 
     const D3D12_ROOT_PARAMETER1& GetParameter() const {return m_parameter;}
     const std::vector<D3D12_DESCRIPTOR_RANGE1>& GetRanges() const {return m_ranges;}

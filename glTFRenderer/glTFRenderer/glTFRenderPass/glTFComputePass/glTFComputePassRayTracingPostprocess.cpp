@@ -9,8 +9,7 @@
 #include "glTFRHI/RHIInterface/IRHISwapChain.h"
 
 glTFComputePassRayTracingPostprocess::glTFComputePassRayTracingPostprocess()
-    : m_dispatch_count({0, 0, 0})
-    , m_accumulation_resource("ACCUMULATION_OUTPUT_REGISTER_INDEX", "ACCUMULATION_BACKBUFFER_REGISTER_INDEX")
+    : m_accumulation_resource("ACCUMULATION_OUTPUT_REGISTER_INDEX", "ACCUMULATION_BACKBUFFER_REGISTER_INDEX")
     , m_custom_resource("CUSTOM_OUTPUT_REGISTER_INDEX", "CUSTOM_BACKBUFFER_REGISTER_INDEX")
 {
 }
@@ -111,9 +110,9 @@ bool glTFComputePassRayTracingPostprocess::PostRenderPass(glTFRenderResourceMana
     return true;
 }
 
-DispatchCount glTFComputePassRayTracingPostprocess::GetDispatchCount() const
+DispatchCount glTFComputePassRayTracingPostprocess::GetDispatchCount(glTFRenderResourceManager& resource_manager) const
 {
-    return m_dispatch_count;
+    return {resource_manager.GetSwapChain().GetWidth() / 8, resource_manager.GetSwapChain().GetHeight() / 8, 1};
 }
 
 bool glTFComputePassRayTracingPostprocess::TryProcessSceneObject(glTFRenderResourceManager& resource_manager,
@@ -166,14 +165,12 @@ bool glTFComputePassRayTracingPostprocess::SetupRootSignature(glTFRenderResource
 {
     RETURN_IF_FALSE(glTFComputePassBase::SetupRootSignature(resource_manager))
 
-    m_dispatch_count = {resource_manager.GetSwapChain().GetWidth() / 8, resource_manager.GetSwapChain().GetHeight() / 8, 1};
-    
     RETURN_IF_FALSE(m_accumulation_resource.RegisterSignature(m_root_signature_helper))
     RETURN_IF_FALSE(m_custom_resource.RegisterSignature(m_root_signature_helper))
 
-    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("POST_PROCESS_INPUT_REGISTER_INDEX", {RHIRootParameterDescriptorRangeType::SRV, 1, false, false}, m_process_input_allocation))
-    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("SCREEN_UV_OFFSET_REGISTER_INDEX", {RHIRootParameterDescriptorRangeType::SRV, 1, false, false}, m_screen_uv_offset_allocation))
-    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("POST_PROCESS_OUTPUT_REGISTER_INDEX", {RHIRootParameterDescriptorRangeType::UAV, 1, false, false}, m_process_output_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("POST_PROCESS_INPUT_REGISTER_INDEX", {RHIDescriptorRangeType::SRV, 1, false, false}, m_process_input_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("SCREEN_UV_OFFSET_REGISTER_INDEX", {RHIDescriptorRangeType::SRV, 1, false, false}, m_screen_uv_offset_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("POST_PROCESS_OUTPUT_REGISTER_INDEX", {RHIDescriptorRangeType::UAV, 1, false, false}, m_process_output_allocation))
 
     return true;
 }

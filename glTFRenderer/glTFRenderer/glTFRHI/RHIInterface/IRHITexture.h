@@ -29,5 +29,5 @@ protected:
     RHITextureDesc m_texture_desc {};
 
     // Default init texture with state common
-    RHIResourceStateType m_current_state {RHIResourceStateType::STATE_COMMON};
+    RHIResourceStateType m_current_state {RHIResourceStateType::STATE_UNDEFINED};
 };

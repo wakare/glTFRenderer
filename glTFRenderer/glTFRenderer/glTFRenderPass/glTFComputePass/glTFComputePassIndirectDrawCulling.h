@@ -20,7 +20,7 @@ public:
     
     virtual bool IsRenderingEnabled() const override;
     
-    virtual DispatchCount GetDispatchCount() const override;
+    virtual DispatchCount GetDispatchCount(glTFRenderResourceManager& resource_manager) const override;
     
 protected:
     virtual bool UpdateGUIWidgets() override;
