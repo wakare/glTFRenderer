@@ -88,9 +88,10 @@ protected:
     RootSignatureAllocation m_allocation;
 };
 
-class glTFRenderInterfaceCanUploadDataFromCPU
+class glTFRenderInterfaceCPUAccessible
 {
 public:
-    virtual ~glTFRenderInterfaceCanUploadDataFromCPU() = default;
-    virtual bool UploadCPUBuffer(glTFRenderResourceManager& resource_manager, const void* data, size_t offset, size_t size) = 0;
+    virtual ~glTFRenderInterfaceCPUAccessible() = default;
+    virtual bool UploadBuffer(glTFRenderResourceManager& resource_manager, const void* data, size_t offset, size_t size) = 0;
+    virtual bool DownloadBuffer(glTFRenderResourceManager& resource_manager, void* data, size_t size) {return false;}
 };

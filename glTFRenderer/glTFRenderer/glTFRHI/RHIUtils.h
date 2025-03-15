@@ -86,6 +86,7 @@ public:
     
     virtual bool AddBufferBarrierToCommandList(IRHICommandList& command_list, const IRHIBuffer& buffer, RHIResourceStateType beforeState, RHIResourceStateType afterState) = 0;
     virtual bool AddTextureBarrierToCommandList(IRHICommandList& command_list, IRHITexture& buffer, RHIResourceStateType beforeState, RHIResourceStateType afterState) = 0;
+    virtual bool AddUAVBarrier(IRHICommandList& command_list, IRHITexture& texture) = 0;
 
     virtual bool DrawInstanced(IRHICommandList& command_list, unsigned vertexCountPerInstance, unsigned instanceCount, unsigned startVertexLocation, unsigned startInstanceLocation) = 0;
     virtual bool DrawIndexInstanced(IRHICommandList& command_list, unsigned indexCountPerInstance, unsigned instanceCount, unsigned startIndexLocation, unsigned baseVertexLocation, unsigned startInstanceLocation) = 0;

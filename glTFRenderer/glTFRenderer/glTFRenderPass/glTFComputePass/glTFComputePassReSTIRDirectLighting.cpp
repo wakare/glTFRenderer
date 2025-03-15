@@ -71,7 +71,7 @@ bool glTFComputePassReSTIRDirectLighting::PreRenderPass(glTFRenderResourceManage
     RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceLighting>()->UpdateCPUBuffer(resource_manager))
 
     RETURN_IF_FALSE(m_aggregate_samples_output.BindDescriptors(command_list, GetPipelineType(), *m_descriptor_updater))
-    GetRenderInterface<glTFRenderInterfaceSingleConstantBuffer<RayTracingDIPostProcessPassOptions>>()->UploadCPUBuffer(resource_manager, &m_pass_options, 0, sizeof(m_pass_options));
+    GetRenderInterface<glTFRenderInterfaceSingleConstantBuffer<RayTracingDIPostProcessPassOptions>>()->UploadBuffer(resource_manager, &m_pass_options, 0, sizeof(m_pass_options));
 
     return true;
 }

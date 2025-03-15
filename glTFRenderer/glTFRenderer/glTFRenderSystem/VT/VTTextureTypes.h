@@ -18,17 +18,25 @@ public:
     
     int GetTextureId() const;
     int GetSize() const;
+    
     std::shared_ptr<IRHITextureAllocation> GetTextureAllocation() const;
+
+    VTPageData GetPageData(const VTPage& page) const;
     
 protected:
+    bool GeneratePageData();
+    
     bool m_render_resource_init{false};
     int m_texture_id {-1};
-    int m_size {-1};
+    int m_sizeX {-1};
+    int m_sizeY {-1};
 
     std::shared_ptr<unsigned char[]> m_texture_data {nullptr};
     size_t m_texture_data_size {0};
 
     std::shared_ptr<IRHITextureAllocation> m_feedback_texture;
+
+    std::map<VTPage::HashType, VTPageData> m_page_data;
 };
 
 class VTPageLRU

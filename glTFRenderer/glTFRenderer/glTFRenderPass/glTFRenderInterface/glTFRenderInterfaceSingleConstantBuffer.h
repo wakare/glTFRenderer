@@ -6,14 +6,14 @@
 
 // buffer size must be alignment with 64K [DX12]
 template <typename ConstantBufferType, size_t max_buffer_size = 64ull * 1024>
-class glTFRenderInterfaceSingleConstantBuffer : public glTFRenderInterfaceWithRSAllocation, public glTFRenderInterfaceCanUploadDataFromCPU
+class glTFRenderInterfaceSingleConstantBuffer : public glTFRenderInterfaceWithRSAllocation, public glTFRenderInterfaceCPUAccessible
 {
 public:
     glTFRenderInterfaceSingleConstantBuffer(const char* name = ConstantBufferType::Name.c_str())
         : glTFRenderInterfaceWithRSAllocation(name)
     {}
 
-    virtual bool UploadCPUBuffer(glTFRenderResourceManager& resource_manager, const void* data, size_t offset, size_t size) override
+    virtual bool UploadBuffer(glTFRenderResourceManager& resource_manager, const void* data, size_t offset, size_t size) override
     {
         // TODO: Handle offset with data alignment later
         GLTF_CHECK(offset == 0);

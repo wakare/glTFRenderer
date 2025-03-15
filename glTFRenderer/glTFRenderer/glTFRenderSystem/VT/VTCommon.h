@@ -34,7 +34,7 @@ struct VTPhysicalPageAllocationInfo
     VTPage page;
     int X;
     int Y;
-    std::shared_ptr<char[]> page_data;
+    std::shared_ptr<unsigned char[]> page_data;
 };
 
 // single mip texture data
@@ -58,13 +58,13 @@ public:
     
     bool UpdateRegionData(int offset_x, int offset_y, int width, int height, const void* data)
     {
-        GLTF_CHECK(0 <= offset_x && offset_x < width && 0 <= offset_y && offset_y < height);
+        GLTF_CHECK(0 <= offset_x && offset_x < m_width && 0 <= offset_y && offset_y < m_height);
 
         auto stride = GetBytePerPixelByFormat(m_format);
         
-        for (int y = offset_y; y < offset_y + height; ++y)
+        for (int y = 0; y < height; ++y)
         {
-            unsigned char* dst_data = m_data.get() + (y * m_width + offset_x) * stride;
+            unsigned char* dst_data = m_data.get() + ((y + offset_y) * m_width + offset_x) * stride;
             const void* src_data = (unsigned char*)data + y * width * stride;
             memcpy(dst_data, src_data, width * stride);
         }
@@ -72,19 +72,19 @@ public:
         return true;
     }
 
-    bool UpdateRegionDataWithPixelData(int offset_x, int offset_y, int width, int height, const void* pixel_data)
+    bool UpdateRegionDataWithPixelData(int offset_x, int offset_y, int width, int height, const void* pixel_data, size_t pixel_data_size)
     {
-        GLTF_CHECK(0 <= offset_x && offset_x < width && 0 <= offset_y && offset_y < height);
+        GLTF_CHECK(0 <= offset_x && offset_x < m_width && 0 <= offset_y && offset_y < m_height);
 
         auto stride = GetBytePerPixelByFormat(m_format);
+        GLTF_CHECK(pixel_data_size == stride);
         
         for (int y = offset_y; y < offset_y + height; ++y)
         {
             for (int x = offset_x; x < offset_x + width; ++x)
             {
-                unsigned char* dst_data = m_data.get() + (y * m_width + offset_x) * stride;
-                unsigned char* src_data = (unsigned char*)pixel_data + (y * width + x) * stride;
-                memcpy(dst_data, src_data, stride);
+                unsigned char* dst_data = m_data.get() + (y * m_width + x) * stride;
+                memcpy(dst_data, pixel_data, stride);
             }
         }
 

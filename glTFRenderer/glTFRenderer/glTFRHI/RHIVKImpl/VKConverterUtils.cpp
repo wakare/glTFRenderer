@@ -332,6 +332,11 @@ VkBufferUsageFlags VKConverterUtils::ConvertToBufferUsage(RHIResourceUsageFlags 
     {
         result |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;    
     }
+
+    if (flags & RUF_READBACK)
+    {
+        result |= VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+    }
     
     return result;
 }

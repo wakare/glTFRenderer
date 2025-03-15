@@ -12,7 +12,7 @@ static bool ContainsPoint(int x, int y, int width, int height, int px, int py)
 }
 
 QuadTreeNode::QuadTreeNode(int x, int y, int width, int height, int level)
-    : Valid(true), X(x), Y(y), Width(width), Height(height), PageX(-1), PageY(-1), Level(level)
+    : Valid(false), X(x), Y(y), Width(width), Height(height), PageX(-1), PageY(-1), Level(level)
 {
 }
 
@@ -32,32 +32,43 @@ bool QuadTreeNode::Touch(int x, int y, int page_x, int page_y, int level)
     {
         PageX = page_x;
         PageY = page_y;
+        // Mark valid
+        SetValid(true, false);
+        
         return true;
     }
 
-    // Mark valid
-    SetValid(true, false);
-
-    // Allocate child
-    int child_width = Width / 2;
-    int child_height = Height / 2;
-
-    int child_bounds[4][4] =
-        {
-        {X, Y, child_width, child_height},
-        {X + child_width, Y, child_width, child_height},
-        {X, Y + child_height, child_width, child_height},
-        {X + child_width, Y + child_height, child_width, child_height}
-        };
-
     std::shared_ptr<QuadTreeNode> child_node = nullptr;
-    for (int i = 0; i < 4; i++)
+    for (const auto& child : m_children)
     {
-        if (ContainsPoint(child_bounds[i][0], child_bounds[i][1], child_bounds[i][2], child_bounds[i][3], x, y))
+        if (child->Contains(x, y))
         {
-            child_node = std::make_shared<QuadTreeNode>(child_bounds[i][0], child_bounds[i][1], child_bounds[i][2], child_bounds[i][3], Level + 1);
-            m_children.push_back(child_node);
+            child_node = child;
             break;
+        }
+    }
+    
+    if (!child_node)
+    {
+        // Allocate child
+        int child_width = Width / 2;
+        int child_height = Height / 2;
+
+        int child_bounds[4][4] =
+            {
+            {X, Y, child_width, child_height},
+            {X + child_width, Y, child_width, child_height},
+            {X, Y + child_height, child_width, child_height},
+            {X + child_width, Y + child_height, child_width, child_height}
+            };
+        for (int i = 0; i < 4; i++)
+        {
+            if (ContainsPoint(child_bounds[i][0], child_bounds[i][1], child_bounds[i][2], child_bounds[i][3], x, y))
+            {
+                child_node = std::make_shared<QuadTreeNode>(child_bounds[i][0], child_bounds[i][1], child_bounds[i][2], child_bounds[i][3], Level - 1);
+                m_children.push_back(child_node);
+                break;
+            }
         }
     }
 
@@ -148,7 +159,7 @@ bool VTQuadTree::InitQuadTree(int page_table_size, int page_size)
     
     LOG_FORMAT_FLUSH("[VT QuadTree] Init max mip %d, page size %d, quadtree size %d\n", m_max_mip_level, m_page_size, quad_tree_size);
 
-    m_root = std::make_shared<QuadTreeNode>(0 ,0, quad_tree_size, quad_tree_size, 0);
+    m_root = std::make_shared<QuadTreeNode>(0 ,0, quad_tree_size, quad_tree_size, m_max_mip_level);
     
     return true;
 }

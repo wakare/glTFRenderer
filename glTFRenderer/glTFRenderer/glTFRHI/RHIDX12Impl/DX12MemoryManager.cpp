@@ -39,6 +39,11 @@ bool DX12MemoryManager::UploadBufferData(IRHIBufferAllocation& buffer_allocation
     return upload;
 }
 
+bool DX12MemoryManager::DownloadBufferData(IRHIBufferAllocation& buffer_allocation, void* data, size_t size)
+{
+    return dynamic_cast<DX12Buffer&>(*buffer_allocation.m_buffer).DownloadBufferToCPU(data, size);
+}
+
 bool DX12MemoryManager::AllocateTextureMemory(IRHIDevice& device, glTFRenderResourceManager& resource_manager,
                                               const RHITextureDesc& texture_desc, std::shared_ptr<IRHITextureAllocation>& out_texture_allocation)
 {

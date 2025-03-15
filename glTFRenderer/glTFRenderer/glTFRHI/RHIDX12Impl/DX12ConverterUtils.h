@@ -12,7 +12,7 @@ public:
     static int GetDXGIFormatBitsPerPixel(const DXGI_FORMAT& dxgiFormat);
     
     static DXGI_FORMAT ConvertToDXGIFormat(RHIDataFormat format);
-    static D3D12_HEAP_TYPE ConvertToHeapType(RHIBufferType type);
+    static D3D12_HEAP_TYPE ConvertToHeapType(const RHIBufferDesc& desc);
     static D3D12_RESOURCE_STATES ConvertToResourceState(RHIResourceStateType state);
     static D3D_PRIMITIVE_TOPOLOGY ConvertToPrimitiveTopologyType(RHIPrimitiveTopologyType type);
     static D3D12_DESCRIPTOR_HEAP_TYPE ConvertToDescriptorHeapType(RHIDescriptorHeapType type);

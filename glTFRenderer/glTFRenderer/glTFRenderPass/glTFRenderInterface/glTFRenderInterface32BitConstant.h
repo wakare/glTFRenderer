@@ -5,7 +5,7 @@
 #include <memory>
 
 template<typename UploadStructType, unsigned count>
-class glTFRenderInterface32BitConstant : public glTFRenderInterfaceWithRSAllocation, public glTFRenderInterfaceCanUploadDataFromCPU
+class glTFRenderInterface32BitConstant : public glTFRenderInterfaceWithRSAllocation, public glTFRenderInterfaceCPUAccessible
 {
 public:
     glTFRenderInterface32BitConstant(const char* name)
@@ -14,7 +14,7 @@ public:
         
     }
     
-    virtual bool UploadCPUBuffer(glTFRenderResourceManager& resource_manager, const void* data, size_t offset, size_t size)
+    virtual bool UploadBuffer(glTFRenderResourceManager& resource_manager, const void* data, size_t offset, size_t size)
     {
         GLTF_CHECK(sizeof (m_data) == size);
         memcpy(m_data, static_cast<const char*>(data) + offset, size);

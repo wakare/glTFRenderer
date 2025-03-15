@@ -10,7 +10,7 @@
 // 结构体：存储文件读取结果
 struct FileReadResult {
     std::string filename;
-    std::shared_ptr<char[]> data;
+    std::shared_ptr<unsigned char[]> data;
     bool success;
 };
 
@@ -86,8 +86,8 @@ private:
                 file.seekg(0, std::ios::end);
                 size_t file_size = file.tellg();
                 file.seekg(0, std::ios::beg);
-                result.data.reset(new char[file_size]);
-                file.read(result.data.get(), file_size);
+                result.data.reset(new unsigned char[file_size]);
+                file.read(reinterpret_cast<char*>(result.data.get()), file_size);
                 result.success = file.good();
             }
 

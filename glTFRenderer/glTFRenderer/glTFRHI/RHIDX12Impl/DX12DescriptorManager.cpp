@@ -97,16 +97,9 @@ bool DX12DescriptorManager::CreateDescriptor(IRHIDevice& device, const std::shar
                                              const RHIBufferDescriptorDesc& desc, std::shared_ptr<IRHIBufferDescriptorAllocation>& out_descriptor_allocation)
 {
     GLTF_CHECK(desc.m_dimension != RHIResourceDimension::UNKNOWN);
-    if (desc.IsVBOrIB())
-    {
-        out_descriptor_allocation = RHIResourceFactory::CreateRHIResource<IRHIBufferDescriptorAllocation>();
-        out_descriptor_allocation->InitFromBuffer(buffer, desc);
-        return true;
-    }
-
+    
     // Root buffer descriptor do not allocate within heap
-    if ((desc.m_view_type == RHIViewType::RVT_SRV && desc.m_srv_structured_buffer_desc.is_structured_buffer) ||
-        desc.m_view_type == RHIViewType::RVT_CBV)
+    if (desc.m_dimension == RHIResourceDimension::BUFFER)
     {
         out_descriptor_allocation = RHIResourceFactory::CreateRHIResource<IRHIBufferDescriptorAllocation>();
         out_descriptor_allocation->InitFromBuffer(buffer, desc);

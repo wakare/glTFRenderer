@@ -9,7 +9,6 @@ public:
     virtual bool InitRenderInterface(glTFRenderResourceManager& resource_manager) override;
     virtual bool InitPass(glTFRenderResourceManager& resource_manager) override;
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;
-    virtual bool PreRenderPass(glTFRenderResourceManager& resource_manager) override;
     virtual DispatchCount GetDispatchCount(glTFRenderResourceManager& resource_manager) const override;
     
     bool AddUAVTextures(const std::vector<std::shared_ptr<IRHITexture>>& uav_textures);

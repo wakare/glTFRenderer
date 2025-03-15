@@ -66,15 +66,18 @@ DXGI_FORMAT DX12ConverterUtils::ConvertToDXGIFormat(RHIDataFormat format)
     return DXGI_FORMAT_UNKNOWN;
 }
 
-D3D12_HEAP_TYPE DX12ConverterUtils::ConvertToHeapType(RHIBufferType type)
+D3D12_HEAP_TYPE DX12ConverterUtils::ConvertToHeapType(const RHIBufferDesc& desc)
 {
-    switch (type)
+    switch (desc.type)
     {
     case RHIBufferType::Default:
         return D3D12_HEAP_TYPE_DEFAULT;
 
     case RHIBufferType::Upload:
         return D3D12_HEAP_TYPE_UPLOAD;
+
+    case RHIBufferType::Readback:
+        return D3D12_HEAP_TYPE_READBACK;
     }
 
     assert(false);

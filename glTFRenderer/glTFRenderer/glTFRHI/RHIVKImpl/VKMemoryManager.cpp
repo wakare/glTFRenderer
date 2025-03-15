@@ -28,15 +28,25 @@ bool VKMemoryManager::AllocateBufferMemory(IRHIDevice& device, const RHIBufferDe
     GLTF_CHECK(buffer_desc.usage);
     
     // allocate buffer
+    bool readback_buffer = buffer_desc.usage & RUF_READBACK; 
+    
     VkBufferCreateInfo bufferInfo = {.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
     bufferInfo.pNext = nullptr;
     bufferInfo.size = buffer_desc.width;
     bufferInfo.usage = VKConverterUtils::ConvertToBufferUsage(buffer_desc.usage); 
     
     VmaAllocationCreateInfo allocation_create_info = {};
-    allocation_create_info.usage = buffer_desc.type == RHIBufferType::Upload ? VMA_MEMORY_USAGE_CPU_TO_GPU : VMA_MEMORY_USAGE_GPU_ONLY;
-    allocation_create_info.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
-
+    allocation_create_info.usage = buffer_desc.type == RHIBufferType::Upload ? VMA_MEMORY_USAGE_CPU_TO_GPU : (readback_buffer ? VMA_MEMORY_USAGE_AUTO : VMA_MEMORY_USAGE_GPU_ONLY);
+    
+    if (readback_buffer)
+    {
+        allocation_create_info.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+    }
+    else
+    {
+        allocation_create_info.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;    
+    }
+    
     VkBuffer out_buffer;
     VmaAllocation out_allocation;
     VmaAllocationInfo out_allocation_info;
@@ -65,6 +75,15 @@ bool VKMemoryManager::UploadBufferData(IRHIBufferAllocation& buffer_allocation, 
     auto vma_buffer_allocation = dynamic_cast<const VKBufferAllocation&>(buffer_allocation).m_allocation; 
     void* mapped_data = vma_buffer_allocation->GetMappedData();
     memcpy(mapped_data, (char*)data + offset, size);
+    
+    return true;
+}
+
+bool VKMemoryManager::DownloadBufferData(IRHIBufferAllocation& buffer_allocation, void* data, size_t size)
+{
+    auto vma_buffer_allocation = dynamic_cast<const VKBufferAllocation&>(buffer_allocation).m_allocation;
+    vmaMapMemory(GetVmaAllocator(), vma_buffer_allocation, &data);
+    vmaUnmapMemory(GetVmaAllocator(), vma_buffer_allocation);
     
     return true;
 }

@@ -500,8 +500,40 @@ bool VulkanUtils::AddTextureBarrierToCommandList(IRHICommandList& command_list, 
     return true;
 }
 
+bool VulkanUtils::AddUAVBarrier(IRHICommandList& command_list, IRHITexture& texture)
+{
+    auto vk_command_list = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
+    auto vk_image = dynamic_cast<const VKTexture&>(texture).GetRawImage();
+    
+    VkImageMemoryBarrier image_barrier = {};
+    image_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    image_barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+    image_barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+    image_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    image_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    image_barrier.image = vk_image;
+    image_barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    image_barrier.subresourceRange.baseMipLevel = 0;
+    image_barrier.subresourceRange.levelCount = 1;
+    image_barrier.subresourceRange.baseArrayLayer = 0;
+    image_barrier.subresourceRange.layerCount = 1;
+    image_barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;  // Pass 1 写入
+    image_barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;  // Pass 2 读取+写入
+
+    vkCmdPipelineBarrier(
+    vk_command_list,
+    VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,  // Pass 1 计算阶段
+    VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,  // Pass 2 计算阶段
+    0,
+    0, nullptr,
+    0, nullptr,
+    1, &image_barrier);
+    
+    return true;
+}
+
 bool VulkanUtils::DrawInstanced(IRHICommandList& command_list, unsigned vertex_count_per_instance, unsigned instance_count,
-    unsigned start_vertex_location, unsigned start_instance_location)
+                                unsigned start_vertex_location, unsigned start_instance_location)
 {
     auto command_buffer = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
     vkCmdDraw(command_buffer, vertex_count_per_instance, instance_count, start_vertex_location, start_instance_location);

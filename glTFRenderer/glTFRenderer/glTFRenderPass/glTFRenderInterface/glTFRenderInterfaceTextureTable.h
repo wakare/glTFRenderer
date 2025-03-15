@@ -88,9 +88,9 @@ public:
         return true;
     }
     
-    void AddTexture(const std::vector<std::shared_ptr<IRHITexture>>& texture)
+    void AddTexture(const std::vector<std::shared_ptr<IRHITexture>>& textures)
     {
-        for (const auto& texture : texture)
+        for (const auto& texture : textures)
         {
             if (!texture)
             {
@@ -99,7 +99,7 @@ public:
             }
         }
         
-        m_textures.insert(m_textures.end(), texture.begin(), texture.end());
+        m_textures.insert(m_textures.end(), textures.begin(), textures.end());
     }
     
 protected:

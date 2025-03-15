@@ -104,8 +104,8 @@ bool glTFComputePassIndirectDrawCulling::InitPass(glTFRenderResourceManager& res
     mesh_manager.GetIndirectDrawBuilder().GetCachedData(cached_data, cached_data_size);
     
     const auto& instance_data = mesh_manager.GetInstanceBufferData();
-    GetRenderInterface<glTFRenderInterfaceStructuredBuffer<MeshInstanceInputData>>()->UploadCPUBuffer(resource_manager, instance_data.data(), 0, instance_data.size() * sizeof(MeshInstanceInputData));
-    GetRenderInterface<glTFRenderInterfaceStructuredBuffer<MeshIndirectDrawCommand>>()->UploadCPUBuffer(resource_manager, cached_data, 0, cached_data_size);
+    GetRenderInterface<glTFRenderInterfaceStructuredBuffer<MeshInstanceInputData>>()->UploadBuffer(resource_manager, instance_data.data(), 0, instance_data.size() * sizeof(MeshInstanceInputData));
+    GetRenderInterface<glTFRenderInterfaceStructuredBuffer<MeshIndirectDrawCommand>>()->UploadBuffer(resource_manager, cached_data, 0, cached_data_size);
 
     // Construct bounding box srv data
     std::vector<CullingBoundingBox> bounding_boxes;
@@ -122,7 +122,7 @@ bool glTFComputePassIndirectDrawCulling::InitPass(glTFRenderResourceManager& res
         bounding_boxes.push_back({glm::vec4{center.x,center.y,center.z, radius }});
     }
     
-    GetRenderInterface<glTFRenderInterfaceStructuredBuffer<CullingBoundingBox>>()->UploadCPUBuffer(resource_manager, bounding_boxes.data(), 0, bounding_boxes.size() * sizeof(CullingBoundingBox));
+    GetRenderInterface<glTFRenderInterfaceStructuredBuffer<CullingBoundingBox>>()->UploadBuffer(resource_manager, bounding_boxes.data(), 0, bounding_boxes.size() * sizeof(CullingBoundingBox));
     
     return true;
 }
@@ -131,23 +131,8 @@ bool glTFComputePassIndirectDrawCulling::SetupRootSignature(glTFRenderResourceMa
 {
     RETURN_IF_FALSE(glTFComputePassBase::SetupRootSignature(resourceManager))
 
-    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("INDIRECT_DRAW_DATA_OUTPUT_REGISTER_UAV_INDEX",
-        {
-            RHIDescriptorRangeType::UAV,
-            1,
-            true,
-            false
-        }
-        , m_culled_indirect_command_allocation))
-    
-    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("INDIRECT_COMMAND_COUNT_BUFFER_REGISTER_UAV_INDEX",
-    {
-        RHIDescriptorRangeType::UAV,
-        1,
-        true,
-        false
-        }
-        , m_culled_count_output_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddUAVRootParameter("INDIRECT_DRAW_DATA_OUTPUT_REGISTER_UAV_INDEX", m_culled_indirect_command_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddUAVRootParameter("INDIRECT_COMMAND_COUNT_BUFFER_REGISTER_UAV_INDEX",  m_culled_count_output_allocation))
 
     return true;
 }
@@ -177,7 +162,7 @@ bool glTFComputePassIndirectDrawCulling::PreRenderPass(glTFRenderResourceManager
         const char* cached_data;
         size_t cached_data_size;
         resource_manager.GetMeshManager().GetIndirectDrawBuilder().GetCachedData(cached_data, cached_data_size);
-        GetRenderInterface<glTFRenderInterfaceSingleConstantBuffer<CullingConstant>>()->UploadCPUBuffer(resource_manager, &cached_data_size, 0, sizeof(unsigned));
+        GetRenderInterface<glTFRenderInterfaceSingleConstantBuffer<CullingConstant>>()->UploadBuffer(resource_manager, &cached_data_size, 0, sizeof(unsigned));
         
         BindDescriptor(command_list,
             m_culled_indirect_command_allocation,

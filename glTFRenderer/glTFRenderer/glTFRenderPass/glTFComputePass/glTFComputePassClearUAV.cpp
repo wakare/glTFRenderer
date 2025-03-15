@@ -47,7 +47,7 @@ bool glTFComputePassClearUAV::InitPass(glTFRenderResourceManager& resource_manag
     CLEAR_UAV_INFO info;
     info.uint_texture_count = m_uav_uint_textures.size();
     info.float_texture_count = m_uav_float_textures.size();
-    GetRenderInterface<glTFRenderInterfaceSingleConstantBuffer<CLEAR_UAV_INFO>>()->UploadCPUBuffer(resource_manager, &info, 0, sizeof(info));
+    GetRenderInterface<glTFRenderInterfaceSingleConstantBuffer<CLEAR_UAV_INFO>>()->UploadBuffer(resource_manager, &info, 0, sizeof(info));
 
     return true;
 }
@@ -59,13 +59,6 @@ bool glTFComputePassClearUAV::SetupPipelineStateObject(glTFRenderResourceManager
     GetComputePipelineStateObject().BindShaderCode(
         R"(glTFResources\ShaderSource\ComputeShader\ClearUAVCS.hlsl)", RHIShaderType::Compute, "main");
     
-    return true;
-}
-
-bool glTFComputePassClearUAV::PreRenderPass(glTFRenderResourceManager& resource_manager)
-{
-    RETURN_IF_FALSE(glTFComputePassBase::PreRenderPass(resource_manager))
-
     return true;
 }
 

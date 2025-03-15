@@ -290,7 +290,7 @@ struct RHISRVStructuredBufferDesc
 
 struct RHIBufferDescriptorDesc : RHIDescriptorDesc
 {
-    RHIBufferDescriptorDesc(RHIDataFormat format, RHIViewType view_type, unsigned size, unsigned offset, const RHIUAVStructuredBufferDesc& uav_structured_desc)
+    RHIBufferDescriptorDesc(RHIDataFormat format, RHIViewType view_type, size_t size, size_t offset, const RHIUAVStructuredBufferDesc& uav_structured_desc)
             : RHIDescriptorDesc(format, RHIResourceDimension::BUFFER, view_type)
             , m_size(size)
             , m_offset(offset)
@@ -298,7 +298,7 @@ struct RHIBufferDescriptorDesc : RHIDescriptorDesc
     {
     }
 
-    RHIBufferDescriptorDesc(RHIDataFormat format, RHIViewType view_type, unsigned size, unsigned offset, const RHISRVStructuredBufferDesc& srv_structured_desc)
+    RHIBufferDescriptorDesc(RHIDataFormat format, RHIViewType view_type, size_t size, size_t offset, const RHISRVStructuredBufferDesc& srv_structured_desc)
             : RHIDescriptorDesc(format, RHIResourceDimension::BUFFER, view_type)
             , m_size(size)
             , m_offset(offset)
@@ -306,7 +306,7 @@ struct RHIBufferDescriptorDesc : RHIDescriptorDesc
     {
     }
     
-    RHIBufferDescriptorDesc(RHIDataFormat format, RHIViewType view_type, unsigned size, unsigned offset)
+    RHIBufferDescriptorDesc(RHIDataFormat format, RHIViewType view_type, size_t size, size_t offset)
         : RHIDescriptorDesc(format, RHIResourceDimension::BUFFER, view_type)
         , m_size(size)
         , m_offset(offset)
@@ -314,8 +314,8 @@ struct RHIBufferDescriptorDesc : RHIDescriptorDesc
     {
     }
     
-    unsigned m_size;
-    unsigned m_offset;
+    size_t m_size;
+    size_t m_offset;
     
     union 
     {
@@ -710,6 +710,7 @@ enum class RHIBufferType
 {
     Default,
     Upload,
+    Readback,
 };
 
 struct RHIBufferDesc

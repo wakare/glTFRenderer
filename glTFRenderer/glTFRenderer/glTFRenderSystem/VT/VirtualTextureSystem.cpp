@@ -1,23 +1,26 @@
 #include "VirtualTextureSystem.h"
 
 #include "glTFRenderPass/glTFRenderPassManager.h"
+#include "glTFRenderPass/glTFComputePass/glTFComputePassVTFetchAndClearUAV.h"
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassMeshVT.h"
+#include "glTFRHI/RHIInterface/IRHISwapChain.h"
 
 bool VirtualTextureSystem::InitRenderSystem(glTFRenderResourceManager& resource_manager)
 {
     m_page_streamer = std::make_shared<VTPageStreamer>();
     m_physical_texture = std::make_shared<VTPhysicalTexture>(2048, 64, 1);
 
-    m_clear_feedback_pass = std::make_shared<glTFComputePassClearUAV>();
     m_feedback_pass = std::make_shared<glTFGraphicsPassMeshVT>();
+    m_fetch_feedback_pass = std::make_shared<glTFComputePassVTFetchAndClearUAV>();
     
     return true;
 }
 
 void VirtualTextureSystem::SetupPass(glTFRenderPassManager& pass_manager)
 {
-    pass_manager.AddRenderPass(m_clear_feedback_pass);
     pass_manager.AddRenderPass(m_feedback_pass);
+    pass_manager.AddRenderPass(m_fetch_feedback_pass);
+    InitFeedBackPass();
 }
 
 void VirtualTextureSystem::ShutdownRenderSystem()
@@ -27,8 +30,8 @@ void VirtualTextureSystem::ShutdownRenderSystem()
 
 void VirtualTextureSystem::TickRenderSystem(glTFRenderResourceManager& resource_manager)
 {
-    DrawFeedBackPass();
-
+    UpdateRenderResource(resource_manager);
+    
     std::vector<VTPage> pages;
     GatherPageRequest(pages);
 
@@ -82,22 +85,13 @@ bool VirtualTextureSystem::RegisterTexture(std::shared_ptr<VTLogicalTexture> tex
     const int page_table_size = texture->GetSize() / VT_PAGE_SIZE;
     page_table->InitVTPageTable(texture->GetTextureId(), page_table_size, VT_PAGE_SIZE);
     m_logical_texture_infos[texture->GetTextureId()] = std::make_pair(texture, page_table);
+    m_page_streamer->AddLogicalTexture(texture);
     
     return true;
 }
 
-bool VirtualTextureSystem::InitRenderResource(glTFRenderResourceManager& resource_manager)
+bool VirtualTextureSystem::UpdateRenderResource(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(m_physical_texture->InitRenderResource(resource_manager));
-
-    std::vector<std::shared_ptr<IRHITexture>> feedback_textures; 
-    for (const auto& logical_texture_info : m_logical_texture_infos)
-    {
-        RETURN_IF_FALSE(logical_texture_info.second.second->InitRenderResource(resource_manager));
-        feedback_textures.push_back(logical_texture_info.second.first->GetTextureAllocation()->m_texture);
-    }
-    
-    m_clear_feedback_pass->AddUAVTextures(feedback_textures);
     return true;
 }
 
@@ -112,10 +106,45 @@ std::shared_ptr<VTPhysicalTexture> VirtualTextureSystem::GetPhysicalTexture() co
     return m_physical_texture;
 }
 
-void VirtualTextureSystem::DrawFeedBackPass()
+std::pair<unsigned, unsigned> VirtualTextureSystem::GetVTFeedbackTextureSize(glTFRenderResourceManager& resource_manager)
 {
+    /*
+    return
+    {
+        resource_manager.GetSwapChain().GetWidth() / VT_FEEDBACK_TEXTURE_SCALE_SIZE,
+        resource_manager.GetSwapChain().GetHeight() / VT_FEEDBACK_TEXTURE_SCALE_SIZE,
+    };
+    */
+    return {128, 128}; 
+}
+
+void VirtualTextureSystem::InitFeedBackPass()
+{
+    std::vector<std::shared_ptr<IRHITexture>> feedback_textures; 
+    for (const auto& logical_texture_info : m_logical_texture_infos)
+    {
+        feedback_textures.push_back(logical_texture_info.second.first->GetTextureAllocation()->m_texture);
+    }
+    
+    m_fetch_feedback_pass->UpdateUAVTextures(feedback_textures);   
 }
 
 void VirtualTextureSystem::GatherPageRequest(std::vector<VTPage>& out_pages)
 {
+    std::set<VTPage> pages; 
+    const auto& feedback_data = m_fetch_feedback_pass->GetFeedbackOutputData();
+    for (const auto& feedback : feedback_data)
+    {
+        VTPage page;
+        page.X = feedback.data[0];
+        page.Y = feedback.data[1];
+        page.mip = feedback.data[2];
+        page.tex = feedback.data[3];
+
+        if (!pages.contains(page))
+        {
+            pages.insert(page);
+            out_pages.push_back(page);
+        }
+    }
 }

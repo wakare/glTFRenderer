@@ -76,7 +76,7 @@ void glTFRenderPassManager::UpdateScene(glTFRenderResourceManager& resource_mana
 
         if (auto* frame_stat = pass->GetRenderInterface<glTFRenderInterfaceFrameStat>())
         {
-            frame_stat->UploadCPUBuffer(resource_manager, &m_frame_index, 0, sizeof(m_frame_index));
+            frame_stat->UploadBuffer(resource_manager, &m_frame_index, 0, sizeof(m_frame_index));
         }
     }
     ++m_frame_index;

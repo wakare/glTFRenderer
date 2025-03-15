@@ -13,12 +13,15 @@ bool VTLogicalTexture::InitLogicalTexture(const RHITextureDesc& desc)
 
     static unsigned _inner_texture_id = 0;
     m_texture_id = _inner_texture_id++;
-    m_size = desc.GetTextureWidth();
+    m_sizeX = desc.GetTextureWidth();
+    m_sizeY = desc.GetTextureHeight();
 
+    GLTF_CHECK(m_sizeX == m_sizeY);
+    
     m_texture_data = desc.GetTextureData();
     m_texture_data_size = desc.GetTextureDataSize();
-    
-    return true;
+
+    return GeneratePageData();
 }
 
 bool VTLogicalTexture::InitRenderResource(glTFRenderResourceManager& resource_manager)
@@ -29,16 +32,17 @@ bool VTLogicalTexture::InitRenderResource(glTFRenderResourceManager& resource_ma
     }
 
     m_render_resource_init = true;
-    
+
+    auto feedback_size = VirtualTextureSystem::GetVTFeedbackTextureSize(resource_manager);
     RHITextureDesc feedback_texture_desc
     (
         "Feedback Texture",
-        resource_manager.GetSwapChain().GetWidth(),
-        resource_manager.GetSwapChain().GetHeight(),
-        RHIDataFormat::R16G16B16A16_UINT,
-        static_cast<RHIResourceUsageFlags>(RUF_ALLOW_UAV | RUF_TRANSFER_DST),
+        feedback_size.first,
+        feedback_size.second,
+        RHIDataFormat::R32G32B32A32_UINT,
+        static_cast<RHIResourceUsageFlags>(RUF_ALLOW_UAV | RUF_TRANSFER_DST | RUF_READBACK),
         {
-            RHIDataFormat::R16G16B16A16_UINT,
+            RHIDataFormat::R32G32B32A32_UINT,
             glm::vec4{0,0,0,0}
         }
     );
@@ -61,12 +65,124 @@ int VTLogicalTexture::GetTextureId() const
 
 int VTLogicalTexture::GetSize() const
 {
-    return m_size;
+    return m_sizeX;
 }
 
 std::shared_ptr<IRHITextureAllocation> VTLogicalTexture::GetTextureAllocation() const
 {
     return m_feedback_texture;
+}
+
+VTPageData VTLogicalTexture::GetPageData(const VTPage& page) const
+{
+    return m_page_data.at(page.PageHash());
+}
+
+bool VTLogicalTexture::GeneratePageData()
+{
+    // mip 0
+    VTPage::OffsetType PageX = m_sizeX / VirtualTextureSystem::VT_PAGE_SIZE;
+    VTPage::OffsetType PageY = m_sizeY / VirtualTextureSystem::VT_PAGE_SIZE;
+    GLTF_CHECK(PageX * VirtualTextureSystem::VT_PAGE_SIZE == m_sizeX &&
+        PageY * VirtualTextureSystem::VT_PAGE_SIZE == m_sizeY);
+    int mip = 0;
+
+    const size_t channel = 4;
+    const size_t page_size = VirtualTextureSystem::VT_PAGE_SIZE * VirtualTextureSystem::VT_PAGE_SIZE * channel;
+
+    for (VTPage::OffsetType X = 0; X < PageX; ++X)
+    {
+        for (VTPage::OffsetType Y = 0; Y < PageY; ++Y)
+        {
+            VTPageData page_data;
+            page_data.page.X = X;
+            page_data.page.Y = Y;
+            page_data.page.mip = mip;
+            page_data.page.tex = m_texture_id;
+
+            page_data.loaded = true;
+            page_data.data = std::make_shared<unsigned char[]>(page_size);
+            for (int px = 0; px < VirtualTextureSystem::VT_PAGE_SIZE; ++px)
+            {
+                for (int py = 0; py < VirtualTextureSystem::VT_PAGE_SIZE; ++py)
+                {
+                    // fill rgba
+                    for (size_t channel_index = 0; channel_index < channel; ++channel_index)
+                    {
+                        page_data.data[(py * VirtualTextureSystem::VT_PAGE_SIZE + px) * channel + channel_index] = m_texture_data[((Y + py)  * VirtualTextureSystem::VT_PAGE_SIZE + (X + px)) * channel + channel_index];    
+                    }
+                }
+            }
+
+            m_page_data[page_data.page.PageHash()] = page_data;
+        }
+    }
+
+    std::vector<unsigned char> mipmap_temp_page_data;
+    mipmap_temp_page_data.resize(page_size * channel * 4);
+
+    PageX = PageX >> 1;
+    PageY = PageY >> 1;
+    ++mip;
+    
+    // mip >= 1
+    while (PageX && PageY)
+    {
+        for (VTPage::OffsetType X = 0; X < PageX; ++X)
+        {
+            for (VTPage::OffsetType Y = 0; Y < PageY; ++Y)
+            {
+                VTPageData page_data;
+                page_data.page.X = X;
+                page_data.page.Y = Y;
+                page_data.page.mip = mip;
+                page_data.page.tex = m_texture_id;
+                page_data.loaded = true;
+                page_data.data = std::make_shared<unsigned char[]>(page_size);
+
+                // Get prior mip page data
+                VTPage::OffsetType XPlusOne = static_cast<VTPage::OffsetType>(X + 1);
+                VTPage::OffsetType YPlusOne = static_cast<VTPage::OffsetType>(Y + 1);
+
+                VTPage source_pages[4] =
+                    {
+                        {.X= X, .Y= Y, .mip= static_cast<VTPage::MipType>(mip - 1), .tex= 0},
+                        {.X= XPlusOne, .Y= Y, .mip= static_cast<VTPage::MipType>(mip - 1), .tex= 0},
+                        {.X= XPlusOne, .Y= YPlusOne, .mip= static_cast<VTPage::MipType>(mip - 1), .tex= 0},
+                        {.X= X, .Y= YPlusOne, .mip= static_cast<VTPage::MipType>(mip - 1), .tex= 0}
+                    };
+
+                for (const VTPage& source_page : source_pages)
+                {
+                    auto source_page_data = GetPageData(source_page);
+                    
+                    size_t offset_x = (source_page.X - page_data.page.X) * VirtualTextureSystem::VT_PAGE_SIZE;
+                    size_t offset_y = (source_page.Y - page_data.page.Y) * VirtualTextureSystem::VT_PAGE_SIZE;
+                    
+                    for (size_t px = 0; px < VirtualTextureSystem::VT_PAGE_SIZE; ++px)
+                    {
+                        for (size_t py = 0; py < VirtualTextureSystem::VT_PAGE_SIZE; ++py)
+                        {
+                            size_t dst_x = (offset_x + px) / 2;
+                            size_t dst_y = (offset_y + py) / 2;
+                            for (size_t channel_index = 0; channel_index < channel; ++channel_index)
+                            {
+                                page_data.data[channel * ((dst_y * VirtualTextureSystem::VT_PAGE_SIZE) + dst_x) + channel_index] = source_page_data.data[channel * ((py * VirtualTextureSystem::VT_PAGE_SIZE) + px) +channel_index] / 2;    
+                            }
+                        }
+                    }
+                }
+
+                m_page_data[page_data.page.PageHash()] = page_data;
+            }
+        }
+        
+        PageX = PageX >> 1;
+        PageY = PageY >> 1;
+        ++mip;
+    }
+    
+    return true;
 }
 
 void VTPageLRU::AddPage(const VTPage& page)
@@ -150,7 +266,7 @@ void VTPhysicalTexture::UpdateTextureData()
     {
         unsigned page_offset_x = page_allocation.second.X * (VirtualTextureSystem::VT_PAGE_SIZE + 2 * m_border) + m_border;
         unsigned page_offset_y = page_allocation.second.Y * (VirtualTextureSystem::VT_PAGE_SIZE + 2 * m_border) + m_border;
-        m_physical_texture_data->UpdateRegionDataWithPixelData(page_offset_x, page_offset_y, VirtualTextureSystem::VT_PAGE_SIZE, VirtualTextureSystem::VT_PAGE_SIZE, page_allocation.second.page_data.get());
+        m_physical_texture_data->UpdateRegionData(page_offset_x, page_offset_y, VirtualTextureSystem::VT_PAGE_SIZE, VirtualTextureSystem::VT_PAGE_SIZE, page_allocation.second.page_data.get());
     }
 }
 

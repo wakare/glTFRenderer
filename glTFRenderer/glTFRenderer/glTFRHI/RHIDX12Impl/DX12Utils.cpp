@@ -376,6 +376,24 @@ bool DX12Utils::SetSRVToRootParameterSlot(IRHICommandList& command_list, unsigne
     return true;
 }
 
+bool DX12Utils::SetUAVToRootParameterSlot(IRHICommandList& command_list, unsigned slot_index,
+    const IRHIDescriptorAllocation& handle, bool isGraphicsPipeline)
+{
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
+    auto gpu_handle = dynamic_cast<const DX12BufferDescriptorAllocation&>(handle).m_gpu_handle;
+
+    if (isGraphicsPipeline)
+    {
+        dxCommandList->SetGraphicsRootUnorderedAccessView(slot_index, gpu_handle);    
+    }
+    else
+    {
+        dxCommandList->SetComputeRootUnorderedAccessView(slot_index, gpu_handle);
+    }
+    
+    return true;
+}
+
 bool DX12Utils::SetDTToRootParameterSlot(IRHICommandList& command_list, unsigned slot_index,
                                          const IRHIDescriptorAllocation& handle, bool isGraphicsPipeline)
 {
@@ -484,8 +502,19 @@ bool DX12Utils::AddTextureBarrierToCommandList(IRHICommandList& command_list, IR
     return true;
 }
 
+bool DX12Utils::AddUAVBarrier(IRHICommandList& command_list, IRHITexture& texture)
+{
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
+    auto* dxBuffer = dynamic_cast<DX12Texture&>(texture).GetRawResource();
+
+    CD3DX12_RESOURCE_BARRIER UAV_barrier = CD3DX12_RESOURCE_BARRIER::UAV(dxBuffer); 
+    dxCommandList->ResourceBarrier(1, &UAV_barrier);
+
+    return true;
+}
+
 bool DX12Utils::DrawInstanced(IRHICommandList& command_list, unsigned vertex_count_per_instance, unsigned instance_count,
-    unsigned start_vertex_location, unsigned start_instance_location)
+                              unsigned start_vertex_location, unsigned start_instance_location)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
     dxCommandList->DrawInstanced(vertex_count_per_instance, instance_count, start_vertex_location, start_instance_location);

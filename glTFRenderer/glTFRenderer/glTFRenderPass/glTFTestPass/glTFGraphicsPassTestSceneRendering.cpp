@@ -76,7 +76,7 @@ bool glTFGraphicsPassTestSceneRendering::PreRenderPass(glTFRenderResourceManager
     m_begin_rendering_info.clear_render_target = true;
 
     const auto& instance_buffer_data = resource_manager.GetMeshManager().GetInstanceBufferData(); 
-    GetRenderInterface<glTFRenderInterfaceStructuredBuffer<MeshInstanceInputData>>()->UploadCPUBuffer(resource_manager, instance_buffer_data.data(), 0, sizeof(MeshInstanceInputData) * instance_buffer_data.size());
+    GetRenderInterface<glTFRenderInterfaceStructuredBuffer<MeshInstanceInputData>>()->UploadBuffer(resource_manager, instance_buffer_data.data(), 0, sizeof(MeshInstanceInputData) * instance_buffer_data.size());
 
     return true;
 }

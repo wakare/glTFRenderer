@@ -10,6 +10,7 @@
 bool VTPageTable::InitVTPageTable(int tex_id, int page_table_size, int page_size)
 {
     m_tex_id = tex_id;
+    m_page_size = page_size;
     m_page_table_size = page_table_size;
     m_page_table_mip_count = 1 + log2(m_page_table_size);
     
@@ -105,9 +106,14 @@ void VTPageTable::UpdateTextureData()
     for (int i = 0; i < m_page_texture_datas.size(); i++)
     {
         auto& texture_data = m_page_texture_datas[i];
-        auto update_data = [this, &texture_data](const QuadTreeNode& node)
+        auto update_data = [&, this](const QuadTreeNode& node)
         {
             if (!node.IsValid())
+            {
+                return;
+            }
+
+            if (node.GetLevel() < i)
             {
                 return;
             }
@@ -116,11 +122,17 @@ void VTPageTable::UpdateTextureData()
             {
                 static_cast<uint16_t>(node.GetPageX()),
                 static_cast<uint16_t>(node.GetPageY()),
-                static_cast<uint16_t>(node.GetLevel()),
+                static_cast<uint16_t>(i),
                 1
             };
+
+            int offset_x = node.GetX() / m_page_size;
+            int offset_y = node.GetY() / m_page_size;
+            int width = node.GetWidth() / m_page_size;
+            int height = node.GetHeight() / m_page_size;
             
-            texture_data->UpdateRegionDataWithPixelData(node.GetX(), node.GetY(), node.GetWidth(), node.GetHeight(), &pixel_data);
+            texture_data->UpdateRegionDataWithPixelData(offset_x >> i, offset_y >> i,
+                width >> i, height >> i, &pixel_data, sizeof(PixelRGBA16));
         };
 
         m_quad_tree->TraverseLambda(update_data);    

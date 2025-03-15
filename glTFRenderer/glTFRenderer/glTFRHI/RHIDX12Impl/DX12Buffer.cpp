@@ -28,7 +28,7 @@ bool DX12Buffer::InitGPUBuffer(IRHIDevice& device, const RHIBufferDesc& desc)
 
     m_buffer_desc = desc;
     const bool contains_mipmap = desc.usage & RUF_CONTAINS_MIPMAP;
-    const CD3DX12_HEAP_PROPERTIES heap_properties(DX12ConverterUtils::ConvertToHeapType(desc.type));
+    const CD3DX12_HEAP_PROPERTIES heap_properties(DX12ConverterUtils::ConvertToHeapType(desc));
     CD3DX12_RESOURCE_DESC heap_resource_desc{};
     switch (desc.resource_type) {
         case RHIBufferResourceType::Buffer:
@@ -93,6 +93,23 @@ bool DX12Buffer::UploadBufferFromCPU(const void* data, size_t dataOffset, size_t
     m_buffer->Unmap(0, nullptr);
     m_mapped_gpu_buffer = nullptr;
     
+    return true;
+}
+
+bool DX12Buffer::DownloadBufferToCPU(void* data, size_t size)
+{
+    if (!m_mapped_gpu_buffer)
+    {
+        D3D12_RANGE readRange = { 0, size };
+        THROW_IF_FAILED(m_buffer->Map(0, &m_map_range, reinterpret_cast<void**>(&m_mapped_gpu_buffer)))
+    }
+
+    GLTF_CHECK(size <= m_buffer_desc.width);
+    memcpy(data, m_mapped_gpu_buffer, size);
+
+    m_buffer->Unmap(0, nullptr);
+    m_mapped_gpu_buffer = nullptr;
+
     return true;
 }
 

@@ -76,12 +76,10 @@ bool glTFRenderInterfaceSceneMaterial::PostInitInterfaceImpl(glTFRenderResourceM
         process_texture(glTFMaterialParameterUsage::BASECOLOR, material_info.albedo_tex_index, material_info.vt_flags);
         process_texture(glTFMaterialParameterUsage::NORMAL, material_info.normal_tex_index, material_info.vt_flags);
         process_texture(glTFMaterialParameterUsage::METALLIC_ROUGHNESS, material_info.metallic_roughness_tex_index, material_info.vt_flags);
-
-        RETURN_IF_FALSE(resource_manager.GetRenderSystem<VirtualTextureSystem>()->InitRenderResource(resource_manager));
     }
 
     GetRenderInterface<glTFRenderInterfaceTextureTableBindless<RHIDescriptorRangeType::SRV>>()->AddTexture(scene_material_textures);
-    RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceStructuredBuffer<MaterialInfo>>()->UploadCPUBuffer(resource_manager, material_infos.data(), 0, sizeof(MaterialInfo) * material_infos.size()))
+    RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceStructuredBuffer<MaterialInfo>>()->UploadBuffer(resource_manager, material_infos.data(), 0, sizeof(MaterialInfo) * material_infos.size()))
     RETURN_IF_FALSE(glTFRenderInterfaceBase::PostInitInterfaceImpl(resource_manager))
 
     return true;

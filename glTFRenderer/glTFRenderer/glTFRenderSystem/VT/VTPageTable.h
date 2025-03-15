@@ -32,7 +32,8 @@ public:
 protected:
     bool m_render_resource_init {false};
     int m_tex_id {-1};
-    
+
+    unsigned m_page_size {0};
     unsigned int m_page_table_size {0};
     unsigned int m_page_table_mip_count {0};
     

@@ -24,7 +24,7 @@ bool DX12DescriptorUpdater::BindTextureDescriptorTable(IRHICommandList& command_
             }
             else if (desc.m_view_type == RHIViewType::RVT_UAV)
             {
-                DX12Utils::DX12Instance().SetDTToRootParameterSlot(command_list, root_signature_allocation.global_parameter_index, allocation, pipeline==RHIPipelineType::Graphics);
+                DX12Utils::DX12Instance().SetUAVToRootParameterSlot(command_list, root_signature_allocation.global_parameter_index, allocation, pipeline==RHIPipelineType::Graphics);
             }
             else
             {

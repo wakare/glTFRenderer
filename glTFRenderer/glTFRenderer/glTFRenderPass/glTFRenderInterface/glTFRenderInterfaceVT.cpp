@@ -8,9 +8,9 @@
 glTFRenderInterfaceVT::glTFRenderInterfaceVT(bool feed_back)
     : m_feed_back(feed_back)
 {
+    AddInterface(std::make_shared<glTFRenderInterfaceStructuredBuffer<VTLogicalTextureInfo>>(VTLogicalTextureInfo::Name.c_str()));
     if (m_feed_back)
     {
-        AddInterface(std::make_shared<glTFRenderInterfaceStructuredBuffer<VTLogicalTextureInfo>>(VTLogicalTextureInfo::Name.c_str()));
         AddInterface(std::make_shared<glTFRenderInterfaceTextureTableBindless<RHIDescriptorRangeType::UAV>>("VT_FEED_BACK_TEXTURE_REGISTER_INDEX"));
     }
     else
@@ -27,23 +27,27 @@ bool glTFRenderInterfaceVT::PostInitInterfaceImpl(glTFRenderResourceManager& res
 
     auto vt_system = resource_manager.GetRenderSystem<VirtualTextureSystem>();
     m_physical_texture = vt_system->GetPhysicalTexture()->GetTextureAllocation()->m_texture;
+    
+    std::vector<VTLogicalTextureInfo> vt_logical_texture_infos;
+    for (const auto& page_table : vt_system->GetLogicalTextureInfos())
+    {
+        const auto& logical_texture = page_table.second.first;
+        VTLogicalTextureInfo info;
+        info.logical_texture_output_index = logical_texture->GetTextureId();
+        info.logical_texture_size = logical_texture->GetSize();
+        vt_logical_texture_infos.push_back(info);
+    }
+    GetRenderInterface<glTFRenderInterfaceStructuredBuffer<VTLogicalTextureInfo>>()->UploadBuffer(resource_manager, vt_logical_texture_infos.data(), 0,
+        vt_logical_texture_infos.size() * sizeof(VTLogicalTextureInfo));
+    
     if (m_feed_back)
     {
-        std::vector<VTLogicalTextureInfo> vt_logical_texture_infos;
         for (const auto& page_table : vt_system->GetLogicalTextureInfos())
         {
             const auto& logical_texture = page_table.second.first;
             m_feedback_textures.push_back(logical_texture->GetTextureAllocation()->m_texture);
-
-            VTLogicalTextureInfo info;
-            info.logical_texture_output_index = logical_texture->GetTextureId();
-            info.logical_texture_size = logical_texture->GetSize();
-            vt_logical_texture_infos.push_back(info);
         }
         GetRenderInterface<glTFRenderInterfaceTextureTableBindless<RHIDescriptorRangeType::UAV>>()->AddTexture(m_feedback_textures);
-
-        GetRenderInterface<glTFRenderInterfaceStructuredBuffer<VTLogicalTextureInfo>>()->UploadCPUBuffer(resource_manager, vt_logical_texture_infos.data(), 0,
-            vt_logical_texture_infos.size() * sizeof(VTLogicalTextureInfo));
     }
     else
     {
