@@ -2,6 +2,7 @@
 
 #include "glTFRHI/RHIInterface/IRHIBuffer.h"
 #include "DX12Common.h"
+#include "glTFRHI/RHIUtils.h"
 
 class DX12Buffer : public IRHIBuffer
 {
@@ -16,9 +17,13 @@ public:
     bool InitGPUBuffer(IRHIDevice& device, const RHIBufferDesc& desc);
     bool UploadBufferFromCPU(const void* data, size_t dataOffset, size_t size);
     bool DownloadBufferToCPU(void* data, size_t size);
+
+    RHIMipMapCopyRequirements GetMipMapRequirements() const;
     
 private:
     ComPtr<ID3D12Resource> m_buffer {nullptr};
     UINT8* m_mapped_gpu_buffer {nullptr};
     CD3DX12_RANGE m_map_range {};
+    
+    RHIMipMapCopyRequirements m_copy_req;
 };

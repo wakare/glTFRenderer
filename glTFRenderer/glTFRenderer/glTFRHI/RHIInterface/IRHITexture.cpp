@@ -31,3 +31,13 @@ bool IRHITexture::Release(glTFRenderResourceManager&)
 {
     return true;
 }
+
+void IRHITexture::SetCopyReq(RHIMipMapCopyRequirements copy_requirements)
+{
+    m_copy_requirements = copy_requirements;
+}
+
+RHIMipMapCopyRequirements IRHITexture::GetCopyReq() const
+{
+    return m_copy_requirements;
+}

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "IRHICommandList.h"
-#include "IRHIDevice.h"
 #include "IRHIResource.h"
 
 class IRHIBuffer;
@@ -24,10 +23,13 @@ public:
     bool CanReadBack() const;
     
     virtual bool Release(glTFRenderResourceManager&) override;
+    void SetCopyReq(RHIMipMapCopyRequirements copy_requirements);
+    RHIMipMapCopyRequirements GetCopyReq() const;
     
 protected:
     RHITextureDesc m_texture_desc {};
-
+    RHIMipMapCopyRequirements m_copy_requirements;
+    
     // Default init texture with state common
     RHIResourceStateType m_current_state {RHIResourceStateType::STATE_UNDEFINED};
 };

@@ -76,9 +76,15 @@ std::shared_ptr<IRHITextureAllocation> VTLogicalTexture::GetTextureAllocation() 
     return m_feedback_texture;
 }
 
-VTPageData VTLogicalTexture::GetPageData(const VTPage& page) const
+bool VTLogicalTexture::GetPageData(const VTPage& page, VTPageData& out) const
 {
-    return m_page_data.at(page.PageHash());
+    if (!m_page_data.contains(page.PageHash()))
+    {
+        return false;
+    }
+
+    out = m_page_data.at(page.PageHash());
+    return true;
 }
 
 bool VTLogicalTexture::GeneratePageData()
@@ -161,7 +167,9 @@ bool VTLogicalTexture::GeneratePageData()
 
                 for (const VTPage& source_page : source_pages)
                 {
-                    auto source_page_data = GetPageData(source_page);
+                    VTPageData source_page_data; 
+                    const bool get = GetPageData(source_page, source_page_data);
+                    GLTF_CHECK(get == true);
                     
                     size_t offset_x = (source_page.X - src_X) * VirtualTextureSystem::VT_PAGE_SIZE;
                     size_t offset_y = (source_page.Y - src_Y) * VirtualTextureSystem::VT_PAGE_SIZE;
@@ -266,7 +274,9 @@ void VTPhysicalTexture::ProcessRequestResult(const std::vector<VTPageData>& resu
         if (m_available_pages.empty())
         {
             const auto& page_to_free = m_page_lru_cache.GetPageForFree();
-            m_available_pages.emplace_back(page_to_free.X, page_to_free.Y);
+            const auto& reuse_physical_page = m_page_allocations[page_to_free.PageHash()];
+            GLTF_CHECK(reuse_physical_page.X < m_page_table_size && reuse_physical_page.Y < m_page_table_size);
+            m_available_pages.emplace_back(reuse_physical_page.X, reuse_physical_page.Y);
             m_page_allocations.erase(result.page.PageHash());
             m_page_lru_cache.RemovePage(page_to_free);
         }
@@ -276,6 +286,7 @@ void VTPhysicalTexture::ProcessRequestResult(const std::vector<VTPageData>& resu
         GLTF_CHECK(found && result.loaded);
         page_allocation.page = result.page;
         page_allocation.page_data = result.data;
+        m_page_lru_cache.AddPage(result.page);
     }
 }
 

@@ -65,8 +65,11 @@ bool DX12MemoryManager::AllocateTextureMemory(IRHIDevice& device, glTFRenderReso
     std::shared_ptr<IRHIBufferAllocation> texture_buffer;
     RETURN_IF_FALSE(resource_manager.GetMemoryManager().AllocateBufferMemory(device, texture_buffer_desc, texture_buffer))
 
+    RHIMipMapCopyRequirements copy_requirements = dynamic_cast<const DX12Buffer&>(*texture_buffer->m_buffer).GetMipMapRequirements();
+
     std::shared_ptr<IRHITexture> dx12_texture = RHIResourceFactory::CreateRHIResource<IRHITexture>();
     dynamic_cast<DX12Texture&>(*dx12_texture).InitTexture(texture_buffer, texture_desc);
+    dynamic_cast<DX12Texture&>(*dx12_texture).SetCopyReq(copy_requirements);
     
     out_texture_allocation = RHIResourceFactory::CreateRHIResource<IRHITextureAllocation>();
     out_texture_allocation->m_texture = dx12_texture;

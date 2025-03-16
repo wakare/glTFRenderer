@@ -28,6 +28,8 @@ bool DX12Buffer::InitGPUBuffer(IRHIDevice& device, const RHIBufferDesc& desc)
 
     m_buffer_desc = desc;
     const bool contains_mipmap = desc.usage & RUF_CONTAINS_MIPMAP;
+    unsigned mip_count = contains_mipmap ? static_cast<uint32_t>(std::floor(std::log2(std::max(desc.width, desc.height)))) + 1 : 1;
+    
     const CD3DX12_HEAP_PROPERTIES heap_properties(DX12ConverterUtils::ConvertToHeapType(desc));
     CD3DX12_RESOURCE_DESC heap_resource_desc{};
     switch (desc.resource_type) {
@@ -38,10 +40,10 @@ bool DX12Buffer::InitGPUBuffer(IRHIDevice& device, const RHIBufferDesc& desc)
             heap_resource_desc = CD3DX12_RESOURCE_DESC::Tex1D(DX12ConverterUtils::ConvertToDXGIFormat(desc.resource_data_type), desc.width);
             break;
     case RHIBufferResourceType::Tex2D: 
-            heap_resource_desc = CD3DX12_RESOURCE_DESC::Tex2D(DX12ConverterUtils::ConvertToDXGIFormat(desc.resource_data_type), desc.width, desc.height,  1, contains_mipmap ? 0 : 1);
+            heap_resource_desc = CD3DX12_RESOURCE_DESC::Tex2D(DX12ConverterUtils::ConvertToDXGIFormat(desc.resource_data_type), desc.width, desc.height,  1, mip_count);
             break;
     case RHIBufferResourceType::Tex3D: 
-            heap_resource_desc = CD3DX12_RESOURCE_DESC::Tex3D(DX12ConverterUtils::ConvertToDXGIFormat(desc.resource_data_type), desc.width, desc.height, desc.depth ,contains_mipmap ? 0 : 1);
+            heap_resource_desc = CD3DX12_RESOURCE_DESC::Tex3D(DX12ConverterUtils::ConvertToDXGIFormat(desc.resource_data_type), desc.width, desc.height, desc.depth ,mip_count);
             break;
     }
     
@@ -74,6 +76,15 @@ bool DX12Buffer::InitGPUBuffer(IRHIDevice& device, const RHIBufferDesc& desc)
             IID_PPV_ARGS(&m_buffer)))
     m_buffer->SetName(desc.name.c_str());
 
+    m_copy_req.row_byte_size.resize(mip_count);
+    m_copy_req.row_pitch.resize(mip_count);
+    std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> footprints; footprints.resize(mip_count); 
+    dxDevice->GetCopyableFootprints(&heap_resource_desc, 0, mip_count, 0, footprints.data(), nullptr, m_copy_req.row_byte_size.data(), &m_copy_req.total_size);
+    for (uint32_t i = 0; i < footprints.size(); ++i)
+    {
+        m_copy_req.row_pitch[i] = footprints[i].Footprint.RowPitch;
+    }
+    
     return true;
 }
 
@@ -111,6 +122,11 @@ bool DX12Buffer::DownloadBufferToCPU(void* data, size_t size)
     m_mapped_gpu_buffer = nullptr;
 
     return true;
+}
+
+RHIMipMapCopyRequirements DX12Buffer::GetMipMapRequirements() const
+{
+    return m_copy_req;
 }
 
 GPU_BUFFER_HANDLE_TYPE DX12Buffer::GetGPUBufferHandle() const

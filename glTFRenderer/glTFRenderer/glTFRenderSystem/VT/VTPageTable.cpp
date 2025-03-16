@@ -88,7 +88,8 @@ bool VTPageTable::TouchPageAllocation(const VTPhysicalPageAllocationInfo& page_a
 {
     GLTF_CHECK(page_allocation.page.tex == m_tex_id);
     
-    int touch_level = m_quad_tree->GetLevel(page_allocation.page.mip);
+    //int touch_level = m_quad_tree->GetLevel(page_allocation.page.mip);
+    int touch_level = page_allocation.page.mip;
     m_quad_tree->Touch(page_allocation.page.X, page_allocation.page.Y, page_allocation.X, page_allocation.Y, touch_level);
 
     return true;
@@ -122,17 +123,18 @@ void VTPageTable::UpdateTextureData()
             {
                 static_cast<uint16_t>(node.GetPageX()),
                 static_cast<uint16_t>(node.GetPageY()),
-                static_cast<uint16_t>(i),
+                static_cast<uint16_t>(node.GetLevel()),
                 1
             };
 
-            int offset_x    = node.GetX()       / m_page_size;
-            int offset_y    = node.GetY()       / m_page_size;
-            int width       = node.GetWidth()   / m_page_size;
-            int height      = node.GetHeight()  / m_page_size;
-            
-            texture_data->UpdateRegionDataWithPixelData(offset_x >> i, offset_y >> i,
-                width >> i, height >> i, &pixel_data, sizeof(PixelRGBA16));
+            int offset_x    = (node.GetX()       / m_page_size) >> i;
+            int offset_y    = (node.GetY()       / m_page_size) >> i;
+            int width       = (node.GetWidth()   / m_page_size) >> i;
+            int height      = (node.GetHeight()  / m_page_size) >> i;
+
+            //LOG_FORMAT_FLUSH("UpdateRegionDataWithPixelData Node:%s with mip %d, [%d, %d, %d, %d] data[%d, %d, %d, %d]\n", node.ToString().c_str(), i, offset_x, offset_y, width, height, pixel_data.r, pixel_data.g, pixel_data.b, pixel_data.a);
+            texture_data->UpdateRegionDataWithPixelData(offset_x, offset_y,
+                width, height, &pixel_data, sizeof(PixelRGBA16));
         };
 
         m_quad_tree->TraverseLambda(update_data);    

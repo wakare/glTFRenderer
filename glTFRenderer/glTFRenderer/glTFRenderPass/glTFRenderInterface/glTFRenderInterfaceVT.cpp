@@ -55,6 +55,7 @@ bool glTFRenderInterfaceVT::PreInitInterfaceImpl(glTFRenderResourceManager& reso
             const auto& logical_texture = page_table.second.first;
             auto& texture_resource = page_table.second.second->GetTextureAllocation()->m_texture;
             m_vt_logical_texture_infos[logical_texture->GetTextureId()].page_table_tex_index = vt_page_table_textures.size();
+            m_vt_logical_texture_infos[logical_texture->GetTextureId()].page_table_texture_size = texture_resource->GetTextureDesc().GetTextureWidth();
 
             vt_page_table_textures.push_back(texture_resource);
         }

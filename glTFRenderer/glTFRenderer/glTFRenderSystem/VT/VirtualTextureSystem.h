@@ -16,9 +16,9 @@ class VirtualTextureSystem : public RenderSystemBase
 public:
     enum
     {
-        VT_PHYSICAL_TEXTURE_SIZE = 2048,
+        VT_PHYSICAL_TEXTURE_SIZE = 4096,
         VT_PAGE_SIZE = 64,
-        VT_FEEDBACK_TEXTURE_SCALE_SIZE = 16,
+        VT_FEEDBACK_TEXTURE_SCALE_SIZE = 1,
     };
     
     DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VirtualTextureSystem)

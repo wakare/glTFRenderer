@@ -61,8 +61,7 @@ float4 SampleAlbedoTexture(uint material_id, float2 uv)
 #ifdef VT_READ_DATA
     if (info.IsVTAlbedo())
     {
-        VTLogicalTextureInfo vt_info = g_logical_texture_infos[info.albedo_tex_index];
-        return SampleVTPageTable(vt_info.page_table_tex_index, uv);  
+        return SampleVTPageTable(info.albedo_tex_index, uv);  
     }
 #endif
     

@@ -929,3 +929,33 @@ struct RHIBeginRenderingInfo
     bool enable_depth_write {false};
     bool clear_render_target {false};
 };
+
+struct RHITextureUploadInfo
+{
+    std::shared_ptr<unsigned char[]> data;
+    size_t data_size {0};
+};
+
+struct RHITextureMipUploadInfo : public RHITextureUploadInfo
+{
+    unsigned int mip_level{0};
+};
+
+struct RHICopyTextureInfo
+{
+    int dst_x{0};
+    int dst_y{0};
+    unsigned int src_mip_level{0};
+    unsigned int dst_mip_level{0};
+
+    // Only used in uploading buffer to texture
+    unsigned int src_width{0};
+    unsigned int src_height{0};
+};
+
+struct RHIMipMapCopyRequirements
+{
+    std::vector<size_t> row_byte_size;
+    std::vector<size_t> row_pitch;
+    size_t total_size;
+};

@@ -8,7 +8,7 @@
 bool VirtualTextureSystem::InitRenderSystem(glTFRenderResourceManager& resource_manager)
 {
     m_page_streamer = std::make_shared<VTPageStreamer>();
-    m_physical_texture = std::make_shared<VTPhysicalTexture>(2048, 64, 1);
+    m_physical_texture = std::make_shared<VTPhysicalTexture>(VT_PHYSICAL_TEXTURE_SIZE, VT_PAGE_SIZE, VT_FEEDBACK_TEXTURE_SCALE_SIZE);
 
     m_feedback_pass = std::make_shared<glTFGraphicsPassMeshVT>();
     m_fetch_feedback_pass = std::make_shared<glTFComputePassVTFetchAndClearUAV>();
@@ -52,6 +52,8 @@ void VirtualTextureSystem::TickRenderSystem(glTFRenderResourceManager& resource_
         auto& page_table  = logical_texture_info.second.second;
         auto& logical_texture = logical_texture_info.second.first;
         page_table->Invalidate();
+        
+        //LOG_FORMAT_FLUSH("Begin touch page allocation\n");
         for (const auto& page_allocation : page_allocations)
         {
             if (page_allocation.second.page.tex == page_table->GetTextureId())
@@ -108,14 +110,14 @@ std::shared_ptr<VTPhysicalTexture> VirtualTextureSystem::GetPhysicalTexture() co
 
 std::pair<unsigned, unsigned> VirtualTextureSystem::GetVTFeedbackTextureSize(glTFRenderResourceManager& resource_manager)
 {
-    /*
+    
     return
     {
         resource_manager.GetSwapChain().GetWidth() / VT_FEEDBACK_TEXTURE_SCALE_SIZE,
         resource_manager.GetSwapChain().GetHeight() / VT_FEEDBACK_TEXTURE_SCALE_SIZE,
     };
-    */
-    return {128, 128}; 
+    
+    //return {256, 256}; 
 }
 
 void VirtualTextureSystem::InitFeedBackPass()

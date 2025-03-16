@@ -38,14 +38,13 @@ bool RHIUtils::UploadTextureMipData(IRHICommandList& command_list, IRHIMemoryMan
     auto mip_texture_width = dst.GetTextureDesc().GetTextureWidth(upload_info.mip_level);
     auto mip_texture_height = dst.GetTextureDesc().GetTextureHeight(upload_info.mip_level);
     
-    const size_t bytes_per_pixel = GetBytePerPixelByFormat(dst.GetTextureFormat());
-    const size_t image_bytes_per_row = bytes_per_pixel * mip_texture_width; 
-    const UINT64 texture_upload_buffer_size = ((image_bytes_per_row + 255 ) & ~255) * (mip_texture_height - 1) + image_bytes_per_row;
+    size_t mip_copy_row_pitch = dst.GetCopyReq().row_pitch[upload_info.mip_level];
+    size_t mip_copy_total_size = mip_copy_row_pitch * mip_texture_height;
     
     const RHIBufferDesc texture_upload_buffer_desc =
         {
         L"TextureBuffer_Upload",
-        texture_upload_buffer_size,
+        mip_copy_total_size,
         1,
         1,
         RHIBufferType::Upload,
@@ -57,7 +56,18 @@ bool RHIUtils::UploadTextureMipData(IRHICommandList& command_list, IRHIMemoryMan
 
     std::shared_ptr<IRHIBufferAllocation> m_texture_upload_buffer;
     memory_manager.AllocateTempUploadBufferMemory(device, texture_upload_buffer_desc, m_texture_upload_buffer);
-    memory_manager.UploadBufferData(*m_texture_upload_buffer, upload_info.data.get(), 0, upload_info.data_size);
+
+    size_t byte_per_pixel = GetBytePerPixelByFormat(dst.GetTextureFormat()); 
+    std::vector<unsigned char> texture_data; texture_data.resize(mip_copy_total_size);
+    unsigned char* texture_data_ptr = texture_data.data();
+    for (unsigned h = 0; h < mip_texture_height; h++)
+    {
+        unsigned char* texture_data_offset_ptr = texture_data_ptr + mip_copy_row_pitch * h;
+        unsigned char* src_ptr = upload_info.data.get() + mip_texture_width * h * byte_per_pixel;
+        memcpy(texture_data_offset_ptr, src_ptr, mip_texture_width * byte_per_pixel);
+    }
+    
+    memory_manager.UploadBufferData(*m_texture_upload_buffer, texture_data.data(), 0, mip_copy_total_size);
 
     RHICopyTextureInfo m_texture_upload_copy_info
     {

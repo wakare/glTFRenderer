@@ -208,8 +208,8 @@ bool DX12DescriptorHeap::CreateSRVInHeap(IRHIDevice& device, unsigned descriptor
 
     if (desc.m_dimension == RHIResourceDimension::TEXTURE2D)
     {
-        // TODO: Config mip levels
-        srvDesc.Texture2D.MipLevels = 1;  
+        srvDesc.Texture2D.MostDetailedMip = 0;
+        srvDesc.Texture2D.MipLevels = -1;  
     }
     else if (desc.m_dimension == RHIResourceDimension::BUFFER)
     {

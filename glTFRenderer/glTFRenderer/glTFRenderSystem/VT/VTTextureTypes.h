@@ -21,7 +21,7 @@ public:
     
     std::shared_ptr<IRHITextureAllocation> GetTextureAllocation() const;
 
-    VTPageData GetPageData(const VTPage& page) const;
+    bool GetPageData(const VTPage& page, VTPageData& out) const;
     
 protected:
     bool GeneratePageData();

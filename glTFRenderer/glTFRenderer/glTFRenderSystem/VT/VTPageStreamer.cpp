@@ -33,13 +33,17 @@ void VTPageStreamer::Tick()
         
         if (m_logical_textures.contains(page.tex))
         {
-            auto result = m_logical_textures[page.tex]->GetPageData(page);
-            m_request_results.push_back(result);
+            VTPageData result; 
+            if (m_logical_textures[page.tex]->GetPageData(page, result))
+            {
+                m_request_results.push_back(result);    
+            }
         }
         else if (m_data_accessor->TryGetPageData(page, page_data))
         {
             m_request_results.push_back(page_data);
         }
+        // TODO: invalid page request
     }
 
     m_data_accessor->Tick();

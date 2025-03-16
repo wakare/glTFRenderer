@@ -124,6 +124,6 @@ ALIGN_FOR_CBV_STRUCT struct VTLogicalTextureInfo
     unsigned feed_back_tex_index;
     unsigned page_table_tex_index;
     unsigned logical_texture_size;
-    unsigned padding;
+    unsigned page_table_texture_size;
 };
 

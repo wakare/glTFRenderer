@@ -1,6 +1,7 @@
 #include "VTQuadTree.h"
 
 #include <cmath>
+#include <format>
 
 #include "RendererCommon.h"
 
@@ -21,27 +22,27 @@ bool QuadTreeNode::Contains(int x, int y) const
     return ContainsPoint(X, Y, Width, Height, x, y);
 }
 
-bool QuadTreeNode::Touch(int x, int y, int page_x, int page_y, int level)
+bool QuadTreeNode::Touch(int page_pixel_x, int page_pixel_y, int physical_x, int physical_y, int level)
 {
-    if (!Contains(x, y))
+    if (!Contains(page_pixel_x, page_pixel_y))
     {
         return false;
     }
 
     if (level == Level)
     {
-        PageX = page_x;
-        PageY = page_y;
+        PageX = physical_x;
+        PageY = physical_y;
         // Mark valid
         SetValid(true, false);
-        
+        //LOG_FORMAT_FLUSH("[VT QuadTree] Set valid to node %s\n", ToString().c_str())
         return true;
     }
 
     std::shared_ptr<QuadTreeNode> child_node = nullptr;
     for (const auto& child : m_children)
     {
-        if (child->Contains(x, y))
+        if (child->Contains(page_pixel_x, page_pixel_y))
         {
             child_node = child;
             break;
@@ -63,7 +64,7 @@ bool QuadTreeNode::Touch(int x, int y, int page_x, int page_y, int level)
             };
         for (int i = 0; i < 4; i++)
         {
-            if (ContainsPoint(child_bounds[i][0], child_bounds[i][1], child_bounds[i][2], child_bounds[i][3], x, y))
+            if (ContainsPoint(child_bounds[i][0], child_bounds[i][1], child_bounds[i][2], child_bounds[i][3], page_pixel_x, page_pixel_y))
             {
                 child_node = std::make_shared<QuadTreeNode>(child_bounds[i][0], child_bounds[i][1], child_bounds[i][2], child_bounds[i][3], Level - 1);
                 m_children.push_back(child_node);
@@ -78,7 +79,7 @@ bool QuadTreeNode::Touch(int x, int y, int page_x, int page_y, int level)
         return false;
     }
     
-    return child_node->Touch(x, y, page_x, page_y, level);
+    return child_node->Touch(page_pixel_x, page_pixel_y, physical_x, physical_y, level);
 }
 
 void QuadTreeNode::SetValid(bool valid, bool recursive)
@@ -104,6 +105,11 @@ void QuadTreeNode::TraverseLambda(std::function<void(const QuadTreeNode&)> callb
             child->TraverseLambda(callback, recursive);
         }
     }
+}
+
+std::string QuadTreeNode::ToString() const
+{
+    return std::format("Node_{0}_{1}_{2}_P_{3}_{4}", X, Y, Level, PageX, PageY);
 }
 
 bool QuadTreeNode::IsLeaf() const
@@ -164,10 +170,12 @@ bool VTQuadTree::InitQuadTree(int page_table_size, int page_size)
     return true;
 }
 
-bool VTQuadTree::Touch(int x, int y, int page_x, int page_y, int level)
+bool VTQuadTree::Touch(int page_x, int page_y, int physical_offset_x, int physical_offset_y, int level)
 {
     GLTF_CHECK(m_root != nullptr);
-    return m_root->Touch(x, y, page_x, page_y, level);
+
+    int page_scale = m_page_size << level;
+    return m_root->Touch(page_x * page_scale, page_y * page_scale, physical_offset_x, physical_offset_y, level);
 }
 
 void VTQuadTree::Invalidate()
