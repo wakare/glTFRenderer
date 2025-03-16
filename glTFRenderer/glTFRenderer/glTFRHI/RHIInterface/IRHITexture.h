@@ -6,7 +6,7 @@
 
 class IRHIBuffer;
 class IRHICommandList;
-class glTFImageLoader;
+class glTFImageIOUtil;
 
 class IRHITexture : public IRHIResource
 {

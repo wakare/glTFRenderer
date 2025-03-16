@@ -5,7 +5,7 @@
 #include "RendererCommon.h"
 #include "glTFRenderPass/glTFRenderPassManager.h"
 #include "glTFRenderSystem/VT/VirtualTextureSystem.h"
-#include "SceneFileLoader/glTFImageLoader.h"
+#include "SceneFileLoader/glTFImageIOUtil.h"
 
 glTFMaterialTextureRenderResource::glTFMaterialTextureRenderResource(const glTFMaterialParameterTexture& source_texture)
         : m_vt(false)
@@ -21,7 +21,7 @@ bool glTFMaterialTextureRenderResource::Init(glTFRenderResourceManager& resource
 
     const std::wstring convertPath = to_wide_string(m_source_texture.GetTexturePath());
     ImageLoadResult result;
-    RETURN_IF_FALSE(glTFImageLoader::Instance().LoadImageByFilename(convertPath.c_str(), result))
+    RETURN_IF_FALSE(glTFImageIOUtil::Instance().LoadImageByFilename(convertPath.c_str(), result))
     RHITextureDesc texture_desc{};
     texture_desc.InitWithLoadedData(result);
 

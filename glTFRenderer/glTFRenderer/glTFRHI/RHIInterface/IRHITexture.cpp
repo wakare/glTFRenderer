@@ -2,7 +2,7 @@
 
 #include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRHI/RHIUtils.h"
-#include "SceneFileLoader/glTFImageLoader.h"
+#include "SceneFileLoader/glTFImageIOUtil.h"
 
 bool IRHITexture::Transition(IRHICommandList& command_list, RHIResourceStateType new_state)
 {

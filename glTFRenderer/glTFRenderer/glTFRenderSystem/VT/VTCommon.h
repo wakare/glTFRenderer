@@ -1,4 +1,6 @@
 #pragma once
+#include <format>
+
 #include "glTFRHI/RHIInterface/RHICommon.h"
 
 struct VTPage
@@ -14,8 +16,13 @@ struct VTPage
 
     HashType PageHash() const
     {
-        HashType hash = tex << 11 | mip << 8 | X << 4 | Y;
+        HashType hash = static_cast<HashType>(tex) << 40 | static_cast<HashType>(mip) << 32 | static_cast<HashType>(X) << 16 | Y;
         return hash;
+    }
+
+    std::string ToString() const
+    {
+        return std::format("PAGE{3}_MIP{2}_X{0}_Y{1}", X, Y, mip, tex);
     }
 
     bool operator==(const VTPage& rhs) const

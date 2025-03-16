@@ -6,7 +6,7 @@
 #include "DX12Utils.h"
 #include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRHI/RHIUtils.h"
-#include "SceneFileLoader/glTFImageLoader.h"
+#include "SceneFileLoader/glTFImageIOUtil.h"
 
 ID3D12Resource* DX12Texture::GetRawResource()
 {

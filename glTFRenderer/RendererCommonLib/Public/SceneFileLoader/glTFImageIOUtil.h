@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <wincodec.h>
+#include <string>
 
 struct ImageLoadResult
 {
@@ -10,14 +11,16 @@ struct ImageLoadResult
     std::vector<unsigned char> data;
 };
 
-class glTFImageLoader
+class glTFImageIOUtil
 {
 public:
-    static glTFImageLoader& Instance();
+    static glTFImageIOUtil& Instance();
     bool LoadImageByFilename(const LPCWSTR filename, ImageLoadResult& result ) const;
 
+    bool SaveAsPNG(const std::string& file_name, const void* data, int width, int height) const;
+
 protected:
-    glTFImageLoader();
+    glTFImageIOUtil();
     void InitImageLoader();
     
     IWICImagingFactory* m_wicFactory;

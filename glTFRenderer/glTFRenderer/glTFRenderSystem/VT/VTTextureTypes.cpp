@@ -6,6 +6,7 @@
 #include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRHI/RHIUtils.h"
 #include "glTFRHI/RHIInterface/IRHISwapChain.h"
+#include "SceneFileLoader/glTFImageIOUtil.h"
 
 bool VTLogicalTexture::InitLogicalTexture(const RHITextureDesc& desc)
 {
@@ -13,12 +14,13 @@ bool VTLogicalTexture::InitLogicalTexture(const RHITextureDesc& desc)
 
     static unsigned _inner_texture_id = 0;
     m_texture_id = _inner_texture_id++;
-    m_sizeX = desc.GetTextureWidth();
-    m_sizeY = desc.GetTextureHeight();
+    m_logical_texture_width = desc.GetTextureWidth();
+    m_logical_texture_height = desc.GetTextureHeight();
 
-    GLTF_CHECK(m_sizeX == m_sizeY);
+    GLTF_CHECK(m_logical_texture_width == m_logical_texture_height);
     
     m_texture_data = desc.GetTextureData();
+    m_texture_format = desc.GetDataFormat();
     m_texture_data_size = desc.GetTextureDataSize();
 
     return GeneratePageData();
@@ -65,7 +67,7 @@ int VTLogicalTexture::GetTextureId() const
 
 int VTLogicalTexture::GetSize() const
 {
-    return m_sizeX;
+    return m_logical_texture_width;
 }
 
 std::shared_ptr<IRHITextureAllocation> VTLogicalTexture::GetTextureAllocation() const
@@ -81,15 +83,17 @@ VTPageData VTLogicalTexture::GetPageData(const VTPage& page) const
 bool VTLogicalTexture::GeneratePageData()
 {
     // mip 0
-    VTPage::OffsetType PageX = m_sizeX / VirtualTextureSystem::VT_PAGE_SIZE;
-    VTPage::OffsetType PageY = m_sizeY / VirtualTextureSystem::VT_PAGE_SIZE;
-    GLTF_CHECK(PageX * VirtualTextureSystem::VT_PAGE_SIZE == m_sizeX &&
-        PageY * VirtualTextureSystem::VT_PAGE_SIZE == m_sizeY);
+    VTPage::OffsetType PageX = m_logical_texture_width / VirtualTextureSystem::VT_PAGE_SIZE;
+    VTPage::OffsetType PageY = m_logical_texture_height / VirtualTextureSystem::VT_PAGE_SIZE;
+    GLTF_CHECK(PageX * VirtualTextureSystem::VT_PAGE_SIZE == m_logical_texture_width &&
+        PageY * VirtualTextureSystem::VT_PAGE_SIZE == m_logical_texture_height);
     int mip = 0;
 
     const size_t channel = 4;
     const size_t page_size = VirtualTextureSystem::VT_PAGE_SIZE * VirtualTextureSystem::VT_PAGE_SIZE * channel;
 
+    GLTF_CHECK(GetBytePerPixelByFormat(m_texture_format) == channel);
+    
     for (VTPage::OffsetType X = 0; X < PageX; ++X)
     {
         for (VTPage::OffsetType Y = 0; Y < PageY; ++Y)
@@ -98,10 +102,11 @@ bool VTLogicalTexture::GeneratePageData()
             page_data.page.X = X;
             page_data.page.Y = Y;
             page_data.page.mip = mip;
-            page_data.page.tex = m_texture_id;
+            page_data.page.tex = GetTextureId();
 
             page_data.loaded = true;
             page_data.data = std::make_shared<unsigned char[]>(page_size);
+            memset(page_data.data.get(), 0, page_size);
             for (int px = 0; px < VirtualTextureSystem::VT_PAGE_SIZE; ++px)
             {
                 for (int py = 0; py < VirtualTextureSystem::VT_PAGE_SIZE; ++py)
@@ -109,7 +114,8 @@ bool VTLogicalTexture::GeneratePageData()
                     // fill rgba
                     for (size_t channel_index = 0; channel_index < channel; ++channel_index)
                     {
-                        page_data.data[(py * VirtualTextureSystem::VT_PAGE_SIZE + px) * channel + channel_index] = m_texture_data[((Y + py)  * VirtualTextureSystem::VT_PAGE_SIZE + (X + px)) * channel + channel_index];    
+                        page_data.data[(py * VirtualTextureSystem::VT_PAGE_SIZE + px) * channel + channel_index] =
+                            m_texture_data[((Y * VirtualTextureSystem::VT_PAGE_SIZE + py)  * m_logical_texture_width + (X * VirtualTextureSystem::VT_PAGE_SIZE + px)) * channel + channel_index];    
                     }
                 }
             }
@@ -117,9 +123,6 @@ bool VTLogicalTexture::GeneratePageData()
             m_page_data[page_data.page.PageHash()] = page_data;
         }
     }
-
-    std::vector<unsigned char> mipmap_temp_page_data;
-    mipmap_temp_page_data.resize(page_size * channel * 4);
 
     PageX = PageX >> 1;
     PageY = PageY >> 1;
@@ -139,25 +142,28 @@ bool VTLogicalTexture::GeneratePageData()
                 page_data.page.tex = m_texture_id;
                 page_data.loaded = true;
                 page_data.data = std::make_shared<unsigned char[]>(page_size);
+                memset(page_data.data.get(), 0, page_size);
 
                 // Get prior mip page data
-                VTPage::OffsetType XPlusOne = static_cast<VTPage::OffsetType>(X + 1);
-                VTPage::OffsetType YPlusOne = static_cast<VTPage::OffsetType>(Y + 1);
+                VTPage::OffsetType src_X = 2 * X;
+                VTPage::OffsetType src_Y = 2 * Y;
+                VTPage::OffsetType src_XPlusOne = static_cast<VTPage::OffsetType>(src_X + 1);
+                VTPage::OffsetType src_YPlusOne = static_cast<VTPage::OffsetType>(src_Y + 1);
 
                 VTPage source_pages[4] =
                     {
-                        {.X= X, .Y= Y, .mip= static_cast<VTPage::MipType>(mip - 1), .tex= 0},
-                        {.X= XPlusOne, .Y= Y, .mip= static_cast<VTPage::MipType>(mip - 1), .tex= 0},
-                        {.X= XPlusOne, .Y= YPlusOne, .mip= static_cast<VTPage::MipType>(mip - 1), .tex= 0},
-                        {.X= X, .Y= YPlusOne, .mip= static_cast<VTPage::MipType>(mip - 1), .tex= 0}
+                        {.X= src_X,         .Y= src_Y,          .mip= static_cast<VTPage::MipType>(mip - 1), .tex = GetTextureId()},
+                        {.X= src_XPlusOne,  .Y= src_Y,          .mip= static_cast<VTPage::MipType>(mip - 1), .tex = GetTextureId()},
+                        {.X= src_XPlusOne,  .Y= src_YPlusOne,   .mip= static_cast<VTPage::MipType>(mip - 1), .tex = GetTextureId()},
+                        {.X= src_X,         .Y= src_YPlusOne,   .mip= static_cast<VTPage::MipType>(mip - 1), .tex = GetTextureId()}
                     };
 
                 for (const VTPage& source_page : source_pages)
                 {
                     auto source_page_data = GetPageData(source_page);
                     
-                    size_t offset_x = (source_page.X - page_data.page.X) * VirtualTextureSystem::VT_PAGE_SIZE;
-                    size_t offset_y = (source_page.Y - page_data.page.Y) * VirtualTextureSystem::VT_PAGE_SIZE;
+                    size_t offset_x = (source_page.X - src_X) * VirtualTextureSystem::VT_PAGE_SIZE;
+                    size_t offset_y = (source_page.Y - src_Y) * VirtualTextureSystem::VT_PAGE_SIZE;
                     
                     for (size_t px = 0; px < VirtualTextureSystem::VT_PAGE_SIZE; ++px)
                     {
@@ -167,7 +173,8 @@ bool VTLogicalTexture::GeneratePageData()
                             size_t dst_y = (offset_y + py) / 2;
                             for (size_t channel_index = 0; channel_index < channel; ++channel_index)
                             {
-                                page_data.data[channel * ((dst_y * VirtualTextureSystem::VT_PAGE_SIZE) + dst_x) + channel_index] = source_page_data.data[channel * ((py * VirtualTextureSystem::VT_PAGE_SIZE) + px) +channel_index] / 2;    
+                                page_data.data[channel * ((dst_y * VirtualTextureSystem::VT_PAGE_SIZE) + dst_x) + channel_index] +=
+                                    (source_page_data.data[channel * ((py * VirtualTextureSystem::VT_PAGE_SIZE) + px) + channel_index] / 4);    
                             }
                         }
                     }
@@ -181,8 +188,20 @@ bool VTLogicalTexture::GeneratePageData()
         PageY = PageY >> 1;
         ++mip;
     }
+
+    //DumpGeneratedPageDataToFile();
     
     return true;
+}
+
+void VTLogicalTexture::DumpGeneratedPageDataToFile() const
+{    
+    for (const auto& page_data : m_page_data)
+    {
+        std::string output_file_name = std::format("DumpVTImageDir\\{0}.png", page_data.second.page.ToString());
+        bool saved = glTFImageIOUtil::Instance().SaveAsPNG(output_file_name, page_data.second.data.get(), VirtualTextureSystem::VT_PAGE_SIZE, VirtualTextureSystem::VT_PAGE_SIZE);
+        GLTF_CHECK(saved);
+    }
 }
 
 void VTPageLRU::AddPage(const VTPage& page)

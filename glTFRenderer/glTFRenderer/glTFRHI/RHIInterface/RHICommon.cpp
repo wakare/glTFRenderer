@@ -4,7 +4,7 @@
 #include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRHI/RHIConfigSingleton.h"
 #include "glTFRHI/RHIUtils.h"
-#include "SceneFileLoader/glTFImageLoader.h"
+#include "SceneFileLoader/glTFImageIOUtil.h"
 
 void RootSignatureAllocation::AddShaderDefine(RHIShaderPreDefineMacros& out_shader_macros) const
 {

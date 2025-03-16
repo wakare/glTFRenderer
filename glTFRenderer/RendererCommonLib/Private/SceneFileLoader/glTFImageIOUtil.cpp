@@ -1,9 +1,56 @@
-#include "SceneFileLoader/glTFImageLoader.h"
+#include "SceneFileLoader/glTFImageIOUtil.h"
 
 #include <cassert>
+#include <Shlwapi.h>
 #include <wincodec.h>
+#include <wrl/client.h>
 
 #include "RendererCommon.h"
+
+using Microsoft::WRL::ComPtr;
+
+bool EnsureDirectoryExists(const std::wstring& directory) {
+    // 将相对路径转换为绝对路径
+    wchar_t fullPath[MAX_PATH];
+    if (GetFullPathNameW(directory.c_str(), MAX_PATH, fullPath, nullptr) == 0) {
+        LOG_FORMAT_FLUSH("Error: Failed to convert to full path!\n");
+        return false;
+    }
+
+    // 移除文件名，只保留路径
+    if (!PathRemoveFileSpecW(fullPath)) {
+        return false;
+    }
+    
+    std::wstring path(fullPath);
+    
+    // 检查路径是否已经存在
+    DWORD attributes = GetFileAttributesW(path.c_str());
+    if (attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_DIRECTORY)) {
+        return true;  // 目录已存在
+    }
+
+    // 递归创建父目录
+    size_t lastSlash = path.find_last_of(L"\\/");
+    if (lastSlash != std::wstring::npos) {
+        std::wstring parentPath = path.substr(0, lastSlash);
+        if (!EnsureDirectoryExists(parentPath)) {
+            return false;
+        }
+    }
+
+    // 创建当前目录
+    if (!CreateDirectoryW(path.c_str(), NULL)) {
+        DWORD error = GetLastError();
+        if (error != ERROR_ALREADY_EXISTS) {
+            LOG_FORMAT_FLUSH("Error: Failed to create directory '%ls'!\n", path.c_str())
+            return false;
+        }
+    }
+
+    return true;
+}
+
 
 #define GUID_MATCH_RETURN_FALSE(x) if (wicFormatGUID == (x)) return false;
 bool NeedConvertFormat(const WICPixelFormatGUID& wicFormatGUID)
@@ -100,19 +147,19 @@ WICPixelFormatGUID GetConvertToWICFormat(const WICPixelFormatGUID& wicFormatGUID
     else return GUID_WICPixelFormatDontCare;
 }
 
-glTFImageLoader& glTFImageLoader::Instance()
+glTFImageIOUtil& glTFImageIOUtil::Instance()
 {
-    static glTFImageLoader _instance;
+    static glTFImageIOUtil _instance;
     return _instance;
 }
 
-glTFImageLoader::glTFImageLoader()
+glTFImageIOUtil::glTFImageIOUtil()
     : m_wicFactory(nullptr)
 {
     InitImageLoader();
 }
 
-void glTFImageLoader::InitImageLoader()
+void glTFImageIOUtil::InitImageLoader()
 {
     assert(!m_wicFactory);
 
@@ -127,7 +174,7 @@ void glTFImageLoader::InitImageLoader()
     
 }
 
-bool glTFImageLoader::LoadImageByFilename(const LPCWSTR filename, ImageLoadResult& desc ) const
+bool glTFImageIOUtil::LoadImageByFilename(const LPCWSTR filename, ImageLoadResult& desc ) const
 {
     IWICBitmapDecoder *wicDecoder = nullptr;
     THROW_IF_FAILED(m_wicFactory->CreateDecoderFromFilename(
@@ -192,5 +239,99 @@ bool glTFImageLoader::LoadImageByFilename(const LPCWSTR filename, ImageLoadResul
         THROW_IF_FAILED(wicFrame->CopyPixels(0, bytesPerRow, desc.data.size(), desc.data.data()))
     }
 
+    return true;
+}
+
+bool glTFImageIOUtil::SaveAsPNG(const std::string& file_name, const void* image_data, int width, int height) const
+{
+    if (!image_data || width <= 0 || height <= 0) {
+        LOG_FORMAT_FLUSH("Error: Invalid image data or dimensions!\n")
+        return false;
+    }
+
+    // 确保目录存在
+    const std::wstring wide_file_name = to_wide_string(file_name);
+    if (!EnsureDirectoryExists(wide_file_name)) {
+        LOG_FORMAT_FLUSH("Error: Failed to create directory for %s\n", file_name.c_str());
+        return false;
+    }
+
+    // 创建 WIC 编码器
+    ComPtr<IWICBitmapEncoder> pEncoder;
+    HRESULT hr = m_wicFactory->CreateEncoder(GUID_ContainerFormatPng, nullptr, &pEncoder);
+    if (FAILED(hr)) {
+        LOG_FORMAT_FLUSH("Error: Failed to create WIC encoder!\n")
+        return false;
+    }
+
+    // 创建文件流
+    ComPtr<IWICStream> pStream;
+    hr = m_wicFactory->CreateStream(&pStream);
+    if (FAILED(hr)) {
+        LOG_FORMAT_FLUSH("Error: Failed to create WIC stream!\n")        
+        return false;
+    }
+    hr = pStream->InitializeFromFilename(wide_file_name.c_str(), GENERIC_WRITE);
+    if (FAILED(hr)) {
+        LOG_FORMAT_FLUSH("Error: Failed to initialize WIC stream from file!\n")
+        return false;
+    }
+
+    // 绑定编码器到文件流
+    hr = pEncoder->Initialize(pStream.Get(), WICBitmapEncoderNoCache);
+    if (FAILED(hr)) {
+        LOG_FORMAT_FLUSH("Error: Failed to initialize WIC encoder!\n")
+        return false;
+    }
+
+    // 创建编码器帧
+    ComPtr<IWICBitmapFrameEncode> pFrame;
+    ComPtr<IPropertyBag2> pEncoderOptions;
+    hr = pEncoder->CreateNewFrame(&pFrame, &pEncoderOptions);
+    if (FAILED(hr)) {
+        LOG_FORMAT_FLUSH("Error: Failed to create new frame in WIC encoder!\n")
+        return false;
+    }
+    hr = pFrame->Initialize(pEncoderOptions.Get());
+    if (FAILED(hr)) {
+        LOG_FORMAT_FLUSH("Error: Failed to initialize WIC frame!\n")
+        return false;
+    }
+
+    // 设置帧尺寸
+    hr = pFrame->SetSize(width, height);
+    if (FAILED(hr)) {
+        LOG_FORMAT_FLUSH("Error: Failed to set frame size!\n");
+        return false;
+    }
+
+    // 设置像素格式
+    WICPixelFormatGUID pixelFormat = GUID_WICPixelFormat32bppRGBA;
+    hr = pFrame->SetPixelFormat(&pixelFormat);
+    if (FAILED(hr)) {
+        LOG_FORMAT_FLUSH("Error: Failed to set pixel format!\n")
+        return false;
+    }
+
+    // 写入像素数据
+    hr = pFrame->WritePixels(height, width * 4, width * height * 4, (BYTE*)image_data);
+    if (FAILED(hr)) {
+        LOG_FORMAT_FLUSH("Error: Failed to write pixel data!\n")
+        return false;
+    }
+
+    // 结束帧并保存
+    hr = pFrame->Commit();
+    if (FAILED(hr)) {
+        LOG_FORMAT_FLUSH("Error: Failed to commit frame!\n")
+        return false;
+    }
+    hr = pEncoder->Commit();
+    if (FAILED(hr)) {
+        LOG_FORMAT_FLUSH("Error: Failed to commit encoder!\n");
+        return false;
+    }
+
+    LOG_FORMAT_FLUSH("Image successfully saved to: %s\n", file_name.c_str())
     return true;
 }
