@@ -1,4 +1,5 @@
 #pragma once
+#include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRHI/RHIInterface/IRHIRootSignatureHelper.h"
 
 class IRHIDescriptorTable;
@@ -16,7 +17,7 @@ public:
     bool InitInterface(glTFRenderResourceManager& resource_manager);
     bool ApplyInterface(glTFRenderResourceManager& resource_manager, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater);
     bool ApplyRootSignature(IRHIRootSignatureHelper& root_signature);
-    void ApplyShaderDefine(RHIShaderPreDefineMacros& out_shader_pre_define_macros) const;
+    void ApplyShaderDefine(RHIShaderPreDefineMacros& out_shader_pre_define_macros);
     
 protected:
     virtual bool PreInitInterfaceImpl(glTFRenderResourceManager& resource_manager);
@@ -26,11 +27,12 @@ protected:
     virtual bool ApplyInterfaceImpl(IRHICommandList& command_list, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater, unsigned
                                     frame_index);
     virtual bool ApplyRootSignatureImpl(IRHIRootSignatureHelper& root_signature);
-    virtual void ApplyShaderDefineImpl(RHIShaderPreDefineMacros& out_shader_pre_define_macros) const;
+    virtual void ApplyShaderDefineImpl(RHIShaderPreDefineMacros& out_shader_pre_define_macros);
     
     void AddInterface(const std::shared_ptr<glTFRenderInterfaceBase>& render_interface);
 
     static std::shared_ptr<IRHIDescriptorTable> CreateDescriptorTable();
+    static void TraverseWithLambda(glTFRenderInterfaceBase& render_interface, const std::function<void(glTFRenderInterfaceBase&)>& lambda_function);
     
     template<typename RenderInterface>
     const RenderInterface* GetRenderInterface() const
@@ -68,7 +70,7 @@ protected:
     virtual bool ApplyInterfaceImpl(IRHICommandList& command_list, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater, unsigned
                                     frame_index) override {return true;}
     virtual bool ApplyRootSignatureImpl(IRHIRootSignatureHelper& root_signature) override { return true; }
-    virtual void ApplyShaderDefineImpl(RHIShaderPreDefineMacros& out_shader_pre_define_macros) const override {}
+    virtual void ApplyShaderDefineImpl(RHIShaderPreDefineMacros& out_shader_pre_define_macros) override {}
     
 };
 
@@ -81,7 +83,7 @@ public:
     
     const RootSignatureAllocation& GetRSAllocation() const {return m_allocation; }
 
-    virtual void ApplyShaderDefineImpl(RHIShaderPreDefineMacros& out_shader_pre_define_macros) const override;
+    virtual void ApplyShaderDefineImpl(RHIShaderPreDefineMacros& out_shader_pre_define_macros) override;
     
 protected:
     std::string m_name;

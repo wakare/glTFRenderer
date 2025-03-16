@@ -6,23 +6,18 @@
 
 bool glTFRenderInterfaceBase::InitInterface(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(PreInitInterfaceImpl(resource_manager))
-    for (const auto& sub_interface : m_sub_interfaces)
+    TraverseWithLambda(*this, [&](glTFRenderInterfaceBase& render_interface)
     {
-        RETURN_IF_FALSE(sub_interface->PreInitInterfaceImpl(resource_manager))
-    }
-    
-    RETURN_IF_FALSE(InitInterfaceImpl(resource_manager))    
-    for (const auto& sub_interface : m_sub_interfaces)
+        render_interface.PreInitInterfaceImpl(resource_manager);
+    });
+    TraverseWithLambda(*this, [&](glTFRenderInterfaceBase& render_interface)
     {
-        RETURN_IF_FALSE(sub_interface->InitInterfaceImpl(resource_manager))     
-    }
-
-    RETURN_IF_FALSE(PostInitInterfaceImpl(resource_manager))
-    for (const auto& sub_interface : m_sub_interfaces)
+        render_interface.InitInterfaceImpl(resource_manager);
+    });
+    TraverseWithLambda(*this, [&](glTFRenderInterfaceBase& render_interface)
     {
-        RETURN_IF_FALSE(sub_interface->PostInitInterfaceImpl(resource_manager))
-    }
+        render_interface.PostInitInterfaceImpl(resource_manager);
+    });
     
     return true;
 }
@@ -30,95 +25,60 @@ bool glTFRenderInterfaceBase::InitInterface(glTFRenderResourceManager& resource_
 bool glTFRenderInterfaceBase::ApplyInterface(glTFRenderResourceManager& resource_manager, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater)
 {
     auto& command_list = resource_manager.GetCommandListForRecord();
-    for (const auto& sub_interface : m_sub_interfaces)
+    TraverseWithLambda(*this, [&](glTFRenderInterfaceBase& render_interface)
     {
-        RETURN_IF_FALSE(sub_interface->ApplyInterfaceImpl(command_list, pipeline_type,  descriptor_updater,resource_manager.GetCurrentBackBufferIndex()))
-    }
-
-    RETURN_IF_FALSE(ApplyInterfaceImpl(command_list, pipeline_type, descriptor_updater, resource_manager.GetCurrentBackBufferIndex()))
-
+        render_interface.ApplyInterfaceImpl(command_list, pipeline_type,  descriptor_updater,resource_manager.GetCurrentBackBufferIndex());
+    });
+    
     return true;
 }
 
 bool glTFRenderInterfaceBase::ApplyRootSignature(IRHIRootSignatureHelper& root_signature)
 {
-    for (const auto& sub_interface : m_sub_interfaces)
+    TraverseWithLambda(*this, [&](glTFRenderInterfaceBase& render_interface)
     {
-        RETURN_IF_FALSE(sub_interface->ApplyRootSignatureImpl(root_signature))     
-    }
-
-    RETURN_IF_FALSE(ApplyRootSignatureImpl(root_signature))     
-     
+        render_interface.ApplyRootSignatureImpl(root_signature);
+    });
+    
     return true;
 }
 
-void glTFRenderInterfaceBase::ApplyShaderDefine(RHIShaderPreDefineMacros& out_shader_pre_define_macros) const
+void glTFRenderInterfaceBase::ApplyShaderDefine(RHIShaderPreDefineMacros& out_shader_pre_define_macros)
 {
-    for (const auto& sub_interface : m_sub_interfaces)
+    TraverseWithLambda(*this, [&](glTFRenderInterfaceBase& render_interface)
     {
-        sub_interface->ApplyShaderDefineImpl(out_shader_pre_define_macros);
-    }
-
-    ApplyShaderDefineImpl(out_shader_pre_define_macros);
+        render_interface.ApplyShaderDefineImpl(out_shader_pre_define_macros);
+    });
 }
 
- bool glTFRenderInterfaceBase::PostInitInterfaceImpl(glTFRenderResourceManager& resource_manager)
+bool glTFRenderInterfaceBase::PostInitInterfaceImpl(glTFRenderResourceManager& resource_manager)
 {
-    for (auto& sub_interface : m_sub_interfaces)
-    {
-        RETURN_IF_FALSE(sub_interface->PostInitInterfaceImpl(resource_manager));
-    }
-    
     return true;
 }
 
 bool glTFRenderInterfaceBase::ApplyInterfaceImpl(IRHICommandList& command_list, RHIPipelineType pipeline_type,
     IRHIDescriptorUpdater& descriptor_updater, unsigned frame_index)
 {
-    for (auto& sub_interface : m_sub_interfaces)
-    {
-        RETURN_IF_FALSE(sub_interface->ApplyInterfaceImpl(command_list, pipeline_type, descriptor_updater, frame_index));
-    }
-    
     return true;
 }
 
  bool glTFRenderInterfaceBase::InitInterfaceImpl(glTFRenderResourceManager& resource_manager)
 {
-    for (auto& sub_interface : m_sub_interfaces)
-    {
-        RETURN_IF_FALSE(sub_interface->InitInterfaceImpl(resource_manager));
-    }
-    
     return true;
 }
 
- bool glTFRenderInterfaceBase::PreInitInterfaceImpl(glTFRenderResourceManager& resource_manager)
+bool glTFRenderInterfaceBase::PreInitInterfaceImpl(glTFRenderResourceManager& resource_manager)
 {
-    for (auto& sub_interface : m_sub_interfaces)
-    {
-        RETURN_IF_FALSE(sub_interface->PreInitInterfaceImpl(resource_manager));
-    }
-    
     return true;
 }
 
- bool glTFRenderInterfaceBase::ApplyRootSignatureImpl(IRHIRootSignatureHelper& root_signature)
+bool glTFRenderInterfaceBase::ApplyRootSignatureImpl(IRHIRootSignatureHelper& root_signature)
 {
-    for (auto& sub_interface : m_sub_interfaces)
-    {
-        RETURN_IF_FALSE(sub_interface->ApplyRootSignatureImpl(root_signature));
-    }
-    
     return true;
 }
 
- void glTFRenderInterfaceBase::ApplyShaderDefineImpl(RHIShaderPreDefineMacros& out_shader_pre_define_macros) const
+void glTFRenderInterfaceBase::ApplyShaderDefineImpl(RHIShaderPreDefineMacros& out_shader_pre_define_macros)
 {
-    for (auto& sub_interface : m_sub_interfaces)
-    {
-        sub_interface->ApplyShaderDefineImpl(out_shader_pre_define_macros);
-    }
 }
 
 void glTFRenderInterfaceBase::AddInterface(const std::shared_ptr<glTFRenderInterfaceBase>& render_interface)
@@ -131,8 +91,18 @@ std::shared_ptr<IRHIDescriptorTable> glTFRenderInterfaceBase::CreateDescriptorTa
     return RHIResourceFactory::CreateRHIResource<IRHIDescriptorTable>();
 }
 
+void glTFRenderInterfaceBase::TraverseWithLambda(glTFRenderInterfaceBase& render_interface, const std::function<void(glTFRenderInterfaceBase&)>& lambda_function)
+{
+    lambda_function(render_interface);
+
+    for (auto& sub_interface : render_interface.m_sub_interfaces)
+    {
+        TraverseWithLambda(*sub_interface, lambda_function);
+    }
+}
+
 void glTFRenderInterfaceWithRSAllocation::ApplyShaderDefineImpl(
-    RHIShaderPreDefineMacros& out_shader_pre_define_macros ) const
+    RHIShaderPreDefineMacros& out_shader_pre_define_macros )
 {
     GetRSAllocation().AddShaderDefine(out_shader_pre_define_macros);
 }

@@ -44,7 +44,7 @@ bool glTFComputePassVTFetchAndClearUAV::InitRenderInterface(glTFRenderResourceMa
         static_cast<RHIResourceUsageFlags>(RUF_READBACK | RUF_TRANSFER_DST),
     };
     resource_manager.GetMemoryManager().AllocateBufferMemory(resource_manager.GetDevice(), readback_buffer_desc, m_readback_buffer);
-    
+
     AddRenderInterface(std::make_shared<glTFRenderInterfaceStructuredBuffer<ComputePassVTFetchUAVOutput, RHIViewType::RVT_UAV>>(ComputePassVTFetchUAVOutput::Name.c_str(), fetch_uav_size));
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSingleConstantBuffer<VT_FETCH_OUTPUT_INFO>>());
     
@@ -116,7 +116,7 @@ bool glTFComputePassVTFetchAndClearUAV::UpdateUAVTextures(const std::vector<std:
     return true;
 }
 
-const std::vector<ComputePassVTFetchUAVOutput>& glTFComputePassVTFetchAndClearUAV::GetFeedbackOutputData() const
+const std::vector<ComputePassVTFetchUAVOutput>& glTFComputePassVTFetchAndClearUAV::GetFeedbackOutputDataAndReset()
 {
     return m_uav_output_buffer_data;
 }

@@ -5,9 +5,10 @@
 
 struct VTLogicalTextureInfo
 {
-    uint logical_texture_output_index;
+    uint feed_back_tex_index;
+    uint page_table_tex_index;
     uint logical_texture_size;
-    uint2 padding;
+    uint padding;
 };
 DECLARE_RESOURCE(StructuredBuffer<VTLogicalTextureInfo> g_logical_texture_infos, VT_LOGICAL_TEXTURE_INFO_REGISTER_INDEX);
 

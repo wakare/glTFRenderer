@@ -12,7 +12,8 @@ bool VTLogicalTexture::InitLogicalTexture(const RHITextureDesc& desc)
 {
     GLTF_CHECK(desc.GetTextureWidth() > 0 && desc.GetTextureHeight() > 0 && desc.GetTextureWidth() == desc.GetTextureHeight());
 
-    static unsigned _inner_texture_id = 0;
+    // TODO: reserve id 0 as invalid
+    static unsigned _inner_texture_id = 1;
     m_texture_id = _inner_texture_id++;
     m_logical_texture_width = desc.GetTextureWidth();
     m_logical_texture_height = desc.GetTextureHeight();

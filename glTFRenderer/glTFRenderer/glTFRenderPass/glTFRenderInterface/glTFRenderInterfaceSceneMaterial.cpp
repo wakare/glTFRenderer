@@ -80,7 +80,6 @@ bool glTFRenderInterfaceSceneMaterial::PostInitInterfaceImpl(glTFRenderResourceM
 
     GetRenderInterface<glTFRenderInterfaceTextureTableBindless<RHIDescriptorRangeType::SRV>>()->AddTexture(scene_material_textures);
     RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceStructuredBuffer<MaterialInfo>>()->UploadBuffer(resource_manager, material_infos.data(), 0, sizeof(MaterialInfo) * material_infos.size()))
-    RETURN_IF_FALSE(glTFRenderInterfaceBase::PostInitInterfaceImpl(resource_manager))
 
     return true;
 }

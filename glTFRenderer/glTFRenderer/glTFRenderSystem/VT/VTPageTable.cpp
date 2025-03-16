@@ -126,10 +126,10 @@ void VTPageTable::UpdateTextureData()
                 1
             };
 
-            int offset_x = node.GetX() / m_page_size;
-            int offset_y = node.GetY() / m_page_size;
-            int width = node.GetWidth() / m_page_size;
-            int height = node.GetHeight() / m_page_size;
+            int offset_x    = node.GetX()       / m_page_size;
+            int offset_y    = node.GetY()       / m_page_size;
+            int width       = node.GetWidth()   / m_page_size;
+            int height      = node.GetHeight()  / m_page_size;
             
             texture_data->UpdateRegionDataWithPixelData(offset_x >> i, offset_y >> i,
                 width >> i, height >> i, &pixel_data, sizeof(PixelRGBA16));

@@ -121,8 +121,9 @@ ALIGN_FOR_CBV_STRUCT struct VTLogicalTextureInfo
 {
     inline static std::string Name = "VT_LOGICAL_TEXTURE_INFO_REGISTER_INDEX";
     
-    unsigned logical_texture_output_index;
+    unsigned feed_back_tex_index;
+    unsigned page_table_tex_index;
     unsigned logical_texture_size;
-    unsigned padding[2];
+    unsigned padding;
 };
 

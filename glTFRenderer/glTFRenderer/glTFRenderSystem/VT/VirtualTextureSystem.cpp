@@ -132,9 +132,14 @@ void VirtualTextureSystem::InitFeedBackPass()
 void VirtualTextureSystem::GatherPageRequest(std::vector<VTPage>& out_pages)
 {
     std::set<VTPage> pages; 
-    const auto& feedback_data = m_fetch_feedback_pass->GetFeedbackOutputData();
+    const auto& feedback_data = m_fetch_feedback_pass->GetFeedbackOutputDataAndReset();
     for (const auto& feedback : feedback_data)
     {
+        if (feedback.data[3] == 0)
+        {
+            continue;
+        }
+        
         VTPage page;
         page.X = feedback.data[0];
         page.Y = feedback.data[1];
