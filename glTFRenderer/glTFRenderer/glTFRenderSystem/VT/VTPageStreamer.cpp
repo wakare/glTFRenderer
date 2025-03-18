@@ -39,14 +39,16 @@ void VTPageStreamer::Tick()
                 m_request_results.push_back(result);    
             }
         }
+        /*
         else if (m_data_accessor->TryGetPageData(page, page_data))
         {
             m_request_results.push_back(page_data);
         }
         // TODO: invalid page request
+        */
     }
 
-    m_data_accessor->Tick();
+    //m_data_accessor->Tick();
 }
 
 std::vector<VTPageData> VTPageStreamer::GetRequestResultsAndClean()

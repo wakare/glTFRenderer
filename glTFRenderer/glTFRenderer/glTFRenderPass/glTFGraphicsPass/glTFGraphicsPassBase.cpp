@@ -18,7 +18,7 @@ bool glTFGraphicsPassBase::PreRenderPass(glTFRenderResourceManager& resource_man
     RETURN_IF_FALSE(glTFRenderPassBase::PreRenderPass(resource_manager))
 
     auto& command_list = resource_manager.GetCommandListForRecord();
-    const RHIViewportDesc viewport = {0, 0, (float)resource_manager.GetSwapChain().GetWidth(), (float)resource_manager.GetSwapChain().GetHeight(), 0.0f, 1.0f };
+    const RHIViewportDesc viewport = GetViewport(resource_manager);
     RHIUtils::Instance().SetViewport(command_list, viewport);
 
     const RHIScissorRectDesc scissor_rect = {0, 0, resource_manager.GetSwapChain().GetWidth(), resource_manager.GetSwapChain().GetHeight() }; 
@@ -43,6 +43,11 @@ bool glTFGraphicsPassBase::PostRenderPass(glTFRenderResourceManager& resource_ma
     RHIUtils::Instance().EndRendering(resource_manager.GetCommandListForRecord());
     
     return true;
+}
+
+RHIViewportDesc glTFGraphicsPassBase::GetViewport(glTFRenderResourceManager& resource_manager) const
+{
+    return {0, 0, (float)resource_manager.GetSwapChain().GetWidth(), (float)resource_manager.GetSwapChain().GetHeight(), 0.0f, 1.0f };
 }
 
 IRHIGraphicsPipelineStateObject& glTFGraphicsPassBase::GetGraphicsPipelineStateObject() const

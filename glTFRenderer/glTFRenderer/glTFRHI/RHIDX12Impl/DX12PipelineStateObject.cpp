@@ -150,6 +150,11 @@ bool DX12GraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device
             m_graphics_pipeline_state_desc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK::D3D12_DEPTH_WRITE_MASK_ALL;
         }
         break;
+    case RHIDepthStencilMode::DEPTH_DONT_CARE:
+        {
+            m_graphics_pipeline_state_desc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC::D3D12_COMPARISON_FUNC_ALWAYS;
+            m_graphics_pipeline_state_desc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK::D3D12_DEPTH_WRITE_MASK_ZERO;
+        }
     default:
         { 
         };

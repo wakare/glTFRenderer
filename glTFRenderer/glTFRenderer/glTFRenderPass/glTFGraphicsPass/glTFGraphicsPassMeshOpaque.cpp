@@ -31,7 +31,7 @@ bool glTFGraphicsPassMeshOpaque::PreRenderPass(glTFRenderResourceManager& resour
     GetResourceTexture(RenderPassResourceTableId::BasePass_Albedo)->Transition(command_list, RHIResourceStateType::STATE_RENDER_TARGET);
     GetResourceTexture(RenderPassResourceTableId::BasePass_Normal)->Transition(command_list, RHIResourceStateType::STATE_RENDER_TARGET);
 
-    std::vector<IRHITextureDescriptorAllocation*> render_targets
+    std::vector render_targets
         {
             GetResourceDescriptor(RenderPassResourceTableId::BasePass_Albedo).get(),
             GetResourceDescriptor(RenderPassResourceTableId::BasePass_Normal).get(),

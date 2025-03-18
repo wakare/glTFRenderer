@@ -47,8 +47,9 @@ bool glTFComputePassVTFetchAndClearUAV::InitRenderInterface(glTFRenderResourceMa
 
     AddRenderInterface(std::make_shared<glTFRenderInterfaceStructuredBuffer<ComputePassVTFetchUAVOutput, RHIViewType::RVT_UAV>>(ComputePassVTFetchUAVOutput::Name.c_str(), fetch_uav_size));
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSingleConstantBuffer<VT_FETCH_OUTPUT_INFO>>());
-    
-    GetRenderInterface<glTFRenderInterfaceTextureTableBindless<RHIDescriptorRangeType::UAV>>()->AddTexture(m_uav_uint_textures);
+
+    std::shared_ptr<IRHITexture> feed_back_texture = GetResourceTexture(RenderPassResourceTableId::BasePass_VT_Feedback);
+    GetRenderInterface<glTFRenderInterfaceTextureTableBindless<RHIDescriptorRangeType::UAV>>()->AddTexture({feed_back_texture});
     
     return true;
 }
@@ -59,7 +60,7 @@ bool glTFComputePassVTFetchAndClearUAV::InitPass(glTFRenderResourceManager& reso
     auto feedback_texture_size = VirtualTextureSystem::GetVTFeedbackTextureSize(resource_manager);
     
     VT_FETCH_OUTPUT_INFO info;
-    info.texture_count = m_uav_uint_textures.size();
+    info.texture_count = 1;
     info.texture_width = feedback_texture_size.first;
     info.texture_height = feedback_texture_size.second;
     
@@ -90,10 +91,7 @@ bool glTFComputePassVTFetchAndClearUAV::PreRenderPass(glTFRenderResourceManager&
     RETURN_IF_FALSE(glTFComputePassBase::PreRenderPass(resource_manager))
 
     // Add uav barrier
-    for (const auto& texture : m_uav_uint_textures)
-    {
-        RHIUtils::Instance().AddUAVBarrier(resource_manager.GetCommandListForRecord(), *texture);
-    }
+    RHIUtils::Instance().AddUAVBarrier(resource_manager.GetCommandListForRecord(), *GetResourceTexture(RenderPassResourceTableId::BasePass_VT_Feedback));
     
     return true;
 }
@@ -110,13 +108,21 @@ bool glTFComputePassVTFetchAndClearUAV::PostRenderPass(glTFRenderResourceManager
     return true;
 }
 
-bool glTFComputePassVTFetchAndClearUAV::UpdateUAVTextures(const std::vector<std::shared_ptr<IRHITexture>>& uav_textures)
-{
-    m_uav_uint_textures = uav_textures;
-    return true;
-}
-
 const std::vector<ComputePassVTFetchUAVOutput>& glTFComputePassVTFetchAndClearUAV::GetFeedbackOutputDataAndReset()
 {
     return m_uav_output_buffer_data;
+}
+
+bool glTFComputePassVTFetchAndClearUAV::InitResourceTable(glTFRenderResourceManager& resource_manager)
+{
+    RETURN_IF_FALSE(glTFComputePassBase::InitResourceTable(resource_manager))
+
+    const auto& vt_size = resource_manager.GetRenderSystem<VirtualTextureSystem>()->GetVTFeedbackTextureSize(resource_manager);
+    RHITextureDesc feed_back_desc = RHITextureDesc::MakeBasePassVTFeedbackDesc(resource_manager, vt_size.first, vt_size.second);
+    AddImportTextureResource(RenderPassResourceTableId::BasePass_VT_Feedback, feed_back_desc,
+        {
+            feed_back_desc.GetDataFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_UAV,
+        });
+    
+    return true;
 }

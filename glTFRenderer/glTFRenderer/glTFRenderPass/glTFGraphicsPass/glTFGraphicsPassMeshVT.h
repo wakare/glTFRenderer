@@ -9,6 +9,8 @@ public:
     virtual const char* PassName() override {return "MeshPassVT"; }
 
 protected:
+    virtual RHIViewportDesc GetViewport(glTFRenderResourceManager& resource_manager) const;
+
     virtual bool InitRenderInterface(glTFRenderResourceManager& resource_manager) override;
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;
     virtual bool PreRenderPass(glTFRenderResourceManager& resource_manager) override;

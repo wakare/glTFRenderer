@@ -1,9 +1,15 @@
 #include "glTFResources/ShaderSource/MeshPassCommon.hlsl"
 #include "glTFResources/ShaderSource/Interface/SceneMaterial.hlsl"
 
-void main(PS_INPUT input)
+struct PS_VT_FEEDBACK_OUTPUT
+{
+    uint4 output: SV_TARGET0;
+};
+
+PS_VT_FEEDBACK_OUTPUT main(PS_INPUT input)
 {
     MaterialInfo material_info = g_material_infos[input.vs_material_id];
+    PS_VT_FEEDBACK_OUTPUT output;
     
     if (material_info.HasVT())
     {
@@ -17,6 +23,8 @@ void main(PS_INPUT input)
         
         uint2 page_xy = floor(mip_size * uv) / 64.0;
         
-        bindless_vt_feedback_textures[feed_back_texture_index][input.pos.xy] = uint4( page_xy, mip, material_info.albedo_tex_index);
+        output.output = uint4( page_xy, mip, material_info.albedo_tex_index);
     }
+    
+    return output;
 }

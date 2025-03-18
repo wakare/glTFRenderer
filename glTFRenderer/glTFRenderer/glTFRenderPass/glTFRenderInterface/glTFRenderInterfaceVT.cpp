@@ -9,11 +9,7 @@ glTFRenderInterfaceVT::glTFRenderInterfaceVT(bool feed_back)
     : m_feed_back(feed_back)
 {
     AddInterface(std::make_shared<glTFRenderInterfaceStructuredBuffer<VTLogicalTextureInfo>>());
-    if (m_feed_back)
-    {
-        AddInterface(std::make_shared<glTFRenderInterfaceTextureTableBindless<RHIDescriptorRangeType::UAV>>("VT_FEED_BACK_TEXTURE_REGISTER_INDEX"));
-    }
-    else
+    
     {
         AddInterface(std::make_shared<glTFRenderInterfaceTextureTableBindless<RHIDescriptorRangeType::SRV>>("VT_PAGE_TABLE_TEXTURE_REGISTER_INDEX"));
         AddInterface(std::make_shared<glTFRenderInterfaceTextureTable<1, RHIDescriptorRangeType::SRV>>("VT_PHYSICAL_TEXTURE_REGISTER_INDEX"));
@@ -37,17 +33,6 @@ bool glTFRenderInterfaceVT::PreInitInterfaceImpl(glTFRenderResourceManager& reso
         m_vt_logical_texture_infos.push_back(info);
     }
     
-    if (m_feed_back)
-    {
-        for (const auto& page_table : vt_system->GetLogicalTextureInfos())
-        {
-            const auto& logical_texture = page_table.second.first;
-            m_vt_logical_texture_infos[logical_texture->GetTextureId()].feed_back_tex_index = m_feedback_textures.size();
-            m_feedback_textures.push_back(logical_texture->GetTextureAllocation()->m_texture);
-        }
-        GetRenderInterface<glTFRenderInterfaceTextureTableBindless<RHIDescriptorRangeType::UAV>>()->AddTexture(m_feedback_textures);
-    }
-    else
     {
         std::vector<std::shared_ptr<IRHITexture>> vt_page_table_textures;
         for (const auto& page_table : vt_system->GetLogicalTextureInfos())
@@ -79,11 +64,6 @@ void glTFRenderInterfaceVT::ApplyShaderDefineImpl(RHIShaderPreDefineMacros& out_
 {
     glTFRenderInterfaceBase::ApplyShaderDefineImpl(out_shader_pre_define_macros);
 
-    if (m_feed_back)
-    {
-        out_shader_pre_define_macros.AddMacro("VT_FEED_BACK", "1");    
-    }
-    else
     {
         out_shader_pre_define_macros.AddMacro("VT_READ_DATA", "1");
     }

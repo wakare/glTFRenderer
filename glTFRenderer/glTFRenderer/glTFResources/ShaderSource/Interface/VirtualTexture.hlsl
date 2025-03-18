@@ -55,10 +55,6 @@ float4 SampleVTPageTable(uint tex_id, float2 uv)
     return SampleAtlas(page.xyz, uv, vt_info.logical_texture_size, 64, 1);
 }
 
-#elif VT_FEED_BACK
-
-DECLARE_RESOURCE(RWTexture2D<uint4> bindless_vt_feedback_textures[] , VT_FEED_BACK_TEXTURE_REGISTER_INDEX);
-
 #endif
 
 

@@ -36,23 +36,6 @@ bool VTLogicalTexture::InitRenderResource(glTFRenderResourceManager& resource_ma
 
     m_render_resource_init = true;
 
-    auto feedback_size = VirtualTextureSystem::GetVTFeedbackTextureSize(resource_manager);
-    RHITextureDesc feedback_texture_desc
-    (
-        "Feedback Texture",
-        feedback_size.first,
-        feedback_size.second,
-        RHIDataFormat::R32G32B32A32_UINT,
-        static_cast<RHIResourceUsageFlags>(RUF_ALLOW_UAV | RUF_TRANSFER_DST | RUF_READBACK),
-        {
-            RHIDataFormat::R32G32B32A32_UINT,
-            glm::vec4{0,0,0,0}
-        }
-    );
-    
-    const bool allocated = resource_manager.GetMemoryManager().AllocateTextureMemory(resource_manager.GetDevice(), resource_manager, feedback_texture_desc, m_feedback_texture);
-    GLTF_CHECK(allocated);
-    
     return true;
 }
 
@@ -69,11 +52,6 @@ int VTLogicalTexture::GetTextureId() const
 int VTLogicalTexture::GetSize() const
 {
     return m_logical_texture_width;
-}
-
-std::shared_ptr<IRHITextureAllocation> VTLogicalTexture::GetTextureAllocation() const
-{
-    return m_feedback_texture;
 }
 
 bool VTLogicalTexture::GetPageData(const VTPage& page, VTPageData& out) const

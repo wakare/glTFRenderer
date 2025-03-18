@@ -19,8 +19,6 @@ public:
     int GetTextureId() const;
     int GetSize() const;
     
-    std::shared_ptr<IRHITextureAllocation> GetTextureAllocation() const;
-
     bool GetPageData(const VTPage& page, VTPageData& out) const;
     
 protected:
@@ -35,8 +33,6 @@ protected:
     std::shared_ptr<unsigned char[]> m_texture_data {nullptr};
     RHIDataFormat m_texture_format{RHIDataFormat::UNKNOWN};
     size_t m_texture_data_size {0};
-
-    std::shared_ptr<IRHITextureAllocation> m_feedback_texture;
 
     std::map<VTPage::HashType, VTPageData> m_page_data;
 };

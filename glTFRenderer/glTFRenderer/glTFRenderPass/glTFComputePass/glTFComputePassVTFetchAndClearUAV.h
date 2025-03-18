@@ -22,11 +22,10 @@ public:
     virtual bool PreRenderPass(glTFRenderResourceManager& resource_manager) override;
     virtual bool PostRenderPass(glTFRenderResourceManager& resource_manager) override;
     
-    bool UpdateUAVTextures(const std::vector<std::shared_ptr<IRHITexture>>& uav_textures);
     const std::vector<ComputePassVTFetchUAVOutput>& GetFeedbackOutputDataAndReset();
-    
+    virtual bool InitResourceTable(glTFRenderResourceManager& resource_manager) override;
+
 protected:
-    std::vector<std::shared_ptr<IRHITexture>> m_uav_uint_textures;
     std::vector<ComputePassVTFetchUAVOutput> m_uav_output_buffer_data;
     std::shared_ptr<IRHIBufferAllocation> m_readback_buffer;
 };

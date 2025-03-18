@@ -8,7 +8,7 @@
 bool VirtualTextureSystem::InitRenderSystem(glTFRenderResourceManager& resource_manager)
 {
     m_page_streamer = std::make_shared<VTPageStreamer>();
-    m_physical_texture = std::make_shared<VTPhysicalTexture>(VT_PHYSICAL_TEXTURE_SIZE, VT_PAGE_SIZE, VT_FEEDBACK_TEXTURE_SCALE_SIZE);
+    m_physical_texture = std::make_shared<VTPhysicalTexture>(VT_PHYSICAL_TEXTURE_SIZE, VT_PAGE_SIZE, VT_PHYSICAL_TEXTURE_BORDER);
 
     m_feedback_pass = std::make_shared<glTFGraphicsPassMeshVT>();
     m_fetch_feedback_pass = std::make_shared<glTFComputePassVTFetchAndClearUAV>();
@@ -117,18 +117,19 @@ std::pair<unsigned, unsigned> VirtualTextureSystem::GetVTFeedbackTextureSize(glT
         resource_manager.GetSwapChain().GetHeight() / VT_FEEDBACK_TEXTURE_SCALE_SIZE,
     };
     
+    /*
+    return
+    {
+        resource_manager.GetSwapChain().GetWidth(),
+        resource_manager.GetSwapChain().GetHeight(),
+    };
+    */
+    
     //return {256, 256}; 
 }
 
 void VirtualTextureSystem::InitFeedBackPass()
 {
-    std::vector<std::shared_ptr<IRHITexture>> feedback_textures; 
-    for (const auto& logical_texture_info : m_logical_texture_infos)
-    {
-        feedback_textures.push_back(logical_texture_info.second.first->GetTextureAllocation()->m_texture);
-    }
-    
-    m_fetch_feedback_pass->UpdateUAVTextures(feedback_textures);   
 }
 
 void VirtualTextureSystem::GatherPageRequest(std::vector<VTPage>& out_pages)

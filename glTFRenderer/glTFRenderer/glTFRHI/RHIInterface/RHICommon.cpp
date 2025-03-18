@@ -329,18 +329,20 @@ RHITextureDesc RHITextureDesc::MakeComputePassRayTracingPostProcessOutputDesc(
     return texture_desc;
 }
 
-RHITextureDesc RHITextureDesc::MakeBasePassVTFeedbackDesc(const glTFRenderResourceManager& resource_manager)
+RHITextureDesc RHITextureDesc::MakeBasePassVTFeedbackDesc(const glTFRenderResourceManager& resource_manager, unsigned feed_back_size_x, unsigned feed_back_size_y)
 {
     RHITextureDesc texture_desc = MakeFullScreenTextureDesc(
         "BASEPASS_VT_FEEDBACK_OUTPUT",
-            RHIDataFormat::R16G16B16A16_UINT,
-            static_cast<RHIResourceUsageFlags>(RUF_ALLOW_SRV | RUF_ALLOW_UAV | RUF_ALLOW_RENDER_TARGET | RUF_TRANSFER_SRC),
-{
-                .clear_format = RHIDataFormat::R16G16B16A16_UINT,
+            RHIDataFormat::R32G32B32A32_UINT,
+            static_cast<RHIResourceUsageFlags>( RUF_ALLOW_UAV | RUF_ALLOW_RENDER_TARGET | RUF_TRANSFER_SRC),
+         {
+                .clear_format = RHIDataFormat::R32G32B32A32_UINT,
                 .clear_color {0.0f, 0.0f, 0.0f, 0.0f}
             },
             resource_manager
         );
+    texture_desc.m_texture_width = feed_back_size_x;
+    texture_desc.m_texture_height = feed_back_size_y;
 
     return texture_desc;
 }

@@ -187,9 +187,22 @@ bool VKGraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device,
 
     VkPipelineDepthStencilStateCreateInfo depth_stencil_state_create_info{.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO};
     depth_stencil_state_create_info.pNext = nullptr;
-    depth_stencil_state_create_info.depthTestEnable = true;
-    depth_stencil_state_create_info.depthWriteEnable = true;
-    depth_stencil_state_create_info.depthCompareOp = VkCompareOp::VK_COMPARE_OP_LESS_OR_EQUAL;
+
+    switch (m_depth_stencil_state) {
+    case RHIDepthStencilMode::DEPTH_READ:
+        depth_stencil_state_create_info.depthTestEnable = true;
+        depth_stencil_state_create_info.depthWriteEnable = false;
+        break;
+    case RHIDepthStencilMode::DEPTH_WRITE:
+        depth_stencil_state_create_info.depthTestEnable = true;
+        depth_stencil_state_create_info.depthWriteEnable = true;
+        break;
+    case RHIDepthStencilMode::DEPTH_DONT_CARE:
+        depth_stencil_state_create_info.depthTestEnable = false;
+        break;
+    }
+    
+    depth_stencil_state_create_info.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
     
     VkPipelineRenderingCreateInfo pipeline_rendering_create_info {.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO};
     pipeline_rendering_create_info.colorAttachmentCount = m_bind_render_target_formats.size();

@@ -17,6 +17,7 @@ public:
     virtual bool PostRenderPass(glTFRenderResourceManager& resource_manager) override;
     
 protected:
+    virtual RHIViewportDesc GetViewport(glTFRenderResourceManager& resource_manager) const;
     IRHIGraphicsPipelineStateObject& GetGraphicsPipelineStateObject() const;
     
     virtual RHICullMode GetCullMode();
