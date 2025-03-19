@@ -252,10 +252,15 @@ void VTPhysicalTexture::ProcessRequestResult(const std::vector<VTPageData>& resu
         if (m_available_pages.empty())
         {
             const auto& page_to_free = m_page_lru_cache.GetPageForFree();
+            GLTF_CHECK(m_page_allocations.contains(page_to_free.PageHash()));
+            
             const auto& reuse_physical_page = m_page_allocations[page_to_free.PageHash()];
-            GLTF_CHECK(reuse_physical_page.X < m_page_table_size && reuse_physical_page.Y < m_page_table_size);
+            GLTF_CHECK(0 <= reuse_physical_page.X && reuse_physical_page.X < m_page_table_size &&
+                0 <= reuse_physical_page.Y && reuse_physical_page.Y < m_page_table_size);
+            
             m_available_pages.emplace_back(reuse_physical_page.X, reuse_physical_page.Y);
-            m_page_allocations.erase(result.page.PageHash());
+            
+            m_page_allocations.erase(page_to_free.PageHash());
             m_page_lru_cache.RemovePage(page_to_free);
         }
 
@@ -343,6 +348,8 @@ bool VTPhysicalTexture::GetAvailablePagesAndErase(int& x, int& y)
     const auto last_page = m_available_pages[m_available_pages.size() - 1];
     x = last_page.first;
     y = last_page.second;
+    GLTF_CHECK(0 <= x && x < m_page_table_size && 0 <= y && y < m_page_table_size);
+    
     m_available_pages.resize(m_available_pages.size() - 1);
 
     return true;

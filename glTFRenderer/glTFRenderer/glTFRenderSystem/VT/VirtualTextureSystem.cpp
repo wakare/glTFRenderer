@@ -53,7 +53,6 @@ void VirtualTextureSystem::TickRenderSystem(glTFRenderResourceManager& resource_
         auto& logical_texture = logical_texture_info.second.first;
         page_table->Invalidate();
         
-        //LOG_FORMAT_FLUSH("Begin touch page allocation\n");
         for (const auto& page_allocation : page_allocations)
         {
             if (page_allocation.second.page.tex == page_table->GetTextureId())
@@ -110,22 +109,11 @@ std::shared_ptr<VTPhysicalTexture> VirtualTextureSystem::GetPhysicalTexture() co
 
 std::pair<unsigned, unsigned> VirtualTextureSystem::GetVTFeedbackTextureSize(glTFRenderResourceManager& resource_manager)
 {
-    
     return
     {
         resource_manager.GetSwapChain().GetWidth() / VT_FEEDBACK_TEXTURE_SCALE_SIZE,
         resource_manager.GetSwapChain().GetHeight() / VT_FEEDBACK_TEXTURE_SCALE_SIZE,
     };
-    
-    /*
-    return
-    {
-        resource_manager.GetSwapChain().GetWidth(),
-        resource_manager.GetSwapChain().GetHeight(),
-    };
-    */
-    
-    //return {256, 256}; 
 }
 
 void VirtualTextureSystem::InitFeedBackPass()

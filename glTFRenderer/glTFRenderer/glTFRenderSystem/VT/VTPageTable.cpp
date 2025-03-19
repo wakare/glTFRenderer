@@ -12,11 +12,11 @@ bool VTPageTable::InitVTPageTable(int tex_id, int page_table_size, int page_size
     m_tex_id = tex_id;
     m_page_size = page_size;
     m_page_table_size = page_table_size;
-    m_page_table_mip_count = 1 + log2(m_page_table_size);
+    m_page_table_mip_count = 1 + static_cast<unsigned>(log2(m_page_table_size));
     
     m_quad_tree = std::make_shared<VTQuadTree>();
-    const bool inited = m_quad_tree->InitQuadTree(page_table_size, page_size);
-    GLTF_CHECK(inited);
+    const bool initialized = m_quad_tree->InitQuadTree(page_table_size, page_size);
+    GLTF_CHECK(initialized);
 
     m_page_texture_datas.resize(m_page_table_mip_count);
     unsigned int mip_size = m_page_table_size;
@@ -88,7 +88,6 @@ bool VTPageTable::TouchPageAllocation(const VTPhysicalPageAllocationInfo& page_a
 {
     GLTF_CHECK(page_allocation.page.tex == m_tex_id);
     
-    //int touch_level = m_quad_tree->GetLevel(page_allocation.page.mip);
     int touch_level = page_allocation.page.mip;
     m_quad_tree->Touch(page_allocation.page.X, page_allocation.page.Y, page_allocation.X, page_allocation.Y, touch_level);
 
@@ -132,7 +131,6 @@ void VTPageTable::UpdateTextureData()
             int width       = (node.GetWidth()   / m_page_size) >> i;
             int height      = (node.GetHeight()  / m_page_size) >> i;
 
-            //LOG_FORMAT_FLUSH("UpdateRegionDataWithPixelData Node:%s with mip %d, [%d, %d, %d, %d] data[%d, %d, %d, %d]\n", node.ToString().c_str(), i, offset_x, offset_y, width, height, pixel_data.r, pixel_data.g, pixel_data.b, pixel_data.a);
             texture_data->UpdateRegionDataWithPixelData(offset_x, offset_y,
                 width, height, &pixel_data, sizeof(PixelRGBA16));
         };
