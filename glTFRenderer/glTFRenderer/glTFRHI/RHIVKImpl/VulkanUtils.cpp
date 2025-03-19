@@ -150,7 +150,8 @@ bool VulkanUtils::BeginRenderPass(IRHICommandList& command_list, const RHIBeginR
     render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     render_pass_begin_info.renderPass = vk_render_pass;
     render_pass_begin_info.framebuffer = vk_frame_buffer;
-    render_pass_begin_info.renderArea.offset = {0, 0};
+    // TODO: Use viewport now
+    render_pass_begin_info.renderArea.offset = {begin_render_pass_info.offset_x, begin_render_pass_info.offset_y};
     render_pass_begin_info.renderArea.extent = {begin_render_pass_info.width, begin_render_pass_info.height};
     const VkClearValue clear_value = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
     render_pass_begin_info.clearValueCount = 1;
@@ -221,7 +222,7 @@ bool VulkanUtils::BeginRendering(IRHICommandList& command_list, const RHIBeginRe
     rendering_info.colorAttachmentCount = color_attachment_infos.size();
     rendering_info.pColorAttachments = color_attachment_infos.data();
     rendering_info.pDepthAttachment = depth_attachment_infos.empty() ? nullptr : depth_attachment_infos.data();
-    rendering_info.renderArea = {{0, 0}, {begin_rendering_info.rendering_area_width, begin_rendering_info.rendering_area_height}};
+    rendering_info.renderArea = {{begin_rendering_info.rendering_area_offset_x, begin_rendering_info.rendering_area_offset_y}, {begin_rendering_info.rendering_area_width, begin_rendering_info.rendering_area_height}};
     rendering_info.layerCount = 1;
         
     vkCmdBeginRendering(vk_command_buffer, &rendering_info);

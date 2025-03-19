@@ -21,9 +21,21 @@ bool glTFGraphicsPassBase::PreRenderPass(glTFRenderResourceManager& resource_man
     const RHIViewportDesc viewport = GetViewport(resource_manager);
     RHIUtils::Instance().SetViewport(command_list, viewport);
 
-    const RHIScissorRectDesc scissor_rect = {0, 0, resource_manager.GetSwapChain().GetWidth(), resource_manager.GetSwapChain().GetHeight() }; 
+    const RHIScissorRectDesc scissor_rect =
+        {
+            (unsigned)viewport.top_left_x,
+            (unsigned)viewport.top_left_y,
+            (unsigned)viewport.width,
+            (unsigned)viewport.height
+        }; 
     RHIUtils::Instance().SetScissorRect(command_list, scissor_rect);
 
+    m_begin_rendering_info.rendering_area_offset_x = viewport.top_left_x;
+    m_begin_rendering_info.rendering_area_offset_y = viewport.top_left_y;
+    m_begin_rendering_info.rendering_area_width = viewport.width;
+    m_begin_rendering_info.rendering_area_height = viewport.height;
+    m_begin_rendering_info.clear_render_target = false;
+    
     return true;
 }
 

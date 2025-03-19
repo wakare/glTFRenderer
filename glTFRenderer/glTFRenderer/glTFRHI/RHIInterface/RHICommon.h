@@ -918,6 +918,9 @@ struct RHIBeginRenderPassInfo
 {
     const IRHIRenderPass* render_pass;
     const IRHIFrameBuffer* frame_buffer;
+
+    int offset_x;
+    int offset_y;
     unsigned width;
     unsigned height;
 };
@@ -925,6 +928,8 @@ struct RHIBeginRenderPassInfo
 struct RHIBeginRenderingInfo
 {
     std::vector<IRHITextureDescriptorAllocation*> m_render_targets;
+    int rendering_area_offset_x{0};
+    int rendering_area_offset_y{0};
     unsigned rendering_area_width {0};
     unsigned rendering_area_height {0};
     bool enable_depth_write {false};

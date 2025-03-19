@@ -24,4 +24,6 @@ protected:
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;
 
     virtual RHIPipelineType GetPipelineType() const override {return RHIPipelineType::Graphics; }
+    
+    RHIBeginRenderingInfo m_begin_rendering_info;
 };

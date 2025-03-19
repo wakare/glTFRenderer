@@ -88,6 +88,9 @@ bool VKMemoryManager::DownloadBufferData(IRHIBufferAllocation& buffer_allocation
     return true;
 }
 
+// 对齐函数（与 Vulkan 推荐的 `VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL` 对齐）
+#define ALIGN_UP(value, alignment) (((value) + (alignment) - 1) & ~((alignment) - 1))
+
 bool VKMemoryManager::AllocateTextureMemory(IRHIDevice& device, glTFRenderResourceManager& resource_manager,
                                             const RHITextureDesc& texture_desc, std::shared_ptr<IRHITextureAllocation>& out_texture_allocation)
 {
@@ -121,6 +124,26 @@ bool VKMemoryManager::AllocateTextureMemory(IRHIDevice& device, glTFRenderResour
     vk_texture_allocation.m_texture = RHIResourceFactory::CreateRHIResource<IRHITexture>();
     GLTF_CHECK(dynamic_cast<VKTexture&>(*vk_texture_allocation.m_texture).Init(dynamic_cast<VKDevice&>(device).GetDevice(), out_image, texture_desc));
 
+    RHIMipMapCopyRequirements copy_req {};
+    copy_req.row_byte_size.resize(mipLevels);
+    copy_req.row_pitch.resize(mipLevels);
+
+    constexpr unsigned row_alignment = 256;
+    constexpr unsigned layer_alignment = 512;
+    
+    unsigned width = texture_desc.GetTextureWidth();
+    unsigned height = texture_desc.GetTextureHeight();
+    for (unsigned i = 0; i < mipLevels; i++)
+    {
+        copy_req.row_byte_size[i] = width * GetBytePerPixelByFormat(texture_desc.GetDataFormat());
+        copy_req.row_pitch[i] = ALIGN_UP(copy_req.row_byte_size[i], row_alignment);
+        copy_req.total_size += ALIGN_UP(copy_req.row_pitch[i] * height, layer_alignment);
+
+        width = width >> 1;
+        height = height >> 1;
+    }
+    vk_texture_allocation.m_texture->SetCopyReq(copy_req);
+    
     m_texture_allocations.push_back(out_texture_allocation);
     
     return true;

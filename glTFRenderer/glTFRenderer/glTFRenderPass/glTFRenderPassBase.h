@@ -80,7 +80,6 @@ protected:
     bool m_rendering_enabled = true;
     
     IRHIRootSignatureHelper m_root_signature_helper;
-    RHIBeginRenderingInfo m_begin_rendering_info;
     
     std::shared_ptr<IRHIDescriptorUpdater> m_descriptor_updater;
     std::shared_ptr<IRHIPipelineStateObject> m_pipeline_state_object;
