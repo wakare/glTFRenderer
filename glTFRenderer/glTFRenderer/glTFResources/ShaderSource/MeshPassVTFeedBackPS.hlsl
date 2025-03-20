@@ -21,7 +21,7 @@ PS_VT_FEEDBACK_OUTPUT main(PS_INPUT input)
         mip = clamp(mip, 0, 7);
         float mip_size = logical_texture_size / exp2(mip);
         
-        uint2 page_xy = floor(mip_size * uv) / 64.0;
+        uint2 page_xy = floor(mip_size * uv) / vt_system_info.vt_page_size;
         
         output.output = uint4( page_xy, mip, material_info.albedo_tex_index);
     }

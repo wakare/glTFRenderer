@@ -12,6 +12,15 @@ struct VTLogicalTextureInfo
 };
 DECLARE_RESOURCE(StructuredBuffer<VTLogicalTextureInfo> g_logical_texture_infos, VT_LOGICAL_TEXTURE_INFO_REGISTER_INDEX);
 
+struct VTSystemInfo 
+{
+    uint vt_page_size;
+    uint vt_border_size;
+    uint vt_physical_texture_width;
+    uint vt_physical_texture_height;
+};
+DECLARE_RESOURCE(ConstantBuffer<VTSystemInfo> vt_system_info, VT_SYSTEM_REGISTER_CBV_INDEX);
+
 // This function estimates mipmap levels
 float MipLevel(float2 uv, float size)
 {
@@ -36,10 +45,7 @@ float4 SampleAtlas(float3 page, float2 uv, float virtual_texture_size, float til
     float page_size = tile_size + 2 * border_size;
     float2 total_offset = fmod(uv * mipsize, tile_size) + float2(border_size, border_size) + page.xy * page_size;  
 
-    uint2 physical_texture_size;
-    vt_physical_texture.GetDimensions(physical_texture_size.x, physical_texture_size.y);
-    
-    return vt_physical_texture.Sample(vt_page_table_sampler, (total_offset) / physical_texture_size);
+    return vt_physical_texture.Sample(vt_page_table_sampler, (total_offset) / float2(vt_system_info.vt_physical_texture_width, vt_system_info.vt_physical_texture_height));
 }
 
 float4 SampleVTPageTable(uint tex_id, float2 uv)
@@ -52,7 +58,7 @@ float4 SampleVTPageTable(uint tex_id, float2 uv)
     const float2 uv_without_offset = uv - (frac(uv * mip_size) / mip_size);
     uint4 page = bindless_vt_page_table_textures[vt_info.page_table_tex_index].Load(int3(uv_without_offset * mip_size, mip));
 
-    return SampleAtlas(page.xyz, uv, vt_info.logical_texture_size, 64, 1);
+    return SampleAtlas(page.xyz, uv, vt_info.logical_texture_size, vt_system_info.vt_page_size, vt_system_info.vt_border_size);
 }
 
 #endif
