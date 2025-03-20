@@ -25,8 +25,8 @@ bool glTFMaterialTextureRenderResource::Init(glTFRenderResourceManager& resource
     RHITextureDesc texture_desc{};
     texture_desc.InitWithLoadedData(result);
 
-    if (texture_desc.GetTextureWidth() > VT_TEXTURE_SIZE ||
-        texture_desc.GetTextureHeight() > VT_TEXTURE_SIZE)
+    if (texture_desc.GetTextureWidth() >= VT_TEXTURE_SIZE ||
+        texture_desc.GetTextureHeight() >= VT_TEXTURE_SIZE)
     {
         m_vt = true;
     }

@@ -52,7 +52,8 @@ float4 SampleVTPageTable(uint tex_id, float2 uv)
 {
     VTLogicalTextureInfo vt_info = g_logical_texture_infos[tex_id];
     float mip = floor(MipLevel(uv, vt_info.logical_texture_size));
-    mip = clamp(mip, 0, 7);
+    float max_mip = log2(vt_info.page_table_texture_size);
+    mip = clamp(mip, 0, max_mip);
     uint mip_size = vt_info.page_table_texture_size >> (uint)mip;
     
     const float2 uv_without_offset = uv - (frac(uv * mip_size) / mip_size);
