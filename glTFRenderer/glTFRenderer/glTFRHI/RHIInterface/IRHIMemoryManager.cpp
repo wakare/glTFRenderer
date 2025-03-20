@@ -57,6 +57,25 @@ bool IRHIMemoryManager::InitMemoryManager(IRHIDevice& device,
     return true;
 }
 
+bool IRHIMemoryManager::AllocateTextureMemoryAndUpload(IRHIDevice& device, glTFRenderResourceManager& resource_manager,
+    IRHICommandList& command_list, const RHITextureDesc& texture_desc,
+    std::shared_ptr<IRHITextureAllocation>& out_texture_allocation)
+{
+    AllocateTextureMemory(device, resource_manager, texture_desc, out_texture_allocation);
+
+    GLTF_CHECK(texture_desc.HasTextureData());
+    auto& memory_manager = resource_manager.GetMemoryManager();
+    RHITextureMipUploadInfo upload_info
+    {
+        texture_desc.GetTextureData(),
+        texture_desc.GetTextureDataSize(),
+        0
+    };
+    
+    RHIUtils::Instance().UploadTextureData(command_list, memory_manager, device, *out_texture_allocation->m_texture, upload_info);
+    return true;
+}
+
 bool IRHIMemoryManager::ReleaseAllResource(glTFRenderResourceManager& resource_manager)
 {
     m_texture_allocations.clear();

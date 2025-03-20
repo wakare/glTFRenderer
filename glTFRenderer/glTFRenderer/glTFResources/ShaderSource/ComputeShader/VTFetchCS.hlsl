@@ -11,7 +11,7 @@ DECLARE_RESOURCE(cbuffer VT_FETCH_OUTPUT_INFO, VT_FETCH_OUTPUT_INFO_CBV_INDEX)
     uint texture_width;
     uint texture_height;
 };
-DECLARE_RESOURCE(RWTexture2D<uint4> clear_uint_textures[] , CLEAR_UINT_TEXTURES_REGISTER_INDEX);
+DECLARE_RESOURCE(Texture2D<uint4> clear_uint_textures[] , CLEAR_UINT_TEXTURES_REGISTER_INDEX);
 
 [numthreads(8, 8, 1)]
 void main(int3 dispatchThreadID : SV_DispatchThreadID)
@@ -19,7 +19,6 @@ void main(int3 dispatchThreadID : SV_DispatchThreadID)
     for (uint i = 0; i < texture_count; i++)
     {
         fetch_output[dispatchThreadID.y * texture_width + dispatchThreadID.x] = clear_uint_textures[i][dispatchThreadID.xy];
-        clear_uint_textures[i][dispatchThreadID.xy] = uint4(0, 0, 0, 0);
     }
 }
 

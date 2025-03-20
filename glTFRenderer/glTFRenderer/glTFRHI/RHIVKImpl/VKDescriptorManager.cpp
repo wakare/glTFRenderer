@@ -138,7 +138,7 @@ bool VKDescriptorManager::CreateDescriptor(IRHIDevice& device, const std::shared
         desc.m_format == RHIDataFormat::D32_SAMPLE_RESERVED ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
     
     image_view_create_info.subresourceRange.baseMipLevel = 0;
-    image_view_create_info.subresourceRange.levelCount = 1;
+    image_view_create_info.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS ;
     image_view_create_info.subresourceRange.baseArrayLayer = 0;
     image_view_create_info.subresourceRange.layerCount = 1;
 

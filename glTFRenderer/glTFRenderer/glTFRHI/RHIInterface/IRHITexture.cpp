@@ -41,3 +41,8 @@ RHIMipMapCopyRequirements IRHITexture::GetCopyReq() const
 {
     return m_copy_requirements;
 }
+
+unsigned IRHITexture::GetMipCount() const
+{
+    return m_copy_requirements.row_byte_size.size();
+}

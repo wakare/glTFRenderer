@@ -213,7 +213,7 @@
     <ClCompile Include="glTFRenderPass\glTFComputePass\glTFComputePassLighting.cpp" />
     <ClCompile Include="glTFRenderPass\glTFComputePass\glTFComputePassRayTracingPostprocess.cpp" />
     <ClCompile Include="glTFRenderPass\glTFComputePass\glTFComputePassReSTIRDirectLighting.cpp" />
-    <ClCompile Include="glTFRenderPass\glTFComputePass\glTFComputePassVTFetchAndClearUAV.cpp" />
+    <ClCompile Include="glTFRenderPass\glTFComputePass\glTFComputePassVTFetchCS.cpp" />
     <ClCompile Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassBase.cpp" />
     <ClCompile Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassLighting.cpp" />
     <ClCompile Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassMeshBase.cpp" />
@@ -373,7 +373,7 @@
     <None Include="glTFResources\ShaderSource\Interface\VirtualTexture.hlsl" />
     <None Include="glTFResources\ShaderSource\MeshPassVTFeedBackPS.hlsl" />
     <None Include="glTFResources\ShaderSource\ComputeShader\ClearUAVCS.hlsl" />
-    <None Include="glTFResources\ShaderSource\ComputeShader\VTFetchAndClearUAVCS.hlsl" />
+    <None Include="glTFResources\ShaderSource\ComputeShader\VTFetchCS.hlsl" />
     <ClCompile Include="glTFResources\ShaderSource\VirtualTextureUtil.hlsl" />
     <ClCompile Include="glTFRHI\RHIIndirectDrawBuilder.cpp" />
     <ClCompile Include="glTFRHI\RHIConfigSingleton.cpp" />
@@ -584,7 +584,7 @@
     <ClInclude Include="glTFRenderPass\glTFComputePass\glTFComputePassLighting.h" />
     <ClInclude Include="glTFRenderPass\glTFComputePass\glTFComputePassRayTracingPostprocess.h" />
     <ClInclude Include="glTFRenderPass\glTFComputePass\glTFComputePassReSTIRDirectLighting.h" />
-    <ClInclude Include="glTFRenderPass\glTFComputePass\glTFComputePassVTFetchAndClearUAV.h" />
+    <ClInclude Include="glTFRenderPass\glTFComputePass\glTFComputePassVTFetchCS.h" />
     <ClInclude Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassBase.h" />
     <ClInclude Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassLighting.h" />
     <ClInclude Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassMeshBase.h" />

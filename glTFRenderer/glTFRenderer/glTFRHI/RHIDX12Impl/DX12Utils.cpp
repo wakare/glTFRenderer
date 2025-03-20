@@ -649,7 +649,7 @@ bool DX12Utils::CopyTexture(IRHICommandList& command_list, IRHITexture& dst, IRH
     footprint.Footprint.Width = copy_width;
     footprint.Footprint.Height = copy_height;
     footprint.Footprint.Depth = 1;
-    footprint.Footprint.RowPitch = (footprint.Footprint.Width * GetBytePerPixelByFormat(dst.GetTextureFormat()) + 255) & ~255; // 256 对齐
+    footprint.Footprint.RowPitch = copy_info.row_pitch;
     footprint.Footprint.Format = DX12ConverterUtils::ConvertToDXGIFormat(dst.GetTextureFormat());
 
     src_location.PlacedFootprint = footprint;

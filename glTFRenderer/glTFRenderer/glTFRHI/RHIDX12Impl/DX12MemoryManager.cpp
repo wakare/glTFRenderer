@@ -80,21 +80,6 @@ bool DX12MemoryManager::AllocateTextureMemory(IRHIDevice& device, glTFRenderReso
     return true;
 }
 
-bool DX12MemoryManager::AllocateTextureMemoryAndUpload(IRHIDevice& device, glTFRenderResourceManager& resource_manager,
-                                                       IRHICommandList& command_list, const RHITextureDesc& texture_desc, std::shared_ptr<IRHITextureAllocation>& out_texture_allocation)
-{
-    GLTF_CHECK(texture_desc.HasTextureData());
-    AllocateTextureMemory(device, resource_manager, texture_desc, out_texture_allocation);
-    RHITextureUploadInfo upload_info
-    {
-        texture_desc.GetTextureData(),
-        texture_desc.GetTextureDataSize()
-    };
-    RHIUtils::Instance().UploadTextureData(command_list, resource_manager.GetMemoryManager(), device, *out_texture_allocation->m_texture, upload_info);
-    
-    return true;
-}
-
 bool DX12MemoryManager::ReleaseMemoryAllocation(glTFRenderResourceManager& resource_manager,
     IRHIMemoryAllocation& memory_allocation)
 {

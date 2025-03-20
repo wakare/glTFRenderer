@@ -318,10 +318,11 @@ void VTPhysicalTexture::UpdateRenderResource(glTFRenderResourceManager& resource
         InitRenderResource(resource_manager);
     }
 
-    const RHITextureUploadInfo upload_info
+    const RHITextureMipUploadInfo upload_info
     {
         m_physical_texture_data->GetData(),
         m_physical_texture_data->GetDataSize(),
+        0
     };
     
     RHIUtils::Instance().UploadTextureData(resource_manager.GetCommandListForRecord(), resource_manager.GetMemoryManager(), resource_manager.GetDevice(), *m_physical_texture->m_texture, upload_info );

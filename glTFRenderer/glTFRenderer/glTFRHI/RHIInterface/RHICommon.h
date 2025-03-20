@@ -957,6 +957,8 @@ struct RHICopyTextureInfo
     // Only used in uploading buffer to texture
     unsigned int src_width{0};
     unsigned int src_height{0};
+
+    unsigned row_pitch{0};
 };
 
 struct RHIMipMapCopyRequirements

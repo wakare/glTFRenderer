@@ -24,7 +24,9 @@ public:
     
     virtual bool Release(glTFRenderResourceManager&) override;
     void SetCopyReq(RHIMipMapCopyRequirements copy_requirements);
+    
     RHIMipMapCopyRequirements GetCopyReq() const;
+    unsigned GetMipCount() const;
     
 protected:
     RHITextureDesc m_texture_desc {};

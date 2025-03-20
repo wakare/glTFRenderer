@@ -334,7 +334,7 @@ RHITextureDesc RHITextureDesc::MakeBasePassVTFeedbackDesc(const glTFRenderResour
     RHITextureDesc texture_desc = MakeFullScreenTextureDesc(
         "BASEPASS_VT_FEEDBACK_OUTPUT",
             RHIDataFormat::R32G32B32A32_UINT,
-            static_cast<RHIResourceUsageFlags>( RUF_ALLOW_UAV | RUF_ALLOW_RENDER_TARGET | RUF_TRANSFER_SRC),
+            static_cast<RHIResourceUsageFlags>( RUF_ALLOW_SRV | RUF_ALLOW_RENDER_TARGET | RUF_TRANSFER_SRC),
          {
                 .clear_format = RHIDataFormat::R32G32B32A32_UINT,
                 .clear_color {0.0f, 0.0f, 0.0f, 0.0f}

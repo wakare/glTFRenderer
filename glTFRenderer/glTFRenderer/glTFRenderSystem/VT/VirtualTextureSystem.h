@@ -8,7 +8,7 @@
 #include "glTFRenderPass/glTFComputePass/glTFComputePassClearUAV.h"
 #include "glTFRenderSystem/RenderSystemBase.h"
 
-class glTFComputePassVTFetchAndClearUAV;
+class glTFComputePassVTFetchCS;
 class glTFRenderPassBase;
 
 class VirtualTextureSystem : public RenderSystemBase
@@ -48,5 +48,5 @@ protected:
     std::shared_ptr<VTPhysicalTexture> m_physical_texture;
 
     std::shared_ptr<glTFRenderPassBase> m_feedback_pass;
-    std::shared_ptr<glTFComputePassVTFetchAndClearUAV> m_fetch_feedback_pass;
+    std::shared_ptr<glTFComputePassVTFetchCS> m_fetch_feedback_pass;
 };

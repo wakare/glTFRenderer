@@ -474,8 +474,8 @@ bool VulkanUtils::AddTextureBarrierToCommandList(IRHICommandList& command_list, 
     image_barrier.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
     image_barrier.dstAccessMask = GetAccessFlagFromResourceState(after_state);
 
-    //image_barrier.oldLayout = VKConverterUtils::ConvertToImageLayout(beforeState);
-    image_barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    image_barrier.oldLayout = VKConverterUtils::ConvertToImageLayout(before_state);
+    //image_barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     image_barrier.newLayout = VKConverterUtils::ConvertToImageLayout(after_state);
 
     VkImageAspectFlags aspect_flags = (texture.GetTextureDesc().GetUsage() & RUF_ALLOW_DEPTH_STENCIL) ?
@@ -503,12 +503,14 @@ bool VulkanUtils::AddTextureBarrierToCommandList(IRHICommandList& command_list, 
 
 bool VulkanUtils::AddUAVBarrier(IRHICommandList& command_list, IRHITexture& texture)
 {
+    // TODO: Fixup logic
     auto vk_command_list = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
     auto vk_image = dynamic_cast<const VKTexture&>(texture).GetRawImage();
+    texture.Transition(command_list, RHIResourceStateType::STATE_RENDER_TARGET);
     
     VkImageMemoryBarrier image_barrier = {};
     image_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    image_barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+    image_barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     image_barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
     image_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     image_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -518,17 +520,19 @@ bool VulkanUtils::AddUAVBarrier(IRHICommandList& command_list, IRHITexture& text
     image_barrier.subresourceRange.levelCount = 1;
     image_barrier.subresourceRange.baseArrayLayer = 0;
     image_barrier.subresourceRange.layerCount = 1;
-    image_barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;  // Pass 1 写入
+    image_barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;  // Pass 1 写入
     image_barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;  // Pass 2 读取+写入
 
     vkCmdPipelineBarrier(
     vk_command_list,
-    VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,  // Pass 1 计算阶段
+    VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,  // Pass 1 计算阶段
     VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,  // Pass 2 计算阶段
     0,
     0, nullptr,
     0, nullptr,
     1, &image_barrier);
+    
+    texture.Transition(command_list, RHIResourceStateType::STATE_UNORDERED_ACCESS);
     
     return true;
 }
@@ -632,11 +636,13 @@ bool VulkanUtils::CopyTexture(IRHICommandList& command_list, IRHITexture& dst, I
 
     auto copy_width = copy_info.src_width ? copy_info.src_width : dst.GetTextureDesc().GetTextureWidth();
     auto copy_height = copy_info.src_height ? copy_info.src_height : dst.GetTextureDesc().GetTextureHeight();
+
+    auto row_length = copy_info.row_pitch ? copy_info.row_pitch / GetBytePerPixelByFormat(dst.GetTextureFormat()) : 0;
     
     VkBufferImageCopy image_copy_info{};
     image_copy_info.bufferOffset = 0;
     image_copy_info.bufferImageHeight = 0;
-    image_copy_info.bufferRowLength = 0;
+    image_copy_info.bufferRowLength = row_length;
     image_copy_info.imageOffset = VkOffset3D(copy_info.dst_x, copy_info.dst_y, 0.0f);
     image_copy_info.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     image_copy_info.imageSubresource.layerCount = 1;

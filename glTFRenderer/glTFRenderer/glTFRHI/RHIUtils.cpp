@@ -5,35 +5,7 @@
 std::shared_ptr<RHIUtils> RHIUtils::g_instance = nullptr;
 
 bool RHIUtils::UploadTextureData(IRHICommandList& command_list, IRHIMemoryManager& memory_manager, IRHIDevice& device,
-    IRHITexture& dst, const RHITextureUploadInfo& upload_info)
-{
-    const size_t bytes_per_pixel = GetBytePerPixelByFormat(dst.GetTextureFormat());
-    const size_t image_bytes_per_row = bytes_per_pixel * dst.GetTextureDesc().GetTextureWidth(); 
-    const UINT64 texture_upload_buffer_size = ((image_bytes_per_row + 255 ) & ~255) * (dst.GetTextureDesc().GetTextureHeight() - 1) + image_bytes_per_row;
-    
-    const RHIBufferDesc texture_upload_buffer_desc =
-        {
-        L"TextureBuffer_Upload",
-        texture_upload_buffer_size,
-        1,
-        1,
-        RHIBufferType::Upload,
-        dst.GetTextureFormat(),
-        RHIBufferResourceType::Buffer,
-        RHIResourceStateType::STATE_COPY_SOURCE,
-        RUF_TRANSFER_SRC
-    };
-
-    std::shared_ptr<IRHIBufferAllocation> m_texture_upload_buffer;
-    memory_manager.AllocateTempUploadBufferMemory(device, texture_upload_buffer_desc, m_texture_upload_buffer);
-    memory_manager.UploadBufferData(*m_texture_upload_buffer, upload_info.data.get(), 0, upload_info.data_size);
-    CopyTexture(command_list, dst, *m_texture_upload_buffer->m_buffer, {});
-    
-    return true;
-}
-
-bool RHIUtils::UploadTextureMipData(IRHICommandList& command_list, IRHIMemoryManager& memory_manager,
-    IRHIDevice& device, IRHITexture& dst, const RHITextureMipUploadInfo& upload_info)
+    IRHITexture& dst, const RHITextureMipUploadInfo& upload_info)
 {
     auto mip_texture_width = dst.GetTextureDesc().GetTextureWidth(upload_info.mip_level);
     auto mip_texture_height = dst.GetTextureDesc().GetTextureHeight(upload_info.mip_level);
@@ -72,7 +44,7 @@ bool RHIUtils::UploadTextureMipData(IRHICommandList& command_list, IRHIMemoryMan
     RHICopyTextureInfo m_texture_upload_copy_info
     {
         0, 0, 0, upload_info.mip_level,
-        mip_texture_width, mip_texture_height
+        mip_texture_width, mip_texture_height, static_cast<unsigned>(mip_copy_row_pitch)
     };
     
     CopyTexture(command_list, dst, *m_texture_upload_buffer->m_buffer, m_texture_upload_copy_info);

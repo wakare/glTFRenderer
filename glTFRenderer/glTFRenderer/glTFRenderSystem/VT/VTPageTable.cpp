@@ -75,7 +75,7 @@ void VTPageTable::UpdateRenderResource(glTFRenderResourceManager& resource_manag
             mip++,
         };
     
-        RHIUtils::Instance().UploadTextureMipData(resource_manager.GetCommandListForRecord(), resource_manager.GetMemoryManager(), resource_manager.GetDevice(), *m_page_texture->m_texture, upload_info );    
+        RHIUtils::Instance().UploadTextureData(resource_manager.GetCommandListForRecord(), resource_manager.GetMemoryManager(), resource_manager.GetDevice(), *m_page_texture->m_texture, upload_info );    
     }
 }
 

@@ -10,7 +10,7 @@ struct ComputePassVTFetchUAVOutput
     unsigned data[4];
 };
 
-class glTFComputePassVTFetchAndClearUAV : public glTFComputePassBase
+class glTFComputePassVTFetchCS : public glTFComputePassBase
 {
 public:
     virtual const char* PassName() override;

@@ -1,4 +1,4 @@
-#include "glTFComputePassVTFetchAndClearUAV.h"
+#include "glTFComputePassVTFetchCS.h"
 
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSingleConstantBuffer.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceStructuredBuffer.h"
@@ -16,16 +16,16 @@ ALIGN_FOR_CBV_STRUCT struct VT_FETCH_OUTPUT_INFO
     unsigned texture_height;
 };
 
-const char* glTFComputePassVTFetchAndClearUAV::PassName()
+const char* glTFComputePassVTFetchCS::PassName()
 {
-    return "glTFComputePass_VTFetchAndClearUAV";
+    return "glTFComputePass_VTFetchCS";
 }
 
-bool glTFComputePassVTFetchAndClearUAV::InitRenderInterface(glTFRenderResourceManager& resource_manager)
+bool glTFComputePassVTFetchCS::InitRenderInterface(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFComputePassBase::InitRenderInterface(resource_manager))
 
-    AddRenderInterface(std::make_shared<glTFRenderInterfaceTextureTableBindless<RHIDescriptorRangeType::UAV>>("CLEAR_UINT_TEXTURES_REGISTER_INDEX"));
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceTextureTableBindless<RHIDescriptorRangeType::SRV>>("CLEAR_UINT_TEXTURES_REGISTER_INDEX"));
 
     auto feedback_texture_size = VirtualTextureSystem::GetVTFeedbackTextureSize(resource_manager);
     size_t fetch_uav_size = feedback_texture_size.first * feedback_texture_size.second * sizeof(ComputePassVTFetchUAVOutput);
@@ -49,12 +49,12 @@ bool glTFComputePassVTFetchAndClearUAV::InitRenderInterface(glTFRenderResourceMa
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSingleConstantBuffer<VT_FETCH_OUTPUT_INFO>>());
 
     std::shared_ptr<IRHITexture> feed_back_texture = GetResourceTexture(RenderPassResourceTableId::BasePass_VT_Feedback);
-    GetRenderInterface<glTFRenderInterfaceTextureTableBindless<RHIDescriptorRangeType::UAV>>()->AddTexture({feed_back_texture});
+    GetRenderInterface<glTFRenderInterfaceTextureTableBindless<RHIDescriptorRangeType::SRV>>()->AddTexture({feed_back_texture});
     
     return true;
 }
 
-bool glTFComputePassVTFetchAndClearUAV::InitPass(glTFRenderResourceManager& resource_manager)
+bool glTFComputePassVTFetchCS::InitPass(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFComputePassBase::InitPass(resource_manager))
     auto feedback_texture_size = VirtualTextureSystem::GetVTFeedbackTextureSize(resource_manager);
@@ -69,34 +69,31 @@ bool glTFComputePassVTFetchAndClearUAV::InitPass(glTFRenderResourceManager& reso
     return true;
 }
 
-bool glTFComputePassVTFetchAndClearUAV::SetupPipelineStateObject(glTFRenderResourceManager& resource_manager)
+bool glTFComputePassVTFetchCS::SetupPipelineStateObject(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFComputePassBase::SetupPipelineStateObject(resource_manager))
     
     GetComputePipelineStateObject().BindShaderCode(
-            R"(glTFResources\ShaderSource\ComputeShader\VTFetchAndClearUAVCS.hlsl)", RHIShaderType::Compute, "main");
+            R"(glTFResources\ShaderSource\ComputeShader\VTFetchCS.hlsl)", RHIShaderType::Compute, "main");
     
     return true;
 }
 
-DispatchCount glTFComputePassVTFetchAndClearUAV::GetDispatchCount(glTFRenderResourceManager& resource_manager) const
+DispatchCount glTFComputePassVTFetchCS::GetDispatchCount(glTFRenderResourceManager& resource_manager) const
 {
     auto feedback_texture_size = VirtualTextureSystem::GetVTFeedbackTextureSize(resource_manager);
     
     return {feedback_texture_size.first / 8, feedback_texture_size.second / 8, 1};
 }
 
-bool glTFComputePassVTFetchAndClearUAV::PreRenderPass(glTFRenderResourceManager& resource_manager)
+bool glTFComputePassVTFetchCS::PreRenderPass(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFComputePassBase::PreRenderPass(resource_manager))
 
-    // Add uav barrier
-    RHIUtils::Instance().AddUAVBarrier(resource_manager.GetCommandListForRecord(), *GetResourceTexture(RenderPassResourceTableId::BasePass_VT_Feedback));
-    
     return true;
 }
 
-bool glTFComputePassVTFetchAndClearUAV::PostRenderPass(glTFRenderResourceManager& resource_manager)
+bool glTFComputePassVTFetchCS::PostRenderPass(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFComputePassBase::PostRenderPass(resource_manager))
 
@@ -108,12 +105,12 @@ bool glTFComputePassVTFetchAndClearUAV::PostRenderPass(glTFRenderResourceManager
     return true;
 }
 
-const std::vector<ComputePassVTFetchUAVOutput>& glTFComputePassVTFetchAndClearUAV::GetFeedbackOutputDataAndReset()
+const std::vector<ComputePassVTFetchUAVOutput>& glTFComputePassVTFetchCS::GetFeedbackOutputDataAndReset()
 {
     return m_uav_output_buffer_data;
 }
 
-bool glTFComputePassVTFetchAndClearUAV::InitResourceTable(glTFRenderResourceManager& resource_manager)
+bool glTFComputePassVTFetchCS::InitResourceTable(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFComputePassBase::InitResourceTable(resource_manager))
 
@@ -121,7 +118,7 @@ bool glTFComputePassVTFetchAndClearUAV::InitResourceTable(glTFRenderResourceMana
     RHITextureDesc feed_back_desc = RHITextureDesc::MakeBasePassVTFeedbackDesc(resource_manager, vt_size.first, vt_size.second);
     AddImportTextureResource(RenderPassResourceTableId::BasePass_VT_Feedback, feed_back_desc,
         {
-            feed_back_desc.GetDataFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_UAV,
+            feed_back_desc.GetDataFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV,
         });
     
     return true;

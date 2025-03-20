@@ -36,7 +36,7 @@ bool VKMemoryManager::AllocateBufferMemory(IRHIDevice& device, const RHIBufferDe
     bufferInfo.usage = VKConverterUtils::ConvertToBufferUsage(buffer_desc.usage); 
     
     VmaAllocationCreateInfo allocation_create_info = {};
-    allocation_create_info.usage = buffer_desc.type == RHIBufferType::Upload ? VMA_MEMORY_USAGE_CPU_TO_GPU : (readback_buffer ? VMA_MEMORY_USAGE_AUTO : VMA_MEMORY_USAGE_GPU_ONLY);
+    allocation_create_info.usage = buffer_desc.type == RHIBufferType::Upload ? VMA_MEMORY_USAGE_CPU_TO_GPU : (readback_buffer ? VMA_MEMORY_USAGE_GPU_TO_CPU : VMA_MEMORY_USAGE_GPU_ONLY);
     
     if (readback_buffer)
     {
@@ -82,7 +82,11 @@ bool VKMemoryManager::UploadBufferData(IRHIBufferAllocation& buffer_allocation, 
 bool VKMemoryManager::DownloadBufferData(IRHIBufferAllocation& buffer_allocation, void* data, size_t size)
 {
     auto vma_buffer_allocation = dynamic_cast<const VKBufferAllocation&>(buffer_allocation).m_allocation;
-    vmaMapMemory(GetVmaAllocator(), vma_buffer_allocation, &data);
+    
+    void* mapped_data = nullptr;
+    vmaMapMemory(GetVmaAllocator(), vma_buffer_allocation, &mapped_data);
+    GLTF_CHECK(mapped_data);
+    memcpy(data, mapped_data, size);
     vmaUnmapMemory(GetVmaAllocator(), vma_buffer_allocation);
     
     return true;
@@ -146,23 +150,6 @@ bool VKMemoryManager::AllocateTextureMemory(IRHIDevice& device, glTFRenderResour
     
     m_texture_allocations.push_back(out_texture_allocation);
     
-    return true;
-}
-
-bool VKMemoryManager::AllocateTextureMemoryAndUpload(IRHIDevice& device, glTFRenderResourceManager& resource_manager,
-                                                     IRHICommandList& command_list, const RHITextureDesc& texture_desc, std::shared_ptr<IRHITextureAllocation>& out_texture_allocation)
-{
-    AllocateTextureMemory(device, resource_manager, texture_desc, out_texture_allocation);
-
-    GLTF_CHECK(texture_desc.HasTextureData());
-    auto& memory_manager = resource_manager.GetMemoryManager();
-    RHITextureUploadInfo upload_info
-    {
-        texture_desc.GetTextureData(),
-        texture_desc.GetTextureDataSize()
-    };
-    
-    RHIUtils::Instance().UploadTextureData(command_list, memory_manager, device, *out_texture_allocation->m_texture, upload_info);
     return true;
 }
 

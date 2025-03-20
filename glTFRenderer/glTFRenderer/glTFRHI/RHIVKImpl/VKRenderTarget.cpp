@@ -27,7 +27,7 @@ bool VKRenderTarget::InitRenderTarget(VkDevice vk_device, VkFormat format, VkIma
     create_image_view_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
     create_image_view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     create_image_view_info.subresourceRange.baseMipLevel = 0;
-    create_image_view_info.subresourceRange.levelCount = 1;
+    create_image_view_info.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS ;
     create_image_view_info.subresourceRange.baseArrayLayer = 0;
     create_image_view_info.subresourceRange.layerCount = 1;
 
