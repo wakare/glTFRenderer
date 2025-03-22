@@ -217,10 +217,11 @@
     <ClCompile Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassBase.cpp" />
     <ClCompile Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassLighting.cpp" />
     <ClCompile Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassMeshBase.cpp" />
+    <ClCompile Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassMeshShadowDepth.cpp" />
     <ClCompile Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassPostprocess.cpp" />
     <ClCompile Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassMeshDepth.cpp" />
     <ClCompile Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassMeshOpaque.cpp" />
-    <ClCompile Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassMeshVT.cpp" />
+    <ClCompile Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassMeshVTFeedback.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassBase.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassPathTracing.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassReSTIRDirectLighting.cpp" />
@@ -588,10 +589,11 @@
     <ClInclude Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassBase.h" />
     <ClInclude Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassLighting.h" />
     <ClInclude Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassMeshBase.h" />
+    <ClInclude Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassMeshShadowDepth.h" />
     <ClInclude Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassPostprocess.h" />
     <ClInclude Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassMeshDepth.h" />
     <ClInclude Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassMeshOpaque.h" />
-    <ClInclude Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassMeshVT.h" />
+    <ClInclude Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassMeshVTFeedback.h" />
     <ClInclude Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassBase.h" />
     <ClInclude Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassPathTracing.h" />
     <ClInclude Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassReSTIRDirectLighting.h" />

@@ -5,6 +5,7 @@
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceRadiosityScene.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSampler.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneMaterial.h"
+#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceVT.h"
 #include "glTFRHI/RHIUtils.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 
@@ -12,9 +13,8 @@ bool glTFGraphicsPassMeshOpaque::InitRenderInterface(glTFRenderResourceManager& 
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::InitRenderInterface(resource_manager))
 
-    SceneMaterialInterfaceConfig config;
-    config.vt_feed_back = false;
-    AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMaterial>(config));
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMaterial>());
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceVT>(InterfaceVTType::SAMPLE_VT_TEXTURE_DATA));
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Warp, RHIStaticSamplerFilterMode::Linear>>("DEFAULT_SAMPLER_REGISTER_INDEX"));
     
     return true;

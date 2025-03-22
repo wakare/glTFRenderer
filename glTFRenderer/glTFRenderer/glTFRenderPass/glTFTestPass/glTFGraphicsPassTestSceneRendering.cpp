@@ -23,9 +23,7 @@ bool glTFGraphicsPassTestSceneRendering::InitRenderInterface(glTFRenderResourceM
     const std::shared_ptr<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Warp, RHIStaticSamplerFilterMode::Linear>> sampler_interface =
         std::make_shared<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Warp, RHIStaticSamplerFilterMode::Linear>>("DEFAULT_SAMPLER_REGISTER_INDEX");
     AddRenderInterface(sampler_interface);
-    SceneMaterialInterfaceConfig config;
-    config.vt_feed_back = false;
-    AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMaterial>(config));
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMaterial>());
     //GetRenderInterface<glTFRenderInterfaceSceneMaterial>()->UploadMaterialData(resource_manager);
     
     return true;

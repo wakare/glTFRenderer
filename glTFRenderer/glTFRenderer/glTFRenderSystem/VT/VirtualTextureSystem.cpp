@@ -2,7 +2,7 @@
 
 #include "glTFRenderPass/glTFRenderPassManager.h"
 #include "glTFRenderPass/glTFComputePass/glTFComputePassVTFetchCS.h"
-#include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassMeshVT.h"
+#include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassMeshVTFeedback.h"
 #include "glTFRHI/RHIInterface/IRHISwapChain.h"
 
 bool VirtualTextureSystem::InitRenderSystem(glTFRenderResourceManager& resource_manager)
@@ -10,7 +10,7 @@ bool VirtualTextureSystem::InitRenderSystem(glTFRenderResourceManager& resource_
     m_page_streamer = std::make_shared<VTPageStreamer>();
     m_physical_texture = std::make_shared<VTPhysicalTexture>(VT_PHYSICAL_TEXTURE_SIZE, VT_PAGE_SIZE, VT_PHYSICAL_TEXTURE_BORDER);
 
-    m_feedback_pass = std::make_shared<glTFGraphicsPassMeshVT>();
+    m_feedback_pass = std::make_shared<glTFGraphicsPassMeshVTFeedback>();
     m_fetch_feedback_pass = std::make_shared<glTFComputePassVTFetchCS>();
     
     return true;

@@ -7,11 +7,10 @@
 #include "glTFRenderPass/glTFRenderMaterialManager.h"
 #include "glTFRenderSystem/VT/VirtualTextureSystem.h"
 
-glTFRenderInterfaceSceneMaterial::glTFRenderInterfaceSceneMaterial(const SceneMaterialInterfaceConfig& config)
+glTFRenderInterfaceSceneMaterial::glTFRenderInterfaceSceneMaterial()
 {
     AddInterface(std::make_shared<glTFRenderInterfaceStructuredBuffer<MaterialInfo>>(MaterialInfo::Name.c_str()));
     AddInterface(std::make_shared<glTFRenderInterfaceTextureTableBindless<RHIDescriptorRangeType::SRV>>("SCENE_MATERIAL_TEXTURE_REGISTER_INDEX"));
-    AddInterface(std::make_shared<glTFRenderInterfaceVT>(config.vt_feed_back ? InterfaceVTType::RENDER_VT_FEEDBACK : InterfaceVTType::SAMPLE_VT_TEXTURE_DATA));
     
     std::shared_ptr<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Warp, RHIStaticSamplerFilterMode::Linear>> sampler_interface =
         std::make_shared<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Warp, RHIStaticSamplerFilterMode::Linear>>("SCENE_MATERIAL_SAMPLER_REGISTER_INDEX");

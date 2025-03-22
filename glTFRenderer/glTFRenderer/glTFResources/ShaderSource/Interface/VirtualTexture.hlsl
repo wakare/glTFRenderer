@@ -31,7 +31,7 @@ float MipLevel(float2 uv, float size)
     return max(0.5 * log2(d), 0);
 }
 
-#if VT_READ_DATA
+#ifdef VT_READ_DATA
 
 DECLARE_RESOURCE(Texture2D<uint4> bindless_vt_page_table_textures[] , VT_PAGE_TABLE_TEXTURE_REGISTER_INDEX);
 DECLARE_RESOURCE(Texture2D<float4> vt_physical_texture, VT_PHYSICAL_TEXTURE_REGISTER_INDEX);

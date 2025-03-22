@@ -8,8 +8,7 @@
 #include "SceneFileLoader/glTFImageIOUtil.h"
 
 glTFMaterialTextureRenderResource::glTFMaterialTextureRenderResource(const glTFMaterialParameterTexture& source_texture)
-        : m_vt(false)
-        , m_source_texture(source_texture)
+        : m_source_texture(source_texture)
         , m_texture(nullptr)
 {
         
@@ -19,9 +18,9 @@ bool glTFMaterialTextureRenderResource::Init(glTFRenderResourceManager& resource
 {
     auto& command_list = resource_manager.GetCommandListForRecord();
 
-    const std::wstring convertPath = to_wide_string(m_source_texture.GetTexturePath());
+    const std::wstring convert_path = to_wide_string(m_source_texture.GetTexturePath());
     ImageLoadResult result;
-    RETURN_IF_FALSE(glTFImageIOUtil::Instance().LoadImageByFilename(convertPath.c_str(), result))
+    RETURN_IF_FALSE(glTFImageIOUtil::Instance().LoadImageByFilename(convert_path.c_str(), result))
     RHITextureDesc texture_desc{};
     texture_desc.InitWithLoadedData(result);
 

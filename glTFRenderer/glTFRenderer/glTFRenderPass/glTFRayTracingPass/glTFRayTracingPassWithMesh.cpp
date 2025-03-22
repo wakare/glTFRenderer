@@ -20,9 +20,7 @@ bool glTFRayTracingPassWithMesh::InitRenderInterface(glTFRenderResourceManager& 
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneView>());
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMeshInfo>());
     AddRenderInterface(std::make_shared<glTFRenderInterfaceLighting>());
-    SceneMaterialInterfaceConfig config;
-    config.vt_feed_back = false;
-    AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMaterial>(config));
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMaterial>());
     
     return true;
 }

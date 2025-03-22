@@ -1,28 +1,28 @@
-#include "glTFGraphicsPassMeshVT.h"
+#include "glTFGraphicsPassMeshVTFeedback.h"
 
 #include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneMaterial.h"
+#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceVT.h"
 #include "glTFRenderSystem/VT/VirtualTextureSystem.h"
 #include "glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
 
-RHIViewportDesc glTFGraphicsPassMeshVT::GetViewport(glTFRenderResourceManager& resource_manager) const
+RHIViewportDesc glTFGraphicsPassMeshVTFeedback::GetViewport(glTFRenderResourceManager& resource_manager) const
 {
     const auto& vt_size = resource_manager.GetRenderSystem<VirtualTextureSystem>()->GetVTFeedbackTextureSize(resource_manager);
     return {0, 0, static_cast<float>(vt_size.first), static_cast<float>(vt_size.second), 0.0f, 1.0f};
 }
 
-bool glTFGraphicsPassMeshVT::InitRenderInterface(glTFRenderResourceManager& resource_manager)
+bool glTFGraphicsPassMeshVTFeedback::InitRenderInterface(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::InitRenderInterface(resource_manager))
     
-    SceneMaterialInterfaceConfig config;
-    config.vt_feed_back = true;
-    AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMaterial>(config));
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMaterial>());
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceVT>(InterfaceVTType::RENDER_VT_FEEDBACK));
     
     return true;
 }
 
-bool glTFGraphicsPassMeshVT::SetupPipelineStateObject(glTFRenderResourceManager& resource_manager)
+bool glTFGraphicsPassMeshVTFeedback::SetupPipelineStateObject(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::SetupPipelineStateObject(resource_manager))
 
@@ -42,7 +42,7 @@ bool glTFGraphicsPassMeshVT::SetupPipelineStateObject(glTFRenderResourceManager&
     return true;
 }
 
-bool glTFGraphicsPassMeshVT::PreRenderPass(glTFRenderResourceManager& resource_manager)
+bool glTFGraphicsPassMeshVTFeedback::PreRenderPass(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::PreRenderPass(resource_manager))
 
@@ -62,7 +62,7 @@ bool glTFGraphicsPassMeshVT::PreRenderPass(glTFRenderResourceManager& resource_m
     return true;
 }
 
-bool glTFGraphicsPassMeshVT::InitResourceTable(glTFRenderResourceManager& resource_manager)
+bool glTFGraphicsPassMeshVTFeedback::InitResourceTable(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::InitResourceTable(resource_manager))
 

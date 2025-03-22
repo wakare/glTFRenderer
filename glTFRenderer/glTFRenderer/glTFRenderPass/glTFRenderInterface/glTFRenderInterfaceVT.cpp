@@ -80,4 +80,8 @@ void glTFRenderInterfaceVT::ApplyShaderDefineImpl(RHIShaderPreDefineMacros& out_
     {
         out_shader_pre_define_macros.AddMacro("VT_READ_DATA", "1");
     }
+    else if (m_type == InterfaceVTType::RENDER_VT_FEEDBACK)
+    {
+        
+    }
 }

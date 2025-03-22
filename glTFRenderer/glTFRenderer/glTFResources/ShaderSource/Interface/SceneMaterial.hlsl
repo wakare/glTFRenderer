@@ -2,7 +2,9 @@
 #define SCENE_MATERIAL
 
 #include "glTFResources/ShaderSource/ShaderDeclarationUtil.hlsl"
+#ifdef VT_READ_DATA
 #include "glTFResources/ShaderSource/Interface/VirtualTexture.hlsl"
+#endif
 
 #define MATERIAL_TEXTURE_INVALID_INDEX 0xffffffff 
 struct MaterialInfo
@@ -18,7 +20,7 @@ struct MaterialInfo
 
     bool IsVTAlbedo() { return virtual_texture_flag & 0x1; }
     bool IsVTNormal() { return virtual_texture_flag & 0x2; }
-    bool IsVTMetialRoughness() { return virtual_texture_flag & 0x4; }
+    bool IsVTMetalicRoughness() { return virtual_texture_flag & 0x4; }
     bool HasVT() { return virtual_texture_flag != 0; }
 };
 
@@ -49,6 +51,14 @@ struct MaterialSurfaceInfo
 float4 SampleAlbedoTextureCS(uint material_id, float2 uv)
 {
     MaterialInfo info = g_material_infos[material_id];
+    if (info.IsVTAlbedo())
+    {
+#ifdef VT_READ_DATA
+        return SampleVTPageTable(info.albedo_tex_index, uv);
+#else
+        return float4(0.0, 0.0, 0.0, 0.0);
+#endif
+    }
     if (MATERIAL_TEXTURE_INVALID_INDEX == info.albedo_tex_index)
         return info.albedo;
     
@@ -58,12 +68,15 @@ float4 SampleAlbedoTextureCS(uint material_id, float2 uv)
 float4 SampleAlbedoTexture(uint material_id, float2 uv)
 {
     MaterialInfo info = g_material_infos[material_id];
-#ifdef VT_READ_DATA
+
     if (info.IsVTAlbedo())
     {
-        return SampleVTPageTable(info.albedo_tex_index, uv);  
-    }
+#ifdef VT_READ_DATA
+        return SampleVTPageTable(info.albedo_tex_index, uv);
+#else
+        return float4(0.0, 0.0, 0.0, 0.0);
 #endif
+    }
     
     if (MATERIAL_TEXTURE_INVALID_INDEX == info.albedo_tex_index)
     {
@@ -76,8 +89,19 @@ float4 SampleAlbedoTexture(uint material_id, float2 uv)
 float4 SampleNormalTextureCS(uint material_id, float2 uv)
 {
     MaterialInfo info = g_material_infos[material_id];
+    if (info.IsVTNormal())
+    {
+#ifdef VT_READ_DATA
+        return SampleVTPageTable(info.normal_tex_index, uv);
+#else
+        return float4(0.0, 0.0, 0.0, 0.0);
+#endif
+    }
+    
     if (MATERIAL_TEXTURE_INVALID_INDEX == info.normal_tex_index)
+    {
         return info.normal;
+    }
     
     return bindless_material_textures[info.normal_tex_index].SampleLevel(material_sampler, uv, 0, 0);
 }
@@ -85,8 +109,18 @@ float4 SampleNormalTextureCS(uint material_id, float2 uv)
 float4 SampleNormalTexture(uint material_id, float2 uv)
 {
     MaterialInfo info = g_material_infos[material_id];
+    if (info.IsVTNormal())
+    {
+#ifdef VT_READ_DATA
+        return SampleVTPageTable(info.normal_tex_index, uv);
+#else
+        return float4(0.0, 0.0, 0.0, 0.0);
+#endif
+    }
     if (MATERIAL_TEXTURE_INVALID_INDEX == info.normal_tex_index)
+    {
         return info.normal;
+    }
     
     return bindless_material_textures[info.normal_tex_index].Sample(material_sampler, uv);
 }
@@ -95,8 +129,19 @@ float4 SampleNormalTexture(uint material_id, float2 uv)
 float2 SampleMetallicRoughnessTexture(uint material_id, float2 uv)
 {
     MaterialInfo info = g_material_infos[material_id];
+    if (info.IsVTMetalicRoughness())
+    {
+#ifdef VT_READ_DATA
+        return SampleVTPageTable(info.metallic_roughness_tex_index, uv);
+#else
+        return float2(0.0, 0.0);
+#endif        
+    }
+
     if (MATERIAL_TEXTURE_INVALID_INDEX == info.metallic_roughness_tex_index)
+    {
         return info.metallicAndRoughness.bg;
+    }
     
     return bindless_material_textures[info.metallic_roughness_tex_index].Sample(material_sampler, uv).bg;
 }
@@ -104,8 +149,18 @@ float2 SampleMetallicRoughnessTexture(uint material_id, float2 uv)
 float2 SampleMetallicRoughnessTextureCS(uint material_id, float2 uv)
 {
     MaterialInfo info = g_material_infos[material_id];
+    if (info.IsVTMetalicRoughness())
+    {
+#ifdef VT_READ_DATA
+        return SampleVTPageTable(info.metallic_roughness_tex_index, uv);
+#else
+        return float2(0.0, 0.0);
+#endif        
+    }
     if (MATERIAL_TEXTURE_INVALID_INDEX == info.metallic_roughness_tex_index)
+    {
         return info.metallicAndRoughness.bg;
+    }
     
     return bindless_material_textures[info.metallic_roughness_tex_index].SampleLevel(material_sampler, uv, 0, 0).bg;
 }

@@ -1,10 +1,10 @@
 #pragma once
 #include "glTFGraphicsPassMeshBase.h"
 
-class glTFGraphicsPassMeshVT : public glTFGraphicsPassMeshBase
+class glTFGraphicsPassMeshVTFeedback : public glTFGraphicsPassMeshBase
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFGraphicsPassMeshVT)
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFGraphicsPassMeshVTFeedback)
     
     virtual const char* PassName() override {return "MeshPassVT"; }
 
