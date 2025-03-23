@@ -1,6 +1,11 @@
+// DX use [0, 1] as depth clip range
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+
 #include "glTFRenderResourceManager.h"
 
 #include "glTFRenderMaterialManager.h"
+#include "glTFLight/glTFDirectionalLight.h"
+#include "glTFLight/glTFLightBase.h"
 #include "glTFRenderSystem/VT/VirtualTextureSystem.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 #include "RenderWindow/glTFWindow.h"
@@ -10,6 +15,83 @@
 #define EXIT_WHEN_FALSE(x) if (!(x)) {assert(false); return false;}
 
 constexpr size_t backBufferCount = 3;
+
+bool glTFPerFrameRenderResourceData::InitSceneViewData(IRHIMemoryManager& memory_manager, IRHIDevice& device)
+{
+    GLTF_CHECK(!m_scene_view_buffer);
+    if (!m_scene_view_buffer)
+    {
+        RHIBufferDesc scene_view_buffer_desc;
+        scene_view_buffer_desc.name = L"SceneViewConstantBuffer";
+        scene_view_buffer_desc.width = 64ull * 1024;
+        scene_view_buffer_desc.height = 1;
+        scene_view_buffer_desc.depth = 1;
+        scene_view_buffer_desc.type = RHIBufferType::Upload;
+        scene_view_buffer_desc.resource_type = RHIBufferResourceType::Buffer;
+        scene_view_buffer_desc.resource_data_type = RHIDataFormat::UNKNOWN;
+        scene_view_buffer_desc.state = RHIResourceStateType::STATE_COMMON;
+        scene_view_buffer_desc.usage = RHIResourceUsageFlags::RUF_ALLOW_CBV;
+        memory_manager.AllocateBufferMemory(device, scene_view_buffer_desc, m_scene_view_buffer);
+    }
+
+    return true;
+}
+
+bool glTFPerFrameRenderResourceData::UpdateSceneViewData(IRHIMemoryManager& memory_manager,
+                                                         IRHIDevice& device, const ConstantBufferSceneView& scene_view)
+{
+    m_scene_view = scene_view;
+    
+    GLTF_CHECK(m_scene_view_buffer);
+    return memory_manager.UploadBufferData(*m_scene_view_buffer, &m_scene_view, 0 ,sizeof(m_scene_view));
+}
+
+const ConstantBufferSceneView& glTFPerFrameRenderResourceData::GetSceneView() const
+{
+    return m_scene_view;
+}
+
+std::shared_ptr<IRHIBufferAllocation> glTFPerFrameRenderResourceData::GetSceneViewBufferAllocation() const
+{
+    GLTF_CHECK(m_scene_view_buffer);
+    return m_scene_view_buffer;
+}
+
+bool glTFPerFrameRenderResourceData::InitShadowmapSceneViewData(IRHIMemoryManager& memory_manager, IRHIDevice& device, unsigned light_id)
+{
+    GLTF_CHECK(!m_shadowmap_view_buffers[light_id]);
+    
+    RHIBufferDesc scene_view_buffer_desc;
+    scene_view_buffer_desc.name = L"ShadowmapViewConstantBuffer";
+    scene_view_buffer_desc.width = 64ull * 1024;
+    scene_view_buffer_desc.height = 1;
+    scene_view_buffer_desc.depth = 1;
+    scene_view_buffer_desc.type = RHIBufferType::Upload;
+    scene_view_buffer_desc.resource_type = RHIBufferResourceType::Buffer;
+    scene_view_buffer_desc.resource_data_type = RHIDataFormat::UNKNOWN;
+    scene_view_buffer_desc.state = RHIResourceStateType::STATE_COMMON;
+    scene_view_buffer_desc.usage = RHIResourceUsageFlags::RUF_ALLOW_CBV;
+    return memory_manager.AllocateBufferMemory(device, scene_view_buffer_desc, m_shadowmap_view_buffers[light_id]);
+}
+
+bool glTFPerFrameRenderResourceData::UpdateShadowmapSceneViewData(IRHIMemoryManager& memory_manager,
+                                                                  IRHIDevice& device, unsigned light_id, const ConstantBufferSceneView& scene_view)
+{
+    m_shadowmap_view_data[light_id] = scene_view;
+
+    GLTF_CHECK(m_shadowmap_view_buffers[light_id]);
+    return memory_manager.UploadBufferData(*m_shadowmap_view_buffers[light_id], &m_shadowmap_view_data[light_id], 0 ,sizeof(m_shadowmap_view_data[light_id]));
+}
+
+const ConstantBufferSceneView& glTFPerFrameRenderResourceData::GetShadowmapSceneView(unsigned light_id) const
+{
+    return m_shadowmap_view_data.at(light_id);
+}
+
+std::shared_ptr<IRHIBufferAllocation> glTFPerFrameRenderResourceData::GetShadowmapViewBufferAllocation(unsigned light_id) const
+{
+    return m_shadowmap_view_buffers.at(light_id);
+}
 
 bool glTFRenderResourceManager::InitResourceManager(unsigned width, unsigned height, HWND handle)
 {
@@ -126,22 +208,15 @@ bool glTFRenderResourceManager::InitScene(const glTFSceneGraph& scene_graph)
     
     GLTF_CHECK(GetMeshManager().BuildMeshRenderResource(*this));
 
-    RHIBufferDesc scene_view_buffer_desc;
-    scene_view_buffer_desc.name = L"SceneViewConstantBuffer";
-    scene_view_buffer_desc.width = 64ull * 1024;
-    scene_view_buffer_desc.height = 1;
-    scene_view_buffer_desc.depth = 1;
-    scene_view_buffer_desc.type = RHIBufferType::Upload;
-    scene_view_buffer_desc.resource_type = RHIBufferResourceType::Buffer;
-    scene_view_buffer_desc.resource_data_type = RHIDataFormat::UNKNOWN;
-    scene_view_buffer_desc.state = RHIResourceStateType::STATE_COMMON;
-    scene_view_buffer_desc.usage = RHIResourceUsageFlags::RUF_ALLOW_CBV;
-
     m_per_frame_render_resource_data.resize(GetBackBufferCount());
-    for (auto& per_frame_render_resource : m_per_frame_render_resource_data)
+    auto directional_lights = scene_graph.GetAllTypedNodes<glTFDirectionalLight>();
+    for (auto& frame_resource : m_per_frame_render_resource_data)
     {
-        const bool buffer_allocated = GetMemoryManager().AllocateBufferMemory(GetDevice(), scene_view_buffer_desc, per_frame_render_resource.m_scene_view_buffer);
-        GLTF_CHECK(buffer_allocated);    
+        frame_resource.InitSceneViewData(GetMemoryManager(), GetDevice());
+        for (auto& directional_light : directional_lights)
+        {
+            frame_resource.InitShadowmapSceneViewData(GetMemoryManager(), GetDevice(), directional_light->GetID());
+        }
     }
     
     return true;
@@ -419,6 +494,11 @@ bool glTFRenderResourceManager::ImportResourceTexture(const RHITextureDesc& desc
     return true;
 }
 
+std::vector<glTFPerFrameRenderResourceData>& glTFRenderResourceManager::GetPerFrameRenderResourceData()
+{
+    return m_per_frame_render_resource_data;
+}
+
 const std::vector<glTFPerFrameRenderResourceData>& glTFRenderResourceManager::GetPerFrameRenderResourceData() const
 {
     return m_per_frame_render_resource_data;
@@ -445,15 +525,14 @@ void glTFRenderResourceManager::TickFrame()
 }
 
 void glTFRenderResourceManager::TickSceneUpdating(const glTFSceneView& scene_view,
-    glTFRenderResourceManager& resource_manager, size_t delta_time_ms)
+                                                  glTFRenderResourceManager& resource_manager, const glTFSceneGraph& scene_graph, size_t delta_time_ms)
 {
-    // Update scene view and upload buffer
-    auto scene_view_constant_buffer = scene_view.CreateSceneViewConstantBuffer(resource_manager);
+    // Update scene view
+    auto scene_view_constant_buffer = scene_view.CreateSceneViewConstantBuffer();
     auto& upload_scene_view_buffer= resource_manager.GetPerFrameRenderResourceData()[resource_manager.GetCurrentBackBufferIndex()];
-    resource_manager.GetMemoryManager().UploadBufferData(*upload_scene_view_buffer.m_scene_view_buffer, &scene_view_constant_buffer, 0, sizeof(scene_view_constant_buffer));
+    upload_scene_view_buffer.UpdateSceneViewData(resource_manager.GetMemoryManager(), resource_manager.GetDevice(), scene_view_constant_buffer);
 
     std::vector<const glTFSceneNode*> dirty_objects = scene_view.GetDirtySceneNodes();
-
     for (const auto* node : dirty_objects)
     {
         for (const auto& scene_object : node->m_objects)
@@ -465,4 +544,74 @@ void glTFRenderResourceManager::TickSceneUpdating(const glTFSceneView& scene_vie
     }
 
     resource_manager.GetMaterialManager().Tick(resource_manager);
+
+    // Shadowmap view data upload
+    std::vector<const glTFLightBase*> lights;
+    for (const auto* node : dirty_objects)
+    {
+        for (const auto& scene_object : node->m_objects)
+        {
+            if (const glTFLightBase* light_node = dynamic_cast<const glTFLightBase*>(scene_object.get()))
+            {
+                lights.push_back(light_node);
+            }    
+        }
+    }
+
+    const auto& frame_render_resource = resource_manager.GetPerFrameRenderResourceData()[resource_manager.GetCurrentBackBufferIndex()];
+    const auto& scene_view_data = frame_render_resource.GetSceneView();
+
+    auto scene_bounds = scene_graph.GetBounds();
+    auto scene_bounds_min = scene_bounds.getMin();
+    auto scene_bounds_max = scene_bounds.getMax();
+    
+    for (const auto& light : lights)
+    {
+        const auto& direction_light = dynamic_cast<const glTFDirectionalLight*>(light);
+        if (!direction_light)
+        {
+            continue;
+        }
+        
+        ConstantBufferSceneView shadowmap_view{};
+        auto light_location = glTF_Transform_WithTRS::GetTranslationFromMatrix(direction_light->GetTransformMatrix());
+        shadowmap_view.view_matrix = glm::lookAtLH(light_location, light_location + direction_light->GetDirection(), {0.0f, 1.0f, 0.0f});
+        shadowmap_view.inverse_view_matrix = glm::inverse(shadowmap_view.view_matrix);
+
+        shadowmap_view.view_position = glm::vec4(light_location, 1.0f);
+        
+        glm::vec3 light_ndc_min{ FLT_MAX, FLT_MAX, FLT_MAX };
+        glm::vec3 light_ndc_max{ FLT_MIN, FLT_MIN, FLT_MIN };
+
+        glm::vec4 scene_corner[8] =
+            {
+                {scene_bounds_min.x, scene_bounds_min.y, scene_bounds_min.z, 1.0f},
+                {scene_bounds_max.x, scene_bounds_min.y, scene_bounds_min.z, 1.0f},
+                {scene_bounds_min.x, scene_bounds_max.y, scene_bounds_min.z, 1.0f},
+                {scene_bounds_max.x, scene_bounds_max.y, scene_bounds_min.z, 1.0f},
+                {scene_bounds_min.x, scene_bounds_min.y, scene_bounds_max.z, 1.0f},
+                {scene_bounds_max.x, scene_bounds_min.y, scene_bounds_max.z, 1.0f},
+                {scene_bounds_min.x, scene_bounds_max.y, scene_bounds_max.z, 1.0f},
+                {scene_bounds_max.x, scene_bounds_max.y, scene_bounds_max.z, 1.0f},
+            };
+
+        for (unsigned i = 0; i < 8; ++i)
+        {
+            glm::vec4 ndc_to_light_view = shadowmap_view.view_matrix * scene_corner[i];
+
+            light_ndc_min.x = (light_ndc_min.x > ndc_to_light_view.x) ? ndc_to_light_view.x : light_ndc_min.x;
+            light_ndc_min.y = (light_ndc_min.y > ndc_to_light_view.y) ? ndc_to_light_view.y : light_ndc_min.y;
+            light_ndc_min.z = (light_ndc_min.z > ndc_to_light_view.z) ? ndc_to_light_view.z : light_ndc_min.z;
+
+            light_ndc_max.x = (light_ndc_max.x < ndc_to_light_view.x) ? ndc_to_light_view.x : light_ndc_max.x;
+            light_ndc_max.y = (light_ndc_max.y < ndc_to_light_view.y) ? ndc_to_light_view.y : light_ndc_max.y;
+            light_ndc_max.z = (light_ndc_max.z < ndc_to_light_view.z) ? ndc_to_light_view.z : light_ndc_max.z;
+        }
+        
+        shadowmap_view.projection_matrix = glm::orthoLH(light_ndc_min.x, light_ndc_max.x, light_ndc_min.y, light_ndc_max.y, light_ndc_min.z, light_ndc_max.z);
+        shadowmap_view.inverse_projection_matrix = glm::inverse(shadowmap_view.projection_matrix);
+        
+        resource_manager.GetPerFrameRenderResourceData()[resource_manager.GetCurrentBackBufferIndex()].UpdateShadowmapSceneViewData(
+            resource_manager.GetMemoryManager(), resource_manager.GetDevice(), direction_light->GetID(), shadowmap_view);
+    }
 }

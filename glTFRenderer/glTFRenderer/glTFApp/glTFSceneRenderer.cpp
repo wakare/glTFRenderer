@@ -3,6 +3,7 @@
 #include <imgui.h>
 
 #include "glTFGUIRenderer.h"
+#include "glTFLight/glTFDirectionalLight.h"
 #include "glTFRenderPass/glTFComputePass/glTFComputePassIndirectDrawCulling.h"
 #include "glTFRenderPass/glTFComputePass/glTFComputePassLighting.h"
 #include "glTFRenderPass/glTFComputePass/glTFComputePassRayTracingPostprocess.h"
@@ -10,6 +11,7 @@
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassLighting.h"
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassMeshDepth.h"
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassMeshOpaque.h"
+#include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassMeshShadowDepth.h"
 #include "glTFRenderPass/glTFRayTracingPass/glTFRayTracingPassPathTracing.h"
 #include "glTFRenderPass/glTFRayTracingPass/glTFRayTracingPassReSTIRDirectLighting.h"
 #include "glTFRenderPass/glTFTestPass/glTFComputePassTestFillColor.h"
@@ -42,11 +44,11 @@ void glTFSceneRendererBase::TickSceneUpdating(const glTFSceneView& scene_view, g
 {
 }
 
-void glTFSceneRendererBase::TickSceneRendering(const glTFSceneView& scene_view, glTFRenderResourceManager& resource_manager, size_t delta_time_ms)
+void glTFSceneRendererBase::TickSceneRendering(glTFRenderResourceManager& resource_manager, const glTFSceneView& scene_view, const glTFSceneGraph& scene_graph, size_t delta_time_ms)
 {
     if (!m_pass_inited)
     {
-        const bool created = RecreateRenderPass(resource_manager);
+        const bool created = RecreateRenderPass(resource_manager, scene_graph);
         GLTF_CHECK(created);
         m_pass_inited = true;
     }
@@ -82,10 +84,11 @@ void glTFSceneRendererBase::ApplyInput(const glTFInputManager& input_manager, si
     }
 }
 
-bool glTFSceneRendererBase::RecreateRenderPass(glTFRenderResourceManager& resource_manager)
+bool glTFSceneRendererBase::RecreateRenderPass(glTFRenderResourceManager& resource_manager, const glTFSceneGraph& scene_graph)
 {
     m_pass_manager.reset(new glTFRenderPassManager());
-    SetupSceneRenderer();
+    
+    SetupSceneRenderer(scene_graph);
     for (const auto& render_system : resource_manager.GetRenderSystems())
     {
         render_system->SetupPass(*m_pass_manager);
@@ -97,13 +100,21 @@ bool glTFSceneRendererBase::RecreateRenderPass(glTFRenderResourceManager& resour
     return true;
 }
 
-bool glTFSceneRendererRasterizer::SetupSceneRenderer()
+bool glTFSceneRendererRasterizer::SetupSceneRenderer(const glTFSceneGraph& scene_graph)
 {
     m_pass_manager->AddRenderPass(std::make_shared<glTFComputePassIndirectDrawCulling>());
     m_pass_manager->AddRenderPass(std::make_shared<glTFGraphicsPassMeshDepth>());
     m_pass_manager->AddRenderPass(std::make_shared<glTFGraphicsPassMeshOpaque>());
     m_pass_manager->AddRenderPass(std::make_shared<glTFComputePassLighting>());
 
+    auto directional_lights = scene_graph.GetAllTypedNodes<glTFDirectionalLight>();
+    for (const auto& directional_light : directional_lights)
+    {
+        ShadowmapPassConfig config{};
+        config.light_id = static_cast<int>(directional_light->GetID());
+        m_pass_manager->AddRenderPass(std::make_shared<glTFGraphicsPassMeshShadowDepth>(config));
+    }
+    
     return true;
 }
 
@@ -112,7 +123,7 @@ glTFSceneRendererRayTracer::glTFSceneRendererRayTracer(bool use_restir_direct_li
 {
 }
 
-bool glTFSceneRendererRayTracer::SetupSceneRenderer()
+bool glTFSceneRendererRayTracer::SetupSceneRenderer(const glTFSceneGraph& scene_graph)
 {
     if (m_use_restir_direct_lighting)
     {
@@ -130,7 +141,7 @@ bool glTFSceneRendererRayTracer::SetupSceneRenderer()
     return true;
 }
 
-bool glTFSceneRendererTestTriangle::SetupSceneRenderer()
+bool glTFSceneRendererTestTriangle::SetupSceneRenderer(const glTFSceneGraph& scene_graph)
 {
     //std::unique_ptr<glTFGraphicsPassTestTriangleSimplest> test_triangle_pass = std::make_unique<glTFGraphicsPassTestTriangleSimplest>();
     //std::unique_ptr<glTFGraphicsPassTestIndexedTriangle> test_triangle_pass = std::make_unique<glTFGraphicsPassTestIndexedTriangle>();
@@ -138,10 +149,5 @@ bool glTFSceneRendererTestTriangle::SetupSceneRenderer()
     //std::unique_ptr<glTFGraphicsPassTestSceneRendering> test_triangle_pass = std::make_unique<glTFGraphicsPassTestSceneRendering>();
     m_pass_manager->AddRenderPass(std::make_shared<glTFComputePassTestFillColor>());
 
-    return true;
-}
-
-bool glTFSceneRendererVTPlane::SetupSceneRenderer()
-{
     return true;
 }

@@ -63,7 +63,7 @@ public:
         return root_signature.AddTableRootParameter(m_name, {TextureType, TableRangeCount, false, TableRangeCount == UINT_MAX}, m_allocation);
     }
 
-    virtual bool ApplyInterfaceImpl(IRHICommandList& command_list, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater, unsigned
+    virtual bool ApplyInterfaceImpl(glTFRenderResourceManager& resource_manager, IRHICommandList& command_list, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater, unsigned
                                     frame_index) override
     {
         if (m_descriptor_table)

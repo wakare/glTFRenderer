@@ -9,10 +9,13 @@ glTFRenderInterfaceLighting::glTFRenderInterfaceLighting()
      AddInterface(std::make_shared<glTFRenderInterfaceStructuredBuffer<LightInfo>>(LightInfo::Name.c_str()));
 }
 
-bool glTFRenderInterfaceLighting::UpdateCPUBuffer(glTFRenderResourceManager& resource_manager)
+bool glTFRenderInterfaceLighting::ApplyInterfaceImpl(glTFRenderResourceManager& resource_manager, IRHICommandList& command_list,
+                                                     RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater, unsigned frame_index)
 {
+     RETURN_IF_FALSE(glTFRenderInterfaceBaseWithDefaultImpl::ApplyInterfaceImpl(resource_manager, command_list, pipeline_type, descriptor_updater, frame_index));
+
      RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSingleConstantBuffer<ConstantBufferPerLightDraw>>()->UploadBuffer(
-          resource_manager, &m_light_buffer_data.light_info, 0, sizeof(m_light_buffer_data.light_info)))
+               resource_manager, &m_light_buffer_data.light_info, 0, sizeof(m_light_buffer_data.light_info)))
      
      if (!light_infos.empty())
      {

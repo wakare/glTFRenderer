@@ -61,7 +61,7 @@ protected:
     std::shared_ptr<glTFInputManager> m_input_manager;
 
     glTFTimer m_timer;
-    std::unique_ptr<glTFSceneGraph> m_scene_graph;
+    std::shared_ptr<glTFSceneGraph> m_scene_graph;
     std::unique_ptr<glTFAppRenderer> m_renderer;
 
     // GUI state

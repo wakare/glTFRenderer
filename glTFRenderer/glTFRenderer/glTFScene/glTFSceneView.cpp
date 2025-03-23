@@ -6,7 +6,7 @@
 #include "glTFRenderPass/glTFRenderPassManager.h"
 #include "glTFRenderPass/glTFComputePass/glTFComputePassLighting.h"
 
-glTFSceneView::glTFSceneView(const glTFSceneGraph& graph)
+glTFSceneView::glTFSceneView(std::shared_ptr<glTFSceneGraph> graph)
     : m_scene_graph(graph)
     , m_lighting_dirty(true)
 {
@@ -15,7 +15,7 @@ glTFSceneView::glTFSceneView(const glTFSceneGraph& graph)
 
 void glTFSceneView::TraverseSceneObjectWithinView(const std::function<bool(const glTFSceneNode& primitive)>& visitor) const
 {
-    m_scene_graph.TraverseNodes(visitor);
+    m_scene_graph->TraverseNodes(visitor);
 }
 
 std::vector<const glTFSceneNode*> glTFSceneView::GetDirtySceneNodes() const
@@ -68,7 +68,7 @@ void glTFSceneView::GetViewportSize(unsigned& out_width, unsigned& out_height) c
 
 glTFCamera* glTFSceneView::GetMainCamera() const
 {
-    const auto cameras = m_scene_graph.GetSceneCameras();
+    const auto cameras = m_scene_graph->GetAllTypedNodes<glTFCamera>();
     return cameras.empty() ? nullptr : cameras[0];
 }
 
@@ -117,7 +117,7 @@ bool glTFSceneView::GetLightingDirty() const
     return m_lighting_dirty;
 }
 
-ConstantBufferSceneView glTFSceneView::CreateSceneViewConstantBuffer(glTFRenderResourceManager& resource_manager) const
+ConstantBufferSceneView glTFSceneView::CreateSceneViewConstantBuffer() const
 {
     ConstantBufferSceneView scene_view;
     
@@ -162,18 +162,7 @@ ConstantBufferSceneView glTFSceneView::CreateSceneViewConstantBuffer(glTFRenderR
 
 void glTFSceneView::FocusSceneCenter(glTFCamera& camera) const
 {
-    glTF_AABB::AABB sceneAABB;
-    m_scene_graph.TraverseNodes([&sceneAABB](const glTFSceneNode& node)
-    {
-        for (const auto& object : node.m_objects)
-        {
-            const glTF_AABB::AABB world_AABB = glTF_AABB::AABB::TransformAABB(node.m_finalTransform.GetTransformMatrix(), object->GetAABB());
-            sceneAABB.extend(world_AABB);
-        }
-        
-        return true;
-    });
-
+    glTF_AABB::AABB sceneAABB = m_scene_graph->GetBounds();
     camera.Translate(sceneAABB.getCenter() - glm::vec3 {0.0f, 0.0f, 2 * sceneAABB.getLongestEdge()});
     camera.Observe(sceneAABB.getCenter());
 }

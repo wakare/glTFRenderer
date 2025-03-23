@@ -29,14 +29,11 @@ bool glTFComputePassBase::RenderPass(glTFRenderResourceManager& resource_manager
 {
     RETURN_IF_FALSE(glTFRenderPassBase::RenderPass(resource_manager))
     
-    if (IsRenderingEnabled())
-    {
-        auto& command_list = resource_manager.GetCommandListForRecord();
+    auto& command_list = resource_manager.GetCommandListForRecord();
 
-        const auto& DispatchCount = GetDispatchCount(resource_manager);
+    const auto& DispatchCount = GetDispatchCount(resource_manager);
     
-        RETURN_IF_FALSE(RHIUtils::Instance().Dispatch(command_list, DispatchCount.X, DispatchCount.Y, DispatchCount.Z))    
-    }
+    RETURN_IF_FALSE(RHIUtils::Instance().Dispatch(command_list, DispatchCount.X, DispatchCount.Y, DispatchCount.Z))    
     
     return true;
 }

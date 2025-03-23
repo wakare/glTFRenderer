@@ -110,7 +110,7 @@ bool glTFRenderPassBase::ModifyFinalOutput(RenderGraphNodeUtil::RenderGraphNodeF
     {
         auto output_texture = GetResourceTexture(m_final_output_candidates[m_final_output_index]);
         // TODO: Match texture byte with swapchain real format
-        if (GetBytePerPixelByFormat(output_texture->GetTextureFormat()) == 4)
+        if (GetBytePerPixelByFormat(output_texture->GetTextureFormat()) == 4 && !output_texture->GetTextureDesc().HasUsage(RHIResourceUsageFlags::RUF_ALLOW_DEPTH_STENCIL))
         {
             final_output.final_color_output = GetResourceTexture(m_final_output_candidates[m_final_output_index]);    
         }

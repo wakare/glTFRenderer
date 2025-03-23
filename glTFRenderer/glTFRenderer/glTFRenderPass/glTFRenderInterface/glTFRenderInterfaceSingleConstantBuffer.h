@@ -70,7 +70,7 @@ protected:
         
         return true;
     }
-    virtual bool ApplyInterfaceImpl(IRHICommandList& command_list, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater, unsigned
+    virtual bool ApplyInterfaceImpl(glTFRenderResourceManager& resource_manager, IRHICommandList& command_list, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater, unsigned
                                     frame_index) override
     {
         descriptor_updater.BindTextureDescriptorTable(command_list, pipeline_type, m_allocation, *m_constant_buffer_descriptor_allocation);

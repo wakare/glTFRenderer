@@ -28,7 +28,7 @@ protected:
         return true;
     }
     
-    virtual bool ApplyInterfaceImpl(IRHICommandList& command_list, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater, unsigned
+    virtual bool ApplyInterfaceImpl(glTFRenderResourceManager& resource_manager, IRHICommandList& command_list, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater, unsigned
                                     frame_index) override
     {
         RETURN_IF_FALSE(RHIUtils::Instance().SetConstant32BitToRootParameterSlot(command_list,

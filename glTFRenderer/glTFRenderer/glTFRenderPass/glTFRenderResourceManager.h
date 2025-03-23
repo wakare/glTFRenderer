@@ -6,6 +6,7 @@
 #include "glTFRenderPassCommon.h"
 #include "glTFRenderResourceFrameManager.h"
 #include "RenderGraphNodeUtil.h"
+#include "glTFScene/glTFSceneView.h"
 
 class glTFSceneView;
 class RenderSystemBase;
@@ -18,9 +19,27 @@ class IRHISwapChain;
 class IRHICommandQueue;
 class IRHIPipelineStateObject;
 
-struct glTFPerFrameRenderResourceData
+class glTFPerFrameRenderResourceData
 {
+public:
+    //DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFPerFrameRenderResourceData)
+    bool InitSceneViewData(IRHIMemoryManager& memory_manager, IRHIDevice& device);
+    bool UpdateSceneViewData(IRHIMemoryManager& memory_manager, IRHIDevice& device, const ConstantBufferSceneView& scene_view);
+    const ConstantBufferSceneView& GetSceneView() const;
+    std::shared_ptr<IRHIBufferAllocation> GetSceneViewBufferAllocation() const;
+
+    bool InitShadowmapSceneViewData(IRHIMemoryManager& memory_manager, IRHIDevice& device, unsigned light_id);
+    bool UpdateShadowmapSceneViewData(IRHIMemoryManager& memory_manager, IRHIDevice& device, unsigned light_id, const ConstantBufferSceneView& scene_view);
+    const ConstantBufferSceneView& GetShadowmapSceneView(unsigned light_id) const;
+    std::shared_ptr<IRHIBufferAllocation> GetShadowmapViewBufferAllocation(unsigned light_id) const;
+    
+protected:
+    ConstantBufferSceneView m_scene_view;
     std::shared_ptr<IRHIBufferAllocation> m_scene_view_buffer;
+
+    // Directional light shadowmap views
+    std::map<unsigned, ConstantBufferSceneView> m_shadowmap_view_data;
+    std::map<unsigned, std::shared_ptr<IRHIBufferAllocation>> m_shadowmap_view_buffers;
 };
 
 // Hold all rhi resource
@@ -87,6 +106,7 @@ public:
     bool ExportResourceTexture(const RHITextureDesc& desc, RenderPassResourceTableId entry_id, std::vector<std::shared_ptr<IRHITexture>>& out_texture_allocation);
     bool ImportResourceTexture(const RHITextureDesc& desc, RenderPassResourceTableId entry_id, std::vector<std::shared_ptr<IRHITexture>>& out_texture_allocation);
 
+    std::vector<glTFPerFrameRenderResourceData>& GetPerFrameRenderResourceData();
     const std::vector<glTFPerFrameRenderResourceData>& GetPerFrameRenderResourceData() const;
 
     RenderGraphNodeUtil::RenderGraphNodeFinalOutput& GetFinalOutput();
@@ -99,7 +119,7 @@ public:
     std::vector<std::shared_ptr<RenderSystemBase>> GetRenderSystems() const;
 
     void TickFrame();
-    void TickSceneUpdating(const glTFSceneView& scene_view, glTFRenderResourceManager& resource_manager, size_t delta_time_ms);
+    void TickSceneUpdating(const glTFSceneView& scene_view, glTFRenderResourceManager& resource_manager, const glTFSceneGraph& scene_graph, size_t delta_time_ms);
 
     
 private:

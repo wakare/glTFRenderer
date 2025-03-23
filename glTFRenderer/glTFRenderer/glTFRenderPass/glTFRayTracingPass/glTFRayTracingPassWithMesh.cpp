@@ -4,7 +4,7 @@
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceLighting.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneMaterial.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneMeshInfo.h"
-#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneView.h"
+#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceViewBase.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 
 glTFRayTracingPassWithMesh::glTFRayTracingPassWithMesh()
@@ -55,7 +55,6 @@ bool glTFRayTracingPassWithMesh::PreRenderPass(glTFRenderResourceManager& resour
 {
     RETURN_IF_FALSE(glTFRayTracingPassBase::PreRenderPass(resource_manager))
     RETURN_IF_FALSE(UpdateAS(resource_manager))
-    RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceLighting>()->UpdateCPUBuffer(resource_manager))
     BindDescriptor(resource_manager.GetCommandListForRecord(), m_raytracing_as_allocation, m_raytracing_as->GetTLASDescriptorSRV());
 
     return true;

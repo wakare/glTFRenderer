@@ -27,7 +27,7 @@ bool glTFRenderInterfaceBase::ApplyInterface(glTFRenderResourceManager& resource
     auto& command_list = resource_manager.GetCommandListForRecord();
     TraverseWithLambda(*this, [&](glTFRenderInterfaceBase& render_interface)
     {
-        render_interface.ApplyInterfaceImpl(command_list, pipeline_type,  descriptor_updater,resource_manager.GetCurrentBackBufferIndex());
+        render_interface.ApplyInterfaceImpl(resource_manager, command_list,  pipeline_type,descriptor_updater, resource_manager.GetCurrentBackBufferIndex());
     });
     
     return true;
@@ -56,8 +56,8 @@ bool glTFRenderInterfaceBase::PostInitInterfaceImpl(glTFRenderResourceManager& r
     return true;
 }
 
-bool glTFRenderInterfaceBase::ApplyInterfaceImpl(IRHICommandList& command_list, RHIPipelineType pipeline_type,
-    IRHIDescriptorUpdater& descriptor_updater, unsigned frame_index)
+bool glTFRenderInterfaceBase::ApplyInterfaceImpl(glTFRenderResourceManager& resource_manager, IRHICommandList& command_list,
+                                                 RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater, unsigned frame_index)
 {
     return true;
 }

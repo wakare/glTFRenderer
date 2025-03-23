@@ -4,7 +4,7 @@
 
 #include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneMeshInfo.h"
-#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneView.h"
+#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceViewBase.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceStructuredBuffer.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 
@@ -12,7 +12,6 @@ bool glTFGraphicsPassMeshBase::InitRenderInterface(glTFRenderResourceManager& re
 {
     RETURN_IF_FALSE(glTFGraphicsPassBase::InitRenderInterface(resource_manager))
     
-    AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneView>());
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMeshInfo>());
     AddRenderInterface(std::make_shared<glTFRenderInterfaceStructuredBuffer<MeshInstanceInputData>>());
     
@@ -48,47 +47,44 @@ bool glTFGraphicsPassMeshBase::RenderPass(glTFRenderResourceManager& resource_ma
 {
     RETURN_IF_FALSE(glTFGraphicsPassBase::RenderPass(resource_manager))    
 
-    if (IsRenderingEnabled())
-    {
         auto& command_list = resource_manager.GetCommandListForRecord();
 
-        const auto& mesh_render_resources = resource_manager.GetMeshManager().GetMeshRenderResources();
+    const auto& mesh_render_resources = resource_manager.GetMeshManager().GetMeshRenderResources();
 
-        if (UsingIndirectDraw())
+    if (UsingIndirectDraw())
+    {
+        // Bind mega index buffer
+        RHIUtils::Instance().SetIndexBufferView(command_list, *resource_manager.GetMeshManager().GetMegaIndexBufferView());
+        resource_manager.GetMeshManager().GetIndirectDrawBuilder().DrawIndirect(command_list, *m_command_signature, UsingIndirectDrawCulling());
+    }
+    else
+    {
+        for (const auto& instance : resource_manager.GetMeshManager().GetInstanceDrawInfo())
         {
-            // Bind mega index buffer
-            RHIUtils::Instance().SetIndexBufferView(command_list, *resource_manager.GetMeshManager().GetMegaIndexBufferView());
-            resource_manager.GetMeshManager().GetIndirectDrawBuilder().DrawIndirect(command_list, *m_command_signature, UsingIndirectDrawCulling());
-        }
-        else
-        {
-            for (const auto& instance : resource_manager.GetMeshManager().GetInstanceDrawInfo())
+            const auto& mesh_data = mesh_render_resources.find(instance.first);
+            if (mesh_data == mesh_render_resources.end())
             {
-                const auto& mesh_data = mesh_render_resources.find(instance.first);
-                if (mesh_data == mesh_render_resources.end())
-                {
-                    // No valid instance data exists..
-                    continue;
-                }
+                // No valid instance data exists..
+                continue;
+            }
         
-                if (!mesh_data->second.mesh->IsVisible())
-                {
-                    continue;
-                }
+            if (!mesh_data->second.mesh->IsVisible())
+            {
+                continue;
+            }
         
-                if (UsingInputLayout())
-                {
-                    RHIUtils::Instance().SetVertexBufferView(command_list, 0, *mesh_data->second.mesh_vertex_buffer_view);
-                    RHIUtils::Instance().SetVertexBufferView(command_list, 1, *resource_manager.GetMeshManager().GetInstanceBufferView());    
-                }
+            if (UsingInputLayout())
+            {
+                RHIUtils::Instance().SetVertexBufferView(command_list, 0, *mesh_data->second.mesh_vertex_buffer_view);
+                RHIUtils::Instance().SetVertexBufferView(command_list, 1, *resource_manager.GetMeshManager().GetInstanceBufferView());    
+            }
                 
-                RHIUtils::Instance().SetIndexBufferView(command_list, *mesh_data->second.mesh_index_buffer_view);
+            RHIUtils::Instance().SetIndexBufferView(command_list, *mesh_data->second.mesh_index_buffer_view);
         
-                RHIUtils::Instance().DrawIndexInstanced(command_list,
-                    mesh_data->second.mesh_index_count, instance.second.first,
-                    0, 0,
-                    instance.second.second);
-            }    
+            RHIUtils::Instance().DrawIndexInstanced(command_list,
+                mesh_data->second.mesh_index_count, instance.second.first,
+                0, 0,
+                instance.second.second);
         }
     }
     
@@ -124,7 +120,7 @@ bool glTFGraphicsPassMeshBase::UsingIndirectDraw() const
 
 bool glTFGraphicsPassMeshBase::UsingIndirectDrawCulling() const
 {
-    return true;
+    return false;
 }
 
 bool glTFGraphicsPassMeshBase::UsingInputLayout() const
@@ -154,4 +150,26 @@ bool glTFGraphicsPassMeshBase::UpdateGUIWidgets()
 RHICullMode glTFGraphicsPassMeshBase::GetCullMode()
 {
     return RHICullMode::CW;
+}
+
+bool glTFGraphicsPassMeshBaseSceneView::InitRenderInterface(glTFRenderResourceManager& resource_manager)
+{
+    RETURN_IF_FALSE(glTFGraphicsPassMeshBase::InitRenderInterface(resource_manager))
+
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneView>());
+    
+    return true;
+}
+
+bool glTFGraphicsPassMeshBaseSceneView::UpdateGUIWidgets()
+{
+    RETURN_IF_FALSE(glTFGraphicsPassMeshBase::UpdateGUIWidgets())
+    ImGui::Checkbox("Indirect Draw Culling", &m_use_indirect_culling);
+    
+    return true;
+}
+
+bool glTFGraphicsPassMeshBaseSceneView::UsingIndirectDrawCulling() const
+{
+    return m_use_indirect_culling;
 }

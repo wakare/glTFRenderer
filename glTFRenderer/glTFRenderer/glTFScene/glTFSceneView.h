@@ -9,35 +9,36 @@ class glTFInputManager;
 
 struct ConstantBufferSceneView
 {
+    // TODO: Be careful for adding member to ConstantBuffer with alignment!
+    
     inline static std::string Name = "SCENE_VIEW_REGISTER_INDEX"; 
-    glm::mat4 view_matrix {glm::mat4{1.0f}};
-    glm::mat4 projection_matrix {glm::mat4{1.0f}};
-    glm::mat4 inverse_view_matrix {glm::mat4{1.0f}};
+    glm::mat4 view_matrix               {glm::mat4{1.0f}};
+    glm::mat4 projection_matrix         {glm::mat4{1.0f}};
+    glm::mat4 inverse_view_matrix       {glm::mat4{1.0f}};
     glm::mat4 inverse_projection_matrix {glm::mat4{1.0f}};
     
     // Prev matrix
-    glm::mat4 prev_view_matrix {glm::mat4{1.0f}};
-    glm::mat4 prev_projection_matrix {glm::mat4{1.0f}};
+    glm::mat4 prev_view_matrix          {glm::mat4{1.0f}};
+    glm::mat4 prev_projection_matrix    {glm::mat4{1.0f}};
     
-    // TODO: Be careful for adding member to ConstantBuffer with alignment!
-    glm::vec4 view_position {0.0f};
-    unsigned viewport_width {0};
-    unsigned viewport_height {0};
+    glm::vec4 view_position             {0.0f};
+    unsigned viewport_width             {0};
+    unsigned viewport_height            {0};
 
-    float nearZ {0.0f};
-    float farZ {0.0f};
+    float nearZ                         {0.0f};
+    float farZ                          {0.0f};
 
-    glm::vec4 view_left_plane_normal;
-    glm::vec4 view_right_plane_normal;
-    glm::vec4 view_up_plane_normal;
-    glm::vec4 view_down_plane_normal;
+    glm::vec4 view_left_plane_normal    {glm::vec4{0.0f}};
+    glm::vec4 view_right_plane_normal   {glm::vec4{0.0f}};
+    glm::vec4 view_up_plane_normal      {glm::vec4{0.0f}};
+    glm::vec4 view_down_plane_normal    {glm::vec4{0.0f}};
 };
 
 // Resolve specific render pass with drawable primitive and handle render scene graph with camera
 class glTFSceneView
 {
 public:
-    glTFSceneView(const glTFSceneGraph& graph);
+    glTFSceneView(std::shared_ptr<glTFSceneGraph> graph);
 
     std::vector<const glTFSceneNode*> GetDirtySceneNodes() const;
     
@@ -54,7 +55,7 @@ public:
     
     bool GetLightingDirty() const;
 
-    ConstantBufferSceneView CreateSceneViewConstantBuffer(glTFRenderResourceManager& resource_manager) const;   
+    ConstantBufferSceneView CreateSceneViewConstantBuffer() const;   
     
 private:
     // Only traverse necessary primitives
@@ -63,7 +64,7 @@ private:
     void FocusSceneCenter(glTFCamera& camera) const;
     static void ApplyInputForCamera(const glTFInputManager& input_manager, glTFCamera& camera, size_t delta_time_ms);
 
-    const glTFSceneGraph& m_scene_graph;
+    std::shared_ptr<glTFSceneGraph> m_scene_graph;
 
     bool m_lighting_dirty;
     std::vector<const glTFSceneNode*> m_frame_dirty_nodes;

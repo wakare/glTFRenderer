@@ -107,23 +107,21 @@ void glTFSceneGraph::TraverseNodes(const std::function<bool(const glTFSceneNode&
     TraverseNodeImpl(visitor, *m_root);
 }
 
-std::vector<glTFCamera*> glTFSceneGraph::GetSceneCameras() const
+glTF_AABB::AABB glTFSceneGraph::GetBounds() const
 {
-    std::vector<glTFCamera*> cameras;
-    TraverseNodes([&cameras](const glTFSceneNode& node)
+    glTF_AABB::AABB result;
+    TraverseNodes([&result](const glTFSceneNode& node)
     {
-        for (const auto& sceneObject : node.m_objects)
+        for (const auto& object : node.m_objects)
         {
-            if (auto* camera = dynamic_cast<glTFCamera*>(sceneObject.get()) )
-            {
-                cameras.push_back(camera);
-            }    
+            const glTF_AABB::AABB world_AABB = glTF_AABB::AABB::TransformAABB(node.m_finalTransform.GetTransformMatrix(), object->GetAABB());
+            result.extend(world_AABB);
         }
-            
+        
         return true;
     });
-
-    return cameras;
+    
+    return result;
 }
 
 const glTFSceneNode& glTFSceneGraph::GetRootNode() const

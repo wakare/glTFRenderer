@@ -1,7 +1,7 @@
 #pragma once
 #include "glTFGraphicsPassMeshBase.h"
 
-class glTFGraphicsPassMeshDepth : public glTFGraphicsPassMeshBase
+class glTFGraphicsPassMeshDepth : public glTFGraphicsPassMeshBaseSceneView
 {
 public:
     DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFGraphicsPassMeshDepth)

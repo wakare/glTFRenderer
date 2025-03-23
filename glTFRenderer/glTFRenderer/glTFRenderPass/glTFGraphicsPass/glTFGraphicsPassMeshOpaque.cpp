@@ -2,7 +2,6 @@
 
 #include "glTFRenderPass/glTFRenderMaterialManager.h"
 #include "glTFRenderPass/glTFRenderResourceManager.h"
-#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceRadiosityScene.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSampler.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneMaterial.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceVT.h"
@@ -11,7 +10,7 @@
 
 bool glTFGraphicsPassMeshOpaque::InitRenderInterface(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(glTFGraphicsPassMeshBase::InitRenderInterface(resource_manager))
+    RETURN_IF_FALSE(glTFGraphicsPassMeshBaseSceneView::InitRenderInterface(resource_manager))
 
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMaterial>());
     AddRenderInterface(std::make_shared<glTFRenderInterfaceVT>(InterfaceVTType::SAMPLE_VT_TEXTURE_DATA));

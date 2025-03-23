@@ -329,6 +329,22 @@ RHITextureDesc RHITextureDesc::MakeComputePassRayTracingPostProcessOutputDesc(
     return texture_desc;
 }
 
+RHITextureDesc RHITextureDesc::MakeShadowPassOutputDesc(const glTFRenderResourceManager& resource_manager)
+{
+    RHITextureDesc texture_desc = MakeFullScreenTextureDesc(
+        "SHADOWPASS_OUTPUT",
+            RHIDataFormat::R32_TYPELESS,
+            static_cast<RHIResourceUsageFlags>(RUF_ALLOW_DEPTH_STENCIL | RUF_ALLOW_SRV),
+{
+                .clear_format = RHIDataFormat::D32_FLOAT,
+                .clear_depth_stencil{1.0f, 0}
+            },
+            resource_manager
+        );
+    
+    return texture_desc;
+}
+
 RHITextureDesc RHITextureDesc::MakeBasePassVTFeedbackDesc(const glTFRenderResourceManager& resource_manager, unsigned feed_back_size_x, unsigned feed_back_size_y)
 {
     RHITextureDesc texture_desc = MakeFullScreenTextureDesc(

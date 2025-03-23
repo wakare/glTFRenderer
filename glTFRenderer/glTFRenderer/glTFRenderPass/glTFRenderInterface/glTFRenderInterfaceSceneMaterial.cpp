@@ -9,7 +9,7 @@
 
 glTFRenderInterfaceSceneMaterial::glTFRenderInterfaceSceneMaterial()
 {
-    AddInterface(std::make_shared<glTFRenderInterfaceStructuredBuffer<MaterialInfo>>(MaterialInfo::Name.c_str()));
+    AddInterface(std::make_shared<glTFRenderInterfaceStructuredBuffer<MaterialInfo>>());
     AddInterface(std::make_shared<glTFRenderInterfaceTextureTableBindless<RHIDescriptorRangeType::SRV>>("SCENE_MATERIAL_TEXTURE_REGISTER_INDEX"));
     
     std::shared_ptr<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Warp, RHIStaticSamplerFilterMode::Linear>> sampler_interface =

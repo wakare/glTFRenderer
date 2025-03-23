@@ -37,3 +37,15 @@ protected:
     // Indirect drawing
     std::shared_ptr<IRHICommandSignature> m_command_signature;
 };
+
+class glTFGraphicsPassMeshBaseSceneView : public glTFGraphicsPassMeshBase
+{
+public:
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFGraphicsPassMeshBaseSceneView)
+    virtual bool InitRenderInterface(glTFRenderResourceManager& resource_manager) override;
+    virtual bool UpdateGUIWidgets() override;
+    virtual bool UsingIndirectDrawCulling() const override;
+    
+protected:
+    bool m_use_indirect_culling {true};
+};

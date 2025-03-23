@@ -24,7 +24,7 @@ protected:
     virtual bool InitInterfaceImpl(glTFRenderResourceManager& resource_manager);
     virtual bool PostInitInterfaceImpl(glTFRenderResourceManager& resource_manager);
     
-    virtual bool ApplyInterfaceImpl(IRHICommandList& command_list, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater, unsigned
+    virtual bool ApplyInterfaceImpl(glTFRenderResourceManager& resource_manager, IRHICommandList& command_list, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater, unsigned
                                     frame_index);
     virtual bool ApplyRootSignatureImpl(IRHIRootSignatureHelper& root_signature);
     virtual void ApplyShaderDefineImpl(RHIShaderPreDefineMacros& out_shader_pre_define_macros);
@@ -67,7 +67,7 @@ class glTFRenderInterfaceBaseWithDefaultImpl : public glTFRenderInterfaceBase
 {
 protected:
     virtual bool InitInterfaceImpl(glTFRenderResourceManager& resource_manager) override { return true; }
-    virtual bool ApplyInterfaceImpl(IRHICommandList& command_list, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater, unsigned
+    virtual bool ApplyInterfaceImpl(glTFRenderResourceManager& resource_manager, IRHICommandList& command_list, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater, unsigned
                                     frame_index) override {return true;}
     virtual bool ApplyRootSignatureImpl(IRHIRootSignatureHelper& root_signature) override { return true; }
     virtual void ApplyShaderDefineImpl(RHIShaderPreDefineMacros& out_shader_pre_define_macros) override {}

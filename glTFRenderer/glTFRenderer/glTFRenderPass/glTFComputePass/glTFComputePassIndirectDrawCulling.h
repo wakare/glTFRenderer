@@ -6,7 +6,7 @@ class IRHIBufferAllocation;
 class glTFComputePassIndirectDrawCulling : public glTFComputePassBase
 {
 public:
-    glTFComputePassIndirectDrawCulling();
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFComputePassIndirectDrawCulling)
     
     virtual const char* PassName() override;
 
@@ -18,19 +18,13 @@ public:
     
     virtual bool PreRenderPass(glTFRenderResourceManager& resource_manager) override;
     
-    virtual bool IsRenderingEnabled() const override;
-    
     virtual DispatchCount GetDispatchCount(glTFRenderResourceManager& resource_manager) const override;
     
 protected:
-    virtual bool UpdateGUIWidgets() override;
-    
-    DispatchCount m_dispatch_count;
+    DispatchCount m_dispatch_count{};
     RootSignatureAllocation m_culled_indirect_command_allocation;
     std::shared_ptr<IRHIBufferDescriptorAllocation> m_culled_command_output_descriptor;
     
     RootSignatureAllocation m_culled_count_output_allocation;
     std::shared_ptr<IRHIBufferDescriptorAllocation> m_culled_count_output_descriptor;
-    
-    bool m_enable_culling; 
 };

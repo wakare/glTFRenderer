@@ -3,7 +3,7 @@
 #include <imgui.h>
 
 #include "glTFRenderPass/glTFRenderResourceManager.h"
-#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneView.h"
+#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceViewBase.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceStructuredBuffer.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 #include "glTFScene/glTFSceneView.h"
@@ -21,12 +21,6 @@ ALIGN_FOR_CBV_STRUCT struct CullingBoundingBox
 
     glm::vec4 bounding_box;
 };
-
-glTFComputePassIndirectDrawCulling::glTFComputePassIndirectDrawCulling()
-    : m_dispatch_count()
-    , m_enable_culling(false)
-{
-}
 
 const char* glTFComputePassIndirectDrawCulling::PassName()
 {
@@ -153,44 +147,28 @@ bool glTFComputePassIndirectDrawCulling::SetupPipelineStateObject(glTFRenderReso
 bool glTFComputePassIndirectDrawCulling::PreRenderPass(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFComputePassBase::PreRenderPass(resource_manager))
-    if (m_enable_culling)
-    {
-        auto& command_list = resource_manager.GetCommandListForRecord();
-        auto& indirect_argument_buffer = *resource_manager.GetMeshManager().GetIndirectDrawBuilder().GetCulledIndirectArgumentBuffer();
-        indirect_argument_buffer.Transition(command_list, RHIResourceStateType::STATE_UNORDERED_ACCESS );
+    
+    auto& command_list = resource_manager.GetCommandListForRecord();
+    auto& indirect_argument_buffer = *resource_manager.GetMeshManager().GetIndirectDrawBuilder().GetCulledIndirectArgumentBuffer();
+    indirect_argument_buffer.Transition(command_list, RHIResourceStateType::STATE_UNORDERED_ACCESS );
 
-        const char* cached_data;
-        size_t cached_data_size;
-        resource_manager.GetMeshManager().GetIndirectDrawBuilder().GetCachedData(cached_data, cached_data_size);
-        GetRenderInterface<glTFRenderInterfaceSingleConstantBuffer<CullingConstant>>()->UploadBuffer(resource_manager, &cached_data_size, 0, sizeof(unsigned));
+    const char* cached_data;
+    size_t cached_data_size;
+    resource_manager.GetMeshManager().GetIndirectDrawBuilder().GetCachedData(cached_data, cached_data_size);
+    GetRenderInterface<glTFRenderInterfaceSingleConstantBuffer<CullingConstant>>()->UploadBuffer(resource_manager, &cached_data_size, 0, sizeof(unsigned));
         
-        BindDescriptor(command_list,
-            m_culled_indirect_command_allocation,
-            *m_culled_command_output_descriptor);
+    BindDescriptor(command_list,
+        m_culled_indirect_command_allocation,
+        *m_culled_command_output_descriptor);
         
-        BindDescriptor(command_list,
-            m_culled_count_output_allocation,
-            *m_culled_count_output_descriptor);
-    }
+    BindDescriptor(command_list,
+        m_culled_count_output_allocation,
+        *m_culled_count_output_descriptor);
     
     return true;
-}
-
-bool glTFComputePassIndirectDrawCulling::IsRenderingEnabled() const
-{
-    return m_enable_culling;
 }
 
 DispatchCount glTFComputePassIndirectDrawCulling::GetDispatchCount(glTFRenderResourceManager& resource_manager) const
 {
     return m_dispatch_count;
-}
-
-bool glTFComputePassIndirectDrawCulling::UpdateGUIWidgets()
-{
-    RETURN_IF_FALSE(glTFComputePassBase::UpdateGUIWidgets())
-
-    ImGui::Checkbox("Enable Culling", &m_enable_culling);
-    
-    return true;
 }

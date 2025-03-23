@@ -10,9 +10,9 @@ class glTFRenderInterfaceLighting : public glTFRenderInterfaceBaseWithDefaultImp
 {
 public:
     glTFRenderInterfaceLighting();
-    
-    bool UpdateCPUBuffer(glTFRenderResourceManager& resource_manager);
     bool UpdateLightInfo(const glTFLightBase& light);
+
+    virtual bool ApplyInterfaceImpl(glTFRenderResourceManager& resource_manager, IRHICommandList& command_list, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater, unsigned frame_index) override;
 
 protected:
     ConstantBufferPerLightDraw m_light_buffer_data;

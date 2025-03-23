@@ -45,7 +45,8 @@ enum class RenderPassResourceTableId
     LightingPass_Output,
     RayTracingPass_ReSTIRSample_Output,
     ComputePass_RayTracingOutputPostProcess_Output,
-
+    ShadowPass_Output,
+    
     // Custom for test pass
     TestPass_Custom0,
     TestPass_Custom1,
@@ -68,6 +69,7 @@ inline std::string RenderPassResourceTableName(RenderPassResourceTableId id)
         RETURN_RESOURCE_TABLE_NAME(LightingPass_Output)
         RETURN_RESOURCE_TABLE_NAME(RayTracingPass_ReSTIRSample_Output)
         RETURN_RESOURCE_TABLE_NAME(ComputePass_RayTracingOutputPostProcess_Output)
+        RETURN_RESOURCE_TABLE_NAME(ShadowPass_Output)
         RETURN_RESOURCE_TABLE_NAME(TestPass_Custom0)
         RETURN_RESOURCE_TABLE_NAME(TestPass_Custom1)
         RETURN_RESOURCE_TABLE_NAME(TestPass_Custom2)
