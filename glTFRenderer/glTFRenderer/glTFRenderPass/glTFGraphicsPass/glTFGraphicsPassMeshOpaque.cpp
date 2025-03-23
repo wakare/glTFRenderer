@@ -5,7 +5,7 @@
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSampler.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneMaterial.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceVT.h"
-#include "glTFRHI/RHIUtils.h"
+#include "glTFRenderSystem/VT/VirtualTextureSystem.h"
 #include "glTFRHI/RHIResourceFactoryImpl.hpp"
 
 bool glTFGraphicsPassMeshOpaque::InitRenderInterface(glTFRenderResourceManager& resource_manager)
@@ -13,7 +13,12 @@ bool glTFGraphicsPassMeshOpaque::InitRenderInterface(glTFRenderResourceManager& 
     RETURN_IF_FALSE(glTFGraphicsPassMeshBaseSceneView::InitRenderInterface(resource_manager))
 
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMaterial>());
-    AddRenderInterface(std::make_shared<glTFRenderInterfaceVT>(InterfaceVTType::SAMPLE_VT_TEXTURE_DATA));
+
+    if (resource_manager.GetRenderSystem<VirtualTextureSystem>())
+    {
+        AddRenderInterface(std::make_shared<glTFRenderInterfaceVT>(InterfaceVTType::SAMPLE_VT_TEXTURE_DATA));    
+    }
+    
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Warp, RHIStaticSamplerFilterMode::Linear>>("DEFAULT_SAMPLER_REGISTER_INDEX"));
     
     return true;

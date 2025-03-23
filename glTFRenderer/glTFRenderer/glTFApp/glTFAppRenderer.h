@@ -18,7 +18,7 @@ struct glTFAppRendererConfig
         , ReSTIR(false)
         , vulkan(false)
         , ui(false)
-        , virtual_texture(true)
+        , virtual_texture(false)
         , shadow(true)
         , test_triangle(true)
     {

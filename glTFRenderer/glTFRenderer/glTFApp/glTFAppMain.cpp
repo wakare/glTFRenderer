@@ -219,6 +219,7 @@ bool glTFAppMain::InitRenderer()
     renderer_config.raster = m_app_config.m_use_rasterizer;
     renderer_config.ReSTIR = m_app_config.m_ReSTIR;
     renderer_config.vulkan = m_app_config.m_vulkan;
+    renderer_config.virtual_texture = m_app_config.m_virtual_texture;
     renderer_config.ui = true;
     renderer_config.test_triangle = m_app_config.m_test_triangle_pass;
     
@@ -308,6 +309,9 @@ bool glTFAppMain::UpdateGUIWidgets()
     {
         m_app_config.m_vulkan = true;
     }
+
+    ImGui::Checkbox("Enable virtual texture system", &m_app_config.m_virtual_texture);
+    
     ImGui::Dummy({10.0f, 10.0f});
     if (ImGui::Button("RecreateRenderer"))
     {

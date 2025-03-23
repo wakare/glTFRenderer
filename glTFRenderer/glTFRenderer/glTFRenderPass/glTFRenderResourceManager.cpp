@@ -88,6 +88,11 @@ const ConstantBufferSceneView& glTFPerFrameRenderResourceData::GetShadowmapScene
     return m_shadowmap_view_data.at(light_id);
 }
 
+const std::map<unsigned, ConstantBufferSceneView>& glTFPerFrameRenderResourceData::GetShadowmapSceneViews() const
+{
+    return m_shadowmap_view_data;
+}
+
 std::shared_ptr<IRHIBufferAllocation> glTFPerFrameRenderResourceData::GetShadowmapViewBufferAllocation(unsigned light_id) const
 {
     return m_shadowmap_view_buffers.at(light_id);

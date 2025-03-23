@@ -38,7 +38,7 @@ struct glTFAppConfig
     bool m_ReSTIR;
     bool m_test_triangle_pass;
     bool m_vulkan;
-    
+    bool m_virtual_texture;
     bool m_recreate_renderer;
     bool m_tick_scene;
 };
@@ -65,5 +65,5 @@ protected:
     std::unique_ptr<glTFAppRenderer> m_renderer;
 
     // GUI state
-    glTFAppConfig m_app_config;
+    glTFAppConfig m_app_config{};
 };

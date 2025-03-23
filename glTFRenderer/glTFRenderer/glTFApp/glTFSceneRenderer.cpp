@@ -105,7 +105,6 @@ bool glTFSceneRendererRasterizer::SetupSceneRenderer(const glTFSceneGraph& scene
     m_pass_manager->AddRenderPass(std::make_shared<glTFComputePassIndirectDrawCulling>());
     m_pass_manager->AddRenderPass(std::make_shared<glTFGraphicsPassMeshDepth>());
     m_pass_manager->AddRenderPass(std::make_shared<glTFGraphicsPassMeshOpaque>());
-    m_pass_manager->AddRenderPass(std::make_shared<glTFComputePassLighting>());
 
     auto directional_lights = scene_graph.GetAllTypedNodes<glTFDirectionalLight>();
     for (const auto& directional_light : directional_lights)
@@ -114,6 +113,8 @@ bool glTFSceneRendererRasterizer::SetupSceneRenderer(const glTFSceneGraph& scene
         config.light_id = static_cast<int>(directional_light->GetID());
         m_pass_manager->AddRenderPass(std::make_shared<glTFGraphicsPassMeshShadowDepth>(config));
     }
+    
+    m_pass_manager->AddRenderPass(std::make_shared<glTFComputePassLighting>());
     
     return true;
 }

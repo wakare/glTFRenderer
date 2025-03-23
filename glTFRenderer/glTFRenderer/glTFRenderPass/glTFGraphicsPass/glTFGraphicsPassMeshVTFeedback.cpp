@@ -17,7 +17,10 @@ bool glTFGraphicsPassMeshVTFeedback::InitRenderInterface(glTFRenderResourceManag
     RETURN_IF_FALSE(glTFGraphicsPassMeshBaseSceneView::InitRenderInterface(resource_manager))
     
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMaterial>());
-    AddRenderInterface(std::make_shared<glTFRenderInterfaceVT>(InterfaceVTType::RENDER_VT_FEEDBACK));
+    if (resource_manager.GetRenderSystem<VirtualTextureSystem>())
+    {
+        AddRenderInterface(std::make_shared<glTFRenderInterfaceVT>(InterfaceVTType::RENDER_VT_FEEDBACK));    
+    }
     
     return true;
 }

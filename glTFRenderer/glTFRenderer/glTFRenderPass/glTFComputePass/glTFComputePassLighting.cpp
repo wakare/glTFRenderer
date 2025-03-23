@@ -7,6 +7,14 @@
 #include "glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
 #include "glTFRHI/RHIInterface/IRHISwapChain.h"
 
+struct ShadowMapMatrixInfo
+{
+    inline static std::string Name = "SHADOW_MAP_MATRIX_INFO_REGISTER_INDEX";
+    
+    glm::mat4 view_matrix{1.0f};
+    glm::mat4 projection_matrix{1.0f};
+};
+
 const char* glTFComputePassLighting::PassName()
 {
     return "LightComputePass";
@@ -22,6 +30,8 @@ bool glTFComputePassLighting::InitRenderInterface(glTFRenderResourceManager& res
     const std::shared_ptr<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Clamp, RHIStaticSamplerFilterMode::Linear>> sampler_interface =
         std::make_shared<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Clamp, RHIStaticSamplerFilterMode::Linear>>("DEFAULT_SAMPLER_REGISTER_INDEX");
     AddRenderInterface(sampler_interface);
+
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceStructuredBuffer<ShadowMapMatrixInfo>>());
     
     return true;
 }
@@ -34,13 +44,28 @@ bool glTFComputePassLighting::PreRenderPass(glTFRenderResourceManager& resource_
     GetResourceTexture(RenderPassResourceTableId::LightingPass_Output)->Transition(command_list, RHIResourceStateType::STATE_UNORDERED_ACCESS);
     GetResourceTexture(RenderPassResourceTableId::BasePass_Albedo)->Transition(command_list, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE);
     GetResourceTexture(RenderPassResourceTableId::BasePass_Normal)->Transition(command_list, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE);
+    GetResourceTexture(RenderPassResourceTableId::ShadowPass_Output)->Transition(command_list, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE);
     GetResourceTexture(RenderPassResourceTableId::Depth)->Transition(command_list, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE);
 
     BindDescriptor(command_list, m_albedo_allocation, *GetResourceDescriptor(RenderPassResourceTableId::BasePass_Albedo));
     BindDescriptor(command_list, m_depth_allocation, *GetResourceDescriptor(RenderPassResourceTableId::Depth));
     BindDescriptor(command_list, m_normal_allocation, *GetResourceDescriptor(RenderPassResourceTableId::BasePass_Normal));
+    BindDescriptor(command_list, m_shadowmap_allocation, *GetResourceDescriptor(RenderPassResourceTableId::ShadowPass_Output));
     BindDescriptor(command_list, m_output_allocation, *GetResourceDescriptor(RenderPassResourceTableId::LightingPass_Output));
 
+    auto& render_data = resource_manager.GetPerFrameRenderResourceData()[resource_manager.GetCurrentBackBufferIndex()];
+    const auto& shadowmap_views = render_data.GetShadowmapSceneViews();
+    std::vector<ShadowMapMatrixInfo> shadowmap_matrixs; shadowmap_matrixs.reserve(shadowmap_views.size());
+    for (auto& shadowmap_view : shadowmap_views)
+    {
+        ShadowMapMatrixInfo info{};
+        info.view_matrix = shadowmap_view.second.view_matrix;
+        info.projection_matrix = shadowmap_view.second.projection_matrix;
+        shadowmap_matrixs.push_back(info);
+    }
+
+    GetRenderInterface<glTFRenderInterfaceStructuredBuffer<ShadowMapMatrixInfo>>()->UploadBuffer(resource_manager, shadowmap_matrixs.data(), 0, shadowmap_matrixs.size() * sizeof(ShadowMapMatrixInfo));
+    
     return true;
 }
 
@@ -81,6 +106,10 @@ bool glTFComputePassLighting::InitResourceTable(glTFRenderResourceManager& resou
     AddImportTextureResource(RenderPassResourceTableId::BasePass_Normal, normal_desc,
         {normal_desc.GetDataFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV});
 
+    auto shadowmap_desc = RHITextureDesc::MakeShadowPassOutputDesc(resource_manager);
+    AddImportTextureResource(RenderPassResourceTableId::ShadowPass_Output, shadowmap_desc,
+        {  RHIDataFormat::D32_SAMPLE_RESERVED, RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV });
+    
     AddFinalOutputCandidate(RenderPassResourceTableId::LightingPass_Output);
     
     return true;
@@ -93,6 +122,7 @@ bool glTFComputePassLighting::SetupRootSignature(glTFRenderResourceManager& reso
     RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("ALBEDO_TEX_REGISTER_INDEX", {RHIDescriptorRangeType::SRV, 1, false, false}, m_albedo_allocation))
     RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("DEPTH_TEX_REGISTER_INDEX", {RHIDescriptorRangeType::SRV, 1, false, false}, m_depth_allocation))
     RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("NORMAL_TEX_REGISTER_INDEX", {RHIDescriptorRangeType::SRV, 1, false, false}, m_normal_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("SHADOWMAP_TEX_REGISTER_INDEX", {RHIDescriptorRangeType::SRV, 1, false, false}, m_shadowmap_allocation))
     RETURN_IF_FALSE(m_root_signature_helper.AddTableRootParameter("OUTPUT_TEX_REGISTER_INDEX", {RHIDescriptorRangeType::UAV, 1, false, false}, m_output_allocation))
 
     return true;
@@ -111,6 +141,7 @@ bool glTFComputePassLighting::SetupPipelineStateObject(glTFRenderResourceManager
     m_albedo_allocation.AddShaderDefine(shaderMacros);
     m_depth_allocation.AddShaderDefine(shaderMacros);
     m_normal_allocation.AddShaderDefine(shaderMacros);
+    m_shadowmap_allocation.AddShaderDefine(shaderMacros);
     m_output_allocation.AddShaderDefine(shaderMacros);
     
     return true;

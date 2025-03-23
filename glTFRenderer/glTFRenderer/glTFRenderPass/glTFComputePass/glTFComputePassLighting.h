@@ -24,5 +24,6 @@ protected:
     RootSignatureAllocation m_albedo_allocation;
     RootSignatureAllocation m_depth_allocation;
     RootSignatureAllocation m_normal_allocation;
+    RootSignatureAllocation m_shadowmap_allocation;
     RootSignatureAllocation m_output_allocation;
 };
