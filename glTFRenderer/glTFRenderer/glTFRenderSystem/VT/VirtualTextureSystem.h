@@ -25,7 +25,7 @@ public:
     DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VirtualTextureSystem)
 
     virtual bool InitRenderSystem(glTFRenderResourceManager& resource_manager) override;
-    virtual void SetupPass(glTFRenderPassManager& pass_manager) override;
+    virtual void SetupPass(glTFRenderPassManager& pass_manager, const glTFSceneGraph& scene_graph) override;
     virtual void ShutdownRenderSystem() override;
     virtual void TickRenderSystem(glTFRenderResourceManager& resource_manager) override;
 

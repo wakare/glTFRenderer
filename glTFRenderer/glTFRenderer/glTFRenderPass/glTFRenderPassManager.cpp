@@ -19,37 +19,37 @@ bool glTFRenderPassManager::InitRenderPassManager(glTFRenderResourceManager& res
     return true;
 }
 
-void glTFRenderPassManager::AddRenderPass(std::shared_ptr<glTFRenderPassBase> pass)
+void glTFRenderPassManager::AddRenderPass(RenderPassPhaseType type, std::shared_ptr<glTFRenderPassBase> pass)
 {
-    m_passes.push_back(std::move(pass));
+    m_passes[type].push_back(std::move(pass));
 }
 
 void glTFRenderPassManager::InitAllPass(glTFRenderResourceManager& resource_manager)
 {
     // Generate render pass before initialize sub pass
     // Create pass resource and relocation
-    for (const auto& pass : m_passes)
+    TraveseAllPass([&](glTFRenderPassBase& pass)
     {
-        pass->InitResourceTable(resource_manager);
-    }
+        pass.InitResourceTable(resource_manager);
+    });
     
-    for (const auto& pass : m_passes)
+    TraveseAllPass([&](glTFRenderPassBase& pass)
     {
-        pass->ExportResourceLocation(resource_manager);
-    }
+        pass.ExportResourceLocation(resource_manager);
+    });
     
-    for (const auto& pass : m_passes)
+    TraveseAllPass([&](glTFRenderPassBase& pass)
     {
-        pass->ImportResourceLocation(resource_manager);
-    }
+        pass.ImportResourceLocation(resource_manager);
+    });
 
-    for (const auto& pass : m_passes)
+    TraveseAllPass([&](glTFRenderPassBase& pass)
     {
-        const bool inited = pass->InitRenderInterface(resource_manager) && pass->InitPass(resource_manager);
+        const bool inited = pass.InitRenderInterface(resource_manager) && pass.InitPass(resource_manager);
         GLTF_CHECK(inited);
-        LOG_FORMAT("[DEBUG] Init pass %s finished!\n", pass->PassName())
-    }
-
+        LOG_FORMAT("[DEBUG] Init pass %s finished!\n", pass.PassName())
+    });
+    
     resource_manager.CloseCurrentCommandListAndExecute({}, true);
     LOG_FORMAT_FLUSH("[DEBUG] Init all pass finished!\n")
 }
@@ -62,23 +62,23 @@ void glTFRenderPassManager::UpdateScene(glTFRenderResourceManager& resource_mana
     {
         for (const auto& scene_object : node->m_objects)
         {
-            for (const auto& pass : m_passes)
+            TraveseAllPass([&](glTFRenderPassBase& pass)
             {
-                pass->TryProcessSceneObject(resource_manager, *scene_object);
-            }
+                pass.TryProcessSceneObject(resource_manager, *scene_object);
+            });
         }
     }
-    
-    for (const auto& pass : m_passes)
+    TraveseAllPass([&](glTFRenderPassBase& pass)
     {
-        const bool success = pass->FinishProcessSceneObject(resource_manager);
+        const bool success = pass.FinishProcessSceneObject(resource_manager);
         GLTF_CHECK(success);
 
-        if (auto* frame_stat = pass->GetRenderInterface<glTFRenderInterfaceFrameStat>())
+        if (auto* frame_stat = pass.GetRenderInterface<glTFRenderInterfaceFrameStat>())
         {
             frame_stat->UploadBuffer(resource_manager, &m_frame_index, 0, sizeof(m_frame_index));
         }
-    }
+    });
+    
     ++m_frame_index;
 }
 
@@ -88,15 +88,15 @@ void glTFRenderPassManager::UpdateAllPassGUIWidgets()
     ImGui::Dummy({10.0f, 10.0f});
     ImGui::TextColored({0.0f, 1.0f, 0.0f, 1.0f}, "Pass Config");
     
-    for (const auto& pass : m_passes)
+    TraveseAllPass([&](glTFRenderPassBase& pass)
     {
         ImGui::Dummy({10.0f, 10.0f});
-        if (ImGui::TreeNodeEx(pass->PassName(), ImGuiTreeNodeFlags_DefaultOpen))
+        if (ImGui::TreeNodeEx(pass.PassName(), ImGuiTreeNodeFlags_DefaultOpen))
         {
-            pass->UpdateGUIWidgets();
+            pass.UpdateGUIWidgets();
             ImGui::TreePop();
         }
-    }
+    });
     
     ImGui::Separator();
 }
@@ -114,26 +114,26 @@ void glTFRenderPassManager::RenderBegin(glTFRenderResourceManager& resource_mana
 
 void glTFRenderPassManager::UpdatePipelineOptions(const glTFPassOptionRenderFlags& pipeline_options)
 {
-    for (const auto& pass : m_passes)
+    TraveseAllPass([&](glTFRenderPassBase& pass)
     {
-        pass->UpdateRenderFlags(pipeline_options);
-    }
+        pass.UpdateRenderFlags(pipeline_options);
+    });
 }
 
 void glTFRenderPassManager::RenderAllPass(glTFRenderResourceManager& resource_manager, size_t deltaTimeMs) const
 {
-    for (const auto& pass : m_passes)
+    TraveseAllPass([&](glTFRenderPassBase& pass)
     {
-        if (pass->IsRenderingEnabled())
+        if (pass.IsRenderingEnabled())
         {
-            pass->UpdateFrameIndex(resource_manager);
-            pass->ModifyFinalOutput(resource_manager.GetFinalOutput());
+            pass.UpdateFrameIndex(resource_manager);
+            pass.ModifyFinalOutput(resource_manager.GetFinalOutput());
         
-            pass->PreRenderPass(resource_manager);
-            pass->RenderPass(resource_manager);
-            pass->PostRenderPass(resource_manager);            
+            pass.PreRenderPass(resource_manager);
+            pass.RenderPass(resource_manager);
+            pass.PostRenderPass(resource_manager);            
         }
-    }
+    });
     
     auto& command_list = resource_manager.GetCommandListForRecord();
     // Copy compute result to swapchain back buffer
@@ -166,4 +166,15 @@ void glTFRenderPassManager::RenderEnd(glTFRenderResourceManager& resource_manage
 void glTFRenderPassManager::ExitAllPass()
 {
     m_passes.clear();
+}
+
+void glTFRenderPassManager::TraveseAllPass(std::function<void(glTFRenderPassBase& pass)> lambda) const
+{
+    for (auto& pass_info : m_passes)
+    {
+        for (auto& pass : pass_info.second)
+        {
+            lambda(*pass);
+        }
+    }
 }

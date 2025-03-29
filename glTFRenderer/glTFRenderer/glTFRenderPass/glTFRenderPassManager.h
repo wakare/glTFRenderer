@@ -1,4 +1,5 @@
 #pragma once
+
 #include <memory>
 
 #include "glTFRenderPassBase.h"
@@ -6,13 +7,24 @@
 #include "glTFScene/glTFSceneView.h"
 #include "glTFApp/glTFPassOptionRenderFlags.h"
 
+enum RenderPassPhaseType
+{
+    PRE_SCENE = 0,
+    SCENE_DEPTH = 1,
+    SCENE_BASE_PASS = 2,
+    SCENE_SHADOW = 3,
+    SCENE_LIGHTING = 4,
+    POST_SCENE = 5,
+};
+
+
 class glTFRenderPassManager
 {
 public:
     glTFRenderPassManager();
     
     bool InitRenderPassManager(glTFRenderResourceManager& resource_manager);
-    void AddRenderPass(std::shared_ptr<glTFRenderPassBase> pass);
+    void AddRenderPass(RenderPassPhaseType type, std::shared_ptr<glTFRenderPassBase> pass);
 
     void InitAllPass(glTFRenderResourceManager& resource_manager);
     void UpdateScene(glTFRenderResourceManager& resource_manager, const glTFSceneView& scene_view, size_t delta_time_ms);
@@ -26,7 +38,9 @@ public:
     void ExitAllPass();
 
 protected:
-    std::vector<std::shared_ptr<glTFRenderPassBase>> m_passes;
+    void TraveseAllPass(std::function<void(glTFRenderPassBase& pass)> lambda) const;
+    
+    std::map<RenderPassPhaseType, std::vector<std::shared_ptr<glTFRenderPassBase>>> m_passes;
     unsigned m_frame_index;
 
     std::shared_ptr<IRHIRenderPass> m_render_pass;

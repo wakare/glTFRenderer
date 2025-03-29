@@ -10,7 +10,10 @@
 DECLARE_RESOURCE(Texture2D albedoTex, ALBEDO_TEX_REGISTER_INDEX);
 DECLARE_RESOURCE(Texture2D normalTex, NORMAL_TEX_REGISTER_INDEX);
 DECLARE_RESOURCE(Texture2D depthTex, DEPTH_TEX_REGISTER_INDEX);
+
+#ifdef HAS_SHADOWMAP
 DECLARE_RESOURCE(Texture2D shadowmapTex, SHADOWMAP_TEX_REGISTER_INDEX);
+#endif
 
 struct ShadowMapMatrixInfo
 {
@@ -52,6 +55,7 @@ void main(int3 dispatchThreadID : SV_DispatchThreadID)
     float roughness = normal_buffer_data.w;
 
     // Shadowmap
+#ifdef HAS_SHADOWMAP
     float4 shadowmap_ndc = mul(g_shadowmap_matrix[0].projection_matrix, mul(g_shadowmap_matrix[0].view_matrix, float4(world_position, 1.0)));
     shadowmap_ndc /= shadowmap_ndc.w;
     
@@ -64,6 +68,7 @@ void main(int3 dispatchThreadID : SV_DispatchThreadID)
         Output[dispatchThreadID.xy] = float4(0.0, 0.0, 0.0, 1.0);
     }
     else
+#endif
     {
         PixelLightingShadingInfo shading_info;
         shading_info.albedo = albedo;

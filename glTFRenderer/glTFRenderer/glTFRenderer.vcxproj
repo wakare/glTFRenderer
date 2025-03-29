@@ -366,6 +366,7 @@
     <None Include="glTFResources\ShaderSource\TestShaders\TestFillColorCS.hlsl" />
     <None Include="glTFResources\ShaderSource\RayTracing\LightSampling.hlsl" />
     <ClCompile Include="glTFRenderSystem\RenderSystemBase.cpp" />
+    <ClCompile Include="glTFRenderSystem\Shadow\ShadowRenderSystem.cpp" />
     <ClCompile Include="glTFRenderSystem\VT\VirtualTextureSystem.cpp" />
     <ClCompile Include="glTFRenderSystem\VT\VTPageDataAccessor.cpp" />
     <ClCompile Include="glTFRenderSystem\VT\VTPageStreamer.cpp" />
@@ -631,6 +632,7 @@
     <ClInclude Include="glTFRenderPass\glTFTestPass\glTFGraphicsPassTestIndexedTriangle.h" />
     <ClInclude Include="glTFRenderPass\RenderGraphNodeUtil.h" />
     <ClInclude Include="glTFRenderSystem\RenderSystemBase.h" />
+    <ClInclude Include="glTFRenderSystem\Shadow\ShadowRenderSystem.h" />
     <ClInclude Include="glTFRenderSystem\VT\VirtualTextureSystem.h" />
     <ClInclude Include="glTFRenderSystem\VT\VTCommon.h" />
     <ClInclude Include="glTFRenderSystem\VT\VTPageDataAccessor.h" />

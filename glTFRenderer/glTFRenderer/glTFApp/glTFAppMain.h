@@ -39,6 +39,7 @@ struct glTFAppConfig
     bool m_test_triangle_pass;
     bool m_vulkan;
     bool m_virtual_texture;
+    bool m_shadow;
     bool m_recreate_renderer;
     bool m_tick_scene;
 };

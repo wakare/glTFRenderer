@@ -16,10 +16,10 @@ bool VirtualTextureSystem::InitRenderSystem(glTFRenderResourceManager& resource_
     return true;
 }
 
-void VirtualTextureSystem::SetupPass(glTFRenderPassManager& pass_manager)
+void VirtualTextureSystem::SetupPass(glTFRenderPassManager& pass_manager, const glTFSceneGraph& scene_graph)
 {
-    pass_manager.AddRenderPass(m_feedback_pass);
-    pass_manager.AddRenderPass(m_fetch_feedback_pass);
+    pass_manager.AddRenderPass(POST_SCENE, m_feedback_pass);
+    pass_manager.AddRenderPass(POST_SCENE, m_fetch_feedback_pass);
     InitFeedBackPass();
 }
 

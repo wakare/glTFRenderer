@@ -1,6 +1,7 @@
 #include "glTFAppRenderer.h"
 #include "glTFGUIRenderer.h"
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassLighting.h"
+#include "glTFRenderSystem/Shadow/ShadowRenderSystem.h"
 #include "glTFRenderSystem/VT/VirtualTextureSystem.h"
 #include "glTFRHI/RHIConfigSingleton.h"
 #include "glTFRHI/RHIResourceFactory.h"
@@ -42,6 +43,13 @@ glTFAppRenderer::glTFAppRenderer(const glTFAppRendererConfig& renderer_config, c
         auto vt_system = std::make_shared<VirtualTextureSystem>();
         m_render_systems.push_back(vt_system);
         m_resource_manager->AddRenderSystem(vt_system);
+    }
+    
+    if (renderer_config.shadow)
+    {
+        auto shadow_system = std::make_shared<ShadowRenderSystem>();
+        m_render_systems.push_back(shadow_system);
+        m_resource_manager->AddRenderSystem(shadow_system);
     }
 
     m_resource_manager->InitRenderSystems();
