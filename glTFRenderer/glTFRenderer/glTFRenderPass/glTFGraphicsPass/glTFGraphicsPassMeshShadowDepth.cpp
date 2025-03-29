@@ -75,5 +75,11 @@ bool glTFGraphicsPassMeshShadowDepth::SetupPipelineStateObject(glTFRenderResourc
         });
     GetGraphicsPipelineStateObject().SetCullMode(RHICullMode::NONE);
     
+    
     return true;
+}
+
+RHIViewportDesc glTFGraphicsPassMeshShadowDepth::GetViewport(glTFRenderResourceManager& resource_manager) const
+{
+    return {0.0f, 0.0f, static_cast<float>(m_config.shadowmap_width), static_cast<float>(m_config.shadowmap_height), 0.0f, 1.0f};
 }

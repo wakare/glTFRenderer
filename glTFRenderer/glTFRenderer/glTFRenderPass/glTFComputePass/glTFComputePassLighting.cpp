@@ -8,12 +8,15 @@
 #include "glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
 #include "glTFRHI/RHIInterface/IRHISwapChain.h"
 
-struct ShadowMapMatrixInfo
+struct ShadowMapInfo
 {
     inline static std::string Name = "SHADOW_MAP_MATRIX_INFO_REGISTER_INDEX";
     
     glm::mat4 view_matrix{1.0f};
     glm::mat4 projection_matrix{1.0f};
+    unsigned shadowmap_width;
+    unsigned shadowmap_height;
+    unsigned pad[2];
 };
 
 const char* glTFComputePassLighting::PassName()
@@ -32,7 +35,7 @@ bool glTFComputePassLighting::InitRenderInterface(glTFRenderResourceManager& res
         std::make_shared<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Clamp, RHIStaticSamplerFilterMode::Linear>>("DEFAULT_SAMPLER_REGISTER_INDEX");
     AddRenderInterface(sampler_interface);
 
-    AddRenderInterface(std::make_shared<glTFRenderInterfaceStructuredBuffer<ShadowMapMatrixInfo>>());
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceStructuredBuffer<ShadowMapInfo>>());
     
     return true;
 }
@@ -63,16 +66,18 @@ bool glTFComputePassLighting::PreRenderPass(glTFRenderResourceManager& resource_
 
     auto& render_data = resource_manager.GetPerFrameRenderResourceData()[resource_manager.GetCurrentBackBufferIndex()];
     const auto& shadowmap_views = render_data.GetShadowmapSceneViews();
-    std::vector<ShadowMapMatrixInfo> shadowmap_matrixs; shadowmap_matrixs.reserve(shadowmap_views.size());
+    std::vector<ShadowMapInfo> shadowmap_matrixs; shadowmap_matrixs.reserve(shadowmap_views.size());
     for (auto& shadowmap_view : shadowmap_views)
     {
-        ShadowMapMatrixInfo info{};
+        ShadowMapInfo info{};
         info.view_matrix = shadowmap_view.second.view_matrix;
         info.projection_matrix = shadowmap_view.second.projection_matrix;
+        info.shadowmap_width = ShadowRenderSystem::SHADOWMAP_SIZE;
+        info.shadowmap_height = ShadowRenderSystem::SHADOWMAP_SIZE;
         shadowmap_matrixs.push_back(info);
     }
 
-    GetRenderInterface<glTFRenderInterfaceStructuredBuffer<ShadowMapMatrixInfo>>()->UploadBuffer(resource_manager, shadowmap_matrixs.data(), 0, shadowmap_matrixs.size() * sizeof(ShadowMapMatrixInfo));
+    GetRenderInterface<glTFRenderInterfaceStructuredBuffer<ShadowMapInfo>>()->UploadBuffer(resource_manager, shadowmap_matrixs.data(), 0, shadowmap_matrixs.size() * sizeof(ShadowMapInfo));
     
     return true;
 }

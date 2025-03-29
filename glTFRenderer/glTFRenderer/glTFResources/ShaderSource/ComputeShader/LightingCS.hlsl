@@ -3,7 +3,6 @@
 
 #include "glTFResources/ShaderSource/Lighting/LightingCommon.hlsl"
 #include "glTFResources/ShaderSource/Interface/SceneView.hlsl"
-//#include "glTFResources/ShaderSource/LightPassCommon.hlsl"
 #include "glTFResources/ShaderSource/Math/MathCommon.hlsl"
 #include "glTFResources/ShaderSource/ShaderDeclarationUtil.hlsl"
 
@@ -12,15 +11,17 @@ DECLARE_RESOURCE(Texture2D normalTex, NORMAL_TEX_REGISTER_INDEX);
 DECLARE_RESOURCE(Texture2D depthTex, DEPTH_TEX_REGISTER_INDEX);
 
 #ifdef HAS_SHADOWMAP
-DECLARE_RESOURCE(Texture2D shadowmapTex, SHADOWMAP_TEX_REGISTER_INDEX);
-#endif
+DECLARE_RESOURCE(Texture2D<float> shadowmapTex, SHADOWMAP_TEX_REGISTER_INDEX);
 
 struct ShadowMapMatrixInfo
 {
     float4x4 view_matrix;
     float4x4 projection_matrix;
+    uint2 shadowmap_size;
+    uint2 pad;
 };
 DECLARE_RESOURCE(StructuredBuffer<ShadowMapMatrixInfo> g_shadowmap_matrix , SHADOW_MAP_MATRIX_INFO_REGISTER_INDEX);
+#endif
 
 DECLARE_RESOURCE(RWTexture2D<float4> Output, OUTPUT_TEX_REGISTER_INDEX);
 DECLARE_RESOURCE(SamplerState defaultSampler, DEFAULT_SAMPLER_REGISTER_INDEX);
@@ -62,7 +63,8 @@ void main(int3 dispatchThreadID : SV_DispatchThreadID)
     float2 shadowmap_uv = shadowmap_ndc.xy * 0.5 + 0.5;
     shadowmap_uv.y = 1.0 - shadowmap_uv.y;
     float shadow_depth = shadowmap_ndc.z;
-    float compare_shadow_depth = shadowmapTex.Sample(defaultSampler, shadowmap_uv);
+    int2 shadowmap_pixel_coord = shadowmap_uv * g_shadowmap_matrix[0].shadowmap_size;
+    float compare_shadow_depth = shadowmapTex.Load(int3(shadowmap_pixel_coord, 0));
     if (shadow_depth > compare_shadow_depth + 0.01f)
     {
         Output[dispatchThreadID.xy] = float4(0.0, 0.0, 0.0, 1.0);

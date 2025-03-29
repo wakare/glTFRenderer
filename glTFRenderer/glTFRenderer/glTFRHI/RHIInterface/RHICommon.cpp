@@ -2,6 +2,7 @@
 
 #include "IRHISwapChain.h"
 #include "glTFRenderPass/glTFRenderResourceManager.h"
+#include "glTFRenderSystem/Shadow/ShadowRenderSystem.h"
 #include "glTFRHI/RHIConfigSingleton.h"
 #include "glTFRHI/RHIUtils.h"
 #include "SceneFileLoader/glTFImageIOUtil.h"
@@ -335,12 +336,15 @@ RHITextureDesc RHITextureDesc::MakeShadowPassOutputDesc(const glTFRenderResource
         "SHADOWPASS_OUTPUT",
             RHIDataFormat::R32_TYPELESS,
             static_cast<RHIResourceUsageFlags>(RUF_ALLOW_DEPTH_STENCIL | RUF_ALLOW_SRV),
-{
+            {
                 .clear_format = RHIDataFormat::D32_FLOAT,
                 .clear_depth_stencil{1.0f, 0}
             },
             resource_manager
         );
+
+    texture_desc.m_texture_width = resource_manager.GetRenderSystem<ShadowRenderSystem>()->SHADOWMAP_SIZE;
+    texture_desc.m_texture_height = resource_manager.GetRenderSystem<ShadowRenderSystem>()->SHADOWMAP_SIZE;
     
     return texture_desc;
 }

@@ -115,7 +115,7 @@ public:
     void AddRenderSystem(std::shared_ptr<RenderSystemBase> render_system);
 
     template<typename system_type>
-    std::shared_ptr<system_type> GetRenderSystem();
+    std::shared_ptr<system_type> GetRenderSystem() const;
 
     std::vector<std::shared_ptr<RenderSystemBase>> GetRenderSystems() const;
 
@@ -159,7 +159,7 @@ private:
 };
 
 template <typename system_type>
-std::shared_ptr<system_type> glTFRenderResourceManager::GetRenderSystem()
+std::shared_ptr<system_type> glTFRenderResourceManager::GetRenderSystem() const
 {
     for (auto& render_system : m_render_systems)
     {

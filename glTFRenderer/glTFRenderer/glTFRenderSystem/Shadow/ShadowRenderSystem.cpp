@@ -16,6 +16,8 @@ void ShadowRenderSystem::SetupPass(glTFRenderPassManager& pass_manager,  const g
     {
         ShadowmapPassConfig config{};
         config.light_id = static_cast<int>(directional_light->GetID());
+        config.shadowmap_width = SHADOWMAP_SIZE;
+        config.shadowmap_height = SHADOWMAP_SIZE;
         pass_manager.AddRenderPass(SCENE_SHADOW, std::make_shared<glTFGraphicsPassMeshShadowDepth>(config));
     }
 }

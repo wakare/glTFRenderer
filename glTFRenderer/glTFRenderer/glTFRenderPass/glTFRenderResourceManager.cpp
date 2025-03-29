@@ -563,9 +563,6 @@ void glTFRenderResourceManager::TickSceneUpdating(const glTFSceneView& scene_vie
         }
     }
 
-    const auto& frame_render_resource = resource_manager.GetPerFrameRenderResourceData()[resource_manager.GetCurrentBackBufferIndex()];
-    const auto& scene_view_data = frame_render_resource.GetSceneView();
-
     auto scene_bounds = scene_graph.GetBounds();
     auto scene_bounds_min = scene_bounds.getMin();
     auto scene_bounds_max = scene_bounds.getMax();
