@@ -8,11 +8,13 @@
 #include "glTFRHI/RHIInterface/IRHISwapChain.h"
 #include "SceneFileLoader/glTFImageIOUtil.h"
 
-bool VTLogicalTexture::InitLogicalTexture(const RHITextureDesc& desc, unsigned virtual_texture_id)
+bool VTLogicalTexture::InitLogicalTexture(const RHITextureDesc& desc, const VTLogicalTextureConfig& config)
 {
     GLTF_CHECK(desc.GetTextureWidth() > 0 && desc.GetTextureHeight() > 0 && desc.GetTextureWidth() == desc.GetTextureHeight());
 
-    m_texture_id = virtual_texture_id;
+    m_svt = config.isSVT;
+    m_texture_id = config.virtual_texture_id;
+    
     m_logical_texture_width = desc.GetTextureWidth();
     m_logical_texture_height = desc.GetTextureHeight();
 
@@ -63,8 +65,18 @@ bool VTLogicalTexture::GetPageData(const VTPage& page, VTPageData& out) const
     return true;
 }
 
+bool VTLogicalTexture::IsSVT() const
+{
+    return m_svt;
+}
+
 bool VTLogicalTexture::GeneratePageData()
 {
+    if (!IsSVT())
+    {
+        return true;
+    }
+    
     // mip 0
     VTPage::OffsetType PageX = m_logical_texture_width / VirtualTextureSystem::VT_PAGE_SIZE;
     VTPage::OffsetType PageY = m_logical_texture_height / VirtualTextureSystem::VT_PAGE_SIZE;
@@ -187,6 +199,16 @@ void VTLogicalTexture::DumpGeneratedPageDataToFile() const
         bool saved = glTFImageIOUtil::Instance().SaveAsPNG(output_file_name, page_data.second.data.get(), VirtualTextureSystem::VT_PAGE_SIZE, VirtualTextureSystem::VT_PAGE_SIZE);
         GLTF_CHECK(saved);
     }
+}
+
+VTShadowmapLogicalTexture::VTShadowmapLogicalTexture(unsigned light_id)
+    : m_light_id(light_id)
+{
+}
+
+unsigned VTShadowmapLogicalTexture::GetLightId() const
+{
+    return m_light_id;
 }
 
 void VTPageLRU::AddPage(const VTPage& page)

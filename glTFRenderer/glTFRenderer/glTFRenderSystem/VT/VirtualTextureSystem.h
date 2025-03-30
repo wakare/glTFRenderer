@@ -26,7 +26,7 @@ public:
     DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VirtualTextureSystem)
 
     virtual bool InitRenderSystem(glTFRenderResourceManager& resource_manager) override;
-    virtual void SetupPass(glTFRenderPassManager& pass_manager, const glTFSceneGraph& scene_graph) override;
+    virtual void SetupPass(glTFRenderResourceManager& resource_manager, glTFRenderPassManager& pass_manager, const glTFSceneGraph& scene_graph) override;
     virtual void ShutdownRenderSystem() override;
     virtual void TickRenderSystem(glTFRenderResourceManager& resource_manager) override;
 
@@ -35,9 +35,10 @@ public:
     bool UpdateRenderResource(glTFRenderResourceManager& resource_manager);
 
     const std::map<int, std::pair<std::shared_ptr<VTLogicalTexture>, std::shared_ptr<VTPageTable>>>& GetLogicalTextureInfos() const;
+    const std::pair<std::shared_ptr<VTLogicalTexture>, std::shared_ptr<VTPageTable>>& GetLogicalTextureInfo(unsigned virtual_texture_id) const;
     std::shared_ptr<VTPhysicalTexture> GetPhysicalTexture() const;
 
-    static std::pair<unsigned, unsigned> GetVTFeedbackTextureSize(glTFRenderResourceManager& resource_manager);
+    static std::pair<unsigned, unsigned> GetVTFeedbackTextureSize(const VTLogicalTexture& logical_texture);
     unsigned GetAvailableVTIdAndInc();
     
 protected:

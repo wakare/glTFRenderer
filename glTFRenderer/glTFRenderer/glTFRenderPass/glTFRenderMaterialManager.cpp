@@ -32,7 +32,10 @@ bool glTFMaterialTextureRenderResource::Init(glTFRenderResourceManager& resource
     if (m_vt)
     {
         m_virtual_texture = std::make_shared<VTLogicalTexture>();
-        m_virtual_texture->InitLogicalTexture(texture_desc, resource_manager.GetRenderSystem<VirtualTextureSystem>()->GetAvailableVTIdAndInc());
+        VTLogicalTextureConfig config{};
+        config.virtual_texture_id = resource_manager.GetRenderSystem<VirtualTextureSystem>()->GetAvailableVTIdAndInc();
+        config.isSVT = true;
+        m_virtual_texture->InitLogicalTexture(texture_desc, config);
     }
     else
     {

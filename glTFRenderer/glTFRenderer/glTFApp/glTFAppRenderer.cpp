@@ -38,13 +38,6 @@ glTFAppRenderer::glTFAppRenderer(const glTFAppRendererConfig& renderer_config, c
     m_resource_manager->InitResourceManager(window.GetWidth(), window.GetHeight(), window.GetHWND());
 
     // Init render systems
-    if (renderer_config.virtual_texture)
-    {
-        auto vt_system = std::make_shared<VirtualTextureSystem>();
-        m_render_systems.push_back(vt_system);
-        m_resource_manager->AddRenderSystem(vt_system);
-    }
-    
     if (renderer_config.shadow)
     {
         auto shadow_system = std::make_shared<ShadowRenderSystem>();
@@ -52,6 +45,13 @@ glTFAppRenderer::glTFAppRenderer(const glTFAppRendererConfig& renderer_config, c
         m_resource_manager->AddRenderSystem(shadow_system);
     }
 
+    if (renderer_config.virtual_texture)
+    {
+        auto vt_system = std::make_shared<VirtualTextureSystem>();
+        m_render_systems.push_back(vt_system);
+        m_resource_manager->AddRenderSystem(vt_system);
+    }
+    
     m_resource_manager->InitRenderSystems();
     
     if (renderer_config.ui)

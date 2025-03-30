@@ -91,7 +91,7 @@ bool glTFSceneRendererBase::RecreateRenderPass(glTFRenderResourceManager& resour
     SetupSceneRenderer(scene_graph);
     for (const auto& render_system : resource_manager.GetRenderSystems())
     {
-        render_system->SetupPass(*m_pass_manager, scene_graph);
+        render_system->SetupPass(resource_manager, *m_pass_manager, scene_graph);
     }
     
     m_pass_manager->InitRenderPassManager(resource_manager);

@@ -1,6 +1,8 @@
 #pragma once
 #include "glTFRenderSystem/RenderSystemBase.h"
 
+class VTLogicalTexture;
+
 class ShadowRenderSystem : public RenderSystemBase
 {
 public:
@@ -13,13 +15,16 @@ public:
     };
     
     virtual bool InitRenderSystem(glTFRenderResourceManager& resource_manager) override;
-    virtual void SetupPass(glTFRenderPassManager& pass_manager, const glTFSceneGraph& scene_graph) override;
+    virtual void SetupPass(glTFRenderResourceManager& resource_manager, glTFRenderPassManager& pass_manager, const glTFSceneGraph& scene_graph) override;
     virtual void ShutdownRenderSystem() override;
     virtual void TickRenderSystem(glTFRenderResourceManager& resource_manager) override;
 
     static bool GetVirtualShadowmapFeedbackSize(const glTFRenderResourceManager& resource_manager, int& width, int& height);
+    bool IsVSM() const;
     
 protected:
     bool m_virtual_shadow_map {true};
     unsigned m_virtual_texture_page_size {0};
+
+    std::vector<std::shared_ptr<VTLogicalTexture>> m_virtual_shadow_map_textures;
 };

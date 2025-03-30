@@ -48,23 +48,25 @@ bool glTFComputePassLighting::PreRenderPass(glTFRenderResourceManager& resource_
     GetResourceTexture(RenderPassResourceTableId::LightingPass_Output)->Transition(command_list, RHIResourceStateType::STATE_UNORDERED_ACCESS);
     GetResourceTexture(RenderPassResourceTableId::BasePass_Albedo)->Transition(command_list, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE);
     GetResourceTexture(RenderPassResourceTableId::BasePass_Normal)->Transition(command_list, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE);
-    if (resource_manager.GetRenderSystem<ShadowRenderSystem>())
-    {
-        GetResourceTexture(RenderPassResourceTableId::ShadowPass_Output)->Transition(command_list, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE);    
-    }
-    
     GetResourceTexture(RenderPassResourceTableId::Depth)->Transition(command_list, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE);
 
     BindDescriptor(command_list, m_albedo_allocation, *GetResourceDescriptor(RenderPassResourceTableId::BasePass_Albedo));
     BindDescriptor(command_list, m_depth_allocation, *GetResourceDescriptor(RenderPassResourceTableId::Depth));
     BindDescriptor(command_list, m_normal_allocation, *GetResourceDescriptor(RenderPassResourceTableId::BasePass_Normal));
-    if (resource_manager.GetRenderSystem<ShadowRenderSystem>())
-    {
-        BindDescriptor(command_list, m_shadowmap_allocation, *GetResourceDescriptor(RenderPassResourceTableId::ShadowPass_Output));
-    }
     BindDescriptor(command_list, m_output_allocation, *GetResourceDescriptor(RenderPassResourceTableId::LightingPass_Output));
-    if (resource_manager.GetRenderSystem<ShadowRenderSystem>())
+    
+    if (resource_manager.GetRenderSystem<ShadowRenderSystem>() )
     {
+        if (resource_manager.GetRenderSystem<ShadowRenderSystem>()->IsVSM())
+        {
+            
+        }
+        else
+        {
+            GetResourceTexture(RenderPassResourceTableId::ShadowPass_Output)->Transition(command_list, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE);    
+            BindDescriptor(command_list, m_shadowmap_allocation, *GetResourceDescriptor(RenderPassResourceTableId::ShadowPass_Output));        
+        }
+        
         auto& render_data = resource_manager.GetPerFrameRenderResourceData()[resource_manager.GetCurrentBackBufferIndex()];
         const auto& shadowmap_views = render_data.GetShadowmapSceneViews();
         std::vector<ShadowMapInfo> shadowmap_matrixs; shadowmap_matrixs.reserve(shadowmap_views.size());
@@ -78,7 +80,7 @@ bool glTFComputePassLighting::PreRenderPass(glTFRenderResourceManager& resource_
             shadowmap_matrixs.push_back(info);
         }
 
-        GetRenderInterface<glTFRenderInterfaceStructuredBuffer<ShadowMapInfo>>()->UploadBuffer(resource_manager, shadowmap_matrixs.data(), 0, shadowmap_matrixs.size() * sizeof(ShadowMapInfo));    
+        GetRenderInterface<glTFRenderInterfaceStructuredBuffer<ShadowMapInfo>>()->UploadBuffer(resource_manager, shadowmap_matrixs.data(), 0, shadowmap_matrixs.size() * sizeof(ShadowMapInfo));
     }
     
     return true;
@@ -121,7 +123,7 @@ bool glTFComputePassLighting::InitResourceTable(glTFRenderResourceManager& resou
     AddImportTextureResource(RenderPassResourceTableId::BasePass_Normal, normal_desc,
         {normal_desc.GetDataFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV});
     
-    if (resource_manager.GetRenderSystem<ShadowRenderSystem>())
+    if (resource_manager.GetRenderSystem<ShadowRenderSystem>() && !resource_manager.GetRenderSystem<ShadowRenderSystem>()->IsVSM())
     {
         auto shadowmap_desc = RHITextureDesc::MakeShadowPassOutputDesc(resource_manager);
         AddImportTextureResource(RenderPassResourceTableId::ShadowPass_Output, shadowmap_desc,

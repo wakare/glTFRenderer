@@ -3,7 +3,6 @@
 #include "glTFRenderPass/glTFRenderPassManager.h"
 #include "glTFRenderPass/glTFComputePass/glTFComputePassVTFetchCS.h"
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassMeshVTFeedback.h"
-#include "glTFRHI/RHIInterface/IRHISwapChain.h"
 
 bool VirtualTextureSystem::InitRenderSystem(glTFRenderResourceManager& resource_manager)
 {
@@ -13,14 +12,14 @@ bool VirtualTextureSystem::InitRenderSystem(glTFRenderResourceManager& resource_
     return true;
 }
 
-void VirtualTextureSystem::SetupPass(glTFRenderPassManager& pass_manager, const glTFSceneGraph& scene_graph)
+void VirtualTextureSystem::SetupPass(glTFRenderResourceManager& resource_manager, glTFRenderPassManager& pass_manager, const glTFSceneGraph& scene_graph)
 {
     for (const auto& logic_texture : m_logical_texture_infos)
     {
-        auto feedback_pass = std::make_shared<glTFGraphicsPassMeshVTFeedback>(logic_texture.first);
-        auto fetch_feedback_pass = std::make_shared<glTFComputePassVTFetchCS>(logic_texture.first);
-    
+        auto feedback_pass = std::make_shared<glTFGraphicsPassMeshVTFeedback>(logic_texture.first, !!dynamic_cast<VTShadowmapLogicalTexture*>(logic_texture.second.first.get()));
         pass_manager.AddRenderPass(POST_SCENE, feedback_pass);
+        
+        auto fetch_feedback_pass = std::make_shared<glTFComputePassVTFetchCS>(logic_texture.first);
         pass_manager.AddRenderPass(POST_SCENE, fetch_feedback_pass);
 
         m_logical_texture_feedback_passes[logic_texture.first] = {feedback_pass, fetch_feedback_pass};
@@ -108,17 +107,23 @@ GetLogicalTextureInfos() const
     return m_logical_texture_infos;
 }
 
+const std::pair<std::shared_ptr<VTLogicalTexture>, std::shared_ptr<VTPageTable>>& VirtualTextureSystem::
+GetLogicalTextureInfo(unsigned virtual_texture_id) const
+{
+    return m_logical_texture_infos.at(virtual_texture_id);
+}
+
 std::shared_ptr<VTPhysicalTexture> VirtualTextureSystem::GetPhysicalTexture() const
 {
     return m_physical_texture;
 }
 
-std::pair<unsigned, unsigned> VirtualTextureSystem::GetVTFeedbackTextureSize(glTFRenderResourceManager& resource_manager)
+std::pair<unsigned, unsigned> VirtualTextureSystem::GetVTFeedbackTextureSize(const VTLogicalTexture& logical_texture)
 {
     return
     {
-        resource_manager.GetSwapChain().GetWidth() / VT_FEEDBACK_TEXTURE_SCALE_SIZE,
-        resource_manager.GetSwapChain().GetHeight() / VT_FEEDBACK_TEXTURE_SCALE_SIZE,
+        static_cast<unsigned>(logical_texture.GetSize()) / VT_FEEDBACK_TEXTURE_SCALE_SIZE,
+        static_cast<unsigned>(logical_texture.GetSize()) / VT_FEEDBACK_TEXTURE_SCALE_SIZE,
     };
 }
 
