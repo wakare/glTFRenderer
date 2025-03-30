@@ -16,6 +16,12 @@ ALIGN_FOR_CBV_STRUCT struct VT_FETCH_OUTPUT_INFO
     unsigned texture_height;
 };
 
+glTFComputePassVTFetchCS::glTFComputePassVTFetchCS(unsigned virtual_texture_id)
+    : m_virtual_texture_id(virtual_texture_id)
+{
+    
+}
+
 const char* glTFComputePassVTFetchCS::PassName()
 {
     return "glTFComputePass_VTFetchCS";
@@ -48,7 +54,7 @@ bool glTFComputePassVTFetchCS::InitRenderInterface(glTFRenderResourceManager& re
     AddRenderInterface(std::make_shared<glTFRenderInterfaceStructuredBuffer<ComputePassVTFetchUAVOutput, RHIViewType::RVT_UAV>>(ComputePassVTFetchUAVOutput::Name.c_str(), fetch_uav_size));
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSingleConstantBuffer<VT_FETCH_OUTPUT_INFO>>());
 
-    std::shared_ptr<IRHITexture> feed_back_texture = GetResourceTexture(RenderPassResourceTableId::BasePass_VT_Feedback);
+    std::shared_ptr<IRHITexture> feed_back_texture = GetResourceTexture(GetVTFeedBackId(m_virtual_texture_id));
     GetRenderInterface<glTFRenderInterfaceTextureTableBindless<RHIDescriptorRangeType::SRV>>()->AddTexture({feed_back_texture});
     
     return true;
@@ -115,8 +121,8 @@ bool glTFComputePassVTFetchCS::InitResourceTable(glTFRenderResourceManager& reso
     RETURN_IF_FALSE(glTFComputePassBase::InitResourceTable(resource_manager))
 
     const auto& vt_size = resource_manager.GetRenderSystem<VirtualTextureSystem>()->GetVTFeedbackTextureSize(resource_manager);
-    RHITextureDesc feed_back_desc = RHITextureDesc::MakeBasePassVTFeedbackDesc(resource_manager, vt_size.first, vt_size.second);
-    AddImportTextureResource(RenderPassResourceTableId::BasePass_VT_Feedback, feed_back_desc,
+    RHITextureDesc feed_back_desc = RHITextureDesc::MakeVirtualTextureFeedbackDesc(resource_manager, vt_size.first, vt_size.second);
+    AddImportTextureResource(GetVTFeedBackId(m_virtual_texture_id), feed_back_desc,
         {
             feed_back_desc.GetDataFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV,
         });

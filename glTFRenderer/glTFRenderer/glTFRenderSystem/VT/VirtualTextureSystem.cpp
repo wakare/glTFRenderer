@@ -10,16 +10,22 @@ bool VirtualTextureSystem::InitRenderSystem(glTFRenderResourceManager& resource_
     m_page_streamer = std::make_shared<VTPageStreamer>();
     m_physical_texture = std::make_shared<VTPhysicalTexture>(VT_PHYSICAL_TEXTURE_SIZE, VT_PAGE_SIZE, VT_PHYSICAL_TEXTURE_BORDER);
 
-    m_feedback_pass = std::make_shared<glTFGraphicsPassMeshVTFeedback>();
-    m_fetch_feedback_pass = std::make_shared<glTFComputePassVTFetchCS>();
-    
     return true;
 }
 
 void VirtualTextureSystem::SetupPass(glTFRenderPassManager& pass_manager, const glTFSceneGraph& scene_graph)
 {
-    pass_manager.AddRenderPass(POST_SCENE, m_feedback_pass);
-    pass_manager.AddRenderPass(POST_SCENE, m_fetch_feedback_pass);
+    for (const auto& logic_texture : m_logical_texture_infos)
+    {
+        auto feedback_pass = std::make_shared<glTFGraphicsPassMeshVTFeedback>(logic_texture.first);
+        auto fetch_feedback_pass = std::make_shared<glTFComputePassVTFetchCS>(logic_texture.first);
+    
+        pass_manager.AddRenderPass(POST_SCENE, feedback_pass);
+        pass_manager.AddRenderPass(POST_SCENE, fetch_feedback_pass);
+
+        m_logical_texture_feedback_passes[logic_texture.first] = {feedback_pass, fetch_feedback_pass};
+    }
+    
     InitFeedBackPass();
 }
 
@@ -116,31 +122,39 @@ std::pair<unsigned, unsigned> VirtualTextureSystem::GetVTFeedbackTextureSize(glT
     };
 }
 
+unsigned VirtualTextureSystem::GetAvailableVTIdAndInc()
+{
+    return m_virtual_texture_id++;
+}
+
 void VirtualTextureSystem::InitFeedBackPass()
 {
 }
 
 void VirtualTextureSystem::GatherPageRequest(std::vector<VTPage>& out_pages)
 {
-    std::set<VTPage> pages; 
-    const auto& feedback_data = m_fetch_feedback_pass->GetFeedbackOutputDataAndReset();
-    for (const auto& feedback : feedback_data)
+    std::set<VTPage> pages;
+    for (const auto& feedback_pass  : m_logical_texture_feedback_passes)
     {
-        if (feedback.data[3] == 0)
+        const auto& feedback_data = feedback_pass.second.second->GetFeedbackOutputDataAndReset();
+        for (const auto& feedback : feedback_data)
         {
-            continue;
-        }
+            if (feedback.data[3] == 0)
+            {
+                continue;
+            }
         
-        VTPage page;
-        page.X = feedback.data[0];
-        page.Y = feedback.data[1];
-        page.mip = feedback.data[2];
-        page.tex = feedback.data[3];
+            VTPage page;
+            page.X = feedback.data[0];
+            page.Y = feedback.data[1];
+            page.mip = feedback.data[2];
+            page.tex = feedback.data[3];
 
-        if (!pages.contains(page))
-        {
-            pages.insert(page);
-            out_pages.push_back(page);
+            if (!pages.contains(page))
+            {
+                pages.insert(page);
+                out_pages.push_back(page);
+            }
         }
     }
 }

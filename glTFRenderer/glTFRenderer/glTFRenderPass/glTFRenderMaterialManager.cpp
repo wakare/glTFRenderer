@@ -24,16 +24,15 @@ bool glTFMaterialTextureRenderResource::Init(glTFRenderResourceManager& resource
     RHITextureDesc texture_desc{};
     texture_desc.InitWithLoadedData(result);
 
-    if (texture_desc.GetTextureWidth() >= VT_TEXTURE_SIZE ||
-        texture_desc.GetTextureHeight() >= VT_TEXTURE_SIZE)
+    if (resource_manager.GetRenderSystem<VirtualTextureSystem>())
     {
-        m_vt = true;
+        m_vt = texture_desc.GetTextureWidth() >= VT_TEXTURE_SIZE && texture_desc.GetTextureHeight() >= VT_TEXTURE_SIZE;
     }
-
+    
     if (m_vt)
     {
         m_virtual_texture = std::make_shared<VTLogicalTexture>();
-        m_virtual_texture->InitLogicalTexture(texture_desc);
+        m_virtual_texture->InitLogicalTexture(texture_desc, resource_manager.GetRenderSystem<VirtualTextureSystem>()->GetAvailableVTIdAndInc());
     }
     else
     {
@@ -170,7 +169,7 @@ void glTFRenderMaterialManager::Tick(glTFRenderResourceManager& resource_manager
         {
             if (auto vt = texture.second->GetVTTexture())
             {
-                if (!resource_manager.GetRenderSystem<VirtualTextureSystem>()->HasTexture(vt))
+                if (resource_manager.GetRenderSystem<VirtualTextureSystem>() && !resource_manager.GetRenderSystem<VirtualTextureSystem>()->HasTexture(vt))
                 {
                     resource_manager.GetRenderSystem<VirtualTextureSystem>()->RegisterTexture(vt);    
                 }

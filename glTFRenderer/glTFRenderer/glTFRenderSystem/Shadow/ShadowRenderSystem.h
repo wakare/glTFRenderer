@@ -4,12 +4,22 @@
 class ShadowRenderSystem : public RenderSystemBase
 {
 public:
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(ShadowRenderSystem)
+    
     enum
     {
         SHADOWMAP_SIZE = 2048,
+        VIRTUAL_SHADOWMAP_SIZE = 4096,
     };
+    
     virtual bool InitRenderSystem(glTFRenderResourceManager& resource_manager) override;
     virtual void SetupPass(glTFRenderPassManager& pass_manager, const glTFSceneGraph& scene_graph) override;
     virtual void ShutdownRenderSystem() override;
     virtual void TickRenderSystem(glTFRenderResourceManager& resource_manager) override;
+
+    static bool GetVirtualShadowmapFeedbackSize(const glTFRenderResourceManager& resource_manager, int& width, int& height);
+    
+protected:
+    bool m_virtual_shadow_map {true};
+    unsigned m_virtual_texture_page_size {0};
 };

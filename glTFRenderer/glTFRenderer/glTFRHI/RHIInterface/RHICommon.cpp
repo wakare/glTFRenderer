@@ -349,10 +349,10 @@ RHITextureDesc RHITextureDesc::MakeShadowPassOutputDesc(const glTFRenderResource
     return texture_desc;
 }
 
-RHITextureDesc RHITextureDesc::MakeBasePassVTFeedbackDesc(const glTFRenderResourceManager& resource_manager, unsigned feed_back_size_x, unsigned feed_back_size_y)
+RHITextureDesc RHITextureDesc::MakeVirtualTextureFeedbackDesc(const glTFRenderResourceManager& resource_manager, unsigned feed_back_size_x, unsigned feed_back_size_y)
 {
     RHITextureDesc texture_desc = MakeFullScreenTextureDesc(
-        "BASEPASS_VT_FEEDBACK_OUTPUT",
+        "VT_FEEDBACK_OUTPUT",
             RHIDataFormat::R32G32B32A32_UINT,
             static_cast<RHIResourceUsageFlags>( RUF_ALLOW_SRV | RUF_ALLOW_RENDER_TARGET | RUF_TRANSFER_SRC),
          {

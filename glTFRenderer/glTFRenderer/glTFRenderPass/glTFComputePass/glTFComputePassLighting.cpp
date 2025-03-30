@@ -63,21 +63,23 @@ bool glTFComputePassLighting::PreRenderPass(glTFRenderResourceManager& resource_
         BindDescriptor(command_list, m_shadowmap_allocation, *GetResourceDescriptor(RenderPassResourceTableId::ShadowPass_Output));
     }
     BindDescriptor(command_list, m_output_allocation, *GetResourceDescriptor(RenderPassResourceTableId::LightingPass_Output));
-
-    auto& render_data = resource_manager.GetPerFrameRenderResourceData()[resource_manager.GetCurrentBackBufferIndex()];
-    const auto& shadowmap_views = render_data.GetShadowmapSceneViews();
-    std::vector<ShadowMapInfo> shadowmap_matrixs; shadowmap_matrixs.reserve(shadowmap_views.size());
-    for (auto& shadowmap_view : shadowmap_views)
+    if (resource_manager.GetRenderSystem<ShadowRenderSystem>())
     {
-        ShadowMapInfo info{};
-        info.view_matrix = shadowmap_view.second.view_matrix;
-        info.projection_matrix = shadowmap_view.second.projection_matrix;
-        info.shadowmap_width = ShadowRenderSystem::SHADOWMAP_SIZE;
-        info.shadowmap_height = ShadowRenderSystem::SHADOWMAP_SIZE;
-        shadowmap_matrixs.push_back(info);
-    }
+        auto& render_data = resource_manager.GetPerFrameRenderResourceData()[resource_manager.GetCurrentBackBufferIndex()];
+        const auto& shadowmap_views = render_data.GetShadowmapSceneViews();
+        std::vector<ShadowMapInfo> shadowmap_matrixs; shadowmap_matrixs.reserve(shadowmap_views.size());
+        for (auto& shadowmap_view : shadowmap_views)
+        {
+            ShadowMapInfo info{};
+            info.view_matrix = shadowmap_view.second.view_matrix;
+            info.projection_matrix = shadowmap_view.second.projection_matrix;
+            info.shadowmap_width = ShadowRenderSystem::SHADOWMAP_SIZE;
+            info.shadowmap_height = ShadowRenderSystem::SHADOWMAP_SIZE;
+            shadowmap_matrixs.push_back(info);
+        }
 
-    GetRenderInterface<glTFRenderInterfaceStructuredBuffer<ShadowMapInfo>>()->UploadBuffer(resource_manager, shadowmap_matrixs.data(), 0, shadowmap_matrixs.size() * sizeof(ShadowMapInfo));
+        GetRenderInterface<glTFRenderInterfaceStructuredBuffer<ShadowMapInfo>>()->UploadBuffer(resource_manager, shadowmap_matrixs.data(), 0, shadowmap_matrixs.size() * sizeof(ShadowMapInfo));    
+    }
     
     return true;
 }
@@ -154,19 +156,19 @@ bool glTFComputePassLighting::SetupPipelineStateObject(glTFRenderResourceManager
     GetComputePipelineStateObject().BindShaderCode(
         R"(glTFResources\ShaderSource\ComputeShader\LightingCS.hlsl)", RHIShaderType::Compute, "main");
     
-    auto& shaderMacros = GetComputePipelineStateObject().GetShaderMacros();
+    auto& shader_macros = GetComputePipelineStateObject().GetShaderMacros();
 
     // Add albedo, normal, depth register define
-    m_albedo_allocation.AddShaderDefine(shaderMacros);
-    m_depth_allocation.AddShaderDefine(shaderMacros);
-    m_normal_allocation.AddShaderDefine(shaderMacros);
+    m_albedo_allocation.AddShaderDefine(shader_macros);
+    m_depth_allocation.AddShaderDefine(shader_macros);
+    m_normal_allocation.AddShaderDefine(shader_macros);
     
     if (resource_manager.GetRenderSystem<ShadowRenderSystem>())
     {
-        m_shadowmap_allocation.AddShaderDefine(shaderMacros);
-        shaderMacros.AddMacro("HAS_SHADOWMAP", "1");
+        m_shadowmap_allocation.AddShaderDefine(shader_macros);
+        shader_macros.AddMacro("HAS_SHADOWMAP", "1");
     }
-    m_output_allocation.AddShaderDefine(shaderMacros);
+    m_output_allocation.AddShaderDefine(shader_macros);
     
     return true;
 }

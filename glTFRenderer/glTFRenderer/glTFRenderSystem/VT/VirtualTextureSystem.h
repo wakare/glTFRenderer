@@ -8,6 +8,7 @@
 #include "glTFRenderPass/glTFComputePass/glTFComputePassClearUAV.h"
 #include "glTFRenderSystem/RenderSystemBase.h"
 
+class glTFGraphicsPassMeshVTFeedback;
 class glTFComputePassVTFetchCS;
 class glTFRenderPassBase;
 
@@ -37,6 +38,7 @@ public:
     std::shared_ptr<VTPhysicalTexture> GetPhysicalTexture() const;
 
     static std::pair<unsigned, unsigned> GetVTFeedbackTextureSize(glTFRenderResourceManager& resource_manager);
+    unsigned GetAvailableVTIdAndInc();
     
 protected:
     void InitFeedBackPass();
@@ -44,9 +46,10 @@ protected:
     
     // one logical texture map one page table
     std::map<int, std::pair<std::shared_ptr<VTLogicalTexture>, std::shared_ptr<VTPageTable>>> m_logical_texture_infos;
+    std::map<int, std::pair<std::shared_ptr<glTFGraphicsPassMeshVTFeedback>, std::shared_ptr<glTFComputePassVTFetchCS>>> m_logical_texture_feedback_passes;
+
+    unsigned m_virtual_texture_id{1};
+    
     std::shared_ptr<VTPageStreamer> m_page_streamer;
     std::shared_ptr<VTPhysicalTexture> m_physical_texture;
-
-    std::shared_ptr<glTFRenderPassBase> m_feedback_pass;
-    std::shared_ptr<glTFComputePassVTFetchCS> m_fetch_feedback_pass;
 };

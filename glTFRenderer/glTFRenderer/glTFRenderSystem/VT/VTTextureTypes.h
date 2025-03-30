@@ -11,7 +11,7 @@ class VTLogicalTexture
 public:
     DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VTLogicalTexture)
     
-    bool InitLogicalTexture(const RHITextureDesc& desc);
+    bool InitLogicalTexture(const RHITextureDesc& desc, unsigned virtual_texture_id);
     
     bool InitRenderResource(glTFRenderResourceManager& resource_manager);
     void UpdateRenderResource(glTFRenderResourceManager& resource_manager);

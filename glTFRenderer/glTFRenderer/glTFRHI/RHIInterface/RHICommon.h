@@ -639,7 +639,7 @@ struct RHITextureDesc
     static RHITextureDesc MakeComputePassRayTracingPostProcessOutputDesc(const glTFRenderResourceManager& resource_manager);
     static RHITextureDesc MakeShadowPassOutputDesc(const glTFRenderResourceManager& resource_manager);
     
-    static RHITextureDesc MakeBasePassVTFeedbackDesc(const glTFRenderResourceManager& resource_manager, unsigned feed_back_size_x, unsigned feed_back_size_y);
+    static RHITextureDesc MakeVirtualTextureFeedbackDesc(const glTFRenderResourceManager& resource_manager, unsigned feed_back_size_x, unsigned feed_back_size_y);
     
 private:
     std::string m_name;

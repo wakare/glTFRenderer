@@ -8,13 +8,11 @@
 #include "glTFRHI/RHIInterface/IRHISwapChain.h"
 #include "SceneFileLoader/glTFImageIOUtil.h"
 
-bool VTLogicalTexture::InitLogicalTexture(const RHITextureDesc& desc)
+bool VTLogicalTexture::InitLogicalTexture(const RHITextureDesc& desc, unsigned virtual_texture_id)
 {
     GLTF_CHECK(desc.GetTextureWidth() > 0 && desc.GetTextureHeight() > 0 && desc.GetTextureWidth() == desc.GetTextureHeight());
 
-    // TODO: reserve id 0 as invalid
-    static unsigned _inner_texture_id = 1;
-    m_texture_id = _inner_texture_id++;
+    m_texture_id = virtual_texture_id;
     m_logical_texture_width = desc.GetTextureWidth();
     m_logical_texture_height = desc.GetTextureHeight();
 
