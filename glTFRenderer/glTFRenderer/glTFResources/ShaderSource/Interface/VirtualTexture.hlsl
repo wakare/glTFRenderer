@@ -31,18 +31,25 @@ DECLARE_RESOURCE(ConstantBuffer<VTSystemInfo> vt_system_info, VT_SYSTEM_REGISTER
 #ifdef VT_READ_DATA
 
 DECLARE_RESOURCE(Texture2D<uint4> bindless_vt_page_table_textures[] , VT_PAGE_TABLE_TEXTURE_REGISTER_INDEX);
-DECLARE_RESOURCE(Texture2D<float4> vt_physical_texture, VT_PHYSICAL_TEXTURE_REGISTER_INDEX);
+DECLARE_RESOURCE(Texture2D<float4> vt_physical_texture[2], VT_PHYSICAL_TEXTURE_REGISTER_INDEX);
 
 DECLARE_RESOURCE(SamplerState vt_page_table_sampler , VT_PAGE_TABLE_SAMPLER_REGISTER_INDEX);
 
-float4 SampleAtlas(float3 page, float2 uv, float virtual_texture_size, float tile_size, float border_size)
+float4 SampleAtlas(float3 page, float2 uv, float virtual_texture_size, float tile_size, float border_size, bool svt)
 {
     const float mipsize = exp2(log2(virtual_texture_size) - page.z);
 
     float page_size = tile_size + 2 * border_size;
     float2 total_offset = fmod(uv * mipsize, tile_size) + float2(border_size, border_size) + page.xy * page_size;  
 
-    return vt_physical_texture.Sample(vt_page_table_sampler, (total_offset) / float2(vt_system_info.vt_physical_texture_width, vt_system_info.vt_physical_texture_height));
+    if (svt)
+    {
+        return vt_physical_texture[0].Sample(vt_page_table_sampler, (total_offset) / float2(vt_system_info.vt_physical_texture_width, vt_system_info.vt_physical_texture_height));    
+    }
+    else
+    {
+        return vt_physical_texture[1].Sample(vt_page_table_sampler, (total_offset) / float2(vt_system_info.vt_physical_texture_width, vt_system_info.vt_physical_texture_height));
+    }
 }
 
 float4 SampleVTPageTable(uint tex_id, float2 uv)
@@ -56,7 +63,7 @@ float4 SampleVTPageTable(uint tex_id, float2 uv)
     const float2 uv_without_offset = uv - (frac(uv * mip_size) / mip_size);
     uint4 page = bindless_vt_page_table_textures[vt_info.page_table_tex_index].Load(int3(uv_without_offset * mip_size, mip));
 
-    return SampleAtlas(page.xyz, uv, vt_info.logical_texture_size, vt_system_info.vt_page_size, vt_system_info.vt_border_size);
+    return SampleAtlas(page.xyz, uv, vt_info.logical_texture_size, vt_system_info.vt_page_size, vt_system_info.vt_border_size, vt_info.svt);
 }
 
 #endif

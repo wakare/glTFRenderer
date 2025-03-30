@@ -21,6 +21,7 @@ public:
     virtual bool InitAsDescriptorTableRange(unsigned attribute_index, size_t rangeCount, const RHIDescriptorRangeDesc* rangeDesc) = 0;
 
     virtual bool IsBindless() const {return false; }
+    RHIRootParameterType GetType() const { return m_type; }
     
 protected:
     void SetType(RHIRootParameterType type) {assert(m_type == RHIRootParameterType::Unknown); m_type = type;}

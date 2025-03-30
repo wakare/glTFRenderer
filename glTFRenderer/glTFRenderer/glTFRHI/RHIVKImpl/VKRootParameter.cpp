@@ -2,6 +2,7 @@
 
 bool VKRootParameter::InitAsConstant(unsigned constant_value, unsigned register_index, unsigned space)
 {
+    SetType(RHIRootParameterType::Constant);
     m_register_space = space;
     GLTF_CHECK(false);
     return false;
@@ -9,6 +10,7 @@ bool VKRootParameter::InitAsConstant(unsigned constant_value, unsigned register_
 
 bool VKRootParameter::InitAsCBV(unsigned local_attribute_index, unsigned register_index, unsigned space)
 {
+    SetType(RHIRootParameterType::CBV);
     m_register_space = space;
     
     m_binding.binding = local_attribute_index;
@@ -22,6 +24,7 @@ bool VKRootParameter::InitAsCBV(unsigned local_attribute_index, unsigned registe
 
 bool VKRootParameter::InitAsSRV(unsigned local_attribute_index, unsigned register_index, unsigned space)
 {
+    SetType(RHIRootParameterType::SRV);
     m_register_space = space;
     
     m_binding.binding = local_attribute_index;
@@ -36,6 +39,7 @@ bool VKRootParameter::InitAsSRV(unsigned local_attribute_index, unsigned registe
 
 bool VKRootParameter::InitAsUAV(unsigned local_attribute_index, unsigned register_index, unsigned space)
 {
+    SetType(RHIRootParameterType::UAV);
     m_register_space = space;
     
     m_binding.binding = local_attribute_index;
@@ -51,6 +55,8 @@ bool VKRootParameter::InitAsUAV(unsigned local_attribute_index, unsigned registe
 bool VKRootParameter::InitAsDescriptorTableRange(unsigned local_attribute_index, size_t range_count,
     const RHIDescriptorRangeDesc* range_desc)
 {
+    SetType(RHIRootParameterType::DescriptorTable);
+    
     m_register_space = range_desc->space;
     m_bindless = (range_desc->descriptor_count == UINT_MAX);
     

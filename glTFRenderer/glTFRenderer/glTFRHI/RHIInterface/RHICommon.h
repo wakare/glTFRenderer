@@ -443,8 +443,10 @@ struct RootSignatureAllocation
         : parameter_name("")
         , global_parameter_index(0)
         , local_space_parameter_index(0)
-        , register_index(0)
+        , register_begin_index(0)
+        , register_end_index(0)
         , space(0)
+        , bindless_descriptor(false)
         , type(RHIRootParameterType::Unknown)
         , register_type(RHIShaderRegisterType::Unknown)
     {
@@ -455,8 +457,10 @@ struct RootSignatureAllocation
     std::string parameter_name;
     unsigned global_parameter_index;
     unsigned local_space_parameter_index;
-    unsigned register_index;
+    unsigned register_begin_index;
+    unsigned register_end_index;
     unsigned space;
+    bool bindless_descriptor;
     RHIRootParameterType type;
     RHIShaderRegisterType register_type;
 };

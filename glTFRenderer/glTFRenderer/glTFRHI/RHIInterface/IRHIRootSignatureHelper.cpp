@@ -55,7 +55,7 @@ bool IRHIRootSignatureHelper::AddRootParameterWithRegisterCount(const RootParame
     if (parameter_info.type == RHIRootParameterType::Sampler)
     {
         out_allocation.global_parameter_index = m_layout.sampler_elements.size();
-        out_allocation.register_index = m_layout.sampler_elements.size();
+        out_allocation.register_begin_index = m_layout.sampler_elements.size();
 
         if (m_sampler_space < 0)
         {
@@ -127,9 +127,11 @@ bool IRHIRootSignatureHelper::AddRootParameterWithRegisterCount(const RootParame
             element.space = m_normal_resource_space;
         }
         
-        out_allocation.register_index = element.register_range.first;
+        out_allocation.register_begin_index = element.register_range.first;
+        out_allocation.register_end_index = element.register_range.second;
         out_allocation.global_parameter_index = element.global_parameter_index;
         out_allocation.space = element.space;
+        out_allocation.bindless_descriptor = element.is_bindless;
         out_allocation.local_space_parameter_index = m_space_available_attribute_index[(out_allocation.space)];
         m_space_available_attribute_index[(out_allocation.space)]++;
         
