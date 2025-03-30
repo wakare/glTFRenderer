@@ -9,6 +9,13 @@ struct VTLogicalTextureInfo
     uint page_table_tex_index;
     uint logical_texture_size;
     uint page_table_texture_size;
+    uint svt;
+    uint3 padding;
+
+    bool IsSVT()
+    {
+        return svt != 0;
+    }
 };
 DECLARE_RESOURCE(StructuredBuffer<VTLogicalTextureInfo> g_logical_texture_infos, VT_LOGICAL_TEXTURE_INFO_REGISTER_INDEX);
 
@@ -20,16 +27,6 @@ struct VTSystemInfo
     uint vt_physical_texture_height;
 };
 DECLARE_RESOURCE(ConstantBuffer<VTSystemInfo> vt_system_info, VT_SYSTEM_REGISTER_CBV_INDEX);
-
-// This function estimates mipmap levels
-float MipLevel(float2 uv, float size)
-{
-    float2 dx = ddx(uv * size);
-    float2 dy = ddy(uv * size);
-    float d = max(dot(dx, dx), dot(dy, dy));
-
-    return max(0.5 * log2(d), 0);
-}
 
 #ifdef VT_READ_DATA
 

@@ -56,12 +56,22 @@ int VTLogicalTexture::GetSize() const
 
 bool VTLogicalTexture::GetPageData(const VTPage& page, VTPageData& out) const
 {
-    if (!m_page_data.contains(page.PageHash()))
+    if (IsSVT())
     {
-        return false;
-    }
+        if (!m_page_data.contains(page.PageHash()))
+        {
+            return false;
+        }
 
-    out = m_page_data.at(page.PageHash());
+        out = m_page_data.at(page.PageHash());    
+    }
+    else
+    {
+        out.page = page;
+        out.loaded = true;
+        out.data = nullptr;
+    }
+    
     return true;
 }
 
@@ -244,8 +254,8 @@ const VTPage& VTPageLRU::GetPageForFree() const
     return m_lru_pages.back();
 }
 
-VTPhysicalTexture::VTPhysicalTexture(int texture_size, int page_size, int border)
-    : m_texture_size(texture_size), m_page_size(page_size), m_border(border)
+VTPhysicalTexture::VTPhysicalTexture(int texture_size, int page_size, int border, bool svt)
+    : m_texture_size(texture_size), m_page_size(page_size), m_border(border), m_svt(svt)
 {
     m_page_table_size = m_texture_size / (m_page_size + 2 * m_border);
     

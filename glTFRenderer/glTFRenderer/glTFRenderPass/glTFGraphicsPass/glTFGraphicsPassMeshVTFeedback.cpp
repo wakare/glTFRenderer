@@ -13,8 +13,8 @@ struct ShadowInfo
     
     inline static std::string Name = "SHADOWMAP_INFO_REGISTER_INDEX";
     unsigned vt_id;
-    unsigned shadowmap_vt_width;
-    unsigned shadowmap_vt_height;
+    unsigned shadowmap_vt_size;
+    unsigned shadowmap_vt_page_size;
     unsigned shadowmap_page_table_texture_size;
 };
 
@@ -60,9 +60,9 @@ bool glTFGraphicsPassMeshVTFeedback::InitPass(glTFRenderResourceManager& resourc
         auto& virtual_texture_info = resource_manager.GetRenderSystem<VirtualTextureSystem>()->GetLogicalTextureInfo(m_virtual_texture_id).first;
         ShadowInfo shadow_info;
         shadow_info.vt_id = m_virtual_texture_id;
-        shadow_info.shadowmap_vt_width = virtual_texture_info->GetSize();
-        shadow_info.shadowmap_vt_height = virtual_texture_info->GetSize();
-        shadow_info.shadowmap_page_table_texture_size = virtual_texture_info->GetSize() / resource_manager.GetRenderSystem<VirtualTextureSystem>()->VT_PAGE_SIZE;
+        shadow_info.shadowmap_vt_size = virtual_texture_info->GetSize();
+        shadow_info.shadowmap_vt_page_size = resource_manager.GetRenderSystem<VirtualTextureSystem>()->VT_PAGE_SIZE;
+        shadow_info.shadowmap_page_table_texture_size = virtual_texture_info->GetSize() / shadow_info.shadowmap_vt_page_size;
         GetRenderInterface<glTFRenderInterfaceSingleConstantBuffer<ShadowInfo>>()->UploadBuffer(resource_manager, &shadow_info, 0, sizeof(shadow_info));
     }
     

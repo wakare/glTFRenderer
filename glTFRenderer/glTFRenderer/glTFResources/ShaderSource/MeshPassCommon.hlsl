@@ -70,4 +70,14 @@ struct MeshInstanceInputData
 };
 DECLARE_RESOURCE(StructuredBuffer<MeshInstanceInputData> g_mesh_instance_input_data, MESH_INSTANCE_INPUT_DATA_REGISTER_SRV_INDEX);
 
+// This function estimates mipmap levels
+float MipLevel(float2 uv, float size)
+{
+    float2 dx = ddx(uv * size);
+    float2 dy = ddy(uv * size);
+    float d = max(dot(dx, dx), dot(dy, dy));
+
+    return max(0.5 * log2(d), 0);
+}
+
 #endif

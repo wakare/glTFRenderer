@@ -78,7 +78,7 @@ protected:
 class VTPhysicalTexture
 {
 public:
-    VTPhysicalTexture(int texture_size, int page_size, int border);
+    VTPhysicalTexture(int texture_size, int page_size, int border, bool svt);
     void ProcessRequestResult(const std::vector<VTPageData>& results);
     void UpdateTextureData();
 
@@ -97,6 +97,7 @@ protected:
     int m_page_table_size{0};
     int m_page_size{0};
     int m_border{0};
+    bool m_svt{true};
 
     std::vector<std::pair<int, int>> m_available_pages;
     std::map<VTPage::HashType, VTPhysicalPageAllocationInfo> m_page_allocations;

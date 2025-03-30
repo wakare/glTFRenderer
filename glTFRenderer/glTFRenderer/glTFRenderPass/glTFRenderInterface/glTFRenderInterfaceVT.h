@@ -30,7 +30,8 @@ protected:
 
     InterfaceVTType m_type;
     
-    std::shared_ptr<IRHITexture> m_physical_texture;
+    std::shared_ptr<IRHITexture> m_physical_svt_texture;
+    std::shared_ptr<IRHITexture> m_physical_rvt_texture;
     std::vector<std::shared_ptr<IRHITexture>> m_feedback_textures;
     std::vector<VTLogicalTextureInfo> m_vt_logical_texture_infos;
 };

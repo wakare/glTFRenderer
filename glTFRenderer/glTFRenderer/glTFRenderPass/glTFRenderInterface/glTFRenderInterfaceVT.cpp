@@ -15,7 +15,7 @@ glTFRenderInterfaceVT::glTFRenderInterfaceVT(InterfaceVTType type)
     if (m_type == InterfaceVTType::SAMPLE_VT_TEXTURE_DATA)
     {
         AddInterface(std::make_shared<glTFRenderInterfaceTextureTableBindless<RHIDescriptorRangeType::SRV>>("VT_PAGE_TABLE_TEXTURE_REGISTER_INDEX"));
-        AddInterface(std::make_shared<glTFRenderInterfaceTextureTable<1, RHIDescriptorRangeType::SRV>>("VT_PHYSICAL_TEXTURE_REGISTER_INDEX"));
+        AddInterface(std::make_shared<glTFRenderInterfaceTextureTable<2, RHIDescriptorRangeType::SRV>>("VT_PHYSICAL_TEXTURE_REGISTER_INDEX"));
         AddInterface(std::make_shared<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Clamp, RHIStaticSamplerFilterMode::Point>>("VT_PAGE_TABLE_SAMPLER_REGISTER_INDEX"));
     }
 }
@@ -23,7 +23,8 @@ glTFRenderInterfaceVT::glTFRenderInterfaceVT(InterfaceVTType type)
 bool glTFRenderInterfaceVT::PreInitInterfaceImpl(glTFRenderResourceManager& resource_manager)
 {
     auto vt_system = resource_manager.GetRenderSystem<VirtualTextureSystem>();
-    m_physical_texture = vt_system->GetPhysicalTexture()->GetTextureAllocation()->m_texture;
+    m_physical_svt_texture = vt_system->GetSVTPhysicalTexture()->GetTextureAllocation()->m_texture;
+    m_physical_rvt_texture = vt_system->GetRVTPhysicalTexture()->GetTextureAllocation()->m_texture;
     
     // Add reserved vt info!!
     m_vt_logical_texture_infos.resize(1);
@@ -45,12 +46,12 @@ bool glTFRenderInterfaceVT::PreInitInterfaceImpl(glTFRenderResourceManager& reso
             auto& texture_resource = page_table.second.second->GetTextureAllocation()->m_texture;
             m_vt_logical_texture_infos[logical_texture->GetTextureId()].page_table_tex_index = vt_page_table_textures.size();
             m_vt_logical_texture_infos[logical_texture->GetTextureId()].page_table_texture_size = texture_resource->GetTextureDesc().GetTextureWidth();
-
+            m_vt_logical_texture_infos[logical_texture->GetTextureId()].svt = logical_texture->IsSVT();
             vt_page_table_textures.push_back(texture_resource);
         }
         
         GetRenderInterface<glTFRenderInterfaceTextureTableBindless<RHIDescriptorRangeType::SRV>>()->AddTexture(vt_page_table_textures);
-        GetRenderInterface<glTFRenderInterfaceTextureTable<1, RHIDescriptorRangeType::SRV>>()->AddTexture({m_physical_texture});
+        GetRenderInterface<glTFRenderInterfaceTextureTable<2, RHIDescriptorRangeType::SRV>>()->AddTexture({m_physical_svt_texture, m_physical_rvt_texture});
     }
     
     return true;

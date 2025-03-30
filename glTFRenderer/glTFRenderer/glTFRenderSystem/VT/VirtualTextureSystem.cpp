@@ -7,7 +7,11 @@
 bool VirtualTextureSystem::InitRenderSystem(glTFRenderResourceManager& resource_manager)
 {
     m_page_streamer = std::make_shared<VTPageStreamer>();
-    m_physical_texture = std::make_shared<VTPhysicalTexture>(VT_PHYSICAL_TEXTURE_SIZE, VT_PAGE_SIZE, VT_PHYSICAL_TEXTURE_BORDER);
+    m_physical_svt_texture = std::make_shared<VTPhysicalTexture>(VT_PHYSICAL_TEXTURE_SIZE, VT_PAGE_SIZE, VT_PHYSICAL_TEXTURE_BORDER, true);
+    m_physical_rvt_texture = std::make_shared<VTPhysicalTexture>(VT_PHYSICAL_TEXTURE_SIZE, VT_PAGE_SIZE, VT_PHYSICAL_TEXTURE_BORDER, false);
+
+    m_physical_svt_texture->UpdateRenderResource(resource_manager);
+    m_physical_rvt_texture->UpdateRenderResource(resource_manager);
 
     return true;
 }
@@ -23,6 +27,8 @@ void VirtualTextureSystem::SetupPass(glTFRenderResourceManager& resource_manager
         pass_manager.AddRenderPass(POST_SCENE, fetch_feedback_pass);
 
         m_logical_texture_feedback_passes[logic_texture.first] = {feedback_pass, fetch_feedback_pass};
+
+        logic_texture.second.second->UpdateRenderResource(resource_manager);
     }
     
     InitFeedBackPass();
@@ -44,40 +50,91 @@ void VirtualTextureSystem::TickRenderSystem(glTFRenderResourceManager& resource_
     {
         m_page_streamer->AddPageRequest(page);    
     }
+    
     m_page_streamer->Tick();
-    auto page_data = m_page_streamer->GetRequestResultsAndClean();
-
-    m_physical_texture->ProcessRequestResult(page_data);
-
-    // Update all page table based physical texture allocation info
-    const auto& page_allocations = m_physical_texture->GetPageAllocationInfos();
-
-    for (auto& logical_texture_info : m_logical_texture_infos)
+    
+    std::vector<VTPageData> svt_page_data;
+    std::vector<VTPageData> rvt_page_data;
+    
     {
-        auto& page_table  = logical_texture_info.second.second;
-        auto& logical_texture = logical_texture_info.second.first;
-        page_table->Invalidate();
-        
-        for (const auto& page_allocation : page_allocations)
+        auto page_data = m_page_streamer->GetRequestResultsAndClean();
+        for (const auto& page : page_data)
         {
-            if (page_allocation.second.page.tex == page_table->GetTextureId())
+            if (m_logical_texture_infos.at(page.page.tex).first->IsSVT() )
             {
-                page_table->TouchPageAllocation(page_allocation.second);
+                svt_page_data.push_back(page);
             }
-        }
-        page_table->UpdateTextureData();
-        logical_texture->UpdateRenderResource(resource_manager);
-    }
-
-    // Upload page table to texture resource
-    for (auto& logical_texture_info : m_logical_texture_infos)
-    {
-        auto& page_table  = logical_texture_info.second.second;
-        page_table->UpdateRenderResource(resource_manager);
+            else
+            {
+                rvt_page_data.push_back(page);
+            }
+        }    
     }
     
-    m_physical_texture->UpdateTextureData();
-    m_physical_texture->UpdateRenderResource(resource_manager);
+    if (!svt_page_data.empty())
+    {
+        m_physical_svt_texture->ProcessRequestResult(svt_page_data);
+
+        // Update all page table based physical texture allocation info
+        const auto& page_allocations = m_physical_svt_texture->GetPageAllocationInfos();
+
+        for (auto& logical_texture_info : m_logical_texture_infos)
+        {
+            auto& logical_texture = logical_texture_info.second.first;
+            if (!logical_texture->IsSVT())
+            {
+                continue;
+            }
+        
+            auto& page_table  = logical_texture_info.second.second;
+            page_table->Invalidate();
+        
+            for (const auto& page_allocation : page_allocations)
+            {
+                if (page_allocation.second.page.tex == page_table->GetTextureId())
+                {
+                    page_table->TouchPageAllocation(page_allocation.second);
+                }
+            }
+            page_table->UpdateTextureData();
+            page_table->UpdateRenderResource(resource_manager);
+            logical_texture->UpdateRenderResource(resource_manager);
+        }
+
+        m_physical_svt_texture->UpdateTextureData();
+        m_physical_svt_texture->UpdateRenderResource(resource_manager);
+    }
+
+    if (!rvt_page_data.empty())
+    {
+        m_physical_rvt_texture->ProcessRequestResult(rvt_page_data);
+        // Update all page table based physical texture allocation info
+        const auto& page_allocations = m_physical_rvt_texture->GetPageAllocationInfos();
+        for (auto& logical_texture_info : m_logical_texture_infos)
+        {
+            auto& logical_texture = logical_texture_info.second.first;
+            if (logical_texture->IsSVT())
+            {
+                continue;
+            }
+
+            auto& page_table  = logical_texture_info.second.second;
+            page_table->Invalidate();
+        
+            for (const auto& page_allocation : page_allocations)
+            {
+                if (page_allocation.second.page.tex == page_table->GetTextureId())
+                {
+                    page_table->TouchPageAllocation(page_allocation.second);
+                }
+            }
+            page_table->UpdateTextureData();
+            page_table->UpdateRenderResource(resource_manager);
+            logical_texture->UpdateRenderResource(resource_manager);
+        }
+        //m_physical_rvt_texture->UpdateTextureData();
+        m_physical_rvt_texture->UpdateRenderResource(resource_manager);
+    }
 }
 
 bool VirtualTextureSystem::HasTexture(std::shared_ptr<VTLogicalTexture> texture) const
@@ -113,9 +170,14 @@ GetLogicalTextureInfo(unsigned virtual_texture_id) const
     return m_logical_texture_infos.at(virtual_texture_id);
 }
 
-std::shared_ptr<VTPhysicalTexture> VirtualTextureSystem::GetPhysicalTexture() const
+std::shared_ptr<VTPhysicalTexture> VirtualTextureSystem::GetSVTPhysicalTexture() const
 {
-    return m_physical_texture;
+    return m_physical_svt_texture;
+}
+
+std::shared_ptr<VTPhysicalTexture> VirtualTextureSystem::GetRVTPhysicalTexture() const
+{
+    return m_physical_rvt_texture;
 }
 
 std::pair<unsigned, unsigned> VirtualTextureSystem::GetVTFeedbackTextureSize(const VTLogicalTexture& logical_texture)
