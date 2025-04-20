@@ -76,7 +76,7 @@ bool glTFGraphicsPassMeshVTFeedback::SetupPipelineStateObject(glTFRenderResource
     GetGraphicsPipelineStateObject().BindShaderCode(
         R"(glTFResources\ShaderSource\MeshPassCommonVS.hlsl)", RHIShaderType::Vertex, "main");
     GetGraphicsPipelineStateObject().BindShaderCode(
-            R"(glTFResources\ShaderSource\MeshPassVTFeedBackPS.hlsl)", RHIShaderType::Pixel, "main");
+        R"(glTFResources\ShaderSource\MeshPassVTFeedBackPS.hlsl)", RHIShaderType::Pixel, "main");
 
     GetGraphicsPipelineStateObject().BindRenderTargetFormats(
         {

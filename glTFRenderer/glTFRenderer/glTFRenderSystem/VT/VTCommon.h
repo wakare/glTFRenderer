@@ -107,6 +107,16 @@ public:
     {
         return m_data_size;
     }
+
+    unsigned GetWidth() const
+    {
+        return m_width;
+    }
+    
+    unsigned GetHeight() const
+    {
+        return m_height;
+    }
     
 protected:
     int m_width;

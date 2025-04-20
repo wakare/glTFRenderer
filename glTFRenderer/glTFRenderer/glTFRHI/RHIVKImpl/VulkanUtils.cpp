@@ -599,8 +599,8 @@ bool VulkanUtils::CopyTexture(IRHICommandList& command_list, IRHITexture& dst, I
     auto& vk_image_src = dynamic_cast<VKTexture&>(src);
     auto& vk_image_dst = dynamic_cast<VKTexture&>(dst);
 
-    auto copy_width = copy_info.src_width ? copy_info.src_width : dst.GetTextureDesc().GetTextureWidth();
-    auto copy_height = copy_info.src_height ? copy_info.src_height : dst.GetTextureDesc().GetTextureHeight();
+    auto copy_width = copy_info.copy_width ? copy_info.copy_width : dst.GetTextureDesc().GetTextureWidth();
+    auto copy_height = copy_info.copy_height ? copy_info.copy_height : dst.GetTextureDesc().GetTextureHeight();
     
     VkImageCopy image_copy{};
     image_copy.extent = {copy_width, copy_height, 1};
@@ -634,8 +634,8 @@ bool VulkanUtils::CopyTexture(IRHICommandList& command_list, IRHITexture& dst, I
     auto vk_image = dynamic_cast<VKTexture&>(dst).GetRawImage();
     auto vk_image_layout = VKConverterUtils::ConvertToImageLayout(dst.GetState());
 
-    auto copy_width = copy_info.src_width ? copy_info.src_width : dst.GetTextureDesc().GetTextureWidth();
-    auto copy_height = copy_info.src_height ? copy_info.src_height : dst.GetTextureDesc().GetTextureHeight();
+    auto copy_width = copy_info.copy_width ? copy_info.copy_width : dst.GetTextureDesc().GetTextureWidth();
+    auto copy_height = copy_info.copy_height ? copy_info.copy_height : dst.GetTextureDesc().GetTextureHeight();
 
     auto row_length = copy_info.row_pitch ? copy_info.row_pitch / GetBytePerPixelByFormat(dst.GetTextureFormat()) : 0;
     

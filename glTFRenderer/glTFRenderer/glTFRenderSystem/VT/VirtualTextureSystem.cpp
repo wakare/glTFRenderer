@@ -55,6 +55,8 @@ void VirtualTextureSystem::TickRenderSystem(glTFRenderResourceManager& resource_
     
     std::vector<VTPageData> svt_page_data;
     std::vector<VTPageData> rvt_page_data;
+
+    std::set<VTPage::HashType> svt_request_hashes;
     
     {
         auto page_data = m_page_streamer->GetRequestResultsAndClean();
@@ -63,6 +65,7 @@ void VirtualTextureSystem::TickRenderSystem(glTFRenderResourceManager& resource_
             if (m_logical_texture_infos.at(page.page.tex).first->IsSVT() )
             {
                 svt_page_data.push_back(page);
+                svt_request_hashes.emplace(page.page.PageHash());
             }
             else
             {
@@ -91,6 +94,11 @@ void VirtualTextureSystem::TickRenderSystem(glTFRenderResourceManager& resource_
         
             for (const auto& page_allocation : page_allocations)
             {
+                if (!svt_request_hashes.contains(page_allocation.second.page.PageHash()))
+                {
+                    continue;
+                }
+                
                 if (page_allocation.second.page.tex == page_table->GetTextureId())
                 {
                     page_table->TouchPageAllocation(page_allocation.second);
@@ -103,6 +111,8 @@ void VirtualTextureSystem::TickRenderSystem(glTFRenderResourceManager& resource_
 
         m_physical_svt_texture->UpdateTextureData();
         m_physical_svt_texture->UpdateRenderResource(resource_manager);
+
+        m_physical_svt_texture->ResetDirtyPages();
     }
 
     if (!rvt_page_data.empty())
@@ -113,7 +123,7 @@ void VirtualTextureSystem::TickRenderSystem(glTFRenderResourceManager& resource_
         for (auto& logical_texture_info : m_logical_texture_infos)
         {
             auto& logical_texture = logical_texture_info.second.first;
-            if (logical_texture->IsSVT())
+            if (!logical_texture->IsRVT())
             {
                 continue;
             }

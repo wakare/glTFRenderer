@@ -28,6 +28,7 @@ public:
     bool GetPageData(const VTPage& page, VTPageData& out) const;
 
     bool IsSVT() const;
+    bool IsRVT() const;
     
 protected:
     bool GeneratePageData();
@@ -84,6 +85,8 @@ public:
 
     bool InitRenderResource(glTFRenderResourceManager& resource_manager);
     void UpdateRenderResource(glTFRenderResourceManager& resource_manager);
+
+    void ResetDirtyPages();
     
     const std::map<VTPage::HashType, VTPhysicalPageAllocationInfo>& GetPageAllocationInfos() const;
     std::shared_ptr<IRHITextureAllocation> GetTextureAllocation() const;
@@ -101,6 +104,7 @@ protected:
 
     std::vector<std::pair<int, int>> m_available_pages;
     std::map<VTPage::HashType, VTPhysicalPageAllocationInfo> m_page_allocations;
+    std::set<VTPage::HashType> m_added_pages;
     VTPageLRU m_page_lru_cache;
 
     std::shared_ptr<IRHITextureAllocation> m_physical_texture;

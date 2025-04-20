@@ -609,8 +609,8 @@ bool DX12Utils::CopyTexture(IRHICommandList& command_list, IRHITexture& dst, IRH
     srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX; 
     srcLocation.SubresourceIndex = copy_info.src_mip_level;
     
-    auto copy_width = copy_info.src_width ? copy_info.src_width : dst.GetTextureDesc().GetTextureWidth();
-    auto copy_height = copy_info.src_height ? copy_info.src_height : dst.GetTextureDesc().GetTextureHeight();
+    auto copy_width = copy_info.copy_width ? copy_info.copy_width : dst.GetTextureDesc().GetTextureWidth();
+    auto copy_height = copy_info.copy_height ? copy_info.copy_height : dst.GetTextureDesc().GetTextureHeight();
     
     D3D12_BOX src_box{};
     src_box.left = 0;
@@ -632,8 +632,8 @@ bool DX12Utils::CopyTexture(IRHICommandList& command_list, IRHITexture& dst, IRH
     dst.Transition(command_list, RHIResourceStateType::STATE_COPY_DEST);
     src.Transition(command_list, RHIResourceStateType::STATE_COPY_SOURCE);
     
-    auto copy_width = copy_info.src_width ? copy_info.src_width : dst.GetTextureDesc().GetTextureWidth();
-    auto copy_height = copy_info.src_height ? copy_info.src_height : dst.GetTextureDesc().GetTextureHeight();
+    auto copy_width = copy_info.copy_width ? copy_info.copy_width : dst.GetTextureDesc().GetTextureWidth();
+    auto copy_height = copy_info.copy_height ? copy_info.copy_height : dst.GetTextureDesc().GetTextureHeight();
     
     D3D12_TEXTURE_COPY_LOCATION dstLocation;
     dstLocation.pResource = dynamic_cast<DX12Texture&>(dst).GetRawResource();

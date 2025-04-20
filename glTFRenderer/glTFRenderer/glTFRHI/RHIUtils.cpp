@@ -11,7 +11,8 @@ bool RHIUtils::UploadTextureData(IRHICommandList& command_list, IRHIMemoryManage
     auto mip_texture_height = dst.GetTextureDesc().GetTextureHeight(upload_info.mip_level);
     
     size_t mip_copy_row_pitch = dst.GetCopyReq().row_pitch[upload_info.mip_level];
-    size_t mip_copy_total_size = mip_copy_row_pitch * mip_texture_height;
+    unsigned mip_copy_height = upload_info.height ? upload_info.height : mip_texture_height;
+    size_t mip_copy_total_size = mip_copy_row_pitch * mip_copy_height;
     
     const RHIBufferDesc texture_upload_buffer_desc =
         {
@@ -32,7 +33,7 @@ bool RHIUtils::UploadTextureData(IRHICommandList& command_list, IRHIMemoryManage
     size_t byte_per_pixel = GetBytePerPixelByFormat(dst.GetTextureFormat()); 
     std::vector<unsigned char> texture_data; texture_data.resize(mip_copy_total_size);
     unsigned char* texture_data_ptr = texture_data.data();
-    for (unsigned h = 0; h < mip_texture_height; h++)
+    for (unsigned h = 0; h < mip_copy_height; h++)
     {
         unsigned char* texture_data_offset_ptr = texture_data_ptr + mip_copy_row_pitch * h;
         unsigned char* src_ptr = upload_info.data.get() + mip_texture_width * h * byte_per_pixel;
@@ -43,8 +44,8 @@ bool RHIUtils::UploadTextureData(IRHICommandList& command_list, IRHIMemoryManage
 
     RHICopyTextureInfo m_texture_upload_copy_info
     {
-        0, 0, 0, upload_info.mip_level,
-        mip_texture_width, mip_texture_height, static_cast<unsigned>(mip_copy_row_pitch)
+        upload_info.dst_x, upload_info.dst_y, 0, upload_info.mip_level,
+        mip_texture_width, mip_copy_height, static_cast<unsigned>(mip_copy_row_pitch)
     };
     
     CopyTexture(command_list, dst, *m_texture_upload_buffer->m_buffer, m_texture_upload_copy_info);

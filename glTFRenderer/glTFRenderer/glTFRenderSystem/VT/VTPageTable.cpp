@@ -70,7 +70,11 @@ void VTPageTable::UpdateRenderResource(glTFRenderResourceManager& resource_manag
         {
             {
                 texture_data->GetData(),
-                texture_data->GetDataSize()
+                texture_data->GetDataSize(),
+                0,
+                0,
+                texture_data->GetWidth(),
+                texture_data->GetHeight(),
             },
             mip++,
         };

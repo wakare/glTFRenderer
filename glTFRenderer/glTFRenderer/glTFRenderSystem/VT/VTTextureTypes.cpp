@@ -80,6 +80,11 @@ bool VTLogicalTexture::IsSVT() const
     return m_svt;
 }
 
+bool VTLogicalTexture::IsRVT() const
+{
+    return !m_svt;
+}
+
 bool VTLogicalTexture::GeneratePageData()
 {
     if (!IsSVT())
@@ -300,14 +305,21 @@ void VTPhysicalTexture::ProcessRequestResult(const std::vector<VTPageData>& resu
         page_allocation.page = result.page;
         page_allocation.page_data = result.data;
         m_page_lru_cache.AddPage(result.page);
+
+        m_added_pages.emplace(result.page.PageHash());
     }
 }
 
 void VTPhysicalTexture::UpdateTextureData()
 {
-    m_physical_texture_data->ResetTextureData();
+    //m_physical_texture_data->ResetTextureData();
     for (const auto& page_allocation : m_page_allocations)
     {
+        if (!m_added_pages.contains(page_allocation.first))
+        {
+            continue;
+        }
+        
         unsigned page_offset_x = page_allocation.second.X * (VirtualTextureSystem::VT_PAGE_SIZE + 2 * m_border) + m_border;
         unsigned page_offset_y = page_allocation.second.Y * (VirtualTextureSystem::VT_PAGE_SIZE + 2 * m_border) + m_border;
         m_physical_texture_data->UpdateRegionData(page_offset_x, page_offset_y, VirtualTextureSystem::VT_PAGE_SIZE, VirtualTextureSystem::VT_PAGE_SIZE, page_allocation.second.page_data.get());
@@ -338,6 +350,8 @@ bool VTPhysicalTexture::InitRenderResource(glTFRenderResourceManager& resource_m
     const bool allocated = resource_manager.GetMemoryManager().AllocateTextureMemory(resource_manager.GetDevice(), resource_manager, page_table_texture_desc, m_physical_texture);
     GLTF_CHECK(allocated);
     
+    m_physical_texture_data->ResetTextureData();
+    
     return true;
 }
 
@@ -352,11 +366,19 @@ void VTPhysicalTexture::UpdateRenderResource(glTFRenderResourceManager& resource
     {
         m_physical_texture_data->GetData(),
         m_physical_texture_data->GetDataSize(),
+        0, 0,
+        m_physical_texture->m_texture->GetTextureDesc().GetTextureWidth(),
+        m_physical_texture->m_texture->GetTextureDesc().GetTextureHeight(),
         0
     };
     
     RHIUtils::Instance().UploadTextureData(resource_manager.GetCommandListForRecord(), resource_manager.GetMemoryManager(), resource_manager.GetDevice(), *m_physical_texture->m_texture, upload_info );
     resource_manager.CloseCurrentCommandListAndExecute({},false);
+}
+
+void VTPhysicalTexture::ResetDirtyPages()
+{
+    m_added_pages.clear();   
 }
 
 const std::map<VTPage::HashType, VTPhysicalPageAllocationInfo>& VTPhysicalTexture::GetPageAllocationInfos() const
