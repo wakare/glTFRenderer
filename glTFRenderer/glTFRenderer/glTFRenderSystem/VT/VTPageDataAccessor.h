@@ -10,7 +10,8 @@ struct VTPageData
 {
     VTPage page;
     std::shared_ptr<unsigned char[]> data;
-
+    size_t data_size;
+    
     bool loaded{false};
 };
 

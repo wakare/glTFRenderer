@@ -109,9 +109,7 @@ void VirtualTextureSystem::TickRenderSystem(glTFRenderResourceManager& resource_
             logical_texture->UpdateRenderResource(resource_manager);
         }
 
-        m_physical_svt_texture->UpdateTextureData();
         m_physical_svt_texture->UpdateRenderResource(resource_manager);
-
         m_physical_svt_texture->ResetDirtyPages();
     }
 

@@ -42,6 +42,7 @@ struct VTPhysicalPageAllocationInfo
     int X;
     int Y;
     std::shared_ptr<unsigned char[]> page_data;
+    size_t page_size;
 };
 
 // single mip texture data

@@ -117,6 +117,8 @@ bool VTLogicalTexture::GeneratePageData()
             page_data.loaded = true;
             page_data.data = std::make_shared<unsigned char[]>(page_size);
             memset(page_data.data.get(), 0, page_size);
+            page_data.data_size = page_size;
+            
             for (int px = 0; px < VirtualTextureSystem::VT_PAGE_SIZE; ++px)
             {
                 for (int py = 0; py < VirtualTextureSystem::VT_PAGE_SIZE; ++py)
@@ -153,6 +155,7 @@ bool VTLogicalTexture::GeneratePageData()
                 page_data.loaded = true;
                 page_data.data = std::make_shared<unsigned char[]>(page_size);
                 memset(page_data.data.get(), 0, page_size);
+                page_data.data_size = page_size;
 
                 // Get prior mip page data
                 VTPage::OffsetType src_X = 2 * X;
@@ -304,6 +307,7 @@ void VTPhysicalTexture::ProcessRequestResult(const std::vector<VTPageData>& resu
         GLTF_CHECK(found && result.loaded);
         page_allocation.page = result.page;
         page_allocation.page_data = result.data;
+        page_allocation.page_size = result.data_size;
         m_page_lru_cache.AddPage(result.page);
 
         m_added_pages.emplace(result.page.PageHash());
@@ -312,7 +316,6 @@ void VTPhysicalTexture::ProcessRequestResult(const std::vector<VTPageData>& resu
 
 void VTPhysicalTexture::UpdateTextureData()
 {
-    //m_physical_texture_data->ResetTextureData();
     for (const auto& page_allocation : m_page_allocations)
     {
         if (!m_added_pages.contains(page_allocation.first))
@@ -362,17 +365,29 @@ void VTPhysicalTexture::UpdateRenderResource(glTFRenderResourceManager& resource
         InitRenderResource(resource_manager);
     }
 
-    const RHITextureMipUploadInfo upload_info
+    for (const auto& allocation : m_page_allocations)
     {
-        m_physical_texture_data->GetData(),
-        m_physical_texture_data->GetDataSize(),
-        0, 0,
-        m_physical_texture->m_texture->GetTextureDesc().GetTextureWidth(),
-        m_physical_texture->m_texture->GetTextureDesc().GetTextureHeight(),
-        0
-    };
+        if (!m_added_pages.contains(allocation.first))
+        {
+            continue;
+        }
+
+        int page_offset_x = allocation.second.X * (VirtualTextureSystem::VT_PAGE_SIZE + 2 * m_border) + m_border;
+        int page_offset_y = allocation.second.Y * (VirtualTextureSystem::VT_PAGE_SIZE + 2 * m_border) + m_border;
+        
+        const RHITextureMipUploadInfo upload_info
+        {
+            allocation.second.page_data,
+            allocation.second.page_size,
+            page_offset_x, page_offset_y,
+            VirtualTextureSystem::VT_PAGE_SIZE,
+            VirtualTextureSystem::VT_PAGE_SIZE,
+            0
+        };
+
+        RHIUtils::Instance().UploadTextureData(resource_manager.GetCommandListForRecord(), resource_manager.GetMemoryManager(), resource_manager.GetDevice(), *m_physical_texture->m_texture, upload_info );
+    }
     
-    RHIUtils::Instance().UploadTextureData(resource_manager.GetCommandListForRecord(), resource_manager.GetMemoryManager(), resource_manager.GetDevice(), *m_physical_texture->m_texture, upload_info );
     resource_manager.CloseCurrentCommandListAndExecute({},false);
 }
 
