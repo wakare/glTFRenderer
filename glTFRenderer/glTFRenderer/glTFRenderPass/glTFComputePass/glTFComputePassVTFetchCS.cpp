@@ -34,7 +34,7 @@ bool glTFComputePassVTFetchCS::InitRenderInterface(glTFRenderResourceManager& re
     AddRenderInterface(std::make_shared<glTFRenderInterfaceTextureTableBindless<RHIDescriptorRangeType::SRV>>("CLEAR_UINT_TEXTURES_REGISTER_INDEX"));
 
     const auto& logical_texture_info = resource_manager.GetRenderSystem<VirtualTextureSystem>()->GetLogicalTextureInfo(m_virtual_texture_id);
-    auto feedback_texture_size = VirtualTextureSystem::GetVTFeedbackTextureSize(*logical_texture_info.first);
+    auto feedback_texture_size = VirtualTextureSystem::GetVTFeedbackTextureSize(logical_texture_info);
     
     size_t fetch_uav_size = feedback_texture_size.first * feedback_texture_size.second * sizeof(ComputePassVTFetchUAVOutput);
     m_uav_output_buffer_data.resize(feedback_texture_size.first * feedback_texture_size.second);
@@ -66,7 +66,7 @@ bool glTFComputePassVTFetchCS::InitPass(glTFRenderResourceManager& resource_mana
 {
     RETURN_IF_FALSE(glTFComputePassBase::InitPass(resource_manager))
     const auto& logical_texture_info = resource_manager.GetRenderSystem<VirtualTextureSystem>()->GetLogicalTextureInfo(m_virtual_texture_id);
-    auto feedback_texture_size = VirtualTextureSystem::GetVTFeedbackTextureSize(*logical_texture_info.first);
+    auto feedback_texture_size = VirtualTextureSystem::GetVTFeedbackTextureSize(logical_texture_info);
     
     VT_FETCH_OUTPUT_INFO info;
     info.texture_count = 1;
@@ -91,7 +91,7 @@ bool glTFComputePassVTFetchCS::SetupPipelineStateObject(glTFRenderResourceManage
 DispatchCount glTFComputePassVTFetchCS::GetDispatchCount(glTFRenderResourceManager& resource_manager) const
 {
     const auto& logical_texture_info = resource_manager.GetRenderSystem<VirtualTextureSystem>()->GetLogicalTextureInfo(m_virtual_texture_id);
-    auto feedback_texture_size = VirtualTextureSystem::GetVTFeedbackTextureSize(*logical_texture_info.first);
+    auto feedback_texture_size = VirtualTextureSystem::GetVTFeedbackTextureSize(logical_texture_info);
     
     return {feedback_texture_size.first / 8, feedback_texture_size.second / 8, 1};
 }
@@ -124,7 +124,7 @@ bool glTFComputePassVTFetchCS::InitResourceTable(glTFRenderResourceManager& reso
 {
     RETURN_IF_FALSE(glTFComputePassBase::InitResourceTable(resource_manager))
     const auto& logical_texture_info = resource_manager.GetRenderSystem<VirtualTextureSystem>()->GetLogicalTextureInfo(m_virtual_texture_id);
-    const auto& vt_size = resource_manager.GetRenderSystem<VirtualTextureSystem>()->GetVTFeedbackTextureSize(*logical_texture_info.first);
+    const auto& vt_size = resource_manager.GetRenderSystem<VirtualTextureSystem>()->GetVTFeedbackTextureSize(logical_texture_info);
     
     RHITextureDesc feed_back_desc = RHITextureDesc::MakeVirtualTextureFeedbackDesc(resource_manager, vt_size.first, vt_size.second);
     AddImportTextureResource(GetVTFeedBackId(m_virtual_texture_id), feed_back_desc,

@@ -22,7 +22,7 @@ void VirtualTextureSystem::SetupPass(glTFRenderResourceManager& resource_manager
 {
     for (const auto& logic_texture : m_logical_texture_infos)
     {
-        auto feedback_pass = std::make_shared<glTFGraphicsPassMeshVTFeedback>(logic_texture.first, !!dynamic_cast<VTShadowmapLogicalTexture*>(logic_texture.second.first.get()));
+        auto feedback_pass = std::make_shared<glTFGraphicsPassMeshVTFeedback>(logic_texture.first, !!dynamic_cast<VTShadowmapLogicalTexture*>(logic_texture.second.get()));
         pass_manager.AddRenderPass(POST_SCENE, feedback_pass);
         
         auto fetch_feedback_pass = std::make_shared<glTFComputePassVTFetchCS>(logic_texture.first);
@@ -30,7 +30,7 @@ void VirtualTextureSystem::SetupPass(glTFRenderResourceManager& resource_manager
 
         m_logical_texture_feedback_passes[logic_texture.first] = {feedback_pass, fetch_feedback_pass};
 
-        logic_texture.second.second->UpdateRenderResource(resource_manager);
+        logic_texture.second->GetPageTable().UpdateRenderResource(resource_manager);
     }
     
     InitFeedBackPass();
@@ -67,9 +67,9 @@ void VirtualTextureSystem::TickRenderSystem(glTFRenderResourceManager& resource_
             
         for (auto& logical_texture_info : m_logical_texture_infos)
         {
-            auto& logical_texture = logical_texture_info.second.first;
-            auto& page_table  = logical_texture_info.second.second;
-            page_table->Invalidate();
+            auto& logical_texture = logical_texture_info.second;
+            auto& page_table = logical_texture_info.second->GetPageTable();
+            page_table.Invalidate();
         
             for (const auto& page_allocation : page_allocations)
             {
@@ -78,14 +78,14 @@ void VirtualTextureSystem::TickRenderSystem(glTFRenderResourceManager& resource_
                     m_loaded_page_hashes.insert(page_allocation.second.page.PageHash());
                 }
                     
-                if (page_allocation.second.page.logical_tex_id == page_table->GetLogicalTextureId())
+                if (page_allocation.second.page.logical_tex_id == page_table.GetLogicalTextureId())
                 {
-                    page_table->TouchPageAllocation(page_allocation.second);
+                    page_table.TouchPageAllocation(page_allocation.second);
                 }
             }
                 
-            page_table->UpdateTextureData();
-            page_table->UpdateRenderResource(resource_manager);
+            page_table.UpdateTextureData();
+            page_table.UpdateRenderResource(resource_manager);
             logical_texture->UpdateRenderResource(resource_manager);
         }
             
@@ -101,10 +101,7 @@ bool VirtualTextureSystem::HasTexture(std::shared_ptr<VTLogicalTexture> texture)
 
 bool VirtualTextureSystem::RegisterTexture(std::shared_ptr<VTLogicalTexture> texture)
 {
-    std::shared_ptr<VTPageTable> page_table = std::make_shared<VTPageTable>();
-    const int page_table_size = texture->GetSize() / VT_PAGE_SIZE;
-    page_table->InitVTPageTable(texture->GetTextureId(), page_table_size, VT_PAGE_SIZE);
-    m_logical_texture_infos[texture->GetTextureId()] = std::make_pair(texture, page_table);
+    m_logical_texture_infos[texture->GetTextureId()] = texture;
     m_page_streamer->AddLogicalTexture(texture);
     
     return true;
@@ -115,16 +112,16 @@ bool VirtualTextureSystem::UpdateRenderResource(glTFRenderResourceManager& resou
     return true;
 }
 
-const std::map<int, std::pair<std::shared_ptr<VTLogicalTexture>, std::shared_ptr<VTPageTable>>>& VirtualTextureSystem::
+const std::map<int, std::shared_ptr<VTLogicalTexture>>& VirtualTextureSystem::
 GetLogicalTextureInfos() const
 {
     return m_logical_texture_infos;
 }
 
-const std::pair<std::shared_ptr<VTLogicalTexture>, std::shared_ptr<VTPageTable>>& VirtualTextureSystem::
+VTLogicalTexture& VirtualTextureSystem::
 GetLogicalTextureInfo(unsigned virtual_texture_id) const
 {
-    return m_logical_texture_infos.at(virtual_texture_id);
+    return *m_logical_texture_infos.at(virtual_texture_id);
 }
 
 std::shared_ptr<VTPhysicalTexture> VirtualTextureSystem::GetSVTPhysicalTexture() const
@@ -168,7 +165,7 @@ unsigned VirtualTextureSystem::GetAvailableVTIdAndInc()
 VTPageType VirtualTextureSystem::GetPageType(unsigned virtual_texture_id) const
 {
     GLTF_CHECK(m_logical_texture_infos.contains(virtual_texture_id));
-    return m_logical_texture_infos.at(virtual_texture_id).first->IsSVT() ? VTPageType::SVT_PAGE : VTPageType::RVT_PAGE;
+    return m_logical_texture_infos.at(virtual_texture_id)->IsSVT() ? VTPageType::SVT_PAGE : VTPageType::RVT_PAGE;
 }
 
 void VirtualTextureSystem::InitFeedBackPass()

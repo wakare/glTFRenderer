@@ -31,7 +31,7 @@ bool glTFRenderInterfaceVT::PreInitInterfaceImpl(glTFRenderResourceManager& reso
     
     for (const auto& page_table : vt_system->GetLogicalTextureInfos())
     {
-        const auto& logical_texture = page_table.second.first;
+        const auto& logical_texture = page_table.second;
         VTLogicalTextureInfo info;
         info.logical_texture_size = logical_texture->GetSize();
         m_vt_logical_texture_infos.push_back(info);
@@ -42,8 +42,8 @@ bool glTFRenderInterfaceVT::PreInitInterfaceImpl(glTFRenderResourceManager& reso
         std::vector<std::shared_ptr<IRHITexture>> vt_page_table_textures;
         for (const auto& page_table : vt_system->GetLogicalTextureInfos())
         {
-            const auto& logical_texture = page_table.second.first;
-            auto& texture_resource = page_table.second.second->GetTextureAllocation()->m_texture;
+            const auto& logical_texture = page_table.second;
+            auto& texture_resource = page_table.second->GetPageTable().GetTextureAllocation()->m_texture;
             m_vt_logical_texture_infos[logical_texture->GetTextureId()].page_table_tex_index = vt_page_table_textures.size();
             m_vt_logical_texture_infos[logical_texture->GetTextureId()].page_table_texture_size = texture_resource->GetTextureDesc().GetTextureWidth();
             m_vt_logical_texture_infos[logical_texture->GetTextureId()].svt = logical_texture->IsSVT();

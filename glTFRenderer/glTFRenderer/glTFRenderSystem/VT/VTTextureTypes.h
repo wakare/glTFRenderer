@@ -26,7 +26,8 @@ public:
     int GetSize() const;
     
     bool GetPageData(const VTPage& page, VTPageData& out) const;
-
+    VTPageTable& GetPageTable();
+    
     bool IsSVT() const;
     bool IsRVT() const;
     
@@ -46,6 +47,7 @@ protected:
     size_t m_texture_data_size {0};
 
     std::map<VTPage::HashType, VTPageData> m_page_data;
+    std::shared_ptr<VTPageTable> m_page_table;
 };
 
 class VTShadowmapLogicalTexture : public VTLogicalTexture

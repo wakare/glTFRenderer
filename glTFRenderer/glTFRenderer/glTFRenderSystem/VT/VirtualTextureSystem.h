@@ -35,8 +35,8 @@ public:
     bool RegisterTexture(std::shared_ptr<VTLogicalTexture> texture);
     bool UpdateRenderResource(glTFRenderResourceManager& resource_manager);
 
-    const std::map<int, std::pair<std::shared_ptr<VTLogicalTexture>, std::shared_ptr<VTPageTable>>>& GetLogicalTextureInfos() const;
-    const std::pair<std::shared_ptr<VTLogicalTexture>, std::shared_ptr<VTPageTable>>& GetLogicalTextureInfo(unsigned virtual_texture_id) const;
+    const std::map<int, std::shared_ptr<VTLogicalTexture>>& GetLogicalTextureInfos() const;
+    VTLogicalTexture& GetLogicalTextureInfo(unsigned virtual_texture_id) const;
     std::shared_ptr<VTPhysicalTexture> GetSVTPhysicalTexture() const;
     std::shared_ptr<VTPhysicalTexture> GetRVTPhysicalTexture() const;
 
@@ -49,7 +49,7 @@ protected:
     void GatherPageRequest(std::vector<VTPage>& out_svt_pages);
     
     // one logical texture map one page table
-    std::map<int, std::pair<std::shared_ptr<VTLogicalTexture>, std::shared_ptr<VTPageTable>>> m_logical_texture_infos;
+    std::map<int, std::shared_ptr<VTLogicalTexture>> m_logical_texture_infos;
     std::map<int, std::pair<std::shared_ptr<glTFGraphicsPassMeshVTFeedback>, std::shared_ptr<glTFComputePassVTFetchCS>>> m_logical_texture_feedback_passes;
 
     unsigned m_virtual_texture_id{1};

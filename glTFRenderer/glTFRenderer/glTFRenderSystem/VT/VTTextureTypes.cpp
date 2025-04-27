@@ -24,7 +24,13 @@ bool VTLogicalTexture::InitLogicalTexture(const RHITextureDesc& desc, const VTLo
     m_texture_format = desc.GetDataFormat();
     m_texture_data_size = desc.GetTextureDataSize();
 
-    return GeneratePageData();
+    RETURN_IF_FALSE(GeneratePageData());
+
+    m_page_table = std::make_shared<VTPageTable>();
+    const int page_table_size = m_logical_texture_width / VirtualTextureSystem::VT_PAGE_SIZE;
+    RETURN_IF_FALSE(m_page_table->InitVTPageTable(m_texture_id, page_table_size, VirtualTextureSystem::VT_PAGE_SIZE));
+
+    return true;
 }
 
 bool VTLogicalTexture::InitRenderResource(glTFRenderResourceManager& resource_manager)
@@ -73,6 +79,11 @@ bool VTLogicalTexture::GetPageData(const VTPage& page, VTPageData& out) const
     }
     
     return true;
+}
+
+VTPageTable& VTLogicalTexture::GetPageTable()
+{
+    return *m_page_table;
 }
 
 bool VTLogicalTexture::IsSVT() const
