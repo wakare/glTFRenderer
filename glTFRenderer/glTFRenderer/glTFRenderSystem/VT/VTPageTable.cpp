@@ -90,7 +90,7 @@ void VTPageTable::Invalidate()
 
 bool VTPageTable::TouchPageAllocation(const VTPhysicalPageAllocationInfo& page_allocation)
 {
-    GLTF_CHECK(page_allocation.page.tex == m_tex_id);
+    GLTF_CHECK(page_allocation.page.logical_tex_id == m_tex_id);
     
     int touch_level = page_allocation.page.mip;
     m_quad_tree->Touch(page_allocation.page.X, page_allocation.page.Y, page_allocation.X, page_allocation.Y, touch_level);
@@ -143,7 +143,7 @@ void VTPageTable::UpdateTextureData()
     }
 }
 
-int VTPageTable::GetTextureId() const
+int VTPageTable::GetLogicalTextureId() const
 {
     return m_tex_id;
 }

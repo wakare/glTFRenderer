@@ -112,7 +112,7 @@ bool VTLogicalTexture::GeneratePageData()
             page_data.page.X = X;
             page_data.page.Y = Y;
             page_data.page.mip = mip;
-            page_data.page.tex = GetTextureId();
+            page_data.page.logical_tex_id = GetTextureId();
 
             page_data.loaded = true;
             page_data.data = std::make_shared<unsigned char[]>(page_size);
@@ -151,7 +151,7 @@ bool VTLogicalTexture::GeneratePageData()
                 page_data.page.X = X;
                 page_data.page.Y = Y;
                 page_data.page.mip = mip;
-                page_data.page.tex = m_texture_id;
+                page_data.page.logical_tex_id = m_texture_id;
                 page_data.loaded = true;
                 page_data.data = std::make_shared<unsigned char[]>(page_size);
                 memset(page_data.data.get(), 0, page_size);
@@ -165,10 +165,10 @@ bool VTLogicalTexture::GeneratePageData()
 
                 VTPage source_pages[4] =
                     {
-                        {.X= src_X,         .Y= src_Y,          .mip= static_cast<VTPage::MipType>(mip - 1), .tex = GetTextureId()},
-                        {.X= src_XPlusOne,  .Y= src_Y,          .mip= static_cast<VTPage::MipType>(mip - 1), .tex = GetTextureId()},
-                        {.X= src_XPlusOne,  .Y= src_YPlusOne,   .mip= static_cast<VTPage::MipType>(mip - 1), .tex = GetTextureId()},
-                        {.X= src_X,         .Y= src_YPlusOne,   .mip= static_cast<VTPage::MipType>(mip - 1), .tex = GetTextureId()}
+                        {.X= src_X,         .Y= src_Y,          .mip= static_cast<VTPage::MipType>(mip - 1), .logical_tex_id = GetTextureId()},
+                        {.X= src_XPlusOne,  .Y= src_Y,          .mip= static_cast<VTPage::MipType>(mip - 1), .logical_tex_id = GetTextureId()},
+                        {.X= src_XPlusOne,  .Y= src_YPlusOne,   .mip= static_cast<VTPage::MipType>(mip - 1), .logical_tex_id = GetTextureId()},
+                        {.X= src_X,         .Y= src_YPlusOne,   .mip= static_cast<VTPage::MipType>(mip - 1), .logical_tex_id = GetTextureId()}
                     };
 
                 for (const VTPage& source_page : source_pages)
@@ -278,11 +278,17 @@ VTPhysicalTexture::VTPhysicalTexture(int texture_size, int page_size, int border
     m_physical_texture_data = std::make_shared<VTTextureData>(m_texture_size, m_texture_size, RHIDataFormat::R8G8B8A8_UNORM);
 }
 
-void VTPhysicalTexture::ProcessRequestResult(const std::vector<VTPageData>& results)
+void VTPhysicalTexture::InsertPage(const std::vector<VTPageData>& results)
 {
     for (const auto& result : results)
     {
         if (m_page_allocations.contains(result.page.PageHash()))
+        {
+            continue;
+        }
+
+        if ((result.page.type == VTPageType::SVT_PAGE && !m_svt) ||
+            (result.page.type == VTPageType::RVT_PAGE && m_svt))
         {
             continue;
         }
@@ -404,6 +410,11 @@ const std::map<VTPage::HashType, VTPhysicalPageAllocationInfo>& VTPhysicalTextur
 std::shared_ptr<IRHITextureAllocation> VTPhysicalTexture::GetTextureAllocation() const
 {
     return m_physical_texture;
+}
+
+bool VTPhysicalTexture::IsSVT() const
+{
+    return m_svt;
 }
 
 bool VTPhysicalTexture::GetAvailablePagesAndErase(int& x, int& y)

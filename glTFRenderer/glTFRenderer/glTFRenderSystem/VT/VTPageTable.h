@@ -24,7 +24,7 @@ public:
     bool TouchPageAllocation(const VTPhysicalPageAllocationInfo& page_allocation);
     void UpdateTextureData();
 
-    int GetTextureId() const;
+    int GetLogicalTextureId() const;
     const std::map<VTPage::HashType, PhysicalPageOffset>& GetPageTable() const; 
 
     std::shared_ptr<IRHITextureAllocation> GetTextureAllocation() const;

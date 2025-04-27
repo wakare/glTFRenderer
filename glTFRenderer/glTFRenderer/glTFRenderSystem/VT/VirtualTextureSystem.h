@@ -17,10 +17,11 @@ class VirtualTextureSystem : public RenderSystemBase
 public:
     enum
     {
-        VT_PHYSICAL_TEXTURE_SIZE = 1024,
+        VT_PHYSICAL_TEXTURE_SIZE = 512,
         VT_PAGE_SIZE = 64,
         VT_PHYSICAL_TEXTURE_BORDER = 1,
-        VT_FEEDBACK_TEXTURE_SCALE_SIZE = 8,
+        VT_FEEDBACK_TEXTURE_SCALE_SIZE = 32,
+        VT_PAGE_PROCESS_COUNT_PER_FRAME = 5, 
     };
     
     DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VirtualTextureSystem)
@@ -43,6 +44,7 @@ public:
     unsigned GetAvailableVTIdAndInc();
     
 protected:
+    VTPageType GetPageType(unsigned virtual_texture_id) const;
     void InitFeedBackPass();
     void GatherPageRequest(std::vector<VTPage>& out_svt_pages);
     
@@ -53,6 +55,7 @@ protected:
     unsigned m_virtual_texture_id{1};
     
     std::shared_ptr<VTPageStreamer> m_page_streamer;
-    std::shared_ptr<VTPhysicalTexture> m_physical_svt_texture;
-    std::shared_ptr<VTPhysicalTexture> m_physical_rvt_texture;
+    std::vector<std::shared_ptr<VTPhysicalTexture>> m_physical_virtual_textures;
+
+    std::set<VTPage::HashType> m_loaded_page_hashes;
 };

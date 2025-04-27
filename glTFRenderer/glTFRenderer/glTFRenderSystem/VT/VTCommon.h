@@ -3,26 +3,34 @@
 
 #include "glTFRHI/RHIInterface/RHICommon.h"
 
+
+enum class VTPageType
+{
+    SVT_PAGE = 0,
+    RVT_PAGE = 1,
+};
+
 struct VTPage
 {
     using OffsetType = uint16_t;
     using MipType = uint8_t;
     using HashType = uint64_t;
-    
+
     OffsetType X;
     OffsetType Y;
     MipType mip;
-    int tex; // logical texture id 
+    int logical_tex_id; // logical texture id
+    VTPageType type;
 
     HashType PageHash() const
     {
-        HashType hash = static_cast<HashType>(tex) << 40 | static_cast<HashType>(mip) << 32 | static_cast<HashType>(X) << 16 | Y;
+        HashType hash = static_cast<HashType>(logical_tex_id) << 40 | static_cast<HashType>(mip) << 32 | static_cast<HashType>(X) << 16 | Y;
         return hash;
     }
 
     std::string ToString() const
     {
-        return std::format("PAGE{3}_MIP{2}_X{0}_Y{1}", X, Y, mip, tex);
+        return std::format("PAGE{3}_MIP{2}_X{0}_Y{1}", X, Y, mip, logical_tex_id);
     }
 
     bool operator==(const VTPage& rhs) const

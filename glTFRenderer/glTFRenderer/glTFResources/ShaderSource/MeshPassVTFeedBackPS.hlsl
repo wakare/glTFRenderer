@@ -20,10 +20,10 @@ DECLARE_RESOURCE(cbuffer ShadowmapInfo, SHADOWMAP_INFO_REGISTER_INDEX)
 };
 #endif
 
-uint4 GenerateFeedbackData(uint logical_texture_size, uint page_table_texture_size, uint page_size, float2 uv, uint texture_id)
+uint4 GenerateFeedbackData(uint logical_texture_size, uint page_table_texture_size, uint page_size, float2 uv, uint texture_id, float mip_offset)
 {
     uv = clamp(uv, 0.0, 0.99);
-    float mip = floor(MipLevel(uv, logical_texture_size));
+    float mip = floor(MipLevel(uv, logical_texture_size)) - mip_offset;
     float max_mip = log2(page_table_texture_size);
     mip = clamp(mip, 0, max_mip);
     float mip_size = logical_texture_size / exp2(mip);
@@ -35,8 +35,12 @@ uint4 GenerateFeedbackData(uint logical_texture_size, uint page_table_texture_si
 PS_VT_FEEDBACK_OUTPUT main(PS_INPUT input)
 {
     PS_VT_FEEDBACK_OUTPUT output;
+
+    // TODO: Read mip offset from constant buffer
+    float mip_offset = 1.0;
+    
 #ifdef IS_SHADOWMAP_FEEDBACK
-    output.output = GenerateFeedbackData(shadowmap_vt_size, shadowmap_page_table_texture_size, shadowmap_vt_page, input.texCoord, shadowmap_vt_id);
+    output.output = GenerateFeedbackData(shadowmap_vt_size, shadowmap_page_table_texture_size, shadowmap_vt_page, input.texCoord, shadowmap_vt_id, mip_offset);
     
 #else
     MaterialInfo material_info = g_material_infos[input.vs_material_id];
@@ -48,7 +52,7 @@ PS_VT_FEEDBACK_OUTPUT main(PS_INPUT input)
         {
             uint logical_texture_size = g_logical_texture_infos[material_info.albedo_tex_index].logical_texture_size;
             uint page_table_texture_size = g_logical_texture_infos[material_info.albedo_tex_index].page_table_texture_size;
-            output.output = GenerateFeedbackData(logical_texture_size, page_table_texture_size, vt_system_info.vt_page_size, input.texCoord, material_info.albedo_tex_index);
+            output.output = GenerateFeedbackData(logical_texture_size, page_table_texture_size, vt_system_info.vt_page_size, input.texCoord, material_info.albedo_tex_index, mip_offset);
         }
     }
 #endif
