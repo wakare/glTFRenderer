@@ -40,6 +40,7 @@ bool VTLogicalTexture::InitRenderResource(glTFRenderResourceManager& resource_ma
         return true;
     }
 
+    m_page_table->InitRenderResource(resource_manager);
     m_render_resource_init = true;
 
     return true;
@@ -48,6 +49,7 @@ bool VTLogicalTexture::InitRenderResource(glTFRenderResourceManager& resource_ma
 void VTLogicalTexture::UpdateRenderResource(glTFRenderResourceManager& resource_manager)
 {
     InitRenderResource(resource_manager);
+    m_page_table->UpdateRenderResource(resource_manager);
 }
 
 int VTLogicalTexture::GetTextureId() const
@@ -426,6 +428,11 @@ std::shared_ptr<IRHITextureAllocation> VTPhysicalTexture::GetTextureAllocation()
 bool VTPhysicalTexture::IsSVT() const
 {
     return m_svt;
+}
+
+unsigned VTPhysicalTexture::GetPageCapacity() const
+{
+    return m_page_table_size * m_page_table_size;
 }
 
 bool VTPhysicalTexture::GetAvailablePagesAndErase(int& x, int& y)

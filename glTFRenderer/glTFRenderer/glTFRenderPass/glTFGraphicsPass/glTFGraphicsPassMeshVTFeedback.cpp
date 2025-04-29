@@ -1,5 +1,7 @@
 #include "glTFGraphicsPassMeshVTFeedback.h"
 
+#include <imgui.h>
+
 #include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneMaterial.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceViewBase.h"
@@ -7,10 +9,15 @@
 #include "glTFRenderSystem/VT/VirtualTextureSystem.h"
 #include "glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
 
+struct FeedbackConfig
+{
+    inline static std::string Name = "FEEDBACK_CONFIG_REGISTER_INDEX";
+    unsigned mipmap_offset;
+    unsigned padding[3];
+};
+
 struct ShadowInfo
 {
-    // TODO: Be careful for adding member to ConstantBuffer with alignment!
-    
     inline static std::string Name = "SHADOWMAP_INFO_REGISTER_INDEX";
     unsigned vt_id;
     unsigned shadowmap_vt_size;
@@ -21,7 +28,17 @@ struct ShadowInfo
 glTFGraphicsPassMeshVTFeedback::glTFGraphicsPassMeshVTFeedback(unsigned virtual_texture_id, bool shadowmap)
     : m_virtual_texture_id(virtual_texture_id)
     , m_shadowmap(shadowmap)
+    , m_feedback_mipmap_offset(0)
 {
+}
+
+bool glTFGraphicsPassMeshVTFeedback::UpdateGUIWidgets()
+{
+    RETURN_IF_FALSE(glTFGraphicsPassMeshBase::UpdateGUIWidgets())
+
+    ImGui::SliderInt("Mipmap offset", &m_feedback_mipmap_offset, 0, 3);
+    
+    return true;
 }
 
 RHIViewportDesc glTFGraphicsPassMeshVTFeedback::GetViewport(glTFRenderResourceManager& resource_manager) const
@@ -35,6 +52,7 @@ RHIViewportDesc glTFGraphicsPassMeshVTFeedback::GetViewport(glTFRenderResourceMa
 bool glTFGraphicsPassMeshVTFeedback::InitRenderInterface(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::InitRenderInterface(resource_manager))
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceSingleConstantBuffer<FeedbackConfig>>());
     if (m_shadowmap)
     {
         const auto& logical_texture = resource_manager.GetRenderSystem<VirtualTextureSystem>()->GetLogicalTextureInfo(m_virtual_texture_id);
@@ -111,6 +129,10 @@ bool glTFGraphicsPassMeshVTFeedback::PreRenderPass(glTFRenderResourceManager& re
     m_begin_rendering_info.m_render_targets = render_targets;
     m_begin_rendering_info.enable_depth_write = GetGraphicsPipelineStateObject().GetDepthStencilMode() == RHIDepthStencilMode::DEPTH_WRITE;
     m_begin_rendering_info.clear_render_target = true;
+    
+    FeedbackConfig feedback_config;
+    feedback_config.mipmap_offset = m_feedback_mipmap_offset;
+    GetRenderInterface<glTFRenderInterfaceSingleConstantBuffer<FeedbackConfig>>()->UploadBuffer(resource_manager, &feedback_config, 0, sizeof(feedback_config));
     
     return true;
 }

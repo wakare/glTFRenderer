@@ -7,9 +7,6 @@ std::shared_ptr<RHIUtils> RHIUtils::g_instance = nullptr;
 bool RHIUtils::UploadTextureData(IRHICommandList& command_list, IRHIMemoryManager& memory_manager, IRHIDevice& device,
     IRHITexture& dst, const RHITextureMipUploadInfo& upload_info)
 {
-    auto mip_texture_width = dst.GetTextureDesc().GetTextureWidth(upload_info.mip_level);
-    auto mip_texture_height = dst.GetTextureDesc().GetTextureHeight(upload_info.mip_level);
-    
     size_t mip_copy_row_pitch = dst.GetCopyReq().row_pitch[upload_info.mip_level];
     GLTF_CHECK(upload_info.width && upload_info.height);
     size_t mip_copy_total_size = mip_copy_row_pitch * upload_info.height;

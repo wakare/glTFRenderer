@@ -94,6 +94,7 @@ public:
     std::shared_ptr<IRHITextureAllocation> GetTextureAllocation() const;
 
     bool IsSVT() const;
+    unsigned GetPageCapacity() const;
     
 protected:
     bool GetAvailablePagesAndErase(int& x, int& y);

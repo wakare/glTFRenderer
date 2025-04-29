@@ -30,7 +30,7 @@ void VirtualTextureSystem::SetupPass(glTFRenderResourceManager& resource_manager
 
         m_logical_texture_feedback_passes[logic_texture.first] = {feedback_pass, fetch_feedback_pass};
 
-        logic_texture.second->GetPageTable().UpdateRenderResource(resource_manager);
+        logic_texture.second->UpdateRenderResource(resource_manager);
     }
     
     InitFeedBackPass();
@@ -43,11 +43,20 @@ void VirtualTextureSystem::ShutdownRenderSystem()
 
 void VirtualTextureSystem::TickRenderSystem(glTFRenderResourceManager& resource_manager)
 {
+    //resource_manager.CloseCurrentCommandListAndExecute({},true);
+    
     UpdateRenderResource(resource_manager);
     
     std::vector<VTPage> pages;
     GatherPageRequest(pages);
 
+    // Check page request count less than physical texture page capacity
+    const size_t max_page_count = GetSVTPhysicalTexture()->GetPageCapacity();
+    if (pages.size() > max_page_count)
+    {
+        LOG_FORMAT_FLUSH("[WARN] Current frame need many pages[%lld] which larger than physical texture max capacity[%lld]\n", pages.size(), max_page_count)
+    }
+    
     for (const auto& page : pages)
     {
         if (!m_loaded_page_hashes.contains(page.PageHash()))
@@ -63,8 +72,18 @@ void VirtualTextureSystem::TickRenderSystem(glTFRenderResourceManager& resource_
     for (auto& texture : m_physical_virtual_textures)
     {
         texture->InsertPage(page_data);
+        texture->UpdateRenderResource(resource_manager);
+        texture->ResetDirtyPages();
+        
         const auto& page_allocations = texture->GetPageAllocationInfos();
-            
+        for (const auto& page_allocation : page_allocations)
+        {
+            if (!m_loaded_page_hashes.contains(page_allocation.second.page.PageHash()))
+            {
+                m_loaded_page_hashes.insert(page_allocation.second.page.PageHash());
+            }
+        }
+        
         for (auto& logical_texture_info : m_logical_texture_infos)
         {
             auto& logical_texture = logical_texture_info.second;
@@ -73,11 +92,6 @@ void VirtualTextureSystem::TickRenderSystem(glTFRenderResourceManager& resource_
         
             for (const auto& page_allocation : page_allocations)
             {
-                if (!m_loaded_page_hashes.contains(page_allocation.second.page.PageHash()))
-                {
-                    m_loaded_page_hashes.insert(page_allocation.second.page.PageHash());
-                }
-                    
                 if (page_allocation.second.page.logical_tex_id == page_table.GetLogicalTextureId())
                 {
                     page_table.TouchPageAllocation(page_allocation.second);
@@ -85,12 +99,8 @@ void VirtualTextureSystem::TickRenderSystem(glTFRenderResourceManager& resource_
             }
                 
             page_table.UpdateTextureData();
-            page_table.UpdateRenderResource(resource_manager);
             logical_texture->UpdateRenderResource(resource_manager);
         }
-            
-        texture->UpdateRenderResource(resource_manager);
-        texture->ResetDirtyPages();
     }
 }
 

@@ -54,7 +54,6 @@ void ShadowRenderSystem::SetupPass(glTFRenderResourceManager& resource_manager, 
             config.isSVT = false;
             virtual_shadow_map_texture->InitLogicalTexture(shadowmap_logical_texture_desc, config);
             vt_system->RegisterTexture(virtual_shadow_map_texture);
-            vt_system->GetLogicalTextureInfo(config.virtual_texture_id).GetPageTable().UpdateRenderResource(resource_manager);
             
             m_virtual_shadow_map_textures.push_back(virtual_shadow_map_texture);
         }
