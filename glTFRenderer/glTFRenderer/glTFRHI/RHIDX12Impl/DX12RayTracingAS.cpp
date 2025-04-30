@@ -146,6 +146,8 @@ bool DX12RayTracingAS::InitRayTracingAS(IRHIDevice& device, IRHICommandList& com
             static_cast<unsigned>(top_level_prebuild_info.ResultDataMaxSizeInBytes),
             0
         });
+    DX12Buffer& dx12_buffer = dynamic_cast<DX12Buffer&>(*m_TLAS->m_buffer);
+    dynamic_cast<DX12BufferDescriptorAllocation&>(*m_TLAS_descriptor_allocation).InitHandle(dx12_buffer.GetRawBuffer()->GetGPUVirtualAddress(), 0);
 
     // Create an instance desc for the bottom-level acceleration structure.
     m_instance_descs.resize(mesh_instances.size());

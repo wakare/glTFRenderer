@@ -84,9 +84,15 @@ void glTFSceneRendererBase::ApplyInput(const glTFInputManager& input_manager, si
     }
 }
 
+glTFRenderPassManager& glTFSceneRendererBase::GetPassManager()
+{
+    return *m_pass_manager;
+}
+
 bool glTFSceneRendererBase::RecreateRenderPass(glTFRenderResourceManager& resource_manager, const glTFSceneGraph& scene_graph)
 {
     m_pass_manager.reset(new glTFRenderPassManager());
+    m_pass_manager->InitRenderPassManager(resource_manager);
     
     SetupSceneRenderer(scene_graph);
     for (const auto& render_system : resource_manager.GetRenderSystems())
@@ -94,7 +100,6 @@ bool glTFSceneRendererBase::RecreateRenderPass(glTFRenderResourceManager& resour
         render_system->SetupPass(resource_manager, *m_pass_manager, scene_graph);
     }
     
-    m_pass_manager->InitRenderPassManager(resource_manager);
     m_pass_manager->InitAllPass(resource_manager);
     
     return true;

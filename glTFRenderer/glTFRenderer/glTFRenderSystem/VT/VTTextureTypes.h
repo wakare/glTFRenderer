@@ -4,6 +4,11 @@
 #include <set>
 
 #include "VTPageDataAccessor.h"
+#include "glTFRenderPass/glTFRenderPassBase.h"
+
+class glTFRenderPassManager;
+class glTFComputePassVTFetchCS;
+class glTFGraphicsPassMeshVTFeedback;
 
 // Size -- width and height
 struct VTLogicalTextureConfig
@@ -20,7 +25,8 @@ public:
     bool InitLogicalTexture(const RHITextureDesc& desc, const VTLogicalTextureConfig& config);
     
     bool InitRenderResource(glTFRenderResourceManager& resource_manager);
-    void UpdateRenderResource(glTFRenderResourceManager& resource_manager);
+    bool SetupPassManager(glTFRenderPassManager& pass_manager) const;
+    void UpdateRenderResource(glTFRenderResourceManager& resource_manager) const;
     
     int GetTextureId() const;
     int GetSize() const;
@@ -30,6 +36,9 @@ public:
     
     bool IsSVT() const;
     bool IsRVT() const;
+
+    glTFRenderPassBase& GetFeedbackPass() const;
+    glTFRenderPassBase& GetFetchPass() const;
     
 protected:
     bool GeneratePageData();
@@ -43,11 +52,14 @@ protected:
     int m_logical_texture_height {-1};
 
     std::shared_ptr<unsigned char[]> m_texture_data {nullptr};
-    RHIDataFormat m_texture_format{RHIDataFormat::UNKNOWN};
+    RHIDataFormat m_texture_format {RHIDataFormat::UNKNOWN};
     size_t m_texture_data_size {0};
 
     std::map<VTPage::HashType, VTPageData> m_page_data;
     std::shared_ptr<VTPageTable> m_page_table;
+
+    std::shared_ptr<glTFRenderPassBase> m_feedback_pass;
+    std::shared_ptr<glTFRenderPassBase> m_fetch_pass;
 };
 
 class VTShadowmapLogicalTexture : public VTLogicalTexture

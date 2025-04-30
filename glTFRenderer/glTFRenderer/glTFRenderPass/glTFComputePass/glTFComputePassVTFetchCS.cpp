@@ -115,7 +115,7 @@ bool glTFComputePassVTFetchCS::PostRenderPass(glTFRenderResourceManager& resourc
     return true;
 }
 
-const std::vector<ComputePassVTFetchUAVOutput>& glTFComputePassVTFetchCS::GetFeedbackOutputDataAndReset()
+const std::vector<ComputePassVTFetchUAVOutput>& glTFComputePassVTFetchCS::GetFeedbackOutputData()
 {
     return m_uav_output_buffer_data;
 }

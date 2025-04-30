@@ -82,7 +82,7 @@ void VTPageTable::UpdateRenderResource(glTFRenderResourceManager& resource_manag
         RHIUtils::Instance().UploadTextureData(resource_manager.GetCommandListForRecord(), resource_manager.GetMemoryManager(), resource_manager.GetDevice(), *m_page_texture->m_texture, upload_info );    
     }
 
-    resource_manager.CloseCurrentCommandListAndExecute({},false);
+    resource_manager.CloseCurrentCommandListAndExecute({},true);
 }
 
 void VTPageTable::Invalidate()
@@ -92,7 +92,7 @@ void VTPageTable::Invalidate()
 
 bool VTPageTable::TouchPageAllocation(const VTPhysicalPageAllocationInfo& page_allocation)
 {
-    GLTF_CHECK(page_allocation.page.logical_tex_id == m_tex_id);
+    GLTF_CHECK(page_allocation.page.texture_id == m_tex_id);
     
     int touch_level = page_allocation.page.mip;
     m_quad_tree->Touch(page_allocation.page.X, page_allocation.page.Y, page_allocation.X, page_allocation.Y, touch_level);

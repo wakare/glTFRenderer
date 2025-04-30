@@ -1,4 +1,6 @@
 #pragma once
+#include <array>
+
 #include "glTFComputePassBase.h"
 
 class IRHIBufferAllocation;
@@ -7,7 +9,7 @@ struct ComputePassVTFetchUAVOutput
 {
     inline static std::string Name = "VT_FETCH_UAV_OUTPUT_REGISTER_INDEX";
 
-    unsigned data[4];
+    std::array<unsigned, 4> data;
 };
 
 class glTFComputePassVTFetchCS : public glTFComputePassBase
@@ -25,7 +27,7 @@ public:
     virtual bool PreRenderPass(glTFRenderResourceManager& resource_manager) override;
     virtual bool PostRenderPass(glTFRenderResourceManager& resource_manager) override;
     
-    const std::vector<ComputePassVTFetchUAVOutput>& GetFeedbackOutputDataAndReset();
+    const std::vector<ComputePassVTFetchUAVOutput>& GetFeedbackOutputData();
     virtual bool InitResourceTable(glTFRenderResourceManager& resource_manager) override;
 
 protected:

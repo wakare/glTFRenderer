@@ -4,6 +4,9 @@
 #include "glTFResources/ShaderSource/Lighting/LightingCommon.hlsl"
 #include "glTFResources/ShaderSource/LightPassCommon.hlsl"
 #include "glTFResources/ShaderSource/Math/MathCommon.hlsl"
+#include "glTFResources/ShaderSource/Math/RandomGenerator.hlsl"
+#include "glTFResources/ShaderSource/Math/ReservoirSample.hlsl"
+#include "glTFResources/ShaderSource/Math/Color.hlsl"
 #include "glTFResources/ShaderSource/FrameStat.hlsl"
 #include "glTFResources/ShaderSource/ShaderDeclarationUtil.hlsl"
 

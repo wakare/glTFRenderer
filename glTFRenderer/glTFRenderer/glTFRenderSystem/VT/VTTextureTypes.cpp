@@ -3,7 +3,10 @@
 #include <utility>
 
 #include "VirtualTextureSystem.h"
+#include "glTFRenderPass/glTFRenderPassManager.h"
 #include "glTFRenderPass/glTFRenderResourceManager.h"
+#include "glTFRenderPass/glTFComputePass/glTFComputePassVTFetchCS.h"
+#include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassMeshVTFeedback.h"
 #include "glTFRHI/RHIUtils.h"
 #include "glTFRHI/RHIInterface/IRHISwapChain.h"
 #include "SceneFileLoader/glTFImageIOUtil.h"
@@ -41,14 +44,26 @@ bool VTLogicalTexture::InitRenderResource(glTFRenderResourceManager& resource_ma
     }
 
     m_page_table->InitRenderResource(resource_manager);
+    m_feedback_pass = std::make_shared<glTFGraphicsPassMeshVTFeedback>(m_texture_id, !m_svt);
+    m_fetch_pass = std::make_shared<glTFComputePassVTFetchCS>(m_texture_id);
+    
     m_render_resource_init = true;
 
     return true;
 }
 
-void VTLogicalTexture::UpdateRenderResource(glTFRenderResourceManager& resource_manager)
+bool VTLogicalTexture::SetupPassManager(glTFRenderPassManager& pass_manager) const
 {
-    InitRenderResource(resource_manager);
+    GLTF_CHECK(m_feedback_pass && m_fetch_pass);
+    
+    pass_manager.AddRenderPass(POST_SCENE, m_feedback_pass);
+    pass_manager.AddRenderPass(POST_SCENE, m_fetch_pass);
+
+    return true;
+}
+
+void VTLogicalTexture::UpdateRenderResource(glTFRenderResourceManager& resource_manager) const
+{
     m_page_table->UpdateRenderResource(resource_manager);
 }
 
@@ -98,6 +113,18 @@ bool VTLogicalTexture::IsRVT() const
     return !m_svt;
 }
 
+glTFRenderPassBase& VTLogicalTexture::GetFeedbackPass() const
+{
+    GLTF_CHECK(m_feedback_pass);
+    return *m_feedback_pass;
+}
+
+glTFRenderPassBase& VTLogicalTexture::GetFetchPass() const
+{
+    GLTF_CHECK(m_fetch_pass);
+    return *m_fetch_pass;
+}
+
 bool VTLogicalTexture::GeneratePageData()
 {
     if (!IsSVT())
@@ -125,7 +152,7 @@ bool VTLogicalTexture::GeneratePageData()
             page_data.page.X = X;
             page_data.page.Y = Y;
             page_data.page.mip = mip;
-            page_data.page.logical_tex_id = GetTextureId();
+            page_data.page.texture_id = GetTextureId();
 
             page_data.loaded = true;
             page_data.data = std::make_shared<unsigned char[]>(page_size);
@@ -164,7 +191,7 @@ bool VTLogicalTexture::GeneratePageData()
                 page_data.page.X = X;
                 page_data.page.Y = Y;
                 page_data.page.mip = mip;
-                page_data.page.logical_tex_id = m_texture_id;
+                page_data.page.texture_id = m_texture_id;
                 page_data.loaded = true;
                 page_data.data = std::make_shared<unsigned char[]>(page_size);
                 memset(page_data.data.get(), 0, page_size);
@@ -178,10 +205,10 @@ bool VTLogicalTexture::GeneratePageData()
 
                 VTPage source_pages[4] =
                     {
-                        {.X= src_X,         .Y= src_Y,          .mip= static_cast<VTPage::MipType>(mip - 1), .logical_tex_id = GetTextureId()},
-                        {.X= src_XPlusOne,  .Y= src_Y,          .mip= static_cast<VTPage::MipType>(mip - 1), .logical_tex_id = GetTextureId()},
-                        {.X= src_XPlusOne,  .Y= src_YPlusOne,   .mip= static_cast<VTPage::MipType>(mip - 1), .logical_tex_id = GetTextureId()},
-                        {.X= src_X,         .Y= src_YPlusOne,   .mip= static_cast<VTPage::MipType>(mip - 1), .logical_tex_id = GetTextureId()}
+                        {.X= src_X,         .Y= src_Y,          .mip= static_cast<VTPage::MipType>(mip - 1), .texture_id = GetTextureId()},
+                        {.X= src_XPlusOne,  .Y= src_Y,          .mip= static_cast<VTPage::MipType>(mip - 1), .texture_id = GetTextureId()},
+                        {.X= src_XPlusOne,  .Y= src_YPlusOne,   .mip= static_cast<VTPage::MipType>(mip - 1), .texture_id = GetTextureId()},
+                        {.X= src_X,         .Y= src_YPlusOne,   .mip= static_cast<VTPage::MipType>(mip - 1), .texture_id = GetTextureId()}
                     };
 
                 for (const VTPage& source_page : source_pages)
@@ -246,6 +273,8 @@ void VTPageLRU::AddPage(const VTPage& page)
 {
     if (m_pages.contains(page))
     {
+        m_lru_pages.remove(page);
+        m_lru_pages.insert(m_lru_pages.begin(), page);
         return;
     }
     
@@ -295,14 +324,15 @@ void VTPhysicalTexture::InsertPage(const std::vector<VTPageData>& results)
 {
     for (const auto& result : results)
     {
-        if (m_page_allocations.contains(result.page.PageHash()))
+        if ((result.page.type == VTPageType::SVT_PAGE && !m_svt) ||
+            (result.page.type == VTPageType::RVT_PAGE && m_svt))
         {
             continue;
         }
 
-        if ((result.page.type == VTPageType::SVT_PAGE && !m_svt) ||
-            (result.page.type == VTPageType::RVT_PAGE && m_svt))
+        if (m_page_allocations.contains(result.page.PageHash()))
         {
+            m_page_lru_cache.AddPage(result.page);
             continue;
         }
 
@@ -407,7 +437,7 @@ void VTPhysicalTexture::UpdateRenderResource(glTFRenderResourceManager& resource
         RHIUtils::Instance().UploadTextureData(resource_manager.GetCommandListForRecord(), resource_manager.GetMemoryManager(), resource_manager.GetDevice(), *m_physical_texture->m_texture, upload_info );
     }
     
-    resource_manager.CloseCurrentCommandListAndExecute({},false);
+    resource_manager.CloseCurrentCommandListAndExecute({},true);
 }
 
 void VTPhysicalTexture::ResetDirtyPages()

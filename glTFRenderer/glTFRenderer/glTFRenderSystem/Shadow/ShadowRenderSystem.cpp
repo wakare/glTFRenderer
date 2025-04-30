@@ -50,7 +50,7 @@ void ShadowRenderSystem::SetupPass(glTFRenderResourceManager& resource_manager, 
             };
             
             VTLogicalTextureConfig config{};
-            config.virtual_texture_id = vt_system->GetAvailableVTIdAndInc();
+            config.virtual_texture_id = vt_system->GetNextValidVTIdAndInc();
             config.isSVT = false;
             virtual_shadow_map_texture->InitLogicalTexture(shadowmap_logical_texture_desc, config);
             vt_system->RegisterTexture(virtual_shadow_map_texture);

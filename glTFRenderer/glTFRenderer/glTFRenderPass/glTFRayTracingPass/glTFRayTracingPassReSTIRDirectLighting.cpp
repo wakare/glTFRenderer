@@ -181,7 +181,7 @@ bool glTFRayTracingPassReSTIRDirectLighting::InitResourceTable(glTFRenderResourc
                 RHIViewType::RVT_UAV
                 });
     
-    auto output_desc = RHITextureDesc::MakeRayTracingSceneOutputTextureDesc(resource_manager);
+    auto output_desc = RHITextureDesc::MakeRayTracingPassReSTIRSampleOutputDesc(resource_manager);
     AddExportTextureResource(RenderPassResourceTableId::RayTracingPass_ReSTIRSample_Output, output_desc, 
     {
                     output_desc.GetDataFormat(),

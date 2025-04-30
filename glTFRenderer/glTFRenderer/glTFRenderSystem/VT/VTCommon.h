@@ -19,18 +19,18 @@ struct VTPage
     OffsetType X;
     OffsetType Y;
     MipType mip;
-    int logical_tex_id; // logical texture id
+    int texture_id; // logical texture id
     VTPageType type;
 
     HashType PageHash() const
     {
-        HashType hash = static_cast<HashType>(logical_tex_id) << 40 | static_cast<HashType>(mip) << 32 | static_cast<HashType>(X) << 16 | Y;
+        HashType hash = static_cast<HashType>(texture_id) << 40 | static_cast<HashType>(mip) << 32 | static_cast<HashType>(X) << 16 | Y;
         return hash;
     }
 
     std::string ToString() const
     {
-        return std::format("PAGE{3}_MIP{2}_X{0}_Y{1}", X, Y, mip, logical_tex_id);
+        return std::format("PAGE{3}_MIP{2}_X{0}_Y{1}", X, Y, mip, texture_id);
     }
 
     bool operator==(const VTPage& rhs) const

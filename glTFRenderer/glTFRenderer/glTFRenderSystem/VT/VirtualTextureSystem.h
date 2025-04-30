@@ -2,7 +2,7 @@
 #include <memory>
 
 #include "RendererCommon.h"
-#include "VTPageStreamer.h"
+#include "SVTPageStreamer.h"
 #include "VTPageTable.h"
 #include "VTTextureTypes.h"
 #include "glTFRenderPass/glTFComputePass/glTFComputePassClearUAV.h"
@@ -41,21 +41,18 @@ public:
     std::shared_ptr<VTPhysicalTexture> GetRVTPhysicalTexture() const;
 
     static std::pair<unsigned, unsigned> GetVTFeedbackTextureSize(const VTLogicalTexture& logical_texture);
-    unsigned GetAvailableVTIdAndInc();
+    unsigned GetNextValidVTIdAndInc();
     
 protected:
     VTPageType GetPageType(unsigned virtual_texture_id) const;
-    void InitFeedBackPass();
-    void GatherPageRequest(std::vector<VTPage>& out_svt_pages);
+    void GatherPageRequest(std::vector<VTPage>& out_svt_pages, std::vector<VTPage>& out_rvt_pages);
+
+    unsigned m_next_valid_vt_id{1};
     
     // one logical texture map one page table
-    std::map<int, std::shared_ptr<VTLogicalTexture>> m_logical_texture_infos;
-    std::map<int, std::pair<std::shared_ptr<glTFGraphicsPassMeshVTFeedback>, std::shared_ptr<glTFComputePassVTFetchCS>>> m_logical_texture_feedback_passes;
-
-    unsigned m_virtual_texture_id{1};
+    std::map<int, std::shared_ptr<VTLogicalTexture>> m_logical_textures;
+    std::vector<std::shared_ptr<VTPhysicalTexture>> m_physical_textures;
     
-    std::shared_ptr<VTPageStreamer> m_page_streamer;
-    std::vector<std::shared_ptr<VTPhysicalTexture>> m_physical_virtual_textures;
-
+    std::shared_ptr<SVTPageStreamer> m_svt_page_streamer;
     std::set<VTPage::HashType> m_loaded_page_hashes;
 };

@@ -1,12 +1,12 @@
-#include "VTPageStreamer.h"
+#include "SVTPageStreamer.h"
 
-VTPageStreamer::VTPageStreamer(unsigned page_process_count_per_frame)
+SVTPageStreamer::SVTPageStreamer(unsigned page_process_count_per_frame)
     : m_page_process_count_per_frame(page_process_count_per_frame)
 {
     m_data_accessor = std::make_shared<VTPageDataAccessor>();
 }
 
-void VTPageStreamer::AddLogicalTexture(std::shared_ptr<VTLogicalTexture> logical_texture)
+void SVTPageStreamer::AddLogicalTexture(std::shared_ptr<VTLogicalTexture> logical_texture)
 {
     if (m_logical_textures.contains(logical_texture->GetTextureId()))
     {
@@ -16,16 +16,16 @@ void VTPageStreamer::AddLogicalTexture(std::shared_ptr<VTLogicalTexture> logical
     m_logical_textures[logical_texture->GetTextureId()] = logical_texture;
 }
 
-void VTPageStreamer::AddPageRequest(const VTPage& page)
+void SVTPageStreamer::AddSVTPageRequest(const VTPage& page)
 {
-    if (!m_requested_page_hash.contains(page.PageHash()))
+    if (page.type == VTPageType::SVT_PAGE && !m_requested_page_hash.contains(page.PageHash()))
     {
         m_requested_page_hash.insert(page.PageHash());
         m_pending_requests.push(page);    
     }
 }
 
-void VTPageStreamer::Tick()
+void SVTPageStreamer::Tick()
 {
     unsigned processed_page_count = 0;
     while (!m_pending_requests.empty() && processed_page_count < m_page_process_count_per_frame)
@@ -38,10 +38,10 @@ void VTPageStreamer::Tick()
         VTPageData page_data;
         page_data.page = page;
         
-        if (m_logical_textures.contains(page.logical_tex_id))
+        if (m_logical_textures.contains(page.texture_id))
         {
             VTPageData result; 
-            if (m_logical_textures[page.logical_tex_id]->GetPageData(page, result))
+            if (m_logical_textures[page.texture_id]->GetPageData(page, result))
             {
                 m_request_results.push_back(result);    
             }
@@ -53,7 +53,7 @@ void VTPageStreamer::Tick()
     //m_data_accessor->Tick();
 }
 
-std::vector<VTPageData> VTPageStreamer::GetRequestResultsAndClean()
+std::vector<VTPageData> SVTPageStreamer::GetRequestResultsAndClean()
 {
     auto result = m_request_results;
     m_request_results.clear();

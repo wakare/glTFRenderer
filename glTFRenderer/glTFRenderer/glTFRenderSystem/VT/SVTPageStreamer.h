@@ -3,15 +3,15 @@
 #include "VTPageTable.h"
 #include "VTTextureTypes.h"
 
-class VTPageStreamer
+class SVTPageStreamer
 {
 public:
-    VTPageStreamer(unsigned page_process_count_per_frame);
-    DECLARE_NON_COPYABLE_AND_VDTOR(VTPageStreamer)
+    SVTPageStreamer(unsigned page_process_count_per_frame);
+    DECLARE_NON_COPYABLE_AND_VDTOR(SVTPageStreamer)
 
     void AddLogicalTexture(std::shared_ptr<VTLogicalTexture> logical_texture);
     
-    void AddPageRequest(const VTPage& page);
+    void AddSVTPageRequest(const VTPage& page);
     void Tick();
     std::vector<VTPageData> GetRequestResultsAndClean();
     

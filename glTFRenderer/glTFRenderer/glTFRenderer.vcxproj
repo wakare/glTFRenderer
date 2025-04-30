@@ -222,7 +222,7 @@
     <ClCompile Include="glTFRenderSystem\Shadow\ShadowRenderSystem.cpp" />
     <ClCompile Include="glTFRenderSystem\VT\VirtualTextureSystem.cpp" />
     <ClCompile Include="glTFRenderSystem\VT\VTPageDataAccessor.cpp" />
-    <ClCompile Include="glTFRenderSystem\VT\VTPageStreamer.cpp" />
+    <ClCompile Include="glTFRenderSystem\VT\SVTPageStreamer.cpp" />
     <ClCompile Include="glTFRenderSystem\VT\VTPageTable.cpp" />
     <ClCompile Include="glTFRenderSystem\VT\VTTextureTypes.cpp" />
     <ClCompile Include="glTFRenderSystem\VT\VTQuadTree.cpp" />
@@ -417,7 +417,7 @@
     <ClInclude Include="glTFRenderSystem\VT\VirtualTextureSystem.h" />
     <ClInclude Include="glTFRenderSystem\VT\VTCommon.h" />
     <ClInclude Include="glTFRenderSystem\VT\VTPageDataAccessor.h" />
-    <ClInclude Include="glTFRenderSystem\VT\VTPageStreamer.h" />
+    <ClInclude Include="glTFRenderSystem\VT\SVTPageStreamer.h" />
     <ClInclude Include="glTFRenderSystem\VT\VTPageTable.h" />
     <ClInclude Include="glTFRenderSystem\VT\VTTextureTypes.h" />
     <ClInclude Include="glTFRenderSystem\VT\VTQuadTree.h" />

@@ -24,7 +24,8 @@ public:
     virtual void TickFrameRenderingEnd(glTFRenderResourceManager& resource_manager, size_t delta_time_ms);
     
     void ApplyInput(const glTFInputManager& input_manager, size_t delta_time_ms);
-        
+    glTFRenderPassManager& GetPassManager();
+    
 protected:
     bool RecreateRenderPass(glTFRenderResourceManager& resource_manager, const glTFSceneGraph& scene_graph);
     virtual bool UpdateGUIWidgets() { return true; }

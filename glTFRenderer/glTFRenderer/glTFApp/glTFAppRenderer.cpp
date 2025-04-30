@@ -91,12 +91,11 @@ void glTFAppRenderer::TickSceneUpdating(const glTFSceneGraph& scene_graph, const
 
 void glTFAppRenderer::TickSceneRendering(const glTFInputManager& input_manager, const glTFSceneGraph& scene_graph, size_t delta_time_ms)
 {
+    m_scene_renderer->TickSceneRendering(*m_resource_manager, *m_scene_view, scene_graph, delta_time_ms);
     for (const auto& render_system : m_render_systems)
     {
         render_system->TickRenderSystem(*m_resource_manager);
-    }
-    
-    m_scene_renderer->TickSceneRendering(*m_resource_manager, *m_scene_view, scene_graph, delta_time_ms);
+    }   
 }
 
 void glTFAppRenderer::TickGUIWidgetUpdate(size_t delta_time_ms)

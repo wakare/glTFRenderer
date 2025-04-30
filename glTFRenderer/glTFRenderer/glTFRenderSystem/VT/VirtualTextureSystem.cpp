@@ -6,34 +6,26 @@
 
 bool VirtualTextureSystem::InitRenderSystem(glTFRenderResourceManager& resource_manager)
 {
-    m_page_streamer = std::make_shared<VTPageStreamer>(VT_PAGE_PROCESS_COUNT_PER_FRAME);
+    m_svt_page_streamer = std::make_shared<SVTPageStreamer>(VT_PAGE_PROCESS_COUNT_PER_FRAME);
     
-    m_physical_virtual_textures.push_back(std::make_shared<VTPhysicalTexture>(VT_PHYSICAL_TEXTURE_SIZE, VT_PAGE_SIZE, VT_PHYSICAL_TEXTURE_BORDER, true));
-    m_physical_virtual_textures.push_back(std::make_shared<VTPhysicalTexture>(VT_PHYSICAL_TEXTURE_SIZE, VT_PAGE_SIZE, VT_PHYSICAL_TEXTURE_BORDER, false));
-    for (auto& texture : m_physical_virtual_textures)
+    m_physical_textures.push_back(std::make_shared<VTPhysicalTexture>(VT_PHYSICAL_TEXTURE_SIZE, VT_PAGE_SIZE, VT_PHYSICAL_TEXTURE_BORDER, true));
+    m_physical_textures.push_back(std::make_shared<VTPhysicalTexture>(VT_PHYSICAL_TEXTURE_SIZE, VT_PAGE_SIZE, VT_PHYSICAL_TEXTURE_BORDER, false));
+    for (auto& texture : m_physical_textures)
     {
         texture->UpdateRenderResource(resource_manager);
     }
-
+    
     return true;
 }
 
 void VirtualTextureSystem::SetupPass(glTFRenderResourceManager& resource_manager, glTFRenderPassManager& pass_manager, const glTFSceneGraph& scene_graph)
 {
-    for (const auto& logic_texture : m_logical_texture_infos)
+    for (const auto& logic_texture : m_logical_textures)
     {
-        auto feedback_pass = std::make_shared<glTFGraphicsPassMeshVTFeedback>(logic_texture.first, !!dynamic_cast<VTShadowmapLogicalTexture*>(logic_texture.second.get()));
-        pass_manager.AddRenderPass(POST_SCENE, feedback_pass);
-        
-        auto fetch_feedback_pass = std::make_shared<glTFComputePassVTFetchCS>(logic_texture.first);
-        pass_manager.AddRenderPass(POST_SCENE, fetch_feedback_pass);
-
-        m_logical_texture_feedback_passes[logic_texture.first] = {feedback_pass, fetch_feedback_pass};
-
+        logic_texture.second->InitRenderResource(resource_manager);
+        logic_texture.second->SetupPassManager(pass_manager);
         logic_texture.second->UpdateRenderResource(resource_manager);
     }
-    
-    InitFeedBackPass();
 }
 
 void VirtualTextureSystem::ShutdownRenderSystem()
@@ -43,76 +35,90 @@ void VirtualTextureSystem::ShutdownRenderSystem()
 
 void VirtualTextureSystem::TickRenderSystem(glTFRenderResourceManager& resource_manager)
 {
-    //resource_manager.CloseCurrentCommandListAndExecute({},true);
+    resource_manager.CloseCurrentCommandListAndExecute({},true);
     
     UpdateRenderResource(resource_manager);
     
-    std::vector<VTPage> pages;
-    GatherPageRequest(pages);
+    std::vector<VTPage> svt_pages;
+    std::vector<VTPage> rvt_pages;
+    GatherPageRequest(svt_pages, rvt_pages);
 
     // Check page request count less than physical texture page capacity
-    const size_t max_page_count = GetSVTPhysicalTexture()->GetPageCapacity();
-    if (pages.size() > max_page_count)
+    const size_t max_svt_page_count = GetSVTPhysicalTexture()->GetPageCapacity();
+    if (svt_pages.size() > max_svt_page_count)
     {
-        LOG_FORMAT_FLUSH("[WARN] Current frame need many pages[%lld] which larger than physical texture max capacity[%lld]\n", pages.size(), max_page_count)
+        LOG_FORMAT_FLUSH("[WARN] Current frame need many pages[%lld] which larger than physical texture max capacity[%lld]\n", svt_pages.size(), max_svt_page_count)
     }
     
-    for (const auto& page : pages)
+    for (const auto& page : svt_pages)
     {
         if (!m_loaded_page_hashes.contains(page.PageHash()))
         {
-            m_page_streamer->AddPageRequest(page);
+            switch (page.type) {
+            case VTPageType::SVT_PAGE:
+                m_svt_page_streamer->AddSVTPageRequest(page);
+                break;
+            case VTPageType::RVT_PAGE:
+                break;
+            }
         }
     }
     
-    m_page_streamer->Tick();
-    
-    auto page_data = m_page_streamer->GetRequestResultsAndClean();
-    m_loaded_page_hashes.clear();
-    for (auto& texture : m_physical_virtual_textures)
     {
-        texture->InsertPage(page_data);
-        texture->UpdateRenderResource(resource_manager);
-        texture->ResetDirtyPages();
+        // SVT processing
+        m_svt_page_streamer->Tick();
         
-        const auto& page_allocations = texture->GetPageAllocationInfos();
-        for (const auto& page_allocation : page_allocations)
+        auto page_data = m_svt_page_streamer->GetRequestResultsAndClean();
+        m_loaded_page_hashes.clear();
         {
-            if (!m_loaded_page_hashes.contains(page_allocation.second.page.PageHash()))
-            {
-                m_loaded_page_hashes.insert(page_allocation.second.page.PageHash());
-            }
-        }
+            auto svt_physical_texture = GetSVTPhysicalTexture();
+            svt_physical_texture->InsertPage(page_data);
+            svt_physical_texture->UpdateRenderResource(resource_manager);
+            svt_physical_texture->ResetDirtyPages();
         
-        for (auto& logical_texture_info : m_logical_texture_infos)
-        {
-            auto& logical_texture = logical_texture_info.second;
-            auto& page_table = logical_texture_info.second->GetPageTable();
-            page_table.Invalidate();
-        
+            const auto& page_allocations = svt_physical_texture->GetPageAllocationInfos();
             for (const auto& page_allocation : page_allocations)
             {
-                if (page_allocation.second.page.logical_tex_id == page_table.GetLogicalTextureId())
+                if (!m_loaded_page_hashes.contains(page_allocation.second.page.PageHash()))
                 {
-                    page_table.TouchPageAllocation(page_allocation.second);
+                    m_loaded_page_hashes.insert(page_allocation.second.page.PageHash());
                 }
             }
+        
+            for (auto& logical_texture_info : m_logical_textures)
+            {
+                auto& logical_texture = logical_texture_info.second;
+                auto& page_table = logical_texture_info.second->GetPageTable();
+                page_table.Invalidate();
+        
+                for (const auto& page_allocation : page_allocations)
+                {
+                    if (page_allocation.second.page.texture_id == page_table.GetLogicalTextureId())
+                    {
+                        page_table.TouchPageAllocation(page_allocation.second);
+                    }
+                }
                 
-            page_table.UpdateTextureData();
-            logical_texture->UpdateRenderResource(resource_manager);
+                page_table.UpdateTextureData();
+                logical_texture->UpdateRenderResource(resource_manager);
+            }
         }
+    }
+    {
+        // RVT processing
+        
     }
 }
 
 bool VirtualTextureSystem::HasTexture(std::shared_ptr<VTLogicalTexture> texture) const
 {
-    return m_logical_texture_infos.contains(texture->GetTextureId());
+    return m_logical_textures.contains(texture->GetTextureId());
 }
 
 bool VirtualTextureSystem::RegisterTexture(std::shared_ptr<VTLogicalTexture> texture)
 {
-    m_logical_texture_infos[texture->GetTextureId()] = texture;
-    m_page_streamer->AddLogicalTexture(texture);
+    m_logical_textures[texture->GetTextureId()] = texture;
+    m_svt_page_streamer->AddLogicalTexture(texture);
     
     return true;
 }
@@ -125,18 +131,18 @@ bool VirtualTextureSystem::UpdateRenderResource(glTFRenderResourceManager& resou
 const std::map<int, std::shared_ptr<VTLogicalTexture>>& VirtualTextureSystem::
 GetLogicalTextureInfos() const
 {
-    return m_logical_texture_infos;
+    return m_logical_textures;
 }
 
 VTLogicalTexture& VirtualTextureSystem::
 GetLogicalTextureInfo(unsigned virtual_texture_id) const
 {
-    return *m_logical_texture_infos.at(virtual_texture_id);
+    return *m_logical_textures.at(virtual_texture_id);
 }
 
 std::shared_ptr<VTPhysicalTexture> VirtualTextureSystem::GetSVTPhysicalTexture() const
 {
-    for (const auto& physical_texture : m_physical_virtual_textures)
+    for (const auto& physical_texture : m_physical_textures)
     {
         if (physical_texture->IsSVT())
         {
@@ -148,7 +154,7 @@ std::shared_ptr<VTPhysicalTexture> VirtualTextureSystem::GetSVTPhysicalTexture()
 
 std::shared_ptr<VTPhysicalTexture> VirtualTextureSystem::GetRVTPhysicalTexture() const
 {
-    for (const auto& physical_texture : m_physical_virtual_textures)
+    for (const auto& physical_texture : m_physical_textures)
     {
         if (!physical_texture->IsSVT())
         {
@@ -167,27 +173,23 @@ std::pair<unsigned, unsigned> VirtualTextureSystem::GetVTFeedbackTextureSize(con
     };
 }
 
-unsigned VirtualTextureSystem::GetAvailableVTIdAndInc()
+unsigned VirtualTextureSystem::GetNextValidVTIdAndInc()
 {
-    return m_virtual_texture_id++;
+    return m_next_valid_vt_id++;
 }
 
 VTPageType VirtualTextureSystem::GetPageType(unsigned virtual_texture_id) const
 {
-    GLTF_CHECK(m_logical_texture_infos.contains(virtual_texture_id));
-    return m_logical_texture_infos.at(virtual_texture_id)->IsSVT() ? VTPageType::SVT_PAGE : VTPageType::RVT_PAGE;
+    GLTF_CHECK(m_logical_textures.contains(virtual_texture_id));
+    return m_logical_textures.at(virtual_texture_id)->IsSVT() ? VTPageType::SVT_PAGE : VTPageType::RVT_PAGE;
 }
 
-void VirtualTextureSystem::InitFeedBackPass()
-{
-}
-
-void VirtualTextureSystem::GatherPageRequest(std::vector<VTPage>& out_pages)
+void VirtualTextureSystem::GatherPageRequest(std::vector<VTPage>& out_svt_pages, std::vector<VTPage>& out_rvt_pages)
 {
     std::set<VTPage> pages;
-    for (const auto& feedback_pass  : m_logical_texture_feedback_passes)
+    for (const auto& feedback_pass  : m_logical_textures)
     {
-        const auto& feedback_data = feedback_pass.second.second->GetFeedbackOutputDataAndReset();
+        const auto& feedback_data = dynamic_cast<glTFComputePassVTFetchCS&>(feedback_pass.second->GetFetchPass()).GetFeedbackOutputData();
         for (const auto& feedback : feedback_data)
         {
             if (feedback.data[3] == 0)
@@ -199,13 +201,13 @@ void VirtualTextureSystem::GatherPageRequest(std::vector<VTPage>& out_pages)
             page.X = feedback.data[0];
             page.Y = feedback.data[1];
             page.mip = feedback.data[2];
-            page.logical_tex_id = feedback.data[3];
-            page.type = GetPageType(page.logical_tex_id);
+            page.texture_id = feedback.data[3];
+            page.type = GetPageType(page.texture_id);
 
             if (!pages.contains(page))
             {
                 pages.insert(page);
-                out_pages.push_back(page);
+                out_svt_pages.push_back(page);
             }
         }
     }
