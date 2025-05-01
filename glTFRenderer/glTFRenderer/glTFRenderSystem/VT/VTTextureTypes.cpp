@@ -450,7 +450,7 @@ void VTPhysicalTexture::UpdateRenderResource(glTFRenderResourceManager& resource
         RHIUtils::Instance().UploadTextureData(resource_manager.GetCommandListForRecord(), resource_manager.GetMemoryManager(), resource_manager.GetDevice(), *m_physical_texture->m_texture, upload_info );
     }
     
-    resource_manager.CloseCurrentCommandListAndExecute({},true);
+    resource_manager.CloseCurrentCommandListAndExecute({},false);
 }
 
 void VTPhysicalTexture::ResetDirtyPages()

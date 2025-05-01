@@ -82,7 +82,7 @@ void VTPageTable::UpdateRenderResource(glTFRenderResourceManager& resource_manag
         RHIUtils::Instance().UploadTextureData(resource_manager.GetCommandListForRecord(), resource_manager.GetMemoryManager(), resource_manager.GetDevice(), *m_page_texture->m_texture, upload_info );    
     }
 
-    resource_manager.CloseCurrentCommandListAndExecute({},true);
+    resource_manager.CloseCurrentCommandListAndExecute({},false);
 }
 
 void VTPageTable::Invalidate()

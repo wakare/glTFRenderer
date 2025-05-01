@@ -35,7 +35,7 @@ void VirtualTextureSystem::ShutdownRenderSystem()
 
 void VirtualTextureSystem::TickRenderSystem(glTFRenderResourceManager& resource_manager)
 {
-    resource_manager.CloseCurrentCommandListAndExecute({},true);
+    //resource_manager.CloseCurrentCommandListAndExecute({},true);
     
     UpdateRenderResource(resource_manager);
     
