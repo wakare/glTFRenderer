@@ -26,12 +26,15 @@ public:
 
     virtual bool PreRenderPass(glTFRenderResourceManager& resource_manager) override;
     virtual bool PostRenderPass(glTFRenderResourceManager& resource_manager) override;
-    
+
+    bool IsFeedBackDataValid() const;
+    void SetFeedBackDataValid(bool valid);
     const std::vector<ComputePassVTFetchUAVOutput>& GetFeedbackOutputData();
     virtual bool InitResourceTable(glTFRenderResourceManager& resource_manager) override;
 
 protected:
     unsigned m_virtual_texture_id;
+    bool m_feedback_data_valid;
     std::vector<ComputePassVTFetchUAVOutput> m_uav_output_buffer_data;
     std::shared_ptr<IRHIBufferAllocation> m_readback_buffer;
 };

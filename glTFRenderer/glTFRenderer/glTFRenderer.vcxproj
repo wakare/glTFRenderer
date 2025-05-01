@@ -148,7 +148,7 @@
     <ClCompile Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassMeshDepth.cpp" />
     <ClCompile Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassMeshOpaque.cpp" />
     <ClCompile Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassMeshVTFeedback.cpp" />
-    <ClCompile Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassVirtualShadowmapFeedback.cpp" />
+    <ClCompile Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassMeshVirtualShadowDepth.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassBase.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassPathTracing.cpp" />
     <ClCompile Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassReSTIRDirectLighting.cpp" />
@@ -232,6 +232,7 @@
     <None Include="glTFResources\ShaderSource\ComputeShader\VTFetchCS.hlsl" />
     <None Include="glTFResources\ShaderSource\ShadowPassVTFeedBackPS.hlsl" />
     <ClCompile Include="glTFResources\ShaderSource\VirtualTextureUtil.hlsl" />
+    <None Include="glTFResources\ShaderSource\VSMOutputPS.hlsl" />
     <ClCompile Include="glTFRHI\RHIIndirectDrawBuilder.cpp" />
     <ClCompile Include="glTFRHI\RHIConfigSingleton.cpp" />
     <ClCompile Include="glTFRHI\RHIDX12Impl\DX12CommandSignature.cpp" />
@@ -376,7 +377,7 @@
     <ClInclude Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassMeshDepth.h" />
     <ClInclude Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassMeshOpaque.h" />
     <ClInclude Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassMeshVTFeedback.h" />
-    <ClInclude Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassVirtualShadowmapFeedback.h" />
+    <ClInclude Include="glTFRenderPass\glTFGraphicsPass\glTFGraphicsPassMeshVirtualShadowDepth.h" />
     <ClInclude Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassBase.h" />
     <ClInclude Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassPathTracing.h" />
     <ClInclude Include="glTFRenderPass\glTFRayTracingPass\glTFRayTracingPassReSTIRDirectLighting.h" />

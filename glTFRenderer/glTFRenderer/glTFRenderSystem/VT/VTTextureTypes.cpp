@@ -6,6 +6,7 @@
 #include "glTFRenderPass/glTFRenderPassManager.h"
 #include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRenderPass/glTFComputePass/glTFComputePassVTFetchCS.h"
+#include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassMeshVirtualShadowDepth.h"
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassMeshVTFeedback.h"
 #include "glTFRHI/RHIUtils.h"
 #include "glTFRHI/RHIInterface/IRHISwapChain.h"
@@ -58,7 +59,12 @@ bool VTLogicalTexture::SetupPassManager(glTFRenderPassManager& pass_manager) con
     
     pass_manager.AddRenderPass(PRE_SCENE, m_feedback_pass);
     pass_manager.AddRenderPass(PRE_SCENE, m_fetch_pass);
-
+    
+    if (!m_svt)
+    {
+        pass_manager.AddRenderPass(PRE_SCENE, m_rvt_pass);
+    }
+    
     return true;
 }
 
@@ -123,6 +129,19 @@ glTFRenderPassBase& VTLogicalTexture::GetFetchPass() const
 {
     GLTF_CHECK(m_fetch_pass);
     return *m_fetch_pass;
+}
+
+glTFRenderPassBase& VTLogicalTexture::GetRVTPass() const
+{
+    GLTF_CHECK(m_rvt_pass);
+    return *m_rvt_pass;
+}
+
+void VTLogicalTexture::SetEnableGatherRequest(bool enable)
+{
+    m_gather_request_enabled = enable;
+    m_feedback_pass->SetRenderingEnabled(m_gather_request_enabled);
+    m_fetch_pass->SetRenderingEnabled(m_gather_request_enabled);
 }
 
 bool VTLogicalTexture::GeneratePageData()
@@ -262,6 +281,22 @@ void VTLogicalTexture::DumpGeneratedPageDataToFile() const
 VTShadowmapLogicalTexture::VTShadowmapLogicalTexture(unsigned light_id)
     : m_light_id(light_id)
 {
+    m_svt = false;
+}
+
+bool VTShadowmapLogicalTexture::InitRenderResource(glTFRenderResourceManager& resource_manager)
+{
+    RETURN_IF_FALSE(VTLogicalTexture::InitRenderResource(resource_manager))
+
+    VSMConfig vsm_config;
+    vsm_config.virtual_texture_id = m_texture_id;
+    vsm_config.m_shadowmap_config.light_id = m_light_id;
+    vsm_config.m_shadowmap_config.shadowmap_width = m_logical_texture_width;
+    vsm_config.m_shadowmap_config.shadowmap_height = m_logical_texture_height;
+    
+    m_rvt_pass = std::make_shared<glTFGraphicsPassMeshVirtualShadowDepth>(vsm_config); 
+    
+    return true;
 }
 
 unsigned VTShadowmapLogicalTexture::GetLightId() const
@@ -323,11 +358,16 @@ VTPhysicalTexture::VTPhysicalTexture(int texture_size, int page_size, int border
 void VTPhysicalTexture::InsertPage(const std::vector<VTPageData>& pages_to_insert)
 {
     std::set<VTPage::HashType> removed_page_hashes;
-    
+
     for (const auto& result : pages_to_insert)
     {
         if ((result.page.type == VTPageType::SVT_PAGE && !m_svt) ||
             (result.page.type == VTPageType::RVT_PAGE && m_svt))
+        {
+            continue;
+        }
+
+        if (!m_logical_textures.contains(result.page.texture_id))
         {
             continue;
         }
@@ -350,20 +390,20 @@ void VTPhysicalTexture::InsertPage(const std::vector<VTPageData>& pages_to_inser
             m_available_pages.emplace_back(reuse_physical_page.X, reuse_physical_page.Y);
             
             m_page_allocations.erase(page_to_remove.PageHash());
+            m_pending_streaming_pages.erase(page_to_remove.PageHash());
             m_page_lru_cache.RemovePage(page_to_remove);
 
             removed_page_hashes.insert(page_to_remove.PageHash());
         }
 
         auto& page_allocation = m_page_allocations[result.page.PageHash()];
+        m_pending_streaming_pages.emplace(result.page.PageHash());
         bool found = GetAvailablePagesAndErase(page_allocation.X, page_allocation.Y);
         GLTF_CHECK(found && result.loaded);
         page_allocation.page = result.page;
         page_allocation.page_data = result.data;
         page_allocation.page_size = result.data_size;
         m_page_lru_cache.AddPage(result.page);
-
-        m_added_pages.emplace(result.page.PageHash());
     }
 
     // Check
@@ -376,21 +416,6 @@ void VTPhysicalTexture::InsertPage(const std::vector<VTPageData>& pages_to_inser
     }
 }
 
-void VTPhysicalTexture::UpdateTextureData()
-{
-    for (const auto& page_allocation : m_page_allocations)
-    {
-        if (!m_added_pages.contains(page_allocation.first))
-        {
-            continue;
-        }
-        
-        unsigned page_offset_x = page_allocation.second.X * (VirtualTextureSystem::VT_PAGE_SIZE + 2 * m_border) + m_border;
-        unsigned page_offset_y = page_allocation.second.Y * (VirtualTextureSystem::VT_PAGE_SIZE + 2 * m_border) + m_border;
-        m_physical_texture_data->UpdateRegionData(page_offset_x, page_offset_y, VirtualTextureSystem::VT_PAGE_SIZE, VirtualTextureSystem::VT_PAGE_SIZE, page_allocation.second.page_data.get());
-    }
-}
-
 bool VTPhysicalTexture::InitRenderResource(glTFRenderResourceManager& resource_manager)
 {
     if (m_render_resource_init)
@@ -399,20 +424,27 @@ bool VTPhysicalTexture::InitRenderResource(glTFRenderResourceManager& resource_m
     }
 
     m_render_resource_init = true;
-    RHITextureDesc page_table_texture_desc
+    RHIResourceUsageFlags flags = static_cast<RHIResourceUsageFlags>(RUF_ALLOW_SRV | RUF_TRANSFER_DST);
+    if (!m_svt)
+    {
+        flags = static_cast<RHIResourceUsageFlags>(flags | RUF_ALLOW_UAV);
+    }
+
+    RHIDataFormat physical_texture_format = m_svt ? RHIDataFormat::R8G8B8A8_UNORM : RHIDataFormat::R32_FLOAT;
+    RHITextureDesc physical_texture_desc
     (
         "Physical Texture",
         m_texture_size,
         m_texture_size,
-        RHIDataFormat::R8G8B8A8_UNORM,
-        static_cast<RHIResourceUsageFlags>(RUF_ALLOW_SRV | RUF_TRANSFER_DST),
+        physical_texture_format,
+        flags,
         {
-            RHIDataFormat::R8G8B8A8_UNORM,
+            physical_texture_format,
             glm::vec4{0,0,0,0}
         }
     );
     
-    const bool allocated = resource_manager.GetMemoryManager().AllocateTextureMemory(resource_manager.GetDevice(), resource_manager, page_table_texture_desc, m_physical_texture);
+    const bool allocated = resource_manager.GetMemoryManager().AllocateTextureMemory(resource_manager.GetDevice(), resource_manager, physical_texture_desc, m_physical_texture);
     GLTF_CHECK(allocated);
     
     m_physical_texture_data->ResetTextureData();
@@ -427,35 +459,59 @@ void VTPhysicalTexture::UpdateRenderResource(glTFRenderResourceManager& resource
         InitRenderResource(resource_manager);
     }
 
-    for (const auto& allocation : m_page_allocations)
+    if (m_svt)
     {
-        if (!m_added_pages.contains(allocation.first))
+        for (const auto& allocation : m_page_allocations)
         {
-            continue;
-        }
+            if (!m_pending_streaming_pages.contains(allocation.first))
+            {
+                continue;
+            }
+            m_pending_streaming_pages.erase(allocation.first);
 
-        int page_offset_x = allocation.second.X * (VirtualTextureSystem::VT_PAGE_SIZE + 2 * m_border) + m_border;
-        int page_offset_y = allocation.second.Y * (VirtualTextureSystem::VT_PAGE_SIZE + 2 * m_border) + m_border;
+            int page_offset_x = allocation.second.X * (VirtualTextureSystem::VT_PAGE_SIZE + 2 * m_border) + m_border;
+            int page_offset_y = allocation.second.Y * (VirtualTextureSystem::VT_PAGE_SIZE + 2 * m_border) + m_border;
         
-        const RHITextureMipUploadInfo upload_info
-        {
-            allocation.second.page_data,
-            allocation.second.page_size,
-            page_offset_x, page_offset_y,
-            VirtualTextureSystem::VT_PAGE_SIZE,
-            VirtualTextureSystem::VT_PAGE_SIZE,
-            0
-        };
+            const RHITextureMipUploadInfo upload_info
+            {
+                allocation.second.page_data,
+                allocation.second.page_size,
+                page_offset_x, page_offset_y,
+                VirtualTextureSystem::VT_PAGE_SIZE,
+                VirtualTextureSystem::VT_PAGE_SIZE,
+                0
+            };
 
-        RHIUtils::Instance().UploadTextureData(resource_manager.GetCommandListForRecord(), resource_manager.GetMemoryManager(), resource_manager.GetDevice(), *m_physical_texture->m_texture, upload_info );
+            RHIUtils::Instance().UploadTextureData(resource_manager.GetCommandListForRecord(), resource_manager.GetMemoryManager(), resource_manager.GetDevice(), *m_physical_texture->m_texture, upload_info );
+        }
+    }
+    else
+    {
+        if (!m_pending_streaming_pages.empty())
+        {
+            auto page_iter = m_pending_streaming_pages.begin();
+            GLTF_CHECK(m_page_allocations.contains(*page_iter));
+            const auto& page = m_page_allocations[*page_iter].page;
+            auto logic_texture = m_logical_textures[page.texture_id];
+            GLTF_CHECK(logic_texture);
+
+            // TODO: Do abstraction for rvt pass
+            auto& vsm_pass = dynamic_cast<glTFGraphicsPassMeshVirtualShadowDepth&>(logic_texture->GetRVTPass());
+            int offset_x = page.X * (VirtualTextureSystem::VT_PAGE_SIZE + 2 * VirtualTextureSystem::VT_PHYSICAL_TEXTURE_BORDER) + VirtualTextureSystem::VT_PHYSICAL_TEXTURE_BORDER;
+            int offset_y = page.Y * (VirtualTextureSystem::VT_PAGE_SIZE + 2 * VirtualTextureSystem::VT_PHYSICAL_TEXTURE_BORDER) + VirtualTextureSystem::VT_PHYSICAL_TEXTURE_BORDER;
+            
+            vsm_pass.UpdateNextRenderPageTileOffset(offset_x, offset_y, VirtualTextureSystem::VT_PAGE_SIZE);
+
+            m_pending_streaming_pages.erase(page_iter);    
+        }
     }
     
     resource_manager.CloseCurrentCommandListAndExecute({},false);
-}
 
-void VTPhysicalTexture::ResetDirtyPages()
-{
-    m_added_pages.clear();   
+    for (auto& logical_texture : m_logical_textures)
+    {
+        logical_texture.second->SetEnableGatherRequest(!HasPendingStreamingPages());
+    }
 }
 
 const std::map<VTPage::HashType, VTPhysicalPageAllocationInfo>& VTPhysicalTexture::GetPageAllocations() const
@@ -476,6 +532,16 @@ bool VTPhysicalTexture::IsSVT() const
 unsigned VTPhysicalTexture::GetPageCapacity() const
 {
     return m_page_table_size * m_page_table_size;
+}
+
+void VTPhysicalTexture::RegisterLogicalTexture(std::shared_ptr<VTLogicalTexture> logical_texture)
+{
+    m_logical_textures.try_emplace(logical_texture->GetTextureId(), logical_texture);
+}
+
+bool VTPhysicalTexture::HasPendingStreamingPages() const
+{
+    return !m_pending_streaming_pages.empty();
 }
 
 bool VTPhysicalTexture::GetAvailablePagesAndErase(int& x, int& y)

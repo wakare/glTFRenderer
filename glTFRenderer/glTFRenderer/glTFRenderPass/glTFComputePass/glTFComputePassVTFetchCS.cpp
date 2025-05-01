@@ -111,8 +111,20 @@ bool glTFComputePassVTFetchCS::PostRenderPass(glTFRenderResourceManager& resourc
     auto& output_buffer= GetRenderInterface<glTFRenderInterfaceStructuredBuffer<ComputePassVTFetchUAVOutput, RHIViewType::RVT_UAV>>()->GetBuffer();
     RHIUtils::Instance().CopyBuffer(resource_manager.GetCommandListForRecord(), *m_readback_buffer->m_buffer, 0, output_buffer, 0, m_readback_buffer->m_buffer->GetBufferDesc().width);
     resource_manager.GetMemoryManager().DownloadBufferData(*m_readback_buffer, m_uav_output_buffer_data.data(), m_uav_output_buffer_data.size() * sizeof(ComputePassVTFetchUAVOutput));
+
+    SetFeedBackDataValid(true);
     
     return true;
+}
+
+bool glTFComputePassVTFetchCS::IsFeedBackDataValid() const
+{
+    return m_feedback_data_valid;
+}
+
+void glTFComputePassVTFetchCS::SetFeedBackDataValid(bool valid)
+{
+    m_feedback_data_valid = valid;
 }
 
 const std::vector<ComputePassVTFetchUAVOutput>& glTFComputePassVTFetchCS::GetFeedbackOutputData()

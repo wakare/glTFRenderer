@@ -24,9 +24,9 @@ public:
     
     bool InitLogicalTexture(const RHITextureDesc& desc, const VTLogicalTextureConfig& config);
     
-    bool InitRenderResource(glTFRenderResourceManager& resource_manager);
-    bool SetupPassManager(glTFRenderPassManager& pass_manager) const;
-    void UpdateRenderResource(glTFRenderResourceManager& resource_manager) const;
+    virtual bool InitRenderResource(glTFRenderResourceManager& resource_manager);
+    virtual bool SetupPassManager(glTFRenderPassManager& pass_manager) const;
+    virtual void UpdateRenderResource(glTFRenderResourceManager& resource_manager) const;
     
     int GetTextureId() const;
     int GetSize() const;
@@ -39,14 +39,18 @@ public:
 
     glTFRenderPassBase& GetFeedbackPass() const;
     glTFRenderPassBase& GetFetchPass() const;
+    glTFRenderPassBase& GetRVTPass() const;
+
+    void SetEnableGatherRequest(bool enable);
     
 protected:
     bool GeneratePageData();
     void DumpGeneratedPageDataToFile() const;
 
     bool m_svt{true};
+    bool m_render_resource_init {false};
+    bool m_gather_request_enabled {false};
     
-    bool m_render_resource_init{false};
     int m_texture_id {-1};
     int m_logical_texture_width {-1};
     int m_logical_texture_height {-1};
@@ -60,6 +64,7 @@ protected:
 
     std::shared_ptr<glTFRenderPassBase> m_feedback_pass;
     std::shared_ptr<glTFRenderPassBase> m_fetch_pass;
+    std::shared_ptr<glTFRenderPassBase> m_rvt_pass;
 };
 
 class VTShadowmapLogicalTexture : public VTLogicalTexture
@@ -67,6 +72,8 @@ class VTShadowmapLogicalTexture : public VTLogicalTexture
 public:
     VTShadowmapLogicalTexture(unsigned light_id);
     DECLARE_NON_COPYABLE_AND_VDTOR(VTShadowmapLogicalTexture)
+
+    virtual bool InitRenderResource(glTFRenderResourceManager& resource_manager) override;
 
     unsigned GetLightId() const;
     
@@ -95,18 +102,19 @@ class VTPhysicalTexture
 public:
     VTPhysicalTexture(int texture_size, int page_size, int border, bool svt);
     void InsertPage(const std::vector<VTPageData>& pages_to_insert);
-    void UpdateTextureData();
 
     bool InitRenderResource(glTFRenderResourceManager& resource_manager);
     void UpdateRenderResource(glTFRenderResourceManager& resource_manager);
 
-    void ResetDirtyPages();
-    
     const std::map<VTPage::HashType, VTPhysicalPageAllocationInfo>& GetPageAllocations() const;
     std::shared_ptr<IRHITextureAllocation> GetTextureAllocation() const;
 
     bool IsSVT() const;
     unsigned GetPageCapacity() const;
+
+    void RegisterLogicalTexture(std::shared_ptr<VTLogicalTexture> logical_texture);
+    bool HasPendingStreamingPages() const;
+    
     
 protected:
     bool GetAvailablePagesAndErase(int& x, int& y);
@@ -121,9 +129,11 @@ protected:
 
     std::vector<std::pair<int, int>> m_available_pages;
     std::map<VTPage::HashType, VTPhysicalPageAllocationInfo> m_page_allocations;
-    std::set<VTPage::HashType> m_added_pages;
+    std::set<VTPage::HashType> m_pending_streaming_pages;
     VTPageLRU m_page_lru_cache;
 
     std::shared_ptr<IRHITextureAllocation> m_physical_texture;
     std::shared_ptr<VTTextureData> m_physical_texture_data;
+
+    std::map<unsigned, std::shared_ptr<VTLogicalTexture>> m_logical_textures;
 };
