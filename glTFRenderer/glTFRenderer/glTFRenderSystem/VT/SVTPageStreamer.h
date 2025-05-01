@@ -19,9 +19,7 @@ protected:
     unsigned m_page_process_count_per_frame;
     
     std::shared_ptr<VTPageDataAccessor> m_data_accessor;
-    
-    std::queue<VTPage> m_pending_requests;
-    std::set<VTPage::HashType> m_requested_page_hash;
+    std::map<VTPage::HashType, VTPage> m_pending_requested_pages;
     
     std::vector<VTPageData> m_request_results;
 

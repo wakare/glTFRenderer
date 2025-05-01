@@ -18,36 +18,35 @@ void SVTPageStreamer::AddLogicalTexture(std::shared_ptr<VTLogicalTexture> logica
 
 void SVTPageStreamer::AddSVTPageRequest(const VTPage& page)
 {
-    if (page.type == VTPageType::SVT_PAGE && !m_requested_page_hash.contains(page.PageHash()))
+    if (page.type == VTPageType::SVT_PAGE && !m_pending_requested_pages.contains(page.PageHash()))
     {
-        m_requested_page_hash.insert(page.PageHash());
-        m_pending_requests.push(page);    
+        m_pending_requested_pages.try_emplace(page.PageHash(), page);
     }
 }
 
 void SVTPageStreamer::Tick()
 {
     unsigned processed_page_count = 0;
-    while (!m_pending_requests.empty() && processed_page_count < m_page_process_count_per_frame)
+    while (!m_pending_requested_pages.empty() && processed_page_count < m_page_process_count_per_frame)
     {
-        auto page = m_pending_requests.front();
-        m_pending_requests.pop();
-        m_requested_page_hash.erase(page.PageHash());
+        auto page_iter = m_pending_requested_pages.begin();
 
         // Page streaming
         VTPageData page_data;
-        page_data.page = page;
+        page_data.page = page_iter->second;
         
-        if (m_logical_textures.contains(page.texture_id))
+        if (m_logical_textures.contains(page_data.page.texture_id))
         {
             VTPageData result; 
-            if (m_logical_textures[page.texture_id]->GetPageData(page, result))
+            if (m_logical_textures[page_data.page.texture_id]->GetPageData(page_data.page, result))
             {
                 m_request_results.push_back(result);    
             }
         }
 
         processed_page_count++;
+        
+        m_pending_requested_pages.erase(page_iter);
     }
 
     //m_data_accessor->Tick();

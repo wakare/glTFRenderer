@@ -56,8 +56,8 @@ bool VTLogicalTexture::SetupPassManager(glTFRenderPassManager& pass_manager) con
 {
     GLTF_CHECK(m_feedback_pass && m_fetch_pass);
     
-    pass_manager.AddRenderPass(POST_SCENE, m_feedback_pass);
-    pass_manager.AddRenderPass(POST_SCENE, m_fetch_pass);
+    pass_manager.AddRenderPass(PRE_SCENE, m_feedback_pass);
+    pass_manager.AddRenderPass(PRE_SCENE, m_fetch_pass);
 
     return true;
 }
@@ -320,9 +320,11 @@ VTPhysicalTexture::VTPhysicalTexture(int texture_size, int page_size, int border
     m_physical_texture_data = std::make_shared<VTTextureData>(m_texture_size, m_texture_size, RHIDataFormat::R8G8B8A8_UNORM);
 }
 
-void VTPhysicalTexture::InsertPage(const std::vector<VTPageData>& results)
+void VTPhysicalTexture::InsertPage(const std::vector<VTPageData>& pages_to_insert)
 {
-    for (const auto& result : results)
+    std::set<VTPage::HashType> removed_page_hashes;
+    
+    for (const auto& result : pages_to_insert)
     {
         if ((result.page.type == VTPageType::SVT_PAGE && !m_svt) ||
             (result.page.type == VTPageType::RVT_PAGE && m_svt))
@@ -338,17 +340,19 @@ void VTPhysicalTexture::InsertPage(const std::vector<VTPageData>& results)
 
         if (m_available_pages.empty())
         {
-            const auto& page_to_free = m_page_lru_cache.GetPageForFree();
-            GLTF_CHECK(m_page_allocations.contains(page_to_free.PageHash()));
+            const auto& page_to_remove = m_page_lru_cache.GetPageForFree();
+            GLTF_CHECK(m_page_allocations.contains(page_to_remove.PageHash()));
             
-            const auto& reuse_physical_page = m_page_allocations[page_to_free.PageHash()];
+            const auto& reuse_physical_page = m_page_allocations[page_to_remove.PageHash()];
             GLTF_CHECK(0 <= reuse_physical_page.X && reuse_physical_page.X < m_page_table_size &&
                 0 <= reuse_physical_page.Y && reuse_physical_page.Y < m_page_table_size);
             
             m_available_pages.emplace_back(reuse_physical_page.X, reuse_physical_page.Y);
             
-            m_page_allocations.erase(page_to_free.PageHash());
-            m_page_lru_cache.RemovePage(page_to_free);
+            m_page_allocations.erase(page_to_remove.PageHash());
+            m_page_lru_cache.RemovePage(page_to_remove);
+
+            removed_page_hashes.insert(page_to_remove.PageHash());
         }
 
         auto& page_allocation = m_page_allocations[result.page.PageHash()];
@@ -360,6 +364,15 @@ void VTPhysicalTexture::InsertPage(const std::vector<VTPageData>& results)
         m_page_lru_cache.AddPage(result.page);
 
         m_added_pages.emplace(result.page.PageHash());
+    }
+
+    // Check
+    if (!removed_page_hashes.empty())
+    {
+        for (auto& page : pages_to_insert)
+        {
+            GLTF_CHECK(!removed_page_hashes.contains( page.page.PageHash()));
+        }    
     }
 }
 
@@ -445,7 +458,7 @@ void VTPhysicalTexture::ResetDirtyPages()
     m_added_pages.clear();   
 }
 
-const std::map<VTPage::HashType, VTPhysicalPageAllocationInfo>& VTPhysicalTexture::GetPageAllocationInfos() const
+const std::map<VTPage::HashType, VTPhysicalPageAllocationInfo>& VTPhysicalTexture::GetPageAllocations() const
 {
     return m_page_allocations;
 }

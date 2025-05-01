@@ -94,7 +94,7 @@ class VTPhysicalTexture
 {
 public:
     VTPhysicalTexture(int texture_size, int page_size, int border, bool svt);
-    void InsertPage(const std::vector<VTPageData>& results);
+    void InsertPage(const std::vector<VTPageData>& pages_to_insert);
     void UpdateTextureData();
 
     bool InitRenderResource(glTFRenderResourceManager& resource_manager);
@@ -102,7 +102,7 @@ public:
 
     void ResetDirtyPages();
     
-    const std::map<VTPage::HashType, VTPhysicalPageAllocationInfo>& GetPageAllocationInfos() const;
+    const std::map<VTPage::HashType, VTPhysicalPageAllocationInfo>& GetPageAllocations() const;
     std::shared_ptr<IRHITextureAllocation> GetTextureAllocation() const;
 
     bool IsSVT() const;

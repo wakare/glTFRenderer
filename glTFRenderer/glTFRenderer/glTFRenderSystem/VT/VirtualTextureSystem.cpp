@@ -49,10 +49,9 @@ void VirtualTextureSystem::TickRenderSystem(glTFRenderResourceManager& resource_
     {
         LOG_FORMAT_FLUSH("[WARN] Current frame need many pages[%lld] which larger than physical texture max capacity[%lld]\n", svt_pages.size(), max_svt_page_count)
     }
-    
+
     for (const auto& page : svt_pages)
     {
-        if (!m_loaded_page_hashes.contains(page.PageHash()))
         {
             switch (page.type) {
             case VTPageType::SVT_PAGE:
@@ -69,22 +68,13 @@ void VirtualTextureSystem::TickRenderSystem(glTFRenderResourceManager& resource_
         m_svt_page_streamer->Tick();
         
         auto page_data = m_svt_page_streamer->GetRequestResultsAndClean();
-        m_loaded_page_hashes.clear();
         {
             auto svt_physical_texture = GetSVTPhysicalTexture();
             svt_physical_texture->InsertPage(page_data);
             svt_physical_texture->UpdateRenderResource(resource_manager);
             svt_physical_texture->ResetDirtyPages();
         
-            const auto& page_allocations = svt_physical_texture->GetPageAllocationInfos();
-            for (const auto& page_allocation : page_allocations)
-            {
-                if (!m_loaded_page_hashes.contains(page_allocation.second.page.PageHash()))
-                {
-                    m_loaded_page_hashes.insert(page_allocation.second.page.PageHash());
-                }
-            }
-        
+            const auto& page_allocations = svt_physical_texture->GetPageAllocations();
             for (auto& logical_texture_info : m_logical_textures)
             {
                 auto& logical_texture = logical_texture_info.second;

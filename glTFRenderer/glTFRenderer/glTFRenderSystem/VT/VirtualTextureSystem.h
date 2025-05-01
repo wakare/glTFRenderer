@@ -54,5 +54,4 @@ protected:
     std::vector<std::shared_ptr<VTPhysicalTexture>> m_physical_textures;
     
     std::shared_ptr<SVTPageStreamer> m_svt_page_streamer;
-    std::set<VTPage::HashType> m_loaded_page_hashes;
 };
