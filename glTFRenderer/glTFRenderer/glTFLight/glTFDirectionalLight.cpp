@@ -1,3 +1,6 @@
+// DX use [0, 1] as depth clip range
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+
 #include "glTFDirectionalLight.h"
 
 glTFDirectionalLight::glTFDirectionalLight(const glTF_Transform_WithTRS& parentTransformRef)
