@@ -562,7 +562,7 @@ void glTFRenderResourceManager::TickSceneUpdating(const glTFSceneView& scene_vie
         }
     }
 
-    auto scene_bounds = scene_graph.GetBounds();
+    m_scene_bounds = scene_graph.GetBounds();
     for (const auto& light : lights)
     {
         const auto& direction_light = dynamic_cast<const glTFDirectionalLight*>(light);
@@ -571,7 +571,7 @@ void glTFRenderResourceManager::TickSceneUpdating(const glTFSceneView& scene_vie
             continue;
         }
 
-        auto light_shadowmap_view = direction_light->GetShadowmapViewInfo(scene_bounds);
+        auto light_shadowmap_view = direction_light->GetShadowmapViewInfo(m_scene_bounds, {0.0f, 0.0f, 1.0f, 1.0f});
         
         ConstantBufferSceneView shadowmap_view{};
         shadowmap_view.view_position = light_shadowmap_view.position;
@@ -583,4 +583,9 @@ void glTFRenderResourceManager::TickSceneUpdating(const glTFSceneView& scene_vie
         resource_manager.GetPerFrameRenderResourceData()[resource_manager.GetCurrentBackBufferIndex()].UpdateShadowmapSceneViewData(
             resource_manager.GetMemoryManager(), resource_manager.GetDevice(), direction_light->GetID(), shadowmap_view);
     }
+}
+
+glTF_AABB::AABB glTFRenderResourceManager::GetSceneBounds() const
+{
+    return m_scene_bounds;
 }

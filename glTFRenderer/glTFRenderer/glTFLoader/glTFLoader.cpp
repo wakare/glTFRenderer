@@ -175,7 +175,7 @@ bool glTFLoader::LoadFile(const std::string& file_path)
     GLTF_CHECK(last_slash_index != std::string::npos);
     m_scene_file_directory = std::string(file_path.data(), last_slash_index + 1);
     
-    nlohmann::json data = nlohmann::json::parse(glTF_file);
+    nlohmann::json data = nlohmann::json::parse(glTF_file); 
     decltype(glTFHandle::node_index) handle_index;
 
     std::map<decltype(glTFHandle::node_name), decltype(glTFHandle::node_index)> temporary_handle_resolve_map;

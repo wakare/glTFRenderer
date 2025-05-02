@@ -43,8 +43,7 @@ bool glTFGraphicsPassMeshVTFeedback::UpdateGUIWidgets()
 
 RHIViewportDesc glTFGraphicsPassMeshVTFeedback::GetViewport(glTFRenderResourceManager& resource_manager) const
 {
-    const auto& logical_texture_info = resource_manager.GetRenderSystem<VirtualTextureSystem>()->GetLogicalTextureInfo(m_virtual_texture_id);
-    const auto& vt_size = resource_manager.GetRenderSystem<VirtualTextureSystem>()->GetVTFeedbackTextureSize(logical_texture_info);
+    const auto& vt_size = resource_manager.GetRenderSystem<VirtualTextureSystem>()->GetVTFeedbackTextureSize(resource_manager.GetSwapChain().GetWidth(), resource_manager.GetSwapChain().GetHeight());
     
     return {0, 0, static_cast<float>(vt_size.first), static_cast<float>(vt_size.second), 0.0f, 1.0f};
 }
@@ -56,7 +55,7 @@ bool glTFGraphicsPassMeshVTFeedback::InitRenderInterface(glTFRenderResourceManag
     if (m_shadowmap)
     {
         const auto& logical_texture = resource_manager.GetRenderSystem<VirtualTextureSystem>()->GetLogicalTextureInfo(m_virtual_texture_id);
-        AddRenderInterface(std::make_shared<glTFRenderInterfaceShadowMapView>(dynamic_cast<const VTShadowmapLogicalTexture*>(&logical_texture)->GetLightId()));
+        AddRenderInterface(std::make_shared<glTFRenderInterfaceSharedShadowMapView>(dynamic_cast<const VTShadowmapLogicalTexture*>(&logical_texture)->GetLightId()));
         AddRenderInterface(std::make_shared<glTFRenderInterfaceSingleConstantBuffer<ShadowInfo>>());
     }
     else
@@ -140,9 +139,7 @@ bool glTFGraphicsPassMeshVTFeedback::PreRenderPass(glTFRenderResourceManager& re
 bool glTFGraphicsPassMeshVTFeedback::InitResourceTable(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::InitResourceTable(resource_manager))
-    const auto& logical_texture_info = resource_manager.GetRenderSystem<VirtualTextureSystem>()->GetLogicalTextureInfo(m_virtual_texture_id);
-    const auto& vt_size = resource_manager.GetRenderSystem<VirtualTextureSystem>()->GetVTFeedbackTextureSize(logical_texture_info);
-    
+    const auto& vt_size = resource_manager.GetRenderSystem<VirtualTextureSystem>()->GetVTFeedbackTextureSize(resource_manager.GetSwapChain().GetWidth(), resource_manager.GetSwapChain().GetHeight());
     RHITextureDesc feed_back_desc = RHITextureDesc::MakeVirtualTextureFeedbackDesc(resource_manager, vt_size.first, vt_size.second);
     AddExportTextureResource(GetVTFeedBackId(m_virtual_texture_id), feed_back_desc, 
         {

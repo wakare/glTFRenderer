@@ -1,7 +1,6 @@
 #include "glTFGraphicsPassMeshVirtualShadowDepth.h"
 
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceViewBase.h"
-#include "glTFRenderSystem/Shadow/ShadowRenderSystem.h"
 #include "glTFRenderSystem/VT/VirtualTextureSystem.h"
 #include "glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
 
@@ -23,8 +22,6 @@ glTFGraphicsPassMeshVirtualShadowDepth::glTFGraphicsPassMeshVirtualShadowDepth(c
 
 bool glTFGraphicsPassMeshVirtualShadowDepth::InitPass(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(glTFGraphicsPassMeshBase::InitPass(resource_manager))
-    
     auto virtual_texture_system = resource_manager.GetRenderSystem<VirtualTextureSystem>();
     GLTF_CHECK(virtual_texture_system);
     m_rvt_output_texture = virtual_texture_system->GetRVTPhysicalTexture()->GetTextureAllocation()->m_texture;
@@ -34,6 +31,9 @@ bool glTFGraphicsPassMeshVirtualShadowDepth::InitPass(glTFRenderResourceManager&
             m_rvt_output_texture,
             RHITextureDescriptorDesc(m_rvt_output_texture->GetTextureFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_RTV),
             m_rvt_descriptor_allocations);
+
+    
+    RETURN_IF_FALSE(glTFGraphicsPassMeshBase::InitPass(resource_manager))
     
     return true;
 }
@@ -45,28 +45,46 @@ bool glTFGraphicsPassMeshVirtualShadowDepth::SetupRootSignature(glTFRenderResour
     return true;
 }
 
-void glTFGraphicsPassMeshVirtualShadowDepth::UpdateNextRenderPageTileOffset(int x, int y, unsigned tile_size)
+void glTFGraphicsPassMeshVirtualShadowDepth::SetupNextPageRenderingInfo(const VSMPageRenderingInfo& page_rendering_info)
 {
-    m_next_render_page_tile_offset_x = x;
-    m_next_render_page_tile_offset_y = y;
-    m_tile_size = tile_size;
+    m_page_rendering_info = page_rendering_info;
+    m_rendering_enabled = m_page_rendering_info.physical_page_x >= 0 && m_page_rendering_info.physical_page_y >= 0;
+    if (m_rendering_enabled)
+    {
+        GetRenderInterface<glTFRenderInterfaceVirtualShadowMapView>()->SetNDCRange(page_rendering_info.page_x, page_rendering_info.page_y,
+            page_rendering_info.mip_page_size, page_rendering_info.mip_page_size);    
+    }
+}
+
+bool glTFGraphicsPassMeshVirtualShadowDepth::TryProcessSceneObject(glTFRenderResourceManager& resource_manager,
+    const glTFSceneObjectBase& object)
+{
+    RETURN_IF_FALSE(glTFGraphicsPassMeshBase::TryProcessSceneObject(resource_manager, object))
+
+    const glTFDirectionalLight* light = dynamic_cast<const glTFDirectionalLight*>(&object);
+    if (!light || light->GetID() != m_config.m_shadowmap_config.light_id)
+    {
+        return false;
+    }
+
+    GetRenderInterface<glTFRenderInterfaceVirtualShadowMapView>()->CalculateShadowmapMatrix(resource_manager, *light, resource_manager.GetSceneBounds());
     
-    m_rendering_enabled = m_next_render_page_tile_offset_x >= 0 && m_next_render_page_tile_offset_y >= 0;
+    return true;
 }
 
 bool glTFGraphicsPassMeshVirtualShadowDepth::InitRenderInterface(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(glTFGraphicsPassMeshVirtualShadowDepth::InitRenderInterface(resource_manager))
+    RETURN_IF_FALSE(glTFGraphicsPassMeshBase::InitRenderInterface(resource_manager))
 
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSingleConstantBuffer<VSMOutputTileOffset>>());
-    AddRenderInterface(std::make_shared<glTFRenderInterfaceShadowMapView>(m_config.m_shadowmap_config.light_id));
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceVirtualShadowMapView>(m_config.m_shadowmap_config.light_id));
     
     return true;
 }
 
 bool glTFGraphicsPassMeshVirtualShadowDepth::SetupPipelineStateObject(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(glTFGraphicsPassMeshVirtualShadowDepth::SetupPipelineStateObject(resource_manager))
+    RETURN_IF_FALSE(glTFGraphicsPassMeshBase::SetupPipelineStateObject(resource_manager))
     
     GetGraphicsPipelineStateObject().BindShaderCode(
             R"(glTFResources\ShaderSource\MeshPassCommonVS.hlsl)", RHIShaderType::Vertex, "main");
@@ -103,10 +121,10 @@ bool glTFGraphicsPassMeshVirtualShadowDepth::PreRenderPass(glTFRenderResourceMan
     m_begin_rendering_info.clear_render_target = false;
     
     VSMOutputTileOffset offset;
-    offset.offset_x = m_next_render_page_tile_offset_x;
-    offset.offset_y = m_next_render_page_tile_offset_y;
+    offset.offset_x = m_page_rendering_info.physical_page_x;
+    offset.offset_y = m_page_rendering_info.physical_page_y;
     GetRenderInterface<glTFRenderInterfaceSingleConstantBuffer<VSMOutputTileOffset>>()->UploadBuffer(resource_manager, &offset, 0 ,sizeof(offset) );
-    
+
     return true;
 }
 
@@ -123,8 +141,8 @@ RHIViewportDesc glTFGraphicsPassMeshVirtualShadowDepth::GetViewport(glTFRenderRe
 {
     RHIViewportDesc viewport_desc
         {
-            static_cast<float>(m_next_render_page_tile_offset_x), static_cast<float>(m_next_render_page_tile_offset_y),
-            static_cast<float>(m_tile_size), static_cast<float>(m_tile_size),
+            static_cast<float>(m_page_rendering_info.physical_page_x), static_cast<float>(m_page_rendering_info.physical_page_y),
+            static_cast<float>(m_page_rendering_info.physical_page_size), static_cast<float>(m_page_rendering_info.physical_page_size),
             0.0f, 1.0f
         };
 

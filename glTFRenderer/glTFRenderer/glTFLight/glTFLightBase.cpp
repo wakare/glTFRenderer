@@ -38,7 +38,7 @@ const glm::vec3& glTFLightBase::GetColor() const
     return m_color;
 }
 
-LightShadowmapViewInfo glTFLightBase::GetShadowmapViewInfo(const glTF_AABB::AABB& scene_bounds) const
+LightShadowmapViewInfo glTFLightBase::GetShadowmapViewInfo(const glTF_AABB::AABB& scene_bounds, const LightShadowmapViewRange& range) const
 {
     GLTF_CHECK(false);
     return {};

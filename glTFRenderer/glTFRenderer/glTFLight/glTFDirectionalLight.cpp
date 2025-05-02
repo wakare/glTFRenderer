@@ -26,7 +26,7 @@ glm::vec3 glTFDirectionalLight::GetDirection() const
     return glm::vec3(local);
 }
 
-LightShadowmapViewInfo glTFDirectionalLight::GetShadowmapViewInfo(const glTF_AABB::AABB& scene_bounds) const
+LightShadowmapViewInfo glTFDirectionalLight::GetShadowmapViewInfo(const glTF_AABB::AABB& scene_bounds, const LightShadowmapViewRange& range) const
 {
     LightShadowmapViewInfo shadowmap_view_info;
     auto scene_bounds_min = scene_bounds.getMin();
@@ -64,7 +64,16 @@ LightShadowmapViewInfo glTFDirectionalLight::GetShadowmapViewInfo(const glTF_AAB
         light_ndc_max.y = (light_ndc_max.y < ndc_to_light_view.y) ? ndc_to_light_view.y : light_ndc_max.y;
         light_ndc_max.z = (light_ndc_max.z < ndc_to_light_view.z) ? ndc_to_light_view.z : light_ndc_max.z;
     }
+
+    // Apply ndc range
+    float ndc_total_width = light_ndc_max.x - light_ndc_min.x;
+    float ndc_total_height = light_ndc_max.y - light_ndc_min.y;
+
+    float new_ndc_min_x = range.ndc_min_x * ndc_total_width + light_ndc_min.x;
+    float new_ndc_min_y = range.ndc_min_y * ndc_total_height + light_ndc_min.y;
+    float new_ndc_max_x = new_ndc_min_x + range.ndc_width * ndc_total_width;
+    float new_ndc_max_y = new_ndc_min_y + range.ndc_height * ndc_total_height;
         
-    shadowmap_view_info.projection_matrix = glm::orthoLH(light_ndc_min.x, light_ndc_max.x, light_ndc_min.y, light_ndc_max.y, light_ndc_min.z, light_ndc_max.z);
+    shadowmap_view_info.projection_matrix = glm::orthoLH(new_ndc_min_x, new_ndc_max_x, new_ndc_min_y, new_ndc_max_y, light_ndc_min.z, light_ndc_max.z);
     return shadowmap_view_info;
 }

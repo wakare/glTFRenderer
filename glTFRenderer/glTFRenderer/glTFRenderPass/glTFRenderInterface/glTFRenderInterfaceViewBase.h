@@ -1,6 +1,7 @@
 #pragma once
 
 #include "glTFRenderInterfaceSingleConstantBuffer.h"
+#include "glTFLight/glTFDirectionalLight.h"
 
 class glTFRenderInterfaceViewBase : public glTFRenderInterfaceWithRSAllocation
 {
@@ -25,13 +26,33 @@ protected:
     virtual std::vector<std::shared_ptr<IRHIBufferAllocation>> GetViewBufferAllocation(glTFRenderResourceManager& resource_manager) override;
 };
 
-class glTFRenderInterfaceShadowMapView : public glTFRenderInterfaceViewBase
+class glTFRenderInterfaceSharedShadowMapView : public glTFRenderInterfaceViewBase
 {
 public:
-    glTFRenderInterfaceShadowMapView(int light_id);
+    glTFRenderInterfaceSharedShadowMapView(int light_id);
 
 protected:
     virtual std::vector<std::shared_ptr<IRHIBufferAllocation>> GetViewBufferAllocation(glTFRenderResourceManager& resource_manager) override;
 
     int m_light_id{-1};
+};
+
+class glTFRenderInterfaceVirtualShadowMapView : public glTFRenderInterfaceViewBase
+{
+public:
+    glTFRenderInterfaceVirtualShadowMapView(int light_id);
+    virtual bool InitInterfaceImpl(glTFRenderResourceManager& resource_manager) override;
+    void SetNDCRange(float min_x, float min_y, float width, float height);
+    void CalculateShadowmapMatrix(glTFRenderResourceManager& resource_manager, const glTFDirectionalLight& directional_light, const glTF_AABB::AABB& scene_bounds);
+    
+protected:
+    virtual std::vector<std::shared_ptr<IRHIBufferAllocation>> GetViewBufferAllocation(glTFRenderResourceManager& resource_manager) override;
+
+    std::vector<std::shared_ptr<IRHIBufferAllocation>> m_virtual_shadowmap_buffer_allocations;
+    
+    int m_light_id{-1};
+    float m_min_x{0.0f};
+    float m_min_y{0.0f};
+    float m_width{0.0f};
+    float m_height{0.0f};
 };

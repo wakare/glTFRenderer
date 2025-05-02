@@ -359,22 +359,22 @@ void VTPhysicalTexture::InsertPage(const std::vector<VTPageData>& pages_to_inser
 {
     std::set<VTPage::HashType> removed_page_hashes;
 
-    for (const auto& result : pages_to_insert)
+    for (const auto& page_to_insert : pages_to_insert)
     {
-        if ((result.page.type == VTPageType::SVT_PAGE && !m_svt) ||
-            (result.page.type == VTPageType::RVT_PAGE && m_svt))
+        if ((page_to_insert.page.type == VTPageType::SVT_PAGE && !m_svt) ||
+            (page_to_insert.page.type == VTPageType::RVT_PAGE && m_svt))
         {
             continue;
         }
 
-        if (!m_logical_textures.contains(result.page.texture_id))
+        if (!m_logical_textures.contains(page_to_insert.page.texture_id))
         {
             continue;
         }
 
-        if (m_page_allocations.contains(result.page.PageHash()))
+        if (m_page_allocations.contains(page_to_insert.page.PageHash()))
         {
-            m_page_lru_cache.AddPage(result.page);
+            m_page_lru_cache.AddPage(page_to_insert.page);
             continue;
         }
 
@@ -396,14 +396,14 @@ void VTPhysicalTexture::InsertPage(const std::vector<VTPageData>& pages_to_inser
             removed_page_hashes.insert(page_to_remove.PageHash());
         }
 
-        auto& page_allocation = m_page_allocations[result.page.PageHash()];
-        m_pending_streaming_pages.emplace(result.page.PageHash());
+        auto& page_allocation = m_page_allocations[page_to_insert.page.PageHash()];
+        m_pending_streaming_pages.emplace(page_to_insert.page.PageHash());
         bool found = GetAvailablePagesAndErase(page_allocation.X, page_allocation.Y);
-        GLTF_CHECK(found && result.loaded);
-        page_allocation.page = result.page;
-        page_allocation.page_data = result.data;
-        page_allocation.page_size = result.data_size;
-        m_page_lru_cache.AddPage(result.page);
+        GLTF_CHECK(found);
+        page_allocation.page = page_to_insert.page;
+        page_allocation.page_data = page_to_insert.data;
+        page_allocation.page_size = page_to_insert.data_size;
+        m_page_lru_cache.AddPage(page_to_insert.page);
     }
 
     // Check
@@ -427,7 +427,7 @@ bool VTPhysicalTexture::InitRenderResource(glTFRenderResourceManager& resource_m
     RHIResourceUsageFlags flags = static_cast<RHIResourceUsageFlags>(RUF_ALLOW_SRV | RUF_TRANSFER_DST);
     if (!m_svt)
     {
-        flags = static_cast<RHIResourceUsageFlags>(flags | RUF_ALLOW_UAV);
+        flags = static_cast<RHIResourceUsageFlags>(flags | RUF_ALLOW_RENDER_TARGET);
     }
 
     RHIDataFormat physical_texture_format = m_svt ? RHIDataFormat::R8G8B8A8_UNORM : RHIDataFormat::R32_FLOAT;
@@ -491,16 +491,23 @@ void VTPhysicalTexture::UpdateRenderResource(glTFRenderResourceManager& resource
         {
             auto page_iter = m_pending_streaming_pages.begin();
             GLTF_CHECK(m_page_allocations.contains(*page_iter));
-            const auto& page = m_page_allocations[*page_iter].page;
-            auto logic_texture = m_logical_textures[page.texture_id];
+            const auto& page_allocation = m_page_allocations[*page_iter];
+            auto logic_texture = m_logical_textures[page_allocation.page.texture_id];
             GLTF_CHECK(logic_texture);
 
             // TODO: Do abstraction for rvt pass
             auto& vsm_pass = dynamic_cast<glTFGraphicsPassMeshVirtualShadowDepth&>(logic_texture->GetRVTPass());
-            int offset_x = page.X * (VirtualTextureSystem::VT_PAGE_SIZE + 2 * VirtualTextureSystem::VT_PHYSICAL_TEXTURE_BORDER) + VirtualTextureSystem::VT_PHYSICAL_TEXTURE_BORDER;
-            int offset_y = page.Y * (VirtualTextureSystem::VT_PAGE_SIZE + 2 * VirtualTextureSystem::VT_PHYSICAL_TEXTURE_BORDER) + VirtualTextureSystem::VT_PHYSICAL_TEXTURE_BORDER;
+            VSMPageRenderingInfo page_rendering_info{};
+            page_rendering_info.physical_page_size = m_page_size;
+            page_rendering_info.physical_page_x = page_allocation.X * (VirtualTextureSystem::VT_PAGE_SIZE + 2 * VirtualTextureSystem::VT_PHYSICAL_TEXTURE_BORDER) + VirtualTextureSystem::VT_PHYSICAL_TEXTURE_BORDER;
+            page_rendering_info.physical_page_y = page_allocation.Y * (VirtualTextureSystem::VT_PAGE_SIZE + 2 * VirtualTextureSystem::VT_PHYSICAL_TEXTURE_BORDER) + VirtualTextureSystem::VT_PHYSICAL_TEXTURE_BORDER;
+
+            auto mip_page_size = m_page_size << page_allocation.page.mip; 
+            page_rendering_info.page_x = static_cast<float>(page_allocation.page.X * mip_page_size) / static_cast<float>(logic_texture->GetSize());
+            page_rendering_info.page_y = static_cast<float>(page_allocation.page.Y * mip_page_size) / static_cast<float>(logic_texture->GetSize());
+            page_rendering_info.mip_page_size = static_cast<float>(mip_page_size) / static_cast<float>(logic_texture->GetSize());
             
-            vsm_pass.UpdateNextRenderPageTileOffset(offset_x, offset_y, VirtualTextureSystem::VT_PAGE_SIZE);
+            vsm_pass.SetupNextPageRenderingInfo(page_rendering_info);
 
             m_pending_streaming_pages.erase(page_iter);    
         }

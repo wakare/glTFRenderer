@@ -8,6 +8,17 @@ struct VSMConfig
     unsigned virtual_texture_id;
 };
 
+struct VSMPageRenderingInfo
+{
+    float mip_page_size;
+    float page_x;
+    float page_y;
+    
+    int physical_page_size;
+    int physical_page_x;
+    int physical_page_y;
+};
+
 class glTFGraphicsPassMeshVirtualShadowDepth : public glTFGraphicsPassMeshBase
 {
 public:
@@ -20,8 +31,9 @@ public:
     virtual const char* PassName() override {return "MeshPass_VirtualShadowmap"; }
 
     // Mark next page to render
-    void UpdateNextRenderPageTileOffset(int x, int y, unsigned tile_size);
-    
+    void SetupNextPageRenderingInfo(const VSMPageRenderingInfo& page_rendering_info);
+    virtual bool TryProcessSceneObject(glTFRenderResourceManager& resource_manager, const glTFSceneObjectBase& object) override;
+
 protected:
     virtual bool InitRenderInterface(glTFRenderResourceManager& resource_manager) override;
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;
@@ -35,7 +47,5 @@ protected:
     RootSignatureAllocation m_rvt_output_allocation;
     std::shared_ptr<IRHITextureDescriptorAllocation> m_rvt_descriptor_allocations;
 
-    int m_next_render_page_tile_offset_x{-1};
-    int m_next_render_page_tile_offset_y{-1};
-    unsigned m_tile_size{0};
+    VSMPageRenderingInfo m_page_rendering_info;
 };

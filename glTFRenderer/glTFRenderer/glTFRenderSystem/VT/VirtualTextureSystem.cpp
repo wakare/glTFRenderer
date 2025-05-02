@@ -174,12 +174,12 @@ std::shared_ptr<VTPhysicalTexture> VirtualTextureSystem::GetRVTPhysicalTexture()
     return nullptr;
 }
 
-std::pair<unsigned, unsigned> VirtualTextureSystem::GetVTFeedbackTextureSize(const VTLogicalTexture& logical_texture)
+std::pair<unsigned, unsigned> VirtualTextureSystem::GetVTFeedbackTextureSize(unsigned width, unsigned height)
 {
     return
     {
-        static_cast<unsigned>(logical_texture.GetSize()) / VT_FEEDBACK_TEXTURE_SCALE_SIZE,
-        static_cast<unsigned>(logical_texture.GetSize()) / VT_FEEDBACK_TEXTURE_SCALE_SIZE,
+        width / VT_FEEDBACK_TEXTURE_SCALE_SIZE,
+        height / VT_FEEDBACK_TEXTURE_SCALE_SIZE,
     };
 }
 

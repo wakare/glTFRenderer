@@ -11,5 +11,5 @@ public:
 
     glm::vec3 GetDirection() const;
 
-    virtual LightShadowmapViewInfo GetShadowmapViewInfo(const glTF_AABB::AABB& scene_bounds) const override;
+    virtual LightShadowmapViewInfo GetShadowmapViewInfo(const glTF_AABB::AABB& scene_bounds, const LightShadowmapViewRange& range) const override;
 };

@@ -40,7 +40,7 @@ public:
     std::shared_ptr<VTPhysicalTexture> GetSVTPhysicalTexture() const;
     std::shared_ptr<VTPhysicalTexture> GetRVTPhysicalTexture() const;
 
-    static std::pair<unsigned, unsigned> GetVTFeedbackTextureSize(const VTLogicalTexture& logical_texture);
+    static std::pair<unsigned, unsigned> GetVTFeedbackTextureSize(unsigned width, unsigned height);
     unsigned GetNextValidVTIdAndInc();
     
 protected:

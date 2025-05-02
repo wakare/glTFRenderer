@@ -18,6 +18,14 @@ struct LightShadowmapViewInfo
     glm::mat4 projection_matrix;
 };
 
+struct LightShadowmapViewRange
+{
+    float ndc_min_x;
+    float ndc_min_y;
+    float ndc_width;
+    float ndc_height;
+};
+
 class glTFLightBase : public glTFSceneObjectBase
 {
 public:
@@ -33,7 +41,7 @@ public:
     void SetColor(const glm::vec3& color);
     const glm::vec3& GetColor() const;
 
-    virtual LightShadowmapViewInfo GetShadowmapViewInfo(const glTF_AABB::AABB& scene_bounds) const;
+    virtual LightShadowmapViewInfo GetShadowmapViewInfo(const glTF_AABB::AABB& scene_bounds, const LightShadowmapViewRange& range) const;
     
 protected:
     glTFLightType m_type;

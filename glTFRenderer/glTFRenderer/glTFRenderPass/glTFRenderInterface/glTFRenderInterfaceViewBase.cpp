@@ -58,14 +58,14 @@ std::vector<std::shared_ptr<IRHIBufferAllocation>> glTFRenderInterfaceSceneView:
     return result;
 }
 
-glTFRenderInterfaceShadowMapView::glTFRenderInterfaceShadowMapView(int light_id)
+glTFRenderInterfaceSharedShadowMapView::glTFRenderInterfaceSharedShadowMapView(int light_id)
     : glTFRenderInterfaceViewBase(SceneViewBufferName)
     , m_light_id(light_id)
 {
     GLTF_CHECK(light_id >= 0);
 }
 
-std::vector<std::shared_ptr<IRHIBufferAllocation>> glTFRenderInterfaceShadowMapView::GetViewBufferAllocation(
+std::vector<std::shared_ptr<IRHIBufferAllocation>> glTFRenderInterfaceSharedShadowMapView::GetViewBufferAllocation(
     glTFRenderResourceManager& resource_manager)
 {
     std::vector<std::shared_ptr<IRHIBufferAllocation>> result; result.resize(resource_manager.GetBackBufferCount());
@@ -76,4 +76,74 @@ std::vector<std::shared_ptr<IRHIBufferAllocation>> glTFRenderInterfaceShadowMapV
     }
     
     return result;
+}
+
+glTFRenderInterfaceVirtualShadowMapView::glTFRenderInterfaceVirtualShadowMapView(int light_id)
+    : glTFRenderInterfaceViewBase(SceneViewBufferName)
+    , m_light_id(light_id)
+{
+    
+}
+
+bool glTFRenderInterfaceVirtualShadowMapView::InitInterfaceImpl(glTFRenderResourceManager& resource_manager)
+{
+    RETURN_IF_FALSE(glTFRenderInterfaceViewBase::InitInterfaceImpl(resource_manager))
+
+    return true;
+}
+
+void glTFRenderInterfaceVirtualShadowMapView::SetNDCRange(float min_x, float min_y, float width, float height)
+{
+    GLTF_CHECK(min_x >= 0.0f && min_y >= 0.0f && width > 0.0f && height > 0.0f);
+    
+    m_min_x = min_x;
+    m_min_y = min_y;
+    m_width = width;
+    m_height = height;
+}
+
+void glTFRenderInterfaceVirtualShadowMapView::CalculateShadowmapMatrix(glTFRenderResourceManager& resource_manager, const glTFDirectionalLight& directional_light, const glTF_AABB::AABB& scene_bounds)
+{
+    LightShadowmapViewRange range;
+    range.ndc_min_x = m_min_x;
+    range.ndc_min_y = m_min_y;
+    range.ndc_width = m_width;
+    range.ndc_height = m_height;
+    
+    auto shadowmap_view_info = directional_light.GetShadowmapViewInfo(scene_bounds, range);
+    ConstantBufferSceneView constantBuffer_scene_view;
+    constantBuffer_scene_view.view_position = shadowmap_view_info.position;
+    constantBuffer_scene_view.view_matrix = shadowmap_view_info.view_matrix;
+    constantBuffer_scene_view.inverse_view_matrix = glm::inverse(shadowmap_view_info.view_matrix);
+    constantBuffer_scene_view.projection_matrix = shadowmap_view_info.projection_matrix;
+    constantBuffer_scene_view.inverse_projection_matrix = glm::inverse(shadowmap_view_info.projection_matrix);
+
+    resource_manager.GetMemoryManager().UploadBufferData(*m_virtual_shadowmap_buffer_allocations[resource_manager.GetCurrentBackBufferIndex()], &constantBuffer_scene_view, 0, sizeof(constantBuffer_scene_view));
+}
+
+std::vector<std::shared_ptr<IRHIBufferAllocation>> glTFRenderInterfaceVirtualShadowMapView::GetViewBufferAllocation(
+    glTFRenderResourceManager& resource_manager)
+{
+    if (m_virtual_shadowmap_buffer_allocations.empty())
+    {
+        m_virtual_shadowmap_buffer_allocations.resize(resource_manager.GetBackBufferCount());
+        auto& memory_manager = resource_manager.GetMemoryManager();
+
+        RHIBufferDesc virtual_shadowmap_buffer_desc;
+        virtual_shadowmap_buffer_desc.name = L"VirtualShadowmapBuffer";
+        virtual_shadowmap_buffer_desc.width = 64ull * 1024;
+        virtual_shadowmap_buffer_desc.height = 1;
+        virtual_shadowmap_buffer_desc.depth = 1;
+        virtual_shadowmap_buffer_desc.type = RHIBufferType::Upload;
+        virtual_shadowmap_buffer_desc.resource_type = RHIBufferResourceType::Buffer;
+        virtual_shadowmap_buffer_desc.resource_data_type = RHIDataFormat::UNKNOWN;
+        virtual_shadowmap_buffer_desc.state = RHIResourceStateType::STATE_COMMON;
+        virtual_shadowmap_buffer_desc.usage = RHIResourceUsageFlags::RUF_ALLOW_CBV;
+        for (int i = 0; i < m_virtual_shadowmap_buffer_allocations.size(); ++i)
+        {
+            memory_manager.AllocateBufferMemory(resource_manager.GetDevice(), virtual_shadowmap_buffer_desc, m_virtual_shadowmap_buffer_allocations[i]);
+        }
+    }
+
+    return m_virtual_shadowmap_buffer_allocations;
 }

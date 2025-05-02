@@ -122,6 +122,7 @@ public:
     void TickFrame();
     void TickSceneUpdating(const glTFSceneView& scene_view, glTFRenderResourceManager& resource_manager, const glTFSceneGraph& scene_graph, size_t delta_time_ms);
 
+    glTF_AABB::AABB GetSceneBounds() const;
     
 private:
     //std::shared_ptr<glTFRadiosityRenderer> m_radiosity_renderer;
@@ -156,6 +157,8 @@ private:
     RenderGraphNodeUtil::RenderGraphNodeFinalOutput m_final_output;
 
     std::vector<std::shared_ptr<RenderSystemBase>> m_render_systems;
+
+    glTF_AABB::AABB m_scene_bounds;
 };
 
 template <typename system_type>

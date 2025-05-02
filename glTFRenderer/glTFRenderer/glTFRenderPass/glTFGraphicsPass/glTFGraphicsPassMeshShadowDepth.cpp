@@ -15,7 +15,7 @@ bool glTFGraphicsPassMeshShadowDepth::InitRenderInterface(glTFRenderResourceMana
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::InitRenderInterface(resource_manager))
 
-    AddRenderInterface(std::make_shared<glTFRenderInterfaceShadowMapView>(m_config.light_id));
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceSharedShadowMapView>(m_config.light_id));
     
     return true;
 }
