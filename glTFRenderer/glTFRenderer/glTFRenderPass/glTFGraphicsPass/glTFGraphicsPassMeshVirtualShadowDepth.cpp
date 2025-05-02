@@ -16,14 +16,14 @@ struct VSMOutputTileOffset
 };
 
 glTFGraphicsPassMeshVirtualShadowDepth::glTFGraphicsPassMeshVirtualShadowDepth(const VSMConfig& config)
-    : glTFGraphicsPassMeshShadowDepth(config.m_shadowmap_config)
+    : glTFGraphicsPassMeshBase()
     , m_config(config)
 {
 }
 
 bool glTFGraphicsPassMeshVirtualShadowDepth::InitPass(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(glTFGraphicsPassMeshShadowDepth::InitPass(resource_manager))
+    RETURN_IF_FALSE(glTFGraphicsPassMeshBase::InitPass(resource_manager))
     
     auto virtual_texture_system = resource_manager.GetRenderSystem<VirtualTextureSystem>();
     GLTF_CHECK(virtual_texture_system);
@@ -40,7 +40,7 @@ bool glTFGraphicsPassMeshVirtualShadowDepth::InitPass(glTFRenderResourceManager&
 
 bool glTFGraphicsPassMeshVirtualShadowDepth::SetupRootSignature(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(glTFGraphicsPassMeshShadowDepth::SetupRootSignature(resource_manager))
+    RETURN_IF_FALSE(glTFGraphicsPassMeshBase::SetupRootSignature(resource_manager))
 
     return true;
 }
@@ -59,6 +59,7 @@ bool glTFGraphicsPassMeshVirtualShadowDepth::InitRenderInterface(glTFRenderResou
     RETURN_IF_FALSE(glTFGraphicsPassMeshVirtualShadowDepth::InitRenderInterface(resource_manager))
 
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSingleConstantBuffer<VSMOutputTileOffset>>());
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceShadowMapView>(m_config.m_shadowmap_config.light_id));
     
     return true;
 }
@@ -66,16 +67,24 @@ bool glTFGraphicsPassMeshVirtualShadowDepth::InitRenderInterface(glTFRenderResou
 bool glTFGraphicsPassMeshVirtualShadowDepth::SetupPipelineStateObject(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshVirtualShadowDepth::SetupPipelineStateObject(resource_manager))
-
+    
+    GetGraphicsPipelineStateObject().BindShaderCode(
+            R"(glTFResources\ShaderSource\MeshPassCommonVS.hlsl)", RHIShaderType::Vertex, "main");
     GetGraphicsPipelineStateObject().BindShaderCode(
         R"(glTFResources\ShaderSource\VSMOutputPS.hlsl)", RHIShaderType::Pixel, "main");
 
     auto virtual_texture_system = resource_manager.GetRenderSystem<VirtualTextureSystem>();
     GLTF_CHECK(virtual_texture_system);
-
-    GetGraphicsPipelineStateObject().SetDepthStencilState(RHIDepthStencilMode::DEPTH_DONT_CARE);
     
-    return true;}
+    GetGraphicsPipelineStateObject().BindRenderTargetFormats(
+            {
+                m_rvt_descriptor_allocations.get()
+            });
+    GetGraphicsPipelineStateObject().SetCullMode(RHICullMode::NONE);
+    GetGraphicsPipelineStateObject().SetDepthStencilState(RHIDepthStencilMode::DEPTH_WRITE);
+    
+    return true;
+}
 
 bool glTFGraphicsPassMeshVirtualShadowDepth::PreRenderPass(glTFRenderResourceManager& resource_manager)
 {
@@ -103,7 +112,7 @@ bool glTFGraphicsPassMeshVirtualShadowDepth::PreRenderPass(glTFRenderResourceMan
 
 bool glTFGraphicsPassMeshVirtualShadowDepth::PostRenderPass(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(glTFGraphicsPassMeshShadowDepth::PostRenderPass(resource_manager))
+    RETURN_IF_FALSE(glTFGraphicsPassMeshBase::PostRenderPass(resource_manager))
 
     m_rendering_enabled = false;
     

@@ -11,6 +11,13 @@ enum class glTFLightType
     
 };
 
+struct LightShadowmapViewInfo
+{
+    glm::vec4 position;
+    glm::mat4 view_matrix;
+    glm::mat4 projection_matrix;
+};
+
 class glTFLightBase : public glTFSceneObjectBase
 {
 public:
@@ -25,6 +32,8 @@ public:
 
     void SetColor(const glm::vec3& color);
     const glm::vec3& GetColor() const;
+
+    virtual LightShadowmapViewInfo GetShadowmapViewInfo(const glTF_AABB::AABB& scene_bounds) const;
     
 protected:
     glTFLightType m_type;

@@ -148,7 +148,6 @@ bool glTFRenderResourceManager::InitResourceManager(unsigned width, unsigned hei
     m_render_target_manager = RHIResourceFactory::CreateRHIResource<IRHIRenderTargetManager>();
     m_render_target_manager->InitRenderTargetManager(*m_device, 100);
 
-
     RHITextureClearValue clear_value;
     clear_value.clear_format = RHIDataFormat::R8G8B8A8_UNORM_SRGB;
     clear_value.clear_color = glm::vec4{0.0f, 0.0f, 0.0f, 0.0f};
@@ -564,9 +563,6 @@ void glTFRenderResourceManager::TickSceneUpdating(const glTFSceneView& scene_vie
     }
 
     auto scene_bounds = scene_graph.GetBounds();
-    auto scene_bounds_min = scene_bounds.getMin();
-    auto scene_bounds_max = scene_bounds.getMax();
-    
     for (const auto& light : lights)
     {
         const auto& direction_light = dynamic_cast<const glTFDirectionalLight*>(light);
@@ -574,43 +570,14 @@ void glTFRenderResourceManager::TickSceneUpdating(const glTFSceneView& scene_vie
         {
             continue;
         }
+
+        auto light_shadowmap_view = direction_light->GetShadowmapViewInfo(scene_bounds);
         
         ConstantBufferSceneView shadowmap_view{};
-        auto light_location = glTF_Transform_WithTRS::GetTranslationFromMatrix(direction_light->GetTransformMatrix());
-        shadowmap_view.view_matrix = glm::lookAtLH(light_location, light_location + direction_light->GetDirection(), {0.0f, 1.0f, 0.0f});
+        shadowmap_view.view_position = light_shadowmap_view.position;
+        shadowmap_view.view_matrix = light_shadowmap_view.view_matrix;
         shadowmap_view.inverse_view_matrix = glm::inverse(shadowmap_view.view_matrix);
-
-        shadowmap_view.view_position = glm::vec4(light_location, 1.0f);
-        
-        glm::vec3 light_ndc_min{ FLT_MAX, FLT_MAX, FLT_MAX };
-        glm::vec3 light_ndc_max{ FLT_MIN, FLT_MIN, FLT_MIN };
-
-        glm::vec4 scene_corner[8] =
-            {
-                {scene_bounds_min.x, scene_bounds_min.y, scene_bounds_min.z, 1.0f},
-                {scene_bounds_max.x, scene_bounds_min.y, scene_bounds_min.z, 1.0f},
-                {scene_bounds_min.x, scene_bounds_max.y, scene_bounds_min.z, 1.0f},
-                {scene_bounds_max.x, scene_bounds_max.y, scene_bounds_min.z, 1.0f},
-                {scene_bounds_min.x, scene_bounds_min.y, scene_bounds_max.z, 1.0f},
-                {scene_bounds_max.x, scene_bounds_min.y, scene_bounds_max.z, 1.0f},
-                {scene_bounds_min.x, scene_bounds_max.y, scene_bounds_max.z, 1.0f},
-                {scene_bounds_max.x, scene_bounds_max.y, scene_bounds_max.z, 1.0f},
-            };
-
-        for (unsigned i = 0; i < 8; ++i)
-        {
-            glm::vec4 ndc_to_light_view = shadowmap_view.view_matrix * scene_corner[i];
-
-            light_ndc_min.x = (light_ndc_min.x > ndc_to_light_view.x) ? ndc_to_light_view.x : light_ndc_min.x;
-            light_ndc_min.y = (light_ndc_min.y > ndc_to_light_view.y) ? ndc_to_light_view.y : light_ndc_min.y;
-            light_ndc_min.z = (light_ndc_min.z > ndc_to_light_view.z) ? ndc_to_light_view.z : light_ndc_min.z;
-
-            light_ndc_max.x = (light_ndc_max.x < ndc_to_light_view.x) ? ndc_to_light_view.x : light_ndc_max.x;
-            light_ndc_max.y = (light_ndc_max.y < ndc_to_light_view.y) ? ndc_to_light_view.y : light_ndc_max.y;
-            light_ndc_max.z = (light_ndc_max.z < ndc_to_light_view.z) ? ndc_to_light_view.z : light_ndc_max.z;
-        }
-        
-        shadowmap_view.projection_matrix = glm::orthoLH(light_ndc_min.x, light_ndc_max.x, light_ndc_min.y, light_ndc_max.y, light_ndc_min.z, light_ndc_max.z);
+        shadowmap_view.projection_matrix = light_shadowmap_view.projection_matrix;
         shadowmap_view.inverse_projection_matrix = glm::inverse(shadowmap_view.projection_matrix);
         
         resource_manager.GetPerFrameRenderResourceData()[resource_manager.GetCurrentBackBufferIndex()].UpdateShadowmapSceneViewData(

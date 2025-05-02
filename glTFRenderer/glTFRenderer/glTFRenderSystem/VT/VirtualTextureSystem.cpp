@@ -199,6 +199,8 @@ void VirtualTextureSystem::GatherPageRequest(std::vector<VTPage>& out_svt_pages,
     std::set<VTPage> pages;
     for (const auto& logical_texture  : m_logical_textures)
     {
+        std::vector<VTPage>& out_page_results = logical_texture.second->IsSVT() ? out_svt_pages : out_rvt_pages;
+        
         auto& fetch_pass = dynamic_cast<glTFComputePassVTFetchCS&>(logical_texture.second->GetFetchPass());
         if (!fetch_pass.IsFeedBackDataValid())
         {
@@ -223,9 +225,10 @@ void VirtualTextureSystem::GatherPageRequest(std::vector<VTPage>& out_svt_pages,
             if (!pages.contains(page))
             {
                 pages.insert(page);
-                out_svt_pages.push_back(page);
+                out_page_results.push_back(page);
             }
         }
+        
         fetch_pass.SetFeedBackDataValid(false);
     }
 }

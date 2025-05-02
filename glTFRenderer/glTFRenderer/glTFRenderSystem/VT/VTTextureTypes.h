@@ -115,7 +115,6 @@ public:
     void RegisterLogicalTexture(std::shared_ptr<VTLogicalTexture> logical_texture);
     bool HasPendingStreamingPages() const;
     
-    
 protected:
     bool GetAvailablePagesAndErase(int& x, int& y);
 

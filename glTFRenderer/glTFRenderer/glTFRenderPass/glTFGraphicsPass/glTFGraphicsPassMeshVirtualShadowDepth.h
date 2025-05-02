@@ -8,7 +8,7 @@ struct VSMConfig
     unsigned virtual_texture_id;
 };
 
-class glTFGraphicsPassMeshVirtualShadowDepth : public glTFGraphicsPassMeshShadowDepth
+class glTFGraphicsPassMeshVirtualShadowDepth : public glTFGraphicsPassMeshBase
 {
 public:
     glTFGraphicsPassMeshVirtualShadowDepth(const VSMConfig& config);

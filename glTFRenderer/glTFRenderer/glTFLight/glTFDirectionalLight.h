@@ -10,4 +10,6 @@ public:
     bool AffectPosition(const glm::vec3& position) const override;
 
     glm::vec3 GetDirection() const;
+
+    virtual LightShadowmapViewInfo GetShadowmapViewInfo(const glTF_AABB::AABB& scene_bounds) const override;
 };
