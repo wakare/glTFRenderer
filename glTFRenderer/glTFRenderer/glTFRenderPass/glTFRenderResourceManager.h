@@ -30,6 +30,7 @@ public:
 
     bool InitShadowmapSceneViewData(IRHIMemoryManager& memory_manager, IRHIDevice& device, unsigned light_id);
     bool UpdateShadowmapSceneViewData(IRHIMemoryManager& memory_manager, IRHIDevice& device, unsigned light_id, const ConstantBufferSceneView& scene_view);
+    bool ContainsLightShadowmapViewData(unsigned light_id) const;
     const ConstantBufferSceneView& GetShadowmapSceneView(unsigned light_id) const;
     const std::map<unsigned, ConstantBufferSceneView>& GetShadowmapSceneViews() const;
     std::shared_ptr<IRHIBufferAllocation> GetShadowmapViewBufferAllocation(unsigned light_id) const;

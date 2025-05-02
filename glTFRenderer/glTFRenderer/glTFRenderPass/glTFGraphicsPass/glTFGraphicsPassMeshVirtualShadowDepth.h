@@ -2,6 +2,8 @@
 #include "glTFGraphicsPassMeshBase.h"
 #include "glTFGraphicsPassMeshShadowDepth.h"
 
+class glTFDirectionalLight;
+
 struct VSMConfig
 {
     ShadowmapPassConfig m_shadowmap_config{};
@@ -31,7 +33,7 @@ public:
     virtual const char* PassName() override {return "MeshPass_VirtualShadowmap"; }
 
     // Mark next page to render
-    void SetupNextPageRenderingInfo(const VSMPageRenderingInfo& page_rendering_info);
+    void SetupNextPageRenderingInfo(glTFRenderResourceManager& resource_manager, const VSMPageRenderingInfo& page_rendering_info);
     virtual bool TryProcessSceneObject(glTFRenderResourceManager& resource_manager, const glTFSceneObjectBase& object) override;
 
 protected:
@@ -47,5 +49,6 @@ protected:
     RootSignatureAllocation m_rvt_output_allocation;
     std::shared_ptr<IRHITextureDescriptorAllocation> m_rvt_descriptor_allocations;
 
+    const glTFDirectionalLight* m_directional_light{nullptr};
     VSMPageRenderingInfo m_page_rendering_info;
 };

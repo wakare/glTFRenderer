@@ -54,7 +54,7 @@ float4 SampleAlbedoTextureCS(uint material_id, float2 uv)
     if (info.IsVTAlbedo())
     {
 #ifdef VT_READ_DATA
-        return SampleVTPageTable(info.albedo_tex_index, uv);
+        return SampleVirtualTexture(info.albedo_tex_index, uv);
 #else
         return float4(0.0, 0.0, 0.0, 0.0);
 #endif
@@ -72,7 +72,7 @@ float4 SampleAlbedoTexture(uint material_id, float2 uv)
     if (info.IsVTAlbedo())
     {
 #ifdef VT_READ_DATA
-        return SampleVTPageTable(info.albedo_tex_index, uv);
+        return SampleVirtualTexture(info.albedo_tex_index, uv);
 #else
         return float4(0.0, 0.0, 0.0, 0.0);
 #endif
@@ -92,7 +92,7 @@ float4 SampleNormalTextureCS(uint material_id, float2 uv)
     if (info.IsVTNormal())
     {
 #ifdef VT_READ_DATA
-        return SampleVTPageTable(info.normal_tex_index, uv);
+        return SampleVirtualTexture(info.normal_tex_index, uv);
 #else
         return float4(0.0, 0.0, 0.0, 0.0);
 #endif
@@ -112,7 +112,7 @@ float4 SampleNormalTexture(uint material_id, float2 uv)
     if (info.IsVTNormal())
     {
 #ifdef VT_READ_DATA
-        return SampleVTPageTable(info.normal_tex_index, uv);
+        return SampleVirtualTexture(info.normal_tex_index, uv);
 #else
         return float4(0.0, 0.0, 0.0, 0.0);
 #endif
@@ -132,7 +132,7 @@ float2 SampleMetallicRoughnessTexture(uint material_id, float2 uv)
     if (info.IsVTMetalicRoughness())
     {
 #ifdef VT_READ_DATA
-        return SampleVTPageTable(info.metallic_roughness_tex_index, uv).bg;
+        return SampleVirtualTexture(info.metallic_roughness_tex_index, uv).bg;
 #else
         return float2(0.0, 0.0);
 #endif        
@@ -152,7 +152,7 @@ float2 SampleMetallicRoughnessTextureCS(uint material_id, float2 uv)
     if (info.IsVTMetalicRoughness())
     {
 #ifdef VT_READ_DATA
-        return SampleVTPageTable(info.metallic_roughness_tex_index, uv).bg;
+        return SampleVirtualTexture(info.metallic_roughness_tex_index, uv).bg;
 #else
         return float2(0.0, 0.0);
 #endif        

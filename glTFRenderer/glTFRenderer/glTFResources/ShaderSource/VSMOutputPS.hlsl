@@ -11,11 +11,17 @@ DECLARE_RESOURCE(cbuffer VSMOutputTileOffset, VSM_OUTPUT_FILE_OFFSET_REGISTER_IN
     uint height;
 };
 
-void main(PS_INPUT input)
+struct PS_VSM_OUTPUT
+{
+    float output: SV_TARGET0;
+};
+
+PS_VSM_OUTPUT main(PS_INPUT input)
 {
     float depth = input.pos.z / input.pos.w; // NDC depth
-    
-    
+    PS_VSM_OUTPUT output;
+    output.output = depth;
+    return output;
 }
 
 #endif

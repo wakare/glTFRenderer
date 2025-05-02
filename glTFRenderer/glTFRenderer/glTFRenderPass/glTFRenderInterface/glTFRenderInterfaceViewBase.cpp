@@ -111,14 +111,23 @@ void glTFRenderInterfaceVirtualShadowMapView::CalculateShadowmapMatrix(glTFRende
     range.ndc_height = m_height;
     
     auto shadowmap_view_info = directional_light.GetShadowmapViewInfo(scene_bounds, range);
-    ConstantBufferSceneView constantBuffer_scene_view;
-    constantBuffer_scene_view.view_position = shadowmap_view_info.position;
-    constantBuffer_scene_view.view_matrix = shadowmap_view_info.view_matrix;
-    constantBuffer_scene_view.inverse_view_matrix = glm::inverse(shadowmap_view_info.view_matrix);
-    constantBuffer_scene_view.projection_matrix = shadowmap_view_info.projection_matrix;
-    constantBuffer_scene_view.inverse_projection_matrix = glm::inverse(shadowmap_view_info.projection_matrix);
+    m_current_shadowmap_view.view_position = shadowmap_view_info.position;
+    m_current_shadowmap_view.view_matrix = shadowmap_view_info.view_matrix;
+    m_current_shadowmap_view.inverse_view_matrix = glm::inverse(shadowmap_view_info.view_matrix);
+    m_current_shadowmap_view.projection_matrix = shadowmap_view_info.projection_matrix;
+    m_current_shadowmap_view.inverse_projection_matrix = glm::inverse(shadowmap_view_info.projection_matrix);
+}
 
-    resource_manager.GetMemoryManager().UploadBufferData(*m_virtual_shadowmap_buffer_allocations[resource_manager.GetCurrentBackBufferIndex()], &constantBuffer_scene_view, 0, sizeof(constantBuffer_scene_view));
+bool glTFRenderInterfaceVirtualShadowMapView::ApplyInterfaceImpl(glTFRenderResourceManager& resource_manager,
+    IRHICommandList& command_list, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater,
+    unsigned frame_index)
+{    
+    resource_manager.GetMemoryManager().UploadBufferData(*m_virtual_shadowmap_buffer_allocations[resource_manager.GetCurrentBackBufferIndex()], &m_current_shadowmap_view, 0, sizeof(m_current_shadowmap_view));
+
+    RETURN_IF_FALSE(glTFRenderInterfaceViewBase::ApplyInterfaceImpl(resource_manager, command_list, pipeline_type,
+                                                           descriptor_updater, frame_index))
+
+    return true;
 }
 
 std::vector<std::shared_ptr<IRHIBufferAllocation>> glTFRenderInterfaceVirtualShadowMapView::GetViewBufferAllocation(
@@ -144,6 +153,6 @@ std::vector<std::shared_ptr<IRHIBufferAllocation>> glTFRenderInterfaceVirtualSha
             memory_manager.AllocateBufferMemory(resource_manager.GetDevice(), virtual_shadowmap_buffer_desc, m_virtual_shadowmap_buffer_allocations[i]);
         }
     }
-
+    
     return m_virtual_shadowmap_buffer_allocations;
 }

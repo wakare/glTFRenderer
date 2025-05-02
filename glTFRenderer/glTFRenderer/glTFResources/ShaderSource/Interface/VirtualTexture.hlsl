@@ -2,6 +2,7 @@
 #define VIRTUAL_TEXTURE_H
 
 #include "glTFResources/ShaderSource/ShaderDeclarationUtil.hlsl"
+#include "glTFResources/ShaderSource/MeshPassCommon.hlsl"
 
 struct VTLogicalTextureInfo
 {
@@ -52,7 +53,7 @@ float4 SampleAtlas(float3 page, float2 uv, float virtual_texture_size, float til
     }
 }
 
-float4 SampleVTPageTable(uint tex_id, float2 uv)
+float4 SampleVirtualTexture(uint tex_id, float2 uv)
 {
     VTLogicalTextureInfo vt_info = g_logical_texture_infos[tex_id];
     float mip = floor(MipLevel(uv, vt_info.logical_texture_size));

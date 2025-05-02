@@ -52,17 +52,15 @@ bool glTFGraphicsPassMeshVTFeedback::InitRenderInterface(glTFRenderResourceManag
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::InitRenderInterface(resource_manager))
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSingleConstantBuffer<FeedbackConfig>>());
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneView>());
     if (m_shadowmap)
     {
-        const auto& logical_texture = resource_manager.GetRenderSystem<VirtualTextureSystem>()->GetLogicalTextureInfo(m_virtual_texture_id);
-        AddRenderInterface(std::make_shared<glTFRenderInterfaceSharedShadowMapView>(dynamic_cast<const VTShadowmapLogicalTexture*>(&logical_texture)->GetLightId()));
         AddRenderInterface(std::make_shared<glTFRenderInterfaceSingleConstantBuffer<ShadowInfo>>());
     }
     else
     {
         AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMaterial>());
         AddRenderInterface(std::make_shared<glTFRenderInterfaceVT>(InterfaceVTType::RENDER_VT_FEEDBACK));
-        AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneView>());    
     }
     
     return true;
@@ -101,7 +99,7 @@ bool glTFGraphicsPassMeshVTFeedback::SetupPipelineStateObject(glTFRenderResource
             &resource_manager.GetDepthDSV()
         });
     
-    GetGraphicsPipelineStateObject().SetDepthStencilState(RHIDepthStencilMode::DEPTH_DONT_CARE);
+    GetGraphicsPipelineStateObject().SetDepthStencilState(RHIDepthStencilMode::DEPTH_WRITE);
     
     if (m_shadowmap)
     {

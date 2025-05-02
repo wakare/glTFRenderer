@@ -138,7 +138,7 @@ bool DX12Utils::BeginRendering(IRHICommandList& command_list, const RHIBeginRend
 
         case RHIViewType::RVT_DSV:
             {
-                if (begin_rendering_info.enable_depth_write)
+                if (begin_rendering_info.enable_depth_write && begin_rendering_info.clear_depth_stencil)
                 {
                     dxCommandList->ClearDepthStencilView({handle}, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
                         dx_render_target_clear_value.DepthStencil.Depth, dx_depth_stencil_clear_value.DepthStencil.Stencil, 0, nullptr);

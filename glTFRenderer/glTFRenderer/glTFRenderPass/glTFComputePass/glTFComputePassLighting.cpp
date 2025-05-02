@@ -3,7 +3,9 @@
 #include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSampler.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceViewBase.h"
+#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceVT.h"
 #include "glTFRenderSystem/Shadow/ShadowRenderSystem.h"
+#include "glTFRenderSystem/VT/VirtualTextureSystem.h"
 #include "glTFRHI/RHIUtils.h"
 #include "glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
 #include "glTFRHI/RHIInterface/IRHISwapChain.h"
@@ -16,7 +18,8 @@ struct ShadowMapInfo
     glm::mat4 projection_matrix{1.0f};
     unsigned shadowmap_width;
     unsigned shadowmap_height;
-    unsigned pad[2];
+    unsigned shadowmap_vsm_texture_id;
+    unsigned pad;
 };
 
 const char* glTFComputePassLighting::PassName()
@@ -36,6 +39,11 @@ bool glTFComputePassLighting::InitRenderInterface(glTFRenderResourceManager& res
     AddRenderInterface(sampler_interface);
 
     AddRenderInterface(std::make_shared<glTFRenderInterfaceStructuredBuffer<ShadowMapInfo>>());
+
+    if (resource_manager.GetRenderSystem<ShadowRenderSystem>() && resource_manager.GetRenderSystem<ShadowRenderSystem>()->IsVSM())
+    {
+        AddRenderInterface(std::make_shared<glTFRenderInterfaceVT>(InterfaceVTType::SAMPLE_VT_TEXTURE_DATA));
+    }
     
     return true;
 }
@@ -59,7 +67,6 @@ bool glTFComputePassLighting::PreRenderPass(glTFRenderResourceManager& resource_
     {
         if (resource_manager.GetRenderSystem<ShadowRenderSystem>()->IsVSM())
         {
-            
         }
         else
         {
@@ -77,6 +84,10 @@ bool glTFComputePassLighting::PreRenderPass(glTFRenderResourceManager& resource_
             info.projection_matrix = shadowmap_view.second.projection_matrix;
             info.shadowmap_width = ShadowRenderSystem::SHADOWMAP_SIZE;
             info.shadowmap_height = ShadowRenderSystem::SHADOWMAP_SIZE;
+            if (resource_manager.GetRenderSystem<ShadowRenderSystem>()->IsVSM())
+            {
+                info.shadowmap_vsm_texture_id = resource_manager.GetRenderSystem<ShadowRenderSystem>()->GetVSM()[0]->GetTextureId();
+            }
             shadowmap_matrixs.push_back(info);
         }
 
@@ -168,7 +179,11 @@ bool glTFComputePassLighting::SetupPipelineStateObject(glTFRenderResourceManager
     if (resource_manager.GetRenderSystem<ShadowRenderSystem>())
     {
         m_shadowmap_allocation.AddShaderDefine(shader_macros);
-        shader_macros.AddMacro("HAS_SHADOWMAP", "1");
+        shader_macros.AddMacro("USE_SHADOWMAP", "1");
+        if (resource_manager.GetRenderSystem<ShadowRenderSystem>()->IsVSM())
+        {
+            shader_macros.AddMacro("USE_VSM", "1");
+        }
     }
     m_output_allocation.AddShaderDefine(shader_macros);
     

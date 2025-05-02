@@ -83,6 +83,11 @@ bool glTFPerFrameRenderResourceData::UpdateShadowmapSceneViewData(IRHIMemoryMana
     return memory_manager.UploadBufferData(*m_shadowmap_view_buffers[light_id], &m_shadowmap_view_data[light_id], 0 ,sizeof(m_shadowmap_view_data[light_id]));
 }
 
+bool glTFPerFrameRenderResourceData::ContainsLightShadowmapViewData(unsigned light_id) const
+{
+    return m_shadowmap_view_data.contains(light_id); 
+}
+
 const ConstantBufferSceneView& glTFPerFrameRenderResourceData::GetShadowmapSceneView(unsigned light_id) const
 {
     return m_shadowmap_view_data.at(light_id);
@@ -582,6 +587,15 @@ void glTFRenderResourceManager::TickSceneUpdating(const glTFSceneView& scene_vie
         
         resource_manager.GetPerFrameRenderResourceData()[resource_manager.GetCurrentBackBufferIndex()].UpdateShadowmapSceneViewData(
             resource_manager.GetMemoryManager(), resource_manager.GetDevice(), direction_light->GetID(), shadowmap_view);
+
+        for (int i = 0; i < resource_manager.GetBackBufferCount(); ++i)
+        {
+            if (!resource_manager.GetPerFrameRenderResourceData()[i].ContainsLightShadowmapViewData(direction_light->GetID()))
+            {
+                resource_manager.GetPerFrameRenderResourceData()[i].UpdateShadowmapSceneViewData(
+                resource_manager.GetMemoryManager(), resource_manager.GetDevice(), direction_light->GetID(), shadowmap_view);
+            }
+        }
     }
 }
 

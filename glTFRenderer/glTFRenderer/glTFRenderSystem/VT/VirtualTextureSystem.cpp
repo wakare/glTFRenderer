@@ -42,7 +42,8 @@ void VirtualTextureSystem::TickRenderSystem(glTFRenderResourceManager& resource_
 
     // Check page request count less than physical texture page capacity
     const size_t max_svt_page_count = GetSVTPhysicalTexture()->GetPageCapacity();
-    if (svt_pages.size() > max_svt_page_count)
+    const size_t max_rvt_page_count = GetRVTPhysicalTexture()->GetPageCapacity();
+    if (svt_pages.size() > max_svt_page_count || rvt_pages.size() > max_rvt_page_count)
     {
         LOG_FORMAT_FLUSH("[WARN] Current frame need many pages[%lld] which larger than physical texture max capacity[%lld]\n", svt_pages.size(), max_svt_page_count)
     }

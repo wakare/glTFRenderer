@@ -93,3 +93,8 @@ bool ShadowRenderSystem::IsVSM() const
 {
     return m_virtual_shadow_map;
 }
+
+const std::vector<std::shared_ptr<VTLogicalTexture>>& ShadowRenderSystem::GetVSM() const
+{
+    return m_virtual_shadow_map_textures;
+}

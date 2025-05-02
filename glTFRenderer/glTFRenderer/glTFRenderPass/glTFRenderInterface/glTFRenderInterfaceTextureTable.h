@@ -29,9 +29,10 @@ public:
                 std::shared_ptr<IRHITextureDescriptorAllocation> result;
                 if (TextureType == RHIDescriptorRangeType::SRV)
                 {
+                    RHIDataFormat format = texture->GetTextureDesc().GetDataFormat() == RHIDataFormat::R32_TYPELESS ? RHIDataFormat::D32_SAMPLE_RESERVED : texture->GetTextureDesc().GetDataFormat();
                     resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(resource_manager.GetDevice(), texture,
                             RHITextureDescriptorDesc{
-                                texture->GetTextureDesc().GetDataFormat(),
+                                format,
                                 RHIResourceDimension::TEXTURE2D,
                                 RHIViewType::RVT_SRV,
                             },

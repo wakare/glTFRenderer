@@ -11,7 +11,7 @@ public:
     enum
     {
         SHADOWMAP_SIZE = 2048,
-        VIRTUAL_SHADOWMAP_SIZE = 4096,
+        VIRTUAL_SHADOWMAP_SIZE = 1024,
     };
     
     virtual bool InitRenderSystem(glTFRenderResourceManager& resource_manager) override;
@@ -21,6 +21,8 @@ public:
 
     static bool GetVirtualShadowmapFeedbackSize(const glTFRenderResourceManager& resource_manager, int& width, int& height);
     bool IsVSM() const;
+
+    const std::vector<std::shared_ptr<VTLogicalTexture>>& GetVSM() const;
     
 protected:
     bool m_virtual_shadow_map {true};

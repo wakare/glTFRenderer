@@ -3,6 +3,7 @@
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceViewBase.h"
 #include "glTFRenderSystem/VT/VirtualTextureSystem.h"
 #include "glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
+#include "glTFRHI/RHIInterface/IRHIRenderTargetManager.h"
 
 struct VSMOutputTileOffset
 {
@@ -29,11 +30,12 @@ bool glTFGraphicsPassMeshVirtualShadowDepth::InitPass(glTFRenderResourceManager&
     resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(
             resource_manager.GetDevice(),
             m_rvt_output_texture,
-            RHITextureDescriptorDesc(m_rvt_output_texture->GetTextureFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_RTV),
+            RHITextureDescriptorDesc(RHIDataFormat::D32_FLOAT, RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_DSV),
             m_rvt_descriptor_allocations);
 
-    
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::InitPass(resource_manager))
+
+    resource_manager.GetRenderTargetManager().ClearRenderTarget(resource_manager.GetCommandListForRecord(), {m_rvt_descriptor_allocations.get()});
     
     return true;
 }
@@ -45,14 +47,15 @@ bool glTFGraphicsPassMeshVirtualShadowDepth::SetupRootSignature(glTFRenderResour
     return true;
 }
 
-void glTFGraphicsPassMeshVirtualShadowDepth::SetupNextPageRenderingInfo(const VSMPageRenderingInfo& page_rendering_info)
+void glTFGraphicsPassMeshVirtualShadowDepth::SetupNextPageRenderingInfo(glTFRenderResourceManager& resource_manager, const VSMPageRenderingInfo& page_rendering_info)
 {
     m_page_rendering_info = page_rendering_info;
     m_rendering_enabled = m_page_rendering_info.physical_page_x >= 0 && m_page_rendering_info.physical_page_y >= 0;
-    if (m_rendering_enabled)
+    if (m_rendering_enabled && m_directional_light)
     {
         GetRenderInterface<glTFRenderInterfaceVirtualShadowMapView>()->SetNDCRange(page_rendering_info.page_x, page_rendering_info.page_y,
-            page_rendering_info.mip_page_size, page_rendering_info.mip_page_size);    
+            page_rendering_info.mip_page_size, page_rendering_info.mip_page_size);
+        GetRenderInterface<glTFRenderInterfaceVirtualShadowMapView>()->CalculateShadowmapMatrix(resource_manager, *m_directional_light, resource_manager.GetSceneBounds());
     }
 }
 
@@ -67,7 +70,7 @@ bool glTFGraphicsPassMeshVirtualShadowDepth::TryProcessSceneObject(glTFRenderRes
         return false;
     }
 
-    GetRenderInterface<glTFRenderInterfaceVirtualShadowMapView>()->CalculateShadowmapMatrix(resource_manager, *light, resource_manager.GetSceneBounds());
+    m_directional_light = light;
     
     return true;
 }
@@ -88,9 +91,10 @@ bool glTFGraphicsPassMeshVirtualShadowDepth::SetupPipelineStateObject(glTFRender
     
     GetGraphicsPipelineStateObject().BindShaderCode(
             R"(glTFResources\ShaderSource\MeshPassCommonVS.hlsl)", RHIShaderType::Vertex, "main");
+    /*
     GetGraphicsPipelineStateObject().BindShaderCode(
         R"(glTFResources\ShaderSource\VSMOutputPS.hlsl)", RHIShaderType::Pixel, "main");
-
+    */
     auto virtual_texture_system = resource_manager.GetRenderSystem<VirtualTextureSystem>();
     GLTF_CHECK(virtual_texture_system);
     
@@ -110,7 +114,7 @@ bool glTFGraphicsPassMeshVirtualShadowDepth::PreRenderPass(glTFRenderResourceMan
 
     auto& command_list = resource_manager.GetCommandListForRecord();
     
-    m_rvt_output_texture->Transition(command_list, RHIResourceStateType::STATE_RENDER_TARGET);
+    m_rvt_output_texture->Transition(command_list, RHIResourceStateType::STATE_DEPTH_WRITE);
     std::vector render_targets
             {
                 m_rvt_descriptor_allocations.get()
@@ -119,6 +123,7 @@ bool glTFGraphicsPassMeshVirtualShadowDepth::PreRenderPass(glTFRenderResourceMan
     m_begin_rendering_info.m_render_targets = render_targets;
     m_begin_rendering_info.enable_depth_write = true;
     m_begin_rendering_info.clear_render_target = false;
+    m_begin_rendering_info.clear_depth_stencil = false;
     
     VSMOutputTileOffset offset;
     offset.offset_x = m_page_rendering_info.physical_page_x;

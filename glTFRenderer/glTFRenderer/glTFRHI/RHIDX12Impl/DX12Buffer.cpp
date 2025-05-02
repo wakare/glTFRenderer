@@ -61,7 +61,7 @@ bool DX12Buffer::InitGPUBuffer(IRHIDevice& device, const RHIBufferDesc& desc)
     }
     else if (desc.type == RHIBufferType::Upload)
     {
-        final_state =  RHIResourceStateType::STATE_GENERIC_READ;
+        final_state = RHIResourceStateType::STATE_GENERIC_READ;
     }
     
     const D3D12_RESOURCE_STATES state = DX12ConverterUtils::ConvertToResourceState(final_state);

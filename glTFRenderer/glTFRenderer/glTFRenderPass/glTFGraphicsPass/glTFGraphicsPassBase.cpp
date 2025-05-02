@@ -25,8 +25,8 @@ bool glTFGraphicsPassBase::PreRenderPass(glTFRenderResourceManager& resource_man
         {
             (unsigned)viewport.top_left_x,
             (unsigned)viewport.top_left_y,
-            (unsigned)viewport.width,
-            (unsigned)viewport.height
+            (unsigned)(viewport.top_left_x + viewport.width),
+            (unsigned)(viewport.top_left_y + viewport.height)
         }; 
     RHIUtils::Instance().SetScissorRect(command_list, scissor_rect);
 

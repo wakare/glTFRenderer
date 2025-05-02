@@ -372,7 +372,7 @@ void VTPhysicalTexture::InsertPage(const std::vector<VTPageData>& pages_to_inser
             continue;
         }
 
-        if (m_page_allocations.contains(page_to_insert.page.PageHash()))
+        if (m_svt && m_page_allocations.contains(page_to_insert.page.PageHash()))
         {
             m_page_lru_cache.AddPage(page_to_insert.page);
             continue;
@@ -427,10 +427,10 @@ bool VTPhysicalTexture::InitRenderResource(glTFRenderResourceManager& resource_m
     RHIResourceUsageFlags flags = static_cast<RHIResourceUsageFlags>(RUF_ALLOW_SRV | RUF_TRANSFER_DST);
     if (!m_svt)
     {
-        flags = static_cast<RHIResourceUsageFlags>(flags | RUF_ALLOW_RENDER_TARGET);
+        flags = static_cast<RHIResourceUsageFlags>(flags | RUF_ALLOW_DEPTH_STENCIL);
     }
 
-    RHIDataFormat physical_texture_format = m_svt ? RHIDataFormat::R8G8B8A8_UNORM : RHIDataFormat::R32_FLOAT;
+    RHIDataFormat physical_texture_format = m_svt ? RHIDataFormat::R8G8B8A8_UNORM : RHIDataFormat::R32_TYPELESS;
     RHITextureDesc physical_texture_desc
     (
         "Physical Texture",
@@ -439,8 +439,8 @@ bool VTPhysicalTexture::InitRenderResource(glTFRenderResourceManager& resource_m
         physical_texture_format,
         flags,
         {
-            physical_texture_format,
-            glm::vec4{0,0,0,0}
+            .clear_format{RHIDataFormat::D32_FLOAT},
+            .clear_depth_stencil{1.0f, 0}
         }
     );
     
@@ -507,7 +507,7 @@ void VTPhysicalTexture::UpdateRenderResource(glTFRenderResourceManager& resource
             page_rendering_info.page_y = static_cast<float>(page_allocation.page.Y * mip_page_size) / static_cast<float>(logic_texture->GetSize());
             page_rendering_info.mip_page_size = static_cast<float>(mip_page_size) / static_cast<float>(logic_texture->GetSize());
             
-            vsm_pass.SetupNextPageRenderingInfo(page_rendering_info);
+            vsm_pass.SetupNextPageRenderingInfo(resource_manager, page_rendering_info);
 
             m_pending_streaming_pages.erase(page_iter);    
         }

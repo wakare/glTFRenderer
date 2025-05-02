@@ -6,21 +6,31 @@
 #include "glTFResources/ShaderSource/Math/MathCommon.hlsl"
 #include "glTFResources/ShaderSource/ShaderDeclarationUtil.hlsl"
 
+#ifdef USE_VSM
+#include "glTFResources/ShaderSource/Interface/VirtualTexture.hlsl"
+#endif
+
 DECLARE_RESOURCE(Texture2D albedoTex, ALBEDO_TEX_REGISTER_INDEX);
 DECLARE_RESOURCE(Texture2D normalTex, NORMAL_TEX_REGISTER_INDEX);
 DECLARE_RESOURCE(Texture2D depthTex, DEPTH_TEX_REGISTER_INDEX);
 
-#ifdef HAS_SHADOWMAP
+#ifdef USE_SHADOWMAP
+#ifdef USE_VSM
+
+#else
 DECLARE_RESOURCE(Texture2D<float> shadowmapTex, SHADOWMAP_TEX_REGISTER_INDEX);
+#endif
 
 struct ShadowMapMatrixInfo
 {
     float4x4 view_matrix;
     float4x4 projection_matrix;
     uint2 shadowmap_size;
-    uint2 pad;
+    uint vsm_texture_id;
+    uint pad;
 };
 DECLARE_RESOURCE(StructuredBuffer<ShadowMapMatrixInfo> g_shadowmap_matrix , SHADOW_MAP_MATRIX_INFO_REGISTER_INDEX);
+
 #endif
 
 DECLARE_RESOURCE(RWTexture2D<float4> Output, OUTPUT_TEX_REGISTER_INDEX);
@@ -56,15 +66,19 @@ void main(int3 dispatchThreadID : SV_DispatchThreadID)
     float roughness = normal_buffer_data.w;
 
     // Shadowmap
-#ifdef HAS_SHADOWMAP
+#ifdef USE_SHADOWMAP
     float4 shadowmap_ndc = mul(g_shadowmap_matrix[0].projection_matrix, mul(g_shadowmap_matrix[0].view_matrix, float4(world_position, 1.0)));
     shadowmap_ndc /= shadowmap_ndc.w;
-    
     float2 shadowmap_uv = shadowmap_ndc.xy * 0.5 + 0.5;
     shadowmap_uv.y = 1.0 - shadowmap_uv.y;
     float shadow_depth = shadowmap_ndc.z;
-    int2 shadowmap_pixel_coord = shadowmap_uv * g_shadowmap_matrix[0].shadowmap_size;
-    float compare_shadow_depth = shadowmapTex.Load(int3(shadowmap_pixel_coord, 0));
+    
+#ifdef USE_VSM
+    float compare_shadow_depth = SampleVirtualTexture(g_shadowmap_matrix[0].vsm_texture_id, shadowmap_uv);
+#else
+    float compare_shadow_depth = shadowmapTex.Load(int3(shadowmap_uv * g_shadowmap_matrix[0].shadowmap_size, 0));
+#endif
+    
     if (shadow_depth > compare_shadow_depth + 0.01f)
     {
         Output[dispatchThreadID.xy] = float4(0.0, 0.0, 0.0, 1.0);
