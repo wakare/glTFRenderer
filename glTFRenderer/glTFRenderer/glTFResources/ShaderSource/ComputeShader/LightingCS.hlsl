@@ -72,7 +72,6 @@ void main(int3 dispatchThreadID : SV_DispatchThreadID)
     float2 shadowmap_uv = shadowmap_ndc.xy * 0.5 + 0.5;
     shadowmap_uv.y = 1.0 - shadowmap_uv.y;
     float shadow_depth = shadowmap_ndc.z;
-    
 #ifdef USE_VSM
     float compare_shadow_depth = SampleVirtualTexture(g_shadowmap_matrix[0].vsm_texture_id, shadowmap_uv);
 #else

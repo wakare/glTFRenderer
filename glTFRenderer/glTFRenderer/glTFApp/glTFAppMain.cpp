@@ -152,12 +152,12 @@ bool glTFAppMain::InitSceneGraph(const std::string& scene_name)
     directional_light->Rotate({glm::radians(45.0f), 0.0f, 0.0f});
     directional_light->SetIntensity(1.0f);
     directional_light->SetColor({1.0f, 1.0f,1.0f});
-    /*
+    
     directional_light->SetTickFunc([lightNode = directional_light.get()]()
     {
         lightNode->RotateOffset({0.0f, 0.001f, 0.0f});
     });
-    */
+    
     
     directional_light_node->m_objects.push_back(std::move(directional_light));
     m_scene_graph->AddSceneNode(std::move(directional_light_node));

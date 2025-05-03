@@ -116,6 +116,12 @@ bool DX12Utils::BeginRendering(IRHICommandList& command_list, const RHIBeginRend
     // TODO: Check RTsSingleHandleToDescriptorRange means?
     dxCommandList->OMSetRenderTargets(render_target_views.size(), render_target_views.data(), false, dsv_init ? &dsHandle : nullptr);
 
+    D3D12_RECT render_area;
+    render_area.left = begin_rendering_info.rendering_area_offset_x;
+    render_area.top = begin_rendering_info.rendering_area_offset_y;
+    render_area.right = begin_rendering_info.rendering_area_offset_x + begin_rendering_info.rendering_area_width;
+    render_area.bottom = begin_rendering_info.rendering_area_offset_y + begin_rendering_info.rendering_area_height;
+    
     for (size_t i = 0; i < render_targets.size(); ++i)
     {
         auto& render_target = dynamic_cast<const IRHITextureDescriptorAllocation&>(*render_targets[i]);
@@ -131,7 +137,7 @@ bool DX12Utils::BeginRendering(IRHICommandList& command_list, const RHIBeginRend
             {
                 if (begin_rendering_info.clear_render_target)
                 {
-                    dxCommandList->ClearRenderTargetView({handle}, dx_render_target_clear_value.Color, 0, nullptr);    
+                    dxCommandList->ClearRenderTargetView({handle}, dx_render_target_clear_value.Color, 1, &render_area);    
                 }   
             }
             break;
@@ -141,7 +147,7 @@ bool DX12Utils::BeginRendering(IRHICommandList& command_list, const RHIBeginRend
                 if (begin_rendering_info.enable_depth_write && begin_rendering_info.clear_depth_stencil)
                 {
                     dxCommandList->ClearDepthStencilView({handle}, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
-                        dx_render_target_clear_value.DepthStencil.Depth, dx_depth_stencil_clear_value.DepthStencil.Stencil, 0, nullptr);
+                        dx_render_target_clear_value.DepthStencil.Depth, dx_depth_stencil_clear_value.DepthStencil.Stencil, 1, &render_area);
                 }
             }
             break;

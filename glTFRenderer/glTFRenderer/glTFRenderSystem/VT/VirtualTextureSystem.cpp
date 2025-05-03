@@ -74,7 +74,7 @@ void VirtualTextureSystem::TickRenderSystem(glTFRenderResourceManager& resource_
     if (!rvt_pages.empty())
     {
         std::vector<VTPageData> rvt_page_data;
-        rvt_page_data.resize(rvt_pages.size());
+        rvt_page_data.reserve(rvt_pages.size());
         for (const auto& page : rvt_pages)
         {
             VTPageData page_data;

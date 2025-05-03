@@ -53,7 +53,8 @@ void glTFGraphicsPassMeshVirtualShadowDepth::SetupNextPageRenderingInfo(glTFRend
     m_rendering_enabled = m_page_rendering_info.physical_page_x >= 0 && m_page_rendering_info.physical_page_y >= 0;
     if (m_rendering_enabled && m_directional_light)
     {
-        GetRenderInterface<glTFRenderInterfaceVirtualShadowMapView>()->SetNDCRange(page_rendering_info.page_x, page_rendering_info.page_y,
+        // NDC y axis is opposite
+        GetRenderInterface<glTFRenderInterfaceVirtualShadowMapView>()->SetNDCRange(page_rendering_info.page_x, 1.0f - page_rendering_info.mip_page_size - page_rendering_info.page_y,
             page_rendering_info.mip_page_size, page_rendering_info.mip_page_size);
         GetRenderInterface<glTFRenderInterfaceVirtualShadowMapView>()->CalculateShadowmapMatrix(resource_manager, *m_directional_light, resource_manager.GetSceneBounds());
     }
@@ -122,8 +123,7 @@ bool glTFGraphicsPassMeshVirtualShadowDepth::PreRenderPass(glTFRenderResourceMan
     
     m_begin_rendering_info.m_render_targets = render_targets;
     m_begin_rendering_info.enable_depth_write = true;
-    m_begin_rendering_info.clear_render_target = false;
-    m_begin_rendering_info.clear_depth_stencil = false;
+    m_begin_rendering_info.clear_depth_stencil = true;
     
     VSMOutputTileOffset offset;
     offset.offset_x = m_page_rendering_info.physical_page_x;

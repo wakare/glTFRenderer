@@ -41,15 +41,16 @@ float4 SampleAtlas(float3 page, float2 uv, float virtual_texture_size, float til
     const float mipsize = exp2(log2(virtual_texture_size) - page.z);
 
     float page_size = tile_size + 2 * border_size;
-    float2 total_offset = fmod(uv * mipsize, tile_size) + float2(border_size, border_size) + page.xy * page_size;  
+    float2 total_offset = fmod(uv * mipsize, tile_size) + float2(border_size, border_size) + page.xy * page_size;
+    float2 physcial_uv = (total_offset) / float2(vt_system_info.vt_physical_texture_width, vt_system_info.vt_physical_texture_height);
 
     if (svt)
     {
-        return vt_physical_texture[0].Sample(vt_page_table_sampler, (total_offset) / float2(vt_system_info.vt_physical_texture_width, vt_system_info.vt_physical_texture_height));    
+        return vt_physical_texture[0].Sample(vt_page_table_sampler, physcial_uv);    
     }
     else
     {
-        return vt_physical_texture[1].Sample(vt_page_table_sampler, (total_offset) / float2(vt_system_info.vt_physical_texture_width, vt_system_info.vt_physical_texture_height));
+        return vt_physical_texture[1].Sample(vt_page_table_sampler, physcial_uv);
     }
 }
 

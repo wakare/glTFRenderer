@@ -372,7 +372,7 @@ void VTPhysicalTexture::InsertPage(const std::vector<VTPageData>& pages_to_inser
             continue;
         }
 
-        if (m_svt && m_page_allocations.contains(page_to_insert.page.PageHash()))
+        if (m_page_allocations.contains(page_to_insert.page.PageHash()))
         {
             m_page_lru_cache.AddPage(page_to_insert.page);
             continue;
@@ -413,6 +413,16 @@ void VTPhysicalTexture::InsertPage(const std::vector<VTPageData>& pages_to_inser
         {
             GLTF_CHECK(!removed_page_hashes.contains( page.page.PageHash()));
         }    
+    }
+
+    
+    if (!m_svt)
+    {
+        for (const auto& allocation : m_page_allocations)
+        {
+            // VSM need update even these page has been allocated 
+            m_pending_streaming_pages.emplace(allocation.second.page.PageHash());    
+        }
     }
 }
 
@@ -504,7 +514,8 @@ void VTPhysicalTexture::UpdateRenderResource(glTFRenderResourceManager& resource
 
             auto mip_page_size = m_page_size << page_allocation.page.mip; 
             page_rendering_info.page_x = static_cast<float>(page_allocation.page.X * mip_page_size) / static_cast<float>(logic_texture->GetSize());
-            page_rendering_info.page_y = static_cast<float>(page_allocation.page.Y * mip_page_size) / static_cast<float>(logic_texture->GetSize());
+
+            page_rendering_info.page_y = static_cast<float>((page_allocation.page.Y) * mip_page_size) / static_cast<float>(logic_texture->GetSize());
             page_rendering_info.mip_page_size = static_cast<float>(mip_page_size) / static_cast<float>(logic_texture->GetSize());
             
             vsm_pass.SetupNextPageRenderingInfo(resource_manager, page_rendering_info);
