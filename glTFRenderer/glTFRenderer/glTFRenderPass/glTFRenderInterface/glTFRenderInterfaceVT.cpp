@@ -46,7 +46,7 @@ bool glTFRenderInterfaceVT::PreInitInterfaceImpl(glTFRenderResourceManager& reso
             auto& texture_resource = page_table.second->GetPageTable().GetTextureAllocation()->m_texture;
             m_vt_logical_texture_infos[logical_texture->GetTextureId()].page_table_tex_index = vt_page_table_textures.size();
             m_vt_logical_texture_infos[logical_texture->GetTextureId()].page_table_texture_size = texture_resource->GetTextureDesc().GetTextureWidth();
-            m_vt_logical_texture_infos[logical_texture->GetTextureId()].svt = logical_texture->IsSVT();
+            m_vt_logical_texture_infos[logical_texture->GetTextureId()].svt = logical_texture->GetLogicalTextureType() == LogicalTextureType::SVT;
             vt_page_table_textures.push_back(texture_resource);
         }
         

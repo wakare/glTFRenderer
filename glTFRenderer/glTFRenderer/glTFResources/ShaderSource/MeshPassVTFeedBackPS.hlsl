@@ -1,6 +1,6 @@
 #include "glTFResources/ShaderSource/MeshPassCommon.hlsl"
 
-#ifndef IS_SHADOWMAP_FEEDBACK
+#ifndef RVT_FEEDBACK
 #include "glTFResources/ShaderSource/Interface/SceneMaterial.hlsl"
 #include "glTFResources/ShaderSource/Interface/VirtualTexture.hlsl"
 #endif
@@ -16,7 +16,7 @@ DECLARE_RESOURCE(cbuffer FeedbackConfig, FEEDBACK_CONFIG_REGISTER_INDEX)
     uint3 padding;
 };
 
-#ifdef IS_SHADOWMAP_FEEDBACK
+#ifdef RVT_FEEDBACK
 DECLARE_RESOURCE(cbuffer ShadowmapInfo, SHADOWMAP_INFO_REGISTER_INDEX)
 {
     uint shadowmap_vt_id;
@@ -43,7 +43,7 @@ PS_VT_FEEDBACK_OUTPUT main(PS_INPUT input)
     PS_VT_FEEDBACK_OUTPUT output;
     
     float mip_offset = mipmap_offset;
-#ifdef IS_SHADOWMAP_FEEDBACK
+#ifdef RVT_FEEDBACK
     output.output = GenerateFeedbackData(shadowmap_vt_size, shadowmap_page_table_texture_size, shadowmap_vt_page, input.texCoord, shadowmap_vt_id, mip_offset - 2);
     
 #else

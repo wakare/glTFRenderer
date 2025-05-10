@@ -6,9 +6,11 @@
 #include "VTPageDataAccessor.h"
 #include "glTFRenderPass/glTFRenderPassBase.h"
 
+class glTFGraphicsPassMeshRVTPageRendering;
+class glTFGraphicsPassMeshVSMPageRendering;
 class glTFRenderPassManager;
 class glTFComputePassVTFetchCS;
-class glTFGraphicsPassMeshVTFeedback;
+class glTFGraphicsPassMeshVTFeedbackBase;
 
 // Size -- width and height
 struct VTLogicalTextureConfig
@@ -17,37 +19,50 @@ struct VTLogicalTextureConfig
     bool isSVT;
 };
 
-class VTLogicalTexture
+enum class LogicalTextureType
+{
+    SVT,
+    RVT,
+};
+
+struct RVTPageRenderingInfo
+{
+    float mip_page_size;
+    float page_x;
+    float page_y;
+    
+    int physical_page_size;
+    int physical_page_x;
+    int physical_page_y;
+};
+
+class VTLogicalTextureBase
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VTLogicalTexture)
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VTLogicalTextureBase)
     
     bool InitLogicalTexture(const RHITextureDesc& desc, const VTLogicalTextureConfig& config);
     
     virtual bool InitRenderResource(glTFRenderResourceManager& resource_manager);
     virtual bool SetupPassManager(glTFRenderPassManager& pass_manager) const;
-    virtual void UpdateRenderResource(glTFRenderResourceManager& resource_manager) const;
+    virtual void UpdateRenderResource(glTFRenderResourceManager& resource_manager);
     
     int GetTextureId() const;
     int GetSize() const;
     
-    bool GetPageData(const VTPage& page, VTPageData& out) const;
-    VTPageTable& GetPageTable();
+    virtual bool GetPageData(const VTPage& page, VTPageData& out) const = 0;
+    VTPageTable& GetPageTable() const;
     
-    bool IsSVT() const;
-    bool IsRVT() const;
-
     glTFRenderPassBase& GetFeedbackPass() const;
-    glTFRenderPassBase& GetFetchPass() const;
-    glTFRenderPassBase& GetRVTPass() const;
 
     void SetEnableGatherRequest(bool enable);
+
+    virtual LogicalTextureType GetLogicalTextureType() const = 0;
     
 protected:
-    bool GeneratePageData();
+    virtual bool GeneratePageData() = 0;
     void DumpGeneratedPageDataToFile() const;
 
-    bool m_svt{true};
     bool m_render_resource_init {false};
     bool m_gather_request_enabled {false};
     
@@ -63,11 +78,44 @@ protected:
     std::shared_ptr<VTPageTable> m_page_table;
 
     std::shared_ptr<glTFRenderPassBase> m_feedback_pass;
-    std::shared_ptr<glTFRenderPassBase> m_fetch_pass;
-    std::shared_ptr<glTFRenderPassBase> m_rvt_pass;
 };
 
-class VTShadowmapLogicalTexture : public VTLogicalTexture
+class VTLogicalTextureSVT : public VTLogicalTextureBase
+{
+public:
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VTLogicalTextureSVT)
+
+    virtual LogicalTextureType GetLogicalTextureType() const override {return LogicalTextureType::SVT;}
+    virtual bool InitRenderResource(glTFRenderResourceManager& resource_manager) override;
+    virtual bool GetPageData(const VTPage& page, VTPageData& out) const override;
+
+protected:    
+    virtual bool GeneratePageData() override;
+};
+
+class VTLogicalTextureRVT : public VTLogicalTextureBase
+{
+public:
+    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VTLogicalTextureRVT)
+
+    virtual bool SetupPassManager(glTFRenderPassManager& pass_manager) const override;
+    virtual void UpdateRenderResource(glTFRenderResourceManager& resource_manager);
+
+    virtual LogicalTextureType GetLogicalTextureType() const override {return LogicalTextureType::RVT;}
+    virtual bool InitRenderResource(glTFRenderResourceManager& resource_manager) override;
+    virtual bool GetPageData(const VTPage& page, VTPageData& out) const override;
+
+    void EnqueuePageRenderingRequest(const std::vector<RVTPageRenderingInfo>& requests);
+    
+protected:
+    virtual bool GeneratePageData() override;
+
+    virtual std::shared_ptr<glTFGraphicsPassMeshRVTPageRendering> GetRVTPass() const = 0;
+
+    std::vector<RVTPageRenderingInfo> m_pending_page_rendering_requests;
+};
+
+class VTShadowmapLogicalTexture : public VTLogicalTextureRVT
 {
 public:
     VTShadowmapLogicalTexture(unsigned light_id);
@@ -76,9 +124,12 @@ public:
     virtual bool InitRenderResource(glTFRenderResourceManager& resource_manager) override;
 
     unsigned GetLightId() const;
-    
+
 protected:
+    virtual std::shared_ptr<glTFGraphicsPassMeshRVTPageRendering> GetRVTPass() const override;
+    
     unsigned m_light_id {0};
+    std::shared_ptr<glTFGraphicsPassMeshVSMPageRendering> m_vsm_rvt_pass;
 };
 
 class VTPageLRU
@@ -112,7 +163,7 @@ public:
     bool IsSVT() const;
     unsigned GetPageCapacity() const;
 
-    void RegisterLogicalTexture(std::shared_ptr<VTLogicalTexture> logical_texture);
+    void RegisterLogicalTexture(std::shared_ptr<VTLogicalTextureBase> logical_texture);
     bool HasPendingStreamingPages() const;
     
 protected:
@@ -134,5 +185,5 @@ protected:
     std::shared_ptr<IRHITextureAllocation> m_physical_texture;
     std::shared_ptr<VTTextureData> m_physical_texture_data;
 
-    std::map<unsigned, std::shared_ptr<VTLogicalTexture>> m_logical_textures;
+    std::map<unsigned, std::shared_ptr<VTLogicalTextureBase>> m_logical_textures;
 };

@@ -26,7 +26,7 @@ public:
 	bool Init(glTFRenderResourceManager& resource_manager);
 
 	bool IsVT() const;
-	std::shared_ptr<VTLogicalTexture> GetVTTexture() const;
+	std::shared_ptr<VTLogicalTextureBase> GetVTTexture() const;
 	const IRHITextureAllocation& GetTextureAllocation() const;
 	
 private:
@@ -34,7 +34,7 @@ private:
 	
 	const glTFMaterialParameterTexture& m_source_texture;
 	std::shared_ptr<IRHITextureAllocation> m_texture;
-	std::shared_ptr<VTLogicalTexture> m_virtual_texture;
+	std::shared_ptr<VTLogicalTextureBase> m_virtual_texture;
 };
 
 class glTFMaterialRenderResource
@@ -50,12 +50,12 @@ public:
 	
 	const std::map<glTFMaterialParameterUsage, std::unique_ptr<glTFMaterialTextureRenderResource>>& GetTextures() const;
 	const std::map<glTFMaterialParameterUsage, std::unique_ptr<glTFMaterialParameterFactor<glm::vec4>>>& GetFactors() const;
-	const std::map<glTFMaterialParameterUsage, std::unique_ptr<VTLogicalTexture>>& GetVirtualTextures() const;
+	const std::map<glTFMaterialParameterUsage, std::unique_ptr<VTLogicalTextureBase>>& GetVirtualTextures() const;
 	
 protected:
 	std::map<glTFMaterialParameterUsage, std::unique_ptr<glTFMaterialTextureRenderResource>> m_textures;
 	std::map<glTFMaterialParameterUsage, std::unique_ptr<glTFMaterialParameterFactor<glm::vec4>>> m_factors;
-	std::map<glTFMaterialParameterUsage, std::unique_ptr<VTLogicalTexture>> m_virtual_textures;
+	std::map<glTFMaterialParameterUsage, std::unique_ptr<VTLogicalTextureBase>> m_virtual_textures;
 };
 
 class glTFRenderMaterialManager

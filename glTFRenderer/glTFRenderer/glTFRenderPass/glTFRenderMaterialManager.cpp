@@ -31,10 +31,9 @@ bool glTFMaterialTextureRenderResource::Init(glTFRenderResourceManager& resource
     
     if (m_vt)
     {
-        m_virtual_texture = std::make_shared<VTLogicalTexture>();
+        m_virtual_texture = std::make_shared<VTLogicalTextureSVT>();
         VTLogicalTextureConfig config{};
         config.virtual_texture_id = resource_manager.GetRenderSystem<VirtualTextureSystem>()->GetNextValidVTIdAndInc();
-        config.isSVT = true;
         m_virtual_texture->InitLogicalTexture(texture_desc, config);
     }
     else
@@ -52,7 +51,7 @@ bool glTFMaterialTextureRenderResource::IsVT() const
     return m_vt;
 }
 
-std::shared_ptr<VTLogicalTexture> glTFMaterialTextureRenderResource::GetVTTexture() const
+std::shared_ptr<VTLogicalTextureBase> glTFMaterialTextureRenderResource::GetVTTexture() const
 {
     return m_virtual_texture;
 }
@@ -145,7 +144,7 @@ glTFMaterialRenderResource::GetFactors() const
     return m_factors;
 }
 
-const std::map<glTFMaterialParameterUsage, std::unique_ptr<VTLogicalTexture>>& glTFMaterialRenderResource::
+const std::map<glTFMaterialParameterUsage, std::unique_ptr<VTLogicalTextureBase>>& glTFMaterialRenderResource::
     GetVirtualTextures() const
 {
     return m_virtual_textures;

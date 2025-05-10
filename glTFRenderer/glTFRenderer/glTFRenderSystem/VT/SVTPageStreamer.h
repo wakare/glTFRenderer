@@ -9,7 +9,7 @@ public:
     SVTPageStreamer(unsigned page_process_count_per_frame);
     DECLARE_NON_COPYABLE_AND_VDTOR(SVTPageStreamer)
 
-    void AddLogicalTexture(std::shared_ptr<VTLogicalTexture> logical_texture);
+    void AddLogicalTexture(std::shared_ptr<VTLogicalTextureBase> logical_texture);
     
     void AddSVTPageRequest(const VTPage& page);
     void Tick();
@@ -23,5 +23,5 @@ protected:
     
     std::vector<VTPageData> m_request_results;
 
-    std::map<unsigned, std::shared_ptr<VTLogicalTexture>> m_logical_textures;
+    std::map<unsigned, std::shared_ptr<VTLogicalTextureBase>> m_logical_textures;
 };

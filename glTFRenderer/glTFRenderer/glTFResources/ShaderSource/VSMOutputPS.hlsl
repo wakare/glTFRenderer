@@ -3,7 +3,7 @@
 
 #include "glTFResources/ShaderSource/MeshPassCommon.hlsl"
 
-DECLARE_RESOURCE(cbuffer VSMOutputTileOffset, VSM_OUTPUT_FILE_OFFSET_REGISTER_INDEX)
+DECLARE_RESOURCE(cbuffer VSMOutputTileOffset, RVT_OUTPUT_FILE_OFFSET_REGISTER_INDEX)
 {
     uint offset_x;
     uint offset_y;

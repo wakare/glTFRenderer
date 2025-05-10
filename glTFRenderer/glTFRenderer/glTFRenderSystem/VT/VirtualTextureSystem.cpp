@@ -25,6 +25,13 @@ void VirtualTextureSystem::SetupPass(glTFRenderResourceManager& resource_manager
         logic_texture.second->SetupPassManager(pass_manager);
         logic_texture.second->UpdateRenderResource(resource_manager);
     }
+
+    for (const auto& feedback_id : GetVTFeedbackTextureRenderTargetIds())
+    {
+        std::shared_ptr<glTFComputePassVTFetchCS> fetch_pass = std::make_shared<glTFComputePassVTFetchCS>(feedback_id);
+        pass_manager.AddRenderPass(PRE_SCENE, fetch_pass);
+        m_fetch_passes.push_back(fetch_pass);
+    }
 }
 
 void VirtualTextureSystem::ShutdownRenderSystem()
@@ -50,14 +57,12 @@ void VirtualTextureSystem::TickRenderSystem(glTFRenderResourceManager& resource_
 
     for (const auto& page : svt_pages)
     {
-        {
-            switch (page.type) {
-            case VTPageType::SVT_PAGE:
-                m_svt_page_streamer->AddSVTPageRequest(page);
-                break;
-            case VTPageType::RVT_PAGE:
-                break;
-            }
+        switch (page.type) {
+        case VTPageType::SVT_PAGE:
+            m_svt_page_streamer->AddSVTPageRequest(page);
+            break;
+        case VTPageType::RVT_PAGE:
+            break;
         }
     }
     
@@ -66,10 +71,8 @@ void VirtualTextureSystem::TickRenderSystem(glTFRenderResourceManager& resource_
     if (!svt_page_data.empty())
     {
         // SVT processing
-        {
-            auto svt_physical_texture = GetSVTPhysicalTexture();
-            svt_physical_texture->InsertPage(svt_page_data);
-        }
+        auto svt_physical_texture = GetSVTPhysicalTexture();
+        svt_physical_texture->InsertPage(svt_page_data);
     }
     if (!rvt_pages.empty())
     {
@@ -87,6 +90,7 @@ void VirtualTextureSystem::TickRenderSystem(glTFRenderResourceManager& resource_
         rvt_physical_texture->InsertPage(rvt_page_data);
     }
 
+    bool has_pending_request = false;
     for (auto& physical_texture: m_physical_textures)
     {
         physical_texture->UpdateRenderResource(resource_manager);
@@ -108,27 +112,34 @@ void VirtualTextureSystem::TickRenderSystem(glTFRenderResourceManager& resource_
                 
             page_table.UpdateTextureData();
             logical_texture->UpdateRenderResource(resource_manager);
+
+            has_pending_request |= physical_texture->HasPendingStreamingPages();
         }
+    }
+
+    for (auto& fetch_pass : m_fetch_passes)
+    {
+        fetch_pass->SetRenderingEnabled(!has_pending_request);
     }
 }
 
-bool VirtualTextureSystem::HasTexture(std::shared_ptr<VTLogicalTexture> texture) const
+bool VirtualTextureSystem::HasTexture(std::shared_ptr<VTLogicalTextureBase> texture) const
 {
     return m_logical_textures.contains(texture->GetTextureId());
 }
 
-bool VirtualTextureSystem::RegisterTexture(std::shared_ptr<VTLogicalTexture> texture)
+bool VirtualTextureSystem::RegisterTexture(std::shared_ptr<VTLogicalTextureBase> texture)
 {
     m_logical_textures[texture->GetTextureId()] = texture;
     m_svt_page_streamer->AddLogicalTexture(texture);
 
-    if (texture->IsSVT())
-    {
+    switch (texture->GetLogicalTextureType()) {
+    case LogicalTextureType::SVT:
         GetSVTPhysicalTexture()->RegisterLogicalTexture(texture);
-    }
-    else if (texture->IsRVT())
-    {
+        break;
+    case LogicalTextureType::RVT:
         GetRVTPhysicalTexture()->RegisterLogicalTexture(texture);
+        break;
     }
     
     return true;
@@ -139,13 +150,13 @@ bool VirtualTextureSystem::UpdateRenderResource(glTFRenderResourceManager& resou
     return true;
 }
 
-const std::map<int, std::shared_ptr<VTLogicalTexture>>& VirtualTextureSystem::
+const std::map<int, std::shared_ptr<VTLogicalTextureBase>>& VirtualTextureSystem::
 GetLogicalTextureInfos() const
 {
     return m_logical_textures;
 }
 
-VTLogicalTexture& VirtualTextureSystem::
+VTLogicalTextureBase& VirtualTextureSystem::
 GetLogicalTextureInfo(unsigned virtual_texture_id) const
 {
     return *m_logical_textures.at(virtual_texture_id);
@@ -189,26 +200,41 @@ unsigned VirtualTextureSystem::GetNextValidVTIdAndInc()
     return m_next_valid_vt_id++;
 }
 
+void VirtualTextureSystem::RegisterVTFeedbackTextureRenderTargetId(RenderPassResourceTableId id)
+{
+    m_feedback_render_target_ids.insert(id);
+}
+
+const std::set<RenderPassResourceTableId>& VirtualTextureSystem::GetVTFeedbackTextureRenderTargetIds() const
+{
+    return m_feedback_render_target_ids;
+}
+
 VTPageType VirtualTextureSystem::GetPageType(unsigned virtual_texture_id) const
 {
     GLTF_CHECK(m_logical_textures.contains(virtual_texture_id));
-    return m_logical_textures.at(virtual_texture_id)->IsSVT() ? VTPageType::SVT_PAGE : VTPageType::RVT_PAGE;
+    switch (m_logical_textures.at(virtual_texture_id)->GetLogicalTextureType()) {
+    case LogicalTextureType::SVT:
+        return VTPageType::SVT_PAGE;
+        
+    case LogicalTextureType::RVT:
+        return VTPageType::RVT_PAGE;
+    }
+
+    return VTPageType::UNKNOWN;
 }
 
 void VirtualTextureSystem::GatherPageRequest(std::vector<VTPage>& out_svt_pages, std::vector<VTPage>& out_rvt_pages)
 {
     std::set<VTPage> pages;
-    for (const auto& logical_texture  : m_logical_textures)
+    for (const auto& fetch_pass  : m_fetch_passes)
     {
-        std::vector<VTPage>& out_page_results = logical_texture.second->IsSVT() ? out_svt_pages : out_rvt_pages;
-        
-        auto& fetch_pass = dynamic_cast<glTFComputePassVTFetchCS&>(logical_texture.second->GetFetchPass());
-        if (!fetch_pass.IsFeedBackDataValid())
+        if (!fetch_pass->IsFeedBackDataValid())
         {
             continue;
         }
         
-        const auto& feedback_data = fetch_pass.GetFeedbackOutputData();
+        const auto& feedback_data = fetch_pass->GetFeedbackOutputData();
         for (const auto& feedback : feedback_data)
         {
             if (feedback.data[3] == 0)
@@ -226,10 +252,17 @@ void VirtualTextureSystem::GatherPageRequest(std::vector<VTPage>& out_svt_pages,
             if (!pages.contains(page))
             {
                 pages.insert(page);
-                out_page_results.push_back(page);
+                if (page.type == VTPageType::SVT_PAGE)
+                {
+                    out_svt_pages.push_back(page);
+                }
+                else
+                {
+                    out_rvt_pages.push_back(page);
+                }
             }
         }
         
-        fetch_pass.SetFeedBackDataValid(false);
+        fetch_pass->SetFeedBackDataValid(false);
     }
 }

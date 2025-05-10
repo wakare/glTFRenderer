@@ -1,7 +1,7 @@
 #pragma once
 #include "glTFRenderSystem/RenderSystemBase.h"
 
-class VTLogicalTexture;
+class VTLogicalTextureBase;
 
 class ShadowRenderSystem : public RenderSystemBase
 {
@@ -22,11 +22,11 @@ public:
     static bool GetVirtualShadowmapFeedbackSize(const glTFRenderResourceManager& resource_manager, int& width, int& height);
     bool IsVSM() const;
 
-    const std::vector<std::shared_ptr<VTLogicalTexture>>& GetVSM() const;
+    const std::vector<std::shared_ptr<VTLogicalTextureBase>>& GetVSM() const;
     
 protected:
     bool m_virtual_shadow_map {true};
     unsigned m_virtual_texture_page_size {0};
 
-    std::vector<std::shared_ptr<VTLogicalTexture>> m_virtual_shadow_map_textures;
+    std::vector<std::shared_ptr<VTLogicalTextureBase>> m_virtual_shadow_map_textures;
 };

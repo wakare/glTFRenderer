@@ -15,7 +15,7 @@ struct ComputePassVTFetchUAVOutput
 class glTFComputePassVTFetchCS : public glTFComputePassBase
 {
 public:
-    glTFComputePassVTFetchCS(unsigned virtual_texture_id);
+    glTFComputePassVTFetchCS(RenderPassResourceTableId feedback_render_target_id);
     DECLARE_NON_COPYABLE_AND_VDTOR(glTFComputePassVTFetchCS)
     
     virtual const char* PassName() override;
@@ -33,7 +33,7 @@ public:
     virtual bool InitResourceTable(glTFRenderResourceManager& resource_manager) override;
 
 protected:
-    unsigned m_virtual_texture_id;
+    RenderPassResourceTableId m_virtual_texture_id;
     bool m_feedback_data_valid;
     std::vector<ComputePassVTFetchUAVOutput> m_uav_output_buffer_data;
     std::shared_ptr<IRHIBufferAllocation> m_readback_buffer;

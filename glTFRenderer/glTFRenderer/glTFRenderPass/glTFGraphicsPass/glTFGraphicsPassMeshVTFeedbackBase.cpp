@@ -1,4 +1,4 @@
-#include "glTFGraphicsPassMeshVTFeedback.h"
+#include "glTFGraphicsPassMeshVTFeedbackBase.h"
 
 #include <imgui.h>
 
@@ -25,14 +25,7 @@ struct ShadowInfo
     unsigned shadowmap_page_table_texture_size;
 };
 
-glTFGraphicsPassMeshVTFeedback::glTFGraphicsPassMeshVTFeedback(unsigned virtual_texture_id, bool shadowmap)
-    : m_virtual_texture_id(virtual_texture_id)
-    , m_shadowmap(shadowmap)
-    , m_feedback_mipmap_offset(0)
-{
-}
-
-bool glTFGraphicsPassMeshVTFeedback::UpdateGUIWidgets()
+bool glTFGraphicsPassMeshVTFeedbackBase::UpdateGUIWidgets()
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::UpdateGUIWidgets())
 
@@ -41,50 +34,31 @@ bool glTFGraphicsPassMeshVTFeedback::UpdateGUIWidgets()
     return true;
 }
 
-RHIViewportDesc glTFGraphicsPassMeshVTFeedback::GetViewport(glTFRenderResourceManager& resource_manager) const
+RHIViewportDesc glTFGraphicsPassMeshVTFeedbackBase::GetViewport(glTFRenderResourceManager& resource_manager) const
 {
     const auto& vt_size = resource_manager.GetRenderSystem<VirtualTextureSystem>()->GetVTFeedbackTextureSize(resource_manager.GetSwapChain().GetWidth(), resource_manager.GetSwapChain().GetHeight());
     
     return {0, 0, static_cast<float>(vt_size.first), static_cast<float>(vt_size.second), 0.0f, 1.0f};
 }
 
-bool glTFGraphicsPassMeshVTFeedback::InitRenderInterface(glTFRenderResourceManager& resource_manager)
+bool glTFGraphicsPassMeshVTFeedbackBase::InitRenderInterface(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::InitRenderInterface(resource_manager))
+    
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSingleConstantBuffer<FeedbackConfig>>());
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneView>());
-    if (m_shadowmap)
-    {
-        AddRenderInterface(std::make_shared<glTFRenderInterfaceSingleConstantBuffer<ShadowInfo>>());
-    }
-    else
-    {
-        AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMaterial>());
-        AddRenderInterface(std::make_shared<glTFRenderInterfaceVT>(InterfaceVTType::RENDER_VT_FEEDBACK));
-    }
-    
+
     return true;
 }
 
-bool glTFGraphicsPassMeshVTFeedback::InitPass(glTFRenderResourceManager& resource_manager)
+bool glTFGraphicsPassMeshVTFeedbackBase::InitPass(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::InitPass(resource_manager))
 
-    if (m_shadowmap)
-    {
-        auto& virtual_texture_info = resource_manager.GetRenderSystem<VirtualTextureSystem>()->GetLogicalTextureInfo(m_virtual_texture_id);
-        ShadowInfo shadow_info;
-        shadow_info.vt_id = m_virtual_texture_id;
-        shadow_info.shadowmap_vt_size = virtual_texture_info.GetSize();
-        shadow_info.shadowmap_vt_page_size = resource_manager.GetRenderSystem<VirtualTextureSystem>()->VT_PAGE_SIZE;
-        shadow_info.shadowmap_page_table_texture_size = virtual_texture_info.GetSize() / shadow_info.shadowmap_vt_page_size;
-        GetRenderInterface<glTFRenderInterfaceSingleConstantBuffer<ShadowInfo>>()->UploadBuffer(resource_manager, &shadow_info, 0, sizeof(shadow_info));
-    }
-    
     return true;
 }
 
-bool glTFGraphicsPassMeshVTFeedback::SetupPipelineStateObject(glTFRenderResourceManager& resource_manager)
+bool glTFGraphicsPassMeshVTFeedbackBase::SetupPipelineStateObject(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::SetupPipelineStateObject(resource_manager))
 
@@ -95,31 +69,25 @@ bool glTFGraphicsPassMeshVTFeedback::SetupPipelineStateObject(glTFRenderResource
 
     GetGraphicsPipelineStateObject().BindRenderTargetFormats(
         {
-            GetResourceDescriptor(GetVTFeedBackId(m_virtual_texture_id)).get(),
+            GetResourceDescriptor(GetVTFeedBackId(GetID())).get(),
             &resource_manager.GetDepthDSV()
         });
     
     GetGraphicsPipelineStateObject().SetDepthStencilState(RHIDepthStencilMode::DEPTH_WRITE);
-    
-    if (m_shadowmap)
-    {
-        GetGraphicsPipelineStateObject().SetCullMode(RHICullMode::NONE);
-        auto& shadow_macros = GetGraphicsPipelineStateObject().GetShaderMacros();
-        shadow_macros.AddMacro("IS_SHADOWMAP_FEEDBACK", "1");    
-    }
-    
+    GetGraphicsPipelineStateObject().SetCullMode(RHICullMode::NONE);
+
     return true;
 }
 
-bool glTFGraphicsPassMeshVTFeedback::PreRenderPass(glTFRenderResourceManager& resource_manager)
+bool glTFGraphicsPassMeshVTFeedbackBase::PreRenderPass(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::PreRenderPass(resource_manager))
 
-    GetResourceTexture(GetVTFeedBackId(m_virtual_texture_id))->Transition(resource_manager.GetCommandListForRecord(), RHIResourceStateType::STATE_RENDER_TARGET);
+    GetResourceTexture(GetVTFeedBackId(GetID()))->Transition(resource_manager.GetCommandListForRecord(), RHIResourceStateType::STATE_RENDER_TARGET);
     
     std::vector render_targets
         {
-            GetResourceDescriptor(GetVTFeedBackId(m_virtual_texture_id)).get(),
+            GetResourceDescriptor(GetVTFeedBackId(GetID())).get(),
             &resource_manager.GetDepthDSV()
         };
     
@@ -134,17 +102,66 @@ bool glTFGraphicsPassMeshVTFeedback::PreRenderPass(glTFRenderResourceManager& re
     return true;
 }
 
-bool glTFGraphicsPassMeshVTFeedback::InitResourceTable(glTFRenderResourceManager& resource_manager)
+bool glTFGraphicsPassMeshVTFeedbackBase::InitResourceTable(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::InitResourceTable(resource_manager))
     const auto& vt_size = resource_manager.GetRenderSystem<VirtualTextureSystem>()->GetVTFeedbackTextureSize(resource_manager.GetSwapChain().GetWidth(), resource_manager.GetSwapChain().GetHeight());
     RHITextureDesc feed_back_desc = RHITextureDesc::MakeVirtualTextureFeedbackDesc(resource_manager, vt_size.first, vt_size.second);
-    AddExportTextureResource(GetVTFeedBackId(m_virtual_texture_id), feed_back_desc, 
+    AddExportTextureResource(GetVTFeedBackId(GetID()), feed_back_desc, 
         {
             feed_back_desc.GetDataFormat(),
             RHIResourceDimension::TEXTURE2D,
             RHIViewType::RVT_RTV
         });
+    return true;
+}
+
+
+bool glTFGraphicsPassMeshVTFeedbackSVT::InitRenderInterface(glTFRenderResourceManager& resource_manager)
+{
+    RETURN_IF_FALSE(glTFGraphicsPassMeshVTFeedbackBase::InitRenderInterface(resource_manager))
+
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceSceneMaterial>());
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceVT>(InterfaceVTType::RENDER_VT_FEEDBACK));
     
+    return true;
+}
+
+glTFGraphicsPassMeshVTFeedbackRVT::glTFGraphicsPassMeshVTFeedbackRVT(unsigned virtual_texture_id)
+    : m_virtual_texture_id(virtual_texture_id)
+{
+}
+
+bool glTFGraphicsPassMeshVTFeedbackRVT::InitRenderInterface(glTFRenderResourceManager& resource_manager)
+{
+    RETURN_IF_FALSE(glTFGraphicsPassMeshVTFeedbackBase::InitRenderInterface(resource_manager))
+
+    AddRenderInterface(std::make_shared<glTFRenderInterfaceSingleConstantBuffer<ShadowInfo>>());
+    
+    return true;
+}
+
+bool glTFGraphicsPassMeshVTFeedbackRVT::InitPass(glTFRenderResourceManager& resource_manager)
+{
+    RETURN_IF_FALSE(glTFGraphicsPassMeshVTFeedbackBase::InitPass(resource_manager))
+
+    auto& virtual_texture_info = resource_manager.GetRenderSystem<VirtualTextureSystem>()->GetLogicalTextureInfo(m_virtual_texture_id);
+    ShadowInfo shadow_info;
+    shadow_info.vt_id = m_virtual_texture_id;
+    shadow_info.shadowmap_vt_size = virtual_texture_info.GetSize();
+    shadow_info.shadowmap_vt_page_size = resource_manager.GetRenderSystem<VirtualTextureSystem>()->VT_PAGE_SIZE;
+    shadow_info.shadowmap_page_table_texture_size = virtual_texture_info.GetSize() / shadow_info.shadowmap_vt_page_size;
+    GetRenderInterface<glTFRenderInterfaceSingleConstantBuffer<ShadowInfo>>()->UploadBuffer(resource_manager, &shadow_info, 0, sizeof(shadow_info));
+    
+    return true;
+}
+
+bool glTFGraphicsPassMeshVTFeedbackRVT::SetupPipelineStateObject(glTFRenderResourceManager& resource_manager)
+{
+    RETURN_IF_FALSE(glTFGraphicsPassMeshVTFeedbackBase::SetupPipelineStateObject(resource_manager))
+
+    auto& shadow_macros = GetGraphicsPipelineStateObject().GetShaderMacros();
+    shadow_macros.AddMacro("RVT_FEEDBACK", "1");    
+
     return true;
 }

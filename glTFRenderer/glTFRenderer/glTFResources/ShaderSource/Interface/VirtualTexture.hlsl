@@ -42,7 +42,7 @@ float4 SampleAtlas(float3 page, float2 uv, float virtual_texture_size, float til
 
     float page_size = tile_size + 2 * border_size;
     float2 total_offset = fmod(uv * mipsize, tile_size) + float2(border_size, border_size) + page.xy * page_size;
-    float2 physcial_uv = (total_offset) / float2(vt_system_info.vt_physical_texture_width, vt_system_info.vt_physical_texture_height);
+    float2 physcial_uv = total_offset / float2(vt_system_info.vt_physical_texture_width, vt_system_info.vt_physical_texture_height);
 
     if (svt)
     {

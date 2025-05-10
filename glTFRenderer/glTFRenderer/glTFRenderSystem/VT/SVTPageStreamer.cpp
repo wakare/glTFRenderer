@@ -6,7 +6,7 @@ SVTPageStreamer::SVTPageStreamer(unsigned page_process_count_per_frame)
     m_data_accessor = std::make_shared<VTPageDataAccessor>();
 }
 
-void SVTPageStreamer::AddLogicalTexture(std::shared_ptr<VTLogicalTexture> logical_texture)
+void SVTPageStreamer::AddLogicalTexture(std::shared_ptr<VTLogicalTextureBase> logical_texture)
 {
     if (m_logical_textures.contains(logical_texture->GetTextureId()))
     {

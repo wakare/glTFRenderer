@@ -8,6 +8,7 @@ enum class VTPageType
 {
     SVT_PAGE = 0,
     RVT_PAGE = 1,
+    UNKNOWN = 2,
 };
 
 struct VTPage

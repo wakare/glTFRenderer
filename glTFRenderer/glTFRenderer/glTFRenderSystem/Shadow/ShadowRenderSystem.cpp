@@ -3,7 +3,7 @@
 #include "glTFLight/glTFDirectionalLight.h"
 #include "glTFRenderPass/glTFRenderPassManager.h"
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassMeshShadowDepth.h"
-#include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassMeshVirtualShadowDepth.h"
+#include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassMeshRVTPageRendering.h"
 #include "glTFRenderSystem/VT/VirtualTextureSystem.h"
 
 bool ShadowRenderSystem::InitRenderSystem(glTFRenderResourceManager& resource_manager)
@@ -43,7 +43,7 @@ void ShadowRenderSystem::SetupPass(glTFRenderResourceManager& resource_manager, 
                 static_cast<unsigned>(shadow_system->VIRTUAL_SHADOWMAP_SIZE),
                 RHIDataFormat::R32_TYPELESS,
                 static_cast<RHIResourceUsageFlags>(RUF_ALLOW_DEPTH_STENCIL | RUF_ALLOW_SRV),
-    {
+                {
                     .clear_format = RHIDataFormat::D32_FLOAT,
                     .clear_depth_stencil{1.0f, 0}
                 },
@@ -51,7 +51,6 @@ void ShadowRenderSystem::SetupPass(glTFRenderResourceManager& resource_manager, 
             
             VTLogicalTextureConfig config{};
             config.virtual_texture_id = vt_system->GetNextValidVTIdAndInc();
-            config.isSVT = false;
             virtual_shadow_map_texture->InitLogicalTexture(shadowmap_logical_texture_desc, config);
             vt_system->RegisterTexture(virtual_shadow_map_texture);
             
@@ -94,7 +93,7 @@ bool ShadowRenderSystem::IsVSM() const
     return m_virtual_shadow_map;
 }
 
-const std::vector<std::shared_ptr<VTLogicalTexture>>& ShadowRenderSystem::GetVSM() const
+const std::vector<std::shared_ptr<VTLogicalTextureBase>>& ShadowRenderSystem::GetVSM() const
 {
     return m_virtual_shadow_map_textures;
 }
