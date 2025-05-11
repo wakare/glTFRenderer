@@ -202,7 +202,6 @@
     <None Include="glTFResources\ShaderSource\Math\ReservoirSample.hlsl" />
     <None Include="glTFResources\ShaderSource\TestShaders\TestTriangleFrag.hlsl" />
     <None Include="glTFResources\ShaderSource\TestShaders\TestTriangleVert.hlsl" />
-    <None Include="glTFResources\ShaderSource\Interface\RadiosityScene.hlsl" />
     <None Include="glTFResources\ShaderSource\TestShaders\TestGradientCompute.hlsl" />
     <ClCompile Include="glTFRenderPass\glTFTestPass\glTFComputePassTestFillColor.cpp" />
     <ClCompile Include="glTFRenderPass\glTFTestPass\glTFGraphicsPassTestIndexedTextureTriangle.cpp" />

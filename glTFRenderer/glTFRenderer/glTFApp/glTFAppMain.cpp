@@ -74,7 +74,7 @@ glTFAppMain::glTFAppMain(int argc, char* argv[])
     m_app_config.m_use_rasterizer = cmd_processor.IsRasterScene();
     m_app_config.m_test_triangle_pass = cmd_processor.IsTestTrianglePass();
     m_app_config.m_vulkan = cmd_processor.IsVulkan();
-    m_app_config.m_ReSTIR = true;
+    m_app_config.m_ReSTIR = false;
     m_app_config.m_recreate_renderer = true;
     m_app_config.m_tick_scene = true;
     
@@ -157,7 +157,6 @@ bool glTFAppMain::InitSceneGraph(const std::string& scene_name)
     {
         lightNode->RotateOffset({0.0f, 0.001f, 0.0f});
     });
-    
     
     directional_light_node->m_objects.push_back(std::move(directional_light));
     m_scene_graph->AddSceneNode(std::move(directional_light_node));

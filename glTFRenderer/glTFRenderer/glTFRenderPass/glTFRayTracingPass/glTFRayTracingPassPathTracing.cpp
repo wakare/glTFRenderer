@@ -41,7 +41,6 @@ bool glTFRayTracingPassPathTracing::InitRenderInterface(glTFRenderResourceManage
     RETURN_IF_FALSE(glTFRayTracingPassWithMesh::InitRenderInterface(resource_manager))
 
     AddRenderInterface(std::make_shared<glTFRenderInterfaceSingleConstantBuffer<RayTracingPathTracingPassOptions>>());
-    //AddRenderInterface(std::make_shared<glTFRenderInterfaceRadiosityScene>());
     
     return true;
 }
@@ -65,7 +64,6 @@ bool glTFRayTracingPassPathTracing::PreRenderPass(glTFRenderResourceManager& res
     BindDescriptor(command_list, m_screen_uv_offset_allocation, *GetResourceDescriptor(RenderPassResourceTableId::ScreenUVOffset));
     
     RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSingleConstantBuffer<RayTracingPathTracingPassOptions>>()->UploadBuffer(resource_manager, &m_pass_options, 0, sizeof(m_pass_options)))
-    //RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceRadiosityScene>()->UploadCPUBufferFromRadiosityRenderer(resource_manager, resource_manager.GetRadiosityRenderer()))
     
     return true;
 }

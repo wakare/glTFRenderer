@@ -79,9 +79,9 @@ bool glTFComputePassRayTracingPostprocess::PreRenderPass(glTFRenderResourceManag
     GetResourceTexture(RenderPassResourceTableId::ScreenUVOffset)->Transition(command_list, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE);
     GetResourceTexture(RenderPassResourceTableId::RayTracingSceneOutput)->Transition(command_list, RHIResourceStateType::STATE_NON_PIXEL_SHADER_RESOURCE);
 
-    BindDescriptor(command_list, m_process_input_allocation, *GetResourceDescriptor(RenderPassResourceTableId::ComputePass_RayTracingOutputPostProcess_Output));
+    BindDescriptor(command_list, m_process_input_allocation, *GetResourceDescriptor(RenderPassResourceTableId::RayTracingSceneOutput));
     BindDescriptor(command_list, m_screen_uv_offset_allocation, *GetResourceDescriptor(RenderPassResourceTableId::ScreenUVOffset));
-    BindDescriptor(command_list, m_process_output_allocation, *GetResourceDescriptor(RenderPassResourceTableId::RayTracingSceneOutput));
+    BindDescriptor(command_list, m_process_output_allocation, *GetResourceDescriptor(RenderPassResourceTableId::ComputePass_RayTracingOutputPostProcess_Output));
     
     RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSingleConstantBuffer<RayTracingPostProcessPassOptions>>()->UploadBuffer(resource_manager, &m_pass_options, 0, sizeof(m_pass_options)))
     

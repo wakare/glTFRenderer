@@ -46,9 +46,9 @@ bool DX12RootParameter::InitAsUAV(unsigned attribute_index, REGISTER_INDEX_TYPE 
 }
 
 bool DX12RootParameter::InitAsDescriptorTableRange(unsigned attribute_index, size_t rangeCount,
-    const RHIDescriptorRangeDesc* rangeDesc)
+    const RHIDescriptorRangeDesc* range_desc)
 {
-    if (rangeCount == 0 || rangeDesc == nullptr)
+    if (rangeCount == 0 || range_desc == nullptr)
     {
         return false;
     }
@@ -71,7 +71,7 @@ bool DX12RootParameter::InitAsDescriptorTableRange(unsigned attribute_index, siz
     assert(m_ranges.empty());
     for (size_t i = 0; i < rangeCount; ++i)
     {
-        const RHIDescriptorRangeDesc& desc = rangeDesc[i]; 
+        const RHIDescriptorRangeDesc& desc = range_desc[i]; 
         D3D12_DESCRIPTOR_RANGE1 range = {};
         range.NumDescriptors = desc.descriptor_count;
         range.RangeType = _convertDX12RangeType(desc.type);
@@ -199,7 +199,6 @@ bool DX12StaticSampler::Release(glTFRenderResourceManager&)
 
 DX12RootSignature::DX12RootSignature()
     : m_root_signature(nullptr)
-    , m_description({})
 {
 }
 
@@ -212,9 +211,9 @@ bool DX12RootSignature::InitRootSignature(IRHIDevice& device, IRHIDescriptorMana
         const DX12RootParameter* dxRootParameter = static_cast<const DX12RootParameter*>(m_root_parameters[i].get());
         dxRootParameters[i] = dxRootParameter->GetParameter();
     }
-
-    m_description.pParameters = dxRootParameters.empty() ? nullptr : dxRootParameters.data();
-    m_description.NumParameters = dxRootParameters.size();
+    D3D12_ROOT_SIGNATURE_DESC1 root_signature_description{};
+    root_signature_description.pParameters = dxRootParameters.empty() ? nullptr : dxRootParameters.data();
+    root_signature_description.NumParameters = dxRootParameters.size();
     
     std::vector<D3D12_STATIC_SAMPLER_DESC> dxStaticSamplers(m_static_samplers.size());
     for (size_t i = 0; i < m_static_samplers.size(); ++i)
@@ -223,24 +222,24 @@ bool DX12RootSignature::InitRootSignature(IRHIDevice& device, IRHIDescriptorMana
         dxStaticSamplers[i] = dxStaticSampler->GetStaticSamplerDesc();
     }
 
-    m_description.pStaticSamplers = dxStaticSamplers.empty() ? nullptr : dxStaticSamplers.data();
-    m_description.NumStaticSamplers = dxStaticSamplers.size();
+    root_signature_description.pStaticSamplers = dxStaticSamplers.empty() ? nullptr : dxStaticSamplers.data();
+    root_signature_description.NumStaticSamplers = dxStaticSamplers.size();
     
     // TODO: This flag should be passed by application
     if (m_usage == RHIRootSignatureUsage::Default)
     {
-        m_description.Flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;    
+        root_signature_description.Flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;    
     }
     else if (m_usage == RHIRootSignatureUsage::LocalRS)
     {
-        m_description.Flags |= D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE;    
+        root_signature_description.Flags |= D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE;    
     }
     
     ComPtr<ID3DBlob> signature = nullptr;
     ComPtr<ID3DBlob> error = nullptr;
     D3D12_VERSIONED_ROOT_SIGNATURE_DESC version_desc = {};
     version_desc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1; 
-    version_desc.Desc_1_1 = m_description;
+    version_desc.Desc_1_1 = root_signature_description;
     THROW_IF_FAILED(D3D12SerializeVersionedRootSignature(&version_desc, &signature, &error))
     
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();

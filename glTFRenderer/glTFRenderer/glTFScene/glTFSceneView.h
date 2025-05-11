@@ -55,7 +55,7 @@ public:
     
     bool GetLightingDirty() const;
 
-    ConstantBufferSceneView CreateSceneViewConstantBuffer() const;   
+    ConstantBufferSceneView UpdateSceneViewConstantBuffer();   
     
 private:
     // Only traverse necessary primitives
@@ -68,4 +68,6 @@ private:
 
     bool m_lighting_dirty;
     std::vector<const glTFSceneNode*> m_frame_dirty_nodes;
+
+    ConstantBufferSceneView scene_view;
 };

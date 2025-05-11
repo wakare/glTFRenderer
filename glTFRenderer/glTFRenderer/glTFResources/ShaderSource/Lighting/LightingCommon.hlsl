@@ -118,12 +118,6 @@ float3 GetLightingByIndex(uint sample_light_index, PixelLightingShadingInfo shad
     return 0.0;
 }
 
-float3 GetLightingWithRadiosity(float3 radiance, PixelLightingShadingInfo shading_info)
-{
-    float3 brdf = EvalDiffuseBRDF(shading_info.albedo);
-    return brdf * radiance;
-}
-
 float3 GetLighting(PixelLightingShadingInfo shading_info, float3 view)
 {
     float3 result = 0.0;

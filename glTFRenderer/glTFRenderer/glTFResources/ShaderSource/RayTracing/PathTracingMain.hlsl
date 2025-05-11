@@ -5,7 +5,6 @@
 #include "glTFResources/ShaderSource/Math/Sample.hlsl"
 #include "glTFResources/ShaderSource/Math/BRDF.hlsl"
 #include "glTFResources/ShaderSource/Interface/SceneView.hlsl"
-#include "glTFResources/ShaderSource/Interface/RadiosityScene.hlsl"
 #include "glTFResources/ShaderSource/RayTracing/LightSampling.hlsl"
 #include "glTFResources/ShaderSource/RayTracing/PathTracingRays.hlsl"
 #include "glTFResources/ShaderSource/ShaderDeclarationUtil.hlsl"
@@ -135,13 +134,6 @@ void PathTracingRayGen()
             
                 //throughput /= sample_pdf;
                 throughput *= (shading_info.albedo / sample_pdf);
-
-                if (debug_radiosity && !shading_info.backface)
-                {
-                    float3 radiosity_radiance = GetRadiosityFaceInfo(payload.instance_id, payload.primitive_id);
-                    radiance += GetLightingWithRadiosity(radiosity_radiance, shading_info);
-                    break;
-                }
             }
         }
 

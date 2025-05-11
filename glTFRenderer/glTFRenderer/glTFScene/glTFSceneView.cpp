@@ -117,10 +117,8 @@ bool glTFSceneView::GetLightingDirty() const
     return m_lighting_dirty;
 }
 
-ConstantBufferSceneView glTFSceneView::CreateSceneViewConstantBuffer() const
+ConstantBufferSceneView glTFSceneView::UpdateSceneViewConstantBuffer()
 {
-    ConstantBufferSceneView scene_view;
-    
     unsigned width, height;
     GetViewportSize(width, height);
 

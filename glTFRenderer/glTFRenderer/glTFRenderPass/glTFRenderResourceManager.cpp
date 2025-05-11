@@ -533,11 +533,11 @@ void glTFRenderResourceManager::TickFrame()
     m_memory_manager->TickFrame();
 }
 
-void glTFRenderResourceManager::TickSceneUpdating(const glTFSceneView& scene_view,
+void glTFRenderResourceManager::TickSceneUpdating(glTFSceneView& scene_view,
                                                   glTFRenderResourceManager& resource_manager, const glTFSceneGraph& scene_graph, size_t delta_time_ms)
 {
     // Update scene view
-    auto scene_view_constant_buffer = scene_view.CreateSceneViewConstantBuffer();
+    auto scene_view_constant_buffer = scene_view.UpdateSceneViewConstantBuffer();
     auto& upload_scene_view_buffer= resource_manager.GetPerFrameRenderResourceData()[resource_manager.GetCurrentBackBufferIndex()];
     upload_scene_view_buffer.UpdateSceneViewData(resource_manager.GetMemoryManager(), resource_manager.GetDevice(), scene_view_constant_buffer);
 

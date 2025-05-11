@@ -121,7 +121,7 @@ public:
     std::vector<std::shared_ptr<RenderSystemBase>> GetRenderSystems() const;
 
     void TickFrame();
-    void TickSceneUpdating(const glTFSceneView& scene_view, glTFRenderResourceManager& resource_manager, const glTFSceneGraph& scene_graph, size_t delta_time_ms);
+    void TickSceneUpdating(glTFSceneView& scene_view, glTFRenderResourceManager& resource_manager, const glTFSceneGraph& scene_graph, size_t delta_time_ms);
 
     glTF_AABB::AABB GetSceneBounds() const;
     
