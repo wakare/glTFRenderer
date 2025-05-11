@@ -34,6 +34,11 @@ struct RVTPageRenderingInfo
     int physical_page_size;
     int physical_page_x;
     int physical_page_y;
+
+    std::string ToString() const
+    {
+        return std::format("RVT_PAGE_INFO_[PHYSICAL_{0}_{1}]_[LOGICAL_{2}_{3}]", physical_page_x, physical_page_y, page_x, page_y);
+    }
 };
 
 class VTLogicalTextureBase

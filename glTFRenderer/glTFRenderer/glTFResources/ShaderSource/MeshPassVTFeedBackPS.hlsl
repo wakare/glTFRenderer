@@ -44,7 +44,7 @@ PS_VT_FEEDBACK_OUTPUT main(PS_INPUT input)
     
     float mip_offset = mipmap_offset;
 #ifdef RVT_FEEDBACK
-    output.output = GenerateFeedbackData(shadowmap_vt_size, shadowmap_page_table_texture_size, shadowmap_vt_page, input.texCoord, shadowmap_vt_id, mip_offset - 2);
+    output.output = GenerateFeedbackData(shadowmap_vt_size, shadowmap_page_table_texture_size, shadowmap_vt_page, input.texCoord, shadowmap_vt_id, mip_offset);
     
 #else
     MaterialInfo material_info = g_material_infos[input.vs_material_id];

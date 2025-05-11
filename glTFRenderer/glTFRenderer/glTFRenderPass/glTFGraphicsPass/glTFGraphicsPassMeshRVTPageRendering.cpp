@@ -67,6 +67,9 @@ bool glTFGraphicsPassMeshRVTPageRendering::PreRenderPass(glTFRenderResourceManag
 bool glTFGraphicsPassMeshRVTPageRendering::PostRenderPass(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::PostRenderPass(resource_manager))
+
+    m_page_rendering_info.physical_page_x = -1;
+    m_page_rendering_info.physical_page_y = -1;
     
     m_rendering_enabled = false;
     

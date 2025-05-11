@@ -14,6 +14,7 @@ public:
     glTFGraphicsPassMeshVSMPageRendering(const VSMConfig& config);
     DECLARE_NON_COPYABLE_AND_VDTOR(glTFGraphicsPassMeshVSMPageRendering)
 
+    virtual const char* PassName() override {return "MeshPass_VSM_Page_Rendering"; }
     virtual bool TryProcessSceneObject(glTFRenderResourceManager& resource_manager, const glTFSceneObjectBase& object) override;
     
 protected:

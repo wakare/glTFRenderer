@@ -105,6 +105,7 @@ void VTLogicalTextureBase::DumpGeneratedPageDataToFile() const
 bool VTLogicalTextureSVT::InitRenderResource(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(VTLogicalTextureBase::InitRenderResource(resource_manager))
+    
     m_feedback_pass = std::make_shared<glTFGraphicsPassMeshVTFeedbackSVT>();
     resource_manager.GetRenderSystem<VirtualTextureSystem>()->RegisterVTFeedbackTextureRenderTargetId(GetVTFeedBackId(m_feedback_pass->GetID()));
     
@@ -261,6 +262,7 @@ bool VTLogicalTextureRVT::InitRenderResource(glTFRenderResourceManager& resource
 {
     RETURN_IF_FALSE(VTLogicalTextureBase::InitRenderResource(resource_manager))
     m_feedback_pass = std::make_shared<glTFGraphicsPassMeshVTFeedbackRVT>(m_texture_id);
+    resource_manager.GetRenderSystem<VirtualTextureSystem>()->RegisterVTFeedbackTextureRenderTargetId(GetVTFeedBackId(m_feedback_pass->GetID()));
     
     return true;
 }
@@ -427,7 +429,6 @@ void VTPhysicalTexture::InsertPage(const std::vector<VTPageData>& pages_to_inser
         }    
     }
 
-    
     if (!m_svt)
     {
         for (const auto& allocation : m_page_allocations)
@@ -541,7 +542,8 @@ void VTPhysicalTexture::UpdateRenderResource(glTFRenderResourceManager& resource
 
     for (auto& logical_texture : m_logical_textures)
     {
-        logical_texture.second->SetEnableGatherRequest(!HasPendingStreamingPages());
+        //logical_texture.second->SetEnableGatherRequest(!HasPendingStreamingPages());
+        logical_texture.second->SetEnableGatherRequest(true);
     }
 }
 

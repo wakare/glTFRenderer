@@ -31,19 +31,7 @@ bool glTFGraphicsPassMeshVSMPageRendering::InitPass(glTFRenderResourceManager& r
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshRVTPageRendering::InitPass(resource_manager))
     
-    auto virtual_texture_system = resource_manager.GetRenderSystem<VirtualTextureSystem>();
-    GLTF_CHECK(virtual_texture_system);
-    
-    m_rvt_output_texture = virtual_texture_system->GetRVTPhysicalTexture()->GetTextureAllocation()->m_texture;
-
-    resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(
-            resource_manager.GetDevice(),
-            m_rvt_output_texture,
-            RHITextureDescriptorDesc(RHIDataFormat::D32_FLOAT, RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_DSV),
-            m_rvt_descriptor_allocations);
-
-
-    resource_manager.GetRenderTargetManager().ClearRenderTarget(resource_manager.GetCommandListForRecord(), {m_rvt_descriptor_allocations.get()});
+    SetRenderingEnabled(false);
     
     return true;
 }
@@ -57,6 +45,16 @@ bool glTFGraphicsPassMeshVSMPageRendering::SetupPipelineStateObject(glTFRenderRe
 
     auto virtual_texture_system = resource_manager.GetRenderSystem<VirtualTextureSystem>();
     GLTF_CHECK(virtual_texture_system);
+    
+    m_rvt_output_texture = virtual_texture_system->GetRVTPhysicalTexture()->GetTextureAllocation()->m_texture;
+
+    resource_manager.GetMemoryManager().GetDescriptorManager().CreateDescriptor(
+            resource_manager.GetDevice(),
+            m_rvt_output_texture,
+            RHITextureDescriptorDesc(RHIDataFormat::D32_FLOAT, RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_DSV),
+            m_rvt_descriptor_allocations);
+
+    resource_manager.GetRenderTargetManager().ClearRenderTarget(resource_manager.GetCommandListForRecord(), {m_rvt_descriptor_allocations.get()});
     
     GetGraphicsPipelineStateObject().BindRenderTargetFormats(
             {
@@ -79,7 +77,7 @@ bool glTFGraphicsPassMeshVSMPageRendering::InitRenderInterface(glTFRenderResourc
 
 bool glTFGraphicsPassMeshVSMPageRendering::PreRenderPass(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(glTFGraphicsPassMeshRVTPageRendering::PreRenderPass(resource_manager))
+    // Must upload render interface before call base class PreRenderPass, TODO: Add base virtual function for PreApplyRenderInterface
     auto& command_list = resource_manager.GetCommandListForRecord();
     
     m_rvt_output_texture->Transition(command_list, RHIResourceStateType::STATE_DEPTH_WRITE);
@@ -98,5 +96,6 @@ bool glTFGraphicsPassMeshVSMPageRendering::PreRenderPass(glTFRenderResourceManag
     
     GetRenderInterface<glTFRenderInterfaceVirtualShadowMapView>()->CalculateShadowmapMatrix(resource_manager, *m_directional_light, resource_manager.GetSceneBounds());
     
+    RETURN_IF_FALSE(glTFGraphicsPassMeshRVTPageRendering::PreRenderPass(resource_manager))
     return true;
 }

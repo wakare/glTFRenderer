@@ -11,7 +11,7 @@ public:
     enum
     {
         SHADOWMAP_SIZE = 2048,
-        VIRTUAL_SHADOWMAP_SIZE = 8192,
+        VIRTUAL_SHADOWMAP_SIZE = 4096,
     };
     
     virtual bool InitRenderSystem(glTFRenderResourceManager& resource_manager) override;

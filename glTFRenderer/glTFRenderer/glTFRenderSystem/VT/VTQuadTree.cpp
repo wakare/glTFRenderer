@@ -35,7 +35,6 @@ bool QuadTreeNode::Touch(int page_pixel_x, int page_pixel_y, int physical_x, int
         PageY = physical_y;
         // Mark valid
         SetValid(true, false);
-        //LOG_FORMAT_FLUSH("[VT QuadTree] Set valid to node %s\n", ToString().c_str())
         return true;
     }
 
