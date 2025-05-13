@@ -47,7 +47,7 @@ void PathTracingRayGen()
     float2 lerp_values = (DispatchRaysIndex().xy + jitter_offset) / DispatchRaysDimensions().xy;
     
     float3 final_radiance = 0.0;
-    float4 pixel_position = 0.0;
+    float4 pixel_position = float4(0.0, 0.0, 0.0, 0.0);
 
     for (uint path_index = 0; path_index < samples_per_pixel; ++path_index)
     {
@@ -144,11 +144,18 @@ void PathTracingRayGen()
     final_radiance /= samples_per_pixel;
     render_target[DispatchRaysIndex().xy] = float4(LinearToSrgb(final_radiance), 1.0);
 
-    float4 ndc_position = mul(prev_projection_matrix, mul(prev_view_matrix, pixel_position));
-    ndc_position /= ndc_position.w;
+    if (pixel_position.w > 0.0)
+    {
+        float4 ndc_position = mul(prev_projection_matrix, mul(prev_view_matrix, pixel_position));
+        ndc_position /= ndc_position.w;
 
-    float2 prev_screen_position = float2(ndc_position.x * 0.5 + 0.5, 0.5 - ndc_position.y * 0.5);
-    screen_uv_offset[DispatchRaysIndex().xy] = float4(prev_screen_position, 0.0, 0.0);
+        float2 prev_screen_position = float2(ndc_position.x * 0.5 + 0.5, 0.5 - ndc_position.y * 0.5);
+        screen_uv_offset[DispatchRaysIndex().xy] = float4(prev_screen_position, 0.0, 0.0);    
+    }
+    else
+    {
+        screen_uv_offset[DispatchRaysIndex().xy] = float4(-1.0, -1.0, 0.0, 0.0); 
+    }
 }
 
 #endif // PATH_TRACING_MAIN
