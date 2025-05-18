@@ -1,7 +1,7 @@
 #pragma once
 #include <format>
 
-#include "glTFRHI/RHIInterface/RHICommon.h"
+#include "RHICommon.h"
 
 
 enum class VTPageType

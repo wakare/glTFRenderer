@@ -1,5 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.12.35527.113 d17.12
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "glTFRenderer", "glTFRenderer\glTFRenderer.vcxproj", "{6E8E6EE8-79AB-48ED-9967-F2A7F55DAC9D}"
 	ProjectSection(ProjectDependencies) = postProject
 		{9665FFB4-13A1-4481-A217-EAF4785B44F3} = {9665FFB4-13A1-4481-A217-EAF4785B44F3}
@@ -13,6 +16,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HelloVulkan", "HelloVulkan\
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RendererCommonLib", "RendererCommonLib\RendererCommonLib.vcxproj", "{9665FFB4-13A1-4481-A217-EAF4785B44F3}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RHICore", "RHICore\RHICore\RHICore.vcxproj", "{01210FD4-7E30-4FFF-8698-73EEDEEAB3F2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -36,5 +41,12 @@ Global
 		{9665FFB4-13A1-4481-A217-EAF4785B44F3}.Debug|x64.Build.0 = Debug|x64
 		{9665FFB4-13A1-4481-A217-EAF4785B44F3}.Release|x64.ActiveCfg = Release|x64
 		{9665FFB4-13A1-4481-A217-EAF4785B44F3}.Release|x64.Build.0 = Release|x64
+		{01210FD4-7E30-4FFF-8698-73EEDEEAB3F2}.Debug|x64.ActiveCfg = Debug|x64
+		{01210FD4-7E30-4FFF-8698-73EEDEEAB3F2}.Debug|x64.Build.0 = Debug|x64
+		{01210FD4-7E30-4FFF-8698-73EEDEEAB3F2}.Release|x64.ActiveCfg = Release|x64
+		{01210FD4-7E30-4FFF-8698-73EEDEEAB3F2}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
 	EndGlobalSection
 EndGlobal

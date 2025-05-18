@@ -1,6 +1,6 @@
 #pragma once
 #include "glTFRenderPass/glTFRenderResourceManager.h"
-#include "glTFRHI/RHIInterface/IRHIRootSignatureHelper.h"
+#include "IRHIRootSignatureHelper.h"
 
 class IRHIDescriptorTable;
 class IRHIBufferDescriptorAllocation;

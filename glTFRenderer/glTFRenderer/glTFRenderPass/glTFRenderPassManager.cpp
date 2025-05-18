@@ -5,9 +5,9 @@
 #include "glTFRenderMaterialManager.h"
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassLighting.h"
 #include "glTFRenderInterface/glTFRenderInterfaceFrameStat.h"
-#include "glTFRHI/RHIUtils.h"
+#include "RHIUtils.h"
 #include "RenderWindow/glTFWindow.h"
-#include "glTFRHI/RHIResourceFactoryImpl.hpp"
+#include "RHIResourceFactoryImpl.hpp"
 
 glTFRenderPassManager::glTFRenderPassManager()
     : m_frame_index(0)

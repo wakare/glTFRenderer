@@ -5,7 +5,7 @@
 #include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceViewBase.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceStructuredBuffer.h"
-#include "glTFRHI/RHIResourceFactoryImpl.hpp"
+#include "RHIResourceFactoryImpl.hpp"
 #include "glTFScene/glTFSceneView.h"
 
 ALIGN_FOR_CBV_STRUCT struct CullingConstant

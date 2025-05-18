@@ -4,8 +4,8 @@
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceStructuredBuffer.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceTextureTable.h"
 #include "glTFRenderSystem/VT/VirtualTextureSystem.h"
-#include "glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
-#include "glTFRHI/RHIInterface/IRHISwapChain.h"
+#include "IRHIPipelineStateObject.h"
+#include "IRHISwapChain.h"
 
 ALIGN_FOR_CBV_STRUCT struct VT_FETCH_OUTPUT_INFO
 {

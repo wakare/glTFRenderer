@@ -1,8 +1,8 @@
 #include "glTFComputePassBase.h"
 
 #include "glTFRenderPass/glTFRenderResourceManager.h"
-#include "glTFRHI/RHIUtils.h"
-#include "glTFRHI/RHIResourceFactoryImpl.hpp"
+#include "RHIUtils.h"
+#include "RHIResourceFactoryImpl.hpp"
 
 bool glTFComputePassBase::InitPass(glTFRenderResourceManager& resource_manager)
 {

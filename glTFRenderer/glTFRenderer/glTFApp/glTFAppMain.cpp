@@ -5,7 +5,7 @@
 #include "glTFGUIRenderer.h"
 #include "glTFLight/glTFDirectionalLight.h"
 #include "glTFLight/glTFPointLight.h"
-#include "glTFRHI/RHIUtils.h"
+#include "RHIUtils.h"
 #include "RenderWindow/glTFInputManager.h"
 #include "RenderWindow/glTFWindow.h"
 

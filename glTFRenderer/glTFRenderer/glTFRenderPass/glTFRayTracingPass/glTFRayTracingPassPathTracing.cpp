@@ -5,8 +5,8 @@
 #include "glTFRenderPass/glTFRenderResourceManager.h"
 //#include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceRadiosityScene.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSingleConstantBuffer.h"
-#include "glTFRHI/RHIResourceFactoryImpl.hpp"
-#include "glTFRHI/RHIUtils.h"
+#include "RHIResourceFactoryImpl.hpp"
+#include "RHIUtils.h"
 
 struct RHIShaderBindingTableRecordPathTracing : RHIShaderTableRecordBase
 {

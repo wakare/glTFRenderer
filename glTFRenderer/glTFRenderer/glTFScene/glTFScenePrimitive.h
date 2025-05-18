@@ -4,7 +4,7 @@
 
 #include "glTFSceneObjectBase.h"
 #include "glTFMaterial/glTFMaterialBase.h"
-#include "glTFRHI/RHIInterface/RHICommon.h"
+#include "RHICommon.h"
 
 enum class VertexAttributeType
 {

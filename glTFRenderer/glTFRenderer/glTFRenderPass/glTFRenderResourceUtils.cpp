@@ -1,9 +1,9 @@
 #include "glTFRenderResourceUtils.h"
 
 #include "glTFRenderResourceManager.h"
-#include "glTFRHI/RHIUtils.h"
-#include "glTFRHI/RHIInterface/IRHIDescriptorUpdater.h"
-#include "glTFRHI/RHIInterface/IRHIRenderTargetManager.h"
+#include "RHIUtils.h"
+#include "IRHIDescriptorUpdater.h"
+#include "IRHIRenderTargetManager.h"
 
 namespace glTFRenderResourceUtils
 {

@@ -1,9 +1,9 @@
 #pragma once
 #include <memory>
 
-#include "glTFRHI/RHIInterface/IRHICommandList.h"
-#include "glTFRHI/RHIInterface/IRHIRenderTarget.h"
-#include "glTFRHI/RHIInterface/IRHIRootSignatureHelper.h"
+#include "IRHICommandList.h"
+#include "IRHIRenderTarget.h"
+#include "IRHIRootSignatureHelper.h"
 
 class IRHIDescriptorUpdater;
 class glTFRenderResourceManager;

@@ -4,9 +4,9 @@
 
 #include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceViewBase.h"
-#include "glTFRHI/RHIUtils.h"
-#include "glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
-#include "glTFRHI/RHIInterface/IRHISwapChain.h"
+#include "RHIUtils.h"
+#include "IRHIPipelineStateObject.h"
+#include "IRHISwapChain.h"
 
 glTFComputePassRayTracingPostprocess::glTFComputePassRayTracingPostprocess()
     : m_accumulation_resource("ACCUMULATION_OUTPUT_REGISTER_INDEX", "ACCUMULATION_BACKBUFFER_REGISTER_INDEX")

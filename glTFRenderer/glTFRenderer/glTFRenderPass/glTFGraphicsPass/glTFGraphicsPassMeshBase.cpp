@@ -6,7 +6,7 @@
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneMeshInfo.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceViewBase.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceStructuredBuffer.h"
-#include "glTFRHI/RHIResourceFactoryImpl.hpp"
+#include "RHIResourceFactoryImpl.hpp"
 
 bool glTFGraphicsPassMeshBase::InitRenderInterface(glTFRenderResourceManager& resource_manager)
 {

@@ -1,7 +1,7 @@
 #pragma once
 #include "glTFMeshRenderResource.h"
-#include "glTFRHI/RHIIndirectDrawBuilder.h"
-#include "glTFRHI/RHIVertexStreamingManager.h"
+#include "RHIIndirectDrawBuilder.h"
+#include "RHIVertexStreamingManager.h"
 
 class glTFRenderResourceManager;
 

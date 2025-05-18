@@ -1,7 +1,7 @@
 #include "glTFGraphicsPassTestTriangleBase.h"
 
 #include "glTFRenderPass/glTFRenderResourceManager.h"
-#include "glTFRHI/RHIUtils.h"
+#include "RHIUtils.h"
 
 bool glTFGraphicsPassTestTriangleBase::PreRenderPass(glTFRenderResourceManager& resource_manager)
 {

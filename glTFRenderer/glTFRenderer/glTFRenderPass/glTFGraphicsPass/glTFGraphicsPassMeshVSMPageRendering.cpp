@@ -3,8 +3,8 @@
 #include "glTFLight/glTFDirectionalLight.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceViewBase.h"
 #include "glTFRenderSystem/VT/VirtualTextureSystem.h"
-#include "glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
-#include "glTFRHI/RHIInterface/IRHIRenderTargetManager.h"
+#include "IRHIPipelineStateObject.h"
+#include "IRHIRenderTargetManager.h"
 
 glTFGraphicsPassMeshVSMPageRendering::glTFGraphicsPassMeshVSMPageRendering(const VSMConfig& config)
     : m_config(config)

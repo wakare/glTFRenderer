@@ -5,7 +5,7 @@
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneMaterial.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneMeshInfo.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceViewBase.h"
-#include "glTFRHI/RHIResourceFactoryImpl.hpp"
+#include "RHIResourceFactoryImpl.hpp"
 
 glTFRayTracingPassWithMesh::glTFRayTracingPassWithMesh()
 {

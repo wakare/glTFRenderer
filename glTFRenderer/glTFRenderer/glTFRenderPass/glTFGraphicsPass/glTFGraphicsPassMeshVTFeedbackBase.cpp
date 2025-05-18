@@ -7,7 +7,7 @@
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceViewBase.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceVT.h"
 #include "glTFRenderSystem/VT/VirtualTextureSystem.h"
-#include "glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
+#include "IRHIPipelineStateObject.h"
 
 struct FeedbackConfig
 {

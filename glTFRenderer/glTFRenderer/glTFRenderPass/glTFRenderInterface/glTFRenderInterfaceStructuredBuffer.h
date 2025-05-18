@@ -1,7 +1,7 @@
 #pragma once
 #include "glTFRenderInterfaceBase.h"
 #include "glTFRenderPass/glTFRenderResourceManager.h"
-#include "glTFRHI/RHIInterface/IRHIDescriptorUpdater.h"
+#include "IRHIDescriptorUpdater.h"
 
 template <typename StructuredBufferType, RHIViewType type = RHIViewType::RVT_SRV, bool readback = false>
 class glTFRenderInterfaceStructuredBuffer : public glTFRenderInterfaceWithRSAllocation, public glTFRenderInterfaceCPUAccessible

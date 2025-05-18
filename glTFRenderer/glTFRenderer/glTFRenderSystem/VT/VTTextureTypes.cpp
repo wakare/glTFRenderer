@@ -9,8 +9,8 @@
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassMeshRVTPageRendering.h"
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassMeshVSMPageRendering.h"
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassMeshVTFeedbackBase.h"
-#include "glTFRHI/RHIUtils.h"
-#include "glTFRHI/RHIInterface/IRHISwapChain.h"
+#include "RHIUtils.h"
+#include "IRHISwapChain.h"
 #include "SceneFileLoader/glTFImageIOUtil.h"
 
 bool VTLogicalTextureBase::InitLogicalTexture(const RHITextureDesc& desc, const VTLogicalTextureConfig& config)

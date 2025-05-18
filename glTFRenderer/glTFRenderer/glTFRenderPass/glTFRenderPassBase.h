@@ -3,7 +3,7 @@
 #include "RenderGraphNodeUtil.h"
 #include "glTFApp/glTFPassOptionRenderFlags.h"
 #include "glTFRenderInterface/glTFRenderInterfaceBase.h"
-#include "glTFRHI/RHIInterface/IRHIRootSignatureHelper.h"
+#include "IRHIRootSignatureHelper.h"
 #include "glTFScene/glTFSceneObjectBase.h"
 
 class IRHIDescriptorAllocation;

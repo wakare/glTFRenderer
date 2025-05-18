@@ -2,7 +2,7 @@
 
 #include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSampler.h"
-#include "glTFRHI/RHIResourceFactoryImpl.hpp"
+#include "RHIResourceFactoryImpl.hpp"
 
 struct Vertex
 {
@@ -52,7 +52,7 @@ bool glTFGraphicsPassTestIndexedTextureTriangle::InitPass(glTFRenderResourceMana
             RHIDataFormat::R32G32B32A32_FLOAT,
             static_cast<RHIResourceUsageFlags>(RUF_ALLOW_SRV | RUF_TRANSFER_DST),
             RHITextureClearValue{},
-            resource_manager);
+            TODO, TODO);
 
     size_t texture_data_byte_size = sampled_texture_desc.GetTextureWidth() * sampled_texture_desc.GetTextureHeight() * GetBytePerPixelByFormat(sampled_texture_desc.GetDataFormat());
     std::unique_ptr<char[]> texture_data = std::make_unique<char[]>(texture_data_byte_size);

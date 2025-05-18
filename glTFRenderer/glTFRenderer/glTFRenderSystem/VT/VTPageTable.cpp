@@ -5,7 +5,7 @@
 #include "RendererCommon.h"
 #include "VTTextureTypes.h"
 #include "glTFRenderPass/glTFRenderResourceManager.h"
-#include "glTFRHI/RHIUtils.h"
+#include "RHIUtils.h"
 
 bool VTPageTable::InitVTPageTable(int tex_id, int page_table_size, int page_size)
 {

@@ -6,7 +6,7 @@
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSceneMaterial.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceVT.h"
 #include "glTFRenderSystem/VT/VirtualTextureSystem.h"
-#include "glTFRHI/RHIResourceFactoryImpl.hpp"
+#include "RHIResourceFactoryImpl.hpp"
 
 bool glTFGraphicsPassMeshOpaque::InitRenderInterface(glTFRenderResourceManager& resource_manager)
 {

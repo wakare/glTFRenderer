@@ -1,5 +1,5 @@
 #include "glTFGraphicsPassLighting.h"
-#include "glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
+#include "IRHIPipelineStateObject.h"
 #include "glTFLight/glTFLightBase.h"
 #include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSampler.h"
@@ -127,7 +127,7 @@ bool glTFGraphicsPassLighting::InitResourceTable(glTFRenderResourceManager& reso
     AddImportTextureResource(RenderPassResourceTableId::BasePass_Normal, normal_desc, 
     {normal_desc.GetDataFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV});
 
-    auto depth_desc = RHITextureDesc::MakeDepthTextureDesc(resource_manager);
+    auto depth_desc = RHITextureDesc::MakeDepthTextureDesc(TODO, TODO);
     AddImportTextureResource(RenderPassResourceTableId::Depth, depth_desc,
     {RHIDataFormat::D32_SAMPLE_RESERVED, RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV});
     

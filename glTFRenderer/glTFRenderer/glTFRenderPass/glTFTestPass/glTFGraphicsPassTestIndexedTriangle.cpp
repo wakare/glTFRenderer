@@ -1,7 +1,7 @@
 #include "glTFGraphicsPassTestIndexedTriangle.h"
 
 #include "glTFRenderPass/glTFRenderResourceManager.h"
-#include "glTFRHI/RHIResourceFactoryImpl.hpp"
+#include "RHIResourceFactoryImpl.hpp"
 
 struct Vertex
 {

@@ -1,8 +1,8 @@
 #include "glTFRayTracingPassBase.h"
 
 #include "glTFRenderPass/glTFRenderResourceManager.h"
-#include "glTFRHI/RHIResourceFactory.h"
-#include "glTFRHI/RHIUtils.h"
+#include "RHIResourceFactory.h"
+#include "RHIUtils.h"
 
 bool glTFRayTracingPassBase::InitPass(glTFRenderResourceManager& resource_manager)
 {

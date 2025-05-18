@@ -3,7 +3,7 @@
 #include "glTFLight/glTFLightBase.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceShadowmap.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceViewBase.h"
-#include "glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
+#include "IRHIPipelineStateObject.h"
 
 glTFGraphicsPassMeshShadowDepth::glTFGraphicsPassMeshShadowDepth(const ShadowmapPassConfig& config)
     : m_config(config)

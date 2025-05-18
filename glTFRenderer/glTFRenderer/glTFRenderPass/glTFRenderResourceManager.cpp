@@ -7,7 +7,7 @@
 #include "glTFLight/glTFDirectionalLight.h"
 #include "glTFLight/glTFLightBase.h"
 #include "glTFRenderSystem/VT/VirtualTextureSystem.h"
-#include "glTFRHI/RHIResourceFactoryImpl.hpp"
+#include "RHIResourceFactoryImpl.hpp"
 #include "RenderWindow/glTFWindow.h"
 #include "glTFScene/glTFSceneGraph.h"
 #include "glTFScene/glTFSceneView.h"

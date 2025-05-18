@@ -4,7 +4,7 @@
 #include <glm/glm/gtx/compatibility.hpp>
 
 #include "RendererCommon.h"
-#include "glTFRHI/RHIInterface/RHICommon.h"
+#include "RHICommon.h"
 
 class IRHITexture;
 

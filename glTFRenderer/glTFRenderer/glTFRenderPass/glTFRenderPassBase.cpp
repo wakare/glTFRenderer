@@ -3,7 +3,7 @@
 #include <imgui.h>
 
 #include "glTFRenderResourceManager.h"
-#include "glTFRHI/RHIResourceFactoryImpl.hpp"
+#include "RHIResourceFactoryImpl.hpp"
 
 bool glTFRenderPassBase::InitRenderInterface(glTFRenderResourceManager& resource_manager)
 {

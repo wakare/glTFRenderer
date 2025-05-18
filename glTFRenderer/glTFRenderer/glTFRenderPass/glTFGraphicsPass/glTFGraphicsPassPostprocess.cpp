@@ -1,7 +1,7 @@
 #include "glTFGraphicsPassPostprocess.h"
 
 #include "glTFRenderPass/glTFRenderResourceManager.h"
-#include "glTFRHI/RHIResourceFactoryImpl.hpp"
+#include "RHIResourceFactoryImpl.hpp"
 
 glTFGraphicsPassPostprocess::glTFGraphicsPassPostprocess()
 = default;

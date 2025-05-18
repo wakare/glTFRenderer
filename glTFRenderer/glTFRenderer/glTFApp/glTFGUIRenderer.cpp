@@ -3,9 +3,9 @@
 #include <imgui/backends/imgui_impl_glfw.h>
 
 #include "glTFRenderPass/glTFRenderResourceManager.h"
-#include "glTFRHI/RHIInterface/IRHISwapChain.h"
-//#include "glTFRHI/RHIResourceFactoryImpl.hpp"
-#include "glTFRHI/RHIUtils.h"
+#include "IRHISwapChain.h"
+//#include "RHIResourceFactoryImpl.hpp"
+#include "RHIUtils.h"
 #include "RenderWindow/glTFWindow.h"
 
 bool glTFGUIRenderer::SetupGUIContext(const glTFWindow& window, glTFRenderResourceManager& resource_manager)

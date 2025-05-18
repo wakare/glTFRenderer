@@ -1,7 +1,7 @@
 #include "glTFRenderMeshManager.h"
 
 #include "glTFRenderResourceManager.h"
-#include "glTFRHI/RHIResourceFactoryImpl.hpp"
+#include "RHIResourceFactoryImpl.hpp"
 
 bool glTFRenderMeshManager::AddOrUpdatePrimitive(glTFRenderResourceManager& resource_manager,
                                                  const glTFScenePrimitive* primitive)

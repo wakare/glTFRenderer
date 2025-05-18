@@ -1,6 +1,6 @@
 #pragma once
 #include "glTFGraphicsPassTestTriangleBase.h"
-#include "glTFRHI/RHIVertexStreamingManager.h"
+#include "RHIVertexStreamingManager.h"
 
 struct IndexBufferData;
 struct VertexBufferData;

@@ -1,9 +1,9 @@
 #pragma once
 #include "glTFRenderInterfaceBase.h"
 #include "glTFRenderPass/glTFRenderResourceManager.h"
-#include "glTFRHI/RHIUtils.h"
-#include "glTFRHI/RHIInterface/IRHIDescriptorUpdater.h"
-#include "glTFRHI/RHIInterface/IRHIRootSignatureHelper.h"
+#include "RHIUtils.h"
+#include "IRHIDescriptorUpdater.h"
+#include "IRHIRootSignatureHelper.h"
 
 template<unsigned TableRangeCount, RHIDescriptorRangeType TextureType>
 class glTFRenderInterfaceTextureTable : public glTFRenderInterfaceWithRSAllocation

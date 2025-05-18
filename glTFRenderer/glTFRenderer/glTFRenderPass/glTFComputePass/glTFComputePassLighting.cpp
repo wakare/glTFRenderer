@@ -6,9 +6,9 @@
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceVT.h"
 #include "glTFRenderSystem/Shadow/ShadowRenderSystem.h"
 #include "glTFRenderSystem/VT/VirtualTextureSystem.h"
-#include "glTFRHI/RHIUtils.h"
-#include "glTFRHI/RHIInterface/IRHIPipelineStateObject.h"
-#include "glTFRHI/RHIInterface/IRHISwapChain.h"
+#include "RHIUtils.h"
+#include "IRHIPipelineStateObject.h"
+#include "IRHISwapChain.h"
 
 struct ShadowMapInfo
 {
@@ -122,7 +122,7 @@ bool glTFComputePassLighting::InitResourceTable(glTFRenderResourceManager& resou
     AddExportTextureResource(RenderPassResourceTableId::LightingPass_Output, lighting_output_desc, 
         {lighting_output_desc.GetDataFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_UAV});
     
-    auto depth_desc = RHITextureDesc::MakeDepthTextureDesc(resource_manager);
+    auto depth_desc = RHITextureDesc::MakeDepthTextureDesc(TODO, TODO);
     AddImportTextureResource(RenderPassResourceTableId::Depth, depth_desc,
         {RHIDataFormat::D32_SAMPLE_RESERVED, RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV});
 

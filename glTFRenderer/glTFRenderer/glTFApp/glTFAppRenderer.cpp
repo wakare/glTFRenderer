@@ -3,9 +3,9 @@
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassLighting.h"
 #include "glTFRenderSystem/Shadow/ShadowRenderSystem.h"
 #include "glTFRenderSystem/VT/VirtualTextureSystem.h"
-#include "glTFRHI/RHIConfigSingleton.h"
-#include "glTFRHI/RHIResourceFactory.h"
-#include "glTFRHI/RHIUtils.h"
+#include "RHIConfigSingleton.h"
+#include "RHIResourceFactory.h"
+#include "RHIUtils.h"
 #include "RenderWindow/glTFWindow.h"
 
 glTFAppRenderer::glTFAppRenderer(const glTFAppRendererConfig& renderer_config, const glTFWindow& window)

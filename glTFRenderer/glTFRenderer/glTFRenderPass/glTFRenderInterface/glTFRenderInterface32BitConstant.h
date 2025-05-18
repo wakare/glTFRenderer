@@ -1,7 +1,7 @@
 #pragma once
 #include "glTFRenderInterfaceBase.h"
 #include "glTFRenderPass/glTFRenderResourceManager.h"
-#include "glTFRHI/RHIUtils.h"
+#include "RHIUtils.h"
 #include <memory>
 
 template<typename UploadStructType, unsigned count>

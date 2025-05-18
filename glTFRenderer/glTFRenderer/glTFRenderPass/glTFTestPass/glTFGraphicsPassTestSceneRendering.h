@@ -1,6 +1,6 @@
 #pragma once
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassBase.h"
-#include "glTFRHI/RHIVertexStreamingManager.h"
+#include "RHIVertexStreamingManager.h"
 
 class IRHICommandSignature;
 
