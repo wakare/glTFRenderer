@@ -69,7 +69,7 @@ bool IRHIMemoryManager::AllocateTextureMemoryAndUpload(IRHIDevice& device,
         0, 0, texture_desc.GetTextureWidth(), texture_desc.GetTextureHeight(), 0
     };
     
-    RHIUtils::Instance().UploadTextureData(command_list, memory_manager, device, *out_texture_allocation->m_texture, upload_info);
+    RHIUtilInstanceManager::Instance().UploadTextureData(command_list, memory_manager, device, *out_texture_allocation->m_texture, upload_info);
     return true;
 }
 

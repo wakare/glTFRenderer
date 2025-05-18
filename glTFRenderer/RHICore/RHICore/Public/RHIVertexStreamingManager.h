@@ -1,7 +1,6 @@
 #pragma once
 #include <vector>
 
-#include "glTFScene/glTFScenePrimitive.h"
 #include "RHICommon.h"
 
 class RHIVertexStreamingManager

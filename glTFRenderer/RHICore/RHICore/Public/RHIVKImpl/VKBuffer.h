@@ -5,7 +5,7 @@
 class VKBuffer : public IRHIBuffer
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKBuffer)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKBuffer)
     
     bool InitBuffer(VkBuffer buffer, const RHIBufferDesc& desc);
     VkBuffer GetRawBuffer() const;

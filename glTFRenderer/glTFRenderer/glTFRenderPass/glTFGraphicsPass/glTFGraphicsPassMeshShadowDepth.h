@@ -12,7 +12,7 @@ class glTFGraphicsPassMeshShadowDepth : public glTFGraphicsPassMeshBase
 {
 public:
     glTFGraphicsPassMeshShadowDepth(const ShadowmapPassConfig& config);
-    DECLARE_NON_COPYABLE_AND_VDTOR(glTFGraphicsPassMeshShadowDepth)
+    IMPL_NON_COPYABLE_AND_VDTOR(glTFGraphicsPassMeshShadowDepth)
 
     virtual const char* PassName() override {return "ShadowmapDepthPass"; }
     

@@ -19,7 +19,7 @@ bool glTFGraphicsPassBase::PreRenderPass(glTFRenderResourceManager& resource_man
 
     auto& command_list = resource_manager.GetCommandListForRecord();
     const RHIViewportDesc viewport = GetViewport(resource_manager);
-    RHIUtils::Instance().SetViewport(command_list, viewport);
+    RHIUtilInstanceManager::Instance().SetViewport(command_list, viewport);
 
     const RHIScissorRectDesc scissor_rect =
         {
@@ -28,7 +28,7 @@ bool glTFGraphicsPassBase::PreRenderPass(glTFRenderResourceManager& resource_man
             (unsigned)(viewport.top_left_x + viewport.width),
             (unsigned)(viewport.top_left_y + viewport.height)
         }; 
-    RHIUtils::Instance().SetScissorRect(command_list, scissor_rect);
+    RHIUtilInstanceManager::Instance().SetScissorRect(command_list, scissor_rect);
 
     m_begin_rendering_info.rendering_area_offset_x = viewport.top_left_x;
     m_begin_rendering_info.rendering_area_offset_y = viewport.top_left_y;
@@ -43,7 +43,7 @@ bool glTFGraphicsPassBase::RenderPass(glTFRenderResourceManager& resource_manage
 {
     RETURN_IF_FALSE(glTFRenderPassBase::RenderPass(resource_manager))
     
-    RHIUtils::Instance().BeginRendering(resource_manager.GetCommandListForRecord(), m_begin_rendering_info);
+    RHIUtilInstanceManager::Instance().BeginRendering(resource_manager.GetCommandListForRecord(), m_begin_rendering_info);
     
     return true;
 }
@@ -52,7 +52,7 @@ bool glTFGraphicsPassBase::PostRenderPass(glTFRenderResourceManager& resource_ma
 {
     RETURN_IF_FALSE(glTFRenderPassBase::PostRenderPass(resource_manager))
 
-    RHIUtils::Instance().EndRendering(resource_manager.GetCommandListForRecord());
+    RHIUtilInstanceManager::Instance().EndRendering(resource_manager.GetCommandListForRecord());
     
     return true;
 }

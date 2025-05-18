@@ -5,20 +5,20 @@
 class glTFRenderResourceManager;
 class IRHIMemoryManager;
 
-class IRHIResource
+class RHICORE_API IRHIResource
 {
     friend class RHIResourceFactory;
     
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIResource)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIResource)
 
-    const std::string& GetName() const { return m_resource_name; }
-    void SetName(const std::string& name) {m_resource_name = name; }
+    const std::string& GetName() const;
+    void SetName(const std::string& name);
 
     virtual bool Release(IRHIMemoryManager& memory_manager) = 0;
     
-    void SetNeedRelease() {need_release = true;}
-    bool IsNeedRelease() const { return need_release; }
+    void SetNeedRelease();
+    bool IsNeedRelease() const;
     
 protected:
     std::string m_resource_name;

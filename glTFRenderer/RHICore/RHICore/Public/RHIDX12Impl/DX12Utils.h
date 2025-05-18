@@ -1,10 +1,10 @@
 #pragma once
 #include "RHIUtils.h"
-#include "IRHICommandSignature.h"
-//#include "glTFUtils/glTFLog.h"
-#include "IRHIRenderTarget.h"
 
+class IRHIDescriptorTable;
 class DX12DescriptorHeap;
+class IRHIDescriptorAllocation;
+
 enum class RHIBufferType;
 enum class RHIDataFormat;
 
@@ -15,7 +15,7 @@ class DX12Utils : public RHIUtils
     friend class RHIResourceFactory;
     
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(DX12Utils)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(DX12Utils)
     
     virtual bool InitGraphicsAPI() override;
     

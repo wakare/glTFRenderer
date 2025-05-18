@@ -6,7 +6,7 @@ class IRHIBufferAllocation;
 class glTFComputePassIndirectDrawCulling : public glTFComputePassBase
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFComputePassIndirectDrawCulling)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFComputePassIndirectDrawCulling)
     
     virtual const char* PassName() override;
 

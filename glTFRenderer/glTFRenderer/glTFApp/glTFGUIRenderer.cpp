@@ -25,7 +25,7 @@ bool glTFGUIRenderer::SetupGUIContext(const glTFWindow& window, glTFRenderResour
     ImGui_ImplGlfw_InstallEmscriptenCanvasResizeCallback("#canvas");
 #endif
 
-    RETURN_IF_FALSE(RHIUtils::Instance().InitGUIContext(resource_manager.GetDevice(), resource_manager.GetCommandQueue(), resource_manager.GetMemoryManager().GetDescriptorManager(), resource_manager.GetBackBufferCount()))
+    RETURN_IF_FALSE(RHIUtilInstanceManager::Instance().InitGUIContext(resource_manager.GetDevice(), resource_manager.GetCommandQueue(), resource_manager.GetMemoryManager().GetDescriptorManager(), resource_manager.GetBackBufferCount()))
 
     glTFWindow::Get().SetInputHandleCallback([this](){return HandleMouseEventThisFrame();});
     m_inited = true;
@@ -47,10 +47,10 @@ bool glTFGUIRenderer::RenderWidgets(glTFRenderResourceManager& resource_manager)
     begin_rendering_info.m_render_targets = {&resource_manager.GetCurrentFrameSwapChainRTV()};
     begin_rendering_info.clear_render_target = false;
     
-    RETURN_IF_FALSE(RHIUtils::Instance().BeginRendering(command_list, begin_rendering_info));
+    RETURN_IF_FALSE(RHIUtilInstanceManager::Instance().BeginRendering(command_list, begin_rendering_info));
     RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().BindGUIDescriptorContext(command_list))
-    RETURN_IF_FALSE(RHIUtils::Instance().RenderGUIFrame(command_list))
-    RETURN_IF_FALSE(RHIUtils::Instance().EndRendering(command_list))
+    RETURN_IF_FALSE(RHIUtilInstanceManager::Instance().RenderGUIFrame(command_list))
+    RETURN_IF_FALSE(RHIUtilInstanceManager::Instance().EndRendering(command_list))
     
     resource_manager.CloseCurrentCommandListAndExecute({}, false);
     
@@ -60,7 +60,7 @@ bool glTFGUIRenderer::RenderWidgets(glTFRenderResourceManager& resource_manager)
 bool glTFGUIRenderer::UpdateWidgets()
 {
     // Start the Dear ImGui frame
-    RETURN_IF_FALSE(RHIUtils::Instance().NewGUIFrame())
+    RETURN_IF_FALSE(RHIUtilInstanceManager::Instance().NewGUIFrame())
     
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
@@ -83,7 +83,7 @@ bool glTFGUIRenderer::UpdateWidgets()
 bool glTFGUIRenderer::ExitAndClean()
 {
     m_widget_setup_callbacks.clear();
-    RETURN_IF_FALSE(RHIUtils::Instance().ExitGUI())
+    RETURN_IF_FALSE(RHIUtilInstanceManager::Instance().ExitGUI())
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
 

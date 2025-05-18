@@ -12,17 +12,17 @@ class IRHIBuffer;
 class IRHIDevice;
 struct DescriptorAllocationInfo;
 
-class IRHIDescriptorAllocation : public IRHIResource
+class RHICORE_API IRHIDescriptorAllocation : public IRHIResource
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIDescriptorAllocation)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIDescriptorAllocation)
 
     virtual bool Release(IRHIMemoryManager& memory_manager) override;
     
     virtual const RHIDescriptorDesc& GetDesc() const = 0;
 };
 
-class IRHIBufferDescriptorAllocation : public IRHIDescriptorAllocation
+class RHICORE_API IRHIBufferDescriptorAllocation : public IRHIDescriptorAllocation
 {
 public:
     virtual bool InitFromBuffer(const std::shared_ptr<IRHIBuffer>& buffer, const RHIBufferDescriptorDesc& desc) = 0;
@@ -32,7 +32,7 @@ public:
     std::optional<RHIBufferDescriptorDesc> m_view_desc;
 };
 
-class IRHITextureDescriptorAllocation : public IRHIDescriptorAllocation
+class RHICORE_API IRHITextureDescriptorAllocation : public IRHIDescriptorAllocation
 {
 public:
     virtual const RHIDescriptorDesc& GetDesc() const override;
@@ -41,7 +41,7 @@ public:
     std::optional<RHITextureDescriptorDesc> m_view_desc;
 };
 
-class IRHIDescriptorTable : public IRHIResource
+class RHICORE_API IRHIDescriptorTable : public IRHIResource
 {
 public:
     virtual bool Build(IRHIDevice& device, const std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>>& descriptor_allocations) = 0;
@@ -50,10 +50,10 @@ public:
 };
 
 // Handle descriptor initialization and binding
-class IRHIDescriptorManager : public IRHIResource
+class RHICORE_API IRHIDescriptorManager : public IRHIResource
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIDescriptorManager)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIDescriptorManager)
     
     virtual bool Init(IRHIDevice& device, const DescriptorAllocationInfo& max_descriptor_capacity) = 0;
     virtual bool CreateDescriptor(IRHIDevice& device, const std::shared_ptr<IRHIBuffer>& buffer, const RHIBufferDescriptorDesc& desc, std::shared_ptr<IRHIBufferDescriptorAllocation>& out_descriptor_allocation) = 0;

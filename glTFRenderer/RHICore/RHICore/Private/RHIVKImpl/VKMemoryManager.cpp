@@ -10,9 +10,6 @@
 #define VMA_IMPLEMENTATION
 #include <vma/vk_mem_alloc.h>
 
-#include "VKCommandList.h"
-#include "glTFRenderPass/glTFRenderResourceManager.h"
-
 bool VKMemoryManager::InitMemoryManager(IRHIDevice& device, const IRHIFactory& factory,
                                         const DescriptorAllocationInfo& max_descriptor_capacity)
 {

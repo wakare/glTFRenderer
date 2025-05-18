@@ -16,7 +16,7 @@ class glTFComputePassVTFetchCS : public glTFComputePassBase
 {
 public:
     glTFComputePassVTFetchCS(RenderPassResourceTableId feedback_render_target_id);
-    DECLARE_NON_COPYABLE_AND_VDTOR(glTFComputePassVTFetchCS)
+    IMPL_NON_COPYABLE_AND_VDTOR(glTFComputePassVTFetchCS)
     
     virtual const char* PassName() override;
     virtual bool InitRenderInterface(glTFRenderResourceManager& resource_manager) override;

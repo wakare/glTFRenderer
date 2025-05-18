@@ -31,7 +31,7 @@ glTFAppRenderer::glTFAppRenderer(const glTFAppRendererConfig& renderer_config, c
         }    
     }
 
-    RHIUtils::Instance().ReportLiveObjects();
+    RHIUtilInstanceManager::Instance().ReportLiveObjects();
     
     m_resource_manager.reset(new glTFRenderResourceManager());
 

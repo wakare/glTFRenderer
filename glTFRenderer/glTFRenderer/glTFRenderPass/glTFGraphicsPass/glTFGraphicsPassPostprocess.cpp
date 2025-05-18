@@ -50,8 +50,8 @@ bool glTFGraphicsPassPostprocess::InitPass(glTFRenderResourceManager& resource_m
     memory_manager.UploadBufferData(*vertexUploadBuffer, postprocessVertices, 0, sizeof(postprocessVertices));
     memory_manager.UploadBufferData(*indexUploadBuffer, postprocessIndices, 0, sizeof(postprocessIndices));
 
-    RHIUtils::Instance().CopyBuffer(command_list, *m_postprocessQuadResource.meshVertexBuffer->m_buffer, 0, *vertexUploadBuffer->m_buffer, 0, sizeof(postprocessVertices));
-    RHIUtils::Instance().CopyBuffer(command_list, *m_postprocessQuadResource.meshIndexBuffer->m_buffer, 0, *indexUploadBuffer->m_buffer, 0, sizeof(postprocessIndices));
+    RHIUtilInstanceManager::Instance().CopyBuffer(command_list, *m_postprocessQuadResource.meshVertexBuffer->m_buffer, 0, *vertexUploadBuffer->m_buffer, 0, sizeof(postprocessVertices));
+    RHIUtilInstanceManager::Instance().CopyBuffer(command_list, *m_postprocessQuadResource.meshIndexBuffer->m_buffer, 0, *indexUploadBuffer->m_buffer, 0, sizeof(postprocessIndices));
 
     m_postprocessQuadResource.meshVertexBuffer->m_buffer->Transition(command_list, RHIResourceStateType::STATE_VERTEX_AND_CONSTANT_BUFFER);
     m_postprocessQuadResource.meshIndexBuffer->m_buffer->Transition(command_list, RHIResourceStateType::STATE_INDEX_BUFFER);
@@ -124,11 +124,11 @@ void glTFGraphicsPassPostprocess::DrawPostprocessQuad(glTFRenderResourceManager&
 {
     auto& command_list = resourceManager.GetCommandListForRecord();
     
-    RHIUtils::Instance().SetVertexBufferView(command_list, 0, *m_postprocessQuadResource.meshVertexBufferView);
-    RHIUtils::Instance().SetIndexBufferView(command_list, *m_postprocessQuadResource.meshIndexBufferView);
+    RHIUtilInstanceManager::Instance().SetVertexBufferView(command_list, 0, *m_postprocessQuadResource.meshVertexBufferView);
+    RHIUtilInstanceManager::Instance().SetIndexBufferView(command_list, *m_postprocessQuadResource.meshIndexBufferView);
 
-    RHIUtils::Instance().SetPrimitiveTopology( command_list, RHIPrimitiveTopologyType::TRIANGLELIST);
-    RHIUtils::Instance().DrawIndexInstanced(command_list, 6, 1, 0, 0, 0);    
+    RHIUtilInstanceManager::Instance().SetPrimitiveTopology( command_list, RHIPrimitiveTopologyType::TRIANGLELIST);
+    RHIUtilInstanceManager::Instance().DrawIndexInstanced(command_list, 6, 1, 0, 0, 0);    
 }
 
 const RHIVertexStreamingManager& glTFGraphicsPassPostprocess::GetVertexStreamingManager(

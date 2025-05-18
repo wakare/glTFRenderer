@@ -1,10 +1,16 @@
 #pragma once
+
+#ifdef RHICORE_EXPORTS
+#define RHICORE_API __declspec(dllexport)
+#else
+#define RHICORE_API __declspec(dllimport)
+#endif
+
 #include <cassert>
 #include <map>
 #include <wincodec.h>
 
 #include "RendererCommon.h"
-#include "glm.hpp"
 
 class IRHITextureDescriptorAllocation;
 class IRHIFrameBuffer;
@@ -546,7 +552,7 @@ struct RHITextureClearValue
     RHIDataFormat clear_format;
     union 
     {
-        glm::vec4 clear_color;
+        float clear_color[4];
         RHIDepthStencilClearValue clear_depth_stencil;
     };
 
@@ -978,4 +984,115 @@ struct RHIMipMapCopyRequirements
     std::vector<size_t> row_byte_size;
     std::vector<size_t> row_pitch;
     size_t total_size;
+};
+
+enum class VertexAttributeType
+{
+    // Vertex
+    VERTEX_POSITION,
+    VERTEX_NORMAL,
+    VERTEX_TANGENT,
+    VERTEX_TEXCOORD0,
+
+    // Instance
+    INSTANCE_MAT_0,
+    INSTANCE_MAT_1,
+    INSTANCE_MAT_2,
+    INSTANCE_MAT_3,
+    INSTANCE_CUSTOM_DATA,
+};
+
+struct VertexAttributeElement
+{
+    VertexAttributeType type;
+    unsigned byte_size;
+};
+
+
+struct VertexLayoutDeclaration
+{
+    std::vector<VertexAttributeElement> elements;
+
+    bool HasAttribute(VertexAttributeType attribute_type) const
+    {
+        for (const auto& element : elements)
+        {
+            if (element.type == attribute_type)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    size_t GetVertexStrideInBytes() const
+    {
+        size_t stride = 0;
+        for (const auto& element : elements)
+        {
+            stride += element.byte_size;
+        }
+
+        return stride;
+    }
+
+    bool operator==(const VertexLayoutDeclaration& lhs) const
+    {
+        if (elements.size() != lhs.elements.size())
+        {
+            return false;
+        }
+
+        for (size_t i = 0; i < elements.size(); ++i)
+        {
+            if (elements[i].type != lhs.elements[i].type ||
+                elements[i].byte_size != lhs.elements[i].byte_size)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+};
+
+struct VertexBufferData
+{
+    VertexLayoutDeclaration layout;
+    
+    std::unique_ptr<char[]> data;
+    size_t byte_size;
+    size_t vertex_count;
+
+    bool GetVertexAttributeDataByIndex(VertexAttributeType type, unsigned index, void* out_data, size_t& out_attribute_size) const
+    {
+        const char* start_data = data.get() + index * layout.GetVertexStrideInBytes();
+        for (unsigned i = 0; i < layout.elements.size(); ++i)
+        {
+            if (type == layout.elements[i].type)
+            {
+                memcpy(out_data, start_data, layout.elements[i].byte_size);
+                out_attribute_size = layout.elements[i].byte_size;
+                return true;
+            }
+
+            start_data += layout.elements[i].byte_size;
+        }
+
+        out_attribute_size = 0;
+        return false;
+    }
+};
+
+
+struct IndexBufferData
+{
+    RHIDataFormat format;
+    
+    std::unique_ptr<char[]> data;
+    size_t byte_size;
+    size_t index_count;
+
+    unsigned GetStride() const;
+    unsigned GetIndexByOffset(size_t offset) const;
 };

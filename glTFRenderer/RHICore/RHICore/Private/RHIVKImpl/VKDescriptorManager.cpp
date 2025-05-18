@@ -5,7 +5,6 @@
 #include "VKDevice.h"
 #include "VKTexture.h"
 #include "VKCommon.h"
-#include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "RHIResourceFactoryImpl.hpp"
 #include "IRHIMemoryManager.h"
 

@@ -5,7 +5,7 @@
 class VKCommandAllocator : public IRHICommandAllocator
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKCommandAllocator)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKCommandAllocator)
     
     virtual bool InitCommandAllocator(IRHIDevice& device, RHICommandAllocatorType type) override;
 

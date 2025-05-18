@@ -8,7 +8,6 @@
 #include "DX12SwapChain.h"
 #include "DX12Utils.h"
 #include "RHIResourceFactoryImpl.hpp"
-#include "glTFRenderPass/glTFRenderResourceManager.h"
 
 IDX12PipelineStateObjectCommon::IDX12PipelineStateObjectCommon()
     : m_pipeline_state_object(nullptr)

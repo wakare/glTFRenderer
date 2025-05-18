@@ -1,8 +1,8 @@
 #pragma once
 #include "IRHIResource.h"
 
-class IRHIRenderPassFrameBuffer : public IRHIResource
+class RHICORE_API IRHIRenderPassFrameBuffer : public IRHIResource
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIRenderPassFrameBuffer)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIRenderPassFrameBuffer)
 };

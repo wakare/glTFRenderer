@@ -8,7 +8,7 @@
 class DX12SwapChain : public IRHISwapChain
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(DX12SwapChain)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(DX12SwapChain)
     
     virtual unsigned GetCurrentBackBufferIndex() override;
     virtual unsigned GetBackBufferCount() override;

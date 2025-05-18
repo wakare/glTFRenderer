@@ -6,7 +6,7 @@
 class VKCommandQueue : public IRHICommandQueue
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKCommandQueue)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKCommandQueue)
     
     virtual bool InitCommandQueue(IRHIDevice& device) override;
     

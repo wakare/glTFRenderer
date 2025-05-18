@@ -2,7 +2,6 @@
 #include "DX12CommandList.h"
 #include "DX12ConverterUtils.h"
 #include "DX12DescriptorHeap.h"
-#include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "RHIResourceFactoryImpl.hpp"
 
 UINT GetDescriptorIncSize(ID3D12Device* device, RHIRenderTargetType type)

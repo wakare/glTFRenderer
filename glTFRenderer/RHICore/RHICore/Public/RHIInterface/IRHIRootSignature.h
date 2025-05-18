@@ -8,11 +8,11 @@
 
 class IRHIDescriptorManager;
 
-class IRHIRootParameter
+class RHICORE_API IRHIRootParameter
 {
 public:
     IRHIRootParameter() : m_type(RHIRootParameterType::Unknown) { }
-    DECLARE_NON_COPYABLE_AND_VDTOR(IRHIRootParameter)
+    IMPL_NON_COPYABLE_AND_VDTOR(IRHIRootParameter)
     
     virtual bool InitAsConstant(unsigned constantValue, REGISTER_INDEX_TYPE register_index, unsigned space) = 0;
     virtual bool InitAsCBV(unsigned attribute_index, REGISTER_INDEX_TYPE register_index, unsigned space) = 0;
@@ -20,16 +20,16 @@ public:
     virtual bool InitAsUAV(unsigned attribute_index, REGISTER_INDEX_TYPE register_index, unsigned space) = 0;
     virtual bool InitAsDescriptorTableRange(unsigned attribute_index, size_t rangeCount, const RHIDescriptorRangeDesc* rangeDesc) = 0;
 
-    virtual bool IsBindless() const {return false; }
-    RHIRootParameterType GetType() const { return m_type; }
+    virtual bool IsBindless() const;
+    RHIRootParameterType GetType() const;
     
 protected:
-    void SetType(RHIRootParameterType type) {assert(m_type == RHIRootParameterType::Unknown); m_type = type;}
+    void SetType(RHIRootParameterType type);
     
     RHIRootParameterType m_type;
 };
 
-class IRHIStaticSampler : public IRHIResource
+class RHICORE_API IRHIStaticSampler : public IRHIResource
 {
 public:
     IRHIStaticSampler()
@@ -47,14 +47,14 @@ protected:
     RHIStaticSamplerFilterMode m_filterMode;
 };
 
-class IRHIRootSignature : public IRHIResource
+class RHICORE_API IRHIRootSignature : public IRHIResource
 {
 public:
     IRHIRootSignature();
     
     bool AllocateRootSignatureSpace(size_t rootParameterCount, size_t staticSamplerCount);
-    void SetUsage (RHIRootSignatureUsage usage) { m_usage = usage; }
-    bool IsSpaceAllocated() const {return !m_root_parameters.empty() || !m_static_samplers.empty(); }
+    void SetUsage (RHIRootSignatureUsage usage);
+    bool IsSpaceAllocated() const;
     bool HasSampler() const;
     
     virtual bool InitRootSignature(IRHIDevice& device, IRHIDescriptorManager& descriptor_manager) = 0;

@@ -188,7 +188,7 @@ bool VulkanUtils::BeginRendering(IRHICommandList& command_list, const RHIBeginRe
         const auto& clear_value = vk_texture_allocation.m_source->GetTextureDesc().GetClearValue();
         if (render_target_view)
         {
-            attachment.clearValue.color = {{clear_value.clear_color.r, clear_value.clear_color.g, clear_value.clear_color.b, clear_value.clear_color.a}
+            attachment.clearValue.color = { {clear_value.clear_color[0], clear_value.clear_color[1], clear_value.clear_color[2], clear_value.clear_color[3]}
             };    
         }
         else

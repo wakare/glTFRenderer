@@ -4,8 +4,8 @@
 
 bool RHIConfigSingleton::InitGraphicsAPI()
 {
-    RHIUtils::ResetInstance();
-    return RHIUtils::Instance().InitGraphicsAPI();
+    RHIUtilInstanceManager::ResetInstance();
+    return RHIUtilInstanceManager::Instance().InitGraphicsAPI();
 }
 
 RHIConfigSingleton::RHIConfigSingleton()

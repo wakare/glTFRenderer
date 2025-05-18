@@ -19,7 +19,7 @@ struct VTPageData
 class VTPageDataAccessor
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VTPageDataAccessor)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VTPageDataAccessor)
 
     bool Tick();
     bool TryGetPageData(const VTPage& page, VTPageData& page_data);

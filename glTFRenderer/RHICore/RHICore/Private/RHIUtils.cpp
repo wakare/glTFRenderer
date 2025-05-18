@@ -1,8 +1,8 @@
 #include "RHIUtils.h"
 
-#include "RHIResourceFactoryImpl.hpp"
+#include <mutex>
 
-std::shared_ptr<RHIUtils> RHIUtils::g_instance = nullptr;
+#include "RHIResourceFactoryImpl.hpp"
 
 bool RHIUtils::UploadTextureData(IRHICommandList& command_list, IRHIMemoryManager& memory_manager, IRHIDevice& device,
     IRHITexture& dst, const RHITextureMipUploadInfo& upload_info)
@@ -55,17 +55,24 @@ bool RHIUtils::Present(IRHISwapChain& swap_chain, IRHICommandQueue& command_queu
     return swap_chain.Present(command_queue, command_list);
 }
 
-RHIUtils& RHIUtils::Instance()
+
+namespace {
+    std::shared_ptr<RHIUtils> g_instance = nullptr;
+    std::mutex g_mutex;
+}
+
+RHIUtils& RHIUtilInstanceManager::Instance()
 {
+    std::lock_guard<std::mutex> lock(g_mutex);
     if (!g_instance)
     {
         g_instance = RHIResourceFactory::CreateRHIResource<RHIUtils>();
     }
-
+    
     return *g_instance;
 }
 
-void RHIUtils::ResetInstance()
+void RHIUtilInstanceManager::ResetInstance()
 {
     g_instance = RHIResourceFactory::CreateRHIResource<RHIUtils>();
 }

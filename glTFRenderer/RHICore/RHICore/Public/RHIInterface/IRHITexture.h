@@ -7,16 +7,16 @@ class IRHIBuffer;
 class IRHICommandList;
 class glTFImageIOUtil;
 
-class IRHITexture : public IRHIResource
+class RHICORE_API IRHITexture : public IRHIResource
 {
 public:
     friend class IRHIMemoryManager;
     friend class DX12MemoryManager;
     
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHITexture)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHITexture)
 
-    const RHITextureDesc& GetTextureDesc() const {return m_texture_desc; }
-    RHIDataFormat GetTextureFormat() const {return GetTextureDesc().GetDataFormat(); }
+    const RHITextureDesc& GetTextureDesc() const;
+    RHIDataFormat GetTextureFormat() const;
     
     bool Transition(IRHICommandList& command_list, RHIResourceStateType new_state);
     RHIResourceStateType GetState() const;

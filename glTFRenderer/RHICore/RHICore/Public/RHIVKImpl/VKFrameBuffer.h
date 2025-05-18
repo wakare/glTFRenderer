@@ -5,7 +5,7 @@
 class VKFrameBuffer : public IRHIFrameBuffer
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKFrameBuffer)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKFrameBuffer)
     
     virtual bool InitFrameBuffer(IRHIDevice& device, IRHISwapChain& swap_chain, const RHIFrameBufferInfo& info) override;
 

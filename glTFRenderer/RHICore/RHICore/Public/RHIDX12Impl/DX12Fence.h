@@ -7,7 +7,7 @@ class IRHICommandQueue;
 class DX12Fence : public IRHIFence
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(DX12Fence)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(DX12Fence)
     
     virtual bool InitFence(IRHIDevice& device) override;
     virtual bool HostWaitUtilSignaled() override;

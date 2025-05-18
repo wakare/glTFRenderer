@@ -13,7 +13,7 @@ class RHIVertexBuffer;
 class glTFGraphicsPassTestIndexedTextureTriangle : public glTFGraphicsPassTestTriangleBase
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFGraphicsPassTestIndexedTextureTriangle)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFGraphicsPassTestIndexedTextureTriangle)
 
     virtual const char* PassName() override;
     virtual bool InitRenderInterface(glTFRenderResourceManager& resource_manager) override;

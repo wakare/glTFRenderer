@@ -6,7 +6,6 @@
 #include "DX12ConverterUtils.h"
 #include "DX12Factory.h"
 #include "DX12Utils.h"
-#include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "RHIResourceFactory.h"
 #include "RenderWindow/glTFWindow.h"
 

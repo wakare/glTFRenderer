@@ -13,10 +13,10 @@ struct RHIRenderTargetDesc
     RHIDataFormat format;
 };
 
-class IRHIRenderTarget
+class RHICORE_API IRHIRenderTarget
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIRenderTarget)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIRenderTarget)
 
     bool InitRenderTarget(std::shared_ptr<IRHITextureAllocation> texture,
                           std::shared_ptr<IRHITextureDescriptorAllocation> descriptor_allocation);
@@ -25,10 +25,9 @@ public:
     std::shared_ptr<IRHITextureAllocation> GetTextureAllocationSharedPtr() const;
     IRHITextureDescriptorAllocation& GetDescriptorAllocation();
     
-    RHIRenderTargetType GetRenderTargetType() const { return m_descriptor_allocation->GetDesc().m_view_type == RHIViewType::RVT_RTV ?
-        RHIRenderTargetType::RTV : RHIRenderTargetType::DSV; }
-    RHIDataFormat GetRenderTargetFormat() const { return m_descriptor_allocation->GetDesc().m_format; }
-    RHITextureClearValue GetClearValue() const {return m_texture_allocation->m_texture->GetTextureDesc().GetClearValue(); }
+    RHIRenderTargetType GetRenderTargetType() const ;
+    RHIDataFormat GetRenderTargetFormat() const;
+    RHITextureClearValue GetClearValue() const;
 
     bool Transition(IRHICommandList& command_list, RHIResourceStateType new_state);
     

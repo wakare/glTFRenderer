@@ -26,7 +26,7 @@ std::shared_ptr<IRHIIndexBufferView> RHIIndexBuffer::CreateIndexBufferView(IRHID
     m_upload_buffer);
 
     memory_manager.UploadBufferData(*m_upload_buffer, index_buffer_data.data.get(), 0, index_buffer_data.byte_size);
-    RHIUtils::Instance().CopyBuffer(command_list, *m_buffer->m_buffer, 0, *m_upload_buffer->m_buffer, 0, index_buffer_data.byte_size);
+    RHIUtilInstanceManager::Instance().CopyBuffer(command_list, *m_buffer->m_buffer, 0, *m_upload_buffer->m_buffer, 0, index_buffer_data.byte_size);
     
     auto index_buffer_view = RHIResourceFactory::CreateRHIResource<IRHIIndexBufferView>();
     RHIIndexBufferViewDesc index_buffer_desc{};

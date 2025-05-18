@@ -8,7 +8,7 @@ class DX12DescriptorHeap;
 class DX12BufferDescriptorAllocation : public IRHIBufferDescriptorAllocation
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(DX12BufferDescriptorAllocation)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(DX12BufferDescriptorAllocation)
     
     bool InitHandle(RHIGPUDescriptorHandle gpu_handle, RHICPUDescriptorHandle cpu_handle);
     
@@ -46,7 +46,7 @@ public:
 class DX12DescriptorManager : public IRHIDescriptorManager
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(DX12DescriptorManager)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(DX12DescriptorManager)
     
     virtual bool Init(IRHIDevice& device, const DescriptorAllocationInfo& max_descriptor_capacity) override;
     virtual bool CreateDescriptor(IRHIDevice& device, const std::shared_ptr<IRHIBuffer>& buffer, const RHIBufferDescriptorDesc& desc, std::shared_ptr<IRHIBufferDescriptorAllocation>& out_descriptor_allocation) override;

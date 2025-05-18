@@ -7,7 +7,7 @@ class SVTPageStreamer
 {
 public:
     SVTPageStreamer(unsigned page_process_count_per_frame);
-    DECLARE_NON_COPYABLE_AND_VDTOR(SVTPageStreamer)
+    IMPL_NON_COPYABLE_AND_VDTOR(SVTPageStreamer)
 
     void AddLogicalTexture(std::shared_ptr<VTLogicalTextureBase> logical_texture);
     

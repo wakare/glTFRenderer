@@ -3,7 +3,7 @@
 #include "IRHIResource.h"
 #include "IRHIRootSignature.h"
 
-class IRHICommandSignature : public IRHIResource
+class RHICORE_API IRHICommandSignature : public IRHIResource
 {
 public:
     IRHICommandSignature();

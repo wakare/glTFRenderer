@@ -4,7 +4,7 @@
 class glTFGraphicsPassMeshDepth : public glTFGraphicsPassMeshBaseSceneView
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFGraphicsPassMeshDepth)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFGraphicsPassMeshDepth)
     
     virtual const char* PassName() override {return "MeshPassOpaqueDepth"; }
     virtual bool SetupPipelineStateObject(glTFRenderResourceManager& resource_manager) override;

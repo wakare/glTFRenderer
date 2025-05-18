@@ -2,7 +2,6 @@
 
 #include "VKCommandQueue.h"
 #include "VKDevice.h"
-#include "glTFRenderPass/glTFRenderResourceManager.h"
 
 bool VKCommandAllocator::InitCommandAllocator(IRHIDevice& device, RHICommandAllocatorType type)
 {

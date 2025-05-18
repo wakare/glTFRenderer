@@ -9,7 +9,7 @@ bool glTFGraphicsPassTestTriangleBase::PreRenderPass(glTFRenderResourceManager& 
 
     auto& command_list = resource_manager.GetCommandListForRecord();
     
-    RHIUtils::Instance().SetPrimitiveTopology( command_list, RHIPrimitiveTopologyType::TRIANGLELIST);
+    RHIUtilInstanceManager::Instance().SetPrimitiveTopology( command_list, RHIPrimitiveTopologyType::TRIANGLELIST);
     
     m_begin_rendering_info.m_render_targets = {&resource_manager.GetCurrentFrameSwapChainRTV()};
     m_begin_rendering_info.enable_depth_write = false;

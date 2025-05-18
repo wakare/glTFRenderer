@@ -1,10 +1,10 @@
 #include "VKRenderTargetManager.h"
 
+#include "IRHIDescriptorManager.h"
 #include "VKConverterUtils.h"
 #include "VKDevice.h"
 #include "VKRenderTarget.h"
 #include "VKSwapChain.h"
-#include "glTFRenderPass/glTFRenderResourceManager.h"
 
 bool VKRenderTargetManager::InitRenderTargetManager(IRHIDevice& device, size_t maxRenderTargetCount)
 {

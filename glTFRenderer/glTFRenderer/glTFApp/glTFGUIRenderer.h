@@ -11,7 +11,7 @@ typedef std::function<void()> GUIWidgetSetupCallback;
 class glTFGUIRenderer
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFGUIRenderer)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFGUIRenderer)
     
     bool SetupGUIContext(const glTFWindow& window, glTFRenderResourceManager& resource_manager);
     bool RenderWidgets(glTFRenderResourceManager& resource_manager);

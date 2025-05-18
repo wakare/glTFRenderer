@@ -3,7 +3,7 @@
 #include "VKDescriptorManager.h"
 
 bool VKRayTracingAS::InitRayTracingAS(IRHIDevice& device, IRHICommandList& command_list,
-                                      const glTFRenderMeshManager& mesh_manager, IRHIMemoryManager& memory_manager)
+                                      IRHIMemoryManager& memory_manager)
 {
     return true;
 }

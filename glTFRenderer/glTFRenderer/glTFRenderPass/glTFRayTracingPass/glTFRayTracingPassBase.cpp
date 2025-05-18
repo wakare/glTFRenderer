@@ -32,7 +32,7 @@ bool glTFRayTracingPassBase::RenderPass(glTFRenderResourceManager& resource_mana
     auto& command_list = resource_manager.GetCommandListForRecord();
 
     const auto trace_count = GetTraceCount();
-    RETURN_IF_FALSE(RHIUtils::Instance().TraceRay(command_list, GetShaderTable(), trace_count.X, trace_count.Y, trace_count.Z))
+    RETURN_IF_FALSE(RHIUtilInstanceManager::Instance().TraceRay(command_list, GetShaderTable(), trace_count.X, trace_count.Y, trace_count.Z))
     
     return true;
 }

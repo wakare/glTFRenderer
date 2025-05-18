@@ -7,7 +7,7 @@ class glTFDirectionalLight;
 class glTFGraphicsPassMeshRVTPageRendering : public glTFGraphicsPassMeshBase
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFGraphicsPassMeshRVTPageRendering)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFGraphicsPassMeshRVTPageRendering)
 
     virtual bool InitPass(glTFRenderResourceManager& resource_manager) override;
     virtual bool SetupRootSignature(glTFRenderResourceManager& resource_manager) override;

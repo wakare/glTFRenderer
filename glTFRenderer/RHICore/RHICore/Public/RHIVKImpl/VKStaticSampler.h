@@ -5,7 +5,7 @@
 class VKStaticSampler : public IRHIStaticSampler
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKStaticSampler)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKStaticSampler)
     
     virtual bool InitStaticSampler(IRHIDevice& device, unsigned space, REGISTER_INDEX_TYPE register_index, RHIStaticSamplerAddressMode address_mode, RHIStaticSamplerFilterMode filter_mode) override;
 

@@ -5,7 +5,7 @@
 class VKBufferAllocation : public IRHIBufferAllocation
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKBufferAllocation)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKBufferAllocation)
 
     VmaAllocation m_allocation;
     VmaAllocationInfo m_allocation_info;
@@ -14,7 +14,7 @@ public:
 class VKTextureAllocation : public IRHITextureAllocation
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKTextureAllocation)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKTextureAllocation)
 
     VmaAllocation m_allocation;
     VmaAllocationInfo m_allocation_info;
@@ -23,7 +23,7 @@ public:
 class VKMemoryManager : public IRHIMemoryManager
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKMemoryManager)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKMemoryManager)
     virtual bool InitMemoryManager(IRHIDevice& device, const IRHIFactory& factory, const DescriptorAllocationInfo& max_descriptor_capacity) override;
     
     virtual bool AllocateBufferMemory(IRHIDevice& device, const RHIBufferDesc& buffer_desc, std::shared_ptr<IRHIBufferAllocation>& out_buffer_allocation) override;

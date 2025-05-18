@@ -34,7 +34,7 @@ bool RHIIndirectDrawBuilder::InitIndirectDrawBuilder(IRHIDevice& device, IRHIMem
     device, 
     {
         L"culled_indirect_arguments_buffer",
-        RHIUtils::Instance().GetAlignmentSizeForUAVCount(size),
+        RHIUtilInstanceManager::Instance().GetAlignmentSizeForUAVCount(size),
         1,
         1,
         RHIBufferType::Default,
@@ -113,7 +113,7 @@ bool RHIIndirectDrawBuilder::DrawIndirect(IRHICommandList& command_list, IRHICom
     
     if (use_dynamic_count)
     {
-        RHIUtils::Instance().ExecuteIndirect(
+        RHIUtilInstanceManager::Instance().ExecuteIndirect(
             command_list,
             command_signature,
             m_cached_command_count,
@@ -125,7 +125,7 @@ bool RHIIndirectDrawBuilder::DrawIndirect(IRHICommandList& command_list, IRHICom
     }
     else
     {
-        RHIUtils::Instance().ExecuteIndirect(
+        RHIUtilInstanceManager::Instance().ExecuteIndirect(
             command_list,
             command_signature,
             m_cached_command_count,

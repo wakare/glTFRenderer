@@ -2,10 +2,10 @@
 #include "IRHIFactory.h"
 #include "IRHIResource.h"
 
-class IRHIDevice : public IRHIResource
+class RHICORE_API IRHIDevice : public IRHIResource
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIDevice)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIDevice)
     
     virtual bool InitDevice(IRHIFactory& factory) = 0;
 };

@@ -8,7 +8,7 @@
 class DX12Texture : public IRHITexture
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(DX12Texture)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(DX12Texture)
 
     bool InitFromExternalResource(ID3D12Resource* raw_resource, const RHITextureDesc& desc);
 

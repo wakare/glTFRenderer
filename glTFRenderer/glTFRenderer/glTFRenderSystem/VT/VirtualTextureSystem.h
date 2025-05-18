@@ -24,7 +24,7 @@ public:
         VT_PAGE_PROCESS_COUNT_PER_FRAME = 256, 
     };
     
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VirtualTextureSystem)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VirtualTextureSystem)
 
     virtual bool InitRenderSystem(glTFRenderResourceManager& resource_manager) override;
     virtual void SetupPass(glTFRenderResourceManager& resource_manager, glTFRenderPassManager& pass_manager, const glTFSceneGraph& scene_graph) override;

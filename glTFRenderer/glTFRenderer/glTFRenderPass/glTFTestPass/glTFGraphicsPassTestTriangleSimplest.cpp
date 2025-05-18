@@ -14,7 +14,7 @@ bool glTFGraphicsPassTestTriangleSimplest::RenderPass(glTFRenderResourceManager&
     RETURN_IF_FALSE(glTFGraphicsPassBase::RenderPass(resource_manager))
 
     auto& command_list = resource_manager.GetCommandListForRecord();
-    RHIUtils::Instance().DrawInstanced(command_list, 3, 1, 0, 0);
+    RHIUtilInstanceManager::Instance().DrawInstanced(command_list, 3, 1, 0, 0);
     
     return true;
 }

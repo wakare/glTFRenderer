@@ -5,7 +5,7 @@
 class VKMemoryAllocator : public IRHIMemoryAllocator
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKMemoryAllocator)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKMemoryAllocator)
     virtual bool InitMemoryAllocator(const IRHIFactory& factory, const IRHIDevice& device) override;
 
     virtual bool Release(IRHIMemoryManager& memory_manager) override;

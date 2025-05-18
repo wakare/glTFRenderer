@@ -11,7 +11,7 @@ class VulkanUtils : public RHIUtils
     friend class RHIResourceFactory;
     
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VulkanUtils)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VulkanUtils)
 
     virtual bool InitGraphicsAPI() override;
     

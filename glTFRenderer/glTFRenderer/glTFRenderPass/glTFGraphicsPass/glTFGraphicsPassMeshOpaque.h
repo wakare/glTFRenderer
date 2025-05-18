@@ -4,7 +4,7 @@
 class glTFGraphicsPassMeshOpaque : public glTFGraphicsPassMeshBaseSceneView
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFGraphicsPassMeshOpaque)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFGraphicsPassMeshOpaque)
     
     virtual const char* PassName() override {return "MeshPassOpaque"; }
     

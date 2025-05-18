@@ -1,8 +1,17 @@
 #include "IRHITexture.h"
 
-#include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "RHIUtils.h"
 #include "SceneFileLoader/glTFImageIOUtil.h"
+
+const RHITextureDesc& IRHITexture::GetTextureDesc() const
+{
+    return m_texture_desc;
+}
+
+RHIDataFormat IRHITexture::GetTextureFormat() const
+{
+    return GetTextureDesc().GetDataFormat();
+}
 
 bool IRHITexture::Transition(IRHICommandList& command_list, RHIResourceStateType new_state)
 {
@@ -11,7 +20,7 @@ bool IRHITexture::Transition(IRHICommandList& command_list, RHIResourceStateType
         return true;
     }
     
-    RETURN_IF_FALSE(RHIUtils::Instance().AddTextureBarrierToCommandList(command_list, *this, m_current_state, new_state))
+    RETURN_IF_FALSE(RHIUtilInstanceManager::Instance().AddTextureBarrierToCommandList(command_list, *this, m_current_state, new_state))
 
     m_current_state = new_state;
     return true;

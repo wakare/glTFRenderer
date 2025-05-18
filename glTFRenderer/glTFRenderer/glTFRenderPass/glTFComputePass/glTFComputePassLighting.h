@@ -5,7 +5,7 @@
 class glTFComputePassLighting : public glTFComputePassBase
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFComputePassLighting)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFComputePassLighting)
 
     virtual const char* PassName() override;
     virtual bool InitRenderInterface(glTFRenderResourceManager& resource_manager) override;

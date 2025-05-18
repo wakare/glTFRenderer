@@ -1,16 +1,16 @@
 #pragma once
-#include <map>
 #include <memory>
 #include <vector>
 
-#include "IRHICommandList.h"
 #include "IRHIRenderTarget.h"
 #include "IRHISwapChain.h"
 
-class IRHIRenderTargetManager
+class IRHIDescriptorAllocation;
+
+class RHICORE_API IRHIRenderTargetManager
 {
 public:
-     DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIRenderTargetManager)
+     IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIRenderTargetManager)
      
      virtual bool InitRenderTargetManager(IRHIDevice& device, size_t max_render_target_count) = 0;
      

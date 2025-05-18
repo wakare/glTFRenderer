@@ -5,7 +5,7 @@
 class DX12CommandAllocator : public IRHICommandAllocator
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(DX12CommandAllocator)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(DX12CommandAllocator)
     
     virtual bool InitCommandAllocator(IRHIDevice& device, RHICommandAllocatorType type) override;
 

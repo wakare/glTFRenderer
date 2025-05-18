@@ -1,13 +1,14 @@
 #pragma once
 #include "IRHIBuffer.h"
-#include "IRHIDescriptorManager.h"
 #include "IRHIMemoryAllocator.h"
 #include "IRHITexture.h"
 
-class IRHIMemoryAllocation : public IRHIResource
+class IRHIDescriptorManager;
+
+class RHICORE_API IRHIMemoryAllocation : public IRHIResource
 {
 public:
-    DECLARE_NON_COPYABLE_AND_VDTOR(IRHIMemoryAllocation)
+    IMPL_NON_COPYABLE_AND_VDTOR(IRHIMemoryAllocation)
 
     enum AllocationType
     {
@@ -32,10 +33,10 @@ protected:
     const AllocationType m_allocation_type;
 };
 
-class IRHIBufferAllocation : public IRHIMemoryAllocation
+class RHICORE_API IRHIBufferAllocation : public IRHIMemoryAllocation
 {
 public:
-    DECLARE_NON_COPYABLE_AND_VDTOR(IRHIBufferAllocation)
+    IMPL_NON_COPYABLE_AND_VDTOR(IRHIBufferAllocation)
     IRHIBufferAllocation() :
         IRHIMemoryAllocation(AllocationType::BUFFER)
     {
@@ -45,10 +46,10 @@ public:
     std::shared_ptr<IRHIBuffer> m_buffer {nullptr};
 };
 
-class IRHITextureAllocation : public IRHIMemoryAllocation
+class RHICORE_API IRHITextureAllocation : public IRHIMemoryAllocation
 {
 public:
-    DECLARE_NON_COPYABLE_AND_VDTOR(IRHITextureAllocation)
+    IMPL_NON_COPYABLE_AND_VDTOR(IRHITextureAllocation)
     IRHITextureAllocation():
         IRHIMemoryAllocation(AllocationType::TEXTURE)
     {
@@ -77,7 +78,7 @@ struct TempBufferInfo
     int remain_frame_to_reuse;
 };
 
-class RHITempBufferPool
+class RHICORE_API RHITempBufferPool
 {
 public:
     bool TryGetBuffer(const RHIBufferDesc& buffer_desc, std::shared_ptr<IRHIBufferAllocation>& out_buffer);
@@ -90,10 +91,10 @@ protected:
 };
 
 // Hold descriptor heap which store cbv for gpu memory
-class IRHIMemoryManager 
+class RHICORE_API IRHIMemoryManager 
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIMemoryManager)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIMemoryManager)
     
     virtual bool InitMemoryManager(IRHIDevice& device, const IRHIFactory& factory, const DescriptorAllocationInfo&
                                    descriptor_allocation_info);

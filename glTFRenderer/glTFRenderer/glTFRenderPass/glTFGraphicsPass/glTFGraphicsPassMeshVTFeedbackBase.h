@@ -4,7 +4,7 @@
 class glTFGraphicsPassMeshVTFeedbackBase : public glTFGraphicsPassMeshBase
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFGraphicsPassMeshVTFeedbackBase)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFGraphicsPassMeshVTFeedbackBase)
     
     virtual const char* PassName() override {return "MeshPassVT"; }
     virtual bool UpdateGUIWidgets() override;
@@ -34,7 +34,7 @@ class glTFGraphicsPassMeshVTFeedbackRVT : public glTFGraphicsPassMeshVTFeedbackB
 {
 public:
     glTFGraphicsPassMeshVTFeedbackRVT(unsigned virtual_texture_id);
-    DECLARE_NON_COPYABLE_AND_VDTOR(glTFGraphicsPassMeshVTFeedbackRVT)
+    IMPL_NON_COPYABLE_AND_VDTOR(glTFGraphicsPassMeshVTFeedbackRVT)
     
 protected:
     virtual bool InitRenderInterface(glTFRenderResourceManager& resource_manager) override;

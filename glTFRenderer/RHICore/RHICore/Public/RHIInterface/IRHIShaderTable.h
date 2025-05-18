@@ -4,7 +4,7 @@
 #include "IRHIRayTracingAS.h"
 #include "IRHIResource.h"
 
-struct RHIShaderTableRecordBase
+struct RHICORE_API  RHIShaderTableRecordBase
 {
     virtual ~RHIShaderTableRecordBase() = default;
 
@@ -13,7 +13,7 @@ struct RHIShaderTableRecordBase
 };
 
 // One ray type mapping one SBT (means one raygen shader, one miss shader and one hit group symbol)
-struct RHIShaderBindingTable
+struct RHICORE_API  RHIShaderBindingTable
 {
     std::string raygen_entry;
     std::string miss_entry;
@@ -24,7 +24,7 @@ struct RHIShaderBindingTable
     std::vector<std::shared_ptr<RHIShaderTableRecordBase>> hit_group_records;
 };
 
-class IRHIShaderTable
+class RHICORE_API IRHIShaderTable
 {
 public:
     virtual bool InitShaderTable(IRHIDevice& device, IRHIMemoryManager& memory_manager, IRHIPipelineStateObject& pso, IRHIRayTracingAS& as, const std::vector<RHIShaderBindingTable>& sbts) = 0;

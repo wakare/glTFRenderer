@@ -10,10 +10,10 @@ struct RHIFrameBufferInfo
     std::vector<std::shared_ptr<IRHIRenderTarget>> attachment_images;
 };
 
-class IRHIFrameBuffer : public IRHIResource
+class RHICORE_API IRHIFrameBuffer : public IRHIResource
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIFrameBuffer)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIFrameBuffer)
     
     virtual bool InitFrameBuffer(IRHIDevice& device, IRHISwapChain& swap_chain, const RHIFrameBufferInfo& info) = 0;
 };

@@ -4,7 +4,6 @@
 #include "DX12Buffer.h"
 #include "DX12Device.h"
 #include "DX12Utils.h"
-#include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "RHIUtils.h"
 #include "SceneFileLoader/glTFImageIOUtil.h"
 

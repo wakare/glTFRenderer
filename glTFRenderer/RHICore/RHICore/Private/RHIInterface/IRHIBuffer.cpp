@@ -8,7 +8,7 @@ bool IRHIBuffer::Transition(IRHICommandList& command_list, RHIResourceStateType 
         return true;
     }
 
-    RETURN_IF_FALSE(RHIUtils::Instance().AddBufferBarrierToCommandList(command_list, *this, m_current_state, new_state))
+    RETURN_IF_FALSE(RHIUtilInstanceManager::Instance().AddBufferBarrierToCommandList(command_list, *this, m_current_state, new_state))
 
     m_current_state = new_state;
     return true;

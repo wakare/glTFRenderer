@@ -8,7 +8,7 @@ class IRHITexture;
 class VKSwapChain : public IRHISwapChain
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKSwapChain)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKSwapChain)
 
     virtual unsigned GetCurrentBackBufferIndex() override;
     virtual unsigned GetBackBufferCount() override;

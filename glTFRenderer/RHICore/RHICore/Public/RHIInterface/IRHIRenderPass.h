@@ -21,10 +21,10 @@ struct RHIRenderPassInfo
     std::vector<RHISubPassDependency> sub_pass_dependencies;
 };
 
-class IRHIRenderPass : public IRHIResource
+class RHICORE_API IRHIRenderPass : public IRHIResource
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIRenderPass)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIRenderPass)
 
     virtual bool InitRenderPass(IRHIDevice& device, const RHIRenderPassInfo& info) = 0;
 };

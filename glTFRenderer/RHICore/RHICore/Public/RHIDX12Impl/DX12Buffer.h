@@ -7,7 +7,7 @@
 class DX12Buffer : public IRHIBuffer
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(DX12Buffer)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(DX12Buffer)
     
     bool Release(IRHIMemoryManager& memory_manager) override;
     

@@ -6,7 +6,7 @@ class VTLogicalTextureBase;
 class ShadowRenderSystem : public RenderSystemBase
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(ShadowRenderSystem)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(ShadowRenderSystem)
     
     enum
     {

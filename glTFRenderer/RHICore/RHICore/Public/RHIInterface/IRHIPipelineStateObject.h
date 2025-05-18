@@ -19,10 +19,10 @@ DECLARE_INPUT_LAYOUT_SEMANTIC_NAME(TEXCOORD)
 
 #define INPUT_LAYOUT_UNIQUE_PARAMETER(x) (g_inputLayoutName_##x)
 
-class IRHIPipelineStateObject : public IRHIResource
+class RHICORE_API IRHIPipelineStateObject : public IRHIResource
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIPipelineStateObject)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIPipelineStateObject)
     
     IRHIPipelineStateObject(RHIPipelineType type);
 
@@ -41,7 +41,7 @@ public:
 
     void SetInputLayouts(const std::vector<RHIPipelineInputLayout>& input_layouts);
     
-    RHIPipelineType GetPSOType() const {return m_type; }
+    RHIPipelineType GetPSOType() const;
     RHIShaderPreDefineMacros& GetShaderMacros();
     
 protected:
@@ -55,7 +55,7 @@ protected:
     std::map<RHIShaderType, std::shared_ptr<IRHIShader>> m_shaders;
 };
 
-class IRHIGraphicsPipelineStateObject : public IRHIPipelineStateObject
+class RHICORE_API IRHIGraphicsPipelineStateObject : public IRHIPipelineStateObject
 {
 public:
     IRHIGraphicsPipelineStateObject();
@@ -63,13 +63,13 @@ public:
     virtual bool BindRenderTargetFormats(const std::vector<IRHIDescriptorAllocation*>& render_targets) = 0;
 };
 
-class IRHIComputePipelineStateObject : public IRHIPipelineStateObject
+class RHICORE_API IRHIComputePipelineStateObject : public IRHIPipelineStateObject
 {
 public:
     IRHIComputePipelineStateObject();
 };
 
-class IRHIRayTracingPipelineStateObject : public IRHIPipelineStateObject
+class RHICORE_API IRHIRayTracingPipelineStateObject : public IRHIPipelineStateObject
 {
 public:
     struct RHIRayTracingHitGroupDesc

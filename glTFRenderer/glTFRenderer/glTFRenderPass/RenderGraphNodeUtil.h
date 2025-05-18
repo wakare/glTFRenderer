@@ -15,7 +15,7 @@ namespace RenderGraphNodeUtil
     class RenderGraphNode
     {
     public:
-        DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(RenderGraphNode)
+        IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(RenderGraphNode)
         
         std::shared_ptr<IRHITexture> GetResourceTexture(RenderPassResourceTableId id) const;
         std::shared_ptr<IRHITextureDescriptorAllocation> GetResourceDescriptor(RenderPassResourceTableId id) const;

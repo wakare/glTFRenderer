@@ -3,9 +3,8 @@
 #include <set>
 
 #include "IRHIRootSignature.h"
-#include "IRHIDescriptorManager.h"
 
-class IRHIRootSignatureHelper
+class RHICORE_API IRHIRootSignatureHelper
 {
 public:
     IRHIRootSignatureHelper(int register_space = 0);
@@ -37,7 +36,7 @@ public:
     bool BuildRootSignature(IRHIDevice& device, IRHIDescriptorManager& descriptor_manager);
     
     IRHIRootSignature& GetRootSignature() const;
-    std::shared_ptr<IRHIRootSignature> GetRootSignaturePointer() const { return m_root_signature; }
+    std::shared_ptr<IRHIRootSignature> GetRootSignaturePointer() const;
     
     const RootSignatureLayout& GetRootSignatureLayout() const;
     

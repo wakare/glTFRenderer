@@ -44,7 +44,7 @@ struct RVTPageRenderingInfo
 class VTLogicalTextureBase
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VTLogicalTextureBase)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VTLogicalTextureBase)
     
     bool InitLogicalTexture(const RHITextureDesc& desc, const VTLogicalTextureConfig& config);
     
@@ -88,7 +88,7 @@ protected:
 class VTLogicalTextureSVT : public VTLogicalTextureBase
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VTLogicalTextureSVT)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VTLogicalTextureSVT)
 
     virtual LogicalTextureType GetLogicalTextureType() const override {return LogicalTextureType::SVT;}
     virtual bool InitRenderResource(glTFRenderResourceManager& resource_manager) override;
@@ -101,7 +101,7 @@ protected:
 class VTLogicalTextureRVT : public VTLogicalTextureBase
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VTLogicalTextureRVT)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VTLogicalTextureRVT)
 
     virtual bool SetupPassManager(glTFRenderPassManager& pass_manager) const override;
     virtual void UpdateRenderResource(glTFRenderResourceManager& resource_manager);
@@ -124,7 +124,7 @@ class VTShadowmapLogicalTexture : public VTLogicalTextureRVT
 {
 public:
     VTShadowmapLogicalTexture(unsigned light_id);
-    DECLARE_NON_COPYABLE_AND_VDTOR(VTShadowmapLogicalTexture)
+    IMPL_NON_COPYABLE_AND_VDTOR(VTShadowmapLogicalTexture)
 
     virtual bool InitRenderResource(glTFRenderResourceManager& resource_manager) override;
 
@@ -140,7 +140,7 @@ protected:
 class VTPageLRU
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VTPageLRU)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VTPageLRU)
 
     void AddPage(const VTPage& page);
     void RemovePage(const VTPage& page);

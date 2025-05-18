@@ -10,10 +10,10 @@ struct RHIIndexBufferViewDesc
     RHIDataFormat format;
 };
 
-class IRHIIndexBufferView
+class RHICORE_API IRHIIndexBufferView
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIIndexBufferView)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIIndexBufferView)
     
     virtual bool InitIndexBufferView(IRHIBuffer& buffer, const RHIIndexBufferViewDesc& desc) = 0;
     

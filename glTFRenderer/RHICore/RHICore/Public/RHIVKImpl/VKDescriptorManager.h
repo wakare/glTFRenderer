@@ -17,7 +17,7 @@ protected:
 class VKTextureDescriptorAllocation : public IRHITextureDescriptorAllocation
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKTextureDescriptorAllocation)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKTextureDescriptorAllocation)
     
     bool InitFromImageView(const std::shared_ptr<IRHITexture>& texture, VkDevice device, VkImageView image_view, const RHITextureDescriptorDesc& desc);
     
@@ -45,7 +45,7 @@ protected:
 class VKDescriptorManager : public IRHIDescriptorManager
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKDescriptorManager)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKDescriptorManager)
 
     virtual bool Init(IRHIDevice& device, const DescriptorAllocationInfo& max_descriptor_capacity) override;
     virtual bool CreateDescriptor(IRHIDevice& device, const std::shared_ptr<IRHIBuffer>& buffer, const RHIBufferDescriptorDesc& desc, std::shared_ptr<IRHIBufferDescriptorAllocation>& out_descriptor_allocation) override;

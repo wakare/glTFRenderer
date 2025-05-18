@@ -1,16 +1,17 @@
 ﻿#include "DX12RayTracingAS.h"
 
 #include "DX12ConverterUtils.h"
-#include "glTFRenderPass/glTFRenderMeshManager.h"
 #include "RHIResourceFactoryImpl.hpp"
 
 DX12RayTracingAS::DX12RayTracingAS()
 {
 }
 
-bool DX12RayTracingAS::InitRayTracingAS(IRHIDevice& device, IRHICommandList& command_list, const glTFRenderMeshManager& mesh_manager, IRHIMemoryManager&
+bool DX12RayTracingAS::InitRayTracingAS(IRHIDevice& device, IRHICommandList& command_list, IRHIMemoryManager&
                                         memory_manager)
 {
+    //TODO: Do ray tracing mesh abstract 
+    /*
     auto* dxr_device = dynamic_cast<DX12Device&>(device).GetDXRDevice();
     auto* dxr_command_list = dynamic_cast<DX12CommandList&>(command_list).GetDXRCommandList();
     
@@ -214,7 +215,7 @@ m_upload_buffer);
 
     // Build acceleration structure.
     BuildAccelerationStructure(dxr_command_list);
-
+    */
     return true;
 }
 

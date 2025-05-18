@@ -19,7 +19,7 @@ class IRHICommandList;
 class glTFRenderPassBase : public glTFUniqueObject<glTFRenderPassBase>, public RenderGraphNodeUtil::RenderGraphNode
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFRenderPassBase)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFRenderPassBase)
 
     virtual const char* PassName() = 0;
     

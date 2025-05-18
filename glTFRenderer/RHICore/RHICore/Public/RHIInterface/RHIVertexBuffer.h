@@ -3,13 +3,12 @@
 
 #include "IRHIBuffer.h"
 #include "IRHIVertexBufferView.h"
-#include "glTFScene/glTFScenePrimitive.h"
 #include "IRHIMemoryManager.h"
 
-class RHIVertexBuffer final
+class RHICORE_API RHIVertexBuffer final
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(RHIVertexBuffer)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(RHIVertexBuffer)
     
     std::shared_ptr<IRHIVertexBufferView> CreateVertexBufferView(
         IRHIDevice& device,

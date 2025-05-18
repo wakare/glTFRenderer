@@ -38,7 +38,7 @@ bool glTFGraphicsPassMeshBase::PreRenderPass(glTFRenderResourceManager& resource
     RETURN_IF_FALSE(glTFGraphicsPassBase::PreRenderPass(resource_manager))
 
     auto& command_list = resource_manager.GetCommandListForRecord();
-    RHIUtils::Instance().SetPrimitiveTopology( command_list, RHIPrimitiveTopologyType::TRIANGLELIST);
+    RHIUtilInstanceManager::Instance().SetPrimitiveTopology( command_list, RHIPrimitiveTopologyType::TRIANGLELIST);
 
     return true;
 }
@@ -54,7 +54,7 @@ bool glTFGraphicsPassMeshBase::RenderPass(glTFRenderResourceManager& resource_ma
     if (UsingIndirectDraw())
     {
         // Bind mega index buffer
-        RHIUtils::Instance().SetIndexBufferView(command_list, *resource_manager.GetMeshManager().GetMegaIndexBufferView());
+        RHIUtilInstanceManager::Instance().SetIndexBufferView(command_list, *resource_manager.GetMeshManager().GetMegaIndexBufferView());
         resource_manager.GetMeshManager().GetIndirectDrawBuilder().DrawIndirect(command_list, *m_command_signature, UsingIndirectDrawCulling());
     }
     else
@@ -75,13 +75,13 @@ bool glTFGraphicsPassMeshBase::RenderPass(glTFRenderResourceManager& resource_ma
         
             if (UsingInputLayout())
             {
-                RHIUtils::Instance().SetVertexBufferView(command_list, 0, *mesh_data->second.mesh_vertex_buffer_view);
-                RHIUtils::Instance().SetVertexBufferView(command_list, 1, *resource_manager.GetMeshManager().GetInstanceBufferView());    
+                RHIUtilInstanceManager::Instance().SetVertexBufferView(command_list, 0, *mesh_data->second.mesh_vertex_buffer_view);
+                RHIUtilInstanceManager::Instance().SetVertexBufferView(command_list, 1, *resource_manager.GetMeshManager().GetInstanceBufferView());    
             }
                 
-            RHIUtils::Instance().SetIndexBufferView(command_list, *mesh_data->second.mesh_index_buffer_view);
+            RHIUtilInstanceManager::Instance().SetIndexBufferView(command_list, *mesh_data->second.mesh_index_buffer_view);
         
-            RHIUtils::Instance().DrawIndexInstanced(command_list,
+            RHIUtilInstanceManager::Instance().DrawIndexInstanced(command_list,
                 mesh_data->second.mesh_index_count, instance.second.first,
                 0, 0,
                 instance.second.second);

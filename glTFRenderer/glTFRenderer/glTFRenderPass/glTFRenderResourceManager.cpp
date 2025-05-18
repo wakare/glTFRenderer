@@ -290,7 +290,7 @@ IRHICommandList& glTFRenderResourceManager::GetCommandListForRecord()
     auto& command_allocator = *m_command_allocators[current_frame_index];
     if (!m_command_list_record_state[current_frame_index])
     {
-        const bool reset = RHIUtils::Instance().ResetCommandList(command_list, command_allocator, m_current_pass_pso.get());
+        const bool reset = RHIUtilInstanceManager::Instance().ResetCommandList(command_list, command_allocator, m_current_pass_pso.get());
         GLTF_CHECK(reset);
         
         m_command_list_record_state[current_frame_index] = true;
@@ -309,13 +309,13 @@ void glTFRenderResourceManager::CloseCurrentCommandListAndExecute(const RHIExecu
     
     auto& command_list = *m_command_lists[current_frame_index];
     
-    const bool closed = RHIUtils::Instance().CloseCommandList(command_list);
+    const bool closed = RHIUtilInstanceManager::Instance().CloseCommandList(command_list);
     GLTF_CHECK(closed);
 
-    GLTF_CHECK(RHIUtils::Instance().ExecuteCommandList(command_list, GetCommandQueue(), context));
+    GLTF_CHECK(RHIUtilInstanceManager::Instance().ExecuteCommandList(command_list, GetCommandQueue(), context));
     if (wait)
     {
-        RHIUtils::Instance().WaitCommandListFinish(command_list);
+        RHIUtilInstanceManager::Instance().WaitCommandListFinish(command_list);
     }
     
     m_command_list_record_state[current_frame_index] = false;
@@ -332,14 +332,14 @@ void glTFRenderResourceManager::WaitPresentFinished()
 void glTFRenderResourceManager::WaitLastFrameFinish() const
 {
     const auto current_frame_index = GetCurrentBackBufferIndex() % backBufferCount;
-    RHIUtils::Instance().WaitCommandListFinish(*m_command_lists[current_frame_index]);
+    RHIUtilInstanceManager::Instance().WaitCommandListFinish(*m_command_lists[current_frame_index]);
 }
 
 void glTFRenderResourceManager::WaitAllFrameFinish() const
 {
     for (const auto& command_list : m_command_lists)
     {
-        RHIUtils::Instance().WaitCommandListFinish(*command_list);
+        RHIUtilInstanceManager::Instance().WaitCommandListFinish(*command_list);
     }
     
     for (auto& render_system : m_render_systems)
@@ -348,13 +348,13 @@ void glTFRenderResourceManager::WaitAllFrameFinish() const
     }
 
     // Wait queue
-    RHIUtils::Instance().WaitCommandQueueIdle(*m_command_queue);
+    RHIUtilInstanceManager::Instance().WaitCommandQueueIdle(*m_command_queue);
 }
 
 void glTFRenderResourceManager::ResetCommandAllocator()
 {
     CloseCurrentCommandListAndExecute({}, true);
-    RHIUtils::Instance().ResetCommandAllocator(GetCurrentFrameCommandAllocator());
+    RHIUtilInstanceManager::Instance().ResetCommandAllocator(GetCurrentFrameCommandAllocator());
 }
 
 void glTFRenderResourceManager::WaitAndClean()

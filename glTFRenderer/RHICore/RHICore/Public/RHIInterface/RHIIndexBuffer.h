@@ -2,12 +2,11 @@
 #include "IRHIBuffer.h"
 #include "IRHIIndexBufferView.h"
 #include "IRHIMemoryManager.h"
-#include "glTFScene/glTFScenePrimitive.h"
 
-class RHIIndexBuffer final
+class RHICORE_API RHIIndexBuffer final
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(RHIIndexBuffer)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(RHIIndexBuffer)
     
     std::shared_ptr<IRHIIndexBufferView> CreateIndexBufferView(
         IRHIDevice& device,

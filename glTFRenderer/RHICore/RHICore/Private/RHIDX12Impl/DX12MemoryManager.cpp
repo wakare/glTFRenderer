@@ -1,6 +1,5 @@
 #include "DX12MemoryManager.h"
 #include "d3dx12.h"
-#include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "RHIResourceFactoryImpl.hpp"
 
 

@@ -5,7 +5,7 @@
 class VKRenderPass : public IRHIRenderPass
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKRenderPass)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKRenderPass)
     
     virtual bool InitRenderPass(IRHIDevice& device, const RHIRenderPassInfo& info) override;
     virtual bool Release(IRHIMemoryManager& memory_manager) override;

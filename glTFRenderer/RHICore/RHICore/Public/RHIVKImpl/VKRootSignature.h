@@ -5,7 +5,7 @@
 class VKRootSignature : public IRHIRootSignature
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKRootSignature)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKRootSignature)
     
     virtual bool InitRootSignature(IRHIDevice& device, IRHIDescriptorManager& descriptor_manager) override;
     virtual bool Release(IRHIMemoryManager& memory_manager) override;

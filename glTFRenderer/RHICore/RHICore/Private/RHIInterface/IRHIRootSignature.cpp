@@ -2,6 +2,21 @@
 
 #include "../RHIResourceFactoryImpl.hpp"
 
+bool IRHIRootParameter::IsBindless() const
+{
+    return false;
+}
+
+RHIRootParameterType IRHIRootParameter::GetType() const
+{
+    return m_type;
+}
+
+void IRHIRootParameter::SetType(RHIRootParameterType type)
+{
+    assert(m_type == RHIRootParameterType::Unknown); m_type = type;
+}
+
 IRHIRootSignature::IRHIRootSignature()
     : m_usage(RHIRootSignatureUsage::None)
 {
@@ -29,6 +44,16 @@ bool IRHIRootSignature::AllocateRootSignatureSpace(size_t rootParameterCount, si
     }
         
     return true;
+}
+
+void IRHIRootSignature::SetUsage(RHIRootSignatureUsage usage)
+{
+    m_usage = usage;
+}
+
+bool IRHIRootSignature::IsSpaceAllocated() const
+{
+    return !m_root_parameters.empty() || !m_static_samplers.empty();
 }
 
 bool IRHIRootSignature::HasSampler() const

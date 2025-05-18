@@ -8,7 +8,7 @@ class IRHIFence;
 class DX12CommandList : public IRHICommandList
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(DX12CommandList)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(DX12CommandList)
     
     virtual bool InitCommandList(IRHIDevice& device, IRHICommandAllocator& command_allocator) override;
     virtual bool WaitCommandList() override;

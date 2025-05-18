@@ -301,6 +301,11 @@ IRHIRootSignature& IRHIRootSignatureHelper::GetRootSignature() const
     return *m_root_signature;
 }
 
+std::shared_ptr<IRHIRootSignature> IRHIRootSignatureHelper::GetRootSignaturePointer() const
+{
+    return m_root_signature;
+}
+
 const RootSignatureLayout& IRHIRootSignatureHelper::GetRootSignatureLayout() const
 {
     return m_layout;

@@ -31,7 +31,7 @@ protected:
     virtual bool ApplyInterfaceImpl(glTFRenderResourceManager& resource_manager, IRHICommandList& command_list, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater, unsigned
                                     frame_index) override
     {
-        RETURN_IF_FALSE(RHIUtils::Instance().SetConstant32BitToRootParameterSlot(command_list,
+        RETURN_IF_FALSE(RHIUtilInstanceManager::Instance().SetConstant32BitToRootParameterSlot(command_list,
            m_allocation.global_parameter_index, reinterpret_cast<unsigned*>(m_data), count, pipeline_type))
         
         return true;

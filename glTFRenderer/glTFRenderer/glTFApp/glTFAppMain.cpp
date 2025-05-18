@@ -124,7 +124,7 @@ void glTFAppMain::Run()
             // Clear all render resource
             m_renderer.reset(nullptr);
             
-            RHIUtils::Instance().ReportLiveObjects();
+            RHIUtilInstanceManager::Instance().ReportLiveObjects();
         });    
     }
     

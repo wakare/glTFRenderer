@@ -115,6 +115,11 @@ void IRHIPipelineStateObject::SetInputLayouts(const std::vector<RHIPipelineInput
     m_input_layouts = input_layouts;
 }
 
+RHIPipelineType IRHIPipelineStateObject::GetPSOType() const
+{
+    return m_type;
+}
+
 RHICullMode IRHIPipelineStateObject::GetCullMode() const
 {
     return m_cullMode;

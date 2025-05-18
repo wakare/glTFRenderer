@@ -6,7 +6,7 @@
 class DX12RootParameter : public IRHIRootParameter
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(DX12RootParameter)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(DX12RootParameter)
 
     virtual bool InitAsConstant(unsigned constant_value_count, REGISTER_INDEX_TYPE register_index, unsigned space) override;
     virtual bool InitAsCBV(unsigned attribute_index, REGISTER_INDEX_TYPE register_index, unsigned space) override;

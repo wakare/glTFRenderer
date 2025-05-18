@@ -2,13 +2,13 @@
 #include "IRHICommandList.h"
 #include "IRHIResource.h"
 
-class IRHIBuffer : public IRHIResource
+class RHICORE_API IRHIBuffer : public IRHIResource
 {
     friend class IRHIMemoryManager;
     friend class DX12MemoryManager;
     
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIBuffer)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIBuffer)
     
     const RHIBufferDesc& GetBufferDesc() const {return m_buffer_desc; }
     

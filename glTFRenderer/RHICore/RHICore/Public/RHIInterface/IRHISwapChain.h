@@ -19,10 +19,10 @@ struct RHISwapChainDesc
     HWND hwnd;
 };
 
-class IRHISwapChain : public IRHIResource
+class RHICORE_API IRHISwapChain : public IRHIResource
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHISwapChain)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHISwapChain)
     
     unsigned GetWidth() const;
     unsigned GetHeight() const;

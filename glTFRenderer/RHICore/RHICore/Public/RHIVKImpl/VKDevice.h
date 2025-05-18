@@ -26,7 +26,7 @@ struct SwapChainSupportDetails
 class VKDevice : public IRHIDevice
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKDevice)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKDevice)
     
     virtual bool InitDevice(IRHIFactory& factory) override;
     

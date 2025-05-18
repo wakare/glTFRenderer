@@ -17,7 +17,7 @@ class IRHIDescriptorAllocation;
 class DX12DescriptorHeap : public IRHIResource
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(DX12DescriptorHeap)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(DX12DescriptorHeap)
     
     virtual bool InitDescriptorHeap(IRHIDevice& device, const RHIDescriptorHeapDesc& desc) ;
     unsigned GetUsedDescriptorCount() const;

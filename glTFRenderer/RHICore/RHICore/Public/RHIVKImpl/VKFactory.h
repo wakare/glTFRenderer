@@ -6,7 +6,7 @@
 class VKFactory : public IRHIFactory
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKFactory)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKFactory)
     
     virtual bool InitFactory() override;
     virtual bool Release(IRHIMemoryManager& memory_manager) override;

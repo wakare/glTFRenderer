@@ -55,7 +55,7 @@ bool glTFRenderPassBase::PreRenderPass(glTFRenderResourceManager& resource_manag
     
     RETURN_IF_FALSE(resource_manager.GetMemoryManager().GetDescriptorManager().BindDescriptorContext(command_list))
     
-    RETURN_IF_FALSE(RHIUtils::Instance().SetRootSignature(command_list, m_root_signature_helper.GetRootSignature(), *m_pipeline_state_object, GetPipelineType()))
+    RETURN_IF_FALSE(RHIUtilInstanceManager::Instance().SetRootSignature(command_list, m_root_signature_helper.GetRootSignature(), *m_pipeline_state_object, GetPipelineType()))
 
     for (const auto& render_interface : m_render_interfaces)
     {
@@ -69,14 +69,14 @@ bool glTFRenderPassBase::RenderPass(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(m_descriptor_updater->FinalizeUpdateDescriptors(resource_manager.GetDevice(), resource_manager.GetCommandListForRecord(), m_root_signature_helper.GetRootSignature()))
     
-    //RHIUtils::Instance().BeginRendering(resource_manager.GetCommandListForRecord(), m_begin_rendering_info);
+    //RHIUtilInstanceManager::Instance().BeginRendering(resource_manager.GetCommandListForRecord(), m_begin_rendering_info);
 
     return true;
 }
 
 bool glTFRenderPassBase::PostRenderPass(glTFRenderResourceManager& resource_manager)
 {
-    //RHIUtils::Instance().EndRendering(resource_manager.GetCommandListForRecord());
+    //RHIUtilInstanceManager::Instance().EndRendering(resource_manager.GetCommandListForRecord());
     
     return true;
 }

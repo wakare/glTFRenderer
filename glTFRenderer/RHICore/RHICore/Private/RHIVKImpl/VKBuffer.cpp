@@ -1,7 +1,5 @@
 #include "VKBuffer.h"
 
-#include "glTFRenderPass/glTFRenderResourceManager.h"
-
 bool VKBuffer::InitBuffer(VkBuffer buffer, const RHIBufferDesc& desc)
 {
     m_buffer = buffer;

@@ -107,10 +107,10 @@ bool glTFGraphicsPassTestIndexedTextureTriangle::RenderPass(glTFRenderResourceMa
 
     auto& command_list = resource_manager.GetCommandListForRecord();
     
-    RHIUtils::Instance().SetVertexBufferView(command_list, 0, *m_vertex_buffer_view);
-    RHIUtils::Instance().SetIndexBufferView(command_list, *m_index_buffer_view);
+    RHIUtilInstanceManager::Instance().SetVertexBufferView(command_list, 0, *m_vertex_buffer_view);
+    RHIUtilInstanceManager::Instance().SetIndexBufferView(command_list, *m_index_buffer_view);
 
-    RHIUtils::Instance().DrawIndexInstanced(command_list, 3, 1, 0,0, 0);
+    RHIUtilInstanceManager::Instance().DrawIndexInstanced(command_list, 3, 1, 0,0, 0);
     
     return true;
 }

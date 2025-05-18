@@ -4,7 +4,7 @@
 class glTFGraphicsPassTestTriangleBase : public glTFGraphicsPassBase
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFGraphicsPassTestTriangleBase)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFGraphicsPassTestTriangleBase)
     
     virtual bool PreRenderPass(glTFRenderResourceManager& resource_manager) override;
 };

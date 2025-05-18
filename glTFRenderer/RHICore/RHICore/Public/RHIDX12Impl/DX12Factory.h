@@ -5,7 +5,7 @@
 class DX12Factory : public IRHIFactory
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(DX12Factory)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(DX12Factory)
     
     virtual bool InitFactory() override;
 

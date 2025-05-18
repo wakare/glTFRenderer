@@ -95,23 +95,31 @@ typedef unsigned glTFUniqueID;
 #define GLTF_CHECK(a) assert(a)
 #endif
 
-#define DECLARE_NON_COPYABLE(ClassName)\
+#define IMPL_NON_COPYABLE(ClassName)\
     ClassName(const ClassName&) = delete;\
     ClassName(ClassName&&) = delete;\
     ClassName& operator=(const ClassName&) = delete;\
     ClassName& operator=(ClassName&&) = delete;
 
-#define DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR(ClassName)\
+#define IMPL_NON_COPYABLE_AND_DEFAULT_CTOR(ClassName)\
     ClassName() = default;\
-    DECLARE_NON_COPYABLE(ClassName)
+    IMPL_NON_COPYABLE(ClassName)
 
-#define DECLARE_NON_COPYABLE_AND_VDTOR(ClassName)\
-    virtual ~ClassName() = default;\
-    DECLARE_NON_COPYABLE(ClassName)
-
-#define DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(ClassName)\
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR(ClassName)\
+#define IMPL_VDTOR(ClassName) \
     virtual ~ClassName() = default;
+
+#define IMPL_NON_COPYABLE_AND_VDTOR(ClassName)\
+    IMPL_NON_COPYABLE(ClassName)\
+    IMPL_VDTOR(ClassName)
+
+#define IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(ClassName)\
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR(ClassName)\
+    IMPL_VDTOR(ClassName)
+
+#define IMPL_DEFAULT_CTOR_VDTOR(ClassName) \
+    ClassName() = default; \
+    virtual ~ClassName() = default;
+
 
 //#define ALIGN_FOR_CBV_STRUCT __declspec(align(16))
 #define ALIGN_FOR_CBV_STRUCT

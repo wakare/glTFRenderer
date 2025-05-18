@@ -5,7 +5,7 @@
 class glTFGraphicsPassTestTriangleSimplest : public glTFGraphicsPassTestTriangleBase
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFGraphicsPassTestTriangleSimplest)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFGraphicsPassTestTriangleSimplest)
     
     virtual const char* PassName() override;
     

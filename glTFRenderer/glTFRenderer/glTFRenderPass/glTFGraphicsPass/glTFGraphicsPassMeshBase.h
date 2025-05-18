@@ -9,7 +9,7 @@ class IRHICommandSignature;
 class glTFGraphicsPassMeshBase : public glTFGraphicsPassBase
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFGraphicsPassMeshBase)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFGraphicsPassMeshBase)
     
     virtual const char* PassName() override {return "MeshPass"; }
     virtual bool InitRenderInterface(glTFRenderResourceManager& resource_manager) override;
@@ -41,7 +41,7 @@ protected:
 class glTFGraphicsPassMeshBaseSceneView : public glTFGraphicsPassMeshBase
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFGraphicsPassMeshBaseSceneView)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFGraphicsPassMeshBaseSceneView)
     virtual bool InitRenderInterface(glTFRenderResourceManager& resource_manager) override;
     virtual bool UpdateGUIWidgets() override;
     virtual bool UsingIndirectDrawCulling() const override;

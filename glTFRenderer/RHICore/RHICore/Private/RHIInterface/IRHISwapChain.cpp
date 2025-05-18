@@ -1,5 +1,11 @@
 #include "IRHISwapChain.h"
 
+#ifdef RHICORE_EXPORTS
+#pragma message("✅ RHICORE_EXPORTS is defined in this file")
+#else
+#pragma message("❌ RHICORE_EXPORTS is NOT defined in this file")
+#endif
+
 unsigned IRHISwapChain::GetWidth() const
 {
     return GetSwapChainBufferDesc().GetTextureWidth();

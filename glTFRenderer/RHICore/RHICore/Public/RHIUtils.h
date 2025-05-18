@@ -23,12 +23,13 @@ class IRHIBuffer;
 class IRHICommandList;
 
 // Singleton for provide combined basic rhi operations
-class RHIUtils
+class RHICORE_API RHIUtils
 {
     friend class RHIResourceFactory;
+    friend class RHIUtilInstanceManager;
     
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(RHIUtils)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(RHIUtils)
 
     virtual bool InitGraphicsAPI() = 0;
     
@@ -88,10 +89,11 @@ public:
 
     bool UploadTextureData(IRHICommandList& command_list, IRHIMemoryManager& memory_manager, IRHIDevice& device, IRHITexture& dst, const RHITextureMipUploadInfo& upload_info) ;
     bool Present(IRHISwapChain& swap_chain, IRHICommandQueue& command_queue, IRHICommandList& command_list);
+};
 
+class RHICORE_API RHIUtilInstanceManager
+{
+public:
     static RHIUtils& Instance();
     static void ResetInstance();
-    
-protected:
-    static std::shared_ptr<RHIUtils> g_instance;
 };

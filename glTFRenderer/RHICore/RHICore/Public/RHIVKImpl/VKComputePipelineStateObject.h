@@ -5,7 +5,7 @@
 class VKComputePipelineStateObject : public IRHIComputePipelineStateObject
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKComputePipelineStateObject)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKComputePipelineStateObject)
 
     virtual bool InitPipelineStateObject(IRHIDevice& device, const IRHIRootSignature& root_signature, IRHISwapChain& swap_chain) override;
     virtual bool Release(IRHIMemoryManager& memory_manager) override;

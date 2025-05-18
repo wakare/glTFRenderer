@@ -1,17 +1,18 @@
 ﻿#pragma once
 #include <d3d12.h>
 
-#include "glTFRenderPass/glTFRenderMeshManager.h"
 #include "IRHIRayTracingAS.h"
 #include "RendererCommon.h"
 #include "IRHIMemoryManager.h"
+
+class IRHIBufferDescriptorAllocation;
 
 class DX12RayTracingAS : public IRHIRayTracingAS
 {
 public:
     DX12RayTracingAS();
     
-    virtual bool InitRayTracingAS(IRHIDevice& device, IRHICommandList& command_list, const glTFRenderMeshManager& mesh_manager, IRHIMemoryManager&
+    virtual bool InitRayTracingAS(IRHIDevice& device, IRHICommandList& command_list, IRHIMemoryManager&
                                   memory_manager) override;
     virtual const IRHIDescriptorAllocation& GetTLASDescriptorSRV() const override;
 

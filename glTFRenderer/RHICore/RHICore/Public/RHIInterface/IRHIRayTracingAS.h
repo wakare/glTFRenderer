@@ -1,17 +1,15 @@
 ﻿#pragma once
 #include "IRHICommandList.h"
-#include "IRHIDevice.h"
 #include "IRHIResource.h"
 
 class IRHIDescriptorAllocation;
-class glTFRenderMeshManager;
 
-class IRHIRayTracingAS
+class RHICORE_API IRHIRayTracingAS
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIRayTracingAS)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(IRHIRayTracingAS)
     
-    virtual bool InitRayTracingAS(IRHIDevice& device, IRHICommandList& command_list, const glTFRenderMeshManager& mesh_manager, IRHIMemoryManager&
+    virtual bool InitRayTracingAS(IRHIDevice& device, IRHICommandList& command_list, IRHIMemoryManager&
                                   memory_manager) = 0;
     virtual const IRHIDescriptorAllocation& GetTLASDescriptorSRV() const = 0;
 };
