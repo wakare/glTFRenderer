@@ -2,8 +2,9 @@
 #include "glTFRenderInterfaceBase.h"
 #include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "RHIUtils.h"
-#include "IRHIDescriptorUpdater.h"
-#include "IRHIRootSignatureHelper.h"
+#include "RHIInterface/IRHIDescriptorManager.h"
+#include "RHIInterface/IRHIDescriptorUpdater.h"
+#include "RHIInterface/IRHIRootSignatureHelper.h"
 
 template<unsigned TableRangeCount, RHIDescriptorRangeType TextureType>
 class glTFRenderInterfaceTextureTable : public glTFRenderInterfaceWithRSAllocation

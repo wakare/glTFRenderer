@@ -1,4 +1,6 @@
 #pragma once
+#include <glm.hpp>
+
 #include "glTFMeshRenderResource.h"
 #include "RHIIndirectDrawBuilder.h"
 #include "RHIVertexStreamingManager.h"
@@ -27,7 +29,7 @@ ALIGN_FOR_CBV_STRUCT struct MeshInstanceInputData
 class glTFRenderMeshManager
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFRenderMeshManager)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFRenderMeshManager)
     
     bool AddOrUpdatePrimitive(glTFRenderResourceManager& resource_manager, const glTFScenePrimitive* primitive);
     bool BuildMeshRenderResource(glTFRenderResourceManager& resource_manager);

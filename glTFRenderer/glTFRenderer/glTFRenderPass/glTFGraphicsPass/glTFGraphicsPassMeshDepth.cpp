@@ -1,8 +1,8 @@
 #include "glTFGraphicsPassMeshDepth.h"
-
-#include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "RHIUtils.h"
-#include "IRHIPipelineStateObject.h"
+#include "glTFRenderPass/glTFRenderResourceManager.h"
+#include "RHIInterface/IRHIPipelineStateObject.h"
+#include "RHIInterface/IRHIDescriptorManager.h"
 
 bool glTFGraphicsPassMeshDepth::SetupPipelineStateObject(glTFRenderResourceManager& resource_manager)
 {

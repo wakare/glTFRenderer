@@ -168,15 +168,18 @@ bool glTFRayTracingPassPathTracing::UpdateGUIWidgets()
 bool glTFRayTracingPassPathTracing::InitResourceTable(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFRayTracingPassWithMesh::InitResourceTable(resource_manager))
-
-    auto output_desc = RHITextureDesc::MakeRayTracingSceneOutputTextureDesc(resource_manager);
-    AddExportTextureResource(RenderPassResourceTableId::RayTracingSceneOutput, RHITextureDesc::MakeRayTracingSceneOutputTextureDesc(resource_manager), 
+    
+    const unsigned width = resource_manager.GetSwapChain().GetWidth();
+    const unsigned height = resource_manager.GetSwapChain().GetHeight();
+    
+    auto output_desc = RHITextureDesc::MakeRayTracingSceneOutputTextureDesc(width, height);
+    AddExportTextureResource(RenderPassResourceTableId::RayTracingSceneOutput, RHITextureDesc::MakeRayTracingSceneOutputTextureDesc(width, height), 
     {
                     output_desc.GetDataFormat(),
                     RHIResourceDimension::TEXTURE2D,
                     RHIViewType::RVT_UAV
                     });
-    auto uv_offset_desc = RHITextureDesc::MakeScreenUVOffsetTextureDesc(resource_manager);
+    auto uv_offset_desc = RHITextureDesc::MakeScreenUVOffsetTextureDesc(width, height);
     AddExportTextureResource(RenderPassResourceTableId::ScreenUVOffset, uv_offset_desc, 
     {
                     uv_offset_desc.GetDataFormat(),

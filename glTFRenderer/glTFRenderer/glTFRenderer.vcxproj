@@ -49,11 +49,11 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(SolutionDir)RendererCommonLib/Public;$(SolutionDir)ThirdParty;$(SolutionDir)glTFRenderer;$(SolutionDir)ThirdParty;$(SolutionDir)ThirdParty/imgui;$(SolutionDir)ThirdParty/glm/glm;$(SolutionDir)ThirdParty/glfw/include;$(SolutionDir)ThirdParty/embree;$(SolutionDir)glTFRenderer;$(VULKAN_SDK)\include;$(VULKAN_SDK)\include\volk;</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(SolutionDir)RendererCommonLib/Public;$(SolutionDir)ThirdParty;$(SolutionDir)glTFRenderer;$(SolutionDir)ThirdParty;$(SolutionDir)ThirdParty/imgui;$(SolutionDir)ThirdParty/glm/glm;$(SolutionDir)ThirdParty/glfw/include;$(SolutionDir)ThirdParty/embree;$(SolutionDir)glTFRenderer;$(VULKAN_SDK)\include;$(VULKAN_SDK)\include\volk;$(SolutionDir)RHICore/Public;</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(SolutionDir)RendererCommonLib/Public;$(SolutionDir)ThirdParty;$(SolutionDir)glTFRenderer;$(SolutionDir)ThirdParty;$(SolutionDir)ThirdParty/imgui;$(SolutionDir)ThirdParty/glm/glm;$(SolutionDir)ThirdParty/glfw/include;$(SolutionDir)ThirdParty/embree;$(SolutionDir)glTFRenderer;$(VULKAN_SDK)\include;$(VULKAN_SDK)\include\volk;</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(SolutionDir)RendererCommonLib/Public;$(SolutionDir)ThirdParty;$(SolutionDir)glTFRenderer;$(SolutionDir)ThirdParty;$(SolutionDir)ThirdParty/imgui;$(SolutionDir)ThirdParty/glm/glm;$(SolutionDir)ThirdParty/glfw/include;$(SolutionDir)ThirdParty/embree;$(SolutionDir)glTFRenderer;$(VULKAN_SDK)\include;$(VULKAN_SDK)\include\volk;$(SolutionDir)RHICore/Public;</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -72,7 +72,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)ThirdParty/libs/$(ConfigurationName);$(VULKAN_SDK)\Lib;$(SolutionDir)$(Platform)\$(Configuration);</AdditionalLibraryDirectories>
-      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);glfw3.lib;D3d12.lib;dxgi.lib;dxguid.lib;D3DCompiler.lib;dxcompiler.lib;volkd.lib;RendererCommonLib.lib;</AdditionalDependencies>
+      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);glfw3.lib;D3d12.lib;dxgi.lib;dxguid.lib;D3DCompiler.lib;dxcompiler.lib;volkd.lib;RendererCommonLib.lib;RHICore.lib;Shlwapi.lib;</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy $(SolutionDir)glTFRenderer\glTFResources\ $(OutDir)glTFResources\ /s /y</Command>
@@ -99,7 +99,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)ThirdParty/libs/$(ConfigurationName);$(VULKAN_SDK)\Lib;$(SolutionDir)$(Platform)\$(Configuration);</AdditionalLibraryDirectories>
-      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);;glfw3.lib;D3d12.lib;dxgi.lib;dxguid.lib;D3DCompiler.lib;dxcompiler.lib;volk.lib;RendererCommonLib.lib;</AdditionalDependencies>
+      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);;glfw3.lib;D3d12.lib;dxgi.lib;dxguid.lib;D3DCompiler.lib;dxcompiler.lib;volk.lib;RendererCommonLib.lib;RHICore.lib;Shlwapi.lib;</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>
       </IgnoreSpecificDefaultLibraries>
     </Link>

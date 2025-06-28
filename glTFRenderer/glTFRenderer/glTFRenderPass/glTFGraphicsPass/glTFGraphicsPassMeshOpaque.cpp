@@ -76,7 +76,10 @@ bool glTFGraphicsPassMeshOpaque::InitResourceTable(glTFRenderResourceManager& re
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::InitResourceTable(resource_manager))
 
-    auto albedo_desc = RHITextureDesc::MakeBasePassAlbedoTextureDesc(resource_manager); 
+    const unsigned width = resource_manager.GetSwapChain().GetWidth();
+    const unsigned height = resource_manager.GetSwapChain().GetHeight();
+    
+    auto albedo_desc = RHITextureDesc::MakeBasePassAlbedoTextureDesc(width, height); 
     AddExportTextureResource(RenderPassResourceTableId::BasePass_Albedo, albedo_desc, 
     {
         albedo_desc.GetDataFormat(),
@@ -84,7 +87,7 @@ bool glTFGraphicsPassMeshOpaque::InitResourceTable(glTFRenderResourceManager& re
         RHIViewType::RVT_RTV
     });
 
-    auto normal_desc = RHITextureDesc::MakeBasePassNormalTextureDesc(resource_manager);
+    auto normal_desc = RHITextureDesc::MakeBasePassNormalTextureDesc(width, height);
     AddExportTextureResource(RenderPassResourceTableId::BasePass_Normal, normal_desc, 
     {
         normal_desc.GetDataFormat(),

@@ -31,7 +31,7 @@ bool glTFRenderPassBase::InitPass(glTFRenderResourceManager& resource_manager)
     // Init root signature
     m_root_signature_helper.SetUsage(RHIRootSignatureUsage::Default);
     RETURN_IF_FALSE(SetupRootSignature(resource_manager))
-    RETURN_IF_FALSE(m_root_signature_helper.BuildRootSignature(resource_manager.GetDevice(), resource_manager))
+    RETURN_IF_FALSE(m_root_signature_helper.BuildRootSignature(resource_manager.GetDevice(), resource_manager.GetMemoryManager().GetDescriptorManager()))
     
     RETURN_IF_FALSE(SetupPipelineStateObject(resource_manager))
     RETURN_IF_FALSE(m_pipeline_state_object->InitPipelineStateObject(resource_manager.GetDevice(),

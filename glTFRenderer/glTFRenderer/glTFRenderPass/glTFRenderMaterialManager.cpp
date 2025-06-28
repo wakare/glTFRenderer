@@ -38,7 +38,7 @@ bool glTFMaterialTextureRenderResource::Init(glTFRenderResourceManager& resource
     }
     else
     {
-        resource_manager.GetMemoryManager().AllocateTextureMemoryAndUpload(resource_manager.GetDevice(), resource_manager, command_list, texture_desc, m_texture);
+        resource_manager.GetMemoryManager().AllocateTextureMemoryAndUpload(resource_manager.GetDevice(), command_list, resource_manager.GetMemoryManager(), texture_desc, m_texture);
         // wait for upload??
         resource_manager.CloseCurrentCommandListAndExecute({}, false);    
     }

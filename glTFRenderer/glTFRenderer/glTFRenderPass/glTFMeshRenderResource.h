@@ -1,8 +1,10 @@
 #pragma once
 #include <memory>
 
-#include "RHIIndexBuffer.h"
-#include "RHIVertexBuffer.h"
+#include "RHIInterface/RHIIndexBuffer.h"
+#include "RHIInterface/RHIVertexBuffer.h"
+
+class glTFScenePrimitive;
 
 struct glTFMeshRenderResource
 {

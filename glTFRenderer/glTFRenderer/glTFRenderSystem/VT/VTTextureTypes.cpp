@@ -10,7 +10,7 @@
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassMeshVSMPageRendering.h"
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassMeshVTFeedbackBase.h"
 #include "RHIUtils.h"
-#include "IRHISwapChain.h"
+#include "RHIInterface/IRHISwapChain.h"
 #include "SceneFileLoader/glTFImageIOUtil.h"
 
 bool VTLogicalTextureBase::InitLogicalTexture(const RHITextureDesc& desc, const VTLogicalTextureConfig& config)
@@ -467,7 +467,7 @@ bool VTPhysicalTexture::InitRenderResource(glTFRenderResourceManager& resource_m
         }
     );
     
-    const bool allocated = resource_manager.GetMemoryManager().AllocateTextureMemory(resource_manager.GetDevice(), resource_manager, physical_texture_desc, m_physical_texture);
+    const bool allocated = resource_manager.GetMemoryManager().AllocateTextureMemory(resource_manager.GetDevice(), physical_texture_desc, m_physical_texture);
     GLTF_CHECK(allocated);
     
     m_physical_texture_data->ResetTextureData();

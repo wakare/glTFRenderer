@@ -1,11 +1,12 @@
 #include "glTFRayTracingPassReSTIRDirectLighting.h"
 
 #include <imgui.h>
+#include "RHIUtils.h"
 
 #include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSingleConstantBuffer.h"
-#include "RHIUtils.h"
-#include "IRHIRenderTargetManager.h"
+#include "RHIInterface/IRHIDescriptorManager.h"
+#include "RHIInterface/IRHIRenderTargetManager.h"
 
 glTFRayTracingPassReSTIRDirectLighting::glTFRayTracingPassReSTIRDirectLighting()
 {
@@ -173,7 +174,10 @@ bool glTFRayTracingPassReSTIRDirectLighting::InitResourceTable(glTFRenderResourc
 {
     RETURN_IF_FALSE(glTFRayTracingPassWithMesh::InitResourceTable(resource_manager))
 
-    auto uv_offset_desc = RHITextureDesc::MakeScreenUVOffsetTextureDesc(resource_manager);
+    const unsigned width = resource_manager.GetSwapChain().GetWidth();
+    const unsigned height = resource_manager.GetSwapChain().GetHeight();
+    
+    auto uv_offset_desc = RHITextureDesc::MakeScreenUVOffsetTextureDesc(width, height);
     AddExportTextureResource(RenderPassResourceTableId::ScreenUVOffset, uv_offset_desc, 
     {
                 uv_offset_desc.GetDataFormat(),
@@ -181,7 +185,7 @@ bool glTFRayTracingPassReSTIRDirectLighting::InitResourceTable(glTFRenderResourc
                 RHIViewType::RVT_UAV
                 });
     
-    auto output_desc = RHITextureDesc::MakeRayTracingPassReSTIRSampleOutputDesc(resource_manager);
+    auto output_desc = RHITextureDesc::MakeRayTracingPassReSTIRSampleOutputDesc(width, height);
     AddExportTextureResource(RenderPassResourceTableId::RayTracingPass_ReSTIRSample_Output, output_desc, 
     {
                     output_desc.GetDataFormat(),

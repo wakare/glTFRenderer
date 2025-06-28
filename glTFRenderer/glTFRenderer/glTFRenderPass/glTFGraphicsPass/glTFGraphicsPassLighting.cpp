@@ -1,9 +1,10 @@
 #include "glTFGraphicsPassLighting.h"
-#include "IRHIPipelineStateObject.h"
+#include "RHIInterface/IRHIPipelineStateObject.h"
 #include "glTFLight/glTFLightBase.h"
 #include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSampler.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceViewBase.h"
+#include "RHIInterface/IRHIDescriptorManager.h"
 
 glTFGraphicsPassLighting::glTFGraphicsPassLighting()
 {
@@ -119,15 +120,18 @@ bool glTFGraphicsPassLighting::InitResourceTable(glTFRenderResourceManager& reso
 {
     RETURN_IF_FALSE(glTFGraphicsPassPostprocess::InitResourceTable(resource_manager))
 
-    auto albedo_desc = RHITextureDesc::MakeBasePassAlbedoTextureDesc(resource_manager);
+    const unsigned width = resource_manager.GetSwapChain().GetWidth();
+    const unsigned height = resource_manager.GetSwapChain().GetHeight();
+     
+    auto albedo_desc = RHITextureDesc::MakeBasePassAlbedoTextureDesc(width, height);
     AddImportTextureResource(RenderPassResourceTableId::BasePass_Albedo, albedo_desc, 
     {albedo_desc.GetDataFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV});
 
-    auto normal_desc = RHITextureDesc::MakeBasePassNormalTextureDesc(resource_manager);
+    auto normal_desc = RHITextureDesc::MakeBasePassNormalTextureDesc(width, height);
     AddImportTextureResource(RenderPassResourceTableId::BasePass_Normal, normal_desc, 
     {normal_desc.GetDataFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV});
 
-    auto depth_desc = RHITextureDesc::MakeDepthTextureDesc(TODO, TODO);
+    auto depth_desc = RHITextureDesc::MakeDepthTextureDesc(width, height);
     AddImportTextureResource(RenderPassResourceTableId::Depth, depth_desc,
     {RHIDataFormat::D32_SAMPLE_RESERVED, RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV});
     

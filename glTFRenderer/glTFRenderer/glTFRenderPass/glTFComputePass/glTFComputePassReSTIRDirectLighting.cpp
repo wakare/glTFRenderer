@@ -6,8 +6,9 @@
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceFrameStat.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceLighting.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceViewBase.h"
-#include "IRHIPipelineStateObject.h"
-#include "IRHISwapChain.h"
+#include "RHIInterface/IRHIPipelineStateObject.h"
+#include "RHIInterface/IRHIDescriptorManager.h"
+#include "RHIInterface/IRHISwapChain.h"
 
 glTFComputePassReSTIRDirectLighting::glTFComputePassReSTIRDirectLighting()
     : m_aggregate_samples_output("AGGREGATE_OUTPUT_REGISTER_INDEX", "AGGREGATE_BACKBUFFER_REGISTER_INDEX")
@@ -163,15 +164,18 @@ bool glTFComputePassReSTIRDirectLighting::InitResourceTable(glTFRenderResourceMa
 {
     RETURN_IF_FALSE(glTFComputePassBase::InitResourceTable(resource_manager))
 
-    auto sample_output_desc = RHITextureDesc::MakeRayTracingPassReSTIRSampleOutputDesc(resource_manager);
+    const unsigned width = resource_manager.GetSwapChain().GetWidth();
+    const unsigned height = resource_manager.GetSwapChain().GetHeight();
+    
+    auto sample_output_desc = RHITextureDesc::MakeRayTracingPassReSTIRSampleOutputDesc(width, height);
     AddImportTextureResource(RenderPassResourceTableId::RayTracingPass_ReSTIRSample_Output, sample_output_desc,
         {sample_output_desc.GetDataFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV});
 
-    auto uv_offset_desc = RHITextureDesc::MakeScreenUVOffsetTextureDesc(resource_manager);
+    auto uv_offset_desc = RHITextureDesc::MakeScreenUVOffsetTextureDesc(width, height);
     AddImportTextureResource(RenderPassResourceTableId::ScreenUVOffset, uv_offset_desc,
         {uv_offset_desc.GetDataFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV});
 
-    auto output_desc = RHITextureDesc::MakeRayTracingSceneOutputTextureDesc(resource_manager);
+    auto output_desc = RHITextureDesc::MakeRayTracingSceneOutputTextureDesc(width, height);
     AddExportTextureResource(RenderPassResourceTableId::RayTracingSceneOutput, output_desc, 
     {output_desc.GetDataFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_UAV});
     

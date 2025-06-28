@@ -7,8 +7,8 @@
 #include "glTFRenderSystem/Shadow/ShadowRenderSystem.h"
 #include "glTFRenderSystem/VT/VirtualTextureSystem.h"
 #include "RHIUtils.h"
-#include "IRHIPipelineStateObject.h"
-#include "IRHISwapChain.h"
+#include "RHIInterface/IRHIPipelineStateObject.h"
+#include "RHIInterface/IRHISwapChain.h"
 
 struct ShadowMapInfo
 {
@@ -118,25 +118,28 @@ bool glTFComputePassLighting::InitResourceTable(glTFRenderResourceManager& resou
 {
     RETURN_IF_FALSE(glTFComputePassBase::InitResourceTable(resource_manager))
 
-    auto lighting_output_desc = RHITextureDesc::MakeLightingPassOutputTextureDesc(resource_manager);
+    const unsigned width = resource_manager.GetSwapChain().GetWidth();
+    const unsigned height = resource_manager.GetSwapChain().GetHeight();
+    
+    auto lighting_output_desc = RHITextureDesc::MakeLightingPassOutputTextureDesc(width, height);
     AddExportTextureResource(RenderPassResourceTableId::LightingPass_Output, lighting_output_desc, 
         {lighting_output_desc.GetDataFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_UAV});
     
-    auto depth_desc = RHITextureDesc::MakeDepthTextureDesc(TODO, TODO);
+    auto depth_desc = RHITextureDesc::MakeDepthTextureDesc(width, height);
     AddImportTextureResource(RenderPassResourceTableId::Depth, depth_desc,
         {RHIDataFormat::D32_SAMPLE_RESERVED, RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV});
 
-    auto albedo_desc = RHITextureDesc::MakeBasePassAlbedoTextureDesc(resource_manager);
+    auto albedo_desc = RHITextureDesc::MakeBasePassAlbedoTextureDesc(width, height);
     AddImportTextureResource(RenderPassResourceTableId::BasePass_Albedo, albedo_desc,
         {albedo_desc.GetDataFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV});
 
-    auto normal_desc = RHITextureDesc::MakeBasePassNormalTextureDesc(resource_manager);
+    auto normal_desc = RHITextureDesc::MakeBasePassNormalTextureDesc(width, height);
     AddImportTextureResource(RenderPassResourceTableId::BasePass_Normal, normal_desc,
         {normal_desc.GetDataFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV});
     
     if (resource_manager.GetRenderSystem<ShadowRenderSystem>() && !resource_manager.GetRenderSystem<ShadowRenderSystem>()->IsVSM())
     {
-        auto shadowmap_desc = RHITextureDesc::MakeShadowPassOutputDesc(resource_manager);
+        auto shadowmap_desc = RHITextureDesc::MakeShadowPassOutputDesc(width, height);
         AddImportTextureResource(RenderPassResourceTableId::ShadowPass_Output, shadowmap_desc,
             {  RHIDataFormat::D32_SAMPLE_RESERVED, RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV });
     }

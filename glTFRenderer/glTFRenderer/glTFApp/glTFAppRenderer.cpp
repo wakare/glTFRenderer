@@ -126,7 +126,7 @@ void glTFAppRenderer::WaitRenderingFinishAndCleanupAllResource() const
 
     m_resource_manager->WaitAndClean();
     
-    const bool cleanup = RHIResourceFactory::CleanupResources(*m_resource_manager);
+    const bool cleanup = RHIResourceFactory::CleanupResources(m_resource_manager->GetMemoryManager());
     GLTF_CHECK(cleanup);
 }
 

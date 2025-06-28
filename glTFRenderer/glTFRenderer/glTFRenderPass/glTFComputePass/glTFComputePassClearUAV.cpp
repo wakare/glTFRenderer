@@ -2,7 +2,7 @@
 
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceSingleConstantBuffer.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceTextureTable.h"
-#include "IRHIPipelineStateObject.h"
+#include "RHIInterface/IRHIPipelineStateObject.h"
 
 ALIGN_FOR_CBV_STRUCT struct CLEAR_UAV_INFO
 {

@@ -1,5 +1,7 @@
 #include "glTFRenderInterfaceViewBase.h"
 
+#include "RHIInterface/IRHIDescriptorManager.h"
+
 const static char* SceneViewBufferName = "SCENE_VIEW_REGISTER_INDEX";
 
 glTFRenderInterfaceViewBase::glTFRenderInterfaceViewBase(const char* name)

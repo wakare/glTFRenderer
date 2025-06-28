@@ -1,8 +1,8 @@
 #include "glTFGraphicsPassTestTriangleSimplest.h"
-
-#include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "RHIUtils.h"
-#include "IRHIPipelineStateObject.h"
+#include "glTFRenderPass/glTFRenderResourceManager.h"
+#include "RHIInterface/IRHIPipelineStateObject.h"
+#include "RHIInterface/IRHIDescriptorManager.h"
 
 const char* glTFGraphicsPassTestTriangleSimplest::PassName()
 {

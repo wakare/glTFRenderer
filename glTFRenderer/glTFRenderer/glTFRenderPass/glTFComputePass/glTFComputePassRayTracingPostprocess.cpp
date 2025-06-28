@@ -5,8 +5,9 @@
 #include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceViewBase.h"
 #include "RHIUtils.h"
-#include "IRHIPipelineStateObject.h"
-#include "IRHISwapChain.h"
+#include "RHIInterface/IRHIPipelineStateObject.h"
+#include "RHIInterface/IRHIDescriptorManager.h"
+#include "RHIInterface/IRHISwapChain.h"
 
 glTFComputePassRayTracingPostprocess::glTFComputePassRayTracingPostprocess()
     : m_accumulation_resource("ACCUMULATION_OUTPUT_REGISTER_INDEX", "ACCUMULATION_BACKBUFFER_REGISTER_INDEX")
@@ -146,15 +147,18 @@ bool glTFComputePassRayTracingPostprocess::InitResourceTable(glTFRenderResourceM
 {
     RETURN_IF_FALSE(glTFComputePassBase::InitResourceTable(resource_manager))
 
-    auto input_desc = RHITextureDesc::MakeRayTracingSceneOutputTextureDesc(resource_manager);
+    const unsigned width = resource_manager.GetSwapChain().GetWidth();
+    const unsigned height = resource_manager.GetSwapChain().GetHeight();
+    
+    auto input_desc = RHITextureDesc::MakeRayTracingSceneOutputTextureDesc(width, height);
     AddImportTextureResource(RenderPassResourceTableId::RayTracingSceneOutput, input_desc, 
     {input_desc.GetDataFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV});
 
-    auto uv_offset_desc = RHITextureDesc::MakeScreenUVOffsetTextureDesc(resource_manager);
+    auto uv_offset_desc = RHITextureDesc::MakeScreenUVOffsetTextureDesc(width, height);
     AddImportTextureResource(RenderPassResourceTableId::ScreenUVOffset, uv_offset_desc, 
     {uv_offset_desc.GetDataFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV});
 
-    auto output_desc= RHITextureDesc::MakeComputePassRayTracingPostProcessOutputDesc(resource_manager);
+    auto output_desc= RHITextureDesc::MakeComputePassRayTracingPostProcessOutputDesc(width, height);
     AddExportTextureResource(RenderPassResourceTableId::ComputePass_RayTracingOutputPostProcess_Output, output_desc, 
     {output_desc.GetDataFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_UAV});
     

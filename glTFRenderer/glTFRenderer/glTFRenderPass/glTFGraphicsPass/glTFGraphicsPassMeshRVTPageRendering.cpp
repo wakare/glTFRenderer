@@ -2,8 +2,8 @@
 
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceViewBase.h"
 #include "glTFRenderSystem/VT/VirtualTextureSystem.h"
-#include "IRHIPipelineStateObject.h"
-#include "IRHIRenderTargetManager.h"
+#include "RHIInterface/IRHIPipelineStateObject.h"
+#include "RHIInterface/IRHIRenderTargetManager.h"
 
 struct RVTOutputTileOffset
 {

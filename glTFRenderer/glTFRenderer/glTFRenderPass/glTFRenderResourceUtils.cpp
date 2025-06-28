@@ -2,8 +2,9 @@
 
 #include "glTFRenderResourceManager.h"
 #include "RHIUtils.h"
-#include "IRHIDescriptorUpdater.h"
-#include "IRHIRenderTargetManager.h"
+#include "RHIInterface/IRHIDescriptorManager.h"
+#include "RHIInterface/IRHIDescriptorUpdater.h"
+#include "RHIInterface/IRHIRenderTargetManager.h"
 
 namespace glTFRenderResourceUtils
 {
@@ -47,16 +48,21 @@ namespace glTFRenderResourceUtils
 
     bool GBufferOutput::InitGBufferOutput(glTFRenderResourceManager& resource_manager, unsigned back_buffer_index)
     {
+        const unsigned width  = resource_manager.GetSwapChain().GetWidth();
+        const unsigned height = resource_manager.GetSwapChain().GetHeight();
+        
         m_albedo_output = resource_manager.GetRenderTargetManager().CreateRenderTarget(
-            resource_manager.GetDevice(), resource_manager,
-            RHITextureDesc::MakeBasePassAlbedoTextureDesc(resource_manager), {
+            resource_manager.GetDevice(),
+            resource_manager.GetMemoryManager(),
+            RHITextureDesc::MakeBasePassAlbedoTextureDesc(width, height), {
                 .type = RHIRenderTargetType::RTV,
                 .format = RHIDataFormat::UNKNOWN
             });
         
         m_normal_output = resource_manager.GetRenderTargetManager().CreateRenderTarget(
-            resource_manager.GetDevice(), resource_manager,
-            RHITextureDesc::MakeBasePassNormalTextureDesc(resource_manager), {
+            resource_manager.GetDevice(),
+            resource_manager.GetMemoryManager(),
+            RHITextureDesc::MakeBasePassNormalTextureDesc(width, height), {
                 .type = RHIRenderTargetType::RTV,
                 .format = RHIDataFormat::UNKNOWN
             });
@@ -75,7 +81,7 @@ namespace glTFRenderResourceUtils
             }
         };
         m_depth_output = resource_manager.GetRenderTargetManager().CreateRenderTarget(
-            resource_manager.GetDevice(), resource_manager,
+            resource_manager.GetDevice(), resource_manager.GetMemoryManager(),
             depth_output_desc, {
                 .type = RHIRenderTargetType::RTV,
                 .format = RHIDataFormat::UNKNOWN
@@ -211,14 +217,14 @@ namespace glTFRenderResourceUtils
         auto format = m_texture0_desc.GetClearValue().clear_format;
     
         m_writable_buffer = resource_manager.GetRenderTargetManager().CreateRenderTarget(
-            resource_manager.GetDevice(), resource_manager,
+            resource_manager.GetDevice(), resource_manager.GetMemoryManager(),
             m_texture0_desc, {
                 .type = RHIRenderTargetType::RTV,
                 .format = RHIDataFormat::UNKNOWN
             });
 
         m_back_buffer = resource_manager.GetRenderTargetManager().CreateRenderTarget(
-            resource_manager.GetDevice(), resource_manager,
+            resource_manager.GetDevice(), resource_manager.GetMemoryManager(),
             m_texture0_desc, {
                 .type = RHIRenderTargetType::RTV,
                 .format = RHIDataFormat::UNKNOWN

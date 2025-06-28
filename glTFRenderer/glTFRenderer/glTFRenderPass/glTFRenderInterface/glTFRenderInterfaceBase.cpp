@@ -1,7 +1,7 @@
 #include "glTFRenderInterfaceBase.h"
 
 #include "glTFRenderPass/glTFRenderResourceManager.h"
-#include "IRHIDescriptorUpdater.h"
+#include "RHIInterface/IRHIDescriptorUpdater.h"
 #include "RHIResourceFactoryImpl.hpp"
 
 bool glTFRenderInterfaceBase::InitInterface(glTFRenderResourceManager& resource_manager)

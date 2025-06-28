@@ -1,8 +1,8 @@
 #pragma once
 #include "glTFRenderInterfaceBase.h"
 #include "glTFRenderPass/glTFRenderResourceManager.h"
-#include "IRHIDescriptorUpdater.h"
-#include "IRHIRootSignatureHelper.h"
+#include "RHIInterface/IRHIDescriptorUpdater.h"
+#include "RHIInterface/IRHIRootSignatureHelper.h"
 
 // buffer size must be alignment with 64K [DX12]
 template <typename ConstantBufferType, size_t max_buffer_size = 64ull * 1024>

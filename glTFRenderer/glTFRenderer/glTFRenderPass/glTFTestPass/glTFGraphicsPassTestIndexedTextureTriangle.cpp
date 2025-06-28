@@ -46,13 +46,16 @@ bool glTFGraphicsPassTestIndexedTextureTriangle::InitPass(glTFRenderResourceMana
     GLTF_CHECK(inited);
 
     // Init sampled texture content
+    const unsigned width = resource_manager.GetSwapChain().GetWidth();
+    const unsigned height = resource_manager.GetSwapChain().GetHeight();
+    
     RHITextureDesc sampled_texture_desc =
         RHITextureDesc::MakeFullScreenTextureDesc(
             "sampled_texture",
             RHIDataFormat::R32G32B32A32_FLOAT,
             static_cast<RHIResourceUsageFlags>(RUF_ALLOW_SRV | RUF_TRANSFER_DST),
             RHITextureClearValue{},
-            TODO, TODO);
+            width, height);
 
     size_t texture_data_byte_size = sampled_texture_desc.GetTextureWidth() * sampled_texture_desc.GetTextureHeight() * GetBytePerPixelByFormat(sampled_texture_desc.GetDataFormat());
     std::unique_ptr<char[]> texture_data = std::make_unique<char[]>(texture_data_byte_size);
@@ -75,8 +78,8 @@ bool glTFGraphicsPassTestIndexedTextureTriangle::InitPass(glTFRenderResourceMana
     sampled_texture_desc.SetTextureData(texture_data.get(), texture_data_byte_size);
     resource_manager.GetMemoryManager().AllocateTextureMemoryAndUpload(
         resource_manager.GetDevice(),
-        resource_manager,
         resource_manager.GetCommandListForRecord(),
+        resource_manager.GetMemoryManager(),
         sampled_texture_desc,
         m_sampled_texture);
     

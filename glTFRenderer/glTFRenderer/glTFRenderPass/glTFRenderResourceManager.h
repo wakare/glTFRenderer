@@ -45,10 +45,10 @@ protected:
 };
 
 // Hold all rhi resource
-class glTFRenderResourceManager final
+class glTFRenderResourceManager
 {
 public:
-    DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFRenderResourceManager)
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFRenderResourceManager)
     
     bool InitResourceManager(unsigned width, unsigned height, HWND handle);
     bool InitScene(const glTFSceneGraph& scene_graph);

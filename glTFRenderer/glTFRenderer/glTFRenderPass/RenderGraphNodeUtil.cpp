@@ -1,5 +1,6 @@
 #include "RenderGraphNodeUtil.h"
 #include "glTFRenderResourceManager.h"
+#include "RHIInterface/IRHIDescriptorManager.h"
 
 std::shared_ptr<IRHITexture> RenderGraphNodeUtil::RenderGraphNode::GetResourceTexture(RenderPassResourceTableId id) const
 {

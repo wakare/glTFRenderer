@@ -3,7 +3,8 @@
 #include "glTFLight/glTFLightBase.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceShadowmap.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceViewBase.h"
-#include "IRHIPipelineStateObject.h"
+#include "RHIInterface/IRHIPipelineStateObject.h"
+#include "RHIInterface/IRHIDescriptorManager.h"
 
 glTFGraphicsPassMeshShadowDepth::glTFGraphicsPassMeshShadowDepth(const ShadowmapPassConfig& config)
     : m_config(config)
@@ -24,7 +25,10 @@ bool glTFGraphicsPassMeshShadowDepth::InitResourceTable(glTFRenderResourceManage
 {
     RETURN_IF_FALSE(glTFGraphicsPassBase::InitResourceTable(resource_manager));
 
-    auto shadowmap_desc = RHITextureDesc::MakeShadowPassOutputDesc(resource_manager); 
+    const unsigned width = resource_manager.GetSwapChain().GetWidth();
+    const unsigned height = resource_manager.GetSwapChain().GetHeight();
+    
+    auto shadowmap_desc = RHITextureDesc::MakeShadowPassOutputDesc(width, height); 
     AddExportTextureResource(RenderPassResourceTableId::ShadowPass_Output, shadowmap_desc, 
     {
         RHIDataFormat::D32_FLOAT,

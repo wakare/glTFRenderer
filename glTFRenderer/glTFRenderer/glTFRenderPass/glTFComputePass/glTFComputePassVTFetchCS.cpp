@@ -4,8 +4,8 @@
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceStructuredBuffer.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceTextureTable.h"
 #include "glTFRenderSystem/VT/VirtualTextureSystem.h"
-#include "IRHIPipelineStateObject.h"
-#include "IRHISwapChain.h"
+#include "RHIInterface/IRHIPipelineStateObject.h"
+#include "RHIInterface/IRHISwapChain.h"
 
 ALIGN_FOR_CBV_STRUCT struct VT_FETCH_OUTPUT_INFO
 {
@@ -133,8 +133,11 @@ bool glTFComputePassVTFetchCS::InitResourceTable(glTFRenderResourceManager& reso
 {
     RETURN_IF_FALSE(glTFComputePassBase::InitResourceTable(resource_manager))
     const auto& vt_size = resource_manager.GetRenderSystem<VirtualTextureSystem>()->GetVTFeedbackTextureSize(resource_manager.GetSwapChain().GetWidth(), resource_manager.GetSwapChain().GetHeight());
+
+    const unsigned width = resource_manager.GetSwapChain().GetWidth();
+    const unsigned height = resource_manager.GetSwapChain().GetHeight();
     
-    RHITextureDesc feed_back_desc = RHITextureDesc::MakeVirtualTextureFeedbackDesc(resource_manager, vt_size.first, vt_size.second);
+    RHITextureDesc feed_back_desc = RHITextureDesc::MakeVirtualTextureFeedbackDesc(width, height, vt_size.first, vt_size.second);
     AddImportTextureResource(m_virtual_texture_id, feed_back_desc,
         {
             feed_back_desc.GetDataFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_SRV,

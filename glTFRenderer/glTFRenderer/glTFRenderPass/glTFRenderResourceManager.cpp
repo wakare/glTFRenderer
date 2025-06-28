@@ -153,17 +153,19 @@ bool glTFRenderResourceManager::InitResourceManager(unsigned width, unsigned hei
     m_render_target_manager = RHIResourceFactory::CreateRHIResource<IRHIRenderTargetManager>();
     m_render_target_manager->InitRenderTargetManager(*m_device, 100);
 
-    RHITextureClearValue clear_value;
-    clear_value.clear_format = RHIDataFormat::R8G8B8A8_UNORM_SRGB;
-    clear_value.clear_color = glm::vec4{0.0f, 0.0f, 0.0f, 0.0f};
+    RHITextureClearValue clear_value
+    {
+        RHIDataFormat::R8G8B8A8_UNORM_SRGB,
+        {0.0f, 0.0f, 0.0f, 0.0f}
+    };
 
-    m_swapchain_RTs = m_render_target_manager->CreateRenderTargetFromSwapChain(*m_device, *this, *m_swap_chain, clear_value);
+    m_swapchain_RTs = m_render_target_manager->CreateRenderTargetFromSwapChain(*m_device, GetMemoryManager(), *m_swap_chain, clear_value);
 
     for (unsigned i = 0; i < GetBackBufferCount(); ++i)
     {
         auto depth_texture = m_render_target_manager->CreateRenderTarget(
-            *m_device, *this,
-            RHITextureDesc::MakeDepthTextureDesc(*this), {
+            *m_device, GetMemoryManager(),
+            RHITextureDesc::MakeDepthTextureDesc(GetSwapChain().GetWidth(), GetSwapChain().GetHeight()), {
                 .type = RHIRenderTargetType::DSV,
                 .format = RHIDataFormat::D32_FLOAT
             });
@@ -361,7 +363,7 @@ void glTFRenderResourceManager::WaitAndClean()
 {
     if (IsMemoryManagerValid())
     {
-        GetMemoryManager().ReleaseAllResource(*this);    
+        GetMemoryManager().ReleaseAllResource();    
     }
 }
 
@@ -481,7 +483,7 @@ bool glTFRenderResourceManager::ExportResourceTexture(const RHITextureDesc& desc
     {
         // Export texture resource must create it first, add table id to internal tracked map
         std::shared_ptr<IRHITextureAllocation> out_texture_allocation;
-        bool created = GetMemoryManager().AllocateTextureMemory(GetDevice(), *this, desc, out_texture_allocation);
+        bool created = GetMemoryManager().AllocateTextureMemory(GetDevice(), desc, out_texture_allocation);
         GLTF_CHECK(created);
 
         out_texture.push_back(out_texture_allocation->m_texture);

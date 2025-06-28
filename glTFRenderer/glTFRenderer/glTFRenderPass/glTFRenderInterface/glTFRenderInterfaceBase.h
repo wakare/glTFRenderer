@@ -1,6 +1,6 @@
 #pragma once
 #include "glTFRenderPass/glTFRenderResourceManager.h"
-#include "IRHIRootSignatureHelper.h"
+#include "RHIInterface/IRHIRootSignatureHelper.h"
 
 class IRHIDescriptorTable;
 class IRHIBufferDescriptorAllocation;
@@ -12,7 +12,7 @@ class glTFRenderResourceManager;
 class glTFRenderInterfaceBase
 {
 public:
-    virtual ~glTFRenderInterfaceBase() = default;
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFRenderInterfaceBase)
     
     bool InitInterface(glTFRenderResourceManager& resource_manager);
     bool ApplyInterface(glTFRenderResourceManager& resource_manager, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater);

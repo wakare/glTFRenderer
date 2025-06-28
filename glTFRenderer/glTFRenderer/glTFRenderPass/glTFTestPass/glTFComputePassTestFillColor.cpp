@@ -1,8 +1,8 @@
 #include "glTFComputePassTestFillColor.h"
-
-#include "glTFRenderPass/glTFRenderResourceManager.h"
 #include "RHIUtils.h"
-#include "IRHIPipelineStateObject.h"
+#include "glTFRenderPass/glTFRenderResourceManager.h"
+#include "RHIInterface/IRHIPipelineStateObject.h"
+#include "RHIInterface/IRHIDescriptorManager.h"
 
 const char* glTFComputePassTestFillColor::PassName()
 {
@@ -62,6 +62,9 @@ bool glTFComputePassTestFillColor::InitResourceTable(glTFRenderResourceManager& 
 {
     RETURN_IF_FALSE(glTFComputePassBase::InitResourceTable(resource_manager))
 
+    const unsigned width = resource_manager.GetSwapChain().GetWidth();
+    const unsigned height = resource_manager.GetSwapChain().GetHeight();
+    
     RHITextureDesc output_texture_desc = RHITextureDesc::MakeFullScreenTextureDesc(
         "ComputePassTestOutputTexture",
         RHIDataFormat::R8G8B8A8_UNORM,
@@ -70,7 +73,7 @@ bool glTFComputePassTestFillColor::InitResourceTable(glTFRenderResourceManager& 
             .clear_format = RHIDataFormat::R8G8B8A8_UNORM,
             .clear_color {0.0f, 0.0f, 0.0f, 0.0f}
         },
-        TODO, TODO
+        width, height
     );
     AddExportTextureResource(RenderPassResourceTableId::LightingPass_Output, output_texture_desc, 
     {output_texture_desc.GetDataFormat(), RHIResourceDimension::TEXTURE2D, RHIViewType::RVT_UAV});

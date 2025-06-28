@@ -4,7 +4,7 @@
 
 #include "VTCommon.h"
 #include "VTQuadTree.h"
-#include "IRHIMemoryManager.h"
+#include "RHIInterface/IRHIMemoryManager.h"
 
 class VTPageTable
 {

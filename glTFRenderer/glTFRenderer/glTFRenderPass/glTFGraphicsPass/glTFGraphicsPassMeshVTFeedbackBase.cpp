@@ -7,7 +7,7 @@
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceViewBase.h"
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceVT.h"
 #include "glTFRenderSystem/VT/VirtualTextureSystem.h"
-#include "IRHIPipelineStateObject.h"
+#include "RHIInterface/IRHIPipelineStateObject.h"
 
 struct FeedbackConfig
 {
@@ -105,8 +105,12 @@ bool glTFGraphicsPassMeshVTFeedbackBase::PreRenderPass(glTFRenderResourceManager
 bool glTFGraphicsPassMeshVTFeedbackBase::InitResourceTable(glTFRenderResourceManager& resource_manager)
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::InitResourceTable(resource_manager))
-    const auto& vt_size = resource_manager.GetRenderSystem<VirtualTextureSystem>()->GetVTFeedbackTextureSize(resource_manager.GetSwapChain().GetWidth(), resource_manager.GetSwapChain().GetHeight());
-    RHITextureDesc feed_back_desc = RHITextureDesc::MakeVirtualTextureFeedbackDesc(resource_manager, vt_size.first, vt_size.second);
+    
+    const unsigned width = resource_manager.GetSwapChain().GetWidth();
+    const unsigned height = resource_manager.GetSwapChain().GetHeight();
+    
+    const auto& vt_size = resource_manager.GetRenderSystem<VirtualTextureSystem>()->GetVTFeedbackTextureSize(width, height);
+    RHITextureDesc feed_back_desc = RHITextureDesc::MakeVirtualTextureFeedbackDesc(width, height, vt_size.first, vt_size.second);
     AddExportTextureResource(GetVTFeedBackId(GetID()), feed_back_desc, 
         {
             feed_back_desc.GetDataFormat(),
