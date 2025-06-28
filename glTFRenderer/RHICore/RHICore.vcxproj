@@ -1,0 +1,379 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{01210fd4-7e30-4fff-8698-73eedeeab3f2}</ProjectGuid>
+    <RootNamespace>RHICore</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <TargetName>RHICore</TargetName>
+    <PublicIncludeDirectories>$(ProjectDir)Public;</PublicIncludeDirectories>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(ProjectDir)Public;$(ProjectDir)Public/RHIDX12Impl;$(ProjectDir)Public/RHIVKImpl;$(ProjectDir)Public/RHIInterface;$(SolutionDir)RendererCommonLib/Public;$(SolutionDir)ThirdParty;$(SolutionDir)ThirdParty/imgui;$(SolutionDir)ThirdParty/glfw/include;$(VULKAN_SDK)\include;$(VULKAN_SDK)\include\volk</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <TargetName>RHICore</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <TargetName>RHICore</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <TargetName>RHICore</TargetName>
+    <PublicIncludeDirectories>$(ProjectDir)Public;</PublicIncludeDirectories>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(ProjectDir)Public;$(ProjectDir)Public/RHIDX12Impl;$(ProjectDir)Public/RHIVKImpl;$(ProjectDir)Public/RHIInterface;$(SolutionDir)RendererCommonLib/Public;$(SolutionDir)ThirdParty;$(SolutionDir)ThirdParty/imgui;$(SolutionDir)ThirdParty/glfw/include;$(VULKAN_SDK)\include;$(VULKAN_SDK)\include\volk</IncludePath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;RHICORE_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableUAC>false</EnableUAC>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;RHICORE_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableUAC>false</EnableUAC>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;RHICORE_EXPORTS;_WINDOWS;_USRDLL;IMGUI_IMPL_VULKAN_USE_VOLK;VK_NO_PROTOTYPES;NOMINMAX;RHICORE_EXPORTS;_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(_ZVcpkgCurrentInstalledDir)include;</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableUAC>false</EnableUAC>
+      <AdditionalDependencies>glfw3.lib;D3d12.lib;dxgi.lib;dxguid.lib;D3DCompiler.lib;dxcompiler.lib;volkd.lib;RendererCommonLib.lib;gdi32.lib;user32.lib;winmm.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)ThirdParty/libs/$(ConfigurationName);$(VULKAN_SDK)\Lib;$(SolutionDir)$(Platform)\$(Configuration);</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;RHICORE_EXPORTS;_WINDOWS;_USRDLL;IMGUI_IMPL_VULKAN_USE_VOLK;VK_NO_PROTOTYPES;NOMINMAX;RHICORE_EXPORTS;_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(_ZVcpkgCurrentInstalledDir)include;$(SolutionDir)ThirdParty/imgui;</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableUAC>false</EnableUAC>
+      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);glfw3.lib;D3d12.lib;dxgi.lib;dxguid.lib;D3DCompiler.lib;dxcompiler.lib;volk.lib;RendererCommonLib.lib;gdi32.lib;user32.lib;winmm.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)ThirdParty/libs/$(ConfigurationName);$(VULKAN_SDK)\Lib;$(SolutionDir)$(Platform)\$(Configuration);</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\ThirdParty\imgui\backends\imgui_impl_dx12.cpp" />
+    <ClCompile Include="..\ThirdParty\imgui\backends\imgui_impl_glfw.cpp" />
+    <ClCompile Include="..\ThirdParty\imgui\backends\imgui_impl_vulkan.cpp" />
+    <ClCompile Include="..\ThirdParty\imgui\imgui.cpp" />
+    <ClCompile Include="..\ThirdParty\imgui\imgui_draw.cpp" />
+    <ClCompile Include="..\ThirdParty\imgui\imgui_tables.cpp" />
+    <ClCompile Include="..\ThirdParty\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="Private\RHIConfigSingleton.cpp" />
+    <ClCompile Include="Private\RHIDX12Impl\DX12Buffer.cpp" />
+    <ClCompile Include="Private\RHIDX12Impl\DX12CommandAllocator.cpp" />
+    <ClCompile Include="Private\RHIDX12Impl\DX12CommandList.cpp" />
+    <ClCompile Include="Private\RHIDX12Impl\DX12CommandQueue.cpp" />
+    <ClCompile Include="Private\RHIDX12Impl\DX12CommandSignature.cpp" />
+    <ClCompile Include="Private\RHIDX12Impl\DX12ConverterUtils.cpp" />
+    <ClCompile Include="Private\RHIDX12Impl\DX12DescriptorHeap.cpp" />
+    <ClCompile Include="Private\RHIDX12Impl\DX12DescriptorManager.cpp" />
+    <ClCompile Include="Private\RHIDX12Impl\DX12DescriptorUpdater.cpp" />
+    <ClCompile Include="Private\RHIDX12Impl\DX12Device.cpp" />
+    <ClCompile Include="Private\RHIDX12Impl\DX12Factory.cpp" />
+    <ClCompile Include="Private\RHIDX12Impl\DX12Fence.cpp" />
+    <ClCompile Include="Private\RHIDX12Impl\DX12IndexBufferView.cpp" />
+    <ClCompile Include="Private\RHIDX12Impl\DX12MemoryAllocator.cpp" />
+    <ClCompile Include="Private\RHIDX12Impl\DX12MemoryManager.cpp" />
+    <ClCompile Include="Private\RHIDX12Impl\DX12PipelineStateObject.cpp" />
+    <ClCompile Include="Private\RHIDX12Impl\DX12RayTracingAS.cpp" />
+    <ClCompile Include="Private\RHIDX12Impl\DX12RenderPass.cpp" />
+    <ClCompile Include="Private\RHIDX12Impl\DX12RenderTarget.cpp" />
+    <ClCompile Include="Private\RHIDX12Impl\DX12RenderTargetManager.cpp" />
+    <ClCompile Include="Private\RHIDX12Impl\DX12RootSignature.cpp" />
+    <ClCompile Include="Private\RHIDX12Impl\DX12Shader.cpp" />
+    <ClCompile Include="Private\RHIDX12Impl\DX12ShaderTable.cpp" />
+    <ClCompile Include="Private\RHIDX12Impl\DX12SwapChain.cpp" />
+    <ClCompile Include="Private\RHIDX12Impl\DX12Texture.cpp" />
+    <ClCompile Include="Private\RHIDX12Impl\DX12Utils.cpp" />
+    <ClCompile Include="Private\RHIDX12Impl\DX12VertexBufferView.cpp" />
+    <ClCompile Include="Private\RHIIndirectDrawBuilder.cpp" />
+    <ClCompile Include="Private\RHIInterface\IRHIBuffer.cpp" />
+    <ClCompile Include="Private\RHIInterface\IRHICommandAllocator.cpp" />
+    <ClCompile Include="Private\RHIInterface\IRHICommandList.cpp" />
+    <ClCompile Include="Private\RHIInterface\IRHICommandQueue.cpp" />
+    <ClCompile Include="Private\RHIInterface\IRHICommandSignature.cpp" />
+    <ClCompile Include="Private\RHIInterface\IRHIDescriptorManager.cpp" />
+    <ClCompile Include="Private\RHIInterface\IRHIDescriptorUpdater.cpp" />
+    <ClCompile Include="Private\RHIInterface\IRHIDevice.cpp" />
+    <ClCompile Include="Private\RHIInterface\IRHIFactory.cpp" />
+    <ClCompile Include="Private\RHIInterface\IRHIFence.cpp" />
+    <ClCompile Include="Private\RHIInterface\IRHIFrameBuffer.cpp" />
+    <ClCompile Include="Private\RHIInterface\IRHIIndexBufferView.cpp" />
+    <ClCompile Include="Private\RHIInterface\IRHIMemoryAllocator.cpp" />
+    <ClCompile Include="Private\RHIInterface\IRHIMemoryManager.cpp" />
+    <ClCompile Include="Private\RHIInterface\IRHIPipelineStateObject.cpp" />
+    <ClCompile Include="Private\RHIInterface\IRHIRayTracingAS.cpp" />
+    <ClCompile Include="Private\RHIInterface\IRHIRenderPass.cpp" />
+    <ClCompile Include="Private\RHIInterface\IRHIRenderPassFrameBuffer.cpp" />
+    <ClCompile Include="Private\RHIInterface\IRHIRenderTarget.cpp" />
+    <ClCompile Include="Private\RHIInterface\IRHIRenderTargetManager.cpp" />
+    <ClCompile Include="Private\RHIInterface\IRHIResource.cpp" />
+    <ClCompile Include="Private\RHIInterface\IRHIRootSignature.cpp" />
+    <ClCompile Include="Private\RHIInterface\IRHIRootSignatureHelper.cpp" />
+    <ClCompile Include="Private\RHIInterface\IRHISemaphore.cpp" />
+    <ClCompile Include="Private\RHIInterface\IRHIShaderTable.cpp" />
+    <ClCompile Include="Private\RHIInterface\IRHISubPass.cpp" />
+    <ClCompile Include="Private\RHIInterface\IRHISwapChain.cpp" />
+    <ClCompile Include="Private\RHIInterface\IRHITexture.cpp" />
+    <ClCompile Include="Private\RHIInterface\IRHIVertexBufferView.cpp" />
+    <ClCompile Include="Private\RHIInterface\RHICommon.cpp" />
+    <ClCompile Include="Private\RHIInterface\RHIIndexBuffer.cpp" />
+    <ClCompile Include="Private\RHIInterface\RHIVertexBuffer.cpp" />
+    <ClCompile Include="Private\RHIResourceFactory.cpp" />
+    <ClCompile Include="Private\RHIUtils.cpp" />
+    <ClCompile Include="Private\RHIVertexStreamingManager.cpp" />
+    <ClCompile Include="Private\RHIVKImpl\VKBuffer.cpp" />
+    <ClCompile Include="Private\RHIVKImpl\VKCommandAllocator.cpp" />
+    <ClCompile Include="Private\RHIVKImpl\VKCommandList.cpp" />
+    <ClCompile Include="Private\RHIVKImpl\VKCommandQueue.cpp" />
+    <ClCompile Include="Private\RHIVKImpl\VKCommandSignature.cpp" />
+    <ClCompile Include="Private\RHIVKImpl\VKComputePipelineStateObject.cpp" />
+    <ClCompile Include="Private\RHIVKImpl\VKConverterUtils.cpp" />
+    <ClCompile Include="Private\RHIVKImpl\VKDescriptorManager.cpp" />
+    <ClCompile Include="Private\RHIVKImpl\VKDescriptorUpdater.cpp" />
+    <ClCompile Include="Private\RHIVKImpl\VKDevice.cpp" />
+    <ClCompile Include="Private\RHIVKImpl\VKFactory.cpp" />
+    <ClCompile Include="Private\RHIVKImpl\VKFence.cpp" />
+    <ClCompile Include="Private\RHIVKImpl\VKFrameBuffer.cpp" />
+    <ClCompile Include="Private\RHIVKImpl\VKIndexBufferView.cpp" />
+    <ClCompile Include="Private\RHIVKImpl\VKMemoryAllocator.cpp" />
+    <ClCompile Include="Private\RHIVKImpl\VKMemoryManager.cpp" />
+    <ClCompile Include="Private\RHIVKImpl\VKPipelineStateObject.cpp" />
+    <ClCompile Include="Private\RHIVKImpl\VKRayTracingAS.cpp" />
+    <ClCompile Include="Private\RHIVKImpl\VKRenderPass.cpp" />
+    <ClCompile Include="Private\RHIVKImpl\VKRenderTarget.cpp" />
+    <ClCompile Include="Private\RHIVKImpl\VKRenderTargetManager.cpp" />
+    <ClCompile Include="Private\RHIVKImpl\VKRootParameter.cpp" />
+    <ClCompile Include="Private\RHIVKImpl\VKRootSignature.cpp" />
+    <ClCompile Include="Private\RHIVKImpl\VKRTPipelineStateObject.cpp" />
+    <ClCompile Include="Private\RHIVKImpl\VKSemaphore.cpp" />
+    <ClCompile Include="Private\RHIVKImpl\VKShader.cpp" />
+    <ClCompile Include="Private\RHIVKImpl\VKShaderTable.cpp" />
+    <ClCompile Include="Private\RHIVKImpl\VKStaticSampler.cpp" />
+    <ClCompile Include="Private\RHIVKImpl\VKSubPass.cpp" />
+    <ClCompile Include="Private\RHIVKImpl\VKSwapChain.cpp" />
+    <ClCompile Include="Private\RHIVKImpl\VKTexture.cpp" />
+    <ClCompile Include="Private\RHIVKImpl\VKVertexBufferView.cpp" />
+    <ClCompile Include="Private\RHIVKImpl\VolkUtils.cpp" />
+    <ClCompile Include="Private\RHIVKImpl\VulkanUtils.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Public\RHICommon.h" />
+    <ClInclude Include="Public\RHIConfigSingleton.h" />
+    <ClInclude Include="Public\RHIDX12Impl\d3dx12.h" />
+    <ClInclude Include="Public\RHIDX12Impl\DX12Buffer.h" />
+    <ClInclude Include="Public\RHIDX12Impl\DX12CommandAllocator.h" />
+    <ClInclude Include="Public\RHIDX12Impl\DX12CommandList.h" />
+    <ClInclude Include="Public\RHIDX12Impl\DX12CommandQueue.h" />
+    <ClInclude Include="Public\RHIDX12Impl\DX12CommandSignature.h" />
+    <ClInclude Include="Public\RHIDX12Impl\DX12Common.h" />
+    <ClInclude Include="Public\RHIDX12Impl\DX12ConverterUtils.h" />
+    <ClInclude Include="Public\RHIDX12Impl\DX12DescriptorHeap.h" />
+    <ClInclude Include="Public\RHIDX12Impl\DX12DescriptorManager.h" />
+    <ClInclude Include="Public\RHIDX12Impl\DX12DescriptorUpdater.h" />
+    <ClInclude Include="Public\RHIDX12Impl\DX12Device.h" />
+    <ClInclude Include="Public\RHIDX12Impl\DX12Factory.h" />
+    <ClInclude Include="Public\RHIDX12Impl\DX12Fence.h" />
+    <ClInclude Include="Public\RHIDX12Impl\DX12IndexBufferView.h" />
+    <ClInclude Include="Public\RHIDX12Impl\DX12MemoryAllocator.h" />
+    <ClInclude Include="Public\RHIDX12Impl\DX12MemoryManager.h" />
+    <ClInclude Include="Public\RHIDX12Impl\DX12PipelineStateObject.h" />
+    <ClInclude Include="Public\RHIDX12Impl\DX12RayTracingAS.h" />
+    <ClInclude Include="Public\RHIDX12Impl\DX12RenderPass.h" />
+    <ClInclude Include="Public\RHIDX12Impl\DX12RenderTarget.h" />
+    <ClInclude Include="Public\RHIDX12Impl\DX12RenderTargetManager.h" />
+    <ClInclude Include="Public\RHIDX12Impl\DX12RootSignature.h" />
+    <ClInclude Include="Public\RHIDX12Impl\DX12Shader.h" />
+    <ClInclude Include="Public\RHIDX12Impl\DX12ShaderTable.h" />
+    <ClInclude Include="Public\RHIDX12Impl\DX12SwapChain.h" />
+    <ClInclude Include="Public\RHIDX12Impl\DX12Texture.h" />
+    <ClInclude Include="Public\RHIDX12Impl\DX12Utils.h" />
+    <ClInclude Include="Public\RHIDX12Impl\DX12VertexBufferView.h" />
+    <ClInclude Include="Public\RHIIndirectDrawBuilder.h" />
+    <ClInclude Include="Public\RHIInterface\IRHIBuffer.h" />
+    <ClInclude Include="Public\RHIInterface\IRHICommandAllocator.h" />
+    <ClInclude Include="Public\RHIInterface\IRHICommandList.h" />
+    <ClInclude Include="Public\RHIInterface\IRHICommandQueue.h" />
+    <ClInclude Include="Public\RHIInterface\IRHICommandSignature.h" />
+    <ClInclude Include="Public\RHIInterface\IRHIDescriptorManager.h" />
+    <ClInclude Include="Public\RHIInterface\IRHIDescriptorUpdater.h" />
+    <ClInclude Include="Public\RHIInterface\IRHIDevice.h" />
+    <ClInclude Include="Public\RHIInterface\IRHIFactory.h" />
+    <ClInclude Include="Public\RHIInterface\IRHIFence.h" />
+    <ClInclude Include="Public\RHIInterface\IRHIFrameBuffer.h" />
+    <ClInclude Include="Public\RHIInterface\IRHIIndexBufferView.h" />
+    <ClInclude Include="Public\RHIInterface\IRHIMemoryAllocator.h" />
+    <ClInclude Include="Public\RHIInterface\IRHIMemoryManager.h" />
+    <ClInclude Include="Public\RHIInterface\IRHIPipelineStateObject.h" />
+    <ClInclude Include="Public\RHIInterface\IRHIRayTracingAS.h" />
+    <ClInclude Include="Public\RHIInterface\IRHIRenderPass.h" />
+    <ClInclude Include="Public\RHIInterface\IRHIRenderPassFrameBuffer.h" />
+    <ClInclude Include="Public\RHIInterface\IRHIRenderTarget.h" />
+    <ClInclude Include="Public\RHIInterface\IRHIRenderTargetManager.h" />
+    <ClInclude Include="Public\RHIInterface\IRHIResource.h" />
+    <ClInclude Include="Public\RHIInterface\IRHIRootSignature.h" />
+    <ClInclude Include="Public\RHIInterface\IRHIRootSignatureHelper.h" />
+    <ClInclude Include="Public\RHIInterface\IRHISemaphore.h" />
+    <ClInclude Include="Public\RHIInterface\IRHIShaderTable.h" />
+    <ClInclude Include="Public\RHIInterface\IRHISubPass.h" />
+    <ClInclude Include="Public\RHIInterface\IRHISwapChain.h" />
+    <ClInclude Include="Public\RHIInterface\IRHITexture.h" />
+    <ClInclude Include="Public\RHIInterface\IRHIVertexBufferView.h" />
+    <ClInclude Include="Public\RHIInterface\RHIIndexBuffer.h" />
+    <ClInclude Include="Public\RHIInterface\RHIVertexBuffer.h" />
+    <ClInclude Include="Public\RHIResourceFactory.h" />
+    <ClInclude Include="Public\RHIResourceFactoryImpl.hpp" />
+    <ClInclude Include="Public\RHIUtils.h" />
+    <ClInclude Include="Public\RHIVertexStreamingManager.h" />
+    <ClInclude Include="Public\RHIVKImpl\VKBuffer.h" />
+    <ClInclude Include="Public\RHIVKImpl\VKCommandAllocator.h" />
+    <ClInclude Include="Public\RHIVKImpl\VKCommandList.h" />
+    <ClInclude Include="Public\RHIVKImpl\VKCommandQueue.h" />
+    <ClInclude Include="Public\RHIVKImpl\VKCommandSignature.h" />
+    <ClInclude Include="Public\RHIVKImpl\VKCommon.h" />
+    <ClInclude Include="Public\RHIVKImpl\VKComputePipelineStateObject.h" />
+    <ClInclude Include="Public\RHIVKImpl\VKConverterUtils.h" />
+    <ClInclude Include="Public\RHIVKImpl\VKDescriptorManager.h" />
+    <ClInclude Include="Public\RHIVKImpl\VKDescriptorUpdater.h" />
+    <ClInclude Include="Public\RHIVKImpl\VKDevice.h" />
+    <ClInclude Include="Public\RHIVKImpl\VKFactory.h" />
+    <ClInclude Include="Public\RHIVKImpl\VKFence.h" />
+    <ClInclude Include="Public\RHIVKImpl\VKFrameBuffer.h" />
+    <ClInclude Include="Public\RHIVKImpl\VKIndexBufferView.h" />
+    <ClInclude Include="Public\RHIVKImpl\VKMemoryAllocator.h" />
+    <ClInclude Include="Public\RHIVKImpl\VKMemoryManager.h" />
+    <ClInclude Include="Public\RHIVKImpl\VKPipelineStateObject.h" />
+    <ClInclude Include="Public\RHIVKImpl\VKRayTracingAS.h" />
+    <ClInclude Include="Public\RHIVKImpl\VKRenderPass.h" />
+    <ClInclude Include="Public\RHIVKImpl\VKRenderTarget.h" />
+    <ClInclude Include="Public\RHIVKImpl\VKRenderTargetManager.h" />
+    <ClInclude Include="Public\RHIVKImpl\VKRootParameter.h" />
+    <ClInclude Include="Public\RHIVKImpl\VKRootSignature.h" />
+    <ClInclude Include="Public\RHIVKImpl\VKRTPipelineStateObject.h" />
+    <ClInclude Include="Public\RHIVKImpl\VKSemaphore.h" />
+    <ClInclude Include="Public\RHIVKImpl\VKShader.h" />
+    <ClInclude Include="Public\RHIVKImpl\VKShaderTable.h" />
+    <ClInclude Include="Public\RHIVKImpl\VKStaticSampler.h" />
+    <ClInclude Include="Public\RHIVKImpl\VKSubPass.h" />
+    <ClInclude Include="Public\RHIVKImpl\VKSwapChain.h" />
+    <ClInclude Include="Public\RHIVKImpl\VKTexture.h" />
+    <ClInclude Include="Public\RHIVKImpl\VKVertexBufferView.h" />
+    <ClInclude Include="Public\RHIVKImpl\VolkUtils.h" />
+    <ClInclude Include="Public\RHIVKImpl\VulkanUtils.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

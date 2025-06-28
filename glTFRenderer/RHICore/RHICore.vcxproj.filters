@@ -1,0 +1,642 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Public\RHICommon.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIConfigSingleton.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIDX12Impl\d3dx12.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIDX12Impl\DX12Buffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIDX12Impl\DX12CommandAllocator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIDX12Impl\DX12CommandList.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIDX12Impl\DX12CommandQueue.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIDX12Impl\DX12CommandSignature.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIDX12Impl\DX12Common.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIDX12Impl\DX12ConverterUtils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIDX12Impl\DX12DescriptorHeap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIDX12Impl\DX12DescriptorManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIDX12Impl\DX12DescriptorUpdater.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIDX12Impl\DX12Device.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIDX12Impl\DX12Factory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIDX12Impl\DX12Fence.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIDX12Impl\DX12IndexBufferView.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIDX12Impl\DX12MemoryAllocator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIDX12Impl\DX12MemoryManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIDX12Impl\DX12PipelineStateObject.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIDX12Impl\DX12RayTracingAS.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIDX12Impl\DX12RenderPass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIDX12Impl\DX12RenderTarget.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIDX12Impl\DX12RenderTargetManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIDX12Impl\DX12RootSignature.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIDX12Impl\DX12Shader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIDX12Impl\DX12ShaderTable.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIDX12Impl\DX12SwapChain.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIDX12Impl\DX12Texture.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIDX12Impl\DX12Utils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIDX12Impl\DX12VertexBufferView.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIIndirectDrawBuilder.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIInterface\IRHIBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIInterface\IRHICommandAllocator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIInterface\IRHICommandList.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIInterface\IRHICommandQueue.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIInterface\IRHICommandSignature.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIInterface\IRHIDescriptorManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIInterface\IRHIDescriptorUpdater.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIInterface\IRHIDevice.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIInterface\IRHIFactory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIInterface\IRHIFence.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIInterface\IRHIFrameBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIInterface\IRHIIndexBufferView.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIInterface\IRHIMemoryAllocator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIInterface\IRHIMemoryManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIInterface\IRHIPipelineStateObject.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIInterface\IRHIRayTracingAS.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIInterface\IRHIRenderPass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIInterface\IRHIRenderPassFrameBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIInterface\IRHIRenderTarget.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIInterface\IRHIRenderTargetManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIInterface\IRHIResource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIInterface\IRHIRootSignature.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIInterface\IRHIRootSignatureHelper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIInterface\IRHISemaphore.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIInterface\IRHIShaderTable.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIInterface\IRHISubPass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIInterface\IRHISwapChain.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIInterface\IRHITexture.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIInterface\IRHIVertexBufferView.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIInterface\RHIIndexBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIInterface\RHIVertexBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIResourceFactory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIResourceFactoryImpl.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIUtils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIVertexStreamingManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIVKImpl\VKBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIVKImpl\VKCommandAllocator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIVKImpl\VKCommandList.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIVKImpl\VKCommandQueue.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIVKImpl\VKCommandSignature.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIVKImpl\VKCommon.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIVKImpl\VKComputePipelineStateObject.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIVKImpl\VKConverterUtils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIVKImpl\VKDescriptorManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIVKImpl\VKDescriptorUpdater.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIVKImpl\VKDevice.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIVKImpl\VKFactory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIVKImpl\VKFence.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIVKImpl\VKFrameBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIVKImpl\VKIndexBufferView.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIVKImpl\VKMemoryAllocator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIVKImpl\VKMemoryManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIVKImpl\VKPipelineStateObject.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIVKImpl\VKRayTracingAS.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIVKImpl\VKRenderPass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIVKImpl\VKRenderTarget.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIVKImpl\VKRenderTargetManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIVKImpl\VKRootParameter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIVKImpl\VKRootSignature.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIVKImpl\VKRTPipelineStateObject.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIVKImpl\VKSemaphore.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIVKImpl\VKShader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIVKImpl\VKShaderTable.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIVKImpl\VKStaticSampler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIVKImpl\VKSubPass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIVKImpl\VKSwapChain.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIVKImpl\VKTexture.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIVKImpl\VKVertexBufferView.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIVKImpl\VolkUtils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\RHIVKImpl\VulkanUtils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\ThirdParty\imgui\backends\imgui_impl_dx12.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ThirdParty\imgui\backends\imgui_impl_glfw.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ThirdParty\imgui\backends\imgui_impl_vulkan.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ThirdParty\imgui\imgui.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ThirdParty\imgui\imgui_draw.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ThirdParty\imgui\imgui_tables.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ThirdParty\imgui\imgui_widgets.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIConfigSingleton.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIDX12Impl\DX12Buffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIDX12Impl\DX12CommandAllocator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIDX12Impl\DX12CommandList.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIDX12Impl\DX12CommandQueue.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIDX12Impl\DX12CommandSignature.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIDX12Impl\DX12ConverterUtils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIDX12Impl\DX12DescriptorHeap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIDX12Impl\DX12DescriptorManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIDX12Impl\DX12DescriptorUpdater.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIDX12Impl\DX12Device.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIDX12Impl\DX12Factory.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIDX12Impl\DX12Fence.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIDX12Impl\DX12IndexBufferView.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIDX12Impl\DX12MemoryAllocator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIDX12Impl\DX12MemoryManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIDX12Impl\DX12PipelineStateObject.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIDX12Impl\DX12RayTracingAS.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIDX12Impl\DX12RenderPass.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIDX12Impl\DX12RenderTarget.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIDX12Impl\DX12RenderTargetManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIDX12Impl\DX12RootSignature.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIDX12Impl\DX12Shader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIDX12Impl\DX12ShaderTable.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIDX12Impl\DX12SwapChain.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIDX12Impl\DX12Texture.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIDX12Impl\DX12Utils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIDX12Impl\DX12VertexBufferView.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIIndirectDrawBuilder.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIInterface\IRHIBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIInterface\IRHICommandAllocator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIInterface\IRHICommandList.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIInterface\IRHICommandQueue.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIInterface\IRHICommandSignature.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIInterface\IRHIDescriptorManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIInterface\IRHIDescriptorUpdater.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIInterface\IRHIDevice.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIInterface\IRHIFactory.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIInterface\IRHIFence.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIInterface\IRHIFrameBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIInterface\IRHIIndexBufferView.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIInterface\IRHIMemoryAllocator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIInterface\IRHIMemoryManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIInterface\IRHIPipelineStateObject.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIInterface\IRHIRayTracingAS.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIInterface\IRHIRenderPass.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIInterface\IRHIRenderPassFrameBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIInterface\IRHIRenderTarget.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIInterface\IRHIRenderTargetManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIInterface\IRHIResource.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIInterface\IRHIRootSignature.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIInterface\IRHIRootSignatureHelper.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIInterface\IRHISemaphore.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIInterface\IRHIShaderTable.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIInterface\IRHISubPass.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIInterface\IRHISwapChain.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIInterface\IRHITexture.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIInterface\IRHIVertexBufferView.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIInterface\RHICommon.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIInterface\RHIIndexBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIInterface\RHIVertexBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIResourceFactory.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIUtils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIVertexStreamingManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIVKImpl\VKBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIVKImpl\VKCommandAllocator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIVKImpl\VKCommandList.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIVKImpl\VKCommandQueue.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIVKImpl\VKCommandSignature.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIVKImpl\VKComputePipelineStateObject.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIVKImpl\VKConverterUtils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIVKImpl\VKDescriptorManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIVKImpl\VKDescriptorUpdater.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIVKImpl\VKDevice.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIVKImpl\VKFactory.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIVKImpl\VKFence.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIVKImpl\VKFrameBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIVKImpl\VKIndexBufferView.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIVKImpl\VKMemoryAllocator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIVKImpl\VKMemoryManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIVKImpl\VKPipelineStateObject.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIVKImpl\VKRayTracingAS.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIVKImpl\VKRenderPass.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIVKImpl\VKRenderTarget.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIVKImpl\VKRenderTargetManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIVKImpl\VKRootParameter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIVKImpl\VKRootSignature.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIVKImpl\VKRTPipelineStateObject.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIVKImpl\VKSemaphore.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIVKImpl\VKShader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIVKImpl\VKShaderTable.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIVKImpl\VKStaticSampler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIVKImpl\VKSubPass.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIVKImpl\VKSwapChain.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIVKImpl\VKTexture.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIVKImpl\VKVertexBufferView.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIVKImpl\VolkUtils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIVKImpl\VulkanUtils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>
