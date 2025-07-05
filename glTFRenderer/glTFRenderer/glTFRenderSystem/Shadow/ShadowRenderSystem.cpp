@@ -3,7 +3,6 @@
 #include "glTFLight/glTFDirectionalLight.h"
 #include "glTFRenderPass/glTFRenderPassManager.h"
 #include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassMeshShadowDepth.h"
-#include "glTFRenderPass/glTFGraphicsPass/glTFGraphicsPassMeshRVTPageRendering.h"
 #include "glTFRenderSystem/VT/VirtualTextureSystem.h"
 
 bool ShadowRenderSystem::InitRenderSystem(glTFRenderResourceManager& resource_manager)

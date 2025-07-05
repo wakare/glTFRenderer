@@ -39,6 +39,8 @@ bool IRHIShader::InitShader(const std::string& shader_file_path, RHIShaderType t
 
 bool IRHIShader::CompileShader()
 {
+    m_macros.AddMacro(GetShaderTypeName(), "1");
+    
     glTFShaderUtils::ShaderCompileDesc compile_desc{};
     compile_desc.file_path = m_shader_file_path;
     compile_desc.entry_function = m_shader_entry_function_name;
@@ -52,6 +54,30 @@ bool IRHIShader::CompileShader()
 const std::vector<unsigned char>& IRHIShader::GetShaderByteCode() const
 {
     return m_shader_byte_code;
+}
+
+std::string IRHIShader::GetShaderTypeName() const
+{
+    switch (m_type)
+    {
+    case RHIShaderType::Vertex:
+        return "VERTEX_SHADER";
+        break;
+    case RHIShaderType::Pixel:
+        return "PIXEL_SHADER";
+        break;
+    case RHIShaderType::Compute:
+        return "COMPUTE_SHADER";
+        break;
+    case RHIShaderType::RayTracing:
+        return "RAY_TRACING_SHADER";
+        break;
+    case RHIShaderType::Unknown:
+        GLTF_CHECK(false);        
+        break;
+    }
+    GLTF_CHECK(false);
+    return "";
 }
 
 bool IRHIShader::LoadShader(const std::string& shader_file_path)

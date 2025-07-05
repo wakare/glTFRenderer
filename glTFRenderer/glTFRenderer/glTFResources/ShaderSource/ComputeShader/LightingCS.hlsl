@@ -72,10 +72,11 @@ void main(int3 dispatchThreadID : SV_DispatchThreadID)
     float2 shadowmap_uv = shadowmap_ndc.xy * 0.5 + 0.5;
     shadowmap_uv.y = 1.0 - shadowmap_uv.y;
     float shadow_depth = shadowmap_ndc.z;
+    float compare_shadow_depth = 0.0;
 #ifdef USE_VSM
-    float compare_shadow_depth = SampleVirtualTexture(g_shadowmap_matrix[0].vsm_texture_id, shadowmap_uv);
+    compare_shadow_depth = SampleVirtualTexture(g_shadowmap_matrix[0].vsm_texture_id, shadowmap_uv).r;
 #else
-    float compare_shadow_depth = shadowmapTex.Load(int3(shadowmap_uv * g_shadowmap_matrix[0].shadowmap_size, 0));
+    compare_shadow_depth = shadowmapTex.Load(int3(shadowmap_uv * g_shadowmap_matrix[0].shadowmap_size, 0));
 #endif
     
     if (shadow_depth > compare_shadow_depth + 0.01f)

@@ -49,7 +49,7 @@ bool IRHIPipelineStateObject::CompileShaders()
     // Add graphics api shader macro!
     m_shader_macros.AddMacro("DX_SHADER",
         RHIConfigSingleton::Instance().GetGraphicsAPIType() == RHIGraphicsAPIType::RHI_GRAPHICS_API_DX12 ? "1" : "0");
-    
+
     for (const auto& shader : m_shaders)
     {
         shader.second->SetShaderCompilePreDefineMacros(m_shader_macros);

@@ -2,7 +2,6 @@
 #define VIRTUAL_TEXTURE_H
 
 #include "glTFResources/ShaderSource/ShaderDeclarationUtil.hlsl"
-#include "glTFResources/ShaderSource/MeshPassCommon.hlsl"
 
 struct VTLogicalTextureInfo
 {
@@ -42,8 +41,14 @@ float4 SampleAtlas(float3 page, float2 uv, float virtual_texture_size, float til
 
     float page_size = tile_size + 2 * border_size;
     float2 total_offset = fmod(uv * mipsize, tile_size) + float2(border_size, border_size) + page.xy * page_size;
+#ifdef PIXEL_SHADER
     float2 physcial_uv = total_offset / float2(vt_system_info.vt_physical_texture_width, vt_system_info.vt_physical_texture_height);
+    return vt_physical_texture[svt? 0 : 1].Sample(vt_page_table_sampler, physcial_uv);
+#else
+    return vt_physical_texture[svt? 0 : 1].Load(int3(total_offset, 0));
+#endif
 
+    /*
     if (svt)
     {
         return vt_physical_texture[0].Sample(vt_page_table_sampler, physcial_uv);    
@@ -52,14 +57,19 @@ float4 SampleAtlas(float3 page, float2 uv, float virtual_texture_size, float til
     {
         return vt_physical_texture[1].Sample(vt_page_table_sampler, physcial_uv);
     }
+    */
 }
 
 float4 SampleVirtualTexture(uint tex_id, float2 uv)
 {
     VTLogicalTextureInfo vt_info = g_logical_texture_infos[tex_id];
+#ifdef PIXEL_SHADER
     float mip = floor(MipLevel(uv, vt_info.logical_texture_size));
     float max_mip = log2(vt_info.page_table_texture_size);
     mip = clamp(mip, 0, max_mip);
+#else
+    float mip = 0;
+#endif
     uint mip_size = vt_info.page_table_texture_size >> (uint)mip;
     
     const float2 uv_without_offset = uv - (frac(uv * mip_size) / mip_size);

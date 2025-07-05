@@ -19,6 +19,7 @@ public:
     
 protected:
     virtual bool CompileSpirV() = 0;
+    std::string GetShaderTypeName() const;
     bool LoadShader(const std::string& shader_file_path);
     
     RHIShaderType m_type;
