@@ -25,8 +25,8 @@ bool glTFGraphicsPassMeshShadowDepth::InitResourceTable(glTFRenderResourceManage
 {
     RETURN_IF_FALSE(glTFGraphicsPassBase::InitResourceTable(resource_manager));
 
-    const unsigned width = resource_manager.GetSwapChain().GetWidth();
-    const unsigned height = resource_manager.GetSwapChain().GetHeight();
+    const unsigned width = m_config.shadowmap_width;
+    const unsigned height = m_config.shadowmap_height;
     
     auto shadowmap_desc = RHITextureDesc::MakeShadowPassOutputDesc(width, height); 
     AddExportTextureResource(RenderPassResourceTableId::ShadowPass_Output, shadowmap_desc, 

@@ -200,7 +200,7 @@ bool VulkanUtils::BeginRendering(IRHICommandList& command_list, const RHIBeginRe
                 };
         }
 
-        attachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        attachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
         if ((render_target_view && begin_rendering_info.clear_render_target) ||
             (!render_target_view && begin_rendering_info.clear_depth_stencil))
         {

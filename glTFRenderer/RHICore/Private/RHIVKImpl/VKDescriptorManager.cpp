@@ -26,6 +26,7 @@ VkBuffer VKBufferDescriptorAllocation::GetRawBuffer() const
 
 bool VKTextureDescriptorAllocation::InitFromImageView(const std::shared_ptr<IRHITexture>& texture, VkDevice device, VkImageView image_view, const RHITextureDescriptorDesc& desc)
 {
+    m_device = device;
     m_view_desc = desc;
     m_source = texture;
     m_image_view = image_view;

@@ -46,6 +46,9 @@ bool glTFGraphicsPassMeshOpaque::PreRenderPass(glTFRenderResourceManager& resour
     m_begin_rendering_info.enable_depth_write = GetGraphicsPipelineStateObject().GetDepthStencilMode() == RHIDepthStencilMode::DEPTH_WRITE;
     m_begin_rendering_info.clear_render_target = true;
     
+    // Has prepass depth buffer, do not clear
+    m_begin_rendering_info.clear_depth_stencil = false;
+    
     return true;
 }
 
