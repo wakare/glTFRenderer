@@ -164,7 +164,13 @@ glTFLoader::glTFLoader()
 
 bool glTFLoader::LoadFile(const std::string& file_path)
 {
-    std::ifstream glTF_file(file_path);
+    std::filesystem::path path(file_path);
+    if (!exists(path))
+    {
+        return false;
+    }
+    
+    std::ifstream glTF_file(absolute(path));
     if (glTF_file.bad())
     {
         return false;
