@@ -70,6 +70,7 @@ public:
     virtual unsigned GetAlignmentSizeForUAVCount(unsigned size ) override;
 
     virtual void ReportLiveObjects() override;
+    virtual bool RegisterShaderParameterToRootSignature(const IRHIShader& shader, IRHIRootSignatureHelper& root_signature_helper) override;
     
     // DX12 private implementation
     static DX12Utils& DX12Instance();

@@ -721,3 +721,38 @@ void VulkanUtils::ReportLiveObjects()
 {
     
 }
+
+#include "ShaderReflect/spirv_reflect.h"
+
+bool VulkanUtils::RegisterShaderParameterToRootSignature(const IRHIShader& shader,
+    IRHIRootSignatureHelper& root_signature_helper)
+{
+    const void* bytecode = shader.GetShaderByteCode().data();
+    size_t bytecode_size = shader.GetShaderByteCode().size();
+    
+    // Generate reflection data for a shader
+    SpvReflectShaderModule module;
+    SpvReflectResult result = spvReflectCreateShaderModule(bytecode_size, bytecode, &module);
+    assert(result == SPV_REFLECT_RESULT_SUCCESS);
+
+    // Enumerate and extract shader's input variables
+    uint32_t var_count = 0;
+    result = spvReflectEnumerateInputVariables(&module, &var_count, NULL);
+    assert(result == SPV_REFLECT_RESULT_SUCCESS);
+    SpvReflectInterfaceVariable** input_vars =
+      (SpvReflectInterfaceVariable**)malloc(var_count * sizeof(SpvReflectInterfaceVariable*));
+    result = spvReflectEnumerateInputVariables(&module, &var_count, input_vars);
+    assert(result == SPV_REFLECT_RESULT_SUCCESS);
+
+    // Output variables, descriptor bindings, descriptor sets, and push constants
+    // can be enumerated and extracted using a similar mechanism.
+    
+
+    
+    // Destroy the reflection data when no longer required.
+    spvReflectDestroyShaderModule(&module);
+
+    free (input_vars);
+    
+    return true;
+}

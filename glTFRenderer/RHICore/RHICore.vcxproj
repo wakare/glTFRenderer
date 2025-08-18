@@ -73,7 +73,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <TargetName>RHICore</TargetName>
     <PublicIncludeDirectories>$(ProjectDir)Public;</PublicIncludeDirectories>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(ProjectDir)Public;$(ProjectDir)Public/RHIDX12Impl;$(ProjectDir)Public/RHIVKImpl;$(ProjectDir)Public/RHIInterface;$(SolutionDir)RendererCommonLib/Public;$(SolutionDir)ThirdParty;$(SolutionDir)ThirdParty/imgui;$(SolutionDir)ThirdParty/glfw/include;$(VULKAN_SDK)\include;$(VULKAN_SDK)\include\volk</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(ProjectDir);$(ProjectDir)Public;$(ProjectDir)Public/RHIDX12Impl;$(ProjectDir)Public/RHIVKImpl;$(ProjectDir)Public/RHIInterface;$(SolutionDir)RendererCommonLib/Public;$(SolutionDir)ThirdParty;$(SolutionDir)ThirdParty/imgui;$(SolutionDir)ThirdParty/glfw/include;$(VULKAN_SDK)\include;$(VULKAN_SDK)\include\volk</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <TargetName>RHICore</TargetName>
@@ -84,7 +84,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <TargetName>RHICore</TargetName>
     <PublicIncludeDirectories>$(ProjectDir)Public;</PublicIncludeDirectories>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(ProjectDir)Public;$(ProjectDir)Public/RHIDX12Impl;$(ProjectDir)Public/RHIVKImpl;$(ProjectDir)Public/RHIInterface;$(SolutionDir)RendererCommonLib/Public;$(SolutionDir)ThirdParty;$(SolutionDir)ThirdParty/imgui;$(SolutionDir)ThirdParty/glfw/include;$(VULKAN_SDK)\include;$(VULKAN_SDK)\include\volk</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(ProjectDir);$(ProjectDir)Public;$(ProjectDir)Public/RHIDX12Impl;$(ProjectDir)Public/RHIVKImpl;$(ProjectDir)Public/RHIInterface;$(SolutionDir)RendererCommonLib/Public;$(SolutionDir)ThirdParty;$(SolutionDir)ThirdParty/imgui;$(SolutionDir)ThirdParty/glfw/include;$(VULKAN_SDK)\include;$(VULKAN_SDK)\include\volk</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -124,7 +124,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;RHICORE_EXPORTS;_WINDOWS;_USRDLL;IMGUI_IMPL_VULKAN_USE_VOLK;VK_NO_PROTOTYPES;NOMINMAX;RHICORE_EXPORTS;_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;RHICORE_EXPORTS;_WINDOWS;_USRDLL;IMGUI_IMPL_VULKAN_USE_VOLK;VK_NO_PROTOTYPES;NOMINMAX;RHICORE_EXPORTS;_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS;SPIRV_REFLECT_USE_SYSTEM_SPIRV_H;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
@@ -145,7 +145,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;RHICORE_EXPORTS;_WINDOWS;_USRDLL;IMGUI_IMPL_VULKAN_USE_VOLK;VK_NO_PROTOTYPES;NOMINMAX;RHICORE_EXPORTS;_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;RHICORE_EXPORTS;_WINDOWS;_USRDLL;IMGUI_IMPL_VULKAN_USE_VOLK;VK_NO_PROTOTYPES;NOMINMAX;RHICORE_EXPORTS;_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS;SPIRV_REFLECT_USE_SYSTEM_SPIRV_H;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
@@ -268,6 +268,8 @@
     <ClCompile Include="Private\RHIVKImpl\VKVertexBufferView.cpp" />
     <ClCompile Include="Private\RHIVKImpl\VolkUtils.cpp" />
     <ClCompile Include="Private\RHIVKImpl\VulkanUtils.cpp" />
+    <ClCompile Include="ShaderReflect\spirv_reflect.c" />
+    <ClCompile Include="ShaderReflect\spirv_reflect.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Public\RHICommon.h" />
@@ -372,6 +374,7 @@
     <ClInclude Include="Public\RHIVKImpl\VKVertexBufferView.h" />
     <ClInclude Include="Public\RHIVKImpl\VolkUtils.h" />
     <ClInclude Include="Public\RHIVKImpl\VulkanUtils.h" />
+    <ClInclude Include="ShaderReflect\spirv_reflect.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -6,6 +6,8 @@
 #include "RHIInterface/IRHITexture.h"
 #include "RHICommon.h"
 
+class IRHIShader;
+class IRHIRootSignatureHelper;
 class IRHISwapChain;
 class IRHIShaderTable;
 class IRHICommandSignature;
@@ -85,6 +87,8 @@ public:
     virtual bool SupportRayTracing(IRHIDevice& device) = 0;
     virtual unsigned GetAlignmentSizeForUAVCount(unsigned size) = 0;
 
+    virtual bool RegisterShaderParameterToRootSignature(const IRHIShader& shader, IRHIRootSignatureHelper& root_signature_helper) = 0;
+    
     virtual void ReportLiveObjects() = 0;
 
     bool UploadTextureData(IRHICommandList& command_list, IRHIMemoryManager& memory_manager, IRHIDevice& device, IRHITexture& dst, const RHITextureMipUploadInfo& upload_info) ;

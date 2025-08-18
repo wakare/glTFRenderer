@@ -735,6 +735,12 @@ void DX12Utils::ReportLiveObjects()
     }
 }
 
+bool DX12Utils::RegisterShaderParameterToRootSignature(const IRHIShader& shader,
+    IRHIRootSignatureHelper& root_signature_helper)
+{
+    return true;
+}
+
 DX12Utils& DX12Utils::DX12Instance()
 {
     return static_cast<DX12Utils&>(RHIUtilInstanceManager::Instance());
