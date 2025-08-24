@@ -1,5 +1,6 @@
 #include "RHIInterface/IRHIPipelineStateObject.h"
 
+#include "IRHIRootSignatureHelper.h"
 #include "RHIResourceFactoryImpl.hpp"
 
 IRHIPipelineStateObject::IRHIPipelineStateObject(RHIPipelineType type)
@@ -54,6 +55,10 @@ bool IRHIPipelineStateObject::CompileShaders()
     {
         shader.second->SetShaderCompilePreDefineMacros(m_shader_macros);
         RETURN_IF_FALSE(shader.second->CompileShader())
+        
+        // Debug shader
+        IRHIRootSignatureHelper dummy;
+        RHIUtilInstanceManager::Instance().RegisterShaderParameterToRootSignature(*shader.second, dummy);
     }
     
     return true;

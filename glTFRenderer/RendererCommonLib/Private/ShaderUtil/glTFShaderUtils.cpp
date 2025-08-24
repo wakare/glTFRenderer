@@ -258,7 +258,6 @@ bool CompileShaderWithDXC(const glTFShaderUtils::ShaderCompileDesc& compile_desc
         }
     }
     
-    
     save_dxc_compile_output_to_disk( pShader, output_shader_hash + ".bin");
     if (pResults->HasOutput(DXC_OUT_PDB))
     {

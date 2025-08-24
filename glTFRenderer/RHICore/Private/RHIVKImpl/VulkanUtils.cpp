@@ -739,20 +739,39 @@ bool VulkanUtils::RegisterShaderParameterToRootSignature(const IRHIShader& shade
     uint32_t var_count = 0;
     result = spvReflectEnumerateInputVariables(&module, &var_count, NULL);
     assert(result == SPV_REFLECT_RESULT_SUCCESS);
-    SpvReflectInterfaceVariable** input_vars =
-      (SpvReflectInterfaceVariable**)malloc(var_count * sizeof(SpvReflectInterfaceVariable*));
-    result = spvReflectEnumerateInputVariables(&module, &var_count, input_vars);
+    std::vector<SpvReflectInterfaceVariable*> input_vars (var_count);
+    result = spvReflectEnumerateInputVariables(&module, &var_count, input_vars.data());
     assert(result == SPV_REFLECT_RESULT_SUCCESS);
 
     // Output variables, descriptor bindings, descriptor sets, and push constants
     // can be enumerated and extracted using a similar mechanism.
-    
+    for (uint32_t i = 0; i < var_count; ++i)
+    {
+        LOG_FORMAT_FLUSH("[Reflect] Shader entry %s contains input var %s\n", shader.GetMainEntry().c_str(), input_vars[i]->name);
+    }
 
+    result = spvReflectEnumerateEntryPointDescriptorSets(&module, shader.GetMainEntry().c_str(), &var_count,NULL);
+    assert(result == SPV_REFLECT_RESULT_SUCCESS);
+
+    std::vector<SpvReflectDescriptorSet*> descriptor_sets (var_count);
+    result = spvReflectEnumerateEntryPointDescriptorSets(&module, shader.GetMainEntry().c_str(), &var_count,descriptor_sets.data());
+    assert(result == SPV_REFLECT_RESULT_SUCCESS);
+
+    // can be enumerated and extracted using a similar mechanism.
+    for (uint32_t i = 0; i < var_count; ++i)
+    {
+        for (uint32_t j = 0; j < descriptor_sets[i]->binding_count; ++j)
+        {
+            LOG_FORMAT_FLUSH("[Reflect] Shader entry %s contains descriptor set var name: %s\nbinding: %d\ninput attachment index:%d\nset index:%d\n", shader.GetMainEntry().c_str(),
+                descriptor_sets[i]->bindings[j]->name,
+                descriptor_sets[i]->bindings[j]->binding,
+                descriptor_sets[i]->bindings[j]->input_attachment_index,
+                descriptor_sets[i]->bindings[j]->set);    
+        }
+    }
     
     // Destroy the reflection data when no longer required.
     spvReflectDestroyShaderModule(&module);
 
-    free (input_vars);
-    
     return true;
 }

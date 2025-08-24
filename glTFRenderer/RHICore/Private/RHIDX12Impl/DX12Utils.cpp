@@ -4,6 +4,9 @@
 #include <imgui/backends/imgui_impl_dx12.h>
 
 #include <dxgidebug.h>
+#include <d3d12shader.h>
+#include <dxcapi.h>
+
 #include "d3dx12.h"
 #include "DX12CommandList.h"
 #include "DX12CommandQueue.h"
@@ -738,6 +741,27 @@ void DX12Utils::ReportLiveObjects()
 bool DX12Utils::RegisterShaderParameterToRootSignature(const IRHIShader& shader,
     IRHIRootSignatureHelper& root_signature_helper)
 {
+    ComPtr<IDxcUtils> utils; DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&utils));
+    ComPtr<ID3D12ShaderReflection> refl;
+
+    const auto& shader_bytecode = shader.GetShaderByteCode();
+    DxcBuffer shader_bytecode_buffer{};
+    shader_bytecode_buffer.Ptr = shader_bytecode.data();
+    shader_bytecode_buffer.Size = shader_bytecode.size();
+    utils->CreateReflection(&shader_bytecode_buffer, IID_PPV_ARGS(&refl));
+
+    D3D12_SHADER_DESC sd{};
+    refl->GetDesc(&sd);
+
+    for (UINT i = 0; i < sd.BoundResources; ++i)
+    {
+        D3D12_SHADER_INPUT_BIND_DESC bd{};
+        refl->GetResourceBindingDesc(i, &bd);
+
+        LOG_FORMAT_FLUSH("[Reflect] Shader %s contains var name:%s\nbinding: %d\nset index:%d\n", shader.GetMainEntry().c_str(), bd.Name,
+            bd.BindPoint, bd.Space);
+    }
+    
     return true;
 }
 
