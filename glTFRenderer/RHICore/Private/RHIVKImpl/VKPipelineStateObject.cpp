@@ -5,7 +5,6 @@
 #include "VKRootSignature.h"
 #include "VKSwapChain.h"
 #include "RHIInterface/IRHIDescriptorManager.h"
-#include "ShaderUtil/glTFShaderUtils.h"
 
 VkShaderModule VKGraphicsPipelineStateObject::CreateVkShaderModule(VkDevice device, const std::vector<unsigned char>& shader_binaries)
 {

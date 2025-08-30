@@ -1,8 +1,6 @@
 #pragma once
-#include "ShaderUtil/IRHIShader.h"
+#include "RHIInterface/IRHIShader.h"
 
 class VKShader : public IRHIShader
 {
-public:
-    virtual bool CompileSpirV() override;
 };

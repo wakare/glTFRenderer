@@ -5,7 +5,7 @@
 #include "RHIInterface/IRHIRootSignature.h"
 #include "RHIInterface/IRHIResource.h"
 #include "RHIInterface/IRHISwapChain.h"
-#include "ShaderUtil/IRHIShader.h"
+#include "RHIInterface/IRHIShader.h"
 
 class IRHIDescriptorAllocation;
 class IRHIRenderTarget;

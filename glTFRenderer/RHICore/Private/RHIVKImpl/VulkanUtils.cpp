@@ -766,7 +766,7 @@ bool VulkanUtils::RegisterShaderParameterToRootSignature(const IRHIShader& shade
                 descriptor_sets[i]->bindings[j]->name,
                 descriptor_sets[i]->bindings[j]->binding,
                 descriptor_sets[i]->bindings[j]->input_attachment_index,
-                descriptor_sets[i]->bindings[j]->set);    
+                descriptor_sets[i]->bindings[j]->set);
         }
     }
     

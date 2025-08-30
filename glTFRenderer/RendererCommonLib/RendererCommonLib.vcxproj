@@ -243,8 +243,6 @@
     <ClCompile Include="Private\SceneFileLoader\glTFElementCommon.cpp" />
     <ClCompile Include="Private\SceneFileLoader\glTFImageIOUtil.cpp" />
     <ClCompile Include="Private\SceneFileLoader\glTFLoader.cpp" />
-    <ClCompile Include="Private\ShaderUtil\glTFShaderUtils.cpp" />
-    <ClCompile Include="Private\ShaderUtil\IRHIShader.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Public\AsyncFileLoader.h" />
@@ -254,8 +252,6 @@
     <ClInclude Include="Public\SceneFileLoader\glTFElementCommon.h" />
     <ClInclude Include="Public\SceneFileLoader\glTFImageIOUtil.h" />
     <ClInclude Include="Public\SceneFileLoader\glTFLoader.h" />
-    <ClInclude Include="Public\ShaderUtil\glTFShaderUtils.h" />
-    <ClInclude Include="Public\ShaderUtil\IRHIShader.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

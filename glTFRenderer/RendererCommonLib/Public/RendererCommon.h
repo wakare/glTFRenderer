@@ -10,6 +10,8 @@
 #include <string>
 #include <locale>
 
+#include "SceneFileLoader/glTFImageIOUtil.h"
+
 #ifdef NDEBUG
 #define GLTF_CHECK(a) if (!(a)) {throw "ASSERT!"; }
 #else
@@ -53,16 +55,20 @@ if (!(x)) \
 assert(false); return false; \
 }
 
-inline std::wstring to_wide_string(const std::string& input)
-{
-    std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
-    return converter.from_bytes(input);
+inline std::wstring to_wide_string(std::string_view s) {
+    if (s.empty()) return {};
+    int n = MultiByteToWideChar(CP_UTF8, 0, s.data(), (int)s.size(), nullptr, 0);
+    std::wstring w(n, L'\0');
+    MultiByteToWideChar(CP_UTF8, 0, s.data(), (int)s.size(), w.data(), n);
+    return w;
 }
 
-inline std::string to_byte_string(const std::wstring& input)
-{
-    std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
-    return converter.to_bytes(input);
+inline std::string to_byte_string(std::wstring_view w) {
+    if (w.empty()) return {};
+    int n = WideCharToMultiByte(CP_UTF8, 0, w.data(), (int)w.size(), nullptr, 0, nullptr, nullptr);
+    std::string s(n, '\0');
+    WideCharToMultiByte(CP_UTF8, 0, w.data(), (int)w.size(), s.data(), n, nullptr, nullptr);
+    return s;
 }
 
 enum class RHIShaderType
