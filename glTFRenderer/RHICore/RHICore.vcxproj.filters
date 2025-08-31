@@ -321,6 +321,12 @@
     <ClInclude Include="Public\RHIVKImpl\VulkanUtils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Public\RHIInterface\IRHIShader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ShaderReflect\spirv_reflect.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\ThirdParty\imgui\backends\imgui_impl_dx12.cpp">
@@ -636,6 +642,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Private\RHIVKImpl\VulkanUtils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Private\RHIInterface\IRHIShader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ShaderReflect\spirv_reflect.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ShaderReflect\spirv_reflect.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

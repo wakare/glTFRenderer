@@ -1,5 +1,6 @@
 #include "ResourceManager.h"
 
+#include "InternalResourceHandleTable.h"
 #include "RHIResourceFactory.h"
 #include "RHIInterface/IRHICommandAllocator.h"
 #include "RHIInterface/IRHICommandList.h"
@@ -18,10 +19,12 @@ bool ResourceManager::InitResourceManager(const RendererInterface::RenderDeviceD
     
     m_command_queue = RHIResourceFactory::CreateRHIResource<IRHICommandQueue>();
     EXIT_WHEN_FALSE(m_command_queue->InitCommandQueue(*m_device))
+
+    const auto& render_window = RendererInterface::s_internal_resource_handle_table.GetRenderWindow(desc.window);
     
     m_swap_chain = RHIResourceFactory::CreateRHIResource<IRHISwapChain>();
     RHITextureDesc swap_chain_texture_desc("swap_chain_back_buffer",
-        desc.width, desc.height,
+        render_window.GetWidth(), render_window.GetHeight(),
         RHIDataFormat::R8G8B8A8_UNORM,
         static_cast<RHIResourceUsageFlags>(RUF_ALLOW_RENDER_TARGET | RUF_TRANSFER_DST),
         {
@@ -30,7 +33,7 @@ bool ResourceManager::InitResourceManager(const RendererInterface::RenderDeviceD
         });
 
     RHISwapChainDesc swap_chain_desc;
-    swap_chain_desc.hwnd = desc.window_hwnd;
+    swap_chain_desc.hwnd = render_window.GetHWND();
     swap_chain_desc.chain_mode = VSYNC;
     swap_chain_desc.full_screen = false;
     EXIT_WHEN_FALSE(m_swap_chain->InitSwapChain(*m_factory, *m_device, *m_command_queue, swap_chain_texture_desc, swap_chain_desc ))
@@ -72,7 +75,7 @@ bool ResourceManager::InitResourceManager(const RendererInterface::RenderDeviceD
     {
         auto depth_texture = m_render_target_manager->CreateRenderTarget(
             *m_device, *m_memory_manager,
-            RHITextureDesc::MakeDepthTextureDesc(desc.width, desc.height), {
+            RHITextureDesc::MakeDepthTextureDesc(render_window.GetWidth(), render_window.GetHeight()), {
                 .type = RHIRenderTargetType::DSV,
                 .format = RHIDataFormat::D32_FLOAT
             });

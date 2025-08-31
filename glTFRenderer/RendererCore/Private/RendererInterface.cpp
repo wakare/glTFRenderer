@@ -1,21 +1,46 @@
 #include "RendererInterface.h"
 
-#include "ResourceManager.h"
+#include "InternalResourceHandleTable.h"
 #include "RendererCommon.h"
+#include "ResourceManager.h"
 
 namespace RendererInterface
 {
-    bool ResourceAllocator::Init(RenderDeviceDesc device)
+    RenderWindow::RenderWindow(const RenderWindowDesc& desc)
+        : m_desc(desc)
+        , m_handle(0)
+        , m_hwnd(nullptr)
+    {
+        m_handle = s_internal_resource_handle_table.RegisterWindow(desc);
+    }
+
+    RenderWindowHandle RenderWindow::GetHandle() const
+    {
+        return m_handle;
+    }
+
+    unsigned RenderWindow::GetWidth() const
+    {
+        return m_desc.width;
+    }
+
+    unsigned RenderWindow::GetHeight() const
+    {
+        return m_desc.height;
+    }
+
+    HWND RenderWindow::GetHWND() const
+    {
+        return m_hwnd;
+    }
+
+    ResourceAllocator::ResourceAllocator(RenderDeviceDesc device)
     {
         if (!m_resource_manager)
         {
             m_resource_manager = std::make_shared<ResourceManager>();
-            return m_resource_manager->InitResourceManager(device);
+            m_resource_manager->InitResourceManager(device);
         }
-        
-        // Can not init twice
-        GLTF_CHECK(false);
-        return false;
     }
 
     ShaderHandle ResourceAllocator::CreateShader(const ShaderDesc& desc)

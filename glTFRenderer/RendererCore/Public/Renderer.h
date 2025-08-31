@@ -18,6 +18,7 @@ namespace RendererInterface
     
     typedef unsigned RenderDeviceHandle;
     typedef unsigned RenderPassHandle;
+    typedef unsigned RenderWindowHandle;
     
     enum ShaderType
     {
@@ -107,10 +108,13 @@ namespace RendererInterface
     struct RenderDeviceDesc
     {
         RenderDeviceType type;
-        unsigned width;
-        unsigned height;
-        HWND window_hwnd;
+        RenderWindowHandle window;
         unsigned back_buffer_count;
     };
-    
+
+    struct RenderWindowDesc
+    {
+        unsigned width;
+        unsigned height;
+    };
 }

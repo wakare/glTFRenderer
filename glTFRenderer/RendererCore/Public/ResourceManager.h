@@ -1,5 +1,5 @@
 #pragma once
-#include "RenderInterfaceCommon.h"
+#include "Renderer.h"
 
 class IRHITextureAllocation;
 class IRHITexture;
