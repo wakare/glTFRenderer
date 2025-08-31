@@ -85,3 +85,34 @@ bool ResourceManager::InitResourceManager(const RendererInterface::RenderDeviceD
 
     return true;
 }
+
+std::shared_ptr<IRHIShader> ResourceManager::CreateShader(const RendererInterface::ShaderDesc& shader_desc)
+{
+    RHIShaderType shader_type = RHIShaderType::Unknown;
+    switch (shader_desc.shader_type) {
+    case RendererInterface::VERTEX_SHADER:
+        shader_type = RHIShaderType::Vertex;
+        break;
+    case RendererInterface::FRAGMENT_SHADER:
+        shader_type = RHIShaderType::Pixel;
+        break;
+    case RendererInterface::COMPUTE_SHADER:
+        shader_type = RHIShaderType::Compute;
+        break;
+    case RendererInterface::RAY_TRACING_SHADER:
+        shader_type = RHIShaderType::RayTracing;
+        break;
+    }
+    GLTF_CHECK(shader_type != RHIShaderType::Unknown);
+    
+    std::shared_ptr<IRHIShader> shader = RHIResourceFactory::CreateRHIResource<IRHIShader>();
+    if (!shader->InitShader(shader_desc.shader_file_name, shader_type, shader_desc.entry_point) || !shader->CompileShader())
+    {
+        GLTF_CHECK(false);
+    }
+
+    auto shader_handle = RendererInterface::InternalResourceHandleTable::Instance().RegisterShader(shader);
+    m_shaders[shader_handle] = shader;
+    
+    return shader;
+}

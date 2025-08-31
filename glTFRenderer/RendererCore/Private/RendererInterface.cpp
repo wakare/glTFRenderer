@@ -52,6 +52,8 @@ namespace RendererInterface
 
     ShaderHandle ResourceAllocator::CreateShader(const ShaderDesc& desc)
     {
+        m_resource_manager->CreateShader(desc);
+        
         return true;
     }
 

@@ -1,6 +1,7 @@
 #pragma once
 #include "Renderer.h"
 
+class IRHIShader;
 class IRHITextureAllocation;
 class IRHITexture;
 class glTFRenderResourceFrameManager;
@@ -21,6 +22,8 @@ class ResourceManager
 {
 public:
     bool InitResourceManager(const RendererInterface::RenderDeviceDesc& desc);
+
+    std::shared_ptr<IRHIShader> CreateShader(const RendererInterface::ShaderDesc& shader_desc);
     
 protected:
     std::shared_ptr<IRHIFactory> m_factory;
@@ -41,4 +44,6 @@ protected:
     
     std::shared_ptr<IRHIPipelineStateObject> m_current_pass_pso;
     //std::vector<glTFRenderResourceFrameManager> m_frame_resource_managers;
+
+    std::map<RendererInterface::ShaderHandle, std::shared_ptr<IRHIShader>> m_shaders;
 };

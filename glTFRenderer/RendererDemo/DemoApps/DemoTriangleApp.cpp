@@ -20,16 +20,16 @@ void DemoTriangleApp::Run()
     RendererInterface::ShaderDesc vertex_shader_desc{};
     vertex_shader_desc.shader_type = RendererInterface::ShaderType::VERTEX_SHADER; 
     vertex_shader_desc.entry_point = "MainVS";
-    vertex_shader_desc.shader_file_name = "Shaders/DemoShader.hlsl";
+    vertex_shader_desc.shader_file_name = "Resources/Shaders/DemoShader.hlsl";
     auto vertex_shader_handle = allocator.CreateShader(vertex_shader_desc);
 
     RendererInterface::ShaderDesc fragment_shader_desc{};
     vertex_shader_desc.shader_type = RendererInterface::ShaderType::FRAGMENT_SHADER; 
     vertex_shader_desc.entry_point = "MainFS";
-    vertex_shader_desc.shader_file_name = "Shaders/DemoShader.hlsl";
+    vertex_shader_desc.shader_file_name = "Resources/Shaders/DemoShader.hlsl";
     auto fragment_shader_handle = allocator.CreateShader(vertex_shader_desc);
 
-    // Create render target resouce
+    // Create render target resource
     RendererInterface::RenderTargetDesc render_target_desc{};
     render_target_desc.width = 1280;
     render_target_desc.height = 720;

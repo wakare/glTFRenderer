@@ -16,6 +16,19 @@ const RendererInterface::RenderWindow& RendererInterface::InternalResourceHandle
     return m_windows.at(handle);
 }
 
+RendererInterface::ShaderHandle RendererInterface::InternalResourceHandleTable::RegisterShader(
+    std::shared_ptr<IRHIShader> shader)
+{
+    RenderWindowHandle result = _internal_handle++;
+    m_shaders.emplace(result, shader);
+    return result;
+}
+
+std::shared_ptr<IRHIShader> RendererInterface::InternalResourceHandleTable::GetShader(ShaderHandle handle) const
+{
+    return m_shaders.at(handle);
+}
+
 RendererInterface::InternalResourceHandleTable& RendererInterface::InternalResourceHandleTable::Instance()
 {
     static InternalResourceHandleTable s_internal_resource_handle_table;
