@@ -15,3 +15,9 @@ const RendererInterface::RenderWindow& RendererInterface::InternalResourceHandle
 {
     return m_windows.at(handle);
 }
+
+RendererInterface::InternalResourceHandleTable& RendererInterface::InternalResourceHandleTable::Instance()
+{
+    static InternalResourceHandleTable s_internal_resource_handle_table;
+    return s_internal_resource_handle_table;
+}

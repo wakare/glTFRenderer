@@ -12,6 +12,8 @@ int main(int argc, char* argv[])
     device.type = RendererInterface::DX12;
     
     RendererInterface::ResourceAllocator allocator(device);
+
+    window.TickWindow();
     
     return 0;
 }

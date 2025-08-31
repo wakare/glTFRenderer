@@ -1,7 +1,7 @@
 #include "ResourceManager.h"
 
 #include "InternalResourceHandleTable.h"
-#include "RHIResourceFactory.h"
+#include "RHIResourceFactoryImpl.hpp"
 #include "RHIInterface/IRHICommandAllocator.h"
 #include "RHIInterface/IRHICommandList.h"
 #include "RHIInterface/IRHIRenderTargetManager.h"
@@ -20,7 +20,7 @@ bool ResourceManager::InitResourceManager(const RendererInterface::RenderDeviceD
     m_command_queue = RHIResourceFactory::CreateRHIResource<IRHICommandQueue>();
     EXIT_WHEN_FALSE(m_command_queue->InitCommandQueue(*m_device))
 
-    const auto& render_window = RendererInterface::s_internal_resource_handle_table.GetRenderWindow(desc.window);
+    const auto& render_window = RendererInterface::InternalResourceHandleTable::Instance().GetRenderWindow(desc.window);
     
     m_swap_chain = RHIResourceFactory::CreateRHIResource<IRHISwapChain>();
     RHITextureDesc swap_chain_texture_desc("swap_chain_back_buffer",

@@ -1,8 +1,8 @@
 #include "RendererInterface.h"
 
 #include "InternalResourceHandleTable.h"
-#include "RendererCommon.h"
 #include "ResourceManager.h"
+#include "RenderWindow/glTFWindow.h"
 
 namespace RendererInterface
 {
@@ -11,7 +11,9 @@ namespace RendererInterface
         , m_handle(0)
         , m_hwnd(nullptr)
     {
-        m_handle = s_internal_resource_handle_table.RegisterWindow(desc);
+        glTFWindow::Get().InitAndShowWindow();
+        m_handle = InternalResourceHandleTable::Instance().RegisterWindow(*this);
+        m_hwnd = glTFWindow::Get().GetHWND();
     }
 
     RenderWindowHandle RenderWindow::GetHandle() const
@@ -32,6 +34,11 @@ namespace RendererInterface
     HWND RenderWindow::GetHWND() const
     {
         return m_hwnd;
+    }
+
+    void RenderWindow::TickWindow() const
+    {
+        glTFWindow::Get().UpdateWindow();
     }
 
     ResourceAllocator::ResourceAllocator(RenderDeviceDesc device)

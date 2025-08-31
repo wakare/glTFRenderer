@@ -9,10 +9,11 @@ namespace RendererInterface
     public:
         RenderWindowHandle RegisterWindow(const RenderWindow& window);
         const RenderWindow& GetRenderWindow(RenderWindowHandle handle) const;
+
+        static InternalResourceHandleTable& Instance();
         
     protected:
         std::map<RenderWindowHandle, const RenderWindow&> m_windows;
+        
     };
-
-    static InternalResourceHandleTable s_internal_resource_handle_table;
 }

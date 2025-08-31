@@ -14,6 +14,7 @@ namespace RendererInterface
         unsigned GetWidth() const;
         unsigned GetHeight() const;
         HWND GetHWND() const;
+        void TickWindow() const;
         
     protected:
         RenderWindowDesc m_desc;
