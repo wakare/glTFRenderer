@@ -1,19 +1,23 @@
-#include "RendererInterface.h"
+#include <memory>
+#include <string>
+#include "DemoApps/DemoTriangleApp.h"
+
+#define REGISTER_DEMO_APP(demo_name, app_name) if (demo_name == #app_name) {demo = std::make_unique<app_name>();} 
 
 int main(int argc, char* argv[])
 {
-    RendererInterface::RenderWindowDesc window_desc{};
-    window_desc.width = 1280;
-    window_desc.height = 720;
-    RendererInterface::RenderWindow window(window_desc);
-    
-    RendererInterface::RenderDeviceDesc device{};
-    device.window = window.GetHandle();
-    device.type = RendererInterface::DX12;
-    
-    RendererInterface::ResourceAllocator allocator(device);
+    if (argc <= 1)
+    {
+        // No argument so cannot decide run which demo app!
+        return 0;
+    }
 
-    window.TickWindow();
+    std::unique_ptr<DemoBase> demo;
+    std::string demo_name = argv[1];
+    
+    REGISTER_DEMO_APP(demo_name, DemoTriangleApp)
+
+    demo->Run();
     
     return 0;
 }
