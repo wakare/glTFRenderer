@@ -5,7 +5,6 @@
 #include "DX12Device.h"
 #include "DX12Buffer.h"
 #include "DX12DescriptorManager.h"
-#include "DX12RenderTarget.h"
 #include "DX12Texture.h"
 #include "DX12Utils.h"
 #include "RHIResourceFactoryImpl.hpp"

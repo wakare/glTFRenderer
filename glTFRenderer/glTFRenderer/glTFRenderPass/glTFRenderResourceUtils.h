@@ -2,7 +2,6 @@
 #include <memory>
 
 #include "RHIInterface/IRHICommandList.h"
-#include "RHIInterface/IRHIRenderTarget.h"
 #include "RHIInterface/IRHIRootSignatureHelper.h"
 
 class IRHIDescriptorUpdater;

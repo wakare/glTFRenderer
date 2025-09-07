@@ -37,15 +37,34 @@ namespace RendererInterface
 
     enum PixelFormat
     {
-        RGBA8,
-        RGBA16,
+        RGBA8_UNORM,
+        RGBA16_UNORM,
     };
 
+    struct RenderTargetClearValue
+    {
+        union 
+        {
+            float clear_color[4];
+
+            struct my_struct
+            {
+                float clear_depth;
+                unsigned char clear_stencil;
+            } clear_depth_stencil;
+        };
+    };
+
+    static RenderTargetClearValue default_clear_color = { .clear_color{0.0f, 0.0f, 0.0f, 1.0f} };
+    static RenderTargetClearValue default_clear_depth = { .clear_depth_stencil = {0.0f, 0} };
+    
     struct RenderTargetDesc
     {
+        std::string name;
         PixelFormat format;
         unsigned width;
         unsigned height;
+        RenderTargetClearValue clear;
     };
     
     struct TextureDesc
@@ -78,11 +97,25 @@ namespace RendererInterface
         RAY_TRACING,
     };
 
-    enum RenderPassAccessMode
+    enum RenderPassResourceAccessMode
     {
         READ_ONLY,
         WRITE_ONLY,
         READ_WRITE,
+    };
+
+    enum RenderPassResourceUsage
+    {
+        COLOR_INPUT,
+        COLOR_OUTPUT,
+        DEPTH_STENCIL_INPUT,
+        DEPTH_STENCIL_OUTPUT,
+    };
+
+    struct RenderPassResourceDesc
+    {
+        RenderPassResourceUsage usage;
+        RenderPassResourceAccessMode access_mode;
     };
     
     struct RenderPassDesc
@@ -90,10 +123,10 @@ namespace RendererInterface
         RenderPassType type{};
         std::map<ShaderType, ShaderHandle> shaders;
 
-        // access modes
-        std::map<TextureHandle, RenderPassAccessMode> texture_access_modes;
-        std::map<RenderTargetHandle, RenderPassAccessMode> render_target_access_modes;
-        std::map<BufferHandle, RenderPassAccessMode> buffer_access_modes;
+        // resource desc
+        std::map<TextureHandle, RenderPassResourceDesc> texture_resources;
+        std::map<RenderTargetHandle, RenderPassResourceDesc> render_target_resources;
+        std::map<BufferHandle, RenderPassResourceDesc> buffer_resources;
         
         // dependency
         std::vector<RenderPassHandle> dependency_render_passes;

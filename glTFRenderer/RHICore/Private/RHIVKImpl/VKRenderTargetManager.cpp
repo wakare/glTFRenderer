@@ -1,9 +1,8 @@
 #include "VKRenderTargetManager.h"
 
+#include "IRHIMemoryManager.h"
 #include "RHIInterface/IRHIDescriptorManager.h"
-#include "VKConverterUtils.h"
 #include "VKDevice.h"
-#include "VKRenderTarget.h"
 #include "VKSwapChain.h"
 
 bool VKRenderTargetManager::InitRenderTargetManager(IRHIDevice& device, size_t maxRenderTargetCount)
@@ -12,14 +11,16 @@ bool VKRenderTargetManager::InitRenderTargetManager(IRHIDevice& device, size_t m
 }
 
 std::shared_ptr<IRHITextureDescriptorAllocation> VKRenderTargetManager::CreateRenderTarget(IRHIDevice& device,
-    IRHIMemoryManager& memory_manager, const RHITextureDesc& texture_desc, const RHIRenderTargetDesc& render_target_desc)
+    IRHIMemoryManager& memory_manager, const RHITextureDesc& texture_desc, RHIDataFormat format)
 {
     std::shared_ptr<IRHITextureAllocation> out_texture_allocation;
     memory_manager.AllocateTextureMemory(device, texture_desc, out_texture_allocation);
 
+    format = format == RHIDataFormat::UNKNOWN ? texture_desc.GetDataFormat() : format;
+    
     std::shared_ptr<IRHITextureDescriptorAllocation> texture_descriptor_allocation;
-    RHITextureDescriptorDesc render_target(render_target_desc.format, RHIResourceDimension::TEXTURE2D,
-        render_target_desc.type == RHIRenderTargetType::DSV ? RHIViewType::RVT_DSV : RHIViewType::RVT_RTV);
+    RHITextureDescriptorDesc render_target(format, RHIResourceDimension::TEXTURE2D,
+        IsDepthStencilFormat(format) ? RHIViewType::RVT_DSV : RHIViewType::RVT_RTV);
     memory_manager.GetDescriptorManager().CreateDescriptor(device, out_texture_allocation->m_texture,
         render_target, texture_descriptor_allocation);
     

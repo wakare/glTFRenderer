@@ -148,6 +148,16 @@ inline bool IsUintDataFormat(RHIDataFormat format)
     return !IsFloatDataFormat(format);
 }
 
+inline bool IsDepthStencilFormat(RHIDataFormat format)
+{
+    switch (format) {
+    case RHIDataFormat::D32_FLOAT:
+    case RHIDataFormat::D32_SAMPLE_RESERVED:
+        return true;
+    }
+    return false;
+}
+
 inline RHIDataFormat ConvertToSRGBFormat(RHIDataFormat format)
 {
     switch (format)

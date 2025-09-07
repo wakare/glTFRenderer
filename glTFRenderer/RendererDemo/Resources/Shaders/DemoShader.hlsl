@@ -28,14 +28,14 @@ VSOutput MainVS(uint Vertex_ID : SV_VertexID)
     return output;
 }
 
-struct PSOutput
+struct FSOutput
 {
     float4 color : SV_TARGET0;
 };
 
-PSOutput MainFS(VSOutput input)
+FSOutput MainFS(VSOutput input)
 {
-    PSOutput output;
+    FSOutput output;
     output.color = float4(input.color, 1.0);
     return output;
 }

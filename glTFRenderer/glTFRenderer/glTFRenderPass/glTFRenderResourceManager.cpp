@@ -165,10 +165,8 @@ bool glTFRenderResourceManager::InitResourceManager(unsigned width, unsigned hei
     {
         auto depth_texture = m_render_target_manager->CreateRenderTarget(
             *m_device, GetMemoryManager(),
-            RHITextureDesc::MakeDepthTextureDesc(GetSwapChain().GetWidth(), GetSwapChain().GetHeight()), {
-                .type = RHIRenderTargetType::DSV,
-                .format = RHIDataFormat::D32_FLOAT
-            });
+            RHITextureDesc::MakeDepthTextureDesc(GetSwapChain().GetWidth(), GetSwapChain().GetHeight()), 
+            RHIDataFormat::D32_FLOAT);
     
         m_export_texture_map[RenderPassResourceTableId::Depth].push_back(depth_texture->m_source);
         m_export_texture_descriptor_map[RenderPassResourceTableId::Depth].push_back(depth_texture);

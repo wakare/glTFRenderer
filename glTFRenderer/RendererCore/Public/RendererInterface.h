@@ -39,6 +39,8 @@ namespace RendererInterface
     class RenderGraph
     {
     public:
+        RenderGraph(ResourceAllocator& allocator, RenderWindow& window);
         bool RegisterRenderPass(RenderPassHandle render_pass_handle);
+        bool CompileRenderPassAndExecute();
     };
 }

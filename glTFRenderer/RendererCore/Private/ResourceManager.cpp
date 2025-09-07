@@ -5,6 +5,7 @@
 #include "RHIInterface/IRHICommandAllocator.h"
 #include "RHIInterface/IRHICommandList.h"
 #include "RHIInterface/IRHIRenderTargetManager.h"
+#include "RHIInterface/IRHIRootSignatureHelper.h"
 #include "RHIInterface/IRHISwapChain.h"
 
 #define EXIT_WHEN_FALSE(x) if (!(x)) {assert(false); return false;}
@@ -75,10 +76,7 @@ bool ResourceManager::InitResourceManager(const RendererInterface::RenderDeviceD
     {
         auto depth_texture = m_render_target_manager->CreateRenderTarget(
             *m_device, *m_memory_manager,
-            RHITextureDesc::MakeDepthTextureDesc(render_window.GetWidth(), render_window.GetHeight()), {
-                .type = RHIRenderTargetType::DSV,
-                .format = RHIDataFormat::D32_FLOAT
-            });
+            RHITextureDesc::MakeDepthTextureDesc(render_window.GetWidth(), render_window.GetHeight()), RHIDataFormat::D32_FLOAT);
     }
     
     //m_frame_resource_managers.resize(desc.back_buffer_count);
@@ -86,7 +84,7 @@ bool ResourceManager::InitResourceManager(const RendererInterface::RenderDeviceD
     return true;
 }
 
-std::shared_ptr<IRHIShader> ResourceManager::CreateShader(const RendererInterface::ShaderDesc& shader_desc)
+RendererInterface::ShaderHandle ResourceManager::CreateShader(const RendererInterface::ShaderDesc& shader_desc)
 {
     RHIShaderType shader_type = RHIShaderType::Unknown;
     switch (shader_desc.shader_type) {
@@ -110,9 +108,51 @@ std::shared_ptr<IRHIShader> ResourceManager::CreateShader(const RendererInterfac
     {
         GLTF_CHECK(false);
     }
+    else
+    {
+        // Debug shader
+        IRHIRootSignatureHelper dummy;
+        RHIUtilInstanceManager::Instance().RegisterShaderParameterToRootSignature(*shader, dummy);
+    }
 
     auto shader_handle = RendererInterface::InternalResourceHandleTable::Instance().RegisterShader(shader);
     m_shaders[shader_handle] = shader;
     
-    return shader;
+    return shader_handle;
+}
+
+RendererInterface::RenderTargetHandle ResourceManager::CreateRenderTarget(const RendererInterface::RenderTargetDesc& desc)
+{
+    RHIDataFormat format = RHIDataFormat::UNKNOWN;
+    bool is_depth_stencil = false;
+    switch (desc.format)
+    {
+    case RendererInterface::RGBA8_UNORM:
+        format = RHIDataFormat::R8G8B8A8_UNORM;
+        break;
+    case RendererInterface::RGBA16_UNORM:
+        format = RHIDataFormat::R16G16B16A16_UNORM;
+        break;
+    }
+
+    GLTF_CHECK(format != RHIDataFormat::UNKNOWN);
+
+    RHITextureClearValue clear_value{};
+    clear_value.clear_format = format;
+    if (!is_depth_stencil)
+    {
+        memcpy(clear_value.clear_color, desc.clear.clear_color, sizeof(desc.clear.clear_color));
+    }
+    else
+    {
+        clear_value.clear_depth_stencil.clear_depth = desc.clear.clear_depth_stencil.clear_depth;
+        clear_value.clear_depth_stencil.clear_stencil_value = desc.clear.clear_depth_stencil.clear_stencil;
+    }
+    
+    RHITextureDesc tex_desc(desc.name, desc.width, desc.height, format, is_depth_stencil ? RUF_ALLOW_DEPTH_STENCIL : RUF_ALLOW_RENDER_TARGET, clear_value);
+    auto render_target_descriptor = m_render_target_manager->CreateRenderTarget(*m_device, *m_memory_manager, tex_desc, format);
+    auto render_target_handle = RendererInterface::InternalResourceHandleTable::Instance().RegisterRenderTarget(render_target_descriptor);
+    m_render_targets[render_target_handle] = render_target_descriptor;
+    
+    return render_target_handle;
 }

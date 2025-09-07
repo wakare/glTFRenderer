@@ -54,18 +54,12 @@ namespace glTFRenderResourceUtils
         m_albedo_output = resource_manager.GetRenderTargetManager().CreateRenderTarget(
             resource_manager.GetDevice(),
             resource_manager.GetMemoryManager(),
-            RHITextureDesc::MakeBasePassAlbedoTextureDesc(width, height), {
-                .type = RHIRenderTargetType::RTV,
-                .format = RHIDataFormat::UNKNOWN
-            });
+            RHITextureDesc::MakeBasePassAlbedoTextureDesc(width, height));
         
         m_normal_output = resource_manager.GetRenderTargetManager().CreateRenderTarget(
             resource_manager.GetDevice(),
             resource_manager.GetMemoryManager(),
-            RHITextureDesc::MakeBasePassNormalTextureDesc(width, height), {
-                .type = RHIRenderTargetType::RTV,
-                .format = RHIDataFormat::UNKNOWN
-            });
+            RHITextureDesc::MakeBasePassNormalTextureDesc(width, height));
         
         RHIDataFormat depth_format = RHIDataFormat::R32_FLOAT;
         RHITextureDesc depth_output_desc
@@ -82,10 +76,7 @@ namespace glTFRenderResourceUtils
         };
         m_depth_output = resource_manager.GetRenderTargetManager().CreateRenderTarget(
             resource_manager.GetDevice(), resource_manager.GetMemoryManager(),
-            depth_output_desc, {
-                .type = RHIRenderTargetType::RTV,
-                .format = RHIDataFormat::UNKNOWN
-            });
+            depth_output_desc, RHIDataFormat::D32_FLOAT);
         
         return true;
     }
@@ -218,17 +209,11 @@ namespace glTFRenderResourceUtils
     
         m_writable_buffer = resource_manager.GetRenderTargetManager().CreateRenderTarget(
             resource_manager.GetDevice(), resource_manager.GetMemoryManager(),
-            m_texture0_desc, {
-                .type = RHIRenderTargetType::RTV,
-                .format = RHIDataFormat::UNKNOWN
-            });
+            m_texture0_desc);
 
         m_back_buffer = resource_manager.GetRenderTargetManager().CreateRenderTarget(
             resource_manager.GetDevice(), resource_manager.GetMemoryManager(),
-            m_texture0_desc, {
-                .type = RHIRenderTargetType::RTV,
-                .format = RHIDataFormat::UNKNOWN
-            });
+            m_texture0_desc);
         
         return true;
     }

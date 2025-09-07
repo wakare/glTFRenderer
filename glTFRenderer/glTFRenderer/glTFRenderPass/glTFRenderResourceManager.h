@@ -8,6 +8,7 @@
 #include "RenderGraphNodeUtil.h"
 #include "glTFScene/glTFSceneView.h"
 
+class IRHIRenderTargetManager;
 class glTFSceneView;
 class RenderSystemBase;
 class glTFSceneGraph;

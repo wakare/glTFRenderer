@@ -371,7 +371,6 @@
     <ClInclude Include="Public\RHIDX12Impl\DX12PipelineStateObject.h" />
     <ClInclude Include="Public\RHIDX12Impl\DX12RayTracingAS.h" />
     <ClInclude Include="Public\RHIDX12Impl\DX12RenderPass.h" />
-    <ClInclude Include="Public\RHIDX12Impl\DX12RenderTarget.h" />
     <ClInclude Include="Public\RHIDX12Impl\DX12RenderTargetManager.h" />
     <ClInclude Include="Public\RHIDX12Impl\DX12RootSignature.h" />
     <ClInclude Include="Public\RHIDX12Impl\DX12Shader.h" />
@@ -399,7 +398,6 @@
     <ClInclude Include="Public\RHIInterface\IRHIRayTracingAS.h" />
     <ClInclude Include="Public\RHIInterface\IRHIRenderPass.h" />
     <ClInclude Include="Public\RHIInterface\IRHIRenderPassFrameBuffer.h" />
-    <ClInclude Include="Public\RHIInterface\IRHIRenderTarget.h" />
     <ClInclude Include="Public\RHIInterface\IRHIRenderTargetManager.h" />
     <ClInclude Include="Public\RHIInterface\IRHIResource.h" />
     <ClInclude Include="Public\RHIInterface\IRHIRootSignature.h" />
@@ -437,7 +435,6 @@
     <ClInclude Include="Public\RHIVKImpl\VKPipelineStateObject.h" />
     <ClInclude Include="Public\RHIVKImpl\VKRayTracingAS.h" />
     <ClInclude Include="Public\RHIVKImpl\VKRenderPass.h" />
-    <ClInclude Include="Public\RHIVKImpl\VKRenderTarget.h" />
     <ClInclude Include="Public\RHIVKImpl\VKRenderTargetManager.h" />
     <ClInclude Include="Public\RHIVKImpl\VKRootParameter.h" />
     <ClInclude Include="Public\RHIVKImpl\VKRootSignature.h" />

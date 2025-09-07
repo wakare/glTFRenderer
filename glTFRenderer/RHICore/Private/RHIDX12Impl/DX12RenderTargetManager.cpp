@@ -32,15 +32,17 @@ bool DX12RenderTargetManager::InitRenderTargetManager(IRHIDevice& device, size_t
     return true;
 }
 
-std::shared_ptr<IRHITextureDescriptorAllocation> DX12RenderTargetManager::CreateRenderTarget(IRHIDevice& device, IRHIMemoryManager& memory_manager, const RHITextureDesc& texture_desc, const RHIRenderTargetDesc& render_target_desc)
+std::shared_ptr<IRHITextureDescriptorAllocation> DX12RenderTargetManager::CreateRenderTarget(IRHIDevice& device, IRHIMemoryManager& memory_manager, const RHITextureDesc& texture_desc, RHIDataFormat format)
 {
     std::shared_ptr<IRHITextureAllocation> texture_allocation;
     memory_manager.AllocateTextureMemory(device, texture_desc, texture_allocation);
 
+    format = format == RHIDataFormat::UNKNOWN ? texture_desc.GetDataFormat() : format;
+    
     return CreateRenderTargetWithResource(device,
                                           memory_manager,
-                                          render_target_desc.type,
-                                          render_target_desc.format == RHIDataFormat::UNKNOWN ? texture_desc.GetDataFormat() : render_target_desc.format,
+                                          IsDepthStencilFormat(format) ? RHIRenderTargetType::DSV : RHIRenderTargetType::RTV,
+                                          format,
                                           texture_allocation,
                                           DX12ConverterUtils::ConvertToD3DClearValue(texture_desc.GetClearValue()));
 }
@@ -162,8 +164,8 @@ bool DX12RenderTargetManager::BindRenderTarget(IRHICommandList& command_list,
 }
 
 std::shared_ptr<IRHITextureDescriptorAllocation> DX12RenderTargetManager::CreateRenderTargetWithResource(IRHIDevice& device,
-    IRHIMemoryManager
-    & memory_manager, RHIRenderTargetType type, RHIDataFormat descriptor_format, std::shared_ptr<IRHITextureAllocation> texture_resource, const D3D12_CLEAR_VALUE& clear_value)
+    const IRHIMemoryManager
+    & memory_manager, RHIRenderTargetType type, RHIDataFormat descriptor_format, const std::shared_ptr<IRHITextureAllocation>& texture_resource, const D3D12_CLEAR_VALUE& clear_value)
 {
     GLTF_CHECK(texture_resource->m_texture->GetTextureDesc().GetUsage() & RUF_ALLOW_RENDER_TARGET ||
         texture_resource->m_texture->GetTextureDesc().GetUsage() & RUF_ALLOW_DEPTH_STENCIL);

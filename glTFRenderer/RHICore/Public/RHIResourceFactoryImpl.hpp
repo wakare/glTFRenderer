@@ -11,7 +11,6 @@
 #include "RHIInterface/IRHIFactory.h"
 #include "RHIInterface/IRHIFence.h"
 #include "RHIInterface/IRHIBuffer.h"
-#include "RHIInterface/IRHIRenderTarget.h"
 #include "RHIInterface/IRHIRenderTargetManager.h"
 #include "RHIInterface/IRHIRootSignature.h"
 #include "RHIInterface/IRHISwapChain.h"
@@ -35,7 +34,6 @@
 #include "RHIDX12Impl/DX12MemoryManager.h"
 #include "RHIDX12Impl/DX12IndexBufferView.h"
 #include "RHIDX12Impl/DX12PipelineStateObject.h"
-#include "RHIDX12Impl/DX12RenderTarget.h"
 #include "RHIDX12Impl/DX12RenderTargetManager.h"
 #include "RHIDX12Impl/DX12RootSignature.h"
 #include "RHIDX12Impl/DX12SwapChain.h"
@@ -65,7 +63,6 @@
 #include "RHIVKImpl/VKIndexBufferView.h"
 #include "RHIVKImpl/VKPipelineStateObject.h"
 #include "RHIVKImpl/VKRayTracingAS.h"
-#include "RHIVKImpl/VKRenderTarget.h"
 #include "RHIVKImpl/VKRenderTargetManager.h"
 #include "RHIVKImpl/VKRootParameter.h"
 #include "RHIVKImpl/VKRootSignature.h"
@@ -113,7 +110,6 @@ IMPLEMENT_CREATE_RHI_RESOURCE(IRHICommandList, DX12CommandList, VKCommandList)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHICommandQueue, DX12CommandQueue, VKCommandQueue)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHICommandAllocator, DX12CommandAllocator, VKCommandAllocator)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHISwapChain, DX12SwapChain, VKSwapChain)
-IMPLEMENT_CREATE_RHI_RESOURCE(IRHIRenderTarget, DX12RenderTarget, VKRenderTarget)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIRenderTargetManager, DX12RenderTargetManager, VKRenderTargetManager)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIRootParameter, DX12RootParameter, VKRootParameter)
 IMPLEMENT_CREATE_RHI_RESOURCE(IRHIStaticSampler, DX12StaticSampler, VKStaticSampler)

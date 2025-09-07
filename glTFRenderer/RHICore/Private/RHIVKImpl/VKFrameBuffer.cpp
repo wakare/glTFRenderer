@@ -2,11 +2,11 @@
 
 #include "VKDevice.h"
 #include "VKRenderPass.h"
-#include "VKRenderTarget.h"
 #include "VKSwapChain.h"
 
 bool VKFrameBuffer::InitFrameBuffer(IRHIDevice& device, IRHISwapChain& swap_chain, const RHIFrameBufferInfo& info)
 {
+    /*
     m_device = dynamic_cast<VKDevice&>(device).GetDevice();
     const VkRenderPass vk_render_pass = dynamic_cast<VKRenderPass&>(*info.render_pass).GetRenderPass();
     
@@ -29,7 +29,7 @@ bool VKFrameBuffer::InitFrameBuffer(IRHIDevice& device, IRHISwapChain& swap_chai
     GLTF_CHECK(result == VK_SUCCESS);
 
     need_release = true;
-    
+    */
     return true;
 }
 

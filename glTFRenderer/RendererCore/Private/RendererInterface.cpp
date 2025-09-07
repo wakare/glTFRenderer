@@ -52,22 +52,35 @@ namespace RendererInterface
 
     ShaderHandle ResourceAllocator::CreateShader(const ShaderDesc& desc)
     {
-        m_resource_manager->CreateShader(desc);
-        
-        return true;
+        return m_resource_manager->CreateShader(desc);
     }
 
     TextureHandle ResourceAllocator::CreateTexture(const TextureDesc& desc)
     {
-        return true;
+        return 0;
     }
 
     RenderTargetHandle ResourceAllocator::CreateRenderTarget(const RenderTargetDesc& desc)
     {
-        return true;
+        return m_resource_manager->CreateRenderTarget(desc);
     }
 
     RenderPassHandle ResourceAllocator::CreateRenderPass(const RenderPassDesc& desc)
+    {
+    
+        return true;
+    }
+
+    RenderGraph::RenderGraph(ResourceAllocator& allocator, RenderWindow& window)
+    {
+    }
+
+    bool RenderGraph::RegisterRenderPass(RenderPassHandle render_pass_handle)
+    {
+        return true;
+    }
+
+    bool RenderGraph::CompileRenderPassAndExecute()
     {
         return true;
     }

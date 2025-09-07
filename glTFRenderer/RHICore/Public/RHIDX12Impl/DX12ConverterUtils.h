@@ -3,7 +3,7 @@
 #include <d3d12.h>
 #include <dxgiformat.h>
 
-#include "RHIInterface/IRHIRenderTarget.h"
+#include "RHICommon.h"
 
 class DX12ConverterUtils
 {

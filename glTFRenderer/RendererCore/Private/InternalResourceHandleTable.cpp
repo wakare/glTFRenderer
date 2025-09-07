@@ -29,6 +29,20 @@ std::shared_ptr<IRHIShader> RendererInterface::InternalResourceHandleTable::GetS
     return m_shaders.at(handle);
 }
 
+RendererInterface::RenderTargetHandle RendererInterface::InternalResourceHandleTable::RegisterRenderTarget(
+    std::shared_ptr<IRHITextureDescriptorAllocation> render_target)
+{
+    RenderWindowHandle result = _internal_handle++;
+    m_render_targets.emplace(result, render_target);
+    return result;
+}
+
+std::shared_ptr<IRHITextureDescriptorAllocation> RendererInterface::InternalResourceHandleTable::GetRenderTarget(
+    RenderTargetHandle handle) const
+{
+    return m_render_targets.at(handle);
+}
+
 RendererInterface::InternalResourceHandleTable& RendererInterface::InternalResourceHandleTable::Instance()
 {
     static InternalResourceHandleTable s_internal_resource_handle_table;

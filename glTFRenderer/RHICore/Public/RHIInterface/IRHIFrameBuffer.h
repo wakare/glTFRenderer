@@ -1,13 +1,12 @@
 #pragma once
 #include "RHIInterface/IRHIRenderPass.h"
-#include "RHIInterface/IRHIRenderTarget.h"
 #include "RHIInterface/IRHIResource.h"
 #include "RHIInterface/IRHISwapChain.h"
 
 struct RHIFrameBufferInfo
 {
     std::shared_ptr<IRHIRenderPass> render_pass;
-    std::vector<std::shared_ptr<IRHIRenderTarget>> attachment_images;
+    //std::vector<std::shared_ptr<IRHIRenderTarget>> attachment_images;
 };
 
 class RHICORE_API IRHIFrameBuffer : public IRHIResource
