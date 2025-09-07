@@ -102,7 +102,7 @@ bool glTFGraphicsPassMeshBase::SetupPipelineStateObject(glTFRenderResourceManage
 {
     RETURN_IF_FALSE(glTFGraphicsPassBase::SetupPipelineStateObject(resource_manager))
     
-    auto& shader_macros = GetGraphicsPipelineStateObject().GetShaderMacros();
+    auto& shader_macros = GetShaderMacros();
     shader_macros.AddMacro("ENABLE_INPUT_LAYOUT", UsingInputLayout() ? "1" : "0");
 
     if (UsingInputLayout())

@@ -40,7 +40,7 @@ bool glTFGraphicsPassMeshVSMPageRendering::SetupPipelineStateObject(glTFRenderRe
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshRVTPageRendering::SetupPipelineStateObject(resource_manager))
     
-    GetGraphicsPipelineStateObject().BindShaderCode(
+    BindShaderCode(
                 R"(glTFResources\ShaderSource\MeshPassCommonVS.hlsl)", RHIShaderType::Vertex, "main");
 
     auto virtual_texture_system = resource_manager.GetRenderSystem<VirtualTextureSystem>();

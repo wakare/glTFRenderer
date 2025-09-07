@@ -186,10 +186,10 @@ bool glTFComputePassRayTracingPostprocess::SetupPipelineStateObject(glTFRenderRe
     RETURN_IF_FALSE(m_accumulation_resource.CreateDescriptors(resource_manager))
     RETURN_IF_FALSE(m_custom_resource.CreateDescriptors(resource_manager))
 
-    GetComputePipelineStateObject().BindShaderCode(
+    BindShaderCode(
             R"(glTFResources\ShaderSource\ComputeShader\PathTracingPostProcess.hlsl)", RHIShaderType::Compute, "main");
     
-    auto& shader_macros = GetComputePipelineStateObject().GetShaderMacros();
+    auto& shader_macros = GetShaderMacros();
     RETURN_IF_FALSE(m_accumulation_resource.AddShaderMacros(shader_macros))
     RETURN_IF_FALSE(m_custom_resource.AddShaderMacros(shader_macros))
     

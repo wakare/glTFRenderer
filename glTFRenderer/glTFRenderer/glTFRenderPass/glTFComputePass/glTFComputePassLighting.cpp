@@ -169,10 +169,10 @@ bool glTFComputePassLighting::SetupPipelineStateObject(glTFRenderResourceManager
 {
     RETURN_IF_FALSE(glTFComputePassBase::SetupPipelineStateObject(resource_manager))
     
-    GetComputePipelineStateObject().BindShaderCode(
+    BindShaderCode(
         R"(glTFResources\ShaderSource\ComputeShader\LightingCS.hlsl)", RHIShaderType::Compute, "main");
     
-    auto& shader_macros = GetComputePipelineStateObject().GetShaderMacros();
+    auto& shader_macros = GetShaderMacros();
 
     // Add albedo, normal, depth register define
     m_albedo_allocation.AddShaderDefine(shader_macros);

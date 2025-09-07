@@ -107,10 +107,10 @@ bool glTFRayTracingPassReSTIRDirectLighting::SetupPipelineStateObject(glTFRender
         RETURN_IF_FALSE(GBuffer_output.InitGBufferUAVs(GetID(), resource_manager))
     }
     
-    GetRayTracingPipelineStateObject().BindShaderCode("glTFResources/ShaderSource/RayTracing/ReSTIRDirectLighting.hlsl",
+    BindShaderCode("glTFResources/ShaderSource/RayTracing/ReSTIRDirectLighting.hlsl",
         RHIShaderType::RayTracing, "");
     
-    auto& shader_macros = GetRayTracingPipelineStateObject().GetShaderMacros();
+    auto& shader_macros = GetShaderMacros();
     m_lighting_samples_allocation.AddShaderDefine(shader_macros);
     m_screen_uv_offset_allocation.AddShaderDefine(shader_macros);
     const auto& allocations = resource_manager.GetGBufferAllocations();

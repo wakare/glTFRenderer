@@ -34,9 +34,10 @@ bool glTFRenderPassBase::InitPass(glTFRenderResourceManager& resource_manager)
     RETURN_IF_FALSE(m_root_signature_helper.BuildRootSignature(resource_manager.GetDevice(), resource_manager.GetMemoryManager().GetDescriptorManager()))
     
     RETURN_IF_FALSE(SetupPipelineStateObject(resource_manager))
+    RETURN_IF_FALSE(CompileShaders())
     RETURN_IF_FALSE(m_pipeline_state_object->InitPipelineStateObject(resource_manager.GetDevice(),
             m_root_signature_helper.GetRootSignature(),
-            resource_manager.GetSwapChain()
+            resource_manager.GetSwapChain(),m_shaders
         ))
 
     for (const auto& render_interface : m_render_interfaces)
@@ -131,7 +132,7 @@ bool glTFRenderPassBase::SetupRootSignature(glTFRenderResourceManager& resource_
 
 bool glTFRenderPassBase::SetupPipelineStateObject(glTFRenderResourceManager& resource_manager)
 {
-    auto& shader_macros = m_pipeline_state_object->GetShaderMacros();
+    auto& shader_macros = GetShaderMacros();
     GetVertexStreamingManager(resource_manager).ConfigShaderMacros(shader_macros);
     for (const auto& render_interface : m_render_interfaces)
     {
@@ -160,4 +161,50 @@ const RHIVertexStreamingManager& glTFRenderPassBase::GetVertexStreamingManager(
 {
     static RHIVertexStreamingManager _internal_vertex_streaming_manager;
     return _internal_vertex_streaming_manager;
+}
+
+bool glTFRenderPassBase::BindShaderCode(const std::string& shader_file_path, RHIShaderType type,
+    const std::string& entry_function_name)
+{
+    std::shared_ptr<IRHIShader> shader = RHIResourceFactory::CreateRHIResource<IRHIShader>();
+    if (!shader->InitShader(shader_file_path, type, entry_function_name))
+    {
+        return false;
+    }
+
+    // Delay compile shader bytecode util create pso
+
+    assert(m_shaders.find(type) == m_shaders.end());
+    m_shaders[type] = shader;
+    
+    return true;
+}
+
+bool glTFRenderPassBase::HasBindShader(RHIShaderType type) const
+{
+    return m_shaders.contains(type);
+}
+
+bool glTFRenderPassBase::CompileShaders()
+{
+    RETURN_IF_FALSE(!m_shaders.empty())
+
+    // Add graphics api shader macro!
+    m_shader_macros.AddMacro("DX_SHADER",
+        RHIConfigSingleton::Instance().GetGraphicsAPIType() == RHIGraphicsAPIType::RHI_GRAPHICS_API_DX12 ? "1" : "0");
+
+    for (const auto& shader : m_shaders)
+    {
+        shader.second->SetShaderCompilePreDefineMacros(m_shader_macros);
+        RETURN_IF_FALSE(shader.second->CompileShader())
+        
+        RHIUtilInstanceManager::Instance().ProcessShaderMetaData(*shader.second);
+    }
+    
+    return true;
+}
+
+RHIShaderPreDefineMacros& glTFRenderPassBase::GetShaderMacros()
+{
+    return m_shader_macros;
 }

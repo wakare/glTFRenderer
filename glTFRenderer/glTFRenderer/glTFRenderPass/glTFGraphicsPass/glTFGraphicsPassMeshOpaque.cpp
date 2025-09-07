@@ -56,9 +56,9 @@ bool glTFGraphicsPassMeshOpaque::SetupPipelineStateObject(glTFRenderResourceMana
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::SetupPipelineStateObject(resource_manager))
     
-    GetGraphicsPipelineStateObject().BindShaderCode(
+    BindShaderCode(
         R"(glTFResources\ShaderSource\MeshPassCommonVS.hlsl)", RHIShaderType::Vertex, "main");
-    GetGraphicsPipelineStateObject().BindShaderCode(
+    BindShaderCode(
         R"(glTFResources\ShaderSource\MeshPassCommonPS.hlsl)", RHIShaderType::Pixel, "main");
     auto& command_list = resource_manager.GetCommandListForRecord();
     

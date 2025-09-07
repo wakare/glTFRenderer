@@ -66,7 +66,7 @@ bool glTFGraphicsPassMeshShadowDepth::SetupPipelineStateObject(glTFRenderResourc
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::SetupPipelineStateObject(resource_manager))
     
-    GetGraphicsPipelineStateObject().BindShaderCode(
+    BindShaderCode(
         R"(glTFResources\ShaderSource\MeshPassCommonVS.hlsl)", RHIShaderType::Vertex, "main");
     
     auto& command_list = resource_manager.GetCommandListForRecord();

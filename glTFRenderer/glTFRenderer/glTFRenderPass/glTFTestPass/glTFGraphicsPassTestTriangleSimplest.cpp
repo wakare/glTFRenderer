@@ -24,9 +24,9 @@ bool glTFGraphicsPassTestTriangleSimplest::SetupPipelineStateObject(glTFRenderRe
 {
     RETURN_IF_FALSE(glTFGraphicsPassBase::SetupPipelineStateObject(resource_manager))
 
-    GetGraphicsPipelineStateObject().BindShaderCode(
+    BindShaderCode(
         R"(glTFResources\ShaderSource\TestShaders\TestTriangleVert.hlsl)", RHIShaderType::Vertex, "main");
-    GetGraphicsPipelineStateObject().BindShaderCode(
+    BindShaderCode(
         R"(glTFResources\ShaderSource\TestShaders\TestTriangleFrag.hlsl)", RHIShaderType::Pixel, "main");
     
     std::vector<IRHIDescriptorAllocation*> render_targets;

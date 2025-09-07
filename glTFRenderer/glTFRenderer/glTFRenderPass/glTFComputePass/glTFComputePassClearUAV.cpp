@@ -56,7 +56,7 @@ bool glTFComputePassClearUAV::SetupPipelineStateObject(glTFRenderResourceManager
 {
     RETURN_IF_FALSE(glTFComputePassBase::SetupPipelineStateObject(resource_manager))
 
-    GetComputePipelineStateObject().BindShaderCode(
+    BindShaderCode(
         R"(glTFResources\ShaderSource\ComputeShader\ClearUAVCS.hlsl)", RHIShaderType::Compute, "main");
     
     return true;

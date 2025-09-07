@@ -90,10 +90,10 @@ bool glTFRayTracingPassPathTracing::SetupPipelineStateObject(glTFRenderResourceM
 {
     RETURN_IF_FALSE(glTFRayTracingPassWithMesh::SetupPipelineStateObject(resource_manager))
     
-    GetRayTracingPipelineStateObject().BindShaderCode("glTFResources/ShaderSource/RayTracing/PathTracingMain.hlsl",
+    BindShaderCode("glTFResources/ShaderSource/RayTracing/PathTracingMain.hlsl",
                                                       RHIShaderType::RayTracing, "");
     
-    auto& shader_macros = GetRayTracingPipelineStateObject().GetShaderMacros();
+    auto& shader_macros = GetShaderMacros();
     m_output_allocation.AddShaderDefine(shader_macros);
     m_screen_uv_offset_allocation.AddShaderDefine(shader_macros);
     

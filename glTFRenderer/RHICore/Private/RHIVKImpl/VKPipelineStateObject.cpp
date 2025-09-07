@@ -21,34 +21,33 @@ VkShaderModule VKGraphicsPipelineStateObject::CreateVkShaderModule(VkDevice devi
 }
 
 bool VKGraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device,
-                                                            const IRHIRootSignature& root_signature, IRHISwapChain& swap_chain)
+                                                            const IRHIRootSignature& root_signature, IRHISwapChain& swap_chain, const std::map<RHIShaderType, std::shared_ptr<
+                                                            IRHIShader>>& shaders)
 {
     m_device = dynamic_cast<VKDevice&>(device).GetDevice();
     
     // Create shader module
-    THROW_IF_FAILED(CompileShaders());
-
     std::vector<VkPipelineShaderStageCreateInfo> shader_stages;
     
-    GLTF_CHECK(m_shaders.contains(RHIShaderType::Vertex));
-    m_vertex_shader_module = CreateVkShaderModule(m_device, m_shaders[RHIShaderType::Vertex]->GetShaderByteCode());
+    GLTF_CHECK(shaders.contains(RHIShaderType::Vertex));
+    m_vertex_shader_module = CreateVkShaderModule(m_device, shaders.at(RHIShaderType::Vertex)->GetShaderByteCode());
     {
         VkPipelineShaderStageCreateInfo create_vertex_stage_info{};
         create_vertex_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         create_vertex_stage_info.stage = VK_SHADER_STAGE_VERTEX_BIT;
         create_vertex_stage_info.module = m_vertex_shader_module;
-        create_vertex_stage_info.pName = m_shaders[RHIShaderType::Vertex]->GetMainEntry().c_str();
+        create_vertex_stage_info.pName = shaders.at(RHIShaderType::Vertex)->GetMainEntry().c_str();
         shader_stages.push_back(create_vertex_stage_info);    
     }
 
-    if (m_shaders.contains(RHIShaderType::Pixel))
+    if (shaders.contains(RHIShaderType::Pixel))
     {
-        m_fragment_shader_module = CreateVkShaderModule(m_device, m_shaders[RHIShaderType::Pixel]->GetShaderByteCode());
+        m_fragment_shader_module = CreateVkShaderModule(m_device, shaders.at(RHIShaderType::Pixel)->GetShaderByteCode());
         VkPipelineShaderStageCreateInfo create_frag_stage_info{};
         create_frag_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         create_frag_stage_info.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
         create_frag_stage_info.module = m_fragment_shader_module;
-        create_frag_stage_info.pName = m_shaders[RHIShaderType::Pixel]->GetMainEntry().c_str();
+        create_frag_stage_info.pName = shaders.at(RHIShaderType::Pixel)->GetMainEntry().c_str();
         shader_stages.push_back(create_frag_stage_info);
     }
 

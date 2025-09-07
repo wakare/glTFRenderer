@@ -19,22 +19,21 @@ VkShaderModule VKComputePipelineStateObject::CreateVkShaderModule(VkDevice devic
 }
 
 bool VKComputePipelineStateObject::InitPipelineStateObject(IRHIDevice& device,
-                                                           const IRHIRootSignature& root_signature, IRHISwapChain& swap_chain)
+                                                           const IRHIRootSignature& root_signature, IRHISwapChain& swap_chain, const std::map<RHIShaderType, std::shared_ptr<
+                                                           IRHIShader>>& shaders)
 {
     m_device = dynamic_cast<VKDevice&>(device).GetDevice();
     
     VkComputePipelineCreateInfo compute_pipeline_create_info{.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO};
     
     // Create shader module
-    THROW_IF_FAILED(CompileShaders());
-
-    m_compute_shader_module = CreateVkShaderModule(m_device, m_shaders[RHIShaderType::Compute]->GetShaderByteCode());
+    m_compute_shader_module = CreateVkShaderModule(m_device, shaders.at(RHIShaderType::Compute)->GetShaderByteCode());
     
     VkPipelineShaderStageCreateInfo create_compute_stage_info{};
     create_compute_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     create_compute_stage_info.stage = VK_SHADER_STAGE_COMPUTE_BIT;
     create_compute_stage_info.module = m_compute_shader_module;
-    create_compute_stage_info.pName = m_shaders[RHIShaderType::Compute]->GetMainEntry().c_str();
+    create_compute_stage_info.pName = shaders.at(RHIShaderType::Compute)->GetMainEntry().c_str();
 
     compute_pipeline_create_info.stage = create_compute_stage_info;
     

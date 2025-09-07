@@ -80,7 +80,7 @@ bool glTFComputePassVTFetchCS::SetupPipelineStateObject(glTFRenderResourceManage
 {
     RETURN_IF_FALSE(glTFComputePassBase::SetupPipelineStateObject(resource_manager))
     
-    GetComputePipelineStateObject().BindShaderCode(
+    BindShaderCode(
             R"(glTFResources\ShaderSource\ComputeShader\VTFetchCS.hlsl)", RHIShaderType::Compute, "main");
     
     return true;

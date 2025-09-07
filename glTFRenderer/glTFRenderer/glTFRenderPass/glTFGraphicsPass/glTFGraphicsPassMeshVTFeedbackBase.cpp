@@ -62,9 +62,9 @@ bool glTFGraphicsPassMeshVTFeedbackBase::SetupPipelineStateObject(glTFRenderReso
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::SetupPipelineStateObject(resource_manager))
 
-    GetGraphicsPipelineStateObject().BindShaderCode(
+    BindShaderCode(
         R"(glTFResources\ShaderSource\MeshPassCommonVS.hlsl)", RHIShaderType::Vertex, "main");
-    GetGraphicsPipelineStateObject().BindShaderCode(
+    BindShaderCode(
         R"(glTFResources\ShaderSource\MeshPassVTFeedBackPS.hlsl)", RHIShaderType::Pixel, "main");
 
     GetGraphicsPipelineStateObject().BindRenderTargetFormats(
@@ -164,7 +164,7 @@ bool glTFGraphicsPassMeshVTFeedbackRVT::SetupPipelineStateObject(glTFRenderResou
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshVTFeedbackBase::SetupPipelineStateObject(resource_manager))
 
-    auto& shadow_macros = GetGraphicsPipelineStateObject().GetShaderMacros();
+    auto& shadow_macros = GetShaderMacros();
     shadow_macros.AddMacro("RVT_FEEDBACK", "1");    
 
     return true;

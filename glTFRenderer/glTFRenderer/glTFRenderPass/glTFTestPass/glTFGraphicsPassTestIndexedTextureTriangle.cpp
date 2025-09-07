@@ -144,16 +144,16 @@ bool glTFGraphicsPassTestIndexedTextureTriangle::SetupPipelineStateObject(glTFRe
 {
     RETURN_IF_FALSE(glTFGraphicsPassTestTriangleBase::SetupPipelineStateObject(resource_manager))
 
-    GetGraphicsPipelineStateObject().BindShaderCode(
+    BindShaderCode(
         R"(glTFResources\ShaderSource\TestShaders\TestTexturedTriangleVert.hlsl)", RHIShaderType::Vertex, "main");
-    GetGraphicsPipelineStateObject().BindShaderCode(
+    BindShaderCode(
         R"(glTFResources\ShaderSource\TestShaders\TestTexturedTriangleFrag.hlsl)", RHIShaderType::Pixel, "main");
     
     std::vector<IRHIDescriptorAllocation*> render_targets;
     render_targets.push_back(&resource_manager.GetCurrentFrameSwapChainRTV());
     GetGraphicsPipelineStateObject().BindRenderTargetFormats(render_targets);
 
-    auto& shaderMacros = GetGraphicsPipelineStateObject().GetShaderMacros();
+    auto& shaderMacros = GetShaderMacros();
     m_sampled_texture_root_signature_allocation.AddShaderDefine(shaderMacros);
     
     return true;

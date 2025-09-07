@@ -7,7 +7,8 @@ class RHICORE_API VKGraphicsPipelineStateObject : public IRHIGraphicsPipelineSta
 public:
     IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKGraphicsPipelineStateObject)
     
-    virtual bool InitPipelineStateObject(IRHIDevice& device, const IRHIRootSignature& root_signature, IRHISwapChain& swap_chain) override;
+    virtual bool InitPipelineStateObject(IRHIDevice& device, const IRHIRootSignature& root_signature, IRHISwapChain& swap_chain, const std::map<RHIShaderType,
+                                         std::shared_ptr<IRHIShader>>& shaders) override;
     virtual bool BindRenderTargetFormats(const std::vector<IRHIDescriptorAllocation*>& render_targets) override;
 
     VkPipeline GetPipeline() const;

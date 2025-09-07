@@ -26,13 +26,9 @@ public:
     
     IRHIPipelineStateObject(RHIPipelineType type);
 
-    virtual bool InitPipelineStateObject(IRHIDevice& device, const IRHIRootSignature& root_signature, IRHISwapChain& swap_chain) = 0;
-    
-    bool BindShaderCode(const std::string& shader_file_path, RHIShaderType type, const std::string& entry_function_name);
+    virtual bool InitPipelineStateObject(IRHIDevice& device, const IRHIRootSignature& root_signature, IRHISwapChain& swap_chain, const std::map<RHIShaderType,
+                                         std::shared_ptr<IRHIShader>>& shaders) = 0;
 
-    bool HasBindShader(RHIShaderType type) const;
-    IRHIShader& GetBindShader(RHIShaderType type);
-    
     void SetCullMode(RHICullMode mode);
     RHICullMode GetCullMode() const;
     
@@ -42,17 +38,12 @@ public:
     void SetInputLayouts(const std::vector<RHIPipelineInputLayout>& input_layouts);
     
     RHIPipelineType GetPSOType() const;
-    RHIShaderPreDefineMacros& GetShaderMacros();
     
 protected:
-    bool CompileShaders();
-    
     RHIPipelineType m_type;
-    RHIShaderPreDefineMacros m_shader_macros;
     RHICullMode m_cullMode;
     RHIDepthStencilMode m_depth_stencil_state;
     std::vector<RHIPipelineInputLayout> m_input_layouts;
-    std::map<RHIShaderType, std::shared_ptr<IRHIShader>> m_shaders;
 };
 
 class RHICORE_API IRHIGraphicsPipelineStateObject : public IRHIPipelineStateObject

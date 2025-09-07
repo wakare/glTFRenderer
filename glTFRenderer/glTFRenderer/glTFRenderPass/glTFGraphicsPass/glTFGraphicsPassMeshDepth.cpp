@@ -8,7 +8,7 @@ bool glTFGraphicsPassMeshDepth::SetupPipelineStateObject(glTFRenderResourceManag
 {
     RETURN_IF_FALSE(glTFGraphicsPassMeshBase::SetupPipelineStateObject(resource_manager))
 
-    GetGraphicsPipelineStateObject().BindShaderCode(
+    BindShaderCode(
             R"(glTFResources\ShaderSource\MeshPassCommonVS.hlsl)", RHIShaderType::Vertex, "main");
     GetGraphicsPipelineStateObject().SetDepthStencilState(RHIDepthStencilMode::DEPTH_WRITE);
     GetGraphicsPipelineStateObject().BindRenderTargetFormats({&resource_manager.GetDepthDSV()});

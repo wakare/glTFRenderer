@@ -54,16 +54,16 @@ bool glTFGraphicsPassTestIndexedTriangle::SetupPipelineStateObject(glTFRenderRes
 {
     RETURN_IF_FALSE(glTFGraphicsPassTestTriangleBase::SetupPipelineStateObject(resource_manager))
 
-    GetGraphicsPipelineStateObject().BindShaderCode(
+    BindShaderCode(
         R"(glTFResources\ShaderSource\TestShaders\TestTriangleVertStreamIn.hlsl)", RHIShaderType::Vertex, "main");
-    GetGraphicsPipelineStateObject().BindShaderCode(
+    BindShaderCode(
         R"(glTFResources\ShaderSource\TestShaders\TestTriangleFrag.hlsl)", RHIShaderType::Pixel, "main");
     
     std::vector<IRHIDescriptorAllocation*> render_targets;
     render_targets.push_back(&resource_manager.GetCurrentFrameSwapChainRTV());
     GetGraphicsPipelineStateObject().BindRenderTargetFormats(render_targets);
 
-    auto& shader_macros = GetGraphicsPipelineStateObject().GetShaderMacros();
+    auto& shader_macros = GetShaderMacros();
     
     VertexAttributeElement position_attribute;
     position_attribute.type = VertexAttributeType::VERTEX_POSITION;

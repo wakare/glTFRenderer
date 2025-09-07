@@ -49,10 +49,10 @@ bool glTFComputePassTestFillColor::SetupPipelineStateObject(glTFRenderResourceMa
 {
     RETURN_IF_FALSE(glTFComputePassBase::SetupPipelineStateObject(resource_manager))
     
-    GetComputePipelineStateObject().BindShaderCode(
+    BindShaderCode(
         R"(glTFResources\ShaderSource\TestShaders\TestFillColorCS.hlsl)", RHIShaderType::Compute, "main");
     
-    auto& shader_macros = GetComputePipelineStateObject().GetShaderMacros();
+    auto& shader_macros = GetShaderMacros();
     m_output_allocation.AddShaderDefine(shader_macros);
     
     return true;

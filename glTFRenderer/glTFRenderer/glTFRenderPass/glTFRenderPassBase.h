@@ -6,6 +6,7 @@
 #include "RHIInterface/IRHIRootSignatureHelper.h"
 #include "glTFScene/glTFSceneObjectBase.h"
 
+class IRHIShader;
 class IRHIDescriptorAllocation;
 struct glTFSceneViewRenderFlags;
 class RHIVertexStreamingManager;
@@ -78,6 +79,14 @@ protected:
     
     virtual const RHIVertexStreamingManager& GetVertexStreamingManager(glTFRenderResourceManager& resource_manager) const;
 
+    bool BindShaderCode(const std::string& shader_file_path, RHIShaderType type, const std::string& entry_function_name);
+    bool HasBindShader(RHIShaderType type) const;
+    bool CompileShaders();
+    RHIShaderPreDefineMacros& GetShaderMacros();
+
+    RHIShaderPreDefineMacros m_shader_macros;
+    std::map<RHIShaderType, std::shared_ptr<IRHIShader>> m_shaders;
+    
     bool m_rendering_enabled = true;
     
     IRHIRootSignatureHelper m_root_signature_helper;

@@ -22,7 +22,8 @@ public:
     IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(DX12GraphicsPipelineStateObject)
     
     virtual bool BindRenderTargetFormats(const std::vector<IRHIDescriptorAllocation*>& render_targets) override;
-    virtual bool InitPipelineStateObject(IRHIDevice& device, const IRHIRootSignature& root_signature, IRHISwapChain& swap_chain) override;
+    virtual bool InitPipelineStateObject(IRHIDevice& device, const IRHIRootSignature& root_signature, IRHISwapChain& swap_chain, const std::map<RHIShaderType,
+                                         std::shared_ptr<IRHIShader>>& shaders) override;
 
     ID3D12PipelineState* GetPSO() {return m_pipeline_state_object.Get(); }
 
@@ -40,7 +41,8 @@ class RHICORE_API DX12ComputePipelineStateObject : public IRHIComputePipelineSta
 public:
     DX12ComputePipelineStateObject();
 
-    virtual bool InitPipelineStateObject(IRHIDevice& device, const IRHIRootSignature& root_signature, IRHISwapChain& swap_chain) override;
+    virtual bool InitPipelineStateObject(IRHIDevice& device, const IRHIRootSignature& root_signature, IRHISwapChain& swap_chain, const std::map<RHIShaderType,
+                                         std::shared_ptr<IRHIShader>>& shaders) override;
     virtual bool Release(IRHIMemoryManager& memory_manager) override;
     
 private:
@@ -51,7 +53,8 @@ class RHICORE_API DX12RTPipelineStateObject : public IRHIRayTracingPipelineState
 {
 public:
     DX12RTPipelineStateObject();
-    virtual bool InitPipelineStateObject(IRHIDevice& device, const IRHIRootSignature& root_signature, IRHISwapChain& swap_chain) override;
+    virtual bool InitPipelineStateObject(IRHIDevice& device, const IRHIRootSignature& root_signature, IRHISwapChain& swap_chain, const std::map<RHIShaderType,
+                                         std::shared_ptr<IRHIShader>>& shaders) override;
     virtual bool Release(IRHIMemoryManager& memory_manager) override;
     
     ID3D12StateObjectProperties* GetDXRStateObjectProperties()

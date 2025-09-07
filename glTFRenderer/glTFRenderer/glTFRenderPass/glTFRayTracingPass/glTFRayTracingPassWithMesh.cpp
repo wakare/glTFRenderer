@@ -102,7 +102,7 @@ bool glTFRayTracingPassWithMesh::SetupPipelineStateObject(glTFRenderResourceMana
 {
     RETURN_IF_FALSE(glTFRayTracingPassBase::SetupPipelineStateObject(resource_manager))
     
-    auto& shader_macros = GetRayTracingPipelineStateObject().GetShaderMacros();
+    auto& shader_macros = GetShaderMacros();
     m_raytracing_as_allocation.AddShaderDefine(shader_macros);
     return true;
 }

@@ -101,12 +101,12 @@ bool glTFGraphicsPassLighting::SetupPipelineStateObject(glTFRenderResourceManage
     render_targets.push_back(&resource_manager.GetCurrentFrameSwapChainRTV());
     GetGraphicsPipelineStateObject().BindRenderTargetFormats(render_targets);
     
-    GetGraphicsPipelineStateObject().BindShaderCode(
+    BindShaderCode(
         R"(glTFResources\ShaderSource\LightPassVS.hlsl)", RHIShaderType::Vertex, "main");
-    GetGraphicsPipelineStateObject().BindShaderCode(
+    BindShaderCode(
         R"(glTFResources\ShaderSource\LightPassPS.hlsl)", RHIShaderType::Pixel, "main");
     
-    auto& shaderMacros = GetGraphicsPipelineStateObject().GetShaderMacros();
+    auto& shaderMacros = GetShaderMacros();
     
     // Add albedo, normal, depth register define
     m_albedo_allocation.AddShaderDefine(shaderMacros);

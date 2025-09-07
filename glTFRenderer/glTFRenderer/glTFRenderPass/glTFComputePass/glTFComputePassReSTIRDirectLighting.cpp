@@ -143,10 +143,10 @@ bool glTFComputePassReSTIRDirectLighting::SetupPipelineStateObject(glTFRenderRes
         RETURN_IF_FALSE(GBuffer_output.InitGBufferSRVs(GetID(), resource_manager))
     }
     
-    GetComputePipelineStateObject().BindShaderCode(
+    BindShaderCode(
         R"(glTFResources\ShaderSource\ComputeShader\ReSTIRDirectLightingCS.hlsl)", RHIShaderType::Compute, "main");
     
-    auto& shader_macros = GetComputePipelineStateObject().GetShaderMacros();
+    auto& shader_macros = GetShaderMacros();
 
     // Add albedo, normal, depth register define
     const auto& allocations = resource_manager.GetGBufferAllocations();

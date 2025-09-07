@@ -27,7 +27,8 @@ bool RenderPass::InitRenderPass(ResourceManager& resource_manager)
     // Build root signature from shader reflection
     std::vector<ShaderMetaDataDSParameter> shader_meta_data_resource_parameters;
     std::vector<ShaderMetaDataDSParameter> shader_meta_data_samplers;
-    
+
+    std::map<RHIShaderType, std::shared_ptr<IRHIShader>> shaders;
     for (const auto& shader_pair : m_desc.shaders)
     {
         auto shader = RendererInterface::InternalResourceHandleTable::Instance().GetShader(shader_pair.second);
@@ -43,6 +44,8 @@ bool RenderPass::InitRenderPass(ResourceManager& resource_manager)
                 shader_meta_data_samplers.push_back(shader_parameter);
             }
         }
+
+        shaders[shader->GetType()] = shader;
     }
     
     // Init root signature
@@ -80,11 +83,13 @@ bool RenderPass::InitRenderPass(ResourceManager& resource_manager)
     }
 
     m_root_signature->InitRootSignature(resource_manager.GetDevice(), resource_manager.GetMemoryManager().GetDescriptorManager());
+
     
     RETURN_IF_FALSE(m_pipeline_state_object->InitPipelineStateObject(resource_manager.GetDevice(),
             *m_root_signature,
-            resource_manager.GetSwapChain()
+            resource_manager.GetSwapChain(),
+            shaders
         ))
-    
+
     return true;
 }

@@ -135,10 +135,10 @@ bool glTFComputePassIndirectDrawCulling::SetupPipelineStateObject(glTFRenderReso
 {
     RETURN_IF_FALSE(glTFComputePassBase::SetupPipelineStateObject(resourceManager))
 
-    GetComputePipelineStateObject().BindShaderCode(
+    BindShaderCode(
             R"(glTFResources\ShaderSource\ComputeShader\IndirectCullingCS.hlsl)", RHIShaderType::Compute, "main");
     
-    auto& shaderMacros = GetComputePipelineStateObject().GetShaderMacros();
+    auto& shaderMacros = GetShaderMacros();
     m_culled_indirect_command_allocation.AddShaderDefine(shaderMacros);
     m_culled_count_output_allocation.AddShaderDefine(shaderMacros);
     return true;

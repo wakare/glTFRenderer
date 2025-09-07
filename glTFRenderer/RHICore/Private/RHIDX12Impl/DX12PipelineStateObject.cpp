@@ -42,7 +42,8 @@ bool DX12GraphicsPipelineStateObject::BindRenderTargetFormats(
     return true;
 }
 
-bool DX12GraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device, const IRHIRootSignature& root_signature, IRHISwapChain& swap_chain)
+bool DX12GraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device, const IRHIRootSignature& root_signature, IRHISwapChain& swap_chain, const std::map<RHIShaderType,
+                                                              std::shared_ptr<IRHIShader>>& shaders)
 {
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
     auto* dxRootSignature = dynamic_cast<const DX12RootSignature&>(root_signature).GetRootSignature();
@@ -77,10 +78,9 @@ bool DX12GraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device
     inputLayoutDesc.pInputElementDescs = dx_input_layouts.data();
 
     // compile shader and set bytecode to pipeline state desc
-    THROW_IF_FAILED(CompileShaders());
     D3D12_SHADER_BYTECODE vertexShaderBytecode;
     {
-        auto& bindVS = GetBindShader(RHIShaderType::Vertex);
+        auto& bindVS = *shaders.at(RHIShaderType::Vertex);
         vertexShaderBytecode.BytecodeLength = bindVS.GetShaderByteCode().size();
         vertexShaderBytecode.pShaderBytecode = bindVS.GetShaderByteCode().data();    
     }
@@ -90,10 +90,10 @@ bool DX12GraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device
     m_graphics_pipeline_state_desc.VS = vertexShaderBytecode; // structure describing where to find the vertex shader bytecode and how large it is
 
     // depth pass do not need pixel shader
-    if (HasBindShader(RHIShaderType::Pixel))
+    if (shaders.contains(RHIShaderType::Pixel))
     {
         D3D12_SHADER_BYTECODE pixelShaderBytecode;
-        const auto& bindPS = GetBindShader(RHIShaderType::Pixel);
+        const auto& bindPS = *shaders.at(RHIShaderType::Pixel);
         pixelShaderBytecode.BytecodeLength = bindPS.GetShaderByteCode().size();
         pixelShaderBytecode.pShaderBytecode = bindPS.GetShaderByteCode().data();    
         m_graphics_pipeline_state_desc.PS = pixelShaderBytecode; // same as VS but for pixel shader    
@@ -186,15 +186,15 @@ DX12ComputePipelineStateObject::DX12ComputePipelineStateObject()
 }
 
 bool DX12ComputePipelineStateObject::InitPipelineStateObject(IRHIDevice& device,
-                                                             const IRHIRootSignature& root_signature, IRHISwapChain& swap_chain)
+                                                             const IRHIRootSignature& root_signature, IRHISwapChain& swap_chain, const std::map<RHIShaderType, std::shared_ptr<
+                                                             IRHIShader>>& shaders)
 {
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
     auto* dxRootSignature = dynamic_cast<const DX12RootSignature&>(root_signature).GetRootSignature();
 
-    THROW_IF_FAILED(CompileShaders());
     D3D12_SHADER_BYTECODE compute_shader_bytecode;
     {
-        const auto& bindCS = GetBindShader(RHIShaderType::Compute);
+        const auto& bindCS = *shaders.at(RHIShaderType::Compute);
         compute_shader_bytecode.BytecodeLength = bindCS.GetShaderByteCode().size();
         compute_shader_bytecode.pShaderBytecode = bindCS.GetShaderByteCode().data();    
     }
@@ -230,7 +230,7 @@ DX12RTPipelineStateObject::DX12RTPipelineStateObject()
 = default;
 
 bool DX12RTPipelineStateObject::InitPipelineStateObject(IRHIDevice& device, const IRHIRootSignature& root_signature,
-                                                        IRHISwapChain& swap_chain)
+                                                        IRHISwapChain& swap_chain, const std::map<RHIShaderType, std::shared_ptr<IRHIShader>>& shaders)
 {
     auto* dxrDevice = dynamic_cast<DX12Device&>(device).GetDXRDevice();
     auto* dx_root_signature = dynamic_cast<const DX12RootSignature&>(root_signature).GetRootSignature();
@@ -238,11 +238,10 @@ bool DX12RTPipelineStateObject::InitPipelineStateObject(IRHIDevice& device, cons
     m_dxr_state_desc.SetStateObjectType(D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE);
 
     // TODO: Config shader compile with raytracing
-    THROW_IF_FAILED(CompileShaders());
     D3D12_SHADER_BYTECODE raytracing_shader_bytecode;
     std::vector<std::string> ray_tracing_entry_names;
     {
-        const auto& bind_rt_shader = GetBindShader(RHIShaderType::RayTracing);
+        const auto& bind_rt_shader = *shaders.at(RHIShaderType::RayTracing);
         raytracing_shader_bytecode.BytecodeLength = bind_rt_shader.GetShaderByteCode().size();
         raytracing_shader_bytecode.pShaderBytecode = bind_rt_shader.GetShaderByteCode().data();
         ray_tracing_entry_names = m_export_function_names;

@@ -45,12 +45,12 @@ bool glTFGraphicsPassTestSceneRendering::SetupPipelineStateObject(glTFRenderReso
 {
     RETURN_IF_FALSE(glTFGraphicsPassBase::SetupPipelineStateObject(resource_manager))
     
-    GetGraphicsPipelineStateObject().BindShaderCode(
+    BindShaderCode(
         R"(glTFResources\ShaderSource\TestShaders\TestSceneRenderingVert.hlsl)", RHIShaderType::Vertex, "main");
-    GetGraphicsPipelineStateObject().BindShaderCode(
+    BindShaderCode(
         R"(glTFResources\ShaderSource\TestShaders\TestSceneRenderingFrag.hlsl)", RHIShaderType::Pixel, "main");
 
-    auto& shader_macros = GetGraphicsPipelineStateObject().GetShaderMacros();
+    auto& shader_macros = GetShaderMacros();
     shader_macros.AddMacro("ENABLE_INPUT_LAYOUT", m_indirect_draw ? "0" : "1");
     
     std::vector<IRHIDescriptorAllocation*> render_targets;
