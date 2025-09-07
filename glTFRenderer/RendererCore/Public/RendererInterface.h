@@ -2,6 +2,7 @@
 
 #include "Renderer.h"
 
+class RenderPass;
 class ResourceManager;
 
 namespace RendererInterface
@@ -34,6 +35,7 @@ namespace RendererInterface
 
     protected:
         std::shared_ptr<ResourceManager> m_resource_manager;
+        std::map<RenderPassHandle, std::shared_ptr<RenderPass>> m_render_passes;
     };
 
     class RenderGraph

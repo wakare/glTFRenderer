@@ -414,13 +414,18 @@ bool IRHIShader::CompileShader()
     compile_desc.spirv = RHIConfigSingleton::Instance().GetGraphicsAPIType() == RHIGraphicsAPIType::RHI_GRAPHICS_API_Vulkan; 
 
     RETURN_IF_FALSE(glTFShaderUtils::CompileShader(compile_desc, m_shader_byte_code))
- 
+
     return true;
 }
 
 const std::vector<unsigned char>& IRHIShader::GetShaderByteCode() const
 {
     return m_shader_byte_code;
+}
+
+ShaderMetaData& IRHIShader::GetMetaData()
+{
+    return m_shader_meta_data;
 }
 
 std::string IRHIShader::GetShaderTypeName() const

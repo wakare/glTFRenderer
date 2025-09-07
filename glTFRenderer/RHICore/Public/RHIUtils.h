@@ -87,7 +87,7 @@ public:
     virtual bool SupportRayTracing(IRHIDevice& device) = 0;
     virtual unsigned GetAlignmentSizeForUAVCount(unsigned size) = 0;
 
-    virtual bool RegisterShaderParameterToRootSignature(const IRHIShader& shader, IRHIRootSignatureHelper& root_signature_helper) = 0;
+    virtual bool ProcessShaderMetaData(IRHIShader& shader) = 0;
     
     virtual void ReportLiveObjects() = 0;
 

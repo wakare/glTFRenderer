@@ -43,6 +43,19 @@ std::shared_ptr<IRHITextureDescriptorAllocation> RendererInterface::InternalReso
     return m_render_targets.at(handle);
 }
 
+RendererInterface::RenderPassHandle RendererInterface::InternalResourceHandleTable::RegisterRenderPass(
+    std::shared_ptr<RenderPass> render_pass)
+{
+    RenderWindowHandle result = _internal_handle++;
+    m_render_passes.emplace(result, render_pass);
+    return result;
+}
+
+std::shared_ptr<RenderPass> RendererInterface::InternalResourceHandleTable::GetRenderPass(RenderPassHandle handle) const
+{
+    return m_render_passes.at(handle);
+}
+
 RendererInterface::InternalResourceHandleTable& RendererInterface::InternalResourceHandleTable::Instance()
 {
     static InternalResourceHandleTable s_internal_resource_handle_table;

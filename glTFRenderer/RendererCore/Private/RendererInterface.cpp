@@ -1,6 +1,7 @@
 #include "RendererInterface.h"
 
 #include "InternalResourceHandleTable.h"
+#include "RenderPass.h"
 #include "ResourceManager.h"
 #include "RenderWindow/glTFWindow.h"
 
@@ -67,8 +68,10 @@ namespace RendererInterface
 
     RenderPassHandle ResourceAllocator::CreateRenderPass(const RenderPassDesc& desc)
     {
-    
-        return true;
+        std::shared_ptr<RenderPass> render_pass = std::make_shared<RenderPass>(desc);
+        render_pass->InitRenderPass(*m_resource_manager);
+        
+        return InternalResourceHandleTable::Instance().RegisterRenderPass(render_pass);
     }
 
     RenderGraph::RenderGraph(ResourceAllocator& allocator, RenderWindow& window)
@@ -77,6 +80,7 @@ namespace RendererInterface
 
     bool RenderGraph::RegisterRenderPass(RenderPassHandle render_pass_handle)
     {
+        
         return true;
     }
 

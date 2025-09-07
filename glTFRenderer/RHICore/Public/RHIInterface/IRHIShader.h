@@ -10,9 +10,31 @@ enum class ShaderMetaDataDSType
     Sampler,
 };
 
+enum class ShaderMetaDataResourceType
+{
+    // Set by cpu, skip cbv buffer binding
+    Constant,
+
+    ConstantBuffer,
+    
+    StructuredBuffer,
+
+    // Append only structured buffer
+    AppendStructuredBuffer,
+
+    // Consume only structured buffer
+    ConsumeStructuredBuffer,
+    
+    Texture,
+
+    AccelerationStructure,
+    
+};
+
 struct ShaderMetaDataDSParameter
 {
-    ShaderMetaDataDSType type;
+    ShaderMetaDataDSType descriptor_type;
+    ShaderMetaDataResourceType resource_type;
     std::string name;
     unsigned binding_index;
     unsigned space_index;
@@ -74,6 +96,8 @@ public:
     
     const std::vector<unsigned char>& GetShaderByteCode() const;
     
+    ShaderMetaData& GetMetaData();
+    
 protected:
     std::string GetShaderTypeName() const;
     bool LoadShader(const std::string& shader_file_path);
@@ -87,4 +111,6 @@ protected:
 
     RHIShaderPreDefineMacros m_macros;
     std::vector<unsigned char> m_shader_byte_code;
+
+    ShaderMetaData m_shader_meta_data;
 };

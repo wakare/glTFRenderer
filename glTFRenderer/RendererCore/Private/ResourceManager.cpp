@@ -108,13 +108,9 @@ RendererInterface::ShaderHandle ResourceManager::CreateShader(const RendererInte
     {
         GLTF_CHECK(false);
     }
-    else
-    {
-        // Debug shader
-        IRHIRootSignatureHelper dummy;
-        RHIUtilInstanceManager::Instance().RegisterShaderParameterToRootSignature(*shader, dummy);
-    }
-
+    
+    RHIUtilInstanceManager::Instance().ProcessShaderMetaData(*shader);
+    
     auto shader_handle = RendererInterface::InternalResourceHandleTable::Instance().RegisterShader(shader);
     m_shaders[shader_handle] = shader;
     
@@ -155,4 +151,19 @@ RendererInterface::RenderTargetHandle ResourceManager::CreateRenderTarget(const 
     m_render_targets[render_target_handle] = render_target_descriptor;
     
     return render_target_handle;
+}
+
+IRHIDevice& ResourceManager::GetDevice()
+{
+    return *m_device;
+}
+
+IRHISwapChain& ResourceManager::GetSwapChain()
+{
+    return *m_swap_chain;
+}
+
+IRHIMemoryManager& ResourceManager::GetMemoryManager()
+{
+    return *m_memory_manager;
 }

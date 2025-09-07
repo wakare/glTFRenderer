@@ -724,8 +724,7 @@ void VulkanUtils::ReportLiveObjects()
 
 #include "ShaderReflect/spirv_reflect.h"
 
-bool VulkanUtils::RegisterShaderParameterToRootSignature(const IRHIShader& shader,
-    IRHIRootSignatureHelper& root_signature_helper)
+bool VulkanUtils::ProcessShaderMetaData(IRHIShader& shader)
 {
     const void* bytecode = shader.GetShaderByteCode().data();
     size_t bytecode_size = shader.GetShaderByteCode().size();

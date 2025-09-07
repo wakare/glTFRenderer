@@ -26,6 +26,10 @@ public:
 
     RendererInterface::ShaderHandle CreateShader(const RendererInterface::ShaderDesc& shader_desc);
     RendererInterface::RenderTargetHandle CreateRenderTarget(const RendererInterface::RenderTargetDesc& desc);
+
+    IRHIDevice& GetDevice();
+    IRHISwapChain& GetSwapChain();
+    IRHIMemoryManager& GetMemoryManager();
     
 protected:
     std::shared_ptr<IRHIFactory> m_factory;

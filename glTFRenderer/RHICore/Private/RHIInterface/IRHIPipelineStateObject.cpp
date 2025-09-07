@@ -56,9 +56,7 @@ bool IRHIPipelineStateObject::CompileShaders()
         shader.second->SetShaderCompilePreDefineMacros(m_shader_macros);
         RETURN_IF_FALSE(shader.second->CompileShader())
         
-        // Debug shader
-        IRHIRootSignatureHelper dummy;
-        RHIUtilInstanceManager::Instance().RegisterShaderParameterToRootSignature(*shader.second, dummy);
+        RHIUtilInstanceManager::Instance().ProcessShaderMetaData(*shader.second);
     }
     
     return true;
