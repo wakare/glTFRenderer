@@ -73,7 +73,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <TargetName>RHICore</TargetName>
     <PublicIncludeDirectories>$(ProjectDir)Public;</PublicIncludeDirectories>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(ProjectDir);$(ProjectDir)Public;$(ProjectDir)Public/RHIDX12Impl;$(ProjectDir)Public/RHIVKImpl;$(ProjectDir)Public/RHIInterface;$(SolutionDir)RendererCommonLib/Public;$(SolutionDir)ThirdParty;$(SolutionDir)ThirdParty/imgui;$(SolutionDir)ThirdParty/glfw/include;$(VULKAN_SDK)\include;$(VULKAN_SDK)\include\volk</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(ProjectDir);$(ProjectDir)ShaderReflect;$(ProjectDir)Public;$(ProjectDir)Public/RHIDX12Impl;$(ProjectDir)Public/RHIVKImpl;$(ProjectDir)Public/RHIInterface;$(SolutionDir)RendererCommonLib/Public;$(SolutionDir)ThirdParty;$(SolutionDir)ThirdParty/imgui;$(SolutionDir)ThirdParty/glfw/include;$(VULKAN_SDK)\include;$(VULKAN_SDK)\include\volk</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <TargetName>RHICore</TargetName>
@@ -84,7 +84,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <TargetName>RHICore</TargetName>
     <PublicIncludeDirectories>$(ProjectDir)Public;</PublicIncludeDirectories>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(ProjectDir);$(ProjectDir)Public;$(ProjectDir)Public/RHIDX12Impl;$(ProjectDir)Public/RHIVKImpl;$(ProjectDir)Public/RHIInterface;$(SolutionDir)RendererCommonLib/Public;$(SolutionDir)ThirdParty;$(SolutionDir)ThirdParty/imgui;$(SolutionDir)ThirdParty/glfw/include;$(VULKAN_SDK)\include;$(VULKAN_SDK)\include\volk</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(ProjectDir);$(ProjectDir)ShaderReflect;$(ProjectDir)Public;$(ProjectDir)Public/RHIDX12Impl;$(ProjectDir)Public/RHIVKImpl;$(ProjectDir)Public/RHIInterface;$(SolutionDir)RendererCommonLib/Public;$(SolutionDir)ThirdParty;$(SolutionDir)ThirdParty/imgui;$(SolutionDir)ThirdParty/glfw/include;$(VULKAN_SDK)\include;$(VULKAN_SDK)\include\volk;$(VULKAN_SDK)\Source\SPIRV-Reflect\include</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -124,7 +124,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;RHICORE_EXPORTS;_WINDOWS;_USRDLL;IMGUI_IMPL_VULKAN_USE_VOLK;VK_NO_PROTOTYPES;NOMINMAX;RHICORE_EXPORTS;_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS;SPIRV_REFLECT_USE_SYSTEM_SPIRV_H;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;RHICORE_EXPORTS;_WINDOWS;_USRDLL;IMGUI_IMPL_VULKAN_USE_VOLK;VK_NO_PROTOTYPES;NOMINMAX;RHICORE_EXPORTS;_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
@@ -146,7 +146,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;RHICORE_EXPORTS;_WINDOWS;_USRDLL;IMGUI_IMPL_VULKAN_USE_VOLK;VK_NO_PROTOTYPES;NOMINMAX;RHICORE_EXPORTS;_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS;SPIRV_REFLECT_USE_SYSTEM_SPIRV_H;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;RHICORE_EXPORTS;_WINDOWS;_USRDLL;IMGUI_IMPL_VULKAN_USE_VOLK;VK_NO_PROTOTYPES;NOMINMAX;RHICORE_EXPORTS;_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
@@ -191,7 +191,6 @@
     <ClCompile Include="Private\RHIDX12Impl\DX12PipelineStateObject.cpp" />
     <ClCompile Include="Private\RHIDX12Impl\DX12RayTracingAS.cpp" />
     <ClCompile Include="Private\RHIDX12Impl\DX12RenderPass.cpp" />
-    <ClCompile Include="Private\RHIDX12Impl\DX12RenderTarget.cpp" />
     <ClCompile Include="Private\RHIDX12Impl\DX12RenderTargetManager.cpp" />
     <ClCompile Include="Private\RHIDX12Impl\DX12RootSignature.cpp" />
     <ClCompile Include="Private\RHIDX12Impl\DX12Shader.cpp" />
@@ -219,7 +218,6 @@
     <ClCompile Include="Private\RHIInterface\IRHIRayTracingAS.cpp" />
     <ClCompile Include="Private\RHIInterface\IRHIRenderPass.cpp" />
     <ClCompile Include="Private\RHIInterface\IRHIRenderPassFrameBuffer.cpp" />
-    <ClCompile Include="Private\RHIInterface\IRHIRenderTarget.cpp" />
     <ClCompile Include="Private\RHIInterface\IRHIRenderTargetManager.cpp" />
     <ClCompile Include="Private\RHIInterface\IRHIResource.cpp" />
     <ClCompile Include="Private\RHIInterface\IRHIRootSignature.cpp" />
@@ -330,7 +328,6 @@
     <ClCompile Include="Private\RHIVKImpl\VKPipelineStateObject.cpp" />
     <ClCompile Include="Private\RHIVKImpl\VKRayTracingAS.cpp" />
     <ClCompile Include="Private\RHIVKImpl\VKRenderPass.cpp" />
-    <ClCompile Include="Private\RHIVKImpl\VKRenderTarget.cpp" />
     <ClCompile Include="Private\RHIVKImpl\VKRenderTargetManager.cpp" />
     <ClCompile Include="Private\RHIVKImpl\VKRootParameter.cpp" />
     <ClCompile Include="Private\RHIVKImpl\VKRootSignature.cpp" />
@@ -345,7 +342,6 @@
     <ClCompile Include="Private\RHIVKImpl\VKVertexBufferView.cpp" />
     <ClCompile Include="Private\RHIVKImpl\VolkUtils.cpp" />
     <ClCompile Include="Private\RHIVKImpl\VulkanUtils.cpp" />
-    <ClCompile Include="ShaderReflect\spirv_reflect.c" />
     <ClCompile Include="ShaderReflect\spirv_reflect.cpp" />
   </ItemGroup>
   <ItemGroup>
