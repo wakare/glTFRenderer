@@ -19,6 +19,7 @@ namespace RendererInterface
     typedef unsigned RenderDeviceHandle;
     typedef unsigned RenderPassHandle;
     typedef unsigned RenderWindowHandle;
+    typedef unsigned RenderGraphNodeHandle;
     
     enum ShaderType
     {
@@ -106,16 +107,14 @@ namespace RendererInterface
 
     enum RenderPassResourceUsage
     {
-        COLOR_INPUT,
-        COLOR_OUTPUT,
-        DEPTH_STENCIL_INPUT,
-        DEPTH_STENCIL_OUTPUT,
+        COLOR,
+        DEPTH_STENCIL,
     };
 
-    struct RenderPassResourceDesc
+    struct RenderTargetBindingDesc
     {
+        PixelFormat format;
         RenderPassResourceUsage usage;
-        RenderPassResourceAccessMode access_mode;
     };
     
     struct RenderPassDesc
@@ -124,9 +123,7 @@ namespace RendererInterface
         std::map<ShaderType, ShaderHandle> shaders;
 
         // resource desc
-        std::map<TextureHandle, RenderPassResourceDesc> texture_resources;
-        std::map<RenderTargetHandle, RenderPassResourceDesc> render_target_resources;
-        std::map<BufferHandle, RenderPassResourceDesc> buffer_resources;
+        std::vector<RenderTargetBindingDesc> render_target_bindings;
         
         // dependency
         std::vector<RenderPassHandle> dependency_render_passes;
@@ -149,5 +146,65 @@ namespace RendererInterface
     {
         unsigned width;
         unsigned height;
+    };
+
+    enum class ExecuteCommandType
+    {
+        DRAW_VERTEX_COMMAND,
+        DRAW_VERTEX_INSTANCING_COMMAND,
+        DRAW_INDEXED_COMMAND,
+        DRAW_INDEXED_INSTANCING_COMMAND,
+        COMPUTE_DISPATCH_COMMAND,
+        RAY_TRACING_COMMAND,
+    };
+
+    struct ExecuteCommandInputBuffer
+    {
+        // Vertex buffer is optional (fetch from huge buffer)
+        BufferHandle vertex_buffer_handle;
+
+        // Index buffer is optional (only necessary in DrawIndexed** command)
+        BufferHandle index_buffer_handle;
+    };
+
+    struct DrawIndexedCommandParameter
+    {
+        unsigned vertex_count;
+        unsigned index_count;
+    };
+
+    struct DrawVertexCommandParameter
+    {
+        unsigned vertex_count;
+    };
+    
+    struct ExecuteCommandParameter
+    {
+        union 
+        {
+            DrawIndexedCommandParameter     draw_indexed_command_parameter;
+            DrawVertexCommandParameter      draw_vertex_command_parameter;
+        };
+    };
+    
+    struct RenderExecuteCommand
+    {
+        ExecuteCommandType type;
+        ExecuteCommandInputBuffer input_buffer;
+        ExecuteCommandParameter parameter;
+    };
+
+    struct RenderPassDrawDesc
+    {
+        RenderExecuteCommand execute_command;
+        std::map<RenderTargetHandle, RenderTargetBindingDesc> render_target_resources;  
+    };
+
+    struct RenderGraphNodeDesc
+    {
+        RenderPassHandle render_pass_handle;
+        RenderPassDrawDesc draw_info;
+
+        std::vector<RenderGraphNodeHandle> dependency_render_graph_nodes;
     };
 }

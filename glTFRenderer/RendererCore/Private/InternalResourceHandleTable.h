@@ -21,7 +21,7 @@ namespace RendererInterface
 
         RenderPassHandle RegisterRenderPass(std::shared_ptr<RenderPass> render_pass);
         std::shared_ptr<RenderPass> GetRenderPass(RenderPassHandle handle) const;
-        
+
         static InternalResourceHandleTable& Instance();
         
     protected:

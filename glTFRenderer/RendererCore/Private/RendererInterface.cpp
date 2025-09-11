@@ -78,9 +78,24 @@ namespace RendererInterface
     {
     }
 
-    bool RenderGraph::RegisterRenderPass(RenderPassHandle render_pass_handle)
+    RenderGraphNodeHandle RenderGraph::CreateRenderGraphNode(const RenderGraphNodeDesc& render_graph_node_desc)
     {
-        
+        auto result = m_render_graph_nodes.size();
+        m_render_graph_nodes.push_back(render_graph_node_desc);
+        return result;
+    }
+
+    bool RenderGraph::RegisterRenderGraphNode(RenderGraphNodeHandle render_graph_node_handle)
+    {
+        GLTF_CHECK(!m_render_graph_node_handles.contains(render_graph_node_handle));
+        m_render_graph_node_handles.insert(render_graph_node_handle);
+        return true;
+    }
+
+    bool RenderGraph::RemoveRenderGraphNode(RenderGraphNodeHandle render_graph_node_handle)
+    {
+        GLTF_CHECK(m_render_graph_node_handles.contains(render_graph_node_handle));
+        m_render_graph_node_handles.erase(render_graph_node_handle);
         return true;
     }
 

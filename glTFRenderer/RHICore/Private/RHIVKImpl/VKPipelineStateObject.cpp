@@ -235,27 +235,21 @@ bool VKGraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device,
 }
 
 bool VKGraphicsPipelineStateObject::BindRenderTargetFormats(
-    const std::vector<IRHIDescriptorAllocation*>& render_targets)
+    const std::vector<RHIDataFormat>& render_target_formats)
 {
     m_bind_render_target_formats.clear();
     m_bind_depth_stencil_format = VK_FORMAT_UNDEFINED;
 
-    for (const auto& render_target : render_targets)
+    for (const auto& render_target_format : render_target_formats)
     {
-        if (render_target->GetDesc().m_view_type == RHIViewType::RVT_RTV)
+        if (!IsDepthStencilFormat(render_target_format))
         {
-            m_bind_render_target_formats.push_back(VKConverterUtils::ConvertToFormat(render_target->GetDesc().m_format));    
-        }
-        else if (render_target->GetDesc().m_view_type == RHIViewType::RVT_DSV)
-        {
-            const RHIDataFormat convert_depth_stencil_format = render_target->GetDesc().m_format == RHIDataFormat::R32_TYPELESS ?
-                RHIDataFormat::D32_FLOAT : render_target->GetDesc().m_format;
-            m_bind_depth_stencil_format = VKConverterUtils::ConvertToFormat(convert_depth_stencil_format);
+            m_bind_render_target_formats.push_back(VKConverterUtils::ConvertToFormat(render_target_format));    
         }
         else
         {
-            // Not supported render target type!
-            assert(false);
+            const RHIDataFormat convert_depth_stencil_format = render_target_format == RHIDataFormat::R32_TYPELESS ? RHIDataFormat::D32_FLOAT :render_target_format;
+            m_bind_depth_stencil_format = VKConverterUtils::ConvertToFormat(convert_depth_stencil_format);
         }
     }
     

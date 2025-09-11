@@ -15,27 +15,21 @@ IDX12PipelineStateObjectCommon::IDX12PipelineStateObjectCommon()
 }
 
 bool DX12GraphicsPipelineStateObject::BindRenderTargetFormats(
-    const std::vector<IRHIDescriptorAllocation*>& render_targets)
+    const std::vector<RHIDataFormat>& render_target_formats)
 {
     m_bind_render_target_formats.clear();
     m_bind_depth_stencil_format = DXGI_FORMAT_UNKNOWN;
     
-    for (const auto& render_target : render_targets)
+    for (const auto& render_target_format : render_target_formats)
     {
-        if (render_target->GetDesc().m_view_type == RHIViewType::RVT_RTV)
+        if (!IsDepthStencilFormat(render_target_format))
         {
-            m_bind_render_target_formats.push_back(DX12ConverterUtils::ConvertToDXGIFormat(render_target->GetDesc().m_format));    
-        }
-        else if (render_target->GetDesc().m_view_type == RHIViewType::RVT_DSV)
-        {
-            const RHIDataFormat convert_depth_stencil_format = render_target->GetDesc().m_format == RHIDataFormat::R32_TYPELESS ?
-                RHIDataFormat::D32_FLOAT : render_target->GetDesc().m_format;
-            m_bind_depth_stencil_format = DX12ConverterUtils::ConvertToDXGIFormat(convert_depth_stencil_format);
+            m_bind_render_target_formats.push_back(DX12ConverterUtils::ConvertToDXGIFormat(render_target_format));    
         }
         else
         {
-            // Not supported render target type!
-            assert(false);
+            const RHIDataFormat convert_depth_stencil_format = render_target_format == RHIDataFormat::R32_TYPELESS ? RHIDataFormat::D32_FLOAT :render_target_format;
+            m_bind_depth_stencil_format = DX12ConverterUtils::ConvertToDXGIFormat(convert_depth_stencil_format);
         }
     }
     

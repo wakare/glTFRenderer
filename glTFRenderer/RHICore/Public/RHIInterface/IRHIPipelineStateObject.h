@@ -51,7 +51,8 @@ class RHICORE_API IRHIGraphicsPipelineStateObject : public IRHIPipelineStateObje
 public:
     IRHIGraphicsPipelineStateObject();
 
-    virtual bool BindRenderTargetFormats(const std::vector<IRHIDescriptorAllocation*>& render_targets) = 0;
+    virtual bool BindRenderTargetFormats(const std::vector<RHIDataFormat>& render_target_formats) = 0;
+    bool BindRenderTargetFormats(const std::vector<IRHIDescriptorAllocation*>& render_target_formats);
 };
 
 class RHICORE_API IRHIComputePipelineStateObject : public IRHIPipelineStateObject

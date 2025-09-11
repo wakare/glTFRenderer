@@ -16,6 +16,19 @@ IRHIGraphicsPipelineStateObject::IRHIGraphicsPipelineStateObject()
     
 }
 
+bool IRHIGraphicsPipelineStateObject::BindRenderTargetFormats(
+    const std::vector<IRHIDescriptorAllocation*>& render_target_formats)
+{
+    std::vector<RHIDataFormat> data_formats;
+    data_formats.reserve(render_target_formats.size());
+    for (auto render_target_format : render_target_formats)
+    {
+        data_formats.push_back(render_target_format->GetDesc().m_format);
+    }
+    
+    return BindRenderTargetFormats(data_formats);
+}
+
 IRHIComputePipelineStateObject::IRHIComputePipelineStateObject()
     : IRHIPipelineStateObject(RHIPipelineType::Compute)
 {

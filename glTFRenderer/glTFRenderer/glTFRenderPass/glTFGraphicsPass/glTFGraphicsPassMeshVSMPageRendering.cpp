@@ -57,9 +57,9 @@ bool glTFGraphicsPassMeshVSMPageRendering::SetupPipelineStateObject(glTFRenderRe
     resource_manager.GetRenderTargetManager().ClearRenderTarget(resource_manager.GetCommandListForRecord(), {m_rvt_descriptor_allocations.get()});
     
     GetGraphicsPipelineStateObject().BindRenderTargetFormats(
-            {
-                m_rvt_descriptor_allocations.get()
-            });
+        {
+            m_rvt_descriptor_allocations.get()
+        });
     GetGraphicsPipelineStateObject().SetCullMode(RHICullMode::NONE);
     GetGraphicsPipelineStateObject().SetDepthStencilState(RHIDepthStencilMode::DEPTH_WRITE);
     

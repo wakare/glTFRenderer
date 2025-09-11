@@ -1,5 +1,7 @@
 #pragma once
 
+#include <set>
+
 #include "Renderer.h"
 
 class RenderPass;
@@ -32,7 +34,7 @@ namespace RendererInterface
         TextureHandle       CreateTexture(const TextureDesc& desc);
         RenderTargetHandle  CreateRenderTarget(const RenderTargetDesc& desc);
         RenderPassHandle    CreateRenderPass(const RenderPassDesc& desc);
-
+        
     protected:
         std::shared_ptr<ResourceManager> m_resource_manager;
         std::map<RenderPassHandle, std::shared_ptr<RenderPass>> m_render_passes;
@@ -42,7 +44,16 @@ namespace RendererInterface
     {
     public:
         RenderGraph(ResourceAllocator& allocator, RenderWindow& window);
-        bool RegisterRenderPass(RenderPassHandle render_pass_handle);
+        
+        RenderGraphNodeHandle CreateRenderGraphNode(const RenderGraphNodeDesc& render_graph_node_desc);
+        
+        bool RegisterRenderGraphNode(RenderGraphNodeHandle render_graph_node_handle);
+        bool RemoveRenderGraphNode(RenderGraphNodeHandle render_graph_node_handle);
+        
         bool CompileRenderPassAndExecute();
+
+    protected:
+        std::vector<RenderGraphNodeDesc> m_render_graph_nodes;
+        std::set<RenderGraphNodeHandle> m_render_graph_node_handles;
     };
 }

@@ -44,16 +44,24 @@ void DemoTriangleApp::Run()
     render_pass_desc.shaders.emplace(RendererInterface::ShaderType::VERTEX_SHADER, vertex_shader_handle);
     render_pass_desc.shaders.emplace(RendererInterface::ShaderType::FRAGMENT_SHADER, fragment_shader_handle);
     render_pass_desc.type = RendererInterface::GRAPHICS;
-    render_pass_desc.render_target_resources.emplace(render_target_handle,
-        RendererInterface::RenderPassResourceDesc
-        {
-            .usage = RendererInterface::RenderPassResourceUsage::COLOR_OUTPUT,
-            .access_mode = RendererInterface::RenderPassResourceAccessMode::WRITE_ONLY
-        });
 
     auto render_pass_handle = allocator.CreateRenderPass(render_pass_desc);
+    
+    RendererInterface::RenderPassDrawDesc render_pass_draw_desc{};
+    render_pass_draw_desc.render_target_resources.emplace(render_target_handle,
+        RendererInterface::RenderTargetBindingDesc
+        {
+            .format = render_target_desc.format,
+            .usage = RendererInterface::RenderPassResourceUsage::COLOR,
+        });
+
+    render_pass_draw_desc.execute_command.type = RendererInterface::ExecuteCommandType::DRAW_VERTEX_COMMAND;
+    render_pass_draw_desc.execute_command.parameter.draw_vertex_command_parameter.vertex_count = 3;
+
     RendererInterface::RenderGraph graph(allocator, window);
-    graph.RegisterRenderPass(render_pass_handle);
+    graph.RegisterRenderGraphNode(render_pass_handle);
+
+    // After registration all passes, compile graph and prepare for execution
     graph.CompileRenderPassAndExecute();
     
     window.TickWindow();

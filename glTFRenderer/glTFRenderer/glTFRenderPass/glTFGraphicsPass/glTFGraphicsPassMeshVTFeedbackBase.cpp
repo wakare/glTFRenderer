@@ -68,7 +68,7 @@ bool glTFGraphicsPassMeshVTFeedbackBase::SetupPipelineStateObject(glTFRenderReso
         R"(glTFResources\ShaderSource\MeshPassVTFeedBackPS.hlsl)", RHIShaderType::Pixel, "main");
 
     GetGraphicsPipelineStateObject().BindRenderTargetFormats(
-        {
+        std::vector<IRHIDescriptorAllocation*>{
             GetResourceDescriptor(GetVTFeedBackId(GetID())).get(),
             &resource_manager.GetDepthDSV()
         });
