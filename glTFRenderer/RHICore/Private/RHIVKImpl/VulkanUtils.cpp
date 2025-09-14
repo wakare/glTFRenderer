@@ -344,6 +344,17 @@ bool VulkanUtils::WaitDeviceIdle(IRHIDevice& device)
     return true;
 }
 
+bool VulkanUtils::SetPipelineState(IRHICommandList& command_list, IRHIPipelineStateObject& pipeline_state_object)
+{
+    auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
+    VkPipelineBindPoint bind_point = pipeline_state_object.GetPSOType() == RHIPipelineType::Graphics ? VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS :VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE;  
+    auto vk_pipeline_state_object = pipeline_state_object.GetPSOType() == RHIPipelineType::Graphics ? dynamic_cast<VKGraphicsPipelineStateObject&>(pipeline_state_object).GetPipeline()
+    : dynamic_cast<VKComputePipelineStateObject&>(pipeline_state_object).GetPipeline() ;
+    
+    vkCmdBindPipeline(vk_command_buffer, bind_point, vk_pipeline_state_object);
+    return true;
+}
+
 bool VulkanUtils::SetRootSignature(IRHICommandList& command_list, IRHIRootSignature& root_signature, IRHIPipelineStateObject& pipeline_state_object,
                                    RHIPipelineType pipeline_type)
 {

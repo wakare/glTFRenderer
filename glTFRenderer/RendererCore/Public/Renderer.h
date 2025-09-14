@@ -20,6 +20,8 @@ namespace RendererInterface
     typedef unsigned RenderPassHandle;
     typedef unsigned RenderWindowHandle;
     typedef unsigned RenderGraphNodeHandle;
+
+    #define NULL_HANDLE UINT_MAX
     
     enum ShaderType
     {
@@ -176,6 +178,15 @@ namespace RendererInterface
     struct DrawVertexCommandParameter
     {
         unsigned vertex_count;
+        unsigned start_vertex_location;
+    };
+
+    struct DrawVertexInstanceParameter
+    {
+        unsigned vertex_count;
+        unsigned instance_count;
+        unsigned start_vertex_location;
+        unsigned start_instance_location;
     };
     
     struct ExecuteCommandParameter
@@ -184,6 +195,7 @@ namespace RendererInterface
         {
             DrawIndexedCommandParameter     draw_indexed_command_parameter;
             DrawVertexCommandParameter      draw_vertex_command_parameter;
+            DrawVertexInstanceParameter     draw_vertex_instance_command_parameter;
         };
     };
     

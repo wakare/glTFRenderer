@@ -12,6 +12,11 @@ public:
     RenderPass(RendererInterface::RenderPassDesc desc);
 
     bool InitRenderPass(ResourceManager& resource_manager);
+
+    IRHIPipelineStateObject& GetPipelineStateObject();
+    IRHIRootSignature& GetRootSignature();
+
+    RendererInterface::RenderPassType GetRenderPassType() const;
     
 protected:
     RendererInterface::RenderPassDesc m_desc;

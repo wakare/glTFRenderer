@@ -34,6 +34,7 @@ public:
     virtual bool WaitCommandQueueIdle(IRHICommandQueue& command_queue) override;
     virtual bool WaitDeviceIdle(IRHIDevice& device) override;
 
+    virtual bool SetPipelineState(IRHICommandList& command_list, IRHIPipelineStateObject& pipeline_state_object) override;
     virtual bool SetRootSignature(IRHICommandList& command_list, IRHIRootSignature& root_signature, IRHIPipelineStateObject& pipeline_state_object, RHIPipelineType pipeline_type) override;
     virtual bool SetViewport(IRHICommandList& command_list, const RHIViewportDesc& viewport_desc) override;
     virtual bool SetScissorRect(IRHICommandList& command_list, const RHIScissorRectDesc& scissor_rect) override;

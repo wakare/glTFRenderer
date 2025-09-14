@@ -5,6 +5,8 @@
 
 #include "Renderer.h"
 
+class IRHISwapChain;
+class IRHITextureDescriptorAllocation;
 class IRHICommandList;
 class IRHICommandQueue;
 struct RHIExecuteCommandListContext;
@@ -37,17 +39,19 @@ namespace RendererInterface
     {
     public:
         ResourceAllocator(RenderDeviceDesc device);
+        unsigned            GetCurrentBackBufferIndex() const;
         
         ShaderHandle        CreateShader(const ShaderDesc& desc);
         TextureHandle       CreateTexture(const TextureDesc& desc);
         RenderTargetHandle  CreateRenderTarget(const RenderTargetDesc& desc);
         RenderPassHandle    CreateRenderPass(const RenderPassDesc& desc);
 
-        unsigned            GetCurrentBackBufferIndex() const;
-
-        IRHICommandList&    GetCommandListForRecord() const;
+        IRHICommandList&    GetCommandListForRecordPassCommand(RenderPassHandle pass) const;
         IRHICommandList&    GetCommandListForExecution() const;
         IRHICommandQueue&   GetCommandQueue() const;
+        IRHISwapChain&      GetCurrentSwapchain();
+        
+        IRHITextureDescriptorAllocation& GetCurrentSwapchainRT();
         
     protected:
         std::shared_ptr<ResourceManager> m_resource_manager;
@@ -67,7 +71,9 @@ namespace RendererInterface
         bool CompileRenderPassAndExecute();
 
     protected:
+        void ExecuteRenderNode(RenderGraphNodeHandle render_graph_node_handle);
         void CloseCurrentCommandListAndExecute(const RHIExecuteCommandListContext& context, bool wait);
+        void Present();
         
         ResourceAllocator& m_resource_allocator;
         RenderWindow& m_window;

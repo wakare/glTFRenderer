@@ -84,6 +84,22 @@ bool RenderPass::InitRenderPass(ResourceManager& resource_manager)
 
     m_root_signature->InitRootSignature(resource_manager.GetDevice(), resource_manager.GetMemoryManager().GetDescriptorManager());
 
+    if (m_pipeline_state_object->GetPSOType() == RHIPipelineType::Graphics)
+    {
+        auto& graphics_pipeline_state_object = dynamic_cast<IRHIGraphicsPipelineStateObject&>(*m_pipeline_state_object);
+        std::vector<RHIDataFormat> render_target_formats;
+        for (const auto& render_target : m_desc.render_target_bindings)
+        {
+            render_target_formats.push_back(RendererInterfaceRHIConverter::ConvertToRHIFormat(render_target.format));
+        }
+        
+        graphics_pipeline_state_object.BindRenderTargetFormats(render_target_formats);
+        
+    }
+
+    m_pipeline_state_object->SetCullMode(RHICullMode::NONE);
+    m_pipeline_state_object->SetDepthStencilState(RHIDepthStencilMode::DEPTH_WRITE);
+    
     
     RETURN_IF_FALSE(m_pipeline_state_object->InitPipelineStateObject(resource_manager.GetDevice(),
             *m_root_signature,
@@ -92,4 +108,19 @@ bool RenderPass::InitRenderPass(ResourceManager& resource_manager)
         ))
 
     return true;
+}
+
+IRHIPipelineStateObject& RenderPass::GetPipelineStateObject()
+{
+    return *m_pipeline_state_object;
+}
+
+IRHIRootSignature& RenderPass::GetRootSignature()
+{
+    return *m_root_signature;
+}
+
+RendererInterface::RenderPassType RenderPass::GetRenderPassType() const
+{
+    return m_desc.type;
 }

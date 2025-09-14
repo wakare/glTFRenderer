@@ -25,8 +25,6 @@ public:
     virtual bool InitPipelineStateObject(IRHIDevice& device, const IRHIRootSignature& root_signature, IRHISwapChain& swap_chain, const std::map<RHIShaderType,
                                          std::shared_ptr<IRHIShader>>& shaders) override;
 
-    ID3D12PipelineState* GetPSO() {return m_pipeline_state_object.Get(); }
-
     virtual bool Release(IRHIMemoryManager& memory_manager) override;
     
 private:

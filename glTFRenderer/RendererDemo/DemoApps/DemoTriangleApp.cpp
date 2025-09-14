@@ -44,6 +44,11 @@ void DemoTriangleApp::Run()
     RendererInterface::RenderPassDesc render_pass_desc{};
     render_pass_desc.shaders.emplace(RendererInterface::ShaderType::VERTEX_SHADER, vertex_shader_handle);
     render_pass_desc.shaders.emplace(RendererInterface::ShaderType::FRAGMENT_SHADER, fragment_shader_handle);
+
+    RendererInterface::RenderTargetBindingDesc render_target_binding_desc{};
+    render_target_binding_desc.format = RendererInterface::RGBA8_UNORM;
+    render_target_binding_desc.usage = RendererInterface::RenderPassResourceUsage::COLOR; 
+    render_pass_desc.render_target_bindings.push_back(render_target_binding_desc);
     render_pass_desc.type = RendererInterface::GRAPHICS;
 
     auto render_pass_handle = allocator.CreateRenderPass(render_pass_desc);
@@ -58,6 +63,7 @@ void DemoTriangleApp::Run()
 
     render_pass_draw_desc.execute_command.type = RendererInterface::ExecuteCommandType::DRAW_VERTEX_COMMAND;
     render_pass_draw_desc.execute_command.parameter.draw_vertex_command_parameter.vertex_count = 3;
+    render_pass_draw_desc.execute_command.parameter.draw_vertex_command_parameter.start_vertex_location = 0;
 
     RendererInterface::RenderGraphNodeDesc render_graph_node_desc{};
     render_graph_node_desc.draw_info  = render_pass_draw_desc;

@@ -1,6 +1,8 @@
 #pragma once
 #include "Renderer.h"
 
+enum class RHIPipelineType;
+enum class RHIDataFormat;
 class IRHIRenderTarget;
 class IRHIShader;
 class IRHITextureAllocation;
@@ -19,6 +21,12 @@ class IRHICommandQueue;
 class IRHIDevice;
 class IRHIFactory;
 
+namespace RendererInterfaceRHIConverter
+{
+    RHIDataFormat ConvertToRHIFormat(RendererInterface::PixelFormat format);
+    RHIPipelineType ConvertToRHIPipelineType(RendererInterface::RenderPassType type);
+}
+
 class ResourceManager
 {
 public:
@@ -33,10 +41,12 @@ public:
     IRHISwapChain& GetSwapChain();
     IRHIMemoryManager& GetMemoryManager();
 
-    IRHICommandList& GetCommandListForRecord();
+    IRHICommandList& GetCommandListForRecordPassCommand(RendererInterface::RenderPassHandle render_pass_handle);
     IRHICommandList& GetCommandListForExecution();
 
     IRHICommandQueue& GetCommandQueue();
+
+    IRHITextureDescriptorAllocation& GetCurrentSwapchainRT();
     
 protected:
     RendererInterface::RenderDeviceDesc m_device_desc{};
@@ -57,7 +67,6 @@ protected:
     std::shared_ptr<glTFRenderMaterialManager> m_material_manager;
     std::shared_ptr<glTFRenderMeshManager> m_mesh_manager;
     
-    std::shared_ptr<IRHIPipelineStateObject> m_current_pass_pso;
     //std::vector<glTFRenderResourceFrameManager> m_frame_resource_managers;
 
     std::map<RendererInterface::ShaderHandle, std::shared_ptr<IRHIShader>> m_shaders;

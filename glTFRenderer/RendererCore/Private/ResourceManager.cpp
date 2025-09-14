@@ -1,6 +1,7 @@
 #include "ResourceManager.h"
 
 #include "InternalResourceHandleTable.h"
+#include "RenderPass.h"
 #include "RHIResourceFactoryImpl.hpp"
 #include "RHIInterface/IRHICommandAllocator.h"
 #include "RHIInterface/IRHICommandList.h"
@@ -9,6 +10,38 @@
 #include "RHIInterface/IRHISwapChain.h"
 
 #define EXIT_WHEN_FALSE(x) if (!(x)) {assert(false); return false;}
+
+RHIDataFormat RendererInterfaceRHIConverter::ConvertToRHIFormat(RendererInterface::PixelFormat format)
+{
+    switch (format) {
+    case RendererInterface::RGBA8_UNORM:
+        return RHIDataFormat::R8G8B8A8_UNORM;
+    
+    case RendererInterface::RGBA16_UNORM:
+        return RHIDataFormat::R16G16B16A16_UNORM;
+    
+    }
+    
+    GLTF_CHECK(false);
+    return RHIDataFormat::UNKNOWN;
+}
+
+RHIPipelineType RendererInterfaceRHIConverter::ConvertToRHIPipelineType(RendererInterface::RenderPassType type)
+{
+    switch (type) {
+    case RendererInterface::GRAPHICS:
+        return RHIPipelineType::Graphics;
+        
+    case RendererInterface::COMPUTE:
+        return RHIPipelineType::Compute;
+        
+    case RendererInterface::RAY_TRACING:
+        return RHIPipelineType::RayTracing;
+        
+    }
+    GLTF_CHECK(false);
+    return RHIPipelineType::Unknown;
+}
 
 bool ResourceManager::InitResourceManager(const RendererInterface::RenderDeviceDesc& desc)
 {
@@ -121,20 +154,10 @@ RendererInterface::ShaderHandle ResourceManager::CreateShader(const RendererInte
 
 RendererInterface::RenderTargetHandle ResourceManager::CreateRenderTarget(const RendererInterface::RenderTargetDesc& desc)
 {
-    RHIDataFormat format = RHIDataFormat::UNKNOWN;
-    bool is_depth_stencil = false;
-    switch (desc.format)
-    {
-    case RendererInterface::RGBA8_UNORM:
-        format = RHIDataFormat::R8G8B8A8_UNORM;
-        break;
-    case RendererInterface::RGBA16_UNORM:
-        format = RHIDataFormat::R16G16B16A16_UNORM;
-        break;
-    }
-
+    RHIDataFormat format = RendererInterfaceRHIConverter::ConvertToRHIFormat(desc.format);
     GLTF_CHECK(format != RHIDataFormat::UNKNOWN);
-
+    bool is_depth_stencil = IsDepthStencilFormat(format);
+    
     RHITextureClearValue clear_value{};
     clear_value.clear_format = format;
     if (!is_depth_stencil)
@@ -175,17 +198,26 @@ IRHIMemoryManager& ResourceManager::GetMemoryManager()
     return *m_memory_manager;
 }
 
-IRHICommandList& ResourceManager::GetCommandListForRecord()
+IRHICommandList& ResourceManager::GetCommandListForRecordPassCommand(
+    RendererInterface::RenderPassHandle render_pass_handle)
 {
+    auto render_pass = render_pass_handle != NULL_HANDLE ?  RendererInterface::InternalResourceHandleTable::Instance().GetRenderPass(render_pass_handle) : nullptr;
+    
     const auto current_frame_index = GetCurrentBackBufferIndex() % m_device_desc.back_buffer_count;
     auto& command_list = *m_command_lists[current_frame_index];
     auto& command_allocator = *m_command_allocators[current_frame_index];
+    
     if (!m_command_list_record_state[current_frame_index])
     {
-        const bool reset = RHIUtilInstanceManager::Instance().ResetCommandList(command_list, command_allocator, m_current_pass_pso.get());
+        const bool reset = RHIUtilInstanceManager::Instance().ResetCommandList(command_list, command_allocator, render_pass ? &render_pass->GetPipelineStateObject() : nullptr);
         GLTF_CHECK(reset);
         
         m_command_list_record_state[current_frame_index] = true;
+    }
+    else if (render_pass)
+    {
+        // reset pso
+        RHIUtilInstanceManager::Instance().SetPipelineState(command_list, render_pass->GetPipelineStateObject());
     }
     
     return command_list;
@@ -206,4 +238,10 @@ IRHICommandList& ResourceManager::GetCommandListForExecution()
 IRHICommandQueue& ResourceManager::GetCommandQueue()
 {
     return *m_command_queue;
+}
+
+IRHITextureDescriptorAllocation& ResourceManager::GetCurrentSwapchainRT()
+{
+    const auto current_frame_index = GetCurrentBackBufferIndex() % m_device_desc.back_buffer_count;
+    return *m_swapchain_RTs[current_frame_index];
 }

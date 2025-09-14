@@ -240,6 +240,17 @@ bool DX12Utils::WaitDeviceIdle(IRHIDevice& device)
     return true;
 }
 
+bool DX12Utils::SetPipelineState(IRHICommandList& command_list, IRHIPipelineStateObject& pipeline_state_object)
+{
+    auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
+    auto* dxPSO = pipeline_state_object.GetPSOType() == RHIPipelineType::Graphics ?
+        dynamic_cast<DX12GraphicsPipelineStateObject&>(pipeline_state_object).GetPipelineStateObject() : dynamic_cast<DX12ComputePipelineStateObject&>(pipeline_state_object).GetPipelineStateObject();
+
+    dxCommandList->SetPipelineState(dxPSO);
+
+    return true;
+}
+
 bool DX12Utils::SetRootSignature(IRHICommandList& command_list, IRHIRootSignature& rootSignature,IRHIPipelineStateObject& pipeline_state_object, RHIPipelineType pipeline_type)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
