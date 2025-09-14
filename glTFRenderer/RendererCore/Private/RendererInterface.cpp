@@ -3,6 +3,7 @@
 #include "InternalResourceHandleTable.h"
 #include "RenderPass.h"
 #include "ResourceManager.h"
+#include "RHIUtils.h"
 #include "RenderWindow/glTFWindow.h"
 
 namespace RendererInterface
@@ -42,6 +43,11 @@ namespace RendererInterface
         glTFWindow::Get().UpdateWindow();
     }
 
+    void RenderWindow::RegisterTickCallback(const RenderWindowTickCallback& callback)
+    {
+        glTFWindow::Get().SetTickCallback(callback);
+    }
+
     ResourceAllocator::ResourceAllocator(RenderDeviceDesc device)
     {
         if (!m_resource_manager)
@@ -74,8 +80,31 @@ namespace RendererInterface
         return InternalResourceHandleTable::Instance().RegisterRenderPass(render_pass);
     }
 
-    RenderGraph::RenderGraph(ResourceAllocator& allocator, RenderWindow& window)
+    unsigned ResourceAllocator::GetCurrentBackBufferIndex() const
     {
+        return m_resource_manager->GetCurrentBackBufferIndex();
+    }
+
+    IRHICommandList& ResourceAllocator::GetCommandListForRecord() const
+    {
+        return m_resource_manager->GetCommandListForRecord();
+    }
+
+    IRHICommandList& ResourceAllocator::GetCommandListForExecution() const
+    {
+        return m_resource_manager->GetCommandListForExecution();
+    }
+
+    IRHICommandQueue& ResourceAllocator::GetCommandQueue() const
+    {
+        return m_resource_manager->GetCommandQueue();
+    }
+
+    RenderGraph::RenderGraph(ResourceAllocator& allocator, RenderWindow& window)
+        : m_resource_allocator(allocator)
+        , m_window(window)
+    {
+        
     }
 
     RenderGraphNodeHandle RenderGraph::CreateRenderGraphNode(const RenderGraphNodeDesc& render_graph_node_desc)
@@ -101,7 +130,27 @@ namespace RendererInterface
 
     bool RenderGraph::CompileRenderPassAndExecute()
     {
+        m_window.RegisterTickCallback([this]()
+        {
+            auto& command_list = m_resource_allocator.GetCommandListForRecord();
+            
+            RHIExecuteCommandListContext command_list_context{};
+            CloseCurrentCommandListAndExecute(command_list_context, false);
+        });
+
         return true;
+    }
+
+    void RenderGraph::CloseCurrentCommandListAndExecute(const RHIExecuteCommandListContext& context, bool wait)
+    {
+        auto& command_list = m_resource_allocator.GetCommandListForExecution();
+        auto& command_queue = m_resource_allocator.GetCommandQueue();
+        
+        GLTF_CHECK(RHIUtilInstanceManager::Instance().ExecuteCommandList(command_list, command_queue, context));
+        if (wait)
+        {
+            RHIUtilInstanceManager::Instance().WaitCommandListFinish(command_list);
+        }
     }
 }
 

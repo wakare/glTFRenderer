@@ -1,9 +1,13 @@
 #pragma once
 
+#include <functional>
 #include <set>
 
 #include "Renderer.h"
 
+class IRHICommandList;
+class IRHICommandQueue;
+struct RHIExecuteCommandListContext;
 class RenderPass;
 class ResourceManager;
 
@@ -12,12 +16,16 @@ namespace RendererInterface
     class RenderWindow
     {
     public:
+        typedef std::function<void()> RenderWindowTickCallback;
+        
         RenderWindow(const RenderWindowDesc& desc);
         RenderWindowHandle GetHandle() const;
         unsigned GetWidth() const;
         unsigned GetHeight() const;
         HWND GetHWND() const;
         void TickWindow() const;
+
+        void RegisterTickCallback(const RenderWindowTickCallback& callback);
         
     protected:
         RenderWindowDesc m_desc;
@@ -34,6 +42,12 @@ namespace RendererInterface
         TextureHandle       CreateTexture(const TextureDesc& desc);
         RenderTargetHandle  CreateRenderTarget(const RenderTargetDesc& desc);
         RenderPassHandle    CreateRenderPass(const RenderPassDesc& desc);
+
+        unsigned            GetCurrentBackBufferIndex() const;
+
+        IRHICommandList&    GetCommandListForRecord() const;
+        IRHICommandList&    GetCommandListForExecution() const;
+        IRHICommandQueue&   GetCommandQueue() const;
         
     protected:
         std::shared_ptr<ResourceManager> m_resource_manager;
@@ -53,6 +67,11 @@ namespace RendererInterface
         bool CompileRenderPassAndExecute();
 
     protected:
+        void CloseCurrentCommandListAndExecute(const RHIExecuteCommandListContext& context, bool wait);
+        
+        ResourceAllocator& m_resource_allocator;
+        RenderWindow& m_window;
+        
         std::vector<RenderGraphNodeDesc> m_render_graph_nodes;
         std::set<RenderGraphNodeHandle> m_render_graph_node_handles;
     };

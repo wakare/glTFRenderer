@@ -27,11 +27,20 @@ public:
     RendererInterface::ShaderHandle CreateShader(const RendererInterface::ShaderDesc& shader_desc);
     RendererInterface::RenderTargetHandle CreateRenderTarget(const RendererInterface::RenderTargetDesc& desc);
 
+    unsigned GetCurrentBackBufferIndex() const;
+    
     IRHIDevice& GetDevice();
     IRHISwapChain& GetSwapChain();
     IRHIMemoryManager& GetMemoryManager();
+
+    IRHICommandList& GetCommandListForRecord();
+    IRHICommandList& GetCommandListForExecution();
+
+    IRHICommandQueue& GetCommandQueue();
     
 protected:
+    RendererInterface::RenderDeviceDesc m_device_desc{};
+    
     std::shared_ptr<IRHIFactory> m_factory;
     std::shared_ptr<IRHIDevice> m_device;
     std::shared_ptr<IRHICommandQueue> m_command_queue;

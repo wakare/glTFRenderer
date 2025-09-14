@@ -15,6 +15,7 @@ void DemoTriangleApp::Run()
     RendererInterface::RenderDeviceDesc device{};
     device.window = window.GetHandle();
     device.type = RendererInterface::DX12;
+    device.back_buffer_count = 3;
     
     RendererInterface::ResourceAllocator allocator(device);
 
@@ -58,8 +59,13 @@ void DemoTriangleApp::Run()
     render_pass_draw_desc.execute_command.type = RendererInterface::ExecuteCommandType::DRAW_VERTEX_COMMAND;
     render_pass_draw_desc.execute_command.parameter.draw_vertex_command_parameter.vertex_count = 3;
 
+    RendererInterface::RenderGraphNodeDesc render_graph_node_desc{};
+    render_graph_node_desc.draw_info  = render_pass_draw_desc;
+    render_graph_node_desc.render_pass_handle = render_pass_handle;
+    
     RendererInterface::RenderGraph graph(allocator, window);
-    graph.RegisterRenderGraphNode(render_pass_handle);
+    auto render_graph_node_handle = graph.CreateRenderGraphNode(render_graph_node_desc);
+    graph.RegisterRenderGraphNode(render_graph_node_handle);
 
     // After registration all passes, compile graph and prepare for execution
     graph.CompileRenderPassAndExecute();

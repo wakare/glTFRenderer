@@ -12,6 +12,8 @@
 
 bool ResourceManager::InitResourceManager(const RendererInterface::RenderDeviceDesc& desc)
 {
+    m_device_desc = desc;
+    
     m_factory = RHIResourceFactory::CreateRHIResource<IRHIFactory>();
     EXIT_WHEN_FALSE(m_factory->InitFactory())  
     
@@ -153,6 +155,11 @@ RendererInterface::RenderTargetHandle ResourceManager::CreateRenderTarget(const 
     return render_target_handle;
 }
 
+unsigned ResourceManager::GetCurrentBackBufferIndex() const
+{
+    return m_swap_chain->GetCurrentBackBufferIndex();
+}
+
 IRHIDevice& ResourceManager::GetDevice()
 {
     return *m_device;
@@ -166,4 +173,37 @@ IRHISwapChain& ResourceManager::GetSwapChain()
 IRHIMemoryManager& ResourceManager::GetMemoryManager()
 {
     return *m_memory_manager;
+}
+
+IRHICommandList& ResourceManager::GetCommandListForRecord()
+{
+    const auto current_frame_index = GetCurrentBackBufferIndex() % m_device_desc.back_buffer_count;
+    auto& command_list = *m_command_lists[current_frame_index];
+    auto& command_allocator = *m_command_allocators[current_frame_index];
+    if (!m_command_list_record_state[current_frame_index])
+    {
+        const bool reset = RHIUtilInstanceManager::Instance().ResetCommandList(command_list, command_allocator, m_current_pass_pso.get());
+        GLTF_CHECK(reset);
+        
+        m_command_list_record_state[current_frame_index] = true;
+    }
+    
+    return command_list;
+}
+
+IRHICommandList& ResourceManager::GetCommandListForExecution()
+{
+    const auto current_frame_index = GetCurrentBackBufferIndex() % m_device_desc.back_buffer_count;
+    auto& command_list = *m_command_lists[current_frame_index];
+    
+    const bool closed = RHIUtilInstanceManager::Instance().CloseCommandList(command_list);
+    GLTF_CHECK(closed);
+    
+    m_command_list_record_state[current_frame_index] = false;
+    return command_list;
+}
+
+IRHICommandQueue& ResourceManager::GetCommandQueue()
+{
+    return *m_command_queue;
 }
