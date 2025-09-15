@@ -51,6 +51,8 @@ bool VKCommandList::BeginRecordCommandList()
     const VkResult result = vkBeginCommandBuffer(m_command_buffer, &command_buffer_begin_info);
     GLTF_CHECK(result == VK_SUCCESS);
 
+    SetState(RHICommandListState::Recording);
+    
     return true;
 }
 
@@ -58,6 +60,8 @@ bool VKCommandList::EndRecordCommandList()
 {
     const VkResult result = vkEndCommandBuffer(m_command_buffer);
     GLTF_CHECK(result == VK_SUCCESS);
+
+    SetState(RHICommandListState::Closed);
     
     return true;
 }

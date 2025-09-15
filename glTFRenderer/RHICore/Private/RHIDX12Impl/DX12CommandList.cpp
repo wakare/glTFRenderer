@@ -36,11 +36,15 @@ bool DX12CommandList::WaitCommandList()
 
 bool DX12CommandList::BeginRecordCommandList()
 {
+    SetState(RHICommandListState::Recording);
+    
     return true;
 }
 
 bool DX12CommandList::EndRecordCommandList()
 {
+    SetState(RHICommandListState::Closed);
+    
     return true;
 }
 

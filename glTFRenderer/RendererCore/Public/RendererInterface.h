@@ -46,8 +46,7 @@ namespace RendererInterface
         RenderTargetHandle  CreateRenderTarget(const RenderTargetDesc& desc);
         RenderPassHandle    CreateRenderPass(const RenderPassDesc& desc);
 
-        IRHICommandList&    GetCommandListForRecordPassCommand(RenderPassHandle pass) const;
-        IRHICommandList&    GetCommandListForExecution() const;
+        IRHICommandList&    GetCommandListForRecordPassCommand(RenderPassHandle pass = NULL_HANDLE) const;
         IRHICommandQueue&   GetCommandQueue() const;
         IRHISwapChain&      GetCurrentSwapchain();
         
@@ -71,9 +70,9 @@ namespace RendererInterface
         bool CompileRenderPassAndExecute();
 
     protected:
-        void ExecuteRenderNode(RenderGraphNodeHandle render_graph_node_handle);
-        void CloseCurrentCommandListAndExecute(const RHIExecuteCommandListContext& context, bool wait);
-        void Present();
+        void ExecuteRenderNode(IRHICommandList& command_list, RenderGraphNodeHandle render_graph_node_handle);
+        void CloseCurrentCommandListAndExecute(IRHICommandList& command_list, const RHIExecuteCommandListContext& context, bool wait);
+        void Present(IRHICommandList& command_list);
         
         ResourceAllocator& m_resource_allocator;
         RenderWindow& m_window;

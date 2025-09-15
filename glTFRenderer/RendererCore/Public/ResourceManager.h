@@ -42,7 +42,6 @@ public:
     IRHIMemoryManager& GetMemoryManager();
 
     IRHICommandList& GetCommandListForRecordPassCommand(RendererInterface::RenderPassHandle render_pass_handle);
-    IRHICommandList& GetCommandListForExecution();
 
     IRHICommandQueue& GetCommandQueue();
 
@@ -59,7 +58,6 @@ protected:
     
     std::vector<std::shared_ptr<IRHICommandAllocator>> m_command_allocators;
     std::vector<std::shared_ptr<IRHICommandList>> m_command_lists;
-    std::vector<bool> m_command_list_record_state;
 
     std::shared_ptr<IRHIRenderTargetManager> m_render_target_manager;
     std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>> m_swapchain_RTs;

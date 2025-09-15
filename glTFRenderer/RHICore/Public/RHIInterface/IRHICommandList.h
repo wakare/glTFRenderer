@@ -6,6 +6,12 @@ class IRHIFence;
 class IRHISemaphore;
 class IRHICommandAllocator;
 
+enum class RHICommandListState
+{
+    Recording,
+    Closed
+};
+
 class RHICORE_API IRHICommandList : public IRHIResource
 {
 public:
@@ -16,8 +22,13 @@ public:
 
     IRHISemaphore& GetSemaphore() const;
     IRHIFence& GetFence() const;
+
+    void SetState(RHICommandListState state);
+    RHICommandListState GetState() const;
     
 protected:
     std::shared_ptr<IRHISemaphore> m_finished_semaphore;
     std::shared_ptr<IRHIFence> m_fence;
+
+    RHICommandListState m_state {RHICommandListState::Closed};
 };

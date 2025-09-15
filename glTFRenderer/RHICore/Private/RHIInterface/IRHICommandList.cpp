@@ -9,3 +9,13 @@ IRHIFence& IRHICommandList::GetFence() const
 {
     return *m_fence;
 }
+
+void IRHICommandList::SetState(RHICommandListState state)
+{
+    m_state = state;
+}
+
+RHICommandListState IRHICommandList::GetState() const
+{
+    return m_state;
+}

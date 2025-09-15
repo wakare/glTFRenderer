@@ -99,11 +99,6 @@ namespace RendererInterface
         return m_resource_manager->GetCommandListForRecordPassCommand(pass);
     }
 
-    IRHICommandList& ResourceAllocator::GetCommandListForExecution() const
-    {
-        return m_resource_manager->GetCommandListForExecution();
-    }
-
     IRHICommandQueue& ResourceAllocator::GetCommandQueue() const
     {
         return m_resource_manager->GetCommandQueue();
@@ -162,9 +157,10 @@ namespace RendererInterface
         
         m_window.RegisterTickCallback([this, final_color_output]()
         {
+            auto& command_list = m_resource_allocator.GetCommandListForRecordPassCommand();
             for (auto render_graph_node : m_render_graph_node_handles)
             {
-                ExecuteRenderNode(render_graph_node);
+                ExecuteRenderNode(command_list, render_graph_node);
             }
 
             if (!m_render_graph_node_handles.empty())
@@ -179,21 +175,21 @@ namespace RendererInterface
                 copy_info.src_mip_level = 0;
                 copy_info.dst_x = 0;
                 copy_info.dst_y = 0;
-                RHIUtilInstanceManager::Instance().CopyTexture(m_resource_allocator.GetCommandListForRecordPassCommand(NULL_HANDLE), *dst, *src, copy_info);
+                RHIUtilInstanceManager::Instance().CopyTexture(command_list, *dst, *src, copy_info);
                 
-                Present();
+                Present(command_list);
             }
         });
 
         return true;
     }
 
-    void RenderGraph::ExecuteRenderNode(RenderGraphNodeHandle render_graph_node_handle)
+    void RenderGraph::ExecuteRenderNode(IRHICommandList& command_list, RenderGraphNodeHandle render_graph_node_handle)
     {
         auto& render_graph_node_desc = m_render_graph_nodes[render_graph_node_handle];
-        auto& command_list = m_resource_allocator.GetCommandListForRecordPassCommand(render_graph_node_desc.render_pass_handle);
         auto render_pass = InternalResourceHandleTable::Instance().GetRenderPass(render_graph_node_desc.render_pass_handle);
 
+        RHIUtilInstanceManager::Instance().SetPipelineState(command_list, render_pass->GetPipelineStateObject());
         RHIUtilInstanceManager::Instance().SetRootSignature(command_list, render_pass->GetRootSignature(), render_pass->GetPipelineStateObject(), RendererInterfaceRHIConverter::ConvertToRHIPipelineType(render_pass->GetRenderPassType()));
         RHIUtilInstanceManager::Instance().SetPrimitiveTopology( command_list, RHIPrimitiveTopologyType::TRIANGLELIST);
 
@@ -226,7 +222,6 @@ namespace RendererInterface
 
         RHIUtilInstanceManager::Instance().BeginRendering(command_list, begin_rendering_info);
 
-        
         const auto& draw_info = render_graph_node_desc.draw_info;
         switch (draw_info.execute_command.type) {
         case ExecuteCommandType::DRAW_VERTEX_COMMAND:
@@ -256,9 +251,11 @@ namespace RendererInterface
         RHIUtilInstanceManager::Instance().EndRendering(command_list);
     }
 
-    void RenderGraph::CloseCurrentCommandListAndExecute(const RHIExecuteCommandListContext& context, bool wait)
+    void RenderGraph::CloseCurrentCommandListAndExecute(IRHICommandList& command_list, const RHIExecuteCommandListContext& context, bool wait)
     {
-        auto& command_list = m_resource_allocator.GetCommandListForExecution();
+        const bool closed = RHIUtilInstanceManager::Instance().CloseCommandList(command_list);
+        GLTF_CHECK(closed);
+        
         auto& command_queue = m_resource_allocator.GetCommandQueue();
         
         GLTF_CHECK(RHIUtilInstanceManager::Instance().ExecuteCommandList(command_list, command_queue, context));
@@ -268,17 +265,17 @@ namespace RendererInterface
         }
     }
 
-    void RenderGraph::Present()
+    void RenderGraph::Present(IRHICommandList& command_list)
     {
-        auto& command_list = m_resource_allocator.GetCommandListForRecordPassCommand(NULL_HANDLE);
         m_resource_allocator.GetCurrentSwapchainRT().m_source->Transition(command_list, RHIResourceStateType::STATE_PRESENT);
 
         RHIExecuteCommandListContext context;
         context.wait_infos.push_back({&m_resource_allocator.GetCurrentSwapchain().GetAvailableFrameSemaphore(), RHIPipelineStage::COLOR_ATTACHMENT_OUTPUT});
         context.sign_semaphores.push_back(&command_list.GetSemaphore());
+        CloseCurrentCommandListAndExecute(command_list, context, false);
     
         RHIUtilInstanceManager::Instance().Present(m_resource_allocator.GetCurrentSwapchain(), m_resource_allocator.GetCommandQueue(), m_resource_allocator.GetCommandListForRecordPassCommand(NULL_HANDLE));
-        CloseCurrentCommandListAndExecute({}, false);
+        CloseCurrentCommandListAndExecute(command_list, {}, false);
     }
 }
 

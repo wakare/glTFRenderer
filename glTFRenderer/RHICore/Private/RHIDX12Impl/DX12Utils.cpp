@@ -193,6 +193,8 @@ bool DX12Utils::ResetCommandList(IRHICommandList& command_list, IRHICommandAlloc
         dx_command_list->Reset(dx_command_allocator, nullptr);    
     }
     
+    command_list.BeginRecordCommandList();
+    
     return true;
 }
 
@@ -200,6 +202,8 @@ bool DX12Utils::CloseCommandList(IRHICommandList& command_list)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
     dxCommandList->Close();
+
+    command_list.EndRecordCommandList();
     
     return true;
 }

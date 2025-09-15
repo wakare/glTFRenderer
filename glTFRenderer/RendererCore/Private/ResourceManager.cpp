@@ -84,7 +84,6 @@ bool ResourceManager::InitResourceManager(const RendererInterface::RenderDeviceD
     
     m_command_allocators.resize(desc.back_buffer_count);
     m_command_lists.resize(desc.back_buffer_count);
-    m_command_list_record_state.resize(desc.back_buffer_count);
     
     for (size_t i = 0; i < desc.back_buffer_count; ++i)
     {
@@ -93,7 +92,6 @@ bool ResourceManager::InitResourceManager(const RendererInterface::RenderDeviceD
         
         m_command_lists[i] = RHIResourceFactory::CreateRHIResource<IRHICommandList>();
         m_command_lists[i]->InitCommandList(*m_device, *m_command_allocators[i]);
-        m_command_list_record_state[i] = false;
     }
     
     m_render_target_manager = RHIResourceFactory::CreateRHIResource<IRHIRenderTargetManager>();
@@ -206,13 +204,11 @@ IRHICommandList& ResourceManager::GetCommandListForRecordPassCommand(
     const auto current_frame_index = GetCurrentBackBufferIndex() % m_device_desc.back_buffer_count;
     auto& command_list = *m_command_lists[current_frame_index];
     auto& command_allocator = *m_command_allocators[current_frame_index];
-    
-    if (!m_command_list_record_state[current_frame_index])
+
+    if (command_list.GetState() == RHICommandListState::Closed)
     {
         const bool reset = RHIUtilInstanceManager::Instance().ResetCommandList(command_list, command_allocator, render_pass ? &render_pass->GetPipelineStateObject() : nullptr);
         GLTF_CHECK(reset);
-        
-        m_command_list_record_state[current_frame_index] = true;
     }
     else if (render_pass)
     {
@@ -220,18 +216,6 @@ IRHICommandList& ResourceManager::GetCommandListForRecordPassCommand(
         RHIUtilInstanceManager::Instance().SetPipelineState(command_list, render_pass->GetPipelineStateObject());
     }
     
-    return command_list;
-}
-
-IRHICommandList& ResourceManager::GetCommandListForExecution()
-{
-    const auto current_frame_index = GetCurrentBackBufferIndex() % m_device_desc.back_buffer_count;
-    auto& command_list = *m_command_lists[current_frame_index];
-    
-    const bool closed = RHIUtilInstanceManager::Instance().CloseCommandList(command_list);
-    GLTF_CHECK(closed);
-    
-    m_command_list_record_state[current_frame_index] = false;
     return command_list;
 }
 
