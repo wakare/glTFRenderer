@@ -1,4 +1,9 @@
 
+cbuffer DemoBuffer
+{
+    float4 color;
+};
+
 static float2 positions[3] =
 {
     float2(0.0, -0.5),
@@ -37,5 +42,7 @@ FSOutput MainFS(VSOutput input)
 {
     FSOutput output;
     output.color = float4(input.color, 1.0);
+    output.color += color;
+    
     return output;
 }
