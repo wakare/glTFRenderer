@@ -167,8 +167,18 @@ RendererInterface::RenderTargetHandle ResourceManager::CreateRenderTarget(const 
         clear_value.clear_depth_stencil.clear_depth = desc.clear.clear_depth_stencil.clear_depth;
         clear_value.clear_depth_stencil.clear_stencil_value = desc.clear.clear_depth_stencil.clear_stencil;
     }
+
+    RHIResourceUsageFlags usage = is_depth_stencil ? RUF_ALLOW_DEPTH_STENCIL : RUF_ALLOW_RENDER_TARGET;
+    if (desc.usage & RendererInterface::COPY_SRC)
+    {
+        usage = RHIResourceUsageFlags(usage | RUF_TRANSFER_SRC);
+    }
+    if (desc.usage & RendererInterface::COPY_DST)
+    {
+        usage = RHIResourceUsageFlags(usage | RUF_TRANSFER_DST);
+    }
     
-    RHITextureDesc tex_desc(desc.name, desc.width, desc.height, format, is_depth_stencil ? RUF_ALLOW_DEPTH_STENCIL : RUF_ALLOW_RENDER_TARGET, clear_value);
+    RHITextureDesc tex_desc(desc.name, desc.width, desc.height, format, usage, clear_value);
     auto render_target_descriptor = m_render_target_manager->CreateRenderTarget(*m_device, *m_memory_manager, tex_desc, format);
     auto render_target_handle = RendererInterface::InternalResourceHandleTable::Instance().RegisterRenderTarget(render_target_descriptor);
     m_render_targets[render_target_handle] = render_target_descriptor;

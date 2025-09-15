@@ -108,8 +108,7 @@ bool RHITextureDesc::InitWithLoadedData(const ImageLoadResult& image_load_result
     RETURN_IF_FALSE(m_texture_data)
 
     memcpy(m_texture_data.get(), image_load_result.data.data(), m_texture_data_size);
-
-    m_usage = static_cast<RHIResourceUsageFlags>(RUF_TRANSFER_DST | RUF_ALLOW_SRV) ;
+    m_usage = static_cast<RHIResourceUsageFlags>(RHIResourceUsageFlags::RUF_TRANSFER_DST | RHIResourceUsageFlags::RUF_ALLOW_SRV) ;
     
     return true;
 }

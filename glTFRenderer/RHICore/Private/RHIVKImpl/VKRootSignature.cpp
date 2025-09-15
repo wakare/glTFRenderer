@@ -8,6 +8,11 @@
 
 bool VKRootSignature::InitRootSignature(IRHIDevice& device, IRHIDescriptorManager& descriptor_manager)
 {
+    if (m_root_parameters.empty())
+    {
+        return true;
+    }
+    
     m_device = dynamic_cast<VKDevice&>(device).GetDevice();
     auto vk_descriptor_pool = dynamic_cast<VKDescriptorManager&>(descriptor_manager).GetDescriptorPool();
 

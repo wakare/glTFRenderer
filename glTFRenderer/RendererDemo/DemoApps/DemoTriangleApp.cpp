@@ -3,8 +3,22 @@
 #include "Renderer.h"
 #include "RendererInterface.h"
 
-void DemoTriangleApp::Run()
+void DemoTriangleApp::Run(const std::vector<std::string>& arguments)
 {
+    bool bUseDX = true;
+    for (const auto& argument : arguments)
+    {
+        if (argument == "-dx"|| argument == "-dx12")
+        {
+            bUseDX = true;
+        }
+
+        if (argument == "-vk" || argument == "-vulkan")
+        {
+            bUseDX = false;
+        }
+    }
+    
     unsigned int width{1280}, height{720};
     
     RendererInterface::RenderWindowDesc window_desc{};
@@ -14,7 +28,7 @@ void DemoTriangleApp::Run()
     
     RendererInterface::RenderDeviceDesc device{};
     device.window = window.GetHandle();
-    device.type = RendererInterface::DX12;
+    device.type = bUseDX ? RendererInterface::DX12 : RendererInterface::VULKAN;
     device.back_buffer_count = 3;
     
     RendererInterface::ResourceAllocator allocator(device);
@@ -39,6 +53,8 @@ void DemoTriangleApp::Run()
     render_target_desc.height = height;
     render_target_desc.format = RendererInterface::RGBA8_UNORM;
     render_target_desc.clear = RendererInterface::default_clear_color;
+    render_target_desc.usage = static_cast<RendererInterface::ResourceUsage>(RendererInterface::ResourceUsage::RENDER_TARGET |
+        RendererInterface::ResourceUsage::COPY_SRC); 
     auto render_target_handle = allocator.CreateRenderTarget(render_target_desc);
     
     RendererInterface::RenderPassDesc render_pass_desc{};
@@ -60,6 +76,7 @@ void DemoTriangleApp::Run()
             .format = render_target_desc.format,
             .usage = RendererInterface::RenderPassResourceUsage::COLOR,
         });
+    render_pass_draw_desc.render_target_clear_states.emplace(render_target_handle, true);
 
     render_pass_draw_desc.execute_command.type = RendererInterface::ExecuteCommandType::DRAW_VERTEX_COMMAND;
     render_pass_draw_desc.execute_command.parameter.draw_vertex_command_parameter.vertex_count = 3;

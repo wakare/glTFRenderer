@@ -362,16 +362,19 @@ bool VulkanUtils::SetRootSignature(IRHICommandList& command_list, IRHIRootSignat
     auto& vk_root_signature = dynamic_cast<const VKRootSignature&>(root_signature);
     const std::vector<VkDescriptorSet>& descriptor_sets = vk_root_signature.GetDescriptorSets();
 
-    if (pipeline_type == RHIPipelineType::Graphics)
+    if (!descriptor_sets.empty())
     {
-        auto vk_pipeline_layout = dynamic_cast<const VKGraphicsPipelineStateObject&>(pipeline_state_object).GetPipelineLayout();
-        vkCmdBindDescriptorSets(vk_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vk_pipeline_layout, 0, descriptor_sets.size(), descriptor_sets.data(), 0, nullptr);
-    }
+        if (pipeline_type == RHIPipelineType::Graphics)
+        {
+            auto vk_pipeline_layout = dynamic_cast<const VKGraphicsPipelineStateObject&>(pipeline_state_object).GetPipelineLayout();
+            vkCmdBindDescriptorSets(vk_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vk_pipeline_layout, 0, descriptor_sets.size(), descriptor_sets.data(), 0, nullptr);
+        }
 
-    if (pipeline_type == RHIPipelineType::Compute)
-    {
-        auto vk_pipeline_layout = dynamic_cast<const VKComputePipelineStateObject&>(pipeline_state_object).GetPipelineLayout();
-        vkCmdBindDescriptorSets(vk_command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, vk_pipeline_layout, 0, descriptor_sets.size(), descriptor_sets.data(), 0, nullptr);
+        if (pipeline_type == RHIPipelineType::Compute)
+        {
+            auto vk_pipeline_layout = dynamic_cast<const VKComputePipelineStateObject&>(pipeline_state_object).GetPipelineLayout();
+            vkCmdBindDescriptorSets(vk_command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, vk_pipeline_layout, 0, descriptor_sets.size(), descriptor_sets.data(), 0, nullptr);
+        }
     }
     
     return true;

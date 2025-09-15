@@ -68,6 +68,16 @@ void glTFWindow::UpdateWindow() const
     glfwTerminate();
 }
 
+void glTFWindow::SetWidth(int width)
+{
+    m_width = width;
+}
+
+void glTFWindow::SetHeight(int height)
+{
+    m_height = height;
+}
+
 HWND glTFWindow::GetHWND() const
 {
     return glfwGetWin32Window(m_glfw_window);

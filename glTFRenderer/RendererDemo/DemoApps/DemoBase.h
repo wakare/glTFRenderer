@@ -1,7 +1,9 @@
 #pragma once
+#include <vector>
+#include <string>
 
 class DemoBase
 {
 public:
-    virtual void Run() = 0;
+    virtual void Run(const std::vector<std::string>& arguments) = 0;
 };

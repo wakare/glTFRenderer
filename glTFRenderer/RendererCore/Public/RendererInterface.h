@@ -5,6 +5,7 @@
 
 #include "Renderer.h"
 
+class IRHIDevice;
 class IRHISwapChain;
 class IRHITextureDescriptorAllocation;
 class IRHICommandList;
@@ -46,9 +47,10 @@ namespace RendererInterface
         RenderTargetHandle  CreateRenderTarget(const RenderTargetDesc& desc);
         RenderPassHandle    CreateRenderPass(const RenderPassDesc& desc);
 
-        IRHICommandList&    GetCommandListForRecordPassCommand(RenderPassHandle pass = NULL_HANDLE) const;
+        IRHIDevice&         GetDevice() const;
         IRHICommandQueue&   GetCommandQueue() const;
         IRHISwapChain&      GetCurrentSwapchain();
+        IRHICommandList&    GetCommandListForRecordPassCommand(RenderPassHandle pass = NULL_HANDLE) const;
         
         IRHITextureDescriptorAllocation& GetCurrentSwapchainRT();
         
@@ -70,7 +72,7 @@ namespace RendererInterface
         bool CompileRenderPassAndExecute();
 
     protected:
-        void ExecuteRenderNode(IRHICommandList& command_list, RenderGraphNodeHandle render_graph_node_handle);
+        void ExecuteRenderGraphNode(IRHICommandList& command_list, RenderGraphNodeHandle render_graph_node_handle);
         void CloseCurrentCommandListAndExecute(IRHICommandList& command_list, const RHIExecuteCommandListContext& context, bool wait);
         void Present(IRHICommandList& command_list);
         

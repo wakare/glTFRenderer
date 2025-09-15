@@ -114,16 +114,18 @@ bool VKDescriptorUpdater::FinalizeUpdateDescriptors(IRHIDevice& device, IRHIComm
     // Can not write to static sampler descriptor layout
     const auto& vk_descriptor_sets = dynamic_cast<VKRootSignature&>(root_signature).GetDescriptorSets();
     auto vk_device = dynamic_cast<VKDevice&>(device).GetDevice();
-    
-    for (auto& writer_info : m_cache_descriptor_writers)
+    if (!vk_descriptor_sets.empty())
     {
-        const auto& write_set = vk_descriptor_sets[writer_info.first];
-        for (auto& writer : writer_info.second )
+        for (auto& writer_info : m_cache_descriptor_writers)
         {
-            writer.dstSet = write_set;    
-        }
+            const auto& write_set = vk_descriptor_sets[writer_info.first];
+            for (auto& writer : writer_info.second )
+            {
+                writer.dstSet = write_set;    
+            }
 
-        vkUpdateDescriptorSets(vk_device, writer_info.second.size(), writer_info.second.data(), 0, nullptr);
+            vkUpdateDescriptorSets(vk_device, writer_info.second.size(), writer_info.second.data(), 0, nullptr);
+        }    
     }
 
     m_cache_descriptor_writers.clear();

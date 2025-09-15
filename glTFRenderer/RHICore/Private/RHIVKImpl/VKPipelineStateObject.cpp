@@ -122,13 +122,27 @@ bool VKGraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device,
     create_viewport_state_info.pViewports = &viewport;
     create_viewport_state_info.pScissors = &scissor;
 
+    VkCullModeFlags cull_mode = VK_CULL_MODE_BACK_BIT;
+    switch (m_cullMode)
+    {
+    case RHICullMode::NONE:
+        cull_mode = VK_CULL_MODE_NONE;
+        break;
+    case RHICullMode::CW:
+        cull_mode = VK_CULL_MODE_FRONT_BIT;
+        break;
+    case RHICullMode::CCW:
+        cull_mode = VK_CULL_MODE_BACK_BIT;
+        break;
+    }
+    
     VkPipelineRasterizationStateCreateInfo create_rasterizer_info{};
     create_rasterizer_info.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
     create_rasterizer_info.depthClampEnable = VK_FALSE;
     create_rasterizer_info.rasterizerDiscardEnable = VK_FALSE;
     create_rasterizer_info.polygonMode = VK_POLYGON_MODE_FILL;
     create_rasterizer_info.lineWidth = 1.0f;
-    create_rasterizer_info.cullMode = VK_CULL_MODE_BACK_BIT;
+    create_rasterizer_info.cullMode = cull_mode;
     create_rasterizer_info.frontFace = VK_FRONT_FACE_CLOCKWISE;
     create_rasterizer_info.depthBiasEnable = VK_FALSE;
     create_rasterizer_info.depthBiasConstantFactor = 0.0f;

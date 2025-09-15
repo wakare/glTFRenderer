@@ -44,6 +44,15 @@ namespace RendererInterface
         RGBA16_UNORM,
     };
 
+    enum ResourceUsage
+    {
+        NONE            = 0,
+        RENDER_TARGET   = 0x1,
+        COPY_SRC        = 0x10,
+        COPY_DST        = 0x100,
+        SHADER_RESOURCE = 0x1000,
+    };
+    
     struct RenderTargetClearValue
     {
         union 
@@ -68,6 +77,7 @@ namespace RendererInterface
         unsigned width;
         unsigned height;
         RenderTargetClearValue clear;
+        ResourceUsage usage;
     };
     
     struct TextureDesc
@@ -209,7 +219,8 @@ namespace RendererInterface
     struct RenderPassDrawDesc
     {
         RenderExecuteCommand execute_command;
-        std::map<RenderTargetHandle, RenderTargetBindingDesc> render_target_resources;  
+        std::map<RenderTargetHandle, RenderTargetBindingDesc> render_target_resources;
+        std::map<RenderTargetHandle, bool> render_target_clear_states;
     };
 
     struct RenderGraphNodeDesc

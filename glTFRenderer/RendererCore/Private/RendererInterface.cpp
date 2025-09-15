@@ -5,6 +5,7 @@
 #include "InternalResourceHandleTable.h"
 #include "RenderPass.h"
 #include "ResourceManager.h"
+#include "RHIConfigSingleton.h"
 #include "RHIUtils.h"
 #include "RenderWindow/glTFWindow.h"
 #include "RHIInterface/IRHIDescriptorManager.h"
@@ -17,6 +18,9 @@ namespace RendererInterface
         , m_handle(0)
         , m_hwnd(nullptr)
     {
+        glTFWindow::Get().SetWidth(desc.width);
+        glTFWindow::Get().SetHeight(desc.height);
+        
         glTFWindow::Get().InitAndShowWindow();
         m_handle = InternalResourceHandleTable::Instance().RegisterWindow(*this);
         m_hwnd = glTFWindow::Get().GetHWND();
@@ -56,6 +60,11 @@ namespace RendererInterface
     {
         if (!m_resource_manager)
         {
+            RHIConfigSingleton::Instance().SetGraphicsAPIType(device.type == VULKAN ?
+            RHIGraphicsAPIType::RHI_GRAPHICS_API_Vulkan : RHIGraphicsAPIType::RHI_GRAPHICS_API_DX12);
+    
+            RHIConfigSingleton::Instance().InitGraphicsAPI();
+            
             m_resource_manager = std::make_shared<ResourceManager>();
             m_resource_manager->InitResourceManager(device);
         }
@@ -82,6 +91,11 @@ namespace RendererInterface
         render_pass->InitRenderPass(*m_resource_manager);
         
         return InternalResourceHandleTable::Instance().RegisterRenderPass(render_pass);
+    }
+
+    IRHIDevice& ResourceAllocator::GetDevice() const
+    {
+        return m_resource_manager->GetDevice();
     }
 
     unsigned ResourceAllocator::GetCurrentBackBufferIndex() const
@@ -158,9 +172,12 @@ namespace RendererInterface
         m_window.RegisterTickCallback([this, final_color_output]()
         {
             auto& command_list = m_resource_allocator.GetCommandListForRecordPassCommand();
+            // Wait current frame available
+            m_resource_allocator.GetCurrentSwapchain().AcquireNewFrame(m_resource_allocator.GetDevice());
+            
             for (auto render_graph_node : m_render_graph_node_handles)
             {
-                ExecuteRenderNode(command_list, render_graph_node);
+                ExecuteRenderGraphNode(command_list, render_graph_node);
             }
 
             if (!m_render_graph_node_handles.empty())
@@ -168,6 +185,9 @@ namespace RendererInterface
                 auto src = final_color_output->m_source;
                 auto dst = m_resource_allocator.GetCurrentSwapchainRT().m_source;
 
+                src->Transition(command_list, RHIResourceStateType::STATE_COPY_SOURCE);
+                dst->Transition(command_list, RHIResourceStateType::STATE_COPY_DEST);
+                
                 RHICopyTextureInfo copy_info{};
                 copy_info.copy_width = m_window.GetWidth();
                 copy_info.copy_height = m_window.GetHeight();
@@ -176,15 +196,15 @@ namespace RendererInterface
                 copy_info.dst_x = 0;
                 copy_info.dst_y = 0;
                 RHIUtilInstanceManager::Instance().CopyTexture(command_list, *dst, *src, copy_info);
-                
-                Present(command_list);
             }
+                
+            Present(command_list);
         });
 
         return true;
     }
 
-    void RenderGraph::ExecuteRenderNode(IRHICommandList& command_list, RenderGraphNodeHandle render_graph_node_handle)
+    void RenderGraph::ExecuteRenderGraphNode(IRHICommandList& command_list, RenderGraphNodeHandle render_graph_node_handle)
     {
         auto& render_graph_node_desc = m_render_graph_nodes[render_graph_node_handle];
         auto render_pass = InternalResourceHandleTable::Instance().GetRenderPass(render_graph_node_desc.render_pass_handle);
@@ -214,12 +234,25 @@ namespace RendererInterface
         RHIBeginRenderingInfo begin_rendering_info{};
         
         // render target binding
+        bool clear_render_target = false;
         for (const auto& render_target_info : render_graph_node_desc.draw_info.render_target_resources)
         {
             auto render_target = InternalResourceHandleTable::Instance().GetRenderTarget(render_target_info.first);
             begin_rendering_info.m_render_targets.push_back(render_target.get());
-        }
 
+            if (render_graph_node_desc.draw_info.render_target_clear_states.contains(render_target_info.first) &&
+                render_graph_node_desc.draw_info.render_target_clear_states[render_target_info.first] == true)
+            {
+                clear_render_target = true;
+            }
+        }
+        
+        begin_rendering_info.rendering_area_offset_x = viewport.top_left_x;
+        begin_rendering_info.rendering_area_offset_y = viewport.top_left_y;
+        begin_rendering_info.rendering_area_width = viewport.width;
+        begin_rendering_info.rendering_area_height = viewport.height;
+        begin_rendering_info.clear_render_target = clear_render_target;
+        
         RHIUtilInstanceManager::Instance().BeginRendering(command_list, begin_rendering_info);
 
         const auto& draw_info = render_graph_node_desc.draw_info;

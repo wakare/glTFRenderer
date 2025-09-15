@@ -12,12 +12,15 @@ int main(int argc, char* argv[])
         return 0;
     }
 
+    // Process console arguments
+    std::vector<std::string> params(argv + 1, argv + argc);
+
     std::unique_ptr<DemoBase> demo;
     std::string demo_name = argv[1];
     
     REGISTER_DEMO_APP(demo_name, DemoTriangleApp)
 
-    demo->Run();
+    demo->Run(params);
     
     return 0;
 }

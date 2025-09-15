@@ -18,6 +18,8 @@ public:
     
     void UpdateWindow() const;
 
+    void SetWidth(int width);
+    void SetHeight(int height);
     int GetWidth() const {return m_width; }
     int GetHeight() const {return m_height; }
     
