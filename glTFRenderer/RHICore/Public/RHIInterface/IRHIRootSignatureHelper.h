@@ -20,7 +20,8 @@ public:
     bool AddCBVRootParameter(const std::string& parameter_name, RootSignatureAllocation& out_allocation);
     bool AddSRVRootParameter(const std::string& parameter_name, RootSignatureAllocation& out_allocation);
     bool AddUAVRootParameter(const std::string& parameter_name, RootSignatureAllocation& out_allocation);
-
+    bool AddRootParameterWithRegisterCount( const RootParameterInfo& parameter_info, RootSignatureAllocation& out_allocation);
+    
     struct TableRootParameterDesc
     {
         RHIDescriptorRangeType table_type;
@@ -41,36 +42,7 @@ public:
     const RootSignatureLayout& GetRootSignatureLayout() const;
     
 protected:
-    struct RootParameterInfo
-    {
-        std::string parameter_name;
-        RHIRootParameterType type;
-        unsigned register_count;
-        bool is_buffer;
-        
-        union
-        {
-            struct ConstantParameterInfo
-            {
-                unsigned constant_value;
-            } constant_parameter_info;
-
-            struct TableParameterInfo
-            {
-                RHIDescriptorRangeType table_type;
-                bool is_bindless;
-            } table_parameter_info;
-
-            struct SamplerParameterInfo
-            {
-                RHIStaticSamplerAddressMode address_mode;
-                RHIStaticSamplerFilterMode filter_mode;
-            } sampler_parameter_info;
-        };
-    };
     void IncrementRegisterSpaceIndex();
-    
-    bool AddRootParameterWithRegisterCount( const RootParameterInfo& parameter_info, RootSignatureAllocation& out_allocation);
     
     RHIRootSignatureUsage m_usage;
     RootSignatureLayout m_layout;

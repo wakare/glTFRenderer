@@ -459,15 +459,14 @@ enum class RHIRootParameterType
 struct RHICORE_API RootSignatureAllocation
 {
     RootSignatureAllocation()
-        : parameter_name("")
-        , global_parameter_index(0)
-        , local_space_parameter_index(0)
-        , register_begin_index(0)
-        , register_end_index(0)
-        , space(0)
-        , bindless_descriptor(false)
-        , type(RHIRootParameterType::Unknown)
-        , register_type(RHIShaderRegisterType::Unknown)
+        : global_parameter_index(0)
+          , local_space_parameter_index(0)
+          , register_begin_index(0)
+          , register_end_index(0)
+          , space(0)
+          , bindless_descriptor(false)
+          , type(RHIRootParameterType::Unknown)
+          , register_type(RHIShaderRegisterType::Unknown)
     {
     }
 
@@ -516,6 +515,34 @@ struct RHICORE_API RootSignatureStaticSamplerElement
     unsigned sample_index;
     RHIStaticSamplerAddressMode address_mode;
     RHIStaticSamplerFilterMode filter_mode;
+};
+
+struct RootParameterInfo
+{
+    std::string parameter_name;
+    RHIRootParameterType type;
+    unsigned register_count;
+    bool is_buffer;
+        
+    union
+    {
+        struct ConstantParameterInfo
+        {
+            unsigned constant_value;
+        } constant_parameter_info;
+
+        struct TableParameterInfo
+        {
+            RHIDescriptorRangeType table_type;
+            bool is_bindless;
+        } table_parameter_info;
+
+        struct SamplerParameterInfo
+        {
+            RHIStaticSamplerAddressMode address_mode;
+            RHIStaticSamplerFilterMode filter_mode;
+        } sampler_parameter_info;
+    };
 };
 
 struct RHICORE_API RootSignatureParameterElement

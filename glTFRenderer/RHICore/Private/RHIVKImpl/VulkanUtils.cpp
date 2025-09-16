@@ -728,7 +728,6 @@ unsigned VulkanUtils::GetAlignmentSizeForUAVCount(unsigned size)
 {
     const UINT alignment = 32;
     return (size + (alignment - 1)) & ~(alignment - 1);
-    return 0;
 }
 
 void VulkanUtils::ReportLiveObjects()
@@ -743,26 +742,12 @@ bool VulkanUtils::ProcessShaderMetaData(IRHIShader& shader)
     const void* bytecode = shader.GetShaderByteCode().data();
     size_t bytecode_size = shader.GetShaderByteCode().size();
     
-    // Generate reflection data for a shader
+    // Generate reflection data for shader
     SpvReflectShaderModule module;
     SpvReflectResult result = spvReflectCreateShaderModule(bytecode_size, bytecode, &module);
     assert(result == SPV_REFLECT_RESULT_SUCCESS);
 
-    // Enumerate and extract shader's input variables
     uint32_t var_count = 0;
-    result = spvReflectEnumerateInputVariables(&module, &var_count, NULL);
-    assert(result == SPV_REFLECT_RESULT_SUCCESS);
-    std::vector<SpvReflectInterfaceVariable*> input_vars (var_count);
-    result = spvReflectEnumerateInputVariables(&module, &var_count, input_vars.data());
-    assert(result == SPV_REFLECT_RESULT_SUCCESS);
-
-    // Output variables, descriptor bindings, descriptor sets, and push constants
-    // can be enumerated and extracted using a similar mechanism.
-    for (uint32_t i = 0; i < var_count; ++i)
-    {
-        LOG_FORMAT_FLUSH("[Reflect] Shader entry %s contains input var %s\n", shader.GetMainEntry().c_str(), input_vars[i]->name);
-    }
-
     result = spvReflectEnumerateEntryPointDescriptorSets(&module, shader.GetMainEntry().c_str(), &var_count,NULL);
     assert(result == SPV_REFLECT_RESULT_SUCCESS);
 
@@ -770,16 +755,24 @@ bool VulkanUtils::ProcessShaderMetaData(IRHIShader& shader)
     result = spvReflectEnumerateEntryPointDescriptorSets(&module, shader.GetMainEntry().c_str(), &var_count,descriptor_sets.data());
     assert(result == SPV_REFLECT_RESULT_SUCCESS);
 
+    auto& shader_meta_data = shader.GetMetaData();
+    
     // can be enumerated and extracted using a similar mechanism.
     for (uint32_t i = 0; i < var_count; ++i)
     {
         for (uint32_t j = 0; j < descriptor_sets[i]->binding_count; ++j)
         {
+            const auto& binding_parameter = descriptor_sets[i]->bindings[j];
             LOG_FORMAT_FLUSH("[Reflect] Shader entry %s contains descriptor set var name: %s\nbinding: %d\ninput attachment index:%d\nset index:%d\n", shader.GetMainEntry().c_str(),
-                descriptor_sets[i]->bindings[j]->name,
-                descriptor_sets[i]->bindings[j]->binding,
-                descriptor_sets[i]->bindings[j]->input_attachment_index,
-                descriptor_sets[i]->bindings[j]->set);
+                binding_parameter->name,
+                binding_parameter->binding,
+                binding_parameter->input_attachment_index,
+                binding_parameter->set);
+
+            RootParameterInfo parameter_info{};
+            parameter_info.parameter_name = binding_parameter->name;
+            parameter_info.register_count = binding_parameter->count > 0 ? binding_parameter->count : 1;
+            parameter_info.type = 
         }
     }
     

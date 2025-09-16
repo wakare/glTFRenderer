@@ -1,5 +1,6 @@
 #pragma once
 #include "RendererCommon.h"
+#include "RHICommon.h"
 
 enum class ShaderMetaDataDSType
 {
@@ -33,6 +34,7 @@ enum class ShaderMetaDataResourceType
 
 struct ShaderMetaDataDSParameter
 {
+    
     ShaderMetaDataDSType descriptor_type;
     ShaderMetaDataResourceType resource_type;
     std::string name;
@@ -42,7 +44,8 @@ struct ShaderMetaDataDSParameter
 
 struct ShaderMetaData
 {
-    std::vector<ShaderMetaDataDSParameter> parameter_infos;
+    //std::vector<ShaderMetaDataDSParameter> parameter_infos;
+    std::vector<RootParameterInfo> root_parameter_infos;
 };
 
 class glTFShaderUtils
