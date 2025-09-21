@@ -5,6 +5,8 @@
 
 #include "Renderer.h"
 
+class IRHIBufferDescriptorAllocation;
+class IRHIDescriptorManager;
 class IRHIDevice;
 class IRHISwapChain;
 class IRHITextureDescriptorAllocation;
@@ -35,15 +37,22 @@ namespace RendererInterface
         RenderWindowHandle m_handle;
         HWND m_hwnd;
     };
+
+    struct BufferUploadDesc
+    {
+        const void* data;
+        size_t size;
+    };
     
-    class ResourceAllocator
+    class ResourceOperator
     {
     public:
-        ResourceAllocator(RenderDeviceDesc device);
+        ResourceOperator(RenderDeviceDesc device);
         unsigned            GetCurrentBackBufferIndex() const;
         
         ShaderHandle        CreateShader(const ShaderDesc& desc);
         TextureHandle       CreateTexture(const TextureDesc& desc);
+        BufferHandle        CreateBuffer(const BufferDesc& desc);
         RenderTargetHandle  CreateRenderTarget(const RenderTargetDesc& desc);
         RenderPassHandle    CreateRenderPass(const RenderPassDesc& desc);
 
@@ -51,8 +60,11 @@ namespace RendererInterface
         IRHICommandQueue&   GetCommandQueue() const;
         IRHISwapChain&      GetCurrentSwapchain();
         IRHICommandList&    GetCommandListForRecordPassCommand(RenderPassHandle pass = NULL_HANDLE) const;
+        IRHIDescriptorManager& GetDescriptorManager() const;
         
         IRHITextureDescriptorAllocation& GetCurrentSwapchainRT();
+
+        void UploadBufferData(BufferHandle handle, const BufferUploadDesc& upload_desc);
         
     protected:
         std::shared_ptr<ResourceManager> m_resource_manager;
@@ -62,7 +74,7 @@ namespace RendererInterface
     class RenderGraph
     {
     public:
-        RenderGraph(ResourceAllocator& allocator, RenderWindow& window);
+        RenderGraph(ResourceOperator& allocator, RenderWindow& window);
         
         RenderGraphNodeHandle CreateRenderGraphNode(const RenderGraphNodeDesc& render_graph_node_desc);
         
@@ -76,10 +88,12 @@ namespace RendererInterface
         void CloseCurrentCommandListAndExecute(IRHICommandList& command_list, const RHIExecuteCommandListContext& context, bool wait);
         void Present(IRHICommandList& command_list);
         
-        ResourceAllocator& m_resource_allocator;
+        ResourceOperator& m_resource_allocator;
         RenderWindow& m_window;
         
         std::vector<RenderGraphNodeDesc> m_render_graph_nodes;
         std::set<RenderGraphNodeHandle> m_render_graph_node_handles;
+
+        std::map<BufferHandle, std::shared_ptr<IRHIBufferDescriptorAllocation>> m_buffer_descriptors;
     };
 }

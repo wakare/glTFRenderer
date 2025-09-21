@@ -32,7 +32,7 @@ bool glTFRenderInterfaceViewBase::InitInterfaceImpl(glTFRenderResourceManager& r
 bool glTFRenderInterfaceViewBase::ApplyInterfaceImpl(glTFRenderResourceManager& resource_manager, IRHICommandList& command_list,
                                                       RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater, unsigned frame_index)
 {
-    descriptor_updater.BindTextureDescriptorTable(command_list, pipeline_type, m_allocation, *m_scene_view_buffer_allocations[frame_index % m_scene_view_buffer_allocations.size() ]);
+    descriptor_updater.BindDescriptor(command_list, pipeline_type, m_allocation, *m_scene_view_buffer_allocations[frame_index % m_scene_view_buffer_allocations.size() ]);
     return true;
     
 }
@@ -147,7 +147,6 @@ std::vector<std::shared_ptr<IRHIBufferAllocation>> glTFRenderInterfaceVirtualSha
         virtual_shadowmap_buffer_desc.depth = 1;
         virtual_shadowmap_buffer_desc.type = RHIBufferType::Upload;
         virtual_shadowmap_buffer_desc.resource_type = RHIBufferResourceType::Buffer;
-        virtual_shadowmap_buffer_desc.resource_data_type = RHIDataFormat::UNKNOWN;
         virtual_shadowmap_buffer_desc.state = RHIResourceStateType::STATE_COMMON;
         virtual_shadowmap_buffer_desc.usage = RHIResourceUsageFlags::RUF_ALLOW_CBV;
         for (int i = 0; i < m_virtual_shadowmap_buffer_allocations.size(); ++i)

@@ -129,10 +129,10 @@ bool VKGraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device,
         cull_mode = VK_CULL_MODE_NONE;
         break;
     case RHICullMode::CW:
-        cull_mode = VK_CULL_MODE_FRONT_BIT;
+        cull_mode = VK_CULL_MODE_BACK_BIT;
         break;
     case RHICullMode::CCW:
-        cull_mode = VK_CULL_MODE_BACK_BIT;
+        cull_mode = VK_CULL_MODE_FRONT_BIT;
         break;
     }
     

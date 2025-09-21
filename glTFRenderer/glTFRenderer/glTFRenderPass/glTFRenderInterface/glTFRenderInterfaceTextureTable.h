@@ -84,7 +84,7 @@ public:
                     texture->Transition(command_list, RHIResourceStateType::STATE_UNORDERED_ACCESS);
                 }
             }
-            descriptor_updater.BindTextureDescriptorTable(command_list, pipeline_type, GetRSAllocation(), *m_descriptor_table, TextureType);
+            descriptor_updater.BindDescriptor(command_list, pipeline_type, GetRSAllocation(), *m_descriptor_table, TextureType);
         }
         
         return true;

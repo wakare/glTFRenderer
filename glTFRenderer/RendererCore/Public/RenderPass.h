@@ -17,12 +17,18 @@ public:
     IRHIRootSignature& GetRootSignature();
 
     RendererInterface::RenderPassType GetRenderPassType() const;
+
+    const RootSignatureAllocation& GetRootSignatureAllocation(const std::string& name) const;
+
+    IRHIDescriptorUpdater& GetDescriptorUpdater();
     
 protected:
     RendererInterface::RenderPassDesc m_desc;
     
-    std::shared_ptr<IRHIRootSignature> m_root_signature;
+    IRHIRootSignatureHelper m_root_signature_helper;
     
     std::shared_ptr<IRHIDescriptorUpdater> m_descriptor_updater;
     std::shared_ptr<IRHIPipelineStateObject> m_pipeline_state_object;
+
+    std::map<std::string, RootSignatureAllocation> m_shader_parameter_mapping;
 };

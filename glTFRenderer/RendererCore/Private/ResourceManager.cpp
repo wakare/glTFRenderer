@@ -117,6 +117,56 @@ bool ResourceManager::InitResourceManager(const RendererInterface::RenderDeviceD
     return true;
 }
 
+RendererInterface::BufferHandle ResourceManager::CreateBuffer(const RendererInterface::BufferDesc& desc)
+{
+    RHIBufferDesc buffer_desc{};
+    buffer_desc.name = to_wide_string(desc.name);
+    buffer_desc.width = desc.size;
+    buffer_desc.height = 1;
+    buffer_desc.depth = 1;
+    
+    switch (desc.type)
+    {
+    case RendererInterface::UPLOAD:
+        buffer_desc.type = RHIBufferType::Upload;
+        break;
+    case RendererInterface::DEFAULT:
+        buffer_desc.type = RHIBufferType::Default;
+        break;
+    }
+    
+    switch (desc.usage)
+    {
+    case RendererInterface::USAGE_VERTEX_BUFFER:
+        buffer_desc.usage = RUF_VERTEX_BUFFER; 
+        break;
+    case RendererInterface::USAGE_INDEX_BUFFER:
+        buffer_desc.usage = RUF_INDEX_BUFFER;
+        break;
+    case RendererInterface::USAGE_CBV:
+        buffer_desc.usage = RUF_ALLOW_CBV;
+        break;
+    case RendererInterface::USAGE_UAV:
+        buffer_desc.usage = RUF_ALLOW_UAV;
+        break;
+    case RendererInterface::USAGE_SRV:
+        buffer_desc.usage = RUF_ALLOW_SRV;
+        break;
+    }
+
+    std::shared_ptr<IRHIBufferAllocation> buffer_allocation;
+    bool allocated = m_memory_manager->AllocateBufferMemory(*m_device, buffer_desc, buffer_allocation);
+    GLTF_CHECK(allocated);
+
+    if (desc.data.has_value())
+    {
+        m_memory_manager->UploadBufferData(*buffer_allocation, desc.data.value().get(), 0, desc.size );    
+    }
+    
+    RendererInterface::BufferHandle buffer_handle = RendererInterface::InternalResourceHandleTable::Instance().RegisterBuffer(buffer_allocation);
+    return buffer_handle;
+}
+
 RendererInterface::ShaderHandle ResourceManager::CreateShader(const RendererInterface::ShaderDesc& shader_desc)
 {
     RHIShaderType shader_type = RHIShaderType::Unknown;

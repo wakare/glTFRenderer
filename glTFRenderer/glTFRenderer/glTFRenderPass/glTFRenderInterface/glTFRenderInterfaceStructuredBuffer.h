@@ -88,7 +88,7 @@ public:
     virtual bool ApplyInterfaceImpl(glTFRenderResourceManager& resource_manager, IRHICommandList& command_list, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater, unsigned
                                     frame_index) override
     {
-        descriptor_updater.BindTextureDescriptorTable(command_list, pipeline_type,  m_allocation, *m_structured_buffer_descriptor_allocation);
+        descriptor_updater.BindDescriptor(command_list, pipeline_type,  m_allocation, *m_structured_buffer_descriptor_allocation);
         return true;
     }
     

@@ -31,7 +31,7 @@ void DemoTriangleApp::Run(const std::vector<std::string>& arguments)
     device.type = bUseDX ? RendererInterface::DX12 : RendererInterface::VULKAN;
     device.back_buffer_count = 3;
     
-    RendererInterface::ResourceAllocator allocator(device);
+    RendererInterface::ResourceOperator allocator(device);
 
     // Create shader resource
     RendererInterface::ShaderDesc vertex_shader_desc{};
@@ -68,6 +68,19 @@ void DemoTriangleApp::Run(const std::vector<std::string>& arguments)
     render_pass_desc.type = RendererInterface::GRAPHICS;
 
     auto render_pass_handle = allocator.CreateRenderPass(render_pass_desc);
+
+    // Buffer resources
+    RendererInterface::BufferDesc buffer_desc{};
+    buffer_desc.name = "ColorBuffer";
+    buffer_desc.type = RendererInterface::BufferType::UPLOAD;
+    buffer_desc.usage = RendererInterface::BufferUsage::USAGE_CBV;
+    
+    buffer_desc.size = sizeof(float) * 4; // color - float4
+    buffer_desc.data = std::make_unique<char[]>(buffer_desc.size);
+    float color[4] = {1.0f, 0.0f, 0.0f, 1.0f};
+    memcpy(buffer_desc.data.value().get(), color, buffer_desc.size);
+    
+    RendererInterface::BufferHandle buffer_handle = allocator.CreateBuffer(buffer_desc);
     
     RendererInterface::RenderPassDrawDesc render_pass_draw_desc{};
     render_pass_draw_desc.render_target_resources.emplace(render_target_handle,
@@ -82,9 +95,30 @@ void DemoTriangleApp::Run(const std::vector<std::string>& arguments)
     render_pass_draw_desc.execute_command.parameter.draw_vertex_command_parameter.vertex_count = 3;
     render_pass_draw_desc.execute_command.parameter.draw_vertex_command_parameter.start_vertex_location = 0;
 
+    RendererInterface::BufferBindingDesc buffer_binding_desc{};
+    buffer_binding_desc.buffer_handle = buffer_handle;
+    buffer_binding_desc.binding_type = RendererInterface::BufferBindingDesc::BufferBindingType::CBV;
+    buffer_binding_desc.is_structured_buffer = false;
+    render_pass_draw_desc.buffer_resources["DemoBuffer"] = buffer_binding_desc;
+    
     RendererInterface::RenderGraphNodeDesc render_graph_node_desc{};
     render_graph_node_desc.draw_info  = render_pass_draw_desc;
     render_graph_node_desc.render_pass_handle = render_pass_handle;
+    render_graph_node_desc.pre_render_callback = [&]()
+    {
+        color[0] += 0.05f;
+        color[1] += 0.03f;
+        color[2] += 0.01f;
+        color[0] = color[0] > 1.0f ? color[0] - 1.0f : color[0];
+        color[1] = color[1] > 1.0f ? color[1] - 1.0f : color[1];
+        color[2] = color[2] > 1.0f ? color[2] - 1.0f : color[2];
+        
+        memcpy(buffer_desc.data.value().get(), &color, sizeof(float) * 4);
+        RendererInterface::BufferUploadDesc upload_desc{};
+        upload_desc.data = buffer_desc.data.value().get();
+        upload_desc.size = sizeof(float) * 4;
+        allocator.UploadBufferData(buffer_handle, upload_desc);
+    };
     
     RendererInterface::RenderGraph graph(allocator, window);
     auto render_graph_node_handle = graph.CreateRenderGraphNode(render_graph_node_desc);

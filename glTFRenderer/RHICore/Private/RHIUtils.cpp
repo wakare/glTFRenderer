@@ -18,7 +18,6 @@ bool RHIUtils::UploadTextureData(IRHICommandList& command_list, IRHIMemoryManage
         1,
         1,
         RHIBufferType::Upload,
-        dst.GetTextureFormat(),
         RHIBufferResourceType::Buffer,
         RHIResourceStateType::STATE_COPY_SOURCE,
         RUF_TRANSFER_SRC

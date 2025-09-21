@@ -33,26 +33,21 @@ bool RenderPass::InitRenderPass(ResourceManager& resource_manager)
     {
         auto shader = RendererInterface::InternalResourceHandleTable::Instance().GetShader(shader_pair.second);
         auto& shader_meta_data = shader->GetMetaData();
-        for (const auto& shader_parameter : shader_meta_data.parameter_infos)
+        for (const auto& root_parameter_info : shader_meta_data.root_parameter_infos)
         {
-            if (shader_parameter.descriptor_type != ShaderMetaDataDSType::Sampler)
-            {
-                shader_meta_data_resource_parameters.push_back(shader_parameter);
-            }
-            else
-            {
-                shader_meta_data_samplers.push_back(shader_parameter);
-            }
+            RootSignatureAllocation allocation;
+            m_root_signature_helper.AddRootParameterWithRegisterCount(root_parameter_info, allocation);
+
+            m_shader_parameter_mapping.insert({root_parameter_info.parameter_name, allocation});
         }
 
         shaders[shader->GetType()] = shader;
     }
     
     // Init root signature
-    m_root_signature = RHIResourceFactory::CreateRHIResource<IRHIRootSignature>();
-    m_root_signature->AllocateRootSignatureSpace(shader_meta_data_resource_parameters.size(), shader_meta_data_samplers.size());
-    m_root_signature->SetUsage(RHIRootSignatureUsage::Default);
-
+    m_root_signature_helper.BuildRootSignature(resource_manager.GetDevice(), resource_manager.GetMemoryManager().GetDescriptorManager());
+    auto* m_root_signature = &m_root_signature_helper.GetRootSignature(); 
+    
     unsigned resource_index = 0;
     for (const auto& resource_parameter : shader_meta_data_resource_parameters)
     {
@@ -106,6 +101,9 @@ bool RenderPass::InitRenderPass(ResourceManager& resource_manager)
             shaders
         ))
 
+    m_descriptor_updater = RHIResourceFactory::CreateRHIResource<IRHIDescriptorUpdater>();
+
+
     return true;
 }
 
@@ -116,10 +114,22 @@ IRHIPipelineStateObject& RenderPass::GetPipelineStateObject()
 
 IRHIRootSignature& RenderPass::GetRootSignature()
 {
-    return *m_root_signature;
+    return m_root_signature_helper.GetRootSignature();
 }
 
 RendererInterface::RenderPassType RenderPass::GetRenderPassType() const
 {
     return m_desc.type;
+}
+
+const RootSignatureAllocation& RenderPass::GetRootSignatureAllocation(const std::string& name) const
+{
+    GLTF_CHECK(m_shader_parameter_mapping.contains(name));
+
+    return m_shader_parameter_mapping.at(name);
+}
+
+IRHIDescriptorUpdater& RenderPass::GetDescriptorUpdater()
+{
+    return *m_descriptor_updater;
 }

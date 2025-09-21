@@ -776,68 +776,6 @@ bool DX12Utils::ProcessShaderMetaData(IRHIShader& shader)
 
         LOG_FORMAT_FLUSH("[Reflect] Shader %s contains var name:%s\nbinding: %d\nset index:%d\n", shader.GetMainEntry().c_str(), bd.Name,
             bd.BindPoint, bd.Space);
-
-        ShaderMetaDataDSParameter descriptor_info{};
-        descriptor_info.name = bd.Name;
-        descriptor_info.binding_index = bd.BindPoint;
-        descriptor_info.space_index = bd.Space;
-
-        switch (bd.Type) {
-        case D3D_SIT_CBUFFER:
-        case D3D_SIT_TBUFFER:
-            descriptor_info.descriptor_type = ShaderMetaDataDSType::CBV;
-            descriptor_info.resource_type = ShaderMetaDataResourceType::ConstantBuffer;
-            break;
-        case D3D_SIT_TEXTURE:
-            descriptor_info.descriptor_type = ShaderMetaDataDSType::SRV;
-            descriptor_info.resource_type = ShaderMetaDataResourceType::Texture;
-            break;
-        case D3D_SIT_STRUCTURED:
-            descriptor_info.descriptor_type = ShaderMetaDataDSType::SRV;
-            descriptor_info.resource_type = ShaderMetaDataResourceType::StructuredBuffer;
-            break;
-        case D3D_SIT_SAMPLER:
-            descriptor_info.descriptor_type = ShaderMetaDataDSType::Sampler;
-            break;
-        case D3D_SIT_UAV_RWTYPED:
-            descriptor_info.descriptor_type = ShaderMetaDataDSType::UAV;
-            descriptor_info.resource_type = ShaderMetaDataResourceType::Texture;
-            break;
-        case D3D_SIT_UAV_RWSTRUCTURED:
-            descriptor_info.descriptor_type = ShaderMetaDataDSType::UAV;
-            descriptor_info.resource_type = ShaderMetaDataResourceType::StructuredBuffer;
-            break;
-        case D3D_SIT_BYTEADDRESS:
-            descriptor_info.descriptor_type = ShaderMetaDataDSType::SRV;
-            descriptor_info.resource_type = ShaderMetaDataResourceType::ConstantBuffer;
-            break;
-        case D3D_SIT_UAV_RWBYTEADDRESS:
-            descriptor_info.descriptor_type = ShaderMetaDataDSType::UAV;
-            descriptor_info.resource_type = ShaderMetaDataResourceType::StructuredBuffer;
-            break;
-        case D3D_SIT_UAV_APPEND_STRUCTURED:
-            descriptor_info.descriptor_type = ShaderMetaDataDSType::UAV;
-            descriptor_info.resource_type = ShaderMetaDataResourceType::AppendStructuredBuffer;
-            break;
-        case D3D_SIT_UAV_CONSUME_STRUCTURED:
-            descriptor_info.descriptor_type = ShaderMetaDataDSType::UAV;
-            descriptor_info.resource_type = ShaderMetaDataResourceType::ConsumeStructuredBuffer;
-            break;
-        case D3D_SIT_UAV_RWSTRUCTURED_WITH_COUNTER:
-            descriptor_info.descriptor_type = ShaderMetaDataDSType::UAV;
-            descriptor_info.resource_type = ShaderMetaDataResourceType::StructuredBuffer;
-            break;
-        case D3D_SIT_RTACCELERATIONSTRUCTURE:
-            descriptor_info.descriptor_type = ShaderMetaDataDSType::SRV;
-            descriptor_info.resource_type = ShaderMetaDataResourceType::AccelerationStructure;
-            break;
-        case D3D_SIT_UAV_FEEDBACKTEXTURE:
-            descriptor_info.descriptor_type = ShaderMetaDataDSType::UAV;
-            descriptor_info.resource_type = ShaderMetaDataResourceType::Texture;
-            break;
-        }
-        
-        shader_meta_data.parameter_infos.push_back(descriptor_info);
     }
     
     return true;

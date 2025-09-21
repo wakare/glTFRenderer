@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <map>
 #include <memory>
 #include <optional>
@@ -88,15 +89,27 @@ namespace RendererInterface
         std::vector<char> data;        
     };
 
+    enum BufferType
+    {
+        UPLOAD,
+        DEFAULT,
+    };
+    
     enum BufferUsage
     {
-        VERTEX_BUFFER,
-        INDEX_BUFFER,
+        USAGE_NONE,
+        USAGE_VERTEX_BUFFER,
+        USAGE_INDEX_BUFFER,
+        USAGE_CBV,
+        USAGE_UAV,
+        USAGE_SRV,
     };
 
     struct BufferDesc
     {
+        std::string name;
         BufferUsage usage;
+        BufferType type;
         size_t size;
         
         // optional
@@ -216,11 +229,34 @@ namespace RendererInterface
         ExecuteCommandParameter parameter;
     };
 
+    struct BufferBindingDesc
+    {
+        enum BufferBindingType
+        {
+            CBV,
+            SRV,
+            UAV,
+        };
+        
+        BufferHandle buffer_handle;
+        BufferBindingType binding_type;
+
+        // structured buffer descriptor config
+        unsigned stride {0};
+        unsigned count {0};
+        bool is_structured_buffer {true};
+
+        // only uav
+        bool use_count_buffer {false};
+        unsigned count_buffer_offset {0};
+    };
+
     struct RenderPassDrawDesc
     {
         RenderExecuteCommand execute_command;
         std::map<RenderTargetHandle, RenderTargetBindingDesc> render_target_resources;
         std::map<RenderTargetHandle, bool> render_target_clear_states;
+        std::map<std::string, BufferBindingDesc> buffer_resources;
     };
 
     struct RenderGraphNodeDesc
@@ -229,5 +265,7 @@ namespace RendererInterface
         RenderPassDrawDesc draw_info;
 
         std::vector<RenderGraphNodeHandle> dependency_render_graph_nodes;
+
+        std::function<void()> pre_render_callback;
     };
 }

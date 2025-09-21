@@ -150,7 +150,7 @@ void glTFRenderPassBase::AddRenderInterface(const std::shared_ptr<glTFRenderInte
 bool glTFRenderPassBase::BindDescriptor(IRHICommandList& command_list, const RootSignatureAllocation& root_signature_allocation,
     const IRHIDescriptorAllocation& allocation) const
 {
-    return m_descriptor_updater->BindTextureDescriptorTable(command_list,
+    return m_descriptor_updater->BindDescriptor(command_list,
             GetPipelineType(),
             root_signature_allocation,
             allocation);

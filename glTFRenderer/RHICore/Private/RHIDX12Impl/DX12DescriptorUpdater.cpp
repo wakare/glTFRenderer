@@ -4,7 +4,7 @@
 #include "RHIUtils.h"
 #include "RHIInterface/IRHIDescriptorManager.h"
 
-bool DX12DescriptorUpdater::BindTextureDescriptorTable(IRHICommandList& command_list, RHIPipelineType pipeline, const RootSignatureAllocation& root_signature_allocation, const IRHIDescriptorAllocation& allocation)
+bool DX12DescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPipelineType pipeline, const RootSignatureAllocation& root_signature_allocation, const IRHIDescriptorAllocation& allocation)
 {
     const auto& desc = allocation.GetDesc();
     switch (desc.m_dimension) {
@@ -50,7 +50,7 @@ bool DX12DescriptorUpdater::BindTextureDescriptorTable(IRHICommandList& command_
     return true;
 }
 
-bool DX12DescriptorUpdater::BindTextureDescriptorTable(IRHICommandList& command_list, RHIPipelineType pipeline, const RootSignatureAllocation& root_signature_allocation,
+bool DX12DescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPipelineType pipeline, const RootSignatureAllocation& root_signature_allocation,
                                                        const IRHIDescriptorTable& allocation_table, RHIDescriptorRangeType descriptor_type)
 {
     // TODO: More check

@@ -28,7 +28,6 @@ bool glTFPerFrameRenderResourceData::InitSceneViewData(IRHIMemoryManager& memory
         scene_view_buffer_desc.depth = 1;
         scene_view_buffer_desc.type = RHIBufferType::Upload;
         scene_view_buffer_desc.resource_type = RHIBufferResourceType::Buffer;
-        scene_view_buffer_desc.resource_data_type = RHIDataFormat::UNKNOWN;
         scene_view_buffer_desc.state = RHIResourceStateType::STATE_COMMON;
         scene_view_buffer_desc.usage = RHIResourceUsageFlags::RUF_ALLOW_CBV;
         memory_manager.AllocateBufferMemory(device, scene_view_buffer_desc, m_scene_view_buffer);
@@ -68,7 +67,6 @@ bool glTFPerFrameRenderResourceData::InitShadowmapSceneViewData(IRHIMemoryManage
     scene_view_buffer_desc.depth = 1;
     scene_view_buffer_desc.type = RHIBufferType::Upload;
     scene_view_buffer_desc.resource_type = RHIBufferResourceType::Buffer;
-    scene_view_buffer_desc.resource_data_type = RHIDataFormat::UNKNOWN;
     scene_view_buffer_desc.state = RHIResourceStateType::STATE_COMMON;
     scene_view_buffer_desc.usage = RHIResourceUsageFlags::RUF_ALLOW_CBV;
     return memory_manager.AllocateBufferMemory(device, scene_view_buffer_desc, m_shadowmap_view_buffers[light_id]);

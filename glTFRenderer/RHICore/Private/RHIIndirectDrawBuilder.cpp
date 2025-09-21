@@ -21,7 +21,6 @@ bool RHIIndirectDrawBuilder::InitIndirectDrawBuilder(IRHIDevice& device, IRHIMem
         1,
         1,
         RHIBufferType::Upload,
-        RHIDataFormat::UNKNOWN,
         RHIBufferResourceType::Buffer,
         RHIResourceStateType::STATE_COMMON,
         static_cast<RHIResourceUsageFlags>(RUF_INDIRECT_BUFFER | RUF_TRANSFER_DST)
@@ -38,7 +37,6 @@ bool RHIIndirectDrawBuilder::InitIndirectDrawBuilder(IRHIDevice& device, IRHIMem
         1,
         1,
         RHIBufferType::Default,
-        RHIDataFormat::UNKNOWN,
         RHIBufferResourceType::Buffer,
         RHIResourceStateType::STATE_COPY_DEST,
         static_cast<RHIResourceUsageFlags>(RUF_INDIRECT_BUFFER | RUF_ALLOW_UAV)
@@ -53,7 +51,6 @@ bool RHIIndirectDrawBuilder::InitIndirectDrawBuilder(IRHIDevice& device, IRHIMem
             1,
             1,
             RHIBufferType::Default,
-            RHIDataFormat::R32_UINT,
             RHIBufferResourceType::Buffer,
             RHIResourceStateType::STATE_COMMON,
             static_cast<RHIResourceUsageFlags>(RUF_TRANSFER_SRC | RUF_ALLOW_UAV | RUF_INDIRECT_BUFFER),

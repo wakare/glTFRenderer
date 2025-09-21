@@ -273,25 +273,6 @@ struct RHICORE_API RHIDescriptorDesc
     }
 };
 
-struct RHICORE_API RHIUAVStructuredBufferDesc
-{
-    unsigned stride {0};
-    unsigned count {0};
-    bool is_structured_buffer {true};
-    bool use_count_buffer {false};
-    unsigned count_buffer_offset {0};
-    
-    bool operator==(const RHIUAVStructuredBufferDesc& other) const
-    {
-        return
-            stride == other.stride &&
-            count == other.count &&
-            is_structured_buffer == other.is_structured_buffer &&
-            use_count_buffer == other.use_count_buffer &&
-            count_buffer_offset == other.count_buffer_offset;
-    }
-};
-
 struct RHISRVStructuredBufferDesc
 {
     unsigned stride {0};
@@ -304,6 +285,20 @@ struct RHISRVStructuredBufferDesc
             stride == other.stride &&
             count == other.count &&
             is_structured_buffer == other.is_structured_buffer;
+    }
+};
+
+struct RHICORE_API RHIUAVStructuredBufferDesc : RHISRVStructuredBufferDesc
+{
+    bool use_count_buffer {false};
+    unsigned count_buffer_offset {0};
+    
+    bool operator==(const RHIUAVStructuredBufferDesc& other) const
+    {
+        return
+            RHISRVStructuredBufferDesc::operator==(other) &&
+            use_count_buffer == other.use_count_buffer &&
+            count_buffer_offset == other.count_buffer_offset;
     }
 };
 
@@ -774,19 +769,16 @@ struct RHIBufferDesc
     size_t depth {0};
     
     RHIBufferType type;
-    RHIDataFormat resource_data_type;
     RHIBufferResourceType resource_type;
     RHIResourceStateType state {RHIResourceStateType::STATE_COMMON};
     RHIResourceUsageFlags usage {};
     size_t alignment {0};
-    RHITextureClearValue clear_value{};
 
     bool operator==(const RHIBufferDesc& rhs) const
     {
         return
             width == rhs.width && height == rhs.height && depth == rhs.depth &&
             type == rhs.type &&
-            resource_data_type == rhs.resource_data_type &&
             resource_type == rhs.resource_type &&
             usage == rhs.usage &&
             state == rhs.state &&

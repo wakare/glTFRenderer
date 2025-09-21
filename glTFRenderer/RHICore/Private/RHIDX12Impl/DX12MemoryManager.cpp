@@ -52,12 +52,10 @@ bool DX12MemoryManager::AllocateTextureMemory(IRHIDevice& device, const RHITextu
         texture_desc.GetTextureHeight(),
         1,
         RHIBufferType::Default,
-        texture_desc.GetDataFormat(),
         RHIBufferResourceType::Tex2D,
         RHIResourceStateType::STATE_COMMON,
         texture_desc.GetUsage(),
         0,
-        texture_desc.GetClearValue()
     };
 
     std::shared_ptr<IRHIBufferAllocation> texture_buffer;

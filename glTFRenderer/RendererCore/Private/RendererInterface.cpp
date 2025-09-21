@@ -9,6 +9,8 @@
 #include "RHIUtils.h"
 #include "RenderWindow/glTFWindow.h"
 #include "RHIInterface/IRHIDescriptorManager.h"
+#include "RHIInterface/IRHIDescriptorUpdater.h"
+#include "RHIInterface/IRHIMemoryManager.h"
 #include "RHIInterface/IRHISwapChain.h"
 
 namespace RendererInterface
@@ -56,7 +58,7 @@ namespace RendererInterface
         glTFWindow::Get().SetTickCallback(callback);
     }
 
-    ResourceAllocator::ResourceAllocator(RenderDeviceDesc device)
+    ResourceOperator::ResourceOperator(RenderDeviceDesc device)
     {
         if (!m_resource_manager)
         {
@@ -70,22 +72,27 @@ namespace RendererInterface
         }
     }
 
-    ShaderHandle ResourceAllocator::CreateShader(const ShaderDesc& desc)
+    ShaderHandle ResourceOperator::CreateShader(const ShaderDesc& desc)
     {
         return m_resource_manager->CreateShader(desc);
     }
 
-    TextureHandle ResourceAllocator::CreateTexture(const TextureDesc& desc)
+    TextureHandle ResourceOperator::CreateTexture(const TextureDesc& desc)
     {
         return 0;
     }
 
-    RenderTargetHandle ResourceAllocator::CreateRenderTarget(const RenderTargetDesc& desc)
+    BufferHandle ResourceOperator::CreateBuffer(const BufferDesc& desc)
+    {
+        return m_resource_manager->CreateBuffer(desc);
+    }
+
+    RenderTargetHandle ResourceOperator::CreateRenderTarget(const RenderTargetDesc& desc)
     {
         return m_resource_manager->CreateRenderTarget(desc);
     }
 
-    RenderPassHandle ResourceAllocator::CreateRenderPass(const RenderPassDesc& desc)
+    RenderPassHandle ResourceOperator::CreateRenderPass(const RenderPassDesc& desc)
     {
         std::shared_ptr<RenderPass> render_pass = std::make_shared<RenderPass>(desc);
         render_pass->InitRenderPass(*m_resource_manager);
@@ -93,37 +100,48 @@ namespace RendererInterface
         return InternalResourceHandleTable::Instance().RegisterRenderPass(render_pass);
     }
 
-    IRHIDevice& ResourceAllocator::GetDevice() const
+    IRHIDevice& ResourceOperator::GetDevice() const
     {
         return m_resource_manager->GetDevice();
     }
 
-    unsigned ResourceAllocator::GetCurrentBackBufferIndex() const
+    unsigned ResourceOperator::GetCurrentBackBufferIndex() const
     {
         return m_resource_manager->GetCurrentBackBufferIndex();
     }
 
-    IRHITextureDescriptorAllocation& ResourceAllocator::GetCurrentSwapchainRT()
+    IRHITextureDescriptorAllocation& ResourceOperator::GetCurrentSwapchainRT()
     {
         return m_resource_manager->GetCurrentSwapchainRT();
     }
 
-    IRHICommandList& ResourceAllocator::GetCommandListForRecordPassCommand(RenderPassHandle pass) const
+    void ResourceOperator::UploadBufferData(BufferHandle handle, const BufferUploadDesc& upload_desc)
+    {
+        auto buffer = InternalResourceHandleTable::Instance().GetBuffer(handle);
+        m_resource_manager->GetMemoryManager().UploadBufferData(*buffer, upload_desc.data, 0, upload_desc.size);
+    }
+
+    IRHICommandList& ResourceOperator::GetCommandListForRecordPassCommand(RenderPassHandle pass) const
     {
         return m_resource_manager->GetCommandListForRecordPassCommand(pass);
     }
 
-    IRHICommandQueue& ResourceAllocator::GetCommandQueue() const
+    IRHIDescriptorManager& ResourceOperator::GetDescriptorManager() const
+    {
+        return m_resource_manager->GetMemoryManager().GetDescriptorManager();
+    }
+
+    IRHICommandQueue& ResourceOperator::GetCommandQueue() const
     {
         return m_resource_manager->GetCommandQueue();
     }
 
-    IRHISwapChain& ResourceAllocator::GetCurrentSwapchain()
+    IRHISwapChain& ResourceOperator::GetCurrentSwapchain()
     {
         return m_resource_manager->GetSwapChain();
     }
 
-    RenderGraph::RenderGraph(ResourceAllocator& allocator, RenderWindow& window)
+    RenderGraph::RenderGraph(ResourceOperator& allocator, RenderWindow& window)
         : m_resource_allocator(allocator)
         , m_window(window)
     {
@@ -207,6 +225,11 @@ namespace RendererInterface
     void RenderGraph::ExecuteRenderGraphNode(IRHICommandList& command_list, RenderGraphNodeHandle render_graph_node_handle)
     {
         auto& render_graph_node_desc = m_render_graph_nodes[render_graph_node_handle];
+        if (render_graph_node_desc.pre_render_callback)
+        {
+            render_graph_node_desc.pre_render_callback();   
+        }
+        
         auto render_pass = InternalResourceHandleTable::Instance().GetRenderPass(render_graph_node_desc.render_pass_handle);
 
         RHIUtilInstanceManager::Instance().SetPipelineState(command_list, render_pass->GetPipelineStateObject());
@@ -230,7 +253,7 @@ namespace RendererInterface
             (unsigned)(viewport.top_left_y + viewport.height)
         }; 
         RHIUtilInstanceManager::Instance().SetScissorRect(command_list, scissor_rect);
-        
+
         RHIBeginRenderingInfo begin_rendering_info{};
         
         // render target binding
@@ -246,13 +269,70 @@ namespace RendererInterface
                 clear_render_target = true;
             }
         }
+
+        // Bind descriptor heap
+        m_resource_allocator.GetDescriptorManager().BindDescriptorContext(command_list);
+
+        // buffer binding
+        RHIPipelineType pipeline_type = RHIPipelineType::Unknown;
+        switch (render_pass->GetRenderPassType()) {
+        case GRAPHICS:
+            pipeline_type = RHIPipelineType::Graphics;
+            break;
+        case COMPUTE:
+            pipeline_type = RHIPipelineType::Compute;
+            break;
+        case RAY_TRACING:
+            pipeline_type = RHIPipelineType::RayTracing;
+            break;
+        }
+        
+        for (const auto& buffer : render_graph_node_desc.draw_info.buffer_resources)
+        {
+            auto& root_signature_allocation = render_pass->GetRootSignatureAllocation(buffer.first);
+            auto buffer_handle = buffer.second.buffer_handle;
+            auto buffer_allocation = RendererInterface::InternalResourceHandleTable::Instance().GetBuffer(buffer_handle);
+            auto buffer_size = buffer_allocation->m_buffer->GetBufferDesc().width;
+
+            if (!m_buffer_descriptors.contains(buffer_handle))
+            {
+                switch (buffer.second.binding_type)
+                {
+                case BufferBindingDesc::CBV:
+                    {
+                        RHIBufferDescriptorDesc buffer_descriptor_desc(RHIDataFormat::UNKNOWN, RHIViewType::RVT_CBV, buffer_size, 0);
+                        m_resource_allocator.GetDescriptorManager().CreateDescriptor(m_resource_allocator.GetDevice(), buffer_allocation->m_buffer, buffer_descriptor_desc, m_buffer_descriptors[buffer_handle]);    
+                    }
+                    break;
+                case BufferBindingDesc::SRV:
+                    {
+                        RHISRVStructuredBufferDesc srv_buffer_desc{buffer.second.stride, buffer.second.count, buffer.second.is_structured_buffer};
+                        RHIBufferDescriptorDesc buffer_descriptor_desc(RHIDataFormat::UNKNOWN, RHIViewType::RVT_SRV, buffer_size, 0, srv_buffer_desc);
+                        m_resource_allocator.GetDescriptorManager().CreateDescriptor(m_resource_allocator.GetDevice(), buffer_allocation->m_buffer, buffer_descriptor_desc, m_buffer_descriptors[buffer_handle]);    
+                    }
+                    break;
+                case BufferBindingDesc::UAV:
+                    {
+                        RHIUAVStructuredBufferDesc uav_buffer_desc{buffer.second.stride, buffer.second.count, buffer.second.is_structured_buffer, buffer.second.use_count_buffer, buffer.second.count_buffer_offset};
+                        RHIBufferDescriptorDesc buffer_descriptor_desc(RHIDataFormat::UNKNOWN, RHIViewType::RVT_UAV, buffer_size, 0, uav_buffer_desc);
+                        m_resource_allocator.GetDescriptorManager().CreateDescriptor(m_resource_allocator.GetDevice(), buffer_allocation->m_buffer, buffer_descriptor_desc, m_buffer_descriptors[buffer_handle]);    
+                    }
+                    break;
+                }
+            }
+
+            auto buffer_descriptor = m_buffer_descriptors.at(buffer_handle);
+            render_pass->GetDescriptorUpdater().BindDescriptor(command_list, pipeline_type, root_signature_allocation, *buffer_descriptor);
+        }
+
+        render_pass->GetDescriptorUpdater().FinalizeUpdateDescriptors(m_resource_allocator.GetDevice(), command_list, render_pass->GetRootSignature());
         
         begin_rendering_info.rendering_area_offset_x = viewport.top_left_x;
         begin_rendering_info.rendering_area_offset_y = viewport.top_left_y;
         begin_rendering_info.rendering_area_width = viewport.width;
         begin_rendering_info.rendering_area_height = viewport.height;
         begin_rendering_info.clear_render_target = clear_render_target;
-        
+
         RHIUtilInstanceManager::Instance().BeginRendering(command_list, begin_rendering_info);
 
         const auto& draw_info = render_graph_node_desc.draw_info;

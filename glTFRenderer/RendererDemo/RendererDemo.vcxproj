@@ -78,14 +78,14 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(SolutionDir)RendererCore/Public;$(SolutionDir)RendererCommonLib/Public;</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(SolutionDir)RendererCore/Public;$(SolutionDir)RendererCommonLib/Public;$(SolutionDir)RendererDemo;</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(SolutionDir)RendererCore/Public;$(SolutionDir)RendererCommonLib/Public;</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(SolutionDir)RendererCore/Public;$(SolutionDir)RendererCommonLib/Public;$(SolutionDir)RendererDemo;</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -171,6 +171,7 @@
     <ClCompile Include="DemoApps\DemoBase.cpp" />
     <ClCompile Include="DemoApps\DemoTriangleApp.cpp" />
     <ClCompile Include="RendererDemo.cpp" />
+    <None Include="Resources\Shaders\ShaderDeclarationUtil.hlsl" />
     <None Include="Resources\Shaders\DemoShader.hlsl" />
   </ItemGroup>
   <ItemGroup>

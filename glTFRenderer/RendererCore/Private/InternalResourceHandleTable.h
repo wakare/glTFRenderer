@@ -2,6 +2,7 @@
 #include "Renderer.h"
 #include "RendererInterface.h"
 
+class IRHIBufferAllocation;
 class IRHITextureDescriptorAllocation;
 class IRHIShader;
 
@@ -22,6 +23,9 @@ namespace RendererInterface
         RenderPassHandle RegisterRenderPass(std::shared_ptr<RenderPass> render_pass);
         std::shared_ptr<RenderPass> GetRenderPass(RenderPassHandle handle) const;
 
+        BufferHandle RegisterBuffer(std::shared_ptr<IRHIBufferAllocation> buffer);
+        std::shared_ptr<IRHIBufferAllocation> GetBuffer(BufferHandle handle) const;
+        
         static InternalResourceHandleTable& Instance();
         
     protected:
@@ -29,5 +33,6 @@ namespace RendererInterface
         std::map<ShaderHandle, std::shared_ptr<IRHIShader>> m_shaders;
         std::map<RenderTargetHandle, std::shared_ptr<IRHITextureDescriptorAllocation>> m_render_targets;
         std::map<RenderPassHandle, std::shared_ptr<RenderPass>> m_render_passes;
+        std::map<BufferHandle, std::shared_ptr<IRHIBufferAllocation>> m_buffers;
     };
 }

@@ -737,6 +737,23 @@ void VulkanUtils::ReportLiveObjects()
 
 #include "ShaderReflect/spirv_reflect.h"
 
+static VkDescriptorType ToVkDescriptorType(SpvReflectDescriptorType t) {
+    switch (t) {
+    case SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLER:                  return VK_DESCRIPTOR_TYPE_SAMPLER;
+    case SPV_REFLECT_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:   return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    case SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLED_IMAGE:            return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_IMAGE:            return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:     return VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
+    case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:     return VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER;
+    case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER:           return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER:           return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:   return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+    case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:   return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
+    case SPV_REFLECT_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:         return VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+    default:                                                   return VK_DESCRIPTOR_TYPE_MAX_ENUM;
+    }
+}
+
 bool VulkanUtils::ProcessShaderMetaData(IRHIShader& shader)
 {
     const void* bytecode = shader.GetShaderByteCode().data();
@@ -772,7 +789,30 @@ bool VulkanUtils::ProcessShaderMetaData(IRHIShader& shader)
             RootParameterInfo parameter_info{};
             parameter_info.parameter_name = binding_parameter->name;
             parameter_info.register_count = binding_parameter->count > 0 ? binding_parameter->count : 1;
-            parameter_info.type = 
+
+            auto descriptor_type = ToVkDescriptorType(binding_parameter->descriptor_type);
+            switch (descriptor_type) {
+            case VK_DESCRIPTOR_TYPE_SAMPLER:
+            case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+                parameter_info.type = RHIRootParameterType::Sampler;
+                break;
+            case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+                parameter_info.type = RHIRootParameterType::CBV;
+                break;
+            case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+                parameter_info.type = RHIRootParameterType::SRV;
+                break;
+            case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+            case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+                parameter_info.type = RHIRootParameterType::UAV;
+                break;
+            default:
+                // TODO: No support now
+                GLTF_CHECK(false);
+            }
+            parameter_info.is_buffer = descriptor_type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER || descriptor_type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+
+            shader_meta_data.root_parameter_infos.push_back(parameter_info);
         }
     }
     

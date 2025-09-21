@@ -32,16 +32,17 @@ class ResourceManager
 public:
     bool InitResourceManager(const RendererInterface::RenderDeviceDesc& desc);
 
+    RendererInterface::BufferHandle CreateBuffer(const RendererInterface::BufferDesc& desc);
     RendererInterface::ShaderHandle CreateShader(const RendererInterface::ShaderDesc& shader_desc);
     RendererInterface::RenderTargetHandle CreateRenderTarget(const RendererInterface::RenderTargetDesc& desc);
-
+    
     unsigned GetCurrentBackBufferIndex() const;
     
     IRHIDevice& GetDevice();
     IRHISwapChain& GetSwapChain();
     IRHIMemoryManager& GetMemoryManager();
 
-    IRHICommandList& GetCommandListForRecordPassCommand(RendererInterface::RenderPassHandle render_pass_handle);
+    IRHICommandList& GetCommandListForRecordPassCommand(RendererInterface::RenderPassHandle render_pass_handle = NULL_HANDLE);
 
     IRHICommandQueue& GetCommandQueue();
 

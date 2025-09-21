@@ -56,6 +56,20 @@ std::shared_ptr<RenderPass> RendererInterface::InternalResourceHandleTable::GetR
     return m_render_passes.at(handle);
 }
 
+RendererInterface::BufferHandle RendererInterface::InternalResourceHandleTable::RegisterBuffer(
+    std::shared_ptr<IRHIBufferAllocation> buffer)
+{
+    RenderWindowHandle result = _internal_handle++;
+    m_buffers.emplace(result, buffer);
+    return result;
+}
+
+std::shared_ptr<IRHIBufferAllocation> RendererInterface::InternalResourceHandleTable::GetBuffer(
+    BufferHandle handle) const
+{
+    return m_buffers.at(handle);
+}
+
 RendererInterface::InternalResourceHandleTable& RendererInterface::InternalResourceHandleTable::Instance()
 {
     static InternalResourceHandleTable s_internal_resource_handle_table;

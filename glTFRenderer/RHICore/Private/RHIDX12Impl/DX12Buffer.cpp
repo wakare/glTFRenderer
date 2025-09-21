@@ -37,13 +37,13 @@ bool DX12Buffer::InitGPUBuffer(IRHIDevice& device, const RHIBufferDesc& desc)
             heap_resource_desc = CD3DX12_RESOURCE_DESC::Buffer(desc.width);
             break;
         case RHIBufferResourceType::Tex1D:
-            heap_resource_desc = CD3DX12_RESOURCE_DESC::Tex1D(DX12ConverterUtils::ConvertToDXGIFormat(desc.resource_data_type), desc.width);
+            heap_resource_desc = CD3DX12_RESOURCE_DESC::Tex1D(DXGI_FORMAT_UNKNOWN, desc.width);
             break;
     case RHIBufferResourceType::Tex2D: 
-            heap_resource_desc = CD3DX12_RESOURCE_DESC::Tex2D(DX12ConverterUtils::ConvertToDXGIFormat(desc.resource_data_type), desc.width, desc.height,  1, mip_count);
+            heap_resource_desc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_UNKNOWN, desc.width, desc.height,  1, mip_count);
             break;
     case RHIBufferResourceType::Tex3D: 
-            heap_resource_desc = CD3DX12_RESOURCE_DESC::Tex3D(DX12ConverterUtils::ConvertToDXGIFormat(desc.resource_data_type), desc.width, desc.height, desc.depth ,mip_count);
+            heap_resource_desc = CD3DX12_RESOURCE_DESC::Tex3D(DXGI_FORMAT_UNKNOWN, desc.width, desc.height, desc.depth ,mip_count);
             break;
     }
     
@@ -65,14 +65,12 @@ bool DX12Buffer::InitGPUBuffer(IRHIDevice& device, const RHIBufferDesc& desc)
     }
     
     const D3D12_RESOURCE_STATES state = DX12ConverterUtils::ConvertToResourceState(final_state);
-    const auto dx_clear_value = DX12ConverterUtils::ConvertToD3DClearValue(desc.clear_value);
-    bool use_clear_value = desc.usage & (RUF_ALLOW_DEPTH_STENCIL | RUF_ALLOW_RENDER_TARGET);
     THROW_IF_FAILED(dxDevice->CreateCommittedResource(
             &heap_properties, // this heap will be used to upload the constant buffer data
             D3D12_HEAP_FLAG_NONE, // no flags
             &heap_resource_desc, // size of the resource heap. Must be a multiple of 64KB for single-textures and constant buffers
             state, // will be data that is read from so we keep it in the generic read state
-            use_clear_value ? &dx_clear_value : nullptr, // we do not have use an optimized clear value for constant buffers
+            nullptr, // we do not have use an optimized clear value for constant buffers
             IID_PPV_ARGS(&m_buffer)))
     m_buffer->SetName(desc.name.c_str());
 

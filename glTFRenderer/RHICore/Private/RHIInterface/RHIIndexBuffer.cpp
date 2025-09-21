@@ -18,7 +18,6 @@ std::shared_ptr<IRHIIndexBufferView> RHIIndexBuffer::CreateIndexBufferView(IRHID
         1,
         1,
         RHIBufferType::Upload,
-        RHIDataFormat::UNKNOWN,
         RHIBufferResourceType::Buffer,
         RHIResourceStateType::STATE_COMMON,
         static_cast<RHIResourceUsageFlags>(RUF_TRANSFER_SRC | RUF_TRANSFER_DST)
