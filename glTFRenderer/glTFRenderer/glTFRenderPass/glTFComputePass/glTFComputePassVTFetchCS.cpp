@@ -45,7 +45,6 @@ bool glTFComputePassVTFetchCS::InitRenderInterface(glTFRenderResourceManager& re
         1,
         1,
         RHIBufferType::Readback,
-        RHIDataFormat::UNKNOWN,
         RHIBufferResourceType::Buffer,
         RHIResourceStateType::STATE_COMMON,
         static_cast<RHIResourceUsageFlags>(RUF_READBACK | RUF_TRANSFER_DST),

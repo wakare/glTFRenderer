@@ -24,7 +24,6 @@ bool glTFRenderMeshManager::AddOrUpdatePrimitive(glTFRenderResourceManager& reso
                 1,
                 1,
                 RHIBufferType::Default,
-                RHIDataFormat::UNKNOWN,
                 RHIBufferResourceType::Buffer,
                 RHIResourceStateType::STATE_COMMON,
                 static_cast<RHIResourceUsageFlags>(RUF_VERTEX_BUFFER | RUF_TRANSFER_DST)
@@ -39,7 +38,6 @@ bool glTFRenderMeshManager::AddOrUpdatePrimitive(glTFRenderResourceManager& reso
                 1,
                 1,
                 RHIBufferType::Default,
-                RHIDataFormat::UNKNOWN,
                 RHIBufferResourceType::Buffer,
                 RHIResourceStateType::STATE_COMMON,
                 static_cast<RHIResourceUsageFlags>(RUF_VERTEX_BUFFER | RUF_TRANSFER_DST)
@@ -54,7 +52,6 @@ bool glTFRenderMeshManager::AddOrUpdatePrimitive(glTFRenderResourceManager& reso
                 1,
                 1,
                 RHIBufferType::Default,
-                RHIDataFormat::UNKNOWN,
                 RHIBufferResourceType::Buffer,
                 RHIResourceStateType::STATE_COMMON,
                 static_cast<RHIResourceUsageFlags>(RUF_INDEX_BUFFER | RUF_TRANSFER_DST)
@@ -132,7 +129,6 @@ bool glTFRenderMeshManager::BuildMeshRenderResource(glTFRenderResourceManager& r
             1,
             1,
             RHIBufferType::Default,
-            RHIDataFormat::UNKNOWN,
             RHIBufferResourceType::Buffer,
             RHIResourceStateType::STATE_COMMON,
             static_cast<RHIResourceUsageFlags>(RUF_VERTEX_BUFFER | RUF_TRANSFER_DST)
@@ -190,7 +186,6 @@ bool glTFRenderMeshManager::BuildMeshRenderResource(glTFRenderResourceManager& r
             1,
             1,
             RHIBufferType::Default,
-            index_format,
             RHIBufferResourceType::Buffer,
             RHIResourceStateType::STATE_COMMON,
             static_cast<RHIResourceUsageFlags>(RUF_INDEX_BUFFER | RUF_TRANSFER_DST)

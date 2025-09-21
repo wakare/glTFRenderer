@@ -7,7 +7,7 @@ bool DX12MemoryManager::AllocateBufferMemory(IRHIDevice& device, const RHIBuffer
                                              std::shared_ptr<IRHIBufferAllocation>& out_buffer_allocation)
 {
     std::shared_ptr<IRHIBuffer> dx12_buffer = RHIResourceFactory::CreateRHIResource<IRHIBuffer>();
-    if (!dynamic_cast<DX12Buffer&>(*dx12_buffer).InitGPUBuffer(device, buffer_desc))
+    if (!dynamic_cast<DX12Buffer&>(*dx12_buffer).CreateBuffer(device, buffer_desc))
     {
         assert(false);
         return false;
@@ -45,28 +45,14 @@ bool DX12MemoryManager::DownloadBufferData(IRHIBufferAllocation& buffer_allocati
 
 bool DX12MemoryManager::AllocateTextureMemory(IRHIDevice& device, const RHITextureDesc& texture_desc, std::shared_ptr<IRHITextureAllocation>& out_texture_allocation)
 {
-    const RHIBufferDesc texture_buffer_desc =
-    {
-        to_wide_string(texture_desc.GetName()),
-        texture_desc.GetTextureWidth(),
-        texture_desc.GetTextureHeight(),
-        1,
-        RHIBufferType::Default,
-        RHIBufferResourceType::Tex2D,
-        RHIResourceStateType::STATE_COMMON,
-        texture_desc.GetUsage(),
-        0,
-    };
-
     std::shared_ptr<IRHIBufferAllocation> texture_buffer;
-    RETURN_IF_FALSE(AllocateBufferMemory(device, texture_buffer_desc, texture_buffer))
-
-    RHIMipMapCopyRequirements copy_requirements = dynamic_cast<const DX12Buffer&>(*texture_buffer->m_buffer).GetMipMapRequirements();
-
     std::shared_ptr<IRHITexture> dx12_texture = RHIResourceFactory::CreateRHIResource<IRHITexture>();
-    dynamic_cast<DX12Texture&>(*dx12_texture).InitTexture(texture_buffer, texture_desc);
-    dynamic_cast<DX12Texture&>(*dx12_texture).SetCopyReq(copy_requirements);
-    
+    if (!dynamic_cast<DX12Texture&>(*dx12_texture).CreateTexture(device, texture_desc))
+    {
+        assert(false);
+        return false;
+    }
+
     out_texture_allocation = RHIResourceFactory::CreateRHIResource<IRHITextureAllocation>();
     out_texture_allocation->m_texture = dx12_texture;
     out_texture_allocation->SetNeedRelease();

@@ -24,7 +24,6 @@ public:
             1,
             1,
             type == RHIViewType::RVT_SRV ? RHIBufferType::Upload : (readback ? RHIBufferType::Readback : RHIBufferType::Default),
-            RHIDataFormat::UNKNOWN,
             RHIBufferResourceType::Buffer,
             RHIResourceStateType::STATE_COMMON,
             static_cast<RHIResourceUsageFlags>((type == RHIViewType::RVT_SRV ? RUF_ALLOW_SRV : RUF_ALLOW_UAV) | RUF_TRANSFER_SRC), 

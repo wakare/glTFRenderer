@@ -22,7 +22,7 @@ bool DX12Buffer::Release(IRHIMemoryManager& memory_manager)
     return true;
 }
 
-bool DX12Buffer::InitGPUBuffer(IRHIDevice& device, const RHIBufferDesc& desc)
+bool DX12Buffer::CreateBuffer(IRHIDevice& device, const RHIBufferDesc& desc)
 {
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
 

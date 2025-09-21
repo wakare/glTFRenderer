@@ -616,6 +616,7 @@ enum RHIResourceUsageFlags
     // TEXTURE
     RUF_ALLOW_DEPTH_STENCIL =  0x1u << 3,
     RUF_ALLOW_RENDER_TARGET =  0x1u << 4,
+    RUF_ALLOW_CLEAR         = RUF_ALLOW_DEPTH_STENCIL | RUF_ALLOW_RENDER_TARGET,
     
     // BUFFER
     RUF_VERTEX_BUFFER       =  0x1u << 5,
