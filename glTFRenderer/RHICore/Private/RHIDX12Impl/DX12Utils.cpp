@@ -776,6 +776,40 @@ bool DX12Utils::ProcessShaderMetaData(IRHIShader& shader)
 
         LOG_FORMAT_FLUSH("[Reflect] Shader %s contains var name:%s\nbinding: %d\nset index:%d\n", shader.GetMainEntry().c_str(), bd.Name,
             bd.BindPoint, bd.Space);
+
+        RootParameterInfo parameter_info{};
+        parameter_info.parameter_name = bd.Name;
+        parameter_info.register_count = bd.BindCount;
+        switch (bd.Type) {
+        case D3D_SIT_CBUFFER:
+            parameter_info.is_buffer = true;
+            parameter_info.type = RHIRootParameterType::CBV;
+            break;
+        case D3D_SIT_TEXTURE:
+            parameter_info.is_buffer = false;
+            parameter_info.type = RHIRootParameterType::SRV;
+            break;
+        case D3D_SIT_SAMPLER:
+            parameter_info.is_buffer = false;
+            parameter_info.type = RHIRootParameterType::Sampler;
+            break;
+        case D3D_SIT_UAV_RWTYPED:
+            parameter_info.is_buffer = false;
+            parameter_info.type = RHIRootParameterType::UAV;
+            break;
+        case D3D_SIT_STRUCTURED:
+            parameter_info.is_buffer = true;
+            parameter_info.type = RHIRootParameterType::SRV;
+            break;
+        case D3D_SIT_UAV_RWSTRUCTURED:
+            parameter_info.is_buffer = true;
+            parameter_info.type = RHIRootParameterType::UAV;
+            break;
+        default:
+            // TODO: No support now
+            GLTF_CHECK(false);
+        }
+        shader_meta_data.root_parameter_infos.push_back(parameter_info);
     }
     
     return true;
