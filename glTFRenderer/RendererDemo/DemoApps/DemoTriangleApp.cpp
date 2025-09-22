@@ -20,42 +20,16 @@ void DemoTriangleApp::Run(const std::vector<std::string>& arguments)
     }
     
     unsigned int width{1280}, height{720};
-    
-    RendererInterface::RenderWindowDesc window_desc{};
-    window_desc.width = width;
-    window_desc.height = height;
-    RendererInterface::RenderWindow window(window_desc);
-    
-    RendererInterface::RenderDeviceDesc device{};
-    device.window = window.GetHandle();
-    device.type = bUseDX ? RendererInterface::DX12 : RendererInterface::VULKAN;
-    device.back_buffer_count = 3;
-    
-    RendererInterface::ResourceOperator allocator(device);
 
+    InitRenderContext(width, height, bUseDX);
+    
     // Create shader resource
-    RendererInterface::ShaderDesc vertex_shader_desc{};
-    vertex_shader_desc.shader_type = RendererInterface::ShaderType::VERTEX_SHADER; 
-    vertex_shader_desc.entry_point = "MainVS";
-    vertex_shader_desc.shader_file_name = "Resources/Shaders/DemoShader.hlsl";
-    auto vertex_shader_handle = allocator.CreateShader(vertex_shader_desc);
-
-    RendererInterface::ShaderDesc fragment_shader_desc{};
-    fragment_shader_desc.shader_type = RendererInterface::ShaderType::FRAGMENT_SHADER; 
-    fragment_shader_desc.entry_point = "MainFS";
-    fragment_shader_desc.shader_file_name = "Resources/Shaders/DemoShader.hlsl";
-    auto fragment_shader_handle = allocator.CreateShader(fragment_shader_desc);
+    auto vertex_shader_handle = CreateShader(RendererInterface::ShaderType::VERTEX_SHADER, "Resources/Shaders/DemoShader.hlsl", "MainVS");
+    auto fragment_shader_handle  = CreateShader(RendererInterface::ShaderType::FRAGMENT_SHADER, "Resources/Shaders/DemoShader.hlsl", "MainFS");
 
     // Create render target resource
-    RendererInterface::RenderTargetDesc render_target_desc{};
-    render_target_desc.name = "DemoTriangleColorRT";
-    render_target_desc.width = width;
-    render_target_desc.height = height;
-    render_target_desc.format = RendererInterface::RGBA8_UNORM;
-    render_target_desc.clear = RendererInterface::default_clear_color;
-    render_target_desc.usage = static_cast<RendererInterface::ResourceUsage>(RendererInterface::ResourceUsage::RENDER_TARGET |
-        RendererInterface::ResourceUsage::COPY_SRC); 
-    auto render_target_handle = allocator.CreateRenderTarget(render_target_desc);
+    auto render_target_handle = CreateRenderTarget("DemoTriangleColorRT", width, height, RendererInterface::RGBA8_UNORM, RendererInterface::default_clear_color,
+    static_cast<RendererInterface::ResourceUsage>(RendererInterface::ResourceUsage::RENDER_TARGET | RendererInterface::ResourceUsage::COPY_SRC));
     
     RendererInterface::RenderPassDesc render_pass_desc{};
     render_pass_desc.shaders.emplace(RendererInterface::ShaderType::VERTEX_SHADER, vertex_shader_handle);
@@ -67,7 +41,7 @@ void DemoTriangleApp::Run(const std::vector<std::string>& arguments)
     render_pass_desc.render_target_bindings.push_back(render_target_binding_desc);
     render_pass_desc.type = RendererInterface::GRAPHICS;
 
-    auto render_pass_handle = allocator.CreateRenderPass(render_pass_desc);
+    auto render_pass_handle = m_resource_manager->CreateRenderPass(render_pass_desc);
 
     // Buffer resources
     RendererInterface::BufferDesc buffer_desc{};
@@ -80,13 +54,13 @@ void DemoTriangleApp::Run(const std::vector<std::string>& arguments)
     float color[4] = {1.0f, 0.0f, 0.0f, 1.0f};
     memcpy(buffer_desc.data.value().get(), color, buffer_desc.size);
     
-    RendererInterface::BufferHandle buffer_handle = allocator.CreateBuffer(buffer_desc);
+    RendererInterface::BufferHandle buffer_handle = m_resource_manager->CreateBuffer(buffer_desc);
     
     RendererInterface::RenderPassDrawDesc render_pass_draw_desc{};
     render_pass_draw_desc.render_target_resources.emplace(render_target_handle,
         RendererInterface::RenderTargetBindingDesc
         {
-            .format = render_target_desc.format,
+            .format = RendererInterface::RGBA8_UNORM,
             .usage = RendererInterface::RenderPassResourceUsage::COLOR,
         });
     render_pass_draw_desc.render_target_clear_states.emplace(render_target_handle, true);
@@ -117,15 +91,14 @@ void DemoTriangleApp::Run(const std::vector<std::string>& arguments)
         RendererInterface::BufferUploadDesc upload_desc{};
         upload_desc.data = buffer_desc.data.value().get();
         upload_desc.size = sizeof(float) * 4;
-        allocator.UploadBufferData(buffer_handle, upload_desc);
+        m_resource_manager->UploadBufferData(buffer_handle, upload_desc);
     };
     
-    RendererInterface::RenderGraph graph(allocator, window);
-    auto render_graph_node_handle = graph.CreateRenderGraphNode(render_graph_node_desc);
-    graph.RegisterRenderGraphNode(render_graph_node_handle);
+    auto render_graph_node_handle = m_render_graph->CreateRenderGraphNode(render_graph_node_desc);
+    m_render_graph->RegisterRenderGraphNode(render_graph_node_handle);
 
     // After registration all passes, compile graph and prepare for execution
-    graph.CompileRenderPassAndExecute();
+    m_render_graph->CompileRenderPassAndExecute();
     
-    window.TickWindow();
+    m_window->TickWindow();
 }
