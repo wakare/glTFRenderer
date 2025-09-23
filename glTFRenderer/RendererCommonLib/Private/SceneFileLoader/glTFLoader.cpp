@@ -2,8 +2,8 @@
 
 #include <fstream>
 #include <iostream>
-#include <glm/ext/matrix_transform.hpp>
-#include <glm/gtx/quaternion.hpp>
+#include <glm/glm/ext/matrix_transform.hpp>
+#include <glm/glm/gtx/quaternion.hpp>
 
 #include "nlohmann_json/single_include/nlohmann/json.hpp"
 #include "RendererCommon.h"
@@ -553,4 +553,59 @@ void glTFLoader::Print() const
             }
         }
     }
+}
+
+const glTF_Element_Scene& glTFLoader::GetDefaultScene() const
+{
+    return *m_scenes[m_default_scene];
+}
+
+const std::vector<std::unique_ptr<glTF_Element_Node>>& glTFLoader::GetNodes() const
+{
+    return m_nodes;
+}
+
+const std::vector<std::unique_ptr<glTF_Element_Mesh>>& glTFLoader::GetMeshes() const
+{
+    return m_meshes;
+}
+
+const std::vector<std::unique_ptr<glTF_Element_Image>>& glTFLoader::GetImages() const
+{
+    return m_images;
+}
+
+const std::vector<std::unique_ptr<glTF_Element_Texture>>& glTFLoader::GetTextures() const
+{
+    return m_textures;
+}
+
+const std::vector<std::unique_ptr<glTF_Element_Sampler>>& glTFLoader::GetSamplers() const
+{
+    return m_samplers;
+}
+
+const std::vector<std::unique_ptr<glTF_Element_Material>>& glTFLoader::GetMaterials() const
+{
+    return m_materials;
+}
+
+const std::vector<std::unique_ptr<glTF_Element_Buffer>>& glTFLoader::GetBuffers() const
+{
+    return m_buffers;
+}
+
+const std::vector<std::unique_ptr<glTF_Element_BufferView>>& glTFLoader::GetBufferViews() const
+{
+    return m_bufferViews;
+}
+
+const std::vector<std::unique_ptr<glTF_Element_Accessor_Base>>& glTFLoader::GetAccessors() const
+{
+    return m_accessors;
+}
+
+const std::map<glTFHandle, std::unique_ptr<char[]>>& glTFLoader::GetBufferData() const
+{
+    return m_buffer_data;
 }

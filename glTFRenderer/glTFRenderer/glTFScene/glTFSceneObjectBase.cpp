@@ -1,6 +1,7 @@
 #include "glTFSceneObjectBase.h"
 
 #include <gtx/quaternion.hpp>
+#include <gtx/matrix_decompose.hpp>
 
 const glTF_Transform_WithTRS glTF_Transform_WithTRS::identity;
 

@@ -1,7 +1,7 @@
-#ifndef IAUNS_GLM_AABB_HPP
-#define IAUNS_GLM_AABB_HPP
+#pragma once
 
-#include <glm/glm/glm.hpp>
+#include <glm/glm/fwd.hpp>
+#include <glm/glm/vec3.hpp>
 
 namespace glTF_AABB {
 
@@ -107,5 +107,3 @@ private:
 };
 
 } // namespace CPM_GLM_AABB_NS 
-
-#endif 

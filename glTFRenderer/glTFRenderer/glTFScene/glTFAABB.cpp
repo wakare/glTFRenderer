@@ -1,5 +1,9 @@
 #include "glTFAABB.h"
+
+#include <common.hpp>
 #include <glm/glm/gtx/component_wise.hpp>
+#include <glm/glm/gtc/matrix_transform.hpp>
+
 
 namespace glTF_AABB {
 

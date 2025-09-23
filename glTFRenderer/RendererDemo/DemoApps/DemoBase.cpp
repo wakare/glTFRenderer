@@ -2,8 +2,24 @@
 
 #include "RendererInterface.h"
 
-void DemoBase::InitRenderContext(unsigned width, unsigned height, bool use_dx)
+bool DemoBase::InitRenderContext(const std::vector<std::string>& arguments)
 {
+    bool bUseDX = true;
+    unsigned int width{1280}, height{720};
+    
+    for (const auto& argument : arguments)
+    {
+        if (argument == "-dx"|| argument == "-dx12")
+        {
+            bUseDX = true;
+        }
+
+        if (argument == "-vk" || argument == "-vulkan")
+        {
+            bUseDX = false;
+        }
+    }
+
     RendererInterface::RenderWindowDesc window_desc{};
     window_desc.width = width;
     window_desc.height = height;
@@ -12,7 +28,7 @@ void DemoBase::InitRenderContext(unsigned width, unsigned height, bool use_dx)
 
     RendererInterface::RenderDeviceDesc device{};
     device.window = m_window->GetHandle();
-    device.type = use_dx ? RendererInterface::DX12 : RendererInterface::VULKAN;
+    device.type = bUseDX ? RendererInterface::DX12 : RendererInterface::VULKAN;
     device.back_buffer_count = 3;
 
     m_resource_manager = std::make_shared<RendererInterface::ResourceOperator>(device);

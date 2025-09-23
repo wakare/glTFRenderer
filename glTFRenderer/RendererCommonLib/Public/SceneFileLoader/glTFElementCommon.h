@@ -1,9 +1,10 @@
 #pragma once
+
 #include <map>
 #include <memory>
 #include <string>
 #include <vector>
-#include <glm/glm.hpp>
+#include <glm/glm/glm.hpp>
 
 #include "RendererCommon.h"
 

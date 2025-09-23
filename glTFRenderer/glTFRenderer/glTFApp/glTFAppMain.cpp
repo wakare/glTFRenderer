@@ -8,6 +8,7 @@
 #include "RHIUtils.h"
 #include "RenderWindow/glTFInputManager.h"
 #include "RenderWindow/glTFWindow.h"
+#include "SceneFileLoader/glTFLoader.h"
 
 glTFTimer::glTFTimer()
     : m_delta_tick(0)

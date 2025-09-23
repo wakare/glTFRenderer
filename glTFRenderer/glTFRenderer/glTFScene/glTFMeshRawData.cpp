@@ -15,15 +15,15 @@ glTFMeshRawData::glTFMeshRawData(const glTFLoader& loader, const glTF_Primitive&
 		if (itPosition != source_primitive.attributes.end())
 		{
 			const glTFHandle accessorHandle = itPosition->second; 
-			const auto& vertexAccessor = *source_loader.m_accessors[source_loader.ResolveIndex(accessorHandle)];
+			const auto& vertexAccessor = *source_loader.GetAccessors()[source_loader.ResolveIndex(accessorHandle)];
 			out_vertex_layout.elements.push_back({attribute_type, vertexAccessor.GetElementByteSize()});
 			out_vertex_buffer_size += vertexAccessor.count * vertexAccessor.GetElementByteSize();
 
-			const auto& vertexBufferView = *source_loader.m_bufferViews[source_loader.ResolveIndex(vertexAccessor.buffer_view)];
+			const auto& vertexBufferView = *source_loader.GetBufferViews()[source_loader.ResolveIndex(vertexAccessor.buffer_view)];
 			glTFHandle tempVertexBufferViewHandle = vertexBufferView.buffer;
 			tempVertexBufferViewHandle.node_index = source_loader.ResolveIndex(vertexBufferView.buffer);
-			const auto findIt = source_loader.m_buffer_data.find(tempVertexBufferViewHandle);
-			GLTF_CHECK(findIt != source_loader.m_buffer_data.end());
+			const auto findIt = source_loader.GetBufferData().find(tempVertexBufferViewHandle);
+			GLTF_CHECK(findIt != source_loader.GetBufferData().end());
 			char* position_data = findIt->second.get() + vertexBufferView.byte_offset + vertexAccessor.byte_offset;
 			out_vertex_data_infos.push_back(position_data);
 		}
@@ -83,8 +83,8 @@ glTFMeshRawData::glTFMeshRawData(const glTFLoader& loader, const glTF_Primitive&
 		}
 	}
 
-	const auto& index_accessor = *loader.m_accessors[loader.ResolveIndex(primitive.indices)];
-	const auto& index_buffer_view = *loader.m_bufferViews[loader.ResolveIndex(index_accessor.buffer_view)];
+	const auto& index_accessor = *loader.GetAccessors()[loader.ResolveIndex(primitive.indices)];
+	const auto& index_buffer_view = *loader.GetBufferViews()[loader.ResolveIndex(index_accessor.buffer_view)];
 
 	const size_t index_buffer_size = index_accessor.GetElementByteSize() * index_accessor.count;
                 
@@ -92,8 +92,8 @@ glTFMeshRawData::glTFMeshRawData(const glTFLoader& loader, const glTF_Primitive&
 	index_buffer_data->data.reset(new char[index_buffer_size]);
 	glTFHandle tempIndexBufferViewHandle = index_buffer_view.buffer;
 	tempIndexBufferViewHandle.node_index = loader.ResolveIndex(index_buffer_view.buffer);
-	auto findIt = loader.m_buffer_data.find(tempIndexBufferViewHandle);
-	GLTF_CHECK(findIt != loader.m_buffer_data.end());
+	auto findIt = loader.GetBufferData().find(tempIndexBufferViewHandle);
+	GLTF_CHECK(findIt != loader.GetBufferData().end());
 	const char* bufferStart = findIt->second.get() + index_buffer_view.byte_offset + index_accessor.byte_offset;
 	memcpy(index_buffer_data->data.get(), bufferStart, index_buffer_size);
 	index_buffer_data->byte_size = index_buffer_size;

@@ -3,8 +3,9 @@
 #include "glTFAABB.h"
 #include "glTFMeshRawData.h"
 #include "glTFSceneTriangleMesh.h"
-#include "../glTFMaterial/glTFMaterialPBR.h"
+#include "glTFMaterial/glTFMaterialPBR.h"
 #include "glTFMaterial/glTFMaterialParameterFactor.h"
+#include "SceneFileLoader/glTFLoader.h"
 
 void glTFSceneNode::MarkDirty() const
 {
@@ -131,8 +132,8 @@ const glTFSceneNode& glTFSceneGraph::GetRootNode() const
 
 bool glTFSceneGraph::Init(const glTFLoader& loader)
 {
-    const auto& sceneNode = loader.m_scenes[loader.m_default_scene];
-    for (const auto& rootNode : sceneNode->root_nodes)
+    const auto& sceneNode = loader.GetDefaultScene();
+    for (const auto& rootNode : sceneNode.root_nodes)
     {
         std::unique_ptr<glTFSceneNode> sceneRootNodes = std::make_unique<glTFSceneNode>();
         RecursiveInitSceneNodeFromGLTFLoader(loader, rootNode, *m_root, *sceneRootNodes);
@@ -151,7 +152,7 @@ void glTFSceneGraph::TraverseNodesInner(const std::function<bool(glTFSceneNode&)
 void glTFSceneGraph::RecursiveInitSceneNodeFromGLTFLoader(const glTFLoader& loader, const glTFHandle& handle,
     const glTFSceneNode& parentNode, glTFSceneNode& sceneNode)
 {
-    const auto& node = loader.m_nodes[loader.ResolveIndex(handle)];
+    const auto& node = loader.GetNodes()[loader.ResolveIndex(handle)];
     sceneNode.m_transform = node->transform.GetMatrix();
     sceneNode.m_finalTransform = parentNode.m_finalTransform.GetTransformMatrix() * sceneNode.m_transform.GetTransformMatrix(); 
 
@@ -159,7 +160,7 @@ void glTFSceneGraph::RecursiveInitSceneNodeFromGLTFLoader(const glTFLoader& load
     {
         if (mesh_handle.IsValid())
         {
-            const auto& mesh = *loader.m_meshes[loader.ResolveIndex(mesh_handle)];
+            const auto& mesh = *loader.GetMeshes()[loader.ResolveIndex(mesh_handle)];
             
             for (const auto& primitive : mesh.primitives)
             {
@@ -180,14 +181,14 @@ void glTFSceneGraph::RecursiveInitSceneNodeFromGLTFLoader(const glTFLoader& load
 
                     // Only set base color texture now, support other feature in the future
                     const auto& source_material =
-                        *loader.m_materials[loader.ResolveIndex(material_id)];
+                        *loader.GetMaterials()[loader.ResolveIndex(material_id)];
 
                     // Base color texture setting
                     const auto base_color_texture_handle = source_material.pbr.base_color_texture.index;
                     if (base_color_texture_handle.IsValid())
                     {
-                        const auto& base_color_texture = *loader.m_textures[loader.ResolveIndex(base_color_texture_handle)];
-                        const auto& texture_image = *loader.m_images[loader.ResolveIndex(base_color_texture.source)];
+                        const auto& base_color_texture = *loader.GetTextures()[loader.ResolveIndex(base_color_texture_handle)];
+                        const auto& texture_image = *loader.GetImages()[loader.ResolveIndex(base_color_texture.source)];
                         GLTF_CHECK(!texture_image.uri.empty());
 
                         pbr_material->AddOrUpdateMaterialParameter(glTFMaterialParameterUsage::BASECOLOR,
@@ -203,8 +204,8 @@ void glTFSceneGraph::RecursiveInitSceneNodeFromGLTFLoader(const glTFLoader& load
                     const auto normal_texture_handle = source_material.normal_texture.index; 
                     if (normal_texture_handle.IsValid())
                     {
-                        const auto& normal_texture = *loader.m_textures[loader.ResolveIndex(normal_texture_handle)];
-                        const auto& texture_image = *loader.m_images[loader.ResolveIndex(normal_texture.source)];
+                        const auto& normal_texture = *loader.GetTextures()[loader.ResolveIndex(normal_texture_handle)];
+                        const auto& texture_image = *loader.GetImages()[loader.ResolveIndex(normal_texture.source)];
                         GLTF_CHECK(!texture_image.uri.empty());
 
                         pbr_material->AddOrUpdateMaterialParameter(glTFMaterialParameterUsage::NORMAL,
@@ -215,8 +216,8 @@ void glTFSceneGraph::RecursiveInitSceneNodeFromGLTFLoader(const glTFLoader& load
                     const auto metallic_roughness_texture_handle = source_material.pbr.metallic_roughness_texture.index; 
                     if (metallic_roughness_texture_handle.IsValid())
                     {
-                        const auto& metallic_roughness_texture = *loader.m_textures[loader.ResolveIndex(metallic_roughness_texture_handle)];
-                        const auto& texture_image = *loader.m_images[loader.ResolveIndex(metallic_roughness_texture.source)];
+                        const auto& metallic_roughness_texture = *loader.GetTextures()[loader.ResolveIndex(metallic_roughness_texture_handle)];
+                        const auto& texture_image = *loader.GetImages()[loader.ResolveIndex(metallic_roughness_texture.source)];
                         GLTF_CHECK(!texture_image.uri.empty());
 
                         pbr_material->AddOrUpdateMaterialParameter(glTFMaterialParameterUsage::METALLIC_ROUGHNESS,

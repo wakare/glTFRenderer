@@ -5,30 +5,14 @@
 
 void DemoTriangleApp::Run(const std::vector<std::string>& arguments)
 {
-    bool bUseDX = true;
-    for (const auto& argument : arguments)
-    {
-        if (argument == "-dx"|| argument == "-dx12")
-        {
-            bUseDX = true;
-        }
-
-        if (argument == "-vk" || argument == "-vulkan")
-        {
-            bUseDX = false;
-        }
-    }
-    
-    unsigned int width{1280}, height{720};
-
-    InitRenderContext(width, height, bUseDX);
+    InitRenderContext(arguments);
     
     // Create shader resource
     auto vertex_shader_handle = CreateShader(RendererInterface::ShaderType::VERTEX_SHADER, "Resources/Shaders/DemoShader.hlsl", "MainVS");
     auto fragment_shader_handle  = CreateShader(RendererInterface::ShaderType::FRAGMENT_SHADER, "Resources/Shaders/DemoShader.hlsl", "MainFS");
 
     // Create render target resource
-    auto render_target_handle = CreateRenderTarget("DemoTriangleColorRT", width, height, RendererInterface::RGBA8_UNORM, RendererInterface::default_clear_color,
+    auto render_target_handle = CreateRenderTarget("DemoTriangleColorRT", m_window->GetWidth(), m_window->GetHeight(), RendererInterface::RGBA8_UNORM, RendererInterface::default_clear_color,
     static_cast<RendererInterface::ResourceUsage>(RendererInterface::ResourceUsage::RENDER_TARGET | RendererInterface::ResourceUsage::COPY_SRC));
     
     RendererInterface::RenderPassDesc render_pass_desc{};

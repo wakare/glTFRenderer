@@ -4,8 +4,11 @@
 #include <vector>
 
 #include "glTFSceneObjectBase.h"
-#include "glTFLoader/glTFLoader.h"
+
 #include "glTFMaterial/glTFMaterialBase.h"
+
+class glTFMeshRawData;
+class glTFLoader;
 
 struct glTFSceneNode
 {

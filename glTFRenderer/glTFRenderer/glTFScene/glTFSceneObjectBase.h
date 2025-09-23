@@ -1,12 +1,11 @@
 #pragma once
 
+#include <detail/type_quat.hpp>
 #include <glm/glm/glm.hpp>
-#include <glm/glm/gtc/matrix_transform.hpp>
-#include <glm/glm/gtx/matrix_decompose.hpp>
 
 #include "glTFAABB.h"
 #include "RendererCommon.h"
-#include "glTFLoader/glTFElementCommon.h"
+#include "SceneFileLoader/glTFElementCommon.h"
 
 struct glTF_Transform_WithTRS : public glTF_Transform
 {
@@ -71,7 +70,7 @@ public:
     void Scale(const glm::fvec3& scale);
 
     glm::mat4 GetTransformMatrix() const {return m_parent_final_transform.GetTransformMatrix() *  m_transform.GetTransformMatrix(); }
-    glm::mat4 GetTransformInverseMatrix() const {return inverse(GetTransformMatrix()); }
+    glm::mat4 GetTransformInverseMatrix() const {return glm::inverse(GetTransformMatrix()); }
 
     void SetAABB(const glTF_AABB::AABB& AABB);
     const glTF_AABB::AABB& GetAABB() const;

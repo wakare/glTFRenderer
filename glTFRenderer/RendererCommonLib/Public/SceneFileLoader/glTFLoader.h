@@ -6,9 +6,6 @@
 
 class glTFLoader
 {
-    friend class glTFSceneGraph;
-    friend class glTFMeshRawData;
-    
 public:
     glTFLoader();
     
@@ -30,6 +27,18 @@ public:
 
         return handle.node_index;
     }
+
+    const glTF_Element_Scene& GetDefaultScene() const;
+    const std::vector<std::unique_ptr<glTF_Element_Node>>& GetNodes() const;
+    const std::vector<std::unique_ptr<glTF_Element_Mesh>>& GetMeshes() const;
+    const std::vector<std::unique_ptr<glTF_Element_Image>>& GetImages() const;
+    const std::vector<std::unique_ptr<glTF_Element_Texture>>& GetTextures() const;
+    const std::vector<std::unique_ptr<glTF_Element_Sampler>>& GetSamplers() const;
+    const std::vector<std::unique_ptr<glTF_Element_Material>>& GetMaterials() const;
+    const std::vector<std::unique_ptr<glTF_Element_Buffer>>& GetBuffers() const;
+    const std::vector<std::unique_ptr<glTF_Element_BufferView>>& GetBufferViews() const;
+    const std::vector<std::unique_ptr<glTF_Element_Accessor_Base>>& GetAccessors() const; 
+    const std::map<glTFHandle, std::unique_ptr<char[]>>& GetBufferData() const;
     
 private:
 	std::string m_scene_file_directory;

@@ -1,7 +1,7 @@
 #pragma once
 #include "glTFScenePrimitive.h"
-#include "glTFLoader/glTFElementCommon.h"
-#include "glTFLoader/glTFLoader.h"
+#include "SceneFileLoader/glTFElementCommon.h"
+#include "SceneFileLoader/glTFLoader.h"
 
 class glTFMeshRawData : public glTFUniqueObject<glTFMeshRawData>
 {
