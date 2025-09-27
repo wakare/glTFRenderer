@@ -21,6 +21,7 @@ namespace RendererInterface
     typedef unsigned RenderPassHandle;
     typedef unsigned RenderWindowHandle;
     typedef unsigned RenderGraphNodeHandle;
+    typedef unsigned RenderSceneHandle;
 
     #define NULL_HANDLE UINT_MAX
     
@@ -267,5 +268,10 @@ namespace RendererInterface
         std::vector<RenderGraphNodeHandle> dependency_render_graph_nodes;
 
         std::function<void()> pre_render_callback;
+    };
+
+    struct RenderSceneDesc
+    {
+        std::string scene_file_name;
     };
 }

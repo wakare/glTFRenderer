@@ -34,6 +34,8 @@ bool DemoBase::InitRenderContext(const std::vector<std::string>& arguments)
     m_resource_manager = std::make_shared<RendererInterface::ResourceOperator>(device);
 
     m_render_graph = std::make_shared<RendererInterface::RenderGraph>(*m_resource_manager, *m_window);
+
+    return true;
 }
 
 RendererInterface::ShaderHandle DemoBase::CreateShader(RendererInterface::ShaderType type, const std::string& source,

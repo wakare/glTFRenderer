@@ -55,7 +55,8 @@ namespace RendererInterface
         BufferHandle        CreateBuffer(const BufferDesc& desc);
         RenderTargetHandle  CreateRenderTarget(const RenderTargetDesc& desc);
         RenderPassHandle    CreateRenderPass(const RenderPassDesc& desc);
-
+        RenderSceneHandle   CreateRenderScene(const RenderSceneDesc& desc);
+        
         IRHIDevice&         GetDevice() const;
         IRHICommandQueue&   GetCommandQueue() const;
         IRHISwapChain&      GetCurrentSwapchain();

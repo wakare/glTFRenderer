@@ -7,6 +7,7 @@
 #include "ResourceManager.h"
 #include "RHIConfigSingleton.h"
 #include "RHIUtils.h"
+#include "../../RendererScene/Public/RendererSceneGraph.h"
 #include "RenderWindow/glTFWindow.h"
 #include "RHIInterface/IRHIDescriptorManager.h"
 #include "RHIInterface/IRHIDescriptorUpdater.h"
@@ -98,6 +99,20 @@ namespace RendererInterface
         render_pass->InitRenderPass(*m_resource_manager);
         
         return InternalResourceHandleTable::Instance().RegisterRenderPass(render_pass);
+    }
+
+    RenderSceneHandle ResourceOperator::CreateRenderScene(const RenderSceneDesc& desc)
+    {
+        std::shared_ptr<RendererSceneGraph> scene_graph = std::make_shared<RendererSceneGraph>();
+        
+        glTFLoader loader;
+        bool loaded = loader.LoadFile(desc.scene_file_name);
+        GLTF_CHECK(loaded);
+        
+        bool added = scene_graph->AddRootNodeWithFile_glTF(loader);
+        GLTF_CHECK(added);
+        
+        return InternalResourceHandleTable::Instance().RegisterRenderScene(scene_graph);
     }
 
     IRHIDevice& ResourceOperator::GetDevice() const

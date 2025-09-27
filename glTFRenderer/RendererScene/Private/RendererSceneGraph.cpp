@@ -1,0 +1,268 @@
+#include "RendererSceneGraph.h"
+#include <glm/glm/gtx/quaternion.hpp>
+
+RendererSceneMesh::RendererSceneMesh(const glTFLoader& loader, const glTF_Primitive& primitive)
+{
+    size_t vertex_buffer_size = 0;
+	std::vector<char*> vertex_data_in_buffers;
+
+	static auto _process_vertex_attribute = [](const glTFLoader& source_loader, glTFAttributeId attribute_ID, VertexAttributeType attribute_type,
+		const glTF_Primitive& source_primitive, size_t& out_vertex_buffer_size, VertexLayoutDeclaration& out_vertex_layout,
+		std::vector<char*>& out_vertex_data_infos)
+	{
+		const auto itPosition = source_primitive.attributes.find(attribute_ID);
+		if (itPosition != source_primitive.attributes.end())
+		{
+			const glTFHandle accessorHandle = itPosition->second; 
+			const auto& vertexAccessor = *source_loader.GetAccessors()[source_loader.ResolveIndex(accessorHandle)];
+			out_vertex_layout.elements.push_back({attribute_type, vertexAccessor.GetElementByteSize()});
+			out_vertex_buffer_size += vertexAccessor.count * vertexAccessor.GetElementByteSize();
+
+			const auto& vertexBufferView = *source_loader.GetBufferViews()[source_loader.ResolveIndex(vertexAccessor.buffer_view)];
+			glTFHandle tempVertexBufferViewHandle = vertexBufferView.buffer;
+			tempVertexBufferViewHandle.node_index = source_loader.ResolveIndex(vertexBufferView.buffer);
+			const auto findIt = source_loader.GetBufferData().find(tempVertexBufferViewHandle);
+			GLTF_CHECK(findIt != source_loader.GetBufferData().end());
+			char* position_data = findIt->second.get() + vertexBufferView.byte_offset + vertexAccessor.byte_offset;
+			out_vertex_data_infos.push_back(position_data);
+		}
+	};
+                
+	// POSITION attribute
+	_process_vertex_attribute(loader, glTF_Attribute_POSITION::attribute_type_id, VertexAttributeType::VERTEX_POSITION,
+		primitive, vertex_buffer_size, m_vertex_layout, vertex_data_in_buffers);
+
+	// NORMAL attribute
+	_process_vertex_attribute(loader, glTF_Attribute_NORMAL::attribute_type_id, VertexAttributeType::VERTEX_NORMAL,
+		primitive, vertex_buffer_size, m_vertex_layout, vertex_data_in_buffers);
+
+	// TANGENT attribute
+	_process_vertex_attribute(loader, glTF_Attribute_TANGENT::attribute_type_id, VertexAttributeType::VERTEX_TANGENT,
+		primitive, vertex_buffer_size, m_vertex_layout, vertex_data_in_buffers);
+                
+	// TEXCOORD attribute
+	_process_vertex_attribute(loader, glTF_Attribute_TEXCOORD_0::attribute_type_id, VertexAttributeType::VERTEX_TEXCOORD0,
+		primitive, vertex_buffer_size, m_vertex_layout, vertex_data_in_buffers);
+
+	m_vertex_buffer_data = std::make_shared<VertexBufferData>();
+	m_vertex_buffer_data->data.reset(new char[vertex_buffer_size]);
+	m_vertex_buffer_data->byte_size = vertex_buffer_size;
+	m_vertex_buffer_data->vertex_count = vertex_buffer_size / m_vertex_layout.GetVertexStrideInBytes();
+	m_vertex_buffer_data->layout = m_vertex_layout;
+
+	m_position_only_data = std::make_shared<VertexBufferData>();
+	const size_t position_only_data_size = m_vertex_buffer_data->vertex_count * 3 * sizeof(float);
+	m_position_only_data->data.reset(new char[position_only_data_size]);
+	m_position_only_data->byte_size = position_only_data_size;
+	m_position_only_data->vertex_count = m_vertex_buffer_data->vertex_count;
+	m_position_only_data->layout.elements.push_back({VertexAttributeType::VERTEX_POSITION, 12});
+                
+	char* vertex_data_start = m_vertex_buffer_data->data.get();
+	char* position_only_data_start = m_position_only_data->data.get();
+                
+	for (size_t v = 0; v < m_vertex_buffer_data->vertex_count; ++v)
+	{
+		// Reformat vertex buffer data
+		for (size_t i = 0; i < m_vertex_layout.elements.size(); ++i)
+		{
+			if (m_vertex_layout.elements[i].type == VertexAttributeType::VERTEX_POSITION)
+			{
+				// Position attribute component type should be float
+				GLTF_CHECK(m_vertex_layout.elements[i].byte_size == 3 * sizeof(float));
+				auto position = reinterpret_cast<float*>(vertex_data_in_buffers[i]);
+				m_box.extend({position[0], position[1], position[2]});
+
+				memcpy(position_only_data_start, vertex_data_in_buffers[i], m_vertex_layout.elements[i].byte_size);
+				position_only_data_start += m_vertex_layout.elements[i].byte_size;
+			}
+                        
+			memcpy(vertex_data_start, vertex_data_in_buffers[i], m_vertex_layout.elements[i].byte_size);
+			vertex_data_in_buffers[i] += m_vertex_layout.elements[i].byte_size;
+			vertex_data_start += m_vertex_layout.elements[i].byte_size;
+		}
+	}
+
+	const auto& index_accessor = *loader.GetAccessors()[loader.ResolveIndex(primitive.indices)];
+	const auto& index_buffer_view = *loader.GetBufferViews()[loader.ResolveIndex(index_accessor.buffer_view)];
+
+	const size_t index_buffer_size = index_accessor.GetElementByteSize() * index_accessor.count;
+                
+	m_index_buffer_data = std::make_shared<IndexBufferData>();
+	m_index_buffer_data->data.reset(new char[index_buffer_size]);
+	glTFHandle tempIndexBufferViewHandle = index_buffer_view.buffer;
+	tempIndexBufferViewHandle.node_index = loader.ResolveIndex(index_buffer_view.buffer);
+	auto findIt = loader.GetBufferData().find(tempIndexBufferViewHandle);
+	GLTF_CHECK(findIt != loader.GetBufferData().end());
+	const char* bufferStart = findIt->second.get() + index_buffer_view.byte_offset + index_accessor.byte_offset;
+	memcpy(m_index_buffer_data->data.get(), bufferStart, index_buffer_size);
+	m_index_buffer_data->byte_size = index_buffer_size;
+	m_index_buffer_data->index_count = index_accessor.count;
+	m_index_buffer_data->format = index_accessor.component_type ==
+		glTF_Element_Template<glTF_Element_Type::EAccessor>::glTF_Accessor_Component_Type::EUnsignedShort ?
+		RHIDataFormat::R16_UINT : RHIDataFormat::R32_UINT;
+}
+
+RendererSceneMesh::RendererSceneMesh(VertexLayoutDeclaration vertex_layout, std::shared_ptr<VertexBufferData> vertex_buffer,
+                                 std::shared_ptr<IndexBufferData> index_buffer)
+    : m_vertex_layout(std::move(vertex_layout))
+    , m_vertex_buffer_data(std::move(vertex_buffer))
+    , m_index_buffer_data(std::move(index_buffer))
+{
+    
+}
+
+std::shared_ptr<RendererSceneNodeTransform> RendererSceneNodeTransform::identity_transform = std::make_shared<RendererSceneNodeTransform>();
+
+RendererSceneNodeTransform::RendererSceneNodeTransform(const glm::fmat4& transform)
+    : m_cached_transform(transform)
+{
+    
+}
+
+void RendererSceneNodeTransform::Translate(const glm::fvec3& translation)
+{
+    m_translation = translation;
+    MarkTransformDirty();
+}
+
+void RendererSceneNodeTransform::TranslateOffset(const glm::fvec3& translation)
+{
+    m_translation += translation;
+    MarkTransformDirty();
+}
+
+void RendererSceneNodeTransform::RotateEulerAngle(const glm::fvec3& euler_angle)
+{
+    m_euler_angles = euler_angle;
+    m_quat = m_euler_angles;
+    MarkTransformDirty();
+
+}
+
+void RendererSceneNodeTransform::RotateEulerAngleOffset(const glm::fvec3& euler_angle)
+{
+    m_euler_angles += euler_angle;
+    m_quat = m_euler_angles;
+    MarkTransformDirty();
+
+}
+
+void RendererSceneNodeTransform::Scale(const glm::fvec3& scale)
+{
+    m_scale = scale;
+    MarkTransformDirty();
+}
+
+void RendererSceneNodeTransform::MarkTransformDirty()
+{
+    m_transform_dirty = true;
+}
+
+glm::fmat4 RendererSceneNodeTransform::GetTransformMatrix()
+{
+    if (m_transform_dirty)
+    {
+        const glm::mat4 rotation_matrix = glm::toMat4(m_quat);
+        const glm::mat4 scale_matrix = glm::scale(glm::mat4(1.0f), m_scale);
+        const glm::mat4 translation_matrix = glm::translate(glm::mat4(1.0f), m_translation);
+        
+        m_cached_transform = translation_matrix * rotation_matrix * scale_matrix;
+        
+        m_transform_dirty = false;
+    }
+
+    return m_cached_transform;
+}
+
+RendererSceneNode::RendererSceneNode(std::shared_ptr<RendererSceneNodeTransform> local_transform,
+    std::shared_ptr<RendererSceneMesh> mesh)
+        : m_local_transform(std::move(local_transform)), m_mesh(std::move(mesh))
+{
+}
+
+void RendererSceneNode::MarkDirty()
+{
+    m_dirty = true;
+}
+
+bool RendererSceneNode::IsDirty() const
+{
+    return m_dirty;
+}
+
+void RendererSceneNode::ResetDirty()
+{
+    m_dirty = false;
+}
+
+void RendererSceneNode::SetMesh(std::shared_ptr<RendererSceneMesh> mesh)
+{
+    m_mesh = mesh;
+}
+
+void RendererSceneNode::SetLocalTransform(std::shared_ptr<RendererSceneNodeTransform> transform)
+{
+    m_local_transform = transform;
+}
+
+bool RendererSceneNode::HasMesh() const
+{
+    return m_mesh != nullptr;
+}
+
+const RendererSceneMesh& RendererSceneNode::GetMesh() const
+{
+    return *m_mesh;
+}
+
+const RendererSceneNodeTransform& RendererSceneNode::GetLocalTransform() const
+{
+    return *m_local_transform;
+}
+
+void RendererSceneNode::AddChild(std::shared_ptr<RendererSceneNode> child)
+{
+    if (!m_children.contains(child->GetID()))
+    {
+        m_children.emplace(child->GetID(), child);
+    }
+}
+
+RendererSceneGraph::RendererSceneGraph()
+{
+    m_root_node = std::make_shared<RendererSceneNode>();
+}
+
+bool RendererSceneGraph::AddRootNodeWithFile_glTF(const glTFLoader& loader)
+{
+    const auto& scene_node = loader.GetDefaultScene();
+    for (const auto& root_node : scene_node.root_nodes)
+    {
+        std::shared_ptr<RendererSceneNode> root_scene_root_node = std::make_shared<RendererSceneNode>();
+        RecursiveInitSceneNodeFromGLTFLoader(loader, root_node, *m_root_node, *root_scene_root_node);
+    	m_root_node->AddChild(root_scene_root_node);
+    }
+    
+    return true;
+}
+
+void RendererSceneGraph::RecursiveInitSceneNodeFromGLTFLoader(const glTFLoader& loader, const glTFHandle& handle,
+    const RendererSceneNode& parent_node, RendererSceneNode& scene_node)
+{
+    const auto& node = loader.GetNodes()[loader.ResolveIndex(handle)];
+    scene_node.SetLocalTransform(std::make_shared<RendererSceneNodeTransform>(node->transform.GetMatrix()));
+    
+    for (const auto& mesh_handle : node->meshes)
+    {
+	    if (mesh_handle.IsValid())
+	    {
+	    	const auto& mesh = *loader.GetMeshes()[loader.ResolveIndex(mesh_handle)];
+            
+	    	for (const auto& primitive : mesh.primitives)
+	    	{
+	    		std::shared_ptr<RendererSceneMesh> mesh = std::make_shared<RendererSceneMesh>(loader, primitive);
+	    		scene_node.SetMesh(mesh);
+	    	}
+	    }
+    }
+}

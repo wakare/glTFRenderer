@@ -2,6 +2,7 @@
 #include "Renderer.h"
 #include "RendererInterface.h"
 
+class RendererSceneGraph;
 class IRHIBufferAllocation;
 class IRHITextureDescriptorAllocation;
 class IRHIShader;
@@ -25,6 +26,9 @@ namespace RendererInterface
 
         BufferHandle RegisterBuffer(std::shared_ptr<IRHIBufferAllocation> buffer);
         std::shared_ptr<IRHIBufferAllocation> GetBuffer(BufferHandle handle) const;
+
+        RenderSceneHandle RegisterRenderScene(std::shared_ptr<RendererSceneGraph> scene_graph);
+        std::shared_ptr<RendererSceneGraph> GetRenderScene(RenderSceneHandle handle) const;
         
         static InternalResourceHandleTable& Instance();
         
@@ -34,5 +38,6 @@ namespace RendererInterface
         std::map<RenderTargetHandle, std::shared_ptr<IRHITextureDescriptorAllocation>> m_render_targets;
         std::map<RenderPassHandle, std::shared_ptr<RenderPass>> m_render_passes;
         std::map<BufferHandle, std::shared_ptr<IRHIBufferAllocation>> m_buffers;
+        std::map<RenderSceneHandle, std::shared_ptr<RendererSceneGraph>> m_render_scene_graphs;
     };
 }
