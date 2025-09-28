@@ -10,8 +10,8 @@ bool glTFRenderMeshManager::AddOrUpdatePrimitive(glTFRenderResourceManager& reso
     auto& command_list = resource_manager.GetCommandListForRecord();
     auto& memory_manager = resource_manager.GetMemoryManager();
     
-    const glTFUniqueID mesh_ID = primitive->GetMeshRawDataID();
-    const glTFUniqueID instance_ID = primitive->GetID();
+    const RendererUniqueObjectID mesh_ID = primitive->GetMeshRawDataID();
+    const RendererUniqueObjectID instance_ID = primitive->GetID();
     
     if (!m_mesh_render_resources.contains(mesh_ID))
     {
@@ -60,13 +60,13 @@ bool glTFRenderMeshManager::AddOrUpdatePrimitive(glTFRenderResourceManager& reso
        
         m_mesh_render_resources[mesh_ID].mesh_vertex_count = primitive->GetVertexBufferData().vertex_count;
         m_mesh_render_resources[mesh_ID].mesh_index_count = primitive->GetIndexBufferData().index_count;
-        m_mesh_render_resources[mesh_ID].material_id = primitive->HasMaterial() ? primitive->GetMaterial().GetID() : glTFUniqueIDInvalid;
+        m_mesh_render_resources[mesh_ID].material_id = primitive->HasMaterial() ? primitive->GetMaterial().GetID() : RendererUniqueObjectIDInvalid;
         m_mesh_render_resources[mesh_ID].using_normal_mapping = primitive->HasNormalMapping();
     }
 
     // Only update when transform has changed
     m_mesh_instances[instance_ID].m_instance_transform = transpose(primitive->GetTransformMatrix());
-    m_mesh_instances[instance_ID].m_instance_material_id = primitive->HasMaterial() ? primitive->GetMaterial().GetID() : glTFUniqueIDInvalid;
+    m_mesh_instances[instance_ID].m_instance_material_id = primitive->HasMaterial() ? primitive->GetMaterial().GetID() : RendererUniqueObjectIDInvalid;
     m_mesh_instances[instance_ID].m_normal_mapping = primitive->HasNormalMapping();
     m_mesh_instances[instance_ID].m_mesh_render_resource = mesh_ID;
     
@@ -93,7 +93,7 @@ bool glTFRenderMeshManager::BuildMeshRenderResource(glTFRenderResourceManager& r
         {
             auto mesh_ID = mesh.first;
         
-            std::vector<glTFUniqueID> instances;
+            std::vector<RendererUniqueObjectID> instances;
             // Find all instances with current mesh id
             for (const auto& instance : mesh_instance_render_resource)
             {
@@ -139,7 +139,7 @@ bool glTFRenderMeshManager::BuildMeshRenderResource(glTFRenderResourceManager& r
             resource_manager.GetDevice(), memory_manager, resource_manager.GetCommandListForRecord(), instance_buffer_desc, instance_buffer);
     }
 
-    std::map<glTFUniqueID, size_t> mesh_start_index_map;
+    std::map<RendererUniqueObjectID, size_t> mesh_start_index_map;
     if (!m_mega_index_buffer_view)
     {
         size_t mega_index_buffer_count = 0;
@@ -224,11 +224,11 @@ bool glTFRenderMeshManager::BuildMeshRenderResource(glTFRenderResourceManager& r
     m_indirect_draw_builder = std::make_shared<RHIIndirectDrawBuilder>();
     m_indirect_draw_builder->InitIndirectDrawBuilder(
         resource_manager.GetDevice(),
+        resource_manager.GetCommandListForRecord(),
         resource_manager.GetMemoryManager(),
         indirect_argument_descs,
         sizeof(MeshIndirectDrawCommand),
-        m_indirect_arguments.data(),
-        m_indirect_arguments.size() * sizeof(MeshIndirectDrawCommand));
+        m_indirect_arguments.data(), m_indirect_arguments.size() * sizeof(MeshIndirectDrawCommand));
     
     return true;
 }

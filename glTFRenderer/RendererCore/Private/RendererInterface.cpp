@@ -59,6 +59,153 @@ namespace RendererInterface
         glTFWindow::Get().SetTickCallback(callback);
     }
 
+    RendererSceneResourceManager::RendererSceneResourceManager(ResourceOperator& allocator,const RenderSceneDesc& desc)
+        : m_allocator(allocator)
+    {
+        std::shared_ptr<RendererSceneGraph> scene_graph = std::make_shared<RendererSceneGraph>();
+        m_render_scene_handle = InternalResourceHandleTable::Instance().RegisterRenderScene(scene_graph);
+        
+        glTFLoader loader;
+        bool loaded = loader.LoadFile(desc.scene_file_name);
+        GLTF_CHECK(loaded);
+        
+        bool added = scene_graph->InitializeRootNodeWithSceneFile_glTF(loader);
+        GLTF_CHECK(added);
+
+        struct SceneMeshDataOffsetInfo
+        {
+            unsigned start_face_index;
+            unsigned material_index;
+            unsigned start_vertex_index;
+        };
+
+        struct SceneMeshFaceInfo
+        {
+            unsigned vertex_index[3];
+        };
+
+        struct SceneMeshVertexInfo
+        {
+            float position[4];
+            float normal[4];
+            float tangent[4];
+            float uv[4];
+        };
+
+        struct glTFMeshInstanceRenderResource
+        {
+            glm::mat4 m_instance_transform;
+            unsigned m_mesh_render_resource;
+            unsigned m_instance_material_id;
+            bool m_normal_mapping;
+        };
+
+        std::vector<SceneMeshDataOffsetInfo> start_offset_infos;
+        std::vector<SceneMeshVertexInfo> mesh_vertex_infos;
+        std::vector<SceneMeshFaceInfo> mesh_face_vertex_infos;
+        unsigned start_face_offset = 0;
+
+        const auto& meshes = scene_graph->GetMeshes();
+        for (const auto& mesh_pair : meshes)
+        {
+            const auto& mesh = *mesh_pair.second;
+
+            const unsigned vertex_offset = static_cast<unsigned>(mesh_vertex_infos.size());
+
+            SceneMeshDataOffsetInfo mesh_info =
+            {
+                .start_face_index = start_face_offset,
+                // TODO: Material system 
+                .material_index = 0,
+                .start_vertex_index = vertex_offset,
+            };
+                
+            start_offset_infos.push_back(mesh_info);
+            const size_t face_count = mesh.GetIndexBuffer().index_count / 3;
+            const auto& index_buffer = mesh.GetIndexBuffer();
+            for (size_t i = 0; i < face_count; ++i)
+            {
+                mesh_face_vertex_infos.push_back(
+                {
+                    vertex_offset + index_buffer.GetIndexByOffset(3 * i),
+                    vertex_offset + index_buffer.GetIndexByOffset(3 * i + 1),
+                    vertex_offset + index_buffer.GetIndexByOffset(3 * i + 2),
+                });
+            }
+
+            for (size_t i = 0; i < mesh.GetVertexBuffer().vertex_count; ++i)
+            {
+                SceneMeshVertexInfo vertex_info;
+                size_t out_data_size = 0;
+                mesh.GetVertexBuffer().GetVertexAttributeDataByIndex(VertexAttributeType::VERTEX_POSITION, i, &vertex_info.position, out_data_size);
+                mesh.GetVertexBuffer().GetVertexAttributeDataByIndex(VertexAttributeType::VERTEX_NORMAL, i, &vertex_info.normal, out_data_size);
+                mesh.GetVertexBuffer().GetVertexAttributeDataByIndex(VertexAttributeType::VERTEX_TANGENT, i, &vertex_info.tangent, out_data_size);
+                mesh.GetVertexBuffer().GetVertexAttributeDataByIndex(VertexAttributeType::VERTEX_TEXCOORD0, i, &vertex_info.uv, out_data_size);
+                mesh_vertex_infos.push_back(vertex_info);
+            }
+        
+            start_face_offset += face_count;
+        }
+    }
+
+    bool RendererSceneResourceManager::AccessSceneData(RendererSceneMeshDataAccessorBase& data_accessor)
+    {
+        const auto& scene_graph = InternalResourceHandleTable::Instance().GetRenderScene(m_render_scene_handle);
+        auto scene_node_traverse = [&](RendererSceneNode& node)
+        {
+            if (node.HasMesh())
+            {
+                auto absolute_transform = node.GetAbsoluteTransform();
+                
+                for (const auto& mesh : node.GetMeshes())
+                {
+                    auto mesh_id = mesh->GetID();
+                    
+                    if (!data_accessor.HasMeshData(mesh_id))
+                    {
+                        auto vertex_count = mesh->GetVertexBuffer().vertex_count;
+                        std::vector<float> vertex_positions(vertex_count * 3);
+                        std::vector<float> vertex_normals(vertex_count * 3);
+                        std::vector<float> vertex_tangents(vertex_count * 3);
+                        std::vector<float> vertex_uvs(vertex_count * 2);
+
+                        for (size_t i = 0; i < vertex_count; ++i)
+                        {
+                            size_t out_data_size = 0;
+                            mesh->GetVertexBuffer().GetVertexAttributeDataByIndex(VertexAttributeType::VERTEX_POSITION, i, &vertex_positions[3 * i], out_data_size);
+                            GLTF_CHECK(out_data_size == 3 * sizeof(float));
+                        
+                            mesh->GetVertexBuffer().GetVertexAttributeDataByIndex(VertexAttributeType::VERTEX_NORMAL, i, &vertex_normals[3 * i], out_data_size);
+                            GLTF_CHECK(out_data_size == 3 * sizeof(float));
+
+                            mesh->GetVertexBuffer().GetVertexAttributeDataByIndex(VertexAttributeType::VERTEX_TANGENT, i, &vertex_tangents[3 * i], out_data_size);
+                            GLTF_CHECK(out_data_size == 3 * sizeof(float));
+
+                            mesh->GetVertexBuffer().GetVertexAttributeDataByIndex(VertexAttributeType::VERTEX_TEXCOORD0, i, &vertex_uvs[2 * i], out_data_size);
+                            GLTF_CHECK(out_data_size == 2 * sizeof(float));
+                        }
+
+                        data_accessor.AccessMeshData(RendererSceneMeshDataAccessorBase::MeshDataAccessorType::VERTEX_POSITION_FLOAT3, mesh_id, vertex_positions.data(), vertex_count);
+                        data_accessor.AccessMeshData(RendererSceneMeshDataAccessorBase::MeshDataAccessorType::VERTEX_NORMAL_FLOAT3, mesh_id, vertex_normals.data(), vertex_count);
+                        data_accessor.AccessMeshData(RendererSceneMeshDataAccessorBase::MeshDataAccessorType::VERTEX_TANGENT_FLOAT3, mesh_id, vertex_tangents.data(), vertex_count);
+                        data_accessor.AccessMeshData(RendererSceneMeshDataAccessorBase::MeshDataAccessorType::VERTEX_TEXCOORD0_FLOAT2, mesh_id, vertex_uvs.data(), vertex_count);
+
+                        auto index = mesh->GetIndexBuffer().data.get();
+                        auto index_count = mesh->GetIndexBuffer().index_count;
+                        data_accessor.AccessMeshData(mesh->GetIndexBuffer().format == RHIDataFormat::R16_UINT ? RendererSceneMeshDataAccessorBase::MeshDataAccessorType::INDEX_HALF : RendererSceneMeshDataAccessorBase::MeshDataAccessorType::INDEX_INT, mesh_id, index, index_count);
+                    }
+                    
+                    data_accessor.AccessInstanceData(RendererSceneMeshDataAccessorBase::MeshDataAccessorType::INSTANCE_MAT4x4, node.GetID(), mesh_id, &absolute_transform, 1);
+                }
+            }
+            
+            return true;
+        };
+        
+        scene_graph->GetRootNode().Traverse(scene_node_traverse);
+        return true;
+    }
+
     ResourceOperator::ResourceOperator(RenderDeviceDesc device)
     {
         if (!m_resource_manager)
@@ -88,6 +235,11 @@ namespace RendererInterface
         return m_resource_manager->CreateBuffer(desc);
     }
 
+    IndexedBufferHandle ResourceOperator::CreateIndexedBuffer(const BufferDesc& desc)
+    {
+        return m_resource_manager->CreateIndexedBuffer(desc);   
+    }
+
     RenderTargetHandle ResourceOperator::CreateRenderTarget(const RenderTargetDesc& desc)
     {
         return m_resource_manager->CreateRenderTarget(desc);
@@ -109,8 +261,15 @@ namespace RendererInterface
         bool loaded = loader.LoadFile(desc.scene_file_name);
         GLTF_CHECK(loaded);
         
-        bool added = scene_graph->AddRootNodeWithFile_glTF(loader);
+        bool added = scene_graph->InitializeRootNodeWithSceneFile_glTF(loader);
         GLTF_CHECK(added);
+
+        const auto traverse_function = [](const RendererSceneNode& node)
+        {
+            return true;
+        };
+    
+        scene_graph->GetRootNode().Traverse(traverse_function);
         
         return InternalResourceHandleTable::Instance().RegisterRenderScene(scene_graph);
     }
@@ -125,7 +284,7 @@ namespace RendererInterface
         return m_resource_manager->GetCurrentBackBufferIndex();
     }
 
-    IRHITextureDescriptorAllocation& ResourceOperator::GetCurrentSwapchainRT()
+    IRHITextureDescriptorAllocation& ResourceOperator::GetCurrentSwapchainRT() const
     {
         return m_resource_manager->GetCurrentSwapchainRT();
     }
@@ -133,7 +292,7 @@ namespace RendererInterface
     void ResourceOperator::UploadBufferData(BufferHandle handle, const BufferUploadDesc& upload_desc)
     {
         auto buffer = InternalResourceHandleTable::Instance().GetBuffer(handle);
-        m_resource_manager->GetMemoryManager().UploadBufferData(*buffer, upload_desc.data, 0, upload_desc.size);
+        m_resource_manager->GetMemoryManager().UploadBufferData(m_resource_manager->GetDevice(), m_resource_manager->GetCommandListForRecordPassCommand(), *buffer, upload_desc.data, 0, upload_desc.size);
     }
 
     IRHICommandList& ResourceOperator::GetCommandListForRecordPassCommand(RenderPassHandle pass) const
@@ -151,7 +310,7 @@ namespace RendererInterface
         return m_resource_manager->GetCommandQueue();
     }
 
-    IRHISwapChain& ResourceOperator::GetCurrentSwapchain()
+    IRHISwapChain& ResourceOperator::GetCurrentSwapchain() const
     {
         return m_resource_manager->GetSwapChain();
     }
@@ -351,29 +510,42 @@ namespace RendererInterface
         RHIUtilInstanceManager::Instance().BeginRendering(command_list, begin_rendering_info);
 
         const auto& draw_info = render_graph_node_desc.draw_info;
-        switch (draw_info.execute_command.type) {
-        case ExecuteCommandType::DRAW_VERTEX_COMMAND:
-            RHIUtilInstanceManager::Instance().DrawInstanced(command_list,
-                draw_info.execute_command.parameter.draw_vertex_command_parameter.vertex_count,
-                1,
-                draw_info.execute_command.parameter.draw_vertex_command_parameter.start_vertex_location,
-                0);
-            break;
-        case ExecuteCommandType::DRAW_VERTEX_INSTANCING_COMMAND:
-            RHIUtilInstanceManager::Instance().DrawInstanced(command_list,
-                draw_info.execute_command.parameter.draw_vertex_instance_command_parameter.vertex_count,
-                draw_info.execute_command.parameter.draw_vertex_instance_command_parameter.instance_count,
-                draw_info.execute_command.parameter.draw_vertex_instance_command_parameter.start_vertex_location,
-                draw_info.execute_command.parameter.draw_vertex_instance_command_parameter.start_instance_location);
-            break;
-        case ExecuteCommandType::DRAW_INDEXED_COMMAND:
-            break;
-        case ExecuteCommandType::DRAW_INDEXED_INSTANCING_COMMAND:
-            break;
-        case ExecuteCommandType::COMPUTE_DISPATCH_COMMAND:
-            break;
-        case ExecuteCommandType::RAY_TRACING_COMMAND:
-            break;
+        for (const auto& command : draw_info.execute_commands)
+        {
+            switch (command.type) {
+            case ExecuteCommandType::DRAW_VERTEX_COMMAND:
+                RHIUtilInstanceManager::Instance().DrawInstanced(command_list,
+                    command.parameter.draw_vertex_command_parameter.vertex_count,
+                    1,
+                    command.parameter.draw_vertex_command_parameter.start_vertex_location,
+                    0);
+                break;
+            case ExecuteCommandType::DRAW_VERTEX_INSTANCING_COMMAND:
+                RHIUtilInstanceManager::Instance().DrawInstanced(command_list,
+                    command.parameter.draw_vertex_instance_command_parameter.vertex_count,
+                    command.parameter.draw_vertex_instance_command_parameter.instance_count,
+                    command.parameter.draw_vertex_instance_command_parameter.start_vertex_location,
+                    command.parameter.draw_vertex_instance_command_parameter.start_instance_location);
+                break;
+            case ExecuteCommandType::DRAW_INDEXED_COMMAND:
+                break;
+            case ExecuteCommandType::DRAW_INDEXED_INSTANCING_COMMAND:
+                {
+                    auto indexed_buffer_view = InternalResourceHandleTable::Instance().GetIndexBuffer(command.input_buffer.index_buffer_handle);
+                    RHIUtilInstanceManager::Instance().SetIndexBufferView(command_list, *indexed_buffer_view);
+                    RHIUtilInstanceManager::Instance().DrawIndexInstanced(command_list,
+                        command.parameter.draw_indexed_instance_command_parameter.index_count_per_instance,
+                        command.parameter.draw_indexed_instance_command_parameter.instance_count,
+                        command.parameter.draw_indexed_instance_command_parameter.start_index_location,
+                        command.parameter.draw_indexed_instance_command_parameter.start_vertex_location,
+                        command.parameter.draw_indexed_instance_command_parameter.start_instance_location);
+                    break;    
+                }
+            case ExecuteCommandType::COMPUTE_DISPATCH_COMMAND:
+                break;
+            case ExecuteCommandType::RAY_TRACING_COMMAND:
+                break;
+            }    
         }
 
         RHIUtilInstanceManager::Instance().EndRendering(command_list);

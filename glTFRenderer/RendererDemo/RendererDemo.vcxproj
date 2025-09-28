@@ -172,6 +172,8 @@
     <ClCompile Include="DemoApps\DemoBase.cpp" />
     <ClCompile Include="DemoApps\DemoTriangleApp.cpp" />
     <ClCompile Include="RendererDemo.cpp" />
+    <None Include="Resources\Shaders\SceneRendererCommon.hlsl" />
+    <ClCompile Include="SceneRendererUtil\SceneRendererDrawDispatcher.cpp" />
     <None Include="Resources\Shaders\ModelRenderingShader.hlsl" />
     <None Include="Resources\Shaders\ShaderDeclarationUtil.hlsl" />
     <None Include="Resources\Shaders\DemoShader.hlsl" />
@@ -180,6 +182,7 @@
     <ClInclude Include="DemoApps\DemoAppModelViewer.h" />
     <ClInclude Include="DemoApps\DemoBase.h" />
     <ClInclude Include="DemoApps\DemoTriangleApp.h" />
+    <ClInclude Include="SceneRendererUtil\SceneRendererDrawDispatcher.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

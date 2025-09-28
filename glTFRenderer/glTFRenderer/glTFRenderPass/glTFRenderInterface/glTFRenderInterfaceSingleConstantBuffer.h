@@ -17,7 +17,7 @@ public:
     {
         // TODO: Handle offset with data alignment later
         GLTF_CHECK(offset == 0);
-        return resource_manager.GetMemoryManager().UploadBufferData(*m_constant_gpu_data, data, /*GetDataOffsetWithAlignment(offset)*/0, size);
+        return resource_manager.GetMemoryManager().UploadBufferData(resource_manager.GetDevice(), resource_manager.GetCommandListForRecord(), *m_constant_gpu_data, data, /*GetDataOffsetWithAlignment(offset)*/0, size);
     }
 
     size_t GetDataOffsetWithAlignment(unsigned index) const

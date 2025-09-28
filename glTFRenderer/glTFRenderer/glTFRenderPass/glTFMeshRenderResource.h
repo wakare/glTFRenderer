@@ -21,7 +21,7 @@ struct glTFMeshRenderResource
     size_t mesh_vertex_count{0};
     size_t mesh_index_count{0};
     
-    glTFUniqueID material_id {glTFUniqueIDInvalid};
+    RendererUniqueObjectID material_id {RendererUniqueObjectIDInvalid};
     bool using_normal_mapping {false};
 };
 

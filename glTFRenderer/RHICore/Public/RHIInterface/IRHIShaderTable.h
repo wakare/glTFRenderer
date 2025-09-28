@@ -27,6 +27,6 @@ struct RHICORE_API  RHIShaderBindingTable
 class RHICORE_API IRHIShaderTable
 {
 public:
-    virtual bool InitShaderTable(IRHIDevice& device, IRHIMemoryManager& memory_manager, IRHIPipelineStateObject& pso, IRHIRayTracingAS& as, const std::vector<RHIShaderBindingTable>& sbts) = 0;
+    virtual bool InitShaderTable(IRHIDevice& device, IRHICommandList& command_list, IRHIMemoryManager& memory_manager, IRHIPipelineStateObject& pso, IRHIRayTracingAS& as, const std::vector<RHIShaderBindingTable>& sbts) = 0;
 };
 

@@ -45,7 +45,7 @@ public:
     virtual const IndexBufferData& GetIndexBufferData() const = 0;
     virtual const VertexBufferData& GetPositionOnlyBufferData() const = 0;
 
-    virtual glTFUniqueID GetMeshRawDataID() const { return 0; } 
+    virtual RendererUniqueObjectID GetMeshRawDataID() const { return 0; } 
     
     void SetMaterial(std::shared_ptr<glTFMaterialBase> material);
     bool HasMaterial() const {return m_material != nullptr; }

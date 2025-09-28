@@ -1,5 +1,7 @@
 #include "DemoAppModelViewer.h"
 
+#include "SceneRendererUtil/SceneRendererDrawDispatcher.h"
+
 void DemoAppModelViewer::Run(const std::vector<std::string>& arguments)
 {
     InitRenderContext(arguments);
@@ -7,9 +9,6 @@ void DemoAppModelViewer::Run(const std::vector<std::string>& arguments)
     // Create shader resource
     auto vertex_shader_handle = CreateShader(RendererInterface::ShaderType::VERTEX_SHADER, "Resources/Shaders/ModelRenderingShader.hlsl", "MainVS");
     auto fragment_shader_handle = CreateShader(RendererInterface::ShaderType::FRAGMENT_SHADER, "Resources/Shaders/ModelRenderingShader.hlsl", "MainFS");
-
-    RendererInterface::RenderSceneDesc render_scene_desc{"glTFResources/Models/Sponza/glTF/Sponza.gltf"};
-    RendererInterface::RenderSceneHandle scene = m_resource_manager->CreateRenderScene(render_scene_desc);
 
     // Create render target resource
     auto render_target_handle = CreateRenderTarget("DemoModelViewerColorRT", m_window->GetWidth(), m_window->GetHeight(), RendererInterface::RGBA8_UNORM, RendererInterface::default_clear_color,
@@ -35,10 +34,9 @@ void DemoAppModelViewer::Run(const std::vector<std::string>& arguments)
             .usage = RendererInterface::RenderPassResourceUsage::COLOR,
         });
     render_pass_draw_desc.render_target_clear_states.emplace(render_target_handle, true);
-
-    render_pass_draw_desc.execute_command.type = RendererInterface::ExecuteCommandType::DRAW_VERTEX_COMMAND;
-    render_pass_draw_desc.execute_command.parameter.draw_vertex_command_parameter.vertex_count = 3;
-    render_pass_draw_desc.execute_command.parameter.draw_vertex_command_parameter.start_vertex_location = 0;
+    
+    SceneRendererDrawDispatcher draw_dispatcher(*m_resource_manager, "glTFResources/Models/Sponza/glTF/Sponza.gltf");
+    draw_dispatcher.BindDrawCommands(render_pass_draw_desc);
 
     RendererInterface::RenderGraphNodeDesc render_graph_node_desc{};
     render_graph_node_desc.draw_info  = render_pass_draw_desc;

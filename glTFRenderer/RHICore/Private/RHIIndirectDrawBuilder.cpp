@@ -4,8 +4,8 @@
 #include "RHIUtils.h"
 #include "RHIInterface/IRHIMemoryManager.h"
 
-bool RHIIndirectDrawBuilder::InitIndirectDrawBuilder(IRHIDevice& device, IRHIMemoryManager& memory_manager,
-    const std::vector<RHIIndirectArgumentDesc>& indirect_argument_desc, unsigned command_stride, const void* data, size_t size)
+bool RHIIndirectDrawBuilder::InitIndirectDrawBuilder(IRHIDevice& device, IRHICommandList& command_list,
+                                                     IRHIMemoryManager& memory_manager, const std::vector<RHIIndirectArgumentDesc>& indirect_argument_desc, unsigned command_stride, const void* data, size_t size)
 {
     GLTF_CHECK(!m_inited);
     m_inited = true;
@@ -27,7 +27,7 @@ bool RHIIndirectDrawBuilder::InitIndirectDrawBuilder(IRHIDevice& device, IRHIMem
         },
         m_indirect_argument_buffer);
 
-    memory_manager.UploadBufferData(*m_indirect_argument_buffer, data, 0, size);
+    memory_manager.UploadBufferData(device, command_list, *m_indirect_argument_buffer, data, 0, size);
 
     memory_manager.AllocateBufferMemory(
     device, 

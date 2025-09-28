@@ -76,7 +76,7 @@ public:
 
     virtual bool UploadBuffer(glTFRenderResourceManager& resource_manager, const void* data, size_t offset, size_t size) override
     {
-        return resource_manager.GetMemoryManager().UploadBufferData(*m_gpu_buffer, data, 0, size);
+        return resource_manager.GetMemoryManager().UploadBufferData(resource_manager.GetDevice(), resource_manager.GetCommandListForRecord(), *m_gpu_buffer, data, 0, size);
     }
 
     virtual bool DownloadBuffer(glTFRenderResourceManager& resource_manager, void* data, size_t size) override

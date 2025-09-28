@@ -36,7 +36,7 @@ bool RHIUtils::UploadTextureData(IRHICommandList& command_list, IRHIMemoryManage
         memcpy(texture_data_offset_ptr, src_ptr, mip_copy_row_pitch);
     }
     
-    memory_manager.UploadBufferData(*m_texture_upload_buffer, texture_data.data(), 0, mip_copy_total_size);
+    memory_manager.UploadBufferData(device, command_list, *m_texture_upload_buffer, texture_data.data(), 0, mip_copy_total_size);
 
     RHICopyTextureInfo m_texture_upload_copy_info
     {

@@ -15,7 +15,7 @@ public:
     
     ID3D12Resource* GetRawBuffer() const { GLTF_CHECK(m_buffer.Get()); return m_buffer.Get();}
     bool CreateBuffer(IRHIDevice& device, const RHIBufferDesc& desc);
-    bool UploadBufferFromCPU(const void* data, size_t dataOffset, size_t size);
+    bool UploadBufferFromCPU(const void* data, size_t dst_offset, size_t size);
     bool DownloadBufferToCPU(void* data, size_t size);
 
     RHIMipMapCopyRequirements GetMipMapRequirements() const;

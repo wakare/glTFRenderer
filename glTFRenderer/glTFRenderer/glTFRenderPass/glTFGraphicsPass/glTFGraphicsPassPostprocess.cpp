@@ -46,9 +46,10 @@ bool glTFGraphicsPassPostprocess::InitPass(glTFRenderResourceManager& resource_m
     memory_manager.AllocateBufferMemory(resource_manager.GetDevice(), indexUploadBufferDesc, indexUploadBuffer);
     
     auto& command_list = resource_manager.GetCommandListForRecord();
+    auto& device = resource_manager.GetDevice();
 
-    memory_manager.UploadBufferData(*vertexUploadBuffer, postprocessVertices, 0, sizeof(postprocessVertices));
-    memory_manager.UploadBufferData(*indexUploadBuffer, postprocessIndices, 0, sizeof(postprocessIndices));
+    memory_manager.UploadBufferData(device, command_list, *vertexUploadBuffer, postprocessVertices, 0, sizeof(postprocessVertices));
+    memory_manager.UploadBufferData(device, command_list, *indexUploadBuffer, postprocessIndices, 0, sizeof(postprocessIndices));
 
     RHIUtilInstanceManager::Instance().CopyBuffer(command_list, *m_postprocessQuadResource.meshVertexBuffer->m_buffer, 0, *vertexUploadBuffer->m_buffer, 0, sizeof(postprocessVertices));
     RHIUtilInstanceManager::Instance().CopyBuffer(command_list, *m_postprocessQuadResource.meshIndexBuffer->m_buffer, 0, *indexUploadBuffer->m_buffer, 0, sizeof(postprocessIndices));

@@ -11,8 +11,8 @@ namespace glTFRenderResourceUtils
 {
     struct GBufferSignatureAllocationWithinPass
     {
-        bool InitGBufferAllocation(glTFUniqueID pass_id, IRHIRootSignatureHelper& root_signature_helper, bool asSRV);
-        bool UpdateShaderMacros(glTFUniqueID pass_id, RHIShaderPreDefineMacros& macros, bool asSRV) const;
+        bool InitGBufferAllocation(RendererUniqueObjectID pass_id, IRHIRootSignatureHelper& root_signature_helper, bool asSRV);
+        bool UpdateShaderMacros(RendererUniqueObjectID pass_id, RHIShaderPreDefineMacros& macros, bool asSRV) const;
         
         RootSignatureAllocation m_albedo_allocation;
         RootSignatureAllocation m_normal_allocation;
@@ -21,12 +21,12 @@ namespace glTFRenderResourceUtils
 
     struct GBufferSignatureAllocations
     {
-        bool InitGBufferAllocation(glTFUniqueID pass_id, IRHIRootSignatureHelper& root_signature_helper, bool asSRV);
-        bool UpdateShaderMacros(glTFUniqueID pass_id, RHIShaderPreDefineMacros& macros, bool asSRV) const;
+        bool InitGBufferAllocation(RendererUniqueObjectID pass_id, IRHIRootSignatureHelper& root_signature_helper, bool asSRV);
+        bool UpdateShaderMacros(RendererUniqueObjectID pass_id, RHIShaderPreDefineMacros& macros, bool asSRV) const;
 
-        GBufferSignatureAllocationWithinPass& GetAllocationWithPassId(glTFUniqueID pass_id);
+        GBufferSignatureAllocationWithinPass& GetAllocationWithPassId(RendererUniqueObjectID pass_id);
         
-        std::map<glTFUniqueID, GBufferSignatureAllocationWithinPass> m_allocations;
+        std::map<RendererUniqueObjectID, GBufferSignatureAllocationWithinPass> m_allocations;
     };
     
     struct GBufferResourceWithinPass
@@ -43,18 +43,18 @@ namespace glTFRenderResourceUtils
         std::shared_ptr<IRHITextureDescriptorAllocation> m_depth_output;
 
         bool InitGBufferOutput(glTFRenderResourceManager& resource_manager, unsigned back_buffer_index);
-        bool InitGBufferUAVs(glTFUniqueID pass_id, glTFRenderResourceManager& resource_manager);
-        bool InitGBufferSRVs(glTFUniqueID pass_id, glTFRenderResourceManager& resource_manager);
+        bool InitGBufferUAVs(RendererUniqueObjectID pass_id, glTFRenderResourceManager& resource_manager);
+        bool InitGBufferSRVs(RendererUniqueObjectID pass_id, glTFRenderResourceManager& resource_manager);
         
-        bool Transition(glTFUniqueID pass_id, IRHICommandList& command_list, RHIResourceStateType after) const;
-        bool Bind(glTFUniqueID pass_id, RHIPipelineType pipeline_type, IRHICommandList& command_list, IRHIDescriptorUpdater& updater, const GBufferSignatureAllocationWithinPass& allocation) const;
+        bool Transition(RendererUniqueObjectID pass_id, IRHICommandList& command_list, RHIResourceStateType after) const;
+        bool Bind(RendererUniqueObjectID pass_id, RHIPipelineType pipeline_type, IRHICommandList& command_list, IRHIDescriptorUpdater& updater, const GBufferSignatureAllocationWithinPass& allocation) const;
         
     protected:
-        GBufferResourceWithinPass& GetGBufferPassResource(glTFUniqueID id);
-        const GBufferResourceWithinPass& GetGBufferPassResource(glTFUniqueID id) const; 
+        GBufferResourceWithinPass& GetGBufferPassResource(RendererUniqueObjectID id);
+        const GBufferResourceWithinPass& GetGBufferPassResource(RendererUniqueObjectID id) const; 
         
         // descriptor within specific pass
-        std::map<glTFUniqueID, GBufferResourceWithinPass> m_GBuffer_pass_resource;
+        std::map<RendererUniqueObjectID, GBufferResourceWithinPass> m_GBuffer_pass_resource;
     };
 
     struct RWTextureResourceWithBackBuffer

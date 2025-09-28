@@ -34,9 +34,8 @@ void DemoTriangleApp::Run(const std::vector<std::string>& arguments)
     buffer_desc.usage = RendererInterface::BufferUsage::USAGE_CBV;
     
     buffer_desc.size = sizeof(float) * 4; // color - float4
-    buffer_desc.data = std::make_unique<char[]>(buffer_desc.size);
     float color[4] = {1.0f, 0.0f, 0.0f, 1.0f};
-    memcpy(buffer_desc.data.value().get(), color, buffer_desc.size);
+    buffer_desc.data = color;
     
     RendererInterface::BufferHandle buffer_handle = m_resource_manager->CreateBuffer(buffer_desc);
     
@@ -49,10 +48,12 @@ void DemoTriangleApp::Run(const std::vector<std::string>& arguments)
         });
     render_pass_draw_desc.render_target_clear_states.emplace(render_target_handle, true);
 
-    render_pass_draw_desc.execute_command.type = RendererInterface::ExecuteCommandType::DRAW_VERTEX_COMMAND;
-    render_pass_draw_desc.execute_command.parameter.draw_vertex_command_parameter.vertex_count = 3;
-    render_pass_draw_desc.execute_command.parameter.draw_vertex_command_parameter.start_vertex_location = 0;
-
+    RendererInterface::RenderExecuteCommand execute_command{};
+    execute_command.type = RendererInterface::ExecuteCommandType::DRAW_VERTEX_COMMAND;
+    execute_command.parameter.draw_vertex_command_parameter.vertex_count = 3;
+    execute_command.parameter.draw_vertex_command_parameter.start_vertex_location = 0;
+    render_pass_draw_desc.execute_commands.push_back(execute_command);
+    
     RendererInterface::BufferBindingDesc buffer_binding_desc{};
     buffer_binding_desc.buffer_handle = buffer_handle;
     buffer_binding_desc.binding_type = RendererInterface::BufferBindingDesc::BufferBindingType::CBV;
@@ -71,9 +72,8 @@ void DemoTriangleApp::Run(const std::vector<std::string>& arguments)
         color[1] = color[1] > 1.0f ? color[1] - 1.0f : color[1];
         color[2] = color[2] > 1.0f ? color[2] - 1.0f : color[2];
         
-        memcpy(buffer_desc.data.value().get(), &color, sizeof(float) * 4);
         RendererInterface::BufferUploadDesc upload_desc{};
-        upload_desc.data = buffer_desc.data.value().get();
+        upload_desc.data = color;
         upload_desc.size = sizeof(float) * 4;
         m_resource_manager->UploadBufferData(buffer_handle, upload_desc);
     };

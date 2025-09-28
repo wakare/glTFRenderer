@@ -1,5 +1,6 @@
 #include "RendererSceneGraph.h"
 #include <glm/glm/gtx/quaternion.hpp>
+#include <utility>
 
 RendererSceneMesh::RendererSceneMesh(const glTFLoader& loader, const glTF_Primitive& primitive)
 {
@@ -174,15 +175,22 @@ glm::fmat4 RendererSceneNodeTransform::GetTransformMatrix()
     return m_cached_transform;
 }
 
-RendererSceneNode::RendererSceneNode(std::shared_ptr<RendererSceneNodeTransform> local_transform,
-    std::shared_ptr<RendererSceneMesh> mesh)
-        : m_local_transform(std::move(local_transform)), m_mesh(std::move(mesh))
+RendererSceneNode::RendererSceneNode(std::weak_ptr<RendererSceneNode> parent, std::shared_ptr<RendererSceneNodeTransform> local_transform)
+    : m_parent(std::move(parent))
+	, m_local_transform(std::move(local_transform))
 {
 }
 
-void RendererSceneNode::MarkDirty()
+void RendererSceneNode::MarkDirty(bool recursive)
 {
     m_dirty = true;
+	if (recursive)
+	{
+		for (auto& child : m_children)
+		{
+			child.second->MarkDirty(recursive);
+		}
+	}
 }
 
 bool RendererSceneNode::IsDirty() const
@@ -190,34 +198,53 @@ bool RendererSceneNode::IsDirty() const
     return m_dirty;
 }
 
-void RendererSceneNode::ResetDirty()
+void RendererSceneNode::ResetDirty(bool recursive)
 {
     m_dirty = false;
+	if (recursive)
+	{
+		for (auto& child : m_children)
+		{
+			child.second->ResetDirty(recursive);
+		}
+	}
 }
 
-void RendererSceneNode::SetMesh(std::shared_ptr<RendererSceneMesh> mesh)
+void RendererSceneNode::AddMesh(std::shared_ptr<RendererSceneMesh> mesh)
 {
-    m_mesh = mesh;
+    m_meshes.push_back(mesh);
 }
 
 void RendererSceneNode::SetLocalTransform(std::shared_ptr<RendererSceneNodeTransform> transform)
 {
-    m_local_transform = transform;
+    m_local_transform = std::move(transform);
 }
 
 bool RendererSceneNode::HasMesh() const
 {
-    return m_mesh != nullptr;
+    return !m_meshes.empty();
 }
 
-const RendererSceneMesh& RendererSceneNode::GetMesh() const
+const std::vector<std::shared_ptr<RendererSceneMesh>>& RendererSceneNode::GetMeshes() const
 {
-    return *m_mesh;
+    return m_meshes;
 }
 
 const RendererSceneNodeTransform& RendererSceneNode::GetLocalTransform() const
 {
     return *m_local_transform;
+}
+
+glm::fmat4x4 RendererSceneNode::GetAbsoluteTransform()
+{
+	glm::fmat4x4 result = m_local_transform->GetTransformMatrix();
+	if (!m_parent.expired())
+	{
+		auto parent_node = m_parent.lock();
+		result = result * parent_node->GetAbsoluteTransform();
+	}
+	
+	return result;
 }
 
 void RendererSceneNode::AddChild(std::shared_ptr<RendererSceneNode> child)
@@ -228,26 +255,69 @@ void RendererSceneNode::AddChild(std::shared_ptr<RendererSceneNode> child)
     }
 }
 
-RendererSceneGraph::RendererSceneGraph()
+void RendererSceneNode::Traverse(const std::function<bool(RendererSceneNode& node)>& traverse_function)
 {
-    m_root_node = std::make_shared<RendererSceneNode>();
+	GLTF_CHECK(traverse_function);
+
+	bool stop = traverse_function(*this);
+	if (!stop)
+	{
+		for (auto& child : m_children)
+		{
+			child.second->Traverse(traverse_function);	
+		}
+	}
 }
 
-bool RendererSceneGraph::AddRootNodeWithFile_glTF(const glTFLoader& loader)
+void RendererSceneNode::ConstTraverse(const std::function<bool(const RendererSceneNode& node)>& traverse_function) const
+{
+	GLTF_CHECK(traverse_function);
+
+	bool stop = traverse_function(*this);
+	if (!stop)
+	{
+		for (auto& child : m_children)
+		{
+			child.second->ConstTraverse(traverse_function);	
+		}
+	}
+}
+
+RendererSceneGraph::RendererSceneGraph()
+{
+    m_root_node = std::make_shared<RendererSceneNode>(std::weak_ptr<RendererSceneNode>());
+}
+
+bool RendererSceneGraph::InitializeRootNodeWithSceneFile_glTF(const glTFLoader& loader)
 {
     const auto& scene_node = loader.GetDefaultScene();
     for (const auto& root_node : scene_node.root_nodes)
     {
-        std::shared_ptr<RendererSceneNode> root_scene_root_node = std::make_shared<RendererSceneNode>();
-        RecursiveInitSceneNodeFromGLTFLoader(loader, root_node, *m_root_node, *root_scene_root_node);
+        std::shared_ptr<RendererSceneNode> root_scene_root_node = std::make_shared<RendererSceneNode>(m_root_node);
+        RecursiveInitSceneNodeFromGLTFLoader(loader, root_node, *root_scene_root_node);
     	m_root_node->AddChild(root_scene_root_node);
     }
     
     return true;
 }
 
+RendererSceneNode& RendererSceneGraph::GetRootNode()
+{
+	return *m_root_node;
+}
+
+const RendererSceneNode& RendererSceneGraph::GetRootNode() const
+{
+	return *m_root_node;
+}
+
+const std::map<RendererUniqueObjectID, std::shared_ptr<RendererSceneMesh>>& RendererSceneGraph::GetMeshes() const
+{
+	return m_meshes;
+}
+
 void RendererSceneGraph::RecursiveInitSceneNodeFromGLTFLoader(const glTFLoader& loader, const glTFHandle& handle,
-    const RendererSceneNode& parent_node, RendererSceneNode& scene_node)
+                                                              RendererSceneNode& scene_node)
 {
     const auto& node = loader.GetNodes()[loader.ResolveIndex(handle)];
     scene_node.SetLocalTransform(std::make_shared<RendererSceneNodeTransform>(node->transform.GetMatrix()));
@@ -260,8 +330,13 @@ void RendererSceneGraph::RecursiveInitSceneNodeFromGLTFLoader(const glTFLoader& 
             
 	    	for (const auto& primitive : mesh.primitives)
 	    	{
-	    		std::shared_ptr<RendererSceneMesh> mesh = std::make_shared<RendererSceneMesh>(loader, primitive);
-	    		scene_node.SetMesh(mesh);
+	    		if (!m_meshes.contains(primitive.Hash()))
+	    		{
+	    			std::shared_ptr<RendererSceneMesh> render_scene_mesh = std::make_shared<RendererSceneMesh>(loader, primitive);
+	    			m_meshes.emplace(primitive.Hash(), render_scene_mesh);
+	    		}
+
+	    		scene_node.AddMesh(m_meshes.at(primitive.Hash()));
 	    	}
 	    }
     }

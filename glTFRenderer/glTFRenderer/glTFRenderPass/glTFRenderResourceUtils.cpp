@@ -8,7 +8,7 @@
 
 namespace glTFRenderResourceUtils
 {
-    bool GBufferSignatureAllocationWithinPass::InitGBufferAllocation(glTFUniqueID pass_id,
+    bool GBufferSignatureAllocationWithinPass::InitGBufferAllocation(RendererUniqueObjectID pass_id,
         IRHIRootSignatureHelper& root_signature_helper, bool asSRV)
     {
         RETURN_IF_FALSE(root_signature_helper.AddTableRootParameter("ALBEDO_REGISTER_INDEX", {asSRV ? RHIDescriptorRangeType::SRV : RHIDescriptorRangeType::UAV, 1, false, false}, m_albedo_allocation))
@@ -18,7 +18,7 @@ namespace glTFRenderResourceUtils
         return true;
     }
 
-    bool GBufferSignatureAllocationWithinPass::UpdateShaderMacros(glTFUniqueID pass_id,
+    bool GBufferSignatureAllocationWithinPass::UpdateShaderMacros(RendererUniqueObjectID pass_id,
                                                                   RHIShaderPreDefineMacros& macros, bool asSRV) const
     {
         m_albedo_allocation.AddShaderDefine(macros);
@@ -27,18 +27,18 @@ namespace glTFRenderResourceUtils
         return true;
     }
 
-    GBufferSignatureAllocationWithinPass& GBufferSignatureAllocations::GetAllocationWithPassId(glTFUniqueID pass_id)
+    GBufferSignatureAllocationWithinPass& GBufferSignatureAllocations::GetAllocationWithPassId(RendererUniqueObjectID pass_id)
     {
         return m_allocations[pass_id];
     }
 
-    bool GBufferSignatureAllocations::InitGBufferAllocation(glTFUniqueID pass_id,
+    bool GBufferSignatureAllocations::InitGBufferAllocation(RendererUniqueObjectID pass_id,
                                                            IRHIRootSignatureHelper& root_signature_helper, bool asSRV)
     {
         return m_allocations[pass_id].InitGBufferAllocation(pass_id, root_signature_helper, asSRV);
     }
 
-    bool GBufferSignatureAllocations::UpdateShaderMacros(glTFUniqueID pass_id, RHIShaderPreDefineMacros& macros,
+    bool GBufferSignatureAllocations::UpdateShaderMacros(RendererUniqueObjectID pass_id, RHIShaderPreDefineMacros& macros,
         bool asSRV) const
     {
         const auto find_it = m_allocations.find(pass_id);
@@ -81,7 +81,7 @@ namespace glTFRenderResourceUtils
         return true;
     }
 
-    bool GBufferOutput::InitGBufferUAVs(glTFUniqueID pass_id, glTFRenderResourceManager& resource_manager)
+    bool GBufferOutput::InitGBufferUAVs(RendererUniqueObjectID pass_id, glTFRenderResourceManager& resource_manager)
     {
         auto& GBufferPassResource = GetGBufferPassResource(pass_id);
         
@@ -118,7 +118,7 @@ namespace glTFRenderResourceUtils
         return true;
     }
 
-    bool GBufferOutput::InitGBufferSRVs(glTFUniqueID pass_id,
+    bool GBufferOutput::InitGBufferSRVs(RendererUniqueObjectID pass_id,
                                         glTFRenderResourceManager& resource_manager)
     {
         auto& GBufferPassResource = GetGBufferPassResource(pass_id);
@@ -156,7 +156,7 @@ namespace glTFRenderResourceUtils
         return true;
     }
 
-    bool GBufferOutput::Transition(glTFUniqueID pass_id,IRHICommandList& command_list, RHIResourceStateType after) const
+    bool GBufferOutput::Transition(RendererUniqueObjectID pass_id,IRHICommandList& command_list, RHIResourceStateType after) const
     {
         m_albedo_output->m_source->Transition(command_list, after);
         m_normal_output->m_source->Transition(command_list, after);
@@ -165,7 +165,7 @@ namespace glTFRenderResourceUtils
         return true;
     }
 
-    bool GBufferOutput::Bind(glTFUniqueID pass_id, RHIPipelineType pipeline_type, IRHICommandList& command_list, IRHIDescriptorUpdater& updater, const GBufferSignatureAllocationWithinPass& allocation) const
+    bool GBufferOutput::Bind(RendererUniqueObjectID pass_id, RHIPipelineType pipeline_type, IRHICommandList& command_list, IRHIDescriptorUpdater& updater, const GBufferSignatureAllocationWithinPass& allocation) const
     {
         auto& GBufferPassResource = GetGBufferPassResource(pass_id);
         updater.BindDescriptor(command_list, pipeline_type, allocation.m_albedo_allocation, *GBufferPassResource.m_albedo_handle);
@@ -175,12 +175,12 @@ namespace glTFRenderResourceUtils
         return true;
     }
 
-    GBufferResourceWithinPass& GBufferOutput::GetGBufferPassResource(glTFUniqueID id)
+    GBufferResourceWithinPass& GBufferOutput::GetGBufferPassResource(RendererUniqueObjectID id)
     {
         return m_GBuffer_pass_resource[id];
     }
 
-    const GBufferResourceWithinPass& GBufferOutput::GetGBufferPassResource(glTFUniqueID id) const
+    const GBufferResourceWithinPass& GBufferOutput::GetGBufferPassResource(RendererUniqueObjectID id) const
     {
         const auto find_it = m_GBuffer_pass_resource.find(id);
         GLTF_CHECK(find_it != m_GBuffer_pass_resource.end());

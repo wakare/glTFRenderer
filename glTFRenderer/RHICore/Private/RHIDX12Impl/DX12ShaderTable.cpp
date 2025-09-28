@@ -12,7 +12,7 @@ DX12ShaderTable::DX12ShaderTable()
 {
 }
 
-bool DX12ShaderTable::InitShaderTable(IRHIDevice& device, IRHIMemoryManager& memory_manager, IRHIPipelineStateObject& pso, IRHIRayTracingAS& as, const std::vector<RHIShaderBindingTable>& sbts)
+bool DX12ShaderTable::InitShaderTable(IRHIDevice& device, IRHICommandList& command_list, IRHIMemoryManager& memory_manager, IRHIPipelineStateObject& pso, IRHIRayTracingAS& as, const std::vector<RHIShaderBindingTable>& sbts)
 {
     auto* dx_pso_props = dynamic_cast<DX12RTPipelineStateObject&>(pso).GetDXRStateObjectProperties();
     const auto& hit_group_descs = dynamic_cast<DX12RTPipelineStateObject&>(pso).GetHitGroupDescs();
@@ -61,7 +61,7 @@ bool DX12ShaderTable::InitShaderTable(IRHIDevice& device, IRHIMemoryManager& mem
             RHIResourceStateType::STATE_COMMON,
         },
         m_rayGenShaderTable);
-        memory_manager.UploadBufferData(*m_rayGenShaderTable, temporary_buffer.get(), 0, raygen_buffer_size);
+        memory_manager.UploadBufferData(device, command_list, *m_rayGenShaderTable, temporary_buffer.get(), 0, raygen_buffer_size);
     }
 
     // Miss shader table
@@ -103,7 +103,7 @@ bool DX12ShaderTable::InitShaderTable(IRHIDevice& device, IRHIMemoryManager& mem
         RHIResourceStateType::STATE_COMMON,
         },
         m_missShaderTable);
-        memory_manager.UploadBufferData(*m_missShaderTable, temporary_buffer.get(), 0, miss_buffer_size);
+        memory_manager.UploadBufferData(device, command_list, *m_missShaderTable, temporary_buffer.get(), 0, miss_buffer_size);
     }
 
     // Hit group shader table
@@ -157,7 +157,7 @@ bool DX12ShaderTable::InitShaderTable(IRHIDevice& device, IRHIMemoryManager& mem
             RHIResourceStateType::STATE_COMMON,
         },
         m_hitGroupShaderTable);
-        memory_manager.UploadBufferData(*m_hitGroupShaderTable, temporary_buffer.get(), 0, hit_group_buffer_size);
+        memory_manager.UploadBufferData(device, command_list, *m_hitGroupShaderTable, temporary_buffer.get(), 0, hit_group_buffer_size);
     }
     
     return true;

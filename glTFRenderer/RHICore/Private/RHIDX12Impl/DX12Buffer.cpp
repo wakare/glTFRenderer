@@ -86,7 +86,7 @@ bool DX12Buffer::CreateBuffer(IRHIDevice& device, const RHIBufferDesc& desc)
     return true;
 }
 
-bool DX12Buffer::UploadBufferFromCPU(const void* data, size_t dataOffset, size_t size)
+bool DX12Buffer::UploadBufferFromCPU(const void* data, size_t dst_offset, size_t size)
 {
     if (!m_mapped_gpu_buffer)
     {
@@ -95,9 +95,9 @@ bool DX12Buffer::UploadBufferFromCPU(const void* data, size_t dataOffset, size_t
         THROW_IF_FAILED(m_buffer->Map(0, &m_map_range, reinterpret_cast<void**>(&m_mapped_gpu_buffer)))
     }
     
-    assert((dataOffset + size) <= m_buffer_desc.width);
+    assert((dst_offset + size) <= m_buffer_desc.width);
     
-    memcpy(m_mapped_gpu_buffer + dataOffset, data, size);
+    memcpy(m_mapped_gpu_buffer + dst_offset, data, size);
     
     m_buffer->Unmap(0, nullptr);
     m_mapped_gpu_buffer = nullptr;

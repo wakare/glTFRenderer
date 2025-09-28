@@ -17,7 +17,7 @@ class IRHIRootSignature;
 class IRHIPipelineStateObject;
 class IRHICommandList;
 
-class glTFRenderPassBase : public glTFUniqueObject<glTFRenderPassBase>, public RenderGraphNodeUtil::RenderGraphNode
+class glTFRenderPassBase : public RendererUniqueObjectIDBase<glTFRenderPassBase>, public RenderGraphNodeUtil::RenderGraphNode
 {
 public:
     IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFRenderPassBase)

@@ -37,12 +37,12 @@ bool glTFPerFrameRenderResourceData::InitSceneViewData(IRHIMemoryManager& memory
 }
 
 bool glTFPerFrameRenderResourceData::UpdateSceneViewData(IRHIMemoryManager& memory_manager,
-                                                         IRHIDevice& device, const ConstantBufferSceneView& scene_view)
+                                                         IRHICommandList& command_list, IRHIDevice& device, const ConstantBufferSceneView& scene_view)
 {
     m_scene_view = scene_view;
     
     GLTF_CHECK(m_scene_view_buffer);
-    return memory_manager.UploadBufferData(*m_scene_view_buffer, &m_scene_view, 0 ,sizeof(m_scene_view));
+    return memory_manager.UploadBufferData(device, command_list, *m_scene_view_buffer ,&m_scene_view, 0, sizeof(m_scene_view));
 }
 
 const ConstantBufferSceneView& glTFPerFrameRenderResourceData::GetSceneView() const
@@ -73,12 +73,12 @@ bool glTFPerFrameRenderResourceData::InitShadowmapSceneViewData(IRHIMemoryManage
 }
 
 bool glTFPerFrameRenderResourceData::UpdateShadowmapSceneViewData(IRHIMemoryManager& memory_manager,
-                                                                  IRHIDevice& device, unsigned light_id, const ConstantBufferSceneView& scene_view)
+                                                                  IRHICommandList& command_list, IRHIDevice& device, unsigned light_id, const ConstantBufferSceneView& scene_view)
 {
     m_shadowmap_view_data[light_id] = scene_view;
 
     GLTF_CHECK(m_shadowmap_view_buffers[light_id]);
-    return memory_manager.UploadBufferData(*m_shadowmap_view_buffers[light_id], &m_shadowmap_view_data[light_id], 0 ,sizeof(m_shadowmap_view_data[light_id]));
+    return memory_manager.UploadBufferData(device, command_list, *m_shadowmap_view_buffers[light_id] ,&m_shadowmap_view_data[light_id], 0, sizeof(m_shadowmap_view_data[light_id]));
 }
 
 bool glTFPerFrameRenderResourceData::ContainsLightShadowmapViewData(unsigned light_id) const
@@ -537,7 +537,7 @@ void glTFRenderResourceManager::TickSceneUpdating(glTFSceneView& scene_view,
     // Update scene view
     auto scene_view_constant_buffer = scene_view.UpdateSceneViewConstantBuffer();
     auto& upload_scene_view_buffer= resource_manager.GetPerFrameRenderResourceData()[resource_manager.GetCurrentBackBufferIndex()];
-    upload_scene_view_buffer.UpdateSceneViewData(resource_manager.GetMemoryManager(), resource_manager.GetDevice(), scene_view_constant_buffer);
+    upload_scene_view_buffer.UpdateSceneViewData(resource_manager.GetMemoryManager(), resource_manager.GetCommandListForRecord(), resource_manager.GetDevice(), scene_view_constant_buffer);
 
     std::vector<const glTFSceneNode*> dirty_objects = scene_view.GetDirtySceneNodes();
     for (const auto* node : dirty_objects)
@@ -582,16 +582,17 @@ void glTFRenderResourceManager::TickSceneUpdating(glTFSceneView& scene_view,
         shadowmap_view.inverse_view_matrix = glm::inverse(shadowmap_view.view_matrix);
         shadowmap_view.projection_matrix = light_shadowmap_view.projection_matrix;
         shadowmap_view.inverse_projection_matrix = glm::inverse(shadowmap_view.projection_matrix);
-        
+
+        auto& command_list = resource_manager.GetCommandListForRecord();
         resource_manager.GetPerFrameRenderResourceData()[resource_manager.GetCurrentBackBufferIndex()].UpdateShadowmapSceneViewData(
-            resource_manager.GetMemoryManager(), resource_manager.GetDevice(), direction_light->GetID(), shadowmap_view);
+            resource_manager.GetMemoryManager(), command_list, resource_manager.GetDevice(), direction_light->GetID(), shadowmap_view);
 
         for (int i = 0; i < resource_manager.GetBackBufferCount(); ++i)
         {
             if (!resource_manager.GetPerFrameRenderResourceData()[i].ContainsLightShadowmapViewData(direction_light->GetID()))
             {
                 resource_manager.GetPerFrameRenderResourceData()[i].UpdateShadowmapSceneViewData(
-                resource_manager.GetMemoryManager(), resource_manager.GetDevice(), direction_light->GetID(), shadowmap_view);
+                    resource_manager.GetMemoryManager(), command_list, resource_manager.GetDevice(), direction_light->GetID(), shadowmap_view);
             }
         }
     }

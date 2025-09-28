@@ -3,7 +3,7 @@
 #include "SceneFileLoader/glTFElementCommon.h"
 #include "SceneFileLoader/glTFLoader.h"
 
-class glTFMeshRawData : public glTFUniqueObject<glTFMeshRawData>
+class glTFMeshRawData : public RendererUniqueObjectIDBase<glTFMeshRawData>
 {
 public:
     glTFMeshRawData(const glTFLoader& loader, const glTF_Primitive& primitive);

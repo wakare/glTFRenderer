@@ -12,9 +12,9 @@ class IRHISwapChain;
 class IRHITextureDescriptorAllocation;
 class IRHICommandList;
 class IRHICommandQueue;
-struct RHIExecuteCommandListContext;
 class RenderPass;
 class ResourceManager;
+struct RHIExecuteCommandListContext;
 
 namespace RendererInterface
 {
@@ -53,17 +53,19 @@ namespace RendererInterface
         ShaderHandle        CreateShader(const ShaderDesc& desc);
         TextureHandle       CreateTexture(const TextureDesc& desc);
         BufferHandle        CreateBuffer(const BufferDesc& desc);
+        IndexedBufferHandle CreateIndexedBuffer(const BufferDesc& desc);
+        
         RenderTargetHandle  CreateRenderTarget(const RenderTargetDesc& desc);
         RenderPassHandle    CreateRenderPass(const RenderPassDesc& desc);
         RenderSceneHandle   CreateRenderScene(const RenderSceneDesc& desc);
         
         IRHIDevice&         GetDevice() const;
         IRHICommandQueue&   GetCommandQueue() const;
-        IRHISwapChain&      GetCurrentSwapchain();
+        IRHISwapChain&      GetCurrentSwapchain() const;
         IRHICommandList&    GetCommandListForRecordPassCommand(RenderPassHandle pass = NULL_HANDLE) const;
         IRHIDescriptorManager& GetDescriptorManager() const;
         
-        IRHITextureDescriptorAllocation& GetCurrentSwapchainRT();
+        IRHITextureDescriptorAllocation& GetCurrentSwapchainRT() const;
 
         void UploadBufferData(BufferHandle handle, const BufferUploadDesc& upload_desc);
         
@@ -97,4 +99,36 @@ namespace RendererInterface
 
         std::map<BufferHandle, std::shared_ptr<IRHIBufferDescriptorAllocation>> m_buffer_descriptors;
     };
+
+    class RendererSceneMeshDataAccessorBase
+    {
+    public:
+        enum class MeshDataAccessorType
+        {
+            VERTEX_POSITION_FLOAT3,
+            VERTEX_NORMAL_FLOAT3,
+            VERTEX_TANGENT_FLOAT3,
+            VERTEX_TEXCOORD0_FLOAT2,
+            INDEX_INT,
+            INDEX_HALF,
+            INSTANCE_MAT4x4,
+        };
+
+        virtual bool HasMeshData(unsigned mesh_id) const = 0;
+        virtual void AccessMeshData(MeshDataAccessorType type, unsigned mesh_id, void* data, size_t element_size) = 0;
+        virtual void AccessInstanceData(MeshDataAccessorType type, unsigned instance_id, unsigned mesh_id, void* data, size_t element_size) = 0;
+    };
+    
+    class RendererSceneResourceManager
+    {
+    public:
+        RendererSceneResourceManager(ResourceOperator& allocator,const RenderSceneDesc& desc);
+
+        bool AccessSceneData(RendererSceneMeshDataAccessorBase& data_accessor);
+        
+    protected:
+        ResourceOperator& m_allocator;
+        RenderSceneHandle m_render_scene_handle {NULL_HANDLE};
+    };
+
 }

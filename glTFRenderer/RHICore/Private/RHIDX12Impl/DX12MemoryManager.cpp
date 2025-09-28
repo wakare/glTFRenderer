@@ -22,20 +22,10 @@ bool DX12MemoryManager::AllocateBufferMemory(IRHIDevice& device, const RHIBuffer
     return true;
 }
 
-bool DX12MemoryManager::UploadBufferData(IRHIBufferAllocation& buffer_allocation, const void* data, size_t offset, size_t size)
+bool DX12MemoryManager::UploadBufferDataInner(IRHIBufferAllocation& buffer_allocation, const void* data, size_t dst_offset, size_t size)
 {
-    bool upload = false;
-    if (buffer_allocation.m_buffer->GetBufferDesc().type == RHIBufferType::Upload)
-    {
-        // CPU visible buffer
-        upload = dynamic_cast<DX12Buffer&>(*buffer_allocation.m_buffer).UploadBufferFromCPU(data, offset, size);
-    }
-    else
-    {
-        GLTF_CHECK(false);
-    }
-    
-    return upload;
+    GLTF_CHECK(buffer_allocation.m_buffer->GetBufferDesc().type == RHIBufferType::Upload);
+    return dynamic_cast<DX12Buffer&>(*buffer_allocation.m_buffer).UploadBufferFromCPU(data, dst_offset, size);
 }
 
 bool DX12MemoryManager::DownloadBufferData(IRHIBufferAllocation& buffer_allocation, void* data, size_t size)

@@ -55,6 +55,32 @@ bool IRHIMemoryManager::InitMemoryManager(IRHIDevice& device,
     return true;
 }
 
+bool IRHIMemoryManager::UploadBufferData(IRHIDevice& device, IRHICommandList& command_list, IRHIBufferAllocation& buffer_allocation,
+                                         const void* data, size_t dst_offset, size_t size)
+{
+    bool result = false;
+    if (buffer_allocation.m_buffer->GetBufferDesc().type == RHIBufferType::Default)
+    {
+        RHIBufferDesc upload_desc = buffer_allocation.m_buffer->GetBufferDesc();
+        upload_desc.type = RHIBufferType::Upload;
+        std::shared_ptr<IRHIBufferAllocation> upload_buffer = nullptr;
+        bool allocated = AllocateTempUploadBufferMemory(device, upload_desc, upload_buffer);
+        GLTF_CHECK(allocated);
+
+        result = UploadBufferDataInner(*upload_buffer, data, 0, size);
+        GLTF_CHECK(result);
+        
+        result = RHIUtilInstanceManager::Instance().CopyBuffer(command_list, *buffer_allocation.m_buffer, dst_offset, *upload_buffer->m_buffer, 0, size);
+    }
+    else
+    {
+        result = UploadBufferDataInner(buffer_allocation, data, dst_offset, size);
+    }
+
+    GLTF_CHECK(result);
+    return result;
+}
+
 bool IRHIMemoryManager::AllocateTextureMemoryAndUpload(IRHIDevice& device,
                                                        IRHICommandList& command_list, IRHIMemoryManager& memory_manager,
                                                        const RHITextureDesc& texture_desc, std::shared_ptr<IRHITextureAllocation>& out_texture_allocation)

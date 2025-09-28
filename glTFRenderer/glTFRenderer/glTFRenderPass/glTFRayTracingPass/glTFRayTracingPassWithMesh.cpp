@@ -44,7 +44,7 @@ bool glTFRayTracingPassWithMesh::InitPass(glTFRenderResourceManager& resource_ma
     shadow_ray_sbt.miss_entry = GetShadowRayMissFunctionName();
     shadow_ray_sbt.hit_group_entry = GetShadowRayHitGroupName();
     
-    RETURN_IF_FALSE(m_shader_table->InitShaderTable(resource_manager.GetDevice(), resource_manager.GetMemoryManager(), GetRayTracingPipelineStateObject(), *m_raytracing_as, sbts))
+    RETURN_IF_FALSE(m_shader_table->InitShaderTable(resource_manager.GetDevice(), resource_manager.GetCommandListForRecord(), resource_manager.GetMemoryManager(), GetRayTracingPipelineStateObject(), *m_raytracing_as, sbts))
 
     m_trace_count = {resource_manager.GetSwapChain().GetWidth(), resource_manager.GetSwapChain().GetHeight(), 1};
     

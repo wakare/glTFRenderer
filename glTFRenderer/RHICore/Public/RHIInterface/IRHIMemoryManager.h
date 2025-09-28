@@ -99,7 +99,7 @@ public:
                                    descriptor_allocation_info);
     
     virtual bool AllocateBufferMemory(IRHIDevice& device, const RHIBufferDesc& buffer_desc, std::shared_ptr<IRHIBufferAllocation>& out_buffer_allocation) = 0;
-    virtual bool UploadBufferData(IRHIBufferAllocation& buffer_allocation, const void* data, size_t offset, size_t size) = 0;
+    virtual bool UploadBufferData(IRHIDevice& device, IRHICommandList& command_list, IRHIBufferAllocation& buffer_allocation, const void* data, size_t dst_offset, size_t size);
     virtual bool DownloadBufferData(IRHIBufferAllocation& buffer_allocation, void* data, size_t size) = 0;
     virtual bool AllocateTextureMemory(IRHIDevice& device, const RHITextureDesc& buffer_desc, std::shared_ptr<IRHITextureAllocation>& out_buffer_allocation) = 0;
     virtual bool ReleaseMemoryAllocation(IRHIMemoryAllocation& memory_allocation) = 0;
@@ -112,6 +112,8 @@ public:
     bool AllocateTempUploadBufferMemory(IRHIDevice& device, const RHIBufferDesc& buffer_desc, std::shared_ptr<IRHIBufferAllocation>& out_buffer_allocation);
     
 protected:
+    virtual bool UploadBufferDataInner(IRHIBufferAllocation& buffer_allocation, const void* data, size_t offset, size_t size) = 0;
+
     RHITempBufferPool m_temp_buffer_pool;
     
     std::vector<std::shared_ptr<IRHIBufferAllocation>> m_buffer_allocations;

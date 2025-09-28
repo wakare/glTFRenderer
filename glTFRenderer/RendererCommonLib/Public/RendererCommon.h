@@ -92,8 +92,8 @@ struct RHIShaderPreDefineMacros
     std::vector<std::string> macroValue;
 };
 
-typedef unsigned glTFUniqueID;
-#define glTFUniqueIDInvalid UINT_MAX   
+typedef unsigned RendererUniqueObjectID;
+#define RendererUniqueObjectIDInvalid UINT_MAX   
 
 #ifdef NDEBUG
 #define GLTF_CHECK(a) if (!(a)) {throw "ASSERT!"; }
@@ -131,22 +131,22 @@ typedef unsigned glTFUniqueID;
 #define ALIGN_FOR_CBV_STRUCT
 
 template<typename T>
-class glTFUniqueObject
+class RendererUniqueObjectIDBase
 {
 public:
-    glTFUniqueObject()
+    RendererUniqueObjectIDBase()
         : m_uniqueID(_innerUniqueID++) {}
-    virtual ~glTFUniqueObject() = default;
+    virtual ~RendererUniqueObjectIDBase() = default;
     
-    glTFUniqueID GetID() const { return m_uniqueID; }
+    RendererUniqueObjectID GetID() const { return m_uniqueID; }
     
 private:
-    glTFUniqueID m_uniqueID;
-    static glTFUniqueID _innerUniqueID;
+    RendererUniqueObjectID m_uniqueID;
+    static RendererUniqueObjectID _innerUniqueID;
 };
 
 template<typename T>
-glTFUniqueID glTFUniqueObject<T>::_innerUniqueID = 0;
+RendererUniqueObjectID RendererUniqueObjectIDBase<T>::_innerUniqueID = 0;
 
 class ITickable
 {

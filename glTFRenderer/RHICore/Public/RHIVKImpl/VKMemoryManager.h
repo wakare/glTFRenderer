@@ -27,7 +27,6 @@ public:
     virtual bool InitMemoryManager(IRHIDevice& device, const IRHIFactory& factory, const DescriptorAllocationInfo& max_descriptor_capacity) override;
     
     virtual bool AllocateBufferMemory(IRHIDevice& device, const RHIBufferDesc& buffer_desc, std::shared_ptr<IRHIBufferAllocation>& out_buffer_allocation) override;
-    virtual bool UploadBufferData(IRHIBufferAllocation& buffer_allocation, const void* data, size_t offset, size_t size) override;
     virtual bool DownloadBufferData(IRHIBufferAllocation& buffer_allocation, void* data, size_t size) override;
     virtual bool AllocateTextureMemory(IRHIDevice& device, const RHITextureDesc& texture_desc, std::shared_ptr<IRHITextureAllocation>& out_texture_allocation) override;
     
@@ -35,6 +34,7 @@ public:
     virtual bool ReleaseAllResource() override;
 
 protected:
+    virtual bool UploadBufferDataInner(IRHIBufferAllocation& buffer_allocation, const void* data, size_t offset, size_t size) override;
     VmaAllocator GetVmaAllocator() const;
 
     std::shared_ptr<IRHIMemoryAllocator> m_allocator;

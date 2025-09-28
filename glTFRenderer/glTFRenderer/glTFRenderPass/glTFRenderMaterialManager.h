@@ -63,8 +63,8 @@ class glTFRenderMaterialManager
 public:
 	bool AddMaterialRenderResource(glTFRenderResourceManager& resource_manager, const glTFMaterialBase& material);
 	void Tick(glTFRenderResourceManager& resource_manager);
-	const std::map<glTFUniqueID, std::unique_ptr<glTFMaterialRenderResource>>& GetMaterialRenderResources() const;
+	const std::map<RendererUniqueObjectID, std::unique_ptr<glTFMaterialRenderResource>>& GetMaterialRenderResources() const;
 	
 protected:
-	std::map<glTFUniqueID, std::unique_ptr<glTFMaterialRenderResource>> m_material_render_resources;
+	std::map<RendererUniqueObjectID, std::unique_ptr<glTFMaterialRenderResource>> m_material_render_resources;
 };

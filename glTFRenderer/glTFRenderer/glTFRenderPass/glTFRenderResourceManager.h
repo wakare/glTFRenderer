@@ -25,12 +25,12 @@ class glTFPerFrameRenderResourceData
 public:
     //DECLARE_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(glTFPerFrameRenderResourceData)
     bool InitSceneViewData(IRHIMemoryManager& memory_manager, IRHIDevice& device);
-    bool UpdateSceneViewData(IRHIMemoryManager& memory_manager, IRHIDevice& device, const ConstantBufferSceneView& scene_view);
+    bool UpdateSceneViewData(IRHIMemoryManager& memory_manager, IRHICommandList& command_list, IRHIDevice& device, const ConstantBufferSceneView& scene_view);
     const ConstantBufferSceneView& GetSceneView() const;
     std::shared_ptr<IRHIBufferAllocation> GetSceneViewBufferAllocation() const;
 
     bool InitShadowmapSceneViewData(IRHIMemoryManager& memory_manager, IRHIDevice& device, unsigned light_id);
-    bool UpdateShadowmapSceneViewData(IRHIMemoryManager& memory_manager, IRHIDevice& device, unsigned light_id, const ConstantBufferSceneView& scene_view);
+    bool UpdateShadowmapSceneViewData(IRHIMemoryManager& memory_manager, IRHICommandList& command_list, IRHIDevice& device, unsigned light_id, const ConstantBufferSceneView& scene_view);
     bool ContainsLightShadowmapViewData(unsigned light_id) const;
     const ConstantBufferSceneView& GetShadowmapSceneView(unsigned light_id) const;
     const std::map<unsigned, ConstantBufferSceneView>& GetShadowmapSceneViews() const;

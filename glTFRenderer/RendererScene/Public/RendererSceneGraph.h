@@ -1,5 +1,6 @@
 #pragma once
 
+// glm library use [min/max] which conflicts with Windows.h macro
 #define NOMINMAX
 
 #include <memory>
@@ -11,7 +12,7 @@
 #include "RHICommon.h"
 #include "SceneFileLoader/glTFLoader.h"
 
-class RendererSceneMesh
+class RendererSceneMesh : public RendererUniqueObjectIDBase<RendererSceneMesh>
 {
 public:
     RendererSceneMesh(const glTFLoader& loader, const glTF_Primitive& primitive);
@@ -62,31 +63,39 @@ protected:
     bool m_transform_dirty{true};
 };
 
-class RendererSceneNode : public glTFUniqueObject<RendererSceneNode>
+class RendererSceneNode : public RendererUniqueObjectIDBase<RendererSceneNode>
 {
 public:
-    RendererSceneNode(std::shared_ptr<RendererSceneNodeTransform> local_transform = RendererSceneNodeTransform::identity_transform, std::shared_ptr<RendererSceneMesh> mesh = nullptr);
+    RendererSceneNode(std::weak_ptr<RendererSceneNode> parent, std::shared_ptr<RendererSceneNodeTransform> local_transform = RendererSceneNodeTransform::identity_transform);
     
-    void MarkDirty();
+    void MarkDirty(bool recursive);
     bool IsDirty() const;
-    void ResetDirty();
+    void ResetDirty(bool recursive);
 
-    void SetMesh(std::shared_ptr<RendererSceneMesh> mesh);
+    void AddMesh(std::shared_ptr<RendererSceneMesh> mesh);
     void SetLocalTransform(std::shared_ptr<RendererSceneNodeTransform> transform);
 
     bool HasMesh() const;
     
-    const RendererSceneMesh& GetMesh() const;
+    const std::vector<std::shared_ptr<RendererSceneMesh>>& GetMeshes() const;
     const RendererSceneNodeTransform& GetLocalTransform() const;
+    glm::fmat4x4 GetAbsoluteTransform();
 
     void AddChild(std::shared_ptr<RendererSceneNode> child);
+    void Traverse(const std::function<bool(RendererSceneNode& node)>& traverse_function);
+    void ConstTraverse(const std::function<bool(const RendererSceneNode& node)>& traverse_function) const;
     
 protected:
     bool m_dirty {true};
+    
+    std::weak_ptr<RendererSceneNode> m_parent;
+    
     std::shared_ptr<RendererSceneNodeTransform> m_local_transform;
-    std::map<glTFUniqueID, std::shared_ptr<RendererSceneNode>> m_children;
+    std::shared_ptr<RendererSceneNodeTransform> m_absolute_transform;
 
-    std::shared_ptr<RendererSceneMesh> m_mesh;
+    std::map<RendererUniqueObjectID, std::shared_ptr<RendererSceneNode>> m_children;
+
+    std::vector<std::shared_ptr<RendererSceneMesh>> m_meshes;
 };
 
 class RendererSceneGraph
@@ -94,9 +103,15 @@ class RendererSceneGraph
 public:
     RendererSceneGraph();
     
-    bool AddRootNodeWithFile_glTF(const glTFLoader& loader);
+    bool InitializeRootNodeWithSceneFile_glTF(const glTFLoader& loader);
+    RendererSceneNode& GetRootNode();
+    const RendererSceneNode& GetRootNode() const;
+
+    const std::map<RendererUniqueObjectID, std::shared_ptr<RendererSceneMesh>>& GetMeshes() const;
     
 protected:
-    void RecursiveInitSceneNodeFromGLTFLoader(const glTFLoader& loader, const glTFHandle& handle, const RendererSceneNode& parent_node, RendererSceneNode& scene_node);
+    void RecursiveInitSceneNodeFromGLTFLoader(const glTFLoader& loader, const glTFHandle& handle, RendererSceneNode& scene_node);
     std::shared_ptr<RendererSceneNode> m_root_node;
+    
+    std::map<RendererUniqueObjectID, std::shared_ptr<RendererSceneMesh>> m_meshes;
 };

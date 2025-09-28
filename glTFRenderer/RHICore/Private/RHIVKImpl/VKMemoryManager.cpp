@@ -66,9 +66,11 @@ bool VKMemoryManager::AllocateBufferMemory(IRHIDevice& device, const RHIBufferDe
     return true;
 }
 
-bool VKMemoryManager::UploadBufferData(IRHIBufferAllocation& buffer_allocation, const void* data, size_t offset,
+bool VKMemoryManager::UploadBufferDataInner(IRHIBufferAllocation& buffer_allocation, const void* data, size_t offset,
     size_t size)
 {
+    GLTF_CHECK(buffer_allocation.m_buffer->GetBufferDesc().type == RHIBufferType::Upload);
+    
     auto vma_buffer_allocation = dynamic_cast<const VKBufferAllocation&>(buffer_allocation).m_allocation; 
     void* mapped_data = vma_buffer_allocation->GetMappedData();
     memcpy(mapped_data, (char*)data + offset, size);

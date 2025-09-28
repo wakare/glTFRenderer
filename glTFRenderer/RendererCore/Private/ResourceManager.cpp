@@ -8,6 +8,7 @@
 #include "RHIInterface/IRHIRenderTargetManager.h"
 #include "RHIInterface/IRHIRootSignatureHelper.h"
 #include "RHIInterface/IRHISwapChain.h"
+#include "RHIInterface/RHIIndexBuffer.h"
 
 #define EXIT_WHEN_FALSE(x) if (!(x)) {assert(false); return false;}
 
@@ -41,6 +42,49 @@ RHIPipelineType RendererInterfaceRHIConverter::ConvertToRHIPipelineType(Renderer
     }
     GLTF_CHECK(false);
     return RHIPipelineType::Unknown;
+}
+
+RHIBufferDesc ConvertToRHIBufferDesc(const RendererInterface::BufferDesc& desc)
+{
+    RHIBufferDesc buffer_desc{};
+    buffer_desc.name = to_wide_string(desc.name);
+    buffer_desc.width = desc.size;
+    buffer_desc.height = 1;
+    buffer_desc.depth = 1;
+    
+    switch (desc.type)
+    {
+    case RendererInterface::UPLOAD:
+        buffer_desc.type = RHIBufferType::Upload;
+        break;
+    case RendererInterface::DEFAULT:
+        buffer_desc.type = RHIBufferType::Default;
+        break;
+    }
+    
+    switch (desc.usage)
+    {
+    case RendererInterface::USAGE_VERTEX_BUFFER:
+        buffer_desc.usage = RUF_VERTEX_BUFFER; 
+        break;
+    case RendererInterface::USAGE_INDEX_BUFFER_R32:
+        buffer_desc.usage = RUF_INDEX_BUFFER;
+        break;
+    case RendererInterface::USAGE_INDEX_BUFFER_R16:
+        buffer_desc.usage = RUF_INDEX_BUFFER;
+        break;
+    case RendererInterface::USAGE_CBV:
+        buffer_desc.usage = RUF_ALLOW_CBV;
+        break;
+    case RendererInterface::USAGE_UAV:
+        buffer_desc.usage = RUF_ALLOW_UAV;
+        break;
+    case RendererInterface::USAGE_SRV:
+        buffer_desc.usage = RUF_ALLOW_SRV;
+        break;
+    }
+
+    return buffer_desc;
 }
 
 bool ResourceManager::InitResourceManager(const RendererInterface::RenderDeviceDesc& desc)
@@ -117,54 +161,40 @@ bool ResourceManager::InitResourceManager(const RendererInterface::RenderDeviceD
     return true;
 }
 
+
 RendererInterface::BufferHandle ResourceManager::CreateBuffer(const RendererInterface::BufferDesc& desc)
 {
-    RHIBufferDesc buffer_desc{};
-    buffer_desc.name = to_wide_string(desc.name);
-    buffer_desc.width = desc.size;
-    buffer_desc.height = 1;
-    buffer_desc.depth = 1;
+    RHIBufferDesc buffer_desc = ConvertToRHIBufferDesc(desc);
     
-    switch (desc.type)
-    {
-    case RendererInterface::UPLOAD:
-        buffer_desc.type = RHIBufferType::Upload;
-        break;
-    case RendererInterface::DEFAULT:
-        buffer_desc.type = RHIBufferType::Default;
-        break;
-    }
-    
-    switch (desc.usage)
-    {
-    case RendererInterface::USAGE_VERTEX_BUFFER:
-        buffer_desc.usage = RUF_VERTEX_BUFFER; 
-        break;
-    case RendererInterface::USAGE_INDEX_BUFFER:
-        buffer_desc.usage = RUF_INDEX_BUFFER;
-        break;
-    case RendererInterface::USAGE_CBV:
-        buffer_desc.usage = RUF_ALLOW_CBV;
-        break;
-    case RendererInterface::USAGE_UAV:
-        buffer_desc.usage = RUF_ALLOW_UAV;
-        break;
-    case RendererInterface::USAGE_SRV:
-        buffer_desc.usage = RUF_ALLOW_SRV;
-        break;
-    }
-
     std::shared_ptr<IRHIBufferAllocation> buffer_allocation;
     bool allocated = m_memory_manager->AllocateBufferMemory(*m_device, buffer_desc, buffer_allocation);
     GLTF_CHECK(allocated);
 
     if (desc.data.has_value())
     {
-        m_memory_manager->UploadBufferData(*buffer_allocation, desc.data.value().get(), 0, desc.size );    
+        m_memory_manager->UploadBufferData(*m_device, GetCommandListForRecordPassCommand(), *buffer_allocation, desc.data.value(), 0, desc.size);    
     }
     
-    RendererInterface::BufferHandle buffer_handle = RendererInterface::InternalResourceHandleTable::Instance().RegisterBuffer(buffer_allocation);
-    return buffer_handle;
+    return RendererInterface::InternalResourceHandleTable::Instance().RegisterBuffer(buffer_allocation);
+}
+
+RendererInterface::IndexedBufferHandle ResourceManager::CreateIndexedBuffer(const RendererInterface::BufferDesc& desc)
+{
+    RHIBufferDesc buffer_desc = ConvertToRHIBufferDesc(desc);
+
+    GLTF_CHECK(desc.data.has_value() && (desc.usage == RendererInterface::USAGE_INDEX_BUFFER_R32 || desc.usage == RendererInterface::USAGE_INDEX_BUFFER_R16));
+    
+    auto index_buffer = std::make_shared<RHIIndexBuffer>();
+    IndexBufferData index_buffer_data{};
+    index_buffer_data.byte_size = desc.size;
+    index_buffer_data.data = std::make_unique<char[]>(index_buffer_data.byte_size);
+    index_buffer_data.format = desc.usage == RendererInterface::USAGE_INDEX_BUFFER_R32 ? RHIDataFormat::R32_UINT : RHIDataFormat::R16_UINT;
+    index_buffer_data.index_count = index_buffer_data.byte_size / (index_buffer_data.format == RHIDataFormat::R16_UINT ? sizeof(uint16_t) : sizeof(uint32_t));
+    
+    memcpy(index_buffer_data.data.get(), desc.data.value(),  index_buffer_data.byte_size);
+    
+    auto index_buffer_view = index_buffer->CreateIndexBufferView(*m_device, *m_memory_manager, GetCommandListForRecordPassCommand(), buffer_desc, index_buffer_data);
+    return RendererInterface::InternalResourceHandleTable::Instance().RegisterIndexedBuffer(index_buffer_view);
 }
 
 RendererInterface::ShaderHandle ResourceManager::CreateShader(const RendererInterface::ShaderDesc& shader_desc)

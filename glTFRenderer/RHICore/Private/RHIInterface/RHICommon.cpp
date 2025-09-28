@@ -364,3 +364,38 @@ RHITextureDesc RHITextureDesc::MakeVirtualTextureFeedbackDesc(unsigned width, un
 
     return texture_desc;
 }
+
+
+unsigned IndexBufferData::GetStride() const
+{
+    if (format == RHIDataFormat::R16_UINT)
+    {
+        return sizeof(USHORT);
+    }
+    else if (format == RHIDataFormat::R32_UINT)
+    {
+        return sizeof(UINT);
+        
+    }
+    GLTF_CHECK(false);
+    
+    return 0; 
+}
+
+unsigned IndexBufferData::GetIndexByOffset(size_t offset) const
+{
+    char* index_data = data.get() + GetStride() * offset;
+    if (format == RHIDataFormat::R16_UINT)
+    {
+        const USHORT* index_data_ushort = reinterpret_cast<USHORT*>(index_data);
+        return *index_data_ushort;
+    }
+    else if (format == RHIDataFormat::R32_UINT)
+    {
+        const UINT* index_data_uint = reinterpret_cast<UINT*>(index_data);
+        return *index_data_uint;
+    }
+    
+    GLTF_CHECK(false);
+    return 0;
+}

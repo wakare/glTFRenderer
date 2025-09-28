@@ -180,7 +180,7 @@ void glTFRenderMaterialManager::Tick(glTFRenderResourceManager& resource_manager
     }
 }
 
-const std::map<glTFUniqueID, std::unique_ptr<glTFMaterialRenderResource>>& glTFRenderMaterialManager::
+const std::map<RendererUniqueObjectID, std::unique_ptr<glTFMaterialRenderResource>>& glTFRenderMaterialManager::
     GetMaterialRenderResources() const
 {
     return m_material_render_resources;

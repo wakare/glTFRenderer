@@ -2,7 +2,7 @@
 
 #include <utility>
 
-#include "../glTFLoader/glTFElementCommon.h"
+#include "SceneFileLoader/glTFElementCommon.h"
 
 glTFMaterialOpaque::glTFMaterialOpaque()
     : glTFMaterialBase(MaterialType::Opaque)

@@ -10,7 +10,7 @@ class glTFRenderResourceManager;
 struct glTFMeshInstanceRenderResource
 {
     glm::mat4 m_instance_transform;
-    glTFUniqueID m_mesh_render_resource;
+    RendererUniqueObjectID m_mesh_render_resource;
     unsigned m_instance_material_id;
     bool m_normal_mapping;
 };
@@ -34,8 +34,8 @@ public:
     bool AddOrUpdatePrimitive(glTFRenderResourceManager& resource_manager, const glTFScenePrimitive* primitive);
     bool BuildMeshRenderResource(glTFRenderResourceManager& resource_manager);
 
-    const std::map<glTFUniqueID, glTFMeshInstanceRenderResource>& GetMeshInstanceRenderResource() const {return m_mesh_instances; }
-    const std::map<glTFUniqueID, glTFMeshRenderResource>& GetMeshRenderResources() const {return m_mesh_render_resources; }
+    const std::map<RendererUniqueObjectID, glTFMeshInstanceRenderResource>& GetMeshInstanceRenderResource() const {return m_mesh_instances; }
+    const std::map<RendererUniqueObjectID, glTFMeshRenderResource>& GetMeshRenderResources() const {return m_mesh_render_resources; }
 
     RHIIndirectDrawBuilder& GetIndirectDrawBuilder();
     const RHIIndirectDrawBuilder& GetIndirectDrawBuilder() const;
@@ -44,7 +44,7 @@ public:
     
     std::shared_ptr<RHIVertexBuffer> GetInstanceBuffer() const {return m_instance_buffer; }
     std::shared_ptr<IRHIVertexBufferView> GetInstanceBufferView() const {return m_instance_buffer_view; }
-    const std::map<glTFUniqueID, std::pair<unsigned, unsigned>>& GetInstanceDrawInfo() const {return m_instance_draw_infos; }
+    const std::map<RendererUniqueObjectID, std::pair<unsigned, unsigned>>& GetInstanceDrawInfo() const {return m_instance_draw_infos; }
     
     bool ResolveVertexInputLayout(const VertexLayoutDeclaration& source_vertex_layout);
 
@@ -54,13 +54,13 @@ public:
     const RHIVertexStreamingManager& GetVertexStreamingManager() const;
 
 protected:
-    std::map<glTFUniqueID, glTFMeshInstanceRenderResource> m_mesh_instances;
-    std::map<glTFUniqueID, glTFMeshRenderResource> m_mesh_render_resources;
+    std::map<RendererUniqueObjectID, glTFMeshInstanceRenderResource> m_mesh_instances;
+    std::map<RendererUniqueObjectID, glTFMeshRenderResource> m_mesh_render_resources;
 
     std::shared_ptr<RHIIndirectDrawBuilder> m_indirect_draw_builder;
     
     // mesh id -- <instance count, instance start offset>
-    std::map<glTFUniqueID, std::pair<unsigned, unsigned>> m_instance_draw_infos;
+    std::map<RendererUniqueObjectID, std::pair<unsigned, unsigned>> m_instance_draw_infos;
 
     std::vector<MeshInstanceInputData> m_instance_data;
     

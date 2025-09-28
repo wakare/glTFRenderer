@@ -124,7 +124,7 @@ bool glTFRenderInterfaceVirtualShadowMapView::ApplyInterfaceImpl(glTFRenderResou
     IRHICommandList& command_list, RHIPipelineType pipeline_type, IRHIDescriptorUpdater& descriptor_updater,
     unsigned frame_index)
 {    
-    resource_manager.GetMemoryManager().UploadBufferData(*m_virtual_shadowmap_buffer_allocations[resource_manager.GetCurrentBackBufferIndex()], &m_current_shadowmap_view, 0, sizeof(m_current_shadowmap_view));
+    resource_manager.GetMemoryManager().UploadBufferData(resource_manager.GetDevice(), command_list, *m_virtual_shadowmap_buffer_allocations[resource_manager.GetCurrentBackBufferIndex()], &m_current_shadowmap_view, 0, sizeof(m_current_shadowmap_view));
 
     RETURN_IF_FALSE(glTFRenderInterfaceViewBase::ApplyInterfaceImpl(resource_manager, command_list, pipeline_type,
                                                            descriptor_updater, frame_index))

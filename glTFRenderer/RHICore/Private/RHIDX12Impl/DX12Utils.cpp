@@ -805,6 +805,10 @@ bool DX12Utils::ProcessShaderMetaData(IRHIShader& shader)
             parameter_info.is_buffer = true;
             parameter_info.type = RHIRootParameterType::UAV;
             break;
+        case D3D_SIT_UAV_RWBYTEADDRESS:
+            parameter_info.is_buffer = true;
+            parameter_info.type = RHIRootParameterType::UAV;
+            break;
         default:
             // TODO: No support now
             GLTF_CHECK(false);

@@ -103,7 +103,6 @@ bool RenderPass::InitRenderPass(ResourceManager& resource_manager)
 
     m_descriptor_updater = RHIResourceFactory::CreateRHIResource<IRHIDescriptorUpdater>();
 
-
     return true;
 }
 

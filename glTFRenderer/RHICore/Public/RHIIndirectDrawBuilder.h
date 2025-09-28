@@ -28,7 +28,7 @@ __declspec(align(16)) struct MeshIndirectDrawCommand
 class RHICORE_API RHIIndirectDrawBuilder
 {
 public:
-    bool InitIndirectDrawBuilder(IRHIDevice& device, IRHIMemoryManager& memory_manager, const std::vector<RHIIndirectArgumentDesc>& indirect_argument_desc, unsigned command_stride, const void* data, size_t size);
+    bool InitIndirectDrawBuilder(IRHIDevice& device, IRHICommandList& command_list, IRHIMemoryManager& memory_manager, const std::vector<RHIIndirectArgumentDesc>& indirect_argument_desc, unsigned command_stride, const void* data, size_t size);
     std::shared_ptr<IRHICommandSignature> BuildCommandSignature(IRHIDevice& device, IRHIRootSignature& root_signature) const;
     
     unsigned GetCommandStride() const;

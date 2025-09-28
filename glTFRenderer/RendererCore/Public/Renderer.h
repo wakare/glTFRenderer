@@ -15,6 +15,7 @@ namespace RendererInterface
     typedef unsigned ShaderHandle;
     typedef unsigned TextureHandle;
     typedef unsigned BufferHandle;
+    typedef unsigned IndexedBufferHandle;
     typedef unsigned RenderTargetHandle;
     
     typedef unsigned RenderDeviceHandle;
@@ -100,7 +101,8 @@ namespace RendererInterface
     {
         USAGE_NONE,
         USAGE_VERTEX_BUFFER,
-        USAGE_INDEX_BUFFER,
+        USAGE_INDEX_BUFFER_R32,
+        USAGE_INDEX_BUFFER_R16,
         USAGE_CBV,
         USAGE_UAV,
         USAGE_SRV,
@@ -114,7 +116,7 @@ namespace RendererInterface
         size_t size;
         
         // optional
-        std::optional<std::unique_ptr<char[]>> data;
+        std::optional<void*> data;
     };
 
     enum RenderPassType
@@ -212,6 +214,15 @@ namespace RendererInterface
         unsigned start_vertex_location;
         unsigned start_instance_location;
     };
+
+    struct DrawIndexedInstanceParameter
+    {
+        unsigned index_count_per_instance;
+        unsigned instance_count;
+        unsigned start_index_location;
+        unsigned start_vertex_location;
+        unsigned start_instance_location;
+    };
     
     struct ExecuteCommandParameter
     {
@@ -220,6 +231,7 @@ namespace RendererInterface
             DrawIndexedCommandParameter     draw_indexed_command_parameter;
             DrawVertexCommandParameter      draw_vertex_command_parameter;
             DrawVertexInstanceParameter     draw_vertex_instance_command_parameter;
+            DrawIndexedInstanceParameter    draw_indexed_instance_command_parameter;
         };
     };
     
@@ -254,7 +266,7 @@ namespace RendererInterface
 
     struct RenderPassDrawDesc
     {
-        RenderExecuteCommand execute_command;
+        std::vector<RenderExecuteCommand> execute_commands;
         std::map<RenderTargetHandle, RenderTargetBindingDesc> render_target_resources;
         std::map<RenderTargetHandle, bool> render_target_clear_states;
         std::map<std::string, BufferBindingDesc> buffer_resources;
