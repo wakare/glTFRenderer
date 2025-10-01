@@ -71,14 +71,14 @@ void glTFSceneRendererBase::TickFrameRenderingEnd(glTFRenderResourceManager& res
     m_pass_manager->RenderEnd(resource_manager, delta_time_ms);
 }
 
-void glTFSceneRendererBase::ApplyInput(const glTFInputManager& input_manager, size_t delta_time_ms)
+void glTFSceneRendererBase::ApplyInput(const RendererInputDevice& input_manager, size_t delta_time_ms)
 {
-    if (input_manager.IsKeyPressed(GLFW_KEY_C))
+    if (input_manager.IsKeyPressed(InputDeviceKeyType::KEY_C))
     {
         m_pass_options.SetEnableCulling(true);
     }
 
-    if (input_manager.IsKeyPressed(GLFW_KEY_V))
+    if (input_manager.IsKeyPressed(InputDeviceKeyType::KEY_V))
     {
         m_pass_options.SetEnableCulling(false);
     }

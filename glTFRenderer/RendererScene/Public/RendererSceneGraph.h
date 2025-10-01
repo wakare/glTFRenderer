@@ -47,10 +47,15 @@ public:
     void Scale(const glm::fvec3& scale);
 
     void MarkTransformDirty();
-
+    bool IsTransformDirty() const;
+    
     glm::fmat4 GetTransformMatrix();
-
+    
     static std::shared_ptr<RendererSceneNodeTransform> identity_transform;
+
+    glm::fvec3 GetTranslation() const;
+    glm::fvec3 GetRotationEulerAngle() const;
+    glm::fvec3 GetScale() const;
     
 protected:
     glm::fvec3 m_translation{};

@@ -238,7 +238,7 @@
       <LibCompiled>true</LibCompiled>
     </ClCompile>
     <ClCompile Include="Private\RendererCommonLib.cpp" />
-    <ClCompile Include="Private\RenderWindow\glTFInputManager.cpp" />
+    <ClCompile Include="Private\RenderWindow\RendererInputDevice.cpp" />
     <ClCompile Include="Private\RenderWindow\glTFWindow.cpp" />
     <ClCompile Include="Private\SceneFileLoader\glTFElementCommon.cpp" />
     <ClCompile Include="Private\SceneFileLoader\glTFImageIOUtil.cpp" />
@@ -247,7 +247,7 @@
   <ItemGroup>
     <ClInclude Include="Public\AsyncFileLoader.h" />
     <ClInclude Include="Public\RendererCommon.h" />
-    <ClInclude Include="Public\RenderWindow\glTFInputManager.h" />
+    <ClInclude Include="Public\RenderWindow\RendererInputDevice.h" />
     <ClInclude Include="Public\RenderWindow\glTFWindow.h" />
     <ClInclude Include="Public\SceneFileLoader\glTFElementCommon.h" />
     <ClInclude Include="Public\SceneFileLoader\glTFImageIOUtil.h" />

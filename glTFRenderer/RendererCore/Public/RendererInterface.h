@@ -5,6 +5,7 @@
 
 #include "Renderer.h"
 
+class RendererInputDevice;
 class IRHIBufferDescriptorAllocation;
 class IRHIDescriptorManager;
 class IRHIDevice;
@@ -21,21 +22,24 @@ namespace RendererInterface
     class RenderWindow
     {
     public:
-        typedef std::function<void()> RenderWindowTickCallback;
+        typedef std::function<void(unsigned long long)> RenderWindowTickCallback;
         
         RenderWindow(const RenderWindowDesc& desc);
         RenderWindowHandle GetHandle() const;
         unsigned GetWidth() const;
         unsigned GetHeight() const;
         HWND GetHWND() const;
-        void TickWindow() const;
+        void TickWindow();
 
         void RegisterTickCallback(const RenderWindowTickCallback& callback);
+        const RendererInputDevice& GetInputDevice() const;
         
     protected:
+        
         RenderWindowDesc m_desc;
         RenderWindowHandle m_handle;
         HWND m_hwnd;
+        std::shared_ptr<RendererInputDevice> m_input_device;
     };
 
     struct BufferUploadDesc
@@ -87,7 +91,7 @@ namespace RendererInterface
         bool CompileRenderPassAndExecute();
 
     protected:
-        void ExecuteRenderGraphNode(IRHICommandList& command_list, RenderGraphNodeHandle render_graph_node_handle);
+        void ExecuteRenderGraphNode(IRHICommandList& command_list, RenderGraphNodeHandle render_graph_node_handle, unsigned long long interval);
         void CloseCurrentCommandListAndExecute(IRHICommandList& command_list, const RHIExecuteCommandListContext& context, bool wait);
         void Present(IRHICommandList& command_list);
         
@@ -107,7 +111,7 @@ namespace RendererInterface
         {
             VERTEX_POSITION_FLOAT3,
             VERTEX_NORMAL_FLOAT3,
-            VERTEX_TANGENT_FLOAT3,
+            VERTEX_TANGENT_FLOAT4,
             VERTEX_TEXCOORD0_FLOAT2,
             INDEX_INT,
             INDEX_HALF,

@@ -1,19 +1,33 @@
 #pragma once
+#include <memory>
 #include <glm/glm/glm.hpp>
 
-class RendererSceneCamera
+class RendererSceneNodeTransform;
+
+enum class CameraMode
+{
+    Observer,
+    Free
+};
+
+struct RendererCameraDesc
+{
+    glm::fmat4 transform;
+    float fov_angle;
+    float projection_width;
+    float projection_height;
+    float projection_near;
+    float projection_far;
+    CameraMode mode = CameraMode::Free;
+};
+
+class RendererCamera
 {
 public:
-    enum class CameraMode
-    {
-        Observer,
-        Free
-    };
+    RendererCamera(const RendererCameraDesc& camera_desc);
 
-    RendererSceneCamera(glm::fvec3 camera_local_position, float fov_angle, float projection_width, float projection_height, float projection_near, float projection_far, CameraMode mode = CameraMode::Free);
-
-    glm::fmat4x4 GetViewProjectionMatrix() const;
-    glm::fmat4x4 GetViewMatrix() const;
+    glm::fmat4x4 GetViewProjectionMatrix();
+    glm::fmat4x4 GetViewMatrix();
     glm::fmat4x4 GetProjectionMatrix() const;
 
     float GetAspect() const {return m_projection_width / m_projection_height; }
@@ -35,6 +49,13 @@ public:
     glm::vec3 GetCameraPosition() const;
 
     void GetCameraViewportSize(unsigned& out_width, unsigned& out_height) const;
+    RendererSceneNodeTransform& GetCameraTransform();
+
+    void TranslateOffset(const glm::fvec3& translation);
+    void RotateEulerAngleOffset(const glm::fvec3& euler_angle);
+
+    void MarkTransformDirty();
+    bool IsTransformDirty() const;
     
 protected:
     CameraMode m_mode;
@@ -45,7 +66,8 @@ protected:
     float m_projection_near;
     float m_projection_far;
 
-    glm::fvec3 m_camera_local_position;
+    std::shared_ptr<RendererSceneNodeTransform> m_transform;
+    //glm::fvec3 m_camera_local_position;
     glm::fvec3 m_observe_center;
     glm::fmat4 m_observe_matrix;
 };

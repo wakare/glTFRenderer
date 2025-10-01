@@ -44,10 +44,10 @@ void RendererSceneMeshDataAccessor::AccessMeshData(MeshDataAccessorType type, un
             memcpy(mesh_vertex_infos[vertex_offset + i].normal, float_data + i * 3, 3 * sizeof(float));
         }
         break;
-    case MeshDataAccessorType::VERTEX_TANGENT_FLOAT3:
+    case MeshDataAccessorType::VERTEX_TANGENT_FLOAT4:
         for (size_t i = 0; i < element_size; i++)
         {
-            memcpy(mesh_vertex_infos[vertex_offset + i].tangent, float_data + i * 3, 3 * sizeof(float));
+            memcpy(mesh_vertex_infos[vertex_offset + i].tangent, float_data + i * 4, 4 * sizeof(float));
         }
         break;
     case MeshDataAccessorType::VERTEX_TEXCOORD0_FLOAT2:
@@ -127,7 +127,7 @@ SceneRendererDrawDispatcher::SceneRendererDrawDispatcher(RendererInterface::Reso
     m_mesh_buffer_vertex_info_handle = resource_operator.CreateBuffer(vertex_info_buffer_desc);
 
     start_offset_info_buffer_desc.type = RendererInterface::DEFAULT;
-    start_offset_info_buffer_desc.name = "start_offset_info";
+    start_offset_info_buffer_desc.name = "mesh_start_info";
     start_offset_info_buffer_desc.usage = RendererInterface::USAGE_SRV;
     start_offset_info_buffer_desc.size = sizeof(SceneMeshDataOffsetInfo) * m_mesh_data_accessor.start_offset_infos.size();
     start_offset_info_buffer_desc.data = m_mesh_data_accessor.start_offset_infos.data();

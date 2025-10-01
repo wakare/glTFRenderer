@@ -279,7 +279,7 @@ namespace RendererInterface
 
         std::vector<RenderGraphNodeHandle> dependency_render_graph_nodes;
 
-        std::function<void()> pre_render_callback;
+        std::function<void(unsigned long long)> pre_render_callback;
     };
 
     struct RenderSceneDesc

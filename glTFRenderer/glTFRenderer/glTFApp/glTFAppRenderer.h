@@ -32,8 +32,8 @@ public:
     bool InitScene(std::shared_ptr<glTFSceneGraph> scene_graph);
     
     void TickRenderingBegin(size_t delta_time_ms);
-    void TickSceneUpdating(const glTFSceneGraph& scene_graph, const glTFInputManager& input_manager, size_t delta_time_ms);
-    void TickSceneRendering(const glTFInputManager& input_manager, const glTFSceneGraph& scene_graph, size_t delta_time_ms);
+    void TickSceneUpdating(const glTFSceneGraph& scene_graph, const RendererInputDevice& input_manager, size_t delta_time_ms);
+    void TickSceneRendering(const RendererInputDevice& input_manager, const glTFSceneGraph& scene_graph, size_t delta_time_ms);
     void TickGUIWidgetUpdate(size_t delta_time_ms);
     void TickRenderingEnd(size_t delta_time_ms);
 

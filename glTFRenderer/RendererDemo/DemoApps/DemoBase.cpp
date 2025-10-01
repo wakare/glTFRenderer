@@ -5,7 +5,6 @@
 bool DemoBase::InitRenderContext(const std::vector<std::string>& arguments)
 {
     bool bUseDX = true;
-    unsigned int width{1280}, height{720};
     
     for (const auto& argument : arguments)
     {
@@ -21,8 +20,8 @@ bool DemoBase::InitRenderContext(const std::vector<std::string>& arguments)
     }
 
     RendererInterface::RenderWindowDesc window_desc{};
-    window_desc.width = width;
-    window_desc.height = height;
+    window_desc.width = m_width;
+    window_desc.height = m_height;
     
     m_window = std::make_shared<RendererInterface::RenderWindow>(window_desc);
 

@@ -59,7 +59,7 @@ protected:
     unsigned GetHeight() const;
 
     bool UpdateGUIWidgets();
-    std::shared_ptr<glTFInputManager> m_input_manager;
+    std::shared_ptr<RendererInputDevice> m_input_device;
 
     glTFTimer m_timer;
     std::shared_ptr<glTFSceneGraph> m_scene_graph;

@@ -13,6 +13,7 @@
 #include "RHIInterface/IRHIDescriptorUpdater.h"
 #include "RHIInterface/IRHIMemoryManager.h"
 #include "RHIInterface/IRHISwapChain.h"
+#include "RHIInterface/RHIIndexBuffer.h"
 
 namespace RendererInterface
 {
@@ -27,6 +28,9 @@ namespace RendererInterface
         glTFWindow::Get().InitAndShowWindow();
         m_handle = InternalResourceHandleTable::Instance().RegisterWindow(*this);
         m_hwnd = glTFWindow::Get().GetHWND();
+        
+        m_input_device = std::make_shared<RendererInputDevice>();
+        glTFWindow::Get().SetInputManager(m_input_device);
     }
 
     RenderWindowHandle RenderWindow::GetHandle() const
@@ -49,7 +53,7 @@ namespace RendererInterface
         return m_hwnd;
     }
 
-    void RenderWindow::TickWindow() const
+    void RenderWindow::TickWindow()
     {
         glTFWindow::Get().UpdateWindow();
     }
@@ -57,6 +61,11 @@ namespace RendererInterface
     void RenderWindow::RegisterTickCallback(const RenderWindowTickCallback& callback)
     {
         glTFWindow::Get().SetTickCallback(callback);
+    }
+
+    const RendererInputDevice& RenderWindow::GetInputDevice() const
+    {
+        return *m_input_device;
     }
 
     RendererSceneResourceManager::RendererSceneResourceManager(ResourceOperator& allocator,const RenderSceneDesc& desc)
@@ -166,7 +175,7 @@ namespace RendererInterface
                         auto vertex_count = mesh->GetVertexBuffer().vertex_count;
                         std::vector<float> vertex_positions(vertex_count * 3);
                         std::vector<float> vertex_normals(vertex_count * 3);
-                        std::vector<float> vertex_tangents(vertex_count * 3);
+                        std::vector<float> vertex_tangents(vertex_count * 4);
                         std::vector<float> vertex_uvs(vertex_count * 2);
 
                         for (size_t i = 0; i < vertex_count; ++i)
@@ -175,19 +184,37 @@ namespace RendererInterface
                             mesh->GetVertexBuffer().GetVertexAttributeDataByIndex(VertexAttributeType::VERTEX_POSITION, i, &vertex_positions[3 * i], out_data_size);
                             GLTF_CHECK(out_data_size == 3 * sizeof(float));
                         
-                            mesh->GetVertexBuffer().GetVertexAttributeDataByIndex(VertexAttributeType::VERTEX_NORMAL, i, &vertex_normals[3 * i], out_data_size);
-                            GLTF_CHECK(out_data_size == 3 * sizeof(float));
+                            if (mesh->GetVertexBuffer().GetVertexAttributeDataByIndex(VertexAttributeType::VERTEX_NORMAL, i, &vertex_normals[3 * i], out_data_size))
+                            {
+                                GLTF_CHECK(out_data_size == 3 * sizeof(float));    
+                            }
+                            else
+                            {
+                                LOG_FORMAT_FLUSH("[WARN] Mesh %d has no normal vertex data!\n", mesh->GetID());
+                            }
 
-                            mesh->GetVertexBuffer().GetVertexAttributeDataByIndex(VertexAttributeType::VERTEX_TANGENT, i, &vertex_tangents[3 * i], out_data_size);
-                            GLTF_CHECK(out_data_size == 3 * sizeof(float));
-
-                            mesh->GetVertexBuffer().GetVertexAttributeDataByIndex(VertexAttributeType::VERTEX_TEXCOORD0, i, &vertex_uvs[2 * i], out_data_size);
-                            GLTF_CHECK(out_data_size == 2 * sizeof(float));
+                            if (mesh->GetVertexBuffer().GetVertexAttributeDataByIndex(VertexAttributeType::VERTEX_TANGENT, i, &vertex_tangents[4 * i], out_data_size))
+                            {
+                                GLTF_CHECK(out_data_size == 4 * sizeof(float));    
+                            }
+                            else
+                            {
+                                LOG_FORMAT_FLUSH("[WARN] Mesh %d has no tangent vertex data!\n", mesh->GetID());
+                            }
+                            
+                            if (mesh->GetVertexBuffer().GetVertexAttributeDataByIndex(VertexAttributeType::VERTEX_TEXCOORD0, i, &vertex_uvs[2 * i], out_data_size))
+                            {
+                                GLTF_CHECK(out_data_size == 2 * sizeof(float));    
+                            }
+                            else
+                            {
+                                LOG_FORMAT_FLUSH("[WARN] Mesh %d has no uv vertex data!\n", mesh->GetID());
+                            }
                         }
 
                         data_accessor.AccessMeshData(RendererSceneMeshDataAccessorBase::MeshDataAccessorType::VERTEX_POSITION_FLOAT3, mesh_id, vertex_positions.data(), vertex_count);
                         data_accessor.AccessMeshData(RendererSceneMeshDataAccessorBase::MeshDataAccessorType::VERTEX_NORMAL_FLOAT3, mesh_id, vertex_normals.data(), vertex_count);
-                        data_accessor.AccessMeshData(RendererSceneMeshDataAccessorBase::MeshDataAccessorType::VERTEX_TANGENT_FLOAT3, mesh_id, vertex_tangents.data(), vertex_count);
+                        data_accessor.AccessMeshData(RendererSceneMeshDataAccessorBase::MeshDataAccessorType::VERTEX_TANGENT_FLOAT4, mesh_id, vertex_tangents.data(), vertex_count);
                         data_accessor.AccessMeshData(RendererSceneMeshDataAccessorBase::MeshDataAccessorType::VERTEX_TEXCOORD0_FLOAT2, mesh_id, vertex_uvs.data(), vertex_count);
 
                         auto index = mesh->GetIndexBuffer().data.get();
@@ -199,7 +226,8 @@ namespace RendererInterface
                 }
             }
             
-            return true;
+            // No stop
+            return false;
         };
         
         scene_graph->GetRootNode().Traverse(scene_node_traverse);
@@ -361,7 +389,7 @@ namespace RendererInterface
 
         auto final_color_output = InternalResourceHandleTable::Instance().GetRenderTarget(final_color_output_handle);
         
-        m_window.RegisterTickCallback([this, final_color_output]()
+        m_window.RegisterTickCallback([this, final_color_output](unsigned long long interval)
         {
             auto& command_list = m_resource_allocator.GetCommandListForRecordPassCommand();
             // Wait current frame available
@@ -369,7 +397,7 @@ namespace RendererInterface
             
             for (auto render_graph_node : m_render_graph_node_handles)
             {
-                ExecuteRenderGraphNode(command_list, render_graph_node);
+                ExecuteRenderGraphNode(command_list, render_graph_node, interval);
             }
 
             if (!m_render_graph_node_handles.empty())
@@ -396,12 +424,12 @@ namespace RendererInterface
         return true;
     }
 
-    void RenderGraph::ExecuteRenderGraphNode(IRHICommandList& command_list, RenderGraphNodeHandle render_graph_node_handle)
+    void RenderGraph::ExecuteRenderGraphNode(IRHICommandList& command_list, RenderGraphNodeHandle render_graph_node_handle, unsigned long long interval)
     {
         auto& render_graph_node_desc = m_render_graph_nodes[render_graph_node_handle];
         if (render_graph_node_desc.pre_render_callback)
         {
-            render_graph_node_desc.pre_render_callback();   
+            render_graph_node_desc.pre_render_callback(interval);
         }
         
         auto render_pass = InternalResourceHandleTable::Instance().GetRenderPass(render_graph_node_desc.render_pass_handle);
@@ -496,6 +524,17 @@ namespace RendererInterface
             }
 
             auto buffer_descriptor = m_buffer_descriptors.at(buffer_handle);
+            switch (buffer.second.binding_type) {
+            case BufferBindingDesc::CBV:
+                buffer_allocation->m_buffer->Transition(command_list, RHIResourceStateType::STATE_VERTEX_AND_CONSTANT_BUFFER);
+                break;
+            case BufferBindingDesc::SRV:
+                buffer_allocation->m_buffer->Transition(command_list, RHIResourceStateType::STATE_ALL_SHADER_RESOURCE);
+                break;
+            case BufferBindingDesc::UAV:
+                buffer_allocation->m_buffer->Transition(command_list, RHIResourceStateType::STATE_ALL_SHADER_RESOURCE);
+                break;
+            }
             render_pass->GetDescriptorUpdater().BindDescriptor(command_list, pipeline_type, root_signature_allocation, *buffer_descriptor);
         }
 
@@ -531,7 +570,9 @@ namespace RendererInterface
                 break;
             case ExecuteCommandType::DRAW_INDEXED_INSTANCING_COMMAND:
                 {
-                    auto indexed_buffer_view = InternalResourceHandleTable::Instance().GetIndexBuffer(command.input_buffer.index_buffer_handle);
+                    auto indexed_buffer_view = InternalResourceHandleTable::Instance().GetIndexBufferView(command.input_buffer.index_buffer_handle);
+                    auto indexed_buffer = InternalResourceHandleTable::Instance().GetIndexBuffer(command.input_buffer.index_buffer_handle);
+                    indexed_buffer->GetBuffer().Transition(command_list, RHIResourceStateType::STATE_INDEX_BUFFER);
                     RHIUtilInstanceManager::Instance().SetIndexBufferView(command_list, *indexed_buffer_view);
                     RHIUtilInstanceManager::Instance().DrawIndexInstanced(command_list,
                         command.parameter.draw_indexed_instance_command_parameter.index_count_per_instance,

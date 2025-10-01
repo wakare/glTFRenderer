@@ -63,7 +63,7 @@ void DemoTriangleApp::Run(const std::vector<std::string>& arguments)
     RendererInterface::RenderGraphNodeDesc render_graph_node_desc{};
     render_graph_node_desc.draw_info  = render_pass_draw_desc;
     render_graph_node_desc.render_pass_handle = render_pass_handle;
-    render_graph_node_desc.pre_render_callback = [&]()
+    render_graph_node_desc.pre_render_callback = [&](unsigned long long time_interval)
     {
         color[0] += 0.05f;
         color[1] += 0.03f;

@@ -2,7 +2,7 @@
 
 #include <gtx/norm.hpp>
 
-#include "RenderWindow/glTFInputManager.h"
+#include "RenderWindow/RendererInputDevice.h"
 #include "glTFRenderPass/glTFRenderPassManager.h"
 #include "glTFRenderPass/glTFComputePass/glTFComputePassLighting.h"
 
@@ -38,7 +38,7 @@ glm::mat4 glTFSceneView::GetProjectionMatrix() const
     return GetMainCamera() ? GetMainCamera()->GetProjectionMatrix() : glm::mat4(1.0f);
 }
 
-void glTFSceneView::ApplyInput(const glTFInputManager& input_manager, size_t delta_time_ms) const
+void glTFSceneView::ApplyInput(const RendererInputDevice& input_manager, size_t delta_time_ms) const
 {
     // Manipulate one camera
     glTFCamera* main_camera = GetMainCamera();
@@ -48,12 +48,12 @@ void glTFSceneView::ApplyInput(const glTFInputManager& input_manager, size_t del
     }
 
     // Focus scene center
-    if (input_manager.IsKeyPressed(GLFW_KEY_O))
+    if (input_manager.IsKeyPressed(InputDeviceKeyType::KEY_O))
     {
         main_camera->SetCameraMode(CameraMode::Observer);
         FocusSceneCenter(*main_camera);    
     }
-    if (input_manager.IsKeyPressed(GLFW_KEY_F))
+    if (input_manager.IsKeyPressed(InputDeviceKeyType::KEY_F))
     {
         main_camera->SetCameraMode(CameraMode::Free);
     }
@@ -165,7 +165,7 @@ void glTFSceneView::FocusSceneCenter(glTFCamera& camera) const
     camera.Observe(sceneAABB.getCenter());
 }
 
-void glTFSceneView::ApplyInputForCamera(const glTFInputManager& input_manager, glTFCamera& camera, size_t delta_time_ms)
+void glTFSceneView::ApplyInputForCamera(const RendererInputDevice& input_manager, glTFCamera& camera, size_t delta_time_ms)
 {
     bool need_apply_movement = false;
     glm::fvec3 delta_translation = {0.0f, 0.0f, 0.0f};
@@ -174,37 +174,37 @@ void glTFSceneView::ApplyInputForCamera(const glTFInputManager& input_manager, g
     if (camera.GetCameraMode() == CameraMode::Free)
     {
         // Handle movement
-        if (input_manager.IsKeyPressed(GLFW_KEY_W))
+        if (input_manager.IsKeyPressed(InputDeviceKeyType::KEY_W))
         {
             delta_translation.z += 1.0f;
             need_apply_movement = true;
         }
     
-        if (input_manager.IsKeyPressed(GLFW_KEY_S))
+        if (input_manager.IsKeyPressed(InputDeviceKeyType::KEY_S))
         {
             delta_translation.z -= 1.0f;
             need_apply_movement = true;
         }
     
-        if (input_manager.IsKeyPressed(GLFW_KEY_A))
+        if (input_manager.IsKeyPressed(InputDeviceKeyType::KEY_A))
         {
             delta_translation.x -= 1.0f;
             need_apply_movement = true;
         }
     
-        if (input_manager.IsKeyPressed(GLFW_KEY_D))
+        if (input_manager.IsKeyPressed(InputDeviceKeyType::KEY_D))
         {
             delta_translation.x += 1.0f;
             need_apply_movement = true;
         }
     
-        if (input_manager.IsKeyPressed(GLFW_KEY_Q))
+        if (input_manager.IsKeyPressed(InputDeviceKeyType::KEY_Q))
         {
             delta_translation.y += 1.0f;
             need_apply_movement = true;
         }
     
-        if (input_manager.IsKeyPressed(GLFW_KEY_E))
+        if (input_manager.IsKeyPressed(InputDeviceKeyType::KEY_E))
         {
             delta_translation.y -= 1.0f;
             need_apply_movement = true;
@@ -212,45 +212,45 @@ void glTFSceneView::ApplyInputForCamera(const glTFInputManager& input_manager, g
     }
     else
     {
-        if (input_manager.IsKeyPressed(GLFW_KEY_W))
+        if (input_manager.IsKeyPressed(InputDeviceKeyType::KEY_W))
         {
             delta_rotation.x += 1.0f;
             need_apply_movement = true;
         }
     
-        if (input_manager.IsKeyPressed(GLFW_KEY_S))
+        if (input_manager.IsKeyPressed(InputDeviceKeyType::KEY_S))
         {
             delta_rotation.x -= 1.0f;
             need_apply_movement = true;
         }
     
-        if (input_manager.IsKeyPressed(GLFW_KEY_A))
+        if (input_manager.IsKeyPressed(InputDeviceKeyType::KEY_A))
         {
             delta_rotation.y += 1.0f;
             need_apply_movement = true;
         }
     
-        if (input_manager.IsKeyPressed(GLFW_KEY_D))
+        if (input_manager.IsKeyPressed(InputDeviceKeyType::KEY_D))
         {
             delta_rotation.y -= 1.0f;
             need_apply_movement = true;
         }
 
-        if (input_manager.IsKeyPressed(GLFW_KEY_Q))
+        if (input_manager.IsKeyPressed(InputDeviceKeyType::KEY_Q))
         {
             delta_translation.z += (camera.GetObserveDistance() + 1.0f);
             need_apply_movement = true;
         }
         
-        if (input_manager.IsKeyPressed(GLFW_KEY_E))
+        if (input_manager.IsKeyPressed(InputDeviceKeyType::KEY_E))
         {
             delta_translation.z -= (camera.GetObserveDistance() + 1.0f);
             need_apply_movement = true;
         }
     }
     
-    if (input_manager.IsKeyPressed(GLFW_KEY_LEFT_CONTROL) ||
-        input_manager.IsMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT))
+    if (input_manager.IsKeyPressed(InputDeviceKeyType::KEY_LEFT_CONTROL) ||
+        input_manager.IsMouseButtonPressed(InputDeviceButtonType::MOUSE_BUTTON_LEFT))
     {
         const auto cursor_offset = input_manager.GetCursorOffset();
         

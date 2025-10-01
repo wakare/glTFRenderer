@@ -4,7 +4,7 @@
 #include <functional>
 #include <memory>
 
-#include "glTFInputManager.h"
+#include "RendererInputDevice.h"
 
 class glTFWindow
 {
@@ -16,7 +16,7 @@ public:
 
     bool RegisterCallbackEventNative();
     
-    void UpdateWindow() const;
+    void UpdateWindow();
 
     void SetWidth(int width);
     void SetHeight(int height);
@@ -28,9 +28,9 @@ public:
     bool NeedHandleInput() const;
 
     void SetInputHandleCallback(const std::function<bool()>& input_handle_function);
-    void SetTickCallback(const std::function<void()>& tick);
+    void SetTickCallback(const std::function<void(unsigned long long)>& tick);
     void SetExitCallback(const std::function<void()>& exit);
-    void SetInputManager(const std::shared_ptr<glTFInputManager>& input_manager);
+    void SetInputManager(const std::shared_ptr<RendererInputDevice>& input_manager);
     
 private:
     glTFWindow();
@@ -44,8 +44,10 @@ private:
     int m_width;
     int m_height;
     
-    std::shared_ptr<glTFInputManager> m_input_control;
-    std::function<void()> m_tick_callback {nullptr};
+    std::shared_ptr<RendererInputDevice> m_input_control;
+    std::function<void(unsigned long long)> m_tick_callback {nullptr};
     std::function<void()> m_exit_callback {nullptr};
     std::function<bool()> m_handle_input_event {nullptr};
+
+    unsigned long long m_last_tick_time{0};
 };

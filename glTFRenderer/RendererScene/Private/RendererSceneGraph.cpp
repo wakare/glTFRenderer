@@ -159,6 +159,11 @@ void RendererSceneNodeTransform::MarkTransformDirty()
     m_transform_dirty = true;
 }
 
+bool RendererSceneNodeTransform::IsTransformDirty() const
+{
+	return m_transform_dirty;
+}
+
 glm::fmat4 RendererSceneNodeTransform::GetTransformMatrix()
 {
     if (m_transform_dirty)
@@ -173,6 +178,21 @@ glm::fmat4 RendererSceneNodeTransform::GetTransformMatrix()
     }
 
     return m_cached_transform;
+}
+
+glm::fvec3 RendererSceneNodeTransform::GetTranslation() const
+{
+	return m_translation;	
+}
+
+glm::fvec3 RendererSceneNodeTransform::GetRotationEulerAngle() const
+{
+	return m_euler_angles;
+}
+
+glm::fvec3 RendererSceneNodeTransform::GetScale() const
+{
+	return m_scale;
 }
 
 RendererSceneNode::RendererSceneNode(std::weak_ptr<RendererSceneNode> parent, std::shared_ptr<RendererSceneNodeTransform> local_transform)

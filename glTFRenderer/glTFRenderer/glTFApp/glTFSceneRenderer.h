@@ -5,7 +5,7 @@
 #include "glTFRenderSystem/RenderSystemBase.h"
 
 class glTFRenderResourceManager;
-class glTFInputManager;
+class RendererInputDevice;
 class glTFSceneView;
 class glTFSceneGraph;
 
@@ -23,7 +23,7 @@ public:
     virtual void TickGUIWidgetUpdate(glTFGUIRenderer& GUI, glTFRenderResourceManager& resource_manager, size_t delta_time_ms);
     virtual void TickFrameRenderingEnd(glTFRenderResourceManager& resource_manager, size_t delta_time_ms);
     
-    void ApplyInput(const glTFInputManager& input_manager, size_t delta_time_ms);
+    void ApplyInput(const RendererInputDevice& input_manager, size_t delta_time_ms);
     glTFRenderPassManager& GetPassManager();
     
 protected:

@@ -171,7 +171,17 @@ bool glTFLoader::LoadFile(const std::string& file_path)
     }
 
     // Record scene file directory
-    auto last_slash_index = file_path.find_last_of('/\\');
+    auto slash_index0 = file_path.find_last_of('/');
+    auto slash_index1 = file_path.find_last_of('\\');
+    auto last_slash_index = std::string::npos;
+    if (slash_index0 == std::string::npos || slash_index1 == std::string::npos)
+    {
+        last_slash_index = slash_index0 == std::string::npos ? slash_index1 : slash_index0;
+    }
+    else
+    {
+        last_slash_index = std::max(file_path.find_last_of('/'), file_path.find_last_of('\\'));
+    }
     GLTF_CHECK(last_slash_index != std::string::npos);
     m_scene_file_directory = std::string(file_path.data(), last_slash_index + 1);
     
@@ -448,16 +458,9 @@ bool glTFLoader::LoadFile(const std::string& file_path)
         m_accessors.push_back(std::move(element));
     }
     
-    std::string directory;
-    const size_t last_slash_idx = file_path.rfind('\\');
-    if (std::string::npos != last_slash_idx)
-    {
-        directory = file_path.substr(0, last_slash_idx);
-    }
-    
     for (const auto& buffer : m_buffers)
     {
-        const std::string uriFilePath = directory + "\\" + buffer->uri;
+        const std::string uriFilePath = m_scene_file_directory + "\\" + buffer->uri;
         std::ifstream uriFileStream(uriFilePath, std::ios::binary | std::ios::in | std::ios::ate);
         if (uriFileStream.bad())
         {

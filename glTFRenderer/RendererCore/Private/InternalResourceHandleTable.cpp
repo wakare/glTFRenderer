@@ -84,15 +84,22 @@ std::shared_ptr<RendererSceneGraph> RendererInterface::InternalResourceHandleTab
     return m_render_scene_graphs.at(handle);
 }
 
-RendererInterface::IndexedBufferHandle RendererInterface::InternalResourceHandleTable::RegisterIndexedBuffer(
-    std::shared_ptr<IRHIIndexBufferView> buffer)
+RendererInterface::IndexedBufferHandle RendererInterface::InternalResourceHandleTable::RegisterIndexedBufferAndView(
+    std::shared_ptr<IRHIIndexBufferView> buffer_view, std::shared_ptr<RHIIndexBuffer> buffer)
 {
     RenderSceneHandle result = _internal_handle++;
-    m_indexed_buffer_views.emplace(result, buffer);
+    m_indexed_buffer_views.emplace(result, buffer_view);
+    m_indexed_buffers.emplace(result, buffer);
     return result;
 }
 
-std::shared_ptr<IRHIIndexBufferView> RendererInterface::InternalResourceHandleTable::GetIndexBuffer(
+std::shared_ptr<RHIIndexBuffer> RendererInterface::InternalResourceHandleTable::GetIndexBuffer(
+    IndexedBufferHandle handle) const
+{
+    return m_indexed_buffers.at(handle);
+}
+
+std::shared_ptr<IRHIIndexBufferView> RendererInterface::InternalResourceHandleTable::GetIndexBufferView(
     IndexedBufferHandle handle) const
 {
     return m_indexed_buffer_views.at(handle);

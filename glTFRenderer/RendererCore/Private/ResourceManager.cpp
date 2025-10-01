@@ -194,7 +194,7 @@ RendererInterface::IndexedBufferHandle ResourceManager::CreateIndexedBuffer(cons
     memcpy(index_buffer_data.data.get(), desc.data.value(),  index_buffer_data.byte_size);
     
     auto index_buffer_view = index_buffer->CreateIndexBufferView(*m_device, *m_memory_manager, GetCommandListForRecordPassCommand(), buffer_desc, index_buffer_data);
-    return RendererInterface::InternalResourceHandleTable::Instance().RegisterIndexedBuffer(index_buffer_view);
+    return RendererInterface::InternalResourceHandleTable::Instance().RegisterIndexedBufferAndView(index_buffer_view, index_buffer);
 }
 
 RendererInterface::ShaderHandle ResourceManager::CreateShader(const RendererInterface::ShaderDesc& shader_desc)

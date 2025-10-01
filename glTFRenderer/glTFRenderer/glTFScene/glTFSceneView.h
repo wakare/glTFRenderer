@@ -5,7 +5,7 @@
 #include "glTFCamera.h"
 
 class glTFRenderPassManager;
-class glTFInputManager;
+class RendererInputDevice;
 
 struct ConstantBufferSceneView
 {
@@ -46,7 +46,7 @@ public:
     glm::mat4 GetViewMatrix() const;
     glm::mat4 GetProjectionMatrix() const;
     
-    void ApplyInput(const glTFInputManager& input_manager, size_t delta_time_ms) const;
+    void ApplyInput(const RendererInputDevice& input_manager, size_t delta_time_ms) const;
     void GetViewportSize(unsigned& out_width, unsigned& out_height) const;
     
     glTFCamera* GetMainCamera() const;
@@ -62,7 +62,7 @@ private:
     void TraverseSceneObjectWithinView(const std::function<bool(const glTFSceneNode& primitive)>& visitor) const;
     
     void FocusSceneCenter(glTFCamera& camera) const;
-    static void ApplyInputForCamera(const glTFInputManager& input_manager, glTFCamera& camera, size_t delta_time_ms);
+    static void ApplyInputForCamera(const RendererInputDevice& input_manager, glTFCamera& camera, size_t delta_time_ms);
 
     std::shared_ptr<glTFSceneGraph> m_scene_graph;
 

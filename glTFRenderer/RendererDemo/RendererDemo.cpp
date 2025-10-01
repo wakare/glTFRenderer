@@ -1,5 +1,7 @@
 #include <memory>
 #include <string>
+
+#include "DemoApps/DemoAppModelViewer.h"
 #include "DemoApps/DemoTriangleApp.h"
 
 #define REGISTER_DEMO_APP(demo_name, app_name) if (demo_name == #app_name) {demo = std::make_unique<app_name>();} 
@@ -19,6 +21,7 @@ int main(int argc, char* argv[])
     std::string demo_name = argv[1];
     
     REGISTER_DEMO_APP(demo_name, DemoTriangleApp)
+    REGISTER_DEMO_APP(demo_name, DemoAppModelViewer)
 
     demo->Run(params);
     

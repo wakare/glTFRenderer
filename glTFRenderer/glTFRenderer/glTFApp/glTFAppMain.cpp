@@ -6,7 +6,7 @@
 #include "glTFLight/glTFDirectionalLight.h"
 #include "glTFLight/glTFPointLight.h"
 #include "RHIUtils.h"
-#include "RenderWindow/glTFInputManager.h"
+#include "RenderWindow/RendererInputDevice.h"
 #include "RenderWindow/glTFWindow.h"
 #include "SceneFileLoader/glTFLoader.h"
 
@@ -89,8 +89,8 @@ glTFAppMain::glTFAppMain(int argc, char* argv[])
     m_scene_graph.reset(new glTFSceneGraph);
     InitSceneGraph(cmd_processor.GetSceneName());
     
-    m_input_manager.reset(new glTFInputManager);
-    window.SetInputManager(m_input_manager);
+    m_input_device.reset(new RendererInputDevice);
+    window.SetInputManager(m_input_device);
 }
 
 void glTFAppMain::Run()
@@ -98,7 +98,7 @@ void glTFAppMain::Run()
     auto& window = glTFWindow::Get();
     {
         //Register window callback with App
-        window.SetTickCallback([this](){
+        window.SetTickCallback([this](unsigned long long interval){
             InitRenderer();
         
             m_timer.RecordFrameBegin();
@@ -110,12 +110,12 @@ void glTFAppMain::Run()
             }
 
             m_renderer->TickRenderingBegin(time_delta_ms);
-            m_renderer->TickSceneUpdating(*m_scene_graph, *m_input_manager, time_delta_ms);
-            m_renderer->TickSceneRendering(*m_input_manager, *m_scene_graph, time_delta_ms);
+            m_renderer->TickSceneUpdating(*m_scene_graph, *m_input_device, time_delta_ms);
+            m_renderer->TickSceneRendering(*m_input_device, *m_scene_graph, time_delta_ms);
             m_renderer->TickGUIWidgetUpdate(time_delta_ms);
             m_renderer->TickRenderingEnd(time_delta_ms);
             
-            m_input_manager->TickFrame(time_delta_ms);
+            m_input_device->TickFrame(time_delta_ms);
         });
 
         window.SetExitCallback([this]()
