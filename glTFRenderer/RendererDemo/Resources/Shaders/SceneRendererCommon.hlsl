@@ -13,7 +13,6 @@ StructuredBuffer<SceneMeshVertexInfo> mesh_vertex_info;
 
 struct SceneMeshDataOffsetInfo
 {
-    uint start_face_index; 
     uint material_index;
     uint start_vertex_index; // -- vertex info start index
 };

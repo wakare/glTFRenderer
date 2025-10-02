@@ -1,6 +1,7 @@
 #include "RendererSceneGraph.h"
 #include <glm/glm/gtx/quaternion.hpp>
 #include <utility>
+#include <glm/glm/gtx/matrix_decompose.hpp>
 
 RendererSceneMesh::RendererSceneMesh(const glTFLoader& loader, const glTF_Primitive& primitive)
 {
@@ -117,7 +118,12 @@ std::shared_ptr<RendererSceneNodeTransform> RendererSceneNodeTransform::identity
 RendererSceneNodeTransform::RendererSceneNodeTransform(const glm::fmat4& transform)
     : m_cached_transform(transform)
 {
-    
+	glm::fvec3 skew;
+	glm::fvec4 perspective;
+    bool decomposed = glm::decompose(m_cached_transform, m_scale, m_quat, m_translation, skew, perspective);
+	GLTF_CHECK(decomposed);
+
+	m_euler_angles = eulerAngles(m_quat);
 }
 
 void RendererSceneNodeTransform::Translate(const glm::fvec3& translation)
@@ -137,7 +143,6 @@ void RendererSceneNodeTransform::RotateEulerAngle(const glm::fvec3& euler_angle)
     m_euler_angles = euler_angle;
     m_quat = m_euler_angles;
     MarkTransformDirty();
-
 }
 
 void RendererSceneNodeTransform::RotateEulerAngleOffset(const glm::fvec3& euler_angle)
@@ -305,7 +310,7 @@ void RendererSceneNode::ConstTraverse(const std::function<bool(const RendererSce
 
 RendererSceneGraph::RendererSceneGraph()
 {
-    m_root_node = std::make_shared<RendererSceneNode>(std::weak_ptr<RendererSceneNode>());
+    m_root_node = std::make_shared<RendererSceneNode>(std::weak_ptr<RendererSceneNode>(), RendererSceneNodeTransform::identity_transform);
 }
 
 bool RendererSceneGraph::InitializeRootNodeWithSceneFile_glTF(const glTFLoader& loader)

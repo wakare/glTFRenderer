@@ -29,10 +29,11 @@ namespace RendererInterface
         unsigned GetWidth() const;
         unsigned GetHeight() const;
         HWND GetHWND() const;
-        void TickWindow();
+        void EnterWindowEventLoop();
 
         void RegisterTickCallback(const RenderWindowTickCallback& callback);
-        const RendererInputDevice& GetInputDevice() const;
+        const RendererInputDevice& GetInputDeviceConst() const;
+        RendererInputDevice& GetInputDevice();
         
     protected:
         

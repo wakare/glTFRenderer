@@ -23,7 +23,7 @@ RendererCamera::RendererCamera(const RendererCameraDesc& camera_desc)
 
 glm::fmat4x4 RendererCamera::GetViewProjectionMatrix()
 {
-    return GetViewMatrix() * GetProjectionMatrix();
+    return GetProjectionMatrix()* GetViewMatrix() ;
 }
 
 glm::fmat4x4 RendererCamera::GetViewMatrix()
@@ -32,6 +32,7 @@ glm::fmat4x4 RendererCamera::GetViewMatrix()
     if (m_mode == CameraMode::Free)
     {
         view_matrix = glm::inverse(m_transform->GetTransformMatrix());
+        //view_matrix = (m_transform->GetTransformMatrix());
     }
     
     return view_matrix;

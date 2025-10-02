@@ -4,6 +4,8 @@
 #include "SceneRendererUtil/SceneRendererDrawDispatcher.h"
 #include <glm/glm/gtx/norm.hpp>
 
+#include "RendererCommon.h"
+
 void DemoAppModelViewer::Run(const std::vector<std::string>& arguments)
 {
     InitRenderContext(arguments);
@@ -77,12 +79,12 @@ void DemoAppModelViewer::Run(const std::vector<std::string>& arguments)
     // After registration all passes, compile graph and prepare for execution
     m_render_graph->CompileRenderPassAndExecute();
     
-    m_window->TickWindow();
+    m_window->EnterWindowEventLoop();
 }
 
 void DemoAppModelViewer::TickFrame(unsigned long long delta_time_ms)
 {
-    const auto& input_device = m_window->GetInputDevice();
+    auto& input_device = m_window->GetInputDevice();
     bool need_apply_movement = false;
     glm::fvec3 delta_translation = {0.0f, 0.0f, 0.0f};
     glm::fvec3 delta_rotation = {0.0f, 0.0f, 0.0f};
@@ -175,6 +177,7 @@ void DemoAppModelViewer::TickFrame(unsigned long long delta_time_ms)
         if (fabs(delta_rotation.x) > 0.0f || fabs(delta_rotation.y) > 0.0f)
         {
             need_apply_movement = true;
+            LOG_FORMAT_FLUSH("[DEBUG] CURSOR OFFSET %f %f\n",cursor_offset.X, cursor_offset.Y );
         }
     }
 
@@ -213,9 +216,11 @@ void DemoAppModelViewer::TickFrame(unsigned long long delta_time_ms)
     
     m_camera->MarkTransformDirty();
 
-    auto camera_transform = m_camera->GetProjectionMatrix();
+    auto camera_transform = m_camera->GetViewProjectionMatrix();
     RendererInterface::BufferUploadDesc camera_buffer_upload_desc{};
     camera_buffer_upload_desc.data = &camera_transform;
     camera_buffer_upload_desc.size = sizeof(glm::mat4);
     m_resource_manager->UploadBufferData(m_camera_buffer_handle, camera_buffer_upload_desc);
+
+    input_device.TickFrame(delta_time_ms);
 }

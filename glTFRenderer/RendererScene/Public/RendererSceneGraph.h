@@ -38,7 +38,7 @@ protected:
 class RendererSceneNodeTransform
 {
 public:
-    RendererSceneNodeTransform(const glm::fmat4& transform = {});
+    RendererSceneNodeTransform(const glm::fmat4& transform = glm::fmat4(1.0f));
     
     void Translate(const glm::fvec3& translation);
     void TranslateOffset(const glm::fvec3& translation);

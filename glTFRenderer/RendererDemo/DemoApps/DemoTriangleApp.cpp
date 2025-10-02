@@ -84,5 +84,5 @@ void DemoTriangleApp::Run(const std::vector<std::string>& arguments)
     // After registration all passes, compile graph and prepare for execution
     m_render_graph->CompileRenderPassAndExecute();
     
-    m_window->TickWindow();
+    m_window->EnterWindowEventLoop();
 }

@@ -31,6 +31,9 @@ namespace RendererInterface
         
         m_input_device = std::make_shared<RendererInputDevice>();
         glTFWindow::Get().SetInputManager(m_input_device);
+
+        // Register window callback
+        GLTF_CHECK(glTFWindow::Get().RegisterCallbackEventNative());
     }
 
     RenderWindowHandle RenderWindow::GetHandle() const
@@ -53,7 +56,7 @@ namespace RendererInterface
         return m_hwnd;
     }
 
-    void RenderWindow::TickWindow()
+    void RenderWindow::EnterWindowEventLoop()
     {
         glTFWindow::Get().UpdateWindow();
     }
@@ -63,7 +66,12 @@ namespace RendererInterface
         glTFWindow::Get().SetTickCallback(callback);
     }
 
-    const RendererInputDevice& RenderWindow::GetInputDevice() const
+    const RendererInputDevice& RenderWindow::GetInputDeviceConst() const
+    {
+        return *m_input_device;
+    }
+
+    RendererInputDevice& RenderWindow::GetInputDevice()
     {
         return *m_input_device;
     }
