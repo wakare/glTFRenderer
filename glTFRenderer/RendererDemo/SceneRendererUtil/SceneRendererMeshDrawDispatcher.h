@@ -52,10 +52,10 @@ public:
     RendererInterface::ResourceOperator& m_resource_operator;
 };
 
-class SceneRendererDrawDispatcher
+class SceneRendererMeshDrawDispatcher
 {
 public:
-    SceneRendererDrawDispatcher(RendererInterface::ResourceOperator& resource_operator, const std::string& scene_file);
+    SceneRendererMeshDrawDispatcher(RendererInterface::ResourceOperator& resource_operator, const std::string& scene_file);
     bool BindDrawCommands(RendererInterface::RenderPassDrawDesc& out_draw_desc);
     
 protected:

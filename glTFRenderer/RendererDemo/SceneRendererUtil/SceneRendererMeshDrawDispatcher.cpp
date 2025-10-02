@@ -109,7 +109,7 @@ void RendererSceneMeshDataAccessor::AccessInstanceData(MeshDataAccessorType type
     instance_render_resources.push_back(instance_render_resource);
 }
 
-SceneRendererDrawDispatcher::SceneRendererDrawDispatcher(RendererInterface::ResourceOperator& resource_operator,
+SceneRendererMeshDrawDispatcher::SceneRendererMeshDrawDispatcher(RendererInterface::ResourceOperator& resource_operator,
                                                          const std::string& scene_file)
     : m_mesh_data_accessor(resource_operator)
 {
@@ -143,7 +143,7 @@ SceneRendererDrawDispatcher::SceneRendererDrawDispatcher(RendererInterface::Reso
     m_draw_commands = m_mesh_data_accessor.execute_commands;
 }
 
-bool SceneRendererDrawDispatcher::BindDrawCommands(RendererInterface::RenderPassDrawDesc& out_draw_desc)
+bool SceneRendererMeshDrawDispatcher::BindDrawCommands(RendererInterface::RenderPassDrawDesc& out_draw_desc)
 {
     out_draw_desc.execute_commands = m_draw_commands;
 
