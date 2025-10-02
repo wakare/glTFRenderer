@@ -6,10 +6,18 @@ struct VSOutput
     float3 color : COLOR;
 };
 
-VSOutput MainVS(uint Vertex_ID : SV_VertexID, uint Instance_ID : SV_InstanceID, uint StartInstanceOffset : SV_StartInstanceLocation )
+VSOutput MainVS(uint Vertex_ID : SV_VertexID, uint Instance_ID : SV_InstanceID
+#ifdef DX_SHADER
+    , uint StartInstanceOffset : SV_StartInstanceLocation
+#endif
+    )
 {
     VSOutput output;
-    uint instance_id = Instance_ID + StartInstanceOffset;
+    uint instance_id = Instance_ID
+#ifdef DX_SHADER
+         + StartInstanceOffset
+#endif
+    ;
     MeshInstanceInputData instance_input_data = mesh_instance_input_data[instance_id];
     float4x4 instance_transform = transpose(instance_input_data.instance_transform);
     uint index = mesh_start_info[instance_input_data.mesh_id].start_vertex_index + Vertex_ID;

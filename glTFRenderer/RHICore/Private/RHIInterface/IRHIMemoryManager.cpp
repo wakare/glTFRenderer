@@ -63,6 +63,7 @@ bool IRHIMemoryManager::UploadBufferData(IRHIDevice& device, IRHICommandList& co
     {
         RHIBufferDesc upload_desc = buffer_allocation.m_buffer->GetBufferDesc();
         upload_desc.type = RHIBufferType::Upload;
+        upload_desc.usage = static_cast<RHIResourceUsageFlags>(upload_desc.usage | RUF_TRANSFER_SRC);
         std::shared_ptr<IRHIBufferAllocation> upload_buffer = nullptr;
         bool allocated = AllocateTempUploadBufferMemory(device, upload_desc, upload_buffer);
         GLTF_CHECK(allocated);

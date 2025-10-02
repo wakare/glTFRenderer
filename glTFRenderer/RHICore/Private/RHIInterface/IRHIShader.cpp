@@ -411,7 +411,15 @@ bool IRHIShader::CompileShader()
     compile_desc.shader_macros = m_macros;
     compile_desc.compile_target = glTFShaderUtils::GetShaderCompileTarget(m_type);
     compile_desc.shader_type = glTFShaderUtils::GetShaderType(m_type);
-    compile_desc.spirv = RHIConfigSingleton::Instance().GetGraphicsAPIType() == RHIGraphicsAPIType::RHI_GRAPHICS_API_Vulkan; 
+    compile_desc.spirv = RHIConfigSingleton::Instance().GetGraphicsAPIType() == RHIGraphicsAPIType::RHI_GRAPHICS_API_Vulkan;
+    if (!compile_desc.spirv)
+    {
+        compile_desc.shader_macros.AddMacro("DX_SHADER", "1");
+    }
+    else
+    {
+        compile_desc.shader_macros.AddMacro("VK_SHADER", "1");
+    }
 
     RETURN_IF_FALSE(glTFShaderUtils::CompileShader(compile_desc, m_shader_byte_code))
 

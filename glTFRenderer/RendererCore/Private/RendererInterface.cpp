@@ -480,6 +480,12 @@ namespace RendererInterface
             }
         }
 
+        begin_rendering_info.rendering_area_offset_x = viewport.top_left_x;
+        begin_rendering_info.rendering_area_offset_y = viewport.top_left_y;
+        begin_rendering_info.rendering_area_width = viewport.width;
+        begin_rendering_info.rendering_area_height = viewport.height;
+        begin_rendering_info.clear_render_target = clear_render_target;
+
         // Bind descriptor heap
         m_resource_allocator.GetDescriptorManager().BindDescriptorContext(command_list);
 
@@ -548,14 +554,8 @@ namespace RendererInterface
 
         render_pass->GetDescriptorUpdater().FinalizeUpdateDescriptors(m_resource_allocator.GetDevice(), command_list, render_pass->GetRootSignature());
         
-        begin_rendering_info.rendering_area_offset_x = viewport.top_left_x;
-        begin_rendering_info.rendering_area_offset_y = viewport.top_left_y;
-        begin_rendering_info.rendering_area_width = viewport.width;
-        begin_rendering_info.rendering_area_height = viewport.height;
-        begin_rendering_info.clear_render_target = clear_render_target;
-
         RHIUtilInstanceManager::Instance().BeginRendering(command_list, begin_rendering_info);
-
+        
         const auto& draw_info = render_graph_node_desc.draw_info;
         for (const auto& command : draw_info.execute_commands)
         {
@@ -579,8 +579,8 @@ namespace RendererInterface
             case ExecuteCommandType::DRAW_INDEXED_INSTANCING_COMMAND:
                 {
                     auto indexed_buffer_view = InternalResourceHandleTable::Instance().GetIndexBufferView(command.input_buffer.index_buffer_handle);
-                    auto indexed_buffer = InternalResourceHandleTable::Instance().GetIndexBuffer(command.input_buffer.index_buffer_handle);
-                    indexed_buffer->GetBuffer().Transition(command_list, RHIResourceStateType::STATE_INDEX_BUFFER);
+                    //auto indexed_buffer = InternalResourceHandleTable::Instance().GetIndexBuffer(command.input_buffer.index_buffer_handle);
+                    //indexed_buffer->GetBuffer().Transition(command_list, RHIResourceStateType::STATE_INDEX_BUFFER);
                     RHIUtilInstanceManager::Instance().SetIndexBufferView(command_list, *indexed_buffer_view);
                     RHIUtilInstanceManager::Instance().DrawIndexInstanced(command_list,
                         command.parameter.draw_indexed_instance_command_parameter.index_count_per_instance,

@@ -68,19 +68,17 @@ RHIBufferDesc ConvertToRHIBufferDesc(const RendererInterface::BufferDesc& desc)
         buffer_desc.usage = RUF_VERTEX_BUFFER; 
         break;
     case RendererInterface::USAGE_INDEX_BUFFER_R32:
-        buffer_desc.usage = RUF_INDEX_BUFFER;
-        break;
     case RendererInterface::USAGE_INDEX_BUFFER_R16:
-        buffer_desc.usage = RUF_INDEX_BUFFER;
+        buffer_desc.usage = static_cast<RHIResourceUsageFlags>(RUF_INDEX_BUFFER | RUF_TRANSFER_DST);
         break;
     case RendererInterface::USAGE_CBV:
-        buffer_desc.usage = RUF_ALLOW_CBV;
+        buffer_desc.usage = static_cast<RHIResourceUsageFlags>(RUF_ALLOW_CBV | RUF_TRANSFER_DST);
         break;
     case RendererInterface::USAGE_UAV:
-        buffer_desc.usage = RUF_ALLOW_UAV;
+        buffer_desc.usage = static_cast<RHIResourceUsageFlags>(RUF_ALLOW_UAV | RUF_TRANSFER_DST);
         break;
     case RendererInterface::USAGE_SRV:
-        buffer_desc.usage = RUF_ALLOW_SRV;
+        buffer_desc.usage = static_cast<RHIResourceUsageFlags>(RUF_ALLOW_SRV | RUF_TRANSFER_DST);
         break;
     }
 
@@ -194,6 +192,8 @@ RendererInterface::IndexedBufferHandle ResourceManager::CreateIndexedBuffer(cons
     memcpy(index_buffer_data.data.get(), desc.data.value(),  index_buffer_data.byte_size);
     
     auto index_buffer_view = index_buffer->CreateIndexBufferView(*m_device, *m_memory_manager, GetCommandListForRecordPassCommand(), buffer_desc, index_buffer_data);
+    index_buffer->GetBuffer().Transition(GetCommandListForRecordPassCommand(), RHIResourceStateType::STATE_INDEX_BUFFER);
+    
     return RendererInterface::InternalResourceHandleTable::Instance().RegisterIndexedBufferAndView(index_buffer_view, index_buffer);
 }
 
