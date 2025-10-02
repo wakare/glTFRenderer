@@ -30,6 +30,7 @@ void DemoAppModelViewer::Run(const std::vector<std::string>& arguments)
     camera_desc.projection_width = static_cast<float>(m_width);
     camera_desc.projection_height = static_cast<float>(m_height);
     m_camera_operator = std::make_unique<SceneRendererCameraOperator>(*m_resource_manager, camera_desc);
+    m_draw_dispatcher = std::make_unique<SceneRendererMeshDrawDispatcher>(*m_resource_manager, "glTFResources/Models/Sponza/glTF/Sponza.gltf");
     
     // Create shader resource
     auto vertex_shader_handle = CreateShader(RendererInterface::ShaderType::VERTEX_SHADER, "Resources/Shaders/ModelRenderingShader.hlsl", "MainVS");
@@ -60,7 +61,6 @@ void DemoAppModelViewer::Run(const std::vector<std::string>& arguments)
         });
     render_pass_draw_desc.render_target_clear_states.emplace(render_target_handle, true);
     
-    m_draw_dispatcher = std::make_unique<SceneRendererMeshDrawDispatcher>(*m_resource_manager, "glTFResources/Models/Sponza/glTF/Sponza.gltf");
     m_draw_dispatcher->BindDrawCommands(render_pass_draw_desc);
     m_camera_operator->BindDrawCommands(render_pass_draw_desc);
 

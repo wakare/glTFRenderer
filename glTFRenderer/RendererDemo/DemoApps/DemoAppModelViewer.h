@@ -2,7 +2,7 @@
 #include "DemoBase.h"
 #include "RendererCamera.h"
 #include "SceneRendererUtil/SceneRendererCameraOperator.h"
-#include "SceneRendererUtil/SceneRendererDrawDispatcher.h"
+#include "SceneRendererUtil/SceneRendererMeshDrawDispatcher.h"
 
 class DemoAppModelViewer : public DemoBase
 {
