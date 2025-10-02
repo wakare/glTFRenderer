@@ -25,7 +25,7 @@ VSOutput MainVS(uint Vertex_ID : SV_VertexID, uint Instance_ID : SV_InstanceID
     
     float4 world_pos = mul(instance_transform, float4(vertex.position.xyz, 1.0));
     output.pos = mul(view_projection_matrix, world_pos);
-    output.color = float4(1.0, 1.0, 1.0, 1.0);
+    output.color = float3(1.0, 1.0, 1.0);
     
     return output;
 }
