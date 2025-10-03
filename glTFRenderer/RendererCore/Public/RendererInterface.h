@@ -2,9 +2,11 @@
 
 #include <functional>
 #include <set>
+#include <glm/glm/glm.hpp>
 
 #include "Renderer.h"
 
+class MaterialBase;
 class RendererInputDevice;
 class IRHIBufferDescriptorAllocation;
 class IRHIDescriptorManager;
@@ -57,6 +59,7 @@ namespace RendererInterface
         
         ShaderHandle        CreateShader(const ShaderDesc& desc);
         TextureHandle       CreateTexture(const TextureDesc& desc);
+        TextureHandle       CreateTexture(const TextureFileDesc& desc);
         BufferHandle        CreateBuffer(const BufferDesc& desc);
         IndexedBufferHandle CreateIndexedBuffer(const BufferDesc& desc);
         
@@ -122,6 +125,8 @@ namespace RendererInterface
         virtual bool HasMeshData(unsigned mesh_id) const = 0;
         virtual void AccessMeshData(MeshDataAccessorType type, unsigned mesh_id, void* data, size_t element_size) = 0;
         virtual void AccessInstanceData(MeshDataAccessorType type, unsigned instance_id, unsigned mesh_id, void* data, size_t element_size) = 0;
+
+        virtual void AccessMaterialData(const MaterialBase& material) = 0;
     };
     
     class RendererSceneResourceManager

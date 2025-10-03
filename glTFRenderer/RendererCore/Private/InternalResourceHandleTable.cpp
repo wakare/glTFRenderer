@@ -105,6 +105,20 @@ std::shared_ptr<IRHIIndexBufferView> RendererInterface::InternalResourceHandleTa
     return m_indexed_buffer_views.at(handle);
 }
 
+RendererInterface::TextureHandle RendererInterface::InternalResourceHandleTable::RegisterTexture(
+    std::shared_ptr<IRHITextureAllocation> texture)
+{
+    RenderSceneHandle result = _internal_handle++;
+    m_textures.emplace(result, texture);
+    return result;
+}
+
+std::shared_ptr<IRHITextureAllocation> RendererInterface::InternalResourceHandleTable::GetTexture(
+    TextureHandle handle) const
+{
+    return m_textures.at(handle);
+}
+
 RendererInterface::InternalResourceHandleTable& RendererInterface::InternalResourceHandleTable::Instance()
 {
     static InternalResourceHandleTable s_internal_resource_handle_table;

@@ -3,8 +3,9 @@
 #include "RendererCommon.h"
 #include <glm/glm/gtc/type_ptr.hpp>
 
-RendererSceneMeshDataAccessor::RendererSceneMeshDataAccessor(RendererInterface::ResourceOperator& resource_operator)
+RendererSceneMeshDataAccessor::RendererSceneMeshDataAccessor(RendererInterface::ResourceOperator& resource_operator, RendererModuleMaterial& material_module)
     : m_resource_operator(resource_operator)
+    , m_material_module(material_module)
 {
     
 }
@@ -109,13 +110,17 @@ void RendererSceneMeshDataAccessor::AccessInstanceData(MeshDataAccessorType type
     instance_render_resources.push_back(instance_render_resource);
 }
 
-SceneRendererMeshDrawDispatcher::SceneRendererMeshDrawDispatcher(RendererInterface::ResourceOperator& resource_operator,
-                                                         const std::string& scene_file)
-    : m_mesh_data_accessor(resource_operator)
+void RendererSceneMeshDataAccessor::AccessMaterialData(const MaterialBase& material)
 {
-    RendererInterface::RenderSceneDesc render_scene_desc{scene_file};
-    m_resource_manager = std::make_unique<RendererInterface::RendererSceneResourceManager>(resource_operator, render_scene_desc);
+    m_material_module.AddMaterial(material);   
+}
 
+SceneRendererMeshDrawDispatcher::SceneRendererMeshDrawDispatcher(RendererInterface::ResourceOperator& resource_operator,
+                                                                 const std::string& scene_file)
+    : m_resource_manager(std::make_unique<RendererInterface::RendererSceneResourceManager>(resource_operator, RendererInterface::RenderSceneDesc{scene_file}))
+    , m_module_material( std::make_unique<RendererModuleMaterial>(resource_operator))
+    , m_mesh_data_accessor(resource_operator, *m_module_material)
+{
     m_resource_manager->AccessSceneData(m_mesh_data_accessor);
 
     // build mesh draw buffers

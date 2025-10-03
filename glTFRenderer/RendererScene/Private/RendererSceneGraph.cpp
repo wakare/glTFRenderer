@@ -3,6 +3,8 @@
 #include <utility>
 #include <glm/glm/gtx/matrix_decompose.hpp>
 
+#include "RendererSceneCommon.h"
+
 RendererSceneMesh::RendererSceneMesh(const glTFLoader& loader, const glTF_Primitive& primitive)
 {
     size_t vertex_buffer_size = 0;
@@ -111,6 +113,24 @@ RendererSceneMesh::RendererSceneMesh(VertexLayoutDeclaration vertex_layout, std:
     , m_index_buffer_data(std::move(index_buffer))
 {
     
+}
+
+void RendererSceneMesh::SetMaterial(std::shared_ptr<MaterialBase> material)
+{
+	// Now cannot set material twice
+	GLTF_CHECK(!m_material);
+	m_material = std::move(material);
+}
+
+bool RendererSceneMesh::HasMaterial() const
+{
+	return m_material != nullptr;
+}
+
+const MaterialBase& RendererSceneMesh::GetMaterial() const
+{
+	GLTF_CHECK(HasMaterial());
+	return *m_material;
 }
 
 std::shared_ptr<RendererSceneNodeTransform> RendererSceneNodeTransform::identity_transform = std::make_shared<RendererSceneNodeTransform>();
@@ -341,28 +361,90 @@ const std::map<RendererUniqueObjectID, std::shared_ptr<RendererSceneMesh>>& Rend
 	return m_meshes;
 }
 
+const std::map<RendererUniqueObjectID, std::shared_ptr<MaterialBase>>& RendererSceneGraph::GetMaterials() const
+{
+	return m_mesh_materials;
+}
+
 void RendererSceneGraph::RecursiveInitSceneNodeFromGLTFLoader(const glTFLoader& loader, const glTFHandle& handle,
                                                               RendererSceneNode& scene_node)
 {
-    const auto& node = loader.GetNodes()[loader.ResolveIndex(handle)];
-    scene_node.SetLocalTransform(std::make_shared<RendererSceneNodeTransform>(node->transform.GetMatrix()));
-    
-    for (const auto& mesh_handle : node->meshes)
-    {
-	    if (mesh_handle.IsValid())
-	    {
-	    	const auto& mesh = *loader.GetMeshes()[loader.ResolveIndex(mesh_handle)];
-            
-	    	for (const auto& primitive : mesh.primitives)
-	    	{
-	    		if (!m_meshes.contains(primitive.Hash()))
-	    		{
-	    			std::shared_ptr<RendererSceneMesh> render_scene_mesh = std::make_shared<RendererSceneMesh>(loader, primitive);
-	    			m_meshes.emplace(primitive.Hash(), render_scene_mesh);
-	    		}
+	const auto& node = loader.GetNodes()[loader.ResolveIndex(handle)];
+	scene_node.SetLocalTransform(std::make_shared<RendererSceneNodeTransform>(node->transform.GetMatrix()));
 
-	    		scene_node.AddMesh(m_meshes.at(primitive.Hash()));
-	    	}
-	    }
-    }
+	std::map<glTFHandle, std::shared_ptr<MaterialBase>> mesh_materials;
+	for (const auto& mesh_handle : node->meshes)
+	{
+		if (mesh_handle.IsValid())
+		{
+			const auto& mesh = *loader.GetMeshes()[loader.ResolveIndex(mesh_handle)];
+            
+			for (const auto& primitive : mesh.primitives)
+			{
+				if (!m_meshes.contains(primitive.Hash()))
+				{
+					std::shared_ptr<RendererSceneMesh> render_scene_mesh = std::make_shared<RendererSceneMesh>(loader, primitive);
+
+					if (!mesh_materials.contains(primitive.material))
+					{
+						std::shared_ptr<MaterialBase> mesh_material = std::make_shared<MaterialBase>();
+
+						auto material_id = primitive.material;
+						const auto& source_material =
+						*loader.GetMaterials()[loader.ResolveIndex(material_id)];
+
+						// Base color texture setting
+						const auto base_color_texture_handle = source_material.pbr.base_color_texture.index;
+						if (base_color_texture_handle.IsValid())
+						{
+							const auto& base_color_texture = *loader.GetTextures()[loader.ResolveIndex(base_color_texture_handle)];
+							const auto& texture_image = *loader.GetImages()[loader.ResolveIndex(base_color_texture.source)];
+							GLTF_CHECK(!texture_image.uri.empty());
+
+							std::string texture_uri = loader.GetSceneFileDirectory() + texture_image.uri;
+							mesh_material->SetParameter(MaterialBase::MaterialParameterUsage::BASE_COLOR, std::make_shared<MaterialParameter>(texture_uri));    
+						}
+						else
+						{
+							mesh_material->SetParameter(MaterialBase::MaterialParameterUsage::BASE_COLOR, std::make_shared<MaterialParameter>(source_material.pbr.base_color_factor));
+						}
+
+						// Normal texture setting
+						const auto normal_texture_handle = source_material.normal_texture.index; 
+						if (normal_texture_handle.IsValid())
+						{
+							const auto& normal_texture = *loader.GetTextures()[loader.ResolveIndex(normal_texture_handle)];
+							const auto& texture_image = *loader.GetImages()[loader.ResolveIndex(normal_texture.source)];
+							GLTF_CHECK(!texture_image.uri.empty());
+                    	
+							std::string texture_uri = loader.GetSceneFileDirectory() + texture_image.uri;
+							mesh_material->SetParameter(MaterialBase::MaterialParameterUsage::NORMAL, std::make_shared<MaterialParameter>(texture_uri));
+						}
+
+						// Metallic roughness texture setting
+						const auto metallic_roughness_texture_handle = source_material.pbr.metallic_roughness_texture.index; 
+						if (metallic_roughness_texture_handle.IsValid())
+						{
+							const auto& metallic_roughness_texture = *loader.GetTextures()[loader.ResolveIndex(metallic_roughness_texture_handle)];
+							const auto& texture_image = *loader.GetImages()[loader.ResolveIndex(metallic_roughness_texture.source)];
+							GLTF_CHECK(!texture_image.uri.empty());
+                    	
+							std::string texture_uri = loader.GetSceneFileDirectory() + texture_image.uri;
+							mesh_material->SetParameter(MaterialBase::MaterialParameterUsage::METALLIC_ROUGHNESS, std::make_shared<MaterialParameter>(texture_uri));
+						}
+
+						render_scene_mesh->SetMaterial(mesh_materials.at(primitive.material));
+						m_meshes.emplace(primitive.Hash(), render_scene_mesh);
+					}
+
+					scene_node.AddMesh(m_meshes.at(primitive.Hash()));
+				}
+			}
+		}
+
+		for (auto& material : mesh_materials)
+		{
+			m_mesh_materials.insert({material.second->GetID(), material.second});
+		}
+	}
 }

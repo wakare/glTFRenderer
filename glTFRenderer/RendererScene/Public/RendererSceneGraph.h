@@ -12,11 +12,17 @@
 #include "RHICommon.h"
 #include "SceneFileLoader/glTFLoader.h"
 
+class MaterialBase;
+
 class RendererSceneMesh : public RendererUniqueObjectIDBase<RendererSceneMesh>
 {
 public:
     RendererSceneMesh(const glTFLoader& loader, const glTF_Primitive& primitive);
     RendererSceneMesh(VertexLayoutDeclaration vertex_layout, std::shared_ptr<VertexBufferData> vertex_buffer, std::shared_ptr<IndexBufferData> index_buffer);
+
+    void SetMaterial(std::shared_ptr<MaterialBase> material);
+    bool HasMaterial() const;
+    const MaterialBase& GetMaterial() const;
     
     RendererSceneAABB GetBoundingBox() const { return m_box; }
     const VertexLayoutDeclaration& GetLayout() const {return m_vertex_layout; }
@@ -33,6 +39,8 @@ protected:
     std::shared_ptr<IndexBufferData> m_index_buffer_data;
 
     RendererSceneAABB m_box;
+
+    std::shared_ptr<MaterialBase> m_material;
 };
 
 class RendererSceneNodeTransform
@@ -113,10 +121,12 @@ public:
     const RendererSceneNode& GetRootNode() const;
 
     const std::map<RendererUniqueObjectID, std::shared_ptr<RendererSceneMesh>>& GetMeshes() const;
+    const std::map<RendererUniqueObjectID, std::shared_ptr<MaterialBase>>& GetMaterials() const;
     
 protected:
     void RecursiveInitSceneNodeFromGLTFLoader(const glTFLoader& loader, const glTFHandle& handle, RendererSceneNode& scene_node);
     std::shared_ptr<RendererSceneNode> m_root_node;
     
     std::map<RendererUniqueObjectID, std::shared_ptr<RendererSceneMesh>> m_meshes;
+    std::map<RendererUniqueObjectID, std::shared_ptr<MaterialBase>> m_mesh_materials;
 };

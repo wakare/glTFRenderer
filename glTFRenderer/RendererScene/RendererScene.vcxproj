@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Public\RendererSceneAABB.h" />
+    <ClInclude Include="Public\RendererSceneCommon.h" />
     <ClInclude Include="Public\RendererSceneGraph.h" />
   </ItemGroup>
   <ItemGroup>
@@ -98,6 +99,7 @@
       <LibCompiled>true</LibCompiled>
       <AdditionalIncludeDirectories>;D:\Work\DevSpace\VCPKG\installed\x64-windows\include</AdditionalIncludeDirectories>
     </ClCompile>
+    <ClCompile Include="Private\RendererSceneCommon.cpp" />
     <ClCompile Include="Private\RendererSceneGraph.cpp">
       <RuntimeLibrary>MultiThreadedDebugDll</RuntimeLibrary>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>

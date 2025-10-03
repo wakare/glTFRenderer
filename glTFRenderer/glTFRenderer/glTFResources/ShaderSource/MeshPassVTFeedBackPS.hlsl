@@ -47,7 +47,7 @@ PS_VT_FEEDBACK_OUTPUT main(PS_INPUT input)
     output.output = GenerateFeedbackData(shadowmap_vt_size, shadowmap_page_table_texture_size, shadowmap_vt_page, input.texCoord, shadowmap_vt_id, mip_offset);
     
 #else
-    MaterialInfo material_info = g_material_infos[input.vs_material_id];
+    MaterialShaderInfo material_info = g_material_infos[input.vs_material_id];
     
     // TODO: Compress feedback request into 32-bit value to support maximum 4 page request in 1 pixel
     if (material_info.HasVT())

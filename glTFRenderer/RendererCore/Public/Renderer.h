@@ -91,6 +91,11 @@ namespace RendererInterface
         std::vector<char> data;        
     };
 
+    struct TextureFileDesc
+    {
+        std::string uri;
+    };
+
     enum BufferType
     {
         UPLOAD,
@@ -264,12 +269,24 @@ namespace RendererInterface
         unsigned count_buffer_offset {0};
     };
 
+    struct TextureBindingDesc
+    {
+        enum TextureBindingType
+        {
+            SRV,
+            UAV,
+        };
+
+        std::vector<TextureHandle> textures;
+    };
+
     struct RenderPassDrawDesc
     {
         std::vector<RenderExecuteCommand> execute_commands;
         std::map<RenderTargetHandle, RenderTargetBindingDesc> render_target_resources;
         std::map<RenderTargetHandle, bool> render_target_clear_states;
         std::map<std::string, BufferBindingDesc> buffer_resources;
+        std::map<std::string, TextureBindingDesc> texture_resources;
     };
 
     struct RenderGraphNodeDesc

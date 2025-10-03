@@ -2,7 +2,7 @@
 #include "glTFRenderInterfaceBase.h"
 
 static unsigned material_texture_invalid_index = UINT_MAX;
-ALIGN_FOR_CBV_STRUCT struct MaterialInfo
+ALIGN_FOR_CBV_STRUCT struct MaterialShaderInfo
 {
     enum
     {

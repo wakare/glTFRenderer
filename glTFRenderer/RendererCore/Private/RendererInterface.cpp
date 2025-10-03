@@ -239,6 +239,12 @@ namespace RendererInterface
         };
         
         scene_graph->GetRootNode().Traverse(scene_node_traverse);
+
+        for (const auto& material : scene_graph->GetMaterials())
+        {
+            data_accessor.AccessMaterialData(*material.second);
+        }
+        
         return true;
     }
 
@@ -264,6 +270,23 @@ namespace RendererInterface
     TextureHandle ResourceOperator::CreateTexture(const TextureDesc& desc)
     {
         return 0;
+    }
+
+    TextureHandle ResourceOperator::CreateTexture(const TextureFileDesc& desc)
+    {
+        const std::wstring convert_path = to_wide_string(desc.uri);
+        ImageLoadResult result;
+        RETURN_IF_FALSE(glTFImageIOUtil::Instance().LoadImageByFilename(convert_path.c_str(), result))
+        RHITextureDesc texture_desc{};
+        texture_desc.InitWithLoadedData(result);
+
+        std::shared_ptr<IRHITextureAllocation> texture_allocation = nullptr;
+        bool created = m_resource_manager->GetMemoryManager().AllocateTextureMemoryAndUpload(m_resource_manager->GetDevice(), m_resource_manager->GetCommandListForRecordPassCommand(), m_resource_manager->GetMemoryManager(), texture_desc, texture_allocation);
+        GLTF_CHECK(created);
+
+        texture_allocation->m_texture->Transition(m_resource_manager->GetCommandListForRecordPassCommand(), RHIResourceStateType::STATE_ALL_SHADER_RESOURCE);
+
+        return InternalResourceHandleTable::Instance().RegisterTexture(texture_allocation);
     }
 
     BufferHandle ResourceOperator::CreateBuffer(const BufferDesc& desc)

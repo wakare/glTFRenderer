@@ -1,12 +1,7 @@
-#ifndef SCENE_MATERIAL
-#define SCENE_MATERIAL
+#ifndef RENDERER_MODULE_MATERIAL
+#define RENDERER_MODULE_MATERIAL
 
-#include "glTFResources/ShaderSource/ShaderDeclarationUtil.hlsl"
-#ifdef VT_READ_DATA
-#include "glTFResources/ShaderSource/Interface/VirtualTexture.hlsl"
-#endif
-
-#define MATERIAL_TEXTURE_INVALID_INDEX 0xffffffff 
+#define MATERIAL_TEXTURE_INVALID_INDEX 0xffffffff
 struct MaterialShaderInfo
 {
     uint albedo_tex_index;
@@ -24,9 +19,9 @@ struct MaterialShaderInfo
     bool HasVT() { return virtual_texture_flag != 0; }
 };
 
-DECLARE_RESOURCE(StructuredBuffer<MaterialShaderInfo> g_material_infos , SCENE_MATERIAL_INFO_REGISTER_INDEX);
-DECLARE_RESOURCE(Texture2D<float4> bindless_material_textures[] , SCENE_MATERIAL_TEXTURE_REGISTER_INDEX);
-DECLARE_RESOURCE(SamplerState material_sampler , SCENE_MATERIAL_SAMPLER_REGISTER_INDEX);
+StructuredBuffer<MaterialShaderInfo> g_material_infos;
+Texture2D<float4> bindless_material_textures[];
+SamplerState material_sampler;
 
 static float4 material_debug_color[8] =
 {
@@ -38,14 +33,6 @@ static float4 material_debug_color[8] =
     float4(1.0, 1.0, 1.0, 1.0),
     float4(0.0, 1.0, 1.0, 1.0),
     float4(0.0, 0.0, 0.0, 1.0),
-};
-
-struct MaterialSurfaceInfo
-{
-    float3 albedo;
-    float3 normal;
-    float metallic;
-    float roughness;
 };
 
 float4 SampleAlbedoTextureCS(uint material_id, float2 uv)
@@ -163,84 +150,6 @@ float2 SampleMetallicRoughnessTextureCS(uint material_id, float2 uv)
     }
     
     return bindless_material_textures[info.metallic_roughness_tex_index].SampleLevel(material_sampler, uv, 0, 0).bg;
-}
-
-MaterialSurfaceInfo GetSurfaceInfo(uint material_id, float2 uv)
-{
-    MaterialShaderInfo material_info = g_material_infos[material_id];
-    MaterialSurfaceInfo surface_info =
-    {
-        1.0, 1.0, 1.0,
-        0.0, 1.0, 0.0,
-        1.0, 1.0
-    };
-    
-    if (material_info.albedo_tex_index != MATERIAL_TEXTURE_INVALID_INDEX)
-    {
-        surface_info.albedo = bindless_material_textures[material_info.albedo_tex_index].Sample(material_sampler, uv).xyz;
-    }
-    
-    if (material_info.normal_tex_index != MATERIAL_TEXTURE_INVALID_INDEX)
-    {
-        surface_info.normal = bindless_material_textures[material_info.normal_tex_index].Sample(material_sampler, uv).xyz;
-    }
-    
-    if (material_info.metallic_roughness_tex_index != MATERIAL_TEXTURE_INVALID_INDEX)
-    {
-        float2 metallic_roughness = bindless_material_textures[material_info.metallic_roughness_tex_index].Sample(material_sampler, uv).bg;
-        surface_info.metallic = metallic_roughness.x;
-        surface_info.roughness = metallic_roughness.y;
-    }
-    
-    return surface_info;
-}
-
-MaterialSurfaceInfo GetSurfaceInfoCS(uint material_id, float2 uv)
-{
-    MaterialShaderInfo material_info = g_material_infos[material_id];
-    MaterialSurfaceInfo surface_info =
-    {
-        1.0, 1.0, 1.0,
-        0.0, 1.0, 0.0,
-        1.0, 1.0
-    };
-    
-    if (material_info.albedo_tex_index != MATERIAL_TEXTURE_INVALID_INDEX)
-    {
-        surface_info.albedo = bindless_material_textures[material_info.albedo_tex_index].SampleLevel(material_sampler, uv, 0, 0).xyz;
-    }
-    else
-    {
-        surface_info.albedo = material_info.albedo.xyz;
-    }
-    
-    if (material_info.normal_tex_index != MATERIAL_TEXTURE_INVALID_INDEX)
-    {
-        surface_info.normal = 2 * bindless_material_textures[material_info.normal_tex_index].SampleLevel(material_sampler, uv, 0, 0).xyz - 1.0;
-    }
-    else
-    {
-        surface_info.normal = material_info.normal.xyz;
-    }
-    
-    if (material_info.metallic_roughness_tex_index != MATERIAL_TEXTURE_INVALID_INDEX)
-    {
-        float2 metallic_roughness = bindless_material_textures[material_info.metallic_roughness_tex_index].SampleLevel(material_sampler, uv, 0, 0).bg;
-        surface_info.metallic = metallic_roughness.x;
-        surface_info.roughness = metallic_roughness.y;
-    }
-    else
-    {
-        surface_info.metallic = material_info.metallicAndRoughness.b;
-        surface_info.roughness = material_info.metallicAndRoughness.g;
-    }
-    
-    return surface_info;
-}
-
-float4 GetMaterialDebugColor(uint material_id)
-{
-    return material_debug_color[material_id % 8];
 }
 
 #endif

@@ -3,6 +3,8 @@
 #include "RendererInterface.h"
 #include <glm/glm/glm.hpp>
 
+#include "RendererModule/RendererModuleMaterial.h"
+
 // ----------- must match SceneRendererCommon.hlsl ----------
 struct SceneMeshDataOffsetInfo
 {
@@ -30,12 +32,17 @@ struct SceneMeshInstanceRenderResource
 class RendererSceneMeshDataAccessor : public RendererInterface::RendererSceneMeshDataAccessorBase
 {
 public:
-    RendererSceneMeshDataAccessor(RendererInterface::ResourceOperator& resource_operator);
+    RendererSceneMeshDataAccessor(RendererInterface::ResourceOperator& resource_operator, RendererModuleMaterial& material_module);
     
     virtual bool HasMeshData(unsigned mesh_id) const override;
     virtual void AccessMeshData(MeshDataAccessorType type, unsigned mesh_id, void* data, size_t element_size) override;
     virtual void AccessInstanceData(MeshDataAccessorType type, unsigned instance_id, unsigned mesh_id, void* data, size_t element_size) override;
 
+    virtual void AccessMaterialData(const MaterialBase& material) override;
+
+    RendererInterface::ResourceOperator& m_resource_operator;
+    RendererModuleMaterial& m_material_module;
+    
     std::map<unsigned, unsigned> mesh_index_counts;
     std::map<unsigned, RendererInterface::IndexedBufferHandle> mesh_index_buffers;
     
@@ -48,8 +55,6 @@ public:
 
     // draw data
     std::vector<RendererInterface::RenderExecuteCommand> execute_commands;
-
-    RendererInterface::ResourceOperator& m_resource_operator;
 };
 
 class SceneRendererMeshDrawDispatcher
@@ -59,7 +64,6 @@ public:
     bool BindDrawCommands(RendererInterface::RenderPassDrawDesc& out_draw_desc);
     
 protected:
-    RendererSceneMeshDataAccessor m_mesh_data_accessor;
     std::unique_ptr<RendererInterface::RendererSceneResourceManager> m_resource_manager;
 
     RendererInterface::BufferDesc vertex_info_buffer_desc{};
@@ -71,4 +75,6 @@ protected:
     RendererInterface::BufferHandle m_mesh_buffer_instance_info_handle {NULL_HANDLE};
 
     std::vector<RendererInterface::RenderExecuteCommand> m_draw_commands;
+    std::unique_ptr<RendererModuleMaterial> m_module_material;
+    RendererSceneMeshDataAccessor m_mesh_data_accessor;
 };

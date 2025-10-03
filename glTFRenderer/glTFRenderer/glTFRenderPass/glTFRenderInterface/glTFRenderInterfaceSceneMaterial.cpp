@@ -9,7 +9,7 @@
 
 glTFRenderInterfaceSceneMaterial::glTFRenderInterfaceSceneMaterial()
 {
-    AddInterface(std::make_shared<glTFRenderInterfaceStructuredBuffer<MaterialInfo>>());
+    AddInterface(std::make_shared<glTFRenderInterfaceStructuredBuffer<MaterialShaderInfo>>());
     AddInterface(std::make_shared<glTFRenderInterfaceTextureTableBindless<RHIDescriptorRangeType::SRV>>("SCENE_MATERIAL_TEXTURE_REGISTER_INDEX"));
     
     std::shared_ptr<glTFRenderInterfaceSampler<RHIStaticSamplerAddressMode::Warp, RHIStaticSamplerFilterMode::Linear>> sampler_interface =
@@ -20,7 +20,7 @@ glTFRenderInterfaceSceneMaterial::glTFRenderInterfaceSceneMaterial()
 bool glTFRenderInterfaceSceneMaterial::PostInitInterfaceImpl(glTFRenderResourceManager& resource_manager)
 {
     const auto& material_resources = resource_manager.GetMaterialManager().GetMaterialRenderResources();
-    std::vector<MaterialInfo> material_infos; material_infos.resize(material_resources.size());
+    std::vector<MaterialShaderInfo> material_infos; material_infos.resize(material_resources.size());
     std::vector<std::shared_ptr<IRHITexture>> scene_material_textures;
     
     for (const auto& material_resource : material_resources)
@@ -51,13 +51,13 @@ bool glTFRenderInterfaceSceneMaterial::PostInitInterfaceImpl(glTFRenderResourceM
                     out_texture_index = virtual_texture->GetTextureId();
                     switch (usage) {
                     case glTFMaterialParameterUsage::BASECOLOR:
-                        out_vt_flags |= MaterialInfo::VT_FLAG_ALBEDO;
+                        out_vt_flags |= MaterialShaderInfo::VT_FLAG_ALBEDO;
                         break;
                     case glTFMaterialParameterUsage::NORMAL:
-                        out_vt_flags |= MaterialInfo::VT_FLAG_NORMAL;
+                        out_vt_flags |= MaterialShaderInfo::VT_FLAG_NORMAL;
                         break;
                     case glTFMaterialParameterUsage::METALLIC_ROUGHNESS:
-                        out_vt_flags |= MaterialInfo::VT_FLAG_SPECULAR;
+                        out_vt_flags |= MaterialShaderInfo::VT_FLAG_SPECULAR;
                         break;
                     default:
                         GLTF_CHECK(false);
@@ -78,7 +78,7 @@ bool glTFRenderInterfaceSceneMaterial::PostInitInterfaceImpl(glTFRenderResourceM
     }
 
     GetRenderInterface<glTFRenderInterfaceTextureTableBindless<RHIDescriptorRangeType::SRV>>()->AddTexture(scene_material_textures);
-    RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceStructuredBuffer<MaterialInfo>>()->UploadBuffer(resource_manager, material_infos.data(), 0, sizeof(MaterialInfo) * material_infos.size()))
+    RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceStructuredBuffer<MaterialShaderInfo>>()->UploadBuffer(resource_manager, material_infos.data(), 0, sizeof(MaterialShaderInfo) * material_infos.size()))
 
     return true;
 }

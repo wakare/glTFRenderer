@@ -1,6 +1,8 @@
 #ifndef SCENE_RENDERER_COMMON_HLSL
 #define SCENE_RENDERER_COMMON_HLSL
 
+#include "RendererModule/RendererModuleMaterial.hlsl"
+
 // Mesh data
 struct SceneMeshVertexInfo
 {
@@ -32,5 +34,7 @@ cbuffer ViewBuffer
 {
     float4x4 view_projection_matrix;
 };
+
+
 
 #endif
