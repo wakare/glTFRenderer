@@ -800,12 +800,12 @@ bool VulkanUtils::ProcessShaderMetaData(IRHIShader& shader)
                 parameter_info.type = RHIRootParameterType::CBV;
                 break;
             case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
-                parameter_info.type = RHIRootParameterType::SRV;
+                parameter_info.type = RHIRootParameterType::DescriptorTable;
                 parameter_info.table_parameter_info.is_bindless = binding_parameter->count == 0;
                 parameter_info.table_parameter_info.table_type = RHIDescriptorRangeType::SRV;
                 break;
             case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
-                parameter_info.type = RHIRootParameterType::UAV;
+                parameter_info.type = RHIRootParameterType::DescriptorTable;
                 parameter_info.table_parameter_info.is_bindless = binding_parameter->count == 0;
                 parameter_info.table_parameter_info.table_type = RHIDescriptorRangeType::UAV;
                 break;

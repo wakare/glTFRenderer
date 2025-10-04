@@ -787,7 +787,7 @@ bool DX12Utils::ProcessShaderMetaData(IRHIShader& shader)
             break;
         case D3D_SIT_TEXTURE:
             parameter_info.is_buffer = false;
-            parameter_info.type = RHIRootParameterType::SRV;
+            parameter_info.type = RHIRootParameterType::DescriptorTable;
             // Bindless --> bd.BindCount == 0
             parameter_info.register_count = bd.BindCount == 0? UINT_MAX: bd.BindCount;
             if (bd.BindCount == 0)
@@ -802,7 +802,14 @@ bool DX12Utils::ProcessShaderMetaData(IRHIShader& shader)
             break;
         case D3D_SIT_UAV_RWTYPED:
             parameter_info.is_buffer = false;
-            parameter_info.type = RHIRootParameterType::UAV;
+            parameter_info.type = RHIRootParameterType::DescriptorTable;
+            // Bindless --> bd.BindCount == 0
+            parameter_info.register_count = bd.BindCount == 0? UINT_MAX: bd.BindCount;
+            if (bd.BindCount == 0)
+            {
+                parameter_info.table_parameter_info.is_bindless = true;
+                parameter_info.table_parameter_info.table_type = RHIDescriptorRangeType::UAV;
+            }
             break;
         case D3D_SIT_STRUCTURED:
             parameter_info.is_buffer = true;
