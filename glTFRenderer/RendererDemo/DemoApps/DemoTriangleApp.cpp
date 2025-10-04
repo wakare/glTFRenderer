@@ -24,7 +24,7 @@ void DemoTriangleApp::Run(const std::vector<std::string>& arguments)
     render_target_binding_desc.format = RendererInterface::RGBA8_UNORM;
     render_target_binding_desc.usage = RendererInterface::RenderPassResourceUsage::COLOR; 
     render_pass_desc.render_target_bindings.push_back(render_target_binding_desc);
-    render_pass_desc.type = RendererInterface::GRAPHICS;
+    render_pass_desc.type = RendererInterface::RenderPassType::GRAPHICS;
 
     auto render_pass_handle = m_resource_manager->CreateRenderPass(render_pass_desc);
 

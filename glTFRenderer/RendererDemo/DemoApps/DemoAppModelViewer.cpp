@@ -40,15 +40,25 @@ void DemoAppModelViewer::Run(const std::vector<std::string>& arguments)
     auto render_target_handle = CreateRenderTarget("DemoModelViewerColorRT", m_window->GetWidth(), m_window->GetHeight(), RendererInterface::RGBA8_UNORM, RendererInterface::default_clear_color,
     static_cast<RendererInterface::ResourceUsage>(RendererInterface::ResourceUsage::RENDER_TARGET | RendererInterface::ResourceUsage::COPY_SRC));
 
+    auto depth_handle = CreateRenderTarget("Depth", m_window->GetWidth(), m_window->GetHeight(), RendererInterface::D32, RendererInterface::default_clear_depth, RendererInterface::ResourceUsage::DEPTH_STENCIL);
+    
+    
     RendererInterface::RenderPassDesc render_pass_desc{};
     render_pass_desc.shaders.emplace(RendererInterface::ShaderType::VERTEX_SHADER, vertex_shader_handle);
     render_pass_desc.shaders.emplace(RendererInterface::ShaderType::FRAGMENT_SHADER, fragment_shader_handle);
 
     RendererInterface::RenderTargetBindingDesc render_target_binding_desc{};
+    
     render_target_binding_desc.format = RendererInterface::RGBA8_UNORM;
     render_target_binding_desc.usage = RendererInterface::RenderPassResourceUsage::COLOR; 
     render_pass_desc.render_target_bindings.push_back(render_target_binding_desc);
-    render_pass_desc.type = RendererInterface::GRAPHICS;
+    
+    RendererInterface::RenderTargetBindingDesc depth_binding_desc{};
+    depth_binding_desc.format = RendererInterface::D32;
+    depth_binding_desc.usage = RendererInterface::RenderPassResourceUsage::DEPTH_STENCIL;
+    render_pass_desc.render_target_bindings.push_back(depth_binding_desc);
+    
+    render_pass_desc.type = RendererInterface::RenderPassType::GRAPHICS;
 
     auto render_pass_handle = m_resource_manager->CreateRenderPass(render_pass_desc);
     
@@ -60,6 +70,14 @@ void DemoAppModelViewer::Run(const std::vector<std::string>& arguments)
             .usage = RendererInterface::RenderPassResourceUsage::COLOR,
         });
     render_pass_draw_desc.render_target_clear_states.emplace(render_target_handle, true);
+
+    render_pass_draw_desc.render_target_resources.emplace(depth_handle,
+    RendererInterface::RenderTargetBindingDesc
+    {
+        .format = RendererInterface::D32,
+        .usage = RendererInterface::RenderPassResourceUsage::DEPTH_STENCIL,
+    });
+    render_pass_draw_desc.render_target_clear_states.emplace(depth_handle, true);
     
     m_draw_dispatcher->BindDrawCommands(render_pass_draw_desc);
     m_camera_operator->BindDrawCommands(render_pass_draw_desc);

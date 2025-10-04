@@ -410,7 +410,7 @@ namespace RendererInterface
             auto& render_graph_node = m_render_graph_nodes[render_graph_node_handle];
             for (const auto& render_target_info : render_graph_node.draw_info.render_target_resources)
             {
-                if (render_target_info.second.usage == COLOR)
+                if (render_target_info.second.usage == RenderPassResourceUsage::COLOR)
                 {
                     final_color_output_handle = render_target_info.first;
                 }
@@ -499,6 +499,10 @@ namespace RendererInterface
                 render_graph_node_desc.draw_info.render_target_clear_states[render_target_info.first] == true)
             {
                 clear_render_target = true;
+                if (render_target_info.second.usage == RenderPassResourceUsage::DEPTH_STENCIL)
+                {
+                    begin_rendering_info.enable_depth_write = true;
+                }
             }
         }
 
@@ -514,13 +518,13 @@ namespace RendererInterface
         // buffer binding
         RHIPipelineType pipeline_type = RHIPipelineType::Unknown;
         switch (render_pass->GetRenderPassType()) {
-        case GRAPHICS:
+        case RenderPassType::GRAPHICS:
             pipeline_type = RHIPipelineType::Graphics;
             break;
-        case COMPUTE:
+        case RenderPassType::COMPUTE:
             pipeline_type = RHIPipelineType::Compute;
             break;
-        case RAY_TRACING:
+        case RenderPassType::RAY_TRACING:
             pipeline_type = RHIPipelineType::RayTracing;
             break;
         }

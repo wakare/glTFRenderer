@@ -45,6 +45,7 @@ namespace RendererInterface
     {
         RGBA8_UNORM,
         RGBA16_UNORM,
+        D32,
     };
 
     enum ResourceUsage
@@ -54,6 +55,7 @@ namespace RendererInterface
         COPY_SRC        = 0x10,
         COPY_DST        = 0x100,
         SHADER_RESOURCE = 0x1000,
+        DEPTH_STENCIL   = 0x10000,
     };
     
     struct RenderTargetClearValue
@@ -71,7 +73,7 @@ namespace RendererInterface
     };
 
     static RenderTargetClearValue default_clear_color = { .clear_color{0.0f, 0.0f, 0.0f, 1.0f} };
-    static RenderTargetClearValue default_clear_depth = { .clear_depth_stencil = {0.0f, 0} };
+    static RenderTargetClearValue default_clear_depth = { .clear_depth_stencil = {1.0f, 0} };
     
     struct RenderTargetDesc
     {
@@ -124,21 +126,21 @@ namespace RendererInterface
         std::optional<void*> data;
     };
 
-    enum RenderPassType
+    enum class RenderPassType
     {
         GRAPHICS,
         COMPUTE,
         RAY_TRACING,
     };
 
-    enum RenderPassResourceAccessMode
+    enum class RenderPassResourceAccessMode
     {
         READ_ONLY,
         WRITE_ONLY,
         READ_WRITE,
     };
 
-    enum RenderPassResourceUsage
+    enum class RenderPassResourceUsage
     {
         COLOR,
         DEPTH_STENCIL,

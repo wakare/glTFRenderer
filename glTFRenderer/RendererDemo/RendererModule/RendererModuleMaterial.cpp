@@ -9,6 +9,11 @@ RendererModuleMaterial::RendererModuleMaterial(RendererInterface::ResourceOperat
 
 bool RendererModuleMaterial::AddMaterial(const MaterialBase& material)
 {
+    if (m_material_shader_infos.contains(material.GetID()))
+    {
+        return true;
+    }
+    
     MaterialShaderInfo material_shader_info{};
     if (material.GetParameter(MaterialBase::MaterialParameterUsage::BASE_COLOR))
     {
@@ -52,7 +57,7 @@ bool RendererModuleMaterial::AddMaterial(const MaterialBase& material)
         }
     }
 
-    m_material_shader_infos.push_back(material_shader_info);
+    m_material_shader_infos[material.GetID()] = material_shader_info;
     return true;
 }
 
@@ -64,12 +69,17 @@ bool RendererModuleMaterial::FinalizeModule()
         RendererInterface::TextureFileDesc material_texture_desc{texture_uri};
         m_material_texture_handles.push_back(m_resource_operator.CreateTexture(material_texture_desc));
     }
-
+    std::vector<MaterialShaderInfo> material_shader_infos{m_material_shader_infos.size()};
+    for (size_t i = 0; i < m_material_shader_infos.size(); i++)
+    {
+        material_shader_infos[i] = m_material_shader_infos[i];
+    }
+    
     m_material_shader_info_buffer_desc.usage = RendererInterface::USAGE_SRV;
-    m_material_shader_info_buffer_desc.size = m_material_shader_infos.size() * sizeof(MaterialShaderInfo);
+    m_material_shader_info_buffer_desc.size = material_shader_infos.size() * sizeof(MaterialShaderInfo);
     m_material_shader_info_buffer_desc.name = "g_material_infos";
     m_material_shader_info_buffer_desc.type = RendererInterface::DEFAULT;
-    m_material_shader_info_buffer_desc.data = m_material_shader_infos.data();
+    m_material_shader_info_buffer_desc.data = material_shader_infos.data();
     m_material_infos_handle = m_resource_operator.CreateBuffer(m_material_shader_info_buffer_desc);
 
     return true;

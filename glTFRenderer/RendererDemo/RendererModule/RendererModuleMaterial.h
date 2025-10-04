@@ -34,7 +34,7 @@ public:
 protected:
     RendererInterface::ResourceOperator& m_resource_operator;
     
-    std::vector<MaterialShaderInfo> m_material_shader_infos;
+    std::map<unsigned, MaterialShaderInfo> m_material_shader_infos;
     std::vector<std::string> m_material_texture_uris;
     std::vector<RendererInterface::TextureHandle> m_material_texture_handles;
 

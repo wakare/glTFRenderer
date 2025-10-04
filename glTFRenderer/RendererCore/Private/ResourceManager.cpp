@@ -20,7 +20,9 @@ RHIDataFormat RendererInterfaceRHIConverter::ConvertToRHIFormat(RendererInterfac
     
     case RendererInterface::RGBA16_UNORM:
         return RHIDataFormat::R16G16B16A16_UNORM;
-    
+
+    case RendererInterface::D32:
+        return RHIDataFormat::D32_FLOAT;
     }
     
     GLTF_CHECK(false);
@@ -30,13 +32,13 @@ RHIDataFormat RendererInterfaceRHIConverter::ConvertToRHIFormat(RendererInterfac
 RHIPipelineType RendererInterfaceRHIConverter::ConvertToRHIPipelineType(RendererInterface::RenderPassType type)
 {
     switch (type) {
-    case RendererInterface::GRAPHICS:
+    case RendererInterface::RenderPassType::GRAPHICS:
         return RHIPipelineType::Graphics;
         
-    case RendererInterface::COMPUTE:
+    case RendererInterface::RenderPassType::COMPUTE:
         return RHIPipelineType::Compute;
         
-    case RendererInterface::RAY_TRACING:
+    case RendererInterface::RenderPassType::RAY_TRACING:
         return RHIPipelineType::RayTracing;
         
     }
@@ -249,13 +251,17 @@ RendererInterface::RenderTargetHandle ResourceManager::CreateRenderTarget(const 
     }
 
     RHIResourceUsageFlags usage = is_depth_stencil ? RUF_ALLOW_DEPTH_STENCIL : RUF_ALLOW_RENDER_TARGET;
-    if (desc.usage & RendererInterface::COPY_SRC)
+    if (desc.usage & RendererInterface::ResourceUsage::COPY_SRC)
     {
         usage = RHIResourceUsageFlags(usage | RUF_TRANSFER_SRC);
     }
-    if (desc.usage & RendererInterface::COPY_DST)
+    if (desc.usage & RendererInterface::ResourceUsage::COPY_DST)
     {
         usage = RHIResourceUsageFlags(usage | RUF_TRANSFER_DST);
+    }
+    if (desc.usage & RendererInterface::ResourceUsage::DEPTH_STENCIL)
+    {
+        usage = RHIResourceUsageFlags(usage | RUF_ALLOW_DEPTH_STENCIL);
     }
     
     RHITextureDesc tex_desc(desc.name, desc.width, desc.height, format, usage, clear_value);
