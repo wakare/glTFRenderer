@@ -16,6 +16,7 @@ bool VKRootSignature::InitRootSignature(IRHIDevice& device, IRHIDescriptorManage
     m_device = dynamic_cast<VKDevice&>(device).GetDevice();
     auto vk_descriptor_pool = dynamic_cast<VKDescriptorManager&>(descriptor_manager).GetDescriptorPool();
 
+    int max_set_index = -1;
     std::map<unsigned, std::vector<VkDescriptorSetLayoutBinding>> space_bindings;
     std::map<unsigned, std::vector<VkDescriptorBindingFlags>> space_bind_flags;
     for (const auto& parameter : m_root_parameters)
@@ -26,6 +27,8 @@ bool VKRootSignature::InitRootSignature(IRHIDevice& device, IRHIDescriptorManage
         //VkDescriptorBindingFlags flag = vk_root_parameter.IsBindless() ? VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT : 0;
         VkDescriptorBindingFlags flag = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
         space_bind_flags[vk_root_parameter.GetRegisterSpace()].push_back(flag);
+
+        max_set_index = std::max(static_cast<int>(vk_root_parameter.GetRegisterSpace()), max_set_index);
     }
     
     for (const auto& parameter : m_static_samplers)
@@ -33,9 +36,11 @@ bool VKRootSignature::InitRootSignature(IRHIDevice& device, IRHIDescriptorManage
         VKStaticSampler& vk_static_sampler = dynamic_cast<VKStaticSampler&>(*parameter);
         space_bindings[vk_static_sampler.GetRegisterSpace()].push_back(vk_static_sampler.GetRawLayoutBinding());
         space_bind_flags[vk_static_sampler.GetRegisterSpace()].push_back({0});
+
+        max_set_index = std::max(static_cast<int>(vk_static_sampler.GetRegisterSpace()), max_set_index);
     }
 
-    m_descriptor_set_layouts.resize(space_bindings.size());
+    m_descriptor_set_layouts.resize(max_set_index + 1);
     for (size_t i = 0; i < m_descriptor_set_layouts.size(); ++i)
     {
         const auto& binding = space_bindings[i];

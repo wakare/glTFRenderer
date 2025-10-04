@@ -148,6 +148,19 @@ bool CompileShaderWithDXC(const glTFShaderUtils::ShaderCompileDesc& compile_desc
     compile_argument_strings.emplace_back(L"-I");
     compile_argument_strings.emplace_back(working_directory);
 
+    switch (compile_desc.shader_type)
+    {
+    case glTFShaderUtils::ShaderType::ST_Vertex:
+        compile_argument_strings.emplace_back(L"-auto-binding-space 0");
+        break;
+    case glTFShaderUtils::ShaderType::ST_Fragment:
+        compile_argument_strings.emplace_back(L"-auto-binding-space 1");
+        break;
+    case glTFShaderUtils::ShaderType::ST_Compute:
+        compile_argument_strings.emplace_back(L"-auto-binding-space 2");
+        break;
+    }
+    
     if (compile_desc.spirv)
     {
         compile_argument_strings.emplace_back(L"-spirv");

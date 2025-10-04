@@ -41,6 +41,22 @@ void RootSignatureAllocation::AddShaderDefine(RHIShaderPreDefineMacros& out_shad
     out_shader_macros.AddMacro(parameter_name, shader_resource_declaration);
 }
 
+unsigned RootSignatureLayout::ParameterCount() const
+{
+    unsigned parameter_count = 0;
+    for (const auto& parameter_element : parameter_elements)
+    {
+        parameter_count += parameter_element.second.size();
+    }
+
+    return parameter_count;
+}
+
+unsigned RootSignatureLayout::SamplerCount() const
+{
+    return sampler_elements.size();
+}
+
 RHITextureDesc::RHITextureDesc(const RHITextureDesc& desc) noexcept
 {
     InitWithoutCopyData(desc);

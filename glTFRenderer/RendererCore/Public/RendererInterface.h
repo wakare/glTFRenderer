@@ -130,7 +130,7 @@ namespace RendererInterface
         virtual void AccessMeshData(MeshDataAccessorType type, unsigned mesh_id, void* data, size_t element_size) = 0;
         virtual void AccessInstanceData(MeshDataAccessorType type, unsigned instance_id, unsigned mesh_id, void* data, size_t element_size) = 0;
 
-        virtual void AccessMaterialData(const MaterialBase& material) = 0;
+        virtual void AccessMaterialData(const MaterialBase& material, unsigned mesh_id) = 0;
     };
     
     class RendererSceneResourceManager

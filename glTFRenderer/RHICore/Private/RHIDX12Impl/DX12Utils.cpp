@@ -827,7 +827,7 @@ bool DX12Utils::ProcessShaderMetaData(IRHIShader& shader)
             // TODO: No support now
             GLTF_CHECK(false);
         }
-        shader_meta_data.root_parameter_infos.push_back(parameter_info);
+        shader_meta_data.root_parameter_infos.push_back({parameter_info, bd.Space, bd.BindPoint});
     }
     
     return true;

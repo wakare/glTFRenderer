@@ -241,6 +241,10 @@ bool DX12RootSignature::InitRootSignature(IRHIDevice& device, IRHIDescriptorMana
     version_desc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1; 
     version_desc.Desc_1_1 = root_signature_description;
     THROW_IF_FAILED(D3D12SerializeVersionedRootSignature(&version_desc, &signature, &error))
+    if (error) {
+        OutputDebugStringA((char*)error->GetBufferPointer());
+        error->Release();
+    }
     
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
     THROW_IF_FAILED(dxDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_root_signature)))

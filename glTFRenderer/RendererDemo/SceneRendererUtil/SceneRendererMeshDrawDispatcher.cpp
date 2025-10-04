@@ -3,6 +3,8 @@
 #include "RendererCommon.h"
 #include <glm/glm/gtc/type_ptr.hpp>
 
+#include "RendererSceneCommon.h"
+
 RendererSceneMeshDataAccessor::RendererSceneMeshDataAccessor(RendererInterface::ResourceOperator& resource_operator, RendererModuleMaterial& material_module)
     : m_resource_operator(resource_operator)
     , m_material_module(material_module)
@@ -110,8 +112,9 @@ void RendererSceneMeshDataAccessor::AccessInstanceData(MeshDataAccessorType type
     instance_render_resources.push_back(instance_render_resource);
 }
 
-void RendererSceneMeshDataAccessor::AccessMaterialData(const MaterialBase& material)
+void RendererSceneMeshDataAccessor::AccessMaterialData(const MaterialBase& material, unsigned mesh_id)
 {
+    start_offset_infos[mesh_id].material_index = material.GetID();
     m_material_module.AddMaterial(material);   
 }
 
@@ -146,6 +149,8 @@ SceneRendererMeshDrawDispatcher::SceneRendererMeshDrawDispatcher(RendererInterfa
     m_mesh_buffer_instance_info_handle = resource_operator.CreateBuffer(instance_render_resources_buffer_desc);
 
     m_draw_commands = m_mesh_data_accessor.execute_commands;
+
+    m_module_material->FinalizeModule();
 }
 
 bool SceneRendererMeshDrawDispatcher::BindDrawCommands(RendererInterface::RenderPassDrawDesc& out_draw_desc)
@@ -175,6 +180,8 @@ bool SceneRendererMeshDrawDispatcher::BindDrawCommands(RendererInterface::Render
     instance_render_resources_buffer_binding_desc.count = instance_render_resources_buffer_desc.size / instance_render_resources_buffer_binding_desc.stride;
     instance_render_resources_buffer_binding_desc.is_structured_buffer = true;
     out_draw_desc.buffer_resources[instance_render_resources_buffer_desc.name] = instance_render_resources_buffer_binding_desc;
+
+    m_module_material->BindDrawCommands(out_draw_desc);
     
     return true;
 }

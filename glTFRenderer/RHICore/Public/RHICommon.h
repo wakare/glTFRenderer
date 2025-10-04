@@ -457,7 +457,6 @@ struct RHICORE_API RootSignatureAllocation
         : global_parameter_index(0)
           , local_space_parameter_index(0)
           , register_begin_index(0)
-          , register_end_index(0)
           , space(0)
           , bindless_descriptor(false)
           , type(RHIRootParameterType::Unknown)
@@ -471,7 +470,6 @@ struct RHICORE_API RootSignatureAllocation
     unsigned global_parameter_index;
     unsigned local_space_parameter_index;
     unsigned register_begin_index;
-    unsigned register_end_index;
     unsigned space;
     bool bindless_descriptor;
     RHIRootParameterType type;
@@ -508,6 +506,7 @@ struct RHICORE_API RootSignatureStaticSamplerElement
     std::string sampler_name;
     unsigned register_space;
     unsigned sample_index;
+    unsigned local_space_parameter_index;
     RHIStaticSamplerAddressMode address_mode;
     RHIStaticSamplerFilterMode filter_mode;
 };
@@ -566,8 +565,8 @@ struct RHICORE_API RootSignatureLayout
     std::map<RHIShaderRegisterType, unsigned> last_register_index;
     unsigned last_parameter_index;
     
-    unsigned ParameterCount() const { return last_parameter_index; }
-    unsigned SamplerCount() const {return sampler_elements.size(); }
+    unsigned ParameterCount() const;
+    unsigned SamplerCount() const;
 };
 
 struct RHICORE_API RHIDepthStencilClearValue

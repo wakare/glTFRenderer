@@ -20,14 +20,9 @@ struct MaterialShaderInfo
 };
 
 StructuredBuffer<MaterialShaderInfo> g_material_infos;
-Texture2D<float4> bindless_material_textures[] : register(t0, space1);
-SamplerState material_sampler
-{
-    Filter = MIN_MAG_MIP_LINEAR;
-    AddressU = Clamp;
-    AddressV = Clamp;
-    AddressW = Clamp;
-};
+Texture2D<float4> bindless_material_textures[] : register(t0, space10);
+SamplerState material_sampler;
+
 //SamplerState material_sampler;
 
 static float4 material_debug_color[8] =

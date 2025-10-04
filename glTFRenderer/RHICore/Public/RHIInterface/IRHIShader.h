@@ -11,41 +11,16 @@ enum class ShaderMetaDataDSType
     Sampler,
 };
 
-enum class ShaderMetaDataResourceType
+struct ShaderMetaDataParameter
 {
-    // Set by cpu, skip cbv buffer binding
-    Constant,
-
-    ConstantBuffer,
-    
-    StructuredBuffer,
-
-    // Append only structured buffer
-    AppendStructuredBuffer,
-
-    // Consume only structured buffer
-    ConsumeStructuredBuffer,
-    
-    Texture,
-
-    AccelerationStructure,
-    
-};
-
-struct ShaderMetaDataDSParameter
-{
-    
-    ShaderMetaDataDSType descriptor_type;
-    ShaderMetaDataResourceType resource_type;
-    std::string name;
-    unsigned binding_index;
-    unsigned space_index;
+    RootParameterInfo parameter_info;
+    unsigned space;
+    unsigned register_index;
 };
 
 struct ShaderMetaData
 {
-    //std::vector<ShaderMetaDataDSParameter> parameter_infos;
-    std::vector<RootParameterInfo> root_parameter_infos;
+    std::vector<ShaderMetaDataParameter> root_parameter_infos;
 };
 
 class glTFShaderUtils

@@ -52,7 +52,7 @@ RHIShaderRegisterType ToShaderRegisterType(RHIRootParameterType type, RHIDescrip
 
 bool IRHIRootSignatureHelper::AddRootParameterWithRegisterCount(const RootParameterInfo& parameter_info, RootSignatureAllocation& out_allocation)
 {
-    auto register_type= ToShaderRegisterType(parameter_info.type, parameter_info.table_parameter_info.table_type);
+    auto register_type = ToShaderRegisterType(parameter_info.type, parameter_info.table_parameter_info.table_type);
     out_allocation.parameter_name = parameter_info.parameter_name;
     out_allocation.type = parameter_info.type;
     out_allocation.register_type = register_type;
@@ -78,6 +78,7 @@ bool IRHIRootSignatureHelper::AddRootParameterWithRegisterCount(const RootParame
         RootSignatureStaticSamplerElement sampler_element{};
         sampler_element.sampler_name = parameter_info.parameter_name;
         sampler_element.register_space = out_allocation.space;
+        sampler_element.local_space_parameter_index = out_allocation.local_space_parameter_index;
         sampler_element.sample_index = out_allocation.local_space_parameter_index;
         sampler_element.address_mode = parameter_info.sampler_parameter_info.address_mode;
         sampler_element.filter_mode = parameter_info.sampler_parameter_info.filter_mode; 
@@ -133,12 +134,80 @@ bool IRHIRootSignatureHelper::AddRootParameterWithRegisterCount(const RootParame
         }
         
         out_allocation.register_begin_index = element.register_range.first;
-        out_allocation.register_end_index = element.register_range.second;
         out_allocation.global_parameter_index = element.global_parameter_index;
         out_allocation.space = element.space;
         out_allocation.bindless_descriptor = element.is_bindless;
-        out_allocation.local_space_parameter_index = m_space_available_attribute_index[(out_allocation.space)];
-        m_space_available_attribute_index[(out_allocation.space)]++;
+        out_allocation.local_space_parameter_index = m_space_available_attribute_index[(out_allocation.space)]++;
+        
+        element.local_space_parameter_index = out_allocation.local_space_parameter_index;
+        m_layout.parameter_elements[parameter_info.type].push_back(element);
+    }
+    
+    return true;
+}
+
+bool IRHIRootSignatureHelper::AddRootParameterWithRegisterCount2(const RootParameterInfo& parameter_info, unsigned space, unsigned register_index, 
+    RootSignatureAllocation& out_allocation)
+{
+    auto register_type = ToShaderRegisterType(parameter_info.type, parameter_info.table_parameter_info.table_type);
+    out_allocation.parameter_name = parameter_info.parameter_name;
+    out_allocation.type = parameter_info.type;
+    out_allocation.register_type = register_type;
+    
+    if (parameter_info.type == RHIRootParameterType::Sampler)
+    {
+        out_allocation.global_parameter_index = m_layout.sampler_elements.size();
+        out_allocation.register_begin_index = m_layout.sampler_elements.size();
+
+        out_allocation.space = space;
+        out_allocation.local_space_parameter_index = register_index;
+        
+        RootSignatureStaticSamplerElement sampler_element{};
+        sampler_element.sampler_name = parameter_info.parameter_name;
+        sampler_element.register_space = out_allocation.space;
+        sampler_element.local_space_parameter_index = out_allocation.local_space_parameter_index;
+        sampler_element.sample_index = m_layout.sampler_elements.size();
+        sampler_element.address_mode = parameter_info.sampler_parameter_info.address_mode;
+        sampler_element.filter_mode = parameter_info.sampler_parameter_info.filter_mode; 
+        m_layout.sampler_elements.push_back(sampler_element);
+    }
+    else
+    {
+        RootSignatureParameterElement element{};
+        element.name = parameter_info.parameter_name;
+        element.global_parameter_index = m_layout.last_parameter_index++;
+        element.is_buffer = parameter_info.is_buffer;
+        
+        if (parameter_info.type == RHIRootParameterType::Constant)
+        {
+            element.constant_value_count = parameter_info.constant_parameter_info.constant_value;
+        }
+        else if (parameter_info.type == RHIRootParameterType::DescriptorTable)
+        {
+            element.table_type = parameter_info.table_parameter_info.table_type;
+            element.is_bindless = parameter_info.table_parameter_info.is_bindless;
+        }
+        
+        if (element.is_bindless)
+        {
+            unsigned register_start = 0;
+            unsigned register_end = UINT_MAX;
+            element.register_range = {register_start, register_end};
+            element.space = space;
+        }
+        else
+        {
+            unsigned register_start = register_index;
+            unsigned register_end = register_start + parameter_info.register_count;
+            element.register_range = {register_start, register_end};
+            element.space = space;
+        }
+        
+        out_allocation.register_begin_index = element.register_range.first;
+        out_allocation.global_parameter_index = element.global_parameter_index;
+        out_allocation.space = element.space;
+        out_allocation.bindless_descriptor = element.is_bindless;
+        out_allocation.local_space_parameter_index = register_index;
         
         element.local_space_parameter_index = out_allocation.local_space_parameter_index;
         m_layout.parameter_elements[parameter_info.type].push_back(element);
@@ -295,7 +364,7 @@ bool IRHIRootSignatureHelper::BuildRootSignature(IRHIDevice& device, IRHIDescrip
 
     for (const auto& sampler : m_layout.sampler_elements)
     {
-        m_root_signature->GetStaticSampler(sampler.sample_index).InitStaticSampler(device, sampler.register_space, sampler.sample_index, sampler.address_mode, sampler.filter_mode);
+        m_root_signature->GetStaticSampler(sampler.sample_index).InitStaticSampler(device, sampler.register_space, sampler.local_space_parameter_index, sampler.address_mode, sampler.filter_mode);
     }
     
     return m_root_signature->InitRootSignature(device, descriptor_manager);

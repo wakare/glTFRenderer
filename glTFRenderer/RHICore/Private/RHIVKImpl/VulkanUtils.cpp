@@ -818,7 +818,7 @@ bool VulkanUtils::ProcessShaderMetaData(IRHIShader& shader)
             }
             parameter_info.is_buffer = descriptor_type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER || descriptor_type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 
-            shader_meta_data.root_parameter_infos.push_back(parameter_info);
+            shader_meta_data.root_parameter_infos.push_back({parameter_info, binding_parameter->set, binding_parameter->binding});
         }
     }
     

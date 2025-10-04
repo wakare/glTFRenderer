@@ -3,12 +3,13 @@
 #include <filesystem>
 
 #include "InternalResourceHandleTable.h"
+#include "RendererSceneCommon.h"
 #include "RenderPass.h"
 #include "ResourceManager.h"
 #include "RHIConfigSingleton.h"
-#include "RHIResourceFactory.h"
+#include "RHIResourceFactoryImpl.hpp"
 #include "RHIUtils.h"
-#include "../../RendererScene/Public/RendererSceneGraph.h"
+#include "RendererSceneGraph.h"
 #include "RenderWindow/glTFWindow.h"
 #include "RHIInterface/IRHIDescriptorManager.h"
 #include "RHIInterface/IRHIDescriptorUpdater.h"
@@ -229,6 +230,8 @@ namespace RendererInterface
                         auto index = mesh->GetIndexBuffer().data.get();
                         auto index_count = mesh->GetIndexBuffer().index_count;
                         data_accessor.AccessMeshData(mesh->GetIndexBuffer().format == RHIDataFormat::R16_UINT ? RendererSceneMeshDataAccessorBase::MeshDataAccessorType::INDEX_HALF : RendererSceneMeshDataAccessorBase::MeshDataAccessorType::INDEX_INT, mesh_id, index, index_count);
+
+                        data_accessor.AccessMaterialData(mesh->GetMaterial(), mesh_id);
                     }
                     
                     data_accessor.AccessInstanceData(RendererSceneMeshDataAccessorBase::MeshDataAccessorType::INSTANCE_MAT4x4, node.GetID(), mesh_id, &absolute_transform, 1);
@@ -240,11 +243,6 @@ namespace RendererInterface
         };
         
         scene_graph->GetRootNode().Traverse(scene_node_traverse);
-
-        for (const auto& material : scene_graph->GetMaterials())
-        {
-            data_accessor.AccessMaterialData(*material.second);
-        }
         
         return true;
     }
