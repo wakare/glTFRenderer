@@ -788,7 +788,7 @@ bool VulkanUtils::ProcessShaderMetaData(IRHIShader& shader)
 
             RootParameterInfo parameter_info{};
             parameter_info.parameter_name = binding_parameter->name;
-            parameter_info.register_count = binding_parameter->count > 0 ? binding_parameter->count : 1;
+            parameter_info.register_count = binding_parameter->count > 0 ? binding_parameter->count : UINT_MAX;
 
             auto descriptor_type = ToVkDescriptorType(binding_parameter->descriptor_type);
             switch (descriptor_type) {
@@ -801,8 +801,14 @@ bool VulkanUtils::ProcessShaderMetaData(IRHIShader& shader)
                 break;
             case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
                 parameter_info.type = RHIRootParameterType::SRV;
+                parameter_info.table_parameter_info.is_bindless = binding_parameter->count == 0;
+                parameter_info.table_parameter_info.table_type = RHIDescriptorRangeType::SRV;
                 break;
             case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+                parameter_info.type = RHIRootParameterType::UAV;
+                parameter_info.table_parameter_info.is_bindless = binding_parameter->count == 0;
+                parameter_info.table_parameter_info.table_type = RHIDescriptorRangeType::UAV;
+                break;
             case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
                 parameter_info.type = RHIRootParameterType::UAV;
                 break;

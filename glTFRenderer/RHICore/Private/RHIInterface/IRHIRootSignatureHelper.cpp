@@ -8,10 +8,10 @@ void IRHIRootSignatureHelper::IncrementRegisterSpaceIndex()
     ++m_current_space;
 }
 
-bool IRHIRootSignatureHelper::AddRootParameterWithRegisterCount(const RootParameterInfo& parameter_info, RootSignatureAllocation& out_allocation)
+RHIShaderRegisterType ToShaderRegisterType(RHIRootParameterType type, RHIDescriptorRangeType range_type)
 {
     RHIShaderRegisterType register_type = RHIShaderRegisterType::Unknown;
-    switch (parameter_info.type) {
+    switch (type) {
     case RHIRootParameterType::Constant:
     case RHIRootParameterType::CBV:
         register_type = RHIShaderRegisterType::b;
@@ -24,7 +24,7 @@ bool IRHIRootSignatureHelper::AddRootParameterWithRegisterCount(const RootParame
         break;
     case RHIRootParameterType::DescriptorTable:
         {
-            switch (parameter_info.table_parameter_info.table_type) {
+            switch (range_type) {
             case RHIDescriptorRangeType::CBV:
                 register_type = RHIShaderRegisterType::b;
                 break;
@@ -46,7 +46,13 @@ bool IRHIRootSignatureHelper::AddRootParameterWithRegisterCount(const RootParame
     case RHIRootParameterType::Unknown:
     default: GLTF_CHECK(false);
     }
-    
+
+    return register_type;
+}
+
+bool IRHIRootSignatureHelper::AddRootParameterWithRegisterCount(const RootParameterInfo& parameter_info, RootSignatureAllocation& out_allocation)
+{
+    auto register_type= ToShaderRegisterType(parameter_info.type, parameter_info.table_parameter_info.table_type);
     out_allocation.parameter_name = parameter_info.parameter_name;
     out_allocation.type = parameter_info.type;
     out_allocation.register_type = register_type;

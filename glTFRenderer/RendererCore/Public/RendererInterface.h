@@ -6,6 +6,7 @@
 
 #include "Renderer.h"
 
+class IRHIDescriptorTable;
 class MaterialBase;
 class RendererInputDevice;
 class IRHIBufferDescriptorAllocation;
@@ -105,7 +106,10 @@ namespace RendererInterface
         std::vector<RenderGraphNodeDesc> m_render_graph_nodes;
         std::set<RenderGraphNodeHandle> m_render_graph_node_handles;
 
-        std::map<BufferHandle, std::shared_ptr<IRHIBufferDescriptorAllocation>> m_buffer_descriptors;
+        std::map<std::string, std::shared_ptr<IRHIBufferDescriptorAllocation>> m_buffer_descriptors;
+        std::map<std::string, std::shared_ptr<IRHITextureDescriptorAllocation>> m_texture_descriptors;
+        std::map<std::string, std::shared_ptr<IRHIDescriptorTable>> m_texture_descriptor_tables;
+        std::map<std::string, std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>>> m_texture_descriptor_table_source_data;
     };
 
     class RendererSceneMeshDataAccessorBase

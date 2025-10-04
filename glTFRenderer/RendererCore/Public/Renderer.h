@@ -278,6 +278,7 @@ namespace RendererInterface
         };
 
         std::vector<TextureHandle> textures;
+        TextureBindingType type;
     };
 
     struct RenderPassDrawDesc

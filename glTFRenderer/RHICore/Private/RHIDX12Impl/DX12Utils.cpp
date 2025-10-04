@@ -788,6 +788,13 @@ bool DX12Utils::ProcessShaderMetaData(IRHIShader& shader)
         case D3D_SIT_TEXTURE:
             parameter_info.is_buffer = false;
             parameter_info.type = RHIRootParameterType::SRV;
+            // Bindless --> bd.BindCount == 0
+            parameter_info.register_count = bd.BindCount == 0? UINT_MAX: bd.BindCount;
+            if (bd.BindCount == 0)
+            {
+                parameter_info.table_parameter_info.is_bindless = true;
+                parameter_info.table_parameter_info.table_type = RHIDescriptorRangeType::SRV;
+            }
             break;
         case D3D_SIT_SAMPLER:
             parameter_info.is_buffer = false;

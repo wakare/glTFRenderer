@@ -24,7 +24,7 @@ bool RendererModuleMaterial::AddMaterial(const MaterialBase& material)
         }
     }
 
-    if (material.GetParameter(MaterialBase::MaterialParameterUsage::NORMAL))
+    if (material.HasParameter(MaterialBase::MaterialParameterUsage::NORMAL) && material.GetParameter(MaterialBase::MaterialParameterUsage::NORMAL))
     {
         auto normal_parameter = material.GetParameter(MaterialBase::MaterialParameterUsage::NORMAL);
         if (normal_parameter->GetType() == MaterialParameter::MaterialParameterType::TEXTURE)
@@ -38,7 +38,7 @@ bool RendererModuleMaterial::AddMaterial(const MaterialBase& material)
         }
     }
 
-    if (material.GetParameter(MaterialBase::MaterialParameterUsage::METALLIC_ROUGHNESS))
+    if (material.HasParameter(MaterialBase::MaterialParameterUsage::METALLIC_ROUGHNESS) && material.GetParameter(MaterialBase::MaterialParameterUsage::METALLIC_ROUGHNESS))
     {
         auto metallic_roughness_parameter = material.GetParameter(MaterialBase::MaterialParameterUsage::METALLIC_ROUGHNESS);
         if (metallic_roughness_parameter->GetType() == MaterialParameter::MaterialParameterType::TEXTURE)
@@ -85,6 +85,11 @@ bool RendererModuleMaterial::BindDrawCommands(RendererInterface::RenderPassDrawD
     binding_desc.count = m_material_shader_infos.size();
     out_draw_desc.buffer_resources[m_material_shader_info_buffer_desc.name] = binding_desc;
 
+    RendererInterface::TextureBindingDesc texture_binding_desc{};
+    texture_binding_desc.type = RendererInterface::TextureBindingDesc::SRV;
+    texture_binding_desc.textures = m_material_texture_handles;
+    out_draw_desc.texture_resources["bindless_material_textures"] = texture_binding_desc;
+    
     return true;
 }
 

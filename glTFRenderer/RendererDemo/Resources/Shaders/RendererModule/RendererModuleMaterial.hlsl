@@ -20,8 +20,15 @@ struct MaterialShaderInfo
 };
 
 StructuredBuffer<MaterialShaderInfo> g_material_infos;
-Texture2D<float4> bindless_material_textures[];
-SamplerState material_sampler;
+Texture2D<float4> bindless_material_textures[] : register(t0, space1);
+SamplerState material_sampler
+{
+    Filter = MIN_MAG_MIP_LINEAR;
+    AddressU = Clamp;
+    AddressV = Clamp;
+    AddressW = Clamp;
+};
+//SamplerState material_sampler;
 
 static float4 material_debug_color[8] =
 {
@@ -38,16 +45,11 @@ static float4 material_debug_color[8] =
 float4 SampleAlbedoTextureCS(uint material_id, float2 uv)
 {
     MaterialShaderInfo info = g_material_infos[material_id];
-    if (info.IsVTAlbedo())
-    {
-#ifdef VT_READ_DATA
-        return SampleVirtualTexture(info.albedo_tex_index, uv);
-#else
-        return float4(0.0, 0.0, 0.0, 0.0);
-#endif
-    }
+
     if (MATERIAL_TEXTURE_INVALID_INDEX == info.albedo_tex_index)
+    {
         return info.albedo;
+    }
     
     return bindless_material_textures[info.albedo_tex_index].SampleLevel(material_sampler, uv, 0, 0);
 }
@@ -56,15 +58,6 @@ float4 SampleAlbedoTexture(uint material_id, float2 uv)
 {
     MaterialShaderInfo info = g_material_infos[material_id];
 
-    if (info.IsVTAlbedo())
-    {
-#ifdef VT_READ_DATA
-        return SampleVirtualTexture(info.albedo_tex_index, uv);
-#else
-        return float4(0.0, 0.0, 0.0, 0.0);
-#endif
-    }
-    
     if (MATERIAL_TEXTURE_INVALID_INDEX == info.albedo_tex_index)
     {
         return info.albedo;
@@ -76,14 +69,6 @@ float4 SampleAlbedoTexture(uint material_id, float2 uv)
 float4 SampleNormalTextureCS(uint material_id, float2 uv)
 {
     MaterialShaderInfo info = g_material_infos[material_id];
-    if (info.IsVTNormal())
-    {
-#ifdef VT_READ_DATA
-        return SampleVirtualTexture(info.normal_tex_index, uv);
-#else
-        return float4(0.0, 0.0, 0.0, 0.0);
-#endif
-    }
     
     if (MATERIAL_TEXTURE_INVALID_INDEX == info.normal_tex_index)
     {
@@ -96,14 +81,7 @@ float4 SampleNormalTextureCS(uint material_id, float2 uv)
 float4 SampleNormalTexture(uint material_id, float2 uv)
 {
     MaterialShaderInfo info = g_material_infos[material_id];
-    if (info.IsVTNormal())
-    {
-#ifdef VT_READ_DATA
-        return SampleVirtualTexture(info.normal_tex_index, uv);
-#else
-        return float4(0.0, 0.0, 0.0, 0.0);
-#endif
-    }
+    
     if (MATERIAL_TEXTURE_INVALID_INDEX == info.normal_tex_index)
     {
         return info.normal;
@@ -116,15 +94,7 @@ float4 SampleNormalTexture(uint material_id, float2 uv)
 float2 SampleMetallicRoughnessTexture(uint material_id, float2 uv)
 {
     MaterialShaderInfo info = g_material_infos[material_id];
-    if (info.IsVTMetalicRoughness())
-    {
-#ifdef VT_READ_DATA
-        return SampleVirtualTexture(info.metallic_roughness_tex_index, uv).bg;
-#else
-        return float2(0.0, 0.0);
-#endif        
-    }
-
+    
     if (MATERIAL_TEXTURE_INVALID_INDEX == info.metallic_roughness_tex_index)
     {
         return info.metallicAndRoughness.bg;
@@ -136,14 +106,7 @@ float2 SampleMetallicRoughnessTexture(uint material_id, float2 uv)
 float2 SampleMetallicRoughnessTextureCS(uint material_id, float2 uv)
 {
     MaterialShaderInfo info = g_material_infos[material_id];
-    if (info.IsVTMetalicRoughness())
-    {
-#ifdef VT_READ_DATA
-        return SampleVirtualTexture(info.metallic_roughness_tex_index, uv).bg;
-#else
-        return float2(0.0, 0.0);
-#endif        
-    }
+    
     if (MATERIAL_TEXTURE_INVALID_INDEX == info.metallic_roughness_tex_index)
     {
         return info.metallicAndRoughness.bg;

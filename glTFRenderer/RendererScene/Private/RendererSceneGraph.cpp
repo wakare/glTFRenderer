@@ -388,7 +388,8 @@ void RendererSceneGraph::RecursiveInitSceneNodeFromGLTFLoader(const glTFLoader& 
 					if (!mesh_materials.contains(primitive.material))
 					{
 						std::shared_ptr<MaterialBase> mesh_material = std::make_shared<MaterialBase>();
-
+						mesh_materials[primitive.material] = mesh_material;
+						
 						auto material_id = primitive.material;
 						const auto& source_material =
 						*loader.GetMaterials()[loader.ResolveIndex(material_id)];
@@ -432,11 +433,10 @@ void RendererSceneGraph::RecursiveInitSceneNodeFromGLTFLoader(const glTFLoader& 
 							std::string texture_uri = loader.GetSceneFileDirectory() + texture_image.uri;
 							mesh_material->SetParameter(MaterialBase::MaterialParameterUsage::METALLIC_ROUGHNESS, std::make_shared<MaterialParameter>(texture_uri));
 						}
-
-						render_scene_mesh->SetMaterial(mesh_materials.at(primitive.material));
-						m_meshes.emplace(primitive.Hash(), render_scene_mesh);
 					}
 
+					render_scene_mesh->SetMaterial(mesh_materials.at(primitive.material));
+					m_meshes.emplace(primitive.Hash(), render_scene_mesh);
 					scene_node.AddMesh(m_meshes.at(primitive.Hash()));
 				}
 			}
