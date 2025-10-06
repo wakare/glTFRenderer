@@ -935,7 +935,9 @@ inline unsigned GetBitPerPixelByFormat(const RHIDataFormat& RHIDataFormat)
     else if (RHIDataFormat == RHIDataFormat::R16_UINT) return 16;
     else if (RHIDataFormat == RHIDataFormat::R8_UNORM) return 8;
     else if (RHIDataFormat == RHIDataFormat::A8_UNORM) return 8;
-
+    
+    else if (RHIDataFormat == RHIDataFormat::D32_FLOAT) return 32;
+    else if (RHIDataFormat == RHIDataFormat::D32_SAMPLE_RESERVED) return 32;
     // Unknown format !
     assert(false);
     return 32;
