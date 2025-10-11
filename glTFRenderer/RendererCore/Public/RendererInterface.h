@@ -6,6 +6,7 @@
 
 #include "Renderer.h"
 
+class IRHITexture;
 class IRHIDescriptorTable;
 class MaterialBase;
 class RendererInputDevice;
@@ -95,6 +96,9 @@ namespace RendererInterface
         
         bool CompileRenderPassAndExecute();
 
+        void RegisterTextureToColorOutput(TextureHandle texture_handle);
+        void RegisterRenderTargetToColorOutput(RenderTargetHandle render_target_handle);
+
     protected:
         void ExecuteRenderGraphNode(IRHICommandList& command_list, RenderGraphNodeHandle render_graph_node_handle, unsigned long long interval);
         void CloseCurrentCommandListAndExecute(IRHICommandList& command_list, const RHIExecuteCommandListContext& context, bool wait);
@@ -110,6 +114,8 @@ namespace RendererInterface
         std::map<std::string, std::shared_ptr<IRHITextureDescriptorAllocation>> m_texture_descriptors;
         std::map<std::string, std::shared_ptr<IRHIDescriptorTable>> m_texture_descriptor_tables;
         std::map<std::string, std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>>> m_texture_descriptor_table_source_data;
+
+        std::shared_ptr<IRHITexture> m_final_color_output;
     };
 
     class RendererSceneMeshDataAccessorBase

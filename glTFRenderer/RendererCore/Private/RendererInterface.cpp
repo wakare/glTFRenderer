@@ -404,22 +404,9 @@ namespace RendererInterface
     bool RenderGraph::CompileRenderPassAndExecute()
     {
         // find final color output and copy to swapchain buffer, only debug logic
-        RenderTargetHandle final_color_output_handle = NULL_HANDLE; 
-        for (auto render_graph_node_handle : m_render_graph_node_handles)
-        {
-            auto& render_graph_node = m_render_graph_nodes[render_graph_node_handle];
-            for (const auto& render_target_info : render_graph_node.draw_info.render_target_resources)
-            {
-                if (render_target_info.second.usage == RenderPassResourceUsage::COLOR)
-                {
-                    final_color_output_handle = render_target_info.first;
-                }
-            }
-        }
-
-        auto final_color_output = InternalResourceHandleTable::Instance().GetRenderTarget(final_color_output_handle);
+        GLTF_CHECK(m_final_color_output);
         
-        m_window.RegisterTickCallback([this, final_color_output](unsigned long long interval)
+        m_window.RegisterTickCallback([this](unsigned long long interval)
         {
             auto& command_list = m_resource_allocator.GetCommandListForRecordPassCommand();
             // Wait current frame available
@@ -432,7 +419,7 @@ namespace RendererInterface
 
             if (!m_render_graph_node_handles.empty())
             {
-                auto src = final_color_output->m_source;
+                auto src = m_final_color_output;
                 auto dst = m_resource_allocator.GetCurrentSwapchainRT().m_source;
 
                 src->Transition(command_list, RHIResourceStateType::STATE_COPY_SOURCE);
@@ -452,6 +439,18 @@ namespace RendererInterface
         });
 
         return true;
+    }
+
+    void RenderGraph::RegisterTextureToColorOutput(TextureHandle texture_handle)
+    {
+        auto texture = InternalResourceHandleTable::Instance().GetTexture(texture_handle);
+        m_final_color_output = texture->m_texture;
+    }
+
+    void RenderGraph::RegisterRenderTargetToColorOutput(RenderTargetHandle render_target_handle)
+    {
+        auto render_target = InternalResourceHandleTable::Instance().GetRenderTarget(render_target_handle);
+        m_final_color_output = render_target->m_source;
     }
 
     void RenderGraph::ExecuteRenderGraphNode(IRHICommandList& command_list, RenderGraphNodeHandle render_graph_node_handle, unsigned long long interval)
@@ -634,9 +633,33 @@ namespace RendererInterface
             }
         }
 
+        for (const auto& render_target_pair  :render_graph_node_desc.draw_info.render_target_texture_resources)
+        {
+            if (!m_texture_descriptors.contains(render_target_pair.first))
+            {
+                auto texture = InternalResourceHandleTable::Instance().GetRenderTarget(render_target_pair.second.render_target_texture)->m_source;
+                RHITextureDescriptorDesc texture_descriptor_desc{texture->GetTextureFormat(), RHIResourceDimension::TEXTURE2D, render_target_pair.second.type == TextureBindingDesc::SRV? RHIViewType::RVT_SRV :RHIViewType::RVT_UAV};
+                if (IsDepthStencilFormat(texture->GetTextureFormat()) && render_target_pair.second.type == TextureBindingDesc::SRV)
+                {
+                    texture_descriptor_desc.m_format = RHIDataFormat::D32_SAMPLE_RESERVED;
+                }
+                std::shared_ptr<IRHITextureDescriptorAllocation> texture_descriptor = nullptr;
+                m_resource_allocator.GetDescriptorManager().CreateDescriptor(m_resource_allocator.GetDevice(), texture, texture_descriptor_desc, texture_descriptor);
+                m_texture_descriptors[render_target_pair.first]=texture_descriptor;
+            }
+            
+            auto& root_signature_allocation = render_pass->GetRootSignatureAllocation(render_target_pair.first);
+            auto descriptor = m_texture_descriptors.at(render_target_pair.first);
+            descriptor->m_source->Transition(command_list, render_target_pair.second.type == TextureBindingDesc::SRV ? RHIResourceStateType::STATE_ALL_SHADER_RESOURCE : RHIResourceStateType::STATE_UNORDERED_ACCESS);
+            render_pass->GetDescriptorUpdater().BindDescriptor(command_list, pipeline_type, root_signature_allocation, *descriptor);
+        }
+
         render_pass->GetDescriptorUpdater().FinalizeUpdateDescriptors(m_resource_allocator.GetDevice(), command_list, render_pass->GetRootSignature());
-        
-        RHIUtilInstanceManager::Instance().BeginRendering(command_list, begin_rendering_info);
+
+        if (pipeline_type == RHIPipelineType::Graphics)
+        {
+            RHIUtilInstanceManager::Instance().BeginRendering(command_list, begin_rendering_info);    
+        }
         
         const auto& draw_info = render_graph_node_desc.draw_info;
         for (const auto& command : draw_info.execute_commands)
@@ -673,13 +696,17 @@ namespace RendererInterface
                     break;    
                 }
             case ExecuteCommandType::COMPUTE_DISPATCH_COMMAND:
+                RHIUtilInstanceManager::Instance().Dispatch(command_list, command.parameter.dispatch_parameter.group_size_x, command.parameter.dispatch_parameter.group_size_y, command.parameter.dispatch_parameter.group_size_z);
                 break;
             case ExecuteCommandType::RAY_TRACING_COMMAND:
                 break;
             }    
         }
-
-        RHIUtilInstanceManager::Instance().EndRendering(command_list);
+        
+        if (pipeline_type == RHIPipelineType::Graphics)
+        {
+            RHIUtilInstanceManager::Instance().EndRendering(command_list);
+        }
     }
 
     void RenderGraph::CloseCurrentCommandListAndExecute(IRHICommandList& command_list, const RHIExecuteCommandListContext& context, bool wait)

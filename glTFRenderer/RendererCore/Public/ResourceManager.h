@@ -36,7 +36,7 @@ public:
     RendererInterface::IndexedBufferHandle CreateIndexedBuffer(const RendererInterface::BufferDesc& desc);
     RendererInterface::ShaderHandle CreateShader(const RendererInterface::ShaderDesc& shader_desc);
     RendererInterface::RenderTargetHandle CreateRenderTarget(const RendererInterface::RenderTargetDesc& desc);
-    
+
     unsigned GetCurrentBackBufferIndex() const;
     
     IRHIDevice& GetDevice();

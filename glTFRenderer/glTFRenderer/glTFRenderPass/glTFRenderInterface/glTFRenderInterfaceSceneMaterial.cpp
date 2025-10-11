@@ -36,7 +36,7 @@ bool glTFRenderInterfaceSceneMaterial::PostInitInterfaceImpl(glTFRenderResourceM
             material_factor.at(glTFMaterialParameterUsage::BASECOLOR)->GetFactor(): glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
         material_info.normal = material_factor.contains(glTFMaterialParameterUsage::NORMAL) ?
             material_factor.at(glTFMaterialParameterUsage::NORMAL)->GetFactor(): glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
-        material_info.metallicAndRoughness = material_factor.contains(glTFMaterialParameterUsage::METALLIC_ROUGHNESS) ?
+        material_info.metallic_and_roughness = material_factor.contains(glTFMaterialParameterUsage::METALLIC_ROUGHNESS) ?
             material_factor.at(glTFMaterialParameterUsage::METALLIC_ROUGHNESS)->GetFactor(): glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
 
         auto process_texture = [&, this]( glTFMaterialParameterUsage usage, unsigned& out_texture_index,

@@ -40,13 +40,13 @@ public:
     void SetCameraMode(CameraMode mode);
     const CameraMode& GetCameraMode() const;
 
-    void Observe(const glm::vec3& center);
+    void Observe(const glm::fvec3& center);
     void ObserveRotateXY(float rotation_x, float rotation_y);
     float GetObserveDistance() const;
     
-    const glm::vec3& GetObserveCenter() const;
+    const glm::fvec3& GetObserveCenter() const;
     void SetCameraPosition(const glm::fvec3& position);
-    glm::vec3 GetCameraPosition() const;
+    glm::fvec3 GetCameraPosition() const;
 
     void GetCameraViewportSize(unsigned& out_width, unsigned& out_height) const;
     RendererSceneNodeTransform& GetCameraTransform();
@@ -56,6 +56,9 @@ public:
 
     void MarkTransformDirty();
     bool IsTransformDirty() const;
+
+    float GetProjectionWidth() const;
+    float GetProjectionHeight() const;
     
 protected:
     CameraMode m_mode;

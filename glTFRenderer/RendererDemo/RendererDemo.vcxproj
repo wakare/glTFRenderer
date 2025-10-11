@@ -174,8 +174,18 @@
     <ClCompile Include="DemoApps\DemoTriangleApp.cpp" />
     <ClCompile Include="RendererDemo.cpp" />
     <None Include="Resources\Shaders\SceneRendererCommon.hlsl" />
+    <ClCompile Include="RendererModule\RendererModuleLighting.cpp" />
     <ClCompile Include="RendererModule\RendererModuleMaterial.cpp" />
     <None Include="Resources\Shaders\RendererModule\RendererModuleMaterial.hlsl" />
+    <None Include="Resources\Shaders\Math\BRDF.hlsl" />
+    <None Include="Resources\Shaders\Math\Color.hlsl" />
+    <None Include="Resources\Shaders\Math\MathCommon.hlsl" />
+    <None Include="Resources\Shaders\Math\RandomGenerator.hlsl" />
+    <None Include="Resources\Shaders\Math\ReservoirSample.hlsl" />
+    <None Include="Resources\Shaders\Math\Sample.hlsl" />
+    <None Include="Resources\Shaders\RendererModule\RendererModuleLighting.hlsl" />
+    <None Include="Resources\Shaders\SceneLighting.hlsl" />
+    <None Include="Resources\Shaders\SceneViewCommon.hlsl" />
     <ClCompile Include="SceneRendererUtil\SceneRendererCameraOperator.cpp" />
     <ClCompile Include="SceneRendererUtil\SceneRendererMeshDrawDispatcher.cpp" />
     <None Include="Resources\Shaders\ModelRenderingShader.hlsl" />
@@ -185,6 +195,7 @@
     <ClInclude Include="DemoApps\DemoAppModelViewer.h" />
     <ClInclude Include="DemoApps\DemoBase.h" />
     <ClInclude Include="DemoApps\DemoTriangleApp.h" />
+    <ClInclude Include="RendererModule\RendererModuleLighting.h" />
     <ClInclude Include="RendererModule\RendererModuleMaterial.h" />
     <ClInclude Include="SceneRendererUtil\SceneRendererCameraOperator.h" />
     <ClInclude Include="SceneRendererUtil\SceneRendererMeshDrawDispatcher.h" />

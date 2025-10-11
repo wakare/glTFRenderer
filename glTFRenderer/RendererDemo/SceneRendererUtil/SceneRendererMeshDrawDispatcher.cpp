@@ -150,7 +150,7 @@ SceneRendererMeshDrawDispatcher::SceneRendererMeshDrawDispatcher(RendererInterfa
 
     m_draw_commands = m_mesh_data_accessor.execute_commands;
 
-    m_module_material->FinalizeModule();
+    m_module_material->FinalizeModule(resource_operator);
 }
 
 bool SceneRendererMeshDrawDispatcher::BindDrawCommands(RendererInterface::RenderPassDrawDesc& out_draw_desc)

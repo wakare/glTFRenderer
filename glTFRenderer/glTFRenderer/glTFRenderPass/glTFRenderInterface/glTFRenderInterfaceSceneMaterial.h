@@ -20,7 +20,7 @@ ALIGN_FOR_CBV_STRUCT struct MaterialShaderInfo
     
     glm::vec4 albedo {0.0f, 0.0f, 0.0f, 0.0f};
     glm::vec4 normal {0.0f, 0.0f, 1.0f, 0.0f};
-    glm::vec4 metallicAndRoughness {0.0f, 1.0f, 0.0f, 0.0f};
+    glm::vec4 metallic_and_roughness {0.0f, 1.0f, 0.0f, 0.0f};
 };
 
 // Use material manager class to bind all needed textures in bindless mode

@@ -58,9 +58,12 @@ bool DX12RootParameter::InitAsDescriptorTableRange(unsigned attribute_index, siz
     static auto _convertDX12RangeType = [](RHIDescriptorRangeType type)
     {
         switch (type) {
-            case RHIDescriptorRangeType::CBV: return D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-            case RHIDescriptorRangeType::SRV: return D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-            case RHIDescriptorRangeType::UAV: return D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+            case RHIDescriptorRangeType::CBV:
+                return D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+            case RHIDescriptorRangeType::SRV:
+                return D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+            case RHIDescriptorRangeType::UAV:
+                return D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
         }
 
         // Unexpected situation

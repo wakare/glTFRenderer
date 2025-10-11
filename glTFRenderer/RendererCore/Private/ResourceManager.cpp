@@ -263,6 +263,14 @@ RendererInterface::RenderTargetHandle ResourceManager::CreateRenderTarget(const 
     {
         usage = RHIResourceUsageFlags(usage | RUF_ALLOW_DEPTH_STENCIL);
     }
+    if (desc.usage & RendererInterface::ResourceUsage::SHADER_RESOURCE)
+    {
+        usage = RHIResourceUsageFlags(usage | RUF_ALLOW_SRV);
+    }
+    if (desc.usage & RendererInterface::ResourceUsage::UNORDER_ACCESS)
+    {
+        usage = RHIResourceUsageFlags(usage | RUF_ALLOW_UAV);
+    }
     
     RHITextureDesc tex_desc(desc.name, desc.width, desc.height, format, usage, clear_value);
     auto render_target_descriptor = m_render_target_manager->CreateRenderTarget(*m_device, *m_memory_manager, tex_desc, format);

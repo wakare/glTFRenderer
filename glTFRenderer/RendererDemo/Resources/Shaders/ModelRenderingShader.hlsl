@@ -5,6 +5,9 @@ struct VSOutput
     float4 pos : SV_POSITION;
     float2 uv : UV;
     uint vs_material_id: MATERIAL_ID;
+    float3 normal: NORMAL;
+    float4 tangent: TANGENT;
+    float3x3 world_rotation_matrix: WORLD_ROTATION_MATRIX;
 };
 
 VSOutput MainVS(uint Vertex_ID : SV_VertexID, uint Instance_ID : SV_InstanceID
@@ -29,13 +32,17 @@ VSOutput MainVS(uint Vertex_ID : SV_VertexID, uint Instance_ID : SV_InstanceID
     //output.color = float3(1.0, 1.0, 1.0);
     output.vs_material_id = mesh_start_info[instance_input_data.mesh_id].material_index;
     output.uv = vertex.uv.xy;
-    
+    output.tangent = vertex.tangent;
+    output.world_rotation_matrix = (float3x3)instance_transform;
+    output.normal = normalize(mul(instance_transform, float4(vertex.normal.xyz, 0.0)).xyz);
+
     return output;
 }
 
 struct FSOutput
 {
     float4 color : SV_TARGET0;
+    float4 normal : SV_TARGET1;
 };
 
 FSOutput MainFS(VSOutput input)
@@ -43,6 +50,9 @@ FSOutput MainFS(VSOutput input)
     FSOutput output;
     
     output.color = SampleAlbedoTexture(input.vs_material_id, input.uv.xy);
+    
+    float3 normal = normalize(2 * SampleNormalTexture(input.vs_material_id, input.uv).xyz - 1.0);
+    output.normal = float4(GetWorldNormal(input.world_rotation_matrix, input.normal, input.tangent, normal), 0.0);
     
     return output;
 }

@@ -56,6 +56,7 @@ namespace RendererInterface
         COPY_DST        = 0x100,
         SHADER_RESOURCE = 0x1000,
         DEPTH_STENCIL   = 0x10000,
+        UNORDER_ACCESS  = 0x100000,
     };
     
     struct RenderTargetClearValue
@@ -230,6 +231,13 @@ namespace RendererInterface
         unsigned start_vertex_location;
         unsigned start_instance_location;
     };
+
+    struct DispatchParameter
+    {
+        unsigned group_size_x;
+        unsigned group_size_y;
+        unsigned group_size_z;
+    };
     
     struct ExecuteCommandParameter
     {
@@ -239,6 +247,7 @@ namespace RendererInterface
             DrawVertexCommandParameter      draw_vertex_command_parameter;
             DrawVertexInstanceParameter     draw_vertex_instance_command_parameter;
             DrawIndexedInstanceParameter    draw_indexed_instance_command_parameter;
+            DispatchParameter               dispatch_parameter;
         };
     };
     
@@ -280,6 +289,19 @@ namespace RendererInterface
         };
 
         std::vector<TextureHandle> textures;
+        
+        TextureBindingType type;
+    };
+
+    struct RenderTargetTextureBindingDesc
+    {
+        enum TextureBindingType
+        {
+            SRV,
+            UAV,
+        };
+        
+        RenderTargetHandle render_target_texture;
         TextureBindingType type;
     };
 
@@ -290,6 +312,7 @@ namespace RendererInterface
         std::map<RenderTargetHandle, bool> render_target_clear_states;
         std::map<std::string, BufferBindingDesc> buffer_resources;
         std::map<std::string, TextureBindingDesc> texture_resources;
+        std::map<std::string, RenderTargetTextureBindingDesc> render_target_texture_resources;
     };
 
     struct RenderGraphNodeDesc

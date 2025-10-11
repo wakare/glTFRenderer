@@ -3,21 +3,39 @@
 #include <glm/glm/gtx/norm.hpp>
 #include "RenderWindow/RendererInputDevice.h"
 
+struct ViewBuffer
+{
+    glm::fmat4x4 view_projection_matrix;
+    glm::fmat4x4 inverse_view_projection_matrix;
+    glm::fvec4 view_position;
+    
+    unsigned viewport_width;
+    unsigned viewport_height;
+    unsigned padding[2];
+};
+
 SceneRendererCameraOperator::SceneRendererCameraOperator(RendererInterface::ResourceOperator& resource_operator, const RendererCameraDesc& camera_desc)
 {
     m_camera = std::make_unique<RendererCamera>(camera_desc);
     
     // Create and bind camera view matrix buffer
     auto camera_transform = m_camera->GetProjectionMatrix();
+    ViewBuffer view_buffer{};
+    view_buffer.view_projection_matrix = camera_transform;
+    view_buffer.inverse_view_projection_matrix = glm::inverse(camera_transform);
+    view_buffer.view_position = glm::fvec4(m_camera->GetCameraPosition(), 1.0f);
+    view_buffer.viewport_width = camera_desc.projection_width;
+    view_buffer.viewport_height = camera_desc.projection_height;
     
     camera_buffer_desc.name = "ViewBuffer";
-    camera_buffer_desc.size = sizeof(glm::mat4);
+    camera_buffer_desc.size = sizeof(ViewBuffer);
     camera_buffer_desc.type = RendererInterface::UPLOAD;
     camera_buffer_desc.usage = RendererInterface::USAGE_CBV;
-    camera_buffer_desc.data = &camera_transform;
+    camera_buffer_desc.data = &view_buffer;
     
     m_camera_buffer_handle = resource_operator.CreateBuffer(camera_buffer_desc);
 }
+
 
 void SceneRendererCameraOperator::TickCameraOperation(RendererInputDevice& input_device,
     RendererInterface::ResourceOperator& resource_operator, unsigned long long delta_time_ms)
@@ -154,9 +172,16 @@ void SceneRendererCameraOperator::TickCameraOperation(RendererInputDevice& input
     m_camera->MarkTransformDirty();
 
     auto camera_transform = m_camera->GetViewProjectionMatrix();
+    ViewBuffer view_buffer{};
+    view_buffer.view_projection_matrix = camera_transform;
+    view_buffer.inverse_view_projection_matrix = glm::inverse(camera_transform);
+    view_buffer.view_position = glm::fvec4(m_camera->GetCameraPosition(), 1.0f);
+    view_buffer.viewport_width = m_camera->GetProjectionWidth();
+    view_buffer.viewport_height = m_camera->GetProjectionHeight();
+    
     RendererInterface::BufferUploadDesc camera_buffer_upload_desc{};
-    camera_buffer_upload_desc.data = &camera_transform;
-    camera_buffer_upload_desc.size = sizeof(glm::mat4);
+    camera_buffer_upload_desc.data = &view_buffer;
+    camera_buffer_upload_desc.size = sizeof(ViewBuffer);
     resource_operator.UploadBufferData(m_camera_buffer_handle, camera_buffer_upload_desc);
 }
 

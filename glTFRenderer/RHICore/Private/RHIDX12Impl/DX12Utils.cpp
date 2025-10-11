@@ -790,11 +790,12 @@ bool DX12Utils::ProcessShaderMetaData(IRHIShader& shader)
             parameter_info.type = RHIRootParameterType::DescriptorTable;
             // Bindless --> bd.BindCount == 0
             parameter_info.register_count = bd.BindCount == 0? UINT_MAX: bd.BindCount;
+            parameter_info.table_parameter_info.table_type = RHIDescriptorRangeType::SRV;
             if (bd.BindCount == 0)
             {
                 parameter_info.table_parameter_info.is_bindless = true;
-                parameter_info.table_parameter_info.table_type = RHIDescriptorRangeType::SRV;
             }
+            
             break;
         case D3D_SIT_SAMPLER:
             parameter_info.is_buffer = false;
@@ -805,10 +806,10 @@ bool DX12Utils::ProcessShaderMetaData(IRHIShader& shader)
             parameter_info.type = RHIRootParameterType::DescriptorTable;
             // Bindless --> bd.BindCount == 0
             parameter_info.register_count = bd.BindCount == 0? UINT_MAX: bd.BindCount;
+            parameter_info.table_parameter_info.table_type = RHIDescriptorRangeType::UAV;
             if (bd.BindCount == 0)
             {
                 parameter_info.table_parameter_info.is_bindless = true;
-                parameter_info.table_parameter_info.table_type = RHIDescriptorRangeType::UAV;
             }
             break;
         case D3D_SIT_STRUCTURED:

@@ -12,7 +12,6 @@ public:
     bool InitRenderContext(const std::vector<std::string>& arguments);
     RendererInterface::ShaderHandle CreateShader(RendererInterface::ShaderType type, const std::string& source, const std::string& entry_function);
     RendererInterface::RenderTargetHandle CreateRenderTarget(const std::string& name, unsigned width, unsigned height, RendererInterface::PixelFormat format, RendererInterface::RenderTargetClearValue clear_value, RendererInterface::ResourceUsage usage);
-    
 protected:
     unsigned m_width{1280};
     unsigned m_height{720};

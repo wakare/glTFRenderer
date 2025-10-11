@@ -2,6 +2,7 @@
 #define SCENE_RENDERER_COMMON_HLSL
 
 #include "RendererModule/RendererModuleMaterial.hlsl"
+#include "SceneViewCommon.hlsl"
 
 // Mesh data
 struct SceneMeshVertexInfo
@@ -29,12 +30,13 @@ struct MeshInstanceInputData
 };
 StructuredBuffer<MeshInstanceInputData> mesh_instance_input_data;
 
-// View data
-cbuffer ViewBuffer
+float3 GetWorldNormal(float3x3 world_matrix, float3 geometry_normal, float4 geometry_tangent, float3 tangent_normal)
 {
-    float4x4 view_projection_matrix;
-};
-
-
+    float3 tmpTangent = normalize(mul(world_matrix, geometry_tangent.xyz));
+    float3 bitangent = cross(geometry_normal, tmpTangent) * geometry_tangent.w;
+    float3 tangent = cross(bitangent, geometry_normal);
+    float3x3 TBN = transpose(float3x3(tangent, bitangent, geometry_normal));
+    return normalize(mul(world_matrix, mul(TBN, tangent_normal)));
+}
 
 #endif

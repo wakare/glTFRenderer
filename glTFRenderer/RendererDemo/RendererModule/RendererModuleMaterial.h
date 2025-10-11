@@ -18,7 +18,7 @@ struct MaterialShaderInfo
     
     glm::fvec4 albedo;
     glm::fvec4 normal;
-    glm::fvec4 metallicAndRoughness;
+    glm::fvec4 metallic_and_roughness;
 };
 // ------- RendererModuleMaterial.hlsl -------
 
@@ -28,7 +28,7 @@ public:
     RendererModuleMaterial(RendererInterface::ResourceOperator& resource_operator);
 
     bool AddMaterial(const MaterialBase& material);
-    bool FinalizeModule();
+    bool FinalizeModule(RendererInterface::ResourceOperator& resource_operator);
     bool BindDrawCommands(RendererInterface::RenderPassDrawDesc& out_draw_desc);
     
 protected:

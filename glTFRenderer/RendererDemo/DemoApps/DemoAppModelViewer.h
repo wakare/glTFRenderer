@@ -1,6 +1,7 @@
 #pragma once
 #include "DemoBase.h"
 #include "RendererCamera.h"
+#include "RendererModule/RendererModuleLighting.h"
 #include "SceneRendererUtil/SceneRendererCameraOperator.h"
 #include "SceneRendererUtil/SceneRendererMeshDrawDispatcher.h"
 
@@ -14,4 +15,5 @@ protected:
     
     std::unique_ptr<SceneRendererMeshDrawDispatcher> m_draw_dispatcher;
     std::unique_ptr<SceneRendererCameraOperator> m_camera_operator;
+    std::unique_ptr<RendererModuleLighting> m_lighting_module;
 };

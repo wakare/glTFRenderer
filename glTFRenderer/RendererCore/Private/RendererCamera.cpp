@@ -88,7 +88,7 @@ void RendererCamera::SetCameraPosition(const glm::fvec3& position)
     m_transform->Translate(position);
 }
 
-glm::vec3 RendererCamera::GetCameraPosition() const
+glm::fvec3 RendererCamera::GetCameraPosition() const
 {
     return m_transform->GetTranslation();
 }
@@ -122,5 +122,15 @@ void RendererCamera::MarkTransformDirty()
 bool RendererCamera::IsTransformDirty() const
 {
     return m_transform->IsTransformDirty();
+}
+
+float RendererCamera::GetProjectionWidth() const
+{
+    return m_projection_width;
+}
+
+float RendererCamera::GetProjectionHeight() const
+{
+    return m_projection_height;
 }
 

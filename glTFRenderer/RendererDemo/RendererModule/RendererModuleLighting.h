@@ -1,0 +1,40 @@
+#pragma once
+#include "RendererInterface.h"
+#include <glm/glm/glm.hpp>
+#include <glm/glm/gtx/compatibility.hpp>
+
+enum LightType
+{
+    Directional = 0,
+    Point       = 1,
+};
+
+struct LightInfo
+{
+    glm::float3 position;
+    float radius;
+    
+    glm::float3 intensity;
+    LightType type;
+};
+
+class RendererModuleLighting
+{
+public:
+    enum
+    {
+        MAX_LIGHT_COUNT = 16,
+    };
+    
+    RendererModuleLighting(RendererInterface::ResourceOperator& resource_operator);
+
+    void AddLightInfo(const LightInfo& info);
+    bool FinalizeModule(RendererInterface::ResourceOperator& resource_operator);
+    bool BindDrawCommands(RendererInterface::RenderPassDrawDesc& out_draw_desc);
+
+protected:
+    RendererInterface::BufferHandle m_light_buffer;
+    RendererInterface::BufferHandle m_light_count_buffer;
+    
+    std::vector<LightInfo> m_light_infos;
+};

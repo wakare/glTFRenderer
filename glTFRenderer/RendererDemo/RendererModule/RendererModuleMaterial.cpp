@@ -53,7 +53,7 @@ bool RendererModuleMaterial::AddMaterial(const MaterialBase& material)
         }
         else
         {
-            material_shader_info.metallicAndRoughness = metallic_roughness_parameter->GetFactor();
+            material_shader_info.metallic_and_roughness = metallic_roughness_parameter->GetFactor();
         }
     }
 
@@ -61,7 +61,7 @@ bool RendererModuleMaterial::AddMaterial(const MaterialBase& material)
     return true;
 }
 
-bool RendererModuleMaterial::FinalizeModule()
+bool RendererModuleMaterial::FinalizeModule(RendererInterface::ResourceOperator& resource_operator)
 {
     // Upload all texture resource and material shader infos
     for (const auto& texture_uri: m_material_texture_uris)
