@@ -121,7 +121,7 @@ void DemoAppModelViewer::Run(const std::vector<std::string>& arguments)
         LightInfo directional_light_info{};
         directional_light_info.type = Directional;
         directional_light_info.intensity = {1.0f, 1.0f, 1.0f};
-        directional_light_info.position = {0.0f, 0.0f, 1.0f};
+        directional_light_info.position = {0.0f, -0.707f, -0.707f};
         directional_light_info.radius = 100000.0f;
         m_lighting_module->AddLightInfo(directional_light_info);
         m_lighting_module->FinalizeModule(*m_resource_manager);

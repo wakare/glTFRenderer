@@ -53,6 +53,8 @@ FSOutput MainFS(VSOutput input)
     
     float3 normal = normalize(2 * SampleNormalTexture(input.vs_material_id, input.uv).xyz - 1.0);
     output.normal = float4(GetWorldNormal(input.world_rotation_matrix, input.normal, input.tangent, normal), 0.0);
+
+    output.normal = normalize(output.normal) * 0.5 + 0.5;
     
     return output;
 }
