@@ -504,8 +504,7 @@ namespace RendererInterface
             auto render_target = InternalResourceHandleTable::Instance().GetRenderTarget(render_target_info.first);
             begin_rendering_info.m_render_targets.push_back(render_target.get());
 
-            if (render_graph_node_desc.draw_info.render_target_clear_states.contains(render_target_info.first) &&
-                render_graph_node_desc.draw_info.render_target_clear_states[render_target_info.first] == true)
+            if (render_target_info.second.need_clear)
             {
                 clear_render_target = true;
                 if (render_target_info.second.usage == RenderPassResourceUsage::DEPTH_STENCIL)

@@ -4,10 +4,8 @@
 #include "Renderer.h"
 #include "RendererInterface.h"
 
-bool DemoTriangleApp::Init(const std::vector<std::string>& arguments)
+bool DemoTriangleApp::InitInternal(const std::vector<std::string>& arguments)
 {
-    RETURN_IF_FALSE(InitRenderContext(arguments))
-    
     // Create shader resource
     auto vertex_shader_handle = CreateShader(RendererInterface::ShaderType::VERTEX_SHADER, "Resources/Shaders/DemoShader.hlsl", "MainVS");
     auto fragment_shader_handle  = CreateShader(RendererInterface::ShaderType::FRAGMENT_SHADER, "Resources/Shaders/DemoShader.hlsl", "MainFS");
@@ -46,8 +44,8 @@ bool DemoTriangleApp::Init(const std::vector<std::string>& arguments)
         {
             .format = RendererInterface::RGBA8_UNORM,
             .usage = RendererInterface::RenderPassResourceUsage::COLOR,
+            .need_clear = true,
         });
-    render_pass_draw_desc.render_target_clear_states.emplace(render_target_handle, true);
 
     RendererInterface::RenderExecuteCommand execute_command{};
     execute_command.type = RendererInterface::ExecuteCommandType::DRAW_VERTEX_COMMAND;
@@ -74,15 +72,8 @@ bool DemoTriangleApp::Init(const std::vector<std::string>& arguments)
     return true;
 }
 
-void DemoTriangleApp::Run(const std::vector<std::string>& arguments)
+void DemoTriangleApp::TickFrameInternal(unsigned long long time_interval)
 {
-    m_window->EnterWindowEventLoop();
-}
-
-void DemoTriangleApp::TickFrame(unsigned long long time_interval)
-{
-    DemoBase::TickFrame(time_interval);
-
     m_color[0] += 0.05f;
     m_color[1] += 0.03f;
     m_color[2] += 0.01f;

@@ -8,10 +8,8 @@
 #include "RendererModule/RendererModuleCamera.h"
 #include "RendererModule/RendererModuleSceneMesh.h"
 
-void DemoAppModelViewer::TickFrame(unsigned long long time_interval)
+void DemoAppModelViewer::TickFrameInternal(unsigned long long time_interval)
 {
-    DemoBase::TickFrame(time_interval);
-    
     auto& input_device = m_window->GetInputDevice();
     if (m_camera_module)
     {
@@ -21,10 +19,8 @@ void DemoAppModelViewer::TickFrame(unsigned long long time_interval)
     input_device.TickFrame(time_interval);
 }
 
-bool DemoAppModelViewer::Init(const std::vector<std::string>& arguments)
+bool DemoAppModelViewer::InitInternal(const std::vector<std::string>& arguments)
 {
-    RETURN_IF_FALSE(InitRenderContext(arguments))
-
     RendererCameraDesc camera_desc{};
     camera_desc.mode = CameraMode::Free;
     camera_desc.transform = glm::mat4(1.0f);
@@ -49,7 +45,6 @@ bool DemoAppModelViewer::Init(const std::vector<std::string>& arguments)
     directional_light_info.position = {0.0f, -0.707f, -0.707f};
     directional_light_info.radius = 100000.0f;
     m_lighting_module->AddLightInfo(directional_light_info);
-    m_lighting_module->FinalizeModule(*m_resource_manager);
         
     // Create render target resource
     auto base_pass_albedo_output = CreateRenderTarget("BasePass_Color", m_window->GetWidth(), m_window->GetHeight(), RendererInterface::RGBA8_UNORM, RendererInterface::default_clear_color,
@@ -66,125 +61,93 @@ bool DemoAppModelViewer::Init(const std::vector<std::string>& arguments)
     
     // Setup base pass rendering config
     {
-        // Create shader resource
-        auto vertex_shader_handle = CreateShader(RendererInterface::ShaderType::VERTEX_SHADER, "Resources/Shaders/ModelRenderingShader.hlsl", "MainVS");
-        auto fragment_shader_handle = CreateShader(RendererInterface::ShaderType::FRAGMENT_SHADER, "Resources/Shaders/ModelRenderingShader.hlsl", "MainFS");
-
-        RendererInterface::RenderPassDesc render_pass_desc{};
-        render_pass_desc.shaders.emplace(RendererInterface::ShaderType::VERTEX_SHADER, vertex_shader_handle);
-        render_pass_desc.shaders.emplace(RendererInterface::ShaderType::FRAGMENT_SHADER, fragment_shader_handle);
+        RenderPassSetupInfo setup_info{};
+        setup_info.render_pass_type = RendererInterface::RenderPassType::GRAPHICS;
+        setup_info.modules = {m_scene_mesh_module, m_camera_module};
+        setup_info.shader_setup_infos = {
+            {
+                .shader_type = RendererInterface::ShaderType::VERTEX_SHADER,
+                .entry_function = "MainVS",
+                .shader_file = "Resources/Shaders/ModelRenderingShader.hlsl"
+            },
+            {
+                .shader_type = RendererInterface::ShaderType::FRAGMENT_SHADER,
+                .entry_function = "MainFS",
+                .shader_file = "Resources/Shaders/ModelRenderingShader.hlsl"
+            }
+        };
 
         RendererInterface::RenderTargetBindingDesc color_rt_binding_desc{};
         color_rt_binding_desc.format = RendererInterface::RGBA8_UNORM;
         color_rt_binding_desc.usage = RendererInterface::RenderPassResourceUsage::COLOR;
+        color_rt_binding_desc.need_clear = true;
 
         RendererInterface::RenderTargetBindingDesc normal_rt_binding_desc{};
         normal_rt_binding_desc.format = RendererInterface::RGBA8_UNORM;
         normal_rt_binding_desc.usage = RendererInterface::RenderPassResourceUsage::COLOR;
+        normal_rt_binding_desc.need_clear = true;
 
-        render_pass_desc.render_target_bindings.push_back(color_rt_binding_desc);
-        render_pass_desc.render_target_bindings.push_back(normal_rt_binding_desc);
-    
         RendererInterface::RenderTargetBindingDesc depth_binding_desc{};
         depth_binding_desc.format = RendererInterface::D32;
         depth_binding_desc.usage = RendererInterface::RenderPassResourceUsage::DEPTH_STENCIL;
-        render_pass_desc.render_target_bindings.push_back(depth_binding_desc);
-    
-        render_pass_desc.type = RendererInterface::RenderPassType::GRAPHICS;
-
-        auto render_pass_handle = m_resource_manager->CreateRenderPass(render_pass_desc);
-    
-        RendererInterface::RenderPassDrawDesc render_pass_draw_desc{};
-        render_pass_draw_desc.render_target_resources.emplace(base_pass_albedo_output,
-            RendererInterface::RenderTargetBindingDesc
-            {
-                .format = RendererInterface::RGBA8_UNORM,
-                .usage = RendererInterface::RenderPassResourceUsage::COLOR,
-            });
-        render_pass_draw_desc.render_target_clear_states.emplace(base_pass_albedo_output, true);
-
-        render_pass_draw_desc.render_target_resources.emplace(base_pass_normal_output,
-                RendererInterface::RenderTargetBindingDesc
-                {
-                    .format = RendererInterface::RGBA8_UNORM,
-                    .usage = RendererInterface::RenderPassResourceUsage::COLOR,
-                });
-        render_pass_draw_desc.render_target_clear_states.emplace(base_pass_normal_output, true);
+        depth_binding_desc.need_clear = true;
         
-        render_pass_draw_desc.render_target_resources.emplace(depth_handle,
-        RendererInterface::RenderTargetBindingDesc
-        {
-            .format = RendererInterface::D32,
-            .usage = RendererInterface::RenderPassResourceUsage::DEPTH_STENCIL,
-        });
-        render_pass_draw_desc.render_target_clear_states.emplace(depth_handle, true);
-    
-        m_scene_mesh_module->BindDrawCommands(render_pass_draw_desc);
-        m_camera_module->BindDrawCommands(render_pass_draw_desc);
-
-        RendererInterface::RenderGraphNodeDesc render_graph_node_desc{};
-        render_graph_node_desc.draw_info = render_pass_draw_desc;
-        render_graph_node_desc.render_pass_handle = render_pass_handle;
-
-        auto render_graph_node_handle = m_render_graph->CreateRenderGraphNode(render_graph_node_desc);
-        m_render_graph->RegisterRenderGraphNode(render_graph_node_handle);
+        setup_info.render_targets = {
+            {base_pass_albedo_output, color_rt_binding_desc},
+            {base_pass_normal_output, normal_rt_binding_desc},
+            {depth_handle, depth_binding_desc}
+        };
+        SetupPassNode(setup_info);
     }
     
     // Setup lighting pass config
     {
-        auto lighting_compute_shader = CreateShader(RendererInterface::COMPUTE_SHADER, "Resources/Shaders/SceneLighting.hlsl", "main");
-        RendererInterface::RenderPassDesc render_pass_desc{};
-        render_pass_desc.shaders.emplace(RendererInterface::ShaderType::COMPUTE_SHADER, lighting_compute_shader);
-        render_pass_desc.type = RendererInterface::RenderPassType::COMPUTE;
+        RenderPassSetupInfo setup_info{};
+        setup_info.render_pass_type = RendererInterface::RenderPassType::COMPUTE;
+        setup_info.modules = {m_lighting_module, m_camera_module};
+        setup_info.shader_setup_infos = {
+            {RendererInterface::COMPUTE_SHADER, "main", "Resources/Shaders/SceneLighting.hlsl"}
+        };
 
-        auto render_pass_handle = m_resource_manager->CreateRenderPass(render_pass_desc);
-        RendererInterface::RenderPassDrawDesc render_pass_draw_desc{};
         RendererInterface::RenderTargetTextureBindingDesc albedo_binding_desc{};
         albedo_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
+        albedo_binding_desc.name = "albedoTex";
         albedo_binding_desc.render_target_texture = base_pass_albedo_output;
-        render_pass_draw_desc.render_target_texture_resources["albedoTex"] = albedo_binding_desc;
         
         RendererInterface::RenderTargetTextureBindingDesc normal_binding_desc{};
         normal_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
+        normal_binding_desc.name = "normalTex";
         normal_binding_desc.render_target_texture = base_pass_normal_output;
-        render_pass_draw_desc.render_target_texture_resources["normalTex"] = normal_binding_desc;
         
         RendererInterface::RenderTargetTextureBindingDesc depth_binding_desc{};
         depth_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
+        depth_binding_desc.name = "depthTex";
         depth_binding_desc.render_target_texture = depth_handle;
-        render_pass_draw_desc.render_target_texture_resources["depthTex"] = depth_binding_desc;
 
         RendererInterface::RenderTargetTextureBindingDesc output_binding_desc{};
         output_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::UAV;
-        output_binding_desc.render_target_texture=lighting_pass_output;
-        render_pass_draw_desc.render_target_texture_resources["Output"] = output_binding_desc;
-        
-        m_lighting_module->BindDrawCommands(render_pass_draw_desc);
-        m_camera_module->BindDrawCommands(render_pass_draw_desc);
-        
+        output_binding_desc.name = "Output";
+        output_binding_desc.render_target_texture = lighting_pass_output;
+        setup_info.sampled_render_targets = {
+            {base_pass_albedo_output, albedo_binding_desc},
+            {base_pass_normal_output, normal_binding_desc},
+            {depth_handle, depth_binding_desc},
+            {lighting_pass_output, output_binding_desc}
+        };
         RendererInterface::RenderExecuteCommand dispatch_command{};
         dispatch_command.type = RendererInterface::ExecuteCommandType::COMPUTE_DISPATCH_COMMAND;
         dispatch_command.parameter.dispatch_parameter.group_size_x = m_window->GetWidth() / 8;
         dispatch_command.parameter.dispatch_parameter.group_size_y = m_window->GetHeight() / 8;
         dispatch_command.parameter.dispatch_parameter.group_size_z = 1;
-        render_pass_draw_desc.execute_commands.push_back(dispatch_command);
-        
-        RendererInterface::RenderGraphNodeDesc render_graph_node_desc{};
-        render_graph_node_desc.draw_info = render_pass_draw_desc;
-        render_graph_node_desc.render_pass_handle = render_pass_handle;
+        setup_info.execute_command = dispatch_command;
 
-        auto render_graph_node_handle = m_render_graph->CreateRenderGraphNode(render_graph_node_desc);
-        m_render_graph->RegisterRenderGraphNode(render_graph_node_handle);
+        SetupPassNode(setup_info);
     }
+    
     m_render_graph->RegisterRenderTargetToColorOutput(lighting_pass_output);
     
     // After registration all passes, compile graph and prepare for execution
     m_render_graph->CompileRenderPassAndExecute();
 
     return true;
-}
-
-void DemoAppModelViewer::Run(const std::vector<std::string>& arguments)
-{
-    m_window->EnterWindowEventLoop();
 }

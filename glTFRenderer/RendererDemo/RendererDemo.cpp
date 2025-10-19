@@ -26,7 +26,7 @@ int main(int argc, char* argv[])
     const bool success = demo->Init(params);
     GLTF_CHECK(success);
     
-    demo->Run(params);
+    demo->Run();
     
     return 0;
 }

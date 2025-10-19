@@ -151,6 +151,7 @@ namespace RendererInterface
     {
         PixelFormat format;
         RenderPassResourceUsage usage;
+        bool need_clear;
     };
     
     struct RenderPassDesc
@@ -300,7 +301,8 @@ namespace RendererInterface
             SRV,
             UAV,
         };
-        
+
+        std::string name;
         RenderTargetHandle render_target_texture;
         TextureBindingType type;
     };
@@ -309,7 +311,6 @@ namespace RendererInterface
     {
         std::vector<RenderExecuteCommand> execute_commands;
         std::map<RenderTargetHandle, RenderTargetBindingDesc> render_target_resources;
-        std::map<RenderTargetHandle, bool> render_target_clear_states;
         std::map<std::string, BufferBindingDesc> buffer_resources;
         std::map<std::string, TextureBindingDesc> texture_resources;
         std::map<std::string, RenderTargetTextureBindingDesc> render_target_texture_resources;
