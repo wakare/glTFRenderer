@@ -40,13 +40,14 @@ RendererInterface::RenderGraphNodeHandle DemoBase::SetupPassNode(const RenderPas
         }
         break;
     case RendererInterface::RenderPassType::COMPUTE:
-        for (const auto& render_target : setup_info.sampled_render_targets)
-        {
-            render_pass_draw_desc.render_target_texture_resources[render_target.second.name] = render_target.second;
-        }
         break;
     case RendererInterface::RenderPassType::RAY_TRACING:
         break;
+    }
+    
+    for (const auto& render_target : setup_info.sampled_render_targets)
+    {
+        render_pass_draw_desc.render_target_texture_resources[render_target.second.name] = render_target.second;
     }
     
     if (setup_info.execute_command.has_value())
