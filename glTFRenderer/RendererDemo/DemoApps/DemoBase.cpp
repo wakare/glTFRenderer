@@ -1,6 +1,15 @@
 #include "DemoBase.h"
 
 #include "RendererInterface.h"
+#include "RendererModule/RendererModuleBase.h"
+
+void DemoBase::TickFrame(unsigned long long time_interval)
+{
+    for (const auto& module : m_modules)
+    {
+        module->Tick(*m_resource_manager, time_interval);
+    }
+}
 
 bool DemoBase::InitRenderContext(const std::vector<std::string>& arguments)
 {
@@ -33,6 +42,7 @@ bool DemoBase::InitRenderContext(const std::vector<std::string>& arguments)
     m_resource_manager = std::make_shared<RendererInterface::ResourceOperator>(device);
 
     m_render_graph = std::make_shared<RendererInterface::RenderGraph>(*m_resource_manager, *m_window);
+    m_render_graph->RegisterTickCallback([this](unsigned long long time){ TickFrame(time); });
 
     return true;
 }

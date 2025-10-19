@@ -57,11 +57,13 @@ public:
     std::vector<RendererInterface::RenderExecuteCommand> execute_commands;
 };
 
-class SceneRendererMeshDrawDispatcher
+class RendererModuleSceneMesh : public RendererModuleBase
 {
 public:
-    SceneRendererMeshDrawDispatcher(RendererInterface::ResourceOperator& resource_operator, const std::string& scene_file);
-    bool BindDrawCommands(RendererInterface::RenderPassDrawDesc& out_draw_desc);
+    RendererModuleSceneMesh(RendererInterface::ResourceOperator& resource_operator, const std::string& scene_file);
+    virtual bool FinalizeModule(RendererInterface::ResourceOperator& resource_operator) override;
+    virtual bool BindDrawCommands(RendererInterface::RenderPassDrawDesc& out_draw_desc) override;
+    virtual bool Tick(RendererInterface::ResourceOperator&, unsigned long long interval) override;
     
 protected:
     std::unique_ptr<RendererInterface::RendererSceneResourceManager> m_resource_manager;

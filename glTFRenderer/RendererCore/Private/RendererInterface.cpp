@@ -408,6 +408,11 @@ namespace RendererInterface
         
         m_window.RegisterTickCallback([this](unsigned long long interval)
         {
+            if (m_tick_callback)
+            {
+                m_tick_callback(interval);
+            }
+            
             auto& command_list = m_resource_allocator.GetCommandListForRecordPassCommand();
             // Wait current frame available
             m_resource_allocator.GetCurrentSwapchain().AcquireNewFrame(m_resource_allocator.GetDevice());
@@ -451,6 +456,11 @@ namespace RendererInterface
     {
         auto render_target = InternalResourceHandleTable::Instance().GetRenderTarget(render_target_handle);
         m_final_color_output = render_target->m_source;
+    }
+
+    void RenderGraph::RegisterTickCallback(const RenderGraphTickCallback& callback)
+    {
+        m_tick_callback = callback;
     }
 
     void RenderGraph::ExecuteRenderGraphNode(IRHICommandList& command_list, RenderGraphNodeHandle render_graph_node_handle, unsigned long long interval)

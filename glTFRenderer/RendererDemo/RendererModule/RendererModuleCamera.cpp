@@ -1,4 +1,4 @@
-#include "SceneRendererCameraOperator.h"
+#include "RendererModuleCamera.h"
 
 #include <glm/glm/gtx/norm.hpp>
 #include "RenderWindow/RendererInputDevice.h"
@@ -14,7 +14,7 @@ struct ViewBuffer
     unsigned padding[2];
 };
 
-SceneRendererCameraOperator::SceneRendererCameraOperator(RendererInterface::ResourceOperator& resource_operator, const RendererCameraDesc& camera_desc)
+RendererModuleCamera::RendererModuleCamera(RendererInterface::ResourceOperator& resource_operator, const RendererCameraDesc& camera_desc)
 {
     m_camera = std::make_unique<RendererCamera>(camera_desc);
     
@@ -37,8 +37,8 @@ SceneRendererCameraOperator::SceneRendererCameraOperator(RendererInterface::Reso
 }
 
 
-void SceneRendererCameraOperator::TickCameraOperation(RendererInputDevice& input_device,
-    RendererInterface::ResourceOperator& resource_operator, unsigned long long delta_time_ms)
+void RendererModuleCamera::TickCameraOperation(RendererInputDevice& input_device,
+                                                      unsigned long long delta_time_ms)
 {
     bool need_apply_movement = false;
     glm::fvec3 delta_translation = {0.0f, 0.0f, 0.0f};
@@ -170,7 +170,35 @@ void SceneRendererCameraOperator::TickCameraOperation(RendererInputDevice& input
     }
     
     m_camera->MarkTransformDirty();
+}
 
+bool RendererModuleCamera::FinalizeModule(RendererInterface::ResourceOperator& resource_operator)
+{
+    return UploadCameraViewData(resource_operator);
+}
+
+bool RendererModuleCamera::BindDrawCommands(RendererInterface::RenderPassDrawDesc& out_draw_desc)
+{
+    RendererInterface::BufferBindingDesc camera_binding_desc{};
+    camera_binding_desc.binding_type = RendererInterface::BufferBindingDesc::CBV;
+    camera_binding_desc.buffer_handle = m_camera_buffer_handle;
+    camera_binding_desc.is_structured_buffer = false;
+    out_draw_desc.buffer_resources[camera_buffer_desc.name] = camera_binding_desc;
+
+    return true;
+}
+
+bool RendererModuleCamera::Tick(RendererInterface::ResourceOperator& resource_operator,
+    unsigned long long interval)
+{
+    RETURN_IF_FALSE(RendererModuleBase::Tick(resource_operator, interval))
+    RETURN_IF_FALSE(UploadCameraViewData(resource_operator))
+    
+    return true;
+}
+
+bool RendererModuleCamera::UploadCameraViewData(RendererInterface::ResourceOperator& resource_operator)
+{
     auto camera_transform = m_camera->GetViewProjectionMatrix();
     ViewBuffer view_buffer{};
     view_buffer.view_projection_matrix = camera_transform;
@@ -183,13 +211,6 @@ void SceneRendererCameraOperator::TickCameraOperation(RendererInputDevice& input
     camera_buffer_upload_desc.data = &view_buffer;
     camera_buffer_upload_desc.size = sizeof(ViewBuffer);
     resource_operator.UploadBufferData(m_camera_buffer_handle, camera_buffer_upload_desc);
-}
 
-void SceneRendererCameraOperator::BindDrawCommands(RendererInterface::RenderPassDrawDesc& out_draw_desc) const
-{
-    RendererInterface::BufferBindingDesc camera_binding_desc{};
-    camera_binding_desc.binding_type = RendererInterface::BufferBindingDesc::CBV;
-    camera_binding_desc.buffer_handle = m_camera_buffer_handle;
-    camera_binding_desc.is_structured_buffer = false;
-    out_draw_desc.buffer_resources[camera_buffer_desc.name] = camera_binding_desc;
+    return true;
 }

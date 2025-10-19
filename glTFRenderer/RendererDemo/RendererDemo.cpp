@@ -23,6 +23,9 @@ int main(int argc, char* argv[])
     REGISTER_DEMO_APP(demo_name, DemoTriangleApp)
     REGISTER_DEMO_APP(demo_name, DemoAppModelViewer)
 
+    const bool success = demo->Init(params);
+    GLTF_CHECK(success);
+    
     demo->Run(params);
     
     return 0;

@@ -87,6 +87,8 @@ namespace RendererInterface
     class RenderGraph
     {
     public:
+        typedef std::function<void(unsigned long long)> RenderGraphTickCallback;
+        
         RenderGraph(ResourceOperator& allocator, RenderWindow& window);
         
         RenderGraphNodeHandle CreateRenderGraphNode(const RenderGraphNodeDesc& render_graph_node_desc);
@@ -98,6 +100,7 @@ namespace RendererInterface
 
         void RegisterTextureToColorOutput(TextureHandle texture_handle);
         void RegisterRenderTargetToColorOutput(RenderTargetHandle render_target_handle);
+        void RegisterTickCallback(const RenderGraphTickCallback& callback);
 
     protected:
         void ExecuteRenderGraphNode(IRHICommandList& command_list, RenderGraphNodeHandle render_graph_node_handle, unsigned long long interval);
@@ -116,6 +119,7 @@ namespace RendererInterface
         std::map<std::string, std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>>> m_texture_descriptor_table_source_data;
 
         std::shared_ptr<IRHITexture> m_final_color_output;
+        RenderGraphTickCallback m_tick_callback;
     };
 
     class RendererSceneMeshDataAccessorBase

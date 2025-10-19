@@ -3,6 +3,14 @@
 
 #include "../Math/BRDF.hlsl"
 
+#ifndef NON_VISIBLE_TEST
+#define NON_VISIBLE_TEST
+float CalcLightVisibleFactor(uint light_index, float3 scene_position)
+{
+    return 1.0;
+}
+#endif
+
 struct LightInfo
 {
     float3 position;
@@ -105,9 +113,9 @@ float3 GetLightingByIndex(uint sample_light_index, PixelLightingShadingInfo shad
     float max_distance;
     if (GetLightDistanceVector(sample_light_index, shading_info.position, light_vector, max_distance))
     {
-        // Assume no occluded
+        float visible_factor = CalcLightVisibleFactor(sample_light_index, shading_info.position);
         float3 brdf = EvalCookTorranceBRDF(shading_info.normal, shading_info.albedo, shading_info.metallic, shading_info.roughness, view, light_vector);
-        return brdf * GetLightIntensity(sample_light_index, shading_info.position) * max(dot(shading_info.normal, light_vector), 0.0);
+        return visible_factor * brdf * GetLightIntensity(sample_light_index, shading_info.position) * max(dot(shading_info.normal, light_vector), 0.0);
     }
 
     return 0.0;

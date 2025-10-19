@@ -1,26 +1,29 @@
 #include "DemoAppModelViewer.h"
 
 #include "RenderWindow/RendererInputDevice.h"
-#include "SceneRendererUtil/SceneRendererMeshDrawDispatcher.h"
 #include <glm/glm/gtx/norm.hpp>
 #include <imgui/imgui.h>
 
 #include "RendererCommon.h"
+#include "RendererModule/RendererModuleCamera.h"
+#include "RendererModule/RendererModuleSceneMesh.h"
 
-void DemoAppModelViewer::TickFrame(unsigned long long delta_time_ms)
+void DemoAppModelViewer::TickFrame(unsigned long long time_interval)
 {
+    DemoBase::TickFrame(time_interval);
+    
     auto& input_device = m_window->GetInputDevice();
-    if (m_camera_operator)
+    if (m_camera_module)
     {
-        m_camera_operator->TickCameraOperation(input_device, *m_resource_manager, delta_time_ms);    
+        m_camera_module->TickCameraOperation(input_device, time_interval);    
     }
 
-    input_device.TickFrame(delta_time_ms);
+    input_device.TickFrame(time_interval);
 }
 
-void DemoAppModelViewer::Run(const std::vector<std::string>& arguments)
+bool DemoAppModelViewer::Init(const std::vector<std::string>& arguments)
 {
-    InitRenderContext(arguments);
+    RETURN_IF_FALSE(InitRenderContext(arguments))
 
     RendererCameraDesc camera_desc{};
     camera_desc.mode = CameraMode::Free;
@@ -30,15 +33,30 @@ void DemoAppModelViewer::Run(const std::vector<std::string>& arguments)
     camera_desc.projection_near = 0.001f;
     camera_desc.projection_width = static_cast<float>(m_width);
     camera_desc.projection_height = static_cast<float>(m_height);
-    m_camera_operator = std::make_unique<SceneRendererCameraOperator>(*m_resource_manager, camera_desc);
-    m_draw_dispatcher = std::make_unique<SceneRendererMeshDrawDispatcher>(*m_resource_manager, "glTFResources/Models/Sponza/glTF/Sponza.gltf");
+    
+    m_camera_module = std::make_shared<RendererModuleCamera>(*m_resource_manager, camera_desc);
+    m_scene_mesh_module = std::make_shared<RendererModuleSceneMesh>(*m_resource_manager, "glTFResources/Models/Sponza/glTF/Sponza.gltf");
+    m_lighting_module = std::make_shared<RendererModuleLighting>(*m_resource_manager);
 
+    m_modules.push_back(m_camera_module);
+    m_modules.push_back(m_lighting_module);
+    m_modules.push_back(m_scene_mesh_module);
+        
+    // Add test light
+    LightInfo directional_light_info{};
+    directional_light_info.type = Directional;
+    directional_light_info.intensity = {1.0f, 1.0f, 1.0f};
+    directional_light_info.position = {0.0f, -0.707f, -0.707f};
+    directional_light_info.radius = 100000.0f;
+    m_lighting_module->AddLightInfo(directional_light_info);
+    m_lighting_module->FinalizeModule(*m_resource_manager);
+        
     // Create render target resource
     auto base_pass_albedo_output = CreateRenderTarget("BasePass_Color", m_window->GetWidth(), m_window->GetHeight(), RendererInterface::RGBA8_UNORM, RendererInterface::default_clear_color,
-    static_cast<RendererInterface::ResourceUsage>(RendererInterface::ResourceUsage::RENDER_TARGET | RendererInterface::ResourceUsage::COPY_SRC | RendererInterface::ResourceUsage::SHADER_RESOURCE));
+        static_cast<RendererInterface::ResourceUsage>(RendererInterface::ResourceUsage::RENDER_TARGET | RendererInterface::ResourceUsage::COPY_SRC | RendererInterface::ResourceUsage::SHADER_RESOURCE));
 
     auto base_pass_normal_output = CreateRenderTarget("BasePass_Normal", m_window->GetWidth(), m_window->GetHeight(), RendererInterface::RGBA8_UNORM, RendererInterface::default_clear_color,
-    static_cast<RendererInterface::ResourceUsage>(RendererInterface::ResourceUsage::RENDER_TARGET | RendererInterface::ResourceUsage::COPY_SRC | RendererInterface::ResourceUsage::SHADER_RESOURCE));
+        static_cast<RendererInterface::ResourceUsage>(RendererInterface::ResourceUsage::RENDER_TARGET | RendererInterface::ResourceUsage::COPY_SRC | RendererInterface::ResourceUsage::SHADER_RESOURCE));
 
     auto depth_handle = CreateRenderTarget("Depth", m_window->GetWidth(), m_window->GetHeight(), RendererInterface::D32, RendererInterface::default_clear_depth,
         static_cast<RendererInterface::ResourceUsage>(RendererInterface::ResourceUsage::DEPTH_STENCIL | RendererInterface::ResourceUsage::SHADER_RESOURCE));
@@ -101,13 +119,12 @@ void DemoAppModelViewer::Run(const std::vector<std::string>& arguments)
         });
         render_pass_draw_desc.render_target_clear_states.emplace(depth_handle, true);
     
-        m_draw_dispatcher->BindDrawCommands(render_pass_draw_desc);
-        m_camera_operator->BindDrawCommands(render_pass_draw_desc);
+        m_scene_mesh_module->BindDrawCommands(render_pass_draw_desc);
+        m_camera_module->BindDrawCommands(render_pass_draw_desc);
 
         RendererInterface::RenderGraphNodeDesc render_graph_node_desc{};
         render_graph_node_desc.draw_info = render_pass_draw_desc;
         render_graph_node_desc.render_pass_handle = render_pass_handle;
-        render_graph_node_desc.pre_render_callback = [this](unsigned long long interval){TickFrame(interval);};
 
         auto render_graph_node_handle = m_render_graph->CreateRenderGraphNode(render_graph_node_desc);
         m_render_graph->RegisterRenderGraphNode(render_graph_node_handle);
@@ -115,17 +132,6 @@ void DemoAppModelViewer::Run(const std::vector<std::string>& arguments)
     
     // Setup lighting pass config
     {
-        m_lighting_module = std::make_unique<RendererModuleLighting>(*m_resource_manager);
-        
-        // Add test light
-        LightInfo directional_light_info{};
-        directional_light_info.type = Directional;
-        directional_light_info.intensity = {1.0f, 1.0f, 1.0f};
-        directional_light_info.position = {0.0f, -0.707f, -0.707f};
-        directional_light_info.radius = 100000.0f;
-        m_lighting_module->AddLightInfo(directional_light_info);
-        m_lighting_module->FinalizeModule(*m_resource_manager);
-        
         auto lighting_compute_shader = CreateShader(RendererInterface::COMPUTE_SHADER, "Resources/Shaders/SceneLighting.hlsl", "main");
         RendererInterface::RenderPassDesc render_pass_desc{};
         render_pass_desc.shaders.emplace(RendererInterface::ShaderType::COMPUTE_SHADER, lighting_compute_shader);
@@ -154,7 +160,7 @@ void DemoAppModelViewer::Run(const std::vector<std::string>& arguments)
         render_pass_draw_desc.render_target_texture_resources["Output"] = output_binding_desc;
         
         m_lighting_module->BindDrawCommands(render_pass_draw_desc);
-        m_camera_operator->BindDrawCommands(render_pass_draw_desc);
+        m_camera_module->BindDrawCommands(render_pass_draw_desc);
         
         RendererInterface::RenderExecuteCommand dispatch_command{};
         dispatch_command.type = RendererInterface::ExecuteCommandType::COMPUTE_DISPATCH_COMMAND;
@@ -174,6 +180,11 @@ void DemoAppModelViewer::Run(const std::vector<std::string>& arguments)
     
     // After registration all passes, compile graph and prepare for execution
     m_render_graph->CompileRenderPassAndExecute();
-    
+
+    return true;
+}
+
+void DemoAppModelViewer::Run(const std::vector<std::string>& arguments)
+{
     m_window->EnterWindowEventLoop();
 }
