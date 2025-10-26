@@ -303,6 +303,19 @@ namespace RendererInterface
         return m_resource_manager->CreateRenderTarget(desc);
     }
 
+    RenderTargetHandle ResourceOperator::CreateRenderTarget(const std::string& name, unsigned width, unsigned height,
+        PixelFormat format, RenderTargetClearValue clear_value, ResourceUsage usage)
+    {
+        RendererInterface::RenderTargetDesc render_target_desc{};
+        render_target_desc.name = name;
+        render_target_desc.width = width;
+        render_target_desc.height = height;
+        render_target_desc.format = format;
+        render_target_desc.clear = clear_value;
+        render_target_desc.usage = usage; 
+        return  m_resource_manager->CreateRenderTarget(render_target_desc);
+    }
+
     RenderPassHandle ResourceOperator::CreateRenderPass(const RenderPassDesc& desc)
     {
         std::shared_ptr<RenderPass> render_pass = std::make_shared<RenderPass>(desc);
@@ -353,6 +366,11 @@ namespace RendererInterface
         m_resource_manager->GetMemoryManager().UploadBufferData(m_resource_manager->GetDevice(), m_resource_manager->GetCommandListForRecordPassCommand(), *buffer, upload_desc.data, 0, upload_desc.size);
     }
 
+    void ResourceOperator::WaitFrameRenderFinished()
+    {
+        return m_resource_manager->WaitFrameRenderFinished();
+    }
+
     IRHICommandList& ResourceOperator::GetCommandListForRecordPassCommand(RenderPassHandle pass) const
     {
         return m_resource_manager->GetCommandListForRecordPassCommand(pass);
@@ -387,6 +405,63 @@ namespace RendererInterface
         return result;
     }
 
+    RenderGraphNodeHandle RenderGraph::CreateRenderGraphNode(ResourceOperator& allocator,const RenderPassSetupInfo& setup_info)
+    {
+        RendererInterface::RenderPassDesc render_pass_desc{};
+        render_pass_desc.type = setup_info.render_pass_type;
+    
+        for (const auto& shader_info : setup_info.shader_setup_infos)
+        {
+            RendererInterface::ShaderDesc shader_desc{};
+            shader_desc.shader_type = shader_info.shader_type; 
+            shader_desc.entry_point = shader_info.entry_function;
+            shader_desc.shader_file_name = shader_info.shader_file;
+            auto shader_handle = allocator.CreateShader(shader_desc);
+            
+            render_pass_desc.shaders.emplace(shader_info.shader_type, shader_handle);
+        }
+    
+        RendererInterface::RenderPassDrawDesc render_pass_draw_desc{};
+        for (const auto& module : setup_info.modules)
+        {
+            module->BindDrawCommands(render_pass_draw_desc);
+        }
+
+        switch (setup_info.render_pass_type)
+        {
+        case RendererInterface::RenderPassType::GRAPHICS:
+            for (const auto& render_target : setup_info.render_targets)
+            {
+                render_pass_desc.render_target_bindings.push_back(render_target.second);
+                render_pass_draw_desc.render_target_resources.emplace(render_target.first, render_target.second);
+            }
+            break;
+        case RendererInterface::RenderPassType::COMPUTE:
+            break;
+        case RendererInterface::RenderPassType::RAY_TRACING:
+            break;
+        }
+    
+        for (const auto& render_target : setup_info.sampled_render_targets)
+        {
+            render_pass_draw_desc.render_target_texture_resources[render_target.second.name] = render_target.second;
+        }
+    
+        if (setup_info.execute_command.has_value())
+        {
+            render_pass_draw_desc.execute_commands.push_back(setup_info.execute_command.value());    
+        }
+    
+        auto render_pass_handle = allocator.CreateRenderPass(render_pass_desc);
+    
+        RendererInterface::RenderGraphNodeDesc render_graph_node_desc{};
+        render_graph_node_desc.draw_info = render_pass_draw_desc;
+        render_graph_node_desc.render_pass_handle = render_pass_handle;
+
+        auto render_graph_node_handle = CreateRenderGraphNode(render_graph_node_desc);
+        return render_graph_node_handle;
+    }
+
     bool RenderGraph::RegisterRenderGraphNode(RenderGraphNodeHandle render_graph_node_handle)
     {
         GLTF_CHECK(!m_render_graph_node_handles.contains(render_graph_node_handle));
@@ -403,15 +478,17 @@ namespace RendererInterface
 
     bool RenderGraph::CompileRenderPassAndExecute()
     {
-        // find final color output and copy to swapchain buffer, only debug logic
-        GLTF_CHECK(m_final_color_output);
-        
         m_window.RegisterTickCallback([this](unsigned long long interval)
         {
+            // find final color output and copy to swapchain buffer, only debug logic
+            GLTF_CHECK(m_final_color_output);
+        
             if (m_tick_callback)
             {
                 m_tick_callback(interval);
             }
+
+            m_resource_allocator.WaitFrameRenderFinished();
             
             auto& command_list = m_resource_allocator.GetCommandListForRecordPassCommand();
             // Wait current frame available
@@ -441,6 +518,9 @@ namespace RendererInterface
             }
                 
             Present(command_list);
+
+            // Clear all nodes at end of frame
+            m_render_graph_node_handles.clear();
         });
 
         return true;

@@ -300,6 +300,26 @@ IRHIMemoryManager& ResourceManager::GetMemoryManager()
     return *m_memory_manager;
 }
 
+void ResourceManager::WaitFrameRenderFinished()
+{
+    const auto current_frame_index = GetCurrentBackBufferIndex() % m_device_desc.back_buffer_count;
+    auto& command_list = *m_command_lists[current_frame_index];
+    auto& command_allocator = *m_command_allocators[current_frame_index];
+
+    if (command_list.GetState() == RHICommandListState::Recording)
+    {
+        const bool closed = RHIUtilInstanceManager::Instance().CloseCommandList(command_list);
+        GLTF_CHECK(closed);
+
+        GLTF_CHECK(RHIUtilInstanceManager::Instance().ExecuteCommandList(command_list, GetCommandQueue(), {}));
+        RHIUtilInstanceManager::Instance().WaitCommandListFinish(command_list);
+
+        command_list.SetState(RHICommandListState::Closed);
+    }
+    
+    RHIUtilInstanceManager::Instance().ResetCommandAllocator(command_allocator);
+}
+
 IRHICommandList& ResourceManager::GetCommandListForRecordPassCommand(
     RendererInterface::RenderPassHandle render_pass_handle)
 {
@@ -311,8 +331,8 @@ IRHICommandList& ResourceManager::GetCommandListForRecordPassCommand(
 
     if (command_list.GetState() == RHICommandListState::Closed)
     {
-        const bool reset = RHIUtilInstanceManager::Instance().ResetCommandList(command_list, command_allocator, render_pass ? &render_pass->GetPipelineStateObject() : nullptr);
-        GLTF_CHECK(reset);
+        const bool reset_command_list = RHIUtilInstanceManager::Instance().ResetCommandList(command_list, command_allocator, render_pass ? &render_pass->GetPipelineStateObject() : nullptr);
+        GLTF_CHECK(reset_command_list);
     }
     else if (render_pass)
     {

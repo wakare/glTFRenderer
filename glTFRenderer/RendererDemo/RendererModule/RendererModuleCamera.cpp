@@ -197,6 +197,16 @@ bool RendererModuleCamera::Tick(RendererInterface::ResourceOperator& resource_op
     return true;
 }
 
+unsigned RendererModuleCamera::GetWidth() const
+{
+    return m_camera->GetProjectionWidth();
+}
+
+unsigned RendererModuleCamera::GetHeight() const
+{
+    return m_camera->GetProjectionHeight();
+}
+
 bool RendererModuleCamera::UploadCameraViewData(RendererInterface::ResourceOperator& resource_operator)
 {
     auto camera_transform = m_camera->GetViewProjectionMatrix();

@@ -3,8 +3,6 @@
 #include <glm/glm/glm.hpp>
 #include <glm/glm/gtx/compatibility.hpp>
 
-#include "RendererModuleBase.h"
-
 enum LightType
 {
     Directional = 0,
@@ -20,7 +18,7 @@ struct LightInfo
     LightType type;
 };
 
-class RendererModuleLighting : public RendererModuleBase
+class RendererModuleLighting : public RendererInterface::RendererModuleBase
 {
 public:
     enum

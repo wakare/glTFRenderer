@@ -5,7 +5,7 @@
 #include "RendererCommon.h"
 #include "RendererInterface.h"
 
-class RendererModuleBase;
+class RendererSystemBase;
 
 class DemoBase
 {
@@ -39,7 +39,7 @@ protected:
         std::vector<ShaderSetupInfo> shader_setup_infos;
         std::map<RendererInterface::RenderTargetHandle, RendererInterface::RenderTargetBindingDesc> render_targets;
         std::map<RendererInterface::RenderTargetHandle, RendererInterface::RenderTargetTextureBindingDesc> sampled_render_targets;
-        std::vector<std::shared_ptr<RendererModuleBase>> modules;
+        std::vector<std::shared_ptr<RendererInterface::RendererModuleBase>> modules;
 
         std::optional<RendererInterface::RenderExecuteCommand> execute_command;
     };
@@ -57,6 +57,7 @@ protected:
     std::shared_ptr<RendererInterface::ResourceOperator> m_resource_manager;
     std::shared_ptr<RendererInterface::RenderGraph> m_render_graph;
 
-    std::vector<std::shared_ptr<RendererModuleBase>> m_modules;
+    std::vector<std::shared_ptr<RendererInterface::RendererModuleBase>> m_modules;
+    std::vector<std::shared_ptr<RendererSystemBase>> m_systems;
     std::map<RendererInterface::RenderTargetHandle, RendererInterface::RenderTargetDesc> m_render_target_desc_infos;
 };

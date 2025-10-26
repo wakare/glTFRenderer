@@ -5,6 +5,7 @@
 #include <glm/glm/glm.hpp>
 
 #include "Renderer.h"
+#include "RendererCommon.h"
 
 class IRHITexture;
 class IRHIDescriptorTable;
@@ -66,6 +67,14 @@ namespace RendererInterface
         IndexedBufferHandle CreateIndexedBuffer(const BufferDesc& desc);
         
         RenderTargetHandle  CreateRenderTarget(const RenderTargetDesc& desc);
+        RenderTargetHandle  CreateRenderTarget(
+            const std::string& name,
+            unsigned width,
+            unsigned height,
+            PixelFormat format,
+            RenderTargetClearValue clear_value,
+            ResourceUsage usage);
+        
         RenderPassHandle    CreateRenderPass(const RenderPassDesc& desc);
         RenderSceneHandle   CreateRenderScene(const RenderSceneDesc& desc);
         
@@ -78,20 +87,50 @@ namespace RendererInterface
         IRHITextureDescriptorAllocation& GetCurrentSwapchainRT() const;
 
         void UploadBufferData(BufferHandle handle, const BufferUploadDesc& upload_desc);
+        void WaitFrameRenderFinished();
         
     protected:
         std::shared_ptr<ResourceManager> m_resource_manager;
         std::map<RenderPassHandle, std::shared_ptr<RenderPass>> m_render_passes;
     };
 
+    class RendererModuleBase
+    {
+    public:
+        IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(RendererModuleBase)
+        virtual bool FinalizeModule(RendererInterface::ResourceOperator& resource_operator) = 0;
+        virtual bool BindDrawCommands(RendererInterface::RenderPassDrawDesc& out_draw_desc) = 0;
+        virtual bool Tick(RendererInterface::ResourceOperator&, unsigned long long interval) {return true; };
+    };
+    
     class RenderGraph
     {
     public:
+
+        struct RenderPassSetupInfo
+        {
+            struct ShaderSetupInfo
+            {
+                ShaderType shader_type;
+                std::string entry_function;
+                std::string shader_file;
+            };
+        
+            RenderPassType render_pass_type;
+            std::vector<ShaderSetupInfo> shader_setup_infos;
+            std::map<RenderTargetHandle, RenderTargetBindingDesc> render_targets;
+            std::map<RenderTargetHandle, RenderTargetTextureBindingDesc> sampled_render_targets;
+            std::vector<std::shared_ptr<RendererModuleBase>> modules;
+
+            std::optional<RenderExecuteCommand> execute_command;
+        };
+        
         typedef std::function<void(unsigned long long)> RenderGraphTickCallback;
         
         RenderGraph(ResourceOperator& allocator, RenderWindow& window);
         
         RenderGraphNodeHandle CreateRenderGraphNode(const RenderGraphNodeDesc& render_graph_node_desc);
+        RenderGraphNodeHandle CreateRenderGraphNode(ResourceOperator& allocator, const RenderPassSetupInfo& setup_info);
         
         bool RegisterRenderGraphNode(RenderGraphNodeHandle render_graph_node_handle);
         bool RemoveRenderGraphNode(RenderGraphNodeHandle render_graph_node_handle);
@@ -154,5 +193,4 @@ namespace RendererInterface
         ResourceOperator& m_allocator;
         RenderSceneHandle m_render_scene_handle {NULL_HANDLE};
     };
-
 }

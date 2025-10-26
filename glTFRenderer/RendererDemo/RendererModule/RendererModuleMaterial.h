@@ -3,7 +3,6 @@
 #include <glm/glm/glm.hpp>
 
 #include "RendererCommon.h"
-#include "RendererModuleBase.h"
 #include "RendererInterface.h"
 
 class MaterialBase;
@@ -23,7 +22,7 @@ struct MaterialShaderInfo
 };
 // ------- RendererModuleMaterial.hlsl -------
 
-class RendererModuleMaterial: public RendererModuleBase
+class RendererModuleMaterial: public RendererInterface::RendererModuleBase
 {
 public:
     RendererModuleMaterial(RendererInterface::ResourceOperator& resource_operator);

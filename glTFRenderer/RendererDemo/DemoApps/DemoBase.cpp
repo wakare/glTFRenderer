@@ -1,7 +1,7 @@
 #include "DemoBase.h"
 
 #include "RendererInterface.h"
-#include "RendererModule/RendererModuleBase.h"
+#include "RendererSystem/RendererSystemBase.h"
 
 void DemoBase::TickFrame(unsigned long long time_interval)
 {
@@ -10,6 +10,11 @@ void DemoBase::TickFrame(unsigned long long time_interval)
     for (const auto& module : m_modules)
     {
         module->Tick(*m_resource_manager, time_interval);
+    }
+
+    for (auto& system : m_systems)
+    {
+        system->Tick(*m_resource_manager, *m_render_graph, time_interval);
     }
 }
 
@@ -80,6 +85,12 @@ bool DemoBase::Init(const std::vector<std::string>& arguments)
     for (const auto& module : m_modules)
     {
         module->FinalizeModule(*m_resource_manager);
+    }
+
+    for (const auto& system : m_systems)
+    {
+        system->FinalizeModule(*m_resource_manager);
+        system->Init(*m_resource_manager, *m_render_graph);
     }
     
     return true;

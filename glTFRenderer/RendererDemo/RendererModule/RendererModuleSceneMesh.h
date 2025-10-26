@@ -57,7 +57,7 @@ public:
     std::vector<RendererInterface::RenderExecuteCommand> execute_commands;
 };
 
-class RendererModuleSceneMesh : public RendererModuleBase
+class RendererModuleSceneMesh : public RendererInterface::RendererModuleBase
 {
 public:
     RendererModuleSceneMesh(RendererInterface::ResourceOperator& resource_operator, const std::string& scene_file);
