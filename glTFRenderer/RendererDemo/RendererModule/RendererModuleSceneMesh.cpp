@@ -202,3 +202,8 @@ bool RendererModuleSceneMesh::Tick(RendererInterface::ResourceOperator& resource
     
     return true;
 }
+
+RendererSceneAABB RendererModuleSceneMesh::GetSceneBounds() const
+{
+    return m_resource_manager->GetSceneBounds();
+}

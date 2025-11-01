@@ -6,6 +6,7 @@
 
 #include "Renderer.h"
 #include "RendererCommon.h"
+#include "RendererSceneAABB.h"
 
 class IRHITexture;
 class IRHIDescriptorTable;
@@ -117,12 +118,17 @@ namespace RendererInterface
             };
         
             RenderPassType render_pass_type;
+            
             std::vector<ShaderSetupInfo> shader_setup_infos;
             std::map<RenderTargetHandle, RenderTargetBindingDesc> render_targets;
             std::map<RenderTargetHandle, RenderTargetTextureBindingDesc> sampled_render_targets;
+            std::map<std::string, BufferBindingDesc> buffer_resources;
             std::vector<std::shared_ptr<RendererModuleBase>> modules;
 
             std::optional<RenderExecuteCommand> execute_command;
+
+            int viewport_width{-1};
+            int viewport_height{-1};
         };
         
         typedef std::function<void(unsigned long long)> RenderGraphTickCallback;
@@ -188,6 +194,7 @@ namespace RendererInterface
         RendererSceneResourceManager(ResourceOperator& allocator,const RenderSceneDesc& desc);
 
         bool AccessSceneData(RendererSceneMeshDataAccessorBase& data_accessor);
+        RendererSceneAABB GetSceneBounds() const;
         
     protected:
         ResourceOperator& m_allocator;

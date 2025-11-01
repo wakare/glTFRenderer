@@ -3,7 +3,6 @@
 #include "RendererCamera.h"
 #include "RendererModule/RendererModuleCamera.h"
 #include "RendererModule/RendererModuleLighting.h"
-#include "RendererModule/RendererModuleSceneMesh.h"
 #include "RendererSystem/RendererSystemLighting.h"
 #include "RendererSystem/RendererSystemSceneRenderer.h"
 

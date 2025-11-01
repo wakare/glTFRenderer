@@ -27,6 +27,11 @@ unsigned RendererModuleLighting::AddLightInfo(const LightInfo& info)
     return index;
 }
 
+const std::vector<LightInfo>& RendererModuleLighting::GetLightInfos() const
+{
+    return m_light_infos;
+}
+
 bool RendererModuleLighting::ContainsLight(unsigned index) const
 {
     return m_light_infos.size() > index;

@@ -29,6 +29,7 @@ public:
     RendererModuleLighting(RendererInterface::ResourceOperator& resource_operator);
 
     unsigned AddLightInfo(const LightInfo& info);
+    const std::vector<LightInfo>& GetLightInfos() const;
     bool ContainsLight(unsigned index) const;
     bool UpdateLightInfo(unsigned index, const LightInfo& info);
     

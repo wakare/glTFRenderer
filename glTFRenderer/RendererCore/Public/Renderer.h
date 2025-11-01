@@ -161,6 +161,10 @@ namespace RendererInterface
 
         // resource desc
         std::vector<RenderTargetBindingDesc> render_target_bindings;
+
+        // viewport
+        int viewport_width{-1};
+        int viewport_height{-1};
         
         // dependency
         std::vector<RenderPassHandle> dependency_render_passes;

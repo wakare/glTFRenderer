@@ -122,6 +122,8 @@ public:
 
     const std::map<RendererUniqueObjectID, std::shared_ptr<RendererSceneMesh>>& GetMeshes() const;
     const std::map<RendererUniqueObjectID, std::shared_ptr<MaterialBase>>& GetMaterials() const;
+
+    RendererSceneAABB GetBounds();
     
 protected:
     void RecursiveInitSceneNodeFromGLTFLoader(const glTFLoader& loader, const glTFHandle& handle, RendererSceneNode& scene_node);

@@ -247,6 +247,13 @@ namespace RendererInterface
         return true;
     }
 
+    RendererSceneAABB RendererSceneResourceManager::GetSceneBounds() const
+    {
+        const auto& scene_graph = InternalResourceHandleTable::Instance().GetRenderScene(m_render_scene_handle);
+        GLTF_CHECK(scene_graph);
+        return scene_graph->GetBounds();
+    }
+
     ResourceOperator::ResourceOperator(RenderDeviceDesc device)
     {
         if (!m_resource_manager)
@@ -451,7 +458,12 @@ namespace RendererInterface
         {
             render_pass_draw_desc.execute_commands.push_back(setup_info.execute_command.value());    
         }
-    
+
+        render_pass_draw_desc.buffer_resources.insert(setup_info.buffer_resources.begin(), setup_info.buffer_resources.end());
+
+        render_pass_desc.viewport_width = setup_info.viewport_width;
+        render_pass_desc.viewport_height = setup_info.viewport_height;
+        
         auto render_pass_handle = allocator.CreateRenderPass(render_pass_desc);
     
         RendererInterface::RenderGraphNodeDesc render_graph_node_desc{};
@@ -558,8 +570,8 @@ namespace RendererInterface
         RHIUtilInstanceManager::Instance().SetPrimitiveTopology( command_list, RHIPrimitiveTopologyType::TRIANGLELIST);
 
         RHIViewportDesc viewport{};
-        viewport.width = m_window.GetWidth();
-        viewport.height = m_window.GetHeight();
+        viewport.width = render_pass->GetViewportSize().first >= 0 ? render_pass->GetViewportSize().first : m_window.GetWidth();
+        viewport.height = render_pass->GetViewportSize().second >= 0 ? render_pass->GetViewportSize().second : m_window.GetHeight();
         viewport.min_depth = 0.f;
         viewport.max_depth = 1.f;
         viewport.top_left_x = 0.f;

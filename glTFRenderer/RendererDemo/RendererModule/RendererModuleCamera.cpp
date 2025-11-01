@@ -3,17 +3,6 @@
 #include <glm/glm/gtx/norm.hpp>
 #include "RenderWindow/RendererInputDevice.h"
 
-struct ViewBuffer
-{
-    glm::fmat4x4 view_projection_matrix;
-    glm::fmat4x4 inverse_view_projection_matrix;
-    glm::fvec4 view_position;
-    
-    unsigned viewport_width;
-    unsigned viewport_height;
-    unsigned padding[2];
-};
-
 RendererModuleCamera::RendererModuleCamera(RendererInterface::ResourceOperator& resource_operator, const RendererCameraDesc& camera_desc)
 {
     m_camera = std::make_unique<RendererCamera>(camera_desc);

@@ -21,6 +21,9 @@ public:
     const RootSignatureAllocation& GetRootSignatureAllocation(const std::string& name) const;
 
     IRHIDescriptorUpdater& GetDescriptorUpdater();
+
+    std::pair<int, int> GetViewportSize() const;
+    void SetViewportSize(int width, int height);
     
 protected:
     RendererInterface::RenderPassDesc m_desc;
@@ -31,4 +34,7 @@ protected:
     std::shared_ptr<IRHIPipelineStateObject> m_pipeline_state_object;
 
     std::map<std::string, RootSignatureAllocation> m_shader_parameter_mapping;
+
+    int m_viewport_width{-1};
+    int m_viewport_height{-1};
 };

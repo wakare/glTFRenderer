@@ -8,6 +8,8 @@
 RenderPass::RenderPass(RendererInterface::RenderPassDesc desc)
     : m_desc(std::move(desc))
 {
+    m_viewport_width = m_desc.viewport_width;
+    m_viewport_height = m_desc.viewport_height;
 }
 
 bool RenderPass::InitRenderPass(ResourceManager& resource_manager)
@@ -99,4 +101,15 @@ const RootSignatureAllocation& RenderPass::GetRootSignatureAllocation(const std:
 IRHIDescriptorUpdater& RenderPass::GetDescriptorUpdater()
 {
     return *m_descriptor_updater;
+}
+
+std::pair<int, int> RenderPass::GetViewportSize() const
+{
+    return {m_viewport_width, m_viewport_height};
+}
+
+void RenderPass::SetViewportSize(int width, int height)
+{
+    m_viewport_width = width;
+    m_viewport_height = height;
 }
