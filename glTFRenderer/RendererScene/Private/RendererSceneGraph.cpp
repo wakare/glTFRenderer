@@ -377,7 +377,7 @@ RendererSceneAABB RendererSceneGraph::GetBounds()
 		   result.extend(world_AABB);
 	   }
         
-	   return true;
+	   return false;
    });
 
 	return result;

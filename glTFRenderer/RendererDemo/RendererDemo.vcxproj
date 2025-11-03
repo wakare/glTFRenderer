@@ -177,6 +177,7 @@
     <ClCompile Include="RendererSystem\RendererSystemBase.cpp" />
     <ClCompile Include="RendererSystem\RendererSystemLighting.cpp" />
     <ClCompile Include="RendererSystem\RendererSystemSceneRenderer.cpp" />
+    <None Include="Resources\Shaders\BindlessTextureDefine.hlsl" />
     <None Include="Resources\Shaders\SceneRendererCommon.hlsl" />
     <ClCompile Include="RendererModule\RendererModuleCamera.cpp" />
     <ClCompile Include="RendererModule\RendererModuleLighting.cpp" />

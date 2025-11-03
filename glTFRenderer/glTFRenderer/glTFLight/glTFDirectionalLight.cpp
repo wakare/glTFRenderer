@@ -65,6 +65,12 @@ LightShadowmapViewInfo glTFDirectionalLight::GetShadowmapViewInfo(const glTF_AAB
         light_ndc_max.z = (light_ndc_max.z < ndc_to_light_view.z) ? ndc_to_light_view.z : light_ndc_max.z;
     }
 
+    // for safety
+    auto ndc_size = light_ndc_max - light_ndc_min;
+    float safety_factor = 0.01f;
+    light_ndc_min -= ndc_size * safety_factor;
+    light_ndc_max += ndc_size * safety_factor;
+
     // Apply ndc range
     float ndc_total_width = light_ndc_max.x - light_ndc_min.x;
     float ndc_total_height = light_ndc_max.y - light_ndc_min.y;

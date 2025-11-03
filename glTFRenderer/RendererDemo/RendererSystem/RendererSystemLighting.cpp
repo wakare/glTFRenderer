@@ -1,3 +1,6 @@
+// DX use [0, 1] as depth clip range
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+
 #include "RendererSystemLighting.h"
 #include <format>
 
@@ -18,8 +21,18 @@ bool RendererSystemLighting::AddLight(const LightInfo& light_info)
     return true;
 }
 
+bool RendererSystemLighting::CastShadow() const
+{
+    return m_cast_shadow;
+}
+
+void RendererSystemLighting::SetCastShadow(bool cast_shadow)
+{
+    m_cast_shadow = cast_shadow;
+}
+
 bool RendererSystemLighting::Init(RendererInterface::ResourceOperator& resource_operator,
-    RendererInterface::RenderGraph& graph)
+                                  RendererInterface::RenderGraph& graph)
 {
     GLTF_CHECK(m_scene->HasInit());
     
@@ -50,7 +63,8 @@ bool RendererSystemLighting::Init(RendererInterface::ResourceOperator& resource_
             RendererInterface::default_clear_depth,
             static_cast<RendererInterface::ResourceUsage>(RendererInterface::ResourceUsage::DEPTH_STENCIL | RendererInterface::ResourceUsage::SHADER_RESOURCE) );
 
-        new_shadow_pass_resource.m_shadow_map_view_buffer = ShadowPassResource::CalcDirectionalLightShadowMatrix(light, m_scene->GetSceneMeshModule()->GetSceneBounds(), 0.0f, 0.0f, 1.0f, 1.0f);
+        ShadowPassResource::CalcDirectionalLightShadowMatrix(light, m_scene->GetSceneMeshModule()->GetSceneBounds(),
+            0.0f, 0.0f, 1.0f, 1.0f, shadowmap_width, shadowmap_height, new_shadow_pass_resource.m_shadow_map_view_buffer, new_shadow_pass_resource.m_shadow_map_info);
         
         RendererInterface::BufferDesc camera_buffer_desc{};
         camera_buffer_desc.name = "ViewBuffer";
@@ -107,28 +121,60 @@ bool RendererSystemLighting::Init(RendererInterface::ResourceOperator& resource_
     RendererInterface::RenderTargetTextureBindingDesc albedo_binding_desc{};
     albedo_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
     albedo_binding_desc.name = "albedoTex";
-    albedo_binding_desc.render_target_texture = output.GetRenderTargetHandle(*m_scene, "m_base_pass_color");
+    albedo_binding_desc.render_target_texture = {output.GetRenderTargetHandle(*m_scene, "m_base_pass_color")};
         
     RendererInterface::RenderTargetTextureBindingDesc normal_binding_desc{};
     normal_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
     normal_binding_desc.name = "normalTex";
-    normal_binding_desc.render_target_texture = output.GetRenderTargetHandle(*m_scene, "m_base_pass_normal");
+    normal_binding_desc.render_target_texture = {output.GetRenderTargetHandle(*m_scene, "m_base_pass_normal")};
         
     RendererInterface::RenderTargetTextureBindingDesc depth_binding_desc{};
     depth_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
     depth_binding_desc.name = "depthTex";
-    depth_binding_desc.render_target_texture = output.GetRenderTargetHandle(*m_scene, "m_base_pass_depth");
+    depth_binding_desc.render_target_texture = {output.GetRenderTargetHandle(*m_scene, "m_base_pass_depth")};
 
     RendererInterface::RenderTargetTextureBindingDesc output_binding_desc{};
     output_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::UAV;
     output_binding_desc.name = "Output";
-    output_binding_desc.render_target_texture = lighting_pass_output;
+    output_binding_desc.render_target_texture = {lighting_pass_output};
+
+    RendererInterface::RenderTargetTextureBindingDesc shadowmap_binding_desc{};
+    shadowmap_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
+    shadowmap_binding_desc.name = "bindless_shadowmap_textures";
+    for (const auto& shadow_resource : m_shadow_pass_resources)
+    {
+        shadowmap_binding_desc.render_target_texture.push_back(shadow_resource.second.m_shadow_map);    
+    }
+    
     lighting_pass_setup_info.sampled_render_targets = {
-        {albedo_binding_desc.render_target_texture, albedo_binding_desc},
-        {normal_binding_desc.render_target_texture, normal_binding_desc},
-        {depth_binding_desc.render_target_texture, depth_binding_desc},
-        {lighting_pass_output, output_binding_desc}
+        albedo_binding_desc,
+        normal_binding_desc,
+        depth_binding_desc,
+        shadowmap_binding_desc,
+        output_binding_desc
     };
+
+    std::vector<ShadowMapInfo> shadowmap_infos;
+    for (const auto& shadow_resource : m_shadow_pass_resources)
+    {
+        shadowmap_infos.push_back(shadow_resource.second.m_shadow_map_info);
+    }
+    RendererInterface::BufferDesc shadowmap_info_buffer_desc{};
+    shadowmap_info_buffer_desc.type = RendererInterface::DEFAULT;
+    shadowmap_info_buffer_desc.name = "g_shadowmap_infos";
+    shadowmap_info_buffer_desc.size = sizeof(ShadowMapInfo) * shadowmap_infos.size();
+    shadowmap_info_buffer_desc.usage = RendererInterface::USAGE_SRV;
+    shadowmap_info_buffer_desc.data = shadowmap_infos.data();
+    m_lighting_pass_shadow_infos_handle = resource_operator.CreateBuffer(shadowmap_info_buffer_desc);
+
+    RendererInterface::BufferBindingDesc shadowmap_info_binding_desc{};
+    shadowmap_info_binding_desc.binding_type = RendererInterface::BufferBindingDesc::SRV;
+    shadowmap_info_binding_desc.buffer_handle = m_lighting_pass_shadow_infos_handle;
+    shadowmap_info_binding_desc.is_structured_buffer = true;
+    shadowmap_info_binding_desc.stride = sizeof(ShadowMapInfo);
+    shadowmap_info_binding_desc.count = shadowmap_infos.size();
+    lighting_pass_setup_info.buffer_resources["g_shadowmap_infos"] = shadowmap_info_binding_desc;
+    
     RendererInterface::RenderExecuteCommand dispatch_command{};
     dispatch_command.type = RendererInterface::ExecuteCommandType::COMPUTE_DISPATCH_COMMAND;
     dispatch_command.parameter.dispatch_parameter.group_size_x = width / 8;
@@ -151,11 +197,14 @@ bool RendererSystemLighting::HasInit() const
 bool RendererSystemLighting::Tick(RendererInterface::ResourceOperator& resource_operator,
                                   RendererInterface::RenderGraph& graph, unsigned long long interval)
 {
-    // add pass node
-    for (const auto& shadow_pass: m_shadow_pass_resources)
+    if (CastShadow())
     {
-        graph.RegisterRenderGraphNode(shadow_pass.second.m_shadow_pass_node);
+        for (const auto& shadow_pass: m_shadow_pass_resources)
+        {
+            graph.RegisterRenderGraphNode(shadow_pass.second.m_shadow_pass_node);
+        }
     }
+    
     graph.RegisterRenderGraphNode(m_lighting_pass_node);
     
     m_lighting_module->Tick(resource_operator, interval);
@@ -163,17 +212,19 @@ bool RendererSystemLighting::Tick(RendererInterface::ResourceOperator& resource_
     return true;
 }
 
-ViewBuffer RendererSystemLighting::ShadowPassResource::CalcDirectionalLightShadowMatrix(
+bool RendererSystemLighting::ShadowPassResource::CalcDirectionalLightShadowMatrix(
     const LightInfo& directional_light_info, const RendererSceneAABB& scene_bounds, float ndc_min_x, float ndc_min_y,
-    float ndc_width, float ndc_height)
+    float ndc_width, float ndc_height, unsigned shadowmap_width, unsigned shadowmap_height,
+    ViewBuffer& out_view_buffer, ShadowMapInfo& out_shadow_info)
 {
-    glm::mat4x4 view_matrix = glm::lookAtLH({0.0f, 0.0f, 0.0f}, -directional_light_info.position , {0.0f, 1.0f, 0.0f});
+    const auto& scene_bounds_min = scene_bounds.getMin();
+    const auto& scene_bounds_max = scene_bounds.getMax();
+    const auto& scene_center = scene_bounds.getCenter();
+    
+    glm::mat4x4 view_matrix = glm::lookAtLH(scene_center, scene_center + directional_light_info.position , {0.0f, 1.0f, 0.0f});
     glm::vec3 light_ndc_min{ FLT_MAX, FLT_MAX, FLT_MAX };
     glm::vec3 light_ndc_max{ FLT_MIN, FLT_MIN, FLT_MIN };
 
-    const auto& scene_bounds_min = scene_bounds.getMin();
-    const auto& scene_bounds_max = scene_bounds.getMax();
-    
     glm::vec4 scene_corner[8] =
         {
         {scene_bounds_min.x, scene_bounds_min.y, scene_bounds_min.z, 1.0f},
@@ -199,6 +250,12 @@ ViewBuffer RendererSystemLighting::ShadowPassResource::CalcDirectionalLightShado
         light_ndc_max.z = (light_ndc_max.z < ndc_to_light_view.z) ? ndc_to_light_view.z : light_ndc_max.z;
     }
 
+    // for safety
+    auto ndc_size = light_ndc_max - light_ndc_min;
+    float safety_factor = 0.01f;
+    light_ndc_min -= ndc_size * safety_factor;
+    light_ndc_max += ndc_size * safety_factor;
+    
     // Apply ndc range
     float ndc_total_width = light_ndc_max.x - light_ndc_min.x;
     float ndc_total_height = light_ndc_max.y - light_ndc_min.y;
@@ -210,12 +267,17 @@ ViewBuffer RendererSystemLighting::ShadowPassResource::CalcDirectionalLightShado
         
     glm::mat4x4 projection_matrix = glm::orthoLH(new_ndc_min_x, new_ndc_max_x, new_ndc_min_y, new_ndc_max_y, light_ndc_min.z, light_ndc_max.z);
     
-    ViewBuffer shadowmap_view_buffer{};
-    shadowmap_view_buffer.viewport_width = ndc_width;
-    shadowmap_view_buffer.viewport_height = ndc_height;
-    shadowmap_view_buffer.view_position = {0.0f, 0.0f, 0.0f, 1.0f};
-    shadowmap_view_buffer.view_projection_matrix = projection_matrix * view_matrix;
-    shadowmap_view_buffer.inverse_view_projection_matrix = glm::inverse(shadowmap_view_buffer.view_projection_matrix);
+    out_view_buffer.viewport_width = shadowmap_width;
+    out_view_buffer.viewport_height = shadowmap_height;
+    out_view_buffer.view_position = {scene_center, 1.0f};
+    out_view_buffer.view_projection_matrix = projection_matrix * view_matrix;
+    out_view_buffer.inverse_view_projection_matrix = glm::inverse(out_view_buffer.view_projection_matrix);
 
-    return shadowmap_view_buffer;
+    out_shadow_info.view_matrix = view_matrix;
+    out_shadow_info.projection_matrix = projection_matrix;
+    out_shadow_info.shadowmap_size[0] = shadowmap_width;
+    out_shadow_info.shadowmap_size[1] = shadowmap_height;
+    out_shadow_info.vsm_texture_id = -1;
+    
+    return true;
 }

@@ -116,12 +116,18 @@ namespace RendererInterface
                 std::string entry_function;
                 std::string shader_file;
             };
-        
+
+            struct RenderTargetTextureArrayBindingDesc
+            {
+                std::vector<RenderTargetHandle> render_targets;
+                RenderTargetTextureBindingDesc m_binding_desc;
+            };
+            
             RenderPassType render_pass_type;
             
             std::vector<ShaderSetupInfo> shader_setup_infos;
             std::map<RenderTargetHandle, RenderTargetBindingDesc> render_targets;
-            std::map<RenderTargetHandle, RenderTargetTextureBindingDesc> sampled_render_targets;
+            std::vector<RenderTargetTextureBindingDesc> sampled_render_targets;
             std::map<std::string, BufferBindingDesc> buffer_resources;
             std::vector<std::shared_ptr<RendererModuleBase>> modules;
 
@@ -148,6 +154,14 @@ namespace RendererInterface
         void RegisterTickCallback(const RenderGraphTickCallback& callback);
 
     protected:
+        struct RenderPassDescriptorResource
+        {
+            std::map<std::string, std::shared_ptr<IRHIBufferDescriptorAllocation>> m_buffer_descriptors;
+            std::map<std::string, std::shared_ptr<IRHITextureDescriptorAllocation>> m_texture_descriptors;
+            std::map<std::string, std::shared_ptr<IRHIDescriptorTable>> m_texture_descriptor_tables;
+            std::map<std::string, std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>>> m_texture_descriptor_table_source_data;
+        };
+        
         void ExecuteRenderGraphNode(IRHICommandList& command_list, RenderGraphNodeHandle render_graph_node_handle, unsigned long long interval);
         void CloseCurrentCommandListAndExecute(IRHICommandList& command_list, const RHIExecuteCommandListContext& context, bool wait);
         void Present(IRHICommandList& command_list);
@@ -158,11 +172,8 @@ namespace RendererInterface
         std::vector<RenderGraphNodeDesc> m_render_graph_nodes;
         std::set<RenderGraphNodeHandle> m_render_graph_node_handles;
 
-        std::map<std::string, std::shared_ptr<IRHIBufferDescriptorAllocation>> m_buffer_descriptors;
-        std::map<std::string, std::shared_ptr<IRHITextureDescriptorAllocation>> m_texture_descriptors;
-        std::map<std::string, std::shared_ptr<IRHIDescriptorTable>> m_texture_descriptor_tables;
-        std::map<std::string, std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>>> m_texture_descriptor_table_source_data;
-
+        std::map<RenderGraphNodeHandle, RenderPassDescriptorResource> m_render_pass_descriptor_resources;
+        
         std::shared_ptr<IRHITexture> m_final_color_output;
         RenderGraphTickCallback m_tick_callback;
     };

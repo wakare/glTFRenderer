@@ -451,7 +451,7 @@ namespace RendererInterface
     
         for (const auto& render_target : setup_info.sampled_render_targets)
         {
-            render_pass_draw_desc.render_target_texture_resources[render_target.second.name] = render_target.second;
+            render_pass_draw_desc.render_target_texture_resources[render_target.name] = render_target;
         }
     
         if (setup_info.execute_command.has_value())
@@ -628,6 +628,8 @@ namespace RendererInterface
             pipeline_type = RHIPipelineType::RayTracing;
             break;
         }
+
+        auto& render_pass_descriptor_resource = m_render_pass_descriptor_resources[render_graph_node_handle];
         
         for (const auto& buffer : render_graph_node_desc.draw_info.buffer_resources)
         {
@@ -636,34 +638,34 @@ namespace RendererInterface
             auto buffer_allocation = RendererInterface::InternalResourceHandleTable::Instance().GetBuffer(buffer_handle);
             auto buffer_size = buffer_allocation->m_buffer->GetBufferDesc().width;
 
-            if (!m_buffer_descriptors.contains(buffer.first))
+            if (!render_pass_descriptor_resource.m_buffer_descriptors.contains(buffer.first))
             {
                 switch (buffer.second.binding_type)
                 {
                 case BufferBindingDesc::CBV:
                     {
                         RHIBufferDescriptorDesc buffer_descriptor_desc(RHIDataFormat::UNKNOWN, RHIViewType::RVT_CBV, buffer_size, 0);
-                        m_resource_allocator.GetDescriptorManager().CreateDescriptor(m_resource_allocator.GetDevice(), buffer_allocation->m_buffer, buffer_descriptor_desc, m_buffer_descriptors[buffer.first]);    
+                        m_resource_allocator.GetDescriptorManager().CreateDescriptor(m_resource_allocator.GetDevice(), buffer_allocation->m_buffer, buffer_descriptor_desc, render_pass_descriptor_resource.m_buffer_descriptors[buffer.first]);    
                     }
                     break;
                 case BufferBindingDesc::SRV:
                     {
                         RHISRVStructuredBufferDesc srv_buffer_desc{buffer.second.stride, buffer.second.count, buffer.second.is_structured_buffer};
                         RHIBufferDescriptorDesc buffer_descriptor_desc(RHIDataFormat::UNKNOWN, RHIViewType::RVT_SRV, buffer_size, 0, srv_buffer_desc);
-                        m_resource_allocator.GetDescriptorManager().CreateDescriptor(m_resource_allocator.GetDevice(), buffer_allocation->m_buffer, buffer_descriptor_desc, m_buffer_descriptors[buffer.first]);    
+                        m_resource_allocator.GetDescriptorManager().CreateDescriptor(m_resource_allocator.GetDevice(), buffer_allocation->m_buffer, buffer_descriptor_desc, render_pass_descriptor_resource.m_buffer_descriptors[buffer.first]);    
                     }
                     break;
                 case BufferBindingDesc::UAV:
                     {
                         RHIUAVStructuredBufferDesc uav_buffer_desc{buffer.second.stride, buffer.second.count, buffer.second.is_structured_buffer, buffer.second.use_count_buffer, buffer.second.count_buffer_offset};
                         RHIBufferDescriptorDesc buffer_descriptor_desc(RHIDataFormat::UNKNOWN, RHIViewType::RVT_UAV, buffer_size, 0, uav_buffer_desc);
-                        m_resource_allocator.GetDescriptorManager().CreateDescriptor(m_resource_allocator.GetDevice(), buffer_allocation->m_buffer, buffer_descriptor_desc, m_buffer_descriptors[buffer.first]);    
+                        m_resource_allocator.GetDescriptorManager().CreateDescriptor(m_resource_allocator.GetDevice(), buffer_allocation->m_buffer, buffer_descriptor_desc, render_pass_descriptor_resource.m_buffer_descriptors[buffer.first]);    
                     }
                     break;
                 }
             }
 
-            auto buffer_descriptor = m_buffer_descriptors.at(buffer.first);
+            auto buffer_descriptor = render_pass_descriptor_resource.m_buffer_descriptors.at(buffer.first);
             switch (buffer.second.binding_type) {
             case BufferBindingDesc::CBV:
                 buffer_allocation->m_buffer->Transition(command_list, RHIResourceStateType::STATE_VERTEX_AND_CONSTANT_BUFFER);
@@ -683,7 +685,7 @@ namespace RendererInterface
             const bool is_texture_table = texture.second.textures.size() > 1;
             auto& root_signature_allocation = render_pass->GetRootSignatureAllocation(texture.first);
             
-            if (!m_texture_descriptors.contains(texture.first) && !m_texture_descriptor_tables.contains(texture.first))
+            if (!render_pass_descriptor_resource.m_texture_descriptors.contains(texture.first) && !render_pass_descriptor_resource.m_texture_descriptor_tables.contains(texture.first))
             {
                 // Create texture descriptor
                 auto texture_handles = texture.second.textures;
@@ -704,20 +706,20 @@ namespace RendererInterface
                     const bool built = descriptor_table->Build(m_resource_allocator.GetDevice(), descriptor_allocations);
                     GLTF_CHECK(built);
 
-                    m_texture_descriptor_tables[texture.first] = descriptor_table;
-                    m_texture_descriptor_table_source_data[texture.first] = descriptor_allocations;
+                    render_pass_descriptor_resource.m_texture_descriptor_tables[texture.first] = descriptor_table;
+                    render_pass_descriptor_resource.m_texture_descriptor_table_source_data[texture.first] = descriptor_allocations;
                 }
                 else
                 {
                     GLTF_CHECK(descriptor_allocations.size() == 1);
-                    m_texture_descriptors[texture.first] = descriptor_allocations.at(0);                
+                    render_pass_descriptor_resource.m_texture_descriptors[texture.first] = descriptor_allocations.at(0);                
                 }
             }
 
             if (is_texture_table)
             {
-                auto descriptor_table = m_texture_descriptor_tables.at(texture.first);
-                auto& table_texture_descriptors = m_texture_descriptor_table_source_data.at(texture.first);
+                auto descriptor_table = render_pass_descriptor_resource.m_texture_descriptor_tables.at(texture.first);
+                auto& table_texture_descriptors = render_pass_descriptor_resource.m_texture_descriptor_table_source_data.at(texture.first);
                 for (const auto& table_texture : table_texture_descriptors)
                 {
                     table_texture->m_source->Transition(command_list, texture.second.type == TextureBindingDesc::SRV ? RHIResourceStateType::STATE_ALL_SHADER_RESOURCE : RHIResourceStateType::STATE_UNORDERED_ACCESS);
@@ -727,7 +729,7 @@ namespace RendererInterface
             }
             else
             {
-                auto descriptor = m_texture_descriptors.at(texture.first);
+                auto descriptor = render_pass_descriptor_resource.m_texture_descriptors.at(texture.first);
                 descriptor->m_source->Transition(command_list, texture.second.type == TextureBindingDesc::SRV ? RHIResourceStateType::STATE_ALL_SHADER_RESOURCE : RHIResourceStateType::STATE_UNORDERED_ACCESS);
                 
                 render_pass->GetDescriptorUpdater().BindDescriptor(command_list, pipeline_type, root_signature_allocation, *descriptor);
@@ -736,23 +738,58 @@ namespace RendererInterface
 
         for (const auto& render_target_pair  :render_graph_node_desc.draw_info.render_target_texture_resources)
         {
-            if (!m_texture_descriptors.contains(render_target_pair.first))
+            const bool is_texture_table = render_target_pair.second.render_target_texture.size() > 1;
+            if (!render_pass_descriptor_resource.m_texture_descriptors.contains(render_target_pair.first))
             {
-                auto texture = InternalResourceHandleTable::Instance().GetRenderTarget(render_target_pair.second.render_target_texture)->m_source;
-                RHITextureDescriptorDesc texture_descriptor_desc{texture->GetTextureFormat(), RHIResourceDimension::TEXTURE2D, render_target_pair.second.type == TextureBindingDesc::SRV? RHIViewType::RVT_SRV :RHIViewType::RVT_UAV};
-                if (IsDepthStencilFormat(texture->GetTextureFormat()) && render_target_pair.second.type == TextureBindingDesc::SRV)
+                std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>> descriptor_allocations;
+
+                for (const auto& render_target : render_target_pair.second.render_target_texture)
                 {
-                    texture_descriptor_desc.m_format = RHIDataFormat::D32_SAMPLE_RESERVED;
+                    auto texture = InternalResourceHandleTable::Instance().GetRenderTarget(render_target)->m_source;
+                    RHITextureDescriptorDesc texture_descriptor_desc{texture->GetTextureFormat(), RHIResourceDimension::TEXTURE2D, render_target_pair.second.type == TextureBindingDesc::SRV? RHIViewType::RVT_SRV :RHIViewType::RVT_UAV};
+                    if (IsDepthStencilFormat(texture->GetTextureFormat()) && render_target_pair.second.type == TextureBindingDesc::SRV)
+                    {
+                        texture_descriptor_desc.m_format = RHIDataFormat::D32_SAMPLE_RESERVED;
+                    }
+                    std::shared_ptr<IRHITextureDescriptorAllocation> texture_descriptor = nullptr;
+                    m_resource_allocator.GetDescriptorManager().CreateDescriptor(m_resource_allocator.GetDevice(), texture, texture_descriptor_desc, texture_descriptor);
+                    descriptor_allocations.push_back(texture_descriptor);
                 }
-                std::shared_ptr<IRHITextureDescriptorAllocation> texture_descriptor = nullptr;
-                m_resource_allocator.GetDescriptorManager().CreateDescriptor(m_resource_allocator.GetDevice(), texture, texture_descriptor_desc, texture_descriptor);
-                m_texture_descriptors[render_target_pair.first]=texture_descriptor;
+                
+                if (is_texture_table)
+                {
+                    std::shared_ptr<IRHIDescriptorTable> descriptor_table = RHIResourceFactory::CreateRHIResource<IRHIDescriptorTable>();
+                    const bool built = descriptor_table->Build(m_resource_allocator.GetDevice(), descriptor_allocations);
+                    GLTF_CHECK(built);
+
+                    render_pass_descriptor_resource.m_texture_descriptor_tables[render_target_pair.first] = descriptor_table;
+                    render_pass_descriptor_resource.m_texture_descriptor_table_source_data[render_target_pair.first] = descriptor_allocations;
+                }
+                else
+                {
+                    GLTF_CHECK(render_target_pair.second.render_target_texture.size() == 1);
+                    render_pass_descriptor_resource.m_texture_descriptors[render_target_pair.first] = descriptor_allocations[0];
+                }
             }
-            
+
             auto& root_signature_allocation = render_pass->GetRootSignatureAllocation(render_target_pair.first);
-            auto descriptor = m_texture_descriptors.at(render_target_pair.first);
-            descriptor->m_source->Transition(command_list, render_target_pair.second.type == TextureBindingDesc::SRV ? RHIResourceStateType::STATE_ALL_SHADER_RESOURCE : RHIResourceStateType::STATE_UNORDERED_ACCESS);
-            render_pass->GetDescriptorUpdater().BindDescriptor(command_list, pipeline_type, root_signature_allocation, *descriptor);
+            if (is_texture_table)
+            {
+                auto descriptor_table = render_pass_descriptor_resource.m_texture_descriptor_tables.at(render_target_pair.first);
+                auto& table_texture_descriptors = render_pass_descriptor_resource.m_texture_descriptor_table_source_data.at(render_target_pair.first);
+                for (const auto& table_texture : table_texture_descriptors)
+                {
+                    table_texture->m_source->Transition(command_list, render_target_pair.second.type == TextureBindingDesc::SRV ? RHIResourceStateType::STATE_ALL_SHADER_RESOURCE : RHIResourceStateType::STATE_UNORDERED_ACCESS);
+                }
+                
+                render_pass->GetDescriptorUpdater().BindDescriptor(command_list, pipeline_type, root_signature_allocation, *descriptor_table, render_target_pair.second.type == TextureBindingDesc::SRV? RHIDescriptorRangeType::SRV : RHIDescriptorRangeType::UAV);
+            }
+            else
+            {
+                auto descriptor = render_pass_descriptor_resource.m_texture_descriptors.at(render_target_pair.first);
+                descriptor->m_source->Transition(command_list, render_target_pair.second.type == TextureBindingDesc::SRV ? RHIResourceStateType::STATE_ALL_SHADER_RESOURCE : RHIResourceStateType::STATE_UNORDERED_ACCESS);
+                render_pass->GetDescriptorUpdater().BindDescriptor(command_list, pipeline_type, root_signature_allocation, *descriptor);    
+            }
         }
 
         render_pass->GetDescriptorUpdater().FinalizeUpdateDescriptors(m_resource_allocator.GetDevice(), command_list, render_pass->GetRootSignature());

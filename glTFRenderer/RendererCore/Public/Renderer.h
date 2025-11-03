@@ -307,7 +307,7 @@ namespace RendererInterface
         };
 
         std::string name;
-        RenderTargetHandle render_target_texture;
+        std::vector<RenderTargetHandle> render_target_texture;
         TextureBindingType type;
     };
 
