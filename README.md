@@ -11,3 +11,225 @@ https://github.com/KhronosGroup/glTF-Tutorials/tree/master/gltfTutorial
 
 2. web glTF viewer
 https://gltf-viewer.donmccurdy.com/
+
+Claude梳理文档：
+  🎯 模块概览
+
+  你的渲染器采用分层架构设计，共有5个主要模块：
+
+  RendererDemo (应用层)
+      ↓
+  RendererCore (渲染框架层)
+      ↓
+  RHICore (硬件抽象层) + RendererScene (场景数据层)
+      ↓
+  RendererCommonLib (基础层)
+
+  ---
+  📦 各模块详细设计
+
+  1. RendererCommonLib (基础设施层)
+
+  职责：提供通用工具和基础功能
+
+  主要组件：
+  - 窗口管理：glTFWindow (基于GLFW)
+  - glTF加载器：glTFLoader - 解析glTF 2.0文件
+  - 图像加载：glTFImageIOUtil - 支持多种图像格式
+  - 输入处理：RendererInputDevice
+  - 通用工具：日志、异步文件加载、唯一ID生成
+
+  依赖：glfw, nlohmann_json, stb_image
+
+  ---
+  2. RHICore (渲染硬件接口层)
+
+  职责：抽象DirectX 12和Vulkan，提供统一的图形API
+
+  架构模式：抽象工厂 + 策略模式
+
+  核心设计：
+  - 接口层 (RHIInterface/)：定义所有GPU资源的抽象接口
+    - 设备：IRHIDevice, IRHIFactory
+    - 命令：IRHICommandList, IRHICommandQueue
+    - 资源：IRHIBuffer, IRHITexture
+    - 管线：IRHIPipelineStateObject, IRHIRootSignature
+    - 描述符：IRHIDescriptorManager
+  - 双后端实现：
+    - RHIDX12Impl/：完整的DX12实现
+    - RHIVKImpl/：完整的Vulkan实现
+
+  关键特性：
+  - 运行时可切换DX12/Vulkan
+  - 自动资源状态跟踪和转换
+  - 统一的内存管理 (D3D12MA / VMA)
+  - Shader反射和根签名生成
+
+  ---
+  3. RendererScene (场景数据层)
+
+  职责：场景图管理和网格/材质数据结构
+
+  架构模式：组合模式（场景图）+ 数据导向设计
+
+  主要类：
+  - RendererSceneGraph：场景根节点容器
+  - RendererSceneNode：场景节点（层次结构、变换、网格）
+  - RendererSceneNodeTransform：TRS变换（支持四元数、脏标记优化）
+  - RendererSceneMesh：网格数据（顶点、索引、材质、包围盒）
+  - RendererSceneAABB：轴对齐包围盒
+
+  数据流：
+  glTFLoader → RendererSceneGraph → RendererSceneNode → RendererSceneMesh
+
+  优化设计：
+  - 脏标记系统：延迟计算变换矩阵
+  - 层次化变换传播
+  - 仅位置缓冲优化（用于阴影渲染）
+
+  ---
+  4. RendererCore (渲染框架层)
+
+  职责：高层渲染框架、渲染图、资源管理
+
+  架构模式：渲染图 + 句柄系统 + 资源管理器
+
+  核心组件：
+
+  1. 资源系统：
+    - ResourceOperator：公共API（资源创建工厂）
+    - ResourceManager：内部资源管理（设备、交换链、着色器编译）
+    - 句柄系统：类型安全的资源访问（ShaderHandle, TextureHandle等）
+  2. 渲染图系统：
+    - RenderGraph：帧图执行器
+    - RenderPass：单个渲染Pass抽象
+    - 自动资源依赖跟踪
+    - 每Pass描述符缓存
+  3. 其他系统：
+    - RendererCamera：透视相机（视图投影矩阵、FPS控制）
+    - RendererSceneResourceManager：场景数据与渲染的桥接
+
+  设计亮点：
+  - 句柄而非裸指针（防止悬空指针）
+  - 渲染图自动管理资源生命周期
+  - 描述符按Pass缓存提升性能
+
+  ---
+  5. RendererDemo (应用层)
+
+  职责：演示应用和高层渲染系统
+
+  架构模式：系统-模块模式（类ECS设计）
+
+  组织结构：
+
+  1. Demo应用 (DemoApps/)：
+    - DemoBase：应用基类（渲染上下文、帧循环）
+    - DemoAppModelViewer：glTF模型查看器
+    - DemoTriangleApp：简单三角形Demo
+  2. 渲染系统 (RendererSystem/)：
+    - RendererSystemSceneRenderer：场景渲染系统
+        - Base Pass（输出：颜色、法线、深度）
+      - 管理相机和场景网格模块
+    - RendererSystemLighting：光照系统
+        - 阴影Pass（方向光阴影）
+      - 延迟光照Pass
+      - VSM（方差阴影图）支持
+  3. 渲染模块 (RendererModule/)：
+    - RendererModuleCamera：相机数据绑定
+    - RendererModuleSceneMesh：网格数据和绘制命令
+    - RendererModuleMaterial：PBR材质系统
+    - RendererModuleLighting：光源数据管理
+
+  系统-模块关系：
+  RendererSystemSceneRenderer
+    ├─ RendererModuleCamera (视图投影)
+    ├─ RendererModuleSceneMesh (几何体)
+    └─ RendererModuleMaterial (材质)
+
+  RendererSystemLighting
+    ├─ RendererModuleLighting (光源数据)
+    ├─ RendererModuleCamera (阴影视图)
+    └─ RendererModuleSceneMesh (阴影投射物)
+
+  ---
+  🔄 渲染管线流程
+
+  帧渲染流程：
+
+  1. 更新输入和相机
+     ↓
+  2. 系统Tick更新
+     ├─ RendererSystemSceneRenderer::Tick()
+     │  └─ Base Pass (输出: color, normal, depth)
+     └─ RendererSystemLighting::Tick()
+        ├─ Shadow Pass (每个光源)
+        └─ Lighting Pass (延迟着色)
+     ↓
+  3. RenderGraph执行
+     ├─ 绑定管线状态
+     ├─ 绑定资源（缓冲、纹理、描述符）
+     ├─ 执行绘制命令 (DrawIndexedInstanced)
+     └─ 资源状态转换
+     ↓
+  4. 复制到交换链并Present
+
+  当前支持的Pass：
+
+  1. Base Pass：场景几何渲染（G-Buffer）
+  2. Shadow Pass：方向光阴影图生成
+  3. Lighting Pass：延迟光照（PBR着色）
+
+  ---
+  🎨 关键设计模式
+
+  1. 抽象工厂模式 (RHI)：运行时选择DX12/Vulkan
+  2. 句柄模式 (资源管理)：类型安全、简化生命周期管理
+  3. 渲染图模式 (渲染)：自动依赖管理和资源barrier
+  4. 组合模式 (场景图)：树形层次结构
+  5. 系统-组件模式 (应用层)：类似ECS的架构
+  6. 脏标记模式 (变换)：延迟计算优化
+
+  ---
+  🔗 模块依赖图
+
+                 ┌──────────────┐
+                 │ RendererDemo │ (系统、模块、应用)
+                 └──────┬───────┘
+                        │
+                 ┌──────▼───────┐
+                 │ RendererCore │ (渲染图、Pass、资源)
+                 └──┬────────┬──┘
+                    │        │
+        ┌───────────▼┐    ┌─▼──────────────┐
+        │  RHICore   │    │ RendererScene  │
+        │ (DX12/VK)  │    │  (场景图)      │
+        └─────┬──────┘    └─┬──────────────┘
+              │             │
+              └──────┬──────┘
+                     │
+            ┌────────▼────────────┐
+            │ RendererCommonLib   │ (glTF加载、窗口)
+            └─────────────────────┘
+
+  ---
+  💡 技术亮点
+
+  1. 双后端支持：DX12和Vulkan统一接口
+  2. 实例化渲染：所有网格使用实例化绘制
+  3. 基于缓冲的顶点获取：顶点数据存储在结构化缓冲（SRV）中，着色器手动获取
+  4. PBR材质：金属/粗糙度工作流
+  5. 延迟渲染：G-Buffer + 延迟光照
+  6. 阴影映射：方向光VSM阴影
+  7. 句柄系统：防止内存错误的资源访问
+
+  ---
+  📊 代码位置参考
+
+  - RHI接口定义：RHICore/RHIInterface/*.h
+  - 场景图：RendererScene/RendererSceneGraph.h:*
+  - 渲染图：RendererCore/RenderGraph.h:*
+  - 场景渲染系统：RendererDemo/RendererSystem/RendererSystemSceneRenderer.cpp:*
+  - 光照系统：RendererDemo/RendererSystem/RendererSystemLighting.cpp:*
+
+  你的渲染器架构非常清晰，模块职责分明，是一个设计良好的现代渲染引擎！有什么具体的模块或设计你想深入了解的吗？
