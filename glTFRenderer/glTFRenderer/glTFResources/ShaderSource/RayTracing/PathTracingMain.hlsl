@@ -13,7 +13,7 @@ DECLARE_RESOURCE(RaytracingAccelerationStructure scene , SCENE_AS_REGISTER_INDEX
 DECLARE_RESOURCE(RWTexture2D<float4> render_target , OUTPUT_REGISTER_INDEX);
 DECLARE_RESOURCE(RWTexture2D<float4> screen_uv_offset , SCREEN_UV_OFFSET_REGISTER_INDEX);
 
-cbuffer RayTracingPathTracingPassOptions: RAY_TRACING_PATH_TRACING_OPTION_CBV_INDEX
+DECLARE_RESOURCE(cbuffer RayTracingPathTracingPassOptions , RAY_TRACING_PATH_TRACING_OPTION_CBV_INDEX)
 {
     int max_bounce_count;
     int candidate_light_count;

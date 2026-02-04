@@ -40,7 +40,7 @@ void PrimaryRayClosestHit(inout PrimaryRayPayload payload, in PathTracingAttribu
     MaterialSurfaceInfo surface_info = GetSurfaceInfoCS(GetMeshMaterialId(InstanceID()), vertex_info.uv.xy);
     payload.albedo = surface_info.albedo;
     
-    float3x4 world_matrix = ObjectToWorld();
+    float3x4 world_matrix = ObjectToWorld3x4();
     payload.normal = GetWorldNormal((float3x3)world_matrix, vertex_info.normal.xyz, vertex_info.tangent, surface_info.normal);
     
     payload.metallic = surface_info.metallic;

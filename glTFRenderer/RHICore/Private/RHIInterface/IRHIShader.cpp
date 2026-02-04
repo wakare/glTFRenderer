@@ -164,6 +164,8 @@ bool CompileShaderWithDXC(const glTFShaderUtils::ShaderCompileDesc& compile_desc
     if (compile_desc.spirv)
     {
         compile_argument_strings.emplace_back(L"-spirv");
+        // For vulkan raytracing
+        compile_argument_strings.emplace_back(L"-fspv-target-env=vulkan1.2");
     }
     else
     {
