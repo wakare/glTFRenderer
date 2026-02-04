@@ -1,0 +1,904 @@
+ Shader资源绑定完整流程
+
+  📋 目录
+
+  1. #整体架构
+  2. #shader声明资源
+  3. #shader编译与反射
+  4. #根签名创建
+  5. #描述符创建与缓存
+  6. #资源绑定流程
+  7. #完整示例
+
+  ---
+  🏗️ 整体架构
+
+  资源绑定系统采用多阶段流水线设计：
+
+  ┌──────────────┐   ┌──────────────┐   ┌──────────────┐   ┌──────────────┐   ┌──────────────┐
+  │ Shader源码   │ → │ Shader编译   │ → │ Shader反射   │ → │ 根签名创建   │ → │ 资源绑定     │
+  │ (HLSL/GLSL) │   │  (DXIL/SPIRV)│   │ (参数提取)   │   │ (Layout构建)│   │ (Descriptor) │
+  └──────────────┘   └──────────────┘   └──────────────┘   └──────────────┘   └──────────────┘
+
+  核心组件关系
+
+  RenderPass
+    └─ IRHIRootSignatureHelper
+        ├─ RootSignatureLayout              // 根签名布局
+        │   ├─ RootSignatureParameterElement[]
+        │   └─ RootSignatureStaticSamplerElement[]
+        ├─ IRHIRootSignature                // 平台相关根签名(DX12/Vulkan)
+        └─ std::map<name, RootSignatureAllocation>  // 参数名→分配信息映射
+
+    └─ IRHIDescriptorUpdater                // 描述符更新器
+        └─ 绑定描述符到根签名槽位
+
+  ---
+  📝 Shader声明资源
+
+  1. Shader声明宏 (ShaderDeclarationUtil.hlsl)
+
+  为了支持DX12和Vulkan双后端，使用跨平台宏：
+
+  // DX12: 使用语义(register)
+  // Vulkan: 使用layout绑定
+  #if DX_SHADER
+      #define DECLARE_RESOURCE(x, IDENTITY) x : IDENTITY
+  #else
+      #define DECLARE_RESOURCE(x, IDENTITY) IDENTITY x
+  #endif
+
+  2. 实际Shader中的资源声明
+
+  SceneView.hlsl:6-29 - 相机数据（CBV）:
+  DECLARE_RESOURCE(cbuffer SceneViewConstantBuffer, SCENE_VIEW_REGISTER_INDEX)
+  {
+      float4x4 viewMatrix;
+      float4x4 projectionMatrix;
+      float4x4 inverseViewMatrix;
+      float4x4 inverseProjectionMatrix;
+
+      float4x4 prev_view_matrix;
+      float4x4 prev_projection_matrix;
+
+      float4 view_position;
+      uint viewport_width;
+      uint viewport_height;
+
+      float nearZ;
+      float farZ;
+  };
+
+  展开后（DX12）：
+  cbuffer SceneViewConstantBuffer : register(b0, space0)
+  {
+      // ...
+  };
+
+  SceneMaterial.hlsl:27-29 - 材质数据（SRV + Bindless）:
+  // 材质信息结构化缓冲（SRV）
+  DECLARE_RESOURCE(StructuredBuffer<MaterialShaderInfo> g_material_infos, SCENE_MATERIAL_INFO_REGISTER_INDEX);
+
+  // Bindless纹理数组（SRV Table）
+  DECLARE_RESOURCE(Texture2D<float4> bindless_material_textures[], SCENE_MATERIAL_TEXTURE_REGISTER_INDEX);
+
+  // Sampler
+  DECLARE_RESOURCE(SamplerState material_sampler, SCENE_MATERIAL_SAMPLER_REGISTER_INDEX);
+
+  MeshPassCommon.hlsl:71 - 网格实例数据（SRV）:
+  struct MeshInstanceInputData
+  {
+      float4x4 instance_transform;
+      uint instance_material_id;
+      uint normal_mapping;
+      uint mesh_id;
+      uint padding;
+  };
+  DECLARE_RESOURCE(StructuredBuffer<MeshInstanceInputData> g_mesh_instance_input_data, MESH_INSTANCE_INPUT_DATA_REGISTER_SRV_INDEX);
+
+  3. 寄存器索引映射
+
+  虽然代码中没有找到RegisterIndex.h，但从shader反射日志可以看到绑定信息：
+  - SCENE_VIEW_REGISTER_INDEX → register(b0, space0)
+  - SCENE_MATERIAL_INFO_REGISTER_INDEX → register(t1, space0)
+  - SCENE_MATERIAL_TEXTURE_REGISTER_INDEX → register(t2, space0) (Bindless)
+  - MESH_INSTANCE_INPUT_DATA_REGISTER_SRV_INDEX → register(t0, space0)
+
+  ---
+  🔍 Shader编译与反射
+
+  1. Shader编译 (IRHIShader::CompileShader)
+
+  // ResourceManager.cpp:222
+  bool IRHIShader::CompileShader() {
+      // 1. 加载shader文件
+      LoadShader(m_shader_file_path);
+
+      // 2. 编译shader
+      //    HLSL → DXIL (DX12) 或 GLSL → SPIRV (Vulkan)
+      glTFShaderUtils::CompileShader(compile_desc, m_shader_byte_code);
+
+      return true;
+  }
+
+  2. Shader反射 (DX12Utils::ProcessShaderMetaData)
+
+  DX12Utils.cpp:756-835 - 这是整个绑定系统的核心：
+
+  bool DX12Utils::ProcessShaderMetaData(IRHIShader& shader)
+  {
+      // 1. 创建DXC反射工具
+      ComPtr<IDxcUtils> utils;
+      DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&utils));
+      ComPtr<ID3D12ShaderReflection> refl;
+
+      // 2. 从编译后的字节码创建反射对象
+      const auto& shader_bytecode = shader.GetShaderByteCode();
+      DxcBuffer shader_bytecode_buffer{};
+      shader_bytecode_buffer.Ptr = shader_bytecode.data();
+      shader_bytecode_buffer.Size = shader_bytecode.size();
+      utils->CreateReflection(&shader_bytecode_buffer, IID_PPV_ARGS(&refl));
+
+      // 3. 获取shader描述
+      D3D12_SHADER_DESC sd{};
+      refl->GetDesc(&sd);
+
+      auto& shader_meta_data = shader.GetMetaData();
+
+      // 4. 遍历所有绑定的资源
+      for (UINT i = 0; i < sd.BoundResources; ++i)
+      {
+          D3D12_SHADER_INPUT_BIND_DESC bd{};
+          refl->GetResourceBindingDesc(i, &bd);
+
+          LOG_FORMAT_FLUSH("[Reflect] Shader %s contains var name:%s\nbinding: %d\nset index:%d\n",
+              shader.GetMainEntry().c_str(), bd.Name, bd.BindPoint, bd.Space);
+
+          // 5. 构建参数信息
+          RootParameterInfo parameter_info{};
+          parameter_info.parameter_name = bd.Name;
+          parameter_info.register_count = bd.BindCount;
+
+          switch (bd.Type) {
+          case D3D_SIT_CBUFFER:  // Constant Buffer
+              parameter_info.is_buffer = true;
+              parameter_info.type = RHIRootParameterType::CBV;
+              break;
+
+          case D3D_SIT_TEXTURE:  // Texture (SRV)
+              parameter_info.is_buffer = false;
+              parameter_info.type = RHIRootParameterType::DescriptorTable;
+              // Bindless检测：bd.BindCount == 0 表示无界数组[]
+              parameter_info.register_count = bd.BindCount == 0 ? UINT_MAX : bd.BindCount;
+              parameter_info.table_parameter_info.table_type = RHIDescriptorRangeType::SRV;
+              if (bd.BindCount == 0) {
+                  parameter_info.table_parameter_info.is_bindless = true;
+              }
+              break;
+
+          case D3D_SIT_SAMPLER:  // Sampler
+              parameter_info.is_buffer = false;
+              parameter_info.type = RHIRootParameterType::Sampler;
+              break;
+
+          case D3D_SIT_UAV_RWTYPED:  // Typed UAV Texture
+              parameter_info.is_buffer = false;
+              parameter_info.type = RHIRootParameterType::DescriptorTable;
+              parameter_info.register_count = bd.BindCount == 0 ? UINT_MAX : bd.BindCount;
+              parameter_info.table_parameter_info.table_type = RHIDescriptorRangeType::UAV;
+              if (bd.BindCount == 0) {
+                  parameter_info.table_parameter_info.is_bindless = true;
+              }
+              break;
+
+          case D3D_SIT_STRUCTURED:  // StructuredBuffer<T>
+              parameter_info.is_buffer = true;
+              parameter_info.type = RHIRootParameterType::SRV;
+              break;
+
+          case D3D_SIT_UAV_RWSTRUCTURED:  // RWStructuredBuffer<T>
+              parameter_info.is_buffer = true;
+              parameter_info.type = RHIRootParameterType::UAV;
+              break;
+
+          case D3D_SIT_UAV_RWBYTEADDRESS:  // RWByteAddressBuffer
+              parameter_info.is_buffer = true;
+              parameter_info.type = RHIRootParameterType::UAV;
+              break;
+          }
+
+          // 6. 保存元数据（名称、Space、Register Index）
+          shader_meta_data.root_parameter_infos.push_back({
+              parameter_info,
+              bd.Space,          // Register Space
+              bd.BindPoint       // Register Index
+          });
+      }
+
+      return true;
+  }
+
+  反射输出示例：
+  [Reflect] Shader main contains var name:SceneViewConstantBuffer
+  binding: 0
+  set index:0
+
+  [Reflect] Shader main contains var name:g_mesh_instance_input_data
+  binding: 0
+  set index:0
+
+  [Reflect] Shader main contains var name:g_material_infos
+  binding: 1
+  set index:0
+
+  [Reflect] Shader main contains var name:bindless_material_textures
+  binding: 2
+  set index:0
+
+  ---
+  🔨 根签名创建
+
+  1. RenderPass初始化 (RenderPass::InitRenderPass)
+
+  RenderPass.cpp:29-47：
+
+  bool RenderPass::InitRenderPass(ResourceManager& resource_manager)
+  {
+      // 1. 从shader反射元数据构建根签名
+      std::map<RHIShaderType, std::shared_ptr<IRHIShader>> shaders;
+      for (const auto& shader_pair : m_desc.shaders)
+      {
+          auto shader = InternalResourceHandleTable::Instance().GetShader(shader_pair.second);
+          auto& shader_meta_data = shader->GetMetaData();
+
+          // 遍历shader中的所有参数
+          for (const auto& root_parameter_info : shader_meta_data.root_parameter_infos)
+          {
+              RootSignatureAllocation allocation;
+
+              // 添加到根签名Helper（使用Space和Register Index）
+              m_root_signature_helper.AddRootParameterWithRegisterCount2(
+                  root_parameter_info.parameter_info,   // 参数类型、数量等
+                  root_parameter_info.space,            // Register Space
+                  root_parameter_info.register_index,   // Register Index
+                  allocation                            // 输出：分配信息
+              );
+
+              // 保存参数名到分配信息的映射
+              m_shader_parameter_mapping.insert({
+                  root_parameter_info.parameter_info.parameter_name,  // 如 "g_material_infos"
+                  allocation                                          // 槽位信息
+              });
+          }
+
+          shaders[shader->GetType()] = shader;
+      }
+
+      // 2. 构建根签名
+      m_root_signature_helper.BuildRootSignature(
+          resource_manager.GetDevice(),
+          resource_manager.GetMemoryManager().GetDescriptorManager()
+      );
+
+      auto* m_root_signature = &m_root_signature_helper.GetRootSignature();
+      m_root_signature->InitRootSignature(device, descriptor_manager);
+
+      // 3. 创建PSO
+      // ... (绑定RT格式、深度状态等)
+      m_pipeline_state_object->InitPipelineStateObject(device, *m_root_signature, swapchain, shaders);
+
+      // 4. 创建描述符更新器
+      m_descriptor_updater = RHIResourceFactory::CreateRHIResource<IRHIDescriptorUpdater>();
+
+      return true;
+  }
+
+  2. 根签名参数添加 (IRHIRootSignatureHelper::AddRootParameterWithRegisterCount2)
+
+  IRHIRootSignatureHelper.cpp:149-217：
+
+  bool IRHIRootSignatureHelper::AddRootParameterWithRegisterCount2(
+      const RootParameterInfo& parameter_info,
+      unsigned space,           // Shader中的Register Space
+      unsigned register_index,  // Shader中的Register Index
+      RootSignatureAllocation& out_allocation)
+  {
+      // 1. 确定寄存器类型 (b/t/u/s)
+      auto register_type = ToShaderRegisterType(parameter_info.type, parameter_info.table_parameter_info.table_type);
+      /*
+          CBV          → b (Constant Buffer View)
+          SRV          → t (Texture/Structured Buffer)
+          UAV          → u (Unordered Access View)
+          Sampler      → s (Sampler)
+      */
+
+      out_allocation.parameter_name = parameter_info.parameter_name;
+      out_allocation.type = parameter_info.type;
+      out_allocation.register_type = register_type;
+
+      // 2. Sampler特殊处理（静态采样器）
+      if (parameter_info.type == RHIRootParameterType::Sampler)
+      {
+          out_allocation.global_parameter_index = m_layout.sampler_elements.size();
+          out_allocation.register_begin_index = m_layout.sampler_elements.size();
+          out_allocation.space = space;
+          out_allocation.local_space_parameter_index = register_index;
+
+          RootSignatureStaticSamplerElement sampler_element{};
+          sampler_element.sampler_name = parameter_info.parameter_name;
+          sampler_element.register_space = space;
+          sampler_element.local_space_parameter_index = register_index;
+          sampler_element.sample_index = m_layout.sampler_elements.size();
+          sampler_element.address_mode = parameter_info.sampler_parameter_info.address_mode;
+          sampler_element.filter_mode = parameter_info.sampler_parameter_info.filter_mode;
+
+          m_layout.sampler_elements.push_back(sampler_element);
+      }
+      // 3. 普通资源参数
+      else
+      {
+          RootSignatureParameterElement element{};
+          element.name = parameter_info.parameter_name;
+          element.global_parameter_index = m_layout.last_parameter_index++;  // 全局槽位索引
+          element.is_buffer = parameter_info.is_buffer;
+
+          if (parameter_info.type == RHIRootParameterType::Constant)
+          {
+              element.constant_value_count = parameter_info.constant_parameter_info.constant_value;
+          }
+          else if (parameter_info.type == RHIRootParameterType::DescriptorTable)
+          {
+              element.table_type = parameter_info.table_parameter_info.table_type;
+              element.is_bindless = parameter_info.table_parameter_info.is_bindless;
+          }
+
+          // 4. Bindless处理
+          if (element.is_bindless)
+          {
+              unsigned register_start = 0;
+              unsigned register_end = UINT_MAX;  // 无界
+              element.register_range = {register_start, register_end};
+              element.space = space;
+          }
+          else
+          {
+              unsigned register_start = register_index;
+              unsigned register_end = register_start + parameter_info.register_count;
+              element.register_range = {register_start, register_end};
+              element.space = space;
+          }
+
+          // 5. 填充输出分配信息
+          out_allocation.register_begin_index = element.register_range.first;
+          out_allocation.global_parameter_index = element.global_parameter_index;
+          out_allocation.space = element.space;
+          out_allocation.bindless_descriptor = element.is_bindless;
+          out_allocation.local_space_parameter_index = register_index;
+
+          element.local_space_parameter_index = register_index;
+
+          // 6. 添加到布局
+          m_layout.parameter_elements[parameter_info.type].push_back(element);
+      }
+
+      return true;
+  }
+
+  关键数据结构：
+
+  // RootSignatureAllocation - 参数分配信息
+  struct RootSignatureAllocation
+  {
+      std::string parameter_name;           // "g_material_infos"
+      unsigned global_parameter_index;      // 全局槽位索引（用于绑定）
+      unsigned local_space_parameter_index; // Space内的本地索引
+      unsigned register_begin_index;        // 寄存器起始索引
+      unsigned space;                       // Register Space
+      bool bindless_descriptor;             // 是否为Bindless
+      RHIRootParameterType type;            // CBV/SRV/UAV/Table/Sampler
+      RHIShaderRegisterType register_type;  // b/t/u/s
+  };
+
+  // RootSignatureLayout - 根签名布局
+  struct RootSignatureLayout
+  {
+      // 按类型组织的参数列表
+      std::map<RHIRootParameterType, std::vector<RootSignatureParameterElement>> parameter_elements;
+
+      // 静态采样器列表
+      std::vector<RootSignatureStaticSamplerElement> sampler_elements;
+
+      // 寄存器计数器
+      std::map<RHIShaderRegisterType, unsigned> last_register_index;
+      unsigned last_parameter_index;  // 全局参数索引计数器
+  };
+
+  ---
+  💾 描述符创建与缓存
+
+  1. 描述符创建时机
+
+  描述符在RenderGraphNode首次执行时创建，并按节点缓存。
+
+  RendererInterface.cpp:632-666 - Buffer描述符创建：
+
+  // RenderGraph::ExecuteRenderGraphNode 中
+  auto& render_pass_descriptor_resource = m_render_pass_descriptor_resources[render_graph_node_handle];
+
+  for (const auto& buffer : render_graph_node_desc.draw_info.buffer_resources)
+  {
+      auto& root_signature_allocation = render_pass->GetRootSignatureAllocation(buffer.first);
+      auto buffer_handle = buffer.second.buffer_handle;
+      auto buffer_allocation = InternalResourceHandleTable::Instance().GetBuffer(buffer_handle);
+      auto buffer_size = buffer_allocation->m_buffer->GetBufferDesc().width;
+
+      // 检查缓存
+      if (!render_pass_descriptor_resource.m_buffer_descriptors.contains(buffer.first))
+      {
+          // 根据类型创建描述符
+          switch (buffer.second.binding_type)
+          {
+          case BufferBindingDesc::CBV:
+              {
+                  RHIBufferDescriptorDesc buffer_descriptor_desc(
+                      RHIDataFormat::UNKNOWN,   // CBV不需要格式
+                      RHIViewType::RVT_CBV,     // CBV类型
+                      buffer_size,              // 大小
+                      0                         // 偏移
+                  );
+                  GetDescriptorManager().CreateDescriptor(
+                      GetDevice(),
+                      buffer_allocation->m_buffer,  // Buffer资源
+                      buffer_descriptor_desc,       // 描述符描述
+                      render_pass_descriptor_resource.m_buffer_descriptors[buffer.first]  // 输出
+                  );
+              }
+              break;
+
+          case BufferBindingDesc::SRV:
+              {
+                  RHISRVStructuredBufferDesc srv_buffer_desc{
+                      buffer.second.stride,            // 结构体步长
+                      buffer.second.count,             // 元素数量
+                      buffer.second.is_structured_buffer
+                  };
+                  RHIBufferDescriptorDesc buffer_descriptor_desc(
+                      RHIDataFormat::UNKNOWN,
+                      RHIViewType::RVT_SRV,
+                      buffer_size,
+                      0,
+                      srv_buffer_desc
+                  );
+                  GetDescriptorManager().CreateDescriptor(...);
+              }
+              break;
+
+          case BufferBindingDesc::UAV:
+              {
+                  RHIUAVStructuredBufferDesc uav_buffer_desc{
+                      buffer.second.stride,
+                      buffer.second.count,
+                      buffer.second.is_structured_buffer,
+                      buffer.second.use_count_buffer,
+                      buffer.second.count_buffer_offset
+                  };
+                  RHIBufferDescriptorDesc buffer_descriptor_desc(...);
+                  GetDescriptorManager().CreateDescriptor(...);
+              }
+              break;
+          }
+
+          // 缓存描述符
+          render_pass_descriptor_resource.m_buffer_descriptors[buffer.first] = descriptor;
+      }
+
+      // ... 继续绑定流程
+  }
+
+  RendererInterface.cpp:683-728 - Texture描述符创建：
+
+  for (const auto& texture : render_graph_node_desc.draw_info.texture_resources)
+  {
+      const bool is_texture_table = texture.second.textures.size() > 1;
+      auto& root_signature_allocation = render_pass->GetRootSignatureAllocation(texture.first);
+
+      // 检查缓存
+      if (!render_pass_descriptor_resource.m_texture_descriptors.contains(texture.first) &&
+          !render_pass_descriptor_resource.m_texture_descriptor_tables.contains(texture.first))
+      {
+          auto texture_handles = texture.second.textures;
+          std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>> descriptor_allocations;
+
+          // 为每个纹理创建描述符
+          for (const auto handle : texture_handles)
+          {
+              auto texture_allocation = InternalResourceHandleTable::Instance().GetTexture(handle);
+
+              RHITextureDescriptorDesc texture_descriptor_desc{
+                  texture_allocation->m_texture->GetTextureFormat(),
+                  RHIResourceDimension::TEXTURE2D,
+                  texture.second.type == TextureBindingDesc::SRV ? RHIViewType::RVT_SRV : RHIViewType::RVT_UAV
+              };
+
+              std::shared_ptr<IRHITextureDescriptorAllocation> texture_descriptor = nullptr;
+              GetDescriptorManager().CreateDescriptor(
+                  GetDevice(),
+                  texture_allocation->m_texture,
+                  texture_descriptor_desc,
+                  texture_descriptor
+              );
+
+              descriptor_allocations.push_back(texture_descriptor);
+          }
+
+          // 单个纹理 vs 纹理数组
+          if (is_texture_table)
+          {
+              // 创建描述符表（Bindless Array）
+              RHIDescriptorTableDesc table_desc{};
+              table_desc.table_type = texture.second.type == TextureBindingDesc::SRV ?
+                  RHIDescriptorRangeType::SRV : RHIDescriptorRangeType::UAV;
+              table_desc.num_descriptors = descriptor_allocations.size();
+
+              std::shared_ptr<IRHIDescriptorTable> descriptor_table = nullptr;
+              GetDescriptorManager().CreateDescriptorTable(
+                  GetDevice(),
+                  table_desc,
+                  descriptor_allocations,
+                  descriptor_table
+              );
+
+              render_pass_descriptor_resource.m_texture_descriptor_tables[texture.first] = descriptor_table;
+              render_pass_descriptor_resource.m_texture_descriptor_table_source_data[texture.first] = descriptor_allocations;
+          }
+          else
+          {
+              render_pass_descriptor_resource.m_texture_descriptors[texture.first] = descriptor_allocations[0];
+          }
+      }
+
+      // ... 继续绑定流程
+  }
+
+  2. 描述符缓存结构
+
+  // RenderGraph.h:157-163
+  struct RenderPassDescriptorResource
+  {
+      std::map<std::string, std::shared_ptr<IRHIBufferDescriptorAllocation>> m_buffer_descriptors;
+      std::map<std::string, std::shared_ptr<IRHITextureDescriptorAllocation>> m_texture_descriptors;
+      std::map<std::string, std::shared_ptr<IRHIDescriptorTable>> m_texture_descriptor_tables;
+      std::map<std::string, std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>>> m_texture_descriptor_table_source_data;
+  };
+
+  // RenderGraph中的缓存Map（按RenderGraphNode句柄索引）
+  std::map<RenderGraphNodeHandle, RenderPassDescriptorResource> m_render_pass_descriptor_resources;
+
+  ---
+  🔗 资源绑定流程
+
+  1. 绑定阶段概览
+
+  // RenderGraph::ExecuteRenderGraphNode 执行流程
+  void ExecuteRenderGraphNode(IRHICommandList& cmd, RenderGraphNodeHandle node_handle, ...)
+  {
+      // 1. 设置管线状态
+      SetPipelineState(cmd, pso);
+      SetRootSignature(cmd, root_signature, pipeline_type);
+
+      // 2. 绑定描述符堆
+      GetDescriptorManager().BindDescriptorContext(cmd);
+
+      // 3. 绑定Buffer资源（CBV/SRV/UAV）
+      for (auto& buffer : node_desc.draw_info.buffer_resources) {
+          // 3.1 获取根签名槽位信息
+          auto& root_allocation = render_pass->GetRootSignatureAllocation(buffer.first);
+
+          // 3.2 获取或创建描述符
+          auto descriptor = GetOrCreateDescriptor(buffer);
+
+          // 3.3 转换资源状态
+          buffer_allocation->m_buffer->Transition(cmd, target_state);
+
+          // 3.4 绑定描述符到槽位
+          render_pass->GetDescriptorUpdater().BindDescriptor(
+              cmd, pipeline_type, root_allocation, *descriptor
+          );
+      }
+
+      // 4. 绑定Texture资源（SRV/UAV）
+      for (auto& texture : node_desc.draw_info.texture_resources) {
+          // 类似Buffer绑定流程
+      }
+
+      // 5. 绑定RenderTarget作为Texture（用于采样）
+      for (auto& rt_texture : node_desc.draw_info.render_target_texture_resources) {
+          // 类似Texture绑定流程
+      }
+
+      // 6. 最终化描述符更新
+      render_pass->GetDescriptorUpdater().FinalizeUpdateDescriptors(device, cmd, root_signature);
+
+      // 7. 开始渲染和执行绘制命令
+      BeginRendering(cmd, rendering_info);
+      ExecuteDrawCommands(cmd, execute_commands);
+      EndRendering(cmd);
+  }
+
+  2. DX12描述符绑定 (DX12DescriptorUpdater::BindDescriptor)
+
+  DX12DescriptorUpdater.cpp:7-51：
+
+  bool DX12DescriptorUpdater::BindDescriptor(
+      IRHICommandList& command_list,
+      RHIPipelineType pipeline,
+      const RootSignatureAllocation& root_signature_allocation,  // 槽位信息
+      const IRHIDescriptorAllocation& allocation)                // 描述符
+  {
+      const auto& desc = allocation.GetDesc();
+
+      switch (desc.m_dimension) {
+      case RHIResourceDimension::BUFFER:
+          {
+              if (desc.m_view_type == RHIViewType::RVT_CBV)
+              {
+                  // 绑定CBV到根参数槽位
+                  DX12Utils::DX12Instance().SetCBVToRootParameterSlot(
+                      command_list,
+                      root_signature_allocation.global_parameter_index,  // 槽位索引
+                      allocation,                                        // 描述符
+                      pipeline == RHIPipelineType::Graphics              // Graphics/Compute
+                  );
+              }
+              else if (desc.m_view_type == RHIViewType::RVT_SRV)
+              {
+                  // 绑定SRV到根参数槽位
+                  DX12Utils::DX12Instance().SetSRVToRootParameterSlot(...);
+              }
+              else if (desc.m_view_type == RHIViewType::RVT_UAV)
+              {
+                  // 绑定UAV到根参数槽位
+                  DX12Utils::DX12Instance().SetUAVToRootParameterSlot(...);
+              }
+          }
+          break;
+
+      case RHIResourceDimension::TEXTURE2D:
+      case RHIResourceDimension::TEXTURECUBE:
+      // ... 其他纹理类型
+          {
+              // 绑定纹理描述符表到根参数槽位
+              DX12Utils::DX12Instance().SetDTToRootParameterSlot(
+                  command_list,
+                  root_signature_allocation.global_parameter_index,
+                  allocation,
+                  pipeline == RHIPipelineType::Graphics
+              );
+          }
+          break;
+      }
+
+      return true;
+  }
+
+  3. DX12底层绑定实现 (DX12Utils)
+
+  DX12Utils.cpp:367-400：
+
+  // CBV绑定
+  bool DX12Utils::SetCBVToRootParameterSlot(
+      IRHICommandList& command_list,
+      unsigned slot_index,
+      const IRHIDescriptorAllocation& handle,
+      bool isGraphicsPipeline)
+  {
+      auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
+      auto gpu_handle = dynamic_cast<const DX12BufferDescriptorAllocation&>(handle).m_gpu_handle;
+
+      if (isGraphicsPipeline)
+      {
+          // Graphics Pipeline: SetGraphicsRootConstantBufferView
+          dxCommandList->SetGraphicsRootConstantBufferView(slot_index, gpu_handle);
+      }
+      else
+      {
+          // Compute Pipeline: SetComputeRootConstantBufferView
+          dxCommandList->SetComputeRootConstantBufferView(slot_index, gpu_handle);
+      }
+
+      return true;
+  }
+
+  // SRV绑定
+  bool DX12Utils::SetSRVToRootParameterSlot(
+      IRHICommandList& command_list,
+      unsigned slot_index,
+      const IRHIDescriptorAllocation& handle,
+      bool isGraphicsPipeline)
+  {
+      auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
+      auto gpu_handle = dynamic_cast<const DX12BufferDescriptorAllocation&>(handle).m_gpu_handle;
+
+      if (isGraphicsPipeline)
+      {
+          dxCommandList->SetGraphicsRootShaderResourceView(slot_index, gpu_handle);
+      }
+      else
+      {
+          dxCommandList->SetComputeRootShaderResourceView(slot_index, gpu_handle);
+      }
+
+      return true;
+  }
+
+  // Descriptor Table绑定
+  bool DX12Utils::SetDTToRootParameterSlot(
+      IRHICommandList& command_list,
+      unsigned slot_index,
+      const IRHIDescriptorAllocation& handle,
+      bool isGraphicsPipeline)
+  {
+      auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
+      auto gpu_handle = dynamic_cast<const DX12TextureDescriptorAllocation&>(handle).m_gpu_handle;
+
+      if (isGraphicsPipeline)
+      {
+          dxCommandList->SetGraphicsRootDescriptorTable(slot_index, {gpu_handle});
+      }
+      else
+      {
+          dxCommandList->SetComputeRootDescriptorTable(slot_index, {gpu_handle});
+      }
+
+      return true;
+  }
+
+  ---
+  📚 完整示例
+
+  示例1：相机Buffer绑定
+
+  Shader中声明 (SceneView.hlsl):
+  cbuffer SceneViewConstantBuffer : register(b0, space0)
+  {
+      float4x4 viewMatrix;
+      float4x4 projectionMatrix;
+      // ...
+  };
+
+  应用层绑定 (RendererModuleCamera):
+  // 1. 创建Buffer
+  bool RendererModuleCamera::FinalizeModule(ResourceOperator& op)
+  {
+      BufferDesc camera_buffer_desc{};
+      camera_buffer_desc.name = "CameraBuffer";
+      camera_buffer_desc.usage = USAGE_CBV;
+      camera_buffer_desc.type = UPLOAD;  // CPU可写
+      camera_buffer_desc.size = sizeof(ViewBuffer);
+
+      m_camera_buffer_handle = op.CreateBuffer(camera_buffer_desc);
+      return true;
+  }
+
+  // 2. 绑定到DrawDesc
+  bool RendererModuleCamera::BindDrawCommands(RenderPassDrawDesc& out_draw_desc)
+  {
+      BufferBindingDesc camera_binding{};
+      camera_binding.buffer_handle = m_camera_buffer_handle;
+      camera_binding.binding_type = BufferBindingDesc::CBV;
+
+      // 名称必须与shader中的名称一致
+      out_draw_desc.buffer_resources["SceneViewConstantBuffer"] = camera_binding;
+      return true;
+  }
+
+  // 3. 每帧更新
+  bool RendererModuleCamera::Tick(ResourceOperator& op, unsigned long long interval)
+  {
+      ViewBuffer view_data{};
+      view_data.viewMatrix = m_camera->GetViewMatrix();
+      view_data.projectionMatrix = m_camera->GetProjectionMatrix();
+      // ...
+
+      BufferUploadDesc upload_desc{};
+      upload_desc.data = &view_data;
+      upload_desc.size = sizeof(view_data);
+
+      op.UploadBufferData(m_camera_buffer_handle, upload_desc);
+      return true;
+  }
+
+  绑定流程：
+  1. Shader编译 → 反射检测到 "SceneViewConstantBuffer" (b0, space0)
+  2. RenderPass创建 → 添加到根签名（槽位0，CBV类型）
+  3. 首次绘制 → 创建CBV描述符并缓存
+  4. 每帧绘制 →
+     - 上传数据到Buffer
+     - 绑定描述符到槽位0
+     - SetGraphicsRootConstantBufferView(0, gpu_virtual_address)
+  5. Shader访问 → 直接使用 viewMatrix、projectionMatrix
+
+  示例2：Bindless材质纹理
+
+  Shader中声明 (SceneMaterial.hlsl):
+  // 材质信息
+  StructuredBuffer<MaterialShaderInfo> g_material_infos : register(t1, space0);
+
+  // Bindless纹理数组
+  Texture2D<float4> bindless_material_textures[] : register(t2, space0);
+
+  // Sampler
+  SamplerState material_sampler : register(s0, space0);
+
+  // 使用
+  float4 SampleAlbedoTexture(uint material_id, float2 uv)
+  {
+      MaterialShaderInfo info = g_material_infos[material_id];
+
+      if (info.albedo_tex_index != INVALID_INDEX)
+      {
+          // 动态索引纹理数组
+          return bindless_material_textures[info.albedo_tex_index].Sample(material_sampler, uv);
+      }
+
+      return info.albedo;  // 使用默认颜色
+  }
+
+  应用层绑定 (RendererModuleMaterial):
+  bool RendererModuleMaterial::BindDrawCommands(RenderPassDrawDesc& out_draw_desc)
+  {
+      // 1. 绑定材质信息Buffer（SRV）
+      BufferBindingDesc material_info_binding{};
+      material_info_binding.buffer_handle = m_material_info_buffer_handle;
+      material_info_binding.binding_type = BufferBindingDesc::SRV;
+      material_info_binding.stride = sizeof(MaterialShaderInfo);
+      material_info_binding.count = m_material_count;
+      material_info_binding.is_structured_buffer = true;
+
+      out_draw_desc.buffer_resources["g_material_infos"] = material_info_binding;
+
+      // 2. 绑定Bindless纹理数组（SRV Table）
+      TextureBindingDesc texture_array_binding{};
+      texture_array_binding.textures = m_all_material_textures;  // std::vector<TextureHandle>
+      texture_array_binding.type = TextureBindingDesc::SRV;
+
+      out_draw_desc.texture_resources["bindless_material_textures"] = texture_array_binding;
+
+      return true;
+  }
+
+  绑定流程：
+  1. Shader反射 → 检测到 bindless_material_textures[]（BindCount=0，Bindless）
+  2. 根签名创建 → 添加SRV Descriptor Table（槽位2，无界数组）
+  3. 描述符创建 →
+     - 为每个纹理创建SRV描述符
+     - 创建Descriptor Table，包含所有纹理描述符
+  4. 绑定 → SetGraphicsRootDescriptorTable(2, descriptor_table_gpu_handle)
+  5. Shader访问 → bindless_material_textures[dynamic_index]
+
+  ---
+  📊 关键设计总结
+
+  优势
+
+  1. 自动化：
+    - Shader反射自动提取绑定信息
+    - 根签名自动构建
+    - 无需手动指定槽位
+  2. 类型安全：
+    - 参数名匹配（shader名称 ↔ 应用层名称）
+    - 编译时检查绑定类型
+  3. 性能优化：
+    - 描述符按Pass缓存（避免重复创建）
+    - Bindless纹理（减少状态切换）
+    - 根签名共享（多个Pass使用相同布局）
+  4. 双后端透明：
+    - DX12和Vulkan使用相同的高层API
+    - 底层自动转换（RootParameter ↔ DescriptorSet）
+
+  限制与注意事项
+
+  1. 命名一致性：应用层资源名必须与shader中完全匹配
+  2. Space/Register管理：需要避免冲突
+  3. 描述符堆大小：Bindless需要足够大的堆
+  4. 缓存失效：运行时更换资源需要清除描述符缓存

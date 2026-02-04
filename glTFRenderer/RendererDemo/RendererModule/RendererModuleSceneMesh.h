@@ -3,6 +3,7 @@
 #include "RendererInterface.h"
 #include <glm/glm/glm.hpp>
 
+#include "RendererSceneAABB.h"
 #include "RendererModule/RendererModuleMaterial.h"
 
 // ----------- must match SceneRendererCommon.hlsl ----------
@@ -57,11 +58,14 @@ public:
     std::vector<RendererInterface::RenderExecuteCommand> execute_commands;
 };
 
-class SceneRendererMeshDrawDispatcher
+class RendererModuleSceneMesh : public RendererInterface::RendererModuleBase
 {
 public:
-    SceneRendererMeshDrawDispatcher(RendererInterface::ResourceOperator& resource_operator, const std::string& scene_file);
-    bool BindDrawCommands(RendererInterface::RenderPassDrawDesc& out_draw_desc);
+    RendererModuleSceneMesh(RendererInterface::ResourceOperator& resource_operator, const std::string& scene_file);
+    virtual bool FinalizeModule(RendererInterface::ResourceOperator& resource_operator) override;
+    virtual bool BindDrawCommands(RendererInterface::RenderPassDrawDesc& out_draw_desc) override;
+    virtual bool Tick(RendererInterface::ResourceOperator&, unsigned long long interval) override;
+    RendererSceneAABB GetSceneBounds() const;
     
 protected:
     std::unique_ptr<RendererInterface::RendererSceneResourceManager> m_resource_manager;

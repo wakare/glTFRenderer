@@ -43,6 +43,7 @@ public:
     IRHISwapChain& GetSwapChain();
     IRHIMemoryManager& GetMemoryManager();
 
+    void WaitFrameRenderFinished();
     IRHICommandList& GetCommandListForRecordPassCommand(RendererInterface::RenderPassHandle render_pass_handle = NULL_HANDLE);
 
     IRHICommandQueue& GetCommandQueue();

@@ -2,6 +2,19 @@
 #define RENDERER_MODULE_LIGHTING
 
 #include "../Math/BRDF.hlsl"
+#include "BindlessTextureDefine.hlsl"
+
+struct ShadowMapInfo
+{
+    float4x4 view_matrix;
+    float4x4 projection_matrix;
+    uint2 shadowmap_size;
+    uint vsm_texture_id;
+    uint pad;
+};
+StructuredBuffer<ShadowMapInfo> g_shadowmap_infos;
+
+Texture2D<float> bindless_shadowmap_textures[] : register(t0, BINDLESS_TEXTURE_SPACE_SHADOW);
 
 struct LightInfo
 {
@@ -28,6 +41,28 @@ cbuffer LightInfoConstantBuffer
     int light_count;
 };
 StructuredBuffer<LightInfo> g_lightInfos;
+
+float CalcLightVisibleFactor(uint light_index, float3 scene_position)
+{
+    if (g_lightInfos[light_index].type == 0)
+    {
+        // directional visible test
+        ShadowMapInfo shadowmap_info = g_shadowmap_infos[light_index];
+        Texture2D<float> shadowmap = bindless_shadowmap_textures[light_index]; 
+        
+        float4 shadowmap_ndc = mul(shadowmap_info.projection_matrix, mul(shadowmap_info.view_matrix, float4(scene_position, 1.0)));
+        shadowmap_ndc /= shadowmap_ndc.w;
+        float2 shadowmap_uv = shadowmap_ndc.xy * 0.5 + 0.5;
+        shadowmap_uv.y = 1.0 - shadowmap_uv.y;
+        float shadow_depth = shadowmap_ndc.z;
+        float compare_shadow_depth = shadowmap.Load(int3(shadowmap_uv * shadowmap_info.shadowmap_size, 0));
+        if (shadow_depth > compare_shadow_depth + 0.01f)
+        {
+            return 0.0;
+        }
+    }
+    return 1.0;
+}
 
 float3 GetLightIntensity(uint index, float3 position)
 {
@@ -105,9 +140,9 @@ float3 GetLightingByIndex(uint sample_light_index, PixelLightingShadingInfo shad
     float max_distance;
     if (GetLightDistanceVector(sample_light_index, shading_info.position, light_vector, max_distance))
     {
-        // Assume no occluded
+        float visible_factor = CalcLightVisibleFactor(sample_light_index, shading_info.position);
         float3 brdf = EvalCookTorranceBRDF(shading_info.normal, shading_info.albedo, shading_info.metallic, shading_info.roughness, view, light_vector);
-        return brdf * GetLightIntensity(sample_light_index, shading_info.position) * max(dot(shading_info.normal, light_vector), 0.0);
+        return visible_factor * brdf * GetLightIntensity(sample_light_index, shading_info.position) * max(dot(shading_info.normal, light_vector), 0.0);
     }
 
     return 0.0;

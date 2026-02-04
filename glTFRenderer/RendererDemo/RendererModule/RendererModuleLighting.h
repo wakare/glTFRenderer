@@ -18,7 +18,7 @@ struct LightInfo
     LightType type;
 };
 
-class RendererModuleLighting
+class RendererModuleLighting : public RendererInterface::RendererModuleBase
 {
 public:
     enum
@@ -28,13 +28,21 @@ public:
     
     RendererModuleLighting(RendererInterface::ResourceOperator& resource_operator);
 
-    void AddLightInfo(const LightInfo& info);
-    bool FinalizeModule(RendererInterface::ResourceOperator& resource_operator);
-    bool BindDrawCommands(RendererInterface::RenderPassDrawDesc& out_draw_desc);
-
+    unsigned AddLightInfo(const LightInfo& info);
+    const std::vector<LightInfo>& GetLightInfos() const;
+    bool ContainsLight(unsigned index) const;
+    bool UpdateLightInfo(unsigned index, const LightInfo& info);
+    
+    virtual bool FinalizeModule(RendererInterface::ResourceOperator& resource_operator) override;
+    virtual bool BindDrawCommands(RendererInterface::RenderPassDrawDesc& out_draw_desc) override;
+    virtual bool Tick(RendererInterface::ResourceOperator& resource_operator, unsigned long long interval) override;
+    
 protected:
+    void UploadAllLightInfos(RendererInterface::ResourceOperator& resource_operator);
+    
     RendererInterface::BufferHandle m_light_buffer;
     RendererInterface::BufferHandle m_light_count_buffer;
     
     std::vector<LightInfo> m_light_infos;
+    bool m_need_upload_light_infos {false};
 };

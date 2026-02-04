@@ -1,19 +1,20 @@
 #pragma once
 #include "DemoBase.h"
 #include "RendererCamera.h"
+#include "RendererModule/RendererModuleCamera.h"
 #include "RendererModule/RendererModuleLighting.h"
-#include "SceneRendererUtil/SceneRendererCameraOperator.h"
-#include "SceneRendererUtil/SceneRendererMeshDrawDispatcher.h"
+#include "RendererSystem/RendererSystemLighting.h"
+#include "RendererSystem/RendererSystemSceneRenderer.h"
 
 class DemoAppModelViewer : public DemoBase
 {
 public:
-    virtual void Run(const std::vector<std::string>& arguments) override;
-
-protected:
-    void TickFrame(unsigned long long time_interval);
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(DemoAppModelViewer)
     
-    std::unique_ptr<SceneRendererMeshDrawDispatcher> m_draw_dispatcher;
-    std::unique_ptr<SceneRendererCameraOperator> m_camera_operator;
-    std::unique_ptr<RendererModuleLighting> m_lighting_module;
+protected:
+    virtual bool InitInternal(const std::vector<std::string>& arguments) override;
+    virtual void TickFrameInternal(unsigned long long time_interval) override;
+
+    std::shared_ptr<RendererSystemSceneRenderer> m_scene;
+    std::shared_ptr<RendererSystemLighting> m_lighting;
 };

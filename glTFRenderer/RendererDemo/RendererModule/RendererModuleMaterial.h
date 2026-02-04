@@ -3,7 +3,7 @@
 #include <glm/glm/glm.hpp>
 
 #include "RendererCommon.h"
-#include "SceneRendererUtil/SceneRendererCameraOperator.h"
+#include "RendererInterface.h"
 
 class MaterialBase;
 
@@ -22,14 +22,14 @@ struct MaterialShaderInfo
 };
 // ------- RendererModuleMaterial.hlsl -------
 
-class RendererModuleMaterial
+class RendererModuleMaterial: public RendererInterface::RendererModuleBase
 {
 public:
     RendererModuleMaterial(RendererInterface::ResourceOperator& resource_operator);
 
     bool AddMaterial(const MaterialBase& material);
-    bool FinalizeModule(RendererInterface::ResourceOperator& resource_operator);
-    bool BindDrawCommands(RendererInterface::RenderPassDrawDesc& out_draw_desc);
+    virtual bool FinalizeModule(RendererInterface::ResourceOperator& resource_operator) override;
+    virtual bool BindDrawCommands(RendererInterface::RenderPassDrawDesc& out_draw_desc) override;
     
 protected:
     RendererInterface::ResourceOperator& m_resource_operator;

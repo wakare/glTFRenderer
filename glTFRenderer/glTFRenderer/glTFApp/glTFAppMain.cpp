@@ -77,7 +77,7 @@ glTFAppMain::glTFAppMain(int argc, char* argv[])
     m_app_config.m_vulkan = cmd_processor.IsVulkan();
     m_app_config.m_ReSTIR = false;
     m_app_config.m_recreate_renderer = true;
-    m_app_config.m_tick_scene = true;
+    m_app_config.m_tick_scene = false;
     
     // Init window
     auto& window = glTFWindow::Get();

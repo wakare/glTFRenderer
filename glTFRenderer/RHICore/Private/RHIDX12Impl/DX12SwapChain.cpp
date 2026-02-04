@@ -6,7 +6,7 @@
 #include "DX12ConverterUtils.h"
 #include "DX12Factory.h"
 #include "DX12Utils.h"
-#include "RHIResourceFactory.h"
+#include "RHIResourceFactoryImpl.hpp"
 #include "RenderWindow/glTFWindow.h"
 
 unsigned DX12SwapChain::GetCurrentBackBufferIndex()

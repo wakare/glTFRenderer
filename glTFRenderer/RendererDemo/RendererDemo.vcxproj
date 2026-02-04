@@ -173,7 +173,13 @@
     <ClCompile Include="DemoApps\DemoBase.cpp" />
     <ClCompile Include="DemoApps\DemoTriangleApp.cpp" />
     <ClCompile Include="RendererDemo.cpp" />
+    <ClCompile Include="RendererModule\RendererModuleSceneMesh.cpp" />
+    <ClCompile Include="RendererSystem\RendererSystemBase.cpp" />
+    <ClCompile Include="RendererSystem\RendererSystemLighting.cpp" />
+    <ClCompile Include="RendererSystem\RendererSystemSceneRenderer.cpp" />
+    <None Include="Resources\Shaders\BindlessTextureDefine.hlsl" />
     <None Include="Resources\Shaders\SceneRendererCommon.hlsl" />
+    <ClCompile Include="RendererModule\RendererModuleCamera.cpp" />
     <ClCompile Include="RendererModule\RendererModuleLighting.cpp" />
     <ClCompile Include="RendererModule\RendererModuleMaterial.cpp" />
     <None Include="Resources\Shaders\RendererModule\RendererModuleMaterial.hlsl" />
@@ -186,8 +192,6 @@
     <None Include="Resources\Shaders\RendererModule\RendererModuleLighting.hlsl" />
     <None Include="Resources\Shaders\SceneLighting.hlsl" />
     <None Include="Resources\Shaders\SceneViewCommon.hlsl" />
-    <ClCompile Include="SceneRendererUtil\SceneRendererCameraOperator.cpp" />
-    <ClCompile Include="SceneRendererUtil\SceneRendererMeshDrawDispatcher.cpp" />
     <None Include="Resources\Shaders\ModelRenderingShader.hlsl" />
     <None Include="Resources\Shaders\DemoShader.hlsl" />
   </ItemGroup>
@@ -195,10 +199,13 @@
     <ClInclude Include="DemoApps\DemoAppModelViewer.h" />
     <ClInclude Include="DemoApps\DemoBase.h" />
     <ClInclude Include="DemoApps\DemoTriangleApp.h" />
+    <ClInclude Include="RendererModule\RendererModuleCamera.h" />
     <ClInclude Include="RendererModule\RendererModuleLighting.h" />
     <ClInclude Include="RendererModule\RendererModuleMaterial.h" />
-    <ClInclude Include="SceneRendererUtil\SceneRendererCameraOperator.h" />
-    <ClInclude Include="SceneRendererUtil\SceneRendererMeshDrawDispatcher.h" />
+    <ClInclude Include="RendererModule\RendererModuleSceneMesh.h" />
+    <ClInclude Include="RendererSystem\RendererSystemBase.h" />
+    <ClInclude Include="RendererSystem\RendererSystemLighting.h" />
+    <ClInclude Include="RendererSystem\RendererSystemSceneRenderer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

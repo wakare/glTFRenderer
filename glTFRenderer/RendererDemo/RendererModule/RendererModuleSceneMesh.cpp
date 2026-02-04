@@ -1,4 +1,4 @@
-#include "SceneRendererMeshDrawDispatcher.h"
+#include "RendererModuleSceneMesh.h"
 
 #include "RendererCommon.h"
 #include <glm/glm/gtc/type_ptr.hpp>
@@ -118,7 +118,7 @@ void RendererSceneMeshDataAccessor::AccessMaterialData(const MaterialBase& mater
     m_material_module.AddMaterial(material);   
 }
 
-SceneRendererMeshDrawDispatcher::SceneRendererMeshDrawDispatcher(RendererInterface::ResourceOperator& resource_operator,
+RendererModuleSceneMesh::RendererModuleSceneMesh(RendererInterface::ResourceOperator& resource_operator,
                                                                  const std::string& scene_file)
     : m_resource_manager(std::make_unique<RendererInterface::RendererSceneResourceManager>(resource_operator, RendererInterface::RenderSceneDesc{scene_file}))
     , m_module_material( std::make_unique<RendererModuleMaterial>(resource_operator))
@@ -153,8 +153,17 @@ SceneRendererMeshDrawDispatcher::SceneRendererMeshDrawDispatcher(RendererInterfa
     m_module_material->FinalizeModule(resource_operator);
 }
 
-bool SceneRendererMeshDrawDispatcher::BindDrawCommands(RendererInterface::RenderPassDrawDesc& out_draw_desc)
+bool RendererModuleSceneMesh::FinalizeModule(RendererInterface::ResourceOperator& resource_operator)
 {
+    RETURN_IF_FALSE(m_module_material->FinalizeModule(resource_operator))
+    
+    return true;
+}
+
+bool RendererModuleSceneMesh::BindDrawCommands(RendererInterface::RenderPassDrawDesc& out_draw_desc)
+{
+    RETURN_IF_FALSE(m_module_material->BindDrawCommands(out_draw_desc))
+    
     out_draw_desc.execute_commands = m_draw_commands;
 
     RendererInterface::BufferBindingDesc vertex_info_buffer_binding_desc{};
@@ -181,7 +190,20 @@ bool SceneRendererMeshDrawDispatcher::BindDrawCommands(RendererInterface::Render
     instance_render_resources_buffer_binding_desc.is_structured_buffer = true;
     out_draw_desc.buffer_resources[instance_render_resources_buffer_desc.name] = instance_render_resources_buffer_binding_desc;
 
-    m_module_material->BindDrawCommands(out_draw_desc);
+    return true;
+}
+
+bool RendererModuleSceneMesh::Tick(RendererInterface::ResourceOperator& resource_operator,
+    unsigned long long interval)
+{
+    RETURN_IF_FALSE(RendererModuleBase::Tick(resource_operator, interval))
+
+    RETURN_IF_FALSE(m_module_material->Tick(resource_operator, interval))
     
     return true;
+}
+
+RendererSceneAABB RendererModuleSceneMesh::GetSceneBounds() const
+{
+    return m_resource_manager->GetSceneBounds();
 }

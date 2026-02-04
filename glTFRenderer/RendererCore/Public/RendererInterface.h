@@ -5,6 +5,8 @@
 #include <glm/glm/glm.hpp>
 
 #include "Renderer.h"
+#include "RendererCommon.h"
+#include "RendererSceneAABB.h"
 
 class IRHITexture;
 class IRHIDescriptorTable;
@@ -66,6 +68,14 @@ namespace RendererInterface
         IndexedBufferHandle CreateIndexedBuffer(const BufferDesc& desc);
         
         RenderTargetHandle  CreateRenderTarget(const RenderTargetDesc& desc);
+        RenderTargetHandle  CreateRenderTarget(
+            const std::string& name,
+            unsigned width,
+            unsigned height,
+            PixelFormat format,
+            RenderTargetClearValue clear_value,
+            ResourceUsage usage);
+        
         RenderPassHandle    CreateRenderPass(const RenderPassDesc& desc);
         RenderSceneHandle   CreateRenderScene(const RenderSceneDesc& desc);
         
@@ -78,18 +88,61 @@ namespace RendererInterface
         IRHITextureDescriptorAllocation& GetCurrentSwapchainRT() const;
 
         void UploadBufferData(BufferHandle handle, const BufferUploadDesc& upload_desc);
+        void WaitFrameRenderFinished();
         
     protected:
         std::shared_ptr<ResourceManager> m_resource_manager;
         std::map<RenderPassHandle, std::shared_ptr<RenderPass>> m_render_passes;
     };
 
+    class RendererModuleBase
+    {
+    public:
+        IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(RendererModuleBase)
+        virtual bool FinalizeModule(RendererInterface::ResourceOperator& resource_operator) = 0;
+        virtual bool BindDrawCommands(RendererInterface::RenderPassDrawDesc& out_draw_desc) = 0;
+        virtual bool Tick(RendererInterface::ResourceOperator&, unsigned long long interval) {return true; };
+    };
+    
     class RenderGraph
     {
     public:
+
+        struct RenderPassSetupInfo
+        {
+            struct ShaderSetupInfo
+            {
+                ShaderType shader_type;
+                std::string entry_function;
+                std::string shader_file;
+            };
+
+            struct RenderTargetTextureArrayBindingDesc
+            {
+                std::vector<RenderTargetHandle> render_targets;
+                RenderTargetTextureBindingDesc m_binding_desc;
+            };
+            
+            RenderPassType render_pass_type;
+            
+            std::vector<ShaderSetupInfo> shader_setup_infos;
+            std::map<RenderTargetHandle, RenderTargetBindingDesc> render_targets;
+            std::vector<RenderTargetTextureBindingDesc> sampled_render_targets;
+            std::map<std::string, BufferBindingDesc> buffer_resources;
+            std::vector<std::shared_ptr<RendererModuleBase>> modules;
+
+            std::optional<RenderExecuteCommand> execute_command;
+
+            int viewport_width{-1};
+            int viewport_height{-1};
+        };
+        
+        typedef std::function<void(unsigned long long)> RenderGraphTickCallback;
+        
         RenderGraph(ResourceOperator& allocator, RenderWindow& window);
         
         RenderGraphNodeHandle CreateRenderGraphNode(const RenderGraphNodeDesc& render_graph_node_desc);
+        RenderGraphNodeHandle CreateRenderGraphNode(ResourceOperator& allocator, const RenderPassSetupInfo& setup_info);
         
         bool RegisterRenderGraphNode(RenderGraphNodeHandle render_graph_node_handle);
         bool RemoveRenderGraphNode(RenderGraphNodeHandle render_graph_node_handle);
@@ -98,8 +151,17 @@ namespace RendererInterface
 
         void RegisterTextureToColorOutput(TextureHandle texture_handle);
         void RegisterRenderTargetToColorOutput(RenderTargetHandle render_target_handle);
+        void RegisterTickCallback(const RenderGraphTickCallback& callback);
 
     protected:
+        struct RenderPassDescriptorResource
+        {
+            std::map<std::string, std::shared_ptr<IRHIBufferDescriptorAllocation>> m_buffer_descriptors;
+            std::map<std::string, std::shared_ptr<IRHITextureDescriptorAllocation>> m_texture_descriptors;
+            std::map<std::string, std::shared_ptr<IRHIDescriptorTable>> m_texture_descriptor_tables;
+            std::map<std::string, std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>>> m_texture_descriptor_table_source_data;
+        };
+        
         void ExecuteRenderGraphNode(IRHICommandList& command_list, RenderGraphNodeHandle render_graph_node_handle, unsigned long long interval);
         void CloseCurrentCommandListAndExecute(IRHICommandList& command_list, const RHIExecuteCommandListContext& context, bool wait);
         void Present(IRHICommandList& command_list);
@@ -110,12 +172,10 @@ namespace RendererInterface
         std::vector<RenderGraphNodeDesc> m_render_graph_nodes;
         std::set<RenderGraphNodeHandle> m_render_graph_node_handles;
 
-        std::map<std::string, std::shared_ptr<IRHIBufferDescriptorAllocation>> m_buffer_descriptors;
-        std::map<std::string, std::shared_ptr<IRHITextureDescriptorAllocation>> m_texture_descriptors;
-        std::map<std::string, std::shared_ptr<IRHIDescriptorTable>> m_texture_descriptor_tables;
-        std::map<std::string, std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>>> m_texture_descriptor_table_source_data;
-
+        std::map<RenderGraphNodeHandle, RenderPassDescriptorResource> m_render_pass_descriptor_resources;
+        
         std::shared_ptr<IRHITexture> m_final_color_output;
+        RenderGraphTickCallback m_tick_callback;
     };
 
     class RendererSceneMeshDataAccessorBase
@@ -145,10 +205,10 @@ namespace RendererInterface
         RendererSceneResourceManager(ResourceOperator& allocator,const RenderSceneDesc& desc);
 
         bool AccessSceneData(RendererSceneMeshDataAccessorBase& data_accessor);
+        RendererSceneAABB GetSceneBounds() const;
         
     protected:
         ResourceOperator& m_allocator;
         RenderSceneHandle m_render_scene_handle {NULL_HANDLE};
     };
-
 }

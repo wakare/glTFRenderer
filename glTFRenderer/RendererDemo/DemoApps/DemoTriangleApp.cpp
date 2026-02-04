@@ -4,10 +4,8 @@
 #include "Renderer.h"
 #include "RendererInterface.h"
 
-void DemoTriangleApp::Run(const std::vector<std::string>& arguments)
+bool DemoTriangleApp::InitInternal(const std::vector<std::string>& arguments)
 {
-    InitRenderContext(arguments);
-    
     // Create shader resource
     auto vertex_shader_handle = CreateShader(RendererInterface::ShaderType::VERTEX_SHADER, "Resources/Shaders/DemoShader.hlsl", "MainVS");
     auto fragment_shader_handle  = CreateShader(RendererInterface::ShaderType::FRAGMENT_SHADER, "Resources/Shaders/DemoShader.hlsl", "MainFS");
@@ -35,10 +33,10 @@ void DemoTriangleApp::Run(const std::vector<std::string>& arguments)
     buffer_desc.usage = RendererInterface::BufferUsage::USAGE_CBV;
     
     buffer_desc.size = sizeof(float) * 4; // color - float4
-    float color[4] = {1.0f, 0.0f, 0.0f, 1.0f};
-    buffer_desc.data = color;
+    m_color = {1.0f, 0.0f, 0.0f, 1.0f};
+    buffer_desc.data = &m_color;
     
-    RendererInterface::BufferHandle buffer_handle = m_resource_manager->CreateBuffer(buffer_desc);
+    m_color_buffer_handle = m_resource_manager->CreateBuffer(buffer_desc);
     
     RendererInterface::RenderPassDrawDesc render_pass_draw_desc{};
     render_pass_draw_desc.render_target_resources.emplace(render_target_handle,
@@ -46,8 +44,8 @@ void DemoTriangleApp::Run(const std::vector<std::string>& arguments)
         {
             .format = RendererInterface::RGBA8_UNORM,
             .usage = RendererInterface::RenderPassResourceUsage::COLOR,
+            .need_clear = true,
         });
-    render_pass_draw_desc.render_target_clear_states.emplace(render_target_handle, true);
 
     RendererInterface::RenderExecuteCommand execute_command{};
     execute_command.type = RendererInterface::ExecuteCommandType::DRAW_VERTEX_COMMAND;
@@ -56,7 +54,7 @@ void DemoTriangleApp::Run(const std::vector<std::string>& arguments)
     render_pass_draw_desc.execute_commands.push_back(execute_command);
     
     RendererInterface::BufferBindingDesc buffer_binding_desc{};
-    buffer_binding_desc.buffer_handle = buffer_handle;
+    buffer_binding_desc.buffer_handle = m_color_buffer_handle;
     buffer_binding_desc.binding_type = RendererInterface::BufferBindingDesc::BufferBindingType::CBV;
     buffer_binding_desc.is_structured_buffer = false;
     render_pass_draw_desc.buffer_resources["DemoBuffer"] = buffer_binding_desc;
@@ -64,20 +62,6 @@ void DemoTriangleApp::Run(const std::vector<std::string>& arguments)
     RendererInterface::RenderGraphNodeDesc render_graph_node_desc{};
     render_graph_node_desc.draw_info  = render_pass_draw_desc;
     render_graph_node_desc.render_pass_handle = render_pass_handle;
-    render_graph_node_desc.pre_render_callback = [&](unsigned long long time_interval)
-    {
-        color[0] += 0.05f;
-        color[1] += 0.03f;
-        color[2] += 0.01f;
-        color[0] = color[0] > 1.0f ? color[0] - 1.0f : color[0];
-        color[1] = color[1] > 1.0f ? color[1] - 1.0f : color[1];
-        color[2] = color[2] > 1.0f ? color[2] - 1.0f : color[2];
-        
-        RendererInterface::BufferUploadDesc upload_desc{};
-        upload_desc.data = color;
-        upload_desc.size = sizeof(float) * 4;
-        m_resource_manager->UploadBufferData(buffer_handle, upload_desc);
-    };
     
     auto render_graph_node_handle = m_render_graph->CreateRenderGraphNode(render_graph_node_desc);
     m_render_graph->RegisterRenderGraphNode(render_graph_node_handle);
@@ -85,5 +69,20 @@ void DemoTriangleApp::Run(const std::vector<std::string>& arguments)
     // After registration all passes, compile graph and prepare for execution
     m_render_graph->CompileRenderPassAndExecute();
     
-    m_window->EnterWindowEventLoop();
+    return true;
+}
+
+void DemoTriangleApp::TickFrameInternal(unsigned long long time_interval)
+{
+    m_color[0] += 0.05f;
+    m_color[1] += 0.03f;
+    m_color[2] += 0.01f;
+    m_color[0] = m_color[0] > 1.0f ? m_color[0] - 1.0f : m_color[0];
+    m_color[1] = m_color[1] > 1.0f ? m_color[1] - 1.0f : m_color[1];
+    m_color[2] = m_color[2] > 1.0f ? m_color[2] - 1.0f : m_color[2];
+        
+    RendererInterface::BufferUploadDesc upload_desc{};
+    upload_desc.data = &m_color;
+    upload_desc.size = sizeof(float) * 4;
+    m_resource_manager->UploadBufferData(m_color_buffer_handle, upload_desc);
 }

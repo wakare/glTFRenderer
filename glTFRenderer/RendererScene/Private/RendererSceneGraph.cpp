@@ -366,6 +366,23 @@ const std::map<RendererUniqueObjectID, std::shared_ptr<MaterialBase>>& RendererS
 	return m_mesh_materials;
 }
 
+RendererSceneAABB RendererSceneGraph::GetBounds()
+{
+	RendererSceneAABB result;
+	GetRootNode().Traverse([&result](RendererSceneNode& node)
+   {
+	   for (auto& object : node.GetMeshes())
+	   {
+		   const RendererSceneAABB world_AABB = RendererSceneAABB::TransformAABB(node.GetAbsoluteTransform(), object->GetBoundingBox());
+		   result.extend(world_AABB);
+	   }
+        
+	   return false;
+   });
+
+	return result;
+}
+
 void RendererSceneGraph::RecursiveInitSceneNodeFromGLTFLoader(const glTFLoader& loader, const glTFHandle& handle,
                                                               RendererSceneNode& scene_node)
 {

@@ -1,5 +1,6 @@
 #ifndef RENDERER_MODULE_MATERIAL
 #define RENDERER_MODULE_MATERIAL
+#include "BindlessTextureDefine.hlsl"
 
 #define MATERIAL_TEXTURE_INVALID_INDEX 0xffffffff
 struct MaterialShaderInfo
@@ -20,7 +21,7 @@ struct MaterialShaderInfo
 };
 
 StructuredBuffer<MaterialShaderInfo> g_material_infos;
-Texture2D<float4> bindless_material_textures[] : register(t0, space10);
+Texture2D<float4> bindless_material_textures[] : register(t0, BINDLESS_TEXTURE_SPACE_MATERIAL);
 SamplerState material_sampler;
 
 //SamplerState material_sampler;
