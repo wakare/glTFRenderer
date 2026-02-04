@@ -193,6 +193,12 @@ bool glTFRenderPassBase::CompileShaders()
     {
         shader.second->SetShaderCompilePreDefineMacros(m_shader_macros);
         RETURN_IF_FALSE(shader.second->CompileShader())
+
+        // TODO: Skip raytracing shader reflection now
+        if (shader.first == RHIShaderType::RayTracing)
+        {
+            continue;
+        }
         
         RHIUtilInstanceManager::Instance().ProcessShaderMetaData(*shader.second);
     }
