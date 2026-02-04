@@ -7,6 +7,9 @@
 #include "glTFRenderPass/glTFRenderInterface/glTFRenderInterfaceViewBase.h"
 #include "RHIResourceFactoryImpl.hpp"
 
+#include <cstring>
+#include <unordered_map>
+
 glTFRayTracingPassWithMesh::glTFRayTracingPassWithMesh()
 {
     
@@ -29,7 +32,6 @@ bool glTFRayTracingPassWithMesh::InitPass(glTFRenderResourceManager& resource_ma
 {
     RETURN_IF_FALSE(glTFRayTracingPassBase::InitPass(resource_manager))
     
-    RETURN_IF_FALSE(UpdateAS(resource_manager))
     RETURN_IF_FALSE(GetRenderInterface<glTFRenderInterfaceSceneMeshInfo>()->UpdateSceneMeshData(resource_manager, resource_manager.GetMeshManager()))
     m_shader_table = RHIResourceFactory::CreateRHIResource<IRHIShaderTable>();
 
@@ -43,6 +45,9 @@ bool glTFRayTracingPassWithMesh::InitPass(glTFRenderResourceManager& resource_ma
     shadow_ray_sbt.raygen_entry = GetRayGenFunctionName();
     shadow_ray_sbt.miss_entry = GetShadowRayMissFunctionName();
     shadow_ray_sbt.hit_group_entry = GetShadowRayHitGroupName();
+
+    m_ray_type_count = static_cast<uint32_t>(sbts.size());
+    RETURN_IF_FALSE(UpdateAS(resource_manager))
     
     RETURN_IF_FALSE(m_shader_table->InitShaderTable(resource_manager.GetDevice(), resource_manager.GetCommandListForRecord(), resource_manager.GetMemoryManager(), GetRayTracingPipelineStateObject(), *m_raytracing_as, sbts))
 
@@ -120,6 +125,50 @@ bool glTFRayTracingPassWithMesh::UpdateAS(glTFRenderResourceManager& resource_ma
 bool glTFRayTracingPassWithMesh::BuildAS(glTFRenderResourceManager& resource_manager)
 {
     m_raytracing_as = RHIResourceFactory::CreateRHIResource<IRHIRayTracingAS>();
+    
+    RHIRayTracingSceneDesc scene_desc;
+    const auto& mesh_render_resources = resource_manager.GetMeshManager().GetMeshRenderResources();
+    const auto& mesh_instances = resource_manager.GetMeshManager().GetMeshInstanceRenderResource();
+
+    scene_desc.geometries.reserve(mesh_render_resources.size());
+    std::unordered_map<RendererUniqueObjectID, uint32_t> geometry_index_map;
+    for (const auto& mesh_pair : mesh_render_resources)
+    {
+        const auto& mesh = mesh_pair.second;
+        RHIRayTracingGeometryDesc geometry_desc{};
+        geometry_desc.vertex_buffer = mesh.mesh_position_only_buffer ? mesh.mesh_position_only_buffer : mesh.mesh_vertex_buffer;
+        geometry_desc.index_buffer = mesh.mesh_index_buffer;
+        geometry_desc.vertex_count = mesh.mesh_vertex_count;
+        geometry_desc.index_count = mesh.mesh_index_count;
+        geometry_desc.opaque = true;
+
+        geometry_index_map[mesh_pair.first] = static_cast<uint32_t>(scene_desc.geometries.size());
+        scene_desc.geometries.push_back(geometry_desc);
+    }
+
+    scene_desc.instances.reserve(mesh_instances.size());
+    uint32_t instance_index = 0;
+    for (const auto& instance_pair : mesh_instances)
+    {
+        const auto& instance = instance_pair.second;
+        auto geom_it = geometry_index_map.find(instance.m_mesh_render_resource);
+        if (geom_it == geometry_index_map.end())
+        {
+            continue;
+        }
+
+        RHIRayTracingInstanceDesc instance_desc{};
+        memcpy(instance_desc.transform.data(), &instance.m_instance_transform[0][0], sizeof(instance_desc.transform));
+        instance_desc.instance_id = instance_index;
+        instance_desc.instance_mask = 0xFF;
+        instance_desc.geometry_index = geom_it->second;
+        instance_desc.hit_group_index = instance_index * std::max(1u, m_ray_type_count);
+
+        scene_desc.instances.push_back(instance_desc);
+        ++instance_index;
+    }
+
+    m_raytracing_as->SetRayTracingSceneDesc(scene_desc);
     RETURN_IF_FALSE(m_raytracing_as->InitRayTracingAS(resource_manager.GetDevice(), resource_manager.GetCommandListForRecord(), resource_manager.GetMemoryManager()))
     
     return true;

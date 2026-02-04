@@ -333,6 +333,13 @@ VkBufferUsageFlags VKConverterUtils::ConvertToBufferUsage(RHIResourceUsageFlags 
         result |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;    
     }
 
+    if (flags & RUF_RAY_TRACING)
+    {
+        result |= VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR;
+        result |= VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR;
+        result |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+    }
+
     if (flags & RUF_READBACK)
     {
         result |= VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;

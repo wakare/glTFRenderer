@@ -15,6 +15,8 @@
 #include "VKPipelineStateObject.h"
 #include "VKRenderPass.h"
 #include "VKRootSignature.h"
+#include "VKRTPipelineStateObject.h"
+#include "VKShaderTable.h"
 #include "VKSemaphore.h"
 #include "VKTexture.h"
 #include "VKVertexBufferView.h"
@@ -260,6 +262,8 @@ bool VulkanUtils::ResetCommandList(IRHICommandList& command_list, IRHICommandAll
             vkCmdBindPipeline(vk_command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, pso);
             break;
         case RHIPipelineType::RayTracing:
+            pso = dynamic_cast<const VKRTPipelineStateObject&>(*init_pso).GetPipeline();
+            vkCmdBindPipeline(vk_command_buffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pso);
             break;
         case RHIPipelineType::Unknown:
             break;
@@ -347,9 +351,25 @@ bool VulkanUtils::WaitDeviceIdle(IRHIDevice& device)
 bool VulkanUtils::SetPipelineState(IRHICommandList& command_list, IRHIPipelineStateObject& pipeline_state_object)
 {
     auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
-    VkPipelineBindPoint bind_point = pipeline_state_object.GetPSOType() == RHIPipelineType::Graphics ? VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS :VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE;  
-    auto vk_pipeline_state_object = pipeline_state_object.GetPSOType() == RHIPipelineType::Graphics ? dynamic_cast<VKGraphicsPipelineStateObject&>(pipeline_state_object).GetPipeline()
-    : dynamic_cast<VKComputePipelineStateObject&>(pipeline_state_object).GetPipeline() ;
+    VkPipelineBindPoint bind_point = VK_PIPELINE_BIND_POINT_MAX_ENUM;
+    VkPipeline vk_pipeline_state_object = VK_NULL_HANDLE;
+    switch (pipeline_state_object.GetPSOType())
+    {
+    case RHIPipelineType::Graphics:
+        bind_point = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        vk_pipeline_state_object = dynamic_cast<VKGraphicsPipelineStateObject&>(pipeline_state_object).GetPipeline();
+        break;
+    case RHIPipelineType::Compute:
+        bind_point = VK_PIPELINE_BIND_POINT_COMPUTE;
+        vk_pipeline_state_object = dynamic_cast<VKComputePipelineStateObject&>(pipeline_state_object).GetPipeline();
+        break;
+    case RHIPipelineType::RayTracing:
+        bind_point = VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR;
+        vk_pipeline_state_object = dynamic_cast<VKRTPipelineStateObject&>(pipeline_state_object).GetPipeline();
+        break;
+    case RHIPipelineType::Unknown:
+        break;
+    }
     
     vkCmdBindPipeline(vk_command_buffer, bind_point, vk_pipeline_state_object);
     return true;
@@ -374,6 +394,12 @@ bool VulkanUtils::SetRootSignature(IRHICommandList& command_list, IRHIRootSignat
         {
             auto vk_pipeline_layout = dynamic_cast<const VKComputePipelineStateObject&>(pipeline_state_object).GetPipelineLayout();
             vkCmdBindDescriptorSets(vk_command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, vk_pipeline_layout, 0, descriptor_sets.size(), descriptor_sets.data(), 0, nullptr);
+        }
+
+        if (pipeline_type == RHIPipelineType::RayTracing)
+        {
+            auto vk_pipeline_layout = dynamic_cast<const VKRTPipelineStateObject&>(pipeline_state_object).GetPipelineLayout();
+            vkCmdBindDescriptorSets(vk_command_buffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, vk_pipeline_layout, 0, descriptor_sets.size(), descriptor_sets.data(), 0, nullptr);
         }
     }
     
@@ -577,6 +603,15 @@ bool VulkanUtils::Dispatch(IRHICommandList& command_list, unsigned X, unsigned Y
 bool VulkanUtils::TraceRay(IRHICommandList& command_list, IRHIShaderTable& shader_table, unsigned X, unsigned Y,
     unsigned Z)
 {
+    auto command_buffer = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
+    const auto& vk_shader_table = dynamic_cast<const VKShaderTable&>(shader_table);
+    const auto& raygen_region = vk_shader_table.GetRayGenRegion();
+    const auto& miss_region = vk_shader_table.GetMissRegion();
+    const auto& hit_region = vk_shader_table.GetHitGroupRegion();
+    const auto& callable_region = vk_shader_table.GetCallableRegion();
+
+    vkCmdTraceRaysKHR(command_buffer, &raygen_region, &miss_region, &hit_region, &callable_region, X, Y, Z);
+    
     return true;
 }
 
@@ -721,7 +756,7 @@ bool VulkanUtils::ClearUAVTexture(IRHICommandList& command_list, const IRHITextu
 
 bool VulkanUtils::SupportRayTracing(IRHIDevice& device)
 {
-    return false;
+    return dynamic_cast<VKDevice&>(device).IsRayTracingSupported();
 }
 
 unsigned VulkanUtils::GetAlignmentSizeForUAVCount(unsigned size)

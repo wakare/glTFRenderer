@@ -39,4 +39,5 @@ protected:
     
     std::shared_ptr<IRHIRayTracingAS> m_raytracing_as;
     RootSignatureAllocation m_raytracing_as_allocation;
+    uint32_t m_ray_type_count{1};
 };

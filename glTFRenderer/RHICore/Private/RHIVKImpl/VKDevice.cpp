@@ -26,6 +26,16 @@ namespace VulkanEngineRequirements
         VK_KHR_PRESENT_ID_EXTENSION_NAME
     };
 
+    const std::vector ray_tracing_extensions =
+    {
+        VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+        VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+        VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
+        VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
+        VK_KHR_SPIRV_1_4_EXTENSION_NAME,
+        VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME,
+    };
+
     VkPhysicalDeviceVulkan13Features require_feature13
     {
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
@@ -233,6 +243,69 @@ bool VKDevice::IsSuitableDevice(VkPhysicalDevice device, VkSurfaceKHR surface)
     return is_suitable;
 }
 
+bool VKDevice::CheckRayTracingSupport(VkPhysicalDevice device)
+{
+    unsigned extension_count = 0;
+    vkEnumerateDeviceExtensionProperties(device, nullptr, &extension_count, nullptr);
+    std::vector<VkExtensionProperties> extensions(extension_count);
+    vkEnumerateDeviceExtensionProperties(device, nullptr, &extension_count, extensions.data());
+
+    std::set<std::string> require_extensions(VulkanEngineRequirements::ray_tracing_extensions.begin(),
+        VulkanEngineRequirements::ray_tracing_extensions.end());
+    for (const auto& extension : extensions)
+    {
+        require_extensions.erase(extension.extensionName);
+    }
+
+    if (!require_extensions.empty())
+    {
+        return false;
+    }
+
+    VkPhysicalDeviceRayTracingPipelineFeaturesKHR rt_pipeline_features
+    {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR,
+        .pNext = nullptr,
+    };
+
+    VkPhysicalDeviceAccelerationStructureFeaturesKHR accel_features
+    {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR,
+        .pNext = nullptr,
+    };
+
+    rt_pipeline_features.pNext = &accel_features;
+
+    VkPhysicalDeviceFeatures2 features2
+    {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+        .pNext = &rt_pipeline_features,
+    };
+
+    vkGetPhysicalDeviceFeatures2(device, &features2);
+    if (!rt_pipeline_features.rayTracingPipeline || !accel_features.accelerationStructure)
+    {
+        return false;
+    }
+
+    VkPhysicalDeviceRayTracingPipelinePropertiesKHR rt_pipeline_props
+    {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR,
+        .pNext = nullptr,
+    };
+
+    VkPhysicalDeviceProperties2 props2
+    {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2,
+        .pNext = &rt_pipeline_props,
+    };
+
+    vkGetPhysicalDeviceProperties2(device, &props2);
+    m_rt_pipeline_properties = rt_pipeline_props;
+
+    return true;
+}
+
 bool VKDevice::InitDevice(IRHIFactory& factory)
 {
     instance = dynamic_cast<VKFactory&>(factory).GetInstance();
@@ -275,6 +348,8 @@ bool VKDevice::InitDevice(IRHIFactory& factory)
         return false;
     }
 
+    m_ray_tracing_supported = CheckRayTracingSupport(selected_physical_device);
+
     // Create logic device
     const QueueFamilyIndices queue_family_indices = FindQueueFamily(selected_physical_device, surface);
     GLTF_CHECK(queue_family_indices.graphics_family.has_value());
@@ -293,6 +368,14 @@ bool VKDevice::InitDevice(IRHIFactory& factory)
         queue_create_infos.push_back(queue_create_info);
     }
 
+    std::vector<const char*> enabled_extensions = VulkanEngineRequirements::device_extensions;
+    if (m_ray_tracing_supported)
+    {
+        enabled_extensions.insert(enabled_extensions.end(),
+            VulkanEngineRequirements::ray_tracing_extensions.begin(),
+            VulkanEngineRequirements::ray_tracing_extensions.end());
+    }
+
     // Non features to require now
     VkDeviceCreateInfo create_device_info{};
     create_device_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -300,10 +383,33 @@ bool VKDevice::InitDevice(IRHIFactory& factory)
     create_device_info.queueCreateInfoCount = static_cast<unsigned>(queue_create_infos.size());
     create_device_info.ppEnabledLayerNames = VulkanEngineRequirements::validation_layers.data();
     create_device_info.enabledLayerCount = static_cast<unsigned>(VulkanEngineRequirements::validation_layers.size());
-    create_device_info.ppEnabledExtensionNames = VulkanEngineRequirements::device_extensions.data();
-    create_device_info.enabledExtensionCount = static_cast<unsigned>(VulkanEngineRequirements::device_extensions.size());
-    
-    create_device_info.pNext = &VulkanEngineQueryStorage::query_features2;
+    create_device_info.ppEnabledExtensionNames = enabled_extensions.data();
+    create_device_info.enabledExtensionCount = static_cast<unsigned>(enabled_extensions.size());
+
+    VkPhysicalDeviceRayTracingPipelineFeaturesKHR rt_pipeline_features
+    {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR,
+        .pNext = nullptr,
+        .rayTracingPipeline = m_ray_tracing_supported,
+    };
+
+    VkPhysicalDeviceAccelerationStructureFeaturesKHR accel_features
+    {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR,
+        .pNext = nullptr,
+        .accelerationStructure = m_ray_tracing_supported,
+    };
+
+    if (m_ray_tracing_supported)
+    {
+        rt_pipeline_features.pNext = &accel_features;
+        accel_features.pNext = &VulkanEngineQueryStorage::query_features2;
+        create_device_info.pNext = &rt_pipeline_features;
+    }
+    else
+    {
+        create_device_info.pNext = &VulkanEngineQueryStorage::query_features2;
+    }
     
     result = vkCreateDevice(selected_physical_device, &create_device_info, nullptr, &logical_device); 
     GLTF_CHECK(result == VK_SUCCESS);

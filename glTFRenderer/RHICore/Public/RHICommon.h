@@ -630,6 +630,7 @@ enum RHIResourceUsageFlags
     RUF_READBACK            =  0x1u << 10,
     RUF_CONTAINS_MIPMAP     =  0x1u << 11,
     RUF_SUPPORT_CLEAR_VALUE =  0x1u << 12,
+    RUF_RAY_TRACING         =  0x1u << 13,
 };
 
 struct RHICORE_API RHITextureDesc
