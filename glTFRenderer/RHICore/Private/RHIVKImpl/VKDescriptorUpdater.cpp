@@ -7,15 +7,40 @@
 bool VKDescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPipelineType pipeline,
                                          const RootSignatureAllocation& root_signature_allocation, const IRHIDescriptorAllocation& allocation)
 {
+    if (root_signature_allocation.type == RHIRootParameterType::AccelerationStructure)
+    {
+        const auto& accel_allocation = dynamic_cast<const VKAccelerationStructureDescriptorAllocation&>(allocation);
+        if (accel_allocation.GetAccelerationStructure() == VK_NULL_HANDLE)
+        {
+            return true;
+        }
+
+        auto& accel_handle = m_cache_accel_handles.emplace_back(accel_allocation.GetAccelerationStructure());
+        auto& accel_info = m_cache_accel_infos.emplace_back();
+        accel_info.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
+        accel_info.pNext = nullptr;
+        accel_info.accelerationStructureCount = 1;
+        accel_info.pAccelerationStructures = &accel_handle;
+
+        VkWriteDescriptorSet write_set{.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, .pNext = &accel_info};
+        write_set.dstBinding = root_signature_allocation.local_space_parameter_index;
+        write_set.descriptorCount = 1;
+        write_set.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+        write_set.dstSet = VK_NULL_HANDLE;
+
+        m_cache_descriptor_writers[root_signature_allocation.space].push_back(write_set);
+        return true;
+    }
+
     const auto& descriptor_desc = allocation.GetDesc();
-    
+
     VkWriteDescriptorSet draw_image_write = {.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, .pNext = nullptr};
     draw_image_write.dstBinding = root_signature_allocation.local_space_parameter_index;
     draw_image_write.descriptorCount = 1;
-    
+
     // bind descriptor set in finalize phase
     draw_image_write.dstSet = VK_NULL_HANDLE;
-    
+
     if (descriptor_desc.IsBufferDescriptor())
     {
         const auto& buffer_desc = dynamic_cast<const RHIBufferDescriptorDesc&>(descriptor_desc);
@@ -131,6 +156,8 @@ bool VKDescriptorUpdater::FinalizeUpdateDescriptors(IRHIDevice& device, IRHIComm
     m_cache_descriptor_writers.clear();
     m_cache_buffer_infos.clear();
     m_cache_image_infos.clear();
+    m_cache_accel_handles.clear();
+    m_cache_accel_infos.clear();
     
     return true;
 }

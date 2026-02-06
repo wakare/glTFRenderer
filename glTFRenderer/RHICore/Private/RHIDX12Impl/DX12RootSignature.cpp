@@ -45,6 +45,16 @@ bool DX12RootParameter::InitAsUAV(unsigned attribute_index, REGISTER_INDEX_TYPE 
     return true;
 }
 
+bool DX12RootParameter::InitAsAccelerationStructure(unsigned attribute_index, REGISTER_INDEX_TYPE register_index, unsigned space)
+{
+    SetType(RHIRootParameterType::AccelerationStructure);
+    m_parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
+    m_parameter.Descriptor.ShaderRegister = register_index;
+    m_parameter.Descriptor.RegisterSpace = space;
+
+    return true;
+}
+
 bool DX12RootParameter::InitAsDescriptorTableRange(unsigned attribute_index, size_t rangeCount,
     const RHIDescriptorRangeDesc* range_desc)
 {

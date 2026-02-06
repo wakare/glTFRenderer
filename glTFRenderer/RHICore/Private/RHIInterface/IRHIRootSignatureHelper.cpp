@@ -22,6 +22,9 @@ RHIShaderRegisterType ToShaderRegisterType(RHIRootParameterType type, RHIDescrip
     case RHIRootParameterType::UAV:
         register_type = RHIShaderRegisterType::u;
         break;
+    case RHIRootParameterType::AccelerationStructure:
+        register_type = RHIShaderRegisterType::t;
+        break;
     case RHIRootParameterType::DescriptorTable:
         {
             switch (range_type) {
@@ -273,6 +276,18 @@ bool IRHIRootSignatureHelper::AddUAVRootParameter(const std::string& parameter_n
     return AddRootParameterWithRegisterCount(info, out_allocation);
 }
 
+bool IRHIRootSignatureHelper::AddAccelerationStructureRootParameter(const std::string& parameter_name, RootSignatureAllocation& out_allocation)
+{
+    RootParameterInfo info
+    {
+        .parameter_name = parameter_name,
+        .type = RHIRootParameterType::AccelerationStructure,
+        .register_count = 1,
+        .is_buffer = false,
+    };
+    return AddRootParameterWithRegisterCount(info, out_allocation);
+}
+
 bool IRHIRootSignatureHelper::AddTableRootParameter(const std::string& parameter_name,
                                                     const TableRootParameterDesc& desc, RootSignatureAllocation& out_allocation)
 {
@@ -341,6 +356,9 @@ bool IRHIRootSignatureHelper::BuildRootSignature(IRHIDevice& device, IRHIDescrip
                 break;
             case RHIRootParameterType::UAV:
                 m_root_signature->GetRootParameter(parameter_value.global_parameter_index).InitAsUAV(parameter_value.local_space_parameter_index, parameter_value.register_range.first, parameter_value.space);
+                break;
+            case RHIRootParameterType::AccelerationStructure:
+                m_root_signature->GetRootParameter(parameter_value.global_parameter_index).InitAsAccelerationStructure(parameter_value.local_space_parameter_index, parameter_value.register_range.first, parameter_value.space);
                 break;
             case RHIRootParameterType::DescriptorTable:
                 {

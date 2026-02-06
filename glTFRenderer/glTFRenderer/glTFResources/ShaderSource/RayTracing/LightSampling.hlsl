@@ -7,7 +7,7 @@
 #include "glTFResources/ShaderSource/Math/ReservoirSample.hlsl"
 #include "glTFResources/ShaderSource/RayTracing/PathTracingRays.hlsl"
 
-bool IsLightVisible(uint light_index, PixelLightingShadingInfo shading_info, RaytracingAccelerationStructure scene)
+bool IsLightVisible(uint light_index, PixelLightingShadingInfo shading_info)
 {
     float3 light_vector;
     float light_distance;
@@ -18,12 +18,12 @@ bool IsLightVisible(uint light_index, PixelLightingShadingInfo shading_info, Ray
         visible_ray.Direction = light_vector;
         visible_ray.TMin = 0.0;
         visible_ray.TMax = light_distance;
-        return !TraceShadowRay(scene, visible_ray);
+        return !TraceShadowRay(visible_ray);
     }
     return false;
 }
 
-bool SampleLightIndexUniform(inout RngStateType rng_state, PixelLightingShadingInfo shading_info, RaytracingAccelerationStructure scene, bool check_visibility_for_candidates, out uint index, out float weight)
+bool SampleLightIndexUniform(inout RngStateType rng_state, PixelLightingShadingInfo shading_info, bool check_visibility_for_candidates, out uint index, out float weight)
 {
     index = 0;
     weight = 0.0;
@@ -36,11 +36,11 @@ bool SampleLightIndexUniform(inout RngStateType rng_state, PixelLightingShadingI
     index = min(light_count - 1, int((float)light_count * rand(rng_state)));
     weight = light_count;
 
-    return check_visibility_for_candidates ? IsLightVisible(index, shading_info, scene) : true;
+    return check_visibility_for_candidates ? IsLightVisible(index, shading_info) : true;
 }
 
 
-bool SampleLightIndexRIS(inout RngStateType rngState, uint candidate_count, PixelLightingShadingInfo shading_info, float3 view, bool check_visibility_for_candidates, RaytracingAccelerationStructure scene, out Reservoir sample)
+bool SampleLightIndexRIS(inout RngStateType rngState, uint candidate_count, PixelLightingShadingInfo shading_info, float3 view, bool check_visibility_for_candidates, out Reservoir sample)
 {
     InvalidateReservoir(sample);
 
@@ -48,7 +48,7 @@ bool SampleLightIndexRIS(inout RngStateType rngState, uint candidate_count, Pixe
     {
         uint sample_index;
         float sample_weight;
-        if (SampleLightIndexUniform(rngState, shading_info, scene, check_visibility_for_candidates, sample_index, sample_weight))
+        if (SampleLightIndexUniform(rngState, shading_info, check_visibility_for_candidates, sample_index, sample_weight))
         {
             AddReservoirSample(rngState, sample, sample_index, 1, 1, luminance(GetLightingByIndex(sample_index, shading_info, view)), sample_weight);
         }
@@ -60,7 +60,7 @@ bool SampleLightIndexRIS(inout RngStateType rngState, uint candidate_count, Pixe
         int index; float weight;
         GetReservoirSelectSample(sample, index, weight);
         
-        if (!IsLightVisible(index, shading_info, scene))
+        if (!IsLightVisible(index, shading_info))
         {
             InvalidateReservoir(sample);
         }

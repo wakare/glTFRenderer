@@ -20,6 +20,7 @@ public:
     bool AddCBVRootParameter(const std::string& parameter_name, RootSignatureAllocation& out_allocation);
     bool AddSRVRootParameter(const std::string& parameter_name, RootSignatureAllocation& out_allocation);
     bool AddUAVRootParameter(const std::string& parameter_name, RootSignatureAllocation& out_allocation);
+    bool AddAccelerationStructureRootParameter(const std::string& parameter_name, RootSignatureAllocation& out_allocation);
     bool AddRootParameterWithRegisterCount( const RootParameterInfo& parameter_info, RootSignatureAllocation& out_allocation);
     bool AddRootParameterWithRegisterCount2( const RootParameterInfo& parameter_info, unsigned space, unsigned register_index, RootSignatureAllocation& out_allocation);
     

@@ -18,6 +18,7 @@ public:
     virtual bool InitAsCBV(unsigned attribute_index, REGISTER_INDEX_TYPE register_index, unsigned space) = 0;
     virtual bool InitAsSRV(unsigned attribute_index, REGISTER_INDEX_TYPE register_index, unsigned space) = 0;
     virtual bool InitAsUAV(unsigned attribute_index, REGISTER_INDEX_TYPE register_index, unsigned space) = 0;
+    virtual bool InitAsAccelerationStructure(unsigned attribute_index, REGISTER_INDEX_TYPE register_index, unsigned space) = 0;
     virtual bool InitAsDescriptorTableRange(unsigned attribute_index, size_t rangeCount, const RHIDescriptorRangeDesc* rangeDesc) = 0;
 
     virtual bool IsBindless() const;

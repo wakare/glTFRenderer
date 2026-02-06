@@ -6,8 +6,6 @@
 #include "glTFResources/ShaderSource/Interface/SceneView.hlsl"
 #include "glTFResources/ShaderSource/RayTracing/LightSampling.hlsl"
 #include "glTFResources/ShaderSource/ShaderDeclarationUtil.hlsl"
-
-DECLARE_RESOURCE(RaytracingAccelerationStructure scene , SCENE_AS_REGISTER_INDEX);
 DECLARE_RESOURCE(RWTexture2D<float4> samples_output , OUTPUT_REGISTER_INDEX);
 DECLARE_RESOURCE(RWTexture2D<float4> screen_uv_offset , SCREEN_UV_OFFSET_REGISTER_INDEX);
 DECLARE_RESOURCE(RWTexture2D<float4> albedo_output , ALBEDO_REGISTER_INDEX);
@@ -56,7 +54,7 @@ void PathTracingRayGen()
     payload.metallic = 1.0;
     payload.roughness = 1.0;
 
-    TracePrimaryRay(scene, ray, payload);
+    TracePrimaryRay(ray, payload);
     if (!IsHit(payload))
     {
         return;
@@ -82,7 +80,7 @@ void PathTracingRayGen()
     shading_info.roughness = payload.roughness;
     
     Reservoir sample; InvalidateReservoir(sample);
-    SampleLightIndexRIS(rng, candidate_light_count, shading_info, view, check_visibility_for_all_candidates, scene, sample);
+    SampleLightIndexRIS(rng, candidate_light_count, shading_info, view, check_visibility_for_all_candidates, sample);
     samples_output[DispatchRaysIndex().xy] = PackReservoir(sample);
 
     float4 ndc_position = mul(prev_projection_matrix, mul(prev_view_matrix, float4(position, 1.0)));

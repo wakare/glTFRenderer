@@ -12,6 +12,7 @@ public:
     virtual bool InitAsCBV(unsigned attribute_index, REGISTER_INDEX_TYPE register_index, unsigned space) override;
     virtual bool InitAsSRV(unsigned attribute_index, REGISTER_INDEX_TYPE register_index, unsigned space) override;
     virtual bool InitAsUAV(unsigned attribute_index, REGISTER_INDEX_TYPE register_index, unsigned space) override;
+    virtual bool InitAsAccelerationStructure(unsigned attribute_index, REGISTER_INDEX_TYPE register_index, unsigned space) override;
     virtual bool InitAsDescriptorTableRange(unsigned attribute_index, size_t rangeCount, const RHIDescriptorRangeDesc* range_desc) override;
 
     const D3D12_ROOT_PARAMETER1& GetParameter() const {return m_parameter;}

@@ -311,11 +311,15 @@ VkBufferUsageFlags VKConverterUtils::ConvertToBufferUsage(RHIResourceUsageFlags 
     if (flags & RUF_VERTEX_BUFFER)
     {
         result |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+        result |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+        result |= VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
     }
 
     if (flags & RUF_INDEX_BUFFER)
     {
         result |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+        result |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+        result |= VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
     }
 
     if (flags & RUF_INDIRECT_BUFFER)
@@ -337,6 +341,7 @@ VkBufferUsageFlags VKConverterUtils::ConvertToBufferUsage(RHIResourceUsageFlags 
     {
         result |= VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR;
         result |= VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR;
+        result |= VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
         result |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
     }
 

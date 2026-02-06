@@ -52,6 +52,21 @@ bool VKRootParameter::InitAsUAV(unsigned local_attribute_index, unsigned registe
     return true;
 }
 
+bool VKRootParameter::InitAsAccelerationStructure(unsigned local_attribute_index, unsigned register_index, unsigned space)
+{
+    SetType(RHIRootParameterType::AccelerationStructure);
+    m_register_space = space;
+
+    m_binding.binding = local_attribute_index;
+    m_binding.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+    m_binding.descriptorCount = 1;
+
+    // TODO: optimization shader stage config
+    m_binding.stageFlags = VK_SHADER_STAGE_ALL;
+
+    return true;
+}
+
 bool VKRootParameter::InitAsDescriptorTableRange(unsigned local_attribute_index, size_t range_count,
     const RHIDescriptorRangeDesc* range_desc)
 {

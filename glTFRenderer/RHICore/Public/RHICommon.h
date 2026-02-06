@@ -446,6 +446,7 @@ enum class RHIRootParameterType
     CBV,
     SRV,
     UAV,
+    AccelerationStructure,
     DescriptorTable,
     Sampler,
     Unknown, // Init as unknown, must be reset to other type

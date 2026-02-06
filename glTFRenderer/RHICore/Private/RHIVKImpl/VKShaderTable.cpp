@@ -88,7 +88,7 @@ bool VKShaderTable::InitShaderTable(IRHIDevice& device, IRHICommandList& command
         out_region.size = buffer_size;
     };
 
-    // RayGen shader table
+    // RayGen shader table (must have size == stride)
     {
         size_t raygen_record_size = 0;
         for (const auto& sbt : sbts)
@@ -102,16 +102,17 @@ bool VKShaderTable::InitShaderTable(IRHIDevice& device, IRHICommandList& command
         build_table(
             L"RayGenShaderTable",
             handle_size + raygen_record_size,
-            ray_count,
+            1,
             [&](uint8_t* dst, size_t index, size_t stride)
             {
-                const auto& sbt = sbts[index];
+                const auto& sbt = sbts[0];
                 const uint32_t group_index = vk_pso.GetShaderGroupIndex(sbt.raygen_entry);
                 memcpy(dst, get_group_handle(group_index), handle_size);
                 if (sbt.raygen_record)
                 {
                     memcpy(dst + handle_size, sbt.raygen_record->GetData(), sbt.raygen_record->GetSize());
                 }
+                (void)index;
                 (void)stride;
             },
             m_raygen_shader_table,

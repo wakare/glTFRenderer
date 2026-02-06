@@ -30,6 +30,7 @@ namespace VulkanEngineRequirements
     {
         VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
         VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+        VK_KHR_RAY_QUERY_EXTENSION_NAME,
         VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
         VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
         VK_KHR_SPIRV_1_4_EXTENSION_NAME,
@@ -274,7 +275,14 @@ bool VKDevice::CheckRayTracingSupport(VkPhysicalDevice device)
         .pNext = nullptr,
     };
 
+    VkPhysicalDeviceRayQueryFeaturesKHR ray_query_features
+    {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR,
+        .pNext = nullptr,
+    };
+
     rt_pipeline_features.pNext = &accel_features;
+    accel_features.pNext = &ray_query_features;
 
     VkPhysicalDeviceFeatures2 features2
     {
@@ -283,7 +291,7 @@ bool VKDevice::CheckRayTracingSupport(VkPhysicalDevice device)
     };
 
     vkGetPhysicalDeviceFeatures2(device, &features2);
-    if (!rt_pipeline_features.rayTracingPipeline || !accel_features.accelerationStructure)
+    if (!rt_pipeline_features.rayTracingPipeline || !accel_features.accelerationStructure || !ray_query_features.rayQuery)
     {
         return false;
     }
@@ -400,10 +408,18 @@ bool VKDevice::InitDevice(IRHIFactory& factory)
         .accelerationStructure = m_ray_tracing_supported,
     };
 
+    VkPhysicalDeviceRayQueryFeaturesKHR ray_query_features
+    {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR,
+        .pNext = nullptr,
+        .rayQuery = m_ray_tracing_supported,
+    };
+
     if (m_ray_tracing_supported)
     {
         rt_pipeline_features.pNext = &accel_features;
-        accel_features.pNext = &VulkanEngineQueryStorage::query_features2;
+        accel_features.pNext = &ray_query_features;
+        ray_query_features.pNext = &VulkanEngineQueryStorage::query_features2;
         create_device_info.pNext = &rt_pipeline_features;
     }
     else

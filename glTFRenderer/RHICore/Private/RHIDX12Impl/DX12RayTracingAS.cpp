@@ -179,16 +179,10 @@ bool DX12RayTracingAS::InitRayTracingAS(IRHIDevice& device, IRHICommandList& com
         },
         m_TLAS
     );
-    m_TLAS_descriptor_allocation = RHIResourceFactory::CreateRHIResource<IRHIBufferDescriptorAllocation>();
-    m_TLAS_descriptor_allocation->InitFromBuffer(m_TLAS->m_buffer,
-        RHIBufferDescriptorDesc{
-            RHIDataFormat::UNKNOWN,
-            RHIViewType::RVT_SRV,
-            static_cast<unsigned>(top_level_prebuild_info.ResultDataMaxSizeInBytes),
-            0
-        });
+    m_TLAS_descriptor_allocation = RHIResourceFactory::CreateRHIResource<IRHIAccelerationStructureDescriptorAllocation>();
     DX12Buffer& dx12_buffer = dynamic_cast<DX12Buffer&>(*m_TLAS->m_buffer);
-    dynamic_cast<DX12BufferDescriptorAllocation&>(*m_TLAS_descriptor_allocation).InitHandle(dx12_buffer.GetRawBuffer()->GetGPUVirtualAddress(), 0);
+    dynamic_cast<DX12AccelerationStructureDescriptorAllocation&>(*m_TLAS_descriptor_allocation)
+        .InitFromAccelerationStructure(dx12_buffer.GetRawBuffer()->GetGPUVirtualAddress());
 
     // Create an instance desc for the bottom-level acceleration structure.
     if (!instances.empty())

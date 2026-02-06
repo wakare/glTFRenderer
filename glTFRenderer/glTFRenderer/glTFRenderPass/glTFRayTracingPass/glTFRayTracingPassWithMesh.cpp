@@ -97,7 +97,7 @@ IRHIShaderTable& glTFRayTracingPassWithMesh::GetShaderTable() const
 
 bool glTFRayTracingPassWithMesh::SetupRootSignature(glTFRenderResourceManager& resource_manager)
 {
-    RETURN_IF_FALSE(m_root_signature_helper.AddSRVRootParameter("SCENE_AS_REGISTER_INDEX", m_raytracing_as_allocation))
+    RETURN_IF_FALSE(m_root_signature_helper.AddAccelerationStructureRootParameter("SCENE_AS_REGISTER_INDEX", m_raytracing_as_allocation))
     RETURN_IF_FALSE(glTFRayTracingPassBase::SetupRootSignature(resource_manager))
     
     return true;

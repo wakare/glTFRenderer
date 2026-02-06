@@ -22,6 +22,18 @@ public:
     virtual const RHIDescriptorDesc& GetDesc() const = 0;
 };
 
+class RHICORE_API IRHIAccelerationStructureDescriptorAllocation : public IRHIDescriptorAllocation
+{
+public:
+    virtual bool InitFromAccelerationStructure(uint64_t acceleration_handle) = 0;
+    virtual uint64_t GetAccelerationStructureHandle() const = 0;
+
+    virtual const RHIDescriptorDesc& GetDesc() const override { return m_view_desc; }
+
+protected:
+    RHIBufferDescriptorDesc m_view_desc {RHIDataFormat::UNKNOWN, RHIViewType::RVT_SRV, 0, 0};
+};
+
 class RHICORE_API IRHIBufferDescriptorAllocation : public IRHIDescriptorAllocation
 {
 public:

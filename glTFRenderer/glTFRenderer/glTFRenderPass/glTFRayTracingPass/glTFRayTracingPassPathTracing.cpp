@@ -103,6 +103,11 @@ bool glTFRayTracingPassPathTracing::SetupPipelineStateObject(glTFRenderResourceM
         "",
         ""
     });
+    GetRayTracingPipelineStateObject().AddHitGroupDesc({GetShadowRayHitGroupName(),
+        "",
+        "",
+        ""
+    });
 
     IRHIRayTracingPipelineStateObject::RHIRayTracingConfig config;
     config.payload_size = sizeof(float) * 12;

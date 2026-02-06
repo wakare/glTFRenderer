@@ -18,6 +18,17 @@ public:
     RHICPUDescriptorHandle m_cpu_handle {UINT64_MAX};
 };
 
+class DX12AccelerationStructureDescriptorAllocation : public IRHIAccelerationStructureDescriptorAllocation
+{
+public:
+    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(DX12AccelerationStructureDescriptorAllocation)
+
+    bool InitFromAccelerationStructure(uint64_t acceleration_handle) override;
+    uint64_t GetAccelerationStructureHandle() const override;
+
+    RHIGPUDescriptorHandle m_gpu_handle {UINT64_MAX};
+};
+
 class DX12TextureDescriptorAllocation : public IRHITextureDescriptorAllocation
 {
 public:

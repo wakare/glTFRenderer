@@ -14,6 +14,17 @@ protected:
     bool m_buffer_init {false};
 };
 
+class VKAccelerationStructureDescriptorAllocation : public IRHIAccelerationStructureDescriptorAllocation
+{
+public:
+    bool InitFromAccelerationStructure(uint64_t acceleration_handle) override;
+    uint64_t GetAccelerationStructureHandle() const override;
+    VkAccelerationStructureKHR GetAccelerationStructure() const;
+
+protected:
+    VkAccelerationStructureKHR m_acceleration_structure {VK_NULL_HANDLE};
+};
+
 class VKTextureDescriptorAllocation : public IRHITextureDescriptorAllocation
 {
 public:

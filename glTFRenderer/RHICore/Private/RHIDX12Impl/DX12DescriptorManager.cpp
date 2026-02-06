@@ -17,6 +17,18 @@ bool DX12BufferDescriptorAllocation::InitFromBuffer(const std::shared_ptr<IRHIBu
     return true;
 }
 
+bool DX12AccelerationStructureDescriptorAllocation::InitFromAccelerationStructure(uint64_t acceleration_handle)
+{
+    m_gpu_handle = acceleration_handle;
+    need_release = false;
+    return true;
+}
+
+uint64_t DX12AccelerationStructureDescriptorAllocation::GetAccelerationStructureHandle() const
+{
+    return m_gpu_handle;
+}
+
 bool DX12DescriptorTable::Build(IRHIDevice& device, const std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>>& descriptor_allocations)
 {
     if (descriptor_allocations.empty())

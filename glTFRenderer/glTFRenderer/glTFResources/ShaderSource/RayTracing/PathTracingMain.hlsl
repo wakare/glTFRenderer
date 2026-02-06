@@ -8,8 +8,6 @@
 #include "glTFResources/ShaderSource/RayTracing/LightSampling.hlsl"
 #include "glTFResources/ShaderSource/RayTracing/PathTracingRays.hlsl"
 #include "glTFResources/ShaderSource/ShaderDeclarationUtil.hlsl"
-
-DECLARE_RESOURCE(RaytracingAccelerationStructure scene , SCENE_AS_REGISTER_INDEX);
 DECLARE_RESOURCE(RWTexture2D<float4> render_target , OUTPUT_REGISTER_INDEX);
 DECLARE_RESOURCE(RWTexture2D<float4> screen_uv_offset , SCREEN_UV_OFFSET_REGISTER_INDEX);
 
@@ -73,7 +71,7 @@ void PathTracingRayGen()
         {
             for (uint i = 0; i < max_bounce_count; ++i)
             {
-                TracePrimaryRay(scene, ray, payload);
+                TracePrimaryRay(ray, payload);
                 if (!IsHit(payload))
                 {
                     // TODO: Sample skylight info
@@ -96,7 +94,7 @@ void PathTracingRayGen()
                 if (ris_light_sampling)
                 {
                     Reservoir sample;
-                    if (SampleLightIndexRIS(rng, candidate_light_count, shading_info, view, check_visibility_for_all_candidates, scene, sample))
+                    if (SampleLightIndexRIS(rng, candidate_light_count, shading_info, view, check_visibility_for_all_candidates, sample))
                     {
                         GetReservoirSelectSample(sample, sample_light_index, sample_light_weight);
                         has_valid_light_sampling = true;
@@ -104,7 +102,7 @@ void PathTracingRayGen()
                 }
                 else
                 {
-                    if (SampleLightIndexUniform(rng, shading_info, scene, check_visibility_for_all_candidates, sample_light_index, sample_light_weight))
+                    if (SampleLightIndexUniform(rng, shading_info, check_visibility_for_all_candidates, sample_light_index, sample_light_weight))
                     {
                         has_valid_light_sampling = true;
                     }

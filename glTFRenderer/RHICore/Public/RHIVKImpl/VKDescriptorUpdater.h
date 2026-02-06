@@ -14,5 +14,7 @@ public:
 protected:
     std::list<VkDescriptorBufferInfo> m_cache_buffer_infos;
     std::list<VkDescriptorImageInfo> m_cache_image_infos;
+    std::list<VkAccelerationStructureKHR> m_cache_accel_handles;
+    std::list<VkWriteDescriptorSetAccelerationStructureKHR> m_cache_accel_infos;
     std::map<unsigned, std::vector<VkWriteDescriptorSet>> m_cache_descriptor_writers;
 };

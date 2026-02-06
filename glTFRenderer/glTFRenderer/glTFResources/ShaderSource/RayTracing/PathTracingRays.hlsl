@@ -4,6 +4,7 @@
 #include "glTFResources/ShaderSource/Interface/SceneMeshInfo.hlsl"
 #include "glTFResources/ShaderSource/Interface/SceneMaterial.hlsl"
 #include "glTFResources/ShaderSource/Math/MathCommon.hlsl"
+#include "glTFResources/ShaderSource/RayTracing/RayTracingResources.hlsl"
 
 #define PATH_TRACING_RAY_COUNT 2
 #define PATH_TRACING_RAY_INDEX_PRIMARY 0
@@ -56,10 +57,10 @@ void PrimaryRayMiss(inout PrimaryRayPayload payload)
     payload.distance = -1.0f;   
 }
 
-void TracePrimaryRay(in RaytracingAccelerationStructure tlas, in RayDesc ray, inout PrimaryRayPayload payload)
+void TracePrimaryRay(in RayDesc ray, inout PrimaryRayPayload payload)
 {
     TraceRay(
-            tlas,
+            scene,
             RAY_FLAG_FORCE_OPAQUE,
             ~0,
             PATH_TRACING_RAY_INDEX_PRIMARY,
@@ -83,13 +84,13 @@ void ShadowRayMiss(inout ShadowRayPayload payload)
     payload.hit = false;
 }
 
-bool TraceShadowRay(in RaytracingAccelerationStructure tlas, in RayDesc ray)
+bool TraceShadowRay(in RayDesc ray)
 {
     ShadowRayPayload payload;
     payload.hit = true;
     
     TraceRay(
-            tlas,
+            scene,
             RAY_FLAG_SKIP_CLOSEST_HIT_SHADER | RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH,
             ~0,
             PATH_TRACING_RAY_INDEX_SHADOW,

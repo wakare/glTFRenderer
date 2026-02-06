@@ -24,6 +24,23 @@ VkBuffer VKBufferDescriptorAllocation::GetRawBuffer() const
     return dynamic_cast<const VKBuffer&>(*m_source).GetRawBuffer();
 }
 
+bool VKAccelerationStructureDescriptorAllocation::InitFromAccelerationStructure(uint64_t acceleration_handle)
+{
+    m_acceleration_structure = reinterpret_cast<VkAccelerationStructureKHR>(acceleration_handle);
+    need_release = false;
+    return true;
+}
+
+uint64_t VKAccelerationStructureDescriptorAllocation::GetAccelerationStructureHandle() const
+{
+    return reinterpret_cast<uint64_t>(m_acceleration_structure);
+}
+
+VkAccelerationStructureKHR VKAccelerationStructureDescriptorAllocation::GetAccelerationStructure() const
+{
+    return m_acceleration_structure;
+}
+
 bool VKTextureDescriptorAllocation::InitFromImageView(const std::shared_ptr<IRHITexture>& texture, VkDevice device, VkImageView image_view, const RHITextureDescriptorDesc& desc)
 {
     m_device = device;
@@ -95,6 +112,7 @@ bool VKDescriptorManager::Init(IRHIDevice& device, const DescriptorAllocationInf
     pool_sizes.push_back({VkDescriptorType::VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, max_descriptor_capacity.cbv_srv_uav_size});
     pool_sizes.push_back({VkDescriptorType::VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, max_descriptor_capacity.cbv_srv_uav_size});
     pool_sizes.push_back({VkDescriptorType::VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, max_descriptor_capacity.cbv_srv_uav_size});
+    pool_sizes.push_back({VkDescriptorType::VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, max_descriptor_capacity.cbv_srv_uav_size});
     
     VkDescriptorPoolCreateInfo descriptor_pool_create_info{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO, .pNext = nullptr};
     descriptor_pool_create_info.poolSizeCount = pool_sizes.size();

@@ -785,6 +785,7 @@ static VkDescriptorType ToVkDescriptorType(SpvReflectDescriptorType t) {
     case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:   return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
     case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:   return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
     case SPV_REFLECT_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:         return VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+    case SPV_REFLECT_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR: return VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
     default:                                                   return VK_DESCRIPTOR_TYPE_MAX_ENUM;
     }
 }
@@ -833,6 +834,10 @@ bool VulkanUtils::ProcessShaderMetaData(IRHIShader& shader)
                 break;
             case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
                 parameter_info.type = RHIRootParameterType::CBV;
+                break;
+            case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR:
+                parameter_info.type = RHIRootParameterType::AccelerationStructure;
+                parameter_info.is_buffer = false;
                 break;
             case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
                 parameter_info.type = RHIRootParameterType::DescriptorTable;

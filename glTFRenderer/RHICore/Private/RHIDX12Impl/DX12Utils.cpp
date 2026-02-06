@@ -386,7 +386,19 @@ bool DX12Utils::SetSRVToRootParameterSlot(IRHICommandList& command_list, unsigne
                                           const IRHIDescriptorAllocation& handle, bool isGraphicsPipeline)
 {
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
-    auto gpu_handle = dynamic_cast<const DX12BufferDescriptorAllocation&>(handle).m_gpu_handle;
+    RHIGPUDescriptorHandle gpu_handle = 0;
+    if (const auto* buffer_allocation = dynamic_cast<const DX12BufferDescriptorAllocation*>(&handle))
+    {
+        gpu_handle = buffer_allocation->m_gpu_handle;
+    }
+    else if (const auto* as_allocation = dynamic_cast<const DX12AccelerationStructureDescriptorAllocation*>(&handle))
+    {
+        gpu_handle = as_allocation->m_gpu_handle;
+    }
+    else
+    {
+        GLTF_CHECK(false);
+    }
 
     if (isGraphicsPipeline)
     {
