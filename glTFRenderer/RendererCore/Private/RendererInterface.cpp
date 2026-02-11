@@ -1,5 +1,6 @@
 #include "RendererInterface.h"
 
+#include <algorithm>
 #include <filesystem>
 
 #include "InternalResourceHandleTable.h"
@@ -19,6 +20,135 @@
 
 namespace RendererInterface
 {
+    namespace
+    {
+        enum class ResourceKind
+        {
+            Buffer,
+            Texture,
+            RenderTarget,
+        };
+
+        struct ResourceKey
+        {
+            ResourceKind kind;
+            unsigned value;
+
+            bool operator<(const ResourceKey& other) const
+            {
+                if (kind != other.kind)
+                {
+                    return kind < other.kind;
+                }
+                return value < other.value;
+            }
+        };
+
+        struct ResourceAccessSet
+        {
+            std::set<ResourceKey> reads;
+            std::set<ResourceKey> writes;
+        };
+
+        const char* ToResourceKindName(ResourceKind kind)
+        {
+            switch (kind)
+            {
+            case ResourceKind::Buffer:
+                return "Buffer";
+            case ResourceKind::Texture:
+                return "Texture";
+            case ResourceKind::RenderTarget:
+                return "RenderTarget";
+            }
+            return "Unknown";
+        }
+
+        bool HasDependency(const RenderGraphNodeDesc& desc, RenderGraphNodeHandle handle)
+        {
+            return std::find(desc.dependency_render_graph_nodes.begin(),
+                desc.dependency_render_graph_nodes.end(),
+                handle) != desc.dependency_render_graph_nodes.end();
+        }
+
+        void HashCombine(std::size_t& seed, std::size_t value)
+        {
+            seed ^= value + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2);
+        }
+
+        ResourceAccessSet CollectResourceAccess(const RenderGraphNodeDesc& desc)
+        {
+            ResourceAccessSet access;
+
+            for (const auto& buffer_pair : desc.draw_info.buffer_resources)
+            {
+                const auto& binding = buffer_pair.second;
+                ResourceKey key{ResourceKind::Buffer, binding.buffer_handle.value};
+
+                switch (binding.binding_type)
+                {
+                case BufferBindingDesc::CBV:
+                case BufferBindingDesc::SRV:
+                    access.reads.insert(key);
+                    break;
+                case BufferBindingDesc::UAV:
+                    access.reads.insert(key);
+                    access.writes.insert(key);
+                    break;
+                }
+            }
+
+            for (const auto& texture_pair : desc.draw_info.texture_resources)
+            {
+                const auto& binding = texture_pair.second;
+                for (const auto texture_handle : binding.textures)
+                {
+                    ResourceKey key{ResourceKind::Texture, texture_handle.value};
+                    if (binding.type == TextureBindingDesc::SRV)
+                    {
+                        access.reads.insert(key);
+                    }
+                    else
+                    {
+                        access.reads.insert(key);
+                        access.writes.insert(key);
+                    }
+                }
+            }
+
+            for (const auto& render_target_pair : desc.draw_info.render_target_texture_resources)
+            {
+                const auto& binding = render_target_pair.second;
+                for (const auto render_target_handle : binding.render_target_texture)
+                {
+                    ResourceKey key{ResourceKind::RenderTarget, render_target_handle.value};
+                    if (binding.type == RenderTargetTextureBindingDesc::SRV)
+                    {
+                        access.reads.insert(key);
+                    }
+                    else
+                    {
+                        access.reads.insert(key);
+                        access.writes.insert(key);
+                    }
+                }
+            }
+
+            for (const auto& render_target_pair : desc.draw_info.render_target_resources)
+            {
+                const auto& binding = render_target_pair.second;
+                ResourceKey key{ResourceKind::RenderTarget, render_target_pair.first.value};
+                access.writes.insert(key);
+                if (binding.load_op == RenderPassAttachmentLoadOp::LOAD)
+                {
+                    access.reads.insert(key);
+                }
+            }
+
+            return access;
+        }
+    }
+
     RenderWindow::RenderWindow(const RenderWindowDesc& desc)
         : m_desc(desc)
         , m_handle(NULL_HANDLE)
@@ -556,8 +686,297 @@ namespace RendererInterface
             auto& command_list = m_resource_allocator.GetCommandListForRecordPassCommand();
             // Wait current frame available
             m_resource_allocator.GetCurrentSwapchain().AcquireNewFrame(m_resource_allocator.GetDevice());
-            
-            for (auto render_graph_node : m_render_graph_node_handles)
+
+            std::vector<RenderGraphNodeHandle> nodes;
+            nodes.reserve(m_render_graph_node_handles.size());
+            for (auto handle : m_render_graph_node_handles)
+            {
+                nodes.push_back(handle);
+            }
+
+#if defined(_DEBUG)
+            {
+                std::map<ResourceKey, std::set<RenderGraphNodeHandle>> resource_readers;
+                std::map<ResourceKey, std::set<RenderGraphNodeHandle>> resource_writers;
+                for (auto handle : nodes)
+                {
+                    const auto& node_desc = m_render_graph_nodes[handle.value];
+                    const auto access = CollectResourceAccess(node_desc);
+
+                    for (const auto& resource : access.reads)
+                    {
+                        resource_readers[resource].insert(handle);
+                    }
+                    for (const auto& resource : access.writes)
+                    {
+                        resource_writers[resource].insert(handle);
+                    }
+                }
+
+                std::map<RenderGraphNodeHandle, std::set<RenderGraphNodeHandle>> inferred_edges;
+                std::map<std::pair<RenderGraphNodeHandle, RenderGraphNodeHandle>, std::vector<ResourceKey>> edge_resources;
+                for (const auto& writer_pair : resource_writers)
+                {
+                    const auto& resource = writer_pair.first;
+                    const auto& writers = writer_pair.second;
+                    auto readers_it = resource_readers.find(resource);
+
+                    std::set<RenderGraphNodeHandle> consumers = writers;
+                    if (readers_it != resource_readers.end())
+                    {
+                        consumers.insert(readers_it->second.begin(), readers_it->second.end());
+                    }
+
+                    for (const auto writer : writers)
+                    {
+                        for (const auto consumer : consumers)
+                        {
+                            if (writer == consumer)
+                            {
+                                continue;
+                            }
+
+                            inferred_edges[writer].insert(consumer);
+                            edge_resources[{writer, consumer}].push_back(resource);
+                        }
+                    }
+                }
+
+                std::size_t signature = 1469598103934665603ULL;
+                for (const auto& edge_pair : edge_resources)
+                {
+                    HashCombine(signature, edge_pair.first.first.value);
+                    HashCombine(signature, edge_pair.first.second.value);
+                    for (const auto& resource : edge_pair.second)
+                    {
+                        HashCombine(signature, static_cast<std::size_t>(resource.kind));
+                        HashCombine(signature, resource.value);
+                    }
+                }
+
+                static std::size_t last_signature = 0;
+                if (signature != last_signature)
+                {
+                    last_signature = signature;
+
+                    for (const auto& edge_pair : edge_resources)
+                    {
+                        const auto from = edge_pair.first.first;
+                        const auto to = edge_pair.first.second;
+                        const auto& to_desc = m_render_graph_nodes[to.value];
+                        if (!HasDependency(to_desc, from))
+                        {
+                            LOG_FORMAT_FLUSH("[RenderGraph][Dependency] Node %u should depend on node %u (resources: %zu).\n",
+                                to.value, from.value, edge_pair.second.size());
+                        }
+                    }
+
+                    std::map<RenderGraphNodeHandle, unsigned> indegree;
+                    for (auto handle : nodes)
+                    {
+                        indegree[handle] = 0;
+                    }
+                    for (const auto& edge_pair : inferred_edges)
+                    {
+                        for (const auto& to : edge_pair.second)
+                        {
+                            ++indegree[to];
+                        }
+                    }
+
+                    std::vector<RenderGraphNodeHandle> queue;
+                    for (const auto& count : indegree)
+                    {
+                        if (count.second == 0)
+                        {
+                            queue.push_back(count.first);
+                        }
+                    }
+
+                    size_t processed = 0;
+                    while (!queue.empty())
+                    {
+                        const auto node = queue.back();
+                        queue.pop_back();
+                        ++processed;
+
+                        auto edges_it = inferred_edges.find(node);
+                        if (edges_it == inferred_edges.end())
+                        {
+                            continue;
+                        }
+                        for (const auto& to : edges_it->second)
+                        {
+                            auto& count = indegree[to];
+                            if (count > 0)
+                            {
+                                --count;
+                                if (count == 0)
+                                {
+                                    queue.push_back(to);
+                                }
+                            }
+                        }
+                    }
+
+                    if (processed != nodes.size())
+                    {
+                        LOG_FORMAT_FLUSH("[RenderGraph][Dependency] Cycle detected in inferred dependencies. Remaining nodes:");
+                        for (const auto& count : indegree)
+                        {
+                            if (count.second > 0)
+                            {
+                                LOG_FORMAT_FLUSH(" %u", count.first.value);
+                            }
+                        }
+                        LOG_FLUSH("\n");
+                    }
+                }
+            }
+#endif
+            std::size_t signature = 1469598103934665603ULL;
+            for (auto handle : nodes)
+            {
+                HashCombine(signature, handle.value);
+                const auto& node_desc = m_render_graph_nodes[handle.value];
+                const auto access = CollectResourceAccess(node_desc);
+
+                HashCombine(signature, 0xA11u);
+                for (const auto& resource : access.reads)
+                {
+                    HashCombine(signature, static_cast<std::size_t>(resource.kind));
+                    HashCombine(signature, resource.value);
+                }
+
+                HashCombine(signature, 0xB22u);
+                for (const auto& resource : access.writes)
+                {
+                    HashCombine(signature, static_cast<std::size_t>(resource.kind));
+                    HashCombine(signature, resource.value);
+                }
+
+                HashCombine(signature, 0xC33u);
+                for (const auto dep : node_desc.dependency_render_graph_nodes)
+                {
+                    HashCombine(signature, dep.value);
+                }
+            }
+
+            if (signature != m_cached_execution_signature || m_cached_execution_order.size() != nodes.size())
+            {
+                std::vector<RenderGraphNodeHandle> execution_nodes;
+                std::map<ResourceKey, std::set<RenderGraphNodeHandle>> resource_readers;
+                std::map<ResourceKey, std::set<RenderGraphNodeHandle>> resource_writers;
+                for (auto handle : nodes)
+                {
+                    const auto& node_desc = m_render_graph_nodes[handle.value];
+                    const auto access = CollectResourceAccess(node_desc);
+                    for (const auto& resource : access.reads)
+                    {
+                        resource_readers[resource].insert(handle);
+                    }
+                    for (const auto& resource : access.writes)
+                    {
+                        resource_writers[resource].insert(handle);
+                    }
+                }
+
+                std::map<RenderGraphNodeHandle, std::set<RenderGraphNodeHandle>> inferred_edges;
+                for (const auto& writer_pair : resource_writers)
+                {
+                    const auto& resource = writer_pair.first;
+                    const auto& writers = writer_pair.second;
+                    auto readers_it = resource_readers.find(resource);
+
+                    std::set<RenderGraphNodeHandle> consumers = writers;
+                    if (readers_it != resource_readers.end())
+                    {
+                        consumers.insert(readers_it->second.begin(), readers_it->second.end());
+                    }
+
+                    for (const auto writer : writers)
+                    {
+                        for (const auto consumer : consumers)
+                        {
+                            if (writer == consumer)
+                            {
+                                continue;
+                            }
+                            inferred_edges[writer].insert(consumer);
+                        }
+                    }
+                }
+
+                for (const auto handle : nodes)
+                {
+                    const auto& node_desc = m_render_graph_nodes[handle.value];
+                    for (const auto dep : node_desc.dependency_render_graph_nodes)
+                    {
+                        if (dep.IsValid() && dep != handle)
+                        {
+                            inferred_edges[dep].insert(handle);
+                        }
+                    }
+                }
+
+                std::map<RenderGraphNodeHandle, unsigned> indegree;
+                for (auto handle : nodes)
+                {
+                    indegree[handle] = 0;
+                }
+                for (const auto& edge_pair : inferred_edges)
+                {
+                    for (const auto& to : edge_pair.second)
+                    {
+                        ++indegree[to];
+                    }
+                }
+
+                std::set<RenderGraphNodeHandle> ready;
+                for (const auto& count : indegree)
+                {
+                    if (count.second == 0)
+                    {
+                        ready.insert(count.first);
+                    }
+                }
+
+                while (!ready.empty())
+                {
+                    const auto node = *ready.begin();
+                    ready.erase(ready.begin());
+                    execution_nodes.push_back(node);
+
+                    auto edges_it = inferred_edges.find(node);
+                    if (edges_it == inferred_edges.end())
+                    {
+                        continue;
+                    }
+                    for (const auto& to : edges_it->second)
+                    {
+                        auto& count = indegree[to];
+                        if (count > 0)
+                        {
+                            --count;
+                            if (count == 0)
+                            {
+                                ready.insert(to);
+                            }
+                        }
+                    }
+                }
+
+                if (execution_nodes.size() != nodes.size())
+                {
+                    LOG_FORMAT_FLUSH("[RenderGraph][Dependency] Cycle detected in inferred dependencies. Using registration order.\n");
+                    execution_nodes = nodes;
+                }
+
+                m_cached_execution_order = std::move(execution_nodes);
+                m_cached_execution_signature = signature;
+            }
+
+            for (auto render_graph_node : m_cached_execution_order)
             {
                 ExecuteRenderGraphNode(command_list, render_graph_node, interval);
             }

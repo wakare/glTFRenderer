@@ -173,6 +173,8 @@ namespace RendererInterface
         std::set<RenderGraphNodeHandle> m_render_graph_node_handles;
 
         std::map<RenderGraphNodeHandle, RenderPassDescriptorResource> m_render_pass_descriptor_resources;
+        std::vector<RenderGraphNodeHandle> m_cached_execution_order;
+        std::size_t m_cached_execution_signature{0};
         
         std::shared_ptr<IRHITexture> m_final_color_output;
         RenderGraphTickCallback m_tick_callback;
