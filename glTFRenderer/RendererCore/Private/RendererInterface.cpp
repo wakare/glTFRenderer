@@ -644,18 +644,57 @@ namespace RendererInterface
         
         // render target binding
         bool clear_render_target = false;
+        bool clear_depth_stencil = false;
         for (const auto& render_target_info : render_graph_node_desc.draw_info.render_target_resources)
         {
             GLTF_CHECK(render_target_info.first != NULL_HANDLE);
             auto render_target = InternalResourceHandleTable::Instance().GetRenderTarget(render_target_info.first);
             begin_rendering_info.m_render_targets.push_back(render_target.get());
 
-            if (render_target_info.second.need_clear)
+            RenderPassAttachmentLoadOp load_op = render_target_info.second.load_op;
+            if (render_target_info.second.need_clear && load_op == RenderPassAttachmentLoadOp::LOAD)
             {
-                clear_render_target = true;
+                load_op = RenderPassAttachmentLoadOp::CLEAR;
+            }
+
+            RHIAttachmentLoadOp rhi_load_op = RHIAttachmentLoadOp::LOAD_OP_LOAD;
+            switch (load_op)
+            {
+            case RenderPassAttachmentLoadOp::LOAD:
+                rhi_load_op = RHIAttachmentLoadOp::LOAD_OP_LOAD;
+                break;
+            case RenderPassAttachmentLoadOp::CLEAR:
+                rhi_load_op = RHIAttachmentLoadOp::LOAD_OP_CLEAR;
+                break;
+            case RenderPassAttachmentLoadOp::DONT_CARE:
+                rhi_load_op = RHIAttachmentLoadOp::LOAD_OP_DONT_CARE;
+                break;
+            }
+
+            RHIAttachmentStoreOp rhi_store_op = RHIAttachmentStoreOp::STORE_OP_STORE;
+            switch (render_target_info.second.store_op)
+            {
+            case RenderPassAttachmentStoreOp::STORE:
+                rhi_store_op = RHIAttachmentStoreOp::STORE_OP_STORE;
+                break;
+            case RenderPassAttachmentStoreOp::DONT_CARE:
+                rhi_store_op = RHIAttachmentStoreOp::STORE_OP_DONT_CARE;
+                break;
+            }
+
+            begin_rendering_info.m_render_target_load_ops.push_back(rhi_load_op);
+            begin_rendering_info.m_render_target_store_ops.push_back(rhi_store_op);
+
+            if (rhi_load_op == RHIAttachmentLoadOp::LOAD_OP_CLEAR)
+            {
                 if (render_target_info.second.usage == RenderPassResourceUsage::DEPTH_STENCIL)
                 {
+                    clear_depth_stencil = true;
                     begin_rendering_info.enable_depth_write = true;
+                }
+                else
+                {
+                    clear_render_target = true;
                 }
             }
         }
@@ -665,6 +704,7 @@ namespace RendererInterface
         begin_rendering_info.rendering_area_width = viewport.width;
         begin_rendering_info.rendering_area_height = viewport.height;
         begin_rendering_info.clear_render_target = clear_render_target;
+        begin_rendering_info.clear_depth_stencil = clear_depth_stencil;
 
         // Bind descriptor heap
         m_resource_allocator.GetDescriptorManager().BindDescriptorContext(command_list);

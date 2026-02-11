@@ -90,6 +90,9 @@ bool DX12Utils::BeginRendering(IRHICommandList& command_list, const RHIBeginRend
     {
         return true;
     }
+
+    const bool has_load_ops = begin_rendering_info.m_render_target_load_ops.size() == render_targets.size();
+    const bool has_store_ops = begin_rendering_info.m_render_target_store_ops.size() == render_targets.size();
     
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
     
@@ -128,6 +131,24 @@ bool DX12Utils::BeginRendering(IRHICommandList& command_list, const RHIBeginRend
     for (size_t i = 0; i < render_targets.size(); ++i)
     {
         auto& render_target = dynamic_cast<const IRHITextureDescriptorAllocation&>(*render_targets[i]);
+        RHIAttachmentLoadOp load_op = RHIAttachmentLoadOp::LOAD_OP_LOAD;
+        RHIAttachmentStoreOp store_op = RHIAttachmentStoreOp::STORE_OP_STORE;
+        if (has_load_ops)
+        {
+            load_op = begin_rendering_info.m_render_target_load_ops[i];
+        }
+        else if ((render_target.GetDesc().m_view_type == RHIViewType::RVT_RTV && begin_rendering_info.clear_render_target) ||
+                 (render_target.GetDesc().m_view_type == RHIViewType::RVT_DSV && begin_rendering_info.clear_depth_stencil))
+        {
+            load_op = RHIAttachmentLoadOp::LOAD_OP_CLEAR;
+        }
+
+        if (has_store_ops)
+        {
+            store_op = begin_rendering_info.m_render_target_store_ops[i];
+        }
+        static_cast<void>(store_op);
+
         auto clear_value = render_target.m_source->GetTextureDesc().GetClearValue();
         
         auto dx_render_target_clear_value = DX12ConverterUtils::ConvertToD3DClearValue(clear_value);
@@ -138,7 +159,7 @@ bool DX12Utils::BeginRendering(IRHICommandList& command_list, const RHIBeginRend
         {
         case RHIViewType::RVT_RTV:
             {
-                if (begin_rendering_info.clear_render_target)
+                if (load_op == RHIAttachmentLoadOp::LOAD_OP_CLEAR)
                 {
                     dxCommandList->ClearRenderTargetView({handle}, dx_render_target_clear_value.Color, 1, &render_area);    
                 }   
@@ -147,7 +168,7 @@ bool DX12Utils::BeginRendering(IRHICommandList& command_list, const RHIBeginRend
 
         case RHIViewType::RVT_DSV:
             {
-                if (begin_rendering_info.enable_depth_write && begin_rendering_info.clear_depth_stencil)
+                if (begin_rendering_info.enable_depth_write && load_op == RHIAttachmentLoadOp::LOAD_OP_CLEAR)
                 {
                     dxCommandList->ClearDepthStencilView({handle}, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
                         dx_render_target_clear_value.DepthStencil.Depth, dx_depth_stencil_clear_value.DepthStencil.Stencil, 1, &render_area);

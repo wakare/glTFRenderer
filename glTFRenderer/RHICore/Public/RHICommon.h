@@ -976,6 +976,8 @@ struct RHIBeginRenderPassInfo
 struct RHIBeginRenderingInfo
 {
     std::vector<IRHITextureDescriptorAllocation*> m_render_targets;
+    std::vector<RHIAttachmentLoadOp> m_render_target_load_ops;
+    std::vector<RHIAttachmentStoreOp> m_render_target_store_ops;
     int rendering_area_offset_x{0};
     int rendering_area_offset_y{0};
     unsigned rendering_area_width {0};

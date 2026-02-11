@@ -82,6 +82,38 @@ VkAccessFlags2 GetAccessFlagFromResourceState(RHIResourceStateType state)
     return result;
 }
 
+static VkAttachmentLoadOp ConvertLoadOp(RHIAttachmentLoadOp op)
+{
+    switch (op)
+    {
+    case RHIAttachmentLoadOp::LOAD_OP_LOAD:
+        return VK_ATTACHMENT_LOAD_OP_LOAD;
+    case RHIAttachmentLoadOp::LOAD_OP_CLEAR:
+        return VK_ATTACHMENT_LOAD_OP_CLEAR;
+    case RHIAttachmentLoadOp::LOAD_OP_DONT_CARE:
+        return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    case RHIAttachmentLoadOp::LOAD_OP_NONE:
+        return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    }
+
+    return VK_ATTACHMENT_LOAD_OP_LOAD;
+}
+
+static VkAttachmentStoreOp ConvertStoreOp(RHIAttachmentStoreOp op)
+{
+    switch (op)
+    {
+    case RHIAttachmentStoreOp::STORE_OP_STORE:
+        return VK_ATTACHMENT_STORE_OP_STORE;
+    case RHIAttachmentStoreOp::STORE_OP_DONT_CARE:
+        return VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    case RHIAttachmentStoreOp::STORE_OP_NONE:
+        return VK_ATTACHMENT_STORE_OP_NONE;
+    }
+
+    return VK_ATTACHMENT_STORE_OP_STORE;
+}
+
 bool VulkanUtils::InitGraphicsAPI()
 {
     return VolkUtils::InitVolk();
@@ -177,6 +209,9 @@ bool VulkanUtils::BeginRendering(IRHICommandList& command_list, const RHIBeginRe
 
     std::vector<VkRenderingAttachmentInfo> color_attachment_infos;
     std::vector<VkRenderingAttachmentInfo> depth_attachment_infos;
+    const bool has_load_ops = begin_rendering_info.m_render_target_load_ops.size() == begin_rendering_info.m_render_targets.size();
+    const bool has_store_ops = begin_rendering_info.m_render_target_store_ops.size() == begin_rendering_info.m_render_targets.size();
+    size_t render_target_index = 0;
     for (auto& render_target : begin_rendering_info.m_render_targets)
     {
         auto& vk_texture_allocation = dynamic_cast<const VKTextureDescriptorAllocation&>(*render_target);
@@ -202,13 +237,25 @@ bool VulkanUtils::BeginRendering(IRHICommandList& command_list, const RHIBeginRe
                 };
         }
 
-        attachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-        if ((render_target_view && begin_rendering_info.clear_render_target) ||
-            (!render_target_view && begin_rendering_info.clear_depth_stencil))
+        RHIAttachmentLoadOp load_op = RHIAttachmentLoadOp::LOAD_OP_LOAD;
+        RHIAttachmentStoreOp store_op = RHIAttachmentStoreOp::STORE_OP_STORE;
+        if (has_load_ops)
         {
-            attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+            load_op = begin_rendering_info.m_render_target_load_ops[render_target_index];
         }
-        attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        else if ((render_target_view && begin_rendering_info.clear_render_target) ||
+                 (!render_target_view && begin_rendering_info.clear_depth_stencil))
+        {
+            load_op = RHIAttachmentLoadOp::LOAD_OP_CLEAR;
+        }
+
+        if (has_store_ops)
+        {
+            store_op = begin_rendering_info.m_render_target_store_ops[render_target_index];
+        }
+
+        attachment.loadOp = ConvertLoadOp(load_op);
+        attachment.storeOp = ConvertStoreOp(store_op);
 
         if (render_target_view)
         {
@@ -218,6 +265,8 @@ bool VulkanUtils::BeginRendering(IRHICommandList& command_list, const RHIBeginRe
         {
             depth_attachment_infos.push_back(attachment);
         }
+
+        ++render_target_index;
     }
 
     VkRenderingInfo rendering_info {.sType = VK_STRUCTURE_TYPE_RENDERING_INFO};

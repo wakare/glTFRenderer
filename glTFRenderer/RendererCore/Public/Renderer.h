@@ -187,11 +187,26 @@ namespace RendererInterface
         DEPTH_STENCIL,
     };
 
+    enum class RenderPassAttachmentLoadOp
+    {
+        LOAD,
+        CLEAR,
+        DONT_CARE,
+    };
+
+    enum class RenderPassAttachmentStoreOp
+    {
+        STORE,
+        DONT_CARE,
+    };
+
     struct RenderTargetBindingDesc
     {
         PixelFormat format;
         RenderPassResourceUsage usage;
         bool need_clear;
+        RenderPassAttachmentLoadOp load_op{RenderPassAttachmentLoadOp::LOAD};
+        RenderPassAttachmentStoreOp store_op{RenderPassAttachmentStoreOp::STORE};
     };
     
     struct RenderPassDesc
