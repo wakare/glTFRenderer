@@ -21,7 +21,7 @@ namespace RendererInterface
 {
     RenderWindow::RenderWindow(const RenderWindowDesc& desc)
         : m_desc(desc)
-        , m_handle(0)
+        , m_handle(NULL_HANDLE)
         , m_hwnd(nullptr)
     {
         glTFWindow::Get().SetWidth(desc.width);
@@ -275,14 +275,62 @@ namespace RendererInterface
 
     TextureHandle ResourceOperator::CreateTexture(const TextureDesc& desc)
     {
-        return 0;
+        const RHIDataFormat rhi_format = RendererInterfaceRHIConverter::ConvertToRHIFormat(desc.format);
+        GLTF_CHECK(rhi_format != RHIDataFormat::UNKNOWN);
+
+        RHITextureClearValue clear_value{};
+        clear_value.clear_format = rhi_format;
+        clear_value.clear_color[0] = 0.0f;
+        clear_value.clear_color[1] = 0.0f;
+        clear_value.clear_color[2] = 0.0f;
+        clear_value.clear_color[3] = 0.0f;
+
+        RHITextureDesc texture_desc(
+            "runtime_texture",
+            desc.width,
+            desc.height,
+            rhi_format,
+            static_cast<RHIResourceUsageFlags>(RUF_ALLOW_SRV | RUF_TRANSFER_DST),
+            clear_value);
+
+        std::shared_ptr<IRHITextureAllocation> texture_allocation = nullptr;
+        bool created = false;
+        if (!desc.data.empty())
+        {
+            const bool has_data = texture_desc.SetTextureData(desc.data.data(), desc.data.size());
+            GLTF_CHECK(has_data);
+            created = m_resource_manager->GetMemoryManager().AllocateTextureMemoryAndUpload(
+                m_resource_manager->GetDevice(),
+                m_resource_manager->GetCommandListForRecordPassCommand(),
+                m_resource_manager->GetMemoryManager(),
+                texture_desc,
+                texture_allocation);
+        }
+        else
+        {
+            created = m_resource_manager->GetMemoryManager().AllocateTextureMemory(
+                m_resource_manager->GetDevice(),
+                texture_desc,
+                texture_allocation);
+        }
+        GLTF_CHECK(created);
+
+        texture_allocation->m_texture->Transition(
+            m_resource_manager->GetCommandListForRecordPassCommand(),
+            RHIResourceStateType::STATE_ALL_SHADER_RESOURCE);
+
+        return InternalResourceHandleTable::Instance().RegisterTexture(texture_allocation);
     }
 
     TextureHandle ResourceOperator::CreateTexture(const TextureFileDesc& desc)
     {
         const std::wstring convert_path = to_wide_string(desc.uri);
         ImageLoadResult result;
-        RETURN_IF_FALSE(glTFImageIOUtil::Instance().LoadImageByFilename(convert_path.c_str(), result))
+        if (!glTFImageIOUtil::Instance().LoadImageByFilename(convert_path.c_str(), result))
+        {
+            GLTF_CHECK(false);
+            return NULL_HANDLE;
+        }
         RHITextureDesc texture_desc{};
         texture_desc.InitWithLoadedData(result);
 
@@ -407,7 +455,7 @@ namespace RendererInterface
 
     RenderGraphNodeHandle RenderGraph::CreateRenderGraphNode(const RenderGraphNodeDesc& render_graph_node_desc)
     {
-        auto result = m_render_graph_nodes.size();
+        RenderGraphNodeHandle result{static_cast<unsigned>(m_render_graph_nodes.size())};
         m_render_graph_nodes.push_back(render_graph_node_desc);
         return result;
     }
@@ -476,6 +524,8 @@ namespace RendererInterface
 
     bool RenderGraph::RegisterRenderGraphNode(RenderGraphNodeHandle render_graph_node_handle)
     {
+        GLTF_CHECK(render_graph_node_handle.IsValid());
+        GLTF_CHECK(render_graph_node_handle.value < m_render_graph_nodes.size());
         GLTF_CHECK(!m_render_graph_node_handles.contains(render_graph_node_handle));
         m_render_graph_node_handles.insert(render_graph_node_handle);
         return true;
@@ -483,6 +533,7 @@ namespace RendererInterface
 
     bool RenderGraph::RemoveRenderGraphNode(RenderGraphNodeHandle render_graph_node_handle)
     {
+        GLTF_CHECK(render_graph_node_handle.IsValid());
         GLTF_CHECK(m_render_graph_node_handles.contains(render_graph_node_handle));
         m_render_graph_node_handles.erase(render_graph_node_handle);
         return true;
@@ -557,7 +608,9 @@ namespace RendererInterface
 
     void RenderGraph::ExecuteRenderGraphNode(IRHICommandList& command_list, RenderGraphNodeHandle render_graph_node_handle, unsigned long long interval)
     {
-        auto& render_graph_node_desc = m_render_graph_nodes[render_graph_node_handle];
+        GLTF_CHECK(render_graph_node_handle.IsValid());
+        GLTF_CHECK(render_graph_node_handle.value < m_render_graph_nodes.size());
+        auto& render_graph_node_desc = m_render_graph_nodes[render_graph_node_handle.value];
         if (render_graph_node_desc.pre_render_callback)
         {
             render_graph_node_desc.pre_render_callback(interval);
@@ -593,6 +646,7 @@ namespace RendererInterface
         bool clear_render_target = false;
         for (const auto& render_target_info : render_graph_node_desc.draw_info.render_target_resources)
         {
+            GLTF_CHECK(render_target_info.first != NULL_HANDLE);
             auto render_target = InternalResourceHandleTable::Instance().GetRenderTarget(render_target_info.first);
             begin_rendering_info.m_render_targets.push_back(render_target.get());
 
@@ -633,6 +687,7 @@ namespace RendererInterface
         
         for (const auto& buffer : render_graph_node_desc.draw_info.buffer_resources)
         {
+            GLTF_CHECK(buffer.second.buffer_handle != NULL_HANDLE);
             auto& root_signature_allocation = render_pass->GetRootSignatureAllocation(buffer.first);
             auto buffer_handle = buffer.second.buffer_handle;
             auto buffer_allocation = RendererInterface::InternalResourceHandleTable::Instance().GetBuffer(buffer_handle);
@@ -682,6 +737,7 @@ namespace RendererInterface
 
         for (const auto& texture  :render_graph_node_desc.draw_info.texture_resources)
         {
+            GLTF_CHECK(!texture.second.textures.empty());
             const bool is_texture_table = texture.second.textures.size() > 1;
             auto& root_signature_allocation = render_pass->GetRootSignatureAllocation(texture.first);
             
@@ -738,6 +794,7 @@ namespace RendererInterface
 
         for (const auto& render_target_pair  :render_graph_node_desc.draw_info.render_target_texture_resources)
         {
+            GLTF_CHECK(!render_target_pair.second.render_target_texture.empty());
             const bool is_texture_table = render_target_pair.second.render_target_texture.size() > 1;
             if (!render_pass_descriptor_resource.m_texture_descriptors.contains(render_target_pair.first))
             {

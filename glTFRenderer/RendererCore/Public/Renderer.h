@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <limits>
 #include <map>
 #include <memory>
 #include <optional>
@@ -11,20 +12,59 @@
 
 namespace RendererInterface
 {
-     // resource type handle define
-    typedef unsigned ShaderHandle;
-    typedef unsigned TextureHandle;
-    typedef unsigned BufferHandle;
-    typedef unsigned IndexedBufferHandle;
-    typedef unsigned RenderTargetHandle;
-    
-    typedef unsigned RenderDeviceHandle;
-    typedef unsigned RenderPassHandle;
-    typedef unsigned RenderWindowHandle;
-    typedef unsigned RenderGraphNodeHandle;
-    typedef unsigned RenderSceneHandle;
+    struct NullHandle_t
+    {
+        explicit constexpr NullHandle_t() = default;
+    };
 
-    #define NULL_HANDLE UINT_MAX
+    inline constexpr NullHandle_t NULL_HANDLE{};
+
+    template <typename Tag>
+    struct Handle
+    {
+        unsigned value{InvalidValue()};
+
+        constexpr Handle() = default;
+        constexpr Handle(NullHandle_t) : value(InvalidValue()) {}
+        explicit constexpr Handle(unsigned v) : value(v) {}
+
+        static constexpr unsigned InvalidValue() { return (std::numeric_limits<unsigned>::max)(); }
+        static constexpr Handle Invalid() { return Handle(InvalidValue()); }
+        constexpr bool IsValid() const { return value != InvalidValue(); }
+
+        friend constexpr bool operator==(Handle lhs, Handle rhs) { return lhs.value == rhs.value; }
+        friend constexpr bool operator!=(Handle lhs, Handle rhs) { return lhs.value != rhs.value; }
+        friend constexpr bool operator<(Handle lhs, Handle rhs) { return lhs.value < rhs.value; }
+
+        friend constexpr bool operator==(Handle lhs, NullHandle_t) { return !lhs.IsValid(); }
+        friend constexpr bool operator!=(Handle lhs, NullHandle_t) { return lhs.IsValid(); }
+        friend constexpr bool operator==(NullHandle_t, Handle rhs) { return !rhs.IsValid(); }
+        friend constexpr bool operator!=(NullHandle_t, Handle rhs) { return rhs.IsValid(); }
+    };
+
+    struct ShaderHandleTag {};
+    struct TextureHandleTag {};
+    struct BufferHandleTag {};
+    struct IndexedBufferHandleTag {};
+    struct RenderTargetHandleTag {};
+    struct RenderDeviceHandleTag {};
+    struct RenderPassHandleTag {};
+    struct RenderWindowHandleTag {};
+    struct RenderGraphNodeHandleTag {};
+    struct RenderSceneHandleTag {};
+
+    // resource type handle define
+    using ShaderHandle = Handle<ShaderHandleTag>;
+    using TextureHandle = Handle<TextureHandleTag>;
+    using BufferHandle = Handle<BufferHandleTag>;
+    using IndexedBufferHandle = Handle<IndexedBufferHandleTag>;
+    using RenderTargetHandle = Handle<RenderTargetHandleTag>;
+    
+    using RenderDeviceHandle = Handle<RenderDeviceHandleTag>;
+    using RenderPassHandle = Handle<RenderPassHandleTag>;
+    using RenderWindowHandle = Handle<RenderWindowHandleTag>;
+    using RenderGraphNodeHandle = Handle<RenderGraphNodeHandleTag>;
+    using RenderSceneHandle = Handle<RenderSceneHandleTag>;
     
     enum ShaderType
     {
@@ -205,7 +245,7 @@ namespace RendererInterface
         BufferHandle vertex_buffer_handle;
 
         // Index buffer is optional (only necessary in DrawIndexed** command)
-        BufferHandle index_buffer_handle;
+        IndexedBufferHandle index_buffer_handle;
     };
 
     struct DrawIndexedCommandParameter
@@ -335,3 +375,5 @@ namespace RendererInterface
         std::string scene_file_name;
     };
 }
+
+using RendererInterface::NULL_HANDLE;
