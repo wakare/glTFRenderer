@@ -5,6 +5,41 @@
 #include "RHIResourceFactoryImpl.hpp"
 #include "RHIInterface/IRHIPipelineStateObject.h"
 
+namespace
+{
+    RHICullMode ConvertToRHICullMode(RendererInterface::CullMode mode)
+    {
+        switch (mode)
+        {
+        case RendererInterface::CullMode::NONE:
+            return RHICullMode::NONE;
+        case RendererInterface::CullMode::CW:
+            return RHICullMode::CW;
+        case RendererInterface::CullMode::CCW:
+            return RHICullMode::CCW;
+        }
+
+        GLTF_CHECK(false);
+        return RHICullMode::NONE;
+    }
+
+    RHIDepthStencilMode ConvertToRHIDepthStencilMode(RendererInterface::DepthStencilMode mode)
+    {
+        switch (mode)
+        {
+        case RendererInterface::DepthStencilMode::DEPTH_READ:
+            return RHIDepthStencilMode::DEPTH_READ;
+        case RendererInterface::DepthStencilMode::DEPTH_WRITE:
+            return RHIDepthStencilMode::DEPTH_WRITE;
+        case RendererInterface::DepthStencilMode::DEPTH_DONT_CARE:
+            return RHIDepthStencilMode::DEPTH_DONT_CARE;
+        }
+
+        GLTF_CHECK(false);
+        return RHIDepthStencilMode::DEPTH_DONT_CARE;
+    }
+}
+
 RenderPass::RenderPass(RendererInterface::RenderPassDesc desc)
     : m_desc(std::move(desc))
 {
@@ -62,8 +97,8 @@ bool RenderPass::InitRenderPass(ResourceManager& resource_manager)
         graphics_pipeline_state_object.BindRenderTargetFormats(render_target_formats);
     }
 
-    m_pipeline_state_object->SetCullMode(RHICullMode::NONE);
-    m_pipeline_state_object->SetDepthStencilState(RHIDepthStencilMode::DEPTH_WRITE);
+    m_pipeline_state_object->SetCullMode(ConvertToRHICullMode(m_desc.render_state.cull_mode));
+    m_pipeline_state_object->SetDepthStencilState(ConvertToRHIDepthStencilMode(m_desc.render_state.depth_stencil_mode));
     
     RETURN_IF_FALSE(m_pipeline_state_object->InitPipelineStateObject(resource_manager.GetDevice(),
             *m_root_signature,
@@ -89,6 +124,11 @@ IRHIRootSignature& RenderPass::GetRootSignature()
 RendererInterface::RenderPassType RenderPass::GetRenderPassType() const
 {
     return m_desc.type;
+}
+
+RendererInterface::PrimitiveTopology RenderPass::GetPrimitiveTopology() const
+{
+    return m_desc.render_state.primitive_topology;
 }
 
 const RootSignatureAllocation& RenderPass::GetRootSignatureAllocation(const std::string& name) const

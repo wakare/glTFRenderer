@@ -39,6 +39,9 @@ namespace RendererInterface
 
         TextureHandle RegisterTexture(std::shared_ptr<IRHITextureAllocation> texture);
         std::shared_ptr<IRHITextureAllocation> GetTexture(TextureHandle handle) const;
+
+        void ClearRuntimeResources();
+        void ClearAll();
         
         
         static InternalResourceHandleTable& Instance();

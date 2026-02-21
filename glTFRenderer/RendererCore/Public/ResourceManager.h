@@ -44,6 +44,7 @@ public:
     IRHIMemoryManager& GetMemoryManager();
 
     void WaitFrameRenderFinished();
+    void WaitGPUIdle();
     IRHICommandList& GetCommandListForRecordPassCommand(RendererInterface::RenderPassHandle render_pass_handle = NULL_HANDLE);
 
     IRHICommandQueue& GetCommandQueue();

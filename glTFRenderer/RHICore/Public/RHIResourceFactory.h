@@ -1,4 +1,5 @@
 #pragma once
+#include <algorithm>
 #include <memory>
 
 #include "RendererCommon.h"
@@ -18,6 +19,7 @@ public:
     }
     
     static bool CleanupResources(IRHIMemoryManager& memory_manager);
+    static bool ReleaseResource(IRHIMemoryManager& memory_manager, const std::shared_ptr<IRHIResource>& resource);
     static bool AddResource(const std::shared_ptr<IRHIResource>& resource);
     
 protected:
@@ -46,4 +48,21 @@ inline bool RHIResourceFactory::AddResource(const std::shared_ptr<IRHIResource>&
 {
     resources.push_back(resource);
     return true;
+}
+
+inline bool RHIResourceFactory::ReleaseResource(IRHIMemoryManager& memory_manager, const std::shared_ptr<IRHIResource>& resource)
+{
+    if (!resource)
+    {
+        return true;
+    }
+
+    const auto removed = std::remove_if(resources.begin(), resources.end(),
+        [&resource](const std::shared_ptr<IRHIResource>& tracked_resource)
+        {
+            return tracked_resource.get() == resource.get();
+        });
+    resources.erase(removed, resources.end());
+
+    return resource->Release(memory_manager);
 }

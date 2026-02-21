@@ -1,5 +1,6 @@
 #pragma once
 
+#include <deque>
 #include <functional>
 #include <set>
 #include <glm/glm/glm.hpp>
@@ -17,6 +18,8 @@ class IRHIDescriptorManager;
 class IRHIDevice;
 class IRHISwapChain;
 class IRHITextureDescriptorAllocation;
+class IRHIMemoryManager;
+class IRHIResource;
 class IRHICommandList;
 class IRHICommandQueue;
 class RenderPass;
@@ -84,11 +87,13 @@ namespace RendererInterface
         IRHISwapChain&      GetCurrentSwapchain() const;
         IRHICommandList&    GetCommandListForRecordPassCommand(RenderPassHandle pass = NULL_HANDLE) const;
         IRHIDescriptorManager& GetDescriptorManager() const;
+        IRHIMemoryManager&  GetMemoryManager() const;
         
         IRHITextureDescriptorAllocation& GetCurrentSwapchainRT() const;
 
         void UploadBufferData(BufferHandle handle, const BufferUploadDesc& upload_desc);
         void WaitFrameRenderFinished();
+        bool CleanupAllResources(bool clear_window_handles = false);
         
     protected:
         std::shared_ptr<ResourceManager> m_resource_manager;
@@ -129,9 +134,15 @@ namespace RendererInterface
             std::map<RenderTargetHandle, RenderTargetBindingDesc> render_targets;
             std::vector<RenderTargetTextureBindingDesc> sampled_render_targets;
             std::map<std::string, BufferBindingDesc> buffer_resources;
+            std::map<std::string, TextureBindingDesc> texture_resources;
             std::vector<std::shared_ptr<RendererModuleBase>> modules;
 
+            std::vector<RenderExecuteCommand> execute_commands;
             std::optional<RenderExecuteCommand> execute_command;
+
+            RenderStateDesc render_state{};
+            std::vector<RenderGraphNodeHandle> dependency_render_graph_nodes;
+            std::function<void(unsigned long long)> pre_render_callback;
 
             int viewport_width{-1};
             int viewport_height{-1};
@@ -154,13 +165,30 @@ namespace RendererInterface
         void RegisterTickCallback(const RenderGraphTickCallback& callback);
 
     protected:
+        struct DeferredReleaseEntry
+        {
+            unsigned long long retire_frame{0};
+            std::vector<std::shared_ptr<IRHIResource>> resources;
+        };
+
         struct RenderPassDescriptorResource
         {
             std::map<std::string, std::shared_ptr<IRHIBufferDescriptorAllocation>> m_buffer_descriptors;
             std::map<std::string, std::shared_ptr<IRHITextureDescriptorAllocation>> m_texture_descriptors;
             std::map<std::string, std::shared_ptr<IRHIDescriptorTable>> m_texture_descriptor_tables;
             std::map<std::string, std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>>> m_texture_descriptor_table_source_data;
+            std::map<std::string, BufferBindingDesc> m_cached_buffer_bindings;
+            std::map<std::string, TextureBindingDesc> m_cached_texture_bindings;
+            std::map<std::string, RenderTargetTextureBindingDesc> m_cached_render_target_texture_bindings;
         };
+
+        void EnqueueResourceForDeferredRelease(const std::shared_ptr<IRHIResource>& resource);
+        void EnqueueBufferDescriptorForDeferredRelease(RenderPassDescriptorResource& descriptor_resource, const std::string& binding_name);
+        void EnqueueTextureDescriptorForDeferredRelease(RenderPassDescriptorResource& descriptor_resource, const std::string& binding_name);
+        void ReleaseRenderPassDescriptorResource(RenderPassDescriptorResource& descriptor_resource);
+        void PruneDescriptorResources(RenderPassDescriptorResource& descriptor_resource, const RenderPassDrawDesc& draw_info);
+        void CollectUnusedRenderPassDescriptorResources();
+        void FlushDeferredResourceReleases(bool force_release_all);
         
         void ExecuteRenderGraphNode(IRHICommandList& command_list, RenderGraphNodeHandle render_graph_node_handle, unsigned long long interval);
         void CloseCurrentCommandListAndExecute(IRHICommandList& command_list, const RHIExecuteCommandListContext& context, bool wait);
@@ -173,8 +201,11 @@ namespace RendererInterface
         std::set<RenderGraphNodeHandle> m_render_graph_node_handles;
 
         std::map<RenderGraphNodeHandle, RenderPassDescriptorResource> m_render_pass_descriptor_resources;
+        std::map<RenderGraphNodeHandle, unsigned long long> m_render_pass_descriptor_last_used_frame;
+        std::deque<DeferredReleaseEntry> m_deferred_release_entries;
         std::vector<RenderGraphNodeHandle> m_cached_execution_order;
         std::size_t m_cached_execution_signature{0};
+        unsigned long long m_frame_index{0};
         
         std::shared_ptr<IRHITexture> m_final_color_output;
         RenderGraphTickCallback m_tick_callback;

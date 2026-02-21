@@ -119,6 +119,24 @@ std::shared_ptr<IRHITextureAllocation> RendererInterface::InternalResourceHandle
     return m_textures.at(handle);
 }
 
+void RendererInterface::InternalResourceHandleTable::ClearRuntimeResources()
+{
+    m_shaders.clear();
+    m_render_targets.clear();
+    m_render_passes.clear();
+    m_buffers.clear();
+    m_render_scene_graphs.clear();
+    m_indexed_buffer_views.clear();
+    m_indexed_buffers.clear();
+    m_textures.clear();
+}
+
+void RendererInterface::InternalResourceHandleTable::ClearAll()
+{
+    ClearRuntimeResources();
+    m_windows.clear();
+}
+
 RendererInterface::InternalResourceHandleTable& RendererInterface::InternalResourceHandleTable::Instance()
 {
     static InternalResourceHandleTable s_internal_resource_handle_table;

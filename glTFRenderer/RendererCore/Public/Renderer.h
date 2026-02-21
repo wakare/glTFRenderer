@@ -85,6 +85,10 @@ namespace RendererInterface
     {
         RGBA8_UNORM,
         RGBA16_UNORM,
+        RGBA16_FLOAT,
+        R32_FLOAT,
+        R16_FLOAT,
+        R8_UNORM,
         D32,
     };
 
@@ -124,6 +128,7 @@ namespace RendererInterface
         unsigned height;
         RenderTargetClearValue clear;
         ResourceUsage usage;
+        bool enable_mipmaps{false};
     };
     
     struct TextureDesc
@@ -131,7 +136,8 @@ namespace RendererInterface
         PixelFormat format;
         unsigned width;
         unsigned height;
-        std::vector<char> data;        
+        std::vector<char> data;
+        bool generate_mipmaps{false};
     };
 
     struct TextureFileDesc
@@ -200,6 +206,40 @@ namespace RendererInterface
         DONT_CARE,
     };
 
+    enum class CullMode
+    {
+        NONE,
+        CW,
+        CCW,
+    };
+
+    enum class DepthStencilMode
+    {
+        DEPTH_READ,
+        DEPTH_WRITE,
+        DEPTH_DONT_CARE,
+    };
+
+    enum class PrimitiveTopology
+    {
+        TRIANGLE_LIST,
+    };
+
+    enum class BlendMode
+    {
+        BLEND_OPAQUE,
+        BLEND_ALPHA,
+        BLEND_ADDITIVE,
+    };
+
+    struct RenderStateDesc
+    {
+        CullMode cull_mode{CullMode::NONE};
+        DepthStencilMode depth_stencil_mode{DepthStencilMode::DEPTH_WRITE};
+        PrimitiveTopology primitive_topology{PrimitiveTopology::TRIANGLE_LIST};
+        BlendMode blend_mode{BlendMode::BLEND_OPAQUE};
+    };
+
     struct RenderTargetBindingDesc
     {
         PixelFormat format;
@@ -213,6 +253,7 @@ namespace RendererInterface
     {
         RenderPassType type{};
         std::map<ShaderType, ShaderHandle> shaders;
+        RenderStateDesc render_state{};
 
         // resource desc
         std::vector<RenderTargetBindingDesc> render_target_bindings;

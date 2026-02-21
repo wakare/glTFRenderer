@@ -3,6 +3,7 @@
 #include "InternalResourceHandleTable.h"
 #include "RenderPass.h"
 #include "RHIResourceFactoryImpl.hpp"
+#include "RHIUtils.h"
 #include "RHIInterface/IRHICommandAllocator.h"
 #include "RHIInterface/IRHICommandList.h"
 #include "RHIInterface/IRHIRenderTargetManager.h"
@@ -20,6 +21,18 @@ RHIDataFormat RendererInterfaceRHIConverter::ConvertToRHIFormat(RendererInterfac
     
     case RendererInterface::RGBA16_UNORM:
         return RHIDataFormat::R16G16B16A16_UNORM;
+
+    case RendererInterface::RGBA16_FLOAT:
+        return RHIDataFormat::R16G16B16A16_FLOAT;
+
+    case RendererInterface::R32_FLOAT:
+        return RHIDataFormat::R32_FLOAT;
+
+    case RendererInterface::R16_FLOAT:
+        return RHIDataFormat::R16_FLOAT;
+
+    case RendererInterface::R8_UNORM:
+        return RHIDataFormat::R8_UNORM;
 
     case RendererInterface::D32:
         return RHIDataFormat::D32_FLOAT;
@@ -271,6 +284,10 @@ RendererInterface::RenderTargetHandle ResourceManager::CreateRenderTarget(const 
     {
         usage = RHIResourceUsageFlags(usage | RUF_ALLOW_UAV);
     }
+    if (desc.enable_mipmaps)
+    {
+        usage = RHIResourceUsageFlags(usage | RUF_CONTAINS_MIPMAP);
+    }
     
     RHITextureDesc tex_desc(desc.name, desc.width, desc.height, format, usage, clear_value);
     auto render_target_descriptor = m_render_target_manager->CreateRenderTarget(*m_device, *m_memory_manager, tex_desc, format);
@@ -318,6 +335,18 @@ void ResourceManager::WaitFrameRenderFinished()
     }
     
     RHIUtilInstanceManager::Instance().ResetCommandAllocator(command_allocator);
+}
+
+void ResourceManager::WaitGPUIdle()
+{
+    if (m_swap_chain && m_device)
+    {
+        m_swap_chain->HostWaitPresentFinished(*m_device);
+    }
+    if (m_command_queue)
+    {
+        RHIUtilInstanceManager::Instance().WaitCommandQueueIdle(*m_command_queue);
+    }
 }
 
 IRHICommandList& ResourceManager::GetCommandListForRecordPassCommand(

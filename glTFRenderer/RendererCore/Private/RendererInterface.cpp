@@ -147,6 +147,41 @@ namespace RendererInterface
 
             return access;
         }
+
+        bool IsSameBufferBindingDesc(const BufferBindingDesc& lhs, const BufferBindingDesc& rhs)
+        {
+            return lhs.buffer_handle == rhs.buffer_handle &&
+                lhs.binding_type == rhs.binding_type &&
+                lhs.stride == rhs.stride &&
+                lhs.count == rhs.count &&
+                lhs.is_structured_buffer == rhs.is_structured_buffer &&
+                lhs.use_count_buffer == rhs.use_count_buffer &&
+                lhs.count_buffer_offset == rhs.count_buffer_offset;
+        }
+
+        bool IsSameTextureBindingDesc(const TextureBindingDesc& lhs, const TextureBindingDesc& rhs)
+        {
+            return lhs.type == rhs.type && lhs.textures == rhs.textures;
+        }
+
+        bool IsSameRenderTargetTextureBindingDesc(const RenderTargetTextureBindingDesc& lhs, const RenderTargetTextureBindingDesc& rhs)
+        {
+            return lhs.type == rhs.type &&
+                lhs.name == rhs.name &&
+                lhs.render_target_texture == rhs.render_target_texture;
+        }
+
+        RHIPrimitiveTopologyType ConvertToRHIPrimitiveTopology(PrimitiveTopology topology)
+        {
+            switch (topology)
+            {
+            case PrimitiveTopology::TRIANGLE_LIST:
+                return RHIPrimitiveTopologyType::TRIANGLELIST;
+            }
+
+            GLTF_CHECK(false);
+            return RHIPrimitiveTopologyType::TRIANGLELIST;
+        }
     }
 
     RenderWindow::RenderWindow(const RenderWindowDesc& desc)
@@ -420,7 +455,7 @@ namespace RendererInterface
             desc.width,
             desc.height,
             rhi_format,
-            static_cast<RHIResourceUsageFlags>(RUF_ALLOW_SRV | RUF_TRANSFER_DST),
+            static_cast<RHIResourceUsageFlags>(RUF_ALLOW_SRV | RUF_TRANSFER_DST | (desc.generate_mipmaps ? RUF_CONTAINS_MIPMAP : RUF_NONE)),
             clear_value);
 
         std::shared_ptr<IRHITextureAllocation> texture_allocation = nullptr;
@@ -566,6 +601,11 @@ namespace RendererInterface
         return m_resource_manager->GetMemoryManager().GetDescriptorManager();
     }
 
+    IRHIMemoryManager& ResourceOperator::GetMemoryManager() const
+    {
+        return m_resource_manager->GetMemoryManager();
+    }
+
     IRHICommandQueue& ResourceOperator::GetCommandQueue() const
     {
         return m_resource_manager->GetCommandQueue();
@@ -574,6 +614,37 @@ namespace RendererInterface
     IRHISwapChain& ResourceOperator::GetCurrentSwapchain() const
     {
         return m_resource_manager->GetSwapChain();
+    }
+
+    bool ResourceOperator::CleanupAllResources(bool clear_window_handles)
+    {
+        if (!m_resource_manager)
+        {
+            return true;
+        }
+
+        m_resource_manager->WaitFrameRenderFinished();
+        m_resource_manager->WaitGPUIdle();
+
+        auto& memory_manager = m_resource_manager->GetMemoryManager();
+        const bool cleaned_resources = RHIResourceFactory::CleanupResources(memory_manager);
+        GLTF_CHECK(cleaned_resources);
+        const bool released_allocations = memory_manager.ReleaseAllResource();
+        GLTF_CHECK(released_allocations);
+
+        if (clear_window_handles)
+        {
+            InternalResourceHandleTable::Instance().ClearAll();
+        }
+        else
+        {
+            InternalResourceHandleTable::Instance().ClearRuntimeResources();
+        }
+
+        m_resource_manager.reset();
+        m_render_passes.clear();
+
+        return cleaned_resources && released_allocations;
     }
 
     RenderGraph::RenderGraph(ResourceOperator& allocator, RenderWindow& window)
@@ -594,6 +665,7 @@ namespace RendererInterface
     {
         RendererInterface::RenderPassDesc render_pass_desc{};
         render_pass_desc.type = setup_info.render_pass_type;
+        render_pass_desc.render_state = setup_info.render_state;
     
         for (const auto& shader_info : setup_info.shader_setup_infos)
         {
@@ -631,13 +703,18 @@ namespace RendererInterface
         {
             render_pass_draw_desc.render_target_texture_resources[render_target.name] = render_target;
         }
+
+        render_pass_draw_desc.texture_resources.insert(setup_info.texture_resources.begin(), setup_info.texture_resources.end());
+        render_pass_draw_desc.buffer_resources.insert(setup_info.buffer_resources.begin(), setup_info.buffer_resources.end());
     
         if (setup_info.execute_command.has_value())
         {
             render_pass_draw_desc.execute_commands.push_back(setup_info.execute_command.value());    
         }
-
-        render_pass_draw_desc.buffer_resources.insert(setup_info.buffer_resources.begin(), setup_info.buffer_resources.end());
+        render_pass_draw_desc.execute_commands.insert(
+            render_pass_draw_desc.execute_commands.end(),
+            setup_info.execute_commands.begin(),
+            setup_info.execute_commands.end());
 
         render_pass_desc.viewport_width = setup_info.viewport_width;
         render_pass_desc.viewport_height = setup_info.viewport_height;
@@ -647,6 +724,8 @@ namespace RendererInterface
         RendererInterface::RenderGraphNodeDesc render_graph_node_desc{};
         render_graph_node_desc.draw_info = render_pass_draw_desc;
         render_graph_node_desc.render_pass_handle = render_pass_handle;
+        render_graph_node_desc.dependency_render_graph_nodes = setup_info.dependency_render_graph_nodes;
+        render_graph_node_desc.pre_render_callback = setup_info.pre_render_callback;
 
         auto render_graph_node_handle = CreateRenderGraphNode(render_graph_node_desc);
         return render_graph_node_handle;
@@ -666,6 +745,17 @@ namespace RendererInterface
         GLTF_CHECK(render_graph_node_handle.IsValid());
         GLTF_CHECK(m_render_graph_node_handles.contains(render_graph_node_handle));
         m_render_graph_node_handles.erase(render_graph_node_handle);
+
+        auto descriptor_it = m_render_pass_descriptor_resources.find(render_graph_node_handle);
+        if (descriptor_it != m_render_pass_descriptor_resources.end())
+        {
+            ReleaseRenderPassDescriptorResource(descriptor_it->second);
+            m_render_pass_descriptor_resources.erase(descriptor_it);
+        }
+        m_render_pass_descriptor_last_used_frame.erase(render_graph_node_handle);
+
+        m_cached_execution_signature = 0;
+        m_cached_execution_order.clear();
         return true;
     }
 
@@ -682,6 +772,8 @@ namespace RendererInterface
             }
 
             m_resource_allocator.WaitFrameRenderFinished();
+            ++m_frame_index;
+            FlushDeferredResourceReleases(false);
             
             auto& command_list = m_resource_allocator.GetCommandListForRecordPassCommand();
             // Wait current frame available
@@ -981,6 +1073,8 @@ namespace RendererInterface
                 ExecuteRenderGraphNode(command_list, render_graph_node, interval);
             }
 
+            CollectUnusedRenderPassDescriptorResources();
+
             if (!m_render_graph_node_handles.empty())
             {
                 auto src = m_final_color_output;
@@ -1025,6 +1119,243 @@ namespace RendererInterface
         m_tick_callback = callback;
     }
 
+    void RenderGraph::EnqueueResourceForDeferredRelease(const std::shared_ptr<IRHIResource>& resource)
+    {
+        if (!resource)
+        {
+            return;
+        }
+
+        const unsigned delay_frame = (std::max)(2u, m_resource_allocator.GetCurrentSwapchain().GetBackBufferCount());
+        if (!m_deferred_release_entries.empty() && m_deferred_release_entries.back().retire_frame == m_frame_index + delay_frame)
+        {
+            m_deferred_release_entries.back().resources.push_back(resource);
+            return;
+        }
+
+        DeferredReleaseEntry entry{};
+        entry.retire_frame = m_frame_index + delay_frame;
+        entry.resources.push_back(resource);
+        m_deferred_release_entries.push_back(std::move(entry));
+    }
+
+    void RenderGraph::EnqueueBufferDescriptorForDeferredRelease(RenderPassDescriptorResource& descriptor_resource, const std::string& binding_name)
+    {
+        const auto descriptor_it = descriptor_resource.m_buffer_descriptors.find(binding_name);
+        if (descriptor_it != descriptor_resource.m_buffer_descriptors.end())
+        {
+            EnqueueResourceForDeferredRelease(std::static_pointer_cast<IRHIResource>(descriptor_it->second));
+            descriptor_resource.m_buffer_descriptors.erase(descriptor_it);
+        }
+        descriptor_resource.m_cached_buffer_bindings.erase(binding_name);
+    }
+
+    void RenderGraph::EnqueueTextureDescriptorForDeferredRelease(RenderPassDescriptorResource& descriptor_resource, const std::string& binding_name)
+    {
+        const auto descriptor_it = descriptor_resource.m_texture_descriptors.find(binding_name);
+        if (descriptor_it != descriptor_resource.m_texture_descriptors.end())
+        {
+            EnqueueResourceForDeferredRelease(std::static_pointer_cast<IRHIResource>(descriptor_it->second));
+            descriptor_resource.m_texture_descriptors.erase(descriptor_it);
+        }
+
+        const auto descriptor_table_it = descriptor_resource.m_texture_descriptor_tables.find(binding_name);
+        if (descriptor_table_it != descriptor_resource.m_texture_descriptor_tables.end())
+        {
+            EnqueueResourceForDeferredRelease(std::static_pointer_cast<IRHIResource>(descriptor_table_it->second));
+            descriptor_resource.m_texture_descriptor_tables.erase(descriptor_table_it);
+        }
+
+        const auto table_source_it = descriptor_resource.m_texture_descriptor_table_source_data.find(binding_name);
+        if (table_source_it != descriptor_resource.m_texture_descriptor_table_source_data.end())
+        {
+            for (const auto& descriptor : table_source_it->second)
+            {
+                EnqueueResourceForDeferredRelease(std::static_pointer_cast<IRHIResource>(descriptor));
+            }
+            descriptor_resource.m_texture_descriptor_table_source_data.erase(table_source_it);
+        }
+
+        descriptor_resource.m_cached_texture_bindings.erase(binding_name);
+        descriptor_resource.m_cached_render_target_texture_bindings.erase(binding_name);
+    }
+
+    void RenderGraph::ReleaseRenderPassDescriptorResource(RenderPassDescriptorResource& descriptor_resource)
+    {
+        for (const auto& descriptor_pair : descriptor_resource.m_buffer_descriptors)
+        {
+            EnqueueResourceForDeferredRelease(std::static_pointer_cast<IRHIResource>(descriptor_pair.second));
+        }
+        for (const auto& descriptor_pair : descriptor_resource.m_texture_descriptors)
+        {
+            EnqueueResourceForDeferredRelease(std::static_pointer_cast<IRHIResource>(descriptor_pair.second));
+        }
+        for (const auto& descriptor_table_pair : descriptor_resource.m_texture_descriptor_tables)
+        {
+            EnqueueResourceForDeferredRelease(std::static_pointer_cast<IRHIResource>(descriptor_table_pair.second));
+        }
+        for (const auto& table_source_pair : descriptor_resource.m_texture_descriptor_table_source_data)
+        {
+            for (const auto& descriptor : table_source_pair.second)
+            {
+                EnqueueResourceForDeferredRelease(std::static_pointer_cast<IRHIResource>(descriptor));
+            }
+        }
+
+        descriptor_resource.m_buffer_descriptors.clear();
+        descriptor_resource.m_texture_descriptors.clear();
+        descriptor_resource.m_texture_descriptor_tables.clear();
+        descriptor_resource.m_texture_descriptor_table_source_data.clear();
+        descriptor_resource.m_cached_buffer_bindings.clear();
+        descriptor_resource.m_cached_texture_bindings.clear();
+        descriptor_resource.m_cached_render_target_texture_bindings.clear();
+    }
+
+    void RenderGraph::PruneDescriptorResources(RenderPassDescriptorResource& descriptor_resource, const RenderPassDrawDesc& draw_info)
+    {
+        for (auto it = descriptor_resource.m_buffer_descriptors.begin(); it != descriptor_resource.m_buffer_descriptors.end(); )
+        {
+            if (!draw_info.buffer_resources.contains(it->first))
+            {
+                EnqueueResourceForDeferredRelease(std::static_pointer_cast<IRHIResource>(it->second));
+                it = descriptor_resource.m_buffer_descriptors.erase(it);
+            }
+            else
+            {
+                ++it;
+            }
+        }
+
+        for (auto it = descriptor_resource.m_cached_buffer_bindings.begin(); it != descriptor_resource.m_cached_buffer_bindings.end(); )
+        {
+            if (!draw_info.buffer_resources.contains(it->first))
+            {
+                it = descriptor_resource.m_cached_buffer_bindings.erase(it);
+            }
+            else
+            {
+                ++it;
+            }
+        }
+
+        const auto should_keep_texture_binding = [&draw_info](const std::string& binding_name)
+        {
+            return draw_info.texture_resources.contains(binding_name) || draw_info.render_target_texture_resources.contains(binding_name);
+        };
+
+        for (auto it = descriptor_resource.m_texture_descriptors.begin(); it != descriptor_resource.m_texture_descriptors.end(); )
+        {
+            if (!should_keep_texture_binding(it->first))
+            {
+                EnqueueResourceForDeferredRelease(std::static_pointer_cast<IRHIResource>(it->second));
+                it = descriptor_resource.m_texture_descriptors.erase(it);
+            }
+            else
+            {
+                ++it;
+            }
+        }
+
+        for (auto it = descriptor_resource.m_texture_descriptor_tables.begin(); it != descriptor_resource.m_texture_descriptor_tables.end(); )
+        {
+            if (!should_keep_texture_binding(it->first))
+            {
+                EnqueueResourceForDeferredRelease(std::static_pointer_cast<IRHIResource>(it->second));
+                it = descriptor_resource.m_texture_descriptor_tables.erase(it);
+            }
+            else
+            {
+                ++it;
+            }
+        }
+
+        for (auto it = descriptor_resource.m_texture_descriptor_table_source_data.begin(); it != descriptor_resource.m_texture_descriptor_table_source_data.end(); )
+        {
+            if (!should_keep_texture_binding(it->first))
+            {
+                for (const auto& descriptor : it->second)
+                {
+                    EnqueueResourceForDeferredRelease(std::static_pointer_cast<IRHIResource>(descriptor));
+                }
+                it = descriptor_resource.m_texture_descriptor_table_source_data.erase(it);
+            }
+            else
+            {
+                ++it;
+            }
+        }
+
+        for (auto it = descriptor_resource.m_cached_texture_bindings.begin(); it != descriptor_resource.m_cached_texture_bindings.end(); )
+        {
+            if (!draw_info.texture_resources.contains(it->first))
+            {
+                it = descriptor_resource.m_cached_texture_bindings.erase(it);
+            }
+            else
+            {
+                ++it;
+            }
+        }
+
+        for (auto it = descriptor_resource.m_cached_render_target_texture_bindings.begin(); it != descriptor_resource.m_cached_render_target_texture_bindings.end(); )
+        {
+            if (!draw_info.render_target_texture_resources.contains(it->first))
+            {
+                it = descriptor_resource.m_cached_render_target_texture_bindings.erase(it);
+            }
+            else
+            {
+                ++it;
+            }
+        }
+    }
+
+    void RenderGraph::CollectUnusedRenderPassDescriptorResources()
+    {
+        const unsigned retention_frame = (std::max)(2u, m_resource_allocator.GetCurrentSwapchain().GetBackBufferCount());
+        for (auto it = m_render_pass_descriptor_resources.begin(); it != m_render_pass_descriptor_resources.end(); )
+        {
+            const auto node_handle = it->first;
+            if (m_render_graph_node_handles.contains(node_handle))
+            {
+                ++it;
+                continue;
+            }
+
+            const auto last_used_it = m_render_pass_descriptor_last_used_frame.find(node_handle);
+            const unsigned long long last_used_frame = last_used_it != m_render_pass_descriptor_last_used_frame.end() ? last_used_it->second : 0;
+            if (m_frame_index < last_used_frame + retention_frame)
+            {
+                ++it;
+                continue;
+            }
+
+            ReleaseRenderPassDescriptorResource(it->second);
+            it = m_render_pass_descriptor_resources.erase(it);
+            m_render_pass_descriptor_last_used_frame.erase(node_handle);
+        }
+    }
+
+    void RenderGraph::FlushDeferredResourceReleases(bool force_release_all)
+    {
+        auto& memory_manager = m_resource_allocator.GetMemoryManager();
+        while (!m_deferred_release_entries.empty())
+        {
+            if (!force_release_all && m_deferred_release_entries.front().retire_frame > m_frame_index)
+            {
+                break;
+            }
+
+            auto entry = std::move(m_deferred_release_entries.front());
+            m_deferred_release_entries.pop_front();
+            for (const auto& resource : entry.resources)
+            {
+                const bool released = RHIResourceFactory::ReleaseResource(memory_manager, resource);
+                GLTF_CHECK(released);
+            }
+        }
+    }
+
     void RenderGraph::ExecuteRenderGraphNode(IRHICommandList& command_list, RenderGraphNodeHandle render_graph_node_handle, unsigned long long interval)
     {
         GLTF_CHECK(render_graph_node_handle.IsValid());
@@ -1039,7 +1370,7 @@ namespace RendererInterface
 
         RHIUtilInstanceManager::Instance().SetPipelineState(command_list, render_pass->GetPipelineStateObject());
         RHIUtilInstanceManager::Instance().SetRootSignature(command_list, render_pass->GetRootSignature(), render_pass->GetPipelineStateObject(), RendererInterfaceRHIConverter::ConvertToRHIPipelineType(render_pass->GetRenderPassType()));
-        RHIUtilInstanceManager::Instance().SetPrimitiveTopology( command_list, RHIPrimitiveTopologyType::TRIANGLELIST);
+        RHIUtilInstanceManager::Instance().SetPrimitiveTopology(command_list, ConvertToRHIPrimitiveTopology(render_pass->GetPrimitiveTopology()));
 
         RHIViewportDesc viewport{};
         viewport.width = render_pass->GetViewportSize().first >= 0 ? render_pass->GetViewportSize().first : m_window.GetWidth();
@@ -1143,6 +1474,8 @@ namespace RendererInterface
         }
 
         auto& render_pass_descriptor_resource = m_render_pass_descriptor_resources[render_graph_node_handle];
+        m_render_pass_descriptor_last_used_frame[render_graph_node_handle] = m_frame_index;
+        PruneDescriptorResources(render_pass_descriptor_resource, render_graph_node_desc.draw_info);
         
         for (const auto& buffer : render_graph_node_desc.draw_info.buffer_resources)
         {
@@ -1152,8 +1485,14 @@ namespace RendererInterface
             auto buffer_allocation = RendererInterface::InternalResourceHandleTable::Instance().GetBuffer(buffer_handle);
             auto buffer_size = buffer_allocation->m_buffer->GetBufferDesc().width;
 
-            if (!render_pass_descriptor_resource.m_buffer_descriptors.contains(buffer.first))
+            const bool need_recreate_descriptor =
+                !render_pass_descriptor_resource.m_buffer_descriptors.contains(buffer.first) ||
+                !render_pass_descriptor_resource.m_cached_buffer_bindings.contains(buffer.first) ||
+                !IsSameBufferBindingDesc(render_pass_descriptor_resource.m_cached_buffer_bindings.at(buffer.first), buffer.second);
+
+            if (need_recreate_descriptor)
             {
+                EnqueueBufferDescriptorForDeferredRelease(render_pass_descriptor_resource, buffer.first);
                 switch (buffer.second.binding_type)
                 {
                 case BufferBindingDesc::CBV:
@@ -1177,6 +1516,8 @@ namespace RendererInterface
                     }
                     break;
                 }
+
+                render_pass_descriptor_resource.m_cached_buffer_bindings[buffer.first] = buffer.second;
             }
 
             auto buffer_descriptor = render_pass_descriptor_resource.m_buffer_descriptors.at(buffer.first);
@@ -1200,8 +1541,15 @@ namespace RendererInterface
             const bool is_texture_table = texture.second.textures.size() > 1;
             auto& root_signature_allocation = render_pass->GetRootSignatureAllocation(texture.first);
             
-            if (!render_pass_descriptor_resource.m_texture_descriptors.contains(texture.first) && !render_pass_descriptor_resource.m_texture_descriptor_tables.contains(texture.first))
+            const bool need_recreate_descriptor =
+                (!render_pass_descriptor_resource.m_texture_descriptors.contains(texture.first) && !render_pass_descriptor_resource.m_texture_descriptor_tables.contains(texture.first)) ||
+                !render_pass_descriptor_resource.m_cached_texture_bindings.contains(texture.first) ||
+                !IsSameTextureBindingDesc(render_pass_descriptor_resource.m_cached_texture_bindings.at(texture.first), texture.second);
+
+            if (need_recreate_descriptor)
             {
+                EnqueueTextureDescriptorForDeferredRelease(render_pass_descriptor_resource, texture.first);
+
                 // Create texture descriptor
                 auto texture_handles = texture.second.textures;
                 
@@ -1229,6 +1577,8 @@ namespace RendererInterface
                     GLTF_CHECK(descriptor_allocations.size() == 1);
                     render_pass_descriptor_resource.m_texture_descriptors[texture.first] = descriptor_allocations.at(0);                
                 }
+
+                render_pass_descriptor_resource.m_cached_texture_bindings[texture.first] = texture.second;
             }
 
             if (is_texture_table)
@@ -1255,15 +1605,26 @@ namespace RendererInterface
         {
             GLTF_CHECK(!render_target_pair.second.render_target_texture.empty());
             const bool is_texture_table = render_target_pair.second.render_target_texture.size() > 1;
-            if (!render_pass_descriptor_resource.m_texture_descriptors.contains(render_target_pair.first))
+            const bool need_recreate_descriptor =
+                (!render_pass_descriptor_resource.m_texture_descriptors.contains(render_target_pair.first) &&
+                    !render_pass_descriptor_resource.m_texture_descriptor_tables.contains(render_target_pair.first)) ||
+                !render_pass_descriptor_resource.m_cached_render_target_texture_bindings.contains(render_target_pair.first) ||
+                !IsSameRenderTargetTextureBindingDesc(render_pass_descriptor_resource.m_cached_render_target_texture_bindings.at(render_target_pair.first), render_target_pair.second);
+
+            if (need_recreate_descriptor)
             {
+                EnqueueTextureDescriptorForDeferredRelease(render_pass_descriptor_resource, render_target_pair.first);
+
                 std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>> descriptor_allocations;
 
                 for (const auto& render_target : render_target_pair.second.render_target_texture)
                 {
                     auto texture = InternalResourceHandleTable::Instance().GetRenderTarget(render_target)->m_source;
-                    RHITextureDescriptorDesc texture_descriptor_desc{texture->GetTextureFormat(), RHIResourceDimension::TEXTURE2D, render_target_pair.second.type == TextureBindingDesc::SRV? RHIViewType::RVT_SRV :RHIViewType::RVT_UAV};
-                    if (IsDepthStencilFormat(texture->GetTextureFormat()) && render_target_pair.second.type == TextureBindingDesc::SRV)
+                    RHITextureDescriptorDesc texture_descriptor_desc{
+                        texture->GetTextureFormat(),
+                        RHIResourceDimension::TEXTURE2D,
+                        render_target_pair.second.type == RenderTargetTextureBindingDesc::SRV ? RHIViewType::RVT_SRV : RHIViewType::RVT_UAV};
+                    if (IsDepthStencilFormat(texture->GetTextureFormat()) && render_target_pair.second.type == RenderTargetTextureBindingDesc::SRV)
                     {
                         texture_descriptor_desc.m_format = RHIDataFormat::D32_SAMPLE_RESERVED;
                     }
@@ -1286,6 +1647,8 @@ namespace RendererInterface
                     GLTF_CHECK(render_target_pair.second.render_target_texture.size() == 1);
                     render_pass_descriptor_resource.m_texture_descriptors[render_target_pair.first] = descriptor_allocations[0];
                 }
+
+                render_pass_descriptor_resource.m_cached_render_target_texture_bindings[render_target_pair.first] = render_target_pair.second;
             }
 
             auto& root_signature_allocation = render_pass->GetRootSignatureAllocation(render_target_pair.first);
@@ -1295,15 +1658,15 @@ namespace RendererInterface
                 auto& table_texture_descriptors = render_pass_descriptor_resource.m_texture_descriptor_table_source_data.at(render_target_pair.first);
                 for (const auto& table_texture : table_texture_descriptors)
                 {
-                    table_texture->m_source->Transition(command_list, render_target_pair.second.type == TextureBindingDesc::SRV ? RHIResourceStateType::STATE_ALL_SHADER_RESOURCE : RHIResourceStateType::STATE_UNORDERED_ACCESS);
+                    table_texture->m_source->Transition(command_list, render_target_pair.second.type == RenderTargetTextureBindingDesc::SRV ? RHIResourceStateType::STATE_ALL_SHADER_RESOURCE : RHIResourceStateType::STATE_UNORDERED_ACCESS);
                 }
                 
-                render_pass->GetDescriptorUpdater().BindDescriptor(command_list, pipeline_type, root_signature_allocation, *descriptor_table, render_target_pair.second.type == TextureBindingDesc::SRV? RHIDescriptorRangeType::SRV : RHIDescriptorRangeType::UAV);
+                render_pass->GetDescriptorUpdater().BindDescriptor(command_list, pipeline_type, root_signature_allocation, *descriptor_table, render_target_pair.second.type == RenderTargetTextureBindingDesc::SRV? RHIDescriptorRangeType::SRV : RHIDescriptorRangeType::UAV);
             }
             else
             {
                 auto descriptor = render_pass_descriptor_resource.m_texture_descriptors.at(render_target_pair.first);
-                descriptor->m_source->Transition(command_list, render_target_pair.second.type == TextureBindingDesc::SRV ? RHIResourceStateType::STATE_ALL_SHADER_RESOURCE : RHIResourceStateType::STATE_UNORDERED_ACCESS);
+                descriptor->m_source->Transition(command_list, render_target_pair.second.type == RenderTargetTextureBindingDesc::SRV ? RHIResourceStateType::STATE_ALL_SHADER_RESOURCE : RHIResourceStateType::STATE_UNORDERED_ACCESS);
                 render_pass->GetDescriptorUpdater().BindDescriptor(command_list, pipeline_type, root_signature_allocation, *descriptor);    
             }
         }

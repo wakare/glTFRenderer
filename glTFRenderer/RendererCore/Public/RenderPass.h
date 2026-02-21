@@ -17,6 +17,7 @@ public:
     IRHIRootSignature& GetRootSignature();
 
     RendererInterface::RenderPassType GetRenderPassType() const;
+    RendererInterface::PrimitiveTopology GetPrimitiveTopology() const;
 
     const RootSignatureAllocation& GetRootSignatureAllocation(const std::string& name) const;
 
