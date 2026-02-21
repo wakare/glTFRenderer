@@ -11,6 +11,7 @@ public:
     IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VKSwapChain)
 
     virtual unsigned GetCurrentBackBufferIndex() override;
+    virtual unsigned GetCurrentSwapchainImageIndex() override;
     virtual unsigned GetBackBufferCount() override;
     
     virtual bool InitSwapChain(IRHIFactory& factory, IRHIDevice& device, IRHICommandQueue& commandQueue, const RHITextureDesc& swap_chain_buffer_desc, const

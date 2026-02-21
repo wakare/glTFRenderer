@@ -433,6 +433,7 @@ IRHICommandQueue& ResourceManager::GetCommandQueue()
 
 IRHITextureDescriptorAllocation& ResourceManager::GetCurrentSwapchainRT()
 {
-    const auto current_frame_index = GetCurrentBackBufferIndex() % m_device_desc.back_buffer_count;
-    return *m_swapchain_RTs[current_frame_index];
+    GLTF_CHECK(!m_swapchain_RTs.empty());
+    const auto swapchain_image_index = m_swap_chain->GetCurrentSwapchainImageIndex() % static_cast<unsigned>(m_swapchain_RTs.size());
+    return *m_swapchain_RTs[swapchain_image_index];
 }

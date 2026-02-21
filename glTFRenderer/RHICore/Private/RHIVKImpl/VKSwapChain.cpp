@@ -1,5 +1,7 @@
 #include "VKSwapChain.h"
 
+#include <algorithm>
+
 #include "VKCommandList.h"
 #include "VKCommandQueue.h"
 #include "VKCommon.h"
@@ -12,6 +14,11 @@
 unsigned VKSwapChain::GetCurrentBackBufferIndex()
 {
     return m_current_frame_index;
+}
+
+unsigned VKSwapChain::GetCurrentSwapchainImageIndex()
+{
+    return m_image_index;
 }
 
 unsigned VKSwapChain::GetBackBufferCount()
@@ -29,16 +36,52 @@ bool VKSwapChain::InitSwapChain(IRHIFactory& factory, IRHIDevice& device, IRHICo
     m_device = VkDevice.GetDevice();
     
     const VkSurfaceKHR surface = VkDevice.GetSurface();
+    const VkPhysicalDevice physical_device = VkDevice.GetPhysicalDevice();
     const unsigned graphics_queue_index = VkDevice.GetGraphicsQueueIndex();
     const unsigned present_queue_index = VkDevice.GetPresentQueueIndex();
+
+    VkSurfaceCapabilitiesKHR surface_capabilities{};
+    VK_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, surface, &surface_capabilities));
+
+    VkExtent2D swapchain_extent{};
+    if (surface_capabilities.currentExtent.width != UINT32_MAX &&
+        surface_capabilities.currentExtent.height != UINT32_MAX)
+    {
+        swapchain_extent = surface_capabilities.currentExtent;
+    }
+    else
+    {
+        swapchain_extent.width = (std::max)(surface_capabilities.minImageExtent.width,
+            (std::min)(surface_capabilities.maxImageExtent.width, GetWidth()));
+        swapchain_extent.height = (std::max)(surface_capabilities.minImageExtent.height,
+            (std::min)(surface_capabilities.maxImageExtent.height, GetHeight()));
+    }
+
+    uint32_t swapchain_image_count = m_frame_buffer_count;
+    if (swapchain_image_count < surface_capabilities.minImageCount)
+    {
+        swapchain_image_count = surface_capabilities.minImageCount;
+    }
+    if (surface_capabilities.maxImageCount > 0 && swapchain_image_count > surface_capabilities.maxImageCount)
+    {
+        swapchain_image_count = surface_capabilities.maxImageCount;
+    }
+
+    m_swap_chain_buffer_desc = RHITextureDesc(
+        m_swap_chain_buffer_desc.GetName(),
+        swapchain_extent.width,
+        swapchain_extent.height,
+        m_swap_chain_buffer_desc.GetDataFormat(),
+        m_swap_chain_buffer_desc.GetUsage(),
+        m_swap_chain_buffer_desc.GetClearValue());
     
     VkSwapchainCreateInfoKHR create_swap_chain_info {};
     create_swap_chain_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
     create_swap_chain_info.surface = surface;
-    create_swap_chain_info.minImageCount = m_frame_buffer_count;
+    create_swap_chain_info.minImageCount = swapchain_image_count;
     create_swap_chain_info.imageFormat = VKConverterUtils::ConvertToFormat(GetBackBufferFormat());
     create_swap_chain_info.imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
-    create_swap_chain_info.imageExtent = {GetWidth(), GetHeight()};
+    create_swap_chain_info.imageExtent = swapchain_extent;
     create_swap_chain_info.imageArrayLayers = 1;
     
     if (m_swap_chain_buffer_desc.GetUsage() & RUF_ALLOW_RENDER_TARGET)

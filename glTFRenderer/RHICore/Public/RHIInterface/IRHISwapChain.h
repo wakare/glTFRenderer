@@ -30,6 +30,7 @@ public:
     
     virtual unsigned GetCurrentBackBufferIndex() = 0;
     virtual unsigned GetBackBufferCount() = 0;
+    virtual unsigned GetCurrentSwapchainImageIndex() { return GetCurrentBackBufferIndex(); }
 
     virtual bool InitSwapChain(IRHIFactory& factory, IRHIDevice& device, IRHICommandQueue& commandQueue, const RHITextureDesc& swap_chain_buffer_desc, const
                                RHISwapChainDesc& swap_chain_desc) = 0;
