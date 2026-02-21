@@ -3,6 +3,7 @@
 
 #include "RendererSystemLighting.h"
 #include <format>
+#include <imgui/imgui.h>
 
 #include "RendererSceneAABB.h"
 
@@ -14,11 +15,17 @@ RendererSystemLighting::RendererSystemLighting(RendererInterface::ResourceOperat
     m_modules.push_back(m_lighting_module);
 }
 
-bool RendererSystemLighting::AddLight(const LightInfo& light_info)
+unsigned RendererSystemLighting::AddLight(const LightInfo& light_info)
 {
     GLTF_CHECK(m_lighting_module);
-    m_lighting_module->AddLightInfo(light_info);
-    return true;
+    return m_lighting_module->AddLightInfo(light_info);
+}
+
+bool RendererSystemLighting::UpdateLight(unsigned index, const LightInfo& light_info)
+{
+    GLTF_CHECK(m_lighting_module);
+    GLTF_CHECK(m_lighting_module->ContainsLight(index));
+    return m_lighting_module->UpdateLightInfo(index, light_info);
 }
 
 bool RendererSystemLighting::CastShadow() const
@@ -31,13 +38,18 @@ void RendererSystemLighting::SetCastShadow(bool cast_shadow)
     m_cast_shadow = cast_shadow;
 }
 
+RendererInterface::RenderTargetHandle RendererSystemLighting::GetLightingOutput() const
+{
+    return m_lighting_pass_output;
+}
+
 bool RendererSystemLighting::Init(RendererInterface::ResourceOperator& resource_operator,
                                   RendererInterface::RenderGraph& graph)
 {
     GLTF_CHECK(m_scene->HasInit());
     
-    auto lighting_pass_output = resource_operator.CreateRenderTarget("LightingPass_Output", m_scene->GetWidth(), m_scene->GetHeight(), RendererInterface::RGBA8_UNORM, RendererInterface::default_clear_color,
-        static_cast<RendererInterface::ResourceUsage>(RendererInterface::ResourceUsage::RENDER_TARGET | RendererInterface::ResourceUsage::COPY_SRC | RendererInterface::ResourceUsage::UNORDER_ACCESS));
+    m_lighting_pass_output = resource_operator.CreateRenderTarget("LightingPass_Output", m_scene->GetWidth(), m_scene->GetHeight(), RendererInterface::RGBA8_UNORM, RendererInterface::default_clear_color,
+        static_cast<RendererInterface::ResourceUsage>(RendererInterface::ResourceUsage::RENDER_TARGET | RendererInterface::ResourceUsage::COPY_SRC | RendererInterface::ResourceUsage::UNORDER_ACCESS | RendererInterface::ResourceUsage::SHADER_RESOURCE));
     
     auto m_camera_module = m_scene->GetCameraModule();
     auto width = m_camera_module->GetWidth();
@@ -76,6 +88,8 @@ bool RendererSystemLighting::Init(RendererInterface::ResourceOperator& resource_
 
         RendererInterface::RenderGraph::RenderPassSetupInfo shadow_pass_setup_info{};
         shadow_pass_setup_info.render_pass_type = RendererInterface::RenderPassType::GRAPHICS;
+        shadow_pass_setup_info.debug_group = "Lighting";
+        shadow_pass_setup_info.debug_name = std::format("Directional Shadow {}", i);
         shadow_pass_setup_info.modules = {m_scene->GetSceneMeshModule()};
         shadow_pass_setup_info.shader_setup_infos = {
             {
@@ -112,6 +126,8 @@ bool RendererSystemLighting::Init(RendererInterface::ResourceOperator& resource_
     
     RendererInterface::RenderGraph::RenderPassSetupInfo lighting_pass_setup_info{};
     lighting_pass_setup_info.render_pass_type = RendererInterface::RenderPassType::COMPUTE;
+    lighting_pass_setup_info.debug_group = "Lighting";
+    lighting_pass_setup_info.debug_name = "Scene Lighting";
     lighting_pass_setup_info.modules = {m_lighting_module, m_camera_module};
     lighting_pass_setup_info.shader_setup_infos = {
         {RendererInterface::COMPUTE_SHADER, "main", "Resources/Shaders/SceneLighting.hlsl"}
@@ -136,7 +152,7 @@ bool RendererSystemLighting::Init(RendererInterface::ResourceOperator& resource_
     RendererInterface::RenderTargetTextureBindingDesc output_binding_desc{};
     output_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::UAV;
     output_binding_desc.name = "Output";
-    output_binding_desc.render_target_texture = {lighting_pass_output};
+    output_binding_desc.render_target_texture = {m_lighting_pass_output};
 
     RendererInterface::RenderTargetTextureBindingDesc shadowmap_binding_desc{};
     shadowmap_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
@@ -184,7 +200,7 @@ bool RendererSystemLighting::Init(RendererInterface::ResourceOperator& resource_
 
     m_lighting_pass_node = graph.CreateRenderGraphNode(resource_operator, lighting_pass_setup_info);
 
-    graph.RegisterRenderTargetToColorOutput(lighting_pass_output);
+    graph.RegisterRenderTargetToColorOutput(m_lighting_pass_output);
     
     return true;
 }
@@ -199,6 +215,7 @@ bool RendererSystemLighting::Tick(RendererInterface::ResourceOperator& resource_
 {
     if (CastShadow())
     {
+        UpdateDirectionalShadowResources(resource_operator);
         for (const auto& shadow_pass: m_shadow_pass_resources)
         {
             graph.RegisterRenderGraphNode(shadow_pass.second.m_shadow_pass_node);
@@ -210,6 +227,74 @@ bool RendererSystemLighting::Tick(RendererInterface::ResourceOperator& resource_
     m_lighting_module->Tick(resource_operator, interval);
     
     return true;
+}
+
+void RendererSystemLighting::DrawDebugUI()
+{
+    if (!m_lighting_module)
+    {
+        ImGui::TextUnformatted("Lighting module not initialized.");
+        return;
+    }
+
+    bool cast_shadow = m_cast_shadow;
+    if (ImGui::Checkbox("Cast Shadow", &cast_shadow))
+    {
+        SetCastShadow(cast_shadow);
+    }
+
+    ImGui::Text("Lights: %u", static_cast<unsigned>(m_lighting_module->GetLightInfos().size()));
+    ImGui::Text("Directional Shadow Maps: %u", static_cast<unsigned>(m_shadow_pass_resources.size()));
+}
+
+void RendererSystemLighting::UpdateDirectionalShadowResources(RendererInterface::ResourceOperator& resource_operator)
+{
+    if (m_shadow_pass_resources.empty())
+    {
+        return;
+    }
+
+    std::vector<ShadowMapInfo> shadowmap_infos;
+    shadowmap_infos.reserve(m_shadow_pass_resources.size());
+
+    const auto& lights = m_lighting_module->GetLightInfos();
+    const auto scene_bounds = m_scene->GetSceneMeshModule()->GetSceneBounds();
+    for (auto& shadow_resource_pair : m_shadow_pass_resources)
+    {
+        const unsigned light_index = shadow_resource_pair.first;
+        auto& shadow_resource = shadow_resource_pair.second;
+        GLTF_CHECK(light_index < lights.size());
+
+        const auto& light_info = lights[light_index];
+        GLTF_CHECK(light_info.type == LightType::Directional);
+        const unsigned shadowmap_width = shadow_resource.m_shadow_map_info.shadowmap_size[0];
+        const unsigned shadowmap_height = shadow_resource.m_shadow_map_info.shadowmap_size[1];
+        ShadowPassResource::CalcDirectionalLightShadowMatrix(
+            light_info,
+            scene_bounds,
+            0.0f,
+            0.0f,
+            1.0f,
+            1.0f,
+            shadowmap_width,
+            shadowmap_height,
+            shadow_resource.m_shadow_map_view_buffer,
+            shadow_resource.m_shadow_map_info);
+
+        RendererInterface::BufferUploadDesc shadow_camera_upload_desc{};
+        shadow_camera_upload_desc.data = &shadow_resource.m_shadow_map_view_buffer;
+        shadow_camera_upload_desc.size = sizeof(ViewBuffer);
+        resource_operator.UploadBufferData(shadow_resource.m_shadow_map_buffer_handle, shadow_camera_upload_desc);
+        shadowmap_infos.push_back(shadow_resource.m_shadow_map_info);
+    }
+
+    if (!shadowmap_infos.empty() && m_lighting_pass_shadow_infos_handle != NULL_HANDLE)
+    {
+        RendererInterface::BufferUploadDesc shadow_info_upload_desc{};
+        shadow_info_upload_desc.data = shadowmap_infos.data();
+        shadow_info_upload_desc.size = shadowmap_infos.size() * sizeof(ShadowMapInfo);
+        resource_operator.UploadBufferData(m_lighting_pass_shadow_infos_handle, shadow_info_upload_desc);
+    }
 }
 
 bool RendererSystemLighting::ShadowPassResource::CalcDirectionalLightShadowMatrix(

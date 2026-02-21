@@ -1,5 +1,7 @@
 #include "VulkanUtils.h"
 
+#include <algorithm>
+
 #define IMGUI_IMPL_VULKAN_HAS_DYNAMIC_RENDERING
 #define IMGUI_IMPL_VULKAN_USE_VOLK
 #define VK_NO_PROTOTYPES
@@ -23,6 +25,25 @@
 #include "VKCommandQueue.h"
 #include "VKComputePipelineStateObject.h"
 #include "VolkUtils.h"
+
+struct VulkanUtils::TimestampProfilerState
+{
+    struct FrameSlot
+    {
+        VkQueryPool query_pool{VK_NULL_HANDLE};
+        unsigned pending_query_count{0};
+    };
+
+    bool supported{false};
+    unsigned max_query_count{0};
+    unsigned frame_slot_count{0};
+    double ticks_per_second{0.0};
+    VkDevice logical_device{VK_NULL_HANDLE};
+    std::vector<FrameSlot> frame_slots{};
+};
+
+VulkanUtils::VulkanUtils() = default;
+VulkanUtils::~VulkanUtils() = default;
 
 VkAccessFlags2 GetAccessFlagFromResourceState(RHIResourceStateType state)
 {
@@ -806,6 +827,171 @@ bool VulkanUtils::ClearUAVTexture(IRHICommandList& command_list, const IRHITextu
 bool VulkanUtils::SupportRayTracing(IRHIDevice& device)
 {
     return dynamic_cast<VKDevice&>(device).IsRayTracingSupported();
+}
+
+bool VulkanUtils::InitTimestampProfiler(IRHIDevice& device, IRHICommandQueue& command_queue, unsigned back_buffer_count, unsigned max_query_count)
+{
+    (void)command_queue;
+    ShutdownTimestampProfiler();
+
+    GLTF_CHECK(back_buffer_count > 0);
+    GLTF_CHECK(max_query_count > 0);
+
+    auto& vk_device = dynamic_cast<VKDevice&>(device);
+    VkPhysicalDeviceProperties physical_device_properties{};
+    vkGetPhysicalDeviceProperties(vk_device.GetPhysicalDevice(), &physical_device_properties);
+    const double timestamp_period_ns = static_cast<double>(physical_device_properties.limits.timestampPeriod);
+    if (timestamp_period_ns <= 0.0 || physical_device_properties.limits.timestampComputeAndGraphics != VK_TRUE)
+    {
+        return true;
+    }
+    if (!vkCmdResetQueryPool || !vkCmdWriteTimestamp || !vkGetQueryPoolResults)
+    {
+        return true;
+    }
+
+    m_timestamp_profiler_state = std::make_unique<TimestampProfilerState>();
+    auto& profiler_state = *m_timestamp_profiler_state;
+    profiler_state.max_query_count = max_query_count;
+    profiler_state.frame_slot_count = back_buffer_count;
+    profiler_state.ticks_per_second = 1000000000.0 / timestamp_period_ns;
+    profiler_state.logical_device = vk_device.GetDevice();
+    profiler_state.frame_slots.resize(back_buffer_count);
+
+    for (auto& frame_slot : profiler_state.frame_slots)
+    {
+        VkQueryPoolCreateInfo query_pool_create_info{};
+        query_pool_create_info.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
+        query_pool_create_info.queryType = VK_QUERY_TYPE_TIMESTAMP;
+        query_pool_create_info.queryCount = max_query_count;
+        const auto result = vkCreateQueryPool(profiler_state.logical_device, &query_pool_create_info, nullptr, &frame_slot.query_pool);
+        if (result != VK_SUCCESS)
+        {
+            ShutdownTimestampProfiler();
+            return true;
+        }
+    }
+
+    profiler_state.supported = true;
+    return true;
+}
+
+void VulkanUtils::ShutdownTimestampProfiler()
+{
+    if (!m_timestamp_profiler_state)
+    {
+        return;
+    }
+
+    auto& profiler_state = *m_timestamp_profiler_state;
+    if (profiler_state.logical_device != VK_NULL_HANDLE)
+    {
+        for (auto& frame_slot : profiler_state.frame_slots)
+        {
+            if (frame_slot.query_pool != VK_NULL_HANDLE)
+            {
+                vkDestroyQueryPool(profiler_state.logical_device, frame_slot.query_pool, nullptr);
+                frame_slot.query_pool = VK_NULL_HANDLE;
+            }
+            frame_slot.pending_query_count = 0;
+        }
+    }
+
+    m_timestamp_profiler_state.reset();
+}
+
+bool VulkanUtils::BeginTimestampFrame(IRHICommandList& command_list, unsigned frame_slot)
+{
+    if (!IsTimestampProfilerSupported())
+    {
+        return true;
+    }
+
+    auto& profiler_state = *m_timestamp_profiler_state;
+    GLTF_CHECK(frame_slot < profiler_state.frame_slot_count);
+
+    auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
+    auto& slot = profiler_state.frame_slots[frame_slot];
+    vkCmdResetQueryPool(vk_command_buffer, slot.query_pool, 0, profiler_state.max_query_count);
+    slot.pending_query_count = 0;
+    return true;
+}
+
+bool VulkanUtils::WriteTimestamp(IRHICommandList& command_list, unsigned frame_slot, unsigned query_index)
+{
+    if (!IsTimestampProfilerSupported())
+    {
+        return true;
+    }
+
+    auto& profiler_state = *m_timestamp_profiler_state;
+    GLTF_CHECK(frame_slot < profiler_state.frame_slot_count);
+    GLTF_CHECK(query_index < profiler_state.max_query_count);
+
+    auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
+    auto& slot = profiler_state.frame_slots[frame_slot];
+    vkCmdWriteTimestamp(vk_command_buffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, slot.query_pool, query_index);
+    return true;
+}
+
+bool VulkanUtils::EndTimestampFrame(IRHICommandList& command_list, unsigned frame_slot, unsigned query_count)
+{
+    (void)command_list;
+    if (!IsTimestampProfilerSupported())
+    {
+        return true;
+    }
+
+    auto& profiler_state = *m_timestamp_profiler_state;
+    GLTF_CHECK(frame_slot < profiler_state.frame_slot_count);
+    auto& slot = profiler_state.frame_slots[frame_slot];
+    slot.pending_query_count = (std::min)(query_count, profiler_state.max_query_count);
+    return true;
+}
+
+bool VulkanUtils::ResolveTimestampFrame(unsigned frame_slot, unsigned query_count, std::vector<uint64_t>& out_timestamps, double& out_ticks_per_second)
+{
+    out_timestamps.clear();
+    out_ticks_per_second = 0.0;
+    if (!IsTimestampProfilerSupported())
+    {
+        return true;
+    }
+
+    auto& profiler_state = *m_timestamp_profiler_state;
+    GLTF_CHECK(frame_slot < profiler_state.frame_slot_count);
+    auto& slot = profiler_state.frame_slots[frame_slot];
+    const unsigned available_query_count = slot.pending_query_count;
+    const unsigned resolved_query_count = (std::min)(query_count, available_query_count);
+    if (resolved_query_count == 0)
+    {
+        return true;
+    }
+
+    out_timestamps.resize(resolved_query_count, 0);
+    const auto result = vkGetQueryPoolResults(
+        profiler_state.logical_device,
+        slot.query_pool,
+        0,
+        resolved_query_count,
+        sizeof(uint64_t) * resolved_query_count,
+        out_timestamps.data(),
+        sizeof(uint64_t),
+        VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
+    if (result != VK_SUCCESS)
+    {
+        out_timestamps.clear();
+        return false;
+    }
+
+    slot.pending_query_count = 0;
+    out_ticks_per_second = profiler_state.ticks_per_second;
+    return true;
+}
+
+bool VulkanUtils::IsTimestampProfilerSupported() const
+{
+    return m_timestamp_profiler_state && m_timestamp_profiler_state->supported;
 }
 
 unsigned VulkanUtils::GetAlignmentSizeForUAVCount(unsigned size)

@@ -1,6 +1,7 @@
 #include "RendererInterface.h"
 
 #include <algorithm>
+#include <chrono>
 #include <filesystem>
 
 #include "InternalResourceHandleTable.h"
@@ -17,9 +18,27 @@
 #include "RHIInterface/IRHIMemoryManager.h"
 #include "RHIInterface/IRHISwapChain.h"
 #include "RHIInterface/RHIIndexBuffer.h"
+#include <imgui/imgui.h>
+#include <imgui/backends/imgui_impl_glfw.h>
 
 namespace RendererInterface
 {
+    struct RenderGraph::GPUProfilerState
+    {
+        struct FrameSlot
+        {
+            bool has_pending_frame_stats{false};
+            unsigned query_count{0};
+            FrameStats pending_frame_stats{};
+        };
+
+        bool supported{false};
+        unsigned max_pass_count{512};
+        unsigned max_query_count{1024};
+        double ticks_per_second{0.0};
+        std::vector<FrameSlot> frame_slots{};
+    };
+
     namespace
     {
         enum class ResourceKind
@@ -60,6 +79,20 @@ namespace RendererInterface
                 return "Texture";
             case ResourceKind::RenderTarget:
                 return "RenderTarget";
+            }
+            return "Unknown";
+        }
+
+        const char* ToRenderPassTypeName(RenderPassType type)
+        {
+            switch (type)
+            {
+            case RenderPassType::GRAPHICS:
+                return "Graphics";
+            case RenderPassType::COMPUTE:
+                return "Compute";
+            case RenderPassType::RAY_TRACING:
+                return "RayTracing";
             }
             return "Unknown";
         }
@@ -210,12 +243,12 @@ namespace RendererInterface
 
     unsigned RenderWindow::GetWidth() const
     {
-        return m_desc.width;
+        return static_cast<unsigned>(glTFWindow::Get().GetWidth());
     }
 
     unsigned RenderWindow::GetHeight() const
     {
-        return m_desc.height;
+        return static_cast<unsigned>(glTFWindow::Get().GetHeight());
     }
 
     HWND RenderWindow::GetHWND() const
@@ -591,6 +624,11 @@ namespace RendererInterface
         return m_resource_manager->WaitFrameRenderFinished();
     }
 
+    bool ResourceOperator::ResizeSwapchainIfNeeded(unsigned width, unsigned height)
+    {
+        return m_resource_manager->ResizeSwapchainIfNeeded(width, height);
+    }
+
     IRHICommandList& ResourceOperator::GetCommandListForRecordPassCommand(RenderPassHandle pass) const
     {
         return m_resource_manager->GetCommandListForRecordPassCommand(pass);
@@ -651,7 +689,14 @@ namespace RendererInterface
         : m_resource_allocator(allocator)
         , m_window(window)
     {
-        
+        GLTF_CHECK(InitDebugUI());
+        GLTF_CHECK(InitGPUProfiler());
+    }
+
+    RenderGraph::~RenderGraph()
+    {
+        ShutdownGPUProfiler();
+        ShutdownDebugUI();
     }
 
     RenderGraphNodeHandle RenderGraph::CreateRenderGraphNode(const RenderGraphNodeDesc& render_graph_node_desc)
@@ -726,6 +771,8 @@ namespace RendererInterface
         render_graph_node_desc.render_pass_handle = render_pass_handle;
         render_graph_node_desc.dependency_render_graph_nodes = setup_info.dependency_render_graph_nodes;
         render_graph_node_desc.pre_render_callback = setup_info.pre_render_callback;
+        render_graph_node_desc.debug_group = setup_info.debug_group;
+        render_graph_node_desc.debug_name = setup_info.debug_name;
 
         auto render_graph_node_handle = CreateRenderGraphNode(render_graph_node_desc);
         return render_graph_node_handle;
@@ -765,16 +812,46 @@ namespace RendererInterface
         {
             // find final color output and copy to swapchain buffer, only debug logic
             GLTF_CHECK(m_final_color_output);
-        
+
+            const unsigned window_width = m_window.GetWidth();
+            const unsigned window_height = m_window.GetHeight();
+            if (window_width == 0 || window_height == 0)
+            {
+                return;
+            }
+
+            const bool swapchain_resized = m_resource_allocator.ResizeSwapchainIfNeeded(window_width, window_height);
+         
             if (m_tick_callback)
             {
                 m_tick_callback(interval);
             }
 
-            m_resource_allocator.WaitFrameRenderFinished();
+            if (m_debug_ui_enabled && m_debug_ui_initialized)
+            {
+                GLTF_CHECK(RHIUtilInstanceManager::Instance().NewGUIFrame());
+                ImGui_ImplGlfw_NewFrame();
+                ImGui::NewFrame();
+
+                if (m_debug_ui_callback)
+                {
+                    m_debug_ui_callback();
+                }
+            }
+
+            if (!swapchain_resized)
+            {
+                m_resource_allocator.WaitFrameRenderFinished();
+            }
             ++m_frame_index;
             FlushDeferredResourceReleases(false);
-            
+
+            const unsigned back_buffer_count = m_resource_allocator.GetCurrentSwapchain().GetBackBufferCount();
+            const unsigned profiler_slot_index = back_buffer_count > 0
+                ? (m_resource_allocator.GetCurrentBackBufferIndex() % back_buffer_count)
+                : 0;
+            ResolveGPUProfilerFrame(profiler_slot_index);
+             
             auto& command_list = m_resource_allocator.GetCommandListForRecordPassCommand();
             // Wait current frame available
             m_resource_allocator.GetCurrentSwapchain().AcquireNewFrame(m_resource_allocator.GetDevice());
@@ -921,7 +998,7 @@ namespace RendererInterface
                                 LOG_FORMAT_FLUSH(" %u", count.first.value);
                             }
                         }
-                        LOG_FLUSH("\n");
+                        LOG_FORMAT_FLUSH("\n");
                     }
                 }
             }
@@ -1068,9 +1145,78 @@ namespace RendererInterface
                 m_cached_execution_signature = signature;
             }
 
-            for (auto render_graph_node : m_cached_execution_order)
+            FrameStats submitted_frame_stats{};
+            submitted_frame_stats.frame_index = m_frame_index;
+            submitted_frame_stats.cpu_total_ms = 0.0f;
+            submitted_frame_stats.gpu_time_valid = false;
+            submitted_frame_stats.gpu_total_ms = 0.0f;
+            submitted_frame_stats.pass_stats.clear();
+            submitted_frame_stats.pass_stats.reserve(m_cached_execution_order.size());
+
+            GLTF_CHECK(BeginGPUProfilerFrame(command_list, profiler_slot_index));
+            const unsigned max_timestamped_pass_count = (m_gpu_profiler_state && m_gpu_profiler_state->supported)
+                ? m_gpu_profiler_state->max_pass_count
+                : 0u;
+            unsigned timestamped_pass_count = 0;
+
+            for (unsigned pass_index = 0; pass_index < m_cached_execution_order.size(); ++pass_index)
             {
+                auto render_graph_node = m_cached_execution_order[pass_index];
+                const bool enable_gpu_timestamp = max_timestamped_pass_count > 0 && pass_index < max_timestamped_pass_count;
+                if (enable_gpu_timestamp)
+                {
+                    const unsigned query_index = static_cast<unsigned>(pass_index * 2);
+                    GLTF_CHECK(WriteGPUProfilerTimestamp(command_list, profiler_slot_index, query_index));
+                }
+
+                const auto pass_begin = std::chrono::steady_clock::now();
                 ExecuteRenderGraphNode(command_list, render_graph_node, interval);
+                const auto pass_end = std::chrono::steady_clock::now();
+                const float pass_cpu_ms = std::chrono::duration<float, std::milli>(pass_end - pass_begin).count();
+
+                if (enable_gpu_timestamp)
+                {
+                    const unsigned query_index = static_cast<unsigned>(pass_index * 2 + 1);
+                    GLTF_CHECK(WriteGPUProfilerTimestamp(command_list, profiler_slot_index, query_index));
+                    ++timestamped_pass_count;
+                }
+
+                const auto& node_desc = m_render_graph_nodes[render_graph_node.value];
+                std::string group_name = node_desc.debug_group;
+                if (group_name.empty())
+                {
+                    group_name = "Ungrouped";
+                }
+
+                std::string pass_name = node_desc.debug_name;
+                if (pass_name.empty())
+                {
+                    auto render_pass = InternalResourceHandleTable::Instance().GetRenderPass(node_desc.render_pass_handle);
+                    std::string type_name = render_pass ? ToRenderPassTypeName(render_pass->GetRenderPassType()) : "Unknown";
+                    pass_name = type_name + "#" + std::to_string(render_graph_node.value);
+                }
+
+                RenderPassFrameStats pass_stats{};
+                pass_stats.node_handle = render_graph_node;
+                pass_stats.group_name = group_name;
+                pass_stats.pass_name = pass_name;
+                pass_stats.cpu_time_ms = pass_cpu_ms;
+                submitted_frame_stats.pass_stats.push_back(pass_stats);
+                submitted_frame_stats.cpu_total_ms += pass_cpu_ms;
+            }
+
+            GLTF_CHECK(FinalizeGPUProfilerFrame(command_list, profiler_slot_index, timestamped_pass_count * 2, submitted_frame_stats));
+            if (!(m_gpu_profiler_state && m_gpu_profiler_state->supported))
+            {
+                m_last_frame_stats = submitted_frame_stats;
+            }
+            else if (timestamped_pass_count == 0)
+            {
+                m_last_frame_stats = submitted_frame_stats;
+            }
+            else if (m_last_frame_stats.pass_stats.empty())
+            {
+                m_last_frame_stats = submitted_frame_stats;
             }
 
             CollectUnusedRenderPassDescriptorResources();
@@ -1082,17 +1228,26 @@ namespace RendererInterface
 
                 src->Transition(command_list, RHIResourceStateType::STATE_COPY_SOURCE);
                 dst->Transition(command_list, RHIResourceStateType::STATE_COPY_DEST);
-                
-                RHICopyTextureInfo copy_info{};
-                copy_info.copy_width = m_window.GetWidth();
-                copy_info.copy_height = m_window.GetHeight();
-                copy_info.dst_mip_level = 0;
-                copy_info.src_mip_level = 0;
-                copy_info.dst_x = 0;
-                copy_info.dst_y = 0;
-                RHIUtilInstanceManager::Instance().CopyTexture(command_list, *dst, *src, copy_info);
+
+                const auto& src_desc = src->GetTextureDesc();
+                const auto& dst_desc = dst->GetTextureDesc();
+                const unsigned copy_width = (std::min)((std::min)(window_width, src_desc.GetTextureWidth()), dst_desc.GetTextureWidth());
+                const unsigned copy_height = (std::min)((std::min)(window_height, src_desc.GetTextureHeight()), dst_desc.GetTextureHeight());
+                if (copy_width > 0 && copy_height > 0)
+                {
+                    RHICopyTextureInfo copy_info{};
+                    copy_info.copy_width = copy_width;
+                    copy_info.copy_height = copy_height;
+                    copy_info.dst_mip_level = 0;
+                    copy_info.src_mip_level = 0;
+                    copy_info.dst_x = 0;
+                    copy_info.dst_y = 0;
+                    RHIUtilInstanceManager::Instance().CopyTexture(command_list, *dst, *src, copy_info);
+                }
             }
-                
+
+            GLTF_CHECK(RenderDebugUI(command_list));
+                 
             Present(command_list);
 
             // Clear all nodes at end of frame
@@ -1117,6 +1272,264 @@ namespace RendererInterface
     void RenderGraph::RegisterTickCallback(const RenderGraphTickCallback& callback)
     {
         m_tick_callback = callback;
+    }
+
+    void RenderGraph::RegisterDebugUICallback(const RenderGraphDebugUICallback& callback)
+    {
+        m_debug_ui_callback = callback;
+    }
+
+    void RenderGraph::EnableDebugUI(bool enable)
+    {
+        m_debug_ui_enabled = enable;
+    }
+
+    const RenderGraph::FrameStats& RenderGraph::GetLastFrameStats() const
+    {
+        return m_last_frame_stats;
+    }
+
+    bool RenderGraph::InitDebugUI()
+    {
+        if (m_debug_ui_initialized)
+        {
+            return true;
+        }
+
+        IMGUI_CHECKVERSION();
+        ImGui::CreateContext();
+        ImGuiIO& io = ImGui::GetIO();
+        io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+        ImGui::StyleColorsDark();
+
+        GLTF_CHECK(ImGui_ImplGlfw_InitForOther(glTFWindow::Get().GetGLFWWindow(), true));
+        GLTF_CHECK(RHIUtilInstanceManager::Instance().InitGUIContext(
+            m_resource_allocator.GetDevice(),
+            m_resource_allocator.GetCommandQueue(),
+            m_resource_allocator.GetDescriptorManager(),
+            m_resource_allocator.GetCurrentSwapchain().GetBackBufferCount()));
+
+        glTFWindow::Get().SetInputHandleCallback([this]()
+        {
+            if (!m_debug_ui_enabled || !m_debug_ui_initialized)
+            {
+                return false;
+            }
+            const ImGuiIO& io = ImGui::GetIO();
+            return io.WantCaptureMouse || io.WantCaptureKeyboard;
+        });
+        m_debug_ui_initialized = true;
+        return true;
+    }
+
+    bool RenderGraph::RenderDebugUI(IRHICommandList& command_list)
+    {
+        if (!m_debug_ui_enabled || !m_debug_ui_initialized)
+        {
+            return true;
+        }
+
+        ImGui::Render();
+
+        RHIBeginRenderingInfo begin_rendering_info{};
+        const auto& swapchain_desc = m_resource_allocator.GetCurrentSwapchainRT().m_source->GetTextureDesc();
+        begin_rendering_info.rendering_area_width = swapchain_desc.GetTextureWidth();
+        begin_rendering_info.rendering_area_height = swapchain_desc.GetTextureHeight();
+        begin_rendering_info.enable_depth_write = false;
+        begin_rendering_info.clear_render_target = false;
+        begin_rendering_info.m_render_targets = {&m_resource_allocator.GetCurrentSwapchainRT()};
+
+        GLTF_CHECK(RHIUtilInstanceManager::Instance().BeginRendering(command_list, begin_rendering_info));
+        GLTF_CHECK(m_resource_allocator.GetDescriptorManager().BindGUIDescriptorContext(command_list));
+        GLTF_CHECK(RHIUtilInstanceManager::Instance().RenderGUIFrame(command_list));
+        GLTF_CHECK(RHIUtilInstanceManager::Instance().EndRendering(command_list));
+
+        return true;
+    }
+
+    void RenderGraph::ShutdownDebugUI()
+    {
+        if (!m_debug_ui_initialized)
+        {
+            return;
+        }
+
+        m_debug_ui_callback = nullptr;
+        m_debug_ui_enabled = false;
+        glTFWindow::Get().SetInputHandleCallback([]() { return false; });
+        RHIUtilInstanceManager::Instance().ExitGUI();
+        ImGui_ImplGlfw_Shutdown();
+        ImGui::DestroyContext();
+        m_debug_ui_initialized = false;
+    }
+
+    bool RenderGraph::InitGPUProfiler()
+    {
+        if (m_gpu_profiler_state)
+        {
+            return true;
+        }
+
+        m_gpu_profiler_state = std::make_unique<GPUProfilerState>();
+        auto& profiler_state = *m_gpu_profiler_state;
+        const unsigned back_buffer_count = m_resource_allocator.GetCurrentSwapchain().GetBackBufferCount();
+        if (back_buffer_count == 0)
+        {
+            return true;
+        }
+
+        profiler_state.frame_slots.resize(back_buffer_count);
+        
+        GLTF_CHECK(RHIUtilInstanceManager::Instance().InitTimestampProfiler(
+            m_resource_allocator.GetDevice(),
+            m_resource_allocator.GetCommandQueue(),
+            back_buffer_count,
+            profiler_state.max_query_count));
+        profiler_state.supported = RHIUtilInstanceManager::Instance().IsTimestampProfilerSupported();
+        if (profiler_state.supported)
+        {
+            LOG_FORMAT_FLUSH("[RenderGraph][Profiler] GPU timestamp profiler enabled.\n");
+        }
+        else
+        {
+            LOG_FORMAT_FLUSH("[RenderGraph][Profiler] GPU timestamp profiler unavailable, fallback to CPU timings only.\n");
+        }
+
+        return true;
+    }
+
+    void RenderGraph::ShutdownGPUProfiler()
+    {
+        if (!m_gpu_profiler_state)
+        {
+            return;
+        }
+
+        RHIUtilInstanceManager::Instance().ShutdownTimestampProfiler();
+        m_gpu_profiler_state.reset();
+    }
+
+    void RenderGraph::ResolveGPUProfilerFrame(unsigned slot_index)
+    {
+        if (!m_gpu_profiler_state || !m_gpu_profiler_state->supported)
+        {
+            return;
+        }
+        if (slot_index >= m_gpu_profiler_state->frame_slots.size())
+        {
+            return;
+        }
+
+        auto& profiler_state = *m_gpu_profiler_state;
+        auto& frame_slot = profiler_state.frame_slots[slot_index];
+        if (!frame_slot.has_pending_frame_stats || frame_slot.query_count == 0)
+        {
+            return;
+        }
+
+        const unsigned query_count = frame_slot.query_count;
+        std::vector<uint64_t> timestamps(query_count, 0);
+        double ticks_per_second = 0.0;
+        const bool readback_ok = RHIUtilInstanceManager::Instance().ResolveTimestampFrame(
+            slot_index,
+            query_count,
+            timestamps,
+            ticks_per_second);
+
+        if (!readback_ok)
+        {
+            frame_slot.has_pending_frame_stats = false;
+            frame_slot.query_count = 0;
+            return;
+        }
+
+        auto resolved_stats = frame_slot.pending_frame_stats;
+        resolved_stats.gpu_time_valid = false;
+        resolved_stats.gpu_total_ms = 0.0f;
+
+        const unsigned timed_pass_count = (std::min)(static_cast<unsigned>(resolved_stats.pass_stats.size()), query_count / 2);
+        for (unsigned i = 0; i < timed_pass_count; ++i)
+        {
+            const uint64_t begin_tick = timestamps[i * 2];
+            const uint64_t end_tick = timestamps[i * 2 + 1];
+            if (end_tick <= begin_tick)
+            {
+                continue;
+            }
+
+            if (ticks_per_second <= 0.0)
+            {
+                break;
+            }
+
+            const double gpu_time_ms = static_cast<double>(end_tick - begin_tick) * 1000.0 / ticks_per_second;
+
+            auto& pass_stats = resolved_stats.pass_stats[i];
+            pass_stats.gpu_time_valid = true;
+            pass_stats.gpu_time_ms = static_cast<float>(gpu_time_ms);
+            resolved_stats.gpu_total_ms += static_cast<float>(gpu_time_ms);
+            resolved_stats.gpu_time_valid = true;
+        }
+
+        m_last_frame_stats = resolved_stats;
+        frame_slot.has_pending_frame_stats = false;
+        frame_slot.query_count = 0;
+    }
+
+    bool RenderGraph::BeginGPUProfilerFrame(IRHICommandList& command_list, unsigned slot_index)
+    {
+        if (!m_gpu_profiler_state || !m_gpu_profiler_state->supported)
+        {
+            return true;
+        }
+        if (slot_index >= m_gpu_profiler_state->frame_slots.size())
+        {
+            return true;
+        }
+
+        GLTF_CHECK(RHIUtilInstanceManager::Instance().BeginTimestampFrame(command_list, slot_index));
+        return true;
+    }
+
+    bool RenderGraph::WriteGPUProfilerTimestamp(IRHICommandList& command_list, unsigned slot_index, unsigned query_index)
+    {
+        if (!m_gpu_profiler_state || !m_gpu_profiler_state->supported)
+        {
+            return true;
+        }
+        if (slot_index >= m_gpu_profiler_state->frame_slots.size())
+        {
+            return true;
+        }
+        if (query_index >= m_gpu_profiler_state->max_query_count)
+        {
+            return true;
+        }
+
+        GLTF_CHECK(RHIUtilInstanceManager::Instance().WriteTimestamp(command_list, slot_index, query_index));
+        return true;
+    }
+
+    bool RenderGraph::FinalizeGPUProfilerFrame(IRHICommandList& command_list, unsigned slot_index, unsigned query_count, const FrameStats& frame_stats)
+    {
+        if (!m_gpu_profiler_state || !m_gpu_profiler_state->supported)
+        {
+            return true;
+        }
+        if (slot_index >= m_gpu_profiler_state->frame_slots.size())
+        {
+            return true;
+        }
+
+        auto& profiler_state = *m_gpu_profiler_state;
+        auto& frame_slot = profiler_state.frame_slots[slot_index];
+        const unsigned clamped_query_count = (std::min)(query_count, profiler_state.max_query_count);
+        GLTF_CHECK(RHIUtilInstanceManager::Instance().EndTimestampFrame(command_list, slot_index, clamped_query_count));
+
+        frame_slot.query_count = clamped_query_count;
+        frame_slot.pending_frame_stats = frame_stats;
+        frame_slot.has_pending_frame_stats = clamped_query_count > 0;
+        return true;
     }
 
     void RenderGraph::EnqueueResourceForDeferredRelease(const std::shared_ptr<IRHIResource>& resource)
@@ -1372,9 +1785,26 @@ namespace RendererInterface
         RHIUtilInstanceManager::Instance().SetRootSignature(command_list, render_pass->GetRootSignature(), render_pass->GetPipelineStateObject(), RendererInterfaceRHIConverter::ConvertToRHIPipelineType(render_pass->GetRenderPassType()));
         RHIUtilInstanceManager::Instance().SetPrimitiveTopology(command_list, ConvertToRHIPrimitiveTopology(render_pass->GetPrimitiveTopology()));
 
+        unsigned default_viewport_width = m_window.GetWidth();
+        unsigned default_viewport_height = m_window.GetHeight();
+        if (!render_graph_node_desc.draw_info.render_target_resources.empty())
+        {
+            const auto first_render_target_handle = render_graph_node_desc.draw_info.render_target_resources.begin()->first;
+            auto first_render_target = InternalResourceHandleTable::Instance().GetRenderTarget(first_render_target_handle);
+            default_viewport_width = first_render_target->m_source->GetTextureDesc().GetTextureWidth();
+            default_viewport_height = first_render_target->m_source->GetTextureDesc().GetTextureHeight();
+
+            for (const auto& render_target_info : render_graph_node_desc.draw_info.render_target_resources)
+            {
+                auto render_target = InternalResourceHandleTable::Instance().GetRenderTarget(render_target_info.first);
+                default_viewport_width = (std::min)(default_viewport_width, render_target->m_source->GetTextureDesc().GetTextureWidth());
+                default_viewport_height = (std::min)(default_viewport_height, render_target->m_source->GetTextureDesc().GetTextureHeight());
+            }
+        }
+
         RHIViewportDesc viewport{};
-        viewport.width = render_pass->GetViewportSize().first >= 0 ? render_pass->GetViewportSize().first : m_window.GetWidth();
-        viewport.height = render_pass->GetViewportSize().second >= 0 ? render_pass->GetViewportSize().second : m_window.GetHeight();
+        viewport.width = render_pass->GetViewportSize().first >= 0 ? render_pass->GetViewportSize().first : default_viewport_width;
+        viewport.height = render_pass->GetViewportSize().second >= 0 ? render_pass->GetViewportSize().second : default_viewport_height;
         viewport.min_depth = 0.f;
         viewport.max_depth = 1.f;
         viewport.top_left_x = 0.f;

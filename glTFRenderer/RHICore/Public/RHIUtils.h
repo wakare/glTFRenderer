@@ -93,6 +93,14 @@ public:
     
     virtual void ReportLiveObjects() = 0;
 
+    virtual bool InitTimestampProfiler(IRHIDevice& device, IRHICommandQueue& command_queue, unsigned back_buffer_count, unsigned max_query_count) = 0;
+    virtual void ShutdownTimestampProfiler() = 0;
+    virtual bool BeginTimestampFrame(IRHICommandList& command_list, unsigned frame_slot) = 0;
+    virtual bool WriteTimestamp(IRHICommandList& command_list, unsigned frame_slot, unsigned query_index) = 0;
+    virtual bool EndTimestampFrame(IRHICommandList& command_list, unsigned frame_slot, unsigned query_count) = 0;
+    virtual bool ResolveTimestampFrame(unsigned frame_slot, unsigned query_count, std::vector<uint64_t>& out_timestamps, double& out_ticks_per_second) = 0;
+    virtual bool IsTimestampProfilerSupported() const = 0;
+
     bool UploadTextureData(IRHICommandList& command_list, IRHIMemoryManager& memory_manager, IRHIDevice& device, IRHITexture& dst, const RHITextureMipUploadInfo& upload_info) ;
     bool Present(IRHISwapChain& swap_chain, IRHICommandQueue& command_queue, IRHICommandList& command_list);
 };

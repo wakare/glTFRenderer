@@ -39,6 +39,8 @@ bool RendererSystemSceneRenderer::Init(RendererInterface::ResourceOperator& reso
     {
         RendererInterface::RenderGraph::RenderPassSetupInfo setup_info{};
         setup_info.render_pass_type = RendererInterface::RenderPassType::GRAPHICS;
+        setup_info.debug_group = "Scene Renderer";
+        setup_info.debug_name = "Base Pass";
         setup_info.modules = {m_scene_mesh_module, m_camera_module};
         setup_info.shader_setup_infos = {
             {

@@ -175,6 +175,7 @@
     <ClCompile Include="RendererDemo.cpp" />
     <ClCompile Include="RendererModule\RendererModuleSceneMesh.cpp" />
     <ClCompile Include="RendererSystem\RendererSystemBase.cpp" />
+    <ClCompile Include="RendererSystem\RendererSystemFrostedGlass.cpp" />
     <ClCompile Include="RendererSystem\RendererSystemLighting.cpp" />
     <ClCompile Include="RendererSystem\RendererSystemSceneRenderer.cpp" />
     <None Include="Resources\Shaders\BindlessTextureDefine.hlsl" />
@@ -189,6 +190,7 @@
     <None Include="Resources\Shaders\Math\RandomGenerator.hlsl" />
     <None Include="Resources\Shaders\Math\ReservoirSample.hlsl" />
     <None Include="Resources\Shaders\Math\Sample.hlsl" />
+    <None Include="Resources\Shaders\FrostedGlass.hlsl" />
     <None Include="Resources\Shaders\RendererModule\RendererModuleLighting.hlsl" />
     <None Include="Resources\Shaders\SceneLighting.hlsl" />
     <None Include="Resources\Shaders\SceneViewCommon.hlsl" />
@@ -204,6 +206,7 @@
     <ClInclude Include="RendererModule\RendererModuleMaterial.h" />
     <ClInclude Include="RendererModule\RendererModuleSceneMesh.h" />
     <ClInclude Include="RendererSystem\RendererSystemBase.h" />
+    <ClInclude Include="RendererSystem\RendererSystemFrostedGlass.h" />
     <ClInclude Include="RendererSystem\RendererSystemLighting.h" />
     <ClInclude Include="RendererSystem\RendererSystemSceneRenderer.h" />
   </ItemGroup>

@@ -45,6 +45,7 @@ public:
 
     void WaitFrameRenderFinished();
     void WaitGPUIdle();
+    bool ResizeSwapchainIfNeeded(unsigned width, unsigned height);
     IRHICommandList& GetCommandListForRecordPassCommand(RendererInterface::RenderPassHandle render_pass_handle = NULL_HANDLE);
 
     IRHICommandQueue& GetCommandQueue();

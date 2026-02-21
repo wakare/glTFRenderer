@@ -11,7 +11,9 @@ class VulkanUtils : public RHIUtils
     friend class RHIResourceFactory;
     
 public:
-    IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(VulkanUtils)
+    VulkanUtils();
+    virtual ~VulkanUtils();
+    IMPL_NON_COPYABLE(VulkanUtils)
 
     virtual bool InitGraphicsAPI() override;
     
@@ -69,4 +71,16 @@ public:
 
     virtual void ReportLiveObjects() override;
     virtual bool ProcessShaderMetaData(IRHIShader& shader) override;
+
+    virtual bool InitTimestampProfiler(IRHIDevice& device, IRHICommandQueue& command_queue, unsigned back_buffer_count, unsigned max_query_count) override;
+    virtual void ShutdownTimestampProfiler() override;
+    virtual bool BeginTimestampFrame(IRHICommandList& command_list, unsigned frame_slot) override;
+    virtual bool WriteTimestamp(IRHICommandList& command_list, unsigned frame_slot, unsigned query_index) override;
+    virtual bool EndTimestampFrame(IRHICommandList& command_list, unsigned frame_slot, unsigned query_count) override;
+    virtual bool ResolveTimestampFrame(unsigned frame_slot, unsigned query_count, std::vector<uint64_t>& out_timestamps, double& out_ticks_per_second) override;
+    virtual bool IsTimestampProfilerSupported() const override;
+
+private:
+    struct TimestampProfilerState;
+    std::unique_ptr<TimestampProfilerState> m_timestamp_profiler_state;
 };

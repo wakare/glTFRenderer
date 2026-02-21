@@ -4,6 +4,7 @@
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
 #include <functional>
+#include "InputKeyMapping.h"
 
 glTFWindow::glTFWindow()
     : m_glfw_window(nullptr)
@@ -90,6 +91,11 @@ HWND glTFWindow::GetHWND() const
     return glfwGetWin32Window(m_glfw_window);
 }
 
+GLFWwindow* glTFWindow::GetGLFWWindow() const
+{
+    return m_glfw_window;
+}
+
 bool glTFWindow::NeedHandleInput() const
 {
     if (m_handle_input_event && m_handle_input_event())
@@ -120,43 +126,6 @@ void glTFWindow::SetInputManager(const std::shared_ptr<RendererInputDevice>& inp
     m_input_control = input_manager;
 }
 
-InputDeviceKeyType ToDeviceKey(int key_code)
-{
-    switch (key_code)
-    {
-        case GLFW_KEY_W:
-        return InputDeviceKeyType::KEY_W;
-        case GLFW_KEY_S:
-        return InputDeviceKeyType::KEY_S;
-        case GLFW_KEY_A:
-        return InputDeviceKeyType::KEY_A;
-        case GLFW_KEY_D:
-        return InputDeviceKeyType::KEY_D;
-        case GLFW_KEY_Q:
-        return InputDeviceKeyType::KEY_Q;
-        case GLFW_KEY_E:
-        return InputDeviceKeyType::KEY_E;
-        case GLFW_KEY_R:
-        return InputDeviceKeyType::KEY_R;
-        case GLFW_KEY_UP:
-        return InputDeviceKeyType::KEY_UP;
-        case GLFW_KEY_DOWN:
-        return InputDeviceKeyType::KEY_DOWN;
-        case GLFW_KEY_LEFT:
-        return InputDeviceKeyType::KEY_LEFT;
-        case GLFW_KEY_RIGHT:
-        return InputDeviceKeyType::KEY_RIGHT;
-        case GLFW_KEY_SPACE:
-        return InputDeviceKeyType::KEY_SPACE;
-        case GLFW_KEY_ENTER:
-        return InputDeviceKeyType::KEY_ENTER;
-        case GLFW_KEY_LEFT_CONTROL:
-        return InputDeviceKeyType::KEY_LEFT_CONTROL;
-        case GLFW_KEY_RIGHT_CONTROL:
-        return InputDeviceKeyType::KEY_RIGHT_CONTROL;
-    }
-    return InputDeviceKeyType::KEY_UNKNOWN;
-}
 InputDeviceButtonType ToDeviceButton(int button)
 {
     switch (button)
@@ -178,15 +147,16 @@ void glTFWindow::KeyCallback(GLFWwindow* window, int key, int scancode, int acti
         return;
     }
 
-    if (ToDeviceKey(key) != InputDeviceKeyType::KEY_UNKNOWN)
+    const auto device_key = GLFWKeyToInputDeviceKey(key);
+    if (device_key != InputDeviceKeyType::KEY_UNKNOWN)
     {
         if (action == GLFW_PRESS)
         {
-            Get().m_input_control->RecordKeyPressed(ToDeviceKey(key));
+            Get().m_input_control->RecordKeyPressed(device_key);
         }
         else if (action == GLFW_RELEASE)
         {
-            Get().m_input_control->RecordKeyRelease(ToDeviceKey(key));
+            Get().m_input_control->RecordKeyRelease(device_key);
         }    
     }
 }

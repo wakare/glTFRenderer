@@ -25,6 +25,7 @@ public:
     
     // Can get hwnd by raw window
     HWND GetHWND() const;
+    GLFWwindow* GetGLFWWindow() const;
     bool NeedHandleInput() const;
 
     void SetInputHandleCallback(const std::function<bool()>& input_handle_function);

@@ -349,6 +349,60 @@ void ResourceManager::WaitGPUIdle()
     }
 }
 
+bool ResourceManager::ResizeSwapchainIfNeeded(unsigned width, unsigned height)
+{
+    if (!m_swap_chain || !m_factory || !m_device || !m_command_queue || !m_memory_manager || !m_render_target_manager)
+    {
+        return false;
+    }
+
+    if (width == 0 || height == 0)
+    {
+        return false;
+    }
+
+    if (m_swap_chain->GetWidth() == width && m_swap_chain->GetHeight() == height)
+    {
+        return false;
+    }
+
+    WaitFrameRenderFinished();
+    WaitGPUIdle();
+
+    m_swapchain_RTs.clear();
+
+    const bool released = m_swap_chain->Release(*m_memory_manager);
+    GLTF_CHECK(released);
+
+    const auto& render_window = RendererInterface::InternalResourceHandleTable::Instance().GetRenderWindow(m_device_desc.window);
+    RHITextureDesc swap_chain_texture_desc("swap_chain_back_buffer",
+        width,
+        height,
+        RHIDataFormat::R8G8B8A8_UNORM,
+        static_cast<RHIResourceUsageFlags>(RUF_ALLOW_RENDER_TARGET | RUF_TRANSFER_DST),
+        {
+            .clear_format = RHIDataFormat::R8G8B8A8_UNORM,
+            .clear_color = {0.0f, 0.0f, 0.0f, 0.0f}
+        });
+
+    RHISwapChainDesc swap_chain_desc{};
+    swap_chain_desc.hwnd = render_window.GetHWND();
+    swap_chain_desc.chain_mode = VSYNC;
+    swap_chain_desc.full_screen = false;
+    const bool recreated = m_swap_chain->InitSwapChain(*m_factory, *m_device, *m_command_queue, swap_chain_texture_desc, swap_chain_desc);
+    GLTF_CHECK(recreated);
+
+    RHITextureClearValue clear_value
+    {
+        RHIDataFormat::R8G8B8A8_UNORM_SRGB,
+        {0.0f, 0.0f, 0.0f, 0.0f}
+    };
+    m_swapchain_RTs = m_render_target_manager->CreateRenderTargetFromSwapChain(*m_device, *m_memory_manager, *m_swap_chain, clear_value);
+
+    LOG_FORMAT_FLUSH("[ResourceManager] Recreated swapchain: %ux%u\n", width, height);
+    return true;
+}
+
 IRHICommandList& ResourceManager::GetCommandListForRecordPassCommand(
     RendererInterface::RenderPassHandle render_pass_handle)
 {

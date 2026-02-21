@@ -29,6 +29,7 @@ enum class InputDeviceKeyType
     KEY_DOWN,
     KEY_LEFT,
     KEY_RIGHT,
+    KEY_COUNT,
 };
 
 enum class InputDeviceButtonType

@@ -6,6 +6,8 @@
 #include <dxgidebug.h>
 #include <d3d12shader.h>
 #include <dxcapi.h>
+#include <algorithm>
+#include <cstring>
 
 #include "d3dx12.h"
 #include "DX12CommandList.h"
@@ -31,6 +33,25 @@
 // reference https://devblogs.microsoft.com/directx/gettingstarted-dx12agility/ SDK package is SDK 1.614.1 mapping 614 version
 extern "C" { __declspec(dllexport) extern const UINT D3D12SDKVersion = 614; }
 extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ".\\D3D12\\"; }
+
+struct DX12Utils::TimestampProfilerState
+{
+    struct FrameSlot
+    {
+        ComPtr<ID3D12QueryHeap> query_heap{};
+        ComPtr<ID3D12Resource> readback_buffer{};
+        unsigned pending_query_count{0};
+    };
+
+    bool supported{false};
+    unsigned max_query_count{0};
+    unsigned frame_slot_count{0};
+    double ticks_per_second{0.0};
+    std::vector<FrameSlot> frame_slots{};
+};
+
+DX12Utils::DX12Utils() = default;
+DX12Utils::~DX12Utils() = default;
 
 bool DX12Utils::InitGraphicsAPI()
 {
@@ -768,6 +789,179 @@ bool DX12Utils::SupportRayTracing(IRHIDevice& device)
     return SUCCEEDED(D3D12CreateDevice(dxAdapter, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&testDevice)))
         && SUCCEEDED(testDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &featureSupportData, sizeof(featureSupportData)))
         && featureSupportData.RaytracingTier != D3D12_RAYTRACING_TIER_NOT_SUPPORTED;
+}
+
+bool DX12Utils::InitTimestampProfiler(IRHIDevice& device, IRHICommandQueue& command_queue, unsigned back_buffer_count, unsigned max_query_count)
+{
+    (void)command_queue;
+    ShutdownTimestampProfiler();
+
+    GLTF_CHECK(back_buffer_count > 0);
+    GLTF_CHECK(max_query_count > 0);
+
+    m_timestamp_profiler_state = std::make_unique<TimestampProfilerState>();
+    auto& profiler_state = *m_timestamp_profiler_state;
+    profiler_state.max_query_count = max_query_count;
+    profiler_state.frame_slot_count = back_buffer_count;
+    profiler_state.frame_slots.resize(back_buffer_count);
+
+    auto& dx12_device = dynamic_cast<DX12Device&>(device);
+    auto& dx12_queue = dynamic_cast<DX12CommandQueue&>(command_queue);
+    UINT64 timestamp_frequency = 0;
+    if (!dx12_queue.GetCommandQueue() || FAILED(dx12_queue.GetCommandQueue()->GetTimestampFrequency(&timestamp_frequency)) || timestamp_frequency == 0)
+    {
+        return true;
+    }
+    profiler_state.ticks_per_second = static_cast<double>(timestamp_frequency);
+
+    for (auto& frame_slot : profiler_state.frame_slots)
+    {
+        D3D12_QUERY_HEAP_DESC query_heap_desc{};
+        query_heap_desc.Count = max_query_count;
+        query_heap_desc.Type = D3D12_QUERY_HEAP_TYPE_TIMESTAMP;
+        query_heap_desc.NodeMask = 0;
+        if (FAILED(dx12_device.GetDevice()->CreateQueryHeap(&query_heap_desc, IID_PPV_ARGS(&frame_slot.query_heap))))
+        {
+            ShutdownTimestampProfiler();
+            return true;
+        }
+
+        D3D12_HEAP_PROPERTIES heap_properties{};
+        heap_properties.Type = D3D12_HEAP_TYPE_READBACK;
+        heap_properties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+        heap_properties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+        heap_properties.CreationNodeMask = 1;
+        heap_properties.VisibleNodeMask = 1;
+
+        D3D12_RESOURCE_DESC readback_desc{};
+        readback_desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+        readback_desc.Width = static_cast<UINT64>(max_query_count) * sizeof(uint64_t);
+        readback_desc.Height = 1;
+        readback_desc.DepthOrArraySize = 1;
+        readback_desc.MipLevels = 1;
+        readback_desc.Format = DXGI_FORMAT_UNKNOWN;
+        readback_desc.SampleDesc.Count = 1;
+        readback_desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+
+        if (FAILED(dx12_device.GetDevice()->CreateCommittedResource(
+            &heap_properties,
+            D3D12_HEAP_FLAG_NONE,
+            &readback_desc,
+            D3D12_RESOURCE_STATE_COPY_DEST,
+            nullptr,
+            IID_PPV_ARGS(&frame_slot.readback_buffer))))
+        {
+            ShutdownTimestampProfiler();
+            return true;
+        }
+    }
+
+    profiler_state.supported = true;
+    return true;
+}
+
+void DX12Utils::ShutdownTimestampProfiler()
+{
+    m_timestamp_profiler_state.reset();
+}
+
+bool DX12Utils::BeginTimestampFrame(IRHICommandList& command_list, unsigned frame_slot)
+{
+    (void)command_list;
+    (void)frame_slot;
+    return true;
+}
+
+bool DX12Utils::WriteTimestamp(IRHICommandList& command_list, unsigned frame_slot, unsigned query_index)
+{
+    if (!IsTimestampProfilerSupported())
+    {
+        return true;
+    }
+
+    auto& profiler_state = *m_timestamp_profiler_state;
+    GLTF_CHECK(frame_slot < profiler_state.frame_slot_count);
+    GLTF_CHECK(query_index < profiler_state.max_query_count);
+
+    auto& slot = profiler_state.frame_slots[frame_slot];
+    auto* dx12_command_list = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
+    dx12_command_list->EndQuery(slot.query_heap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, query_index);
+    return true;
+}
+
+bool DX12Utils::EndTimestampFrame(IRHICommandList& command_list, unsigned frame_slot, unsigned query_count)
+{
+    if (!IsTimestampProfilerSupported())
+    {
+        return true;
+    }
+
+    auto& profiler_state = *m_timestamp_profiler_state;
+    GLTF_CHECK(frame_slot < profiler_state.frame_slot_count);
+    auto& slot = profiler_state.frame_slots[frame_slot];
+    const unsigned clamped_query_count = (std::min)(query_count, profiler_state.max_query_count);
+    if (clamped_query_count == 0)
+    {
+        slot.pending_query_count = 0;
+        return true;
+    }
+
+    auto* dx12_command_list = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
+    dx12_command_list->ResolveQueryData(
+        slot.query_heap.Get(),
+        D3D12_QUERY_TYPE_TIMESTAMP,
+        0,
+        clamped_query_count,
+        slot.readback_buffer.Get(),
+        0);
+    slot.pending_query_count = clamped_query_count;
+    return true;
+}
+
+bool DX12Utils::ResolveTimestampFrame(unsigned frame_slot, unsigned query_count, std::vector<uint64_t>& out_timestamps, double& out_ticks_per_second)
+{
+    out_timestamps.clear();
+    out_ticks_per_second = 0.0;
+    if (!IsTimestampProfilerSupported())
+    {
+        return true;
+    }
+
+    auto& profiler_state = *m_timestamp_profiler_state;
+    GLTF_CHECK(frame_slot < profiler_state.frame_slot_count);
+    auto& slot = profiler_state.frame_slots[frame_slot];
+    const unsigned available_query_count = slot.pending_query_count;
+    const unsigned resolved_query_count = (std::min)(query_count, available_query_count);
+    if (resolved_query_count == 0)
+    {
+        return true;
+    }
+
+    out_timestamps.resize(resolved_query_count, 0);
+    D3D12_RANGE read_range{};
+    read_range.Begin = 0;
+    read_range.End = static_cast<SIZE_T>(resolved_query_count) * sizeof(uint64_t);
+    void* mapped_data = nullptr;
+    if (FAILED(slot.readback_buffer->Map(0, &read_range, &mapped_data)))
+    {
+        out_timestamps.clear();
+        return false;
+    }
+
+    memcpy(out_timestamps.data(), mapped_data, read_range.End);
+    D3D12_RANGE write_range{};
+    write_range.Begin = 0;
+    write_range.End = 0;
+    slot.readback_buffer->Unmap(0, &write_range);
+
+    slot.pending_query_count = 0;
+    out_ticks_per_second = profiler_state.ticks_per_second;
+    return true;
+}
+
+bool DX12Utils::IsTimestampProfilerSupported() const
+{
+    return m_timestamp_profiler_state && m_timestamp_profiler_state->supported;
 }
 
 unsigned DX12Utils::GetAlignmentSizeForUAVCount(unsigned size)

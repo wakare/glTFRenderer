@@ -42,16 +42,21 @@ protected:
         std::vector<std::shared_ptr<RendererInterface::RendererModuleBase>> modules;
 
         std::optional<RendererInterface::RenderExecuteCommand> execute_command;
+        std::string debug_group;
+        std::string debug_name;
     };
     
     void TickFrame(unsigned long long time_interval);
     RendererInterface::RenderGraphNodeHandle SetupPassNode(const RenderPassSetupInfo& setup_info);
+    void DrawDebugUI();
     
     virtual bool InitInternal(const std::vector<std::string>& arguments) = 0;
     virtual void TickFrameInternal(unsigned long long time_interval);
+    virtual void DrawDebugUIInternal() {}
+    virtual const char* GetDemoPanelName() const { return "RendererDemo"; }
     
-    unsigned m_width{1280};
-    unsigned m_height{720};
+    unsigned m_width{1920};
+    unsigned m_height{1080};
         
     std::shared_ptr<RendererInterface::RenderWindow> m_window;
     std::shared_ptr<RendererInterface::ResourceOperator> m_resource_manager;

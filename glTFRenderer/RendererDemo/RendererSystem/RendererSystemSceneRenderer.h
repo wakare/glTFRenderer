@@ -16,6 +16,7 @@ public:
     virtual bool Init(RendererInterface::ResourceOperator& resource_operator, RendererInterface::RenderGraph& graph) override;
     virtual bool HasInit() const override;
     virtual bool Tick(RendererInterface::ResourceOperator& resource_operator,RendererInterface::RenderGraph& graph, unsigned long long interval) override;
+    virtual const char* GetSystemName() const override { return "Scene Renderer"; }
 
     std::shared_ptr<RendererModuleCamera> GetCameraModule() const;
     std::shared_ptr<RendererModuleSceneMesh> GetSceneMeshModule() const;

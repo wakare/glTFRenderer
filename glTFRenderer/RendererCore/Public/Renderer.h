@@ -424,6 +424,8 @@ namespace RendererInterface
         std::vector<RenderGraphNodeHandle> dependency_render_graph_nodes;
 
         std::function<void(unsigned long long)> pre_render_callback;
+        std::string debug_group;
+        std::string debug_name;
     };
 
     struct RenderSceneDesc

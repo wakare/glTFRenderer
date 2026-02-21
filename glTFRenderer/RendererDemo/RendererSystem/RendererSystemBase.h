@@ -10,6 +10,8 @@ public:
     virtual bool Init(RendererInterface::ResourceOperator& resource_operator, RendererInterface::RenderGraph& graph) = 0;
     virtual bool HasInit() const = 0;
     virtual bool Tick(RendererInterface::ResourceOperator& resource_operator,RendererInterface::RenderGraph& graph, unsigned long long interval) = 0;
+    virtual const char* GetSystemName() const { return "RendererSystem"; }
+    virtual void DrawDebugUI() {}
 
 protected:
     std::vector<std::shared_ptr<RendererInterface::RendererModuleBase>> m_modules;

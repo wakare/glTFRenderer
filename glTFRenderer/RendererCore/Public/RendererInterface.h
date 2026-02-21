@@ -3,6 +3,8 @@
 #include <deque>
 #include <functional>
 #include <set>
+#include <string>
+#include <vector>
 #include <glm/glm/glm.hpp>
 
 #include "Renderer.h"
@@ -93,6 +95,7 @@ namespace RendererInterface
 
         void UploadBufferData(BufferHandle handle, const BufferUploadDesc& upload_desc);
         void WaitFrameRenderFinished();
+        bool ResizeSwapchainIfNeeded(unsigned width, unsigned height);
         bool CleanupAllResources(bool clear_window_handles = false);
         
     protected:
@@ -143,14 +146,37 @@ namespace RendererInterface
             RenderStateDesc render_state{};
             std::vector<RenderGraphNodeHandle> dependency_render_graph_nodes;
             std::function<void(unsigned long long)> pre_render_callback;
+            std::string debug_group;
+            std::string debug_name;
 
             int viewport_width{-1};
             int viewport_height{-1};
         };
+
+        struct RenderPassFrameStats
+        {
+            RenderGraphNodeHandle node_handle{};
+            std::string group_name;
+            std::string pass_name;
+            float cpu_time_ms{0.0f};
+            bool gpu_time_valid{false};
+            float gpu_time_ms{0.0f};
+        };
+
+        struct FrameStats
+        {
+            unsigned long long frame_index{0};
+            float cpu_total_ms{0.0f};
+            bool gpu_time_valid{false};
+            float gpu_total_ms{0.0f};
+            std::vector<RenderPassFrameStats> pass_stats;
+        };
         
         typedef std::function<void(unsigned long long)> RenderGraphTickCallback;
+        typedef std::function<void()> RenderGraphDebugUICallback;
         
         RenderGraph(ResourceOperator& allocator, RenderWindow& window);
+        ~RenderGraph();
         
         RenderGraphNodeHandle CreateRenderGraphNode(const RenderGraphNodeDesc& render_graph_node_desc);
         RenderGraphNodeHandle CreateRenderGraphNode(ResourceOperator& allocator, const RenderPassSetupInfo& setup_info);
@@ -163,6 +189,9 @@ namespace RendererInterface
         void RegisterTextureToColorOutput(TextureHandle texture_handle);
         void RegisterRenderTargetToColorOutput(RenderTargetHandle render_target_handle);
         void RegisterTickCallback(const RenderGraphTickCallback& callback);
+        void RegisterDebugUICallback(const RenderGraphDebugUICallback& callback);
+        void EnableDebugUI(bool enable);
+        const FrameStats& GetLastFrameStats() const;
 
     protected:
         struct DeferredReleaseEntry
@@ -189,6 +218,15 @@ namespace RendererInterface
         void PruneDescriptorResources(RenderPassDescriptorResource& descriptor_resource, const RenderPassDrawDesc& draw_info);
         void CollectUnusedRenderPassDescriptorResources();
         void FlushDeferredResourceReleases(bool force_release_all);
+        bool InitDebugUI();
+        bool RenderDebugUI(IRHICommandList& command_list);
+        void ShutdownDebugUI();
+        bool InitGPUProfiler();
+        void ShutdownGPUProfiler();
+        void ResolveGPUProfilerFrame(unsigned slot_index);
+        bool BeginGPUProfilerFrame(IRHICommandList& command_list, unsigned slot_index);
+        bool WriteGPUProfilerTimestamp(IRHICommandList& command_list, unsigned slot_index, unsigned query_index);
+        bool FinalizeGPUProfilerFrame(IRHICommandList& command_list, unsigned slot_index, unsigned query_count, const FrameStats& frame_stats);
         
         void ExecuteRenderGraphNode(IRHICommandList& command_list, RenderGraphNodeHandle render_graph_node_handle, unsigned long long interval);
         void CloseCurrentCommandListAndExecute(IRHICommandList& command_list, const RHIExecuteCommandListContext& context, bool wait);
@@ -209,6 +247,12 @@ namespace RendererInterface
         
         std::shared_ptr<IRHITexture> m_final_color_output;
         RenderGraphTickCallback m_tick_callback;
+        RenderGraphDebugUICallback m_debug_ui_callback;
+        bool m_debug_ui_enabled{true};
+        bool m_debug_ui_initialized{false};
+        struct GPUProfilerState;
+        std::unique_ptr<GPUProfilerState> m_gpu_profiler_state;
+        FrameStats m_last_frame_stats{};
     };
 
     class RendererSceneMeshDataAccessorBase
