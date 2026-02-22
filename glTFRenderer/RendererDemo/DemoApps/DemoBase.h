@@ -67,4 +67,7 @@ protected:
     std::map<RendererInterface::RenderTargetHandle, RendererInterface::RenderTargetDesc> m_render_target_desc_infos;
     unsigned m_last_render_width{0};
     unsigned m_last_render_height{0};
+    RendererInterface::RenderDeviceType m_render_device_type{RendererInterface::DX12};
+    RendererInterface::SwapchainResizePolicy m_swapchain_resize_policy_ui{};
+    bool m_swapchain_resize_policy_ui_initialized{false};
 };

@@ -282,12 +282,25 @@ namespace RendererInterface
         DX12,
         VULKAN,
     };
+
+    struct SwapchainResizePolicy
+    {
+        // Window extent must stay unchanged for N sync ticks before we try ResizeBuffers/ResizeSwapChain.
+        unsigned min_stable_frames_before_resize{2};
+        // Retry cooldown in frames after a failed in-place resize.
+        unsigned retry_cooldown_base_frames{6};
+        unsigned retry_cooldown_max_frames{120};
+        // Failure log throttle.
+        unsigned retry_log_period{30};
+        bool use_exponential_retry_backoff{true};
+    };
     
     struct RenderDeviceDesc
     {
         RenderDeviceType type;
         RenderWindowHandle window;
         unsigned back_buffer_count;
+        SwapchainResizePolicy swapchain_resize_policy{};
     };
 
     // Runtime state for swapchain/surface synchronization.

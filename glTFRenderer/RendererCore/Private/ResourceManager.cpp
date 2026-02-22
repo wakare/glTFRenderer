@@ -199,6 +199,7 @@ RHIBufferDesc ConvertToRHIBufferDesc(const RendererInterface::BufferDesc& desc)
 bool ResourceManager::InitResourceManager(const RendererInterface::RenderDeviceDesc& desc)
 {
     m_device_desc = desc;
+    SetSwapchainResizePolicy(desc.swapchain_resize_policy, false);
     
     m_factory = RHIResourceFactory::CreateRHIResource<IRHIFactory>();
     EXIT_WHEN_FALSE(m_factory->InitFactory())  
@@ -259,6 +260,9 @@ bool ResourceManager::InitResourceManager(const RendererInterface::RenderDeviceD
     m_swapchain_RTs = m_render_target_manager->CreateRenderTargetFromSwapChain(*m_device, *m_memory_manager, *m_swap_chain, clear_value);
     m_last_requested_swapchain_width = render_window.GetWidth();
     m_last_requested_swapchain_height = render_window.GetHeight();
+    m_last_observed_window_width = render_window.GetWidth();
+    m_last_observed_window_height = render_window.GetHeight();
+    m_resize_request_stable_frame_count = 1;
     m_deferred_release_frame_index = 0;
     SetSwapchainLifecycleState(
         m_swapchain_RTs.empty()
@@ -481,6 +485,71 @@ unsigned ResourceManager::GetDeferredReleaseLatencyFrames() const
     return (std::max)(2u, back_buffer_count + 1u);
 }
 
+unsigned ResourceManager::ComputeRetryCooldownFrames(unsigned failure_count) const
+{
+    const auto& policy = m_device_desc.swapchain_resize_policy;
+    const unsigned base_frames = (std::max)(1u, policy.retry_cooldown_base_frames);
+    const unsigned max_frames = (std::max)(base_frames, policy.retry_cooldown_max_frames);
+    if (failure_count <= 1 || !policy.use_exponential_retry_backoff)
+    {
+        return base_frames;
+    }
+
+    unsigned cooldown = base_frames;
+    const unsigned step_count = (std::min)(failure_count - 1u, 10u);
+    for (unsigned step = 0; step < step_count; ++step)
+    {
+        if (cooldown >= max_frames)
+        {
+            return max_frames;
+        }
+        cooldown = (std::min)(max_frames, cooldown * 2u);
+    }
+    return cooldown;
+}
+
+unsigned ResourceManager::GetRetryLogPeriod() const
+{
+    return (std::max)(1u, m_device_desc.swapchain_resize_policy.retry_log_period);
+}
+
+void ResourceManager::UpdateResizeRequestStability(unsigned width, unsigned height)
+{
+    if (m_last_observed_window_width != width || m_last_observed_window_height != height)
+    {
+        m_last_observed_window_width = width;
+        m_last_observed_window_height = height;
+        m_resize_request_stable_frame_count = 1;
+        return;
+    }
+    ++m_resize_request_stable_frame_count;
+}
+
+bool ResourceManager::IsResizeRequestStableEnough(unsigned width, unsigned height, bool pending_retry_for_same_size) const
+{
+    if (m_swapchain_acquire_failure_count > 0 || m_swapchain_present_failure_count > 0)
+    {
+        return true;
+    }
+
+    if (pending_retry_for_same_size)
+    {
+        return true;
+    }
+
+    const unsigned required_stable_frames = (std::max)(1u, m_device_desc.swapchain_resize_policy.min_stable_frames_before_resize);
+    if (required_stable_frames <= 1)
+    {
+        return true;
+    }
+
+    if (m_last_observed_window_width != width || m_last_observed_window_height != height)
+    {
+        return false;
+    }
+    return m_resize_request_stable_frame_count >= required_stable_frames;
+}
+
 void ResourceManager::EnqueueResourceForDeferredRelease(const std::shared_ptr<IRHIResource>& resource)
 {
     if (!resource)
@@ -612,7 +681,8 @@ RendererInterface::WindowSurfaceSyncResult ResourceManager::SyncWindowSurface(un
 void ResourceManager::NotifySwapchainAcquireFailure()
 {
     ++m_swapchain_acquire_failure_count;
-    if (m_swapchain_acquire_failure_count == 1 || (m_swapchain_acquire_failure_count % 30) == 0)
+    const unsigned log_period = GetRetryLogPeriod();
+    if (m_swapchain_acquire_failure_count == 1 || (m_swapchain_acquire_failure_count % log_period) == 0)
     {
         LOG_FORMAT_FLUSH("[ResourceManager] Swapchain acquire failed (count=%u), schedule resize sync.\n",
             m_swapchain_acquire_failure_count);
@@ -626,7 +696,8 @@ void ResourceManager::NotifySwapchainAcquireFailure()
 void ResourceManager::NotifySwapchainPresentFailure()
 {
     ++m_swapchain_present_failure_count;
-    if (m_swapchain_present_failure_count == 1 || (m_swapchain_present_failure_count % 30) == 0)
+    const unsigned log_period = GetRetryLogPeriod();
+    if (m_swapchain_present_failure_count == 1 || (m_swapchain_present_failure_count % log_period) == 0)
     {
         LOG_FORMAT_FLUSH("[ResourceManager] Swapchain present failed (count=%u), schedule resize sync.\n",
             m_swapchain_present_failure_count);
@@ -642,6 +713,9 @@ void ResourceManager::InvalidateSwapchainResizeRequest()
     FlushDeferredResourceReleases(true);
     m_last_requested_swapchain_width = 0;
     m_last_requested_swapchain_height = 0;
+    m_last_observed_window_width = 0;
+    m_last_observed_window_height = 0;
+    m_resize_request_stable_frame_count = 0;
     m_swapchain_resize_retry_countdown_frames = 0;
     m_swapchain_resize_failure_count = 0;
     m_swapchain_resize_last_failed_width = 0;
@@ -668,24 +742,7 @@ bool ResourceManager::ResizeSwapchainIfNeeded(unsigned width, unsigned height)
         return false;
     }
 
-    const bool same_as_last_request = m_last_requested_swapchain_width == width && m_last_requested_swapchain_height == height;
-    const bool pending_retry_for_same_size =
-        m_swapchain_resize_failure_count > 0 &&
-        m_swapchain_resize_last_failed_width == width &&
-        m_swapchain_resize_last_failed_height == height;
-    if (same_as_last_request && !pending_retry_for_same_size)
-    {
-        return false;
-    }
-    if (same_as_last_request && pending_retry_for_same_size && m_swapchain_resize_retry_countdown_frames > 0)
-    {
-        --m_swapchain_resize_retry_countdown_frames;
-        SetSwapchainLifecycleState(RendererInterface::SwapchainLifecycleState::RESIZE_DEFERRED, "resize deferred by retry cooldown");
-        return false;
-    }
-
-    m_last_requested_swapchain_width = width;
-    m_last_requested_swapchain_height = height;
+    UpdateResizeRequestStability(width, height);
 
     if (m_swap_chain->GetWidth() == width && m_swap_chain->GetHeight() == height)
     {
@@ -693,9 +750,40 @@ bool ResourceManager::ResizeSwapchainIfNeeded(unsigned width, unsigned height)
         m_swapchain_resize_failure_count = 0;
         m_swapchain_resize_last_failed_width = 0;
         m_swapchain_resize_last_failed_height = 0;
+        m_last_requested_swapchain_width = width;
+        m_last_requested_swapchain_height = height;
         SetSwapchainLifecycleState(RendererInterface::SwapchainLifecycleState::READY, "swapchain extent already up to date");
         return false;
     }
+
+    if (m_swapchain_resize_failure_count > 0 &&
+        (m_swapchain_resize_last_failed_width != width || m_swapchain_resize_last_failed_height != height))
+    {
+        m_swapchain_resize_failure_count = 0;
+        m_swapchain_resize_retry_countdown_frames = 0;
+        m_swapchain_resize_last_failed_width = 0;
+        m_swapchain_resize_last_failed_height = 0;
+    }
+
+    const bool pending_retry_for_same_size =
+        m_swapchain_resize_failure_count > 0 &&
+        m_swapchain_resize_last_failed_width == width &&
+        m_swapchain_resize_last_failed_height == height;
+    if (pending_retry_for_same_size && m_swapchain_resize_retry_countdown_frames > 0)
+    {
+        --m_swapchain_resize_retry_countdown_frames;
+        SetSwapchainLifecycleState(RendererInterface::SwapchainLifecycleState::RESIZE_DEFERRED, "resize deferred by retry cooldown");
+        return false;
+    }
+
+    if (!IsResizeRequestStableEnough(width, height, pending_retry_for_same_size))
+    {
+        SetSwapchainLifecycleState(RendererInterface::SwapchainLifecycleState::RESIZE_DEFERRED, "resize deferred until window extent becomes stable");
+        return false;
+    }
+
+    m_last_requested_swapchain_width = width;
+    m_last_requested_swapchain_height = height;
 
     SetSwapchainLifecycleState(RendererInterface::SwapchainLifecycleState::RESIZE_PENDING, "start swapchain resize");
     WaitFrameRenderFinished();
@@ -733,11 +821,15 @@ bool ResourceManager::ResizeSwapchainIfNeeded(unsigned width, unsigned height)
             ++m_swapchain_resize_failure_count;
             m_swapchain_resize_last_failed_width = width;
             m_swapchain_resize_last_failed_height = height;
-            m_swapchain_resize_retry_countdown_frames = 10;
-            if (m_swapchain_resize_failure_count == 1 || (m_swapchain_resize_failure_count % 30) == 0)
+            m_swapchain_resize_retry_countdown_frames = ComputeRetryCooldownFrames(m_swapchain_resize_failure_count);
+            const unsigned log_period = GetRetryLogPeriod();
+            if (m_swapchain_resize_failure_count == 1 || (m_swapchain_resize_failure_count % log_period) == 0)
             {
-                LOG_FORMAT_FLUSH("[ResourceManager] ResizeSwapChain in-place failed for %ux%u (retry_count=%u), restore current swapchain RTs and retry later.\n",
-                    width, height, m_swapchain_resize_failure_count);
+                LOG_FORMAT_FLUSH("[ResourceManager] ResizeSwapChain in-place failed for %ux%u (retry_count=%u, cooldown=%u), restore current swapchain RTs and retry later.\n",
+                    width,
+                    height,
+                    m_swapchain_resize_failure_count,
+                    m_swapchain_resize_retry_countdown_frames);
             }
             m_swapchain_RTs = m_render_target_manager->CreateRenderTargetFromSwapChain(*m_device, *m_memory_manager, *m_swap_chain, clear_value);
             if (m_swapchain_RTs.empty())
@@ -938,4 +1030,27 @@ bool ResourceManager::HasCurrentSwapchainRT() const
 RendererInterface::SwapchainLifecycleState ResourceManager::GetSwapchainLifecycleState() const
 {
     return m_swapchain_lifecycle_state;
+}
+
+RendererInterface::SwapchainResizePolicy ResourceManager::GetSwapchainResizePolicy() const
+{
+    return m_device_desc.swapchain_resize_policy;
+}
+
+void ResourceManager::SetSwapchainResizePolicy(const RendererInterface::SwapchainResizePolicy& policy, bool reset_retry_state)
+{
+    auto normalized_policy = policy;
+    normalized_policy.min_stable_frames_before_resize = (std::max)(1u, normalized_policy.min_stable_frames_before_resize);
+    normalized_policy.retry_cooldown_base_frames = (std::max)(1u, normalized_policy.retry_cooldown_base_frames);
+    normalized_policy.retry_cooldown_max_frames = (std::max)(normalized_policy.retry_cooldown_base_frames, normalized_policy.retry_cooldown_max_frames);
+    normalized_policy.retry_log_period = (std::max)(1u, normalized_policy.retry_log_period);
+    m_device_desc.swapchain_resize_policy = normalized_policy;
+
+    if (reset_retry_state)
+    {
+        m_swapchain_resize_retry_countdown_frames = 0;
+        m_swapchain_resize_failure_count = 0;
+        m_swapchain_resize_last_failed_width = 0;
+        m_swapchain_resize_last_failed_height = 0;
+    }
 }

@@ -5,6 +5,66 @@
 #include <imgui/imgui.h>
 #include <map>
 
+namespace
+{
+    RendererInterface::SwapchainResizePolicy GetDefaultSwapchainResizePolicy(RendererInterface::RenderDeviceType type)
+    {
+        RendererInterface::SwapchainResizePolicy policy{};
+        if (type == RendererInterface::DX12)
+        {
+            policy.min_stable_frames_before_resize = 2;
+            policy.retry_cooldown_base_frames = 6;
+            policy.retry_cooldown_max_frames = 120;
+            policy.retry_log_period = 30;
+            policy.use_exponential_retry_backoff = true;
+            return policy;
+        }
+
+        policy.min_stable_frames_before_resize = 1;
+        policy.retry_cooldown_base_frames = 2;
+        policy.retry_cooldown_max_frames = 30;
+        policy.retry_log_period = 60;
+        policy.use_exponential_retry_backoff = true;
+        return policy;
+    }
+
+    const char* ToString(RendererInterface::RenderDeviceType type)
+    {
+        switch (type)
+        {
+        case RendererInterface::DX12:
+            return "DX12";
+        case RendererInterface::VULKAN:
+            return "Vulkan";
+        default:
+            return "Unknown";
+        }
+    }
+
+    const char* ToString(RendererInterface::SwapchainLifecycleState state)
+    {
+        switch (state)
+        {
+        case RendererInterface::SwapchainLifecycleState::UNINITIALIZED:
+            return "UNINITIALIZED";
+        case RendererInterface::SwapchainLifecycleState::READY:
+            return "READY";
+        case RendererInterface::SwapchainLifecycleState::RESIZE_PENDING:
+            return "RESIZE_PENDING";
+        case RendererInterface::SwapchainLifecycleState::RESIZE_DEFERRED:
+            return "RESIZE_DEFERRED";
+        case RendererInterface::SwapchainLifecycleState::RECOVERING:
+            return "RECOVERING";
+        case RendererInterface::SwapchainLifecycleState::MINIMIZED:
+            return "MINIMIZED";
+        case RendererInterface::SwapchainLifecycleState::INVALID:
+            return "INVALID";
+        default:
+            return "UNKNOWN";
+        }
+    }
+}
+
 void DemoBase::TickFrame(unsigned long long time_interval)
 {
     if (m_resource_manager)
@@ -108,6 +168,80 @@ void DemoBase::DrawDebugUI()
     const ImGuiIO& io = ImGui::GetIO();
     ImGui::Text("Frame %.3f ms (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
     ImGui::Separator();
+
+    if (m_resource_manager && ImGui::CollapsingHeader("Surface / Swapchain", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        if (!m_swapchain_resize_policy_ui_initialized)
+        {
+            m_swapchain_resize_policy_ui = m_resource_manager->GetSwapchainResizePolicy();
+            m_swapchain_resize_policy_ui_initialized = true;
+        }
+
+        ImGui::Text("API: %s", ToString(m_render_device_type));
+        ImGui::Text("Render Extent: %u x %u",
+            m_resource_manager->GetCurrentRenderWidth(),
+            m_resource_manager->GetCurrentRenderHeight());
+        ImGui::Text("Lifecycle: %s", ToString(m_resource_manager->GetSwapchainLifecycleState()));
+
+        bool policy_changed = false;
+        int min_stable_frames_before_resize = static_cast<int>(m_swapchain_resize_policy_ui.min_stable_frames_before_resize);
+        int retry_cooldown_base_frames = static_cast<int>(m_swapchain_resize_policy_ui.retry_cooldown_base_frames);
+        int retry_cooldown_max_frames = static_cast<int>(m_swapchain_resize_policy_ui.retry_cooldown_max_frames);
+        int retry_log_period = static_cast<int>(m_swapchain_resize_policy_ui.retry_log_period);
+        bool use_exponential_retry_backoff = m_swapchain_resize_policy_ui.use_exponential_retry_backoff;
+
+        if (ImGui::SliderInt("Stable Frames Before Resize", &min_stable_frames_before_resize, 1, 12))
+        {
+            m_swapchain_resize_policy_ui.min_stable_frames_before_resize = static_cast<unsigned>(min_stable_frames_before_resize);
+            policy_changed = true;
+        }
+        if (ImGui::SliderInt("Retry Cooldown Base (frames)", &retry_cooldown_base_frames, 1, 60))
+        {
+            m_swapchain_resize_policy_ui.retry_cooldown_base_frames = static_cast<unsigned>(retry_cooldown_base_frames);
+            if (m_swapchain_resize_policy_ui.retry_cooldown_max_frames < m_swapchain_resize_policy_ui.retry_cooldown_base_frames)
+            {
+                m_swapchain_resize_policy_ui.retry_cooldown_max_frames = m_swapchain_resize_policy_ui.retry_cooldown_base_frames;
+            }
+            policy_changed = true;
+        }
+        if (ImGui::SliderInt("Retry Cooldown Max (frames)", &retry_cooldown_max_frames, 1, 240))
+        {
+            m_swapchain_resize_policy_ui.retry_cooldown_max_frames = static_cast<unsigned>(retry_cooldown_max_frames);
+            if (m_swapchain_resize_policy_ui.retry_cooldown_max_frames < m_swapchain_resize_policy_ui.retry_cooldown_base_frames)
+            {
+                m_swapchain_resize_policy_ui.retry_cooldown_max_frames = m_swapchain_resize_policy_ui.retry_cooldown_base_frames;
+            }
+            policy_changed = true;
+        }
+        if (ImGui::SliderInt("Resize Failure Log Period", &retry_log_period, 1, 240))
+        {
+            m_swapchain_resize_policy_ui.retry_log_period = static_cast<unsigned>(retry_log_period);
+            policy_changed = true;
+        }
+        if (ImGui::Checkbox("Use Exponential Backoff", &use_exponential_retry_backoff))
+        {
+            m_swapchain_resize_policy_ui.use_exponential_retry_backoff = use_exponential_retry_backoff;
+            policy_changed = true;
+        }
+
+        if (policy_changed)
+        {
+            m_resource_manager->SetSwapchainResizePolicy(m_swapchain_resize_policy_ui, true);
+        }
+
+        if (ImGui::Button("Reset To API Defaults"))
+        {
+            m_swapchain_resize_policy_ui = GetDefaultSwapchainResizePolicy(m_render_device_type);
+            m_resource_manager->SetSwapchainResizePolicy(m_swapchain_resize_policy_ui, true);
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Force Surface Resync"))
+        {
+            m_resource_manager->InvalidateSwapchainResizeRequest();
+        }
+
+        ImGui::Separator();
+    }
 
     if (m_render_graph && ImGui::CollapsingHeader("Pass Timings", ImGuiTreeNodeFlags_DefaultOpen))
     {
@@ -271,6 +405,10 @@ bool DemoBase::InitRenderContext(const std::vector<std::string>& arguments)
     device.window = m_window->GetHandle();
     device.type = bUseDX ? RendererInterface::DX12 : RendererInterface::VULKAN;
     device.back_buffer_count = 3;
+    device.swapchain_resize_policy = GetDefaultSwapchainResizePolicy(device.type);
+    m_render_device_type = device.type;
+    m_swapchain_resize_policy_ui = device.swapchain_resize_policy;
+    m_swapchain_resize_policy_ui_initialized = true;
 
     m_resource_manager = std::make_shared<RendererInterface::ResourceOperator>(device);
     m_last_render_width = m_resource_manager->GetCurrentRenderWidth();

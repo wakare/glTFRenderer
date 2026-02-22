@@ -105,6 +105,8 @@ namespace RendererInterface
         bool ResizeSwapchainIfNeeded(unsigned width, unsigned height);
         bool ResizeWindowDependentRenderTargets(unsigned width, unsigned height);
         SwapchainLifecycleState GetSwapchainLifecycleState() const;
+        SwapchainResizePolicy GetSwapchainResizePolicy() const;
+        void SetSwapchainResizePolicy(const SwapchainResizePolicy& policy, bool reset_retry_state = true);
         bool CleanupAllResources(bool clear_window_handles = false);
         
     protected:
@@ -253,6 +255,8 @@ namespace RendererInterface
         std::deque<DeferredReleaseEntry> m_deferred_release_entries;
         std::vector<RenderGraphNodeHandle> m_cached_execution_order;
         std::size_t m_cached_execution_signature{0};
+        std::size_t m_cached_execution_node_count{0};
+        bool m_cached_execution_graph_valid{true};
         unsigned long long m_frame_index{0};
         
         std::shared_ptr<IRHITexture> m_final_color_output;

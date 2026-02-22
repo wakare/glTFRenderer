@@ -55,6 +55,8 @@ public:
     bool ResizeSwapchainIfNeeded(unsigned width, unsigned height);
     bool ResizeWindowDependentRenderTargets(unsigned width, unsigned height);
     RendererInterface::SwapchainLifecycleState GetSwapchainLifecycleState() const;
+    RendererInterface::SwapchainResizePolicy GetSwapchainResizePolicy() const;
+    void SetSwapchainResizePolicy(const RendererInterface::SwapchainResizePolicy& policy, bool reset_retry_state = true);
     IRHICommandList& GetCommandListForRecordPassCommand(RendererInterface::RenderPassHandle render_pass_handle = NULL_HANDLE);
 
     IRHICommandQueue& GetCommandQueue();
@@ -89,6 +91,9 @@ protected:
 
     unsigned m_last_requested_swapchain_width{0};
     unsigned m_last_requested_swapchain_height{0};
+    unsigned m_last_observed_window_width{0};
+    unsigned m_last_observed_window_height{0};
+    unsigned m_resize_request_stable_frame_count{0};
     unsigned m_swapchain_resize_retry_countdown_frames{0};
     unsigned m_swapchain_resize_failure_count{0};
     unsigned m_swapchain_resize_last_failed_width{0};
@@ -109,6 +114,10 @@ private:
     void FlushDeferredResourceReleases(bool force_release_all);
     void EnqueueResourceForDeferredRelease(const std::shared_ptr<IRHIResource>& resource);
     unsigned GetDeferredReleaseLatencyFrames() const;
+    unsigned ComputeRetryCooldownFrames(unsigned failure_count) const;
+    unsigned GetRetryLogPeriod() const;
+    void UpdateResizeRequestStability(unsigned width, unsigned height);
+    bool IsResizeRequestStableEnough(unsigned width, unsigned height, bool pending_retry_for_same_size) const;
 
     std::deque<DeferredReleaseEntry> m_deferred_release_entries;
     unsigned long long m_deferred_release_frame_index{0};
