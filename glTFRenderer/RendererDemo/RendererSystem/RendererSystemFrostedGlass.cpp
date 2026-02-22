@@ -136,9 +136,19 @@ bool RendererSystemFrostedGlass::Tick(RendererInterface::ResourceOperator& resou
                                       unsigned long long interval)
 {
     (void)interval;
+    const unsigned width = m_scene->GetWidth();
+    const unsigned height = m_scene->GetHeight();
+    graph.UpdateComputeDispatch(m_frosted_pass_node, (width + 7) / 8, (height + 7) / 8, 1);
     UploadPanelData(resource_operator);
     graph.RegisterRenderGraphNode(m_frosted_pass_node);
     return true;
+}
+
+void RendererSystemFrostedGlass::OnResize(RendererInterface::ResourceOperator& resource_operator, unsigned width, unsigned height)
+{
+    (void)resource_operator;
+    (void)width;
+    (void)height;
 }
 
 void RendererSystemFrostedGlass::DrawDebugUI()

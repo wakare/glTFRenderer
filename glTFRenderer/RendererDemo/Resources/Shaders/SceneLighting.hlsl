@@ -25,6 +25,11 @@ float3 GetWorldPosition(int2 texCoord)
 [numthreads(8, 8, 1)]
 void main(int3 dispatchThreadID : SV_DispatchThreadID)
 {
+    if (dispatchThreadID.x >= viewport_width || dispatchThreadID.y >= viewport_height)
+    {
+        return;
+    }
+
     float3 world_position = GetWorldPosition(dispatchThreadID.xy);
 
     float4 albedo_buffer_data = albedoTex.Load(int3(dispatchThreadID.xy, 0));

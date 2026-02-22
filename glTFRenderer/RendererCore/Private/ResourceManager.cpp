@@ -1,5 +1,8 @@
 #include "ResourceManager.h"
 
+#include <algorithm>
+#include <cmath>
+
 #include "InternalResourceHandleTable.h"
 #include "RenderPass.h"
 #include "RHIResourceFactoryImpl.hpp"
@@ -57,6 +60,77 @@ RHIPipelineType RendererInterfaceRHIConverter::ConvertToRHIPipelineType(Renderer
     }
     GLTF_CHECK(false);
     return RHIPipelineType::Unknown;
+}
+
+namespace
+{
+    RHITextureClearValue BuildRenderTargetClearValue(const RendererInterface::RenderTargetDesc& desc, RHIDataFormat format, bool is_depth_stencil)
+    {
+        RHITextureClearValue clear_value{};
+        clear_value.clear_format = format;
+        if (!is_depth_stencil)
+        {
+            memcpy(clear_value.clear_color, desc.clear.clear_color, sizeof(desc.clear.clear_color));
+        }
+        else
+        {
+            clear_value.clear_depth_stencil.clear_depth = desc.clear.clear_depth_stencil.clear_depth;
+            clear_value.clear_depth_stencil.clear_stencil_value = desc.clear.clear_depth_stencil.clear_stencil;
+        }
+        return clear_value;
+    }
+
+    RHIResourceUsageFlags BuildRenderTargetUsageFlags(const RendererInterface::RenderTargetDesc& desc, bool is_depth_stencil)
+    {
+        RHIResourceUsageFlags usage = is_depth_stencil ? RUF_ALLOW_DEPTH_STENCIL : RUF_ALLOW_RENDER_TARGET;
+        if (desc.usage & RendererInterface::ResourceUsage::COPY_SRC)
+        {
+            usage = RHIResourceUsageFlags(usage | RUF_TRANSFER_SRC);
+        }
+        if (desc.usage & RendererInterface::ResourceUsage::COPY_DST)
+        {
+            usage = RHIResourceUsageFlags(usage | RUF_TRANSFER_DST);
+        }
+        if (desc.usage & RendererInterface::ResourceUsage::DEPTH_STENCIL)
+        {
+            usage = RHIResourceUsageFlags(usage | RUF_ALLOW_DEPTH_STENCIL);
+        }
+        if (desc.usage & RendererInterface::ResourceUsage::SHADER_RESOURCE)
+        {
+            usage = RHIResourceUsageFlags(usage | RUF_ALLOW_SRV);
+        }
+        if (desc.usage & RendererInterface::ResourceUsage::UNORDER_ACCESS)
+        {
+            usage = RHIResourceUsageFlags(usage | RUF_ALLOW_UAV);
+        }
+        if (desc.enable_mipmaps)
+        {
+            usage = RHIResourceUsageFlags(usage | RUF_CONTAINS_MIPMAP);
+        }
+        return usage;
+    }
+
+    std::shared_ptr<IRHITextureDescriptorAllocation> CreateRenderTargetAllocation(
+        IRHIDevice& device,
+        IRHIMemoryManager& memory_manager,
+        IRHIRenderTargetManager& render_target_manager,
+        const RendererInterface::RenderTargetDesc& desc)
+    {
+        const RHIDataFormat format = RendererInterfaceRHIConverter::ConvertToRHIFormat(desc.format);
+        GLTF_CHECK(format != RHIDataFormat::UNKNOWN);
+        const bool is_depth_stencil = IsDepthStencilFormat(format);
+        const RHITextureClearValue clear_value = BuildRenderTargetClearValue(desc, format, is_depth_stencil);
+        const RHIResourceUsageFlags usage = BuildRenderTargetUsageFlags(desc, is_depth_stencil);
+        RHITextureDesc tex_desc(desc.name, desc.width, desc.height, format, usage, clear_value);
+        return render_target_manager.CreateRenderTarget(device, memory_manager, tex_desc, format);
+    }
+
+    unsigned ComputeWindowRelativeExtent(unsigned window_extent, float scale, unsigned min_extent)
+    {
+        const float scaled = static_cast<float>(window_extent) * scale;
+        const unsigned rounded = static_cast<unsigned>((std::max)(1.0f, std::round(scaled)));
+        return (std::max)(min_extent, rounded);
+    }
 }
 
 RHIBufferDesc ConvertToRHIBufferDesc(const RendererInterface::BufferDesc& desc)
@@ -161,6 +235,8 @@ bool ResourceManager::InitResourceManager(const RendererInterface::RenderDeviceD
     };
 
     m_swapchain_RTs = m_render_target_manager->CreateRenderTargetFromSwapChain(*m_device, *m_memory_manager, *m_swap_chain, clear_value);
+    m_last_requested_swapchain_width = render_window.GetWidth();
+    m_last_requested_swapchain_height = render_window.GetHeight();
 
     for (unsigned i = 0; i < desc.back_buffer_count; ++i)
     {
@@ -247,52 +323,22 @@ RendererInterface::ShaderHandle ResourceManager::CreateShader(const RendererInte
 
 RendererInterface::RenderTargetHandle ResourceManager::CreateRenderTarget(const RendererInterface::RenderTargetDesc& desc)
 {
-    RHIDataFormat format = RendererInterfaceRHIConverter::ConvertToRHIFormat(desc.format);
-    GLTF_CHECK(format != RHIDataFormat::UNKNOWN);
-    bool is_depth_stencil = IsDepthStencilFormat(format);
-    
-    RHITextureClearValue clear_value{};
-    clear_value.clear_format = format;
-    if (!is_depth_stencil)
+    RendererInterface::RenderTargetDesc stored_desc = desc;
+    if (stored_desc.size_mode == RendererInterface::RenderTargetSizeMode::FIXED &&
+        m_swap_chain &&
+        stored_desc.width == m_swap_chain->GetWidth() &&
+        stored_desc.height == m_swap_chain->GetHeight())
     {
-        memcpy(clear_value.clear_color, desc.clear.clear_color, sizeof(desc.clear.clear_color));
-    }
-    else
-    {
-        clear_value.clear_depth_stencil.clear_depth = desc.clear.clear_depth_stencil.clear_depth;
-        clear_value.clear_depth_stencil.clear_stencil_value = desc.clear.clear_depth_stencil.clear_stencil;
+        // Auto-mark full-resolution RT as window-relative to make runtime resize path robust.
+        stored_desc.size_mode = RendererInterface::RenderTargetSizeMode::WINDOW_RELATIVE;
+        stored_desc.width_scale = 1.0f;
+        stored_desc.height_scale = 1.0f;
     }
 
-    RHIResourceUsageFlags usage = is_depth_stencil ? RUF_ALLOW_DEPTH_STENCIL : RUF_ALLOW_RENDER_TARGET;
-    if (desc.usage & RendererInterface::ResourceUsage::COPY_SRC)
-    {
-        usage = RHIResourceUsageFlags(usage | RUF_TRANSFER_SRC);
-    }
-    if (desc.usage & RendererInterface::ResourceUsage::COPY_DST)
-    {
-        usage = RHIResourceUsageFlags(usage | RUF_TRANSFER_DST);
-    }
-    if (desc.usage & RendererInterface::ResourceUsage::DEPTH_STENCIL)
-    {
-        usage = RHIResourceUsageFlags(usage | RUF_ALLOW_DEPTH_STENCIL);
-    }
-    if (desc.usage & RendererInterface::ResourceUsage::SHADER_RESOURCE)
-    {
-        usage = RHIResourceUsageFlags(usage | RUF_ALLOW_SRV);
-    }
-    if (desc.usage & RendererInterface::ResourceUsage::UNORDER_ACCESS)
-    {
-        usage = RHIResourceUsageFlags(usage | RUF_ALLOW_UAV);
-    }
-    if (desc.enable_mipmaps)
-    {
-        usage = RHIResourceUsageFlags(usage | RUF_CONTAINS_MIPMAP);
-    }
-    
-    RHITextureDesc tex_desc(desc.name, desc.width, desc.height, format, usage, clear_value);
-    auto render_target_descriptor = m_render_target_manager->CreateRenderTarget(*m_device, *m_memory_manager, tex_desc, format);
+    auto render_target_descriptor = CreateRenderTargetAllocation(*m_device, *m_memory_manager, *m_render_target_manager, stored_desc);
     auto render_target_handle = RendererInterface::InternalResourceHandleTable::Instance().RegisterRenderTarget(render_target_descriptor);
     m_render_targets[render_target_handle] = render_target_descriptor;
+    m_render_target_descs[render_target_handle] = stored_desc;
     
     return render_target_handle;
 }
@@ -349,6 +395,12 @@ void ResourceManager::WaitGPUIdle()
     }
 }
 
+void ResourceManager::InvalidateSwapchainResizeRequest()
+{
+    m_last_requested_swapchain_width = 0;
+    m_last_requested_swapchain_height = 0;
+}
+
 bool ResourceManager::ResizeSwapchainIfNeeded(unsigned width, unsigned height)
 {
     if (!m_swap_chain || !m_factory || !m_device || !m_command_queue || !m_memory_manager || !m_render_target_manager)
@@ -360,6 +412,14 @@ bool ResourceManager::ResizeSwapchainIfNeeded(unsigned width, unsigned height)
     {
         return false;
     }
+
+    if (m_last_requested_swapchain_width == width && m_last_requested_swapchain_height == height)
+    {
+        return false;
+    }
+
+    m_last_requested_swapchain_width = width;
+    m_last_requested_swapchain_height = height;
 
     if (m_swap_chain->GetWidth() == width && m_swap_chain->GetHeight() == height)
     {
@@ -398,8 +458,72 @@ bool ResourceManager::ResizeSwapchainIfNeeded(unsigned width, unsigned height)
         {0.0f, 0.0f, 0.0f, 0.0f}
     };
     m_swapchain_RTs = m_render_target_manager->CreateRenderTargetFromSwapChain(*m_device, *m_memory_manager, *m_swap_chain, clear_value);
+    m_last_requested_swapchain_width = width;
+    m_last_requested_swapchain_height = height;
 
-    LOG_FORMAT_FLUSH("[ResourceManager] Recreated swapchain: %ux%u\n", width, height);
+    LOG_FORMAT_FLUSH("[ResourceManager] Recreated swapchain (requested=%ux%u, actual=%ux%u)\n",
+        width,
+        height,
+        m_swap_chain->GetWidth(),
+        m_swap_chain->GetHeight());
+    return true;
+}
+
+bool ResourceManager::ResizeWindowDependentRenderTargets(unsigned width, unsigned height)
+{
+    if (width == 0 || height == 0 || !m_device || !m_memory_manager || !m_render_target_manager)
+    {
+        return false;
+    }
+
+    std::vector<std::pair<RendererInterface::RenderTargetHandle, RendererInterface::RenderTargetDesc>> resize_targets;
+    resize_targets.reserve(m_render_target_descs.size());
+    for (const auto& render_target_desc_pair : m_render_target_descs)
+    {
+        const auto handle = render_target_desc_pair.first;
+        const auto& desc = render_target_desc_pair.second;
+        if (desc.size_mode != RendererInterface::RenderTargetSizeMode::WINDOW_RELATIVE)
+        {
+            continue;
+        }
+
+        const unsigned target_width = ComputeWindowRelativeExtent(width, desc.width_scale, desc.min_width);
+        const unsigned target_height = ComputeWindowRelativeExtent(height, desc.height_scale, desc.min_height);
+        if (desc.width == target_width && desc.height == target_height)
+        {
+            continue;
+        }
+
+        RendererInterface::RenderTargetDesc resized_desc = desc;
+        resized_desc.width = target_width;
+        resized_desc.height = target_height;
+        resize_targets.emplace_back(handle, resized_desc);
+    }
+
+    if (resize_targets.empty())
+    {
+        return false;
+    }
+
+    WaitFrameRenderFinished();
+    WaitGPUIdle();
+
+    for (const auto& resize_target : resize_targets)
+    {
+        const auto handle = resize_target.first;
+        const auto& resized_desc = resize_target.second;
+        auto resized_allocation = CreateRenderTargetAllocation(*m_device, *m_memory_manager, *m_render_target_manager, resized_desc);
+        m_render_targets[handle] = resized_allocation;
+        m_render_target_descs[handle] = resized_desc;
+        const bool updated = RendererInterface::InternalResourceHandleTable::Instance().UpdateRenderTarget(handle, resized_allocation);
+        GLTF_CHECK(updated);
+
+        LOG_FORMAT_FLUSH("[ResourceManager] Resized RT '%s' to %ux%u\n",
+            resized_desc.name.c_str(),
+            resized_desc.width,
+            resized_desc.height);
+    }
+
     return true;
 }
 

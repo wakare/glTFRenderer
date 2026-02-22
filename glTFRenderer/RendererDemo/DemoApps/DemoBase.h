@@ -65,4 +65,6 @@ protected:
     std::vector<std::shared_ptr<RendererInterface::RendererModuleBase>> m_modules;
     std::vector<std::shared_ptr<RendererSystemBase>> m_systems;
     std::map<RendererInterface::RenderTargetHandle, RendererInterface::RenderTargetDesc> m_render_target_desc_infos;
+    unsigned m_last_render_width{0};
+    unsigned m_last_render_height{0};
 };

@@ -59,6 +59,7 @@ public:
 
     float GetProjectionWidth() const;
     float GetProjectionHeight() const;
+    void SetProjectionSize(float width, float height);
     
 protected:
     CameraMode m_mode;

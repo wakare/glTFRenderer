@@ -87,6 +87,8 @@ namespace RendererInterface
         IRHIDevice&         GetDevice() const;
         IRHICommandQueue&   GetCommandQueue() const;
         IRHISwapChain&      GetCurrentSwapchain() const;
+        unsigned            GetCurrentRenderWidth() const;
+        unsigned            GetCurrentRenderHeight() const;
         IRHICommandList&    GetCommandListForRecordPassCommand(RenderPassHandle pass = NULL_HANDLE) const;
         IRHIDescriptorManager& GetDescriptorManager() const;
         IRHIMemoryManager&  GetMemoryManager() const;
@@ -95,7 +97,9 @@ namespace RendererInterface
 
         void UploadBufferData(BufferHandle handle, const BufferUploadDesc& upload_desc);
         void WaitFrameRenderFinished();
+        void InvalidateSwapchainResizeRequest();
         bool ResizeSwapchainIfNeeded(unsigned width, unsigned height);
+        bool ResizeWindowDependentRenderTargets(unsigned width, unsigned height);
         bool CleanupAllResources(bool clear_window_handles = false);
         
     protected:
@@ -183,6 +187,7 @@ namespace RendererInterface
         
         bool RegisterRenderGraphNode(RenderGraphNodeHandle render_graph_node_handle);
         bool RemoveRenderGraphNode(RenderGraphNodeHandle render_graph_node_handle);
+        bool UpdateComputeDispatch(RenderGraphNodeHandle render_graph_node_handle, unsigned group_size_x, unsigned group_size_y, unsigned group_size_z);
         
         bool CompileRenderPassAndExecute();
 
@@ -246,6 +251,8 @@ namespace RendererInterface
         unsigned long long m_frame_index{0};
         
         std::shared_ptr<IRHITexture> m_final_color_output;
+        TextureHandle m_final_color_output_texture_handle{NULL_HANDLE};
+        RenderTargetHandle m_final_color_output_render_target_handle{NULL_HANDLE};
         RenderGraphTickCallback m_tick_callback;
         RenderGraphDebugUICallback m_debug_ui_callback;
         bool m_debug_ui_enabled{true};

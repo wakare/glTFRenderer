@@ -193,8 +193,8 @@ bool RendererSystemLighting::Init(RendererInterface::ResourceOperator& resource_
     
     RendererInterface::RenderExecuteCommand dispatch_command{};
     dispatch_command.type = RendererInterface::ExecuteCommandType::COMPUTE_DISPATCH_COMMAND;
-    dispatch_command.parameter.dispatch_parameter.group_size_x = width / 8;
-    dispatch_command.parameter.dispatch_parameter.group_size_y = height / 8;
+    dispatch_command.parameter.dispatch_parameter.group_size_x = (width + 7) / 8;
+    dispatch_command.parameter.dispatch_parameter.group_size_y = (height + 7) / 8;
     dispatch_command.parameter.dispatch_parameter.group_size_z = 1;
     lighting_pass_setup_info.execute_command = dispatch_command;
 
@@ -213,6 +213,10 @@ bool RendererSystemLighting::HasInit() const
 bool RendererSystemLighting::Tick(RendererInterface::ResourceOperator& resource_operator,
                                   RendererInterface::RenderGraph& graph, unsigned long long interval)
 {
+    const unsigned width = m_scene->GetWidth();
+    const unsigned height = m_scene->GetHeight();
+    graph.UpdateComputeDispatch(m_lighting_pass_node, (width + 7) / 8, (height + 7) / 8, 1);
+
     if (CastShadow())
     {
         UpdateDirectionalShadowResources(resource_operator);
@@ -227,6 +231,13 @@ bool RendererSystemLighting::Tick(RendererInterface::ResourceOperator& resource_
     m_lighting_module->Tick(resource_operator, interval);
     
     return true;
+}
+
+void RendererSystemLighting::OnResize(RendererInterface::ResourceOperator& resource_operator, unsigned width, unsigned height)
+{
+    (void)resource_operator;
+    (void)width;
+    (void)height;
 }
 
 void RendererSystemLighting::DrawDebugUI()

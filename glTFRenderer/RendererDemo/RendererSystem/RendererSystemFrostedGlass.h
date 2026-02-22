@@ -45,6 +45,7 @@ public:
     virtual bool Init(RendererInterface::ResourceOperator& resource_operator, RendererInterface::RenderGraph& graph) override;
     virtual bool HasInit() const override;
     virtual bool Tick(RendererInterface::ResourceOperator& resource_operator, RendererInterface::RenderGraph& graph, unsigned long long interval) override;
+    virtual void OnResize(RendererInterface::ResourceOperator& resource_operator, unsigned width, unsigned height) override;
     virtual const char* GetSystemName() const override { return "Frosted Glass"; }
     virtual void DrawDebugUI() override;
 

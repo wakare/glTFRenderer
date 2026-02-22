@@ -186,6 +186,24 @@ bool RendererModuleCamera::Tick(RendererInterface::ResourceOperator& resource_op
     return true;
 }
 
+bool RendererModuleCamera::SetViewportSize(unsigned width, unsigned height)
+{
+    if (!m_camera || width == 0 || height == 0)
+    {
+        return false;
+    }
+
+    const unsigned current_width = static_cast<unsigned>(m_camera->GetProjectionWidth());
+    const unsigned current_height = static_cast<unsigned>(m_camera->GetProjectionHeight());
+    if (current_width == width && current_height == height)
+    {
+        return false;
+    }
+
+    m_camera->SetProjectionSize(static_cast<float>(width), static_cast<float>(height));
+    return true;
+}
+
 unsigned RendererModuleCamera::GetWidth() const
 {
     return m_camera->GetProjectionWidth();

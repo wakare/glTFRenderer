@@ -23,6 +23,7 @@ namespace RendererInterface
 
         RenderTargetHandle RegisterRenderTarget(std::shared_ptr<IRHITextureDescriptorAllocation> render_target);
         std::shared_ptr<IRHITextureDescriptorAllocation> GetRenderTarget(RenderTargetHandle handle) const;
+        bool UpdateRenderTarget(RenderTargetHandle handle, std::shared_ptr<IRHITextureDescriptorAllocation> render_target);
 
         RenderPassHandle RegisterRenderPass(std::shared_ptr<RenderPass> render_pass);
         std::shared_ptr<RenderPass> GetRenderPass(RenderPassHandle handle) const;

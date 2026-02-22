@@ -134,3 +134,10 @@ float RendererCamera::GetProjectionHeight() const
     return m_projection_height;
 }
 
+void RendererCamera::SetProjectionSize(float width, float height)
+{
+    m_projection_width = width;
+    m_projection_height = height;
+    MarkTransformDirty();
+}
+

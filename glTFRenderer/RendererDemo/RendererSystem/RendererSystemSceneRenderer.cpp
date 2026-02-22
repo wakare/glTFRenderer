@@ -98,6 +98,15 @@ bool RendererSystemSceneRenderer::Tick(RendererInterface::ResourceOperator& reso
     return true;
 }
 
+void RendererSystemSceneRenderer::OnResize(RendererInterface::ResourceOperator& resource_operator, unsigned width, unsigned height)
+{
+    (void)resource_operator;
+    if (m_camera_module)
+    {
+        m_camera_module->SetViewportSize(width, height);
+    }
+}
+
 std::shared_ptr<RendererModuleCamera> RendererSystemSceneRenderer::GetCameraModule() const
 {
     return m_camera_module;

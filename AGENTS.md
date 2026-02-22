@@ -51,6 +51,14 @@ Start-Process -FilePath $msbuild -ArgumentList $args -NoNewWindow -Wait `
 - Do not use unescaped `;` in inline PowerShell command text (for example `/clp:Summary;ForceNoAlign`), because `;` is a PowerShell statement separator.
 - If a `;` is needed inside one MSBuild argument, keep it inside one array element (example: `"/flp:LogFile=...;Verbosity=diagnostic;Encoding=UTF-8"`).
 
+### Log Inspection Safety (Important)
+
+- Do not run unbounded `Get-Content <file>` for large logs/files in AIChat.
+- Prefer bounded reads: `Get-Content <file> -TotalCount 200` or `Get-Content <file> -Tail 200`.
+- Prefer targeted search: `Select-String -Path <file> -Pattern "error|failed|exception|VUID" -CaseSensitive:$false -Context 2,2`.
+- For code/text lookup, prefer `rg`/`rg -n` over full file dumping.
+- If output may still be large, redirect filtered results to a file and only report summary in chat.
+
 ### Hang / Stuck Triage (MSBuild)
 
 - If Task Manager shows only `MSBuild.exe` at `0% CPU` and no `cl.exe`/`link.exe`, suspect a stuck/orphaned host process.

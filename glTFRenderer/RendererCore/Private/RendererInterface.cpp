@@ -624,9 +624,19 @@ namespace RendererInterface
         return m_resource_manager->WaitFrameRenderFinished();
     }
 
+    void ResourceOperator::InvalidateSwapchainResizeRequest()
+    {
+        return m_resource_manager->InvalidateSwapchainResizeRequest();
+    }
+
     bool ResourceOperator::ResizeSwapchainIfNeeded(unsigned width, unsigned height)
     {
         return m_resource_manager->ResizeSwapchainIfNeeded(width, height);
+    }
+
+    bool ResourceOperator::ResizeWindowDependentRenderTargets(unsigned width, unsigned height)
+    {
+        return m_resource_manager->ResizeWindowDependentRenderTargets(width, height);
     }
 
     IRHICommandList& ResourceOperator::GetCommandListForRecordPassCommand(RenderPassHandle pass) const
@@ -652,6 +662,16 @@ namespace RendererInterface
     IRHISwapChain& ResourceOperator::GetCurrentSwapchain() const
     {
         return m_resource_manager->GetSwapChain();
+    }
+
+    unsigned ResourceOperator::GetCurrentRenderWidth() const
+    {
+        return m_resource_manager->GetSwapChain().GetWidth();
+    }
+
+    unsigned ResourceOperator::GetCurrentRenderHeight() const
+    {
+        return m_resource_manager->GetSwapChain().GetHeight();
     }
 
     bool ResourceOperator::CleanupAllResources(bool clear_window_handles)
@@ -806,10 +826,43 @@ namespace RendererInterface
         return true;
     }
 
+    bool RenderGraph::UpdateComputeDispatch(RenderGraphNodeHandle render_graph_node_handle, unsigned group_size_x, unsigned group_size_y, unsigned group_size_z)
+    {
+        GLTF_CHECK(render_graph_node_handle.IsValid());
+        GLTF_CHECK(render_graph_node_handle.value < m_render_graph_nodes.size());
+
+        auto& node_desc = m_render_graph_nodes[render_graph_node_handle.value];
+        for (auto& command : node_desc.draw_info.execute_commands)
+        {
+            if (command.type != ExecuteCommandType::COMPUTE_DISPATCH_COMMAND)
+            {
+                continue;
+            }
+
+            command.parameter.dispatch_parameter.group_size_x = group_size_x;
+            command.parameter.dispatch_parameter.group_size_y = group_size_y;
+            command.parameter.dispatch_parameter.group_size_z = group_size_z;
+            return true;
+        }
+
+        return false;
+    }
+
     bool RenderGraph::CompileRenderPassAndExecute()
     {
         m_window.RegisterTickCallback([this](unsigned long long interval)
         {
+            if (m_final_color_output_render_target_handle != NULL_HANDLE)
+            {
+                auto render_target = InternalResourceHandleTable::Instance().GetRenderTarget(m_final_color_output_render_target_handle);
+                m_final_color_output = render_target->m_source;
+            }
+            else if (m_final_color_output_texture_handle != NULL_HANDLE)
+            {
+                auto texture = InternalResourceHandleTable::Instance().GetTexture(m_final_color_output_texture_handle);
+                m_final_color_output = texture->m_texture;
+            }
+
             // find final color output and copy to swapchain buffer, only debug logic
             GLTF_CHECK(m_final_color_output);
 
@@ -821,6 +874,9 @@ namespace RendererInterface
             }
 
             const bool swapchain_resized = m_resource_allocator.ResizeSwapchainIfNeeded(window_width, window_height);
+            const unsigned render_width = m_resource_allocator.GetCurrentSwapchain().GetWidth();
+            const unsigned render_height = m_resource_allocator.GetCurrentSwapchain().GetHeight();
+            const bool resized_window_resources = m_resource_allocator.ResizeWindowDependentRenderTargets(render_width, render_height);
          
             if (m_tick_callback)
             {
@@ -839,7 +895,7 @@ namespace RendererInterface
                 }
             }
 
-            if (!swapchain_resized)
+            if (!swapchain_resized && !resized_window_resources)
             {
                 m_resource_allocator.WaitFrameRenderFinished();
             }
@@ -854,7 +910,13 @@ namespace RendererInterface
              
             auto& command_list = m_resource_allocator.GetCommandListForRecordPassCommand();
             // Wait current frame available
-            m_resource_allocator.GetCurrentSwapchain().AcquireNewFrame(m_resource_allocator.GetDevice());
+            const bool acquire_succeeded = m_resource_allocator.GetCurrentSwapchain().AcquireNewFrame(m_resource_allocator.GetDevice());
+            if (!acquire_succeeded)
+            {
+                m_resource_allocator.InvalidateSwapchainResizeRequest();
+                m_resource_allocator.ResizeSwapchainIfNeeded(window_width, window_height);
+                return;
+            }
 
             std::vector<RenderGraphNodeHandle> nodes;
             nodes.reserve(m_render_graph_node_handles.size());
@@ -1259,12 +1321,16 @@ namespace RendererInterface
 
     void RenderGraph::RegisterTextureToColorOutput(TextureHandle texture_handle)
     {
+        m_final_color_output_texture_handle = texture_handle;
+        m_final_color_output_render_target_handle = NULL_HANDLE;
         auto texture = InternalResourceHandleTable::Instance().GetTexture(texture_handle);
         m_final_color_output = texture->m_texture;
     }
 
     void RenderGraph::RegisterRenderTargetToColorOutput(RenderTargetHandle render_target_handle)
     {
+        m_final_color_output_render_target_handle = render_target_handle;
+        m_final_color_output_texture_handle = NULL_HANDLE;
         auto render_target = InternalResourceHandleTable::Instance().GetRenderTarget(render_target_handle);
         m_final_color_output = render_target->m_source;
     }
@@ -2035,11 +2101,63 @@ namespace RendererInterface
         {
             GLTF_CHECK(!render_target_pair.second.render_target_texture.empty());
             const bool is_texture_table = render_target_pair.second.render_target_texture.size() > 1;
-            const bool need_recreate_descriptor =
+            bool need_recreate_descriptor =
                 (!render_pass_descriptor_resource.m_texture_descriptors.contains(render_target_pair.first) &&
                     !render_pass_descriptor_resource.m_texture_descriptor_tables.contains(render_target_pair.first)) ||
                 !render_pass_descriptor_resource.m_cached_render_target_texture_bindings.contains(render_target_pair.first) ||
                 !IsSameRenderTargetTextureBindingDesc(render_pass_descriptor_resource.m_cached_render_target_texture_bindings.at(render_target_pair.first), render_target_pair.second);
+
+            if (!need_recreate_descriptor)
+            {
+                if (is_texture_table)
+                {
+                    if (!render_pass_descriptor_resource.m_texture_descriptor_table_source_data.contains(render_target_pair.first))
+                    {
+                        need_recreate_descriptor = true;
+                    }
+                    else
+                    {
+                        const auto& descriptor_source_data = render_pass_descriptor_resource.m_texture_descriptor_table_source_data.at(render_target_pair.first);
+                        if (descriptor_source_data.size() != render_target_pair.second.render_target_texture.size())
+                        {
+                            need_recreate_descriptor = true;
+                        }
+                        else
+                        {
+                            for (std::size_t descriptor_index = 0; descriptor_index < descriptor_source_data.size(); ++descriptor_index)
+                            {
+                                auto latest_render_target =
+                                    InternalResourceHandleTable::Instance().GetRenderTarget(
+                                        render_target_pair.second.render_target_texture[descriptor_index]);
+                                if (descriptor_source_data[descriptor_index]->m_source != latest_render_target->m_source)
+                                {
+                                    need_recreate_descriptor = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    if (!render_pass_descriptor_resource.m_texture_descriptors.contains(render_target_pair.first))
+                    {
+                        need_recreate_descriptor = true;
+                    }
+                    else
+                    {
+                        auto latest_render_target =
+                            InternalResourceHandleTable::Instance().GetRenderTarget(
+                                render_target_pair.second.render_target_texture[0]);
+                        auto current_descriptor =
+                            render_pass_descriptor_resource.m_texture_descriptors.at(render_target_pair.first);
+                        if (current_descriptor->m_source != latest_render_target->m_source)
+                        {
+                            need_recreate_descriptor = true;
+                        }
+                    }
+                }
+            }
 
             if (need_recreate_descriptor)
             {
@@ -2179,7 +2297,15 @@ namespace RendererInterface
         context.sign_semaphores.push_back(&command_list.GetSemaphore());
         CloseCurrentCommandListAndExecute(command_list, context, false);
     
-        RHIUtilInstanceManager::Instance().Present(m_resource_allocator.GetCurrentSwapchain(), m_resource_allocator.GetCommandQueue(), m_resource_allocator.GetCommandListForRecordPassCommand(NULL_HANDLE));
+        const bool present_succeeded = RHIUtilInstanceManager::Instance().Present(
+            m_resource_allocator.GetCurrentSwapchain(),
+            m_resource_allocator.GetCommandQueue(),
+            m_resource_allocator.GetCommandListForRecordPassCommand(NULL_HANDLE));
+        if (!present_succeeded)
+        {
+            m_resource_allocator.InvalidateSwapchainResizeRequest();
+            return;
+        }
         CloseCurrentCommandListAndExecute(command_list, {}, false);
     }
 }

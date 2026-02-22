@@ -26,6 +26,7 @@ public:
     bool BindDrawCommands(RendererInterface::RenderPassDrawDesc& out_draw_desc) override;
     virtual bool Tick(RendererInterface::ResourceOperator&, unsigned long long interval) override;
 
+    bool SetViewportSize(unsigned width, unsigned height);
     unsigned GetWidth() const;
     unsigned GetHeight() const;
     

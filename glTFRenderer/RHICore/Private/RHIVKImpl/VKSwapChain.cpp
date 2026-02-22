@@ -23,12 +23,24 @@ unsigned VKSwapChain::GetCurrentSwapchainImageIndex()
 
 unsigned VKSwapChain::GetBackBufferCount()
 {
+    if (!m_swap_chain_textures.empty())
+    {
+        return static_cast<unsigned>(m_swap_chain_textures.size());
+    }
     return m_frame_buffer_count;
 }
 
 bool VKSwapChain::InitSwapChain(IRHIFactory& factory, IRHIDevice& device, IRHICommandQueue& commandQueue, const RHITextureDesc& swap_chain_buffer_desc, const
                                 RHISwapChainDesc& swap_chain_desc)
 {
+    // Reinitialize per-swapchain state to avoid stale present-id waits after runtime resize/recreate.
+    m_current_frame_index = 0;
+    m_image_index = 0;
+    m_present_id_count = 0;
+    m_swap_chain_textures.clear();
+    m_frame_available_semaphores.clear();
+    m_frame_semaphore_wait_infos.clear();
+
     m_swap_chain_buffer_desc = swap_chain_buffer_desc;
     m_swap_chain_mode = swap_chain_desc.chain_mode;
 
@@ -133,6 +145,12 @@ bool VKSwapChain::InitSwapChain(IRHIFactory& factory, IRHIDevice& device, IRHICo
 
     unsigned swap_chain_image_count = 0;
     vkGetSwapchainImagesKHR(VkDevice.GetDevice(), m_swap_chain, &swap_chain_image_count, nullptr);
+    if (swap_chain_image_count == 0)
+    {
+        return false;
+    }
+
+    m_frame_buffer_count = swap_chain_image_count;
     
     if (swap_chain_image_count)
     {
@@ -163,18 +181,33 @@ bool VKSwapChain::InitSwapChain(IRHIFactory& factory, IRHIDevice& device, IRHICo
 
 bool VKSwapChain::AcquireNewFrame(IRHIDevice& device)
 {
+    if (m_frame_available_semaphores.empty())
+    {
+        return false;
+    }
+
     const VKDevice& VkDevice = dynamic_cast<VKDevice&>(device);
     const VkSemaphore current_vk_semaphore = dynamic_cast<const VKSemaphore&>(GetAvailableFrameSemaphore()).GetSemaphore();
 
     const VkResult result = vkAcquireNextImageKHR(VkDevice.GetDevice(), m_swap_chain, UINT64_MAX, current_vk_semaphore, VK_NULL_HANDLE, &m_image_index);
-    GLTF_CHECK(result == VK_SUCCESS);
-    
-    return true;
+    if (result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR)
+    {
+        return true;
+    }
+    if (result == VK_ERROR_OUT_OF_DATE_KHR)
+    {
+        return false;
+    }
+
+    LOG_FORMAT_FLUSH("[VKSwapChain] vkAcquireNextImageKHR failed: %d\n", static_cast<int>(result));
+    return false;
 }
 
 IRHISemaphore& VKSwapChain::GetAvailableFrameSemaphore()
 {
-    return *m_frame_available_semaphores[m_current_frame_index];
+    GLTF_CHECK(!m_frame_available_semaphores.empty());
+    const auto frame_index = m_current_frame_index % static_cast<unsigned>(m_frame_available_semaphores.size());
+    return *m_frame_available_semaphores[frame_index];
 }
 
 bool VKSwapChain::Present(IRHICommandQueue& command_queue, IRHICommandList& command_list)
@@ -206,15 +239,30 @@ bool VKSwapChain::Present(IRHICommandQueue& command_queue, IRHICommandList& comm
     present_info.pNext = &present_id;
 
     const VkResult result = vkQueuePresentKHR(vk_command_queue.GetGraphicsQueue(), &present_info);
-    GLTF_CHECK(result == VK_SUCCESS);
+    if (result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR)
+    {
+        if (!m_frame_available_semaphores.empty())
+        {
+            m_current_frame_index = (m_current_frame_index + 1) % static_cast<unsigned>(m_frame_available_semaphores.size());
+        }
+        return true;
+    }
+    if (result == VK_ERROR_OUT_OF_DATE_KHR)
+    {
+        return false;
+    }
 
-    m_current_frame_index = (m_current_frame_index + 1) % GetBackBufferCount();
-    
-    return true;
+    LOG_FORMAT_FLUSH("[VKSwapChain] vkQueuePresentKHR failed: %d\n", static_cast<int>(result));
+    return false;
 }
 
 bool VKSwapChain::HostWaitPresentFinished(IRHIDevice& device)
 {
+    if (m_swap_chain == VK_NULL_HANDLE || m_present_id_count == 0)
+    {
+        return true;
+    }
+
     auto vk_device = dynamic_cast<VKDevice&>(device).GetDevice();
     VK_CHECK(vkWaitForPresentKHR(vk_device, m_swap_chain, m_present_id_count, UINT64_MAX))
     

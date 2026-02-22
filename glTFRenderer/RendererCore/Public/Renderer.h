@@ -119,6 +119,12 @@ namespace RendererInterface
 
     static RenderTargetClearValue default_clear_color = { .clear_color{0.0f, 0.0f, 0.0f, 1.0f} };
     static RenderTargetClearValue default_clear_depth = { .clear_depth_stencil = {1.0f, 0} };
+
+    enum class RenderTargetSizeMode
+    {
+        FIXED,
+        WINDOW_RELATIVE,
+    };
     
     struct RenderTargetDesc
     {
@@ -129,6 +135,11 @@ namespace RendererInterface
         RenderTargetClearValue clear;
         ResourceUsage usage;
         bool enable_mipmaps{false};
+        RenderTargetSizeMode size_mode{RenderTargetSizeMode::FIXED};
+        float width_scale{1.0f};
+        float height_scale{1.0f};
+        unsigned min_width{1};
+        unsigned min_height{1};
     };
     
     struct TextureDesc

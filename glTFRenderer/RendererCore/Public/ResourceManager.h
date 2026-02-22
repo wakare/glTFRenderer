@@ -45,7 +45,9 @@ public:
 
     void WaitFrameRenderFinished();
     void WaitGPUIdle();
+    void InvalidateSwapchainResizeRequest();
     bool ResizeSwapchainIfNeeded(unsigned width, unsigned height);
+    bool ResizeWindowDependentRenderTargets(unsigned width, unsigned height);
     IRHICommandList& GetCommandListForRecordPassCommand(RendererInterface::RenderPassHandle render_pass_handle = NULL_HANDLE);
 
     IRHICommandQueue& GetCommandQueue();
@@ -74,4 +76,8 @@ protected:
 
     std::map<RendererInterface::ShaderHandle, std::shared_ptr<IRHIShader>> m_shaders;
     std::map<RendererInterface::RenderTargetHandle, std::shared_ptr<IRHITextureDescriptorAllocation>> m_render_targets;
+    std::map<RendererInterface::RenderTargetHandle, RendererInterface::RenderTargetDesc> m_render_target_descs;
+
+    unsigned m_last_requested_swapchain_width{0};
+    unsigned m_last_requested_swapchain_height{0};
 };

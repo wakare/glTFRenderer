@@ -43,6 +43,17 @@ std::shared_ptr<IRHITextureDescriptorAllocation> RendererInterface::InternalReso
     return m_render_targets.at(handle);
 }
 
+bool RendererInterface::InternalResourceHandleTable::UpdateRenderTarget(
+    RenderTargetHandle handle, std::shared_ptr<IRHITextureDescriptorAllocation> render_target)
+{
+    if (!m_render_targets.contains(handle))
+    {
+        return false;
+    }
+    m_render_targets[handle] = std::move(render_target);
+    return true;
+}
+
 RendererInterface::RenderPassHandle RendererInterface::InternalResourceHandleTable::RegisterRenderPass(
     std::shared_ptr<RenderPass> render_pass)
 {

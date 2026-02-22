@@ -7,6 +7,27 @@
 
 void DemoBase::TickFrame(unsigned long long time_interval)
 {
+    if (m_resource_manager)
+    {
+        const unsigned render_width = m_resource_manager->GetCurrentRenderWidth();
+        const unsigned render_height = m_resource_manager->GetCurrentRenderHeight();
+        if (render_width > 0 && render_height > 0 &&
+            (render_width != m_last_render_width || render_height != m_last_render_height))
+        {
+            m_last_render_width = render_width;
+            m_last_render_height = render_height;
+
+            for (auto& system : m_systems)
+            {
+                if (!system)
+                {
+                    continue;
+                }
+                system->OnResize(*m_resource_manager, render_width, render_height);
+            }
+        }
+    }
+
     TickFrameInternal(time_interval);
     
     for (const auto& module : m_modules)
@@ -252,6 +273,8 @@ bool DemoBase::InitRenderContext(const std::vector<std::string>& arguments)
     device.back_buffer_count = 3;
 
     m_resource_manager = std::make_shared<RendererInterface::ResourceOperator>(device);
+    m_last_render_width = m_resource_manager->GetCurrentRenderWidth();
+    m_last_render_height = m_resource_manager->GetCurrentRenderHeight();
 
     m_render_graph = std::make_shared<RendererInterface::RenderGraph>(*m_resource_manager, *m_window);
     m_render_graph->RegisterTickCallback([this](unsigned long long time){ TickFrame(time); });
