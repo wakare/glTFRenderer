@@ -634,6 +634,11 @@ namespace RendererInterface
         return m_resource_manager->InvalidateSwapchainResizeRequest();
     }
 
+    WindowSurfaceSyncResult ResourceOperator::SyncWindowSurface(unsigned window_width, unsigned window_height)
+    {
+        return m_resource_manager->SyncWindowSurface(window_width, window_height);
+    }
+
     bool ResourceOperator::ResizeSwapchainIfNeeded(unsigned width, unsigned height)
     {
         return m_resource_manager->ResizeSwapchainIfNeeded(width, height);
@@ -642,6 +647,11 @@ namespace RendererInterface
     bool ResourceOperator::ResizeWindowDependentRenderTargets(unsigned width, unsigned height)
     {
         return m_resource_manager->ResizeWindowDependentRenderTargets(width, height);
+    }
+
+    SwapchainLifecycleState ResourceOperator::GetSwapchainLifecycleState() const
+    {
+        return m_resource_manager->GetSwapchainLifecycleState();
     }
 
     IRHICommandList& ResourceOperator::GetCommandListForRecordPassCommand(RenderPassHandle pass) const
@@ -878,15 +888,14 @@ namespace RendererInterface
                 return;
             }
 
-            const bool swapchain_resized = m_resource_allocator.ResizeSwapchainIfNeeded(window_width, window_height);
-            const unsigned render_width = m_resource_allocator.GetCurrentSwapchain().GetWidth();
-            const unsigned render_height = m_resource_allocator.GetCurrentSwapchain().GetHeight();
-            const bool resized_window_resources = m_resource_allocator.ResizeWindowDependentRenderTargets(render_width, render_height);
-
-            if (!m_resource_allocator.HasCurrentSwapchainRT())
+            const auto surface_sync_result = m_resource_allocator.SyncWindowSurface(window_width, window_height);
+            if (surface_sync_result.status == WindowSurfaceSyncStatus::MINIMIZED)
+            {
+                return;
+            }
+            if (surface_sync_result.status == WindowSurfaceSyncStatus::INVALID || !m_resource_allocator.HasCurrentSwapchainRT())
             {
                 m_resource_allocator.InvalidateSwapchainResizeRequest();
-                m_resource_allocator.ResizeSwapchainIfNeeded(window_width, window_height);
                 return;
             }
          
@@ -907,7 +916,7 @@ namespace RendererInterface
                 }
             }
 
-            if (!swapchain_resized && !resized_window_resources)
+            if (surface_sync_result.status != WindowSurfaceSyncStatus::RESIZED)
             {
                 m_resource_allocator.WaitFrameRenderFinished();
             }
@@ -926,7 +935,6 @@ namespace RendererInterface
             if (!acquire_succeeded)
             {
                 m_resource_allocator.InvalidateSwapchainResizeRequest();
-                m_resource_allocator.ResizeSwapchainIfNeeded(window_width, window_height);
                 return;
             }
             if (!m_resource_allocator.HasCurrentSwapchainRT())

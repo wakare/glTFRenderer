@@ -46,8 +46,10 @@ public:
     void WaitFrameRenderFinished();
     void WaitGPUIdle();
     void InvalidateSwapchainResizeRequest();
+    RendererInterface::WindowSurfaceSyncResult SyncWindowSurface(unsigned window_width, unsigned window_height);
     bool ResizeSwapchainIfNeeded(unsigned width, unsigned height);
     bool ResizeWindowDependentRenderTargets(unsigned width, unsigned height);
+    RendererInterface::SwapchainLifecycleState GetSwapchainLifecycleState() const;
     IRHICommandList& GetCommandListForRecordPassCommand(RendererInterface::RenderPassHandle render_pass_handle = NULL_HANDLE);
 
     IRHICommandQueue& GetCommandQueue();
@@ -78,6 +80,7 @@ protected:
     std::map<RendererInterface::ShaderHandle, std::shared_ptr<IRHIShader>> m_shaders;
     std::map<RendererInterface::RenderTargetHandle, std::shared_ptr<IRHITextureDescriptorAllocation>> m_render_targets;
     std::map<RendererInterface::RenderTargetHandle, RendererInterface::RenderTargetDesc> m_render_target_descs;
+    RendererInterface::SwapchainLifecycleState m_swapchain_lifecycle_state{RendererInterface::SwapchainLifecycleState::UNINITIALIZED};
 
     unsigned m_last_requested_swapchain_width{0};
     unsigned m_last_requested_swapchain_height{0};
@@ -85,4 +88,8 @@ protected:
     unsigned m_swapchain_resize_failure_count{0};
     unsigned m_swapchain_resize_last_failed_width{0};
     unsigned m_swapchain_resize_last_failed_height{0};
+
+private:
+    void SetSwapchainLifecycleState(RendererInterface::SwapchainLifecycleState state, const char* reason = nullptr);
+    bool ResizeWindowDependentRenderTargetsImpl(unsigned width, unsigned height, bool assume_gpu_idle);
 };

@@ -290,6 +290,39 @@ namespace RendererInterface
         unsigned back_buffer_count;
     };
 
+    // Runtime state for swapchain/surface synchronization.
+    enum class SwapchainLifecycleState
+    {
+        UNINITIALIZED,
+        READY,
+        RESIZE_PENDING,
+        RESIZE_DEFERRED,
+        RECOVERING,
+        MINIMIZED,
+        INVALID,
+    };
+
+    enum class WindowSurfaceSyncStatus
+    {
+        READY,
+        RESIZED,
+        DEFERRED_RETRY,
+        MINIMIZED,
+        INVALID,
+    };
+
+    struct WindowSurfaceSyncResult
+    {
+        WindowSurfaceSyncStatus status{WindowSurfaceSyncStatus::INVALID};
+        SwapchainLifecycleState lifecycle_state{SwapchainLifecycleState::UNINITIALIZED};
+        unsigned window_width{0};
+        unsigned window_height{0};
+        unsigned render_width{0};
+        unsigned render_height{0};
+        bool swapchain_resized{false};
+        bool window_render_targets_resized{false};
+    };
+
     struct RenderWindowDesc
     {
         unsigned width;

@@ -64,6 +64,28 @@ RHIPipelineType RendererInterfaceRHIConverter::ConvertToRHIPipelineType(Renderer
 
 namespace
 {
+    const char* ToString(RendererInterface::SwapchainLifecycleState state)
+    {
+        switch (state)
+        {
+        case RendererInterface::SwapchainLifecycleState::UNINITIALIZED:
+            return "UNINITIALIZED";
+        case RendererInterface::SwapchainLifecycleState::READY:
+            return "READY";
+        case RendererInterface::SwapchainLifecycleState::RESIZE_PENDING:
+            return "RESIZE_PENDING";
+        case RendererInterface::SwapchainLifecycleState::RESIZE_DEFERRED:
+            return "RESIZE_DEFERRED";
+        case RendererInterface::SwapchainLifecycleState::RECOVERING:
+            return "RECOVERING";
+        case RendererInterface::SwapchainLifecycleState::MINIMIZED:
+            return "MINIMIZED";
+        case RendererInterface::SwapchainLifecycleState::INVALID:
+            return "INVALID";
+        }
+        return "UNKNOWN";
+    }
+
     RHITextureClearValue BuildRenderTargetClearValue(const RendererInterface::RenderTargetDesc& desc, RHIDataFormat format, bool is_depth_stencil)
     {
         RHITextureClearValue clear_value{};
@@ -237,6 +259,11 @@ bool ResourceManager::InitResourceManager(const RendererInterface::RenderDeviceD
     m_swapchain_RTs = m_render_target_manager->CreateRenderTargetFromSwapChain(*m_device, *m_memory_manager, *m_swap_chain, clear_value);
     m_last_requested_swapchain_width = render_window.GetWidth();
     m_last_requested_swapchain_height = render_window.GetHeight();
+    SetSwapchainLifecycleState(
+        m_swapchain_RTs.empty()
+            ? RendererInterface::SwapchainLifecycleState::INVALID
+            : RendererInterface::SwapchainLifecycleState::READY,
+        "resource manager initialized");
 
     for (unsigned i = 0; i < desc.back_buffer_count; ++i)
     {
@@ -423,6 +450,95 @@ void ResourceManager::WaitGPUIdle()
     }
 }
 
+void ResourceManager::SetSwapchainLifecycleState(RendererInterface::SwapchainLifecycleState state, const char* reason)
+{
+    if (m_swapchain_lifecycle_state == state)
+    {
+        return;
+    }
+
+    const auto previous_state = m_swapchain_lifecycle_state;
+    m_swapchain_lifecycle_state = state;
+    if (reason && reason[0] != '\0')
+    {
+        LOG_FORMAT_FLUSH("[ResourceManager] Swapchain state: %s -> %s (%s)\n",
+            ToString(previous_state),
+            ToString(m_swapchain_lifecycle_state),
+            reason);
+    }
+    else
+    {
+        LOG_FORMAT_FLUSH("[ResourceManager] Swapchain state: %s -> %s\n",
+            ToString(previous_state),
+            ToString(m_swapchain_lifecycle_state));
+    }
+}
+
+RendererInterface::WindowSurfaceSyncResult ResourceManager::SyncWindowSurface(unsigned window_width, unsigned window_height)
+{
+    RendererInterface::WindowSurfaceSyncResult result{};
+    result.window_width = window_width;
+    result.window_height = window_height;
+    result.lifecycle_state = m_swapchain_lifecycle_state;
+
+    if (!m_swap_chain || !m_factory || !m_device || !m_command_queue || !m_memory_manager || !m_render_target_manager)
+    {
+        SetSwapchainLifecycleState(RendererInterface::SwapchainLifecycleState::INVALID, "sync failed: missing runtime objects");
+        result.status = RendererInterface::WindowSurfaceSyncStatus::INVALID;
+        result.lifecycle_state = m_swapchain_lifecycle_state;
+        return result;
+    }
+
+    if (window_width == 0 || window_height == 0)
+    {
+        SetSwapchainLifecycleState(RendererInterface::SwapchainLifecycleState::MINIMIZED, "window extent is zero");
+        result.status = RendererInterface::WindowSurfaceSyncStatus::MINIMIZED;
+        result.lifecycle_state = m_swapchain_lifecycle_state;
+        return result;
+    }
+
+    result.swapchain_resized = ResizeSwapchainIfNeeded(window_width, window_height);
+    result.render_width = m_swap_chain->GetWidth();
+    result.render_height = m_swap_chain->GetHeight();
+
+    if (!HasCurrentSwapchainRT())
+    {
+        SetSwapchainLifecycleState(RendererInterface::SwapchainLifecycleState::INVALID, "no current swapchain render target");
+        result.status = RendererInterface::WindowSurfaceSyncStatus::INVALID;
+        result.lifecycle_state = m_swapchain_lifecycle_state;
+        return result;
+    }
+
+    result.window_render_targets_resized =
+        ResizeWindowDependentRenderTargetsImpl(result.render_width, result.render_height, result.swapchain_resized);
+
+    if (!HasCurrentSwapchainRT())
+    {
+        SetSwapchainLifecycleState(RendererInterface::SwapchainLifecycleState::INVALID, "window RT resize invalidated swapchain RT");
+        result.status = RendererInterface::WindowSurfaceSyncStatus::INVALID;
+        result.lifecycle_state = m_swapchain_lifecycle_state;
+        return result;
+    }
+
+    if (m_swapchain_lifecycle_state == RendererInterface::SwapchainLifecycleState::RESIZE_DEFERRED)
+    {
+        result.status = RendererInterface::WindowSurfaceSyncStatus::DEFERRED_RETRY;
+        result.lifecycle_state = m_swapchain_lifecycle_state;
+        return result;
+    }
+
+    result.status =
+        (result.swapchain_resized || result.window_render_targets_resized)
+            ? RendererInterface::WindowSurfaceSyncStatus::RESIZED
+            : RendererInterface::WindowSurfaceSyncStatus::READY;
+    if (m_swapchain_lifecycle_state != RendererInterface::SwapchainLifecycleState::READY)
+    {
+        SetSwapchainLifecycleState(RendererInterface::SwapchainLifecycleState::READY, "window surface synchronized");
+    }
+    result.lifecycle_state = m_swapchain_lifecycle_state;
+    return result;
+}
+
 void ResourceManager::InvalidateSwapchainResizeRequest()
 {
     m_last_requested_swapchain_width = 0;
@@ -431,17 +547,23 @@ void ResourceManager::InvalidateSwapchainResizeRequest()
     m_swapchain_resize_failure_count = 0;
     m_swapchain_resize_last_failed_width = 0;
     m_swapchain_resize_last_failed_height = 0;
+    SetSwapchainLifecycleState(
+        HasCurrentSwapchainRT() ? RendererInterface::SwapchainLifecycleState::RESIZE_PENDING
+                                : RendererInterface::SwapchainLifecycleState::INVALID,
+        "invalidate resize request");
 }
 
 bool ResourceManager::ResizeSwapchainIfNeeded(unsigned width, unsigned height)
 {
     if (!m_swap_chain || !m_factory || !m_device || !m_command_queue || !m_memory_manager || !m_render_target_manager)
     {
+        SetSwapchainLifecycleState(RendererInterface::SwapchainLifecycleState::INVALID, "resize failed: missing runtime objects");
         return false;
     }
 
     if (width == 0 || height == 0)
     {
+        SetSwapchainLifecycleState(RendererInterface::SwapchainLifecycleState::MINIMIZED, "resize skipped: zero window extent");
         return false;
     }
 
@@ -457,6 +579,7 @@ bool ResourceManager::ResizeSwapchainIfNeeded(unsigned width, unsigned height)
     if (same_as_last_request && pending_retry_for_same_size && m_swapchain_resize_retry_countdown_frames > 0)
     {
         --m_swapchain_resize_retry_countdown_frames;
+        SetSwapchainLifecycleState(RendererInterface::SwapchainLifecycleState::RESIZE_DEFERRED, "resize deferred by retry cooldown");
         return false;
     }
 
@@ -469,9 +592,11 @@ bool ResourceManager::ResizeSwapchainIfNeeded(unsigned width, unsigned height)
         m_swapchain_resize_failure_count = 0;
         m_swapchain_resize_last_failed_width = 0;
         m_swapchain_resize_last_failed_height = 0;
+        SetSwapchainLifecycleState(RendererInterface::SwapchainLifecycleState::READY, "swapchain extent already up to date");
         return false;
     }
 
+    SetSwapchainLifecycleState(RendererInterface::SwapchainLifecycleState::RESIZE_PENDING, "start swapchain resize");
     WaitFrameRenderFinished();
     WaitGPUIdle();
 
@@ -519,10 +644,12 @@ bool ResourceManager::ResizeSwapchainIfNeeded(unsigned width, unsigned height)
                 InvalidateSwapchainResizeRequest();
                 return false;
             }
+            SetSwapchainLifecycleState(RendererInterface::SwapchainLifecycleState::RESIZE_DEFERRED, "resize in-place failed, waiting for retry");
             return false;
         }
 
         LOG_FORMAT_FLUSH("[ResourceManager] ResizeSwapChain in-place failed, fallback to recreate for %ux%u.\n", width, height);
+        SetSwapchainLifecycleState(RendererInterface::SwapchainLifecycleState::RECOVERING, "fallback to recreate swapchain");
         const bool released = m_swap_chain->Release(*m_memory_manager);
         if (!released)
         {
@@ -580,6 +707,7 @@ bool ResourceManager::ResizeSwapchainIfNeeded(unsigned width, unsigned height)
     m_swapchain_resize_last_failed_height = 0;
     m_last_requested_swapchain_width = width;
     m_last_requested_swapchain_height = height;
+    SetSwapchainLifecycleState(RendererInterface::SwapchainLifecycleState::READY, "swapchain resize committed");
 
     LOG_FORMAT_FLUSH("[ResourceManager] Updated swapchain resources (requested=%ux%u, actual=%ux%u)\n",
         width,
@@ -590,6 +718,11 @@ bool ResourceManager::ResizeSwapchainIfNeeded(unsigned width, unsigned height)
 }
 
 bool ResourceManager::ResizeWindowDependentRenderTargets(unsigned width, unsigned height)
+{
+    return ResizeWindowDependentRenderTargetsImpl(width, height, false);
+}
+
+bool ResourceManager::ResizeWindowDependentRenderTargetsImpl(unsigned width, unsigned height, bool assume_gpu_idle)
 {
     if (width == 0 || height == 0 || !m_device || !m_memory_manager || !m_render_target_manager)
     {
@@ -625,8 +758,11 @@ bool ResourceManager::ResizeWindowDependentRenderTargets(unsigned width, unsigne
         return false;
     }
 
-    WaitFrameRenderFinished();
-    WaitGPUIdle();
+    if (!assume_gpu_idle)
+    {
+        WaitFrameRenderFinished();
+        WaitGPUIdle();
+    }
 
     for (const auto& resize_target : resize_targets)
     {
@@ -685,4 +821,9 @@ IRHITextureDescriptorAllocation& ResourceManager::GetCurrentSwapchainRT()
 bool ResourceManager::HasCurrentSwapchainRT() const
 {
     return m_swap_chain && !m_swapchain_RTs.empty();
+}
+
+RendererInterface::SwapchainLifecycleState ResourceManager::GetSwapchainLifecycleState() const
+{
+    return m_swapchain_lifecycle_state;
 }

@@ -99,8 +99,10 @@ namespace RendererInterface
         void UploadBufferData(BufferHandle handle, const BufferUploadDesc& upload_desc);
         void WaitFrameRenderFinished();
         void InvalidateSwapchainResizeRequest();
+        WindowSurfaceSyncResult SyncWindowSurface(unsigned window_width, unsigned window_height);
         bool ResizeSwapchainIfNeeded(unsigned width, unsigned height);
         bool ResizeWindowDependentRenderTargets(unsigned width, unsigned height);
+        SwapchainLifecycleState GetSwapchainLifecycleState() const;
         bool CleanupAllResources(bool clear_window_handles = false);
         
     protected:
