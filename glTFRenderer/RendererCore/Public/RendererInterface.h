@@ -182,6 +182,18 @@ namespace RendererInterface
             float gpu_total_ms{0.0f};
             std::vector<RenderPassFrameStats> pass_stats;
         };
+
+        struct DependencyDiagnostics
+        {
+            bool graph_valid{true};
+            bool has_invalid_explicit_dependencies{false};
+            unsigned auto_merged_dependency_count{0};
+            std::vector<std::pair<RenderGraphNodeHandle, RenderGraphNodeHandle>> invalid_explicit_dependencies;
+            std::vector<RenderGraphNodeHandle> cycle_nodes;
+            std::size_t execution_signature{0};
+            std::size_t cached_execution_node_count{0};
+            std::size_t cached_execution_order_size{0};
+        };
         
         typedef std::function<void(unsigned long long)> RenderGraphTickCallback;
         typedef std::function<void()> RenderGraphDebugUICallback;
@@ -204,6 +216,7 @@ namespace RendererInterface
         void RegisterDebugUICallback(const RenderGraphDebugUICallback& callback);
         void EnableDebugUI(bool enable);
         const FrameStats& GetLastFrameStats() const;
+        const DependencyDiagnostics& GetDependencyDiagnostics() const;
 
     protected:
         struct DeferredReleaseEntry
@@ -223,6 +236,14 @@ namespace RendererInterface
             std::map<std::string, RenderTargetTextureBindingDesc> m_cached_render_target_texture_bindings;
         };
 
+        struct FramePreparationContext
+        {
+            unsigned window_width{0};
+            unsigned window_height{0};
+            unsigned profiler_slot_index{0};
+            IRHICommandList* command_list{nullptr};
+        };
+
         void EnqueueResourceForDeferredRelease(const std::shared_ptr<IRHIResource>& resource);
         void EnqueueBufferDescriptorForDeferredRelease(RenderPassDescriptorResource& descriptor_resource, const std::string& binding_name);
         void EnqueueTextureDescriptorForDeferredRelease(RenderPassDescriptorResource& descriptor_resource, const std::string& binding_name);
@@ -239,6 +260,16 @@ namespace RendererInterface
         bool BeginGPUProfilerFrame(IRHICommandList& command_list, unsigned slot_index);
         bool WriteGPUProfilerTimestamp(IRHICommandList& command_list, unsigned slot_index, unsigned query_index);
         bool FinalizeGPUProfilerFrame(IRHICommandList& command_list, unsigned slot_index, unsigned query_count, const FrameStats& frame_stats);
+        bool ResolveFinalColorOutput();
+        void ExecuteTickAndDebugUI(unsigned long long interval);
+        bool SyncWindowSurfaceAndAdvanceFrame(FramePreparationContext& frame_context, unsigned long long interval);
+        bool AcquireCurrentFrameCommandContext(FramePreparationContext& frame_context);
+        void OnFrameTick(unsigned long long interval);
+        bool PrepareFrameForRendering(unsigned long long interval, FramePreparationContext& frame_context);
+        void ExecutePlanAndCollectStats(IRHICommandList& command_list, unsigned profiler_slot_index, unsigned long long interval);
+        void ExecuteRenderGraphFrame(IRHICommandList& command_list, unsigned profiler_slot_index, unsigned long long interval);
+        void BlitFinalOutputToSwapchain(IRHICommandList& command_list, unsigned window_width, unsigned window_height);
+        void FinalizeFrameSubmission(IRHICommandList& command_list);
         
         void ExecuteRenderGraphNode(IRHICommandList& command_list, RenderGraphNodeHandle render_graph_node_handle, unsigned long long interval);
         void CloseCurrentCommandListAndExecute(IRHICommandList& command_list, const RHIExecuteCommandListContext& context, bool wait);
@@ -269,6 +300,7 @@ namespace RendererInterface
         struct GPUProfilerState;
         std::unique_ptr<GPUProfilerState> m_gpu_profiler_state;
         FrameStats m_last_frame_stats{};
+        DependencyDiagnostics m_last_dependency_diagnostics{};
     };
 
     class RendererSceneMeshDataAccessorBase

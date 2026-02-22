@@ -366,6 +366,304 @@ namespace RendererInterface
             return sorted;
         }
 
+        bool ValidateExecutionOrder(
+            const std::vector<RenderGraphNodeHandle>& nodes,
+            const DependencyEdgeMap& edges,
+            const std::vector<RenderGraphNodeHandle>& execution_order)
+        {
+            if (execution_order.size() != nodes.size())
+            {
+                return false;
+            }
+
+            std::set<RenderGraphNodeHandle> node_set(nodes.begin(), nodes.end());
+            std::map<RenderGraphNodeHandle, std::size_t> order_index;
+            for (std::size_t index = 0; index < execution_order.size(); ++index)
+            {
+                const auto node = execution_order[index];
+                if (!node.IsValid() || !node_set.contains(node) || order_index.contains(node))
+                {
+                    return false;
+                }
+                order_index[node] = index;
+            }
+
+            if (order_index.size() != node_set.size())
+            {
+                return false;
+            }
+
+            for (const auto& edge_pair : edges)
+            {
+                const auto from = edge_pair.first;
+                if (!node_set.contains(from))
+                {
+                    continue;
+                }
+
+                auto from_it = order_index.find(from);
+                if (from_it == order_index.end())
+                {
+                    return false;
+                }
+
+                for (const auto to : edge_pair.second)
+                {
+                    if (!node_set.contains(to))
+                    {
+                        continue;
+                    }
+
+                    auto to_it = order_index.find(to);
+                    if (to_it == order_index.end())
+                    {
+                        return false;
+                    }
+
+                    if (from_it->second >= to_it->second)
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        struct ExecutionPlanBuildResult
+        {
+            DependencyEdgeMap combined_edges;
+            bool has_invalid_explicit_dependency{false};
+            std::vector<std::pair<RenderGraphNodeHandle, RenderGraphNodeHandle>> invalid_explicit_dependencies;
+            std::size_t auto_merged_dependency_count{0};
+            std::size_t signature{0};
+            bool execution_cache_key_changed{false};
+            bool cached_execution_order_valid{false};
+            bool graph_just_became_invalid{false};
+            bool need_rebuild_execution_order{false};
+        };
+
+        struct ExecutionPlanContext
+        {
+            const std::vector<RenderGraphNodeHandle>& nodes;
+            const std::vector<RenderGraphNodeDesc>& render_graph_nodes;
+            const std::set<RenderGraphNodeHandle>& registered_nodes;
+            const std::vector<RenderGraphNodeHandle>& cached_execution_order;
+            bool cached_execution_graph_valid{true};
+            std::size_t cached_execution_signature{0};
+            std::size_t cached_execution_node_count{0};
+        };
+
+        struct ExecutionPlanCacheState
+        {
+            bool& cached_execution_graph_valid;
+            std::vector<RenderGraphNodeHandle>& cached_execution_order;
+            std::size_t& cached_execution_signature;
+            std::size_t& cached_execution_node_count;
+        };
+
+        struct ResourceAccessPlanResult
+        {
+            DependencyEdgeMap inferred_edges;
+            std::size_t auto_merged_dependency_count{0};
+        };
+
+        ResourceAccessPlanResult CollectResourceAccessPlan(const ExecutionPlanContext& context)
+        {
+            std::map<ResourceKey, std::set<RenderGraphNodeHandle>> resource_readers;
+            std::map<ResourceKey, std::set<RenderGraphNodeHandle>> resource_writers;
+            CollectResourceReadersAndWriters(context.nodes, context.render_graph_nodes, resource_readers, resource_writers);
+
+            ResourceAccessPlanResult result{};
+            BuildResourceInferredEdges(resource_readers, resource_writers, result.inferred_edges, nullptr);
+
+            for (const auto& edge_pair : result.inferred_edges)
+            {
+                const auto from = edge_pair.first;
+                for (const auto to : edge_pair.second)
+                {
+                    if (!to.IsValid() || to.value >= context.render_graph_nodes.size())
+                    {
+                        continue;
+                    }
+
+                    const auto& to_desc = context.render_graph_nodes[to.value];
+                    if (!HasDependency(to_desc, from))
+                    {
+                        ++result.auto_merged_dependency_count;
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        struct DependencyValidationResult
+        {
+            DependencyEdgeMap combined_edges;
+            bool has_invalid_explicit_dependency{false};
+            std::vector<std::pair<RenderGraphNodeHandle, RenderGraphNodeHandle>> invalid_explicit_dependencies;
+        };
+
+        DependencyValidationResult ValidateDependencyPlan(
+            const ExecutionPlanContext& context,
+            const DependencyEdgeMap& inferred_edges)
+        {
+            DependencyValidationResult result{};
+            result.combined_edges = inferred_edges;
+
+            for (auto handle : context.nodes)
+            {
+                const auto& node_desc = context.render_graph_nodes[handle.value];
+                for (const auto dep : node_desc.dependency_render_graph_nodes)
+                {
+                    const bool valid_dep = dep.IsValid() &&
+                        dep != handle &&
+                        dep.value < context.render_graph_nodes.size() &&
+                        context.registered_nodes.contains(dep);
+                    if (!valid_dep)
+                    {
+                        result.has_invalid_explicit_dependency = true;
+                        result.invalid_explicit_dependencies.emplace_back(dep, handle);
+                        continue;
+                    }
+                    result.combined_edges[dep].insert(handle);
+                }
+            }
+
+            return result;
+        }
+
+        ExecutionPlanBuildResult BuildExecutionPlan(const ExecutionPlanContext& context)
+        {
+            const auto access_plan = CollectResourceAccessPlan(context);
+            const auto dependency_validation = ValidateDependencyPlan(context, access_plan.inferred_edges);
+
+            ExecutionPlanBuildResult result{};
+            result.combined_edges = dependency_validation.combined_edges;
+            result.has_invalid_explicit_dependency = dependency_validation.has_invalid_explicit_dependency;
+            result.invalid_explicit_dependencies = dependency_validation.invalid_explicit_dependencies;
+            result.auto_merged_dependency_count = access_plan.auto_merged_dependency_count;
+
+            result.signature = ComputeExecutionSignature(context.nodes, context.render_graph_nodes, result.combined_edges);
+            result.execution_cache_key_changed =
+                result.signature != context.cached_execution_signature || context.cached_execution_node_count != context.nodes.size();
+            result.cached_execution_order_valid = ValidateExecutionOrder(context.nodes, result.combined_edges, context.cached_execution_order);
+            result.graph_just_became_invalid = result.has_invalid_explicit_dependency && context.cached_execution_graph_valid;
+            result.need_rebuild_execution_order =
+                result.execution_cache_key_changed ||
+                result.graph_just_became_invalid ||
+                (context.cached_execution_graph_valid && !result.cached_execution_order_valid);
+
+            return result;
+        }
+
+        std::vector<RenderGraphNodeHandle> ApplyExecutionPlanResult(
+            const ExecutionPlanContext& context,
+            const ExecutionPlanBuildResult& plan,
+            ExecutionPlanCacheState& io_cache_state)
+        {
+            std::vector<RenderGraphNodeHandle> rebuilt_cycle_nodes;
+            if (plan.need_rebuild_execution_order)
+            {
+                if (!plan.execution_cache_key_changed && !plan.graph_just_became_invalid && !plan.cached_execution_order_valid)
+                {
+                    LOG_FORMAT_FLUSH("[RenderGraph][Dependency] Cached execution order validation failed. Rebuilding execution order.\n");
+                }
+
+                io_cache_state.cached_execution_signature = plan.signature;
+                io_cache_state.cached_execution_node_count = context.nodes.size();
+
+                if (plan.auto_merged_dependency_count > 0)
+                {
+                    LOG_FORMAT_FLUSH("[RenderGraph][Dependency] Auto-merged %zu inferred dependencies into execution plan.\n",
+                        plan.auto_merged_dependency_count);
+                }
+
+                if (plan.has_invalid_explicit_dependency)
+                {
+                    io_cache_state.cached_execution_graph_valid = false;
+                    io_cache_state.cached_execution_order.clear();
+                    LOG_FORMAT_FLUSH("[RenderGraph][Dependency] Invalid explicit dependencies detected (%zu). Skip frame graph execution.\n",
+                        plan.invalid_explicit_dependencies.size());
+                    for (const auto& invalid_dep : plan.invalid_explicit_dependencies)
+                    {
+                        const auto from = invalid_dep.first;
+                        const auto to = invalid_dep.second;
+                        if (from.IsValid())
+                        {
+                            LOG_FORMAT_FLUSH("[RenderGraph][Dependency]   invalid edge: %u -> %u\n", from.value, to.value);
+                        }
+                        else
+                        {
+                            LOG_FORMAT_FLUSH("[RenderGraph][Dependency]   invalid edge: <INVALID> -> %u\n", to.value);
+                        }
+                    }
+                }
+                else
+                {
+                    std::vector<RenderGraphNodeHandle> execution_nodes;
+                    std::vector<RenderGraphNodeHandle> cycle_nodes;
+                    const bool sorted = TopologicalSortExecutionNodes(context.nodes, plan.combined_edges, execution_nodes, &cycle_nodes);
+                    if (!sorted)
+                    {
+                        io_cache_state.cached_execution_graph_valid = false;
+                        io_cache_state.cached_execution_order.clear();
+                        rebuilt_cycle_nodes = cycle_nodes;
+                        LOG_FORMAT_FLUSH("[RenderGraph][Dependency] Cycle detected in combined dependencies. Skip frame graph execution. Nodes:");
+                        for (const auto cycle_node : cycle_nodes)
+                        {
+                            LOG_FORMAT_FLUSH(" %u", cycle_node.value);
+                        }
+                        LOG_FORMAT_FLUSH("\n");
+                    }
+                    else
+                    {
+                        io_cache_state.cached_execution_graph_valid = true;
+                        io_cache_state.cached_execution_order = std::move(execution_nodes);
+                        rebuilt_cycle_nodes.clear();
+                    }
+                }
+            }
+
+            if (plan.has_invalid_explicit_dependency || io_cache_state.cached_execution_graph_valid)
+            {
+                return {};
+            }
+            if (plan.need_rebuild_execution_order)
+            {
+                return rebuilt_cycle_nodes;
+            }
+
+            return {};
+        }
+
+        void UpdateDependencyDiagnostics(
+            const ExecutionPlanBuildResult& plan,
+            bool cached_execution_graph_valid,
+            std::size_t cached_execution_signature,
+            std::size_t cached_execution_node_count,
+            std::size_t cached_execution_order_size,
+            std::vector<RenderGraphNodeHandle>&& cycle_nodes,
+            RenderGraph::DependencyDiagnostics& out_diagnostics)
+        {
+            out_diagnostics.graph_valid = cached_execution_graph_valid;
+            out_diagnostics.has_invalid_explicit_dependencies = plan.has_invalid_explicit_dependency;
+            out_diagnostics.auto_merged_dependency_count = static_cast<unsigned>(plan.auto_merged_dependency_count);
+            out_diagnostics.invalid_explicit_dependencies = plan.invalid_explicit_dependencies;
+            out_diagnostics.execution_signature = cached_execution_signature;
+            out_diagnostics.cached_execution_node_count = cached_execution_node_count;
+            out_diagnostics.cached_execution_order_size = cached_execution_order_size;
+            if (plan.has_invalid_explicit_dependency || cached_execution_graph_valid)
+            {
+                out_diagnostics.cycle_nodes.clear();
+            }
+            else if (plan.need_rebuild_execution_order)
+            {
+                out_diagnostics.cycle_nodes = std::move(cycle_nodes);
+            }
+        }
+
         bool IsSameBufferBindingDesc(const BufferBindingDesc& lhs, const BufferBindingDesc& rhs)
         {
             return lhs.buffer_handle == rhs.buffer_handle &&
@@ -1074,298 +1372,209 @@ namespace RendererInterface
     {
         m_window.RegisterTickCallback([this](unsigned long long interval)
         {
-            if (m_final_color_output_render_target_handle != NULL_HANDLE)
-            {
-                auto render_target = InternalResourceHandleTable::Instance().GetRenderTarget(m_final_color_output_render_target_handle);
-                m_final_color_output = render_target->m_source;
-            }
-            else if (m_final_color_output_texture_handle != NULL_HANDLE)
-            {
-                auto texture = InternalResourceHandleTable::Instance().GetTexture(m_final_color_output_texture_handle);
-                m_final_color_output = texture->m_texture;
-            }
-
-            // find final color output and copy to swapchain buffer, only debug logic
-            GLTF_CHECK(m_final_color_output);
-
-            const unsigned window_width = m_window.GetWidth();
-            const unsigned window_height = m_window.GetHeight();
-            if (window_width == 0 || window_height == 0)
-            {
-                return;
-            }
-
-            const auto surface_sync_result = m_resource_allocator.SyncWindowSurface(window_width, window_height);
-            if (surface_sync_result.status == WindowSurfaceSyncStatus::MINIMIZED)
-            {
-                return;
-            }
-            if (surface_sync_result.status == WindowSurfaceSyncStatus::INVALID || !m_resource_allocator.HasCurrentSwapchainRT())
-            {
-                m_resource_allocator.InvalidateSwapchainResizeRequest();
-                return;
-            }
-         
-            if (m_tick_callback)
-            {
-                m_tick_callback(interval);
-            }
-
-            if (m_debug_ui_enabled && m_debug_ui_initialized)
-            {
-                GLTF_CHECK(RHIUtilInstanceManager::Instance().NewGUIFrame());
-                ImGui_ImplGlfw_NewFrame();
-                ImGui::NewFrame();
-
-                if (m_debug_ui_callback)
-                {
-                    m_debug_ui_callback();
-                }
-            }
-
-            if (surface_sync_result.status != WindowSurfaceSyncStatus::RESIZED)
-            {
-                m_resource_allocator.WaitFrameRenderFinished();
-            }
-            ++m_frame_index;
-            FlushDeferredResourceReleases(false);
-
-            const unsigned back_buffer_count = m_resource_allocator.GetCurrentSwapchain().GetBackBufferCount();
-            const unsigned profiler_slot_index = back_buffer_count > 0
-                ? (m_resource_allocator.GetCurrentBackBufferIndex() % back_buffer_count)
-                : 0;
-            ResolveGPUProfilerFrame(profiler_slot_index);
-             
-            auto& command_list = m_resource_allocator.GetCommandListForRecordPassCommand();
-            // Wait current frame available
-            const bool acquire_succeeded = m_resource_allocator.GetCurrentSwapchain().AcquireNewFrame(m_resource_allocator.GetDevice());
-            if (!acquire_succeeded)
-            {
-                m_resource_allocator.NotifySwapchainAcquireFailure();
-                return;
-            }
-            if (!m_resource_allocator.HasCurrentSwapchainRT())
-            {
-                return;
-            }
-
-            std::vector<RenderGraphNodeHandle> nodes;
-            nodes.reserve(m_render_graph_node_handles.size());
-            for (auto handle : m_render_graph_node_handles)
-            {
-                nodes.push_back(handle);
-            }
-
-            std::map<ResourceKey, std::set<RenderGraphNodeHandle>> resource_readers;
-            std::map<ResourceKey, std::set<RenderGraphNodeHandle>> resource_writers;
-            CollectResourceReadersAndWriters(nodes, m_render_graph_nodes, resource_readers, resource_writers);
-
-            DependencyEdgeMap inferred_edges;
-            BuildResourceInferredEdges(resource_readers, resource_writers, inferred_edges, nullptr);
-
-            std::size_t auto_merged_dependency_count = 0;
-            for (const auto& edge_pair : inferred_edges)
-            {
-                const auto from = edge_pair.first;
-                for (const auto to : edge_pair.second)
-                {
-                    auto& to_desc = m_render_graph_nodes[to.value];
-                    if (!HasDependency(to_desc, from))
-                    {
-                        to_desc.dependency_render_graph_nodes.push_back(from);
-                        ++auto_merged_dependency_count;
-                    }
-                }
-            }
-
-            DependencyEdgeMap combined_edges = inferred_edges;
-            bool has_invalid_explicit_dependency = false;
-            std::vector<std::pair<RenderGraphNodeHandle, RenderGraphNodeHandle>> invalid_explicit_dependencies;
-            for (auto handle : nodes)
-            {
-                const auto& node_desc = m_render_graph_nodes[handle.value];
-                for (const auto dep : node_desc.dependency_render_graph_nodes)
-                {
-                    const bool valid_dep = dep.IsValid() &&
-                        dep != handle &&
-                        dep.value < m_render_graph_nodes.size() &&
-                        m_render_graph_node_handles.contains(dep);
-                    if (!valid_dep)
-                    {
-                        has_invalid_explicit_dependency = true;
-                        invalid_explicit_dependencies.emplace_back(dep, handle);
-                        continue;
-                    }
-                    combined_edges[dep].insert(handle);
-                }
-            }
-
-            const std::size_t signature = ComputeExecutionSignature(nodes, m_render_graph_nodes, combined_edges);
-            if (signature != m_cached_execution_signature || m_cached_execution_node_count != nodes.size())
-            {
-                m_cached_execution_signature = signature;
-                m_cached_execution_node_count = nodes.size();
-
-                if (auto_merged_dependency_count > 0)
-                {
-                    LOG_FORMAT_FLUSH("[RenderGraph][Dependency] Auto-merged %zu inferred dependencies into node descriptors.\n",
-                        auto_merged_dependency_count);
-                }
-
-                if (has_invalid_explicit_dependency)
-                {
-                    m_cached_execution_graph_valid = false;
-                    m_cached_execution_order.clear();
-                    LOG_FORMAT_FLUSH("[RenderGraph][Dependency] Invalid explicit dependencies detected (%zu). Skip frame graph execution.\n",
-                        invalid_explicit_dependencies.size());
-                    for (const auto& invalid_dep : invalid_explicit_dependencies)
-                    {
-                        const auto from = invalid_dep.first;
-                        const auto to = invalid_dep.second;
-                        if (from.IsValid())
-                        {
-                            LOG_FORMAT_FLUSH("[RenderGraph][Dependency]   invalid edge: %u -> %u\n", from.value, to.value);
-                        }
-                        else
-                        {
-                            LOG_FORMAT_FLUSH("[RenderGraph][Dependency]   invalid edge: <INVALID> -> %u\n", to.value);
-                        }
-                    }
-                }
-                else
-                {
-                    std::vector<RenderGraphNodeHandle> execution_nodes;
-                    std::vector<RenderGraphNodeHandle> cycle_nodes;
-                    const bool sorted = TopologicalSortExecutionNodes(nodes, combined_edges, execution_nodes, &cycle_nodes);
-                    if (!sorted)
-                    {
-                        m_cached_execution_graph_valid = false;
-                        m_cached_execution_order.clear();
-                        LOG_FORMAT_FLUSH("[RenderGraph][Dependency] Cycle detected in combined dependencies. Skip frame graph execution. Nodes:");
-                        for (const auto cycle_node : cycle_nodes)
-                        {
-                            LOG_FORMAT_FLUSH(" %u", cycle_node.value);
-                        }
-                        LOG_FORMAT_FLUSH("\n");
-                    }
-                    else
-                    {
-                        m_cached_execution_graph_valid = true;
-                        m_cached_execution_order = std::move(execution_nodes);
-                    }
-                }
-            }
-
-            FrameStats submitted_frame_stats{};
-            submitted_frame_stats.frame_index = m_frame_index;
-            submitted_frame_stats.cpu_total_ms = 0.0f;
-            submitted_frame_stats.gpu_time_valid = false;
-            submitted_frame_stats.gpu_total_ms = 0.0f;
-            submitted_frame_stats.pass_stats.clear();
-            submitted_frame_stats.pass_stats.reserve(m_cached_execution_order.size());
-
-            GLTF_CHECK(BeginGPUProfilerFrame(command_list, profiler_slot_index));
-            const unsigned max_timestamped_pass_count = (m_gpu_profiler_state && m_gpu_profiler_state->supported)
-                ? m_gpu_profiler_state->max_pass_count
-                : 0u;
-            unsigned timestamped_pass_count = 0;
-
-            for (unsigned pass_index = 0; pass_index < m_cached_execution_order.size(); ++pass_index)
-            {
-                auto render_graph_node = m_cached_execution_order[pass_index];
-                const bool enable_gpu_timestamp = max_timestamped_pass_count > 0 && pass_index < max_timestamped_pass_count;
-                if (enable_gpu_timestamp)
-                {
-                    const unsigned query_index = static_cast<unsigned>(pass_index * 2);
-                    GLTF_CHECK(WriteGPUProfilerTimestamp(command_list, profiler_slot_index, query_index));
-                }
-
-                const auto pass_begin = std::chrono::steady_clock::now();
-                ExecuteRenderGraphNode(command_list, render_graph_node, interval);
-                const auto pass_end = std::chrono::steady_clock::now();
-                const float pass_cpu_ms = std::chrono::duration<float, std::milli>(pass_end - pass_begin).count();
-
-                if (enable_gpu_timestamp)
-                {
-                    const unsigned query_index = static_cast<unsigned>(pass_index * 2 + 1);
-                    GLTF_CHECK(WriteGPUProfilerTimestamp(command_list, profiler_slot_index, query_index));
-                    ++timestamped_pass_count;
-                }
-
-                const auto& node_desc = m_render_graph_nodes[render_graph_node.value];
-                std::string group_name = node_desc.debug_group;
-                if (group_name.empty())
-                {
-                    group_name = "Ungrouped";
-                }
-
-                std::string pass_name = node_desc.debug_name;
-                if (pass_name.empty())
-                {
-                    auto render_pass = InternalResourceHandleTable::Instance().GetRenderPass(node_desc.render_pass_handle);
-                    std::string type_name = render_pass ? ToRenderPassTypeName(render_pass->GetRenderPassType()) : "Unknown";
-                    pass_name = type_name + "#" + std::to_string(render_graph_node.value);
-                }
-
-                RenderPassFrameStats pass_stats{};
-                pass_stats.node_handle = render_graph_node;
-                pass_stats.group_name = group_name;
-                pass_stats.pass_name = pass_name;
-                pass_stats.cpu_time_ms = pass_cpu_ms;
-                submitted_frame_stats.pass_stats.push_back(pass_stats);
-                submitted_frame_stats.cpu_total_ms += pass_cpu_ms;
-            }
-
-            GLTF_CHECK(FinalizeGPUProfilerFrame(command_list, profiler_slot_index, timestamped_pass_count * 2, submitted_frame_stats));
-            if (!(m_gpu_profiler_state && m_gpu_profiler_state->supported))
-            {
-                m_last_frame_stats = submitted_frame_stats;
-            }
-            else if (timestamped_pass_count == 0)
-            {
-                m_last_frame_stats = submitted_frame_stats;
-            }
-            else if (m_last_frame_stats.pass_stats.empty())
-            {
-                m_last_frame_stats = submitted_frame_stats;
-            }
-
-            CollectUnusedRenderPassDescriptorResources();
-
-            if (!m_render_graph_node_handles.empty())
-            {
-                auto src = m_final_color_output;
-                auto dst = m_resource_allocator.GetCurrentSwapchainRT().m_source;
-
-                src->Transition(command_list, RHIResourceStateType::STATE_COPY_SOURCE);
-                dst->Transition(command_list, RHIResourceStateType::STATE_COPY_DEST);
-
-                const auto& src_desc = src->GetTextureDesc();
-                const auto& dst_desc = dst->GetTextureDesc();
-                const unsigned copy_width = (std::min)((std::min)(window_width, src_desc.GetTextureWidth()), dst_desc.GetTextureWidth());
-                const unsigned copy_height = (std::min)((std::min)(window_height, src_desc.GetTextureHeight()), dst_desc.GetTextureHeight());
-                if (copy_width > 0 && copy_height > 0)
-                {
-                    RHICopyTextureInfo copy_info{};
-                    copy_info.copy_width = copy_width;
-                    copy_info.copy_height = copy_height;
-                    copy_info.dst_mip_level = 0;
-                    copy_info.src_mip_level = 0;
-                    copy_info.dst_x = 0;
-                    copy_info.dst_y = 0;
-                    RHIUtilInstanceManager::Instance().CopyTexture(command_list, *dst, *src, copy_info);
-                }
-            }
-
-            GLTF_CHECK(RenderDebugUI(command_list));
-                 
-            Present(command_list);
-
-            // Clear all nodes at end of frame
-            m_render_graph_node_handles.clear();
+            OnFrameTick(interval);
         });
 
         return true;
+    }
+
+    void RenderGraph::OnFrameTick(unsigned long long interval)
+    {
+        FramePreparationContext frame_context{};
+        if (!PrepareFrameForRendering(interval, frame_context))
+        {
+            return;
+        }
+
+        GLTF_CHECK(frame_context.command_list);
+        ExecuteRenderGraphFrame(*frame_context.command_list, frame_context.profiler_slot_index, interval);
+        BlitFinalOutputToSwapchain(*frame_context.command_list, frame_context.window_width, frame_context.window_height);
+        FinalizeFrameSubmission(*frame_context.command_list);
+    }
+
+    bool RenderGraph::ResolveFinalColorOutput()
+    {
+        if (m_final_color_output_render_target_handle != NULL_HANDLE)
+        {
+            auto render_target = InternalResourceHandleTable::Instance().GetRenderTarget(m_final_color_output_render_target_handle);
+            m_final_color_output = render_target->m_source;
+        }
+        else if (m_final_color_output_texture_handle != NULL_HANDLE)
+        {
+            auto texture = InternalResourceHandleTable::Instance().GetTexture(m_final_color_output_texture_handle);
+            m_final_color_output = texture->m_texture;
+        }
+
+        // find final color output and copy to swapchain buffer, only debug logic
+        GLTF_CHECK(m_final_color_output);
+        return m_final_color_output != nullptr;
+    }
+
+    void RenderGraph::ExecuteTickAndDebugUI(unsigned long long interval)
+    {
+        if (m_tick_callback)
+        {
+            m_tick_callback(interval);
+        }
+
+        if (m_debug_ui_enabled && m_debug_ui_initialized)
+        {
+            GLTF_CHECK(RHIUtilInstanceManager::Instance().NewGUIFrame());
+            ImGui_ImplGlfw_NewFrame();
+            ImGui::NewFrame();
+
+            if (m_debug_ui_callback)
+            {
+                m_debug_ui_callback();
+            }
+        }
+    }
+
+    bool RenderGraph::SyncWindowSurfaceAndAdvanceFrame(FramePreparationContext& frame_context, unsigned long long interval)
+    {
+        const auto surface_sync_result = m_resource_allocator.SyncWindowSurface(frame_context.window_width, frame_context.window_height);
+        if (surface_sync_result.status == WindowSurfaceSyncStatus::MINIMIZED)
+        {
+            return false;
+        }
+        if (surface_sync_result.status == WindowSurfaceSyncStatus::INVALID || !m_resource_allocator.HasCurrentSwapchainRT())
+        {
+            m_resource_allocator.InvalidateSwapchainResizeRequest();
+            return false;
+        }
+
+        ExecuteTickAndDebugUI(interval);
+
+        if (surface_sync_result.status != WindowSurfaceSyncStatus::RESIZED)
+        {
+            m_resource_allocator.WaitFrameRenderFinished();
+        }
+        ++m_frame_index;
+        FlushDeferredResourceReleases(false);
+
+        return true;
+    }
+
+    bool RenderGraph::AcquireCurrentFrameCommandContext(FramePreparationContext& frame_context)
+    {
+        const unsigned back_buffer_count = m_resource_allocator.GetCurrentSwapchain().GetBackBufferCount();
+        frame_context.profiler_slot_index = back_buffer_count > 0
+            ? (m_resource_allocator.GetCurrentBackBufferIndex() % back_buffer_count)
+            : 0;
+        ResolveGPUProfilerFrame(frame_context.profiler_slot_index);
+
+        frame_context.command_list = &m_resource_allocator.GetCommandListForRecordPassCommand();
+        // Wait current frame available
+        const bool acquire_succeeded = m_resource_allocator.GetCurrentSwapchain().AcquireNewFrame(m_resource_allocator.GetDevice());
+        if (!acquire_succeeded)
+        {
+            m_resource_allocator.NotifySwapchainAcquireFailure();
+            frame_context.command_list = nullptr;
+            return false;
+        }
+        if (!m_resource_allocator.HasCurrentSwapchainRT())
+        {
+            frame_context.command_list = nullptr;
+            return false;
+        }
+        return true;
+    }
+
+    bool RenderGraph::PrepareFrameForRendering(unsigned long long interval, FramePreparationContext& frame_context)
+    {
+        if (!ResolveFinalColorOutput())
+        {
+            return false;
+        }
+
+        frame_context.window_width = m_window.GetWidth();
+        frame_context.window_height = m_window.GetHeight();
+        if (frame_context.window_width == 0 || frame_context.window_height == 0)
+        {
+            return false;
+        }
+
+        return SyncWindowSurfaceAndAdvanceFrame(frame_context, interval)
+            && AcquireCurrentFrameCommandContext(frame_context);
+    }
+
+    void RenderGraph::ExecuteRenderGraphFrame(IRHICommandList& command_list, unsigned profiler_slot_index, unsigned long long interval)
+    {
+        std::vector<RenderGraphNodeHandle> nodes;
+        nodes.reserve(m_render_graph_node_handles.size());
+        for (auto handle : m_render_graph_node_handles)
+        {
+            nodes.push_back(handle);
+        }
+
+        const ExecutionPlanContext plan_context{
+            nodes,
+            m_render_graph_nodes,
+            m_render_graph_node_handles,
+            m_cached_execution_order,
+            m_cached_execution_graph_valid,
+            m_cached_execution_signature,
+            m_cached_execution_node_count
+        };
+
+        const auto plan = BuildExecutionPlan(plan_context);
+        ExecutionPlanCacheState execution_cache_state{
+            m_cached_execution_graph_valid,
+            m_cached_execution_order,
+            m_cached_execution_signature,
+            m_cached_execution_node_count
+        };
+        auto diagnostics_cycle_nodes = ApplyExecutionPlanResult(plan_context, plan, execution_cache_state);
+
+        UpdateDependencyDiagnostics(
+            plan,
+            execution_cache_state.cached_execution_graph_valid,
+            execution_cache_state.cached_execution_signature,
+            execution_cache_state.cached_execution_node_count,
+            execution_cache_state.cached_execution_order.size(),
+            std::move(diagnostics_cycle_nodes),
+            m_last_dependency_diagnostics);
+
+        ExecutePlanAndCollectStats(command_list, profiler_slot_index, interval);
+
+        CollectUnusedRenderPassDescriptorResources();
+    }
+
+    void RenderGraph::BlitFinalOutputToSwapchain(IRHICommandList& command_list, unsigned window_width, unsigned window_height)
+    {
+        if (!m_render_graph_node_handles.empty())
+        {
+            auto src = m_final_color_output;
+            auto dst = m_resource_allocator.GetCurrentSwapchainRT().m_source;
+
+            src->Transition(command_list, RHIResourceStateType::STATE_COPY_SOURCE);
+            dst->Transition(command_list, RHIResourceStateType::STATE_COPY_DEST);
+
+            const auto& src_desc = src->GetTextureDesc();
+            const auto& dst_desc = dst->GetTextureDesc();
+            const unsigned copy_width = (std::min)((std::min)(window_width, src_desc.GetTextureWidth()), dst_desc.GetTextureWidth());
+            const unsigned copy_height = (std::min)((std::min)(window_height, src_desc.GetTextureHeight()), dst_desc.GetTextureHeight());
+            if (copy_width > 0 && copy_height > 0)
+            {
+                RHICopyTextureInfo copy_info{};
+                copy_info.copy_width = copy_width;
+                copy_info.copy_height = copy_height;
+                copy_info.dst_mip_level = 0;
+                copy_info.src_mip_level = 0;
+                copy_info.dst_x = 0;
+                copy_info.dst_y = 0;
+                RHIUtilInstanceManager::Instance().CopyTexture(command_list, *dst, *src, copy_info);
+            }
+        }
+    }
+
+    void RenderGraph::FinalizeFrameSubmission(IRHICommandList& command_list)
+    {
+        GLTF_CHECK(RenderDebugUI(command_list));
+        Present(command_list);
+
+        // Clear all nodes at end of frame
+        m_render_graph_node_handles.clear();
     }
 
     void RenderGraph::RegisterTextureToColorOutput(TextureHandle texture_handle)
@@ -1402,6 +1611,11 @@ namespace RendererInterface
     const RenderGraph::FrameStats& RenderGraph::GetLastFrameStats() const
     {
         return m_last_frame_stats;
+    }
+
+    const RenderGraph::DependencyDiagnostics& RenderGraph::GetDependencyDiagnostics() const
+    {
+        return m_last_dependency_diagnostics;
     }
 
     bool RenderGraph::InitDebugUI()
@@ -1593,6 +1807,83 @@ namespace RendererInterface
         m_last_frame_stats = resolved_stats;
         frame_slot.has_pending_frame_stats = false;
         frame_slot.query_count = 0;
+    }
+
+    void RenderGraph::ExecutePlanAndCollectStats(IRHICommandList& command_list, unsigned profiler_slot_index, unsigned long long interval)
+    {
+        FrameStats submitted_frame_stats{};
+        submitted_frame_stats.frame_index = m_frame_index;
+        submitted_frame_stats.cpu_total_ms = 0.0f;
+        submitted_frame_stats.gpu_time_valid = false;
+        submitted_frame_stats.gpu_total_ms = 0.0f;
+        submitted_frame_stats.pass_stats.clear();
+        submitted_frame_stats.pass_stats.reserve(m_cached_execution_order.size());
+
+        GLTF_CHECK(BeginGPUProfilerFrame(command_list, profiler_slot_index));
+        const unsigned max_timestamped_pass_count = (m_gpu_profiler_state && m_gpu_profiler_state->supported)
+            ? m_gpu_profiler_state->max_pass_count
+            : 0u;
+        unsigned timestamped_pass_count = 0;
+
+        for (unsigned pass_index = 0; pass_index < m_cached_execution_order.size(); ++pass_index)
+        {
+            auto render_graph_node = m_cached_execution_order[pass_index];
+            const bool enable_gpu_timestamp = max_timestamped_pass_count > 0 && pass_index < max_timestamped_pass_count;
+            if (enable_gpu_timestamp)
+            {
+                const unsigned query_index = static_cast<unsigned>(pass_index * 2);
+                GLTF_CHECK(WriteGPUProfilerTimestamp(command_list, profiler_slot_index, query_index));
+            }
+
+            const auto pass_begin = std::chrono::steady_clock::now();
+            ExecuteRenderGraphNode(command_list, render_graph_node, interval);
+            const auto pass_end = std::chrono::steady_clock::now();
+            const float pass_cpu_ms = std::chrono::duration<float, std::milli>(pass_end - pass_begin).count();
+
+            if (enable_gpu_timestamp)
+            {
+                const unsigned query_index = static_cast<unsigned>(pass_index * 2 + 1);
+                GLTF_CHECK(WriteGPUProfilerTimestamp(command_list, profiler_slot_index, query_index));
+                ++timestamped_pass_count;
+            }
+
+            const auto& node_desc = m_render_graph_nodes[render_graph_node.value];
+            std::string group_name = node_desc.debug_group;
+            if (group_name.empty())
+            {
+                group_name = "Ungrouped";
+            }
+
+            std::string pass_name = node_desc.debug_name;
+            if (pass_name.empty())
+            {
+                auto render_pass = InternalResourceHandleTable::Instance().GetRenderPass(node_desc.render_pass_handle);
+                std::string type_name = render_pass ? ToRenderPassTypeName(render_pass->GetRenderPassType()) : "Unknown";
+                pass_name = type_name + "#" + std::to_string(render_graph_node.value);
+            }
+
+            RenderPassFrameStats pass_stats{};
+            pass_stats.node_handle = render_graph_node;
+            pass_stats.group_name = group_name;
+            pass_stats.pass_name = pass_name;
+            pass_stats.cpu_time_ms = pass_cpu_ms;
+            submitted_frame_stats.pass_stats.push_back(pass_stats);
+            submitted_frame_stats.cpu_total_ms += pass_cpu_ms;
+        }
+
+        GLTF_CHECK(FinalizeGPUProfilerFrame(command_list, profiler_slot_index, timestamped_pass_count * 2, submitted_frame_stats));
+        if (!(m_gpu_profiler_state && m_gpu_profiler_state->supported))
+        {
+            m_last_frame_stats = submitted_frame_stats;
+        }
+        else if (timestamped_pass_count == 0)
+        {
+            m_last_frame_stats = submitted_frame_stats;
+        }
+        else if (m_last_frame_stats.pass_stats.empty())
+        {
+            m_last_frame_stats = submitted_frame_stats;
+        }
     }
 
     bool RenderGraph::BeginGPUProfilerFrame(IRHICommandList& command_list, unsigned slot_index)
