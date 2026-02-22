@@ -100,6 +100,8 @@ namespace RendererInterface
         void WaitFrameRenderFinished();
         void InvalidateSwapchainResizeRequest();
         WindowSurfaceSyncResult SyncWindowSurface(unsigned window_width, unsigned window_height);
+        void NotifySwapchainAcquireFailure();
+        void NotifySwapchainPresentFailure();
         bool ResizeSwapchainIfNeeded(unsigned width, unsigned height);
         bool ResizeWindowDependentRenderTargets(unsigned width, unsigned height);
         SwapchainLifecycleState GetSwapchainLifecycleState() const;

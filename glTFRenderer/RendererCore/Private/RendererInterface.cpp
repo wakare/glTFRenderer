@@ -639,6 +639,16 @@ namespace RendererInterface
         return m_resource_manager->SyncWindowSurface(window_width, window_height);
     }
 
+    void ResourceOperator::NotifySwapchainAcquireFailure()
+    {
+        return m_resource_manager->NotifySwapchainAcquireFailure();
+    }
+
+    void ResourceOperator::NotifySwapchainPresentFailure()
+    {
+        return m_resource_manager->NotifySwapchainPresentFailure();
+    }
+
     bool ResourceOperator::ResizeSwapchainIfNeeded(unsigned width, unsigned height)
     {
         return m_resource_manager->ResizeSwapchainIfNeeded(width, height);
@@ -934,7 +944,7 @@ namespace RendererInterface
             const bool acquire_succeeded = m_resource_allocator.GetCurrentSwapchain().AcquireNewFrame(m_resource_allocator.GetDevice());
             if (!acquire_succeeded)
             {
-                m_resource_allocator.InvalidateSwapchainResizeRequest();
+                m_resource_allocator.NotifySwapchainAcquireFailure();
                 return;
             }
             if (!m_resource_allocator.HasCurrentSwapchainRT())
@@ -2343,7 +2353,7 @@ namespace RendererInterface
             m_resource_allocator.GetCommandListForRecordPassCommand(NULL_HANDLE));
         if (!present_succeeded)
         {
-            m_resource_allocator.InvalidateSwapchainResizeRequest();
+            m_resource_allocator.NotifySwapchainPresentFailure();
             return;
         }
         CloseCurrentCommandListAndExecute(command_list, {}, false);

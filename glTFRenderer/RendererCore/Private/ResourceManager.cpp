@@ -259,6 +259,7 @@ bool ResourceManager::InitResourceManager(const RendererInterface::RenderDeviceD
     m_swapchain_RTs = m_render_target_manager->CreateRenderTargetFromSwapChain(*m_device, *m_memory_manager, *m_swap_chain, clear_value);
     m_last_requested_swapchain_width = render_window.GetWidth();
     m_last_requested_swapchain_height = render_window.GetHeight();
+    m_deferred_release_frame_index = 0;
     SetSwapchainLifecycleState(
         m_swapchain_RTs.empty()
             ? RendererInterface::SwapchainLifecycleState::INVALID
@@ -474,8 +475,68 @@ void ResourceManager::SetSwapchainLifecycleState(RendererInterface::SwapchainLif
     }
 }
 
+unsigned ResourceManager::GetDeferredReleaseLatencyFrames() const
+{
+    const unsigned back_buffer_count = m_swap_chain ? m_swap_chain->GetBackBufferCount() : 0;
+    return (std::max)(2u, back_buffer_count + 1u);
+}
+
+void ResourceManager::EnqueueResourceForDeferredRelease(const std::shared_ptr<IRHIResource>& resource)
+{
+    if (!resource)
+    {
+        return;
+    }
+
+    const unsigned delay_frames = GetDeferredReleaseLatencyFrames();
+    const unsigned long long retire_frame = m_deferred_release_frame_index + delay_frames;
+    if (!m_deferred_release_entries.empty() && m_deferred_release_entries.back().retire_frame == retire_frame)
+    {
+        m_deferred_release_entries.back().resources.push_back(resource);
+        return;
+    }
+
+    DeferredReleaseEntry entry{};
+    entry.retire_frame = retire_frame;
+    entry.resources.push_back(resource);
+    m_deferred_release_entries.push_back(std::move(entry));
+}
+
+void ResourceManager::FlushDeferredResourceReleases(bool force_release_all)
+{
+    if (!m_memory_manager)
+    {
+        m_deferred_release_entries.clear();
+        return;
+    }
+
+    while (!m_deferred_release_entries.empty())
+    {
+        if (!force_release_all && m_deferred_release_entries.front().retire_frame > m_deferred_release_frame_index)
+        {
+            break;
+        }
+
+        auto entry = std::move(m_deferred_release_entries.front());
+        m_deferred_release_entries.pop_front();
+        for (const auto& resource : entry.resources)
+        {
+            const bool released = RHIResourceFactory::ReleaseResource(*m_memory_manager, resource);
+            GLTF_CHECK(released);
+        }
+    }
+}
+
+void ResourceManager::AdvanceDeferredReleaseFrame()
+{
+    ++m_deferred_release_frame_index;
+    FlushDeferredResourceReleases(false);
+}
+
 RendererInterface::WindowSurfaceSyncResult ResourceManager::SyncWindowSurface(unsigned window_width, unsigned window_height)
 {
+    AdvanceDeferredReleaseFrame();
+
     RendererInterface::WindowSurfaceSyncResult result{};
     result.window_width = window_width;
     result.window_height = window_height;
@@ -527,6 +588,15 @@ RendererInterface::WindowSurfaceSyncResult ResourceManager::SyncWindowSurface(un
         return result;
     }
 
+    if (m_swapchain_acquire_failure_count > 0 || m_swapchain_present_failure_count > 0)
+    {
+        LOG_FORMAT_FLUSH("[ResourceManager] Swapchain recovered (acquire_failures=%u, present_failures=%u).\n",
+            m_swapchain_acquire_failure_count,
+            m_swapchain_present_failure_count);
+        m_swapchain_acquire_failure_count = 0;
+        m_swapchain_present_failure_count = 0;
+    }
+
     result.status =
         (result.swapchain_resized || result.window_render_targets_resized)
             ? RendererInterface::WindowSurfaceSyncStatus::RESIZED
@@ -539,14 +609,45 @@ RendererInterface::WindowSurfaceSyncResult ResourceManager::SyncWindowSurface(un
     return result;
 }
 
+void ResourceManager::NotifySwapchainAcquireFailure()
+{
+    ++m_swapchain_acquire_failure_count;
+    if (m_swapchain_acquire_failure_count == 1 || (m_swapchain_acquire_failure_count % 30) == 0)
+    {
+        LOG_FORMAT_FLUSH("[ResourceManager] Swapchain acquire failed (count=%u), schedule resize sync.\n",
+            m_swapchain_acquire_failure_count);
+    }
+    m_last_requested_swapchain_width = 0;
+    m_last_requested_swapchain_height = 0;
+    m_swapchain_resize_retry_countdown_frames = 0;
+    SetSwapchainLifecycleState(RendererInterface::SwapchainLifecycleState::RESIZE_PENDING, "acquire failed");
+}
+
+void ResourceManager::NotifySwapchainPresentFailure()
+{
+    ++m_swapchain_present_failure_count;
+    if (m_swapchain_present_failure_count == 1 || (m_swapchain_present_failure_count % 30) == 0)
+    {
+        LOG_FORMAT_FLUSH("[ResourceManager] Swapchain present failed (count=%u), schedule resize sync.\n",
+            m_swapchain_present_failure_count);
+    }
+    m_last_requested_swapchain_width = 0;
+    m_last_requested_swapchain_height = 0;
+    m_swapchain_resize_retry_countdown_frames = 0;
+    SetSwapchainLifecycleState(RendererInterface::SwapchainLifecycleState::RESIZE_PENDING, "present failed");
+}
+
 void ResourceManager::InvalidateSwapchainResizeRequest()
 {
+    FlushDeferredResourceReleases(true);
     m_last_requested_swapchain_width = 0;
     m_last_requested_swapchain_height = 0;
     m_swapchain_resize_retry_countdown_frames = 0;
     m_swapchain_resize_failure_count = 0;
     m_swapchain_resize_last_failed_width = 0;
     m_swapchain_resize_last_failed_height = 0;
+    m_swapchain_acquire_failure_count = 0;
+    m_swapchain_present_failure_count = 0;
     SetSwapchainLifecycleState(
         HasCurrentSwapchainRT() ? RendererInterface::SwapchainLifecycleState::RESIZE_PENDING
                                 : RendererInterface::SwapchainLifecycleState::INVALID,
@@ -599,6 +700,7 @@ bool ResourceManager::ResizeSwapchainIfNeeded(unsigned width, unsigned height)
     SetSwapchainLifecycleState(RendererInterface::SwapchainLifecycleState::RESIZE_PENDING, "start swapchain resize");
     WaitFrameRenderFinished();
     WaitGPUIdle();
+    FlushDeferredResourceReleases(true);
 
     m_swapchain_RTs.clear();
     const bool released_swapchain_rts = m_render_target_manager->ReleaseSwapchainRenderTargets(*m_memory_manager);
@@ -761,18 +863,28 @@ bool ResourceManager::ResizeWindowDependentRenderTargetsImpl(unsigned width, uns
     if (!assume_gpu_idle)
     {
         WaitFrameRenderFinished();
-        WaitGPUIdle();
     }
 
     for (const auto& resize_target : resize_targets)
     {
         const auto handle = resize_target.first;
         const auto& resized_desc = resize_target.second;
+        std::shared_ptr<IRHITextureDescriptorAllocation> old_allocation = nullptr;
+        const auto old_rt_it = m_render_targets.find(handle);
+        if (old_rt_it != m_render_targets.end())
+        {
+            old_allocation = old_rt_it->second;
+        }
         auto resized_allocation = CreateRenderTargetAllocation(*m_device, *m_memory_manager, *m_render_target_manager, resized_desc);
         m_render_targets[handle] = resized_allocation;
         m_render_target_descs[handle] = resized_desc;
         const bool updated = RendererInterface::InternalResourceHandleTable::Instance().UpdateRenderTarget(handle, resized_allocation);
         GLTF_CHECK(updated);
+
+        if (old_allocation && old_allocation != resized_allocation)
+        {
+            EnqueueResourceForDeferredRelease(std::static_pointer_cast<IRHIResource>(old_allocation));
+        }
 
         LOG_FORMAT_FLUSH("[ResourceManager] Resized RT '%s' to %ux%u\n",
             resized_desc.name.c_str(),
