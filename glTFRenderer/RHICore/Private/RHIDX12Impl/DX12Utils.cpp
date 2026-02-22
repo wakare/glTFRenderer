@@ -278,7 +278,7 @@ bool DX12Utils::WaitCommandListFinish(IRHICommandList& command_list)
 
 bool DX12Utils::WaitCommandQueueIdle(IRHICommandQueue& command_queue)
 {
-    return true;
+    return dynamic_cast<DX12CommandQueue&>(command_queue).WaitIdle();
 }
 
 bool DX12Utils::WaitDeviceIdle(IRHIDevice& device)

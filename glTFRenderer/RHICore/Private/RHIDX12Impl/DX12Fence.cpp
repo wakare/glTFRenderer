@@ -31,12 +31,22 @@ bool DX12Fence::SignalWhenCommandQueueFinish(IRHICommandQueue& commandQueue)
 bool DX12Fence::Release(IRHIMemoryManager& memory_manager)
 {
     SAFE_RELEASE(m_fence)
+    if (m_fenceEvent)
+    {
+        CloseHandle(m_fenceEvent);
+        m_fenceEvent = nullptr;
+    }
+    m_fenceCompleteValue = 0;
     
     return true;
 }
 
 bool DX12Fence::HostWaitUtilSignaled()
 {
+    if (!m_fence)
+    {
+        return true;
+    }
     if (m_fence->GetCompletedValue() != m_fenceCompleteValue)
     {
         m_fence->SetEventOnCompletion(m_fenceCompleteValue, m_fenceEvent);

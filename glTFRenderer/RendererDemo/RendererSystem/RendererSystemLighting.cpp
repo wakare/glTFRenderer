@@ -96,11 +96,6 @@ bool RendererSystemLighting::Init(RendererInterface::ResourceOperator& resource_
                 .shader_type = RendererInterface::ShaderType::VERTEX_SHADER,
                 .entry_function = "MainVS",
                 .shader_file = "Resources/Shaders/ModelRenderingShader.hlsl"
-            },
-            {
-                .shader_type = RendererInterface::ShaderType::FRAGMENT_SHADER,
-                .entry_function = "MainFS",
-                .shader_file = "Resources/Shaders/ModelRenderingShader.hlsl"
             }
         };
 

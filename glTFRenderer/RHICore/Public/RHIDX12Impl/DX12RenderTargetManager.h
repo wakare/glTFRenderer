@@ -5,6 +5,7 @@
 #include "RHIInterface/IRHIRenderTargetManager.h"
 
 class IRHITextureAllocation;
+class DX12DescriptorHeap;
 
 class RHICORE_API DX12RenderTargetManager : public IRHIRenderTargetManager
 {
@@ -15,6 +16,7 @@ public:
     virtual bool InitRenderTargetManager(IRHIDevice& device, size_t max_render_target_count) override;
     virtual std::shared_ptr<IRHITextureDescriptorAllocation> CreateRenderTarget(IRHIDevice& device, IRHIMemoryManager& memory_manager, const RHITextureDesc& texture_desc, RHIDataFormat format) override;
     virtual std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>> CreateRenderTargetFromSwapChain(IRHIDevice& device, IRHIMemoryManager& memory_manager, IRHISwapChain& swap_chain, RHITextureClearValue clear_value) override;
+    virtual bool ReleaseSwapchainRenderTargets(IRHIMemoryManager& memory_manager) override;
     virtual bool ClearRenderTarget(IRHICommandList& command_list, const std::vector<IRHIDescriptorAllocation*>& render_targets) override;
     virtual bool BindRenderTarget(IRHICommandList& command_list, const std::vector<IRHIDescriptorAllocation*>& render_targets) override;
     
@@ -24,4 +26,5 @@ private:
         RHIRenderTargetType type, RHIDataFormat descriptor_format, const std::shared_ptr<IRHITextureAllocation>& texture, const D3D12_CLEAR_VALUE& clear_value);
    
     std::vector<std::shared_ptr<IRHITextureAllocation>> m_external_textures;
+    std::shared_ptr<DX12DescriptorHeap> m_swapchain_rtv_heap;
 };

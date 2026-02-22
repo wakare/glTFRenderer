@@ -385,6 +385,17 @@ void ResourceManager::WaitFrameRenderFinished()
 
 void ResourceManager::WaitGPUIdle()
 {
+    for (const auto& command_list : m_command_lists)
+    {
+        if (command_list)
+        {
+            if (command_list->GetState() == RHICommandListState::Recording)
+            {
+                RHIUtilInstanceManager::Instance().CloseCommandList(*command_list);
+            }
+            RHIUtilInstanceManager::Instance().WaitCommandListFinish(*command_list);
+        }
+    }
     if (m_swap_chain && m_device)
     {
         m_swap_chain->HostWaitPresentFinished(*m_device);
@@ -393,12 +404,33 @@ void ResourceManager::WaitGPUIdle()
     {
         RHIUtilInstanceManager::Instance().WaitCommandQueueIdle(*m_command_queue);
     }
+
+    const auto frame_slot_count = (std::min)(m_command_lists.size(), m_command_allocators.size());
+    for (size_t frame_slot = 0; frame_slot < frame_slot_count; ++frame_slot)
+    {
+        auto& command_list = m_command_lists[frame_slot];
+        auto& command_allocator = m_command_allocators[frame_slot];
+        if (!command_list || !command_allocator)
+        {
+            continue;
+        }
+
+        RHIUtilInstanceManager::Instance().ResetCommandAllocator(*command_allocator);
+        const bool reset = RHIUtilInstanceManager::Instance().ResetCommandList(*command_list, *command_allocator, nullptr);
+        GLTF_CHECK(reset);
+        const bool closed = RHIUtilInstanceManager::Instance().CloseCommandList(*command_list);
+        GLTF_CHECK(closed);
+    }
 }
 
 void ResourceManager::InvalidateSwapchainResizeRequest()
 {
     m_last_requested_swapchain_width = 0;
     m_last_requested_swapchain_height = 0;
+    m_swapchain_resize_retry_countdown_frames = 0;
+    m_swapchain_resize_failure_count = 0;
+    m_swapchain_resize_last_failed_width = 0;
+    m_swapchain_resize_last_failed_height = 0;
 }
 
 bool ResourceManager::ResizeSwapchainIfNeeded(unsigned width, unsigned height)
@@ -413,8 +445,18 @@ bool ResourceManager::ResizeSwapchainIfNeeded(unsigned width, unsigned height)
         return false;
     }
 
-    if (m_last_requested_swapchain_width == width && m_last_requested_swapchain_height == height)
+    const bool same_as_last_request = m_last_requested_swapchain_width == width && m_last_requested_swapchain_height == height;
+    const bool pending_retry_for_same_size =
+        m_swapchain_resize_failure_count > 0 &&
+        m_swapchain_resize_last_failed_width == width &&
+        m_swapchain_resize_last_failed_height == height;
+    if (same_as_last_request && !pending_retry_for_same_size)
     {
+        return false;
+    }
+    if (same_as_last_request && pending_retry_for_same_size && m_swapchain_resize_retry_countdown_frames > 0)
+    {
+        --m_swapchain_resize_retry_countdown_frames;
         return false;
     }
 
@@ -423,6 +465,10 @@ bool ResourceManager::ResizeSwapchainIfNeeded(unsigned width, unsigned height)
 
     if (m_swap_chain->GetWidth() == width && m_swap_chain->GetHeight() == height)
     {
+        m_swapchain_resize_retry_countdown_frames = 0;
+        m_swapchain_resize_failure_count = 0;
+        m_swapchain_resize_last_failed_width = 0;
+        m_swapchain_resize_last_failed_height = 0;
         return false;
     }
 
@@ -430,38 +476,112 @@ bool ResourceManager::ResizeSwapchainIfNeeded(unsigned width, unsigned height)
     WaitGPUIdle();
 
     m_swapchain_RTs.clear();
+    const bool released_swapchain_rts = m_render_target_manager->ReleaseSwapchainRenderTargets(*m_memory_manager);
+    if (!released_swapchain_rts)
+    {
+        LOG_FORMAT_FLUSH("[ResourceManager] Failed to release old swapchain render targets for %ux%u.\n", width, height);
+        InvalidateSwapchainResizeRequest();
+        return false;
+    }
 
-    const bool released = m_swap_chain->Release(*m_memory_manager);
-    GLTF_CHECK(released);
-
-    const auto& render_window = RendererInterface::InternalResourceHandleTable::Instance().GetRenderWindow(m_device_desc.window);
-    RHITextureDesc swap_chain_texture_desc("swap_chain_back_buffer",
-        width,
-        height,
-        RHIDataFormat::R8G8B8A8_UNORM,
-        static_cast<RHIResourceUsageFlags>(RUF_ALLOW_RENDER_TARGET | RUF_TRANSFER_DST),
-        {
-            .clear_format = RHIDataFormat::R8G8B8A8_UNORM,
-            .clear_color = {0.0f, 0.0f, 0.0f, 0.0f}
-        });
-
-    RHISwapChainDesc swap_chain_desc{};
-    swap_chain_desc.hwnd = render_window.GetHWND();
-    swap_chain_desc.chain_mode = VSYNC;
-    swap_chain_desc.full_screen = false;
-    const bool recreated = m_swap_chain->InitSwapChain(*m_factory, *m_device, *m_command_queue, swap_chain_texture_desc, swap_chain_desc);
-    GLTF_CHECK(recreated);
-
+    // DX12 flip-model swapchain resize requires all queued presents and backbuffer refs retired.
+    // Wait one more time after releasing CPU-side swapchain RT wrappers to reduce false resize failures.
+    if (m_device_desc.type == RendererInterface::DX12)
+    {
+        m_swap_chain->HostWaitPresentFinished(*m_device);
+    }
     RHITextureClearValue clear_value
     {
         RHIDataFormat::R8G8B8A8_UNORM_SRGB,
         {0.0f, 0.0f, 0.0f, 0.0f}
     };
+
+    bool swapchain_resized_in_place = m_swap_chain->ResizeSwapChain(width, height);
+
+    if (!swapchain_resized_in_place)
+    {
+        if (m_device_desc.type == RendererInterface::DX12)
+        {
+            // Keep the existing swapchain alive and restore descriptors, then retry resize next frame.
+            ++m_swapchain_resize_failure_count;
+            m_swapchain_resize_last_failed_width = width;
+            m_swapchain_resize_last_failed_height = height;
+            m_swapchain_resize_retry_countdown_frames = 10;
+            if (m_swapchain_resize_failure_count == 1 || (m_swapchain_resize_failure_count % 30) == 0)
+            {
+                LOG_FORMAT_FLUSH("[ResourceManager] ResizeSwapChain in-place failed for %ux%u (retry_count=%u), restore current swapchain RTs and retry later.\n",
+                    width, height, m_swapchain_resize_failure_count);
+            }
+            m_swapchain_RTs = m_render_target_manager->CreateRenderTargetFromSwapChain(*m_device, *m_memory_manager, *m_swap_chain, clear_value);
+            if (m_swapchain_RTs.empty())
+            {
+                LOG_FORMAT_FLUSH("[ResourceManager] Failed to restore current swapchain render targets after resize failure.\n");
+                InvalidateSwapchainResizeRequest();
+                return false;
+            }
+            return false;
+        }
+
+        LOG_FORMAT_FLUSH("[ResourceManager] ResizeSwapChain in-place failed, fallback to recreate for %ux%u.\n", width, height);
+        const bool released = m_swap_chain->Release(*m_memory_manager);
+        if (!released)
+        {
+            LOG_FORMAT_FLUSH("[ResourceManager] Failed to release swapchain during resize to %ux%u.\n", width, height);
+            InvalidateSwapchainResizeRequest();
+            return false;
+        }
+
+        const auto& render_window = RendererInterface::InternalResourceHandleTable::Instance().GetRenderWindow(m_device_desc.window);
+        RHITextureDesc swap_chain_texture_desc("swap_chain_back_buffer",
+            width,
+            height,
+            RHIDataFormat::R8G8B8A8_UNORM,
+            static_cast<RHIResourceUsageFlags>(RUF_ALLOW_RENDER_TARGET | RUF_TRANSFER_DST),
+            {
+                .clear_format = RHIDataFormat::R8G8B8A8_UNORM,
+                .clear_color = {0.0f, 0.0f, 0.0f, 0.0f}
+            });
+
+        RHISwapChainDesc swap_chain_desc{};
+        swap_chain_desc.hwnd = render_window.GetHWND();
+        swap_chain_desc.chain_mode = VSYNC;
+        swap_chain_desc.full_screen = false;
+        const bool recreated = m_swap_chain->InitSwapChain(*m_factory, *m_device, *m_command_queue, swap_chain_texture_desc, swap_chain_desc);
+        if (!recreated)
+        {
+            LOG_FORMAT_FLUSH("[ResourceManager] Failed to recreate swapchain for %ux%u.\n", width, height);
+            InvalidateSwapchainResizeRequest();
+            return false;
+        }
+    }
+    else
+    {
+        if (m_swapchain_resize_failure_count > 0)
+        {
+            LOG_FORMAT_FLUSH("[ResourceManager] Swapchain resize recovered after %u retries.\n", m_swapchain_resize_failure_count);
+        }
+        m_swapchain_resize_retry_countdown_frames = 0;
+        m_swapchain_resize_failure_count = 0;
+        m_swapchain_resize_last_failed_width = 0;
+        m_swapchain_resize_last_failed_height = 0;
+        LOG_FORMAT_FLUSH("[ResourceManager] Resized swapchain in-place to %ux%u.\n", width, height);
+    }
+
     m_swapchain_RTs = m_render_target_manager->CreateRenderTargetFromSwapChain(*m_device, *m_memory_manager, *m_swap_chain, clear_value);
+    if (m_swapchain_RTs.empty())
+    {
+        LOG_FORMAT_FLUSH("[ResourceManager] Failed to rebuild swapchain render targets for %ux%u.\n", width, height);
+        InvalidateSwapchainResizeRequest();
+        return false;
+    }
+    m_swapchain_resize_retry_countdown_frames = 0;
+    m_swapchain_resize_failure_count = 0;
+    m_swapchain_resize_last_failed_width = 0;
+    m_swapchain_resize_last_failed_height = 0;
     m_last_requested_swapchain_width = width;
     m_last_requested_swapchain_height = height;
 
-    LOG_FORMAT_FLUSH("[ResourceManager] Recreated swapchain (requested=%ux%u, actual=%ux%u)\n",
+    LOG_FORMAT_FLUSH("[ResourceManager] Updated swapchain resources (requested=%ux%u, actual=%ux%u)\n",
         width,
         height,
         m_swap_chain->GetWidth(),
@@ -560,4 +680,9 @@ IRHITextureDescriptorAllocation& ResourceManager::GetCurrentSwapchainRT()
     GLTF_CHECK(!m_swapchain_RTs.empty());
     const auto swapchain_image_index = m_swap_chain->GetCurrentSwapchainImageIndex() % static_cast<unsigned>(m_swapchain_RTs.size());
     return *m_swapchain_RTs[swapchain_image_index];
+}
+
+bool ResourceManager::HasCurrentSwapchainRT() const
+{
+    return m_swap_chain && !m_swapchain_RTs.empty();
 }

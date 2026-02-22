@@ -20,6 +20,7 @@ public:
     RendererInterface::PrimitiveTopology GetPrimitiveTopology() const;
 
     const RootSignatureAllocation& GetRootSignatureAllocation(const std::string& name) const;
+    bool HasRootSignatureAllocation(const std::string& name) const;
 
     IRHIDescriptorUpdater& GetDescriptorUpdater();
 

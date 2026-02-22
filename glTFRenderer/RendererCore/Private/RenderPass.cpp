@@ -138,6 +138,11 @@ const RootSignatureAllocation& RenderPass::GetRootSignatureAllocation(const std:
     return m_shader_parameter_mapping.at(name);
 }
 
+bool RenderPass::HasRootSignatureAllocation(const std::string& name) const
+{
+    return m_shader_parameter_mapping.contains(name);
+}
+
 IRHIDescriptorUpdater& RenderPass::GetDescriptorUpdater()
 {
     return *m_descriptor_updater;

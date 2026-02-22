@@ -38,6 +38,7 @@ public:
     virtual IRHISemaphore& GetAvailableFrameSemaphore() = 0;
     virtual bool Present(IRHICommandQueue& command_queue, IRHICommandList& command_list) = 0;
     virtual bool HostWaitPresentFinished(IRHIDevice& device) = 0;
+    virtual bool ResizeSwapChain(unsigned width, unsigned height) { return false; }
     
     const RHITextureDesc& GetSwapChainBufferDesc() const;
     

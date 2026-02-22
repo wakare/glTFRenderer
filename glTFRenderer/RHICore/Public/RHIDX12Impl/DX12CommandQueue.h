@@ -13,9 +13,13 @@ public:
     
     ID3D12CommandQueue* GetCommandQueue() {return m_command_queue.Get(); }
     const ID3D12CommandQueue* GetCommandQueue() const {return m_command_queue.Get(); }
+    bool WaitIdle();
 
     virtual bool Release(IRHIMemoryManager& memory_manager) override;
     
 private:
     ComPtr<ID3D12CommandQueue> m_command_queue {nullptr};
+    ComPtr<ID3D12Fence> m_idle_fence {nullptr};
+    UINT64 m_idle_fence_value {0};
+    HANDLE m_idle_fence_event {nullptr};
 };

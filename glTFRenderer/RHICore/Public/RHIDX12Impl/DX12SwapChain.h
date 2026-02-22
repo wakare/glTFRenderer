@@ -19,6 +19,7 @@ public:
     virtual IRHISemaphore& GetAvailableFrameSemaphore() override;
     virtual bool Present(IRHICommandQueue& command_queue, IRHICommandList& command_list) override;
     virtual bool HostWaitPresentFinished(IRHIDevice& device) override;
+    virtual bool ResizeSwapChain(unsigned width, unsigned height) override;
     virtual bool Release(IRHIMemoryManager& memory_manager) override;
     
     IDXGISwapChain3* GetSwapChain() {return m_swap_chain.Get();}
@@ -28,13 +29,21 @@ public:
     const DXGI_SAMPLE_DESC& GetSwapChainSampleDesc() const {return m_swap_chain_sample_desc;}
 
     unsigned GetFrameBufferCount() const {return m_frame_buffer_count;}
-    unsigned GetCurrentFrameBufferIndex() const {return m_swap_chain->GetCurrentBackBufferIndex();}
+    unsigned GetCurrentFrameBufferIndex() const {return m_swap_chain ? m_swap_chain->GetCurrentBackBufferIndex() : 0;}
     
 private:
+    UINT GetSwapChainFlags() const;
+    bool WaitForFrameLatencyObject(unsigned timeout_ms) const;
+
     std::shared_ptr<IRHIFence> m_fence;
     
     unsigned m_frame_buffer_count {3};
     ComPtr<IDXGISwapChain3> m_swap_chain {nullptr};
     DXGI_SAMPLE_DESC m_swap_chain_sample_desc {};
+    HANDLE m_frame_latency_waitable_object {nullptr};
+    unsigned m_resize_failure_count {0};
+    unsigned m_last_resize_failed_width {0};
+    unsigned m_last_resize_failed_height {0};
+    HRESULT m_last_resize_failed_hr {S_OK};
 };
 

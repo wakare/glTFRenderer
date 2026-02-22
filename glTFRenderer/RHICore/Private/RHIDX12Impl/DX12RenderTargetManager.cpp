@@ -50,6 +50,8 @@ std::shared_ptr<IRHITextureDescriptorAllocation> DX12RenderTargetManager::Create
 std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>> DX12RenderTargetManager::CreateRenderTargetFromSwapChain(
     IRHIDevice& device, IRHIMemoryManager& memory_manager, IRHISwapChain& swap_chain, RHITextureClearValue clear_value)
 {
+    (void)memory_manager;
+    (void)clear_value;
     auto* dxSwapChain = dynamic_cast<DX12SwapChain&>(swap_chain).GetSwapChain();
 
     DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
@@ -57,7 +59,15 @@ std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>> DX12RenderTargetMa
 
     std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>> outVector = {};
 
-    D3D12_CLEAR_VALUE dx_clear_value = DX12ConverterUtils::ConvertToD3DClearValue(clear_value);
+    // Use a dedicated RTV heap for swapchain back buffers so old RTV descriptors
+    // can be fully dropped on resize, avoiding lingering references to old buffers.
+    m_swapchain_rtv_heap = std::make_shared<DX12DescriptorHeap>();
+    m_swapchain_rtv_heap->InitDescriptorHeap(device,
+        {
+            .max_descriptor_count = swapChainDesc.BufferCount,
+            .type = RHIDescriptorHeapType::RTV,
+            .shader_visible = false
+        });
 
     for (UINT i = 0; i < swapChainDesc.BufferCount; ++i)
     {
@@ -80,12 +90,46 @@ std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>> DX12RenderTargetMa
         external_texture_allocation->m_texture = external_texture;
         external_texture_allocation->SetNeedRelease();
         m_external_textures.push_back(external_texture_allocation);
-        
-        auto render_target = CreateRenderTargetWithResource(device, memory_manager, RHIRenderTargetType::RTV, RHIDataFormat::R8G8B8A8_UNORM, external_texture_allocation, dx_clear_value);
+
+        std::shared_ptr<IRHITextureDescriptorAllocation> render_target;
+        const RHITextureDescriptorDesc render_target_desc(
+            RHIDataFormat::R8G8B8A8_UNORM,
+            RHIResourceDimension::TEXTURE2D,
+            RHIViewType::RVT_RTV);
+        m_swapchain_rtv_heap->CreateResourceDescriptorInHeap(device, external_texture, render_target_desc, render_target);
         outVector.push_back(render_target);
     }
 
     return outVector;
+}
+
+bool DX12RenderTargetManager::ReleaseSwapchainRenderTargets(IRHIMemoryManager& memory_manager)
+{
+    for (auto& external_texture_allocation : m_external_textures)
+    {
+        if (!external_texture_allocation)
+        {
+            continue;
+        }
+
+        if (external_texture_allocation->m_texture)
+        {
+            const auto texture_resource = std::static_pointer_cast<IRHIResource>(external_texture_allocation->m_texture);
+            (void)RHIResourceFactory::ReleaseResource(memory_manager, texture_resource);
+            external_texture_allocation->m_texture.reset();
+        }
+
+        const auto allocation_resource = std::static_pointer_cast<IRHIResource>(external_texture_allocation);
+        (void)RHIResourceFactory::ReleaseResource(memory_manager, allocation_resource);
+    }
+    m_external_textures.clear();
+
+    if (m_swapchain_rtv_heap)
+    {
+        m_swapchain_rtv_heap->Release(memory_manager);
+    }
+    m_swapchain_rtv_heap.reset();
+    return true;
 }
 
 bool DX12RenderTargetManager::ClearRenderTarget(IRHICommandList& command_list,

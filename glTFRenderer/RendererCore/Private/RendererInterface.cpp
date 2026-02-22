@@ -613,6 +613,11 @@ namespace RendererInterface
         return m_resource_manager->GetCurrentSwapchainRT();
     }
 
+    bool ResourceOperator::HasCurrentSwapchainRT() const
+    {
+        return m_resource_manager->HasCurrentSwapchainRT();
+    }
+
     void ResourceOperator::UploadBufferData(BufferHandle handle, const BufferUploadDesc& upload_desc)
     {
         auto buffer = InternalResourceHandleTable::Instance().GetBuffer(handle);
@@ -877,6 +882,13 @@ namespace RendererInterface
             const unsigned render_width = m_resource_allocator.GetCurrentSwapchain().GetWidth();
             const unsigned render_height = m_resource_allocator.GetCurrentSwapchain().GetHeight();
             const bool resized_window_resources = m_resource_allocator.ResizeWindowDependentRenderTargets(render_width, render_height);
+
+            if (!m_resource_allocator.HasCurrentSwapchainRT())
+            {
+                m_resource_allocator.InvalidateSwapchainResizeRequest();
+                m_resource_allocator.ResizeSwapchainIfNeeded(window_width, window_height);
+                return;
+            }
          
             if (m_tick_callback)
             {
@@ -915,6 +927,10 @@ namespace RendererInterface
             {
                 m_resource_allocator.InvalidateSwapchainResizeRequest();
                 m_resource_allocator.ResizeSwapchainIfNeeded(window_width, window_height);
+                return;
+            }
+            if (!m_resource_allocator.HasCurrentSwapchainRT())
+            {
                 return;
             }
 
@@ -1391,6 +1407,10 @@ namespace RendererInterface
     bool RenderGraph::RenderDebugUI(IRHICommandList& command_list)
     {
         if (!m_debug_ui_enabled || !m_debug_ui_initialized)
+        {
+            return true;
+        }
+        if (!m_resource_allocator.HasCurrentSwapchainRT())
         {
             return true;
         }
@@ -1975,6 +1995,10 @@ namespace RendererInterface
         
         for (const auto& buffer : render_graph_node_desc.draw_info.buffer_resources)
         {
+            if (!render_pass->HasRootSignatureAllocation(buffer.first))
+            {
+                continue;
+            }
             GLTF_CHECK(buffer.second.buffer_handle != NULL_HANDLE);
             auto& root_signature_allocation = render_pass->GetRootSignatureAllocation(buffer.first);
             auto buffer_handle = buffer.second.buffer_handle;
@@ -2033,6 +2057,10 @@ namespace RendererInterface
 
         for (const auto& texture  :render_graph_node_desc.draw_info.texture_resources)
         {
+            if (!render_pass->HasRootSignatureAllocation(texture.first))
+            {
+                continue;
+            }
             GLTF_CHECK(!texture.second.textures.empty());
             const bool is_texture_table = texture.second.textures.size() > 1;
             auto& root_signature_allocation = render_pass->GetRootSignatureAllocation(texture.first);
@@ -2099,6 +2127,10 @@ namespace RendererInterface
 
         for (const auto& render_target_pair  :render_graph_node_desc.draw_info.render_target_texture_resources)
         {
+            if (!render_pass->HasRootSignatureAllocation(render_target_pair.first))
+            {
+                continue;
+            }
             GLTF_CHECK(!render_target_pair.second.render_target_texture.empty());
             const bool is_texture_table = render_target_pair.second.render_target_texture.size() > 1;
             bool need_recreate_descriptor =

@@ -53,6 +53,7 @@ public:
     IRHICommandQueue& GetCommandQueue();
 
     IRHITextureDescriptorAllocation& GetCurrentSwapchainRT();
+    bool HasCurrentSwapchainRT() const;
     
 protected:
     RendererInterface::RenderDeviceDesc m_device_desc{};
@@ -80,4 +81,8 @@ protected:
 
     unsigned m_last_requested_swapchain_width{0};
     unsigned m_last_requested_swapchain_height{0};
+    unsigned m_swapchain_resize_retry_countdown_frames{0};
+    unsigned m_swapchain_resize_failure_count{0};
+    unsigned m_swapchain_resize_last_failed_width{0};
+    unsigned m_swapchain_resize_last_failed_height{0};
 };

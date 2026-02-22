@@ -94,6 +94,7 @@ namespace RendererInterface
         IRHIMemoryManager&  GetMemoryManager() const;
         
         IRHITextureDescriptorAllocation& GetCurrentSwapchainRT() const;
+        bool HasCurrentSwapchainRT() const;
 
         void UploadBufferData(BufferHandle handle, const BufferUploadDesc& upload_desc);
         void WaitFrameRenderFinished();
