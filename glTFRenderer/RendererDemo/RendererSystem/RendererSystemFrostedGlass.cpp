@@ -41,10 +41,8 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
 
     const unsigned width = m_scene->GetWidth();
     const unsigned height = m_scene->GetHeight();
-    m_frosted_pass_output = resource_operator.CreateRenderTarget(
+    m_frosted_pass_output = resource_operator.CreateWindowRelativeRenderTarget(
         "FrostedGlass_Output",
-        width,
-        height,
         RendererInterface::RGBA8_UNORM,
         RendererInterface::default_clear_color,
         static_cast<RendererInterface::ResourceUsage>(

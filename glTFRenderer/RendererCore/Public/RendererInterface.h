@@ -4,6 +4,7 @@
 #include <functional>
 #include <set>
 #include <string>
+#include <tuple>
 #include <vector>
 #include <glm/glm/glm.hpp>
 
@@ -80,6 +81,15 @@ namespace RendererInterface
             PixelFormat format,
             RenderTargetClearValue clear_value,
             ResourceUsage usage);
+        RenderTargetHandle  CreateWindowRelativeRenderTarget(
+            const std::string& name,
+            PixelFormat format,
+            RenderTargetClearValue clear_value,
+            ResourceUsage usage,
+            float width_scale = 1.0f,
+            float height_scale = 1.0f,
+            unsigned min_width = 1,
+            unsigned min_height = 1);
         
         RenderPassHandle    CreateRenderPass(const RenderPassDesc& desc);
         RenderSceneHandle   CreateRenderScene(const RenderSceneDesc& desc);
@@ -169,6 +179,8 @@ namespace RendererInterface
             RenderGraphNodeHandle node_handle{};
             std::string group_name;
             std::string pass_name;
+            bool executed{true};
+            bool skipped_due_to_validation{false};
             float cpu_time_ms{0.0f};
             bool gpu_time_valid{false};
             float gpu_time_ms{0.0f};
@@ -180,16 +192,32 @@ namespace RendererInterface
             float cpu_total_ms{0.0f};
             bool gpu_time_valid{false};
             float gpu_total_ms{0.0f};
+            unsigned executed_pass_count{0};
+            unsigned skipped_pass_count{0};
+            unsigned skipped_validation_pass_count{0};
             std::vector<RenderPassFrameStats> pass_stats;
         };
 
         struct DependencyDiagnostics
         {
+            struct AutoPrunedNodeDiagnostics
+            {
+                RenderGraphNodeHandle node_handle{};
+                std::string group_name;
+                std::string pass_name;
+                unsigned buffer_count{0};
+                unsigned texture_count{0};
+                unsigned render_target_texture_count{0};
+            };
+
             bool graph_valid{true};
             bool has_invalid_explicit_dependencies{false};
             unsigned auto_merged_dependency_count{0};
+            unsigned auto_pruned_binding_count{0};
+            unsigned auto_pruned_node_count{0};
             std::vector<std::pair<RenderGraphNodeHandle, RenderGraphNodeHandle>> invalid_explicit_dependencies;
             std::vector<RenderGraphNodeHandle> cycle_nodes;
+            std::vector<AutoPrunedNodeDiagnostics> auto_pruned_nodes;
             std::size_t execution_signature{0};
             std::size_t cached_execution_node_count{0};
             std::size_t cached_execution_order_size{0};
@@ -219,6 +247,13 @@ namespace RendererInterface
         const DependencyDiagnostics& GetDependencyDiagnostics() const;
 
     protected:
+        enum class RenderPassExecutionStatus
+        {
+            EXECUTED,
+            SKIPPED_INVALID_DRAW_DESC,
+            SKIPPED_MISSING_RENDER_PASS,
+        };
+
         struct DeferredReleaseEntry
         {
             unsigned long long retire_frame{0};
@@ -271,7 +306,12 @@ namespace RendererInterface
         void BlitFinalOutputToSwapchain(IRHICommandList& command_list, unsigned window_width, unsigned window_height);
         void FinalizeFrameSubmission(IRHICommandList& command_list);
         
-        void ExecuteRenderGraphNode(IRHICommandList& command_list, RenderGraphNodeHandle render_graph_node_handle, unsigned long long interval);
+        RenderPassExecutionStatus ExecuteRenderGraphNode(IRHICommandList& command_list, RenderGraphNodeHandle render_graph_node_handle, unsigned long long interval);
+        void LogRenderPassValidationResult(RenderGraphNodeHandle render_graph_node_handle,
+                                           const RenderGraphNodeDesc& render_graph_node_desc,
+                                           bool valid,
+                                           const std::vector<std::string>& errors,
+                                           const std::vector<std::string>& warnings);
         void CloseCurrentCommandListAndExecute(IRHICommandList& command_list, const RHIExecuteCommandListContext& context, bool wait);
         void Present(IRHICommandList& command_list);
         
@@ -283,6 +323,9 @@ namespace RendererInterface
 
         std::map<RenderGraphNodeHandle, RenderPassDescriptorResource> m_render_pass_descriptor_resources;
         std::map<RenderGraphNodeHandle, unsigned long long> m_render_pass_descriptor_last_used_frame;
+        std::map<RenderGraphNodeHandle, std::tuple<unsigned, unsigned, unsigned>> m_auto_pruned_named_binding_counts;
+        std::map<RenderGraphNodeHandle, unsigned long long> m_render_pass_validation_last_log_frame;
+        std::map<RenderGraphNodeHandle, std::size_t> m_render_pass_validation_last_message_hash;
         std::deque<DeferredReleaseEntry> m_deferred_release_entries;
         std::vector<RenderGraphNodeHandle> m_cached_execution_order;
         std::size_t m_cached_execution_signature{0};

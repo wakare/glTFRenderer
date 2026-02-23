@@ -248,12 +248,31 @@ void DemoBase::DrawDebugUI()
             const auto& diagnostics = m_render_graph->GetDependencyDiagnostics();
             ImGui::Text("Graph Valid: %s", diagnostics.graph_valid ? "Yes" : "No");
             ImGui::Text("Auto-Merged Inferred Edges: %u", diagnostics.auto_merged_dependency_count);
+            ImGui::Text("Auto-Pruned Unmapped Bindings: %u across %u node(s)",
+                diagnostics.auto_pruned_binding_count,
+                diagnostics.auto_pruned_node_count);
             ImGui::Text("Invalid Explicit Edges: %u", static_cast<unsigned>(diagnostics.invalid_explicit_dependencies.size()));
             ImGui::Text("Cycle Nodes: %u", static_cast<unsigned>(diagnostics.cycle_nodes.size()));
             ImGui::Text("Execution Signature: %zu", diagnostics.execution_signature);
             ImGui::Text("Cached Nodes: %zu | Cached Order Size: %zu",
                 diagnostics.cached_execution_node_count,
                 diagnostics.cached_execution_order_size);
+
+            if (!diagnostics.auto_pruned_nodes.empty())
+            {
+                ImGui::Separator();
+                ImGui::TextUnformatted("Auto-Pruned Nodes");
+                for (const auto& pruned_node : diagnostics.auto_pruned_nodes)
+                {
+                    ImGui::BulletText("[%u] %s / %s | buffer=%u texture=%u rt_texture=%u",
+                        pruned_node.node_handle.value,
+                        pruned_node.group_name.c_str(),
+                        pruned_node.pass_name.c_str(),
+                        pruned_node.buffer_count,
+                        pruned_node.texture_count,
+                        pruned_node.render_target_texture_count);
+                }
+            }
 
             if (!diagnostics.invalid_explicit_dependencies.empty())
             {
@@ -293,17 +312,23 @@ void DemoBase::DrawDebugUI()
         const auto& frame_stats = m_render_graph->GetLastFrameStats();
         if (frame_stats.gpu_time_valid)
         {
-            ImGui::Text("RenderGraph CPU: %.3f ms | GPU: %.3f ms | Passes: %u | Frame: %llu",
+            ImGui::Text("RenderGraph CPU: %.3f ms | GPU: %.3f ms | Passes: %u (Exec %u / Skip %u, Validation %u) | Frame: %llu",
                 frame_stats.cpu_total_ms,
                 frame_stats.gpu_total_ms,
                 static_cast<unsigned>(frame_stats.pass_stats.size()),
+                frame_stats.executed_pass_count,
+                frame_stats.skipped_pass_count,
+                frame_stats.skipped_validation_pass_count,
                 frame_stats.frame_index);
         }
         else
         {
-            ImGui::Text("RenderGraph CPU: %.3f ms | GPU: N/A | Passes: %u | Frame: %llu",
+            ImGui::Text("RenderGraph CPU: %.3f ms | GPU: N/A | Passes: %u (Exec %u / Skip %u, Validation %u) | Frame: %llu",
                 frame_stats.cpu_total_ms,
                 static_cast<unsigned>(frame_stats.pass_stats.size()),
+                frame_stats.executed_pass_count,
+                frame_stats.skipped_pass_count,
+                frame_stats.skipped_validation_pass_count,
                 frame_stats.frame_index);
         }
 
@@ -342,10 +367,11 @@ void DemoBase::DrawDebugUI()
                 ImGuiTableFlags_RowBg |
                 ImGuiTableFlags_SizingStretchProp |
                 ImGuiTableFlags_ScrollY;
-            if (ImGui::BeginTable("RenderPassTimingTable", 4, table_flags, ImVec2(0.0f, 220.0f)))
+            if (ImGui::BeginTable("RenderPassTimingTable", 5, table_flags, ImVec2(0.0f, 220.0f)))
             {
                 ImGui::TableSetupColumn("System");
                 ImGui::TableSetupColumn("Pass");
+                ImGui::TableSetupColumn("State");
                 ImGui::TableSetupColumn("CPU ms");
                 ImGui::TableSetupColumn("GPU ms");
                 ImGui::TableHeadersRow();
@@ -358,8 +384,21 @@ void DemoBase::DrawDebugUI()
                     ImGui::TableSetColumnIndex(1);
                     ImGui::TextUnformatted(pass_stat.pass_name.c_str());
                     ImGui::TableSetColumnIndex(2);
-                    ImGui::Text("%.3f", pass_stat.cpu_time_ms);
+                    if (pass_stat.executed)
+                    {
+                        ImGui::TextUnformatted("Executed");
+                    }
+                    else if (pass_stat.skipped_due_to_validation)
+                    {
+                        ImGui::TextUnformatted("Skipped(Validation)");
+                    }
+                    else
+                    {
+                        ImGui::TextUnformatted("Skipped");
+                    }
                     ImGui::TableSetColumnIndex(3);
+                    ImGui::Text("%.3f", pass_stat.cpu_time_ms);
+                    ImGui::TableSetColumnIndex(4);
                     if (pass_stat.gpu_time_valid)
                     {
                         ImGui::Text("%.3f", pass_stat.gpu_time_ms);
@@ -482,6 +521,7 @@ RendererInterface::RenderTargetHandle DemoBase::CreateRenderTarget(const std::st
 {
     RendererInterface::RenderTargetDesc render_target_desc{};
     render_target_desc.name = name;
+    render_target_desc.size_mode = RendererInterface::RenderTargetSizeMode::FIXED;
     render_target_desc.width = width;
     render_target_desc.height = height;
     render_target_desc.format = format;

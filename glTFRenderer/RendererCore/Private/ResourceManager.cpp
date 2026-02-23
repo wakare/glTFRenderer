@@ -356,17 +356,6 @@ RendererInterface::ShaderHandle ResourceManager::CreateShader(const RendererInte
 RendererInterface::RenderTargetHandle ResourceManager::CreateRenderTarget(const RendererInterface::RenderTargetDesc& desc)
 {
     RendererInterface::RenderTargetDesc stored_desc = desc;
-    if (stored_desc.size_mode == RendererInterface::RenderTargetSizeMode::FIXED &&
-        m_swap_chain &&
-        stored_desc.width == m_swap_chain->GetWidth() &&
-        stored_desc.height == m_swap_chain->GetHeight())
-    {
-        // Auto-mark full-resolution RT as window-relative to make runtime resize path robust.
-        stored_desc.size_mode = RendererInterface::RenderTargetSizeMode::WINDOW_RELATIVE;
-        stored_desc.width_scale = 1.0f;
-        stored_desc.height_scale = 1.0f;
-    }
-
     auto render_target_descriptor = CreateRenderTargetAllocation(*m_device, *m_memory_manager, *m_render_target_manager, stored_desc);
     auto render_target_handle = RendererInterface::InternalResourceHandleTable::Instance().RegisterRenderTarget(render_target_descriptor);
     m_render_targets[render_target_handle] = render_target_descriptor;

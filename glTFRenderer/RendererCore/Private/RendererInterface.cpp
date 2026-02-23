@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <filesystem>
 
 #include "InternalResourceHandleTable.h"
@@ -93,6 +94,28 @@ namespace RendererInterface
         void HashCombine(std::size_t& seed, std::size_t value)
         {
             seed ^= value + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2);
+        }
+
+        std::size_t ComputeValidationMessageHash(const RenderPass::DrawValidationResult& result)
+        {
+            std::size_t hash = 0;
+            HashCombine(hash, std::hash<bool>{}(result.valid));
+            for (const auto& error : result.errors)
+            {
+                HashCombine(hash, std::hash<std::string>{}(error));
+            }
+            for (const auto& warning : result.warnings)
+            {
+                HashCombine(hash, std::hash<std::string>{}(warning));
+            }
+            return hash;
+        }
+
+        unsigned ComputeScaledExtent(unsigned base_extent, float scale, unsigned min_extent)
+        {
+            const float safe_scale = (std::max)(0.0f, scale);
+            const unsigned scaled_extent = static_cast<unsigned>((std::round)(static_cast<float>(base_extent) * safe_scale));
+            return (std::max)(min_extent, scaled_extent);
         }
 
         using DependencyEdgeMap = std::map<RenderGraphNodeHandle, std::set<RenderGraphNodeHandle>>;
@@ -639,12 +662,14 @@ namespace RendererInterface
         }
 
         void UpdateDependencyDiagnostics(
+            const ExecutionPlanContext& context,
             const ExecutionPlanBuildResult& plan,
             bool cached_execution_graph_valid,
             std::size_t cached_execution_signature,
             std::size_t cached_execution_node_count,
             std::size_t cached_execution_order_size,
             std::vector<RenderGraphNodeHandle>&& cycle_nodes,
+            const std::map<RenderGraphNodeHandle, std::tuple<unsigned, unsigned, unsigned>>& auto_pruned_named_binding_counts,
             RenderGraph::DependencyDiagnostics& out_diagnostics)
         {
             out_diagnostics.graph_valid = cached_execution_graph_valid;
@@ -661,6 +686,38 @@ namespace RendererInterface
             else if (plan.need_rebuild_execution_order)
             {
                 out_diagnostics.cycle_nodes = std::move(cycle_nodes);
+            }
+
+            out_diagnostics.auto_pruned_binding_count = 0;
+            out_diagnostics.auto_pruned_node_count = 0;
+            out_diagnostics.auto_pruned_nodes.clear();
+            for (const auto node_handle : context.nodes)
+            {
+                const auto pruned_count_it = auto_pruned_named_binding_counts.find(node_handle);
+                if (pruned_count_it == auto_pruned_named_binding_counts.end())
+                {
+                    continue;
+                }
+
+                const auto [buffer_count, texture_count, render_target_texture_count] = pruned_count_it->second;
+                const unsigned total_count = buffer_count + texture_count + render_target_texture_count;
+                if (total_count == 0)
+                {
+                    continue;
+                }
+
+                ++out_diagnostics.auto_pruned_node_count;
+                out_diagnostics.auto_pruned_binding_count += total_count;
+
+                RenderGraph::DependencyDiagnostics::AutoPrunedNodeDiagnostics node_diagnostics{};
+                node_diagnostics.node_handle = node_handle;
+                const auto& node_desc = context.render_graph_nodes[node_handle.value];
+                node_diagnostics.group_name = node_desc.debug_group.empty() ? "<group-empty>" : node_desc.debug_group;
+                node_diagnostics.pass_name = node_desc.debug_name.empty() ? "<pass-empty>" : node_desc.debug_name;
+                node_diagnostics.buffer_count = buffer_count;
+                node_diagnostics.texture_count = texture_count;
+                node_diagnostics.render_target_texture_count = render_target_texture_count;
+                out_diagnostics.auto_pruned_nodes.push_back(std::move(node_diagnostics));
             }
         }
 
@@ -1044,12 +1101,34 @@ namespace RendererInterface
     {
         RendererInterface::RenderTargetDesc render_target_desc{};
         render_target_desc.name = name;
+        render_target_desc.size_mode = RenderTargetSizeMode::FIXED;
         render_target_desc.width = width;
         render_target_desc.height = height;
         render_target_desc.format = format;
         render_target_desc.clear = clear_value;
         render_target_desc.usage = usage; 
         return  m_resource_manager->CreateRenderTarget(render_target_desc);
+    }
+
+    RenderTargetHandle ResourceOperator::CreateWindowRelativeRenderTarget(const std::string& name,
+        PixelFormat format, RenderTargetClearValue clear_value, ResourceUsage usage, float width_scale, float height_scale, unsigned min_width, unsigned min_height)
+    {
+        RendererInterface::RenderTargetDesc render_target_desc{};
+        render_target_desc.name = name;
+        render_target_desc.format = format;
+        render_target_desc.clear = clear_value;
+        render_target_desc.usage = usage;
+        render_target_desc.size_mode = RenderTargetSizeMode::WINDOW_RELATIVE;
+        render_target_desc.width_scale = width_scale;
+        render_target_desc.height_scale = height_scale;
+        render_target_desc.min_width = (std::max)(1u, min_width);
+        render_target_desc.min_height = (std::max)(1u, min_height);
+
+        const unsigned current_width = (std::max)(1u, GetCurrentRenderWidth());
+        const unsigned current_height = (std::max)(1u, GetCurrentRenderHeight());
+        render_target_desc.width = ComputeScaledExtent(current_width, render_target_desc.width_scale, render_target_desc.min_width);
+        render_target_desc.height = ComputeScaledExtent(current_height, render_target_desc.height_scale, render_target_desc.min_height);
+        return m_resource_manager->CreateRenderTarget(render_target_desc);
     }
 
     RenderPassHandle ResourceOperator::CreateRenderPass(const RenderPassDesc& desc)
@@ -1303,6 +1382,34 @@ namespace RendererInterface
         render_pass_desc.viewport_height = setup_info.viewport_height;
         
         auto render_pass_handle = allocator.CreateRenderPass(render_pass_desc);
+        unsigned pruned_buffer_count = 0;
+        unsigned pruned_texture_count = 0;
+        unsigned pruned_render_target_texture_count = 0;
+        auto render_pass = InternalResourceHandleTable::Instance().GetRenderPass(render_pass_handle);
+        if (render_pass)
+        {
+            auto prune_unmapped_named_resources = [&render_pass](auto& resource_map)
+            {
+                unsigned pruned_count = 0;
+                for (auto it = resource_map.begin(); it != resource_map.end(); )
+                {
+                    if (!render_pass->HasRootSignatureAllocation(it->first))
+                    {
+                        it = resource_map.erase(it);
+                        ++pruned_count;
+                    }
+                    else
+                    {
+                        ++it;
+                    }
+                }
+                return pruned_count;
+            };
+
+            pruned_buffer_count = prune_unmapped_named_resources(render_pass_draw_desc.buffer_resources);
+            pruned_texture_count = prune_unmapped_named_resources(render_pass_draw_desc.texture_resources);
+            pruned_render_target_texture_count = prune_unmapped_named_resources(render_pass_draw_desc.render_target_texture_resources);
+        }
     
         RendererInterface::RenderGraphNodeDesc render_graph_node_desc{};
         render_graph_node_desc.draw_info = render_pass_draw_desc;
@@ -1313,6 +1420,26 @@ namespace RendererInterface
         render_graph_node_desc.debug_name = setup_info.debug_name;
 
         auto render_graph_node_handle = CreateRenderGraphNode(render_graph_node_desc);
+        const unsigned total_pruned_bindings =
+            pruned_buffer_count + pruned_texture_count + pruned_render_target_texture_count;
+        if (total_pruned_bindings > 0)
+        {
+            m_auto_pruned_named_binding_counts[render_graph_node_handle] =
+                std::make_tuple(pruned_buffer_count, pruned_texture_count, pruned_render_target_texture_count);
+            const char* group_name = render_graph_node_desc.debug_group.empty() ? "<group-empty>" : render_graph_node_desc.debug_group.c_str();
+            const char* pass_name = render_graph_node_desc.debug_name.empty() ? "<pass-empty>" : render_graph_node_desc.debug_name.c_str();
+            LOG_FORMAT_FLUSH("[RenderGraph][Validation] Node %u (%s/%s) auto-pruned unmapped bindings: buffer=%u, texture=%u, render_target_texture=%u.\n",
+                             render_graph_node_handle.value,
+                             group_name,
+                             pass_name,
+                             pruned_buffer_count,
+                             pruned_texture_count,
+                             pruned_render_target_texture_count);
+        }
+        else
+        {
+            m_auto_pruned_named_binding_counts.erase(render_graph_node_handle);
+        }
         return render_graph_node_handle;
     }
 
@@ -1338,6 +1465,9 @@ namespace RendererInterface
             m_render_pass_descriptor_resources.erase(descriptor_it);
         }
         m_render_pass_descriptor_last_used_frame.erase(render_graph_node_handle);
+        m_auto_pruned_named_binding_counts.erase(render_graph_node_handle);
+        m_render_pass_validation_last_log_frame.erase(render_graph_node_handle);
+        m_render_pass_validation_last_message_hash.erase(render_graph_node_handle);
 
         m_cached_execution_signature = 0;
         m_cached_execution_node_count = 0;
@@ -1527,12 +1657,14 @@ namespace RendererInterface
         auto diagnostics_cycle_nodes = ApplyExecutionPlanResult(plan_context, plan, execution_cache_state);
 
         UpdateDependencyDiagnostics(
+            plan_context,
             plan,
             execution_cache_state.cached_execution_graph_valid,
             execution_cache_state.cached_execution_signature,
             execution_cache_state.cached_execution_node_count,
             execution_cache_state.cached_execution_order.size(),
             std::move(diagnostics_cycle_nodes),
+            m_auto_pruned_named_binding_counts,
             m_last_dependency_diagnostics);
 
         ExecutePlanAndCollectStats(command_list, profiler_slot_index, interval);
@@ -1816,6 +1948,9 @@ namespace RendererInterface
         submitted_frame_stats.cpu_total_ms = 0.0f;
         submitted_frame_stats.gpu_time_valid = false;
         submitted_frame_stats.gpu_total_ms = 0.0f;
+        submitted_frame_stats.executed_pass_count = 0;
+        submitted_frame_stats.skipped_pass_count = 0;
+        submitted_frame_stats.skipped_validation_pass_count = 0;
         submitted_frame_stats.pass_stats.clear();
         submitted_frame_stats.pass_stats.reserve(m_cached_execution_order.size());
 
@@ -1836,7 +1971,7 @@ namespace RendererInterface
             }
 
             const auto pass_begin = std::chrono::steady_clock::now();
-            ExecuteRenderGraphNode(command_list, render_graph_node, interval);
+            const auto execution_status = ExecuteRenderGraphNode(command_list, render_graph_node, interval);
             const auto pass_end = std::chrono::steady_clock::now();
             const float pass_cpu_ms = std::chrono::duration<float, std::milli>(pass_end - pass_begin).count();
 
@@ -1866,9 +2001,23 @@ namespace RendererInterface
             pass_stats.node_handle = render_graph_node;
             pass_stats.group_name = group_name;
             pass_stats.pass_name = pass_name;
+            pass_stats.executed = execution_status == RenderPassExecutionStatus::EXECUTED;
+            pass_stats.skipped_due_to_validation = execution_status == RenderPassExecutionStatus::SKIPPED_INVALID_DRAW_DESC;
             pass_stats.cpu_time_ms = pass_cpu_ms;
             submitted_frame_stats.pass_stats.push_back(pass_stats);
             submitted_frame_stats.cpu_total_ms += pass_cpu_ms;
+            if (pass_stats.executed)
+            {
+                ++submitted_frame_stats.executed_pass_count;
+            }
+            else
+            {
+                ++submitted_frame_stats.skipped_pass_count;
+                if (pass_stats.skipped_due_to_validation)
+                {
+                    ++submitted_frame_stats.skipped_validation_pass_count;
+                }
+            }
         }
 
         GLTF_CHECK(FinalizeGPUProfilerFrame(command_list, profiler_slot_index, timestamped_pass_count * 2, submitted_frame_stats));
@@ -2179,7 +2328,63 @@ namespace RendererInterface
         }
     }
 
-    void RenderGraph::ExecuteRenderGraphNode(IRHICommandList& command_list, RenderGraphNodeHandle render_graph_node_handle, unsigned long long interval)
+    void RenderGraph::LogRenderPassValidationResult(RenderGraphNodeHandle render_graph_node_handle,
+                                                    const RenderGraphNodeDesc& render_graph_node_desc,
+                                                    bool valid,
+                                                    const std::vector<std::string>& errors,
+                                                    const std::vector<std::string>& warnings)
+    {
+        RenderPass::DrawValidationResult validation_result{};
+        validation_result.valid = valid;
+        validation_result.errors = errors;
+        validation_result.warnings = warnings;
+        const std::size_t message_hash = ComputeValidationMessageHash(validation_result);
+        auto& last_log_frame = m_render_pass_validation_last_log_frame[render_graph_node_handle];
+        auto& last_message_hash = m_render_pass_validation_last_message_hash[render_graph_node_handle];
+
+        constexpr unsigned LOG_INTERVAL_FRAMES = 120;
+        const bool message_changed = last_message_hash != message_hash;
+        const bool interval_reached = m_frame_index >= (last_log_frame + LOG_INTERVAL_FRAMES);
+        if (!message_changed && !interval_reached)
+        {
+            return;
+        }
+
+        last_log_frame = m_frame_index;
+        last_message_hash = message_hash;
+
+        const char* group_name = render_graph_node_desc.debug_group.empty() ? "<group-empty>" : render_graph_node_desc.debug_group.c_str();
+        const char* pass_name = render_graph_node_desc.debug_name.empty() ? "<pass-empty>" : render_graph_node_desc.debug_name.c_str();
+
+        if (!errors.empty())
+        {
+            LOG_FORMAT_FLUSH("[RenderGraph][Validation] Node %u (%s/%s) has %zu error(s) and %zu warning(s). Skip execution.\n",
+                             render_graph_node_handle.value,
+                             group_name,
+                             pass_name,
+                             errors.size(),
+                             warnings.size());
+        }
+        else if (!warnings.empty())
+        {
+            LOG_FORMAT_FLUSH("[RenderGraph][Validation] Node %u (%s/%s) has %zu warning(s).\n",
+                             render_graph_node_handle.value,
+                             group_name,
+                             pass_name,
+                             warnings.size());
+        }
+
+        for (const auto& error : errors)
+        {
+            LOG_FORMAT_FLUSH("[RenderGraph][Validation][Error]   %s\n", error.c_str());
+        }
+        for (const auto& warning : warnings)
+        {
+            LOG_FORMAT_FLUSH("[RenderGraph][Validation][Warn ]   %s\n", warning.c_str());
+        }
+    }
+
+    RenderGraph::RenderPassExecutionStatus RenderGraph::ExecuteRenderGraphNode(IRHICommandList& command_list, RenderGraphNodeHandle render_graph_node_handle, unsigned long long interval)
     {
         GLTF_CHECK(render_graph_node_handle.IsValid());
         GLTF_CHECK(render_graph_node_handle.value < m_render_graph_nodes.size());
@@ -2190,6 +2395,26 @@ namespace RendererInterface
         }
         
         auto render_pass = InternalResourceHandleTable::Instance().GetRenderPass(render_graph_node_desc.render_pass_handle);
+        if (!render_pass)
+        {
+            LOG_FORMAT_FLUSH("[RenderGraph][Validation] Node %u has no render pass resource. Skip execution.\n",
+                render_graph_node_handle.value);
+            return RenderPassExecutionStatus::SKIPPED_MISSING_RENDER_PASS;
+        }
+        const auto validation_result = render_pass->ValidateDrawDesc(render_graph_node_desc.draw_info);
+        if (!validation_result.errors.empty() || !validation_result.warnings.empty())
+        {
+            LogRenderPassValidationResult(
+                render_graph_node_handle,
+                render_graph_node_desc,
+                validation_result.valid,
+                validation_result.errors,
+                validation_result.warnings);
+        }
+        if (!validation_result.valid)
+        {
+            return RenderPassExecutionStatus::SKIPPED_INVALID_DRAW_DESC;
+        }
 
         RHIUtilInstanceManager::Instance().SetPipelineState(command_list, render_pass->GetPipelineStateObject());
         RHIUtilInstanceManager::Instance().SetRootSignature(command_list, render_pass->GetRootSignature(), render_pass->GetPipelineStateObject(), RendererInterfaceRHIConverter::ConvertToRHIPipelineType(render_pass->GetRenderPassType()));
@@ -2628,6 +2853,7 @@ namespace RendererInterface
         {
             RHIUtilInstanceManager::Instance().EndRendering(command_list);
         }
+        return RenderPassExecutionStatus::EXECUTED;
     }
 
     void RenderGraph::CloseCurrentCommandListAndExecute(IRHICommandList& command_list, const RHIExecuteCommandListContext& context, bool wait)
