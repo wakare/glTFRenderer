@@ -192,6 +192,7 @@
     <None Include="Resources\Shaders\Math\ReservoirSample.hlsl" />
     <None Include="Resources\Shaders\Math\Sample.hlsl" />
     <None Include="Resources\Shaders\FrostedGlass.hlsl" />
+    <None Include="Resources\Shaders\FrostedGlassPostfx.hlsl" />
     <None Include="Resources\Shaders\RendererModule\RendererModuleLighting.hlsl" />
     <None Include="Resources\Shaders\SceneLighting.hlsl" />
     <None Include="Resources\Shaders\ToneMap.hlsl" />

@@ -61,6 +61,7 @@
     <None Include="Resources\Shaders\SceneRendererCommon.hlsl" />
     <None Include="Resources\Shaders\ModelRenderingShader.hlsl" />
     <None Include="Resources\Shaders\FrostedGlass.hlsl" />
+    <None Include="Resources\Shaders\FrostedGlassPostfx.hlsl" />
     <None Include="Resources\Shaders\ToneMap.hlsl" />
     <None Include="Resources\Shaders\ShaderDeclarationUtil.hlsl" />
     <None Include="Resources\Shaders\DemoShader.hlsl" />

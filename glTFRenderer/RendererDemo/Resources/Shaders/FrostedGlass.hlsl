@@ -3,6 +3,7 @@
 Texture2D<float4> InputColorTex;
 Texture2D<float> InputDepthTex;
 Texture2D<float4> InputNormalTex;
+Texture2D<float4> BlurredColorTex;
 RWTexture2D<float4> Output;
 
 struct FrostedGlassPanelData
@@ -35,11 +36,6 @@ int2 ClampToViewport(int2 pixel)
 float SampleDepthSafe(int2 pixel)
 {
     return InputDepthTex.Load(int3(ClampToViewport(pixel), 0)).r;
-}
-
-float3 SampleColorSafe(int2 pixel)
-{
-    return InputColorTex.Load(int3(ClampToViewport(pixel), 0)).rgb;
 }
 
 float3 SampleNormalSafe(int2 pixel)
@@ -143,32 +139,15 @@ float2 CalcPanelNormalFromSDF(float2 uv, FrostedGlassPanelData panel_data)
     return gradient * rsqrt(gradient_len_sq);
 }
 
-float3 CalcDepthAwareBlurColor(int2 center_pixel, float center_depth, float blur_sigma, float depth_weight_scale)
+float3 SampleBlurredColor(float2 uv)
 {
-    float3 accumulated_color = 0.0f;
-    float accumulated_weight = 0.0f;
-
-    const int radius = int(blur_radius);
-    [loop]
-    for (int y = -radius; y <= radius; ++y)
-    {
-        [loop]
-        for (int x = -radius; x <= radius; ++x)
-        {
-            int2 sample_pixel = center_pixel + int2(x, y);
-            const float2 offset = float2((float)x, (float)y);
-            const float spatial_weight = exp(-dot(offset, offset) / max(2.0f * blur_sigma * blur_sigma, 1e-5f));
-
-            const float sample_depth = SampleDepthSafe(sample_pixel);
-            const float depth_weight = exp(-abs(sample_depth - center_depth) * depth_weight_scale);
-
-            const float weight = spatial_weight * depth_weight;
-            accumulated_color += SampleColorSafe(sample_pixel) * weight;
-            accumulated_weight += weight;
-        }
-    }
-
-    return accumulated_color / max(accumulated_weight, 1e-5f);
+    uint blurred_width = 0;
+    uint blurred_height = 0;
+    BlurredColorTex.GetDimensions(blurred_width, blurred_height);
+    const int2 max_pixel = int2((int)max(blurred_width, 1u) - 1, (int)max(blurred_height, 1u) - 1);
+    int2 blurred_pixel = int2(uv * float2((float)max(blurred_width, 1u), (float)max(blurred_height, 1u)));
+    blurred_pixel = clamp(blurred_pixel, int2(0, 0), max_pixel);
+    return BlurredColorTex.Load(int3(blurred_pixel, 0)).rgb;
 }
 
 [numthreads(8, 8, 1)]
@@ -238,14 +217,18 @@ void main(int3 dispatch_thread_id : SV_DispatchThreadID)
         const float mixed_fresnel = saturate(fresnel_term + rim * 0.35f);
         const float2 refraction_uv = uv + refraction_direction * panel_thickness * panel_refraction_strength * (0.2f + mixed_fresnel);
         const int2 refracted_pixel = ClampToViewport(int2(refraction_uv * float2((float)viewport_width, (float)viewport_height)));
-        float blur_depth = SampleDepthSafe(refracted_pixel);
-        if (!IsDepthValid(blur_depth))
+        float refracted_depth = SampleDepthSafe(refracted_pixel);
+        if (!IsDepthValid(refracted_depth))
         {
-            blur_depth = center_depth;
+            refracted_depth = center_depth;
         }
-
-        const float3 blurred_color = CalcDepthAwareBlurColor(refracted_pixel, blur_depth, panel_blur_sigma, panel_depth_weight_scale);
-        float3 frosted_color = lerp(final_color, blurred_color * panel_tint, panel_blur_strength);
+        const float depth_delta = abs(refracted_depth - center_depth);
+        const float depth_aware_weight = exp(-depth_delta * panel_depth_weight_scale);
+        const float effective_blur_strength = panel_blur_strength * saturate(0.25f + 0.75f * depth_aware_weight);
+        const float blur_sigma_factor = saturate(panel_blur_sigma / 8.0f);
+        const float3 blurred_color = SampleBlurredColor(refraction_uv);
+        const float3 sigma_adjusted_blur = lerp(final_color, blurred_color, blur_sigma_factor);
+        float3 frosted_color = lerp(final_color, sigma_adjusted_blur * panel_tint, effective_blur_strength);
 
         const float scene_luminance = dot(final_color, float3(0.2126f, 0.7152f, 0.0722f));
         const float highlight_compress = lerp(1.0f, 0.45f, saturate(scene_luminance));

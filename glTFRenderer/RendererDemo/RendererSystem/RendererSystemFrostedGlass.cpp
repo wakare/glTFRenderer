@@ -39,13 +39,24 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
     GLTF_CHECK(m_scene->HasInit());
     GLTF_CHECK(m_lighting->HasInit());
 
-    const unsigned width = m_scene->GetWidth();
-    const unsigned height = m_scene->GetHeight();
+    const unsigned width = (std::max)(1u, resource_operator.GetCurrentRenderWidth());
+    const unsigned height = (std::max)(1u, resource_operator.GetCurrentRenderHeight());
+    const unsigned half_width = (width + 1u) / 2u;
+    const unsigned half_height = (height + 1u) / 2u;
     const auto postfx_usage = static_cast<RendererInterface::ResourceUsage>(
         RendererInterface::ResourceUsage::RENDER_TARGET |
         RendererInterface::ResourceUsage::COPY_SRC |
         RendererInterface::ResourceUsage::SHADER_RESOURCE |
         RendererInterface::ResourceUsage::UNORDER_ACCESS);
+    const auto make_compute_dispatch = [](unsigned dispatch_width, unsigned dispatch_height) -> RendererInterface::RenderExecuteCommand
+    {
+        RendererInterface::RenderExecuteCommand dispatch_command{};
+        dispatch_command.type = RendererInterface::ExecuteCommandType::COMPUTE_DISPATCH_COMMAND;
+        dispatch_command.parameter.dispatch_parameter.group_size_x = (dispatch_width + 7) / 8;
+        dispatch_command.parameter.dispatch_parameter.group_size_y = (dispatch_height + 7) / 8;
+        dispatch_command.parameter.dispatch_parameter.group_size_z = 1;
+        return dispatch_command;
+    };
 
     GLTF_CHECK(m_postfx_shared_resources.Init(
         resource_operator,
@@ -59,6 +70,18 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
         postfx_usage);
+    m_half_blur_final_output = resource_operator.CreateWindowRelativeRenderTarget(
+        "PostFX_Frosted_Half_BlurFinal",
+        RendererInterface::RGBA16_FLOAT,
+        RendererInterface::default_clear_color,
+        postfx_usage,
+        0.5f,
+        0.5f,
+        1,
+        1);
+
+    const RendererInterface::RenderTargetHandle half_ping = GetHalfResPing();
+    const RendererInterface::RenderTargetHandle half_pong = GetHalfResPong();
 
     RendererInterface::BufferDesc panel_data_buffer_desc{};
     panel_data_buffer_desc.name = "g_frosted_panels";
@@ -74,43 +97,138 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
     global_params_buffer_desc.usage = RendererInterface::USAGE_CBV;
     m_frosted_global_params_handle = resource_operator.CreateBuffer(global_params_buffer_desc);
 
-    RendererInterface::RenderGraph::RenderPassSetupInfo frosted_pass_setup_info{};
-    frosted_pass_setup_info.render_pass_type = RendererInterface::RenderPassType::COMPUTE;
-    frosted_pass_setup_info.debug_group = "Frosted Glass";
-    frosted_pass_setup_info.debug_name = "Frosted Composite";
-    frosted_pass_setup_info.modules = {m_scene->GetCameraModule()};
-    frosted_pass_setup_info.shader_setup_infos = {
-        {RendererInterface::COMPUTE_SHADER, "main", "Resources/Shaders/FrostedGlass.hlsl"}
-    };
-
     RendererSystemOutput<RendererSystemSceneRenderer> scene_output;
 
-    RendererInterface::RenderTargetTextureBindingDesc input_color_binding_desc{};
-    input_color_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
-    input_color_binding_desc.name = "InputColorTex";
-    input_color_binding_desc.render_target_texture = {m_lighting->GetLightingOutput()};
-
-    RendererInterface::RenderTargetTextureBindingDesc input_depth_binding_desc{};
-    input_depth_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
-    input_depth_binding_desc.name = "InputDepthTex";
-    input_depth_binding_desc.render_target_texture = {scene_output.GetRenderTargetHandle(*m_scene, "m_base_pass_depth")};
-
-    RendererInterface::RenderTargetTextureBindingDesc input_normal_binding_desc{};
-    input_normal_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
-    input_normal_binding_desc.name = "InputNormalTex";
-    input_normal_binding_desc.render_target_texture = {scene_output.GetRenderTargetHandle(*m_scene, "m_base_pass_normal")};
-
-    RendererInterface::RenderTargetTextureBindingDesc output_binding_desc{};
-    output_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::UAV;
-    output_binding_desc.name = "Output";
-    output_binding_desc.render_target_texture = {m_frosted_pass_output};
-
-    frosted_pass_setup_info.sampled_render_targets = {
-        input_color_binding_desc,
-        input_depth_binding_desc,
-        input_normal_binding_desc,
-        output_binding_desc
+    RendererInterface::RenderGraph::RenderPassSetupInfo downsample_half_pass_setup_info{};
+    downsample_half_pass_setup_info.render_pass_type = RendererInterface::RenderPassType::COMPUTE;
+    downsample_half_pass_setup_info.debug_group = "Frosted Glass";
+    downsample_half_pass_setup_info.debug_name = "Downsample Half";
+    downsample_half_pass_setup_info.shader_setup_infos = {
+        {RendererInterface::COMPUTE_SHADER, "DownsampleMain", "Resources/Shaders/FrostedGlassPostfx.hlsl"}
     };
+    {
+        RendererInterface::RenderTargetTextureBindingDesc input_binding_desc{};
+        input_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
+        input_binding_desc.name = "InputTex";
+        input_binding_desc.render_target_texture = {m_lighting->GetLightingOutput()};
+
+        RendererInterface::RenderTargetTextureBindingDesc output_binding_desc{};
+        output_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::UAV;
+        output_binding_desc.name = "OutputTex";
+        output_binding_desc.render_target_texture = {half_ping};
+
+        downsample_half_pass_setup_info.sampled_render_targets = {
+            input_binding_desc,
+            output_binding_desc
+        };
+    }
+    downsample_half_pass_setup_info.execute_command = make_compute_dispatch(half_width, half_height);
+    m_downsample_half_pass_node = graph.CreateRenderGraphNode(resource_operator, downsample_half_pass_setup_info);
+
+    RendererInterface::BufferBindingDesc global_params_binding_desc{};
+    global_params_binding_desc.binding_type = RendererInterface::BufferBindingDesc::CBV;
+    global_params_binding_desc.buffer_handle = m_frosted_global_params_handle;
+    global_params_binding_desc.is_structured_buffer = false;
+
+    RendererInterface::RenderGraph::RenderPassSetupInfo blur_half_horizontal_pass_setup_info{};
+    blur_half_horizontal_pass_setup_info.render_pass_type = RendererInterface::RenderPassType::COMPUTE;
+    blur_half_horizontal_pass_setup_info.debug_group = "Frosted Glass";
+    blur_half_horizontal_pass_setup_info.debug_name = "Blur Half Horizontal";
+    blur_half_horizontal_pass_setup_info.shader_setup_infos = {
+        {RendererInterface::COMPUTE_SHADER, "BlurHorizontalMain", "Resources/Shaders/FrostedGlassPostfx.hlsl"}
+    };
+    blur_half_horizontal_pass_setup_info.dependency_render_graph_nodes = {m_downsample_half_pass_node};
+    {
+        RendererInterface::RenderTargetTextureBindingDesc input_binding_desc{};
+        input_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
+        input_binding_desc.name = "InputTex";
+        input_binding_desc.render_target_texture = {half_ping};
+
+        RendererInterface::RenderTargetTextureBindingDesc output_binding_desc{};
+        output_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::UAV;
+        output_binding_desc.name = "OutputTex";
+        output_binding_desc.render_target_texture = {half_pong};
+
+        blur_half_horizontal_pass_setup_info.sampled_render_targets = {
+            input_binding_desc,
+            output_binding_desc
+        };
+    }
+    blur_half_horizontal_pass_setup_info.buffer_resources["FrostedGlassGlobalBuffer"] = global_params_binding_desc;
+    blur_half_horizontal_pass_setup_info.execute_command = make_compute_dispatch(half_width, half_height);
+    m_blur_half_horizontal_pass_node = graph.CreateRenderGraphNode(resource_operator, blur_half_horizontal_pass_setup_info);
+
+    RendererInterface::RenderGraph::RenderPassSetupInfo blur_half_vertical_pass_setup_info{};
+    blur_half_vertical_pass_setup_info.render_pass_type = RendererInterface::RenderPassType::COMPUTE;
+    blur_half_vertical_pass_setup_info.debug_group = "Frosted Glass";
+    blur_half_vertical_pass_setup_info.debug_name = "Blur Half Vertical";
+    blur_half_vertical_pass_setup_info.shader_setup_infos = {
+        {RendererInterface::COMPUTE_SHADER, "BlurVerticalMain", "Resources/Shaders/FrostedGlassPostfx.hlsl"}
+    };
+    blur_half_vertical_pass_setup_info.dependency_render_graph_nodes = {m_blur_half_horizontal_pass_node};
+    {
+        RendererInterface::RenderTargetTextureBindingDesc input_binding_desc{};
+        input_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
+        input_binding_desc.name = "InputTex";
+        input_binding_desc.render_target_texture = {half_pong};
+
+        RendererInterface::RenderTargetTextureBindingDesc output_binding_desc{};
+        output_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::UAV;
+        output_binding_desc.name = "OutputTex";
+        output_binding_desc.render_target_texture = {m_half_blur_final_output};
+
+        blur_half_vertical_pass_setup_info.sampled_render_targets = {
+            input_binding_desc,
+            output_binding_desc
+        };
+    }
+    blur_half_vertical_pass_setup_info.buffer_resources["FrostedGlassGlobalBuffer"] = global_params_binding_desc;
+    blur_half_vertical_pass_setup_info.execute_command = make_compute_dispatch(half_width, half_height);
+    m_blur_half_vertical_pass_node = graph.CreateRenderGraphNode(resource_operator, blur_half_vertical_pass_setup_info);
+
+    RendererInterface::RenderGraph::RenderPassSetupInfo frosted_composite_pass_setup_info{};
+    frosted_composite_pass_setup_info.render_pass_type = RendererInterface::RenderPassType::COMPUTE;
+    frosted_composite_pass_setup_info.debug_group = "Frosted Glass";
+    frosted_composite_pass_setup_info.debug_name = "Frosted Composite";
+    frosted_composite_pass_setup_info.modules = {m_scene->GetCameraModule()};
+    frosted_composite_pass_setup_info.shader_setup_infos = {
+        {RendererInterface::COMPUTE_SHADER, "main", "Resources/Shaders/FrostedGlass.hlsl"}
+    };
+    frosted_composite_pass_setup_info.dependency_render_graph_nodes = {m_blur_half_vertical_pass_node};
+    {
+        RendererInterface::RenderTargetTextureBindingDesc input_color_binding_desc{};
+        input_color_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
+        input_color_binding_desc.name = "InputColorTex";
+        input_color_binding_desc.render_target_texture = {m_lighting->GetLightingOutput()};
+
+        RendererInterface::RenderTargetTextureBindingDesc input_depth_binding_desc{};
+        input_depth_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
+        input_depth_binding_desc.name = "InputDepthTex";
+        input_depth_binding_desc.render_target_texture = {scene_output.GetRenderTargetHandle(*m_scene, "m_base_pass_depth")};
+
+        RendererInterface::RenderTargetTextureBindingDesc input_normal_binding_desc{};
+        input_normal_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
+        input_normal_binding_desc.name = "InputNormalTex";
+        input_normal_binding_desc.render_target_texture = {scene_output.GetRenderTargetHandle(*m_scene, "m_base_pass_normal")};
+
+        RendererInterface::RenderTargetTextureBindingDesc input_blurred_binding_desc{};
+        input_blurred_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
+        input_blurred_binding_desc.name = "BlurredColorTex";
+        input_blurred_binding_desc.render_target_texture = {m_half_blur_final_output};
+
+        RendererInterface::RenderTargetTextureBindingDesc output_binding_desc{};
+        output_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::UAV;
+        output_binding_desc.name = "Output";
+        output_binding_desc.render_target_texture = {m_frosted_pass_output};
+
+        frosted_composite_pass_setup_info.sampled_render_targets = {
+            input_color_binding_desc,
+            input_depth_binding_desc,
+            input_normal_binding_desc,
+            input_blurred_binding_desc,
+            output_binding_desc
+        };
+    }
 
     RendererInterface::BufferBindingDesc panel_data_binding_desc{};
     panel_data_binding_desc.binding_type = RendererInterface::BufferBindingDesc::SRV;
@@ -118,22 +236,11 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
     panel_data_binding_desc.stride = sizeof(FrostedGlassPanelGpuData);
     panel_data_binding_desc.is_structured_buffer = true;
     panel_data_binding_desc.count = MAX_PANEL_COUNT;
-    frosted_pass_setup_info.buffer_resources["g_frosted_panels"] = panel_data_binding_desc;
+    frosted_composite_pass_setup_info.buffer_resources["g_frosted_panels"] = panel_data_binding_desc;
+    frosted_composite_pass_setup_info.buffer_resources["FrostedGlassGlobalBuffer"] = global_params_binding_desc;
+    frosted_composite_pass_setup_info.execute_command = make_compute_dispatch(width, height);
+    m_frosted_composite_pass_node = graph.CreateRenderGraphNode(resource_operator, frosted_composite_pass_setup_info);
 
-    RendererInterface::BufferBindingDesc global_params_binding_desc{};
-    global_params_binding_desc.binding_type = RendererInterface::BufferBindingDesc::CBV;
-    global_params_binding_desc.buffer_handle = m_frosted_global_params_handle;
-    global_params_binding_desc.is_structured_buffer = false;
-    frosted_pass_setup_info.buffer_resources["FrostedGlassGlobalBuffer"] = global_params_binding_desc;
-
-    RendererInterface::RenderExecuteCommand dispatch_command{};
-    dispatch_command.type = RendererInterface::ExecuteCommandType::COMPUTE_DISPATCH_COMMAND;
-    dispatch_command.parameter.dispatch_parameter.group_size_x = (width + 7) / 8;
-    dispatch_command.parameter.dispatch_parameter.group_size_y = (height + 7) / 8;
-    dispatch_command.parameter.dispatch_parameter.group_size_z = 1;
-    frosted_pass_setup_info.execute_command = dispatch_command;
-
-    m_frosted_pass_node = graph.CreateRenderGraphNode(resource_operator, frosted_pass_setup_info);
     UploadPanelData(resource_operator);
     graph.RegisterRenderTargetToColorOutput(m_frosted_pass_output);
     return true;
@@ -141,7 +248,13 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
 
 bool RendererSystemFrostedGlass::HasInit() const
 {
-    return m_frosted_pass_node != NULL_HANDLE && m_postfx_shared_resources.HasInit();
+    return m_downsample_half_pass_node != NULL_HANDLE &&
+           m_blur_half_horizontal_pass_node != NULL_HANDLE &&
+           m_blur_half_vertical_pass_node != NULL_HANDLE &&
+           m_frosted_composite_pass_node != NULL_HANDLE &&
+           m_frosted_pass_output != NULL_HANDLE &&
+           m_half_blur_final_output != NULL_HANDLE &&
+           m_postfx_shared_resources.HasInit();
 }
 
 bool RendererSystemFrostedGlass::Tick(RendererInterface::ResourceOperator& resource_operator,
@@ -149,11 +262,22 @@ bool RendererSystemFrostedGlass::Tick(RendererInterface::ResourceOperator& resou
                                       unsigned long long interval)
 {
     (void)interval;
-    const unsigned width = m_scene->GetWidth();
-    const unsigned height = m_scene->GetHeight();
-    graph.UpdateComputeDispatch(m_frosted_pass_node, (width + 7) / 8, (height + 7) / 8, 1);
+    const unsigned width = (std::max)(1u, resource_operator.GetCurrentRenderWidth());
+    const unsigned height = (std::max)(1u, resource_operator.GetCurrentRenderHeight());
+    const unsigned half_width = (width + 1u) / 2u;
+    const unsigned half_height = (height + 1u) / 2u;
+
+    graph.UpdateComputeDispatch(m_downsample_half_pass_node, (half_width + 7) / 8, (half_height + 7) / 8, 1);
+    graph.UpdateComputeDispatch(m_blur_half_horizontal_pass_node, (half_width + 7) / 8, (half_height + 7) / 8, 1);
+    graph.UpdateComputeDispatch(m_blur_half_vertical_pass_node, (half_width + 7) / 8, (half_height + 7) / 8, 1);
+    graph.UpdateComputeDispatch(m_frosted_composite_pass_node, (width + 7) / 8, (height + 7) / 8, 1);
+
     UploadPanelData(resource_operator);
-    graph.RegisterRenderGraphNode(m_frosted_pass_node);
+    graph.RegisterRenderGraphNode(m_downsample_half_pass_node);
+    graph.RegisterRenderGraphNode(m_blur_half_horizontal_pass_node);
+    graph.RegisterRenderGraphNode(m_blur_half_vertical_pass_node);
+    graph.RegisterRenderGraphNode(m_frosted_composite_pass_node);
+    graph.RegisterRenderTargetToColorOutput(m_frosted_pass_output);
     return true;
 }
 

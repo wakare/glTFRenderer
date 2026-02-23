@@ -71,6 +71,10 @@ powershell -ExecutionPolicy Bypass -File .\scripts\Build-RendererDemo-Verify.ps1
 - Prefer targeted search: `Select-String -Path <file> -Pattern "error|failed|exception|VUID" -CaseSensitive:$false -Context 2,2`.
 - For code/text lookup, prefer `rg`/`rg -n` over full file dumping.
 - If output may still be large, redirect filtered results to a file and only report summary in chat.
+- For `Get-Content`, default to no direct console output:
+  - redirect to file first (`... | Out-File .tmp/<name>.log`)
+  - then report only counts + top-N sample in chat (avoid raw dumps)
+- Avoid direct `Get-Content` output in AIChat unless the file is very small and explicitly requested.
 
 ### AIChat Output Throttle (Important)
 
@@ -89,6 +93,10 @@ powershell -ExecutionPolicy Bypass -File .\scripts\Build-RendererDemo-Verify.ps1
   - key diagnostics
   - output file paths
 - If a command unexpectedly emits too much output, stop, switch to redirected mode, and continue with summarized reporting only.
+- For log/file reads, use this safe pattern by default:
+  - `Get-Content <file> -Tail 120 | Out-File .tmp/<name>.tail.log`
+  - `Select-String -Path <file> -Pattern "<pattern>" | Out-File .tmp/<name>.match.log`
+  - only print compact summary in chat.
 
 ### Hang / Stuck Triage (MSBuild)
 
