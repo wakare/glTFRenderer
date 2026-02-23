@@ -9,6 +9,13 @@ class IRHIDescriptorUpdater;
 class RenderPass
 {
 public:
+    struct DrawValidationResult
+    {
+        bool valid{true};
+        std::vector<std::string> errors;
+        std::vector<std::string> warnings;
+    };
+
     RenderPass(RendererInterface::RenderPassDesc desc);
 
     bool InitRenderPass(ResourceManager& resource_manager);
@@ -20,7 +27,9 @@ public:
     RendererInterface::PrimitiveTopology GetPrimitiveTopology() const;
 
     const RootSignatureAllocation& GetRootSignatureAllocation(const std::string& name) const;
+    const RootSignatureAllocation* FindRootSignatureAllocation(const std::string& name) const;
     bool HasRootSignatureAllocation(const std::string& name) const;
+    DrawValidationResult ValidateDrawDesc(const RendererInterface::RenderPassDrawDesc& draw_desc) const;
 
     IRHIDescriptorUpdater& GetDescriptorUpdater();
 
