@@ -45,3 +45,12 @@ Behavior:
 Add this checklist item to PRs that touch docs or referenced code:
 
 - [ ] Documentation references validated (`scripts/Validate-DocReferences.ps1`).
+- [ ] Documentation statements re-checked against current symbol behavior (not only path existence).
+
+## 6. Lightweight Correctness Audit
+
+For architecture/algorithm docs, run this quick audit before merge:
+
+1. Pick each section's key claim (for example: "who owns lifecycle", "which function drives execution").
+2. Verify it against the current symbol implementation in code.
+3. If behavior changed, update the statement and symbol reference in the same PR.

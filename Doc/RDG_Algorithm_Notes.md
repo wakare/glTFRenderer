@@ -4,8 +4,8 @@
 
 This document explains the RenderGraph (RDG) algorithm implemented in:
 
-- `glTFRenderer/RendererCore/Private/RendererInterface.cpp:44`
-- `glTFRenderer/RendererCore/Private/RendererInterface.cpp:1501`
+- `glTFRenderer/RendererCore/Private/RendererInterface.cpp` (`CollectResourceAccess`, `BuildExecutionPlan`, `ApplyExecutionPlanResult`, `ExecuteRenderGraphFrame`)
+- `glTFRenderer/RendererCore/Public/RendererInterface.h` (`DependencyDiagnostics`, `ValidationPolicy`)
 
 It focuses on dependency inference, plan build, cache validation, topological sorting, and diagnostics.
 
@@ -18,7 +18,7 @@ Per node, dependency input comes from two sources:
 - Explicit dependencies: `dependency_render_graph_nodes` in node desc.
   - `glTFRenderer/RendererCore/Public/Renderer.h`
 - Resource usage declared in draw info (buffers/textures/render targets).
-  - Access extraction starts at `glTFRenderer/RendererCore/Private/RendererInterface.cpp:101`
+  - Access extraction starts at `CollectResourceAccess` in `glTFRenderer/RendererCore/Private/RendererInterface.cpp`
 
 ## 2.2 Resource key space
 
@@ -30,8 +30,7 @@ RDG normalizes resources into `(kind, value)`:
 
 Reference:
 
-- `glTFRenderer/RendererCore/Private/RendererInterface.cpp:44`
-- `glTFRenderer/RendererCore/Private/RendererInterface.cpp:51`
+- `ResourceKey`, `ResourceKind` in `glTFRenderer/RendererCore/Private/RendererInterface.cpp`
 
 ## 2.3 Edge representation
 
@@ -41,7 +40,7 @@ Dependencies are stored as adjacency map:
 
 Reference:
 
-- `glTFRenderer/RendererCore/Private/RendererInterface.cpp:98`
+- `DependencyEdgeMap` in `glTFRenderer/RendererCore/Private/RendererInterface.cpp`
 
 ## 3. Access Classification Rules
 
@@ -62,7 +61,7 @@ Reference:
 
 Reference:
 
-- `glTFRenderer/RendererCore/Private/RendererInterface.cpp:101`
+- `CollectResourceAccess` in `glTFRenderer/RendererCore/Private/RendererInterface.cpp`
 
 ## 4. Dependency Inference
 
@@ -75,7 +74,7 @@ Reference:
 
 Reference:
 
-- `glTFRenderer/RendererCore/Private/RendererInterface.cpp:173`
+- `CollectResourceReadersAndWriters` in `glTFRenderer/RendererCore/Private/RendererInterface.cpp`
 
 ## 4.2 Inferred edge construction
 
@@ -89,7 +88,7 @@ This enforces writer-before-use and writer-before-writer ordering on the same re
 
 Reference:
 
-- `glTFRenderer/RendererCore/Private/RendererInterface.cpp:197`
+- `BuildResourceInferredEdges` in `glTFRenderer/RendererCore/Private/RendererInterface.cpp`
 
 ## 5. Explicit Dependency Validation
 
@@ -106,7 +105,7 @@ Invalid explicit edges are collected and marked.
 
 Reference:
 
-- `glTFRenderer/RendererCore/Private/RendererInterface.cpp:508`
+- `ValidateDependencyPlan` in `glTFRenderer/RendererCore/Private/RendererInterface.cpp`
 
 ## 6. Execution Signature and Cache Key
 
@@ -122,8 +121,7 @@ The signature plus node count is used as execution-cache key.
 
 Reference:
 
-- `glTFRenderer/RendererCore/Private/RendererInterface.cpp:240`
-- `glTFRenderer/RendererCore/Private/RendererInterface.cpp:548`
+- `ComputeExecutionSignature` and `BuildExecutionPlan` in `glTFRenderer/RendererCore/Private/RendererInterface.cpp`
 
 ## 7. Cached Order Validation
 
@@ -135,7 +133,7 @@ Reference:
 
 Reference:
 
-- `glTFRenderer/RendererCore/Private/RendererInterface.cpp:369`
+- `ValidateExecutionOrder` in `glTFRenderer/RendererCore/Private/RendererInterface.cpp`
 
 ## 8. Topological Sort and Cycle Detection
 
@@ -149,7 +147,7 @@ If output count != node count, remaining indegree>0 nodes are cycle nodes.
 
 Reference:
 
-- `glTFRenderer/RendererCore/Private/RendererInterface.cpp:286`
+- `TopologicalSortExecutionNodes` in `glTFRenderer/RendererCore/Private/RendererInterface.cpp`
 
 ## 9. Plan Build Pipeline
 
@@ -164,7 +162,7 @@ Reference:
 
 Reference:
 
-- `glTFRenderer/RendererCore/Private/RendererInterface.cpp:537`
+- `BuildExecutionPlan` in `glTFRenderer/RendererCore/Private/RendererInterface.cpp`
 
 ## 10. Apply Stage Semantics
 
@@ -178,7 +176,7 @@ Reference:
 
 Reference:
 
-- `glTFRenderer/RendererCore/Private/RendererInterface.cpp:561`
+- `ApplyExecutionPlanResult` in `glTFRenderer/RendererCore/Private/RendererInterface.cpp`
 
 ## 11. Diagnostics Model
 
@@ -193,11 +191,11 @@ Reference:
 
 Public diagnostics type:
 
-- `glTFRenderer/RendererCore/Public/RendererInterface.h:186`
+- `RenderGraph::DependencyDiagnostics` in `glTFRenderer/RendererCore/Public/RendererInterface.h`
 
 Update function:
 
-- `glTFRenderer/RendererCore/Private/RendererInterface.cpp:641`
+- `UpdateDependencyDiagnostics` in `glTFRenderer/RendererCore/Private/RendererInterface.cpp`
 
 ## 12. Runtime Integration
 
@@ -212,7 +210,7 @@ RDG algorithm runs once per frame in `ExecuteRenderGraphFrame()`:
 
 Reference:
 
-- `glTFRenderer/RendererCore/Private/RendererInterface.cpp:1501`
+- `ExecuteRenderGraphFrame` in `glTFRenderer/RendererCore/Private/RendererInterface.cpp`
 
 ## 13. Complexity (High-level)
 
@@ -294,3 +292,4 @@ publish_diagnostics(...)
 if graph_valid:
   execute(cached_order)
 ```
+

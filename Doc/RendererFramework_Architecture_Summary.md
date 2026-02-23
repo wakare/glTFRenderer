@@ -19,15 +19,15 @@
   - 推导/校验依赖
   - 执行 pass
   - 维护 descriptor 资源缓存和延迟释放
-  参考：`glTFRenderer/RendererCore/Public/RendererInterface.h:126`, `glTFRenderer/RendererCore/Private/RendererInterface.cpp:1501`
+  参考：`glTFRenderer/RendererCore/Public/RendererInterface.h`（`class RenderGraph`）, `glTFRenderer/RendererCore/Private/RendererInterface.cpp`（`RenderGraph::ExecuteRenderGraphFrame`）
 - **资源与设备抽象层（ResourceOperator / ResourceManager）**：
   - 对外暴露创建/上传/resize/swapchain 生命周期接口
   - 管理 command list、swapchain RT、window-relative RT 重建
-  参考：`glTFRenderer/RendererCore/Public/RendererInterface.h:63`, `glTFRenderer/RendererCore/Private/ResourceManager.cpp`
+  参考：`glTFRenderer/RendererCore/Public/RendererInterface.h`（`class ResourceOperator`）, `glTFRenderer/RendererCore/Private/ResourceManager.cpp`（`ResourceManager`）
 - **RHI 实现层（DX12 / Vulkan）**：
   - swapchain acquire/present/resize
   - API 特定同步细节
-  参考：`glTFRenderer/RHICore/Private/RHIDX12Impl/DX12SwapChain.cpp:206`, `glTFRenderer/RHICore/Private/RHIVKImpl/VKSwapChain.cpp:182`
+  参考：`glTFRenderer/RHICore/Private/RHIDX12Impl/DX12SwapChain.cpp`（`ResizeSwapChain`）, `glTFRenderer/RHICore/Private/RHIVKImpl/VKSwapChain.cpp`（`InitSwapChain` / `AcquireNewFrame` / `Present`）
 
 ### 1.2 主循环调用链（关键）
 
@@ -36,9 +36,9 @@
 2. 注册业务 Tick 与 DebugUI 回调到 `RenderGraph`。  
    参考：`glTFRenderer/RendererDemo/DemoApps/DemoBase.cpp`
 3. ModelViewer 完成系统搭建后调用 `CompileRenderPassAndExecute()`，把渲染逻辑挂到窗口 Tick。  
-   参考：`glTFRenderer/RendererDemo/DemoApps/DemoAppModelViewer.cpp:77`, `glTFRenderer/RendererCore/Private/RendererInterface.cpp:1371`
+   参考：`glTFRenderer/RendererDemo/DemoApps/DemoAppModelViewer.cpp`, `glTFRenderer/RendererCore/Private/RendererInterface.cpp`（`RenderGraph::CompileRenderPassAndExecute`）
 4. `Run()` 进入窗口事件循环，驱动每帧执行。  
-   参考：`glTFRenderer/RendererDemo/DemoApps/DemoBase.cpp:423`, `glTFRenderer/RendererCore/Private/RendererInterface.cpp:742`
+   参考：`glTFRenderer/RendererDemo/DemoApps/DemoBase.cpp`（`DemoBase::Run`）, `glTFRenderer/RendererCore/Private/RendererInterface.cpp`（`ResourceOperator::EnterWindowEventLoop`）
 
 ## 2. 每帧执行结构（RenderGraph）
 
@@ -49,23 +49,23 @@
 - `BlitFinalOutputToSwapchain(...)`
 - `FinalizeFrameSubmission(...)`
 
-参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp:1381`
+参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp`（`RenderGraph::OnFrameTick`）
 
 ### 2.1 帧准备上下文（FramePreparationContext）
 
 将 `window_width/window_height/profiler_slot_index/command_list` 统一收敛到一个结构，降低函数间参数耦合。  
-参考：`glTFRenderer/RendererCore/Public/RendererInterface.h:239`
+参考：`glTFRenderer/RendererCore/Public/RendererInterface.h`（`RenderGraph::FramePreparationContext`）
 
 ### 2.2 帧准备阶段拆分
 
 - 解析最终输出 RT：`ResolveFinalColorOutput()`  
-  参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp:1395`
+  参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp`
 - 执行业务 Tick + ImGui NewFrame：`ExecuteTickAndDebugUI()`  
-  参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp:1413`
+  参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp`
 - Surface 同步 + 帧推进：`SyncWindowSurfaceAndAdvanceFrame()`  
-  参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp:1433`
+  参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp`
 - Acquire + 命令上下文：`AcquireCurrentFrameCommandContext()`  
-  参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp:1458`
+  参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp`
 
 ## 3. 资源生命周期管理
 
@@ -79,7 +79,7 @@
 #### 创建
 
 - `ResourceOperator` 构造时根据 API 初始化 `RHIConfigSingleton`，并创建 `ResourceManager`。  
-  参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp:938`
+  参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp`（`ResourceOperator::ResourceOperator`）
 - `ResourceManager::InitResourceManager()` 初始化 factory/device/queue/swapchain/memory manager/command lists/RT manager。  
   参考：`glTFRenderer/RendererCore/Private/ResourceManager.cpp`
 
@@ -90,7 +90,7 @@
 - 入队：`EnqueueResourceForDeferredRelease(...)`  
   参考：`glTFRenderer/RendererCore/Private/ResourceManager.cpp`
 - 每次 `SyncWindowSurface(...)` 前推进帧号并释放到期资源：`AdvanceDeferredReleaseFrame()`  
-  参考：`glTFRenderer/RendererCore/Private/ResourceManager.cpp`, `glTFRenderer/RendererCore/Private/ResourceManager.cpp`
+  参考：`glTFRenderer/RendererCore/Private/ResourceManagerSurfaceSync.cpp`（`ResourceManagerSurfaceResizeCoordinator::Sync`）, `glTFRenderer/RendererCore/Private/ResourceManager.cpp`（`AdvanceDeferredReleaseFrame`）
 - 强制释放：`FlushDeferredResourceReleases(true)`  
   参考：`glTFRenderer/RendererCore/Private/ResourceManager.cpp`
 
@@ -103,7 +103,7 @@
 3. `memory_manager.ReleaseAllResource()`
 4. 清理 handle table（可选是否清理窗口 handle）
 
-参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp:1195`
+参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp`（`ResourceOperator::CleanupAllResources`）
 
 这就是当前“全局清理资源接口”的核心落点。
 
@@ -115,25 +115,25 @@
 - Texture descriptor / descriptor table 缓存
 - 上一帧绑定快照（用于判断是否需要重建）
 
-参考：`glTFRenderer/RendererCore/Public/RendererInterface.h:228`
+参考：`glTFRenderer/RendererCore/Public/RendererInterface.h`（`RenderGraph::RenderPassDescriptorResource`）
 
 关键策略：
 
 1. 每帧 `PruneDescriptorResources(...)` 清除 draw_info 中已不存在的绑定并延迟释放。  
-   参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp:2037`
+   参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp`
 2. 如果 binding 描述发生变化，则重建 descriptor（并把旧 descriptor 入延迟释放队列）。  
    参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp`
 3. 针对 RT resize 后底层 `m_source` 指针变化，额外检测 descriptor 绑定源是否已经变更，必要时强制重建，避免“句柄不变但底层资源已变”的悬挂绑定。  
    参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp`
 4. 对不再活跃节点，按保留帧数回收 descriptor 资源。  
-   参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp:2136`
+   参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp`（`RenderGraph::CollectUnusedRenderPassDescriptorResources`）
 
 此外，RenderGraph 自己也有一条 descriptor 资源延迟释放队列：
 
 - 入队：`RenderGraph::EnqueueResourceForDeferredRelease`  
-  参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp:1945`
+  参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp`（`RenderGraph::EnqueueResourceForDeferredRelease`）
 - 释放：`RenderGraph::FlushDeferredResourceReleases`  
-  参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp:2162`
+  参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp`（`RenderGraph::FlushDeferredResourceReleases`）
 
 ## 4. RDG 依赖推导与执行计划
 
@@ -146,17 +146,17 @@
 - RenderTargetTexture: `SRV`=读，`UAV`=读写
 - RenderTargetAttachment: 默认写；若 `load_op==LOAD`，额外记为读
 
-参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp:101`
+参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp`（`CollectResourceAccess`）
 
 ### 4.2 自动推导边
 
 `BuildResourceInferredEdges(...)`：对每个资源建立 `writer -> consumer(writer∪reader)` 边。  
-参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp:197`
+参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp`（`BuildResourceInferredEdges`）
 
 ### 4.3 合并显式依赖并校验
 
 `ValidateDependencyPlan(...)` 将显式 `dependency_render_graph_nodes` 合并进边图，同时校验依赖合法性（存在、非自依赖、已注册）。  
-参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp:508`
+参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp`（`ValidateDependencyPlan`）
 
 非法显式依赖会：
 
@@ -164,7 +164,7 @@
 - 清空执行序
 - 当前帧跳过 graph 执行
 
-参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp:583`
+参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp`（`ApplyExecutionPlanResult`）
 
 ### 4.4 执行计划缓存与重建
 
@@ -176,7 +176,7 @@
 - cache key 是否变化
 - 是否需要重建执行序
 
-参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp:537`
+参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp`（`BuildExecutionPlan`）
 
 `ApplyExecutionPlanResult(...)`：
 
@@ -184,12 +184,12 @@
 - 检测环并记录 cycle nodes
 - 更新缓存执行序
 
-参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp:561`
+参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp`（`ApplyExecutionPlanResult`）
 
 ### 4.5 诊断输出
 
 `UpdateDependencyDiagnostics(...)` 将 graph 有效性、自动合并边数量、非法边、cycle nodes、签名/缓存规模写入 UI 可读结构。  
-参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp:641`
+参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp`（`UpdateDependencyDiagnostics`）
 
 另外，RenderGraph 的“校验日志节流 + 跳过策略判断”已经抽到独立策略模块：
 
@@ -200,7 +200,7 @@
 参考：`glTFRenderer/RendererCore/Public/RendererInterface.h`
 
 Demo 侧在 Advanced 面板展示这些诊断：  
-参考：`glTFRenderer/RendererDemo/DemoApps/DemoBase.cpp:246`
+参考：`glTFRenderer/RendererDemo/DemoApps/DemoBase.cpp`（`DemoBase::DrawDebugUI`）
 
 ### 4.6 执行时序
 
@@ -212,17 +212,17 @@ Demo 侧在 Advanced 面板展示这些诊断：
 4. `ExecutePlanAndCollectStats`
 5. `CollectUnusedRenderPassDescriptorResources`
 
-参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp:1501`
+参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp`（`RenderGraph::ExecuteRenderGraphFrame`）
 
 ## 5. Resize / Swapchain 重建逻辑
 
 ## 5.1 每帧入口如何触发 resize
 
 `OnFrameTick -> PrepareFrameForRendering -> SyncWindowSurfaceAndAdvanceFrame -> ResourceOperator::SyncWindowSurface`。  
-参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp:1381`, `glTFRenderer/RendererCore/Private/RendererInterface.cpp:1433`, `glTFRenderer/RendererCore/Private/RendererInterface.cpp:1120`
+参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp`（`RenderGraph::OnFrameTick` / `RenderGraph::SyncWindowSurfaceAndAdvanceFrame` / `ResourceOperator::SyncWindowSurface`）
 
 `SyncWindowSurface(...)` 返回 `WindowSurfaceSyncResult`，状态枚举定义见：  
-`glTFRenderer/RendererCore/Public/Renderer.h:318`
+`glTFRenderer/RendererCore/Public/Renderer.h`（`WindowSurfaceSyncResult`, `WindowSurfaceSyncStatus`）
 
 ## 5.2 ResourceManager 的 resize 状态机
 
@@ -234,10 +234,10 @@ Demo 侧在 Advanced 面板展示这些诊断：
 4. 调 `ResizeWindowDependentRenderTargetsImpl(render_w, render_h, swapchain_resized)`
 5. 生成 `READY/RESIZED/DEFERRED_RETRY/INVALID/MINIMIZED`
 
-参考：`glTFRenderer/RendererCore/Private/ResourceManager.cpp`
+参考：`glTFRenderer/RendererCore/Private/ResourceManagerSurfaceSync.cpp`（`ResourceManagerSurfaceResizeCoordinator::Sync`）
 
 状态字段定义：`SwapchainLifecycleState`  
-参考：`glTFRenderer/RendererCore/Public/Renderer.h:307`
+参考：`glTFRenderer/RendererCore/Public/Renderer.h`（`SwapchainLifecycleState`）
 
 ### 5.2.1 协调器拆分（最新）
 
@@ -261,7 +261,7 @@ Demo 侧在 Advanced 面板展示这些诊断：
 - **失败冷却重试**（可指数退避）
 - **按周期节流日志**
 
-参考：`glTFRenderer/RendererCore/Private/ResourceManager.cpp`, `glTFRenderer/RendererCore/Private/ResourceManager.cpp`, `glTFRenderer/RendererCore/Private/ResourceManager.cpp`
+参考：`glTFRenderer/RendererCore/Private/ResourceManagerSurfaceSync.cpp`（`ResourceManagerSurfaceResourceRebuilder::ResizeSwapchainIfNeeded`）, `glTFRenderer/RendererCore/Private/ResourceManager.cpp`（`IsResizeRequestStableEnough`, `ComputeRetryCooldownFrames`, `GetRetryLogPeriod`）
 
 DX12 特化路径：
 
@@ -269,10 +269,10 @@ DX12 特化路径：
 - 释放 swapchain RT wrapper 后额外 `HostWaitPresentFinished`，降低 flip-model ResizeBuffers 失败概率
 - in-place resize 失败时不立刻重建 swapchain，而是恢复当前 swapchain RT 并转入 `RESIZE_DEFERRED` 重试
 
-参考：`glTFRenderer/RendererCore/Private/ResourceManager.cpp`, `glTFRenderer/RendererCore/Private/ResourceManager.cpp`, `glTFRenderer/RendererCore/Private/ResourceManager.cpp`
+参考：`glTFRenderer/RendererCore/Private/ResourceManagerSurfaceSync.cpp`（DX12 分支 in-place resize fail 路径）
 
 非 DX12（如 Vulkan）可走 fallback recreate。  
-参考：`glTFRenderer/RendererCore/Private/ResourceManager.cpp`
+参考：`glTFRenderer/RendererCore/Private/ResourceManagerSurfaceSync.cpp`（non-DX12 fallback recreate 路径）
 
 ## 5.4 窗口相关 RT 自动 resize
 
@@ -282,24 +282,24 @@ DX12 特化路径：
 - 创建新 allocation 并更新 HandleTable
 - 旧 allocation 延迟释放
 
-参考：`glTFRenderer/RendererCore/Private/ResourceManager.cpp`
+参考：`glTFRenderer/RendererCore/Private/ResourceManagerSurfaceSync.cpp`（`ResourceManagerSurfaceResourceRebuilder::ResizeWindowDependentRenderTargets`）
 
 为了减少业务侧负担，`CreateRenderTarget(...)` 还有一个“自动窗口相对化”逻辑：如果创建时是 FIXED 且尺寸恰好等于当前 swapchain，则自动转为 `WINDOW_RELATIVE(1.0,1.0)`。  
-参考：`glTFRenderer/RendererCore/Private/ResourceManager.cpp`
+参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp`（`ResourceOperator::CreateRenderTarget`）
 
 这使得大部分主屏 RT（BasePass/Lighting/Frosted 等）即便最初按宽高创建，也能跟随窗口自动重建。
 
 ## 5.5 Present 失败恢复
 
 `RenderGraph::Present(...)` 若 present 失败，会调用 `NotifySwapchainPresentFailure()`，交给下一帧 `SyncWindowSurface` 进入重建/恢复路径。  
-参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp`, `glTFRenderer/RendererCore/Private/ResourceManager.cpp`
+参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp`（`RenderGraph::Present`）, `glTFRenderer/RendererCore/Private/ResourceManagerSurfaceSync.cpp`（`NotifySwapchainPresentFailure`）
 
 ## 5.6 Vulkan 与 DX12 swapchain 实现差异（关键点）
 
 - DX12：`ResizeBuffers` 失败返回 false，由上层 ResourceManager 控制重试节奏。  
-  参考：`glTFRenderer/RHICore/Private/RHIDX12Impl/DX12SwapChain.cpp:206`
+  参考：`glTFRenderer/RHICore/Private/RHIDX12Impl/DX12SwapChain.cpp`（`DX12SwapChain::ResizeSwapChain`）
 - Vulkan：创建时会按 surface capabilities clamp extent（避免非法 extent），acquire/present 出现 `OUT_OF_DATE` 返回 false 触发上层恢复。  
-  参考：`glTFRenderer/RHICore/Private/RHIVKImpl/VKSwapChain.cpp:55`, `glTFRenderer/RHICore/Private/RHIVKImpl/VKSwapChain.cpp:197`, `glTFRenderer/RHICore/Private/RHIVKImpl/VKSwapChain.cpp:250`
+  参考：`glTFRenderer/RHICore/Private/RHIVKImpl/VKSwapChain.cpp`（`VKSwapChain::InitSwapChain`, `VKSwapChain::AcquireNewFrame`, `VKSwapChain::Present`）
 
 ## 6. 与系统层（RendererSystem）的关系
 
@@ -310,12 +310,12 @@ DX12 特化路径：
 
 参考：
 
-- Scene：`glTFRenderer/RendererDemo/RendererSystem/RendererSystemSceneRenderer.cpp:93`
-- Lighting：`glTFRenderer/RendererDemo/RendererSystem/RendererSystemLighting.cpp:224`
-- Frosted：`glTFRenderer/RendererDemo/RendererSystem/RendererSystemFrostedGlass.cpp:143`
+- Scene：`glTFRenderer/RendererDemo/RendererSystem/RendererSystemSceneRenderer.cpp`
+- Lighting：`glTFRenderer/RendererDemo/RendererSystem/RendererSystemLighting.cpp`
+- Frosted：`glTFRenderer/RendererDemo/RendererSystem/RendererSystemFrostedGlass.cpp`
 
 由于 `FinalizeFrameSubmission()` 末尾会 `clear m_render_graph_node_handles`，所以“按帧注册”是必须行为。  
-参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp:1576`
+参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp`（`RenderGraph::FinalizeFrameSubmission`）
 
 ## 7. 当前设计下的实践建议
 
@@ -348,4 +348,5 @@ Window Tick
       -> RenderDebugUI
       -> Present
 ```
+
 
