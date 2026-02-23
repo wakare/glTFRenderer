@@ -1025,6 +1025,40 @@ static VkDescriptorType ToVkDescriptorType(SpvReflectDescriptorType t) {
     }
 }
 
+static bool HasReflectDecoration(SpvReflectDecorationFlags flags, SpvReflectDecorationFlagBits flag_bit)
+{
+    return (flags & static_cast<SpvReflectDecorationFlags>(flag_bit)) != 0;
+}
+
+static RHIRootParameterType ResolveStorageBufferParameterType(const SpvReflectDescriptorBinding& binding_parameter)
+{
+    // Prefer explicit resource classification from reflection first.
+    const bool is_reflect_srv = (binding_parameter.resource_type & SPV_REFLECT_RESOURCE_FLAG_SRV) != 0;
+    const bool is_reflect_uav = (binding_parameter.resource_type & SPV_REFLECT_RESOURCE_FLAG_UAV) != 0;
+    if (is_reflect_srv && !is_reflect_uav)
+    {
+        return RHIRootParameterType::SRV;
+    }
+    if (is_reflect_uav && !is_reflect_srv)
+    {
+        return RHIRootParameterType::UAV;
+    }
+
+    // Fallback to memory access qualifiers when resource flags are ambiguous.
+    const bool non_writable = HasReflectDecoration(binding_parameter.decoration_flags, SPV_REFLECT_DECORATION_NON_WRITABLE) ||
+                              HasReflectDecoration(binding_parameter.block.decoration_flags, SPV_REFLECT_DECORATION_NON_WRITABLE);
+    const bool non_readable = HasReflectDecoration(binding_parameter.decoration_flags, SPV_REFLECT_DECORATION_NON_READABLE) ||
+                              HasReflectDecoration(binding_parameter.block.decoration_flags, SPV_REFLECT_DECORATION_NON_READABLE);
+
+    if (non_writable && !non_readable)
+    {
+        return RHIRootParameterType::SRV;
+    }
+
+    // Read-write / write-only storage buffer defaults to UAV.
+    return RHIRootParameterType::UAV;
+}
+
 bool VulkanUtils::ProcessShaderMetaData(IRHIShader& shader)
 {
     const void* bytecode = shader.GetShaderByteCode().data();
@@ -1068,6 +1102,7 @@ bool VulkanUtils::ProcessShaderMetaData(IRHIShader& shader)
                 parameter_info.type = RHIRootParameterType::Sampler;
                 break;
             case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+            case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
                 parameter_info.type = RHIRootParameterType::CBV;
                 break;
             case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR:
@@ -1085,13 +1120,17 @@ bool VulkanUtils::ProcessShaderMetaData(IRHIShader& shader)
                 parameter_info.table_parameter_info.table_type = RHIDescriptorRangeType::UAV;
                 break;
             case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
-                parameter_info.type = RHIRootParameterType::UAV;
+            case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
+                parameter_info.type = ResolveStorageBufferParameterType(*binding_parameter);
                 break;
             default:
                 // TODO: No support now
                 GLTF_CHECK(false);
             }
-            parameter_info.is_buffer = descriptor_type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER || descriptor_type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+            parameter_info.is_buffer = descriptor_type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
+                                       descriptor_type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC ||
+                                       descriptor_type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER ||
+                                       descriptor_type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
 
             shader_meta_data.root_parameter_infos.push_back({parameter_info, binding_parameter->set, binding_parameter->binding});
         }
