@@ -220,26 +220,25 @@ namespace RendererInterface
                 const auto& resource = writer_pair.first;
                 const auto& writers = writer_pair.second;
                 auto readers_it = resource_readers.find(resource);
-
-                std::set<RenderGraphNodeHandle> consumers = writers;
-                if (readers_it != resource_readers.end())
+                if (readers_it == resource_readers.end())
                 {
-                    consumers.insert(readers_it->second.begin(), readers_it->second.end());
+                    continue;
                 }
+                const auto& readers = readers_it->second;
 
                 for (const auto writer : writers)
                 {
-                    for (const auto consumer : consumers)
+                    for (const auto reader : readers)
                     {
-                        if (writer == consumer)
+                        if (writer == reader)
                         {
                             continue;
                         }
 
-                        out_edges[writer].insert(consumer);
+                        out_edges[writer].insert(reader);
                         if (out_edge_resources)
                         {
-                            (*out_edge_resources)[{writer, consumer}].push_back(resource);
+                            (*out_edge_resources)[{writer, reader}].push_back(resource);
                         }
                     }
                 }
@@ -625,6 +624,84 @@ namespace RendererInterface
                             LOG_FORMAT_FLUSH(" %u", cycle_node.value);
                         }
                         LOG_FORMAT_FLUSH("\n");
+                        for (const auto cycle_node : cycle_nodes)
+                        {
+                            const auto& node_desc = context.render_graph_nodes[cycle_node.value];
+                            const char* group_name = node_desc.debug_group.empty() ? "<group-empty>" : node_desc.debug_group.c_str();
+                            const char* pass_name = node_desc.debug_name.empty() ? "<pass-empty>" : node_desc.debug_name.c_str();
+                            LOG_FORMAT_FLUSH("[RenderGraph][Dependency]   cycle node %u = (%s/%s)\n",
+                                             cycle_node.value,
+                                             group_name,
+                                             pass_name);
+                        }
+
+                        std::set<RenderGraphNodeHandle> cycle_node_set(cycle_nodes.begin(), cycle_nodes.end());
+                        std::map<ResourceKey, std::set<RenderGraphNodeHandle>> resource_readers;
+                        std::map<ResourceKey, std::set<RenderGraphNodeHandle>> resource_writers;
+                        CollectResourceReadersAndWriters(context.nodes, context.render_graph_nodes, resource_readers, resource_writers);
+                        DependencyEdgeMap inferred_edges_for_debug;
+                        DependencyEdgeResourceMap inferred_edge_resources_for_debug;
+                        BuildResourceInferredEdges(
+                            resource_readers,
+                            resource_writers,
+                            inferred_edges_for_debug,
+                            &inferred_edge_resources_for_debug);
+
+                        const auto log_resource_key = [](const ResourceKey& key)
+                        {
+                            const char* kind_name = "Unknown";
+                            switch (key.kind)
+                            {
+                            case ResourceKind::Buffer:
+                                kind_name = "Buffer";
+                                break;
+                            case ResourceKind::Texture:
+                                kind_name = "Texture";
+                                break;
+                            case ResourceKind::RenderTarget:
+                                kind_name = "RenderTarget";
+                                break;
+                            }
+                            LOG_FORMAT_FLUSH(" %s:%u", kind_name, key.value);
+                        };
+
+                        for (const auto cycle_from : cycle_nodes)
+                        {
+                            auto combined_edge_it = plan.combined_edges.find(cycle_from);
+                            if (combined_edge_it == plan.combined_edges.end())
+                            {
+                                continue;
+                            }
+
+                            for (const auto cycle_to : combined_edge_it->second)
+                            {
+                                if (!cycle_node_set.contains(cycle_to))
+                                {
+                                    continue;
+                                }
+
+                                LOG_FORMAT_FLUSH("[RenderGraph][Dependency]   cycle edge %u -> %u", cycle_from.value, cycle_to.value);
+                                const auto resource_it = inferred_edge_resources_for_debug.find({cycle_from, cycle_to});
+                                if (resource_it == inferred_edge_resources_for_debug.end())
+                                {
+                                    LOG_FORMAT_FLUSH(" (explicit)\n");
+                                    continue;
+                                }
+
+                                const auto& resources = resource_it->second;
+                                LOG_FORMAT_FLUSH(" (inferred resources:");
+                                const size_t max_resource_print_count = (std::min)(resources.size(), static_cast<size_t>(8));
+                                for (size_t resource_index = 0; resource_index < max_resource_print_count; ++resource_index)
+                                {
+                                    log_resource_key(resources[resource_index]);
+                                }
+                                if (resources.size() > max_resource_print_count)
+                                {
+                                    LOG_FORMAT_FLUSH(" ...");
+                                }
+                                LOG_FORMAT_FLUSH(")\n");
+                            }
+                        }
                     }
                     else
                     {
