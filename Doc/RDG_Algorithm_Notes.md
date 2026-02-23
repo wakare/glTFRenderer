@@ -16,7 +16,7 @@ It focuses on dependency inference, plan build, cache validation, topological so
 Per node, dependency input comes from two sources:
 
 - Explicit dependencies: `dependency_render_graph_nodes` in node desc.
-  - `glTFRenderer/RendererCore/Public/Renderer.h:481`
+  - `glTFRenderer/RendererCore/Public/Renderer.h`
 - Resource usage declared in draw info (buffers/textures/render targets).
   - Access extraction starts at `glTFRenderer/RendererCore/Private/RendererInterface.cpp:101`
 

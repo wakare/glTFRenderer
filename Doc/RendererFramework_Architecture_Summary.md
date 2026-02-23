@@ -13,7 +13,7 @@
 ### 1.1 分层
 
 - **应用层（Demo）**：组织系统、注册 Tick / DebugUI、启动事件循环。  
-  参考：`glTFRenderer/RendererDemo/DemoApps/DemoBase.cpp:426`, `glTFRenderer/RendererDemo/DemoApps/DemoBase.cpp:462`, `glTFRenderer/RendererDemo/DemoApps/DemoBase.cpp:423`
+  参考：`glTFRenderer/RendererDemo/DemoApps/DemoBase.cpp`
 - **渲染编排层（RendererInterface::RenderGraph）**：
   - 维护 render graph node 集合
   - 推导/校验依赖
@@ -32,9 +32,9 @@
 ### 1.2 主循环调用链（关键）
 
 1. Demo 初始化渲染上下文并构造 `ResourceOperator` / `RenderGraph`。  
-   参考：`glTFRenderer/RendererDemo/DemoApps/DemoBase.cpp:458`, `glTFRenderer/RendererDemo/DemoApps/DemoBase.cpp:462`
+   参考：`glTFRenderer/RendererDemo/DemoApps/DemoBase.cpp`
 2. 注册业务 Tick 与 DebugUI 回调到 `RenderGraph`。  
-   参考：`glTFRenderer/RendererDemo/DemoApps/DemoBase.cpp:463`, `glTFRenderer/RendererDemo/DemoApps/DemoBase.cpp:464`
+   参考：`glTFRenderer/RendererDemo/DemoApps/DemoBase.cpp`
 3. ModelViewer 完成系统搭建后调用 `CompileRenderPassAndExecute()`，把渲染逻辑挂到窗口 Tick。  
    参考：`glTFRenderer/RendererDemo/DemoApps/DemoAppModelViewer.cpp:77`, `glTFRenderer/RendererCore/Private/RendererInterface.cpp:1371`
 4. `Run()` 进入窗口事件循环，驱动每帧执行。  
@@ -122,9 +122,9 @@
 1. 每帧 `PruneDescriptorResources(...)` 清除 draw_info 中已不存在的绑定并延迟释放。  
    参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp:2037`
 2. 如果 binding 描述发生变化，则重建 descriptor（并把旧 descriptor 入延迟释放队列）。  
-   参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp:2332`, `glTFRenderer/RendererCore/Private/RendererInterface.cpp:2392`, `glTFRenderer/RendererCore/Private/RendererInterface.cpp:2460`
+   参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp`
 3. 针对 RT resize 后底层 `m_source` 指针变化，额外检测 descriptor 绑定源是否已经变更，必要时强制重建，避免“句柄不变但底层资源已变”的悬挂绑定。  
-   参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp:2485`, `glTFRenderer/RendererCore/Private/RendererInterface.cpp:2510`
+   参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp`
 4. 对不再活跃节点，按保留帧数回收 descriptor 资源。  
    参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp:2136`
 
@@ -270,7 +270,7 @@ DX12 特化路径：
 ## 5.5 Present 失败恢复
 
 `RenderGraph::Present(...)` 若 present 失败，会调用 `NotifySwapchainPresentFailure()`，交给下一帧 `SyncWindowSurface` 进入重建/恢复路径。  
-参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp:2647`, `glTFRenderer/RendererCore/Private/RendererInterface.cpp:2662`, `glTFRenderer/RendererCore/Private/ResourceManager.cpp:696`
+参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp`, `glTFRenderer/RendererCore/Private/ResourceManager.cpp:696`
 
 ## 5.6 Vulkan 与 DX12 swapchain 实现差异（关键点）
 
