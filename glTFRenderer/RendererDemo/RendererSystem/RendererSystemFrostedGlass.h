@@ -2,6 +2,7 @@
 #include "RendererSystemBase.h"
 #include "RendererSystemLighting.h"
 #include "RendererSystemSceneRenderer.h"
+#include "PostFxSharedResources.h"
 #include <glm/glm/glm.hpp>
 
 class RendererSystemFrostedGlass : public RendererSystemBase
@@ -46,6 +47,22 @@ public:
     bool UpdatePanel(unsigned index, const FrostedGlassPanelDesc& panel_desc);
     bool ContainsPanel(unsigned index) const;
     RendererInterface::RenderTargetHandle GetOutput() const { return m_frosted_pass_output; }
+    RendererInterface::RenderTargetHandle GetHalfResPing() const
+    {
+        return m_postfx_shared_resources.GetPing(PostFxSharedResources::Resolution::Half);
+    }
+    RendererInterface::RenderTargetHandle GetHalfResPong() const
+    {
+        return m_postfx_shared_resources.GetPong(PostFxSharedResources::Resolution::Half);
+    }
+    RendererInterface::RenderTargetHandle GetQuarterResPing() const
+    {
+        return m_postfx_shared_resources.GetPing(PostFxSharedResources::Resolution::Quarter);
+    }
+    RendererInterface::RenderTargetHandle GetQuarterResPong() const
+    {
+        return m_postfx_shared_resources.GetPong(PostFxSharedResources::Resolution::Quarter);
+    }
 
     virtual bool Init(RendererInterface::ResourceOperator& resource_operator, RendererInterface::RenderGraph& graph) override;
     virtual bool HasInit() const override;
@@ -80,6 +97,7 @@ protected:
 
     RendererInterface::RenderGraphNodeHandle m_frosted_pass_node{NULL_HANDLE};
     RendererInterface::RenderTargetHandle m_frosted_pass_output{NULL_HANDLE};
+    PostFxSharedResources m_postfx_shared_resources{};
     RendererInterface::BufferHandle m_frosted_panel_data_handle{NULL_HANDLE};
     RendererInterface::BufferHandle m_frosted_global_params_handle{NULL_HANDLE};
 

@@ -41,15 +41,24 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
 
     const unsigned width = m_scene->GetWidth();
     const unsigned height = m_scene->GetHeight();
-    m_frosted_pass_output = resource_operator.CreateWindowRelativeRenderTarget(
-        "FrostedGlass_Output",
+    const auto postfx_usage = static_cast<RendererInterface::ResourceUsage>(
+        RendererInterface::ResourceUsage::RENDER_TARGET |
+        RendererInterface::ResourceUsage::COPY_SRC |
+        RendererInterface::ResourceUsage::SHADER_RESOURCE |
+        RendererInterface::ResourceUsage::UNORDER_ACCESS);
+
+    GLTF_CHECK(m_postfx_shared_resources.Init(
+        resource_operator,
+        "PostFX_Shared",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
-        static_cast<RendererInterface::ResourceUsage>(
-            RendererInterface::ResourceUsage::RENDER_TARGET |
-            RendererInterface::ResourceUsage::COPY_SRC |
-            RendererInterface::ResourceUsage::SHADER_RESOURCE |
-            RendererInterface::ResourceUsage::UNORDER_ACCESS));
+        postfx_usage));
+
+    m_frosted_pass_output = resource_operator.CreateWindowRelativeRenderTarget(
+        "PostFX_Frosted_Output",
+        RendererInterface::RGBA16_FLOAT,
+        RendererInterface::default_clear_color,
+        postfx_usage);
 
     RendererInterface::BufferDesc panel_data_buffer_desc{};
     panel_data_buffer_desc.name = "g_frosted_panels";
@@ -132,7 +141,7 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
 
 bool RendererSystemFrostedGlass::HasInit() const
 {
-    return m_frosted_pass_node != NULL_HANDLE;
+    return m_frosted_pass_node != NULL_HANDLE && m_postfx_shared_resources.HasInit();
 }
 
 bool RendererSystemFrostedGlass::Tick(RendererInterface::ResourceOperator& resource_operator,
