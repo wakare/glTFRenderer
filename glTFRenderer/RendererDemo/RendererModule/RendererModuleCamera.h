@@ -8,6 +8,7 @@
 struct ViewBuffer
 {
     glm::fmat4x4 view_projection_matrix;
+    glm::fmat4x4 prev_view_projection_matrix;
     glm::fmat4x4 inverse_view_projection_matrix;
     glm::fvec4 view_position;
     
@@ -36,4 +37,6 @@ protected:
     RendererInterface::BufferDesc camera_buffer_desc{};
     std::unique_ptr<RendererCamera> m_camera;
     RendererInterface::BufferHandle m_camera_buffer_handle{NULL_HANDLE};
+    glm::fmat4x4 m_prev_view_projection_matrix{1.0f};
+    bool m_prev_view_projection_initialized{false};
 };

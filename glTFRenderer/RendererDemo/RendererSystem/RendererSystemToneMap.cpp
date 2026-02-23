@@ -3,8 +3,10 @@
 #include <algorithm>
 #include <imgui/imgui.h>
 
-RendererSystemToneMap::RendererSystemToneMap(std::shared_ptr<RendererSystemFrostedGlass> frosted)
+RendererSystemToneMap::RendererSystemToneMap(std::shared_ptr<RendererSystemFrostedGlass> frosted,
+                                             std::shared_ptr<RendererSystemSceneRenderer> scene)
     : m_frosted(std::move(frosted))
+    , m_scene(std::move(scene))
 {
 }
 
@@ -12,7 +14,9 @@ bool RendererSystemToneMap::Init(RendererInterface::ResourceOperator& resource_o
                                  RendererInterface::RenderGraph& graph)
 {
     GLTF_CHECK(m_frosted);
+    GLTF_CHECK(m_scene);
     GLTF_CHECK(m_frosted->HasInit());
+    GLTF_CHECK(m_scene->HasInit());
 
     m_tone_map_output = resource_operator.CreateWindowRelativeRenderTarget(
         "ToneMap_Output",
@@ -44,6 +48,12 @@ bool RendererSystemToneMap::Init(RendererInterface::ResourceOperator& resource_o
     input_color_binding_desc.name = "InputColorTex";
     input_color_binding_desc.render_target_texture = {m_frosted->GetOutput()};
 
+    RendererSystemOutput<RendererSystemSceneRenderer> scene_output;
+    RendererInterface::RenderTargetTextureBindingDesc input_velocity_binding_desc{};
+    input_velocity_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
+    input_velocity_binding_desc.name = "InputVelocityTex";
+    input_velocity_binding_desc.render_target_texture = {scene_output.GetRenderTargetHandle(*m_scene, "m_base_pass_velocity")};
+
     RendererInterface::RenderTargetTextureBindingDesc output_binding_desc{};
     output_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::UAV;
     output_binding_desc.name = "Output";
@@ -51,6 +61,7 @@ bool RendererSystemToneMap::Init(RendererInterface::ResourceOperator& resource_o
 
     tone_map_pass_setup_info.sampled_render_targets = {
         input_color_binding_desc,
+        input_velocity_binding_desc,
         output_binding_desc
     };
 
@@ -123,6 +134,22 @@ void RendererSystemToneMap::DrawDebugUI()
         params_dirty = true;
     }
 
+    int debug_view_mode = static_cast<int>(m_global_params.debug_view_mode);
+    const char* debug_view_modes[] = {"Final", "Velocity"};
+    if (ImGui::Combo("Debug View", &debug_view_mode, debug_view_modes, IM_ARRAYSIZE(debug_view_modes)))
+    {
+        m_global_params.debug_view_mode = static_cast<unsigned>(debug_view_mode);
+        params_dirty = true;
+    }
+
+    if (m_global_params.debug_view_mode == 1)
+    {
+        if (ImGui::SliderFloat("Velocity Scale", &m_global_params.debug_velocity_scale, 1.0f, 128.0f, "%.1f"))
+        {
+            params_dirty = true;
+        }
+    }
+
     if (params_dirty)
     {
         const auto clamp = [](float value, float min_value, float max_value) -> float
@@ -132,6 +159,7 @@ void RendererSystemToneMap::DrawDebugUI()
 
         m_global_params.exposure = clamp(m_global_params.exposure, 0.01f, 8.0f);
         m_global_params.gamma = clamp(m_global_params.gamma, 1.0f, 3.0f);
+        m_global_params.debug_velocity_scale = clamp(m_global_params.debug_velocity_scale, 0.1f, 256.0f);
         m_need_upload_params = true;
     }
 }

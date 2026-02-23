@@ -195,6 +195,8 @@ RenderPass::RenderPass(RendererInterface::RenderPassDesc desc)
 
 bool RenderPass::InitRenderPass(ResourceManager& resource_manager)
 {
+    m_init_success = false;
+
     switch (m_desc.type) {
     case RendererInterface::RenderPassType::GRAPHICS:
         m_pipeline_state_object = RHIResourceFactory::CreateRHIResource<IRHIGraphicsPipelineStateObject>();
@@ -229,7 +231,18 @@ bool RenderPass::InitRenderPass(ResourceManager& resource_manager)
             }
 
             RootSignatureAllocation allocation;
-            RETURN_IF_FALSE(m_root_signature_helper.AddRootParameterWithRegisterCount2(root_parameter_info.parameter_info, root_parameter_info.space, root_parameter_info.register_index, allocation))
+            if (!m_root_signature_helper.AddRootParameterWithRegisterCount2(
+                root_parameter_info.parameter_info,
+                root_parameter_info.space,
+                root_parameter_info.register_index,
+                allocation))
+            {
+                LOG_FORMAT_FLUSH("[RenderPass][Init][Error] Failed to add root parameter '%s' (space=%u, reg=%u).\n",
+                                 parameter_name.c_str(),
+                                 root_parameter_info.space,
+                                 root_parameter_info.register_index);
+                return false;
+            }
 
             unique_parameters.insert({parameter_name, root_parameter_info});
             m_shader_parameter_mapping.insert({parameter_name, allocation});
@@ -260,13 +273,20 @@ bool RenderPass::InitRenderPass(ResourceManager& resource_manager)
     m_pipeline_state_object->SetCullMode(ConvertToRHICullMode(m_desc.render_state.cull_mode));
     m_pipeline_state_object->SetDepthStencilState(ConvertToRHIDepthStencilMode(m_desc.render_state.depth_stencil_mode));
     
-    RETURN_IF_FALSE(m_pipeline_state_object->InitPipelineStateObject(resource_manager.GetDevice(),
+    if (!m_pipeline_state_object->InitPipelineStateObject(resource_manager.GetDevice(),
             *m_root_signature,
             resource_manager.GetSwapChain(),
             shaders
         ))
+    {
+        LOG_FORMAT_FLUSH("[RenderPass][Init][Error] InitPipelineStateObject failed. pass_type=%d shader_count=%zu\n",
+                         static_cast<int>(m_desc.type),
+                         shaders.size());
+        return false;
+    }
 
     m_descriptor_updater = RHIResourceFactory::CreateRHIResource<IRHIDescriptorUpdater>();
+    m_init_success = true;
 
     return true;
 }
@@ -499,4 +519,9 @@ void RenderPass::SetViewportSize(int width, int height)
 {
     m_viewport_width = width;
     m_viewport_height = height;
+}
+
+bool RenderPass::IsInitialized() const
+{
+    return m_init_success;
 }

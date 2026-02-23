@@ -1120,7 +1120,14 @@ namespace RendererInterface
     RenderPassHandle ResourceOperator::CreateRenderPass(const RenderPassDesc& desc)
     {
         std::shared_ptr<RenderPass> render_pass = std::make_shared<RenderPass>(desc);
-        render_pass->InitRenderPass(*m_resource_manager);
+        if (!render_pass->InitRenderPass(*m_resource_manager))
+        {
+            LOG_FORMAT_FLUSH("[RenderPass][Init][Error] Failed to initialize render pass (type=%d, shader_count=%zu, rt_binding_count=%zu).\n",
+                             static_cast<int>(desc.type),
+                             desc.shaders.size(),
+                             desc.render_target_bindings.size());
+            return NULL_HANDLE;
+        }
         
         return InternalResourceHandleTable::Instance().RegisterRenderPass(render_pass);
     }
@@ -2441,7 +2448,16 @@ namespace RendererInterface
             return RenderPassExecutionStatus::SKIPPED_INVALID_DRAW_DESC;
         }
 
-        RHIUtilInstanceManager::Instance().SetPipelineState(command_list, render_pass->GetPipelineStateObject());
+        if (!RHIUtilInstanceManager::Instance().SetPipelineState(command_list, render_pass->GetPipelineStateObject()))
+        {
+            const char* group_name = render_graph_node_desc.debug_group.empty() ? "<group-empty>" : render_graph_node_desc.debug_group.c_str();
+            const char* pass_name = render_graph_node_desc.debug_name.empty() ? "<pass-empty>" : render_graph_node_desc.debug_name.c_str();
+            LOG_FORMAT_FLUSH("[RenderGraph][Validation] Node %u (%s/%s) failed to bind pipeline state. Skip execution.\n",
+                             render_graph_node_handle.value,
+                             group_name,
+                             pass_name);
+            return RenderPassExecutionStatus::SKIPPED_INVALID_DRAW_DESC;
+        }
         RHIUtilInstanceManager::Instance().SetRootSignature(command_list, render_pass->GetRootSignature(), render_pass->GetPipelineStateObject(), RendererInterfaceRHIConverter::ConvertToRHIPipelineType(render_pass->GetRenderPassType()));
         RHIUtilInstanceManager::Instance().SetPrimitiveTopology(command_list, ConvertToRHIPrimitiveTopology(render_pass->GetPrimitiveTopology()));
 

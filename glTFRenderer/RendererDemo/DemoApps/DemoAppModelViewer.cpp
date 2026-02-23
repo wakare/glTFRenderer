@@ -45,7 +45,7 @@ bool DemoAppModelViewer::InitInternal(const std::vector<std::string>& arguments)
     m_scene = std::make_shared<RendererSystemSceneRenderer>(*m_resource_manager, camera_desc, "glTFResources/Models/Sponza/glTF/Sponza.gltf");
     m_lighting = std::make_shared<RendererSystemLighting>(*m_resource_manager, m_scene);
     m_frosted_glass = std::make_shared<RendererSystemFrostedGlass>(m_scene, m_lighting);
-    m_tone_map = std::make_shared<RendererSystemToneMap>(m_frosted_glass);
+    m_tone_map = std::make_shared<RendererSystemToneMap>(m_frosted_glass, m_scene);
     {
         RendererSystemFrostedGlass::FrostedGlassPanelDesc panel_desc{};
         panel_desc.center_uv = {0.5f, 0.52f};

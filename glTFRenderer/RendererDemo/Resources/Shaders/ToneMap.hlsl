@@ -1,4 +1,5 @@
 Texture2D<float4> InputColorTex;
+Texture2D<float4> InputVelocityTex;
 RWTexture2D<float4> Output;
 
 cbuffer ToneMapGlobalBuffer
@@ -6,7 +7,11 @@ cbuffer ToneMapGlobalBuffer
     float exposure;
     float gamma;
     uint tone_map_mode;
+    uint debug_view_mode;
+    float debug_velocity_scale;
     float pad0;
+    float pad1;
+    float pad2;
 };
 
 float3 ToneMapReinhard(float3 color)
@@ -36,6 +41,18 @@ void main(int3 dispatch_thread_id : SV_DispatchThreadID)
     }
 
     const int2 pixel = dispatch_thread_id.xy;
+    if (debug_view_mode == 1)
+    {
+        const float2 velocity = InputVelocityTex.Load(int3(pixel, 0)).xy * debug_velocity_scale;
+        const float speed = saturate(length(velocity));
+        const float3 debug_color = saturate(float3(
+            0.5f + 0.5f * velocity.x,
+            0.5f - 0.5f * velocity.y,
+            speed));
+        Output[pixel] = float4(debug_color, 1.0f);
+        return;
+    }
+
     float3 color = max(InputColorTex.Load(int3(pixel, 0)).rgb * exposure, 0.0f);
 
     if (tone_map_mode == 0)

@@ -76,6 +76,9 @@ powershell -ExecutionPolicy Bypass -File .\scripts\Build-RendererDemo-Verify.ps1
 
 - Never print high-volume command output directly to chat.
 - For potentially huge result sets (example: `rg --files`, broad `rg` over repo root), always redirect output to a file first, then report only summary metrics in chat.
+- For `rg` usage, default to redirected mode when scope is unclear or large:
+  - `rg ... > .tmp/<name>.log`
+  - Then only report count + top-N sample (`Select-Object -First 20`) in chat.
 - Prefer summary-first commands for discovery:
   - counts (`Measure-Object`, `rg ... | measure`)
   - top-N sampling (`Select-Object -First 20`)

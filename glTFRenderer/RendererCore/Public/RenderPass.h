@@ -35,6 +35,7 @@ public:
 
     std::pair<int, int> GetViewportSize() const;
     void SetViewportSize(int width, int height);
+    bool IsInitialized() const;
     
 protected:
     RendererInterface::RenderPassDesc m_desc;
@@ -48,4 +49,5 @@ protected:
 
     int m_viewport_width{-1};
     int m_viewport_height{-1};
+    bool m_init_success{false};
 };

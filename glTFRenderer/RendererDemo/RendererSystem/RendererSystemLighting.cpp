@@ -364,6 +364,7 @@ bool RendererSystemLighting::ShadowPassResource::CalcDirectionalLightShadowMatri
     out_view_buffer.viewport_height = shadowmap_height;
     out_view_buffer.view_position = {scene_center, 1.0f};
     out_view_buffer.view_projection_matrix = projection_matrix * view_matrix;
+    out_view_buffer.prev_view_projection_matrix = out_view_buffer.view_projection_matrix;
     out_view_buffer.inverse_view_projection_matrix = glm::inverse(out_view_buffer.view_projection_matrix);
 
     out_shadow_info.view_matrix = view_matrix;

@@ -440,6 +440,15 @@ bool VulkanUtils::SetPipelineState(IRHICommandList& command_list, IRHIPipelineSt
     case RHIPipelineType::Unknown:
         break;
     }
+
+    if (bind_point == VK_PIPELINE_BIND_POINT_MAX_ENUM || vk_pipeline_state_object == VK_NULL_HANDLE)
+    {
+        LOG_FORMAT_FLUSH("[VulkanUtils][Error] Invalid pipeline bind request. pso_type=%d bind_point=%d pipeline=%p\n",
+                         static_cast<int>(pipeline_state_object.GetPSOType()),
+                         static_cast<int>(bind_point),
+                         vk_pipeline_state_object);
+        return false;
+    }
     
     vkCmdBindPipeline(vk_command_buffer, bind_point, vk_pipeline_state_object);
     return true;

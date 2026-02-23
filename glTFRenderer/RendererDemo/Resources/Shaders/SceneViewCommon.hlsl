@@ -5,6 +5,7 @@
 cbuffer ViewBuffer
 {
     float4x4 view_projection_matrix;
+    float4x4 prev_view_projection_matrix;
     float4x4 inverse_view_projection_matrix;
     float4 view_position;
     

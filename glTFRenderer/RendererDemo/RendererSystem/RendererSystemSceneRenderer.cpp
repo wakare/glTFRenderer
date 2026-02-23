@@ -32,6 +32,9 @@ bool RendererSystemSceneRenderer::Init(RendererInterface::ResourceOperator& reso
     m_base_pass_normal = resource_operator.CreateWindowRelativeRenderTarget("BasePass_Normal", RendererInterface::RGBA8_UNORM, RendererInterface::default_clear_color,
         static_cast<RendererInterface::ResourceUsage>(RendererInterface::ResourceUsage::RENDER_TARGET | RendererInterface::ResourceUsage::COPY_SRC | RendererInterface::ResourceUsage::SHADER_RESOURCE));
 
+    m_base_pass_velocity = resource_operator.CreateWindowRelativeRenderTarget("BasePass_Velocity", RendererInterface::RGBA16_FLOAT, RendererInterface::default_clear_color,
+        static_cast<RendererInterface::ResourceUsage>(RendererInterface::ResourceUsage::RENDER_TARGET | RendererInterface::ResourceUsage::COPY_SRC | RendererInterface::ResourceUsage::SHADER_RESOURCE));
+
     m_base_pass_depth = resource_operator.CreateWindowRelativeRenderTarget("Depth", RendererInterface::D32, RendererInterface::default_clear_depth,
         static_cast<RendererInterface::ResourceUsage>(RendererInterface::ResourceUsage::DEPTH_STENCIL | RendererInterface::ResourceUsage::SHADER_RESOURCE));
     
@@ -65,6 +68,11 @@ bool RendererSystemSceneRenderer::Init(RendererInterface::ResourceOperator& reso
         normal_rt_binding_desc.usage = RendererInterface::RenderPassResourceUsage::COLOR;
         normal_rt_binding_desc.need_clear = true;
 
+        RendererInterface::RenderTargetBindingDesc velocity_rt_binding_desc{};
+        velocity_rt_binding_desc.format = RendererInterface::RGBA16_FLOAT;
+        velocity_rt_binding_desc.usage = RendererInterface::RenderPassResourceUsage::COLOR;
+        velocity_rt_binding_desc.need_clear = true;
+
         RendererInterface::RenderTargetBindingDesc depth_binding_desc{};
         depth_binding_desc.format = RendererInterface::D32;
         depth_binding_desc.usage = RendererInterface::RenderPassResourceUsage::DEPTH_STENCIL;
@@ -73,6 +81,7 @@ bool RendererSystemSceneRenderer::Init(RendererInterface::ResourceOperator& reso
         setup_info.render_targets = {
             {m_base_pass_color, color_rt_binding_desc},
             {m_base_pass_normal, normal_rt_binding_desc},
+            {m_base_pass_velocity, velocity_rt_binding_desc},
             {m_base_pass_depth, depth_binding_desc}
         };
 

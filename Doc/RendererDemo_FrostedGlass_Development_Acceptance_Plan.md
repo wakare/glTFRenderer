@@ -235,7 +235,7 @@ This plan is based on the current implementation in repository `glTFRenderer`.
 | ID | Stream | Priority | Title | Exit Condition | Status | Evidence |
 |---|---|---|---|---|---|---|
 | A1 | Framework | P0 | Linear HDR + tone map | Lighting no longer outputs final sRGB directly | In Progress (A1.1 complete) | `Doc/FeatureNotes/20260223_A1_LinearOutput_ToneMapPass.md` |
-| A2 | Framework | P0 | GBuffer/View extension | Prev-frame and extra channels available | Planned | - |
+| A2 | Framework | P0 | GBuffer/View extension | Prev-frame and extra channels available | In Progress (A2.1/A2.2/A2.3 complete) | `Doc/FeatureNotes/20260223_A2_ViewBufferPrevVP.md`, `Doc/FeatureNotes/20260223_A2_VelocityGBuffer.md`, `Doc/FeatureNotes/20260223_A2_VelocityDebugView.md` |
 | A3 | Framework | P0 | PostFX shared resources | Half/quarter and ping-pong resources ready | Planned | - |
 | B1 | App | P0 | Frosted V2 multi-pass | Multi-pass output replaces v1 single-pass | Planned | - |
 | A4 | Framework | P1 | Temporal history infra | Stable history lifecycle and reset path | Planned | - |

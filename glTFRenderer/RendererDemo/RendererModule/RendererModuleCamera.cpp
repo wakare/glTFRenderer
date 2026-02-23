@@ -8,9 +8,12 @@ RendererModuleCamera::RendererModuleCamera(RendererInterface::ResourceOperator& 
     m_camera = std::make_unique<RendererCamera>(camera_desc);
     
     // Create and bind camera view matrix buffer
-    auto camera_transform = m_camera->GetProjectionMatrix();
+    auto camera_transform = m_camera->GetViewProjectionMatrix();
+    m_prev_view_projection_matrix = camera_transform;
+    m_prev_view_projection_initialized = true;
     ViewBuffer view_buffer{};
     view_buffer.view_projection_matrix = camera_transform;
+    view_buffer.prev_view_projection_matrix = m_prev_view_projection_matrix;
     view_buffer.inverse_view_projection_matrix = glm::inverse(camera_transform);
     view_buffer.view_position = glm::fvec4(m_camera->GetCameraPosition(), 1.0f);
     view_buffer.viewport_width = camera_desc.projection_width;
@@ -201,6 +204,7 @@ bool RendererModuleCamera::SetViewportSize(unsigned width, unsigned height)
     }
 
     m_camera->SetProjectionSize(static_cast<float>(width), static_cast<float>(height));
+    m_prev_view_projection_initialized = false;
     return true;
 }
 
@@ -216,9 +220,12 @@ unsigned RendererModuleCamera::GetHeight() const
 
 bool RendererModuleCamera::UploadCameraViewData(RendererInterface::ResourceOperator& resource_operator)
 {
-    auto camera_transform = m_camera->GetViewProjectionMatrix();
+    const auto camera_transform = m_camera->GetViewProjectionMatrix();
+    const auto prev_view_projection = m_prev_view_projection_initialized ? m_prev_view_projection_matrix : camera_transform;
+
     ViewBuffer view_buffer{};
     view_buffer.view_projection_matrix = camera_transform;
+    view_buffer.prev_view_projection_matrix = prev_view_projection;
     view_buffer.inverse_view_projection_matrix = glm::inverse(camera_transform);
     view_buffer.view_position = glm::fvec4(m_camera->GetCameraPosition(), 1.0f);
     view_buffer.viewport_width = m_camera->GetProjectionWidth();
@@ -229,5 +236,7 @@ bool RendererModuleCamera::UploadCameraViewData(RendererInterface::ResourceOpera
     camera_buffer_upload_desc.size = sizeof(ViewBuffer);
     resource_operator.UploadBufferData(m_camera_buffer_handle, camera_buffer_upload_desc);
 
+    m_prev_view_projection_matrix = camera_transform;
+    m_prev_view_projection_initialized = true;
     return true;
 }

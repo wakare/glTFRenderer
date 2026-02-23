@@ -2,7 +2,10 @@
 #define SCENE_RENDERER_COMMON_HLSL
 
 #include "RendererModule/RendererModuleMaterial.hlsl"
+
+#ifdef VERTEX_SHADER
 #include "SceneViewCommon.hlsl"
+#endif
 
 // Mesh data
 struct SceneMeshVertexInfo

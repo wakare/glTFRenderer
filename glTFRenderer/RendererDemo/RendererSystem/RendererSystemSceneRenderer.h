@@ -28,6 +28,7 @@ protected:
 
     RendererInterface::RenderTargetHandle m_base_pass_color{NULL_HANDLE};
     RendererInterface::RenderTargetHandle m_base_pass_normal{NULL_HANDLE};
+    RendererInterface::RenderTargetHandle m_base_pass_velocity{NULL_HANDLE};
     RendererInterface::RenderTargetHandle m_base_pass_depth{NULL_HANDLE};
 
     RendererInterface::RenderGraphNodeHandle m_base_pass_node{NULL_HANDLE};
@@ -45,6 +46,10 @@ struct RendererSystemOutput<RendererSystemSceneRenderer>
         if (name == "m_base_pass_normal")
         {
             return system.m_base_pass_normal;
+        }
+        if (name == "m_base_pass_velocity")
+        {
+            return system.m_base_pass_velocity;
         }
         if (name == "m_base_pass_depth")
         {

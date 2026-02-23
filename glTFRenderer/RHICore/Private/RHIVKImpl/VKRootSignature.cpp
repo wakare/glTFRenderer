@@ -64,7 +64,10 @@ bool VKRootSignature::InitRootSignature(IRHIDevice& device, IRHIDescriptorManage
     descriptor_set_allocate_info.descriptorSetCount = m_descriptor_set_layouts.size();
     descriptor_set_allocate_info.pSetLayouts = m_descriptor_set_layouts.data();
 
-    m_descriptor_sets.resize(space_bindings.size());
+    // Descriptor set allocation count must match set layout count (max space index + 1).
+    // Using space_bindings.size() can under-allocate when spaces are sparse (e.g. only set 2),
+    // which causes vkAllocateDescriptorSets to write out of bounds.
+    m_descriptor_sets.resize(m_descriptor_set_layouts.size());
     VK_CHECK(vkAllocateDescriptorSets(m_device, &descriptor_set_allocate_info, m_descriptor_sets.data()));
     need_release = true;
     
