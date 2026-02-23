@@ -23,6 +23,8 @@ class IRHICommandQueue;
 class IRHIDevice;
 class IRHIFactory;
 class IRHIResource;
+class ResourceManagerSurfaceResizeCoordinator;
+class ResourceManagerSurfaceResourceRebuilder;
 
 namespace RendererInterfaceRHIConverter
 {
@@ -102,6 +104,9 @@ protected:
     unsigned m_swapchain_present_failure_count{0};
 
 private:
+    friend class ResourceManagerSurfaceResizeCoordinator;
+    friend class ResourceManagerSurfaceResourceRebuilder;
+
     struct DeferredReleaseEntry
     {
         unsigned long long retire_frame{0};

@@ -23,7 +23,7 @@
 - **资源与设备抽象层（ResourceOperator / ResourceManager）**：
   - 对外暴露创建/上传/resize/swapchain 生命周期接口
   - 管理 command list、swapchain RT、window-relative RT 重建
-  参考：`glTFRenderer/RendererCore/Public/RendererInterface.h:63`, `glTFRenderer/RendererCore/Private/ResourceManager.cpp:199`
+  参考：`glTFRenderer/RendererCore/Public/RendererInterface.h:63`, `glTFRenderer/RendererCore/Private/ResourceManager.cpp`
 - **RHI 实现层（DX12 / Vulkan）**：
   - swapchain acquire/present/resize
   - API 特定同步细节
@@ -81,18 +81,18 @@
 - `ResourceOperator` 构造时根据 API 初始化 `RHIConfigSingleton`，并创建 `ResourceManager`。  
   参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp:938`
 - `ResourceManager::InitResourceManager()` 初始化 factory/device/queue/swapchain/memory manager/command lists/RT manager。  
-  参考：`glTFRenderer/RendererCore/Private/ResourceManager.cpp:199`
+  参考：`glTFRenderer/RendererCore/Private/ResourceManager.cpp`
 
 #### 延迟释放
 
 `ResourceManager` 维护 `m_deferred_release_entries`：
 
 - 入队：`EnqueueResourceForDeferredRelease(...)`  
-  参考：`glTFRenderer/RendererCore/Private/ResourceManager.cpp:553`
+  参考：`glTFRenderer/RendererCore/Private/ResourceManager.cpp`
 - 每次 `SyncWindowSurface(...)` 前推进帧号并释放到期资源：`AdvanceDeferredReleaseFrame()`  
-  参考：`glTFRenderer/RendererCore/Private/ResourceManager.cpp:599`, `glTFRenderer/RendererCore/Private/ResourceManager.cpp:605`
+  参考：`glTFRenderer/RendererCore/Private/ResourceManager.cpp`, `glTFRenderer/RendererCore/Private/ResourceManager.cpp`
 - 强制释放：`FlushDeferredResourceReleases(true)`  
-  参考：`glTFRenderer/RendererCore/Private/ResourceManager.cpp:574`
+  参考：`glTFRenderer/RendererCore/Private/ResourceManager.cpp`
 
 #### 全局清理（用于切换 RHI）
 
@@ -226,10 +226,24 @@ Demo 侧在 Advanced 面板展示这些诊断：
 4. 调 `ResizeWindowDependentRenderTargetsImpl(render_w, render_h, swapchain_resized)`
 5. 生成 `READY/RESIZED/DEFERRED_RETRY/INVALID/MINIMIZED`
 
-参考：`glTFRenderer/RendererCore/Private/ResourceManager.cpp:605`
+参考：`glTFRenderer/RendererCore/Private/ResourceManager.cpp`
 
 状态字段定义：`SwapchainLifecycleState`  
 参考：`glTFRenderer/RendererCore/Public/Renderer.h:307`
+
+### 5.2.1 协调器拆分（最新）
+
+为了降低 `ResourceManager` 的复杂度，resize 逻辑已拆分为两个内部组件：
+
+- `ResourceManagerSurfaceResizeCoordinator`：负责状态推进、入口编排与失败通知收敛
+- `ResourceManagerSurfaceResourceRebuilder`：负责 swapchain/窗口相关 RT 的实际重建执行
+
+实现位置：
+
+- `glTFRenderer/RendererCore/Private/ResourceManagerSurfaceSync.h`
+- `glTFRenderer/RendererCore/Private/ResourceManagerSurfaceSync.cpp`
+
+`ResourceManager` 的公开接口保持不变，仅在内部委托到上述组件执行。
 
 ## 5.3 Swapchain resize 关键策略
 
@@ -239,7 +253,7 @@ Demo 侧在 Advanced 面板展示这些诊断：
 - **失败冷却重试**（可指数退避）
 - **按周期节流日志**
 
-参考：`glTFRenderer/RendererCore/Private/ResourceManager.cpp:745`, `glTFRenderer/RendererCore/Private/ResourceManager.cpp:772`, `glTFRenderer/RendererCore/Private/ResourceManager.cpp:488`
+参考：`glTFRenderer/RendererCore/Private/ResourceManager.cpp`, `glTFRenderer/RendererCore/Private/ResourceManager.cpp`, `glTFRenderer/RendererCore/Private/ResourceManager.cpp`
 
 DX12 特化路径：
 
@@ -247,10 +261,10 @@ DX12 特化路径：
 - 释放 swapchain RT wrapper 后额外 `HostWaitPresentFinished`，降低 flip-model ResizeBuffers 失败概率
 - in-place resize 失败时不立刻重建 swapchain，而是恢复当前 swapchain RT 并转入 `RESIZE_DEFERRED` 重试
 
-参考：`glTFRenderer/RendererCore/Private/ResourceManager.cpp:789`, `glTFRenderer/RendererCore/Private/ResourceManager.cpp:806`, `glTFRenderer/RendererCore/Private/ResourceManager.cpp:821`
+参考：`glTFRenderer/RendererCore/Private/ResourceManager.cpp`, `glTFRenderer/RendererCore/Private/ResourceManager.cpp`, `glTFRenderer/RendererCore/Private/ResourceManager.cpp`
 
 非 DX12（如 Vulkan）可走 fallback recreate。  
-参考：`glTFRenderer/RendererCore/Private/ResourceManager.cpp:845`
+参考：`glTFRenderer/RendererCore/Private/ResourceManager.cpp`
 
 ## 5.4 窗口相关 RT 自动 resize
 
@@ -260,17 +274,17 @@ DX12 特化路径：
 - 创建新 allocation 并更新 HandleTable
 - 旧 allocation 延迟释放
 
-参考：`glTFRenderer/RendererCore/Private/ResourceManager.cpp:919`
+参考：`glTFRenderer/RendererCore/Private/ResourceManager.cpp`
 
 为了减少业务侧负担，`CreateRenderTarget(...)` 还有一个“自动窗口相对化”逻辑：如果创建时是 FIXED 且尺寸恰好等于当前 swapchain，则自动转为 `WINDOW_RELATIVE(1.0,1.0)`。  
-参考：`glTFRenderer/RendererCore/Private/ResourceManager.cpp:360`
+参考：`glTFRenderer/RendererCore/Private/ResourceManager.cpp`
 
 这使得大部分主屏 RT（BasePass/Lighting/Frosted 等）即便最初按宽高创建，也能跟随窗口自动重建。
 
 ## 5.5 Present 失败恢复
 
 `RenderGraph::Present(...)` 若 present 失败，会调用 `NotifySwapchainPresentFailure()`，交给下一帧 `SyncWindowSurface` 进入重建/恢复路径。  
-参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp`, `glTFRenderer/RendererCore/Private/ResourceManager.cpp:696`
+参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp`, `glTFRenderer/RendererCore/Private/ResourceManager.cpp`
 
 ## 5.6 Vulkan 与 DX12 swapchain 实现差异（关键点）
 
@@ -326,3 +340,4 @@ Window Tick
       -> RenderDebugUI
       -> Present
 ```
+

@@ -160,6 +160,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Private\InternalResourceHandleTable.h" />
+    <ClInclude Include="Private\ResourceManagerSurfaceSync.h" />
     <ClInclude Include="Public\RendererInterface.h" />
     <ClInclude Include="Public\Renderer.h" />
     <ClInclude Include="Public\RendererCamera.h" />
@@ -172,6 +173,7 @@
     <ClCompile Include="Private\RendererCamera.cpp" />
     <ClCompile Include="Private\RenderPass.cpp" />
     <ClCompile Include="Private\ResourceManager.cpp" />
+    <ClCompile Include="Private\ResourceManagerSurfaceSync.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
