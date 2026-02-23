@@ -191,6 +191,14 @@
 `UpdateDependencyDiagnostics(...)` 将 graph 有效性、自动合并边数量、非法边、cycle nodes、签名/缓存规模写入 UI 可读结构。  
 参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp:641`
 
+另外，RenderGraph 的“校验日志节流 + 跳过策略判断”已经抽到独立策略模块：
+
+- `glTFRenderer/RendererCore/Private/RenderGraphExecutionPolicy.h`
+- `glTFRenderer/RendererCore/Private/RenderGraphExecutionPolicy.cpp`
+
+`RenderGraph` 通过 `ValidationPolicy` 暴露配置（日志间隔、是否 warning 即跳过），默认行为保持与历史一致。  
+参考：`glTFRenderer/RendererCore/Public/RendererInterface.h`
+
 Demo 侧在 Advanced 面板展示这些诊断：  
 参考：`glTFRenderer/RendererDemo/DemoApps/DemoBase.cpp:246`
 

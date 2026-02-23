@@ -8,6 +8,7 @@
 #include "InternalResourceHandleTable.h"
 #include "RendererSceneCommon.h"
 #include "RenderPass.h"
+#include "RenderGraphExecutionPolicy.h"
 #include "ResourceManager.h"
 #include "RHIConfigSingleton.h"
 #include "RHIResourceFactoryImpl.hpp"
@@ -94,21 +95,6 @@ namespace RendererInterface
         void HashCombine(std::size_t& seed, std::size_t value)
         {
             seed ^= value + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2);
-        }
-
-        std::size_t ComputeValidationMessageHash(const RenderPass::DrawValidationResult& result)
-        {
-            std::size_t hash = 0;
-            HashCombine(hash, std::hash<bool>{}(result.valid));
-            for (const auto& error : result.errors)
-            {
-                HashCombine(hash, std::hash<std::string>{}(error));
-            }
-            for (const auto& warning : result.warnings)
-            {
-                HashCombine(hash, std::hash<std::string>{}(warning));
-            }
-            return hash;
         }
 
         unsigned ComputeScaledExtent(unsigned base_extent, float scale, unsigned min_extent)
@@ -1306,6 +1292,7 @@ namespace RendererInterface
         : m_resource_allocator(allocator)
         , m_window(window)
     {
+        m_validation_policy.log_interval_frames = (std::max)(1u, m_validation_policy.log_interval_frames);
         GLTF_CHECK(InitDebugUI());
         GLTF_CHECK(InitGPUProfiler());
     }
@@ -1768,6 +1755,17 @@ namespace RendererInterface
     void RenderGraph::EnableDebugUI(bool enable)
     {
         m_debug_ui_enabled = enable;
+    }
+
+    void RenderGraph::SetValidationPolicy(const ValidationPolicy& policy)
+    {
+        m_validation_policy = policy;
+        m_validation_policy.log_interval_frames = (std::max)(1u, m_validation_policy.log_interval_frames);
+    }
+
+    RenderGraph::ValidationPolicy RenderGraph::GetValidationPolicy() const
+    {
+        return m_validation_policy;
     }
 
     const RenderGraph::FrameStats& RenderGraph::GetLastFrameStats() const
@@ -2368,20 +2366,16 @@ namespace RendererInterface
         validation_result.valid = valid;
         validation_result.errors = errors;
         validation_result.warnings = warnings;
-        const std::size_t message_hash = ComputeValidationMessageHash(validation_result);
-        auto& last_log_frame = m_render_pass_validation_last_log_frame[render_graph_node_handle];
-        auto& last_message_hash = m_render_pass_validation_last_message_hash[render_graph_node_handle];
-
-        constexpr unsigned LOG_INTERVAL_FRAMES = 120;
-        const bool message_changed = last_message_hash != message_hash;
-        const bool interval_reached = m_frame_index >= (last_log_frame + LOG_INTERVAL_FRAMES);
-        if (!message_changed && !interval_reached)
+        if (!RenderGraphExecutionPolicy::ShouldEmitValidationLog(
+            m_render_pass_validation_last_log_frame,
+            m_render_pass_validation_last_message_hash,
+            render_graph_node_handle,
+            validation_result,
+            m_frame_index,
+            m_validation_policy.log_interval_frames))
         {
             return;
         }
-
-        last_log_frame = m_frame_index;
-        last_message_hash = message_hash;
 
         const char* group_name = render_graph_node_desc.debug_group.empty() ? "<group-empty>" : render_graph_node_desc.debug_group.c_str();
         const char* pass_name = render_graph_node_desc.debug_name.empty() ? "<pass-empty>" : render_graph_node_desc.debug_name.c_str();
@@ -2397,11 +2391,12 @@ namespace RendererInterface
         }
         else if (!warnings.empty())
         {
-            LOG_FORMAT_FLUSH("[RenderGraph][Validation] Node %u (%s/%s) has %zu warning(s).\n",
+            LOG_FORMAT_FLUSH("[RenderGraph][Validation] Node %u (%s/%s) has %zu warning(s)%s.\n",
                              render_graph_node_handle.value,
                              group_name,
                              pass_name,
-                             warnings.size());
+                             warnings.size(),
+                             m_validation_policy.skip_execution_on_warning ? " and will be skipped by policy" : "");
         }
 
         for (const auto& error : errors)
@@ -2441,7 +2436,7 @@ namespace RendererInterface
                 validation_result.errors,
                 validation_result.warnings);
         }
-        if (!validation_result.valid)
+        if (RenderGraphExecutionPolicy::ShouldSkipExecution(validation_result, m_validation_policy.skip_execution_on_warning))
         {
             return RenderPassExecutionStatus::SKIPPED_INVALID_DRAW_DESC;
         }

@@ -160,6 +160,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Private\InternalResourceHandleTable.h" />
+    <ClInclude Include="Private\RenderGraphExecutionPolicy.h" />
     <ClInclude Include="Private\ResourceManagerSurfaceSync.h" />
     <ClInclude Include="Public\RendererInterface.h" />
     <ClInclude Include="Public\Renderer.h" />
@@ -169,6 +170,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Private\InternalResourceHandleTable.cpp" />
+    <ClCompile Include="Private\RenderGraphExecutionPolicy.cpp" />
     <ClCompile Include="Private\RendererInterface.cpp" />
     <ClCompile Include="Private\RendererCamera.cpp" />
     <ClCompile Include="Private\RenderPass.cpp" />

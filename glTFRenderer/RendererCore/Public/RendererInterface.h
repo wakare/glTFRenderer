@@ -225,6 +225,12 @@ namespace RendererInterface
             std::size_t cached_execution_node_count{0};
             std::size_t cached_execution_order_size{0};
         };
+
+        struct ValidationPolicy
+        {
+            unsigned log_interval_frames{120};
+            bool skip_execution_on_warning{false};
+        };
         
         typedef std::function<void(unsigned long long)> RenderGraphTickCallback;
         typedef std::function<void()> RenderGraphDebugUICallback;
@@ -246,6 +252,8 @@ namespace RendererInterface
         void RegisterTickCallback(const RenderGraphTickCallback& callback);
         void RegisterDebugUICallback(const RenderGraphDebugUICallback& callback);
         void EnableDebugUI(bool enable);
+        void SetValidationPolicy(const ValidationPolicy& policy);
+        ValidationPolicy GetValidationPolicy() const;
         const FrameStats& GetLastFrameStats() const;
         const DependencyDiagnostics& GetDependencyDiagnostics() const;
 
@@ -343,6 +351,7 @@ namespace RendererInterface
         RenderGraphDebugUICallback m_debug_ui_callback;
         bool m_debug_ui_enabled{true};
         bool m_debug_ui_initialized{false};
+        ValidationPolicy m_validation_policy{};
         struct GPUProfilerState;
         std::unique_ptr<GPUProfilerState> m_gpu_profiler_state;
         FrameStats m_last_frame_stats{};

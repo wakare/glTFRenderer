@@ -30,6 +30,9 @@
     <ClCompile Include="Private\RenderPass.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Private\RenderGraphExecutionPolicy.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="Private\ResourceManagerSurfaceSync.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -51,6 +54,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Public\RenderPass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Private\RenderGraphExecutionPolicy.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Private\ResourceManagerSurfaceSync.h">
