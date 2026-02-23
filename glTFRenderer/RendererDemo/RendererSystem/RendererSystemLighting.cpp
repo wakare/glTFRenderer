@@ -91,6 +91,8 @@ bool RendererSystemLighting::Init(RendererInterface::ResourceOperator& resource_
         shadow_pass_setup_info.debug_group = "Lighting";
         shadow_pass_setup_info.debug_name = std::format("Directional Shadow {}", i);
         shadow_pass_setup_info.modules = {m_scene->GetSceneMeshModule()};
+        shadow_pass_setup_info.excluded_buffer_bindings.insert("g_material_infos");
+        shadow_pass_setup_info.excluded_texture_bindings.insert("bindless_material_textures");
         shadow_pass_setup_info.shader_setup_infos = {
             {
                 .shader_type = RendererInterface::ShaderType::VERTEX_SHADER,

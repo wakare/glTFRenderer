@@ -1368,6 +1368,36 @@ namespace RendererInterface
 
         render_pass_draw_desc.texture_resources.insert(setup_info.texture_resources.begin(), setup_info.texture_resources.end());
         render_pass_draw_desc.buffer_resources.insert(setup_info.buffer_resources.begin(), setup_info.buffer_resources.end());
+
+        auto exclude_named_bindings = [](auto& resource_map, const std::set<std::string>& excluded_binding_names)
+        {
+            unsigned removed_count = 0;
+            for (const auto& binding_name : excluded_binding_names)
+            {
+                removed_count += static_cast<unsigned>(resource_map.erase(binding_name));
+            }
+            return removed_count;
+        };
+
+        const unsigned excluded_buffer_count =
+            exclude_named_bindings(render_pass_draw_desc.buffer_resources, setup_info.excluded_buffer_bindings);
+        const unsigned excluded_texture_count =
+            exclude_named_bindings(render_pass_draw_desc.texture_resources, setup_info.excluded_texture_bindings);
+        const unsigned excluded_render_target_texture_count =
+            exclude_named_bindings(render_pass_draw_desc.render_target_texture_resources, setup_info.excluded_render_target_texture_bindings);
+        const unsigned total_excluded_binding_count =
+            excluded_buffer_count + excluded_texture_count + excluded_render_target_texture_count;
+        if (total_excluded_binding_count > 0)
+        {
+            const char* group_name = setup_info.debug_group.empty() ? "<group-empty>" : setup_info.debug_group.c_str();
+            const char* pass_name = setup_info.debug_name.empty() ? "<pass-empty>" : setup_info.debug_name.c_str();
+            LOG_FORMAT_FLUSH("[RenderGraph][Setup] Pass (%s/%s) excluded bindings by policy: buffer=%u, texture=%u, render_target_texture=%u.\n",
+                             group_name,
+                             pass_name,
+                             excluded_buffer_count,
+                             excluded_texture_count,
+                             excluded_render_target_texture_count);
+        }
     
         if (setup_info.execute_command.has_value())
         {

@@ -159,6 +159,9 @@ namespace RendererInterface
             std::vector<RenderTargetTextureBindingDesc> sampled_render_targets;
             std::map<std::string, BufferBindingDesc> buffer_resources;
             std::map<std::string, TextureBindingDesc> texture_resources;
+            std::set<std::string> excluded_buffer_bindings;
+            std::set<std::string> excluded_texture_bindings;
+            std::set<std::string> excluded_render_target_texture_bindings;
             std::vector<std::shared_ptr<RendererModuleBase>> modules;
 
             std::vector<RenderExecuteCommand> execute_commands;
