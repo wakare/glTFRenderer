@@ -7,9 +7,11 @@
 [submodule "glTFRenderer/ThirdParty/glfw"]
 	path = glTFRenderer/ThirdParty/glfw
 	url = https://github.com/glfw/glfw.git
+	ignore = dirty
 [submodule "glTFRenderer/ThirdParty/imgui"]
 	path = glTFRenderer/ThirdParty/imgui
 	url = https://github.com/ocornut/imgui.git
 [submodule "glTFRenderer/ThirdParty/embree"]
 	path = glTFRenderer/ThirdParty/embree
 	url = https://github.com/RenderKit/embree.git
+	ignore = dirty

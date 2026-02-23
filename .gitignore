@@ -23,3 +23,9 @@ glTFRenderer/**/x64/
 # Rider / user-local solution state
 glTFRenderer/.idea/
 *.DotSettings.user
+
+# Local third-party/vendor and asset artifacts
+glTFRenderer/ThirdParty/embree/
+glTFRenderer/ThirdParty/glfw/
+glTFRenderer/RendererScene/RenderScene.vcxproj.filters
+glTFRenderer/glTFRenderer/glTFResources/Models/Plane.rar
