@@ -11,3 +11,15 @@ glTFRenderer/HelloVulkan/x64
 *.log
 *.obj
 *.idb
+
+# Build verification outputs
+*.binlog
+build_logs/
+.verify/
+
+# Visual Studio per-project build outputs
+glTFRenderer/**/x64/
+
+# Rider / user-local solution state
+glTFRenderer/.idea/
+*.DotSettings.user
