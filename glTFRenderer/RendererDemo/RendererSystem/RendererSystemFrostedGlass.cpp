@@ -43,6 +43,8 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
     const unsigned height = (std::max)(1u, resource_operator.GetCurrentRenderHeight());
     const unsigned half_width = (width + 1u) / 2u;
     const unsigned half_height = (height + 1u) / 2u;
+    const unsigned quarter_width = (width + 3u) / 4u;
+    const unsigned quarter_height = (height + 3u) / 4u;
     const auto postfx_usage = static_cast<RendererInterface::ResourceUsage>(
         RendererInterface::ResourceUsage::RENDER_TARGET |
         RendererInterface::ResourceUsage::COPY_SRC |
@@ -79,9 +81,20 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
         0.5f,
         1,
         1);
+    m_quarter_blur_final_output = resource_operator.CreateWindowRelativeRenderTarget(
+        "PostFX_Frosted_Quarter_BlurFinal",
+        RendererInterface::RGBA16_FLOAT,
+        RendererInterface::default_clear_color,
+        postfx_usage,
+        0.25f,
+        0.25f,
+        1,
+        1);
 
     const RendererInterface::RenderTargetHandle half_ping = GetHalfResPing();
     const RendererInterface::RenderTargetHandle half_pong = GetHalfResPong();
+    const RendererInterface::RenderTargetHandle quarter_ping = GetQuarterResPing();
+    const RendererInterface::RenderTargetHandle quarter_pong = GetQuarterResPong();
 
     RendererInterface::BufferDesc panel_data_buffer_desc{};
     panel_data_buffer_desc.name = "g_frosted_panels";
@@ -186,6 +199,89 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
     blur_half_vertical_pass_setup_info.execute_command = make_compute_dispatch(half_width, half_height);
     m_blur_half_vertical_pass_node = graph.CreateRenderGraphNode(resource_operator, blur_half_vertical_pass_setup_info);
 
+    RendererInterface::RenderGraph::RenderPassSetupInfo downsample_quarter_pass_setup_info{};
+    downsample_quarter_pass_setup_info.render_pass_type = RendererInterface::RenderPassType::COMPUTE;
+    downsample_quarter_pass_setup_info.debug_group = "Frosted Glass";
+    downsample_quarter_pass_setup_info.debug_name = "Downsample Quarter";
+    downsample_quarter_pass_setup_info.shader_setup_infos = {
+        {RendererInterface::COMPUTE_SHADER, "DownsampleMain", "Resources/Shaders/FrostedGlassPostfx.hlsl"}
+    };
+    downsample_quarter_pass_setup_info.dependency_render_graph_nodes = {m_blur_half_vertical_pass_node};
+    {
+        RendererInterface::RenderTargetTextureBindingDesc input_binding_desc{};
+        input_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
+        input_binding_desc.name = "InputTex";
+        input_binding_desc.render_target_texture = {m_half_blur_final_output};
+
+        RendererInterface::RenderTargetTextureBindingDesc output_binding_desc{};
+        output_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::UAV;
+        output_binding_desc.name = "OutputTex";
+        output_binding_desc.render_target_texture = {quarter_ping};
+
+        downsample_quarter_pass_setup_info.sampled_render_targets = {
+            input_binding_desc,
+            output_binding_desc
+        };
+    }
+    downsample_quarter_pass_setup_info.execute_command = make_compute_dispatch(quarter_width, quarter_height);
+    m_downsample_quarter_pass_node = graph.CreateRenderGraphNode(resource_operator, downsample_quarter_pass_setup_info);
+
+    RendererInterface::RenderGraph::RenderPassSetupInfo blur_quarter_horizontal_pass_setup_info{};
+    blur_quarter_horizontal_pass_setup_info.render_pass_type = RendererInterface::RenderPassType::COMPUTE;
+    blur_quarter_horizontal_pass_setup_info.debug_group = "Frosted Glass";
+    blur_quarter_horizontal_pass_setup_info.debug_name = "Blur Quarter Horizontal";
+    blur_quarter_horizontal_pass_setup_info.shader_setup_infos = {
+        {RendererInterface::COMPUTE_SHADER, "BlurHorizontalMain", "Resources/Shaders/FrostedGlassPostfx.hlsl"}
+    };
+    blur_quarter_horizontal_pass_setup_info.dependency_render_graph_nodes = {m_downsample_quarter_pass_node};
+    {
+        RendererInterface::RenderTargetTextureBindingDesc input_binding_desc{};
+        input_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
+        input_binding_desc.name = "InputTex";
+        input_binding_desc.render_target_texture = {quarter_ping};
+
+        RendererInterface::RenderTargetTextureBindingDesc output_binding_desc{};
+        output_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::UAV;
+        output_binding_desc.name = "OutputTex";
+        output_binding_desc.render_target_texture = {quarter_pong};
+
+        blur_quarter_horizontal_pass_setup_info.sampled_render_targets = {
+            input_binding_desc,
+            output_binding_desc
+        };
+    }
+    blur_quarter_horizontal_pass_setup_info.buffer_resources["FrostedGlassGlobalBuffer"] = global_params_binding_desc;
+    blur_quarter_horizontal_pass_setup_info.execute_command = make_compute_dispatch(quarter_width, quarter_height);
+    m_blur_quarter_horizontal_pass_node = graph.CreateRenderGraphNode(resource_operator, blur_quarter_horizontal_pass_setup_info);
+
+    RendererInterface::RenderGraph::RenderPassSetupInfo blur_quarter_vertical_pass_setup_info{};
+    blur_quarter_vertical_pass_setup_info.render_pass_type = RendererInterface::RenderPassType::COMPUTE;
+    blur_quarter_vertical_pass_setup_info.debug_group = "Frosted Glass";
+    blur_quarter_vertical_pass_setup_info.debug_name = "Blur Quarter Vertical";
+    blur_quarter_vertical_pass_setup_info.shader_setup_infos = {
+        {RendererInterface::COMPUTE_SHADER, "BlurVerticalMain", "Resources/Shaders/FrostedGlassPostfx.hlsl"}
+    };
+    blur_quarter_vertical_pass_setup_info.dependency_render_graph_nodes = {m_blur_quarter_horizontal_pass_node};
+    {
+        RendererInterface::RenderTargetTextureBindingDesc input_binding_desc{};
+        input_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
+        input_binding_desc.name = "InputTex";
+        input_binding_desc.render_target_texture = {quarter_pong};
+
+        RendererInterface::RenderTargetTextureBindingDesc output_binding_desc{};
+        output_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::UAV;
+        output_binding_desc.name = "OutputTex";
+        output_binding_desc.render_target_texture = {m_quarter_blur_final_output};
+
+        blur_quarter_vertical_pass_setup_info.sampled_render_targets = {
+            input_binding_desc,
+            output_binding_desc
+        };
+    }
+    blur_quarter_vertical_pass_setup_info.buffer_resources["FrostedGlassGlobalBuffer"] = global_params_binding_desc;
+    blur_quarter_vertical_pass_setup_info.execute_command = make_compute_dispatch(quarter_width, quarter_height);
+    m_blur_quarter_vertical_pass_node = graph.CreateRenderGraphNode(resource_operator, blur_quarter_vertical_pass_setup_info);
+
     RendererInterface::RenderGraph::RenderPassSetupInfo frosted_composite_pass_setup_info{};
     frosted_composite_pass_setup_info.render_pass_type = RendererInterface::RenderPassType::COMPUTE;
     frosted_composite_pass_setup_info.debug_group = "Frosted Glass";
@@ -194,7 +290,7 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
     frosted_composite_pass_setup_info.shader_setup_infos = {
         {RendererInterface::COMPUTE_SHADER, "main", "Resources/Shaders/FrostedGlass.hlsl"}
     };
-    frosted_composite_pass_setup_info.dependency_render_graph_nodes = {m_blur_half_vertical_pass_node};
+    frosted_composite_pass_setup_info.dependency_render_graph_nodes = {m_blur_half_vertical_pass_node, m_blur_quarter_vertical_pass_node};
     {
         RendererInterface::RenderTargetTextureBindingDesc input_color_binding_desc{};
         input_color_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
@@ -216,6 +312,11 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
         input_blurred_binding_desc.name = "BlurredColorTex";
         input_blurred_binding_desc.render_target_texture = {m_half_blur_final_output};
 
+        RendererInterface::RenderTargetTextureBindingDesc input_quarter_blurred_binding_desc{};
+        input_quarter_blurred_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
+        input_quarter_blurred_binding_desc.name = "QuarterBlurredColorTex";
+        input_quarter_blurred_binding_desc.render_target_texture = {m_quarter_blur_final_output};
+
         RendererInterface::RenderTargetTextureBindingDesc output_binding_desc{};
         output_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::UAV;
         output_binding_desc.name = "Output";
@@ -226,6 +327,7 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
             input_depth_binding_desc,
             input_normal_binding_desc,
             input_blurred_binding_desc,
+            input_quarter_blurred_binding_desc,
             output_binding_desc
         };
     }
@@ -251,9 +353,13 @@ bool RendererSystemFrostedGlass::HasInit() const
     return m_downsample_half_pass_node != NULL_HANDLE &&
            m_blur_half_horizontal_pass_node != NULL_HANDLE &&
            m_blur_half_vertical_pass_node != NULL_HANDLE &&
+           m_downsample_quarter_pass_node != NULL_HANDLE &&
+           m_blur_quarter_horizontal_pass_node != NULL_HANDLE &&
+           m_blur_quarter_vertical_pass_node != NULL_HANDLE &&
            m_frosted_composite_pass_node != NULL_HANDLE &&
            m_frosted_pass_output != NULL_HANDLE &&
            m_half_blur_final_output != NULL_HANDLE &&
+           m_quarter_blur_final_output != NULL_HANDLE &&
            m_postfx_shared_resources.HasInit();
 }
 
@@ -266,16 +372,24 @@ bool RendererSystemFrostedGlass::Tick(RendererInterface::ResourceOperator& resou
     const unsigned height = (std::max)(1u, resource_operator.GetCurrentRenderHeight());
     const unsigned half_width = (width + 1u) / 2u;
     const unsigned half_height = (height + 1u) / 2u;
+    const unsigned quarter_width = (width + 3u) / 4u;
+    const unsigned quarter_height = (height + 3u) / 4u;
 
     graph.UpdateComputeDispatch(m_downsample_half_pass_node, (half_width + 7) / 8, (half_height + 7) / 8, 1);
     graph.UpdateComputeDispatch(m_blur_half_horizontal_pass_node, (half_width + 7) / 8, (half_height + 7) / 8, 1);
     graph.UpdateComputeDispatch(m_blur_half_vertical_pass_node, (half_width + 7) / 8, (half_height + 7) / 8, 1);
+    graph.UpdateComputeDispatch(m_downsample_quarter_pass_node, (quarter_width + 7) / 8, (quarter_height + 7) / 8, 1);
+    graph.UpdateComputeDispatch(m_blur_quarter_horizontal_pass_node, (quarter_width + 7) / 8, (quarter_height + 7) / 8, 1);
+    graph.UpdateComputeDispatch(m_blur_quarter_vertical_pass_node, (quarter_width + 7) / 8, (quarter_height + 7) / 8, 1);
     graph.UpdateComputeDispatch(m_frosted_composite_pass_node, (width + 7) / 8, (height + 7) / 8, 1);
 
     UploadPanelData(resource_operator);
     graph.RegisterRenderGraphNode(m_downsample_half_pass_node);
     graph.RegisterRenderGraphNode(m_blur_half_horizontal_pass_node);
     graph.RegisterRenderGraphNode(m_blur_half_vertical_pass_node);
+    graph.RegisterRenderGraphNode(m_downsample_quarter_pass_node);
+    graph.RegisterRenderGraphNode(m_blur_quarter_horizontal_pass_node);
+    graph.RegisterRenderGraphNode(m_blur_quarter_vertical_pass_node);
     graph.RegisterRenderGraphNode(m_frosted_composite_pass_node);
     graph.RegisterRenderTargetToColorOutput(m_frosted_pass_output);
     return true;

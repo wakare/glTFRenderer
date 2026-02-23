@@ -4,6 +4,7 @@ Texture2D<float4> InputColorTex;
 Texture2D<float> InputDepthTex;
 Texture2D<float4> InputNormalTex;
 Texture2D<float4> BlurredColorTex;
+Texture2D<float4> QuarterBlurredColorTex;
 RWTexture2D<float4> Output;
 
 struct FrostedGlassPanelData
@@ -150,6 +151,17 @@ float3 SampleBlurredColor(float2 uv)
     return BlurredColorTex.Load(int3(blurred_pixel, 0)).rgb;
 }
 
+float3 SampleQuarterBlurredColor(float2 uv)
+{
+    uint blurred_width = 0;
+    uint blurred_height = 0;
+    QuarterBlurredColorTex.GetDimensions(blurred_width, blurred_height);
+    const int2 max_pixel = int2((int)max(blurred_width, 1u) - 1, (int)max(blurred_height, 1u) - 1);
+    int2 blurred_pixel = int2(uv * float2((float)max(blurred_width, 1u), (float)max(blurred_height, 1u)));
+    blurred_pixel = clamp(blurred_pixel, int2(0, 0), max_pixel);
+    return QuarterBlurredColorTex.Load(int3(blurred_pixel, 0)).rgb;
+}
+
 [numthreads(8, 8, 1)]
 void main(int3 dispatch_thread_id : SV_DispatchThreadID)
 {
@@ -226,7 +238,10 @@ void main(int3 dispatch_thread_id : SV_DispatchThreadID)
         const float depth_aware_weight = exp(-depth_delta * panel_depth_weight_scale);
         const float effective_blur_strength = panel_blur_strength * saturate(0.25f + 0.75f * depth_aware_weight);
         const float blur_sigma_factor = saturate(panel_blur_sigma / 8.0f);
-        const float3 blurred_color = SampleBlurredColor(refraction_uv);
+        const float3 half_blurred_color = SampleBlurredColor(refraction_uv);
+        const float3 quarter_blurred_color = SampleQuarterBlurredColor(refraction_uv);
+        const float quarter_blend = saturate((panel_blur_sigma - 4.0f) / 6.0f);
+        const float3 blurred_color = lerp(half_blurred_color, quarter_blurred_color, quarter_blend);
         const float3 sigma_adjusted_blur = lerp(final_color, blurred_color, blur_sigma_factor);
         float3 frosted_color = lerp(final_color, sigma_adjusted_blur * panel_tint, effective_blur_strength);
 

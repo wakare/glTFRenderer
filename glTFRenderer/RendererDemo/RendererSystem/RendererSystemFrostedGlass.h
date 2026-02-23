@@ -98,9 +98,13 @@ protected:
     RendererInterface::RenderGraphNodeHandle m_downsample_half_pass_node{NULL_HANDLE};
     RendererInterface::RenderGraphNodeHandle m_blur_half_horizontal_pass_node{NULL_HANDLE};
     RendererInterface::RenderGraphNodeHandle m_blur_half_vertical_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_downsample_quarter_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_blur_quarter_horizontal_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_blur_quarter_vertical_pass_node{NULL_HANDLE};
     RendererInterface::RenderGraphNodeHandle m_frosted_composite_pass_node{NULL_HANDLE};
     RendererInterface::RenderTargetHandle m_frosted_pass_output{NULL_HANDLE};
     RendererInterface::RenderTargetHandle m_half_blur_final_output{NULL_HANDLE};
+    RendererInterface::RenderTargetHandle m_quarter_blur_final_output{NULL_HANDLE};
     PostFxSharedResources m_postfx_shared_resources{};
     RendererInterface::BufferHandle m_frosted_panel_data_handle{NULL_HANDLE};
     RendererInterface::BufferHandle m_frosted_global_params_handle{NULL_HANDLE};
