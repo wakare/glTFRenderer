@@ -51,6 +51,19 @@ Start-Process -FilePath $msbuild -ArgumentList $args -NoNewWindow -Wait `
 - Do not use unescaped `;` in inline PowerShell command text (for example `/clp:Summary;ForceNoAlign`), because `;` is a PowerShell statement separator.
 - If a `;` is needed inside one MSBuild argument, keep it inside one array element (example: `"/flp:LogFile=...;Verbosity=diagnostic;Encoding=UTF-8"`).
 
+### Build Isolation + Watchdog (Important)
+
+- Do not share `obj/bin` with Rider background builds when running validation builds from AIChat.
+- Use isolated outputs:
+  - `"/p:BaseOutputPath=<repo>\\.verify\\bin\\"`
+  - `"/p:BaseIntermediateOutputPath=<repo>\\.verify\\obj\\"`
+- Use a timeout watchdog for long-running builds and kill only the launched build process tree on timeout.
+- Preferred script:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\Build-RendererDemo-Verify.ps1
+```
+
 ### Log Inspection Safety (Important)
 
 - Do not run unbounded `Get-Content <file>` for large logs/files in AIChat.
