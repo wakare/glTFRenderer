@@ -26,6 +26,10 @@ public:
         float depth_weight_scale{100.0f};
         PanelShapeType shape_type{PanelShapeType::RoundedRect};
         float edge_softness{1.0f};
+        float thickness{0.02f};
+        float refraction_strength{1.2f};
+        float fresnel_intensity{0.10f};
+        float fresnel_power{5.0f};
         float custom_shape_index{0.0f};
         float pad0{0.0f};
     };
@@ -41,6 +45,7 @@ public:
     unsigned AddPanel(const FrostedGlassPanelDesc& panel_desc);
     bool UpdatePanel(unsigned index, const FrostedGlassPanelDesc& panel_desc);
     bool ContainsPanel(unsigned index) const;
+    RendererInterface::RenderTargetHandle GetOutput() const { return m_frosted_pass_output; }
 
     virtual bool Init(RendererInterface::ResourceOperator& resource_operator, RendererInterface::RenderGraph& graph) override;
     virtual bool HasInit() const override;
@@ -56,6 +61,7 @@ protected:
         glm::fvec4 corner_blur_rim{};
         glm::fvec4 tint_depth_weight{};
         glm::fvec4 shape_info{};
+        glm::fvec4 optical_info{};
     };
 
     struct FrostedGlassGlobalParams

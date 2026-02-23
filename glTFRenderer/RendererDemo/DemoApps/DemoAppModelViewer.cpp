@@ -45,6 +45,7 @@ bool DemoAppModelViewer::InitInternal(const std::vector<std::string>& arguments)
     m_scene = std::make_shared<RendererSystemSceneRenderer>(*m_resource_manager, camera_desc, "glTFResources/Models/Sponza/glTF/Sponza.gltf");
     m_lighting = std::make_shared<RendererSystemLighting>(*m_resource_manager, m_scene);
     m_frosted_glass = std::make_shared<RendererSystemFrostedGlass>(m_scene, m_lighting);
+    m_tone_map = std::make_shared<RendererSystemToneMap>(m_frosted_glass);
     {
         RendererSystemFrostedGlass::FrostedGlassPanelDesc panel_desc{};
         panel_desc.center_uv = {0.5f, 0.52f};
@@ -57,6 +58,10 @@ bool DemoAppModelViewer::InitInternal(const std::vector<std::string>& arguments)
         panel_desc.depth_weight_scale = 100.0f;
         panel_desc.shape_type = RendererSystemFrostedGlass::PanelShapeType::RoundedRect;
         panel_desc.edge_softness = 1.0f;
+        panel_desc.thickness = 0.02f;
+        panel_desc.refraction_strength = 1.2f;
+        panel_desc.fresnel_intensity = 0.10f;
+        panel_desc.fresnel_power = 5.0f;
         m_frosted_glass->AddPanel(panel_desc);
     }
     
@@ -72,6 +77,7 @@ bool DemoAppModelViewer::InitInternal(const std::vector<std::string>& arguments)
     m_systems.push_back(m_scene);
     m_systems.push_back(m_lighting);
     m_systems.push_back(m_frosted_glass);
+    m_systems.push_back(m_tone_map);
     
     // After registration all passes, compile graph and prepare for execution
     m_render_graph->CompileRenderPassAndExecute();

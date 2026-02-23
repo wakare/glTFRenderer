@@ -43,7 +43,7 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
     const unsigned height = m_scene->GetHeight();
     m_frosted_pass_output = resource_operator.CreateWindowRelativeRenderTarget(
         "FrostedGlass_Output",
-        RendererInterface::RGBA8_UNORM,
+        RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
         static_cast<RendererInterface::ResourceUsage>(
             RendererInterface::ResourceUsage::RENDER_TARGET |
@@ -86,6 +86,11 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
     input_depth_binding_desc.name = "InputDepthTex";
     input_depth_binding_desc.render_target_texture = {scene_output.GetRenderTargetHandle(*m_scene, "m_base_pass_depth")};
 
+    RendererInterface::RenderTargetTextureBindingDesc input_normal_binding_desc{};
+    input_normal_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
+    input_normal_binding_desc.name = "InputNormalTex";
+    input_normal_binding_desc.render_target_texture = {scene_output.GetRenderTargetHandle(*m_scene, "m_base_pass_normal")};
+
     RendererInterface::RenderTargetTextureBindingDesc output_binding_desc{};
     output_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::UAV;
     output_binding_desc.name = "Output";
@@ -94,6 +99,7 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
     frosted_pass_setup_info.sampled_render_targets = {
         input_color_binding_desc,
         input_depth_binding_desc,
+        input_normal_binding_desc,
         output_binding_desc
     };
 
@@ -234,6 +240,22 @@ void RendererSystemFrostedGlass::DrawDebugUI()
     {
         panel_dirty = true;
     }
+    if (ImGui::SliderFloat("Thickness", &panel.thickness, 0.0f, 0.10f, "%.3f"))
+    {
+        panel_dirty = true;
+    }
+    if (ImGui::SliderFloat("Refraction Strength", &panel.refraction_strength, 0.0f, 4.0f, "%.2f"))
+    {
+        panel_dirty = true;
+    }
+    if (ImGui::SliderFloat("Fresnel Intensity", &panel.fresnel_intensity, 0.0f, 0.6f, "%.3f"))
+    {
+        panel_dirty = true;
+    }
+    if (ImGui::SliderFloat("Fresnel Power", &panel.fresnel_power, 1.0f, 10.0f, "%.2f"))
+    {
+        panel_dirty = true;
+    }
 
     if (panel_dirty)
     {
@@ -253,6 +275,10 @@ void RendererSystemFrostedGlass::DrawDebugUI()
         panel.blur_strength = clamp(panel.blur_strength, 0.0f, 1.0f);
         panel.rim_intensity = clamp(panel.rim_intensity, 0.0f, 1.0f);
         panel.edge_softness = clamp(panel.edge_softness, 0.1f, 8.0f);
+        panel.thickness = clamp(panel.thickness, 0.0f, 0.2f);
+        panel.refraction_strength = clamp(panel.refraction_strength, 0.0f, 8.0f);
+        panel.fresnel_intensity = clamp(panel.fresnel_intensity, 0.0f, 1.0f);
+        panel.fresnel_power = clamp(panel.fresnel_power, 1.0f, 16.0f);
         m_need_upload_panels = true;
     }
 }
@@ -315,6 +341,12 @@ RendererSystemFrostedGlass::FrostedGlassPanelGpuData RendererSystemFrostedGlass:
         panel_desc.edge_softness,
         panel_desc.custom_shape_index,
         panel_desc.pad0
+    };
+    gpu_data.optical_info = {
+        panel_desc.thickness,
+        panel_desc.refraction_strength,
+        panel_desc.fresnel_intensity,
+        panel_desc.fresnel_power
     };
     return gpu_data;
 }

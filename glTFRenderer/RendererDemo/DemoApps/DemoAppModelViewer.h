@@ -6,6 +6,7 @@
 #include "RendererSystem/RendererSystemFrostedGlass.h"
 #include "RendererSystem/RendererSystemLighting.h"
 #include "RendererSystem/RendererSystemSceneRenderer.h"
+#include "RendererSystem/RendererSystemToneMap.h"
 
 class DemoAppModelViewer : public DemoBase
 {
@@ -20,6 +21,7 @@ protected:
     std::shared_ptr<RendererSystemSceneRenderer> m_scene;
     std::shared_ptr<RendererSystemLighting> m_lighting;
     std::shared_ptr<RendererSystemFrostedGlass> m_frosted_glass;
+    std::shared_ptr<RendererSystemToneMap> m_tone_map;
 
     unsigned m_directional_light_index{0};
     LightInfo m_directional_light_info{};

@@ -14,6 +14,12 @@ This folder contains architecture/algorithm docs for the current renderer framew
   - Internal split between resize coordinator and resource rebuilder.
 - `Doc/DocReferencePolicy.md`
   - Rules for stable references and doc reference validation.
+- `Doc/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
+  - Implementation and acceptance contract for frosted glass evolution on top of `RendererCore` and `RendererDemo`.
+- `Doc/FeatureNotes/Feature_Note_Template.md`
+  - Per-iteration feature note template for logic/algorithm summary and acceptance evidence archival.
+- `Doc/FeatureNotes/`
+  - Iteration-level implementation notes and acceptance evidence archives.
 
 ## Maintenance Rules
 

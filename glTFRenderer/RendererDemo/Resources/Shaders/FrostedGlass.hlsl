@@ -2,6 +2,7 @@
 
 Texture2D<float4> InputColorTex;
 Texture2D<float> InputDepthTex;
+Texture2D<float4> InputNormalTex;
 RWTexture2D<float4> Output;
 
 struct FrostedGlassPanelData
@@ -10,6 +11,7 @@ struct FrostedGlassPanelData
     float4 corner_blur_rim;     // x: corner radius, y: blur sigma, z: blur strength, w: rim intensity
     float4 tint_depth_weight;   // rgb: tint color, w: depth-aware weight scale
     float4 shape_info;          // x: shape type, y: edge softness, z: custom shape index, w: reserved
+    float4 optical_info;        // x: thickness, y: refraction strength, z: fresnel intensity, w: fresnel power
 };
 
 cbuffer FrostedGlassGlobalBuffer
@@ -38,6 +40,45 @@ float SampleDepthSafe(int2 pixel)
 float3 SampleColorSafe(int2 pixel)
 {
     return InputColorTex.Load(int3(ClampToViewport(pixel), 0)).rgb;
+}
+
+float3 SampleNormalSafe(int2 pixel)
+{
+    float3 normal = InputNormalTex.Load(int3(ClampToViewport(pixel), 0)).xyz * 2.0f - 1.0f;
+    const float length_sq = dot(normal, normal);
+    if (length_sq < 1e-6f)
+    {
+        return float3(0.0f, 0.0f, 1.0f);
+    }
+    return normal * rsqrt(length_sq);
+}
+
+bool IsDepthValid(float depth)
+{
+    const float clear_depth_epsilon = 1e-5f;
+    return depth < (1.0f - clear_depth_epsilon);
+}
+
+bool TryGetWorldPosition(int2 pixel, float depth, out float3 world_position)
+{
+    if (!IsDepthValid(depth))
+    {
+        world_position = 0.0f;
+        return false;
+    }
+
+    const float2 uv = pixel / float2(viewport_width - 1, viewport_height - 1);
+    const float4 clip_space_coord = float4(2.0f * uv.x - 1.0f, 1.0f - 2.0f * uv.y, depth, 1.0f);
+    float4 world_space_coord = mul(inverse_view_projection_matrix, clip_space_coord);
+
+    if (abs(world_space_coord.w) < 1e-6f)
+    {
+        world_position = 0.0f;
+        return false;
+    }
+
+    world_position = world_space_coord.xyz / world_space_coord.w;
+    return true;
 }
 
 float RoundedRectSDF(float2 p, float2 center, float2 half_size, float corner_radius)
@@ -84,6 +125,22 @@ float CalcPanelRimFromSDF(float sdf, float edge_softness)
     const float edge_scale = max(edge_softness, 0.1f);
     const float aa = edge_scale * 2.0f / min((float)viewport_width, (float)viewport_height);
     return exp(-abs(sdf) / (aa * 4.0f));
+}
+
+float2 CalcPanelNormalFromSDF(float2 uv, FrostedGlassPanelData panel_data)
+{
+    const float pixel_to_uv = 1.0f / min((float)viewport_width, (float)viewport_height);
+    const float2 du = float2(pixel_to_uv, 0.0f);
+    const float2 dv = float2(0.0f, pixel_to_uv);
+    const float dsdx = CalcPanelSDF(uv + du, panel_data) - CalcPanelSDF(uv - du, panel_data);
+    const float dsdy = CalcPanelSDF(uv + dv, panel_data) - CalcPanelSDF(uv - dv, panel_data);
+    const float2 gradient = float2(dsdx, dsdy);
+    const float gradient_len_sq = dot(gradient, gradient);
+    if (gradient_len_sq < 1e-8f)
+    {
+        return float2(0.0f, 0.0f);
+    }
+    return gradient * rsqrt(gradient_len_sq);
 }
 
 float3 CalcDepthAwareBlurColor(int2 center_pixel, float center_depth, float blur_sigma, float depth_weight_scale)
@@ -136,6 +193,11 @@ void main(int3 dispatch_thread_id : SV_DispatchThreadID)
     const float depth_dy = abs(SampleDepthSafe(pixel + int2(0, 1)) - SampleDepthSafe(pixel - int2(0, 1)));
     const float scene_edge = saturate((depth_dx + depth_dy) * scene_edge_scale);
     const float center_depth = SampleDepthSafe(pixel);
+    const float3 center_normal = SampleNormalSafe(pixel);
+    float3 world_position = 0.0f;
+    const bool valid_world_position = TryGetWorldPosition(pixel, center_depth, world_position);
+    const float3 view_dir = valid_world_position ? normalize(view_position.xyz - world_position) : float3(0.0f, 0.0f, 1.0f);
+    const float n_dot_v = saturate(abs(dot(center_normal, view_dir)));
 
     [loop]
     for (uint panel_index = 0; panel_index < panel_count; ++panel_index)
@@ -147,6 +209,10 @@ void main(int3 dispatch_thread_id : SV_DispatchThreadID)
         const float3 panel_tint = panel_data.tint_depth_weight.rgb;
         const float panel_depth_weight_scale = panel_data.tint_depth_weight.w;
         const float panel_edge_softness = panel_data.shape_info.y;
+        const float panel_thickness = panel_data.optical_info.x;
+        const float panel_refraction_strength = panel_data.optical_info.y;
+        const float panel_fresnel_intensity = panel_data.optical_info.z;
+        const float panel_fresnel_power = panel_data.optical_info.w;
 
         const float panel_sdf = CalcPanelSDF(uv, panel_data);
         const float panel_mask = CalcPanelMaskFromSDF(panel_sdf, panel_edge_softness);
@@ -155,10 +221,39 @@ void main(int3 dispatch_thread_id : SV_DispatchThreadID)
             continue;
         }
 
-        const float3 blurred_color = CalcDepthAwareBlurColor(pixel, center_depth, panel_blur_sigma, panel_depth_weight_scale);
-        float3 frosted_color = lerp(final_color, blurred_color * panel_tint, panel_blur_strength);
+        const float2 panel_normal_uv = CalcPanelNormalFromSDF(uv, panel_data);
+        float2 refraction_direction = panel_normal_uv * 0.7f + center_normal.xy * 0.3f;
+        const float refraction_dir_len_sq = dot(refraction_direction, refraction_direction);
+        if (refraction_dir_len_sq > 1e-6f)
+        {
+            refraction_direction *= rsqrt(refraction_dir_len_sq);
+        }
+        else
+        {
+            refraction_direction = 0.0f;
+        }
+
         const float rim = CalcPanelRimFromSDF(panel_sdf, panel_edge_softness);
-        frosted_color += rim * (panel_rim_intensity + scene_edge * panel_rim_intensity * 2.5f);
+        const float fresnel_term = pow(saturate(1.0f - n_dot_v), max(panel_fresnel_power, 1.0f));
+        const float mixed_fresnel = saturate(fresnel_term + rim * 0.35f);
+        const float2 refraction_uv = uv + refraction_direction * panel_thickness * panel_refraction_strength * (0.2f + mixed_fresnel);
+        const int2 refracted_pixel = ClampToViewport(int2(refraction_uv * float2((float)viewport_width, (float)viewport_height)));
+        float blur_depth = SampleDepthSafe(refracted_pixel);
+        if (!IsDepthValid(blur_depth))
+        {
+            blur_depth = center_depth;
+        }
+
+        const float3 blurred_color = CalcDepthAwareBlurColor(refracted_pixel, blur_depth, panel_blur_sigma, panel_depth_weight_scale);
+        float3 frosted_color = lerp(final_color, blurred_color * panel_tint, panel_blur_strength);
+
+        const float scene_luminance = dot(final_color, float3(0.2126f, 0.7152f, 0.0722f));
+        const float highlight_compress = lerp(1.0f, 0.45f, saturate(scene_luminance));
+        const float rim_term = rim * panel_rim_intensity * (1.0f + scene_edge * 1.5f);
+        const float fresnel_highlight = mixed_fresnel * panel_fresnel_intensity * highlight_compress;
+        const float3 highlight_tint = lerp(float3(1.0f, 1.0f, 1.0f), panel_tint, 0.35f);
+        frosted_color += highlight_tint * (rim_term + fresnel_highlight);
+
         final_color = lerp(final_color, frosted_color, panel_mask);
     }
 

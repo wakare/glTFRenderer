@@ -72,6 +72,21 @@ powershell -ExecutionPolicy Bypass -File .\scripts\Build-RendererDemo-Verify.ps1
 - For code/text lookup, prefer `rg`/`rg -n` over full file dumping.
 - If output may still be large, redirect filtered results to a file and only report summary in chat.
 
+### AIChat Output Throttle (Important)
+
+- Never print high-volume command output directly to chat.
+- For potentially huge result sets (example: `rg --files`, broad `rg` over repo root), always redirect output to a file first, then report only summary metrics in chat.
+- Prefer summary-first commands for discovery:
+  - counts (`Measure-Object`, `rg ... | measure`)
+  - top-N sampling (`Select-Object -First 20`)
+  - scoped searches (limit folders/file globs)
+- For long-running commands, use quiet execution with redirected stdout/stderr and share only:
+  - status
+  - warning/error counts
+  - key diagnostics
+  - output file paths
+- If a command unexpectedly emits too much output, stop, switch to redirected mode, and continue with summarized reporting only.
+
 ### Hang / Stuck Triage (MSBuild)
 
 - If Task Manager shows only `MSBuild.exe` at `0% CPU` and no `cl.exe`/`link.exe`, suspect a stuck/orphaned host process.

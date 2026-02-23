@@ -30,6 +30,9 @@
     <ClCompile Include="RendererSystem\RendererSystemFrostedGlass.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="RendererSystem\RendererSystemToneMap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="SceneRendererUtil\SceneRendererDrawDispatcher.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -47,6 +50,9 @@
     <ClInclude Include="RendererSystem\RendererSystemFrostedGlass.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="RendererSystem\RendererSystemToneMap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="SceneRendererUtil\SceneRendererDrawDispatcher.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -55,6 +61,7 @@
     <None Include="Resources\Shaders\SceneRendererCommon.hlsl" />
     <None Include="Resources\Shaders\ModelRenderingShader.hlsl" />
     <None Include="Resources\Shaders\FrostedGlass.hlsl" />
+    <None Include="Resources\Shaders\ToneMap.hlsl" />
     <None Include="Resources\Shaders\ShaderDeclarationUtil.hlsl" />
     <None Include="Resources\Shaders\DemoShader.hlsl" />
   </ItemGroup>

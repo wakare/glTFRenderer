@@ -83,6 +83,6 @@ void main(int3 dispatchThreadID : SV_DispatchThreadID)
     
         float3 final_lighting = GetLighting(shading_info, view);
     
-        Output[dispatchThreadID.xy] = float4(LinearToSrgb(final_lighting), 1.0);    
+        Output[dispatchThreadID.xy] = float4(final_lighting, 1.0);
     }
 }

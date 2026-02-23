@@ -178,6 +178,7 @@
     <ClCompile Include="RendererSystem\RendererSystemFrostedGlass.cpp" />
     <ClCompile Include="RendererSystem\RendererSystemLighting.cpp" />
     <ClCompile Include="RendererSystem\RendererSystemSceneRenderer.cpp" />
+    <ClCompile Include="RendererSystem\RendererSystemToneMap.cpp" />
     <None Include="Resources\Shaders\BindlessTextureDefine.hlsl" />
     <None Include="Resources\Shaders\SceneRendererCommon.hlsl" />
     <ClCompile Include="RendererModule\RendererModuleCamera.cpp" />
@@ -193,6 +194,7 @@
     <None Include="Resources\Shaders\FrostedGlass.hlsl" />
     <None Include="Resources\Shaders\RendererModule\RendererModuleLighting.hlsl" />
     <None Include="Resources\Shaders\SceneLighting.hlsl" />
+    <None Include="Resources\Shaders\ToneMap.hlsl" />
     <None Include="Resources\Shaders\SceneViewCommon.hlsl" />
     <None Include="Resources\Shaders\ModelRenderingShader.hlsl" />
     <None Include="Resources\Shaders\DemoShader.hlsl" />
@@ -209,6 +211,7 @@
     <ClInclude Include="RendererSystem\RendererSystemFrostedGlass.h" />
     <ClInclude Include="RendererSystem\RendererSystemLighting.h" />
     <ClInclude Include="RendererSystem\RendererSystemSceneRenderer.h" />
+    <ClInclude Include="RendererSystem\RendererSystemToneMap.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

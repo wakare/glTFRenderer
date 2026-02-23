@@ -48,7 +48,7 @@ bool RendererSystemLighting::Init(RendererInterface::ResourceOperator& resource_
 {
     GLTF_CHECK(m_scene->HasInit());
     
-    m_lighting_pass_output = resource_operator.CreateWindowRelativeRenderTarget("LightingPass_Output", RendererInterface::RGBA8_UNORM, RendererInterface::default_clear_color,
+    m_lighting_pass_output = resource_operator.CreateWindowRelativeRenderTarget("LightingPass_Output", RendererInterface::RGBA16_FLOAT, RendererInterface::default_clear_color,
         static_cast<RendererInterface::ResourceUsage>(RendererInterface::ResourceUsage::RENDER_TARGET | RendererInterface::ResourceUsage::COPY_SRC | RendererInterface::ResourceUsage::UNORDER_ACCESS | RendererInterface::ResourceUsage::SHADER_RESOURCE));
     
     auto m_camera_module = m_scene->GetCameraModule();
