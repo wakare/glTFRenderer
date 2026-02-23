@@ -26,28 +26,7 @@ public:
         RendererInterface::ResourceUsage usage);
     
 protected:
-    struct RenderPassSetupInfo
-    {
-        struct ShaderSetupInfo
-        {
-            RendererInterface::ShaderType shader_type;
-            std::string entry_function;
-            std::string shader_file;
-        };
-        
-        RendererInterface::RenderPassType render_pass_type;
-        std::vector<ShaderSetupInfo> shader_setup_infos;
-        std::map<RendererInterface::RenderTargetHandle, RendererInterface::RenderTargetBindingDesc> render_targets;
-        std::map<RendererInterface::RenderTargetHandle, RendererInterface::RenderTargetTextureBindingDesc> sampled_render_targets;
-        std::vector<std::shared_ptr<RendererInterface::RendererModuleBase>> modules;
-
-        std::optional<RendererInterface::RenderExecuteCommand> execute_command;
-        std::string debug_group;
-        std::string debug_name;
-    };
-    
     void TickFrame(unsigned long long time_interval);
-    RendererInterface::RenderGraphNodeHandle SetupPassNode(const RenderPassSetupInfo& setup_info);
     void DrawDebugUI();
     
     virtual bool InitInternal(const std::vector<std::string>& arguments) = 0;

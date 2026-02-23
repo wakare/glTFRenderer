@@ -101,62 +101,6 @@ void DemoBase::TickFrame(unsigned long long time_interval)
     }
 }
 
-RendererInterface::RenderGraphNodeHandle DemoBase::SetupPassNode(const RenderPassSetupInfo& setup_info)
-{
-    RendererInterface::RenderPassDesc render_pass_desc{};
-    render_pass_desc.type = setup_info.render_pass_type;
-    
-    for (const auto& shader_info : setup_info.shader_setup_infos)
-    {
-        auto shader_handle = CreateShader(shader_info.shader_type, shader_info.shader_file, shader_info.entry_function);
-        render_pass_desc.shaders.emplace(shader_info.shader_type, shader_handle);
-    }
-    
-    RendererInterface::RenderPassDrawDesc render_pass_draw_desc{};
-    for (const auto& module : setup_info.modules)
-    {
-        module->BindDrawCommands(render_pass_draw_desc);
-    }
-
-    switch (setup_info.render_pass_type)
-    {
-    case RendererInterface::RenderPassType::GRAPHICS:
-        for (const auto& render_target : setup_info.render_targets)
-        {
-            render_pass_desc.render_target_bindings.push_back(render_target.second);
-            render_pass_draw_desc.render_target_resources.emplace(render_target.first, render_target.second);
-        }
-        break;
-    case RendererInterface::RenderPassType::COMPUTE:
-        break;
-    case RendererInterface::RenderPassType::RAY_TRACING:
-        break;
-    }
-    
-    for (const auto& render_target : setup_info.sampled_render_targets)
-    {
-        render_pass_draw_desc.render_target_texture_resources[render_target.second.name] = render_target.second;
-    }
-    
-    if (setup_info.execute_command.has_value())
-    {
-        render_pass_draw_desc.execute_commands.push_back(setup_info.execute_command.value());    
-    }
-    
-    auto render_pass_handle = m_resource_manager->CreateRenderPass(render_pass_desc);
-    
-    RendererInterface::RenderGraphNodeDesc render_graph_node_desc{};
-    render_graph_node_desc.draw_info = render_pass_draw_desc;
-    render_graph_node_desc.render_pass_handle = render_pass_handle;
-    render_graph_node_desc.debug_group = setup_info.debug_group.empty() ? "Demo" : setup_info.debug_group;
-    render_graph_node_desc.debug_name = setup_info.debug_name;
-
-    auto render_graph_node_handle = m_render_graph->CreateRenderGraphNode(render_graph_node_desc);
-    m_render_graph->RegisterRenderGraphNode(render_graph_node_handle);
-
-    return render_graph_node_handle;
-}
-
 void DemoBase::TickFrameInternal(unsigned long long time_interval)
 {
 }
