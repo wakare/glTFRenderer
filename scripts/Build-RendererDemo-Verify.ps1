@@ -28,7 +28,14 @@ function Get-BuildCountFromLog {
         return 0
     }
 
-    $lastMatch = $matches[-1].Matches[0].Groups[1].Value
+    $lastGroups = $matches[-1].Matches[0].Groups
+    $lastMatch = $null
+    for ($groupIndex = 1; $groupIndex -lt $lastGroups.Count; $groupIndex++) {
+        if (-not [string]::IsNullOrWhiteSpace($lastGroups[$groupIndex].Value)) {
+            $lastMatch = $lastGroups[$groupIndex].Value
+            break
+        }
+    }
     if ([string]::IsNullOrWhiteSpace($lastMatch)) {
         return 0
     }
@@ -81,7 +88,9 @@ $process = Start-Process -FilePath $MsBuildPath -ArgumentList $args -NoNewWindow
     -RedirectStandardOutput $std -RedirectStandardError $err
 
 $timedOut = $false
+$buildStopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 $finished = $process.WaitForExit($TimeoutSec * 1000)
+$buildStopwatch.Stop()
 if (-not $finished) {
     $timedOut = $true
     try { Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue } catch {}
@@ -97,15 +106,19 @@ if (-not $finished) {
 
 $warningCount = Get-BuildCountFromLog -LogPath $txt -Pattern '(\d+)\s+Warning\(s\)'
 $errorCount = Get-BuildCountFromLog -LogPath $txt -Pattern '(\d+)\s+Error\(s\)'
-$buildFailed = Select-String -Path $txt -Pattern 'Build FAILED\.' -CaseSensitive:$false -Quiet
-$buildSucceeded = Select-String -Path $txt -Pattern 'Build succeeded\.' -CaseSensitive:$false -Quiet
+if ($warningCount -eq 0) {
+    $warningCount = (Select-String -Path $txt -Pattern ':\s*warning\s+[A-Za-z]*\d+' -CaseSensitive:$false | Measure-Object).Count
+}
+if ($errorCount -eq 0) {
+    $errorCount = (Select-String -Path $txt -Pattern ':\s*error\s+[A-Za-z]*\d+' -CaseSensitive:$false | Measure-Object).Count
+}
 
 $status = "BuildUnknown"
 if ($timedOut) {
     $status = "BuildTimeout"
-} elseif ($exitCode -eq 0 -and $buildSucceeded) {
+} elseif ($exitCode -eq 0 -and $errorCount -eq 0) {
     $status = "BuildSucceeded"
-} elseif ($buildFailed -or $exitCode -ne 0) {
+} elseif ($exitCode -ne 0 -or $errorCount -gt 0) {
     $status = "BuildFailed"
 }
 if ($status -eq "BuildFailed" -and $exitCode -eq 0) {
@@ -114,6 +127,8 @@ if ($status -eq "BuildFailed" -and $exitCode -eq 0) {
 
 Write-Host "STATUS=$status"
 Write-Host "EXITCODE=$exitCode"
+Write-Host "MSBUILD_PID=$($process.Id)"
+Write-Host "DURATION_MS=$($buildStopwatch.ElapsedMilliseconds)"
 Write-Host "WARNINGS=$warningCount"
 Write-Host "ERRORS=$errorCount"
 Write-Host "TXT=$txt"
