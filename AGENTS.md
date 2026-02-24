@@ -64,6 +64,15 @@ Start-Process -FilePath $msbuild -ArgumentList $args -NoNewWindow -Wait `
 powershell -ExecutionPolicy Bypass -File .\scripts\Build-RendererDemo-Verify.ps1
 ```
 
+### Build Completion Detection (Important)
+
+- Do not infer build completion from global `msbuild.exe` process count (Rider may keep background temp-project hosts alive).
+- For `scripts/Build-RendererDemo-Verify.ps1`, use the wrapper result as source of truth:
+  - process exit code
+  - `STATUS=...` line in wrapper stdout log
+  - recorded `MSBUILD_PID` + `DURATION_MS`
+- Avoid nested `Start-Process` wrappers when launching the verify script from AIChat; run the script directly and redirect its stdout/stderr to files.
+
 ### Log Inspection Safety (Important)
 
 - Do not run unbounded `Get-Content <file>` for large logs/files in AIChat.

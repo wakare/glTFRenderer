@@ -234,7 +234,7 @@ bool glTFRenderResourceManager::InitMemoryManager()
     m_memory_manager = RHIResourceFactory::CreateRHIResource<IRHIMemoryManager>();
     EXIT_WHEN_FALSE(m_memory_manager->InitMemoryManager(*m_device, *m_factory,
             {
-            256,
+            512,
             64,
             64
             }))

@@ -6,7 +6,7 @@ cbuffer FrostedGlassGlobalBuffer
     uint panel_count;
     uint blur_radius;
     float scene_edge_scale;
-    float pad0;
+    float blur_kernel_sigma_scale;
 };
 
 int2 ClampToExtent(int2 pixel, int2 extent)
@@ -29,7 +29,8 @@ float GaussianWeight(int offset, float sigma)
 float4 Blur1D(int2 pixel, int2 direction, int2 input_extent)
 {
     const int radius = max((int)blur_radius, 1);
-    const float sigma = max((float)radius * 0.5f, 0.8f);
+    const float sigma_scale = max(blur_kernel_sigma_scale, 0.1f);
+    const float sigma = max((float)radius * 0.5f * sigma_scale, 0.8f);
     float4 accumulated_color = 0.0f;
     float accumulated_weight = 0.0f;
 

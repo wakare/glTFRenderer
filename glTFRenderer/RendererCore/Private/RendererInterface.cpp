@@ -582,10 +582,30 @@ namespace RendererInterface
                 io_cache_state.cached_execution_signature = plan.signature;
                 io_cache_state.cached_execution_node_count = context.nodes.size();
 
-                if (plan.auto_merged_dependency_count > 0)
                 {
-                    LOG_FORMAT_FLUSH("[RenderGraph][Dependency] Auto-merged %zu inferred dependencies into execution plan.\n",
-                        plan.auto_merged_dependency_count);
+                    static bool s_has_auto_merge_log_state = false;
+                    static std::size_t s_last_auto_merged_dependency_count = 0;
+                    static std::chrono::steady_clock::time_point s_last_auto_merge_log_time{};
+                    if (plan.auto_merged_dependency_count > 0)
+                    {
+                        const auto now = std::chrono::steady_clock::now();
+                        constexpr auto auto_merge_log_min_interval = std::chrono::seconds(5);
+                        const bool count_changed =
+                            !s_has_auto_merge_log_state ||
+                            s_last_auto_merged_dependency_count != plan.auto_merged_dependency_count;
+                        const bool interval_elapsed =
+                            !s_has_auto_merge_log_state ||
+                            (now - s_last_auto_merge_log_time) >= auto_merge_log_min_interval;
+                        if (count_changed || interval_elapsed)
+                        {
+                            LOG_FORMAT_FLUSH("[RenderGraph][Dependency] Auto-merged %zu inferred dependencies into execution plan.\n",
+                                plan.auto_merged_dependency_count);
+                            s_last_auto_merge_log_time = now;
+                        }
+                    }
+
+                    s_has_auto_merge_log_state = true;
+                    s_last_auto_merged_dependency_count = plan.auto_merged_dependency_count;
                 }
 
                 if (plan.has_invalid_explicit_dependency)

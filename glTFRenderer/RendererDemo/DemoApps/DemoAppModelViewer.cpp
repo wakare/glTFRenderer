@@ -82,18 +82,32 @@ bool DemoAppModelViewer::InitInternal(const std::vector<std::string>& arguments)
         panel_desc.center_uv = {0.5f, 0.52f};
         panel_desc.half_size_uv = {0.30f, 0.20f};
         panel_desc.corner_radius = 0.03f;
-        panel_desc.blur_sigma = 3.0f;
-        panel_desc.blur_strength = 0.72f;
-        panel_desc.rim_intensity = 0.10f;
-        panel_desc.tint_color = {0.92f, 0.96f, 1.0f};
+        panel_desc.blur_sigma = 8.5f;
+        panel_desc.blur_strength = 0.92f;
+        panel_desc.rim_intensity = 0.03f;
+        panel_desc.tint_color = {0.94f, 0.97f, 1.0f};
         panel_desc.depth_weight_scale = 100.0f;
         panel_desc.shape_type = RendererSystemFrostedGlass::PanelShapeType::RoundedRect;
-        panel_desc.edge_softness = 1.0f;
-        panel_desc.thickness = 0.02f;
-        panel_desc.refraction_strength = 1.2f;
-        panel_desc.fresnel_intensity = 0.10f;
-        panel_desc.fresnel_power = 5.0f;
+        panel_desc.edge_softness = 1.25f;
+        panel_desc.thickness = 0.014f;
+        panel_desc.refraction_strength = 0.90f;
+        panel_desc.fresnel_intensity = 0.02f;
+        panel_desc.fresnel_power = 6.0f;
+        panel_desc.layer_order = 0.0f;
         m_frosted_glass->AddPanel(panel_desc);
+
+        RendererSystemFrostedGlass::FrostedGlassPanelDesc irregular_panel_desc = panel_desc;
+        irregular_panel_desc.center_uv = {0.62f, 0.48f};
+        irregular_panel_desc.half_size_uv = {0.16f, 0.12f};
+        irregular_panel_desc.corner_radius = 0.02f;
+        irregular_panel_desc.blur_sigma = 11.0f;
+        irregular_panel_desc.blur_strength = 0.96f;
+        irregular_panel_desc.rim_intensity = 0.04f;
+        irregular_panel_desc.tint_color = {0.92f, 0.97f, 1.0f};
+        irregular_panel_desc.shape_type = RendererSystemFrostedGlass::PanelShapeType::ShapeMask;
+        irregular_panel_desc.custom_shape_index = 2.0f;
+        irregular_panel_desc.layer_order = 1.0f;
+        m_frosted_glass->AddPanel(irregular_panel_desc);
     }
     
     // Add test light

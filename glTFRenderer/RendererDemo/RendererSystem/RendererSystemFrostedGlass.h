@@ -42,29 +42,30 @@ public:
         glm::fvec2 center_uv{0.5f, 0.52f};
         glm::fvec2 half_size_uv{0.30f, 0.20f};
         float corner_radius{0.03f};
-        float blur_sigma{3.0f};
-        float blur_strength{0.72f};
-        float rim_intensity{0.10f};
-        glm::fvec3 tint_color{0.92f, 0.96f, 1.0f};
+        float blur_sigma{8.5f};
+        float blur_strength{0.92f};
+        float rim_intensity{0.03f};
+        glm::fvec3 tint_color{0.94f, 0.97f, 1.0f};
         float depth_weight_scale{100.0f};
         PanelShapeType shape_type{PanelShapeType::RoundedRect};
-        float edge_softness{1.0f};
-        float thickness{0.02f};
-        float refraction_strength{1.2f};
-        float fresnel_intensity{0.10f};
-        float fresnel_power{5.0f};
+        float edge_softness{1.25f};
+        float thickness{0.014f};
+        float refraction_strength{0.90f};
+        float fresnel_intensity{0.02f};
+        float fresnel_power{6.0f};
         float custom_shape_index{0.0f};
         float panel_alpha{1.0f};
+        float layer_order{0.0f};
         PanelInteractionState interaction_state{PanelInteractionState::Idle};
         float interaction_transition_speed{10.0f};
         float interaction_pad0{0.0f};
         float interaction_pad1{0.0f};
         std::array<PanelStateCurve, PANEL_INTERACTION_STATE_COUNT> state_curves{{
             {1.00f, 1.00f, 1.00f, 1.00f, 1.00f}, // Idle
-            {1.20f, 1.08f, 1.20f, 1.15f, 1.00f}, // Hover
-            {0.95f, 0.90f, 1.45f, 1.35f, 0.95f}, // Grab
-            {1.35f, 1.20f, 1.10f, 1.05f, 0.90f}, // Move
-            {1.45f, 1.25f, 1.25f, 1.20f, 0.90f}  // Scale
+            {1.12f, 1.05f, 1.05f, 1.03f, 1.00f}, // Hover
+            {0.98f, 0.95f, 1.12f, 1.08f, 0.96f}, // Grab
+            {1.22f, 1.12f, 1.02f, 0.98f, 0.92f}, // Move
+            {1.28f, 1.16f, 1.06f, 1.00f, 0.92f}  // Scale
         }};
     };
 
@@ -114,18 +115,34 @@ protected:
         glm::fvec4 tint_depth_weight{};
         glm::fvec4 shape_info{};
         glm::fvec4 optical_info{};
+        glm::fvec4 layering_info{};
     };
 
     struct FrostedGlassGlobalParams
     {
         unsigned panel_count{0};
-        unsigned blur_radius{5};
+        unsigned blur_radius{9};
         float scene_edge_scale{40.0f};
+        float blur_kernel_sigma_scale{1.90f};
         float temporal_history_blend{0.90f};
         float temporal_reject_velocity{0.03f};
         float temporal_edge_reject{1.0f};
         unsigned temporal_history_valid{0};
-        unsigned pad0{0};
+        unsigned multilayer_mode{1};
+        float multilayer_overlap_threshold{0.08f};
+        float multilayer_back_layer_weight{1.00f};
+        float multilayer_front_transmittance{1.00f};
+        unsigned multilayer_runtime_enabled{1};
+        float multilayer_frame_budget_ms{22.0f};
+        float blur_quarter_mix_boost{0.50f};
+        float blur_response_scale{2.20f};
+        float blur_sigma_normalization{5.5f};
+        float depth_aware_min_strength{0.18f};
+        float blur_veil_strength{1.35f};
+        float blur_contrast_compression{0.90f};
+        float blur_veil_tint_mix{0.55f};
+        float blur_detail_preservation{0.04f};
+        float pad0{0.0f};
     };
 
     struct PanelRuntimeState
@@ -153,14 +170,68 @@ protected:
     RendererInterface::RenderGraphNodeHandle m_downsample_quarter_pass_node{NULL_HANDLE};
     RendererInterface::RenderGraphNodeHandle m_blur_quarter_horizontal_pass_node{NULL_HANDLE};
     RendererInterface::RenderGraphNodeHandle m_blur_quarter_vertical_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_downsample_eighth_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_blur_eighth_horizontal_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_blur_eighth_vertical_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_downsample_sixteenth_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_blur_sixteenth_horizontal_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_blur_sixteenth_vertical_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_downsample_thirtysecond_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_blur_thirtysecond_horizontal_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_blur_thirtysecond_vertical_pass_node{NULL_HANDLE};
     RendererInterface::RenderGraphNodeHandle m_frosted_mask_parameter_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_frosted_composite_back_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_downsample_half_multilayer_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_blur_half_multilayer_horizontal_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_blur_half_multilayer_vertical_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_downsample_quarter_multilayer_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_blur_quarter_multilayer_horizontal_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_blur_quarter_multilayer_vertical_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_downsample_eighth_multilayer_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_blur_eighth_multilayer_horizontal_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_blur_eighth_multilayer_vertical_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_downsample_sixteenth_multilayer_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_blur_sixteenth_multilayer_horizontal_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_blur_sixteenth_multilayer_vertical_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_downsample_thirtysecond_multilayer_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_blur_thirtysecond_multilayer_horizontal_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_blur_thirtysecond_multilayer_vertical_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_frosted_composite_front_history_ab_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_frosted_composite_front_history_ba_pass_node{NULL_HANDLE};
     RendererInterface::RenderGraphNodeHandle m_frosted_composite_history_ab_pass_node{NULL_HANDLE};
     RendererInterface::RenderGraphNodeHandle m_frosted_composite_history_ba_pass_node{NULL_HANDLE};
     RendererInterface::RenderTargetHandle m_frosted_pass_output{NULL_HANDLE};
+    RendererInterface::RenderTargetHandle m_frosted_back_composite_output{NULL_HANDLE};
     RendererInterface::RenderTargetHandle m_frosted_mask_parameter_output{NULL_HANDLE};
+    RendererInterface::RenderTargetHandle m_frosted_mask_parameter_secondary_output{NULL_HANDLE};
     RendererInterface::RenderTargetHandle m_frosted_panel_optics_output{NULL_HANDLE};
+    RendererInterface::RenderTargetHandle m_frosted_panel_optics_secondary_output{NULL_HANDLE};
+    RendererInterface::RenderTargetHandle m_half_multilayer_ping{NULL_HANDLE};
+    RendererInterface::RenderTargetHandle m_half_multilayer_pong{NULL_HANDLE};
+    RendererInterface::RenderTargetHandle m_quarter_multilayer_ping{NULL_HANDLE};
+    RendererInterface::RenderTargetHandle m_quarter_multilayer_pong{NULL_HANDLE};
+    RendererInterface::RenderTargetHandle m_eighth_blur_ping{NULL_HANDLE};
+    RendererInterface::RenderTargetHandle m_eighth_blur_pong{NULL_HANDLE};
+    RendererInterface::RenderTargetHandle m_sixteenth_blur_ping{NULL_HANDLE};
+    RendererInterface::RenderTargetHandle m_sixteenth_blur_pong{NULL_HANDLE};
+    RendererInterface::RenderTargetHandle m_thirtysecond_blur_ping{NULL_HANDLE};
+    RendererInterface::RenderTargetHandle m_thirtysecond_blur_pong{NULL_HANDLE};
+    RendererInterface::RenderTargetHandle m_eighth_multilayer_ping{NULL_HANDLE};
+    RendererInterface::RenderTargetHandle m_eighth_multilayer_pong{NULL_HANDLE};
+    RendererInterface::RenderTargetHandle m_sixteenth_multilayer_ping{NULL_HANDLE};
+    RendererInterface::RenderTargetHandle m_sixteenth_multilayer_pong{NULL_HANDLE};
+    RendererInterface::RenderTargetHandle m_thirtysecond_multilayer_ping{NULL_HANDLE};
+    RendererInterface::RenderTargetHandle m_thirtysecond_multilayer_pong{NULL_HANDLE};
     RendererInterface::RenderTargetHandle m_half_blur_final_output{NULL_HANDLE};
     RendererInterface::RenderTargetHandle m_quarter_blur_final_output{NULL_HANDLE};
+    RendererInterface::RenderTargetHandle m_eighth_blur_final_output{NULL_HANDLE};
+    RendererInterface::RenderTargetHandle m_sixteenth_blur_final_output{NULL_HANDLE};
+    RendererInterface::RenderTargetHandle m_thirtysecond_blur_final_output{NULL_HANDLE};
+    RendererInterface::RenderTargetHandle m_half_multilayer_blur_final_output{NULL_HANDLE};
+    RendererInterface::RenderTargetHandle m_quarter_multilayer_blur_final_output{NULL_HANDLE};
+    RendererInterface::RenderTargetHandle m_eighth_multilayer_blur_final_output{NULL_HANDLE};
+    RendererInterface::RenderTargetHandle m_sixteenth_multilayer_blur_final_output{NULL_HANDLE};
+    RendererInterface::RenderTargetHandle m_thirtysecond_multilayer_blur_final_output{NULL_HANDLE};
     RendererInterface::RenderTargetHandle m_temporal_history_a{NULL_HANDLE};
     RendererInterface::RenderTargetHandle m_temporal_history_b{NULL_HANDLE};
     PostFxSharedResources m_postfx_shared_resources{};
@@ -175,6 +246,9 @@ protected:
     bool m_temporal_history_read_is_a{true};
     bool m_temporal_force_reset{true};
     bool m_temporal_history_valid{false};
+    bool m_multilayer_runtime_enabled{true};
+    unsigned m_multilayer_over_budget_streak{0};
+    unsigned m_multilayer_cooldown_frames{0};
     unsigned m_debug_selected_panel_index{0};
     unsigned m_debug_selected_curve_state_index{0};
 };

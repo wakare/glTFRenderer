@@ -1,7 +1,7 @@
 # RendererDemo Frosted Glass Development and Acceptance Plan
 
-- Version: v1.0
-- Date: 2026-02-23
+- Version: v1.1
+- Date: 2026-02-24
 - Scope: `RendererCore` + `RendererDemo`
 - Status: Approved baseline for implementation and acceptance
 
@@ -38,6 +38,7 @@ This plan is based on the current implementation in repository `glTFRenderer`.
 - GBuffer is minimal and does not provide velocity/history-friendly data.
 - Frosted glass is a single heavy pass and lacks temporal stabilization.
 - Interactive state flow (hover/grab/move/scale) is not yet integrated into panel behavior.
+- Current overlap handling is single-winner per pixel and cannot reproduce multi-layer glass stacking behavior closely.
 
 ## 2. Goals and Non-Goals
 
@@ -46,6 +47,7 @@ This plan is based on the current implementation in repository `glTFRenderer`.
 - Extend framework and renderer pipeline to support high-quality frosted glass evolution.
 - Provide a documented implementation path and acceptance criteria for phased delivery.
 - Keep existing demo stability and debug visibility while adding new passes.
+- Align frosted-glass composition behavior as closely as feasible to Apple Vision Pro-style glass layering while keeping runtime cost within controlled budget.
 
 ## Out of scope for first delivery
 
@@ -177,6 +179,25 @@ This plan is based on the current implementation in repository `glTFRenderer`.
 - Acceptance:
   - Transition path is smooth without abrupt exposure or contrast jumps.
 
+## B6. Multi-layer glass composition alignment (P0)
+
+- Description:
+  - Upgrade overlap handling from single-winner to multi-layer composition (top-N, default top-2).
+  - Improve visual behavior in overlap regions to better match Vision Pro-like stacked glass perception.
+  - Add quality tiers and guardrails so performance overhead remains bounded.
+- Deliverables:
+  - Multi-layer panel selection payload (default top-2) and layered composite path.
+  - Runtime quality switches (`single`, `auto`, `multi-layer`) and overlap-aware fallback.
+  - Performance instrumentation and acceptance checklist for overlap-heavy scenes.
+- Primary files:
+  - `glTFRenderer/RendererDemo/Resources/Shaders/FrostedGlass.hlsl`
+  - `glTFRenderer/RendererDemo/RendererSystem/RendererSystemFrostedGlass.h`
+  - `glTFRenderer/RendererDemo/RendererSystem/RendererSystemFrostedGlass.cpp`
+- Acceptance:
+  - Overlap regions show stable, deterministic multi-layer blending behavior.
+  - Non-overlap regions stay on single-layer fast path.
+  - Default `auto` mode meets agreed performance budget on target test machine and scene.
+
 ## 5. Milestone Plan
 
 ## M0: Baseline lock and instrumentation
@@ -201,7 +222,7 @@ This plan is based on the current implementation in repository `glTFRenderer`.
 
 ## M4: Quality completion
 
-- Complete B3/B4/B5 as required by release scope.
+- Complete B3/B4/B5/B6 as required by release scope.
 - Final acceptance and baseline refresh.
 
 ## 6. Acceptance Criteria
@@ -223,6 +244,7 @@ This plan is based on the current implementation in repository `glTFRenderer`.
 - Compare against frozen baseline in same scene/camera path.
 - Report per-pass CPU/GPU timings using existing render graph timing UI.
 - Keep frosted upgrade within agreed budget on target test machine.
+- For multi-layer glass mode, define and track separate overlap-scene budget and auto-fallback behavior.
 
 ## Stability acceptance
 
@@ -240,9 +262,10 @@ This plan is based on the current implementation in repository `glTFRenderer`.
 | B1 | App | P0 | Frosted V2 multi-pass | Multi-pass output replaces v1 single-pass | In Progress (B1.1/B1.2/B1.3 complete; visual/perf acceptance pending) | `Doc/FeatureNotes/20260223_B1_MultipassScaffold.md`, `Doc/FeatureNotes/20260223_B1_QuarterBlurPyramid.md`, `Doc/FeatureNotes/20260224_B1_FrostedMaskPass.md` |
 | A4 | Framework | P1 | Temporal history infra | Stable history lifecycle and reset path | In Progress (A4 core lifecycle + invalidation + reprojection complete; visual/perf acceptance pending) | `Doc/FeatureNotes/20260224_A4_TemporalHistoryInfrastructure.md` |
 | B2 | App | P0 | Panel state machine | Idle/hover/grab/move/scale complete | In Progress (B2 core state machine + runtime control complete; visual acceptance pending) | `Doc/FeatureNotes/20260224_B2_PanelStateMachineRuntimeControl.md` |
-| B3 | App | P1 | Shape mask path | Irregular mask path implemented | Planned | - |
+| B3 | App | P1 | Shape mask path | Irregular mask path implemented | In Progress (B3 core shape-mask + layering policy complete; visual/perf acceptance pending) | `Doc/FeatureNotes/20260224_B3_ShapeMaskLayering.md` |
 | B4 | App | P1 | Readability protection | Text-safe behavior verified | Planned | - |
 | B5 | App | P1 | Immersion blend | Smooth blend control verified | Planned | - |
+| B6 | App | P0 | Multi-layer composition alignment | Top-N overlap blending with bounded cost | In Progress (B6.1 top-2 payload + B6.2 adaptive/runtime refinement complete; visual/perf acceptance pending) | `Doc/FeatureNotes/20260224_B6_MultilayerCompositionPlan.md`, `Doc/FeatureNotes/20260224_B6_Top2MultilayerCore.md`, `Doc/FeatureNotes/20260224_B6_AdaptiveMultilayerRefinement.md` |
 | A5 | Framework | P1 | RenderGraph QoL helpers | Reduced setup boilerplate | Planned | - |
 
 ## 8. Development and Review Rules for This Plan

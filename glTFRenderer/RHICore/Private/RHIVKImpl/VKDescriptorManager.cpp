@@ -7,6 +7,7 @@
 #include "VKCommon.h"
 #include "RHIResourceFactoryImpl.hpp"
 #include "RHIInterface/IRHIMemoryManager.h"
+#include <algorithm>
 
 bool VKBufferDescriptorAllocation::InitFromBuffer(const std::shared_ptr<IRHIBuffer>& buffer, const RHIBufferDescriptorDesc& desc)
 {
@@ -106,18 +107,25 @@ bool VKDescriptorManager::Init(IRHIDevice& device, const DescriptorAllocationInf
 {
     m_device = dynamic_cast<const VKDevice&>(device).GetDevice();
 
-    // TODO: re-design descriptor capacity
+    // Frosted-glass now allocates many more compute passes/root signatures.
+    // Keep a larger pool margin to avoid VK_ERROR_OUT_OF_POOL_MEMORY.
+    const uint32_t base_capacity = std::max(max_descriptor_capacity.cbv_srv_uav_size, 256u);
+    const uint32_t buffer_capacity = base_capacity * 2u;
+    const uint32_t image_capacity = base_capacity * 4u;
+    const uint32_t acceleration_structure_capacity = std::max(64u, base_capacity / 2u);
+    const uint32_t max_set_capacity = std::max(1024u, base_capacity * 4u);
+
     std::vector<VkDescriptorPoolSize> pool_sizes;
-    pool_sizes.push_back({VkDescriptorType::VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, max_descriptor_capacity.cbv_srv_uav_size});
-    pool_sizes.push_back({VkDescriptorType::VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, max_descriptor_capacity.cbv_srv_uav_size});
-    pool_sizes.push_back({VkDescriptorType::VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, max_descriptor_capacity.cbv_srv_uav_size});
-    pool_sizes.push_back({VkDescriptorType::VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, max_descriptor_capacity.cbv_srv_uav_size});
-    pool_sizes.push_back({VkDescriptorType::VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, max_descriptor_capacity.cbv_srv_uav_size});
+    pool_sizes.push_back({VkDescriptorType::VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, buffer_capacity});
+    pool_sizes.push_back({VkDescriptorType::VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, buffer_capacity});
+    pool_sizes.push_back({VkDescriptorType::VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, image_capacity});
+    pool_sizes.push_back({VkDescriptorType::VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, image_capacity});
+    pool_sizes.push_back({VkDescriptorType::VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, acceleration_structure_capacity});
     
     VkDescriptorPoolCreateInfo descriptor_pool_create_info{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO, .pNext = nullptr};
     descriptor_pool_create_info.poolSizeCount = pool_sizes.size();
     descriptor_pool_create_info.pPoolSizes = pool_sizes.data();
-    descriptor_pool_create_info.maxSets = 256;
+    descriptor_pool_create_info.maxSets = max_set_capacity;
     descriptor_pool_create_info.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT | VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
     
     VK_CHECK(vkCreateDescriptorPool(m_device, &descriptor_pool_create_info, nullptr, &m_descriptor_pool));

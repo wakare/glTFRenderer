@@ -5,6 +5,7 @@
 #include "VKRootParameter.h"
 #include "VKCommon.h"
 #include "VKStaticSampler.h"
+#include "RHIInterface/IRHIMemoryManager.h"
 
 bool VKRootSignature::InitRootSignature(IRHIDevice& device, IRHIDescriptorManager& descriptor_manager)
 {
@@ -61,7 +62,7 @@ bool VKRootSignature::InitRootSignature(IRHIDevice& device, IRHIDescriptorManage
     
     VkDescriptorSetAllocateInfo descriptor_set_allocate_info{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, .pNext = nullptr};
     descriptor_set_allocate_info.descriptorPool = vk_descriptor_pool;
-    descriptor_set_allocate_info.descriptorSetCount = m_descriptor_set_layouts.size();
+    descriptor_set_allocate_info.descriptorSetCount = static_cast<uint32_t>(m_descriptor_set_layouts.size());
     descriptor_set_allocate_info.pSetLayouts = m_descriptor_set_layouts.data();
 
     // Descriptor set allocation count must match set layout count (max space index + 1).
@@ -82,10 +83,27 @@ bool VKRootSignature::Release(IRHIMemoryManager& memory_manager)
     }
 
     need_release = false;
+
+    if (!m_descriptor_sets.empty())
+    {
+        auto& vk_descriptor_manager = dynamic_cast<VKDescriptorManager&>(memory_manager.GetDescriptorManager());
+        const auto descriptor_pool = vk_descriptor_manager.GetDescriptorPool();
+        if (descriptor_pool != VK_NULL_HANDLE)
+        {
+            VK_CHECK(vkFreeDescriptorSets(
+                m_device,
+                descriptor_pool,
+                static_cast<uint32_t>(m_descriptor_sets.size()),
+                m_descriptor_sets.data()));
+        }
+        m_descriptor_sets.clear();
+    }
+
     for (const auto& descriptor_set_layout : m_descriptor_set_layouts)
     {
         vkDestroyDescriptorSetLayout(m_device, descriptor_set_layout, nullptr);    
     }
+    m_descriptor_set_layouts.clear();
     
     return true;
 }
