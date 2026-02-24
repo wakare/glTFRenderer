@@ -1,7 +1,27 @@
 #include "RendererModuleCamera.h"
 
+#include <algorithm>
+#include <cmath>
 #include <glm/glm/gtx/norm.hpp>
 #include "RenderWindow/RendererInputDevice.h"
+
+namespace
+{
+    float CalcViewProjectionDeltaMaxAbs(const glm::fmat4x4& lhs, const glm::fmat4x4& rhs)
+    {
+        float max_abs_delta = 0.0f;
+        for (int column = 0; column < 4; ++column)
+        {
+            for (int row = 0; row < 4; ++row)
+            {
+                max_abs_delta = (std::max)(max_abs_delta, std::abs(lhs[column][row] - rhs[column][row]));
+            }
+        }
+        return max_abs_delta;
+    }
+
+    constexpr float CAMERA_CUT_MATRIX_DELTA_THRESHOLD = 0.25f;
+}
 
 RendererModuleCamera::RendererModuleCamera(RendererInterface::ResourceOperator& resource_operator, const RendererCameraDesc& camera_desc)
 {
@@ -205,6 +225,7 @@ bool RendererModuleCamera::SetViewportSize(unsigned width, unsigned height)
 
     m_camera->SetProjectionSize(static_cast<float>(width), static_cast<float>(height));
     m_prev_view_projection_initialized = false;
+    m_temporal_history_invalidation_pending = true;
     return true;
 }
 
@@ -218,9 +239,29 @@ unsigned RendererModuleCamera::GetHeight() const
     return m_camera->GetProjectionHeight();
 }
 
+bool RendererModuleCamera::ConsumeTemporalHistoryInvalidation()
+{
+    const bool invalidation_pending = m_temporal_history_invalidation_pending;
+    m_temporal_history_invalidation_pending = false;
+    return invalidation_pending;
+}
+
 bool RendererModuleCamera::UploadCameraViewData(RendererInterface::ResourceOperator& resource_operator)
 {
     const auto camera_transform = m_camera->GetViewProjectionMatrix();
+    if (!m_prev_view_projection_initialized)
+    {
+        m_temporal_history_invalidation_pending = true;
+    }
+    else
+    {
+        const float matrix_delta = CalcViewProjectionDeltaMaxAbs(camera_transform, m_prev_view_projection_matrix);
+        if (matrix_delta > CAMERA_CUT_MATRIX_DELTA_THRESHOLD)
+        {
+            m_temporal_history_invalidation_pending = true;
+        }
+    }
+
     const auto prev_view_projection = m_prev_view_projection_initialized ? m_prev_view_projection_matrix : camera_transform;
 
     ViewBuffer view_buffer{};

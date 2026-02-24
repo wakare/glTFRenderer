@@ -238,7 +238,7 @@ This plan is based on the current implementation in repository `glTFRenderer`.
 | A2 | Framework | P0 | GBuffer/View extension | Prev-frame and extra channels available | In Progress (A2.1/A2.2/A2.3 complete) | `Doc/FeatureNotes/20260223_A2_ViewBufferPrevVP.md`, `Doc/FeatureNotes/20260223_A2_VelocityGBuffer.md`, `Doc/FeatureNotes/20260223_A2_VelocityDebugView.md` |
 | A3 | Framework | P0 | PostFX shared resources | Half/quarter and ping-pong resources ready | In Progress (A3.1 foundation complete) | `Doc/FeatureNotes/20260223_A3_PostFXSharedResources.md` |
 | B1 | App | P0 | Frosted V2 multi-pass | Multi-pass output replaces v1 single-pass | In Progress (B1.1/B1.2/B1.3 complete; visual/perf acceptance pending) | `Doc/FeatureNotes/20260223_B1_MultipassScaffold.md`, `Doc/FeatureNotes/20260223_B1_QuarterBlurPyramid.md`, `Doc/FeatureNotes/20260224_B1_FrostedMaskPass.md` |
-| A4 | Framework | P1 | Temporal history infra | Stable history lifecycle and reset path | Planned | - |
+| A4 | Framework | P1 | Temporal history infra | Stable history lifecycle and reset path | In Progress (A4 core lifecycle + invalidation + reprojection complete; visual/perf acceptance pending) | `Doc/FeatureNotes/20260224_A4_TemporalHistoryInfrastructure.md` |
 | B2 | App | P0 | Panel state machine | Idle/hover/grab/move/scale complete | In Progress (B2 core state machine + runtime control complete; visual acceptance pending) | `Doc/FeatureNotes/20260224_B2_PanelStateMachineRuntimeControl.md` |
 | B3 | App | P1 | Shape mask path | Irregular mask path implemented | Planned | - |
 | B4 | App | P1 | Readability protection | Text-safe behavior verified | Planned | - |

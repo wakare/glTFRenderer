@@ -30,6 +30,7 @@ public:
     bool SetViewportSize(unsigned width, unsigned height);
     unsigned GetWidth() const;
     unsigned GetHeight() const;
+    bool ConsumeTemporalHistoryInvalidation();
     
 protected:
     bool UploadCameraViewData(RendererInterface::ResourceOperator& resource_operator);
@@ -39,4 +40,5 @@ protected:
     RendererInterface::BufferHandle m_camera_buffer_handle{NULL_HANDLE};
     glm::fmat4x4 m_prev_view_projection_matrix{1.0f};
     bool m_prev_view_projection_initialized{false};
+    bool m_temporal_history_invalidation_pending{false};
 };

@@ -7,9 +7,12 @@ Texture2D<float4> BlurredColorTex;
 Texture2D<float4> QuarterBlurredColorTex;
 Texture2D<float4> MaskParamTex;
 Texture2D<float4> PanelOpticsTex;
+Texture2D<float4> HistoryInputTex;
+Texture2D<float4> VelocityTex;
 RWTexture2D<float4> MaskParamOutput;
 RWTexture2D<float4> PanelOpticsOutput;
 RWTexture2D<float4> Output;
+RWTexture2D<float4> HistoryOutputTex;
 
 struct FrostedGlassPanelData
 {
@@ -25,7 +28,11 @@ cbuffer FrostedGlassGlobalBuffer
     uint panel_count;
     uint blur_radius;
     float scene_edge_scale;
-    float pad0;
+    float temporal_history_blend;
+    float temporal_reject_velocity;
+    float temporal_edge_reject;
+    uint temporal_history_valid;
+    uint pad0;
 };
 StructuredBuffer<FrostedGlassPanelData> g_frosted_panels;
 
@@ -278,56 +285,73 @@ void CompositeMain(int3 dispatch_thread_id : SV_DispatchThreadID)
     }
 
     const int2 pixel = dispatch_thread_id.xy;
+    const float2 viewport_size = float2((float)viewport_width, (float)viewport_height);
+    const float2 current_uv = (float2(pixel) + 0.5f) / viewport_size;
     const float3 scene_color = InputColorTex.Load(int3(pixel, 0)).rgb;
-    if (panel_count == 0)
-    {
-        Output[pixel] = float4(scene_color, 1.0f);
-        return;
-    }
-
     const float4 mask_param = MaskParamTex.Load(int3(pixel, 0));
-    const float panel_mask = saturate(mask_param.x);
-    if (panel_mask <= 1e-4f)
-    {
-        Output[pixel] = float4(scene_color, 1.0f);
-        return;
-    }
-
-    const int panel_index = (int)round(mask_param.w);
-    if (panel_index < 0 || panel_index >= (int)panel_count)
-    {
-        Output[pixel] = float4(scene_color, 1.0f);
-        return;
-    }
-
-    const FrostedGlassPanelData panel_data = g_frosted_panels[panel_index];
-    const float panel_blur_sigma = panel_data.corner_blur_rim.y;
-    const float panel_rim_intensity = panel_data.corner_blur_rim.w;
-    const float3 panel_tint = panel_data.tint_depth_weight.rgb;
-    const float panel_fresnel_intensity = panel_data.optical_info.z;
-
     const float4 panel_optics = PanelOpticsTex.Load(int3(pixel, 0));
-    const float2 refraction_uv = saturate(panel_optics.xy);
-    const float effective_blur_strength = saturate(panel_optics.z);
+    float panel_mask = panel_count > 0 ? saturate(mask_param.x) : 0.0f;
     const float scene_edge = saturate(panel_optics.w);
 
-    const float blur_sigma_factor = saturate(panel_blur_sigma / 8.0f);
-    const float quarter_blend = saturate((panel_blur_sigma - 4.0f) / 6.0f);
-    const float3 half_blurred_color = SampleBlurredColor(refraction_uv);
-    const float3 quarter_blurred_color = SampleQuarterBlurredColor(refraction_uv);
-    const float3 blurred_color = lerp(half_blurred_color, quarter_blurred_color, quarter_blend);
-    const float3 sigma_adjusted_blur = lerp(scene_color, blurred_color, blur_sigma_factor);
-    float3 frosted_color = lerp(scene_color, sigma_adjusted_blur * panel_tint, effective_blur_strength);
+    float3 final_color = scene_color;
+    if (panel_count > 0 && panel_mask > 1e-4f)
+    {
+        const int panel_index = (int)round(mask_param.w);
+        if (panel_index >= 0 && panel_index < (int)panel_count)
+        {
+            const FrostedGlassPanelData panel_data = g_frosted_panels[panel_index];
+            const float panel_blur_sigma = panel_data.corner_blur_rim.y;
+            const float panel_rim_intensity = panel_data.corner_blur_rim.w;
+            const float3 panel_tint = panel_data.tint_depth_weight.rgb;
+            const float panel_fresnel_intensity = panel_data.optical_info.z;
 
-    const float rim = saturate(mask_param.y);
-    const float mixed_fresnel = saturate(mask_param.z);
-    const float scene_luminance = dot(scene_color, float3(0.2126f, 0.7152f, 0.0722f));
-    const float highlight_compress = lerp(1.0f, 0.45f, saturate(scene_luminance));
-    const float rim_term = rim * panel_rim_intensity * (1.0f + scene_edge * 1.5f);
-    const float fresnel_highlight = mixed_fresnel * panel_fresnel_intensity * highlight_compress;
-    const float3 highlight_tint = lerp(float3(1.0f, 1.0f, 1.0f), panel_tint, 0.35f);
-    frosted_color += highlight_tint * (rim_term + fresnel_highlight);
+            const float2 refraction_uv = saturate(panel_optics.xy);
+            const float effective_blur_strength = saturate(panel_optics.z);
+            const float blur_sigma_factor = saturate(panel_blur_sigma / 8.0f);
+            const float quarter_blend = saturate((panel_blur_sigma - 4.0f) / 6.0f);
+            const float3 half_blurred_color = SampleBlurredColor(refraction_uv);
+            const float3 quarter_blurred_color = SampleQuarterBlurredColor(refraction_uv);
+            const float3 blurred_color = lerp(half_blurred_color, quarter_blurred_color, quarter_blend);
+            const float3 sigma_adjusted_blur = lerp(scene_color, blurred_color, blur_sigma_factor);
+            float3 frosted_color = lerp(scene_color, sigma_adjusted_blur * panel_tint, effective_blur_strength);
 
-    const float3 final_color = lerp(scene_color, frosted_color, panel_mask);
-    Output[pixel] = float4(final_color, 1.0f);
+            const float rim = saturate(mask_param.y);
+            const float mixed_fresnel = saturate(mask_param.z);
+            const float scene_luminance = dot(scene_color, float3(0.2126f, 0.7152f, 0.0722f));
+            const float highlight_compress = lerp(1.0f, 0.45f, saturate(scene_luminance));
+            const float rim_term = rim * panel_rim_intensity * (1.0f + scene_edge * 1.5f);
+            const float fresnel_highlight = mixed_fresnel * panel_fresnel_intensity * highlight_compress;
+            const float3 highlight_tint = lerp(float3(1.0f, 1.0f, 1.0f), panel_tint, 0.35f);
+            frosted_color += highlight_tint * (rim_term + fresnel_highlight);
+
+            final_color = lerp(scene_color, frosted_color, panel_mask);
+        }
+        else
+        {
+            panel_mask = 0.0f;
+        }
+    }
+
+    float3 history_color = final_color;
+    float history_weight = 0.0f;
+    if (temporal_history_valid != 0 && panel_mask > 1e-4f)
+    {
+        const float2 velocity_uv = VelocityTex.Load(int3(pixel, 0)).xy;
+        const float2 prev_uv = current_uv - velocity_uv;
+        const bool history_in_bounds = all(prev_uv >= float2(0.0f, 0.0f)) && all(prev_uv <= float2(1.0f, 1.0f));
+        if (history_in_bounds)
+        {
+            const int2 prev_pixel = ClampToViewport(int2(prev_uv * viewport_size));
+            history_color = HistoryInputTex.Load(int3(prev_pixel, 0)).rgb;
+
+            const float safe_velocity_threshold = max(temporal_reject_velocity, 1e-4f);
+            const float velocity_reject = saturate(length(velocity_uv) / safe_velocity_threshold);
+            const float edge_reject = saturate(scene_edge * temporal_edge_reject);
+            history_weight = saturate(temporal_history_blend * (1.0f - velocity_reject) * (1.0f - edge_reject) * panel_mask);
+        }
+    }
+
+    const float3 stabilized_color = lerp(final_color, history_color, history_weight);
+    Output[pixel] = float4(stabilized_color, 1.0f);
+    HistoryOutputTex[pixel] = float4(stabilized_color, 1.0f);
 }

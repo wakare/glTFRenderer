@@ -121,7 +121,11 @@ protected:
         unsigned panel_count{0};
         unsigned blur_radius{5};
         float scene_edge_scale{40.0f};
-        float pad{0.0f};
+        float temporal_history_blend{0.90f};
+        float temporal_reject_velocity{0.03f};
+        float temporal_edge_reject{1.0f};
+        unsigned temporal_history_valid{0};
+        unsigned pad0{0};
     };
 
     struct PanelRuntimeState
@@ -150,12 +154,15 @@ protected:
     RendererInterface::RenderGraphNodeHandle m_blur_quarter_horizontal_pass_node{NULL_HANDLE};
     RendererInterface::RenderGraphNodeHandle m_blur_quarter_vertical_pass_node{NULL_HANDLE};
     RendererInterface::RenderGraphNodeHandle m_frosted_mask_parameter_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_frosted_composite_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_frosted_composite_history_ab_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_frosted_composite_history_ba_pass_node{NULL_HANDLE};
     RendererInterface::RenderTargetHandle m_frosted_pass_output{NULL_HANDLE};
     RendererInterface::RenderTargetHandle m_frosted_mask_parameter_output{NULL_HANDLE};
     RendererInterface::RenderTargetHandle m_frosted_panel_optics_output{NULL_HANDLE};
     RendererInterface::RenderTargetHandle m_half_blur_final_output{NULL_HANDLE};
     RendererInterface::RenderTargetHandle m_quarter_blur_final_output{NULL_HANDLE};
+    RendererInterface::RenderTargetHandle m_temporal_history_a{NULL_HANDLE};
+    RendererInterface::RenderTargetHandle m_temporal_history_b{NULL_HANDLE};
     PostFxSharedResources m_postfx_shared_resources{};
     RendererInterface::BufferHandle m_frosted_panel_data_handle{NULL_HANDLE};
     RendererInterface::BufferHandle m_frosted_global_params_handle{NULL_HANDLE};
@@ -164,6 +171,10 @@ protected:
     std::vector<FrostedGlassPanelDesc> m_panel_descs;
     std::vector<PanelRuntimeState> m_panel_runtime_states;
     bool m_need_upload_panels{false};
+    bool m_need_upload_global_params{true};
+    bool m_temporal_history_read_is_a{true};
+    bool m_temporal_force_reset{true};
+    bool m_temporal_history_valid{false};
     unsigned m_debug_selected_panel_index{0};
     unsigned m_debug_selected_curve_state_index{0};
 };
