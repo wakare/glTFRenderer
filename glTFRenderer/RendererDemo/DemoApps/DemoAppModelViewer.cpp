@@ -27,6 +27,37 @@ void DemoAppModelViewer::TickFrameInternal(unsigned long long time_interval)
         -sin_angle * base_direction.x + cos_angle * base_direction.z));
     m_directional_light_info.position = rotated_direction;
     m_lighting->UpdateLight(m_directional_light_index, m_directional_light_info);
+
+    if (m_enable_panel_input_state_machine &&
+        m_frosted_glass &&
+        m_frosted_glass->ContainsPanel(0))
+    {
+        auto panel_state = RendererSystemFrostedGlass::PanelInteractionState::Idle;
+        const bool left_mouse_pressed = input_device.IsMouseButtonPressed(InputDeviceButtonType::MOUSE_BUTTON_LEFT);
+        const bool right_mouse_pressed = input_device.IsMouseButtonPressed(InputDeviceButtonType::MOUSE_BUTTON_RIGHT);
+        const bool ctrl_pressed = input_device.IsKeyPressed(InputDeviceKeyType::KEY_LEFT_CONTROL) ||
+                                  input_device.IsKeyPressed(InputDeviceKeyType::KEY_RIGHT_CONTROL);
+        const auto cursor_offset = input_device.GetCursorOffset();
+        const double cursor_offset_len_sq = cursor_offset.X * cursor_offset.X + cursor_offset.Y * cursor_offset.Y;
+        if (left_mouse_pressed && ctrl_pressed)
+        {
+            panel_state = RendererSystemFrostedGlass::PanelInteractionState::Scale;
+        }
+        else if (left_mouse_pressed)
+        {
+            panel_state = RendererSystemFrostedGlass::PanelInteractionState::Move;
+        }
+        else if (right_mouse_pressed)
+        {
+            panel_state = RendererSystemFrostedGlass::PanelInteractionState::Grab;
+        }
+        else if (cursor_offset_len_sq > 1e-4)
+        {
+            panel_state = RendererSystemFrostedGlass::PanelInteractionState::Hover;
+        }
+
+        m_frosted_glass->SetPanelInteractionState(0, panel_state);
+    }
     
     input_device.TickFrame(time_interval);
 }
@@ -90,5 +121,7 @@ void DemoAppModelViewer::DrawDebugUIInternal()
     if (ImGui::CollapsingHeader("Demo", ImGuiTreeNodeFlags_DefaultOpen))
     {
         ImGui::SliderFloat("Directional Light Speed", &m_directional_light_angular_speed_radians, 0.0f, 2.0f, "%.3f rad/s");
+        ImGui::Checkbox("Enable Panel Input State Machine", &m_enable_panel_input_state_machine);
+        ImGui::TextUnformatted("Panel state mapping: move mouse=Hover, LMB=Move, RMB=Grab, Ctrl+LMB=Scale.");
     }
 }

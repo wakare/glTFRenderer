@@ -27,4 +27,5 @@ protected:
     LightInfo m_directional_light_info{};
     float m_directional_light_elapsed_seconds{0.0f};
     float m_directional_light_angular_speed_radians{0.25f};
+    bool m_enable_panel_input_state_machine{true};
 };

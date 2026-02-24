@@ -1,5 +1,6 @@
 #include "RendererSystemFrostedGlass.h"
 #include <algorithm>
+#include <cmath>
 #include <imgui/imgui.h>
 
 RendererSystemFrostedGlass::RendererSystemFrostedGlass(std::shared_ptr<RendererSystemSceneRenderer> scene,
@@ -14,6 +15,11 @@ unsigned RendererSystemFrostedGlass::AddPanel(const FrostedGlassPanelDesc& panel
     GLTF_CHECK(m_panel_descs.size() < MAX_PANEL_COUNT);
     const unsigned index = static_cast<unsigned>(m_panel_descs.size());
     m_panel_descs.push_back(panel_desc);
+    PanelRuntimeState runtime_state{};
+    runtime_state.state_weights.fill(0.0f);
+    runtime_state.target_state = panel_desc.interaction_state;
+    runtime_state.state_weights[ToInteractionStateIndex(panel_desc.interaction_state)] = 1.0f;
+    m_panel_runtime_states.push_back(runtime_state);
     m_need_upload_panels = true;
     return index;
 }
@@ -22,6 +28,10 @@ bool RendererSystemFrostedGlass::UpdatePanel(unsigned index, const FrostedGlassP
 {
     GLTF_CHECK(ContainsPanel(index));
     m_panel_descs[index] = panel_desc;
+    if (index < m_panel_runtime_states.size())
+    {
+        m_panel_runtime_states[index].target_state = panel_desc.interaction_state;
+    }
     m_need_upload_panels = true;
     return true;
 }
@@ -29,6 +39,28 @@ bool RendererSystemFrostedGlass::UpdatePanel(unsigned index, const FrostedGlassP
 bool RendererSystemFrostedGlass::ContainsPanel(unsigned index) const
 {
     return index < m_panel_descs.size();
+}
+
+bool RendererSystemFrostedGlass::SetPanelInteractionState(unsigned index, PanelInteractionState interaction_state)
+{
+    GLTF_CHECK(ContainsPanel(index));
+    GLTF_CHECK(index < m_panel_runtime_states.size());
+    if (m_panel_descs[index].interaction_state == interaction_state &&
+        m_panel_runtime_states[index].target_state == interaction_state)
+    {
+        return true;
+    }
+    m_panel_descs[index].interaction_state = interaction_state;
+    m_panel_runtime_states[index].target_state = interaction_state;
+    m_need_upload_panels = true;
+    return true;
+}
+
+RendererSystemFrostedGlass::PanelInteractionState RendererSystemFrostedGlass::GetPanelInteractionState(unsigned index) const
+{
+    GLTF_CHECK(ContainsPanel(index));
+    GLTF_CHECK(index < m_panel_runtime_states.size());
+    return m_panel_runtime_states[index].target_state;
 }
 
 bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resource_operator,
@@ -69,6 +101,16 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
 
     m_frosted_pass_output = resource_operator.CreateWindowRelativeRenderTarget(
         "PostFX_Frosted_Output",
+        RendererInterface::RGBA16_FLOAT,
+        RendererInterface::default_clear_color,
+        postfx_usage);
+    m_frosted_mask_parameter_output = resource_operator.CreateWindowRelativeRenderTarget(
+        "PostFX_Frosted_MaskParameter",
+        RendererInterface::RGBA16_FLOAT,
+        RendererInterface::default_clear_color,
+        postfx_usage);
+    m_frosted_panel_optics_output = resource_operator.CreateWindowRelativeRenderTarget(
+        "PostFX_Frosted_PanelOptics",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
         postfx_usage);
@@ -282,21 +324,22 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
     blur_quarter_vertical_pass_setup_info.execute_command = make_compute_dispatch(quarter_width, quarter_height);
     m_blur_quarter_vertical_pass_node = graph.CreateRenderGraphNode(resource_operator, blur_quarter_vertical_pass_setup_info);
 
-    RendererInterface::RenderGraph::RenderPassSetupInfo frosted_composite_pass_setup_info{};
-    frosted_composite_pass_setup_info.render_pass_type = RendererInterface::RenderPassType::COMPUTE;
-    frosted_composite_pass_setup_info.debug_group = "Frosted Glass";
-    frosted_composite_pass_setup_info.debug_name = "Frosted Composite";
-    frosted_composite_pass_setup_info.modules = {m_scene->GetCameraModule()};
-    frosted_composite_pass_setup_info.shader_setup_infos = {
-        {RendererInterface::COMPUTE_SHADER, "main", "Resources/Shaders/FrostedGlass.hlsl"}
-    };
-    frosted_composite_pass_setup_info.dependency_render_graph_nodes = {m_blur_half_vertical_pass_node, m_blur_quarter_vertical_pass_node};
-    {
-        RendererInterface::RenderTargetTextureBindingDesc input_color_binding_desc{};
-        input_color_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
-        input_color_binding_desc.name = "InputColorTex";
-        input_color_binding_desc.render_target_texture = {m_lighting->GetLightingOutput()};
+    RendererInterface::BufferBindingDesc panel_data_binding_desc{};
+    panel_data_binding_desc.binding_type = RendererInterface::BufferBindingDesc::SRV;
+    panel_data_binding_desc.buffer_handle = m_frosted_panel_data_handle;
+    panel_data_binding_desc.stride = sizeof(FrostedGlassPanelGpuData);
+    panel_data_binding_desc.is_structured_buffer = true;
+    panel_data_binding_desc.count = MAX_PANEL_COUNT;
 
+    RendererInterface::RenderGraph::RenderPassSetupInfo frosted_mask_parameter_pass_setup_info{};
+    frosted_mask_parameter_pass_setup_info.render_pass_type = RendererInterface::RenderPassType::COMPUTE;
+    frosted_mask_parameter_pass_setup_info.debug_group = "Frosted Glass";
+    frosted_mask_parameter_pass_setup_info.debug_name = "Frosted Mask/Parameter";
+    frosted_mask_parameter_pass_setup_info.modules = {m_scene->GetCameraModule()};
+    frosted_mask_parameter_pass_setup_info.shader_setup_infos = {
+        {RendererInterface::COMPUTE_SHADER, "MaskParameterMain", "Resources/Shaders/FrostedGlass.hlsl"}
+    };
+    {
         RendererInterface::RenderTargetTextureBindingDesc input_depth_binding_desc{};
         input_depth_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
         input_depth_binding_desc.name = "InputDepthTex";
@@ -306,6 +349,43 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
         input_normal_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
         input_normal_binding_desc.name = "InputNormalTex";
         input_normal_binding_desc.render_target_texture = {scene_output.GetRenderTargetHandle(*m_scene, "m_base_pass_normal")};
+
+        RendererInterface::RenderTargetTextureBindingDesc output_mask_param_binding_desc{};
+        output_mask_param_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::UAV;
+        output_mask_param_binding_desc.name = "MaskParamOutput";
+        output_mask_param_binding_desc.render_target_texture = {m_frosted_mask_parameter_output};
+
+        RendererInterface::RenderTargetTextureBindingDesc output_panel_optics_binding_desc{};
+        output_panel_optics_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::UAV;
+        output_panel_optics_binding_desc.name = "PanelOpticsOutput";
+        output_panel_optics_binding_desc.render_target_texture = {m_frosted_panel_optics_output};
+
+        frosted_mask_parameter_pass_setup_info.sampled_render_targets = {
+            input_depth_binding_desc,
+            input_normal_binding_desc,
+            output_mask_param_binding_desc,
+            output_panel_optics_binding_desc
+        };
+    }
+    frosted_mask_parameter_pass_setup_info.buffer_resources["g_frosted_panels"] = panel_data_binding_desc;
+    frosted_mask_parameter_pass_setup_info.buffer_resources["FrostedGlassGlobalBuffer"] = global_params_binding_desc;
+    frosted_mask_parameter_pass_setup_info.execute_command = make_compute_dispatch(width, height);
+    m_frosted_mask_parameter_pass_node = graph.CreateRenderGraphNode(resource_operator, frosted_mask_parameter_pass_setup_info);
+
+    RendererInterface::RenderGraph::RenderPassSetupInfo frosted_composite_pass_setup_info{};
+    frosted_composite_pass_setup_info.render_pass_type = RendererInterface::RenderPassType::COMPUTE;
+    frosted_composite_pass_setup_info.debug_group = "Frosted Glass";
+    frosted_composite_pass_setup_info.debug_name = "Frosted Composite";
+    frosted_composite_pass_setup_info.modules = {m_scene->GetCameraModule()};
+    frosted_composite_pass_setup_info.shader_setup_infos = {
+        {RendererInterface::COMPUTE_SHADER, "CompositeMain", "Resources/Shaders/FrostedGlass.hlsl"}
+    };
+    frosted_composite_pass_setup_info.dependency_render_graph_nodes = {m_blur_quarter_vertical_pass_node, m_frosted_mask_parameter_pass_node};
+    {
+        RendererInterface::RenderTargetTextureBindingDesc input_color_binding_desc{};
+        input_color_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
+        input_color_binding_desc.name = "InputColorTex";
+        input_color_binding_desc.render_target_texture = {m_lighting->GetLightingOutput()};
 
         RendererInterface::RenderTargetTextureBindingDesc input_blurred_binding_desc{};
         input_blurred_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
@@ -317,6 +397,16 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
         input_quarter_blurred_binding_desc.name = "QuarterBlurredColorTex";
         input_quarter_blurred_binding_desc.render_target_texture = {m_quarter_blur_final_output};
 
+        RendererInterface::RenderTargetTextureBindingDesc input_mask_param_binding_desc{};
+        input_mask_param_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
+        input_mask_param_binding_desc.name = "MaskParamTex";
+        input_mask_param_binding_desc.render_target_texture = {m_frosted_mask_parameter_output};
+
+        RendererInterface::RenderTargetTextureBindingDesc input_panel_optics_binding_desc{};
+        input_panel_optics_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
+        input_panel_optics_binding_desc.name = "PanelOpticsTex";
+        input_panel_optics_binding_desc.render_target_texture = {m_frosted_panel_optics_output};
+
         RendererInterface::RenderTargetTextureBindingDesc output_binding_desc{};
         output_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::UAV;
         output_binding_desc.name = "Output";
@@ -324,20 +414,13 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
 
         frosted_composite_pass_setup_info.sampled_render_targets = {
             input_color_binding_desc,
-            input_depth_binding_desc,
-            input_normal_binding_desc,
             input_blurred_binding_desc,
             input_quarter_blurred_binding_desc,
+            input_mask_param_binding_desc,
+            input_panel_optics_binding_desc,
             output_binding_desc
         };
     }
-
-    RendererInterface::BufferBindingDesc panel_data_binding_desc{};
-    panel_data_binding_desc.binding_type = RendererInterface::BufferBindingDesc::SRV;
-    panel_data_binding_desc.buffer_handle = m_frosted_panel_data_handle;
-    panel_data_binding_desc.stride = sizeof(FrostedGlassPanelGpuData);
-    panel_data_binding_desc.is_structured_buffer = true;
-    panel_data_binding_desc.count = MAX_PANEL_COUNT;
     frosted_composite_pass_setup_info.buffer_resources["g_frosted_panels"] = panel_data_binding_desc;
     frosted_composite_pass_setup_info.buffer_resources["FrostedGlassGlobalBuffer"] = global_params_binding_desc;
     frosted_composite_pass_setup_info.execute_command = make_compute_dispatch(width, height);
@@ -356,8 +439,11 @@ bool RendererSystemFrostedGlass::HasInit() const
            m_downsample_quarter_pass_node != NULL_HANDLE &&
            m_blur_quarter_horizontal_pass_node != NULL_HANDLE &&
            m_blur_quarter_vertical_pass_node != NULL_HANDLE &&
+           m_frosted_mask_parameter_pass_node != NULL_HANDLE &&
            m_frosted_composite_pass_node != NULL_HANDLE &&
            m_frosted_pass_output != NULL_HANDLE &&
+           m_frosted_mask_parameter_output != NULL_HANDLE &&
+           m_frosted_panel_optics_output != NULL_HANDLE &&
            m_half_blur_final_output != NULL_HANDLE &&
            m_quarter_blur_final_output != NULL_HANDLE &&
            m_postfx_shared_resources.HasInit();
@@ -367,7 +453,7 @@ bool RendererSystemFrostedGlass::Tick(RendererInterface::ResourceOperator& resou
                                       RendererInterface::RenderGraph& graph,
                                       unsigned long long interval)
 {
-    (void)interval;
+    const float delta_seconds = static_cast<float>(interval) / 1000.0f;
     const unsigned width = (std::max)(1u, resource_operator.GetCurrentRenderWidth());
     const unsigned height = (std::max)(1u, resource_operator.GetCurrentRenderHeight());
     const unsigned half_width = (width + 1u) / 2u;
@@ -381,8 +467,10 @@ bool RendererSystemFrostedGlass::Tick(RendererInterface::ResourceOperator& resou
     graph.UpdateComputeDispatch(m_downsample_quarter_pass_node, (quarter_width + 7) / 8, (quarter_height + 7) / 8, 1);
     graph.UpdateComputeDispatch(m_blur_quarter_horizontal_pass_node, (quarter_width + 7) / 8, (quarter_height + 7) / 8, 1);
     graph.UpdateComputeDispatch(m_blur_quarter_vertical_pass_node, (quarter_width + 7) / 8, (quarter_height + 7) / 8, 1);
+    graph.UpdateComputeDispatch(m_frosted_mask_parameter_pass_node, (width + 7) / 8, (height + 7) / 8, 1);
     graph.UpdateComputeDispatch(m_frosted_composite_pass_node, (width + 7) / 8, (height + 7) / 8, 1);
 
+    UpdatePanelRuntimeStates(delta_seconds);
     UploadPanelData(resource_operator);
     graph.RegisterRenderGraphNode(m_downsample_half_pass_node);
     graph.RegisterRenderGraphNode(m_blur_half_horizontal_pass_node);
@@ -390,6 +478,7 @@ bool RendererSystemFrostedGlass::Tick(RendererInterface::ResourceOperator& resou
     graph.RegisterRenderGraphNode(m_downsample_quarter_pass_node);
     graph.RegisterRenderGraphNode(m_blur_quarter_horizontal_pass_node);
     graph.RegisterRenderGraphNode(m_blur_quarter_vertical_pass_node);
+    graph.RegisterRenderGraphNode(m_frosted_mask_parameter_pass_node);
     graph.RegisterRenderGraphNode(m_frosted_composite_pass_node);
     graph.RegisterRenderTargetToColorOutput(m_frosted_pass_output);
     return true;
@@ -458,6 +547,23 @@ void RendererSystemFrostedGlass::DrawDebugUI()
         panel_dirty = true;
     }
 
+    const char* interaction_states[] = {"Idle", "Hover", "Grab", "Move", "Scale"};
+    int interaction_state = static_cast<int>(panel.interaction_state);
+    if (ImGui::Combo("Interaction State", &interaction_state, interaction_states, IM_ARRAYSIZE(interaction_states)))
+    {
+        interaction_state = (std::max)(0, (std::min)(interaction_state, static_cast<int>(PanelInteractionState::Count) - 1));
+        panel.interaction_state = static_cast<PanelInteractionState>(interaction_state);
+        panel_dirty = true;
+    }
+    if (ImGui::SliderFloat("State Transition Speed", &panel.interaction_transition_speed, 1.0f, 24.0f, "%.2f"))
+    {
+        panel_dirty = true;
+    }
+    if (ImGui::SliderFloat("Panel Alpha", &panel.panel_alpha, 0.0f, 1.0f, "%.2f"))
+    {
+        panel_dirty = true;
+    }
+
     const float max_corner_radius = (std::max)(0.0f, (std::min)(panel.half_size_uv.x, panel.half_size_uv.y) - 0.001f);
     if (ImGui::SliderFloat("Corner Radius", &panel.corner_radius, 0.0f, max_corner_radius, "%.3f"))
     {
@@ -504,6 +610,38 @@ void RendererSystemFrostedGlass::DrawDebugUI()
         panel_dirty = true;
     }
 
+    int curve_state = static_cast<int>(m_debug_selected_curve_state_index);
+    curve_state = (std::max)(0, (std::min)(curve_state, static_cast<int>(PanelInteractionState::Count) - 1));
+    if (ImGui::Combo("Edit State Curve", &curve_state, interaction_states, IM_ARRAYSIZE(interaction_states)))
+    {
+        m_debug_selected_curve_state_index = static_cast<unsigned>(curve_state);
+    }
+    else
+    {
+        m_debug_selected_curve_state_index = static_cast<unsigned>(curve_state);
+    }
+    auto& curve = panel.state_curves[m_debug_selected_curve_state_index];
+    if (ImGui::SliderFloat("Curve Blur Sigma Scale", &curve.blur_sigma_scale, 0.4f, 2.5f, "%.2f"))
+    {
+        panel_dirty = true;
+    }
+    if (ImGui::SliderFloat("Curve Blur Strength Scale", &curve.blur_strength_scale, 0.4f, 2.5f, "%.2f"))
+    {
+        panel_dirty = true;
+    }
+    if (ImGui::SliderFloat("Curve Rim Scale", &curve.rim_intensity_scale, 0.4f, 2.5f, "%.2f"))
+    {
+        panel_dirty = true;
+    }
+    if (ImGui::SliderFloat("Curve Fresnel Scale", &curve.fresnel_intensity_scale, 0.4f, 2.5f, "%.2f"))
+    {
+        panel_dirty = true;
+    }
+    if (ImGui::SliderFloat("Curve Alpha Scale", &curve.alpha_scale, 0.0f, 1.5f, "%.2f"))
+    {
+        panel_dirty = true;
+    }
+
     if (panel_dirty)
     {
         const auto clamp = [](float value, float min_value, float max_value) -> float
@@ -526,8 +664,121 @@ void RendererSystemFrostedGlass::DrawDebugUI()
         panel.refraction_strength = clamp(panel.refraction_strength, 0.0f, 8.0f);
         panel.fresnel_intensity = clamp(panel.fresnel_intensity, 0.0f, 1.0f);
         panel.fresnel_power = clamp(panel.fresnel_power, 1.0f, 16.0f);
+        panel.panel_alpha = clamp(panel.panel_alpha, 0.0f, 1.0f);
+        panel.interaction_transition_speed = clamp(panel.interaction_transition_speed, 1.0f, 24.0f);
+        for (auto& state_curve : panel.state_curves)
+        {
+            state_curve.blur_sigma_scale = clamp(state_curve.blur_sigma_scale, 0.4f, 2.5f);
+            state_curve.blur_strength_scale = clamp(state_curve.blur_strength_scale, 0.4f, 2.5f);
+            state_curve.rim_intensity_scale = clamp(state_curve.rim_intensity_scale, 0.4f, 2.5f);
+            state_curve.fresnel_intensity_scale = clamp(state_curve.fresnel_intensity_scale, 0.4f, 2.5f);
+            state_curve.alpha_scale = clamp(state_curve.alpha_scale, 0.0f, 1.5f);
+        }
         m_need_upload_panels = true;
     }
+}
+
+void RendererSystemFrostedGlass::UpdatePanelRuntimeStates(float delta_seconds)
+{
+    if (m_panel_runtime_states.size() != m_panel_descs.size())
+    {
+        m_panel_runtime_states.resize(m_panel_descs.size());
+        for (unsigned panel_index = 0; panel_index < m_panel_descs.size(); ++panel_index)
+        {
+            auto& runtime_state = m_panel_runtime_states[panel_index];
+            runtime_state.state_weights.fill(0.0f);
+            runtime_state.target_state = m_panel_descs[panel_index].interaction_state;
+            runtime_state.state_weights[ToInteractionStateIndex(runtime_state.target_state)] = 1.0f;
+        }
+        m_need_upload_panels = true;
+    }
+
+    const float safe_delta_seconds = (std::max)(0.0f, delta_seconds);
+    bool state_weight_dirty = false;
+    for (unsigned panel_index = 0; panel_index < m_panel_descs.size(); ++panel_index)
+    {
+        const auto& panel_desc = m_panel_descs[panel_index];
+        auto& runtime_state = m_panel_runtime_states[panel_index];
+        runtime_state.target_state = panel_desc.interaction_state;
+
+        const unsigned target_state_index = ToInteractionStateIndex(runtime_state.target_state);
+        const float transition_speed = (std::max)(panel_desc.interaction_transition_speed, 1.0f);
+        const float blend_alpha = 1.0f - std::exp(-transition_speed * safe_delta_seconds);
+
+        float total_weight = 0.0f;
+        for (unsigned state_index = 0; state_index < PANEL_INTERACTION_STATE_COUNT; ++state_index)
+        {
+            const float target_weight = state_index == target_state_index ? 1.0f : 0.0f;
+            const float current_weight = runtime_state.state_weights[state_index];
+            const float updated_weight = current_weight + (target_weight - current_weight) * blend_alpha;
+            if (std::abs(updated_weight - current_weight) > 1e-4f)
+            {
+                state_weight_dirty = true;
+            }
+            runtime_state.state_weights[state_index] = updated_weight;
+            total_weight += updated_weight;
+        }
+
+        if (total_weight > 1e-6f)
+        {
+            for (auto& weight : runtime_state.state_weights)
+            {
+                weight /= total_weight;
+            }
+        }
+        else
+        {
+            runtime_state.state_weights.fill(0.0f);
+            runtime_state.state_weights[target_state_index] = 1.0f;
+            state_weight_dirty = true;
+        }
+    }
+
+    if (state_weight_dirty)
+    {
+        m_need_upload_panels = true;
+    }
+}
+
+RendererSystemFrostedGlass::PanelStateCurve RendererSystemFrostedGlass::GetBlendedStateCurve(unsigned panel_index) const
+{
+    PanelStateCurve blended_state_curve{};
+    blended_state_curve.blur_sigma_scale = 0.0f;
+    blended_state_curve.blur_strength_scale = 0.0f;
+    blended_state_curve.rim_intensity_scale = 0.0f;
+    blended_state_curve.fresnel_intensity_scale = 0.0f;
+    blended_state_curve.alpha_scale = 0.0f;
+
+    GLTF_CHECK(panel_index < m_panel_descs.size());
+    GLTF_CHECK(panel_index < m_panel_runtime_states.size());
+    const auto& panel_desc = m_panel_descs[panel_index];
+    const auto& runtime_state = m_panel_runtime_states[panel_index];
+
+    float total_weight = 0.0f;
+    for (unsigned state_index = 0; state_index < PANEL_INTERACTION_STATE_COUNT; ++state_index)
+    {
+        const float weight = (std::max)(0.0f, runtime_state.state_weights[state_index]);
+        const auto& state_curve = panel_desc.state_curves[state_index];
+        blended_state_curve.blur_sigma_scale += state_curve.blur_sigma_scale * weight;
+        blended_state_curve.blur_strength_scale += state_curve.blur_strength_scale * weight;
+        blended_state_curve.rim_intensity_scale += state_curve.rim_intensity_scale * weight;
+        blended_state_curve.fresnel_intensity_scale += state_curve.fresnel_intensity_scale * weight;
+        blended_state_curve.alpha_scale += state_curve.alpha_scale * weight;
+        total_weight += weight;
+    }
+
+    if (total_weight <= 1e-6f)
+    {
+        return panel_desc.state_curves[ToInteractionStateIndex(panel_desc.interaction_state)];
+    }
+
+    const float inv_total_weight = 1.0f / total_weight;
+    blended_state_curve.blur_sigma_scale *= inv_total_weight;
+    blended_state_curve.blur_strength_scale *= inv_total_weight;
+    blended_state_curve.rim_intensity_scale *= inv_total_weight;
+    blended_state_curve.fresnel_intensity_scale *= inv_total_weight;
+    blended_state_curve.alpha_scale *= inv_total_weight;
+    return blended_state_curve;
 }
 
 void RendererSystemFrostedGlass::UploadPanelData(RendererInterface::ResourceOperator& resource_operator)
@@ -539,9 +790,10 @@ void RendererSystemFrostedGlass::UploadPanelData(RendererInterface::ResourceOper
 
     std::vector<FrostedGlassPanelGpuData> panel_gpu_datas;
     panel_gpu_datas.reserve(m_panel_descs.size());
-    for (const auto& panel_desc : m_panel_descs)
+    for (unsigned panel_index = 0; panel_index < m_panel_descs.size(); ++panel_index)
     {
-        panel_gpu_datas.push_back(ConvertPanelToGpuData(panel_desc));
+        const auto blended_state_curve = GetBlendedStateCurve(panel_index);
+        panel_gpu_datas.push_back(ConvertPanelToGpuData(m_panel_descs[panel_index], blended_state_curve));
     }
 
     if (!panel_gpu_datas.empty())
@@ -562,8 +814,34 @@ void RendererSystemFrostedGlass::UploadPanelData(RendererInterface::ResourceOper
 }
 
 RendererSystemFrostedGlass::FrostedGlassPanelGpuData RendererSystemFrostedGlass::ConvertPanelToGpuData(
-    const FrostedGlassPanelDesc& panel_desc) const
+    const FrostedGlassPanelDesc& panel_desc, const PanelStateCurve& blended_state_curve) const
 {
+    const auto clamp = [](float value, float min_value, float max_value) -> float
+    {
+        return (std::max)(min_value, (std::min)(value, max_value));
+    };
+
+    const float dynamic_blur_sigma = clamp(
+        panel_desc.blur_sigma * (std::max)(0.0f, blended_state_curve.blur_sigma_scale),
+        0.2f,
+        12.0f);
+    const float dynamic_blur_strength = clamp(
+        panel_desc.blur_strength * (std::max)(0.0f, blended_state_curve.blur_strength_scale),
+        0.0f,
+        1.0f);
+    const float dynamic_rim_intensity = clamp(
+        panel_desc.rim_intensity * (std::max)(0.0f, blended_state_curve.rim_intensity_scale),
+        0.0f,
+        1.0f);
+    const float dynamic_fresnel_intensity = clamp(
+        panel_desc.fresnel_intensity * (std::max)(0.0f, blended_state_curve.fresnel_intensity_scale),
+        0.0f,
+        1.0f);
+    const float dynamic_panel_alpha = clamp(
+        panel_desc.panel_alpha * (std::max)(0.0f, blended_state_curve.alpha_scale),
+        0.0f,
+        1.0f);
+
     FrostedGlassPanelGpuData gpu_data{};
     gpu_data.center_half_size = {
         panel_desc.center_uv.x,
@@ -573,9 +851,9 @@ RendererSystemFrostedGlass::FrostedGlassPanelGpuData RendererSystemFrostedGlass:
     };
     gpu_data.corner_blur_rim = {
         panel_desc.corner_radius,
-        panel_desc.blur_sigma,
-        panel_desc.blur_strength,
-        panel_desc.rim_intensity
+        dynamic_blur_sigma,
+        dynamic_blur_strength,
+        dynamic_rim_intensity
     };
     gpu_data.tint_depth_weight = {
         panel_desc.tint_color.x,
@@ -587,12 +865,12 @@ RendererSystemFrostedGlass::FrostedGlassPanelGpuData RendererSystemFrostedGlass:
         static_cast<float>(panel_desc.shape_type),
         panel_desc.edge_softness,
         panel_desc.custom_shape_index,
-        panel_desc.pad0
+        dynamic_panel_alpha
     };
     gpu_data.optical_info = {
         panel_desc.thickness,
         panel_desc.refraction_strength,
-        panel_desc.fresnel_intensity,
+        dynamic_fresnel_intensity,
         panel_desc.fresnel_power
     };
     return gpu_data;

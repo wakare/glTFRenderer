@@ -79,6 +79,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\Build-RendererDemo-Verify.ps1
 ### AIChat Output Throttle (Important)
 
 - Never print high-volume command output directly to chat.
+- Rider AIChat becomes slow or can freeze on streamed large output; treat chat as summary-only and default to file redirection for any command that may emit non-trivial output.
 - For potentially huge result sets (example: `rg --files`, broad `rg` over repo root), always redirect output to a file first, then report only summary metrics in chat.
 - For `rg` usage, default to redirected mode when scope is unclear or large:
   - `rg ... > .tmp/<name>.log`

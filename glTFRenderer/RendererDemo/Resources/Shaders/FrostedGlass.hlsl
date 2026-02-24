@@ -5,6 +5,10 @@ Texture2D<float> InputDepthTex;
 Texture2D<float4> InputNormalTex;
 Texture2D<float4> BlurredColorTex;
 Texture2D<float4> QuarterBlurredColorTex;
+Texture2D<float4> MaskParamTex;
+Texture2D<float4> PanelOpticsTex;
+RWTexture2D<float4> MaskParamOutput;
+RWTexture2D<float4> PanelOpticsOutput;
 RWTexture2D<float4> Output;
 
 struct FrostedGlassPanelData
@@ -12,7 +16,7 @@ struct FrostedGlassPanelData
     float4 center_half_size;    // xy: center uv, zw: half size uv
     float4 corner_blur_rim;     // x: corner radius, y: blur sigma, z: blur strength, w: rim intensity
     float4 tint_depth_weight;   // rgb: tint color, w: depth-aware weight scale
-    float4 shape_info;          // x: shape type, y: edge softness, z: custom shape index, w: reserved
+    float4 shape_info;          // x: shape type, y: edge softness, z: custom shape index, w: panel alpha
     float4 optical_info;        // x: thickness, y: refraction strength, z: fresnel intensity, w: fresnel power
 };
 
@@ -163,7 +167,7 @@ float3 SampleQuarterBlurredColor(float2 uv)
 }
 
 [numthreads(8, 8, 1)]
-void main(int3 dispatch_thread_id : SV_DispatchThreadID)
+void MaskParameterMain(int3 dispatch_thread_id : SV_DispatchThreadID)
 {
     if (dispatch_thread_id.x >= viewport_width || dispatch_thread_id.y >= viewport_height)
     {
@@ -171,46 +175,60 @@ void main(int3 dispatch_thread_id : SV_DispatchThreadID)
     }
 
     const int2 pixel = dispatch_thread_id.xy;
-    const float3 scene_color = InputColorTex.Load(int3(pixel, 0)).rgb;
     const float2 uv = (float2(pixel) + 0.5f) / float2((float)viewport_width, (float)viewport_height);
-    float3 final_color = scene_color;
-    if (panel_count == 0)
-    {
-        Output[pixel] = float4(final_color, 1.0f);
-        return;
-    }
 
     const float depth_dx = abs(SampleDepthSafe(pixel + int2(1, 0)) - SampleDepthSafe(pixel - int2(1, 0)));
     const float depth_dy = abs(SampleDepthSafe(pixel + int2(0, 1)) - SampleDepthSafe(pixel - int2(0, 1)));
     const float scene_edge = saturate((depth_dx + depth_dy) * scene_edge_scale);
+
+    if (panel_count == 0)
+    {
+        MaskParamOutput[pixel] = float4(0.0f, 0.0f, 0.0f, -1.0f);
+        PanelOpticsOutput[pixel] = float4(uv, 0.0f, scene_edge);
+        return;
+    }
+
     const float center_depth = SampleDepthSafe(pixel);
     const float3 center_normal = SampleNormalSafe(pixel);
     float3 world_position = 0.0f;
     const bool valid_world_position = TryGetWorldPosition(pixel, center_depth, world_position);
-    const float3 view_dir = valid_world_position ? normalize(view_position.xyz - world_position) : float3(0.0f, 0.0f, 1.0f);
+    float3 view_dir = float3(0.0f, 0.0f, 1.0f);
+    if (valid_world_position)
+    {
+        const float3 to_view = view_position.xyz - world_position;
+        const float to_view_len_sq = dot(to_view, to_view);
+        if (to_view_len_sq > 1e-6f)
+        {
+            view_dir = to_view * rsqrt(to_view_len_sq);
+        }
+    }
     const float n_dot_v = saturate(abs(dot(center_normal, view_dir)));
+
+    float selected_mask = 0.0f;
+    float selected_rim = 0.0f;
+    float selected_mixed_fresnel = 0.0f;
+    float2 selected_refraction_uv = uv;
+    float selected_effective_blur_strength = 0.0f;
+    int selected_panel_index = -1;
 
     [loop]
     for (uint panel_index = 0; panel_index < panel_count; ++panel_index)
     {
         const FrostedGlassPanelData panel_data = g_frosted_panels[panel_index];
-        const float panel_blur_sigma = panel_data.corner_blur_rim.y;
-        const float panel_blur_strength = panel_data.corner_blur_rim.z;
-        const float panel_rim_intensity = panel_data.corner_blur_rim.w;
-        const float3 panel_tint = panel_data.tint_depth_weight.rgb;
-        const float panel_depth_weight_scale = panel_data.tint_depth_weight.w;
         const float panel_edge_softness = panel_data.shape_info.y;
-        const float panel_thickness = panel_data.optical_info.x;
-        const float panel_refraction_strength = panel_data.optical_info.y;
-        const float panel_fresnel_intensity = panel_data.optical_info.z;
-        const float panel_fresnel_power = panel_data.optical_info.w;
-
         const float panel_sdf = CalcPanelSDF(uv, panel_data);
-        const float panel_mask = CalcPanelMaskFromSDF(panel_sdf, panel_edge_softness);
-        if (panel_mask <= 1e-4f)
+        const float panel_alpha = saturate(panel_data.shape_info.w);
+        const float panel_mask = CalcPanelMaskFromSDF(panel_sdf, panel_edge_softness) * panel_alpha;
+        if (panel_mask <= 1e-4f || panel_mask <= selected_mask)
         {
             continue;
         }
+
+        const float panel_depth_weight_scale = panel_data.tint_depth_weight.w;
+        const float panel_blur_strength = panel_data.corner_blur_rim.z;
+        const float panel_thickness = panel_data.optical_info.x;
+        const float panel_refraction_strength = panel_data.optical_info.y;
+        const float panel_fresnel_power = panel_data.optical_info.w;
 
         const float2 panel_normal_uv = CalcPanelNormalFromSDF(uv, panel_data);
         float2 refraction_direction = panel_normal_uv * 0.7f + center_normal.xy * 0.3f;
@@ -234,26 +252,82 @@ void main(int3 dispatch_thread_id : SV_DispatchThreadID)
         {
             refracted_depth = center_depth;
         }
+
         const float depth_delta = abs(refracted_depth - center_depth);
         const float depth_aware_weight = exp(-depth_delta * panel_depth_weight_scale);
         const float effective_blur_strength = panel_blur_strength * saturate(0.25f + 0.75f * depth_aware_weight);
-        const float blur_sigma_factor = saturate(panel_blur_sigma / 8.0f);
-        const float3 half_blurred_color = SampleBlurredColor(refraction_uv);
-        const float3 quarter_blurred_color = SampleQuarterBlurredColor(refraction_uv);
-        const float quarter_blend = saturate((panel_blur_sigma - 4.0f) / 6.0f);
-        const float3 blurred_color = lerp(half_blurred_color, quarter_blurred_color, quarter_blend);
-        const float3 sigma_adjusted_blur = lerp(final_color, blurred_color, blur_sigma_factor);
-        float3 frosted_color = lerp(final_color, sigma_adjusted_blur * panel_tint, effective_blur_strength);
 
-        const float scene_luminance = dot(final_color, float3(0.2126f, 0.7152f, 0.0722f));
-        const float highlight_compress = lerp(1.0f, 0.45f, saturate(scene_luminance));
-        const float rim_term = rim * panel_rim_intensity * (1.0f + scene_edge * 1.5f);
-        const float fresnel_highlight = mixed_fresnel * panel_fresnel_intensity * highlight_compress;
-        const float3 highlight_tint = lerp(float3(1.0f, 1.0f, 1.0f), panel_tint, 0.35f);
-        frosted_color += highlight_tint * (rim_term + fresnel_highlight);
-
-        final_color = lerp(final_color, frosted_color, panel_mask);
+        selected_mask = panel_mask;
+        selected_rim = rim;
+        selected_mixed_fresnel = mixed_fresnel;
+        selected_refraction_uv = saturate(refraction_uv);
+        selected_effective_blur_strength = saturate(effective_blur_strength);
+        selected_panel_index = (int)panel_index;
     }
 
+    MaskParamOutput[pixel] = float4(selected_mask, selected_rim, selected_mixed_fresnel, (float)selected_panel_index);
+    PanelOpticsOutput[pixel] = float4(selected_refraction_uv, selected_effective_blur_strength, scene_edge);
+}
+
+[numthreads(8, 8, 1)]
+void CompositeMain(int3 dispatch_thread_id : SV_DispatchThreadID)
+{
+    if (dispatch_thread_id.x >= viewport_width || dispatch_thread_id.y >= viewport_height)
+    {
+        return;
+    }
+
+    const int2 pixel = dispatch_thread_id.xy;
+    const float3 scene_color = InputColorTex.Load(int3(pixel, 0)).rgb;
+    if (panel_count == 0)
+    {
+        Output[pixel] = float4(scene_color, 1.0f);
+        return;
+    }
+
+    const float4 mask_param = MaskParamTex.Load(int3(pixel, 0));
+    const float panel_mask = saturate(mask_param.x);
+    if (panel_mask <= 1e-4f)
+    {
+        Output[pixel] = float4(scene_color, 1.0f);
+        return;
+    }
+
+    const int panel_index = (int)round(mask_param.w);
+    if (panel_index < 0 || panel_index >= (int)panel_count)
+    {
+        Output[pixel] = float4(scene_color, 1.0f);
+        return;
+    }
+
+    const FrostedGlassPanelData panel_data = g_frosted_panels[panel_index];
+    const float panel_blur_sigma = panel_data.corner_blur_rim.y;
+    const float panel_rim_intensity = panel_data.corner_blur_rim.w;
+    const float3 panel_tint = panel_data.tint_depth_weight.rgb;
+    const float panel_fresnel_intensity = panel_data.optical_info.z;
+
+    const float4 panel_optics = PanelOpticsTex.Load(int3(pixel, 0));
+    const float2 refraction_uv = saturate(panel_optics.xy);
+    const float effective_blur_strength = saturate(panel_optics.z);
+    const float scene_edge = saturate(panel_optics.w);
+
+    const float blur_sigma_factor = saturate(panel_blur_sigma / 8.0f);
+    const float quarter_blend = saturate((panel_blur_sigma - 4.0f) / 6.0f);
+    const float3 half_blurred_color = SampleBlurredColor(refraction_uv);
+    const float3 quarter_blurred_color = SampleQuarterBlurredColor(refraction_uv);
+    const float3 blurred_color = lerp(half_blurred_color, quarter_blurred_color, quarter_blend);
+    const float3 sigma_adjusted_blur = lerp(scene_color, blurred_color, blur_sigma_factor);
+    float3 frosted_color = lerp(scene_color, sigma_adjusted_blur * panel_tint, effective_blur_strength);
+
+    const float rim = saturate(mask_param.y);
+    const float mixed_fresnel = saturate(mask_param.z);
+    const float scene_luminance = dot(scene_color, float3(0.2126f, 0.7152f, 0.0722f));
+    const float highlight_compress = lerp(1.0f, 0.45f, saturate(scene_luminance));
+    const float rim_term = rim * panel_rim_intensity * (1.0f + scene_edge * 1.5f);
+    const float fresnel_highlight = mixed_fresnel * panel_fresnel_intensity * highlight_compress;
+    const float3 highlight_tint = lerp(float3(1.0f, 1.0f, 1.0f), panel_tint, 0.35f);
+    frosted_color += highlight_tint * (rim_term + fresnel_highlight);
+
+    const float3 final_color = lerp(scene_color, frosted_color, panel_mask);
     Output[pixel] = float4(final_color, 1.0f);
 }
