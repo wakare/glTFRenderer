@@ -23,9 +23,26 @@ glTFRenderer/**/x64/
 # Rider / user-local solution state
 glTFRenderer/.idea/
 *.DotSettings.user
+.vs/
+*.suo
+*.VC.db
+*.ipch
+
+# Shader compile/cache artifacts
+glTFRenderer/RendererDemo/Resources/Shaders/*.bin
+glTFRenderer/RendererDemo/Resources/Shaders/*.pdb
+glTFRenderer/glTFRenderer/glTFResources/ShaderSource/**/*.bin
+glTFRenderer/glTFRenderer/glTFResources/ShaderSource/**/*.pdb
+glTFRenderer/glTFRenderer/glTFResources/ShaderSource/ComputeShader/*.bin
+glTFRenderer/glTFRenderer/glTFResources/ShaderSource/ComputeShader/*.pdb
+
+# Local package/cache artifacts
+glTFRenderer/packages/
+glTFRenderer/glTFRenderer/imgui.ini
 
 # Local third-party/vendor and asset artifacts
 glTFRenderer/ThirdParty/embree/
 glTFRenderer/ThirdParty/glfw/
 glTFRenderer/RendererScene/RenderScene.vcxproj.filters
 glTFRenderer/glTFRenderer/glTFResources/Models/Plane.rar
+glTFRenderer/glTFRenderer/glTFResources/Models/Plane/plane_fixed.bin
