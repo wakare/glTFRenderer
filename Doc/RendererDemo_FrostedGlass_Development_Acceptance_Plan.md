@@ -1,9 +1,16 @@
 # RendererDemo Frosted Glass Development and Acceptance Plan
 
-- Version: v1.2
+- Version: v1.3
 - Date: 2026-02-25
 - Scope: `RendererCore` + `RendererDemo`
 - Status: Approved baseline for implementation and acceptance
+
+## Companion Reference (Must Keep In Sync)
+
+- Frame-level frosted pass reference:
+  - `Doc/RendererDemo_FrostedGlass_FramePassReference.md`
+- Rule:
+  - Any frosted render-graph/pass/resource contract change must update the frame reference doc in the same PR.
 
 ## 1. Background and Current Baseline
 

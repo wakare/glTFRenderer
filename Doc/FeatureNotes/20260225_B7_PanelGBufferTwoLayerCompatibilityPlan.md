@@ -6,6 +6,7 @@
 - Owner: AI coding session
 - Related Plan:
   - `Doc/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
+  - `Doc/RendererDemo_FrostedGlass_FramePassReference.md` (frame pass role/dependency/resource contract)
 
 ## 1. Requirement Update
 
