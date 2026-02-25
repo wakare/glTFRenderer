@@ -100,13 +100,8 @@ namespace
         return "Unknown";
     }
 
-    bool IsEquivalentShaderParameter(const ShaderMetaDataParameter& lhs, const ShaderMetaDataParameter& rhs)
+    bool IsEquivalentShaderParameterLayout(const ShaderMetaDataParameter& lhs, const ShaderMetaDataParameter& rhs)
     {
-        if (lhs.space != rhs.space || lhs.register_index != rhs.register_index)
-        {
-            return false;
-        }
-
         const auto& lhs_info = lhs.parameter_info;
         const auto& rhs_info = rhs.parameter_info;
         if (lhs_info.type != rhs_info.type ||
@@ -129,6 +124,11 @@ namespace
         default:
             return true;
         }
+    }
+
+    bool IsSameShaderParameterBindingSlot(const ShaderMetaDataParameter& lhs, const ShaderMetaDataParameter& rhs)
+    {
+        return lhs.space == rhs.space && lhs.register_index == rhs.register_index;
     }
 
     void LogShaderParameterConflict(const std::string& parameter_name,
@@ -211,7 +211,7 @@ bool RenderPass::InitRenderPass(ResourceManager& resource_manager)
 
     // Build root signature from shader reflection
     std::map<RHIShaderType, std::shared_ptr<IRHIShader>> shaders;
-    std::map<std::string, ShaderMetaDataParameter> unique_parameters;
+    std::map<std::string, std::vector<ShaderMetaDataParameter>> unique_parameters;
     for (const auto& shader_pair : m_desc.shaders)
     {
         auto shader = RendererInterface::InternalResourceHandleTable::Instance().GetShader(shader_pair.second);
@@ -219,14 +219,23 @@ bool RenderPass::InitRenderPass(ResourceManager& resource_manager)
         for (const auto& root_parameter_info : shader_meta_data.root_parameter_infos)
         {
             const auto& parameter_name = root_parameter_info.parameter_info.parameter_name;
-            const auto existing_parameter_it = unique_parameters.find(parameter_name);
-            if (existing_parameter_it != unique_parameters.end())
+            auto& parameter_variants = unique_parameters[parameter_name];
+            bool already_mapped = false;
+            for (const auto& existing_parameter : parameter_variants)
             {
-                if (!IsEquivalentShaderParameter(existing_parameter_it->second, root_parameter_info))
+                if (!IsEquivalentShaderParameterLayout(existing_parameter, root_parameter_info))
                 {
-                    LogShaderParameterConflict(parameter_name, existing_parameter_it->second, root_parameter_info);
+                    LogShaderParameterConflict(parameter_name, existing_parameter, root_parameter_info);
                     return false;
                 }
+                if (IsSameShaderParameterBindingSlot(existing_parameter, root_parameter_info))
+                {
+                    already_mapped = true;
+                    break;
+                }
+            }
+            if (already_mapped)
+            {
                 continue;
             }
 
@@ -244,8 +253,8 @@ bool RenderPass::InitRenderPass(ResourceManager& resource_manager)
                 return false;
             }
 
-            unique_parameters.insert({parameter_name, root_parameter_info});
-            m_shader_parameter_mapping.insert({parameter_name, allocation});
+            parameter_variants.push_back(root_parameter_info);
+            m_shader_parameter_mapping[parameter_name].push_back(allocation);
         }
 
         shaders[shader->GetType()] = shader;
@@ -314,7 +323,14 @@ RendererInterface::PrimitiveTopology RenderPass::GetPrimitiveTopology() const
 const RootSignatureAllocation& RenderPass::GetRootSignatureAllocation(const std::string& name) const
 {
     GLTF_CHECK(m_shader_parameter_mapping.contains(name));
+    const auto& allocations = m_shader_parameter_mapping.at(name);
+    GLTF_CHECK(!allocations.empty());
+    return allocations.front();
+}
 
+const std::vector<RootSignatureAllocation>& RenderPass::GetRootSignatureAllocations(const std::string& name) const
+{
+    GLTF_CHECK(m_shader_parameter_mapping.contains(name));
     return m_shader_parameter_mapping.at(name);
 }
 
@@ -324,12 +340,17 @@ const RootSignatureAllocation* RenderPass::FindRootSignatureAllocation(const std
     {
         return nullptr;
     }
-    return &m_shader_parameter_mapping.at(name);
+    const auto& allocations = m_shader_parameter_mapping.at(name);
+    if (allocations.empty())
+    {
+        return nullptr;
+    }
+    return &allocations.front();
 }
 
 bool RenderPass::HasRootSignatureAllocation(const std::string& name) const
 {
-    return m_shader_parameter_mapping.contains(name);
+    return m_shader_parameter_mapping.contains(name) && !m_shader_parameter_mapping.at(name).empty();
 }
 
 RenderPass::DrawValidationResult RenderPass::ValidateDrawDesc(const RendererInterface::RenderPassDrawDesc& draw_desc) const

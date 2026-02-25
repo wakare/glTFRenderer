@@ -26,6 +26,12 @@ public:
         Count = 5
     };
 
+    enum class PanelPayloadPath : unsigned
+    {
+        ComputeSDF = 0,
+        RasterPanelGBuffer = 1
+    };
+
     static constexpr unsigned PANEL_INTERACTION_STATE_COUNT = static_cast<unsigned>(PanelInteractionState::Count);
 
     struct PanelStateCurve
@@ -180,6 +186,8 @@ protected:
     RendererInterface::RenderGraphNodeHandle m_blur_thirtysecond_horizontal_pass_node{NULL_HANDLE};
     RendererInterface::RenderGraphNodeHandle m_blur_thirtysecond_vertical_pass_node{NULL_HANDLE};
     RendererInterface::RenderGraphNodeHandle m_frosted_mask_parameter_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_frosted_mask_parameter_raster_front_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_frosted_mask_parameter_raster_back_pass_node{NULL_HANDLE};
     RendererInterface::RenderGraphNodeHandle m_frosted_composite_back_pass_node{NULL_HANDLE};
     RendererInterface::RenderGraphNodeHandle m_downsample_half_multilayer_pass_node{NULL_HANDLE};
     RendererInterface::RenderGraphNodeHandle m_blur_half_multilayer_horizontal_pass_node{NULL_HANDLE};
@@ -206,6 +214,10 @@ protected:
     RendererInterface::RenderTargetHandle m_frosted_mask_parameter_secondary_output{NULL_HANDLE};
     RendererInterface::RenderTargetHandle m_frosted_panel_optics_output{NULL_HANDLE};
     RendererInterface::RenderTargetHandle m_frosted_panel_optics_secondary_output{NULL_HANDLE};
+    RendererInterface::RenderTargetHandle m_frosted_panel_profile_output{NULL_HANDLE};
+    RendererInterface::RenderTargetHandle m_frosted_panel_profile_secondary_output{NULL_HANDLE};
+    RendererInterface::RenderTargetHandle m_frosted_panel_payload_depth{NULL_HANDLE};
+    RendererInterface::RenderTargetHandle m_frosted_panel_payload_depth_secondary{NULL_HANDLE};
     RendererInterface::RenderTargetHandle m_half_multilayer_ping{NULL_HANDLE};
     RendererInterface::RenderTargetHandle m_half_multilayer_pong{NULL_HANDLE};
     RendererInterface::RenderTargetHandle m_quarter_multilayer_ping{NULL_HANDLE};
@@ -249,6 +261,9 @@ protected:
     bool m_multilayer_runtime_enabled{true};
     unsigned m_multilayer_over_budget_streak{0};
     unsigned m_multilayer_cooldown_frames{0};
+    PanelPayloadPath m_panel_payload_path{PanelPayloadPath::ComputeSDF};
+    bool m_panel_payload_raster_ready{false};
+    bool m_panel_payload_compute_fallback_active{false};
     unsigned m_debug_selected_panel_index{0};
     unsigned m_debug_selected_curve_state_index{0};
 };

@@ -154,6 +154,26 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
         postfx_usage);
+    m_frosted_panel_profile_output = resource_operator.CreateWindowRelativeRenderTarget(
+        "PostFX_Frosted_PanelProfile",
+        RendererInterface::RGBA16_FLOAT,
+        RendererInterface::default_clear_color,
+        postfx_usage);
+    m_frosted_panel_profile_secondary_output = resource_operator.CreateWindowRelativeRenderTarget(
+        "PostFX_Frosted_PanelProfile_Secondary",
+        RendererInterface::RGBA16_FLOAT,
+        RendererInterface::default_clear_color,
+        postfx_usage);
+    m_frosted_panel_payload_depth = resource_operator.CreateWindowRelativeRenderTarget(
+        "PostFX_Frosted_PanelPayloadDepth",
+        RendererInterface::D32,
+        RendererInterface::default_clear_depth,
+        static_cast<RendererInterface::ResourceUsage>(RendererInterface::ResourceUsage::DEPTH_STENCIL));
+    m_frosted_panel_payload_depth_secondary = resource_operator.CreateWindowRelativeRenderTarget(
+        "PostFX_Frosted_PanelPayloadDepth_Secondary",
+        RendererInterface::D32,
+        RendererInterface::default_clear_depth,
+        static_cast<RendererInterface::ResourceUsage>(RendererInterface::ResourceUsage::DEPTH_STENCIL));
     m_half_multilayer_ping = resource_operator.CreateWindowRelativeRenderTarget(
         "PostFX_Frosted_Multilayer_Half_Ping",
         RendererInterface::RGBA16_FLOAT,
@@ -885,19 +905,146 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
         output_panel_optics_secondary_binding_desc.name = "PanelOpticsSecondaryOutput";
         output_panel_optics_secondary_binding_desc.render_target_texture = {m_frosted_panel_optics_secondary_output};
 
+        RendererInterface::RenderTargetTextureBindingDesc output_panel_profile_binding_desc{};
+        output_panel_profile_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::UAV;
+        output_panel_profile_binding_desc.name = "PanelProfileOutput";
+        output_panel_profile_binding_desc.render_target_texture = {m_frosted_panel_profile_output};
+
+        RendererInterface::RenderTargetTextureBindingDesc output_panel_profile_secondary_binding_desc{};
+        output_panel_profile_secondary_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::UAV;
+        output_panel_profile_secondary_binding_desc.name = "PanelProfileSecondaryOutput";
+        output_panel_profile_secondary_binding_desc.render_target_texture = {m_frosted_panel_profile_secondary_output};
+
         frosted_mask_parameter_pass_setup_info.sampled_render_targets = {
             input_depth_binding_desc,
             input_normal_binding_desc,
             output_mask_param_binding_desc,
             output_mask_param_secondary_binding_desc,
             output_panel_optics_binding_desc,
-            output_panel_optics_secondary_binding_desc
+            output_panel_optics_secondary_binding_desc,
+            output_panel_profile_binding_desc,
+            output_panel_profile_secondary_binding_desc
         };
     }
     frosted_mask_parameter_pass_setup_info.buffer_resources["g_frosted_panels"] = panel_data_binding_desc;
     frosted_mask_parameter_pass_setup_info.buffer_resources["FrostedGlassGlobalBuffer"] = global_params_binding_desc;
     frosted_mask_parameter_pass_setup_info.execute_command = make_compute_dispatch(width, height);
     m_frosted_mask_parameter_pass_node = graph.CreateRenderGraphNode(resource_operator, frosted_mask_parameter_pass_setup_info);
+
+    RendererInterface::RenderExecuteCommand panel_payload_draw_command{};
+    panel_payload_draw_command.type = RendererInterface::ExecuteCommandType::DRAW_VERTEX_INSTANCING_COMMAND;
+    panel_payload_draw_command.parameter.draw_vertex_instance_command_parameter.vertex_count = 6;
+    panel_payload_draw_command.parameter.draw_vertex_instance_command_parameter.instance_count = MAX_PANEL_COUNT;
+    panel_payload_draw_command.parameter.draw_vertex_instance_command_parameter.start_vertex_location = 0;
+    panel_payload_draw_command.parameter.draw_vertex_instance_command_parameter.start_instance_location = 0;
+
+    RendererInterface::RenderGraph::RenderPassSetupInfo frosted_mask_parameter_raster_front_pass_setup_info{};
+    frosted_mask_parameter_raster_front_pass_setup_info.render_pass_type = RendererInterface::RenderPassType::GRAPHICS;
+    frosted_mask_parameter_raster_front_pass_setup_info.debug_group = "Frosted Glass";
+    frosted_mask_parameter_raster_front_pass_setup_info.debug_name = "Frosted Mask/Parameter Raster Front";
+    frosted_mask_parameter_raster_front_pass_setup_info.modules = {m_scene->GetCameraModule()};
+    frosted_mask_parameter_raster_front_pass_setup_info.shader_setup_infos = {
+        {RendererInterface::VERTEX_SHADER, "PanelPayloadVS", "Resources/Shaders/FrostedGlass.hlsl"},
+        {RendererInterface::FRAGMENT_SHADER, "PanelPayloadFrontPS", "Resources/Shaders/FrostedGlass.hlsl"}
+    };
+    frosted_mask_parameter_raster_front_pass_setup_info.render_state.depth_stencil_mode = RendererInterface::DepthStencilMode::DEPTH_WRITE;
+    {
+        RendererInterface::RenderTargetBindingDesc color_binding_desc{};
+        color_binding_desc.format = RendererInterface::RGBA16_FLOAT;
+        color_binding_desc.usage = RendererInterface::RenderPassResourceUsage::COLOR;
+        color_binding_desc.need_clear = true;
+
+        RendererInterface::RenderTargetBindingDesc depth_binding_desc{};
+        depth_binding_desc.format = RendererInterface::D32;
+        depth_binding_desc.usage = RendererInterface::RenderPassResourceUsage::DEPTH_STENCIL;
+        depth_binding_desc.need_clear = true;
+
+        frosted_mask_parameter_raster_front_pass_setup_info.render_targets = {
+            {m_frosted_mask_parameter_output, color_binding_desc},
+            {m_frosted_panel_optics_output, color_binding_desc},
+            {m_frosted_panel_profile_output, color_binding_desc},
+            {m_frosted_panel_payload_depth, depth_binding_desc}
+        };
+
+        RendererInterface::RenderTargetTextureBindingDesc input_depth_binding_desc{};
+        input_depth_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
+        input_depth_binding_desc.name = "InputDepthTex";
+        input_depth_binding_desc.render_target_texture = {scene_output.GetRenderTargetHandle(*m_scene, "m_base_pass_depth")};
+
+        RendererInterface::RenderTargetTextureBindingDesc input_normal_binding_desc{};
+        input_normal_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
+        input_normal_binding_desc.name = "InputNormalTex";
+        input_normal_binding_desc.render_target_texture = {scene_output.GetRenderTargetHandle(*m_scene, "m_base_pass_normal")};
+
+        frosted_mask_parameter_raster_front_pass_setup_info.sampled_render_targets = {
+            input_depth_binding_desc,
+            input_normal_binding_desc
+        };
+    }
+    frosted_mask_parameter_raster_front_pass_setup_info.buffer_resources["g_frosted_panels"] = panel_data_binding_desc;
+    frosted_mask_parameter_raster_front_pass_setup_info.buffer_resources["FrostedGlassGlobalBuffer"] = global_params_binding_desc;
+    frosted_mask_parameter_raster_front_pass_setup_info.execute_command = panel_payload_draw_command;
+    m_frosted_mask_parameter_raster_front_pass_node =
+        graph.CreateRenderGraphNode(resource_operator, frosted_mask_parameter_raster_front_pass_setup_info);
+
+    RendererInterface::RenderGraph::RenderPassSetupInfo frosted_mask_parameter_raster_back_pass_setup_info{};
+    frosted_mask_parameter_raster_back_pass_setup_info.render_pass_type = RendererInterface::RenderPassType::GRAPHICS;
+    frosted_mask_parameter_raster_back_pass_setup_info.debug_group = "Frosted Glass";
+    frosted_mask_parameter_raster_back_pass_setup_info.debug_name = "Frosted Mask/Parameter Raster Back";
+    frosted_mask_parameter_raster_back_pass_setup_info.modules = {m_scene->GetCameraModule()};
+    frosted_mask_parameter_raster_back_pass_setup_info.shader_setup_infos = {
+        {RendererInterface::VERTEX_SHADER, "PanelPayloadVS", "Resources/Shaders/FrostedGlass.hlsl"},
+        {RendererInterface::FRAGMENT_SHADER, "PanelPayloadBackPS", "Resources/Shaders/FrostedGlass.hlsl"}
+    };
+    frosted_mask_parameter_raster_back_pass_setup_info.dependency_render_graph_nodes = {m_frosted_mask_parameter_raster_front_pass_node};
+    frosted_mask_parameter_raster_back_pass_setup_info.render_state.depth_stencil_mode = RendererInterface::DepthStencilMode::DEPTH_WRITE;
+    {
+        RendererInterface::RenderTargetBindingDesc color_binding_desc{};
+        color_binding_desc.format = RendererInterface::RGBA16_FLOAT;
+        color_binding_desc.usage = RendererInterface::RenderPassResourceUsage::COLOR;
+        color_binding_desc.need_clear = true;
+
+        RendererInterface::RenderTargetBindingDesc depth_binding_desc{};
+        depth_binding_desc.format = RendererInterface::D32;
+        depth_binding_desc.usage = RendererInterface::RenderPassResourceUsage::DEPTH_STENCIL;
+        depth_binding_desc.need_clear = true;
+
+        frosted_mask_parameter_raster_back_pass_setup_info.render_targets = {
+            {m_frosted_mask_parameter_secondary_output, color_binding_desc},
+            {m_frosted_panel_optics_secondary_output, color_binding_desc},
+            {m_frosted_panel_profile_secondary_output, color_binding_desc},
+            {m_frosted_panel_payload_depth_secondary, depth_binding_desc}
+        };
+
+        RendererInterface::RenderTargetTextureBindingDesc input_depth_binding_desc{};
+        input_depth_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
+        input_depth_binding_desc.name = "InputDepthTex";
+        input_depth_binding_desc.render_target_texture = {scene_output.GetRenderTargetHandle(*m_scene, "m_base_pass_depth")};
+
+        RendererInterface::RenderTargetTextureBindingDesc input_normal_binding_desc{};
+        input_normal_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
+        input_normal_binding_desc.name = "InputNormalTex";
+        input_normal_binding_desc.render_target_texture = {scene_output.GetRenderTargetHandle(*m_scene, "m_base_pass_normal")};
+
+        RendererInterface::RenderTargetTextureBindingDesc front_mask_binding_desc{};
+        front_mask_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
+        front_mask_binding_desc.name = "FrontMaskParamTex";
+        front_mask_binding_desc.render_target_texture = {m_frosted_mask_parameter_output};
+
+        frosted_mask_parameter_raster_back_pass_setup_info.sampled_render_targets = {
+            input_depth_binding_desc,
+            input_normal_binding_desc,
+            front_mask_binding_desc
+        };
+    }
+    frosted_mask_parameter_raster_back_pass_setup_info.buffer_resources["g_frosted_panels"] = panel_data_binding_desc;
+    frosted_mask_parameter_raster_back_pass_setup_info.buffer_resources["FrostedGlassGlobalBuffer"] = global_params_binding_desc;
+    frosted_mask_parameter_raster_back_pass_setup_info.execute_command = panel_payload_draw_command;
+    m_frosted_mask_parameter_raster_back_pass_node =
+        graph.CreateRenderGraphNode(resource_operator, frosted_mask_parameter_raster_back_pass_setup_info);
+    m_panel_payload_raster_ready =
+        m_frosted_mask_parameter_raster_front_pass_node != NULL_HANDLE &&
+        m_frosted_mask_parameter_raster_back_pass_node != NULL_HANDLE;
 
     const RendererInterface::RenderTargetHandle velocity_rt =
         scene_output.GetRenderTargetHandle(*m_scene, "m_base_pass_velocity");
@@ -910,7 +1057,7 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
     frosted_composite_back_pass_setup_info.shader_setup_infos = {
         {RendererInterface::COMPUTE_SHADER, "CompositeBackMain", "Resources/Shaders/FrostedGlass.hlsl"}
     };
-    frosted_composite_back_pass_setup_info.dependency_render_graph_nodes = {m_blur_thirtysecond_vertical_pass_node, m_frosted_mask_parameter_pass_node};
+    frosted_composite_back_pass_setup_info.dependency_render_graph_nodes = {m_blur_thirtysecond_vertical_pass_node};
     {
         RendererInterface::RenderTargetTextureBindingDesc input_color_binding_desc{};
         input_color_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
@@ -962,6 +1109,16 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
         input_panel_optics_secondary_binding_desc.name = "PanelOpticsSecondaryTex";
         input_panel_optics_secondary_binding_desc.render_target_texture = {m_frosted_panel_optics_secondary_output};
 
+        RendererInterface::RenderTargetTextureBindingDesc input_panel_profile_binding_desc{};
+        input_panel_profile_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
+        input_panel_profile_binding_desc.name = "PanelProfileTex";
+        input_panel_profile_binding_desc.render_target_texture = {m_frosted_panel_profile_output};
+
+        RendererInterface::RenderTargetTextureBindingDesc input_panel_profile_secondary_binding_desc{};
+        input_panel_profile_secondary_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
+        input_panel_profile_secondary_binding_desc.name = "PanelProfileSecondaryTex";
+        input_panel_profile_secondary_binding_desc.render_target_texture = {m_frosted_panel_profile_secondary_output};
+
         RendererInterface::RenderTargetTextureBindingDesc output_back_composite_binding_desc{};
         output_back_composite_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::UAV;
         output_back_composite_binding_desc.name = "BackCompositeOutput";
@@ -978,6 +1135,8 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
             input_mask_param_secondary_binding_desc,
             input_panel_optics_binding_desc,
             input_panel_optics_secondary_binding_desc,
+            input_panel_profile_binding_desc,
+            input_panel_profile_secondary_binding_desc,
             output_back_composite_binding_desc
         };
     }
@@ -1465,6 +1624,16 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
             input_panel_optics_secondary_binding_desc.name = "PanelOpticsSecondaryTex";
             input_panel_optics_secondary_binding_desc.render_target_texture = {m_frosted_panel_optics_secondary_output};
 
+            RendererInterface::RenderTargetTextureBindingDesc input_panel_profile_binding_desc{};
+            input_panel_profile_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
+            input_panel_profile_binding_desc.name = "PanelProfileTex";
+            input_panel_profile_binding_desc.render_target_texture = {m_frosted_panel_profile_output};
+
+            RendererInterface::RenderTargetTextureBindingDesc input_panel_profile_secondary_binding_desc{};
+            input_panel_profile_secondary_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
+            input_panel_profile_secondary_binding_desc.name = "PanelProfileSecondaryTex";
+            input_panel_profile_secondary_binding_desc.render_target_texture = {m_frosted_panel_profile_secondary_output};
+
             RendererInterface::RenderTargetTextureBindingDesc input_history_binding_desc{};
             input_history_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
             input_history_binding_desc.name = "HistoryInputTex";
@@ -1496,6 +1665,8 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
                 input_mask_param_secondary_binding_desc,
                 input_panel_optics_binding_desc,
                 input_panel_optics_secondary_binding_desc,
+                input_panel_profile_binding_desc,
+                input_panel_profile_secondary_binding_desc,
                 input_history_binding_desc,
                 input_velocity_binding_desc,
                 output_binding_desc,
@@ -1525,7 +1696,7 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
         frosted_composite_pass_setup_info.shader_setup_infos = {
             {RendererInterface::COMPUTE_SHADER, "CompositeMain", "Resources/Shaders/FrostedGlass.hlsl"}
         };
-        frosted_composite_pass_setup_info.dependency_render_graph_nodes = {m_blur_thirtysecond_vertical_pass_node, m_frosted_mask_parameter_pass_node};
+        frosted_composite_pass_setup_info.dependency_render_graph_nodes = {m_blur_thirtysecond_vertical_pass_node};
         {
             RendererInterface::RenderTargetTextureBindingDesc input_color_binding_desc{};
             input_color_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
@@ -1577,6 +1748,16 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
             input_panel_optics_secondary_binding_desc.name = "PanelOpticsSecondaryTex";
             input_panel_optics_secondary_binding_desc.render_target_texture = {m_frosted_panel_optics_secondary_output};
 
+            RendererInterface::RenderTargetTextureBindingDesc input_panel_profile_binding_desc{};
+            input_panel_profile_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
+            input_panel_profile_binding_desc.name = "PanelProfileTex";
+            input_panel_profile_binding_desc.render_target_texture = {m_frosted_panel_profile_output};
+
+            RendererInterface::RenderTargetTextureBindingDesc input_panel_profile_secondary_binding_desc{};
+            input_panel_profile_secondary_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
+            input_panel_profile_secondary_binding_desc.name = "PanelProfileSecondaryTex";
+            input_panel_profile_secondary_binding_desc.render_target_texture = {m_frosted_panel_profile_secondary_output};
+
             RendererInterface::RenderTargetTextureBindingDesc input_history_binding_desc{};
             input_history_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
             input_history_binding_desc.name = "HistoryInputTex";
@@ -1608,6 +1789,8 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
                 input_mask_param_secondary_binding_desc,
                 input_panel_optics_binding_desc,
                 input_panel_optics_secondary_binding_desc,
+                input_panel_profile_binding_desc,
+                input_panel_profile_secondary_binding_desc,
                 input_history_binding_desc,
                 input_velocity_binding_desc,
                 output_binding_desc,
@@ -1671,10 +1854,14 @@ bool RendererSystemFrostedGlass::HasInit() const
            m_frosted_pass_output != NULL_HANDLE &&
            m_frosted_back_composite_output != NULL_HANDLE &&
            m_frosted_mask_parameter_output != NULL_HANDLE &&
-           m_frosted_mask_parameter_secondary_output != NULL_HANDLE &&
-           m_frosted_panel_optics_output != NULL_HANDLE &&
-           m_frosted_panel_optics_secondary_output != NULL_HANDLE &&
-           m_half_multilayer_ping != NULL_HANDLE &&
+            m_frosted_mask_parameter_secondary_output != NULL_HANDLE &&
+            m_frosted_panel_optics_output != NULL_HANDLE &&
+            m_frosted_panel_optics_secondary_output != NULL_HANDLE &&
+            m_frosted_panel_profile_output != NULL_HANDLE &&
+            m_frosted_panel_profile_secondary_output != NULL_HANDLE &&
+            m_frosted_panel_payload_depth != NULL_HANDLE &&
+            m_frosted_panel_payload_depth_secondary != NULL_HANDLE &&
+            m_half_multilayer_ping != NULL_HANDLE &&
            m_half_multilayer_pong != NULL_HANDLE &&
            m_quarter_multilayer_ping != NULL_HANDLE &&
            m_quarter_multilayer_pong != NULL_HANDLE &&
@@ -1842,6 +2029,9 @@ bool RendererSystemFrostedGlass::Tick(RendererInterface::ResourceOperator& resou
         m_temporal_history_read_is_a ? m_frosted_composite_history_ab_pass_node : m_frosted_composite_history_ba_pass_node;
     const RendererInterface::RenderGraphNodeHandle active_front_composite_pass =
         m_temporal_history_read_is_a ? m_frosted_composite_front_history_ab_pass_node : m_frosted_composite_front_history_ba_pass_node;
+    const bool request_raster_panel_payload = m_panel_payload_path == PanelPayloadPath::RasterPanelGBuffer;
+    const bool use_raster_panel_payload = request_raster_panel_payload && m_panel_payload_raster_ready;
+    m_panel_payload_compute_fallback_active = request_raster_panel_payload && !use_raster_panel_payload;
     const bool use_strict_multilayer_path =
         m_global_params.multilayer_mode == MULTILAYER_MODE_FORCE &&
         m_multilayer_runtime_enabled;
@@ -1861,7 +2051,15 @@ bool RendererSystemFrostedGlass::Tick(RendererInterface::ResourceOperator& resou
     graph.RegisterRenderGraphNode(m_downsample_thirtysecond_pass_node);
     graph.RegisterRenderGraphNode(m_blur_thirtysecond_horizontal_pass_node);
     graph.RegisterRenderGraphNode(m_blur_thirtysecond_vertical_pass_node);
-    graph.RegisterRenderGraphNode(m_frosted_mask_parameter_pass_node);
+    if (use_raster_panel_payload)
+    {
+        graph.RegisterRenderGraphNode(m_frosted_mask_parameter_raster_front_pass_node);
+        graph.RegisterRenderGraphNode(m_frosted_mask_parameter_raster_back_pass_node);
+    }
+    else
+    {
+        graph.RegisterRenderGraphNode(m_frosted_mask_parameter_pass_node);
+    }
     if (use_strict_multilayer_path)
     {
         graph.RegisterRenderGraphNode(m_frosted_composite_back_pass_node);
@@ -1955,6 +2153,13 @@ void RendererSystemFrostedGlass::DrawDebugUI()
     }
     if (ImGui::CollapsingHeader("Advanced / Global"))
     {
+        const char* panel_payload_paths[] = {"Compute (SDF)", "Raster (Panel GBuffer)"};
+        int panel_payload_path = static_cast<int>(m_panel_payload_path);
+        if (ImGui::Combo("Panel Payload Path", &panel_payload_path, panel_payload_paths, IM_ARRAYSIZE(panel_payload_paths)))
+        {
+            panel_payload_path = (std::max)(0, (std::min)(panel_payload_path, 1));
+            m_panel_payload_path = static_cast<PanelPayloadPath>(panel_payload_path);
+        }
         if (ImGui::SliderFloat("Blur Kernel Sigma Scale", &m_global_params.blur_kernel_sigma_scale, 0.6f, 3.5f, "%.2f"))
         {
             global_dirty = true;
@@ -2023,6 +2228,13 @@ void RendererSystemFrostedGlass::DrawDebugUI()
         m_multilayer_runtime_enabled;
     ImGui::Text("Multilayer Path: %s",
                 strict_multilayer_path_active ? "Strict Sequential (Back->Front)" : "Fast Single-Pass");
+    const bool using_raster_panel_payload = m_panel_payload_path == PanelPayloadPath::RasterPanelGBuffer;
+    ImGui::Text("Panel Payload Path: %s",
+                using_raster_panel_payload ? "Raster (Panel GBuffer)" : "Compute (SDF)");
+    if (m_panel_payload_compute_fallback_active)
+    {
+        ImGui::TextUnformatted("Panel Payload Runtime: Raster requested but not ready; using Compute fallback.");
+    }
 
     if (m_panel_descs.empty())
     {

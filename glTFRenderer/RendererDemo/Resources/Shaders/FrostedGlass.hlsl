@@ -13,12 +13,17 @@ Texture2D<float4> MaskParamTex;
 Texture2D<float4> MaskParamSecondaryTex;
 Texture2D<float4> PanelOpticsTex;
 Texture2D<float4> PanelOpticsSecondaryTex;
+Texture2D<float4> PanelProfileTex;
+Texture2D<float4> PanelProfileSecondaryTex;
+Texture2D<float4> FrontMaskParamTex;
 Texture2D<float4> HistoryInputTex;
 Texture2D<float4> VelocityTex;
 RWTexture2D<float4> MaskParamOutput;
 RWTexture2D<float4> MaskParamSecondaryOutput;
 RWTexture2D<float4> PanelOpticsOutput;
 RWTexture2D<float4> PanelOpticsSecondaryOutput;
+RWTexture2D<float4> PanelProfileOutput;
+RWTexture2D<float4> PanelProfileSecondaryOutput;
 RWTexture2D<float4> Output;
 RWTexture2D<float4> BackCompositeOutput;
 RWTexture2D<float4> HistoryOutputTex;
@@ -345,13 +350,17 @@ void EvaluatePanelCandidatePayload(float2 uv,
                                    out float panel_rim,
                                    out float panel_mixed_fresnel,
                                    out float2 panel_refraction_uv,
-                                   out float panel_effective_blur_strength)
+                                   out float panel_effective_blur_strength,
+                                   out float2 panel_profile_normal_uv,
+                                   out float panel_optical_thickness)
 {
     panel_mask = 0.0f;
     panel_rim = 0.0f;
     panel_mixed_fresnel = 0.0f;
     panel_refraction_uv = uv;
     panel_effective_blur_strength = 0.0f;
+    panel_profile_normal_uv = float2(0.0f, 0.0f);
+    panel_optical_thickness = 0.0f;
 
     const float panel_edge_softness = panel_data.shape_info.y;
     const float panel_sdf = CalcPanelSDF(uv, panel_data);
@@ -369,6 +378,8 @@ void EvaluatePanelCandidatePayload(float2 uv,
     const float panel_fresnel_power = panel_data.optical_info.w;
 
     const float2 panel_normal_uv = CalcPanelNormalFromSDF(uv, panel_data);
+    panel_profile_normal_uv = panel_normal_uv;
+    panel_optical_thickness = panel_thickness;
     float2 refraction_direction = panel_normal_uv * 0.7f + center_normal.xy * 0.3f;
     const float refraction_dir_len_sq = dot(refraction_direction, refraction_direction);
     if (refraction_dir_len_sq > 1e-6f)
@@ -497,28 +508,32 @@ bool TryResolvePanelPayload(float4 mask_param, out float layer_mask)
     return true;
 }
 
-[numthreads(8, 8, 1)]
-void MaskParameterMain(int3 dispatch_thread_id : SV_DispatchThreadID)
+struct PanelPayloadResult
 {
-    if (dispatch_thread_id.x >= viewport_width || dispatch_thread_id.y >= viewport_height)
-    {
-        return;
-    }
+    float4 mask_param_front;
+    float4 mask_param_back;
+    float4 panel_optics_front;
+    float4 panel_optics_back;
+    float4 panel_profile_front;
+    float4 panel_profile_back;
+};
 
-    const int2 pixel = dispatch_thread_id.xy;
-    const float2 uv = (float2(pixel) + 0.5f) / float2((float)viewport_width, (float)viewport_height);
-
+PanelPayloadResult EvaluatePanelPayloadAtPixel(int2 pixel, float2 uv)
+{
+    PanelPayloadResult payload = (PanelPayloadResult)0;
     const float depth_dx = abs(SampleDepthSafe(pixel + int2(1, 0)) - SampleDepthSafe(pixel - int2(1, 0)));
     const float depth_dy = abs(SampleDepthSafe(pixel + int2(0, 1)) - SampleDepthSafe(pixel - int2(0, 1)));
     const float scene_edge = saturate((depth_dx + depth_dy) * scene_edge_scale);
 
     if (panel_count == 0)
     {
-        MaskParamOutput[pixel] = float4(0.0f, 0.0f, 0.0f, -1.0f);
-        MaskParamSecondaryOutput[pixel] = float4(0.0f, 0.0f, 0.0f, -1.0f);
-        PanelOpticsOutput[pixel] = float4(uv, 0.0f, scene_edge);
-        PanelOpticsSecondaryOutput[pixel] = float4(uv, 0.0f, scene_edge);
-        return;
+        payload.mask_param_front = float4(0.0f, 0.0f, 0.0f, -1.0f);
+        payload.mask_param_back = float4(0.0f, 0.0f, 0.0f, -1.0f);
+        payload.panel_optics_front = float4(uv, 0.0f, scene_edge);
+        payload.panel_optics_back = float4(uv, 0.0f, scene_edge);
+        payload.panel_profile_front = float4(0.0f, 0.0f, 0.0f, 0.0f);
+        payload.panel_profile_back = float4(0.0f, 0.0f, 0.0f, 0.0f);
+        return payload;
     }
 
     const float center_depth = SampleDepthSafe(pixel);
@@ -542,6 +557,8 @@ void MaskParameterMain(int3 dispatch_thread_id : SV_DispatchThreadID)
     float front_mixed_fresnel = 0.0f;
     float2 front_refraction_uv = uv;
     float front_effective_blur_strength = 0.0f;
+    float2 front_profile_normal_uv = float2(0.0f, 0.0f);
+    float front_optical_thickness = 0.0f;
     float front_layer = -1e20f;
     int front_panel_index = -1;
 
@@ -550,6 +567,8 @@ void MaskParameterMain(int3 dispatch_thread_id : SV_DispatchThreadID)
     float back_mixed_fresnel = 0.0f;
     float2 back_refraction_uv = uv;
     float back_effective_blur_strength = 0.0f;
+    float2 back_profile_normal_uv = float2(0.0f, 0.0f);
+    float back_optical_thickness = 0.0f;
     float back_layer = -1e20f;
     int back_panel_index = -1;
 
@@ -562,6 +581,8 @@ void MaskParameterMain(int3 dispatch_thread_id : SV_DispatchThreadID)
         float panel_mixed_fresnel = 0.0f;
         float2 panel_refraction_uv = uv;
         float panel_effective_blur_strength = 0.0f;
+        float2 panel_profile_normal_uv = float2(0.0f, 0.0f);
+        float panel_optical_thickness = 0.0f;
         EvaluatePanelCandidatePayload(
             uv,
             center_depth,
@@ -572,7 +593,9 @@ void MaskParameterMain(int3 dispatch_thread_id : SV_DispatchThreadID)
             panel_rim,
             panel_mixed_fresnel,
             panel_refraction_uv,
-            panel_effective_blur_strength);
+            panel_effective_blur_strength,
+            panel_profile_normal_uv,
+            panel_optical_thickness);
         if (panel_mask <= 1e-4f)
         {
             continue;
@@ -594,6 +617,8 @@ void MaskParameterMain(int3 dispatch_thread_id : SV_DispatchThreadID)
             back_mixed_fresnel = front_mixed_fresnel;
             back_refraction_uv = front_refraction_uv;
             back_effective_blur_strength = front_effective_blur_strength;
+            back_profile_normal_uv = front_profile_normal_uv;
+            back_optical_thickness = front_optical_thickness;
             back_layer = front_layer;
             back_panel_index = front_panel_index;
 
@@ -602,6 +627,8 @@ void MaskParameterMain(int3 dispatch_thread_id : SV_DispatchThreadID)
             front_mixed_fresnel = panel_mixed_fresnel;
             front_refraction_uv = panel_refraction_uv;
             front_effective_blur_strength = panel_effective_blur_strength;
+            front_profile_normal_uv = panel_profile_normal_uv;
+            front_optical_thickness = panel_optical_thickness;
             front_layer = panel_layer;
             front_panel_index = panel_index_signed;
             continue;
@@ -624,14 +651,213 @@ void MaskParameterMain(int3 dispatch_thread_id : SV_DispatchThreadID)
         back_mixed_fresnel = panel_mixed_fresnel;
         back_refraction_uv = panel_refraction_uv;
         back_effective_blur_strength = panel_effective_blur_strength;
+        back_profile_normal_uv = panel_profile_normal_uv;
+        back_optical_thickness = panel_optical_thickness;
         back_layer = panel_layer;
         back_panel_index = panel_index_signed;
     }
 
-    MaskParamOutput[pixel] = float4(front_mask, front_rim, front_mixed_fresnel, (float)front_panel_index);
-    MaskParamSecondaryOutput[pixel] = float4(back_mask, back_rim, back_mixed_fresnel, (float)back_panel_index);
-    PanelOpticsOutput[pixel] = float4(front_refraction_uv, front_effective_blur_strength, scene_edge);
-    PanelOpticsSecondaryOutput[pixel] = float4(back_refraction_uv, back_effective_blur_strength, scene_edge);
+    payload.mask_param_front = float4(front_mask, front_rim, front_mixed_fresnel, (float)front_panel_index);
+    payload.mask_param_back = float4(back_mask, back_rim, back_mixed_fresnel, (float)back_panel_index);
+    payload.panel_optics_front = float4(front_refraction_uv, front_effective_blur_strength, scene_edge);
+    payload.panel_optics_back = float4(back_refraction_uv, back_effective_blur_strength, scene_edge);
+    payload.panel_profile_front = float4(front_profile_normal_uv, front_rim, front_optical_thickness);
+    payload.panel_profile_back = float4(back_profile_normal_uv, back_rim, back_optical_thickness);
+    return payload;
+}
+
+[numthreads(8, 8, 1)]
+void MaskParameterMain(int3 dispatch_thread_id : SV_DispatchThreadID)
+{
+    if (dispatch_thread_id.x >= viewport_width || dispatch_thread_id.y >= viewport_height)
+    {
+        return;
+    }
+
+    const int2 pixel = dispatch_thread_id.xy;
+    const float2 uv = (float2(pixel) + 0.5f) / float2((float)viewport_width, (float)viewport_height);
+    const PanelPayloadResult payload = EvaluatePanelPayloadAtPixel(pixel, uv);
+    MaskParamOutput[pixel] = payload.mask_param_front;
+    MaskParamSecondaryOutput[pixel] = payload.mask_param_back;
+    PanelOpticsOutput[pixel] = payload.panel_optics_front;
+    PanelOpticsSecondaryOutput[pixel] = payload.panel_optics_back;
+    PanelProfileOutput[pixel] = payload.panel_profile_front;
+    PanelProfileSecondaryOutput[pixel] = payload.panel_profile_back;
+}
+
+struct PanelPayloadVSOutput
+{
+    float4 position : SV_POSITION;
+    float2 uv : UV;
+    nointerpolation uint panel_index : PANEL_INDEX;
+};
+
+float EncodePanelLayerDepth(float layer_order)
+{
+    const float layer_min = -8.0f;
+    const float layer_max = 8.0f;
+    const float layer_t = saturate((layer_order - layer_min) / max(layer_max - layer_min, 1e-4f));
+    return 1.0f - layer_t;
+}
+
+PanelPayloadVSOutput PanelPayloadVS(uint vertex_id : SV_VertexID, uint instance_id : SV_InstanceID)
+{
+    PanelPayloadVSOutput output;
+    output.panel_index = instance_id;
+    output.uv = float2(0.0f, 0.0f);
+    output.position = float4(-2.0f, -2.0f, 1.0f, 1.0f);
+
+    if (instance_id >= panel_count)
+    {
+        return output;
+    }
+
+    static const float2 k_quad_corners[6] = {
+        float2(-1.0f, -1.0f),
+        float2(1.0f, -1.0f),
+        float2(-1.0f, 1.0f),
+        float2(-1.0f, 1.0f),
+        float2(1.0f, -1.0f),
+        float2(1.0f, 1.0f)
+    };
+
+    const FrostedGlassPanelData panel_data = g_frosted_panels[instance_id];
+    const float2 panel_center_uv = panel_data.center_half_size.xy;
+    const float2 panel_half_size_uv = panel_data.center_half_size.zw;
+    const float2 corner = k_quad_corners[vertex_id % 6];
+    const float2 panel_uv = panel_center_uv + corner * panel_half_size_uv;
+    const float2 clip_position = float2(panel_uv.x * 2.0f - 1.0f, 1.0f - panel_uv.y * 2.0f);
+    const float panel_depth = EncodePanelLayerDepth(panel_data.layering_info.x);
+    output.uv = panel_uv;
+    output.position = float4(clip_position, panel_depth, 1.0f);
+    return output;
+}
+
+bool EvaluateSinglePanelLayerPayload(int2 pixel,
+                                     float2 uv,
+                                     uint panel_index,
+                                     FrostedGlassPanelData panel_data,
+                                     out float4 mask_param,
+                                     out float4 panel_optics,
+                                     out float4 panel_profile)
+{
+    mask_param = float4(0.0f, 0.0f, 0.0f, -1.0f);
+    panel_optics = float4(uv, 0.0f, 0.0f);
+    panel_profile = float4(0.0f, 0.0f, 0.0f, 0.0f);
+
+    const float depth_dx = abs(SampleDepthSafe(pixel + int2(1, 0)) - SampleDepthSafe(pixel - int2(1, 0)));
+    const float depth_dy = abs(SampleDepthSafe(pixel + int2(0, 1)) - SampleDepthSafe(pixel - int2(0, 1)));
+    const float scene_edge = saturate((depth_dx + depth_dy) * scene_edge_scale);
+
+    const float center_depth = SampleDepthSafe(pixel);
+    const float3 center_normal = SampleNormalSafe(pixel);
+    float3 world_position = 0.0f;
+    const bool valid_world_position = TryGetWorldPosition(pixel, center_depth, world_position);
+    float3 view_dir = float3(0.0f, 0.0f, 1.0f);
+    if (valid_world_position)
+    {
+        const float3 to_view = view_position.xyz - world_position;
+        const float to_view_len_sq = dot(to_view, to_view);
+        if (to_view_len_sq > 1e-6f)
+        {
+            view_dir = to_view * rsqrt(to_view_len_sq);
+        }
+    }
+    const float n_dot_v = saturate(abs(dot(center_normal, view_dir)));
+
+    float panel_mask = 0.0f;
+    float panel_rim = 0.0f;
+    float panel_mixed_fresnel = 0.0f;
+    float2 panel_refraction_uv = uv;
+    float panel_effective_blur_strength = 0.0f;
+    float2 panel_profile_normal_uv = float2(0.0f, 0.0f);
+    float panel_optical_thickness = 0.0f;
+    EvaluatePanelCandidatePayload(
+        uv,
+        center_depth,
+        center_normal,
+        n_dot_v,
+        panel_data,
+        panel_mask,
+        panel_rim,
+        panel_mixed_fresnel,
+        panel_refraction_uv,
+        panel_effective_blur_strength,
+        panel_profile_normal_uv,
+        panel_optical_thickness);
+    if (panel_mask <= 1e-4f)
+    {
+        return false;
+    }
+
+    mask_param = float4(panel_mask, panel_rim, panel_mixed_fresnel, (float)panel_index);
+    panel_optics = float4(panel_refraction_uv, panel_effective_blur_strength, scene_edge);
+    panel_profile = float4(panel_profile_normal_uv, panel_rim, panel_optical_thickness);
+    return true;
+}
+
+struct PanelPayloadLayerPSOutput
+{
+    float4 mask_param : SV_TARGET0;
+    float4 panel_optics : SV_TARGET1;
+    float4 panel_profile : SV_TARGET2;
+};
+
+PanelPayloadLayerPSOutput PanelPayloadFrontPS(PanelPayloadVSOutput input)
+{
+    const int2 pixel = ClampToViewport(int2(input.position.xy));
+    const uint panel_index = input.panel_index;
+    if (panel_index >= panel_count)
+    {
+        discard;
+    }
+    const FrostedGlassPanelData panel_data = g_frosted_panels[panel_index];
+
+    float4 mask_param = float4(0.0f, 0.0f, 0.0f, -1.0f);
+    float4 panel_optics = float4(input.uv, 0.0f, 0.0f);
+    float4 panel_profile = float4(0.0f, 0.0f, 0.0f, 0.0f);
+    if (!EvaluateSinglePanelLayerPayload(pixel, input.uv, panel_index, panel_data, mask_param, panel_optics, panel_profile))
+    {
+        discard;
+    }
+
+    PanelPayloadLayerPSOutput output;
+    output.mask_param = mask_param;
+    output.panel_optics = panel_optics;
+    output.panel_profile = panel_profile;
+    return output;
+}
+
+PanelPayloadLayerPSOutput PanelPayloadBackPS(PanelPayloadVSOutput input)
+{
+    const int2 pixel = ClampToViewport(int2(input.position.xy));
+    const uint panel_index = input.panel_index;
+    if (panel_index >= panel_count)
+    {
+        discard;
+    }
+    const float4 front_mask_param = FrontMaskParamTex.Load(int3(pixel, 0));
+    const float front_mask = saturate(front_mask_param.x);
+    const int front_panel_index = (int)round(front_mask_param.w);
+    if (front_mask > 1e-4f && front_panel_index == (int)panel_index)
+    {
+        discard;
+    }
+
+    const FrostedGlassPanelData panel_data = g_frosted_panels[panel_index];
+    float4 mask_param = float4(0.0f, 0.0f, 0.0f, -1.0f);
+    float4 panel_optics = float4(input.uv, 0.0f, 0.0f);
+    float4 panel_profile = float4(0.0f, 0.0f, 0.0f, 0.0f);
+    if (!EvaluateSinglePanelLayerPayload(pixel, input.uv, panel_index, panel_data, mask_param, panel_optics, panel_profile))
+    {
+        discard;
+    }
+
+    PanelPayloadLayerPSOutput output;
+    output.mask_param = mask_param;
+    output.panel_optics = panel_optics;
+    output.panel_profile = panel_profile;
+    return output;
 }
 
 [numthreads(8, 8, 1)]
@@ -647,6 +873,8 @@ void CompositeBackMain(int3 dispatch_thread_id : SV_DispatchThreadID)
     const float4 front_mask_param = MaskParamTex.Load(int3(pixel, 0));
     const float4 back_mask_param = MaskParamSecondaryTex.Load(int3(pixel, 0));
     const float4 back_panel_optics = PanelOpticsSecondaryTex.Load(int3(pixel, 0));
+    const float4 front_panel_profile = PanelProfileTex.Load(int3(pixel, 0));
+    const float4 back_panel_profile = PanelProfileSecondaryTex.Load(int3(pixel, 0));
 
     float front_mask = 0.0f;
     const bool has_front_layer = TryResolvePanelPayload(front_mask_param, front_mask);
@@ -666,7 +894,9 @@ void CompositeBackMain(int3 dispatch_thread_id : SV_DispatchThreadID)
     if (ShouldEnableMultilayer(has_front_layer, has_back_layer, back_mask))
     {
         const float effective_back_mask = ComputeEffectiveBackMask(back_mask, front_mask);
-        back_composited_color = lerp(scene_color, back_frosted_color, effective_back_mask);
+        const float profile_layer_hint = saturate(max(front_panel_profile.z, back_panel_profile.z));
+        const float layered_mix = saturate(effective_back_mask + profile_layer_hint * 1e-4f);
+        back_composited_color = lerp(scene_color, back_frosted_color, layered_mix);
     }
 
     BackCompositeOutput[pixel] = float4(back_composited_color, 1.0f);
@@ -688,7 +918,10 @@ void CompositeFrontMain(int3 dispatch_thread_id : SV_DispatchThreadID)
     const float4 front_panel_optics = PanelOpticsTex.Load(int3(pixel, 0));
     const float4 back_mask_param = MaskParamSecondaryTex.Load(int3(pixel, 0));
     const float4 back_panel_optics = PanelOpticsSecondaryTex.Load(int3(pixel, 0));
-    const float scene_edge = saturate(max(front_panel_optics.w, back_panel_optics.w));
+    const float4 front_panel_profile = PanelProfileTex.Load(int3(pixel, 0));
+    const float4 back_panel_profile = PanelProfileSecondaryTex.Load(int3(pixel, 0));
+    const float profile_edge = saturate(max(front_panel_profile.z, back_panel_profile.z));
+    const float scene_edge = saturate(max(max(front_panel_optics.w, back_panel_optics.w), profile_edge));
 
     float front_mask = 0.0f;
     float3 front_frosted_color = scene_color;
@@ -753,7 +986,10 @@ void CompositeMain(int3 dispatch_thread_id : SV_DispatchThreadID)
     const float4 front_panel_optics = PanelOpticsTex.Load(int3(pixel, 0));
     const float4 back_mask_param = MaskParamSecondaryTex.Load(int3(pixel, 0));
     const float4 back_panel_optics = PanelOpticsSecondaryTex.Load(int3(pixel, 0));
-    const float scene_edge = saturate(max(front_panel_optics.w, back_panel_optics.w));
+    const float4 front_panel_profile = PanelProfileTex.Load(int3(pixel, 0));
+    const float4 back_panel_profile = PanelProfileSecondaryTex.Load(int3(pixel, 0));
+    const float profile_edge = saturate(max(front_panel_profile.z, back_panel_profile.z));
+    const float scene_edge = saturate(max(max(front_panel_optics.w, back_panel_optics.w), profile_edge));
 
     float front_mask = 0.0f;
     float3 front_frosted_color = scene_color;

@@ -1,7 +1,7 @@
 # RendererDemo Frosted Glass Development and Acceptance Plan
 
-- Version: v1.1
-- Date: 2026-02-24
+- Version: v1.2
+- Date: 2026-02-25
 - Scope: `RendererCore` + `RendererDemo`
 - Status: Approved baseline for implementation and acceptance
 
@@ -39,6 +39,7 @@ This plan is based on the current implementation in repository `glTFRenderer`.
 - Frosted glass is a single heavy pass and lacks temporal stabilization.
 - Interactive state flow (hover/grab/move/scale) is not yet integrated into panel behavior.
 - Current overlap handling is single-winner per pixel and cannot reproduce multi-layer glass stacking behavior closely.
+- Current frosted panel mask and optics derivation are screen-space driven, which carries compatibility risk for true 3D perspective UI panels.
 
 ## 2. Goals and Non-Goals
 
@@ -198,6 +199,30 @@ This plan is based on the current implementation in repository `glTFRenderer`.
   - Non-overlap regions stay on single-layer fast path.
   - Default `auto` mode meets agreed performance budget on target test machine and scene.
 
+## B7. 3D perspective panel compatibility via Panel GBuffer (P0)
+
+- Description:
+  - Introduce a dedicated Panel GBuffer path so frosted panel composition is driven by panel geometry coverage/depth data instead of only screen-space SDF logic.
+  - Keep two-layer composition as default target (`back -> front` sequential composite) to align with Vision Pro-like stacked panels while bounding cost.
+  - Add explicit thickness-driven edge highlight/refraction coupling to match 3D glass depth perception.
+  - Preserve compatibility with existing 2D UI pipeline by routing only frosted-background panels to Panel GBuffer; text/icons/widgets remain in regular UI pass.
+- Deliverables:
+  - Raster prepass for 3D/2D frosted panel backgrounds writing front/back panel payload.
+  - Compute composite path consuming Panel GBuffer and existing blur pyramid.
+  - Edge/profile payload support (normal or equivalent) for perspective edge lighting behavior.
+  - Explicit policy for 2D overlay mode vs world-space mode depth/sorting behavior.
+- Primary files:
+  - `glTFRenderer/RendererDemo/RendererSystem/RendererSystemFrostedGlass.h`
+  - `glTFRenderer/RendererDemo/RendererSystem/RendererSystemFrostedGlass.cpp`
+  - `glTFRenderer/RendererDemo/Resources/Shaders/FrostedGlass.hlsl`
+  - `glTFRenderer/RendererCore/Public/RendererInterface.h`
+  - `glTFRenderer/RendererCore/Private/RendererInterface.cpp`
+- Acceptance:
+  - Perspective-transformed 3D panels show stable shape/edge/refraction behavior under camera movement.
+  - Two-layer overlap is computed as sequential composition (front based on back result) with deterministic ordering.
+  - 2D non-frosted UI rendering path remains unchanged and visually regresses by none.
+  - Thickness increase yields stronger/wider edge highlight response in a bounded and stable manner (no center-area washout).
+
 ## 5. Milestone Plan
 
 ## M0: Baseline lock and instrumentation
@@ -224,6 +249,11 @@ This plan is based on the current implementation in repository `glTFRenderer`.
 
 - Complete B3/B4/B5/B6 as required by release scope.
 - Final acceptance and baseline refresh.
+
+## M5: Perspective compatibility integration
+
+- Prioritize B7 as next implementation focus.
+- Deliver Panel GBuffer-driven two-layer frosted composition with 2D/3D UI compatibility acceptance.
 
 ## 6. Acceptance Criteria
 
@@ -266,6 +296,7 @@ This plan is based on the current implementation in repository `glTFRenderer`.
 | B4 | App | P1 | Readability protection | Text-safe behavior verified | Planned | - |
 | B5 | App | P1 | Immersion blend | Smooth blend control verified | Planned | - |
 | B6 | App | P0 | Multi-layer composition alignment | Top-N overlap blending with bounded cost | In Progress (B6.1 top-2 payload + B6.2 adaptive/runtime refinement complete; visual/perf acceptance pending) | `Doc/FeatureNotes/20260224_B6_MultilayerCompositionPlan.md`, `Doc/FeatureNotes/20260224_B6_Top2MultilayerCore.md`, `Doc/FeatureNotes/20260224_B6_AdaptiveMultilayerRefinement.md` |
+| B7 | App | P0 | Panel GBuffer 3D compatibility | Two-layer frosted composition driven by geometry-aware panel payload | In Progress (B7.1 payload schema + profile RT wiring complete; B7.2 instanced raster front/back payload pass and runtime path switching complete; 3D world-space producer + 2D UI prepass integration pending) | `Doc/FeatureNotes/20260225_B7_PanelGBufferTwoLayerCompatibilityPlan.md` |
 | A5 | Framework | P1 | RenderGraph QoL helpers | Reduced setup boilerplate | Planned | - |
 
 ## 8. Development and Review Rules for This Plan

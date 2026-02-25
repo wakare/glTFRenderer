@@ -2687,7 +2687,7 @@ namespace RendererInterface
                 continue;
             }
             GLTF_CHECK(buffer.second.buffer_handle != NULL_HANDLE);
-            auto& root_signature_allocation = render_pass->GetRootSignatureAllocation(buffer.first);
+            const auto& root_signature_allocations = render_pass->GetRootSignatureAllocations(buffer.first);
             auto buffer_handle = buffer.second.buffer_handle;
             auto buffer_allocation = RendererInterface::InternalResourceHandleTable::Instance().GetBuffer(buffer_handle);
             auto buffer_size = buffer_allocation->m_buffer->GetBufferDesc().width;
@@ -2739,7 +2739,10 @@ namespace RendererInterface
                 buffer_allocation->m_buffer->Transition(command_list, RHIResourceStateType::STATE_ALL_SHADER_RESOURCE);
                 break;
             }
-            render_pass->GetDescriptorUpdater().BindDescriptor(command_list, pipeline_type, root_signature_allocation, *buffer_descriptor);
+            for (const auto& root_signature_allocation : root_signature_allocations)
+            {
+                render_pass->GetDescriptorUpdater().BindDescriptor(command_list, pipeline_type, root_signature_allocation, *buffer_descriptor);
+            }
         }
 
         for (const auto& texture  :render_graph_node_desc.draw_info.texture_resources)
@@ -2750,7 +2753,7 @@ namespace RendererInterface
             }
             GLTF_CHECK(!texture.second.textures.empty());
             const bool is_texture_table = texture.second.textures.size() > 1;
-            auto& root_signature_allocation = render_pass->GetRootSignatureAllocation(texture.first);
+            const auto& root_signature_allocations = render_pass->GetRootSignatureAllocations(texture.first);
             
             const bool need_recreate_descriptor =
                 (!render_pass_descriptor_resource.m_texture_descriptors.contains(texture.first) && !render_pass_descriptor_resource.m_texture_descriptor_tables.contains(texture.first)) ||
@@ -2800,15 +2803,21 @@ namespace RendererInterface
                 {
                     table_texture->m_source->Transition(command_list, texture.second.type == TextureBindingDesc::SRV ? RHIResourceStateType::STATE_ALL_SHADER_RESOURCE : RHIResourceStateType::STATE_UNORDERED_ACCESS);
                 }
-                
-                render_pass->GetDescriptorUpdater().BindDescriptor(command_list, pipeline_type, root_signature_allocation, *descriptor_table, texture.second.type == TextureBindingDesc::SRV? RHIDescriptorRangeType::SRV : RHIDescriptorRangeType::UAV);
+
+                for (const auto& root_signature_allocation : root_signature_allocations)
+                {
+                    render_pass->GetDescriptorUpdater().BindDescriptor(command_list, pipeline_type, root_signature_allocation, *descriptor_table, texture.second.type == TextureBindingDesc::SRV? RHIDescriptorRangeType::SRV : RHIDescriptorRangeType::UAV);
+                }
             }
             else
             {
                 auto descriptor = render_pass_descriptor_resource.m_texture_descriptors.at(texture.first);
                 descriptor->m_source->Transition(command_list, texture.second.type == TextureBindingDesc::SRV ? RHIResourceStateType::STATE_ALL_SHADER_RESOURCE : RHIResourceStateType::STATE_UNORDERED_ACCESS);
-                
-                render_pass->GetDescriptorUpdater().BindDescriptor(command_list, pipeline_type, root_signature_allocation, *descriptor);
+
+                for (const auto& root_signature_allocation : root_signature_allocations)
+                {
+                    render_pass->GetDescriptorUpdater().BindDescriptor(command_list, pipeline_type, root_signature_allocation, *descriptor);
+                }
             }
         }
 
@@ -2918,7 +2927,7 @@ namespace RendererInterface
                 render_pass_descriptor_resource.m_cached_render_target_texture_bindings[render_target_pair.first] = render_target_pair.second;
             }
 
-            auto& root_signature_allocation = render_pass->GetRootSignatureAllocation(render_target_pair.first);
+            const auto& root_signature_allocations = render_pass->GetRootSignatureAllocations(render_target_pair.first);
             if (is_texture_table)
             {
                 auto descriptor_table = render_pass_descriptor_resource.m_texture_descriptor_tables.at(render_target_pair.first);
@@ -2927,14 +2936,20 @@ namespace RendererInterface
                 {
                     table_texture->m_source->Transition(command_list, render_target_pair.second.type == RenderTargetTextureBindingDesc::SRV ? RHIResourceStateType::STATE_ALL_SHADER_RESOURCE : RHIResourceStateType::STATE_UNORDERED_ACCESS);
                 }
-                
-                render_pass->GetDescriptorUpdater().BindDescriptor(command_list, pipeline_type, root_signature_allocation, *descriptor_table, render_target_pair.second.type == RenderTargetTextureBindingDesc::SRV? RHIDescriptorRangeType::SRV : RHIDescriptorRangeType::UAV);
+
+                for (const auto& root_signature_allocation : root_signature_allocations)
+                {
+                    render_pass->GetDescriptorUpdater().BindDescriptor(command_list, pipeline_type, root_signature_allocation, *descriptor_table, render_target_pair.second.type == RenderTargetTextureBindingDesc::SRV? RHIDescriptorRangeType::SRV : RHIDescriptorRangeType::UAV);
+                }
             }
             else
             {
                 auto descriptor = render_pass_descriptor_resource.m_texture_descriptors.at(render_target_pair.first);
                 descriptor->m_source->Transition(command_list, render_target_pair.second.type == RenderTargetTextureBindingDesc::SRV ? RHIResourceStateType::STATE_ALL_SHADER_RESOURCE : RHIResourceStateType::STATE_UNORDERED_ACCESS);
-                render_pass->GetDescriptorUpdater().BindDescriptor(command_list, pipeline_type, root_signature_allocation, *descriptor);    
+                for (const auto& root_signature_allocation : root_signature_allocations)
+                {
+                    render_pass->GetDescriptorUpdater().BindDescriptor(command_list, pipeline_type, root_signature_allocation, *descriptor);
+                }
             }
         }
 

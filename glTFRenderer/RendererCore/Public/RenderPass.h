@@ -27,6 +27,7 @@ public:
     RendererInterface::PrimitiveTopology GetPrimitiveTopology() const;
 
     const RootSignatureAllocation& GetRootSignatureAllocation(const std::string& name) const;
+    const std::vector<RootSignatureAllocation>& GetRootSignatureAllocations(const std::string& name) const;
     const RootSignatureAllocation* FindRootSignatureAllocation(const std::string& name) const;
     bool HasRootSignatureAllocation(const std::string& name) const;
     DrawValidationResult ValidateDrawDesc(const RendererInterface::RenderPassDrawDesc& draw_desc) const;
@@ -45,7 +46,7 @@ protected:
     std::shared_ptr<IRHIDescriptorUpdater> m_descriptor_updater;
     std::shared_ptr<IRHIPipelineStateObject> m_pipeline_state_object;
 
-    std::map<std::string, RootSignatureAllocation> m_shader_parameter_mapping;
+    std::map<std::string, std::vector<RootSignatureAllocation>> m_shader_parameter_mapping;
 
     int m_viewport_width{-1};
     int m_viewport_height{-1};
