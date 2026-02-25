@@ -142,8 +142,8 @@ Notes:
 
 ## 9. Next Action
 
-- Continue B7 with world-space producer integration:
-  - feed true 3D panel geometry depth/coverage into payload raster path
+- Continue B7 with shared producer integration:
+  - hook external 3D panel producer into `world_space_mode` payload path
   - add 2D frosted background prepass producer for shared payload path
 - Keep B6 outputs as baseline reference for regression and performance comparison.
 
@@ -160,6 +160,11 @@ Notes:
     - back pass re-rasterizes with front-panel rejection and resolves second layer
   - Payload generation in raster mode is now panel-geometry coverage driven (per-panel quad raster), not fullscreen panel-loop traversal.
   - `Tick` now registers compute or raster payload path by runtime selection, with compute fallback status shown in debug UI.
+- B7.3a world-space raster producer integration completed:
+  - Added per-panel world-space payload fields (`world_center`, `world_axis_u`, `world_axis_v`, `world_space_mode`) in panel descriptor/GPU payload.
+  - Raster payload VS now supports world-space quad projection for true geometry-driven depth/coverage.
+  - Raster payload PS now evaluates world-space panel payload using panel-local UV profile path while keeping existing screen-space path unchanged.
+  - Debug UI now exposes world-space panel toggle and transform vectors for live validation.
 - Pending for next phase:
-  - replace current layer-order depth proxy with true world-space panel geometry depth for perspective panels
-  - hook 3D panel prepass/2D frosted background prepass producers into this shared payload path
+  - hook 3D panel prepass and 2D frosted background prepass producers into this shared payload path
+  - complete B7.5 thickness-edge coupling tuning and acceptance evidence capture

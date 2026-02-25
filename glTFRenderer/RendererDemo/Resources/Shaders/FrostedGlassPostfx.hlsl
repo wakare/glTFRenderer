@@ -9,6 +9,20 @@ cbuffer FrostedGlassGlobalBuffer
     float blur_kernel_sigma_scale;
 };
 
+bool IsFiniteScalar(float value)
+{
+    return (value == value) && abs(value) <= 1e20f;
+}
+
+float4 SanitizeColor(float4 color)
+{
+    return float4(
+        IsFiniteScalar(color.x) ? color.x : 0.0f,
+        IsFiniteScalar(color.y) ? color.y : 0.0f,
+        IsFiniteScalar(color.z) ? color.z : 0.0f,
+        IsFiniteScalar(color.w) ? color.w : 0.0f);
+}
+
 int2 ClampToExtent(int2 pixel, int2 extent)
 {
     return clamp(pixel, int2(0, 0), max(extent - 1, int2(0, 0)));
@@ -16,7 +30,7 @@ int2 ClampToExtent(int2 pixel, int2 extent)
 
 float4 LoadInputSafe(int2 pixel, int2 extent)
 {
-    return InputTex.Load(int3(ClampToExtent(pixel, extent), 0));
+    return SanitizeColor(InputTex.Load(int3(ClampToExtent(pixel, extent), 0)));
 }
 
 float GaussianWeight(int offset, float sigma)
@@ -42,7 +56,7 @@ float4 Blur1D(int2 pixel, int2 direction, int2 input_extent)
         accumulated_weight += weight;
     }
 
-    return accumulated_color / max(accumulated_weight, 1e-5f);
+    return SanitizeColor(accumulated_color / max(accumulated_weight, 1e-5f));
 }
 
 [numthreads(8, 8, 1)]
@@ -66,7 +80,7 @@ void DownsampleMain(int3 dispatch_thread_id : SV_DispatchThreadID)
     const float4 c1 = LoadInputSafe(base_pixel + int2(1, 0), input_extent);
     const float4 c2 = LoadInputSafe(base_pixel + int2(0, 1), input_extent);
     const float4 c3 = LoadInputSafe(base_pixel + int2(1, 1), input_extent);
-    OutputTex[int2(dispatch_thread_id.xy)] = (c0 + c1 + c2 + c3) * 0.25f;
+    OutputTex[int2(dispatch_thread_id.xy)] = SanitizeColor((c0 + c1 + c2 + c3) * 0.25f);
 }
 
 [numthreads(8, 8, 1)]
@@ -85,7 +99,7 @@ void BlurHorizontalMain(int3 dispatch_thread_id : SV_DispatchThreadID)
     InputTex.GetDimensions(input_width, input_height);
     const int2 input_extent = int2((int)max(input_width, 1u), (int)max(input_height, 1u));
     const int2 pixel = int2(dispatch_thread_id.xy);
-    OutputTex[pixel] = Blur1D(pixel, int2(1, 0), input_extent);
+    OutputTex[pixel] = SanitizeColor(Blur1D(pixel, int2(1, 0), input_extent));
 }
 
 [numthreads(8, 8, 1)]
@@ -104,5 +118,5 @@ void BlurVerticalMain(int3 dispatch_thread_id : SV_DispatchThreadID)
     InputTex.GetDimensions(input_width, input_height);
     const int2 input_extent = int2((int)max(input_width, 1u), (int)max(input_height, 1u));
     const int2 pixel = int2(dispatch_thread_id.xy);
-    OutputTex[pixel] = Blur1D(pixel, int2(0, 1), input_extent);
+    OutputTex[pixel] = SanitizeColor(Blur1D(pixel, int2(0, 1), input_extent));
 }

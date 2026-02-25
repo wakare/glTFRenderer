@@ -47,6 +47,14 @@ public:
     {
         glm::fvec2 center_uv{0.5f, 0.52f};
         glm::fvec2 half_size_uv{0.30f, 0.20f};
+        unsigned world_space_mode{0}; // 0: screen-space panel, 1: world-space panel
+        float world_space_pad0{0.0f};
+        glm::fvec3 world_center{0.0f, 1.25f, -0.75f};
+        float world_space_pad1{0.0f};
+        glm::fvec3 world_axis_u{0.70f, 0.00f, 0.00f}; // half-extent world vector
+        float world_space_pad2{0.0f};
+        glm::fvec3 world_axis_v{0.00f, 0.45f, 0.00f}; // half-extent world vector
+        float world_space_pad3{0.0f};
         float corner_radius{0.03f};
         float blur_sigma{8.5f};
         float blur_strength{0.92f};
@@ -117,6 +125,9 @@ protected:
     struct FrostedGlassPanelGpuData
     {
         glm::fvec4 center_half_size{};
+        glm::fvec4 world_center_mode{};
+        glm::fvec4 world_axis_u{};
+        glm::fvec4 world_axis_v{};
         glm::fvec4 corner_blur_rim{};
         glm::fvec4 tint_depth_weight{};
         glm::fvec4 shape_info{};
@@ -148,7 +159,7 @@ protected:
         float blur_contrast_compression{0.90f};
         float blur_veil_tint_mix{0.55f};
         float blur_detail_preservation{0.04f};
-        float pad0{0.0f};
+        unsigned nan_debug_mode{0};
     };
 
     struct PanelRuntimeState

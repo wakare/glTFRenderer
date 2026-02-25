@@ -2208,6 +2208,14 @@ void RendererSystemFrostedGlass::DrawDebugUI()
         {
             global_dirty = true;
         }
+        const char* nan_debug_modes[] = {"Off", "Overlay"};
+        int nan_debug_mode = static_cast<int>(m_global_params.nan_debug_mode);
+        if (ImGui::Combo("NaN Probe", &nan_debug_mode, nan_debug_modes, IM_ARRAYSIZE(nan_debug_modes)))
+        {
+            nan_debug_mode = (std::max)(0, (std::min)(nan_debug_mode, 1));
+            m_global_params.nan_debug_mode = static_cast<unsigned>(nan_debug_mode);
+            global_dirty = true;
+        }
     }
     if (ImGui::Button("Reset Temporal History"))
     {
@@ -2231,6 +2239,10 @@ void RendererSystemFrostedGlass::DrawDebugUI()
     const bool using_raster_panel_payload = m_panel_payload_path == PanelPayloadPath::RasterPanelGBuffer;
     ImGui::Text("Panel Payload Path: %s",
                 using_raster_panel_payload ? "Raster (Panel GBuffer)" : "Compute (SDF)");
+    if (m_global_params.nan_debug_mode != 0)
+    {
+        ImGui::TextUnformatted("NaN Probe Legend: Red=Scene, Green=Payload, Blue=Blur, Yellow=History, Magenta=Velocity");
+    }
     if (m_panel_payload_compute_fallback_active)
     {
         ImGui::TextUnformatted("Panel Payload Runtime: Raster requested but not ready; using Compute fallback.");
@@ -2283,6 +2295,27 @@ void RendererSystemFrostedGlass::DrawDebugUI()
     if (ImGui::SliderFloat("Layer Order", &panel.layer_order, -8.0f, 8.0f, "%.1f"))
     {
         panel_dirty = true;
+    }
+    bool world_space_mode = panel.world_space_mode != 0;
+    if (ImGui::Checkbox("World Space Panel", &world_space_mode))
+    {
+        panel.world_space_mode = world_space_mode ? 1u : 0u;
+        panel_dirty = true;
+    }
+    if (world_space_mode)
+    {
+        if (ImGui::DragFloat3("World Center", &panel.world_center.x, 0.01f, -20.0f, 20.0f, "%.3f"))
+        {
+            panel_dirty = true;
+        }
+        if (ImGui::DragFloat3("World Axis U", &panel.world_axis_u.x, 0.01f, -5.0f, 5.0f, "%.3f"))
+        {
+            panel_dirty = true;
+        }
+        if (ImGui::DragFloat3("World Axis V", &panel.world_axis_v.x, 0.01f, -5.0f, 5.0f, "%.3f"))
+        {
+            panel_dirty = true;
+        }
     }
 
     const char* interaction_states[] = {"Idle", "Hover", "Grab", "Move", "Scale"};
@@ -2413,6 +2446,19 @@ void RendererSystemFrostedGlass::DrawDebugUI()
         panel.layer_order = clamp(panel.layer_order, -8.0f, 8.0f);
         panel.panel_alpha = clamp(panel.panel_alpha, 0.0f, 1.0f);
         panel.interaction_transition_speed = clamp(panel.interaction_transition_speed, 1.0f, 24.0f);
+        panel.world_space_mode = panel.world_space_mode == 0 ? 0u : 1u;
+        const auto length_sq = [](const glm::fvec3& value) -> float
+        {
+            return value.x * value.x + value.y * value.y + value.z * value.z;
+        };
+        if (length_sq(panel.world_axis_u) < 1e-6f)
+        {
+            panel.world_axis_u = glm::fvec3(0.70f, 0.00f, 0.00f);
+        }
+        if (length_sq(panel.world_axis_v) < 1e-6f)
+        {
+            panel.world_axis_v = glm::fvec3(0.00f, 0.45f, 0.00f);
+        }
         for (auto& state_curve : panel.state_curves)
         {
             state_curve.blur_sigma_scale = clamp(state_curve.blur_sigma_scale, 0.4f, 2.5f);
@@ -2446,6 +2492,7 @@ void RendererSystemFrostedGlass::DrawDebugUI()
         m_global_params.multilayer_back_layer_weight = clamp(m_global_params.multilayer_back_layer_weight, 0.0f, 1.0f);
         m_global_params.multilayer_front_transmittance = clamp(m_global_params.multilayer_front_transmittance, 0.0f, 1.0f);
         m_global_params.multilayer_mode = static_cast<unsigned>((std::max)(0, (std::min)(static_cast<int>(m_global_params.multilayer_mode), 2)));
+        m_global_params.nan_debug_mode = static_cast<unsigned>((std::max)(0, (std::min)(static_cast<int>(m_global_params.nan_debug_mode), 1)));
         m_need_upload_global_params = true;
     }
 }
@@ -2629,6 +2676,24 @@ RendererSystemFrostedGlass::FrostedGlassPanelGpuData RendererSystemFrostedGlass:
         panel_desc.center_uv.y,
         panel_desc.half_size_uv.x,
         panel_desc.half_size_uv.y
+    };
+    gpu_data.world_center_mode = {
+        panel_desc.world_center.x,
+        panel_desc.world_center.y,
+        panel_desc.world_center.z,
+        panel_desc.world_space_mode == 0 ? 0.0f : 1.0f
+    };
+    gpu_data.world_axis_u = {
+        panel_desc.world_axis_u.x,
+        panel_desc.world_axis_u.y,
+        panel_desc.world_axis_u.z,
+        0.0f
+    };
+    gpu_data.world_axis_v = {
+        panel_desc.world_axis_v.x,
+        panel_desc.world_axis_v.y,
+        panel_desc.world_axis_v.z,
+        0.0f
     };
     gpu_data.corner_blur_rim = {
         panel_desc.corner_radius,

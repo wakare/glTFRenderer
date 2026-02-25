@@ -163,10 +163,16 @@ This section focuses on per-pass compute semantics (not graph topology).
 #### 3.5.3 Payload generation - raster path (`B02`, `B03`)
 
 - `PanelPayloadVS`:
-  - expands each panel to an instanced quad in clip space.
-  - depth encodes layer order (`EncodePanelLayerDepth`) for deterministic front/back separation.
+  - expands each panel to an instanced quad.
+  - panel mode switch:
+    - screen-space panel: clip XY from `center_uv/half_size_uv`, depth from `EncodePanelLayerDepth`.
+    - world-space panel: clip position from projected world quad (`world_center + corner.x * world_axis_u + corner.y * world_axis_v`).
+  - emits `local_uv` for raster payload evaluation (shape/profile in panel-local space).
 - `PanelPayloadFrontPS`:
   - evaluates one panel payload at rasterized pixel.
+  - evaluator switch:
+    - screen-space panel: reuses existing screen-space SDF payload evaluator.
+    - world-space panel: uses local-UV SDF/profile evaluator and screen-UV refraction/depth-aware optics.
   - writes front payload MRTs; discard when mask is invalid.
 - `PanelPayloadBackPS`:
   - same evaluator, but rejects panel equal to front panel at that pixel (`FrontMaskParamTex`) to produce second layer.

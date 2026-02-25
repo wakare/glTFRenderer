@@ -31,6 +31,9 @@ RWTexture2D<float4> HistoryOutputTex;
 struct FrostedGlassPanelData
 {
     float4 center_half_size;    // xy: center uv, zw: half size uv
+    float4 world_center_mode;   // xyz: world center, w: 0=screen-space, 1=world-space
+    float4 world_axis_u;        // xyz: world half-extent axis U
+    float4 world_axis_v;        // xyz: world half-extent axis V
     float4 corner_blur_rim;     // x: corner radius, y: blur sigma, z: blur strength, w: rim intensity
     float4 tint_depth_weight;   // rgb: tint color, w: depth-aware weight scale
     float4 shape_info;          // x: shape type, y: edge softness, z: custom shape index, w: panel alpha
@@ -62,7 +65,7 @@ cbuffer FrostedGlassGlobalBuffer
     float blur_contrast_compression;
     float blur_veil_tint_mix;
     float blur_detail_preservation;
-    float pad0;
+    uint nan_debug_mode;
 };
 StructuredBuffer<FrostedGlassPanelData> g_frosted_panels;
 
@@ -72,6 +75,106 @@ static const uint PANEL_SHAPE_MASK = 2;
 static const uint MULTILAYER_MODE_SINGLE = 0;
 static const uint MULTILAYER_MODE_AUTO = 1;
 static const uint MULTILAYER_MODE_FORCE = 2;
+static const uint NAN_SOURCE_NONE = 0;
+static const uint NAN_SOURCE_SCENE = 1;
+static const uint NAN_SOURCE_PAYLOAD = 2;
+static const uint NAN_SOURCE_BLUR = 3;
+static const uint NAN_SOURCE_HISTORY = 4;
+static const uint NAN_SOURCE_VELOCITY = 5;
+
+bool IsFiniteScalar(float value)
+{
+    return (value == value) && abs(value) <= 1e20f;
+}
+
+bool IsFiniteFloat2(float2 value)
+{
+    return IsFiniteScalar(value.x) && IsFiniteScalar(value.y);
+}
+
+bool IsFiniteFloat3(float3 value)
+{
+    return IsFiniteScalar(value.x) && IsFiniteScalar(value.y) && IsFiniteScalar(value.z);
+}
+
+bool IsFiniteFloat4(float4 value)
+{
+    return IsFiniteScalar(value.x) && IsFiniteScalar(value.y) && IsFiniteScalar(value.z) && IsFiniteScalar(value.w);
+}
+
+float SanitizeScalar(float value)
+{
+    return IsFiniteScalar(value) ? value : 0.0f;
+}
+
+float2 SanitizeFloat2(float2 value)
+{
+    return float2(SanitizeScalar(value.x), SanitizeScalar(value.y));
+}
+
+float3 SanitizeFloat3(float3 value)
+{
+    return float3(SanitizeScalar(value.x), SanitizeScalar(value.y), SanitizeScalar(value.z));
+}
+
+float4 SanitizeFloat4(float4 value)
+{
+    return float4(SanitizeScalar(value.x), SanitizeScalar(value.y), SanitizeScalar(value.z), SanitizeScalar(value.w));
+}
+
+uint ResolveNaNSource(bool invalid_scene,
+                      bool invalid_payload,
+                      bool invalid_blur,
+                      bool invalid_history,
+                      bool invalid_velocity)
+{
+    if (invalid_scene)
+    {
+        return NAN_SOURCE_SCENE;
+    }
+    if (invalid_payload)
+    {
+        return NAN_SOURCE_PAYLOAD;
+    }
+    if (invalid_blur)
+    {
+        return NAN_SOURCE_BLUR;
+    }
+    if (invalid_history)
+    {
+        return NAN_SOURCE_HISTORY;
+    }
+    if (invalid_velocity)
+    {
+        return NAN_SOURCE_VELOCITY;
+    }
+    return NAN_SOURCE_NONE;
+}
+
+float3 NaNSourceColor(uint source)
+{
+    if (source == NAN_SOURCE_SCENE)
+    {
+        return float3(1.0f, 0.1f, 0.1f);
+    }
+    if (source == NAN_SOURCE_PAYLOAD)
+    {
+        return float3(0.1f, 1.0f, 0.2f);
+    }
+    if (source == NAN_SOURCE_BLUR)
+    {
+        return float3(0.15f, 0.35f, 1.0f);
+    }
+    if (source == NAN_SOURCE_HISTORY)
+    {
+        return float3(1.0f, 0.95f, 0.15f);
+    }
+    if (source == NAN_SOURCE_VELOCITY)
+    {
+        return float3(1.0f, 0.25f, 1.0f);
+    }
+    return float3(0.0f, 0.0f, 0.0f);
+}
 
 bool ShouldEnableMultilayer(bool has_front_layer, bool has_back_layer, float back_mask)
 {
@@ -109,12 +212,14 @@ int2 ClampToViewport(int2 pixel)
 
 float SampleDepthSafe(int2 pixel)
 {
-    return InputDepthTex.Load(int3(ClampToViewport(pixel), 0)).r;
+    const float depth = InputDepthTex.Load(int3(ClampToViewport(pixel), 0)).r;
+    return IsFiniteScalar(depth) ? depth : 1.0f;
 }
 
 float3 SampleNormalSafe(int2 pixel)
 {
-    float3 normal = InputNormalTex.Load(int3(ClampToViewport(pixel), 0)).xyz * 2.0f - 1.0f;
+    const float3 encoded_normal = SanitizeFloat3(InputNormalTex.Load(int3(ClampToViewport(pixel), 0)).xyz);
+    float3 normal = encoded_normal * 2.0f - 1.0f;
     const float length_sq = dot(normal, normal);
     if (length_sq < 1e-6f)
     {
@@ -137,9 +242,10 @@ bool TryGetWorldPosition(int2 pixel, float depth, out float3 world_position)
         return false;
     }
 
-    const float2 uv = pixel / float2(viewport_width - 1, viewport_height - 1);
+    const float2 safe_viewport = float2((float)max((int)viewport_width - 1, 1), (float)max((int)viewport_height - 1, 1));
+    const float2 uv = pixel / safe_viewport;
     const float4 clip_space_coord = float4(2.0f * uv.x - 1.0f, 1.0f - 2.0f * uv.y, depth, 1.0f);
-    float4 world_space_coord = mul(inverse_view_projection_matrix, clip_space_coord);
+    float4 world_space_coord = SanitizeFloat4(mul(inverse_view_projection_matrix, clip_space_coord));
 
     if (abs(world_space_coord.w) < 1e-6f)
     {
@@ -243,20 +349,23 @@ float CalcPanelSDF(float2 uv, FrostedGlassPanelData panel_data)
 float CalcPanelMaskFromSDF(float sdf, float edge_softness)
 {
     const float edge_scale = max(edge_softness, 0.1f);
-    const float aa = edge_scale * 2.0f / min((float)viewport_width, (float)viewport_height);
+    const float safe_viewport_min = max(min((float)viewport_width, (float)viewport_height), 1.0f);
+    const float aa = edge_scale * 2.0f / safe_viewport_min;
     return 1.0f - smoothstep(0.0f, aa, sdf);
 }
 
 float CalcPanelRimFromSDF(float sdf, float edge_softness)
 {
     const float edge_scale = max(edge_softness, 0.1f);
-    const float aa = edge_scale * 2.0f / min((float)viewport_width, (float)viewport_height);
+    const float safe_viewport_min = max(min((float)viewport_width, (float)viewport_height), 1.0f);
+    const float aa = edge_scale * 2.0f / safe_viewport_min;
     return exp(-abs(sdf) / (aa * 4.0f));
 }
 
 float2 CalcPanelNormalFromSDF(float2 uv, FrostedGlassPanelData panel_data)
 {
-    const float pixel_to_uv = 1.0f / min((float)viewport_width, (float)viewport_height);
+    const float safe_viewport_min = max(min((float)viewport_width, (float)viewport_height), 1.0f);
+    const float pixel_to_uv = 1.0f / safe_viewport_min;
     const float2 du = float2(pixel_to_uv, 0.0f);
     const float2 dv = float2(0.0f, pixel_to_uv);
     const float dsdx = CalcPanelSDF(uv + du, panel_data) - CalcPanelSDF(uv - du, panel_data);
@@ -270,7 +379,66 @@ float2 CalcPanelNormalFromSDF(float2 uv, FrostedGlassPanelData panel_data)
     return gradient * rsqrt(gradient_len_sq);
 }
 
-float3 SampleBlurredColor(float2 uv)
+bool IsWorldSpacePanel(FrostedGlassPanelData panel_data)
+{
+    return panel_data.world_center_mode.w > 0.5f;
+}
+
+float ComputeLocalCornerRadius(FrostedGlassPanelData panel_data)
+{
+    const float base_half_extent = max(min(panel_data.center_half_size.z, panel_data.center_half_size.w), 1e-4f);
+    return saturate(panel_data.corner_blur_rim.x / base_half_extent);
+}
+
+float CalcPanelSDFLocal(float2 local_uv, FrostedGlassPanelData panel_data)
+{
+    const float shape_type = panel_data.shape_info.x;
+    const float corner_local = ComputeLocalCornerRadius(panel_data);
+    const float2 centered = local_uv * 2.0f - 1.0f;
+
+    if (shape_type < ((float)PANEL_SHAPE_CIRCLE - 0.5f))
+    {
+        const float2 q = abs(centered) - 1.0f + corner_local;
+        return length(max(q, 0.0f)) + min(max(q.x, q.y), 0.0f) - corner_local;
+    }
+    if (shape_type < ((float)PANEL_SHAPE_MASK - 0.5f))
+    {
+        return length(centered) - 1.0f;
+    }
+
+    return ShapeMaskSDF(local_uv, float2(0.5f, 0.5f), float2(0.5f, 0.5f), panel_data.shape_info.z);
+}
+
+float CalcPanelMaskFromSDFLocal(float sdf, float edge_softness)
+{
+    const float soft_scale = max(edge_softness, 0.1f);
+    const float aa = max(fwidth(sdf) * soft_scale, 1e-4f);
+    return 1.0f - smoothstep(0.0f, aa, sdf);
+}
+
+float CalcPanelRimFromSDFLocal(float sdf, float edge_softness)
+{
+    const float soft_scale = max(edge_softness, 0.1f);
+    const float aa = max(fwidth(sdf) * soft_scale, 1e-4f);
+    return exp(-abs(sdf) / (aa * 4.0f));
+}
+
+float2 CalcPanelNormalFromSDFLocal(float2 local_uv, FrostedGlassPanelData panel_data)
+{
+    const float2 du = float2(1e-3f, 0.0f);
+    const float2 dv = float2(0.0f, 1e-3f);
+    const float dsdx = CalcPanelSDFLocal(local_uv + du, panel_data) - CalcPanelSDFLocal(local_uv - du, panel_data);
+    const float dsdy = CalcPanelSDFLocal(local_uv + dv, panel_data) - CalcPanelSDFLocal(local_uv - dv, panel_data);
+    const float2 gradient = float2(dsdx, dsdy);
+    const float gradient_len_sq = dot(gradient, gradient);
+    if (gradient_len_sq < 1e-8f)
+    {
+        return float2(0.0f, 0.0f);
+    }
+    return gradient * rsqrt(gradient_len_sq);
+}
+
+float3 SampleBlurredColor(float2 uv, out bool had_invalid)
 {
     uint blurred_width = 0;
     uint blurred_height = 0;
@@ -278,10 +446,12 @@ float3 SampleBlurredColor(float2 uv)
     const int2 max_pixel = int2((int)max(blurred_width, 1u) - 1, (int)max(blurred_height, 1u) - 1);
     int2 blurred_pixel = int2(uv * float2((float)max(blurred_width, 1u), (float)max(blurred_height, 1u)));
     blurred_pixel = clamp(blurred_pixel, int2(0, 0), max_pixel);
-    return BlurredColorTex.Load(int3(blurred_pixel, 0)).rgb;
+    const float3 raw_color = BlurredColorTex.Load(int3(blurred_pixel, 0)).rgb;
+    had_invalid = !IsFiniteFloat3(raw_color);
+    return SanitizeFloat3(raw_color);
 }
 
-float3 SampleQuarterBlurredColor(float2 uv)
+float3 SampleQuarterBlurredColor(float2 uv, out bool had_invalid)
 {
     uint blurred_width = 0;
     uint blurred_height = 0;
@@ -289,10 +459,12 @@ float3 SampleQuarterBlurredColor(float2 uv)
     const int2 max_pixel = int2((int)max(blurred_width, 1u) - 1, (int)max(blurred_height, 1u) - 1);
     int2 blurred_pixel = int2(uv * float2((float)max(blurred_width, 1u), (float)max(blurred_height, 1u)));
     blurred_pixel = clamp(blurred_pixel, int2(0, 0), max_pixel);
-    return QuarterBlurredColorTex.Load(int3(blurred_pixel, 0)).rgb;
+    const float3 raw_color = QuarterBlurredColorTex.Load(int3(blurred_pixel, 0)).rgb;
+    had_invalid = !IsFiniteFloat3(raw_color);
+    return SanitizeFloat3(raw_color);
 }
 
-float3 SampleEighthBlurredColor(float2 uv)
+float3 SampleEighthBlurredColor(float2 uv, out bool had_invalid)
 {
     uint blurred_width = 0;
     uint blurred_height = 0;
@@ -300,10 +472,12 @@ float3 SampleEighthBlurredColor(float2 uv)
     const int2 max_pixel = int2((int)max(blurred_width, 1u) - 1, (int)max(blurred_height, 1u) - 1);
     int2 blurred_pixel = int2(uv * float2((float)max(blurred_width, 1u), (float)max(blurred_height, 1u)));
     blurred_pixel = clamp(blurred_pixel, int2(0, 0), max_pixel);
-    return EighthBlurredColorTex.Load(int3(blurred_pixel, 0)).rgb;
+    const float3 raw_color = EighthBlurredColorTex.Load(int3(blurred_pixel, 0)).rgb;
+    had_invalid = !IsFiniteFloat3(raw_color);
+    return SanitizeFloat3(raw_color);
 }
 
-float3 SampleSixteenthBlurredColor(float2 uv)
+float3 SampleSixteenthBlurredColor(float2 uv, out bool had_invalid)
 {
     uint blurred_width = 0;
     uint blurred_height = 0;
@@ -311,10 +485,12 @@ float3 SampleSixteenthBlurredColor(float2 uv)
     const int2 max_pixel = int2((int)max(blurred_width, 1u) - 1, (int)max(blurred_height, 1u) - 1);
     int2 blurred_pixel = int2(uv * float2((float)max(blurred_width, 1u), (float)max(blurred_height, 1u)));
     blurred_pixel = clamp(blurred_pixel, int2(0, 0), max_pixel);
-    return SixteenthBlurredColorTex.Load(int3(blurred_pixel, 0)).rgb;
+    const float3 raw_color = SixteenthBlurredColorTex.Load(int3(blurred_pixel, 0)).rgb;
+    had_invalid = !IsFiniteFloat3(raw_color);
+    return SanitizeFloat3(raw_color);
 }
 
-float3 SampleThirtySecondBlurredColor(float2 uv)
+float3 SampleThirtySecondBlurredColor(float2 uv, out bool had_invalid)
 {
     uint blurred_width = 0;
     uint blurred_height = 0;
@@ -322,7 +498,9 @@ float3 SampleThirtySecondBlurredColor(float2 uv)
     const int2 max_pixel = int2((int)max(blurred_width, 1u) - 1, (int)max(blurred_height, 1u) - 1);
     int2 blurred_pixel = int2(uv * float2((float)max(blurred_width, 1u), (float)max(blurred_height, 1u)));
     blurred_pixel = clamp(blurred_pixel, int2(0, 0), max_pixel);
-    return ThirtySecondBlurredColorTex.Load(int3(blurred_pixel, 0)).rgb;
+    const float3 raw_color = ThirtySecondBlurredColorTex.Load(int3(blurred_pixel, 0)).rgb;
+    had_invalid = !IsFiniteFloat3(raw_color);
+    return SanitizeFloat3(raw_color);
 }
 
 bool IsBetterPanelCandidate(float candidate_layer,
@@ -416,8 +594,13 @@ bool EvaluatePanelFrostedColor(float3 scene_color,
                                float4 panel_optics,
                                out float layer_mask,
                                out float3 out_frosted_color,
-                               out float out_blur_metric)
+                               out float out_blur_metric,
+                               out bool out_had_invalid_blur)
 {
+    scene_color = SanitizeFloat3(scene_color);
+    mask_param = SanitizeFloat4(mask_param);
+    panel_optics = SanitizeFloat4(panel_optics);
+    out_had_invalid_blur = false;
     layer_mask = panel_count > 0 ? saturate(mask_param.x) : 0.0f;
     out_frosted_color = scene_color;
     out_blur_metric = 0.0f;
@@ -448,11 +631,21 @@ bool EvaluatePanelFrostedColor(float3 scene_color,
     const float sigma_normalization = max(blur_sigma_normalization, 1.0f);
     const float blur_sigma_factor = saturate(normalized_sigma / sigma_normalization);
     out_blur_metric = saturate(blur_sigma_factor * effective_blur_strength);
-    const float3 half_blurred_color = SampleBlurredColor(refraction_uv);
-    const float3 quarter_blurred_color = SampleQuarterBlurredColor(refraction_uv);
-    const float3 eighth_blurred_color = SampleEighthBlurredColor(refraction_uv);
-    const float3 sixteenth_blurred_color = SampleSixteenthBlurredColor(refraction_uv);
-    const float3 thirtysecond_blurred_color = SampleThirtySecondBlurredColor(refraction_uv);
+    bool invalid_half_blur = false;
+    bool invalid_quarter_blur = false;
+    bool invalid_eighth_blur = false;
+    bool invalid_sixteenth_blur = false;
+    bool invalid_thirtysecond_blur = false;
+    const float3 half_blurred_color = SampleBlurredColor(refraction_uv, invalid_half_blur);
+    const float3 quarter_blurred_color = SampleQuarterBlurredColor(refraction_uv, invalid_quarter_blur);
+    const float3 eighth_blurred_color = SampleEighthBlurredColor(refraction_uv, invalid_eighth_blur);
+    const float3 sixteenth_blurred_color = SampleSixteenthBlurredColor(refraction_uv, invalid_sixteenth_blur);
+    const float3 thirtysecond_blurred_color = SampleThirtySecondBlurredColor(refraction_uv, invalid_thirtysecond_blur);
+    out_had_invalid_blur = invalid_half_blur ||
+                           invalid_quarter_blur ||
+                           invalid_eighth_blur ||
+                           invalid_sixteenth_blur ||
+                           invalid_thirtysecond_blur;
     const float quarter_blend = saturate((normalized_sigma - 3.0f) / 5.0f);
     const float eighth_blend = saturate((normalized_sigma - 8.0f) / 8.0f);
     const float sixteenth_blend = saturate((normalized_sigma - 16.0f) / 10.0f);
@@ -485,7 +678,7 @@ bool EvaluatePanelFrostedColor(float3 scene_color,
     const float fresnel_highlight = mixed_fresnel * panel_fresnel_intensity * highlight_compress;
     const float3 highlight_tint = lerp(float3(1.0f, 1.0f, 1.0f), panel_tint, 0.35f);
     frosted_color += highlight_tint * (rim_term + fresnel_highlight);
-    out_frosted_color = frosted_color;
+    out_frosted_color = SanitizeFloat3(frosted_color);
     return true;
 }
 
@@ -688,7 +881,7 @@ void MaskParameterMain(int3 dispatch_thread_id : SV_DispatchThreadID)
 struct PanelPayloadVSOutput
 {
     float4 position : SV_POSITION;
-    float2 uv : UV;
+    float2 local_uv : UV;
     nointerpolation uint panel_index : PANEL_INDEX;
 };
 
@@ -704,7 +897,7 @@ PanelPayloadVSOutput PanelPayloadVS(uint vertex_id : SV_VertexID, uint instance_
 {
     PanelPayloadVSOutput output;
     output.panel_index = instance_id;
-    output.uv = float2(0.0f, 0.0f);
+    output.local_uv = float2(0.0f, 0.0f);
     output.position = float4(-2.0f, -2.0f, 1.0f, 1.0f);
 
     if (instance_id >= panel_count)
@@ -722,19 +915,35 @@ PanelPayloadVSOutput PanelPayloadVS(uint vertex_id : SV_VertexID, uint instance_
     };
 
     const FrostedGlassPanelData panel_data = g_frosted_panels[instance_id];
+    const float2 corner = k_quad_corners[vertex_id % 6];
+    output.local_uv = corner * 0.5f + 0.5f;
+
+    if (IsWorldSpacePanel(panel_data))
+    {
+        const float3 world_center = panel_data.world_center_mode.xyz;
+        const float3 world_axis_u = panel_data.world_axis_u.xyz;
+        const float3 world_axis_v = panel_data.world_axis_v.xyz;
+        const float3 world_position = world_center + corner.x * world_axis_u + corner.y * world_axis_v;
+        const float4 clip_position = mul(view_projection_matrix, float4(world_position, 1.0f));
+        if (abs(clip_position.w) > 1e-6f)
+        {
+            output.position = clip_position;
+        }
+        return output;
+    }
+
     const float2 panel_center_uv = panel_data.center_half_size.xy;
     const float2 panel_half_size_uv = panel_data.center_half_size.zw;
-    const float2 corner = k_quad_corners[vertex_id % 6];
     const float2 panel_uv = panel_center_uv + corner * panel_half_size_uv;
     const float2 clip_position = float2(panel_uv.x * 2.0f - 1.0f, 1.0f - panel_uv.y * 2.0f);
     const float panel_depth = EncodePanelLayerDepth(panel_data.layering_info.x);
-    output.uv = panel_uv;
     output.position = float4(clip_position, panel_depth, 1.0f);
     return output;
 }
 
 bool EvaluateSinglePanelLayerPayload(int2 pixel,
-                                     float2 uv,
+                                     float2 screen_uv,
+                                     float2 local_uv,
                                      uint panel_index,
                                      FrostedGlassPanelData panel_data,
                                      out float4 mask_param,
@@ -742,7 +951,7 @@ bool EvaluateSinglePanelLayerPayload(int2 pixel,
                                      out float4 panel_profile)
 {
     mask_param = float4(0.0f, 0.0f, 0.0f, -1.0f);
-    panel_optics = float4(uv, 0.0f, 0.0f);
+    panel_optics = float4(screen_uv, 0.0f, 0.0f);
     panel_profile = float4(0.0f, 0.0f, 0.0f, 0.0f);
 
     const float depth_dx = abs(SampleDepthSafe(pixel + int2(1, 0)) - SampleDepthSafe(pixel - int2(1, 0)));
@@ -768,23 +977,76 @@ bool EvaluateSinglePanelLayerPayload(int2 pixel,
     float panel_mask = 0.0f;
     float panel_rim = 0.0f;
     float panel_mixed_fresnel = 0.0f;
-    float2 panel_refraction_uv = uv;
+    float2 panel_refraction_uv = screen_uv;
     float panel_effective_blur_strength = 0.0f;
     float2 panel_profile_normal_uv = float2(0.0f, 0.0f);
     float panel_optical_thickness = 0.0f;
-    EvaluatePanelCandidatePayload(
-        uv,
-        center_depth,
-        center_normal,
-        n_dot_v,
-        panel_data,
-        panel_mask,
-        panel_rim,
-        panel_mixed_fresnel,
-        panel_refraction_uv,
-        panel_effective_blur_strength,
-        panel_profile_normal_uv,
-        panel_optical_thickness);
+
+    if (IsWorldSpacePanel(panel_data))
+    {
+        const float panel_alpha = saturate(panel_data.shape_info.w);
+        const float panel_edge_softness = panel_data.shape_info.y;
+        const float panel_sdf = CalcPanelSDFLocal(local_uv, panel_data);
+        panel_mask = CalcPanelMaskFromSDFLocal(panel_sdf, panel_edge_softness) * panel_alpha;
+        if (panel_mask <= 1e-4f)
+        {
+            return false;
+        }
+
+        const float panel_depth_weight_scale = panel_data.tint_depth_weight.w;
+        const float panel_blur_strength = panel_data.corner_blur_rim.z;
+        const float panel_thickness = panel_data.optical_info.x;
+        const float panel_refraction_strength = panel_data.optical_info.y;
+        const float panel_fresnel_power = panel_data.optical_info.w;
+
+        panel_profile_normal_uv = CalcPanelNormalFromSDFLocal(local_uv, panel_data);
+        panel_optical_thickness = panel_thickness;
+
+        float2 refraction_direction = panel_profile_normal_uv * 0.7f + center_normal.xy * 0.3f;
+        const float refraction_dir_len_sq = dot(refraction_direction, refraction_direction);
+        if (refraction_dir_len_sq > 1e-6f)
+        {
+            refraction_direction *= rsqrt(refraction_dir_len_sq);
+        }
+        else
+        {
+            refraction_direction = 0.0f;
+        }
+
+        panel_rim = CalcPanelRimFromSDFLocal(panel_sdf, panel_edge_softness);
+        const float fresnel_term = pow(saturate(1.0f - n_dot_v), max(panel_fresnel_power, 1.0f));
+        panel_mixed_fresnel = saturate(fresnel_term + panel_rim * 0.35f);
+        const float2 refraction_uv =
+            screen_uv + refraction_direction * panel_thickness * panel_refraction_strength * (0.2f + panel_mixed_fresnel);
+        const int2 refracted_pixel = ClampToViewport(int2(refraction_uv * float2((float)viewport_width, (float)viewport_height)));
+        float refracted_depth = SampleDepthSafe(refracted_pixel);
+        if (!IsDepthValid(refracted_depth))
+        {
+            refracted_depth = center_depth;
+        }
+        const float depth_delta = abs(refracted_depth - center_depth);
+        const float depth_aware_weight = exp(-depth_delta * panel_depth_weight_scale);
+        const float min_depth_aware_strength = saturate(depth_aware_min_strength);
+        panel_effective_blur_strength = panel_blur_strength * lerp(min_depth_aware_strength, 1.0f, depth_aware_weight);
+        panel_refraction_uv = saturate(refraction_uv);
+        panel_effective_blur_strength = saturate(panel_effective_blur_strength);
+    }
+    else
+    {
+        EvaluatePanelCandidatePayload(
+            screen_uv,
+            center_depth,
+            center_normal,
+            n_dot_v,
+            panel_data,
+            panel_mask,
+            panel_rim,
+            panel_mixed_fresnel,
+            panel_refraction_uv,
+            panel_effective_blur_strength,
+            panel_profile_normal_uv,
+            panel_optical_thickness);
+    }
     if (panel_mask <= 1e-4f)
     {
         return false;
@@ -806,17 +1068,31 @@ struct PanelPayloadLayerPSOutput
 PanelPayloadLayerPSOutput PanelPayloadFrontPS(PanelPayloadVSOutput input)
 {
     const int2 pixel = ClampToViewport(int2(input.position.xy));
+    const float2 screen_uv = (float2(pixel) + 0.5f) / float2((float)viewport_width, (float)viewport_height);
     const uint panel_index = input.panel_index;
     if (panel_index >= panel_count)
     {
         discard;
     }
     const FrostedGlassPanelData panel_data = g_frosted_panels[panel_index];
+    if (IsWorldSpacePanel(panel_data))
+    {
+        const float scene_depth = SampleDepthSafe(pixel);
+        if (IsDepthValid(scene_depth))
+        {
+            const float panel_depth = saturate(input.position.z);
+            const float depth_epsilon = 1e-4f;
+            if (panel_depth > scene_depth + depth_epsilon)
+            {
+                discard;
+            }
+        }
+    }
 
     float4 mask_param = float4(0.0f, 0.0f, 0.0f, -1.0f);
-    float4 panel_optics = float4(input.uv, 0.0f, 0.0f);
+    float4 panel_optics = float4(screen_uv, 0.0f, 0.0f);
     float4 panel_profile = float4(0.0f, 0.0f, 0.0f, 0.0f);
-    if (!EvaluateSinglePanelLayerPayload(pixel, input.uv, panel_index, panel_data, mask_param, panel_optics, panel_profile))
+    if (!EvaluateSinglePanelLayerPayload(pixel, screen_uv, input.local_uv, panel_index, panel_data, mask_param, panel_optics, panel_profile))
     {
         discard;
     }
@@ -831,6 +1107,7 @@ PanelPayloadLayerPSOutput PanelPayloadFrontPS(PanelPayloadVSOutput input)
 PanelPayloadLayerPSOutput PanelPayloadBackPS(PanelPayloadVSOutput input)
 {
     const int2 pixel = ClampToViewport(int2(input.position.xy));
+    const float2 screen_uv = (float2(pixel) + 0.5f) / float2((float)viewport_width, (float)viewport_height);
     const uint panel_index = input.panel_index;
     if (panel_index >= panel_count)
     {
@@ -845,10 +1122,23 @@ PanelPayloadLayerPSOutput PanelPayloadBackPS(PanelPayloadVSOutput input)
     }
 
     const FrostedGlassPanelData panel_data = g_frosted_panels[panel_index];
+    if (IsWorldSpacePanel(panel_data))
+    {
+        const float scene_depth = SampleDepthSafe(pixel);
+        if (IsDepthValid(scene_depth))
+        {
+            const float panel_depth = saturate(input.position.z);
+            const float depth_epsilon = 1e-4f;
+            if (panel_depth > scene_depth + depth_epsilon)
+            {
+                discard;
+            }
+        }
+    }
     float4 mask_param = float4(0.0f, 0.0f, 0.0f, -1.0f);
-    float4 panel_optics = float4(input.uv, 0.0f, 0.0f);
+    float4 panel_optics = float4(screen_uv, 0.0f, 0.0f);
     float4 panel_profile = float4(0.0f, 0.0f, 0.0f, 0.0f);
-    if (!EvaluateSinglePanelLayerPayload(pixel, input.uv, panel_index, panel_data, mask_param, panel_optics, panel_profile))
+    if (!EvaluateSinglePanelLayerPayload(pixel, screen_uv, input.local_uv, panel_index, panel_data, mask_param, panel_optics, panel_profile))
     {
         discard;
     }
@@ -869,12 +1159,24 @@ void CompositeBackMain(int3 dispatch_thread_id : SV_DispatchThreadID)
     }
 
     const int2 pixel = dispatch_thread_id.xy;
-    const float3 scene_color = InputColorTex.Load(int3(pixel, 0)).rgb;
-    const float4 front_mask_param = MaskParamTex.Load(int3(pixel, 0));
-    const float4 back_mask_param = MaskParamSecondaryTex.Load(int3(pixel, 0));
-    const float4 back_panel_optics = PanelOpticsSecondaryTex.Load(int3(pixel, 0));
-    const float4 front_panel_profile = PanelProfileTex.Load(int3(pixel, 0));
-    const float4 back_panel_profile = PanelProfileSecondaryTex.Load(int3(pixel, 0));
+    const float3 scene_color_raw = InputColorTex.Load(int3(pixel, 0)).rgb;
+    const float4 front_mask_param_raw = MaskParamTex.Load(int3(pixel, 0));
+    const float4 back_mask_param_raw = MaskParamSecondaryTex.Load(int3(pixel, 0));
+    const float4 back_panel_optics_raw = PanelOpticsSecondaryTex.Load(int3(pixel, 0));
+    const float4 front_panel_profile_raw = PanelProfileTex.Load(int3(pixel, 0));
+    const float4 back_panel_profile_raw = PanelProfileSecondaryTex.Load(int3(pixel, 0));
+    const bool invalid_scene = !IsFiniteFloat3(scene_color_raw);
+    const bool invalid_payload = !IsFiniteFloat4(front_mask_param_raw) ||
+                                 !IsFiniteFloat4(back_mask_param_raw) ||
+                                 !IsFiniteFloat4(back_panel_optics_raw) ||
+                                 !IsFiniteFloat4(front_panel_profile_raw) ||
+                                 !IsFiniteFloat4(back_panel_profile_raw);
+    const float3 scene_color = SanitizeFloat3(scene_color_raw);
+    const float4 front_mask_param = SanitizeFloat4(front_mask_param_raw);
+    const float4 back_mask_param = SanitizeFloat4(back_mask_param_raw);
+    const float4 back_panel_optics = SanitizeFloat4(back_panel_optics_raw);
+    const float4 front_panel_profile = SanitizeFloat4(front_panel_profile_raw);
+    const float4 back_panel_profile = SanitizeFloat4(back_panel_profile_raw);
 
     float front_mask = 0.0f;
     const bool has_front_layer = TryResolvePanelPayload(front_mask_param, front_mask);
@@ -882,13 +1184,15 @@ void CompositeBackMain(int3 dispatch_thread_id : SV_DispatchThreadID)
     float back_mask = 0.0f;
     float3 back_frosted_color = scene_color;
     float back_blur_metric = 0.0f;
+    bool back_had_invalid_blur = false;
     const bool has_back_layer = EvaluatePanelFrostedColor(
         scene_color,
         back_mask_param,
         back_panel_optics,
         back_mask,
         back_frosted_color,
-        back_blur_metric);
+        back_blur_metric,
+        back_had_invalid_blur);
 
     float3 back_composited_color = scene_color;
     if (ShouldEnableMultilayer(has_front_layer, has_back_layer, back_mask))
@@ -899,7 +1203,19 @@ void CompositeBackMain(int3 dispatch_thread_id : SV_DispatchThreadID)
         back_composited_color = lerp(scene_color, back_frosted_color, layered_mix);
     }
 
-    BackCompositeOutput[pixel] = float4(back_composited_color, 1.0f);
+    const uint nan_source = ResolveNaNSource(
+        invalid_scene,
+        invalid_payload,
+        back_had_invalid_blur,
+        false,
+        false);
+    if (nan_debug_mode != 0 && nan_source != NAN_SOURCE_NONE)
+    {
+        BackCompositeOutput[pixel] = float4(NaNSourceColor(nan_source), 1.0f);
+        return;
+    }
+
+    BackCompositeOutput[pixel] = float4(SanitizeFloat3(back_composited_color), 1.0f);
 }
 
 [numthreads(8, 8, 1)]
@@ -913,26 +1229,42 @@ void CompositeFrontMain(int3 dispatch_thread_id : SV_DispatchThreadID)
     const int2 pixel = dispatch_thread_id.xy;
     const float2 viewport_size = float2((float)viewport_width, (float)viewport_height);
     const float2 current_uv = (float2(pixel) + 0.5f) / viewport_size;
-    const float3 scene_color = BackCompositeTex.Load(int3(pixel, 0)).rgb;
-    const float4 front_mask_param = MaskParamTex.Load(int3(pixel, 0));
-    const float4 front_panel_optics = PanelOpticsTex.Load(int3(pixel, 0));
-    const float4 back_mask_param = MaskParamSecondaryTex.Load(int3(pixel, 0));
-    const float4 back_panel_optics = PanelOpticsSecondaryTex.Load(int3(pixel, 0));
-    const float4 front_panel_profile = PanelProfileTex.Load(int3(pixel, 0));
-    const float4 back_panel_profile = PanelProfileSecondaryTex.Load(int3(pixel, 0));
+    const float3 scene_color_raw = BackCompositeTex.Load(int3(pixel, 0)).rgb;
+    const float4 front_mask_param_raw = MaskParamTex.Load(int3(pixel, 0));
+    const float4 front_panel_optics_raw = PanelOpticsTex.Load(int3(pixel, 0));
+    const float4 back_mask_param_raw = MaskParamSecondaryTex.Load(int3(pixel, 0));
+    const float4 back_panel_optics_raw = PanelOpticsSecondaryTex.Load(int3(pixel, 0));
+    const float4 front_panel_profile_raw = PanelProfileTex.Load(int3(pixel, 0));
+    const float4 back_panel_profile_raw = PanelProfileSecondaryTex.Load(int3(pixel, 0));
+    const bool invalid_scene = !IsFiniteFloat3(scene_color_raw);
+    const bool invalid_payload = !IsFiniteFloat4(front_mask_param_raw) ||
+                                 !IsFiniteFloat4(front_panel_optics_raw) ||
+                                 !IsFiniteFloat4(back_mask_param_raw) ||
+                                 !IsFiniteFloat4(back_panel_optics_raw) ||
+                                 !IsFiniteFloat4(front_panel_profile_raw) ||
+                                 !IsFiniteFloat4(back_panel_profile_raw);
+    const float3 scene_color = SanitizeFloat3(scene_color_raw);
+    const float4 front_mask_param = SanitizeFloat4(front_mask_param_raw);
+    const float4 front_panel_optics = SanitizeFloat4(front_panel_optics_raw);
+    const float4 back_mask_param = SanitizeFloat4(back_mask_param_raw);
+    const float4 back_panel_optics = SanitizeFloat4(back_panel_optics_raw);
+    const float4 front_panel_profile = SanitizeFloat4(front_panel_profile_raw);
+    const float4 back_panel_profile = SanitizeFloat4(back_panel_profile_raw);
     const float profile_edge = saturate(max(front_panel_profile.z, back_panel_profile.z));
     const float scene_edge = saturate(max(max(front_panel_optics.w, back_panel_optics.w), profile_edge));
 
     float front_mask = 0.0f;
     float3 front_frosted_color = scene_color;
     float front_blur_metric = 0.0f;
+    bool front_had_invalid_blur = false;
     const bool has_front_layer = EvaluatePanelFrostedColor(
         scene_color,
         front_mask_param,
         front_panel_optics,
         front_mask,
         front_frosted_color,
-        front_blur_metric);
+        front_blur_metric,
+        front_had_invalid_blur);
 
     float back_mask = 0.0f;
     const bool has_back_layer = TryResolvePanelPayload(back_mask_param, back_mask);
@@ -948,15 +1280,21 @@ void CompositeFrontMain(int3 dispatch_thread_id : SV_DispatchThreadID)
 
     float3 history_color = final_color;
     float history_weight = 0.0f;
+    bool invalid_velocity = false;
+    bool invalid_history = false;
     if (temporal_history_valid != 0 && panel_mask > 1e-4f)
     {
-        const float2 velocity_uv = VelocityTex.Load(int3(pixel, 0)).xy;
+        const float2 velocity_uv_raw = VelocityTex.Load(int3(pixel, 0)).xy;
+        invalid_velocity = !IsFiniteFloat2(velocity_uv_raw);
+        const float2 velocity_uv = SanitizeFloat2(velocity_uv_raw);
         const float2 prev_uv = current_uv - velocity_uv;
         const bool history_in_bounds = all(prev_uv >= float2(0.0f, 0.0f)) && all(prev_uv <= float2(1.0f, 1.0f));
         if (history_in_bounds)
         {
             const int2 prev_pixel = ClampToViewport(int2(prev_uv * viewport_size));
-            history_color = HistoryInputTex.Load(int3(prev_pixel, 0)).rgb;
+            const float3 history_color_raw = HistoryInputTex.Load(int3(prev_pixel, 0)).rgb;
+            invalid_history = !IsFiniteFloat3(history_color_raw);
+            history_color = SanitizeFloat3(history_color_raw);
 
             const float safe_velocity_threshold = max(temporal_reject_velocity, 1e-4f);
             const float velocity_reject = saturate(length(velocity_uv) / safe_velocity_threshold);
@@ -965,7 +1303,21 @@ void CompositeFrontMain(int3 dispatch_thread_id : SV_DispatchThreadID)
         }
     }
 
-    const float3 stabilized_color = lerp(final_color, history_color, history_weight);
+    const uint nan_source = ResolveNaNSource(
+        invalid_scene,
+        invalid_payload,
+        front_had_invalid_blur,
+        invalid_history,
+        invalid_velocity);
+    if (nan_debug_mode != 0 && nan_source != NAN_SOURCE_NONE)
+    {
+        const float3 debug_color = NaNSourceColor(nan_source);
+        Output[pixel] = float4(debug_color, 1.0f);
+        HistoryOutputTex[pixel] = float4(debug_color, 1.0f);
+        return;
+    }
+
+    const float3 stabilized_color = SanitizeFloat3(lerp(final_color, history_color, history_weight));
     Output[pixel] = float4(stabilized_color, 1.0f);
     HistoryOutputTex[pixel] = float4(stabilized_color, 1.0f);
 }
@@ -981,37 +1333,55 @@ void CompositeMain(int3 dispatch_thread_id : SV_DispatchThreadID)
     const int2 pixel = dispatch_thread_id.xy;
     const float2 viewport_size = float2((float)viewport_width, (float)viewport_height);
     const float2 current_uv = (float2(pixel) + 0.5f) / viewport_size;
-    const float3 scene_color = InputColorTex.Load(int3(pixel, 0)).rgb;
-    const float4 front_mask_param = MaskParamTex.Load(int3(pixel, 0));
-    const float4 front_panel_optics = PanelOpticsTex.Load(int3(pixel, 0));
-    const float4 back_mask_param = MaskParamSecondaryTex.Load(int3(pixel, 0));
-    const float4 back_panel_optics = PanelOpticsSecondaryTex.Load(int3(pixel, 0));
-    const float4 front_panel_profile = PanelProfileTex.Load(int3(pixel, 0));
-    const float4 back_panel_profile = PanelProfileSecondaryTex.Load(int3(pixel, 0));
+    const float3 scene_color_raw = InputColorTex.Load(int3(pixel, 0)).rgb;
+    const float4 front_mask_param_raw = MaskParamTex.Load(int3(pixel, 0));
+    const float4 front_panel_optics_raw = PanelOpticsTex.Load(int3(pixel, 0));
+    const float4 back_mask_param_raw = MaskParamSecondaryTex.Load(int3(pixel, 0));
+    const float4 back_panel_optics_raw = PanelOpticsSecondaryTex.Load(int3(pixel, 0));
+    const float4 front_panel_profile_raw = PanelProfileTex.Load(int3(pixel, 0));
+    const float4 back_panel_profile_raw = PanelProfileSecondaryTex.Load(int3(pixel, 0));
+    const bool invalid_scene = !IsFiniteFloat3(scene_color_raw);
+    const bool invalid_payload = !IsFiniteFloat4(front_mask_param_raw) ||
+                                 !IsFiniteFloat4(front_panel_optics_raw) ||
+                                 !IsFiniteFloat4(back_mask_param_raw) ||
+                                 !IsFiniteFloat4(back_panel_optics_raw) ||
+                                 !IsFiniteFloat4(front_panel_profile_raw) ||
+                                 !IsFiniteFloat4(back_panel_profile_raw);
+    const float3 scene_color = SanitizeFloat3(scene_color_raw);
+    const float4 front_mask_param = SanitizeFloat4(front_mask_param_raw);
+    const float4 front_panel_optics = SanitizeFloat4(front_panel_optics_raw);
+    const float4 back_mask_param = SanitizeFloat4(back_mask_param_raw);
+    const float4 back_panel_optics = SanitizeFloat4(back_panel_optics_raw);
+    const float4 front_panel_profile = SanitizeFloat4(front_panel_profile_raw);
+    const float4 back_panel_profile = SanitizeFloat4(back_panel_profile_raw);
     const float profile_edge = saturate(max(front_panel_profile.z, back_panel_profile.z));
     const float scene_edge = saturate(max(max(front_panel_optics.w, back_panel_optics.w), profile_edge));
 
     float front_mask = 0.0f;
     float3 front_frosted_color = scene_color;
     float front_blur_metric = 0.0f;
+    bool front_had_invalid_blur = false;
     const bool has_front_layer = EvaluatePanelFrostedColor(
         scene_color,
         front_mask_param,
         front_panel_optics,
         front_mask,
         front_frosted_color,
-        front_blur_metric);
+        front_blur_metric,
+        front_had_invalid_blur);
 
     float back_mask = 0.0f;
     float3 back_frosted_color = scene_color;
     float back_blur_metric = 0.0f;
+    bool back_had_invalid_blur = false;
     const bool has_back_layer = EvaluatePanelFrostedColor(
         scene_color,
         back_mask_param,
         back_panel_optics,
         back_mask,
         back_frosted_color,
-        back_blur_metric);
+        back_blur_metric,
+        back_had_invalid_blur);
 
     float panel_mask = front_mask;
     float3 final_color = lerp(scene_color, front_frosted_color, front_mask);
@@ -1025,13 +1395,16 @@ void CompositeMain(int3 dispatch_thread_id : SV_DispatchThreadID)
         float front_mask_over_back = 0.0f;
         float3 front_over_back_frosted_color = back_composited_color;
         float front_over_back_blur_metric = 0.0f;
+        bool front_over_back_had_invalid_blur = false;
         const bool has_front_over_back = EvaluatePanelFrostedColor(
             back_composited_color,
             front_mask_param,
             front_panel_optics,
             front_mask_over_back,
             front_over_back_frosted_color,
-            front_over_back_blur_metric);
+            front_over_back_blur_metric,
+            front_over_back_had_invalid_blur);
+        front_had_invalid_blur = front_had_invalid_blur || front_over_back_had_invalid_blur;
 
         if (has_front_over_back && front_mask_over_back > 1e-4f)
         {
@@ -1055,15 +1428,21 @@ void CompositeMain(int3 dispatch_thread_id : SV_DispatchThreadID)
 
     float3 history_color = final_color;
     float history_weight = 0.0f;
+    bool invalid_velocity = false;
+    bool invalid_history = false;
     if (temporal_history_valid != 0 && panel_mask > 1e-4f)
     {
-        const float2 velocity_uv = VelocityTex.Load(int3(pixel, 0)).xy;
+        const float2 velocity_uv_raw = VelocityTex.Load(int3(pixel, 0)).xy;
+        invalid_velocity = !IsFiniteFloat2(velocity_uv_raw);
+        const float2 velocity_uv = SanitizeFloat2(velocity_uv_raw);
         const float2 prev_uv = current_uv - velocity_uv;
         const bool history_in_bounds = all(prev_uv >= float2(0.0f, 0.0f)) && all(prev_uv <= float2(1.0f, 1.0f));
         if (history_in_bounds)
         {
             const int2 prev_pixel = ClampToViewport(int2(prev_uv * viewport_size));
-            history_color = HistoryInputTex.Load(int3(prev_pixel, 0)).rgb;
+            const float3 history_color_raw = HistoryInputTex.Load(int3(prev_pixel, 0)).rgb;
+            invalid_history = !IsFiniteFloat3(history_color_raw);
+            history_color = SanitizeFloat3(history_color_raw);
 
             const float safe_velocity_threshold = max(temporal_reject_velocity, 1e-4f);
             const float velocity_reject = saturate(length(velocity_uv) / safe_velocity_threshold);
@@ -1072,7 +1451,22 @@ void CompositeMain(int3 dispatch_thread_id : SV_DispatchThreadID)
         }
     }
 
-    const float3 stabilized_color = lerp(final_color, history_color, history_weight);
+    const bool had_invalid_blur = front_had_invalid_blur || back_had_invalid_blur;
+    const uint nan_source = ResolveNaNSource(
+        invalid_scene,
+        invalid_payload,
+        had_invalid_blur,
+        invalid_history,
+        invalid_velocity);
+    if (nan_debug_mode != 0 && nan_source != NAN_SOURCE_NONE)
+    {
+        const float3 debug_color = NaNSourceColor(nan_source);
+        Output[pixel] = float4(debug_color, 1.0f);
+        HistoryOutputTex[pixel] = float4(debug_color, 1.0f);
+        return;
+    }
+
+    const float3 stabilized_color = SanitizeFloat3(lerp(final_color, history_color, history_weight));
     Output[pixel] = float4(stabilized_color, 1.0f);
     HistoryOutputTex[pixel] = float4(stabilized_color, 1.0f);
 }
