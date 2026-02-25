@@ -41,6 +41,9 @@ public:
     D3D12_GPU_DESCRIPTOR_HANDLE GetAvailableGPUHandle() const;
     
 private:
+    bool ValidateDescriptorOffset(unsigned descriptor_offset, const char* allocation_type) const;
+    void CommitDescriptorOffset(unsigned descriptor_offset);
+
     bool CreateSRVInHeap(IRHIDevice& device, unsigned descriptor_offset, ID3D12Resource* resource, const RHIDescriptorDesc& desc, RHICPUDescriptorHandle
                          & out_CPU_handle,/*output*/ RHIGPUDescriptorHandle& out_GPU_handle);
     bool CreateUAVInHeap(IRHIDevice& device, unsigned descriptor_offset, ID3D12Resource* resource, const RHIDescriptorDesc& desc, RHICPUDescriptorHandle

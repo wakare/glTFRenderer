@@ -2,6 +2,8 @@
 
 #include "RHIResourceFactoryImpl.hpp"
 #include "DX12DescriptorHeap.h"
+#include "DX12Utils.h"
+#include <algorithm>
 
 bool DX12BufferDescriptorAllocation::InitHandle(RHIGPUDescriptorHandle gpu_handle, RHICPUDescriptorHandle cpu_handle)
 {
@@ -60,10 +62,21 @@ template<>
 
 bool DX12DescriptorManager::Init(IRHIDevice& device, const DescriptorAllocationInfo& max_descriptor_capacity)
 {
+    const unsigned base_cbv_srv_uav_capacity = (std::max)(max_descriptor_capacity.cbv_srv_uav_size, 256u);
+    const unsigned cbv_srv_uav_capacity = base_cbv_srv_uav_capacity * 4u;
+    const unsigned rtv_capacity = (std::max)(max_descriptor_capacity.rtv_size * 2u, 128u);
+    const unsigned dsv_capacity = (std::max)(max_descriptor_capacity.dsv_size * 2u, 128u);
+    LOG_FORMAT_FLUSH(
+        "[DX12Descriptor] Heap capacity configured: CBV/SRV/UAV=%u (base=%u), RTV=%u, DSV=%u.\n",
+        cbv_srv_uav_capacity,
+        base_cbv_srv_uav_capacity,
+        rtv_capacity,
+        dsv_capacity);
+
     m_CBV_SRV_UAV_gpu_heap = RHIResourceFactory::CreateRHIResource<DX12DescriptorHeap>();
     m_CBV_SRV_UAV_gpu_heap->InitDescriptorHeap(device,
         {
-            .max_descriptor_count = max_descriptor_capacity.cbv_srv_uav_size,
+            .max_descriptor_count = cbv_srv_uav_capacity,
             .type = RHIDescriptorHeapType::CBV_SRV_UAV_GPU,
             .shader_visible = true
         });
@@ -81,7 +94,7 @@ bool DX12DescriptorManager::Init(IRHIDevice& device, const DescriptorAllocationI
     m_RTV_heap = RHIResourceFactory::CreateRHIResource<DX12DescriptorHeap>();
     m_RTV_heap->InitDescriptorHeap(device,
         {
-            .max_descriptor_count = max_descriptor_capacity.rtv_size,
+            .max_descriptor_count = rtv_capacity,
             .type = RHIDescriptorHeapType::RTV,
             .shader_visible = false
         });
@@ -89,7 +102,7 @@ bool DX12DescriptorManager::Init(IRHIDevice& device, const DescriptorAllocationI
     m_DSV_heap = RHIResourceFactory::CreateRHIResource<DX12DescriptorHeap>();
     m_DSV_heap->InitDescriptorHeap(device,
         {
-            .max_descriptor_count = max_descriptor_capacity.dsv_size,
+            .max_descriptor_count = dsv_capacity,
             .type = RHIDescriptorHeapType::DSV,
             .shader_visible = false
         });
@@ -120,14 +133,32 @@ bool DX12DescriptorManager::CreateDescriptor(IRHIDevice& device, const std::shar
         return true;
     }
     
-    return GetDescriptorHeap(desc.m_view_type).CreateResourceDescriptorInHeap(device, buffer, desc, out_descriptor_allocation);
+    const bool created = GetDescriptorHeap(desc.m_view_type).CreateResourceDescriptorInHeap(device, buffer, desc, out_descriptor_allocation);
+    if (!created)
+    {
+        LOG_FORMAT_FLUSH(
+            "[DX12Descriptor][Error] Buffer descriptor allocation failed (view_type=%d, dimension=%d).\n",
+            static_cast<int>(desc.m_view_type),
+            static_cast<int>(desc.m_dimension));
+    }
+    GLTF_CHECK(created);
+    return created;
 }
 
 bool DX12DescriptorManager::CreateDescriptor(IRHIDevice& device, const std::shared_ptr<IRHITexture>& texture,
                                              const RHITextureDescriptorDesc& desc, std::shared_ptr<IRHITextureDescriptorAllocation>& out_descriptor_allocation)
 {
     GLTF_CHECK(desc.m_dimension != RHIResourceDimension::UNKNOWN);
-    return GetDescriptorHeap(desc.m_view_type).CreateResourceDescriptorInHeap(device, texture, desc, out_descriptor_allocation);
+    const bool created = GetDescriptorHeap(desc.m_view_type).CreateResourceDescriptorInHeap(device, texture, desc, out_descriptor_allocation);
+    if (!created)
+    {
+        LOG_FORMAT_FLUSH(
+            "[DX12Descriptor][Error] Texture descriptor allocation failed (view_type=%d, dimension=%d).\n",
+            static_cast<int>(desc.m_view_type),
+            static_cast<int>(desc.m_dimension));
+    }
+    GLTF_CHECK(created);
+    return created;
 }
 
 bool DX12DescriptorManager::BindDescriptorContext(IRHICommandList& command_list)
