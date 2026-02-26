@@ -4,7 +4,9 @@
 #include "RendererSystemSceneRenderer.h"
 #include "PostFxSharedResources.h"
 #include <array>
+#include <functional>
 #include <glm/glm/glm.hpp>
+#include <vector>
 
 class RendererSystemFrostedGlass : public RendererSystemBase
 {
@@ -95,14 +97,25 @@ public:
         MAX_PANEL_COUNT = 16
     };
 
+    using ExternalPanelProducer = std::function<void(
+        std::vector<FrostedGlassPanelDesc>& out_world_space_panels,
+        std::vector<FrostedGlassPanelDesc>& out_overlay_panels)>;
+
     RendererSystemFrostedGlass(std::shared_ptr<RendererSystemSceneRenderer> scene,
                                std::shared_ptr<RendererSystemLighting> lighting);
 
     unsigned AddPanel(const FrostedGlassPanelDesc& panel_desc);
     bool UpdatePanel(unsigned index, const FrostedGlassPanelDesc& panel_desc);
+    unsigned RegisterExternalPanelProducer(ExternalPanelProducer producer);
+    bool UnregisterExternalPanelProducer(unsigned producer_id);
+    void ClearExternalPanelProducers();
+    void SetExternalWorldSpacePanels(const std::vector<FrostedGlassPanelDesc>& panel_descs);
+    void SetExternalOverlayPanels(const std::vector<FrostedGlassPanelDesc>& panel_descs);
+    void ClearExternalPanels();
     bool ContainsPanel(unsigned index) const;
     bool SetPanelInteractionState(unsigned index, PanelInteractionState interaction_state);
     PanelInteractionState GetPanelInteractionState(unsigned index) const;
+    unsigned GetEffectivePanelCount() const { return m_global_params.panel_count; }
     RendererInterface::RenderTargetHandle GetOutput() const { return m_frosted_pass_output; }
     RendererInterface::RenderTargetHandle GetHalfResPing() const
     {
@@ -189,12 +202,19 @@ protected:
         std::array<float, PANEL_INTERACTION_STATE_COUNT> state_weights{{1.0f, 0.0f, 0.0f, 0.0f, 0.0f}};
     };
 
+    struct ExternalPanelProducerEntry
+    {
+        unsigned producer_id{0};
+        ExternalPanelProducer producer{};
+    };
+
     static unsigned ToInteractionStateIndex(PanelInteractionState state)
     {
         return static_cast<unsigned>(state);
     }
 
     void UploadPanelData(RendererInterface::ResourceOperator& resource_operator);
+    void RefreshExternalPanelsFromProducers();
     void UpdateDirectionalHighlightParams();
     void UpdatePanelRuntimeStates(float delta_seconds);
     PanelStateCurve GetBlendedStateCurve(unsigned panel_index) const;
@@ -285,7 +305,14 @@ protected:
 
     FrostedGlassGlobalParams m_global_params{};
     std::vector<FrostedGlassPanelDesc> m_panel_descs;
+    std::vector<ExternalPanelProducerEntry> m_external_panel_producers;
+    std::vector<FrostedGlassPanelDesc> m_external_world_space_panel_descs;
+    std::vector<FrostedGlassPanelDesc> m_external_overlay_panel_descs;
+    std::vector<FrostedGlassPanelDesc> m_producer_world_space_panel_descs;
+    std::vector<FrostedGlassPanelDesc> m_producer_overlay_panel_descs;
     std::vector<PanelRuntimeState> m_panel_runtime_states;
+    unsigned m_next_external_panel_producer_id{1};
+    unsigned m_last_upload_requested_panel_count{0};
     bool m_need_upload_panels{false};
     bool m_need_upload_global_params{true};
     bool m_temporal_history_read_is_a{true};

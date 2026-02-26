@@ -214,7 +214,24 @@ Notes:
   - Added independent edge-specular term in composite on top of existing rim/fresnel terms.
   - Edge coverage now uses profile/rim/fresnel basis with controllable width.
   - Added advanced global controls (`Edge Spec Intensity`, `Edge Spec Sharpness`, `Edge Highlight Width`, `Edge Highlight White Mix`).
+- B7.4 shared producer payload merge foundation completed:
+  - Added external producer input APIs for world-space panels and 2D overlay frosted backgrounds.
+  - Upload path now merges internal debug panels + external world-space panels + external overlay panels into one shared payload stream.
+  - Effective panel count is capped by `MAX_PANEL_COUNT` at upload and exposed in debug UI (`uploaded/requested`) for overflow diagnostics.
+  - Temporal history validity now follows effective uploaded panel count rather than internal panel list size.
+- B7.4b concrete producer hookup (Demo app) completed:
+  - `DemoAppModelViewer` now publishes one world-space frosted panel through external 3D producer input.
+  - `DemoAppModelViewer` now publishes one overlay frosted background panel through external 2D producer input.
+  - Demo UI exposes producer enable toggles and effective panel-count readback for runtime validation.
+- B7.4c producer registration path completed:
+  - Added callback-based producer registration (`RegisterExternalPanelProducer`) for engine-side integration.
+  - Frosted system now refreshes producer outputs each frame before panel upload and merges producer/manual sources in one payload stream.
+  - Debug UI now differentiates manual vs producer source counts for world/overlay paths.
+- B7.4d concrete engine-side producer system hookup completed:
+  - Added `RendererSystemFrostedPanelProducer` as an engine-side producer system that registers callback output to frosted payload aggregation.
+  - Moved Demo external panel emission from app-local lambda into this producer system, preserving world-space + overlay dual-source behavior.
+  - Producer system now owns runtime enable toggles and lifecycle-safe unregister on destruction.
 - Pending for next phase:
-  - hook 3D panel prepass and 2D frosted background prepass producers into this shared payload path
+  - replace current engine-side producer demo data with real 3D panel prepass output and 2D UI frosted background prepass output
   - evaluate dual-lobe spec and bloom/tone-map coupling for closer AVP highlight response
   - capture final B7 visual/perf acceptance evidence in representative 2D+3D overlap scenes

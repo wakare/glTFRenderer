@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cmath>
 #include <imgui/imgui.h>
+#include <utility>
 
 namespace
 {
@@ -44,6 +45,85 @@ bool RendererSystemFrostedGlass::UpdatePanel(unsigned index, const FrostedGlassP
     }
     m_need_upload_panels = true;
     return true;
+}
+
+unsigned RendererSystemFrostedGlass::RegisterExternalPanelProducer(ExternalPanelProducer producer)
+{
+    GLTF_CHECK(static_cast<bool>(producer));
+    ExternalPanelProducerEntry producer_entry{};
+    producer_entry.producer_id = m_next_external_panel_producer_id++;
+    producer_entry.producer = std::move(producer);
+    const unsigned producer_id = producer_entry.producer_id;
+    m_external_panel_producers.push_back(std::move(producer_entry));
+    m_need_upload_panels = true;
+    return producer_id;
+}
+
+bool RendererSystemFrostedGlass::UnregisterExternalPanelProducer(unsigned producer_id)
+{
+    const auto producer_itr = std::find_if(
+        m_external_panel_producers.begin(),
+        m_external_panel_producers.end(),
+        [producer_id](const ExternalPanelProducerEntry& producer_entry)
+        {
+            return producer_entry.producer_id == producer_id;
+        });
+    if (producer_itr == m_external_panel_producers.end())
+    {
+        return false;
+    }
+    m_external_panel_producers.erase(producer_itr);
+    if (m_external_panel_producers.empty())
+    {
+        m_producer_world_space_panel_descs.clear();
+        m_producer_overlay_panel_descs.clear();
+    }
+    m_need_upload_panels = true;
+    return true;
+}
+
+void RendererSystemFrostedGlass::ClearExternalPanelProducers()
+{
+    if (m_external_panel_producers.empty())
+    {
+        return;
+    }
+    m_external_panel_producers.clear();
+    m_producer_world_space_panel_descs.clear();
+    m_producer_overlay_panel_descs.clear();
+    m_need_upload_panels = true;
+}
+
+void RendererSystemFrostedGlass::SetExternalWorldSpacePanels(const std::vector<FrostedGlassPanelDesc>& panel_descs)
+{
+    m_external_world_space_panel_descs = panel_descs;
+    for (auto& panel_desc : m_external_world_space_panel_descs)
+    {
+        panel_desc.world_space_mode = 1u;
+    }
+    m_need_upload_panels = true;
+}
+
+void RendererSystemFrostedGlass::SetExternalOverlayPanels(const std::vector<FrostedGlassPanelDesc>& panel_descs)
+{
+    m_external_overlay_panel_descs = panel_descs;
+    for (auto& panel_desc : m_external_overlay_panel_descs)
+    {
+        panel_desc.world_space_mode = 0u;
+        panel_desc.depth_policy = PanelDepthPolicy::Overlay;
+    }
+    m_need_upload_panels = true;
+}
+
+void RendererSystemFrostedGlass::ClearExternalPanels()
+{
+    if (m_external_world_space_panel_descs.empty() && m_external_overlay_panel_descs.empty())
+    {
+        return;
+    }
+    m_external_world_space_panel_descs.clear();
+    m_external_overlay_panel_descs.clear();
+    m_need_upload_panels = true;
 }
 
 bool RendererSystemFrostedGlass::ContainsPanel(unsigned index) const
@@ -2058,6 +2138,7 @@ bool RendererSystemFrostedGlass::Tick(RendererInterface::ResourceOperator& resou
     }
 
     UpdateDirectionalHighlightParams();
+    RefreshExternalPanelsFromProducers();
     UpdatePanelRuntimeStates(delta_seconds);
     UploadPanelData(resource_operator);
 
@@ -2122,7 +2203,7 @@ bool RendererSystemFrostedGlass::Tick(RendererInterface::ResourceOperator& resou
     }
     graph.RegisterRenderTargetToColorOutput(m_frosted_pass_output);
 
-    const bool next_history_valid = !m_panel_descs.empty();
+    const bool next_history_valid = m_global_params.panel_count > 0u;
     if (m_temporal_history_valid != next_history_valid)
     {
         m_temporal_history_valid = next_history_valid;
@@ -2327,6 +2408,19 @@ void RendererSystemFrostedGlass::DrawDebugUI()
     const bool using_raster_panel_payload = m_panel_payload_path == PanelPayloadPath::RasterPanelGBuffer;
     ImGui::Text("Panel Payload Path: %s",
                 using_raster_panel_payload ? "Raster (Panel GBuffer)" : "Compute (SDF)");
+    const unsigned internal_panel_count = static_cast<unsigned>(m_panel_descs.size());
+    const unsigned external_manual_world_panel_count = static_cast<unsigned>(m_external_world_space_panel_descs.size());
+    const unsigned external_manual_overlay_panel_count = static_cast<unsigned>(m_external_overlay_panel_descs.size());
+    const unsigned external_producer_world_panel_count = static_cast<unsigned>(m_producer_world_space_panel_descs.size());
+    const unsigned external_producer_overlay_panel_count = static_cast<unsigned>(m_producer_overlay_panel_descs.size());
+    ImGui::Text("Panel Sources: internal=%u | extW(manual/prod)=%u/%u extO(manual/prod)=%u/%u | uploaded=%u/%u",
+                internal_panel_count,
+                external_manual_world_panel_count,
+                external_producer_world_panel_count,
+                external_manual_overlay_panel_count,
+                external_producer_overlay_panel_count,
+                m_global_params.panel_count,
+                m_last_upload_requested_panel_count);
     const auto& highlight_light = m_global_params.highlight_light_dir_weight;
     ImGui::Text("Highlight Light: %s | Dir: (%.2f, %.2f, %.2f)",
                 highlight_light.w > 0.5f ? "Directional" : "Fallback",
@@ -2344,7 +2438,7 @@ void RendererSystemFrostedGlass::DrawDebugUI()
 
     if (m_panel_descs.empty())
     {
-        ImGui::TextUnformatted("No frosted panels.");
+        ImGui::TextUnformatted("No editable internal frosted panels.");
         if (panel_dirty)
         {
             m_need_upload_panels = true;
@@ -2690,6 +2784,47 @@ void RendererSystemFrostedGlass::UpdatePanelRuntimeStates(float delta_seconds)
     }
 }
 
+void RendererSystemFrostedGlass::RefreshExternalPanelsFromProducers()
+{
+    if (m_external_panel_producers.empty())
+    {
+        if (!m_producer_world_space_panel_descs.empty() || !m_producer_overlay_panel_descs.empty())
+        {
+            m_producer_world_space_panel_descs.clear();
+            m_producer_overlay_panel_descs.clear();
+            m_need_upload_panels = true;
+        }
+        return;
+    }
+
+    std::vector<FrostedGlassPanelDesc> world_space_panels;
+    std::vector<FrostedGlassPanelDesc> overlay_panels;
+    world_space_panels.reserve(m_producer_world_space_panel_descs.size());
+    overlay_panels.reserve(m_producer_overlay_panel_descs.size());
+    for (const auto& producer_entry : m_external_panel_producers)
+    {
+        if (!producer_entry.producer)
+        {
+            continue;
+        }
+        producer_entry.producer(world_space_panels, overlay_panels);
+    }
+
+    for (auto& panel_desc : world_space_panels)
+    {
+        panel_desc.world_space_mode = 1u;
+    }
+    for (auto& panel_desc : overlay_panels)
+    {
+        panel_desc.world_space_mode = 0u;
+        panel_desc.depth_policy = PanelDepthPolicy::Overlay;
+    }
+
+    m_producer_world_space_panel_descs = std::move(world_space_panels);
+    m_producer_overlay_panel_descs = std::move(overlay_panels);
+    m_need_upload_panels = true;
+}
+
 RendererSystemFrostedGlass::PanelStateCurve RendererSystemFrostedGlass::GetBlendedStateCurve(unsigned panel_index) const
 {
     PanelStateCurve blended_state_curve{};
@@ -2740,12 +2875,57 @@ void RendererSystemFrostedGlass::UploadPanelData(RendererInterface::ResourceOper
 
     if (m_need_upload_panels)
     {
+        m_last_upload_requested_panel_count = static_cast<unsigned>(
+            m_panel_descs.size() +
+            m_producer_world_space_panel_descs.size() +
+            m_producer_overlay_panel_descs.size() +
+            m_external_world_space_panel_descs.size() +
+            m_external_overlay_panel_descs.size());
         std::vector<FrostedGlassPanelGpuData> panel_gpu_datas;
-        panel_gpu_datas.reserve(m_panel_descs.size());
+        panel_gpu_datas.reserve((std::min)(
+            static_cast<unsigned>(MAX_PANEL_COUNT),
+            m_last_upload_requested_panel_count));
+
+        const PanelStateCurve identity_state_curve{};
+        auto append_panel_gpu_data = [&](const FrostedGlassPanelDesc& panel_desc, const PanelStateCurve& blended_state_curve)
+        {
+            if (panel_gpu_datas.size() >= MAX_PANEL_COUNT)
+            {
+                return;
+            }
+            panel_gpu_datas.push_back(ConvertPanelToGpuData(panel_desc, blended_state_curve));
+        };
+
         for (unsigned panel_index = 0; panel_index < m_panel_descs.size(); ++panel_index)
         {
             const auto blended_state_curve = GetBlendedStateCurve(panel_index);
-            panel_gpu_datas.push_back(ConvertPanelToGpuData(m_panel_descs[panel_index], blended_state_curve));
+            append_panel_gpu_data(m_panel_descs[panel_index], blended_state_curve);
+        }
+        for (const auto& producer_world_panel : m_producer_world_space_panel_descs)
+        {
+            FrostedGlassPanelDesc normalized_panel = producer_world_panel;
+            normalized_panel.world_space_mode = 1u;
+            append_panel_gpu_data(normalized_panel, identity_state_curve);
+        }
+        for (const auto& producer_overlay_panel : m_producer_overlay_panel_descs)
+        {
+            FrostedGlassPanelDesc normalized_panel = producer_overlay_panel;
+            normalized_panel.world_space_mode = 0u;
+            normalized_panel.depth_policy = PanelDepthPolicy::Overlay;
+            append_panel_gpu_data(normalized_panel, identity_state_curve);
+        }
+        for (const auto& external_world_panel : m_external_world_space_panel_descs)
+        {
+            FrostedGlassPanelDesc normalized_panel = external_world_panel;
+            normalized_panel.world_space_mode = 1u;
+            append_panel_gpu_data(normalized_panel, identity_state_curve);
+        }
+        for (const auto& external_overlay_panel : m_external_overlay_panel_descs)
+        {
+            FrostedGlassPanelDesc normalized_panel = external_overlay_panel;
+            normalized_panel.world_space_mode = 0u;
+            normalized_panel.depth_policy = PanelDepthPolicy::Overlay;
+            append_panel_gpu_data(normalized_panel, identity_state_curve);
         }
 
         if (!panel_gpu_datas.empty())

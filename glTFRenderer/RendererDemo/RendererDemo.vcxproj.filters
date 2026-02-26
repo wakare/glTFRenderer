@@ -30,6 +30,9 @@
     <ClCompile Include="RendererSystem\RendererSystemFrostedGlass.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="RendererSystem\RendererSystemFrostedPanelProducer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="RendererSystem\RendererSystemToneMap.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -48,6 +51,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="RendererSystem\RendererSystemFrostedGlass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RendererSystem\RendererSystemFrostedPanelProducer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="RendererSystem\RendererSystemToneMap.h">

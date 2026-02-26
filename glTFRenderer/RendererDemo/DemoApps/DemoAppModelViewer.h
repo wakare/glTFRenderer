@@ -4,6 +4,7 @@
 #include "RendererModule/RendererModuleCamera.h"
 #include "RendererModule/RendererModuleLighting.h"
 #include "RendererSystem/RendererSystemFrostedGlass.h"
+#include "RendererSystem/RendererSystemFrostedPanelProducer.h"
 #include "RendererSystem/RendererSystemLighting.h"
 #include "RendererSystem/RendererSystemSceneRenderer.h"
 #include "RendererSystem/RendererSystemToneMap.h"
@@ -20,6 +21,7 @@ protected:
 
     std::shared_ptr<RendererSystemSceneRenderer> m_scene;
     std::shared_ptr<RendererSystemLighting> m_lighting;
+    std::shared_ptr<RendererSystemFrostedPanelProducer> m_frosted_panel_producer;
     std::shared_ptr<RendererSystemFrostedGlass> m_frosted_glass;
     std::shared_ptr<RendererSystemToneMap> m_tone_map;
 

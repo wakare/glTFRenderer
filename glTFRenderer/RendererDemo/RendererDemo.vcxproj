@@ -176,6 +176,7 @@
     <ClCompile Include="RendererModule\RendererModuleSceneMesh.cpp" />
     <ClCompile Include="RendererSystem\RendererSystemBase.cpp" />
     <ClCompile Include="RendererSystem\RendererSystemFrostedGlass.cpp" />
+    <ClCompile Include="RendererSystem\RendererSystemFrostedPanelProducer.cpp" />
     <ClCompile Include="RendererSystem\RendererSystemLighting.cpp" />
     <ClCompile Include="RendererSystem\RendererSystemSceneRenderer.cpp" />
     <ClCompile Include="RendererSystem\RendererSystemToneMap.cpp" />
@@ -210,6 +211,7 @@
     <ClInclude Include="RendererModule\RendererModuleSceneMesh.h" />
     <ClInclude Include="RendererSystem\RendererSystemBase.h" />
     <ClInclude Include="RendererSystem\RendererSystemFrostedGlass.h" />
+    <ClInclude Include="RendererSystem\RendererSystemFrostedPanelProducer.h" />
     <ClInclude Include="RendererSystem\RendererSystemLighting.h" />
     <ClInclude Include="RendererSystem\RendererSystemSceneRenderer.h" />
     <ClInclude Include="RendererSystem\RendererSystemToneMap.h" />

@@ -76,6 +76,7 @@ bool DemoAppModelViewer::InitInternal(const std::vector<std::string>& arguments)
     m_scene = std::make_shared<RendererSystemSceneRenderer>(*m_resource_manager, camera_desc, "glTFResources/Models/Sponza/glTF/Sponza.gltf");
     m_lighting = std::make_shared<RendererSystemLighting>(*m_resource_manager, m_scene);
     m_frosted_glass = std::make_shared<RendererSystemFrostedGlass>(m_scene, m_lighting);
+    m_frosted_panel_producer = std::make_shared<RendererSystemFrostedPanelProducer>(m_frosted_glass);
     m_tone_map = std::make_shared<RendererSystemToneMap>(m_frosted_glass, m_scene);
     {
         RendererSystemFrostedGlass::FrostedGlassPanelDesc panel_desc{};
@@ -96,18 +97,35 @@ bool DemoAppModelViewer::InitInternal(const std::vector<std::string>& arguments)
         panel_desc.layer_order = 0.0f;
         m_frosted_glass->AddPanel(panel_desc);
 
-        RendererSystemFrostedGlass::FrostedGlassPanelDesc irregular_panel_desc = panel_desc;
-        irregular_panel_desc.center_uv = {0.62f, 0.48f};
-        irregular_panel_desc.half_size_uv = {0.16f, 0.12f};
-        irregular_panel_desc.corner_radius = 0.02f;
-        irregular_panel_desc.blur_sigma = 11.0f;
-        irregular_panel_desc.blur_strength = 0.96f;
-        irregular_panel_desc.rim_intensity = 0.04f;
-        irregular_panel_desc.tint_color = {0.92f, 0.97f, 1.0f};
-        irregular_panel_desc.shape_type = RendererSystemFrostedGlass::PanelShapeType::ShapeMask;
-        irregular_panel_desc.custom_shape_index = 2.0f;
-        irregular_panel_desc.layer_order = 1.0f;
-        m_frosted_glass->AddPanel(irregular_panel_desc);
+        RendererSystemFrostedGlass::FrostedGlassPanelDesc external_overlay_panel_desc = panel_desc;
+        external_overlay_panel_desc.center_uv = {0.62f, 0.48f};
+        external_overlay_panel_desc.half_size_uv = {0.16f, 0.12f};
+        external_overlay_panel_desc.corner_radius = 0.02f;
+        external_overlay_panel_desc.blur_sigma = 11.0f;
+        external_overlay_panel_desc.blur_strength = 0.96f;
+        external_overlay_panel_desc.rim_intensity = 0.04f;
+        external_overlay_panel_desc.tint_color = {0.92f, 0.97f, 1.0f};
+        external_overlay_panel_desc.shape_type = RendererSystemFrostedGlass::PanelShapeType::ShapeMask;
+        external_overlay_panel_desc.custom_shape_index = 2.0f;
+        external_overlay_panel_desc.layer_order = 1.0f;
+        external_overlay_panel_desc.depth_policy = RendererSystemFrostedGlass::PanelDepthPolicy::Overlay;
+        m_frosted_panel_producer->SetOverlayPanelDesc(external_overlay_panel_desc);
+
+        RendererSystemFrostedGlass::FrostedGlassPanelDesc external_world_panel_desc = panel_desc;
+        external_world_panel_desc.world_space_mode = 1u;
+        external_world_panel_desc.depth_policy = RendererSystemFrostedGlass::PanelDepthPolicy::SceneOcclusion;
+        external_world_panel_desc.world_center = {0.0f, 1.20f, -0.90f};
+        external_world_panel_desc.world_axis_u = {0.56f, 0.0f, 0.0f};
+        external_world_panel_desc.world_axis_v = {0.0f, 0.34f, 0.0f};
+        external_world_panel_desc.center_uv = {0.5f, 0.5f};
+        external_world_panel_desc.half_size_uv = {0.22f, 0.14f};
+        external_world_panel_desc.corner_radius = 0.02f;
+        external_world_panel_desc.blur_sigma = 10.5f;
+        external_world_panel_desc.blur_strength = 0.95f;
+        external_world_panel_desc.layer_order = -0.5f;
+        external_world_panel_desc.shape_type = RendererSystemFrostedGlass::PanelShapeType::RoundedRect;
+        external_world_panel_desc.custom_shape_index = 0.0f;
+        m_frosted_panel_producer->SetWorldPanelDesc(external_world_panel_desc);
     }
     
     // Add test light
@@ -121,6 +139,7 @@ bool DemoAppModelViewer::InitInternal(const std::vector<std::string>& arguments)
 
     m_systems.push_back(m_scene);
     m_systems.push_back(m_lighting);
+    m_systems.push_back(m_frosted_panel_producer);
     m_systems.push_back(m_frosted_glass);
     m_systems.push_back(m_tone_map);
     
@@ -136,6 +155,10 @@ void DemoAppModelViewer::DrawDebugUIInternal()
     {
         ImGui::SliderFloat("Directional Light Speed", &m_directional_light_angular_speed_radians, 0.0f, 2.0f, "%.3f rad/s");
         ImGui::Checkbox("Enable Panel Input State Machine", &m_enable_panel_input_state_machine);
+        if (m_frosted_glass)
+        {
+            ImGui::Text("Effective Frosted Panel Count: %u", m_frosted_glass->GetEffectivePanelCount());
+        }
         ImGui::TextUnformatted("Panel state mapping: move mouse=Hover, LMB=Move, RMB=Grab, Ctrl+LMB=Scale.");
     }
 }

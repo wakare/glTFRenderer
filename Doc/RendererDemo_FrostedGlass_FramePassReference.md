@@ -1,11 +1,13 @@
 # RendererDemo Frosted Glass Frame Pass Reference
 
-- Version: v1.1
-- Date: 2026-02-25
+- Version: v1.2
+- Date: 2026-02-26
 - Scope: one-frame frosted-glass render path in `RendererSystemFrostedGlass`
 - Source files:
   - `glTFRenderer/RendererDemo/RendererSystem/RendererSystemFrostedGlass.cpp`
   - `glTFRenderer/RendererDemo/RendererSystem/RendererSystemFrostedGlass.h`
+  - `glTFRenderer/RendererDemo/RendererSystem/RendererSystemFrostedPanelProducer.cpp`
+  - `glTFRenderer/RendererDemo/RendererSystem/RendererSystemFrostedPanelProducer.h`
   - `glTFRenderer/RendererDemo/Resources/Shaders/FrostedGlass.hlsl`
   - `glTFRenderer/RendererDemo/Resources/Shaders/FrostedGlassPostfx.hlsl`
 
@@ -53,6 +55,17 @@
   - read B / write A: `... History B->A`
 - End of frame toggle:
   - `m_temporal_history_read_is_a = !m_temporal_history_read_is_a`
+
+### 2.4 Panel source aggregation (pre-upload)
+
+- `g_frosted_panels` upload merges, in order:
+  - internal editable panels (`m_panel_descs`)
+  - callback producer world-space panels (`m_producer_world_space_panel_descs`)
+  - callback producer overlay panels (`m_producer_overlay_panel_descs`)
+  - manual external world-space panels (`m_external_world_space_panel_descs`)
+  - manual external overlay panels (`m_external_overlay_panel_descs`)
+- upload is clipped to `MAX_PANEL_COUNT`.
+- temporal history validity follows effective uploaded `panel_count` (not only internal panel count).
 
 ## 3. Pass Graph Per Frame
 
@@ -288,6 +301,7 @@ This section focuses on per-pass compute semantics (not graph topology).
   - structured SRV
   - capacity: `MAX_PANEL_COUNT`
   - payload type: `FrostedGlassPanelGpuData`
+  - source: aggregated internal + external(manual/callback producer) panel descriptors
 - `FrostedGlassGlobalBuffer`:
   - CBV
   - payload type: `FrostedGlassGlobalParams`
