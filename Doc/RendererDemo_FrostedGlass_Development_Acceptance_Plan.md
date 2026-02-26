@@ -212,11 +212,15 @@ This plan is based on the current implementation in repository `glTFRenderer`.
   - Introduce a dedicated Panel GBuffer path so frosted panel composition is driven by panel geometry coverage/depth data instead of only screen-space SDF logic.
   - Keep two-layer composition as default target (`back -> front` sequential composite) to align with Vision Pro-like stacked panels while bounding cost.
   - Add explicit thickness-driven edge highlight/refraction coupling to match 3D glass depth perception.
+  - Add dominant directional-light driven edge highlight modulation, with fallback to view-driven highlight when no directional light exists.
+  - Add AVP-style independent edge-specular layer with profile-aware edge width control.
   - Preserve compatibility with existing 2D UI pipeline by routing only frosted-background panels to Panel GBuffer; text/icons/widgets remain in regular UI pass.
 - Deliverables:
   - Raster prepass for 3D/2D frosted panel backgrounds writing front/back panel payload.
   - Compute composite path consuming Panel GBuffer and existing blur pyramid.
   - Edge/profile payload support (normal or equivalent) for perspective edge lighting behavior.
+  - Per-frame frosted global parameter update from lighting system dominant directional light.
+  - Independent edge-specular controls (`intensity`, `sharpness`, `width`, `white mix`) in advanced global UI.
   - Explicit policy for 2D overlay mode vs world-space mode depth/sorting behavior.
 - Primary files:
   - `glTFRenderer/RendererDemo/RendererSystem/RendererSystemFrostedGlass.h`
@@ -229,6 +233,8 @@ This plan is based on the current implementation in repository `glTFRenderer`.
   - Two-layer overlap is computed as sequential composition (front based on back result) with deterministic ordering.
   - 2D non-frosted UI rendering path remains unchanged and visually regresses by none.
   - Thickness increase yields stronger/wider edge highlight response in a bounded and stable manner (no center-area washout).
+  - With directional light present, edge highlight directionality tracks the brightest directional light; without directional light, behavior falls back to existing view-driven highlight.
+  - Under the same panel setup, edge-specular controls can produce visibly stronger white edge highlights without introducing center-area washout.
 
 ## 5. Milestone Plan
 
@@ -303,7 +309,7 @@ This plan is based on the current implementation in repository `glTFRenderer`.
 | B4 | App | P1 | Readability protection | Text-safe behavior verified | Planned | - |
 | B5 | App | P1 | Immersion blend | Smooth blend control verified | Planned | - |
 | B6 | App | P0 | Multi-layer composition alignment | Top-N overlap blending with bounded cost | In Progress (B6.1 top-2 payload + B6.2 adaptive/runtime refinement complete; visual/perf acceptance pending) | `Doc/FeatureNotes/20260224_B6_MultilayerCompositionPlan.md`, `Doc/FeatureNotes/20260224_B6_Top2MultilayerCore.md`, `Doc/FeatureNotes/20260224_B6_AdaptiveMultilayerRefinement.md` |
-| B7 | App | P0 | Panel GBuffer 3D compatibility | Two-layer frosted composition driven by geometry-aware panel payload | In Progress (B7.1 payload schema + profile RT wiring complete; B7.2 instanced raster front/back payload pass and runtime path switching complete; B7.3a world-space raster producer integration complete; external 3D producer + 2D UI prepass integration pending) | `Doc/FeatureNotes/20260225_B7_PanelGBufferTwoLayerCompatibilityPlan.md` |
+| B7 | App | P0 | Panel GBuffer 3D compatibility | Two-layer frosted composition driven by geometry-aware panel payload | In Progress (B7.1 payload schema + profile RT wiring complete; B7.2 instanced raster front/back payload pass and runtime path switching complete; B7.3a world-space raster producer integration + B7.3b depth policy split complete; B7.5 thickness-edge coupling + B7.6 dominant directional-light highlight modulation/fallback complete; B7.7 AVP-style edge-specular phase-1 complete; external 3D producer + 2D UI prepass integration and phase-2 highlight tuning pending) | `Doc/FeatureNotes/20260225_B7_PanelGBufferTwoLayerCompatibilityPlan.md` |
 | A5 | Framework | P1 | RenderGraph QoL helpers | Reduced setup boilerplate | Planned | - |
 
 ## 8. Development and Review Rules for This Plan

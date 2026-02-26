@@ -32,6 +32,12 @@ public:
         RasterPanelGBuffer = 1
     };
 
+    enum class PanelDepthPolicy : unsigned
+    {
+        Overlay = 0,
+        SceneOcclusion = 1
+    };
+
     static constexpr unsigned PANEL_INTERACTION_STATE_COUNT = static_cast<unsigned>(PanelInteractionState::Count);
 
     struct PanelStateCurve
@@ -48,6 +54,7 @@ public:
         glm::fvec2 center_uv{0.5f, 0.52f};
         glm::fvec2 half_size_uv{0.30f, 0.20f};
         unsigned world_space_mode{0}; // 0: screen-space panel, 1: world-space panel
+        PanelDepthPolicy depth_policy{PanelDepthPolicy::Overlay};
         float world_space_pad0{0.0f};
         glm::fvec3 world_center{0.0f, 1.25f, -0.75f};
         float world_space_pad1{0.0f};
@@ -160,6 +167,20 @@ protected:
         float blur_veil_tint_mix{0.55f};
         float blur_detail_preservation{0.04f};
         unsigned nan_debug_mode{0};
+        float thickness_edge_power{2.20f};
+        float thickness_highlight_boost_max{2.60f};
+        float thickness_refraction_boost_max{1.90f};
+        float thickness_edge_shadow_strength{0.20f};
+        float thickness_range_min{0.004f};
+        float thickness_range_max{0.060f};
+        float edge_spec_intensity{0.95f};
+        float edge_spec_sharpness{7.50f};
+        float edge_highlight_width{0.34f};
+        float edge_highlight_white_mix{0.88f};
+        float directional_highlight_min{0.10f};
+        float directional_highlight_max{2.20f};
+        float directional_highlight_curve{1.50f};
+        glm::fvec4 highlight_light_dir_weight{0.0f, -1.0f, 0.0f, 0.0f}; // xyz: dominant directional light dir, w: valid flag
     };
 
     struct PanelRuntimeState
@@ -174,6 +195,7 @@ protected:
     }
 
     void UploadPanelData(RendererInterface::ResourceOperator& resource_operator);
+    void UpdateDirectionalHighlightParams();
     void UpdatePanelRuntimeStates(float delta_seconds);
     PanelStateCurve GetBlendedStateCurve(unsigned panel_index) const;
     FrostedGlassPanelGpuData ConvertPanelToGpuData(const FrostedGlassPanelDesc& panel_desc, const PanelStateCurve& blended_state_curve) const;

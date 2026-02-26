@@ -173,21 +173,50 @@ This section focuses on per-pass compute semantics (not graph topology).
   - evaluator switch:
     - screen-space panel: reuses existing screen-space SDF payload evaluator.
     - world-space panel: uses local-UV SDF/profile evaluator and screen-UV refraction/depth-aware optics.
+  - depth policy:
+    - `Overlay`: no scene-depth occlusion reject (intended for 2D overlay backgrounds).
+    - `Scene Occlusion`: compare panel depth against scene depth and discard occluded pixels.
   - writes front payload MRTs; discard when mask is invalid.
 - `PanelPayloadBackPS`:
   - same evaluator, but rejects panel equal to front panel at that pixel (`FrontMaskParamTex`) to produce second layer.
+  - applies the same depth-policy gate as front pass.
   - writes back payload MRTs.
 
 #### 3.5.4 Frosted color evaluator (used by `C01`, `C17`, `L01`)
 
-- Entry: `EvaluatePanelFrostedColor(scene_color, mask_param, panel_optics, ...)`.
+- Entry: `EvaluatePanelFrostedColor(scene_color, center_normal, view_dir, mask_param, panel_optics, panel_profile, ...)`.
 - Steps:
   - validate `mask` and `panel_index`.
-  - sample blur pyramid at refracted UV (`1/2`, `1/4`, `1/8`, `1/16`, `1/32`).
+  - sample blur pyramid at refracted UV (`1/2`, `1/4`, `1/8`, `1/16`, `1/32`) with linear (bilinear) reconstruction to avoid point-sampling shimmer/leak.
+  - apply highlight de-speckle suppression:
+    - detect scene luminance outliers above blur baseline (`scene_luminance - blur_luminance`)
+    - reduce only this high-frequency bright residual before final blur blend.
   - build sigma-driven blend factors (`quarter/eighth/sixteenth/thirtysecond`).
   - blend toward lower-frequency result as sigma increases (coarse/veil path), then apply contrast compression and tint neutralization controls.
   - combine with original scene by `effective_blur_strength`.
-  - add rim/fresnel highlight contribution using panel params + scene edge.
+  - thickness coupling:
+    - normalize thickness by global range (`thickness_range_min/max`).
+    - boost refraction amplitude by `thickness_refraction_boost_max`.
+    - compute edge response (`edge_term`) by thickness edge power.
+    - apply bounded edge shadow (`thickness_edge_shadow_strength`) and highlight boost (`thickness_highlight_boost_max`).
+  - directional-light coupling:
+    - per pixel, composite pass resolves `center_normal` and `view_dir`.
+    - evaluator builds panel highlight normal from panel profile (and panel world axes for world-space panels).
+    - profile-direction bending is applied only near panel edges to avoid interior medial-axis seams.
+    - evaluator reads `highlight_light_dir_weight` from `FrostedGlassGlobalBuffer`.
+    - when valid (`w > 0`), edge highlight is modulated by dominant directional-light orientation.
+    - when invalid (`w == 0`), modulation becomes neutral and behavior falls back to view-driven baseline.
+    - directional modulation range/contrast is tunable by:
+      - `directional_highlight_min`
+      - `directional_highlight_max`
+      - `directional_highlight_curve`
+  - independent edge-specular layer:
+    - strict edge gate from `max(rim, profile_edge)`; non-edge pixels force this term to zero.
+    - edge coverage controlled by `edge_highlight_width`.
+    - spec lobe sharpness controlled by `edge_spec_sharpness`.
+    - spec contribution scaled by `edge_spec_intensity`.
+    - spec is composed as core + halo (wide lobe) to avoid overly thin edge highlights.
+    - tint toward white controlled by `edge_highlight_white_mix`.
 - Outputs:
   - `layer_mask`, `out_frosted_color`, `out_blur_metric` (sigma-strength metric used by multilayer logic).
 
@@ -262,6 +291,18 @@ This section focuses on per-pass compute semantics (not graph topology).
 - `FrostedGlassGlobalBuffer`:
   - CBV
   - payload type: `FrostedGlassGlobalParams`
+  - includes per-frame dominant directional-light payload for highlight modulation:
+    - `highlight_light_dir_weight.xyz`: dominant directional-light direction (world space)
+    - `highlight_light_dir_weight.w`: validity flag (`1` valid, `0` fallback)
+  - includes AVP-style edge-spec phase-1 controls:
+    - `edge_spec_intensity`
+    - `edge_spec_sharpness`
+    - `edge_highlight_width`
+    - `edge_highlight_white_mix`
+  - includes directional highlight contrast controls:
+    - `directional_highlight_min`
+    - `directional_highlight_max`
+    - `directional_highlight_curve`
 
 ## 5. Expected Active Pass Count (for quick sanity checks)
 

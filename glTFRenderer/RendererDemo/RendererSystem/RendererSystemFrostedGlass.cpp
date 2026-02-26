@@ -1892,6 +1892,41 @@ bool RendererSystemFrostedGlass::HasInit() const
            m_postfx_shared_resources.HasInit();
 }
 
+void RendererSystemFrostedGlass::UpdateDirectionalHighlightParams()
+{
+    glm::fvec4 next_highlight_light = {0.0f, -1.0f, 0.0f, 0.0f};
+    if (m_lighting)
+    {
+        glm::fvec3 dominant_light_dir{0.0f, -1.0f, 0.0f};
+        float dominant_light_luminance = 0.0f;
+        if (m_lighting->GetDominantDirectionalLight(dominant_light_dir, dominant_light_luminance))
+        {
+            (void)dominant_light_luminance;
+            next_highlight_light = {
+                dominant_light_dir.x,
+                dominant_light_dir.y,
+                dominant_light_dir.z,
+                1.0f
+            };
+        }
+    }
+
+    const auto nearly_equal = [](float lhs, float rhs) -> bool
+    {
+        return std::fabs(lhs - rhs) <= 1e-4f;
+    };
+
+    const auto& current = m_global_params.highlight_light_dir_weight;
+    if (!nearly_equal(current.x, next_highlight_light.x) ||
+        !nearly_equal(current.y, next_highlight_light.y) ||
+        !nearly_equal(current.z, next_highlight_light.z) ||
+        !nearly_equal(current.w, next_highlight_light.w))
+    {
+        m_global_params.highlight_light_dir_weight = next_highlight_light;
+        m_need_upload_global_params = true;
+    }
+}
+
 bool RendererSystemFrostedGlass::Tick(RendererInterface::ResourceOperator& resource_operator,
                                       RendererInterface::RenderGraph& graph,
                                       unsigned long long interval)
@@ -2022,6 +2057,7 @@ bool RendererSystemFrostedGlass::Tick(RendererInterface::ResourceOperator& resou
         m_need_upload_global_params = true;
     }
 
+    UpdateDirectionalHighlightParams();
     UpdatePanelRuntimeStates(delta_seconds);
     UploadPanelData(resource_operator);
 
@@ -2208,6 +2244,58 @@ void RendererSystemFrostedGlass::DrawDebugUI()
         {
             global_dirty = true;
         }
+        if (ImGui::SliderFloat("Thickness Edge Power", &m_global_params.thickness_edge_power, 1.0f, 8.0f, "%.2f"))
+        {
+            global_dirty = true;
+        }
+        if (ImGui::SliderFloat("Thickness Highlight Boost", &m_global_params.thickness_highlight_boost_max, 1.0f, 4.0f, "%.2f"))
+        {
+            global_dirty = true;
+        }
+        if (ImGui::SliderFloat("Thickness Refraction Boost", &m_global_params.thickness_refraction_boost_max, 1.0f, 4.0f, "%.2f"))
+        {
+            global_dirty = true;
+        }
+        if (ImGui::SliderFloat("Thickness Edge Shadow", &m_global_params.thickness_edge_shadow_strength, 0.0f, 1.0f, "%.2f"))
+        {
+            global_dirty = true;
+        }
+        if (ImGui::SliderFloat("Thickness Range Min", &m_global_params.thickness_range_min, 0.0f, 0.10f, "%.3f"))
+        {
+            global_dirty = true;
+        }
+        if (ImGui::SliderFloat("Thickness Range Max", &m_global_params.thickness_range_max, 0.01f, 0.20f, "%.3f"))
+        {
+            global_dirty = true;
+        }
+        if (ImGui::SliderFloat("Edge Spec Intensity", &m_global_params.edge_spec_intensity, 0.0f, 3.0f, "%.2f"))
+        {
+            global_dirty = true;
+        }
+        if (ImGui::SliderFloat("Edge Spec Sharpness", &m_global_params.edge_spec_sharpness, 1.0f, 32.0f, "%.1f"))
+        {
+            global_dirty = true;
+        }
+        if (ImGui::SliderFloat("Edge Highlight Width", &m_global_params.edge_highlight_width, 0.05f, 1.0f, "%.2f"))
+        {
+            global_dirty = true;
+        }
+        if (ImGui::SliderFloat("Edge Highlight White Mix", &m_global_params.edge_highlight_white_mix, 0.0f, 1.0f, "%.2f"))
+        {
+            global_dirty = true;
+        }
+        if (ImGui::SliderFloat("Directional Highlight Min", &m_global_params.directional_highlight_min, 0.0f, 1.0f, "%.2f"))
+        {
+            global_dirty = true;
+        }
+        if (ImGui::SliderFloat("Directional Highlight Max", &m_global_params.directional_highlight_max, 0.2f, 3.5f, "%.2f"))
+        {
+            global_dirty = true;
+        }
+        if (ImGui::SliderFloat("Directional Highlight Curve", &m_global_params.directional_highlight_curve, 0.5f, 4.0f, "%.2f"))
+        {
+            global_dirty = true;
+        }
         const char* nan_debug_modes[] = {"Off", "Overlay"};
         int nan_debug_mode = static_cast<int>(m_global_params.nan_debug_mode);
         if (ImGui::Combo("NaN Probe", &nan_debug_mode, nan_debug_modes, IM_ARRAYSIZE(nan_debug_modes)))
@@ -2239,6 +2327,12 @@ void RendererSystemFrostedGlass::DrawDebugUI()
     const bool using_raster_panel_payload = m_panel_payload_path == PanelPayloadPath::RasterPanelGBuffer;
     ImGui::Text("Panel Payload Path: %s",
                 using_raster_panel_payload ? "Raster (Panel GBuffer)" : "Compute (SDF)");
+    const auto& highlight_light = m_global_params.highlight_light_dir_weight;
+    ImGui::Text("Highlight Light: %s | Dir: (%.2f, %.2f, %.2f)",
+                highlight_light.w > 0.5f ? "Directional" : "Fallback",
+                highlight_light.x,
+                highlight_light.y,
+                highlight_light.z);
     if (m_global_params.nan_debug_mode != 0)
     {
         ImGui::TextUnformatted("NaN Probe Legend: Red=Scene, Green=Payload, Blue=Blur, Yellow=History, Magenta=Velocity");
@@ -2300,6 +2394,18 @@ void RendererSystemFrostedGlass::DrawDebugUI()
     if (ImGui::Checkbox("World Space Panel", &world_space_mode))
     {
         panel.world_space_mode = world_space_mode ? 1u : 0u;
+        if (world_space_mode)
+        {
+            panel.depth_policy = PanelDepthPolicy::SceneOcclusion;
+        }
+        panel_dirty = true;
+    }
+    const char* panel_depth_policies[] = {"Overlay", "Scene Occlusion"};
+    int panel_depth_policy = static_cast<int>(panel.depth_policy);
+    if (ImGui::Combo("Panel Depth Policy", &panel_depth_policy, panel_depth_policies, IM_ARRAYSIZE(panel_depth_policies)))
+    {
+        panel_depth_policy = (std::max)(0, (std::min)(panel_depth_policy, 1));
+        panel.depth_policy = static_cast<PanelDepthPolicy>(panel_depth_policy);
         panel_dirty = true;
     }
     if (world_space_mode)
@@ -2447,6 +2553,10 @@ void RendererSystemFrostedGlass::DrawDebugUI()
         panel.panel_alpha = clamp(panel.panel_alpha, 0.0f, 1.0f);
         panel.interaction_transition_speed = clamp(panel.interaction_transition_speed, 1.0f, 24.0f);
         panel.world_space_mode = panel.world_space_mode == 0 ? 0u : 1u;
+        panel.depth_policy =
+            panel.depth_policy == PanelDepthPolicy::SceneOcclusion
+                ? PanelDepthPolicy::SceneOcclusion
+                : PanelDepthPolicy::Overlay;
         const auto length_sq = [](const glm::fvec3& value) -> float
         {
             return value.x * value.x + value.y * value.y + value.z * value.z;
@@ -2491,6 +2601,27 @@ void RendererSystemFrostedGlass::DrawDebugUI()
         m_global_params.multilayer_overlap_threshold = clamp(m_global_params.multilayer_overlap_threshold, 0.0f, 0.80f);
         m_global_params.multilayer_back_layer_weight = clamp(m_global_params.multilayer_back_layer_weight, 0.0f, 1.0f);
         m_global_params.multilayer_front_transmittance = clamp(m_global_params.multilayer_front_transmittance, 0.0f, 1.0f);
+        m_global_params.thickness_edge_power = clamp(m_global_params.thickness_edge_power, 1.0f, 8.0f);
+        m_global_params.thickness_highlight_boost_max = clamp(m_global_params.thickness_highlight_boost_max, 1.0f, 4.0f);
+        m_global_params.thickness_refraction_boost_max = clamp(m_global_params.thickness_refraction_boost_max, 1.0f, 4.0f);
+        m_global_params.thickness_edge_shadow_strength = clamp(m_global_params.thickness_edge_shadow_strength, 0.0f, 1.0f);
+        m_global_params.thickness_range_min = clamp(m_global_params.thickness_range_min, 0.0f, 0.10f);
+        m_global_params.thickness_range_max = clamp(m_global_params.thickness_range_max, 0.01f, 0.20f);
+        m_global_params.edge_spec_intensity = clamp(m_global_params.edge_spec_intensity, 0.0f, 3.0f);
+        m_global_params.edge_spec_sharpness = clamp(m_global_params.edge_spec_sharpness, 1.0f, 32.0f);
+        m_global_params.edge_highlight_width = clamp(m_global_params.edge_highlight_width, 0.05f, 1.0f);
+        m_global_params.edge_highlight_white_mix = clamp(m_global_params.edge_highlight_white_mix, 0.0f, 1.0f);
+        m_global_params.directional_highlight_min = clamp(m_global_params.directional_highlight_min, 0.0f, 1.0f);
+        m_global_params.directional_highlight_max = clamp(m_global_params.directional_highlight_max, 0.2f, 3.5f);
+        m_global_params.directional_highlight_curve = clamp(m_global_params.directional_highlight_curve, 0.5f, 4.0f);
+        if (m_global_params.directional_highlight_max < m_global_params.directional_highlight_min + 0.05f)
+        {
+            m_global_params.directional_highlight_max = m_global_params.directional_highlight_min + 0.05f;
+        }
+        if (m_global_params.thickness_range_max < m_global_params.thickness_range_min + 0.001f)
+        {
+            m_global_params.thickness_range_max = m_global_params.thickness_range_min + 0.001f;
+        }
         m_global_params.multilayer_mode = static_cast<unsigned>((std::max)(0, (std::min)(static_cast<int>(m_global_params.multilayer_mode), 2)));
         m_global_params.nan_debug_mode = static_cast<unsigned>((std::max)(0, (std::min)(static_cast<int>(m_global_params.nan_debug_mode), 1)));
         m_need_upload_global_params = true;
@@ -2721,9 +2852,10 @@ RendererSystemFrostedGlass::FrostedGlassPanelGpuData RendererSystemFrostedGlass:
     };
     gpu_data.layering_info = {
         panel_desc.layer_order,
-        0.0f,
+        panel_desc.depth_policy == PanelDepthPolicy::SceneOcclusion ? 1.0f : 0.0f,
         0.0f,
         0.0f
     };
     return gpu_data;
 }
+

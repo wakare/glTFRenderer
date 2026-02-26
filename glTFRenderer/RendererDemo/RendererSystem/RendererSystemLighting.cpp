@@ -2,6 +2,8 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 
 #include "RendererSystemLighting.h"
+#include <algorithm>
+#include <cmath>
 #include <format>
 #include <imgui/imgui.h>
 
@@ -26,6 +28,55 @@ bool RendererSystemLighting::UpdateLight(unsigned index, const LightInfo& light_
     GLTF_CHECK(m_lighting_module);
     GLTF_CHECK(m_lighting_module->ContainsLight(index));
     return m_lighting_module->UpdateLightInfo(index, light_info);
+}
+
+bool RendererSystemLighting::GetDominantDirectionalLight(glm::fvec3& out_direction, float& out_luminance) const
+{
+    out_direction = {0.0f, -1.0f, 0.0f};
+    out_luminance = 0.0f;
+    if (!m_lighting_module)
+    {
+        return false;
+    }
+
+    const auto& lights = m_lighting_module->GetLightInfos();
+    float strongest_luminance = -1.0f;
+    bool found_directional_light = false;
+    for (const auto& light_info : lights)
+    {
+        if (light_info.type != LightType::Directional)
+        {
+            continue;
+        }
+
+        const glm::fvec3 intensity = {
+            (std::max)(0.0f, light_info.intensity.x),
+            (std::max)(0.0f, light_info.intensity.y),
+            (std::max)(0.0f, light_info.intensity.z)
+        };
+        const float luminance = glm::dot(intensity, glm::fvec3(0.2126f, 0.7152f, 0.0722f));
+        if (!found_directional_light || luminance > strongest_luminance)
+        {
+            found_directional_light = true;
+            strongest_luminance = luminance;
+            out_direction = light_info.position;
+        }
+    }
+
+    if (!found_directional_light)
+    {
+        return false;
+    }
+
+    const float direction_len_sq = glm::dot(out_direction, out_direction);
+    if (direction_len_sq <= 1e-8f)
+    {
+        return false;
+    }
+
+    out_direction *= 1.0f / std::sqrt(direction_len_sq);
+    out_luminance = (std::max)(0.0f, strongest_luminance);
+    return true;
 }
 
 bool RendererSystemLighting::CastShadow() const

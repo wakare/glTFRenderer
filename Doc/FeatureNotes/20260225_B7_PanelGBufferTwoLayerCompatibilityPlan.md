@@ -78,6 +78,33 @@ Notes:
 - Notes:
   - constants can be tuned during B7.5, but coupling behavior is mandatory for acceptance.
 
+## 4.2 Dominant Directional-Light Highlight Rule (Required)
+
+- Goal:
+  - Make panel edge highlight react to scene lighting direction when directional light exists.
+- Required behavior:
+  - each frame, frosted global parameters should pick the brightest directional light direction from lighting system
+  - edge highlight should be modulated by this direction in composite stage
+  - when no directional light exists, preserve existing view-driven highlight behavior (fallback, no visual hard break)
+- Selection rule:
+  - directional light ranking metric: luminance of light intensity (`0.2126 * R + 0.7152 * G + 0.0722 * B`)
+  - choose max-luminance directional light as highlight direction source.
+
+## 4.3 AVP-Style Edge Highlight Enhancement Rule (Required)
+
+- Goal:
+  - Increase bright edge readability to approach Apple Vision Pro glass appearance.
+- Required behavior:
+  - keep existing rim/fresnel contribution
+  - add an independent edge-specular layer (not only multiplicative modulation)
+  - edge-specular coverage should be driven by profile/rim/fresnel edge basis with controllable width
+  - keep fallback behavior stable when directional light is unavailable
+- Phase-1 controls (global, advanced UI):
+  - `edge_spec_intensity`
+  - `edge_spec_sharpness`
+  - `edge_highlight_width`
+  - `edge_highlight_white_mix`
+
 ## 5. 2D and 3D Compatibility Policy
 
 - 3D frosted panel:
@@ -116,6 +143,12 @@ Notes:
 6. B7.6 Stabilization and acceptance
 - Validate visual stability and pass timing.
 - Tune defaults and update evidence in feature notes.
+- Integrate dominant directional-light driven highlight modulation with no-light fallback.
+
+7. B7.7 AVP-style edge highlight enhancement
+- Add profile-aware independent edge-specular layer in composite.
+- Expose global controls for spec intensity, sharpness, edge width and white tint mix.
+- Tune defaults toward stronger edge readability while keeping stable fallback.
 
 ## 7. Acceptance Targets
 
@@ -165,6 +198,23 @@ Notes:
   - Raster payload VS now supports world-space quad projection for true geometry-driven depth/coverage.
   - Raster payload PS now evaluates world-space panel payload using panel-local UV profile path while keeping existing screen-space path unchanged.
   - Debug UI now exposes world-space panel toggle and transform vectors for live validation.
+- B7.3b depth policy split for 2D/3D compatibility completed:
+  - Added explicit per-panel depth policy (`Overlay` / `Scene Occlusion`) and packed it into panel layering payload.
+  - World-space payload raster now applies scene-depth occlusion only when depth policy is set to `Scene Occlusion`.
+  - This enables VisionOS-style world-space panel occlusion while keeping 2D overlay backgrounds on deterministic overlay behavior.
+- B7.5 thickness-edge coupling implementation completed:
+  - Added global tuning controls for thickness coupling (`edge power`, `highlight boost max`, `refraction boost max`, `edge shadow strength`, `thickness range min/max`).
+  - Refraction amplitude now scales with normalized thickness in both compute and raster payload evaluators.
+  - Composite highlight/shadow now applies thickness-weighted edge response with bounded center suppression.
+- B7.6 dominant directional-light highlight modulation completed:
+  - Added lighting-system query for brightest directional light direction.
+  - Frosted global buffer now updates per frame with highlight directional-light vector and validity flag.
+  - Composite highlight term now supports directional-light modulation and falls back to previous view-driven behavior when no directional light exists.
+- B7.7 AVP-style edge highlight enhancement phase-1 completed:
+  - Added independent edge-specular term in composite on top of existing rim/fresnel terms.
+  - Edge coverage now uses profile/rim/fresnel basis with controllable width.
+  - Added advanced global controls (`Edge Spec Intensity`, `Edge Spec Sharpness`, `Edge Highlight Width`, `Edge Highlight White Mix`).
 - Pending for next phase:
   - hook 3D panel prepass and 2D frosted background prepass producers into this shared payload path
-  - complete B7.5 thickness-edge coupling tuning and acceptance evidence capture
+  - evaluate dual-lobe spec and bloom/tone-map coupling for closer AVP highlight response
+  - capture final B7 visual/perf acceptance evidence in representative 2D+3D overlap scenes

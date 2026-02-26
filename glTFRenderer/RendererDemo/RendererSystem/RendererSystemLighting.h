@@ -13,6 +13,7 @@ public:
     
     unsigned AddLight(const LightInfo& light_info);
     bool UpdateLight(unsigned index, const LightInfo& light_info);
+    bool GetDominantDirectionalLight(glm::fvec3& out_direction, float& out_luminance) const;
     bool CastShadow() const;
     void SetCastShadow(bool cast_shadow);
     RendererInterface::RenderTargetHandle GetLightingOutput() const;
