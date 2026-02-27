@@ -239,5 +239,17 @@ Notes:
   - Added dual-lobe edge-specular controls (`Edge Spec Secondary Intensity`, `Edge Spec Secondary Sharpness`) for brighter AVP-style edge response.
   - Added luminance-coupled suppression (`Edge Spec Luma Suppress`) to reduce over-bright center/bloom pressure while preserving edge readability.
   - Composite shader now combines primary + secondary specular lobes with thickness-aware weighting and luminance guard.
-- Pending for acceptance closure:
-  - capture final B7 visual/perf acceptance evidence in representative 2D+3D overlap scenes
+- Acceptance closure (2026-02-27):
+  - visual acceptance:
+    - user confirmed representative 2D+3D overlap scenes are acceptable in current B7 path.
+  - performance/timing evidence:
+    - `glTFRenderer/x64/Debug/build_logs/b7_acceptance_snapshot_20260227_124524.md`
+    - `glTFRenderer/x64/Debug/build_logs/b7_acceptance_passstats_20260227_124524.csv`
+  - snapshot summary:
+    - frame index: `4107`
+    - frosted pass count: `18`
+    - frosted CPU total: `0.827 ms`
+    - frosted GPU total: `1.381 ms`
+    - skipped validation passes: `0`
+  - result:
+    - B7 accepted for this stage; further AVP matching is optional iterative polish, not a blocker for current scope closure.
