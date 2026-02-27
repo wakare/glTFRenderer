@@ -2436,9 +2436,15 @@ void RendererSystemFrostedGlass::DrawDebugUI()
         ImGui::TextUnformatted("Panel Payload Runtime: Raster requested but not ready; using Compute fallback.");
     }
 
-    if (m_panel_descs.empty())
+    const unsigned total_debug_panel_count =
+        internal_panel_count +
+        external_producer_world_panel_count +
+        external_producer_overlay_panel_count +
+        external_manual_world_panel_count +
+        external_manual_overlay_panel_count;
+    if (total_debug_panel_count == 0)
     {
-        ImGui::TextUnformatted("No editable internal frosted panels.");
+        ImGui::TextUnformatted("No frosted panels.");
         if (panel_dirty)
         {
             m_need_upload_panels = true;
@@ -2451,7 +2457,7 @@ void RendererSystemFrostedGlass::DrawDebugUI()
     }
 
     int selected_panel_index = static_cast<int>(m_debug_selected_panel_index);
-    const int max_panel_index = static_cast<int>(m_panel_descs.size()) - 1;
+    const int max_panel_index = static_cast<int>(total_debug_panel_count) - 1;
     selected_panel_index = (std::max)(0, (std::min)(selected_panel_index, max_panel_index));
     if (ImGui::SliderInt("Panel Index", &selected_panel_index, 0, max_panel_index))
     {
@@ -2462,7 +2468,93 @@ void RendererSystemFrostedGlass::DrawDebugUI()
         m_debug_selected_panel_index = static_cast<unsigned>(selected_panel_index);
     }
 
-    auto& panel = m_panel_descs[m_debug_selected_panel_index];
+    const FrostedGlassPanelDesc* selected_panel = nullptr;
+    FrostedGlassPanelDesc* editable_panel = nullptr;
+    const char* selected_panel_source = "Unknown";
+    unsigned selected_panel_local_index = 0;
+    unsigned panel_index_cursor = m_debug_selected_panel_index;
+
+    if (panel_index_cursor < m_panel_descs.size())
+    {
+        editable_panel = &m_panel_descs[panel_index_cursor];
+        selected_panel = editable_panel;
+        selected_panel_source = "Internal (Editable)";
+        selected_panel_local_index = panel_index_cursor;
+    }
+    else
+    {
+        panel_index_cursor -= static_cast<unsigned>(m_panel_descs.size());
+        if (panel_index_cursor < m_producer_world_space_panel_descs.size())
+        {
+            selected_panel = &m_producer_world_space_panel_descs[panel_index_cursor];
+            selected_panel_source = "Producer World (ReadOnly)";
+            selected_panel_local_index = panel_index_cursor;
+        }
+        else
+        {
+            panel_index_cursor -= static_cast<unsigned>(m_producer_world_space_panel_descs.size());
+            if (panel_index_cursor < m_producer_overlay_panel_descs.size())
+            {
+                selected_panel = &m_producer_overlay_panel_descs[panel_index_cursor];
+                selected_panel_source = "Producer Overlay (ReadOnly)";
+                selected_panel_local_index = panel_index_cursor;
+            }
+            else
+            {
+                panel_index_cursor -= static_cast<unsigned>(m_producer_overlay_panel_descs.size());
+                if (panel_index_cursor < m_external_world_space_panel_descs.size())
+                {
+                    selected_panel = &m_external_world_space_panel_descs[panel_index_cursor];
+                    selected_panel_source = "Manual World (ReadOnly)";
+                    selected_panel_local_index = panel_index_cursor;
+                }
+                else
+                {
+                    panel_index_cursor -= static_cast<unsigned>(m_external_world_space_panel_descs.size());
+                    if (panel_index_cursor < m_external_overlay_panel_descs.size())
+                    {
+                        selected_panel = &m_external_overlay_panel_descs[panel_index_cursor];
+                        selected_panel_source = "Manual Overlay (ReadOnly)";
+                        selected_panel_local_index = panel_index_cursor;
+                    }
+                }
+            }
+        }
+    }
+
+    if (selected_panel == nullptr)
+    {
+        ImGui::TextUnformatted("Selected panel index is out of range.");
+        if (global_dirty)
+        {
+            m_need_upload_global_params = true;
+        }
+        return;
+    }
+
+    ImGui::Text("Selected Panel Source: %s | Local Index: %u", selected_panel_source, selected_panel_local_index);
+
+    float editable_panel_max_corner_radius = 0.0f;
+    if (editable_panel == nullptr)
+    {
+        const auto& panel = *selected_panel;
+        ImGui::TextUnformatted("Selected panel is external and read-only in this UI.");
+        ImGui::Text("Edit it in external producer system / input path.");
+        ImGui::Text("WorldMode=%u DepthPolicy=%s Layer=%.2f Alpha=%.2f",
+                    panel.world_space_mode,
+                    panel.depth_policy == PanelDepthPolicy::SceneOcclusion ? "SceneOcclusion" : "Overlay",
+                    panel.layer_order,
+                    panel.panel_alpha);
+        ImGui::Text("CenterUV=(%.3f, %.3f) HalfSizeUV=(%.3f, %.3f)",
+                    panel.center_uv.x,
+                    panel.center_uv.y,
+                    panel.half_size_uv.x,
+                    panel.half_size_uv.y);
+        ImGui::Text("BlurSigma=%.2f BlurStrength=%.2f", panel.blur_sigma, panel.blur_strength);
+    }
+    else
+    {
+        auto& panel = *editable_panel;
 
     if (ImGui::SliderFloat2("Center UV", &panel.center_uv.x, 0.0f, 1.0f, "%.3f"))
     {
@@ -2532,6 +2624,7 @@ void RendererSystemFrostedGlass::DrawDebugUI()
     }
 
     const float max_corner_radius = (std::max)(0.0f, (std::min)(panel.half_size_uv.x, panel.half_size_uv.y) - 0.001f);
+    editable_panel_max_corner_radius = max_corner_radius;
     if (ImGui::SliderFloat("Blur Sigma", &panel.blur_sigma, 0.2f, 24.0f, "%.2f"))
     {
         panel_dirty = true;
@@ -2619,9 +2712,11 @@ void RendererSystemFrostedGlass::DrawDebugUI()
             panel_dirty = true;
         }
     }
+    }
 
-    if (panel_dirty)
+    if (panel_dirty && editable_panel != nullptr)
     {
+        auto& panel = *editable_panel;
         const auto clamp = [](float value, float min_value, float max_value) -> float
         {
             return (std::max)(min_value, (std::min)(value, max_value));
@@ -2633,7 +2728,7 @@ void RendererSystemFrostedGlass::DrawDebugUI()
         const float center_max_y = 1.0f - panel.half_size_uv.y;
         panel.center_uv.x = clamp(panel.center_uv.x, center_min_x, center_max_x);
         panel.center_uv.y = clamp(panel.center_uv.y, center_min_y, center_max_y);
-        panel.corner_radius = clamp(panel.corner_radius, 0.0f, max_corner_radius);
+        panel.corner_radius = clamp(panel.corner_radius, 0.0f, editable_panel_max_corner_radius);
         panel.blur_sigma = clamp(panel.blur_sigma, 0.2f, 24.0f);
         panel.blur_strength = clamp(panel.blur_strength, 0.0f, 1.0f);
         panel.rim_intensity = clamp(panel.rim_intensity, 0.0f, 1.0f);

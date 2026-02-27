@@ -18,7 +18,6 @@ bool RendererSystemFrostedPanelProducer::Init(RendererInterface::ResourceOperato
     (void)resource_operator;
     (void)graph;
     GLTF_CHECK(m_frosted);
-    GLTF_CHECK(m_frosted->HasInit());
     m_has_init = RegisterProducer();
     return m_has_init;
 }

@@ -428,18 +428,106 @@ float CalcPanelSDFLocal(float2 local_uv, FrostedGlassPanelData panel_data)
     return ShapeMaskSDF(local_uv, float2(0.5f, 0.5f), float2(0.5f, 0.5f), panel_data.shape_info.z);
 }
 
-float CalcPanelMaskFromSDFLocal(float sdf, float edge_softness)
+bool TryProjectWorldToNdc(float3 world_position, out float2 out_ndc)
+{
+    out_ndc = float2(0.0f, 0.0f);
+    const float4 clip = mul(view_projection_matrix, float4(world_position, 1.0f));
+    if (!IsFiniteFloat4(clip) || abs(clip.w) <= 1e-6f)
+    {
+        return false;
+    }
+
+    const float2 ndc = clip.xy / clip.w;
+    if (!IsFiniteFloat2(ndc))
+    {
+        return false;
+    }
+
+    out_ndc = ndc;
+    return true;
+}
+
+float ComputeWorldPanelMinProjectedExtentPixels(FrostedGlassPanelData panel_data)
+{
+    const float3 center = panel_data.world_center_mode.xyz;
+    const float3 axis_u = panel_data.world_axis_u.xyz;
+    const float3 axis_v = panel_data.world_axis_v.xyz;
+    const float2 half_viewport = float2((float)viewport_width, (float)viewport_height) * 0.5f;
+    const float fallback_extent = max(min((float)viewport_width, (float)viewport_height), 1.0f);
+
+    float2 ndc_u0 = 0.0f;
+    float2 ndc_u1 = 0.0f;
+    float2 ndc_v0 = 0.0f;
+    float2 ndc_v1 = 0.0f;
+    const bool valid_u = TryProjectWorldToNdc(center - axis_u, ndc_u0) && TryProjectWorldToNdc(center + axis_u, ndc_u1);
+    const bool valid_v = TryProjectWorldToNdc(center - axis_v, ndc_v0) && TryProjectWorldToNdc(center + axis_v, ndc_v1);
+
+    const float projected_u_pixels = valid_u ? length((ndc_u1 - ndc_u0) * half_viewport) : 0.0f;
+    const float projected_v_pixels = valid_v ? length((ndc_v1 - ndc_v0) * half_viewport) : 0.0f;
+    const float safe_u = projected_u_pixels > 1e-3f ? projected_u_pixels : 1e9f;
+    const float safe_v = projected_v_pixels > 1e-3f ? projected_v_pixels : 1e9f;
+    const float min_extent = min(safe_u, safe_v);
+    if (min_extent >= 1e8f)
+    {
+        return fallback_extent;
+    }
+
+    return max(min_extent, 1.0f);
+}
+
+float ComputePanelLocalSdfAA(FrostedGlassPanelData panel_data, float edge_softness)
 {
     const float soft_scale = max(edge_softness, 0.1f);
-    const float aa = max(fwidth(sdf) * soft_scale, 1e-4f);
+    const float min_extent_pixels = ComputeWorldPanelMinProjectedExtentPixels(panel_data);
+    return max(soft_scale * (2.0f / min_extent_pixels), 1e-4f);
+}
+
+float CalcPanelMaskFromSDFLocal(float sdf, float sdf_aa)
+{
+    const float aa = max(sdf_aa, 1e-4f);
     return 1.0f - smoothstep(0.0f, aa, sdf);
 }
 
-float CalcPanelRimFromSDFLocal(float sdf, float edge_softness)
+float CalcPanelRimFromSDFLocal(float sdf, float sdf_aa)
 {
-    const float soft_scale = max(edge_softness, 0.1f);
-    const float aa = max(fwidth(sdf) * soft_scale, 1e-4f);
+    const float aa = max(sdf_aa, 1e-4f);
     return exp(-abs(sdf) / (aa * 4.0f));
+}
+
+float2 BuildPanelRefractionDirection(float2 scene_normal_uv, float2 panel_normal_uv, float panel_rim)
+{
+    float2 scene_dir = scene_normal_uv;
+    const float scene_len_sq = dot(scene_dir, scene_dir);
+    if (scene_len_sq > 1e-6f)
+    {
+        scene_dir *= rsqrt(scene_len_sq);
+    }
+    else
+    {
+        scene_dir = float2(0.0f, 0.0f);
+    }
+
+    float2 panel_dir = panel_normal_uv;
+    const float panel_len_sq = dot(panel_dir, panel_dir);
+    if (panel_len_sq > 1e-6f)
+    {
+        panel_dir *= rsqrt(panel_len_sq);
+    }
+    else
+    {
+        panel_dir = scene_dir;
+    }
+
+    const float rim = saturate(panel_rim);
+    const float edge_refraction_influence = smoothstep(0.12f, 0.82f, rim);
+    const float2 mixed = lerp(scene_dir, panel_dir, edge_refraction_influence * 0.75f);
+    const float mixed_len_sq = dot(mixed, mixed);
+    if (mixed_len_sq > 1e-6f)
+    {
+        return mixed * rsqrt(mixed_len_sq);
+    }
+
+    return float2(0.0f, 0.0f);
 }
 
 float2 CalcPanelNormalFromSDFLocal(float2 local_uv, FrostedGlassPanelData panel_data)
@@ -576,21 +664,11 @@ void EvaluatePanelCandidatePayload(float2 uv,
     const float refraction_boost =
         lerp(1.0f, max(thickness_refraction_boost_max, 1.0f), thickness_factor);
 
+    panel_rim = CalcPanelRimFromSDF(panel_sdf, panel_edge_softness);
     const float2 panel_normal_uv = CalcPanelNormalFromSDF(uv, panel_data);
     panel_profile_normal_uv = panel_normal_uv;
     panel_optical_thickness = panel_thickness;
-    float2 refraction_direction = panel_normal_uv * 0.7f + center_normal.xy * 0.3f;
-    const float refraction_dir_len_sq = dot(refraction_direction, refraction_direction);
-    if (refraction_dir_len_sq > 1e-6f)
-    {
-        refraction_direction *= rsqrt(refraction_dir_len_sq);
-    }
-    else
-    {
-        refraction_direction = 0.0f;
-    }
-
-    panel_rim = CalcPanelRimFromSDF(panel_sdf, panel_edge_softness);
+    const float2 refraction_direction = BuildPanelRefractionDirection(center_normal.xy, panel_normal_uv, panel_rim);
     const float fresnel_term = pow(saturate(1.0f - n_dot_v), max(panel_fresnel_power, 1.0f));
     panel_mixed_fresnel = saturate(fresnel_term + panel_rim * 0.35f);
     const float2 refraction_uv =
@@ -1182,7 +1260,8 @@ bool EvaluateSinglePanelLayerPayload(int2 pixel,
         const float panel_alpha = saturate(panel_data.shape_info.w);
         const float panel_edge_softness = panel_data.shape_info.y;
         const float panel_sdf = CalcPanelSDFLocal(local_uv, panel_data);
-        panel_mask = CalcPanelMaskFromSDFLocal(panel_sdf, panel_edge_softness) * panel_alpha;
+        const float panel_sdf_aa = ComputePanelLocalSdfAA(panel_data, panel_edge_softness);
+        panel_mask = CalcPanelMaskFromSDFLocal(panel_sdf, panel_sdf_aa) * panel_alpha;
         if (panel_mask <= 1e-4f)
         {
             return false;
@@ -1201,19 +1280,8 @@ bool EvaluateSinglePanelLayerPayload(int2 pixel,
 
         panel_profile_normal_uv = CalcPanelNormalFromSDFLocal(local_uv, panel_data);
         panel_optical_thickness = panel_thickness;
-
-        float2 refraction_direction = panel_profile_normal_uv * 0.7f + center_normal.xy * 0.3f;
-        const float refraction_dir_len_sq = dot(refraction_direction, refraction_direction);
-        if (refraction_dir_len_sq > 1e-6f)
-        {
-            refraction_direction *= rsqrt(refraction_dir_len_sq);
-        }
-        else
-        {
-            refraction_direction = 0.0f;
-        }
-
-        panel_rim = CalcPanelRimFromSDFLocal(panel_sdf, panel_edge_softness);
+        panel_rim = CalcPanelRimFromSDFLocal(panel_sdf, panel_sdf_aa);
+        const float2 refraction_direction = BuildPanelRefractionDirection(center_normal.xy, panel_profile_normal_uv, panel_rim);
         const float fresnel_term = pow(saturate(1.0f - n_dot_v), max(panel_fresnel_power, 1.0f));
         panel_mixed_fresnel = saturate(fresnel_term + panel_rim * 0.35f);
         const float2 refraction_uv =

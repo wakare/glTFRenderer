@@ -130,3 +130,15 @@ Get-CimInstance Win32_Process -Filter "name='MSBuild.exe'" |
 ```powershell
 Get-Process msbuild -ErrorAction SilentlyContinue | Stop-Process -Force
 ```
+
+### Rendering Root-Cause First (Important)
+
+- For visual artifacts (banding, discontinuity, seams, flicker), prioritize upstream data-source debugging before post-process concealment.
+- Do not default to TAA/dither/noise as a fix; if used for temporary diagnosis, remove it after root cause is fixed.
+- Use this triage order:
+  - find the first pass where the artifact appears (payload/mask/composite/final)
+  - verify continuity of key fields in that pass (for frosted glass: `panel_mask`, `panel_rim`, `panel_profile`, `refraction_direction`)
+  - inspect derivative- and interpolation-sensitive logic (`fwidth`, piecewise SDF gradients, triangle interpolation seams, depth/normal reconstruction)
+  - fix at data-generation stage, then re-validate downstream passes
+- Frosted-glass specific rule:
+  - avoid applying piecewise SDF gradient direction across the full panel interior; use stable interior basis and edge-weighted SDF influence.
