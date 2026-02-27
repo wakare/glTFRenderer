@@ -1,7 +1,7 @@
 # RendererDemo Frosted Glass Development and Acceptance Plan
 
-- Version: v1.3
-- Date: 2026-02-25
+- Version: v1.4
+- Date: 2026-02-27
 - Scope: `RendererCore` + `RendererDemo`
 - Status: Approved baseline for implementation and acceptance
 
@@ -9,6 +9,8 @@
 
 - Frame-level frosted pass reference:
   - `Doc/RendererDemo_FrostedGlass_FramePassReference.md`
+- Blur-source optimization plan and progress tracker:
+  - `Doc/FeatureNotes/20260227_B8_BlurSourceOptimizationPlan.md`
 - Rule:
   - Any frosted render-graph/pass/resource contract change must update the frame reference doc in the same PR.
 
@@ -47,6 +49,7 @@ This plan is based on the current implementation in repository `glTFRenderer`.
 - Interactive state flow (hover/grab/move/scale) is not yet integrated into panel behavior.
 - Current overlap handling is single-winner per pixel and cannot reproduce multi-layer glass stacking behavior closely.
 - Current frosted panel mask and optics derivation are screen-space driven, which carries compatibility risk for true 3D perspective UI panels.
+- Current fixed blur pyramid path has high pass/resource cost, and strict multilayer duplicates the blur chain.
 
 ## 2. Goals and Non-Goals
 
@@ -236,6 +239,32 @@ This plan is based on the current implementation in repository `glTFRenderer`.
   - With directional light present, edge highlight directionality tracks the brightest directional light; without directional light, behavior falls back to existing view-driven highlight.
   - Under the same panel setup, edge-specular controls can produce visibly stronger white edge highlights without introducing center-area washout.
 
+## B8. Blur source optimization and cost reduction (P0)
+
+- Description:
+  - Replace fixed multi-level blur pyramid dependency with a shared low-cost blur source strategy.
+  - Prioritize AVP-like subjective blur quality with lower runtime pass and resource cost.
+  - Keep B7 two-layer sequential composition behavior and compatibility guarantees.
+- Deliverables:
+  - Runtime switchable blur-source modes:
+    - `LegacyPyramid` (fallback)
+    - `SharedMip` (default target)
+    - `SharedDual` (optional high-quality mode)
+  - Updated composite sampling path for shared source input.
+  - Strict multilayer integration with optional second source from back-composited input.
+  - Performance/visual acceptance evidence and default mode decision.
+- Primary files:
+  - `glTFRenderer/RendererDemo/Resources/Shaders/FrostedGlass.hlsl`
+  - `glTFRenderer/RendererDemo/RendererSystem/RendererSystemFrostedGlass.h`
+  - `glTFRenderer/RendererDemo/RendererSystem/RendererSystemFrostedGlass.cpp`
+  - `Doc/RendererDemo_FrostedGlass_FramePassReference.md`
+  - `Doc/FeatureNotes/20260227_B8_BlurSourceOptimizationPlan.md`
+- Acceptance:
+  - Blur-source pass count is measurably reduced versus legacy path.
+  - Visual quality in agreed AVP-alignment scenes is preserved or improved.
+  - Strict multilayer overlap behavior remains deterministic and stable.
+  - No regressions in resize, temporal stability, or descriptor/resource validation.
+
 ## 5. Milestone Plan
 
 ## M0: Baseline lock and instrumentation
@@ -267,6 +296,11 @@ This plan is based on the current implementation in repository `glTFRenderer`.
 
 - Prioritize B7 as next implementation focus.
 - Deliver Panel GBuffer-driven two-layer frosted composition with 2D/3D UI compatibility acceptance.
+
+## M6: Blur source optimization rollout
+
+- Prioritize B8 after B7 acceptance.
+- Deliver shared low-cost blur source path with validated pass/resource reduction and preserved visual behavior.
 
 ## 6. Acceptance Criteria
 
@@ -310,6 +344,7 @@ This plan is based on the current implementation in repository `glTFRenderer`.
 | B5 | App | P1 | Immersion blend | Smooth blend control verified | Planned | - |
 | B6 | App | P0 | Multi-layer composition alignment | Top-N overlap blending with bounded cost | In Progress (B6.1 top-2 payload + B6.2 adaptive/runtime refinement complete; visual/perf acceptance pending) | `Doc/FeatureNotes/20260224_B6_MultilayerCompositionPlan.md`, `Doc/FeatureNotes/20260224_B6_Top2MultilayerCore.md`, `Doc/FeatureNotes/20260224_B6_AdaptiveMultilayerRefinement.md` |
 | B7 | App | P0 | Panel GBuffer 3D compatibility | Two-layer frosted composition driven by geometry-aware panel payload | Accepted (B7.1~B7.7 complete, including prepass-feed source path and phase-2 highlight tuning; visual/perf evidence captured on 2026-02-27) | `Doc/FeatureNotes/20260225_B7_PanelGBufferTwoLayerCompatibilityPlan.md` |
+| B8 | App | P0 | Blur source optimization and cost reduction | Replace fixed blur pyramid dependency with shared low-cost blur source while preserving B7 visual behavior | Planned | `Doc/FeatureNotes/20260227_B8_BlurSourceOptimizationPlan.md` |
 | A5 | Framework | P1 | RenderGraph QoL helpers | Reduced setup boilerplate | Planned | - |
 
 ## 8. Development and Review Rules for This Plan
