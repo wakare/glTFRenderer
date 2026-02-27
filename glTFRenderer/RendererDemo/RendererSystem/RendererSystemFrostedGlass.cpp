@@ -77,6 +77,10 @@ bool RendererSystemFrostedGlass::UnregisterExternalPanelProducer(unsigned produc
     {
         m_producer_world_space_panel_descs.clear();
         m_producer_overlay_panel_descs.clear();
+        m_debug_override_producer_world.panel_descs.clear();
+        m_debug_override_producer_world.enabled.clear();
+        m_debug_override_producer_overlay.panel_descs.clear();
+        m_debug_override_producer_overlay.enabled.clear();
     }
     m_need_upload_panels = true;
     return true;
@@ -91,6 +95,10 @@ void RendererSystemFrostedGlass::ClearExternalPanelProducers()
     m_external_panel_producers.clear();
     m_producer_world_space_panel_descs.clear();
     m_producer_overlay_panel_descs.clear();
+    m_debug_override_producer_world.panel_descs.clear();
+    m_debug_override_producer_world.enabled.clear();
+    m_debug_override_producer_overlay.panel_descs.clear();
+    m_debug_override_producer_overlay.enabled.clear();
     m_need_upload_panels = true;
 }
 
@@ -123,7 +131,86 @@ void RendererSystemFrostedGlass::ClearExternalPanels()
     }
     m_external_world_space_panel_descs.clear();
     m_external_overlay_panel_descs.clear();
+    m_debug_override_manual_world.panel_descs.clear();
+    m_debug_override_manual_world.enabled.clear();
+    m_debug_override_manual_overlay.panel_descs.clear();
+    m_debug_override_manual_overlay.enabled.clear();
     m_need_upload_panels = true;
+}
+
+void RendererSystemFrostedGlass::EnsureDebugPanelOverrideCapacity(DebugPanelOverrideBucket& bucket, unsigned panel_count)
+{
+    if (bucket.panel_descs.size() < panel_count)
+    {
+        bucket.panel_descs.resize(panel_count);
+    }
+    if (bucket.enabled.size() < panel_count)
+    {
+        bucket.enabled.resize(panel_count, 0u);
+    }
+}
+
+void RendererSystemFrostedGlass::ApplyDebugPanelOverrides(std::vector<FrostedGlassPanelDesc>& panel_descs, DebugPanelOverrideBucket& bucket)
+{
+    const size_t override_count = (std::min)(panel_descs.size(), bucket.enabled.size());
+    if (override_count == 0)
+    {
+        return;
+    }
+    for (size_t panel_index = 0; panel_index < override_count; ++panel_index)
+    {
+        if (bucket.enabled[panel_index] == 0u || panel_index >= bucket.panel_descs.size())
+        {
+            continue;
+        }
+        panel_descs[panel_index] = bucket.panel_descs[panel_index];
+    }
+}
+
+void RendererSystemFrostedGlass::SaveDebugPanelOverride(DebugPanelSource source,
+                                                        unsigned local_index,
+                                                        const FrostedGlassPanelDesc& panel_desc)
+{
+    if (source == DebugPanelSource::Internal)
+    {
+        return;
+    }
+
+    DebugPanelOverrideBucket* override_bucket = nullptr;
+    switch (source)
+    {
+    case DebugPanelSource::ProducerWorld:
+        override_bucket = &m_debug_override_producer_world;
+        break;
+    case DebugPanelSource::ProducerOverlay:
+        override_bucket = &m_debug_override_producer_overlay;
+        break;
+    case DebugPanelSource::ManualWorld:
+        override_bucket = &m_debug_override_manual_world;
+        break;
+    case DebugPanelSource::ManualOverlay:
+        override_bucket = &m_debug_override_manual_overlay;
+        break;
+    default:
+        break;
+    }
+
+    if (override_bucket == nullptr)
+    {
+        return;
+    }
+
+    EnsureDebugPanelOverrideCapacity(*override_bucket, local_index + 1u);
+    override_bucket->panel_descs[local_index] = panel_desc;
+    override_bucket->enabled[local_index] = 1u;
+}
+
+void RendererSystemFrostedGlass::ApplyExternalPanelDebugOverrides()
+{
+    ApplyDebugPanelOverrides(m_producer_world_space_panel_descs, m_debug_override_producer_world);
+    ApplyDebugPanelOverrides(m_producer_overlay_panel_descs, m_debug_override_producer_overlay);
+    ApplyDebugPanelOverrides(m_external_world_space_panel_descs, m_debug_override_manual_world);
+    ApplyDebugPanelOverrides(m_external_overlay_panel_descs, m_debug_override_manual_overlay);
 }
 
 bool RendererSystemFrostedGlass::ContainsPanel(unsigned index) const
@@ -2139,6 +2226,7 @@ bool RendererSystemFrostedGlass::Tick(RendererInterface::ResourceOperator& resou
 
     UpdateDirectionalHighlightParams();
     RefreshExternalPanelsFromProducers();
+    ApplyExternalPanelDebugOverrides();
     UpdatePanelRuntimeStates(delta_seconds);
     UploadPanelData(resource_operator);
 
@@ -2480,16 +2568,16 @@ void RendererSystemFrostedGlass::DrawDebugUI()
         m_debug_selected_panel_index = static_cast<unsigned>(selected_panel_index);
     }
 
-    const FrostedGlassPanelDesc* selected_panel = nullptr;
-    FrostedGlassPanelDesc* editable_panel = nullptr;
+    FrostedGlassPanelDesc* selected_panel = nullptr;
+    DebugPanelSource selected_panel_source_type = DebugPanelSource::Internal;
     const char* selected_panel_source = "Unknown";
     unsigned selected_panel_local_index = 0;
     unsigned panel_index_cursor = m_debug_selected_panel_index;
 
     if (panel_index_cursor < m_panel_descs.size())
     {
-        editable_panel = &m_panel_descs[panel_index_cursor];
-        selected_panel = editable_panel;
+        selected_panel = &m_panel_descs[panel_index_cursor];
+        selected_panel_source_type = DebugPanelSource::Internal;
         selected_panel_source = "Internal (Editable)";
         selected_panel_local_index = panel_index_cursor;
     }
@@ -2499,7 +2587,8 @@ void RendererSystemFrostedGlass::DrawDebugUI()
         if (panel_index_cursor < m_producer_world_space_panel_descs.size())
         {
             selected_panel = &m_producer_world_space_panel_descs[panel_index_cursor];
-            selected_panel_source = "Producer World (ReadOnly)";
+            selected_panel_source_type = DebugPanelSource::ProducerWorld;
+            selected_panel_source = "Producer World (Debug Override)";
             selected_panel_local_index = panel_index_cursor;
         }
         else
@@ -2508,7 +2597,8 @@ void RendererSystemFrostedGlass::DrawDebugUI()
             if (panel_index_cursor < m_producer_overlay_panel_descs.size())
             {
                 selected_panel = &m_producer_overlay_panel_descs[panel_index_cursor];
-                selected_panel_source = "Producer Overlay (ReadOnly)";
+                selected_panel_source_type = DebugPanelSource::ProducerOverlay;
+                selected_panel_source = "Producer Overlay (Debug Override)";
                 selected_panel_local_index = panel_index_cursor;
             }
             else
@@ -2517,7 +2607,8 @@ void RendererSystemFrostedGlass::DrawDebugUI()
                 if (panel_index_cursor < m_external_world_space_panel_descs.size())
                 {
                     selected_panel = &m_external_world_space_panel_descs[panel_index_cursor];
-                    selected_panel_source = "Manual World (ReadOnly)";
+                    selected_panel_source_type = DebugPanelSource::ManualWorld;
+                    selected_panel_source = "Manual World (Debug Override)";
                     selected_panel_local_index = panel_index_cursor;
                 }
                 else
@@ -2526,7 +2617,8 @@ void RendererSystemFrostedGlass::DrawDebugUI()
                     if (panel_index_cursor < m_external_overlay_panel_descs.size())
                     {
                         selected_panel = &m_external_overlay_panel_descs[panel_index_cursor];
-                        selected_panel_source = "Manual Overlay (ReadOnly)";
+                        selected_panel_source_type = DebugPanelSource::ManualOverlay;
+                        selected_panel_source = "Manual Overlay (Debug Override)";
                         selected_panel_local_index = panel_index_cursor;
                     }
                 }
@@ -2545,28 +2637,13 @@ void RendererSystemFrostedGlass::DrawDebugUI()
     }
 
     ImGui::Text("Selected Panel Source: %s | Local Index: %u", selected_panel_source, selected_panel_local_index);
+    if (selected_panel_source_type != DebugPanelSource::Internal)
+    {
+        ImGui::TextUnformatted("External/producer panel edits are stored as Frosted debug overrides.");
+    }
 
     float editable_panel_max_corner_radius = 0.0f;
-    if (editable_panel == nullptr)
-    {
-        const auto& panel = *selected_panel;
-        ImGui::TextUnformatted("Selected panel is external and read-only in this UI.");
-        ImGui::Text("Edit it in external producer system / input path.");
-        ImGui::Text("WorldMode=%u DepthPolicy=%s Layer=%.2f Alpha=%.2f",
-                    panel.world_space_mode,
-                    panel.depth_policy == PanelDepthPolicy::SceneOcclusion ? "SceneOcclusion" : "Overlay",
-                    panel.layer_order,
-                    panel.panel_alpha);
-        ImGui::Text("CenterUV=(%.3f, %.3f) HalfSizeUV=(%.3f, %.3f)",
-                    panel.center_uv.x,
-                    panel.center_uv.y,
-                    panel.half_size_uv.x,
-                    panel.half_size_uv.y);
-        ImGui::Text("BlurSigma=%.2f BlurStrength=%.2f", panel.blur_sigma, panel.blur_strength);
-    }
-    else
-    {
-        auto& panel = *editable_panel;
+    auto& panel = *selected_panel;
 
     if (ImGui::SliderFloat2("Center UV", &panel.center_uv.x, 0.0f, 1.0f, "%.3f"))
     {
@@ -2724,11 +2801,9 @@ void RendererSystemFrostedGlass::DrawDebugUI()
             panel_dirty = true;
         }
     }
-    }
 
-    if (panel_dirty && editable_panel != nullptr)
+    if (panel_dirty && selected_panel != nullptr)
     {
-        auto& panel = *editable_panel;
         const auto clamp = [](float value, float min_value, float max_value) -> float
         {
             return (std::max)(min_value, (std::min)(value, max_value));
@@ -2778,6 +2853,7 @@ void RendererSystemFrostedGlass::DrawDebugUI()
             state_curve.fresnel_intensity_scale = clamp(state_curve.fresnel_intensity_scale, 0.4f, 2.5f);
             state_curve.alpha_scale = clamp(state_curve.alpha_scale, 0.0f, 1.5f);
         }
+        SaveDebugPanelOverride(selected_panel_source_type, selected_panel_local_index, panel);
         m_need_upload_panels = true;
     }
     if (global_dirty)

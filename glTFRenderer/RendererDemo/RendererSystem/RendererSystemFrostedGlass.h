@@ -212,6 +212,21 @@ protected:
         ExternalPanelProducer producer{};
     };
 
+    enum class DebugPanelSource : unsigned
+    {
+        Internal = 0,
+        ProducerWorld = 1,
+        ProducerOverlay = 2,
+        ManualWorld = 3,
+        ManualOverlay = 4
+    };
+
+    struct DebugPanelOverrideBucket
+    {
+        std::vector<FrostedGlassPanelDesc> panel_descs{};
+        std::vector<unsigned char> enabled{};
+    };
+
     static unsigned ToInteractionStateIndex(PanelInteractionState state)
     {
         return static_cast<unsigned>(state);
@@ -219,6 +234,10 @@ protected:
 
     void UploadPanelData(RendererInterface::ResourceOperator& resource_operator);
     void RefreshExternalPanelsFromProducers();
+    static void EnsureDebugPanelOverrideCapacity(DebugPanelOverrideBucket& bucket, unsigned panel_count);
+    static void ApplyDebugPanelOverrides(std::vector<FrostedGlassPanelDesc>& panel_descs, DebugPanelOverrideBucket& bucket);
+    void SaveDebugPanelOverride(DebugPanelSource source, unsigned local_index, const FrostedGlassPanelDesc& panel_desc);
+    void ApplyExternalPanelDebugOverrides();
     void UpdateDirectionalHighlightParams();
     void UpdatePanelRuntimeStates(float delta_seconds);
     PanelStateCurve GetBlendedStateCurve(unsigned panel_index) const;
@@ -330,4 +349,8 @@ protected:
     bool m_panel_payload_compute_fallback_active{false};
     unsigned m_debug_selected_panel_index{0};
     unsigned m_debug_selected_curve_state_index{0};
+    DebugPanelOverrideBucket m_debug_override_producer_world{};
+    DebugPanelOverrideBucket m_debug_override_producer_overlay{};
+    DebugPanelOverrideBucket m_debug_override_manual_world{};
+    DebugPanelOverrideBucket m_debug_override_manual_overlay{};
 };
