@@ -8,6 +8,7 @@
 #include "RendererSystem/RendererSystemLighting.h"
 #include "RendererSystem/RendererSystemSceneRenderer.h"
 #include "RendererSystem/RendererSystemToneMap.h"
+#include <vector>
 
 class DemoAppModelViewer : public DemoBase
 {
@@ -18,6 +19,7 @@ protected:
     virtual bool InitInternal(const std::vector<std::string>& arguments) override;
     virtual void TickFrameInternal(unsigned long long time_interval) override;
     virtual void DrawDebugUIInternal() override;
+    void UpdateFrostedPanelPrepassFeeds(float timeline_seconds);
 
     std::shared_ptr<RendererSystemSceneRenderer> m_scene;
     std::shared_ptr<RendererSystemLighting> m_lighting;
@@ -30,4 +32,7 @@ protected:
     float m_directional_light_elapsed_seconds{0.0f};
     float m_directional_light_angular_speed_radians{0.25f};
     bool m_enable_panel_input_state_machine{true};
+    bool m_enable_frosted_prepass_feeds{true};
+    std::vector<RendererSystemFrostedPanelProducer::WorldPanelPrepassItem> m_world_prepass_panels{};
+    std::vector<RendererSystemFrostedPanelProducer::OverlayPanelPrepassItem> m_overlay_prepass_panels{};
 };

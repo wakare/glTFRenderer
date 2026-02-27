@@ -58,6 +58,8 @@ void DemoAppModelViewer::TickFrameInternal(unsigned long long time_interval)
 
         m_frosted_glass->SetPanelInteractionState(0, panel_state);
     }
+
+    UpdateFrostedPanelPrepassFeeds(m_directional_light_elapsed_seconds);
     
     input_device.TickFrame(time_interval);
 }
@@ -97,35 +99,55 @@ bool DemoAppModelViewer::InitInternal(const std::vector<std::string>& arguments)
         panel_desc.layer_order = 0.0f;
         m_frosted_glass->AddPanel(panel_desc);
 
-        RendererSystemFrostedGlass::FrostedGlassPanelDesc external_overlay_panel_desc = panel_desc;
-        external_overlay_panel_desc.center_uv = {0.62f, 0.48f};
-        external_overlay_panel_desc.half_size_uv = {0.16f, 0.12f};
-        external_overlay_panel_desc.corner_radius = 0.02f;
-        external_overlay_panel_desc.blur_sigma = 11.0f;
-        external_overlay_panel_desc.blur_strength = 0.96f;
-        external_overlay_panel_desc.rim_intensity = 0.04f;
-        external_overlay_panel_desc.tint_color = {0.92f, 0.97f, 1.0f};
-        external_overlay_panel_desc.shape_type = RendererSystemFrostedGlass::PanelShapeType::ShapeMask;
-        external_overlay_panel_desc.custom_shape_index = 2.0f;
-        external_overlay_panel_desc.layer_order = 1.0f;
-        external_overlay_panel_desc.depth_policy = RendererSystemFrostedGlass::PanelDepthPolicy::Overlay;
-        m_frosted_panel_producer->SetOverlayPanelDesc(external_overlay_panel_desc);
+        RendererSystemFrostedGlass::FrostedGlassPanelDesc overlay_style_desc = panel_desc;
+        overlay_style_desc.corner_radius = 0.02f;
+        overlay_style_desc.blur_sigma = 11.0f;
+        overlay_style_desc.blur_strength = 0.96f;
+        overlay_style_desc.rim_intensity = 0.04f;
+        overlay_style_desc.tint_color = {0.92f, 0.97f, 1.0f};
+        overlay_style_desc.shape_type = RendererSystemFrostedGlass::PanelShapeType::ShapeMask;
+        overlay_style_desc.custom_shape_index = 2.0f;
+        overlay_style_desc.depth_policy = RendererSystemFrostedGlass::PanelDepthPolicy::Overlay;
+        m_frosted_panel_producer->SetOverlayPanelDesc(overlay_style_desc);
 
-        RendererSystemFrostedGlass::FrostedGlassPanelDesc external_world_panel_desc = panel_desc;
-        external_world_panel_desc.world_space_mode = 1u;
-        external_world_panel_desc.depth_policy = RendererSystemFrostedGlass::PanelDepthPolicy::SceneOcclusion;
-        external_world_panel_desc.world_center = {0.0f, 1.20f, -0.90f};
-        external_world_panel_desc.world_axis_u = {0.56f, 0.0f, 0.0f};
-        external_world_panel_desc.world_axis_v = {0.0f, 0.34f, 0.0f};
-        external_world_panel_desc.center_uv = {0.5f, 0.5f};
-        external_world_panel_desc.half_size_uv = {0.22f, 0.14f};
-        external_world_panel_desc.corner_radius = 0.02f;
-        external_world_panel_desc.blur_sigma = 10.5f;
-        external_world_panel_desc.blur_strength = 0.95f;
-        external_world_panel_desc.layer_order = -0.5f;
-        external_world_panel_desc.shape_type = RendererSystemFrostedGlass::PanelShapeType::RoundedRect;
-        external_world_panel_desc.custom_shape_index = 0.0f;
-        m_frosted_panel_producer->SetWorldPanelDesc(external_world_panel_desc);
+        RendererSystemFrostedGlass::FrostedGlassPanelDesc world_style_desc = panel_desc;
+        world_style_desc.world_space_mode = 1u;
+        world_style_desc.depth_policy = RendererSystemFrostedGlass::PanelDepthPolicy::SceneOcclusion;
+        world_style_desc.center_uv = {0.5f, 0.5f};
+        world_style_desc.half_size_uv = {0.22f, 0.14f};
+        world_style_desc.corner_radius = 0.02f;
+        world_style_desc.blur_sigma = 10.5f;
+        world_style_desc.blur_strength = 0.95f;
+        world_style_desc.layer_order = -0.5f;
+        world_style_desc.shape_type = RendererSystemFrostedGlass::PanelShapeType::RoundedRect;
+        world_style_desc.custom_shape_index = 0.0f;
+        m_frosted_panel_producer->SetWorldPanelDesc(world_style_desc);
+
+        m_world_prepass_panels = {
+            {
+                glm::fvec3(0.0f, 1.20f, -0.90f),
+                glm::fvec3(0.56f, 0.0f, 0.0f),
+                glm::fvec3(0.0f, 0.34f, 0.0f),
+                -0.5f,
+                RendererSystemFrostedGlass::PanelDepthPolicy::SceneOcclusion,
+                RendererSystemFrostedGlass::PanelShapeType::RoundedRect,
+                0.0f,
+                0.02f,
+                1.0f
+            }
+        };
+        m_overlay_prepass_panels = {
+            {
+                glm::fvec2(0.62f, 0.48f),
+                glm::fvec2(0.16f, 0.12f),
+                1.0f,
+                RendererSystemFrostedGlass::PanelShapeType::ShapeMask,
+                2.0f,
+                0.02f,
+                1.0f
+            }
+        };
+        UpdateFrostedPanelPrepassFeeds(0.0f);
     }
     
     // Add test light
@@ -149,16 +171,52 @@ bool DemoAppModelViewer::InitInternal(const std::vector<std::string>& arguments)
     return true;
 }
 
+void DemoAppModelViewer::UpdateFrostedPanelPrepassFeeds(float timeline_seconds)
+{
+    if (!m_frosted_panel_producer)
+    {
+        return;
+    }
+
+    if (!m_enable_frosted_prepass_feeds)
+    {
+        m_frosted_panel_producer->ClearPrepassItems();
+        return;
+    }
+
+    if (!m_world_prepass_panels.empty())
+    {
+        auto& world_panel = m_world_prepass_panels[0];
+        world_panel.world_center.x = 0.10f * std::sin(timeline_seconds * 0.35f);
+        world_panel.world_center.y = 1.20f + 0.02f * std::sin(timeline_seconds * 0.20f);
+    }
+    if (!m_overlay_prepass_panels.empty())
+    {
+        auto& overlay_panel = m_overlay_prepass_panels[0];
+        overlay_panel.center_uv.x = 0.62f + 0.02f * std::sin(timeline_seconds * 0.28f);
+    }
+
+    m_frosted_panel_producer->SetWorldPanelPrepassItems(m_world_prepass_panels);
+    m_frosted_panel_producer->SetOverlayPanelPrepassItems(m_overlay_prepass_panels);
+}
+
 void DemoAppModelViewer::DrawDebugUIInternal()
 {
     if (ImGui::CollapsingHeader("Demo", ImGuiTreeNodeFlags_DefaultOpen))
     {
         ImGui::SliderFloat("Directional Light Speed", &m_directional_light_angular_speed_radians, 0.0f, 2.0f, "%.3f rad/s");
         ImGui::Checkbox("Enable Panel Input State Machine", &m_enable_panel_input_state_machine);
+        if (ImGui::Checkbox("Enable Frosted Prepass Feeds", &m_enable_frosted_prepass_feeds))
+        {
+            UpdateFrostedPanelPrepassFeeds(m_directional_light_elapsed_seconds);
+        }
         if (m_frosted_glass)
         {
             ImGui::Text("Effective Frosted Panel Count: %u", m_frosted_glass->GetEffectivePanelCount());
         }
+        ImGui::Text("Prepass Feed Panels: world=%u overlay=%u",
+                    static_cast<unsigned>(m_world_prepass_panels.size()),
+                    static_cast<unsigned>(m_overlay_prepass_panels.size()));
         ImGui::TextUnformatted("Panel state mapping: move mouse=Hover, LMB=Move, RMB=Grab, Ctrl+LMB=Scale.");
     }
 }

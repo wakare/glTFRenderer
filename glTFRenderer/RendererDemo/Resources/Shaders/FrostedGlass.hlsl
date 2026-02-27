@@ -74,6 +74,10 @@ cbuffer FrostedGlassGlobalBuffer
     float thickness_range_max;
     float edge_spec_intensity;
     float edge_spec_sharpness;
+    float edge_spec_secondary_intensity;
+    float edge_spec_secondary_sharpness;
+    float edge_spec_luma_suppress;
+    float edge_spec_phase2_pad;
     float edge_highlight_width;
     float edge_highlight_white_mix;
     float directional_highlight_min;
@@ -915,19 +919,36 @@ bool EvaluatePanelFrostedColor(float3 scene_color,
     const float edge_mask = smoothstep(edge_threshold, min(edge_threshold + edge_softness, 0.999f), rim_base);
     const float fallback_specular = rim_base;
     const float directional_specular = ComputeDirectionalSpecularTerm(highlight_normal, view_dir, fallback_specular);
+    const float specular_dir = saturate(directional_specular);
     const float spec_sharpness = max(edge_spec_sharpness, 1.0f);
-    const float specular_core = pow(saturate(directional_specular), spec_sharpness);
-    const float specular_halo = pow(saturate(directional_specular), max(spec_sharpness * 0.35f, 1.0f));
+    const float specular_core = pow(specular_dir, spec_sharpness);
+    const float specular_halo = pow(specular_dir, max(spec_sharpness * 0.35f, 1.0f));
+    const float secondary_spec_intensity = saturate(edge_spec_secondary_intensity);
+    const float secondary_spec_sharpness = max(edge_spec_secondary_sharpness, 1.0f);
+    const float secondary_specular_core = pow(specular_dir, secondary_spec_sharpness);
+    const float secondary_specular_halo = pow(specular_dir, max(secondary_spec_sharpness * 0.22f, 1.0f));
     const float specular_thickness_boost = lerp(0.9f, 1.4f, thickness_factor);
+    const float secondary_thickness_boost = lerp(0.8f, 1.55f, thickness_factor);
+    const float frosted_luminance = dot(frosted_color, float3(0.2126f, 0.7152f, 0.0722f));
+    const float bright_region = saturate((frosted_luminance - 0.36f) / 0.54f);
+    const float luma_suppress =
+        lerp(1.0f, 1.0f - bright_region * 0.85f, saturate(edge_spec_luma_suppress));
     float edge_specular = 0.0f;
     if (edge_mask > 1e-4f)
     {
         const float edge_halo = edge_mask * (0.35f + 0.75f * edge_width) * specular_halo;
-        edge_specular =
+        const float primary_specular =
             edge_spec_intensity *
             (specular_core * edge_mask + 0.55f * edge_halo) *
             highlight_boost *
             specular_thickness_boost;
+        const float secondary_edge_halo = edge_mask * (0.25f + 0.95f * edge_width) * secondary_specular_halo;
+        const float secondary_specular =
+            secondary_spec_intensity *
+            (secondary_specular_core * edge_mask + 0.70f * secondary_edge_halo) *
+            highlight_boost *
+            secondary_thickness_boost;
+        edge_specular = (primary_specular + secondary_specular) * luma_suppress;
     }
     const float white_mix = saturate(edge_highlight_white_mix);
     const float3 highlight_tint = lerp(panel_tint, float3(1.0f, 1.0f, 1.0f), white_mix);

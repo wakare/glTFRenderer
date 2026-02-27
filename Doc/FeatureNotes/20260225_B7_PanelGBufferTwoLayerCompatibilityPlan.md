@@ -231,7 +231,13 @@ Notes:
   - Added `RendererSystemFrostedPanelProducer` as an engine-side producer system that registers callback output to frosted payload aggregation.
   - Moved Demo external panel emission from app-local lambda into this producer system, preserving world-space + overlay dual-source behavior.
   - Producer system now owns runtime enable toggles and lifecycle-safe unregister on destruction.
-- Pending for next phase:
-  - replace current engine-side producer demo data with real 3D panel prepass output and 2D UI frosted background prepass output
-  - evaluate dual-lobe spec and bloom/tone-map coupling for closer AVP highlight response
+- B7.4e prepass-feed source path completed:
+  - Producer input upgraded from single demo descriptor to batched prepass items (`world`/`overlay`) that are converted into frosted payload descriptors at registration callback time.
+  - `DemoAppModelViewer` now updates prepass feeds every frame (world-space and overlay channels) through producer APIs, replacing static one-time demo descriptor injection.
+  - Producer debug UI now exposes prepass item counts for runtime diagnostics.
+- B7.7 phase-2 highlight tuning completed:
+  - Added dual-lobe edge-specular controls (`Edge Spec Secondary Intensity`, `Edge Spec Secondary Sharpness`) for brighter AVP-style edge response.
+  - Added luminance-coupled suppression (`Edge Spec Luma Suppress`) to reduce over-bright center/bloom pressure while preserving edge readability.
+  - Composite shader now combines primary + secondary specular lobes with thickness-aware weighting and luminance guard.
+- Pending for acceptance closure:
   - capture final B7 visual/perf acceptance evidence in representative 2D+3D overlap scenes

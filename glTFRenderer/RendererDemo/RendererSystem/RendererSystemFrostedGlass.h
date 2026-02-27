@@ -188,6 +188,10 @@ protected:
         float thickness_range_max{0.060f};
         float edge_spec_intensity{0.95f};
         float edge_spec_sharpness{7.50f};
+        float edge_spec_secondary_intensity{0.42f};
+        float edge_spec_secondary_sharpness{22.0f};
+        float edge_spec_luma_suppress{0.72f};
+        float edge_spec_phase2_pad{0.0f};
         float edge_highlight_width{0.34f};
         float edge_highlight_white_mix{0.88f};
         float directional_highlight_min{0.10f};
