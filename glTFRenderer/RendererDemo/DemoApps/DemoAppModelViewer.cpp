@@ -14,6 +14,11 @@
 #include <iomanip>
 #include <sstream>
 
+namespace
+{
+    constexpr double PANEL_MOVE_CURSOR_DEADZONE_SQ = 0.04; // ~0.2 px
+}
+
 void DemoAppModelViewer::TickFrameInternal(unsigned long long time_interval)
 {
     auto& input_device = m_window->GetInputDevice();
@@ -48,7 +53,7 @@ void DemoAppModelViewer::TickFrameInternal(unsigned long long time_interval)
         {
             panel_state = RendererSystemFrostedGlass::PanelInteractionState::Scale;
         }
-        else if (left_mouse_pressed)
+        else if (left_mouse_pressed && cursor_offset_len_sq > PANEL_MOVE_CURSOR_DEADZONE_SQ)
         {
             panel_state = RendererSystemFrostedGlass::PanelInteractionState::Move;
         }
@@ -359,6 +364,6 @@ void DemoAppModelViewer::DrawDebugUIInternal()
         ImGui::Text("Prepass Feed Panels: world=%u overlay=%u",
                     static_cast<unsigned>(m_world_prepass_panels.size()),
                     static_cast<unsigned>(m_overlay_prepass_panels.size()));
-        ImGui::TextUnformatted("Panel state mapping: move mouse=Hover, LMB=Move, RMB=Grab, Ctrl+LMB=Scale.");
+        ImGui::TextUnformatted("Panel state mapping: move mouse=Hover, LMB+drag=Move, RMB=Grab, Ctrl+LMB=Scale.");
     }
 }

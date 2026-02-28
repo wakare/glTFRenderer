@@ -21,6 +21,7 @@ namespace
     }
 
     constexpr float CAMERA_CUT_MATRIX_DELTA_THRESHOLD = 0.25f;
+    constexpr double CAMERA_ROTATION_CURSOR_DEADZONE_SQ = 0.04; // ~0.2 px
 }
 
 RendererModuleCamera::RendererModuleCamera(RendererInterface::ResourceOperator& resource_operator, const RendererCameraDesc& camera_desc)
@@ -138,13 +139,13 @@ void RendererModuleCamera::TickCameraOperation(RendererInputDevice& input_device
         input_device.IsMouseButtonPressed(InputDeviceButtonType::MOUSE_BUTTON_LEFT))
     {
         const auto cursor_offset = input_device.GetCursorOffset();
-        
-        delta_rotation.y -= cursor_offset.X;
-        delta_rotation.x -= cursor_offset.Y;
-        if (fabs(delta_rotation.x) > 0.0f || fabs(delta_rotation.y) > 0.0f)
+        const double cursor_offset_len_sq =
+            cursor_offset.X * cursor_offset.X + cursor_offset.Y * cursor_offset.Y;
+        if (cursor_offset_len_sq > CAMERA_ROTATION_CURSOR_DEADZONE_SQ)
         {
+            delta_rotation.y -= static_cast<float>(cursor_offset.X);
+            delta_rotation.x -= static_cast<float>(cursor_offset.Y);
             need_apply_movement = true;
-            //LOG_FORMAT_FLUSH("[DEBUG] CURSOR OFFSET %f %f\n",cursor_offset.X, cursor_offset.Y );
         }
     }
 

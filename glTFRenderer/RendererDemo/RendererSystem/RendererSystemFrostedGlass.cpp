@@ -2345,10 +2345,9 @@ bool RendererSystemFrostedGlass::Tick(RendererInterface::ResourceOperator& resou
     graph.UpdateComputeDispatch(m_frosted_composite_shared_mip_history_ab_pass_node, (width + 7) / 8, (height + 7) / 8, 1);
     graph.UpdateComputeDispatch(m_frosted_composite_shared_mip_history_ba_pass_node, (width + 7) / 8, (height + 7) / 8, 1);
 
-    const auto camera_module = m_scene->GetCameraModule();
-    const bool camera_invalidation_requested = camera_module && camera_module->ConsumeTemporalHistoryInvalidation();
-    const bool temporal_invalidation_requested = m_temporal_force_reset || camera_invalidation_requested;
-    if (temporal_invalidation_requested)
+    // Keep frosted history across regular camera motion; per-pixel velocity/edge rejection handles reprojection risk.
+    // Reserve hard reset for explicit local events (resize/UI reset/mode switch).
+    if (m_temporal_force_reset)
     {
         m_temporal_history_valid = false;
     }

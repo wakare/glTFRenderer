@@ -1683,8 +1683,12 @@ void CompositeFrontMain(int3 dispatch_thread_id : SV_DispatchThreadID)
             history_color = SanitizeFloat3(history_color_raw);
 
             const float safe_velocity_threshold = max(temporal_reject_velocity, 1e-4f);
-            const float velocity_reject = saturate(length(velocity_uv) / safe_velocity_threshold);
-            const float edge_reject = saturate(scene_edge * temporal_edge_reject);
+            const float velocity_deadzone = safe_velocity_threshold * 0.20f;
+            const float velocity_len = max(length(velocity_uv) - velocity_deadzone, 0.0f);
+            const float velocity_gate = saturate(velocity_len / (safe_velocity_threshold * 1.35f));
+            const float velocity_reject = velocity_gate * velocity_gate;
+            const float edge_gate = saturate(scene_edge * temporal_edge_reject * 0.80f);
+            const float edge_reject = edge_gate * edge_gate;
             history_weight = saturate(temporal_history_blend * (1.0f - velocity_reject) * (1.0f - edge_reject) * panel_mask);
         }
     }
@@ -1846,8 +1850,12 @@ void CompositeMain(int3 dispatch_thread_id : SV_DispatchThreadID)
             history_color = SanitizeFloat3(history_color_raw);
 
             const float safe_velocity_threshold = max(temporal_reject_velocity, 1e-4f);
-            const float velocity_reject = saturate(length(velocity_uv) / safe_velocity_threshold);
-            const float edge_reject = saturate(scene_edge * temporal_edge_reject);
+            const float velocity_deadzone = safe_velocity_threshold * 0.20f;
+            const float velocity_len = max(length(velocity_uv) - velocity_deadzone, 0.0f);
+            const float velocity_gate = saturate(velocity_len / (safe_velocity_threshold * 1.35f));
+            const float velocity_reject = velocity_gate * velocity_gate;
+            const float edge_gate = saturate(scene_edge * temporal_edge_reject * 0.80f);
+            const float edge_reject = edge_gate * edge_gate;
             history_weight = saturate(temporal_history_blend * (1.0f - velocity_reject) * (1.0f - edge_reject) * panel_mask);
         }
     }
