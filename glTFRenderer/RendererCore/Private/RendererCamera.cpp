@@ -93,6 +93,16 @@ glm::fvec3 RendererCamera::GetCameraPosition() const
     return m_transform->GetTranslation();
 }
 
+void RendererCamera::SetCameraEulerAngles(const glm::fvec3& euler_angles)
+{
+    m_transform->RotateEulerAngle(euler_angles);
+}
+
+glm::fvec3 RendererCamera::GetCameraEulerAngles() const
+{
+    return m_transform->GetRotationEulerAngle();
+}
+
 void RendererCamera::GetCameraViewportSize(unsigned& out_width, unsigned& out_height) const
 {
     out_width = static_cast<unsigned>(m_projection_width);

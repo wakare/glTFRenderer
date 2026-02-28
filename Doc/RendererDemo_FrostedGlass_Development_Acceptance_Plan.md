@@ -11,6 +11,10 @@
   - `Doc/RendererDemo_FrostedGlass_FramePassReference.md`
 - Blur-source optimization plan and progress tracker:
   - `Doc/FeatureNotes/20260227_B8_BlurSourceOptimizationPlan.md`
+- Screenshot regression plan and progress tracker:
+  - `Doc/FeatureNotes/20260228_B9_FixedViewpointScreenshotRegressionPlan.md`
+- Screenshot regression operation runbook and troubleshooting:
+  - `Doc/FeatureNotes/20260228_B9_RegressionWorkflow_Runbook.md`
 - Rule:
   - Any frosted render-graph/pass/resource contract change must update the frame reference doc in the same PR.
 
@@ -302,6 +306,12 @@ This plan is based on the current implementation in repository `glTFRenderer`.
 - Prioritize B8 after B7 acceptance.
 - Deliver shared low-cost blur source path with validated pass/resource reduction and preserved visual behavior.
 
+## M7: Fixed-viewpoint screenshot regression system
+
+- Prioritize B9 after B8 reaches stable target visual direction.
+- Deliver command-line fixed-point capture and baseline compare workflow with report artifacts.
+- Integrate frame/per-pass performance telemetry capture and threshold gating into the same workflow.
+
 ## 6. Acceptance Criteria
 
 ## Functional acceptance
@@ -345,6 +355,7 @@ This plan is based on the current implementation in repository `glTFRenderer`.
 | B6 | App | P0 | Multi-layer composition alignment | Top-N overlap blending with bounded cost | In Progress (B6.1 top-2 payload + B6.2 adaptive/runtime refinement complete; visual/perf acceptance pending) | `Doc/FeatureNotes/20260224_B6_MultilayerCompositionPlan.md`, `Doc/FeatureNotes/20260224_B6_Top2MultilayerCore.md`, `Doc/FeatureNotes/20260224_B6_AdaptiveMultilayerRefinement.md` |
 | B7 | App | P0 | Panel GBuffer 3D compatibility | Two-layer frosted composition driven by geometry-aware panel payload | Accepted (B7.1~B7.7 complete, including prepass-feed source path and phase-2 highlight tuning; visual/perf evidence captured on 2026-02-27) | `Doc/FeatureNotes/20260225_B7_PanelGBufferTwoLayerCompatibilityPlan.md` |
 | B8 | App | P0 | Blur source optimization and cost reduction | Replace fixed blur pyramid dependency with shared low-cost blur source while preserving B7 visual behavior | In Progress (B8.1/B8.2 runtime pass reduction wired; B8.3 shader shared sampling branch integrated; legacy `Full Fog Mode` boundary de-structure branch landed; B8.5 acceptance pending) | `Doc/FeatureNotes/20260227_B8_BlurSourceOptimizationPlan.md` |
+| B9 | Framework + App | P0 | Fixed-viewpoint visual/perf regression | One-command capture + one-command baseline compare for deterministic visual and frame-performance regression checks | In Progress (capture flow + script compare flow available; CI gate and framework readback pending) | `Doc/FeatureNotes/20260228_B9_FixedViewpointScreenshotRegressionPlan.md` |
 | A5 | Framework | P1 | RenderGraph QoL helpers | Reduced setup boilerplate | Planned | - |
 
 ## 8. Development and Review Rules for This Plan

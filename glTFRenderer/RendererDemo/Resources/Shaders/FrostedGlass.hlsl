@@ -901,18 +901,24 @@ bool EvaluatePanelFrostedColor(float3 scene_color,
                            invalid_eighth_blur ||
                            invalid_sixteenth_blur ||
                            invalid_thirtysecond_blur;
+    // Keep these detail knobs fixed to baseline-tuned defaults to reduce open tuning dimensions.
+    const float kQuarterMixBoost = 0.50f;
+    const float kDetailPreservationBase = 0.04f;
+    const float kContrastCompression = 0.90f;
+    const float kVeilTintMix = 0.55f;
+
     const float quarter_blend = saturate((normalized_sigma - 3.0f) / 5.0f);
     const float eighth_blend = saturate((normalized_sigma - 8.0f) / 8.0f);
     const float sixteenth_blend = saturate((normalized_sigma - 16.0f) / 10.0f);
     const float thirtysecond_blend = saturate((normalized_sigma - 28.0f) / 12.0f);
-    const float quarter_mix = saturate(quarter_blend + saturate(blur_quarter_mix_boost) * (1.0f - quarter_blend));
+    const float quarter_mix = saturate(quarter_blend + kQuarterMixBoost * (1.0f - quarter_blend));
     const float shared_quarter_floor = lerp(0.24f, 0.52f, shared_sigma_t);
     const float effective_quarter_mix = use_shared_mip_sampling ? max(quarter_mix, shared_quarter_floor) : quarter_mix;
     const float3 half_quarter_blended = lerp(half_blurred_color, quarter_blurred_color, effective_quarter_mix);
     const float3 half_quarter_eighth_blended = lerp(half_quarter_blended, eighth_blurred_color, eighth_blend);
     const float3 half_to_sixteenth_blended = lerp(half_quarter_eighth_blended, sixteenth_blurred_color, sixteenth_blend);
     const float3 layered_blurred_color = lerp(half_to_sixteenth_blended, thirtysecond_blurred_color, thirtysecond_blend);
-    const float base_detail_keep = saturate(blur_detail_preservation);
+    const float base_detail_keep = kDetailPreservationBase;
     const float detail_keep = use_shared_mip_sampling ? base_detail_keep * lerp(0.90f, 0.70f, shared_sigma_t) : base_detail_keep;
     const float coarse_bias = 1.0f - detail_keep;
     const float shared_coarse_boost = use_shared_mip_sampling ? lerp(1.05f, 1.30f, shared_sigma_t) : 1.0f;
@@ -923,9 +929,9 @@ bool EvaluatePanelFrostedColor(float3 scene_color,
     const float veil_factor = saturate(blur_veil_strength * blur_sigma_factor * effective_blur_strength * shared_veil_boost);
     float3 veiled_blur = lerp(blurred_color, ultra_low_freq, veil_factor);
     const float veiled_luma = dot(veiled_blur, float3(0.2126f, 0.7152f, 0.0722f));
-    const float contrast_keep = 1.0f - saturate(blur_contrast_compression * veil_factor);
+    const float contrast_keep = 1.0f - saturate(kContrastCompression * veil_factor);
     veiled_blur = lerp(float3(veiled_luma, veiled_luma, veiled_luma), veiled_blur, contrast_keep);
-    const float tint_neutralize = saturate(blur_veil_tint_mix * veil_factor);
+    const float tint_neutralize = saturate(kVeilTintMix * veil_factor);
     const float3 veiled_tint = lerp(panel_tint, float3(1.0f, 1.0f, 1.0f), tint_neutralize);
     const float3 sigma_adjusted_blur = lerp(scene_color, veiled_blur, blur_sigma_factor);
     const bool enable_full_fog = full_fog_mode != 0u;
@@ -950,7 +956,7 @@ bool EvaluatePanelFrostedColor(float3 scene_color,
         const float fog_low_freq_mix = saturate(0.88f + 0.10f * blur_sigma_factor + 0.06f * edge_fog_boost);
         float3 fog_base = lerp(veiled_blur, fog_ultra_low, fog_low_freq_mix);
         fog_base = lerp(fog_base, fog_ultra_low, edge_fog_boost * 0.82f);
-        const float fog_tint_mix = saturate(0.70f + 0.25f * blur_veil_tint_mix);
+        const float fog_tint_mix = saturate(0.70f + 0.25f * kVeilTintMix);
         const float3 fog_tint = lerp(panel_tint, float3(1.0f, 1.0f, 1.0f), fog_tint_mix);
         fog_base *= fog_tint;
 
@@ -966,7 +972,7 @@ bool EvaluatePanelFrostedColor(float3 scene_color,
     const float blur_luminance = dot(sigma_adjusted_blur, float3(0.2126f, 0.7152f, 0.0722f));
     const float sparkle_metric = saturate((scene_luminance - blur_luminance) / max(blur_luminance + 0.10f, 0.10f));
     const float sparkle_suppress =
-        saturate(blur_sigma_factor * effective_blur_strength * (0.35f + 0.65f * saturate(blur_contrast_compression)));
+        saturate(blur_sigma_factor * effective_blur_strength * (0.35f + 0.65f * kContrastCompression));
     const float3 sparkle_filtered_scene = lerp(scene_color, sigma_adjusted_blur, sparkle_metric * sparkle_suppress);
     float3 frosted_color = lerp(sparkle_filtered_scene, sigma_adjusted_blur * veiled_tint, effective_blur_strength);
 

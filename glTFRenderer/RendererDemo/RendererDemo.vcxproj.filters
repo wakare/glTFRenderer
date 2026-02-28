@@ -39,6 +39,12 @@
     <ClCompile Include="SceneRendererUtil\SceneRendererDrawDispatcher.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Regression\RegressionLogicPack.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Regression\RegressionSuite.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DemoApps\DemoAppModelViewer.h">
@@ -60,6 +66,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="SceneRendererUtil\SceneRendererDrawDispatcher.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Regression\RegressionLogicPack.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Regression\RegressionSuite.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -122,6 +122,11 @@ public:
     bool ContainsPanel(unsigned index) const;
     bool SetPanelInteractionState(unsigned index, PanelInteractionState interaction_state);
     PanelInteractionState GetPanelInteractionState(unsigned index) const;
+    void SetBlurSourceMode(BlurSourceMode mode);
+    BlurSourceMode GetBlurSourceMode() const { return m_blur_source_mode; }
+    void SetFullFogMode(bool enable);
+    bool IsFullFogModeEnabled() const { return m_global_params.full_fog_mode != 0u; }
+    void ForceResetTemporalHistory();
     unsigned GetEffectivePanelCount() const { return m_global_params.panel_count; }
     RendererInterface::RenderTargetHandle GetOutput() const { return m_frosted_pass_output; }
     RendererInterface::RenderTargetHandle GetHalfResPing() const

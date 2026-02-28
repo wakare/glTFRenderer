@@ -17,6 +17,8 @@ public:
     bool RegisterCallbackEventNative();
     
     void UpdateWindow();
+    void RequestClose();
+    bool IsCloseRequested() const;
 
     void SetWidth(int width);
     void SetHeight(int height);

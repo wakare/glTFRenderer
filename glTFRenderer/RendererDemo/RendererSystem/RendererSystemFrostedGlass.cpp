@@ -243,6 +243,43 @@ RendererSystemFrostedGlass::PanelInteractionState RendererSystemFrostedGlass::Ge
     return m_panel_runtime_states[index].target_state;
 }
 
+void RendererSystemFrostedGlass::SetBlurSourceMode(BlurSourceMode mode)
+{
+    const int clamped_mode = (std::max)(0, (std::min)(static_cast<int>(mode), 2));
+    const BlurSourceMode next_mode = static_cast<BlurSourceMode>(clamped_mode);
+    if (m_blur_source_mode == next_mode)
+    {
+        return;
+    }
+
+    m_blur_source_mode = next_mode;
+    m_temporal_force_reset = true;
+    m_temporal_history_valid = false;
+    m_global_params.temporal_history_valid = 0;
+    m_need_upload_global_params = true;
+}
+
+void RendererSystemFrostedGlass::SetFullFogMode(bool enable)
+{
+    const unsigned full_fog_flag = enable ? 1u : 0u;
+    if (m_global_params.full_fog_mode == full_fog_flag)
+    {
+        return;
+    }
+
+    m_global_params.full_fog_mode = full_fog_flag;
+    m_need_upload_global_params = true;
+}
+
+void RendererSystemFrostedGlass::ForceResetTemporalHistory()
+{
+    m_temporal_force_reset = true;
+    m_temporal_history_valid = false;
+    m_temporal_history_read_is_a = true;
+    m_global_params.temporal_history_valid = 0;
+    m_need_upload_global_params = true;
+}
+
 bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resource_operator,
                                       RendererInterface::RenderGraph& graph)
 {
@@ -2586,10 +2623,6 @@ void RendererSystemFrostedGlass::DrawDebugUI()
     {
         global_dirty = true;
     }
-    if (ImGui::SliderFloat("Blur Detail Preservation", &m_global_params.blur_detail_preservation, 0.0f, 1.0f, "%.2f"))
-    {
-        global_dirty = true;
-    }
     bool full_fog_mode = m_global_params.full_fog_mode != 0u;
     if (ImGui::Checkbox("Full Fog Mode", &full_fog_mode))
     {
@@ -2638,10 +2671,6 @@ void RendererSystemFrostedGlass::DrawDebugUI()
         {
             global_dirty = true;
         }
-        if (ImGui::SliderFloat("Blur Quarter Mix Boost", &m_global_params.blur_quarter_mix_boost, 0.0f, 1.0f, "%.2f"))
-        {
-            global_dirty = true;
-        }
         if (ImGui::SliderFloat("Blur Sigma Normalization", &m_global_params.blur_sigma_normalization, 4.0f, 12.0f, "%.2f"))
         {
             global_dirty = true;
@@ -2650,14 +2679,7 @@ void RendererSystemFrostedGlass::DrawDebugUI()
         {
             global_dirty = true;
         }
-        if (ImGui::SliderFloat("Blur Contrast Compression", &m_global_params.blur_contrast_compression, 0.0f, 1.0f, "%.2f"))
-        {
-            global_dirty = true;
-        }
-        if (ImGui::SliderFloat("Blur Veil Tint Mix", &m_global_params.blur_veil_tint_mix, 0.0f, 1.0f, "%.2f"))
-        {
-            global_dirty = true;
-        }
+        ImGui::TextUnformatted("Blur Detail Model: quarterMixBoost=0.50, contrastCompression=0.90, veilTintMix=0.55, detailPreserve=0.04 (fixed)");
         if (ImGui::SliderFloat("Scene Edge Scale", &m_global_params.scene_edge_scale, 0.0f, 120.0f, "%.1f"))
         {
             global_dirty = true;

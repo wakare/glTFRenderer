@@ -42,6 +42,8 @@ namespace RendererInterface
         unsigned GetHeight() const;
         HWND GetHWND() const;
         void EnterWindowEventLoop();
+        void RequestClose();
+        bool IsCloseRequested() const;
 
         void RegisterTickCallback(const RenderWindowTickCallback& callback);
         const RendererInputDevice& GetInputDeviceConst() const;

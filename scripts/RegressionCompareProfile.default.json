@@ -1,0 +1,13 @@
+{
+  "visual": {
+    "mae_max": 0.03,
+    "rmse_max": 0.05,
+    "psnr_min": 26.0
+  },
+  "perf": {
+    "cpu_total_increase_pct_max": 15.0,
+    "gpu_total_increase_pct_max": 15.0,
+    "frosted_cpu_increase_pct_max": 20.0,
+    "frosted_gpu_increase_pct_max": 20.0
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "suite_name": "frosted_glass_b9_smoke",
+  "global": {
+    "disable_debug_ui": true,
+    "freeze_directional_light": true,
+    "disable_panel_input_state_machine": true,
+    "disable_prepass_animation": true,
+    "default_warmup_frames": 180,
+    "default_capture_frames": 16
+  },
+  "cases": [
+    {
+      "id": "legacy_fullfog_reference",
+      "camera": {
+        "position": [
+          0.0,
+          1.2,
+          -3.0
+        ],
+        "euler_angles": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "logic_pack": "frosted_glass",
+      "logic_args": {
+        "blur_source_mode": "legacy_pyramid",
+        "full_fog_mode": true,
+        "reset_temporal_history": true
+      }
+    }
+  ]
+}

@@ -28,6 +28,8 @@ public:
     virtual bool Tick(RendererInterface::ResourceOperator&, unsigned long long interval) override;
 
     bool SetViewportSize(unsigned width, unsigned height);
+    bool SetCameraPose(const glm::fvec3& position, const glm::fvec3& euler_angles, bool reset_temporal_history = true);
+    bool GetCameraPose(glm::fvec3& out_position, glm::fvec3& out_euler_angles);
     unsigned GetWidth() const;
     unsigned GetHeight() const;
     bool ConsumeTemporalHistoryInvalidation();

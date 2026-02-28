@@ -76,6 +76,19 @@ void glTFWindow::UpdateWindow()
     glfwTerminate();
 }
 
+void glTFWindow::RequestClose()
+{
+    if (m_glfw_window)
+    {
+        glfwSetWindowShouldClose(m_glfw_window, GLFW_TRUE);
+    }
+}
+
+bool glTFWindow::IsCloseRequested() const
+{
+    return m_glfw_window ? glfwWindowShouldClose(m_glfw_window) == GLFW_TRUE : true;
+}
+
 void glTFWindow::SetWidth(int width)
 {
     m_width = width;

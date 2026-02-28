@@ -230,6 +230,39 @@ bool RendererModuleCamera::SetViewportSize(unsigned width, unsigned height)
     return true;
 }
 
+bool RendererModuleCamera::SetCameraPose(const glm::fvec3& position, const glm::fvec3& euler_angles, bool reset_temporal_history)
+{
+    if (!m_camera)
+    {
+        return false;
+    }
+
+    m_camera->SetCameraMode(CameraMode::Free);
+    m_camera->SetCameraPosition(position);
+    m_camera->SetCameraEulerAngles(euler_angles);
+    m_camera->MarkTransformDirty();
+
+    if (reset_temporal_history)
+    {
+        m_prev_view_projection_initialized = false;
+        m_temporal_history_invalidation_pending = true;
+    }
+
+    return true;
+}
+
+bool RendererModuleCamera::GetCameraPose(glm::fvec3& out_position, glm::fvec3& out_euler_angles)
+{
+    if (!m_camera)
+    {
+        return false;
+    }
+
+    out_position = m_camera->GetCameraPosition();
+    out_euler_angles = m_camera->GetCameraEulerAngles();
+    return true;
+}
+
 unsigned RendererModuleCamera::GetWidth() const
 {
     return m_camera->GetProjectionWidth();

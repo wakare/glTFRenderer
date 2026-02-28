@@ -884,6 +884,16 @@ namespace RendererInterface
         glTFWindow::Get().UpdateWindow();
     }
 
+    void RenderWindow::RequestClose()
+    {
+        glTFWindow::Get().RequestClose();
+    }
+
+    bool RenderWindow::IsCloseRequested() const
+    {
+        return glTFWindow::Get().IsCloseRequested();
+    }
+
     void RenderWindow::RegisterTickCallback(const RenderWindowTickCallback& callback)
     {
         glTFWindow::Get().SetTickCallback(callback);

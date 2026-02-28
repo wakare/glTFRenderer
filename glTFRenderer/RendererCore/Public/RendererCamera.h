@@ -47,6 +47,8 @@ public:
     const glm::fvec3& GetObserveCenter() const;
     void SetCameraPosition(const glm::fvec3& position);
     glm::fvec3 GetCameraPosition() const;
+    void SetCameraEulerAngles(const glm::fvec3& euler_angles);
+    glm::fvec3 GetCameraEulerAngles() const;
 
     void GetCameraViewportSize(unsigned& out_width, unsigned& out_height) const;
     RendererSceneNodeTransform& GetCameraTransform();
