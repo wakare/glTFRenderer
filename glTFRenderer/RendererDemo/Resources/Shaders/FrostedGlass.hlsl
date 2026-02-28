@@ -873,13 +873,59 @@ bool EvaluatePanelFrostedColor(float3 scene_color,
     const float sigma_normalization = max(blur_sigma_normalization, 1.0f);
     const float blur_sigma_factor = saturate(normalized_sigma / sigma_normalization);
     out_blur_metric = saturate(blur_sigma_factor * effective_blur_strength);
+    // Keep these detail knobs fixed to baseline-tuned defaults to reduce open tuning dimensions.
+    const float kQuarterMixBoost = 0.50f;
+    const float kDetailPreservationBase = 0.04f;
+    const float kContrastCompression = 0.90f;
+    const float kVeilTintMix = 0.55f;
+    const bool use_shared_mip_sampling = blur_source_mode != BLUR_SOURCE_MODE_LEGACY_PYRAMID;
+    const float shared_sigma_t = use_shared_mip_sampling ? saturate((normalized_sigma - 5.0f) / 24.0f) : 0.0f;
+    const bool enable_full_fog = full_fog_mode != 0u;
+
+    // Fast full-fog path: keep only low-frequency samples, skip high-frequency blur blending stages.
+    if (enable_full_fog)
+    {
+        bool invalid_fog_sixteenth_blur = false;
+        bool invalid_fog_thirtysecond_blur = false;
+        const float fog_uv_mix = saturate(0.88f + scene_edge * 0.10f);
+        const float2 fog_uv = lerp(refraction_uv, stable_screen_uv, fog_uv_mix);
+        float3 fog_sixteenth_blurred_color = SampleSixteenthBlurredColor(fog_uv, invalid_fog_sixteenth_blur);
+        float3 fog_thirtysecond_blurred_color = SampleThirtySecondBlurredColor(fog_uv, invalid_fog_thirtysecond_blur);
+        if (use_shared_mip_sampling)
+        {
+            const float3 shared_fog_ultra_low =
+                lerp(fog_sixteenth_blurred_color, fog_thirtysecond_blurred_color, saturate(0.62f + 0.30f * shared_sigma_t));
+            fog_sixteenth_blurred_color = lerp(fog_sixteenth_blurred_color, shared_fog_ultra_low, lerp(0.30f, 0.60f, shared_sigma_t));
+            fog_thirtysecond_blurred_color = lerp(fog_thirtysecond_blurred_color, shared_fog_ultra_low, lerp(0.34f, 0.68f, shared_sigma_t));
+        }
+
+        const float fog_ultra_low_mix = saturate(0.80f + 0.16f * blur_sigma_factor);
+        const float3 fog_ultra_low = lerp(fog_sixteenth_blurred_color, fog_thirtysecond_blurred_color, fog_ultra_low_mix);
+        const float shared_veil_boost = use_shared_mip_sampling ? lerp(1.04f, 1.18f, shared_sigma_t) : 1.0f;
+        const float veil_factor = saturate(blur_veil_strength * blur_sigma_factor * effective_blur_strength * shared_veil_boost);
+        float3 fog_base = lerp(fog_sixteenth_blurred_color, fog_ultra_low, saturate(0.78f + 0.20f * veil_factor));
+        const float edge_fog_boost = saturate(scene_edge * 1.6f);
+        const float fog_low_freq_mix = saturate(0.88f + 0.10f * blur_sigma_factor + 0.06f * edge_fog_boost);
+        fog_base = lerp(fog_base, fog_ultra_low, fog_low_freq_mix);
+        fog_base = lerp(fog_base, fog_ultra_low, edge_fog_boost * 0.82f);
+        const float fog_tint_mix = saturate(0.70f + 0.25f * kVeilTintMix);
+        const float3 fog_tint = lerp(panel_tint, float3(1.0f, 1.0f, 1.0f), fog_tint_mix);
+        fog_base *= fog_tint;
+
+        out_had_invalid_blur = invalid_fog_sixteenth_blur || invalid_fog_thirtysecond_blur;
+        const float fog_strength = max(effective_blur_strength, lerp(0.90f, 0.99f, blur_sigma_factor));
+        const float scene_keep = lerp(0.02f, 0.00f, blur_sigma_factor);
+        const float fog_mix = saturate(fog_strength * (1.0f - scene_keep));
+        const float3 fog_color = lerp(scene_color, fog_base, fog_mix);
+        out_frosted_color = SanitizeFloat3(fog_color);
+        return true;
+    }
+
     bool invalid_half_blur = false;
     bool invalid_quarter_blur = false;
     bool invalid_eighth_blur = false;
     bool invalid_sixteenth_blur = false;
     bool invalid_thirtysecond_blur = false;
-    const bool use_shared_mip_sampling = blur_source_mode != BLUR_SOURCE_MODE_LEGACY_PYRAMID;
-    const float shared_sigma_t = use_shared_mip_sampling ? saturate((normalized_sigma - 5.0f) / 24.0f) : 0.0f;
     const float3 half_blurred_color = SampleBlurredColor(refraction_uv, invalid_half_blur);
     const float3 quarter_blurred_color = SampleQuarterBlurredColor(refraction_uv, invalid_quarter_blur);
     float3 eighth_blurred_color = SampleEighthBlurredColor(refraction_uv, invalid_eighth_blur);
@@ -901,11 +947,6 @@ bool EvaluatePanelFrostedColor(float3 scene_color,
                            invalid_eighth_blur ||
                            invalid_sixteenth_blur ||
                            invalid_thirtysecond_blur;
-    // Keep these detail knobs fixed to baseline-tuned defaults to reduce open tuning dimensions.
-    const float kQuarterMixBoost = 0.50f;
-    const float kDetailPreservationBase = 0.04f;
-    const float kContrastCompression = 0.90f;
-    const float kVeilTintMix = 0.55f;
 
     const float quarter_blend = saturate((normalized_sigma - 3.0f) / 5.0f);
     const float eighth_blend = saturate((normalized_sigma - 8.0f) / 8.0f);
@@ -934,40 +975,6 @@ bool EvaluatePanelFrostedColor(float3 scene_color,
     const float tint_neutralize = saturate(kVeilTintMix * veil_factor);
     const float3 veiled_tint = lerp(panel_tint, float3(1.0f, 1.0f, 1.0f), tint_neutralize);
     const float3 sigma_adjusted_blur = lerp(scene_color, veiled_blur, blur_sigma_factor);
-    const bool enable_full_fog = full_fog_mode != 0u;
-    if (enable_full_fog)
-    {
-        bool invalid_fog_sixteenth_blur = false;
-        bool invalid_fog_thirtysecond_blur = false;
-        const float fog_uv_mix = saturate(0.88f + scene_edge * 0.10f);
-        const float2 fog_uv = lerp(refraction_uv, stable_screen_uv, fog_uv_mix);
-        float3 fog_sixteenth_blurred_color = SampleSixteenthBlurredColor(fog_uv, invalid_fog_sixteenth_blur);
-        float3 fog_thirtysecond_blurred_color = SampleThirtySecondBlurredColor(fog_uv, invalid_fog_thirtysecond_blur);
-        if (use_shared_mip_sampling)
-        {
-            const float3 shared_fog_ultra_low =
-                lerp(fog_sixteenth_blurred_color, fog_thirtysecond_blurred_color, saturate(0.62f + 0.30f * shared_sigma_t));
-            fog_sixteenth_blurred_color = lerp(fog_sixteenth_blurred_color, shared_fog_ultra_low, lerp(0.30f, 0.60f, shared_sigma_t));
-            fog_thirtysecond_blurred_color = lerp(fog_thirtysecond_blurred_color, shared_fog_ultra_low, lerp(0.34f, 0.68f, shared_sigma_t));
-        }
-        const float fog_ultra_low_mix = saturate(0.80f + 0.16f * blur_sigma_factor);
-        const float3 fog_ultra_low = lerp(fog_sixteenth_blurred_color, fog_thirtysecond_blurred_color, fog_ultra_low_mix);
-        const float edge_fog_boost = saturate(scene_edge * 1.6f);
-        const float fog_low_freq_mix = saturate(0.88f + 0.10f * blur_sigma_factor + 0.06f * edge_fog_boost);
-        float3 fog_base = lerp(veiled_blur, fog_ultra_low, fog_low_freq_mix);
-        fog_base = lerp(fog_base, fog_ultra_low, edge_fog_boost * 0.82f);
-        const float fog_tint_mix = saturate(0.70f + 0.25f * kVeilTintMix);
-        const float3 fog_tint = lerp(panel_tint, float3(1.0f, 1.0f, 1.0f), fog_tint_mix);
-        fog_base *= fog_tint;
-
-        out_had_invalid_blur = out_had_invalid_blur || invalid_fog_sixteenth_blur || invalid_fog_thirtysecond_blur;
-        const float fog_strength = max(effective_blur_strength, lerp(0.90f, 0.99f, blur_sigma_factor));
-        const float scene_keep = lerp(0.02f, 0.00f, blur_sigma_factor);
-        const float fog_mix = saturate(fog_strength * (1.0f - scene_keep));
-        const float3 fog_color = lerp(scene_color, fog_base, fog_mix);
-        out_frosted_color = SanitizeFloat3(fog_color);
-        return true;
-    }
     const float scene_luminance = dot(scene_color, float3(0.2126f, 0.7152f, 0.0722f));
     const float blur_luminance = dot(sigma_adjusted_blur, float3(0.2126f, 0.7152f, 0.0722f));
     const float sparkle_metric = saturate((scene_luminance - blur_luminance) / max(blur_luminance + 0.10f, 0.10f));
@@ -1538,20 +1545,29 @@ void CompositeBackMain(int3 dispatch_thread_id : SV_DispatchThreadID)
     const float2 current_uv =
         (float2(pixel) + 0.5f) / float2((float)viewport_width, (float)viewport_height);
     const float3 scene_color_raw = InputColorTex.Load(int3(pixel, 0)).rgb;
-    const float4 front_mask_param_raw = MaskParamTex.Load(int3(pixel, 0));
     const float4 back_mask_param_raw = MaskParamSecondaryTex.Load(int3(pixel, 0));
+    const bool invalid_scene = !IsFiniteFloat3(scene_color_raw);
+    const float3 scene_color = SanitizeFloat3(scene_color_raw);
+    const float4 back_mask_param = SanitizeFloat4(back_mask_param_raw);
+
+    float quick_back_mask = 0.0f;
+    const bool has_back_layer_candidate = TryResolvePanelPayload(back_mask_param, quick_back_mask);
+    if (nan_debug_mode == 0 && !has_back_layer_candidate)
+    {
+        BackCompositeOutput[pixel] = float4(scene_color, 1.0f);
+        return;
+    }
+
+    const float4 front_mask_param_raw = MaskParamTex.Load(int3(pixel, 0));
     const float4 back_panel_optics_raw = PanelOpticsSecondaryTex.Load(int3(pixel, 0));
     const float4 front_panel_profile_raw = PanelProfileTex.Load(int3(pixel, 0));
     const float4 back_panel_profile_raw = PanelProfileSecondaryTex.Load(int3(pixel, 0));
-    const bool invalid_scene = !IsFiniteFloat3(scene_color_raw);
     const bool invalid_payload = !IsFiniteFloat4(front_mask_param_raw) ||
                                  !IsFiniteFloat4(back_mask_param_raw) ||
                                  !IsFiniteFloat4(back_panel_optics_raw) ||
                                  !IsFiniteFloat4(front_panel_profile_raw) ||
                                  !IsFiniteFloat4(back_panel_profile_raw);
-    const float3 scene_color = SanitizeFloat3(scene_color_raw);
     const float4 front_mask_param = SanitizeFloat4(front_mask_param_raw);
-    const float4 back_mask_param = SanitizeFloat4(back_mask_param_raw);
     const float4 back_panel_optics = SanitizeFloat4(back_panel_optics_raw);
     const float4 front_panel_profile = SanitizeFloat4(front_panel_profile_raw);
     const float4 back_panel_profile = SanitizeFloat4(back_panel_profile_raw);
@@ -1616,20 +1632,30 @@ void CompositeFrontMain(int3 dispatch_thread_id : SV_DispatchThreadID)
     const float2 current_uv = (float2(pixel) + 0.5f) / viewport_size;
     const float3 scene_color_raw = BackCompositeTex.Load(int3(pixel, 0)).rgb;
     const float4 front_mask_param_raw = MaskParamTex.Load(int3(pixel, 0));
+    const bool invalid_scene = !IsFiniteFloat3(scene_color_raw);
+    const float3 scene_color = SanitizeFloat3(scene_color_raw);
+    const float4 front_mask_param = SanitizeFloat4(front_mask_param_raw);
+
+    float quick_front_mask = 0.0f;
+    const bool has_front_layer_candidate = TryResolvePanelPayload(front_mask_param, quick_front_mask);
+    if (nan_debug_mode == 0 && !has_front_layer_candidate)
+    {
+        Output[pixel] = float4(scene_color, 1.0f);
+        HistoryOutputTex[pixel] = float4(scene_color, 1.0f);
+        return;
+    }
+
     const float4 front_panel_optics_raw = PanelOpticsTex.Load(int3(pixel, 0));
     const float4 back_mask_param_raw = MaskParamSecondaryTex.Load(int3(pixel, 0));
     const float4 back_panel_optics_raw = PanelOpticsSecondaryTex.Load(int3(pixel, 0));
     const float4 front_panel_profile_raw = PanelProfileTex.Load(int3(pixel, 0));
     const float4 back_panel_profile_raw = PanelProfileSecondaryTex.Load(int3(pixel, 0));
-    const bool invalid_scene = !IsFiniteFloat3(scene_color_raw);
     const bool invalid_payload = !IsFiniteFloat4(front_mask_param_raw) ||
                                  !IsFiniteFloat4(front_panel_optics_raw) ||
                                  !IsFiniteFloat4(back_mask_param_raw) ||
                                  !IsFiniteFloat4(back_panel_optics_raw) ||
                                  !IsFiniteFloat4(front_panel_profile_raw) ||
                                  !IsFiniteFloat4(back_panel_profile_raw);
-    const float3 scene_color = SanitizeFloat3(scene_color_raw);
-    const float4 front_mask_param = SanitizeFloat4(front_mask_param_raw);
     const float4 front_panel_optics = SanitizeFloat4(front_panel_optics_raw);
     const float4 back_mask_param = SanitizeFloat4(back_mask_param_raw);
     const float4 back_panel_optics = SanitizeFloat4(back_panel_optics_raw);
@@ -1731,22 +1757,34 @@ void CompositeMain(int3 dispatch_thread_id : SV_DispatchThreadID)
     const float2 current_uv = (float2(pixel) + 0.5f) / viewport_size;
     const float3 scene_color_raw = InputColorTex.Load(int3(pixel, 0)).rgb;
     const float4 front_mask_param_raw = MaskParamTex.Load(int3(pixel, 0));
-    const float4 front_panel_optics_raw = PanelOpticsTex.Load(int3(pixel, 0));
     const float4 back_mask_param_raw = MaskParamSecondaryTex.Load(int3(pixel, 0));
+    const bool invalid_scene = !IsFiniteFloat3(scene_color_raw);
+    const float3 scene_color = SanitizeFloat3(scene_color_raw);
+    const float4 front_mask_param = SanitizeFloat4(front_mask_param_raw);
+    const float4 back_mask_param = SanitizeFloat4(back_mask_param_raw);
+
+    float quick_front_mask = 0.0f;
+    float quick_back_mask = 0.0f;
+    const bool has_front_layer_candidate = TryResolvePanelPayload(front_mask_param, quick_front_mask);
+    const bool has_back_layer_candidate = TryResolvePanelPayload(back_mask_param, quick_back_mask);
+    if (nan_debug_mode == 0 && !has_front_layer_candidate && !has_back_layer_candidate)
+    {
+        Output[pixel] = float4(scene_color, 1.0f);
+        HistoryOutputTex[pixel] = float4(scene_color, 1.0f);
+        return;
+    }
+
+    const float4 front_panel_optics_raw = PanelOpticsTex.Load(int3(pixel, 0));
     const float4 back_panel_optics_raw = PanelOpticsSecondaryTex.Load(int3(pixel, 0));
     const float4 front_panel_profile_raw = PanelProfileTex.Load(int3(pixel, 0));
     const float4 back_panel_profile_raw = PanelProfileSecondaryTex.Load(int3(pixel, 0));
-    const bool invalid_scene = !IsFiniteFloat3(scene_color_raw);
     const bool invalid_payload = !IsFiniteFloat4(front_mask_param_raw) ||
                                  !IsFiniteFloat4(front_panel_optics_raw) ||
                                  !IsFiniteFloat4(back_mask_param_raw) ||
                                  !IsFiniteFloat4(back_panel_optics_raw) ||
                                  !IsFiniteFloat4(front_panel_profile_raw) ||
                                  !IsFiniteFloat4(back_panel_profile_raw);
-    const float3 scene_color = SanitizeFloat3(scene_color_raw);
-    const float4 front_mask_param = SanitizeFloat4(front_mask_param_raw);
     const float4 front_panel_optics = SanitizeFloat4(front_panel_optics_raw);
-    const float4 back_mask_param = SanitizeFloat4(back_mask_param_raw);
     const float4 back_panel_optics = SanitizeFloat4(back_panel_optics_raw);
     const float4 front_panel_profile = SanitizeFloat4(front_panel_profile_raw);
     const float4 back_panel_profile = SanitizeFloat4(back_panel_profile_raw);

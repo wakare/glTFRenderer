@@ -374,7 +374,7 @@ protected:
     bool m_multilayer_runtime_enabled{true};
     unsigned m_multilayer_over_budget_streak{0};
     unsigned m_multilayer_cooldown_frames{0};
-    PanelPayloadPath m_panel_payload_path{PanelPayloadPath::ComputeSDF};
+    PanelPayloadPath m_panel_payload_path{PanelPayloadPath::RasterPanelGBuffer};
     bool m_panel_payload_raster_ready{false};
     bool m_panel_payload_compute_fallback_active{false};
     unsigned m_last_expected_registered_pass_count{0};
