@@ -40,6 +40,13 @@ public:
         SceneOcclusion = 1
     };
 
+    enum class BlurSourceMode : unsigned
+    {
+        LegacyPyramid = 0,
+        SharedMip = 1,
+        SharedDual = 2
+    };
+
     static constexpr unsigned PANEL_INTERACTION_STATE_COUNT = static_cast<unsigned>(PanelInteractionState::Count);
 
     struct PanelStateCurve
@@ -165,6 +172,7 @@ protected:
         float temporal_reject_velocity{0.03f};
         float temporal_edge_reject{1.0f};
         unsigned temporal_history_valid{0};
+        unsigned blur_source_mode{1};
         unsigned multilayer_mode{1};
         float multilayer_overlap_threshold{0.08f};
         float multilayer_back_layer_weight{1.00f};
@@ -180,6 +188,7 @@ protected:
         float blur_veil_tint_mix{0.55f};
         float blur_detail_preservation{0.04f};
         unsigned nan_debug_mode{0};
+        unsigned full_fog_mode{0};
         float thickness_edge_power{2.20f};
         float thickness_highlight_boost_max{2.60f};
         float thickness_refraction_boost_max{1.90f};
@@ -261,10 +270,16 @@ protected:
     RendererInterface::RenderGraphNodeHandle m_downsample_thirtysecond_pass_node{NULL_HANDLE};
     RendererInterface::RenderGraphNodeHandle m_blur_thirtysecond_horizontal_pass_node{NULL_HANDLE};
     RendererInterface::RenderGraphNodeHandle m_blur_thirtysecond_vertical_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_shared_downsample_half_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_shared_downsample_quarter_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_shared_downsample_eighth_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_shared_downsample_sixteenth_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_shared_downsample_thirtysecond_pass_node{NULL_HANDLE};
     RendererInterface::RenderGraphNodeHandle m_frosted_mask_parameter_pass_node{NULL_HANDLE};
     RendererInterface::RenderGraphNodeHandle m_frosted_mask_parameter_raster_front_pass_node{NULL_HANDLE};
     RendererInterface::RenderGraphNodeHandle m_frosted_mask_parameter_raster_back_pass_node{NULL_HANDLE};
     RendererInterface::RenderGraphNodeHandle m_frosted_composite_back_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_frosted_composite_back_shared_mip_pass_node{NULL_HANDLE};
     RendererInterface::RenderGraphNodeHandle m_downsample_half_multilayer_pass_node{NULL_HANDLE};
     RendererInterface::RenderGraphNodeHandle m_blur_half_multilayer_horizontal_pass_node{NULL_HANDLE};
     RendererInterface::RenderGraphNodeHandle m_blur_half_multilayer_vertical_pass_node{NULL_HANDLE};
@@ -280,10 +295,19 @@ protected:
     RendererInterface::RenderGraphNodeHandle m_downsample_thirtysecond_multilayer_pass_node{NULL_HANDLE};
     RendererInterface::RenderGraphNodeHandle m_blur_thirtysecond_multilayer_horizontal_pass_node{NULL_HANDLE};
     RendererInterface::RenderGraphNodeHandle m_blur_thirtysecond_multilayer_vertical_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_shared_downsample_half_multilayer_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_shared_downsample_quarter_multilayer_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_shared_downsample_eighth_multilayer_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_shared_downsample_sixteenth_multilayer_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_shared_downsample_thirtysecond_multilayer_pass_node{NULL_HANDLE};
     RendererInterface::RenderGraphNodeHandle m_frosted_composite_front_history_ab_pass_node{NULL_HANDLE};
     RendererInterface::RenderGraphNodeHandle m_frosted_composite_front_history_ba_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_frosted_composite_front_shared_mip_history_ab_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_frosted_composite_front_shared_mip_history_ba_pass_node{NULL_HANDLE};
     RendererInterface::RenderGraphNodeHandle m_frosted_composite_history_ab_pass_node{NULL_HANDLE};
     RendererInterface::RenderGraphNodeHandle m_frosted_composite_history_ba_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_frosted_composite_shared_mip_history_ab_pass_node{NULL_HANDLE};
+    RendererInterface::RenderGraphNodeHandle m_frosted_composite_shared_mip_history_ba_pass_node{NULL_HANDLE};
     RendererInterface::RenderTargetHandle m_frosted_pass_output{NULL_HANDLE};
     RendererInterface::RenderTargetHandle m_frosted_back_composite_output{NULL_HANDLE};
     RendererInterface::RenderTargetHandle m_frosted_mask_parameter_output{NULL_HANDLE};
@@ -341,12 +365,17 @@ protected:
     bool m_temporal_history_read_is_a{true};
     bool m_temporal_force_reset{true};
     bool m_temporal_history_valid{false};
+    BlurSourceMode m_blur_source_mode{BlurSourceMode::SharedMip};
     bool m_multilayer_runtime_enabled{true};
     unsigned m_multilayer_over_budget_streak{0};
     unsigned m_multilayer_cooldown_frames{0};
     PanelPayloadPath m_panel_payload_path{PanelPayloadPath::ComputeSDF};
     bool m_panel_payload_raster_ready{false};
     bool m_panel_payload_compute_fallback_active{false};
+    unsigned m_last_expected_registered_pass_count{0};
+    bool m_last_runtime_used_shared_mip_path{true};
+    bool m_last_runtime_used_raster_payload{false};
+    bool m_last_runtime_used_strict_multilayer{false};
     unsigned m_debug_selected_panel_index{0};
     unsigned m_debug_selected_curve_state_index{0};
     DebugPanelOverrideBucket m_debug_override_producer_world{};

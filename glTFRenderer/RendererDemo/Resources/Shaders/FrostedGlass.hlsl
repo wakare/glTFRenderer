@@ -51,6 +51,7 @@ cbuffer FrostedGlassGlobalBuffer
     float temporal_reject_velocity;
     float temporal_edge_reject;
     uint temporal_history_valid;
+    uint blur_source_mode;
     uint multilayer_mode;
     float multilayer_overlap_threshold;
     float multilayer_back_layer_weight;
@@ -66,6 +67,7 @@ cbuffer FrostedGlassGlobalBuffer
     float blur_veil_tint_mix;
     float blur_detail_preservation;
     uint nan_debug_mode;
+    uint full_fog_mode;
     float thickness_edge_power;
     float thickness_highlight_boost_max;
     float thickness_refraction_boost_max;
@@ -90,6 +92,9 @@ StructuredBuffer<FrostedGlassPanelData> g_frosted_panels;
 static const uint PANEL_SHAPE_ROUNDED_RECT = 0;
 static const uint PANEL_SHAPE_CIRCLE = 1;
 static const uint PANEL_SHAPE_MASK = 2;
+static const uint BLUR_SOURCE_MODE_LEGACY_PYRAMID = 0;
+static const uint BLUR_SOURCE_MODE_SHARED_MIP = 1;
+static const uint BLUR_SOURCE_MODE_SHARED_DUAL = 2;
 static const uint MULTILAYER_MODE_SINGLE = 0;
 static const uint MULTILAYER_MODE_AUTO = 1;
 static const uint MULTILAYER_MODE_FORCE = 2;
@@ -687,7 +692,18 @@ void EvaluatePanelCandidatePayload(float2 uv,
     const float depth_delta = abs(refracted_depth - center_depth);
     const float depth_aware_weight = exp(-depth_delta * panel_depth_weight_scale);
     const float min_depth_aware_strength = saturate(depth_aware_min_strength);
-    panel_effective_blur_strength = panel_blur_strength * lerp(min_depth_aware_strength, 1.0f, depth_aware_weight);
+    if (full_fog_mode != 0u)
+    {
+        const float panel_blur_sigma = panel_data.corner_blur_rim.y;
+        const float sigma_norm = max(blur_sigma_normalization, 1.0f);
+        const float sigma_t = saturate((panel_blur_sigma * max(blur_response_scale, 0.1f)) / sigma_norm);
+        const float full_fog_floor = lerp(0.72f, 0.92f, sigma_t);
+        panel_effective_blur_strength = max(panel_blur_strength, full_fog_floor);
+    }
+    else
+    {
+        panel_effective_blur_strength = panel_blur_strength * lerp(min_depth_aware_strength, 1.0f, depth_aware_weight);
+    }
     panel_refraction_uv = saturate(refraction_uv);
     panel_effective_blur_strength = saturate(panel_effective_blur_strength);
 }
@@ -807,6 +823,7 @@ float ComputeDirectionalSpecularTerm(float3 center_normal, float3 view_dir, floa
 bool EvaluatePanelFrostedColor(float3 scene_color,
                                float3 center_normal,
                                float3 view_dir,
+                               float2 screen_uv,
                                float4 mask_param,
                                float4 panel_optics,
                                float4 panel_profile,
@@ -849,6 +866,7 @@ bool EvaluatePanelFrostedColor(float3 scene_color,
     const float thickness_factor = saturate((panel_thickness - thickness_min) / (thickness_max - thickness_min));
 
     const float2 refraction_uv = saturate(panel_optics.xy);
+    const float2 stable_screen_uv = saturate(screen_uv);
     const float effective_blur_strength = saturate(panel_optics.z);
     const float blur_response = max(blur_response_scale, 0.1f);
     const float normalized_sigma = panel_blur_sigma * blur_response;
@@ -860,11 +878,24 @@ bool EvaluatePanelFrostedColor(float3 scene_color,
     bool invalid_eighth_blur = false;
     bool invalid_sixteenth_blur = false;
     bool invalid_thirtysecond_blur = false;
+    const bool use_shared_mip_sampling = blur_source_mode != BLUR_SOURCE_MODE_LEGACY_PYRAMID;
+    const float shared_sigma_t = use_shared_mip_sampling ? saturate((normalized_sigma - 5.0f) / 24.0f) : 0.0f;
     const float3 half_blurred_color = SampleBlurredColor(refraction_uv, invalid_half_blur);
     const float3 quarter_blurred_color = SampleQuarterBlurredColor(refraction_uv, invalid_quarter_blur);
-    const float3 eighth_blurred_color = SampleEighthBlurredColor(refraction_uv, invalid_eighth_blur);
-    const float3 sixteenth_blurred_color = SampleSixteenthBlurredColor(refraction_uv, invalid_sixteenth_blur);
-    const float3 thirtysecond_blurred_color = SampleThirtySecondBlurredColor(refraction_uv, invalid_thirtysecond_blur);
+    float3 eighth_blurred_color = SampleEighthBlurredColor(refraction_uv, invalid_eighth_blur);
+    float3 sixteenth_blurred_color = SampleSixteenthBlurredColor(refraction_uv, invalid_sixteenth_blur);
+    float3 thirtysecond_blurred_color = SampleThirtySecondBlurredColor(refraction_uv, invalid_thirtysecond_blur);
+    if (use_shared_mip_sampling)
+    {
+        const float3 shared_ultra_low =
+            lerp(sixteenth_blurred_color, thirtysecond_blurred_color, saturate(0.58f + 0.30f * shared_sigma_t));
+        const float shared_eighth_mix = lerp(0.10f, 0.32f, shared_sigma_t);
+        const float shared_sixteenth_mix = lerp(0.20f, 0.48f, shared_sigma_t);
+        const float shared_thirtysecond_mix = lerp(0.28f, 0.62f, shared_sigma_t);
+        eighth_blurred_color = lerp(eighth_blurred_color, sixteenth_blurred_color, shared_eighth_mix);
+        sixteenth_blurred_color = lerp(sixteenth_blurred_color, shared_ultra_low, shared_sixteenth_mix);
+        thirtysecond_blurred_color = lerp(thirtysecond_blurred_color, shared_ultra_low, shared_thirtysecond_mix);
+    }
     out_had_invalid_blur = invalid_half_blur ||
                            invalid_quarter_blur ||
                            invalid_eighth_blur ||
@@ -875,16 +906,21 @@ bool EvaluatePanelFrostedColor(float3 scene_color,
     const float sixteenth_blend = saturate((normalized_sigma - 16.0f) / 10.0f);
     const float thirtysecond_blend = saturate((normalized_sigma - 28.0f) / 12.0f);
     const float quarter_mix = saturate(quarter_blend + saturate(blur_quarter_mix_boost) * (1.0f - quarter_blend));
-    const float3 half_quarter_blended = lerp(half_blurred_color, quarter_blurred_color, quarter_mix);
+    const float shared_quarter_floor = lerp(0.24f, 0.52f, shared_sigma_t);
+    const float effective_quarter_mix = use_shared_mip_sampling ? max(quarter_mix, shared_quarter_floor) : quarter_mix;
+    const float3 half_quarter_blended = lerp(half_blurred_color, quarter_blurred_color, effective_quarter_mix);
     const float3 half_quarter_eighth_blended = lerp(half_quarter_blended, eighth_blurred_color, eighth_blend);
     const float3 half_to_sixteenth_blended = lerp(half_quarter_eighth_blended, sixteenth_blurred_color, sixteenth_blend);
     const float3 layered_blurred_color = lerp(half_to_sixteenth_blended, thirtysecond_blurred_color, thirtysecond_blend);
-    const float detail_keep = saturate(blur_detail_preservation);
+    const float base_detail_keep = saturate(blur_detail_preservation);
+    const float detail_keep = use_shared_mip_sampling ? base_detail_keep * lerp(0.90f, 0.70f, shared_sigma_t) : base_detail_keep;
     const float coarse_bias = 1.0f - detail_keep;
-    const float coarse_mix = saturate((normalized_sigma - 10.0f) / 10.0f) * coarse_bias;
+    const float shared_coarse_boost = use_shared_mip_sampling ? lerp(1.05f, 1.30f, shared_sigma_t) : 1.0f;
+    const float coarse_mix = saturate((normalized_sigma - 10.0f) / 10.0f) * coarse_bias * shared_coarse_boost;
     const float3 ultra_low_freq = lerp(sixteenth_blurred_color, thirtysecond_blurred_color, saturate((normalized_sigma - 22.0f) / 12.0f));
     const float3 blurred_color = lerp(layered_blurred_color, ultra_low_freq, coarse_mix);
-    const float veil_factor = saturate(blur_veil_strength * blur_sigma_factor * effective_blur_strength);
+    const float shared_veil_boost = use_shared_mip_sampling ? lerp(1.04f, 1.18f, shared_sigma_t) : 1.0f;
+    const float veil_factor = saturate(blur_veil_strength * blur_sigma_factor * effective_blur_strength * shared_veil_boost);
     float3 veiled_blur = lerp(blurred_color, ultra_low_freq, veil_factor);
     const float veiled_luma = dot(veiled_blur, float3(0.2126f, 0.7152f, 0.0722f));
     const float contrast_keep = 1.0f - saturate(blur_contrast_compression * veil_factor);
@@ -892,6 +928,40 @@ bool EvaluatePanelFrostedColor(float3 scene_color,
     const float tint_neutralize = saturate(blur_veil_tint_mix * veil_factor);
     const float3 veiled_tint = lerp(panel_tint, float3(1.0f, 1.0f, 1.0f), tint_neutralize);
     const float3 sigma_adjusted_blur = lerp(scene_color, veiled_blur, blur_sigma_factor);
+    const bool enable_full_fog = full_fog_mode != 0u;
+    if (enable_full_fog)
+    {
+        bool invalid_fog_sixteenth_blur = false;
+        bool invalid_fog_thirtysecond_blur = false;
+        const float fog_uv_mix = saturate(0.88f + scene_edge * 0.10f);
+        const float2 fog_uv = lerp(refraction_uv, stable_screen_uv, fog_uv_mix);
+        float3 fog_sixteenth_blurred_color = SampleSixteenthBlurredColor(fog_uv, invalid_fog_sixteenth_blur);
+        float3 fog_thirtysecond_blurred_color = SampleThirtySecondBlurredColor(fog_uv, invalid_fog_thirtysecond_blur);
+        if (use_shared_mip_sampling)
+        {
+            const float3 shared_fog_ultra_low =
+                lerp(fog_sixteenth_blurred_color, fog_thirtysecond_blurred_color, saturate(0.62f + 0.30f * shared_sigma_t));
+            fog_sixteenth_blurred_color = lerp(fog_sixteenth_blurred_color, shared_fog_ultra_low, lerp(0.30f, 0.60f, shared_sigma_t));
+            fog_thirtysecond_blurred_color = lerp(fog_thirtysecond_blurred_color, shared_fog_ultra_low, lerp(0.34f, 0.68f, shared_sigma_t));
+        }
+        const float fog_ultra_low_mix = saturate(0.80f + 0.16f * blur_sigma_factor);
+        const float3 fog_ultra_low = lerp(fog_sixteenth_blurred_color, fog_thirtysecond_blurred_color, fog_ultra_low_mix);
+        const float edge_fog_boost = saturate(scene_edge * 1.6f);
+        const float fog_low_freq_mix = saturate(0.88f + 0.10f * blur_sigma_factor + 0.06f * edge_fog_boost);
+        float3 fog_base = lerp(veiled_blur, fog_ultra_low, fog_low_freq_mix);
+        fog_base = lerp(fog_base, fog_ultra_low, edge_fog_boost * 0.82f);
+        const float fog_tint_mix = saturate(0.70f + 0.25f * blur_veil_tint_mix);
+        const float3 fog_tint = lerp(panel_tint, float3(1.0f, 1.0f, 1.0f), fog_tint_mix);
+        fog_base *= fog_tint;
+
+        out_had_invalid_blur = out_had_invalid_blur || invalid_fog_sixteenth_blur || invalid_fog_thirtysecond_blur;
+        const float fog_strength = max(effective_blur_strength, lerp(0.90f, 0.99f, blur_sigma_factor));
+        const float scene_keep = lerp(0.02f, 0.00f, blur_sigma_factor);
+        const float fog_mix = saturate(fog_strength * (1.0f - scene_keep));
+        const float3 fog_color = lerp(scene_color, fog_base, fog_mix);
+        out_frosted_color = SanitizeFloat3(fog_color);
+        return true;
+    }
     const float scene_luminance = dot(scene_color, float3(0.2126f, 0.7152f, 0.0722f));
     const float blur_luminance = dot(sigma_adjusted_blur, float3(0.2126f, 0.7152f, 0.0722f));
     const float sparkle_metric = saturate((scene_luminance - blur_luminance) / max(blur_luminance + 0.10f, 0.10f));
@@ -1316,7 +1386,18 @@ bool EvaluateSinglePanelLayerPayload(int2 pixel,
         const float depth_delta = abs(refracted_depth - center_depth);
         const float depth_aware_weight = exp(-depth_delta * panel_depth_weight_scale);
         const float min_depth_aware_strength = saturate(depth_aware_min_strength);
-        panel_effective_blur_strength = panel_blur_strength * lerp(min_depth_aware_strength, 1.0f, depth_aware_weight);
+        if (full_fog_mode != 0u)
+        {
+            const float panel_blur_sigma = panel_data.corner_blur_rim.y;
+            const float sigma_norm = max(blur_sigma_normalization, 1.0f);
+            const float sigma_t = saturate((panel_blur_sigma * max(blur_response_scale, 0.1f)) / sigma_norm);
+            const float full_fog_floor = lerp(0.72f, 0.92f, sigma_t);
+            panel_effective_blur_strength = max(panel_blur_strength, full_fog_floor);
+        }
+        else
+        {
+            panel_effective_blur_strength = panel_blur_strength * lerp(min_depth_aware_strength, 1.0f, depth_aware_weight);
+        }
         panel_refraction_uv = saturate(refraction_uv);
         panel_effective_blur_strength = saturate(panel_effective_blur_strength);
     }
@@ -1448,6 +1529,8 @@ void CompositeBackMain(int3 dispatch_thread_id : SV_DispatchThreadID)
     }
 
     const int2 pixel = dispatch_thread_id.xy;
+    const float2 current_uv =
+        (float2(pixel) + 0.5f) / float2((float)viewport_width, (float)viewport_height);
     const float3 scene_color_raw = InputColorTex.Load(int3(pixel, 0)).rgb;
     const float4 front_mask_param_raw = MaskParamTex.Load(int3(pixel, 0));
     const float4 back_mask_param_raw = MaskParamSecondaryTex.Load(int3(pixel, 0));
@@ -1481,6 +1564,7 @@ void CompositeBackMain(int3 dispatch_thread_id : SV_DispatchThreadID)
         scene_color,
         center_normal,
         view_dir,
+        current_uv,
         back_mask_param,
         back_panel_optics,
         back_panel_profile,
@@ -1559,6 +1643,7 @@ void CompositeFrontMain(int3 dispatch_thread_id : SV_DispatchThreadID)
         scene_color,
         center_normal,
         view_dir,
+        current_uv,
         front_mask_param,
         front_panel_optics,
         front_panel_profile,
@@ -1669,6 +1754,7 @@ void CompositeMain(int3 dispatch_thread_id : SV_DispatchThreadID)
         scene_color,
         center_normal,
         view_dir,
+        current_uv,
         front_mask_param,
         front_panel_optics,
         front_panel_profile,
@@ -1685,6 +1771,7 @@ void CompositeMain(int3 dispatch_thread_id : SV_DispatchThreadID)
         scene_color,
         center_normal,
         view_dir,
+        current_uv,
         back_mask_param,
         back_panel_optics,
         back_panel_profile,
@@ -1710,6 +1797,7 @@ void CompositeMain(int3 dispatch_thread_id : SV_DispatchThreadID)
             back_composited_color,
             center_normal,
             view_dir,
+            current_uv,
             front_mask_param,
             front_panel_optics,
             front_panel_profile,

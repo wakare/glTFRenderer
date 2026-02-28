@@ -41,12 +41,21 @@
 
 ### 2.2 Composite branch switch
 
+- Blur source mode:
+  - requested by `m_blur_source_mode` (UI/runtime)
+  - runtime effective mode written to `m_global_params.blur_source_mode`
+  - `SharedDual` currently falls back to `SharedMip`
+- Legacy full-fog mode:
+  - controlled by `m_global_params.full_fog_mode` (`Full Fog Mode` in frosted debug UI)
+  - when enabled, legacy composite path biases frosted sampling to screen-UV ultra-low-frequency levels to reduce geometry-edge clarity
 - Strict multilayer branch condition:
   - `m_global_params.multilayer_mode == MULTILAYER_MODE_FORCE`
   - and `m_multilayer_runtime_enabled == true`
 - Branches:
-  - strict branch: `Back Composite -> Multilayer Pyramid -> Front Composite`
-  - fast branch: legacy single composite pass
+  - strict + legacy: `Back Composite -> Multilayer Blur Pyramid -> Front Composite`
+  - strict + shared mip: `Back Composite SharedMip -> Multilayer SharedMip Downsample -> Front Composite SharedMip`
+  - fast + legacy: legacy single composite pass
+  - fast + shared mip: shared-mip single composite pass
 
 ### 2.3 Temporal history ping-pong
 
@@ -69,7 +78,7 @@
 
 ## 3. Pass Graph Per Frame
 
-### 3.1 Base blur pyramid (always registered)
+### 3.1 Base blur-source chain (mode-dependent)
 
 | ID | Pass debug name | Type | Explicit dependency | Main input resources | Main output resources |
 |---|---|---|---|---|---|
@@ -89,6 +98,16 @@
 | A14 | Blur ThirtySecond Horizontal | Compute | A13 | `m_thirtysecond_blur_ping` | `m_thirtysecond_blur_pong` |
 | A15 | Blur ThirtySecond Vertical | Compute | A14 | `m_thirtysecond_blur_pong` | `m_thirtysecond_blur_final_output` |
 
+SharedMip chain:
+
+| ID | Pass debug name | Type | Explicit dependency | Main input resources | Main output resources |
+|---|---|---|---|---|---|
+| S01 | SharedMip Downsample Half | Compute | - | Lighting output | `m_half_blur_final_output` |
+| S02 | SharedMip Downsample Quarter | Compute | S01 | `m_half_blur_final_output` | `m_quarter_blur_final_output` |
+
+Notes:
+- Current SharedMip runtime path registers full `S01`~`S05` downsample chain.
+
 ### 3.2 Panel payload producer (one path active per frame)
 
 | ID | Pass debug name | Type | Explicit dependency | Main input resources | Main output resources |
@@ -104,6 +123,8 @@ Notes:
 ### 3.3 Composite branch
 
 ### Strict multilayer branch (`Back -> Front`)
+
+Legacy pyramid strict path:
 
 | ID | Pass debug name | Type | Explicit dependency | Main input resources | Main output resources |
 |---|---|---|---|---|---|
@@ -125,11 +146,24 @@ Notes:
 | C16 | Blur ThirtySecond Multilayer Vertical | Compute | C15 | `m_thirtysecond_multilayer_pong` | `m_thirtysecond_multilayer_blur_final_output` |
 | C17 | Frosted Composite Front History A->B / B->A (active one per frame) | Compute | C16 | `BackCompositeTex` + multilayer blur finals + front/back mask/optics/profile payloads + velocity + history read | `m_frosted_pass_output`, history write (`m_temporal_history_a` or `m_temporal_history_b`) |
 
-### Fast legacy branch
+SharedMip strict path:
+
+| ID | Pass debug name | Type | Explicit dependency | Main input resources | Main output resources |
+|---|---|---|---|---|---|
+| CS01 | Frosted Composite Back SharedMip | Compute | S05 | lighting output + shared-mip blur finals + front/back mask/optics/profile payloads | `m_frosted_back_composite_output` |
+| CS02 | SharedMip Downsample Half Multilayer | Compute | CS01 | `m_frosted_back_composite_output` | `m_half_multilayer_blur_final_output` |
+| CS03 | SharedMip Downsample Quarter Multilayer | Compute | CS02 | `m_half_multilayer_blur_final_output` | `m_quarter_multilayer_blur_final_output` |
+| CS04 | SharedMip Downsample Eighth Multilayer | Compute | CS03 | `m_quarter_multilayer_blur_final_output` | `m_eighth_multilayer_blur_final_output` |
+| CS05 | SharedMip Downsample Sixteenth Multilayer | Compute | CS04 | `m_eighth_multilayer_blur_final_output` | `m_sixteenth_multilayer_blur_final_output` |
+| CS06 | SharedMip Downsample ThirtySecond Multilayer | Compute | CS05 | `m_sixteenth_multilayer_blur_final_output` | `m_thirtysecond_multilayer_blur_final_output` |
+| CS07 | Frosted Composite Front SharedMip History A->B / B->A (active one per frame) | Compute | CS06 | `BackCompositeTex` + multilayer shared-mip finals + front/back mask/optics/profile payloads + velocity + history read | `m_frosted_pass_output`, history write (`m_temporal_history_a` or `m_temporal_history_b`) |
+
+### Fast branch
 
 | ID | Pass debug name | Type | Explicit dependency | Main input resources | Main output resources |
 |---|---|---|---|---|---|
 | L01 | Frosted Composite History A->B / B->A (active one per frame) | Compute | A15 | lighting output + base blur finals + front/back mask/optics/profile payloads + velocity + history read | `m_frosted_pass_output`, history write (`m_temporal_history_a` or `m_temporal_history_b`) |
+| LS01 | Frosted Composite SharedMip History A->B / B->A (active one per frame) | Compute | S05 | lighting output + shared-mip finals + front/back mask/optics/profile payloads + velocity + history read | `m_frosted_pass_output`, history write (`m_temporal_history_a` or `m_temporal_history_b`) |
 
 ### 3.4 External consumer after frosted
 
@@ -140,7 +174,7 @@ Notes:
 
 This section focuses on per-pass compute semantics (not graph topology).
 
-#### 3.5.1 Blur pyramid passes (`A01`~`A15`, `C02`~`C16`)
+#### 3.5.1 Blur-source passes (`A01`~`A15`, `S01`~`S05`, `C02`~`C16`, `CS02`~`CS06`)
 
 - `DownsampleMain`:
   - output pixel maps to `2x2` source block (`base_pixel = output_xy * 2`).
@@ -150,6 +184,9 @@ This section focuses on per-pass compute semantics (not graph topology).
   - radius = `max(blur_radius, 1)`.
   - sigma = `max(radius * 0.5 * blur_kernel_sigma_scale, 0.8)`.
   - normalized weighted sum over offsets `[-radius, +radius]`.
+- Runtime mapping:
+  - `LegacyPyramid`: uses `A01`~`A15` and `C02`~`C16`.
+  - `SharedMip`: uses `S01`~`S05` and `CS02`~`CS06` (downsample-only source chain).
 
 #### 3.5.2 Payload generation - compute path (`B01`)
 
@@ -195,12 +232,18 @@ This section focuses on per-pass compute semantics (not graph topology).
   - applies the same depth-policy gate as front pass.
   - writes back payload MRTs.
 
-#### 3.5.4 Frosted color evaluator (used by `C01`, `C17`, `L01`)
+#### 3.5.4 Frosted color evaluator (used by `C01`, `C17`, `L01`, `CS01`, `CS07`, `LS01`)
 
-- Entry: `EvaluatePanelFrostedColor(scene_color, center_normal, view_dir, mask_param, panel_optics, panel_profile, ...)`.
+- Entry: `EvaluatePanelFrostedColor(scene_color, center_normal, view_dir, screen_uv, mask_param, panel_optics, panel_profile, ...)`.
 - Steps:
   - validate `mask` and `panel_index`.
-  - sample blur pyramid at refracted UV (`1/2`, `1/4`, `1/8`, `1/16`, `1/32`) with linear (bilinear) reconstruction to avoid point-sampling shimmer/leak.
+  - sample blur-source levels at refracted UV with linear (bilinear) reconstruction to avoid point-sampling shimmer/leak.
+    - `LegacyPyramid`: samples `1/2`, `1/4`, `1/8`, `1/16`, `1/32`.
+    - `SharedMip`: samples `1/2`, `1/4`, `1/8`, `1/16`, `1/32` from shared downsample chain and applies shared-mode low-frequency compensation in shader.
+  - legacy full-fog branch (`full_fog_mode != 0`):
+    - bypasses depth-aware blur attenuation floor drop by applying a sigma-driven minimum blur-strength floor.
+    - builds fog color from `1/16`+`1/32` low-frequency sampling with UV biased toward `screen_uv` (de-emphasize refractive edge structure).
+    - increases fog blend floor and returns early (skips edge highlight/specular stack) to target full-panel atomized fog look.
   - apply highlight de-speckle suppression:
     - detect scene luminance outliers above blur baseline (`scene_luminance - blur_luminance`)
     - reduce only this high-frequency bright residual before final blur blend.
@@ -287,13 +330,13 @@ This section focuses on per-pass compute semantics (not graph topology).
   - `m_frosted_panel_payload_depth`, `m_frosted_panel_payload_depth_secondary` (raster payload path)
 - Strict branch intermediate:
   - `m_frosted_back_composite_output`
-- Base blur pyramid:
-  - final outputs: `m_half_blur_final_output`, `m_quarter_blur_final_output`, `m_eighth_blur_final_output`, `m_sixteenth_blur_final_output`, `m_thirtysecond_blur_final_output`
-  - ping/pong: `m_eighth_blur_ping/pong`, `m_sixteenth_blur_ping/pong`, `m_thirtysecond_blur_ping/pong`
-  - shared half/quarter ping/pong from `PostFxSharedResources`
-- Multilayer blur pyramid:
-  - final outputs: `m_half_multilayer_blur_final_output`, `m_quarter_multilayer_blur_final_output`, `m_eighth_multilayer_blur_final_output`, `m_sixteenth_multilayer_blur_final_output`, `m_thirtysecond_multilayer_blur_final_output`
-  - ping/pong: `m_half_multilayer_ping/pong`, `m_quarter_multilayer_ping/pong`, `m_eighth_multilayer_ping/pong`, `m_sixteenth_multilayer_ping/pong`, `m_thirtysecond_multilayer_ping/pong`
+- Base blur-source outputs (shared by Legacy/SharedMip composite paths):
+  - `m_half_blur_final_output`, `m_quarter_blur_final_output`, `m_eighth_blur_final_output`, `m_sixteenth_blur_final_output`, `m_thirtysecond_blur_final_output`
+  - Legacy-only ping/pong intermediates: `m_eighth_blur_ping/pong`, `m_sixteenth_blur_ping/pong`, `m_thirtysecond_blur_ping/pong`
+  - shared half/quarter ping/pong from `PostFxSharedResources` (legacy path)
+- Strict multilayer blur-source outputs:
+  - `m_half_multilayer_blur_final_output`, `m_quarter_multilayer_blur_final_output`, `m_eighth_multilayer_blur_final_output`, `m_sixteenth_multilayer_blur_final_output`, `m_thirtysecond_multilayer_blur_final_output`
+  - Legacy-only ping/pong intermediates: `m_half_multilayer_ping/pong`, `m_quarter_multilayer_ping/pong`, `m_eighth_multilayer_ping/pong`, `m_sixteenth_multilayer_ping/pong`, `m_thirtysecond_multilayer_ping/pong`
 
 ### 4.3 Buffer resources
 
@@ -320,10 +363,19 @@ This section focuses on per-pass compute semantics (not graph topology).
 
 ## 5. Expected Active Pass Count (for quick sanity checks)
 
-- Fast branch + compute payload: 17 frosted pass nodes/frame (`15 base + 1 payload + 1 legacy composite`)
-- Fast branch + raster payload: 18 frosted pass nodes/frame (`15 base + 2 payload raster + 1 legacy composite`)
+LegacyPyramid mode:
+
+- Fast branch + compute payload: 17 frosted pass nodes/frame (`15 base + 1 payload + 1 composite`)
+- Fast branch + raster payload: 18 frosted pass nodes/frame (`15 base + 2 payload raster + 1 composite`)
 - Strict branch + compute payload: 33 frosted pass nodes/frame (`15 base + 1 payload + 17 strict branch`)
 - Strict branch + raster payload: 34 frosted pass nodes/frame (`15 base + 2 payload raster + 17 strict branch`)
+
+SharedMip mode (current SharedDual fallback target):
+
+- Fast branch + compute payload: 7 frosted pass nodes/frame (`5 shared base + 1 payload + 1 composite`)
+- Fast branch + raster payload: 8 frosted pass nodes/frame (`5 shared base + 2 payload raster + 1 composite`)
+- Strict branch + compute payload: 13 frosted pass nodes/frame (`5 shared base + 1 payload + 7 strict branch`)
+- Strict branch + raster payload: 14 frosted pass nodes/frame (`5 shared base + 2 payload raster + 7 strict branch`)
 
 If runtime observed pass count diverges from these numbers, inspect `Tick` registration logic first.
 

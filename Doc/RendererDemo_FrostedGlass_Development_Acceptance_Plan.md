@@ -344,7 +344,7 @@ This plan is based on the current implementation in repository `glTFRenderer`.
 | B5 | App | P1 | Immersion blend | Smooth blend control verified | Planned | - |
 | B6 | App | P0 | Multi-layer composition alignment | Top-N overlap blending with bounded cost | In Progress (B6.1 top-2 payload + B6.2 adaptive/runtime refinement complete; visual/perf acceptance pending) | `Doc/FeatureNotes/20260224_B6_MultilayerCompositionPlan.md`, `Doc/FeatureNotes/20260224_B6_Top2MultilayerCore.md`, `Doc/FeatureNotes/20260224_B6_AdaptiveMultilayerRefinement.md` |
 | B7 | App | P0 | Panel GBuffer 3D compatibility | Two-layer frosted composition driven by geometry-aware panel payload | Accepted (B7.1~B7.7 complete, including prepass-feed source path and phase-2 highlight tuning; visual/perf evidence captured on 2026-02-27) | `Doc/FeatureNotes/20260225_B7_PanelGBufferTwoLayerCompatibilityPlan.md` |
-| B8 | App | P0 | Blur source optimization and cost reduction | Replace fixed blur pyramid dependency with shared low-cost blur source while preserving B7 visual behavior | Planned | `Doc/FeatureNotes/20260227_B8_BlurSourceOptimizationPlan.md` |
+| B8 | App | P0 | Blur source optimization and cost reduction | Replace fixed blur pyramid dependency with shared low-cost blur source while preserving B7 visual behavior | In Progress (B8.1/B8.2 runtime pass reduction wired; B8.3 shader shared sampling branch integrated; legacy `Full Fog Mode` boundary de-structure branch landed; B8.5 acceptance pending) | `Doc/FeatureNotes/20260227_B8_BlurSourceOptimizationPlan.md` |
 | A5 | Framework | P1 | RenderGraph QoL helpers | Reduced setup boilerplate | Planned | - |
 
 ## 8. Development and Review Rules for This Plan
