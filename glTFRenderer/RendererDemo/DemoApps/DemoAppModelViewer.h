@@ -23,7 +23,6 @@ protected:
     virtual void TickFrameInternal(unsigned long long time_interval) override;
     virtual void DrawDebugUIInternal() override;
     void UpdateFrostedPanelPrepassFeeds(float timeline_seconds);
-    bool ExportB7AcceptanceSnapshot();
     bool ConfigureRegressionRunFromArguments(const std::vector<std::string>& arguments);
     void TickRegressionAutomation();
     bool StartRegressionCase(const RendererInterface::RenderGraph::FrameStats& frame_stats);
@@ -36,6 +35,7 @@ protected:
                                  const std::filesystem::path& file_path) const;
     bool ApplyRegressionCaseConfig(const Regression::CaseConfig& case_config, std::string& out_error);
     void RefreshImportableRegressionCaseList();
+    bool DeleteSelectedImportableRegressionCaseJson();
     bool ImportRegressionCaseFromJson(const std::filesystem::path& suite_path);
 
     struct RegressionPerfAccumulator
@@ -81,11 +81,6 @@ protected:
     float m_directional_light_angular_speed_radians{0.25f};
     bool m_enable_panel_input_state_machine{true};
     bool m_enable_frosted_prepass_feeds{true};
-    bool m_auto_export_b7_snapshot{false};
-    bool m_auto_export_b7_snapshot_done{false};
-    int m_b7_snapshot_warmup_frames{180};
-    std::string m_last_b7_snapshot_summary_path{};
-    std::string m_last_b7_snapshot_csv_path{};
     std::vector<RendererSystemFrostedPanelProducer::WorldPanelPrepassItem> m_world_prepass_panels{};
     std::vector<RendererSystemFrostedPanelProducer::OverlayPanelPrepassItem> m_overlay_prepass_panels{};
     bool m_regression_enabled{false};
