@@ -3093,10 +3093,6 @@ void RendererSystemFrostedGlass::DrawDebugUI()
         {
             panel_dirty = true;
         }
-        if (ImGui::SliderFloat("Depth Weight Scale", &panel.depth_weight_scale, 1.0f, 200.0f, "%.1f"))
-        {
-            panel_dirty = true;
-        }
         if (ImGui::SliderFloat("Edge Softness", &panel.edge_softness, 0.1f, 4.0f, "%.2f"))
         {
             panel_dirty = true;
@@ -3538,7 +3534,7 @@ RendererSystemFrostedGlass::FrostedGlassPanelGpuData RendererSystemFrostedGlass:
         panel_desc.tint_color.x,
         panel_desc.tint_color.y,
         panel_desc.tint_color.z,
-        panel_desc.depth_weight_scale
+        0.0f
     };
     gpu_data.shape_info = {
         static_cast<float>(panel_desc.shape_type),

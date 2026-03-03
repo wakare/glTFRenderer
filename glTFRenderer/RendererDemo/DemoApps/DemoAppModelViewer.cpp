@@ -141,7 +141,6 @@ bool DemoAppModelViewer::InitInternal(const std::vector<std::string>& arguments)
         panel_desc.blur_strength = 0.92f;
         panel_desc.rim_intensity = 0.03f;
         panel_desc.tint_color = {0.94f, 0.97f, 1.0f};
-        panel_desc.depth_weight_scale = 100.0f;
         panel_desc.shape_type = RendererSystemFrostedGlass::PanelShapeType::RoundedRect;
         panel_desc.edge_softness = 1.25f;
         panel_desc.thickness = 0.014f;

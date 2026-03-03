@@ -77,7 +77,6 @@ public:
         float blur_strength{0.92f};
         float rim_intensity{0.03f};
         glm::fvec3 tint_color{0.94f, 0.97f, 1.0f};
-        float depth_weight_scale{100.0f};
         PanelShapeType shape_type{PanelShapeType::RoundedRect};
         float edge_softness{1.25f};
         float thickness{0.014f};
