@@ -747,32 +747,22 @@ void EvaluatePanelCandidatePayload(float2 uv,
 
 void ComputeDirectionalLightingTerms(float3 center_normal,
                                      float3 view_dir,
+                                     float3 incident_light,
+                                     float directional_weight,
+                                     bool has_valid_light_dir,
                                      float fallback_specular,
                                      out float out_directional_mod,
                                      out float out_directional_specular)
 {
-    const float directional_weight = saturate(highlight_light_dir_weight.w);
     const float fallback_spec = saturate(fallback_specular);
-    if (directional_weight <= 1e-4f)
+    if (directional_weight <= 1e-4f || !has_valid_light_dir)
     {
         out_directional_mod = 1.0f;
         out_directional_specular = fallback_spec;
         return;
     }
-
-    float3 light_dir = SanitizeFloat3(highlight_light_dir_weight.xyz);
-    const float light_dir_len_sq = dot(light_dir, light_dir);
-    if (light_dir_len_sq <= 1e-6f)
-    {
-        out_directional_mod = 1.0f;
-        out_directional_specular = fallback_spec;
-        return;
-    }
-
-    light_dir *= rsqrt(light_dir_len_sq);
     const float3 normal = normalize(center_normal);
     const float3 view = normalize(view_dir);
-    const float3 incident_light = -light_dir;
     const float n_dot_l = saturate(dot(normal, incident_light));
     const float3 half_vector_raw = incident_light + view;
     const float half_len_sq = dot(half_vector_raw, half_vector_raw);
@@ -964,6 +954,7 @@ bool EvaluatePanelFrostedColor(float3 scene_color,
             const float directional_weight = saturate(highlight_light_dir_weight.w);
             float3 light_dir = SanitizeFloat3(highlight_light_dir_weight.xyz);
             const float light_len_sq = dot(light_dir, light_dir);
+            const bool has_valid_light_dir = light_len_sq > 1e-6f;
             if (light_len_sq > 1e-6f)
             {
                 light_dir *= rsqrt(light_len_sq);
@@ -1015,6 +1006,9 @@ bool EvaluatePanelFrostedColor(float3 scene_color,
             ComputeDirectionalLightingTerms(
                 highlight_normal,
                 view_dir,
+                incident_light,
+                directional_weight,
+                has_valid_light_dir,
                 rim_base * 0.45f,
                 directional_mod,
                 directional_specular);
