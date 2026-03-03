@@ -731,19 +731,28 @@ void EvaluatePanelCandidatePayload(float2 uv,
     panel_effective_blur_strength = saturate(panel_effective_blur_strength);
 }
 
-float ComputeDirectionalHighlightFactor(float3 center_normal, float3 view_dir)
+void ComputeDirectionalLightingTerms(float3 center_normal,
+                                     float3 view_dir,
+                                     float fallback_specular,
+                                     out float out_directional_mod,
+                                     out float out_directional_specular)
 {
     const float directional_weight = saturate(highlight_light_dir_weight.w);
+    const float fallback_spec = saturate(fallback_specular);
     if (directional_weight <= 1e-4f)
     {
-        return 1.0f;
+        out_directional_mod = 1.0f;
+        out_directional_specular = fallback_spec;
+        return;
     }
 
     float3 light_dir = SanitizeFloat3(highlight_light_dir_weight.xyz);
     const float light_dir_len_sq = dot(light_dir, light_dir);
     if (light_dir_len_sq <= 1e-6f)
     {
-        return 1.0f;
+        out_directional_mod = 1.0f;
+        out_directional_specular = fallback_spec;
+        return;
     }
 
     light_dir *= rsqrt(light_dir_len_sq);
@@ -761,7 +770,11 @@ float ComputeDirectionalHighlightFactor(float3 center_normal, float3 view_dir)
     const float response_curve = max(directional_highlight_curve, 0.1f);
     const float directional_response = pow(saturate(directional_spec * 2.5f), response_curve);
     const float directional_modulation = lerp(min_mod, max_mod, directional_response);
-    return lerp(1.0f, directional_modulation, directional_weight);
+    out_directional_mod = lerp(1.0f, directional_modulation, directional_weight);
+
+    const float directional_specular = n_dot_l * n_dot_l * pow(n_dot_h, 12.0f);
+    out_directional_specular =
+        saturate(lerp(fallback_spec, saturate(directional_specular), directional_weight));
 }
 
 float3 SafeNormalize(float3 value, float3 fallback)
@@ -813,34 +826,6 @@ float3 BuildPanelHighlightNormal(FrostedGlassPanelData panel_data,
     const float edge_bend = edge_influence * (0.55f + 0.95f * edge_width);
     const float3 bent_normal = SafeNormalize(panel_base_normal + panel_edge_tangent * edge_bend, panel_base_normal);
     return SafeNormalize(lerp(panel_base_normal, bent_normal, edge_influence), fallback_normal);
-}
-
-float ComputeDirectionalSpecularTerm(float3 center_normal, float3 view_dir, float fallback_specular)
-{
-    const float directional_weight = saturate(highlight_light_dir_weight.w);
-    if (directional_weight <= 1e-4f)
-    {
-        return saturate(fallback_specular);
-    }
-
-    float3 light_dir = SanitizeFloat3(highlight_light_dir_weight.xyz);
-    const float light_dir_len_sq = dot(light_dir, light_dir);
-    if (light_dir_len_sq <= 1e-6f)
-    {
-        return saturate(fallback_specular);
-    }
-
-    light_dir *= rsqrt(light_dir_len_sq);
-    const float3 normal = normalize(center_normal);
-    const float3 view = normalize(view_dir);
-    const float3 incident_light = -light_dir;
-    const float n_dot_l = saturate(dot(normal, incident_light));
-    const float3 half_vector_raw = incident_light + view;
-    const float half_len_sq = dot(half_vector_raw, half_vector_raw);
-    const float3 half_vector = half_len_sq > 1e-6f ? half_vector_raw * rsqrt(half_len_sq) : incident_light;
-    const float n_dot_h = saturate(dot(normal, half_vector));
-    const float directional_spec = n_dot_l * n_dot_l * pow(n_dot_h, 12.0f);
-    return saturate(lerp(saturate(fallback_specular), saturate(directional_spec), directional_weight));
 }
 
 float ComputePanelEdgeMask(float rim_base,
@@ -1008,8 +993,14 @@ bool EvaluatePanelFrostedColor(float3 scene_color,
             const float edge_light_facing_strict = pow(saturate(edge_light_signed), lerp(0.6f, 2.0f, directional_weight));
             const float tangent_gate_weight = saturate(light_tangent_len * 3.6f);
 
-            const float directional_mod = ComputeDirectionalHighlightFactor(highlight_normal, view_dir);
-            const float directional_specular = ComputeDirectionalSpecularTerm(highlight_normal, view_dir, rim_base * 0.45f);
+            float directional_mod = 1.0f;
+            float directional_specular = 0.0f;
+            ComputeDirectionalLightingTerms(
+                highlight_normal,
+                view_dir,
+                rim_base * 0.45f,
+                directional_mod,
+                directional_specular);
             const float directional_focus = pow(saturate(directional_specular), lerp(3.2f, 1.6f, directional_weight));
             const float directional_gain = lerp(1.10f, 3.20f, directional_weight);
             const float normal_light_alignment = saturate(dot(highlight_normal, incident_light));
