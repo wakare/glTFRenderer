@@ -1190,15 +1190,18 @@ PanelPayloadResult EvaluatePanelPayloadAtPixel(int2 pixel, float2 uv)
             front_panel_index);
         if (better_than_front)
         {
-            back_mask = front_mask;
-            back_rim = front_rim;
-            back_mixed_fresnel = front_mixed_fresnel;
-            back_refraction_uv = front_refraction_uv;
-            back_effective_blur_strength = front_effective_blur_strength;
-            back_profile_normal_uv = front_profile_normal_uv;
-            back_optical_thickness = front_optical_thickness;
-            back_layer = front_layer;
-            back_panel_index = front_panel_index;
+            if (front_panel_index >= 0)
+            {
+                back_mask = front_mask;
+                back_rim = front_rim;
+                back_mixed_fresnel = front_mixed_fresnel;
+                back_refraction_uv = front_refraction_uv;
+                back_effective_blur_strength = front_effective_blur_strength;
+                back_profile_normal_uv = front_profile_normal_uv;
+                back_optical_thickness = front_optical_thickness;
+                back_layer = front_layer;
+                back_panel_index = front_panel_index;
+            }
 
             front_mask = panel_mask;
             front_rim = panel_rim;
@@ -1209,6 +1212,20 @@ PanelPayloadResult EvaluatePanelPayloadAtPixel(int2 pixel, float2 uv)
             front_optical_thickness = panel_optical_thickness;
             front_layer = panel_layer;
             front_panel_index = panel_index_signed;
+            continue;
+        }
+
+        if (back_panel_index < 0)
+        {
+            back_mask = panel_mask;
+            back_rim = panel_rim;
+            back_mixed_fresnel = panel_mixed_fresnel;
+            back_refraction_uv = panel_refraction_uv;
+            back_effective_blur_strength = panel_effective_blur_strength;
+            back_profile_normal_uv = panel_profile_normal_uv;
+            back_optical_thickness = panel_optical_thickness;
+            back_layer = panel_layer;
+            back_panel_index = panel_index_signed;
             continue;
         }
 
