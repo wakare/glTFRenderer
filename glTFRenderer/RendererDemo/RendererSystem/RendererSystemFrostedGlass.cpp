@@ -2779,10 +2779,6 @@ void RendererSystemFrostedGlass::DrawDebugUI()
         {
             global_dirty = true;
         }
-        if (ImGui::SliderFloat("Edge Spec Sharpness", &m_global_params.edge_spec_sharpness, 1.0f, 32.0f, "%.1f"))
-        {
-            global_dirty = true;
-        }
         if (ImGui::SliderFloat("Edge Highlight Width", &m_global_params.edge_highlight_width, 0.05f, 1.0f, "%.2f"))
         {
             global_dirty = true;
@@ -3233,7 +3229,6 @@ void RendererSystemFrostedGlass::DrawDebugUI()
         m_global_params.temporal_reject_velocity = clamp(m_global_params.temporal_reject_velocity, 0.001f, 0.20f);
         m_global_params.temporal_edge_reject = clamp(m_global_params.temporal_edge_reject, 0.0f, 2.0f);
         m_global_params.blur_kernel_sigma_scale = clamp(m_global_params.blur_kernel_sigma_scale, 0.6f, 3.5f);
-        m_global_params.blur_quarter_mix_boost = clamp(m_global_params.blur_quarter_mix_boost, 0.0f, 1.0f);
         m_global_params.blur_response_scale = clamp(m_global_params.blur_response_scale, 0.6f, 2.5f);
         m_global_params.blur_sigma_normalization = clamp(m_global_params.blur_sigma_normalization, 4.0f, 12.0f);
         m_global_params.blur_veil_strength = clamp(m_global_params.blur_veil_strength, 0.0f, 2.0f);
@@ -3248,7 +3243,6 @@ void RendererSystemFrostedGlass::DrawDebugUI()
         m_global_params.thickness_range_min = clamp(m_global_params.thickness_range_min, 0.0f, 0.10f);
         m_global_params.thickness_range_max = clamp(m_global_params.thickness_range_max, 0.01f, 0.20f);
         m_global_params.edge_spec_intensity = clamp(m_global_params.edge_spec_intensity, 0.0f, 3.0f);
-        m_global_params.edge_spec_sharpness = clamp(m_global_params.edge_spec_sharpness, 1.0f, 32.0f);
         m_global_params.edge_highlight_width = clamp(m_global_params.edge_highlight_width, 0.05f, 1.0f);
         m_global_params.edge_highlight_white_mix = clamp(m_global_params.edge_highlight_white_mix, 0.0f, 1.0f);
         m_global_params.directional_highlight_min = clamp(m_global_params.directional_highlight_min, 0.0f, 1.0f);

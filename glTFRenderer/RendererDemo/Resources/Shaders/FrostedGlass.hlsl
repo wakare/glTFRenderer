@@ -58,7 +58,7 @@ cbuffer FrostedGlassGlobalBuffer
     float multilayer_front_transmittance;
     uint multilayer_runtime_enabled;
     float multilayer_frame_budget_ms;
-    float blur_quarter_mix_boost;
+    float frosted_padding2;
     float blur_response_scale;
     float blur_sigma_normalization;
     float blur_veil_strength;
@@ -73,7 +73,7 @@ cbuffer FrostedGlassGlobalBuffer
     float thickness_range_min;
     float thickness_range_max;
     float edge_spec_intensity;
-    float edge_spec_sharpness;
+    float frosted_padding3;
     float edge_highlight_width;
     float edge_highlight_white_mix;
     float directional_highlight_min;

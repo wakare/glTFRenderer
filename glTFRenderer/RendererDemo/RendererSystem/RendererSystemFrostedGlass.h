@@ -185,7 +185,7 @@ protected:
         float multilayer_front_transmittance{1.00f};
         unsigned multilayer_runtime_enabled{1};
         float multilayer_frame_budget_ms{22.0f};
-        float blur_quarter_mix_boost{0.50f};
+        float frosted_padding2{0.0f};
         float blur_response_scale{2.20f};
         float blur_sigma_normalization{5.5f};
         float blur_veil_strength{1.35f};
@@ -200,7 +200,7 @@ protected:
         float thickness_range_min{0.004f};
         float thickness_range_max{0.060f};
         float edge_spec_intensity{0.95f};
-        float edge_spec_sharpness{7.50f};
+        float frosted_padding3{0.0f};
         float edge_highlight_width{0.34f};
         float edge_highlight_white_mix{0.88f};
         float directional_highlight_min{0.10f};
