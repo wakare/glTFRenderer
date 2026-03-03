@@ -1383,24 +1383,9 @@ bool EvaluateSinglePanelLayerPayload(int2 pixel,
     panel_optics = float4(screen_uv, 0.0f, 0.0f);
     panel_profile = float4(0.0f, 0.0f, 0.0f, 0.0f);
 
-    const float depth_dx = abs(SampleDepthSafe(pixel + int2(1, 0)) - SampleDepthSafe(pixel - int2(1, 0)));
-    const float depth_dy = abs(SampleDepthSafe(pixel + int2(0, 1)) - SampleDepthSafe(pixel - int2(0, 1)));
-    const float scene_edge = saturate((depth_dx + depth_dy) * scene_edge_scale);
-
-    const float center_depth = SampleDepthSafe(pixel);
-    const float3 center_normal = SampleNormalSafe(pixel);
-    float3 world_position = 0.0f;
-    const bool valid_world_position = TryGetWorldPosition(pixel, center_depth, world_position);
+    float scene_edge = 0.0f;
+    float3 center_normal = 0.0f;
     float3 view_dir = float3(0.0f, 0.0f, 1.0f);
-    if (valid_world_position)
-    {
-        const float3 to_view = view_position.xyz - world_position;
-        const float to_view_len_sq = dot(to_view, to_view);
-        if (to_view_len_sq > 1e-6f)
-        {
-            view_dir = to_view * rsqrt(to_view_len_sq);
-        }
-    }
 
     float panel_mask = 0.0f;
     float panel_rim = 0.0f;
@@ -1420,6 +1405,23 @@ bool EvaluateSinglePanelLayerPayload(int2 pixel,
         if (panel_mask <= 1e-4f)
         {
             return false;
+        }
+
+        const float depth_dx = abs(SampleDepthSafe(pixel + int2(1, 0)) - SampleDepthSafe(pixel - int2(1, 0)));
+        const float depth_dy = abs(SampleDepthSafe(pixel + int2(0, 1)) - SampleDepthSafe(pixel - int2(0, 1)));
+        scene_edge = saturate((depth_dx + depth_dy) * scene_edge_scale);
+        const float center_depth = SampleDepthSafe(pixel);
+        center_normal = SampleNormalSafe(pixel);
+        float3 world_position = 0.0f;
+        const bool valid_world_position = TryGetWorldPosition(pixel, center_depth, world_position);
+        if (valid_world_position)
+        {
+            const float3 to_view = view_position.xyz - world_position;
+            const float to_view_len_sq = dot(to_view, to_view);
+            if (to_view_len_sq > 1e-6f)
+            {
+                view_dir = to_view * rsqrt(to_view_len_sq);
+            }
         }
 
         const float panel_blur_strength = panel_data.corner_blur_rim.z;
@@ -1451,6 +1453,23 @@ bool EvaluateSinglePanelLayerPayload(int2 pixel,
     }
     else
     {
+        const float depth_dx = abs(SampleDepthSafe(pixel + int2(1, 0)) - SampleDepthSafe(pixel - int2(1, 0)));
+        const float depth_dy = abs(SampleDepthSafe(pixel + int2(0, 1)) - SampleDepthSafe(pixel - int2(0, 1)));
+        scene_edge = saturate((depth_dx + depth_dy) * scene_edge_scale);
+        const float center_depth = SampleDepthSafe(pixel);
+        center_normal = SampleNormalSafe(pixel);
+        float3 world_position = 0.0f;
+        const bool valid_world_position = TryGetWorldPosition(pixel, center_depth, world_position);
+        if (valid_world_position)
+        {
+            const float3 to_view = view_position.xyz - world_position;
+            const float to_view_len_sq = dot(to_view, to_view);
+            if (to_view_len_sq > 1e-6f)
+            {
+                view_dir = to_view * rsqrt(to_view_len_sq);
+            }
+        }
+
         EvaluatePanelCandidatePayload(
             screen_uv,
             center_depth,
