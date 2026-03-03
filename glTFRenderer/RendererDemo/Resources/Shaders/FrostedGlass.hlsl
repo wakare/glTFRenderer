@@ -1783,35 +1783,43 @@ void CompositeMain(int3 dispatch_thread_id : SV_DispatchThreadID)
     float3 front_frosted_color = scene_color;
     float front_blur_metric = 0.0f;
     bool front_had_invalid_blur = false;
-    const bool has_front_layer = EvaluatePanelFrostedColor(
-        scene_color,
-        center_normal,
-        view_dir,
-        current_uv,
-        front_mask_param,
-        front_panel_optics,
-        front_panel_profile,
-        front_mask,
-        front_frosted_color,
-        front_blur_metric,
-        front_had_invalid_blur);
+    bool has_front_layer = false;
+    if (has_front_layer_candidate)
+    {
+        has_front_layer = EvaluatePanelFrostedColor(
+            scene_color,
+            center_normal,
+            view_dir,
+            current_uv,
+            front_mask_param,
+            front_panel_optics,
+            front_panel_profile,
+            front_mask,
+            front_frosted_color,
+            front_blur_metric,
+            front_had_invalid_blur);
+    }
 
     float back_mask = 0.0f;
     float3 back_frosted_color = scene_color;
     float back_blur_metric = 0.0f;
     bool back_had_invalid_blur = false;
-    const bool has_back_layer = EvaluatePanelFrostedColor(
-        scene_color,
-        center_normal,
-        view_dir,
-        current_uv,
-        back_mask_param,
-        back_panel_optics,
-        back_panel_profile,
-        back_mask,
-        back_frosted_color,
-        back_blur_metric,
-        back_had_invalid_blur);
+    bool has_back_layer = false;
+    if (has_back_layer_candidate)
+    {
+        has_back_layer = EvaluatePanelFrostedColor(
+            scene_color,
+            center_normal,
+            view_dir,
+            current_uv,
+            back_mask_param,
+            back_panel_optics,
+            back_panel_profile,
+            back_mask,
+            back_frosted_color,
+            back_blur_metric,
+            back_had_invalid_blur);
+    }
 
     float panel_mask = front_mask;
     float3 final_color = lerp(scene_color, front_frosted_color, front_mask);
