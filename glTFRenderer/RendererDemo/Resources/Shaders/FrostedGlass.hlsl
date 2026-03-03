@@ -851,13 +851,15 @@ bool EvaluatePanelFrostedColor(float3 scene_color,
                                out float layer_mask,
                                out float3 out_frosted_color,
                                out float out_blur_metric,
-                               out bool out_had_invalid_blur)
+                               out bool out_had_invalid_blur,
+                               out float out_scene_color_coeff)
 {
     scene_color = SanitizeFloat3(scene_color);
     mask_param = SanitizeFloat4(mask_param);
     panel_optics = SanitizeFloat4(panel_optics);
     panel_profile = SanitizeFloat4(panel_profile);
     out_had_invalid_blur = false;
+    out_scene_color_coeff = 1.0f;
     layer_mask = panel_count > 0 ? saturate(mask_param.x) : 0.0f;
     out_frosted_color = scene_color;
     out_blur_metric = 0.0f;
@@ -932,6 +934,7 @@ bool EvaluatePanelFrostedColor(float3 scene_color,
         const float fog_strength = max(effective_blur_strength, lerp(0.90f, 0.99f, blur_sigma_factor));
         const float scene_keep = lerp(0.02f, 0.00f, blur_sigma_factor);
         const float fog_mix = saturate(fog_strength * (1.0f - scene_keep));
+        float scene_color_coeff = 1.0f - fog_mix;
         float3 fog_color = lerp(scene_color, fog_base, fog_mix);
 
         // Keep full-fog highlights edge-local only, but make them react strongly to directional light changes.
@@ -1026,12 +1029,17 @@ bool EvaluatePanelFrostedColor(float3 scene_color,
             const float white_mix = saturate(edge_highlight_white_mix);
             const float3 highlight_tint = lerp(panel_tint, float3(1.0f, 1.0f, 1.0f), white_mix);
             const float edge_shadow = saturate(thickness_edge_shadow_strength * thickness_factor * edge_term * 0.65f) * edge_visibility;
-            fog_color *= (1.0f - edge_shadow);
-            fog_color *= (1.0f - edge_visibility * dark_side_gate * directional_weight * 0.28f);
+            const float shadow_scale = 1.0f - edge_shadow;
+            const float dark_side_scale = 1.0f - edge_visibility * dark_side_gate * directional_weight * 0.28f;
+            fog_color *= shadow_scale;
+            fog_color *= dark_side_scale;
+            scene_color_coeff *= shadow_scale;
+            scene_color_coeff *= dark_side_scale;
             fog_color += highlight_tint * edge_visibility * (rim_term + fresnel_term + specular_term) * fog_highlight_mix * fog_highlight_gain;
         }
 
         out_frosted_color = SanitizeFloat3(fog_color);
+        out_scene_color_coeff = saturate(scene_color_coeff);
         return true;
 }
 
@@ -1558,6 +1566,7 @@ void CompositeBackMain(int3 dispatch_thread_id : SV_DispatchThreadID)
     float3 back_frosted_color = scene_color;
     float back_blur_metric = 0.0f;
     bool back_had_invalid_blur = false;
+    float back_scene_color_coeff = 1.0f;
     const bool has_back_layer = EvaluatePanelFrostedColor(
         scene_color,
         center_normal,
@@ -1569,7 +1578,9 @@ void CompositeBackMain(int3 dispatch_thread_id : SV_DispatchThreadID)
         back_mask,
         back_frosted_color,
         back_blur_metric,
-        back_had_invalid_blur);
+        back_had_invalid_blur,
+        back_scene_color_coeff);
+    back_blur_metric += back_scene_color_coeff * 0.0f;
 
     float3 back_composited_color = scene_color;
     if (ShouldEnableMultilayer(has_front_layer, has_back_layer, back_mask))
@@ -1647,6 +1658,7 @@ void CompositeFrontMain(int3 dispatch_thread_id : SV_DispatchThreadID)
     float3 front_frosted_color = scene_color;
     float front_blur_metric = 0.0f;
     bool front_had_invalid_blur = false;
+    float front_scene_color_coeff = 1.0f;
     const bool has_front_layer = EvaluatePanelFrostedColor(
         scene_color,
         center_normal,
@@ -1658,7 +1670,9 @@ void CompositeFrontMain(int3 dispatch_thread_id : SV_DispatchThreadID)
         front_mask,
         front_frosted_color,
         front_blur_metric,
-        front_had_invalid_blur);
+        front_had_invalid_blur,
+        front_scene_color_coeff);
+    front_blur_metric += front_scene_color_coeff * 0.0f;
 
     float back_mask = 0.0f;
     const bool has_back_layer = TryResolvePanelPayload(back_mask_param, back_mask);
@@ -1774,6 +1788,7 @@ void CompositeMain(int3 dispatch_thread_id : SV_DispatchThreadID)
     float3 front_frosted_color = scene_color;
     float front_blur_metric = 0.0f;
     bool front_had_invalid_blur = false;
+    float front_scene_color_coeff = 1.0f;
     bool has_front_layer = false;
     if (has_front_layer_candidate)
     {
@@ -1788,13 +1803,15 @@ void CompositeMain(int3 dispatch_thread_id : SV_DispatchThreadID)
             front_mask,
             front_frosted_color,
             front_blur_metric,
-            front_had_invalid_blur);
+            front_had_invalid_blur,
+            front_scene_color_coeff);
     }
 
     float back_mask = 0.0f;
     float3 back_frosted_color = scene_color;
     float back_blur_metric = 0.0f;
     bool back_had_invalid_blur = false;
+    float back_scene_color_coeff = 1.0f;
     bool has_back_layer = false;
     if (has_back_layer_candidate)
     {
@@ -1809,8 +1826,10 @@ void CompositeMain(int3 dispatch_thread_id : SV_DispatchThreadID)
             back_mask,
             back_frosted_color,
             back_blur_metric,
-            back_had_invalid_blur);
+            back_had_invalid_blur,
+            back_scene_color_coeff);
     }
+    back_blur_metric += back_scene_color_coeff * 0.0f;
 
     float panel_mask = front_mask;
     float3 final_color = lerp(scene_color, front_frosted_color, front_mask);
@@ -1821,23 +1840,16 @@ void CompositeMain(int3 dispatch_thread_id : SV_DispatchThreadID)
         const float effective_back_mask = ComputeEffectiveBackMask(back_mask, front_mask);
         const float3 back_composited_color = lerp(scene_color, back_frosted_color, effective_back_mask);
 
-        float front_mask_over_back = 0.0f;
-        float3 front_over_back_frosted_color = back_composited_color;
-        float front_over_back_blur_metric = 0.0f;
-        bool front_over_back_had_invalid_blur = false;
-        const bool has_front_over_back = EvaluatePanelFrostedColor(
-            back_composited_color,
-            center_normal,
-            view_dir,
-            current_uv,
-            front_mask_param,
-            front_panel_optics,
-            front_panel_profile,
-            front_mask_over_back,
-            front_over_back_frosted_color,
-            front_over_back_blur_metric,
-            front_over_back_had_invalid_blur);
-        front_had_invalid_blur = front_had_invalid_blur || front_over_back_had_invalid_blur;
+        const bool has_front_over_back = has_front_layer;
+        const float front_mask_over_back = front_mask;
+        const float front_over_back_blur_metric = front_blur_metric;
+        float3 front_over_back_frosted_color = front_frosted_color;
+        if (has_front_over_back && front_mask_over_back > 1e-4f)
+        {
+            front_over_back_frosted_color =
+                SanitizeFloat3(front_frosted_color +
+                               (back_composited_color - scene_color) * front_scene_color_coeff);
+        }
 
         if (has_front_over_back && front_mask_over_back > 1e-4f)
         {
