@@ -1147,6 +1147,14 @@ PanelPayloadResult EvaluatePanelPayloadAtPixel(int2 pixel, float2 uv)
     for (uint panel_index = 0; panel_index < panel_count; ++panel_index)
     {
         const FrostedGlassPanelData panel_data = g_frosted_panels[panel_index];
+        const float panel_layer = panel_data.layering_info.x;
+        // Front/back selection is layer-priority first. If a valid back layer already exists,
+        // any strictly lower layer cannot become front or back.
+        if (back_panel_index >= 0 && panel_layer < back_layer - 1e-4f)
+        {
+            continue;
+        }
+
         float panel_mask = 0.0f;
         float panel_rim = 0.0f;
         float panel_mixed_fresnel = 0.0f;
@@ -1172,7 +1180,6 @@ PanelPayloadResult EvaluatePanelPayloadAtPixel(int2 pixel, float2 uv)
             continue;
         }
 
-        const float panel_layer = panel_data.layering_info.x;
         const int panel_index_signed = (int)panel_index;
         const bool better_than_front = IsBetterPanelCandidate(
             panel_layer,
