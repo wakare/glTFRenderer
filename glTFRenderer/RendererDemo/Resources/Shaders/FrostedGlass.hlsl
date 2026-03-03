@@ -54,8 +54,8 @@ cbuffer FrostedGlassGlobalBuffer
     uint blur_source_mode;
     uint multilayer_mode;
     float multilayer_overlap_threshold;
-    float multilayer_back_layer_weight;
-    float multilayer_front_transmittance;
+    float frosted_padding5;
+    float frosted_padding6;
     uint multilayer_runtime_enabled;
     float multilayer_frame_budget_ms;
     float frosted_padding2;
@@ -217,9 +217,8 @@ bool ShouldEnableMultilayer(bool has_front_layer, bool has_back_layer, float bac
 
 float ComputeEffectiveBackMask(float back_mask, float front_mask)
 {
-    const float front_transmittance =
-        lerp(1.0f, saturate(multilayer_front_transmittance), saturate(front_mask));
-    return saturate(back_mask * multilayer_back_layer_weight * front_transmittance);
+    (void)front_mask;
+    return saturate(back_mask);
 }
 
 int2 ClampToViewport(int2 pixel)
@@ -1916,13 +1915,6 @@ void CompositeMain(int3 dispatch_thread_id : SV_DispatchThreadID)
         if (has_front_over_back && front_mask_over_back > 1e-4f)
         {
             float front_effective_mix = front_mask_over_back;
-            if (back_blur_metric > front_over_back_blur_metric + 1e-4f)
-            {
-                const float blur_ratio = saturate(front_over_back_blur_metric / max(back_blur_metric, 1e-4f));
-                const float min_front_mix_scale = saturate(multilayer_front_transmittance);
-                front_effective_mix *= lerp(min_front_mix_scale, 1.0f, blur_ratio);
-            }
-
             final_color = lerp(back_composited_color, front_over_back_frosted_color, front_effective_mix);
             panel_mask = saturate(front_effective_mix + effective_back_mask);
         }

@@ -2701,14 +2701,6 @@ void RendererSystemFrostedGlass::DrawDebugUI()
         m_multilayer_cooldown_frames = 0;
         global_dirty = true;
     }
-    if (ImGui::SliderFloat("Multilayer Back Weight", &m_global_params.multilayer_back_layer_weight, 0.0f, 1.0f, "%.2f"))
-    {
-        global_dirty = true;
-    }
-    if (ImGui::SliderFloat("Multilayer Front Transmittance", &m_global_params.multilayer_front_transmittance, 0.0f, 1.0f, "%.2f"))
-    {
-        global_dirty = true;
-    }
     if (ImGui::CollapsingHeader("Advanced / Global"))
     {
         const char* panel_payload_paths[] = {"Compute (SDF)", "Raster (Panel GBuffer)"};
@@ -3224,8 +3216,6 @@ void RendererSystemFrostedGlass::DrawDebugUI()
         m_global_params.blur_veil_strength = clamp(m_global_params.blur_veil_strength, 0.0f, 2.0f);
         m_global_params.multilayer_frame_budget_ms = clamp(m_global_params.multilayer_frame_budget_ms, 8.0f, 50.0f);
         m_global_params.multilayer_overlap_threshold = clamp(m_global_params.multilayer_overlap_threshold, 0.0f, 0.80f);
-        m_global_params.multilayer_back_layer_weight = clamp(m_global_params.multilayer_back_layer_weight, 0.0f, 1.0f);
-        m_global_params.multilayer_front_transmittance = clamp(m_global_params.multilayer_front_transmittance, 0.0f, 1.0f);
         m_global_params.thickness_edge_power = clamp(m_global_params.thickness_edge_power, 1.0f, 8.0f);
         m_global_params.thickness_highlight_boost_max = clamp(m_global_params.thickness_highlight_boost_max, 1.0f, 4.0f);
         m_global_params.thickness_refraction_boost_max = clamp(m_global_params.thickness_refraction_boost_max, 1.0f, 4.0f);

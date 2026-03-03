@@ -181,8 +181,8 @@ protected:
         unsigned blur_source_mode{1};
         unsigned multilayer_mode{1};
         float multilayer_overlap_threshold{0.08f};
-        float multilayer_back_layer_weight{1.00f};
-        float multilayer_front_transmittance{1.00f};
+        float frosted_padding5{0.0f};
+        float frosted_padding6{0.0f};
         unsigned multilayer_runtime_enabled{1};
         float multilayer_frame_budget_ms{22.0f};
         float frosted_padding2{0.0f};
