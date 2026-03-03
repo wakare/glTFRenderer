@@ -2738,11 +2738,7 @@ void RendererSystemFrostedGlass::DrawDebugUI()
         {
             global_dirty = true;
         }
-        if (ImGui::SliderFloat("Depth Aware Min Strength", &m_global_params.depth_aware_min_strength, 0.0f, 1.0f, "%.2f"))
-        {
-            global_dirty = true;
-        }
-        ImGui::TextUnformatted("Blur Detail Model: quarterMixBoost=0.50, contrastCompression=0.90, veilTintMix=0.55, detailPreserve=0.04 (fixed)");
+        ImGui::TextUnformatted("Blur Detail Model: quarterMixBoost=0.50 (fixed)");
         if (ImGui::SliderFloat("Scene Edge Scale", &m_global_params.scene_edge_scale, 0.0f, 120.0f, "%.1f"))
         {
             global_dirty = true;
@@ -3252,9 +3248,7 @@ void RendererSystemFrostedGlass::DrawDebugUI()
         m_global_params.blur_quarter_mix_boost = clamp(m_global_params.blur_quarter_mix_boost, 0.0f, 1.0f);
         m_global_params.blur_response_scale = clamp(m_global_params.blur_response_scale, 0.6f, 2.5f);
         m_global_params.blur_sigma_normalization = clamp(m_global_params.blur_sigma_normalization, 4.0f, 12.0f);
-        m_global_params.depth_aware_min_strength = clamp(m_global_params.depth_aware_min_strength, 0.0f, 1.0f);
         m_global_params.blur_veil_strength = clamp(m_global_params.blur_veil_strength, 0.0f, 2.0f);
-        m_global_params.blur_contrast_compression = clamp(m_global_params.blur_contrast_compression, 0.0f, 1.0f);
         m_global_params.multilayer_frame_budget_ms = clamp(m_global_params.multilayer_frame_budget_ms, 8.0f, 50.0f);
         m_global_params.multilayer_overlap_threshold = clamp(m_global_params.multilayer_overlap_threshold, 0.0f, 0.80f);
         m_global_params.multilayer_back_layer_weight = clamp(m_global_params.multilayer_back_layer_weight, 0.0f, 1.0f);

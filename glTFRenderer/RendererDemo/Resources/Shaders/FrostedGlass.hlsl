@@ -61,9 +61,9 @@ cbuffer FrostedGlassGlobalBuffer
     float blur_quarter_mix_boost;
     float blur_response_scale;
     float blur_sigma_normalization;
-    float depth_aware_min_strength;
     float blur_veil_strength;
-    float blur_contrast_compression;
+    float frosted_padding0;
+    float frosted_padding1;
     uint nan_debug_mode;
     uint full_fog_mode;
     float thickness_edge_power;

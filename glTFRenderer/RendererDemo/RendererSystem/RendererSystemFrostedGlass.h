@@ -188,9 +188,9 @@ protected:
         float blur_quarter_mix_boost{0.50f};
         float blur_response_scale{2.20f};
         float blur_sigma_normalization{5.5f};
-        float depth_aware_min_strength{0.18f};
         float blur_veil_strength{1.35f};
-        float blur_contrast_compression{0.90f};
+        float frosted_padding0{0.0f};
+        float frosted_padding1{0.0f};
         unsigned nan_debug_mode{0};
         unsigned full_fog_mode{0};
         float thickness_edge_power{2.20f};
