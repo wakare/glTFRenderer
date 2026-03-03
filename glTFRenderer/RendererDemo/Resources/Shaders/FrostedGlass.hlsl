@@ -1155,6 +1155,11 @@ PanelPayloadResult EvaluatePanelPayloadAtPixel(int2 pixel, float2 uv)
     for (uint panel_index = 0; panel_index < panel_count; ++panel_index)
     {
         const FrostedGlassPanelData panel_data = g_frosted_panels[panel_index];
+        if (panel_data.shape_info.w <= 1e-4f)
+        {
+            continue;
+        }
+
         const float panel_layer = panel_data.layering_info.x;
         // Front/back selection is layer-priority first. If a valid back layer already exists,
         // any strictly lower layer cannot become front or back.
