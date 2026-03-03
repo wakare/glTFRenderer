@@ -297,6 +297,7 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
     m_multilayer_cooldown_frames = 0;
     m_global_params.multilayer_runtime_enabled = m_multilayer_runtime_enabled ? 1u : 0u;
     m_need_upload_global_params = true;
+    m_dispatch_state_valid = false;
 
     const unsigned width = (std::max)(1u, resource_operator.GetCurrentRenderWidth());
     const unsigned height = (std::max)(1u, resource_operator.GetCurrentRenderHeight());
@@ -2319,16 +2320,6 @@ bool RendererSystemFrostedGlass::Tick(RendererInterface::ResourceOperator& resou
     const float delta_seconds = static_cast<float>(interval) / 1000.0f;
     const unsigned width = (std::max)(1u, resource_operator.GetCurrentRenderWidth());
     const unsigned height = (std::max)(1u, resource_operator.GetCurrentRenderHeight());
-    const unsigned half_width = (width + 1u) / 2u;
-    const unsigned half_height = (height + 1u) / 2u;
-    const unsigned quarter_width = (width + 3u) / 4u;
-    const unsigned quarter_height = (height + 3u) / 4u;
-    const unsigned eighth_width = (width + 7u) / 8u;
-    const unsigned eighth_height = (height + 7u) / 8u;
-    const unsigned sixteenth_width = (width + 15u) / 16u;
-    const unsigned sixteenth_height = (height + 15u) / 16u;
-    const unsigned thirtysecond_width = (width + 31u) / 32u;
-    const unsigned thirtysecond_height = (height + 31u) / 32u;
 
     // Keep frosted history across regular camera motion; per-pixel velocity/edge rejection handles reprojection risk.
     // Reserve hard reset for explicit local events (resize/UI reset/mode switch).
@@ -2456,87 +2447,127 @@ bool RendererSystemFrostedGlass::Tick(RendererInterface::ResourceOperator& resou
     m_last_runtime_used_raster_payload = use_raster_panel_payload;
     m_last_runtime_used_strict_multilayer = use_strict_multilayer_path;
 
-    // Update dispatch only for nodes that can be registered in the active runtime path.
-    // This keeps output behavior unchanged while reducing per-frame graph update overhead.
-    const unsigned full_dispatch_x = (width + 7) / 8;
-    const unsigned full_dispatch_y = (height + 7) / 8;
-    const unsigned half_dispatch_x = (half_width + 7) / 8;
-    const unsigned half_dispatch_y = (half_height + 7) / 8;
-    const unsigned quarter_dispatch_x = (quarter_width + 7) / 8;
-    const unsigned quarter_dispatch_y = (quarter_height + 7) / 8;
-    const unsigned eighth_dispatch_x = (eighth_width + 7) / 8;
-    const unsigned eighth_dispatch_y = (eighth_height + 7) / 8;
-    const unsigned sixteenth_dispatch_x = (sixteenth_width + 7) / 8;
-    const unsigned sixteenth_dispatch_y = (sixteenth_height + 7) / 8;
-    const unsigned thirtysecond_dispatch_x = (thirtysecond_width + 7) / 8;
-    const unsigned thirtysecond_dispatch_y = (thirtysecond_height + 7) / 8;
+    // Update dispatch only when the active path or dispatch dimensions change.
+    // This preserves output while reducing redundant per-frame graph updates.
+    const bool dispatch_state_changed =
+        !m_dispatch_state_valid ||
+        m_dispatch_render_width != width ||
+        m_dispatch_render_height != height ||
+        m_dispatch_path_shared_mip != use_shared_mip_path ||
+        m_dispatch_path_raster_payload != use_raster_panel_payload ||
+        m_dispatch_path_strict_multilayer != use_strict_multilayer_path;
+    if (dispatch_state_changed)
+    {
+        const unsigned half_width = (width + 1u) / 2u;
+        const unsigned half_height = (height + 1u) / 2u;
+        const unsigned quarter_width = (width + 3u) / 4u;
+        const unsigned quarter_height = (height + 3u) / 4u;
+        const unsigned eighth_width = (width + 7u) / 8u;
+        const unsigned eighth_height = (height + 7u) / 8u;
+        const unsigned sixteenth_width = (width + 15u) / 16u;
+        const unsigned sixteenth_height = (height + 15u) / 16u;
+        const unsigned thirtysecond_width = (width + 31u) / 32u;
+        const unsigned thirtysecond_height = (height + 31u) / 32u;
 
-    if (use_shared_mip_path)
-    {
-        graph.UpdateComputeDispatch(m_shared_downsample_half_pass_node, half_dispatch_x, half_dispatch_y, 1);
-        graph.UpdateComputeDispatch(m_shared_downsample_quarter_pass_node, quarter_dispatch_x, quarter_dispatch_y, 1);
-        graph.UpdateComputeDispatch(m_shared_downsample_eighth_pass_node, eighth_dispatch_x, eighth_dispatch_y, 1);
-        graph.UpdateComputeDispatch(m_shared_downsample_sixteenth_pass_node, sixteenth_dispatch_x, sixteenth_dispatch_y, 1);
-        graph.UpdateComputeDispatch(m_shared_downsample_thirtysecond_pass_node, thirtysecond_dispatch_x, thirtysecond_dispatch_y, 1);
-    }
-    else
-    {
-        graph.UpdateComputeDispatch(m_downsample_half_pass_node, half_dispatch_x, half_dispatch_y, 1);
-        graph.UpdateComputeDispatch(m_blur_half_horizontal_pass_node, half_dispatch_x, half_dispatch_y, 1);
-        graph.UpdateComputeDispatch(m_blur_half_vertical_pass_node, half_dispatch_x, half_dispatch_y, 1);
-        graph.UpdateComputeDispatch(m_downsample_quarter_pass_node, quarter_dispatch_x, quarter_dispatch_y, 1);
-        graph.UpdateComputeDispatch(m_blur_quarter_horizontal_pass_node, quarter_dispatch_x, quarter_dispatch_y, 1);
-        graph.UpdateComputeDispatch(m_blur_quarter_vertical_pass_node, quarter_dispatch_x, quarter_dispatch_y, 1);
-        graph.UpdateComputeDispatch(m_downsample_eighth_pass_node, eighth_dispatch_x, eighth_dispatch_y, 1);
-        graph.UpdateComputeDispatch(m_blur_eighth_horizontal_pass_node, eighth_dispatch_x, eighth_dispatch_y, 1);
-        graph.UpdateComputeDispatch(m_blur_eighth_vertical_pass_node, eighth_dispatch_x, eighth_dispatch_y, 1);
-        graph.UpdateComputeDispatch(m_downsample_sixteenth_pass_node, sixteenth_dispatch_x, sixteenth_dispatch_y, 1);
-        graph.UpdateComputeDispatch(m_blur_sixteenth_horizontal_pass_node, sixteenth_dispatch_x, sixteenth_dispatch_y, 1);
-        graph.UpdateComputeDispatch(m_blur_sixteenth_vertical_pass_node, sixteenth_dispatch_x, sixteenth_dispatch_y, 1);
-        graph.UpdateComputeDispatch(m_downsample_thirtysecond_pass_node, thirtysecond_dispatch_x, thirtysecond_dispatch_y, 1);
-        graph.UpdateComputeDispatch(m_blur_thirtysecond_horizontal_pass_node, thirtysecond_dispatch_x, thirtysecond_dispatch_y, 1);
-        graph.UpdateComputeDispatch(m_blur_thirtysecond_vertical_pass_node, thirtysecond_dispatch_x, thirtysecond_dispatch_y, 1);
-    }
+        const unsigned full_dispatch_x = (width + 7u) / 8u;
+        const unsigned full_dispatch_y = (height + 7u) / 8u;
+        const unsigned half_dispatch_x = (half_width + 7u) / 8u;
+        const unsigned half_dispatch_y = (half_height + 7u) / 8u;
+        const unsigned quarter_dispatch_x = (quarter_width + 7u) / 8u;
+        const unsigned quarter_dispatch_y = (quarter_height + 7u) / 8u;
+        const unsigned eighth_dispatch_x = (eighth_width + 7u) / 8u;
+        const unsigned eighth_dispatch_y = (eighth_height + 7u) / 8u;
+        const unsigned sixteenth_dispatch_x = (sixteenth_width + 7u) / 8u;
+        const unsigned sixteenth_dispatch_y = (sixteenth_height + 7u) / 8u;
+        const unsigned thirtysecond_dispatch_x = (thirtysecond_width + 7u) / 8u;
+        const unsigned thirtysecond_dispatch_y = (thirtysecond_height + 7u) / 8u;
 
-    if (!use_raster_panel_payload)
-    {
-        graph.UpdateComputeDispatch(m_frosted_mask_parameter_pass_node, full_dispatch_x, full_dispatch_y, 1);
-    }
-
-    if (use_strict_multilayer_path)
-    {
-        graph.UpdateComputeDispatch(active_back_composite_pass, full_dispatch_x, full_dispatch_y, 1);
         if (use_shared_mip_path)
         {
-            graph.UpdateComputeDispatch(m_shared_downsample_half_multilayer_pass_node, half_dispatch_x, half_dispatch_y, 1);
-            graph.UpdateComputeDispatch(m_shared_downsample_quarter_multilayer_pass_node, quarter_dispatch_x, quarter_dispatch_y, 1);
-            graph.UpdateComputeDispatch(m_shared_downsample_eighth_multilayer_pass_node, eighth_dispatch_x, eighth_dispatch_y, 1);
-            graph.UpdateComputeDispatch(m_shared_downsample_sixteenth_multilayer_pass_node, sixteenth_dispatch_x, sixteenth_dispatch_y, 1);
-            graph.UpdateComputeDispatch(m_shared_downsample_thirtysecond_multilayer_pass_node, thirtysecond_dispatch_x, thirtysecond_dispatch_y, 1);
+            graph.UpdateComputeDispatch(m_shared_downsample_half_pass_node, half_dispatch_x, half_dispatch_y, 1);
+            graph.UpdateComputeDispatch(m_shared_downsample_quarter_pass_node, quarter_dispatch_x, quarter_dispatch_y, 1);
+            graph.UpdateComputeDispatch(m_shared_downsample_eighth_pass_node, eighth_dispatch_x, eighth_dispatch_y, 1);
+            graph.UpdateComputeDispatch(m_shared_downsample_sixteenth_pass_node, sixteenth_dispatch_x, sixteenth_dispatch_y, 1);
+            graph.UpdateComputeDispatch(m_shared_downsample_thirtysecond_pass_node, thirtysecond_dispatch_x, thirtysecond_dispatch_y, 1);
         }
         else
         {
-            graph.UpdateComputeDispatch(m_downsample_half_multilayer_pass_node, half_dispatch_x, half_dispatch_y, 1);
-            graph.UpdateComputeDispatch(m_blur_half_multilayer_horizontal_pass_node, half_dispatch_x, half_dispatch_y, 1);
-            graph.UpdateComputeDispatch(m_blur_half_multilayer_vertical_pass_node, half_dispatch_x, half_dispatch_y, 1);
-            graph.UpdateComputeDispatch(m_downsample_quarter_multilayer_pass_node, quarter_dispatch_x, quarter_dispatch_y, 1);
-            graph.UpdateComputeDispatch(m_blur_quarter_multilayer_horizontal_pass_node, quarter_dispatch_x, quarter_dispatch_y, 1);
-            graph.UpdateComputeDispatch(m_blur_quarter_multilayer_vertical_pass_node, quarter_dispatch_x, quarter_dispatch_y, 1);
-            graph.UpdateComputeDispatch(m_downsample_eighth_multilayer_pass_node, eighth_dispatch_x, eighth_dispatch_y, 1);
-            graph.UpdateComputeDispatch(m_blur_eighth_multilayer_horizontal_pass_node, eighth_dispatch_x, eighth_dispatch_y, 1);
-            graph.UpdateComputeDispatch(m_blur_eighth_multilayer_vertical_pass_node, eighth_dispatch_x, eighth_dispatch_y, 1);
-            graph.UpdateComputeDispatch(m_downsample_sixteenth_multilayer_pass_node, sixteenth_dispatch_x, sixteenth_dispatch_y, 1);
-            graph.UpdateComputeDispatch(m_blur_sixteenth_multilayer_horizontal_pass_node, sixteenth_dispatch_x, sixteenth_dispatch_y, 1);
-            graph.UpdateComputeDispatch(m_blur_sixteenth_multilayer_vertical_pass_node, sixteenth_dispatch_x, sixteenth_dispatch_y, 1);
-            graph.UpdateComputeDispatch(m_downsample_thirtysecond_multilayer_pass_node, thirtysecond_dispatch_x, thirtysecond_dispatch_y, 1);
-            graph.UpdateComputeDispatch(m_blur_thirtysecond_multilayer_horizontal_pass_node, thirtysecond_dispatch_x, thirtysecond_dispatch_y, 1);
-            graph.UpdateComputeDispatch(m_blur_thirtysecond_multilayer_vertical_pass_node, thirtysecond_dispatch_x, thirtysecond_dispatch_y, 1);
+            graph.UpdateComputeDispatch(m_downsample_half_pass_node, half_dispatch_x, half_dispatch_y, 1);
+            graph.UpdateComputeDispatch(m_blur_half_horizontal_pass_node, half_dispatch_x, half_dispatch_y, 1);
+            graph.UpdateComputeDispatch(m_blur_half_vertical_pass_node, half_dispatch_x, half_dispatch_y, 1);
+            graph.UpdateComputeDispatch(m_downsample_quarter_pass_node, quarter_dispatch_x, quarter_dispatch_y, 1);
+            graph.UpdateComputeDispatch(m_blur_quarter_horizontal_pass_node, quarter_dispatch_x, quarter_dispatch_y, 1);
+            graph.UpdateComputeDispatch(m_blur_quarter_vertical_pass_node, quarter_dispatch_x, quarter_dispatch_y, 1);
+            graph.UpdateComputeDispatch(m_downsample_eighth_pass_node, eighth_dispatch_x, eighth_dispatch_y, 1);
+            graph.UpdateComputeDispatch(m_blur_eighth_horizontal_pass_node, eighth_dispatch_x, eighth_dispatch_y, 1);
+            graph.UpdateComputeDispatch(m_blur_eighth_vertical_pass_node, eighth_dispatch_x, eighth_dispatch_y, 1);
+            graph.UpdateComputeDispatch(m_downsample_sixteenth_pass_node, sixteenth_dispatch_x, sixteenth_dispatch_y, 1);
+            graph.UpdateComputeDispatch(m_blur_sixteenth_horizontal_pass_node, sixteenth_dispatch_x, sixteenth_dispatch_y, 1);
+            graph.UpdateComputeDispatch(m_blur_sixteenth_vertical_pass_node, sixteenth_dispatch_x, sixteenth_dispatch_y, 1);
+            graph.UpdateComputeDispatch(m_downsample_thirtysecond_pass_node, thirtysecond_dispatch_x, thirtysecond_dispatch_y, 1);
+            graph.UpdateComputeDispatch(m_blur_thirtysecond_horizontal_pass_node, thirtysecond_dispatch_x, thirtysecond_dispatch_y, 1);
+            graph.UpdateComputeDispatch(m_blur_thirtysecond_vertical_pass_node, thirtysecond_dispatch_x, thirtysecond_dispatch_y, 1);
         }
-        graph.UpdateComputeDispatch(active_front_composite_pass, full_dispatch_x, full_dispatch_y, 1);
-    }
-    else
-    {
-        graph.UpdateComputeDispatch(active_single_composite_pass, full_dispatch_x, full_dispatch_y, 1);
+
+        if (!use_raster_panel_payload)
+        {
+            graph.UpdateComputeDispatch(m_frosted_mask_parameter_pass_node, full_dispatch_x, full_dispatch_y, 1);
+        }
+
+        if (use_strict_multilayer_path)
+        {
+            graph.UpdateComputeDispatch(active_back_composite_pass, full_dispatch_x, full_dispatch_y, 1);
+            if (use_shared_mip_path)
+            {
+                graph.UpdateComputeDispatch(m_shared_downsample_half_multilayer_pass_node, half_dispatch_x, half_dispatch_y, 1);
+                graph.UpdateComputeDispatch(m_shared_downsample_quarter_multilayer_pass_node, quarter_dispatch_x, quarter_dispatch_y, 1);
+                graph.UpdateComputeDispatch(m_shared_downsample_eighth_multilayer_pass_node, eighth_dispatch_x, eighth_dispatch_y, 1);
+                graph.UpdateComputeDispatch(m_shared_downsample_sixteenth_multilayer_pass_node, sixteenth_dispatch_x, sixteenth_dispatch_y, 1);
+                graph.UpdateComputeDispatch(m_shared_downsample_thirtysecond_multilayer_pass_node, thirtysecond_dispatch_x, thirtysecond_dispatch_y, 1);
+                graph.UpdateComputeDispatch(m_frosted_composite_front_shared_mip_history_ab_pass_node, full_dispatch_x, full_dispatch_y, 1);
+                graph.UpdateComputeDispatch(m_frosted_composite_front_shared_mip_history_ba_pass_node, full_dispatch_x, full_dispatch_y, 1);
+            }
+            else
+            {
+                graph.UpdateComputeDispatch(m_downsample_half_multilayer_pass_node, half_dispatch_x, half_dispatch_y, 1);
+                graph.UpdateComputeDispatch(m_blur_half_multilayer_horizontal_pass_node, half_dispatch_x, half_dispatch_y, 1);
+                graph.UpdateComputeDispatch(m_blur_half_multilayer_vertical_pass_node, half_dispatch_x, half_dispatch_y, 1);
+                graph.UpdateComputeDispatch(m_downsample_quarter_multilayer_pass_node, quarter_dispatch_x, quarter_dispatch_y, 1);
+                graph.UpdateComputeDispatch(m_blur_quarter_multilayer_horizontal_pass_node, quarter_dispatch_x, quarter_dispatch_y, 1);
+                graph.UpdateComputeDispatch(m_blur_quarter_multilayer_vertical_pass_node, quarter_dispatch_x, quarter_dispatch_y, 1);
+                graph.UpdateComputeDispatch(m_downsample_eighth_multilayer_pass_node, eighth_dispatch_x, eighth_dispatch_y, 1);
+                graph.UpdateComputeDispatch(m_blur_eighth_multilayer_horizontal_pass_node, eighth_dispatch_x, eighth_dispatch_y, 1);
+                graph.UpdateComputeDispatch(m_blur_eighth_multilayer_vertical_pass_node, eighth_dispatch_x, eighth_dispatch_y, 1);
+                graph.UpdateComputeDispatch(m_downsample_sixteenth_multilayer_pass_node, sixteenth_dispatch_x, sixteenth_dispatch_y, 1);
+                graph.UpdateComputeDispatch(m_blur_sixteenth_multilayer_horizontal_pass_node, sixteenth_dispatch_x, sixteenth_dispatch_y, 1);
+                graph.UpdateComputeDispatch(m_blur_sixteenth_multilayer_vertical_pass_node, sixteenth_dispatch_x, sixteenth_dispatch_y, 1);
+                graph.UpdateComputeDispatch(m_downsample_thirtysecond_multilayer_pass_node, thirtysecond_dispatch_x, thirtysecond_dispatch_y, 1);
+                graph.UpdateComputeDispatch(m_blur_thirtysecond_multilayer_horizontal_pass_node, thirtysecond_dispatch_x, thirtysecond_dispatch_y, 1);
+                graph.UpdateComputeDispatch(m_blur_thirtysecond_multilayer_vertical_pass_node, thirtysecond_dispatch_x, thirtysecond_dispatch_y, 1);
+                graph.UpdateComputeDispatch(m_frosted_composite_front_history_ab_pass_node, full_dispatch_x, full_dispatch_y, 1);
+                graph.UpdateComputeDispatch(m_frosted_composite_front_history_ba_pass_node, full_dispatch_x, full_dispatch_y, 1);
+            }
+        }
+        else
+        {
+            if (use_shared_mip_path)
+            {
+                graph.UpdateComputeDispatch(m_frosted_composite_shared_mip_history_ab_pass_node, full_dispatch_x, full_dispatch_y, 1);
+                graph.UpdateComputeDispatch(m_frosted_composite_shared_mip_history_ba_pass_node, full_dispatch_x, full_dispatch_y, 1);
+            }
+            else
+            {
+                graph.UpdateComputeDispatch(m_frosted_composite_history_ab_pass_node, full_dispatch_x, full_dispatch_y, 1);
+                graph.UpdateComputeDispatch(m_frosted_composite_history_ba_pass_node, full_dispatch_x, full_dispatch_y, 1);
+            }
+        }
+
+        m_dispatch_state_valid = true;
+        m_dispatch_render_width = width;
+        m_dispatch_render_height = height;
+        m_dispatch_path_shared_mip = use_shared_mip_path;
+        m_dispatch_path_raster_payload = use_raster_panel_payload;
+        m_dispatch_path_strict_multilayer = use_strict_multilayer_path;
     }
 
     if (use_shared_mip_path)
@@ -2633,6 +2664,7 @@ void RendererSystemFrostedGlass::OnResize(RendererInterface::ResourceOperator& r
     m_multilayer_over_budget_streak = 0;
     m_multilayer_cooldown_frames = 0;
     m_need_upload_global_params = true;
+    m_dispatch_state_valid = false;
 }
 
 void RendererSystemFrostedGlass::DrawDebugUI()

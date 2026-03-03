@@ -387,6 +387,12 @@ protected:
     bool m_last_runtime_used_shared_mip_path{true};
     bool m_last_runtime_used_raster_payload{false};
     bool m_last_runtime_used_strict_multilayer{false};
+    bool m_dispatch_state_valid{false};
+    unsigned m_dispatch_render_width{0};
+    unsigned m_dispatch_render_height{0};
+    bool m_dispatch_path_shared_mip{true};
+    bool m_dispatch_path_raster_payload{false};
+    bool m_dispatch_path_strict_multilayer{false};
     unsigned m_debug_selected_panel_index{0};
     unsigned m_debug_selected_curve_state_index{0};
     DebugPanelOverrideBucket m_debug_override_producer_world{};
