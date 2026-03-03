@@ -64,8 +64,6 @@ cbuffer FrostedGlassGlobalBuffer
     float depth_aware_min_strength;
     float blur_veil_strength;
     float blur_contrast_compression;
-    float blur_veil_tint_mix;
-    float blur_detail_preservation;
     uint nan_debug_mode;
     uint full_fog_mode;
     float thickness_edge_power;
@@ -76,17 +74,11 @@ cbuffer FrostedGlassGlobalBuffer
     float thickness_range_max;
     float edge_spec_intensity;
     float edge_spec_sharpness;
-    float edge_spec_secondary_intensity;
-    float edge_spec_secondary_sharpness;
-    float edge_spec_luma_suppress;
-    float edge_spec_phase2_pad;
     float edge_highlight_width;
     float edge_highlight_white_mix;
     float directional_highlight_min;
     float directional_highlight_max;
     float directional_highlight_curve;
-    float directional_highlight_pad0;
-    float directional_highlight_pad1;
     float4 highlight_light_dir_weight;
 };
 StructuredBuffer<FrostedGlassPanelData> g_frosted_panels;

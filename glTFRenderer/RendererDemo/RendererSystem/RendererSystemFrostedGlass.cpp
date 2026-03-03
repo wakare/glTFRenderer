@@ -2799,18 +2799,6 @@ void RendererSystemFrostedGlass::DrawDebugUI()
         {
             global_dirty = true;
         }
-        if (ImGui::SliderFloat("Edge Spec Secondary Intensity", &m_global_params.edge_spec_secondary_intensity, 0.0f, 2.0f, "%.2f"))
-        {
-            global_dirty = true;
-        }
-        if (ImGui::SliderFloat("Edge Spec Secondary Sharpness", &m_global_params.edge_spec_secondary_sharpness, 1.0f, 64.0f, "%.1f"))
-        {
-            global_dirty = true;
-        }
-        if (ImGui::SliderFloat("Edge Spec Luma Suppress", &m_global_params.edge_spec_luma_suppress, 0.0f, 1.0f, "%.2f"))
-        {
-            global_dirty = true;
-        }
         if (ImGui::SliderFloat("Edge Highlight Width", &m_global_params.edge_highlight_width, 0.05f, 1.0f, "%.2f"))
         {
             global_dirty = true;
@@ -3267,8 +3255,6 @@ void RendererSystemFrostedGlass::DrawDebugUI()
         m_global_params.depth_aware_min_strength = clamp(m_global_params.depth_aware_min_strength, 0.0f, 1.0f);
         m_global_params.blur_veil_strength = clamp(m_global_params.blur_veil_strength, 0.0f, 2.0f);
         m_global_params.blur_contrast_compression = clamp(m_global_params.blur_contrast_compression, 0.0f, 1.0f);
-        m_global_params.blur_veil_tint_mix = clamp(m_global_params.blur_veil_tint_mix, 0.0f, 1.0f);
-        m_global_params.blur_detail_preservation = clamp(m_global_params.blur_detail_preservation, 0.0f, 1.0f);
         m_global_params.multilayer_frame_budget_ms = clamp(m_global_params.multilayer_frame_budget_ms, 8.0f, 50.0f);
         m_global_params.multilayer_overlap_threshold = clamp(m_global_params.multilayer_overlap_threshold, 0.0f, 0.80f);
         m_global_params.multilayer_back_layer_weight = clamp(m_global_params.multilayer_back_layer_weight, 0.0f, 1.0f);
@@ -3281,9 +3267,6 @@ void RendererSystemFrostedGlass::DrawDebugUI()
         m_global_params.thickness_range_max = clamp(m_global_params.thickness_range_max, 0.01f, 0.20f);
         m_global_params.edge_spec_intensity = clamp(m_global_params.edge_spec_intensity, 0.0f, 3.0f);
         m_global_params.edge_spec_sharpness = clamp(m_global_params.edge_spec_sharpness, 1.0f, 32.0f);
-        m_global_params.edge_spec_secondary_intensity = clamp(m_global_params.edge_spec_secondary_intensity, 0.0f, 2.0f);
-        m_global_params.edge_spec_secondary_sharpness = clamp(m_global_params.edge_spec_secondary_sharpness, 1.0f, 64.0f);
-        m_global_params.edge_spec_luma_suppress = clamp(m_global_params.edge_spec_luma_suppress, 0.0f, 1.0f);
         m_global_params.edge_highlight_width = clamp(m_global_params.edge_highlight_width, 0.05f, 1.0f);
         m_global_params.edge_highlight_white_mix = clamp(m_global_params.edge_highlight_white_mix, 0.0f, 1.0f);
         m_global_params.directional_highlight_min = clamp(m_global_params.directional_highlight_min, 0.0f, 1.0f);

@@ -191,8 +191,6 @@ protected:
         float depth_aware_min_strength{0.18f};
         float blur_veil_strength{1.35f};
         float blur_contrast_compression{0.90f};
-        float blur_veil_tint_mix{0.55f};
-        float blur_detail_preservation{0.04f};
         unsigned nan_debug_mode{0};
         unsigned full_fog_mode{0};
         float thickness_edge_power{2.20f};
@@ -203,21 +201,15 @@ protected:
         float thickness_range_max{0.060f};
         float edge_spec_intensity{0.95f};
         float edge_spec_sharpness{7.50f};
-        float edge_spec_secondary_intensity{0.42f};
-        float edge_spec_secondary_sharpness{22.0f};
-        float edge_spec_luma_suppress{0.72f};
-        float edge_spec_phase2_pad{0.0f};
         float edge_highlight_width{0.34f};
         float edge_highlight_white_mix{0.88f};
         float directional_highlight_min{0.10f};
         float directional_highlight_max{2.20f};
         float directional_highlight_curve{1.50f};
-        float directional_highlight_pad0{0.0f};
-        float directional_highlight_pad1{0.0f};
         glm::fvec4 highlight_light_dir_weight{0.0f, -1.0f, 0.0f, 0.0f}; // xyz: dominant directional light dir, w: valid flag
     };
-    static_assert(sizeof(FrostedGlassGlobalParams) == 192, "FrostedGlassGlobalParams must match HLSL cbuffer size.");
-    static_assert(offsetof(FrostedGlassGlobalParams, highlight_light_dir_weight) == 176,
+    static_assert(sizeof(FrostedGlassGlobalParams) == 160, "FrostedGlassGlobalParams must match HLSL cbuffer size.");
+    static_assert(offsetof(FrostedGlassGlobalParams, highlight_light_dir_weight) == 144,
                   "FrostedGlassGlobalParams::highlight_light_dir_weight offset mismatch with HLSL cbuffer.");
 
     struct PanelRuntimeState
