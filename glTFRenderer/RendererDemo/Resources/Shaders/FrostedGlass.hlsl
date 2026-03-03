@@ -65,7 +65,7 @@ cbuffer FrostedGlassGlobalBuffer
     float frosted_padding0;
     float frosted_padding1;
     uint nan_debug_mode;
-    uint full_fog_mode;
+    uint frosted_flags0;
     float thickness_edge_power;
     float thickness_highlight_boost_max;
     float thickness_refraction_boost_max;

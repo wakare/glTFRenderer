@@ -126,7 +126,7 @@ public:
     void SetBlurSourceMode(BlurSourceMode mode);
     BlurSourceMode GetBlurSourceMode() const { return m_blur_source_mode; }
     void SetFullFogMode(bool enable);
-    bool IsFullFogModeEnabled() const { return m_global_params.full_fog_mode != 0u; }
+    bool IsFullFogModeEnabled() const { return true; }
     void ForceResetTemporalHistory();
     unsigned GetEffectivePanelCount() const { return m_global_params.panel_count; }
     RendererInterface::RenderTargetHandle GetOutput() const { return m_frosted_pass_output; }
@@ -192,7 +192,7 @@ protected:
         float frosted_padding0{0.0f};
         float frosted_padding1{0.0f};
         unsigned nan_debug_mode{0};
-        unsigned full_fog_mode{0};
+        unsigned frosted_flags0{0};
         float thickness_edge_power{2.20f};
         float thickness_highlight_boost_max{2.60f};
         float thickness_refraction_boost_max{1.90f};

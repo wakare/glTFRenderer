@@ -261,14 +261,7 @@ void RendererSystemFrostedGlass::SetBlurSourceMode(BlurSourceMode mode)
 
 void RendererSystemFrostedGlass::SetFullFogMode(bool enable)
 {
-    const unsigned full_fog_flag = enable ? 1u : 0u;
-    if (m_global_params.full_fog_mode == full_fog_flag)
-    {
-        return;
-    }
-
-    m_global_params.full_fog_mode = full_fog_flag;
-    m_need_upload_global_params = true;
+    (void)enable;
 }
 
 void RendererSystemFrostedGlass::ForceResetTemporalHistory()
@@ -2686,12 +2679,7 @@ void RendererSystemFrostedGlass::DrawDebugUI()
     {
         global_dirty = true;
     }
-    bool full_fog_mode = m_global_params.full_fog_mode != 0u;
-    if (ImGui::Checkbox("Full Fog Mode", &full_fog_mode))
-    {
-        m_global_params.full_fog_mode = full_fog_mode ? 1u : 0u;
-        global_dirty = true;
-    }
+    ImGui::TextUnformatted("Full Fog Mode: On (Fixed)");
     const char* blur_source_modes[] = {"Legacy Pyramid", "Shared Mip", "Shared Dual (Fallback->SharedMip)"};
     int blur_source_mode = static_cast<int>(m_blur_source_mode);
     if (ImGui::Combo("Blur Source Mode", &blur_source_mode, blur_source_modes, IM_ARRAYSIZE(blur_source_modes)))
@@ -2863,7 +2851,7 @@ void RendererSystemFrostedGlass::DrawDebugUI()
         runtime_blur_source_label = "Shared Dual";
     }
     ImGui::Text("Blur Source: Requested=%s | Runtime=%s", requested_blur_source_label, runtime_blur_source_label);
-    ImGui::Text("Full Fog Mode: %s", m_global_params.full_fog_mode != 0u ? "On" : "Off");
+    ImGui::TextUnformatted("Full Fog Mode: On (Fixed)");
     ImGui::Text("Multilayer Runtime: %s | Cooldown: %u | OverBudgetStreak: %u",
                 m_multilayer_runtime_enabled ? "Enabled" : "Disabled",
                 m_multilayer_cooldown_frames,
@@ -3278,7 +3266,6 @@ void RendererSystemFrostedGlass::DrawDebugUI()
         m_global_params.blur_source_mode = static_cast<unsigned>(m_blur_source_mode);
         m_global_params.multilayer_mode = static_cast<unsigned>((std::max)(0, (std::min)(static_cast<int>(m_global_params.multilayer_mode), 2)));
         m_global_params.nan_debug_mode = static_cast<unsigned>((std::max)(0, (std::min)(static_cast<int>(m_global_params.nan_debug_mode), 1)));
-        m_global_params.full_fog_mode = m_global_params.full_fog_mode == 0u ? 0u : 1u;
         m_need_upload_global_params = true;
     }
 }
