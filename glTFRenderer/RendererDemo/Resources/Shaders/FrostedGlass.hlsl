@@ -664,12 +664,26 @@ bool IsBetterPanelCandidate(float candidate_layer,
                             int selected_panel_index)
 {
     const float layer_delta = candidate_layer - selected_layer;
-    const bool higher_layer = layer_delta > 1e-4f;
-    const bool same_layer = abs(layer_delta) <= 1e-4f;
-    const bool higher_mask = candidate_mask > selected_mask + 1e-4f;
-    const bool same_mask = abs(candidate_mask - selected_mask) <= 1e-4f;
-    const bool newer_panel_index = candidate_panel_index > selected_panel_index;
-    return higher_layer || (same_layer && (higher_mask || (same_mask && newer_panel_index)));
+    if (layer_delta > 1e-4f)
+    {
+        return true;
+    }
+    if (layer_delta < -1e-4f)
+    {
+        return false;
+    }
+
+    const float mask_delta = candidate_mask - selected_mask;
+    if (mask_delta > 1e-4f)
+    {
+        return true;
+    }
+    if (mask_delta < -1e-4f)
+    {
+        return false;
+    }
+
+    return candidate_panel_index > selected_panel_index;
 }
 
 void EvaluatePanelCandidatePayload(float2 uv,
