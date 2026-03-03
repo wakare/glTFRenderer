@@ -215,9 +215,8 @@ bool ShouldEnableMultilayer(bool has_front_layer, bool has_back_layer, float bac
     return false;
 }
 
-float ComputeEffectiveBackMask(float back_mask, float front_mask)
+float ComputeEffectiveBackMask(float back_mask)
 {
-    (void)front_mask;
     return saturate(back_mask);
 }
 
@@ -1646,7 +1645,7 @@ void CompositeBackMain(int3 dispatch_thread_id : SV_DispatchThreadID)
     float3 back_composited_color = scene_color;
     if (ShouldEnableMultilayer(has_front_layer, has_back_layer, back_mask))
     {
-        const float effective_back_mask = ComputeEffectiveBackMask(back_mask, front_mask);
+        const float effective_back_mask = ComputeEffectiveBackMask(back_mask);
         const float profile_layer_hint = saturate(max(front_panel_profile.z, back_panel_profile.z));
         const float layered_mix = saturate(effective_back_mask + profile_layer_hint * 1e-4f);
         back_composited_color = lerp(scene_color, back_frosted_color, layered_mix);
@@ -1743,7 +1742,7 @@ void CompositeFrontMain(int3 dispatch_thread_id : SV_DispatchThreadID)
 
     if (ShouldEnableMultilayer(has_front_layer, has_back_layer, back_mask))
     {
-        const float effective_back_mask = ComputeEffectiveBackMask(back_mask, front_mask);
+        const float effective_back_mask = ComputeEffectiveBackMask(back_mask);
         panel_mask = saturate(front_mask + effective_back_mask);
     }
 
@@ -1898,7 +1897,7 @@ void CompositeMain(int3 dispatch_thread_id : SV_DispatchThreadID)
 
     if (enable_multilayer)
     {
-        const float effective_back_mask = ComputeEffectiveBackMask(back_mask, front_mask);
+        const float effective_back_mask = ComputeEffectiveBackMask(back_mask);
         const float3 back_composited_color = lerp(scene_color, back_frosted_color, effective_back_mask);
 
         const bool has_front_over_back = has_front_layer;
