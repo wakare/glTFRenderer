@@ -2799,14 +2799,7 @@ void RendererSystemFrostedGlass::DrawDebugUI()
         {
             global_dirty = true;
         }
-        const char* nan_debug_modes[] = {"Off", "Overlay"};
-        int nan_debug_mode = static_cast<int>(m_global_params.nan_debug_mode);
-        if (ImGui::Combo("NaN Probe", &nan_debug_mode, nan_debug_modes, IM_ARRAYSIZE(nan_debug_modes)))
-        {
-            nan_debug_mode = (std::max)(0, (std::min)(nan_debug_mode, 1));
-            m_global_params.nan_debug_mode = static_cast<unsigned>(nan_debug_mode);
-            global_dirty = true;
-        }
+        ImGui::TextUnformatted("NaN Probe: Off (Fixed)");
     }
     if (ImGui::Button("Reset Temporal History"))
     {
@@ -2890,10 +2883,7 @@ void RendererSystemFrostedGlass::DrawDebugUI()
                 highlight_light.x,
                 highlight_light.y,
                 highlight_light.z);
-    if (m_global_params.nan_debug_mode != 0)
-    {
-        ImGui::TextUnformatted("NaN Probe Legend: Red=Scene, Green=Payload, Blue=Blur, Yellow=History, Magenta=Velocity");
-    }
+    ImGui::TextUnformatted("NaN Probe Legend: Red=Scene, Green=Payload, Blue=Blur, Yellow=History, Magenta=Velocity (disabled)");
     if (m_panel_payload_compute_fallback_active)
     {
         ImGui::TextUnformatted("Panel Payload Runtime: Raster requested but not ready; using Compute fallback.");
@@ -3259,7 +3249,7 @@ void RendererSystemFrostedGlass::DrawDebugUI()
         m_blur_source_mode = static_cast<BlurSourceMode>((std::max)(0, (std::min)(static_cast<int>(m_blur_source_mode), 2)));
         m_global_params.blur_source_mode = static_cast<unsigned>(m_blur_source_mode);
         m_global_params.multilayer_mode = static_cast<unsigned>((std::max)(0, (std::min)(static_cast<int>(m_global_params.multilayer_mode), 2)));
-        m_global_params.nan_debug_mode = static_cast<unsigned>((std::max)(0, (std::min)(static_cast<int>(m_global_params.nan_debug_mode), 1)));
+        m_global_params.nan_debug_mode = 0u;
         m_need_upload_global_params = true;
     }
 }
