@@ -1181,6 +1181,20 @@ PanelPayloadResult EvaluatePanelPayloadAtPixel(int2 pixel, float2 uv)
         }
 
         const int panel_index_signed = (int)panel_index;
+        if (front_panel_index < 0)
+        {
+            front_mask = panel_mask;
+            front_rim = panel_rim;
+            front_mixed_fresnel = panel_mixed_fresnel;
+            front_refraction_uv = panel_refraction_uv;
+            front_effective_blur_strength = panel_effective_blur_strength;
+            front_profile_normal_uv = panel_profile_normal_uv;
+            front_optical_thickness = panel_optical_thickness;
+            front_layer = panel_layer;
+            front_panel_index = panel_index_signed;
+            continue;
+        }
+
         const bool better_than_front = IsBetterPanelCandidate(
             panel_layer,
             panel_mask,
