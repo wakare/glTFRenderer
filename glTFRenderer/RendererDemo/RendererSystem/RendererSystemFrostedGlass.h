@@ -4,6 +4,7 @@
 #include "RendererSystemSceneRenderer.h"
 #include "PostFxSharedResources.h"
 #include <array>
+#include <cstddef>
 #include <functional>
 #include <glm/glm/glm.hpp>
 #include <vector>
@@ -211,8 +212,13 @@ protected:
         float directional_highlight_min{0.10f};
         float directional_highlight_max{2.20f};
         float directional_highlight_curve{1.50f};
+        float directional_highlight_pad0{0.0f};
+        float directional_highlight_pad1{0.0f};
         glm::fvec4 highlight_light_dir_weight{0.0f, -1.0f, 0.0f, 0.0f}; // xyz: dominant directional light dir, w: valid flag
     };
+    static_assert(sizeof(FrostedGlassGlobalParams) == 192, "FrostedGlassGlobalParams must match HLSL cbuffer size.");
+    static_assert(offsetof(FrostedGlassGlobalParams, highlight_light_dir_weight) == 176,
+                  "FrostedGlassGlobalParams::highlight_light_dir_weight offset mismatch with HLSL cbuffer.");
 
     struct PanelRuntimeState
     {

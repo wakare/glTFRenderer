@@ -85,6 +85,8 @@ cbuffer FrostedGlassGlobalBuffer
     float directional_highlight_min;
     float directional_highlight_max;
     float directional_highlight_curve;
+    float directional_highlight_pad0;
+    float directional_highlight_pad1;
     float4 highlight_light_dir_weight;
 };
 StructuredBuffer<FrostedGlassPanelData> g_frosted_panels;
