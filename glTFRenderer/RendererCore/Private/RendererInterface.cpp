@@ -71,6 +71,19 @@ namespace RendererInterface
             std::set<ResourceKey> writes;
         };
 
+        constexpr unsigned char RESOURCE_ACCESS_MASK_READ = 1u << 0;
+        constexpr unsigned char RESOURCE_ACCESS_MASK_WRITE = 1u << 1;
+        constexpr std::size_t MAX_CROSS_FRAME_HAZARDS_RECORDED = 128u;
+        constexpr std::size_t MAX_CROSS_FRAME_PASS_NAMES_RECORDED = 8u;
+
+        using ResourcePassAccessMap = std::map<unsigned long long, std::pair<std::vector<std::string>, std::vector<std::string>>>;
+
+        struct FrameResourceAccessDiagnosticsData
+        {
+            std::map<unsigned long long, unsigned char> access_masks;
+            ResourcePassAccessMap pass_accesses;
+        };
+
         const char* ToRenderPassTypeName(RenderPassType type)
         {
             switch (type)
@@ -81,6 +94,20 @@ namespace RendererInterface
                 return "Compute";
             case RenderPassType::RAY_TRACING:
                 return "RayTracing";
+            }
+            return "Unknown";
+        }
+
+        const char* ToResourceKindName(ResourceKind kind)
+        {
+            switch (kind)
+            {
+            case ResourceKind::Buffer:
+                return "Buffer";
+            case ResourceKind::Texture:
+                return "Texture";
+            case ResourceKind::RenderTarget:
+                return "RenderTarget";
             }
             return "Unknown";
         }
@@ -106,6 +133,29 @@ namespace RendererInterface
 
         using DependencyEdgeMap = std::map<RenderGraphNodeHandle, std::set<RenderGraphNodeHandle>>;
         using DependencyEdgeResourceMap = std::map<std::pair<RenderGraphNodeHandle, RenderGraphNodeHandle>, std::vector<ResourceKey>>;
+
+        unsigned long long EncodeResourceKey(const ResourceKey& key)
+        {
+            return (static_cast<unsigned long long>(static_cast<unsigned>(key.kind)) << 32) |
+                   static_cast<unsigned long long>(key.value);
+        }
+
+        void AppendUniquePassName(std::vector<std::string>& pass_names, const std::string& pass_name)
+        {
+            if (pass_name.empty())
+            {
+                return;
+            }
+            if (std::find(pass_names.begin(), pass_names.end(), pass_name) != pass_names.end())
+            {
+                return;
+            }
+            if (pass_names.size() >= MAX_CROSS_FRAME_PASS_NAMES_RECORDED)
+            {
+                return;
+            }
+            pass_names.push_back(pass_name);
+        }
 
         ResourceAccessSet CollectResourceAccess(const RenderGraphNodeDesc& desc)
         {
@@ -177,6 +227,36 @@ namespace RendererInterface
             }
 
             return access;
+        }
+
+        FrameResourceAccessDiagnosticsData CollectFrameResourceAccessDiagnostics(
+            const std::vector<RenderGraphNodeHandle>& nodes,
+            const std::vector<RenderGraphNodeDesc>& render_graph_nodes)
+        {
+            FrameResourceAccessDiagnosticsData diagnostics_data{};
+            for (const auto node_handle : nodes)
+            {
+                const auto& node_desc = render_graph_nodes[node_handle.value];
+                const auto access = CollectResourceAccess(node_desc);
+                const std::string group_name = node_desc.debug_group.empty() ? "<group-empty>" : node_desc.debug_group;
+                const std::string pass_name = node_desc.debug_name.empty() ? "<pass-empty>" : node_desc.debug_name;
+                const std::string pass_label = group_name + "/" + pass_name;
+
+                for (const auto& resource_key : access.reads)
+                {
+                    const unsigned long long encoded_key = EncodeResourceKey(resource_key);
+                    diagnostics_data.access_masks[encoded_key] |= RESOURCE_ACCESS_MASK_READ;
+                    AppendUniquePassName(diagnostics_data.pass_accesses[encoded_key].first, pass_label);
+                }
+                for (const auto& resource_key : access.writes)
+                {
+                    const unsigned long long encoded_key = EncodeResourceKey(resource_key);
+                    diagnostics_data.access_masks[encoded_key] |= RESOURCE_ACCESS_MASK_WRITE;
+                    AppendUniquePassName(diagnostics_data.pass_accesses[encoded_key].second, pass_label);
+                }
+            }
+
+            return diagnostics_data;
         }
 
         void CollectResourceReadersAndWriters(
@@ -669,20 +749,7 @@ namespace RendererInterface
 
                         const auto log_resource_key = [](const ResourceKey& key)
                         {
-                            const char* kind_name = "Unknown";
-                            switch (key.kind)
-                            {
-                            case ResourceKind::Buffer:
-                                kind_name = "Buffer";
-                                break;
-                            case ResourceKind::Texture:
-                                kind_name = "Texture";
-                                break;
-                            case ResourceKind::RenderTarget:
-                                kind_name = "RenderTarget";
-                                break;
-                            }
-                            LOG_FORMAT_FLUSH(" %s:%u", kind_name, key.value);
+                            LOG_FORMAT_FLUSH(" %s:%u", ToResourceKindName(key.kind), key.value);
                         };
 
                         for (const auto cycle_from : cycle_nodes)
@@ -753,6 +820,11 @@ namespace RendererInterface
             std::size_t cached_execution_order_size,
             std::vector<RenderGraphNodeHandle>&& cycle_nodes,
             const std::map<RenderGraphNodeHandle, std::tuple<unsigned, unsigned, unsigned>>& auto_pruned_named_binding_counts,
+            const std::map<unsigned long long, unsigned char>& previous_frame_resource_access_masks,
+            const ResourcePassAccessMap& previous_frame_resource_pass_accesses,
+            bool has_previous_frame_resource_access_masks,
+            const std::map<unsigned long long, unsigned char>& current_frame_resource_access_masks,
+            const ResourcePassAccessMap& current_frame_resource_pass_accesses,
             RenderGraph::DependencyDiagnostics& out_diagnostics)
         {
             out_diagnostics.graph_valid = cached_execution_graph_valid;
@@ -801,6 +873,94 @@ namespace RendererInterface
                 node_diagnostics.texture_count = texture_count;
                 node_diagnostics.render_target_texture_count = render_target_texture_count;
                 out_diagnostics.auto_pruned_nodes.push_back(std::move(node_diagnostics));
+            }
+
+            out_diagnostics.cross_frame_analysis_ready = has_previous_frame_resource_access_masks;
+            out_diagnostics.cross_frame_hazard_count = 0;
+            out_diagnostics.cross_frame_hazard_overflow_count = 0;
+            out_diagnostics.cross_frame_hazards.clear();
+            if (!has_previous_frame_resource_access_masks)
+            {
+                return;
+            }
+
+            const auto record_hazard = [
+                &out_diagnostics,
+                &previous_frame_resource_pass_accesses,
+                &current_frame_resource_pass_accesses
+            ](
+                unsigned long long encoded_resource_key,
+                RenderGraph::DependencyDiagnostics::CrossFrameResourceHazardDiagnostics::HazardType hazard_type,
+                bool use_previous_writers,
+                bool use_current_writers)
+            {
+                ++out_diagnostics.cross_frame_hazard_count;
+                if (out_diagnostics.cross_frame_hazards.size() >= MAX_CROSS_FRAME_HAZARDS_RECORDED)
+                {
+                    ++out_diagnostics.cross_frame_hazard_overflow_count;
+                    return;
+                }
+
+                const auto encoded_kind = static_cast<unsigned>((encoded_resource_key >> 32) & 0xffffffffULL);
+                const auto resource_kind = static_cast<ResourceKind>(encoded_kind);
+                RenderGraph::DependencyDiagnostics::CrossFrameResourceHazardDiagnostics hazard{};
+                hazard.hazard_type = hazard_type;
+                hazard.resource_kind = ToResourceKindName(resource_kind);
+                hazard.resource_id = static_cast<unsigned>(encoded_resource_key & 0xffffffffULL);
+
+                const auto previous_access_it = previous_frame_resource_pass_accesses.find(encoded_resource_key);
+                if (previous_access_it != previous_frame_resource_pass_accesses.end())
+                {
+                    hazard.previous_passes = use_previous_writers
+                        ? previous_access_it->second.second
+                        : previous_access_it->second.first;
+                }
+
+                const auto current_access_it = current_frame_resource_pass_accesses.find(encoded_resource_key);
+                if (current_access_it != current_frame_resource_pass_accesses.end())
+                {
+                    hazard.current_passes = use_current_writers
+                        ? current_access_it->second.second
+                        : current_access_it->second.first;
+                }
+
+                out_diagnostics.cross_frame_hazards.push_back(std::move(hazard));
+            };
+
+            for (const auto& current_pair : current_frame_resource_access_masks)
+            {
+                const auto previous_it = previous_frame_resource_access_masks.find(current_pair.first);
+                if (previous_it == previous_frame_resource_access_masks.end())
+                {
+                    continue;
+                }
+
+                const unsigned char previous_mask = previous_it->second;
+                const unsigned char current_mask = current_pair.second;
+                if ((previous_mask & RESOURCE_ACCESS_MASK_WRITE) != 0 && (current_mask & RESOURCE_ACCESS_MASK_READ) != 0)
+                {
+                    record_hazard(
+                        current_pair.first,
+                        RenderGraph::DependencyDiagnostics::CrossFrameResourceHazardDiagnostics::HazardType::PREVIOUS_WRITE_CURRENT_READ,
+                        true,
+                        false);
+                }
+                if ((previous_mask & RESOURCE_ACCESS_MASK_WRITE) != 0 && (current_mask & RESOURCE_ACCESS_MASK_WRITE) != 0)
+                {
+                    record_hazard(
+                        current_pair.first,
+                        RenderGraph::DependencyDiagnostics::CrossFrameResourceHazardDiagnostics::HazardType::PREVIOUS_WRITE_CURRENT_WRITE,
+                        true,
+                        true);
+                }
+                if ((previous_mask & RESOURCE_ACCESS_MASK_READ) != 0 && (current_mask & RESOURCE_ACCESS_MASK_WRITE) != 0)
+                {
+                    record_hazard(
+                        current_pair.first,
+                        RenderGraph::DependencyDiagnostics::CrossFrameResourceHazardDiagnostics::HazardType::PREVIOUS_READ_CURRENT_WRITE,
+                        false,
+                        true);
+                }
             }
         }
 
@@ -1867,6 +2027,69 @@ namespace RendererInterface
                     m_resource_allocator.SetPerFrameResourceBindingEnabled(per_frame_resource_binding);
                 }
                 ImGui::TextUnformatted("Affects frame-buffered Buffer/RenderTarget handle selection.");
+
+                const auto& dependency_diagnostics = m_last_dependency_diagnostics;
+                if (!dependency_diagnostics.cross_frame_analysis_ready)
+                {
+                    ImGui::TextUnformatted("Cross-frame hazard analysis: warming up (need previous frame).");
+                }
+                else
+                {
+                    ImGui::Text("Cross-frame hazards: %u", dependency_diagnostics.cross_frame_hazard_count);
+                    if (dependency_diagnostics.cross_frame_hazard_overflow_count > 0)
+                    {
+                        ImGui::Text(
+                            "Cross-frame hazards not listed: %u",
+                            dependency_diagnostics.cross_frame_hazard_overflow_count);
+                    }
+
+                    if (!dependency_diagnostics.cross_frame_hazards.empty() &&
+                        ImGui::TreeNode("Cross-frame Hazard Samples"))
+                    {
+                        const auto join_passes = [](const std::vector<std::string>& pass_names)
+                        {
+                            std::string joined;
+                            for (std::size_t pass_index = 0; pass_index < pass_names.size(); ++pass_index)
+                            {
+                                if (pass_index > 0)
+                                {
+                                    joined += ", ";
+                                }
+                                joined += pass_names[pass_index];
+                            }
+                            return joined;
+                        };
+
+                        for (const auto& hazard : dependency_diagnostics.cross_frame_hazards)
+                        {
+                            const char* hazard_type_name = "Unknown";
+                            switch (hazard.hazard_type)
+                            {
+                            case DependencyDiagnostics::CrossFrameResourceHazardDiagnostics::HazardType::PREVIOUS_WRITE_CURRENT_READ:
+                                hazard_type_name = "PrevWrite->CurrRead";
+                                break;
+                            case DependencyDiagnostics::CrossFrameResourceHazardDiagnostics::HazardType::PREVIOUS_WRITE_CURRENT_WRITE:
+                                hazard_type_name = "PrevWrite->CurrWrite";
+                                break;
+                            case DependencyDiagnostics::CrossFrameResourceHazardDiagnostics::HazardType::PREVIOUS_READ_CURRENT_WRITE:
+                                hazard_type_name = "PrevRead->CurrWrite";
+                                break;
+                            }
+                            ImGui::Text("%s %s:%u", hazard_type_name, hazard.resource_kind.c_str(), hazard.resource_id);
+                            if (!hazard.previous_passes.empty())
+                            {
+                                const std::string previous_passes_text = join_passes(hazard.previous_passes);
+                                ImGui::TextWrapped("  Prev: %s", previous_passes_text.c_str());
+                            }
+                            if (!hazard.current_passes.empty())
+                            {
+                                const std::string current_passes_text = join_passes(hazard.current_passes);
+                                ImGui::TextWrapped("  Curr: %s", current_passes_text.c_str());
+                            }
+                        }
+                        ImGui::TreePop();
+                    }
+                }
             }
             ImGui::End();
 
@@ -1953,6 +2176,7 @@ namespace RendererInterface
         {
             nodes.push_back(handle);
         }
+        auto current_frame_resource_access = CollectFrameResourceAccessDiagnostics(nodes, m_render_graph_nodes);
 
         const ExecutionPlanContext plan_context{
             nodes,
@@ -1982,7 +2206,15 @@ namespace RendererInterface
             execution_cache_state.cached_execution_order.size(),
             std::move(diagnostics_cycle_nodes),
             m_auto_pruned_named_binding_counts,
+            m_previous_frame_resource_access_masks,
+            m_previous_frame_resource_pass_accesses,
+            m_has_previous_frame_resource_access_masks,
+            current_frame_resource_access.access_masks,
+            current_frame_resource_access.pass_accesses,
             m_last_dependency_diagnostics);
+        m_previous_frame_resource_access_masks = std::move(current_frame_resource_access.access_masks);
+        m_previous_frame_resource_pass_accesses = std::move(current_frame_resource_access.pass_accesses);
+        m_has_previous_frame_resource_access_masks = true;
 
         ExecutePlanAndCollectStats(command_list, profiler_slot_index, interval);
 

@@ -224,14 +224,34 @@ namespace RendererInterface
                 unsigned render_target_texture_count{0};
             };
 
+            struct CrossFrameResourceHazardDiagnostics
+            {
+                enum class HazardType
+                {
+                    PREVIOUS_WRITE_CURRENT_READ,
+                    PREVIOUS_WRITE_CURRENT_WRITE,
+                    PREVIOUS_READ_CURRENT_WRITE,
+                };
+
+                HazardType hazard_type{HazardType::PREVIOUS_WRITE_CURRENT_READ};
+                std::string resource_kind;
+                unsigned resource_id{0};
+                std::vector<std::string> previous_passes;
+                std::vector<std::string> current_passes;
+            };
+
             bool graph_valid{true};
             bool has_invalid_explicit_dependencies{false};
             unsigned auto_merged_dependency_count{0};
             unsigned auto_pruned_binding_count{0};
             unsigned auto_pruned_node_count{0};
+            bool cross_frame_analysis_ready{false};
+            unsigned cross_frame_hazard_count{0};
+            unsigned cross_frame_hazard_overflow_count{0};
             std::vector<std::pair<RenderGraphNodeHandle, RenderGraphNodeHandle>> invalid_explicit_dependencies;
             std::vector<RenderGraphNodeHandle> cycle_nodes;
             std::vector<AutoPrunedNodeDiagnostics> auto_pruned_nodes;
+            std::vector<CrossFrameResourceHazardDiagnostics> cross_frame_hazards;
             std::size_t execution_signature{0};
             std::size_t cached_execution_node_count{0};
             std::size_t cached_execution_order_size{0};
@@ -354,9 +374,13 @@ namespace RendererInterface
         std::map<RenderGraphNodeHandle, std::size_t> m_render_pass_validation_last_message_hash;
         std::deque<DeferredReleaseEntry> m_deferred_release_entries;
         std::vector<RenderGraphNodeHandle> m_cached_execution_order;
+        std::map<unsigned long long, unsigned char> m_previous_frame_resource_access_masks;
+        // value.first = readers, value.second = writers
+        std::map<unsigned long long, std::pair<std::vector<std::string>, std::vector<std::string>>> m_previous_frame_resource_pass_accesses;
         std::size_t m_cached_execution_signature{0};
         std::size_t m_cached_execution_node_count{0};
         bool m_cached_execution_graph_valid{true};
+        bool m_has_previous_frame_resource_access_masks{false};
         unsigned long long m_frame_index{0};
         
         std::shared_ptr<IRHITexture> m_final_color_output;
