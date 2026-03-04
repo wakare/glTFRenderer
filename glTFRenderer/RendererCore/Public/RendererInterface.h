@@ -84,6 +84,7 @@ namespace RendererInterface
         RenderTargetHandle  CreateRenderTarget(const RenderTargetDesc& desc);
         std::vector<RenderTargetHandle> CreateFrameBufferedRenderTargets(const RenderTargetDesc& desc, const std::string& debug_name_prefix = "");
         RenderTargetHandle  GetFrameBufferedRenderTargetHandle(const std::vector<RenderTargetHandle>& render_targets) const;
+        RenderTargetHandle  CreateFrameBufferedRenderTargetAlias(const RenderTargetDesc& desc, const std::string& debug_name_prefix = "");
         RenderTargetHandle  CreateRenderTarget(
             const std::string& name,
             unsigned width,
@@ -91,7 +92,23 @@ namespace RendererInterface
             PixelFormat format,
             RenderTargetClearValue clear_value,
             ResourceUsage usage);
+        RenderTargetHandle  CreateFrameBufferedRenderTargetAlias(
+            const std::string& name,
+            unsigned width,
+            unsigned height,
+            PixelFormat format,
+            RenderTargetClearValue clear_value,
+            ResourceUsage usage);
         RenderTargetHandle  CreateWindowRelativeRenderTarget(
+            const std::string& name,
+            PixelFormat format,
+            RenderTargetClearValue clear_value,
+            ResourceUsage usage,
+            float width_scale = 1.0f,
+            float height_scale = 1.0f,
+            unsigned min_width = 1,
+            unsigned min_height = 1);
+        RenderTargetHandle  CreateFrameBufferedWindowRelativeRenderTarget(
             const std::string& name,
             PixelFormat format,
             RenderTargetClearValue clear_value,
@@ -127,12 +144,15 @@ namespace RendererInterface
         SwapchainLifecycleState GetSwapchainLifecycleState() const;
         SwapchainResizePolicy GetSwapchainResizePolicy() const;
         void SetSwapchainResizePolicy(const SwapchainResizePolicy& policy, bool reset_retry_state = true);
+        void ApplyFrameBufferedRenderTargetAliases();
         bool CleanupAllResources(bool clear_window_handles = false);
         
     protected:
         std::shared_ptr<ResourceManager> m_resource_manager;
         std::map<RenderPassHandle, std::shared_ptr<RenderPass>> m_render_passes;
         bool m_per_frame_resource_binding_enabled{true};
+        std::map<RenderTargetHandle, std::vector<RenderTargetHandle>> m_frame_buffered_render_target_aliases;
+        std::map<RenderTargetHandle, RenderTargetHandle> m_frame_buffered_render_target_alias_current;
     };
 
     class RendererModuleBase
@@ -246,6 +266,8 @@ namespace RendererInterface
             unsigned auto_pruned_binding_count{0};
             unsigned auto_pruned_node_count{0};
             bool cross_frame_analysis_ready{false};
+            unsigned cross_frame_comparison_window_size{0};
+            unsigned cross_frame_compared_frame_count{0};
             unsigned cross_frame_hazard_count{0};
             unsigned cross_frame_hazard_overflow_count{0};
             std::vector<std::pair<RenderGraphNodeHandle, RenderGraphNodeHandle>> invalid_explicit_dependencies;
@@ -374,13 +396,16 @@ namespace RendererInterface
         std::map<RenderGraphNodeHandle, std::size_t> m_render_pass_validation_last_message_hash;
         std::deque<DeferredReleaseEntry> m_deferred_release_entries;
         std::vector<RenderGraphNodeHandle> m_cached_execution_order;
-        std::map<unsigned long long, unsigned char> m_previous_frame_resource_access_masks;
-        // value.first = readers, value.second = writers
-        std::map<unsigned long long, std::pair<std::vector<std::string>, std::vector<std::string>>> m_previous_frame_resource_pass_accesses;
+        struct FrameResourceAccessSnapshot
+        {
+            std::map<unsigned long long, unsigned char> access_masks;
+            // value.first = readers, value.second = writers
+            std::map<unsigned long long, std::pair<std::vector<std::string>, std::vector<std::string>>> pass_accesses;
+        };
+        std::deque<FrameResourceAccessSnapshot> m_recent_frame_resource_access_snapshots;
         std::size_t m_cached_execution_signature{0};
         std::size_t m_cached_execution_node_count{0};
         bool m_cached_execution_graph_valid{true};
-        bool m_has_previous_frame_resource_access_masks{false};
         unsigned long long m_frame_index{0};
         
         std::shared_ptr<IRHITexture> m_final_color_output;

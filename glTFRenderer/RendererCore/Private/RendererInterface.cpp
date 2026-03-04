@@ -53,7 +53,7 @@ namespace RendererInterface
         struct ResourceKey
         {
             ResourceKind kind;
-            unsigned value;
+            unsigned long long value;
 
             bool operator<(const ResourceKey& other) const
             {
@@ -76,11 +76,12 @@ namespace RendererInterface
         constexpr std::size_t MAX_CROSS_FRAME_HAZARDS_RECORDED = 128u;
         constexpr std::size_t MAX_CROSS_FRAME_PASS_NAMES_RECORDED = 8u;
 
+        using ResourceAccessMaskMap = std::map<unsigned long long, unsigned char>;
         using ResourcePassAccessMap = std::map<unsigned long long, std::pair<std::vector<std::string>, std::vector<std::string>>>;
 
         struct FrameResourceAccessDiagnosticsData
         {
-            std::map<unsigned long long, unsigned char> access_masks;
+            ResourceAccessMaskMap access_masks;
             ResourcePassAccessMap pass_accesses;
         };
 
@@ -134,10 +135,28 @@ namespace RendererInterface
         using DependencyEdgeMap = std::map<RenderGraphNodeHandle, std::set<RenderGraphNodeHandle>>;
         using DependencyEdgeResourceMap = std::map<std::pair<RenderGraphNodeHandle, RenderGraphNodeHandle>, std::vector<ResourceKey>>;
 
+        unsigned long long ResolveRenderTargetResourceIdentity(RenderTargetHandle handle)
+        {
+            if (handle == NULL_HANDLE)
+            {
+                return 0ull;
+            }
+
+            const auto render_target_allocation = InternalResourceHandleTable::Instance().GetRenderTarget(handle);
+            if (!render_target_allocation || !render_target_allocation->m_source)
+            {
+                return static_cast<unsigned long long>(handle.value);
+            }
+
+            return reinterpret_cast<unsigned long long>(render_target_allocation->m_source.get());
+        }
+
         unsigned long long EncodeResourceKey(const ResourceKey& key)
         {
-            return (static_cast<unsigned long long>(static_cast<unsigned>(key.kind)) << 32) |
-                   static_cast<unsigned long long>(key.value);
+            constexpr unsigned long long kind_shift = 62ull;
+            constexpr unsigned long long value_mask = (1ull << kind_shift) - 1ull;
+            return (static_cast<unsigned long long>(static_cast<unsigned>(key.kind)) << kind_shift) |
+                   (key.value & value_mask);
         }
 
         void AppendUniquePassName(std::vector<std::string>& pass_names, const std::string& pass_name)
@@ -157,6 +176,22 @@ namespace RendererInterface
             pass_names.push_back(pass_name);
         }
 
+        void MergeResourcePassAccessMap(const ResourcePassAccessMap& source, ResourcePassAccessMap& destination)
+        {
+            for (const auto& pass_access_pair : source)
+            {
+                auto& destination_access = destination[pass_access_pair.first];
+                for (const auto& reader_pass : pass_access_pair.second.first)
+                {
+                    AppendUniquePassName(destination_access.first, reader_pass);
+                }
+                for (const auto& writer_pass : pass_access_pair.second.second)
+                {
+                    AppendUniquePassName(destination_access.second, writer_pass);
+                }
+            }
+        }
+
         ResourceAccessSet CollectResourceAccess(const RenderGraphNodeDesc& desc)
         {
             ResourceAccessSet access;
@@ -164,7 +199,7 @@ namespace RendererInterface
             for (const auto& buffer_pair : desc.draw_info.buffer_resources)
             {
                 const auto& binding = buffer_pair.second;
-                ResourceKey key{ResourceKind::Buffer, binding.buffer_handle.value};
+                ResourceKey key{ResourceKind::Buffer, static_cast<unsigned long long>(binding.buffer_handle.value)};
 
                 switch (binding.binding_type)
                 {
@@ -184,7 +219,7 @@ namespace RendererInterface
                 const auto& binding = texture_pair.second;
                 for (const auto texture_handle : binding.textures)
                 {
-                    ResourceKey key{ResourceKind::Texture, texture_handle.value};
+                    ResourceKey key{ResourceKind::Texture, static_cast<unsigned long long>(texture_handle.value)};
                     if (binding.type == TextureBindingDesc::SRV)
                     {
                         access.reads.insert(key);
@@ -202,7 +237,7 @@ namespace RendererInterface
                 const auto& binding = render_target_pair.second;
                 for (const auto render_target_handle : binding.render_target_texture)
                 {
-                    ResourceKey key{ResourceKind::RenderTarget, render_target_handle.value};
+                    ResourceKey key{ResourceKind::RenderTarget, static_cast<unsigned long long>(render_target_handle.value)};
                     if (binding.type == RenderTargetTextureBindingDesc::SRV)
                     {
                         access.reads.insert(key);
@@ -218,7 +253,7 @@ namespace RendererInterface
             for (const auto& render_target_pair : desc.draw_info.render_target_resources)
             {
                 const auto& binding = render_target_pair.second;
-                ResourceKey key{ResourceKind::RenderTarget, render_target_pair.first.value};
+                ResourceKey key{ResourceKind::RenderTarget, static_cast<unsigned long long>(render_target_pair.first.value)};
                 access.writes.insert(key);
                 if (binding.load_op == RenderPassAttachmentLoadOp::LOAD)
                 {
@@ -237,22 +272,88 @@ namespace RendererInterface
             for (const auto node_handle : nodes)
             {
                 const auto& node_desc = render_graph_nodes[node_handle.value];
-                const auto access = CollectResourceAccess(node_desc);
                 const std::string group_name = node_desc.debug_group.empty() ? "<group-empty>" : node_desc.debug_group;
                 const std::string pass_name = node_desc.debug_name.empty() ? "<pass-empty>" : node_desc.debug_name;
                 const std::string pass_label = group_name + "/" + pass_name;
 
-                for (const auto& resource_key : access.reads)
+                const auto add_read = [&](ResourceKind kind, unsigned long long value)
                 {
+                    const ResourceKey resource_key{kind, value};
                     const unsigned long long encoded_key = EncodeResourceKey(resource_key);
                     diagnostics_data.access_masks[encoded_key] |= RESOURCE_ACCESS_MASK_READ;
                     AppendUniquePassName(diagnostics_data.pass_accesses[encoded_key].first, pass_label);
-                }
-                for (const auto& resource_key : access.writes)
+                };
+
+                const auto add_write = [&](ResourceKind kind, unsigned long long value)
                 {
+                    const ResourceKey resource_key{kind, value};
                     const unsigned long long encoded_key = EncodeResourceKey(resource_key);
                     diagnostics_data.access_masks[encoded_key] |= RESOURCE_ACCESS_MASK_WRITE;
                     AppendUniquePassName(diagnostics_data.pass_accesses[encoded_key].second, pass_label);
+                };
+
+                for (const auto& buffer_pair : node_desc.draw_info.buffer_resources)
+                {
+                    const auto& binding = buffer_pair.second;
+                    const unsigned long long resource_value = static_cast<unsigned long long>(binding.buffer_handle.value);
+                    switch (binding.binding_type)
+                    {
+                    case BufferBindingDesc::CBV:
+                    case BufferBindingDesc::SRV:
+                        add_read(ResourceKind::Buffer, resource_value);
+                        break;
+                    case BufferBindingDesc::UAV:
+                        add_read(ResourceKind::Buffer, resource_value);
+                        add_write(ResourceKind::Buffer, resource_value);
+                        break;
+                    }
+                }
+
+                for (const auto& texture_pair : node_desc.draw_info.texture_resources)
+                {
+                    const auto& binding = texture_pair.second;
+                    for (const auto texture_handle : binding.textures)
+                    {
+                        const unsigned long long resource_value = static_cast<unsigned long long>(texture_handle.value);
+                        if (binding.type == TextureBindingDesc::SRV)
+                        {
+                            add_read(ResourceKind::Texture, resource_value);
+                        }
+                        else
+                        {
+                            add_read(ResourceKind::Texture, resource_value);
+                            add_write(ResourceKind::Texture, resource_value);
+                        }
+                    }
+                }
+
+                for (const auto& render_target_pair : node_desc.draw_info.render_target_texture_resources)
+                {
+                    const auto& binding = render_target_pair.second;
+                    for (const auto render_target_handle : binding.render_target_texture)
+                    {
+                        const unsigned long long resource_value = ResolveRenderTargetResourceIdentity(render_target_handle);
+                        if (binding.type == RenderTargetTextureBindingDesc::SRV)
+                        {
+                            add_read(ResourceKind::RenderTarget, resource_value);
+                        }
+                        else
+                        {
+                            add_read(ResourceKind::RenderTarget, resource_value);
+                            add_write(ResourceKind::RenderTarget, resource_value);
+                        }
+                    }
+                }
+
+                for (const auto& render_target_pair : node_desc.draw_info.render_target_resources)
+                {
+                    const auto& binding = render_target_pair.second;
+                    const unsigned long long resource_value = ResolveRenderTargetResourceIdentity(render_target_pair.first);
+                    add_write(ResourceKind::RenderTarget, resource_value);
+                    if (binding.load_op == RenderPassAttachmentLoadOp::LOAD)
+                    {
+                        add_read(ResourceKind::RenderTarget, resource_value);
+                    }
                 }
             }
 
@@ -749,7 +850,7 @@ namespace RendererInterface
 
                         const auto log_resource_key = [](const ResourceKey& key)
                         {
-                            LOG_FORMAT_FLUSH(" %s:%u", ToResourceKindName(key.kind), key.value);
+                            LOG_FORMAT_FLUSH(" %s:%llu", ToResourceKindName(key.kind), key.value);
                         };
 
                         for (const auto cycle_from : cycle_nodes)
@@ -820,10 +921,12 @@ namespace RendererInterface
             std::size_t cached_execution_order_size,
             std::vector<RenderGraphNodeHandle>&& cycle_nodes,
             const std::map<RenderGraphNodeHandle, std::tuple<unsigned, unsigned, unsigned>>& auto_pruned_named_binding_counts,
-            const std::map<unsigned long long, unsigned char>& previous_frame_resource_access_masks,
+            const ResourceAccessMaskMap& previous_frame_resource_access_masks,
             const ResourcePassAccessMap& previous_frame_resource_pass_accesses,
             bool has_previous_frame_resource_access_masks,
-            const std::map<unsigned long long, unsigned char>& current_frame_resource_access_masks,
+            unsigned cross_frame_comparison_window_size,
+            unsigned cross_frame_compared_frame_count,
+            const ResourceAccessMaskMap& current_frame_resource_access_masks,
             const ResourcePassAccessMap& current_frame_resource_pass_accesses,
             RenderGraph::DependencyDiagnostics& out_diagnostics)
         {
@@ -876,6 +979,8 @@ namespace RendererInterface
             }
 
             out_diagnostics.cross_frame_analysis_ready = has_previous_frame_resource_access_masks;
+            out_diagnostics.cross_frame_comparison_window_size = cross_frame_comparison_window_size;
+            out_diagnostics.cross_frame_compared_frame_count = cross_frame_compared_frame_count;
             out_diagnostics.cross_frame_hazard_count = 0;
             out_diagnostics.cross_frame_hazard_overflow_count = 0;
             out_diagnostics.cross_frame_hazards.clear();
@@ -901,7 +1006,8 @@ namespace RendererInterface
                     return;
                 }
 
-                const auto encoded_kind = static_cast<unsigned>((encoded_resource_key >> 32) & 0xffffffffULL);
+                constexpr unsigned long long kind_shift = 62ull;
+                const auto encoded_kind = static_cast<unsigned>(encoded_resource_key >> kind_shift);
                 const auto resource_kind = static_cast<ResourceKind>(encoded_kind);
                 RenderGraph::DependencyDiagnostics::CrossFrameResourceHazardDiagnostics hazard{};
                 hazard.hazard_type = hazard_type;
@@ -1415,6 +1521,15 @@ namespace RendererInterface
         return render_targets[frame_slot];
     }
 
+    RenderTargetHandle ResourceOperator::CreateFrameBufferedRenderTargetAlias(const RenderTargetDesc& desc, const std::string& debug_name_prefix)
+    {
+        auto render_targets = CreateFrameBufferedRenderTargets(desc, debug_name_prefix);
+        GLTF_CHECK(!render_targets.empty());
+        const auto logical_handle = render_targets.front();
+        m_frame_buffered_render_target_aliases[logical_handle] = std::move(render_targets);
+        return logical_handle;
+    }
+
     RenderTargetHandle ResourceOperator::CreateRenderTarget(const RenderTargetDesc& desc)
     {
         return m_resource_manager->CreateRenderTarget(desc);
@@ -1432,6 +1547,25 @@ namespace RendererInterface
         render_target_desc.clear = clear_value;
         render_target_desc.usage = usage; 
         return  m_resource_manager->CreateRenderTarget(render_target_desc);
+    }
+
+    RenderTargetHandle ResourceOperator::CreateFrameBufferedRenderTargetAlias(
+        const std::string& name,
+        unsigned width,
+        unsigned height,
+        PixelFormat format,
+        RenderTargetClearValue clear_value,
+        ResourceUsage usage)
+    {
+        RendererInterface::RenderTargetDesc render_target_desc{};
+        render_target_desc.name = name;
+        render_target_desc.size_mode = RenderTargetSizeMode::FIXED;
+        render_target_desc.width = width;
+        render_target_desc.height = height;
+        render_target_desc.format = format;
+        render_target_desc.clear = clear_value;
+        render_target_desc.usage = usage;
+        return CreateFrameBufferedRenderTargetAlias(render_target_desc, name);
     }
 
     RenderTargetHandle ResourceOperator::CreateWindowRelativeRenderTarget(const std::string& name,
@@ -1453,6 +1587,34 @@ namespace RendererInterface
         render_target_desc.width = ComputeScaledExtent(current_width, render_target_desc.width_scale, render_target_desc.min_width);
         render_target_desc.height = ComputeScaledExtent(current_height, render_target_desc.height_scale, render_target_desc.min_height);
         return m_resource_manager->CreateRenderTarget(render_target_desc);
+    }
+
+    RenderTargetHandle ResourceOperator::CreateFrameBufferedWindowRelativeRenderTarget(
+        const std::string& name,
+        PixelFormat format,
+        RenderTargetClearValue clear_value,
+        ResourceUsage usage,
+        float width_scale,
+        float height_scale,
+        unsigned min_width,
+        unsigned min_height)
+    {
+        RendererInterface::RenderTargetDesc render_target_desc{};
+        render_target_desc.name = name;
+        render_target_desc.format = format;
+        render_target_desc.clear = clear_value;
+        render_target_desc.usage = usage;
+        render_target_desc.size_mode = RenderTargetSizeMode::WINDOW_RELATIVE;
+        render_target_desc.width_scale = width_scale;
+        render_target_desc.height_scale = height_scale;
+        render_target_desc.min_width = (std::max)(1u, min_width);
+        render_target_desc.min_height = (std::max)(1u, min_height);
+
+        const unsigned current_width = (std::max)(1u, GetCurrentRenderWidth());
+        const unsigned current_height = (std::max)(1u, GetCurrentRenderHeight());
+        render_target_desc.width = ComputeScaledExtent(current_width, render_target_desc.width_scale, render_target_desc.min_width);
+        render_target_desc.height = ComputeScaledExtent(current_height, render_target_desc.height_scale, render_target_desc.min_height);
+        return CreateFrameBufferedRenderTargetAlias(render_target_desc, name);
     }
 
     RenderPassHandle ResourceOperator::CreateRenderPass(const RenderPassDesc& desc)
@@ -1514,6 +1676,25 @@ namespace RendererInterface
     void ResourceOperator::SetPerFrameResourceBindingEnabled(bool enable)
     {
         m_per_frame_resource_binding_enabled = enable;
+    }
+
+    void ResourceOperator::ApplyFrameBufferedRenderTargetAliases()
+    {
+        for (const auto& alias_pair : m_frame_buffered_render_target_aliases)
+        {
+            const auto logical_handle = alias_pair.first;
+            const auto& candidates = alias_pair.second;
+            if (candidates.empty())
+            {
+                continue;
+            }
+
+            const auto target_handle = GetFrameBufferedRenderTargetHandle(candidates);
+            auto target_render_target = InternalResourceHandleTable::Instance().GetRenderTarget(target_handle);
+            const bool updated = InternalResourceHandleTable::Instance().UpdateRenderTarget(logical_handle, target_render_target);
+            GLTF_CHECK(updated);
+            m_frame_buffered_render_target_alias_current[logical_handle] = target_handle;
+        }
     }
 
     IRHITextureDescriptorAllocation& ResourceOperator::GetCurrentSwapchainRT() const
@@ -1644,6 +1825,8 @@ namespace RendererInterface
 
         m_resource_manager.reset();
         m_render_passes.clear();
+        m_frame_buffered_render_target_aliases.clear();
+        m_frame_buffered_render_target_alias_current.clear();
 
         return cleaned_resources && released_allocations;
     }
@@ -2035,7 +2218,11 @@ namespace RendererInterface
                 }
                 else
                 {
-                    ImGui::Text("Cross-frame hazards: %u", dependency_diagnostics.cross_frame_hazard_count);
+                    ImGui::Text(
+                        "Cross-frame hazards: %u (window=%u, compared=%u)",
+                        dependency_diagnostics.cross_frame_hazard_count,
+                        dependency_diagnostics.cross_frame_comparison_window_size,
+                        dependency_diagnostics.cross_frame_compared_frame_count);
                     if (dependency_diagnostics.cross_frame_hazard_overflow_count > 0)
                     {
                         ImGui::Text(
@@ -2170,6 +2357,13 @@ namespace RendererInterface
 
     void RenderGraph::ExecuteRenderGraphFrame(IRHICommandList& command_list, unsigned profiler_slot_index, unsigned long long interval)
     {
+        m_resource_allocator.ApplyFrameBufferedRenderTargetAliases();
+        if (m_final_color_output_render_target_handle != NULL_HANDLE)
+        {
+            auto render_target = InternalResourceHandleTable::Instance().GetRenderTarget(m_final_color_output_render_target_handle);
+            m_final_color_output = render_target->m_source;
+        }
+
         std::vector<RenderGraphNodeHandle> nodes;
         nodes.reserve(m_render_graph_node_handles.size());
         for (auto handle : m_render_graph_node_handles)
@@ -2177,6 +2371,25 @@ namespace RendererInterface
             nodes.push_back(handle);
         }
         auto current_frame_resource_access = CollectFrameResourceAccessDiagnostics(nodes, m_render_graph_nodes);
+        const unsigned cross_frame_comparison_window_size = (std::max)(1u, m_resource_allocator.GetBackBufferCount());
+        const std::size_t max_previous_snapshots_to_compare = cross_frame_comparison_window_size > 0u
+            ? static_cast<std::size_t>(cross_frame_comparison_window_size - 1u)
+            : 0u;
+        ResourceAccessMaskMap previous_frame_resource_access_masks;
+        ResourcePassAccessMap previous_frame_resource_pass_accesses;
+        std::size_t compared_previous_frame_count = 0u;
+        for (auto snapshot_it = m_recent_frame_resource_access_snapshots.rbegin();
+             snapshot_it != m_recent_frame_resource_access_snapshots.rend() &&
+             compared_previous_frame_count < max_previous_snapshots_to_compare;
+             ++snapshot_it, ++compared_previous_frame_count)
+        {
+            for (const auto& access_mask_pair : snapshot_it->access_masks)
+            {
+                previous_frame_resource_access_masks[access_mask_pair.first] |= access_mask_pair.second;
+            }
+            MergeResourcePassAccessMap(snapshot_it->pass_accesses, previous_frame_resource_pass_accesses);
+        }
+        const bool has_previous_frame_resource_access_masks = compared_previous_frame_count > 0u;
 
         const ExecutionPlanContext plan_context{
             nodes,
@@ -2206,15 +2419,24 @@ namespace RendererInterface
             execution_cache_state.cached_execution_order.size(),
             std::move(diagnostics_cycle_nodes),
             m_auto_pruned_named_binding_counts,
-            m_previous_frame_resource_access_masks,
-            m_previous_frame_resource_pass_accesses,
-            m_has_previous_frame_resource_access_masks,
+            previous_frame_resource_access_masks,
+            previous_frame_resource_pass_accesses,
+            has_previous_frame_resource_access_masks,
+            cross_frame_comparison_window_size,
+            static_cast<unsigned>(compared_previous_frame_count),
             current_frame_resource_access.access_masks,
             current_frame_resource_access.pass_accesses,
             m_last_dependency_diagnostics);
-        m_previous_frame_resource_access_masks = std::move(current_frame_resource_access.access_masks);
-        m_previous_frame_resource_pass_accesses = std::move(current_frame_resource_access.pass_accesses);
-        m_has_previous_frame_resource_access_masks = true;
+        {
+            FrameResourceAccessSnapshot snapshot{};
+            snapshot.access_masks = std::move(current_frame_resource_access.access_masks);
+            snapshot.pass_accesses = std::move(current_frame_resource_access.pass_accesses);
+            m_recent_frame_resource_access_snapshots.push_back(std::move(snapshot));
+        }
+        while (m_recent_frame_resource_access_snapshots.size() > static_cast<std::size_t>(cross_frame_comparison_window_size))
+        {
+            m_recent_frame_resource_access_snapshots.pop_front();
+        }
 
         ExecutePlanAndCollectStats(command_list, profiler_slot_index, interval);
 

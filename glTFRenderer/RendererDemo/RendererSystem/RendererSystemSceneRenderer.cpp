@@ -26,16 +26,16 @@ unsigned RendererSystemSceneRenderer::GetHeight() const
 
 bool RendererSystemSceneRenderer::Init(RendererInterface::ResourceOperator& resource_operator, RendererInterface::RenderGraph& graph)
 {
-    m_base_pass_color = resource_operator.CreateWindowRelativeRenderTarget("BasePass_Color", RendererInterface::RGBA8_UNORM, RendererInterface::default_clear_color,
+    m_base_pass_color = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget("BasePass_Color", RendererInterface::RGBA8_UNORM, RendererInterface::default_clear_color,
         static_cast<RendererInterface::ResourceUsage>(RendererInterface::ResourceUsage::RENDER_TARGET | RendererInterface::ResourceUsage::COPY_SRC | RendererInterface::ResourceUsage::SHADER_RESOURCE));
 
-    m_base_pass_normal = resource_operator.CreateWindowRelativeRenderTarget("BasePass_Normal", RendererInterface::RGBA8_UNORM, RendererInterface::default_clear_color,
+    m_base_pass_normal = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget("BasePass_Normal", RendererInterface::RGBA8_UNORM, RendererInterface::default_clear_color,
         static_cast<RendererInterface::ResourceUsage>(RendererInterface::ResourceUsage::RENDER_TARGET | RendererInterface::ResourceUsage::COPY_SRC | RendererInterface::ResourceUsage::SHADER_RESOURCE));
 
-    m_base_pass_velocity = resource_operator.CreateWindowRelativeRenderTarget("BasePass_Velocity", RendererInterface::RGBA16_FLOAT, RendererInterface::default_clear_color,
+    m_base_pass_velocity = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget("BasePass_Velocity", RendererInterface::RGBA16_FLOAT, RendererInterface::default_clear_color,
         static_cast<RendererInterface::ResourceUsage>(RendererInterface::ResourceUsage::RENDER_TARGET | RendererInterface::ResourceUsage::COPY_SRC | RendererInterface::ResourceUsage::SHADER_RESOURCE));
 
-    m_base_pass_depth = resource_operator.CreateWindowRelativeRenderTarget("Depth", RendererInterface::D32, RendererInterface::default_clear_depth,
+    m_base_pass_depth = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget("Depth", RendererInterface::D32, RendererInterface::default_clear_depth,
         static_cast<RendererInterface::ResourceUsage>(RendererInterface::ResourceUsage::DEPTH_STENCIL | RendererInterface::ResourceUsage::SHADER_RESOURCE));
     
     // Setup base pass rendering config

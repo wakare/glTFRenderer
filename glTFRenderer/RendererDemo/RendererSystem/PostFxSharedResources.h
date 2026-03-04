@@ -104,7 +104,7 @@ private:
         const std::string ping_name = name_prefix + "_" + resolution_name + "_Ping";
         const std::string pong_name = name_prefix + "_" + resolution_name + "_Pong";
 
-        pair.ping = resource_operator.CreateWindowRelativeRenderTarget(
+        pair.ping = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
             ping_name,
             format,
             clear_value,
@@ -114,7 +114,7 @@ private:
             1,
             1);
 
-        pair.pong = resource_operator.CreateWindowRelativeRenderTarget(
+        pair.pong = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
             pong_name,
             format,
             clear_value,

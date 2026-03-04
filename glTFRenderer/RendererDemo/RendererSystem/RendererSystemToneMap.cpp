@@ -18,7 +18,7 @@ bool RendererSystemToneMap::Init(RendererInterface::ResourceOperator& resource_o
     GLTF_CHECK(m_frosted->HasInit());
     GLTF_CHECK(m_scene->HasInit());
 
-    m_tone_map_output = resource_operator.CreateWindowRelativeRenderTarget(
+    m_tone_map_output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "ToneMap_Output",
         RendererInterface::RGBA8_UNORM,
         RendererInterface::default_clear_color,

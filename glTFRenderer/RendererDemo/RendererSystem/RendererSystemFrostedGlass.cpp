@@ -326,57 +326,57 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
         RendererInterface::default_clear_color,
         postfx_usage));
 
-    m_frosted_pass_output = resource_operator.CreateWindowRelativeRenderTarget(
+    m_frosted_pass_output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Output",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
         postfx_usage);
-    m_frosted_back_composite_output = resource_operator.CreateWindowRelativeRenderTarget(
+    m_frosted_back_composite_output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_BackComposite",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
         postfx_usage);
-    m_frosted_mask_parameter_output = resource_operator.CreateWindowRelativeRenderTarget(
+    m_frosted_mask_parameter_output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_MaskParameter",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
         postfx_usage);
-    m_frosted_mask_parameter_secondary_output = resource_operator.CreateWindowRelativeRenderTarget(
+    m_frosted_mask_parameter_secondary_output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_MaskParameter_Secondary",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
         postfx_usage);
-    m_frosted_panel_optics_output = resource_operator.CreateWindowRelativeRenderTarget(
+    m_frosted_panel_optics_output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_PanelOptics",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
         postfx_usage);
-    m_frosted_panel_optics_secondary_output = resource_operator.CreateWindowRelativeRenderTarget(
+    m_frosted_panel_optics_secondary_output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_PanelOptics_Secondary",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
         postfx_usage);
-    m_frosted_panel_profile_output = resource_operator.CreateWindowRelativeRenderTarget(
+    m_frosted_panel_profile_output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_PanelProfile",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
         postfx_usage);
-    m_frosted_panel_profile_secondary_output = resource_operator.CreateWindowRelativeRenderTarget(
+    m_frosted_panel_profile_secondary_output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_PanelProfile_Secondary",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
         postfx_usage);
-    m_frosted_panel_payload_depth = resource_operator.CreateWindowRelativeRenderTarget(
+    m_frosted_panel_payload_depth = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_PanelPayloadDepth",
         RendererInterface::D32,
         RendererInterface::default_clear_depth,
         static_cast<RendererInterface::ResourceUsage>(RendererInterface::ResourceUsage::DEPTH_STENCIL));
-    m_frosted_panel_payload_depth_secondary = resource_operator.CreateWindowRelativeRenderTarget(
+    m_frosted_panel_payload_depth_secondary = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_PanelPayloadDepth_Secondary",
         RendererInterface::D32,
         RendererInterface::default_clear_depth,
         static_cast<RendererInterface::ResourceUsage>(RendererInterface::ResourceUsage::DEPTH_STENCIL));
-    m_half_multilayer_ping = resource_operator.CreateWindowRelativeRenderTarget(
+    m_half_multilayer_ping = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Multilayer_Half_Ping",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
@@ -385,7 +385,7 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
         0.5f,
         1,
         1);
-    m_half_multilayer_pong = resource_operator.CreateWindowRelativeRenderTarget(
+    m_half_multilayer_pong = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Multilayer_Half_Pong",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
@@ -394,7 +394,7 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
         0.5f,
         1,
         1);
-    m_quarter_multilayer_ping = resource_operator.CreateWindowRelativeRenderTarget(
+    m_quarter_multilayer_ping = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Multilayer_Quarter_Ping",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
@@ -403,7 +403,7 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
         0.25f,
         1,
         1);
-    m_quarter_multilayer_pong = resource_operator.CreateWindowRelativeRenderTarget(
+    m_quarter_multilayer_pong = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Multilayer_Quarter_Pong",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
@@ -412,7 +412,7 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
         0.25f,
         1,
         1);
-    m_eighth_blur_ping = resource_operator.CreateWindowRelativeRenderTarget(
+    m_eighth_blur_ping = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Eighth_Ping",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
@@ -421,7 +421,7 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
         0.125f,
         1,
         1);
-    m_eighth_blur_pong = resource_operator.CreateWindowRelativeRenderTarget(
+    m_eighth_blur_pong = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Eighth_Pong",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
@@ -430,7 +430,7 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
         0.125f,
         1,
         1);
-    m_sixteenth_blur_ping = resource_operator.CreateWindowRelativeRenderTarget(
+    m_sixteenth_blur_ping = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Sixteenth_Ping",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
@@ -439,7 +439,7 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
         0.0625f,
         1,
         1);
-    m_sixteenth_blur_pong = resource_operator.CreateWindowRelativeRenderTarget(
+    m_sixteenth_blur_pong = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Sixteenth_Pong",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
@@ -448,7 +448,7 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
         0.0625f,
         1,
         1);
-    m_thirtysecond_blur_ping = resource_operator.CreateWindowRelativeRenderTarget(
+    m_thirtysecond_blur_ping = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_ThirtySecond_Ping",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
@@ -457,7 +457,7 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
         0.03125f,
         1,
         1);
-    m_thirtysecond_blur_pong = resource_operator.CreateWindowRelativeRenderTarget(
+    m_thirtysecond_blur_pong = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_ThirtySecond_Pong",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
@@ -466,7 +466,7 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
         0.03125f,
         1,
         1);
-    m_eighth_multilayer_ping = resource_operator.CreateWindowRelativeRenderTarget(
+    m_eighth_multilayer_ping = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Multilayer_Eighth_Ping",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
@@ -475,7 +475,7 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
         0.125f,
         1,
         1);
-    m_eighth_multilayer_pong = resource_operator.CreateWindowRelativeRenderTarget(
+    m_eighth_multilayer_pong = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Multilayer_Eighth_Pong",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
@@ -484,7 +484,7 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
         0.125f,
         1,
         1);
-    m_sixteenth_multilayer_ping = resource_operator.CreateWindowRelativeRenderTarget(
+    m_sixteenth_multilayer_ping = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Multilayer_Sixteenth_Ping",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
@@ -493,7 +493,7 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
         0.0625f,
         1,
         1);
-    m_sixteenth_multilayer_pong = resource_operator.CreateWindowRelativeRenderTarget(
+    m_sixteenth_multilayer_pong = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Multilayer_Sixteenth_Pong",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
@@ -502,7 +502,7 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
         0.0625f,
         1,
         1);
-    m_thirtysecond_multilayer_ping = resource_operator.CreateWindowRelativeRenderTarget(
+    m_thirtysecond_multilayer_ping = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Multilayer_ThirtySecond_Ping",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
@@ -511,7 +511,7 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
         0.03125f,
         1,
         1);
-    m_thirtysecond_multilayer_pong = resource_operator.CreateWindowRelativeRenderTarget(
+    m_thirtysecond_multilayer_pong = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Multilayer_ThirtySecond_Pong",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
@@ -520,7 +520,7 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
         0.03125f,
         1,
         1);
-    m_half_blur_final_output = resource_operator.CreateWindowRelativeRenderTarget(
+    m_half_blur_final_output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Half_BlurFinal",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
@@ -529,7 +529,7 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
         0.5f,
         1,
         1);
-    m_quarter_blur_final_output = resource_operator.CreateWindowRelativeRenderTarget(
+    m_quarter_blur_final_output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Quarter_BlurFinal",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
@@ -538,7 +538,7 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
         0.25f,
         1,
         1);
-    m_eighth_blur_final_output = resource_operator.CreateWindowRelativeRenderTarget(
+    m_eighth_blur_final_output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Eighth_BlurFinal",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
@@ -547,7 +547,7 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
         0.125f,
         1,
         1);
-    m_sixteenth_blur_final_output = resource_operator.CreateWindowRelativeRenderTarget(
+    m_sixteenth_blur_final_output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Sixteenth_BlurFinal",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
@@ -556,7 +556,7 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
         0.0625f,
         1,
         1);
-    m_thirtysecond_blur_final_output = resource_operator.CreateWindowRelativeRenderTarget(
+    m_thirtysecond_blur_final_output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_ThirtySecond_BlurFinal",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
@@ -565,7 +565,7 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
         0.03125f,
         1,
         1);
-    m_half_multilayer_blur_final_output = resource_operator.CreateWindowRelativeRenderTarget(
+    m_half_multilayer_blur_final_output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Multilayer_Half_BlurFinal",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
@@ -574,7 +574,7 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
         0.5f,
         1,
         1);
-    m_quarter_multilayer_blur_final_output = resource_operator.CreateWindowRelativeRenderTarget(
+    m_quarter_multilayer_blur_final_output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Multilayer_Quarter_BlurFinal",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
@@ -583,7 +583,7 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
         0.25f,
         1,
         1);
-    m_eighth_multilayer_blur_final_output = resource_operator.CreateWindowRelativeRenderTarget(
+    m_eighth_multilayer_blur_final_output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Multilayer_Eighth_BlurFinal",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
@@ -592,7 +592,7 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
         0.125f,
         1,
         1);
-    m_sixteenth_multilayer_blur_final_output = resource_operator.CreateWindowRelativeRenderTarget(
+    m_sixteenth_multilayer_blur_final_output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Multilayer_Sixteenth_BlurFinal",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
@@ -601,7 +601,7 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
         0.0625f,
         1,
         1);
-    m_thirtysecond_multilayer_blur_final_output = resource_operator.CreateWindowRelativeRenderTarget(
+    m_thirtysecond_multilayer_blur_final_output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Multilayer_ThirtySecond_BlurFinal",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
@@ -3556,4 +3556,5 @@ RendererSystemFrostedGlass::FrostedGlassPanelGpuData RendererSystemFrostedGlass:
     };
     return gpu_data;
 }
+
 
