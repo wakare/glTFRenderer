@@ -3,6 +3,7 @@
 #include "RendererSystemSceneRenderer.h"
 #include "RendererModule/RendererModuleLighting.h"
 #include "RendererModule/RendererModuleSceneMesh.h"
+#include <vector>
 
 class RendererSceneAABB;
 
@@ -43,8 +44,9 @@ protected:
         RendererInterface::RenderGraphNodeHandle m_shadow_pass_node {NULL_HANDLE};
         RendererInterface::RenderTargetHandle m_shadow_map {NULL_HANDLE};
         ViewBuffer m_shadow_map_view_buffer{};
+        std::vector<ViewBuffer> m_shadow_map_view_buffers;
         ShadowMapInfo m_shadow_map_info{};
-        RendererInterface::BufferHandle m_shadow_map_buffer_handle{NULL_HANDLE};
+        std::vector<RendererInterface::BufferHandle> m_shadow_map_buffer_handles;
     };
 
     void UpdateDirectionalShadowResources(RendererInterface::ResourceOperator& resource_operator);

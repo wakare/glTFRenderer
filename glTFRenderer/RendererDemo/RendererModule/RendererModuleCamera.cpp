@@ -42,7 +42,7 @@ RendererModuleCamera::RendererModuleCamera(RendererInterface::ResourceOperator& 
     
     camera_buffer_desc.name = "ViewBuffer";
     camera_buffer_desc.size = sizeof(ViewBuffer);
-    camera_buffer_desc.type = RendererInterface::UPLOAD;
+    camera_buffer_desc.type = RendererInterface::DEFAULT;
     camera_buffer_desc.usage = RendererInterface::USAGE_CBV;
     camera_buffer_desc.data = &view_buffer;
     

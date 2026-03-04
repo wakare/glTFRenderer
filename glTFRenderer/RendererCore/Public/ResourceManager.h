@@ -43,6 +43,7 @@ public:
     RendererInterface::RenderTargetHandle CreateRenderTarget(const RendererInterface::RenderTargetDesc& desc);
 
     unsigned GetCurrentBackBufferIndex() const;
+    unsigned GetBackBufferCount() const;
     
     IRHIDevice& GetDevice();
     IRHISwapChain& GetSwapChain();

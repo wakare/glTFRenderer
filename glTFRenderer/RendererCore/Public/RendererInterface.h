@@ -68,12 +68,16 @@ namespace RendererInterface
     public:
         ResourceOperator(RenderDeviceDesc device);
         unsigned            GetCurrentBackBufferIndex() const;
+        unsigned            GetBackBufferCount() const;
         
         ShaderHandle        CreateShader(const ShaderDesc& desc);
         TextureHandle       CreateTexture(const TextureDesc& desc);
         TextureHandle       CreateTexture(const TextureFileDesc& desc);
         BufferHandle        CreateBuffer(const BufferDesc& desc);
         IndexedBufferHandle CreateIndexedBuffer(const BufferDesc& desc);
+        std::vector<BufferHandle> CreateFrameBufferedBuffers(const BufferDesc& desc, const std::string& debug_name_prefix = "");
+        BufferHandle        GetFrameBufferedBufferHandle(const std::vector<BufferHandle>& buffers) const;
+        void                UploadFrameBufferedBufferData(const std::vector<BufferHandle>& buffers, const BufferUploadDesc& upload_desc);
         
         RenderTargetHandle  CreateRenderTarget(const RenderTargetDesc& desc);
         RenderTargetHandle  CreateRenderTarget(
@@ -246,6 +250,7 @@ namespace RendererInterface
         bool RegisterRenderGraphNode(RenderGraphNodeHandle render_graph_node_handle);
         bool RemoveRenderGraphNode(RenderGraphNodeHandle render_graph_node_handle);
         bool UpdateComputeDispatch(RenderGraphNodeHandle render_graph_node_handle, unsigned group_size_x, unsigned group_size_y, unsigned group_size_z);
+        bool UpdateNodeBufferBinding(RenderGraphNodeHandle render_graph_node_handle, const std::string& binding_name, BufferHandle buffer_handle);
         
         bool CompileRenderPassAndExecute();
 

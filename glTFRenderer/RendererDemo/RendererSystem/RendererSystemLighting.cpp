@@ -117,7 +117,7 @@ bool RendererSystemLighting::Init(RendererInterface::ResourceOperator& resource_
         }
 
         auto& new_shadow_pass_resource = m_shadow_pass_resources[i];
-        const std::string shadowmap_name = std::format("directional_shadowmap_%d", i);
+        const std::string shadowmap_name = std::format("directional_shadowmap_{}", i);
 
         const unsigned shadowmap_width = 1024;
         const unsigned shadowmap_height = 1024;
@@ -128,14 +128,19 @@ bool RendererSystemLighting::Init(RendererInterface::ResourceOperator& resource_
 
         ShadowPassResource::CalcDirectionalLightShadowMatrix(light, m_scene->GetSceneMeshModule()->GetSceneBounds(),
             0.0f, 0.0f, 1.0f, 1.0f, shadowmap_width, shadowmap_height, new_shadow_pass_resource.m_shadow_map_view_buffer, new_shadow_pass_resource.m_shadow_map_info);
-        
         RendererInterface::BufferDesc camera_buffer_desc{};
         camera_buffer_desc.name = "ViewBuffer";
         camera_buffer_desc.size = sizeof(ViewBuffer);
         camera_buffer_desc.type = RendererInterface::UPLOAD;
         camera_buffer_desc.usage = RendererInterface::USAGE_CBV;
         camera_buffer_desc.data = &new_shadow_pass_resource.m_shadow_map_view_buffer;
-        new_shadow_pass_resource.m_shadow_map_buffer_handle = resource_operator.CreateBuffer(camera_buffer_desc);
+        new_shadow_pass_resource.m_shadow_map_buffer_handles =
+            resource_operator.CreateFrameBufferedBuffers(
+                camera_buffer_desc,
+                std::format("ViewBuffer_shadow_{}", i));
+        new_shadow_pass_resource.m_shadow_map_view_buffers.assign(
+            new_shadow_pass_resource.m_shadow_map_buffer_handles.size(),
+            new_shadow_pass_resource.m_shadow_map_view_buffer);
 
         RendererInterface::RenderGraph::RenderPassSetupInfo shadow_pass_setup_info{};
         shadow_pass_setup_info.render_pass_type = RendererInterface::RenderPassType::GRAPHICS;
@@ -163,13 +168,15 @@ bool RendererSystemLighting::Init(RendererInterface::ResourceOperator& resource_
         
         RendererInterface::BufferBindingDesc camera_binding_desc{};
         camera_binding_desc.binding_type = RendererInterface::BufferBindingDesc::CBV;
-        camera_binding_desc.buffer_handle = new_shadow_pass_resource.m_shadow_map_buffer_handle;
+        camera_binding_desc.buffer_handle = new_shadow_pass_resource.m_shadow_map_buffer_handles[0];
         camera_binding_desc.is_structured_buffer = false;
-        shadow_pass_setup_info.buffer_resources[camera_buffer_desc.name] = camera_binding_desc;
+        shadow_pass_setup_info.buffer_resources["ViewBuffer"] = camera_binding_desc;
 
         shadow_pass_setup_info.viewport_width = shadowmap_width;
         shadow_pass_setup_info.viewport_height = shadowmap_height;
         new_shadow_pass_resource.m_shadow_pass_node = graph.CreateRenderGraphNode(resource_operator, shadow_pass_setup_info);
+    
+        GLTF_CHECK(!new_shadow_pass_resource.m_shadow_map_buffer_handles.empty());
     }
     
     RendererInterface::RenderGraph::RenderPassSetupInfo lighting_pass_setup_info{};
@@ -270,6 +277,14 @@ bool RendererSystemLighting::Tick(RendererInterface::ResourceOperator& resource_
         UpdateDirectionalShadowResources(resource_operator);
         for (const auto& shadow_pass: m_shadow_pass_resources)
         {
+            const auto& shadow_buffers = shadow_pass.second.m_shadow_map_buffer_handles;
+            if (!shadow_buffers.empty())
+            {
+                graph.UpdateNodeBufferBinding(
+                    shadow_pass.second.m_shadow_pass_node,
+                    "ViewBuffer",
+                    resource_operator.GetFrameBufferedBufferHandle(shadow_buffers));
+            }
             graph.RegisterRenderGraphNode(shadow_pass.second.m_shadow_pass_node);
         }
     }
@@ -315,6 +330,7 @@ void RendererSystemLighting::UpdateDirectionalShadowResources(RendererInterface:
 
     std::vector<ShadowMapInfo> shadowmap_infos;
     shadowmap_infos.reserve(m_shadow_pass_resources.size());
+    const unsigned current_back_buffer_index = resource_operator.GetCurrentBackBufferIndex();
 
     const auto& lights = m_lighting_module->GetLightInfos();
     const auto scene_bounds = m_scene->GetSceneMeshModule()->GetSceneBounds();
@@ -340,10 +356,17 @@ void RendererSystemLighting::UpdateDirectionalShadowResources(RendererInterface:
             shadow_resource.m_shadow_map_view_buffer,
             shadow_resource.m_shadow_map_info);
 
-        RendererInterface::BufferUploadDesc shadow_camera_upload_desc{};
-        shadow_camera_upload_desc.data = &shadow_resource.m_shadow_map_view_buffer;
-        shadow_camera_upload_desc.size = sizeof(ViewBuffer);
-        resource_operator.UploadBufferData(shadow_resource.m_shadow_map_buffer_handle, shadow_camera_upload_desc);
+        if (!shadow_resource.m_shadow_map_buffer_handles.empty() &&
+            shadow_resource.m_shadow_map_buffer_handles.size() == shadow_resource.m_shadow_map_view_buffers.size())
+        {
+            const unsigned frame_slot = current_back_buffer_index % static_cast<unsigned>(shadow_resource.m_shadow_map_buffer_handles.size());
+            shadow_resource.m_shadow_map_view_buffers[frame_slot] = shadow_resource.m_shadow_map_view_buffer;
+
+            RendererInterface::BufferUploadDesc shadow_camera_upload_desc{};
+            shadow_camera_upload_desc.data = &shadow_resource.m_shadow_map_view_buffers[frame_slot];
+            shadow_camera_upload_desc.size = sizeof(ViewBuffer);
+            resource_operator.UploadFrameBufferedBufferData(shadow_resource.m_shadow_map_buffer_handles, shadow_camera_upload_desc);
+        }
         shadowmap_infos.push_back(shadow_resource.m_shadow_map_info);
     }
 
@@ -365,55 +388,49 @@ bool RendererSystemLighting::ShadowPassResource::CalcDirectionalLightShadowMatri
     const auto& scene_bounds_max = scene_bounds.getMax();
     const auto& scene_center = scene_bounds.getCenter();
     
-    glm::mat4x4 view_matrix = glm::lookAtLH(scene_center, scene_center + directional_light_info.position , {0.0f, 1.0f, 0.0f});
-    glm::vec3 light_ndc_min{ FLT_MAX, FLT_MAX, FLT_MAX };
-    glm::vec3 light_ndc_max{ FLT_MIN, FLT_MIN, FLT_MIN };
-
-    glm::vec4 scene_corner[8] =
-        {
-        {scene_bounds_min.x, scene_bounds_min.y, scene_bounds_min.z, 1.0f},
-        {scene_bounds_max.x, scene_bounds_min.y, scene_bounds_min.z, 1.0f},
-        {scene_bounds_min.x, scene_bounds_max.y, scene_bounds_min.z, 1.0f},
-        {scene_bounds_max.x, scene_bounds_max.y, scene_bounds_min.z, 1.0f},
-        {scene_bounds_min.x, scene_bounds_min.y, scene_bounds_max.z, 1.0f},
-        {scene_bounds_max.x, scene_bounds_min.y, scene_bounds_max.z, 1.0f},
-        {scene_bounds_min.x, scene_bounds_max.y, scene_bounds_max.z, 1.0f},
-        {scene_bounds_max.x, scene_bounds_max.y, scene_bounds_max.z, 1.0f},
-    };
-
-    for (unsigned i = 0; i < 8; ++i)
+    glm::vec3 light_dir = directional_light_info.position;
+    const float light_len_sq = glm::dot(light_dir, light_dir);
+    if (light_len_sq <= 1e-8f)
     {
-        glm::vec4 ndc_to_light_view = view_matrix * scene_corner[i];
+        return false;
+    }
+    light_dir *= 1.0f / std::sqrt(light_len_sq);
 
-        light_ndc_min.x = (light_ndc_min.x > ndc_to_light_view.x) ? ndc_to_light_view.x : light_ndc_min.x;
-        light_ndc_min.y = (light_ndc_min.y > ndc_to_light_view.y) ? ndc_to_light_view.y : light_ndc_min.y;
-        light_ndc_min.z = (light_ndc_min.z > ndc_to_light_view.z) ? ndc_to_light_view.z : light_ndc_min.z;
+    const glm::vec3 scene_extent = scene_bounds_max - scene_bounds_min;
+    const float scene_radius = (std::max)(0.5f * glm::length(scene_extent), 1.0f);
+    const float shadow_radius = scene_radius * 1.05f;
 
-        light_ndc_max.x = (light_ndc_max.x < ndc_to_light_view.x) ? ndc_to_light_view.x : light_ndc_max.x;
-        light_ndc_max.y = (light_ndc_max.y < ndc_to_light_view.y) ? ndc_to_light_view.y : light_ndc_max.y;
-        light_ndc_max.z = (light_ndc_max.z < ndc_to_light_view.z) ? ndc_to_light_view.z : light_ndc_max.z;
+    glm::vec3 light_up = {0.0f, 1.0f, 0.0f};
+    if (std::abs(glm::dot(light_dir, light_up)) > 0.99f)
+    {
+        light_up = {0.0f, 0.0f, 1.0f};
     }
 
-    // for safety
-    auto ndc_size = light_ndc_max - light_ndc_min;
-    float safety_factor = 0.01f;
-    light_ndc_min -= ndc_size * safety_factor;
-    light_ndc_max += ndc_size * safety_factor;
-    
-    // Apply ndc range
-    float ndc_total_width = light_ndc_max.x - light_ndc_min.x;
-    float ndc_total_height = light_ndc_max.y - light_ndc_min.y;
+    const glm::vec3 light_eye = scene_center - light_dir * shadow_radius;
+    glm::mat4x4 view_matrix = glm::lookAtLH(light_eye, scene_center, light_up);
 
-    float new_ndc_min_x = ndc_min_x * ndc_total_width + light_ndc_min.x;
-    float new_ndc_min_y = ndc_min_y * ndc_total_height + light_ndc_min.y;
+    // Use a fixed orthographic span in light-space XY to prevent rotation-dependent pumping.
+    const float ndc_total_width = shadow_radius * 2.0f;
+    const float ndc_total_height = shadow_radius * 2.0f;
+    float new_ndc_min_x = ndc_min_x * ndc_total_width - shadow_radius;
+    float new_ndc_min_y = ndc_min_y * ndc_total_height - shadow_radius;
     float new_ndc_max_x = new_ndc_min_x + ndc_width * ndc_total_width;
     float new_ndc_max_y = new_ndc_min_y + ndc_height * ndc_total_height;
-        
-    glm::mat4x4 projection_matrix = glm::orthoLH(new_ndc_min_x, new_ndc_max_x, new_ndc_min_y, new_ndc_max_y, light_ndc_min.z, light_ndc_max.z);
+
+    // Scene bounds are enclosed in front of this light camera setup.
+    const float near_plane = 0.01f;
+    const float far_plane = shadow_radius * 2.2f + 1.0f;
+    glm::mat4x4 projection_matrix = glm::orthoLH(
+        new_ndc_min_x,
+        new_ndc_max_x,
+        new_ndc_min_y,
+        new_ndc_max_y,
+        near_plane,
+        far_plane);
     
     out_view_buffer.viewport_width = shadowmap_width;
     out_view_buffer.viewport_height = shadowmap_height;
-    out_view_buffer.view_position = {scene_center, 1.0f};
+    out_view_buffer.view_position = {light_eye, 1.0f};
     out_view_buffer.view_projection_matrix = projection_matrix * view_matrix;
     out_view_buffer.prev_view_projection_matrix = out_view_buffer.view_projection_matrix;
     out_view_buffer.inverse_view_projection_matrix = glm::inverse(out_view_buffer.view_projection_matrix);

@@ -51,11 +51,34 @@ float CalcLightVisibleFactor(uint light_index, float3 scene_position)
         Texture2D<float> shadowmap = bindless_shadowmap_textures[light_index]; 
         
         float4 shadowmap_ndc = mul(shadowmap_info.projection_matrix, mul(shadowmap_info.view_matrix, float4(scene_position, 1.0)));
+        if (abs(shadowmap_ndc.w) < 1e-6f)
+        {
+            return 1.0;
+        }
         shadowmap_ndc /= shadowmap_ndc.w;
+
+        if (shadowmap_ndc.x < -1.0f || shadowmap_ndc.x > 1.0f ||
+            shadowmap_ndc.y < -1.0f || shadowmap_ndc.y > 1.0f ||
+            shadowmap_ndc.z < 0.0f || shadowmap_ndc.z > 1.0f)
+        {
+            return 1.0;
+        }
+
+        uint2 shadowmap_extent = shadowmap_info.shadowmap_size;
+        if (shadowmap_extent.x == 0 || shadowmap_extent.y == 0)
+        {
+            return 1.0;
+        }
         float2 shadowmap_uv = shadowmap_ndc.xy * 0.5 + 0.5;
         shadowmap_uv.y = 1.0 - shadowmap_uv.y;
+        int2 shadowmap_texel = int2(shadowmap_uv * float2(shadowmap_extent));
+        if (shadowmap_texel.x < 0 || shadowmap_texel.y < 0 ||
+            shadowmap_texel.x >= int(shadowmap_extent.x) || shadowmap_texel.y >= int(shadowmap_extent.y))
+        {
+            return 1.0;
+        }
         float shadow_depth = shadowmap_ndc.z;
-        float compare_shadow_depth = shadowmap.Load(int3(shadowmap_uv * shadowmap_info.shadowmap_size, 0));
+        float compare_shadow_depth = shadowmap.Load(int3(shadowmap_texel, 0));
         if (shadow_depth > compare_shadow_depth + 0.01f)
         {
             return 0.0;

@@ -280,6 +280,17 @@ bool ResourceManager::InitResourceManager(const RendererInterface::RenderDeviceD
 
 RendererInterface::BufferHandle ResourceManager::CreateBuffer(const RendererInterface::BufferDesc& desc)
 {
+    if (desc.type == RendererInterface::UPLOAD &&
+        desc.usage == RendererInterface::USAGE_CBV &&
+        GetBackBufferCount() > 1)
+    {
+        LOG_FORMAT_FLUSH(
+            "[ResourceManager][Risk] Buffer '%s' is UPLOAD+CBV with %u back buffers. "
+            "Prefer DEFAULT+UploadBufferData or per-backbuffer buffering to avoid cross-frame overwrite hazards.\n",
+            desc.name.c_str(),
+            GetBackBufferCount());
+    }
+
     RHIBufferDesc buffer_desc = ConvertToRHIBufferDesc(desc);
     
     std::shared_ptr<IRHIBufferAllocation> buffer_allocation;
@@ -362,6 +373,11 @@ RendererInterface::RenderTargetHandle ResourceManager::CreateRenderTarget(const 
 unsigned ResourceManager::GetCurrentBackBufferIndex() const
 {
     return m_swap_chain->GetCurrentBackBufferIndex();
+}
+
+unsigned ResourceManager::GetBackBufferCount() const
+{
+    return m_swap_chain ? m_swap_chain->GetBackBufferCount() : m_device_desc.back_buffer_count;
 }
 
 IRHIDevice& ResourceManager::GetDevice()

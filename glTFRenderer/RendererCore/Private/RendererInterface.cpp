@@ -1184,6 +1184,44 @@ namespace RendererInterface
         return m_resource_manager->CreateIndexedBuffer(desc);   
     }
 
+    std::vector<BufferHandle> ResourceOperator::CreateFrameBufferedBuffers(const BufferDesc& desc, const std::string& debug_name_prefix)
+    {
+        const unsigned back_buffer_count = (std::max)(1u, GetBackBufferCount());
+        std::vector<BufferHandle> buffers;
+        buffers.reserve(back_buffer_count);
+
+        std::string base_name = debug_name_prefix;
+        if (base_name.empty())
+        {
+            base_name = desc.name.empty() ? "FrameBufferedBuffer" : desc.name;
+        }
+
+        for (unsigned frame_index = 0; frame_index < back_buffer_count; ++frame_index)
+        {
+            BufferDesc frame_desc = desc;
+            frame_desc.name = base_name + "_frame_" + std::to_string(frame_index);
+            buffers.push_back(CreateBuffer(frame_desc));
+        }
+
+        return buffers;
+    }
+
+    BufferHandle ResourceOperator::GetFrameBufferedBufferHandle(const std::vector<BufferHandle>& buffers) const
+    {
+        GLTF_CHECK(!buffers.empty());
+        const unsigned frame_slot = GetCurrentBackBufferIndex() % static_cast<unsigned>(buffers.size());
+        return buffers[frame_slot];
+    }
+
+    void ResourceOperator::UploadFrameBufferedBufferData(const std::vector<BufferHandle>& buffers, const BufferUploadDesc& upload_desc)
+    {
+        if (buffers.empty())
+        {
+            return;
+        }
+        UploadBufferData(GetFrameBufferedBufferHandle(buffers), upload_desc);
+    }
+
     RenderTargetHandle ResourceOperator::CreateRenderTarget(const RenderTargetDesc& desc)
     {
         return m_resource_manager->CreateRenderTarget(desc);
@@ -1268,6 +1306,11 @@ namespace RendererInterface
     unsigned ResourceOperator::GetCurrentBackBufferIndex() const
     {
         return m_resource_manager->GetCurrentBackBufferIndex();
+    }
+
+    unsigned ResourceOperator::GetBackBufferCount() const
+    {
+        return m_resource_manager->GetBackBufferCount();
     }
 
     IRHITextureDescriptorAllocation& ResourceOperator::GetCurrentSwapchainRT() const
@@ -1627,6 +1670,23 @@ namespace RendererInterface
         }
 
         return false;
+    }
+
+    bool RenderGraph::UpdateNodeBufferBinding(RenderGraphNodeHandle render_graph_node_handle, const std::string& binding_name, BufferHandle buffer_handle)
+    {
+        GLTF_CHECK(render_graph_node_handle.IsValid());
+        GLTF_CHECK(render_graph_node_handle.value < m_render_graph_nodes.size());
+        GLTF_CHECK(buffer_handle != NULL_HANDLE);
+
+        auto& node_desc = m_render_graph_nodes[render_graph_node_handle.value];
+        auto binding_it = node_desc.draw_info.buffer_resources.find(binding_name);
+        if (binding_it == node_desc.draw_info.buffer_resources.end())
+        {
+            return false;
+        }
+
+        binding_it->second.buffer_handle = buffer_handle;
+        return true;
     }
 
     bool RenderGraph::CompileRenderPassAndExecute()
