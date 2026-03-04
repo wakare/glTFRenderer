@@ -121,10 +121,19 @@ bool RendererSystemLighting::Init(RendererInterface::ResourceOperator& resource_
 
         const unsigned shadowmap_width = 1024;
         const unsigned shadowmap_height = 1024;
-        new_shadow_pass_resource.m_shadow_map = resource_operator.CreateRenderTarget(
-            shadowmap_name, shadowmap_width, shadowmap_height, RendererInterface::D32,
-            RendererInterface::default_clear_depth,
-            static_cast<RendererInterface::ResourceUsage>(RendererInterface::ResourceUsage::DEPTH_STENCIL | RendererInterface::ResourceUsage::SHADER_RESOURCE) );
+        RendererInterface::RenderTargetDesc shadowmap_desc{};
+        shadowmap_desc.name = shadowmap_name;
+        shadowmap_desc.format = RendererInterface::D32;
+        shadowmap_desc.width = shadowmap_width;
+        shadowmap_desc.height = shadowmap_height;
+        shadowmap_desc.clear = RendererInterface::default_clear_depth;
+        shadowmap_desc.usage = static_cast<RendererInterface::ResourceUsage>(
+            RendererInterface::ResourceUsage::DEPTH_STENCIL |
+            RendererInterface::ResourceUsage::SHADER_RESOURCE);
+        new_shadow_pass_resource.m_shadow_maps =
+            resource_operator.CreateFrameBufferedRenderTargets(shadowmap_desc, shadowmap_name);
+        GLTF_CHECK(!new_shadow_pass_resource.m_shadow_maps.empty());
+        new_shadow_pass_resource.m_bound_shadow_map = new_shadow_pass_resource.m_shadow_maps[0];
 
         ShadowPassResource::CalcDirectionalLightShadowMatrix(light, m_scene->GetSceneMeshModule()->GetSceneBounds(),
             0.0f, 0.0f, 1.0f, 1.0f, shadowmap_width, shadowmap_height, new_shadow_pass_resource.m_shadow_map_view_buffer, new_shadow_pass_resource.m_shadow_map_info);
@@ -163,7 +172,7 @@ bool RendererSystemLighting::Init(RendererInterface::ResourceOperator& resource_
         depth_binding_desc.need_clear = true;
 
         shadow_pass_setup_info.render_targets = {
-            {new_shadow_pass_resource.m_shadow_map, depth_binding_desc}
+            {new_shadow_pass_resource.m_bound_shadow_map, depth_binding_desc}
         };
         
         RendererInterface::BufferBindingDesc camera_binding_desc{};
@@ -214,7 +223,7 @@ bool RendererSystemLighting::Init(RendererInterface::ResourceOperator& resource_
     shadowmap_binding_desc.name = "bindless_shadowmap_textures";
     for (const auto& shadow_resource : m_shadow_pass_resources)
     {
-        shadowmap_binding_desc.render_target_texture.push_back(shadow_resource.second.m_shadow_map);    
+        shadowmap_binding_desc.render_target_texture.push_back(shadow_resource.second.m_bound_shadow_map);
     }
     
     lighting_pass_setup_info.sampled_render_targets = {
@@ -275,8 +284,31 @@ bool RendererSystemLighting::Tick(RendererInterface::ResourceOperator& resource_
     if (CastShadow())
     {
         UpdateDirectionalShadowResources(resource_operator);
-        for (const auto& shadow_pass: m_shadow_pass_resources)
+        std::vector<RendererInterface::RenderTargetHandle> current_shadow_maps;
+        current_shadow_maps.reserve(m_shadow_pass_resources.size());
+        for (auto& shadow_pass: m_shadow_pass_resources)
         {
+            auto& shadow_resource = shadow_pass.second;
+            if (!shadow_resource.m_shadow_maps.empty())
+            {
+                const auto current_shadow_map =
+                    resource_operator.GetFrameBufferedRenderTargetHandle(shadow_resource.m_shadow_maps);
+                if (shadow_resource.m_bound_shadow_map == NULL_HANDLE)
+                {
+                    shadow_resource.m_bound_shadow_map = current_shadow_map;
+                }
+                else if (shadow_resource.m_bound_shadow_map != current_shadow_map)
+                {
+                    graph.UpdateNodeRenderTargetBinding(
+                        shadow_resource.m_shadow_pass_node,
+                        shadow_resource.m_bound_shadow_map,
+                        current_shadow_map);
+                    shadow_resource.m_bound_shadow_map = current_shadow_map;
+                }
+
+                current_shadow_maps.push_back(shadow_resource.m_bound_shadow_map);
+            }
+
             const auto& shadow_buffers = shadow_pass.second.m_shadow_map_buffer_handles;
             if (!shadow_buffers.empty())
             {
@@ -286,6 +318,14 @@ bool RendererSystemLighting::Tick(RendererInterface::ResourceOperator& resource_
                     resource_operator.GetFrameBufferedBufferHandle(shadow_buffers));
             }
             graph.RegisterRenderGraphNode(shadow_pass.second.m_shadow_pass_node);
+        }
+
+        if (!current_shadow_maps.empty())
+        {
+            graph.UpdateNodeRenderTargetTextureBinding(
+                m_lighting_pass_node,
+                "bindless_shadowmap_textures",
+                current_shadow_maps);
         }
     }
     

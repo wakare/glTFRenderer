@@ -1209,7 +1209,9 @@ namespace RendererInterface
     BufferHandle ResourceOperator::GetFrameBufferedBufferHandle(const std::vector<BufferHandle>& buffers) const
     {
         GLTF_CHECK(!buffers.empty());
-        const unsigned frame_slot = GetCurrentBackBufferIndex() % static_cast<unsigned>(buffers.size());
+        const unsigned frame_slot = m_per_frame_resource_binding_enabled
+            ? (GetCurrentBackBufferIndex() % static_cast<unsigned>(buffers.size()))
+            : 0u;
         return buffers[frame_slot];
     }
 
@@ -1220,6 +1222,37 @@ namespace RendererInterface
             return;
         }
         UploadBufferData(GetFrameBufferedBufferHandle(buffers), upload_desc);
+    }
+
+    std::vector<RenderTargetHandle> ResourceOperator::CreateFrameBufferedRenderTargets(const RenderTargetDesc& desc, const std::string& debug_name_prefix)
+    {
+        const unsigned back_buffer_count = (std::max)(1u, GetBackBufferCount());
+        std::vector<RenderTargetHandle> render_targets;
+        render_targets.reserve(back_buffer_count);
+
+        std::string base_name = debug_name_prefix;
+        if (base_name.empty())
+        {
+            base_name = desc.name.empty() ? "FrameBufferedRenderTarget" : desc.name;
+        }
+
+        for (unsigned frame_index = 0; frame_index < back_buffer_count; ++frame_index)
+        {
+            RenderTargetDesc frame_desc = desc;
+            frame_desc.name = base_name + "_frame_" + std::to_string(frame_index);
+            render_targets.push_back(CreateRenderTarget(frame_desc));
+        }
+
+        return render_targets;
+    }
+
+    RenderTargetHandle ResourceOperator::GetFrameBufferedRenderTargetHandle(const std::vector<RenderTargetHandle>& render_targets) const
+    {
+        GLTF_CHECK(!render_targets.empty());
+        const unsigned frame_slot = m_per_frame_resource_binding_enabled
+            ? (GetCurrentBackBufferIndex() % static_cast<unsigned>(render_targets.size()))
+            : 0u;
+        return render_targets[frame_slot];
     }
 
     RenderTargetHandle ResourceOperator::CreateRenderTarget(const RenderTargetDesc& desc)
@@ -1311,6 +1344,16 @@ namespace RendererInterface
     unsigned ResourceOperator::GetBackBufferCount() const
     {
         return m_resource_manager->GetBackBufferCount();
+    }
+
+    bool ResourceOperator::IsPerFrameResourceBindingEnabled() const
+    {
+        return m_per_frame_resource_binding_enabled;
+    }
+
+    void ResourceOperator::SetPerFrameResourceBindingEnabled(bool enable)
+    {
+        m_per_frame_resource_binding_enabled = enable;
     }
 
     IRHITextureDescriptorAllocation& ResourceOperator::GetCurrentSwapchainRT() const
@@ -1689,6 +1732,78 @@ namespace RendererInterface
         return true;
     }
 
+    bool RenderGraph::UpdateNodeRenderTargetBinding(
+        RenderGraphNodeHandle render_graph_node_handle,
+        RenderTargetHandle old_render_target_handle,
+        RenderTargetHandle new_render_target_handle)
+    {
+        GLTF_CHECK(render_graph_node_handle.IsValid());
+        GLTF_CHECK(render_graph_node_handle.value < m_render_graph_nodes.size());
+        GLTF_CHECK(old_render_target_handle != NULL_HANDLE);
+        GLTF_CHECK(new_render_target_handle != NULL_HANDLE);
+
+        auto& node_desc = m_render_graph_nodes[render_graph_node_handle.value];
+        auto binding_it = node_desc.draw_info.render_target_resources.find(old_render_target_handle);
+        if (binding_it == node_desc.draw_info.render_target_resources.end())
+        {
+            return false;
+        }
+
+        if (old_render_target_handle == new_render_target_handle)
+        {
+            return true;
+        }
+
+        if (node_desc.draw_info.render_target_resources.contains(new_render_target_handle))
+        {
+            return false;
+        }
+
+        const RenderTargetBindingDesc binding_desc = binding_it->second;
+        node_desc.draw_info.render_target_resources.erase(binding_it);
+        node_desc.draw_info.render_target_resources.emplace(new_render_target_handle, binding_desc);
+        return true;
+    }
+
+    bool RenderGraph::UpdateNodeRenderTargetTextureBinding(
+        RenderGraphNodeHandle render_graph_node_handle,
+        const std::string& binding_name,
+        const std::vector<RenderTargetHandle>& render_target_handles)
+    {
+        GLTF_CHECK(render_graph_node_handle.IsValid());
+        GLTF_CHECK(render_graph_node_handle.value < m_render_graph_nodes.size());
+        if (render_target_handles.empty())
+        {
+            return false;
+        }
+
+        for (const auto render_target_handle : render_target_handles)
+        {
+            GLTF_CHECK(render_target_handle != NULL_HANDLE);
+        }
+
+        auto& node_desc = m_render_graph_nodes[render_graph_node_handle.value];
+        auto binding_it = node_desc.draw_info.render_target_texture_resources.find(binding_name);
+        if (binding_it == node_desc.draw_info.render_target_texture_resources.end())
+        {
+            return false;
+        }
+
+        binding_it->second.render_target_texture = render_target_handles;
+        return true;
+    }
+
+    bool RenderGraph::UpdateNodeRenderTargetTextureBinding(
+        RenderGraphNodeHandle render_graph_node_handle,
+        const std::string& binding_name,
+        RenderTargetHandle render_target_handle)
+    {
+        return UpdateNodeRenderTargetTextureBinding(
+            render_graph_node_handle,
+            binding_name,
+            std::vector<RenderTargetHandle>{render_target_handle});
+    }
+
     bool RenderGraph::CompileRenderPassAndExecute()
     {
         m_window.RegisterTickCallback([this](unsigned long long interval)
@@ -1743,6 +1858,17 @@ namespace RendererInterface
             GLTF_CHECK(RHIUtilInstanceManager::Instance().NewGUIFrame());
             ImGui_ImplGlfw_NewFrame();
             ImGui::NewFrame();
+
+            if (ImGui::Begin("Renderer Framework"))
+            {
+                bool per_frame_resource_binding = m_resource_allocator.IsPerFrameResourceBindingEnabled();
+                if (ImGui::Checkbox("Per-frame Resource Binding", &per_frame_resource_binding))
+                {
+                    m_resource_allocator.SetPerFrameResourceBindingEnabled(per_frame_resource_binding);
+                }
+                ImGui::TextUnformatted("Affects frame-buffered Buffer/RenderTarget handle selection.");
+            }
+            ImGui::End();
 
             if (m_debug_ui_callback)
             {

@@ -42,7 +42,8 @@ protected:
                                                            shadowmap_width, unsigned shadowmap_height, ViewBuffer& out_view_buffer, ShadowMapInfo& out_shadow_info);
         
         RendererInterface::RenderGraphNodeHandle m_shadow_pass_node {NULL_HANDLE};
-        RendererInterface::RenderTargetHandle m_shadow_map {NULL_HANDLE};
+        std::vector<RendererInterface::RenderTargetHandle> m_shadow_maps;
+        RendererInterface::RenderTargetHandle m_bound_shadow_map {NULL_HANDLE};
         ViewBuffer m_shadow_map_view_buffer{};
         std::vector<ViewBuffer> m_shadow_map_view_buffers;
         ShadowMapInfo m_shadow_map_info{};

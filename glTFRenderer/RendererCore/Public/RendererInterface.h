@@ -69,6 +69,8 @@ namespace RendererInterface
         ResourceOperator(RenderDeviceDesc device);
         unsigned            GetCurrentBackBufferIndex() const;
         unsigned            GetBackBufferCount() const;
+        bool                IsPerFrameResourceBindingEnabled() const;
+        void                SetPerFrameResourceBindingEnabled(bool enable);
         
         ShaderHandle        CreateShader(const ShaderDesc& desc);
         TextureHandle       CreateTexture(const TextureDesc& desc);
@@ -80,6 +82,8 @@ namespace RendererInterface
         void                UploadFrameBufferedBufferData(const std::vector<BufferHandle>& buffers, const BufferUploadDesc& upload_desc);
         
         RenderTargetHandle  CreateRenderTarget(const RenderTargetDesc& desc);
+        std::vector<RenderTargetHandle> CreateFrameBufferedRenderTargets(const RenderTargetDesc& desc, const std::string& debug_name_prefix = "");
+        RenderTargetHandle  GetFrameBufferedRenderTargetHandle(const std::vector<RenderTargetHandle>& render_targets) const;
         RenderTargetHandle  CreateRenderTarget(
             const std::string& name,
             unsigned width,
@@ -128,6 +132,7 @@ namespace RendererInterface
     protected:
         std::shared_ptr<ResourceManager> m_resource_manager;
         std::map<RenderPassHandle, std::shared_ptr<RenderPass>> m_render_passes;
+        bool m_per_frame_resource_binding_enabled{true};
     };
 
     class RendererModuleBase
@@ -251,6 +256,9 @@ namespace RendererInterface
         bool RemoveRenderGraphNode(RenderGraphNodeHandle render_graph_node_handle);
         bool UpdateComputeDispatch(RenderGraphNodeHandle render_graph_node_handle, unsigned group_size_x, unsigned group_size_y, unsigned group_size_z);
         bool UpdateNodeBufferBinding(RenderGraphNodeHandle render_graph_node_handle, const std::string& binding_name, BufferHandle buffer_handle);
+        bool UpdateNodeRenderTargetBinding(RenderGraphNodeHandle render_graph_node_handle, RenderTargetHandle old_render_target_handle, RenderTargetHandle new_render_target_handle);
+        bool UpdateNodeRenderTargetTextureBinding(RenderGraphNodeHandle render_graph_node_handle, const std::string& binding_name, const std::vector<RenderTargetHandle>& render_target_handles);
+        bool UpdateNodeRenderTargetTextureBinding(RenderGraphNodeHandle render_graph_node_handle, const std::string& binding_name, RenderTargetHandle render_target_handle);
         
         bool CompileRenderPassAndExecute();
 
