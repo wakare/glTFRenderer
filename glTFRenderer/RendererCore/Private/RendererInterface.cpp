@@ -1824,11 +1824,17 @@ namespace RendererInterface
         m_resource_manager->WaitFrameRenderFinished();
         m_resource_manager->WaitGPUIdle();
 
+        // Ensure profiler query pools are released while device/queue are still valid.
+        // RenderGraph may outlive ResourceOperator during runtime-RHI switch.
+        RHIUtilInstanceManager::Instance().ShutdownTimestampProfiler();
+
         auto& memory_manager = m_resource_manager->GetMemoryManager();
-        const bool cleaned_resources = RHIResourceFactory::CleanupResources(memory_manager);
-        GLTF_CHECK(cleaned_resources);
+        // Release memory-manager-owned allocations first (especially Vulkan VMA allocations),
+        // then release globally tracked RHI objects.
         const bool released_allocations = memory_manager.ReleaseAllResource();
         GLTF_CHECK(released_allocations);
+        const bool cleaned_resources = RHIResourceFactory::CleanupResources(memory_manager);
+        GLTF_CHECK(cleaned_resources);
 
         if (clear_window_handles)
         {
@@ -1860,8 +1866,7 @@ namespace RendererInterface
 
     RenderGraph::~RenderGraph()
     {
-        ShutdownGPUProfiler();
-        ShutdownDebugUI();
+        ShutdownRuntimeServices();
     }
 
     RenderGraphNodeHandle RenderGraph::CreateRenderGraphNode(const RenderGraphNodeDesc& render_graph_node_desc)
@@ -2568,6 +2573,14 @@ namespace RendererInterface
         m_debug_ui_enabled = enable;
     }
 
+    void RenderGraph::ShutdownRuntimeServices()
+    {
+        m_tick_callback = nullptr;
+        m_debug_ui_callback = nullptr;
+        ShutdownGPUProfiler();
+        ShutdownDebugUI();
+    }
+
     void RenderGraph::SetValidationPolicy(const ValidationPolicy& policy)
     {
         m_validation_policy = policy;
@@ -2592,6 +2605,27 @@ namespace RendererInterface
     const RenderGraph::DependencyDiagnostics& RenderGraph::GetDependencyDiagnostics() const
     {
         return m_last_dependency_diagnostics;
+    }
+
+    bool CleanupRenderRuntimeContext(
+        std::shared_ptr<RenderGraph>& render_graph,
+        std::shared_ptr<ResourceOperator>& resource_operator,
+        bool clear_window_handles)
+    {
+        if (render_graph)
+        {
+            render_graph->ShutdownRuntimeServices();
+            render_graph.reset();
+        }
+
+        if (!resource_operator)
+        {
+            return true;
+        }
+
+        const bool cleanup_result = resource_operator->CleanupAllResources(clear_window_handles);
+        resource_operator.reset();
+        return cleanup_result;
     }
 
     bool RenderGraph::InitDebugUI()

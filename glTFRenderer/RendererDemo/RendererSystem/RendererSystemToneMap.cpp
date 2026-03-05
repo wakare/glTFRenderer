@@ -91,6 +91,15 @@ bool RendererSystemToneMap::HasInit() const
     return m_tone_map_pass_node != NULL_HANDLE;
 }
 
+void RendererSystemToneMap::ResetRuntimeResources(RendererInterface::ResourceOperator& resource_operator)
+{
+    (void)resource_operator;
+    m_tone_map_pass_node = NULL_HANDLE;
+    m_tone_map_output = NULL_HANDLE;
+    m_tone_map_global_params_handle = NULL_HANDLE;
+    m_need_upload_params = true;
+}
+
 bool RendererSystemToneMap::Tick(RendererInterface::ResourceOperator& resource_operator,
                                  RendererInterface::RenderGraph& graph,
                                  unsigned long long interval)

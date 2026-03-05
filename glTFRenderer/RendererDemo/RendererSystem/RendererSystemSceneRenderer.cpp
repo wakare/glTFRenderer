@@ -1,12 +1,10 @@
 #include "RendererSystemSceneRenderer.h"
 
 RendererSystemSceneRenderer::RendererSystemSceneRenderer(RendererInterface::ResourceOperator& resource_operator, const RendererCameraDesc& camera_desc, const std::string& scene_file)
+    : m_camera_desc(camera_desc)
+    , m_scene_file(scene_file)
 {
-    m_camera_module = std::make_shared<RendererModuleCamera>(resource_operator, camera_desc);
-    m_scene_mesh_module = std::make_shared<RendererModuleSceneMesh>(resource_operator, scene_file);
-
-    m_modules.push_back(m_scene_mesh_module);
-    m_modules.push_back(m_camera_module);
+    ResetRuntimeResources(resource_operator);
 }
 
 void RendererSystemSceneRenderer::UpdateInputDeviceInfo(RendererInputDevice& input_device, unsigned long long interval)
@@ -94,6 +92,58 @@ bool RendererSystemSceneRenderer::Init(RendererInterface::ResourceOperator& reso
 bool RendererSystemSceneRenderer::HasInit() const
 {
     return m_base_pass_node != NULL_HANDLE;
+}
+
+void RendererSystemSceneRenderer::ResetRuntimeResources(RendererInterface::ResourceOperator& resource_operator)
+{
+    bool has_camera_pose = false;
+    glm::fvec3 camera_position{};
+    glm::fvec3 camera_euler_angles{};
+    unsigned viewport_width = 0;
+    unsigned viewport_height = 0;
+    if (m_camera_module)
+    {
+        has_camera_pose = m_camera_module->GetCameraPose(camera_position, camera_euler_angles);
+        viewport_width = m_camera_module->GetWidth();
+        viewport_height = m_camera_module->GetHeight();
+    }
+
+    if (viewport_width == 0 || viewport_height == 0)
+    {
+        viewport_width = resource_operator.GetCurrentRenderWidth();
+        viewport_height = resource_operator.GetCurrentRenderHeight();
+    }
+    if (viewport_width == 0 || viewport_height == 0)
+    {
+        viewport_width = static_cast<unsigned>(m_camera_desc.projection_width);
+        viewport_height = static_cast<unsigned>(m_camera_desc.projection_height);
+    }
+
+    RendererCameraDesc next_camera_desc = m_camera_desc;
+    next_camera_desc.projection_width = static_cast<float>(viewport_width);
+    next_camera_desc.projection_height = static_cast<float>(viewport_height);
+
+    m_camera_module = std::make_shared<RendererModuleCamera>(resource_operator, next_camera_desc);
+    if (has_camera_pose)
+    {
+        m_camera_module->SetCameraPose(camera_position, camera_euler_angles, true);
+    }
+    if (viewport_width > 0 && viewport_height > 0)
+    {
+        m_camera_module->SetViewportSize(viewport_width, viewport_height);
+    }
+
+    m_scene_mesh_module = std::make_shared<RendererModuleSceneMesh>(resource_operator, m_scene_file);
+    m_modules.clear();
+    m_modules.push_back(m_scene_mesh_module);
+    m_modules.push_back(m_camera_module);
+
+    m_base_pass_color = NULL_HANDLE;
+    m_base_pass_normal = NULL_HANDLE;
+    m_base_pass_velocity = NULL_HANDLE;
+    m_base_pass_depth = NULL_HANDLE;
+    m_base_pass_node = NULL_HANDLE;
+    m_camera_desc = next_camera_desc;
 }
 
 bool RendererSystemSceneRenderer::Tick(RendererInterface::ResourceOperator& resource_operator,

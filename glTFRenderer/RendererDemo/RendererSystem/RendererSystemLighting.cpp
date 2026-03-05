@@ -274,6 +274,28 @@ bool RendererSystemLighting::HasInit() const
     return m_lighting_pass_node != NULL_HANDLE;
 }
 
+void RendererSystemLighting::ResetRuntimeResources(RendererInterface::ResourceOperator& resource_operator)
+{
+    std::vector<LightInfo> cached_lights;
+    if (m_lighting_module)
+    {
+        cached_lights = m_lighting_module->GetLightInfos();
+    }
+
+    m_lighting_module = std::make_shared<RendererModuleLighting>(resource_operator);
+    for (const auto& light_info : cached_lights)
+    {
+        m_lighting_module->AddLightInfo(light_info);
+    }
+
+    m_modules.clear();
+    m_modules.push_back(m_lighting_module);
+    m_shadow_pass_resources.clear();
+    m_lighting_pass_node = NULL_HANDLE;
+    m_lighting_pass_output = NULL_HANDLE;
+    m_lighting_pass_shadow_infos_handle = NULL_HANDLE;
+}
+
 bool RendererSystemLighting::Tick(RendererInterface::ResourceOperator& resource_operator,
                                   RendererInterface::RenderGraph& graph, unsigned long long interval)
 {

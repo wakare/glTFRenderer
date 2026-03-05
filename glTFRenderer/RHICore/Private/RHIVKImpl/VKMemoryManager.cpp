@@ -122,6 +122,7 @@ bool VKMemoryManager::AllocateTextureMemory(IRHIDevice& device, const RHITexture
     auto& vk_texture_allocation = dynamic_cast<VKTextureAllocation&>(*out_texture_allocation);
     vk_texture_allocation.m_allocation = out_allocation;
     vk_texture_allocation.m_allocation_info = out_allocation_info;
+    out_texture_allocation->SetNeedRelease();
 
     vk_texture_allocation.m_texture = RHIResourceFactory::CreateRHIResource<IRHITexture>();
     GLTF_CHECK(dynamic_cast<VKTexture&>(*vk_texture_allocation.m_texture).Init(dynamic_cast<VKDevice&>(device).GetDevice(), out_image, texture_desc));

@@ -116,16 +116,121 @@ void DemoAppModelViewer::TickFrameInternal(unsigned long long time_interval)
     input_device.TickFrame(time_interval);
 }
 
-bool DemoAppModelViewer::InitInternal(const std::vector<std::string>& arguments)
+std::shared_ptr<DemoBase::NonRenderStateSnapshot> DemoAppModelViewer::CaptureNonRenderStateSnapshot() const
 {
+    auto snapshot = std::make_shared<ModelViewerStateSnapshot>();
+    snapshot->directional_light_index = m_directional_light_index;
+    snapshot->directional_light_info = m_directional_light_info;
+    snapshot->directional_light_elapsed_seconds = m_directional_light_elapsed_seconds;
+    snapshot->directional_light_speed_radians = m_directional_light_angular_speed_radians;
+    snapshot->enable_panel_input_state_machine = m_enable_panel_input_state_machine;
+    snapshot->enable_frosted_prepass_feeds = m_enable_frosted_prepass_feeds;
+    snapshot->world_prepass_panels = m_world_prepass_panels;
+    snapshot->overlay_prepass_panels = m_overlay_prepass_panels;
+
+    if (m_scene)
+    {
+        const auto camera_module = m_scene->GetCameraModule();
+        if (camera_module)
+        {
+            snapshot->has_camera_pose = camera_module->GetCameraPose(
+                snapshot->camera_position,
+                snapshot->camera_euler_angles);
+            snapshot->camera_viewport_width = camera_module->GetWidth();
+            snapshot->camera_viewport_height = camera_module->GetHeight();
+        }
+    }
+    return snapshot;
+}
+
+bool DemoAppModelViewer::ApplyNonRenderStateSnapshot(const std::shared_ptr<NonRenderStateSnapshot>& snapshot)
+{
+    if (!snapshot)
+    {
+        return true;
+    }
+
+    const auto restored_state = std::dynamic_pointer_cast<ModelViewerStateSnapshot>(snapshot);
+    if (!restored_state)
+    {
+        return false;
+    }
+
+    m_directional_light_info = restored_state->directional_light_info;
+    m_directional_light_elapsed_seconds = restored_state->directional_light_elapsed_seconds;
+    m_directional_light_angular_speed_radians = restored_state->directional_light_speed_radians;
+    m_enable_panel_input_state_machine = restored_state->enable_panel_input_state_machine;
+    m_enable_frosted_prepass_feeds = restored_state->enable_frosted_prepass_feeds;
+    m_world_prepass_panels = restored_state->world_prepass_panels;
+    m_overlay_prepass_panels = restored_state->overlay_prepass_panels;
+
+    if (m_scene)
+    {
+        const auto camera_module = m_scene->GetCameraModule();
+        if (camera_module)
+        {
+            if (restored_state->has_camera_pose)
+            {
+                camera_module->SetCameraPose(
+                    restored_state->camera_position,
+                    restored_state->camera_euler_angles,
+                    true);
+            }
+            if (restored_state->camera_viewport_width > 0 && restored_state->camera_viewport_height > 0)
+            {
+                camera_module->SetViewportSize(
+                    restored_state->camera_viewport_width,
+                    restored_state->camera_viewport_height);
+            }
+        }
+    }
+
+    if (m_lighting)
+    {
+        // Keep the directional light index created for the rebuilt lighting module.
+        m_lighting->UpdateLight(m_directional_light_index, m_directional_light_info);
+    }
+
+    if (m_frosted_panel_producer)
+    {
+        m_frosted_panel_producer->SetWorldPanelPrepassItems(m_world_prepass_panels);
+        m_frosted_panel_producer->SetOverlayPanelPrepassItems(m_overlay_prepass_panels);
+    }
+    UpdateFrostedPanelPrepassFeeds(m_directional_light_elapsed_seconds);
+
+    if (m_frosted_glass)
+    {
+        m_frosted_glass->ForceResetTemporalHistory();
+    }
+    return true;
+}
+
+bool DemoAppModelViewer::RebuildRenderRuntimeObjects()
+{
+    if (!m_resource_manager)
+    {
+        return false;
+    }
+
+    m_modules.clear();
+    m_systems.clear();
+    m_scene.reset();
+    m_lighting.reset();
+    m_frosted_glass.reset();
+    m_frosted_panel_producer.reset();
+    m_tone_map.reset();
+
+    const unsigned render_width = (std::max)(1u, m_resource_manager->GetCurrentRenderWidth());
+    const unsigned render_height = (std::max)(1u, m_resource_manager->GetCurrentRenderHeight());
+
     RendererCameraDesc camera_desc{};
     camera_desc.mode = CameraMode::Free;
     camera_desc.transform = glm::mat4(1.0f);
     camera_desc.fov_angle = 90.0f;
     camera_desc.projection_far = 1000.0f;
     camera_desc.projection_near = 0.001f;
-    camera_desc.projection_width = static_cast<float>(m_width);
-    camera_desc.projection_height = static_cast<float>(m_height);
+    camera_desc.projection_width = static_cast<float>(render_width);
+    camera_desc.projection_height = static_cast<float>(render_height);
 
     m_scene = std::make_shared<RendererSystemSceneRenderer>(*m_resource_manager, camera_desc, "glTFResources/Models/Sponza/glTF/Sponza.gltf");
     m_lighting = std::make_shared<RendererSystemLighting>(*m_resource_manager, m_scene);
@@ -215,9 +320,13 @@ bool DemoAppModelViewer::InitInternal(const std::vector<std::string>& arguments)
     m_systems.push_back(m_frosted_panel_producer);
     m_systems.push_back(m_frosted_glass);
     m_systems.push_back(m_tone_map);
-    
-    // After registration all passes, compile graph and prepare for execution
-    m_render_graph->CompileRenderPassAndExecute();
+
+    return true;
+}
+
+bool DemoAppModelViewer::InitInternal(const std::vector<std::string>& arguments)
+{
+    RETURN_IF_FALSE(RebuildRenderRuntimeObjects())
 
     const bool configured = ConfigureRegressionRunFromArguments(arguments);
     RefreshImportableRegressionCaseList();

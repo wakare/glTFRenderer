@@ -20,8 +20,11 @@ public:
     
 protected:
     virtual bool InitInternal(const std::vector<std::string>& arguments) override;
+    virtual bool RebuildRenderRuntimeObjects() override;
     virtual void TickFrameInternal(unsigned long long time_interval) override;
     virtual void DrawDebugUIInternal() override;
+    virtual std::shared_ptr<NonRenderStateSnapshot> CaptureNonRenderStateSnapshot() const override;
+    virtual bool ApplyNonRenderStateSnapshot(const std::shared_ptr<NonRenderStateSnapshot>& snapshot) override;
     void UpdateFrostedPanelPrepassFeeds(float timeline_seconds);
     bool ConfigureRegressionRunFromArguments(const std::vector<std::string>& arguments);
     void TickRegressionAutomation();
@@ -63,6 +66,24 @@ protected:
     {
         std::string file_name{};
         std::filesystem::path full_path{};
+    };
+
+    struct ModelViewerStateSnapshot final : NonRenderStateSnapshot
+    {
+        bool has_camera_pose{false};
+        glm::fvec3 camera_position{0.0f};
+        glm::fvec3 camera_euler_angles{0.0f};
+        unsigned camera_viewport_width{0};
+        unsigned camera_viewport_height{0};
+
+        unsigned directional_light_index{0};
+        LightInfo directional_light_info{};
+        float directional_light_elapsed_seconds{0.0f};
+        float directional_light_speed_radians{0.25f};
+        bool enable_panel_input_state_machine{true};
+        bool enable_frosted_prepass_feeds{true};
+        std::vector<RendererSystemFrostedPanelProducer::WorldPanelPrepassItem> world_prepass_panels{};
+        std::vector<RendererSystemFrostedPanelProducer::OverlayPanelPrepassItem> overlay_prepass_panels{};
     };
 
     void ResetRegressionPerfAccumulator();

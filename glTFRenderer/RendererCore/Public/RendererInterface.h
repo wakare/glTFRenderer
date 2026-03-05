@@ -32,6 +32,8 @@ struct RHIExecuteCommandListContext;
 
 namespace RendererInterface
 {
+    class RenderGraph;
+
     class RenderWindow
     {
     public:
@@ -311,6 +313,7 @@ namespace RendererInterface
         void RegisterTickCallback(const RenderGraphTickCallback& callback);
         void RegisterDebugUICallback(const RenderGraphDebugUICallback& callback);
         void EnableDebugUI(bool enable);
+        void ShutdownRuntimeServices();
         void SetValidationPolicy(const ValidationPolicy& policy);
         ValidationPolicy GetValidationPolicy() const;
         const FrameStats& GetLastFrameStats() const;
@@ -464,6 +467,12 @@ namespace RendererInterface
 
         virtual void AccessMaterialData(const MaterialBase& material, unsigned mesh_id) = 0;
     };
+
+    // Framework-level teardown entry for runtime RHI recreation / shutdown.
+    bool CleanupRenderRuntimeContext(
+        std::shared_ptr<RenderGraph>& render_graph,
+        std::shared_ptr<ResourceOperator>& resource_operator,
+        bool clear_window_handles = false);
     
     class RendererSceneResourceManager
     {

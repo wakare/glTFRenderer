@@ -69,6 +69,15 @@ public:
         return true;
     }
 
+    void Reset()
+    {
+        m_initialized = false;
+        for (auto& pair : m_pairs)
+        {
+            pair = PingPongPair{};
+        }
+    }
+
     PingPongPair GetPair(Resolution resolution) const
     {
         return m_pairs[ToIndex(resolution)];

@@ -2,6 +2,7 @@
 #include "RendererSystemBase.h"
 #include "RendererModule/RendererModuleCamera.h"
 #include "RendererModule/RendererModuleSceneMesh.h"
+#include <string>
 
 class RendererSystemSceneRenderer : public RendererSystemBase
 {
@@ -16,6 +17,7 @@ public:
     virtual bool Init(RendererInterface::ResourceOperator& resource_operator, RendererInterface::RenderGraph& graph) override;
     virtual bool HasInit() const override;
     virtual bool Tick(RendererInterface::ResourceOperator& resource_operator,RendererInterface::RenderGraph& graph, unsigned long long interval) override;
+    virtual void ResetRuntimeResources(RendererInterface::ResourceOperator& resource_operator) override;
     virtual void OnResize(RendererInterface::ResourceOperator& resource_operator, unsigned width, unsigned height) override;
     virtual const char* GetSystemName() const override { return "Scene Renderer"; }
 
@@ -32,6 +34,8 @@ protected:
     RendererInterface::RenderTargetHandle m_base_pass_depth{NULL_HANDLE};
 
     RendererInterface::RenderGraphNodeHandle m_base_pass_node{NULL_HANDLE};
+    RendererCameraDesc m_camera_desc{};
+    std::string m_scene_file{};
 };
 
 template<>

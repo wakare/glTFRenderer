@@ -40,4 +40,5 @@ protected:
 
     RendererInterface::BufferDesc m_material_shader_info_buffer_desc{};
     RendererInterface::BufferHandle m_material_infos_handle;
+    unsigned m_material_shader_info_count{0};
 };

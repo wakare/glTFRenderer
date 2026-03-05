@@ -10,6 +10,11 @@ class RendererSystemBase;
 class DemoBase
 {
 public:
+    struct NonRenderStateSnapshot
+    {
+        virtual ~NonRenderStateSnapshot() = default;
+    };
+
     IMPL_NON_COPYABLE_AND_DEFAULT_CTOR_VDTOR(DemoBase)
     bool Init(const std::vector<std::string>& arguments);
     
@@ -28,6 +33,17 @@ public:
 protected:
     void TickFrame(unsigned long long time_interval);
     void DrawDebugUI();
+    bool RequestRuntimeRHISwitch(RendererInterface::RenderDeviceType new_device_type);
+    void TickPendingRHISwitch(unsigned long long time_interval);
+    bool ExecutePendingRHISwitch();
+    virtual bool ReinitializeAfterRHIRecreate();
+    virtual bool RebuildRenderRuntimeObjects();
+    virtual std::shared_ptr<NonRenderStateSnapshot> CaptureNonRenderStateSnapshot() const { return nullptr; }
+    virtual bool ApplyNonRenderStateSnapshot(const std::shared_ptr<NonRenderStateSnapshot>& snapshot)
+    {
+        (void)snapshot;
+        return true;
+    }
     
     virtual bool InitInternal(const std::vector<std::string>& arguments) = 0;
     virtual void TickFrameInternal(unsigned long long time_interval);
@@ -46,7 +62,14 @@ protected:
     std::map<RendererInterface::RenderTargetHandle, RendererInterface::RenderTargetDesc> m_render_target_desc_infos;
     unsigned m_last_render_width{0};
     unsigned m_last_render_height{0};
+    std::vector<std::string> m_launch_arguments;
     RendererInterface::RenderDeviceType m_render_device_type{RendererInterface::DX12};
+    RendererInterface::RenderDeviceType m_pending_render_device_type{RendererInterface::DX12};
+    RendererInterface::RenderDeviceType m_runtime_rhi_ui_selection{RendererInterface::DX12};
+    bool m_rhi_switch_requested{false};
+    bool m_rhi_switch_callback_installed{false};
+    bool m_rhi_switch_in_progress{false};
+    std::string m_rhi_switch_last_error{};
     RendererInterface::SwapchainResizePolicy m_swapchain_resize_policy_ui{};
     bool m_swapchain_resize_policy_ui_initialized{false};
 };

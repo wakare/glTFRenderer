@@ -45,6 +45,13 @@ bool RendererSystemFrostedPanelProducer::Tick(RendererInterface::ResourceOperato
     return m_external_panel_producer_handle != 0;
 }
 
+void RendererSystemFrostedPanelProducer::ResetRuntimeResources(RendererInterface::ResourceOperator& resource_operator)
+{
+    (void)resource_operator;
+    UnregisterProducer();
+    m_has_init = false;
+}
+
 void RendererSystemFrostedPanelProducer::DrawDebugUI()
 {
     ImGui::Checkbox("Producer World Panel", &m_enable_world_panel);

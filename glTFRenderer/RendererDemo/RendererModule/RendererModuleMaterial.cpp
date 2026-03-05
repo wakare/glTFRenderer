@@ -1,5 +1,6 @@
 #include "RendererModuleMaterial.h"
 #include "RendererSceneCommon.h"
+#include <algorithm>
 
 RendererModuleMaterial::RendererModuleMaterial(RendererInterface::ResourceOperator& resource_operator)
     :m_resource_operator(resource_operator) 
@@ -63,16 +64,28 @@ bool RendererModuleMaterial::AddMaterial(const MaterialBase& material)
 
 bool RendererModuleMaterial::FinalizeModule(RendererInterface::ResourceOperator& resource_operator)
 {
+    (void)resource_operator;
     // Upload all texture resource and material shader infos
+    m_material_texture_handles.clear();
     for (const auto& texture_uri: m_material_texture_uris)
     {
         RendererInterface::TextureFileDesc material_texture_desc{texture_uri};
         m_material_texture_handles.push_back(m_resource_operator.CreateTexture(material_texture_desc));
     }
-    std::vector<MaterialShaderInfo> material_shader_infos{m_material_shader_infos.size()};
-    for (size_t i = 0; i < m_material_shader_infos.size(); i++)
+
+    unsigned max_material_id = 0;
+    for (const auto& [material_id, material_shader_info] : m_material_shader_infos)
     {
-        material_shader_infos[i] = m_material_shader_infos[i];
+        (void)material_shader_info;
+        max_material_id = (std::max)(max_material_id, material_id);
+    }
+    m_material_shader_info_count = m_material_shader_infos.empty() ? 0u : (max_material_id + 1u);
+
+    std::vector<MaterialShaderInfo> material_shader_infos(m_material_shader_info_count);
+    for (const auto& [material_id, material_shader_info] : m_material_shader_infos)
+    {
+        GLTF_CHECK(material_id < material_shader_infos.size());
+        material_shader_infos[material_id] = material_shader_info;
     }
     
     m_material_shader_info_buffer_desc.usage = RendererInterface::USAGE_SRV;
@@ -92,7 +105,7 @@ bool RendererModuleMaterial::BindDrawCommands(RendererInterface::RenderPassDrawD
     binding_desc.buffer_handle = m_material_infos_handle;
     binding_desc.is_structured_buffer = true;
     binding_desc.stride = sizeof(MaterialShaderInfo);
-    binding_desc.count = m_material_shader_infos.size();
+    binding_desc.count = m_material_shader_info_count;
     out_draw_desc.buffer_resources[m_material_shader_info_buffer_desc.name] = binding_desc;
 
     RendererInterface::TextureBindingDesc texture_binding_desc{};

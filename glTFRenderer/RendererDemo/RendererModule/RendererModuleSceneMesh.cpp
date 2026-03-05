@@ -149,8 +149,6 @@ RendererModuleSceneMesh::RendererModuleSceneMesh(RendererInterface::ResourceOper
     m_mesh_buffer_instance_info_handle = resource_operator.CreateBuffer(instance_render_resources_buffer_desc);
 
     m_draw_commands = m_mesh_data_accessor.execute_commands;
-
-    m_module_material->FinalizeModule(resource_operator);
 }
 
 bool RendererModuleSceneMesh::FinalizeModule(RendererInterface::ResourceOperator& resource_operator)

@@ -49,13 +49,20 @@ bool VKMemoryAllocator::InitMemoryAllocator(const IRHIFactory& factory, const IR
 
 bool VKMemoryAllocator::Release(IRHIMemoryManager& memory_manager)
 {
+    (void)memory_manager;
     if (!need_release)
     {
+        return true;
+    }
+    if (m_vma_allocator == VK_NULL_HANDLE)
+    {
+        need_release = false;
         return true;
     }
 
     need_release = false;
     vmaDestroyAllocator(m_vma_allocator);
+    m_vma_allocator = VK_NULL_HANDLE;
     
     return true;
 }

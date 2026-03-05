@@ -2271,6 +2271,22 @@ bool RendererSystemFrostedGlass::HasInit() const
            m_postfx_shared_resources.HasInit();
 }
 
+void RendererSystemFrostedGlass::ResetRuntimeResources(RendererInterface::ResourceOperator& resource_operator)
+{
+    (void)resource_operator;
+    m_postfx_shared_resources.Reset();
+    m_temporal_force_reset = true;
+    m_temporal_history_valid = false;
+    m_temporal_history_read_is_a = true;
+    m_global_params.temporal_history_valid = 0;
+    m_need_upload_panels = true;
+    m_need_upload_global_params = true;
+    m_dispatch_state_valid = false;
+    m_panel_payload_raster_ready = false;
+    m_panel_payload_compute_fallback_active = false;
+    m_last_expected_registered_pass_count = 0;
+}
+
 void RendererSystemFrostedGlass::UpdateDirectionalHighlightParams()
 {
     glm::fvec4 next_highlight_light = {0.0f, -1.0f, 0.0f, 0.0f};
