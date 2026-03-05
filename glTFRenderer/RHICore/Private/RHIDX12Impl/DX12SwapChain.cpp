@@ -124,10 +124,13 @@ bool DX12SwapChain::InitSwapChain(IRHIFactory& factory, IRHIDevice& device, IRHI
     const HRESULT as_swapchain2_hr = m_swap_chain.As(&swap_chain2);
     if (SUCCEEDED(as_swapchain2_hr) && swap_chain2)
     {
-        const HRESULT frame_latency_hr = swap_chain2->SetMaximumFrameLatency(1);
+        const UINT maximum_frame_latency = m_frame_buffer_count > 0 ? m_frame_buffer_count : 1;
+        const HRESULT frame_latency_hr = swap_chain2->SetMaximumFrameLatency(maximum_frame_latency);
         if (FAILED(frame_latency_hr))
         {
-            LOG_FORMAT_FLUSH("[DX12SwapChain] SetMaximumFrameLatency failed (hr=0x%08X).\n", frame_latency_hr);
+            LOG_FORMAT_FLUSH("[DX12SwapChain] SetMaximumFrameLatency(%u) failed (hr=0x%08X).\n",
+                maximum_frame_latency,
+                frame_latency_hr);
         }
         m_frame_latency_waitable_object = swap_chain2->GetFrameLatencyWaitableObject();
         if (!m_frame_latency_waitable_object)
@@ -162,7 +165,7 @@ bool DX12SwapChain::InitSwapChain(IRHIFactory& factory, IRHIDevice& device, IRHI
 bool DX12SwapChain::AcquireNewFrame(IRHIDevice& device)
 {
     (void)device;
-    return true;
+    return WaitForFrameLatencyObject(INFINITE);
 }
 
 IRHISemaphore& DX12SwapChain::GetAvailableFrameSemaphore()
