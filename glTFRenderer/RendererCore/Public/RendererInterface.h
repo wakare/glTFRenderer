@@ -38,6 +38,19 @@ namespace RendererInterface
     {
     public:
         typedef std::function<void(unsigned long long)> RenderWindowTickCallback;
+        struct WindowLoopTiming
+        {
+            bool valid{false};
+            unsigned long long frame_index{0};
+            float loop_total_ms{0.0f};
+            float loop_thread_cpu_ms{0.0f};
+            float idle_wait_ms{0.0f};
+            float tick_callback_ms{0.0f};
+            float tick_callback_thread_cpu_ms{0.0f};
+            float poll_events_ms{0.0f};
+            float poll_events_thread_cpu_ms{0.0f};
+            float non_tick_ms{0.0f};
+        };
         
         RenderWindow(const RenderWindowDesc& desc);
         RenderWindowHandle GetHandle() const;
@@ -45,6 +58,8 @@ namespace RendererInterface
         unsigned GetHeight() const;
         HWND GetHWND() const;
         void EnterWindowEventLoop();
+        WindowLoopTiming GetLastLoopTiming() const;
+        int GetWindowRefreshRate() const;
         void RequestClose();
         bool IsCloseRequested() const;
 
@@ -147,6 +162,8 @@ namespace RendererInterface
         SwapchainLifecycleState GetSwapchainLifecycleState() const;
         SwapchainResizePolicy GetSwapchainResizePolicy() const;
         void SetSwapchainResizePolicy(const SwapchainResizePolicy& policy, bool reset_retry_state = true);
+        SwapchainPresentMode GetSwapchainPresentMode() const;
+        void SetSwapchainPresentMode(SwapchainPresentMode mode);
         void ApplyFrameBufferedRenderTargetAliases();
         bool CleanupAllResources(bool clear_window_handles = false);
         
@@ -216,6 +233,7 @@ namespace RendererInterface
             RenderGraphNodeHandle node_handle{};
             std::string group_name;
             std::string pass_name;
+            RenderPassType pass_type{RenderPassType::GRAPHICS};
             bool executed{true};
             bool skipped_due_to_validation{false};
             float cpu_time_ms{0.0f};
@@ -227,12 +245,52 @@ namespace RendererInterface
         {
             unsigned long long frame_index{0};
             float cpu_total_ms{0.0f};
+            float cpu_executed_ms{0.0f};
+            float cpu_skipped_ms{0.0f};
+            float cpu_skipped_validation_ms{0.0f};
             bool gpu_time_valid{false};
             float gpu_total_ms{0.0f};
+            unsigned total_pass_count{0};
             unsigned executed_pass_count{0};
             unsigned skipped_pass_count{0};
             unsigned skipped_validation_pass_count{0};
+            unsigned skipped_missing_pass_count{0};
+            unsigned graphics_pass_count{0};
+            unsigned compute_pass_count{0};
+            unsigned ray_tracing_pass_count{0};
+            unsigned executed_graphics_pass_count{0};
+            unsigned executed_compute_pass_count{0};
+            unsigned executed_ray_tracing_pass_count{0};
             std::vector<RenderPassFrameStats> pass_stats;
+        };
+
+        struct FrameTimingBreakdown
+        {
+            unsigned long long frame_index{0};
+            bool valid{false};
+            float frame_total_ms{0.0f};
+            float prepare_frame_ms{0.0f};
+            float sync_window_surface_ms{0.0f};
+            float tick_and_debug_ui_build_ms{0.0f};
+            float wait_previous_frame_ms{0.0f};
+            float deferred_release_ms{0.0f};
+            float acquire_context_ms{0.0f};
+            float resolve_gpu_profiler_ms{0.0f};
+            float acquire_command_list_ms{0.0f};
+            float acquire_swapchain_ms{0.0f};
+            float execute_render_graph_ms{0.0f};
+            float execution_planning_ms{0.0f};
+            float execute_passes_ms{0.0f};
+            float collect_unused_descriptor_ms{0.0f};
+            float blit_to_swapchain_ms{0.0f};
+            float finalize_submission_ms{0.0f};
+            float render_debug_ui_ms{0.0f};
+            float present_ms{0.0f};
+            float submit_command_list_ms{0.0f};
+            float present_call_ms{0.0f};
+            float frame_wait_total_ms{0.0f};
+            float non_pass_cpu_ms{0.0f};
+            float untracked_ms{0.0f};
         };
 
         struct DependencyDiagnostics
@@ -317,6 +375,7 @@ namespace RendererInterface
         void SetValidationPolicy(const ValidationPolicy& policy);
         ValidationPolicy GetValidationPolicy() const;
         const FrameStats& GetLastFrameStats() const;
+        const FrameTimingBreakdown& GetLastFrameTimingBreakdown() const;
         const DependencyDiagnostics& GetDependencyDiagnostics() const;
 
     protected:
@@ -429,7 +488,10 @@ namespace RendererInterface
         std::vector<unsigned char> m_frame_slot_resource_access_snapshot_valid;
         std::size_t m_cached_execution_signature{0};
         std::size_t m_cached_execution_node_count{0};
+        std::size_t m_last_active_node_set_signature{0};
+        std::size_t m_last_active_node_set_count{0};
         bool m_cached_execution_graph_valid{true};
+        bool m_execution_plan_dirty{true};
         unsigned long long m_frame_index{0};
         
         std::shared_ptr<IRHITexture> m_final_color_output;
@@ -444,6 +506,8 @@ namespace RendererInterface
         struct GPUProfilerState;
         std::unique_ptr<GPUProfilerState> m_gpu_profiler_state;
         FrameStats m_last_frame_stats{};
+        FrameTimingBreakdown m_current_frame_timing_breakdown{};
+        FrameTimingBreakdown m_last_frame_timing_breakdown{};
         DependencyDiagnostics m_last_dependency_diagnostics{};
     };
 

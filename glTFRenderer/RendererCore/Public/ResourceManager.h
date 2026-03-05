@@ -60,6 +60,8 @@ public:
     RendererInterface::SwapchainLifecycleState GetSwapchainLifecycleState() const;
     RendererInterface::SwapchainResizePolicy GetSwapchainResizePolicy() const;
     void SetSwapchainResizePolicy(const RendererInterface::SwapchainResizePolicy& policy, bool reset_retry_state = true);
+    RendererInterface::SwapchainPresentMode GetSwapchainPresentMode() const;
+    void SetSwapchainPresentMode(RendererInterface::SwapchainPresentMode mode);
     IRHICommandList& GetCommandListForRecordPassCommand(RendererInterface::RenderPassHandle render_pass_handle = NULL_HANDLE);
 
     IRHICommandQueue& GetCommandQueue();
@@ -103,6 +105,7 @@ protected:
     unsigned m_swapchain_resize_last_failed_height{0};
     unsigned m_swapchain_acquire_failure_count{0};
     unsigned m_swapchain_present_failure_count{0};
+    bool m_swapchain_recreate_required{false};
 
 private:
     friend class ResourceManagerSurfaceResizeCoordinator;

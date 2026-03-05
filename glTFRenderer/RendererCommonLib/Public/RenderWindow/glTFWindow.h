@@ -11,12 +11,28 @@ class glTFWindow
     friend class glTFGUIRenderer;
     
 public:
+    struct LoopTiming
+    {
+        bool valid{false};
+        unsigned long long frame_index{0};
+        float loop_total_ms{0.0f};
+        float loop_thread_cpu_ms{0.0f};
+        float idle_wait_ms{0.0f};
+        float tick_callback_ms{0.0f};
+        float tick_callback_thread_cpu_ms{0.0f};
+        float poll_events_ms{0.0f};
+        float poll_events_thread_cpu_ms{0.0f};
+        float non_tick_ms{0.0f};
+    };
+
     static glTFWindow& Get();
     bool InitAndShowWindow();
 
     bool RegisterCallbackEventNative();
     
     void UpdateWindow();
+    LoopTiming GetLastLoopTiming() const;
+    int GetWindowRefreshRate() const;
     void RequestClose();
     bool IsCloseRequested() const;
 
@@ -53,4 +69,5 @@ private:
     std::function<bool()> m_handle_input_event {nullptr};
 
     unsigned long long m_last_tick_time{0};
+    LoopTiming m_last_loop_timing{};
 };

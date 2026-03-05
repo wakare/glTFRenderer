@@ -79,6 +79,13 @@ namespace RendererInterface
         using ResourceAccessMaskMap = std::map<unsigned long long, unsigned char>;
         using ResourcePassAccessMap = std::map<unsigned long long, std::pair<std::vector<std::string>, std::vector<std::string>>>;
 
+        inline float ToMilliseconds(
+            const std::chrono::steady_clock::time_point& begin,
+            const std::chrono::steady_clock::time_point& end)
+        {
+            return std::chrono::duration<float, std::milli>(end - begin).count();
+        }
+
         struct FrameResourceAccessDiagnosticsData
         {
             ResourceAccessMaskMap access_masks;
@@ -1166,6 +1173,28 @@ namespace RendererInterface
         glTFWindow::Get().UpdateWindow();
     }
 
+    RenderWindow::WindowLoopTiming RenderWindow::GetLastLoopTiming() const
+    {
+        const auto loop_timing = glTFWindow::Get().GetLastLoopTiming();
+        WindowLoopTiming timing{};
+        timing.valid = loop_timing.valid;
+        timing.frame_index = loop_timing.frame_index;
+        timing.loop_total_ms = loop_timing.loop_total_ms;
+        timing.loop_thread_cpu_ms = loop_timing.loop_thread_cpu_ms;
+        timing.idle_wait_ms = loop_timing.idle_wait_ms;
+        timing.tick_callback_ms = loop_timing.tick_callback_ms;
+        timing.tick_callback_thread_cpu_ms = loop_timing.tick_callback_thread_cpu_ms;
+        timing.poll_events_ms = loop_timing.poll_events_ms;
+        timing.poll_events_thread_cpu_ms = loop_timing.poll_events_thread_cpu_ms;
+        timing.non_tick_ms = loop_timing.non_tick_ms;
+        return timing;
+    }
+
+    int RenderWindow::GetWindowRefreshRate() const
+    {
+        return glTFWindow::Get().GetWindowRefreshRate();
+    }
+
     void RenderWindow::RequestClose()
     {
         glTFWindow::Get().RequestClose();
@@ -1779,6 +1808,16 @@ namespace RendererInterface
         return m_resource_manager->SetSwapchainResizePolicy(policy, reset_retry_state);
     }
 
+    SwapchainPresentMode ResourceOperator::GetSwapchainPresentMode() const
+    {
+        return m_resource_manager->GetSwapchainPresentMode();
+    }
+
+    void ResourceOperator::SetSwapchainPresentMode(SwapchainPresentMode mode)
+    {
+        return m_resource_manager->SetSwapchainPresentMode(mode);
+    }
+
     IRHICommandList& ResourceOperator::GetCommandListForRecordPassCommand(RenderPassHandle pass) const
     {
         return m_resource_manager->GetCommandListForRecordPassCommand(pass);
@@ -1873,6 +1912,7 @@ namespace RendererInterface
     {
         RenderGraphNodeHandle result{static_cast<unsigned>(m_render_graph_nodes.size())};
         m_render_graph_nodes.push_back(render_graph_node_desc);
+        m_execution_plan_dirty = true;
         return result;
     }
 
@@ -2056,6 +2096,7 @@ namespace RendererInterface
         m_cached_execution_node_count = 0;
         m_cached_execution_graph_valid = true;
         m_cached_execution_order.clear();
+        m_execution_plan_dirty = true;
         return true;
     }
 
@@ -2075,6 +2116,7 @@ namespace RendererInterface
             command.parameter.dispatch_parameter.group_size_x = group_size_x;
             command.parameter.dispatch_parameter.group_size_y = group_size_y;
             command.parameter.dispatch_parameter.group_size_z = group_size_z;
+            m_execution_plan_dirty = true;
             return true;
         }
 
@@ -2095,6 +2137,7 @@ namespace RendererInterface
         }
 
         binding_it->second.buffer_handle = buffer_handle;
+        m_execution_plan_dirty = true;
         return true;
     }
 
@@ -2128,6 +2171,7 @@ namespace RendererInterface
         const RenderTargetBindingDesc binding_desc = binding_it->second;
         node_desc.draw_info.render_target_resources.erase(binding_it);
         node_desc.draw_info.render_target_resources.emplace(new_render_target_handle, binding_desc);
+        m_execution_plan_dirty = true;
         return true;
     }
 
@@ -2156,6 +2200,7 @@ namespace RendererInterface
         }
 
         binding_it->second.render_target_texture = render_target_handles;
+        m_execution_plan_dirty = true;
         return true;
     }
 
@@ -2182,16 +2227,67 @@ namespace RendererInterface
 
     void RenderGraph::OnFrameTick(unsigned long long interval)
     {
+        m_current_frame_timing_breakdown = {};
+        const auto frame_begin = std::chrono::steady_clock::now();
+
         FramePreparationContext frame_context{};
+        const auto prepare_begin = std::chrono::steady_clock::now();
         if (!PrepareFrameForRendering(interval, frame_context))
         {
+            const auto prepare_end = std::chrono::steady_clock::now();
+            m_current_frame_timing_breakdown.prepare_frame_ms = ToMilliseconds(prepare_begin, prepare_end);
+            const auto frame_end = std::chrono::steady_clock::now();
+            m_current_frame_timing_breakdown.frame_index = m_frame_index;
+            m_current_frame_timing_breakdown.frame_total_ms = ToMilliseconds(frame_begin, frame_end);
+            m_current_frame_timing_breakdown.non_pass_cpu_ms = m_current_frame_timing_breakdown.frame_total_ms;
+            m_current_frame_timing_breakdown.untracked_ms =
+                (std::max)(0.0f, m_current_frame_timing_breakdown.frame_total_ms - m_current_frame_timing_breakdown.prepare_frame_ms);
+            m_current_frame_timing_breakdown.valid = false;
+            m_last_frame_timing_breakdown = m_current_frame_timing_breakdown;
             return;
         }
+        const auto prepare_end = std::chrono::steady_clock::now();
+        m_current_frame_timing_breakdown.prepare_frame_ms = ToMilliseconds(prepare_begin, prepare_end);
+        m_current_frame_timing_breakdown.frame_index = m_frame_index;
 
         GLTF_CHECK(frame_context.command_list);
+
+        const auto execute_begin = std::chrono::steady_clock::now();
         ExecuteRenderGraphFrame(*frame_context.command_list, frame_context.profiler_slot_index, interval);
+        const auto execute_end = std::chrono::steady_clock::now();
+        m_current_frame_timing_breakdown.execute_render_graph_ms = ToMilliseconds(execute_begin, execute_end);
+
+        const auto blit_begin = std::chrono::steady_clock::now();
         BlitFinalOutputToSwapchain(*frame_context.command_list, frame_context.window_width, frame_context.window_height);
+        const auto blit_end = std::chrono::steady_clock::now();
+        m_current_frame_timing_breakdown.blit_to_swapchain_ms = ToMilliseconds(blit_begin, blit_end);
+
+        const auto finalize_begin = std::chrono::steady_clock::now();
         FinalizeFrameSubmission(*frame_context.command_list);
+        const auto finalize_end = std::chrono::steady_clock::now();
+        m_current_frame_timing_breakdown.finalize_submission_ms = ToMilliseconds(finalize_begin, finalize_end);
+
+        const auto frame_end = std::chrono::steady_clock::now();
+        m_current_frame_timing_breakdown.frame_total_ms = ToMilliseconds(frame_begin, frame_end);
+        m_current_frame_timing_breakdown.non_pass_cpu_ms = (std::max)(
+            0.0f,
+            m_current_frame_timing_breakdown.frame_total_ms - m_current_frame_timing_breakdown.execute_passes_ms);
+        const float tracked_frame_section_ms =
+            m_current_frame_timing_breakdown.prepare_frame_ms +
+            m_current_frame_timing_breakdown.execute_render_graph_ms +
+            m_current_frame_timing_breakdown.blit_to_swapchain_ms +
+            m_current_frame_timing_breakdown.finalize_submission_ms;
+        m_current_frame_timing_breakdown.untracked_ms = (std::max)(
+            0.0f,
+            m_current_frame_timing_breakdown.frame_total_ms - tracked_frame_section_ms);
+        m_current_frame_timing_breakdown.frame_wait_total_ms =
+            m_current_frame_timing_breakdown.wait_previous_frame_ms +
+            m_current_frame_timing_breakdown.acquire_command_list_ms +
+            m_current_frame_timing_breakdown.acquire_swapchain_ms +
+            m_current_frame_timing_breakdown.submit_command_list_ms +
+            m_current_frame_timing_breakdown.present_call_ms;
+        m_current_frame_timing_breakdown.valid = true;
+        m_last_frame_timing_breakdown = m_current_frame_timing_breakdown;
     }
 
     bool RenderGraph::ResolveFinalColorOutput()
@@ -2326,7 +2422,10 @@ namespace RendererInterface
 
     bool RenderGraph::SyncWindowSurfaceAndAdvanceFrame(FramePreparationContext& frame_context, unsigned long long interval)
     {
+        const auto surface_sync_begin = std::chrono::steady_clock::now();
         const auto surface_sync_result = m_resource_allocator.SyncWindowSurface(frame_context.window_width, frame_context.window_height);
+        const auto surface_sync_end = std::chrono::steady_clock::now();
+        m_current_frame_timing_breakdown.sync_window_surface_ms = ToMilliseconds(surface_sync_begin, surface_sync_end);
         if (surface_sync_result.status == WindowSurfaceSyncStatus::MINIMIZED)
         {
             return false;
@@ -2337,40 +2436,69 @@ namespace RendererInterface
             return false;
         }
 
+        const auto tick_begin = std::chrono::steady_clock::now();
         ExecuteTickAndDebugUI(interval);
+        const auto tick_end = std::chrono::steady_clock::now();
+        m_current_frame_timing_breakdown.tick_and_debug_ui_build_ms = ToMilliseconds(tick_begin, tick_end);
 
-        if (surface_sync_result.status != WindowSurfaceSyncStatus::RESIZED)
+        const bool require_explicit_frame_wait =
+            RHIConfigSingleton::Instance().GetGraphicsAPIType() == RHIGraphicsAPIType::RHI_GRAPHICS_API_DX12;
+        if (surface_sync_result.status != WindowSurfaceSyncStatus::RESIZED && require_explicit_frame_wait)
         {
+            const auto wait_begin = std::chrono::steady_clock::now();
             m_resource_allocator.WaitFrameRenderFinished();
+            const auto wait_end = std::chrono::steady_clock::now();
+            m_current_frame_timing_breakdown.wait_previous_frame_ms = ToMilliseconds(wait_begin, wait_end);
         }
+        const auto deferred_release_begin = std::chrono::steady_clock::now();
         ++m_frame_index;
         FlushDeferredResourceReleases(false);
+        const auto deferred_release_end = std::chrono::steady_clock::now();
+        m_current_frame_timing_breakdown.deferred_release_ms = ToMilliseconds(deferred_release_begin, deferred_release_end);
 
         return true;
     }
 
     bool RenderGraph::AcquireCurrentFrameCommandContext(FramePreparationContext& frame_context)
     {
+        const auto acquire_context_begin = std::chrono::steady_clock::now();
         const unsigned back_buffer_count = m_resource_allocator.GetCurrentSwapchain().GetBackBufferCount();
         frame_context.profiler_slot_index = back_buffer_count > 0
             ? (m_resource_allocator.GetCurrentBackBufferIndex() % back_buffer_count)
             : 0;
-        ResolveGPUProfilerFrame(frame_context.profiler_slot_index);
 
+        const auto resolve_profiler_begin = std::chrono::steady_clock::now();
+        ResolveGPUProfilerFrame(frame_context.profiler_slot_index);
+        const auto resolve_profiler_end = std::chrono::steady_clock::now();
+        m_current_frame_timing_breakdown.resolve_gpu_profiler_ms = ToMilliseconds(resolve_profiler_begin, resolve_profiler_end);
+
+        const auto acquire_command_list_begin = std::chrono::steady_clock::now();
         frame_context.command_list = &m_resource_allocator.GetCommandListForRecordPassCommand();
+        const auto acquire_command_list_end = std::chrono::steady_clock::now();
+        m_current_frame_timing_breakdown.acquire_command_list_ms =
+            ToMilliseconds(acquire_command_list_begin, acquire_command_list_end);
         // Wait current frame available
+        const auto acquire_frame_begin = std::chrono::steady_clock::now();
         const bool acquire_succeeded = m_resource_allocator.GetCurrentSwapchain().AcquireNewFrame(m_resource_allocator.GetDevice());
+        const auto acquire_frame_end = std::chrono::steady_clock::now();
+        m_current_frame_timing_breakdown.acquire_swapchain_ms = ToMilliseconds(acquire_frame_begin, acquire_frame_end);
         if (!acquire_succeeded)
         {
             m_resource_allocator.NotifySwapchainAcquireFailure();
             frame_context.command_list = nullptr;
+            m_current_frame_timing_breakdown.acquire_context_ms =
+                ToMilliseconds(acquire_context_begin, std::chrono::steady_clock::now());
             return false;
         }
         if (!m_resource_allocator.HasCurrentSwapchainRT())
         {
             frame_context.command_list = nullptr;
+            m_current_frame_timing_breakdown.acquire_context_ms =
+                ToMilliseconds(acquire_context_begin, std::chrono::steady_clock::now());
             return false;
         }
+        m_current_frame_timing_breakdown.acquire_context_ms =
+            ToMilliseconds(acquire_context_begin, std::chrono::steady_clock::now());
         return true;
     }
 
@@ -2394,6 +2522,7 @@ namespace RendererInterface
 
     void RenderGraph::ExecuteRenderGraphFrame(IRHICommandList& command_list, unsigned profiler_slot_index, unsigned long long interval)
     {
+        const auto planning_begin = std::chrono::steady_clock::now();
         m_resource_allocator.ApplyFrameBufferedRenderTargetAliases();
         if (m_final_color_output_render_target_handle != NULL_HANDLE)
         {
@@ -2403,9 +2532,19 @@ namespace RendererInterface
 
         std::vector<RenderGraphNodeHandle> nodes;
         nodes.reserve(m_render_graph_node_handles.size());
+        std::size_t active_node_set_signature = 1469598103934665603ULL;
         for (auto handle : m_render_graph_node_handles)
         {
             nodes.push_back(handle);
+            HashCombine(active_node_set_signature, handle.value);
+        }
+        const bool active_node_set_changed =
+            active_node_set_signature != m_last_active_node_set_signature ||
+            nodes.size() != m_last_active_node_set_count;
+        if (active_node_set_changed)
+        {
+            m_last_active_node_set_signature = active_node_set_signature;
+            m_last_active_node_set_count = nodes.size();
         }
 
         const ExecutionPlanContext plan_context{
@@ -2418,15 +2557,6 @@ namespace RendererInterface
             m_cached_execution_node_count
         };
 
-        const auto plan = BuildExecutionPlan(plan_context);
-        ExecutionPlanCacheState execution_cache_state{
-            m_cached_execution_graph_valid,
-            m_cached_execution_order,
-            m_cached_execution_signature,
-            m_cached_execution_node_count
-        };
-        auto diagnostics_cycle_nodes = ApplyExecutionPlanResult(plan_context, plan, execution_cache_state);
-
         const unsigned hazard_check_interval_frames =
             (std::max)(1u, m_validation_policy.cross_frame_hazard_check_interval_frames);
         const bool should_update_dependency_diagnostics =
@@ -2434,6 +2564,29 @@ namespace RendererInterface
             (m_frame_index <= m_last_dependency_diagnostics_frame_index) ||
             ((m_frame_index - m_last_dependency_diagnostics_frame_index) >=
                 static_cast<unsigned long long>(hazard_check_interval_frames));
+        const bool missing_cached_execution_order =
+            m_cached_execution_graph_valid && m_cached_execution_order.empty();
+        const bool should_rebuild_execution_plan =
+            m_execution_plan_dirty ||
+            active_node_set_changed ||
+            missing_cached_execution_order ||
+            should_update_dependency_diagnostics;
+
+        ExecutionPlanBuildResult plan{};
+        ExecutionPlanCacheState execution_cache_state{
+            m_cached_execution_graph_valid,
+            m_cached_execution_order,
+            m_cached_execution_signature,
+            m_cached_execution_node_count
+        };
+        std::vector<RenderGraphNodeHandle> diagnostics_cycle_nodes;
+        if (should_rebuild_execution_plan)
+        {
+            plan = BuildExecutionPlan(plan_context);
+            diagnostics_cycle_nodes = ApplyExecutionPlanResult(plan_context, plan, execution_cache_state);
+            m_execution_plan_dirty = false;
+        }
+
         if (should_update_dependency_diagnostics)
         {
             auto current_frame_resource_access = CollectFrameResourceAccessDiagnostics(nodes, m_render_graph_nodes);
@@ -2500,9 +2653,16 @@ namespace RendererInterface
             m_last_dependency_diagnostics_frame_index = m_frame_index;
         }
 
+        const auto planning_end = std::chrono::steady_clock::now();
+        m_current_frame_timing_breakdown.execution_planning_ms = ToMilliseconds(planning_begin, planning_end);
+
         ExecutePlanAndCollectStats(command_list, profiler_slot_index, interval);
 
+        const auto collect_unused_begin = std::chrono::steady_clock::now();
         CollectUnusedRenderPassDescriptorResources();
+        const auto collect_unused_end = std::chrono::steady_clock::now();
+        m_current_frame_timing_breakdown.collect_unused_descriptor_ms =
+            ToMilliseconds(collect_unused_begin, collect_unused_end);
     }
 
     void RenderGraph::BlitFinalOutputToSwapchain(IRHICommandList& command_list, unsigned window_width, unsigned window_height)
@@ -2535,8 +2695,15 @@ namespace RendererInterface
 
     void RenderGraph::FinalizeFrameSubmission(IRHICommandList& command_list)
     {
+        const auto render_debug_ui_begin = std::chrono::steady_clock::now();
         GLTF_CHECK(RenderDebugUI(command_list));
+        const auto render_debug_ui_end = std::chrono::steady_clock::now();
+        m_current_frame_timing_breakdown.render_debug_ui_ms = ToMilliseconds(render_debug_ui_begin, render_debug_ui_end);
+
+        const auto present_begin = std::chrono::steady_clock::now();
         Present(command_list);
+        const auto present_end = std::chrono::steady_clock::now();
+        m_current_frame_timing_breakdown.present_ms = ToMilliseconds(present_begin, present_end);
 
         // Clear all nodes at end of frame
         m_render_graph_node_handles.clear();
@@ -2600,6 +2767,11 @@ namespace RendererInterface
     const RenderGraph::FrameStats& RenderGraph::GetLastFrameStats() const
     {
         return m_last_frame_stats;
+    }
+
+    const RenderGraph::FrameTimingBreakdown& RenderGraph::GetLastFrameTimingBreakdown() const
+    {
+        return m_last_frame_timing_breakdown;
     }
 
     const RenderGraph::DependencyDiagnostics& RenderGraph::GetDependencyDiagnostics() const
@@ -2824,11 +2996,22 @@ namespace RendererInterface
         FrameStats submitted_frame_stats{};
         submitted_frame_stats.frame_index = m_frame_index;
         submitted_frame_stats.cpu_total_ms = 0.0f;
+        submitted_frame_stats.cpu_executed_ms = 0.0f;
+        submitted_frame_stats.cpu_skipped_ms = 0.0f;
+        submitted_frame_stats.cpu_skipped_validation_ms = 0.0f;
         submitted_frame_stats.gpu_time_valid = false;
         submitted_frame_stats.gpu_total_ms = 0.0f;
+        submitted_frame_stats.total_pass_count = 0;
         submitted_frame_stats.executed_pass_count = 0;
         submitted_frame_stats.skipped_pass_count = 0;
         submitted_frame_stats.skipped_validation_pass_count = 0;
+        submitted_frame_stats.skipped_missing_pass_count = 0;
+        submitted_frame_stats.graphics_pass_count = 0;
+        submitted_frame_stats.compute_pass_count = 0;
+        submitted_frame_stats.ray_tracing_pass_count = 0;
+        submitted_frame_stats.executed_graphics_pass_count = 0;
+        submitted_frame_stats.executed_compute_pass_count = 0;
+        submitted_frame_stats.executed_ray_tracing_pass_count = 0;
         submitted_frame_stats.pass_stats.clear();
         submitted_frame_stats.pass_stats.reserve(m_cached_execution_order.size());
 
@@ -2867,11 +3050,12 @@ namespace RendererInterface
                 group_name = "Ungrouped";
             }
 
+            const auto render_pass = InternalResourceHandleTable::Instance().GetRenderPass(node_desc.render_pass_handle);
+            const RenderPassType pass_type = render_pass ? render_pass->GetRenderPassType() : RenderPassType::GRAPHICS;
             std::string pass_name = node_desc.debug_name;
             if (pass_name.empty())
             {
-                auto render_pass = InternalResourceHandleTable::Instance().GetRenderPass(node_desc.render_pass_handle);
-                std::string type_name = render_pass ? ToRenderPassTypeName(render_pass->GetRenderPassType()) : "Unknown";
+                std::string type_name = render_pass ? ToRenderPassTypeName(pass_type) : "Unknown";
                 pass_name = type_name + "#" + std::to_string(render_graph_node.value);
             }
 
@@ -2879,25 +3063,59 @@ namespace RendererInterface
             pass_stats.node_handle = render_graph_node;
             pass_stats.group_name = group_name;
             pass_stats.pass_name = pass_name;
+            pass_stats.pass_type = pass_type;
             pass_stats.executed = execution_status == RenderPassExecutionStatus::EXECUTED;
             pass_stats.skipped_due_to_validation = execution_status == RenderPassExecutionStatus::SKIPPED_INVALID_DRAW_DESC;
             pass_stats.cpu_time_ms = pass_cpu_ms;
             submitted_frame_stats.pass_stats.push_back(pass_stats);
+            ++submitted_frame_stats.total_pass_count;
             submitted_frame_stats.cpu_total_ms += pass_cpu_ms;
+            switch (pass_type)
+            {
+            case RenderPassType::GRAPHICS:
+                ++submitted_frame_stats.graphics_pass_count;
+                break;
+            case RenderPassType::COMPUTE:
+                ++submitted_frame_stats.compute_pass_count;
+                break;
+            case RenderPassType::RAY_TRACING:
+                ++submitted_frame_stats.ray_tracing_pass_count;
+                break;
+            }
             if (pass_stats.executed)
             {
                 ++submitted_frame_stats.executed_pass_count;
+                submitted_frame_stats.cpu_executed_ms += pass_cpu_ms;
+                switch (pass_type)
+                {
+                case RenderPassType::GRAPHICS:
+                    ++submitted_frame_stats.executed_graphics_pass_count;
+                    break;
+                case RenderPassType::COMPUTE:
+                    ++submitted_frame_stats.executed_compute_pass_count;
+                    break;
+                case RenderPassType::RAY_TRACING:
+                    ++submitted_frame_stats.executed_ray_tracing_pass_count;
+                    break;
+                }
             }
             else
             {
                 ++submitted_frame_stats.skipped_pass_count;
+                submitted_frame_stats.cpu_skipped_ms += pass_cpu_ms;
                 if (pass_stats.skipped_due_to_validation)
                 {
                     ++submitted_frame_stats.skipped_validation_pass_count;
+                    submitted_frame_stats.cpu_skipped_validation_ms += pass_cpu_ms;
+                }
+                else
+                {
+                    ++submitted_frame_stats.skipped_missing_pass_count;
                 }
             }
         }
 
+        m_current_frame_timing_breakdown.execute_passes_ms = submitted_frame_stats.cpu_total_ms;
         GLTF_CHECK(FinalizeGPUProfilerFrame(command_list, profiler_slot_index, timestamped_pass_count * 2, submitted_frame_stats));
         if (!(m_gpu_profiler_state && m_gpu_profiler_state->supported))
         {
@@ -3816,12 +4034,18 @@ namespace RendererInterface
         RHIExecuteCommandListContext context;
         context.wait_infos.push_back({&m_resource_allocator.GetCurrentSwapchain().GetAvailableFrameSemaphore(), RHIPipelineStage::COLOR_ATTACHMENT_OUTPUT});
         context.sign_semaphores.push_back(&command_list.GetSemaphore());
+        const auto submit_begin = std::chrono::steady_clock::now();
         CloseCurrentCommandListAndExecute(command_list, context, false);
+        const auto submit_end = std::chrono::steady_clock::now();
+        m_current_frame_timing_breakdown.submit_command_list_ms = ToMilliseconds(submit_begin, submit_end);
     
+        const auto present_call_begin = std::chrono::steady_clock::now();
         const bool present_succeeded = RHIUtilInstanceManager::Instance().Present(
             m_resource_allocator.GetCurrentSwapchain(),
             m_resource_allocator.GetCommandQueue(),
             command_list);
+        const auto present_call_end = std::chrono::steady_clock::now();
+        m_current_frame_timing_breakdown.present_call_ms = ToMilliseconds(present_call_begin, present_call_end);
         if (!present_succeeded)
         {
             m_resource_allocator.NotifySwapchainPresentFailure();

@@ -72,4 +72,6 @@ protected:
     std::string m_rhi_switch_last_error{};
     RendererInterface::SwapchainResizePolicy m_swapchain_resize_policy_ui{};
     bool m_swapchain_resize_policy_ui_initialized{false};
+    RendererInterface::SwapchainPresentMode m_swapchain_present_mode_ui{RendererInterface::SwapchainPresentMode::VSYNC};
+    bool m_swapchain_present_mode_ui_initialized{false};
 };

@@ -65,6 +65,18 @@ RHIPipelineType RendererInterfaceRHIConverter::ConvertToRHIPipelineType(Renderer
 
 namespace
 {
+    SWAP_CHAIN_MODE ConvertToRHISwapchainMode(RendererInterface::SwapchainPresentMode mode)
+    {
+        switch (mode)
+        {
+        case RendererInterface::SwapchainPresentMode::MAILBOX:
+            return MAILBOX;
+        case RendererInterface::SwapchainPresentMode::VSYNC:
+        default:
+            return VSYNC;
+        }
+    }
+
     const char* ToString(RendererInterface::SwapchainLifecycleState state)
     {
         switch (state)
@@ -195,6 +207,7 @@ bool ResourceManager::InitResourceManager(const RendererInterface::RenderDeviceD
 {
     m_device_desc = desc;
     SetSwapchainResizePolicy(desc.swapchain_resize_policy, false);
+    m_swapchain_recreate_required = false;
     
     m_factory = RHIResourceFactory::CreateRHIResource<IRHIFactory>();
     EXIT_WHEN_FALSE(m_factory->InitFactory())  
@@ -219,7 +232,7 @@ bool ResourceManager::InitResourceManager(const RendererInterface::RenderDeviceD
 
     RHISwapChainDesc swap_chain_desc;
     swap_chain_desc.hwnd = render_window.GetHWND();
-    swap_chain_desc.chain_mode = VSYNC;
+    swap_chain_desc.chain_mode = ConvertToRHISwapchainMode(m_device_desc.swapchain_present_mode);
     swap_chain_desc.full_screen = false;
     EXIT_WHEN_FALSE(m_swap_chain->InitSwapChain(*m_factory, *m_device, *m_command_queue, swap_chain_texture_desc, swap_chain_desc ))
 
@@ -705,5 +718,26 @@ void ResourceManager::SetSwapchainResizePolicy(const RendererInterface::Swapchai
         m_swapchain_resize_last_failed_width = 0;
         m_swapchain_resize_last_failed_height = 0;
     }
+}
+
+RendererInterface::SwapchainPresentMode ResourceManager::GetSwapchainPresentMode() const
+{
+    return m_device_desc.swapchain_present_mode;
+}
+
+void ResourceManager::SetSwapchainPresentMode(RendererInterface::SwapchainPresentMode mode)
+{
+    if (m_device_desc.swapchain_present_mode == mode)
+    {
+        return;
+    }
+
+    m_device_desc.swapchain_present_mode = mode;
+    m_swapchain_recreate_required = true;
+    m_swapchain_resize_retry_countdown_frames = 0;
+    m_swapchain_resize_failure_count = 0;
+    m_swapchain_resize_last_failed_width = 0;
+    m_swapchain_resize_last_failed_height = 0;
+    SetSwapchainLifecycleState(RendererInterface::SwapchainLifecycleState::RESIZE_PENDING, "swapchain present mode changed");
 }
 

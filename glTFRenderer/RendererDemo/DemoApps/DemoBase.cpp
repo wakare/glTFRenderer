@@ -4,6 +4,8 @@
 #include "RendererSystem/RendererSystemBase.h"
 #include <imgui/imgui.h>
 #include <map>
+#include <string_view>
+#include <unordered_map>
 
 namespace
 {
@@ -61,6 +63,19 @@ namespace
             return "INVALID";
         default:
             return "UNKNOWN";
+        }
+    }
+
+    const char* ToString(RendererInterface::SwapchainPresentMode mode)
+    {
+        switch (mode)
+        {
+        case RendererInterface::SwapchainPresentMode::VSYNC:
+            return "VSync";
+        case RendererInterface::SwapchainPresentMode::MAILBOX:
+            return "Mailbox";
+        default:
+            return "Unknown";
         }
     }
 }
@@ -125,7 +140,12 @@ void DemoBase::TickFrameInternal(unsigned long long time_interval)
 
 void DemoBase::DrawDebugUI()
 {
-    ImGui::Begin(GetDemoPanelName());
+    const bool panel_visible = ImGui::Begin(GetDemoPanelName());
+    if (!panel_visible)
+    {
+        ImGui::End();
+        return;
+    }
 
     const ImGuiIO& io = ImGui::GetIO();
     ImGui::Text("Frame %.3f ms (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
@@ -140,8 +160,14 @@ void DemoBase::DrawDebugUI()
                 m_swapchain_resize_policy_ui = m_resource_manager->GetSwapchainResizePolicy();
                 m_swapchain_resize_policy_ui_initialized = true;
             }
+            if (!m_swapchain_present_mode_ui_initialized)
+            {
+                m_swapchain_present_mode_ui = m_resource_manager->GetSwapchainPresentMode();
+                m_swapchain_present_mode_ui_initialized = true;
+            }
 
             ImGui::Text("API: %s", ToString(m_render_device_type));
+            ImGui::Text("Present Mode: %s", ToString(m_resource_manager->GetSwapchainPresentMode()));
             {
                 const char* runtime_rhi_options[] = {"DX12", "Vulkan"};
                 int runtime_rhi_selection = m_runtime_rhi_ui_selection == RendererInterface::DX12 ? 0 : 1;
@@ -178,6 +204,19 @@ void DemoBase::DrawDebugUI()
                 {
                     ImGui::TextWrapped("Last RHI switch error: %s", m_rhi_switch_last_error.c_str());
                 }
+            }
+            int present_mode_selection =
+                m_swapchain_present_mode_ui == RendererInterface::SwapchainPresentMode::VSYNC ? 0 : 1;
+            const char* present_mode_options[] = {"VSync", "Mailbox"};
+            if (ImGui::Combo("Swapchain Present Mode", &present_mode_selection, present_mode_options, IM_ARRAYSIZE(present_mode_options)))
+            {
+                const auto new_mode =
+                    present_mode_selection == 0
+                        ? RendererInterface::SwapchainPresentMode::VSYNC
+                        : RendererInterface::SwapchainPresentMode::MAILBOX;
+                m_swapchain_present_mode_ui = new_mode;
+                m_resource_manager->SetSwapchainPresentMode(new_mode);
+                m_resource_manager->InvalidateSwapchainResizeRequest();
             }
             ImGui::Text("Render Extent: %u x %u",
                 m_resource_manager->GetCurrentRenderWidth(),
@@ -309,105 +348,252 @@ void DemoBase::DrawDebugUI()
     if (m_render_graph && ImGui::CollapsingHeader("Pass Timings", ImGuiTreeNodeFlags_DefaultOpen))
     {
         const auto& frame_stats = m_render_graph->GetLastFrameStats();
+        const auto& frame_timing = m_render_graph->GetLastFrameTimingBreakdown();
+        const auto to_pass_type_name = [](RendererInterface::RenderPassType pass_type) -> const char*
+        {
+            switch (pass_type)
+            {
+            case RendererInterface::RenderPassType::GRAPHICS:
+                return "Graphics";
+            case RendererInterface::RenderPassType::COMPUTE:
+                return "Compute";
+            case RendererInterface::RenderPassType::RAY_TRACING:
+                return "RayTracing";
+            }
+            return "Unknown";
+        };
         if (frame_stats.gpu_time_valid)
         {
-            ImGui::Text("RenderGraph CPU: %.3f ms | GPU: %.3f ms | Passes: %u (Exec %u / Skip %u, Validation %u) | Frame: %llu",
+            ImGui::Text("RenderGraph CPU: %.3f ms | GPU: %.3f ms | Frame: %llu",
                 frame_stats.cpu_total_ms,
                 frame_stats.gpu_total_ms,
-                static_cast<unsigned>(frame_stats.pass_stats.size()),
-                frame_stats.executed_pass_count,
-                frame_stats.skipped_pass_count,
-                frame_stats.skipped_validation_pass_count,
                 frame_stats.frame_index);
         }
         else
         {
-            ImGui::Text("RenderGraph CPU: %.3f ms | GPU: N/A | Passes: %u (Exec %u / Skip %u, Validation %u) | Frame: %llu",
+            ImGui::Text("RenderGraph CPU: %.3f ms | GPU: N/A | Frame: %llu",
                 frame_stats.cpu_total_ms,
-                static_cast<unsigned>(frame_stats.pass_stats.size()),
-                frame_stats.executed_pass_count,
-                frame_stats.skipped_pass_count,
-                frame_stats.skipped_validation_pass_count,
                 frame_stats.frame_index);
+        }
+        ImGui::Text("Pass Count: Total %u | Exec %u | Skip %u (Validation %u / Missing %u)",
+            frame_stats.total_pass_count,
+            frame_stats.executed_pass_count,
+            frame_stats.skipped_pass_count,
+            frame_stats.skipped_validation_pass_count,
+            frame_stats.skipped_missing_pass_count);
+        ImGui::Text("CPU Split: Exec %.3f ms | Skip %.3f ms (Validation %.3f ms)",
+            frame_stats.cpu_executed_ms,
+            frame_stats.cpu_skipped_ms,
+            frame_stats.cpu_skipped_validation_ms);
+        ImGui::Text("Pass Type Count: Gfx %u (Exec %u) | Compute %u (Exec %u) | RT %u (Exec %u)",
+            frame_stats.graphics_pass_count,
+            frame_stats.executed_graphics_pass_count,
+            frame_stats.compute_pass_count,
+            frame_stats.executed_compute_pass_count,
+            frame_stats.ray_tracing_pass_count,
+            frame_stats.executed_ray_tracing_pass_count);
+        if (m_window)
+        {
+            const auto window_loop_timing = m_window->GetLastLoopTiming();
+            const int window_refresh_hz = m_window->GetWindowRefreshRate();
+            if (window_refresh_hz > 0)
+            {
+                ImGui::Text("Window Refresh: %d Hz", window_refresh_hz);
+            }
+            else
+            {
+                ImGui::TextUnformatted("Window Refresh: Unknown");
+            }
+            if (window_loop_timing.valid)
+            {
+                ImGui::Text(
+                    "Window Loop: Wall %.3f ms | ThreadCPU %.3f ms | Idle/Wait %.3f ms",
+                    window_loop_timing.loop_total_ms,
+                    window_loop_timing.loop_thread_cpu_ms,
+                    window_loop_timing.idle_wait_ms);
+                ImGui::Text(
+                    "Window Loop Detail: TickCallback %.3f ms (CPU %.3f) | PollEvents %.3f ms (CPU %.3f) | Other %.3f ms",
+                    window_loop_timing.tick_callback_ms,
+                    window_loop_timing.tick_callback_thread_cpu_ms,
+                    window_loop_timing.poll_events_ms,
+                    window_loop_timing.poll_events_thread_cpu_ms,
+                    window_loop_timing.non_tick_ms);
+            }
+        }
+        if (frame_timing.valid)
+        {
+            ImGui::Text("Frame CPU: %.3f ms | Pass CPU: %.3f ms | Non-Pass CPU: %.3f ms | Untracked: %.3f ms",
+                frame_timing.frame_total_ms,
+                frame_timing.execute_passes_ms,
+                frame_timing.non_pass_cpu_ms,
+                frame_timing.untracked_ms);
+            ImGui::Text("CPU Wait Estimate: %.3f ms [WaitPrev %.3f | AcquireCmd %.3f | AcquireSwapchain %.3f | Submit %.3f | PresentCall %.3f]",
+                frame_timing.frame_wait_total_ms,
+                frame_timing.wait_previous_frame_ms,
+                frame_timing.acquire_command_list_ms,
+                frame_timing.acquire_swapchain_ms,
+                frame_timing.submit_command_list_ms,
+                frame_timing.present_call_ms);
+            ImGui::Text("Prepare: %.3f ms [Sync %.3f | Tick/UI %.3f | WaitPrev %.3f | DeferredRelease %.3f | AcquireCtx %.3f (ResolveProfiler %.3f / AcquireCmd %.3f / AcquireSwapchain %.3f)]",
+                frame_timing.prepare_frame_ms,
+                frame_timing.sync_window_surface_ms,
+                frame_timing.tick_and_debug_ui_build_ms,
+                frame_timing.wait_previous_frame_ms,
+                frame_timing.deferred_release_ms,
+                frame_timing.acquire_context_ms,
+                frame_timing.resolve_gpu_profiler_ms,
+                frame_timing.acquire_command_list_ms,
+                frame_timing.acquire_swapchain_ms);
+            ImGui::Text("Execute: %.3f ms [Plan+Diagnostics %.3f | Passes %.3f | DescriptorGC %.3f] | Blit %.3f ms",
+                frame_timing.execute_render_graph_ms,
+                frame_timing.execution_planning_ms,
+                frame_timing.execute_passes_ms,
+                frame_timing.collect_unused_descriptor_ms,
+                frame_timing.blit_to_swapchain_ms);
+            ImGui::Text("Finalize: %.3f ms [RenderDebugUI %.3f | Present %.3f (Submit %.3f / PresentCall %.3f)]",
+                frame_timing.finalize_submission_ms,
+                frame_timing.render_debug_ui_ms,
+                frame_timing.present_ms,
+                frame_timing.submit_command_list_ms,
+                frame_timing.present_call_ms);
+        }
+        else
+        {
+            ImGui::TextUnformatted("Frame CPU breakdown: unavailable this tick (frame not rendered or surface invalid).");
         }
 
         if (!frame_stats.pass_stats.empty())
         {
-            std::map<std::string, float> group_totals;
-            std::map<std::string, float> group_gpu_totals;
-            std::map<std::string, bool> group_gpu_valid;
+            struct GroupTimingAggregate
+            {
+                float cpu_total_ms{0.0f};
+                float gpu_total_ms{0.0f};
+                bool gpu_time_valid{false};
+                unsigned total_count{0};
+                unsigned executed_count{0};
+                unsigned skipped_count{0};
+            };
+            std::unordered_map<std::string_view, GroupTimingAggregate> group_aggregates;
+            group_aggregates.reserve(frame_stats.pass_stats.size());
+            std::vector<std::string_view> group_order;
+            group_order.reserve(frame_stats.pass_stats.size());
             for (const auto& pass_stat : frame_stats.pass_stats)
             {
-                group_totals[pass_stat.group_name] += pass_stat.cpu_time_ms;
-                if (pass_stat.gpu_time_valid)
+                const std::string_view group_name = pass_stat.group_name;
+                auto [aggregate_it, inserted] = group_aggregates.try_emplace(group_name, GroupTimingAggregate{});
+                if (inserted)
                 {
-                    group_gpu_totals[pass_stat.group_name] += pass_stat.gpu_time_ms;
-                    group_gpu_valid[pass_stat.group_name] = true;
+                    group_order.push_back(group_name);
                 }
-            }
 
-            for (const auto& group_total : group_totals)
-            {
-                if (group_gpu_valid[group_total.first])
+                auto& aggregate = aggregate_it->second;
+                aggregate.cpu_total_ms += pass_stat.cpu_time_ms;
+                ++aggregate.total_count;
+                if (pass_stat.executed)
                 {
-                    ImGui::Text("%s: CPU %.3f ms | GPU %.3f ms",
-                        group_total.first.c_str(),
-                        group_total.second,
-                        group_gpu_totals[group_total.first]);
+                    ++aggregate.executed_count;
                 }
                 else
                 {
-                    ImGui::Text("%s: CPU %.3f ms | GPU N/A", group_total.first.c_str(), group_total.second);
+                    ++aggregate.skipped_count;
+                }
+                if (pass_stat.gpu_time_valid)
+                {
+                    aggregate.gpu_total_ms += pass_stat.gpu_time_ms;
+                    aggregate.gpu_time_valid = true;
                 }
             }
 
-            const ImGuiTableFlags table_flags =
-                ImGuiTableFlags_Borders |
-                ImGuiTableFlags_RowBg |
-                ImGuiTableFlags_SizingStretchProp |
-                ImGuiTableFlags_ScrollY;
-            if (ImGui::BeginTable("RenderPassTimingTable", 5, table_flags, ImVec2(0.0f, 220.0f)))
+            for (const auto group_name : group_order)
             {
-                ImGui::TableSetupColumn("System");
-                ImGui::TableSetupColumn("Pass");
-                ImGui::TableSetupColumn("State");
-                ImGui::TableSetupColumn("CPU ms");
-                ImGui::TableSetupColumn("GPU ms");
-                ImGui::TableHeadersRow();
-
-                for (const auto& pass_stat : frame_stats.pass_stats)
+                const auto aggregate_it = group_aggregates.find(group_name);
+                if (aggregate_it == group_aggregates.end())
                 {
-                    ImGui::TableNextRow();
-                    ImGui::TableSetColumnIndex(0);
-                    ImGui::TextUnformatted(pass_stat.group_name.c_str());
-                    ImGui::TableSetColumnIndex(1);
-                    ImGui::TextUnformatted(pass_stat.pass_name.c_str());
-                    ImGui::TableSetColumnIndex(2);
-                    if (pass_stat.executed)
-                    {
-                        ImGui::TextUnformatted("Executed");
-                    }
-                    else if (pass_stat.skipped_due_to_validation)
-                    {
-                        ImGui::TextUnformatted("Skipped(Validation)");
-                    }
-                    else
-                    {
-                        ImGui::TextUnformatted("Skipped");
-                    }
-                    ImGui::TableSetColumnIndex(3);
-                    ImGui::Text("%.3f", pass_stat.cpu_time_ms);
-                    ImGui::TableSetColumnIndex(4);
-                    if (pass_stat.gpu_time_valid)
-                    {
-                        ImGui::Text("%.3f", pass_stat.gpu_time_ms);
-                    }
-                    else
-                    {
-                        ImGui::TextUnformatted("N/A");
-                    }
+                    continue;
                 }
-                ImGui::EndTable();
+
+                const auto& aggregate = aggregate_it->second;
+                if (aggregate.gpu_time_valid)
+                {
+                    ImGui::Text("%s: CPU %.3f ms | GPU %.3f ms | Count %u (Exec %u / Skip %u)",
+                        group_name.data(),
+                        aggregate.cpu_total_ms,
+                        aggregate.gpu_total_ms,
+                        aggregate.total_count,
+                        aggregate.executed_count,
+                        aggregate.skipped_count);
+                }
+                else
+                {
+                    ImGui::Text("%s: CPU %.3f ms | GPU N/A | Count %u (Exec %u / Skip %u)",
+                        group_name.data(),
+                        aggregate.cpu_total_ms,
+                        aggregate.total_count,
+                        aggregate.executed_count,
+                        aggregate.skipped_count);
+                }
+            }
+
+            if (ImGui::TreeNode("Per-pass Timing Table"))
+            {
+                const ImGuiTableFlags table_flags =
+                    ImGuiTableFlags_Borders |
+                    ImGuiTableFlags_RowBg |
+                    ImGuiTableFlags_SizingStretchProp |
+                    ImGuiTableFlags_ScrollY;
+                if (ImGui::BeginTable("RenderPassTimingTable", 6, table_flags, ImVec2(0.0f, 220.0f)))
+                {
+                    ImGui::TableSetupColumn("System");
+                    ImGui::TableSetupColumn("Pass");
+                    ImGui::TableSetupColumn("Type");
+                    ImGui::TableSetupColumn("State");
+                    ImGui::TableSetupColumn("CPU ms");
+                    ImGui::TableSetupColumn("GPU ms");
+                    ImGui::TableHeadersRow();
+
+                    ImGuiListClipper clipper;
+                    clipper.Begin(static_cast<int>(frame_stats.pass_stats.size()));
+                    while (clipper.Step())
+                    {
+                        for (int row = clipper.DisplayStart; row < clipper.DisplayEnd; ++row)
+                        {
+                            const auto& pass_stat = frame_stats.pass_stats[static_cast<std::size_t>(row)];
+                            ImGui::TableNextRow();
+                            ImGui::TableSetColumnIndex(0);
+                            ImGui::TextUnformatted(pass_stat.group_name.c_str());
+                            ImGui::TableSetColumnIndex(1);
+                            ImGui::TextUnformatted(pass_stat.pass_name.c_str());
+                            ImGui::TableSetColumnIndex(2);
+                            ImGui::TextUnformatted(to_pass_type_name(pass_stat.pass_type));
+                            ImGui::TableSetColumnIndex(3);
+                            if (pass_stat.executed)
+                            {
+                                ImGui::TextUnformatted("Executed");
+                            }
+                            else if (pass_stat.skipped_due_to_validation)
+                            {
+                                ImGui::TextUnformatted("Skipped(Validation)");
+                            }
+                            else
+                            {
+                                ImGui::TextUnformatted("Skipped");
+                            }
+                            ImGui::TableSetColumnIndex(4);
+                            ImGui::Text("%.3f", pass_stat.cpu_time_ms);
+                            ImGui::TableSetColumnIndex(5);
+                            if (pass_stat.gpu_time_valid)
+                            {
+                                ImGui::Text("%.3f", pass_stat.gpu_time_ms);
+                            }
+                            else
+                            {
+                                ImGui::TextUnformatted("N/A");
+                            }
+                        }
+                    }
+                    ImGui::EndTable();
+                }
+                ImGui::TreePop();
             }
         }
         else
@@ -470,6 +656,7 @@ void DemoBase::Run()
 bool DemoBase::InitRenderContext(const std::vector<std::string>& arguments)
 {
     bool bUseDX = true;
+    RendererInterface::SwapchainPresentMode swapchain_present_mode = RendererInterface::SwapchainPresentMode::VSYNC;
     
     for (const auto& argument : arguments)
     {
@@ -481,6 +668,16 @@ bool DemoBase::InitRenderContext(const std::vector<std::string>& arguments)
         if (argument == "-vk" || argument == "-vulkan")
         {
             bUseDX = false;
+        }
+
+        if (argument == "-mailbox" || argument == "-novsync")
+        {
+            swapchain_present_mode = RendererInterface::SwapchainPresentMode::MAILBOX;
+        }
+
+        if (argument == "-vsync")
+        {
+            swapchain_present_mode = RendererInterface::SwapchainPresentMode::VSYNC;
         }
     }
 
@@ -495,11 +692,14 @@ bool DemoBase::InitRenderContext(const std::vector<std::string>& arguments)
     device.type = bUseDX ? RendererInterface::DX12 : RendererInterface::VULKAN;
     device.back_buffer_count = 3;
     device.swapchain_resize_policy = GetDefaultSwapchainResizePolicy(device.type);
+    device.swapchain_present_mode = swapchain_present_mode;
     m_render_device_type = device.type;
     m_pending_render_device_type = device.type;
     m_runtime_rhi_ui_selection = device.type;
     m_swapchain_resize_policy_ui = device.swapchain_resize_policy;
     m_swapchain_resize_policy_ui_initialized = true;
+    m_swapchain_present_mode_ui = device.swapchain_present_mode;
+    m_swapchain_present_mode_ui_initialized = true;
 
     m_resource_manager = std::make_shared<RendererInterface::ResourceOperator>(device);
     m_last_render_width = m_resource_manager->GetCurrentRenderWidth();
@@ -584,6 +784,7 @@ bool DemoBase::ExecutePendingRHISwitch()
         previous_back_buffer_count = 3;
     }
     const auto previous_swapchain_policy = m_resource_manager->GetSwapchainResizePolicy();
+    const auto previous_swapchain_present_mode = m_resource_manager->GetSwapchainPresentMode();
     const auto previous_validation_policy = m_render_graph->GetValidationPolicy();
 
     if (!RendererInterface::CleanupRenderRuntimeContext(m_render_graph, m_resource_manager, false))
@@ -601,11 +802,14 @@ bool DemoBase::ExecutePendingRHISwitch()
     device.type = m_pending_render_device_type;
     device.back_buffer_count = previous_back_buffer_count;
     device.swapchain_resize_policy = previous_swapchain_policy;
+    device.swapchain_present_mode = previous_swapchain_present_mode;
 
     m_resource_manager = std::make_shared<RendererInterface::ResourceOperator>(device);
     m_resource_manager->SetPerFrameResourceBindingEnabled(previous_per_frame_resource_binding);
     m_swapchain_resize_policy_ui = previous_swapchain_policy;
     m_swapchain_resize_policy_ui_initialized = true;
+    m_swapchain_present_mode_ui = previous_swapchain_present_mode;
+    m_swapchain_present_mode_ui_initialized = true;
 
     m_render_graph = std::make_shared<RendererInterface::RenderGraph>(*m_resource_manager, *m_window);
     m_render_graph->SetValidationPolicy(previous_validation_policy);

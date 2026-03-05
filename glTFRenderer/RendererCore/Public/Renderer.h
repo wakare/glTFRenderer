@@ -283,6 +283,12 @@ namespace RendererInterface
         VULKAN,
     };
 
+    enum class SwapchainPresentMode
+    {
+        VSYNC = 0,
+        MAILBOX = 1,
+    };
+
     struct SwapchainResizePolicy
     {
         // Window extent must stay unchanged for N sync ticks before we try ResizeBuffers/ResizeSwapChain.
@@ -301,6 +307,7 @@ namespace RendererInterface
         RenderWindowHandle window;
         unsigned back_buffer_count;
         SwapchainResizePolicy swapchain_resize_policy{};
+        SwapchainPresentMode swapchain_present_mode{SwapchainPresentMode::VSYNC};
     };
 
     // Runtime state for swapchain/surface synchronization.

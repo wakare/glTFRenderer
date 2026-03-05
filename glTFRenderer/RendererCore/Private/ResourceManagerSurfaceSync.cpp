@@ -12,6 +12,18 @@
 
 namespace
 {
+    SWAP_CHAIN_MODE ConvertToRHISwapchainMode(RendererInterface::SwapchainPresentMode mode)
+    {
+        switch (mode)
+        {
+        case RendererInterface::SwapchainPresentMode::MAILBOX:
+            return MAILBOX;
+        case RendererInterface::SwapchainPresentMode::VSYNC:
+        default:
+            return VSYNC;
+        }
+    }
+
     RHITextureClearValue BuildRenderTargetClearValue(const RendererInterface::RenderTargetDesc& desc, RHIDataFormat format, bool is_depth_stencil)
     {
         RHITextureClearValue clear_value{};
@@ -106,7 +118,10 @@ bool ResourceManagerSurfaceResourceRebuilder::ResizeSwapchainIfNeeded(ResourceMa
 
     manager.UpdateResizeRequestStability(width, height);
 
-    if (manager.m_swap_chain->GetWidth() == width && manager.m_swap_chain->GetHeight() == height)
+    const bool force_swapchain_recreate = manager.m_swapchain_recreate_required;
+    if (manager.m_swap_chain->GetWidth() == width &&
+        manager.m_swap_chain->GetHeight() == height &&
+        !force_swapchain_recreate)
     {
         reset_swapchain_resize_retry_state();
         manager.m_last_requested_swapchain_width = width;
@@ -125,14 +140,16 @@ bool ResourceManagerSurfaceResourceRebuilder::ResizeSwapchainIfNeeded(ResourceMa
         manager.m_swapchain_resize_failure_count > 0 &&
         manager.m_swapchain_resize_last_failed_width == width &&
         manager.m_swapchain_resize_last_failed_height == height;
-    if (pending_retry_for_same_size && manager.m_swapchain_resize_retry_countdown_frames > 0)
+    if (!force_swapchain_recreate &&
+        pending_retry_for_same_size &&
+        manager.m_swapchain_resize_retry_countdown_frames > 0)
     {
         --manager.m_swapchain_resize_retry_countdown_frames;
         manager.SetSwapchainLifecycleState(RendererInterface::SwapchainLifecycleState::RESIZE_DEFERRED, "resize deferred by retry cooldown");
         return false;
     }
 
-    if (!manager.IsResizeRequestStableEnough(width, height, pending_retry_for_same_size))
+    if (!force_swapchain_recreate && !manager.IsResizeRequestStableEnough(width, height, pending_retry_for_same_size))
     {
         manager.SetSwapchainLifecycleState(RendererInterface::SwapchainLifecycleState::RESIZE_DEFERRED, "resize deferred until window extent becomes stable");
         return false;
@@ -167,10 +184,53 @@ bool ResourceManagerSurfaceResourceRebuilder::ResizeSwapchainIfNeeded(ResourceMa
         {0.0f, 0.0f, 0.0f, 0.0f}
     };
 
-    const bool swapchain_resized_in_place = manager.m_swap_chain->ResizeSwapChain(width, height);
+    const bool swapchain_resized_in_place =
+        !force_swapchain_recreate && manager.m_swap_chain->ResizeSwapChain(width, height);
 
     if (!swapchain_resized_in_place)
     {
+        if (force_swapchain_recreate)
+        {
+            LOG_FORMAT_FLUSH("[ResourceManager] Recreating swapchain to apply present mode for %ux%u.\n", width, height);
+            manager.SetSwapchainLifecycleState(RendererInterface::SwapchainLifecycleState::RECOVERING, "recreate swapchain for present mode change");
+            const bool released = manager.m_swap_chain->Release(*manager.m_memory_manager);
+            if (!released)
+            {
+                LOG_FORMAT_FLUSH("[ResourceManager] Failed to release swapchain during present mode recreate for %ux%u.\n", width, height);
+                manager.InvalidateSwapchainResizeRequest();
+                return false;
+            }
+
+            const auto& render_window = RendererInterface::InternalResourceHandleTable::Instance().GetRenderWindow(manager.m_device_desc.window);
+            RHITextureDesc swap_chain_texture_desc("swap_chain_back_buffer",
+                width,
+                height,
+                RHIDataFormat::R8G8B8A8_UNORM,
+                static_cast<RHIResourceUsageFlags>(RUF_ALLOW_RENDER_TARGET | RUF_TRANSFER_DST),
+                {
+                    .clear_format = RHIDataFormat::R8G8B8A8_UNORM,
+                    .clear_color = {0.0f, 0.0f, 0.0f, 0.0f}
+                });
+
+            RHISwapChainDesc swap_chain_desc{};
+            swap_chain_desc.hwnd = render_window.GetHWND();
+            swap_chain_desc.chain_mode = ConvertToRHISwapchainMode(manager.m_device_desc.swapchain_present_mode);
+            swap_chain_desc.full_screen = false;
+            const bool recreated = manager.m_swap_chain->InitSwapChain(
+                *manager.m_factory,
+                *manager.m_device,
+                *manager.m_command_queue,
+                swap_chain_texture_desc,
+                swap_chain_desc);
+            if (!recreated)
+            {
+                LOG_FORMAT_FLUSH("[ResourceManager] Failed to recreate swapchain when applying present mode for %ux%u.\n", width, height);
+                manager.InvalidateSwapchainResizeRequest();
+                return false;
+            }
+        }
+        else
+        {
         if (manager.m_device_desc.type == RendererInterface::DX12)
         {
             // Keep the existing swapchain alive and restore descriptors, then retry resize next frame.
@@ -221,7 +281,7 @@ bool ResourceManagerSurfaceResourceRebuilder::ResizeSwapchainIfNeeded(ResourceMa
 
         RHISwapChainDesc swap_chain_desc{};
         swap_chain_desc.hwnd = render_window.GetHWND();
-        swap_chain_desc.chain_mode = VSYNC;
+        swap_chain_desc.chain_mode = ConvertToRHISwapchainMode(manager.m_device_desc.swapchain_present_mode);
         swap_chain_desc.full_screen = false;
         const bool recreated = manager.m_swap_chain->InitSwapChain(*manager.m_factory, *manager.m_device, *manager.m_command_queue, swap_chain_texture_desc, swap_chain_desc);
         if (!recreated)
@@ -229,6 +289,7 @@ bool ResourceManagerSurfaceResourceRebuilder::ResizeSwapchainIfNeeded(ResourceMa
             LOG_FORMAT_FLUSH("[ResourceManager] Failed to recreate swapchain for %ux%u.\n", width, height);
             manager.InvalidateSwapchainResizeRequest();
             return false;
+        }
         }
     }
     else
@@ -249,6 +310,7 @@ bool ResourceManagerSurfaceResourceRebuilder::ResizeSwapchainIfNeeded(ResourceMa
         return false;
     }
     reset_swapchain_resize_retry_state();
+    manager.m_swapchain_recreate_required = false;
     manager.m_last_requested_swapchain_width = width;
     manager.m_last_requested_swapchain_height = height;
     manager.SetSwapchainLifecycleState(RendererInterface::SwapchainLifecycleState::READY, "swapchain resize committed");

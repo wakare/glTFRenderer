@@ -3,8 +3,48 @@
 #define GLFW_EXPOSE_NATIVE_WIN32 1
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
+#include <algorithm>
 #include <functional>
+#include <chrono>
 #include "InputKeyMapping.h"
+
+namespace
+{
+    static float ToMilliseconds(const std::chrono::steady_clock::time_point& begin, const std::chrono::steady_clock::time_point& end)
+    {
+        return std::chrono::duration<float, std::milli>(end - begin).count();
+    }
+
+    static unsigned long long GetCurrentThreadCPUTime100ns()
+    {
+        FILETIME create_time{};
+        FILETIME exit_time{};
+        FILETIME kernel_time{};
+        FILETIME user_time{};
+        if (!GetThreadTimes(GetCurrentThread(), &create_time, &exit_time, &kernel_time, &user_time))
+        {
+            return 0ULL;
+        }
+
+        ULARGE_INTEGER kernel_value{};
+        kernel_value.LowPart = kernel_time.dwLowDateTime;
+        kernel_value.HighPart = kernel_time.dwHighDateTime;
+
+        ULARGE_INTEGER user_value{};
+        user_value.LowPart = user_time.dwLowDateTime;
+        user_value.HighPart = user_time.dwHighDateTime;
+        return kernel_value.QuadPart + user_value.QuadPart;
+    }
+
+    static float ToMillisecondsFrom100ns(unsigned long long begin_100ns, unsigned long long end_100ns)
+    {
+        if (end_100ns < begin_100ns)
+        {
+            return 0.0f;
+        }
+        return static_cast<float>(end_100ns - begin_100ns) * 0.0001f;
+    }
+}
 
 glTFWindow::glTFWindow()
     : m_glfw_window(nullptr)
@@ -53,6 +93,8 @@ void glTFWindow::UpdateWindow()
 {
     while (!glfwWindowShouldClose(m_glfw_window))
     {
+        const auto loop_begin = std::chrono::steady_clock::now();
+        const unsigned long long loop_cpu_begin = GetCurrentThreadCPUTime100ns();
         unsigned long long current_tick_time = 0;
         if (m_last_tick_time > 0)
         {
@@ -60,12 +102,38 @@ void glTFWindow::UpdateWindow()
         }
         m_last_tick_time = GetTickCount64();
         
+        const auto tick_begin = std::chrono::steady_clock::now();
+        const unsigned long long tick_cpu_begin = GetCurrentThreadCPUTime100ns();
         if (m_tick_callback)
         {
             m_tick_callback(current_tick_time);   
         }
+        const unsigned long long tick_cpu_end = GetCurrentThreadCPUTime100ns();
+        const auto tick_end = std::chrono::steady_clock::now();
         
+        const auto poll_begin = std::chrono::steady_clock::now();
+        const unsigned long long poll_cpu_begin = GetCurrentThreadCPUTime100ns();
         glfwPollEvents();
+        const unsigned long long poll_cpu_end = GetCurrentThreadCPUTime100ns();
+        const auto poll_end = std::chrono::steady_clock::now();
+
+        const auto loop_end = std::chrono::steady_clock::now();
+        const unsigned long long loop_cpu_end = GetCurrentThreadCPUTime100ns();
+        m_last_loop_timing.valid = true;
+        ++m_last_loop_timing.frame_index;
+        m_last_loop_timing.loop_total_ms = ToMilliseconds(loop_begin, loop_end);
+        m_last_loop_timing.loop_thread_cpu_ms = ToMillisecondsFrom100ns(loop_cpu_begin, loop_cpu_end);
+        const float idle_wait_ms = m_last_loop_timing.loop_total_ms - m_last_loop_timing.loop_thread_cpu_ms;
+        m_last_loop_timing.idle_wait_ms = idle_wait_ms > 0.0f ? idle_wait_ms : 0.0f;
+        m_last_loop_timing.tick_callback_ms = ToMilliseconds(tick_begin, tick_end);
+        m_last_loop_timing.tick_callback_thread_cpu_ms = ToMillisecondsFrom100ns(tick_cpu_begin, tick_cpu_end);
+        m_last_loop_timing.poll_events_ms = ToMilliseconds(poll_begin, poll_end);
+        m_last_loop_timing.poll_events_thread_cpu_ms = ToMillisecondsFrom100ns(poll_cpu_begin, poll_cpu_end);
+        const float non_tick_ms =
+            m_last_loop_timing.loop_total_ms -
+            m_last_loop_timing.tick_callback_ms -
+            m_last_loop_timing.poll_events_ms;
+        m_last_loop_timing.non_tick_ms = non_tick_ms > 0.0f ? non_tick_ms : 0.0f;
     }
 
     if (m_exit_callback)
@@ -74,6 +142,77 @@ void glTFWindow::UpdateWindow()
     }
     
     glfwTerminate();
+}
+
+glTFWindow::LoopTiming glTFWindow::GetLastLoopTiming() const
+{
+    return m_last_loop_timing;
+}
+
+int glTFWindow::GetWindowRefreshRate() const
+{
+    if (!m_glfw_window)
+    {
+        return 0;
+    }
+
+    int window_x = 0;
+    int window_y = 0;
+    int window_width = 0;
+    int window_height = 0;
+    glfwGetWindowPos(m_glfw_window, &window_x, &window_y);
+    glfwGetWindowSize(m_glfw_window, &window_width, &window_height);
+    const int window_left = window_x;
+    const int window_top = window_y;
+    const int window_right = window_x + (std::max)(1, window_width);
+    const int window_bottom = window_y + (std::max)(1, window_height);
+
+    int monitor_count = 0;
+    GLFWmonitor** monitors = glfwGetMonitors(&monitor_count);
+    GLFWmonitor* best_monitor = nullptr;
+    int best_overlap = -1;
+    for (int monitor_index = 0; monitor_index < monitor_count; ++monitor_index)
+    {
+        GLFWmonitor* monitor = monitors[monitor_index];
+        if (!monitor)
+        {
+            continue;
+        }
+
+        int monitor_x = 0;
+        int monitor_y = 0;
+        glfwGetMonitorPos(monitor, &monitor_x, &monitor_y);
+        const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+        if (!mode)
+        {
+            continue;
+        }
+
+        const int monitor_left = monitor_x;
+        const int monitor_top = monitor_y;
+        const int monitor_right = monitor_x + mode->width;
+        const int monitor_bottom = monitor_y + mode->height;
+        const int overlap_width = (std::max)(0, (std::min)(window_right, monitor_right) - (std::max)(window_left, monitor_left));
+        const int overlap_height = (std::max)(0, (std::min)(window_bottom, monitor_bottom) - (std::max)(window_top, monitor_top));
+        const int overlap_area = overlap_width * overlap_height;
+        if (overlap_area > best_overlap)
+        {
+            best_overlap = overlap_area;
+            best_monitor = monitor;
+        }
+    }
+
+    if (!best_monitor)
+    {
+        best_monitor = glfwGetPrimaryMonitor();
+    }
+    if (!best_monitor)
+    {
+        return 0;
+    }
+
+    const GLFWvidmode* best_mode = glfwGetVideoMode(best_monitor);
+    return best_mode ? best_mode->refreshRate : 0;
 }
 
 void glTFWindow::RequestClose()
