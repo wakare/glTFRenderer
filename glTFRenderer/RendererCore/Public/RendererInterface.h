@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <deque>
 #include <functional>
 #include <set>
@@ -282,6 +283,7 @@ namespace RendererInterface
         struct ValidationPolicy
         {
             unsigned log_interval_frames{120};
+            unsigned cross_frame_hazard_check_interval_frames{8};
             bool skip_execution_on_warning{false};
         };
         
@@ -330,13 +332,30 @@ namespace RendererInterface
 
         struct RenderPassDescriptorResource
         {
-            std::map<std::string, std::shared_ptr<IRHIBufferDescriptorAllocation>> m_buffer_descriptors;
-            std::map<std::string, std::shared_ptr<IRHITextureDescriptorAllocation>> m_texture_descriptors;
-            std::map<std::string, std::shared_ptr<IRHIDescriptorTable>> m_texture_descriptor_tables;
-            std::map<std::string, std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>>> m_texture_descriptor_table_source_data;
-            std::map<std::string, BufferBindingDesc> m_cached_buffer_bindings;
-            std::map<std::string, TextureBindingDesc> m_cached_texture_bindings;
-            std::map<std::string, RenderTargetTextureBindingDesc> m_cached_render_target_texture_bindings;
+            struct BufferDescriptorCacheEntry
+            {
+                BufferBindingDesc binding_desc{};
+                std::uintptr_t buffer_identity_key{0};
+                std::shared_ptr<IRHIBufferDescriptorAllocation> descriptor{};
+                unsigned long long last_used_frame{0};
+            };
+
+            struct TextureDescriptorCacheEntry
+            {
+                unsigned binding_type{0};
+                std::vector<std::uintptr_t> source_texture_identity_keys;
+                std::shared_ptr<IRHITextureDescriptorAllocation> descriptor{};
+                std::shared_ptr<IRHIDescriptorTable> descriptor_table{};
+                std::vector<std::shared_ptr<IRHITextureDescriptorAllocation>> descriptor_table_source_data;
+                unsigned long long last_used_frame{0};
+            };
+
+            // key: binding_name -> cache_key -> descriptor entry
+            std::map<std::string, std::map<unsigned long long, BufferDescriptorCacheEntry>> m_buffer_descriptor_cache;
+            // key: binding_name -> cache_key -> descriptor entry (TextureHandle path)
+            std::map<std::string, std::map<unsigned long long, TextureDescriptorCacheEntry>> m_texture_descriptor_cache;
+            // key: binding_name -> cache_key -> descriptor entry (RenderTargetHandle path)
+            std::map<std::string, std::map<unsigned long long, TextureDescriptorCacheEntry>> m_render_target_texture_descriptor_cache;
         };
 
         struct FramePreparationContext
@@ -401,8 +420,10 @@ namespace RendererInterface
             std::map<unsigned long long, unsigned char> access_masks;
             // value.first = readers, value.second = writers
             std::map<unsigned long long, std::pair<std::vector<std::string>, std::vector<std::string>>> pass_accesses;
+            unsigned long long frame_index{0};
         };
-        std::deque<FrameResourceAccessSnapshot> m_recent_frame_resource_access_snapshots;
+        std::vector<FrameResourceAccessSnapshot> m_frame_slot_resource_access_snapshots;
+        std::vector<unsigned char> m_frame_slot_resource_access_snapshot_valid;
         std::size_t m_cached_execution_signature{0};
         std::size_t m_cached_execution_node_count{0};
         bool m_cached_execution_graph_valid{true};
@@ -416,6 +437,7 @@ namespace RendererInterface
         bool m_debug_ui_enabled{true};
         bool m_debug_ui_initialized{false};
         ValidationPolicy m_validation_policy{};
+        unsigned long long m_last_dependency_diagnostics_frame_index{0};
         struct GPUProfilerState;
         std::unique_ptr<GPUProfilerState> m_gpu_profiler_state;
         FrameStats m_last_frame_stats{};
