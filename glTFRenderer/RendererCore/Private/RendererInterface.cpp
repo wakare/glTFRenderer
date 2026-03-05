@@ -3787,13 +3787,12 @@ namespace RendererInterface
         const bool present_succeeded = RHIUtilInstanceManager::Instance().Present(
             m_resource_allocator.GetCurrentSwapchain(),
             m_resource_allocator.GetCommandQueue(),
-            m_resource_allocator.GetCommandListForRecordPassCommand(NULL_HANDLE));
+            command_list);
         if (!present_succeeded)
         {
             m_resource_allocator.NotifySwapchainPresentFailure();
             return;
         }
-        CloseCurrentCommandListAndExecute(command_list, {}, false);
     }
 }
 

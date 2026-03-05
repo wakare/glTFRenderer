@@ -407,10 +407,12 @@ void ResourceManager::WaitFrameRenderFinished()
         GLTF_CHECK(closed);
 
         GLTF_CHECK(RHIUtilInstanceManager::Instance().ExecuteCommandList(command_list, GetCommandQueue(), {}));
-        RHIUtilInstanceManager::Instance().WaitCommandListFinish(command_list);
 
         command_list.SetState(RHICommandListState::Closed);
     }
+
+    // Always wait before allocator reset to avoid reusing allocator while GPU may still consume it.
+    RHIUtilInstanceManager::Instance().WaitCommandListFinish(command_list);
     
     RHIUtilInstanceManager::Instance().ResetCommandAllocator(command_allocator);
 }
