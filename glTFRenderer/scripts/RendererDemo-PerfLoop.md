@@ -2,6 +2,10 @@
 
 This repo now has a scriptable DX12/Vulkan perf comparison loop for `RendererDemo`.
 
+Related planning document:
+
+- `scripts/RendererFramework-RefactorRoadmap.md`
+
 ## Entry Points
 
 - Build only:
@@ -66,6 +70,41 @@ This makes it possible to separate pass cost from framework scheduling / present
   - Set `GLTF_RHI_VALIDATION=1` to re-enable API validation on both backends.
   - Set `GLTF_DX12_GPU_VALIDATION=1` to additionally enable DX12 GPU-based validation.
   - Set `GLTF_DX12_SYNC_QUEUE_VALIDATION=1` to additionally enable DX12 synchronized queue validation.
+
+## Refactor Workflow
+
+When using this loop to validate framework refactors:
+
+- Always compare against the latest accepted baseline listed in `scripts/RendererFramework-RefactorRoadmap.md`
+- Always run `MAILBOX` after each phase
+- Also run `VSYNC` when the phase touches:
+  - frame scheduling
+  - wait placement
+  - swapchain resize / recreate
+  - present mode handling
+  - frame-slot ownership
+- Do not accept a refactor phase if it causes a material regression in:
+  - `frame_total_avg_ms`
+  - `frame_wait_total_avg_ms`
+  - `prepare_frame_avg_ms`
+  - `present_call_avg_ms`
+  without an explicit explanation and follow-up plan
+
+## Refactor Failure Learnings
+
+Recent `P0` refactor attempts exposed a few practical rules for keeping framework cleanup safe:
+
+- Prefer pure helper extraction before introducing new persistent runtime state.
+  - A `FrameRingConfig` source-of-truth attempt regressed `MAILBOX DX12` throughput enough to fail the roadmap gate, even though `VSYNC` stayed broadly stable.
+- Do not merge “semantic cleanup” and “state ownership change” in the same slice.
+  - If the code currently derives counts on demand, first centralize the derivation logic in helpers.
+  - Move to stored runtime state only after that helper-based version has proved stable.
+- For structural-only slices, treat repeated `MAILBOX DX12` regressions as real until disproved.
+  - If the same slice misses the gate in two runs, roll it back and split it smaller.
+- Use `VSYNC` as a secondary sanity check, not as the acceptance signal for throughput-sensitive cleanup.
+  - A slice can look stable under `VSYNC` while still harming uncapped `MAILBOX` throughput.
+- Record failed slices in `scripts/RendererFramework-RefactorRoadmap.md`.
+  - Failed attempts are useful because they constrain how the next refactor should be cut.
 
 ## First Practical Use
 

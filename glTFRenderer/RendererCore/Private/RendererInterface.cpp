@@ -139,6 +139,51 @@ namespace RendererInterface
             return (std::max)(min_extent, scaled_extent);
         }
 
+        unsigned ResolveFrameSlotCount(const ResourceOperator& resource_operator)
+        {
+            return (std::max)(1u, resource_operator.GetFrameSlotCount());
+        }
+
+        unsigned ResolveSwapchainImageCount(const ResourceOperator& resource_operator)
+        {
+            return resource_operator.GetSwapchainImageCount();
+        }
+
+        unsigned ResolveProfilerSlotCount(const ResourceOperator& resource_operator)
+        {
+            return ResolveFrameSlotCount(resource_operator);
+        }
+
+        unsigned ResolveProfilerSlotIndex(const ResourceOperator& resource_operator)
+        {
+            const unsigned profiler_slot_count = ResolveProfilerSlotCount(resource_operator);
+            return profiler_slot_count > 0u
+                ? (resource_operator.GetCurrentFrameSlotIndex() % profiler_slot_count)
+                : 0u;
+        }
+
+        unsigned ResolveCrossFrameComparisonWindowSize(const ResourceOperator& resource_operator)
+        {
+            return resource_operator.IsPerFrameResourceBindingEnabled()
+                ? ResolveFrameSlotCount(resource_operator)
+                : 1u;
+        }
+
+        unsigned ResolveDeferredReleaseLatencyFrames(const ResourceOperator& resource_operator)
+        {
+            return (std::max)(2u, ResolveFrameSlotCount(resource_operator));
+        }
+
+        unsigned ResolveDescriptorCacheRetentionFrames(const ResourceOperator& resource_operator)
+        {
+            return (std::max)(2u, ResolveFrameSlotCount(resource_operator) * 2u);
+        }
+
+        unsigned ResolveRenderPassDescriptorRetentionFrames(const ResourceOperator& resource_operator)
+        {
+            return (std::max)(2u, ResolveFrameSlotCount(resource_operator));
+        }
+
         using DependencyEdgeMap = std::map<RenderGraphNodeHandle, std::set<RenderGraphNodeHandle>>;
         using DependencyEdgeResourceMap = std::map<std::pair<RenderGraphNodeHandle, RenderGraphNodeHandle>, std::vector<ResourceKey>>;
 
@@ -1497,9 +1542,9 @@ namespace RendererInterface
 
     std::vector<BufferHandle> ResourceOperator::CreateFrameBufferedBuffers(const BufferDesc& desc, const std::string& debug_name_prefix)
     {
-        const unsigned back_buffer_count = (std::max)(1u, GetBackBufferCount());
+        const unsigned frame_slot_count = ResolveFrameSlotCount(*this);
         std::vector<BufferHandle> buffers;
-        buffers.reserve(back_buffer_count);
+        buffers.reserve(frame_slot_count);
 
         std::string base_name = debug_name_prefix;
         if (base_name.empty())
@@ -1507,7 +1552,7 @@ namespace RendererInterface
             base_name = desc.name.empty() ? "FrameBufferedBuffer" : desc.name;
         }
 
-        for (unsigned frame_index = 0; frame_index < back_buffer_count; ++frame_index)
+        for (unsigned frame_index = 0; frame_index < frame_slot_count; ++frame_index)
         {
             BufferDesc frame_desc = desc;
             frame_desc.name = base_name + "_frame_" + std::to_string(frame_index);
@@ -1537,9 +1582,9 @@ namespace RendererInterface
 
     std::vector<RenderTargetHandle> ResourceOperator::CreateFrameBufferedRenderTargets(const RenderTargetDesc& desc, const std::string& debug_name_prefix)
     {
-        const unsigned back_buffer_count = (std::max)(1u, GetBackBufferCount());
+        const unsigned frame_slot_count = ResolveFrameSlotCount(*this);
         std::vector<RenderTargetHandle> render_targets;
-        render_targets.reserve(back_buffer_count);
+        render_targets.reserve(frame_slot_count);
 
         std::string base_name = debug_name_prefix;
         if (base_name.empty())
@@ -1547,7 +1592,7 @@ namespace RendererInterface
             base_name = desc.name.empty() ? "FrameBufferedRenderTarget" : desc.name;
         }
 
-        for (unsigned frame_index = 0; frame_index < back_buffer_count; ++frame_index)
+        for (unsigned frame_index = 0; frame_index < frame_slot_count; ++frame_index)
         {
             RenderTargetDesc frame_desc = desc;
             frame_desc.name = base_name + "_frame_" + std::to_string(frame_index);
@@ -1711,6 +1756,16 @@ namespace RendererInterface
     unsigned ResourceOperator::GetCurrentFrameSlotIndex() const
     {
         return m_resource_manager->GetCurrentFrameSlotIndex();
+    }
+
+    unsigned ResourceOperator::GetFrameSlotCount() const
+    {
+        return m_resource_manager->GetFrameSlotCount();
+    }
+
+    unsigned ResourceOperator::GetSwapchainImageCount() const
+    {
+        return m_resource_manager->GetSwapchainImageCount();
     }
 
     unsigned ResourceOperator::GetBackBufferCount() const
@@ -2471,10 +2526,7 @@ namespace RendererInterface
     bool RenderGraph::AcquireCurrentFrameCommandContext(FramePreparationContext& frame_context)
     {
         const auto acquire_context_begin = std::chrono::steady_clock::now();
-        const unsigned back_buffer_count = m_resource_allocator.GetCurrentSwapchain().GetBackBufferCount();
-        frame_context.profiler_slot_index = back_buffer_count > 0
-            ? (m_resource_allocator.GetCurrentFrameSlotIndex() % back_buffer_count)
-            : 0;
+        frame_context.profiler_slot_index = ResolveProfilerSlotIndex(m_resource_allocator);
 
         const auto resolve_profiler_begin = std::chrono::steady_clock::now();
         ResolveGPUProfilerFrame(frame_context.profiler_slot_index);
@@ -2581,37 +2633,19 @@ namespace RendererInterface
         if (should_update_dependency_diagnostics)
         {
             auto current_frame_resource_access = CollectFrameResourceAccessDiagnostics(nodes, m_render_graph_nodes);
-            const bool per_frame_resource_binding_enabled = m_resource_allocator.IsPerFrameResourceBindingEnabled();
-            const unsigned cross_frame_comparison_window_size = per_frame_resource_binding_enabled
-                ? (std::max)(1u, m_resource_allocator.GetBackBufferCount())
-                : 1u;
-            if (m_frame_slot_resource_access_snapshots.size() != static_cast<std::size_t>(cross_frame_comparison_window_size) ||
-                m_frame_slot_resource_access_snapshot_valid.size() != static_cast<std::size_t>(cross_frame_comparison_window_size))
-            {
-                m_frame_slot_resource_access_snapshots.clear();
-                m_frame_slot_resource_access_snapshots.resize(cross_frame_comparison_window_size);
-                m_frame_slot_resource_access_snapshot_valid.assign(cross_frame_comparison_window_size, 0u);
-            }
-
-            unsigned hazard_slot_index = 0u;
-            if (per_frame_resource_binding_enabled)
-            {
-                hazard_slot_index = cross_frame_comparison_window_size > 0u
-                    ? (m_resource_allocator.GetCurrentFrameSlotIndex() % cross_frame_comparison_window_size)
-                    : 0u;
-            }
-            GLTF_CHECK(hazard_slot_index < cross_frame_comparison_window_size);
+            const unsigned cross_frame_comparison_window_size = GetCrossFrameComparisonWindowSize();
+            EnsureCrossFrameHazardSnapshotStorage(cross_frame_comparison_window_size);
+            const unsigned hazard_slot_index = GetCrossFrameHazardSlotIndex(cross_frame_comparison_window_size);
 
             ResourceAccessMaskMap previous_frame_resource_access_masks;
             ResourcePassAccessMap previous_frame_resource_pass_accesses;
             unsigned compared_previous_frame_count = 0u;
-            const bool has_previous_frame_resource_access_masks =
-                m_frame_slot_resource_access_snapshot_valid[hazard_slot_index] != 0u;
-            if (has_previous_frame_resource_access_masks)
+            const auto* previous_snapshot = GetCrossFrameHazardSnapshot(hazard_slot_index);
+            const bool has_previous_frame_resource_access_masks = previous_snapshot != nullptr;
+            if (previous_snapshot)
             {
-                const auto& previous_snapshot = m_frame_slot_resource_access_snapshots[hazard_slot_index];
-                previous_frame_resource_access_masks = previous_snapshot.access_masks;
-                previous_frame_resource_pass_accesses = previous_snapshot.pass_accesses;
+                previous_frame_resource_access_masks = previous_snapshot->access_masks;
+                previous_frame_resource_pass_accesses = previous_snapshot->pass_accesses;
                 compared_previous_frame_count = 1u;
             }
 
@@ -2637,8 +2671,7 @@ namespace RendererInterface
                 snapshot.access_masks = std::move(current_frame_resource_access.access_masks);
                 snapshot.pass_accesses = std::move(current_frame_resource_access.pass_accesses);
                 snapshot.frame_index = m_frame_index;
-                m_frame_slot_resource_access_snapshots[hazard_slot_index] = std::move(snapshot);
-                m_frame_slot_resource_access_snapshot_valid[hazard_slot_index] = 1u;
+                UpdateCrossFrameHazardSnapshot(hazard_slot_index, std::move(snapshot));
             }
 
             m_last_dependency_diagnostics_frame_index = m_frame_index;
@@ -2850,7 +2883,7 @@ namespace RendererInterface
             m_resource_allocator.GetDevice(),
             m_resource_allocator.GetCommandQueue(),
             m_resource_allocator.GetDescriptorManager(),
-            m_resource_allocator.GetCurrentSwapchain().GetBackBufferCount()));
+            ResolveSwapchainImageCount(m_resource_allocator)));
 
         glTFWindow::Get().SetInputHandleCallback([this]()
         {
@@ -2919,18 +2952,18 @@ namespace RendererInterface
 
         m_gpu_profiler_state = std::make_unique<GPUProfilerState>();
         auto& profiler_state = *m_gpu_profiler_state;
-        const unsigned back_buffer_count = m_resource_allocator.GetCurrentSwapchain().GetBackBufferCount();
-        if (back_buffer_count == 0)
+        const unsigned profiler_slot_count = ResolveProfilerSlotCount(m_resource_allocator);
+        if (profiler_slot_count == 0)
         {
             return true;
         }
 
-        profiler_state.frame_slots.resize(back_buffer_count);
+        profiler_state.frame_slots.resize(profiler_slot_count);
         
         GLTF_CHECK(RHIUtilInstanceManager::Instance().InitTimestampProfiler(
             m_resource_allocator.GetDevice(),
             m_resource_allocator.GetCommandQueue(),
-            back_buffer_count,
+            profiler_slot_count,
             profiler_state.max_query_count));
         profiler_state.supported = RHIUtilInstanceManager::Instance().IsTimestampProfilerSupported();
         if (profiler_state.supported)
@@ -3226,7 +3259,7 @@ namespace RendererInterface
             return;
         }
 
-        const unsigned delay_frame = (std::max)(2u, m_resource_allocator.GetCurrentSwapchain().GetBackBufferCount());
+        const unsigned delay_frame = ResolveDeferredReleaseLatencyFrames(m_resource_allocator);
         if (!m_deferred_release_entries.empty() && m_deferred_release_entries.back().retire_frame == m_frame_index + delay_frame)
         {
             m_deferred_release_entries.back().resources.push_back(resource);
@@ -3348,7 +3381,7 @@ namespace RendererInterface
 
     void RenderGraph::PruneDescriptorResources(RenderPassDescriptorResource& descriptor_resource, const RenderPassDrawDesc& draw_info)
     {
-        const unsigned descriptor_cache_retention_frame = (std::max)(2u, m_resource_allocator.GetCurrentSwapchain().GetBackBufferCount() * 2u);
+        const unsigned descriptor_cache_retention_frame = ResolveDescriptorCacheRetentionFrames(m_resource_allocator);
         const auto should_release_stale_entry = [this, descriptor_cache_retention_frame](unsigned long long last_used_frame)
         {
             return m_frame_index >= last_used_frame + descriptor_cache_retention_frame;
@@ -3480,7 +3513,7 @@ namespace RendererInterface
 
     void RenderGraph::CollectUnusedRenderPassDescriptorResources()
     {
-        const unsigned retention_frame = (std::max)(2u, m_resource_allocator.GetCurrentSwapchain().GetBackBufferCount());
+        const unsigned retention_frame = ResolveRenderPassDescriptorRetentionFrames(m_resource_allocator);
         for (auto it = m_render_pass_descriptor_resources.begin(); it != m_render_pass_descriptor_resources.end(); )
         {
             const auto node_handle = it->first;
@@ -3522,6 +3555,56 @@ namespace RendererInterface
                 GLTF_CHECK(released);
             }
         }
+    }
+
+    unsigned RenderGraph::GetCrossFrameComparisonWindowSize() const
+    {
+        return ResolveCrossFrameComparisonWindowSize(m_resource_allocator);
+    }
+
+    void RenderGraph::EnsureCrossFrameHazardSnapshotStorage(unsigned window_size)
+    {
+        if (m_frame_slot_resource_access_snapshots.size() == static_cast<std::size_t>(window_size) &&
+            m_frame_slot_resource_access_snapshot_valid.size() == static_cast<std::size_t>(window_size))
+        {
+            return;
+        }
+
+        m_frame_slot_resource_access_snapshots.clear();
+        m_frame_slot_resource_access_snapshots.resize(window_size);
+        m_frame_slot_resource_access_snapshot_valid.assign(window_size, 0u);
+    }
+
+    unsigned RenderGraph::GetCrossFrameHazardSlotIndex(unsigned window_size) const
+    {
+        if (!m_resource_allocator.IsPerFrameResourceBindingEnabled() || window_size == 0u)
+        {
+            return 0u;
+        }
+
+        const unsigned hazard_slot_index = m_resource_allocator.GetCurrentFrameSlotIndex() % window_size;
+        GLTF_CHECK(hazard_slot_index < window_size);
+        return hazard_slot_index;
+    }
+
+    const RenderGraph::FrameResourceAccessSnapshot* RenderGraph::GetCrossFrameHazardSnapshot(unsigned hazard_slot_index) const
+    {
+        if (hazard_slot_index >= m_frame_slot_resource_access_snapshot_valid.size() ||
+            hazard_slot_index >= m_frame_slot_resource_access_snapshots.size() ||
+            m_frame_slot_resource_access_snapshot_valid[hazard_slot_index] == 0u)
+        {
+            return nullptr;
+        }
+
+        return &m_frame_slot_resource_access_snapshots[hazard_slot_index];
+    }
+
+    void RenderGraph::UpdateCrossFrameHazardSnapshot(unsigned hazard_slot_index, FrameResourceAccessSnapshot snapshot)
+    {
+        GLTF_CHECK(hazard_slot_index < m_frame_slot_resource_access_snapshots.size());
+        GLTF_CHECK(hazard_slot_index < m_frame_slot_resource_access_snapshot_valid.size());
+        m_frame_slot_resource_access_snapshots[hazard_slot_index] = std::move(snapshot);
+        m_frame_slot_resource_access_snapshot_valid[hazard_slot_index] = 1u;
     }
 
     void RenderGraph::LogRenderPassValidationResult(RenderGraphNodeHandle render_graph_node_handle,

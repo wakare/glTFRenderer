@@ -44,6 +44,8 @@ public:
 
     unsigned GetCurrentBackBufferIndex() const;
     unsigned GetCurrentFrameSlotIndex() const;
+    unsigned GetFrameSlotCount() const;
+    unsigned GetSwapchainImageCount() const;
     unsigned GetBackBufferCount() const;
     void AdvanceFrameSlot();
     

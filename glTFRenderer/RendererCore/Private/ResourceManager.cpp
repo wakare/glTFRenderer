@@ -392,30 +392,46 @@ unsigned ResourceManager::GetCurrentBackBufferIndex() const
 
 unsigned ResourceManager::GetCurrentFrameSlotIndex() const
 {
-    const auto frame_slot_count = (std::min)(m_command_lists.size(), m_command_allocators.size());
+    const auto frame_slot_count = GetFrameSlotCount();
     if (frame_slot_count == 0)
     {
         return 0;
     }
 
-    return m_current_frame_slot_index % static_cast<unsigned>(frame_slot_count);
+    return m_current_frame_slot_index % frame_slot_count;
 }
 
-unsigned ResourceManager::GetBackBufferCount() const
+unsigned ResourceManager::GetFrameSlotCount() const
+{
+    const auto frame_slot_count = (std::min)(m_command_lists.size(), m_command_allocators.size());
+    if (frame_slot_count > 0)
+    {
+        return static_cast<unsigned>(frame_slot_count);
+    }
+
+    return (std::max)(1u, m_device_desc.back_buffer_count);
+}
+
+unsigned ResourceManager::GetSwapchainImageCount() const
 {
     return m_swap_chain ? m_swap_chain->GetBackBufferCount() : m_device_desc.back_buffer_count;
 }
 
+unsigned ResourceManager::GetBackBufferCount() const
+{
+    return GetSwapchainImageCount();
+}
+
 void ResourceManager::AdvanceFrameSlot()
 {
-    const auto frame_slot_count = (std::min)(m_command_lists.size(), m_command_allocators.size());
+    const auto frame_slot_count = GetFrameSlotCount();
     if (frame_slot_count == 0)
     {
         m_current_frame_slot_index = 0;
         return;
     }
 
-    m_current_frame_slot_index = (m_current_frame_slot_index + 1u) % static_cast<unsigned>(frame_slot_count);
+    m_current_frame_slot_index = (m_current_frame_slot_index + 1u) % frame_slot_count;
 }
 
 IRHIDevice& ResourceManager::GetDevice()
@@ -521,8 +537,7 @@ void ResourceManager::SetSwapchainLifecycleState(RendererInterface::SwapchainLif
 
 unsigned ResourceManager::GetDeferredReleaseLatencyFrames() const
 {
-    const unsigned back_buffer_count = m_swap_chain ? m_swap_chain->GetBackBufferCount() : 0;
-    return (std::max)(2u, back_buffer_count + 1u);
+    return (std::max)(2u, GetFrameSlotCount() + 1u);
 }
 
 unsigned ResourceManager::ComputeRetryCooldownFrames(unsigned failure_count) const

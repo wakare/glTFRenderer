@@ -87,6 +87,8 @@ namespace RendererInterface
         ResourceOperator(RenderDeviceDesc device);
         unsigned            GetCurrentBackBufferIndex() const;
         unsigned            GetCurrentFrameSlotIndex() const;
+        unsigned            GetFrameSlotCount() const;
+        unsigned            GetSwapchainImageCount() const;
         unsigned            GetBackBufferCount() const;
         bool                IsPerFrameResourceBindingEnabled() const;
         void                SetPerFrameResourceBindingEnabled(bool enable);
@@ -488,6 +490,11 @@ namespace RendererInterface
             std::map<unsigned long long, std::pair<std::vector<std::string>, std::vector<std::string>>> pass_accesses;
             unsigned long long frame_index{0};
         };
+        unsigned GetCrossFrameComparisonWindowSize() const;
+        void EnsureCrossFrameHazardSnapshotStorage(unsigned window_size);
+        unsigned GetCrossFrameHazardSlotIndex(unsigned window_size) const;
+        const FrameResourceAccessSnapshot* GetCrossFrameHazardSnapshot(unsigned hazard_slot_index) const;
+        void UpdateCrossFrameHazardSnapshot(unsigned hazard_slot_index, FrameResourceAccessSnapshot snapshot);
         std::vector<FrameResourceAccessSnapshot> m_frame_slot_resource_access_snapshots;
         std::vector<unsigned char> m_frame_slot_resource_access_snapshot_valid;
         std::size_t m_cached_execution_signature{0};
