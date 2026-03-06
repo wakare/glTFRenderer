@@ -2989,13 +2989,39 @@ namespace RendererInterface
         m_gpu_profiler_state.reset();
     }
 
+    bool RenderGraph::HasValidGPUProfilerSlot(unsigned slot_index) const
+    {
+        return m_gpu_profiler_state &&
+            m_gpu_profiler_state->supported &&
+            slot_index < m_gpu_profiler_state->frame_slots.size();
+    }
+
+    unsigned RenderGraph::GetGPUProfilerMaxTimestampedPassCount() const
+    {
+        return (m_gpu_profiler_state && m_gpu_profiler_state->supported)
+            ? m_gpu_profiler_state->max_pass_count
+            : 0u;
+    }
+
+    unsigned RenderGraph::GetGPUProfilerMaxQueryCount() const
+    {
+        return m_gpu_profiler_state ? m_gpu_profiler_state->max_query_count : 0u;
+    }
+
+    unsigned RenderGraph::ClampGPUProfilerQueryCount(unsigned query_count) const
+    {
+        const unsigned max_query_count = GetGPUProfilerMaxQueryCount();
+        if (max_query_count == 0u)
+        {
+            return 0u;
+        }
+
+        return (std::min)(query_count, max_query_count);
+    }
+
     void RenderGraph::ResolveGPUProfilerFrame(unsigned slot_index)
     {
-        if (!m_gpu_profiler_state || !m_gpu_profiler_state->supported)
-        {
-            return;
-        }
-        if (slot_index >= m_gpu_profiler_state->frame_slots.size())
+        if (!HasValidGPUProfilerSlot(slot_index))
         {
             return;
         }
@@ -3081,9 +3107,7 @@ namespace RendererInterface
         submitted_frame_stats.pass_stats.reserve(m_cached_execution_order.size());
 
         GLTF_CHECK(BeginGPUProfilerFrame(command_list, profiler_slot_index));
-        const unsigned max_timestamped_pass_count = (m_gpu_profiler_state && m_gpu_profiler_state->supported)
-            ? m_gpu_profiler_state->max_pass_count
-            : 0u;
+        const unsigned max_timestamped_pass_count = GetGPUProfilerMaxTimestampedPassCount();
         unsigned timestamped_pass_count = 0;
 
         for (unsigned pass_index = 0; pass_index < m_cached_execution_order.size(); ++pass_index)
@@ -3198,11 +3222,7 @@ namespace RendererInterface
 
     bool RenderGraph::BeginGPUProfilerFrame(IRHICommandList& command_list, unsigned slot_index)
     {
-        if (!m_gpu_profiler_state || !m_gpu_profiler_state->supported)
-        {
-            return true;
-        }
-        if (slot_index >= m_gpu_profiler_state->frame_slots.size())
+        if (!HasValidGPUProfilerSlot(slot_index))
         {
             return true;
         }
@@ -3213,15 +3233,11 @@ namespace RendererInterface
 
     bool RenderGraph::WriteGPUProfilerTimestamp(IRHICommandList& command_list, unsigned slot_index, unsigned query_index)
     {
-        if (!m_gpu_profiler_state || !m_gpu_profiler_state->supported)
+        if (!HasValidGPUProfilerSlot(slot_index))
         {
             return true;
         }
-        if (slot_index >= m_gpu_profiler_state->frame_slots.size())
-        {
-            return true;
-        }
-        if (query_index >= m_gpu_profiler_state->max_query_count)
+        if (query_index >= GetGPUProfilerMaxQueryCount())
         {
             return true;
         }
@@ -3232,18 +3248,14 @@ namespace RendererInterface
 
     bool RenderGraph::FinalizeGPUProfilerFrame(IRHICommandList& command_list, unsigned slot_index, unsigned query_count, const FrameStats& frame_stats)
     {
-        if (!m_gpu_profiler_state || !m_gpu_profiler_state->supported)
-        {
-            return true;
-        }
-        if (slot_index >= m_gpu_profiler_state->frame_slots.size())
+        if (!HasValidGPUProfilerSlot(slot_index))
         {
             return true;
         }
 
         auto& profiler_state = *m_gpu_profiler_state;
         auto& frame_slot = profiler_state.frame_slots[slot_index];
-        const unsigned clamped_query_count = (std::min)(query_count, profiler_state.max_query_count);
+        const unsigned clamped_query_count = ClampGPUProfilerQueryCount(query_count);
         GLTF_CHECK(RHIUtilInstanceManager::Instance().EndTimestampFrame(command_list, slot_index, clamped_query_count));
 
         frame_slot.query_count = clamped_query_count;

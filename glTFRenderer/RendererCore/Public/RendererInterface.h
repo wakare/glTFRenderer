@@ -445,6 +445,10 @@ namespace RendererInterface
         void ShutdownDebugUI();
         bool InitGPUProfiler();
         void ShutdownGPUProfiler();
+        bool HasValidGPUProfilerSlot(unsigned slot_index) const;
+        unsigned GetGPUProfilerMaxTimestampedPassCount() const;
+        unsigned GetGPUProfilerMaxQueryCount() const;
+        unsigned ClampGPUProfilerQueryCount(unsigned query_count) const;
         void ResolveGPUProfilerFrame(unsigned slot_index);
         bool BeginGPUProfilerFrame(IRHICommandList& command_list, unsigned slot_index);
         bool WriteGPUProfilerTimestamp(IRHICommandList& command_list, unsigned slot_index, unsigned query_index);

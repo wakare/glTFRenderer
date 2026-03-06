@@ -377,6 +377,53 @@ Use this checklist for every phase:
   - accepted
   - continue shrinking `P0` around diagnostics/profiler semantics before revisiting any new frame-model state object
 
+### 2026-03-06 - P0 Slice 5 - GPU Profiler Guardrail Helper Extraction
+
+- Status:
+  - accepted as a non-regressing structural slice
+  - baseline not promoted yet because `P0` is still in progress
+- Changed files:
+  - `RendererCore/Public/RendererInterface.h`
+  - `RendererCore/Private/RendererInterface.cpp`
+- Scope:
+  - extracted focused GPU-profiler guardrail helpers for:
+    - profiler slot validity
+    - max timestamped pass budget
+    - max query count
+    - query-count clamping
+  - reduced repeated ad hoc checks in:
+    - `ResolveGPUProfilerFrame`
+    - `ExecutePlanAndCollectStats`
+    - `BeginGPUProfilerFrame`
+    - `WriteGPUProfilerTimestamp`
+    - `FinalizeGPUProfilerFrame`
+  - did not change profiler data ownership or timestamp sequencing
+- Validation:
+  - build:
+    - `build_logs/rendererdemo_20260306_174521.result.json`
+    - `build_logs/rendererdemo_20260306_174521.msbuild.log`
+  - `MAILBOX`:
+    - first run: `build_logs/perf_loop/session_20260306_174613/comparison/comparison_20260306_174623.md`
+    - rerun: `build_logs/perf_loop/session_20260306_174730/comparison/comparison_20260306_174740.md`
+  - `VSYNC`:
+    - `build_logs/perf_loop/session_20260306_174633/comparison/comparison_20260306_174646.md`
+- Key deltas vs accepted baseline:
+  - `MAILBOX DX12` rerun:
+    - `frame_total_avg_ms`: `3.1220 -> 3.1423` (`+0.0202 ms`, `+0.6%`)
+    - `frame_wait_total_avg_ms`: `0.1875 -> 0.2047` (`+0.0172 ms`, `+9.2%`)
+    - `prepare_frame_avg_ms`: `1.1754 -> 1.1371` (`-0.0383 ms`, `-3.3%`)
+  - `MAILBOX Vulkan` rerun:
+    - `frame_total_avg_ms`: `3.8714 -> 3.8513` (`-0.0200 ms`, `-0.5%`)
+  - `VSYNC DX12`:
+    - `frame_total_avg_ms`: `16.6384 -> 16.6659` (`+0.0275 ms`, `+0.2%`)
+    - `frame_wait_total_avg_ms`: `13.0657 -> 13.0848` (`+0.0191 ms`, `+0.1%`)
+- Notes:
+  - the first `MAILBOX DX12` run missed the throughput gate
+  - rerun returned near baseline, so this slice is accepted based on the repeated sample rather than the noisy first run
+- Decision:
+  - accepted
+  - keep future profiler refactors helper-only until repeated runs stay stable
+
 ## Current Recommendation
 
 Start with `P0. Frame Model Normalization`.
