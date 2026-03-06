@@ -9,6 +9,7 @@
 #include <optional>
 #include <set>
 
+#include "RHIConfigSingleton.h"
 #include "VKFactory.h"
 #include "RenderWindow/glTFWindow.h"
 
@@ -389,8 +390,9 @@ bool VKDevice::InitDevice(IRHIFactory& factory)
     create_device_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     create_device_info.pQueueCreateInfos = queue_create_infos.data();
     create_device_info.queueCreateInfoCount = static_cast<unsigned>(queue_create_infos.size());
-    create_device_info.ppEnabledLayerNames = VulkanEngineRequirements::validation_layers.data();
-    create_device_info.enabledLayerCount = static_cast<unsigned>(VulkanEngineRequirements::validation_layers.size());
+    const bool enable_api_validation = RHIConfigSingleton::Instance().IsAPIValidationEnabled();
+    create_device_info.ppEnabledLayerNames = enable_api_validation ? VulkanEngineRequirements::validation_layers.data() : nullptr;
+    create_device_info.enabledLayerCount = enable_api_validation ? static_cast<unsigned>(VulkanEngineRequirements::validation_layers.size()) : 0;
     create_device_info.ppEnabledExtensionNames = enabled_extensions.data();
     create_device_info.enabledExtensionCount = static_cast<unsigned>(enabled_extensions.size());
 

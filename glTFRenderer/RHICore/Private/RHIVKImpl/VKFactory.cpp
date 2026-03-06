@@ -1,5 +1,6 @@
 #include "VKFactory.h"
 #include "RendererCommon.h"
+#include "RHIConfigSingleton.h"
 #include <GLFW/glfw3.h>
 
 const std::vector validation_layers =
@@ -9,6 +10,8 @@ const std::vector validation_layers =
 
 bool VKFactory::InitFactory()
 {
+    const bool enable_api_validation = RHIConfigSingleton::Instance().IsAPIValidationEnabled();
+
     // Create vulkan instance
     VkApplicationInfo app_info{};
     app_info.sType = VkStructureType::VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -33,8 +36,8 @@ bool VKFactory::InitFactory()
     create_info.enabledExtensionCount = glfw_extension_count;
     create_info.ppEnabledExtensionNames = glfw_extension_names;
     
-    create_info.enabledLayerCount = static_cast<unsigned>(validation_layers.size());
-    create_info.ppEnabledLayerNames = validation_layers.data();
+    create_info.enabledLayerCount = enable_api_validation ? static_cast<unsigned>(validation_layers.size()) : 0;
+    create_info.ppEnabledLayerNames = enable_api_validation ? validation_layers.data() : nullptr;
 
     VkResult result = vkCreateInstance(&create_info, nullptr, &m_instance);
     GLTF_CHECK(result == VK_SUCCESS);

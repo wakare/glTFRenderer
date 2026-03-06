@@ -86,6 +86,7 @@ namespace RendererInterface
     public:
         ResourceOperator(RenderDeviceDesc device);
         unsigned            GetCurrentBackBufferIndex() const;
+        unsigned            GetCurrentFrameSlotIndex() const;
         unsigned            GetBackBufferCount() const;
         bool                IsPerFrameResourceBindingEnabled() const;
         void                SetPerFrameResourceBindingEnabled(bool enable);
@@ -152,6 +153,7 @@ namespace RendererInterface
         bool HasCurrentSwapchainRT() const;
 
         void UploadBufferData(BufferHandle handle, const BufferUploadDesc& upload_desc);
+        void AdvanceFrameSlot();
         void WaitFrameRenderFinished();
         void InvalidateSwapchainResizeRequest();
         WindowSurfaceSyncResult SyncWindowSurface(unsigned window_width, unsigned window_height);
@@ -425,6 +427,7 @@ namespace RendererInterface
             unsigned window_width{0};
             unsigned window_height{0};
             unsigned profiler_slot_index{0};
+            bool require_explicit_frame_wait{false};
             IRHICommandList* command_list{nullptr};
         };
 
@@ -451,9 +454,10 @@ namespace RendererInterface
         void OnFrameTick(unsigned long long interval);
         bool PrepareFrameForRendering(unsigned long long interval, FramePreparationContext& frame_context);
         void ExecutePlanAndCollectStats(IRHICommandList& command_list, unsigned profiler_slot_index, unsigned long long interval);
-        void ExecuteRenderGraphFrame(IRHICommandList& command_list, unsigned profiler_slot_index, unsigned long long interval);
+        void ExecuteRenderGraphFrame(FramePreparationContext& frame_context, unsigned long long interval);
+        bool AcquireCurrentFrameSwapchain();
         void BlitFinalOutputToSwapchain(IRHICommandList& command_list, unsigned window_width, unsigned window_height);
-        void FinalizeFrameSubmission(IRHICommandList& command_list);
+        void FinalizeFrameSubmission(IRHICommandList& command_list, bool swapchain_ready);
         
         RenderPassExecutionStatus ExecuteRenderGraphNode(IRHICommandList& command_list, RenderGraphNodeHandle render_graph_node_handle, unsigned long long interval);
         void LogRenderPassValidationResult(RenderGraphNodeHandle render_graph_node_handle,

@@ -284,6 +284,8 @@ bool ResourceManager::InitResourceManager(const RendererInterface::RenderDeviceD
             *m_device, *m_memory_manager,
             RHITextureDesc::MakeDepthTextureDesc(render_window.GetWidth(), render_window.GetHeight()), RHIDataFormat::D32_FLOAT);
     }
+
+    m_current_frame_slot_index = desc.back_buffer_count > 0 ? (desc.back_buffer_count - 1) : 0;
     
     //m_frame_resource_managers.resize(desc.back_buffer_count);
 
@@ -388,9 +390,32 @@ unsigned ResourceManager::GetCurrentBackBufferIndex() const
     return m_swap_chain->GetCurrentBackBufferIndex();
 }
 
+unsigned ResourceManager::GetCurrentFrameSlotIndex() const
+{
+    const auto frame_slot_count = (std::min)(m_command_lists.size(), m_command_allocators.size());
+    if (frame_slot_count == 0)
+    {
+        return 0;
+    }
+
+    return m_current_frame_slot_index % static_cast<unsigned>(frame_slot_count);
+}
+
 unsigned ResourceManager::GetBackBufferCount() const
 {
     return m_swap_chain ? m_swap_chain->GetBackBufferCount() : m_device_desc.back_buffer_count;
+}
+
+void ResourceManager::AdvanceFrameSlot()
+{
+    const auto frame_slot_count = (std::min)(m_command_lists.size(), m_command_allocators.size());
+    if (frame_slot_count == 0)
+    {
+        m_current_frame_slot_index = 0;
+        return;
+    }
+
+    m_current_frame_slot_index = (m_current_frame_slot_index + 1u) % static_cast<unsigned>(frame_slot_count);
 }
 
 IRHIDevice& ResourceManager::GetDevice()
@@ -410,7 +435,7 @@ IRHIMemoryManager& ResourceManager::GetMemoryManager()
 
 void ResourceManager::WaitFrameRenderFinished()
 {
-    const auto current_frame_index = GetCurrentBackBufferIndex() % m_device_desc.back_buffer_count;
+    const auto current_frame_index = GetCurrentFrameSlotIndex();
     auto& command_list = *m_command_lists[current_frame_index];
     auto& command_allocator = *m_command_allocators[current_frame_index];
 
@@ -657,7 +682,7 @@ IRHICommandList& ResourceManager::GetCommandListForRecordPassCommand(
 {
     auto render_pass = render_pass_handle != NULL_HANDLE ?  RendererInterface::InternalResourceHandleTable::Instance().GetRenderPass(render_pass_handle) : nullptr;
     
-    const auto current_frame_index = GetCurrentBackBufferIndex() % m_device_desc.back_buffer_count;
+    const auto current_frame_index = GetCurrentFrameSlotIndex();
     auto& command_list = *m_command_lists[current_frame_index];
     auto& command_allocator = *m_command_allocators[current_frame_index];
 

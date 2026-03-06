@@ -30,6 +30,18 @@ namespace
         return policy;
     }
 
+    unsigned GetDefaultBackBufferCount(
+        RendererInterface::RenderDeviceType type,
+        RendererInterface::SwapchainPresentMode present_mode)
+    {
+        if (type == RendererInterface::DX12 && present_mode == RendererInterface::SwapchainPresentMode::MAILBOX)
+        {
+            return 4;
+        }
+
+        return 3;
+    }
+
     const char* ToString(RendererInterface::RenderDeviceType type)
     {
         switch (type)
@@ -656,7 +668,7 @@ void DemoBase::Run()
 bool DemoBase::InitRenderContext(const std::vector<std::string>& arguments)
 {
     bool bUseDX = true;
-    RendererInterface::SwapchainPresentMode swapchain_present_mode = RendererInterface::SwapchainPresentMode::VSYNC;
+    RendererInterface::SwapchainPresentMode swapchain_present_mode = RendererInterface::SwapchainPresentMode::MAILBOX;
     
     for (const auto& argument : arguments)
     {
@@ -690,7 +702,7 @@ bool DemoBase::InitRenderContext(const std::vector<std::string>& arguments)
     RendererInterface::RenderDeviceDesc device{};
     device.window = m_window->GetHandle();
     device.type = bUseDX ? RendererInterface::DX12 : RendererInterface::VULKAN;
-    device.back_buffer_count = 3;
+    device.back_buffer_count = GetDefaultBackBufferCount(device.type, swapchain_present_mode);
     device.swapchain_resize_policy = GetDefaultSwapchainResizePolicy(device.type);
     device.swapchain_present_mode = swapchain_present_mode;
     m_render_device_type = device.type;
@@ -778,11 +790,6 @@ bool DemoBase::ExecutePendingRHISwitch()
     const auto non_render_state_snapshot = CaptureNonRenderStateSnapshot();
 
     const bool previous_per_frame_resource_binding = m_resource_manager->IsPerFrameResourceBindingEnabled();
-    unsigned previous_back_buffer_count = m_resource_manager->GetBackBufferCount();
-    if (previous_back_buffer_count == 0)
-    {
-        previous_back_buffer_count = 3;
-    }
     const auto previous_swapchain_policy = m_resource_manager->GetSwapchainResizePolicy();
     const auto previous_swapchain_present_mode = m_resource_manager->GetSwapchainPresentMode();
     const auto previous_validation_policy = m_render_graph->GetValidationPolicy();
@@ -800,7 +807,7 @@ bool DemoBase::ExecutePendingRHISwitch()
     RendererInterface::RenderDeviceDesc device{};
     device.window = m_window->GetHandle();
     device.type = m_pending_render_device_type;
-    device.back_buffer_count = previous_back_buffer_count;
+    device.back_buffer_count = GetDefaultBackBufferCount(device.type, previous_swapchain_present_mode);
     device.swapchain_resize_policy = previous_swapchain_policy;
     device.swapchain_present_mode = previous_swapchain_present_mode;
 

@@ -1521,7 +1521,7 @@ namespace RendererInterface
     {
         GLTF_CHECK(!buffers.empty());
         const unsigned frame_slot = m_per_frame_resource_binding_enabled
-            ? (GetCurrentBackBufferIndex() % static_cast<unsigned>(buffers.size()))
+            ? (GetCurrentFrameSlotIndex() % static_cast<unsigned>(buffers.size()))
             : 0u;
         return buffers[frame_slot];
     }
@@ -1561,7 +1561,7 @@ namespace RendererInterface
     {
         GLTF_CHECK(!render_targets.empty());
         const unsigned frame_slot = m_per_frame_resource_binding_enabled
-            ? (GetCurrentBackBufferIndex() % static_cast<unsigned>(render_targets.size()))
+            ? (GetCurrentFrameSlotIndex() % static_cast<unsigned>(render_targets.size()))
             : 0u;
         return render_targets[frame_slot];
     }
@@ -1708,6 +1708,11 @@ namespace RendererInterface
         return m_resource_manager->GetCurrentBackBufferIndex();
     }
 
+    unsigned ResourceOperator::GetCurrentFrameSlotIndex() const
+    {
+        return m_resource_manager->GetCurrentFrameSlotIndex();
+    }
+
     unsigned ResourceOperator::GetBackBufferCount() const
     {
         return m_resource_manager->GetBackBufferCount();
@@ -1761,6 +1766,11 @@ namespace RendererInterface
     void ResourceOperator::WaitFrameRenderFinished()
     {
         return m_resource_manager->WaitFrameRenderFinished();
+    }
+
+    void ResourceOperator::AdvanceFrameSlot()
+    {
+        return m_resource_manager->AdvanceFrameSlot();
     }
 
     void ResourceOperator::InvalidateSwapchainResizeRequest()
@@ -2250,20 +2260,23 @@ namespace RendererInterface
         m_current_frame_timing_breakdown.prepare_frame_ms = ToMilliseconds(prepare_begin, prepare_end);
         m_current_frame_timing_breakdown.frame_index = m_frame_index;
 
-        GLTF_CHECK(frame_context.command_list);
-
         const auto execute_begin = std::chrono::steady_clock::now();
-        ExecuteRenderGraphFrame(*frame_context.command_list, frame_context.profiler_slot_index, interval);
+        ExecuteRenderGraphFrame(frame_context, interval);
         const auto execute_end = std::chrono::steady_clock::now();
         m_current_frame_timing_breakdown.execute_render_graph_ms = ToMilliseconds(execute_begin, execute_end);
 
-        const auto blit_begin = std::chrono::steady_clock::now();
-        BlitFinalOutputToSwapchain(*frame_context.command_list, frame_context.window_width, frame_context.window_height);
-        const auto blit_end = std::chrono::steady_clock::now();
-        m_current_frame_timing_breakdown.blit_to_swapchain_ms = ToMilliseconds(blit_begin, blit_end);
+        GLTF_CHECK(frame_context.command_list);
+        const bool swapchain_ready = AcquireCurrentFrameSwapchain();
+        if (swapchain_ready)
+        {
+            const auto blit_begin = std::chrono::steady_clock::now();
+            BlitFinalOutputToSwapchain(*frame_context.command_list, frame_context.window_width, frame_context.window_height);
+            const auto blit_end = std::chrono::steady_clock::now();
+            m_current_frame_timing_breakdown.blit_to_swapchain_ms = ToMilliseconds(blit_begin, blit_end);
+        }
 
         const auto finalize_begin = std::chrono::steady_clock::now();
-        FinalizeFrameSubmission(*frame_context.command_list);
+        FinalizeFrameSubmission(*frame_context.command_list, swapchain_ready);
         const auto finalize_end = std::chrono::steady_clock::now();
         m_current_frame_timing_breakdown.finalize_submission_ms = ToMilliseconds(finalize_begin, finalize_end);
 
@@ -2441,15 +2454,11 @@ namespace RendererInterface
         const auto tick_end = std::chrono::steady_clock::now();
         m_current_frame_timing_breakdown.tick_and_debug_ui_build_ms = ToMilliseconds(tick_begin, tick_end);
 
-        const bool require_explicit_frame_wait =
+        m_resource_allocator.AdvanceFrameSlot();
+
+        frame_context.require_explicit_frame_wait =
+            surface_sync_result.status != WindowSurfaceSyncStatus::RESIZED &&
             RHIConfigSingleton::Instance().GetGraphicsAPIType() == RHIGraphicsAPIType::RHI_GRAPHICS_API_DX12;
-        if (surface_sync_result.status != WindowSurfaceSyncStatus::RESIZED && require_explicit_frame_wait)
-        {
-            const auto wait_begin = std::chrono::steady_clock::now();
-            m_resource_allocator.WaitFrameRenderFinished();
-            const auto wait_end = std::chrono::steady_clock::now();
-            m_current_frame_timing_breakdown.wait_previous_frame_ms = ToMilliseconds(wait_begin, wait_end);
-        }
         const auto deferred_release_begin = std::chrono::steady_clock::now();
         ++m_frame_index;
         FlushDeferredResourceReleases(false);
@@ -2464,7 +2473,7 @@ namespace RendererInterface
         const auto acquire_context_begin = std::chrono::steady_clock::now();
         const unsigned back_buffer_count = m_resource_allocator.GetCurrentSwapchain().GetBackBufferCount();
         frame_context.profiler_slot_index = back_buffer_count > 0
-            ? (m_resource_allocator.GetCurrentBackBufferIndex() % back_buffer_count)
+            ? (m_resource_allocator.GetCurrentFrameSlotIndex() % back_buffer_count)
             : 0;
 
         const auto resolve_profiler_begin = std::chrono::steady_clock::now();
@@ -2472,24 +2481,6 @@ namespace RendererInterface
         const auto resolve_profiler_end = std::chrono::steady_clock::now();
         m_current_frame_timing_breakdown.resolve_gpu_profiler_ms = ToMilliseconds(resolve_profiler_begin, resolve_profiler_end);
 
-        const auto acquire_command_list_begin = std::chrono::steady_clock::now();
-        frame_context.command_list = &m_resource_allocator.GetCommandListForRecordPassCommand();
-        const auto acquire_command_list_end = std::chrono::steady_clock::now();
-        m_current_frame_timing_breakdown.acquire_command_list_ms =
-            ToMilliseconds(acquire_command_list_begin, acquire_command_list_end);
-        // Wait current frame available
-        const auto acquire_frame_begin = std::chrono::steady_clock::now();
-        const bool acquire_succeeded = m_resource_allocator.GetCurrentSwapchain().AcquireNewFrame(m_resource_allocator.GetDevice());
-        const auto acquire_frame_end = std::chrono::steady_clock::now();
-        m_current_frame_timing_breakdown.acquire_swapchain_ms = ToMilliseconds(acquire_frame_begin, acquire_frame_end);
-        if (!acquire_succeeded)
-        {
-            m_resource_allocator.NotifySwapchainAcquireFailure();
-            frame_context.command_list = nullptr;
-            m_current_frame_timing_breakdown.acquire_context_ms =
-                ToMilliseconds(acquire_context_begin, std::chrono::steady_clock::now());
-            return false;
-        }
         if (!m_resource_allocator.HasCurrentSwapchainRT())
         {
             frame_context.command_list = nullptr;
@@ -2520,7 +2511,7 @@ namespace RendererInterface
             && AcquireCurrentFrameCommandContext(frame_context);
     }
 
-    void RenderGraph::ExecuteRenderGraphFrame(IRHICommandList& command_list, unsigned profiler_slot_index, unsigned long long interval)
+    void RenderGraph::ExecuteRenderGraphFrame(FramePreparationContext& frame_context, unsigned long long interval)
     {
         const auto planning_begin = std::chrono::steady_clock::now();
         m_resource_allocator.ApplyFrameBufferedRenderTargetAliases();
@@ -2606,7 +2597,7 @@ namespace RendererInterface
             if (per_frame_resource_binding_enabled)
             {
                 hazard_slot_index = cross_frame_comparison_window_size > 0u
-                    ? (m_resource_allocator.GetCurrentBackBufferIndex() % cross_frame_comparison_window_size)
+                    ? (m_resource_allocator.GetCurrentFrameSlotIndex() % cross_frame_comparison_window_size)
                     : 0u;
             }
             GLTF_CHECK(hazard_slot_index < cross_frame_comparison_window_size);
@@ -2656,7 +2647,22 @@ namespace RendererInterface
         const auto planning_end = std::chrono::steady_clock::now();
         m_current_frame_timing_breakdown.execution_planning_ms = ToMilliseconds(planning_begin, planning_end);
 
-        ExecutePlanAndCollectStats(command_list, profiler_slot_index, interval);
+        if (frame_context.require_explicit_frame_wait)
+        {
+            const auto wait_begin = std::chrono::steady_clock::now();
+            m_resource_allocator.WaitFrameRenderFinished();
+            const auto wait_end = std::chrono::steady_clock::now();
+            m_current_frame_timing_breakdown.wait_previous_frame_ms = ToMilliseconds(wait_begin, wait_end);
+        }
+
+        const auto acquire_command_list_begin = std::chrono::steady_clock::now();
+        frame_context.command_list = &m_resource_allocator.GetCommandListForRecordPassCommand();
+        const auto acquire_command_list_end = std::chrono::steady_clock::now();
+        m_current_frame_timing_breakdown.acquire_command_list_ms =
+            ToMilliseconds(acquire_command_list_begin, acquire_command_list_end);
+
+        GLTF_CHECK(frame_context.command_list);
+        ExecutePlanAndCollectStats(*frame_context.command_list, frame_context.profiler_slot_index, interval);
 
         const auto collect_unused_begin = std::chrono::steady_clock::now();
         CollectUnusedRenderPassDescriptorResources();
@@ -2693,8 +2699,34 @@ namespace RendererInterface
         }
     }
 
-    void RenderGraph::FinalizeFrameSubmission(IRHICommandList& command_list)
+    bool RenderGraph::AcquireCurrentFrameSwapchain()
     {
+        const auto acquire_frame_begin = std::chrono::steady_clock::now();
+        const bool acquire_succeeded = m_resource_allocator.GetCurrentSwapchain().AcquireNewFrame(m_resource_allocator.GetDevice());
+        const auto acquire_frame_end = std::chrono::steady_clock::now();
+        m_current_frame_timing_breakdown.acquire_swapchain_ms = ToMilliseconds(acquire_frame_begin, acquire_frame_end);
+        if (!acquire_succeeded)
+        {
+            m_resource_allocator.NotifySwapchainAcquireFailure();
+        }
+
+        return acquire_succeeded;
+    }
+
+    void RenderGraph::FinalizeFrameSubmission(IRHICommandList& command_list, bool swapchain_ready)
+    {
+        if (!swapchain_ready)
+        {
+            const auto submit_begin = std::chrono::steady_clock::now();
+            CloseCurrentCommandListAndExecute(command_list, {}, false);
+            const auto submit_end = std::chrono::steady_clock::now();
+            m_current_frame_timing_breakdown.submit_command_list_ms = ToMilliseconds(submit_begin, submit_end);
+
+            // Clear all nodes at end of frame
+            m_render_graph_node_handles.clear();
+            return;
+        }
+
         const auto render_debug_ui_begin = std::chrono::steady_clock::now();
         GLTF_CHECK(RenderDebugUI(command_list));
         const auto render_debug_ui_end = std::chrono::steady_clock::now();

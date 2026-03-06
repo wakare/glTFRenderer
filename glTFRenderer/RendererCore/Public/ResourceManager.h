@@ -43,7 +43,9 @@ public:
     RendererInterface::RenderTargetHandle CreateRenderTarget(const RendererInterface::RenderTargetDesc& desc);
 
     unsigned GetCurrentBackBufferIndex() const;
+    unsigned GetCurrentFrameSlotIndex() const;
     unsigned GetBackBufferCount() const;
+    void AdvanceFrameSlot();
     
     IRHIDevice& GetDevice();
     IRHISwapChain& GetSwapChain();
@@ -105,6 +107,7 @@ protected:
     unsigned m_swapchain_resize_last_failed_height{0};
     unsigned m_swapchain_acquire_failure_count{0};
     unsigned m_swapchain_present_failure_count{0};
+    unsigned m_current_frame_slot_index{0};
     bool m_swapchain_recreate_required{false};
 
 private:

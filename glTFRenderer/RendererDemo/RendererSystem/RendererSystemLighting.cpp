@@ -392,7 +392,7 @@ void RendererSystemLighting::UpdateDirectionalShadowResources(RendererInterface:
 
     std::vector<ShadowMapInfo> shadowmap_infos;
     shadowmap_infos.reserve(m_shadow_pass_resources.size());
-    const unsigned current_back_buffer_index = resource_operator.GetCurrentBackBufferIndex();
+    const unsigned current_back_buffer_index = resource_operator.GetCurrentFrameSlotIndex();
 
     const auto& lights = m_lighting_module->GetLightInfos();
     const auto scene_bounds = m_scene->GetSceneMeshModule()->GetSceneBounds();
