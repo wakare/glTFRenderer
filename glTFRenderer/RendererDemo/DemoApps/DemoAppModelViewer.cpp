@@ -43,6 +43,30 @@ namespace
         }
         return value;
     }
+
+    const char* ToString(RendererInterface::RenderDeviceType type)
+    {
+        switch (type)
+        {
+        case RendererInterface::DX12:
+            return "DX12";
+        case RendererInterface::VULKAN:
+            return "Vulkan";
+        }
+        return "Unknown";
+    }
+
+    const char* ToString(RendererInterface::SwapchainPresentMode mode)
+    {
+        switch (mode)
+        {
+        case RendererInterface::SwapchainPresentMode::VSYNC:
+            return "VSYNC";
+        case RendererInterface::SwapchainPresentMode::MAILBOX:
+            return "MAILBOX";
+        }
+        return "Unknown";
+    }
 }
 
 void DemoAppModelViewer::TickFrameInternal(unsigned long long time_interval)
@@ -494,6 +518,28 @@ void DemoAppModelViewer::AccumulateRegressionPerf(const RendererInterface::Rende
         m_regression_perf_accumulator.frosted_gpu_valid_count += 1u;
         m_regression_perf_accumulator.frosted_gpu_sum_ms += frosted_gpu_ms;
     }
+
+    if (m_render_graph)
+    {
+        const auto& frame_timing = m_render_graph->GetLastFrameTimingBreakdown();
+        if (frame_timing.valid)
+        {
+            m_regression_perf_accumulator.frame_timing_valid_count += 1u;
+            m_regression_perf_accumulator.frame_total_sum_ms += frame_timing.frame_total_ms;
+            m_regression_perf_accumulator.execute_passes_sum_ms += frame_timing.execute_passes_ms;
+            m_regression_perf_accumulator.non_pass_cpu_sum_ms += frame_timing.non_pass_cpu_ms;
+            m_regression_perf_accumulator.frame_wait_total_sum_ms += frame_timing.frame_wait_total_ms;
+            m_regression_perf_accumulator.wait_previous_frame_sum_ms += frame_timing.wait_previous_frame_ms;
+            m_regression_perf_accumulator.acquire_command_list_sum_ms += frame_timing.acquire_command_list_ms;
+            m_regression_perf_accumulator.acquire_swapchain_sum_ms += frame_timing.acquire_swapchain_ms;
+            m_regression_perf_accumulator.execution_planning_sum_ms += frame_timing.execution_planning_ms;
+            m_regression_perf_accumulator.blit_to_swapchain_sum_ms += frame_timing.blit_to_swapchain_ms;
+            m_regression_perf_accumulator.submit_command_list_sum_ms += frame_timing.submit_command_list_ms;
+            m_regression_perf_accumulator.present_call_sum_ms += frame_timing.present_call_ms;
+            m_regression_perf_accumulator.prepare_frame_sum_ms += frame_timing.prepare_frame_ms;
+            m_regression_perf_accumulator.finalize_submission_sum_ms += frame_timing.finalize_submission_ms;
+        }
+    }
 }
 
 bool DemoAppModelViewer::ApplyRegressionCaseConfig(const Regression::CaseConfig& case_config, std::string& out_error)
@@ -693,7 +739,8 @@ bool DemoAppModelViewer::WriteRegressionPassCsv(const RendererInterface::RenderG
     return true;
 }
 
-bool DemoAppModelViewer::WriteRegressionPerfJson(const RendererInterface::RenderGraph::FrameStats& frame_stats,
+bool DemoAppModelViewer::WriteRegressionPerfJson(const Regression::CaseConfig& case_config,
+                                                 const RendererInterface::RenderGraph::FrameStats& frame_stats,
                                                  const std::filesystem::path& file_path) const
 {
     const auto safe_avg = [](double sum, unsigned count) -> double
@@ -702,6 +749,11 @@ bool DemoAppModelViewer::WriteRegressionPerfJson(const RendererInterface::Render
     };
 
     nlohmann::json summary{};
+    summary["suite_name"] = m_regression_suite.suite_name;
+    summary["case_id"] = case_config.id;
+    summary["render_device"] = ToString(m_render_device_type);
+    summary["present_mode"] = ToString(
+        m_resource_manager ? m_resource_manager->GetSwapchainPresentMode() : m_swapchain_present_mode_ui);
     summary["capture_frame_index"] = frame_stats.frame_index;
     summary["sample_count"] = m_regression_perf_accumulator.sample_count;
     summary["cpu_total_avg_ms"] = safe_avg(m_regression_perf_accumulator.cpu_total_sum_ms,
@@ -728,6 +780,40 @@ bool DemoAppModelViewer::WriteRegressionPerfJson(const RendererInterface::Render
     else
     {
         summary["frosted_gpu_avg_ms"] = nullptr;
+    }
+    summary["frame_timing_sample_count"] = m_regression_perf_accumulator.frame_timing_valid_count;
+    if (m_regression_perf_accumulator.frame_timing_valid_count > 0u)
+    {
+        const unsigned timing_count = m_regression_perf_accumulator.frame_timing_valid_count;
+        summary["frame_total_avg_ms"] = safe_avg(m_regression_perf_accumulator.frame_total_sum_ms, timing_count);
+        summary["execute_passes_avg_ms"] = safe_avg(m_regression_perf_accumulator.execute_passes_sum_ms, timing_count);
+        summary["non_pass_cpu_avg_ms"] = safe_avg(m_regression_perf_accumulator.non_pass_cpu_sum_ms, timing_count);
+        summary["frame_wait_total_avg_ms"] = safe_avg(m_regression_perf_accumulator.frame_wait_total_sum_ms, timing_count);
+        summary["wait_previous_frame_avg_ms"] = safe_avg(m_regression_perf_accumulator.wait_previous_frame_sum_ms, timing_count);
+        summary["acquire_command_list_avg_ms"] = safe_avg(m_regression_perf_accumulator.acquire_command_list_sum_ms, timing_count);
+        summary["acquire_swapchain_avg_ms"] = safe_avg(m_regression_perf_accumulator.acquire_swapchain_sum_ms, timing_count);
+        summary["execution_planning_avg_ms"] = safe_avg(m_regression_perf_accumulator.execution_planning_sum_ms, timing_count);
+        summary["blit_to_swapchain_avg_ms"] = safe_avg(m_regression_perf_accumulator.blit_to_swapchain_sum_ms, timing_count);
+        summary["submit_command_list_avg_ms"] = safe_avg(m_regression_perf_accumulator.submit_command_list_sum_ms, timing_count);
+        summary["present_call_avg_ms"] = safe_avg(m_regression_perf_accumulator.present_call_sum_ms, timing_count);
+        summary["prepare_frame_avg_ms"] = safe_avg(m_regression_perf_accumulator.prepare_frame_sum_ms, timing_count);
+        summary["finalize_submission_avg_ms"] = safe_avg(m_regression_perf_accumulator.finalize_submission_sum_ms, timing_count);
+    }
+    else
+    {
+        summary["frame_total_avg_ms"] = nullptr;
+        summary["execute_passes_avg_ms"] = nullptr;
+        summary["non_pass_cpu_avg_ms"] = nullptr;
+        summary["frame_wait_total_avg_ms"] = nullptr;
+        summary["wait_previous_frame_avg_ms"] = nullptr;
+        summary["acquire_command_list_avg_ms"] = nullptr;
+        summary["acquire_swapchain_avg_ms"] = nullptr;
+        summary["execution_planning_avg_ms"] = nullptr;
+        summary["blit_to_swapchain_avg_ms"] = nullptr;
+        summary["submit_command_list_avg_ms"] = nullptr;
+        summary["present_call_avg_ms"] = nullptr;
+        summary["prepare_frame_avg_ms"] = nullptr;
+        summary["finalize_submission_avg_ms"] = nullptr;
     }
 
     std::ofstream json_stream(file_path, std::ios::out | std::ios::trunc);
@@ -771,7 +857,7 @@ bool DemoAppModelViewer::FinalizeRegressionCase(const RendererInterface::RenderG
         result.pass_csv_path = pass_csv_path.string();
     }
 
-    if (!WriteRegressionPerfJson(frame_stats, perf_json_path))
+    if (!WriteRegressionPerfJson(case_config, frame_stats, perf_json_path))
     {
         result.success = false;
         result.error += "failed_to_write_perf_json;";
@@ -815,6 +901,9 @@ bool DemoAppModelViewer::FinalizeRegressionRun()
     summary["suite_name"] = m_regression_suite.suite_name;
     summary["suite_path"] = m_regression_suite.source_path.string();
     summary["output_root"] = m_regression_output_root.string();
+    summary["render_device"] = ToString(m_render_device_type);
+    summary["present_mode"] = ToString(
+        m_resource_manager ? m_resource_manager->GetSwapchainPresentMode() : m_swapchain_present_mode_ui);
     summary["case_count"] = m_regression_suite.cases.size();
     summary["result_count"] = m_regression_case_results.size();
 

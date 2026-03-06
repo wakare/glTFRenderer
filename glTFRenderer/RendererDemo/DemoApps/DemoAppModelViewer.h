@@ -34,7 +34,8 @@ protected:
     bool CaptureWindowScreenshotPNG(const std::filesystem::path& file_path) const;
     bool WriteRegressionPassCsv(const RendererInterface::RenderGraph::FrameStats& frame_stats,
                                 const std::filesystem::path& file_path) const;
-    bool WriteRegressionPerfJson(const RendererInterface::RenderGraph::FrameStats& frame_stats,
+    bool WriteRegressionPerfJson(const Regression::CaseConfig& case_config,
+                                 const RendererInterface::RenderGraph::FrameStats& frame_stats,
                                  const std::filesystem::path& file_path) const;
     bool ApplyRegressionCaseConfig(const Regression::CaseConfig& case_config, std::string& out_error);
     void RefreshImportableRegressionCaseList();
@@ -46,10 +47,24 @@ protected:
         unsigned sample_count{0};
         unsigned gpu_total_valid_count{0};
         unsigned frosted_gpu_valid_count{0};
+        unsigned frame_timing_valid_count{0};
         double cpu_total_sum_ms{0.0};
         double gpu_total_sum_ms{0.0};
         double frosted_cpu_sum_ms{0.0};
         double frosted_gpu_sum_ms{0.0};
+        double frame_total_sum_ms{0.0};
+        double execute_passes_sum_ms{0.0};
+        double non_pass_cpu_sum_ms{0.0};
+        double frame_wait_total_sum_ms{0.0};
+        double wait_previous_frame_sum_ms{0.0};
+        double acquire_command_list_sum_ms{0.0};
+        double acquire_swapchain_sum_ms{0.0};
+        double execution_planning_sum_ms{0.0};
+        double blit_to_swapchain_sum_ms{0.0};
+        double submit_command_list_sum_ms{0.0};
+        double present_call_sum_ms{0.0};
+        double prepare_frame_sum_ms{0.0};
+        double finalize_submission_sum_ms{0.0};
     };
 
     struct RegressionCaseResult
