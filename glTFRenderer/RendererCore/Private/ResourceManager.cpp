@@ -424,6 +424,11 @@ unsigned ResourceManager::GetBackBufferCount() const
 
 void ResourceManager::AdvanceFrameSlot()
 {
+    if (m_memory_manager)
+    {
+        m_memory_manager->TickFrame();
+    }
+
     const auto frame_slot_count = GetFrameSlotCount();
     if (frame_slot_count == 0)
     {
