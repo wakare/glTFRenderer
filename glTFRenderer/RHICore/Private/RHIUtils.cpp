@@ -45,6 +45,7 @@ bool RHIUtils::UploadTextureData(IRHICommandList& command_list, IRHIMemoryManage
     };
     
     CopyTexture(command_list, dst, *m_texture_upload_buffer->m_buffer, m_texture_upload_copy_info);
+    memory_manager.TrackTempUploadBufferUsage(command_list, m_texture_upload_buffer);
     
     return true;
 }

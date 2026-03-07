@@ -11,6 +11,9 @@ public:
     virtual bool InitFence(IRHIDevice& device) = 0;
     virtual bool HostWaitUtilSignaled() = 0;
     virtual bool ResetFence() = 0;
+    virtual unsigned long long PredictNextSignalValue() const = 0;
+    virtual void NotifySignalSubmitted(unsigned long long signal_value) = 0;
+    virtual bool IsSignalValueCompleted(unsigned long long signal_value) const = 0;
 
     void SetCanWait(bool enable);
     bool CanWait() const;

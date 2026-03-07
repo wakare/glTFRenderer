@@ -23,9 +23,31 @@ bool DX12Fence::InitFence(IRHIDevice& device)
 bool DX12Fence::SignalWhenCommandQueueFinish(IRHICommandQueue& commandQueue)
 {
     auto* dxCommandQueue = dynamic_cast<DX12CommandQueue&>(commandQueue).GetCommandQueue();
-    THROW_IF_FAILED(dxCommandQueue->Signal(m_fence.Get(), ++m_fenceCompleteValue))
+    const UINT64 signal_value = PredictNextSignalValue();
+    THROW_IF_FAILED(dxCommandQueue->Signal(m_fence.Get(), signal_value))
+    NotifySignalSubmitted(signal_value);
 
     return true;
+}
+
+unsigned long long DX12Fence::PredictNextSignalValue() const
+{
+    return m_fenceCompleteValue + 1ull;
+}
+
+void DX12Fence::NotifySignalSubmitted(unsigned long long signal_value)
+{
+    m_fenceCompleteValue = static_cast<UINT64>(signal_value);
+}
+
+bool DX12Fence::IsSignalValueCompleted(unsigned long long signal_value) const
+{
+    if (!m_fence || signal_value == 0ull)
+    {
+        return true;
+    }
+
+    return m_fence->GetCompletedValue() >= signal_value;
 }
 
 bool DX12Fence::Release(IRHIMemoryManager& memory_manager)

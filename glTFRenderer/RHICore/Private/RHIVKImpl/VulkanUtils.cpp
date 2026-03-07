@@ -353,6 +353,7 @@ bool VulkanUtils::ExecuteCommandList(IRHICommandList& command_list, IRHICommandQ
     const auto vk_command_buffer = dynamic_cast<VKCommandList&>(command_list).GetRawCommandBuffer();
     auto& fence = dynamic_cast<VKFence&>(dynamic_cast<VKCommandList&>(command_list).GetFence());
     const auto vk_fence = fence.GetFence();
+    const auto signal_value = fence.PredictNextSignalValue();
     const auto vk_command_queue= dynamic_cast<VKCommandQueue&>(command_queue).GetGraphicsQueue(); 
     
     VkSubmitInfo submit_info{};
@@ -387,7 +388,7 @@ bool VulkanUtils::ExecuteCommandList(IRHICommandList& command_list, IRHICommandQ
     const VkResult result = vkQueueSubmit(vk_command_queue, 1, &submit_info, vk_fence);
     GLTF_CHECK(result == VK_SUCCESS);
 
-    fence.SetCanWait(true);
+    fence.NotifySignalSubmitted(signal_value);
     
     return true;
 }

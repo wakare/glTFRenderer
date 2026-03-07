@@ -1,5 +1,6 @@
 #pragma once
 #include "RHIInterface/IRHIBuffer.h"
+#include "RHIInterface/IRHIFence.h"
 #include "RHIInterface/IRHIDescriptorManager.h"
 #include "RHIInterface/IRHIMemoryAllocator.h"
 #include "RHIInterface/IRHITexture.h"
@@ -72,13 +73,13 @@ struct RHICORE_API TempBufferInfo
 {
     enum
     {
-        TEMP_BUFFER_FRAME_LIFE_TIME = 3,
         TEMP_BUFFER_MAX_IDLE_FRAME_COUNT = 240,
     };
     
     RHIBufferDesc desc;
     std::shared_ptr<IRHIBufferAllocation> allocation;
-    int remain_frame_to_reuse;
+    std::shared_ptr<IRHIFence> reuse_fence;
+    unsigned long long reuse_fence_value{0};
     unsigned idle_frame_count{0};
 };
 
@@ -114,11 +115,15 @@ public:
 
     bool TryGetBuffer(const RHIBufferDesc& buffer_desc, std::shared_ptr<IRHIBufferAllocation>& out_buffer);
     void AddBufferToPool(const TempBufferInfo& buffer_info);
+    void MarkBufferInUse(const std::shared_ptr<IRHIBufferAllocation>& allocation,
+        const std::shared_ptr<IRHIFence>& reuse_fence,
+        unsigned long long reuse_fence_value);
     void TickFrame(std::vector<std::shared_ptr<IRHIBufferAllocation>>& out_expired_buffers);
     void Clear();
     
 protected:
     static TempBufferBucketKey BuildBucketKey(const RHIBufferDesc& buffer_desc);
+    static bool CanReuseBuffer(const TempBufferInfo& buffer_info);
 
     std::unordered_map<TempBufferBucketKey, std::vector<TempBufferInfo>, TempBufferBucketKeyHasher> m_temp_upload_buffer_allocations;
 };
@@ -144,6 +149,7 @@ public:
     IRHIDescriptorManager& GetDescriptorManager() const;
     void TickFrame();
     bool AllocateTempUploadBufferMemory(IRHIDevice& device, const RHIBufferDesc& buffer_desc, std::shared_ptr<IRHIBufferAllocation>& out_buffer_allocation);
+    void TrackTempUploadBufferUsage(IRHICommandList& command_list, const std::shared_ptr<IRHIBufferAllocation>& upload_buffer);
     
 protected:
     static RHIBufferDesc MakeTempUploadBufferDesc(const RHIBufferDesc& dst_buffer_desc, size_t upload_size);

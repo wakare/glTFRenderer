@@ -12,6 +12,9 @@ public:
     virtual bool InitFence(IRHIDevice& device) override;
     virtual bool HostWaitUtilSignaled() override;
     virtual bool ResetFence() override;
+    virtual unsigned long long PredictNextSignalValue() const override;
+    virtual void NotifySignalSubmitted(unsigned long long signal_value) override;
+    virtual bool IsSignalValueCompleted(unsigned long long signal_value) const override;
     
     bool SignalWhenCommandQueueFinish(IRHICommandQueue& commandQueue);
     

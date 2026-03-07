@@ -89,17 +89,25 @@ bool RHITempBufferPool::TryGetBuffer(const RHIBufferDesc& buffer_desc,
     for (auto it = begin_it; it != bucket.end(); ++it)
     {
         auto& temp_upload_buffer = *it;
-        if (temp_upload_buffer.remain_frame_to_reuse <= 0 &&
-            temp_upload_buffer.desc.width >= buffer_desc.width)
+        if (temp_upload_buffer.desc.width >= buffer_desc.width && CanReuseBuffer(temp_upload_buffer))
         {
             out_buffer = temp_upload_buffer.allocation;
-            temp_upload_buffer.remain_frame_to_reuse = TempBufferInfo::TEMP_BUFFER_FRAME_LIFE_TIME;
             temp_upload_buffer.idle_frame_count = 0;
             return true;
         }
     }
 
     return false;
+}
+
+bool RHITempBufferPool::CanReuseBuffer(const TempBufferInfo& buffer_info)
+{
+    if (!buffer_info.reuse_fence || buffer_info.reuse_fence_value == 0ull)
+    {
+        return true;
+    }
+
+    return buffer_info.reuse_fence->IsSignalValueCompleted(buffer_info.reuse_fence_value);
 }
 
 void RHITempBufferPool::AddBufferToPool(const TempBufferInfo& buffer_info)
@@ -116,6 +124,37 @@ void RHITempBufferPool::AddBufferToPool(const TempBufferInfo& buffer_info)
     bucket.insert(insert_it, buffer_info);
 }
 
+void RHITempBufferPool::MarkBufferInUse(const std::shared_ptr<IRHIBufferAllocation>& allocation,
+    const std::shared_ptr<IRHIFence>& reuse_fence,
+    unsigned long long reuse_fence_value)
+{
+    if (!allocation || !allocation->m_buffer)
+    {
+        return;
+    }
+
+    const auto bucket_key = BuildBucketKey(allocation->m_buffer->GetBufferDesc());
+    const auto bucket_it = m_temp_upload_buffer_allocations.find(bucket_key);
+    if (bucket_it == m_temp_upload_buffer_allocations.end())
+    {
+        return;
+    }
+
+    auto& bucket = bucket_it->second;
+    for (auto& temp_upload_buffer : bucket)
+    {
+        if (temp_upload_buffer.allocation.get() != allocation.get())
+        {
+            continue;
+        }
+
+        temp_upload_buffer.reuse_fence = reuse_fence;
+        temp_upload_buffer.reuse_fence_value = reuse_fence_value;
+        temp_upload_buffer.idle_frame_count = 0;
+        return;
+    }
+}
+
 void RHITempBufferPool::TickFrame(std::vector<std::shared_ptr<IRHIBufferAllocation>>& out_expired_buffers)
 {
     for (auto bucket_it = m_temp_upload_buffer_allocations.begin(); bucket_it != m_temp_upload_buffer_allocations.end();)
@@ -124,10 +163,8 @@ void RHITempBufferPool::TickFrame(std::vector<std::shared_ptr<IRHIBufferAllocati
         for (auto buffer_it = bucket.begin(); buffer_it != bucket.end();)
         {
             auto& temp_upload_buffer = *buffer_it;
-            temp_upload_buffer.remain_frame_to_reuse--;
-            if (temp_upload_buffer.remain_frame_to_reuse <= 0)
+            if (CanReuseBuffer(temp_upload_buffer))
             {
-                temp_upload_buffer.remain_frame_to_reuse = 0;
                 ++temp_upload_buffer.idle_frame_count;
                 if (temp_upload_buffer.idle_frame_count > TempBufferInfo::TEMP_BUFFER_MAX_IDLE_FRAME_COUNT)
                 {
@@ -184,6 +221,8 @@ bool IRHIMemoryManager::UploadBufferData(IRHIDevice& device, IRHICommandList& co
         GLTF_CHECK(result);
         
         result = RHIUtilInstanceManager::Instance().CopyBuffer(command_list, *buffer_allocation.m_buffer, dst_offset, *upload_buffer->m_buffer, 0, size);
+        GLTF_CHECK(result);
+        TrackTempUploadBufferUsage(command_list, upload_buffer);
     }
     else
     {
@@ -238,6 +277,22 @@ void IRHIMemoryManager::TickFrame()
     }
 }
 
+void IRHIMemoryManager::TrackTempUploadBufferUsage(IRHICommandList& command_list, const std::shared_ptr<IRHIBufferAllocation>& upload_buffer)
+{
+    if (!upload_buffer)
+    {
+        return;
+    }
+
+    const auto fence = command_list.GetFenceSharedPtr();
+    if (!fence)
+    {
+        return;
+    }
+
+    m_temp_buffer_pool.MarkBufferInUse(upload_buffer, fence, fence->PredictNextSignalValue());
+}
+
 bool IRHIMemoryManager::AllocateTempUploadBufferMemory(IRHIDevice& device, const RHIBufferDesc& buffer_desc,
                                                        std::shared_ptr<IRHIBufferAllocation>& out_buffer_allocation)
 {
@@ -250,7 +305,6 @@ bool IRHIMemoryManager::AllocateTempUploadBufferMemory(IRHIDevice& device, const
     
     TempBufferInfo temp_buffer_info;
     temp_buffer_info.desc = buffer_desc;
-    temp_buffer_info.remain_frame_to_reuse = TempBufferInfo::TEMP_BUFFER_FRAME_LIFE_TIME;
     temp_buffer_info.idle_frame_count = 0;
     temp_buffer_info.allocation = out_buffer_allocation;
 

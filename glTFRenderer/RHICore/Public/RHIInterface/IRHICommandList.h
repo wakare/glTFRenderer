@@ -22,6 +22,7 @@ public:
 
     IRHISemaphore& GetSemaphore() const;
     IRHIFence& GetFence() const;
+    std::shared_ptr<IRHIFence> GetFenceSharedPtr() const;
 
     void SetState(RHICommandListState state);
     RHICommandListState GetState() const;

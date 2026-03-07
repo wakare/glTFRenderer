@@ -10,6 +10,11 @@ IRHIFence& IRHICommandList::GetFence() const
     return *m_fence;
 }
 
+std::shared_ptr<IRHIFence> IRHICommandList::GetFenceSharedPtr() const
+{
+    return m_fence;
+}
+
 void IRHICommandList::SetState(RHICommandListState state)
 {
     m_state = state;
