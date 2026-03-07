@@ -401,6 +401,13 @@ RendererInterface::WindowSurfaceSyncResult ResourceManagerSurfaceResizeCoordinat
     result.window_height = window_height;
     result.lifecycle_state = manager.m_swapchain_lifecycle_state;
 
+    if (manager.m_swapchain_runtime_invalid)
+    {
+        result.status = RendererInterface::WindowSurfaceSyncStatus::INVALID;
+        result.lifecycle_state = manager.m_swapchain_lifecycle_state;
+        return result;
+    }
+
     if (!manager.m_swap_chain || !manager.m_factory || !manager.m_device || !manager.m_command_queue || !manager.m_memory_manager || !manager.m_render_target_manager)
     {
         manager.SetSwapchainLifecycleState(RendererInterface::SwapchainLifecycleState::INVALID, "sync failed: missing runtime objects");
@@ -470,6 +477,11 @@ RendererInterface::WindowSurfaceSyncResult ResourceManagerSurfaceResizeCoordinat
 
 void ResourceManagerSurfaceResizeCoordinator::NotifySwapchainAcquireFailure(ResourceManager& manager)
 {
+    if (manager.m_swapchain_runtime_invalid)
+    {
+        return;
+    }
+
     ++manager.m_swapchain_acquire_failure_count;
     const unsigned log_period = manager.GetRetryLogPeriod();
     if (manager.m_swapchain_acquire_failure_count == 1 || (manager.m_swapchain_acquire_failure_count % log_period) == 0)
@@ -485,13 +497,37 @@ void ResourceManagerSurfaceResizeCoordinator::NotifySwapchainAcquireFailure(Reso
 
 void ResourceManagerSurfaceResizeCoordinator::NotifySwapchainPresentFailure(ResourceManager& manager)
 {
+    const auto present_failure_kind = manager.m_swap_chain
+        ? manager.m_swap_chain->GetLastPresentFailureKind()
+        : RHIPresentFailureKind::UNKNOWN_FATAL;
+    const auto present_failure_code = manager.m_swap_chain
+        ? static_cast<unsigned long>(manager.m_swap_chain->GetLastPresentFailureCode())
+        : 0ul;
+
     ++manager.m_swapchain_present_failure_count;
     const unsigned log_period = manager.GetRetryLogPeriod();
     if (manager.m_swapchain_present_failure_count == 1 || (manager.m_swapchain_present_failure_count % log_period) == 0)
     {
-        LOG_FORMAT_FLUSH("[ResourceManager] Swapchain present failed (count=%u), schedule resize sync.\n",
-            manager.m_swapchain_present_failure_count);
+        LOG_FORMAT_FLUSH("[ResourceManager] Swapchain present failed (count=%u, kind=%u, hr=0x%08X).\n",
+            manager.m_swapchain_present_failure_count,
+            static_cast<unsigned>(present_failure_kind),
+            static_cast<unsigned>(present_failure_code));
     }
+
+    if (present_failure_kind == RHIPresentFailureKind::DEVICE_LOST)
+    {
+        manager.m_swapchain_runtime_invalid = true;
+        manager.SetSwapchainLifecycleState(RendererInterface::SwapchainLifecycleState::DEVICE_LOST, "present failed: device lost");
+        return;
+    }
+
+    if (present_failure_kind == RHIPresentFailureKind::UNKNOWN_FATAL)
+    {
+        manager.m_swapchain_runtime_invalid = true;
+        manager.SetSwapchainLifecycleState(RendererInterface::SwapchainLifecycleState::INVALID, "present failed: fatal runtime error");
+        return;
+    }
+
     manager.m_last_requested_swapchain_width = 0;
     manager.m_last_requested_swapchain_height = 0;
     manager.m_swapchain_resize_retry_countdown_frames = 0;
@@ -500,6 +536,11 @@ void ResourceManagerSurfaceResizeCoordinator::NotifySwapchainPresentFailure(Reso
 
 void ResourceManagerSurfaceResizeCoordinator::InvalidateSwapchainResizeRequest(ResourceManager& manager)
 {
+    if (manager.m_swapchain_runtime_invalid)
+    {
+        return;
+    }
+
     manager.FlushDeferredResourceReleases(true);
     manager.m_last_requested_swapchain_width = 0;
     manager.m_last_requested_swapchain_height = 0;

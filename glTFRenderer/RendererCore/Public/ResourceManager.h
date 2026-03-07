@@ -113,6 +113,7 @@ protected:
     unsigned m_swapchain_present_failure_count{0};
     unsigned m_current_frame_slot_index{0};
     bool m_swapchain_recreate_required{false};
+    bool m_swapchain_runtime_invalid{false};
 
 private:
     friend class ResourceManagerSurfaceResizeCoordinator;

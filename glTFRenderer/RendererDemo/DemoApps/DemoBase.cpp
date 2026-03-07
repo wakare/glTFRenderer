@@ -3,6 +3,7 @@
 #include "RendererInterface.h"
 #include "RendererSystem/RendererSystemBase.h"
 #include <imgui/imgui.h>
+#include <chrono>
 #include <map>
 #include <string_view>
 #include <unordered_map>
@@ -112,6 +113,7 @@ void DemoBase::TickFrame(unsigned long long time_interval)
         return;
     }
 
+    const auto tick_other_begin = std::chrono::steady_clock::now();
     if (m_resource_manager)
     {
         const unsigned render_width = m_resource_manager->GetCurrentRenderWidth();
@@ -132,17 +134,44 @@ void DemoBase::TickFrame(unsigned long long time_interval)
             }
         }
     }
-
     TickFrameInternal(time_interval);
-    
-    for (const auto& module : m_modules)
-    {
-        module->Tick(*m_resource_manager, time_interval);
-    }
+    const auto tick_other_end = std::chrono::steady_clock::now();
 
-    for (auto& system : m_systems)
+    if (m_resource_manager && m_render_graph)
     {
-        system->Tick(*m_resource_manager, *m_render_graph, time_interval);
+        const auto module_tick_begin = std::chrono::steady_clock::now();
+        for (const auto& module : m_modules)
+        {
+            module->Tick(*m_resource_manager, time_interval);
+        }
+        const auto module_tick_end = std::chrono::steady_clock::now();
+
+        const auto system_tick_begin = std::chrono::steady_clock::now();
+        for (auto& system : m_systems)
+        {
+            system->Tick(*m_resource_manager, *m_render_graph, time_interval);
+        }
+        const auto system_tick_end = std::chrono::steady_clock::now();
+
+        const auto to_ms = [](const auto& begin, const auto& end) -> float
+        {
+            return std::chrono::duration<float, std::milli>(end - begin).count();
+        };
+        m_render_graph->SetTickCallbackBreakdown(
+            to_ms(tick_other_begin, tick_other_end),
+            to_ms(module_tick_begin, module_tick_end),
+            to_ms(system_tick_begin, system_tick_end));
+    }
+    else if (m_render_graph)
+    {
+        const auto to_ms = [](const auto& begin, const auto& end) -> float
+        {
+            return std::chrono::duration<float, std::milli>(end - begin).count();
+        };
+        m_render_graph->SetTickCallbackBreakdown(
+            to_ms(tick_other_begin, tick_other_end),
+            0.0f,
+            0.0f);
     }
 }
 
@@ -357,7 +386,7 @@ void DemoBase::DrawDebugUI()
         ImGui::Separator();
     }
 
-    if (m_render_graph && ImGui::CollapsingHeader("Pass Timings", ImGuiTreeNodeFlags_DefaultOpen))
+    if (m_render_graph && ImGui::CollapsingHeader("Pass Timings"))
     {
         const auto& frame_stats = m_render_graph->GetLastFrameStats();
         const auto& frame_timing = m_render_graph->GetLastFrameTimingBreakdown();
@@ -456,6 +485,12 @@ void DemoBase::DrawDebugUI()
                 frame_timing.resolve_gpu_profiler_ms,
                 frame_timing.acquire_command_list_ms,
                 frame_timing.acquire_swapchain_ms);
+            ImGui::Text("Tick Breakdown: Tick %.3f ms [Other/Resize %.3f | Modules %.3f | Systems %.3f] | BuildUI %.3f ms",
+                frame_timing.tick_callback_ms,
+                frame_timing.tick_other_ms,
+                frame_timing.module_tick_ms,
+                frame_timing.system_tick_ms,
+                frame_timing.debug_ui_build_ms);
             ImGui::Text("Execute: %.3f ms [Plan+Diagnostics %.3f | Passes %.3f | DescriptorGC %.3f] | Blit %.3f ms",
                 frame_timing.execute_render_graph_ms,
                 frame_timing.execution_planning_ms,
@@ -476,74 +511,79 @@ void DemoBase::DrawDebugUI()
 
         if (!frame_stats.pass_stats.empty())
         {
-            struct GroupTimingAggregate
+            if (ImGui::TreeNode("Per-group Timing Summary"))
             {
-                float cpu_total_ms{0.0f};
-                float gpu_total_ms{0.0f};
-                bool gpu_time_valid{false};
-                unsigned total_count{0};
-                unsigned executed_count{0};
-                unsigned skipped_count{0};
-            };
-            std::unordered_map<std::string_view, GroupTimingAggregate> group_aggregates;
-            group_aggregates.reserve(frame_stats.pass_stats.size());
-            std::vector<std::string_view> group_order;
-            group_order.reserve(frame_stats.pass_stats.size());
-            for (const auto& pass_stat : frame_stats.pass_stats)
-            {
-                const std::string_view group_name = pass_stat.group_name;
-                auto [aggregate_it, inserted] = group_aggregates.try_emplace(group_name, GroupTimingAggregate{});
-                if (inserted)
+                struct GroupTimingAggregate
                 {
-                    group_order.push_back(group_name);
+                    float cpu_total_ms{0.0f};
+                    float gpu_total_ms{0.0f};
+                    bool gpu_time_valid{false};
+                    unsigned total_count{0};
+                    unsigned executed_count{0};
+                    unsigned skipped_count{0};
+                };
+                std::unordered_map<std::string_view, GroupTimingAggregate> group_aggregates;
+                group_aggregates.reserve(frame_stats.pass_stats.size());
+                std::vector<std::string_view> group_order;
+                group_order.reserve(frame_stats.pass_stats.size());
+                for (const auto& pass_stat : frame_stats.pass_stats)
+                {
+                    const std::string_view group_name = pass_stat.group_name;
+                    auto [aggregate_it, inserted] = group_aggregates.try_emplace(group_name, GroupTimingAggregate{});
+                    if (inserted)
+                    {
+                        group_order.push_back(group_name);
+                    }
+
+                    auto& aggregate = aggregate_it->second;
+                    aggregate.cpu_total_ms += pass_stat.cpu_time_ms;
+                    ++aggregate.total_count;
+                    if (pass_stat.executed)
+                    {
+                        ++aggregate.executed_count;
+                    }
+                    else
+                    {
+                        ++aggregate.skipped_count;
+                    }
+                    if (pass_stat.gpu_time_valid)
+                    {
+                        aggregate.gpu_total_ms += pass_stat.gpu_time_ms;
+                        aggregate.gpu_time_valid = true;
+                    }
                 }
 
-                auto& aggregate = aggregate_it->second;
-                aggregate.cpu_total_ms += pass_stat.cpu_time_ms;
-                ++aggregate.total_count;
-                if (pass_stat.executed)
+                for (const auto group_name : group_order)
                 {
-                    ++aggregate.executed_count;
-                }
-                else
-                {
-                    ++aggregate.skipped_count;
-                }
-                if (pass_stat.gpu_time_valid)
-                {
-                    aggregate.gpu_total_ms += pass_stat.gpu_time_ms;
-                    aggregate.gpu_time_valid = true;
-                }
-            }
+                    const auto aggregate_it = group_aggregates.find(group_name);
+                    if (aggregate_it == group_aggregates.end())
+                    {
+                        continue;
+                    }
 
-            for (const auto group_name : group_order)
-            {
-                const auto aggregate_it = group_aggregates.find(group_name);
-                if (aggregate_it == group_aggregates.end())
-                {
-                    continue;
+                    const auto& aggregate = aggregate_it->second;
+                    if (aggregate.gpu_time_valid)
+                    {
+                        ImGui::Text("%s: CPU %.3f ms | GPU %.3f ms | Count %u (Exec %u / Skip %u)",
+                            group_name.data(),
+                            aggregate.cpu_total_ms,
+                            aggregate.gpu_total_ms,
+                            aggregate.total_count,
+                            aggregate.executed_count,
+                            aggregate.skipped_count);
+                    }
+                    else
+                    {
+                        ImGui::Text("%s: CPU %.3f ms | GPU N/A | Count %u (Exec %u / Skip %u)",
+                            group_name.data(),
+                            aggregate.cpu_total_ms,
+                            aggregate.total_count,
+                            aggregate.executed_count,
+                            aggregate.skipped_count);
+                    }
                 }
 
-                const auto& aggregate = aggregate_it->second;
-                if (aggregate.gpu_time_valid)
-                {
-                    ImGui::Text("%s: CPU %.3f ms | GPU %.3f ms | Count %u (Exec %u / Skip %u)",
-                        group_name.data(),
-                        aggregate.cpu_total_ms,
-                        aggregate.gpu_total_ms,
-                        aggregate.total_count,
-                        aggregate.executed_count,
-                        aggregate.skipped_count);
-                }
-                else
-                {
-                    ImGui::Text("%s: CPU %.3f ms | GPU N/A | Count %u (Exec %u / Skip %u)",
-                        group_name.data(),
-                        aggregate.cpu_total_ms,
-                        aggregate.total_count,
-                        aggregate.executed_count,
-                        aggregate.skipped_count);
-                }
+                ImGui::TreePop();
             }
 
             if (ImGui::TreeNode("Per-pass Timing Table"))
@@ -625,7 +665,7 @@ void DemoBase::DrawDebugUI()
             continue;
         }
 
-        if (ImGui::CollapsingHeader(system->GetSystemName(), ImGuiTreeNodeFlags_DefaultOpen))
+        if (ImGui::CollapsingHeader(system->GetSystemName()))
         {
             system->DrawDebugUI();
         }

@@ -1,4 +1,20 @@
 #include "RendererModuleLighting.h"
+#include <cmath>
+#include <glm/glm/gtx/norm.hpp>
+
+namespace
+{
+    constexpr float LIGHT_INFO_FLOAT_EPSILON = 1.0e-6f;
+    constexpr float LIGHT_INFO_VECTOR_EPSILON_SQ = LIGHT_INFO_FLOAT_EPSILON * LIGHT_INFO_FLOAT_EPSILON;
+
+    bool IsLightInfoEquivalent(const LightInfo& lhs, const LightInfo& rhs)
+    {
+        return lhs.type == rhs.type &&
+            std::abs(lhs.radius - rhs.radius) <= LIGHT_INFO_FLOAT_EPSILON &&
+            glm::length2(lhs.position - rhs.position) <= LIGHT_INFO_VECTOR_EPSILON_SQ &&
+            glm::length2(lhs.intensity - rhs.intensity) <= LIGHT_INFO_VECTOR_EPSILON_SQ;
+    }
+}
 
 RendererModuleLighting::RendererModuleLighting(RendererInterface::ResourceOperator& resource_operator)
 {
@@ -40,6 +56,11 @@ bool RendererModuleLighting::ContainsLight(unsigned index) const
 bool RendererModuleLighting::UpdateLightInfo(unsigned index, const LightInfo& info)
 {
     GLTF_CHECK(ContainsLight(index));
+    if (IsLightInfoEquivalent(m_light_infos[index], info))
+    {
+        return true;
+    }
+
     m_light_infos[index] = info;
     
     m_need_upload_light_infos = true;

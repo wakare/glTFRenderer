@@ -6,10 +6,49 @@
 #include "RHIConfigSingleton.h"
 #include "RenderWindow/glTFWindow.h"
 
+namespace
+{
+    bool EnableDX12DeviceRemovedDiagnostics()
+    {
+#if defined(__ID3D12DeviceRemovedExtendedDataSettings1_INTERFACE_DEFINED__)
+        ComPtr<ID3D12DeviceRemovedExtendedDataSettings1> dred_settings1;
+        if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&dred_settings1))) && dred_settings1)
+        {
+            dred_settings1->SetAutoBreadcrumbsEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
+            dred_settings1->SetPageFaultEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
+            dred_settings1->SetWatsonDumpEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
+            dred_settings1->SetBreadcrumbContextEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
+            return true;
+        }
+#endif
+
+#if defined(__ID3D12DeviceRemovedExtendedDataSettings_INTERFACE_DEFINED__)
+        ComPtr<ID3D12DeviceRemovedExtendedDataSettings> dred_settings;
+        if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&dred_settings))) && dred_settings)
+        {
+            dred_settings->SetAutoBreadcrumbsEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
+            dred_settings->SetPageFaultEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
+            dred_settings->SetWatsonDumpEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
+            return true;
+        }
+#endif
+
+        return false;
+    }
+}
+
 bool DX12Factory::InitFactory()
 {
     const auto& config = RHIConfigSingleton::Instance();
     const bool enable_api_validation = config.IsAPIValidationEnabled();
+    const bool dred_enabled = EnableDX12DeviceRemovedDiagnostics();
+    LOG_FORMAT_FLUSH("[DX12Factory] Device removed diagnostics %s.\n", dred_enabled ? "enabled" : "unavailable");
+    if (enable_api_validation)
+    {
+        LOG_FORMAT_FLUSH("[DX12Factory] API validation enabled. GPU validation=%s, sync queue validation=%s.\n",
+            config.IsDX12GPUBasedValidationEnabled() ? "on" : "off",
+            config.IsDX12SynchronizedQueueValidationEnabled() ? "on" : "off");
+    }
     if (enable_api_validation && SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&m_debug_controller))))
     {
         m_debug_controller->EnableDebugLayer();

@@ -12,6 +12,15 @@ enum SWAP_CHAIN_MODE
     VSYNC = 0,
     MAILBOX = 1,
 };
+
+enum class RHIPresentFailureKind
+{
+    NONE,
+    RESIZE_REQUIRED,
+    DEVICE_LOST,
+    UNKNOWN_FATAL,
+};
+
 struct RHISwapChainDesc
 {
     bool full_screen;
@@ -37,6 +46,8 @@ public:
     virtual bool AcquireNewFrame(IRHIDevice& device) = 0;
     virtual IRHISemaphore& GetAvailableFrameSemaphore() = 0;
     virtual bool Present(IRHICommandQueue& command_queue, IRHICommandList& command_list) = 0;
+    virtual RHIPresentFailureKind GetLastPresentFailureKind() const { return RHIPresentFailureKind::NONE; }
+    virtual long GetLastPresentFailureCode() const { return 0; }
     virtual bool HostWaitPresentFinished(IRHIDevice& device) = 0;
     virtual bool ResizeSwapChain(unsigned width, unsigned height) { return false; }
     

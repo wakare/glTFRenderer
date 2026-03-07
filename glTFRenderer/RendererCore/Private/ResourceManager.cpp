@@ -93,6 +93,8 @@ namespace
             return "RECOVERING";
         case RendererInterface::SwapchainLifecycleState::MINIMIZED:
             return "MINIMIZED";
+        case RendererInterface::SwapchainLifecycleState::DEVICE_LOST:
+            return "DEVICE_LOST";
         case RendererInterface::SwapchainLifecycleState::INVALID:
             return "INVALID";
         }

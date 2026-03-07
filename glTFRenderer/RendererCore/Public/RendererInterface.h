@@ -277,6 +277,11 @@ namespace RendererInterface
             float prepare_frame_ms{0.0f};
             float sync_window_surface_ms{0.0f};
             float tick_and_debug_ui_build_ms{0.0f};
+            float tick_callback_ms{0.0f};
+            float tick_other_ms{0.0f};
+            float module_tick_ms{0.0f};
+            float system_tick_ms{0.0f};
+            float debug_ui_build_ms{0.0f};
             float wait_previous_frame_ms{0.0f};
             float deferred_release_ms{0.0f};
             float acquire_context_ms{0.0f};
@@ -382,6 +387,7 @@ namespace RendererInterface
         const FrameStats& GetLastFrameStats() const;
         const FrameTimingBreakdown& GetLastFrameTimingBreakdown() const;
         const DependencyDiagnostics& GetDependencyDiagnostics() const;
+        void SetTickCallbackBreakdown(float other_ms, float module_ms, float system_ms);
 
     protected:
         enum class RenderPassExecutionStatus

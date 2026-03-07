@@ -23,6 +23,7 @@
 namespace
 {
     constexpr double PANEL_MOVE_CURSOR_DEADZONE_SQ = 0.04; // ~0.2 px
+    constexpr float DIRECTIONAL_LIGHT_DIRECTION_EPSILON_SQ = 1.0e-8f;
 
     std::string SanitizeFileName(std::string value)
     {
@@ -80,7 +81,8 @@ void DemoAppModelViewer::TickFrameInternal(unsigned long long time_interval)
     const float delta_seconds = static_cast<float>(time_interval) / 1000.0f;
     const bool freeze_directional_light =
         m_regression_enabled && m_regression_suite.freeze_directional_light;
-    if (!freeze_directional_light)
+    if (!freeze_directional_light &&
+        std::abs(m_directional_light_angular_speed_radians) > 1.0e-6f)
     {
         m_directional_light_elapsed_seconds += delta_seconds;
     }
@@ -93,8 +95,12 @@ void DemoAppModelViewer::TickFrameInternal(unsigned long long time_interval)
         cos_angle * base_direction.x + sin_angle * base_direction.z,
         base_direction.y,
         -sin_angle * base_direction.x + cos_angle * base_direction.z));
-    m_directional_light_info.position = rotated_direction;
-    m_lighting->UpdateLight(m_directional_light_index, m_directional_light_info);
+    if (m_lighting &&
+        glm::length2(m_directional_light_info.position - rotated_direction) > DIRECTIONAL_LIGHT_DIRECTION_EPSILON_SQ)
+    {
+        m_directional_light_info.position = rotated_direction;
+        m_lighting->UpdateLight(m_directional_light_index, m_directional_light_info);
+    }
 
     if (!m_regression_enabled &&
         m_enable_panel_input_state_machine &&
@@ -1306,7 +1312,7 @@ void DemoAppModelViewer::TickRegressionAutomation()
 
 void DemoAppModelViewer::DrawDebugUIInternal()
 {
-    if (ImGui::CollapsingHeader("Demo", ImGuiTreeNodeFlags_DefaultOpen))
+    if (ImGui::CollapsingHeader("Demo"))
     {
         ImGui::SliderFloat("Directional Light Speed", &m_directional_light_angular_speed_radians, 0.0f, 2.0f, "%.3f rad/s");
         ImGui::Checkbox("Enable Panel Input State Machine", &m_enable_panel_input_state_machine);

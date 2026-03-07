@@ -18,6 +18,8 @@ public:
     virtual bool AcquireNewFrame(IRHIDevice& device) override;
     virtual IRHISemaphore& GetAvailableFrameSemaphore() override;
     virtual bool Present(IRHICommandQueue& command_queue, IRHICommandList& command_list) override;
+    virtual RHIPresentFailureKind GetLastPresentFailureKind() const override { return m_last_present_failure_kind; }
+    virtual long GetLastPresentFailureCode() const override { return static_cast<long>(m_last_present_hr); }
     virtual bool HostWaitPresentFinished(IRHIDevice& device) override;
     virtual bool ResizeSwapChain(unsigned width, unsigned height) override;
     virtual bool Release(IRHIMemoryManager& memory_manager) override;
@@ -45,5 +47,7 @@ private:
     unsigned m_last_resize_failed_width {0};
     unsigned m_last_resize_failed_height {0};
     HRESULT m_last_resize_failed_hr {S_OK};
+    HRESULT m_last_present_hr {S_OK};
+    RHIPresentFailureKind m_last_present_failure_kind {RHIPresentFailureKind::NONE};
 };
 

@@ -319,6 +319,7 @@ namespace RendererInterface
         RESIZE_DEFERRED,
         RECOVERING,
         MINIMIZED,
+        DEVICE_LOST,
         INVALID,
     };
 

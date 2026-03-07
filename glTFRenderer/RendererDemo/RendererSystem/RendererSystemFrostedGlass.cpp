@@ -2681,222 +2681,233 @@ void RendererSystemFrostedGlass::DrawDebugUI()
     bool panel_dirty = false;
     bool global_dirty = false;
 
-    int blur_radius = static_cast<int>(m_global_params.blur_radius);
-    if (ImGui::SliderInt("Blur Radius", &blur_radius, 1, 24))
+    if (ImGui::CollapsingHeader("Global Controls", ImGuiTreeNodeFlags_DefaultOpen))
     {
-        m_global_params.blur_radius = static_cast<unsigned>(blur_radius);
-        global_dirty = true;
+        int blur_radius = static_cast<int>(m_global_params.blur_radius);
+        if (ImGui::SliderInt("Blur Radius", &blur_radius, 1, 24))
+        {
+            m_global_params.blur_radius = static_cast<unsigned>(blur_radius);
+            global_dirty = true;
+        }
+        if (ImGui::SliderFloat("Blur Response Scale", &m_global_params.blur_response_scale, 0.6f, 2.5f, "%.2f"))
+        {
+            global_dirty = true;
+        }
+        if (ImGui::SliderFloat("Blur Veil Strength", &m_global_params.blur_veil_strength, 0.0f, 2.0f, "%.2f"))
+        {
+            global_dirty = true;
+        }
+        ImGui::TextUnformatted("Full Fog Mode: On (Fixed)");
+        const char* blur_source_modes[] = {"Legacy Pyramid", "Shared Mip", "Shared Dual (Fallback->SharedMip)"};
+        int blur_source_mode = static_cast<int>(m_blur_source_mode);
+        if (ImGui::Combo("Blur Source Mode", &blur_source_mode, blur_source_modes, IM_ARRAYSIZE(blur_source_modes)))
+        {
+            blur_source_mode = (std::max)(0, (std::min)(blur_source_mode, 2));
+            m_blur_source_mode = static_cast<BlurSourceMode>(blur_source_mode);
+            m_temporal_force_reset = true;
+            m_temporal_history_valid = false;
+            m_global_params.temporal_history_valid = 0;
+            global_dirty = true;
+        }
+        const char* multilayer_modes[] = {"Single", "Auto", "MultiLayer"};
+        int multilayer_mode = static_cast<int>(m_global_params.multilayer_mode);
+        if (ImGui::Combo("Multilayer Mode", &multilayer_mode, multilayer_modes, IM_ARRAYSIZE(multilayer_modes)))
+        {
+            multilayer_mode = (std::max)(0, (std::min)(multilayer_mode, 2));
+            m_global_params.multilayer_mode = static_cast<unsigned>(multilayer_mode);
+            m_multilayer_over_budget_streak = 0;
+            m_multilayer_cooldown_frames = 0;
+            global_dirty = true;
+        }
+        if (ImGui::CollapsingHeader("Advanced / Global"))
+        {
+            const char* panel_payload_paths[] = {"Compute (SDF)", "Raster (Panel GBuffer)"};
+            int panel_payload_path = static_cast<int>(m_panel_payload_path);
+            if (ImGui::Combo("Panel Payload Path", &panel_payload_path, panel_payload_paths, IM_ARRAYSIZE(panel_payload_paths)))
+            {
+                panel_payload_path = (std::max)(0, (std::min)(panel_payload_path, 1));
+                m_panel_payload_path = static_cast<PanelPayloadPath>(panel_payload_path);
+            }
+            if (ImGui::SliderFloat("Blur Kernel Sigma Scale", &m_global_params.blur_kernel_sigma_scale, 0.6f, 3.5f, "%.2f"))
+            {
+                global_dirty = true;
+            }
+            if (ImGui::SliderFloat("Blur Sigma Normalization", &m_global_params.blur_sigma_normalization, 4.0f, 12.0f, "%.2f"))
+            {
+                global_dirty = true;
+            }
+            ImGui::TextUnformatted("Blur Detail Model: quarterMixBoost=0.50 (fixed)");
+            if (ImGui::SliderFloat("Scene Edge Scale", &m_global_params.scene_edge_scale, 0.0f, 120.0f, "%.1f"))
+            {
+                global_dirty = true;
+            }
+            if (ImGui::SliderFloat("Temporal History Blend", &m_global_params.temporal_history_blend, 0.0f, 0.98f, "%.2f"))
+            {
+                global_dirty = true;
+            }
+            if (ImGui::SliderFloat("Temporal Velocity Reject", &m_global_params.temporal_reject_velocity, 0.001f, 0.20f, "%.3f"))
+            {
+                global_dirty = true;
+            }
+            if (ImGui::SliderFloat("Temporal Edge Reject", &m_global_params.temporal_edge_reject, 0.0f, 2.0f, "%.2f"))
+            {
+                global_dirty = true;
+            }
+            if (ImGui::SliderFloat("Multilayer Frame Budget (ms)", &m_global_params.multilayer_frame_budget_ms, 8.0f, 50.0f, "%.1f"))
+            {
+                global_dirty = true;
+            }
+            if (ImGui::SliderFloat("Multilayer Overlap Threshold", &m_global_params.multilayer_overlap_threshold, 0.0f, 0.80f, "%.2f"))
+            {
+                global_dirty = true;
+            }
+            if (ImGui::SliderFloat("Thickness Edge Power", &m_global_params.thickness_edge_power, 1.0f, 8.0f, "%.2f"))
+            {
+                global_dirty = true;
+            }
+            if (ImGui::SliderFloat("Thickness Highlight Boost", &m_global_params.thickness_highlight_boost_max, 1.0f, 4.0f, "%.2f"))
+            {
+                global_dirty = true;
+            }
+            if (ImGui::SliderFloat("Thickness Refraction Boost", &m_global_params.thickness_refraction_boost_max, 1.0f, 4.0f, "%.2f"))
+            {
+                global_dirty = true;
+            }
+            if (ImGui::SliderFloat("Thickness Edge Shadow", &m_global_params.thickness_edge_shadow_strength, 0.0f, 1.0f, "%.2f"))
+            {
+                global_dirty = true;
+            }
+            if (ImGui::SliderFloat("Thickness Range Min", &m_global_params.thickness_range_min, 0.0f, 0.10f, "%.3f"))
+            {
+                global_dirty = true;
+            }
+            if (ImGui::SliderFloat("Thickness Range Max", &m_global_params.thickness_range_max, 0.01f, 0.20f, "%.3f"))
+            {
+                global_dirty = true;
+            }
+            if (ImGui::SliderFloat("Edge Spec Intensity", &m_global_params.edge_spec_intensity, 0.0f, 3.0f, "%.2f"))
+            {
+                global_dirty = true;
+            }
+            if (ImGui::SliderFloat("Edge Highlight Width", &m_global_params.edge_highlight_width, 0.05f, 1.0f, "%.2f"))
+            {
+                global_dirty = true;
+            }
+            if (ImGui::SliderFloat("Edge Highlight White Mix", &m_global_params.edge_highlight_white_mix, 0.0f, 1.0f, "%.2f"))
+            {
+                global_dirty = true;
+            }
+            if (ImGui::SliderFloat("Directional Highlight Min", &m_global_params.directional_highlight_min, 0.0f, 1.0f, "%.2f"))
+            {
+                global_dirty = true;
+            }
+            if (ImGui::SliderFloat("Directional Highlight Max", &m_global_params.directional_highlight_max, 0.2f, 3.5f, "%.2f"))
+            {
+                global_dirty = true;
+            }
+            if (ImGui::SliderFloat("Directional Highlight Curve", &m_global_params.directional_highlight_curve, 0.5f, 4.0f, "%.2f"))
+            {
+                global_dirty = true;
+            }
+            ImGui::TextUnformatted("NaN Probe: Off (Fixed)");
+        }
+        if (ImGui::Button("Reset Temporal History"))
+        {
+            m_temporal_force_reset = true;
+            m_temporal_history_valid = false;
+            m_global_params.temporal_history_valid = 0;
+            global_dirty = true;
+        }
     }
-    if (ImGui::SliderFloat("Blur Response Scale", &m_global_params.blur_response_scale, 0.6f, 2.5f, "%.2f"))
+    if (ImGui::CollapsingHeader("Runtime Summary", ImGuiTreeNodeFlags_DefaultOpen))
     {
-        global_dirty = true;
-    }
-    if (ImGui::SliderFloat("Blur Veil Strength", &m_global_params.blur_veil_strength, 0.0f, 2.0f, "%.2f"))
-    {
-        global_dirty = true;
-    }
-    ImGui::TextUnformatted("Full Fog Mode: On (Fixed)");
-    const char* blur_source_modes[] = {"Legacy Pyramid", "Shared Mip", "Shared Dual (Fallback->SharedMip)"};
-    int blur_source_mode = static_cast<int>(m_blur_source_mode);
-    if (ImGui::Combo("Blur Source Mode", &blur_source_mode, blur_source_modes, IM_ARRAYSIZE(blur_source_modes)))
-    {
-        blur_source_mode = (std::max)(0, (std::min)(blur_source_mode, 2));
-        m_blur_source_mode = static_cast<BlurSourceMode>(blur_source_mode);
-        m_temporal_force_reset = true;
-        m_temporal_history_valid = false;
-        m_global_params.temporal_history_valid = 0;
-        global_dirty = true;
-    }
-    const char* multilayer_modes[] = {"Single", "Auto", "MultiLayer"};
-    int multilayer_mode = static_cast<int>(m_global_params.multilayer_mode);
-    if (ImGui::Combo("Multilayer Mode", &multilayer_mode, multilayer_modes, IM_ARRAYSIZE(multilayer_modes)))
-    {
-        multilayer_mode = (std::max)(0, (std::min)(multilayer_mode, 2));
-        m_global_params.multilayer_mode = static_cast<unsigned>(multilayer_mode);
-        m_multilayer_over_budget_streak = 0;
-        m_multilayer_cooldown_frames = 0;
-        global_dirty = true;
-    }
-    if (ImGui::CollapsingHeader("Advanced / Global"))
-    {
-        const char* panel_payload_paths[] = {"Compute (SDF)", "Raster (Panel GBuffer)"};
-        int panel_payload_path = static_cast<int>(m_panel_payload_path);
-        if (ImGui::Combo("Panel Payload Path", &panel_payload_path, panel_payload_paths, IM_ARRAYSIZE(panel_payload_paths)))
+        ImGui::Text("Temporal History: %s | Read Buffer: %s",
+                    m_temporal_history_valid ? "Valid" : "Invalid",
+                    m_temporal_history_read_is_a ? "A" : "B");
+        const unsigned requested_blur_source_mode = static_cast<unsigned>(m_blur_source_mode);
+        const char* requested_blur_source_label = "Unknown";
+        if (requested_blur_source_mode == BLUR_SOURCE_MODE_LEGACY_PYRAMID)
         {
-            panel_payload_path = (std::max)(0, (std::min)(panel_payload_path, 1));
-            m_panel_payload_path = static_cast<PanelPayloadPath>(panel_payload_path);
+            requested_blur_source_label = "Legacy Pyramid";
         }
-        if (ImGui::SliderFloat("Blur Kernel Sigma Scale", &m_global_params.blur_kernel_sigma_scale, 0.6f, 3.5f, "%.2f"))
+        else if (requested_blur_source_mode == BLUR_SOURCE_MODE_SHARED_MIP)
         {
-            global_dirty = true;
+            requested_blur_source_label = "Shared Mip";
         }
-        if (ImGui::SliderFloat("Blur Sigma Normalization", &m_global_params.blur_sigma_normalization, 4.0f, 12.0f, "%.2f"))
+        else if (requested_blur_source_mode == BLUR_SOURCE_MODE_SHARED_DUAL)
         {
-            global_dirty = true;
+            requested_blur_source_label = "Shared Dual";
         }
-        ImGui::TextUnformatted("Blur Detail Model: quarterMixBoost=0.50 (fixed)");
-        if (ImGui::SliderFloat("Scene Edge Scale", &m_global_params.scene_edge_scale, 0.0f, 120.0f, "%.1f"))
+
+        const char* runtime_blur_source_label = "Unknown";
+        if (m_global_params.blur_source_mode == BLUR_SOURCE_MODE_LEGACY_PYRAMID)
         {
-            global_dirty = true;
+            runtime_blur_source_label = "Legacy Pyramid";
         }
-        if (ImGui::SliderFloat("Temporal History Blend", &m_global_params.temporal_history_blend, 0.0f, 0.98f, "%.2f"))
+        else if (m_global_params.blur_source_mode == BLUR_SOURCE_MODE_SHARED_MIP)
         {
-            global_dirty = true;
+            runtime_blur_source_label = "Shared Mip";
         }
-        if (ImGui::SliderFloat("Temporal Velocity Reject", &m_global_params.temporal_reject_velocity, 0.001f, 0.20f, "%.3f"))
+        else if (m_global_params.blur_source_mode == BLUR_SOURCE_MODE_SHARED_DUAL)
         {
-            global_dirty = true;
+            runtime_blur_source_label = "Shared Dual";
         }
-        if (ImGui::SliderFloat("Temporal Edge Reject", &m_global_params.temporal_edge_reject, 0.0f, 2.0f, "%.2f"))
+        ImGui::Text("Blur Source: Requested=%s | Runtime=%s", requested_blur_source_label, runtime_blur_source_label);
+        ImGui::TextUnformatted("Full Fog Mode: On (Fixed)");
+        ImGui::Text("Multilayer Runtime: %s | Cooldown: %u | OverBudgetStreak: %u",
+                    m_multilayer_runtime_enabled ? "Enabled" : "Disabled",
+                    m_multilayer_cooldown_frames,
+                    m_multilayer_over_budget_streak);
+        const bool strict_multilayer_path_active =
+            m_global_params.multilayer_mode == MULTILAYER_MODE_FORCE &&
+            m_multilayer_runtime_enabled;
+        ImGui::Text("Multilayer Path: %s",
+                    strict_multilayer_path_active ? "Strict Sequential (Back->Front)" : "Fast Single-Pass");
+        const bool using_raster_panel_payload = m_panel_payload_path == PanelPayloadPath::RasterPanelGBuffer;
+        ImGui::Text("Panel Payload Path: %s",
+                    using_raster_panel_payload ? "Raster (Panel GBuffer)" : "Compute (SDF)");
+        const char* runtime_payload_path =
+            m_last_runtime_used_raster_payload ? "Raster (Panel GBuffer)" : "Compute (SDF)";
+        const char* runtime_composite_path =
+            m_last_runtime_used_strict_multilayer ? "Strict Sequential (Back->Front)" : "Fast Single-Pass";
+        const char* runtime_blur_path =
+            m_last_runtime_used_shared_mip_path ? "SharedMip" : "LegacyPyramid";
+        ImGui::Text("Frosted Active Nodes (expected): %u", m_last_expected_registered_pass_count);
+        ImGui::Text("Runtime Path: blur=%s | payload=%s | composite=%s",
+                    runtime_blur_path,
+                    runtime_payload_path,
+                    runtime_composite_path);
+        const unsigned internal_panel_count = static_cast<unsigned>(m_panel_descs.size());
+        const unsigned external_manual_world_panel_count = static_cast<unsigned>(m_external_world_space_panel_descs.size());
+        const unsigned external_manual_overlay_panel_count = static_cast<unsigned>(m_external_overlay_panel_descs.size());
+        const unsigned external_producer_world_panel_count = static_cast<unsigned>(m_producer_world_space_panel_descs.size());
+        const unsigned external_producer_overlay_panel_count = static_cast<unsigned>(m_producer_overlay_panel_descs.size());
+        ImGui::Text("Panel Sources: internal=%u | extW(manual/prod)=%u/%u extO(manual/prod)=%u/%u | uploaded=%u/%u",
+                    internal_panel_count,
+                    external_manual_world_panel_count,
+                    external_producer_world_panel_count,
+                    external_manual_overlay_panel_count,
+                    external_producer_overlay_panel_count,
+                    m_global_params.panel_count,
+                    m_last_upload_requested_panel_count);
+        const auto& highlight_light = m_global_params.highlight_light_dir_weight;
+        ImGui::Text("Highlight Light: %s | Dir: (%.2f, %.2f, %.2f)",
+                    highlight_light.w > 0.5f ? "Directional" : "Fallback",
+                    highlight_light.x,
+                    highlight_light.y,
+                    highlight_light.z);
+        ImGui::TextUnformatted("NaN Probe Legend: Red=Scene, Green=Payload, Blue=Blur, Yellow=History, Magenta=Velocity (disabled)");
+        if (m_panel_payload_compute_fallback_active)
         {
-            global_dirty = true;
+            ImGui::TextUnformatted("Panel Payload Runtime: Raster requested but not ready; using Compute fallback.");
         }
-        if (ImGui::SliderFloat("Multilayer Frame Budget (ms)", &m_global_params.multilayer_frame_budget_ms, 8.0f, 50.0f, "%.1f"))
-        {
-            global_dirty = true;
-        }
-        if (ImGui::SliderFloat("Multilayer Overlap Threshold", &m_global_params.multilayer_overlap_threshold, 0.0f, 0.80f, "%.2f"))
-        {
-            global_dirty = true;
-        }
-        if (ImGui::SliderFloat("Thickness Edge Power", &m_global_params.thickness_edge_power, 1.0f, 8.0f, "%.2f"))
-        {
-            global_dirty = true;
-        }
-        if (ImGui::SliderFloat("Thickness Highlight Boost", &m_global_params.thickness_highlight_boost_max, 1.0f, 4.0f, "%.2f"))
-        {
-            global_dirty = true;
-        }
-        if (ImGui::SliderFloat("Thickness Refraction Boost", &m_global_params.thickness_refraction_boost_max, 1.0f, 4.0f, "%.2f"))
-        {
-            global_dirty = true;
-        }
-        if (ImGui::SliderFloat("Thickness Edge Shadow", &m_global_params.thickness_edge_shadow_strength, 0.0f, 1.0f, "%.2f"))
-        {
-            global_dirty = true;
-        }
-        if (ImGui::SliderFloat("Thickness Range Min", &m_global_params.thickness_range_min, 0.0f, 0.10f, "%.3f"))
-        {
-            global_dirty = true;
-        }
-        if (ImGui::SliderFloat("Thickness Range Max", &m_global_params.thickness_range_max, 0.01f, 0.20f, "%.3f"))
-        {
-            global_dirty = true;
-        }
-        if (ImGui::SliderFloat("Edge Spec Intensity", &m_global_params.edge_spec_intensity, 0.0f, 3.0f, "%.2f"))
-        {
-            global_dirty = true;
-        }
-        if (ImGui::SliderFloat("Edge Highlight Width", &m_global_params.edge_highlight_width, 0.05f, 1.0f, "%.2f"))
-        {
-            global_dirty = true;
-        }
-        if (ImGui::SliderFloat("Edge Highlight White Mix", &m_global_params.edge_highlight_white_mix, 0.0f, 1.0f, "%.2f"))
-        {
-            global_dirty = true;
-        }
-        if (ImGui::SliderFloat("Directional Highlight Min", &m_global_params.directional_highlight_min, 0.0f, 1.0f, "%.2f"))
-        {
-            global_dirty = true;
-        }
-        if (ImGui::SliderFloat("Directional Highlight Max", &m_global_params.directional_highlight_max, 0.2f, 3.5f, "%.2f"))
-        {
-            global_dirty = true;
-        }
-        if (ImGui::SliderFloat("Directional Highlight Curve", &m_global_params.directional_highlight_curve, 0.5f, 4.0f, "%.2f"))
-        {
-            global_dirty = true;
-        }
-        ImGui::TextUnformatted("NaN Probe: Off (Fixed)");
-    }
-    if (ImGui::Button("Reset Temporal History"))
-    {
-        m_temporal_force_reset = true;
-        m_temporal_history_valid = false;
-        m_global_params.temporal_history_valid = 0;
-        global_dirty = true;
-    }
-    ImGui::Text("Temporal History: %s | Read Buffer: %s",
-                m_temporal_history_valid ? "Valid" : "Invalid",
-                m_temporal_history_read_is_a ? "A" : "B");
-    const unsigned requested_blur_source_mode = static_cast<unsigned>(m_blur_source_mode);
-    const char* requested_blur_source_label = "Unknown";
-    if (requested_blur_source_mode == BLUR_SOURCE_MODE_LEGACY_PYRAMID)
-    {
-        requested_blur_source_label = "Legacy Pyramid";
-    }
-    else if (requested_blur_source_mode == BLUR_SOURCE_MODE_SHARED_MIP)
-    {
-        requested_blur_source_label = "Shared Mip";
-    }
-    else if (requested_blur_source_mode == BLUR_SOURCE_MODE_SHARED_DUAL)
-    {
-        requested_blur_source_label = "Shared Dual";
     }
 
-    const char* runtime_blur_source_label = "Unknown";
-    if (m_global_params.blur_source_mode == BLUR_SOURCE_MODE_LEGACY_PYRAMID)
-    {
-        runtime_blur_source_label = "Legacy Pyramid";
-    }
-    else if (m_global_params.blur_source_mode == BLUR_SOURCE_MODE_SHARED_MIP)
-    {
-        runtime_blur_source_label = "Shared Mip";
-    }
-    else if (m_global_params.blur_source_mode == BLUR_SOURCE_MODE_SHARED_DUAL)
-    {
-        runtime_blur_source_label = "Shared Dual";
-    }
-    ImGui::Text("Blur Source: Requested=%s | Runtime=%s", requested_blur_source_label, runtime_blur_source_label);
-    ImGui::TextUnformatted("Full Fog Mode: On (Fixed)");
-    ImGui::Text("Multilayer Runtime: %s | Cooldown: %u | OverBudgetStreak: %u",
-                m_multilayer_runtime_enabled ? "Enabled" : "Disabled",
-                m_multilayer_cooldown_frames,
-                m_multilayer_over_budget_streak);
-    const bool strict_multilayer_path_active =
-        m_global_params.multilayer_mode == MULTILAYER_MODE_FORCE &&
-        m_multilayer_runtime_enabled;
-    ImGui::Text("Multilayer Path: %s",
-                strict_multilayer_path_active ? "Strict Sequential (Back->Front)" : "Fast Single-Pass");
-    const bool using_raster_panel_payload = m_panel_payload_path == PanelPayloadPath::RasterPanelGBuffer;
-    ImGui::Text("Panel Payload Path: %s",
-                using_raster_panel_payload ? "Raster (Panel GBuffer)" : "Compute (SDF)");
-    const char* runtime_payload_path =
-        m_last_runtime_used_raster_payload ? "Raster (Panel GBuffer)" : "Compute (SDF)";
-    const char* runtime_composite_path =
-        m_last_runtime_used_strict_multilayer ? "Strict Sequential (Back->Front)" : "Fast Single-Pass";
-    const char* runtime_blur_path =
-        m_last_runtime_used_shared_mip_path ? "SharedMip" : "LegacyPyramid";
-    ImGui::Text("Frosted Active Nodes (expected): %u", m_last_expected_registered_pass_count);
-    ImGui::Text("Runtime Path: blur=%s | payload=%s | composite=%s",
-                runtime_blur_path,
-                runtime_payload_path,
-                runtime_composite_path);
     const unsigned internal_panel_count = static_cast<unsigned>(m_panel_descs.size());
     const unsigned external_manual_world_panel_count = static_cast<unsigned>(m_external_world_space_panel_descs.size());
     const unsigned external_manual_overlay_panel_count = static_cast<unsigned>(m_external_overlay_panel_descs.size());
     const unsigned external_producer_world_panel_count = static_cast<unsigned>(m_producer_world_space_panel_descs.size());
     const unsigned external_producer_overlay_panel_count = static_cast<unsigned>(m_producer_overlay_panel_descs.size());
-    ImGui::Text("Panel Sources: internal=%u | extW(manual/prod)=%u/%u extO(manual/prod)=%u/%u | uploaded=%u/%u",
-                internal_panel_count,
-                external_manual_world_panel_count,
-                external_producer_world_panel_count,
-                external_manual_overlay_panel_count,
-                external_producer_overlay_panel_count,
-                m_global_params.panel_count,
-                m_last_upload_requested_panel_count);
-    const auto& highlight_light = m_global_params.highlight_light_dir_weight;
-    ImGui::Text("Highlight Light: %s | Dir: (%.2f, %.2f, %.2f)",
-                highlight_light.w > 0.5f ? "Directional" : "Fallback",
-                highlight_light.x,
-                highlight_light.y,
-                highlight_light.z);
-    ImGui::TextUnformatted("NaN Probe Legend: Red=Scene, Green=Payload, Blue=Blur, Yellow=History, Magenta=Velocity (disabled)");
-    if (m_panel_payload_compute_fallback_active)
-    {
-        ImGui::TextUnformatted("Panel Payload Runtime: Raster requested but not ready; using Compute fallback.");
-    }
-
     const unsigned total_debug_panel_count =
         internal_panel_count +
         external_producer_world_panel_count +
@@ -2917,301 +2928,301 @@ void RendererSystemFrostedGlass::DrawDebugUI()
         return;
     }
 
-    int selected_panel_index = static_cast<int>(m_debug_selected_panel_index);
-    const int max_panel_index = static_cast<int>(total_debug_panel_count) - 1;
-    selected_panel_index = (std::max)(0, (std::min)(selected_panel_index, max_panel_index));
-    if (ImGui::SliderInt("Panel Index", &selected_panel_index, 0, max_panel_index))
+    if (ImGui::CollapsingHeader("Selected Panel"))
     {
-        m_debug_selected_panel_index = static_cast<unsigned>(selected_panel_index);
-    }
-    else
-    {
-        m_debug_selected_panel_index = static_cast<unsigned>(selected_panel_index);
-    }
-
-    FrostedGlassPanelDesc* selected_panel = nullptr;
-    DebugPanelSource selected_panel_source_type = DebugPanelSource::Internal;
-    const char* selected_panel_source = "Unknown";
-    unsigned selected_panel_local_index = 0;
-    unsigned panel_index_cursor = m_debug_selected_panel_index;
-
-    if (panel_index_cursor < m_panel_descs.size())
-    {
-        selected_panel = &m_panel_descs[panel_index_cursor];
-        selected_panel_source_type = DebugPanelSource::Internal;
-        selected_panel_source = "Internal (Editable)";
-        selected_panel_local_index = panel_index_cursor;
-    }
-    else
-    {
-        panel_index_cursor -= static_cast<unsigned>(m_panel_descs.size());
-        if (panel_index_cursor < m_producer_world_space_panel_descs.size())
+        int selected_panel_index = static_cast<int>(m_debug_selected_panel_index);
+        const int max_panel_index = static_cast<int>(total_debug_panel_count) - 1;
+        selected_panel_index = (std::max)(0, (std::min)(selected_panel_index, max_panel_index));
+        if (ImGui::SliderInt("Panel Index", &selected_panel_index, 0, max_panel_index))
         {
-            selected_panel = &m_producer_world_space_panel_descs[panel_index_cursor];
-            selected_panel_source_type = DebugPanelSource::ProducerWorld;
-            selected_panel_source = "Producer World (Debug Override)";
+            m_debug_selected_panel_index = static_cast<unsigned>(selected_panel_index);
+        }
+        else
+        {
+            m_debug_selected_panel_index = static_cast<unsigned>(selected_panel_index);
+        }
+
+        FrostedGlassPanelDesc* selected_panel = nullptr;
+        DebugPanelSource selected_panel_source_type = DebugPanelSource::Internal;
+        const char* selected_panel_source = "Unknown";
+        unsigned selected_panel_local_index = 0;
+        unsigned panel_index_cursor = m_debug_selected_panel_index;
+
+        if (panel_index_cursor < m_panel_descs.size())
+        {
+            selected_panel = &m_panel_descs[panel_index_cursor];
+            selected_panel_source_type = DebugPanelSource::Internal;
+            selected_panel_source = "Internal (Editable)";
             selected_panel_local_index = panel_index_cursor;
         }
         else
         {
-            panel_index_cursor -= static_cast<unsigned>(m_producer_world_space_panel_descs.size());
-            if (panel_index_cursor < m_producer_overlay_panel_descs.size())
+            panel_index_cursor -= static_cast<unsigned>(m_panel_descs.size());
+            if (panel_index_cursor < m_producer_world_space_panel_descs.size())
             {
-                selected_panel = &m_producer_overlay_panel_descs[panel_index_cursor];
-                selected_panel_source_type = DebugPanelSource::ProducerOverlay;
-                selected_panel_source = "Producer Overlay (Debug Override)";
+                selected_panel = &m_producer_world_space_panel_descs[panel_index_cursor];
+                selected_panel_source_type = DebugPanelSource::ProducerWorld;
+                selected_panel_source = "Producer World (Debug Override)";
                 selected_panel_local_index = panel_index_cursor;
             }
             else
             {
-                panel_index_cursor -= static_cast<unsigned>(m_producer_overlay_panel_descs.size());
-                if (panel_index_cursor < m_external_world_space_panel_descs.size())
+                panel_index_cursor -= static_cast<unsigned>(m_producer_world_space_panel_descs.size());
+                if (panel_index_cursor < m_producer_overlay_panel_descs.size())
                 {
-                    selected_panel = &m_external_world_space_panel_descs[panel_index_cursor];
-                    selected_panel_source_type = DebugPanelSource::ManualWorld;
-                    selected_panel_source = "Manual World (Debug Override)";
+                    selected_panel = &m_producer_overlay_panel_descs[panel_index_cursor];
+                    selected_panel_source_type = DebugPanelSource::ProducerOverlay;
+                    selected_panel_source = "Producer Overlay (Debug Override)";
                     selected_panel_local_index = panel_index_cursor;
                 }
                 else
                 {
-                    panel_index_cursor -= static_cast<unsigned>(m_external_world_space_panel_descs.size());
-                    if (panel_index_cursor < m_external_overlay_panel_descs.size())
+                    panel_index_cursor -= static_cast<unsigned>(m_producer_overlay_panel_descs.size());
+                    if (panel_index_cursor < m_external_world_space_panel_descs.size())
                     {
-                        selected_panel = &m_external_overlay_panel_descs[panel_index_cursor];
-                        selected_panel_source_type = DebugPanelSource::ManualOverlay;
-                        selected_panel_source = "Manual Overlay (Debug Override)";
+                        selected_panel = &m_external_world_space_panel_descs[panel_index_cursor];
+                        selected_panel_source_type = DebugPanelSource::ManualWorld;
+                        selected_panel_source = "Manual World (Debug Override)";
                         selected_panel_local_index = panel_index_cursor;
+                    }
+                    else
+                    {
+                        panel_index_cursor -= static_cast<unsigned>(m_external_world_space_panel_descs.size());
+                        if (panel_index_cursor < m_external_overlay_panel_descs.size())
+                        {
+                            selected_panel = &m_external_overlay_panel_descs[panel_index_cursor];
+                            selected_panel_source_type = DebugPanelSource::ManualOverlay;
+                            selected_panel_source = "Manual Overlay (Debug Override)";
+                            selected_panel_local_index = panel_index_cursor;
+                        }
                     }
                 }
             }
         }
-    }
 
-    if (selected_panel == nullptr)
-    {
-        ImGui::TextUnformatted("Selected panel index is out of range.");
-        if (global_dirty)
+        if (selected_panel == nullptr)
         {
-            m_need_upload_global_params = true;
-        }
-        return;
-    }
-
-    ImGui::Text("Selected Panel Source: %s | Local Index: %u", selected_panel_source, selected_panel_local_index);
-    if (selected_panel_source_type != DebugPanelSource::Internal)
-    {
-        ImGui::TextUnformatted("External/producer panel edits are stored as Frosted debug overrides.");
-    }
-
-    float editable_panel_max_corner_radius = 0.0f;
-    auto& panel = *selected_panel;
-
-    if (ImGui::SliderFloat2("Center UV", &panel.center_uv.x, 0.0f, 1.0f, "%.3f"))
-    {
-        panel_dirty = true;
-    }
-    if (ImGui::SliderFloat2("Half Size UV", &panel.half_size_uv.x, 0.02f, 0.48f, "%.3f"))
-    {
-        panel_dirty = true;
-    }
-
-    int shape_type = static_cast<int>(panel.shape_type);
-    const char* shape_types[] = {"RoundedRect", "Circle", "ShapeMask"};
-    if (ImGui::Combo("Shape Type", &shape_type, shape_types, IM_ARRAYSIZE(shape_types)))
-    {
-        panel.shape_type = static_cast<PanelShapeType>(shape_type);
-        panel_dirty = true;
-    }
-    if (ImGui::SliderFloat("Layer Order", &panel.layer_order, -8.0f, 8.0f, "%.1f"))
-    {
-        panel_dirty = true;
-    }
-    bool world_space_mode = panel.world_space_mode != 0;
-    if (ImGui::Checkbox("World Space Panel", &world_space_mode))
-    {
-        panel.world_space_mode = world_space_mode ? 1u : 0u;
-        if (world_space_mode)
-        {
-            panel.depth_policy = PanelDepthPolicy::SceneOcclusion;
-        }
-        panel_dirty = true;
-    }
-    const char* panel_depth_policies[] = {"Overlay", "Scene Occlusion"};
-    int panel_depth_policy = static_cast<int>(panel.depth_policy);
-    if (ImGui::Combo("Panel Depth Policy", &panel_depth_policy, panel_depth_policies, IM_ARRAYSIZE(panel_depth_policies)))
-    {
-        panel_depth_policy = (std::max)(0, (std::min)(panel_depth_policy, 1));
-        panel.depth_policy = static_cast<PanelDepthPolicy>(panel_depth_policy);
-        panel_dirty = true;
-    }
-    if (world_space_mode)
-    {
-        if (ImGui::DragFloat3("World Center", &panel.world_center.x, 0.01f, -20.0f, 20.0f, "%.3f"))
-        {
-            panel_dirty = true;
-        }
-        if (ImGui::DragFloat3("World Axis U", &panel.world_axis_u.x, 0.01f, -5.0f, 5.0f, "%.3f"))
-        {
-            panel_dirty = true;
-        }
-        if (ImGui::DragFloat3("World Axis V", &panel.world_axis_v.x, 0.01f, -5.0f, 5.0f, "%.3f"))
-        {
-            panel_dirty = true;
-        }
-    }
-
-    const char* interaction_states[] = {"Idle", "Hover", "Grab", "Move", "Scale"};
-    int interaction_state = static_cast<int>(panel.interaction_state);
-    if (ImGui::Combo("Interaction State", &interaction_state, interaction_states, IM_ARRAYSIZE(interaction_states)))
-    {
-        interaction_state = (std::max)(0, (std::min)(interaction_state, static_cast<int>(PanelInteractionState::Count) - 1));
-        panel.interaction_state = static_cast<PanelInteractionState>(interaction_state);
-        panel_dirty = true;
-    }
-    if (ImGui::SliderFloat("Panel Alpha", &panel.panel_alpha, 0.0f, 1.0f, "%.2f"))
-    {
-        panel_dirty = true;
-    }
-
-    const float max_corner_radius = (std::max)(0.0f, (std::min)(panel.half_size_uv.x, panel.half_size_uv.y) - 0.001f);
-    editable_panel_max_corner_radius = max_corner_radius;
-    if (ImGui::SliderFloat("Blur Sigma", &panel.blur_sigma, 0.2f, 24.0f, "%.2f"))
-    {
-        panel_dirty = true;
-    }
-    if (ImGui::SliderFloat("Blur Strength", &panel.blur_strength, 0.0f, 1.0f, "%.2f"))
-    {
-        panel_dirty = true;
-    }
-    if (ImGui::ColorEdit3("Tint Color", &panel.tint_color.x))
-    {
-        panel_dirty = true;
-    }
-    if (ImGui::SliderFloat("Fresnel Intensity", &panel.fresnel_intensity, 0.0f, 0.6f, "%.3f"))
-    {
-        panel_dirty = true;
-    }
-    if (ImGui::CollapsingHeader("Advanced / Panel"))
-    {
-        if (ImGui::SliderFloat("Custom Shape Index", &panel.custom_shape_index, 0.0f, 7.0f, "%.1f"))
-        {
-            panel_dirty = true;
-        }
-        if (ImGui::SliderFloat("State Transition Speed", &panel.interaction_transition_speed, 1.0f, 24.0f, "%.2f"))
-        {
-            panel_dirty = true;
-        }
-        if (ImGui::SliderFloat("Corner Radius", &panel.corner_radius, 0.0f, max_corner_radius, "%.3f"))
-        {
-            panel_dirty = true;
-        }
-        if (ImGui::SliderFloat("Rim Intensity", &panel.rim_intensity, 0.0f, 0.6f, "%.3f"))
-        {
-            panel_dirty = true;
-        }
-        if (ImGui::SliderFloat("Edge Softness", &panel.edge_softness, 0.1f, 4.0f, "%.2f"))
-        {
-            panel_dirty = true;
-        }
-        if (ImGui::SliderFloat("Thickness", &panel.thickness, 0.0f, 0.10f, "%.3f"))
-        {
-            panel_dirty = true;
-        }
-        if (ImGui::SliderFloat("Refraction Strength", &panel.refraction_strength, 0.0f, 4.0f, "%.2f"))
-        {
-            panel_dirty = true;
-        }
-        if (ImGui::SliderFloat("Fresnel Power", &panel.fresnel_power, 1.0f, 10.0f, "%.2f"))
-        {
-            panel_dirty = true;
-        }
-
-        int curve_state = static_cast<int>(m_debug_selected_curve_state_index);
-        curve_state = (std::max)(0, (std::min)(curve_state, static_cast<int>(PanelInteractionState::Count) - 1));
-        if (ImGui::Combo("Edit State Curve", &curve_state, interaction_states, IM_ARRAYSIZE(interaction_states)))
-        {
-            m_debug_selected_curve_state_index = static_cast<unsigned>(curve_state);
+            ImGui::TextUnformatted("Selected panel index is out of range.");
         }
         else
         {
-            m_debug_selected_curve_state_index = static_cast<unsigned>(curve_state);
-        }
-        auto& curve = panel.state_curves[m_debug_selected_curve_state_index];
-        if (ImGui::SliderFloat("Curve Blur Sigma Scale", &curve.blur_sigma_scale, 0.4f, 2.5f, "%.2f"))
-        {
-            panel_dirty = true;
-        }
-        if (ImGui::SliderFloat("Curve Blur Strength Scale", &curve.blur_strength_scale, 0.4f, 2.5f, "%.2f"))
-        {
-            panel_dirty = true;
-        }
-        if (ImGui::SliderFloat("Curve Rim Scale", &curve.rim_intensity_scale, 0.4f, 2.5f, "%.2f"))
-        {
-            panel_dirty = true;
-        }
-        if (ImGui::SliderFloat("Curve Fresnel Scale", &curve.fresnel_intensity_scale, 0.4f, 2.5f, "%.2f"))
-        {
-            panel_dirty = true;
-        }
-        if (ImGui::SliderFloat("Curve Alpha Scale", &curve.alpha_scale, 0.0f, 1.5f, "%.2f"))
-        {
-            panel_dirty = true;
-        }
-    }
+            ImGui::Text("Selected Panel Source: %s | Local Index: %u", selected_panel_source, selected_panel_local_index);
+            if (selected_panel_source_type != DebugPanelSource::Internal)
+            {
+                ImGui::TextUnformatted("External/producer panel edits are stored as Frosted debug overrides.");
+            }
 
-    if (panel_dirty && selected_panel != nullptr)
-    {
-        const auto clamp = [](float value, float min_value, float max_value) -> float
-        {
-            return (std::max)(min_value, (std::min)(value, max_value));
-        };
+            float editable_panel_max_corner_radius = 0.0f;
+            auto& panel = *selected_panel;
 
-        const float center_min_x = panel.half_size_uv.x;
-        const float center_min_y = panel.half_size_uv.y;
-        const float center_max_x = 1.0f - panel.half_size_uv.x;
-        const float center_max_y = 1.0f - panel.half_size_uv.y;
-        panel.center_uv.x = clamp(panel.center_uv.x, center_min_x, center_max_x);
-        panel.center_uv.y = clamp(panel.center_uv.y, center_min_y, center_max_y);
-        panel.corner_radius = clamp(panel.corner_radius, 0.0f, editable_panel_max_corner_radius);
-        panel.blur_sigma = clamp(panel.blur_sigma, 0.2f, 24.0f);
-        panel.blur_strength = clamp(panel.blur_strength, 0.0f, 1.0f);
-        panel.rim_intensity = clamp(panel.rim_intensity, 0.0f, 1.0f);
-        panel.edge_softness = clamp(panel.edge_softness, 0.1f, 8.0f);
-        panel.thickness = clamp(panel.thickness, 0.0f, 0.2f);
-        panel.refraction_strength = clamp(panel.refraction_strength, 0.0f, 8.0f);
-        panel.fresnel_intensity = clamp(panel.fresnel_intensity, 0.0f, 1.0f);
-        panel.fresnel_power = clamp(panel.fresnel_power, 1.0f, 16.0f);
-        panel.custom_shape_index = clamp(panel.custom_shape_index, 0.0f, 7.0f);
-        panel.layer_order = clamp(panel.layer_order, -8.0f, 8.0f);
-        panel.panel_alpha = clamp(panel.panel_alpha, 0.0f, 1.0f);
-        panel.interaction_transition_speed = clamp(panel.interaction_transition_speed, 1.0f, 24.0f);
-        panel.world_space_mode = panel.world_space_mode == 0 ? 0u : 1u;
-        panel.depth_policy =
-            panel.depth_policy == PanelDepthPolicy::SceneOcclusion
-                ? PanelDepthPolicy::SceneOcclusion
-                : PanelDepthPolicy::Overlay;
-        const auto length_sq = [](const glm::fvec3& value) -> float
-        {
-            return value.x * value.x + value.y * value.y + value.z * value.z;
-        };
-        if (length_sq(panel.world_axis_u) < 1e-6f)
-        {
-            panel.world_axis_u = glm::fvec3(0.70f, 0.00f, 0.00f);
+            if (ImGui::SliderFloat2("Center UV", &panel.center_uv.x, 0.0f, 1.0f, "%.3f"))
+            {
+                panel_dirty = true;
+            }
+            if (ImGui::SliderFloat2("Half Size UV", &panel.half_size_uv.x, 0.02f, 0.48f, "%.3f"))
+            {
+                panel_dirty = true;
+            }
+
+            int shape_type = static_cast<int>(panel.shape_type);
+            const char* shape_types[] = {"RoundedRect", "Circle", "ShapeMask"};
+            if (ImGui::Combo("Shape Type", &shape_type, shape_types, IM_ARRAYSIZE(shape_types)))
+            {
+                panel.shape_type = static_cast<PanelShapeType>(shape_type);
+                panel_dirty = true;
+            }
+            if (ImGui::SliderFloat("Layer Order", &panel.layer_order, -8.0f, 8.0f, "%.1f"))
+            {
+                panel_dirty = true;
+            }
+            bool world_space_mode = panel.world_space_mode != 0;
+            if (ImGui::Checkbox("World Space Panel", &world_space_mode))
+            {
+                panel.world_space_mode = world_space_mode ? 1u : 0u;
+                if (world_space_mode)
+                {
+                    panel.depth_policy = PanelDepthPolicy::SceneOcclusion;
+                }
+                panel_dirty = true;
+            }
+            const char* panel_depth_policies[] = {"Overlay", "Scene Occlusion"};
+            int panel_depth_policy = static_cast<int>(panel.depth_policy);
+            if (ImGui::Combo("Panel Depth Policy", &panel_depth_policy, panel_depth_policies, IM_ARRAYSIZE(panel_depth_policies)))
+            {
+                panel_depth_policy = (std::max)(0, (std::min)(panel_depth_policy, 1));
+                panel.depth_policy = static_cast<PanelDepthPolicy>(panel_depth_policy);
+                panel_dirty = true;
+            }
+            if (world_space_mode)
+            {
+                if (ImGui::DragFloat3("World Center", &panel.world_center.x, 0.01f, -20.0f, 20.0f, "%.3f"))
+                {
+                    panel_dirty = true;
+                }
+                if (ImGui::DragFloat3("World Axis U", &panel.world_axis_u.x, 0.01f, -5.0f, 5.0f, "%.3f"))
+                {
+                    panel_dirty = true;
+                }
+                if (ImGui::DragFloat3("World Axis V", &panel.world_axis_v.x, 0.01f, -5.0f, 5.0f, "%.3f"))
+                {
+                    panel_dirty = true;
+                }
+            }
+
+            const char* interaction_states[] = {"Idle", "Hover", "Grab", "Move", "Scale"};
+            int interaction_state = static_cast<int>(panel.interaction_state);
+            if (ImGui::Combo("Interaction State", &interaction_state, interaction_states, IM_ARRAYSIZE(interaction_states)))
+            {
+                interaction_state = (std::max)(0, (std::min)(interaction_state, static_cast<int>(PanelInteractionState::Count) - 1));
+                panel.interaction_state = static_cast<PanelInteractionState>(interaction_state);
+                panel_dirty = true;
+            }
+            if (ImGui::SliderFloat("Panel Alpha", &panel.panel_alpha, 0.0f, 1.0f, "%.2f"))
+            {
+                panel_dirty = true;
+            }
+
+            const float max_corner_radius = (std::max)(0.0f, (std::min)(panel.half_size_uv.x, panel.half_size_uv.y) - 0.001f);
+            editable_panel_max_corner_radius = max_corner_radius;
+            if (ImGui::SliderFloat("Blur Sigma", &panel.blur_sigma, 0.2f, 24.0f, "%.2f"))
+            {
+                panel_dirty = true;
+            }
+            if (ImGui::SliderFloat("Blur Strength", &panel.blur_strength, 0.0f, 1.0f, "%.2f"))
+            {
+                panel_dirty = true;
+            }
+            if (ImGui::ColorEdit3("Tint Color", &panel.tint_color.x))
+            {
+                panel_dirty = true;
+            }
+            if (ImGui::SliderFloat("Fresnel Intensity", &panel.fresnel_intensity, 0.0f, 0.6f, "%.3f"))
+            {
+                panel_dirty = true;
+            }
+            if (ImGui::CollapsingHeader("Advanced / Panel"))
+            {
+                if (ImGui::SliderFloat("Custom Shape Index", &panel.custom_shape_index, 0.0f, 7.0f, "%.1f"))
+                {
+                    panel_dirty = true;
+                }
+                if (ImGui::SliderFloat("State Transition Speed", &panel.interaction_transition_speed, 1.0f, 24.0f, "%.2f"))
+                {
+                    panel_dirty = true;
+                }
+                if (ImGui::SliderFloat("Corner Radius", &panel.corner_radius, 0.0f, max_corner_radius, "%.3f"))
+                {
+                    panel_dirty = true;
+                }
+                if (ImGui::SliderFloat("Rim Intensity", &panel.rim_intensity, 0.0f, 0.6f, "%.3f"))
+                {
+                    panel_dirty = true;
+                }
+                if (ImGui::SliderFloat("Edge Softness", &panel.edge_softness, 0.1f, 4.0f, "%.2f"))
+                {
+                    panel_dirty = true;
+                }
+                if (ImGui::SliderFloat("Thickness", &panel.thickness, 0.0f, 0.10f, "%.3f"))
+                {
+                    panel_dirty = true;
+                }
+                if (ImGui::SliderFloat("Refraction Strength", &panel.refraction_strength, 0.0f, 4.0f, "%.2f"))
+                {
+                    panel_dirty = true;
+                }
+                if (ImGui::SliderFloat("Fresnel Power", &panel.fresnel_power, 1.0f, 10.0f, "%.2f"))
+                {
+                    panel_dirty = true;
+                }
+
+                int curve_state = static_cast<int>(m_debug_selected_curve_state_index);
+                curve_state = (std::max)(0, (std::min)(curve_state, static_cast<int>(PanelInteractionState::Count) - 1));
+                if (ImGui::Combo("Edit State Curve", &curve_state, interaction_states, IM_ARRAYSIZE(interaction_states)))
+                {
+                    m_debug_selected_curve_state_index = static_cast<unsigned>(curve_state);
+                }
+                else
+                {
+                    m_debug_selected_curve_state_index = static_cast<unsigned>(curve_state);
+                }
+                auto& curve = panel.state_curves[m_debug_selected_curve_state_index];
+                if (ImGui::SliderFloat("Curve Blur Sigma Scale", &curve.blur_sigma_scale, 0.4f, 2.5f, "%.2f"))
+                {
+                    panel_dirty = true;
+                }
+                if (ImGui::SliderFloat("Curve Blur Strength Scale", &curve.blur_strength_scale, 0.4f, 2.5f, "%.2f"))
+                {
+                    panel_dirty = true;
+                }
+                if (ImGui::SliderFloat("Curve Rim Scale", &curve.rim_intensity_scale, 0.4f, 2.5f, "%.2f"))
+                {
+                    panel_dirty = true;
+                }
+                if (ImGui::SliderFloat("Curve Fresnel Scale", &curve.fresnel_intensity_scale, 0.4f, 2.5f, "%.2f"))
+                {
+                    panel_dirty = true;
+                }
+                if (ImGui::SliderFloat("Curve Alpha Scale", &curve.alpha_scale, 0.0f, 1.5f, "%.2f"))
+                {
+                    panel_dirty = true;
+                }
+            }
+
+            if (panel_dirty)
+            {
+                const auto clamp = [](float value, float min_value, float max_value) -> float
+                {
+                    return (std::max)(min_value, (std::min)(value, max_value));
+                };
+
+                const float center_min_x = panel.half_size_uv.x;
+                const float center_min_y = panel.half_size_uv.y;
+                const float center_max_x = 1.0f - panel.half_size_uv.x;
+                const float center_max_y = 1.0f - panel.half_size_uv.y;
+                panel.center_uv.x = clamp(panel.center_uv.x, center_min_x, center_max_x);
+                panel.center_uv.y = clamp(panel.center_uv.y, center_min_y, center_max_y);
+                panel.corner_radius = clamp(panel.corner_radius, 0.0f, editable_panel_max_corner_radius);
+                panel.blur_sigma = clamp(panel.blur_sigma, 0.2f, 24.0f);
+                panel.blur_strength = clamp(panel.blur_strength, 0.0f, 1.0f);
+                panel.rim_intensity = clamp(panel.rim_intensity, 0.0f, 1.0f);
+                panel.edge_softness = clamp(panel.edge_softness, 0.1f, 8.0f);
+                panel.thickness = clamp(panel.thickness, 0.0f, 0.2f);
+                panel.refraction_strength = clamp(panel.refraction_strength, 0.0f, 8.0f);
+                panel.fresnel_intensity = clamp(panel.fresnel_intensity, 0.0f, 1.0f);
+                panel.fresnel_power = clamp(panel.fresnel_power, 1.0f, 16.0f);
+                panel.custom_shape_index = clamp(panel.custom_shape_index, 0.0f, 7.0f);
+                panel.layer_order = clamp(panel.layer_order, -8.0f, 8.0f);
+                panel.panel_alpha = clamp(panel.panel_alpha, 0.0f, 1.0f);
+                panel.interaction_transition_speed = clamp(panel.interaction_transition_speed, 1.0f, 24.0f);
+                panel.world_space_mode = panel.world_space_mode == 0 ? 0u : 1u;
+                panel.depth_policy =
+                    panel.depth_policy == PanelDepthPolicy::SceneOcclusion
+                        ? PanelDepthPolicy::SceneOcclusion
+                        : PanelDepthPolicy::Overlay;
+                const auto length_sq = [](const glm::fvec3& value) -> float
+                {
+                    return value.x * value.x + value.y * value.y + value.z * value.z;
+                };
+                if (length_sq(panel.world_axis_u) < 1e-6f)
+                {
+                    panel.world_axis_u = glm::fvec3(0.70f, 0.00f, 0.00f);
+                }
+                if (length_sq(panel.world_axis_v) < 1e-6f)
+                {
+                    panel.world_axis_v = glm::fvec3(0.00f, 0.45f, 0.00f);
+                }
+                for (auto& state_curve : panel.state_curves)
+                {
+                    state_curve.blur_sigma_scale = clamp(state_curve.blur_sigma_scale, 0.4f, 2.5f);
+                    state_curve.blur_strength_scale = clamp(state_curve.blur_strength_scale, 0.4f, 2.5f);
+                    state_curve.rim_intensity_scale = clamp(state_curve.rim_intensity_scale, 0.4f, 2.5f);
+                    state_curve.fresnel_intensity_scale = clamp(state_curve.fresnel_intensity_scale, 0.4f, 2.5f);
+                    state_curve.alpha_scale = clamp(state_curve.alpha_scale, 0.0f, 1.5f);
+                }
+                SaveDebugPanelOverride(selected_panel_source_type, selected_panel_local_index, panel);
+                m_need_upload_panels = true;
+            }
         }
-        if (length_sq(panel.world_axis_v) < 1e-6f)
-        {
-            panel.world_axis_v = glm::fvec3(0.00f, 0.45f, 0.00f);
-        }
-        for (auto& state_curve : panel.state_curves)
-        {
-            state_curve.blur_sigma_scale = clamp(state_curve.blur_sigma_scale, 0.4f, 2.5f);
-            state_curve.blur_strength_scale = clamp(state_curve.blur_strength_scale, 0.4f, 2.5f);
-            state_curve.rim_intensity_scale = clamp(state_curve.rim_intensity_scale, 0.4f, 2.5f);
-            state_curve.fresnel_intensity_scale = clamp(state_curve.fresnel_intensity_scale, 0.4f, 2.5f);
-            state_curve.alpha_scale = clamp(state_curve.alpha_scale, 0.0f, 1.5f);
-        }
-        SaveDebugPanelOverride(selected_panel_source_type, selected_panel_local_index, panel);
-        m_need_upload_panels = true;
     }
     if (global_dirty)
     {

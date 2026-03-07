@@ -9,6 +9,131 @@
 #include "RHIResourceFactoryImpl.hpp"
 #include "RenderWindow/glTFWindow.h"
 
+namespace
+{
+    RHIPresentFailureKind ClassifyDX12PresentFailure(HRESULT present_hr)
+    {
+        switch (present_hr)
+        {
+        case DXGI_ERROR_DEVICE_REMOVED:
+        case DXGI_ERROR_DEVICE_RESET:
+        case DXGI_ERROR_DEVICE_HUNG:
+            return RHIPresentFailureKind::DEVICE_LOST;
+        default:
+            return RHIPresentFailureKind::UNKNOWN_FATAL;
+        }
+    }
+
+    const char* ToString(RHIPresentFailureKind kind)
+    {
+        switch (kind)
+        {
+        case RHIPresentFailureKind::NONE:
+            return "NONE";
+        case RHIPresentFailureKind::RESIZE_REQUIRED:
+            return "RESIZE_REQUIRED";
+        case RHIPresentFailureKind::DEVICE_LOST:
+            return "DEVICE_LOST";
+        case RHIPresentFailureKind::UNKNOWN_FATAL:
+        default:
+            return "UNKNOWN_FATAL";
+        }
+    }
+
+#if defined(__ID3D12DeviceRemovedExtendedData1_INTERFACE_DEFINED__)
+    void LogDX12DREDDiagnostics(ID3D12Device* device)
+    {
+        if (!device)
+        {
+            return;
+        }
+
+        ComPtr<ID3D12DeviceRemovedExtendedData1> dred;
+        if (FAILED(device->QueryInterface(IID_PPV_ARGS(&dred))) || !dred)
+        {
+            LOG_FORMAT_FLUSH("[DX12SwapChain] DRED interface unavailable on removed device.\n");
+            return;
+        }
+
+        D3D12_DRED_AUTO_BREADCRUMBS_OUTPUT1 breadcrumbs{};
+        if (SUCCEEDED(dred->GetAutoBreadcrumbsOutput1(&breadcrumbs)))
+        {
+            if (!breadcrumbs.pHeadAutoBreadcrumbNode)
+            {
+                LOG_FORMAT_FLUSH("[DX12SwapChain] DRED auto-breadcrumbs empty.\n");
+            }
+            unsigned breadcrumb_index = 0;
+            for (auto node = breadcrumbs.pHeadAutoBreadcrumbNode; node && breadcrumb_index < 4; node = node->pNext, ++breadcrumb_index)
+            {
+                const char* queue_name = node->pCommandQueueDebugNameA ? node->pCommandQueueDebugNameA : "<unnamed-queue>";
+                const char* list_name = node->pCommandListDebugNameA ? node->pCommandListDebugNameA : "<unnamed-command-list>";
+                const UINT last_breadcrumb_value = node->pLastBreadcrumbValue ? *node->pLastBreadcrumbValue : 0;
+                LOG_FORMAT_FLUSH("[DX12SwapChain] DRED breadcrumb[%u]: queue='%s' list='%s' last=%u/%u.\n",
+                    breadcrumb_index,
+                    queue_name,
+                    list_name,
+                    last_breadcrumb_value,
+                    node->BreadcrumbCount);
+
+                if (node->BreadcrumbContextsCount > 0 && node->pBreadcrumbContexts)
+                {
+                    const UINT first_context_index = node->BreadcrumbContextsCount > 4 ? node->BreadcrumbContextsCount - 4 : 0;
+                    for (UINT context_index = first_context_index; context_index < node->BreadcrumbContextsCount; ++context_index)
+                    {
+                        const auto& context = node->pBreadcrumbContexts[context_index];
+                        if (!context.pContextString)
+                        {
+                            continue;
+                        }
+
+                        LOG_FORMAT_FLUSH("[DX12SwapChain] DRED context[%u:%u]: %ls\n",
+                            breadcrumb_index,
+                            context.BreadcrumbIndex,
+                            context.pContextString);
+                    }
+                }
+            }
+        }
+        else
+        {
+            LOG_FORMAT_FLUSH("[DX12SwapChain] Failed to fetch DRED auto-breadcrumbs output.\n");
+        }
+
+        D3D12_DRED_PAGE_FAULT_OUTPUT1 page_fault{};
+        if (SUCCEEDED(dred->GetPageFaultAllocationOutput1(&page_fault)) && page_fault.PageFaultVA != 0)
+        {
+            LOG_FORMAT_FLUSH("[DX12SwapChain] DRED page fault VA=0x%llX.\n",
+                static_cast<unsigned long long>(page_fault.PageFaultVA));
+        }
+        else
+        {
+            LOG_FORMAT_FLUSH("[DX12SwapChain] DRED page fault output empty.\n");
+        }
+    }
+#else
+    void LogDX12DREDDiagnostics(ID3D12Device* device)
+    {
+        (void)device;
+        LOG_FORMAT_FLUSH("[DX12SwapChain] DRED support not compiled in this SDK configuration.\n");
+    }
+#endif
+
+    void LogDX12DeviceRemovedDiagnostics(IDXGISwapChain3& swap_chain)
+    {
+        ComPtr<ID3D12Device> device;
+        const HRESULT get_device_hr = swap_chain.GetDevice(IID_PPV_ARGS(&device));
+        if (FAILED(get_device_hr) || !device)
+        {
+            LOG_FORMAT_FLUSH("[DX12SwapChain] Failed to query device for removal diagnostics (hr=0x%08X).\n", get_device_hr);
+            return;
+        }
+
+        const HRESULT removed_reason = device->GetDeviceRemovedReason();
+        LOG_FORMAT_FLUSH("[DX12SwapChain] Device removed reason=0x%08X.\n", removed_reason);
+        LogDX12DREDDiagnostics(device.Get());
+    }
+}
+
 unsigned DX12SwapChain::GetCurrentBackBufferIndex()
 {
     return m_swap_chain ? m_swap_chain->GetCurrentBackBufferIndex() : 0;
@@ -185,9 +310,20 @@ bool DX12SwapChain::Present(IRHICommandQueue& command_queue, IRHICommandList& co
     const HRESULT present_hr = m_swap_chain->Present(sync_interval, flag);
     if (FAILED(present_hr))
     {
-        LOG_FORMAT_FLUSH("[DX12SwapChain] Present failed (hr=0x%08X).\n", present_hr);
+        m_last_present_hr = present_hr;
+        m_last_present_failure_kind = ClassifyDX12PresentFailure(present_hr);
+        LOG_FORMAT_FLUSH("[DX12SwapChain] Present failed (hr=0x%08X, kind=%s).\n",
+            present_hr,
+            ToString(m_last_present_failure_kind));
+        if (m_last_present_failure_kind == RHIPresentFailureKind::DEVICE_LOST)
+        {
+            LogDX12DeviceRemovedDiagnostics(*m_swap_chain.Get());
+        }
         return false;
     }
+
+    m_last_present_hr = S_OK;
+    m_last_present_failure_kind = RHIPresentFailureKind::NONE;
     dynamic_cast<DX12Fence&>(*m_fence).SignalWhenCommandQueueFinish(command_queue);
     
     return true;

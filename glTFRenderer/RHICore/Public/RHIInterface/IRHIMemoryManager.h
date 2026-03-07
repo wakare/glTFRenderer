@@ -3,6 +3,9 @@
 #include "RHIInterface/IRHIDescriptorManager.h"
 #include "RHIInterface/IRHIMemoryAllocator.h"
 #include "RHIInterface/IRHITexture.h"
+#include <memory>
+#include <unordered_map>
+#include <vector>
 
 class RHICORE_API IRHIMemoryAllocation : public IRHIResource
 {
@@ -70,23 +73,54 @@ struct RHICORE_API TempBufferInfo
     enum
     {
         TEMP_BUFFER_FRAME_LIFE_TIME = 3,
+        TEMP_BUFFER_MAX_IDLE_FRAME_COUNT = 240,
     };
     
     RHIBufferDesc desc;
     std::shared_ptr<IRHIBufferAllocation> allocation;
     int remain_frame_to_reuse;
+    unsigned idle_frame_count{0};
 };
 
 class RHICORE_API RHITempBufferPool
 {
 public:
+    struct TempBufferBucketKey
+    {
+        size_t height{0};
+        size_t depth{0};
+        size_t alignment{0};
+        RHIBufferType type{};
+        RHIBufferResourceType resource_type{};
+        RHIResourceStateType state{RHIResourceStateType::STATE_COMMON};
+        RHIResourceUsageFlags usage{};
+
+        bool operator==(const TempBufferBucketKey& rhs) const
+        {
+            return height == rhs.height &&
+                depth == rhs.depth &&
+                alignment == rhs.alignment &&
+                type == rhs.type &&
+                resource_type == rhs.resource_type &&
+                state == rhs.state &&
+                usage == rhs.usage;
+        }
+    };
+
+    struct TempBufferBucketKeyHasher
+    {
+        size_t operator()(const TempBufferBucketKey& key) const noexcept;
+    };
+
     bool TryGetBuffer(const RHIBufferDesc& buffer_desc, std::shared_ptr<IRHIBufferAllocation>& out_buffer);
     void AddBufferToPool(const TempBufferInfo& buffer_info);
-    void TickFrame();
+    void TickFrame(std::vector<std::shared_ptr<IRHIBufferAllocation>>& out_expired_buffers);
     void Clear();
     
 protected:
-    std::vector<TempBufferInfo> m_temp_upload_buffer_allocations;
+    static TempBufferBucketKey BuildBucketKey(const RHIBufferDesc& buffer_desc);
+
+    std::unordered_map<TempBufferBucketKey, std::vector<TempBufferInfo>, TempBufferBucketKeyHasher> m_temp_upload_buffer_allocations;
 };
 
 // Hold descriptor heap which store cbv for gpu memory
@@ -112,6 +146,7 @@ public:
     bool AllocateTempUploadBufferMemory(IRHIDevice& device, const RHIBufferDesc& buffer_desc, std::shared_ptr<IRHIBufferAllocation>& out_buffer_allocation);
     
 protected:
+    static RHIBufferDesc MakeTempUploadBufferDesc(const RHIBufferDesc& dst_buffer_desc, size_t upload_size);
     virtual bool UploadBufferDataInner(IRHIBufferAllocation& buffer_allocation, const void* data, size_t offset, size_t size) = 0;
 
     RHITempBufferPool m_temp_buffer_pool;

@@ -2383,13 +2383,24 @@ namespace RendererInterface
 
     void RenderGraph::ExecuteTickAndDebugUI(unsigned long long interval)
     {
+        const auto tick_and_ui_begin = std::chrono::steady_clock::now();
+        m_current_frame_timing_breakdown.tick_callback_ms = 0.0f;
+        m_current_frame_timing_breakdown.tick_other_ms = 0.0f;
+        m_current_frame_timing_breakdown.module_tick_ms = 0.0f;
+        m_current_frame_timing_breakdown.system_tick_ms = 0.0f;
+        m_current_frame_timing_breakdown.debug_ui_build_ms = 0.0f;
+
         if (m_tick_callback)
         {
+            const auto tick_begin = std::chrono::steady_clock::now();
             m_tick_callback(interval);
+            const auto tick_end = std::chrono::steady_clock::now();
+            m_current_frame_timing_breakdown.tick_callback_ms = ToMilliseconds(tick_begin, tick_end);
         }
 
         if (m_debug_ui_enabled && m_debug_ui_initialized)
         {
+            const auto debug_ui_build_begin = std::chrono::steady_clock::now();
             GLTF_CHECK(RHIUtilInstanceManager::Instance().NewGUIFrame());
             ImGui_ImplGlfw_NewFrame();
             ImGui::NewFrame();
@@ -2490,7 +2501,14 @@ namespace RendererInterface
             {
                 m_debug_ui_callback();
             }
+            const auto debug_ui_build_end = std::chrono::steady_clock::now();
+            m_current_frame_timing_breakdown.debug_ui_build_ms =
+                ToMilliseconds(debug_ui_build_begin, debug_ui_build_end);
         }
+
+        const auto tick_and_ui_end = std::chrono::steady_clock::now();
+        m_current_frame_timing_breakdown.tick_and_debug_ui_build_ms =
+            ToMilliseconds(tick_and_ui_begin, tick_and_ui_end);
     }
 
     bool RenderGraph::SyncWindowSurfaceAndAdvanceFrame(FramePreparationContext& frame_context, unsigned long long interval)
@@ -2511,10 +2529,7 @@ namespace RendererInterface
             return false;
         }
 
-        const auto tick_begin = std::chrono::steady_clock::now();
         ExecuteTickAndDebugUI(interval);
-        const auto tick_end = std::chrono::steady_clock::now();
-        m_current_frame_timing_breakdown.tick_and_debug_ui_build_ms = ToMilliseconds(tick_begin, tick_end);
 
         m_resource_allocator.AdvanceFrameSlot();
 
@@ -2844,6 +2859,13 @@ namespace RendererInterface
     const RenderGraph::FrameTimingBreakdown& RenderGraph::GetLastFrameTimingBreakdown() const
     {
         return m_last_frame_timing_breakdown;
+    }
+
+    void RenderGraph::SetTickCallbackBreakdown(float other_ms, float module_ms, float system_ms)
+    {
+        m_current_frame_timing_breakdown.tick_other_ms = (std::max)(0.0f, other_ms);
+        m_current_frame_timing_breakdown.module_tick_ms = (std::max)(0.0f, module_ms);
+        m_current_frame_timing_breakdown.system_tick_ms = (std::max)(0.0f, system_ms);
     }
 
     const RenderGraph::DependencyDiagnostics& RenderGraph::GetDependencyDiagnostics() const
