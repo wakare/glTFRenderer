@@ -1818,6 +1818,11 @@ namespace RendererInterface
         m_resource_manager->GetMemoryManager().UploadBufferData(m_resource_manager->GetDevice(), m_resource_manager->GetCommandListForRecordPassCommand(), *buffer, upload_desc.data, 0, upload_desc.size);
     }
 
+    void ResourceOperator::BeginFrame()
+    {
+        return m_resource_manager->BeginFrame();
+    }
+
     void ResourceOperator::WaitFrameRenderFinished()
     {
         return m_resource_manager->WaitFrameRenderFinished();
@@ -2490,6 +2495,8 @@ namespace RendererInterface
 
     bool RenderGraph::SyncWindowSurfaceAndAdvanceFrame(FramePreparationContext& frame_context, unsigned long long interval)
     {
+        m_resource_allocator.BeginFrame();
+
         const auto surface_sync_begin = std::chrono::steady_clock::now();
         const auto surface_sync_result = m_resource_allocator.SyncWindowSurface(frame_context.window_width, frame_context.window_height);
         const auto surface_sync_end = std::chrono::steady_clock::now();

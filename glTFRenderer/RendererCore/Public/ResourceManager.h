@@ -47,6 +47,8 @@ public:
     unsigned GetFrameSlotCount() const;
     unsigned GetSwapchainImageCount() const;
     unsigned GetBackBufferCount() const;
+    // Central frame-lifecycle hook for ResourceManager-owned per-frame maintenance.
+    void BeginFrame();
     void AdvanceFrameSlot();
     
     IRHIDevice& GetDevice();

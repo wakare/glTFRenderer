@@ -143,3 +143,8 @@ Get-Process msbuild -ErrorAction SilentlyContinue | Stop-Process -Force
   - fix at data-generation stage, then re-validate downstream passes
 - Frosted-glass specific rule:
   - avoid applying piecewise SDF gradient direction across the full panel interior; use stable interior basis and edge-weighted SDF influence.
+
+### Runtime Maintenance Scope (Important)
+
+- For `RendererDemo` runtime issues, use `glTFRenderer/glTFRenderer/glTFRenderer/RendererCore` as the source of truth for frame lifecycle and resource management.
+- Treat `glTFApp`-based runtime logic as legacy/non-maintained for current work unless the user explicitly asks to debug or modify that path.

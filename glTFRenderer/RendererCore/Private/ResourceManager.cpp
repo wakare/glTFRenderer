@@ -422,13 +422,18 @@ unsigned ResourceManager::GetBackBufferCount() const
     return GetSwapchainImageCount();
 }
 
-void ResourceManager::AdvanceFrameSlot()
+void ResourceManager::BeginFrame()
 {
     if (m_memory_manager)
     {
         m_memory_manager->TickFrame();
     }
 
+    AdvanceDeferredReleaseFrame();
+}
+
+void ResourceManager::AdvanceFrameSlot()
+{
     const auto frame_slot_count = GetFrameSlotCount();
     if (frame_slot_count == 0)
     {

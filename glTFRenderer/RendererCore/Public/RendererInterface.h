@@ -155,6 +155,7 @@ namespace RendererInterface
         bool HasCurrentSwapchainRT() const;
 
         void UploadBufferData(BufferHandle handle, const BufferUploadDesc& upload_desc);
+        void BeginFrame();
         void AdvanceFrameSlot();
         void WaitFrameRenderFinished();
         void InvalidateSwapchainResizeRequest();

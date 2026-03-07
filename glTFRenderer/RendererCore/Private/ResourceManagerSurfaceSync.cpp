@@ -396,8 +396,6 @@ bool ResourceManagerSurfaceResourceRebuilder::ResizeWindowDependentRenderTargets
 
 RendererInterface::WindowSurfaceSyncResult ResourceManagerSurfaceResizeCoordinator::Sync(ResourceManager& manager, unsigned window_width, unsigned window_height)
 {
-    manager.AdvanceDeferredReleaseFrame();
-
     RendererInterface::WindowSurfaceSyncResult result{};
     result.window_width = window_width;
     result.window_height = window_height;
