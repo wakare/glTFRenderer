@@ -264,9 +264,23 @@ bool VKSwapChain::HostWaitPresentFinished(IRHIDevice& device)
     }
 
     auto vk_device = dynamic_cast<VKDevice&>(device).GetDevice();
-    VK_CHECK(vkWaitForPresentKHR(vk_device, m_swap_chain, m_present_id_count, UINT64_MAX))
-    
-    return true;
+    const uint64_t present_id = m_present_id_count;
+    const VkResult result = vkWaitForPresentKHR(vk_device, m_swap_chain, present_id, UINT64_MAX);
+    if (result == VK_SUCCESS)
+    {
+        m_present_id_count = 0;
+        return true;
+    }
+    if (result == VK_ERROR_OUT_OF_DATE_KHR)
+    {
+        LOG_FORMAT_FLUSH("[VKSwapChain] vkWaitForPresentKHR returned OUT_OF_DATE for present id %llu during resize/recreate.\n",
+            static_cast<unsigned long long>(present_id));
+        m_present_id_count = 0;
+        return false;
+    }
+
+    LOG_FORMAT_FLUSH("[VKSwapChain] vkWaitForPresentKHR failed: %d\n", static_cast<int>(result));
+    return false;
 }
 
 bool VKSwapChain::Release(IRHIMemoryManager& memory_manager)
@@ -277,7 +291,17 @@ bool VKSwapChain::Release(IRHIMemoryManager& memory_manager)
     }
     
     need_release = false;
-    vkDestroySwapchainKHR(m_device, m_swap_chain, nullptr);
+    if (m_swap_chain != VK_NULL_HANDLE)
+    {
+        vkDestroySwapchainKHR(m_device, m_swap_chain, nullptr);
+        m_swap_chain = VK_NULL_HANDLE;
+    }
+    m_present_id_count = 0;
+    m_current_frame_index = 0;
+    m_image_index = 0;
+    m_swap_chain_textures.clear();
+    m_frame_available_semaphores.clear();
+    m_frame_semaphore_wait_infos.clear();
 
     return true;
 }
