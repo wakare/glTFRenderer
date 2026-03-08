@@ -1,11 +1,17 @@
 #include "RendererSystemToneMap.h"
 
+#include "RendererSystemFrostedGlass.h"
+#include "RendererSystemLighting.h"
+#include "RendererSystemSceneRenderer.h"
 #include <algorithm>
 #include <imgui/imgui.h>
+#include <utility>
 
 RendererSystemToneMap::RendererSystemToneMap(std::shared_ptr<RendererSystemFrostedGlass> frosted,
+                                             std::shared_ptr<RendererSystemLighting> lighting,
                                              std::shared_ptr<RendererSystemSceneRenderer> scene)
     : m_frosted(std::move(frosted))
+    , m_lighting(std::move(lighting))
     , m_scene(std::move(scene))
 {
 }
@@ -13,10 +19,14 @@ RendererSystemToneMap::RendererSystemToneMap(std::shared_ptr<RendererSystemFrost
 bool RendererSystemToneMap::Init(RendererInterface::ResourceOperator& resource_operator,
                                  RendererInterface::RenderGraph& graph)
 {
-    GLTF_CHECK(m_frosted);
     GLTF_CHECK(m_scene);
-    GLTF_CHECK(m_frosted->HasInit());
     GLTF_CHECK(m_scene->HasInit());
+    GLTF_CHECK(m_lighting);
+    GLTF_CHECK(m_lighting->HasInit());
+    if (m_frosted)
+    {
+        GLTF_CHECK(m_frosted->HasInit());
+    }
 
     m_tone_map_output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "ToneMap_Output",
@@ -43,12 +53,17 @@ bool RendererSystemToneMap::Init(RendererInterface::ResourceOperator& resource_o
         {RendererInterface::COMPUTE_SHADER, "main", "Resources/Shaders/ToneMap.hlsl"}
     };
 
+    RendererSystemOutput<RendererSystemSceneRenderer> scene_output;
+    RendererInterface::RenderTargetHandle input_color = m_frosted
+        ? m_frosted->GetOutput()
+        : m_lighting->GetLightingOutput();
+    GLTF_CHECK(input_color != NULL_HANDLE);
+
     RendererInterface::RenderTargetTextureBindingDesc input_color_binding_desc{};
     input_color_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
     input_color_binding_desc.name = "InputColorTex";
-    input_color_binding_desc.render_target_texture = {m_frosted->GetOutput()};
+    input_color_binding_desc.render_target_texture = {input_color};
 
-    RendererSystemOutput<RendererSystemSceneRenderer> scene_output;
     RendererInterface::RenderTargetTextureBindingDesc input_velocity_binding_desc{};
     input_velocity_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
     input_velocity_binding_desc.name = "InputVelocityTex";

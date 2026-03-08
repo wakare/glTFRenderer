@@ -2,7 +2,7 @@ param(
     [ValidateSet('DX12', 'Vulkan')]
     [string]$Api,
     [string]$SuitePath,
-    [string]$DemoName = 'DemoAppModelViewer',
+    [string]$DemoName = 'DemoAppModelViewerFrostedGlass',
     [ValidateSet('Mailbox', 'VSync')]
     [string]$PresentMode = 'Mailbox',
     [string]$ExePath = '',

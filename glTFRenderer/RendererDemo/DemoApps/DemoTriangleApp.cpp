@@ -74,6 +74,7 @@ bool DemoTriangleApp::InitInternal(const std::vector<std::string>& arguments)
 
 void DemoTriangleApp::TickFrameInternal(unsigned long long time_interval)
 {
+    (void)time_interval;
     m_color[0] += 0.05f;
     m_color[1] += 0.03f;
     m_color[2] += 0.01f;
@@ -85,4 +86,88 @@ void DemoTriangleApp::TickFrameInternal(unsigned long long time_interval)
     upload_desc.data = &m_color;
     upload_desc.size = sizeof(float) * 4;
     m_resource_manager->UploadBufferData(m_color_buffer_handle, upload_desc);
+}
+
+std::shared_ptr<DemoBase::NonRenderStateSnapshot> DemoTriangleApp::CaptureNonRenderStateSnapshot() const
+{
+    auto snapshot = std::make_shared<TriangleStateSnapshot>();
+    snapshot->color = m_color;
+    return snapshot;
+}
+
+bool DemoTriangleApp::ApplyNonRenderStateSnapshot(const std::shared_ptr<NonRenderStateSnapshot>& snapshot)
+{
+    if (!snapshot)
+    {
+        return true;
+    }
+
+    const auto restored_state = std::dynamic_pointer_cast<TriangleStateSnapshot>(snapshot);
+    if (!restored_state)
+    {
+        return false;
+    }
+
+    m_color = restored_state->color;
+    if (m_resource_manager && m_color_buffer_handle != NULL_HANDLE)
+    {
+        RendererInterface::BufferUploadDesc upload_desc{};
+        upload_desc.data = &m_color;
+        upload_desc.size = sizeof(float) * 4;
+        m_resource_manager->UploadBufferData(m_color_buffer_handle, upload_desc);
+    }
+
+    return true;
+}
+
+bool DemoTriangleApp::SerializeNonRenderStateSnapshotToJson(
+    const std::shared_ptr<NonRenderStateSnapshot>& snapshot,
+    nlohmann::json& out_snapshot_json) const
+{
+    const auto triangle_snapshot = std::dynamic_pointer_cast<TriangleStateSnapshot>(snapshot);
+    if (!triangle_snapshot)
+    {
+        return false;
+    }
+
+    out_snapshot_json = {
+        {"color", {
+            triangle_snapshot->color[0],
+            triangle_snapshot->color[1],
+            triangle_snapshot->color[2],
+            triangle_snapshot->color[3]
+        }}
+    };
+    return true;
+}
+
+std::shared_ptr<DemoBase::NonRenderStateSnapshot> DemoTriangleApp::DeserializeNonRenderStateSnapshotFromJson(
+    const nlohmann::json& snapshot_json,
+    std::string& out_error) const
+{
+    if (!snapshot_json.is_object())
+    {
+        out_error = "snapshot must be an object.";
+        return nullptr;
+    }
+    if (!snapshot_json.contains("color") ||
+        !snapshot_json.at("color").is_array() ||
+        snapshot_json.at("color").size() != 4u)
+    {
+        out_error = "snapshot.color must be an array with 4 elements.";
+        return nullptr;
+    }
+
+    auto snapshot = std::make_shared<TriangleStateSnapshot>();
+    for (size_t index = 0; index < 4u; ++index)
+    {
+        const auto& value = snapshot_json.at("color").at(index);
+        if (!value.is_number())
+        {
+            out_error = "snapshot.color elements must be numbers.";
+            return nullptr;
+        }
+        snapshot->color[static_cast<int>(index)] = value.get<float>();
+    }
+    return snapshot;
 }

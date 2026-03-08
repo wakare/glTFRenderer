@@ -170,6 +170,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="DemoApps\DemoAppModelViewer.cpp" />
+    <ClCompile Include="DemoApps\DemoAppModelViewerFrostedGlass.cpp" />
     <ClCompile Include="DemoApps\DemoBase.cpp" />
     <ClCompile Include="DemoApps\DemoTriangleApp.cpp" />
     <ClCompile Include="RendererDemo.cpp" />
@@ -205,6 +206,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DemoApps\DemoAppModelViewer.h" />
+    <ClInclude Include="DemoApps\DemoAppModelViewerFrostedGlass.h" />
     <ClInclude Include="DemoApps\DemoBase.h" />
     <ClInclude Include="DemoApps\DemoTriangleApp.h" />
     <ClInclude Include="RendererModule\RendererModuleCamera.h" />

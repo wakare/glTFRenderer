@@ -1,12 +1,16 @@
 #pragma once
 #include "RendererSystemBase.h"
-#include "RendererSystemFrostedGlass.h"
-#include "RendererSystemSceneRenderer.h"
+#include <memory>
+
+class RendererSystemFrostedGlass;
+class RendererSystemLighting;
+class RendererSystemSceneRenderer;
 
 class RendererSystemToneMap : public RendererSystemBase
 {
 public:
     RendererSystemToneMap(std::shared_ptr<RendererSystemFrostedGlass> frosted,
+                          std::shared_ptr<RendererSystemLighting> lighting,
                           std::shared_ptr<RendererSystemSceneRenderer> scene);
 
     virtual bool Init(RendererInterface::ResourceOperator& resource_operator, RendererInterface::RenderGraph& graph) override;
@@ -33,6 +37,7 @@ protected:
     void UploadGlobalParams(RendererInterface::ResourceOperator& resource_operator);
 
     std::shared_ptr<RendererSystemFrostedGlass> m_frosted;
+    std::shared_ptr<RendererSystemLighting> m_lighting;
     std::shared_ptr<RendererSystemSceneRenderer> m_scene;
 
     RendererInterface::RenderGraphNodeHandle m_tone_map_pass_node{NULL_HANDLE};

@@ -21,6 +21,9 @@
     <ClCompile Include="DemoApps\DemoAppModelViewer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="DemoApps\DemoAppModelViewerFrostedGlass.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="DemoApps\DemoBase.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -48,6 +51,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DemoApps\DemoAppModelViewer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DemoApps\DemoAppModelViewerFrostedGlass.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="DemoApps\DemoBase.h">

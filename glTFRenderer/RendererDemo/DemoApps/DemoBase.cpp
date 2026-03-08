@@ -2,9 +2,15 @@
 
 #include "RendererInterface.h"
 #include "RendererSystem/RendererSystemBase.h"
+#include <algorithm>
+#include <cctype>
 #include <imgui/imgui.h>
 #include <chrono>
+#include <filesystem>
+#include <fstream>
+#include <iomanip>
 #include <map>
+#include <sstream>
 #include <string_view>
 #include <unordered_map>
 
@@ -90,6 +96,27 @@ namespace
         default:
             return "Unknown";
         }
+    }
+
+    std::string SanitizeFileName(std::string value)
+    {
+        for (char& ch : value)
+        {
+            if ((ch >= 'a' && ch <= 'z') ||
+                (ch >= 'A' && ch <= 'Z') ||
+                (ch >= '0' && ch <= '9') ||
+                ch == '-' || ch == '_')
+            {
+                continue;
+            }
+            ch = '_';
+        }
+
+        if (value.empty())
+        {
+            value = "snapshot";
+        }
+        return value;
     }
 }
 
@@ -191,6 +218,117 @@ void DemoBase::DrawDebugUI()
     const ImGuiIO& io = ImGui::GetIO();
     ImGui::Text("Frame %.3f ms (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
     ImGui::Separator();
+
+    if (ImGui::CollapsingHeader("Snapshot"))
+    {
+        if (ImGui::Button("Record Snapshot"))
+        {
+            RecordCurrentStateSnapshot();
+        }
+
+        const bool has_recorded_snapshot = static_cast<bool>(m_recorded_state_snapshot);
+
+        ImGui::SameLine();
+        if (!has_recorded_snapshot)
+        {
+            ImGui::BeginDisabled();
+        }
+        if (ImGui::Button("Restore Snapshot"))
+        {
+            RestoreRecordedStateSnapshot();
+        }
+        if (!has_recorded_snapshot)
+        {
+            ImGui::EndDisabled();
+        }
+
+        ImGui::SameLine();
+        if (!has_recorded_snapshot)
+        {
+            ImGui::BeginDisabled();
+        }
+        if (ImGui::Button("Clear Snapshot"))
+        {
+            ClearRecordedStateSnapshot();
+        }
+        if (!has_recorded_snapshot)
+        {
+            ImGui::EndDisabled();
+        }
+
+        ImGui::Text("Recorded Snapshot: %s", has_recorded_snapshot ? "Available" : "None");
+        if (!m_recorded_state_snapshot_status.empty())
+        {
+            ImGui::TextWrapped("Snapshot Status: %s", m_recorded_state_snapshot_status.c_str());
+        }
+
+        ImGui::Separator();
+        ImGui::InputText("Export Snapshot Name", m_snapshot_export_name, IM_ARRAYSIZE(m_snapshot_export_name));
+        if (ImGui::Button("Export Current Snapshot JSON"))
+        {
+            ExportCurrentStateSnapshotToJson();
+        }
+        if (!m_last_snapshot_export_path.empty())
+        {
+            ImGui::Text("Last Exported Snapshot: %s", m_last_snapshot_export_path.c_str());
+        }
+
+        ImGui::Separator();
+        ImGui::InputText("Snapshot Dir", m_snapshot_directory, IM_ARRAYSIZE(m_snapshot_directory));
+        ImGui::SameLine();
+        if (ImGui::Button("Refresh Snapshot JSONs"))
+        {
+            RefreshImportableStateSnapshotList();
+        }
+
+        if (ImGui::BeginListBox("Local Snapshot JSONs", ImVec2(0.0f, 120.0f)))
+        {
+            for (int index = 0; index < static_cast<int>(m_snapshot_file_entries.size()); ++index)
+            {
+                const auto& entry = m_snapshot_file_entries[static_cast<size_t>(index)];
+                const bool selected = index == m_snapshot_selected_index;
+                if (ImGui::Selectable(entry.file_name.c_str(), selected))
+                {
+                    m_snapshot_selected_index = index;
+                }
+                if (selected)
+                {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+            ImGui::EndListBox();
+        }
+
+        if (ImGui::Button("Import Selected Snapshot"))
+        {
+            if (m_snapshot_selected_index >= 0 &&
+                m_snapshot_selected_index < static_cast<int>(m_snapshot_file_entries.size()))
+            {
+                const auto& entry = m_snapshot_file_entries[static_cast<size_t>(m_snapshot_selected_index)];
+                ImportStateSnapshotFromJson(entry.full_path);
+            }
+            else
+            {
+                m_snapshot_io_status = "No local snapshot JSON is selected.";
+            }
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Delete Selected Snapshot JSON"))
+        {
+            DeleteSelectedStateSnapshotJson();
+        }
+
+        if (!m_last_snapshot_import_path.empty())
+        {
+            ImGui::Text("Last Imported Snapshot: %s", m_last_snapshot_import_path.c_str());
+        }
+        if (!m_snapshot_io_status.empty())
+        {
+            ImGui::TextWrapped("Snapshot File Status: %s", m_snapshot_io_status.c_str());
+        }
+
+        ImGui::Separator();
+    }
 
     if (ImGui::CollapsingHeader("Advance"))
     {
@@ -680,6 +818,7 @@ bool DemoBase::Init(const std::vector<std::string>& arguments)
     RETURN_IF_FALSE(InitRenderContext(arguments))
     
     RETURN_IF_FALSE(InitInternal(arguments))
+    RefreshImportableStateSnapshotList();
 
     for (const auto& module : m_modules)
     {
@@ -761,6 +900,311 @@ bool DemoBase::InitRenderContext(const std::vector<std::string>& arguments)
     m_render_graph->RegisterTickCallback([this](unsigned long long time){ TickFrame(time); });
     m_render_graph->RegisterDebugUICallback([this]() { DrawDebugUI(); });
 
+    return true;
+}
+
+bool DemoBase::RecordCurrentStateSnapshot()
+{
+    const auto snapshot = CaptureNonRenderStateSnapshot();
+    if (!snapshot)
+    {
+        m_recorded_state_snapshot.reset();
+        m_recorded_state_snapshot_status = "Snapshot capture is not implemented for this demo.";
+        return false;
+    }
+
+    m_recorded_state_snapshot = snapshot;
+    m_recorded_state_snapshot_status = "Snapshot recorded.";
+    return true;
+}
+
+bool DemoBase::RestoreRecordedStateSnapshot()
+{
+    if (!m_recorded_state_snapshot)
+    {
+        m_recorded_state_snapshot_status = "No recorded snapshot is available.";
+        return false;
+    }
+
+    if (!ApplyNonRenderStateSnapshot(m_recorded_state_snapshot))
+    {
+        m_recorded_state_snapshot_status = "Failed to restore recorded snapshot.";
+        return false;
+    }
+
+    m_recorded_state_snapshot_status = "Snapshot restored.";
+    return true;
+}
+
+void DemoBase::ClearRecordedStateSnapshot()
+{
+    m_recorded_state_snapshot.reset();
+    m_recorded_state_snapshot_status = "Snapshot cleared.";
+}
+
+bool DemoBase::ExportCurrentStateSnapshotToJson()
+{
+    const auto snapshot = CaptureNonRenderStateSnapshot();
+    if (!snapshot)
+    {
+        m_snapshot_io_status = "Snapshot export failed: capture is not implemented for this demo.";
+        return false;
+    }
+
+    nlohmann::json snapshot_json{};
+    if (!SerializeNonRenderStateSnapshotToJson(snapshot, snapshot_json))
+    {
+        m_snapshot_io_status = "Snapshot export failed: serialization is not implemented for this demo.";
+        return false;
+    }
+
+    const auto now = std::chrono::system_clock::now();
+    const std::time_t now_time = std::chrono::system_clock::to_time_t(now);
+    std::tm local_tm{};
+    localtime_s(&local_tm, &now_time);
+    std::ostringstream stamp_stream;
+    stamp_stream << std::put_time(&local_tm, "%Y%m%d_%H%M%S");
+    const std::string stamp = stamp_stream.str();
+
+    std::filesystem::path output_dir = std::filesystem::path(m_snapshot_directory);
+    if (output_dir.empty())
+    {
+        output_dir = std::filesystem::path("build_logs") / "snapshots";
+    }
+
+    std::error_code fs_error;
+    std::filesystem::create_directories(output_dir, fs_error);
+    if (fs_error)
+    {
+        m_snapshot_io_status = "Snapshot export failed: unable to create output directory: " + output_dir.string();
+        return false;
+    }
+
+    const std::string file_stem = SanitizeFileName(m_snapshot_export_name);
+    const std::filesystem::path output_path = output_dir / (file_stem + "_" + stamp + ".json");
+
+    nlohmann::json root{};
+    root["snapshot_type"] = GetSnapshotTypeName();
+    root["schema_version"] = 1;
+    root["snapshot"] = std::move(snapshot_json);
+
+    std::ofstream output_stream(output_path, std::ios::out | std::ios::trunc);
+    if (!output_stream.is_open())
+    {
+        m_snapshot_io_status = "Snapshot export failed: unable to open file for write: " + output_path.string();
+        return false;
+    }
+
+    output_stream << root.dump(2) << "\n";
+    output_stream.close();
+
+    m_recorded_state_snapshot = snapshot;
+    m_recorded_state_snapshot_status = "Snapshot recorded.";
+    m_last_snapshot_export_path = output_path.string();
+    m_snapshot_io_status = "Snapshot exported: " + m_last_snapshot_export_path;
+    RefreshImportableStateSnapshotList();
+    return true;
+}
+
+bool DemoBase::ImportStateSnapshotFromJson(const std::filesystem::path& snapshot_path)
+{
+    std::ifstream input_stream(snapshot_path, std::ios::in);
+    if (!input_stream.is_open())
+    {
+        m_snapshot_io_status = "Snapshot import failed: unable to open file: " + snapshot_path.string();
+        return false;
+    }
+
+    nlohmann::json root{};
+    try
+    {
+        input_stream >> root;
+    }
+    catch (const std::exception& exception)
+    {
+        m_snapshot_io_status = "Snapshot import failed: invalid JSON: " + std::string(exception.what());
+        return false;
+    }
+
+    if (!root.is_object())
+    {
+        m_snapshot_io_status = "Snapshot import failed: root JSON must be an object.";
+        return false;
+    }
+
+    if (root.contains("snapshot_type"))
+    {
+        if (!root.at("snapshot_type").is_string())
+        {
+            m_snapshot_io_status = "Snapshot import failed: snapshot_type must be a string.";
+            return false;
+        }
+
+        const std::string snapshot_type = root.at("snapshot_type").get<std::string>();
+        if (snapshot_type != GetSnapshotTypeName())
+        {
+            m_snapshot_io_status =
+                "Snapshot import failed: snapshot type mismatch. Expected '" +
+                std::string(GetSnapshotTypeName()) + "', got '" + snapshot_type + "'.";
+            return false;
+        }
+    }
+
+    if (!root.contains("snapshot"))
+    {
+        m_snapshot_io_status = "Snapshot import failed: missing snapshot object.";
+        return false;
+    }
+
+    std::string deserialize_error{};
+    const auto snapshot = DeserializeNonRenderStateSnapshotFromJson(root.at("snapshot"), deserialize_error);
+    if (!snapshot)
+    {
+        m_snapshot_io_status = "Snapshot import failed: " + deserialize_error;
+        return false;
+    }
+
+    if (!ApplyNonRenderStateSnapshot(snapshot))
+    {
+        m_snapshot_io_status = "Snapshot import failed: apply failed.";
+        return false;
+    }
+
+    m_recorded_state_snapshot = snapshot;
+    m_recorded_state_snapshot_status = "Snapshot restored.";
+    std::error_code path_error;
+    m_last_snapshot_import_path = std::filesystem::absolute(snapshot_path, path_error).string();
+    if (path_error)
+    {
+        m_last_snapshot_import_path = snapshot_path.string();
+    }
+    m_snapshot_io_status = "Snapshot imported: " + m_last_snapshot_import_path;
+    return true;
+}
+
+void DemoBase::RefreshImportableStateSnapshotList()
+{
+    m_snapshot_file_entries.clear();
+    m_snapshot_selected_index = -1;
+
+    std::filesystem::path import_dir = std::filesystem::path(m_snapshot_directory);
+    if (import_dir.empty())
+    {
+        m_snapshot_io_status = "Snapshot directory is empty.";
+        return;
+    }
+
+    std::error_code fs_error;
+    if (!std::filesystem::exists(import_dir, fs_error) || fs_error)
+    {
+        m_snapshot_io_status = "Snapshot directory does not exist: " + import_dir.string();
+        return;
+    }
+    if (!std::filesystem::is_directory(import_dir, fs_error) || fs_error)
+    {
+        m_snapshot_io_status = "Snapshot path is not a directory: " + import_dir.string();
+        return;
+    }
+
+    for (const auto& entry : std::filesystem::directory_iterator(
+             import_dir, std::filesystem::directory_options::skip_permission_denied, fs_error))
+    {
+        if (fs_error)
+        {
+            break;
+        }
+
+        std::error_code entry_error;
+        if (!entry.is_regular_file(entry_error) || entry_error)
+        {
+            continue;
+        }
+
+        std::string extension = entry.path().extension().string();
+        std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char value)
+        {
+            return static_cast<char>(std::tolower(value));
+        });
+        if (extension != ".json")
+        {
+            continue;
+        }
+
+        StateSnapshotFileEntry import_entry{};
+        import_entry.file_name = entry.path().filename().string();
+        import_entry.full_path = std::filesystem::absolute(entry.path(), entry_error);
+        if (entry_error)
+        {
+            import_entry.full_path = entry.path();
+        }
+        m_snapshot_file_entries.push_back(std::move(import_entry));
+    }
+
+    std::sort(m_snapshot_file_entries.begin(), m_snapshot_file_entries.end(),
+        [](const StateSnapshotFileEntry& lhs, const StateSnapshotFileEntry& rhs)
+    {
+        return lhs.file_name > rhs.file_name;
+    });
+
+    if (!m_snapshot_file_entries.empty())
+    {
+        m_snapshot_selected_index = 0;
+        m_snapshot_io_status =
+            "Found " + std::to_string(m_snapshot_file_entries.size()) + " local snapshot JSON file(s).";
+    }
+    else
+    {
+        m_snapshot_io_status = "No local snapshot JSON files found.";
+    }
+}
+
+bool DemoBase::DeleteSelectedStateSnapshotJson()
+{
+    if (m_snapshot_selected_index < 0 ||
+        m_snapshot_selected_index >= static_cast<int>(m_snapshot_file_entries.size()))
+    {
+        m_snapshot_io_status = "Snapshot delete failed: no local snapshot JSON is selected.";
+        return false;
+    }
+
+    const StateSnapshotFileEntry selected_entry =
+        m_snapshot_file_entries[static_cast<size_t>(m_snapshot_selected_index)];
+    std::error_code fs_error;
+    const bool exists = std::filesystem::exists(selected_entry.full_path, fs_error);
+    if (fs_error)
+    {
+        m_snapshot_io_status =
+            "Snapshot delete failed to query file state: " + selected_entry.full_path.string() +
+            " (" + fs_error.message() + ")";
+        return false;
+    }
+
+    if (!exists)
+    {
+        RefreshImportableStateSnapshotList();
+        m_snapshot_io_status =
+            "Snapshot delete skipped: file no longer exists: " + selected_entry.full_path.string();
+        return false;
+    }
+
+    const bool removed = std::filesystem::remove(selected_entry.full_path, fs_error);
+    if (!removed || fs_error)
+    {
+        m_snapshot_io_status =
+            "Snapshot delete failed: " + selected_entry.full_path.string() +
+            (fs_error ? (" (" + fs_error.message() + ")") : std::string{});
+        return false;
+    }
+
+    const std::string removed_path = selected_entry.full_path.string();
+    if (!m_last_snapshot_import_path.empty() &&
+        m_last_snapshot_import_path == removed_path)
+    {
+        m_last_snapshot_import_path.clear();
+    }
+
+    RefreshImportableStateSnapshotList();
+    m_snapshot_io_status = "Deleted snapshot JSON: " + removed_path;
     return true;
 }
 

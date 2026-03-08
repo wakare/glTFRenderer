@@ -15,6 +15,7 @@
 #endif
 
 #include "DemoApps/DemoAppModelViewer.h"
+#include "DemoApps/DemoAppModelViewerFrostedGlass.h"
 #include "DemoApps/DemoTriangleApp.h"
 
 #define REGISTER_DEMO_APP(demo_name, app_name) if (demo_name == #app_name) {demo = std::make_unique<app_name>();} 
@@ -238,6 +239,7 @@ int main(int argc, char* argv[])
     
     REGISTER_DEMO_APP(demo_name, DemoTriangleApp)
     REGISTER_DEMO_APP(demo_name, DemoAppModelViewer)
+    REGISTER_DEMO_APP(demo_name, DemoAppModelViewerFrostedGlass)
 
     const bool success = demo->Init(params);
     GLTF_CHECK(success);
