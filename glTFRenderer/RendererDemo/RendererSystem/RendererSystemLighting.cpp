@@ -3,8 +3,10 @@
 
 #include "RendererSystemLighting.h"
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <format>
+#include <limits>
 #include <imgui/imgui.h>
 
 #include "RendererSceneAABB.h"
@@ -107,7 +109,8 @@ bool RendererSystemLighting::Init(RendererInterface::ResourceOperator& resource_
                                   RendererInterface::RenderGraph& graph)
 {
     GLTF_CHECK(m_scene->HasInit());
-    const bool use_dx12_shadow_buffering = UseDx12ShadowBufferingStrategy();
+    //const bool use_dx12_shadow_buffering = UseDx12ShadowBufferingStrategy();
+    //const bool use_dx12_shadow_buffering = true;
     
     m_lighting_pass_output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget("LightingPass_Output", RendererInterface::RGBA16_FLOAT, RendererInterface::default_clear_color,
         static_cast<RendererInterface::ResourceUsage>(RendererInterface::ResourceUsage::RENDER_TARGET | RendererInterface::ResourceUsage::COPY_SRC | RendererInterface::ResourceUsage::UNORDER_ACCESS | RendererInterface::ResourceUsage::SHADER_RESOURCE));
@@ -150,7 +153,8 @@ bool RendererSystemLighting::Init(RendererInterface::ResourceOperator& resource_
         RendererInterface::BufferDesc camera_buffer_desc{};
         camera_buffer_desc.name = "ViewBuffer";
         camera_buffer_desc.size = sizeof(ViewBuffer);
-        camera_buffer_desc.type = use_dx12_shadow_buffering ? RendererInterface::DEFAULT : RendererInterface::UPLOAD;
+        //camera_buffer_desc.type = use_dx12_shadow_buffering ? RendererInterface::DEFAULT : RendererInterface::UPLOAD;
+        camera_buffer_desc.type =  RendererInterface::UPLOAD;
         camera_buffer_desc.usage = RendererInterface::USAGE_CBV;
         camera_buffer_desc.data = &new_shadow_pass_resource.m_shadow_map_view_buffer;
         new_shadow_pass_resource.m_shadow_map_buffer_handles =
@@ -255,16 +259,10 @@ bool RendererSystemLighting::Init(RendererInterface::ResourceOperator& resource_
     shadowmap_info_buffer_desc.size = sizeof(ShadowMapInfo) * shadowmap_infos.size();
     shadowmap_info_buffer_desc.usage = RendererInterface::USAGE_SRV;
     shadowmap_info_buffer_desc.data = shadowmap_infos.data();
-    if (use_dx12_shadow_buffering)
-    {
-        m_lighting_pass_shadow_infos_handles =
-            resource_operator.CreateFrameBufferedBuffers(shadowmap_info_buffer_desc, "g_shadowmap_infos");
-    }
-    else
-    {
-        m_lighting_pass_shadow_infos_handles = {resource_operator.CreateBuffer(shadowmap_info_buffer_desc)};
-    }
-
+    //m_lighting_pass_shadow_infos_handles =
+    //    resource_operator.CreateFrameBufferedBuffers(shadowmap_info_buffer_desc, "g_shadowmap_infos");
+    m_lighting_pass_shadow_infos_handles = {resource_operator.CreateBuffer(shadowmap_info_buffer_desc)};
+    
     RendererInterface::BufferBindingDesc shadowmap_info_binding_desc{};
     shadowmap_info_binding_desc.binding_type = RendererInterface::BufferBindingDesc::SRV;
     GLTF_CHECK(!m_lighting_pass_shadow_infos_handles.empty());
@@ -280,6 +278,14 @@ bool RendererSystemLighting::Init(RendererInterface::ResourceOperator& resource_
     dispatch_command.parameter.dispatch_parameter.group_size_y = (height + 7) / 8;
     dispatch_command.parameter.dispatch_parameter.group_size_z = 1;
     lighting_pass_setup_info.execute_command = dispatch_command;
+    lighting_pass_setup_info.dependency_render_graph_nodes.reserve(m_shadow_pass_resources.size());
+    for (const auto& shadow_resource : m_shadow_pass_resources)
+    {
+        if (shadow_resource.second.m_shadow_pass_node != NULL_HANDLE)
+        {
+            lighting_pass_setup_info.dependency_render_graph_nodes.push_back(shadow_resource.second.m_shadow_pass_node);
+        }
+    }
 
     m_lighting_pass_node = graph.CreateRenderGraphNode(resource_operator, lighting_pass_setup_info);
 
@@ -433,7 +439,7 @@ void RendererSystemLighting::UpdateDirectionalShadowResources(RendererInterface:
 
     std::vector<ShadowMapInfo> shadowmap_infos;
     shadowmap_infos.reserve(m_shadow_pass_resources.size());
-    const unsigned current_back_buffer_index = resource_operator.GetCurrentFrameSlotIndex();
+    const unsigned current_frame_slot_index = resource_operator.GetCurrentFrameSlotIndex();
 
     const auto& lights = m_lighting_module->GetLightInfos();
     const auto scene_bounds = m_scene->GetSceneMeshModule()->GetSceneBounds();
@@ -462,7 +468,7 @@ void RendererSystemLighting::UpdateDirectionalShadowResources(RendererInterface:
         if (!shadow_resource.m_shadow_map_buffer_handles.empty() &&
             shadow_resource.m_shadow_map_buffer_handles.size() == shadow_resource.m_shadow_map_view_buffers.size())
         {
-            const unsigned frame_slot = current_back_buffer_index % static_cast<unsigned>(shadow_resource.m_shadow_map_buffer_handles.size());
+            const unsigned frame_slot = current_frame_slot_index % static_cast<unsigned>(shadow_resource.m_shadow_map_buffer_handles.size());
             shadow_resource.m_shadow_map_view_buffers[frame_slot] = shadow_resource.m_shadow_map_view_buffer;
 
             RendererInterface::BufferUploadDesc shadow_camera_upload_desc{};
@@ -501,7 +507,7 @@ bool RendererSystemLighting::ShadowPassResource::CalcDirectionalLightShadowMatri
 
     const glm::vec3 scene_extent = scene_bounds_max - scene_bounds_min;
     const float scene_radius = (std::max)(0.5f * glm::length(scene_extent), 1.0f);
-    const float shadow_radius = scene_radius * 1.05f;
+    const float shadow_radius = scene_radius * 1.1f;
 
     glm::vec3 light_up = {0.0f, 1.0f, 0.0f};
     if (std::abs(glm::dot(light_dir, light_up)) > 0.99f)
@@ -512,17 +518,63 @@ bool RendererSystemLighting::ShadowPassResource::CalcDirectionalLightShadowMatri
     const glm::vec3 light_eye = scene_center - light_dir * shadow_radius;
     glm::mat4x4 view_matrix = glm::lookAtLH(light_eye, scene_center, light_up);
 
-    // Use a fixed orthographic span in light-space XY to prevent rotation-dependent pumping.
-    const float ndc_total_width = shadow_radius * 2.0f;
-    const float ndc_total_height = shadow_radius * 2.0f;
-    float new_ndc_min_x = ndc_min_x * ndc_total_width - shadow_radius;
-    float new_ndc_min_y = ndc_min_y * ndc_total_height - shadow_radius;
+    std::array<glm::vec4, 8> scene_corners = {
+        glm::vec4(scene_bounds_min.x, scene_bounds_min.y, scene_bounds_min.z, 1.0f),
+        glm::vec4(scene_bounds_max.x, scene_bounds_min.y, scene_bounds_min.z, 1.0f),
+        glm::vec4(scene_bounds_min.x, scene_bounds_max.y, scene_bounds_min.z, 1.0f),
+        glm::vec4(scene_bounds_max.x, scene_bounds_max.y, scene_bounds_min.z, 1.0f),
+        glm::vec4(scene_bounds_min.x, scene_bounds_min.y, scene_bounds_max.z, 1.0f),
+        glm::vec4(scene_bounds_max.x, scene_bounds_min.y, scene_bounds_max.z, 1.0f),
+        glm::vec4(scene_bounds_min.x, scene_bounds_max.y, scene_bounds_max.z, 1.0f),
+        glm::vec4(scene_bounds_max.x, scene_bounds_max.y, scene_bounds_max.z, 1.0f)};
+
+    glm::vec3 light_space_min{
+        (std::numeric_limits<float>::max)(),
+        (std::numeric_limits<float>::max)(),
+        (std::numeric_limits<float>::max)()};
+    glm::vec3 light_space_max{
+        (std::numeric_limits<float>::lowest)(),
+        (std::numeric_limits<float>::lowest)(),
+        (std::numeric_limits<float>::lowest)()};
+    for (const auto& scene_corner : scene_corners)
+    {
+        const glm::vec4 light_space_corner = view_matrix * scene_corner;
+        light_space_min = glm::min(light_space_min, glm::vec3(light_space_corner));
+        light_space_max = glm::max(light_space_max, glm::vec3(light_space_corner));
+    }
+
+    const glm::vec3 light_space_extent = light_space_max - light_space_min;
+    const glm::vec3 light_space_padding = glm::max(light_space_extent * 0.01f, glm::vec3(0.5f, 0.5f, 1.0f));
+    light_space_min -= light_space_padding;
+    light_space_max += light_space_padding;
+
+    const float ndc_total_width = (std::max)(light_space_max.x - light_space_min.x, 1.0f);
+    const float ndc_total_height = (std::max)(light_space_max.y - light_space_min.y, 1.0f);
+    float new_ndc_min_x = ndc_min_x * ndc_total_width + light_space_min.x;
+    float new_ndc_min_y = ndc_min_y * ndc_total_height + light_space_min.y;
     float new_ndc_max_x = new_ndc_min_x + ndc_width * ndc_total_width;
     float new_ndc_max_y = new_ndc_min_y + ndc_height * ndc_total_height;
 
-    // Scene bounds are enclosed in front of this light camera setup.
-    const float near_plane = 0.01f;
-    const float far_plane = shadow_radius * 2.2f + 1.0f;
+    const float shadowmap_width_safe = static_cast<float>((std::max)(1u, shadowmap_width));
+    const float shadowmap_height_safe = static_cast<float>((std::max)(1u, shadowmap_height));
+    const float texel_size_x = (new_ndc_max_x - new_ndc_min_x) / shadowmap_width_safe;
+    const float texel_size_y = (new_ndc_max_y - new_ndc_min_y) / shadowmap_height_safe;
+    if (texel_size_x > 0.0f && texel_size_y > 0.0f)
+    {
+        const float extent_x = 0.5f * (new_ndc_max_x - new_ndc_min_x);
+        const float extent_y = 0.5f * (new_ndc_max_y - new_ndc_min_y);
+        float center_x = 0.5f * (new_ndc_min_x + new_ndc_max_x);
+        float center_y = 0.5f * (new_ndc_min_y + new_ndc_max_y);
+        center_x = std::floor(center_x / texel_size_x) * texel_size_x;
+        center_y = std::floor(center_y / texel_size_y) * texel_size_y;
+        new_ndc_min_x = center_x - extent_x;
+        new_ndc_max_x = center_x + extent_x;
+        new_ndc_min_y = center_y - extent_y;
+        new_ndc_max_y = center_y + extent_y;
+    }
+
+    const float near_plane = light_space_min.z;
+    const float far_plane = (std::max)(light_space_max.z, near_plane + 1.0f);
     glm::mat4x4 projection_matrix = glm::orthoLH(
         new_ndc_min_x,
         new_ndc_max_x,

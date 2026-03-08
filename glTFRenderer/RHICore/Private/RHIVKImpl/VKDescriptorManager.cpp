@@ -82,9 +82,15 @@ bool VKDescriptorTable::Build(IRHIDevice& device,
         VkImageView view = dynamic_cast<const VKTextureDescriptorAllocation&>(*descriptor).GetRawImageView();
         VkDescriptorImageInfo image_info{};
         image_info.imageView = view;
+        const bool is_depth_srv =
+            descriptor->GetDesc().m_view_type == RHIViewType::RVT_SRV &&
+            (IsDepthStencilFormat(descriptor->GetDesc().m_format) ||
+                ((descriptor->m_source->GetTextureDesc().GetUsage() & RUF_ALLOW_DEPTH_STENCIL) != 0));
         switch (descriptor->GetDesc().m_view_type) {
         case RHIViewType::RVT_SRV:
-            image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            image_info.imageLayout = is_depth_srv
+                ? VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL
+                : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             break;
         case RHIViewType::RVT_UAV:
             image_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;

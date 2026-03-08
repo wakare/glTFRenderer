@@ -66,7 +66,7 @@ VkAccessFlags2 GetAccessFlagFromResourceState(RHIResourceStateType state)
         result = VK_ACCESS_2_TRANSFER_WRITE_BIT;
         break;
     case RHIResourceStateType::STATE_VERTEX_AND_CONSTANT_BUFFER:
-        result = VK_ACCESS_2_VERTEX_ATTRIBUTE_READ_BIT;
+        result = VK_ACCESS_2_VERTEX_ATTRIBUTE_READ_BIT | VK_ACCESS_2_UNIFORM_READ_BIT;
         break;
     case RHIResourceStateType::STATE_INDEX_BUFFER:
         result = VK_ACCESS_2_INDEX_READ_BIT;
@@ -81,7 +81,7 @@ VkAccessFlags2 GetAccessFlagFromResourceState(RHIResourceStateType state)
         result = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
         break;
     case RHIResourceStateType::STATE_DEPTH_READ:
-        result = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+        result = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_2_SHADER_READ_BIT;
         break;
     case RHIResourceStateType::STATE_UNORDERED_ACCESS:
         result = VK_ACCESS_2_SHADER_WRITE_BIT;
@@ -237,11 +237,16 @@ bool VulkanUtils::BeginRendering(IRHICommandList& command_list, const RHIBeginRe
     {
         auto& vk_texture_allocation = dynamic_cast<const VKTextureDescriptorAllocation&>(*render_target);
         bool render_target_view = vk_texture_allocation.GetDesc().m_view_type == RHIViewType::RVT_RTV;
+        const RHIResourceStateType attachment_state = render_target_view
+            ? RHIResourceStateType::STATE_RENDER_TARGET
+            : (begin_rendering_info.enable_depth_write
+                ? RHIResourceStateType::STATE_DEPTH_WRITE
+                : RHIResourceStateType::STATE_DEPTH_READ);
+        GLTF_CHECK(vk_texture_allocation.m_source->Transition(command_list, attachment_state));
         
         VkRenderingAttachmentInfo attachment { .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO};
         attachment.imageView = vk_texture_allocation.GetRawImageView();
-        attachment.imageLayout = render_target_view ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL :
-        (begin_rendering_info.enable_depth_write ? VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL);
+        attachment.imageLayout = VKConverterUtils::ConvertToImageLayout(vk_texture_allocation.m_source->GetState());
 
         const auto& clear_value = vk_texture_allocation.m_source->GetTextureDesc().GetClearValue();
         if (render_target_view)

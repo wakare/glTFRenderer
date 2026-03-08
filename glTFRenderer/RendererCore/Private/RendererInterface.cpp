@@ -2513,6 +2513,7 @@ namespace RendererInterface
 
     bool RenderGraph::SyncWindowSurfaceAndAdvanceFrame(FramePreparationContext& frame_context, unsigned long long interval)
     {
+        (void)interval;
         m_resource_allocator.BeginFrame();
 
         const auto surface_sync_begin = std::chrono::steady_clock::now();
@@ -2528,8 +2529,6 @@ namespace RendererInterface
             m_resource_allocator.InvalidateSwapchainResizeRequest();
             return false;
         }
-
-        ExecuteTickAndDebugUI(interval);
 
         m_resource_allocator.AdvanceFrameSlot();
 
@@ -2562,6 +2561,21 @@ namespace RendererInterface
                 ToMilliseconds(acquire_context_begin, std::chrono::steady_clock::now());
             return false;
         }
+
+        if (frame_context.require_explicit_frame_wait)
+        {
+            const auto wait_begin = std::chrono::steady_clock::now();
+            m_resource_allocator.WaitFrameRenderFinished();
+            const auto wait_end = std::chrono::steady_clock::now();
+            m_current_frame_timing_breakdown.wait_previous_frame_ms = ToMilliseconds(wait_begin, wait_end);
+        }
+
+        const auto acquire_command_list_begin = std::chrono::steady_clock::now();
+        frame_context.command_list = &m_resource_allocator.GetCommandListForRecordPassCommand();
+        const auto acquire_command_list_end = std::chrono::steady_clock::now();
+        m_current_frame_timing_breakdown.acquire_command_list_ms =
+            ToMilliseconds(acquire_command_list_begin, acquire_command_list_end);
+
         m_current_frame_timing_breakdown.acquire_context_ms =
             ToMilliseconds(acquire_context_begin, std::chrono::steady_clock::now());
         return true;
@@ -2581,8 +2595,14 @@ namespace RendererInterface
             return false;
         }
 
-        return SyncWindowSurfaceAndAdvanceFrame(frame_context, interval)
-            && AcquireCurrentFrameCommandContext(frame_context);
+        if (!SyncWindowSurfaceAndAdvanceFrame(frame_context, interval) ||
+            !AcquireCurrentFrameCommandContext(frame_context))
+        {
+            return false;
+        }
+
+        ExecuteTickAndDebugUI(interval);
+        return true;
     }
 
     void RenderGraph::ExecuteRenderGraphFrame(FramePreparationContext& frame_context, unsigned long long interval)
@@ -2701,20 +2721,6 @@ namespace RendererInterface
 
         const auto planning_end = std::chrono::steady_clock::now();
         m_current_frame_timing_breakdown.execution_planning_ms = ToMilliseconds(planning_begin, planning_end);
-
-        if (frame_context.require_explicit_frame_wait)
-        {
-            const auto wait_begin = std::chrono::steady_clock::now();
-            m_resource_allocator.WaitFrameRenderFinished();
-            const auto wait_end = std::chrono::steady_clock::now();
-            m_current_frame_timing_breakdown.wait_previous_frame_ms = ToMilliseconds(wait_begin, wait_end);
-        }
-
-        const auto acquire_command_list_begin = std::chrono::steady_clock::now();
-        frame_context.command_list = &m_resource_allocator.GetCommandListForRecordPassCommand();
-        const auto acquire_command_list_end = std::chrono::steady_clock::now();
-        m_current_frame_timing_breakdown.acquire_command_list_ms =
-            ToMilliseconds(acquire_command_list_begin, acquire_command_list_end);
 
         GLTF_CHECK(frame_context.command_list);
         ExecutePlanAndCollectStats(*frame_context.command_list, frame_context.profiler_slot_index, interval);
@@ -3826,17 +3832,17 @@ namespace RendererInterface
             begin_rendering_info.m_render_target_load_ops.push_back(rhi_load_op);
             begin_rendering_info.m_render_target_store_ops.push_back(rhi_store_op);
 
-            if (rhi_load_op == RHIAttachmentLoadOp::LOAD_OP_CLEAR)
+            if (render_target_info.second.usage == RenderPassResourceUsage::DEPTH_STENCIL)
             {
-                if (render_target_info.second.usage == RenderPassResourceUsage::DEPTH_STENCIL)
+                begin_rendering_info.enable_depth_write = true;
+                if (rhi_load_op == RHIAttachmentLoadOp::LOAD_OP_CLEAR)
                 {
                     clear_depth_stencil = true;
-                    begin_rendering_info.enable_depth_write = true;
                 }
-                else
-                {
-                    clear_render_target = true;
-                }
+            }
+            else if (rhi_load_op == RHIAttachmentLoadOp::LOAD_OP_CLEAR)
+            {
+                clear_render_target = true;
             }
         }
 
@@ -4024,6 +4030,24 @@ namespace RendererInterface
             }
         }
 
+        const auto get_render_target_texture_state =
+            [](const std::shared_ptr<IRHITextureDescriptorAllocation>& descriptor_allocation,
+                RenderTargetTextureBindingDesc::TextureBindingType binding_type)
+        {
+            if (binding_type != RenderTargetTextureBindingDesc::SRV)
+            {
+                return RHIResourceStateType::STATE_UNORDERED_ACCESS;
+            }
+
+            const bool is_depth_texture =
+                descriptor_allocation &&
+                descriptor_allocation->m_source &&
+                ((descriptor_allocation->m_source->GetTextureDesc().GetUsage() & RUF_ALLOW_DEPTH_STENCIL) != 0);
+            return is_depth_texture
+                ? RHIResourceStateType::STATE_DEPTH_READ
+                : RHIResourceStateType::STATE_ALL_SHADER_RESOURCE;
+        };
+
         for (const auto& render_target_pair  :render_graph_node_desc.draw_info.render_target_texture_resources)
         {
             if (!render_pass->HasRootSignatureAllocation(render_target_pair.first))
@@ -4095,7 +4119,9 @@ namespace RendererInterface
                 GLTF_CHECK(descriptor_table);
                 for (const auto& table_texture : table_texture_descriptors)
                 {
-                    table_texture->m_source->Transition(command_list, render_target_pair.second.type == RenderTargetTextureBindingDesc::SRV ? RHIResourceStateType::STATE_ALL_SHADER_RESOURCE : RHIResourceStateType::STATE_UNORDERED_ACCESS);
+                    table_texture->m_source->Transition(
+                        command_list,
+                        get_render_target_texture_state(table_texture, render_target_pair.second.type));
                 }
 
                 for (const auto& root_signature_allocation : root_signature_allocations)
@@ -4107,7 +4133,9 @@ namespace RendererInterface
             {
                 auto descriptor = texture_cache_entry.descriptor;
                 GLTF_CHECK(descriptor);
-                descriptor->m_source->Transition(command_list, render_target_pair.second.type == RenderTargetTextureBindingDesc::SRV ? RHIResourceStateType::STATE_ALL_SHADER_RESOURCE : RHIResourceStateType::STATE_UNORDERED_ACCESS);
+                descriptor->m_source->Transition(
+                    command_list,
+                    get_render_target_texture_state(descriptor, render_target_pair.second.type));
                 for (const auto& root_signature_allocation : root_signature_allocations)
                 {
                     render_pass->GetDescriptorUpdater().BindDescriptor(command_list, pipeline_type, root_signature_allocation, *descriptor);

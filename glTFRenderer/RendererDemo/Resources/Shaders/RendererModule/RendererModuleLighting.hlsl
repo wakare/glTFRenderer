@@ -42,6 +42,30 @@ cbuffer LightInfoConstantBuffer
 };
 StructuredBuffer<LightInfo> g_lightInfos;
 
+float SampleShadowMapPCF(Texture2D<float> shadowmap, uint2 shadowmap_extent, float2 shadowmap_uv, float shadow_depth)
+{
+    const int2 shadowmap_max_texel = int2((int)shadowmap_extent.x - 1, (int)shadowmap_extent.y - 1);
+    const float min_shadowmap_extent = max(min((float)shadowmap_extent.x, (float)shadowmap_extent.y), 1.0f);
+    const float depth_bias = max(0.00075f, 2.0f / min_shadowmap_extent);
+    const float2 shadowmap_texel = shadowmap_uv * float2(shadowmap_extent) - 0.5f;
+    const int2 center_texel = int2(floor(shadowmap_texel + 0.5f));
+
+    float visible_sum = 0.0f;
+    [unroll]
+    for (int y = -1; y <= 1; ++y)
+    {
+        [unroll]
+        for (int x = -1; x <= 1; ++x)
+        {
+            const int2 sample_texel = clamp(center_texel + int2(x, y), int2(0, 0), shadowmap_max_texel);
+            const float compare_shadow_depth = shadowmap.Load(int3(sample_texel, 0));
+            visible_sum += shadow_depth <= compare_shadow_depth + depth_bias ? 1.0f : 0.0f;
+        }
+    }
+
+    return visible_sum / 9.0f;
+}
+
 float CalcLightVisibleFactor(uint light_index, float3 scene_position)
 {
     if (g_lightInfos[light_index].type == 0)
@@ -69,20 +93,13 @@ float CalcLightVisibleFactor(uint light_index, float3 scene_position)
         {
             return 1.0;
         }
-        float2 shadowmap_uv = shadowmap_ndc.xy * 0.5 + 0.5;
-        shadowmap_uv.y = 1.0 - shadowmap_uv.y;
-        int2 shadowmap_texel = int2(shadowmap_uv * float2(shadowmap_extent));
-        if (shadowmap_texel.x < 0 || shadowmap_texel.y < 0 ||
-            shadowmap_texel.x >= int(shadowmap_extent.x) || shadowmap_texel.y >= int(shadowmap_extent.y))
+        float2 shadowmap_uv = shadowmap_ndc.xy * float2(0.5f, -0.5f) + 0.5f;
+        if (shadowmap_uv.x < 0.0f || shadowmap_uv.x > 1.0f ||
+            shadowmap_uv.y < 0.0f || shadowmap_uv.y > 1.0f)
         {
             return 1.0;
         }
-        float shadow_depth = shadowmap_ndc.z;
-        float compare_shadow_depth = shadowmap.Load(int3(shadowmap_texel, 0));
-        if (shadow_depth > compare_shadow_depth + 0.01f)
-        {
-            return 0.0;
-        }
+        return SampleShadowMapPCF(shadowmap, shadowmap_extent, saturate(shadowmap_uv), shadowmap_ndc.z);
     }
     return 1.0;
 }

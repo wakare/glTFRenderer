@@ -73,7 +73,9 @@ bool VKMemoryManager::UploadBufferDataInner(IRHIBufferAllocation& buffer_allocat
     
     auto vma_buffer_allocation = dynamic_cast<const VKBufferAllocation&>(buffer_allocation).m_allocation; 
     void* mapped_data = vma_buffer_allocation->GetMappedData();
-    memcpy(mapped_data, (char*)data + offset, size);
+    GLTF_CHECK(mapped_data);
+    memcpy(static_cast<char*>(mapped_data) + offset, data, size);
+    VK_CHECK(vmaFlushAllocation(GetVmaAllocator(), vma_buffer_allocation, offset, size));
     
     return true;
 }

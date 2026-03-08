@@ -10,7 +10,8 @@ RWTexture2D<float4> Output;
 
 float3 GetWorldPosition(int2 texCoord, float depth, out bool valid_world_position)
 {
-    float2 uv = texCoord / float2(viewport_width - 1, viewport_height - 1);
+    const float2 viewport_size = max(float2((float)viewport_width, (float)viewport_height), float2(1.0f, 1.0f));
+    float2 uv = (float2(texCoord) + 0.5f) / viewport_size;
     
     // Flip uv.y is important
     float4 clipSpaceCoord = float4(2 * uv.x - 1.0, 1 - 2 * uv.y, depth, 1.0);
