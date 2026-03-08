@@ -4047,11 +4047,13 @@ namespace RendererInterface
                     auto render_target_allocation = InternalResourceHandleTable::Instance().GetRenderTarget(render_target);
                     GLTF_CHECK(render_target_allocation && render_target_allocation->m_source);
                     auto texture = render_target_allocation->m_source;
+                    const bool is_depth_render_target =
+                        (texture->GetTextureDesc().GetUsage() & RUF_ALLOW_DEPTH_STENCIL) != 0;
                     RHITextureDescriptorDesc texture_descriptor_desc{
                         texture->GetTextureFormat(),
                         RHIResourceDimension::TEXTURE2D,
                         render_target_pair.second.type == RenderTargetTextureBindingDesc::SRV ? RHIViewType::RVT_SRV : RHIViewType::RVT_UAV};
-                    if (IsDepthStencilFormat(texture->GetTextureFormat()) && render_target_pair.second.type == RenderTargetTextureBindingDesc::SRV)
+                    if (is_depth_render_target && render_target_pair.second.type == RenderTargetTextureBindingDesc::SRV)
                     {
                         texture_descriptor_desc.m_format = RHIDataFormat::D32_SAMPLE_RESERVED;
                     }

@@ -24,17 +24,31 @@ bool DX12Buffer::Release(IRHIMemoryManager& memory_manager)
 
 bool DX12Buffer::CreateBuffer(IRHIDevice& device, const RHIBufferDesc& desc)
 {
+    const auto align_up = [](size_t value, size_t alignment) -> size_t
+    {
+        if (alignment == 0)
+        {
+            return value;
+        }
+        const size_t remainder = value % alignment;
+        return remainder == 0 ? value : (value + alignment - remainder);
+    };
+
     auto* dxDevice = dynamic_cast<DX12Device&>(device).GetDevice();
 
     m_buffer_desc = desc;
     const bool contains_mipmap = desc.usage & RUF_CONTAINS_MIPMAP;
     unsigned mip_count = contains_mipmap ? static_cast<uint32_t>(std::floor(std::log2(std::max(desc.width, desc.height)))) + 1 : 1;
+    const bool is_constant_buffer =
+        desc.resource_type == RHIBufferResourceType::Buffer &&
+        (desc.usage & RUF_ALLOW_CBV) != 0;
+    const size_t committed_width = is_constant_buffer ? align_up(desc.width, 256) : desc.width;
     
     const CD3DX12_HEAP_PROPERTIES heap_properties(DX12ConverterUtils::ConvertToHeapType(desc));
     CD3DX12_RESOURCE_DESC heap_resource_desc{};
     switch (desc.resource_type) {
         case RHIBufferResourceType::Buffer:
-            heap_resource_desc = CD3DX12_RESOURCE_DESC::Buffer(desc.width);
+            heap_resource_desc = CD3DX12_RESOURCE_DESC::Buffer(committed_width);
             break;
         case RHIBufferResourceType::Tex1D:
             heap_resource_desc = CD3DX12_RESOURCE_DESC::Tex1D(DXGI_FORMAT_UNKNOWN, desc.width);

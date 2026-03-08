@@ -62,5 +62,5 @@ protected:
     RendererInterface::RenderGraphNodeHandle m_lighting_pass_node {NULL_HANDLE};
     RendererInterface::RenderTargetHandle m_lighting_pass_output {NULL_HANDLE};
 
-    RendererInterface::BufferHandle m_lighting_pass_shadow_infos_handle {NULL_HANDLE};
+    std::vector<RendererInterface::BufferHandle> m_lighting_pass_shadow_infos_handles;
 };

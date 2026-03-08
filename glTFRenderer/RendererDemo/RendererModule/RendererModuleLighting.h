@@ -39,10 +39,14 @@ public:
     
 protected:
     void UploadAllLightInfos(RendererInterface::ResourceOperator& resource_operator);
+    const std::vector<RendererInterface::BufferHandle>& GetLightBufferHandles() const { return m_light_buffer_handles; }
+    const std::vector<RendererInterface::BufferHandle>& GetLightCountBufferHandles() const { return m_light_count_buffer_handles; }
     
-    RendererInterface::BufferHandle m_light_buffer;
-    RendererInterface::BufferHandle m_light_count_buffer;
+    std::vector<RendererInterface::BufferHandle> m_light_buffer_handles;
+    std::vector<RendererInterface::BufferHandle> m_light_count_buffer_handles;
     
     std::vector<LightInfo> m_light_infos;
     bool m_need_upload_light_infos {false};
+
+    friend class RendererSystemLighting;
 };

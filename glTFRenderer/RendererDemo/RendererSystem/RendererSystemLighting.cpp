@@ -8,6 +8,15 @@
 #include <imgui/imgui.h>
 
 #include "RendererSceneAABB.h"
+#include "../../RHICore/Public/RHIConfigSingleton.h"
+
+namespace
+{
+    bool UseDx12ShadowBufferingStrategy()
+    {
+        return RHIConfigSingleton::Instance().GetGraphicsAPIType() == RHIGraphicsAPIType::RHI_GRAPHICS_API_DX12;
+    }
+}
 
 RendererSystemLighting::RendererSystemLighting(RendererInterface::ResourceOperator& resource_operator,
                                                std::shared_ptr<RendererSystemSceneRenderer> scene)
@@ -98,6 +107,7 @@ bool RendererSystemLighting::Init(RendererInterface::ResourceOperator& resource_
                                   RendererInterface::RenderGraph& graph)
 {
     GLTF_CHECK(m_scene->HasInit());
+    const bool use_dx12_shadow_buffering = UseDx12ShadowBufferingStrategy();
     
     m_lighting_pass_output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget("LightingPass_Output", RendererInterface::RGBA16_FLOAT, RendererInterface::default_clear_color,
         static_cast<RendererInterface::ResourceUsage>(RendererInterface::ResourceUsage::RENDER_TARGET | RendererInterface::ResourceUsage::COPY_SRC | RendererInterface::ResourceUsage::UNORDER_ACCESS | RendererInterface::ResourceUsage::SHADER_RESOURCE));
@@ -140,7 +150,7 @@ bool RendererSystemLighting::Init(RendererInterface::ResourceOperator& resource_
         RendererInterface::BufferDesc camera_buffer_desc{};
         camera_buffer_desc.name = "ViewBuffer";
         camera_buffer_desc.size = sizeof(ViewBuffer);
-        camera_buffer_desc.type = RendererInterface::UPLOAD;
+        camera_buffer_desc.type = use_dx12_shadow_buffering ? RendererInterface::DEFAULT : RendererInterface::UPLOAD;
         camera_buffer_desc.usage = RendererInterface::USAGE_CBV;
         camera_buffer_desc.data = &new_shadow_pass_resource.m_shadow_map_view_buffer;
         new_shadow_pass_resource.m_shadow_map_buffer_handles =
@@ -245,11 +255,20 @@ bool RendererSystemLighting::Init(RendererInterface::ResourceOperator& resource_
     shadowmap_info_buffer_desc.size = sizeof(ShadowMapInfo) * shadowmap_infos.size();
     shadowmap_info_buffer_desc.usage = RendererInterface::USAGE_SRV;
     shadowmap_info_buffer_desc.data = shadowmap_infos.data();
-    m_lighting_pass_shadow_infos_handle = resource_operator.CreateBuffer(shadowmap_info_buffer_desc);
+    if (use_dx12_shadow_buffering)
+    {
+        m_lighting_pass_shadow_infos_handles =
+            resource_operator.CreateFrameBufferedBuffers(shadowmap_info_buffer_desc, "g_shadowmap_infos");
+    }
+    else
+    {
+        m_lighting_pass_shadow_infos_handles = {resource_operator.CreateBuffer(shadowmap_info_buffer_desc)};
+    }
 
     RendererInterface::BufferBindingDesc shadowmap_info_binding_desc{};
     shadowmap_info_binding_desc.binding_type = RendererInterface::BufferBindingDesc::SRV;
-    shadowmap_info_binding_desc.buffer_handle = m_lighting_pass_shadow_infos_handle;
+    GLTF_CHECK(!m_lighting_pass_shadow_infos_handles.empty());
+    shadowmap_info_binding_desc.buffer_handle = m_lighting_pass_shadow_infos_handles.front();
     shadowmap_info_binding_desc.is_structured_buffer = true;
     shadowmap_info_binding_desc.stride = sizeof(ShadowMapInfo);
     shadowmap_info_binding_desc.count = shadowmap_infos.size();
@@ -293,7 +312,7 @@ void RendererSystemLighting::ResetRuntimeResources(RendererInterface::ResourceOp
     m_shadow_pass_resources.clear();
     m_lighting_pass_node = NULL_HANDLE;
     m_lighting_pass_output = NULL_HANDLE;
-    m_lighting_pass_shadow_infos_handle = NULL_HANDLE;
+    m_lighting_pass_shadow_infos_handles.clear();
 }
 
 bool RendererSystemLighting::Tick(RendererInterface::ResourceOperator& resource_operator,
@@ -302,6 +321,28 @@ bool RendererSystemLighting::Tick(RendererInterface::ResourceOperator& resource_
     const unsigned width = m_scene->GetWidth();
     const unsigned height = m_scene->GetHeight();
     graph.UpdateComputeDispatch(m_lighting_pass_node, (width + 7) / 8, (height + 7) / 8, 1);
+
+    if (!m_lighting_module->m_light_buffer_handles.empty())
+    {
+        graph.UpdateNodeBufferBinding(
+            m_lighting_pass_node,
+            "g_lightInfos",
+            resource_operator.GetFrameBufferedBufferHandle(m_lighting_module->m_light_buffer_handles));
+    }
+    if (!m_lighting_module->m_light_count_buffer_handles.empty())
+    {
+        graph.UpdateNodeBufferBinding(
+            m_lighting_pass_node,
+            "LightInfoConstantBuffer",
+            resource_operator.GetFrameBufferedBufferHandle(m_lighting_module->m_light_count_buffer_handles));
+    }
+    if (!m_lighting_pass_shadow_infos_handles.empty())
+    {
+        graph.UpdateNodeBufferBinding(
+            m_lighting_pass_node,
+            "g_shadowmap_infos",
+            resource_operator.GetFrameBufferedBufferHandle(m_lighting_pass_shadow_infos_handles));
+    }
 
     if (CastShadow())
     {
@@ -432,12 +473,12 @@ void RendererSystemLighting::UpdateDirectionalShadowResources(RendererInterface:
         shadowmap_infos.push_back(shadow_resource.m_shadow_map_info);
     }
 
-    if (!shadowmap_infos.empty() && m_lighting_pass_shadow_infos_handle != NULL_HANDLE)
+    if (!shadowmap_infos.empty() && !m_lighting_pass_shadow_infos_handles.empty())
     {
         RendererInterface::BufferUploadDesc shadow_info_upload_desc{};
         shadow_info_upload_desc.data = shadowmap_infos.data();
         shadow_info_upload_desc.size = shadowmap_infos.size() * sizeof(ShadowMapInfo);
-        resource_operator.UploadBufferData(m_lighting_pass_shadow_infos_handle, shadow_info_upload_desc);
+        resource_operator.UploadFrameBufferedBufferData(m_lighting_pass_shadow_infos_handles, shadow_info_upload_desc);
     }
 }
 

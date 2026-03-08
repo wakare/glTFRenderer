@@ -151,15 +151,18 @@ namespace
         IRHIDevice& device,
         IRHIMemoryManager& memory_manager,
         IRHIRenderTargetManager& render_target_manager,
-        const RendererInterface::RenderTargetDesc& desc)
+        const RendererInterface::RenderTargetDesc& desc,
+        RendererInterface::RenderDeviceType device_type)
     {
-        const RHIDataFormat format = RendererInterfaceRHIConverter::ConvertToRHIFormat(desc.format);
-        GLTF_CHECK(format != RHIDataFormat::UNKNOWN);
-        const bool is_depth_stencil = IsDepthStencilFormat(format);
-        const RHITextureClearValue clear_value = BuildRenderTargetClearValue(desc, format, is_depth_stencil);
+        const RHIDataFormat descriptor_format = RendererInterfaceRHIConverter::ConvertToRHIFormat(desc.format);
+        GLTF_CHECK(descriptor_format != RHIDataFormat::UNKNOWN);
+        const bool is_depth_stencil = IsDepthStencilFormat(descriptor_format);
+        const RHITextureClearValue clear_value = BuildRenderTargetClearValue(desc, descriptor_format, is_depth_stencil);
         const RHIResourceUsageFlags usage = BuildRenderTargetUsageFlags(desc, is_depth_stencil);
-        RHITextureDesc tex_desc(desc.name, desc.width, desc.height, format, usage, clear_value);
-        return render_target_manager.CreateRenderTarget(device, memory_manager, tex_desc, format);
+        const RHIDataFormat resource_format =
+            (is_depth_stencil && device_type == RendererInterface::DX12) ? RHIDataFormat::R32_TYPELESS : descriptor_format;
+        RHITextureDesc tex_desc(desc.name, desc.width, desc.height, resource_format, usage, clear_value);
+        return render_target_manager.CreateRenderTarget(device, memory_manager, tex_desc, descriptor_format);
     }
 
 }
@@ -379,7 +382,8 @@ RendererInterface::ShaderHandle ResourceManager::CreateShader(const RendererInte
 RendererInterface::RenderTargetHandle ResourceManager::CreateRenderTarget(const RendererInterface::RenderTargetDesc& desc)
 {
     RendererInterface::RenderTargetDesc stored_desc = desc;
-    auto render_target_descriptor = CreateRenderTargetAllocation(*m_device, *m_memory_manager, *m_render_target_manager, stored_desc);
+    auto render_target_descriptor =
+        CreateRenderTargetAllocation(*m_device, *m_memory_manager, *m_render_target_manager, stored_desc, m_device_desc.type);
     auto render_target_handle = RendererInterface::InternalResourceHandleTable::Instance().RegisterRenderTarget(render_target_descriptor);
     m_render_targets[render_target_handle] = render_target_descriptor;
     m_render_target_descs[render_target_handle] = stored_desc;
