@@ -3,10 +3,14 @@
 #include "VKDescriptorManager.h"
 #include "VKDevice.h"
 #include "VKRootSignature.h"
+#include "RHIInterface/IRHICommandList.h"
 
 bool VKDescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPipelineType pipeline,
                                          const RootSignatureAllocation& root_signature_allocation, const IRHIDescriptorAllocation& allocation)
 {
+    (void)command_list;
+    (void)pipeline;
+
     if (root_signature_allocation.type == RHIRootParameterType::AccelerationStructure)
     {
         const auto& accel_allocation = dynamic_cast<const VKAccelerationStructureDescriptorAllocation&>(allocation);
@@ -68,6 +72,7 @@ bool VKDescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPipel
     {
         // Texture resource
         auto& VkTextureDesc = dynamic_cast<const VKTextureDescriptorAllocation&>(allocation);
+        const bool is_depth_texture = IsDepthStencilFormat(descriptor_desc.m_format);
         
         auto& image_info = m_cache_image_infos.emplace_back();
         image_info.imageView = VkTextureDesc.GetRawImageView();
@@ -77,7 +82,9 @@ bool VKDescriptorUpdater::BindDescriptor(IRHICommandList& command_list, RHIPipel
         switch (descriptor_desc.m_view_type) {
         case RHIViewType::RVT_DSV:
         case RHIViewType::RVT_SRV:
-            image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;    
+            image_info.imageLayout = is_depth_texture
+                ? VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL
+                : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             draw_image_write.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
             break;
         case RHIViewType::RVT_UAV:
@@ -137,7 +144,8 @@ bool VKDescriptorUpdater::FinalizeUpdateDescriptors(IRHIDevice& device, IRHIComm
     }
 
     // Can not write to static sampler descriptor layout
-    const auto& vk_descriptor_sets = dynamic_cast<VKRootSignature&>(root_signature).GetDescriptorSets();
+    const unsigned frame_slot_index = command_list.GetFrameSlotIndex();
+    const auto& vk_descriptor_sets = dynamic_cast<VKRootSignature&>(root_signature).GetDescriptorSets(frame_slot_index);
     auto vk_device = dynamic_cast<VKDevice&>(device).GetDevice();
     if (!vk_descriptor_sets.empty())
     {

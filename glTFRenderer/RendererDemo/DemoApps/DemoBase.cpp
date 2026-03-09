@@ -815,6 +815,16 @@ void DemoBase::DrawDebugUI()
 bool DemoBase::Init(const std::vector<std::string>& arguments)
 {
     m_launch_arguments = arguments;
+    m_startup_snapshot_path.clear();
+    const std::string snapshot_prefix = "-snapshot=";
+    for (const auto& argument : arguments)
+    {
+        if (argument.rfind(snapshot_prefix, 0) == 0)
+        {
+            m_startup_snapshot_path = argument.substr(snapshot_prefix.length());
+        }
+    }
+
     RETURN_IF_FALSE(InitRenderContext(arguments))
     
     RETURN_IF_FALSE(InitInternal(arguments))
@@ -829,6 +839,11 @@ bool DemoBase::Init(const std::vector<std::string>& arguments)
     {
         system->FinalizeModule(*m_resource_manager);
         system->Init(*m_resource_manager, *m_render_graph);
+    }
+
+    if (!m_startup_snapshot_path.empty())
+    {
+        RETURN_IF_FALSE(ImportStateSnapshotFromJson(m_startup_snapshot_path))
     }
 
     if (m_render_graph)
@@ -848,6 +863,7 @@ bool DemoBase::InitRenderContext(const std::vector<std::string>& arguments)
 {
     bool bUseDX = true;
     RendererInterface::SwapchainPresentMode swapchain_present_mode = RendererInterface::SwapchainPresentMode::MAILBOX;
+    bool disable_debug_ui = false;
     
     for (const auto& argument : arguments)
     {
@@ -869,6 +885,11 @@ bool DemoBase::InitRenderContext(const std::vector<std::string>& arguments)
         if (argument == "-vsync")
         {
             swapchain_present_mode = RendererInterface::SwapchainPresentMode::VSYNC;
+        }
+
+        if (argument == "-disable-debug-ui")
+        {
+            disable_debug_ui = true;
         }
     }
 
@@ -899,6 +920,10 @@ bool DemoBase::InitRenderContext(const std::vector<std::string>& arguments)
     m_render_graph = std::make_shared<RendererInterface::RenderGraph>(*m_resource_manager, *m_window);
     m_render_graph->RegisterTickCallback([this](unsigned long long time){ TickFrame(time); });
     m_render_graph->RegisterDebugUICallback([this]() { DrawDebugUI(); });
+    if (disable_debug_ui)
+    {
+        m_render_graph->EnableDebugUI(false);
+    }
 
     return true;
 }

@@ -11,10 +11,14 @@ public:
     virtual bool Release(IRHIMemoryManager& memory_manager) override;
     
     const std::vector<VkDescriptorSet>& GetDescriptorSets() const;
+    const std::vector<VkDescriptorSet>& GetDescriptorSets(unsigned frame_slot_index) const;
     const std::vector<VkDescriptorSetLayout>& GetDescriptorSetLayouts() const;
 
 protected:
+    static constexpr unsigned DESCRIPTOR_SET_FRAME_SLOT_COUNT = 4;
+
     VkDevice m_device {VK_NULL_HANDLE};
     std::vector<VkDescriptorSetLayout> m_descriptor_set_layouts;
-    std::vector<VkDescriptorSet> m_descriptor_sets;
+    std::vector<VkDescriptorSet> m_descriptor_sets_flat;
+    std::vector<std::vector<VkDescriptorSet>> m_descriptor_sets_per_frame;
 };

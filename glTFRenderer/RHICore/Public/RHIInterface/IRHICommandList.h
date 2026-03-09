@@ -26,10 +26,13 @@ public:
 
     void SetState(RHICommandListState state);
     RHICommandListState GetState() const;
+    void SetFrameSlotIndex(unsigned frame_slot_index);
+    unsigned GetFrameSlotIndex() const;
     
 protected:
     std::shared_ptr<IRHISemaphore> m_finished_semaphore;
     std::shared_ptr<IRHIFence> m_fence;
 
     RHICommandListState m_state {RHICommandListState::Closed};
+    unsigned m_frame_slot_index {0};
 };

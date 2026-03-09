@@ -24,3 +24,13 @@ RHICommandListState IRHICommandList::GetState() const
 {
     return m_state;
 }
+
+void IRHICommandList::SetFrameSlotIndex(unsigned frame_slot_index)
+{
+    m_frame_slot_index = frame_slot_index;
+}
+
+unsigned IRHICommandList::GetFrameSlotIndex() const
+{
+    return m_frame_slot_index;
+}

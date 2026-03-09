@@ -716,6 +716,7 @@ IRHICommandList& ResourceManager::GetCommandListForRecordPassCommand(
     const auto current_frame_index = GetCurrentFrameSlotIndex();
     auto& command_list = *m_command_lists[current_frame_index];
     auto& command_allocator = *m_command_allocators[current_frame_index];
+    command_list.SetFrameSlotIndex(current_frame_index);
 
     if (command_list.GetState() == RHICommandListState::Closed)
     {

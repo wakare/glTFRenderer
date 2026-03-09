@@ -107,6 +107,7 @@ protected:
     std::string m_recorded_state_snapshot_status{};
     char m_snapshot_export_name[128]{"snapshot"};
     char m_snapshot_directory[260]{"build_logs/snapshots"};
+    std::filesystem::path m_startup_snapshot_path{};
     std::vector<StateSnapshotFileEntry> m_snapshot_file_entries{};
     int m_snapshot_selected_index{-1};
     std::string m_last_snapshot_export_path{};
