@@ -4,6 +4,7 @@
 #include "RHIInterface/IRHIDescriptorManager.h"
 
 class DX12DescriptorHeap;
+struct ID3D12Resource;
 
 class DX12BufferDescriptorAllocation : public IRHIBufferDescriptorAllocation
 {
@@ -66,6 +67,8 @@ public:
     virtual bool BindDescriptorContext(IRHICommandList& command_list) override;
     virtual bool BindGUIDescriptorContext(IRHICommandList& command_list) override;
     virtual bool Release(IRHIMemoryManager& memory_manager) override;
+
+    void InvalidateResourceDescriptors(ID3D12Resource* resource);
     
     DX12DescriptorHeap& GetDescriptorHeap(RHIViewType type) const;
     DX12DescriptorHeap& GetDescriptorHeap(RHIDescriptorHeapType type) const;

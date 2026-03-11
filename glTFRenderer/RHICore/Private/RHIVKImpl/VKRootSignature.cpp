@@ -5,6 +5,7 @@
 #include "VKRootParameter.h"
 #include "VKCommon.h"
 #include "VKStaticSampler.h"
+#include "RHIInterface/IRHICommandList.h"
 #include "RHIInterface/IRHIMemoryManager.h"
 
 bool VKRootSignature::InitRootSignature(IRHIDevice& device, IRHIDescriptorManager& descriptor_manager)
@@ -62,9 +63,10 @@ bool VKRootSignature::InitRootSignature(IRHIDevice& device, IRHIDescriptorManage
     
     VkDescriptorSetAllocateInfo descriptor_set_allocate_info{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, .pNext = nullptr};
     descriptor_set_allocate_info.descriptorPool = vk_descriptor_pool;
+    m_descriptor_set_frame_slot_count = descriptor_manager.GetFrameSlotCount();
     std::vector<VkDescriptorSetLayout> descriptor_set_layouts_for_frames;
-    descriptor_set_layouts_for_frames.reserve(m_descriptor_set_layouts.size() * DESCRIPTOR_SET_FRAME_SLOT_COUNT);
-    for (unsigned frame_slot = 0; frame_slot < DESCRIPTOR_SET_FRAME_SLOT_COUNT; ++frame_slot)
+    descriptor_set_layouts_for_frames.reserve(m_descriptor_set_layouts.size() * m_descriptor_set_frame_slot_count);
+    for (unsigned frame_slot = 0; frame_slot < m_descriptor_set_frame_slot_count; ++frame_slot)
     {
         descriptor_set_layouts_for_frames.insert(
             descriptor_set_layouts_for_frames.end(),
@@ -80,9 +82,9 @@ bool VKRootSignature::InitRootSignature(IRHIDevice& device, IRHIDescriptorManage
     m_descriptor_sets_flat.resize(descriptor_set_layouts_for_frames.size());
     VK_CHECK(vkAllocateDescriptorSets(m_device, &descriptor_set_allocate_info, m_descriptor_sets_flat.data()));
 
-    m_descriptor_sets_per_frame.assign(DESCRIPTOR_SET_FRAME_SLOT_COUNT, {});
+    m_descriptor_sets_per_frame.assign(m_descriptor_set_frame_slot_count, {});
     const size_t descriptor_set_count_per_frame = m_descriptor_set_layouts.size();
-    for (unsigned frame_slot = 0; frame_slot < DESCRIPTOR_SET_FRAME_SLOT_COUNT; ++frame_slot)
+    for (unsigned frame_slot = 0; frame_slot < m_descriptor_set_frame_slot_count; ++frame_slot)
     {
         auto& frame_descriptor_sets = m_descriptor_sets_per_frame[frame_slot];
         frame_descriptor_sets.reserve(descriptor_set_count_per_frame);
@@ -121,6 +123,7 @@ bool VKRootSignature::Release(IRHIMemoryManager& memory_manager)
         m_descriptor_sets_flat.clear();
     }
     m_descriptor_sets_per_frame.clear();
+    m_descriptor_set_frame_slot_count = 1;
 
     for (const auto& descriptor_set_layout : m_descriptor_set_layouts)
     {
@@ -131,23 +134,38 @@ bool VKRootSignature::Release(IRHIMemoryManager& memory_manager)
     return true;
 }
 
-const std::vector<VkDescriptorSet>& VKRootSignature::GetDescriptorSets() const
-{
-    return GetDescriptorSets(0);
-}
-
-const std::vector<VkDescriptorSet>& VKRootSignature::GetDescriptorSets(unsigned frame_slot_index) const
+const std::vector<VkDescriptorSet>& VKRootSignature::GetDescriptorSetsForFrameSlot(unsigned frame_slot_index) const
 {
     if (m_descriptor_sets_per_frame.empty())
     {
         return m_descriptor_sets_flat;
     }
 
-    const unsigned resolved_frame_slot = frame_slot_index % static_cast<unsigned>(m_descriptor_sets_per_frame.size());
-    return m_descriptor_sets_per_frame[resolved_frame_slot];
+    return m_descriptor_sets_per_frame[ResolveDescriptorSetFrameSlot(frame_slot_index)];
+}
+
+const std::vector<VkDescriptorSet>& VKRootSignature::GetDescriptorSetsForCommandList(const IRHICommandList& command_list) const
+{
+    return GetDescriptorSetsForFrameSlot(command_list.GetFrameSlotIndex());
 }
 
 const std::vector<VkDescriptorSetLayout>& VKRootSignature::GetDescriptorSetLayouts() const
 {
     return m_descriptor_set_layouts;
+}
+
+unsigned VKRootSignature::GetDescriptorSetFrameSlotCount() const
+{
+    if (!m_descriptor_sets_per_frame.empty())
+    {
+        return static_cast<unsigned>(m_descriptor_sets_per_frame.size());
+    }
+
+    return m_descriptor_set_frame_slot_count;
+}
+
+unsigned VKRootSignature::ResolveDescriptorSetFrameSlot(unsigned frame_slot_index) const
+{
+    const unsigned frame_slot_count = GetDescriptorSetFrameSlotCount();
+    return frame_slot_count > 0 ? (frame_slot_index % frame_slot_count) : 0;
 }

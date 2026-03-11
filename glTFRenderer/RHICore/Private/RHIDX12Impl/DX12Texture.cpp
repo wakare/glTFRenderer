@@ -3,6 +3,7 @@
 #include <utility>
 #include "DX12Buffer.h"
 #include "DX12ConverterUtils.h"
+#include "DX12DescriptorManager.h"
 #include "DX12Device.h"
 #include "DX12Utils.h"
 #include "RHIUtils.h"
@@ -79,6 +80,8 @@ bool DX12Texture::CreateTexture(IRHIDevice& device, const RHITextureDesc& desc)
 
 bool DX12Texture::Release(IRHIMemoryManager& memory_manager)
 {
+    dynamic_cast<DX12DescriptorManager&>(memory_manager.GetDescriptorManager()).InvalidateResourceDescriptors(
+        m_buffer.Get());
     SAFE_RELEASE(m_buffer);
     return true;
 }

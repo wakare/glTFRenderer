@@ -3,6 +3,7 @@
 #include <cassert>
 
 #include "d3dx12.h"
+#include "DX12DescriptorManager.h"
 #include "DX12Utils.h"
 #include <d3d12.h>
 
@@ -12,6 +13,9 @@
 
 bool DX12Buffer::Release(IRHIMemoryManager& memory_manager)
 {
+    dynamic_cast<DX12DescriptorManager&>(memory_manager.GetDescriptorManager()).InvalidateResourceDescriptors(
+        m_buffer.Get());
+
     if (m_mapped_gpu_buffer)
     {
         m_buffer->Unmap(0, &m_map_range);

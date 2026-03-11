@@ -2,17 +2,10 @@
 #include <cmath>
 #include <glm/glm/gtx/norm.hpp>
 
-#include "../../RHICore/Public/RHIConfigSingleton.h"
-
 namespace
 {
     constexpr float LIGHT_INFO_FLOAT_EPSILON = 1.0e-6f;
     constexpr float LIGHT_INFO_VECTOR_EPSILON_SQ = LIGHT_INFO_FLOAT_EPSILON * LIGHT_INFO_FLOAT_EPSILON;
-
-    bool UseDx12FrameBufferedLightingBuffers()
-    {
-        return RHIConfigSingleton::Instance().GetGraphicsAPIType() == RHIGraphicsAPIType::RHI_GRAPHICS_API_DX12;
-    }
 
     bool IsLightInfoEquivalent(const LightInfo& lhs, const LightInfo& rhs)
     {
@@ -25,35 +18,19 @@ namespace
 
 RendererModuleLighting::RendererModuleLighting(RendererInterface::ResourceOperator& resource_operator)
 {
-    const bool use_frame_buffered_buffers = UseDx12FrameBufferedLightingBuffers();
-
     RendererInterface::BufferDesc light_buffer_desc{};
     light_buffer_desc.name = "g_lightInfos";
     light_buffer_desc.size = sizeof(LightInfo) * MAX_LIGHT_COUNT;
     light_buffer_desc.type = RendererInterface::DEFAULT;
     light_buffer_desc.usage = RendererInterface::USAGE_SRV;
-    if (use_frame_buffered_buffers)
-    {
-        m_light_buffer_handles = resource_operator.CreateFrameBufferedBuffers(light_buffer_desc, "g_lightInfos");
-    }
-    else
-    {
-        m_light_buffer_handles = {resource_operator.CreateBuffer(light_buffer_desc)};
-    }
+    m_light_buffer_handles = resource_operator.CreateFrameBufferedBuffers(light_buffer_desc, "g_lightInfos");
 
     RendererInterface::BufferDesc light_count_buffer_desc{};
     light_count_buffer_desc.name = "LightInfoConstantBuffer";
     light_count_buffer_desc.size = sizeof(int);
     light_count_buffer_desc.type = RendererInterface::DEFAULT;
     light_count_buffer_desc.usage = RendererInterface::USAGE_CBV;
-    if (use_frame_buffered_buffers)
-    {
-        m_light_count_buffer_handles = resource_operator.CreateFrameBufferedBuffers(light_count_buffer_desc, "LightInfoConstantBuffer");
-    }
-    else
-    {
-        m_light_count_buffer_handles = {resource_operator.CreateBuffer(light_count_buffer_desc)};
-    }
+    m_light_count_buffer_handles = resource_operator.CreateFrameBufferedBuffers(light_count_buffer_desc, "LightInfoConstantBuffer");
 }
 
 unsigned RendererModuleLighting::AddLightInfo(const LightInfo& info)

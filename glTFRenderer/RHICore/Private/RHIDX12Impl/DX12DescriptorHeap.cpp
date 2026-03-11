@@ -202,6 +202,16 @@ bool DX12DescriptorHeap::CreateResourceDescriptorInHeap(IRHIDevice& device, cons
     return created;
 }
 
+void DX12DescriptorHeap::InvalidateResourceDescriptors(ID3D12Resource* resource)
+{
+    if (!resource)
+    {
+        return;
+    }
+
+    m_created_descriptors_info.erase(resource);
+}
+
 bool DX12DescriptorHeap::Release(IRHIMemoryManager& memory_manager)
 {
     m_created_descriptors_info.clear();

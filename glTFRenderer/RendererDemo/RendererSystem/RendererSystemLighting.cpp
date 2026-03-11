@@ -10,15 +10,6 @@
 #include <imgui/imgui.h>
 
 #include "RendererSceneAABB.h"
-#include "../../RHICore/Public/RHIConfigSingleton.h"
-
-namespace
-{
-    bool UseDx12ShadowBufferingStrategy()
-    {
-        return RHIConfigSingleton::Instance().GetGraphicsAPIType() == RHIGraphicsAPIType::RHI_GRAPHICS_API_DX12;
-    }
-}
 
 RendererSystemLighting::RendererSystemLighting(RendererInterface::ResourceOperator& resource_operator,
                                                std::shared_ptr<RendererSystemSceneRenderer> scene)
@@ -109,8 +100,6 @@ bool RendererSystemLighting::Init(RendererInterface::ResourceOperator& resource_
                                   RendererInterface::RenderGraph& graph)
 {
     GLTF_CHECK(m_scene->HasInit());
-    //const bool use_dx12_shadow_buffering = UseDx12ShadowBufferingStrategy();
-    //const bool use_dx12_shadow_buffering = true;
     
     m_lighting_pass_output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget("LightingPass_Output", RendererInterface::RGBA16_FLOAT, RendererInterface::default_clear_color,
         static_cast<RendererInterface::ResourceUsage>(RendererInterface::ResourceUsage::RENDER_TARGET | RendererInterface::ResourceUsage::COPY_SRC | RendererInterface::ResourceUsage::UNORDER_ACCESS | RendererInterface::ResourceUsage::SHADER_RESOURCE));
@@ -153,8 +142,7 @@ bool RendererSystemLighting::Init(RendererInterface::ResourceOperator& resource_
         RendererInterface::BufferDesc camera_buffer_desc{};
         camera_buffer_desc.name = "ViewBuffer";
         camera_buffer_desc.size = sizeof(ViewBuffer);
-        //camera_buffer_desc.type = use_dx12_shadow_buffering ? RendererInterface::DEFAULT : RendererInterface::UPLOAD;
-        camera_buffer_desc.type =  RendererInterface::UPLOAD;
+        camera_buffer_desc.type =  RendererInterface::DEFAULT;
         camera_buffer_desc.usage = RendererInterface::USAGE_CBV;
         camera_buffer_desc.data = &new_shadow_pass_resource.m_shadow_map_view_buffer;
         new_shadow_pass_resource.m_shadow_map_buffer_handles =
@@ -259,9 +247,8 @@ bool RendererSystemLighting::Init(RendererInterface::ResourceOperator& resource_
     shadowmap_info_buffer_desc.size = sizeof(ShadowMapInfo) * shadowmap_infos.size();
     shadowmap_info_buffer_desc.usage = RendererInterface::USAGE_SRV;
     shadowmap_info_buffer_desc.data = shadowmap_infos.data();
-    //m_lighting_pass_shadow_infos_handles =
-    //    resource_operator.CreateFrameBufferedBuffers(shadowmap_info_buffer_desc, "g_shadowmap_infos");
-    m_lighting_pass_shadow_infos_handles = {resource_operator.CreateBuffer(shadowmap_info_buffer_desc)};
+    m_lighting_pass_shadow_infos_handles =
+        resource_operator.CreateFrameBufferedBuffers(shadowmap_info_buffer_desc, "g_shadowmap_infos");
     
     RendererInterface::BufferBindingDesc shadowmap_info_binding_desc{};
     shadowmap_info_binding_desc.binding_type = RendererInterface::BufferBindingDesc::SRV;

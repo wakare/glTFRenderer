@@ -19,3 +19,13 @@ bool IRHIDescriptorTable::Release(IRHIMemoryManager& memory_manager)
 {
     return true;
 }
+
+void IRHIDescriptorManager::SetFrameSlotCount(unsigned frame_slot_count)
+{
+    m_frame_slot_count = frame_slot_count > 0 ? frame_slot_count : 1u;
+}
+
+unsigned IRHIDescriptorManager::GetFrameSlotCount() const
+{
+    return m_frame_slot_count;
+}

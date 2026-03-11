@@ -176,6 +176,27 @@ bool DX12DescriptorManager::Release(IRHIMemoryManager& memory_manager)
     return true;
 }
 
+void DX12DescriptorManager::InvalidateResourceDescriptors(ID3D12Resource* resource)
+{
+    if (!resource)
+    {
+        return;
+    }
+
+    if (m_CBV_SRV_UAV_gpu_heap)
+    {
+        m_CBV_SRV_UAV_gpu_heap->InvalidateResourceDescriptors(resource);
+    }
+    if (m_RTV_heap)
+    {
+        m_RTV_heap->InvalidateResourceDescriptors(resource);
+    }
+    if (m_DSV_heap)
+    {
+        m_DSV_heap->InvalidateResourceDescriptors(resource);
+    }
+}
+
 DX12DescriptorHeap& DX12DescriptorManager::GetDescriptorHeap(RHIViewType type) const
 {
     switch (type)

@@ -144,8 +144,7 @@ bool VKDescriptorUpdater::FinalizeUpdateDescriptors(IRHIDevice& device, IRHIComm
     }
 
     // Can not write to static sampler descriptor layout
-    const unsigned frame_slot_index = command_list.GetFrameSlotIndex();
-    const auto& vk_descriptor_sets = dynamic_cast<VKRootSignature&>(root_signature).GetDescriptorSets(frame_slot_index);
+    const auto& vk_descriptor_sets = dynamic_cast<VKRootSignature&>(root_signature).GetDescriptorSetsForCommandList(command_list);
     auto vk_device = dynamic_cast<VKDevice&>(device).GetDevice();
     if (!vk_descriptor_sets.empty())
     {

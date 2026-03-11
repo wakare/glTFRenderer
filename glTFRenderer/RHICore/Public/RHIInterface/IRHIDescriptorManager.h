@@ -73,4 +73,11 @@ public:
 
     virtual bool BindDescriptorContext(IRHICommandList& command_list) = 0;
     virtual bool BindGUIDescriptorContext(IRHICommandList& command_list) = 0;
+
+    void SetFrameSlotCount(unsigned frame_slot_count);
+    unsigned GetFrameSlotCount() const;
+
+protected:
+    // Backends with frame-buffered descriptor state use this to size per-frame storage explicitly.
+    unsigned m_frame_slot_count{1};
 };

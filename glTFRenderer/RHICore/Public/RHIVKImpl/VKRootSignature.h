@@ -2,6 +2,8 @@
 #include "RHIInterface/IRHIRootSignature.h"
 #include "VolkUtils.h"
 
+class IRHICommandList;
+
 class VKRootSignature : public IRHIRootSignature
 {
 public:
@@ -10,15 +12,17 @@ public:
     virtual bool InitRootSignature(IRHIDevice& device, IRHIDescriptorManager& descriptor_manager) override;
     virtual bool Release(IRHIMemoryManager& memory_manager) override;
     
-    const std::vector<VkDescriptorSet>& GetDescriptorSets() const;
-    const std::vector<VkDescriptorSet>& GetDescriptorSets(unsigned frame_slot_index) const;
+    const std::vector<VkDescriptorSet>& GetDescriptorSetsForFrameSlot(unsigned frame_slot_index) const;
+    const std::vector<VkDescriptorSet>& GetDescriptorSetsForCommandList(const IRHICommandList& command_list) const;
     const std::vector<VkDescriptorSetLayout>& GetDescriptorSetLayouts() const;
+    unsigned GetDescriptorSetFrameSlotCount() const;
 
 protected:
-    static constexpr unsigned DESCRIPTOR_SET_FRAME_SLOT_COUNT = 4;
+    unsigned ResolveDescriptorSetFrameSlot(unsigned frame_slot_index) const;
 
     VkDevice m_device {VK_NULL_HANDLE};
     std::vector<VkDescriptorSetLayout> m_descriptor_set_layouts;
     std::vector<VkDescriptorSet> m_descriptor_sets_flat;
     std::vector<std::vector<VkDescriptorSet>> m_descriptor_sets_per_frame;
+    unsigned m_descriptor_set_frame_slot_count {1};
 };

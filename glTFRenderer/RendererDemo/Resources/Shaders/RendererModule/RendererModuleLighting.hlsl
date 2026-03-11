@@ -42,11 +42,18 @@ cbuffer LightInfoConstantBuffer
 };
 StructuredBuffer<LightInfo> g_lightInfos;
 
-float SampleShadowMapPCF(Texture2D<float> shadowmap, uint2 shadowmap_extent, float2 shadowmap_uv, float shadow_depth)
+float ComputeDirectionalShadowDepthBias(uint2 shadowmap_extent, float3 scene_normal, float3 light_direction)
+{
+    const float min_shadowmap_extent = max(min((float)shadowmap_extent.x, (float)shadowmap_extent.y), 1.0f);
+    const float ndotl = saturate(dot(normalize(scene_normal), normalize(light_direction)));
+    const float constant_bias = 1.5f / min_shadowmap_extent;
+    const float slope_bias = (1.0f - ndotl) * (3.0f / min_shadowmap_extent);
+    return max(0.00075f, constant_bias + slope_bias);
+}
+
+float SampleShadowMapPCF(Texture2D<float> shadowmap, uint2 shadowmap_extent, float2 shadowmap_uv, float shadow_depth, float depth_bias)
 {
     const int2 shadowmap_max_texel = int2((int)shadowmap_extent.x - 1, (int)shadowmap_extent.y - 1);
-    const float min_shadowmap_extent = max(min((float)shadowmap_extent.x, (float)shadowmap_extent.y), 1.0f);
-    const float depth_bias = max(0.00075f, 2.0f / min_shadowmap_extent);
     const float2 shadowmap_texel = shadowmap_uv * float2(shadowmap_extent) - 0.5f;
     const int2 center_texel = int2(floor(shadowmap_texel + 0.5f));
 
@@ -66,7 +73,7 @@ float SampleShadowMapPCF(Texture2D<float> shadowmap, uint2 shadowmap_extent, flo
     return visible_sum / 9.0f;
 }
 
-float CalcLightVisibleFactor(uint light_index, float3 scene_position)
+float CalcLightVisibleFactor(uint light_index, float3 scene_position, float3 scene_normal, float3 light_direction)
 {
     if (g_lightInfos[light_index].type == 0)
     {
@@ -99,7 +106,8 @@ float CalcLightVisibleFactor(uint light_index, float3 scene_position)
         {
             return 1.0;
         }
-        return SampleShadowMapPCF(shadowmap, shadowmap_extent, saturate(shadowmap_uv), shadowmap_ndc.z);
+        const float depth_bias = ComputeDirectionalShadowDepthBias(shadowmap_extent, scene_normal, light_direction);
+        return SampleShadowMapPCF(shadowmap, shadowmap_extent, saturate(shadowmap_uv), shadowmap_ndc.z, depth_bias);
     }
     return 1.0;
 }
@@ -180,7 +188,7 @@ float3 GetLightingByIndex(uint sample_light_index, PixelLightingShadingInfo shad
     float max_distance;
     if (GetLightDistanceVector(sample_light_index, shading_info.position, light_vector, max_distance))
     {
-        float visible_factor = CalcLightVisibleFactor(sample_light_index, shading_info.position);
+        float visible_factor = CalcLightVisibleFactor(sample_light_index, shading_info.position, shading_info.normal, light_vector);
         float3 brdf = EvalCookTorranceBRDF(shading_info.normal, shading_info.albedo, shading_info.metallic, shading_info.roughness, view, light_vector);
         return visible_factor * brdf * GetLightIntensity(sample_light_index, shading_info.position) * max(dot(shading_info.normal, light_vector), 0.0);
     }

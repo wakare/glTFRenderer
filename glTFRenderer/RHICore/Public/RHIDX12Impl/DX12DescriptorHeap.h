@@ -30,6 +30,7 @@ public:
     virtual bool CreateResourceDescriptorInHeap(IRHIDevice& device, const std::shared_ptr<IRHITexture>& texture, const RHIDescriptorDesc& desc,
                                                           /*output*/
                                                           std::shared_ptr<IRHITextureDescriptorAllocation>& out_allocation) ;
+    void InvalidateResourceDescriptors(ID3D12Resource* resource);
 
     virtual bool Release(IRHIMemoryManager& memory_manager) override;
     

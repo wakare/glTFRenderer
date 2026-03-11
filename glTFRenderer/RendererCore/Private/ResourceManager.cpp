@@ -10,6 +10,7 @@
 #include "RHIUtils.h"
 #include "RHIInterface/IRHICommandAllocator.h"
 #include "RHIInterface/IRHICommandList.h"
+#include "RHIInterface/IRHIDescriptorManager.h"
 #include "RHIInterface/IRHIRenderTargetManager.h"
 #include "RHIInterface/IRHIRootSignatureHelper.h"
 #include "RHIInterface/IRHISwapChain.h"
@@ -260,6 +261,8 @@ bool ResourceManager::InitResourceManager(const RendererInterface::RenderDeviceD
         m_command_lists[i] = RHIResourceFactory::CreateRHIResource<IRHICommandList>();
         m_command_lists[i]->InitCommandList(*m_device, *m_command_allocators[i]);
     }
+
+    m_memory_manager->GetDescriptorManager().SetFrameSlotCount(GetFrameSlotCount());
     
     m_render_target_manager = RHIResourceFactory::CreateRHIResource<IRHIRenderTargetManager>();
     m_render_target_manager->InitRenderTargetManager(*m_device, 100);

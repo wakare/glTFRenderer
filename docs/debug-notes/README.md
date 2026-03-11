@@ -30,4 +30,5 @@ This directory stores accepted bug-fix notes for issues that took meaningful tim
 
 ## Current notes
 
+- [2026-03-11-dx12-shadow-lifetime-review.md](./2026-03-11-dx12-shadow-lifetime-review.md)
 - [2026-03-11-vulkan-shadow-ghosting.md](./2026-03-11-vulkan-shadow-ghosting.md)
