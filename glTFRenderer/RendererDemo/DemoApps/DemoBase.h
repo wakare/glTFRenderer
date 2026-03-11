@@ -115,6 +115,6 @@ protected:
     std::string m_snapshot_io_status{};
     RendererInterface::SwapchainResizePolicy m_swapchain_resize_policy_ui{};
     bool m_swapchain_resize_policy_ui_initialized{false};
-    RendererInterface::SwapchainPresentMode m_swapchain_present_mode_ui{RendererInterface::SwapchainPresentMode::MAILBOX};
+    RendererInterface::SwapchainPresentMode m_swapchain_present_mode_ui{RendererInterface::SwapchainPresentMode::VSYNC};
     bool m_swapchain_present_mode_ui_initialized{false};
 };

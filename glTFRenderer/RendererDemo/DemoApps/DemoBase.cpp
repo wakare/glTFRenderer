@@ -862,7 +862,7 @@ void DemoBase::Run()
 bool DemoBase::InitRenderContext(const std::vector<std::string>& arguments)
 {
     bool bUseDX = true;
-    RendererInterface::SwapchainPresentMode swapchain_present_mode = RendererInterface::SwapchainPresentMode::MAILBOX;
+    RendererInterface::SwapchainPresentMode swapchain_present_mode = RendererInterface::SwapchainPresentMode::VSYNC;
     bool disable_debug_ui = false;
     
     for (const auto& argument : arguments)

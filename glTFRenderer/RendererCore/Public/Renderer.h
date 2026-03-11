@@ -307,7 +307,7 @@ namespace RendererInterface
         RenderWindowHandle window;
         unsigned back_buffer_count;
         SwapchainResizePolicy swapchain_resize_policy{};
-        SwapchainPresentMode swapchain_present_mode{SwapchainPresentMode::MAILBOX};
+        SwapchainPresentMode swapchain_present_mode{SwapchainPresentMode::VSYNC};
     };
 
     // Runtime state for swapchain/surface synchronization.
