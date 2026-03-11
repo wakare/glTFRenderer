@@ -1,5 +1,32 @@
 # AGENTS.md
 
+## Repository Root Convention
+
+- Canonical repo root for this workspace is the current directory (currently `C:\glTFRenderer`).
+- Treat `glTFRenderer/` as the solution/runtime subtree, not as an alternative workspace root.
+- Use repo-root-relative paths in docs and commands:
+  - solution: `glTFRenderer\glTFRenderer.sln`
+  - root utility scripts: `.\scripts\...`
+  - RendererDemo perf/regression scripts: `.\glTFRenderer\scripts\...`
+  - runtime source trees: `glTFRenderer/RendererCore`, `glTFRenderer/RHICore`, `glTFRenderer/RendererDemo`
+- Runtime-only relative paths such as `Resources/...` or `glTFResources/...` are exceptions when the executable resolves them from its working directory.
+
+## Bug Fix Notes
+
+- For any bug that the user explicitly accepts as fixed, add a note under `docs/debug-notes/` in the same turn unless the user asks not to.
+- Do not write a final root-cause note for bugs that are still under investigation or not yet accepted.
+- Use file name format `YYYY-MM-DD-short-bug-name.md`.
+- Every accepted bug note must include:
+  - Symptom
+  - Reproduction
+  - Wrong hypotheses or detours
+  - Final root cause
+  - Final fix
+  - Validation
+  - Reflection and prevention
+- If the investigation started in the wrong direction, keep that history in the note and explain why it looked plausible and why it was not the real cause.
+- When a fix exposes a structural weakness, add a prevention item and note whether a refactor or validation hook should be considered.
+
 ## Build Log Policy (MSBuild)
 
 - Goal: prevent AIChat UI from being flooded/blocked by build output.
@@ -146,5 +173,5 @@ Get-Process msbuild -ErrorAction SilentlyContinue | Stop-Process -Force
 
 ### Runtime Maintenance Scope (Important)
 
-- For `RendererDemo` runtime issues, use `glTFRenderer/glTFRenderer/glTFRenderer/RendererCore` as the source of truth for frame lifecycle and resource management.
+- For `RendererDemo` runtime issues, use `glTFRenderer/RendererCore` as the source of truth for frame lifecycle and resource management.
 - Treat `glTFApp`-based runtime logic as legacy/non-maintained for current work unless the user explicitly asks to debug or modify that path.

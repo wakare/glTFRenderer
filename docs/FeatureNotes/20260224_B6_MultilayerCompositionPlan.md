@@ -5,7 +5,7 @@
 - Title: Requirement update and implementation plan for Vision Pro-style multilayer frosted composition
 - Owner: AI coding session
 - Related Plan:
-  - `Doc/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
+  - `docs/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
 
 ## 1. Requirement Update
 
@@ -108,3 +108,4 @@
 ## 7. Next Action
 
 - Start B6.1 implementation with Option A (top-2 layered composition) as default strategy.
+

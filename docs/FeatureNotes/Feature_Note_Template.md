@@ -5,7 +5,10 @@
 - Title:
 - Owner:
 - Related Plan:
-  - `Doc/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
+  - `docs/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
+- Path Convention:
+  - Repo-relative paths are rooted at the current directory (`C:\glTFRenderer`).
+  - Code files should normally start with `glTFRenderer/`; root utility scripts use `scripts/`.
 
 ## 1. Scope
 
@@ -26,8 +29,8 @@
 
 ## 4. Files Changed
 
-- `path/to/file1`
-- `path/to/file2`
+- `glTFRenderer/path/to/file1`
+- `scripts/Build-RendererDemo-Verify.ps1`
 
 ## 5. Validation and Evidence
 
@@ -45,3 +48,4 @@
 
 - Known risks:
 - Next tasks:
+

@@ -5,7 +5,7 @@
 - Title: Add reusable window-relative half/quarter ping-pong render targets for postfx
 - Owner: AI coding session
 - Related Plan:
-  - `Doc/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
+  - `docs/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
 
 ## 1. Scope
 
@@ -86,3 +86,4 @@
 - Next tasks:
   - B1.1: introduce downsample + blur stages that consume `PostFxSharedResources`.
   - A4.x: integrate history lifecycle using similar shared resource conventions.
+

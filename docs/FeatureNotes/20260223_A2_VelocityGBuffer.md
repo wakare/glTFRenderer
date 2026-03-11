@@ -5,7 +5,7 @@
 - Title: Add base-pass velocity render target and shader motion-vector output
 - Owner: AI coding session
 - Related Plan:
-  - `Doc/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
+  - `docs/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
 
 ## 1. Scope
 
@@ -84,3 +84,4 @@
 - Next tasks:
   - A2.3: add debug visualization for velocity and validity checks.
   - A4.x: consume velocity/history in temporal stabilization pipeline.
+

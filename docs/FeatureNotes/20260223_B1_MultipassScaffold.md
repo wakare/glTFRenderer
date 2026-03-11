@@ -5,7 +5,7 @@
 - Title: Replace single-pass frosted processing with multipass postfx scaffold
 - Owner: AI coding session
 - Related Plan:
-  - `Doc/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
+  - `docs/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
 
 ## 1. Scope
 
@@ -94,3 +94,4 @@
 - Next tasks:
   - B1.2: add quarter-level pyramid usage and tuned reconstruction/composite strategy.
   - B1.3: split explicit mask/parameter stage and validate quality/perf against v1 baseline.
+

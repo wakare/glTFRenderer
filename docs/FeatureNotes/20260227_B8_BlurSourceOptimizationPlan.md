@@ -5,9 +5,9 @@
 - Title: Replace fixed frosted blur pyramid with shared low-cost blur source
 - Owner: AI coding session
 - Related Plan:
-  - `Doc/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
-  - `Doc/RendererDemo_FrostedGlass_FramePassReference.md`
-  - `Doc/FeatureNotes/20260225_B7_PanelGBufferTwoLayerCompatibilityPlan.md`
+  - `docs/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
+  - `docs/RendererDemo_FrostedGlass_FramePassReference.md`
+  - `docs/FeatureNotes/20260225_B7_PanelGBufferTwoLayerCompatibilityPlan.md`
 
 ## 1. Requirement Update
 
@@ -149,9 +149,9 @@ Status legend: `Planned`, `In Progress`, `Blocked`, `Accepted`
 
 | Sub-item | Scope | Status | Last Update | Evidence |
 |---|---|---|---|---|
-| B8.1 | Runtime switch + abstraction | In Progress | 2026-02-28 | `RendererDemo/RendererSystem/RendererSystemFrostedGlass.h/.cpp` (`BlurSourceMode`, runtime registration switch) |
-| B8.2 | Shared mip source generation | In Progress | 2026-02-28 | `RendererDemo/RendererSystem/RendererSystemFrostedGlass.cpp` (SharedMip runtime registers full 5-level downsample chains for base + strict multilayer second source) |
-| B8.3 | Composite shader source migration | In Progress | 2026-02-28 | `RendererDemo/Resources/Shaders/FrostedGlass.hlsl` SharedMip branch samples full shared levels (`1/2`~`1/32`) and applies shared-mode low-frequency compensation tuning; legacy path adds `Full Fog Mode` branch (screen-UV-leaning ultra-low-frequency sampling + stronger edge de-structure) |
+| B8.1 | Runtime switch + abstraction | In Progress | 2026-02-28 | `glTFRenderer/RendererDemo/RendererSystem/RendererSystemFrostedGlass.h`, `glTFRenderer/RendererDemo/RendererSystem/RendererSystemFrostedGlass.cpp` (`BlurSourceMode`, runtime registration switch) |
+| B8.2 | Shared mip source generation | In Progress | 2026-02-28 | `glTFRenderer/RendererDemo/RendererSystem/RendererSystemFrostedGlass.cpp` (SharedMip runtime registers full 5-level downsample chains for base + strict multilayer second source) |
+| B8.3 | Composite shader source migration | In Progress | 2026-02-28 | `glTFRenderer/RendererDemo/Resources/Shaders/FrostedGlass.hlsl` SharedMip branch samples full shared levels (`1/2`~`1/32`) and applies shared-mode low-frequency compensation tuning; legacy path adds `Full Fog Mode` branch (screen-UV-leaning ultra-low-frequency sampling + stronger edge de-structure) |
 | B8.4 | Strict multilayer second-source integration | In Progress | 2026-02-28 | SharedMip strict path generates second source from `m_frosted_back_composite_output` before front composite |
 | B8.5 | Perf/visual acceptance and default-mode decision | Planned | 2026-02-27 | This document |
 
@@ -159,7 +159,7 @@ Progress maintenance rule:
 
 - Every B8 iteration must update this table in the same PR.
 - Any pass/resource contract change must also update:
-  - `Doc/RendererDemo_FrostedGlass_FramePassReference.md`
+  - `docs/RendererDemo_FrostedGlass_FramePassReference.md`
 
 ## 9. Next Action
 
@@ -173,3 +173,4 @@ Progress maintenance rule:
   - use Frosted debug UI `Frosted Active Nodes (expected)` and runtime path labels as quick pass-count sanity reference
   - profile pass count/timing in force multilayer scene
   - compare SharedMip vs Legacy visual behavior in overlap-heavy cases
+

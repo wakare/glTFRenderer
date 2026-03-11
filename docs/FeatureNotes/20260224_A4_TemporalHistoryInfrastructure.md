@@ -5,7 +5,7 @@
 - Title: Add frosted-glass temporal history lifecycle, ping-pong routing, and invalidation path
 - Owner: AI coding session
 - Related Plan:
-  - `Doc/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
+  - `docs/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
 
 ## 1. Scope
 
@@ -67,7 +67,7 @@
 - `glTFRenderer/RendererDemo/RendererSystem/RendererSystemFrostedGlass.h`
 - `glTFRenderer/RendererDemo/RendererSystem/RendererSystemFrostedGlass.cpp`
 - `glTFRenderer/RendererDemo/Resources/Shaders/FrostedGlass.hlsl`
-- `Doc/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
+- `docs/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
 
 ## 5. Validation and Evidence
 
@@ -104,3 +104,4 @@
 - Next tasks:
   - A4 acceptance pass: validate motion stability and resize-reset behavior via interactive checklist.
   - M3 follow-up: run B2 state transition scenarios with temporal enabled and capture artifact review.
+

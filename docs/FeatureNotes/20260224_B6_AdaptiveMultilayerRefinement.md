@@ -5,8 +5,8 @@
 - Title: Refine layered composite ordering and add auto-mode runtime budget fallback
 - Owner: AI coding session
 - Related Plan:
-  - `Doc/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
-  - `Doc/FeatureNotes/20260224_B6_Top2MultilayerCore.md`
+  - `docs/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
+  - `docs/FeatureNotes/20260224_B6_Top2MultilayerCore.md`
 
 ## 1. Scope
 
@@ -52,7 +52,7 @@
 - `glTFRenderer/RendererDemo/RendererSystem/RendererSystemFrostedGlass.h`
 - `glTFRenderer/RendererDemo/RendererSystem/RendererSystemFrostedGlass.cpp`
 - `glTFRenderer/RendererDemo/Resources/Shaders/FrostedGlass.hlsl`
-- `Doc/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
+- `docs/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
 
 ## 5. Validation and Evidence
 
@@ -89,3 +89,4 @@
 - Next tasks:
   - B6 acceptance pass: run overlap-heavy motion scenes and tune defaults (`back weight`, `overlap threshold`, `budget ms`).
   - Optional: add GPU timing-based quality switch for more accurate runtime fallback.
+

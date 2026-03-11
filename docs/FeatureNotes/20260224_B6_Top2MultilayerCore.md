@@ -5,8 +5,8 @@
 - Title: Implement top-2 overlap payload and layered composite modes for frosted glass
 - Owner: AI coding session
 - Related Plan:
-  - `Doc/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
-  - `Doc/FeatureNotes/20260224_B6_MultilayerCompositionPlan.md`
+  - `docs/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
+  - `docs/FeatureNotes/20260224_B6_MultilayerCompositionPlan.md`
 
 ## 1. Scope
 
@@ -65,7 +65,7 @@
 - `glTFRenderer/RendererDemo/RendererSystem/RendererSystemFrostedGlass.h`
 - `glTFRenderer/RendererDemo/RendererSystem/RendererSystemFrostedGlass.cpp`
 - `glTFRenderer/RendererDemo/Resources/Shaders/FrostedGlass.hlsl`
-- `Doc/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
+- `docs/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
 
 ## 5. Validation and Evidence
 
@@ -102,3 +102,4 @@
 - Next tasks:
   - B6.2: add overlap ratio counters and dynamic budget-aware fallback.
   - B6 acceptance: capture overlap-heavy visual/perf evidence and finalize default mode settings.
+

@@ -5,7 +5,7 @@
 - Title: Add explicit mask/parameter stage and route composite through intermediate panel data
 - Owner: AI coding session
 - Related Plan:
-  - `Doc/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
+  - `docs/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
 
 ## 1. Scope
 
@@ -101,3 +101,4 @@
   - B1 acceptance pass: capture v1 vs v2 screenshots and per-pass timing evidence.
   - B2 implementation: panel state machine integration for runtime parameter transitions.
   - B3 follow-up: replace fallback overlap behavior with explicit layering policy for irregular masks.
+

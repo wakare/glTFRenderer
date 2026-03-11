@@ -5,7 +5,7 @@
 - Title: Implement real irregular shape-mask path and deterministic panel layering policy
 - Owner: AI coding session
 - Related Plan:
-  - `Doc/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
+  - `docs/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
 
 ## 1. Scope
 
@@ -56,7 +56,7 @@
 - `glTFRenderer/RendererDemo/RendererSystem/RendererSystemFrostedGlass.cpp`
 - `glTFRenderer/RendererDemo/Resources/Shaders/FrostedGlass.hlsl`
 - `glTFRenderer/RendererDemo/DemoApps/DemoAppModelViewer.cpp`
-- `Doc/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
+- `docs/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
 
 ## 5. Validation and Evidence
 
@@ -93,3 +93,4 @@
 - Next tasks:
   - B3 acceptance pass: capture overlap predictability and irregular-shape visual checklist.
   - B4 follow-up: add readability-safe behavior on top of layered mask result.
+

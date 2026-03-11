@@ -1,5 +1,5 @@
 param(
-    [string]$DocRoot = "Doc",
+    [string]$DocRoot = "docs",
     [string]$RepoRoot = "."
 )
 
@@ -41,7 +41,15 @@ function Resolve-ReferencedPath {
         return $null
     }
 
-    if ([System.IO.Path]::IsPathRooted($RawPath)) {
+    $isRooted = $false
+    try {
+        $isRooted = [System.IO.Path]::IsPathRooted($RawPath)
+    }
+    catch [System.ArgumentException] {
+        return $null
+    }
+
+    if ($isRooted) {
         if (Test-Path -LiteralPath $RawPath) {
             return (Resolve-Path -LiteralPath $RawPath).Path
         }
@@ -79,7 +87,7 @@ $repoRootFullPath = (Resolve-Path -LiteralPath $RepoRoot).Path
 $docRootFullPath = Join-Path $repoRootFullPath $DocRoot
 
 if (-not (Test-Path -LiteralPath $docRootFullPath)) {
-    Write-Host "[DocRef][Error] Doc root not found: $docRootFullPath"
+    Write-Host "[DocRef][Error] Docs root not found: $docRootFullPath"
     exit 2
 }
 

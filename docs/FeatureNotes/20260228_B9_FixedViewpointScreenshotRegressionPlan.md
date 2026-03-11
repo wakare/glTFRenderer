@@ -5,10 +5,10 @@
 - Title: Fixed-viewpoint screenshot regression and frame-level performance telemetry system
 - Owner: AI coding session
 - Related Plan:
-  - `Doc/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
-  - `Doc/RendererDemo_FrostedGlass_FramePassReference.md`
-  - `Doc/FeatureNotes/20260227_B8_BlurSourceOptimizationPlan.md`
-  - `Doc/FeatureNotes/20260228_B9_RegressionWorkflow_Runbook.md`
+  - `docs/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
+  - `docs/RendererDemo_FrostedGlass_FramePassReference.md`
+  - `docs/FeatureNotes/20260227_B8_BlurSourceOptimizationPlan.md`
+  - `docs/FeatureNotes/20260228_B9_RegressionWorkflow_Runbook.md`
 
 ## 1. Requirement Update
 
@@ -63,6 +63,8 @@ Three-layer architecture:
 
 ## 4. Data Model and Directory Layout
 
+- Repo-root-relative path base for this document: current directory `C:\glTFRenderer`.
+
 ## 4.1 Suite descriptor (json)
 
 Example fields:
@@ -86,11 +88,9 @@ Example fields:
 
 ## 4.2 Suggested folder convention
 
-- `RendererDemo/Resources/RegressionSuites/*.json`
-- `build_logs/regression/<suite>_<timestamp>/suite_result.json`
-- `build_logs/regression/<suite>_<timestamp>/cases/<index>_<case>.png`
-- `build_logs/regression/<suite>_<timestamp>/cases/<index>_<case>.pass.csv`
-- `build_logs/regression/<suite>_<timestamp>/cases/<index>_<case>.perf.json`
+- suite definitions: glTFRenderer/RendererDemo/Resources/RegressionSuites/*.json
+- run output root example: glTFRenderer/build_logs/regression/<suite>_<timestamp>/ directory
+- per-run files: suite_result.json, cases/<index>_<case>.png, cases/<index>_<case>.pass.csv, cases/<index>_<case>.perf.json
 
 ## 5. CLI Workflow
 
@@ -98,7 +98,9 @@ Example fields:
 
 Current prototype command:
 
-- `RendererDemo.exe DemoAppModelViewer -dx -regression -regression-suite=Resources/RegressionSuites/frosted_glass_b9_smoke.json`
+```powershell
+RendererDemo.exe DemoAppModelViewer -dx -regression -regression-suite=Resources/RegressionSuites/frosted_glass_b9_smoke.json
+```
 - Optional output root override:
   - `-regression-output=<path>`
 
@@ -117,7 +119,13 @@ Behavior:
 
 Current prototype command:
 
-- `powershell -ExecutionPolicy Bypass -File scripts/Compare-RendererRegression.ps1 -Baseline <baseline_run_dir> -Current <current_run_dir> -ReportOut <report_dir> -Profile scripts/RegressionCompareProfile.default.json`
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\Compare-RendererRegression.ps1 `
+  -Baseline <baseline_run_dir> `
+  -Current <current_run_dir> `
+  -ReportOut <report_dir> `
+  -Profile .\scripts\RegressionCompareProfile.default.json
+```
 
 Behavior:
 
@@ -126,8 +134,8 @@ Behavior:
 - visual metrics: `MAE` / `RMSE` / `PSNR`
 - perf metrics: frame/frosted aggregate increase-percent thresholds
 - generate:
-  - `summary.json`
-  - `summary.md`
+  - summary JSON
+  - summary Markdown
   - `diff/*_absdiff.png`
 - non-zero exit on failure
 
@@ -152,7 +160,7 @@ Status legend: `Planned`, `In Progress`, `Blocked`, `Accepted`
 | B9.5 | Batch capture command-line entry | P0 | B9.2, B9.3, B9.4 | Accepted | `-regression -regression-suite=...` auto-run and auto-exit |
 | B9.6 | Visual compare engine + thresholds | P0 | B9.5 | In Progress | script-based MAE/RMSE/PSNR compare + pass/fail |
 | B9.7 | Performance compare engine + thresholds | P0 | B9.2, B9.5 | In Progress | script-based perf delta gate + pass/fail |
-| B9.8 | Diff/report generation | P1 | B9.6, B9.7 | In Progress | `summary.json/md` + absdiff output |
+| B9.8 | Diff/report generation | P1 | B9.6, B9.7 | In Progress | summary JSON/Markdown + absdiff output |
 | B9.9 | CI integration job (capture/compare) | P1 | B9.6, B9.7, B9.8 | Planned | automated visual/perf regression gate |
 | B9.10 | Baseline update workflow and policy | P1 | B9.6, B9.7 | Planned | controlled visual/perf baseline refresh |
 
@@ -225,4 +233,5 @@ Workflow:
   - wrong CWD causing `glTFResources/...` scene load failure
   - wrong CWD causing `Resources/Shaders/...` shader load failure
 - Detailed command templates and troubleshooting are documented in:
-  - `Doc/FeatureNotes/20260228_B9_RegressionWorkflow_Runbook.md`
+  - `docs/FeatureNotes/20260228_B9_RegressionWorkflow_Runbook.md`
+

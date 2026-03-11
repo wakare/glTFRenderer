@@ -5,8 +5,8 @@
 - Title: 3D perspective panel compatibility plan with Panel GBuffer and two-layer sequential frosted composition
 - Owner: AI coding session
 - Related Plan:
-  - `Doc/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
-  - `Doc/RendererDemo_FrostedGlass_FramePassReference.md` (frame pass role/dependency/resource contract)
+  - `docs/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
+  - `docs/RendererDemo_FrostedGlass_FramePassReference.md` (frame pass role/dependency/resource contract)
 
 ## 1. Requirement Update
 
@@ -253,3 +253,4 @@ Notes:
     - skipped validation passes: `0`
   - result:
     - B7 accepted for this stage; further AVP matching is optional iterative polish, not a blocker for current scope closure.
+

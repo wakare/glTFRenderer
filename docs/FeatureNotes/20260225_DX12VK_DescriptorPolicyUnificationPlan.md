@@ -5,7 +5,7 @@
 - Title: Unify descriptor management policy across DX12 and Vulkan without forcing identical backend mechanisms
 - Owner: AI coding session
 - Related Plan:
-  - `Doc/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
+  - `docs/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
 
 ## 1. Scope
 
@@ -20,16 +20,16 @@
 ## 2. Baseline Differences (Current)
 
 - Same input budget is passed at memory-manager init (`cbv_srv_uav=512, rtv=64, dsv=64`):
-  - `RendererCore/Private/ResourceManager.cpp`
+  - `glTFRenderer/RendererCore/Private/ResourceManager.cpp`
 - Vulkan applies a larger effective pool budget on top of this baseline:
-  - `RHICore/Private/RHIVKImpl/VKDescriptorManager.cpp`
+  - `glTFRenderer/RHICore/Private/RHIVKImpl/VKDescriptorManager.cpp`
   - (`base=max(cbv_srv_uav,256)`, then expanded buffer/image/maxSets capacities)
 - DX12 uses the raw baseline directly for heap size and grows only by linear consumption:
-  - `RHICore/Private/RHIDX12Impl/DX12DescriptorManager.cpp`
-  - `RHICore/Private/RHIDX12Impl/DX12DescriptorHeap.cpp`
+  - `glTFRenderer/RHICore/Private/RHIDX12Impl/DX12DescriptorManager.cpp`
+  - `glTFRenderer/RHICore/Private/RHIDX12Impl/DX12DescriptorHeap.cpp`
 - DX12 descriptor heap path currently has no explicit hard-cap precheck before writing next descriptor slot.
 - Vulkan path has stronger pool-side limits and explicit set allocation/free lifecycle in root signature:
-  - `RHICore/Private/RHIVKImpl/VKRootSignature.cpp`
+  - `glTFRenderer/RHICore/Private/RHIVKImpl/VKRootSignature.cpp`
 
 ## 3. Risk Assessment
 
@@ -140,3 +140,4 @@ Expected outcome:
 2. Add descriptor usage telemetry counters to both backends.
 3. Introduce shared `DescriptorBudgetPolicy` configuration path.
 4. Run cross-backend stress validation and record evidence in a follow-up note.
+

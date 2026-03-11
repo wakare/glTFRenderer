@@ -4,6 +4,12 @@ This document defines the refactor order, validation gates, and perf guardrails 
 
 The goal is not only to improve code structure, but to do it without hiding meaningful performance regressions behind architectural churn.
 
+Path convention in this document:
+
+- Commands assume the current working directory is repo root `C:\glTFRenderer`.
+- Files inside the solution subtree therefore use the `glTFRenderer/` prefix.
+- Perf/build artifacts emitted by the `glTFRenderer/scripts/` tooling live under `glTFRenderer/build_logs/` by default.
+
 ## Objectives
 
 - Reduce framework-level coupling in frame scheduling, swapchain handling, and runtime bootstrap.
@@ -17,19 +23,19 @@ Use these as the starting reference until a later phase is explicitly accepted a
 
 - `MAILBOX` throughput baseline:
   - DX12:
-    - `build_logs/perf_loop/session_20260306_163023/regression_outputs/dx12/frosted_glass_b9_smoke_20260306_163024/cases/001_legacy_fullfog_reference.perf.json`
+    - `glTFRenderer/build_logs/perf_loop/session_20260306_163023/regression_outputs/dx12/frosted_glass_b9_smoke_20260306_163024/cases/001_legacy_fullfog_reference.perf.json`
   - Vulkan:
-    - `build_logs/perf_loop/session_20260306_163023/regression_outputs/vulkan/frosted_glass_b9_smoke_20260306_163029/cases/001_legacy_fullfog_reference.perf.json`
+    - `glTFRenderer/build_logs/perf_loop/session_20260306_163023/regression_outputs/vulkan/frosted_glass_b9_smoke_20260306_163029/cases/001_legacy_fullfog_reference.perf.json`
   - Comparison:
-    - `build_logs/perf_loop/session_20260306_163023/comparison/comparison_20260306_163032.md`
+    - `glTFRenderer/build_logs/perf_loop/session_20260306_163023/comparison/comparison_20260306_163032.md`
 
 - `VSYNC` pacing reference:
   - DX12:
-    - `build_logs/perf_loop/session_20260306_161336/regression_outputs/dx12/frosted_glass_b9_smoke_20260306_161339/cases/001_legacy_fullfog_reference.perf.json`
+    - `glTFRenderer/build_logs/perf_loop/session_20260306_161336/regression_outputs/dx12/frosted_glass_b9_smoke_20260306_161339/cases/001_legacy_fullfog_reference.perf.json`
   - Vulkan:
-    - `build_logs/perf_loop/session_20260306_161336/regression_outputs/vulkan/frosted_glass_b9_smoke_20260306_161346/cases/001_legacy_fullfog_reference.perf.json`
+    - `glTFRenderer/build_logs/perf_loop/session_20260306_161336/regression_outputs/vulkan/frosted_glass_b9_smoke_20260306_161346/cases/001_legacy_fullfog_reference.perf.json`
   - Comparison:
-    - `build_logs/perf_loop/session_20260306_161336/comparison/comparison_20260306_161352.md`
+    - `glTFRenderer/build_logs/perf_loop/session_20260306_161336/comparison/comparison_20260306_161352.md`
 
 ## Non-Regression Gates
 
@@ -38,7 +44,7 @@ Every refactor phase must pass all of the following before it is considered comp
 ### 1. Build Gate
 
 - Run:
-  - `powershell -ExecutionPolicy Bypass -File .\scripts\Build-RendererDemo-Verify.ps1`
+  - `powershell -ExecutionPolicy Bypass -File .\glTFRenderer\scripts\Build-RendererDemo-Verify.ps1`
 - Required:
   - `Build succeeded`
   - no new compile errors
@@ -47,7 +53,7 @@ Every refactor phase must pass all of the following before it is considered comp
 ### 2. Functional Regression Gate
 
 - Run:
-  - `powershell -ExecutionPolicy Bypass -File .\scripts\Invoke-RendererDemo-PerfLoop.ps1 -SuitePath .\RendererDemo\Resources\RegressionSuites\frosted_glass_b9_smoke.json -PresentMode Mailbox`
+  - `powershell -ExecutionPolicy Bypass -File .\glTFRenderer\scripts\Invoke-RendererDemo-PerfLoop.ps1 -SuitePath .\glTFRenderer\RendererDemo\Resources\RegressionSuites\frosted_glass_b9_smoke.json -PresentMode Mailbox`
 - Required:
   - DX12 regression suite succeeds
   - Vulkan regression suite succeeds
@@ -76,7 +82,7 @@ Compare against the current accepted `MAILBOX` baseline.
 Run only when the phase touches frame scheduling, wait placement, swapchain, present, or frame slot ownership.
 
 - Run:
-  - `powershell -ExecutionPolicy Bypass -File .\scripts\Invoke-RendererDemo-PerfLoop.ps1 -SuitePath .\RendererDemo\Resources\RegressionSuites\frosted_glass_b9_smoke.json -PresentMode VSync`
+  - `powershell -ExecutionPolicy Bypass -File .\glTFRenderer\scripts\Invoke-RendererDemo-PerfLoop.ps1 -SuitePath .\glTFRenderer\RendererDemo\Resources\RegressionSuites\frosted_glass_b9_smoke.json -PresentMode VSync`
 - Required:
   - `frame_total_avg_ms` remains near refresh-limited behavior
   - any large movement between `wait_previous_frame`, `acquire_swapchain`, `submit_command_list`, and `present_call` is explained
@@ -99,10 +105,10 @@ Run only when the phase touches frame scheduling, wait placement, swapchain, pre
 - Goal:
   - separate `frame slot`, `swapchain image`, `profiler slot`, and `deferred-release retention` into explicit concepts
 - Main hotspots today:
-  - `RendererCore/Public/RendererInterface.h`
-  - `RendererCore/Private/RendererInterface.cpp`
-  - `RendererCore/Public/ResourceManager.h`
-  - `RendererCore/Private/ResourceManager.cpp`
+  - `glTFRenderer/RendererCore/Public/RendererInterface.h`
+  - `glTFRenderer/RendererCore/Private/RendererInterface.cpp`
+  - `glTFRenderer/RendererCore/Public/ResourceManager.h`
+  - `glTFRenderer/RendererCore/Private/ResourceManager.cpp`
 - Concrete targets:
   - introduce a `FrameRingConfig`
   - replace implicit `GetBackBufferCount()` coupling with explicit slot-count usage
@@ -118,11 +124,11 @@ Run only when the phase touches frame scheduling, wait placement, swapchain, pre
 - Goal:
   - move swapchain recreate/resize/present-mode transitions into an explicit controller
 - Main hotspots today:
-  - `RendererCore/Public/ResourceManager.h`
-  - `RendererCore/Private/ResourceManager.cpp`
-  - `RendererCore/Private/ResourceManagerSurfaceSync.cpp`
-  - `RHICore/Private/RHIDX12Impl/DX12SwapChain.cpp`
-  - `RHICore/Private/RHIVKImpl/VKSwapChain.cpp`
+  - `glTFRenderer/RendererCore/Public/ResourceManager.h`
+  - `glTFRenderer/RendererCore/Private/ResourceManager.cpp`
+  - `glTFRenderer/RendererCore/Private/ResourceManagerSurfaceSync.cpp`
+  - `glTFRenderer/RHICore/Private/RHIDX12Impl/DX12SwapChain.cpp`
+  - `glTFRenderer/RHICore/Private/RHIVKImpl/VKSwapChain.cpp`
 - Concrete targets:
   - remove heavy `friend`-based coordination
   - centralize recreate vs in-place resize behavior
@@ -138,8 +144,8 @@ Run only when the phase touches frame scheduling, wait placement, swapchain, pre
 - Goal:
   - break `RenderGraph` into smaller runtime services
 - Main hotspots today:
-  - `RendererCore/Public/RendererInterface.h`
-  - `RendererCore/Private/RendererInterface.cpp`
+  - `glTFRenderer/RendererCore/Public/RendererInterface.h`
+  - `glTFRenderer/RendererCore/Private/RendererInterface.cpp`
 - Concrete targets:
   - extract `ExecutionPlanner`
   - extract `DependencyDiagnostics`
@@ -156,8 +162,8 @@ Run only when the phase touches frame scheduling, wait placement, swapchain, pre
 - Goal:
   - reduce the scope of the current façade API
 - Main hotspots today:
-  - `RendererCore/Public/RendererInterface.h`
-  - `RendererCore/Private/RendererInterface.cpp`
+  - `glTFRenderer/RendererCore/Public/RendererInterface.h`
+  - `glTFRenderer/RendererCore/Private/RendererInterface.cpp`
 - Concrete targets:
   - split resource creation from runtime frame/surface control
   - isolate swapchain controls from render-resource creation
@@ -172,7 +178,7 @@ Run only when the phase touches frame scheduling, wait placement, swapchain, pre
 - Goal:
   - remove renderer runtime bootstrapping and runtime-RHI switch orchestration from `DemoBase`
 - Main hotspots today:
-  - `RendererDemo/DemoApps/DemoBase.cpp`
+  - `glTFRenderer/RendererDemo/DemoApps/DemoBase.cpp`
 - Concrete targets:
   - extract argument parsing
   - extract runtime config defaults
@@ -188,10 +194,10 @@ Run only when the phase touches frame scheduling, wait placement, swapchain, pre
 - Goal:
   - gather runtime config, perf defaults, and validation policy into one coherent configuration model
 - Main hotspots today:
-  - `RendererCore/Public/Renderer.h`
-  - `RHICore/Public/RHIConfigSingleton.h`
-  - `RHICore/Private/RHIConfigSingleton.cpp`
-  - `RendererDemo/DemoApps/DemoBase.cpp`
+  - `glTFRenderer/RendererCore/Public/Renderer.h`
+  - `glTFRenderer/RHICore/Public/RHIConfigSingleton.h`
+  - `glTFRenderer/RHICore/Private/RHIConfigSingleton.cpp`
+  - `glTFRenderer/RendererDemo/DemoApps/DemoBase.cpp`
 - Concrete targets:
   - define one runtime config object for:
     - graphics API
@@ -226,22 +232,22 @@ Use this checklist for every phase:
   - accepted as a non-regressing structural slice
   - baseline not promoted yet because `P0` is still in progress
 - Changed files:
-  - `RendererCore/Public/ResourceManager.h`
-  - `RendererCore/Private/ResourceManager.cpp`
-  - `RendererCore/Public/RendererInterface.h`
-  - `RendererCore/Private/RendererInterface.cpp`
+  - `glTFRenderer/RendererCore/Public/ResourceManager.h`
+  - `glTFRenderer/RendererCore/Private/ResourceManager.cpp`
+  - `glTFRenderer/RendererCore/Public/RendererInterface.h`
+  - `glTFRenderer/RendererCore/Private/RendererInterface.cpp`
 - Scope:
   - added explicit `GetFrameSlotCount()` and `GetSwapchainImageCount()` APIs
   - switched frame-buffered resource creation, profiler slot selection, hazard window sizing, and deferred-release retention to frame-slot semantics
   - kept `GetBackBufferCount()` as compatibility alias for swapchain image count
 - Validation:
   - build:
-    - `build_logs/rendererdemo_20260306_171135.result.json`
-    - `build_logs/rendererdemo_20260306_171135.msbuild.log`
+    - `glTFRenderer/build_logs/rendererdemo_20260306_171135.result.json`
+    - `glTFRenderer/build_logs/rendererdemo_20260306_171135.msbuild.log`
   - `MAILBOX`:
-    - `build_logs/perf_loop/session_20260306_171246/comparison/comparison_20260306_171256.md`
+    - `glTFRenderer/build_logs/perf_loop/session_20260306_171246/comparison/comparison_20260306_171256.md`
   - `VSYNC`:
-    - `build_logs/perf_loop/session_20260306_171306/comparison/comparison_20260306_171321.md`
+    - `glTFRenderer/build_logs/perf_loop/session_20260306_171306/comparison/comparison_20260306_171321.md`
 - Key deltas vs accepted baseline:
   - `MAILBOX DX12`:
     - `frame_total_avg_ms`: `3.1220 -> 3.2187` (`+0.0967 ms`, `+3.1%`)
@@ -270,13 +276,13 @@ Use this checklist for every phase:
   - refresh the config on init and swapchain resize commit
 - Validation:
   - build:
-    - `build_logs/rendererdemo_20260306_172112.result.json`
-    - `build_logs/rendererdemo_20260306_172112.msbuild.log`
+    - `glTFRenderer/build_logs/rendererdemo_20260306_172112.result.json`
+    - `glTFRenderer/build_logs/rendererdemo_20260306_172112.msbuild.log`
   - `MAILBOX`:
-    - `build_logs/perf_loop/session_20260306_172158/comparison/comparison_20260306_172208.md`
-    - rerun: `build_logs/perf_loop/session_20260306_172340/comparison/comparison_20260306_172349.md`
+    - `glTFRenderer/build_logs/perf_loop/session_20260306_172158/comparison/comparison_20260306_172208.md`
+    - rerun: `glTFRenderer/build_logs/perf_loop/session_20260306_172340/comparison/comparison_20260306_172349.md`
   - `VSYNC`:
-    - `build_logs/perf_loop/session_20260306_172217/comparison/comparison_20260306_172230.md`
+    - `glTFRenderer/build_logs/perf_loop/session_20260306_172217/comparison/comparison_20260306_172230.md`
 - Rejection reason:
   - `MAILBOX DX12` regressed past the current gate in two consecutive runs
   - first run:
@@ -295,8 +301,8 @@ Use this checklist for every phase:
   - accepted as a non-regressing structural slice
   - baseline not promoted yet because `P0` is still in progress
 - Changed files:
-  - `RendererCore/Private/RendererInterface.cpp`
-  - `scripts/RendererDemo-PerfLoop.md`
+  - `glTFRenderer/RendererCore/Private/RendererInterface.cpp`
+  - `glTFRenderer/scripts/RendererDemo-PerfLoop.md`
 - Scope:
   - extracted pure helper functions for:
     - frame-slot count
@@ -309,13 +315,13 @@ Use this checklist for every phase:
   - did not change `ResourceManager` lifecycle or ownership
 - Validation:
   - build:
-    - `build_logs/rendererdemo_20260306_173105.result.json`
-    - `build_logs/rendererdemo_20260306_173105.msbuild.log`
+    - `glTFRenderer/build_logs/rendererdemo_20260306_173105.result.json`
+    - `glTFRenderer/build_logs/rendererdemo_20260306_173105.msbuild.log`
   - `MAILBOX`:
-    - first run: `build_logs/perf_loop/session_20260306_173127/comparison/comparison_20260306_173136.md`
-    - rerun: `build_logs/perf_loop/session_20260306_173255/comparison/comparison_20260306_173304.md`
+    - first run: `glTFRenderer/build_logs/perf_loop/session_20260306_173127/comparison/comparison_20260306_173136.md`
+    - rerun: `glTFRenderer/build_logs/perf_loop/session_20260306_173255/comparison/comparison_20260306_173304.md`
   - `VSYNC`:
-    - `build_logs/perf_loop/session_20260306_173146/comparison/comparison_20260306_173159.md`
+    - `glTFRenderer/build_logs/perf_loop/session_20260306_173146/comparison/comparison_20260306_173159.md`
 - Key deltas vs accepted baseline:
   - `MAILBOX DX12` rerun:
     - `frame_total_avg_ms`: `3.1220 -> 3.1200` (`-0.0021 ms`, `-0.1%`)
@@ -341,8 +347,8 @@ Use this checklist for every phase:
   - accepted as a non-regressing structural slice
   - baseline not promoted yet because `P0` is still in progress
 - Changed files:
-  - `RendererCore/Public/RendererInterface.h`
-  - `RendererCore/Private/RendererInterface.cpp`
+  - `glTFRenderer/RendererCore/Public/RendererInterface.h`
+  - `glTFRenderer/RendererCore/Private/RendererInterface.cpp`
 - Scope:
   - extracted focused `RenderGraph` helpers for:
     - cross-frame comparison window sizing
@@ -354,12 +360,12 @@ Use this checklist for every phase:
   - did not change resource ownership, swapchain policy, or runtime state layout
 - Validation:
   - build:
-    - `build_logs/rendererdemo_20260306_173848.result.json`
-    - `build_logs/rendererdemo_20260306_173848.msbuild.log`
+    - `glTFRenderer/build_logs/rendererdemo_20260306_173848.result.json`
+    - `glTFRenderer/build_logs/rendererdemo_20260306_173848.msbuild.log`
   - `MAILBOX`:
-    - `build_logs/perf_loop/session_20260306_173940/comparison/comparison_20260306_173949.md`
+    - `glTFRenderer/build_logs/perf_loop/session_20260306_173940/comparison/comparison_20260306_173949.md`
   - `VSYNC`:
-    - `build_logs/perf_loop/session_20260306_173959/comparison/comparison_20260306_174012.md`
+    - `glTFRenderer/build_logs/perf_loop/session_20260306_173959/comparison/comparison_20260306_174012.md`
 - Key deltas vs accepted baseline:
   - `MAILBOX DX12`:
     - `frame_total_avg_ms`: `3.1220 -> 3.2992` (`+0.1772 ms`, `+5.7%`)
@@ -383,8 +389,8 @@ Use this checklist for every phase:
   - accepted as a non-regressing structural slice
   - baseline not promoted yet because `P0` is still in progress
 - Changed files:
-  - `RendererCore/Public/RendererInterface.h`
-  - `RendererCore/Private/RendererInterface.cpp`
+  - `glTFRenderer/RendererCore/Public/RendererInterface.h`
+  - `glTFRenderer/RendererCore/Private/RendererInterface.cpp`
 - Scope:
   - extracted focused GPU-profiler guardrail helpers for:
     - profiler slot validity
@@ -400,13 +406,13 @@ Use this checklist for every phase:
   - did not change profiler data ownership or timestamp sequencing
 - Validation:
   - build:
-    - `build_logs/rendererdemo_20260306_174521.result.json`
-    - `build_logs/rendererdemo_20260306_174521.msbuild.log`
+    - `glTFRenderer/build_logs/rendererdemo_20260306_174521.result.json`
+    - `glTFRenderer/build_logs/rendererdemo_20260306_174521.msbuild.log`
   - `MAILBOX`:
-    - first run: `build_logs/perf_loop/session_20260306_174613/comparison/comparison_20260306_174623.md`
-    - rerun: `build_logs/perf_loop/session_20260306_174730/comparison/comparison_20260306_174740.md`
+    - first run: `glTFRenderer/build_logs/perf_loop/session_20260306_174613/comparison/comparison_20260306_174623.md`
+    - rerun: `glTFRenderer/build_logs/perf_loop/session_20260306_174730/comparison/comparison_20260306_174740.md`
   - `VSYNC`:
-    - `build_logs/perf_loop/session_20260306_174633/comparison/comparison_20260306_174646.md`
+    - `glTFRenderer/build_logs/perf_loop/session_20260306_174633/comparison/comparison_20260306_174646.md`
 - Key deltas vs accepted baseline:
   - `MAILBOX DX12` rerun:
     - `frame_total_avg_ms`: `3.1220 -> 3.1423` (`+0.0202 ms`, `+0.6%`)

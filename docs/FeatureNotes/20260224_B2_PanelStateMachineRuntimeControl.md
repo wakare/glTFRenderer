@@ -5,7 +5,7 @@
 - Title: Add panel interaction state machine with runtime state curves and input-driven transitions
 - Owner: AI coding session
 - Related Plan:
-  - `Doc/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
+  - `docs/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
 
 ## 1. Scope
 
@@ -109,3 +109,4 @@
   - B2 acceptance pass: capture smooth transition evidence under interaction/motion.
   - B2 extension: add multi-panel targeting strategy for runtime interactions.
   - M2/M3 follow-up: integrate with temporal stabilization (`A4`) and validate flicker behavior.
+

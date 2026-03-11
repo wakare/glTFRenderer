@@ -5,7 +5,7 @@
 - Title: Add velocity visualization mode for motion-vector validity checks
 - Owner: AI coding session
 - Related Plan:
-  - `Doc/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
+  - `docs/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
 
 ## 1. Scope
 
@@ -85,3 +85,4 @@
 - Next tasks:
   - A2 close-out: runtime visual validation screenshots/checklist under camera movement.
   - A4.x: consume velocity with history path and rejection logic.
+

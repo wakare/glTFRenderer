@@ -2,29 +2,35 @@
 
 This repo now has a scriptable DX12/Vulkan perf comparison loop for `RendererDemo`.
 
+Path convention in this document:
+
+- Commands assume the current working directory is repo root `C:\glTFRenderer`.
+- Files inside the solution subtree therefore use the `glTFRenderer/` prefix.
+- Runtime-only arguments such as `Resources/...` remain relative to `RendererDemo.exe`.
+
 Related planning document:
 
-- `scripts/RendererFramework-RefactorRoadmap.md`
+- `glTFRenderer/scripts/RendererFramework-RefactorRoadmap.md`
 
 ## Entry Points
 
 - Build only:
-  - `powershell -ExecutionPolicy Bypass -File .\scripts\Build-RendererDemo-Verify.ps1`
+  - `powershell -ExecutionPolicy Bypass -File .\glTFRenderer\scripts\Build-RendererDemo-Verify.ps1`
 - Run one API regression suite:
-  - `powershell -ExecutionPolicy Bypass -File .\scripts\Run-RendererDemo-Regression.ps1 -Api DX12 -SuitePath .\RendererDemo\Resources\RegressionSuites\frosted_glass_b9_smoke.json`
+  - `powershell -ExecutionPolicy Bypass -File .\glTFRenderer\scripts\Run-RendererDemo-Regression.ps1 -Api DX12 -SuitePath .\glTFRenderer\RendererDemo\Resources\RegressionSuites\frosted_glass_b9_smoke.json`
 - Compare two finished runs:
-  - `powershell -ExecutionPolicy Bypass -File .\scripts\Compare-RendererDemo-Regression.ps1 -DxManifestPath <dx_run_result.json> -VkManifestPath <vk_run_result.json>`
+  - `powershell -ExecutionPolicy Bypass -File .\glTFRenderer\scripts\Compare-RendererDemo-Regression.ps1 -DxManifestPath <dx_run_result.json> -VkManifestPath <vk_run_result.json>`
 - Full loop:
-  - `powershell -ExecutionPolicy Bypass -File .\scripts\Invoke-RendererDemo-PerfLoop.ps1 -SuitePath .\RendererDemo\Resources\RegressionSuites\frosted_glass_b9_smoke.json -PresentMode Mailbox`
+  - `powershell -ExecutionPolicy Bypass -File .\glTFRenderer\scripts\Invoke-RendererDemo-PerfLoop.ps1 -SuitePath .\glTFRenderer\RendererDemo\Resources\RegressionSuites\frosted_glass_b9_smoke.json -PresentMode Mailbox`
 
 ## Output
 
-- Build logs go to `build_logs/` and always include:
+- Build logs go to `glTFRenderer/build_logs/` and always include:
   - `.msbuild.log`
   - `.stdout.log`
   - `.stderr.log`
   - `.binlog`
-- Perf loop outputs go to `build_logs/perf_loop/session_<timestamp>/`
+- Perf loop outputs go to `glTFRenderer/build_logs/perf_loop/session_<timestamp>/`
 - Each API run emits a `run_result.json`
 - Each suite emits a `suite_result.json`
 - Each case emits:
@@ -75,7 +81,7 @@ This makes it possible to separate pass cost from framework scheduling / present
 
 When using this loop to validate framework refactors:
 
-- Always compare against the latest accepted baseline listed in `scripts/RendererFramework-RefactorRoadmap.md`
+- Always compare against the latest accepted baseline listed in `glTFRenderer/scripts/RendererFramework-RefactorRoadmap.md`
 - Always run `MAILBOX` after each phase
 - Also run `VSYNC` when the phase touches:
   - frame scheduling
@@ -103,7 +109,7 @@ Recent `P0` refactor attempts exposed a few practical rules for keeping framewor
   - If the same slice misses the gate in two runs, roll it back and split it smaller.
 - Use `VSYNC` as a secondary sanity check, not as the acceptance signal for throughput-sensitive cleanup.
   - A slice can look stable under `VSYNC` while still harming uncapped `MAILBOX` throughput.
-- Record failed slices in `scripts/RendererFramework-RefactorRoadmap.md`.
+- Record failed slices in `glTFRenderer/scripts/RendererFramework-RefactorRoadmap.md`.
   - Failed attempts are useful because they constrain how the next refactor should be cut.
 
 ## First Practical Use

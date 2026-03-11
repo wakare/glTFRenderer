@@ -3,6 +3,7 @@
 - Date: 2026-02-28
 - Scope: `RendererDemo` frosted-glass visual/perf iteration
 - Purpose: provide a deterministic, repeatable loop for baseline capture, current capture, and diff/perf compare
+- Path base: repo-root-relative paths below assume the current directory is `C:\glTFRenderer`
 
 ## 1. Prerequisites
 
@@ -18,7 +19,7 @@
 
 Always launch `RendererDemo.exe` with **working directory set to exe directory**:
 
-- `D:\Work\DevSpace\glTFRenderer\glTFRenderer\glTFRenderer\x64\Debug`
+- repo-root-relative: `glTFRenderer/x64/Debug`
 
 Reason:
 
@@ -39,47 +40,58 @@ In Demo panel:
 Recommended pattern (quiet logging):
 
 ```powershell
-$exeWorkDir = "D:\Work\DevSpace\glTFRenderer\glTFRenderer\glTFRenderer\x64\Debug"
+$repoRoot = (Get-Location).Path
+$exeWorkDir = Join-Path $repoRoot "glTFRenderer\x64\Debug"
 $exe = ".\RendererDemo.exe"
-$suite = "D:\Work\DevSpace\glTFRenderer\glTFRenderer\glTFRenderer\x64\Debug\build_logs\regression_case_exports\0_20260228_185013.json"
+$suite = Join-Path $exeWorkDir "build_logs\regression_case_exports\0_20260228_185013.json"
 
-$baselineOut = "D:\Work\DevSpace\glTFRenderer\glTFRenderer\.tmp\regression_opt_baseline"
-$currentOut = "D:\Work\DevSpace\glTFRenderer\glTFRenderer\.tmp\regression_opt_current"
+$baselineOut = Join-Path $repoRoot ".tmp\regression_opt_baseline"
+$currentOut = Join-Path $repoRoot ".tmp\regression_opt_current"
+$baselineStdout = Join-Path $repoRoot ".tmp\capture_baseline.stdout.log"
+$baselineStderr = Join-Path $repoRoot ".tmp\capture_baseline.stderr.log"
+$currentStdout = Join-Path $repoRoot ".tmp\capture_current.stdout.log"
+$currentStderr = Join-Path $repoRoot ".tmp\capture_current.stderr.log"
 
 Push-Location $exeWorkDir
 & $exe DemoAppModelViewer -dx -regression "-regression-suite=$suite" "-regression-output=$baselineOut" `
-  > "D:\Work\DevSpace\glTFRenderer\glTFRenderer\.tmp\capture_baseline.stdout.log" `
-  2> "D:\Work\DevSpace\glTFRenderer\glTFRenderer\.tmp\capture_baseline.stderr.log"
+  > $baselineStdout `
+  2> $baselineStderr
 
 & $exe DemoAppModelViewer -dx -regression "-regression-suite=$suite" "-regression-output=$currentOut" `
-  > "D:\Work\DevSpace\glTFRenderer\glTFRenderer\.tmp\capture_current.stdout.log" `
-  2> "D:\Work\DevSpace\glTFRenderer\glTFRenderer\.tmp\capture_current.stderr.log"
+  > $currentStdout `
+  2> $currentStderr
 Pop-Location
 ```
 
 Expected artifacts for each run:
 
-- `<run_dir>/suite_result.json`
-- `<run_dir>/cases/001_<case_id>.png`
-- `<run_dir>/cases/001_<case_id>.pass.csv`
-- `<run_dir>/cases/001_<case_id>.perf.json`
+- <run_dir>/suite_result.json
+- <run_dir>/cases/001_<case_id>.png
+- <run_dir>/cases/001_<case_id>.pass.csv
+- <run_dir>/cases/001_<case_id>.perf.json
 
 ## 5. Compare Baseline vs Current
 
 ```powershell
+$repoRoot = (Get-Location).Path
+$baselineRun = Join-Path $repoRoot ".tmp\regression_opt_baseline\0_suite_XXXXXXXX_XXXXXX"
+$currentRun = Join-Path $repoRoot ".tmp\regression_opt_current\0_suite_XXXXXXXX_XXXXXX"
+$reportOut = Join-Path $repoRoot ".tmp\regression_opt_compare"
+$profile = Join-Path $repoRoot "scripts\RegressionCompareProfile.default.json"
+
 powershell -ExecutionPolicy Bypass -File .\scripts\Compare-RendererRegression.ps1 `
-  -Baseline "D:\Work\DevSpace\glTFRenderer\glTFRenderer\.tmp\regression_opt_baseline\0_suite_XXXXXXXX_XXXXXX" `
-  -Current  "D:\Work\DevSpace\glTFRenderer\glTFRenderer\.tmp\regression_opt_current\0_suite_XXXXXXXX_XXXXXX" `
-  -ReportOut "D:\Work\DevSpace\glTFRenderer\glTFRenderer\.tmp\regression_opt_compare" `
-  -Profile "D:\Work\DevSpace\glTFRenderer\glTFRenderer\scripts\RegressionCompareProfile.default.json" `
+  -Baseline $baselineRun `
+  -Current  $currentRun `
+  -ReportOut $reportOut `
+  -Profile $profile `
   > .tmp\compare.stdout.log 2> .tmp\compare.stderr.log
 ```
 
 Expected report:
 
-- `.tmp/regression_opt_compare/summary.json`
-- `.tmp/regression_opt_compare/summary.md`
-- `.tmp/regression_opt_compare/diff/*_absdiff.png`
+- summary JSON under .tmp/regression_opt_compare/
+- summary Markdown under .tmp/regression_opt_compare/
+- diff images under .tmp/regression_opt_compare/diff/
 
 ## 6. Build Verification (Quiet)
 
@@ -121,7 +133,7 @@ Fix:
 
 Symptom:
 
-- exception around shader source load (`Resources/Shaders/ModelRenderingShader.hlsl`)
+- exception around shader source load (`glTFRenderer/RendererDemo/Resources/Shaders/ModelRenderingShader.hlsl`)
 
 Root cause:
 

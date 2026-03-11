@@ -5,7 +5,7 @@
 - Title: Integrate quarter-resolution blur chain into frosted multipass composite
 - Owner: AI coding session
 - Related Plan:
-  - `Doc/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
+  - `docs/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
 
 ## 1. Scope
 
@@ -91,3 +91,4 @@
 - Next tasks:
   - B1.3: add mask/parameter stage split and compositing polish.
   - B1 visual/perf acceptance pass: compare against v1 baseline and capture timing evidence.
+

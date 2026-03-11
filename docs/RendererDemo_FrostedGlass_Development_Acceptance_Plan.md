@@ -8,13 +8,13 @@
 ## Companion Reference (Must Keep In Sync)
 
 - Frame-level frosted pass reference:
-  - `Doc/RendererDemo_FrostedGlass_FramePassReference.md`
+  - `docs/RendererDemo_FrostedGlass_FramePassReference.md`
 - Blur-source optimization plan and progress tracker:
-  - `Doc/FeatureNotes/20260227_B8_BlurSourceOptimizationPlan.md`
+  - `docs/FeatureNotes/20260227_B8_BlurSourceOptimizationPlan.md`
 - Screenshot regression plan and progress tracker:
-  - `Doc/FeatureNotes/20260228_B9_FixedViewpointScreenshotRegressionPlan.md`
+  - `docs/FeatureNotes/20260228_B9_FixedViewpointScreenshotRegressionPlan.md`
 - Screenshot regression operation runbook and troubleshooting:
-  - `Doc/FeatureNotes/20260228_B9_RegressionWorkflow_Runbook.md`
+  - `docs/FeatureNotes/20260228_B9_RegressionWorkflow_Runbook.md`
 - Rule:
   - Any frosted render-graph/pass/resource contract change must update the frame reference doc in the same PR.
 
@@ -261,8 +261,8 @@ This plan is based on the current implementation in repository `glTFRenderer`.
   - `glTFRenderer/RendererDemo/Resources/Shaders/FrostedGlass.hlsl`
   - `glTFRenderer/RendererDemo/RendererSystem/RendererSystemFrostedGlass.h`
   - `glTFRenderer/RendererDemo/RendererSystem/RendererSystemFrostedGlass.cpp`
-  - `Doc/RendererDemo_FrostedGlass_FramePassReference.md`
-  - `Doc/FeatureNotes/20260227_B8_BlurSourceOptimizationPlan.md`
+  - `docs/RendererDemo_FrostedGlass_FramePassReference.md`
+  - `docs/FeatureNotes/20260227_B8_BlurSourceOptimizationPlan.md`
 - Acceptance:
   - Blur-source pass count is measurably reduced versus legacy path.
   - Visual quality in agreed AVP-alignment scenes is preserved or improved.
@@ -343,19 +343,19 @@ This plan is based on the current implementation in repository `glTFRenderer`.
 
 | ID | Stream | Priority | Title | Exit Condition | Status | Evidence |
 |---|---|---|---|---|---|---|
-| A1 | Framework | P0 | Linear HDR + tone map | Lighting no longer outputs final sRGB directly | In Progress (A1.1 complete) | `Doc/FeatureNotes/20260223_A1_LinearOutput_ToneMapPass.md` |
-| A2 | Framework | P0 | GBuffer/View extension | Prev-frame and extra channels available | In Progress (A2.1/A2.2/A2.3 complete) | `Doc/FeatureNotes/20260223_A2_ViewBufferPrevVP.md`, `Doc/FeatureNotes/20260223_A2_VelocityGBuffer.md`, `Doc/FeatureNotes/20260223_A2_VelocityDebugView.md` |
-| A3 | Framework | P0 | PostFX shared resources | Half/quarter and ping-pong resources ready | In Progress (A3.1 foundation complete) | `Doc/FeatureNotes/20260223_A3_PostFXSharedResources.md` |
-| B1 | App | P0 | Frosted V2 multi-pass | Multi-pass output replaces v1 single-pass | In Progress (B1.1/B1.2/B1.3 complete; visual/perf acceptance pending) | `Doc/FeatureNotes/20260223_B1_MultipassScaffold.md`, `Doc/FeatureNotes/20260223_B1_QuarterBlurPyramid.md`, `Doc/FeatureNotes/20260224_B1_FrostedMaskPass.md` |
-| A4 | Framework | P1 | Temporal history infra | Stable history lifecycle and reset path | In Progress (A4 core lifecycle + invalidation + reprojection complete; visual/perf acceptance pending) | `Doc/FeatureNotes/20260224_A4_TemporalHistoryInfrastructure.md` |
-| B2 | App | P0 | Panel state machine | Idle/hover/grab/move/scale complete | In Progress (B2 core state machine + runtime control complete; visual acceptance pending) | `Doc/FeatureNotes/20260224_B2_PanelStateMachineRuntimeControl.md` |
-| B3 | App | P1 | Shape mask path | Irregular mask path implemented | In Progress (B3 core shape-mask + layering policy complete; visual/perf acceptance pending) | `Doc/FeatureNotes/20260224_B3_ShapeMaskLayering.md` |
+| A1 | Framework | P0 | Linear HDR + tone map | Lighting no longer outputs final sRGB directly | In Progress (A1.1 complete) | `docs/FeatureNotes/20260223_A1_LinearOutput_ToneMapPass.md` |
+| A2 | Framework | P0 | GBuffer/View extension | Prev-frame and extra channels available | In Progress (A2.1/A2.2/A2.3 complete) | `docs/FeatureNotes/20260223_A2_ViewBufferPrevVP.md`, `docs/FeatureNotes/20260223_A2_VelocityGBuffer.md`, `docs/FeatureNotes/20260223_A2_VelocityDebugView.md` |
+| A3 | Framework | P0 | PostFX shared resources | Half/quarter and ping-pong resources ready | In Progress (A3.1 foundation complete) | `docs/FeatureNotes/20260223_A3_PostFXSharedResources.md` |
+| B1 | App | P0 | Frosted V2 multi-pass | Multi-pass output replaces v1 single-pass | In Progress (B1.1/B1.2/B1.3 complete; visual/perf acceptance pending) | `docs/FeatureNotes/20260223_B1_MultipassScaffold.md`, `docs/FeatureNotes/20260223_B1_QuarterBlurPyramid.md`, `docs/FeatureNotes/20260224_B1_FrostedMaskPass.md` |
+| A4 | Framework | P1 | Temporal history infra | Stable history lifecycle and reset path | In Progress (A4 core lifecycle + invalidation + reprojection complete; visual/perf acceptance pending) | `docs/FeatureNotes/20260224_A4_TemporalHistoryInfrastructure.md` |
+| B2 | App | P0 | Panel state machine | Idle/hover/grab/move/scale complete | In Progress (B2 core state machine + runtime control complete; visual acceptance pending) | `docs/FeatureNotes/20260224_B2_PanelStateMachineRuntimeControl.md` |
+| B3 | App | P1 | Shape mask path | Irregular mask path implemented | In Progress (B3 core shape-mask + layering policy complete; visual/perf acceptance pending) | `docs/FeatureNotes/20260224_B3_ShapeMaskLayering.md` |
 | B4 | App | P1 | Readability protection | Text-safe behavior verified | Planned | - |
 | B5 | App | P1 | Immersion blend | Smooth blend control verified | Planned | - |
-| B6 | App | P0 | Multi-layer composition alignment | Top-N overlap blending with bounded cost | In Progress (B6.1 top-2 payload + B6.2 adaptive/runtime refinement complete; visual/perf acceptance pending) | `Doc/FeatureNotes/20260224_B6_MultilayerCompositionPlan.md`, `Doc/FeatureNotes/20260224_B6_Top2MultilayerCore.md`, `Doc/FeatureNotes/20260224_B6_AdaptiveMultilayerRefinement.md` |
-| B7 | App | P0 | Panel GBuffer 3D compatibility | Two-layer frosted composition driven by geometry-aware panel payload | Accepted (B7.1~B7.7 complete, including prepass-feed source path and phase-2 highlight tuning; visual/perf evidence captured on 2026-02-27) | `Doc/FeatureNotes/20260225_B7_PanelGBufferTwoLayerCompatibilityPlan.md` |
-| B8 | App | P0 | Blur source optimization and cost reduction | Replace fixed blur pyramid dependency with shared low-cost blur source while preserving B7 visual behavior | In Progress (B8.1/B8.2 runtime pass reduction wired; B8.3 shader shared sampling branch integrated; legacy `Full Fog Mode` boundary de-structure branch landed; B8.5 acceptance pending) | `Doc/FeatureNotes/20260227_B8_BlurSourceOptimizationPlan.md` |
-| B9 | Framework + App | P0 | Fixed-viewpoint visual/perf regression | One-command capture + one-command baseline compare for deterministic visual and frame-performance regression checks | In Progress (capture flow + script compare flow available; CI gate and framework readback pending) | `Doc/FeatureNotes/20260228_B9_FixedViewpointScreenshotRegressionPlan.md` |
+| B6 | App | P0 | Multi-layer composition alignment | Top-N overlap blending with bounded cost | In Progress (B6.1 top-2 payload + B6.2 adaptive/runtime refinement complete; visual/perf acceptance pending) | `docs/FeatureNotes/20260224_B6_MultilayerCompositionPlan.md`, `docs/FeatureNotes/20260224_B6_Top2MultilayerCore.md`, `docs/FeatureNotes/20260224_B6_AdaptiveMultilayerRefinement.md` |
+| B7 | App | P0 | Panel GBuffer 3D compatibility | Two-layer frosted composition driven by geometry-aware panel payload | Accepted (B7.1~B7.7 complete, including prepass-feed source path and phase-2 highlight tuning; visual/perf evidence captured on 2026-02-27) | `docs/FeatureNotes/20260225_B7_PanelGBufferTwoLayerCompatibilityPlan.md` |
+| B8 | App | P0 | Blur source optimization and cost reduction | Replace fixed blur pyramid dependency with shared low-cost blur source while preserving B7 visual behavior | In Progress (B8.1/B8.2 runtime pass reduction wired; B8.3 shader shared sampling branch integrated; legacy `Full Fog Mode` boundary de-structure branch landed; B8.5 acceptance pending) | `docs/FeatureNotes/20260227_B8_BlurSourceOptimizationPlan.md` |
+| B9 | Framework + App | P0 | Fixed-viewpoint visual/perf regression | One-command capture + one-command baseline compare for deterministic visual and frame-performance regression checks | In Progress (capture flow + script compare flow available; CI gate and framework readback pending) | `docs/FeatureNotes/20260228_B9_FixedViewpointScreenshotRegressionPlan.md` |
 | A5 | Framework | P1 | RenderGraph QoL helpers | Reduced setup boilerplate | Planned | - |
 
 ## 8. Development and Review Rules for This Plan
@@ -369,7 +369,7 @@ This plan is based on the current implementation in repository `glTFRenderer`.
 
 ## 9. Document Location and Usage
 
-- Archive path: `Doc/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
+- Archive path: `docs/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
 - This document is the implementation and acceptance contract for upcoming work.
 
 ## 10. Development Cadence Agreement
@@ -397,9 +397,9 @@ This section defines the default execution rhythm for all upcoming development w
 ### 10.3 Feature Note Archival (Required After Each Passed Iteration)
 
 - A standalone note must be added for each validated iteration under:
-  - `Doc/FeatureNotes/`
+  - `docs/FeatureNotes/`
 - Use template:
-  - `Doc/FeatureNotes/Feature_Note_Template.md`
+  - `docs/FeatureNotes/Feature_Note_Template.md`
 - Recommended naming:
   - `YYYYMMDD_WORKITEMID_ShortName.md`
   - Example: `20260224_B1_FrostedMaskPass.md`
@@ -429,5 +429,6 @@ An iteration is done only if all conditions are met:
 
 - scoped code change is complete
 - validation has been executed and recorded
-- feature note has been archived in `Doc/FeatureNotes/`
+- feature note has been archived in `docs/FeatureNotes/`
 - this main plan has been updated accordingly
+

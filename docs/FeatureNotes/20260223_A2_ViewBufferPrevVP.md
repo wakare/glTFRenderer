@@ -5,7 +5,7 @@
 - Title: Add `prev_view_projection_matrix` to view buffer and upload path
 - Owner: AI coding session
 - Related Plan:
-  - `Doc/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
+  - `docs/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
 
 ## 1. Scope
 
@@ -81,3 +81,4 @@
 - Next tasks:
   - A2.2: introduce velocity or reprojection consumer path using previous VP.
   - A2.3: add debug visualization to validate previous/current matrix behavior in motion.
+

@@ -5,7 +5,7 @@
 - Title: Linear lighting output path with dedicated tone mapping final pass
 - Owner: AI coding session
 - Related Plan:
-  - `Doc/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
+  - `docs/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
 
 ## 1. Scope
 
@@ -90,3 +90,4 @@
 - Next tasks:
   - A1.2: runtime visual verification and baseline screenshot update.
   - A1.3: evaluate tone-map operator and exposure defaults against acceptance targets.
+
