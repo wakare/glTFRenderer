@@ -739,6 +739,14 @@ enum class RHIDepthStencilMode
     DEPTH_DONT_CARE,
 };
 
+struct RHIDepthBiasDesc
+{
+    bool enabled{false};
+    float constant_factor{0.0f};
+    float slope_factor{0.0f};
+    float clamp{0.0f};
+};
+
 enum class RHIPipelineType
 {
     Graphics,

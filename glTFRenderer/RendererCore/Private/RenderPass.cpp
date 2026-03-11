@@ -39,6 +39,16 @@ namespace
         return RHIDepthStencilMode::DEPTH_DONT_CARE;
     }
 
+    RHIDepthBiasDesc ConvertToRHIDepthBiasDesc(const RendererInterface::DepthBiasDesc& desc)
+    {
+        RHIDepthBiasDesc result{};
+        result.enabled = desc.enabled;
+        result.constant_factor = desc.constant_factor;
+        result.slope_factor = desc.slope_factor;
+        result.clamp = desc.clamp;
+        return result;
+    }
+
     const char* ToExecuteCommandTypeName(RendererInterface::ExecuteCommandType type)
     {
         using namespace RendererInterface;
@@ -184,6 +194,7 @@ namespace
         }
         return allocation.type == RHIRootParameterType::UAV || allocation.type == RHIRootParameterType::DescriptorTable;
     }
+
 }
 
 RenderPass::RenderPass(RendererInterface::RenderPassDesc desc)
@@ -281,6 +292,7 @@ bool RenderPass::InitRenderPass(ResourceManager& resource_manager)
 
     m_pipeline_state_object->SetCullMode(ConvertToRHICullMode(m_desc.render_state.cull_mode));
     m_pipeline_state_object->SetDepthStencilState(ConvertToRHIDepthStencilMode(m_desc.render_state.depth_stencil_mode));
+    m_pipeline_state_object->SetDepthBiasDesc(ConvertToRHIDepthBiasDesc(m_desc.render_state.depth_bias));
     
     if (!m_pipeline_state_object->InitPipelineStateObject(resource_manager.GetDevice(),
             *m_root_signature,

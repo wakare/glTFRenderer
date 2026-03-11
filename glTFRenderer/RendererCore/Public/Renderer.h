@@ -243,12 +243,21 @@ namespace RendererInterface
         BLEND_ADDITIVE,
     };
 
+    struct DepthBiasDesc
+    {
+        bool enabled{false};
+        float constant_factor{0.0f};
+        float slope_factor{0.0f};
+        float clamp{0.0f};
+    };
+
     struct RenderStateDesc
     {
         CullMode cull_mode{CullMode::NONE};
         DepthStencilMode depth_stencil_mode{DepthStencilMode::DEPTH_WRITE};
         PrimitiveTopology primitive_topology{PrimitiveTopology::TRIANGLE_LIST};
         BlendMode blend_mode{BlendMode::BLEND_OPAQUE};
+        DepthBiasDesc depth_bias{};
     };
 
     struct RenderTargetBindingDesc

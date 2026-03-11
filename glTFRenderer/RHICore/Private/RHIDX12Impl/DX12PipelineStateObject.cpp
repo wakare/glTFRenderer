@@ -107,6 +107,12 @@ bool DX12GraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device
     m_graphics_pipeline_state_desc.SampleDesc = dynamic_cast<DX12SwapChain&>(swap_chain).GetSwapChainSampleDesc(); // must be the same sample description as the swapchain and depth/stencil buffer
     m_graphics_pipeline_state_desc.SampleMask = 0xffffffff; // sample mask has to do with multi-sampling. 0xffffffff means point sampling is done
     m_graphics_pipeline_state_desc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT); // a default rasterizer state.
+    if (m_depth_bias_desc.enabled)
+    {
+        m_graphics_pipeline_state_desc.RasterizerState.DepthBias = static_cast<INT>(std::lround(m_depth_bias_desc.constant_factor));
+        m_graphics_pipeline_state_desc.RasterizerState.DepthBiasClamp = m_depth_bias_desc.clamp;
+        m_graphics_pipeline_state_desc.RasterizerState.SlopeScaledDepthBias = m_depth_bias_desc.slope_factor;
+    }
     switch (m_cullMode) {
         case RHICullMode::NONE:
             {

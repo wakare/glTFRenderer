@@ -34,15 +34,17 @@ public:
     
     void SetDepthStencilState(RHIDepthStencilMode state);
     RHIDepthStencilMode GetDepthStencilMode() const;
+    void SetDepthBiasDesc(const RHIDepthBiasDesc& desc);
+    const RHIDepthBiasDesc& GetDepthBiasDesc() const;
 
     void SetInputLayouts(const std::vector<RHIPipelineInputLayout>& input_layouts);
-    
     RHIPipelineType GetPSOType() const;
     
 protected:
     RHIPipelineType m_type;
     RHICullMode m_cullMode;
     RHIDepthStencilMode m_depth_stencil_state;
+    RHIDepthBiasDesc m_depth_bias_desc;
     std::vector<RHIPipelineInputLayout> m_input_layouts;
 };
 

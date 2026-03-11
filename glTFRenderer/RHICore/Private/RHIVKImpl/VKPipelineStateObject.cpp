@@ -144,10 +144,10 @@ bool VKGraphicsPipelineStateObject::InitPipelineStateObject(IRHIDevice& device,
     create_rasterizer_info.lineWidth = 1.0f;
     create_rasterizer_info.cullMode = cull_mode;
     create_rasterizer_info.frontFace = VK_FRONT_FACE_CLOCKWISE;
-    create_rasterizer_info.depthBiasEnable = VK_FALSE;
-    create_rasterizer_info.depthBiasConstantFactor = 0.0f;
-    create_rasterizer_info.depthBiasClamp = 0.0f;
-    create_rasterizer_info.depthBiasSlopeFactor = 0.0f;
+    create_rasterizer_info.depthBiasEnable = m_depth_bias_desc.enabled ? VK_TRUE : VK_FALSE;
+    create_rasterizer_info.depthBiasConstantFactor = m_depth_bias_desc.enabled ? m_depth_bias_desc.constant_factor : 0.0f;
+    create_rasterizer_info.depthBiasClamp = m_depth_bias_desc.enabled ? m_depth_bias_desc.clamp : 0.0f;
+    create_rasterizer_info.depthBiasSlopeFactor = m_depth_bias_desc.enabled ? m_depth_bias_desc.slope_factor : 0.0f;
 
     VkPipelineMultisampleStateCreateInfo create_msaa_state {};
     create_msaa_state.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;

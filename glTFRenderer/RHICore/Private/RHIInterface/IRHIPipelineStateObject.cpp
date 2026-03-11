@@ -7,6 +7,7 @@ IRHIPipelineStateObject::IRHIPipelineStateObject(RHIPipelineType type)
     : m_type(type)
     , m_cullMode(RHICullMode::NONE)
     , m_depth_stencil_state(RHIDepthStencilMode::DEPTH_READ)
+    , m_depth_bias_desc({})
 {
 }
 
@@ -72,6 +73,16 @@ void IRHIPipelineStateObject::SetDepthStencilState(RHIDepthStencilMode state)
 RHIDepthStencilMode IRHIPipelineStateObject::GetDepthStencilMode() const
 {
     return m_depth_stencil_state;
+}
+
+void IRHIPipelineStateObject::SetDepthBiasDesc(const RHIDepthBiasDesc& desc)
+{
+    m_depth_bias_desc = desc;
+}
+
+const RHIDepthBiasDesc& IRHIPipelineStateObject::GetDepthBiasDesc() const
+{
+    return m_depth_bias_desc;
 }
 
 void IRHIPipelineStateObject::SetInputLayouts(const std::vector<RHIPipelineInputLayout>& input_layouts)
