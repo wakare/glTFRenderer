@@ -90,6 +90,11 @@ void IRHIPipelineStateObject::SetInputLayouts(const std::vector<RHIPipelineInput
     m_input_layouts = input_layouts;
 }
 
+const std::vector<RHIPipelineInputLayout>& IRHIPipelineStateObject::GetInputLayouts() const
+{
+    return m_input_layouts;
+}
+
 RHIPipelineType IRHIPipelineStateObject::GetPSOType() const
 {
     return m_type;

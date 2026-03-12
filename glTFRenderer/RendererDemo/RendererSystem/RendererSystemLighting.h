@@ -3,6 +3,7 @@
 #include "RendererSystemSceneRenderer.h"
 #include "RendererModule/RendererModuleLighting.h"
 #include "RendererModule/RendererModuleSceneMesh.h"
+#include <optional>
 #include <vector>
 
 class RendererSceneAABB;
@@ -17,6 +18,9 @@ public:
     bool GetDominantDirectionalLight(glm::fvec3& out_direction, float& out_luminance) const;
     bool CastShadow() const;
     void SetCastShadow(bool cast_shadow);
+    const RendererInterface::RenderStateDesc& GetDirectionalShadowRenderState() const;
+    bool SetDirectionalShadowRenderState(const RendererInterface::RenderStateDesc& render_state);
+    bool SetDirectionalShadowDepthBias(const RendererInterface::DepthBiasDesc& depth_bias);
     RendererInterface::RenderTargetHandle GetLightingOutput() const;
     
     virtual bool Init(RendererInterface::ResourceOperator& resource_operator, RendererInterface::RenderGraph& graph) override;
@@ -28,6 +32,8 @@ public:
     virtual void DrawDebugUI() override;
     
 protected:
+    static RendererInterface::RenderStateDesc CreateDefaultDirectionalShadowRenderState();
+
     struct ShadowMapInfo
     {
         glm::fmat4x4 view_matrix{1.0f};
@@ -51,12 +57,15 @@ protected:
         std::vector<RendererInterface::BufferHandle> m_shadow_map_buffer_handles;
     };
 
+    bool QueuePendingDirectionalShadowRenderStateUpdate(RendererInterface::RenderGraph& graph);
     void UpdateDirectionalShadowResources(RendererInterface::ResourceOperator& resource_operator);
 
     bool m_cast_shadow {true};
     
     std::shared_ptr<RendererSystemSceneRenderer> m_scene;
     std::shared_ptr<RendererModuleLighting> m_lighting_module;
+    RendererInterface::RenderStateDesc m_directional_shadow_render_state{};
+    std::optional<RendererInterface::RenderStateDesc> m_pending_directional_shadow_render_state{};
 
     std::map<unsigned, ShadowPassResource> m_shadow_pass_resources;
     RendererInterface::RenderGraphNodeHandle m_lighting_pass_node {NULL_HANDLE};

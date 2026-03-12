@@ -49,6 +49,45 @@ namespace
         return result;
     }
 
+    bool BuildShaderMap(const std::map<RendererInterface::ShaderType, RendererInterface::ShaderHandle>& shader_handles,
+                        std::map<RHIShaderType, std::shared_ptr<IRHIShader>>& out_shaders)
+    {
+        out_shaders.clear();
+        for (const auto& shader_pair : shader_handles)
+        {
+            auto shader = RendererInterface::InternalResourceHandleTable::Instance().GetShader(shader_pair.second);
+            if (!shader)
+            {
+                return false;
+            }
+
+            out_shaders[shader->GetType()] = shader;
+        }
+
+        return true;
+    }
+
+    void ConfigurePipelineStateObject(IRHIPipelineStateObject& pipeline_state_object,
+                                      const RendererInterface::RenderPassDesc& render_pass_desc)
+    {
+        if (pipeline_state_object.GetPSOType() == RHIPipelineType::Graphics)
+        {
+            auto& graphics_pipeline_state_object = dynamic_cast<IRHIGraphicsPipelineStateObject&>(pipeline_state_object);
+            std::vector<RHIDataFormat> render_target_formats;
+            render_target_formats.reserve(render_pass_desc.render_target_bindings.size());
+            for (const auto& render_target : render_pass_desc.render_target_bindings)
+            {
+                render_target_formats.push_back(RendererInterfaceRHIConverter::ConvertToRHIFormat(render_target.format));
+            }
+
+            graphics_pipeline_state_object.BindRenderTargetFormats(render_target_formats);
+        }
+
+        pipeline_state_object.SetCullMode(ConvertToRHICullMode(render_pass_desc.render_state.cull_mode));
+        pipeline_state_object.SetDepthStencilState(ConvertToRHIDepthStencilMode(render_pass_desc.render_state.depth_stencil_mode));
+        pipeline_state_object.SetDepthBiasDesc(ConvertToRHIDepthBiasDesc(render_pass_desc.render_state.depth_bias));
+    }
+
     const char* ToExecuteCommandTypeName(RendererInterface::ExecuteCommandType type)
     {
         using namespace RendererInterface;
@@ -277,22 +316,7 @@ bool RenderPass::InitRenderPass(ResourceManager& resource_manager)
     
     m_root_signature->InitRootSignature(resource_manager.GetDevice(), resource_manager.GetMemoryManager().GetDescriptorManager());
 
-    if (m_pipeline_state_object->GetPSOType() == RHIPipelineType::Graphics)
-    {
-        auto& graphics_pipeline_state_object = dynamic_cast<IRHIGraphicsPipelineStateObject&>(*m_pipeline_state_object);
-        std::vector<RHIDataFormat> render_target_formats;
-        render_target_formats.reserve(m_desc.render_target_bindings.size());
-        for (const auto& render_target : m_desc.render_target_bindings)
-        {
-            render_target_formats.push_back(RendererInterfaceRHIConverter::ConvertToRHIFormat(render_target.format));
-        }
-        
-        graphics_pipeline_state_object.BindRenderTargetFormats(render_target_formats);
-    }
-
-    m_pipeline_state_object->SetCullMode(ConvertToRHICullMode(m_desc.render_state.cull_mode));
-    m_pipeline_state_object->SetDepthStencilState(ConvertToRHIDepthStencilMode(m_desc.render_state.depth_stencil_mode));
-    m_pipeline_state_object->SetDepthBiasDesc(ConvertToRHIDepthBiasDesc(m_desc.render_state.depth_bias));
+    ConfigurePipelineStateObject(*m_pipeline_state_object, m_desc);
     
     if (!m_pipeline_state_object->InitPipelineStateObject(resource_manager.GetDevice(),
             *m_root_signature,
@@ -309,6 +333,57 @@ bool RenderPass::InitRenderPass(ResourceManager& resource_manager)
     m_descriptor_updater = RHIResourceFactory::CreateRHIResource<IRHIDescriptorUpdater>();
     m_init_success = true;
 
+    return true;
+}
+
+bool RenderPass::UpdateGraphicsRenderState(
+    IRHIDevice& device,
+    IRHISwapChain& swap_chain,
+    const RendererInterface::RenderStateDesc& render_state,
+    std::shared_ptr<IRHIResource>& out_retired_pipeline_state_object)
+{
+    out_retired_pipeline_state_object.reset();
+
+    if (m_desc.type != RendererInterface::RenderPassType::GRAPHICS || !m_pipeline_state_object)
+    {
+        return false;
+    }
+
+    if (render_state.blend_mode != m_desc.render_state.blend_mode)
+    {
+        return false;
+    }
+
+    if (IsEquivalentRenderStateDesc(m_desc.render_state, render_state))
+    {
+        return true;
+    }
+
+    std::map<RHIShaderType, std::shared_ptr<IRHIShader>> shaders;
+    if (!BuildShaderMap(m_desc.shaders, shaders))
+    {
+        return false;
+    }
+
+    RendererInterface::RenderPassDesc updated_desc = m_desc;
+    updated_desc.render_state = render_state;
+
+    auto new_pipeline_state_object = RHIResourceFactory::CreateRHIResource<IRHIGraphicsPipelineStateObject>();
+    new_pipeline_state_object->SetInputLayouts(m_pipeline_state_object->GetInputLayouts());
+    ConfigurePipelineStateObject(*new_pipeline_state_object, updated_desc);
+
+    if (!new_pipeline_state_object->InitPipelineStateObject(
+            device,
+            m_root_signature_helper.GetRootSignature(),
+            swap_chain,
+            shaders))
+    {
+        return false;
+    }
+
+    out_retired_pipeline_state_object = std::static_pointer_cast<IRHIResource>(m_pipeline_state_object);
+    m_pipeline_state_object = std::move(new_pipeline_state_object);
+    m_desc.render_state = render_state;
     return true;
 }
 

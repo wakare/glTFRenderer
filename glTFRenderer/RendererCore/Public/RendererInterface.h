@@ -369,6 +369,7 @@ namespace RendererInterface
         bool RegisterRenderGraphNode(RenderGraphNodeHandle render_graph_node_handle);
         bool RemoveRenderGraphNode(RenderGraphNodeHandle render_graph_node_handle);
         bool UpdateComputeDispatch(RenderGraphNodeHandle render_graph_node_handle, unsigned group_size_x, unsigned group_size_y, unsigned group_size_z);
+        bool QueueNodeRenderStateUpdate(RenderGraphNodeHandle render_graph_node_handle, const RenderStateDesc& render_state);
         bool UpdateNodeBufferBinding(RenderGraphNodeHandle render_graph_node_handle, const std::string& binding_name, BufferHandle buffer_handle);
         bool UpdateNodeRenderTargetBinding(RenderGraphNodeHandle render_graph_node_handle, RenderTargetHandle old_render_target_handle, RenderTargetHandle new_render_target_handle);
         bool UpdateNodeRenderTargetTextureBinding(RenderGraphNodeHandle render_graph_node_handle, const std::string& binding_name, const std::vector<RenderTargetHandle>& render_target_handles);
@@ -401,6 +402,11 @@ namespace RendererInterface
         {
             unsigned long long retire_frame{0};
             std::vector<std::shared_ptr<IRHIResource>> resources;
+        };
+
+        struct PendingRenderStateUpdate
+        {
+            RenderStateDesc render_state{};
         };
 
         struct RenderPassDescriptorResource
@@ -447,6 +453,7 @@ namespace RendererInterface
         void PruneDescriptorResources(RenderPassDescriptorResource& descriptor_resource, const RenderPassDrawDesc& draw_info);
         void CollectUnusedRenderPassDescriptorResources();
         void FlushDeferredResourceReleases(bool force_release_all);
+        void ApplyPendingRenderStateUpdates();
         bool InitDebugUI();
         bool RenderDebugUI(IRHICommandList& command_list);
         void ShutdownDebugUI();
@@ -492,6 +499,7 @@ namespace RendererInterface
         std::map<RenderGraphNodeHandle, std::tuple<unsigned, unsigned, unsigned>> m_auto_pruned_named_binding_counts;
         std::map<RenderGraphNodeHandle, unsigned long long> m_render_pass_validation_last_log_frame;
         std::map<RenderGraphNodeHandle, std::size_t> m_render_pass_validation_last_message_hash;
+        std::map<RenderGraphNodeHandle, PendingRenderStateUpdate> m_pending_render_state_updates;
         std::deque<DeferredReleaseEntry> m_deferred_release_entries;
         std::vector<RenderGraphNodeHandle> m_cached_execution_order;
         struct FrameResourceAccessSnapshot

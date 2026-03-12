@@ -38,6 +38,7 @@ public:
     const RHIDepthBiasDesc& GetDepthBiasDesc() const;
 
     void SetInputLayouts(const std::vector<RHIPipelineInputLayout>& input_layouts);
+    const std::vector<RHIPipelineInputLayout>& GetInputLayouts() const;
     RHIPipelineType GetPSOType() const;
     
 protected:

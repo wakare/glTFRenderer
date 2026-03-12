@@ -2107,6 +2107,7 @@ namespace RendererInterface
         RendererInterface::RenderGraphNodeDesc render_graph_node_desc{};
         render_graph_node_desc.draw_info = render_pass_draw_desc;
         render_graph_node_desc.render_pass_handle = render_pass_handle;
+        render_graph_node_desc.render_state = setup_info.render_state;
         render_graph_node_desc.dependency_render_graph_nodes = setup_info.dependency_render_graph_nodes;
         render_graph_node_desc.pre_render_callback = setup_info.pre_render_callback;
         render_graph_node_desc.debug_group = setup_info.debug_group;
@@ -2150,6 +2151,7 @@ namespace RendererInterface
         GLTF_CHECK(render_graph_node_handle.IsValid());
         GLTF_CHECK(m_render_graph_node_handles.contains(render_graph_node_handle));
         m_render_graph_node_handles.erase(render_graph_node_handle);
+        m_pending_render_state_updates.erase(render_graph_node_handle);
 
         auto descriptor_it = m_render_pass_descriptor_resources.find(render_graph_node_handle);
         if (descriptor_it != m_render_pass_descriptor_resources.end())
@@ -2191,6 +2193,35 @@ namespace RendererInterface
         }
 
         return false;
+    }
+
+    bool RenderGraph::QueueNodeRenderStateUpdate(RenderGraphNodeHandle render_graph_node_handle, const RenderStateDesc& render_state)
+    {
+        GLTF_CHECK(render_graph_node_handle.IsValid());
+        GLTF_CHECK(render_graph_node_handle.value < m_render_graph_nodes.size());
+
+        const auto& node_desc = m_render_graph_nodes[render_graph_node_handle.value];
+        auto render_pass = InternalResourceHandleTable::Instance().GetRenderPass(node_desc.render_pass_handle);
+        if (!render_pass || render_pass->GetRenderPassType() != RenderPassType::GRAPHICS)
+        {
+            return false;
+        }
+
+        const auto pending_it = m_pending_render_state_updates.find(render_graph_node_handle);
+        if (pending_it != m_pending_render_state_updates.end())
+        {
+            if (IsEquivalentRenderStateDesc(pending_it->second.render_state, render_state))
+            {
+                return true;
+            }
+        }
+        else if (IsEquivalentRenderStateDesc(node_desc.render_state, render_state))
+        {
+            return true;
+        }
+
+        m_pending_render_state_updates[render_graph_node_handle] = PendingRenderStateUpdate{.render_state = render_state};
+        return true;
     }
 
     bool RenderGraph::UpdateNodeBufferBinding(RenderGraphNodeHandle render_graph_node_handle, const std::string& binding_name, BufferHandle buffer_handle)
@@ -2595,8 +2626,13 @@ namespace RendererInterface
             return false;
         }
 
-        if (!SyncWindowSurfaceAndAdvanceFrame(frame_context, interval) ||
-            !AcquireCurrentFrameCommandContext(frame_context))
+        if (!SyncWindowSurfaceAndAdvanceFrame(frame_context, interval))
+        {
+            return false;
+        }
+
+        ApplyPendingRenderStateUpdates();
+        if (!AcquireCurrentFrameCommandContext(frame_context))
         {
             return false;
         }
@@ -3601,6 +3637,51 @@ namespace RendererInterface
                 const bool released = RHIResourceFactory::ReleaseResource(memory_manager, resource);
                 GLTF_CHECK(released);
             }
+        }
+    }
+
+    void RenderGraph::ApplyPendingRenderStateUpdates()
+    {
+        for (auto it = m_pending_render_state_updates.begin(); it != m_pending_render_state_updates.end(); )
+        {
+            const RenderGraphNodeHandle node_handle = it->first;
+            if (!m_render_graph_node_handles.contains(node_handle) ||
+                node_handle.value >= m_render_graph_nodes.size())
+            {
+                it = m_pending_render_state_updates.erase(it);
+                continue;
+            }
+
+            auto& node_desc = m_render_graph_nodes[node_handle.value];
+            auto render_pass = InternalResourceHandleTable::Instance().GetRenderPass(node_desc.render_pass_handle);
+            if (!render_pass)
+            {
+                LOG_FORMAT_FLUSH("[RenderGraph][StateUpdate][Warn] Node %u has no render pass. Keep queued render-state update.\n",
+                                 node_handle.value);
+                ++it;
+                continue;
+            }
+
+            std::shared_ptr<IRHIResource> retired_pipeline_state_object;
+            if (!render_pass->UpdateGraphicsRenderState(
+                    m_resource_allocator.GetDevice(),
+                    m_resource_allocator.GetCurrentSwapchain(),
+                    it->second.render_state,
+                    retired_pipeline_state_object))
+            {
+                LOG_FORMAT_FLUSH("[RenderGraph][StateUpdate][Warn] Failed to apply queued render-state update for node %u.\n",
+                                 node_handle.value);
+                ++it;
+                continue;
+            }
+
+            if (retired_pipeline_state_object)
+            {
+                EnqueueResourceForDeferredRelease(retired_pipeline_state_object);
+            }
+
+            node_desc.render_state = it->second.render_state;
+            it = m_pending_render_state_updates.erase(it);
         }
     }
 

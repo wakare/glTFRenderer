@@ -3,6 +3,7 @@
 RendererSystemSceneRenderer::RendererSystemSceneRenderer(RendererInterface::ResourceOperator& resource_operator, const RendererCameraDesc& camera_desc, const std::string& scene_file)
     : m_camera_desc(camera_desc)
     , m_scene_file(scene_file)
+    , m_base_pass_render_state(CreateDefaultBasePassRenderState())
 {
     ResetRuntimeResources(resource_operator);
 }
@@ -20,6 +21,31 @@ unsigned RendererSystemSceneRenderer::GetWidth() const
 unsigned RendererSystemSceneRenderer::GetHeight() const
 {
     return m_camera_module->GetHeight();
+}
+
+const RendererInterface::RenderStateDesc& RendererSystemSceneRenderer::GetBasePassRenderState() const
+{
+    return m_base_pass_render_state;
+}
+
+bool RendererSystemSceneRenderer::SetBasePassRenderState(const RendererInterface::RenderStateDesc& render_state)
+{
+    const bool current_matches = RendererInterface::IsEquivalentRenderStateDesc(m_base_pass_render_state, render_state);
+    const bool pending_matches = m_pending_base_pass_render_state.has_value() &&
+        RendererInterface::IsEquivalentRenderStateDesc(*m_pending_base_pass_render_state, render_state);
+    if (current_matches && (!m_pending_base_pass_render_state.has_value() || pending_matches))
+    {
+        return false;
+    }
+
+    m_base_pass_render_state = render_state;
+    m_pending_base_pass_render_state = render_state;
+    return true;
+}
+
+RendererInterface::RenderStateDesc RendererSystemSceneRenderer::CreateDefaultBasePassRenderState()
+{
+    return {};
 }
 
 bool RendererSystemSceneRenderer::Init(RendererInterface::ResourceOperator& resource_operator, RendererInterface::RenderGraph& graph)
@@ -42,6 +68,7 @@ bool RendererSystemSceneRenderer::Init(RendererInterface::ResourceOperator& reso
         setup_info.render_pass_type = RendererInterface::RenderPassType::GRAPHICS;
         setup_info.debug_group = "Scene Renderer";
         setup_info.debug_name = "Base Pass";
+        setup_info.render_state = m_base_pass_render_state;
         setup_info.modules = {m_scene_mesh_module, m_camera_module};
         setup_info.shader_setup_infos = {
             {
@@ -149,11 +176,28 @@ void RendererSystemSceneRenderer::ResetRuntimeResources(RendererInterface::Resou
 bool RendererSystemSceneRenderer::Tick(RendererInterface::ResourceOperator& resource_operator,
                                RendererInterface::RenderGraph& graph, unsigned long long interval)
 {
+    QueuePendingBasePassRenderStateUpdate(graph);
     graph.RegisterRenderGraphNode(m_base_pass_node);
     
     m_camera_module->Tick(resource_operator, interval);
     m_scene_mesh_module->Tick(resource_operator, interval);
     
+    return true;
+}
+
+bool RendererSystemSceneRenderer::QueuePendingBasePassRenderStateUpdate(RendererInterface::RenderGraph& graph)
+{
+    if (!m_pending_base_pass_render_state.has_value() || m_base_pass_node == NULL_HANDLE)
+    {
+        return true;
+    }
+
+    if (!graph.QueueNodeRenderStateUpdate(m_base_pass_node, *m_pending_base_pass_render_state))
+    {
+        return false;
+    }
+
+    m_pending_base_pass_render_state.reset();
     return true;
 }
 

@@ -260,6 +260,23 @@ namespace RendererInterface
         DepthBiasDesc depth_bias{};
     };
 
+    inline bool IsEquivalentDepthBiasDesc(const DepthBiasDesc& lhs, const DepthBiasDesc& rhs)
+    {
+        return lhs.enabled == rhs.enabled &&
+            lhs.constant_factor == rhs.constant_factor &&
+            lhs.slope_factor == rhs.slope_factor &&
+            lhs.clamp == rhs.clamp;
+    }
+
+    inline bool IsEquivalentRenderStateDesc(const RenderStateDesc& lhs, const RenderStateDesc& rhs)
+    {
+        return lhs.cull_mode == rhs.cull_mode &&
+            lhs.depth_stencil_mode == rhs.depth_stencil_mode &&
+            lhs.primitive_topology == rhs.primitive_topology &&
+            lhs.blend_mode == rhs.blend_mode &&
+            IsEquivalentDepthBiasDesc(lhs.depth_bias, rhs.depth_bias);
+    }
+
     struct RenderTargetBindingDesc
     {
         PixelFormat format;
@@ -493,6 +510,7 @@ namespace RendererInterface
     struct RenderGraphNodeDesc
     {
         RenderPassHandle render_pass_handle;
+        RenderStateDesc render_state{};
         RenderPassDrawDesc draw_info;
 
         std::vector<RenderGraphNodeHandle> dependency_render_graph_nodes;

@@ -5,6 +5,9 @@
 class ResourceManager;
 class IRHIPipelineStateObject;
 class IRHIDescriptorUpdater;
+class IRHIDevice;
+class IRHISwapChain;
+class IRHIResource;
 
 class RenderPass
 {
@@ -36,6 +39,11 @@ public:
 
     std::pair<int, int> GetViewportSize() const;
     void SetViewportSize(int width, int height);
+    bool UpdateGraphicsRenderState(
+        IRHIDevice& device,
+        IRHISwapChain& swap_chain,
+        const RendererInterface::RenderStateDesc& render_state,
+        std::shared_ptr<IRHIResource>& out_retired_pipeline_state_object);
     bool IsInitialized() const;
     
 protected:

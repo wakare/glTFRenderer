@@ -2,6 +2,7 @@
 #include "RendererSystemBase.h"
 #include "RendererModule/RendererModuleCamera.h"
 #include "RendererModule/RendererModuleSceneMesh.h"
+#include <optional>
 #include <string>
 
 class RendererSystemSceneRenderer : public RendererSystemBase
@@ -13,6 +14,8 @@ public:
 
     unsigned GetWidth() const;
     unsigned GetHeight() const;
+    const RendererInterface::RenderStateDesc& GetBasePassRenderState() const;
+    bool SetBasePassRenderState(const RendererInterface::RenderStateDesc& render_state);
     
     virtual bool Init(RendererInterface::ResourceOperator& resource_operator, RendererInterface::RenderGraph& graph) override;
     virtual bool HasInit() const override;
@@ -25,8 +28,13 @@ public:
     std::shared_ptr<RendererModuleSceneMesh> GetSceneMeshModule() const;
 
 protected:
+    static RendererInterface::RenderStateDesc CreateDefaultBasePassRenderState();
+    bool QueuePendingBasePassRenderStateUpdate(RendererInterface::RenderGraph& graph);
+
     std::shared_ptr<RendererModuleSceneMesh> m_scene_mesh_module;
     std::shared_ptr<RendererModuleCamera> m_camera_module;
+    RendererInterface::RenderStateDesc m_base_pass_render_state{};
+    std::optional<RendererInterface::RenderStateDesc> m_pending_base_pass_render_state{};
 
     RendererInterface::RenderTargetHandle m_base_pass_color{NULL_HANDLE};
     RendererInterface::RenderTargetHandle m_base_pass_normal{NULL_HANDLE};

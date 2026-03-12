@@ -14,6 +14,7 @@
 RendererSystemLighting::RendererSystemLighting(RendererInterface::ResourceOperator& resource_operator,
                                                std::shared_ptr<RendererSystemSceneRenderer> scene)
     : m_scene(std::move(scene))
+    , m_directional_shadow_render_state(CreateDefaultDirectionalShadowRenderState())
 {
     m_lighting_module = std::make_shared<RendererModuleLighting>(resource_operator);
     m_modules.push_back(m_lighting_module);
@@ -91,9 +92,45 @@ void RendererSystemLighting::SetCastShadow(bool cast_shadow)
     m_cast_shadow = cast_shadow;
 }
 
+const RendererInterface::RenderStateDesc& RendererSystemLighting::GetDirectionalShadowRenderState() const
+{
+    return m_directional_shadow_render_state;
+}
+
+bool RendererSystemLighting::SetDirectionalShadowRenderState(const RendererInterface::RenderStateDesc& render_state)
+{
+    const bool current_matches = IsEquivalentRenderStateDesc(m_directional_shadow_render_state, render_state);
+    const bool pending_matches = m_pending_directional_shadow_render_state.has_value() &&
+        IsEquivalentRenderStateDesc(*m_pending_directional_shadow_render_state, render_state);
+    if (current_matches && (!m_pending_directional_shadow_render_state.has_value() || pending_matches))
+    {
+        return false;
+    }
+
+    m_directional_shadow_render_state = render_state;
+    m_pending_directional_shadow_render_state = render_state;
+    return true;
+}
+
+bool RendererSystemLighting::SetDirectionalShadowDepthBias(const RendererInterface::DepthBiasDesc& depth_bias)
+{
+    RendererInterface::RenderStateDesc render_state = m_directional_shadow_render_state;
+    render_state.depth_bias = depth_bias;
+    return SetDirectionalShadowRenderState(render_state);
+}
+
 RendererInterface::RenderTargetHandle RendererSystemLighting::GetLightingOutput() const
 {
     return m_lighting_pass_output;
+}
+
+RendererInterface::RenderStateDesc RendererSystemLighting::CreateDefaultDirectionalShadowRenderState()
+{
+    RendererInterface::RenderStateDesc render_state{};
+    render_state.depth_bias.enabled = true;
+    render_state.depth_bias.constant_factor = 256.0f;
+    render_state.depth_bias.slope_factor = 2.0f;
+    return render_state;
 }
 
 bool RendererSystemLighting::Init(RendererInterface::ResourceOperator& resource_operator,
@@ -158,9 +195,7 @@ bool RendererSystemLighting::Init(RendererInterface::ResourceOperator& resource_
         shadow_pass_setup_info.debug_group = "Lighting";
         shadow_pass_setup_info.debug_name = std::format("Directional Shadow {}", i);
         shadow_pass_setup_info.modules = {m_scene->GetSceneMeshModule()};
-        shadow_pass_setup_info.render_state.depth_bias.enabled = true;
-        shadow_pass_setup_info.render_state.depth_bias.constant_factor = 256.0f;
-        shadow_pass_setup_info.render_state.depth_bias.slope_factor = 2.0f;
+        shadow_pass_setup_info.render_state = m_directional_shadow_render_state;
         shadow_pass_setup_info.excluded_buffer_bindings.insert("g_material_infos");
         shadow_pass_setup_info.excluded_texture_bindings.insert("bindless_material_textures");
         shadow_pass_setup_info.shader_setup_infos = {
@@ -316,6 +351,7 @@ bool RendererSystemLighting::Tick(RendererInterface::ResourceOperator& resource_
 {
     const unsigned width = m_scene->GetWidth();
     const unsigned height = m_scene->GetHeight();
+    QueuePendingDirectionalShadowRenderStateUpdate(graph);
     graph.UpdateComputeDispatch(m_lighting_pass_node, (width + 7) / 8, (height + 7) / 8, 1);
 
     if (!m_lighting_module->m_light_buffer_handles.empty())
@@ -418,6 +454,37 @@ void RendererSystemLighting::DrawDebugUI()
 
     ImGui::Text("Lights: %u", static_cast<unsigned>(m_lighting_module->GetLightInfos().size()));
     ImGui::Text("Directional Shadow Maps: %u", static_cast<unsigned>(m_shadow_pass_resources.size()));
+}
+
+bool RendererSystemLighting::QueuePendingDirectionalShadowRenderStateUpdate(RendererInterface::RenderGraph& graph)
+{
+    if (!m_pending_directional_shadow_render_state.has_value())
+    {
+        return true;
+    }
+
+    bool queued_all_shadow_passes = !m_shadow_pass_resources.empty();
+    for (const auto& shadow_resource_pair : m_shadow_pass_resources)
+    {
+        const auto shadow_pass_node = shadow_resource_pair.second.m_shadow_pass_node;
+        if (shadow_pass_node == NULL_HANDLE)
+        {
+            queued_all_shadow_passes = false;
+            continue;
+        }
+
+        if (!graph.QueueNodeRenderStateUpdate(shadow_pass_node, *m_pending_directional_shadow_render_state))
+        {
+            queued_all_shadow_passes = false;
+        }
+    }
+
+    if (queued_all_shadow_passes)
+    {
+        m_pending_directional_shadow_render_state.reset();
+    }
+
+    return queued_all_shadow_passes;
 }
 
 void RendererSystemLighting::UpdateDirectionalShadowResources(RendererInterface::ResourceOperator& resource_operator)
