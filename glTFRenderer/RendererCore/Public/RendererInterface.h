@@ -80,7 +80,7 @@ namespace RendererInterface
         const void* data;
         size_t size;
     };
-    
+
     class ResourceOperator
     {
     public:
@@ -90,6 +90,7 @@ namespace RendererInterface
         unsigned            GetFrameSlotCount() const;
         unsigned            GetSwapchainImageCount() const;
         unsigned            GetBackBufferCount() const;
+        FrameContextSnapshot GetFrameContext() const;
         bool                IsPerFrameResourceBindingEnabled() const;
         void                SetPerFrameResourceBindingEnabled(bool enable);
         
@@ -100,11 +101,13 @@ namespace RendererInterface
         IndexedBufferHandle CreateIndexedBuffer(const BufferDesc& desc);
         std::vector<BufferHandle> CreateFrameBufferedBuffers(const BufferDesc& desc, const std::string& debug_name_prefix = "");
         BufferHandle        GetFrameBufferedBufferHandle(const std::vector<BufferHandle>& buffers) const;
+        BufferHandle        GetFrameBufferedBufferHandle(const std::vector<BufferHandle>& buffers, const FrameContextSnapshot& frame_context) const;
         void                UploadFrameBufferedBufferData(const std::vector<BufferHandle>& buffers, const BufferUploadDesc& upload_desc);
         
         RenderTargetHandle  CreateRenderTarget(const RenderTargetDesc& desc);
         std::vector<RenderTargetHandle> CreateFrameBufferedRenderTargets(const RenderTargetDesc& desc, const std::string& debug_name_prefix = "");
         RenderTargetHandle  GetFrameBufferedRenderTargetHandle(const std::vector<RenderTargetHandle>& render_targets) const;
+        RenderTargetHandle  GetFrameBufferedRenderTargetHandle(const std::vector<RenderTargetHandle>& render_targets, const FrameContextSnapshot& frame_context) const;
         RenderTargetHandle  CreateFrameBufferedRenderTargetAlias(const RenderTargetDesc& desc, const std::string& debug_name_prefix = "");
         RenderTargetHandle  CreateRenderTarget(
             const std::string& name,
@@ -148,10 +151,12 @@ namespace RendererInterface
         unsigned            GetCurrentRenderWidth() const;
         unsigned            GetCurrentRenderHeight() const;
         IRHICommandList&    GetCommandListForRecordPassCommand(RenderPassHandle pass = NULL_HANDLE) const;
+        IRHICommandList&    GetCommandListForRecordPassCommand(const FrameContextSnapshot& frame_context, RenderPassHandle pass = NULL_HANDLE) const;
         IRHIDescriptorManager& GetDescriptorManager() const;
         IRHIMemoryManager&  GetMemoryManager() const;
         
         IRHITextureDescriptorAllocation& GetCurrentSwapchainRT() const;
+        IRHITextureDescriptorAllocation& GetCurrentSwapchainRT(const FrameContextSnapshot& frame_context) const;
         bool HasCurrentSwapchainRT() const;
 
         void UploadBufferData(BufferHandle handle, const BufferUploadDesc& upload_desc);
@@ -404,6 +409,15 @@ namespace RendererInterface
             std::vector<std::shared_ptr<IRHIResource>> resources;
         };
 
+        struct DeferredReleaseQueue
+        {
+            std::deque<DeferredReleaseEntry> entries;
+
+            void Enqueue(const std::shared_ptr<IRHIResource>& resource, unsigned long long current_frame, unsigned delay_frame);
+            void Flush(IRHIMemoryManager& memory_manager, unsigned long long current_frame, bool force_release_all);
+            void Clear();
+        };
+
         struct PendingRenderStateUpdate
         {
             RenderStateDesc render_state{};
@@ -437,25 +451,45 @@ namespace RendererInterface
             std::map<std::string, std::map<unsigned long long, TextureDescriptorCacheEntry>> m_render_target_texture_descriptor_cache;
         };
 
+        struct DescriptorResourceStore
+        {
+            std::map<RenderGraphNodeHandle, RenderPassDescriptorResource> resources;
+            std::map<RenderGraphNodeHandle, unsigned long long> last_used_frames;
+
+            RenderPassDescriptorResource* Find(RenderGraphNodeHandle node_handle);
+            const RenderPassDescriptorResource* Find(RenderGraphNodeHandle node_handle) const;
+            RenderPassDescriptorResource& GetOrCreate(RenderGraphNodeHandle node_handle);
+            void MarkUsed(RenderGraphNodeHandle node_handle, unsigned long long frame_index);
+            void Erase(RenderGraphNodeHandle node_handle);
+            std::vector<RenderGraphNodeHandle> CollectExpiredInactiveHandles(
+                const std::set<RenderGraphNodeHandle>& active_node_handles,
+                unsigned long long current_frame,
+                unsigned retention_frame) const;
+        };
+
         struct FramePreparationContext
         {
             unsigned window_width{0};
             unsigned window_height{0};
+            FrameContextSnapshot resource_frame_context{};
+            FrameContextSnapshot presentation_frame_context{};
             unsigned profiler_slot_index{0};
             bool require_explicit_frame_wait{false};
             IRHICommandList* command_list{nullptr};
         };
 
-        void EnqueueResourceForDeferredRelease(const std::shared_ptr<IRHIResource>& resource);
-        void EnqueueBufferDescriptorForDeferredRelease(RenderPassDescriptorResource& descriptor_resource, const std::string& binding_name);
-        void EnqueueTextureDescriptorForDeferredRelease(RenderPassDescriptorResource& descriptor_resource, const std::string& binding_name);
-        void ReleaseRenderPassDescriptorResource(RenderPassDescriptorResource& descriptor_resource);
-        void PruneDescriptorResources(RenderPassDescriptorResource& descriptor_resource, const RenderPassDrawDesc& draw_info);
-        void CollectUnusedRenderPassDescriptorResources();
+        void EnqueueResourceForDeferredRelease(const std::shared_ptr<IRHIResource>& resource, const FrameContextSnapshot& frame_context);
+        void EnqueueBufferDescriptorEntryForDeferredRelease(const RenderPassDescriptorResource::BufferDescriptorCacheEntry& cache_entry, const FrameContextSnapshot& frame_context);
+        void EnqueueTextureDescriptorEntryForDeferredRelease(const RenderPassDescriptorResource::TextureDescriptorCacheEntry& cache_entry, const FrameContextSnapshot& frame_context);
+        void EnqueueBufferDescriptorForDeferredRelease(RenderPassDescriptorResource& descriptor_resource, const std::string& binding_name, const FrameContextSnapshot& frame_context);
+        void EnqueueTextureDescriptorForDeferredRelease(RenderPassDescriptorResource& descriptor_resource, const std::string& binding_name, const FrameContextSnapshot& frame_context);
+        void ReleaseRenderPassDescriptorResource(RenderPassDescriptorResource& descriptor_resource, const FrameContextSnapshot& frame_context);
+        void PruneDescriptorResources(RenderPassDescriptorResource& descriptor_resource, const RenderPassDrawDesc& draw_info, const FrameContextSnapshot& frame_context);
+        void CollectUnusedRenderPassDescriptorResources(const FrameContextSnapshot& frame_context);
         void FlushDeferredResourceReleases(bool force_release_all);
-        void ApplyPendingRenderStateUpdates();
+        void ApplyPendingRenderStateUpdates(const FrameContextSnapshot& frame_context);
         bool InitDebugUI();
-        bool RenderDebugUI(IRHICommandList& command_list);
+        bool RenderDebugUI(IRHICommandList& command_list, const FrameContextSnapshot& frame_context);
         void ShutdownDebugUI();
         bool InitGPUProfiler();
         void ShutdownGPUProfiler();
@@ -473,20 +507,20 @@ namespace RendererInterface
         bool AcquireCurrentFrameCommandContext(FramePreparationContext& frame_context);
         void OnFrameTick(unsigned long long interval);
         bool PrepareFrameForRendering(unsigned long long interval, FramePreparationContext& frame_context);
-        void ExecutePlanAndCollectStats(IRHICommandList& command_list, unsigned profiler_slot_index, unsigned long long interval);
+        void ExecutePlanAndCollectStats(IRHICommandList& command_list, const FrameContextSnapshot& frame_context, unsigned profiler_slot_index, unsigned long long interval);
         void ExecuteRenderGraphFrame(FramePreparationContext& frame_context, unsigned long long interval);
-        bool AcquireCurrentFrameSwapchain();
-        void BlitFinalOutputToSwapchain(IRHICommandList& command_list, unsigned window_width, unsigned window_height);
-        void FinalizeFrameSubmission(IRHICommandList& command_list, bool swapchain_ready);
+        bool AcquireCurrentFrameSwapchain(FramePreparationContext& frame_context);
+        void BlitFinalOutputToSwapchain(IRHICommandList& command_list, const FrameContextSnapshot& frame_context, unsigned window_width, unsigned window_height);
+        void FinalizeFrameSubmission(FramePreparationContext& frame_context, bool swapchain_ready);
         
-        RenderPassExecutionStatus ExecuteRenderGraphNode(IRHICommandList& command_list, RenderGraphNodeHandle render_graph_node_handle, unsigned long long interval);
+        RenderPassExecutionStatus ExecuteRenderGraphNode(IRHICommandList& command_list, const FrameContextSnapshot& frame_context, RenderGraphNodeHandle render_graph_node_handle, unsigned long long interval);
         void LogRenderPassValidationResult(RenderGraphNodeHandle render_graph_node_handle,
                                            const RenderGraphNodeDesc& render_graph_node_desc,
                                            bool valid,
                                            const std::vector<std::string>& errors,
                                            const std::vector<std::string>& warnings);
         void CloseCurrentCommandListAndExecute(IRHICommandList& command_list, const RHIExecuteCommandListContext& context, bool wait);
-        void Present(IRHICommandList& command_list);
+        void Present(IRHICommandList& command_list, const FrameContextSnapshot& frame_context);
         
         ResourceOperator& m_resource_allocator;
         RenderWindow& m_window;
@@ -494,13 +528,12 @@ namespace RendererInterface
         std::vector<RenderGraphNodeDesc> m_render_graph_nodes;
         std::set<RenderGraphNodeHandle> m_render_graph_node_handles;
 
-        std::map<RenderGraphNodeHandle, RenderPassDescriptorResource> m_render_pass_descriptor_resources;
-        std::map<RenderGraphNodeHandle, unsigned long long> m_render_pass_descriptor_last_used_frame;
+        DescriptorResourceStore m_descriptor_resource_store;
         std::map<RenderGraphNodeHandle, std::tuple<unsigned, unsigned, unsigned>> m_auto_pruned_named_binding_counts;
         std::map<RenderGraphNodeHandle, unsigned long long> m_render_pass_validation_last_log_frame;
         std::map<RenderGraphNodeHandle, std::size_t> m_render_pass_validation_last_message_hash;
         std::map<RenderGraphNodeHandle, PendingRenderStateUpdate> m_pending_render_state_updates;
-        std::deque<DeferredReleaseEntry> m_deferred_release_entries;
+        DeferredReleaseQueue m_deferred_release_queue;
         std::vector<RenderGraphNodeHandle> m_cached_execution_order;
         struct FrameResourceAccessSnapshot
         {
@@ -509,9 +542,9 @@ namespace RendererInterface
             std::map<unsigned long long, std::pair<std::vector<std::string>, std::vector<std::string>>> pass_accesses;
             unsigned long long frame_index{0};
         };
-        unsigned GetCrossFrameComparisonWindowSize() const;
+        unsigned GetCrossFrameComparisonWindowSize(const FrameContextSnapshot& frame_context) const;
         void EnsureCrossFrameHazardSnapshotStorage(unsigned window_size);
-        unsigned GetCrossFrameHazardSlotIndex(unsigned window_size) const;
+        unsigned GetCrossFrameHazardSlotIndex(const FrameContextSnapshot& frame_context, unsigned window_size) const;
         const FrameResourceAccessSnapshot* GetCrossFrameHazardSnapshot(unsigned hazard_slot_index) const;
         void UpdateCrossFrameHazardSnapshot(unsigned hazard_slot_index, FrameResourceAccessSnapshot snapshot);
         std::vector<FrameResourceAccessSnapshot> m_frame_slot_resource_access_snapshots;

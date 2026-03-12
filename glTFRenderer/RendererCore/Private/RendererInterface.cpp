@@ -139,49 +139,36 @@ namespace RendererInterface
             return (std::max)(min_extent, scaled_extent);
         }
 
-        unsigned ResolveFrameSlotCount(const ResourceOperator& resource_operator)
-        {
-            return (std::max)(1u, resource_operator.GetFrameSlotCount());
-        }
-
         unsigned ResolveSwapchainImageCount(const ResourceOperator& resource_operator)
         {
-            return resource_operator.GetSwapchainImageCount();
+            return resource_operator.GetFrameContext().swapchain_image_count;
         }
 
         unsigned ResolveProfilerSlotCount(const ResourceOperator& resource_operator)
         {
-            return ResolveFrameSlotCount(resource_operator);
+            return resource_operator.GetFrameContext().profiler_slot_count;
         }
 
-        unsigned ResolveProfilerSlotIndex(const ResourceOperator& resource_operator)
+        unsigned ResolveCrossFrameComparisonWindowSize(const FrameContextSnapshot& frame_context)
         {
-            const unsigned profiler_slot_count = ResolveProfilerSlotCount(resource_operator);
-            return profiler_slot_count > 0u
-                ? (resource_operator.GetCurrentFrameSlotIndex() % profiler_slot_count)
-                : 0u;
-        }
-
-        unsigned ResolveCrossFrameComparisonWindowSize(const ResourceOperator& resource_operator)
-        {
-            return resource_operator.IsPerFrameResourceBindingEnabled()
-                ? ResolveFrameSlotCount(resource_operator)
+            return frame_context.per_frame_resource_binding_enabled
+                ? frame_context.frame_slot_count
                 : 1u;
         }
 
-        unsigned ResolveDeferredReleaseLatencyFrames(const ResourceOperator& resource_operator)
+        unsigned ResolveDeferredReleaseLatencyFrames(const FrameContextSnapshot& frame_context)
         {
-            return (std::max)(2u, ResolveFrameSlotCount(resource_operator));
+            return (std::max)(2u, frame_context.frame_slot_count);
         }
 
-        unsigned ResolveDescriptorCacheRetentionFrames(const ResourceOperator& resource_operator)
+        unsigned ResolveDescriptorCacheRetentionFrames(const FrameContextSnapshot& frame_context)
         {
-            return (std::max)(2u, ResolveFrameSlotCount(resource_operator) * 2u);
+            return (std::max)(2u, frame_context.frame_slot_count * 2u);
         }
 
-        unsigned ResolveRenderPassDescriptorRetentionFrames(const ResourceOperator& resource_operator)
+        unsigned ResolveRenderPassDescriptorRetentionFrames(const FrameContextSnapshot& frame_context)
         {
-            return (std::max)(2u, ResolveFrameSlotCount(resource_operator));
+            return (std::max)(2u, frame_context.frame_slot_count);
         }
 
         using DependencyEdgeMap = std::map<RenderGraphNodeHandle, std::set<RenderGraphNodeHandle>>;
@@ -1542,7 +1529,8 @@ namespace RendererInterface
 
     std::vector<BufferHandle> ResourceOperator::CreateFrameBufferedBuffers(const BufferDesc& desc, const std::string& debug_name_prefix)
     {
-        const unsigned frame_slot_count = ResolveFrameSlotCount(*this);
+        const auto frame_context = GetFrameContext();
+        const unsigned frame_slot_count = frame_context.frame_slot_count;
         std::vector<BufferHandle> buffers;
         buffers.reserve(frame_slot_count);
 
@@ -1564,9 +1552,14 @@ namespace RendererInterface
 
     BufferHandle ResourceOperator::GetFrameBufferedBufferHandle(const std::vector<BufferHandle>& buffers) const
     {
+        return GetFrameBufferedBufferHandle(buffers, GetFrameContext());
+    }
+
+    BufferHandle ResourceOperator::GetFrameBufferedBufferHandle(const std::vector<BufferHandle>& buffers, const FrameContextSnapshot& frame_context) const
+    {
         GLTF_CHECK(!buffers.empty());
-        const unsigned frame_slot = m_per_frame_resource_binding_enabled
-            ? (GetCurrentFrameSlotIndex() % static_cast<unsigned>(buffers.size()))
+        const unsigned frame_slot = frame_context.per_frame_resource_binding_enabled
+            ? (frame_context.frame_slot_index % static_cast<unsigned>(buffers.size()))
             : 0u;
         return buffers[frame_slot];
     }
@@ -1582,7 +1575,8 @@ namespace RendererInterface
 
     std::vector<RenderTargetHandle> ResourceOperator::CreateFrameBufferedRenderTargets(const RenderTargetDesc& desc, const std::string& debug_name_prefix)
     {
-        const unsigned frame_slot_count = ResolveFrameSlotCount(*this);
+        const auto frame_context = GetFrameContext();
+        const unsigned frame_slot_count = frame_context.frame_slot_count;
         std::vector<RenderTargetHandle> render_targets;
         render_targets.reserve(frame_slot_count);
 
@@ -1604,9 +1598,14 @@ namespace RendererInterface
 
     RenderTargetHandle ResourceOperator::GetFrameBufferedRenderTargetHandle(const std::vector<RenderTargetHandle>& render_targets) const
     {
+        return GetFrameBufferedRenderTargetHandle(render_targets, GetFrameContext());
+    }
+
+    RenderTargetHandle ResourceOperator::GetFrameBufferedRenderTargetHandle(const std::vector<RenderTargetHandle>& render_targets, const FrameContextSnapshot& frame_context) const
+    {
         GLTF_CHECK(!render_targets.empty());
-        const unsigned frame_slot = m_per_frame_resource_binding_enabled
-            ? (GetCurrentFrameSlotIndex() % static_cast<unsigned>(render_targets.size()))
+        const unsigned frame_slot = frame_context.per_frame_resource_binding_enabled
+            ? (frame_context.frame_slot_index % static_cast<unsigned>(render_targets.size()))
             : 0u;
         return render_targets[frame_slot];
     }
@@ -1773,6 +1772,15 @@ namespace RendererInterface
         return m_resource_manager->GetBackBufferCount();
     }
 
+    FrameContextSnapshot ResourceOperator::GetFrameContext() const
+    {
+        FrameContextSnapshot frame_context = m_resource_manager->GetFrameContext();
+        frame_context.per_frame_resource_binding_enabled = m_per_frame_resource_binding_enabled;
+        frame_context.profiler_slot_count = frame_context.frame_slot_count;
+        frame_context.profiler_slot_index = frame_context.frame_slot_index % frame_context.profiler_slot_count;
+        return frame_context;
+    }
+
     bool ResourceOperator::IsPerFrameResourceBindingEnabled() const
     {
         return m_per_frame_resource_binding_enabled;
@@ -1805,6 +1813,11 @@ namespace RendererInterface
     IRHITextureDescriptorAllocation& ResourceOperator::GetCurrentSwapchainRT() const
     {
         return m_resource_manager->GetCurrentSwapchainRT();
+    }
+
+    IRHITextureDescriptorAllocation& ResourceOperator::GetCurrentSwapchainRT(const FrameContextSnapshot& frame_context) const
+    {
+        return m_resource_manager->GetCurrentSwapchainRT(frame_context);
     }
 
     bool ResourceOperator::HasCurrentSwapchainRT() const
@@ -1893,6 +1906,11 @@ namespace RendererInterface
         return m_resource_manager->GetCommandListForRecordPassCommand(pass);
     }
 
+    IRHICommandList& ResourceOperator::GetCommandListForRecordPassCommand(const FrameContextSnapshot& frame_context, RenderPassHandle pass) const
+    {
+        return m_resource_manager->GetCommandListForRecordPassCommand(frame_context, pass);
+    }
+
     IRHIDescriptorManager& ResourceOperator::GetDescriptorManager() const
     {
         return m_resource_manager->GetMemoryManager().GetDescriptorManager();
@@ -1960,6 +1978,114 @@ namespace RendererInterface
         m_frame_buffered_render_target_alias_current.clear();
 
         return cleaned_resources && released_allocations;
+    }
+
+    void RenderGraph::DeferredReleaseQueue::Enqueue(
+        const std::shared_ptr<IRHIResource>& resource,
+        unsigned long long current_frame,
+        unsigned delay_frame)
+    {
+        if (!resource)
+        {
+            return;
+        }
+
+        const unsigned long long retire_frame = current_frame + delay_frame;
+        if (!entries.empty() && entries.back().retire_frame == retire_frame)
+        {
+            entries.back().resources.push_back(resource);
+            return;
+        }
+
+        DeferredReleaseEntry entry{};
+        entry.retire_frame = retire_frame;
+        entry.resources.push_back(resource);
+        entries.push_back(std::move(entry));
+    }
+
+    void RenderGraph::DeferredReleaseQueue::Flush(
+        IRHIMemoryManager& memory_manager,
+        unsigned long long current_frame,
+        bool force_release_all)
+    {
+        while (!entries.empty())
+        {
+            if (!force_release_all && entries.front().retire_frame > current_frame)
+            {
+                break;
+            }
+
+            auto entry = std::move(entries.front());
+            entries.pop_front();
+            for (const auto& resource : entry.resources)
+            {
+                const bool released = RHIResourceFactory::ReleaseResource(memory_manager, resource);
+                GLTF_CHECK(released);
+            }
+        }
+    }
+
+    void RenderGraph::DeferredReleaseQueue::Clear()
+    {
+        entries.clear();
+    }
+
+    RenderGraph::RenderPassDescriptorResource* RenderGraph::DescriptorResourceStore::Find(RenderGraphNodeHandle node_handle)
+    {
+        const auto it = resources.find(node_handle);
+        return it != resources.end() ? &it->second : nullptr;
+    }
+
+    const RenderGraph::RenderPassDescriptorResource* RenderGraph::DescriptorResourceStore::Find(RenderGraphNodeHandle node_handle) const
+    {
+        const auto it = resources.find(node_handle);
+        return it != resources.end() ? &it->second : nullptr;
+    }
+
+    RenderGraph::RenderPassDescriptorResource& RenderGraph::DescriptorResourceStore::GetOrCreate(RenderGraphNodeHandle node_handle)
+    {
+        return resources[node_handle];
+    }
+
+    void RenderGraph::DescriptorResourceStore::MarkUsed(RenderGraphNodeHandle node_handle, unsigned long long frame_index)
+    {
+        last_used_frames[node_handle] = frame_index;
+    }
+
+    void RenderGraph::DescriptorResourceStore::Erase(RenderGraphNodeHandle node_handle)
+    {
+        resources.erase(node_handle);
+        last_used_frames.erase(node_handle);
+    }
+
+    std::vector<RenderGraphNodeHandle> RenderGraph::DescriptorResourceStore::CollectExpiredInactiveHandles(
+        const std::set<RenderGraphNodeHandle>& active_node_handles,
+        unsigned long long current_frame,
+        unsigned retention_frame) const
+    {
+        std::vector<RenderGraphNodeHandle> expired_handles;
+        expired_handles.reserve(resources.size());
+
+        for (const auto& resource_pair : resources)
+        {
+            const auto node_handle = resource_pair.first;
+            if (active_node_handles.contains(node_handle))
+            {
+                continue;
+            }
+
+            const auto last_used_it = last_used_frames.find(node_handle);
+            const unsigned long long last_used_frame =
+                last_used_it != last_used_frames.end() ? last_used_it->second : 0u;
+            if (current_frame < last_used_frame + retention_frame)
+            {
+                continue;
+            }
+
+            expired_handles.push_back(node_handle);
+        }
+
+        return expired_handles;
     }
 
     RenderGraph::RenderGraph(ResourceOperator& allocator, RenderWindow& window)
@@ -2153,13 +2279,12 @@ namespace RendererInterface
         m_render_graph_node_handles.erase(render_graph_node_handle);
         m_pending_render_state_updates.erase(render_graph_node_handle);
 
-        auto descriptor_it = m_render_pass_descriptor_resources.find(render_graph_node_handle);
-        if (descriptor_it != m_render_pass_descriptor_resources.end())
+        auto* descriptor_resource = m_descriptor_resource_store.Find(render_graph_node_handle);
+        if (descriptor_resource)
         {
-            ReleaseRenderPassDescriptorResource(descriptor_it->second);
-            m_render_pass_descriptor_resources.erase(descriptor_it);
+            ReleaseRenderPassDescriptorResource(*descriptor_resource, m_resource_allocator.GetFrameContext());
+            m_descriptor_resource_store.Erase(render_graph_node_handle);
         }
-        m_render_pass_descriptor_last_used_frame.erase(render_graph_node_handle);
         m_auto_pruned_named_binding_counts.erase(render_graph_node_handle);
         m_render_pass_validation_last_log_frame.erase(render_graph_node_handle);
         m_render_pass_validation_last_message_hash.erase(render_graph_node_handle);
@@ -2357,17 +2482,21 @@ namespace RendererInterface
         m_current_frame_timing_breakdown.execute_render_graph_ms = ToMilliseconds(execute_begin, execute_end);
 
         GLTF_CHECK(frame_context.command_list);
-        const bool swapchain_ready = AcquireCurrentFrameSwapchain();
+        const bool swapchain_ready = AcquireCurrentFrameSwapchain(frame_context);
         if (swapchain_ready)
         {
             const auto blit_begin = std::chrono::steady_clock::now();
-            BlitFinalOutputToSwapchain(*frame_context.command_list, frame_context.window_width, frame_context.window_height);
+            BlitFinalOutputToSwapchain(
+                *frame_context.command_list,
+                frame_context.presentation_frame_context,
+                frame_context.window_width,
+                frame_context.window_height);
             const auto blit_end = std::chrono::steady_clock::now();
             m_current_frame_timing_breakdown.blit_to_swapchain_ms = ToMilliseconds(blit_begin, blit_end);
         }
 
         const auto finalize_begin = std::chrono::steady_clock::now();
-        FinalizeFrameSubmission(*frame_context.command_list, swapchain_ready);
+        FinalizeFrameSubmission(frame_context, swapchain_ready);
         const auto finalize_end = std::chrono::steady_clock::now();
         m_current_frame_timing_breakdown.finalize_submission_ms = ToMilliseconds(finalize_begin, finalize_end);
 
@@ -2562,6 +2691,7 @@ namespace RendererInterface
         }
 
         m_resource_allocator.AdvanceFrameSlot();
+        frame_context.resource_frame_context = m_resource_allocator.GetFrameContext();
 
         frame_context.require_explicit_frame_wait =
             surface_sync_result.status != WindowSurfaceSyncStatus::RESIZED &&
@@ -2578,7 +2708,7 @@ namespace RendererInterface
     bool RenderGraph::AcquireCurrentFrameCommandContext(FramePreparationContext& frame_context)
     {
         const auto acquire_context_begin = std::chrono::steady_clock::now();
-        frame_context.profiler_slot_index = ResolveProfilerSlotIndex(m_resource_allocator);
+        frame_context.profiler_slot_index = frame_context.resource_frame_context.profiler_slot_index;
 
         const auto resolve_profiler_begin = std::chrono::steady_clock::now();
         ResolveGPUProfilerFrame(frame_context.profiler_slot_index);
@@ -2602,7 +2732,7 @@ namespace RendererInterface
         }
 
         const auto acquire_command_list_begin = std::chrono::steady_clock::now();
-        frame_context.command_list = &m_resource_allocator.GetCommandListForRecordPassCommand();
+        frame_context.command_list = &m_resource_allocator.GetCommandListForRecordPassCommand(frame_context.resource_frame_context);
         const auto acquire_command_list_end = std::chrono::steady_clock::now();
         m_current_frame_timing_breakdown.acquire_command_list_ms =
             ToMilliseconds(acquire_command_list_begin, acquire_command_list_end);
@@ -2631,7 +2761,7 @@ namespace RendererInterface
             return false;
         }
 
-        ApplyPendingRenderStateUpdates();
+        ApplyPendingRenderStateUpdates(frame_context.resource_frame_context);
         if (!AcquireCurrentFrameCommandContext(frame_context))
         {
             return false;
@@ -2711,9 +2841,11 @@ namespace RendererInterface
         if (should_update_dependency_diagnostics)
         {
             auto current_frame_resource_access = CollectFrameResourceAccessDiagnostics(nodes, m_render_graph_nodes);
-            const unsigned cross_frame_comparison_window_size = GetCrossFrameComparisonWindowSize();
+            const unsigned cross_frame_comparison_window_size =
+                GetCrossFrameComparisonWindowSize(frame_context.resource_frame_context);
             EnsureCrossFrameHazardSnapshotStorage(cross_frame_comparison_window_size);
-            const unsigned hazard_slot_index = GetCrossFrameHazardSlotIndex(cross_frame_comparison_window_size);
+            const unsigned hazard_slot_index =
+                GetCrossFrameHazardSlotIndex(frame_context.resource_frame_context, cross_frame_comparison_window_size);
 
             ResourceAccessMaskMap previous_frame_resource_access_masks;
             ResourcePassAccessMap previous_frame_resource_pass_accesses;
@@ -2759,21 +2891,29 @@ namespace RendererInterface
         m_current_frame_timing_breakdown.execution_planning_ms = ToMilliseconds(planning_begin, planning_end);
 
         GLTF_CHECK(frame_context.command_list);
-        ExecutePlanAndCollectStats(*frame_context.command_list, frame_context.profiler_slot_index, interval);
+        ExecutePlanAndCollectStats(
+            *frame_context.command_list,
+            frame_context.resource_frame_context,
+            frame_context.profiler_slot_index,
+            interval);
 
         const auto collect_unused_begin = std::chrono::steady_clock::now();
-        CollectUnusedRenderPassDescriptorResources();
+        CollectUnusedRenderPassDescriptorResources(frame_context.resource_frame_context);
         const auto collect_unused_end = std::chrono::steady_clock::now();
         m_current_frame_timing_breakdown.collect_unused_descriptor_ms =
             ToMilliseconds(collect_unused_begin, collect_unused_end);
     }
 
-    void RenderGraph::BlitFinalOutputToSwapchain(IRHICommandList& command_list, unsigned window_width, unsigned window_height)
+    void RenderGraph::BlitFinalOutputToSwapchain(
+        IRHICommandList& command_list,
+        const FrameContextSnapshot& frame_context,
+        unsigned window_width,
+        unsigned window_height)
     {
         if (!m_render_graph_node_handles.empty())
         {
             auto src = m_final_color_output;
-            auto dst = m_resource_allocator.GetCurrentSwapchainRT().m_source;
+            auto dst = m_resource_allocator.GetCurrentSwapchainRT(frame_context).m_source;
 
             src->Transition(command_list, RHIResourceStateType::STATE_COPY_SOURCE);
             dst->Transition(command_list, RHIResourceStateType::STATE_COPY_DEST);
@@ -2796,7 +2936,7 @@ namespace RendererInterface
         }
     }
 
-    bool RenderGraph::AcquireCurrentFrameSwapchain()
+    bool RenderGraph::AcquireCurrentFrameSwapchain(FramePreparationContext& frame_context)
     {
         const auto acquire_frame_begin = std::chrono::steady_clock::now();
         const bool acquire_succeeded = m_resource_allocator.GetCurrentSwapchain().AcquireNewFrame(m_resource_allocator.GetDevice());
@@ -2805,13 +2945,18 @@ namespace RendererInterface
         if (!acquire_succeeded)
         {
             m_resource_allocator.NotifySwapchainAcquireFailure();
+            frame_context.presentation_frame_context = {};
+            return false;
         }
 
-        return acquire_succeeded;
+        frame_context.presentation_frame_context = m_resource_allocator.GetFrameContext();
+        return true;
     }
 
-    void RenderGraph::FinalizeFrameSubmission(IRHICommandList& command_list, bool swapchain_ready)
+    void RenderGraph::FinalizeFrameSubmission(FramePreparationContext& frame_context, bool swapchain_ready)
     {
+        GLTF_CHECK(frame_context.command_list);
+        auto& command_list = *frame_context.command_list;
         if (!swapchain_ready)
         {
             const auto submit_begin = std::chrono::steady_clock::now();
@@ -2825,12 +2970,12 @@ namespace RendererInterface
         }
 
         const auto render_debug_ui_begin = std::chrono::steady_clock::now();
-        GLTF_CHECK(RenderDebugUI(command_list));
+        GLTF_CHECK(RenderDebugUI(command_list, frame_context.presentation_frame_context));
         const auto render_debug_ui_end = std::chrono::steady_clock::now();
         m_current_frame_timing_breakdown.render_debug_ui_ms = ToMilliseconds(render_debug_ui_begin, render_debug_ui_end);
 
         const auto present_begin = std::chrono::steady_clock::now();
-        Present(command_list);
+        Present(command_list, frame_context.presentation_frame_context);
         const auto present_end = std::chrono::steady_clock::now();
         m_current_frame_timing_breakdown.present_ms = ToMilliseconds(present_begin, present_end);
 
@@ -2969,7 +3114,7 @@ namespace RendererInterface
         return true;
     }
 
-    bool RenderGraph::RenderDebugUI(IRHICommandList& command_list)
+    bool RenderGraph::RenderDebugUI(IRHICommandList& command_list, const FrameContextSnapshot& frame_context)
     {
         if (!m_debug_ui_enabled || !m_debug_ui_initialized)
         {
@@ -2983,12 +3128,13 @@ namespace RendererInterface
         ImGui::Render();
 
         RHIBeginRenderingInfo begin_rendering_info{};
-        const auto& swapchain_desc = m_resource_allocator.GetCurrentSwapchainRT().m_source->GetTextureDesc();
+        auto& swapchain_rt = m_resource_allocator.GetCurrentSwapchainRT(frame_context);
+        const auto& swapchain_desc = swapchain_rt.m_source->GetTextureDesc();
         begin_rendering_info.rendering_area_width = swapchain_desc.GetTextureWidth();
         begin_rendering_info.rendering_area_height = swapchain_desc.GetTextureHeight();
         begin_rendering_info.enable_depth_write = false;
         begin_rendering_info.clear_render_target = false;
-        begin_rendering_info.m_render_targets = {&m_resource_allocator.GetCurrentSwapchainRT()};
+        begin_rendering_info.m_render_targets = {&swapchain_rt};
 
         GLTF_CHECK(RHIUtilInstanceManager::Instance().BeginRendering(command_list, begin_rendering_info));
         GLTF_CHECK(m_resource_allocator.GetDescriptorManager().BindGUIDescriptorContext(command_list));
@@ -3153,7 +3299,11 @@ namespace RendererInterface
         frame_slot.query_count = 0;
     }
 
-    void RenderGraph::ExecutePlanAndCollectStats(IRHICommandList& command_list, unsigned profiler_slot_index, unsigned long long interval)
+    void RenderGraph::ExecutePlanAndCollectStats(
+        IRHICommandList& command_list,
+        const FrameContextSnapshot& frame_context,
+        unsigned profiler_slot_index,
+        unsigned long long interval)
     {
         FrameStats submitted_frame_stats{};
         submitted_frame_stats.frame_index = m_frame_index;
@@ -3192,7 +3342,8 @@ namespace RendererInterface
             }
 
             const auto pass_begin = std::chrono::steady_clock::now();
-            const auto execution_status = ExecuteRenderGraphNode(command_list, render_graph_node, interval);
+            const auto execution_status =
+                ExecuteRenderGraphNode(command_list, frame_context, render_graph_node, interval);
             const auto pass_end = std::chrono::steady_clock::now();
             const float pass_cpu_ms = std::chrono::duration<float, std::milli>(pass_end - pass_begin).count();
 
@@ -3335,27 +3486,54 @@ namespace RendererInterface
         return true;
     }
 
-    void RenderGraph::EnqueueResourceForDeferredRelease(const std::shared_ptr<IRHIResource>& resource)
+    void RenderGraph::EnqueueResourceForDeferredRelease(
+        const std::shared_ptr<IRHIResource>& resource,
+        const FrameContextSnapshot& frame_context)
     {
         if (!resource)
         {
             return;
         }
 
-        const unsigned delay_frame = ResolveDeferredReleaseLatencyFrames(m_resource_allocator);
-        if (!m_deferred_release_entries.empty() && m_deferred_release_entries.back().retire_frame == m_frame_index + delay_frame)
-        {
-            m_deferred_release_entries.back().resources.push_back(resource);
-            return;
-        }
-
-        DeferredReleaseEntry entry{};
-        entry.retire_frame = m_frame_index + delay_frame;
-        entry.resources.push_back(resource);
-        m_deferred_release_entries.push_back(std::move(entry));
+        const unsigned delay_frame = ResolveDeferredReleaseLatencyFrames(frame_context);
+        m_deferred_release_queue.Enqueue(resource, m_frame_index, delay_frame);
     }
 
-    void RenderGraph::EnqueueBufferDescriptorForDeferredRelease(RenderPassDescriptorResource& descriptor_resource, const std::string& binding_name)
+    void RenderGraph::EnqueueBufferDescriptorEntryForDeferredRelease(
+        const RenderPassDescriptorResource::BufferDescriptorCacheEntry& cache_entry,
+        const FrameContextSnapshot& frame_context)
+    {
+        if (cache_entry.descriptor)
+        {
+            EnqueueResourceForDeferredRelease(std::static_pointer_cast<IRHIResource>(cache_entry.descriptor), frame_context);
+        }
+    }
+
+    void RenderGraph::EnqueueTextureDescriptorEntryForDeferredRelease(
+        const RenderPassDescriptorResource::TextureDescriptorCacheEntry& cache_entry,
+        const FrameContextSnapshot& frame_context)
+    {
+        if (cache_entry.descriptor)
+        {
+            EnqueueResourceForDeferredRelease(std::static_pointer_cast<IRHIResource>(cache_entry.descriptor), frame_context);
+        }
+        if (cache_entry.descriptor_table)
+        {
+            EnqueueResourceForDeferredRelease(std::static_pointer_cast<IRHIResource>(cache_entry.descriptor_table), frame_context);
+        }
+        for (const auto& source_descriptor : cache_entry.descriptor_table_source_data)
+        {
+            if (source_descriptor)
+            {
+                EnqueueResourceForDeferredRelease(std::static_pointer_cast<IRHIResource>(source_descriptor), frame_context);
+            }
+        }
+    }
+
+    void RenderGraph::EnqueueBufferDescriptorForDeferredRelease(
+        RenderPassDescriptorResource& descriptor_resource,
+        const std::string& binding_name,
+        const FrameContextSnapshot& frame_context)
     {
         const auto binding_cache_it = descriptor_resource.m_buffer_descriptor_cache.find(binding_name);
         if (binding_cache_it == descriptor_resource.m_buffer_descriptor_cache.end())
@@ -3365,37 +3543,22 @@ namespace RendererInterface
 
         for (const auto& cache_pair : binding_cache_it->second)
         {
-            const auto& descriptor = cache_pair.second.descriptor;
-            if (descriptor)
-            {
-                EnqueueResourceForDeferredRelease(std::static_pointer_cast<IRHIResource>(descriptor));
-            }
+            EnqueueBufferDescriptorEntryForDeferredRelease(cache_pair.second, frame_context);
         }
         descriptor_resource.m_buffer_descriptor_cache.erase(binding_cache_it);
     }
 
-    void RenderGraph::EnqueueTextureDescriptorForDeferredRelease(RenderPassDescriptorResource& descriptor_resource, const std::string& binding_name)
+    void RenderGraph::EnqueueTextureDescriptorForDeferredRelease(
+        RenderPassDescriptorResource& descriptor_resource,
+        const std::string& binding_name,
+        const FrameContextSnapshot& frame_context)
     {
-        const auto release_texture_cache_pool = [this](std::map<unsigned long long, RenderPassDescriptorResource::TextureDescriptorCacheEntry>& cache_pool)
+        const auto release_texture_cache_pool =
+            [this, &frame_context](std::map<unsigned long long, RenderPassDescriptorResource::TextureDescriptorCacheEntry>& cache_pool)
         {
             for (const auto& cache_pair : cache_pool)
             {
-                const auto& cache_entry = cache_pair.second;
-                if (cache_entry.descriptor)
-                {
-                    EnqueueResourceForDeferredRelease(std::static_pointer_cast<IRHIResource>(cache_entry.descriptor));
-                }
-                if (cache_entry.descriptor_table)
-                {
-                    EnqueueResourceForDeferredRelease(std::static_pointer_cast<IRHIResource>(cache_entry.descriptor_table));
-                }
-                for (const auto& source_descriptor : cache_entry.descriptor_table_source_data)
-                {
-                    if (source_descriptor)
-                    {
-                        EnqueueResourceForDeferredRelease(std::static_pointer_cast<IRHIResource>(source_descriptor));
-                    }
-                }
+                EnqueueTextureDescriptorEntryForDeferredRelease(cache_pair.second, frame_context);
             }
         };
 
@@ -3414,42 +3577,26 @@ namespace RendererInterface
         }
     }
 
-    void RenderGraph::ReleaseRenderPassDescriptorResource(RenderPassDescriptorResource& descriptor_resource)
+    void RenderGraph::ReleaseRenderPassDescriptorResource(
+        RenderPassDescriptorResource& descriptor_resource,
+        const FrameContextSnapshot& frame_context)
     {
         for (const auto& binding_cache_pair : descriptor_resource.m_buffer_descriptor_cache)
         {
             for (const auto& cache_pair : binding_cache_pair.second)
             {
-                const auto& descriptor = cache_pair.second.descriptor;
-                if (descriptor)
-                {
-                    EnqueueResourceForDeferredRelease(std::static_pointer_cast<IRHIResource>(descriptor));
-                }
+                EnqueueBufferDescriptorEntryForDeferredRelease(cache_pair.second, frame_context);
             }
         }
 
-        const auto release_texture_cache = [this](const std::map<std::string, std::map<unsigned long long, RenderPassDescriptorResource::TextureDescriptorCacheEntry>>& texture_cache_map)
+        const auto release_texture_cache =
+            [this, &frame_context](const std::map<std::string, std::map<unsigned long long, RenderPassDescriptorResource::TextureDescriptorCacheEntry>>& texture_cache_map)
         {
             for (const auto& binding_cache_pair : texture_cache_map)
             {
                 for (const auto& cache_pair : binding_cache_pair.second)
                 {
-                    const auto& cache_entry = cache_pair.second;
-                    if (cache_entry.descriptor)
-                    {
-                        EnqueueResourceForDeferredRelease(std::static_pointer_cast<IRHIResource>(cache_entry.descriptor));
-                    }
-                    if (cache_entry.descriptor_table)
-                    {
-                        EnqueueResourceForDeferredRelease(std::static_pointer_cast<IRHIResource>(cache_entry.descriptor_table));
-                    }
-                    for (const auto& source_descriptor : cache_entry.descriptor_table_source_data)
-                    {
-                        if (source_descriptor)
-                        {
-                            EnqueueResourceForDeferredRelease(std::static_pointer_cast<IRHIResource>(source_descriptor));
-                        }
-                    }
+                    EnqueueTextureDescriptorEntryForDeferredRelease(cache_pair.second, frame_context);
                 }
             }
         };
@@ -3462,9 +3609,12 @@ namespace RendererInterface
         descriptor_resource.m_render_target_texture_descriptor_cache.clear();
     }
 
-    void RenderGraph::PruneDescriptorResources(RenderPassDescriptorResource& descriptor_resource, const RenderPassDrawDesc& draw_info)
+    void RenderGraph::PruneDescriptorResources(
+        RenderPassDescriptorResource& descriptor_resource,
+        const RenderPassDrawDesc& draw_info,
+        const FrameContextSnapshot& frame_context)
     {
-        const unsigned descriptor_cache_retention_frame = ResolveDescriptorCacheRetentionFrames(m_resource_allocator);
+        const unsigned descriptor_cache_retention_frame = ResolveDescriptorCacheRetentionFrames(frame_context);
         const auto should_release_stale_entry = [this, descriptor_cache_retention_frame](unsigned long long last_used_frame)
         {
             return m_frame_index >= last_used_frame + descriptor_cache_retention_frame;
@@ -3476,11 +3626,7 @@ namespace RendererInterface
             {
                 for (const auto& cache_pair : it->second)
                 {
-                    const auto& descriptor = cache_pair.second.descriptor;
-                    if (descriptor)
-                    {
-                        EnqueueResourceForDeferredRelease(std::static_pointer_cast<IRHIResource>(descriptor));
-                    }
+                    EnqueueBufferDescriptorEntryForDeferredRelease(cache_pair.second, frame_context);
                 }
                 it = descriptor_resource.m_buffer_descriptor_cache.erase(it);
             }
@@ -3491,11 +3637,7 @@ namespace RendererInterface
                 {
                     if (should_release_stale_entry(cache_it->second.last_used_frame))
                     {
-                        const auto& descriptor = cache_it->second.descriptor;
-                        if (descriptor)
-                        {
-                            EnqueueResourceForDeferredRelease(std::static_pointer_cast<IRHIResource>(descriptor));
-                        }
+                        EnqueueBufferDescriptorEntryForDeferredRelease(cache_it->second, frame_context);
                         cache_it = binding_cache.erase(cache_it);
                     }
                     else
@@ -3520,7 +3662,8 @@ namespace RendererInterface
             return draw_info.texture_resources.contains(binding_name) || draw_info.render_target_texture_resources.contains(binding_name);
         };
 
-        const auto prune_texture_cache = [this, &should_keep_texture_binding, &should_release_stale_entry](std::map<std::string, std::map<unsigned long long, RenderPassDescriptorResource::TextureDescriptorCacheEntry>>& texture_cache_map)
+        const auto prune_texture_cache =
+            [this, &frame_context, &should_keep_texture_binding, &should_release_stale_entry](std::map<std::string, std::map<unsigned long long, RenderPassDescriptorResource::TextureDescriptorCacheEntry>>& texture_cache_map)
         {
             for (auto binding_it = texture_cache_map.begin(); binding_it != texture_cache_map.end(); )
             {
@@ -3528,22 +3671,7 @@ namespace RendererInterface
                 {
                     for (const auto& cache_pair : binding_it->second)
                     {
-                        const auto& cache_entry = cache_pair.second;
-                        if (cache_entry.descriptor)
-                        {
-                            EnqueueResourceForDeferredRelease(std::static_pointer_cast<IRHIResource>(cache_entry.descriptor));
-                        }
-                        if (cache_entry.descriptor_table)
-                        {
-                            EnqueueResourceForDeferredRelease(std::static_pointer_cast<IRHIResource>(cache_entry.descriptor_table));
-                        }
-                        for (const auto& source_descriptor : cache_entry.descriptor_table_source_data)
-                        {
-                            if (source_descriptor)
-                            {
-                                EnqueueResourceForDeferredRelease(std::static_pointer_cast<IRHIResource>(source_descriptor));
-                            }
-                        }
+                        EnqueueTextureDescriptorEntryForDeferredRelease(cache_pair.second, frame_context);
                     }
                     binding_it = texture_cache_map.erase(binding_it);
                 }
@@ -3554,22 +3682,7 @@ namespace RendererInterface
                     {
                         if (should_release_stale_entry(cache_it->second.last_used_frame))
                         {
-                            const auto& cache_entry = cache_it->second;
-                            if (cache_entry.descriptor)
-                            {
-                                EnqueueResourceForDeferredRelease(std::static_pointer_cast<IRHIResource>(cache_entry.descriptor));
-                            }
-                            if (cache_entry.descriptor_table)
-                            {
-                                EnqueueResourceForDeferredRelease(std::static_pointer_cast<IRHIResource>(cache_entry.descriptor_table));
-                            }
-                            for (const auto& source_descriptor : cache_entry.descriptor_table_source_data)
-                            {
-                                if (source_descriptor)
-                                {
-                                    EnqueueResourceForDeferredRelease(std::static_pointer_cast<IRHIResource>(source_descriptor));
-                                }
-                            }
+                            EnqueueTextureDescriptorEntryForDeferredRelease(cache_it->second, frame_context);
                             cache_it = binding_cache.erase(cache_it);
                         }
                         else
@@ -3594,53 +3707,33 @@ namespace RendererInterface
         prune_texture_cache(descriptor_resource.m_render_target_texture_descriptor_cache);
     }
 
-    void RenderGraph::CollectUnusedRenderPassDescriptorResources()
+    void RenderGraph::CollectUnusedRenderPassDescriptorResources(const FrameContextSnapshot& frame_context)
     {
-        const unsigned retention_frame = ResolveRenderPassDescriptorRetentionFrames(m_resource_allocator);
-        for (auto it = m_render_pass_descriptor_resources.begin(); it != m_render_pass_descriptor_resources.end(); )
+        const unsigned retention_frame = ResolveRenderPassDescriptorRetentionFrames(frame_context);
+        const auto expired_handles = m_descriptor_resource_store.CollectExpiredInactiveHandles(
+            m_render_graph_node_handles,
+            m_frame_index,
+            retention_frame);
+        for (const auto node_handle : expired_handles)
         {
-            const auto node_handle = it->first;
-            if (m_render_graph_node_handles.contains(node_handle))
+            auto* descriptor_resource = m_descriptor_resource_store.Find(node_handle);
+            if (!descriptor_resource)
             {
-                ++it;
                 continue;
             }
 
-            const auto last_used_it = m_render_pass_descriptor_last_used_frame.find(node_handle);
-            const unsigned long long last_used_frame = last_used_it != m_render_pass_descriptor_last_used_frame.end() ? last_used_it->second : 0;
-            if (m_frame_index < last_used_frame + retention_frame)
-            {
-                ++it;
-                continue;
-            }
-
-            ReleaseRenderPassDescriptorResource(it->second);
-            it = m_render_pass_descriptor_resources.erase(it);
-            m_render_pass_descriptor_last_used_frame.erase(node_handle);
+            ReleaseRenderPassDescriptorResource(*descriptor_resource, frame_context);
+            m_descriptor_resource_store.Erase(node_handle);
         }
     }
 
     void RenderGraph::FlushDeferredResourceReleases(bool force_release_all)
     {
         auto& memory_manager = m_resource_allocator.GetMemoryManager();
-        while (!m_deferred_release_entries.empty())
-        {
-            if (!force_release_all && m_deferred_release_entries.front().retire_frame > m_frame_index)
-            {
-                break;
-            }
-
-            auto entry = std::move(m_deferred_release_entries.front());
-            m_deferred_release_entries.pop_front();
-            for (const auto& resource : entry.resources)
-            {
-                const bool released = RHIResourceFactory::ReleaseResource(memory_manager, resource);
-                GLTF_CHECK(released);
-            }
-        }
+        m_deferred_release_queue.Flush(memory_manager, m_frame_index, force_release_all);
     }
 
-    void RenderGraph::ApplyPendingRenderStateUpdates()
+    void RenderGraph::ApplyPendingRenderStateUpdates(const FrameContextSnapshot& frame_context)
     {
         for (auto it = m_pending_render_state_updates.begin(); it != m_pending_render_state_updates.end(); )
         {
@@ -3677,7 +3770,7 @@ namespace RendererInterface
 
             if (retired_pipeline_state_object)
             {
-                EnqueueResourceForDeferredRelease(retired_pipeline_state_object);
+                EnqueueResourceForDeferredRelease(retired_pipeline_state_object, frame_context);
             }
 
             node_desc.render_state = it->second.render_state;
@@ -3685,9 +3778,9 @@ namespace RendererInterface
         }
     }
 
-    unsigned RenderGraph::GetCrossFrameComparisonWindowSize() const
+    unsigned RenderGraph::GetCrossFrameComparisonWindowSize(const FrameContextSnapshot& frame_context) const
     {
-        return ResolveCrossFrameComparisonWindowSize(m_resource_allocator);
+        return ResolveCrossFrameComparisonWindowSize(frame_context);
     }
 
     void RenderGraph::EnsureCrossFrameHazardSnapshotStorage(unsigned window_size)
@@ -3703,14 +3796,16 @@ namespace RendererInterface
         m_frame_slot_resource_access_snapshot_valid.assign(window_size, 0u);
     }
 
-    unsigned RenderGraph::GetCrossFrameHazardSlotIndex(unsigned window_size) const
+    unsigned RenderGraph::GetCrossFrameHazardSlotIndex(
+        const FrameContextSnapshot& frame_context,
+        unsigned window_size) const
     {
-        if (!m_resource_allocator.IsPerFrameResourceBindingEnabled() || window_size == 0u)
+        if (!frame_context.per_frame_resource_binding_enabled || window_size == 0u)
         {
             return 0u;
         }
 
-        const unsigned hazard_slot_index = m_resource_allocator.GetCurrentFrameSlotIndex() % window_size;
+        const unsigned hazard_slot_index = frame_context.frame_slot_index % window_size;
         GLTF_CHECK(hazard_slot_index < window_size);
         return hazard_slot_index;
     }
@@ -3788,7 +3883,11 @@ namespace RendererInterface
         }
     }
 
-    RenderGraph::RenderPassExecutionStatus RenderGraph::ExecuteRenderGraphNode(IRHICommandList& command_list, RenderGraphNodeHandle render_graph_node_handle, unsigned long long interval)
+    RenderGraph::RenderPassExecutionStatus RenderGraph::ExecuteRenderGraphNode(
+        IRHICommandList& command_list,
+        const FrameContextSnapshot& frame_context,
+        RenderGraphNodeHandle render_graph_node_handle,
+        unsigned long long interval)
     {
         GLTF_CHECK(render_graph_node_handle.IsValid());
         GLTF_CHECK(render_graph_node_handle.value < m_render_graph_nodes.size());
@@ -3951,9 +4050,9 @@ namespace RendererInterface
             break;
         }
 
-        auto& render_pass_descriptor_resource = m_render_pass_descriptor_resources[render_graph_node_handle];
-        m_render_pass_descriptor_last_used_frame[render_graph_node_handle] = m_frame_index;
-        PruneDescriptorResources(render_pass_descriptor_resource, render_graph_node_desc.draw_info);
+        auto& render_pass_descriptor_resource = m_descriptor_resource_store.GetOrCreate(render_graph_node_handle);
+        m_descriptor_resource_store.MarkUsed(render_graph_node_handle, m_frame_index);
+        PruneDescriptorResources(render_pass_descriptor_resource, render_graph_node_desc.draw_info, frame_context);
         
         for (const auto& buffer : render_graph_node_desc.draw_info.buffer_resources)
         {
@@ -4294,9 +4393,9 @@ namespace RendererInterface
         }
     }
 
-    void RenderGraph::Present(IRHICommandList& command_list)
+    void RenderGraph::Present(IRHICommandList& command_list, const FrameContextSnapshot& frame_context)
     {
-        m_resource_allocator.GetCurrentSwapchainRT().m_source->Transition(command_list, RHIResourceStateType::STATE_PRESENT);
+        m_resource_allocator.GetCurrentSwapchainRT(frame_context).m_source->Transition(command_list, RHIResourceStateType::STATE_PRESENT);
 
         RHIExecuteCommandListContext context;
         context.wait_infos.push_back({&m_resource_allocator.GetCurrentSwapchain().GetAvailableFrameSemaphore(), RHIPipelineStage::COLOR_ATTACHMENT_OUTPUT});

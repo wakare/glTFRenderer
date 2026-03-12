@@ -47,6 +47,7 @@ public:
     unsigned GetFrameSlotCount() const;
     unsigned GetSwapchainImageCount() const;
     unsigned GetBackBufferCount() const;
+    RendererInterface::FrameContextSnapshot GetFrameContext() const;
     // Central frame-lifecycle hook for ResourceManager-owned per-frame maintenance.
     void BeginFrame();
     void AdvanceFrameSlot();
@@ -69,10 +70,12 @@ public:
     RendererInterface::SwapchainPresentMode GetSwapchainPresentMode() const;
     void SetSwapchainPresentMode(RendererInterface::SwapchainPresentMode mode);
     IRHICommandList& GetCommandListForRecordPassCommand(RendererInterface::RenderPassHandle render_pass_handle = NULL_HANDLE);
+    IRHICommandList& GetCommandListForRecordPassCommand(const RendererInterface::FrameContextSnapshot& frame_context, RendererInterface::RenderPassHandle render_pass_handle = NULL_HANDLE);
 
     IRHICommandQueue& GetCommandQueue();
 
     IRHITextureDescriptorAllocation& GetCurrentSwapchainRT();
+    IRHITextureDescriptorAllocation& GetCurrentSwapchainRT(const RendererInterface::FrameContextSnapshot& frame_context);
     bool HasCurrentSwapchainRT() const;
     
 protected:
@@ -130,6 +133,7 @@ private:
     void AdvanceDeferredReleaseFrame();
     void FlushDeferredResourceReleases(bool force_release_all);
     void EnqueueResourceForDeferredRelease(const std::shared_ptr<IRHIResource>& resource);
+    unsigned GetDeferredReleaseLatencyFrames(const RendererInterface::FrameContextSnapshot& frame_context) const;
     unsigned GetDeferredReleaseLatencyFrames() const;
     unsigned ComputeRetryCooldownFrames(unsigned failure_count) const;
     unsigned GetRetryLogPeriod() const;

@@ -431,6 +431,22 @@ unsigned ResourceManager::GetBackBufferCount() const
     return GetSwapchainImageCount();
 }
 
+RendererInterface::FrameContextSnapshot ResourceManager::GetFrameContext() const
+{
+    RendererInterface::FrameContextSnapshot frame_context{};
+    frame_context.frame_slot_count = (std::max)(1u, GetFrameSlotCount());
+    frame_context.frame_slot_index = GetCurrentFrameSlotIndex() % frame_context.frame_slot_count;
+    frame_context.back_buffer_count = (std::max)(1u, GetBackBufferCount());
+    frame_context.back_buffer_index = GetCurrentBackBufferIndex() % frame_context.back_buffer_count;
+    frame_context.swapchain_image_count = (std::max)(1u, GetSwapchainImageCount());
+    frame_context.swapchain_image_index = m_swap_chain
+        ? (m_swap_chain->GetCurrentSwapchainImageIndex() % frame_context.swapchain_image_count)
+        : 0u;
+    frame_context.profiler_slot_count = frame_context.frame_slot_count;
+    frame_context.profiler_slot_index = frame_context.frame_slot_index % frame_context.profiler_slot_count;
+    return frame_context;
+}
+
 void ResourceManager::BeginFrame()
 {
     if (m_memory_manager)
@@ -470,9 +486,9 @@ IRHIMemoryManager& ResourceManager::GetMemoryManager()
 
 void ResourceManager::WaitFrameRenderFinished()
 {
-    const auto current_frame_index = GetCurrentFrameSlotIndex();
-    auto& command_list = *m_command_lists[current_frame_index];
-    auto& command_allocator = *m_command_allocators[current_frame_index];
+    const auto frame_context = GetFrameContext();
+    auto& command_list = *m_command_lists[frame_context.frame_slot_index];
+    auto& command_allocator = *m_command_allocators[frame_context.frame_slot_index];
 
     if (command_list.GetState() == RHICommandListState::Recording)
     {
@@ -556,7 +572,12 @@ void ResourceManager::SetSwapchainLifecycleState(RendererInterface::SwapchainLif
 
 unsigned ResourceManager::GetDeferredReleaseLatencyFrames() const
 {
-    return (std::max)(2u, GetFrameSlotCount() + 1u);
+    return GetDeferredReleaseLatencyFrames(GetFrameContext());
+}
+
+unsigned ResourceManager::GetDeferredReleaseLatencyFrames(const RendererInterface::FrameContextSnapshot& frame_context) const
+{
+    return (std::max)(2u, frame_context.frame_slot_count + 1u);
 }
 
 unsigned ResourceManager::ComputeRetryCooldownFrames(unsigned failure_count) const
@@ -631,7 +652,7 @@ void ResourceManager::EnqueueResourceForDeferredRelease(const std::shared_ptr<IR
         return;
     }
 
-    const unsigned delay_frames = GetDeferredReleaseLatencyFrames();
+    const unsigned delay_frames = GetDeferredReleaseLatencyFrames(GetFrameContext());
     const unsigned long long retire_frame = m_deferred_release_frame_index + delay_frames;
     if (!m_deferred_release_entries.empty() && m_deferred_release_entries.back().retire_frame == retire_frame)
     {
@@ -714,12 +735,17 @@ bool ResourceManager::ResizeWindowDependentRenderTargetsImpl(unsigned width, uns
 IRHICommandList& ResourceManager::GetCommandListForRecordPassCommand(
     RendererInterface::RenderPassHandle render_pass_handle)
 {
+    return GetCommandListForRecordPassCommand(GetFrameContext(), render_pass_handle);
+}
+
+IRHICommandList& ResourceManager::GetCommandListForRecordPassCommand(
+    const RendererInterface::FrameContextSnapshot& frame_context,
+    RendererInterface::RenderPassHandle render_pass_handle)
+{
     auto render_pass = render_pass_handle != NULL_HANDLE ?  RendererInterface::InternalResourceHandleTable::Instance().GetRenderPass(render_pass_handle) : nullptr;
-    
-    const auto current_frame_index = GetCurrentFrameSlotIndex();
-    auto& command_list = *m_command_lists[current_frame_index];
-    auto& command_allocator = *m_command_allocators[current_frame_index];
-    command_list.SetFrameSlotIndex(current_frame_index);
+    auto& command_list = *m_command_lists[frame_context.frame_slot_index];
+    auto& command_allocator = *m_command_allocators[frame_context.frame_slot_index];
+    command_list.SetFrameSlotIndex(frame_context.frame_slot_index);
 
     if (command_list.GetState() == RHICommandListState::Closed)
     {
@@ -742,8 +768,13 @@ IRHICommandQueue& ResourceManager::GetCommandQueue()
 
 IRHITextureDescriptorAllocation& ResourceManager::GetCurrentSwapchainRT()
 {
+    return GetCurrentSwapchainRT(GetFrameContext());
+}
+
+IRHITextureDescriptorAllocation& ResourceManager::GetCurrentSwapchainRT(const RendererInterface::FrameContextSnapshot& frame_context)
+{
     GLTF_CHECK(!m_swapchain_RTs.empty());
-    const auto swapchain_image_index = m_swap_chain->GetCurrentSwapchainImageIndex() % static_cast<unsigned>(m_swapchain_RTs.size());
+    const auto swapchain_image_index = frame_context.swapchain_image_index % static_cast<unsigned>(m_swapchain_RTs.size());
     return *m_swapchain_RTs[swapchain_image_index];
 }
 

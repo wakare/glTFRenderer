@@ -315,6 +315,19 @@ namespace RendererInterface
         MAILBOX = 1,
     };
 
+    struct FrameContextSnapshot
+    {
+        unsigned frame_slot_index{0};
+        unsigned frame_slot_count{1};
+        unsigned back_buffer_index{0};
+        unsigned back_buffer_count{1};
+        unsigned swapchain_image_index{0};
+        unsigned swapchain_image_count{1};
+        unsigned profiler_slot_index{0};
+        unsigned profiler_slot_count{1};
+        bool per_frame_resource_binding_enabled{true};
+    };
+
     struct SwapchainResizePolicy
     {
         // Window extent must stay unchanged for N sync ticks before we try ResizeBuffers/ResizeSwapChain.
