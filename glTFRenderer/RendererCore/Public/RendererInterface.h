@@ -364,6 +364,25 @@ namespace RendererInterface
         
         typedef std::function<void(unsigned long long)> RenderGraphTickCallback;
         typedef std::function<void()> RenderGraphDebugUICallback;
+
+        struct ExecutionPlanContext
+        {
+            const std::vector<RenderGraphNodeHandle>& nodes;
+            const std::vector<RenderGraphNodeDesc>& render_graph_nodes;
+            const std::set<RenderGraphNodeHandle>& registered_nodes;
+            const std::vector<RenderGraphNodeHandle>& cached_execution_order;
+            bool cached_execution_graph_valid{true};
+            std::size_t cached_execution_signature{0};
+            std::size_t cached_execution_node_count{0};
+        };
+
+        struct ExecutionPlanCacheState
+        {
+            bool& cached_execution_graph_valid;
+            std::vector<RenderGraphNodeHandle>& cached_execution_order;
+            std::size_t& cached_execution_signature;
+            std::size_t& cached_execution_node_count;
+        };
         
         RenderGraph(ResourceOperator& allocator, RenderWindow& window);
         ~RenderGraph();
@@ -467,6 +486,53 @@ namespace RendererInterface
                 unsigned retention_frame) const;
         };
 
+        struct ExecutionPlanState
+        {
+            std::vector<RenderGraphNodeHandle> cached_execution_order;
+            std::size_t cached_execution_signature{0};
+            std::size_t cached_execution_node_count{0};
+            std::size_t last_active_node_set_signature{0};
+            std::size_t last_active_node_set_count{0};
+            bool cached_execution_graph_valid{true};
+            bool plan_dirty{true};
+
+            void MarkDirty();
+            void ResetCache();
+            bool UpdateActiveNodeSet(std::size_t active_node_set_signature, std::size_t active_node_set_count);
+            bool CollectActiveNodes(const std::set<RenderGraphNodeHandle>& active_node_handles, std::vector<RenderGraphNodeHandle>& out_nodes);
+            ExecutionPlanContext BuildContext(
+                const std::vector<RenderGraphNodeHandle>& nodes,
+                const std::vector<RenderGraphNodeDesc>& render_graph_nodes,
+                const std::set<RenderGraphNodeHandle>& registered_nodes) const;
+            ExecutionPlanCacheState BuildCacheState();
+            bool IsCachedExecutionOrderMissing() const;
+            bool ShouldRebuild(bool active_node_set_changed, bool should_update_dependency_diagnostics) const;
+            void MarkPlanApplied();
+        };
+
+        struct FrameResourceAccessSnapshot
+        {
+            std::map<unsigned long long, unsigned char> access_masks;
+            // value.first = readers, value.second = writers
+            std::map<unsigned long long, std::pair<std::vector<std::string>, std::vector<std::string>>> pass_accesses;
+            unsigned long long frame_index{0};
+        };
+
+        struct DependencyDiagnosticsState
+        {
+            unsigned long long last_update_frame_index{0};
+            DependencyDiagnostics diagnostics{};
+            std::vector<FrameResourceAccessSnapshot> frame_slot_resource_access_snapshots;
+            std::vector<unsigned char> frame_slot_resource_access_snapshot_valid;
+
+            void Reset();
+            bool ShouldUpdate(unsigned long long current_frame, unsigned interval_frames) const;
+            void MarkUpdated(unsigned long long current_frame);
+            void EnsureCrossFrameHazardSnapshotStorage(unsigned window_size);
+            const FrameResourceAccessSnapshot* GetCrossFrameHazardSnapshot(unsigned hazard_slot_index) const;
+            void UpdateCrossFrameHazardSnapshot(unsigned hazard_slot_index, FrameResourceAccessSnapshot snapshot);
+        };
+
         struct FramePreparationContext
         {
             unsigned window_width{0};
@@ -529,32 +595,15 @@ namespace RendererInterface
         std::set<RenderGraphNodeHandle> m_render_graph_node_handles;
 
         DescriptorResourceStore m_descriptor_resource_store;
+        ExecutionPlanState m_execution_plan_state;
+        DependencyDiagnosticsState m_dependency_diagnostics_state;
         std::map<RenderGraphNodeHandle, std::tuple<unsigned, unsigned, unsigned>> m_auto_pruned_named_binding_counts;
         std::map<RenderGraphNodeHandle, unsigned long long> m_render_pass_validation_last_log_frame;
         std::map<RenderGraphNodeHandle, std::size_t> m_render_pass_validation_last_message_hash;
         std::map<RenderGraphNodeHandle, PendingRenderStateUpdate> m_pending_render_state_updates;
         DeferredReleaseQueue m_deferred_release_queue;
-        std::vector<RenderGraphNodeHandle> m_cached_execution_order;
-        struct FrameResourceAccessSnapshot
-        {
-            std::map<unsigned long long, unsigned char> access_masks;
-            // value.first = readers, value.second = writers
-            std::map<unsigned long long, std::pair<std::vector<std::string>, std::vector<std::string>>> pass_accesses;
-            unsigned long long frame_index{0};
-        };
         unsigned GetCrossFrameComparisonWindowSize(const FrameContextSnapshot& frame_context) const;
-        void EnsureCrossFrameHazardSnapshotStorage(unsigned window_size);
         unsigned GetCrossFrameHazardSlotIndex(const FrameContextSnapshot& frame_context, unsigned window_size) const;
-        const FrameResourceAccessSnapshot* GetCrossFrameHazardSnapshot(unsigned hazard_slot_index) const;
-        void UpdateCrossFrameHazardSnapshot(unsigned hazard_slot_index, FrameResourceAccessSnapshot snapshot);
-        std::vector<FrameResourceAccessSnapshot> m_frame_slot_resource_access_snapshots;
-        std::vector<unsigned char> m_frame_slot_resource_access_snapshot_valid;
-        std::size_t m_cached_execution_signature{0};
-        std::size_t m_cached_execution_node_count{0};
-        std::size_t m_last_active_node_set_signature{0};
-        std::size_t m_last_active_node_set_count{0};
-        bool m_cached_execution_graph_valid{true};
-        bool m_execution_plan_dirty{true};
         unsigned long long m_frame_index{0};
         
         std::shared_ptr<IRHITexture> m_final_color_output;
@@ -565,13 +614,11 @@ namespace RendererInterface
         bool m_debug_ui_enabled{true};
         bool m_debug_ui_initialized{false};
         ValidationPolicy m_validation_policy{};
-        unsigned long long m_last_dependency_diagnostics_frame_index{0};
         struct GPUProfilerState;
         std::unique_ptr<GPUProfilerState> m_gpu_profiler_state;
         FrameStats m_last_frame_stats{};
         FrameTimingBreakdown m_current_frame_timing_breakdown{};
         FrameTimingBreakdown m_last_frame_timing_breakdown{};
-        DependencyDiagnostics m_last_dependency_diagnostics{};
     };
 
     class RendererSceneMeshDataAccessorBase

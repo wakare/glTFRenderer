@@ -655,32 +655,13 @@ namespace RendererInterface
             bool need_rebuild_execution_order{false};
         };
 
-        struct ExecutionPlanContext
-        {
-            const std::vector<RenderGraphNodeHandle>& nodes;
-            const std::vector<RenderGraphNodeDesc>& render_graph_nodes;
-            const std::set<RenderGraphNodeHandle>& registered_nodes;
-            const std::vector<RenderGraphNodeHandle>& cached_execution_order;
-            bool cached_execution_graph_valid{true};
-            std::size_t cached_execution_signature{0};
-            std::size_t cached_execution_node_count{0};
-        };
-
-        struct ExecutionPlanCacheState
-        {
-            bool& cached_execution_graph_valid;
-            std::vector<RenderGraphNodeHandle>& cached_execution_order;
-            std::size_t& cached_execution_signature;
-            std::size_t& cached_execution_node_count;
-        };
-
         struct ResourceAccessPlanResult
         {
             DependencyEdgeMap inferred_edges;
             std::size_t auto_merged_dependency_count{0};
         };
 
-        ResourceAccessPlanResult CollectResourceAccessPlan(const ExecutionPlanContext& context)
+        ResourceAccessPlanResult CollectResourceAccessPlan(const RenderGraph::ExecutionPlanContext& context)
         {
             std::map<ResourceKey, std::set<RenderGraphNodeHandle>> resource_readers;
             std::map<ResourceKey, std::set<RenderGraphNodeHandle>> resource_writers;
@@ -718,7 +699,7 @@ namespace RendererInterface
         };
 
         DependencyValidationResult ValidateDependencyPlan(
-            const ExecutionPlanContext& context,
+            const RenderGraph::ExecutionPlanContext& context,
             const DependencyEdgeMap& inferred_edges)
         {
             DependencyValidationResult result{};
@@ -746,7 +727,7 @@ namespace RendererInterface
             return result;
         }
 
-        ExecutionPlanBuildResult BuildExecutionPlan(const ExecutionPlanContext& context)
+        ExecutionPlanBuildResult BuildExecutionPlan(const RenderGraph::ExecutionPlanContext& context)
         {
             const auto access_plan = CollectResourceAccessPlan(context);
             const auto dependency_validation = ValidateDependencyPlan(context, access_plan.inferred_edges);
@@ -771,9 +752,9 @@ namespace RendererInterface
         }
 
         std::vector<RenderGraphNodeHandle> ApplyExecutionPlanResult(
-            const ExecutionPlanContext& context,
+            const RenderGraph::ExecutionPlanContext& context,
             const ExecutionPlanBuildResult& plan,
-            ExecutionPlanCacheState& io_cache_state)
+            RenderGraph::ExecutionPlanCacheState& io_cache_state)
         {
             std::vector<RenderGraphNodeHandle> rebuilt_cycle_nodes;
             if (plan.need_rebuild_execution_order)
@@ -936,7 +917,7 @@ namespace RendererInterface
         }
 
         void UpdateDependencyDiagnostics(
-            const ExecutionPlanContext& context,
+            const RenderGraph::ExecutionPlanContext& context,
             const ExecutionPlanBuildResult& plan,
             bool cached_execution_graph_valid,
             std::size_t cached_execution_signature,
@@ -2088,6 +2069,156 @@ namespace RendererInterface
         return expired_handles;
     }
 
+    void RenderGraph::ExecutionPlanState::MarkDirty()
+    {
+        plan_dirty = true;
+    }
+
+    void RenderGraph::ExecutionPlanState::ResetCache()
+    {
+        cached_execution_signature = 0;
+        cached_execution_node_count = 0;
+        cached_execution_graph_valid = true;
+        cached_execution_order.clear();
+        plan_dirty = true;
+    }
+
+    bool RenderGraph::ExecutionPlanState::UpdateActiveNodeSet(
+        std::size_t active_node_set_signature,
+        std::size_t active_node_set_count)
+    {
+        const bool changed =
+            active_node_set_signature != last_active_node_set_signature ||
+            active_node_set_count != last_active_node_set_count;
+        if (changed)
+        {
+            last_active_node_set_signature = active_node_set_signature;
+            last_active_node_set_count = active_node_set_count;
+        }
+
+        return changed;
+    }
+
+    bool RenderGraph::ExecutionPlanState::CollectActiveNodes(
+        const std::set<RenderGraphNodeHandle>& active_node_handles,
+        std::vector<RenderGraphNodeHandle>& out_nodes)
+    {
+        out_nodes.clear();
+        out_nodes.reserve(active_node_handles.size());
+
+        std::size_t active_node_set_signature = 1469598103934665603ULL;
+        for (const auto handle : active_node_handles)
+        {
+            out_nodes.push_back(handle);
+            HashCombine(active_node_set_signature, handle.value);
+        }
+
+        return UpdateActiveNodeSet(active_node_set_signature, out_nodes.size());
+    }
+
+    RenderGraph::ExecutionPlanContext RenderGraph::ExecutionPlanState::BuildContext(
+        const std::vector<RenderGraphNodeHandle>& nodes,
+        const std::vector<RenderGraphNodeDesc>& render_graph_nodes,
+        const std::set<RenderGraphNodeHandle>& registered_nodes) const
+    {
+        return ExecutionPlanContext{
+            nodes,
+            render_graph_nodes,
+            registered_nodes,
+            cached_execution_order,
+            cached_execution_graph_valid,
+            cached_execution_signature,
+            cached_execution_node_count
+        };
+    }
+
+    RenderGraph::ExecutionPlanCacheState RenderGraph::ExecutionPlanState::BuildCacheState()
+    {
+        return ExecutionPlanCacheState{
+            cached_execution_graph_valid,
+            cached_execution_order,
+            cached_execution_signature,
+            cached_execution_node_count
+        };
+    }
+
+    bool RenderGraph::ExecutionPlanState::IsCachedExecutionOrderMissing() const
+    {
+        return cached_execution_graph_valid && cached_execution_order.empty();
+    }
+
+    bool RenderGraph::ExecutionPlanState::ShouldRebuild(
+        bool active_node_set_changed,
+        bool should_update_dependency_diagnostics) const
+    {
+        return plan_dirty ||
+            active_node_set_changed ||
+            IsCachedExecutionOrderMissing() ||
+            should_update_dependency_diagnostics;
+    }
+
+    void RenderGraph::ExecutionPlanState::MarkPlanApplied()
+    {
+        plan_dirty = false;
+    }
+
+    void RenderGraph::DependencyDiagnosticsState::Reset()
+    {
+        last_update_frame_index = 0;
+        frame_slot_resource_access_snapshots.clear();
+        frame_slot_resource_access_snapshot_valid.clear();
+    }
+
+    bool RenderGraph::DependencyDiagnosticsState::ShouldUpdate(
+        unsigned long long current_frame,
+        unsigned interval_frames) const
+    {
+        return (last_update_frame_index == 0u) ||
+            (current_frame <= last_update_frame_index) ||
+            ((current_frame - last_update_frame_index) >= static_cast<unsigned long long>(interval_frames));
+    }
+
+    void RenderGraph::DependencyDiagnosticsState::MarkUpdated(unsigned long long current_frame)
+    {
+        last_update_frame_index = current_frame;
+    }
+
+    void RenderGraph::DependencyDiagnosticsState::EnsureCrossFrameHazardSnapshotStorage(unsigned window_size)
+    {
+        if (frame_slot_resource_access_snapshots.size() == static_cast<std::size_t>(window_size) &&
+            frame_slot_resource_access_snapshot_valid.size() == static_cast<std::size_t>(window_size))
+        {
+            return;
+        }
+
+        frame_slot_resource_access_snapshots.clear();
+        frame_slot_resource_access_snapshots.resize(window_size);
+        frame_slot_resource_access_snapshot_valid.assign(window_size, 0u);
+    }
+
+    const RenderGraph::FrameResourceAccessSnapshot* RenderGraph::DependencyDiagnosticsState::GetCrossFrameHazardSnapshot(
+        unsigned hazard_slot_index) const
+    {
+        if (hazard_slot_index >= frame_slot_resource_access_snapshot_valid.size() ||
+            hazard_slot_index >= frame_slot_resource_access_snapshots.size() ||
+            frame_slot_resource_access_snapshot_valid[hazard_slot_index] == 0u)
+        {
+            return nullptr;
+        }
+
+        return &frame_slot_resource_access_snapshots[hazard_slot_index];
+    }
+
+    void RenderGraph::DependencyDiagnosticsState::UpdateCrossFrameHazardSnapshot(
+        unsigned hazard_slot_index,
+        FrameResourceAccessSnapshot snapshot)
+    {
+        GLTF_CHECK(hazard_slot_index < frame_slot_resource_access_snapshots.size());
+        GLTF_CHECK(hazard_slot_index < frame_slot_resource_access_snapshot_valid.size());
+        frame_slot_resource_access_snapshots[hazard_slot_index] = std::move(snapshot);
+        frame_slot_resource_access_snapshot_valid[hazard_slot_index] = 1u;
+    }
+
     RenderGraph::RenderGraph(ResourceOperator& allocator, RenderWindow& window)
         : m_resource_allocator(allocator)
         , m_window(window)
@@ -2108,7 +2239,7 @@ namespace RendererInterface
     {
         RenderGraphNodeHandle result{static_cast<unsigned>(m_render_graph_nodes.size())};
         m_render_graph_nodes.push_back(render_graph_node_desc);
-        m_execution_plan_dirty = true;
+        m_execution_plan_state.MarkDirty();
         return result;
     }
 
@@ -2289,11 +2420,7 @@ namespace RendererInterface
         m_render_pass_validation_last_log_frame.erase(render_graph_node_handle);
         m_render_pass_validation_last_message_hash.erase(render_graph_node_handle);
 
-        m_cached_execution_signature = 0;
-        m_cached_execution_node_count = 0;
-        m_cached_execution_graph_valid = true;
-        m_cached_execution_order.clear();
-        m_execution_plan_dirty = true;
+        m_execution_plan_state.ResetCache();
         return true;
     }
 
@@ -2313,7 +2440,7 @@ namespace RendererInterface
             command.parameter.dispatch_parameter.group_size_x = group_size_x;
             command.parameter.dispatch_parameter.group_size_y = group_size_y;
             command.parameter.dispatch_parameter.group_size_z = group_size_z;
-            m_execution_plan_dirty = true;
+            m_execution_plan_state.MarkDirty();
             return true;
         }
 
@@ -2363,7 +2490,7 @@ namespace RendererInterface
         }
 
         binding_it->second.buffer_handle = buffer_handle;
-        m_execution_plan_dirty = true;
+        m_execution_plan_state.MarkDirty();
         return true;
     }
 
@@ -2397,7 +2524,7 @@ namespace RendererInterface
         const RenderTargetBindingDesc binding_desc = binding_it->second;
         node_desc.draw_info.render_target_resources.erase(binding_it);
         node_desc.draw_info.render_target_resources.emplace(new_render_target_handle, binding_desc);
-        m_execution_plan_dirty = true;
+        m_execution_plan_state.MarkDirty();
         return true;
     }
 
@@ -2426,7 +2553,7 @@ namespace RendererInterface
         }
 
         binding_it->second.render_target_texture = render_target_handles;
-        m_execution_plan_dirty = true;
+        m_execution_plan_state.MarkDirty();
         return true;
     }
 
@@ -2571,9 +2698,7 @@ namespace RendererInterface
                 if (ImGui::Checkbox("Per-frame Resource Binding", &per_frame_resource_binding))
                 {
                     m_resource_allocator.SetPerFrameResourceBindingEnabled(per_frame_resource_binding);
-                    m_last_dependency_diagnostics_frame_index = 0;
-                    m_frame_slot_resource_access_snapshots.clear();
-                    m_frame_slot_resource_access_snapshot_valid.clear();
+                    m_dependency_diagnostics_state.Reset();
                 }
                 ImGui::TextUnformatted("Affects frame-buffered Buffer/RenderTarget handle selection.");
                 int hazard_check_interval_frames =
@@ -2582,13 +2707,13 @@ namespace RendererInterface
                 {
                     m_validation_policy.cross_frame_hazard_check_interval_frames =
                         static_cast<unsigned>((std::max)(1, hazard_check_interval_frames));
-                    m_last_dependency_diagnostics_frame_index = 0;
+                    m_dependency_diagnostics_state.Reset();
                 }
                 ImGui::Text(
                     "Hazard analysis cadence: every %u frame(s).",
                     m_validation_policy.cross_frame_hazard_check_interval_frames);
 
-                const auto& dependency_diagnostics = m_last_dependency_diagnostics;
+                const auto& dependency_diagnostics = m_dependency_diagnostics_state.diagnostics;
                 if (!dependency_diagnostics.cross_frame_analysis_ready)
                 {
                     ImGui::TextUnformatted("Cross-frame hazard analysis: warming up (need previous frame).");
@@ -2782,60 +2907,27 @@ namespace RendererInterface
         }
 
         std::vector<RenderGraphNodeHandle> nodes;
-        nodes.reserve(m_render_graph_node_handles.size());
-        std::size_t active_node_set_signature = 1469598103934665603ULL;
-        for (auto handle : m_render_graph_node_handles)
-        {
-            nodes.push_back(handle);
-            HashCombine(active_node_set_signature, handle.value);
-        }
         const bool active_node_set_changed =
-            active_node_set_signature != m_last_active_node_set_signature ||
-            nodes.size() != m_last_active_node_set_count;
-        if (active_node_set_changed)
-        {
-            m_last_active_node_set_signature = active_node_set_signature;
-            m_last_active_node_set_count = nodes.size();
-        }
+            m_execution_plan_state.CollectActiveNodes(m_render_graph_node_handles, nodes);
 
-        const ExecutionPlanContext plan_context{
-            nodes,
-            m_render_graph_nodes,
-            m_render_graph_node_handles,
-            m_cached_execution_order,
-            m_cached_execution_graph_valid,
-            m_cached_execution_signature,
-            m_cached_execution_node_count
-        };
+        const ExecutionPlanContext plan_context =
+            m_execution_plan_state.BuildContext(nodes, m_render_graph_nodes, m_render_graph_node_handles);
 
         const unsigned hazard_check_interval_frames =
             (std::max)(1u, m_validation_policy.cross_frame_hazard_check_interval_frames);
         const bool should_update_dependency_diagnostics =
-            (m_last_dependency_diagnostics_frame_index == 0u) ||
-            (m_frame_index <= m_last_dependency_diagnostics_frame_index) ||
-            ((m_frame_index - m_last_dependency_diagnostics_frame_index) >=
-                static_cast<unsigned long long>(hazard_check_interval_frames));
-        const bool missing_cached_execution_order =
-            m_cached_execution_graph_valid && m_cached_execution_order.empty();
+            m_dependency_diagnostics_state.ShouldUpdate(m_frame_index, hazard_check_interval_frames);
         const bool should_rebuild_execution_plan =
-            m_execution_plan_dirty ||
-            active_node_set_changed ||
-            missing_cached_execution_order ||
-            should_update_dependency_diagnostics;
+            m_execution_plan_state.ShouldRebuild(active_node_set_changed, should_update_dependency_diagnostics);
 
         ExecutionPlanBuildResult plan{};
-        ExecutionPlanCacheState execution_cache_state{
-            m_cached_execution_graph_valid,
-            m_cached_execution_order,
-            m_cached_execution_signature,
-            m_cached_execution_node_count
-        };
+        ExecutionPlanCacheState execution_cache_state = m_execution_plan_state.BuildCacheState();
         std::vector<RenderGraphNodeHandle> diagnostics_cycle_nodes;
         if (should_rebuild_execution_plan)
         {
             plan = BuildExecutionPlan(plan_context);
             diagnostics_cycle_nodes = ApplyExecutionPlanResult(plan_context, plan, execution_cache_state);
-            m_execution_plan_dirty = false;
+            m_execution_plan_state.MarkPlanApplied();
         }
 
         if (should_update_dependency_diagnostics)
@@ -2843,14 +2935,15 @@ namespace RendererInterface
             auto current_frame_resource_access = CollectFrameResourceAccessDiagnostics(nodes, m_render_graph_nodes);
             const unsigned cross_frame_comparison_window_size =
                 GetCrossFrameComparisonWindowSize(frame_context.resource_frame_context);
-            EnsureCrossFrameHazardSnapshotStorage(cross_frame_comparison_window_size);
+            m_dependency_diagnostics_state.EnsureCrossFrameHazardSnapshotStorage(cross_frame_comparison_window_size);
             const unsigned hazard_slot_index =
                 GetCrossFrameHazardSlotIndex(frame_context.resource_frame_context, cross_frame_comparison_window_size);
 
             ResourceAccessMaskMap previous_frame_resource_access_masks;
             ResourcePassAccessMap previous_frame_resource_pass_accesses;
             unsigned compared_previous_frame_count = 0u;
-            const auto* previous_snapshot = GetCrossFrameHazardSnapshot(hazard_slot_index);
+            const auto* previous_snapshot =
+                m_dependency_diagnostics_state.GetCrossFrameHazardSnapshot(hazard_slot_index);
             const bool has_previous_frame_resource_access_masks = previous_snapshot != nullptr;
             if (previous_snapshot)
             {
@@ -2875,16 +2968,16 @@ namespace RendererInterface
                 compared_previous_frame_count,
                 current_frame_resource_access.access_masks,
                 current_frame_resource_access.pass_accesses,
-                m_last_dependency_diagnostics);
+                m_dependency_diagnostics_state.diagnostics);
             {
                 FrameResourceAccessSnapshot snapshot{};
                 snapshot.access_masks = std::move(current_frame_resource_access.access_masks);
                 snapshot.pass_accesses = std::move(current_frame_resource_access.pass_accesses);
                 snapshot.frame_index = m_frame_index;
-                UpdateCrossFrameHazardSnapshot(hazard_slot_index, std::move(snapshot));
+                m_dependency_diagnostics_state.UpdateCrossFrameHazardSnapshot(hazard_slot_index, std::move(snapshot));
             }
 
-            m_last_dependency_diagnostics_frame_index = m_frame_index;
+            m_dependency_diagnostics_state.MarkUpdated(m_frame_index);
         }
 
         const auto planning_end = std::chrono::steady_clock::now();
@@ -3028,9 +3121,7 @@ namespace RendererInterface
         m_validation_policy.log_interval_frames = (std::max)(1u, m_validation_policy.log_interval_frames);
         m_validation_policy.cross_frame_hazard_check_interval_frames =
             (std::max)(1u, m_validation_policy.cross_frame_hazard_check_interval_frames);
-        m_last_dependency_diagnostics_frame_index = 0;
-        m_frame_slot_resource_access_snapshots.clear();
-        m_frame_slot_resource_access_snapshot_valid.clear();
+        m_dependency_diagnostics_state.Reset();
     }
 
     RenderGraph::ValidationPolicy RenderGraph::GetValidationPolicy() const
@@ -3057,7 +3148,7 @@ namespace RendererInterface
 
     const RenderGraph::DependencyDiagnostics& RenderGraph::GetDependencyDiagnostics() const
     {
-        return m_last_dependency_diagnostics;
+        return m_dependency_diagnostics_state.diagnostics;
     }
 
     bool CleanupRenderRuntimeContext(
@@ -3325,15 +3416,15 @@ namespace RendererInterface
         submitted_frame_stats.executed_compute_pass_count = 0;
         submitted_frame_stats.executed_ray_tracing_pass_count = 0;
         submitted_frame_stats.pass_stats.clear();
-        submitted_frame_stats.pass_stats.reserve(m_cached_execution_order.size());
+        submitted_frame_stats.pass_stats.reserve(m_execution_plan_state.cached_execution_order.size());
 
         GLTF_CHECK(BeginGPUProfilerFrame(command_list, profiler_slot_index));
         const unsigned max_timestamped_pass_count = GetGPUProfilerMaxTimestampedPassCount();
         unsigned timestamped_pass_count = 0;
 
-        for (unsigned pass_index = 0; pass_index < m_cached_execution_order.size(); ++pass_index)
+        for (unsigned pass_index = 0; pass_index < m_execution_plan_state.cached_execution_order.size(); ++pass_index)
         {
-            auto render_graph_node = m_cached_execution_order[pass_index];
+            auto render_graph_node = m_execution_plan_state.cached_execution_order[pass_index];
             const bool enable_gpu_timestamp = max_timestamped_pass_count > 0 && pass_index < max_timestamped_pass_count;
             if (enable_gpu_timestamp)
             {
@@ -3783,19 +3874,6 @@ namespace RendererInterface
         return ResolveCrossFrameComparisonWindowSize(frame_context);
     }
 
-    void RenderGraph::EnsureCrossFrameHazardSnapshotStorage(unsigned window_size)
-    {
-        if (m_frame_slot_resource_access_snapshots.size() == static_cast<std::size_t>(window_size) &&
-            m_frame_slot_resource_access_snapshot_valid.size() == static_cast<std::size_t>(window_size))
-        {
-            return;
-        }
-
-        m_frame_slot_resource_access_snapshots.clear();
-        m_frame_slot_resource_access_snapshots.resize(window_size);
-        m_frame_slot_resource_access_snapshot_valid.assign(window_size, 0u);
-    }
-
     unsigned RenderGraph::GetCrossFrameHazardSlotIndex(
         const FrameContextSnapshot& frame_context,
         unsigned window_size) const
@@ -3808,26 +3886,6 @@ namespace RendererInterface
         const unsigned hazard_slot_index = frame_context.frame_slot_index % window_size;
         GLTF_CHECK(hazard_slot_index < window_size);
         return hazard_slot_index;
-    }
-
-    const RenderGraph::FrameResourceAccessSnapshot* RenderGraph::GetCrossFrameHazardSnapshot(unsigned hazard_slot_index) const
-    {
-        if (hazard_slot_index >= m_frame_slot_resource_access_snapshot_valid.size() ||
-            hazard_slot_index >= m_frame_slot_resource_access_snapshots.size() ||
-            m_frame_slot_resource_access_snapshot_valid[hazard_slot_index] == 0u)
-        {
-            return nullptr;
-        }
-
-        return &m_frame_slot_resource_access_snapshots[hazard_slot_index];
-    }
-
-    void RenderGraph::UpdateCrossFrameHazardSnapshot(unsigned hazard_slot_index, FrameResourceAccessSnapshot snapshot)
-    {
-        GLTF_CHECK(hazard_slot_index < m_frame_slot_resource_access_snapshots.size());
-        GLTF_CHECK(hazard_slot_index < m_frame_slot_resource_access_snapshot_valid.size());
-        m_frame_slot_resource_access_snapshots[hazard_slot_index] = std::move(snapshot);
-        m_frame_slot_resource_access_snapshot_valid[hazard_slot_index] = 1u;
     }
 
     void RenderGraph::LogRenderPassValidationResult(RenderGraphNodeHandle render_graph_node_handle,
