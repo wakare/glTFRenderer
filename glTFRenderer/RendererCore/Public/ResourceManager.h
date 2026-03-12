@@ -41,6 +41,8 @@ public:
     RendererInterface::IndexedBufferHandle CreateIndexedBuffer(const RendererInterface::BufferDesc& desc);
     RendererInterface::ShaderHandle CreateShader(const RendererInterface::ShaderDesc& shader_desc);
     RendererInterface::RenderTargetHandle CreateRenderTarget(const RendererInterface::RenderTargetDesc& desc);
+    bool RetireBuffer(RendererInterface::BufferHandle handle);
+    bool RetireRenderTarget(RendererInterface::RenderTargetHandle handle);
 
     unsigned GetCurrentBackBufferIndex() const;
     unsigned GetCurrentFrameSlotIndex() const;

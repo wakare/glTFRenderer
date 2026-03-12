@@ -67,6 +67,7 @@ protected:
         RendererInterface::RenderGraphNodeHandle node{NULL_HANDLE};
         RendererInterface::RenderTargetHandle output{NULL_HANDLE};
         std::vector<RendererInterface::BufferHandle> shadow_infos_handles;
+        std::size_t light_topology_signature{0};
 
         void Reset();
         bool HasInit() const;
@@ -82,11 +83,15 @@ protected:
         std::map<unsigned, ShadowPassResource>& GetResources();
         const std::map<unsigned, ShadowPassResource>& GetResources() const;
         bool QueueRenderStateUpdates(RendererInterface::RenderGraph& graph, const RendererInterface::RenderStateDesc& render_state) const;
+        void SyncFallbackShadowMap(RendererInterface::ResourceOperator& resource_operator);
         std::vector<RendererInterface::RenderTargetHandle> SyncAndRegisterShadowPasses(
             RendererInterface::ResourceOperator& resource_operator,
             RendererInterface::RenderGraph& graph,
             const std::vector<LightInfo>& lights);
         void CollectLightIndexedShadowMaps(
+            const std::vector<LightInfo>& lights,
+            std::vector<RendererInterface::RenderTargetHandle>& out_shadow_maps) const;
+        void CollectFallbackLightIndexedShadowMaps(
             const std::vector<LightInfo>& lights,
             std::vector<RendererInterface::RenderTargetHandle>& out_shadow_maps) const;
         void CollectLightIndexedShadowMapInfos(
@@ -101,6 +106,12 @@ protected:
     };
 
     bool QueuePendingDirectionalShadowRenderStateUpdate(RendererInterface::RenderGraph& graph);
+    bool SyncLightingTopology(
+        RendererInterface::ResourceOperator& resource_operator,
+        RendererInterface::RenderGraph& graph,
+        const std::shared_ptr<RendererModuleCamera>& camera_module,
+        unsigned width,
+        unsigned height);
     void UpdateDirectionalShadowResources(RendererInterface::ResourceOperator& resource_operator);
     void CreateLightingOutput(RendererInterface::ResourceOperator& resource_operator);
     void CreateLightingPassShadowInfoBuffers(RendererInterface::ResourceOperator& resource_operator);

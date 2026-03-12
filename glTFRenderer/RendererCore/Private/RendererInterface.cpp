@@ -1503,6 +1503,16 @@ namespace RendererInterface
         return m_resource_manager->CreateBuffer(desc);
     }
 
+    bool ResourceOperator::RetireBuffer(BufferHandle handle)
+    {
+        if (!m_resource_manager || !handle.IsValid())
+        {
+            return false;
+        }
+
+        return m_resource_manager->RetireBuffer(handle);
+    }
+
     IndexedBufferHandle ResourceOperator::CreateIndexedBuffer(const BufferDesc& desc)
     {
         return m_resource_manager->CreateIndexedBuffer(desc);   
@@ -1529,6 +1539,23 @@ namespace RendererInterface
         }
 
         return buffers;
+    }
+
+    bool ResourceOperator::RetireFrameBufferedBuffers(const std::vector<BufferHandle>& buffers)
+    {
+        bool retired_all = !buffers.empty();
+        std::set<BufferHandle> unique_handles;
+        for (const auto handle : buffers)
+        {
+            if (!handle.IsValid() || !unique_handles.insert(handle).second)
+            {
+                continue;
+            }
+
+            retired_all = RetireBuffer(handle) && retired_all;
+        }
+
+        return retired_all;
     }
 
     BufferHandle ResourceOperator::GetFrameBufferedBufferHandle(const std::vector<BufferHandle>& buffers) const
@@ -1603,6 +1630,58 @@ namespace RendererInterface
     RenderTargetHandle ResourceOperator::CreateRenderTarget(const RenderTargetDesc& desc)
     {
         return m_resource_manager->CreateRenderTarget(desc);
+    }
+
+    bool ResourceOperator::RetireRenderTarget(RenderTargetHandle handle)
+    {
+        if (!m_resource_manager || !handle.IsValid())
+        {
+            return false;
+        }
+
+        if (TryRetireTrackedRenderTargetAlias(handle))
+        {
+            return true;
+        }
+
+        return m_resource_manager->RetireRenderTarget(handle);
+    }
+
+    bool ResourceOperator::RetireFrameBufferedRenderTargets(const std::vector<RenderTargetHandle>& render_targets)
+    {
+        if (!m_resource_manager || render_targets.empty())
+        {
+            return false;
+        }
+
+        if (TryRetireTrackedRenderTargetAlias(render_targets.front()))
+        {
+            return true;
+        }
+
+        bool retired_all = true;
+        std::set<RenderTargetHandle> unique_handles;
+        for (const auto handle : render_targets)
+        {
+            if (!handle.IsValid() || !unique_handles.insert(handle).second)
+            {
+                continue;
+            }
+
+            retired_all = m_resource_manager->RetireRenderTarget(handle) && retired_all;
+        }
+
+        return retired_all;
+    }
+
+    bool ResourceOperator::RetireFrameBufferedRenderTargetAlias(RenderTargetHandle logical_handle)
+    {
+        if (!m_resource_manager)
+        {
+            return false;
+        }
+
+        return TryRetireTrackedRenderTargetAlias(logical_handle);
     }
 
     RenderTargetHandle ResourceOperator::CreateRenderTarget(const std::string& name, unsigned width, unsigned height,
@@ -1789,6 +1868,47 @@ namespace RendererInterface
             GLTF_CHECK(updated);
             m_frame_buffered_render_target_alias_current[logical_handle] = target_handle;
         }
+    }
+
+    bool ResourceOperator::TryRetireTrackedRenderTargetAlias(RenderTargetHandle handle)
+    {
+        if (!m_resource_manager)
+        {
+            return false;
+        }
+
+        auto alias_it = m_frame_buffered_render_target_aliases.end();
+        for (auto it = m_frame_buffered_render_target_aliases.begin(); it != m_frame_buffered_render_target_aliases.end(); ++it)
+        {
+            if (it->first == handle ||
+                std::find(it->second.begin(), it->second.end(), handle) != it->second.end())
+            {
+                alias_it = it;
+                break;
+            }
+        }
+
+        if (alias_it == m_frame_buffered_render_target_aliases.end())
+        {
+            return false;
+        }
+
+        std::set<RenderTargetHandle> unique_handles(alias_it->second.begin(), alias_it->second.end());
+        m_frame_buffered_render_target_alias_current.erase(alias_it->first);
+        m_frame_buffered_render_target_aliases.erase(alias_it);
+
+        bool retired_all = !unique_handles.empty();
+        for (const auto target_handle : unique_handles)
+        {
+            if (!target_handle.IsValid())
+            {
+                continue;
+            }
+
+            retired_all = m_resource_manager->RetireRenderTarget(target_handle) && retired_all;
+        }
+
+        return retired_all;
     }
 
     IRHITextureDescriptorAllocation& ResourceOperator::GetCurrentSwapchainRT() const
@@ -1981,6 +2101,29 @@ namespace RendererInterface
         DeferredReleaseEntry entry{};
         entry.retire_frame = retire_frame;
         entry.resources.push_back(resource);
+        entries.push_back(std::move(entry));
+    }
+
+    void RenderGraph::DeferredReleaseQueue::EnqueueRetainedObject(
+        std::shared_ptr<void> object,
+        unsigned long long current_frame,
+        unsigned delay_frame)
+    {
+        if (!object)
+        {
+            return;
+        }
+
+        const unsigned long long retire_frame = current_frame + delay_frame;
+        if (!entries.empty() && entries.back().retire_frame == retire_frame)
+        {
+            entries.back().retained_objects.push_back(std::move(object));
+            return;
+        }
+
+        DeferredReleaseEntry entry{};
+        entry.retire_frame = retire_frame;
+        entry.retained_objects.push_back(std::move(object));
         entries.push_back(std::move(entry));
     }
 
@@ -2243,7 +2386,11 @@ namespace RendererInterface
         return result;
     }
 
-    RenderGraphNodeHandle RenderGraph::CreateRenderGraphNode(ResourceOperator& allocator,const RenderPassSetupInfo& setup_info)
+    bool RenderGraph::BuildRenderGraphNodeFromSetup(
+        ResourceOperator& allocator,
+        const RenderPassSetupInfo& setup_info,
+        RenderGraphNodeDesc& out_render_graph_node_desc,
+        std::tuple<unsigned, unsigned, unsigned>& out_pruned_binding_counts)
     {
         RendererInterface::RenderPassDesc render_pass_desc{};
         render_pass_desc.type = setup_info.render_pass_type;
@@ -2332,6 +2479,11 @@ namespace RendererInterface
         render_pass_desc.viewport_height = setup_info.viewport_height;
         
         auto render_pass_handle = allocator.CreateRenderPass(render_pass_desc);
+        if (!render_pass_handle.IsValid())
+        {
+            return false;
+        }
+
         unsigned pruned_buffer_count = 0;
         unsigned pruned_texture_count = 0;
         unsigned pruned_render_target_texture_count = 0;
@@ -2360,38 +2512,108 @@ namespace RendererInterface
             pruned_texture_count = prune_unmapped_named_resources(render_pass_draw_desc.texture_resources);
             pruned_render_target_texture_count = prune_unmapped_named_resources(render_pass_draw_desc.render_target_texture_resources);
         }
-    
-        RendererInterface::RenderGraphNodeDesc render_graph_node_desc{};
-        render_graph_node_desc.draw_info = render_pass_draw_desc;
-        render_graph_node_desc.render_pass_handle = render_pass_handle;
-        render_graph_node_desc.render_state = setup_info.render_state;
-        render_graph_node_desc.dependency_render_graph_nodes = setup_info.dependency_render_graph_nodes;
-        render_graph_node_desc.pre_render_callback = setup_info.pre_render_callback;
-        render_graph_node_desc.debug_group = setup_info.debug_group;
-        render_graph_node_desc.debug_name = setup_info.debug_name;
 
-        auto render_graph_node_handle = CreateRenderGraphNode(render_graph_node_desc);
+        out_render_graph_node_desc = RendererInterface::RenderGraphNodeDesc{};
+        out_render_graph_node_desc.draw_info = std::move(render_pass_draw_desc);
+        out_render_graph_node_desc.render_pass_handle = render_pass_handle;
+        out_render_graph_node_desc.render_state = setup_info.render_state;
+        out_render_graph_node_desc.dependency_render_graph_nodes = setup_info.dependency_render_graph_nodes;
+        out_render_graph_node_desc.pre_render_callback = setup_info.pre_render_callback;
+        out_render_graph_node_desc.debug_group = setup_info.debug_group;
+        out_render_graph_node_desc.debug_name = setup_info.debug_name;
+        out_pruned_binding_counts =
+            std::make_tuple(pruned_buffer_count, pruned_texture_count, pruned_render_target_texture_count);
+        return true;
+    }
+
+    void RenderGraph::SyncAutoPrunedNamedBindingCounts(
+        RenderGraphNodeHandle render_graph_node_handle,
+        const RenderGraphNodeDesc& render_graph_node_desc,
+        const std::tuple<unsigned, unsigned, unsigned>& pruned_binding_counts)
+    {
+        const auto [pruned_buffer_count, pruned_texture_count, pruned_render_target_texture_count] =
+            pruned_binding_counts;
         const unsigned total_pruned_bindings =
             pruned_buffer_count + pruned_texture_count + pruned_render_target_texture_count;
-        if (total_pruned_bindings > 0)
-        {
-            m_auto_pruned_named_binding_counts[render_graph_node_handle] =
-                std::make_tuple(pruned_buffer_count, pruned_texture_count, pruned_render_target_texture_count);
-            const char* group_name = render_graph_node_desc.debug_group.empty() ? "<group-empty>" : render_graph_node_desc.debug_group.c_str();
-            const char* pass_name = render_graph_node_desc.debug_name.empty() ? "<pass-empty>" : render_graph_node_desc.debug_name.c_str();
-            LOG_FORMAT_FLUSH("[RenderGraph][Validation] Node %u (%s/%s) auto-pruned unmapped bindings: buffer=%u, texture=%u, render_target_texture=%u.\n",
-                             render_graph_node_handle.value,
-                             group_name,
-                             pass_name,
-                             pruned_buffer_count,
-                             pruned_texture_count,
-                             pruned_render_target_texture_count);
-        }
-        else
+        if (total_pruned_bindings == 0)
         {
             m_auto_pruned_named_binding_counts.erase(render_graph_node_handle);
+            return;
         }
+
+        m_auto_pruned_named_binding_counts[render_graph_node_handle] = pruned_binding_counts;
+        const char* group_name = render_graph_node_desc.debug_group.empty() ? "<group-empty>" : render_graph_node_desc.debug_group.c_str();
+        const char* pass_name = render_graph_node_desc.debug_name.empty() ? "<pass-empty>" : render_graph_node_desc.debug_name.c_str();
+        LOG_FORMAT_FLUSH("[RenderGraph][Validation] Node %u (%s/%s) auto-pruned unmapped bindings: buffer=%u, texture=%u, render_target_texture=%u.\n",
+                         render_graph_node_handle.value,
+                         group_name,
+                         pass_name,
+                         pruned_buffer_count,
+                         pruned_texture_count,
+                         pruned_render_target_texture_count);
+    }
+
+    void RenderGraph::RetireRenderGraphNodeResources(
+        RenderGraphNodeHandle render_graph_node_handle,
+        const FrameContextSnapshot& frame_context)
+    {
+        auto* descriptor_resource = m_descriptor_resource_store.Find(render_graph_node_handle);
+        if (descriptor_resource)
+        {
+            ReleaseRenderPassDescriptorResource(*descriptor_resource, frame_context);
+            m_descriptor_resource_store.Erase(render_graph_node_handle);
+        }
+
+        const auto& node_desc = m_render_graph_nodes[render_graph_node_handle.value];
+        auto retired_render_pass = InternalResourceHandleTable::Instance().RemoveRenderPass(node_desc.render_pass_handle);
+        if (retired_render_pass)
+        {
+            EnqueueRetainedObjectForDeferredRelease(std::move(retired_render_pass), frame_context);
+        }
+    }
+
+    RenderGraphNodeHandle RenderGraph::CreateRenderGraphNode(ResourceOperator& allocator,const RenderPassSetupInfo& setup_info)
+    {
+        RendererInterface::RenderGraphNodeDesc render_graph_node_desc{};
+        std::tuple<unsigned, unsigned, unsigned> pruned_binding_counts{};
+        if (!BuildRenderGraphNodeFromSetup(allocator, setup_info, render_graph_node_desc, pruned_binding_counts))
+        {
+            return NULL_HANDLE;
+        }
+
+        auto render_graph_node_handle = CreateRenderGraphNode(render_graph_node_desc);
+        SyncAutoPrunedNamedBindingCounts(render_graph_node_handle, render_graph_node_desc, pruned_binding_counts);
         return render_graph_node_handle;
+    }
+
+    bool RenderGraph::RebuildRenderGraphNode(
+        ResourceOperator& allocator,
+        RenderGraphNodeHandle render_graph_node_handle,
+        const RenderPassSetupInfo& setup_info)
+    {
+        GLTF_CHECK(render_graph_node_handle.IsValid());
+        GLTF_CHECK(render_graph_node_handle.value < m_render_graph_nodes.size());
+
+        RendererInterface::RenderGraphNodeDesc rebuilt_node_desc{};
+        std::tuple<unsigned, unsigned, unsigned> pruned_binding_counts{};
+        if (!BuildRenderGraphNodeFromSetup(allocator, setup_info, rebuilt_node_desc, pruned_binding_counts))
+        {
+            return false;
+        }
+
+        const auto frame_context = m_resource_allocator.GetFrameContext();
+        RetireRenderGraphNodeResources(render_graph_node_handle, frame_context);
+        m_render_graph_nodes[render_graph_node_handle.value] = std::move(rebuilt_node_desc);
+        m_pending_render_state_updates.erase(render_graph_node_handle);
+        m_render_pass_validation_last_log_frame.erase(render_graph_node_handle);
+        m_render_pass_validation_last_message_hash.erase(render_graph_node_handle);
+        SyncAutoPrunedNamedBindingCounts(
+            render_graph_node_handle,
+            m_render_graph_nodes[render_graph_node_handle.value],
+            pruned_binding_counts);
+        m_dependency_diagnostics_state.Reset();
+        m_execution_plan_state.MarkDirty();
+        return true;
     }
 
     bool RenderGraph::RegisterRenderGraphNode(RenderGraphNodeHandle render_graph_node_handle)
@@ -2400,26 +2622,26 @@ namespace RendererInterface
         GLTF_CHECK(render_graph_node_handle.value < m_render_graph_nodes.size());
         GLTF_CHECK(!m_render_graph_node_handles.contains(render_graph_node_handle));
         m_render_graph_node_handles.insert(render_graph_node_handle);
+        m_dependency_diagnostics_state.Reset();
+        m_execution_plan_state.MarkDirty();
         return true;
     }
 
     bool RenderGraph::RemoveRenderGraphNode(RenderGraphNodeHandle render_graph_node_handle)
     {
         GLTF_CHECK(render_graph_node_handle.IsValid());
-        GLTF_CHECK(m_render_graph_node_handles.contains(render_graph_node_handle));
+        GLTF_CHECK(render_graph_node_handle.value < m_render_graph_nodes.size());
+        const auto frame_context = m_resource_allocator.GetFrameContext();
         m_render_graph_node_handles.erase(render_graph_node_handle);
         m_pending_render_state_updates.erase(render_graph_node_handle);
+        RetireRenderGraphNodeResources(render_graph_node_handle, frame_context);
+        m_render_graph_nodes[render_graph_node_handle.value] = RenderGraphNodeDesc{};
 
-        auto* descriptor_resource = m_descriptor_resource_store.Find(render_graph_node_handle);
-        if (descriptor_resource)
-        {
-            ReleaseRenderPassDescriptorResource(*descriptor_resource, m_resource_allocator.GetFrameContext());
-            m_descriptor_resource_store.Erase(render_graph_node_handle);
-        }
         m_auto_pruned_named_binding_counts.erase(render_graph_node_handle);
         m_render_pass_validation_last_log_frame.erase(render_graph_node_handle);
         m_render_pass_validation_last_message_hash.erase(render_graph_node_handle);
 
+        m_dependency_diagnostics_state.Reset();
         m_execution_plan_state.ResetCache();
         return true;
     }
@@ -2476,6 +2698,35 @@ namespace RendererInterface
         return true;
     }
 
+    bool RenderGraph::UpdateNodeDependencies(
+        RenderGraphNodeHandle render_graph_node_handle,
+        const std::vector<RenderGraphNodeHandle>& dependency_render_graph_nodes)
+    {
+        GLTF_CHECK(render_graph_node_handle.IsValid());
+        GLTF_CHECK(render_graph_node_handle.value < m_render_graph_nodes.size());
+
+        for (const auto dependency_handle : dependency_render_graph_nodes)
+        {
+            GLTF_CHECK(dependency_handle.IsValid());
+            GLTF_CHECK(dependency_handle.value < m_render_graph_nodes.size());
+            if (dependency_handle == render_graph_node_handle)
+            {
+                return false;
+            }
+        }
+
+        auto& node_desc = m_render_graph_nodes[render_graph_node_handle.value];
+        if (node_desc.dependency_render_graph_nodes == dependency_render_graph_nodes)
+        {
+            return true;
+        }
+
+        node_desc.dependency_render_graph_nodes = dependency_render_graph_nodes;
+        m_dependency_diagnostics_state.Reset();
+        m_execution_plan_state.MarkDirty();
+        return true;
+    }
+
     bool RenderGraph::UpdateNodeBufferBinding(RenderGraphNodeHandle render_graph_node_handle, const std::string& binding_name, BufferHandle buffer_handle)
     {
         GLTF_CHECK(render_graph_node_handle.IsValid());
@@ -2490,6 +2741,7 @@ namespace RendererInterface
         }
 
         binding_it->second.buffer_handle = buffer_handle;
+        m_dependency_diagnostics_state.Reset();
         m_execution_plan_state.MarkDirty();
         return true;
     }
@@ -2524,6 +2776,7 @@ namespace RendererInterface
         const RenderTargetBindingDesc binding_desc = binding_it->second;
         node_desc.draw_info.render_target_resources.erase(binding_it);
         node_desc.draw_info.render_target_resources.emplace(new_render_target_handle, binding_desc);
+        m_dependency_diagnostics_state.Reset();
         m_execution_plan_state.MarkDirty();
         return true;
     }
@@ -2553,6 +2806,7 @@ namespace RendererInterface
         }
 
         binding_it->second.render_target_texture = render_target_handles;
+        m_dependency_diagnostics_state.Reset();
         m_execution_plan_state.MarkDirty();
         return true;
     }
@@ -3588,6 +3842,19 @@ namespace RendererInterface
 
         const unsigned delay_frame = ResolveDeferredReleaseLatencyFrames(frame_context);
         m_deferred_release_queue.Enqueue(resource, m_frame_index, delay_frame);
+    }
+
+    void RenderGraph::EnqueueRetainedObjectForDeferredRelease(
+        std::shared_ptr<void> object,
+        const FrameContextSnapshot& frame_context)
+    {
+        if (!object)
+        {
+            return;
+        }
+
+        const unsigned delay_frame = ResolveDeferredReleaseLatencyFrames(frame_context);
+        m_deferred_release_queue.EnqueueRetainedObject(std::move(object), m_frame_index, delay_frame);
     }
 
     void RenderGraph::EnqueueBufferDescriptorEntryForDeferredRelease(

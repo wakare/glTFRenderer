@@ -24,12 +24,15 @@ namespace RendererInterface
         RenderTargetHandle RegisterRenderTarget(std::shared_ptr<IRHITextureDescriptorAllocation> render_target);
         std::shared_ptr<IRHITextureDescriptorAllocation> GetRenderTarget(RenderTargetHandle handle) const;
         bool UpdateRenderTarget(RenderTargetHandle handle, std::shared_ptr<IRHITextureDescriptorAllocation> render_target);
+        std::shared_ptr<IRHITextureDescriptorAllocation> RemoveRenderTarget(RenderTargetHandle handle);
 
         RenderPassHandle RegisterRenderPass(std::shared_ptr<RenderPass> render_pass);
         std::shared_ptr<RenderPass> GetRenderPass(RenderPassHandle handle) const;
+        std::shared_ptr<RenderPass> RemoveRenderPass(RenderPassHandle handle);
 
         BufferHandle RegisterBuffer(std::shared_ptr<IRHIBufferAllocation> buffer);
         std::shared_ptr<IRHIBufferAllocation> GetBuffer(BufferHandle handle) const;
+        std::shared_ptr<IRHIBufferAllocation> RemoveBuffer(BufferHandle handle);
 
         RenderSceneHandle RegisterRenderScene(std::shared_ptr<RendererSceneGraph> scene_graph);
         std::shared_ptr<RendererSceneGraph> GetRenderScene(RenderSceneHandle handle) const;

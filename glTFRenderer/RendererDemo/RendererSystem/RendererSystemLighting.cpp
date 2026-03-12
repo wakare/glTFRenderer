@@ -11,11 +11,33 @@
 
 #include "RendererSceneAABB.h"
 
+namespace
+{
+    std::size_t ComputeLightTopologySignature(const std::vector<LightInfo>& lights)
+    {
+        std::size_t signature = 1469598103934665603ULL;
+        auto hash_combine = [&signature](std::size_t value)
+        {
+            signature ^= value + 0x9e3779b97f4a7c15ULL + (signature << 6) + (signature >> 2);
+        };
+
+        hash_combine(lights.size());
+        for (std::size_t i = 0; i < lights.size(); ++i)
+        {
+            hash_combine(i);
+            hash_combine(static_cast<std::size_t>(lights[i].type));
+        }
+
+        return signature;
+    }
+}
+
 void RendererSystemLighting::LightingPassRuntimeState::Reset()
 {
     node = NULL_HANDLE;
     output = NULL_HANDLE;
     shadow_infos_handles.clear();
+    light_topology_signature = 0;
 }
 
 bool RendererSystemLighting::LightingPassRuntimeState::HasInit() const
@@ -95,15 +117,21 @@ bool RendererSystemLighting::DirectionalShadowRuntimeState::QueueRenderStateUpda
     return queued_all_shadow_passes;
 }
 
-std::vector<RendererInterface::RenderTargetHandle> RendererSystemLighting::DirectionalShadowRuntimeState::SyncAndRegisterShadowPasses(
-    RendererInterface::ResourceOperator& resource_operator,
-    RendererInterface::RenderGraph& graph,
-    const std::vector<LightInfo>& lights)
+void RendererSystemLighting::DirectionalShadowRuntimeState::SyncFallbackShadowMap(
+    RendererInterface::ResourceOperator& resource_operator)
 {
     if (!m_fallback_shadow_maps.empty())
     {
         m_bound_fallback_shadow_map = resource_operator.GetFrameBufferedRenderTargetHandle(m_fallback_shadow_maps);
     }
+}
+
+std::vector<RendererInterface::RenderTargetHandle> RendererSystemLighting::DirectionalShadowRuntimeState::SyncAndRegisterShadowPasses(
+    RendererInterface::ResourceOperator& resource_operator,
+    RendererInterface::RenderGraph& graph,
+    const std::vector<LightInfo>& lights)
+{
+    SyncFallbackShadowMap(resource_operator);
 
     for (auto& shadow_resource_pair : m_resources)
     {
@@ -157,6 +185,14 @@ void RendererSystemLighting::DirectionalShadowRuntimeState::CollectLightIndexedS
             out_shadowmap_infos[light_index] = it->second.m_shadow_map_info;
         }
     }
+}
+
+void RendererSystemLighting::DirectionalShadowRuntimeState::CollectFallbackLightIndexedShadowMaps(
+    const std::vector<LightInfo>& lights,
+    std::vector<RendererInterface::RenderTargetHandle>& out_shadow_maps) const
+{
+    out_shadow_maps.clear();
+    out_shadow_maps.resize(lights.size(), m_bound_fallback_shadow_map);
 }
 
 void RendererSystemLighting::DirectionalShadowRuntimeState::CollectDependencyNodes(
@@ -375,6 +411,7 @@ bool RendererSystemLighting::Init(RendererInterface::ResourceOperator& resource_
     CreateLightingPassShadowInfoBuffers(resource_operator);
     m_lighting_pass_state.node =
         graph.CreateRenderGraphNode(resource_operator, BuildLightingPassSetupInfo(camera_module, width, height));
+    m_lighting_pass_state.light_topology_signature = ComputeLightTopologySignature(lights);
 
     graph.RegisterRenderTargetToColorOutput(m_lighting_pass_state.output);
     
@@ -411,6 +448,9 @@ bool RendererSystemLighting::Tick(RendererInterface::ResourceOperator& resource_
 {
     const unsigned width = m_scene->GetWidth();
     const unsigned height = m_scene->GetHeight();
+    const auto camera_module = m_scene->GetCameraModule();
+    const auto& lights = m_lighting_module->GetLightInfos();
+    RETURN_IF_FALSE(SyncLightingTopology(resource_operator, graph, camera_module, width, height));
     QueuePendingDirectionalShadowRenderStateUpdate(graph);
     graph.UpdateComputeDispatch(m_lighting_pass_state.node, (width + 7) / 8, (height + 7) / 8, 1);
 
@@ -436,21 +476,38 @@ bool RendererSystemLighting::Tick(RendererInterface::ResourceOperator& resource_
             resource_operator.GetFrameBufferedBufferHandle(m_lighting_pass_state.shadow_infos_handles));
     }
 
+    std::vector<RendererInterface::RenderGraphNodeHandle> lighting_pass_dependencies;
+    std::vector<RendererInterface::RenderTargetHandle> current_shadow_maps;
     if (CastShadow())
     {
         UpdateDirectionalShadowResources(resource_operator);
-        auto current_shadow_maps = m_directional_shadow_state.SyncAndRegisterShadowPasses(
+        current_shadow_maps = m_directional_shadow_state.SyncAndRegisterShadowPasses(
             resource_operator,
             graph,
-            m_lighting_module->GetLightInfos());
-
-        if (!current_shadow_maps.empty())
+            lights);
+        m_directional_shadow_state.CollectDependencyNodes(lighting_pass_dependencies);
+    }
+    else
+    {
+        m_directional_shadow_state.SyncFallbackShadowMap(resource_operator);
+        m_directional_shadow_state.CollectFallbackLightIndexedShadowMaps(lights, current_shadow_maps);
+        if (!lights.empty() && !m_lighting_pass_state.shadow_infos_handles.empty())
         {
-            graph.UpdateNodeRenderTargetTextureBinding(
-                m_lighting_pass_state.node,
-                "bindless_shadowmap_textures",
-                current_shadow_maps);
+            const std::vector<ShadowMapInfo> disabled_shadow_infos(lights.size());
+            RendererInterface::BufferUploadDesc shadow_info_upload_desc{};
+            shadow_info_upload_desc.data = disabled_shadow_infos.data();
+            shadow_info_upload_desc.size = disabled_shadow_infos.size() * sizeof(ShadowMapInfo);
+            resource_operator.UploadFrameBufferedBufferData(m_lighting_pass_state.shadow_infos_handles, shadow_info_upload_desc);
         }
+    }
+
+    graph.UpdateNodeDependencies(m_lighting_pass_state.node, lighting_pass_dependencies);
+    if (!current_shadow_maps.empty())
+    {
+        graph.UpdateNodeRenderTargetTextureBinding(
+            m_lighting_pass_state.node,
+            "bindless_shadowmap_textures",
+            current_shadow_maps);
     }
     
     graph.RegisterRenderGraphNode(m_lighting_pass_state.node);
@@ -518,6 +575,12 @@ void RendererSystemLighting::CreateLightingOutput(RendererInterface::ResourceOpe
 
 void RendererSystemLighting::CreateLightingPassShadowInfoBuffers(RendererInterface::ResourceOperator& resource_operator)
 {
+    if (!m_lighting_pass_state.shadow_infos_handles.empty())
+    {
+        resource_operator.RetireFrameBufferedBuffers(m_lighting_pass_state.shadow_infos_handles);
+        m_lighting_pass_state.shadow_infos_handles.clear();
+    }
+
     std::vector<ShadowMapInfo> shadowmap_infos;
     m_directional_shadow_state.CollectLightIndexedShadowMapInfos(m_lighting_module->GetLightInfos(), shadowmap_infos);
 
@@ -529,6 +592,67 @@ void RendererSystemLighting::CreateLightingPassShadowInfoBuffers(RendererInterfa
     shadowmap_info_buffer_desc.data = shadowmap_infos.data();
     m_lighting_pass_state.shadow_infos_handles =
         resource_operator.CreateFrameBufferedBuffers(shadowmap_info_buffer_desc, "g_shadowmap_infos");
+}
+
+bool RendererSystemLighting::SyncLightingTopology(
+    RendererInterface::ResourceOperator& resource_operator,
+    RendererInterface::RenderGraph& graph,
+    const std::shared_ptr<RendererModuleCamera>& camera_module,
+    unsigned width,
+    unsigned height)
+{
+    const auto& lights = m_lighting_module->GetLightInfos();
+    const std::size_t topology_signature = ComputeLightTopologySignature(lights);
+    if (topology_signature == m_lighting_pass_state.light_topology_signature)
+    {
+        return true;
+    }
+
+    auto& shadow_resources = m_directional_shadow_state.GetResources();
+    std::vector<unsigned> retired_shadow_light_indices;
+    for (const auto& shadow_resource_pair : shadow_resources)
+    {
+        const unsigned light_index = shadow_resource_pair.first;
+        if (light_index >= lights.size() || lights[light_index].type != LightType::Directional)
+        {
+            retired_shadow_light_indices.push_back(light_index);
+        }
+    }
+
+    for (const unsigned light_index : retired_shadow_light_indices)
+    {
+        auto it = shadow_resources.find(light_index);
+        if (it == shadow_resources.end())
+        {
+            continue;
+        }
+
+        if (it->second.m_shadow_pass_node != NULL_HANDLE)
+        {
+            graph.RemoveRenderGraphNode(it->second.m_shadow_pass_node);
+        }
+        resource_operator.RetireFrameBufferedRenderTargets(it->second.m_shadow_maps);
+        resource_operator.RetireFrameBufferedBuffers(it->second.m_shadow_map_buffer_handles);
+        shadow_resources.erase(it);
+    }
+
+    for (unsigned light_index = 0; light_index < lights.size(); ++light_index)
+    {
+        if (lights[light_index].type != LightType::Directional || shadow_resources.contains(light_index))
+        {
+            continue;
+        }
+
+        CreateDirectionalShadowPassResource(resource_operator, graph, light_index, lights[light_index]);
+    }
+
+    CreateLightingPassShadowInfoBuffers(resource_operator);
+    RETURN_IF_FALSE(graph.RebuildRenderGraphNode(
+        resource_operator,
+        m_lighting_pass_state.node,
+        BuildLightingPassSetupInfo(camera_module, width, height)));
+    m_lighting_pass_state.light_topology_signature = topology_signature;
+    return true;
 }
 
 RendererSystemLighting::ShadowPassResource& RendererSystemLighting::CreateDirectionalShadowPassResource(

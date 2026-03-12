@@ -43,6 +43,20 @@ std::shared_ptr<IRHITextureDescriptorAllocation> RendererInterface::InternalReso
     return m_render_targets.at(handle);
 }
 
+std::shared_ptr<IRHITextureDescriptorAllocation> RendererInterface::InternalResourceHandleTable::RemoveRenderTarget(
+    RenderTargetHandle handle)
+{
+    const auto it = m_render_targets.find(handle);
+    if (it == m_render_targets.end())
+    {
+        return nullptr;
+    }
+
+    auto render_target = it->second;
+    m_render_targets.erase(it);
+    return render_target;
+}
+
 bool RendererInterface::InternalResourceHandleTable::UpdateRenderTarget(
     RenderTargetHandle handle, std::shared_ptr<IRHITextureDescriptorAllocation> render_target)
 {
@@ -67,6 +81,19 @@ std::shared_ptr<RenderPass> RendererInterface::InternalResourceHandleTable::GetR
     return m_render_passes.at(handle);
 }
 
+std::shared_ptr<RenderPass> RendererInterface::InternalResourceHandleTable::RemoveRenderPass(RenderPassHandle handle)
+{
+    const auto it = m_render_passes.find(handle);
+    if (it == m_render_passes.end())
+    {
+        return nullptr;
+    }
+
+    auto render_pass = it->second;
+    m_render_passes.erase(it);
+    return render_pass;
+}
+
 RendererInterface::BufferHandle RendererInterface::InternalResourceHandleTable::RegisterBuffer(
     std::shared_ptr<IRHIBufferAllocation> buffer)
 {
@@ -79,6 +106,20 @@ std::shared_ptr<IRHIBufferAllocation> RendererInterface::InternalResourceHandleT
     BufferHandle handle) const
 {
     return m_buffers.at(handle);
+}
+
+std::shared_ptr<IRHIBufferAllocation> RendererInterface::InternalResourceHandleTable::RemoveBuffer(
+    BufferHandle handle)
+{
+    const auto it = m_buffers.find(handle);
+    if (it == m_buffers.end())
+    {
+        return nullptr;
+    }
+
+    auto buffer = it->second;
+    m_buffers.erase(it);
+    return buffer;
 }
 
 RendererInterface::RenderSceneHandle RendererInterface::InternalResourceHandleTable::RegisterRenderScene(

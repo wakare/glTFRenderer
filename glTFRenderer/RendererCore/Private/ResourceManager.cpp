@@ -328,6 +328,18 @@ RendererInterface::BufferHandle ResourceManager::CreateBuffer(const RendererInte
     return RendererInterface::InternalResourceHandleTable::Instance().RegisterBuffer(buffer_allocation);
 }
 
+bool ResourceManager::RetireBuffer(RendererInterface::BufferHandle handle)
+{
+    const auto buffer_allocation = RendererInterface::InternalResourceHandleTable::Instance().RemoveBuffer(handle);
+    if (!buffer_allocation)
+    {
+        return false;
+    }
+
+    EnqueueResourceForDeferredRelease(std::static_pointer_cast<IRHIResource>(buffer_allocation));
+    return true;
+}
+
 RendererInterface::IndexedBufferHandle ResourceManager::CreateIndexedBuffer(const RendererInterface::BufferDesc& desc)
 {
     RHIBufferDesc buffer_desc = ConvertToRHIBufferDesc(desc);
@@ -392,6 +404,20 @@ RendererInterface::RenderTargetHandle ResourceManager::CreateRenderTarget(const 
     m_render_target_descs[render_target_handle] = stored_desc;
     
     return render_target_handle;
+}
+
+bool ResourceManager::RetireRenderTarget(RendererInterface::RenderTargetHandle handle)
+{
+    const auto render_target = RendererInterface::InternalResourceHandleTable::Instance().RemoveRenderTarget(handle);
+    if (!render_target)
+    {
+        return false;
+    }
+
+    m_render_targets.erase(handle);
+    m_render_target_descs.erase(handle);
+    EnqueueResourceForDeferredRelease(std::static_pointer_cast<IRHIResource>(render_target));
+    return true;
 }
 
 unsigned ResourceManager::GetCurrentBackBufferIndex() const

@@ -99,16 +99,21 @@ namespace RendererInterface
         TextureHandle       CreateTexture(const TextureFileDesc& desc);
         BufferHandle        CreateBuffer(const BufferDesc& desc);
         IndexedBufferHandle CreateIndexedBuffer(const BufferDesc& desc);
+        bool                RetireBuffer(BufferHandle handle);
         std::vector<BufferHandle> CreateFrameBufferedBuffers(const BufferDesc& desc, const std::string& debug_name_prefix = "");
+        bool                RetireFrameBufferedBuffers(const std::vector<BufferHandle>& buffers);
         BufferHandle        GetFrameBufferedBufferHandle(const std::vector<BufferHandle>& buffers) const;
         BufferHandle        GetFrameBufferedBufferHandle(const std::vector<BufferHandle>& buffers, const FrameContextSnapshot& frame_context) const;
         void                UploadFrameBufferedBufferData(const std::vector<BufferHandle>& buffers, const BufferUploadDesc& upload_desc);
         
         RenderTargetHandle  CreateRenderTarget(const RenderTargetDesc& desc);
+        bool                RetireRenderTarget(RenderTargetHandle handle);
         std::vector<RenderTargetHandle> CreateFrameBufferedRenderTargets(const RenderTargetDesc& desc, const std::string& debug_name_prefix = "");
+        bool                RetireFrameBufferedRenderTargets(const std::vector<RenderTargetHandle>& render_targets);
         RenderTargetHandle  GetFrameBufferedRenderTargetHandle(const std::vector<RenderTargetHandle>& render_targets) const;
         RenderTargetHandle  GetFrameBufferedRenderTargetHandle(const std::vector<RenderTargetHandle>& render_targets, const FrameContextSnapshot& frame_context) const;
         RenderTargetHandle  CreateFrameBufferedRenderTargetAlias(const RenderTargetDesc& desc, const std::string& debug_name_prefix = "");
+        bool                RetireFrameBufferedRenderTargetAlias(RenderTargetHandle logical_handle);
         RenderTargetHandle  CreateRenderTarget(
             const std::string& name,
             unsigned width,
@@ -183,6 +188,8 @@ namespace RendererInterface
         bool m_per_frame_resource_binding_enabled{true};
         std::map<RenderTargetHandle, std::vector<RenderTargetHandle>> m_frame_buffered_render_target_aliases;
         std::map<RenderTargetHandle, RenderTargetHandle> m_frame_buffered_render_target_alias_current;
+
+        bool TryRetireTrackedRenderTargetAlias(RenderTargetHandle handle);
     };
 
     class RendererModuleBase
@@ -389,11 +396,13 @@ namespace RendererInterface
         
         RenderGraphNodeHandle CreateRenderGraphNode(const RenderGraphNodeDesc& render_graph_node_desc);
         RenderGraphNodeHandle CreateRenderGraphNode(ResourceOperator& allocator, const RenderPassSetupInfo& setup_info);
+        bool RebuildRenderGraphNode(ResourceOperator& allocator, RenderGraphNodeHandle render_graph_node_handle, const RenderPassSetupInfo& setup_info);
         
         bool RegisterRenderGraphNode(RenderGraphNodeHandle render_graph_node_handle);
         bool RemoveRenderGraphNode(RenderGraphNodeHandle render_graph_node_handle);
         bool UpdateComputeDispatch(RenderGraphNodeHandle render_graph_node_handle, unsigned group_size_x, unsigned group_size_y, unsigned group_size_z);
         bool QueueNodeRenderStateUpdate(RenderGraphNodeHandle render_graph_node_handle, const RenderStateDesc& render_state);
+        bool UpdateNodeDependencies(RenderGraphNodeHandle render_graph_node_handle, const std::vector<RenderGraphNodeHandle>& dependency_render_graph_nodes);
         bool UpdateNodeBufferBinding(RenderGraphNodeHandle render_graph_node_handle, const std::string& binding_name, BufferHandle buffer_handle);
         bool UpdateNodeRenderTargetBinding(RenderGraphNodeHandle render_graph_node_handle, RenderTargetHandle old_render_target_handle, RenderTargetHandle new_render_target_handle);
         bool UpdateNodeRenderTargetTextureBinding(RenderGraphNodeHandle render_graph_node_handle, const std::string& binding_name, const std::vector<RenderTargetHandle>& render_target_handles);
@@ -426,6 +435,7 @@ namespace RendererInterface
         {
             unsigned long long retire_frame{0};
             std::vector<std::shared_ptr<IRHIResource>> resources;
+            std::vector<std::shared_ptr<void>> retained_objects;
         };
 
         struct DeferredReleaseQueue
@@ -433,6 +443,7 @@ namespace RendererInterface
             std::deque<DeferredReleaseEntry> entries;
 
             void Enqueue(const std::shared_ptr<IRHIResource>& resource, unsigned long long current_frame, unsigned delay_frame);
+            void EnqueueRetainedObject(std::shared_ptr<void> object, unsigned long long current_frame, unsigned delay_frame);
             void Flush(IRHIMemoryManager& memory_manager, unsigned long long current_frame, bool force_release_all);
             void Clear();
         };
@@ -545,11 +556,22 @@ namespace RendererInterface
         };
 
         void EnqueueResourceForDeferredRelease(const std::shared_ptr<IRHIResource>& resource, const FrameContextSnapshot& frame_context);
+        void EnqueueRetainedObjectForDeferredRelease(std::shared_ptr<void> object, const FrameContextSnapshot& frame_context);
         void EnqueueBufferDescriptorEntryForDeferredRelease(const RenderPassDescriptorResource::BufferDescriptorCacheEntry& cache_entry, const FrameContextSnapshot& frame_context);
         void EnqueueTextureDescriptorEntryForDeferredRelease(const RenderPassDescriptorResource::TextureDescriptorCacheEntry& cache_entry, const FrameContextSnapshot& frame_context);
         void EnqueueBufferDescriptorForDeferredRelease(RenderPassDescriptorResource& descriptor_resource, const std::string& binding_name, const FrameContextSnapshot& frame_context);
         void EnqueueTextureDescriptorForDeferredRelease(RenderPassDescriptorResource& descriptor_resource, const std::string& binding_name, const FrameContextSnapshot& frame_context);
         void ReleaseRenderPassDescriptorResource(RenderPassDescriptorResource& descriptor_resource, const FrameContextSnapshot& frame_context);
+        void RetireRenderGraphNodeResources(RenderGraphNodeHandle render_graph_node_handle, const FrameContextSnapshot& frame_context);
+        bool BuildRenderGraphNodeFromSetup(
+            ResourceOperator& allocator,
+            const RenderPassSetupInfo& setup_info,
+            RenderGraphNodeDesc& out_render_graph_node_desc,
+            std::tuple<unsigned, unsigned, unsigned>& out_pruned_binding_counts);
+        void SyncAutoPrunedNamedBindingCounts(
+            RenderGraphNodeHandle render_graph_node_handle,
+            const RenderGraphNodeDesc& render_graph_node_desc,
+            const std::tuple<unsigned, unsigned, unsigned>& pruned_binding_counts);
         void PruneDescriptorResources(RenderPassDescriptorResource& descriptor_resource, const RenderPassDrawDesc& draw_info, const FrameContextSnapshot& frame_context);
         void CollectUnusedRenderPassDescriptorResources(const FrameContextSnapshot& frame_context);
         void FlushDeferredResourceReleases(bool force_release_all);
