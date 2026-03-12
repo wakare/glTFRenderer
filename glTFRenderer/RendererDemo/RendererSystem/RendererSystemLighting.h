@@ -47,7 +47,12 @@ protected:
     {
         static bool CalcDirectionalLightShadowMatrix(const LightInfo& directional_light_info, const RendererSceneAABB& scene_bounds, float ndc_min_x, float ndc_min_y, float ndc_width, float ndc_height, unsigned
                                                            shadowmap_width, unsigned shadowmap_height, ViewBuffer& out_view_buffer, ShadowMapInfo& out_shadow_info);
-        
+
+        bool HasInit() const;
+        bool QueueRenderStateUpdate(RendererInterface::RenderGraph& graph, const RendererInterface::RenderStateDesc& render_state) const;
+        RendererInterface::RenderTargetHandle SyncFrameBindings(RendererInterface::ResourceOperator& resource_operator, RendererInterface::RenderGraph& graph);
+        void Register(RendererInterface::RenderGraph& graph) const;
+
         RendererInterface::RenderGraphNodeHandle m_shadow_pass_node {NULL_HANDLE};
         std::vector<RendererInterface::RenderTargetHandle> m_shadow_maps;
         RendererInterface::RenderTargetHandle m_bound_shadow_map {NULL_HANDLE};
@@ -57,8 +62,60 @@ protected:
         std::vector<RendererInterface::BufferHandle> m_shadow_map_buffer_handles;
     };
 
+    struct LightingPassRuntimeState
+    {
+        RendererInterface::RenderGraphNodeHandle node{NULL_HANDLE};
+        RendererInterface::RenderTargetHandle output{NULL_HANDLE};
+        std::vector<RendererInterface::BufferHandle> shadow_infos_handles;
+
+        void Reset();
+        bool HasInit() const;
+    };
+
+    struct DirectionalShadowRuntimeState
+    {
+        void Reset();
+        bool HasShadowPasses() const;
+        size_t GetShadowPassCount() const;
+        void CreateFallbackShadowMap(RendererInterface::ResourceOperator& resource_operator);
+        ShadowPassResource& GetOrCreate(unsigned light_index);
+        std::map<unsigned, ShadowPassResource>& GetResources();
+        const std::map<unsigned, ShadowPassResource>& GetResources() const;
+        bool QueueRenderStateUpdates(RendererInterface::RenderGraph& graph, const RendererInterface::RenderStateDesc& render_state) const;
+        std::vector<RendererInterface::RenderTargetHandle> SyncAndRegisterShadowPasses(
+            RendererInterface::ResourceOperator& resource_operator,
+            RendererInterface::RenderGraph& graph,
+            const std::vector<LightInfo>& lights);
+        void CollectLightIndexedShadowMaps(
+            const std::vector<LightInfo>& lights,
+            std::vector<RendererInterface::RenderTargetHandle>& out_shadow_maps) const;
+        void CollectLightIndexedShadowMapInfos(
+            const std::vector<LightInfo>& lights,
+            std::vector<ShadowMapInfo>& out_shadowmap_infos) const;
+        void CollectDependencyNodes(std::vector<RendererInterface::RenderGraphNodeHandle>& out_dependency_nodes) const;
+
+    private:
+        std::map<unsigned, ShadowPassResource> m_resources{};
+        std::vector<RendererInterface::RenderTargetHandle> m_fallback_shadow_maps{};
+        RendererInterface::RenderTargetHandle m_bound_fallback_shadow_map{NULL_HANDLE};
+    };
+
     bool QueuePendingDirectionalShadowRenderStateUpdate(RendererInterface::RenderGraph& graph);
     void UpdateDirectionalShadowResources(RendererInterface::ResourceOperator& resource_operator);
+    void CreateLightingOutput(RendererInterface::ResourceOperator& resource_operator);
+    void CreateLightingPassShadowInfoBuffers(RendererInterface::ResourceOperator& resource_operator);
+    ShadowPassResource& CreateDirectionalShadowPassResource(
+        RendererInterface::ResourceOperator& resource_operator,
+        RendererInterface::RenderGraph& graph,
+        unsigned light_index,
+        const LightInfo& light_info);
+    RendererInterface::RenderGraph::RenderPassSetupInfo BuildDirectionalShadowPassSetupInfo(
+        const ShadowPassResource& shadow_pass_resource,
+        unsigned light_index) const;
+    RendererInterface::RenderGraph::RenderPassSetupInfo BuildLightingPassSetupInfo(
+        const std::shared_ptr<RendererModuleCamera>& camera_module,
+        unsigned width,
+        unsigned height) const;
 
     bool m_cast_shadow {true};
     
@@ -67,9 +124,6 @@ protected:
     RendererInterface::RenderStateDesc m_directional_shadow_render_state{};
     std::optional<RendererInterface::RenderStateDesc> m_pending_directional_shadow_render_state{};
 
-    std::map<unsigned, ShadowPassResource> m_shadow_pass_resources;
-    RendererInterface::RenderGraphNodeHandle m_lighting_pass_node {NULL_HANDLE};
-    RendererInterface::RenderTargetHandle m_lighting_pass_output {NULL_HANDLE};
-
-    std::vector<RendererInterface::BufferHandle> m_lighting_pass_shadow_infos_handles;
+    DirectionalShadowRuntimeState m_directional_shadow_state{};
+    LightingPassRuntimeState m_lighting_pass_state{};
 };
