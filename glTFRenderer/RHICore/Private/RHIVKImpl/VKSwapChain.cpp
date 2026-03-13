@@ -37,6 +37,7 @@ bool VKSwapChain::InitSwapChain(IRHIFactory& factory, IRHIDevice& device, IRHICo
     m_current_frame_index = 0;
     m_image_index = 0;
     m_present_id_count = 0;
+    m_present_wait_enabled = false;
     m_swap_chain_textures.clear();
     m_frame_available_semaphores.clear();
     m_frame_semaphore_wait_infos.clear();
@@ -46,6 +47,7 @@ bool VKSwapChain::InitSwapChain(IRHIFactory& factory, IRHIDevice& device, IRHICo
 
     const VKDevice& VkDevice = dynamic_cast<VKDevice&>(device);
     m_device = VkDevice.GetDevice();
+    m_present_wait_enabled = VkDevice.SupportsPresentWait();
     
     const VkSurfaceKHR surface = VkDevice.GetSurface();
     const VkPhysicalDevice physical_device = VkDevice.GetPhysicalDevice();
@@ -229,14 +231,16 @@ bool VKSwapChain::Present(IRHICommandQueue& command_queue, IRHICommandList& comm
     present_info.pResults = nullptr;
 
     VkPresentIdKHR present_id{};
-    present_id.sType = VK_STRUCTURE_TYPE_PRESENT_ID_KHR;
-    present_id.pNext = nullptr;
-    present_id.swapchainCount = 1;
-    
-    m_present_id_count++;
-    present_id.pPresentIds = &m_present_id_count;
-    
-    present_info.pNext = &present_id;
+    if (m_present_wait_enabled)
+    {
+        present_id.sType = VK_STRUCTURE_TYPE_PRESENT_ID_KHR;
+        present_id.pNext = nullptr;
+        present_id.swapchainCount = 1;
+
+        ++m_present_id_count;
+        present_id.pPresentIds = &m_present_id_count;
+        present_info.pNext = &present_id;
+    }
 
     const VkResult result = vkQueuePresentKHR(vk_command_queue.GetGraphicsQueue(), &present_info);
     if (result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR)
@@ -258,6 +262,12 @@ bool VKSwapChain::Present(IRHICommandQueue& command_queue, IRHICommandList& comm
 
 bool VKSwapChain::HostWaitPresentFinished(IRHIDevice& device)
 {
+    if (!m_present_wait_enabled || !vkWaitForPresentKHR)
+    {
+        m_present_id_count = 0;
+        return true;
+    }
+
     if (m_swap_chain == VK_NULL_HANDLE || m_present_id_count == 0)
     {
         return true;
@@ -299,6 +309,7 @@ bool VKSwapChain::Release(IRHIMemoryManager& memory_manager)
     m_present_id_count = 0;
     m_current_frame_index = 0;
     m_image_index = 0;
+    m_present_wait_enabled = false;
     m_swap_chain_textures.clear();
     m_frame_available_semaphores.clear();
     m_frame_semaphore_wait_infos.clear();

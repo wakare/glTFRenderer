@@ -6,6 +6,7 @@
 
 #include "InternalResourceHandleTable.h"
 #include "RenderPass.h"
+#include "RHIConfigSingleton.h"
 #include "RHIResourceFactoryImpl.hpp"
 #include "RHIUtils.h"
 #include "RHIInterface/IRHICommandAllocator.h"
@@ -212,6 +213,10 @@ RHIBufferDesc ConvertToRHIBufferDesc(const RendererInterface::BufferDesc& desc)
 bool ResourceManager::InitResourceManager(const RendererInterface::RenderDeviceDesc& desc)
 {
     m_device_desc = desc;
+    RHIConfigSingleton::Instance().SetVulkanOptionalFeatureRequirements({
+        .require_ray_tracing_pipeline = desc.vulkan_optional_capabilities.require_ray_tracing_pipeline,
+        .require_ray_query = desc.vulkan_optional_capabilities.require_ray_query,
+    });
     SetSwapchainResizePolicy(desc.swapchain_resize_policy, false);
     m_swapchain_recreate_required = false;
     
@@ -551,7 +556,13 @@ void ResourceManager::WaitGPUIdle()
     }
     if (m_command_queue)
     {
-        RHIUtilInstanceManager::Instance().WaitCommandQueueIdle(*m_command_queue);
+        const bool queue_idle = RHIUtilInstanceManager::Instance().WaitCommandQueueIdle(*m_command_queue);
+        GLTF_CHECK(queue_idle);
+    }
+    if (m_device)
+    {
+        const bool device_idle = RHIUtilInstanceManager::Instance().WaitDeviceIdle(*m_device);
+        GLTF_CHECK(device_idle);
     }
 
     const auto frame_slot_count = (std::min)(m_command_lists.size(), m_command_allocators.size());

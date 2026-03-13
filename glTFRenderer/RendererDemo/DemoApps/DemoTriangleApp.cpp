@@ -65,6 +65,7 @@ bool DemoTriangleApp::InitInternal(const std::vector<std::string>& arguments)
     
     auto render_graph_node_handle = m_render_graph->CreateRenderGraphNode(render_graph_node_desc);
     m_render_graph->RegisterRenderGraphNode(render_graph_node_handle);
+    m_render_graph->RegisterRenderTargetToColorOutput(render_target_handle);
     
     return true;
 }

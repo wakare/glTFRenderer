@@ -9,6 +9,12 @@ enum class RHIGraphicsAPIType
     RHI_GRAPHICS_API_NUM,
 };
 
+struct RHIVulkanOptionalFeatureRequirements
+{
+    bool require_ray_tracing_pipeline{false};
+    bool require_ray_query{false};
+};
+
 class RHICORE_API RHIConfigSingleton
 {
 public:
@@ -25,6 +31,8 @@ public:
     bool IsAPIValidationEnabled() const { return m_enable_api_validation; }
     bool IsDX12GPUBasedValidationEnabled() const { return m_enable_dx12_gpu_validation; }
     bool IsDX12SynchronizedQueueValidationEnabled() const { return m_enable_dx12_sync_queue_validation; }
+    void SetVulkanOptionalFeatureRequirements(const RHIVulkanOptionalFeatureRequirements& requirements) { m_vulkan_optional_feature_requirements = requirements; }
+    const RHIVulkanOptionalFeatureRequirements& GetVulkanOptionalFeatureRequirements() const { return m_vulkan_optional_feature_requirements; }
     
 private:
     RHIConfigSingleton();
@@ -33,4 +41,5 @@ private:
     bool m_enable_api_validation{false};
     bool m_enable_dx12_gpu_validation{false};
     bool m_enable_dx12_sync_queue_validation{false};
+    RHIVulkanOptionalFeatureRequirements m_vulkan_optional_feature_requirements{};
 };

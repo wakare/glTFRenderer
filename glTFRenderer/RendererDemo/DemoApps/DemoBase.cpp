@@ -1,5 +1,6 @@
 #include "DemoBase.h"
 
+#include "DemoRegistry.h"
 #include "RendererInterface.h"
 #include "RendererSystem/RendererSystemBase.h"
 #include <algorithm>
@@ -118,6 +119,24 @@ namespace
         }
         return value;
     }
+
+    bool IsRuntimeRelaunchArgument(std::string_view argument)
+    {
+        return argument == "-dx" ||
+               argument == "-dx12" ||
+               argument == "-vk" ||
+               argument == "-vulkan" ||
+               argument == "-mailbox" ||
+               argument == "-novsync" ||
+               argument == "-vsync" ||
+               argument == "-disable-debug-ui";
+    }
+
+    bool IsSnapshotLaunchArgument(std::string_view argument)
+    {
+        constexpr std::string_view k_snapshot_prefix = "-snapshot=";
+        return argument.rfind(k_snapshot_prefix, 0) == 0;
+    }
 }
 
 void DemoBase::TickFrame(unsigned long long time_interval)
@@ -214,6 +233,36 @@ void DemoBase::DrawDebugUI()
         ImGui::End();
         return;
     }
+
+    const auto& demo_descriptors = DemoRegistry::GetDemoDescriptors();
+    const DemoRegistry::DemoDescriptor* current_demo_descriptor =
+        DemoRegistry::FindDemoDescriptorByCommandName(GetDemoCommandName());
+    const char* current_demo_display_name =
+        current_demo_descriptor ? current_demo_descriptor->display_name : GetDemoCommandName();
+
+    if (HasPendingDemoSwitch())
+    {
+        ImGui::Text("Pending Demo Switch: %s", m_pending_demo_switch_name.c_str());
+    }
+
+    if (ImGui::BeginCombo("Demo", current_demo_display_name))
+    {
+        for (const DemoRegistry::DemoDescriptor& descriptor : demo_descriptors)
+        {
+            const bool selected = current_demo_descriptor == &descriptor;
+            if (ImGui::Selectable(descriptor.display_name, selected) && !selected)
+            {
+                RequestDemoSwitch(descriptor.command_name);
+            }
+            if (selected)
+            {
+                ImGui::SetItemDefaultFocus();
+            }
+        }
+        ImGui::EndCombo();
+    }
+
+    ImGui::Separator();
 
     const ImGuiIO& io = ImGui::GetIO();
     ImGui::Text("Frame %.3f ms (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
@@ -846,6 +895,72 @@ void DemoBase::Run()
     m_window->EnterWindowEventLoop();
 }
 
+void DemoBase::CleanupWindowBoundRuntimeIfNeeded(bool clear_window_handles)
+{
+    if (m_window_runtime_cleaned_up)
+    {
+        return;
+    }
+
+    if (m_render_graph || m_resource_manager)
+    {
+        RendererInterface::CleanupRenderRuntimeContext(m_render_graph, m_resource_manager, clear_window_handles);
+    }
+
+    m_window_runtime_cleaned_up = true;
+    m_rhi_switch_requested = false;
+    m_rhi_switch_callback_installed = false;
+    m_rhi_switch_in_progress = false;
+}
+
+void DemoBase::Shutdown()
+{
+    CleanupWindowBoundRuntimeIfNeeded(true);
+
+    m_modules.clear();
+    m_systems.clear();
+    m_render_target_desc_infos.clear();
+    if (m_window)
+    {
+        m_window->RegisterExitCallback({});
+    }
+    m_window.reset();
+    m_rhi_switch_requested = false;
+    m_rhi_switch_callback_installed = false;
+    m_rhi_switch_in_progress = false;
+}
+
+std::vector<std::string> DemoBase::BuildLaunchArgumentsForDemo(const std::string& demo_name) const
+{
+    std::vector<std::string> launch_arguments{};
+    launch_arguments.reserve(m_launch_arguments.size() + 3);
+    launch_arguments.push_back(demo_name);
+
+    for (size_t argument_index = 1; argument_index < m_launch_arguments.size(); ++argument_index)
+    {
+        const std::string_view argument = m_launch_arguments[argument_index];
+        if (IsRuntimeRelaunchArgument(argument) || IsSnapshotLaunchArgument(argument))
+        {
+            continue;
+        }
+        launch_arguments.push_back(m_launch_arguments[argument_index]);
+    }
+
+    launch_arguments.push_back(m_render_device_type == RendererInterface::DX12 ? "-dx12" : "-vulkan");
+
+    const RendererInterface::SwapchainPresentMode present_mode =
+        m_resource_manager ? m_resource_manager->GetSwapchainPresentMode() : m_swapchain_present_mode_ui;
+    launch_arguments.push_back(
+        present_mode == RendererInterface::SwapchainPresentMode::MAILBOX ? "-mailbox" : "-vsync");
+
+    if (!m_debug_ui_enabled)
+    {
+        launch_arguments.push_back("-disable-debug-ui");
+    }
+
+    return launch_arguments;
+}
+
 bool DemoBase::InitRenderContext(const std::vector<std::string>& arguments)
 {
     bool bUseDX = true;
@@ -892,6 +1007,7 @@ bool DemoBase::InitRenderContext(const std::vector<std::string>& arguments)
     device.back_buffer_count = GetDefaultBackBufferCount(device.type, swapchain_present_mode);
     device.swapchain_resize_policy = GetDefaultSwapchainResizePolicy(device.type);
     device.swapchain_present_mode = swapchain_present_mode;
+    device.vulkan_optional_capabilities = GetRequestedVulkanOptionalCapabilities();
     m_debug_ui_enabled = !disable_debug_ui;
     m_render_device_type = device.type;
     m_pending_render_device_type = device.type;
@@ -911,6 +1027,7 @@ bool DemoBase::CreateRenderRuntimeContext(const RendererInterface::RenderDeviceD
         return false;
     }
 
+    m_window_runtime_cleaned_up = false;
     m_resource_manager = std::make_shared<RendererInterface::ResourceOperator>(device_desc);
     m_last_render_width = m_resource_manager->GetCurrentRenderWidth();
     m_last_render_height = m_resource_manager->GetCurrentRenderHeight();
@@ -922,6 +1039,11 @@ bool DemoBase::CreateRenderRuntimeContext(const RendererInterface::RenderDeviceD
     {
         m_render_graph->EnableDebugUI(false);
     }
+
+    m_window->RegisterExitCallback([this]()
+    {
+        CleanupWindowBoundRuntimeIfNeeded(true);
+    });
 
     return true;
 }
@@ -1297,6 +1419,18 @@ bool DemoBase::RequestRuntimeRHISwitch(RendererInterface::RenderDeviceType new_d
     return true;
 }
 
+bool DemoBase::RequestDemoSwitch(const std::string& demo_name)
+{
+    if (demo_name.empty() || demo_name == GetDemoCommandName() || !m_window)
+    {
+        return false;
+    }
+
+    m_pending_demo_switch_name = demo_name;
+    m_window->RequestClose();
+    return true;
+}
+
 void DemoBase::TickPendingRHISwitch(unsigned long long time_interval)
 {
     (void)time_interval;
@@ -1362,6 +1496,7 @@ bool DemoBase::ExecutePendingRHISwitch()
     device.back_buffer_count = GetDefaultBackBufferCount(device.type, previous_swapchain_present_mode);
     device.swapchain_resize_policy = previous_swapchain_policy;
     device.swapchain_present_mode = previous_swapchain_present_mode;
+    device.vulkan_optional_capabilities = GetRequestedVulkanOptionalCapabilities();
 
     if (!CreateRenderRuntimeContext(device, !m_debug_ui_enabled))
     {

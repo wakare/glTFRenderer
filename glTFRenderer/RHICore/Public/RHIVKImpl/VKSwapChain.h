@@ -30,6 +30,7 @@ protected:
     unsigned m_current_frame_index {0};
     unsigned m_image_index {0};
     uint64_t m_present_id_count {0};
+    bool m_present_wait_enabled {false};
     
     VkDevice m_device {VK_NULL_HANDLE};
     VkSwapchainKHR m_swap_chain{VK_NULL_HANDLE};

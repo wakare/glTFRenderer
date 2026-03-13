@@ -38,6 +38,7 @@ namespace RendererInterface
     {
     public:
         typedef std::function<void(unsigned long long)> RenderWindowTickCallback;
+        typedef std::function<void()> RenderWindowExitCallback;
         struct WindowLoopTiming
         {
             bool valid{false};
@@ -64,6 +65,7 @@ namespace RendererInterface
         bool IsCloseRequested() const;
 
         void RegisterTickCallback(const RenderWindowTickCallback& callback);
+        void RegisterExitCallback(const RenderWindowExitCallback& callback);
         const RendererInputDevice& GetInputDeviceConst() const;
         RendererInputDevice& GetInputDevice();
         
@@ -168,6 +170,7 @@ namespace RendererInterface
         void BeginFrame();
         void AdvanceFrameSlot();
         void WaitFrameRenderFinished();
+        void WaitGPUIdle();
         void InvalidateSwapchainResizeRequest();
         WindowSurfaceSyncResult SyncWindowSurface(unsigned window_width, unsigned window_height);
         void NotifySwapchainAcquireFailure();
@@ -631,6 +634,7 @@ namespace RendererInterface
         std::shared_ptr<IRHITexture> m_final_color_output;
         TextureHandle m_final_color_output_texture_handle{NULL_HANDLE};
         RenderTargetHandle m_final_color_output_render_target_handle{NULL_HANDLE};
+        bool m_missing_final_color_output_logged{false};
         RenderGraphTickCallback m_tick_callback;
         RenderGraphDebugUICallback m_debug_ui_callback;
         bool m_debug_ui_enabled{true};
@@ -669,6 +673,7 @@ namespace RendererInterface
         std::shared_ptr<RenderGraph>& render_graph,
         std::shared_ptr<ResourceOperator>& resource_operator,
         bool clear_window_handles = false);
+    void ShutdownWindowing();
     
     class RendererSceneResourceManager
     {

@@ -62,9 +62,13 @@ glTFWindow& glTFWindow::Get()
 
 bool glTFWindow::InitAndShowWindow()
 {
-    if (!glfwInit())
+    if (!m_glfw_initialized)
     {
-        return false;
+        if (!glfwInit())
+        {
+            return false;
+        }
+        m_glfw_initialized = true;
     }
     
     // Do not create opengl context, otherwise swap chain creation will fail
@@ -72,11 +76,35 @@ bool glTFWindow::InitAndShowWindow()
     m_glfw_window = glfwCreateWindow(m_width, m_height, "glTFRenderer v0.01      by jackjwang", NULL, NULL);
     if (!m_glfw_window)
     {
-        glfwTerminate();
         return false;
     }
+
+    m_last_tick_time = 0;
+    m_last_loop_timing = {};
     
     return true;
+}
+
+void glTFWindow::ShutdownGLFW()
+{
+    if (m_glfw_window)
+    {
+        glfwDestroyWindow(m_glfw_window);
+        m_glfw_window = nullptr;
+    }
+
+    m_tick_callback = {};
+    m_exit_callback = {};
+    m_handle_input_event = {};
+    m_input_control.reset();
+    m_last_tick_time = 0;
+    m_last_loop_timing = {};
+
+    if (m_glfw_initialized)
+    {
+        glfwTerminate();
+        m_glfw_initialized = false;
+    }
 }
 
 bool glTFWindow::RegisterCallbackEventNative()
@@ -91,6 +119,11 @@ bool glTFWindow::RegisterCallbackEventNative()
 
 void glTFWindow::UpdateWindow()
 {
+    if (!m_glfw_window)
+    {
+        return;
+    }
+
     while (!glfwWindowShouldClose(m_glfw_window))
     {
         const auto loop_begin = std::chrono::steady_clock::now();
@@ -140,8 +173,19 @@ void glTFWindow::UpdateWindow()
     {
         m_exit_callback();   
     }
-    
-    glfwTerminate();
+
+    if (m_glfw_window)
+    {
+        glfwDestroyWindow(m_glfw_window);
+        m_glfw_window = nullptr;
+    }
+
+    m_tick_callback = {};
+    m_exit_callback = {};
+    m_handle_input_event = {};
+    m_input_control.reset();
+    m_last_tick_time = 0;
+    m_last_loop_timing = {};
 }
 
 glTFWindow::LoopTiming glTFWindow::GetLastLoopTiming() const
@@ -240,7 +284,7 @@ void glTFWindow::SetHeight(int height)
 
 HWND glTFWindow::GetHWND() const
 {
-    return glfwGetWin32Window(m_glfw_window);
+    return m_glfw_window ? glfwGetWin32Window(m_glfw_window) : nullptr;
 }
 
 GLFWwindow* glTFWindow::GetGLFWWindow() const

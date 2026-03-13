@@ -411,16 +411,33 @@ bool VulkanUtils::WaitCommandListFinish(IRHICommandList& command_list)
 bool VulkanUtils::WaitCommandQueueIdle(IRHICommandQueue& command_queue)
 {
     VKCommandQueue& vk_command_queue = dynamic_cast<VKCommandQueue&>(command_queue);
-    vkQueueWaitIdle(vk_command_queue.GetGraphicsQueue());
-    
+    const VkResult result = vkQueueWaitIdle(vk_command_queue.GetGraphicsQueue());
+    if (result != VK_SUCCESS)
+    {
+        LOG_FORMAT_FLUSH("[VulkanUtils] vkQueueWaitIdle failed. result=%d queue=%p.\n",
+            static_cast<int>(result),
+            vk_command_queue.GetGraphicsQueue());
+        return false;
+    }
+
     return true;
 }
 
 bool VulkanUtils::WaitDeviceIdle(IRHIDevice& device)
 {
     VKDevice& vk_device = dynamic_cast<VKDevice&>(device);
-    VK_CHECK(vkDeviceWaitIdle(vk_device.GetDevice()));
-    
+    const VkResult result = vkDeviceWaitIdle(vk_device.GetDevice());
+    if (result != VK_SUCCESS)
+    {
+        LOG_FORMAT_FLUSH("[VulkanUtils] vkDeviceWaitIdle failed. result=%d device=%p instance=%p surface=%p physical_device=%p.\n",
+            static_cast<int>(result),
+            vk_device.GetDevice(),
+            vk_device.GetInstance(),
+            vk_device.GetSurface(),
+            vk_device.GetPhysicalDevice());
+        return false;
+    }
+
     return true;
 }
 

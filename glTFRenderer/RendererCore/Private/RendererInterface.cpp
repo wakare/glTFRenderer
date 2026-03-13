@@ -1151,8 +1151,8 @@ namespace RendererInterface
         glTFWindow::Get().SetHeight(desc.height);
         
         glTFWindow::Get().InitAndShowWindow();
-        m_handle = InternalResourceHandleTable::Instance().RegisterWindow(*this);
         m_hwnd = glTFWindow::Get().GetHWND();
+        m_handle = InternalResourceHandleTable::Instance().RegisterWindow(*this);
         
         m_input_device = std::make_shared<RendererInputDevice>();
         glTFWindow::Get().SetInputManager(m_input_device);
@@ -1178,7 +1178,7 @@ namespace RendererInterface
 
     HWND RenderWindow::GetHWND() const
     {
-        return m_hwnd;
+        return glTFWindow::Get().GetHWND();
     }
 
     void RenderWindow::EnterWindowEventLoop()
@@ -1221,6 +1221,11 @@ namespace RendererInterface
     void RenderWindow::RegisterTickCallback(const RenderWindowTickCallback& callback)
     {
         glTFWindow::Get().SetTickCallback(callback);
+    }
+
+    void RenderWindow::RegisterExitCallback(const RenderWindowExitCallback& callback)
+    {
+        glTFWindow::Get().SetExitCallback(callback);
     }
 
     const RendererInputDevice& RenderWindow::GetInputDeviceConst() const
@@ -1942,6 +1947,11 @@ namespace RendererInterface
         return m_resource_manager->WaitFrameRenderFinished();
     }
 
+    void ResourceOperator::WaitGPUIdle()
+    {
+        return m_resource_manager->WaitGPUIdle();
+    }
+
     void ResourceOperator::AdvanceFrameSlot()
     {
         return m_resource_manager->AdvanceFrameSlot();
@@ -2395,6 +2405,18 @@ namespace RendererInterface
         RendererInterface::RenderPassDesc render_pass_desc{};
         render_pass_desc.type = setup_info.render_pass_type;
         render_pass_desc.render_state = setup_info.render_state;
+
+        if (setup_info.render_pass_type == RendererInterface::RenderPassType::RAY_TRACING &&
+            !RHIUtilInstanceManager::Instance().SupportRayTracing(allocator.GetDevice()))
+        {
+            const char* group_name = setup_info.debug_group.empty() ? "<group-empty>" : setup_info.debug_group.c_str();
+            const char* pass_name = setup_info.debug_name.empty() ? "<pass-empty>" : setup_info.debug_name.c_str();
+            LOG_FORMAT_FLUSH(
+                "[RenderGraph][Validation] Pass (%s/%s) requires ray-tracing pipeline support, but the current device was not created with that capability.\n",
+                group_name,
+                pass_name);
+            return false;
+        }
     
         for (const auto& shader_info : setup_info.shader_setup_infos)
         {
@@ -2906,6 +2928,7 @@ namespace RendererInterface
 
     bool RenderGraph::ResolveFinalColorOutput()
     {
+        m_final_color_output = nullptr;
         if (m_final_color_output_render_target_handle != NULL_HANDLE)
         {
             auto render_target = InternalResourceHandleTable::Instance().GetRenderTarget(m_final_color_output_render_target_handle);
@@ -2917,9 +2940,19 @@ namespace RendererInterface
             m_final_color_output = texture->m_texture;
         }
 
-        // find final color output and copy to swapchain buffer, only debug logic
-        GLTF_CHECK(m_final_color_output);
-        return m_final_color_output != nullptr;
+        if (!m_final_color_output)
+        {
+            if (!m_missing_final_color_output_logged)
+            {
+                LOG_FORMAT_FLUSH(
+                    "[RenderGraph] Missing final color output. Register a texture/render target via RegisterTextureToColorOutput/RegisterRenderTargetToColorOutput.\n");
+                m_missing_final_color_output_logged = true;
+            }
+            return false;
+        }
+
+        m_missing_final_color_output_logged = false;
+        return true;
     }
 
     void RenderGraph::ExecuteTickAndDebugUI(unsigned long long interval)
@@ -3336,6 +3369,7 @@ namespace RendererInterface
         m_final_color_output_render_target_handle = NULL_HANDLE;
         auto texture = InternalResourceHandleTable::Instance().GetTexture(texture_handle);
         m_final_color_output = texture->m_texture;
+        m_missing_final_color_output_logged = false;
     }
 
     void RenderGraph::RegisterRenderTargetToColorOutput(RenderTargetHandle render_target_handle)
@@ -3344,6 +3378,7 @@ namespace RendererInterface
         m_final_color_output_texture_handle = NULL_HANDLE;
         auto render_target = InternalResourceHandleTable::Instance().GetRenderTarget(render_target_handle);
         m_final_color_output = render_target->m_source;
+        m_missing_final_color_output_logged = false;
     }
 
     void RenderGraph::RegisterTickCallback(const RenderGraphTickCallback& callback)
@@ -3365,6 +3400,10 @@ namespace RendererInterface
     {
         m_tick_callback = nullptr;
         m_debug_ui_callback = nullptr;
+        m_final_color_output.reset();
+        m_final_color_output_texture_handle = NULL_HANDLE;
+        m_final_color_output_render_target_handle = NULL_HANDLE;
+        m_missing_final_color_output_logged = false;
         ShutdownGPUProfiler();
         ShutdownDebugUI();
     }
@@ -3410,6 +3449,12 @@ namespace RendererInterface
         std::shared_ptr<ResourceOperator>& resource_operator,
         bool clear_window_handles)
     {
+        if (resource_operator)
+        {
+            resource_operator->WaitFrameRenderFinished();
+            resource_operator->WaitGPUIdle();
+        }
+
         if (render_graph)
         {
             render_graph->ShutdownRuntimeServices();
@@ -3424,6 +3469,11 @@ namespace RendererInterface
         const bool cleanup_result = resource_operator->CleanupAllResources(clear_window_handles);
         resource_operator.reset();
         return cleanup_result;
+    }
+
+    void ShutdownWindowing()
+    {
+        glTFWindow::Get().ShutdownGLFW();
     }
 
     bool RenderGraph::InitDebugUI()

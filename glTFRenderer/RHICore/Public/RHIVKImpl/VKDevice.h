@@ -36,6 +36,8 @@ public:
     VkDevice GetDevice() const {return logical_device;}
 
     bool IsRayTracingSupported() const { return m_ray_tracing_supported; }
+    bool SupportsRayQuery() const { return m_ray_query_supported; }
+    bool SupportsPresentWait() const { return m_present_wait_supported; }
     const VkPhysicalDeviceRayTracingPipelinePropertiesKHR& GetRayTracingPipelineProperties() const { return m_rt_pipeline_properties; }
     
     unsigned GetGraphicsQueueIndex() const {return graphics_queue_index; }
@@ -47,7 +49,8 @@ protected:
     QueueFamilyIndices FindQueueFamily(VkPhysicalDevice device, VkSurfaceKHR surface);
     SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice device, VkSurfaceKHR surface);
     bool IsSuitableDevice(VkPhysicalDevice device, VkSurfaceKHR surface);
-    bool CheckRayTracingSupport(VkPhysicalDevice device);
+    bool CheckPresentWaitSupport(VkPhysicalDevice device);
+    bool CheckRayTracingSupport(VkPhysicalDevice device, uint32_t api_version, bool require_ray_tracing_pipeline, bool require_ray_query);
     
     VkInstance instance {VK_NULL_HANDLE};
     VkSurfaceKHR surface {VK_NULL_HANDLE};
@@ -58,5 +61,7 @@ protected:
     unsigned present_queue_index {0};
 
     bool m_ray_tracing_supported {false};
+    bool m_ray_query_supported {false};
+    bool m_present_wait_supported {false};
     VkPhysicalDeviceRayTracingPipelinePropertiesKHR m_rt_pipeline_properties {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR};
 };

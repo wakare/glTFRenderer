@@ -22,6 +22,10 @@ public:
     bool Init(const std::vector<std::string>& arguments);
     
     virtual void Run();
+    void Shutdown();
+    bool HasPendingDemoSwitch() const { return !m_pending_demo_switch_name.empty(); }
+    const std::string& GetPendingDemoSwitchName() const { return m_pending_demo_switch_name; }
+    std::vector<std::string> BuildLaunchArgumentsForDemo(const std::string& demo_name) const;
     
     bool InitRenderContext(const std::vector<std::string>& arguments);
     RendererInterface::ShaderHandle CreateShader(RendererInterface::ShaderType type, const std::string& source, const std::string& entry_function);
@@ -53,6 +57,7 @@ protected:
     bool InitializeRuntimeModulesAndSystems();
     void StartRenderGraphExecution();
     bool RequestRuntimeRHISwitch(RendererInterface::RenderDeviceType new_device_type);
+    bool RequestDemoSwitch(const std::string& demo_name);
     void TickPendingRHISwitch(unsigned long long time_interval);
     bool ExecutePendingRHISwitch();
     virtual bool ReinitializeAfterRHIRecreate();
@@ -84,7 +89,10 @@ protected:
     virtual void TickFrameInternal(unsigned long long time_interval);
     virtual void DrawDebugUIInternal() {}
     virtual const char* GetDemoPanelName() const { return "RendererDemo"; }
+    virtual const char* GetDemoCommandName() const { return GetSnapshotTypeName(); }
     virtual const char* GetSnapshotTypeName() const { return GetDemoPanelName(); }
+    virtual RendererInterface::VulkanOptionalCapabilities GetRequestedVulkanOptionalCapabilities() const { return {}; }
+    void CleanupWindowBoundRuntimeIfNeeded(bool clear_window_handles);
     
     unsigned m_width{1920};
     unsigned m_height{1080};
@@ -107,6 +115,8 @@ protected:
     bool m_rhi_switch_in_progress{false};
     bool m_debug_ui_enabled{true};
     std::string m_rhi_switch_last_error{};
+    std::string m_pending_demo_switch_name{};
+    bool m_window_runtime_cleaned_up{false};
     std::shared_ptr<NonRenderStateSnapshot> m_recorded_state_snapshot{};
     std::string m_recorded_state_snapshot_status{};
     char m_snapshot_export_name[128]{"snapshot"};

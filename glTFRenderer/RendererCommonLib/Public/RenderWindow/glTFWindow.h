@@ -27,6 +27,7 @@ public:
 
     static glTFWindow& Get();
     bool InitAndShowWindow();
+    void ShutdownGLFW();
 
     bool RegisterCallbackEventNative();
     
@@ -70,4 +71,5 @@ private:
 
     unsigned long long m_last_tick_time{0};
     LoopTiming m_last_loop_timing{};
+    bool m_glfw_initialized{false};
 };

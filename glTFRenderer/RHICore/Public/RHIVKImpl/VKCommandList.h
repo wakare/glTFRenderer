@@ -20,5 +20,7 @@ public:
     virtual bool Release(IRHIMemoryManager& memory_manager) override;
     
 protected:
+    VkDevice m_device {VK_NULL_HANDLE};
+    VkCommandPool m_command_pool {VK_NULL_HANDLE};
     VkCommandBuffer m_command_buffer {VK_NULL_HANDLE};
 };

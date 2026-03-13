@@ -315,6 +315,12 @@ namespace RendererInterface
         MAILBOX = 1,
     };
 
+    struct VulkanOptionalCapabilities
+    {
+        bool require_ray_tracing_pipeline{false};
+        bool require_ray_query{false};
+    };
+
     struct FrameContextSnapshot
     {
         unsigned frame_slot_index{0};
@@ -347,6 +353,7 @@ namespace RendererInterface
         unsigned back_buffer_count;
         SwapchainResizePolicy swapchain_resize_policy{};
         SwapchainPresentMode swapchain_present_mode{SwapchainPresentMode::VSYNC};
+        VulkanOptionalCapabilities vulkan_optional_capabilities{};
     };
 
     // Runtime state for swapchain/surface synchronization.

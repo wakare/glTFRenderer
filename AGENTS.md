@@ -175,3 +175,11 @@ Get-Process msbuild -ErrorAction SilentlyContinue | Stop-Process -Force
 
 - For `RendererDemo` runtime issues, use `glTFRenderer/RendererCore` as the source of truth for frame lifecycle and resource management.
 - Treat `glTFApp`-based runtime logic as legacy/non-maintained for current work unless the user explicitly asks to debug or modify that path.
+- For Vulkan runtime teardown or demo/RHI switching, treat runtime services such as ImGui Vulkan backend state, timestamp-profiler query pools, and similar device-backed helpers as GPU-referenced resources. Wait for frame completion and queue/device idle before shutting those services down; destroying them first can surface later as `vkQueueWaitIdle` or `vkDeviceWaitIdle` failures during cleanup.
+- When a Vulkan recreate/switch issue moves from `vkCreateDevice` failures to `vkQueueWaitIdle` or `vkDeviceWaitIdle` failures, first inspect teardown ordering and old-runtime object lifetime before changing requested capabilities.
+
+### Behavior Preservation (Important)
+
+- Do not keep or ship a workaround that disables, narrows, or bypasses legal application-layer behavior just to avoid a bug.
+- Capability narrowing may be used only as a short-lived diagnostic step to isolate root cause, and must be reverted before final delivery unless the user explicitly approves a behavioral change.
+- For valid runtime requests, including legal Vulkan feature use and device recreation paths, treat the behavior as supported and fix teardown, state management, or root cause instead of suppressing the request.

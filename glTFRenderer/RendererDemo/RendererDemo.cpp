@@ -14,11 +14,8 @@
 #include <crtdbg.h>
 #endif
 
-#include "DemoApps/DemoAppModelViewer.h"
-#include "DemoApps/DemoAppModelViewerFrostedGlass.h"
-#include "DemoApps/DemoTriangleApp.h"
-
-#define REGISTER_DEMO_APP(demo_name, app_name) if (demo_name == #app_name) {demo = std::make_unique<app_name>();} 
+#include "DemoApps/DemoRegistry.h"
+#include "RendererInterface.h"
 
 namespace
 {
@@ -214,6 +211,11 @@ namespace
 
 int main(int argc, char* argv[])
 {
+    const auto shutdown_windowing = []()
+    {
+        RendererInterface::ShutdownWindowing();
+    };
+
     if (ShouldUseNonInteractiveAssertMode(argc, argv))
     {
         ConfigureNonInteractiveCrashHandling();
@@ -228,23 +230,48 @@ int main(int argc, char* argv[])
     if (argc <= 1)
     {
         // No argument so cannot decide run which demo app!
+        shutdown_windowing();
         return 0;
     }
 
     // Process console arguments
     std::vector<std::string> params(argv + 1, argv + argc);
+    std::string demo_name = params.front();
 
-    std::unique_ptr<DemoBase> demo;
-    std::string demo_name = argv[1];
-    
-    REGISTER_DEMO_APP(demo_name, DemoTriangleApp)
-    REGISTER_DEMO_APP(demo_name, DemoAppModelViewer)
-    REGISTER_DEMO_APP(demo_name, DemoAppModelViewerFrostedGlass)
+    while (true)
+    {
+        std::unique_ptr<DemoBase> demo = DemoRegistry::CreateDemoByCommandName(demo_name);
+        if (!demo)
+        {
+            std::printf("[ERROR] Unknown demo '%s'.\n", demo_name.c_str());
+            shutdown_windowing();
+            return 1;
+        }
 
-    const bool success = demo->Init(params);
-    GLTF_CHECK(success);
-    
-    demo->Run();
-    
+        const bool success = demo->Init(params);
+        GLTF_CHECK(success);
+
+        demo->Run();
+
+        const bool has_pending_demo_switch = demo->HasPendingDemoSwitch();
+        std::vector<std::string> next_params{};
+        if (has_pending_demo_switch)
+        {
+            next_params = demo->BuildLaunchArgumentsForDemo(demo->GetPendingDemoSwitchName());
+        }
+
+        demo->Shutdown();
+        demo.reset();
+
+        if (!has_pending_demo_switch)
+        {
+            break;
+        }
+
+        params = std::move(next_params);
+        demo_name = params.front();
+    }
+
+    shutdown_windowing();
     return 0;
 }

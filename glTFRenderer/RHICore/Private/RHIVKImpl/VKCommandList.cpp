@@ -9,6 +9,8 @@ bool VKCommandList::InitCommandList(IRHIDevice& device, IRHICommandAllocator& co
 {
     const VkCommandPool vk_command_pool = dynamic_cast<VKCommandAllocator&>(command_allocator).GetCommandPool();
     const VkDevice vk_device = dynamic_cast<VKDevice&>(device).GetDevice();
+    m_device = vk_device;
+    m_command_pool = vk_command_pool;
     
     VkCommandBufferAllocateInfo allocate_info{};
     allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -68,5 +70,23 @@ bool VKCommandList::EndRecordCommandList()
 
 bool VKCommandList::Release(IRHIMemoryManager& memory_manager)
 {
+    (void)memory_manager;
+    if (!need_release)
+    {
+        return true;
+    }
+
+    need_release = false;
+    if (m_command_buffer != VK_NULL_HANDLE && m_device != VK_NULL_HANDLE && m_command_pool != VK_NULL_HANDLE)
+    {
+        vkFreeCommandBuffers(m_device, m_command_pool, 1, &m_command_buffer);
+    }
+
+    m_finished_semaphore.reset();
+    m_fence.reset();
+    m_command_buffer = VK_NULL_HANDLE;
+    m_command_pool = VK_NULL_HANDLE;
+    m_device = VK_NULL_HANDLE;
+    SetState(RHICommandListState::Closed);
     return true;
 }

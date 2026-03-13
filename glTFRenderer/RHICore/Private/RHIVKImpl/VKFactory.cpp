@@ -56,7 +56,11 @@ bool VKFactory::Release(IRHIMemoryManager& memory_manager)
     }
 
     need_release = false;
-    vkDestroyInstance(m_instance, nullptr);
+    if (m_instance != VK_NULL_HANDLE)
+    {
+        vkDestroyInstance(m_instance, nullptr);
+        m_instance = VK_NULL_HANDLE;
+    }
     
     return true;
 }
