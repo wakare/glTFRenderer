@@ -829,27 +829,14 @@ bool DemoBase::Init(const std::vector<std::string>& arguments)
     
     RETURN_IF_FALSE(InitInternal(arguments))
     RefreshImportableStateSnapshotList();
-
-    for (const auto& module : m_modules)
-    {
-        module->FinalizeModule(*m_resource_manager);
-    }
-
-    for (const auto& system : m_systems)
-    {
-        system->FinalizeModule(*m_resource_manager);
-        system->Init(*m_resource_manager, *m_render_graph);
-    }
+    RETURN_IF_FALSE(InitializeRuntimeModulesAndSystems())
 
     if (!m_startup_snapshot_path.empty())
     {
         RETURN_IF_FALSE(ImportStateSnapshotFromJson(m_startup_snapshot_path))
     }
 
-    if (m_render_graph)
-    {
-        m_render_graph->CompileRenderPassAndExecute();
-    }
+    StartRenderGraphExecution();
     
     return true;
 }
@@ -905,6 +892,7 @@ bool DemoBase::InitRenderContext(const std::vector<std::string>& arguments)
     device.back_buffer_count = GetDefaultBackBufferCount(device.type, swapchain_present_mode);
     device.swapchain_resize_policy = GetDefaultSwapchainResizePolicy(device.type);
     device.swapchain_present_mode = swapchain_present_mode;
+    m_debug_ui_enabled = !disable_debug_ui;
     m_render_device_type = device.type;
     m_pending_render_device_type = device.type;
     m_runtime_rhi_ui_selection = device.type;
@@ -913,7 +901,17 @@ bool DemoBase::InitRenderContext(const std::vector<std::string>& arguments)
     m_swapchain_present_mode_ui = device.swapchain_present_mode;
     m_swapchain_present_mode_ui_initialized = true;
 
-    m_resource_manager = std::make_shared<RendererInterface::ResourceOperator>(device);
+    return CreateRenderRuntimeContext(device, disable_debug_ui);
+}
+
+bool DemoBase::CreateRenderRuntimeContext(const RendererInterface::RenderDeviceDesc& device_desc, bool disable_debug_ui)
+{
+    if (!m_window)
+    {
+        return false;
+    }
+
+    m_resource_manager = std::make_shared<RendererInterface::ResourceOperator>(device_desc);
     m_last_render_width = m_resource_manager->GetCurrentRenderWidth();
     m_last_render_height = m_resource_manager->GetCurrentRenderHeight();
 
@@ -926,6 +924,54 @@ bool DemoBase::InitRenderContext(const std::vector<std::string>& arguments)
     }
 
     return true;
+}
+
+bool DemoBase::InitializeRuntimeModulesAndSystems()
+{
+    if (!m_resource_manager || !m_render_graph)
+    {
+        return false;
+    }
+
+    for (const auto& module : m_modules)
+    {
+        if (!module)
+        {
+            continue;
+        }
+
+        if (!module->FinalizeModule(*m_resource_manager))
+        {
+            return false;
+        }
+    }
+
+    for (const auto& system : m_systems)
+    {
+        if (!system)
+        {
+            continue;
+        }
+
+        if (!system->FinalizeModule(*m_resource_manager))
+        {
+            return false;
+        }
+        if (!system->Init(*m_resource_manager, *m_render_graph))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+void DemoBase::StartRenderGraphExecution()
+{
+    if (m_render_graph)
+    {
+        m_render_graph->CompileRenderPassAndExecute();
+    }
 }
 
 bool DemoBase::RecordCurrentStateSnapshot()
@@ -1257,10 +1303,7 @@ void DemoBase::TickPendingRHISwitch(unsigned long long time_interval)
     if (!m_rhi_switch_requested)
     {
         m_rhi_switch_callback_installed = false;
-        if (m_render_graph)
-        {
-            m_render_graph->CompileRenderPassAndExecute();
-        }
+        StartRenderGraphExecution();
         return;
     }
     if (m_rhi_switch_in_progress)
@@ -1290,7 +1333,7 @@ bool DemoBase::ExecutePendingRHISwitch()
         m_rhi_switch_requested = false;
         m_rhi_switch_callback_installed = false;
         m_rhi_switch_last_error.clear();
-        m_render_graph->CompileRenderPassAndExecute();
+        StartRenderGraphExecution();
         return true;
     }
 
@@ -1320,17 +1363,20 @@ bool DemoBase::ExecutePendingRHISwitch()
     device.swapchain_resize_policy = previous_swapchain_policy;
     device.swapchain_present_mode = previous_swapchain_present_mode;
 
-    m_resource_manager = std::make_shared<RendererInterface::ResourceOperator>(device);
+    if (!CreateRenderRuntimeContext(device, !m_debug_ui_enabled))
+    {
+        m_rhi_switch_last_error = "Failed to recreate runtime render context.";
+        m_rhi_switch_requested = false;
+        m_rhi_switch_in_progress = false;
+        m_rhi_switch_callback_installed = false;
+        return false;
+    }
     m_resource_manager->SetPerFrameResourceBindingEnabled(previous_per_frame_resource_binding);
     m_swapchain_resize_policy_ui = previous_swapchain_policy;
     m_swapchain_resize_policy_ui_initialized = true;
     m_swapchain_present_mode_ui = previous_swapchain_present_mode;
     m_swapchain_present_mode_ui_initialized = true;
-
-    m_render_graph = std::make_shared<RendererInterface::RenderGraph>(*m_resource_manager, *m_window);
     m_render_graph->SetValidationPolicy(previous_validation_policy);
-    m_render_graph->RegisterTickCallback([this](unsigned long long time){ TickFrame(time); });
-    m_render_graph->RegisterDebugUICallback([this]() { DrawDebugUI(); });
 
     if (!ReinitializeAfterRHIRecreate())
     {
@@ -1338,12 +1384,7 @@ bool DemoBase::ExecutePendingRHISwitch()
         m_rhi_switch_requested = false;
         m_rhi_switch_in_progress = false;
         m_rhi_switch_callback_installed = false;
-        if (m_render_graph)
-        {
-            m_render_graph->RegisterTickCallback([this](unsigned long long time){ TickFrame(time); });
-            m_render_graph->RegisterDebugUICallback([this]() { DrawDebugUI(); });
-            m_render_graph->CompileRenderPassAndExecute();
-        }
+        StartRenderGraphExecution();
         return false;
     }
 
@@ -1352,7 +1393,7 @@ bool DemoBase::ExecutePendingRHISwitch()
         m_rhi_switch_last_error = "RHI switched, but failed to restore non-render state snapshot.";
     }
 
-    m_render_graph->CompileRenderPassAndExecute();
+    StartRenderGraphExecution();
     m_render_device_type = device.type;
     m_pending_render_device_type = m_render_device_type;
     m_runtime_rhi_ui_selection = m_render_device_type;
@@ -1373,27 +1414,7 @@ bool DemoBase::ReinitializeAfterRHIRecreate()
     }
 
     RETURN_IF_FALSE(RebuildRenderRuntimeObjects())
-
-    for (const auto& module : m_modules)
-    {
-        if (!module)
-        {
-            continue;
-        }
-        module->FinalizeModule(*m_resource_manager);
-    }
-
-    for (const auto& system : m_systems)
-    {
-        if (!system)
-        {
-            continue;
-        }
-        system->FinalizeModule(*m_resource_manager);
-        system->Init(*m_resource_manager, *m_render_graph);
-    }
-
-    return true;
+    return InitializeRuntimeModulesAndSystems();
 }
 
 bool DemoBase::RebuildRenderRuntimeObjects()

@@ -2,6 +2,7 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 
 #include "RendererSystemLighting.h"
+#include "RenderPassSetupBuilder.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -372,7 +373,15 @@ bool RendererSystemLighting::SetDirectionalShadowDepthBias(const RendererInterfa
 
 RendererInterface::RenderTargetHandle RendererSystemLighting::GetLightingOutput() const
 {
-    return m_lighting_pass_state.output;
+    return GetOutputs().output;
+}
+
+RendererSystemLighting::LightingOutputs RendererSystemLighting::GetOutputs() const
+{
+    return LightingOutputs{
+        .node = m_lighting_pass_state.node,
+        .output = m_lighting_pass_state.output
+    };
 }
 
 RendererInterface::RenderStateDesc RendererSystemLighting::CreateDefaultDirectionalShadowRenderState()
@@ -454,19 +463,21 @@ bool RendererSystemLighting::Tick(RendererInterface::ResourceOperator& resource_
     QueuePendingDirectionalShadowRenderStateUpdate(graph);
     graph.UpdateComputeDispatch(m_lighting_pass_state.node, (width + 7) / 8, (height + 7) / 8, 1);
 
-    if (!m_lighting_module->m_light_buffer_handles.empty())
+    const auto& light_buffer_handles = m_lighting_module->GetLightBufferHandles();
+    if (!light_buffer_handles.empty())
     {
         graph.UpdateNodeBufferBinding(
             m_lighting_pass_state.node,
             "g_lightInfos",
-            resource_operator.GetFrameBufferedBufferHandle(m_lighting_module->m_light_buffer_handles));
+            resource_operator.GetFrameBufferedBufferHandle(light_buffer_handles));
     }
-    if (!m_lighting_module->m_light_count_buffer_handles.empty())
+    const auto& light_count_buffer_handles = m_lighting_module->GetLightCountBufferHandles();
+    if (!light_count_buffer_handles.empty())
     {
         graph.UpdateNodeBufferBinding(
             m_lighting_pass_state.node,
             "LightInfoConstantBuffer",
-            resource_operator.GetFrameBufferedBufferHandle(m_lighting_module->m_light_count_buffer_handles));
+            resource_operator.GetFrameBufferedBufferHandle(light_count_buffer_handles));
     }
     if (!m_lighting_pass_state.shadow_infos_handles.empty())
     {
@@ -716,38 +727,25 @@ RendererInterface::RenderGraph::RenderPassSetupInfo RendererSystemLighting::Buil
     const ShadowPassResource& shadow_pass_resource,
     unsigned light_index) const
 {
-    RendererInterface::RenderGraph::RenderPassSetupInfo setup_info{};
-    setup_info.render_pass_type = RendererInterface::RenderPassType::GRAPHICS;
-    setup_info.debug_group = "Lighting";
-    setup_info.debug_name = std::format("Directional Shadow {}", light_index);
-    setup_info.modules = {m_scene->GetSceneMeshModule()};
-    setup_info.render_state = m_directional_shadow_render_state;
-    setup_info.excluded_buffer_bindings.insert("g_material_infos");
-    setup_info.excluded_texture_bindings.insert("bindless_material_textures");
-    setup_info.shader_setup_infos = {
-        {
-            .shader_type = RendererInterface::ShaderType::VERTEX_SHADER,
-            .entry_function = "MainVS",
-            .shader_file = "Resources/Shaders/ModelRenderingShader.hlsl"
-        }
-    };
-
-    RendererInterface::RenderTargetBindingDesc depth_binding_desc{};
-    depth_binding_desc.format = RendererInterface::D32;
-    depth_binding_desc.usage = RendererInterface::RenderPassResourceUsage::DEPTH_STENCIL;
-    depth_binding_desc.need_clear = true;
-    setup_info.render_targets = {
-        {shadow_pass_resource.m_bound_shadow_map, depth_binding_desc}
-    };
-
-    RendererInterface::BufferBindingDesc camera_binding_desc{};
-    camera_binding_desc.binding_type = RendererInterface::BufferBindingDesc::CBV;
-    camera_binding_desc.buffer_handle = shadow_pass_resource.m_shadow_map_buffer_handles[0];
-    camera_binding_desc.is_structured_buffer = false;
-    setup_info.buffer_resources["ViewBuffer"] = camera_binding_desc;
-    setup_info.viewport_width = shadow_pass_resource.m_shadow_map_info.shadowmap_size[0];
-    setup_info.viewport_height = shadow_pass_resource.m_shadow_map_info.shadowmap_size[1];
-    return setup_info;
+    return RenderFeature::PassBuilder::Graphics("Lighting", std::format("Directional Shadow {}", light_index))
+        .SetRenderState(m_directional_shadow_render_state)
+        .SetViewport(
+            static_cast<int>(shadow_pass_resource.m_shadow_map_info.shadowmap_size[0]),
+            static_cast<int>(shadow_pass_resource.m_shadow_map_info.shadowmap_size[1]))
+        .AddModule(m_scene->GetSceneMeshModule())
+        .AddShader(
+            RendererInterface::ShaderType::VERTEX_SHADER,
+            "MainVS",
+            "Resources/Shaders/ModelRenderingShader.hlsl")
+        .AddRenderTarget(
+            shadow_pass_resource.m_bound_shadow_map,
+            RenderFeature::MakeDepthRenderTargetBinding(RendererInterface::D32, true))
+        .AddBuffer(
+            "ViewBuffer",
+            RenderFeature::MakeConstantBufferBinding(shadow_pass_resource.m_shadow_map_buffer_handles[0]))
+        .ExcludeBufferBinding("g_material_infos")
+        .ExcludeTextureBinding("bindless_material_textures")
+        .Build();
 }
 
 RendererInterface::RenderGraph::RenderPassSetupInfo RendererSystemLighting::BuildLightingPassSetupInfo(
@@ -755,70 +753,50 @@ RendererInterface::RenderGraph::RenderPassSetupInfo RendererSystemLighting::Buil
     unsigned width,
     unsigned height) const
 {
-    RendererInterface::RenderGraph::RenderPassSetupInfo setup_info{};
-    setup_info.render_pass_type = RendererInterface::RenderPassType::COMPUTE;
-    setup_info.debug_group = "Lighting";
-    setup_info.debug_name = "Scene Lighting";
-    setup_info.modules = {m_lighting_module, camera_module};
-    setup_info.shader_setup_infos = {
-        {RendererInterface::COMPUTE_SHADER, "main", "Resources/Shaders/SceneLighting.hlsl"}
-    };
-
-    RendererSystemOutput<RendererSystemSceneRenderer> output;
-    RendererInterface::RenderTargetTextureBindingDesc albedo_binding_desc{};
-    albedo_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
-    albedo_binding_desc.name = "albedoTex";
-    albedo_binding_desc.render_target_texture = {output.GetRenderTargetHandle(*m_scene, "m_base_pass_color")};
-
-    RendererInterface::RenderTargetTextureBindingDesc normal_binding_desc{};
-    normal_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
-    normal_binding_desc.name = "normalTex";
-    normal_binding_desc.render_target_texture = {output.GetRenderTargetHandle(*m_scene, "m_base_pass_normal")};
-
-    RendererInterface::RenderTargetTextureBindingDesc depth_binding_desc{};
-    depth_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
-    depth_binding_desc.name = "depthTex";
-    depth_binding_desc.render_target_texture = {output.GetRenderTargetHandle(*m_scene, "m_base_pass_depth")};
-
-    RendererInterface::RenderTargetTextureBindingDesc output_binding_desc{};
-    output_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::UAV;
-    output_binding_desc.name = "Output";
-    output_binding_desc.render_target_texture = {m_lighting_pass_state.output};
-
-    RendererInterface::RenderTargetTextureBindingDesc shadowmap_binding_desc{};
-    shadowmap_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
-    shadowmap_binding_desc.name = "bindless_shadowmap_textures";
+    const auto scene_outputs = m_scene->GetOutputs();
     std::vector<RendererInterface::RenderTargetHandle> initial_shadow_maps;
     m_directional_shadow_state.CollectLightIndexedShadowMaps(m_lighting_module->GetLightInfos(), initial_shadow_maps);
-    for (const auto& shadow_map : initial_shadow_maps)
-    {
-        shadowmap_binding_desc.render_target_texture.push_back(shadow_map);
-    }
-    setup_info.sampled_render_targets = {
-        albedo_binding_desc,
-        normal_binding_desc,
-        depth_binding_desc,
-        shadowmap_binding_desc,
-        output_binding_desc
-    };
-
-    RendererInterface::BufferBindingDesc shadowmap_info_binding_desc{};
-    shadowmap_info_binding_desc.binding_type = RendererInterface::BufferBindingDesc::SRV;
     GLTF_CHECK(!m_lighting_pass_state.shadow_infos_handles.empty());
-    shadowmap_info_binding_desc.buffer_handle = m_lighting_pass_state.shadow_infos_handles.front();
-    shadowmap_info_binding_desc.is_structured_buffer = true;
-    shadowmap_info_binding_desc.stride = sizeof(ShadowMapInfo);
-    shadowmap_info_binding_desc.count = m_lighting_module->GetLightInfos().size();
-    setup_info.buffer_resources["g_shadowmap_infos"] = shadowmap_info_binding_desc;
+    auto builder = RenderFeature::PassBuilder::Compute("Lighting", "Scene Lighting");
+    builder.AddModules({m_lighting_module, camera_module})
+        .AddShader(RendererInterface::COMPUTE_SHADER, "main", "Resources/Shaders/SceneLighting.hlsl")
+        .AddSampledRenderTarget(
+            "albedoTex",
+            scene_outputs.color,
+            RendererInterface::RenderTargetTextureBindingDesc::SRV)
+        .AddSampledRenderTarget(
+            "normalTex",
+            scene_outputs.normal,
+            RendererInterface::RenderTargetTextureBindingDesc::SRV)
+        .AddSampledRenderTarget(
+            "depthTex",
+            scene_outputs.depth,
+            RendererInterface::RenderTargetTextureBindingDesc::SRV)
+        .AddSampledRenderTargets(
+            "bindless_shadowmap_textures",
+            initial_shadow_maps,
+            RendererInterface::RenderTargetTextureBindingDesc::SRV)
+        .AddSampledRenderTarget(
+            "Output",
+            m_lighting_pass_state.output,
+            RendererInterface::RenderTargetTextureBindingDesc::UAV)
+        .AddBuffer(
+            "g_shadowmap_infos",
+            RenderFeature::MakeStructuredBufferBinding(
+                m_lighting_pass_state.shadow_infos_handles.front(),
+                RendererInterface::BufferBindingDesc::SRV,
+                sizeof(ShadowMapInfo),
+                static_cast<unsigned>(m_lighting_module->GetLightInfos().size())))
+        .SetDispatch2D(width, height);
 
-    RendererInterface::RenderExecuteCommand dispatch_command{};
-    dispatch_command.type = RendererInterface::ExecuteCommandType::COMPUTE_DISPATCH_COMMAND;
-    dispatch_command.parameter.dispatch_parameter.group_size_x = (width + 7) / 8;
-    dispatch_command.parameter.dispatch_parameter.group_size_y = (height + 7) / 8;
-    dispatch_command.parameter.dispatch_parameter.group_size_z = 1;
-    setup_info.execute_command = dispatch_command;
-    m_directional_shadow_state.CollectDependencyNodes(setup_info.dependency_render_graph_nodes);
-    return setup_info;
+    std::vector<RendererInterface::RenderGraphNodeHandle> dependency_nodes;
+    m_directional_shadow_state.CollectDependencyNodes(dependency_nodes);
+    for (const auto dependency_node : dependency_nodes)
+    {
+        builder.AddDependency(dependency_node);
+    }
+
+    return builder.Build();
 }
 
 void RendererSystemLighting::UpdateDirectionalShadowResources(RendererInterface::ResourceOperator& resource_operator)

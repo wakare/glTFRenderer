@@ -18,9 +18,3 @@ public:
 protected:
     std::vector<std::shared_ptr<RendererInterface::RendererModuleBase>> m_modules;
 };
-
-template<typename type>
-struct RendererSystemOutput
-{
-    RendererInterface::RenderTargetHandle GetRenderTargetHandle(const type& system, const std::string& name) {return NULL_HANDLE; }
-};

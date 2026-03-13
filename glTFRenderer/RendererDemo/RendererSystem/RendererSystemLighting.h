@@ -11,6 +11,17 @@ class RendererSceneAABB;
 class RendererSystemLighting : public RendererSystemBase
 {
 public:
+    struct LightingOutputs
+    {
+        RendererInterface::RenderGraphNodeHandle node{NULL_HANDLE};
+        RendererInterface::RenderTargetHandle output{NULL_HANDLE};
+
+        bool HasInit() const
+        {
+            return node != NULL_HANDLE;
+        }
+    };
+
     RendererSystemLighting(RendererInterface::ResourceOperator& resource_operator, std::shared_ptr<RendererSystemSceneRenderer> scene);
     
     unsigned AddLight(const LightInfo& light_info);
@@ -21,6 +32,7 @@ public:
     const RendererInterface::RenderStateDesc& GetDirectionalShadowRenderState() const;
     bool SetDirectionalShadowRenderState(const RendererInterface::RenderStateDesc& render_state);
     bool SetDirectionalShadowDepthBias(const RendererInterface::DepthBiasDesc& depth_bias);
+    LightingOutputs GetOutputs() const;
     RendererInterface::RenderTargetHandle GetLightingOutput() const;
     
     virtual bool Init(RendererInterface::ResourceOperator& resource_operator, RendererInterface::RenderGraph& graph) override;

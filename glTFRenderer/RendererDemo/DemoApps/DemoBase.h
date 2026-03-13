@@ -49,6 +49,9 @@ protected:
     bool ImportStateSnapshotFromJson(const std::filesystem::path& snapshot_path);
     void RefreshImportableStateSnapshotList();
     bool DeleteSelectedStateSnapshotJson();
+    bool CreateRenderRuntimeContext(const RendererInterface::RenderDeviceDesc& device_desc, bool disable_debug_ui);
+    bool InitializeRuntimeModulesAndSystems();
+    void StartRenderGraphExecution();
     bool RequestRuntimeRHISwitch(RendererInterface::RenderDeviceType new_device_type);
     void TickPendingRHISwitch(unsigned long long time_interval);
     bool ExecutePendingRHISwitch();
@@ -102,6 +105,7 @@ protected:
     bool m_rhi_switch_requested{false};
     bool m_rhi_switch_callback_installed{false};
     bool m_rhi_switch_in_progress{false};
+    bool m_debug_ui_enabled{true};
     std::string m_rhi_switch_last_error{};
     std::shared_ptr<NonRenderStateSnapshot> m_recorded_state_snapshot{};
     std::string m_recorded_state_snapshot_status{};

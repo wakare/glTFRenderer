@@ -1,5 +1,6 @@
 #include "RendererSystemToneMap.h"
 
+#include "RenderPassSetupBuilder.h"
 #include "RendererSystemFrostedGlass.h"
 #include "RendererSystemLighting.h"
 #include "RendererSystemSceneRenderer.h"
@@ -53,52 +54,47 @@ bool RendererSystemToneMap::Init(RendererInterface::ResourceOperator& resource_o
         {RendererInterface::COMPUTE_SHADER, "main", "Resources/Shaders/ToneMap.hlsl"}
     };
 
-    RendererSystemOutput<RendererSystemSceneRenderer> scene_output;
+    const auto scene_outputs = m_scene->GetOutputs();
+    const auto lighting_outputs = m_lighting->GetOutputs();
     RendererInterface::RenderTargetHandle input_color = m_frosted
         ? m_frosted->GetOutput()
-        : m_lighting->GetLightingOutput();
+        : lighting_outputs.output;
     GLTF_CHECK(input_color != NULL_HANDLE);
-
-    RendererInterface::RenderTargetTextureBindingDesc input_color_binding_desc{};
-    input_color_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
-    input_color_binding_desc.name = "InputColorTex";
-    input_color_binding_desc.render_target_texture = {input_color};
-
-    RendererInterface::RenderTargetTextureBindingDesc input_velocity_binding_desc{};
-    input_velocity_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::SRV;
-    input_velocity_binding_desc.name = "InputVelocityTex";
-    input_velocity_binding_desc.render_target_texture = {scene_output.GetRenderTargetHandle(*m_scene, "m_base_pass_velocity")};
-
-    RendererInterface::RenderTargetTextureBindingDesc output_binding_desc{};
-    output_binding_desc.type = RendererInterface::RenderTargetTextureBindingDesc::UAV;
-    output_binding_desc.name = "Output";
-    output_binding_desc.render_target_texture = {m_tone_map_output};
-
-    tone_map_pass_setup_info.sampled_render_targets = {
-        input_color_binding_desc,
-        input_velocity_binding_desc,
-        output_binding_desc
-    };
-
-    RendererInterface::BufferBindingDesc global_params_binding_desc{};
-    global_params_binding_desc.binding_type = RendererInterface::BufferBindingDesc::CBV;
-    global_params_binding_desc.buffer_handle = m_tone_map_global_params_handle;
-    global_params_binding_desc.is_structured_buffer = false;
-    tone_map_pass_setup_info.buffer_resources["ToneMapGlobalBuffer"] = global_params_binding_desc;
-
     const unsigned width = (std::max)(1u, resource_operator.GetCurrentRenderWidth());
     const unsigned height = (std::max)(1u, resource_operator.GetCurrentRenderHeight());
-    RendererInterface::RenderExecuteCommand dispatch_command{};
-    dispatch_command.type = RendererInterface::ExecuteCommandType::COMPUTE_DISPATCH_COMMAND;
-    dispatch_command.parameter.dispatch_parameter.group_size_x = (width + 7) / 8;
-    dispatch_command.parameter.dispatch_parameter.group_size_y = (height + 7) / 8;
-    dispatch_command.parameter.dispatch_parameter.group_size_z = 1;
-    tone_map_pass_setup_info.execute_command = dispatch_command;
-
-    m_tone_map_pass_node = graph.CreateRenderGraphNode(resource_operator, tone_map_pass_setup_info);
+    m_tone_map_pass_node = graph.CreateRenderGraphNode(
+        resource_operator,
+        BuildToneMapPassSetupInfo(input_color, width, height));
     UploadGlobalParams(resource_operator);
     graph.RegisterRenderTargetToColorOutput(m_tone_map_output);
     return true;
+}
+
+RendererInterface::RenderGraph::RenderPassSetupInfo RendererSystemToneMap::BuildToneMapPassSetupInfo(
+    RendererInterface::RenderTargetHandle input_color,
+    unsigned width,
+    unsigned height) const
+{
+    const auto scene_outputs = m_scene->GetOutputs();
+    return RenderFeature::PassBuilder::Compute("Tone Map", "Tone Map Composite")
+        .AddShader(RendererInterface::COMPUTE_SHADER, "main", "Resources/Shaders/ToneMap.hlsl")
+        .AddSampledRenderTarget(
+            "InputColorTex",
+            input_color,
+            RendererInterface::RenderTargetTextureBindingDesc::SRV)
+        .AddSampledRenderTarget(
+            "InputVelocityTex",
+            scene_outputs.velocity,
+            RendererInterface::RenderTargetTextureBindingDesc::SRV)
+        .AddSampledRenderTarget(
+            "Output",
+            m_tone_map_output,
+            RendererInterface::RenderTargetTextureBindingDesc::UAV)
+        .AddBuffer(
+            "ToneMapGlobalBuffer",
+            RenderFeature::MakeConstantBufferBinding(m_tone_map_global_params_handle))
+        .SetDispatch2D(width, height)
+        .Build();
 }
 
 bool RendererSystemToneMap::HasInit() const

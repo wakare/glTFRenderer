@@ -1,5 +1,7 @@
 #include "RendererSystemSceneRenderer.h"
 
+#include "RenderPassSetupBuilder.h"
+
 void RendererSystemSceneRenderer::BasePassRuntimeState::Reset()
 {
     color = NULL_HANDLE;
@@ -35,6 +37,17 @@ unsigned RendererSystemSceneRenderer::GetWidth() const
 unsigned RendererSystemSceneRenderer::GetHeight() const
 {
     return m_camera_module->GetHeight();
+}
+
+RendererSystemSceneRenderer::BasePassOutputs RendererSystemSceneRenderer::GetOutputs() const
+{
+    return BasePassOutputs{
+        .color = m_base_pass_state.color,
+        .normal = m_base_pass_state.normal,
+        .velocity = m_base_pass_state.velocity,
+        .depth = m_base_pass_state.depth,
+        .node = m_base_pass_state.node
+    };
 }
 
 const RendererInterface::RenderStateDesc& RendererSystemSceneRenderer::GetBasePassRenderState() const
@@ -79,52 +92,24 @@ void RendererSystemSceneRenderer::CreateBasePassRenderTargets(RendererInterface:
 
 RendererInterface::RenderGraph::RenderPassSetupInfo RendererSystemSceneRenderer::BuildBasePassSetupInfo() const
 {
-    RendererInterface::RenderGraph::RenderPassSetupInfo setup_info{};
-    setup_info.render_pass_type = RendererInterface::RenderPassType::GRAPHICS;
-    setup_info.debug_group = "Scene Renderer";
-    setup_info.debug_name = "Base Pass";
-    setup_info.render_state = m_base_pass_render_state;
-    setup_info.modules = {m_scene_mesh_module, m_camera_module};
-    setup_info.shader_setup_infos = {
-        {
-            .shader_type = RendererInterface::ShaderType::VERTEX_SHADER,
-            .entry_function = "MainVS",
-            .shader_file = "Resources/Shaders/ModelRenderingShader.hlsl"
-        },
-        {
-            .shader_type = RendererInterface::ShaderType::FRAGMENT_SHADER,
-            .entry_function = "MainFS",
-            .shader_file = "Resources/Shaders/ModelRenderingShader.hlsl"
-        }
-    };
-
-    RendererInterface::RenderTargetBindingDesc color_rt_binding_desc{};
-    color_rt_binding_desc.format = RendererInterface::RGBA8_UNORM;
-    color_rt_binding_desc.usage = RendererInterface::RenderPassResourceUsage::COLOR;
-    color_rt_binding_desc.need_clear = true;
-
-    RendererInterface::RenderTargetBindingDesc normal_rt_binding_desc{};
-    normal_rt_binding_desc.format = RendererInterface::RGBA8_UNORM;
-    normal_rt_binding_desc.usage = RendererInterface::RenderPassResourceUsage::COLOR;
-    normal_rt_binding_desc.need_clear = true;
-
-    RendererInterface::RenderTargetBindingDesc velocity_rt_binding_desc{};
-    velocity_rt_binding_desc.format = RendererInterface::RGBA16_FLOAT;
-    velocity_rt_binding_desc.usage = RendererInterface::RenderPassResourceUsage::COLOR;
-    velocity_rt_binding_desc.need_clear = true;
-
-    RendererInterface::RenderTargetBindingDesc depth_binding_desc{};
-    depth_binding_desc.format = RendererInterface::D32;
-    depth_binding_desc.usage = RendererInterface::RenderPassResourceUsage::DEPTH_STENCIL;
-    depth_binding_desc.need_clear = true;
-
-    setup_info.render_targets = {
-        {m_base_pass_state.color, color_rt_binding_desc},
-        {m_base_pass_state.normal, normal_rt_binding_desc},
-        {m_base_pass_state.velocity, velocity_rt_binding_desc},
-        {m_base_pass_state.depth, depth_binding_desc}
-    };
-    return setup_info;
+    return RenderFeature::PassBuilder::Graphics("Scene Renderer", "Base Pass")
+        .SetRenderState(m_base_pass_render_state)
+        .AddModules({m_scene_mesh_module, m_camera_module})
+        .AddShader(RendererInterface::ShaderType::VERTEX_SHADER, "MainVS", "Resources/Shaders/ModelRenderingShader.hlsl")
+        .AddShader(RendererInterface::ShaderType::FRAGMENT_SHADER, "MainFS", "Resources/Shaders/ModelRenderingShader.hlsl")
+        .AddRenderTarget(
+            m_base_pass_state.color,
+            RenderFeature::MakeColorRenderTargetBinding(RendererInterface::RGBA8_UNORM, true))
+        .AddRenderTarget(
+            m_base_pass_state.normal,
+            RenderFeature::MakeColorRenderTargetBinding(RendererInterface::RGBA8_UNORM, true))
+        .AddRenderTarget(
+            m_base_pass_state.velocity,
+            RenderFeature::MakeColorRenderTargetBinding(RendererInterface::RGBA16_FLOAT, true))
+        .AddRenderTarget(
+            m_base_pass_state.depth,
+            RenderFeature::MakeDepthRenderTargetBinding(RendererInterface::D32, true))
+        .Build();
 }
 
 bool RendererSystemSceneRenderer::Init(RendererInterface::ResourceOperator& resource_operator, RendererInterface::RenderGraph& graph)

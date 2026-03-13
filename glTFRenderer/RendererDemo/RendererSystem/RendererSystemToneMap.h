@@ -34,6 +34,10 @@ protected:
         float pad2{0.0f};
     };
 
+    RendererInterface::RenderGraph::RenderPassSetupInfo BuildToneMapPassSetupInfo(
+        RendererInterface::RenderTargetHandle input_color,
+        unsigned width,
+        unsigned height) const;
     void UploadGlobalParams(RendererInterface::ResourceOperator& resource_operator);
 
     std::shared_ptr<RendererSystemFrostedGlass> m_frosted;

@@ -7,13 +7,27 @@
 
 class RendererSystemSceneRenderer : public RendererSystemBase
 {
-    friend class RendererSystemOutput<RendererSystemSceneRenderer>;
 public:
+    struct BasePassOutputs
+    {
+        RendererInterface::RenderTargetHandle color{NULL_HANDLE};
+        RendererInterface::RenderTargetHandle normal{NULL_HANDLE};
+        RendererInterface::RenderTargetHandle velocity{NULL_HANDLE};
+        RendererInterface::RenderTargetHandle depth{NULL_HANDLE};
+        RendererInterface::RenderGraphNodeHandle node{NULL_HANDLE};
+
+        bool HasInit() const
+        {
+            return node != NULL_HANDLE;
+        }
+    };
+
     RendererSystemSceneRenderer(RendererInterface::ResourceOperator& resource_operator, const RendererCameraDesc& camera_desc, const std::string& scene_file);
     void UpdateInputDeviceInfo(RendererInputDevice& input_device, unsigned long long interval);
 
     unsigned GetWidth() const;
     unsigned GetHeight() const;
+    BasePassOutputs GetOutputs() const;
     const RendererInterface::RenderStateDesc& GetBasePassRenderState() const;
     bool SetBasePassRenderState(const RendererInterface::RenderStateDesc& render_state);
     
@@ -52,29 +66,4 @@ protected:
     BasePassRuntimeState m_base_pass_state{};
     RendererCameraDesc m_camera_desc{};
     std::string m_scene_file{};
-};
-
-template<>
-struct RendererSystemOutput<RendererSystemSceneRenderer>
-{
-    RendererInterface::RenderTargetHandle GetRenderTargetHandle(const RendererSystemSceneRenderer& system, const std::string& name)
-    {
-        if (name == "m_base_pass_color")
-        {
-            return system.m_base_pass_state.color;
-        }
-        if (name == "m_base_pass_normal")
-        {
-            return system.m_base_pass_state.normal;
-        }
-        if (name == "m_base_pass_velocity")
-        {
-            return system.m_base_pass_state.velocity;
-        }
-        if (name == "m_base_pass_depth")
-        {
-            return system.m_base_pass_state.depth;
-        }
-        return NULL_HANDLE;
-    }
 };
