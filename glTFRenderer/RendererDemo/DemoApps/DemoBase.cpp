@@ -517,61 +517,157 @@ void DemoBase::DrawDebugUI()
         if (m_render_graph && ImGui::CollapsingHeader("RenderGraph / Validation"))
         {
             const auto& diagnostics = m_render_graph->GetDependencyDiagnostics();
-            ImGui::Text("Graph Valid: %s", diagnostics.graph_valid ? "Yes" : "No");
-            ImGui::Text("Auto-Merged Inferred Edges: %u", diagnostics.auto_merged_dependency_count);
-            ImGui::Text("Auto-Pruned Unmapped Bindings: %u across %u node(s)",
-                diagnostics.auto_pruned_binding_count,
-                diagnostics.auto_pruned_node_count);
-            ImGui::Text("Invalid Explicit Edges: %u", static_cast<unsigned>(diagnostics.invalid_explicit_dependencies.size()));
-            ImGui::Text("Cycle Nodes: %u", static_cast<unsigned>(diagnostics.cycle_nodes.size()));
-            ImGui::Text("Execution Signature: %zu", diagnostics.execution_signature);
-            ImGui::Text("Cached Nodes: %zu | Cached Order Size: %zu",
-                diagnostics.cached_execution_node_count,
-                diagnostics.cached_execution_order_size);
-
-            if (!diagnostics.auto_pruned_nodes.empty())
+            const ImGuiTableFlags summary_table_flags =
+                ImGuiTableFlags_BordersInnerV |
+                ImGuiTableFlags_SizingStretchProp;
+            if (ImGui::BeginTable("RenderGraphValidationSummary", 2, summary_table_flags))
             {
-                ImGui::Separator();
-                ImGui::TextUnformatted("Auto-Pruned Nodes");
-                for (const auto& pruned_node : diagnostics.auto_pruned_nodes)
-                {
-                    ImGui::BulletText("[%u] %s / %s | buffer=%u texture=%u rt_texture=%u",
-                        pruned_node.node_handle.value,
-                        pruned_node.group_name.c_str(),
-                        pruned_node.pass_name.c_str(),
-                        pruned_node.buffer_count,
-                        pruned_node.texture_count,
-                        pruned_node.render_target_texture_count);
-                }
-            }
+                ImGui::TableSetupColumn("Metric");
+                ImGui::TableSetupColumn("Value");
 
-            if (!diagnostics.invalid_explicit_dependencies.empty())
-            {
-                ImGui::Separator();
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::TextUnformatted("Graph Valid");
+                ImGui::TableSetColumnIndex(1);
+                ImGui::TextUnformatted(diagnostics.graph_valid ? "Yes" : "No");
+
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::TextUnformatted("Auto-Merged Inferred Edges");
+                ImGui::TableSetColumnIndex(1);
+                ImGui::Text("%u", diagnostics.auto_merged_dependency_count);
+
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::TextUnformatted("Auto-Pruned Bindings");
+                ImGui::TableSetColumnIndex(1);
+                ImGui::Text(
+                    "%u across %u node(s)",
+                    diagnostics.auto_pruned_binding_count,
+                    diagnostics.auto_pruned_node_count);
+
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
                 ImGui::TextUnformatted("Invalid Explicit Edges");
-                for (const auto& invalid_edge : diagnostics.invalid_explicit_dependencies)
-                {
-                    const auto from = invalid_edge.first;
-                    const auto to = invalid_edge.second;
-                    if (from.IsValid())
-                    {
-                        ImGui::BulletText("%u -> %u", from.value, to.value);
-                    }
-                    else
-                    {
-                        ImGui::BulletText("<INVALID> -> %u", to.value);
-                    }
-                }
+                ImGui::TableSetColumnIndex(1);
+                ImGui::Text("%u", static_cast<unsigned>(diagnostics.invalid_explicit_dependencies.size()));
+
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::TextUnformatted("Cycle Nodes");
+                ImGui::TableSetColumnIndex(1);
+                ImGui::Text("%u", static_cast<unsigned>(diagnostics.cycle_nodes.size()));
+
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::TextUnformatted("Execution Signature");
+                ImGui::TableSetColumnIndex(1);
+                ImGui::Text("%zu", diagnostics.execution_signature);
+
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::TextUnformatted("Cached Plan");
+                ImGui::TableSetColumnIndex(1);
+                ImGui::Text(
+                    "%zu nodes | %zu order",
+                    diagnostics.cached_execution_node_count,
+                    diagnostics.cached_execution_order_size);
+
+                ImGui::EndTable();
             }
 
-            if (!diagnostics.cycle_nodes.empty())
+            if (!diagnostics.auto_pruned_nodes.empty() && ImGui::TreeNode("Auto-Pruned Nodes"))
             {
-                ImGui::Separator();
-                ImGui::TextUnformatted("Cycle Nodes");
-                for (const auto cycle_node : diagnostics.cycle_nodes)
+                const ImGuiTableFlags detail_table_flags =
+                    ImGuiTableFlags_Borders |
+                    ImGuiTableFlags_RowBg |
+                    ImGuiTableFlags_SizingStretchProp |
+                    ImGuiTableFlags_ScrollY;
+                if (ImGui::BeginTable("AutoPrunedNodeTable", 6, detail_table_flags, ImVec2(0.0f, 180.0f)))
                 {
-                    ImGui::BulletText("%u", cycle_node.value);
+                    ImGui::TableSetupColumn("Node");
+                    ImGui::TableSetupColumn("Group");
+                    ImGui::TableSetupColumn("Pass");
+                    ImGui::TableSetupColumn("Buffer");
+                    ImGui::TableSetupColumn("Texture");
+                    ImGui::TableSetupColumn("RT Texture");
+                    ImGui::TableHeadersRow();
+
+                    for (const auto& pruned_node : diagnostics.auto_pruned_nodes)
+                    {
+                        ImGui::TableNextRow();
+                        ImGui::TableSetColumnIndex(0);
+                        ImGui::Text("%u", pruned_node.node_handle.value);
+                        ImGui::TableSetColumnIndex(1);
+                        ImGui::TextUnformatted(pruned_node.group_name.c_str());
+                        ImGui::TableSetColumnIndex(2);
+                        ImGui::TextUnformatted(pruned_node.pass_name.c_str());
+                        ImGui::TableSetColumnIndex(3);
+                        ImGui::Text("%u", pruned_node.buffer_count);
+                        ImGui::TableSetColumnIndex(4);
+                        ImGui::Text("%u", pruned_node.texture_count);
+                        ImGui::TableSetColumnIndex(5);
+                        ImGui::Text("%u", pruned_node.render_target_texture_count);
+                    }
+                    ImGui::EndTable();
                 }
+                ImGui::TreePop();
+            }
+
+            if (!diagnostics.invalid_explicit_dependencies.empty() && ImGui::TreeNode("Invalid Explicit Edges"))
+            {
+                const ImGuiTableFlags edge_table_flags =
+                    ImGuiTableFlags_Borders |
+                    ImGuiTableFlags_RowBg |
+                    ImGuiTableFlags_SizingStretchProp;
+                if (ImGui::BeginTable("InvalidExplicitEdgeTable", 2, edge_table_flags))
+                {
+                    ImGui::TableSetupColumn("From");
+                    ImGui::TableSetupColumn("To");
+                    ImGui::TableHeadersRow();
+
+                    for (const auto& invalid_edge : diagnostics.invalid_explicit_dependencies)
+                    {
+                        const auto from = invalid_edge.first;
+                        const auto to = invalid_edge.second;
+                        ImGui::TableNextRow();
+                        ImGui::TableSetColumnIndex(0);
+                        if (from.IsValid())
+                        {
+                            ImGui::Text("%u", from.value);
+                        }
+                        else
+                        {
+                            ImGui::TextUnformatted("<INVALID>");
+                        }
+                        ImGui::TableSetColumnIndex(1);
+                        ImGui::Text("%u", to.value);
+                    }
+                    ImGui::EndTable();
+                }
+                ImGui::TreePop();
+            }
+
+            if (!diagnostics.cycle_nodes.empty() && ImGui::TreeNode("Cycle Nodes"))
+            {
+                const ImGuiTableFlags cycle_table_flags =
+                    ImGuiTableFlags_Borders |
+                    ImGuiTableFlags_RowBg |
+                    ImGuiTableFlags_SizingStretchProp;
+                if (ImGui::BeginTable("CycleNodeTable", 1, cycle_table_flags))
+                {
+                    ImGui::TableSetupColumn("Node");
+                    ImGui::TableHeadersRow();
+
+                    for (const auto cycle_node : diagnostics.cycle_nodes)
+                    {
+                        ImGui::TableNextRow();
+                        ImGui::TableSetColumnIndex(0);
+                        ImGui::Text("%u", cycle_node.value);
+                    }
+                    ImGui::EndTable();
+                }
+                ImGui::TreePop();
             }
         }
 

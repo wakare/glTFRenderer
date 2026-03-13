@@ -106,6 +106,35 @@ namespace RendererInterface
             return "Unknown";
         }
 
+        std::string JoinPassNames(const std::vector<std::string>& pass_names)
+        {
+            std::string joined;
+            for (std::size_t pass_index = 0; pass_index < pass_names.size(); ++pass_index)
+            {
+                if (pass_index > 0)
+                {
+                    joined += ", ";
+                }
+                joined += pass_names[pass_index];
+            }
+            return joined;
+        }
+
+        const char* ToCrossFrameHazardTypeName(
+            RenderGraph::DependencyDiagnostics::CrossFrameResourceHazardDiagnostics::HazardType hazard_type)
+        {
+            switch (hazard_type)
+            {
+            case RenderGraph::DependencyDiagnostics::CrossFrameResourceHazardDiagnostics::HazardType::PREVIOUS_WRITE_CURRENT_READ:
+                return "PrevWrite->CurrRead";
+            case RenderGraph::DependencyDiagnostics::CrossFrameResourceHazardDiagnostics::HazardType::PREVIOUS_WRITE_CURRENT_WRITE:
+                return "PrevWrite->CurrWrite";
+            case RenderGraph::DependencyDiagnostics::CrossFrameResourceHazardDiagnostics::HazardType::PREVIOUS_READ_CURRENT_WRITE:
+                return "PrevRead->CurrWrite";
+            }
+            return "Unknown";
+        }
+
         const char* ToResourceKindName(ResourceKind kind)
         {
             switch (kind)
@@ -3384,72 +3413,116 @@ namespace RendererInterface
                 static_cast<unsigned>((std::max)(1, hazard_check_interval_frames));
             m_dependency_diagnostics_state.Reset();
         }
-        ImGui::Text(
-            "Hazard analysis cadence: every %u frame(s).",
-            m_validation_policy.cross_frame_hazard_check_interval_frames);
 
         const auto& dependency_diagnostics = m_dependency_diagnostics_state.diagnostics;
-        if (!dependency_diagnostics.cross_frame_analysis_ready)
+        const ImGuiTableFlags summary_table_flags =
+            ImGuiTableFlags_BordersInnerV |
+            ImGuiTableFlags_SizingStretchProp;
+        if (ImGui::BeginTable("FrameworkSummaryTable", 2, summary_table_flags))
         {
-            ImGui::TextUnformatted("Cross-frame hazard analysis: warming up (need previous frame).");
-            return;
+            ImGui::TableSetupColumn("Metric");
+            ImGui::TableSetupColumn("Value");
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::TextUnformatted("Binding Mode");
+            ImGui::TableSetColumnIndex(1);
+            ImGui::TextUnformatted(per_frame_resource_binding ? "Per-frame" : "Shared");
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::TextUnformatted("Hazard Cadence");
+            ImGui::TableSetColumnIndex(1);
+            ImGui::Text("%u frame(s)", m_validation_policy.cross_frame_hazard_check_interval_frames);
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::TextUnformatted("Analysis State");
+            ImGui::TableSetColumnIndex(1);
+            ImGui::TextUnformatted(
+                dependency_diagnostics.cross_frame_analysis_ready
+                    ? "Ready"
+                    : "Warming up (need previous frame)");
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::TextUnformatted("Recorded Hazards");
+            ImGui::TableSetColumnIndex(1);
+            if (dependency_diagnostics.cross_frame_analysis_ready)
+            {
+                ImGui::Text(
+                    "%u (window=%u, compared=%u)",
+                    dependency_diagnostics.cross_frame_hazard_count,
+                    dependency_diagnostics.cross_frame_comparison_window_size,
+                    dependency_diagnostics.cross_frame_compared_frame_count);
+            }
+            else
+            {
+                ImGui::TextUnformatted("-");
+            }
+
+            if (dependency_diagnostics.cross_frame_hazard_overflow_count > 0)
+            {
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::TextUnformatted("Unlisted Hazards");
+                ImGui::TableSetColumnIndex(1);
+                ImGui::Text("%u", dependency_diagnostics.cross_frame_hazard_overflow_count);
+            }
+
+            ImGui::EndTable();
         }
 
-        ImGui::Text(
-            "Cross-frame hazards: %u (window=%u, compared=%u)",
-            dependency_diagnostics.cross_frame_hazard_count,
-            dependency_diagnostics.cross_frame_comparison_window_size,
-            dependency_diagnostics.cross_frame_compared_frame_count);
-        if (dependency_diagnostics.cross_frame_hazard_overflow_count > 0)
+        if (!dependency_diagnostics.cross_frame_analysis_ready)
         {
-            ImGui::Text(
-                "Cross-frame hazards not listed: %u",
-                dependency_diagnostics.cross_frame_hazard_overflow_count);
+            return;
         }
 
         if (!dependency_diagnostics.cross_frame_hazards.empty() &&
             ImGui::TreeNode("Cross-frame Hazard Samples"))
         {
-            const auto join_passes = [](const std::vector<std::string>& pass_names)
+            const ImGuiTableFlags hazard_table_flags =
+                ImGuiTableFlags_Borders |
+                ImGuiTableFlags_RowBg |
+                ImGuiTableFlags_SizingStretchProp |
+                ImGuiTableFlags_ScrollY;
+            if (ImGui::BeginTable("CrossFrameHazardTable", 4, hazard_table_flags, ImVec2(0.0f, 180.0f)))
             {
-                std::string joined;
-                for (std::size_t pass_index = 0; pass_index < pass_names.size(); ++pass_index)
-                {
-                    if (pass_index > 0)
-                    {
-                        joined += ", ";
-                    }
-                    joined += pass_names[pass_index];
-                }
-                return joined;
-            };
+                ImGui::TableSetupColumn("Type");
+                ImGui::TableSetupColumn("Resource");
+                ImGui::TableSetupColumn("Previous Passes");
+                ImGui::TableSetupColumn("Current Passes");
+                ImGui::TableHeadersRow();
 
-            for (const auto& hazard : dependency_diagnostics.cross_frame_hazards)
-            {
-                const char* hazard_type_name = "Unknown";
-                switch (hazard.hazard_type)
+                for (const auto& hazard : dependency_diagnostics.cross_frame_hazards)
                 {
-                case DependencyDiagnostics::CrossFrameResourceHazardDiagnostics::HazardType::PREVIOUS_WRITE_CURRENT_READ:
-                    hazard_type_name = "PrevWrite->CurrRead";
-                    break;
-                case DependencyDiagnostics::CrossFrameResourceHazardDiagnostics::HazardType::PREVIOUS_WRITE_CURRENT_WRITE:
-                    hazard_type_name = "PrevWrite->CurrWrite";
-                    break;
-                case DependencyDiagnostics::CrossFrameResourceHazardDiagnostics::HazardType::PREVIOUS_READ_CURRENT_WRITE:
-                    hazard_type_name = "PrevRead->CurrWrite";
-                    break;
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::TextUnformatted(ToCrossFrameHazardTypeName(hazard.hazard_type));
+                    ImGui::TableSetColumnIndex(1);
+                    ImGui::Text("%s:%u", hazard.resource_kind.c_str(), hazard.resource_id);
+                    ImGui::TableSetColumnIndex(2);
+                    if (!hazard.previous_passes.empty())
+                    {
+                        const std::string previous_passes_text = JoinPassNames(hazard.previous_passes);
+                        ImGui::TextWrapped("%s", previous_passes_text.c_str());
+                    }
+                    else
+                    {
+                        ImGui::TextUnformatted("-");
+                    }
+                    ImGui::TableSetColumnIndex(3);
+                    if (!hazard.current_passes.empty())
+                    {
+                        const std::string current_passes_text = JoinPassNames(hazard.current_passes);
+                        ImGui::TextWrapped("%s", current_passes_text.c_str());
+                    }
+                    else
+                    {
+                        ImGui::TextUnformatted("-");
+                    }
                 }
-                ImGui::Text("%s %s:%u", hazard_type_name, hazard.resource_kind.c_str(), hazard.resource_id);
-                if (!hazard.previous_passes.empty())
-                {
-                    const std::string previous_passes_text = join_passes(hazard.previous_passes);
-                    ImGui::TextWrapped("  Prev: %s", previous_passes_text.c_str());
-                }
-                if (!hazard.current_passes.empty())
-                {
-                    const std::string current_passes_text = join_passes(hazard.current_passes);
-                    ImGui::TextWrapped("  Curr: %s", current_passes_text.c_str());
-                }
+                ImGui::EndTable();
             }
             ImGui::TreePop();
         }
