@@ -418,6 +418,7 @@ namespace RendererInterface
         void RegisterTickCallback(const RenderGraphTickCallback& callback);
         void RegisterDebugUICallback(const RenderGraphDebugUICallback& callback);
         void EnableDebugUI(bool enable);
+        void DrawFrameworkDebugUI();
         void ShutdownRuntimeServices();
         void SetValidationPolicy(const ValidationPolicy& policy);
         ValidationPolicy GetValidationPolicy() const;

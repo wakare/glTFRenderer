@@ -2979,99 +2979,18 @@ namespace RendererInterface
             ImGui_ImplGlfw_NewFrame();
             ImGui::NewFrame();
 
-            if (ImGui::Begin("Renderer Framework"))
-            {
-                bool per_frame_resource_binding = m_resource_allocator.IsPerFrameResourceBindingEnabled();
-                if (ImGui::Checkbox("Per-frame Resource Binding", &per_frame_resource_binding))
-                {
-                    m_resource_allocator.SetPerFrameResourceBindingEnabled(per_frame_resource_binding);
-                    m_dependency_diagnostics_state.Reset();
-                }
-                ImGui::TextUnformatted("Affects frame-buffered Buffer/RenderTarget handle selection.");
-                int hazard_check_interval_frames =
-                    static_cast<int>(m_validation_policy.cross_frame_hazard_check_interval_frames);
-                if (ImGui::SliderInt("Hazard Analysis Interval (frames)", &hazard_check_interval_frames, 1, 240))
-                {
-                    m_validation_policy.cross_frame_hazard_check_interval_frames =
-                        static_cast<unsigned>((std::max)(1, hazard_check_interval_frames));
-                    m_dependency_diagnostics_state.Reset();
-                }
-                ImGui::Text(
-                    "Hazard analysis cadence: every %u frame(s).",
-                    m_validation_policy.cross_frame_hazard_check_interval_frames);
-
-                const auto& dependency_diagnostics = m_dependency_diagnostics_state.diagnostics;
-                if (!dependency_diagnostics.cross_frame_analysis_ready)
-                {
-                    ImGui::TextUnformatted("Cross-frame hazard analysis: warming up (need previous frame).");
-                }
-                else
-                {
-                    ImGui::Text(
-                        "Cross-frame hazards: %u (window=%u, compared=%u)",
-                        dependency_diagnostics.cross_frame_hazard_count,
-                        dependency_diagnostics.cross_frame_comparison_window_size,
-                        dependency_diagnostics.cross_frame_compared_frame_count);
-                    if (dependency_diagnostics.cross_frame_hazard_overflow_count > 0)
-                    {
-                        ImGui::Text(
-                            "Cross-frame hazards not listed: %u",
-                            dependency_diagnostics.cross_frame_hazard_overflow_count);
-                    }
-
-                    if (!dependency_diagnostics.cross_frame_hazards.empty() &&
-                        ImGui::TreeNode("Cross-frame Hazard Samples"))
-                    {
-                        const auto join_passes = [](const std::vector<std::string>& pass_names)
-                        {
-                            std::string joined;
-                            for (std::size_t pass_index = 0; pass_index < pass_names.size(); ++pass_index)
-                            {
-                                if (pass_index > 0)
-                                {
-                                    joined += ", ";
-                                }
-                                joined += pass_names[pass_index];
-                            }
-                            return joined;
-                        };
-
-                        for (const auto& hazard : dependency_diagnostics.cross_frame_hazards)
-                        {
-                            const char* hazard_type_name = "Unknown";
-                            switch (hazard.hazard_type)
-                            {
-                            case DependencyDiagnostics::CrossFrameResourceHazardDiagnostics::HazardType::PREVIOUS_WRITE_CURRENT_READ:
-                                hazard_type_name = "PrevWrite->CurrRead";
-                                break;
-                            case DependencyDiagnostics::CrossFrameResourceHazardDiagnostics::HazardType::PREVIOUS_WRITE_CURRENT_WRITE:
-                                hazard_type_name = "PrevWrite->CurrWrite";
-                                break;
-                            case DependencyDiagnostics::CrossFrameResourceHazardDiagnostics::HazardType::PREVIOUS_READ_CURRENT_WRITE:
-                                hazard_type_name = "PrevRead->CurrWrite";
-                                break;
-                            }
-                            ImGui::Text("%s %s:%u", hazard_type_name, hazard.resource_kind.c_str(), hazard.resource_id);
-                            if (!hazard.previous_passes.empty())
-                            {
-                                const std::string previous_passes_text = join_passes(hazard.previous_passes);
-                                ImGui::TextWrapped("  Prev: %s", previous_passes_text.c_str());
-                            }
-                            if (!hazard.current_passes.empty())
-                            {
-                                const std::string current_passes_text = join_passes(hazard.current_passes);
-                                ImGui::TextWrapped("  Curr: %s", current_passes_text.c_str());
-                            }
-                        }
-                        ImGui::TreePop();
-                    }
-                }
-            }
-            ImGui::End();
-
             if (m_debug_ui_callback)
             {
                 m_debug_ui_callback();
+            }
+            else
+            {
+                const bool framework_window_visible = ImGui::Begin("Renderer Framework");
+                if (framework_window_visible)
+                {
+                    DrawFrameworkDebugUI();
+                }
+                ImGui::End();
             }
             const auto debug_ui_build_end = std::chrono::steady_clock::now();
             m_current_frame_timing_breakdown.debug_ui_build_ms =
@@ -3442,6 +3361,98 @@ namespace RendererInterface
     const RenderGraph::DependencyDiagnostics& RenderGraph::GetDependencyDiagnostics() const
     {
         return m_dependency_diagnostics_state.diagnostics;
+    }
+
+    void RenderGraph::DrawFrameworkDebugUI()
+    {
+        bool per_frame_resource_binding = m_resource_allocator.IsPerFrameResourceBindingEnabled();
+        ImGui::TextUnformatted("Resource Binding");
+        if (ImGui::Checkbox("Per-frame Resource Binding", &per_frame_resource_binding))
+        {
+            m_resource_allocator.SetPerFrameResourceBindingEnabled(per_frame_resource_binding);
+            m_dependency_diagnostics_state.Reset();
+        }
+        ImGui::TextUnformatted("Affects frame-buffered Buffer/RenderTarget handle selection.");
+
+        ImGui::Separator();
+        ImGui::TextUnformatted("Cross-frame Hazard Analysis");
+        int hazard_check_interval_frames =
+            static_cast<int>(m_validation_policy.cross_frame_hazard_check_interval_frames);
+        if (ImGui::SliderInt("Hazard Analysis Interval (frames)", &hazard_check_interval_frames, 1, 240))
+        {
+            m_validation_policy.cross_frame_hazard_check_interval_frames =
+                static_cast<unsigned>((std::max)(1, hazard_check_interval_frames));
+            m_dependency_diagnostics_state.Reset();
+        }
+        ImGui::Text(
+            "Hazard analysis cadence: every %u frame(s).",
+            m_validation_policy.cross_frame_hazard_check_interval_frames);
+
+        const auto& dependency_diagnostics = m_dependency_diagnostics_state.diagnostics;
+        if (!dependency_diagnostics.cross_frame_analysis_ready)
+        {
+            ImGui::TextUnformatted("Cross-frame hazard analysis: warming up (need previous frame).");
+            return;
+        }
+
+        ImGui::Text(
+            "Cross-frame hazards: %u (window=%u, compared=%u)",
+            dependency_diagnostics.cross_frame_hazard_count,
+            dependency_diagnostics.cross_frame_comparison_window_size,
+            dependency_diagnostics.cross_frame_compared_frame_count);
+        if (dependency_diagnostics.cross_frame_hazard_overflow_count > 0)
+        {
+            ImGui::Text(
+                "Cross-frame hazards not listed: %u",
+                dependency_diagnostics.cross_frame_hazard_overflow_count);
+        }
+
+        if (!dependency_diagnostics.cross_frame_hazards.empty() &&
+            ImGui::TreeNode("Cross-frame Hazard Samples"))
+        {
+            const auto join_passes = [](const std::vector<std::string>& pass_names)
+            {
+                std::string joined;
+                for (std::size_t pass_index = 0; pass_index < pass_names.size(); ++pass_index)
+                {
+                    if (pass_index > 0)
+                    {
+                        joined += ", ";
+                    }
+                    joined += pass_names[pass_index];
+                }
+                return joined;
+            };
+
+            for (const auto& hazard : dependency_diagnostics.cross_frame_hazards)
+            {
+                const char* hazard_type_name = "Unknown";
+                switch (hazard.hazard_type)
+                {
+                case DependencyDiagnostics::CrossFrameResourceHazardDiagnostics::HazardType::PREVIOUS_WRITE_CURRENT_READ:
+                    hazard_type_name = "PrevWrite->CurrRead";
+                    break;
+                case DependencyDiagnostics::CrossFrameResourceHazardDiagnostics::HazardType::PREVIOUS_WRITE_CURRENT_WRITE:
+                    hazard_type_name = "PrevWrite->CurrWrite";
+                    break;
+                case DependencyDiagnostics::CrossFrameResourceHazardDiagnostics::HazardType::PREVIOUS_READ_CURRENT_WRITE:
+                    hazard_type_name = "PrevRead->CurrWrite";
+                    break;
+                }
+                ImGui::Text("%s %s:%u", hazard_type_name, hazard.resource_kind.c_str(), hazard.resource_id);
+                if (!hazard.previous_passes.empty())
+                {
+                    const std::string previous_passes_text = join_passes(hazard.previous_passes);
+                    ImGui::TextWrapped("  Prev: %s", previous_passes_text.c_str());
+                }
+                if (!hazard.current_passes.empty())
+                {
+                    const std::string current_passes_text = join_passes(hazard.current_passes);
+                    ImGui::TextWrapped("  Curr: %s", current_passes_text.c_str());
+                }
+            }
+            ImGui::TreePop();
+        }
     }
 
     bool CleanupRenderRuntimeContext(

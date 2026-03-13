@@ -268,7 +268,7 @@ void DemoBase::DrawDebugUI()
     ImGui::Text("Frame %.3f ms (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
     ImGui::Separator();
 
-    if (ImGui::CollapsingHeader("Snapshot"))
+    if (ImGui::CollapsingHeader("State / Snapshot"))
     {
         if (ImGui::Button("Record Snapshot"))
         {
@@ -379,9 +379,14 @@ void DemoBase::DrawDebugUI()
         ImGui::Separator();
     }
 
-    if (ImGui::CollapsingHeader("Advance"))
+    if (ImGui::CollapsingHeader("Runtime / Diagnostics"))
     {
-        if (m_resource_manager && ImGui::CollapsingHeader("Surface / Swapchain"))
+        if (m_render_graph && ImGui::CollapsingHeader("Framework Controls"))
+        {
+            m_render_graph->DrawFrameworkDebugUI();
+        }
+
+        if (m_resource_manager && ImGui::CollapsingHeader("Surface / Presentation"))
         {
             if (!m_swapchain_resize_policy_ui_initialized)
             {
@@ -509,7 +514,7 @@ void DemoBase::DrawDebugUI()
             }
         }
 
-        if (m_render_graph && ImGui::CollapsingHeader("RenderGraph / Dependency Diagnostics"))
+        if (m_render_graph && ImGui::CollapsingHeader("RenderGraph / Validation"))
         {
             const auto& diagnostics = m_render_graph->GetDependencyDiagnostics();
             ImGui::Text("Graph Valid: %s", diagnostics.graph_valid ? "Yes" : "No");
@@ -573,7 +578,7 @@ void DemoBase::DrawDebugUI()
         ImGui::Separator();
     }
 
-    if (m_render_graph && ImGui::CollapsingHeader("Pass Timings"))
+    if (m_render_graph && ImGui::CollapsingHeader("Performance / Timing"))
     {
         const auto& frame_stats = m_render_graph->GetLastFrameStats();
         const auto& frame_timing = m_render_graph->GetLastFrameTimingBreakdown();
@@ -843,18 +848,21 @@ void DemoBase::DrawDebugUI()
         ImGui::Separator();
     }
 
-    DrawDebugUIInternal();
-
-    for (const auto& system : m_systems)
+    if (ImGui::CollapsingHeader("Feature Controls", ImGuiTreeNodeFlags_DefaultOpen))
     {
-        if (!system)
-        {
-            continue;
-        }
+        DrawDebugUIInternal();
 
-        if (ImGui::CollapsingHeader(system->GetSystemName()))
+        for (const auto& system : m_systems)
         {
-            system->DrawDebugUI();
+            if (!system)
+            {
+                continue;
+            }
+
+            if (ImGui::CollapsingHeader(system->GetSystemName()))
+            {
+                system->DrawDebugUI();
+            }
         }
     }
 

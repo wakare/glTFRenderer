@@ -46,15 +46,6 @@ bool RendererSystemToneMap::Init(RendererInterface::ResourceOperator& resource_o
     global_params_buffer_desc.usage = RendererInterface::USAGE_CBV;
     m_tone_map_global_params_handle = resource_operator.CreateBuffer(global_params_buffer_desc);
 
-    RendererInterface::RenderGraph::RenderPassSetupInfo tone_map_pass_setup_info{};
-    tone_map_pass_setup_info.render_pass_type = RendererInterface::RenderPassType::COMPUTE;
-    tone_map_pass_setup_info.debug_group = "Tone Map";
-    tone_map_pass_setup_info.debug_name = "Tone Map Composite";
-    tone_map_pass_setup_info.shader_setup_infos = {
-        {RendererInterface::COMPUTE_SHADER, "main", "Resources/Shaders/ToneMap.hlsl"}
-    };
-
-    const auto scene_outputs = m_scene->GetOutputs();
     const auto lighting_outputs = m_lighting->GetOutputs();
     RendererInterface::RenderTargetHandle input_color = m_frosted
         ? m_frosted->GetOutput()
