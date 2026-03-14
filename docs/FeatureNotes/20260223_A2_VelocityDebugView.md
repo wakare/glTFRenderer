@@ -1,5 +1,10 @@
 # Feature Note - A2.3 Velocity Debug View Path
 
+Companion references:
+
+- Chinese companion:
+  - `docs/FeatureNotes/20260223_A2_VelocityDebugView_ZH.md`
+
 - Date: 2026-02-23
 - Work Item ID: A2.3
 - Title: Add velocity visualization mode for motion-vector validity checks

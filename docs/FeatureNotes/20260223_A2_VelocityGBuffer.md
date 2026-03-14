@@ -1,5 +1,10 @@
 # Feature Note - A2.2 Velocity GBuffer Output Path (Producer Only)
 
+Companion references:
+
+- Chinese companion:
+  - `docs/FeatureNotes/20260223_A2_VelocityGBuffer_ZH.md`
+
 - Date: 2026-02-23
 - Work Item ID: A2.2
 - Title: Add base-pass velocity render target and shader motion-vector output

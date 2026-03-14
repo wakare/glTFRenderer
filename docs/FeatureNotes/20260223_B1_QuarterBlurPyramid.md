@@ -1,5 +1,10 @@
 # Feature Note - B1.2 Quarter Blur Pyramid Integration
 
+Companion references:
+
+- Chinese companion:
+  - `docs/FeatureNotes/20260223_B1_QuarterBlurPyramid_ZH.md`
+
 - Date: 2026-02-23
 - Work Item ID: B1.2
 - Title: Integrate quarter-resolution blur chain into frosted multipass composite

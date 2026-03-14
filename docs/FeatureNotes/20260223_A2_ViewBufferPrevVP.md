@@ -1,5 +1,10 @@
 # Feature Note - A2.1 ViewBuffer Previous View-Projection Matrix Plumbing
 
+Companion references:
+
+- Chinese companion:
+  - `docs/FeatureNotes/20260223_A2_ViewBufferPrevVP_ZH.md`
+
 - Date: 2026-02-23
 - Work Item ID: A2.1
 - Title: Add `prev_view_projection_matrix` to view buffer and upload path

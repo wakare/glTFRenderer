@@ -1,5 +1,10 @@
 # Feature Note - B1.1 Frosted Glass Multipass Scaffold (Downsample + Blur + Composite)
 
+Companion references:
+
+- Chinese companion:
+  - `docs/FeatureNotes/20260223_B1_MultipassScaffold_ZH.md`
+
 - Date: 2026-02-23
 - Work Item ID: B1.1
 - Title: Replace single-pass frosted processing with multipass postfx scaffold

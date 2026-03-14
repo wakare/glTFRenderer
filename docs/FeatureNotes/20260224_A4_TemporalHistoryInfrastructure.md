@@ -1,5 +1,10 @@
 # Feature Note - A4 Temporal History Infrastructure
 
+Companion references:
+
+- Chinese companion:
+  - `docs/FeatureNotes/20260224_A4_TemporalHistoryInfrastructure_ZH.md`
+
 - Date: 2026-02-24
 - Work Item ID: A4
 - Title: Add frosted-glass temporal history lifecycle, ping-pong routing, and invalidation path

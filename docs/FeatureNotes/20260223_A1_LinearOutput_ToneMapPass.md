@@ -1,5 +1,10 @@
 # Feature Note - A1.1 Linear Lighting Output and Independent Tone Map Pass
 
+Companion references:
+
+- Chinese companion:
+  - `docs/FeatureNotes/20260223_A1_LinearOutput_ToneMapPass_ZH.md`
+
 - Date: 2026-02-23
 - Work Item ID: A1.1
 - Title: Linear lighting output path with dedicated tone mapping final pass

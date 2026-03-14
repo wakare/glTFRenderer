@@ -1,5 +1,10 @@
 # Feature Note - DX12/Vulkan Descriptor Policy Unification Plan
 
+Companion references:
+
+- Chinese companion:
+  - `docs/FeatureNotes/20260225_DX12VK_DescriptorPolicyUnificationPlan_ZH.md`
+
 - Date: 2026-02-25
 - Work Item ID: INFRA-DESC-UNIFY
 - Title: Unify descriptor management policy across DX12 and Vulkan without forcing identical backend mechanisms

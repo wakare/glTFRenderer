@@ -1,5 +1,10 @@
 # Feature Note - B6.1 Top-2 Multilayer Composition Core
 
+Companion references:
+
+- Chinese companion:
+  - `docs/FeatureNotes/20260224_B6_Top2MultilayerCore_ZH.md`
+
 - Date: 2026-02-24
 - Work Item ID: B6.1
 - Title: Implement top-2 overlap payload and layered composite modes for frosted glass

@@ -1,5 +1,10 @@
 # Feature Note - B1.3 Frosted Mask/Parameter Stage Split
 
+Companion references:
+
+- Chinese companion:
+  - `docs/FeatureNotes/20260224_B1_FrostedMaskPass_ZH.md`
+
 - Date: 2026-02-24
 - Work Item ID: B1.3
 - Title: Add explicit mask/parameter stage and route composite through intermediate panel data

@@ -1,5 +1,10 @@
 # Feature Note - B6 Multi-layer Composition Plan
 
+Companion references:
+
+- Chinese companion:
+  - `docs/FeatureNotes/20260224_B6_MultilayerCompositionPlan_ZH.md`
+
 - Date: 2026-02-24
 - Work Item ID: B6
 - Title: Requirement update and implementation plan for Vision Pro-style multilayer frosted composition

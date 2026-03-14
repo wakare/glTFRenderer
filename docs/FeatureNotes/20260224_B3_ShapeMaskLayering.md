@@ -1,5 +1,10 @@
 # Feature Note - B3 Shape Mask and Layering Upgrades
 
+Companion references:
+
+- Chinese companion:
+  - `docs/FeatureNotes/20260224_B3_ShapeMaskLayering_ZH.md`
+
 - Date: 2026-02-24
 - Work Item ID: B3
 - Title: Implement real irregular shape-mask path and deterministic panel layering policy

@@ -1,5 +1,10 @@
 # Feature Note - B6.2 Adaptive Multilayer Refinement
 
+Companion references:
+
+- Chinese companion:
+  - `docs/FeatureNotes/20260224_B6_AdaptiveMultilayerRefinement_ZH.md`
+
 - Date: 2026-02-24
 - Work Item ID: B6.2
 - Title: Refine layered composite ordering and add auto-mode runtime budget fallback

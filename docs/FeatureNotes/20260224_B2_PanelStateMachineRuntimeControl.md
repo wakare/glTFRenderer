@@ -1,5 +1,10 @@
 # Feature Note - B2 Panel State Machine and Runtime Control
 
+Companion references:
+
+- Chinese companion:
+  - `docs/FeatureNotes/20260224_B2_PanelStateMachineRuntimeControl_ZH.md`
+
 - Date: 2026-02-24
 - Work Item ID: B2
 - Title: Add panel interaction state machine with runtime state curves and input-driven transitions

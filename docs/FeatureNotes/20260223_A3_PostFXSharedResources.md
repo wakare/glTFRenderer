@@ -1,5 +1,10 @@
 # Feature Note - A3.1 PostFX Shared Half/Quarter Ping-Pong Resource Foundation
 
+Companion references:
+
+- Chinese companion:
+  - `docs/FeatureNotes/20260223_A3_PostFXSharedResources_ZH.md`
+
 - Date: 2026-02-23
 - Work Item ID: A3.1
 - Title: Add reusable window-relative half/quarter ping-pong render targets for postfx
