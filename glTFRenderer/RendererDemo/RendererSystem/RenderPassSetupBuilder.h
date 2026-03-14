@@ -10,6 +10,243 @@
 
 namespace RenderFeature
 {
+    struct FrameDimensions
+    {
+        unsigned width{1};
+        unsigned height{1};
+
+        static FrameDimensions FromExtent(unsigned width, unsigned height)
+        {
+            return {
+                .width = width == 0 ? 1u : width,
+                .height = height == 0 ? 1u : height
+            };
+        }
+
+        static FrameDimensions FromResourceOperator(RendererInterface::ResourceOperator& resource_operator)
+        {
+            return FromExtent(
+                resource_operator.GetCurrentRenderWidth(),
+                resource_operator.GetCurrentRenderHeight());
+        }
+
+        FrameDimensions Downsampled(unsigned divisor) const
+        {
+            const unsigned clamped_divisor = divisor == 0 ? 1u : divisor;
+            return FromExtent(
+                (width + clamped_divisor - 1u) / clamped_divisor,
+                (height + clamped_divisor - 1u) / clamped_divisor);
+        }
+
+        std::pair<unsigned, unsigned> ComputeGroupCount2D(
+            unsigned group_size_x = 8,
+            unsigned group_size_y = 8) const
+        {
+            const unsigned clamped_group_size_x = group_size_x == 0 ? 1u : group_size_x;
+            const unsigned clamped_group_size_y = group_size_y == 0 ? 1u : group_size_y;
+            return {
+                (width + clamped_group_size_x - 1u) / clamped_group_size_x,
+                (height + clamped_group_size_y - 1u) / clamped_group_size_y
+            };
+        }
+
+        RendererInterface::RenderExecuteCommand MakeDispatch2D(
+            unsigned group_size_x = 8,
+            unsigned group_size_y = 8,
+            unsigned group_size_z = 1) const
+        {
+            const std::pair<unsigned, unsigned> group_count = ComputeGroupCount2D(group_size_x, group_size_y);
+            RendererInterface::RenderExecuteCommand dispatch_command{};
+            dispatch_command.type = RendererInterface::ExecuteCommandType::COMPUTE_DISPATCH_COMMAND;
+            dispatch_command.parameter.dispatch_parameter.group_size_x = group_count.first;
+            dispatch_command.parameter.dispatch_parameter.group_size_y = group_count.second;
+            dispatch_command.parameter.dispatch_parameter.group_size_z = group_size_z;
+            return dispatch_command;
+        }
+    };
+
+    struct ComputeExecutionPlan
+    {
+        FrameDimensions frame_dimensions{};
+        std::pair<unsigned, unsigned> dispatch_group_count{1u, 1u};
+
+        static ComputeExecutionPlan FromFrameDimensions(
+            const FrameDimensions& frame_dimensions,
+            unsigned group_size_x = 8,
+            unsigned group_size_y = 8)
+        {
+            return {
+                .frame_dimensions = frame_dimensions,
+                .dispatch_group_count = frame_dimensions.ComputeGroupCount2D(group_size_x, group_size_y)
+            };
+        }
+
+        static ComputeExecutionPlan FromExtent(
+            unsigned width,
+            unsigned height,
+            unsigned group_size_x = 8,
+            unsigned group_size_y = 8)
+        {
+            return FromFrameDimensions(FrameDimensions::FromExtent(width, height), group_size_x, group_size_y);
+        }
+
+        static ComputeExecutionPlan FromResourceOperator(
+            RendererInterface::ResourceOperator& resource_operator,
+            unsigned group_size_x = 8,
+            unsigned group_size_y = 8)
+        {
+            return FromFrameDimensions(
+                FrameDimensions::FromResourceOperator(resource_operator),
+                group_size_x,
+                group_size_y);
+        }
+
+        RendererInterface::RenderExecuteCommand MakeDispatch(unsigned group_count_z = 1) const
+        {
+            RendererInterface::RenderExecuteCommand dispatch_command{};
+            dispatch_command.type = RendererInterface::ExecuteCommandType::COMPUTE_DISPATCH_COMMAND;
+            dispatch_command.parameter.dispatch_parameter.group_size_x = dispatch_group_count.first;
+            dispatch_command.parameter.dispatch_parameter.group_size_y = dispatch_group_count.second;
+            dispatch_command.parameter.dispatch_parameter.group_size_z = group_count_z;
+            return dispatch_command;
+        }
+
+        void ApplyDispatch(
+            RendererInterface::RenderGraph& graph,
+            RendererInterface::RenderGraphNodeHandle node_handle,
+            unsigned group_count_z = 1) const
+        {
+            graph.UpdateComputeDispatch(
+                node_handle,
+                dispatch_group_count.first,
+                dispatch_group_count.second,
+                group_count_z);
+        }
+    };
+
+    struct GraphicsExecutionPlan
+    {
+        FrameDimensions viewport_dimensions{};
+
+        static GraphicsExecutionPlan FromFrameDimensions(const FrameDimensions& viewport_dimensions)
+        {
+            return {
+                .viewport_dimensions = viewport_dimensions
+            };
+        }
+
+        static GraphicsExecutionPlan FromExtent(unsigned width, unsigned height)
+        {
+            return FromFrameDimensions(FrameDimensions::FromExtent(width, height));
+        }
+
+        static GraphicsExecutionPlan FromResourceOperator(RendererInterface::ResourceOperator& resource_operator)
+        {
+            return FromFrameDimensions(FrameDimensions::FromResourceOperator(resource_operator));
+        }
+    };
+
+    struct FrameSizedSetupState
+    {
+        bool valid{false};
+        FrameDimensions frame_dimensions{};
+
+        bool Matches(const FrameDimensions& candidate_dimensions) const
+        {
+            return valid &&
+                   frame_dimensions.width == candidate_dimensions.width &&
+                   frame_dimensions.height == candidate_dimensions.height;
+        }
+
+        void Update(const FrameDimensions& next_dimensions)
+        {
+            valid = true;
+            frame_dimensions = next_dimensions;
+        }
+
+        void Reset()
+        {
+            valid = false;
+        }
+    };
+
+    inline bool CreateRenderGraphNodeIfNeeded(
+        RendererInterface::ResourceOperator& resource_operator,
+        RendererInterface::RenderGraph& graph,
+        RendererInterface::RenderGraphNodeHandle& inout_node_handle,
+        const RendererInterface::RenderGraph::RenderPassSetupInfo& setup_info)
+    {
+        if (inout_node_handle != NULL_HANDLE)
+        {
+            return true;
+        }
+
+        inout_node_handle = graph.CreateRenderGraphNode(resource_operator, setup_info);
+        return inout_node_handle != NULL_HANDLE;
+    }
+
+    inline bool SyncRenderGraphNode(
+        RendererInterface::ResourceOperator& resource_operator,
+        RendererInterface::RenderGraph& graph,
+        RendererInterface::RenderGraphNodeHandle& inout_node_handle,
+        const RendererInterface::RenderGraph::RenderPassSetupInfo& setup_info)
+    {
+        if (inout_node_handle == NULL_HANDLE)
+        {
+            return CreateRenderGraphNodeIfNeeded(resource_operator, graph, inout_node_handle, setup_info);
+        }
+
+        return graph.RebuildRenderGraphNode(resource_operator, inout_node_handle, setup_info);
+    }
+
+    inline bool CreateOrSyncRenderGraphNode(
+        bool sync_existing,
+        RendererInterface::ResourceOperator& resource_operator,
+        RendererInterface::RenderGraph& graph,
+        RendererInterface::RenderGraphNodeHandle& inout_node_handle,
+        const RendererInterface::RenderGraph::RenderPassSetupInfo& setup_info)
+    {
+        if (sync_existing)
+        {
+            return SyncRenderGraphNode(resource_operator, graph, inout_node_handle, setup_info);
+        }
+
+        return CreateRenderGraphNodeIfNeeded(resource_operator, graph, inout_node_handle, setup_info);
+    }
+
+    inline bool RegisterRenderGraphNodeIfValid(
+        RendererInterface::RenderGraph& graph,
+        RendererInterface::RenderGraphNodeHandle node_handle)
+    {
+        if (node_handle == NULL_HANDLE)
+        {
+            return true;
+        }
+
+        return graph.RegisterRenderGraphNode(node_handle);
+    }
+
+    inline bool RegisterRenderGraphNodesIfValid(
+        RendererInterface::RenderGraph& graph,
+        std::initializer_list<RendererInterface::RenderGraphNodeHandle> node_handles)
+    {
+        for (const RendererInterface::RenderGraphNodeHandle node_handle : node_handles)
+        {
+            if (!RegisterRenderGraphNodeIfValid(graph, node_handle))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    struct RenderTargetAttachment
+    {
+        RendererInterface::RenderTargetHandle render_target_handle{NULL_HANDLE};
+        RendererInterface::RenderTargetBindingDesc binding_desc{};
+    };
+
     inline RendererInterface::RenderTargetBindingDesc MakeColorRenderTargetBinding(
         RendererInterface::PixelFormat format,
         bool need_clear)
@@ -20,6 +257,22 @@ namespace RenderFeature
         binding_desc.need_clear = need_clear;
         return binding_desc;
     }
+
+    inline RenderTargetAttachment MakeRenderTargetAttachment(
+        RendererInterface::RenderTargetHandle render_target_handle,
+        const RendererInterface::RenderTargetBindingDesc& binding_desc)
+    {
+        return {
+            .render_target_handle = render_target_handle,
+            .binding_desc = binding_desc
+        };
+    }
+
+    struct BufferBinding
+    {
+        std::string binding_name{};
+        RendererInterface::BufferBindingDesc binding_desc{};
+    };
 
     inline RendererInterface::RenderTargetBindingDesc MakeDepthRenderTargetBinding(
         RendererInterface::PixelFormat format,
@@ -57,6 +310,16 @@ namespace RenderFeature
         return binding_desc;
     }
 
+    inline BufferBinding MakeBufferBinding(
+        const std::string& binding_name,
+        const RendererInterface::BufferBindingDesc& binding_desc)
+    {
+        return {
+            .binding_name = binding_name,
+            .binding_desc = binding_desc
+        };
+    }
+
     inline RendererInterface::RenderExecuteCommand MakeDispatch2D(
         unsigned width,
         unsigned height,
@@ -64,14 +327,52 @@ namespace RenderFeature
         unsigned group_size_y = 8,
         unsigned group_size_z = 1)
     {
-        RendererInterface::RenderExecuteCommand dispatch_command{};
-        dispatch_command.type = RendererInterface::ExecuteCommandType::COMPUTE_DISPATCH_COMMAND;
-        dispatch_command.parameter.dispatch_parameter.group_size_x =
-            (width + group_size_x - 1u) / group_size_x;
-        dispatch_command.parameter.dispatch_parameter.group_size_y =
-            (height + group_size_y - 1u) / group_size_y;
-        dispatch_command.parameter.dispatch_parameter.group_size_z = group_size_z;
-        return dispatch_command;
+        return FrameDimensions::FromExtent(width, height).MakeDispatch2D(
+            group_size_x,
+            group_size_y,
+            group_size_z);
+    }
+
+    inline std::pair<unsigned, unsigned> MakeDispatchGroupCount2D(
+        unsigned width,
+        unsigned height,
+        unsigned group_size_x = 8,
+        unsigned group_size_y = 8)
+    {
+        return FrameDimensions::FromExtent(width, height).ComputeGroupCount2D(group_size_x, group_size_y);
+    }
+
+    struct SampledRenderTargetBinding
+    {
+        std::string binding_name{};
+        std::vector<RendererInterface::RenderTargetHandle> render_target_handles{};
+        RendererInterface::RenderTargetTextureBindingDesc::TextureBindingType binding_type{
+            RendererInterface::RenderTargetTextureBindingDesc::SRV
+        };
+    };
+
+    inline SampledRenderTargetBinding MakeSampledRenderTargetBinding(
+        const std::string& binding_name,
+        RendererInterface::RenderTargetHandle render_target_handle,
+        RendererInterface::RenderTargetTextureBindingDesc::TextureBindingType binding_type)
+    {
+        return {
+            .binding_name = binding_name,
+            .render_target_handles = {render_target_handle},
+            .binding_type = binding_type
+        };
+    }
+
+    inline SampledRenderTargetBinding MakeSampledRenderTargetBinding(
+        const std::string& binding_name,
+        std::vector<RendererInterface::RenderTargetHandle> render_target_handles,
+        RendererInterface::RenderTargetTextureBindingDesc::TextureBindingType binding_type)
+    {
+        return {
+            .binding_name = binding_name,
+            .render_target_handles = std::move(render_target_handles),
+            .binding_type = binding_type
+        };
     }
 
     class PassBuilder
@@ -103,6 +404,18 @@ namespace RenderFeature
             m_setup_info.viewport_width = width;
             m_setup_info.viewport_height = height;
             return *this;
+        }
+
+        PassBuilder& SetViewport(const FrameDimensions& viewport_dimensions)
+        {
+            return SetViewport(
+                static_cast<int>(viewport_dimensions.width),
+                static_cast<int>(viewport_dimensions.height));
+        }
+
+        PassBuilder& SetViewport(const GraphicsExecutionPlan& execution_plan)
+        {
+            return SetViewport(execution_plan.viewport_dimensions);
         }
 
         PassBuilder& AddModule(const std::shared_ptr<RendererInterface::RendererModuleBase>& module)
@@ -145,6 +458,15 @@ namespace RenderFeature
             return *this;
         }
 
+        PassBuilder& AddRenderTargets(std::initializer_list<RenderTargetAttachment> attachments)
+        {
+            for (const auto& attachment : attachments)
+            {
+                AddRenderTarget(attachment.render_target_handle, attachment.binding_desc);
+            }
+            return *this;
+        }
+
         PassBuilder& AddSampledRenderTarget(
             const std::string& binding_name,
             RendererInterface::RenderTargetHandle render_target_handle,
@@ -169,11 +491,43 @@ namespace RenderFeature
             return *this;
         }
 
+        PassBuilder& AddSampledRenderTargetBinding(const SampledRenderTargetBinding& binding)
+        {
+            return AddSampledRenderTargets(
+                binding.binding_name,
+                binding.render_target_handles,
+                binding.binding_type);
+        }
+
+        PassBuilder& AddSampledRenderTargetBindings(
+            std::initializer_list<SampledRenderTargetBinding> bindings)
+        {
+            for (const auto& binding : bindings)
+            {
+                AddSampledRenderTargetBinding(binding);
+            }
+            return *this;
+        }
+
         PassBuilder& AddBuffer(
             const std::string& binding_name,
             const RendererInterface::BufferBindingDesc& binding_desc)
         {
             m_setup_info.buffer_resources[binding_name] = binding_desc;
+            return *this;
+        }
+
+        PassBuilder& AddBufferBinding(const BufferBinding& binding)
+        {
+            return AddBuffer(binding.binding_name, binding.binding_desc);
+        }
+
+        PassBuilder& AddBuffers(std::initializer_list<BufferBinding> bindings)
+        {
+            for (const auto& binding : bindings)
+            {
+                AddBufferBinding(binding);
+            }
             return *this;
         }
 
@@ -222,6 +576,16 @@ namespace RenderFeature
             return *this;
         }
 
+        PassBuilder& AddDependencies(
+            const std::vector<RendererInterface::RenderGraphNodeHandle>& dependency_nodes)
+        {
+            for (const auto dependency_node : dependency_nodes)
+            {
+                AddDependency(dependency_node);
+            }
+            return *this;
+        }
+
         PassBuilder& SetExecuteCommand(const RendererInterface::RenderExecuteCommand& execute_command)
         {
             m_setup_info.execute_command = execute_command;
@@ -244,6 +608,13 @@ namespace RenderFeature
             return SetExecuteCommand(MakeDispatch2D(width, height, group_size_x, group_size_y, group_size_z));
         }
 
+        PassBuilder& SetDispatch(
+            const ComputeExecutionPlan& execution_plan,
+            unsigned group_count_z = 1)
+        {
+            return SetExecuteCommand(execution_plan.MakeDispatch(group_count_z));
+        }
+
         RendererInterface::RenderGraph::RenderPassSetupInfo Build()
         {
             return std::move(m_setup_info);
@@ -262,4 +633,33 @@ namespace RenderFeature
 
         RendererInterface::RenderGraph::RenderPassSetupInfo m_setup_info{};
     };
+
+    inline PassBuilder MakeComputePostFxPassBuilder(
+        const std::string& debug_group,
+        const std::string& debug_name,
+        const std::string& entry_function,
+        const std::string& shader_file,
+        RendererInterface::RenderTargetHandle input_rt,
+        RendererInterface::RenderTargetHandle output_rt,
+        unsigned dispatch_width,
+        unsigned dispatch_height,
+        RendererInterface::RenderGraphNodeHandle dependency_node = NULL_HANDLE,
+        const std::string& input_binding_name = "InputTex",
+        const std::string& output_binding_name = "OutputTex")
+    {
+        auto builder = PassBuilder::Compute(debug_group, debug_name);
+        builder
+            .AddShader(RendererInterface::COMPUTE_SHADER, entry_function, shader_file)
+            .AddDependency(dependency_node)
+            .AddSampledRenderTarget(
+                input_binding_name,
+                input_rt,
+                RendererInterface::RenderTargetTextureBindingDesc::SRV)
+            .AddSampledRenderTarget(
+                output_binding_name,
+                output_rt,
+                RendererInterface::RenderTargetTextureBindingDesc::UAV)
+            .SetDispatch2D(dispatch_width, dispatch_height);
+        return builder;
+    }
 }

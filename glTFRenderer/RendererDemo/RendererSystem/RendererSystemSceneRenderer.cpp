@@ -9,6 +9,7 @@ void RendererSystemSceneRenderer::BasePassRuntimeState::Reset()
     velocity = NULL_HANDLE;
     depth = NULL_HANDLE;
     node = NULL_HANDLE;
+    viewport_dimensions = {};
 }
 
 bool RendererSystemSceneRenderer::BasePassRuntimeState::HasInit() const
@@ -90,32 +91,77 @@ void RendererSystemSceneRenderer::CreateBasePassRenderTargets(RendererInterface:
         static_cast<RendererInterface::ResourceUsage>(RendererInterface::ResourceUsage::DEPTH_STENCIL | RendererInterface::ResourceUsage::SHADER_RESOURCE));
 }
 
-RendererInterface::RenderGraph::RenderPassSetupInfo RendererSystemSceneRenderer::BuildBasePassSetupInfo() const
+RenderFeature::FrameDimensions RendererSystemSceneRenderer::ResolveBasePassViewportDimensions(
+    RendererInterface::ResourceOperator& resource_operator) const
+{
+    unsigned viewport_width = 0;
+    unsigned viewport_height = 0;
+    if (m_camera_module)
+    {
+        viewport_width = m_camera_module->GetWidth();
+        viewport_height = m_camera_module->GetHeight();
+    }
+    if (viewport_width == 0 || viewport_height == 0)
+    {
+        viewport_width = resource_operator.GetCurrentRenderWidth();
+        viewport_height = resource_operator.GetCurrentRenderHeight();
+    }
+    if (viewport_width == 0 || viewport_height == 0)
+    {
+        viewport_width = static_cast<unsigned>(m_camera_desc.projection_width);
+        viewport_height = static_cast<unsigned>(m_camera_desc.projection_height);
+    }
+    return RenderFeature::FrameDimensions::FromExtent(viewport_width, viewport_height);
+}
+
+RendererSystemSceneRenderer::BasePassExecutionPlan RendererSystemSceneRenderer::BuildBasePassExecutionPlan(
+    RendererInterface::ResourceOperator& resource_operator) const
+{
+    return BasePassExecutionPlan{
+        .scene_mesh_module = m_scene_mesh_module,
+        .camera_module = m_camera_module,
+        .outputs = GetOutputs(),
+        .graphics_plan = RenderFeature::GraphicsExecutionPlan::FromFrameDimensions(
+            ResolveBasePassViewportDimensions(resource_operator))
+    };
+}
+
+RendererInterface::RenderGraph::RenderPassSetupInfo RendererSystemSceneRenderer::BuildBasePassSetupInfo(
+    const BasePassExecutionPlan& execution_plan) const
 {
     return RenderFeature::PassBuilder::Graphics("Scene Renderer", "Base Pass")
         .SetRenderState(m_base_pass_render_state)
-        .AddModules({m_scene_mesh_module, m_camera_module})
+        .SetViewport(execution_plan.graphics_plan)
+        .AddModules({execution_plan.scene_mesh_module, execution_plan.camera_module})
         .AddShader(RendererInterface::ShaderType::VERTEX_SHADER, "MainVS", "Resources/Shaders/ModelRenderingShader.hlsl")
         .AddShader(RendererInterface::ShaderType::FRAGMENT_SHADER, "MainFS", "Resources/Shaders/ModelRenderingShader.hlsl")
-        .AddRenderTarget(
-            m_base_pass_state.color,
-            RenderFeature::MakeColorRenderTargetBinding(RendererInterface::RGBA8_UNORM, true))
-        .AddRenderTarget(
-            m_base_pass_state.normal,
-            RenderFeature::MakeColorRenderTargetBinding(RendererInterface::RGBA8_UNORM, true))
-        .AddRenderTarget(
-            m_base_pass_state.velocity,
-            RenderFeature::MakeColorRenderTargetBinding(RendererInterface::RGBA16_FLOAT, true))
-        .AddRenderTarget(
-            m_base_pass_state.depth,
-            RenderFeature::MakeDepthRenderTargetBinding(RendererInterface::D32, true))
+        .AddRenderTargets({
+            RenderFeature::MakeRenderTargetAttachment(
+                execution_plan.outputs.color,
+                RenderFeature::MakeColorRenderTargetBinding(RendererInterface::RGBA8_UNORM, true)),
+            RenderFeature::MakeRenderTargetAttachment(
+                execution_plan.outputs.normal,
+                RenderFeature::MakeColorRenderTargetBinding(RendererInterface::RGBA8_UNORM, true)),
+            RenderFeature::MakeRenderTargetAttachment(
+                execution_plan.outputs.velocity,
+                RenderFeature::MakeColorRenderTargetBinding(RendererInterface::RGBA16_FLOAT, true)),
+            RenderFeature::MakeRenderTargetAttachment(
+                execution_plan.outputs.depth,
+                RenderFeature::MakeDepthRenderTargetBinding(RendererInterface::D32, true))
+        })
         .Build();
 }
 
 bool RendererSystemSceneRenderer::Init(RendererInterface::ResourceOperator& resource_operator, RendererInterface::RenderGraph& graph)
 {
     CreateBasePassRenderTargets(resource_operator);
-    m_base_pass_state.node = graph.CreateRenderGraphNode(resource_operator, BuildBasePassSetupInfo());
+    const BasePassExecutionPlan execution_plan = BuildBasePassExecutionPlan(resource_operator);
+    RETURN_IF_FALSE(RenderFeature::CreateRenderGraphNodeIfNeeded(
+        resource_operator,
+        graph,
+        m_base_pass_state.node,
+        BuildBasePassSetupInfo(execution_plan)));
+    m_base_pass_state.viewport_dimensions = execution_plan.graphics_plan.viewport_dimensions;
     return true;
 }
 
@@ -175,12 +221,39 @@ void RendererSystemSceneRenderer::ResetRuntimeResources(RendererInterface::Resou
 bool RendererSystemSceneRenderer::Tick(RendererInterface::ResourceOperator& resource_operator,
                                RendererInterface::RenderGraph& graph, unsigned long long interval)
 {
-    QueuePendingBasePassRenderStateUpdate(graph);
-    graph.RegisterRenderGraphNode(m_base_pass_state.node);
+    const BasePassExecutionPlan execution_plan = BuildBasePassExecutionPlan(resource_operator);
+    RETURN_IF_FALSE(SyncBasePassSetup(resource_operator, graph, execution_plan));
+    RETURN_IF_FALSE(QueuePendingBasePassRenderStateUpdate(graph));
+    RETURN_IF_FALSE(RenderFeature::RegisterRenderGraphNodeIfValid(graph, m_base_pass_state.node));
     
     m_camera_module->Tick(resource_operator, interval);
     m_scene_mesh_module->Tick(resource_operator, interval);
     
+    return true;
+}
+
+bool RendererSystemSceneRenderer::SyncBasePassSetup(
+    RendererInterface::ResourceOperator& resource_operator,
+    RendererInterface::RenderGraph& graph,
+    const BasePassExecutionPlan& execution_plan)
+{
+    if (!m_base_pass_state.HasInit())
+    {
+        return true;
+    }
+
+    if (m_base_pass_state.viewport_dimensions.width == execution_plan.graphics_plan.viewport_dimensions.width &&
+        m_base_pass_state.viewport_dimensions.height == execution_plan.graphics_plan.viewport_dimensions.height)
+    {
+        return true;
+    }
+
+    RETURN_IF_FALSE(RenderFeature::SyncRenderGraphNode(
+        resource_operator,
+        graph,
+        m_base_pass_state.node,
+        BuildBasePassSetupInfo(execution_plan)));
+    m_base_pass_state.viewport_dimensions = execution_plan.graphics_plan.viewport_dimensions;
     return true;
 }
 

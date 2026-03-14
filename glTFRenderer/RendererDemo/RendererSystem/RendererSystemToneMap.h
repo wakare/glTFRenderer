@@ -1,6 +1,8 @@
 #pragma once
 #include "RendererSystemBase.h"
+#include "RenderPassSetupBuilder.h"
 #include <memory>
+#include <utility>
 
 class RendererSystemFrostedGlass;
 class RendererSystemLighting;
@@ -22,6 +24,12 @@ public:
     virtual void DrawDebugUI() override;
 
 protected:
+    struct ToneMapExecutionPlan
+    {
+        RendererInterface::RenderTargetHandle input_color{NULL_HANDLE};
+        RenderFeature::ComputeExecutionPlan compute_plan{};
+    };
+
     struct ToneMapGlobalParams
     {
         float exposure{1.0f};
@@ -35,9 +43,8 @@ protected:
     };
 
     RendererInterface::RenderGraph::RenderPassSetupInfo BuildToneMapPassSetupInfo(
-        RendererInterface::RenderTargetHandle input_color,
-        unsigned width,
-        unsigned height) const;
+        const ToneMapExecutionPlan& execution_plan) const;
+    ToneMapExecutionPlan BuildToneMapExecutionPlan(RendererInterface::ResourceOperator& resource_operator) const;
     void UploadGlobalParams(RendererInterface::ResourceOperator& resource_operator);
 
     std::shared_ptr<RendererSystemFrostedGlass> m_frosted;

@@ -400,9 +400,7 @@ bool RendererSystemLighting::Init(RendererInterface::ResourceOperator& resource_
     CreateLightingOutput(resource_operator);
     m_directional_shadow_state.CreateFallbackShadowMap(resource_operator);
 
-    auto camera_module = m_scene->GetCameraModule();
-    auto width = camera_module->GetWidth();
-    auto height = camera_module->GetHeight();
+    const LightingExecutionPlan execution_plan = BuildLightingExecutionPlan();
 
     // Directional light shadow pass
     const auto& lights = m_lighting_module->GetLightInfos();
@@ -418,13 +416,32 @@ bool RendererSystemLighting::Init(RendererInterface::ResourceOperator& resource_
     }
 
     CreateLightingPassShadowInfoBuffers(resource_operator);
-    m_lighting_pass_state.node =
-        graph.CreateRenderGraphNode(resource_operator, BuildLightingPassSetupInfo(camera_module, width, height));
+    RETURN_IF_FALSE(RenderFeature::CreateRenderGraphNodeIfNeeded(
+        resource_operator,
+        graph,
+        m_lighting_pass_state.node,
+        BuildLightingPassSetupInfo(execution_plan)));
     m_lighting_pass_state.light_topology_signature = ComputeLightTopologySignature(lights);
 
     graph.RegisterRenderTargetToColorOutput(m_lighting_pass_state.output);
     
     return true;
+}
+
+RendererSystemLighting::LightingExecutionPlan RendererSystemLighting::BuildLightingExecutionPlan() const
+{
+    const auto camera_module = m_scene->GetCameraModule();
+    GLTF_CHECK(camera_module);
+    const unsigned extent_width = m_scene->GetWidth() > 0
+        ? m_scene->GetWidth()
+        : camera_module->GetWidth();
+    const unsigned extent_height = m_scene->GetHeight() > 0
+        ? m_scene->GetHeight()
+        : camera_module->GetHeight();
+    return LightingExecutionPlan{
+        .camera_module = camera_module,
+        .compute_plan = RenderFeature::ComputeExecutionPlan::FromExtent(extent_width, extent_height)
+    };
 }
 
 bool RendererSystemLighting::HasInit() const
@@ -455,13 +472,12 @@ void RendererSystemLighting::ResetRuntimeResources(RendererInterface::ResourceOp
 bool RendererSystemLighting::Tick(RendererInterface::ResourceOperator& resource_operator,
                                   RendererInterface::RenderGraph& graph, unsigned long long interval)
 {
-    const unsigned width = m_scene->GetWidth();
-    const unsigned height = m_scene->GetHeight();
-    const auto camera_module = m_scene->GetCameraModule();
+    (void)interval;
+    const LightingExecutionPlan execution_plan = BuildLightingExecutionPlan();
     const auto& lights = m_lighting_module->GetLightInfos();
-    RETURN_IF_FALSE(SyncLightingTopology(resource_operator, graph, camera_module, width, height));
+    RETURN_IF_FALSE(SyncLightingTopology(resource_operator, graph, execution_plan));
     QueuePendingDirectionalShadowRenderStateUpdate(graph);
-    graph.UpdateComputeDispatch(m_lighting_pass_state.node, (width + 7) / 8, (height + 7) / 8, 1);
+    execution_plan.compute_plan.ApplyDispatch(graph, m_lighting_pass_state.node);
 
     const auto& light_buffer_handles = m_lighting_module->GetLightBufferHandles();
     if (!light_buffer_handles.empty())
@@ -521,7 +537,7 @@ bool RendererSystemLighting::Tick(RendererInterface::ResourceOperator& resource_
             current_shadow_maps);
     }
     
-    graph.RegisterRenderGraphNode(m_lighting_pass_state.node);
+    RETURN_IF_FALSE(RenderFeature::RegisterRenderGraphNodeIfValid(graph, m_lighting_pass_state.node));
     
     m_lighting_module->Tick(resource_operator, interval);
     
@@ -608,9 +624,7 @@ void RendererSystemLighting::CreateLightingPassShadowInfoBuffers(RendererInterfa
 bool RendererSystemLighting::SyncLightingTopology(
     RendererInterface::ResourceOperator& resource_operator,
     RendererInterface::RenderGraph& graph,
-    const std::shared_ptr<RendererModuleCamera>& camera_module,
-    unsigned width,
-    unsigned height)
+    const LightingExecutionPlan& execution_plan)
 {
     const auto& lights = m_lighting_module->GetLightInfos();
     const std::size_t topology_signature = ComputeLightTopologySignature(lights);
@@ -658,10 +672,11 @@ bool RendererSystemLighting::SyncLightingTopology(
     }
 
     CreateLightingPassShadowInfoBuffers(resource_operator);
-    RETURN_IF_FALSE(graph.RebuildRenderGraphNode(
+    RETURN_IF_FALSE(RenderFeature::SyncRenderGraphNode(
         resource_operator,
+        graph,
         m_lighting_pass_state.node,
-        BuildLightingPassSetupInfo(camera_module, width, height)));
+        BuildLightingPassSetupInfo(execution_plan)));
     m_lighting_pass_state.light_topology_signature = topology_signature;
     return true;
 }
@@ -737,64 +752,67 @@ RendererInterface::RenderGraph::RenderPassSetupInfo RendererSystemLighting::Buil
             RendererInterface::ShaderType::VERTEX_SHADER,
             "MainVS",
             "Resources/Shaders/ModelRenderingShader.hlsl")
-        .AddRenderTarget(
-            shadow_pass_resource.m_bound_shadow_map,
-            RenderFeature::MakeDepthRenderTargetBinding(RendererInterface::D32, true))
-        .AddBuffer(
-            "ViewBuffer",
-            RenderFeature::MakeConstantBufferBinding(shadow_pass_resource.m_shadow_map_buffer_handles[0]))
+        .AddRenderTargets({
+            RenderFeature::MakeRenderTargetAttachment(
+                shadow_pass_resource.m_bound_shadow_map,
+                RenderFeature::MakeDepthRenderTargetBinding(RendererInterface::D32, true))
+        })
+        .AddBuffers({
+            RenderFeature::MakeBufferBinding(
+                "ViewBuffer",
+                RenderFeature::MakeConstantBufferBinding(shadow_pass_resource.m_shadow_map_buffer_handles[0]))
+        })
         .ExcludeBufferBinding("g_material_infos")
         .ExcludeTextureBinding("bindless_material_textures")
         .Build();
 }
 
 RendererInterface::RenderGraph::RenderPassSetupInfo RendererSystemLighting::BuildLightingPassSetupInfo(
-    const std::shared_ptr<RendererModuleCamera>& camera_module,
-    unsigned width,
-    unsigned height) const
+    const LightingExecutionPlan& execution_plan) const
 {
     const auto scene_outputs = m_scene->GetOutputs();
     std::vector<RendererInterface::RenderTargetHandle> initial_shadow_maps;
     m_directional_shadow_state.CollectLightIndexedShadowMaps(m_lighting_module->GetLightInfos(), initial_shadow_maps);
     GLTF_CHECK(!m_lighting_pass_state.shadow_infos_handles.empty());
     auto builder = RenderFeature::PassBuilder::Compute("Lighting", "Scene Lighting");
-    builder.AddModules({m_lighting_module, camera_module})
+    builder.AddModules({m_lighting_module, execution_plan.camera_module})
         .AddShader(RendererInterface::COMPUTE_SHADER, "main", "Resources/Shaders/SceneLighting.hlsl")
-        .AddSampledRenderTarget(
-            "albedoTex",
-            scene_outputs.color,
-            RendererInterface::RenderTargetTextureBindingDesc::SRV)
-        .AddSampledRenderTarget(
-            "normalTex",
-            scene_outputs.normal,
-            RendererInterface::RenderTargetTextureBindingDesc::SRV)
-        .AddSampledRenderTarget(
-            "depthTex",
-            scene_outputs.depth,
-            RendererInterface::RenderTargetTextureBindingDesc::SRV)
-        .AddSampledRenderTargets(
-            "bindless_shadowmap_textures",
-            initial_shadow_maps,
-            RendererInterface::RenderTargetTextureBindingDesc::SRV)
-        .AddSampledRenderTarget(
-            "Output",
-            m_lighting_pass_state.output,
-            RendererInterface::RenderTargetTextureBindingDesc::UAV)
-        .AddBuffer(
-            "g_shadowmap_infos",
-            RenderFeature::MakeStructuredBufferBinding(
-                m_lighting_pass_state.shadow_infos_handles.front(),
-                RendererInterface::BufferBindingDesc::SRV,
-                sizeof(ShadowMapInfo),
-                static_cast<unsigned>(m_lighting_module->GetLightInfos().size())))
-        .SetDispatch2D(width, height);
+        .AddSampledRenderTargetBindings({
+            RenderFeature::MakeSampledRenderTargetBinding(
+                "albedoTex",
+                scene_outputs.color,
+                RendererInterface::RenderTargetTextureBindingDesc::SRV),
+            RenderFeature::MakeSampledRenderTargetBinding(
+                "normalTex",
+                scene_outputs.normal,
+                RendererInterface::RenderTargetTextureBindingDesc::SRV),
+            RenderFeature::MakeSampledRenderTargetBinding(
+                "depthTex",
+                scene_outputs.depth,
+                RendererInterface::RenderTargetTextureBindingDesc::SRV),
+            RenderFeature::MakeSampledRenderTargetBinding(
+                "bindless_shadowmap_textures",
+                initial_shadow_maps,
+                RendererInterface::RenderTargetTextureBindingDesc::SRV),
+            RenderFeature::MakeSampledRenderTargetBinding(
+                "Output",
+                m_lighting_pass_state.output,
+                RendererInterface::RenderTargetTextureBindingDesc::UAV)
+        })
+        .AddBuffers({
+            RenderFeature::MakeBufferBinding(
+                "g_shadowmap_infos",
+                RenderFeature::MakeStructuredBufferBinding(
+                    m_lighting_pass_state.shadow_infos_handles.front(),
+                    RendererInterface::BufferBindingDesc::SRV,
+                    sizeof(ShadowMapInfo),
+                    static_cast<unsigned>(m_lighting_module->GetLightInfos().size())))
+        })
+        .SetDispatch(execution_plan.compute_plan);
 
     std::vector<RendererInterface::RenderGraphNodeHandle> dependency_nodes;
     m_directional_shadow_state.CollectDependencyNodes(dependency_nodes);
-    for (const auto dependency_node : dependency_nodes)
-    {
-        builder.AddDependency(dependency_node);
-    }
+    builder.AddDependencies(dependency_nodes);
 
     return builder.Build();
 }

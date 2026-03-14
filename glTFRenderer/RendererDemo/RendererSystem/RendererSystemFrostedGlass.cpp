@@ -24,6 +24,30 @@ RendererSystemFrostedGlass::RendererSystemFrostedGlass(std::shared_ptr<RendererS
 {
 }
 
+RendererSystemFrostedGlass::BlurPyramidBundleView RendererSystemFrostedGlass::GetPrimaryBlurPyramidView() const
+{
+    BlurPyramidBundleView bundle{};
+    bundle.levels = m_primary_blur_pyramid.levels;
+    return bundle;
+}
+
+RendererSystemFrostedGlass::BlurPyramidBundleView RendererSystemFrostedGlass::GetMultilayerBlurPyramidView() const
+{
+    BlurPyramidBundleView bundle{};
+    bundle.levels = m_multilayer_blur_pyramid.levels;
+    return bundle;
+}
+
+RendererSystemFrostedGlass::CompositePassBundleView RendererSystemFrostedGlass::GetLegacyCompositePassBundleView() const
+{
+    return m_legacy_composite_passes;
+}
+
+RendererSystemFrostedGlass::CompositePassBundleView RendererSystemFrostedGlass::GetSharedMipCompositePassBundleView() const
+{
+    return m_shared_mip_composite_passes;
+}
+
 unsigned RendererSystemFrostedGlass::AddPanel(const FrostedGlassPanelDesc& panel_desc)
 {
     GLTF_CHECK(m_panel_descs.size() < MAX_PANEL_COUNT);
@@ -254,8 +278,8 @@ void RendererSystemFrostedGlass::SetBlurSourceMode(BlurSourceMode mode)
     }
 
     m_blur_source_mode = next_mode;
-    m_temporal_force_reset = true;
-    m_temporal_history_valid = false;
+    m_temporal_history_state.force_reset = true;
+    m_temporal_history_state.valid = false;
     m_global_params.temporal_history_valid = 0;
     m_need_upload_global_params = true;
 }
@@ -267,23 +291,14 @@ void RendererSystemFrostedGlass::SetFullFogMode(bool enable)
 
 void RendererSystemFrostedGlass::ForceResetTemporalHistory()
 {
-    m_temporal_force_reset = true;
-    m_temporal_history_valid = false;
-    m_temporal_history_read_is_a = true;
+    m_temporal_history_state.ResetRuntime();
     m_global_params.temporal_history_valid = 0;
     m_need_upload_global_params = true;
 }
 
-bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resource_operator,
-                                      RendererInterface::RenderGraph& graph)
+void RendererSystemFrostedGlass::ResetInitRuntimeState()
 {
-    GLTF_CHECK(m_scene);
-    GLTF_CHECK(m_lighting);
-    GLTF_CHECK(m_scene->HasInit());
-    GLTF_CHECK(m_lighting->HasInit());
-    m_temporal_history_read_is_a = true;
-    m_temporal_force_reset = true;
-    m_temporal_history_valid = false;
+    m_temporal_history_state.ResetRuntime();
     m_global_params.temporal_history_valid = 0;
     m_global_params.blur_source_mode = static_cast<unsigned>(m_blur_source_mode);
     m_multilayer_runtime_enabled = m_global_params.multilayer_mode != MULTILAYER_MODE_SINGLE;
@@ -291,342 +306,380 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
     m_multilayer_cooldown_frames = 0;
     m_global_params.multilayer_runtime_enabled = m_multilayer_runtime_enabled ? 1u : 0u;
     m_need_upload_global_params = true;
-    m_dispatch_state_valid = false;
+    m_static_pass_setup_state.Reset();
+    m_dispatch_cache_state.Reset();
+}
 
-    const unsigned width = (std::max)(1u, resource_operator.GetCurrentRenderWidth());
-    const unsigned height = (std::max)(1u, resource_operator.GetCurrentRenderHeight());
-    const unsigned half_width = (width + 1u) / 2u;
-    const unsigned half_height = (height + 1u) / 2u;
-    const unsigned quarter_width = (width + 3u) / 4u;
-    const unsigned quarter_height = (height + 3u) / 4u;
-    const unsigned eighth_width = (width + 7u) / 8u;
-    const unsigned eighth_height = (height + 7u) / 8u;
-    const unsigned sixteenth_width = (width + 15u) / 16u;
-    const unsigned sixteenth_height = (height + 15u) / 16u;
-    const unsigned thirtysecond_width = (width + 31u) / 32u;
-    const unsigned thirtysecond_height = (height + 31u) / 32u;
-    const auto postfx_usage = static_cast<RendererInterface::ResourceUsage>(
+RendererSystemFrostedGlass::InitDimensions RendererSystemFrostedGlass::BuildInitDimensions(
+    RendererInterface::ResourceOperator& resource_operator) const
+{
+    InitDimensions dimensions{};
+    const RenderFeature::FrameDimensions frame_dimensions =
+        RenderFeature::FrameDimensions::FromResourceOperator(resource_operator);
+    const RenderFeature::FrameDimensions half_dimensions = frame_dimensions.Downsampled(2u);
+    const RenderFeature::FrameDimensions quarter_dimensions = frame_dimensions.Downsampled(4u);
+    const RenderFeature::FrameDimensions eighth_dimensions = frame_dimensions.Downsampled(8u);
+    const RenderFeature::FrameDimensions sixteenth_dimensions = frame_dimensions.Downsampled(16u);
+    const RenderFeature::FrameDimensions thirtysecond_dimensions = frame_dimensions.Downsampled(32u);
+    dimensions.width = frame_dimensions.width;
+    dimensions.height = frame_dimensions.height;
+    dimensions.half_width = half_dimensions.width;
+    dimensions.half_height = half_dimensions.height;
+    dimensions.quarter_width = quarter_dimensions.width;
+    dimensions.quarter_height = quarter_dimensions.height;
+    dimensions.eighth_width = eighth_dimensions.width;
+    dimensions.eighth_height = eighth_dimensions.height;
+    dimensions.sixteenth_width = sixteenth_dimensions.width;
+    dimensions.sixteenth_height = sixteenth_dimensions.height;
+    dimensions.thirtysecond_width = thirtysecond_dimensions.width;
+    dimensions.thirtysecond_height = thirtysecond_dimensions.height;
+    dimensions.postfx_usage = static_cast<RendererInterface::ResourceUsage>(
         RendererInterface::ResourceUsage::RENDER_TARGET |
         RendererInterface::ResourceUsage::COPY_SRC |
         RendererInterface::ResourceUsage::SHADER_RESOURCE |
         RendererInterface::ResourceUsage::UNORDER_ACCESS);
-    const auto make_compute_dispatch = [](unsigned dispatch_width, unsigned dispatch_height) -> RendererInterface::RenderExecuteCommand
-    {
-        RendererInterface::RenderExecuteCommand dispatch_command{};
-        dispatch_command.type = RendererInterface::ExecuteCommandType::COMPUTE_DISPATCH_COMMAND;
-        dispatch_command.parameter.dispatch_parameter.group_size_x = (dispatch_width + 7) / 8;
-        dispatch_command.parameter.dispatch_parameter.group_size_y = (dispatch_height + 7) / 8;
-        dispatch_command.parameter.dispatch_parameter.group_size_z = 1;
-        return dispatch_command;
-    };
+    return dimensions;
+}
 
-    GLTF_CHECK(m_postfx_shared_resources.Init(
+bool RendererSystemFrostedGlass::InitializeSharedPostFxResources(
+    RendererInterface::ResourceOperator& resource_operator,
+    const InitDimensions& dimensions)
+{
+    return m_postfx_shared_resources.Init(
         resource_operator,
         "PostFX_Shared",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
-        postfx_usage));
+        dimensions.postfx_usage);
+}
 
-    m_frosted_pass_output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
+void RendererSystemFrostedGlass::CreateInitRenderTargets(
+    RendererInterface::ResourceOperator& resource_operator,
+    const InitDimensions& dimensions)
+{
+    auto& primary_blur_storage = m_primary_blur_pyramid;
+    auto& multilayer_blur_storage = m_multilayer_blur_pyramid;
+    auto& panel_payload_passes = m_panel_payload_passes;
+    auto& composite_outputs = m_composite_outputs;
+    auto& panel_payload_targets = m_panel_payload_targets;
+    auto& primary_panel_payload = panel_payload_targets.primary;
+    auto& secondary_panel_payload = panel_payload_targets.secondary;
+
+    primary_blur_storage.Reset();
+    multilayer_blur_storage.Reset();
+    panel_payload_passes = {};
+    m_legacy_composite_passes = {};
+    m_shared_mip_composite_passes = {};
+    composite_outputs = {};
+    panel_payload_targets.Reset();
+
+    primary_blur_storage.Half().ping = GetHalfResPing();
+    primary_blur_storage.Half().pong = GetHalfResPong();
+    primary_blur_storage.Quarter().ping = GetQuarterResPing();
+    primary_blur_storage.Quarter().pong = GetQuarterResPong();
+
+    composite_outputs.final_output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Output",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
-        postfx_usage);
-    m_frosted_back_composite_output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
+        dimensions.postfx_usage);
+    composite_outputs.back_composite = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_BackComposite",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
-        postfx_usage);
-    m_frosted_mask_parameter_output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
+        dimensions.postfx_usage);
+    primary_panel_payload.mask_parameter = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_MaskParameter",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
-        postfx_usage);
-    m_frosted_mask_parameter_secondary_output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
+        dimensions.postfx_usage);
+    secondary_panel_payload.mask_parameter = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_MaskParameter_Secondary",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
-        postfx_usage);
-    m_frosted_panel_optics_output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
+        dimensions.postfx_usage);
+    primary_panel_payload.panel_optics = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_PanelOptics",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
-        postfx_usage);
-    m_frosted_panel_optics_secondary_output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
+        dimensions.postfx_usage);
+    secondary_panel_payload.panel_optics = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_PanelOptics_Secondary",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
-        postfx_usage);
-    m_frosted_panel_profile_output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
+        dimensions.postfx_usage);
+    primary_panel_payload.panel_profile = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_PanelProfile",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
-        postfx_usage);
-    m_frosted_panel_profile_secondary_output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
+        dimensions.postfx_usage);
+    secondary_panel_payload.panel_profile = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_PanelProfile_Secondary",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
-        postfx_usage);
-    m_frosted_panel_payload_depth = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
+        dimensions.postfx_usage);
+    primary_panel_payload.payload_depth = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_PanelPayloadDepth",
         RendererInterface::D32,
         RendererInterface::default_clear_depth,
         static_cast<RendererInterface::ResourceUsage>(RendererInterface::ResourceUsage::DEPTH_STENCIL));
-    m_frosted_panel_payload_depth_secondary = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
+    secondary_panel_payload.payload_depth = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_PanelPayloadDepth_Secondary",
         RendererInterface::D32,
         RendererInterface::default_clear_depth,
         static_cast<RendererInterface::ResourceUsage>(RendererInterface::ResourceUsage::DEPTH_STENCIL));
-    m_half_multilayer_ping = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
+
+    multilayer_blur_storage.Half().ping = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Multilayer_Half_Ping",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
-        postfx_usage,
+        dimensions.postfx_usage,
         0.5f,
         0.5f,
         1,
         1);
-    m_half_multilayer_pong = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
+    multilayer_blur_storage.Half().pong = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Multilayer_Half_Pong",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
-        postfx_usage,
+        dimensions.postfx_usage,
         0.5f,
         0.5f,
         1,
         1);
-    m_quarter_multilayer_ping = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
+    multilayer_blur_storage.Quarter().ping = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Multilayer_Quarter_Ping",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
-        postfx_usage,
+        dimensions.postfx_usage,
         0.25f,
         0.25f,
         1,
         1);
-    m_quarter_multilayer_pong = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
+    multilayer_blur_storage.Quarter().pong = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Multilayer_Quarter_Pong",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
-        postfx_usage,
+        dimensions.postfx_usage,
         0.25f,
         0.25f,
         1,
         1);
-    m_eighth_blur_ping = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
+    primary_blur_storage.Eighth().ping = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Eighth_Ping",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
-        postfx_usage,
+        dimensions.postfx_usage,
         0.125f,
         0.125f,
         1,
         1);
-    m_eighth_blur_pong = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
+    primary_blur_storage.Eighth().pong = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Eighth_Pong",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
-        postfx_usage,
+        dimensions.postfx_usage,
         0.125f,
         0.125f,
         1,
         1);
-    m_sixteenth_blur_ping = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
+    primary_blur_storage.Sixteenth().ping = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Sixteenth_Ping",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
-        postfx_usage,
+        dimensions.postfx_usage,
         0.0625f,
         0.0625f,
         1,
         1);
-    m_sixteenth_blur_pong = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
+    primary_blur_storage.Sixteenth().pong = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Sixteenth_Pong",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
-        postfx_usage,
+        dimensions.postfx_usage,
         0.0625f,
         0.0625f,
         1,
         1);
-    m_thirtysecond_blur_ping = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
+    primary_blur_storage.ThirtySecond().ping = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_ThirtySecond_Ping",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
-        postfx_usage,
+        dimensions.postfx_usage,
         0.03125f,
         0.03125f,
         1,
         1);
-    m_thirtysecond_blur_pong = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
+    primary_blur_storage.ThirtySecond().pong = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_ThirtySecond_Pong",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
-        postfx_usage,
+        dimensions.postfx_usage,
         0.03125f,
         0.03125f,
         1,
         1);
-    m_eighth_multilayer_ping = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
+    multilayer_blur_storage.Eighth().ping = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Multilayer_Eighth_Ping",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
-        postfx_usage,
+        dimensions.postfx_usage,
         0.125f,
         0.125f,
         1,
         1);
-    m_eighth_multilayer_pong = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
+    multilayer_blur_storage.Eighth().pong = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Multilayer_Eighth_Pong",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
-        postfx_usage,
+        dimensions.postfx_usage,
         0.125f,
         0.125f,
         1,
         1);
-    m_sixteenth_multilayer_ping = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
+    multilayer_blur_storage.Sixteenth().ping = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Multilayer_Sixteenth_Ping",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
-        postfx_usage,
+        dimensions.postfx_usage,
         0.0625f,
         0.0625f,
         1,
         1);
-    m_sixteenth_multilayer_pong = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
+    multilayer_blur_storage.Sixteenth().pong = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Multilayer_Sixteenth_Pong",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
-        postfx_usage,
+        dimensions.postfx_usage,
         0.0625f,
         0.0625f,
         1,
         1);
-    m_thirtysecond_multilayer_ping = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
+    multilayer_blur_storage.ThirtySecond().ping = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Multilayer_ThirtySecond_Ping",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
-        postfx_usage,
+        dimensions.postfx_usage,
         0.03125f,
         0.03125f,
         1,
         1);
-    m_thirtysecond_multilayer_pong = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
+    multilayer_blur_storage.ThirtySecond().pong = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Multilayer_ThirtySecond_Pong",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
-        postfx_usage,
+        dimensions.postfx_usage,
         0.03125f,
         0.03125f,
         1,
         1);
-    m_half_blur_final_output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
+
+    primary_blur_storage.Half().output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Half_BlurFinal",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
-        postfx_usage,
+        dimensions.postfx_usage,
         0.5f,
         0.5f,
         1,
         1);
-    m_quarter_blur_final_output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
+    primary_blur_storage.Quarter().output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Quarter_BlurFinal",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
-        postfx_usage,
+        dimensions.postfx_usage,
         0.25f,
         0.25f,
         1,
         1);
-    m_eighth_blur_final_output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
+    primary_blur_storage.Eighth().output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Eighth_BlurFinal",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
-        postfx_usage,
+        dimensions.postfx_usage,
         0.125f,
         0.125f,
         1,
         1);
-    m_sixteenth_blur_final_output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
+    primary_blur_storage.Sixteenth().output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Sixteenth_BlurFinal",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
-        postfx_usage,
+        dimensions.postfx_usage,
         0.0625f,
         0.0625f,
         1,
         1);
-    m_thirtysecond_blur_final_output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
+    primary_blur_storage.ThirtySecond().output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_ThirtySecond_BlurFinal",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
-        postfx_usage,
+        dimensions.postfx_usage,
         0.03125f,
         0.03125f,
         1,
         1);
-    m_half_multilayer_blur_final_output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
+    multilayer_blur_storage.Half().output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Multilayer_Half_BlurFinal",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
-        postfx_usage,
+        dimensions.postfx_usage,
         0.5f,
         0.5f,
         1,
         1);
-    m_quarter_multilayer_blur_final_output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
+    multilayer_blur_storage.Quarter().output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Multilayer_Quarter_BlurFinal",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
-        postfx_usage,
+        dimensions.postfx_usage,
         0.25f,
         0.25f,
         1,
         1);
-    m_eighth_multilayer_blur_final_output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
+    multilayer_blur_storage.Eighth().output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Multilayer_Eighth_BlurFinal",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
-        postfx_usage,
+        dimensions.postfx_usage,
         0.125f,
         0.125f,
         1,
         1);
-    m_sixteenth_multilayer_blur_final_output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
+    multilayer_blur_storage.Sixteenth().output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Multilayer_Sixteenth_BlurFinal",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
-        postfx_usage,
+        dimensions.postfx_usage,
         0.0625f,
         0.0625f,
         1,
         1);
-    m_thirtysecond_multilayer_blur_final_output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
+    multilayer_blur_storage.ThirtySecond().output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "PostFX_Frosted_Multilayer_ThirtySecond_BlurFinal",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
-        postfx_usage,
+        dimensions.postfx_usage,
         0.03125f,
         0.03125f,
         1,
         1);
-    m_temporal_history_a = resource_operator.CreateWindowRelativeRenderTarget(
+
+    m_temporal_history_state.history_a = resource_operator.CreateWindowRelativeRenderTarget(
         "PostFX_Frosted_History_A",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
-        postfx_usage);
-    m_temporal_history_b = resource_operator.CreateWindowRelativeRenderTarget(
+        dimensions.postfx_usage);
+    m_temporal_history_state.history_b = resource_operator.CreateWindowRelativeRenderTarget(
         "PostFX_Frosted_History_B",
         RendererInterface::RGBA16_FLOAT,
         RendererInterface::default_clear_color,
-        postfx_usage);
+        dimensions.postfx_usage);
+}
 
-    const RendererInterface::RenderTargetHandle half_ping = GetHalfResPing();
-    const RendererInterface::RenderTargetHandle half_pong = GetHalfResPong();
-    const RendererInterface::RenderTargetHandle quarter_ping = GetQuarterResPing();
-    const RendererInterface::RenderTargetHandle quarter_pong = GetQuarterResPong();
-
+void RendererSystemFrostedGlass::CreateInitBuffers(
+    RendererInterface::ResourceOperator& resource_operator)
+{
     RendererInterface::BufferDesc panel_data_buffer_desc{};
     panel_data_buffer_desc.name = "g_frosted_panels";
     panel_data_buffer_desc.size = sizeof(FrostedGlassPanelGpuData) * MAX_PANEL_COUNT;
@@ -640,53 +693,80 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
     global_params_buffer_desc.type = RendererInterface::DEFAULT;
     global_params_buffer_desc.usage = RendererInterface::USAGE_CBV;
     m_frosted_global_params_handle = resource_operator.CreateBuffer(global_params_buffer_desc);
+}
 
-    const auto scene_outputs = m_scene->GetOutputs();
-    const RendererInterface::BufferBindingDesc global_params_binding_desc =
-        RenderFeature::MakeConstantBufferBinding(m_frosted_global_params_handle);
+RendererSystemFrostedGlass::InitBindings RendererSystemFrostedGlass::BuildInitBindings() const
+{
+    GLTF_CHECK(m_frosted_panel_data_handle != NULL_HANDLE);
+    GLTF_CHECK(m_frosted_global_params_handle != NULL_HANDLE);
+    InitBindings bindings{};
+    bindings.panel_data = RenderFeature::MakeStructuredBufferBinding(
+        m_frosted_panel_data_handle,
+        RendererInterface::BufferBindingDesc::SRV,
+        sizeof(FrostedGlassPanelGpuData),
+        MAX_PANEL_COUNT);
+    bindings.global_params = RenderFeature::MakeConstantBufferBinding(m_frosted_global_params_handle);
+    return bindings;
+}
+
+bool RendererSystemFrostedGlass::CreatePrimaryBlurPyramidPasses(
+    RendererInterface::ResourceOperator& resource_operator,
+    RendererInterface::RenderGraph& graph,
+    const InitDimensions& dimensions,
+    const InitBindings& bindings,
+    bool sync_existing)
+{
+    auto& primary_blur_storage = m_primary_blur_pyramid;
+    auto& primary_half = primary_blur_storage.Half();
+    auto& primary_quarter = primary_blur_storage.Quarter();
+    auto& primary_eighth = primary_blur_storage.Eighth();
+    auto& primary_sixteenth = primary_blur_storage.Sixteenth();
+    auto& primary_thirtysecond = primary_blur_storage.ThirtySecond();
 
     const auto create_postfx_pass_node =
-        [&](const char* debug_name,
+        [&](RendererInterface::RenderGraphNodeHandle& out_node_handle,
+            const char* debug_name,
             const char* entry_function,
             RendererInterface::RenderTargetHandle input_rt,
             RendererInterface::RenderTargetHandle output_rt,
             RendererInterface::RenderGraphNodeHandle dependency_node,
             unsigned dispatch_width,
             unsigned dispatch_height,
-            bool bind_global_params) -> RendererInterface::RenderGraphNodeHandle
+            bool bind_global_params) -> bool
     {
-        auto builder = RenderFeature::PassBuilder::Compute("Frosted Glass", debug_name);
-        builder
-            .AddShader(RendererInterface::COMPUTE_SHADER, entry_function, "Resources/Shaders/FrostedGlassPostfx.hlsl")
-            .AddSampledRenderTarget(
-                "InputTex",
-                input_rt,
-                RendererInterface::RenderTargetTextureBindingDesc::SRV)
-            .AddSampledRenderTarget(
-                "OutputTex",
-                output_rt,
-                RendererInterface::RenderTargetTextureBindingDesc::UAV)
-            .SetDispatch2D(dispatch_width, dispatch_height);
-        if (dependency_node != NULL_HANDLE)
-        {
-            builder.AddDependency(dependency_node);
-        }
+        auto builder = RenderFeature::MakeComputePostFxPassBuilder(
+            "Frosted Glass",
+            debug_name,
+            entry_function,
+            "Resources/Shaders/FrostedGlassPostfx.hlsl",
+            input_rt,
+            output_rt,
+            dispatch_width,
+            dispatch_height,
+            dependency_node);
         if (bind_global_params)
         {
-            builder.AddBuffer("FrostedGlassGlobalBuffer", global_params_binding_desc);
+            builder.AddBuffer("FrostedGlassGlobalBuffer", bindings.global_params);
         }
-        return graph.CreateRenderGraphNode(resource_operator, builder.Build());
+        return RenderFeature::CreateOrSyncRenderGraphNode(
+            sync_existing,
+            resource_operator,
+            graph,
+            out_node_handle,
+            builder.Build());
     };
 
     const auto create_downsample_postfx_pass_node =
-        [&](const char* debug_name,
+        [&](RendererInterface::RenderGraphNodeHandle& out_node_handle,
+            const char* debug_name,
             RendererInterface::RenderTargetHandle input_rt,
             RendererInterface::RenderTargetHandle output_rt,
             RendererInterface::RenderGraphNodeHandle dependency_node,
             unsigned dispatch_width,
-            unsigned dispatch_height) -> RendererInterface::RenderGraphNodeHandle
+            unsigned dispatch_height) -> bool
     {
         return create_postfx_pass_node(
+            out_node_handle,
             debug_name,
             "DownsampleMain",
             input_rt,
@@ -698,15 +778,17 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
     };
 
     const auto create_blur_postfx_pass_node =
-        [&](const char* debug_name,
+        [&](RendererInterface::RenderGraphNodeHandle& out_node_handle,
+            const char* debug_name,
             const char* entry_function,
             RendererInterface::RenderTargetHandle input_rt,
             RendererInterface::RenderTargetHandle output_rt,
             RendererInterface::RenderGraphNodeHandle dependency_node,
             unsigned dispatch_width,
-            unsigned dispatch_height) -> RendererInterface::RenderGraphNodeHandle
+            unsigned dispatch_height) -> bool
     {
         return create_postfx_pass_node(
+            out_node_handle,
             debug_name,
             entry_function,
             input_rt,
@@ -717,227 +799,244 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
             true);
     };
 
-    m_downsample_half_pass_node = create_downsample_postfx_pass_node(
+    RETURN_IF_FALSE(create_downsample_postfx_pass_node(
+        primary_half.downsample_node,
         "Downsample Half",
         m_lighting->GetLightingOutput(),
-        half_ping,
+        primary_half.ping,
         NULL_HANDLE,
-        half_width,
-        half_height);
-    m_blur_half_horizontal_pass_node = create_blur_postfx_pass_node(
+        dimensions.half_width,
+        dimensions.half_height));
+    RETURN_IF_FALSE(create_blur_postfx_pass_node(
+        primary_half.blur_horizontal_node,
         "Blur Half Horizontal",
         "BlurHorizontalMain",
-        half_ping,
-        half_pong,
-        m_downsample_half_pass_node,
-        half_width,
-        half_height);
-    m_blur_half_vertical_pass_node = create_blur_postfx_pass_node(
+        primary_half.ping,
+        primary_half.pong,
+        primary_half.downsample_node,
+        dimensions.half_width,
+        dimensions.half_height));
+    RETURN_IF_FALSE(create_blur_postfx_pass_node(
+        primary_half.blur_vertical_node,
         "Blur Half Vertical",
         "BlurVerticalMain",
-        half_pong,
-        m_half_blur_final_output,
-        m_blur_half_horizontal_pass_node,
-        half_width,
-        half_height);
+        primary_half.pong,
+        primary_half.output,
+        primary_half.blur_horizontal_node,
+        dimensions.half_width,
+        dimensions.half_height));
 
-    m_downsample_quarter_pass_node = create_downsample_postfx_pass_node(
+    RETURN_IF_FALSE(create_downsample_postfx_pass_node(
+        primary_quarter.downsample_node,
         "Downsample Quarter",
-        m_half_blur_final_output,
-        quarter_ping,
-        m_blur_half_vertical_pass_node,
-        quarter_width,
-        quarter_height);
-    m_blur_quarter_horizontal_pass_node = create_blur_postfx_pass_node(
+        primary_half.output,
+        primary_quarter.ping,
+        primary_half.blur_vertical_node,
+        dimensions.quarter_width,
+        dimensions.quarter_height));
+    RETURN_IF_FALSE(create_blur_postfx_pass_node(
+        primary_quarter.blur_horizontal_node,
         "Blur Quarter Horizontal",
         "BlurHorizontalMain",
-        quarter_ping,
-        quarter_pong,
-        m_downsample_quarter_pass_node,
-        quarter_width,
-        quarter_height);
-    m_blur_quarter_vertical_pass_node = create_blur_postfx_pass_node(
+        primary_quarter.ping,
+        primary_quarter.pong,
+        primary_quarter.downsample_node,
+        dimensions.quarter_width,
+        dimensions.quarter_height));
+    RETURN_IF_FALSE(create_blur_postfx_pass_node(
+        primary_quarter.blur_vertical_node,
         "Blur Quarter Vertical",
         "BlurVerticalMain",
-        quarter_pong,
-        m_quarter_blur_final_output,
-        m_blur_quarter_horizontal_pass_node,
-        quarter_width,
-        quarter_height);
+        primary_quarter.pong,
+        primary_quarter.output,
+        primary_quarter.blur_horizontal_node,
+        dimensions.quarter_width,
+        dimensions.quarter_height));
 
-    m_downsample_eighth_pass_node = create_downsample_postfx_pass_node(
+    RETURN_IF_FALSE(create_downsample_postfx_pass_node(
+        primary_eighth.downsample_node,
         "Downsample Eighth",
-        m_quarter_blur_final_output,
-        m_eighth_blur_ping,
-        m_blur_quarter_vertical_pass_node,
-        eighth_width,
-        eighth_height);
-    m_blur_eighth_horizontal_pass_node = create_blur_postfx_pass_node(
+        primary_quarter.output,
+        primary_eighth.ping,
+        primary_quarter.blur_vertical_node,
+        dimensions.eighth_width,
+        dimensions.eighth_height));
+    RETURN_IF_FALSE(create_blur_postfx_pass_node(
+        primary_eighth.blur_horizontal_node,
         "Blur Eighth Horizontal",
         "BlurHorizontalMain",
-        m_eighth_blur_ping,
-        m_eighth_blur_pong,
-        m_downsample_eighth_pass_node,
-        eighth_width,
-        eighth_height);
-    m_blur_eighth_vertical_pass_node = create_blur_postfx_pass_node(
+        primary_eighth.ping,
+        primary_eighth.pong,
+        primary_eighth.downsample_node,
+        dimensions.eighth_width,
+        dimensions.eighth_height));
+    RETURN_IF_FALSE(create_blur_postfx_pass_node(
+        primary_eighth.blur_vertical_node,
         "Blur Eighth Vertical",
         "BlurVerticalMain",
-        m_eighth_blur_pong,
-        m_eighth_blur_final_output,
-        m_blur_eighth_horizontal_pass_node,
-        eighth_width,
-        eighth_height);
+        primary_eighth.pong,
+        primary_eighth.output,
+        primary_eighth.blur_horizontal_node,
+        dimensions.eighth_width,
+        dimensions.eighth_height));
 
-    m_downsample_sixteenth_pass_node = create_downsample_postfx_pass_node(
+    RETURN_IF_FALSE(create_downsample_postfx_pass_node(
+        primary_sixteenth.downsample_node,
         "Downsample Sixteenth",
-        m_eighth_blur_final_output,
-        m_sixteenth_blur_ping,
-        m_blur_eighth_vertical_pass_node,
-        sixteenth_width,
-        sixteenth_height);
-    m_blur_sixteenth_horizontal_pass_node = create_blur_postfx_pass_node(
+        primary_eighth.output,
+        primary_sixteenth.ping,
+        primary_eighth.blur_vertical_node,
+        dimensions.sixteenth_width,
+        dimensions.sixteenth_height));
+    RETURN_IF_FALSE(create_blur_postfx_pass_node(
+        primary_sixteenth.blur_horizontal_node,
         "Blur Sixteenth Horizontal",
         "BlurHorizontalMain",
-        m_sixteenth_blur_ping,
-        m_sixteenth_blur_pong,
-        m_downsample_sixteenth_pass_node,
-        sixteenth_width,
-        sixteenth_height);
-    m_blur_sixteenth_vertical_pass_node = create_blur_postfx_pass_node(
+        primary_sixteenth.ping,
+        primary_sixteenth.pong,
+        primary_sixteenth.downsample_node,
+        dimensions.sixteenth_width,
+        dimensions.sixteenth_height));
+    RETURN_IF_FALSE(create_blur_postfx_pass_node(
+        primary_sixteenth.blur_vertical_node,
         "Blur Sixteenth Vertical",
         "BlurVerticalMain",
-        m_sixteenth_blur_pong,
-        m_sixteenth_blur_final_output,
-        m_blur_sixteenth_horizontal_pass_node,
-        sixteenth_width,
-        sixteenth_height);
+        primary_sixteenth.pong,
+        primary_sixteenth.output,
+        primary_sixteenth.blur_horizontal_node,
+        dimensions.sixteenth_width,
+        dimensions.sixteenth_height));
 
-    m_downsample_thirtysecond_pass_node = create_downsample_postfx_pass_node(
+    RETURN_IF_FALSE(create_downsample_postfx_pass_node(
+        primary_thirtysecond.downsample_node,
         "Downsample ThirtySecond",
-        m_sixteenth_blur_final_output,
-        m_thirtysecond_blur_ping,
-        m_blur_sixteenth_vertical_pass_node,
-        thirtysecond_width,
-        thirtysecond_height);
-    m_blur_thirtysecond_horizontal_pass_node = create_blur_postfx_pass_node(
+        primary_sixteenth.output,
+        primary_thirtysecond.ping,
+        primary_sixteenth.blur_vertical_node,
+        dimensions.thirtysecond_width,
+        dimensions.thirtysecond_height));
+    RETURN_IF_FALSE(create_blur_postfx_pass_node(
+        primary_thirtysecond.blur_horizontal_node,
         "Blur ThirtySecond Horizontal",
         "BlurHorizontalMain",
-        m_thirtysecond_blur_ping,
-        m_thirtysecond_blur_pong,
-        m_downsample_thirtysecond_pass_node,
-        thirtysecond_width,
-        thirtysecond_height);
-    m_blur_thirtysecond_vertical_pass_node = create_blur_postfx_pass_node(
+        primary_thirtysecond.ping,
+        primary_thirtysecond.pong,
+        primary_thirtysecond.downsample_node,
+        dimensions.thirtysecond_width,
+        dimensions.thirtysecond_height));
+    RETURN_IF_FALSE(create_blur_postfx_pass_node(
+        primary_thirtysecond.blur_vertical_node,
         "Blur ThirtySecond Vertical",
         "BlurVerticalMain",
-        m_thirtysecond_blur_pong,
-        m_thirtysecond_blur_final_output,
-        m_blur_thirtysecond_horizontal_pass_node,
-        thirtysecond_width,
-        thirtysecond_height);
+        primary_thirtysecond.pong,
+        primary_thirtysecond.output,
+        primary_thirtysecond.blur_horizontal_node,
+        dimensions.thirtysecond_width,
+        dimensions.thirtysecond_height));
 
-    const auto create_downsample_pass_node =
-        [&](const char* debug_name,
-            RendererInterface::RenderTargetHandle input_rt,
-            RendererInterface::RenderTargetHandle output_rt,
-            RendererInterface::RenderGraphNodeHandle dependency_node,
-            unsigned dispatch_width,
-            unsigned dispatch_height) -> RendererInterface::RenderGraphNodeHandle
-    {
-        return create_downsample_postfx_pass_node(
-            debug_name,
-            input_rt,
-            output_rt,
-            dependency_node,
-            dispatch_width,
-            dispatch_height);
-    };
-
-    m_shared_downsample_half_pass_node = create_downsample_pass_node(
+    RETURN_IF_FALSE(create_downsample_postfx_pass_node(
+        primary_half.shared_downsample_node,
         "SharedMip Downsample Half",
         m_lighting->GetLightingOutput(),
-        m_half_blur_final_output,
+        primary_half.output,
         NULL_HANDLE,
-        half_width,
-        half_height);
-    m_shared_downsample_quarter_pass_node = create_downsample_pass_node(
+        dimensions.half_width,
+        dimensions.half_height));
+    RETURN_IF_FALSE(create_downsample_postfx_pass_node(
+        primary_quarter.shared_downsample_node,
         "SharedMip Downsample Quarter",
-        m_half_blur_final_output,
-        m_quarter_blur_final_output,
-        m_shared_downsample_half_pass_node,
-        quarter_width,
-        quarter_height);
-    m_shared_downsample_eighth_pass_node = create_downsample_pass_node(
+        primary_half.output,
+        primary_quarter.output,
+        primary_half.shared_downsample_node,
+        dimensions.quarter_width,
+        dimensions.quarter_height));
+    RETURN_IF_FALSE(create_downsample_postfx_pass_node(
+        primary_eighth.shared_downsample_node,
         "SharedMip Downsample Eighth",
-        m_quarter_blur_final_output,
-        m_eighth_blur_final_output,
-        m_shared_downsample_quarter_pass_node,
-        eighth_width,
-        eighth_height);
-    m_shared_downsample_sixteenth_pass_node = create_downsample_pass_node(
+        primary_quarter.output,
+        primary_eighth.output,
+        primary_quarter.shared_downsample_node,
+        dimensions.eighth_width,
+        dimensions.eighth_height));
+    RETURN_IF_FALSE(create_downsample_postfx_pass_node(
+        primary_sixteenth.shared_downsample_node,
         "SharedMip Downsample Sixteenth",
-        m_eighth_blur_final_output,
-        m_sixteenth_blur_final_output,
-        m_shared_downsample_eighth_pass_node,
-        sixteenth_width,
-        sixteenth_height);
-    m_shared_downsample_thirtysecond_pass_node = create_downsample_pass_node(
+        primary_eighth.output,
+        primary_sixteenth.output,
+        primary_eighth.shared_downsample_node,
+        dimensions.sixteenth_width,
+        dimensions.sixteenth_height));
+    RETURN_IF_FALSE(create_downsample_postfx_pass_node(
+        primary_thirtysecond.shared_downsample_node,
         "SharedMip Downsample ThirtySecond",
-        m_sixteenth_blur_final_output,
-        m_thirtysecond_blur_final_output,
-        m_shared_downsample_sixteenth_pass_node,
-        thirtysecond_width,
-        thirtysecond_height);
+        primary_sixteenth.output,
+        primary_thirtysecond.output,
+        primary_sixteenth.shared_downsample_node,
+        dimensions.thirtysecond_width,
+        dimensions.thirtysecond_height));
+    return true;
+}
 
-    RendererInterface::BufferBindingDesc panel_data_binding_desc{};
-    panel_data_binding_desc.binding_type = RendererInterface::BufferBindingDesc::SRV;
-    panel_data_binding_desc.buffer_handle = m_frosted_panel_data_handle;
-    panel_data_binding_desc.stride = sizeof(FrostedGlassPanelGpuData);
-    panel_data_binding_desc.is_structured_buffer = true;
-    panel_data_binding_desc.count = MAX_PANEL_COUNT;
+bool RendererSystemFrostedGlass::CreatePanelPayloadPasses(
+    RendererInterface::ResourceOperator& resource_operator,
+    RendererInterface::RenderGraph& graph,
+    const RendererSystemSceneRenderer::BasePassOutputs& scene_outputs,
+    const InitDimensions& dimensions,
+    const InitBindings& bindings,
+    bool sync_existing)
+{
+    auto& panel_payload_passes = m_panel_payload_passes;
+    const auto& primary_panel_payload = m_panel_payload_targets.primary;
+    const auto& secondary_panel_payload = m_panel_payload_targets.secondary;
 
-    m_frosted_mask_parameter_pass_node = graph.CreateRenderGraphNode(
+    RETURN_IF_FALSE(RenderFeature::CreateOrSyncRenderGraphNode(
+        sync_existing,
         resource_operator,
+        graph,
+        panel_payload_passes.compute,
         RenderFeature::PassBuilder::Compute("Frosted Glass", "Frosted Mask/Parameter")
             .AddModule(m_scene->GetCameraModule())
             .AddShader(RendererInterface::COMPUTE_SHADER, "MaskParameterMain", "Resources/Shaders/FrostedGlass.hlsl")
-            .AddSampledRenderTarget(
-                "InputDepthTex",
-                scene_outputs.depth,
-                RendererInterface::RenderTargetTextureBindingDesc::SRV)
-            .AddSampledRenderTarget(
-                "InputNormalTex",
-                scene_outputs.normal,
-                RendererInterface::RenderTargetTextureBindingDesc::SRV)
-            .AddSampledRenderTarget(
-                "MaskParamOutput",
-                m_frosted_mask_parameter_output,
-                RendererInterface::RenderTargetTextureBindingDesc::UAV)
-            .AddSampledRenderTarget(
-                "MaskParamSecondaryOutput",
-                m_frosted_mask_parameter_secondary_output,
-                RendererInterface::RenderTargetTextureBindingDesc::UAV)
-            .AddSampledRenderTarget(
-                "PanelOpticsOutput",
-                m_frosted_panel_optics_output,
-                RendererInterface::RenderTargetTextureBindingDesc::UAV)
-            .AddSampledRenderTarget(
-                "PanelOpticsSecondaryOutput",
-                m_frosted_panel_optics_secondary_output,
-                RendererInterface::RenderTargetTextureBindingDesc::UAV)
-            .AddSampledRenderTarget(
-                "PanelProfileOutput",
-                m_frosted_panel_profile_output,
-                RendererInterface::RenderTargetTextureBindingDesc::UAV)
-            .AddSampledRenderTarget(
-                "PanelProfileSecondaryOutput",
-                m_frosted_panel_profile_secondary_output,
-                RendererInterface::RenderTargetTextureBindingDesc::UAV)
-            .AddBuffer("g_frosted_panels", panel_data_binding_desc)
-            .AddBuffer("FrostedGlassGlobalBuffer", global_params_binding_desc)
-            .SetDispatch2D(width, height)
-            .Build());
+            .AddSampledRenderTargetBindings({
+                RenderFeature::MakeSampledRenderTargetBinding(
+                    "InputDepthTex",
+                    scene_outputs.depth,
+                    RendererInterface::RenderTargetTextureBindingDesc::SRV),
+                RenderFeature::MakeSampledRenderTargetBinding(
+                    "InputNormalTex",
+                    scene_outputs.normal,
+                    RendererInterface::RenderTargetTextureBindingDesc::SRV),
+                RenderFeature::MakeSampledRenderTargetBinding(
+                    "MaskParamOutput",
+                    primary_panel_payload.mask_parameter,
+                    RendererInterface::RenderTargetTextureBindingDesc::UAV),
+                RenderFeature::MakeSampledRenderTargetBinding(
+                    "MaskParamSecondaryOutput",
+                    secondary_panel_payload.mask_parameter,
+                    RendererInterface::RenderTargetTextureBindingDesc::UAV),
+                RenderFeature::MakeSampledRenderTargetBinding(
+                    "PanelOpticsOutput",
+                    primary_panel_payload.panel_optics,
+                    RendererInterface::RenderTargetTextureBindingDesc::UAV),
+                RenderFeature::MakeSampledRenderTargetBinding(
+                    "PanelOpticsSecondaryOutput",
+                    secondary_panel_payload.panel_optics,
+                    RendererInterface::RenderTargetTextureBindingDesc::UAV),
+                RenderFeature::MakeSampledRenderTargetBinding(
+                    "PanelProfileOutput",
+                    primary_panel_payload.panel_profile,
+                    RendererInterface::RenderTargetTextureBindingDesc::UAV),
+                RenderFeature::MakeSampledRenderTargetBinding(
+                    "PanelProfileSecondaryOutput",
+                    secondary_panel_payload.panel_profile,
+                    RendererInterface::RenderTargetTextureBindingDesc::UAV)
+            })
+            .AddBuffers({
+                RenderFeature::MakeBufferBinding("g_frosted_panels", bindings.panel_data),
+                RenderFeature::MakeBufferBinding("FrostedGlassGlobalBuffer", bindings.global_params)
+            })
+            .SetDispatch2D(dimensions.width, dimensions.height)
+            .Build()));
 
     RendererInterface::RenderExecuteCommand panel_payload_draw_command{};
     panel_payload_draw_command.type = RendererInterface::ExecuteCommandType::DRAW_VERTEX_INSTANCING_COMMAND;
@@ -945,6 +1044,8 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
     panel_payload_draw_command.parameter.draw_vertex_instance_command_parameter.instance_count = MAX_PANEL_COUNT;
     panel_payload_draw_command.parameter.draw_vertex_instance_command_parameter.start_vertex_location = 0;
     panel_payload_draw_command.parameter.draw_vertex_instance_command_parameter.start_instance_location = 0;
+    const auto panel_payload_graphics_plan =
+        RenderFeature::GraphicsExecutionPlan::FromExtent(dimensions.width, dimensions.height);
 
     const auto create_panel_payload_raster_setup_info =
         [&](const char* debug_name,
@@ -963,76 +1064,111 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
         auto builder = RenderFeature::PassBuilder::Graphics("Frosted Glass", debug_name);
         builder
             .SetRenderState(render_state)
+            .SetViewport(panel_payload_graphics_plan)
             .AddModule(m_scene->GetCameraModule())
             .AddShader(RendererInterface::VERTEX_SHADER, "PanelPayloadVS", "Resources/Shaders/FrostedGlass.hlsl")
             .AddShader(RendererInterface::FRAGMENT_SHADER, pixel_shader_entry, "Resources/Shaders/FrostedGlass.hlsl")
             .AddDependency(dependency_node)
-            .AddRenderTarget(
-                mask_output,
-                RenderFeature::MakeColorRenderTargetBinding(RendererInterface::RGBA16_FLOAT, true))
-            .AddRenderTarget(
-                optics_output,
-                RenderFeature::MakeColorRenderTargetBinding(RendererInterface::RGBA16_FLOAT, true))
-            .AddRenderTarget(
-                profile_output,
-                RenderFeature::MakeColorRenderTargetBinding(RendererInterface::RGBA16_FLOAT, true))
-            .AddRenderTarget(
-                depth_output,
-                RenderFeature::MakeDepthRenderTargetBinding(RendererInterface::D32, true))
-            .AddSampledRenderTarget(
-                "InputDepthTex",
-                scene_outputs.depth,
-                RendererInterface::RenderTargetTextureBindingDesc::SRV)
-            .AddSampledRenderTarget(
-                "InputNormalTex",
-                scene_outputs.normal,
-                RendererInterface::RenderTargetTextureBindingDesc::SRV)
-            .AddBuffer("g_frosted_panels", panel_data_binding_desc)
-            .AddBuffer("FrostedGlassGlobalBuffer", global_params_binding_desc)
+            .AddRenderTargets({
+                RenderFeature::MakeRenderTargetAttachment(
+                    mask_output,
+                    RenderFeature::MakeColorRenderTargetBinding(RendererInterface::RGBA16_FLOAT, true)),
+                RenderFeature::MakeRenderTargetAttachment(
+                    optics_output,
+                    RenderFeature::MakeColorRenderTargetBinding(RendererInterface::RGBA16_FLOAT, true)),
+                RenderFeature::MakeRenderTargetAttachment(
+                    profile_output,
+                    RenderFeature::MakeColorRenderTargetBinding(RendererInterface::RGBA16_FLOAT, true)),
+                RenderFeature::MakeRenderTargetAttachment(
+                    depth_output,
+                    RenderFeature::MakeDepthRenderTargetBinding(RendererInterface::D32, true))
+            })
+            .AddSampledRenderTargetBindings({
+                RenderFeature::MakeSampledRenderTargetBinding(
+                    "InputDepthTex",
+                    scene_outputs.depth,
+                    RendererInterface::RenderTargetTextureBindingDesc::SRV),
+                RenderFeature::MakeSampledRenderTargetBinding(
+                    "InputNormalTex",
+                    scene_outputs.normal,
+                    RendererInterface::RenderTargetTextureBindingDesc::SRV)
+            })
+            .AddBuffers({
+                RenderFeature::MakeBufferBinding("g_frosted_panels", bindings.panel_data),
+                RenderFeature::MakeBufferBinding("FrostedGlassGlobalBuffer", bindings.global_params)
+            })
             .SetExecuteCommand(panel_payload_draw_command);
 
         if (include_front_mask)
         {
             builder.AddSampledRenderTarget(
                 "FrontMaskParamTex",
-                m_frosted_mask_parameter_output,
+                primary_panel_payload.mask_parameter,
                 RendererInterface::RenderTargetTextureBindingDesc::SRV);
         }
 
         return builder.Build();
     };
 
-    m_frosted_mask_parameter_raster_front_pass_node = graph.CreateRenderGraphNode(
+    RETURN_IF_FALSE(RenderFeature::CreateOrSyncRenderGraphNode(
+        sync_existing,
         resource_operator,
+        graph,
+        panel_payload_passes.raster_front,
         create_panel_payload_raster_setup_info(
             "Frosted Mask/Parameter Raster Front",
             "PanelPayloadFrontPS",
             NULL_HANDLE,
-            m_frosted_mask_parameter_output,
-            m_frosted_panel_optics_output,
-            m_frosted_panel_profile_output,
-            m_frosted_panel_payload_depth,
-            false));
+            primary_panel_payload.mask_parameter,
+            primary_panel_payload.panel_optics,
+            primary_panel_payload.panel_profile,
+            primary_panel_payload.payload_depth,
+            false)));
 
-    m_frosted_mask_parameter_raster_back_pass_node = graph.CreateRenderGraphNode(
+    RETURN_IF_FALSE(RenderFeature::CreateOrSyncRenderGraphNode(
+        sync_existing,
         resource_operator,
+        graph,
+        panel_payload_passes.raster_back,
         create_panel_payload_raster_setup_info(
             "Frosted Mask/Parameter Raster Back",
             "PanelPayloadBackPS",
-            m_frosted_mask_parameter_raster_front_pass_node,
-            m_frosted_mask_parameter_secondary_output,
-            m_frosted_panel_optics_secondary_output,
-            m_frosted_panel_profile_secondary_output,
-            m_frosted_panel_payload_depth_secondary,
-            true));
-    m_panel_payload_raster_ready =
-        m_frosted_mask_parameter_raster_front_pass_node != NULL_HANDLE &&
-        m_frosted_mask_parameter_raster_back_pass_node != NULL_HANDLE;
+            panel_payload_passes.raster_front,
+            secondary_panel_payload.mask_parameter,
+            secondary_panel_payload.panel_optics,
+            secondary_panel_payload.panel_profile,
+            secondary_panel_payload.payload_depth,
+            true)));
+    return true;
+}
 
+bool RendererSystemFrostedGlass::CreateCompositePasses(
+    RendererInterface::ResourceOperator& resource_operator,
+    RendererInterface::RenderGraph& graph,
+    const RendererSystemSceneRenderer::BasePassOutputs& scene_outputs,
+    const InitDimensions& dimensions,
+    const InitBindings& bindings,
+    bool sync_existing)
+{
+    const auto primary_blur = GetPrimaryBlurPyramidView();
+    const auto multilayer_blur = GetMultilayerBlurPyramidView();
+    auto& legacy_composite = m_legacy_composite_passes;
+    auto& shared_mip_composite = m_shared_mip_composite_passes;
+    auto& multilayer_blur_storage = m_multilayer_blur_pyramid;
+    const auto& composite_outputs = m_composite_outputs;
+    const auto& primary_panel_payload = m_panel_payload_targets.primary;
+    const auto& secondary_panel_payload = m_panel_payload_targets.secondary;
     const RendererInterface::RenderTargetHandle velocity_rt = scene_outputs.velocity;
+    auto& multilayer_half = multilayer_blur_storage.Half();
+    auto& multilayer_quarter = multilayer_blur_storage.Quarter();
+    auto& multilayer_eighth = multilayer_blur_storage.Eighth();
+    auto& multilayer_sixteenth = multilayer_blur_storage.Sixteenth();
+    auto& multilayer_thirtysecond = multilayer_blur_storage.ThirtySecond();
 
     const auto create_frosted_composite_back_setup_info =
-        [&](const char* debug_name, RendererInterface::RenderGraphNodeHandle dependency_node)
+        [&](const char* debug_name,
+            RendererInterface::RenderGraphNodeHandle dependency_node,
+            const auto& blur_pyramid)
         -> RendererInterface::RenderGraph::RenderPassSetupInfo
     {
         auto builder = RenderFeature::PassBuilder::Compute("Frosted Glass", debug_name);
@@ -1040,511 +1176,630 @@ bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resou
             .AddModule(m_scene->GetCameraModule())
             .AddShader(RendererInterface::COMPUTE_SHADER, "CompositeBackMain", "Resources/Shaders/FrostedGlass.hlsl")
             .AddDependency(dependency_node)
-            .AddSampledRenderTarget(
-                "InputColorTex",
-                m_lighting->GetLightingOutput(),
-                RendererInterface::RenderTargetTextureBindingDesc::SRV)
-            .AddSampledRenderTarget(
-                "BlurredColorTex",
-                m_half_blur_final_output,
-                RendererInterface::RenderTargetTextureBindingDesc::SRV)
-            .AddSampledRenderTarget(
-                "QuarterBlurredColorTex",
-                m_quarter_blur_final_output,
-                RendererInterface::RenderTargetTextureBindingDesc::SRV)
-            .AddSampledRenderTarget(
-                "EighthBlurredColorTex",
-                m_eighth_blur_final_output,
-                RendererInterface::RenderTargetTextureBindingDesc::SRV)
-            .AddSampledRenderTarget(
-                "SixteenthBlurredColorTex",
-                m_sixteenth_blur_final_output,
-                RendererInterface::RenderTargetTextureBindingDesc::SRV)
-            .AddSampledRenderTarget(
-                "ThirtySecondBlurredColorTex",
-                m_thirtysecond_blur_final_output,
-                RendererInterface::RenderTargetTextureBindingDesc::SRV)
-            .AddSampledRenderTarget(
-                "MaskParamTex",
-                m_frosted_mask_parameter_output,
-                RendererInterface::RenderTargetTextureBindingDesc::SRV)
-            .AddSampledRenderTarget(
-                "MaskParamSecondaryTex",
-                m_frosted_mask_parameter_secondary_output,
-                RendererInterface::RenderTargetTextureBindingDesc::SRV)
-            .AddSampledRenderTarget(
-                "PanelOpticsTex",
-                m_frosted_panel_optics_output,
-                RendererInterface::RenderTargetTextureBindingDesc::SRV)
-            .AddSampledRenderTarget(
-                "PanelOpticsSecondaryTex",
-                m_frosted_panel_optics_secondary_output,
-                RendererInterface::RenderTargetTextureBindingDesc::SRV)
-            .AddSampledRenderTarget(
-                "PanelProfileTex",
-                m_frosted_panel_profile_output,
-                RendererInterface::RenderTargetTextureBindingDesc::SRV)
-            .AddSampledRenderTarget(
-                "PanelProfileSecondaryTex",
-                m_frosted_panel_profile_secondary_output,
-                RendererInterface::RenderTargetTextureBindingDesc::SRV)
-            .AddSampledRenderTarget(
-                "BackCompositeOutput",
-                m_frosted_back_composite_output,
-                RendererInterface::RenderTargetTextureBindingDesc::UAV)
-            .AddBuffer("g_frosted_panels", panel_data_binding_desc)
-            .AddBuffer("FrostedGlassGlobalBuffer", global_params_binding_desc)
-            .SetDispatch2D(width, height);
+            .AddSampledRenderTargetBindings({
+                RenderFeature::MakeSampledRenderTargetBinding(
+                    "InputColorTex",
+                    m_lighting->GetLightingOutput(),
+                    RendererInterface::RenderTargetTextureBindingDesc::SRV),
+                RenderFeature::MakeSampledRenderTargetBinding(
+                    "BlurredColorTex",
+                    blur_pyramid.Half().output,
+                    RendererInterface::RenderTargetTextureBindingDesc::SRV),
+                RenderFeature::MakeSampledRenderTargetBinding(
+                    "QuarterBlurredColorTex",
+                    blur_pyramid.Quarter().output,
+                    RendererInterface::RenderTargetTextureBindingDesc::SRV),
+                RenderFeature::MakeSampledRenderTargetBinding(
+                    "EighthBlurredColorTex",
+                    blur_pyramid.Eighth().output,
+                    RendererInterface::RenderTargetTextureBindingDesc::SRV),
+                RenderFeature::MakeSampledRenderTargetBinding(
+                    "SixteenthBlurredColorTex",
+                    blur_pyramid.Sixteenth().output,
+                    RendererInterface::RenderTargetTextureBindingDesc::SRV),
+                RenderFeature::MakeSampledRenderTargetBinding(
+                    "ThirtySecondBlurredColorTex",
+                    blur_pyramid.ThirtySecond().output,
+                    RendererInterface::RenderTargetTextureBindingDesc::SRV),
+                RenderFeature::MakeSampledRenderTargetBinding(
+                    "MaskParamTex",
+                    primary_panel_payload.mask_parameter,
+                    RendererInterface::RenderTargetTextureBindingDesc::SRV),
+                RenderFeature::MakeSampledRenderTargetBinding(
+                    "MaskParamSecondaryTex",
+                    secondary_panel_payload.mask_parameter,
+                    RendererInterface::RenderTargetTextureBindingDesc::SRV),
+                RenderFeature::MakeSampledRenderTargetBinding(
+                    "PanelOpticsTex",
+                    primary_panel_payload.panel_optics,
+                    RendererInterface::RenderTargetTextureBindingDesc::SRV),
+                RenderFeature::MakeSampledRenderTargetBinding(
+                    "PanelOpticsSecondaryTex",
+                    secondary_panel_payload.panel_optics,
+                    RendererInterface::RenderTargetTextureBindingDesc::SRV),
+                RenderFeature::MakeSampledRenderTargetBinding(
+                    "PanelProfileTex",
+                    primary_panel_payload.panel_profile,
+                    RendererInterface::RenderTargetTextureBindingDesc::SRV),
+                RenderFeature::MakeSampledRenderTargetBinding(
+                    "PanelProfileSecondaryTex",
+                    secondary_panel_payload.panel_profile,
+                    RendererInterface::RenderTargetTextureBindingDesc::SRV),
+                RenderFeature::MakeSampledRenderTargetBinding(
+                    "BackCompositeOutput",
+                    composite_outputs.back_composite,
+                    RendererInterface::RenderTargetTextureBindingDesc::UAV)
+            })
+            .AddBuffers({
+                RenderFeature::MakeBufferBinding("g_frosted_panels", bindings.panel_data),
+                RenderFeature::MakeBufferBinding("FrostedGlassGlobalBuffer", bindings.global_params)
+            })
+            .SetDispatch2D(dimensions.width, dimensions.height);
         return builder.Build();
     };
 
-    m_frosted_composite_back_pass_node = graph.CreateRenderGraphNode(
+    RETURN_IF_FALSE(RenderFeature::CreateOrSyncRenderGraphNode(
+        sync_existing,
         resource_operator,
+        graph,
+        legacy_composite.back,
         create_frosted_composite_back_setup_info(
             "Frosted Composite Back",
-            m_blur_thirtysecond_vertical_pass_node));
-    m_frosted_composite_back_shared_mip_pass_node = graph.CreateRenderGraphNode(
+            primary_blur.ThirtySecond().blur_vertical_node,
+            primary_blur)));
+    RETURN_IF_FALSE(RenderFeature::CreateOrSyncRenderGraphNode(
+        sync_existing,
         resource_operator,
+        graph,
+        shared_mip_composite.back,
         create_frosted_composite_back_setup_info(
             "Frosted Composite Back SharedMip",
-            m_shared_downsample_thirtysecond_pass_node));
+            primary_blur.ThirtySecond().shared_downsample_node,
+            primary_blur)));
 
-    m_downsample_half_multilayer_pass_node = create_downsample_postfx_pass_node(
+    const auto create_postfx_pass_node =
+        [&](RendererInterface::RenderGraphNodeHandle& out_node_handle,
+            const char* debug_name,
+            const char* entry_function,
+            RendererInterface::RenderTargetHandle input_rt,
+            RendererInterface::RenderTargetHandle output_rt,
+            RendererInterface::RenderGraphNodeHandle dependency_node,
+            unsigned dispatch_width,
+            unsigned dispatch_height,
+            bool bind_global_params) -> bool
+    {
+        auto builder = RenderFeature::MakeComputePostFxPassBuilder(
+            "Frosted Glass",
+            debug_name,
+            entry_function,
+            "Resources/Shaders/FrostedGlassPostfx.hlsl",
+            input_rt,
+            output_rt,
+            dispatch_width,
+            dispatch_height,
+            dependency_node);
+        if (bind_global_params)
+        {
+            builder.AddBuffer("FrostedGlassGlobalBuffer", bindings.global_params);
+        }
+        return RenderFeature::CreateOrSyncRenderGraphNode(
+            sync_existing,
+            resource_operator,
+            graph,
+            out_node_handle,
+            builder.Build());
+    };
+
+    const auto create_downsample_postfx_pass_node =
+        [&](RendererInterface::RenderGraphNodeHandle& out_node_handle,
+            const char* debug_name,
+            RendererInterface::RenderTargetHandle input_rt,
+            RendererInterface::RenderTargetHandle output_rt,
+            RendererInterface::RenderGraphNodeHandle dependency_node,
+            unsigned dispatch_width,
+            unsigned dispatch_height) -> bool
+    {
+        return create_postfx_pass_node(
+            out_node_handle,
+            debug_name,
+            "DownsampleMain",
+            input_rt,
+            output_rt,
+            dependency_node,
+            dispatch_width,
+            dispatch_height,
+            false);
+    };
+
+    const auto create_blur_postfx_pass_node =
+        [&](RendererInterface::RenderGraphNodeHandle& out_node_handle,
+            const char* debug_name,
+            const char* entry_function,
+            RendererInterface::RenderTargetHandle input_rt,
+            RendererInterface::RenderTargetHandle output_rt,
+            RendererInterface::RenderGraphNodeHandle dependency_node,
+            unsigned dispatch_width,
+            unsigned dispatch_height) -> bool
+    {
+        return create_postfx_pass_node(
+            out_node_handle,
+            debug_name,
+            entry_function,
+            input_rt,
+            output_rt,
+            dependency_node,
+            dispatch_width,
+            dispatch_height,
+            true);
+    };
+
+    RETURN_IF_FALSE(create_downsample_postfx_pass_node(
+        multilayer_half.downsample_node,
         "Downsample Half Multilayer",
-        m_frosted_back_composite_output,
-        m_half_multilayer_ping,
-        m_frosted_composite_back_pass_node,
-        half_width,
-        half_height);
-    m_blur_half_multilayer_horizontal_pass_node = create_blur_postfx_pass_node(
+        composite_outputs.back_composite,
+        multilayer_half.ping,
+        legacy_composite.back,
+        dimensions.half_width,
+        dimensions.half_height));
+    RETURN_IF_FALSE(create_blur_postfx_pass_node(
+        multilayer_half.blur_horizontal_node,
         "Blur Half Multilayer Horizontal",
         "BlurHorizontalMain",
-        m_half_multilayer_ping,
-        m_half_multilayer_pong,
-        m_downsample_half_multilayer_pass_node,
-        half_width,
-        half_height);
-    m_blur_half_multilayer_vertical_pass_node = create_blur_postfx_pass_node(
+        multilayer_half.ping,
+        multilayer_half.pong,
+        multilayer_half.downsample_node,
+        dimensions.half_width,
+        dimensions.half_height));
+    RETURN_IF_FALSE(create_blur_postfx_pass_node(
+        multilayer_half.blur_vertical_node,
         "Blur Half Multilayer Vertical",
         "BlurVerticalMain",
-        m_half_multilayer_pong,
-        m_half_multilayer_blur_final_output,
-        m_blur_half_multilayer_horizontal_pass_node,
-        half_width,
-        half_height);
+        multilayer_half.pong,
+        multilayer_half.output,
+        multilayer_half.blur_horizontal_node,
+        dimensions.half_width,
+        dimensions.half_height));
 
-    m_downsample_quarter_multilayer_pass_node = create_downsample_postfx_pass_node(
+    RETURN_IF_FALSE(create_downsample_postfx_pass_node(
+        multilayer_quarter.downsample_node,
         "Downsample Quarter Multilayer",
-        m_half_multilayer_blur_final_output,
-        m_quarter_multilayer_ping,
-        m_blur_half_multilayer_vertical_pass_node,
-        quarter_width,
-        quarter_height);
-    m_blur_quarter_multilayer_horizontal_pass_node = create_blur_postfx_pass_node(
+        multilayer_half.output,
+        multilayer_quarter.ping,
+        multilayer_half.blur_vertical_node,
+        dimensions.quarter_width,
+        dimensions.quarter_height));
+    RETURN_IF_FALSE(create_blur_postfx_pass_node(
+        multilayer_quarter.blur_horizontal_node,
         "Blur Quarter Multilayer Horizontal",
         "BlurHorizontalMain",
-        m_quarter_multilayer_ping,
-        m_quarter_multilayer_pong,
-        m_downsample_quarter_multilayer_pass_node,
-        quarter_width,
-        quarter_height);
-    m_blur_quarter_multilayer_vertical_pass_node = create_blur_postfx_pass_node(
+        multilayer_quarter.ping,
+        multilayer_quarter.pong,
+        multilayer_quarter.downsample_node,
+        dimensions.quarter_width,
+        dimensions.quarter_height));
+    RETURN_IF_FALSE(create_blur_postfx_pass_node(
+        multilayer_quarter.blur_vertical_node,
         "Blur Quarter Multilayer Vertical",
         "BlurVerticalMain",
-        m_quarter_multilayer_pong,
-        m_quarter_multilayer_blur_final_output,
-        m_blur_quarter_multilayer_horizontal_pass_node,
-        quarter_width,
-        quarter_height);
+        multilayer_quarter.pong,
+        multilayer_quarter.output,
+        multilayer_quarter.blur_horizontal_node,
+        dimensions.quarter_width,
+        dimensions.quarter_height));
 
-    m_downsample_eighth_multilayer_pass_node = create_downsample_postfx_pass_node(
+    RETURN_IF_FALSE(create_downsample_postfx_pass_node(
+        multilayer_eighth.downsample_node,
         "Downsample Eighth Multilayer",
-        m_quarter_multilayer_blur_final_output,
-        m_eighth_multilayer_ping,
-        m_blur_quarter_multilayer_vertical_pass_node,
-        eighth_width,
-        eighth_height);
-    m_blur_eighth_multilayer_horizontal_pass_node = create_blur_postfx_pass_node(
+        multilayer_quarter.output,
+        multilayer_eighth.ping,
+        multilayer_quarter.blur_vertical_node,
+        dimensions.eighth_width,
+        dimensions.eighth_height));
+    RETURN_IF_FALSE(create_blur_postfx_pass_node(
+        multilayer_eighth.blur_horizontal_node,
         "Blur Eighth Multilayer Horizontal",
         "BlurHorizontalMain",
-        m_eighth_multilayer_ping,
-        m_eighth_multilayer_pong,
-        m_downsample_eighth_multilayer_pass_node,
-        eighth_width,
-        eighth_height);
-    m_blur_eighth_multilayer_vertical_pass_node = create_blur_postfx_pass_node(
+        multilayer_eighth.ping,
+        multilayer_eighth.pong,
+        multilayer_eighth.downsample_node,
+        dimensions.eighth_width,
+        dimensions.eighth_height));
+    RETURN_IF_FALSE(create_blur_postfx_pass_node(
+        multilayer_eighth.blur_vertical_node,
         "Blur Eighth Multilayer Vertical",
         "BlurVerticalMain",
-        m_eighth_multilayer_pong,
-        m_eighth_multilayer_blur_final_output,
-        m_blur_eighth_multilayer_horizontal_pass_node,
-        eighth_width,
-        eighth_height);
+        multilayer_eighth.pong,
+        multilayer_eighth.output,
+        multilayer_eighth.blur_horizontal_node,
+        dimensions.eighth_width,
+        dimensions.eighth_height));
 
-    m_downsample_sixteenth_multilayer_pass_node = create_downsample_postfx_pass_node(
+    RETURN_IF_FALSE(create_downsample_postfx_pass_node(
+        multilayer_sixteenth.downsample_node,
         "Downsample Sixteenth Multilayer",
-        m_eighth_multilayer_blur_final_output,
-        m_sixteenth_multilayer_ping,
-        m_blur_eighth_multilayer_vertical_pass_node,
-        sixteenth_width,
-        sixteenth_height);
-    m_blur_sixteenth_multilayer_horizontal_pass_node = create_blur_postfx_pass_node(
+        multilayer_eighth.output,
+        multilayer_sixteenth.ping,
+        multilayer_eighth.blur_vertical_node,
+        dimensions.sixteenth_width,
+        dimensions.sixteenth_height));
+    RETURN_IF_FALSE(create_blur_postfx_pass_node(
+        multilayer_sixteenth.blur_horizontal_node,
         "Blur Sixteenth Multilayer Horizontal",
         "BlurHorizontalMain",
-        m_sixteenth_multilayer_ping,
-        m_sixteenth_multilayer_pong,
-        m_downsample_sixteenth_multilayer_pass_node,
-        sixteenth_width,
-        sixteenth_height);
-    m_blur_sixteenth_multilayer_vertical_pass_node = create_blur_postfx_pass_node(
+        multilayer_sixteenth.ping,
+        multilayer_sixteenth.pong,
+        multilayer_sixteenth.downsample_node,
+        dimensions.sixteenth_width,
+        dimensions.sixteenth_height));
+    RETURN_IF_FALSE(create_blur_postfx_pass_node(
+        multilayer_sixteenth.blur_vertical_node,
         "Blur Sixteenth Multilayer Vertical",
         "BlurVerticalMain",
-        m_sixteenth_multilayer_pong,
-        m_sixteenth_multilayer_blur_final_output,
-        m_blur_sixteenth_multilayer_horizontal_pass_node,
-        sixteenth_width,
-        sixteenth_height);
+        multilayer_sixteenth.pong,
+        multilayer_sixteenth.output,
+        multilayer_sixteenth.blur_horizontal_node,
+        dimensions.sixteenth_width,
+        dimensions.sixteenth_height));
 
-    m_downsample_thirtysecond_multilayer_pass_node = create_downsample_postfx_pass_node(
+    RETURN_IF_FALSE(create_downsample_postfx_pass_node(
+        multilayer_thirtysecond.downsample_node,
         "Downsample ThirtySecond Multilayer",
-        m_sixteenth_multilayer_blur_final_output,
-        m_thirtysecond_multilayer_ping,
-        m_blur_sixteenth_multilayer_vertical_pass_node,
-        thirtysecond_width,
-        thirtysecond_height);
-    m_blur_thirtysecond_multilayer_horizontal_pass_node = create_blur_postfx_pass_node(
+        multilayer_sixteenth.output,
+        multilayer_thirtysecond.ping,
+        multilayer_sixteenth.blur_vertical_node,
+        dimensions.thirtysecond_width,
+        dimensions.thirtysecond_height));
+    RETURN_IF_FALSE(create_blur_postfx_pass_node(
+        multilayer_thirtysecond.blur_horizontal_node,
         "Blur ThirtySecond Multilayer Horizontal",
         "BlurHorizontalMain",
-        m_thirtysecond_multilayer_ping,
-        m_thirtysecond_multilayer_pong,
-        m_downsample_thirtysecond_multilayer_pass_node,
-        thirtysecond_width,
-        thirtysecond_height);
-    m_blur_thirtysecond_multilayer_vertical_pass_node = create_blur_postfx_pass_node(
+        multilayer_thirtysecond.ping,
+        multilayer_thirtysecond.pong,
+        multilayer_thirtysecond.downsample_node,
+        dimensions.thirtysecond_width,
+        dimensions.thirtysecond_height));
+    RETURN_IF_FALSE(create_blur_postfx_pass_node(
+        multilayer_thirtysecond.blur_vertical_node,
         "Blur ThirtySecond Multilayer Vertical",
         "BlurVerticalMain",
-        m_thirtysecond_multilayer_pong,
-        m_thirtysecond_multilayer_blur_final_output,
-        m_blur_thirtysecond_multilayer_horizontal_pass_node,
-        thirtysecond_width,
-        thirtysecond_height);
+        multilayer_thirtysecond.pong,
+        multilayer_thirtysecond.output,
+        multilayer_thirtysecond.blur_horizontal_node,
+        dimensions.thirtysecond_width,
+        dimensions.thirtysecond_height));
 
-    m_shared_downsample_half_multilayer_pass_node = create_downsample_pass_node(
+    RETURN_IF_FALSE(create_downsample_postfx_pass_node(
+        multilayer_half.shared_downsample_node,
         "SharedMip Downsample Half Multilayer",
-        m_frosted_back_composite_output,
-        m_half_multilayer_blur_final_output,
-        m_frosted_composite_back_shared_mip_pass_node,
-        half_width,
-        half_height);
-    m_shared_downsample_quarter_multilayer_pass_node = create_downsample_pass_node(
+        composite_outputs.back_composite,
+        multilayer_half.output,
+        shared_mip_composite.back,
+        dimensions.half_width,
+        dimensions.half_height));
+    RETURN_IF_FALSE(create_downsample_postfx_pass_node(
+        multilayer_quarter.shared_downsample_node,
         "SharedMip Downsample Quarter Multilayer",
-        m_half_multilayer_blur_final_output,
-        m_quarter_multilayer_blur_final_output,
-        m_shared_downsample_half_multilayer_pass_node,
-        quarter_width,
-        quarter_height);
-    m_shared_downsample_eighth_multilayer_pass_node = create_downsample_pass_node(
+        multilayer_half.output,
+        multilayer_quarter.output,
+        multilayer_half.shared_downsample_node,
+        dimensions.quarter_width,
+        dimensions.quarter_height));
+    RETURN_IF_FALSE(create_downsample_postfx_pass_node(
+        multilayer_eighth.shared_downsample_node,
         "SharedMip Downsample Eighth Multilayer",
-        m_quarter_multilayer_blur_final_output,
-        m_eighth_multilayer_blur_final_output,
-        m_shared_downsample_quarter_multilayer_pass_node,
-        eighth_width,
-        eighth_height);
-    m_shared_downsample_sixteenth_multilayer_pass_node = create_downsample_pass_node(
+        multilayer_quarter.output,
+        multilayer_eighth.output,
+        multilayer_quarter.shared_downsample_node,
+        dimensions.eighth_width,
+        dimensions.eighth_height));
+    RETURN_IF_FALSE(create_downsample_postfx_pass_node(
+        multilayer_sixteenth.shared_downsample_node,
         "SharedMip Downsample Sixteenth Multilayer",
-        m_eighth_multilayer_blur_final_output,
-        m_sixteenth_multilayer_blur_final_output,
-        m_shared_downsample_eighth_multilayer_pass_node,
-        sixteenth_width,
-        sixteenth_height);
-    m_shared_downsample_thirtysecond_multilayer_pass_node = create_downsample_pass_node(
+        multilayer_eighth.output,
+        multilayer_sixteenth.output,
+        multilayer_eighth.shared_downsample_node,
+        dimensions.sixteenth_width,
+        dimensions.sixteenth_height));
+    RETURN_IF_FALSE(create_downsample_postfx_pass_node(
+        multilayer_thirtysecond.shared_downsample_node,
         "SharedMip Downsample ThirtySecond Multilayer",
-        m_sixteenth_multilayer_blur_final_output,
-        m_thirtysecond_multilayer_blur_final_output,
-        m_shared_downsample_sixteenth_multilayer_pass_node,
-        thirtysecond_width,
-        thirtysecond_height);
+        multilayer_sixteenth.output,
+        multilayer_thirtysecond.output,
+        multilayer_sixteenth.shared_downsample_node,
+        dimensions.thirtysecond_width,
+        dimensions.thirtysecond_height));
 
     const auto create_temporal_frosted_composite_node =
-        [&](const char* debug_name,
+        [&](RendererInterface::RenderGraphNodeHandle& out_node_handle,
+            const char* debug_name,
             const char* entry_function,
             const char* primary_input_binding_name,
             RendererInterface::RenderTargetHandle primary_input_rt,
-            RendererInterface::RenderTargetHandle half_blur_rt,
-            RendererInterface::RenderTargetHandle quarter_blur_rt,
-            RendererInterface::RenderTargetHandle eighth_blur_rt,
-            RendererInterface::RenderTargetHandle sixteenth_blur_rt,
-            RendererInterface::RenderTargetHandle thirtysecond_blur_rt,
+            const auto& blur_pyramid,
             RendererInterface::RenderTargetHandle history_read,
             RendererInterface::RenderTargetHandle history_write,
             RendererInterface::RenderGraphNodeHandle dependency_node)
-        -> RendererInterface::RenderGraphNodeHandle
+        -> bool
     {
         auto builder = RenderFeature::PassBuilder::Compute("Frosted Glass", debug_name);
         builder
             .AddModule(m_scene->GetCameraModule())
             .AddShader(RendererInterface::COMPUTE_SHADER, entry_function, "Resources/Shaders/FrostedGlass.hlsl")
             .AddDependency(dependency_node)
-            .AddSampledRenderTarget(
-                primary_input_binding_name,
-                primary_input_rt,
-                RendererInterface::RenderTargetTextureBindingDesc::SRV)
-            .AddSampledRenderTarget(
-                "BlurredColorTex",
-                half_blur_rt,
-                RendererInterface::RenderTargetTextureBindingDesc::SRV)
-            .AddSampledRenderTarget(
-                "QuarterBlurredColorTex",
-                quarter_blur_rt,
-                RendererInterface::RenderTargetTextureBindingDesc::SRV)
-            .AddSampledRenderTarget(
-                "EighthBlurredColorTex",
-                eighth_blur_rt,
-                RendererInterface::RenderTargetTextureBindingDesc::SRV)
-            .AddSampledRenderTarget(
-                "SixteenthBlurredColorTex",
-                sixteenth_blur_rt,
-                RendererInterface::RenderTargetTextureBindingDesc::SRV)
-            .AddSampledRenderTarget(
-                "ThirtySecondBlurredColorTex",
-                thirtysecond_blur_rt,
-                RendererInterface::RenderTargetTextureBindingDesc::SRV)
-            .AddSampledRenderTarget(
-                "MaskParamTex",
-                m_frosted_mask_parameter_output,
-                RendererInterface::RenderTargetTextureBindingDesc::SRV)
-            .AddSampledRenderTarget(
-                "MaskParamSecondaryTex",
-                m_frosted_mask_parameter_secondary_output,
-                RendererInterface::RenderTargetTextureBindingDesc::SRV)
-            .AddSampledRenderTarget(
-                "PanelOpticsTex",
-                m_frosted_panel_optics_output,
-                RendererInterface::RenderTargetTextureBindingDesc::SRV)
-            .AddSampledRenderTarget(
-                "PanelOpticsSecondaryTex",
-                m_frosted_panel_optics_secondary_output,
-                RendererInterface::RenderTargetTextureBindingDesc::SRV)
-            .AddSampledRenderTarget(
-                "PanelProfileTex",
-                m_frosted_panel_profile_output,
-                RendererInterface::RenderTargetTextureBindingDesc::SRV)
-            .AddSampledRenderTarget(
-                "PanelProfileSecondaryTex",
-                m_frosted_panel_profile_secondary_output,
-                RendererInterface::RenderTargetTextureBindingDesc::SRV)
-            .AddSampledRenderTarget(
-                "HistoryInputTex",
-                history_read,
-                RendererInterface::RenderTargetTextureBindingDesc::SRV)
-            .AddSampledRenderTarget(
-                "VelocityTex",
-                velocity_rt,
-                RendererInterface::RenderTargetTextureBindingDesc::SRV)
-            .AddSampledRenderTarget(
-                "Output",
-                m_frosted_pass_output,
-                RendererInterface::RenderTargetTextureBindingDesc::UAV)
-            .AddSampledRenderTarget(
-                "HistoryOutputTex",
-                history_write,
-                RendererInterface::RenderTargetTextureBindingDesc::UAV)
-            .AddBuffer("g_frosted_panels", panel_data_binding_desc)
-            .AddBuffer("FrostedGlassGlobalBuffer", global_params_binding_desc)
-            .SetDispatch2D(width, height);
-        return graph.CreateRenderGraphNode(resource_operator, builder.Build());
+            .AddSampledRenderTargetBindings({
+                RenderFeature::MakeSampledRenderTargetBinding(
+                    primary_input_binding_name,
+                    primary_input_rt,
+                    RendererInterface::RenderTargetTextureBindingDesc::SRV),
+                RenderFeature::MakeSampledRenderTargetBinding(
+                    "BlurredColorTex",
+                    blur_pyramid.Half().output,
+                    RendererInterface::RenderTargetTextureBindingDesc::SRV),
+                RenderFeature::MakeSampledRenderTargetBinding(
+                    "QuarterBlurredColorTex",
+                    blur_pyramid.Quarter().output,
+                    RendererInterface::RenderTargetTextureBindingDesc::SRV),
+                RenderFeature::MakeSampledRenderTargetBinding(
+                    "EighthBlurredColorTex",
+                    blur_pyramid.Eighth().output,
+                    RendererInterface::RenderTargetTextureBindingDesc::SRV),
+                RenderFeature::MakeSampledRenderTargetBinding(
+                    "SixteenthBlurredColorTex",
+                    blur_pyramid.Sixteenth().output,
+                    RendererInterface::RenderTargetTextureBindingDesc::SRV),
+                RenderFeature::MakeSampledRenderTargetBinding(
+                    "ThirtySecondBlurredColorTex",
+                    blur_pyramid.ThirtySecond().output,
+                    RendererInterface::RenderTargetTextureBindingDesc::SRV),
+                RenderFeature::MakeSampledRenderTargetBinding(
+                    "MaskParamTex",
+                    primary_panel_payload.mask_parameter,
+                    RendererInterface::RenderTargetTextureBindingDesc::SRV),
+                RenderFeature::MakeSampledRenderTargetBinding(
+                    "MaskParamSecondaryTex",
+                    secondary_panel_payload.mask_parameter,
+                    RendererInterface::RenderTargetTextureBindingDesc::SRV),
+                RenderFeature::MakeSampledRenderTargetBinding(
+                    "PanelOpticsTex",
+                    primary_panel_payload.panel_optics,
+                    RendererInterface::RenderTargetTextureBindingDesc::SRV),
+                RenderFeature::MakeSampledRenderTargetBinding(
+                    "PanelOpticsSecondaryTex",
+                    secondary_panel_payload.panel_optics,
+                    RendererInterface::RenderTargetTextureBindingDesc::SRV),
+                RenderFeature::MakeSampledRenderTargetBinding(
+                    "PanelProfileTex",
+                    primary_panel_payload.panel_profile,
+                    RendererInterface::RenderTargetTextureBindingDesc::SRV),
+                RenderFeature::MakeSampledRenderTargetBinding(
+                    "PanelProfileSecondaryTex",
+                    secondary_panel_payload.panel_profile,
+                    RendererInterface::RenderTargetTextureBindingDesc::SRV),
+                RenderFeature::MakeSampledRenderTargetBinding(
+                    "HistoryInputTex",
+                    history_read,
+                    RendererInterface::RenderTargetTextureBindingDesc::SRV),
+                RenderFeature::MakeSampledRenderTargetBinding(
+                    "VelocityTex",
+                    velocity_rt,
+                    RendererInterface::RenderTargetTextureBindingDesc::SRV),
+                RenderFeature::MakeSampledRenderTargetBinding(
+                    "Output",
+                    composite_outputs.final_output,
+                    RendererInterface::RenderTargetTextureBindingDesc::UAV),
+                RenderFeature::MakeSampledRenderTargetBinding(
+                    "HistoryOutputTex",
+                    history_write,
+                    RendererInterface::RenderTargetTextureBindingDesc::UAV)
+            })
+            .AddBuffers({
+                RenderFeature::MakeBufferBinding("g_frosted_panels", bindings.panel_data),
+                RenderFeature::MakeBufferBinding("FrostedGlassGlobalBuffer", bindings.global_params)
+            })
+            .SetDispatch2D(dimensions.width, dimensions.height);
+        return RenderFeature::CreateOrSyncRenderGraphNode(
+            sync_existing,
+            resource_operator,
+            graph,
+            out_node_handle,
+            builder.Build());
     };
 
-    auto create_frosted_front_composite_node =
-        [&](const char* debug_name,
+    const auto create_frosted_front_composite_node =
+        [&](RendererInterface::RenderGraphNodeHandle& out_node_handle,
+            const char* debug_name,
             RendererInterface::RenderTargetHandle history_read,
             RendererInterface::RenderTargetHandle history_write,
             RendererInterface::RenderGraphNodeHandle dependency_node)
-        -> RendererInterface::RenderGraphNodeHandle
+        -> bool
     {
         return create_temporal_frosted_composite_node(
+            out_node_handle,
             debug_name,
             "CompositeFrontMain",
             "BackCompositeTex",
-            m_frosted_back_composite_output,
-            m_half_multilayer_blur_final_output,
-            m_quarter_multilayer_blur_final_output,
-            m_eighth_multilayer_blur_final_output,
-            m_sixteenth_multilayer_blur_final_output,
-            m_thirtysecond_multilayer_blur_final_output,
+            composite_outputs.back_composite,
+            multilayer_blur,
             history_read,
             history_write,
             dependency_node);
     };
 
-    m_frosted_composite_front_history_ab_pass_node =
-        create_frosted_front_composite_node(
-            "Frosted Composite Front History A->B",
-            m_temporal_history_a,
-            m_temporal_history_b,
-            m_blur_thirtysecond_multilayer_vertical_pass_node);
-    m_frosted_composite_front_history_ba_pass_node =
-        create_frosted_front_composite_node(
-            "Frosted Composite Front History B->A",
-            m_temporal_history_b,
-            m_temporal_history_a,
-            m_blur_thirtysecond_multilayer_vertical_pass_node);
-    m_frosted_composite_front_shared_mip_history_ab_pass_node =
-        create_frosted_front_composite_node(
-            "Frosted Composite Front SharedMip History A->B",
-            m_temporal_history_a,
-            m_temporal_history_b,
-            m_shared_downsample_thirtysecond_multilayer_pass_node);
-    m_frosted_composite_front_shared_mip_history_ba_pass_node =
-        create_frosted_front_composite_node(
-            "Frosted Composite Front SharedMip History B->A",
-            m_temporal_history_b,
-            m_temporal_history_a,
-            m_shared_downsample_thirtysecond_multilayer_pass_node);
+    const auto create_temporal_history_node_pair =
+        [&](TemporalHistoryNodePairView& out_history_pair,
+            const char* debug_name_ab,
+            const char* debug_name_ba,
+            const auto& create_node)
+        -> bool
+    {
+        RETURN_IF_FALSE(create_node(
+            out_history_pair.history_ab,
+            debug_name_ab,
+            m_temporal_history_state.history_a,
+            m_temporal_history_state.history_b));
+        RETURN_IF_FALSE(create_node(
+            out_history_pair.history_ba,
+            debug_name_ba,
+            m_temporal_history_state.history_b,
+            m_temporal_history_state.history_a));
+        return true;
+    };
 
-    auto create_frosted_composite_node =
-        [&](const char* debug_name,
+    RETURN_IF_FALSE(create_temporal_history_node_pair(
+        legacy_composite.front_history,
+        "Frosted Composite Front History A->B",
+        "Frosted Composite Front History B->A",
+        [&](RendererInterface::RenderGraphNodeHandle& out_node_handle,
+            const char* debug_name,
+            RendererInterface::RenderTargetHandle history_read,
+            RendererInterface::RenderTargetHandle history_write) -> bool
+        {
+            return create_frosted_front_composite_node(
+                out_node_handle,
+                debug_name,
+                history_read,
+                history_write,
+                multilayer_blur.ThirtySecond().blur_vertical_node);
+        }));
+
+    RETURN_IF_FALSE(create_temporal_history_node_pair(
+        shared_mip_composite.front_history,
+        "Frosted Composite Front SharedMip History A->B",
+        "Frosted Composite Front SharedMip History B->A",
+        [&](RendererInterface::RenderGraphNodeHandle& out_node_handle,
+            const char* debug_name,
+            RendererInterface::RenderTargetHandle history_read,
+            RendererInterface::RenderTargetHandle history_write) -> bool
+        {
+            return create_frosted_front_composite_node(
+                out_node_handle,
+                debug_name,
+                history_read,
+                history_write,
+                multilayer_blur.ThirtySecond().shared_downsample_node);
+        }));
+
+    const auto create_frosted_composite_node =
+        [&](RendererInterface::RenderGraphNodeHandle& out_node_handle,
+            const char* debug_name,
             RendererInterface::RenderTargetHandle history_read,
             RendererInterface::RenderTargetHandle history_write,
             RendererInterface::RenderGraphNodeHandle dependency_node)
-        -> RendererInterface::RenderGraphNodeHandle
+        -> bool
     {
         return create_temporal_frosted_composite_node(
+            out_node_handle,
             debug_name,
             "CompositeMain",
             "InputColorTex",
             m_lighting->GetLightingOutput(),
-            m_half_blur_final_output,
-            m_quarter_blur_final_output,
-            m_eighth_blur_final_output,
-            m_sixteenth_blur_final_output,
-            m_thirtysecond_blur_final_output,
+            primary_blur,
             history_read,
             history_write,
             dependency_node);
     };
 
-    m_frosted_composite_history_ab_pass_node =
-        create_frosted_composite_node(
-            "Frosted Composite History A->B",
-            m_temporal_history_a,
-            m_temporal_history_b,
-            m_blur_thirtysecond_vertical_pass_node);
-    m_frosted_composite_history_ba_pass_node =
-        create_frosted_composite_node(
-            "Frosted Composite History B->A",
-            m_temporal_history_b,
-            m_temporal_history_a,
-            m_blur_thirtysecond_vertical_pass_node);
-    m_frosted_composite_shared_mip_history_ab_pass_node =
-        create_frosted_composite_node(
-            "Frosted Composite SharedMip History A->B",
-            m_temporal_history_a,
-            m_temporal_history_b,
-            m_shared_downsample_thirtysecond_pass_node);
-    m_frosted_composite_shared_mip_history_ba_pass_node =
-        create_frosted_composite_node(
-            "Frosted Composite SharedMip History B->A",
-            m_temporal_history_b,
-            m_temporal_history_a,
-            m_shared_downsample_thirtysecond_pass_node);
+    RETURN_IF_FALSE(create_temporal_history_node_pair(
+        legacy_composite.single_history,
+        "Frosted Composite History A->B",
+        "Frosted Composite History B->A",
+        [&](RendererInterface::RenderGraphNodeHandle& out_node_handle,
+            const char* debug_name,
+            RendererInterface::RenderTargetHandle history_read,
+            RendererInterface::RenderTargetHandle history_write) -> bool
+        {
+            return create_frosted_composite_node(
+                out_node_handle,
+                debug_name,
+                history_read,
+                history_write,
+                primary_blur.ThirtySecond().blur_vertical_node);
+        }));
 
+    RETURN_IF_FALSE(create_temporal_history_node_pair(
+        shared_mip_composite.single_history,
+        "Frosted Composite SharedMip History A->B",
+        "Frosted Composite SharedMip History B->A",
+        [&](RendererInterface::RenderGraphNodeHandle& out_node_handle,
+            const char* debug_name,
+            RendererInterface::RenderTargetHandle history_read,
+            RendererInterface::RenderTargetHandle history_write) -> bool
+        {
+            return create_frosted_composite_node(
+                out_node_handle,
+                debug_name,
+                history_read,
+                history_write,
+                primary_blur.ThirtySecond().shared_downsample_node);
+        }));
+    return true;
+}
+
+bool RendererSystemFrostedGlass::SyncStaticPassSetups(
+    RendererInterface::ResourceOperator& resource_operator,
+    RendererInterface::RenderGraph& graph,
+    const RendererSystemSceneRenderer::BasePassOutputs& scene_outputs,
+    const InitDimensions& dimensions,
+    const InitBindings& bindings)
+{
+    const RenderFeature::FrameDimensions frame_dimensions =
+        RenderFeature::FrameDimensions::FromExtent(dimensions.width, dimensions.height);
+    if (m_static_pass_setup_state.Matches(frame_dimensions))
+    {
+        return true;
+    }
+
+    RETURN_IF_FALSE(CreatePrimaryBlurPyramidPasses(resource_operator, graph, dimensions, bindings, true));
+    RETURN_IF_FALSE(CreatePanelPayloadPasses(resource_operator, graph, scene_outputs, dimensions, bindings, true));
+    RETURN_IF_FALSE(CreateCompositePasses(resource_operator, graph, scene_outputs, dimensions, bindings, true));
+
+    m_static_pass_setup_state.Update(frame_dimensions);
+    return true;
+}
+
+bool RendererSystemFrostedGlass::Init(RendererInterface::ResourceOperator& resource_operator,
+                                      RendererInterface::RenderGraph& graph)
+{
+    GLTF_CHECK(m_scene);
+    GLTF_CHECK(m_lighting);
+    GLTF_CHECK(m_scene->HasInit());
+    GLTF_CHECK(m_lighting->HasInit());
+
+    ResetInitRuntimeState();
+    const InitDimensions dimensions = BuildInitDimensions(resource_operator);
+    GLTF_CHECK(InitializeSharedPostFxResources(resource_operator, dimensions));
+    CreateInitRenderTargets(resource_operator, dimensions);
+    CreateInitBuffers(resource_operator);
+    const InitBindings bindings = BuildInitBindings();
+    const auto scene_outputs = m_scene->GetOutputs();
+
+    RETURN_IF_FALSE(CreatePrimaryBlurPyramidPasses(resource_operator, graph, dimensions, bindings));
+    RETURN_IF_FALSE(CreatePanelPayloadPasses(resource_operator, graph, scene_outputs, dimensions, bindings));
+    RETURN_IF_FALSE(CreateCompositePasses(resource_operator, graph, scene_outputs, dimensions, bindings));
+
+    m_static_pass_setup_state.Update(RenderFeature::FrameDimensions::FromExtent(dimensions.width, dimensions.height));
     UploadPanelData(resource_operator);
-    graph.RegisterRenderTargetToColorOutput(m_frosted_pass_output);
+    graph.RegisterRenderTargetToColorOutput(m_composite_outputs.final_output);
     return true;
 }
 
 bool RendererSystemFrostedGlass::HasInit() const
 {
-    return m_downsample_half_pass_node != NULL_HANDLE &&
-           m_blur_half_horizontal_pass_node != NULL_HANDLE &&
-           m_blur_half_vertical_pass_node != NULL_HANDLE &&
-           m_downsample_quarter_pass_node != NULL_HANDLE &&
-           m_blur_quarter_horizontal_pass_node != NULL_HANDLE &&
-           m_blur_quarter_vertical_pass_node != NULL_HANDLE &&
-           m_downsample_eighth_pass_node != NULL_HANDLE &&
-           m_blur_eighth_horizontal_pass_node != NULL_HANDLE &&
-           m_blur_eighth_vertical_pass_node != NULL_HANDLE &&
-           m_downsample_sixteenth_pass_node != NULL_HANDLE &&
-           m_blur_sixteenth_horizontal_pass_node != NULL_HANDLE &&
-           m_blur_sixteenth_vertical_pass_node != NULL_HANDLE &&
-           m_downsample_thirtysecond_pass_node != NULL_HANDLE &&
-           m_blur_thirtysecond_horizontal_pass_node != NULL_HANDLE &&
-           m_blur_thirtysecond_vertical_pass_node != NULL_HANDLE &&
-           m_shared_downsample_half_pass_node != NULL_HANDLE &&
-           m_shared_downsample_quarter_pass_node != NULL_HANDLE &&
-           m_shared_downsample_eighth_pass_node != NULL_HANDLE &&
-           m_shared_downsample_sixteenth_pass_node != NULL_HANDLE &&
-           m_shared_downsample_thirtysecond_pass_node != NULL_HANDLE &&
-           m_frosted_mask_parameter_pass_node != NULL_HANDLE &&
-           m_frosted_composite_back_pass_node != NULL_HANDLE &&
-           m_frosted_composite_back_shared_mip_pass_node != NULL_HANDLE &&
-           m_downsample_half_multilayer_pass_node != NULL_HANDLE &&
-           m_blur_half_multilayer_horizontal_pass_node != NULL_HANDLE &&
-           m_blur_half_multilayer_vertical_pass_node != NULL_HANDLE &&
-           m_downsample_quarter_multilayer_pass_node != NULL_HANDLE &&
-           m_blur_quarter_multilayer_horizontal_pass_node != NULL_HANDLE &&
-           m_blur_quarter_multilayer_vertical_pass_node != NULL_HANDLE &&
-           m_downsample_eighth_multilayer_pass_node != NULL_HANDLE &&
-           m_blur_eighth_multilayer_horizontal_pass_node != NULL_HANDLE &&
-           m_blur_eighth_multilayer_vertical_pass_node != NULL_HANDLE &&
-           m_downsample_sixteenth_multilayer_pass_node != NULL_HANDLE &&
-           m_blur_sixteenth_multilayer_horizontal_pass_node != NULL_HANDLE &&
-           m_blur_sixteenth_multilayer_vertical_pass_node != NULL_HANDLE &&
-           m_downsample_thirtysecond_multilayer_pass_node != NULL_HANDLE &&
-           m_blur_thirtysecond_multilayer_horizontal_pass_node != NULL_HANDLE &&
-           m_blur_thirtysecond_multilayer_vertical_pass_node != NULL_HANDLE &&
-           m_shared_downsample_half_multilayer_pass_node != NULL_HANDLE &&
-           m_shared_downsample_quarter_multilayer_pass_node != NULL_HANDLE &&
-           m_shared_downsample_eighth_multilayer_pass_node != NULL_HANDLE &&
-           m_shared_downsample_sixteenth_multilayer_pass_node != NULL_HANDLE &&
-           m_shared_downsample_thirtysecond_multilayer_pass_node != NULL_HANDLE &&
-           m_frosted_composite_front_history_ab_pass_node != NULL_HANDLE &&
-           m_frosted_composite_front_history_ba_pass_node != NULL_HANDLE &&
-           m_frosted_composite_front_shared_mip_history_ab_pass_node != NULL_HANDLE &&
-           m_frosted_composite_front_shared_mip_history_ba_pass_node != NULL_HANDLE &&
-           m_frosted_composite_history_ab_pass_node != NULL_HANDLE &&
-           m_frosted_composite_history_ba_pass_node != NULL_HANDLE &&
-           m_frosted_composite_shared_mip_history_ab_pass_node != NULL_HANDLE &&
-           m_frosted_composite_shared_mip_history_ba_pass_node != NULL_HANDLE &&
-           m_frosted_pass_output != NULL_HANDLE &&
-           m_frosted_back_composite_output != NULL_HANDLE &&
-           m_frosted_mask_parameter_output != NULL_HANDLE &&
-            m_frosted_mask_parameter_secondary_output != NULL_HANDLE &&
-            m_frosted_panel_optics_output != NULL_HANDLE &&
-            m_frosted_panel_optics_secondary_output != NULL_HANDLE &&
-            m_frosted_panel_profile_output != NULL_HANDLE &&
-            m_frosted_panel_profile_secondary_output != NULL_HANDLE &&
-            m_frosted_panel_payload_depth != NULL_HANDLE &&
-            m_frosted_panel_payload_depth_secondary != NULL_HANDLE &&
-            m_half_multilayer_ping != NULL_HANDLE &&
-           m_half_multilayer_pong != NULL_HANDLE &&
-           m_quarter_multilayer_ping != NULL_HANDLE &&
-           m_quarter_multilayer_pong != NULL_HANDLE &&
-           m_eighth_blur_ping != NULL_HANDLE &&
-           m_eighth_blur_pong != NULL_HANDLE &&
-           m_sixteenth_blur_ping != NULL_HANDLE &&
-           m_sixteenth_blur_pong != NULL_HANDLE &&
-           m_thirtysecond_blur_ping != NULL_HANDLE &&
-           m_thirtysecond_blur_pong != NULL_HANDLE &&
-           m_eighth_multilayer_ping != NULL_HANDLE &&
-           m_eighth_multilayer_pong != NULL_HANDLE &&
-           m_sixteenth_multilayer_ping != NULL_HANDLE &&
-           m_sixteenth_multilayer_pong != NULL_HANDLE &&
-           m_thirtysecond_multilayer_ping != NULL_HANDLE &&
-           m_thirtysecond_multilayer_pong != NULL_HANDLE &&
-           m_half_blur_final_output != NULL_HANDLE &&
-           m_quarter_blur_final_output != NULL_HANDLE &&
-           m_eighth_blur_final_output != NULL_HANDLE &&
-           m_sixteenth_blur_final_output != NULL_HANDLE &&
-           m_thirtysecond_blur_final_output != NULL_HANDLE &&
-           m_half_multilayer_blur_final_output != NULL_HANDLE &&
-           m_quarter_multilayer_blur_final_output != NULL_HANDLE &&
-           m_eighth_multilayer_blur_final_output != NULL_HANDLE &&
-           m_sixteenth_multilayer_blur_final_output != NULL_HANDLE &&
-           m_thirtysecond_multilayer_blur_final_output != NULL_HANDLE &&
-           m_temporal_history_a != NULL_HANDLE &&
-           m_temporal_history_b != NULL_HANDLE &&
+    const auto primary_blur = GetPrimaryBlurPyramidView();
+    const auto multilayer_blur = GetMultilayerBlurPyramidView();
+    const auto legacy_composite = GetLegacyCompositePassBundleView();
+    const auto shared_mip_composite = GetSharedMipCompositePassBundleView();
+
+    return primary_blur.HasLegacyPath() &&
+           primary_blur.HasSharedMipPath() &&
+           m_panel_payload_passes.HasComputePath() &&
+           legacy_composite.HasInit() &&
+           multilayer_blur.HasLegacyPath() &&
+           multilayer_blur.HasSharedMipPath() &&
+           shared_mip_composite.HasInit() &&
+           m_composite_outputs.HasInit() &&
+           m_panel_payload_targets.HasInit() &&
+           m_temporal_history_state.HasTargets() &&
            m_postfx_shared_resources.HasInit();
 }
 
@@ -1552,14 +1807,21 @@ void RendererSystemFrostedGlass::ResetRuntimeResources(RendererInterface::Resour
 {
     (void)resource_operator;
     m_postfx_shared_resources.Reset();
-    m_temporal_force_reset = true;
-    m_temporal_history_valid = false;
-    m_temporal_history_read_is_a = true;
+    m_primary_blur_pyramid.Reset();
+    m_multilayer_blur_pyramid.Reset();
+    m_panel_payload_passes = {};
+    m_legacy_composite_passes = {};
+    m_shared_mip_composite_passes = {};
+    m_composite_outputs = {};
+    m_panel_payload_targets.Reset();
+    m_temporal_history_state.ResetRuntime();
     m_global_params.temporal_history_valid = 0;
+    m_static_pass_setup_state.Reset();
+    m_frosted_panel_data_handle = NULL_HANDLE;
+    m_frosted_global_params_handle = NULL_HANDLE;
     m_need_upload_panels = true;
     m_need_upload_global_params = true;
-    m_dispatch_state_valid = false;
-    m_panel_payload_raster_ready = false;
+    m_dispatch_cache_state.Reset();
     m_panel_payload_compute_fallback_active = false;
     m_last_expected_registered_pass_count = 0;
 }
@@ -1599,55 +1861,42 @@ void RendererSystemFrostedGlass::UpdateDirectionalHighlightParams()
     }
 }
 
-bool RendererSystemFrostedGlass::Tick(RendererInterface::ResourceOperator& resource_operator,
-                                      RendererInterface::RenderGraph& graph,
-                                      unsigned long long interval)
+RendererSystemFrostedGlass::BlurRuntimeResolution RendererSystemFrostedGlass::ResolveBlurRuntimeMode()
 {
-    const float delta_seconds = static_cast<float>(interval) / 1000.0f;
-    const unsigned width = (std::max)(1u, resource_operator.GetCurrentRenderWidth());
-    const unsigned height = (std::max)(1u, resource_operator.GetCurrentRenderHeight());
-
-    // Keep frosted history across regular camera motion; per-pixel velocity/edge rejection handles reprojection risk.
-    // Reserve hard reset for explicit local events (resize/UI reset/mode switch).
-    if (m_temporal_force_reset)
-    {
-        m_temporal_history_valid = false;
-    }
-    m_temporal_force_reset = false;
-
-    const unsigned history_valid_flag = m_temporal_history_valid ? 1u : 0u;
-    if (m_global_params.temporal_history_valid != history_valid_flag)
-    {
-        m_global_params.temporal_history_valid = history_valid_flag;
-        m_need_upload_global_params = true;
-    }
-
-    BlurSourceMode effective_blur_source_mode = m_blur_source_mode;
-    if (effective_blur_source_mode == BlurSourceMode::SharedDual)
+    BlurRuntimeResolution resolution{};
+    resolution.effective_mode = m_blur_source_mode;
+    if (resolution.effective_mode == BlurSourceMode::SharedDual)
     {
         // SharedDual is reserved as an optional quality tier in B8; current runtime falls back to SharedMip.
-        effective_blur_source_mode = BlurSourceMode::SharedMip;
+        resolution.effective_mode = BlurSourceMode::SharedMip;
     }
-    const unsigned blur_source_mode_flag = static_cast<unsigned>(effective_blur_source_mode);
+    resolution.use_shared_mip_path = resolution.effective_mode != BlurSourceMode::LegacyPyramid;
+
+    const unsigned blur_source_mode_flag = static_cast<unsigned>(resolution.effective_mode);
     if (m_global_params.blur_source_mode != blur_source_mode_flag)
     {
         m_global_params.blur_source_mode = blur_source_mode_flag;
         m_need_upload_global_params = true;
     }
-    const bool use_shared_mip_path = effective_blur_source_mode != BlurSourceMode::LegacyPyramid;
 
-    bool multilayer_runtime_enabled = false;
+    return resolution;
+}
+
+RendererSystemFrostedGlass::MultilayerRuntimeResolution RendererSystemFrostedGlass::ResolveMultilayerRuntimeState(
+    unsigned long long interval)
+{
+    MultilayerRuntimeResolution resolution{};
     if (m_global_params.multilayer_mode == MULTILAYER_MODE_SINGLE)
     {
         m_multilayer_over_budget_streak = 0;
         m_multilayer_cooldown_frames = 0;
-        multilayer_runtime_enabled = false;
+        resolution.runtime_enabled = false;
     }
     else if (m_global_params.multilayer_mode == MULTILAYER_MODE_FORCE)
     {
         m_multilayer_over_budget_streak = 0;
         m_multilayer_cooldown_frames = 0;
-        multilayer_runtime_enabled = true;
+        resolution.runtime_enabled = true;
     }
     else
     {
@@ -1657,7 +1906,7 @@ bool RendererSystemFrostedGlass::Tick(RendererInterface::ResourceOperator& resou
         {
             --m_multilayer_cooldown_frames;
             m_multilayer_over_budget_streak = 0;
-            multilayer_runtime_enabled = false;
+            resolution.runtime_enabled = false;
         }
         else
         {
@@ -1674,18 +1923,18 @@ bool RendererSystemFrostedGlass::Tick(RendererInterface::ResourceOperator& resou
             {
                 m_multilayer_over_budget_streak = 0;
                 m_multilayer_cooldown_frames = MULTILAYER_AUTO_COOLDOWN_FRAMES;
-                multilayer_runtime_enabled = false;
+                resolution.runtime_enabled = false;
             }
             else
             {
-                multilayer_runtime_enabled = true;
+                resolution.runtime_enabled = true;
             }
         }
     }
 
-    if (m_multilayer_runtime_enabled != multilayer_runtime_enabled)
+    if (m_multilayer_runtime_enabled != resolution.runtime_enabled)
     {
-        m_multilayer_runtime_enabled = multilayer_runtime_enabled;
+        m_multilayer_runtime_enabled = resolution.runtime_enabled;
         m_need_upload_global_params = true;
     }
     const unsigned multilayer_runtime_flag = m_multilayer_runtime_enabled ? 1u : 0u;
@@ -1694,247 +1943,338 @@ bool RendererSystemFrostedGlass::Tick(RendererInterface::ResourceOperator& resou
         m_global_params.multilayer_runtime_enabled = multilayer_runtime_flag;
         m_need_upload_global_params = true;
     }
-
-    UpdateDirectionalHighlightParams();
-    RefreshExternalPanelsFromProducers();
-    ApplyExternalPanelDebugOverrides();
-    UpdatePanelRuntimeStates(delta_seconds);
-    UploadPanelData(resource_operator);
-
-    const RendererInterface::RenderGraphNodeHandle active_single_composite_pass =
-        m_temporal_history_read_is_a
-            ? (use_shared_mip_path ? m_frosted_composite_shared_mip_history_ab_pass_node : m_frosted_composite_history_ab_pass_node)
-            : (use_shared_mip_path ? m_frosted_composite_shared_mip_history_ba_pass_node : m_frosted_composite_history_ba_pass_node);
-    const RendererInterface::RenderGraphNodeHandle active_front_composite_pass =
-        m_temporal_history_read_is_a
-            ? (use_shared_mip_path ? m_frosted_composite_front_shared_mip_history_ab_pass_node : m_frosted_composite_front_history_ab_pass_node)
-            : (use_shared_mip_path ? m_frosted_composite_front_shared_mip_history_ba_pass_node : m_frosted_composite_front_history_ba_pass_node);
-    const RendererInterface::RenderGraphNodeHandle active_back_composite_pass =
-        use_shared_mip_path ? m_frosted_composite_back_shared_mip_pass_node : m_frosted_composite_back_pass_node;
-    const bool request_raster_panel_payload = m_panel_payload_path == PanelPayloadPath::RasterPanelGBuffer;
-    const bool use_raster_panel_payload = request_raster_panel_payload && m_panel_payload_raster_ready;
-    m_panel_payload_compute_fallback_active = request_raster_panel_payload && !use_raster_panel_payload;
-    const bool use_strict_multilayer_path =
+    resolution.use_strict_multilayer_path =
         m_global_params.multilayer_mode == MULTILAYER_MODE_FORCE &&
         m_multilayer_runtime_enabled;
-    unsigned expected_pass_count = 0u;
-    expected_pass_count += use_shared_mip_path ? 5u : 15u;
-    expected_pass_count += use_raster_panel_payload ? 2u : 1u;
-    if (use_strict_multilayer_path)
+
+    return resolution;
+}
+
+void RendererSystemFrostedGlass::SyncTickTemporalHistoryFlags()
+{
+    // Keep frosted history across regular camera motion; per-pixel velocity/edge rejection handles reprojection risk.
+    // Reserve hard reset for explicit local events (resize/UI reset/mode switch).
+    if (m_temporal_history_state.force_reset)
     {
-        expected_pass_count += use_shared_mip_path ? 7u : 17u;
+        m_temporal_history_state.valid = false;
+    }
+    m_temporal_history_state.force_reset = false;
+
+    const unsigned history_valid_flag = m_temporal_history_state.valid ? 1u : 0u;
+    if (m_global_params.temporal_history_valid != history_valid_flag)
+    {
+        m_global_params.temporal_history_valid = history_valid_flag;
+        m_need_upload_global_params = true;
+    }
+}
+
+void RendererSystemFrostedGlass::ResolveTickCompositePasses(TickRuntimePaths& runtime_paths) const
+{
+    runtime_paths.primary_blur = GetPrimaryBlurPyramidView();
+    runtime_paths.multilayer_blur = GetMultilayerBlurPyramidView();
+
+    const CompositePassBundleView legacy_composite = GetLegacyCompositePassBundleView();
+    const CompositePassBundleView shared_mip_composite = GetSharedMipCompositePassBundleView();
+    runtime_paths.active_composite = runtime_paths.use_shared_mip_path ? shared_mip_composite : legacy_composite;
+    runtime_paths.active_single_composite_pass =
+        runtime_paths.active_composite.SelectSingle(m_temporal_history_state.read_is_a);
+    runtime_paths.active_front_composite_pass =
+        runtime_paths.active_composite.SelectFront(m_temporal_history_state.read_is_a);
+    runtime_paths.active_back_composite_pass = runtime_paths.active_composite.back;
+}
+
+void RendererSystemFrostedGlass::ResolveTickPanelPayloadPath(TickRuntimePaths& runtime_paths)
+{
+    const bool request_raster_panel_payload = m_panel_payload_path == PanelPayloadPath::RasterPanelGBuffer;
+    runtime_paths.use_raster_panel_payload = request_raster_panel_payload && m_panel_payload_passes.HasRasterPath();
+    m_panel_payload_compute_fallback_active =
+        request_raster_panel_payload && !runtime_paths.use_raster_panel_payload;
+}
+
+RendererSystemFrostedGlass::TickRuntimePaths RendererSystemFrostedGlass::BuildTickRuntimePaths(
+    unsigned long long interval)
+{
+    TickRuntimePaths runtime_paths{};
+
+    SyncTickTemporalHistoryFlags();
+
+    const BlurRuntimeResolution blur_runtime = ResolveBlurRuntimeMode();
+    const MultilayerRuntimeResolution multilayer_runtime = ResolveMultilayerRuntimeState(interval);
+
+    runtime_paths.use_shared_mip_path = blur_runtime.use_shared_mip_path;
+    runtime_paths.use_strict_multilayer_path = multilayer_runtime.use_strict_multilayer_path;
+
+    ResolveTickCompositePasses(runtime_paths);
+    ResolveTickPanelPayloadPath(runtime_paths);
+
+    UpdateTickRuntimeSummary(runtime_paths);
+    return runtime_paths;
+}
+
+RendererSystemFrostedGlass::TickExecutionPlan RendererSystemFrostedGlass::BuildTickExecutionPlan(
+    unsigned long long interval,
+    unsigned width,
+    unsigned height)
+{
+    TickExecutionPlan execution_plan{};
+    execution_plan.render_width = width;
+    execution_plan.render_height = height;
+    execution_plan.runtime_paths = BuildTickRuntimePaths(interval);
+    execution_plan.dispatch_dimensions = BuildTickDispatchDimensions(width, height);
+    return execution_plan;
+}
+
+void RendererSystemFrostedGlass::UpdateTickRuntimeSummary(const TickRuntimePaths& runtime_paths)
+{
+    const unsigned blur_level_count = static_cast<unsigned>(runtime_paths.primary_blur.levels.size());
+    unsigned expected_pass_count = 0u;
+    expected_pass_count += runtime_paths.use_shared_mip_path ? blur_level_count : blur_level_count * 3u;
+    expected_pass_count += runtime_paths.use_raster_panel_payload ? 2u : 1u;
+    if (runtime_paths.use_strict_multilayer_path)
+    {
+        expected_pass_count +=
+            runtime_paths.use_shared_mip_path ? blur_level_count + 2u : blur_level_count * 3u + 2u;
     }
     else
     {
         expected_pass_count += 1u;
     }
+
     m_last_expected_registered_pass_count = expected_pass_count;
-    m_last_runtime_used_shared_mip_path = use_shared_mip_path;
-    m_last_runtime_used_raster_payload = use_raster_panel_payload;
-    m_last_runtime_used_strict_multilayer = use_strict_multilayer_path;
+    m_last_runtime_used_shared_mip_path = runtime_paths.use_shared_mip_path;
+    m_last_runtime_used_raster_payload = runtime_paths.use_raster_panel_payload;
+    m_last_runtime_used_strict_multilayer = runtime_paths.use_strict_multilayer_path;
+}
 
-    // Update dispatch only when the active path or dispatch dimensions change.
-    // This preserves output while reducing redundant per-frame graph updates.
+void RendererSystemFrostedGlass::RefreshTickPanelData(
+    RendererInterface::ResourceOperator& resource_operator,
+    float delta_seconds)
+{
+    UpdateDirectionalHighlightParams();
+    RefreshExternalPanelsFromProducers();
+    ApplyExternalPanelDebugOverrides();
+    UpdatePanelRuntimeStates(delta_seconds);
+    UploadPanelData(resource_operator);
+}
+
+void RendererSystemFrostedGlass::UpdateTickBlurDispatch(RendererInterface::RenderGraph& graph,
+                                                        const BlurPyramidBundleView& blur_pyramid,
+                                                        const TickDispatchDimensions& dispatch_dimensions,
+                                                        bool use_shared_mip_path)
+{
+    for (size_t level_index = 0; level_index < blur_pyramid.levels.size(); ++level_index)
+    {
+        const BlurPyramidLevelView& level = blur_pyramid.levels[level_index];
+        const std::pair<unsigned, unsigned>& dispatch_size = dispatch_dimensions.blur_dispatch_sizes[level_index];
+        if (use_shared_mip_path)
+        {
+            graph.UpdateComputeDispatch(level.shared_downsample_node, dispatch_size.first, dispatch_size.second, 1);
+        }
+        else
+        {
+            graph.UpdateComputeDispatch(level.downsample_node, dispatch_size.first, dispatch_size.second, 1);
+            graph.UpdateComputeDispatch(level.blur_horizontal_node, dispatch_size.first, dispatch_size.second, 1);
+            graph.UpdateComputeDispatch(level.blur_vertical_node, dispatch_size.first, dispatch_size.second, 1);
+        }
+    }
+}
+
+void RendererSystemFrostedGlass::UpdateTickPanelPayloadDispatch(RendererInterface::RenderGraph& graph,
+                                                                const TickRuntimePaths& runtime_paths,
+                                                                const TickDispatchDimensions& dispatch_dimensions)
+{
+    if (!runtime_paths.use_raster_panel_payload)
+    {
+        graph.UpdateComputeDispatch(
+            m_panel_payload_passes.compute,
+            dispatch_dimensions.full_dispatch_x,
+            dispatch_dimensions.full_dispatch_y,
+            1);
+    }
+}
+
+void RendererSystemFrostedGlass::UpdateTickCompositeDispatch(RendererInterface::RenderGraph& graph,
+                                                             const TickRuntimePaths& runtime_paths,
+                                                             const TickDispatchDimensions& dispatch_dimensions)
+{
+    const auto update_history_dispatch_pair =
+        [&](const TemporalHistoryNodePairView& history_pair)
+    {
+        graph.UpdateComputeDispatch(
+            history_pair.history_ab,
+            dispatch_dimensions.full_dispatch_x,
+            dispatch_dimensions.full_dispatch_y,
+            1);
+        graph.UpdateComputeDispatch(
+            history_pair.history_ba,
+            dispatch_dimensions.full_dispatch_x,
+            dispatch_dimensions.full_dispatch_y,
+            1);
+    };
+
+    if (runtime_paths.use_strict_multilayer_path)
+    {
+        graph.UpdateComputeDispatch(
+            runtime_paths.active_back_composite_pass,
+            dispatch_dimensions.full_dispatch_x,
+            dispatch_dimensions.full_dispatch_y,
+            1);
+        UpdateTickBlurDispatch(
+            graph,
+            runtime_paths.multilayer_blur,
+            dispatch_dimensions,
+            runtime_paths.use_shared_mip_path);
+        update_history_dispatch_pair(runtime_paths.active_composite.front_history);
+    }
+    else
+    {
+        update_history_dispatch_pair(runtime_paths.active_composite.single_history);
+    }
+}
+
+RendererSystemFrostedGlass::TickDispatchDimensions RendererSystemFrostedGlass::BuildTickDispatchDimensions(
+    unsigned width,
+    unsigned height) const
+{
+    TickDispatchDimensions dimensions{};
+    const RenderFeature::FrameDimensions frame_dimensions =
+        RenderFeature::FrameDimensions::FromExtent(width, height);
+    const std::pair<unsigned, unsigned> full_dispatch_group_count = frame_dimensions.ComputeGroupCount2D();
+    dimensions.full_dispatch_x = full_dispatch_group_count.first;
+    dimensions.full_dispatch_y = full_dispatch_group_count.second;
+    dimensions.blur_dispatch_sizes = {{
+        frame_dimensions.Downsampled(2u).ComputeGroupCount2D(),
+        frame_dimensions.Downsampled(4u).ComputeGroupCount2D(),
+        frame_dimensions.Downsampled(8u).ComputeGroupCount2D(),
+        frame_dimensions.Downsampled(16u).ComputeGroupCount2D(),
+        frame_dimensions.Downsampled(32u).ComputeGroupCount2D()
+    }};
+
+    return dimensions;
+}
+
+void RendererSystemFrostedGlass::UpdateTickDispatch(RendererInterface::RenderGraph& graph,
+                                                    const TickExecutionPlan& execution_plan)
+{
+    const TickRuntimePaths& runtime_paths = execution_plan.runtime_paths;
     const bool dispatch_state_changed =
-        !m_dispatch_state_valid ||
-        m_dispatch_render_width != width ||
-        m_dispatch_render_height != height ||
-        m_dispatch_path_shared_mip != use_shared_mip_path ||
-        m_dispatch_path_raster_payload != use_raster_panel_payload ||
-        m_dispatch_path_strict_multilayer != use_strict_multilayer_path;
-    if (dispatch_state_changed)
+        !m_dispatch_cache_state.Matches(
+            execution_plan.render_width,
+            execution_plan.render_height,
+            runtime_paths.use_shared_mip_path,
+            runtime_paths.use_raster_panel_payload,
+            runtime_paths.use_strict_multilayer_path);
+    if (!dispatch_state_changed)
     {
-        const unsigned half_width = (width + 1u) / 2u;
-        const unsigned half_height = (height + 1u) / 2u;
-        const unsigned quarter_width = (width + 3u) / 4u;
-        const unsigned quarter_height = (height + 3u) / 4u;
-        const unsigned eighth_width = (width + 7u) / 8u;
-        const unsigned eighth_height = (height + 7u) / 8u;
-        const unsigned sixteenth_width = (width + 15u) / 16u;
-        const unsigned sixteenth_height = (height + 15u) / 16u;
-        const unsigned thirtysecond_width = (width + 31u) / 32u;
-        const unsigned thirtysecond_height = (height + 31u) / 32u;
+        return;
+    }
 
-        const unsigned full_dispatch_x = (width + 7u) / 8u;
-        const unsigned full_dispatch_y = (height + 7u) / 8u;
-        const unsigned half_dispatch_x = (half_width + 7u) / 8u;
-        const unsigned half_dispatch_y = (half_height + 7u) / 8u;
-        const unsigned quarter_dispatch_x = (quarter_width + 7u) / 8u;
-        const unsigned quarter_dispatch_y = (quarter_height + 7u) / 8u;
-        const unsigned eighth_dispatch_x = (eighth_width + 7u) / 8u;
-        const unsigned eighth_dispatch_y = (eighth_height + 7u) / 8u;
-        const unsigned sixteenth_dispatch_x = (sixteenth_width + 7u) / 8u;
-        const unsigned sixteenth_dispatch_y = (sixteenth_height + 7u) / 8u;
-        const unsigned thirtysecond_dispatch_x = (thirtysecond_width + 7u) / 8u;
-        const unsigned thirtysecond_dispatch_y = (thirtysecond_height + 7u) / 8u;
+    UpdateTickBlurDispatch(
+        graph,
+        runtime_paths.primary_blur,
+        execution_plan.dispatch_dimensions,
+        runtime_paths.use_shared_mip_path);
+    UpdateTickPanelPayloadDispatch(graph, runtime_paths, execution_plan.dispatch_dimensions);
+    UpdateTickCompositeDispatch(graph, runtime_paths, execution_plan.dispatch_dimensions);
 
+    m_dispatch_cache_state.Update(
+        execution_plan.render_width,
+        execution_plan.render_height,
+        runtime_paths.use_shared_mip_path,
+        runtime_paths.use_raster_panel_payload,
+        runtime_paths.use_strict_multilayer_path);
+}
+
+bool RendererSystemFrostedGlass::RegisterTickBlurNodes(RendererInterface::RenderGraph& graph,
+                                                       const BlurPyramidBundleView& blur_pyramid,
+                                                       bool use_shared_mip_path) const
+{
+    for (const BlurPyramidLevelView& level : blur_pyramid.levels)
+    {
         if (use_shared_mip_path)
         {
-            graph.UpdateComputeDispatch(m_shared_downsample_half_pass_node, half_dispatch_x, half_dispatch_y, 1);
-            graph.UpdateComputeDispatch(m_shared_downsample_quarter_pass_node, quarter_dispatch_x, quarter_dispatch_y, 1);
-            graph.UpdateComputeDispatch(m_shared_downsample_eighth_pass_node, eighth_dispatch_x, eighth_dispatch_y, 1);
-            graph.UpdateComputeDispatch(m_shared_downsample_sixteenth_pass_node, sixteenth_dispatch_x, sixteenth_dispatch_y, 1);
-            graph.UpdateComputeDispatch(m_shared_downsample_thirtysecond_pass_node, thirtysecond_dispatch_x, thirtysecond_dispatch_y, 1);
+            RETURN_IF_FALSE(RenderFeature::RegisterRenderGraphNodeIfValid(graph, level.shared_downsample_node));
         }
         else
         {
-            graph.UpdateComputeDispatch(m_downsample_half_pass_node, half_dispatch_x, half_dispatch_y, 1);
-            graph.UpdateComputeDispatch(m_blur_half_horizontal_pass_node, half_dispatch_x, half_dispatch_y, 1);
-            graph.UpdateComputeDispatch(m_blur_half_vertical_pass_node, half_dispatch_x, half_dispatch_y, 1);
-            graph.UpdateComputeDispatch(m_downsample_quarter_pass_node, quarter_dispatch_x, quarter_dispatch_y, 1);
-            graph.UpdateComputeDispatch(m_blur_quarter_horizontal_pass_node, quarter_dispatch_x, quarter_dispatch_y, 1);
-            graph.UpdateComputeDispatch(m_blur_quarter_vertical_pass_node, quarter_dispatch_x, quarter_dispatch_y, 1);
-            graph.UpdateComputeDispatch(m_downsample_eighth_pass_node, eighth_dispatch_x, eighth_dispatch_y, 1);
-            graph.UpdateComputeDispatch(m_blur_eighth_horizontal_pass_node, eighth_dispatch_x, eighth_dispatch_y, 1);
-            graph.UpdateComputeDispatch(m_blur_eighth_vertical_pass_node, eighth_dispatch_x, eighth_dispatch_y, 1);
-            graph.UpdateComputeDispatch(m_downsample_sixteenth_pass_node, sixteenth_dispatch_x, sixteenth_dispatch_y, 1);
-            graph.UpdateComputeDispatch(m_blur_sixteenth_horizontal_pass_node, sixteenth_dispatch_x, sixteenth_dispatch_y, 1);
-            graph.UpdateComputeDispatch(m_blur_sixteenth_vertical_pass_node, sixteenth_dispatch_x, sixteenth_dispatch_y, 1);
-            graph.UpdateComputeDispatch(m_downsample_thirtysecond_pass_node, thirtysecond_dispatch_x, thirtysecond_dispatch_y, 1);
-            graph.UpdateComputeDispatch(m_blur_thirtysecond_horizontal_pass_node, thirtysecond_dispatch_x, thirtysecond_dispatch_y, 1);
-            graph.UpdateComputeDispatch(m_blur_thirtysecond_vertical_pass_node, thirtysecond_dispatch_x, thirtysecond_dispatch_y, 1);
+            RETURN_IF_FALSE(RenderFeature::RegisterRenderGraphNodesIfValid(
+                graph,
+                {level.downsample_node, level.blur_horizontal_node, level.blur_vertical_node}));
         }
-
-        if (!use_raster_panel_payload)
-        {
-            graph.UpdateComputeDispatch(m_frosted_mask_parameter_pass_node, full_dispatch_x, full_dispatch_y, 1);
-        }
-
-        if (use_strict_multilayer_path)
-        {
-            graph.UpdateComputeDispatch(active_back_composite_pass, full_dispatch_x, full_dispatch_y, 1);
-            if (use_shared_mip_path)
-            {
-                graph.UpdateComputeDispatch(m_shared_downsample_half_multilayer_pass_node, half_dispatch_x, half_dispatch_y, 1);
-                graph.UpdateComputeDispatch(m_shared_downsample_quarter_multilayer_pass_node, quarter_dispatch_x, quarter_dispatch_y, 1);
-                graph.UpdateComputeDispatch(m_shared_downsample_eighth_multilayer_pass_node, eighth_dispatch_x, eighth_dispatch_y, 1);
-                graph.UpdateComputeDispatch(m_shared_downsample_sixteenth_multilayer_pass_node, sixteenth_dispatch_x, sixteenth_dispatch_y, 1);
-                graph.UpdateComputeDispatch(m_shared_downsample_thirtysecond_multilayer_pass_node, thirtysecond_dispatch_x, thirtysecond_dispatch_y, 1);
-                graph.UpdateComputeDispatch(m_frosted_composite_front_shared_mip_history_ab_pass_node, full_dispatch_x, full_dispatch_y, 1);
-                graph.UpdateComputeDispatch(m_frosted_composite_front_shared_mip_history_ba_pass_node, full_dispatch_x, full_dispatch_y, 1);
-            }
-            else
-            {
-                graph.UpdateComputeDispatch(m_downsample_half_multilayer_pass_node, half_dispatch_x, half_dispatch_y, 1);
-                graph.UpdateComputeDispatch(m_blur_half_multilayer_horizontal_pass_node, half_dispatch_x, half_dispatch_y, 1);
-                graph.UpdateComputeDispatch(m_blur_half_multilayer_vertical_pass_node, half_dispatch_x, half_dispatch_y, 1);
-                graph.UpdateComputeDispatch(m_downsample_quarter_multilayer_pass_node, quarter_dispatch_x, quarter_dispatch_y, 1);
-                graph.UpdateComputeDispatch(m_blur_quarter_multilayer_horizontal_pass_node, quarter_dispatch_x, quarter_dispatch_y, 1);
-                graph.UpdateComputeDispatch(m_blur_quarter_multilayer_vertical_pass_node, quarter_dispatch_x, quarter_dispatch_y, 1);
-                graph.UpdateComputeDispatch(m_downsample_eighth_multilayer_pass_node, eighth_dispatch_x, eighth_dispatch_y, 1);
-                graph.UpdateComputeDispatch(m_blur_eighth_multilayer_horizontal_pass_node, eighth_dispatch_x, eighth_dispatch_y, 1);
-                graph.UpdateComputeDispatch(m_blur_eighth_multilayer_vertical_pass_node, eighth_dispatch_x, eighth_dispatch_y, 1);
-                graph.UpdateComputeDispatch(m_downsample_sixteenth_multilayer_pass_node, sixteenth_dispatch_x, sixteenth_dispatch_y, 1);
-                graph.UpdateComputeDispatch(m_blur_sixteenth_multilayer_horizontal_pass_node, sixteenth_dispatch_x, sixteenth_dispatch_y, 1);
-                graph.UpdateComputeDispatch(m_blur_sixteenth_multilayer_vertical_pass_node, sixteenth_dispatch_x, sixteenth_dispatch_y, 1);
-                graph.UpdateComputeDispatch(m_downsample_thirtysecond_multilayer_pass_node, thirtysecond_dispatch_x, thirtysecond_dispatch_y, 1);
-                graph.UpdateComputeDispatch(m_blur_thirtysecond_multilayer_horizontal_pass_node, thirtysecond_dispatch_x, thirtysecond_dispatch_y, 1);
-                graph.UpdateComputeDispatch(m_blur_thirtysecond_multilayer_vertical_pass_node, thirtysecond_dispatch_x, thirtysecond_dispatch_y, 1);
-                graph.UpdateComputeDispatch(m_frosted_composite_front_history_ab_pass_node, full_dispatch_x, full_dispatch_y, 1);
-                graph.UpdateComputeDispatch(m_frosted_composite_front_history_ba_pass_node, full_dispatch_x, full_dispatch_y, 1);
-            }
-        }
-        else
-        {
-            if (use_shared_mip_path)
-            {
-                graph.UpdateComputeDispatch(m_frosted_composite_shared_mip_history_ab_pass_node, full_dispatch_x, full_dispatch_y, 1);
-                graph.UpdateComputeDispatch(m_frosted_composite_shared_mip_history_ba_pass_node, full_dispatch_x, full_dispatch_y, 1);
-            }
-            else
-            {
-                graph.UpdateComputeDispatch(m_frosted_composite_history_ab_pass_node, full_dispatch_x, full_dispatch_y, 1);
-                graph.UpdateComputeDispatch(m_frosted_composite_history_ba_pass_node, full_dispatch_x, full_dispatch_y, 1);
-            }
-        }
-
-        m_dispatch_state_valid = true;
-        m_dispatch_render_width = width;
-        m_dispatch_render_height = height;
-        m_dispatch_path_shared_mip = use_shared_mip_path;
-        m_dispatch_path_raster_payload = use_raster_panel_payload;
-        m_dispatch_path_strict_multilayer = use_strict_multilayer_path;
     }
+    return true;
+}
 
-    if (use_shared_mip_path)
+bool RendererSystemFrostedGlass::RegisterTickPanelPayloadNodes(RendererInterface::RenderGraph& graph,
+                                                               const TickRuntimePaths& runtime_paths) const
+{
+    if (runtime_paths.use_raster_panel_payload)
     {
-        graph.RegisterRenderGraphNode(m_shared_downsample_half_pass_node);
-        graph.RegisterRenderGraphNode(m_shared_downsample_quarter_pass_node);
-        graph.RegisterRenderGraphNode(m_shared_downsample_eighth_pass_node);
-        graph.RegisterRenderGraphNode(m_shared_downsample_sixteenth_pass_node);
-        graph.RegisterRenderGraphNode(m_shared_downsample_thirtysecond_pass_node);
+        RETURN_IF_FALSE(RenderFeature::RegisterRenderGraphNodesIfValid(
+            graph,
+            {m_panel_payload_passes.raster_front, m_panel_payload_passes.raster_back}));
     }
     else
     {
-        graph.RegisterRenderGraphNode(m_downsample_half_pass_node);
-        graph.RegisterRenderGraphNode(m_blur_half_horizontal_pass_node);
-        graph.RegisterRenderGraphNode(m_blur_half_vertical_pass_node);
-        graph.RegisterRenderGraphNode(m_downsample_quarter_pass_node);
-        graph.RegisterRenderGraphNode(m_blur_quarter_horizontal_pass_node);
-        graph.RegisterRenderGraphNode(m_blur_quarter_vertical_pass_node);
-        graph.RegisterRenderGraphNode(m_downsample_eighth_pass_node);
-        graph.RegisterRenderGraphNode(m_blur_eighth_horizontal_pass_node);
-        graph.RegisterRenderGraphNode(m_blur_eighth_vertical_pass_node);
-        graph.RegisterRenderGraphNode(m_downsample_sixteenth_pass_node);
-        graph.RegisterRenderGraphNode(m_blur_sixteenth_horizontal_pass_node);
-        graph.RegisterRenderGraphNode(m_blur_sixteenth_vertical_pass_node);
-        graph.RegisterRenderGraphNode(m_downsample_thirtysecond_pass_node);
-        graph.RegisterRenderGraphNode(m_blur_thirtysecond_horizontal_pass_node);
-        graph.RegisterRenderGraphNode(m_blur_thirtysecond_vertical_pass_node);
+        RETURN_IF_FALSE(RenderFeature::RegisterRenderGraphNodeIfValid(graph, m_panel_payload_passes.compute));
     }
-    if (use_raster_panel_payload)
-    {
-        graph.RegisterRenderGraphNode(m_frosted_mask_parameter_raster_front_pass_node);
-        graph.RegisterRenderGraphNode(m_frosted_mask_parameter_raster_back_pass_node);
-    }
-    else
-    {
-        graph.RegisterRenderGraphNode(m_frosted_mask_parameter_pass_node);
-    }
-    if (use_strict_multilayer_path)
-    {
-        graph.RegisterRenderGraphNode(active_back_composite_pass);
-        if (use_shared_mip_path)
-        {
-            graph.RegisterRenderGraphNode(m_shared_downsample_half_multilayer_pass_node);
-            graph.RegisterRenderGraphNode(m_shared_downsample_quarter_multilayer_pass_node);
-            graph.RegisterRenderGraphNode(m_shared_downsample_eighth_multilayer_pass_node);
-            graph.RegisterRenderGraphNode(m_shared_downsample_sixteenth_multilayer_pass_node);
-            graph.RegisterRenderGraphNode(m_shared_downsample_thirtysecond_multilayer_pass_node);
-        }
-        else
-        {
-            graph.RegisterRenderGraphNode(m_downsample_half_multilayer_pass_node);
-            graph.RegisterRenderGraphNode(m_blur_half_multilayer_horizontal_pass_node);
-            graph.RegisterRenderGraphNode(m_blur_half_multilayer_vertical_pass_node);
-            graph.RegisterRenderGraphNode(m_downsample_quarter_multilayer_pass_node);
-            graph.RegisterRenderGraphNode(m_blur_quarter_multilayer_horizontal_pass_node);
-            graph.RegisterRenderGraphNode(m_blur_quarter_multilayer_vertical_pass_node);
-            graph.RegisterRenderGraphNode(m_downsample_eighth_multilayer_pass_node);
-            graph.RegisterRenderGraphNode(m_blur_eighth_multilayer_horizontal_pass_node);
-            graph.RegisterRenderGraphNode(m_blur_eighth_multilayer_vertical_pass_node);
-            graph.RegisterRenderGraphNode(m_downsample_sixteenth_multilayer_pass_node);
-            graph.RegisterRenderGraphNode(m_blur_sixteenth_multilayer_horizontal_pass_node);
-            graph.RegisterRenderGraphNode(m_blur_sixteenth_multilayer_vertical_pass_node);
-            graph.RegisterRenderGraphNode(m_downsample_thirtysecond_multilayer_pass_node);
-            graph.RegisterRenderGraphNode(m_blur_thirtysecond_multilayer_horizontal_pass_node);
-            graph.RegisterRenderGraphNode(m_blur_thirtysecond_multilayer_vertical_pass_node);
-        }
-        graph.RegisterRenderGraphNode(active_front_composite_pass);
-    }
-    else
-    {
-        graph.RegisterRenderGraphNode(active_single_composite_pass);
-    }
-    graph.RegisterRenderTargetToColorOutput(m_frosted_pass_output);
+    return true;
+}
 
+bool RendererSystemFrostedGlass::RegisterTickCompositeNodes(RendererInterface::RenderGraph& graph,
+                                                            const TickRuntimePaths& runtime_paths) const
+{
+    if (runtime_paths.use_strict_multilayer_path)
+    {
+        RETURN_IF_FALSE(RenderFeature::RegisterRenderGraphNodeIfValid(graph, runtime_paths.active_back_composite_pass));
+        RETURN_IF_FALSE(RegisterTickBlurNodes(graph, runtime_paths.multilayer_blur, runtime_paths.use_shared_mip_path));
+        RETURN_IF_FALSE(RenderFeature::RegisterRenderGraphNodeIfValid(graph, runtime_paths.active_front_composite_pass));
+    }
+    else
+    {
+        RETURN_IF_FALSE(RenderFeature::RegisterRenderGraphNodeIfValid(graph, runtime_paths.active_single_composite_pass));
+    }
+    return true;
+}
+
+bool RendererSystemFrostedGlass::RegisterTickRenderGraphNodes(RendererInterface::RenderGraph& graph,
+                                                              const TickExecutionPlan& execution_plan)
+{
+    const TickRuntimePaths& runtime_paths = execution_plan.runtime_paths;
+    RETURN_IF_FALSE(RegisterTickBlurNodes(graph, runtime_paths.primary_blur, runtime_paths.use_shared_mip_path));
+    RETURN_IF_FALSE(RegisterTickPanelPayloadNodes(graph, runtime_paths));
+    RETURN_IF_FALSE(RegisterTickCompositeNodes(graph, runtime_paths));
+
+    graph.RegisterRenderTargetToColorOutput(m_composite_outputs.final_output);
+    return true;
+}
+
+void RendererSystemFrostedGlass::FinalizeTickHistoryState()
+{
     const bool next_history_valid = m_global_params.panel_count > 0u;
-    if (m_temporal_history_valid != next_history_valid)
+    if (m_temporal_history_state.valid != next_history_valid)
     {
-        m_temporal_history_valid = next_history_valid;
+        m_temporal_history_state.valid = next_history_valid;
         m_need_upload_global_params = true;
     }
-    m_temporal_history_read_is_a = !m_temporal_history_read_is_a;
+    m_temporal_history_state.read_is_a = !m_temporal_history_state.read_is_a;
+}
+
+bool RendererSystemFrostedGlass::Tick(RendererInterface::ResourceOperator& resource_operator,
+                                      RendererInterface::RenderGraph& graph,
+                                      unsigned long long interval)
+{
+    const float delta_seconds = static_cast<float>(interval) / 1000.0f;
+    const InitDimensions dimensions = BuildInitDimensions(resource_operator);
+    const InitBindings bindings = BuildInitBindings();
+    const auto scene_outputs = m_scene->GetOutputs();
+    RETURN_IF_FALSE(SyncStaticPassSetups(resource_operator, graph, scene_outputs, dimensions, bindings));
+    const TickExecutionPlan execution_plan =
+        BuildTickExecutionPlan(interval, dimensions.width, dimensions.height);
+    RefreshTickPanelData(resource_operator, delta_seconds);
+    UpdateTickDispatch(graph, execution_plan);
+    RETURN_IF_FALSE(RegisterTickRenderGraphNodes(graph, execution_plan));
+    FinalizeTickHistoryState();
     return true;
 }
 
@@ -1943,14 +2283,13 @@ void RendererSystemFrostedGlass::OnResize(RendererInterface::ResourceOperator& r
     (void)resource_operator;
     (void)width;
     (void)height;
-    m_temporal_force_reset = true;
-    m_temporal_history_valid = false;
-    m_temporal_history_read_is_a = true;
+    m_temporal_history_state.ResetRuntime();
     m_global_params.temporal_history_valid = 0;
     m_multilayer_over_budget_streak = 0;
     m_multilayer_cooldown_frames = 0;
     m_need_upload_global_params = true;
-    m_dispatch_state_valid = false;
+    m_static_pass_setup_state.Reset();
+    m_dispatch_cache_state.Reset();
 }
 
 void RendererSystemFrostedGlass::DrawDebugUI()
@@ -1981,8 +2320,8 @@ void RendererSystemFrostedGlass::DrawDebugUI()
         {
             blur_source_mode = (std::max)(0, (std::min)(blur_source_mode, 2));
             m_blur_source_mode = static_cast<BlurSourceMode>(blur_source_mode);
-            m_temporal_force_reset = true;
-            m_temporal_history_valid = false;
+            m_temporal_history_state.force_reset = true;
+            m_temporal_history_state.valid = false;
             m_global_params.temporal_history_valid = 0;
             global_dirty = true;
         }
@@ -2090,8 +2429,8 @@ void RendererSystemFrostedGlass::DrawDebugUI()
         }
         if (ImGui::Button("Reset Temporal History"))
         {
-            m_temporal_force_reset = true;
-            m_temporal_history_valid = false;
+            m_temporal_history_state.force_reset = true;
+            m_temporal_history_state.valid = false;
             m_global_params.temporal_history_valid = 0;
             global_dirty = true;
         }
@@ -2099,8 +2438,8 @@ void RendererSystemFrostedGlass::DrawDebugUI()
     if (ImGui::CollapsingHeader("Runtime Summary", ImGuiTreeNodeFlags_DefaultOpen))
     {
         ImGui::Text("Temporal History: %s | Read Buffer: %s",
-                    m_temporal_history_valid ? "Valid" : "Invalid",
-                    m_temporal_history_read_is_a ? "A" : "B");
+                    m_temporal_history_state.valid ? "Valid" : "Invalid",
+                    m_temporal_history_state.read_is_a ? "A" : "B");
         const unsigned requested_blur_source_mode = static_cast<unsigned>(m_blur_source_mode);
         const char* requested_blur_source_label = "Unknown";
         if (requested_blur_source_mode == BLUR_SOURCE_MODE_LEGACY_PYRAMID)

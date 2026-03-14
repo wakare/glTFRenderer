@@ -1,5 +1,6 @@
 #pragma once
 #include "RendererSystemBase.h"
+#include "RenderPassSetupBuilder.h"
 #include "RendererModule/RendererModuleCamera.h"
 #include "RendererModule/RendererModuleSceneMesh.h"
 #include <optional>
@@ -42,6 +43,14 @@ public:
     std::shared_ptr<RendererModuleSceneMesh> GetSceneMeshModule() const;
 
 protected:
+    struct BasePassExecutionPlan
+    {
+        std::shared_ptr<RendererModuleSceneMesh> scene_mesh_module{};
+        std::shared_ptr<RendererModuleCamera> camera_module{};
+        BasePassOutputs outputs{};
+        RenderFeature::GraphicsExecutionPlan graphics_plan{};
+    };
+
     struct BasePassRuntimeState
     {
         RendererInterface::RenderTargetHandle color{NULL_HANDLE};
@@ -49,6 +58,7 @@ protected:
         RendererInterface::RenderTargetHandle velocity{NULL_HANDLE};
         RendererInterface::RenderTargetHandle depth{NULL_HANDLE};
         RendererInterface::RenderGraphNodeHandle node{NULL_HANDLE};
+        RenderFeature::FrameDimensions viewport_dimensions{};
 
         void Reset();
         bool HasInit() const;
@@ -56,7 +66,13 @@ protected:
 
     static RendererInterface::RenderStateDesc CreateDefaultBasePassRenderState();
     void CreateBasePassRenderTargets(RendererInterface::ResourceOperator& resource_operator);
-    RendererInterface::RenderGraph::RenderPassSetupInfo BuildBasePassSetupInfo() const;
+    RenderFeature::FrameDimensions ResolveBasePassViewportDimensions(RendererInterface::ResourceOperator& resource_operator) const;
+    BasePassExecutionPlan BuildBasePassExecutionPlan(RendererInterface::ResourceOperator& resource_operator) const;
+    RendererInterface::RenderGraph::RenderPassSetupInfo BuildBasePassSetupInfo(const BasePassExecutionPlan& execution_plan) const;
+    bool SyncBasePassSetup(
+        RendererInterface::ResourceOperator& resource_operator,
+        RendererInterface::RenderGraph& graph,
+        const BasePassExecutionPlan& execution_plan);
     bool QueuePendingBasePassRenderStateUpdate(RendererInterface::RenderGraph& graph);
 
     std::shared_ptr<RendererModuleSceneMesh> m_scene_mesh_module;

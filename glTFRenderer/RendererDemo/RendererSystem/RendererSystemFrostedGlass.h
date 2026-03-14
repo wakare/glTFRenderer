@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <functional>
 #include <glm/glm/glm.hpp>
+#include <utility>
 #include <vector>
 
 class RendererSystemFrostedGlass : public RendererSystemBase
@@ -128,7 +129,7 @@ public:
     bool IsFullFogModeEnabled() const { return true; }
     void ForceResetTemporalHistory();
     unsigned GetEffectivePanelCount() const { return m_global_params.panel_count; }
-    RendererInterface::RenderTargetHandle GetOutput() const { return m_frosted_pass_output; }
+    RendererInterface::RenderTargetHandle GetOutput() const { return m_composite_outputs.final_output; }
     RendererInterface::RenderTargetHandle GetHalfResPing() const
     {
         return m_postfx_shared_resources.GetPing(PostFxSharedResources::Resolution::Half);
@@ -239,6 +240,335 @@ protected:
         std::vector<unsigned char> enabled{};
     };
 
+    static constexpr unsigned BLUR_LEVEL_COUNT = 5u;
+    using BlurDispatchSizes = std::array<std::pair<unsigned, unsigned>, BLUR_LEVEL_COUNT>;
+
+    struct TickDispatchDimensions
+    {
+        unsigned full_dispatch_x{0};
+        unsigned full_dispatch_y{0};
+        BlurDispatchSizes blur_dispatch_sizes{};
+    };
+
+    struct BlurPyramidLevelView
+    {
+        RendererInterface::RenderGraphNodeHandle downsample_node{NULL_HANDLE};
+        RendererInterface::RenderGraphNodeHandle blur_horizontal_node{NULL_HANDLE};
+        RendererInterface::RenderGraphNodeHandle blur_vertical_node{NULL_HANDLE};
+        RendererInterface::RenderGraphNodeHandle shared_downsample_node{NULL_HANDLE};
+        RendererInterface::RenderTargetHandle ping{NULL_HANDLE};
+        RendererInterface::RenderTargetHandle pong{NULL_HANDLE};
+        RendererInterface::RenderTargetHandle output{NULL_HANDLE};
+
+        bool HasLegacyPath() const
+        {
+            return downsample_node != NULL_HANDLE &&
+                   blur_horizontal_node != NULL_HANDLE &&
+                   blur_vertical_node != NULL_HANDLE &&
+                   ping != NULL_HANDLE &&
+                   pong != NULL_HANDLE &&
+                   output != NULL_HANDLE;
+        }
+
+        bool HasSharedMipPath() const
+        {
+            return shared_downsample_node != NULL_HANDLE && output != NULL_HANDLE;
+        }
+    };
+
+    struct BlurPyramidBundleView
+    {
+        std::array<BlurPyramidLevelView, BLUR_LEVEL_COUNT> levels{};
+
+        const BlurPyramidLevelView& Half() const { return levels[0]; }
+        const BlurPyramidLevelView& Quarter() const { return levels[1]; }
+        const BlurPyramidLevelView& Eighth() const { return levels[2]; }
+        const BlurPyramidLevelView& Sixteenth() const { return levels[3]; }
+        const BlurPyramidLevelView& ThirtySecond() const { return levels[4]; }
+
+        bool HasLegacyPath() const
+        {
+            for (const auto& level : levels)
+            {
+                if (!level.HasLegacyPath())
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        bool HasSharedMipPath() const
+        {
+            for (const auto& level : levels)
+            {
+                if (!level.HasSharedMipPath())
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+    };
+
+    struct BlurPyramidStorage
+    {
+        std::array<BlurPyramidLevelView, BLUR_LEVEL_COUNT> levels{};
+
+        BlurPyramidLevelView& Half() { return levels[0]; }
+        BlurPyramidLevelView& Quarter() { return levels[1]; }
+        BlurPyramidLevelView& Eighth() { return levels[2]; }
+        BlurPyramidLevelView& Sixteenth() { return levels[3]; }
+        BlurPyramidLevelView& ThirtySecond() { return levels[4]; }
+
+        const BlurPyramidLevelView& Half() const { return levels[0]; }
+        const BlurPyramidLevelView& Quarter() const { return levels[1]; }
+        const BlurPyramidLevelView& Eighth() const { return levels[2]; }
+        const BlurPyramidLevelView& Sixteenth() const { return levels[3]; }
+        const BlurPyramidLevelView& ThirtySecond() const { return levels[4]; }
+
+        void Reset()
+        {
+            for (auto& level : levels)
+            {
+                level = {};
+            }
+        }
+    };
+
+    struct TemporalHistoryNodePairView
+    {
+        RendererInterface::RenderGraphNodeHandle history_ab{NULL_HANDLE};
+        RendererInterface::RenderGraphNodeHandle history_ba{NULL_HANDLE};
+
+        bool HasInit() const
+        {
+            return history_ab != NULL_HANDLE && history_ba != NULL_HANDLE;
+        }
+
+        RendererInterface::RenderGraphNodeHandle Select(bool history_read_is_a) const
+        {
+            return history_read_is_a ? history_ab : history_ba;
+        }
+    };
+
+    struct CompositePassBundleView
+    {
+        RendererInterface::RenderGraphNodeHandle back{NULL_HANDLE};
+        TemporalHistoryNodePairView front_history{};
+        TemporalHistoryNodePairView single_history{};
+
+        bool HasInit() const
+        {
+            return back != NULL_HANDLE &&
+                   front_history.HasInit() &&
+                   single_history.HasInit();
+        }
+
+        RendererInterface::RenderGraphNodeHandle SelectFront(bool history_read_is_a) const
+        {
+            return front_history.Select(history_read_is_a);
+        }
+
+        RendererInterface::RenderGraphNodeHandle SelectSingle(bool history_read_is_a) const
+        {
+            return single_history.Select(history_read_is_a);
+        }
+    };
+
+    struct PanelPayloadTargets
+    {
+        RendererInterface::RenderTargetHandle mask_parameter{NULL_HANDLE};
+        RendererInterface::RenderTargetHandle panel_optics{NULL_HANDLE};
+        RendererInterface::RenderTargetHandle panel_profile{NULL_HANDLE};
+        RendererInterface::RenderTargetHandle payload_depth{NULL_HANDLE};
+
+        bool HasInit() const
+        {
+            return mask_parameter != NULL_HANDLE &&
+                   panel_optics != NULL_HANDLE &&
+                   panel_profile != NULL_HANDLE &&
+                   payload_depth != NULL_HANDLE;
+        }
+    };
+
+    struct PanelPayloadTargetBundle
+    {
+        PanelPayloadTargets primary{};
+        PanelPayloadTargets secondary{};
+
+        bool HasInit() const
+        {
+            return primary.HasInit() && secondary.HasInit();
+        }
+
+        void Reset()
+        {
+            primary = {};
+            secondary = {};
+        }
+    };
+
+    struct CompositeOutputTargets
+    {
+        RendererInterface::RenderTargetHandle final_output{NULL_HANDLE};
+        RendererInterface::RenderTargetHandle back_composite{NULL_HANDLE};
+
+        bool HasInit() const
+        {
+            return final_output != NULL_HANDLE && back_composite != NULL_HANDLE;
+        }
+    };
+
+    struct PanelPayloadPassBundle
+    {
+        RendererInterface::RenderGraphNodeHandle compute{NULL_HANDLE};
+        RendererInterface::RenderGraphNodeHandle raster_front{NULL_HANDLE};
+        RendererInterface::RenderGraphNodeHandle raster_back{NULL_HANDLE};
+
+        bool HasComputePath() const
+        {
+            return compute != NULL_HANDLE;
+        }
+
+        bool HasRasterPath() const
+        {
+            return raster_front != NULL_HANDLE && raster_back != NULL_HANDLE;
+        }
+    };
+
+    struct InitDimensions
+    {
+        unsigned width{0};
+        unsigned height{0};
+        unsigned half_width{0};
+        unsigned half_height{0};
+        unsigned quarter_width{0};
+        unsigned quarter_height{0};
+        unsigned eighth_width{0};
+        unsigned eighth_height{0};
+        unsigned sixteenth_width{0};
+        unsigned sixteenth_height{0};
+        unsigned thirtysecond_width{0};
+        unsigned thirtysecond_height{0};
+        RendererInterface::ResourceUsage postfx_usage{};
+    };
+
+    struct InitBindings
+    {
+        RendererInterface::BufferBindingDesc panel_data{};
+        RendererInterface::BufferBindingDesc global_params{};
+    };
+
+    struct TickRuntimePaths
+    {
+        BlurPyramidBundleView primary_blur{};
+        BlurPyramidBundleView multilayer_blur{};
+        CompositePassBundleView active_composite{};
+        bool use_shared_mip_path{true};
+        bool use_raster_panel_payload{false};
+        bool use_strict_multilayer_path{false};
+        RendererInterface::RenderGraphNodeHandle active_single_composite_pass{NULL_HANDLE};
+        RendererInterface::RenderGraphNodeHandle active_front_composite_pass{NULL_HANDLE};
+        RendererInterface::RenderGraphNodeHandle active_back_composite_pass{NULL_HANDLE};
+    };
+
+    struct TickExecutionPlan
+    {
+        unsigned render_width{0};
+        unsigned render_height{0};
+        TickRuntimePaths runtime_paths{};
+        TickDispatchDimensions dispatch_dimensions{};
+    };
+
+    struct BlurRuntimeResolution
+    {
+        BlurSourceMode effective_mode{BlurSourceMode::SharedMip};
+        bool use_shared_mip_path{true};
+    };
+
+    struct MultilayerRuntimeResolution
+    {
+        bool runtime_enabled{false};
+        bool use_strict_multilayer_path{false};
+    };
+
+    struct TemporalHistoryState
+    {
+        RendererInterface::RenderTargetHandle history_a{NULL_HANDLE};
+        RendererInterface::RenderTargetHandle history_b{NULL_HANDLE};
+        bool read_is_a{true};
+        bool force_reset{true};
+        bool valid{false};
+
+        bool HasTargets() const
+        {
+            return history_a != NULL_HANDLE && history_b != NULL_HANDLE;
+        }
+
+        RendererInterface::RenderTargetHandle ReadTarget() const
+        {
+            return read_is_a ? history_a : history_b;
+        }
+
+        RendererInterface::RenderTargetHandle WriteTarget() const
+        {
+            return read_is_a ? history_b : history_a;
+        }
+
+        void ResetRuntime()
+        {
+            read_is_a = true;
+            force_reset = true;
+            valid = false;
+        }
+    };
+
+    struct DispatchCacheState
+    {
+        bool valid{false};
+        unsigned render_width{0};
+        unsigned render_height{0};
+        bool path_shared_mip{true};
+        bool path_raster_payload{false};
+        bool path_strict_multilayer{false};
+
+        bool Matches(
+            unsigned width,
+            unsigned height,
+            bool shared_mip_path,
+            bool raster_payload_path,
+            bool strict_multilayer_path) const
+        {
+            return valid &&
+                   render_width == width &&
+                   render_height == height &&
+                   path_shared_mip == shared_mip_path &&
+                   path_raster_payload == raster_payload_path &&
+                   path_strict_multilayer == strict_multilayer_path;
+        }
+
+        void Update(
+            unsigned width,
+            unsigned height,
+            bool shared_mip_path,
+            bool raster_payload_path,
+            bool strict_multilayer_path)
+        {
+            valid = true;
+            render_width = width;
+            render_height = height;
+            path_shared_mip = shared_mip_path;
+            path_raster_payload = raster_payload_path;
+            path_strict_multilayer = strict_multilayer_path;
+        }
+
+        void Reset()
+        {
+            valid = false;
+        }
+    };
+
     static unsigned ToInteractionStateIndex(PanelInteractionState state)
     {
         return static_cast<unsigned>(state);
@@ -250,105 +580,85 @@ protected:
     static void ApplyDebugPanelOverrides(std::vector<FrostedGlassPanelDesc>& panel_descs, DebugPanelOverrideBucket& bucket);
     void SaveDebugPanelOverride(DebugPanelSource source, unsigned local_index, const FrostedGlassPanelDesc& panel_desc);
     void ApplyExternalPanelDebugOverrides();
+    void ResetInitRuntimeState();
+    InitDimensions BuildInitDimensions(RendererInterface::ResourceOperator& resource_operator) const;
+    bool InitializeSharedPostFxResources(RendererInterface::ResourceOperator& resource_operator, const InitDimensions& dimensions);
+    void CreateInitRenderTargets(RendererInterface::ResourceOperator& resource_operator, const InitDimensions& dimensions);
+    void CreateInitBuffers(RendererInterface::ResourceOperator& resource_operator);
+    InitBindings BuildInitBindings() const;
+    bool CreatePrimaryBlurPyramidPasses(RendererInterface::ResourceOperator& resource_operator,
+                                        RendererInterface::RenderGraph& graph,
+                                        const InitDimensions& dimensions,
+                                        const InitBindings& bindings,
+                                        bool sync_existing = false);
+    bool CreatePanelPayloadPasses(RendererInterface::ResourceOperator& resource_operator,
+                                  RendererInterface::RenderGraph& graph,
+                                  const RendererSystemSceneRenderer::BasePassOutputs& scene_outputs,
+                                  const InitDimensions& dimensions,
+                                  const InitBindings& bindings,
+                                  bool sync_existing = false);
+    bool CreateCompositePasses(RendererInterface::ResourceOperator& resource_operator,
+                               RendererInterface::RenderGraph& graph,
+                               const RendererSystemSceneRenderer::BasePassOutputs& scene_outputs,
+                               const InitDimensions& dimensions,
+                               const InitBindings& bindings,
+                               bool sync_existing = false);
+    bool SyncStaticPassSetups(RendererInterface::ResourceOperator& resource_operator,
+                              RendererInterface::RenderGraph& graph,
+                              const RendererSystemSceneRenderer::BasePassOutputs& scene_outputs,
+                              const InitDimensions& dimensions,
+                              const InitBindings& bindings);
+    void SyncTickTemporalHistoryFlags();
+    BlurRuntimeResolution ResolveBlurRuntimeMode();
+    MultilayerRuntimeResolution ResolveMultilayerRuntimeState(unsigned long long interval);
+    void ResolveTickCompositePasses(TickRuntimePaths& runtime_paths) const;
+    void ResolveTickPanelPayloadPath(TickRuntimePaths& runtime_paths);
+    TickRuntimePaths BuildTickRuntimePaths(unsigned long long interval);
+    TickExecutionPlan BuildTickExecutionPlan(unsigned long long interval, unsigned width, unsigned height);
+    void UpdateTickRuntimeSummary(const TickRuntimePaths& runtime_paths);
+    void RefreshTickPanelData(RendererInterface::ResourceOperator& resource_operator, float delta_seconds);
+    void UpdateTickBlurDispatch(RendererInterface::RenderGraph& graph,
+                                const BlurPyramidBundleView& blur_pyramid,
+                                const TickDispatchDimensions& dispatch_dimensions,
+                                bool use_shared_mip_path);
+    void UpdateTickPanelPayloadDispatch(RendererInterface::RenderGraph& graph,
+                                        const TickRuntimePaths& runtime_paths,
+                                        const TickDispatchDimensions& dispatch_dimensions);
+    void UpdateTickCompositeDispatch(RendererInterface::RenderGraph& graph,
+                                     const TickRuntimePaths& runtime_paths,
+                                     const TickDispatchDimensions& dispatch_dimensions);
+    TickDispatchDimensions BuildTickDispatchDimensions(unsigned width, unsigned height) const;
+    void UpdateTickDispatch(RendererInterface::RenderGraph& graph,
+                            const TickExecutionPlan& execution_plan);
+    bool RegisterTickBlurNodes(RendererInterface::RenderGraph& graph,
+                               const BlurPyramidBundleView& blur_pyramid,
+                               bool use_shared_mip_path) const;
+    bool RegisterTickPanelPayloadNodes(RendererInterface::RenderGraph& graph,
+                                       const TickRuntimePaths& runtime_paths) const;
+    bool RegisterTickCompositeNodes(RendererInterface::RenderGraph& graph,
+                                    const TickRuntimePaths& runtime_paths) const;
+    bool RegisterTickRenderGraphNodes(RendererInterface::RenderGraph& graph,
+                                      const TickExecutionPlan& execution_plan);
+    void FinalizeTickHistoryState();
     void UpdateDirectionalHighlightParams();
     void UpdatePanelRuntimeStates(float delta_seconds);
     PanelStateCurve GetBlendedStateCurve(unsigned panel_index) const;
     FrostedGlassPanelGpuData ConvertPanelToGpuData(const FrostedGlassPanelDesc& panel_desc, const PanelStateCurve& blended_state_curve) const;
+    BlurPyramidBundleView GetPrimaryBlurPyramidView() const;
+    BlurPyramidBundleView GetMultilayerBlurPyramidView() const;
+    CompositePassBundleView GetLegacyCompositePassBundleView() const;
+    CompositePassBundleView GetSharedMipCompositePassBundleView() const;
 
     std::shared_ptr<RendererSystemSceneRenderer> m_scene;
     std::shared_ptr<RendererSystemLighting> m_lighting;
-
-    RendererInterface::RenderGraphNodeHandle m_downsample_half_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_blur_half_horizontal_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_blur_half_vertical_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_downsample_quarter_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_blur_quarter_horizontal_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_blur_quarter_vertical_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_downsample_eighth_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_blur_eighth_horizontal_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_blur_eighth_vertical_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_downsample_sixteenth_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_blur_sixteenth_horizontal_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_blur_sixteenth_vertical_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_downsample_thirtysecond_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_blur_thirtysecond_horizontal_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_blur_thirtysecond_vertical_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_shared_downsample_half_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_shared_downsample_quarter_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_shared_downsample_eighth_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_shared_downsample_sixteenth_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_shared_downsample_thirtysecond_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_frosted_mask_parameter_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_frosted_mask_parameter_raster_front_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_frosted_mask_parameter_raster_back_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_frosted_composite_back_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_frosted_composite_back_shared_mip_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_downsample_half_multilayer_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_blur_half_multilayer_horizontal_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_blur_half_multilayer_vertical_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_downsample_quarter_multilayer_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_blur_quarter_multilayer_horizontal_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_blur_quarter_multilayer_vertical_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_downsample_eighth_multilayer_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_blur_eighth_multilayer_horizontal_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_blur_eighth_multilayer_vertical_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_downsample_sixteenth_multilayer_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_blur_sixteenth_multilayer_horizontal_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_blur_sixteenth_multilayer_vertical_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_downsample_thirtysecond_multilayer_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_blur_thirtysecond_multilayer_horizontal_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_blur_thirtysecond_multilayer_vertical_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_shared_downsample_half_multilayer_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_shared_downsample_quarter_multilayer_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_shared_downsample_eighth_multilayer_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_shared_downsample_sixteenth_multilayer_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_shared_downsample_thirtysecond_multilayer_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_frosted_composite_front_history_ab_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_frosted_composite_front_history_ba_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_frosted_composite_front_shared_mip_history_ab_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_frosted_composite_front_shared_mip_history_ba_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_frosted_composite_history_ab_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_frosted_composite_history_ba_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_frosted_composite_shared_mip_history_ab_pass_node{NULL_HANDLE};
-    RendererInterface::RenderGraphNodeHandle m_frosted_composite_shared_mip_history_ba_pass_node{NULL_HANDLE};
-    RendererInterface::RenderTargetHandle m_frosted_pass_output{NULL_HANDLE};
-    RendererInterface::RenderTargetHandle m_frosted_back_composite_output{NULL_HANDLE};
-    RendererInterface::RenderTargetHandle m_frosted_mask_parameter_output{NULL_HANDLE};
-    RendererInterface::RenderTargetHandle m_frosted_mask_parameter_secondary_output{NULL_HANDLE};
-    RendererInterface::RenderTargetHandle m_frosted_panel_optics_output{NULL_HANDLE};
-    RendererInterface::RenderTargetHandle m_frosted_panel_optics_secondary_output{NULL_HANDLE};
-    RendererInterface::RenderTargetHandle m_frosted_panel_profile_output{NULL_HANDLE};
-    RendererInterface::RenderTargetHandle m_frosted_panel_profile_secondary_output{NULL_HANDLE};
-    RendererInterface::RenderTargetHandle m_frosted_panel_payload_depth{NULL_HANDLE};
-    RendererInterface::RenderTargetHandle m_frosted_panel_payload_depth_secondary{NULL_HANDLE};
-    RendererInterface::RenderTargetHandle m_half_multilayer_ping{NULL_HANDLE};
-    RendererInterface::RenderTargetHandle m_half_multilayer_pong{NULL_HANDLE};
-    RendererInterface::RenderTargetHandle m_quarter_multilayer_ping{NULL_HANDLE};
-    RendererInterface::RenderTargetHandle m_quarter_multilayer_pong{NULL_HANDLE};
-    RendererInterface::RenderTargetHandle m_eighth_blur_ping{NULL_HANDLE};
-    RendererInterface::RenderTargetHandle m_eighth_blur_pong{NULL_HANDLE};
-    RendererInterface::RenderTargetHandle m_sixteenth_blur_ping{NULL_HANDLE};
-    RendererInterface::RenderTargetHandle m_sixteenth_blur_pong{NULL_HANDLE};
-    RendererInterface::RenderTargetHandle m_thirtysecond_blur_ping{NULL_HANDLE};
-    RendererInterface::RenderTargetHandle m_thirtysecond_blur_pong{NULL_HANDLE};
-    RendererInterface::RenderTargetHandle m_eighth_multilayer_ping{NULL_HANDLE};
-    RendererInterface::RenderTargetHandle m_eighth_multilayer_pong{NULL_HANDLE};
-    RendererInterface::RenderTargetHandle m_sixteenth_multilayer_ping{NULL_HANDLE};
-    RendererInterface::RenderTargetHandle m_sixteenth_multilayer_pong{NULL_HANDLE};
-    RendererInterface::RenderTargetHandle m_thirtysecond_multilayer_ping{NULL_HANDLE};
-    RendererInterface::RenderTargetHandle m_thirtysecond_multilayer_pong{NULL_HANDLE};
-    RendererInterface::RenderTargetHandle m_half_blur_final_output{NULL_HANDLE};
-    RendererInterface::RenderTargetHandle m_quarter_blur_final_output{NULL_HANDLE};
-    RendererInterface::RenderTargetHandle m_eighth_blur_final_output{NULL_HANDLE};
-    RendererInterface::RenderTargetHandle m_sixteenth_blur_final_output{NULL_HANDLE};
-    RendererInterface::RenderTargetHandle m_thirtysecond_blur_final_output{NULL_HANDLE};
-    RendererInterface::RenderTargetHandle m_half_multilayer_blur_final_output{NULL_HANDLE};
-    RendererInterface::RenderTargetHandle m_quarter_multilayer_blur_final_output{NULL_HANDLE};
-    RendererInterface::RenderTargetHandle m_eighth_multilayer_blur_final_output{NULL_HANDLE};
-    RendererInterface::RenderTargetHandle m_sixteenth_multilayer_blur_final_output{NULL_HANDLE};
-    RendererInterface::RenderTargetHandle m_thirtysecond_multilayer_blur_final_output{NULL_HANDLE};
-    RendererInterface::RenderTargetHandle m_temporal_history_a{NULL_HANDLE};
-    RendererInterface::RenderTargetHandle m_temporal_history_b{NULL_HANDLE};
+    BlurPyramidStorage m_primary_blur_pyramid{};
+    PanelPayloadPassBundle m_panel_payload_passes{};
+    CompositePassBundleView m_legacy_composite_passes{};
+    BlurPyramidStorage m_multilayer_blur_pyramid{};
+    CompositePassBundleView m_shared_mip_composite_passes{};
+    CompositeOutputTargets m_composite_outputs{};
+    PanelPayloadTargetBundle m_panel_payload_targets{};
+    TemporalHistoryState m_temporal_history_state{};
     PostFxSharedResources m_postfx_shared_resources{};
     RendererInterface::BufferHandle m_frosted_panel_data_handle{NULL_HANDLE};
     RendererInterface::BufferHandle m_frosted_global_params_handle{NULL_HANDLE};
@@ -365,26 +675,18 @@ protected:
     unsigned m_last_upload_requested_panel_count{0};
     bool m_need_upload_panels{false};
     bool m_need_upload_global_params{true};
-    bool m_temporal_history_read_is_a{true};
-    bool m_temporal_force_reset{true};
-    bool m_temporal_history_valid{false};
     BlurSourceMode m_blur_source_mode{BlurSourceMode::SharedMip};
     bool m_multilayer_runtime_enabled{true};
     unsigned m_multilayer_over_budget_streak{0};
     unsigned m_multilayer_cooldown_frames{0};
     PanelPayloadPath m_panel_payload_path{PanelPayloadPath::RasterPanelGBuffer};
-    bool m_panel_payload_raster_ready{false};
     bool m_panel_payload_compute_fallback_active{false};
     unsigned m_last_expected_registered_pass_count{0};
     bool m_last_runtime_used_shared_mip_path{true};
     bool m_last_runtime_used_raster_payload{false};
     bool m_last_runtime_used_strict_multilayer{false};
-    bool m_dispatch_state_valid{false};
-    unsigned m_dispatch_render_width{0};
-    unsigned m_dispatch_render_height{0};
-    bool m_dispatch_path_shared_mip{true};
-    bool m_dispatch_path_raster_payload{false};
-    bool m_dispatch_path_strict_multilayer{false};
+    RenderFeature::FrameSizedSetupState m_static_pass_setup_state{};
+    DispatchCacheState m_dispatch_cache_state{};
     unsigned m_debug_selected_panel_index{0};
     unsigned m_debug_selected_curve_state_index{0};
     DebugPanelOverrideBucket m_debug_override_producer_world{};

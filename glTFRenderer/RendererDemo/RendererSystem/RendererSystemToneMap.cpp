@@ -46,46 +46,58 @@ bool RendererSystemToneMap::Init(RendererInterface::ResourceOperator& resource_o
     global_params_buffer_desc.usage = RendererInterface::USAGE_CBV;
     m_tone_map_global_params_handle = resource_operator.CreateBuffer(global_params_buffer_desc);
 
-    const auto lighting_outputs = m_lighting->GetOutputs();
-    RendererInterface::RenderTargetHandle input_color = m_frosted
-        ? m_frosted->GetOutput()
-        : lighting_outputs.output;
-    GLTF_CHECK(input_color != NULL_HANDLE);
-    const unsigned width = (std::max)(1u, resource_operator.GetCurrentRenderWidth());
-    const unsigned height = (std::max)(1u, resource_operator.GetCurrentRenderHeight());
-    m_tone_map_pass_node = graph.CreateRenderGraphNode(
+    const ToneMapExecutionPlan execution_plan = BuildToneMapExecutionPlan(resource_operator);
+    RETURN_IF_FALSE(RenderFeature::CreateRenderGraphNodeIfNeeded(
         resource_operator,
-        BuildToneMapPassSetupInfo(input_color, width, height));
+        graph,
+        m_tone_map_pass_node,
+        BuildToneMapPassSetupInfo(execution_plan)));
     UploadGlobalParams(resource_operator);
     graph.RegisterRenderTargetToColorOutput(m_tone_map_output);
     return true;
 }
 
 RendererInterface::RenderGraph::RenderPassSetupInfo RendererSystemToneMap::BuildToneMapPassSetupInfo(
-    RendererInterface::RenderTargetHandle input_color,
-    unsigned width,
-    unsigned height) const
+    const ToneMapExecutionPlan& execution_plan) const
 {
     const auto scene_outputs = m_scene->GetOutputs();
     return RenderFeature::PassBuilder::Compute("Tone Map", "Tone Map Composite")
         .AddShader(RendererInterface::COMPUTE_SHADER, "main", "Resources/Shaders/ToneMap.hlsl")
-        .AddSampledRenderTarget(
-            "InputColorTex",
-            input_color,
-            RendererInterface::RenderTargetTextureBindingDesc::SRV)
-        .AddSampledRenderTarget(
-            "InputVelocityTex",
-            scene_outputs.velocity,
-            RendererInterface::RenderTargetTextureBindingDesc::SRV)
-        .AddSampledRenderTarget(
-            "Output",
-            m_tone_map_output,
-            RendererInterface::RenderTargetTextureBindingDesc::UAV)
-        .AddBuffer(
-            "ToneMapGlobalBuffer",
-            RenderFeature::MakeConstantBufferBinding(m_tone_map_global_params_handle))
-        .SetDispatch2D(width, height)
+        .AddSampledRenderTargetBindings({
+            RenderFeature::MakeSampledRenderTargetBinding(
+                "InputColorTex",
+                execution_plan.input_color,
+                RendererInterface::RenderTargetTextureBindingDesc::SRV),
+            RenderFeature::MakeSampledRenderTargetBinding(
+                "InputVelocityTex",
+                scene_outputs.velocity,
+                RendererInterface::RenderTargetTextureBindingDesc::SRV),
+            RenderFeature::MakeSampledRenderTargetBinding(
+                "Output",
+                m_tone_map_output,
+                RendererInterface::RenderTargetTextureBindingDesc::UAV)
+        })
+        .AddBuffers({
+            RenderFeature::MakeBufferBinding(
+                "ToneMapGlobalBuffer",
+                RenderFeature::MakeConstantBufferBinding(m_tone_map_global_params_handle))
+        })
+        .SetDispatch(execution_plan.compute_plan)
         .Build();
+}
+
+RendererSystemToneMap::ToneMapExecutionPlan RendererSystemToneMap::BuildToneMapExecutionPlan(
+    RendererInterface::ResourceOperator& resource_operator) const
+{
+    const auto lighting_outputs = m_lighting->GetOutputs();
+    const RendererInterface::RenderTargetHandle input_color = m_frosted
+        ? m_frosted->GetOutput()
+        : lighting_outputs.output;
+    GLTF_CHECK(input_color != NULL_HANDLE);
+    return ToneMapExecutionPlan{
+        .input_color = input_color,
+        .compute_plan = RenderFeature::ComputeExecutionPlan::FromResourceOperator(resource_operator)
+    };
 }
 
 bool RendererSystemToneMap::HasInit() const
@@ -107,11 +119,10 @@ bool RendererSystemToneMap::Tick(RendererInterface::ResourceOperator& resource_o
                                  unsigned long long interval)
 {
     (void)interval;
-    const unsigned width = (std::max)(1u, resource_operator.GetCurrentRenderWidth());
-    const unsigned height = (std::max)(1u, resource_operator.GetCurrentRenderHeight());
-    graph.UpdateComputeDispatch(m_tone_map_pass_node, (width + 7) / 8, (height + 7) / 8, 1);
+    const ToneMapExecutionPlan execution_plan = BuildToneMapExecutionPlan(resource_operator);
+    execution_plan.compute_plan.ApplyDispatch(graph, m_tone_map_pass_node);
     UploadGlobalParams(resource_operator);
-    graph.RegisterRenderGraphNode(m_tone_map_pass_node);
+    RETURN_IF_FALSE(RenderFeature::RegisterRenderGraphNodeIfValid(graph, m_tone_map_pass_node));
     graph.RegisterRenderTargetToColorOutput(m_tone_map_output);
     return true;
 }

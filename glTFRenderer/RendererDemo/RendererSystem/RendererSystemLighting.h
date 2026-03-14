@@ -1,9 +1,11 @@
 #pragma once
 #include "RendererSystemBase.h"
+#include "RenderPassSetupBuilder.h"
 #include "RendererSystemSceneRenderer.h"
 #include "RendererModule/RendererModuleLighting.h"
 #include "RendererModule/RendererModuleSceneMesh.h"
 #include <optional>
+#include <utility>
 #include <vector>
 
 class RendererSceneAABB;
@@ -45,6 +47,12 @@ public:
     
 protected:
     static RendererInterface::RenderStateDesc CreateDefaultDirectionalShadowRenderState();
+
+    struct LightingExecutionPlan
+    {
+        std::shared_ptr<RendererModuleCamera> camera_module{};
+        RenderFeature::ComputeExecutionPlan compute_plan{};
+    };
 
     struct ShadowMapInfo
     {
@@ -121,9 +129,7 @@ protected:
     bool SyncLightingTopology(
         RendererInterface::ResourceOperator& resource_operator,
         RendererInterface::RenderGraph& graph,
-        const std::shared_ptr<RendererModuleCamera>& camera_module,
-        unsigned width,
-        unsigned height);
+        const LightingExecutionPlan& execution_plan);
     void UpdateDirectionalShadowResources(RendererInterface::ResourceOperator& resource_operator);
     void CreateLightingOutput(RendererInterface::ResourceOperator& resource_operator);
     void CreateLightingPassShadowInfoBuffers(RendererInterface::ResourceOperator& resource_operator);
@@ -136,9 +142,8 @@ protected:
         const ShadowPassResource& shadow_pass_resource,
         unsigned light_index) const;
     RendererInterface::RenderGraph::RenderPassSetupInfo BuildLightingPassSetupInfo(
-        const std::shared_ptr<RendererModuleCamera>& camera_module,
-        unsigned width,
-        unsigned height) const;
+        const LightingExecutionPlan& execution_plan) const;
+    LightingExecutionPlan BuildLightingExecutionPlan() const;
 
     bool m_cast_shadow {true};
     
