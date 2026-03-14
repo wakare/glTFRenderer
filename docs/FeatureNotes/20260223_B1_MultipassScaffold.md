@@ -40,11 +40,11 @@
 ## 3. Algorithm and Rendering Logic
 
 - Passes/shaders touched:
-  - `Resources/Shaders/FrostedGlassPostfx.hlsl` (new):
+  - `glTFRenderer/RendererDemo/Resources/Shaders/FrostedGlassPostfx.hlsl` (new):
     - `DownsampleMain`
     - `BlurHorizontalMain`
     - `BlurVerticalMain`
-  - `Resources/Shaders/FrostedGlass.hlsl`:
+  - `glTFRenderer/RendererDemo/Resources/Shaders/FrostedGlass.hlsl`:
     - now samples `BlurredColorTex` instead of inline full-resolution spatial blur loops.
 - Core algorithm changes:
   - Converted expensive per-pixel 2D blur in composite to separable preblur in dedicated passes.

@@ -83,13 +83,15 @@
   - Not executed in this iteration (timing capture pending).
 - Evidence files/links:
   - Build wrapper summary:
-    - `build_logs/b2_verify_wrapper2_20260224_123446.stdout.log`
-    - `build_logs/b2_verify_wrapper2_20260224_123446.stderr.log`
+    - Local artifact names only; files are not tracked in repo.
+    - `b2_verify_wrapper2_20260224_123446.stdout.log`
+    - `b2_verify_wrapper2_20260224_123446.stderr.log`
   - MSBuild logs:
-    - `build_logs/rendererdemo_20260224_123446.msbuild.log`
-    - `build_logs/rendererdemo_20260224_123446.stdout.log`
-    - `build_logs/rendererdemo_20260224_123446.stderr.log`
-    - `build_logs/rendererdemo_20260224_123446.binlog`
+    - Local artifact names only; files are not tracked in repo.
+    - `rendererdemo_20260224_123446.msbuild.log`
+    - `rendererdemo_20260224_123446.stdout.log`
+    - `rendererdemo_20260224_123446.stderr.log`
+    - `rendererdemo_20260224_123446.binlog`
 
 ## 6. Acceptance Result
 

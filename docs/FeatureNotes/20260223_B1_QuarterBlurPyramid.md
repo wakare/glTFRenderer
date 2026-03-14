@@ -45,7 +45,11 @@
 - Core algorithm changes:
   - Added quarter pyramid branch sourced from half blur final output.
   - Added sigma-driven blend:
-    - `quarter_blend = saturate((panel_blur_sigma - 4.0f) / 6.0f)`
+
+```hlsl
+quarter_blend = saturate((panel_blur_sigma - 4.0f) / 6.0f);
+```
+
     - final blurred sample = `lerp(half_blur, quarter_blur, quarter_blend)`
 - Parameter/model changes:
   - No CPU panel schema change.

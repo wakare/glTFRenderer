@@ -243,8 +243,9 @@ Notes:
   - visual acceptance:
     - user confirmed representative 2D+3D overlap scenes are acceptable in current B7 path.
   - performance/timing evidence:
-    - `glTFRenderer/x64/Debug/build_logs/b7_acceptance_snapshot_20260227_124524.md`
-    - `glTFRenderer/x64/Debug/build_logs/b7_acceptance_passstats_20260227_124524.csv`
+    - Local acceptance artifact names only; files are not tracked in repo.
+    - `b7_acceptance_snapshot_20260227_124524.md`
+    - `b7_acceptance_passstats_20260227_124524.csv`
   - snapshot summary:
     - frame index: `4107`
     - frosted pass count: `18`

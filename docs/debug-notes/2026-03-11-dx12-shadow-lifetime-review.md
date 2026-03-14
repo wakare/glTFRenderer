@@ -67,12 +67,13 @@ Main touched files:
 ## Validation
 
 - Build result:
-  Default `RendererDemo` validation build succeeded in `glTFRenderer/build_logs/perf_loop/session_20260311_144840/build/rendererdemo_20260311_144840.result.json`.
+  Default `RendererDemo` validation build succeeded in local perf-loop session `session_20260311_144840`.
+  Recorded result artifact name: `rendererdemo_20260311_144840.result.json`.
 - Runtime validation:
   Default `MAILBOX + frosted_glass_b9_smoke` validation succeeded for both backends.
-  DX12 run result: `glTFRenderer/build_logs/perf_loop/session_20260311_144840/runs/regression_dx12_20260311_145052/run_result.json`
-  Vulkan run result: `glTFRenderer/build_logs/perf_loop/session_20260311_144840/runs/regression_vulkan_20260311_145056/run_result.json`
-  Comparison report: `glTFRenderer/build_logs/perf_loop/session_20260311_144840/comparison/comparison_20260311_145101.md`
+  Recorded DX12 run result artifact: `run_result.json` from local run `regression_dx12_20260311_145052`.
+  Recorded Vulkan run result artifact: `run_result.json` from local run `regression_vulkan_20260311_145056`.
+  Recorded comparison artifact: `comparison_20260311_145101.md`.
 - User acceptance:
   This follow-up was requested as part of the current DX12 review and the fixes are now recorded.
 

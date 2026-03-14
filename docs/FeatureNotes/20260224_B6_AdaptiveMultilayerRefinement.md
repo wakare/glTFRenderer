@@ -64,13 +64,15 @@
   - Runtime fallback counters exposed; full timing acceptance pending.
 - Evidence files/links:
   - Build wrapper summary:
-    - `build_logs/b62_verify_wrapper_20260224_154326.stdout.log`
-    - `build_logs/b62_verify_wrapper_20260224_154326.stderr.log`
+    - Local artifact names only; files are not tracked in repo.
+    - `b62_verify_wrapper_20260224_154326.stdout.log`
+    - `b62_verify_wrapper_20260224_154326.stderr.log`
   - MSBuild logs:
-    - `build_logs/rendererdemo_20260224_154327.msbuild.log`
-    - `build_logs/rendererdemo_20260224_154327.stdout.log`
-    - `build_logs/rendererdemo_20260224_154327.stderr.log`
-    - `build_logs/rendererdemo_20260224_154327.binlog`
+    - Local artifact names only; files are not tracked in repo.
+    - `rendererdemo_20260224_154327.msbuild.log`
+    - `rendererdemo_20260224_154327.stdout.log`
+    - `rendererdemo_20260224_154327.stderr.log`
+    - `rendererdemo_20260224_154327.binlog`
 
 ## 6. Acceptance Result
 
