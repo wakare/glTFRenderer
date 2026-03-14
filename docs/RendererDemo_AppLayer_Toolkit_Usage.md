@@ -1,5 +1,11 @@
 # RendererDemo 应用层封装工具使用说明
 
+配套文档：
+
+- 共享关键类说明图：`docs/RendererFramework_KeyClass_Diagram.md`
+- 英文版本：`docs/RendererDemo_AppLayer_Toolkit_Usage_EN.md`
+- 设计文档：`docs/RendererDemo_AppLayer_Toolkit_Design.md`
+
 ## 1. 适用范围
 
 这份文档给出当前 `RendererDemo` 维护路径下，新增 demo、模块或渲染 feature 时的推荐使用方式。

@@ -59,6 +59,20 @@ Bug Fix Notes
 - If the investigation started in the wrong direction, keep that history in the note and explain why it looked plausible and why it was not the real cause.
 - When a fix exposes a structural weakness, add a prevention item and note whether a refactor or validation hook should be considered.
 
+Documentation Language And Diagram Policy
+- For project-owned docs under `docs/`, any new document or materially updated document should be maintained in both Chinese and English.
+- Backward compatibility rule:
+  - existing unsuffixed docs may remain as one side of the language pair
+  - add the companion document beside it using `_EN.md` or `_ZH.md`
+- Diagram-first exception:
+  - for rendering-architecture explanation diagrams, a single bilingual diagram source is acceptable if the diagram labels and surrounding captions are bilingual
+- For rendering architecture or app-layer framework docs:
+  - include a key-class dependency diagram
+  - show each key class's responsibility in the diagram or in an adjacent summary table
+  - reference that diagram from the related architecture/design docs in the same change
+- Preferred diagram format is Mermaid inside markdown under `docs/`.
+- When updating one language version, update the companion version or explicitly note the backlog in the same change; do not silently let them drift.
+
 Build Log Policy (MSBuild)
 - Goal: prevent AI Chat UI from being flooded or blocked by build output.
 - Always redirect build output to files; do not stream full logs to chat.

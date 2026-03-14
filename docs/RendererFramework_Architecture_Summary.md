@@ -8,6 +8,11 @@
 >
 > 代码入口主要位于：`RendererCore`、`RHICore`、`RendererDemo`。
 
+共享关键类说明图：
+
+- `docs/RendererFramework_KeyClass_Diagram.md`
+- 英文配套版本：`docs/RendererFramework_Architecture_Summary_EN.md`
+
 ## 1. 框架总体结构
 
 ### 1.1 分层

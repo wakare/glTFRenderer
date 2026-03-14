@@ -1,5 +1,10 @@
 # RDG Algorithm Notes
 
+Companion references:
+
+- Shared key-class diagram: `docs/RendererFramework_KeyClass_Diagram.md`
+- Chinese companion: `docs/RDG_Algorithm_Notes_ZH.md`
+
 ## 1. Scope
 
 This document explains the RenderGraph (RDG) algorithm implemented in:

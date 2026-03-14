@@ -1,5 +1,10 @@
 # RendererDemo 应用层封装工具设计
 
+配套文档：
+
+- 共享关键类说明图：`docs/RendererFramework_KeyClass_Diagram.md`
+- 英文版本：`docs/RendererDemo_AppLayer_Toolkit_Design_EN.md`
+
 ## 1. 目标
 
 这份文档描述当前 `RendererDemo` 维护路径里，应用层为了组织渲染系统而形成的封装工具集合。这里的“应用层”指：

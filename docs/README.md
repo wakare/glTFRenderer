@@ -2,6 +2,10 @@
 
 This file is the canonical documentation index for the repo.
 
+Chinese companion:
+
+- `docs/README_ZH.md`
+
 ## Repo Root Convention
 
 - Canonical repo root is the current directory (currently `C:\glTFRenderer`).
@@ -33,15 +37,27 @@ This file is the canonical documentation index for the repo.
 ## Architecture And Design Docs
 
 - `docs/RendererFramework_Architecture_Summary.md`
-  - End-to-end overview: layer split, frame flow, resource lifecycle, resize/swapchain behavior, current app-layer feature toolkit.
+  - Chinese architecture summary: layer split, frame flow, resource lifecycle, resize/swapchain behavior, current app-layer feature toolkit.
+- `docs/RendererFramework_Architecture_Summary_EN.md`
+  - English companion of the renderer framework architecture summary.
+- `docs/RendererFramework_KeyClass_Diagram.md`
+  - Shared bilingual key-class dependency diagram for rendering architecture docs.
 - `docs/RendererDemo_AppLayer_Toolkit_Design.md`
   - Current `RendererDemo` app-layer toolkit design: `DemoBase`, typed outputs, execution plans, pass builder, node lifecycle helpers.
+- `docs/RendererDemo_AppLayer_Toolkit_Design_EN.md`
+  - English companion of the app-layer toolkit design.
 - `docs/RendererDemo_AppLayer_Toolkit_Usage.md`
   - Practical usage guide for adding demos and render features with the current toolkit.
+- `docs/RendererDemo_AppLayer_Toolkit_Usage_EN.md`
+  - English companion of the app-layer toolkit usage guide.
 - `docs/RDG_Algorithm_Notes.md`
   - RenderGraph algorithm details: access extraction, inferred dependencies, execution plan build/apply, diagnostics.
+- `docs/RDG_Algorithm_Notes_ZH.md`
+  - Chinese companion of the RDG algorithm notes.
 - `docs/SurfaceResizeCoordinator_Design.md`
   - Resize coordinator and surface resource rebuilder split.
+- `docs/SurfaceResizeCoordinator_Design_ZH.md`
+  - Chinese companion of the surface resize coordinator design.
 - `docs/DocReferencePolicy.md`
   - Stable documentation reference rules and validation workflow.
 
@@ -103,6 +119,8 @@ Naming convention:
 - Put accepted runtime bug notes and runtime-local operational notes under `docs/debug-notes/`.
 - Put script-specific workflow docs beside the corresponding scripts in `glTFRenderer/scripts/`.
 - Do not create another project-owned documentation tree outside `docs/` unless the current split becomes insufficient.
+- For new or materially updated project-owned docs, maintain Chinese and English coverage together.
+- For rendering architecture docs, prefer a shared bilingual diagram doc under `docs/` and reference it from the related design documents.
 
 ## Maintenance Rules
 

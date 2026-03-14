@@ -1,5 +1,10 @@
 # Surface Resize Coordinator Design
 
+Companion references:
+
+- Shared key-class diagram: `docs/RendererFramework_KeyClass_Diagram.md`
+- Chinese companion: `docs/SurfaceResizeCoordinator_Design_ZH.md`
+
 ## 1. Goal
 
 Split swapchain/window-resize logic into:

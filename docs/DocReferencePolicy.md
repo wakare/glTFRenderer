@@ -48,14 +48,32 @@ Behavior:
 - Validates backticked file refs like `path`, `path:line`, `path#Lline`.
 - Returns non-zero on any error.
 
-## 6. PR Checklist Suggestion
+## 6. Language And Diagram Policy
+
+For project-owned docs under `docs/`:
+
+1. Any new doc or materially updated doc should have both Chinese and English maintenance coverage.
+2. Existing unsuffixed docs may stay in place for backward compatibility, but add a companion file beside them using `_EN.md` or `_ZH.md`.
+3. Rendering-architecture and app-layer framework docs should include a key-class dependency diagram.
+4. That diagram should show:
+   - the main class dependency direction
+   - each key class's core responsibility
+5. Diagram docs may be maintained as a single bilingual source file when the content is primarily graphical and the labels/captions are bilingual.
+
+Preferred format:
+
+- Mermaid in markdown under `docs/`
+
+## 7. PR Checklist Suggestion
 
 Add this checklist item to PRs that touch docs or referenced code:
 
 - [ ] Documentation references validated (`scripts/Validate-DocReferences.ps1`).
 - [ ] Documentation statements re-checked against current symbol behavior (not only path existence).
+- [ ] If the doc is new or materially updated, Chinese and English coverage was updated together.
+- [ ] If the doc is rendering-architecture related, the key-class diagram was updated or re-checked.
 
-## 7. Lightweight Correctness Audit
+## 8. Lightweight Correctness Audit
 
 For architecture/algorithm docs, run this quick audit before merge:
 
