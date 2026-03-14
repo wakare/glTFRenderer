@@ -33,7 +33,11 @@ This file is the canonical documentation index for the repo.
 ## Architecture And Design Docs
 
 - `docs/RendererFramework_Architecture_Summary.md`
-  - End-to-end overview: layer split, frame flow, resource lifecycle, resize/swapchain behavior.
+  - End-to-end overview: layer split, frame flow, resource lifecycle, resize/swapchain behavior, current app-layer feature toolkit.
+- `docs/RendererDemo_AppLayer_Toolkit_Design.md`
+  - Current `RendererDemo` app-layer toolkit design: `DemoBase`, typed outputs, execution plans, pass builder, node lifecycle helpers.
+- `docs/RendererDemo_AppLayer_Toolkit_Usage.md`
+  - Practical usage guide for adding demos and render features with the current toolkit.
 - `docs/RDG_Algorithm_Notes.md`
   - RenderGraph algorithm details: access extraction, inferred dependencies, execution plan build/apply, diagnostics.
 - `docs/SurfaceResizeCoordinator_Design.md`

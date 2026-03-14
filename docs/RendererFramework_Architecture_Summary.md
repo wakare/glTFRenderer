@@ -12,7 +12,7 @@
 
 ### 1.1 分层
 
-- **应用层（Demo）**：组织系统、注册 Tick / DebugUI、启动事件循环。  
+- **应用层运行时宿主（DemoBase）**：组织系统、注册 Tick / DebugUI、启动事件循环，并负责 runtime RHI switch / snapshot / demo switch / runtime rebuild。  
   参考：`glTFRenderer/RendererDemo/DemoApps/DemoBase.cpp`
 - **渲染编排层（RendererInterface::RenderGraph）**：
   - 维护 render graph node 集合
@@ -35,10 +35,40 @@
    参考：`glTFRenderer/RendererDemo/DemoApps/DemoBase.cpp`
 2. 注册业务 Tick 与 DebugUI 回调到 `RenderGraph`。  
    参考：`glTFRenderer/RendererDemo/DemoApps/DemoBase.cpp`
-3. ModelViewer 完成系统搭建后调用 `CompileRenderPassAndExecute()`，把渲染逻辑挂到窗口 Tick。  
-   参考：`glTFRenderer/RendererDemo/DemoApps/DemoAppModelViewer.cpp`, `glTFRenderer/RendererCore/Private/RendererInterface.cpp`（`RenderGraph::CompileRenderPassAndExecute`）
+3. `DemoBase` 在运行时上下文和系统初始化完成后，通过 `StartRenderGraphExecution()` 启动 `CompileRenderPassAndExecute()`，把渲染逻辑挂到窗口 Tick。  
+   参考：`glTFRenderer/RendererDemo/DemoApps/DemoBase.cpp`, `glTFRenderer/RendererCore/Private/RendererInterface.cpp`（`RenderGraph::CompileRenderPassAndExecute`）
 4. `Run()` 进入窗口事件循环，驱动每帧执行。  
    参考：`glTFRenderer/RendererDemo/DemoApps/DemoBase.cpp`（`DemoBase::Run`）, `glTFRenderer/RendererCore/Private/RendererInterface.cpp`（`ResourceOperator::EnterWindowEventLoop`）
+
+### 1.3 当前应用层封装状态
+
+当前维护路径里，`RendererDemo` 上层已经形成了更清晰的 authoring 模式：
+
+- `DemoBase` 负责 runtime orchestration
+- `RendererSystemBase` 负责 feature 生命周期
+- 系统间依赖优先通过 typed outputs 暴露
+- `RenderPassSetupBuilder.h` 负责应用层 pass/binding/lifecycle helper
+
+已经落地的共享工具主要包括：
+
+- `RenderFeature::FrameDimensions`
+- `RenderFeature::ComputeExecutionPlan`
+- `RenderFeature::GraphicsExecutionPlan`
+- `RenderFeature::FrameSizedSetupState`
+- `RenderFeature::CreateRenderGraphNodeIfNeeded`
+- `RenderFeature::SyncRenderGraphNode`
+- `RenderFeature::CreateOrSyncRenderGraphNode`
+- `RenderFeature::RegisterRenderGraphNodeIfValid`
+- `RenderFeature::RegisterRenderGraphNodesIfValid`
+- `RenderFeature::PassBuilder`
+
+参考：
+
+- `glTFRenderer/RendererDemo/RendererSystem/RenderPassSetupBuilder.h`
+- `glTFRenderer/RendererDemo/RendererSystem/RendererSystemSceneRenderer.h`
+- `glTFRenderer/RendererDemo/RendererSystem/RendererSystemLighting.h`
+- `glTFRenderer/RendererDemo/RendererSystem/RendererSystemToneMap.h`
+- `glTFRenderer/RendererDemo/RendererSystem/RendererSystemFrostedGlass.h`
 
 ## 2. 每帧执行结构（RenderGraph）
 
@@ -303,26 +333,61 @@ DX12 特化路径：
 
 ## 6. 与系统层（RendererSystem）的关系
 
-系统侧每帧只需：
+当前系统层推荐按“两段式生命周期”组织：
 
-- 更新自己的数据（buffer upload / dispatch 维度）
-- `RegisterRenderGraphNode(...)` 注册本帧要执行的节点
+初始化阶段：
+
+- 创建 feature resources
+- 构建 pass setup
+- 创建 render graph nodes
+
+每帧阶段：
+
+- 构建 execution plan
+- 按需同步静态 setup
+- 更新 buffer upload / dispatch / topology
+- 注册本帧要执行的 nodes
 
 参考：
 
 - Scene：`glTFRenderer/RendererDemo/RendererSystem/RendererSystemSceneRenderer.cpp`
 - Lighting：`glTFRenderer/RendererDemo/RendererSystem/RendererSystemLighting.cpp`
+- ToneMap：`glTFRenderer/RendererDemo/RendererSystem/RendererSystemToneMap.cpp`
 - Frosted：`glTFRenderer/RendererDemo/RendererSystem/RendererSystemFrostedGlass.cpp`
 
 由于 `FinalizeFrameSubmission()` 末尾会 `clear m_render_graph_node_handles`，所以“按帧注册”是必须行为。  
 参考：`glTFRenderer/RendererCore/Private/RendererInterface.cpp`（`RenderGraph::FinalizeFrameSubmission`）
 
+### 6.1 当前 feature authoring 模式
+
+#### typed outputs
+
+系统间输出已经逐步改成显式接口，而不是字符串绑定：
+
+- `RendererSystemSceneRenderer::BasePassOutputs`
+- `RendererSystemLighting::LightingOutputs`
+
+#### execution plan
+
+当前 `Scene / Lighting / ToneMap / FrostedGlass` 都已经使用 execution plan 来组织 setup、dispatch 和 runtime orchestration。
+
+#### static setup sync
+
+对于尺寸或拓扑相关的 pass setup，当前推荐模式是：
+
+- `OnResize(...)` 只做 dirty 标记
+- `Tick(...)` 中检查 setup state
+- 需要时调用 `SyncRenderGraphNode(...)` 或 `CreateOrSyncRenderGraphNode(...)`
+
+这让 resize 响应与 render graph rebuild 解耦，也更适合复杂 feature。
+
 ## 7. 当前设计下的实践建议
 
 1. **切 RHI 或大规模重载时**：优先调用 `CleanupAllResources(true/false)` 走统一清理流程。  
-2. **新增屏幕尺寸相关 RT**：优先保证 `size_mode=WINDOW_RELATIVE`（或使用当前已有的自动转换行为）。  
-3. **新增 pass 绑定资源时**：尽量保持 binding 名称稳定，能减少 descriptor 重建频率。  
-4. **排查画面不更新/卡住**：先看 `SwapchainLifecycleState` 与 `DependencyDiagnostics`（UI 已接入）。
+2. **新增 feature 时**：先设计 typed outputs，再写 execution plan，再写 pass setup，不要直接在 `Tick()` 里堆 setup。  
+3. **新增屏幕尺寸相关 RT 或 viewport 相关 pass**：优先显式接入 `FrameDimensions` / `GraphicsExecutionPlan` / `FrameSizedSetupState`。  
+4. **新增 pass 绑定资源时**：尽量保持 binding 名称稳定，能减少 descriptor 重建频率。  
+5. **排查画面不更新/卡住**：先看 `SwapchainLifecycleState`、`DependencyDiagnostics` 和 feature 自己的 setup sync / register 路径。
 
 ---
 
