@@ -65,13 +65,19 @@ Chinese companion:
 
 - `docs/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
   - Main implementation and acceptance contract for frosted-glass work.
+- `docs/RendererDemo_FrostedGlass_Development_Acceptance_Plan_ZH.md`
+  - Chinese companion of the frosted-glass development and acceptance plan.
 - `docs/RendererDemo_FrostedGlass_FramePassReference.md`
   - Frame-level pass/resource contract for the current frosted-glass path.
+- `docs/RendererDemo_FrostedGlass_FramePassReference_ZH.md`
+  - Chinese companion of the frosted-glass frame pass reference.
 
 ## Feature Note Archive
 
 - `docs/FeatureNotes/Feature_Note_Template.md`
   - Template for new archived feature notes.
+- `docs/FeatureNotes/Feature_Note_Template_ZH.md`
+  - Chinese companion of the feature-note template.
 - `docs/FeatureNotes/20260223_A1_LinearOutput_ToneMapPass.md`
 - `docs/FeatureNotes/20260223_A2_ViewBufferPrevVP.md`
 - `docs/FeatureNotes/20260223_A2_VelocityGBuffer.md`
@@ -101,8 +107,12 @@ Naming convention:
 
 - `docs/debug-notes/README.md`
   - Accepted bug-note rules and current note list.
+- `docs/debug-notes/README_ZH.md`
+  - Chinese companion of the debug-note index.
 - `docs/debug-notes/TEMPLATE.md`
   - Template for accepted bug notes.
+- `docs/debug-notes/TEMPLATE_ZH.md`
+  - Chinese companion of the debug-note template.
 - `docs/debug-notes/*.md`
   - Accepted runtime/debug investigations with final root cause and validation.
 
@@ -132,4 +142,10 @@ Naming convention:
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\Validate-DocReferences.ps1
 ```
+
+## Current Rollout Status
+
+- Top-level architecture, design, contract, and plan docs now have bilingual coverage or use a shared bilingual diagram source.
+- Feature-note and debug-note templates/index docs now have bilingual companions.
+- Historical archived notes under `docs/FeatureNotes/` and `docs/debug-notes/` may still be single-language until they are materially updated.
 

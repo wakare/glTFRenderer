@@ -1,5 +1,10 @@
 # Debug Notes
 
+Companion references:
+
+- Chinese companion:
+  - `docs/debug-notes/README_ZH.md`
+
 This directory stores accepted bug-fix notes for issues that took meaningful time to diagnose or are likely to repeat.
 
 ## Repo Root Convention
@@ -13,6 +18,7 @@ This directory stores accepted bug-fix notes for issues that took meaningful tim
 - Add a note after the user explicitly accepts the fix.
 - Add a note for bugs that are backend-specific, timing-sensitive, cross-frame, or otherwise easy to misdiagnose.
 - If a bug is still under investigation, keep it out of this folder until the fix is accepted.
+- For newly added notes, add a `_ZH.md` or `_EN.md` companion beside the primary note when the note is project-owned and expected to remain active as a reference.
 
 ## File naming
 

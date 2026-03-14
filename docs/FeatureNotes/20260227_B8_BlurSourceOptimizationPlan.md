@@ -1,5 +1,10 @@
 # Feature Note - B8 Frosted Blur Source Optimization Plan
 
+Companion references:
+
+- Chinese companion:
+  - `docs/FeatureNotes/20260227_B8_BlurSourceOptimizationPlan_ZH.md`
+
 - Date: 2026-02-27
 - Work Item ID: B8
 - Title: Replace fixed frosted blur pyramid with shared low-cost blur source

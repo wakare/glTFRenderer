@@ -47,13 +47,19 @@
 
 - `docs/RendererDemo_FrostedGlass_Development_Acceptance_Plan.md`
   - Frosted Glass 主开发与验收计划。
+- `docs/RendererDemo_FrostedGlass_Development_Acceptance_Plan_ZH.md`
+  - Frosted Glass 主开发与验收计划中文版。
 - `docs/RendererDemo_FrostedGlass_FramePassReference.md`
   - 当前 Frosted Glass 帧内 pass / resource 合同参考。
+- `docs/RendererDemo_FrostedGlass_FramePassReference_ZH.md`
+  - 当前 Frosted Glass 帧内 pass / resource 合同参考中文版。
 
 ## 4. Feature Note 归档
 
 - `docs/FeatureNotes/Feature_Note_Template.md`
   - Feature Note 模板。
+- `docs/FeatureNotes/Feature_Note_Template_ZH.md`
+  - Feature Note 模板中文版。
 - `docs/FeatureNotes/*.md`
   - 已归档的 feature 设计、实现和验证记录。
 
@@ -61,8 +67,12 @@
 
 - `docs/debug-notes/README.md`
   - 调试记录约定与索引。
+- `docs/debug-notes/README_ZH.md`
+  - 调试记录约定与索引中文版。
 - `docs/debug-notes/TEMPLATE.md`
   - 调试记录模板。
+- `docs/debug-notes/TEMPLATE_ZH.md`
+  - 调试记录模板中文版。
 - `docs/debug-notes/*.md`
   - 已确认问题的根因、修复和验证记录。
 
@@ -86,3 +96,9 @@
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\Validate-DocReferences.ps1
 ```
+
+## 9. 当前推广状态
+
+- 顶层架构、设计、合同、计划文档已经补齐双语覆盖，或统一改为引用共享双语说明图。
+- Feature Note 和 debug-note 的模板 / 索引文档已经补齐双语配套。
+- `docs/FeatureNotes/` 与 `docs/debug-notes/` 下的历史归档记录，当前仍可能是单语版本；后续在被实质更新时补齐对应配套文档。

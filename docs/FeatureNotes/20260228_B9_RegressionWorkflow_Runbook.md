@@ -1,5 +1,10 @@
 # B9 Regression Workflow Runbook (Fixed Viewpoint Screenshot + Compare)
 
+Companion references:
+
+- Chinese companion:
+  - `docs/FeatureNotes/20260228_B9_RegressionWorkflow_Runbook_ZH.md`
+
 - Date: 2026-02-28
 - Scope: `RendererDemo` frosted-glass visual/perf iteration
 - Purpose: provide a deterministic, repeatable loop for baseline capture, current capture, and diff/perf compare

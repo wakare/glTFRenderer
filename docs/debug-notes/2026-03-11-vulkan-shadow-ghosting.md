@@ -1,5 +1,10 @@
 # Vulkan Shadow Ghosting In DemoAppModelViewer
 
+Companion references:
+
+- Chinese companion:
+  - `docs/debug-notes/2026-03-11-vulkan-shadow-ghosting_ZH.md`
+
 - Status: Accepted
 - Date: 2026-03-11
 - Scope: `RendererDemo -> DemoAppModelViewer`, Vulkan only, shadow rendering

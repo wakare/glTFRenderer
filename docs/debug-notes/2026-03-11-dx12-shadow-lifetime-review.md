@@ -1,5 +1,10 @@
 # DX12 Shadow Lifetime Review Follow-up
 
+Companion references:
+
+- Chinese companion:
+  - `docs/debug-notes/2026-03-11-dx12-shadow-lifetime-review_ZH.md`
+
 - Status: Accepted
 - Date: 2026-03-11
 - Scope: `RendererDemo -> RendererSystemLighting`, DX12 shadow resource lifetime review

@@ -1,5 +1,12 @@
 # RendererDemo Frosted Glass Development and Acceptance Plan
 
+Companion references:
+
+- Shared key-class diagram:
+  - `docs/RendererFramework_KeyClass_Diagram.md`
+- Chinese companion:
+  - `docs/RendererDemo_FrostedGlass_Development_Acceptance_Plan_ZH.md`
+
 - Version: v1.4
 - Date: 2026-02-27
 - Scope: `RendererCore` + `RendererDemo`

@@ -1,5 +1,10 @@
 # Feature Note - B9 Fixed Viewpoint Regression and Frame Telemetry Plan
 
+Companion references:
+
+- Chinese companion:
+  - `docs/FeatureNotes/20260228_B9_FixedViewpointScreenshotRegressionPlan_ZH.md`
+
 - Date: 2026-02-28
 - Work Item ID: B9
 - Title: Fixed-viewpoint screenshot regression and frame-level performance telemetry system

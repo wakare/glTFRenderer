@@ -1,9 +1,16 @@
 # Bug Title
 
+Companion references:
+
+- Chinese companion:
+  - `docs/debug-notes/TEMPLATE_ZH.md`
+
 - Status: Accepted
 - Date: YYYY-MM-DD
 - Scope: Component / backend / test case
 - Commit: `<hash>`
+- Companion note:
+  - Same-directory companion file, for example `2026-03-11-example-bug_ZH.md` or `2026-03-11-example-bug_EN.md`
 - Path convention: repo-relative code paths should start with `glTFRenderer/`; runtime-only `Resources/...` or `glTFResources/...` paths are allowed when the executable resolves them from its working directory.
 
 ## Symptom

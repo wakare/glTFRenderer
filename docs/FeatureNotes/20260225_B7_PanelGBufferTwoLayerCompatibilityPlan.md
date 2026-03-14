@@ -1,5 +1,10 @@
 # Feature Note - B7 Panel GBuffer Two-Layer Compatibility Plan
 
+Companion references:
+
+- Chinese companion:
+  - `docs/FeatureNotes/20260225_B7_PanelGBufferTwoLayerCompatibilityPlan_ZH.md`
+
 - Date: 2026-02-25
 - Work Item ID: B7
 - Title: 3D perspective panel compatibility plan with Panel GBuffer and two-layer sequential frosted composition

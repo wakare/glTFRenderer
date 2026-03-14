@@ -1,5 +1,12 @@
 # RendererDemo Frosted Glass Frame Pass Reference
 
+Companion references:
+
+- Shared key-class diagram:
+  - `docs/RendererFramework_KeyClass_Diagram.md`
+- Chinese companion:
+  - `docs/RendererDemo_FrostedGlass_FramePassReference_ZH.md`
+
 - Version: v1.2
 - Date: 2026-02-26
 - Scope: one-frame frosted-glass render path in `RendererSystemFrostedGlass`
