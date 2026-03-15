@@ -97,6 +97,7 @@ Chinese companion:
 - `docs/FeatureNotes/20260227_B8_BlurSourceOptimizationPlan.md`
 - `docs/FeatureNotes/20260228_B9_FixedViewpointScreenshotRegressionPlan.md`
 - `docs/FeatureNotes/20260228_B9_RegressionWorkflow_Runbook.md`
+- `docs/FeatureNotes/20260315_B9_RenderDocFrameCapturePlan.md`
 
 Naming convention:
 

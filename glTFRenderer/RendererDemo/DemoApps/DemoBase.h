@@ -53,6 +53,14 @@ protected:
     bool ImportStateSnapshotFromJson(const std::filesystem::path& snapshot_path);
     void RefreshImportableStateSnapshotList();
     bool DeleteSelectedStateSnapshotJson();
+    void PollPendingRenderDocCapture();
+    bool PreloadRenderDocForDevice(RendererInterface::RenderDeviceType device_type,
+                                   bool log_status,
+                                   std::string& out_error);
+    bool EnsureRenderDocCaptureConfigured(bool require_available, std::string& out_status);
+    std::filesystem::path BuildManualRenderDocCapturePath() const;
+    bool QueueManualRenderDocCapture(bool auto_open_replay_ui);
+    bool OpenLastRenderDocCaptureInReplayUI();
     bool CreateRenderRuntimeContext(const RendererInterface::RenderDeviceDesc& device_desc, bool disable_debug_ui);
     bool InitializeRuntimeModulesAndSystems();
     void StartRenderGraphExecution();
@@ -127,6 +135,17 @@ protected:
     std::string m_last_snapshot_export_path{};
     std::string m_last_snapshot_import_path{};
     std::string m_snapshot_io_status{};
+    char m_renderdoc_capture_name[128]{"capture"};
+    char m_renderdoc_capture_directory[260]{"build_logs/renderdoc"};
+    bool m_renderdoc_preload_requested{false};
+    bool m_renderdoc_required{false};
+    bool m_renderdoc_auto_open_after_capture{false};
+    bool m_renderdoc_manual_capture_pending{false};
+    bool m_renderdoc_manual_capture_auto_open{false};
+    unsigned long long m_renderdoc_manual_capture_frame_index{0};
+    std::filesystem::path m_renderdoc_manual_capture_requested_path{};
+    std::string m_renderdoc_startup_status{};
+    std::string m_renderdoc_ui_status{};
     RendererInterface::SwapchainResizePolicy m_swapchain_resize_policy_ui{};
     bool m_swapchain_resize_policy_ui_initialized{false};
     RendererInterface::SwapchainPresentMode m_swapchain_present_mode_ui{RendererInterface::SwapchainPresentMode::VSYNC};

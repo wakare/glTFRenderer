@@ -16,7 +16,9 @@
   - `glTFRenderer/x64/Debug/RendererDemo.exe`
 - 已存在 regression case json（由 Demo UI 导出）：
   - 默认位置：`glTFRenderer/x64/Debug/build_logs/regression_case_exports/*.json`
-- 已存在 compare 脚本：
+- 已存在 capture / compare 脚本：
+  - `scripts/Validate-RendererRegression.ps1`
+  - `scripts/Capture-RendererRegression.ps1`
   - `scripts/Compare-RendererRegression.ps1`
   - `scripts/RegressionCompareProfile.default.json`
 
@@ -40,33 +42,78 @@
 - 点击 `Export Current Regression Case JSON`
 - 记录 UI 显示的输出路径（`Last Exported Case JSON`）
 
-## 4. 通过 CLI 抓 Baseline / Current
+## 4. 一键验证
+
+当目标是验证整条 regression 流程，并且不希望为不同 backend 额外写手工步骤时，优先使用统一验证入口：
+
+```powershell
+$repoRoot = (Get-Location).Path
+$suite = Join-Path $repoRoot "glTFRenderer\RendererDemo\Resources\RegressionSuites\frosted_glass_b9_smoke.json"
+
+powershell -ExecutionPolicy Bypass -File .\scripts\Validate-RendererRegression.ps1 `
+  -Suite $suite `
+  -Backends dx,vk `
+  -OutputBase ".tmp\regression_validate" `
+  -RenderDocCapture `
+  -RenderDocRequired
+```
+
+预期顶层输出：
+
+- 当所有 backend 的 build、capture、compare 都通过时，输出 `STATUS=ValidationPassed`
+- 在验证输出目录下生成 `SUMMARY_JSON=...` 和 `SUMMARY_MD=...`
+- 输出 `BACKEND_DX_*` / `BACKEND_VK_*` 汇总行，直接指向各 backend 的 baseline/current 运行目录和 compare summary
+
+说明：
+
+- 该验证脚本只构建一次，然后对 `-Backends` 里的每个 backend 运行同一套 capture / compare 流程。
+- 如果你已经确认当前二进制可用，只想重跑 capture / compare，可增加 `-SkipBuild`。
+- RenderDoc 相关开关会统一应用到所有 backend，不需要再补充额外的 RHI 特化验证步骤。
+
+## 5. 通过 CLI 抓 Baseline / Current
 
 推荐模式（安静日志）：
 
 ```powershell
 $repoRoot = (Get-Location).Path
+$suite = Join-Path $repoRoot "glTFRenderer\RendererDemo\Resources\RegressionSuites\frosted_glass_b9_smoke.json"
+
+powershell -ExecutionPolicy Bypass -File .\scripts\Capture-RendererRegression.ps1 `
+  -Suite $suite `
+  -Backend dx `
+  -OutputBase ".tmp\regression_opt_baseline"
+
+powershell -ExecutionPolicy Bypass -File .\scripts\Capture-RendererRegression.ps1 `
+  -Suite $suite `
+  -Backend dx `
+  -OutputBase ".tmp\regression_opt_current"
+```
+
+该 capture 脚本会输出 `STATUS=...`、`RUN_DIR=...`、`SUMMARY=...`、`STDOUT=...`、`STDERR=...` 等汇总行。后续 compare 直接使用 `RUN_DIR`，只有在状态不是 `RunSucceeded` 时才需要深入查看重定向日志。
+同时它会使用 `rc_dx_<timestamp>` 这类更紧凑的内部运行目录，降低在输出根路径已经很深时触发 Windows 路径长度问题的概率。
+
+手工回退命令：
+
+```powershell
+$repoRoot = (Get-Location).Path
 $exeWorkDir = Join-Path $repoRoot "glTFRenderer\x64\Debug"
 $exe = ".\RendererDemo.exe"
-$suite = Join-Path $exeWorkDir "build_logs\regression_case_exports\0_20260228_185013.json"
-
-$baselineOut = Join-Path $repoRoot ".tmp\regression_opt_baseline"
-$currentOut = Join-Path $repoRoot ".tmp\regression_opt_current"
-$baselineStdout = Join-Path $repoRoot ".tmp\capture_baseline.stdout.log"
-$baselineStderr = Join-Path $repoRoot ".tmp\capture_baseline.stderr.log"
-$currentStdout = Join-Path $repoRoot ".tmp\capture_current.stdout.log"
-$currentStderr = Join-Path $repoRoot ".tmp\capture_current.stderr.log"
+$suite = Join-Path $repoRoot "glTFRenderer\RendererDemo\Resources\RegressionSuites\frosted_glass_b9_smoke.json"
+$baselineOut = Join-Path $repoRoot ".tmp\regression_opt_baseline_manual"
 
 Push-Location $exeWorkDir
-& $exe DemoAppModelViewer -dx -regression "-regression-suite=$suite" "-regression-output=$baselineOut" `
-  > $baselineStdout `
-  2> $baselineStderr
-
-& $exe DemoAppModelViewer -dx -regression "-regression-suite=$suite" "-regression-output=$currentOut" `
-  > $currentStdout `
-  2> $currentStderr
+& $exe DemoAppModelViewerFrostedGlass -dx -disable-debug-ui --no-assert-dialog -regression "-regression-suite=$suite" "-regression-output=$baselineOut"
 Pop-Location
 ```
+
+可选的 RenderDoc 参数：
+
+- 增加 `-renderdoc-ui`，可以在 device 初始化前预加载 RenderDoc runtime，但不会强制本次 regression 产出 `.rdc`。如果你只是想使用 DemoBase 里的公共 RenderDoc UI 手动抓帧，这是推荐的启动参数。
+- 增加 `-renderdoc-capture`，可为启用了 `capture_renderdoc` 的 case 生成 `.rdc`，也可在本次运行中强制所有 case 都抓 RenderDoc。
+- 当希望在 RenderDoc API 不可用时立即失败，可增加 `-renderdoc-required`。
+- `Capture-RendererRegression.ps1` 会把这两个开关原样透传给 `RendererDemo.exe`。
+- DX12 会先走正常的 DLL 搜索路径；如果没找到，再回退到已注册的 RenderDoc 安装目录，也就是 `renderdoc.json` 所在位置。
+- Vulkan 不再走手工 `LoadLibrary` 注入。检测到已注册的 RenderDoc 1.43+ 安装后，程序会在 device 初始化前自动打开 RenderDoc 的 Vulkan implicit layer。若安装过旧或不完整，仍需从 RenderDoc UI 或等价注入环境启动。
 
 每次运行预期生成：
 
@@ -74,8 +121,35 @@ Pop-Location
 - 运行目录下的 `001_case.png`
 - 运行目录下的 `001_case.pass.csv`
 - 运行目录下的 `001_case.perf.json`
+- 可选：运行目录下的 `001_case_frameXXXX.rdc`
 
-## 5. Compare Baseline 与 Current
+说明：
+
+- RenderDoc 会去掉请求模板里的扩展名，并在最终 `.rdc` 文件名后追加 frame 后缀。
+- suite `global` 现在支持：
+  - `default_capture_renderdoc`
+  - `default_renderdoc_capture_frame_offset`
+  - `default_keep_renderdoc_on_success`
+- 每个 case 的 `capture` 块现在支持：
+  - `capture_renderdoc`
+  - `renderdoc_capture_frame_offset`
+  - `keep_renderdoc_on_success`
+- `renderdoc_capture_frame_offset` 会把 RenderDoc / screenshot / pass-csv 的最终落点向后延迟指定帧数，保证这些工件仍然对齐到同一个更晚的 frame。
+- `keep_renderdoc_on_success=false` 会在 summary 写出之后清理成功 case 的 `.rdc`。这种模式下 `suite_result.json` 仍会记录 capture success 和 frame index，但会把 `renderdoc_capture_path` 置空，并标记 `renderdoc_capture_retained=false`。
+- `suite_result.json` 会记录每个 case 的实际 RenderDoc 路径、capture frame index、retention 状态和 capture error 字段。
+- Regression screenshot 现在会优先使用 `PrintWindow(PW_RENDERFULLCONTENT | PW_CLIENTONLY)`，只有失败时才回退到 `BitBlt`，这样在普通 Windows 桌面环境下运行时更不容易把其他窗口截进去。
+
+手动 UI 抓帧：
+
+- 如果只是想用共享的 RenderDoc 控件手动抓帧，建议用 `-renderdoc-ui` 启动任意开启了 debug UI 的 demo。
+- 打开 Demo 面板里的 `Runtime / Diagnostics > RenderDoc`。
+- `Capture Current Frame` 会通过共享的 `DemoBase` 路径抓取当前帧的单帧 `.rdc`。
+- `Auto Open Replay UI After Capture` 会在该帧完成后自动用 RenderDoc 打开刚产出的 `.rdc`。
+- `Open Last Capture In RenderDoc` 会重新打开 runtime 记录的最近一次成功 capture。
+- 当进程以 `-renderdoc-ui` 或其他 RenderDoc 启动参数进入后，runtime RHI recreate 现在也会在目标 backend 创建设备前重新执行 preload，因此 DX12/Vulkan 切换仍然沿用同一条 opt-in 路径。
+- 共享 UI 和 regression 自动流程共用同一个 RenderDoc service。如果某个 regression case 已经 arm 了 capture，手动按钮会直接报告“已有 pending capture”，不会叠加第二个请求。
+
+## 6. Compare Baseline 与 Current
 
 ```powershell
 $repoRoot = (Get-Location).Path
@@ -98,7 +172,14 @@ powershell -ExecutionPolicy Bypass -File .\scripts\Compare-RendererRegression.ps
 - `.tmp/regression_opt_compare/` 下的 summary Markdown
 - `.tmp/regression_opt_compare/diff/` 下的 diff 图像
 
-## 6. 构建验证（安静模式）
+RenderDoc 说明：
+
+- compare 仍然沿用正常的 screenshot diff 路径
+- 只要 baseline 或 current 一侧成功产出了 RenderDoc capture，perf 检查就会自动跳过，因为 `.rdc` capture 会显著扰动 timing，继续套用 perf 阈值容易误报
+- `summary.json` 会保留 baseline/current 的 RenderDoc 元数据；当 `.rdc` 仍被保留时，也会附带对应路径，方便对失败 case 直接用 RenderDoc 重放
+- 如果某个成功 capture 按 `keep_renderdoc_on_success=false` 被主动清理，compare summary 会把该 case 标成 `rdc-pruned`，而不是保留一个失效路径
+
+## 7. 构建验证（安静模式）
 
 使用隔离的 verify build 脚本：
 
@@ -116,7 +197,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\Build-RendererDemo-Verify.ps1
 - `ERR=...`
 - `BIN=...`
 
-## 7. 已遇到的问题与修复
+## 8. 已遇到的问题与修复
 
 ### 7.1 场景加载崩溃（错误 CWD）
 
@@ -174,7 +255,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\Build-RendererDemo-Verify.ps1
 - 始终把 stdout / stderr 重定向到文件
 - 只回报状态、warning / error 数量、关键诊断和日志路径
 
-## 8. 最小日常循环
+## 9. 最小日常循环
 
 1. 从 UI 导出或刷新 case json。
 2. 抓 baseline，或复用已有 baseline 运行。

@@ -60,6 +60,10 @@
   - Feature Note 模板。
 - `docs/FeatureNotes/Feature_Note_Template_ZH.md`
   - Feature Note 模板中文版。
+- `docs/FeatureNotes/20260315_B9_RenderDocFrameCapturePlan.md`
+  - RenderDoc 帧截取接入计划英文版。
+- `docs/FeatureNotes/20260315_B9_RenderDocFrameCapturePlan_ZH.md`
+  - RenderDoc 帧截取接入计划中文版。
 - `docs/FeatureNotes/*.md`
   - 已归档的 feature 设计、实现和验证记录。
 

@@ -33,6 +33,10 @@ protected:
     bool StartRegressionCase(const RendererInterface::RenderGraph::FrameStats& frame_stats);
     bool FinalizeRegressionCase(const RendererInterface::RenderGraph::FrameStats& frame_stats);
     bool FinalizeRegressionRun();
+    std::string BuildRegressionCasePrefix(unsigned case_index, const std::string& case_id) const;
+    void ResetActiveRegressionRenderDocCaptureState();
+    void TryQueueRegressionRenderDocCapture(const Regression::CaseConfig& case_config,
+                                            unsigned long long elapsed_frames);
     bool CaptureWindowScreenshotPNG(const std::filesystem::path& file_path) const;
     bool WriteRegressionPassCsv(const RendererInterface::RenderGraph::FrameStats& frame_stats,
                                 const std::filesystem::path& file_path) const;
@@ -76,6 +80,12 @@ protected:
         std::string screenshot_path{};
         std::string pass_csv_path{};
         std::string perf_json_path{};
+        bool renderdoc_capture_success{false};
+        bool renderdoc_capture_retained{false};
+        bool renderdoc_capture_keep_on_success{true};
+        unsigned long long renderdoc_capture_frame_index{0};
+        std::string renderdoc_capture_path{};
+        std::string renderdoc_capture_error{};
         std::string error{};
     };
 
@@ -107,6 +117,8 @@ protected:
     std::vector<RendererSystemFrostedPanelProducer::WorldPanelPrepassItem> m_world_prepass_panels{};
     std::vector<RendererSystemFrostedPanelProducer::OverlayPanelPrepassItem> m_overlay_prepass_panels{};
     bool m_regression_enabled{false};
+    bool m_regression_force_renderdoc_capture{false};
+    bool m_regression_renderdoc_required{false};
     bool m_regression_finished{false};
     bool m_regression_case_active{false};
     std::filesystem::path m_regression_output_root{};
@@ -114,6 +126,10 @@ protected:
     size_t m_regression_case_index{0};
     unsigned long long m_regression_case_start_frame{0};
     unsigned long long m_regression_case_last_elapsed_frames{0};
+    bool m_regression_case_renderdoc_requested{false};
+    unsigned long long m_regression_case_renderdoc_frame_index{0};
+    std::filesystem::path m_regression_case_renderdoc_requested_path{};
+    std::string m_regression_case_renderdoc_request_error{};
     RegressionPerfAccumulator m_regression_perf_accumulator{};
     std::vector<RegressionCaseResult> m_regression_case_results{};
     std::string m_regression_last_summary_path{};

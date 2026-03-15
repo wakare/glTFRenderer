@@ -38,3 +38,4 @@
 
 - [2026-03-11-dx12-shadow-lifetime-review.md](./2026-03-11-dx12-shadow-lifetime-review.md)
 - [2026-03-11-vulkan-shadow-ghosting.md](./2026-03-11-vulkan-shadow-ghosting.md)
+- [2026-03-15-renderdoc-ui-disabled-stack.md](./2026-03-15-renderdoc-ui-disabled-stack.md)

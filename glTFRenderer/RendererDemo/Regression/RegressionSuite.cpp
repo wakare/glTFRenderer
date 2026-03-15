@@ -135,7 +135,10 @@ namespace Regression
                 !TryReadBool(global, "disable_panel_input_state_machine", out_suite.disable_panel_input_state_machine, out_error) ||
                 !TryReadBool(global, "disable_prepass_animation", out_suite.disable_prepass_animation, out_error) ||
                 !TryReadUnsigned(global, "default_warmup_frames", out_suite.default_warmup_frames, out_error) ||
-                !TryReadUnsigned(global, "default_capture_frames", out_suite.default_capture_frames, out_error))
+                !TryReadUnsigned(global, "default_capture_frames", out_suite.default_capture_frames, out_error) ||
+                !TryReadBool(global, "default_capture_renderdoc", out_suite.default_capture_renderdoc, out_error) ||
+                !TryReadUnsigned(global, "default_renderdoc_capture_frame_offset", out_suite.default_renderdoc_capture_frame_offset, out_error) ||
+                !TryReadBool(global, "default_keep_renderdoc_on_success", out_suite.default_keep_renderdoc_on_success, out_error))
             {
                 return false;
             }
@@ -168,6 +171,9 @@ namespace Regression
             case_config.id = "case_" + std::to_string(index + 1u);
             case_config.capture.warmup_frames = out_suite.default_warmup_frames;
             case_config.capture.capture_frames = out_suite.default_capture_frames;
+            case_config.capture.capture_renderdoc = out_suite.default_capture_renderdoc;
+            case_config.capture.renderdoc_capture_frame_offset = out_suite.default_renderdoc_capture_frame_offset;
+            case_config.capture.keep_renderdoc_on_success = out_suite.default_keep_renderdoc_on_success;
 
             if (!TryReadString(json_case, "id", case_config.id, out_error))
             {
@@ -186,7 +192,10 @@ namespace Regression
                 if (!TryReadUnsigned(capture, "warmup_frames", case_config.capture.warmup_frames, out_error) ||
                     !TryReadUnsigned(capture, "capture_frames", case_config.capture.capture_frames, out_error) ||
                     !TryReadBool(capture, "capture_screenshot", case_config.capture.capture_screenshot, out_error) ||
-                    !TryReadBool(capture, "capture_perf", case_config.capture.capture_perf, out_error))
+                    !TryReadBool(capture, "capture_perf", case_config.capture.capture_perf, out_error) ||
+                    !TryReadBool(capture, "capture_renderdoc", case_config.capture.capture_renderdoc, out_error) ||
+                    !TryReadUnsigned(capture, "renderdoc_capture_frame_offset", case_config.capture.renderdoc_capture_frame_offset, out_error) ||
+                    !TryReadBool(capture, "keep_renderdoc_on_success", case_config.capture.keep_renderdoc_on_success, out_error))
                 {
                     return false;
                 }
@@ -195,7 +204,10 @@ namespace Regression
             if (!TryReadUnsigned(json_case, "warmup_frames", case_config.capture.warmup_frames, out_error) ||
                 !TryReadUnsigned(json_case, "capture_frames", case_config.capture.capture_frames, out_error) ||
                 !TryReadBool(json_case, "capture_screenshot", case_config.capture.capture_screenshot, out_error) ||
-                !TryReadBool(json_case, "capture_perf", case_config.capture.capture_perf, out_error))
+                !TryReadBool(json_case, "capture_perf", case_config.capture.capture_perf, out_error) ||
+                !TryReadBool(json_case, "capture_renderdoc", case_config.capture.capture_renderdoc, out_error) ||
+                !TryReadUnsigned(json_case, "renderdoc_capture_frame_offset", case_config.capture.renderdoc_capture_frame_offset, out_error) ||
+                !TryReadBool(json_case, "keep_renderdoc_on_success", case_config.capture.keep_renderdoc_on_success, out_error))
             {
                 return false;
             }

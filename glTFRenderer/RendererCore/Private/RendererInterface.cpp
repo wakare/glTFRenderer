@@ -4,6 +4,13 @@
 #include <chrono>
 #include <cmath>
 #include <filesystem>
+#include <fstream>
+#include <iterator>
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#include <shellapi.h>
 
 #include "InternalResourceHandleTable.h"
 #include "RendererSceneCommon.h"
@@ -20,6 +27,7 @@
 #include "RHIInterface/IRHIMemoryManager.h"
 #include "RHIInterface/IRHISwapChain.h"
 #include "RHIInterface/RHIIndexBuffer.h"
+#include <renderdoc/renderdoc_app.h>
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_glfw.h>
 
@@ -41,8 +49,295 @@ namespace RendererInterface
         std::vector<FrameSlot> frame_slots{};
     };
 
+    struct RenderGraph::RenderDocCaptureState
+    {
+        struct PendingCapture
+        {
+            bool armed{false};
+            bool started{false};
+            unsigned long long frame_index{0};
+            uint32_t capture_count_before{0};
+            std::filesystem::path requested_path{};
+        };
+
+        struct CompletedCapture
+        {
+            bool attempted{false};
+            bool success{false};
+            unsigned long long frame_index{0};
+            std::string capture_path{};
+            std::string error{};
+        };
+
+        bool enabled{false};
+        bool required{false};
+        bool available{false};
+        bool owns_module{false};
+        bool overlay_bits_saved{false};
+        bool overlay_hidden{false};
+        HMODULE module_handle{nullptr};
+        RENDERDOC_API_1_7_0* api{nullptr};
+        int api_version{0};
+        uint32_t saved_overlay_bits{eRENDERDOC_Overlay_None};
+        std::string status{};
+        PendingCapture pending{};
+        CompletedCapture last_result{};
+    };
+
     namespace
     {
+        bool g_renderdoc_runtime_loaded_by_app = false;
+
+        std::string WideStringToUtf8(const std::wstring& value)
+        {
+            if (value.empty())
+            {
+                return {};
+            }
+
+            const int required_length = WideCharToMultiByte(
+                CP_UTF8,
+                0,
+                value.c_str(),
+                static_cast<int>(value.size()),
+                nullptr,
+                0,
+                nullptr,
+                nullptr);
+            if (required_length <= 0)
+            {
+                return {};
+            }
+
+            std::string utf8(static_cast<size_t>(required_length), '\0');
+            WideCharToMultiByte(
+                CP_UTF8,
+                0,
+                value.c_str(),
+                static_cast<int>(value.size()),
+                utf8.data(),
+                required_length,
+                nullptr,
+                nullptr);
+            return utf8;
+        }
+
+        std::string PathToUtf8String(const std::filesystem::path& path)
+        {
+            return WideStringToUtf8(path.wstring());
+        }
+
+        std::string QuoteCommandLineArgument(std::string value)
+        {
+            if (value.empty())
+            {
+                return "\"\"";
+            }
+
+            const bool needs_quotes = value.find_first_of(" \t\"") != std::string::npos;
+            if (!needs_quotes)
+            {
+                return value;
+            }
+
+            std::string quoted{};
+            quoted.reserve(value.size() + 2);
+            quoted.push_back('"');
+            for (char ch : value)
+            {
+                if (ch == '"')
+                {
+                    quoted += "\\\"";
+                    continue;
+                }
+                quoted.push_back(ch);
+            }
+            quoted.push_back('"');
+            return quoted;
+        }
+
+        std::string BuildRenderDocCaptureTemplate(const std::filesystem::path& capture_path)
+        {
+            std::filesystem::path template_path = capture_path;
+            template_path.replace_extension();
+            return PathToUtf8String(template_path);
+        }
+
+        std::string QueryRenderDocCapturePath(RENDERDOC_API_1_7_0* api, uint32_t capture_index)
+        {
+            if (!api)
+            {
+                return {};
+            }
+
+            uint32_t path_length = 0;
+            if (api->GetCapture(capture_index, nullptr, &path_length, nullptr) == 0 || path_length == 0)
+            {
+                return {};
+            }
+
+            std::string capture_path(static_cast<size_t>(path_length), '\0');
+            if (api->GetCapture(capture_index, capture_path.data(), &path_length, nullptr) == 0 || path_length == 0)
+            {
+                return {};
+            }
+
+            if (!capture_path.empty() && capture_path.back() == '\0')
+            {
+                capture_path.pop_back();
+            }
+            return capture_path;
+        }
+
+        std::filesystem::path QueryRenderDocVulkanManifestPathFromRegistry(HKEY root_key)
+        {
+            HKEY implicit_layers_key = nullptr;
+            if (RegOpenKeyExW(root_key, L"SOFTWARE\\Khronos\\Vulkan\\ImplicitLayers", 0, KEY_READ, &implicit_layers_key) != ERROR_SUCCESS)
+            {
+                return {};
+            }
+
+            const auto close_key = [&]()
+            {
+                if (implicit_layers_key)
+                {
+                    RegCloseKey(implicit_layers_key);
+                    implicit_layers_key = nullptr;
+                }
+            };
+
+            for (DWORD index = 0; ; ++index)
+            {
+                wchar_t value_name[1024] = {};
+                DWORD value_name_length = static_cast<DWORD>(std::size(value_name));
+                DWORD value_type = 0;
+                DWORD value_data = 0;
+                DWORD value_data_size = sizeof(value_data);
+                const LSTATUS status = RegEnumValueW(
+                    implicit_layers_key,
+                    index,
+                    value_name,
+                    &value_name_length,
+                    nullptr,
+                    &value_type,
+                    reinterpret_cast<LPBYTE>(&value_data),
+                    &value_data_size);
+                if (status == ERROR_NO_MORE_ITEMS)
+                {
+                    break;
+                }
+                if (status != ERROR_SUCCESS)
+                {
+                    continue;
+                }
+
+                std::filesystem::path manifest_path(std::wstring(value_name, value_name_length));
+                const std::wstring file_name = manifest_path.filename().wstring();
+                if (_wcsicmp(file_name.c_str(), L"renderdoc.json") == 0)
+                {
+                    close_key();
+                    return manifest_path;
+                }
+            }
+
+            close_key();
+            return {};
+        }
+
+        std::filesystem::path QueryRenderDocVulkanManifestPath()
+        {
+            std::filesystem::path manifest_path = QueryRenderDocVulkanManifestPathFromRegistry(HKEY_CURRENT_USER);
+            if (!manifest_path.empty())
+            {
+                return manifest_path;
+            }
+
+            return QueryRenderDocVulkanManifestPathFromRegistry(HKEY_LOCAL_MACHINE);
+        }
+
+        std::filesystem::path QueryInstalledRenderDocModulePath()
+        {
+            const std::filesystem::path manifest_path = QueryRenderDocVulkanManifestPath();
+            if (manifest_path.empty())
+            {
+                return {};
+            }
+
+            const std::filesystem::path module_path = manifest_path.parent_path() / "renderdoc.dll";
+            std::error_code error_code{};
+            if (std::filesystem::is_regular_file(module_path, error_code) && !error_code)
+            {
+                return module_path;
+            }
+
+            return {};
+        }
+
+        bool QueryRenderDocVulkanImplementationVersion(const std::filesystem::path& manifest_path, int& out_implementation_version)
+        {
+            out_implementation_version = 0;
+            if (manifest_path.empty())
+            {
+                return false;
+            }
+
+            std::ifstream manifest_stream(manifest_path, std::ios::in | std::ios::binary);
+            if (!manifest_stream.is_open())
+            {
+                return false;
+            }
+
+            const std::string manifest_contents{
+                std::istreambuf_iterator<char>(manifest_stream),
+                std::istreambuf_iterator<char>()};
+            const std::string key = "\"implementation_version\"";
+            const std::size_t key_pos = manifest_contents.find(key);
+            if (key_pos == std::string::npos)
+            {
+                return false;
+            }
+
+            const std::size_t colon_pos = manifest_contents.find(':', key_pos + key.size());
+            if (colon_pos == std::string::npos)
+            {
+                return false;
+            }
+
+            std::size_t value_pos = manifest_contents.find_first_not_of(" \t\r\n", colon_pos + 1u);
+            if (value_pos == std::string::npos)
+            {
+                return false;
+            }
+
+            const bool quoted_value = manifest_contents[value_pos] == '"';
+            if (quoted_value)
+            {
+                ++value_pos;
+            }
+
+            const std::size_t value_end = quoted_value
+                ? manifest_contents.find('"', value_pos)
+                : manifest_contents.find_first_of(",}\r\n \t", value_pos);
+            if (value_end == std::string::npos || value_end <= value_pos)
+            {
+                return false;
+            }
+
+            int implementation_version = 0;
+            for (std::size_t index = value_pos; index < value_end; ++index)
+            {
+                const char ch = manifest_contents[index];
+                if (ch < '0' || ch > '9')
+                {
+                    return false;
+                }
+                implementation_version = implementation_version * 10 + (ch - '0');
+            }
+
+            out_implementation_version = implementation_version;
+            return true;
+        }
+
         enum class ResourceKind
         {
             Buffer,
@@ -2401,14 +2696,18 @@ namespace RendererInterface
         frame_slot_resource_access_snapshot_valid[hazard_slot_index] = 1u;
     }
 
-    RenderGraph::RenderGraph(ResourceOperator& allocator, RenderWindow& window)
+    RenderGraph::RenderGraph(ResourceOperator& allocator, RenderWindow& window, bool enable_debug_ui)
         : m_resource_allocator(allocator)
         , m_window(window)
     {
+        m_debug_ui_enabled = enable_debug_ui;
         m_validation_policy.log_interval_frames = (std::max)(1u, m_validation_policy.log_interval_frames);
         m_validation_policy.cross_frame_hazard_check_interval_frames =
             (std::max)(1u, m_validation_policy.cross_frame_hazard_check_interval_frames);
-        GLTF_CHECK(InitDebugUI());
+        if (m_debug_ui_enabled)
+        {
+            GLTF_CHECK(InitDebugUI());
+        }
         GLTF_CHECK(InitGPUProfiler());
     }
 
@@ -3133,6 +3432,7 @@ namespace RendererInterface
 
     void RenderGraph::ExecuteRenderGraphFrame(FramePreparationContext& frame_context, unsigned long long interval)
     {
+        BeginRenderDocFrameCapture();
         const auto planning_begin = std::chrono::steady_clock::now();
         m_resource_allocator.ApplyFrameBufferedRenderTargetAliases();
         if (m_final_color_output_render_target_handle != NULL_HANDLE)
@@ -3291,6 +3591,7 @@ namespace RendererInterface
             CloseCurrentCommandListAndExecute(command_list, {}, false);
             const auto submit_end = std::chrono::steady_clock::now();
             m_current_frame_timing_breakdown.submit_command_list_ms = ToMilliseconds(submit_begin, submit_end);
+            FinalizeRenderDocFrameCapture();
 
             // Clear all nodes at end of frame
             m_render_graph_node_handles.clear();
@@ -3306,6 +3607,7 @@ namespace RendererInterface
         Present(command_list, frame_context.presentation_frame_context);
         const auto present_end = std::chrono::steady_clock::now();
         m_current_frame_timing_breakdown.present_ms = ToMilliseconds(present_begin, present_end);
+        FinalizeRenderDocFrameCapture();
 
         // Clear all nodes at end of frame
         m_render_graph_node_handles.clear();
@@ -3341,7 +3643,224 @@ namespace RendererInterface
 
     void RenderGraph::EnableDebugUI(bool enable)
     {
+        if (enable && !m_debug_ui_initialized)
+        {
+            GLTF_CHECK(InitDebugUI());
+        }
         m_debug_ui_enabled = enable;
+    }
+
+    bool RenderGraph::ConfigureRenderDocCapture(bool enable, bool require_available, std::string& out_status)
+    {
+        if (!enable)
+        {
+            if (m_renderdoc_capture_state)
+            {
+                auto& renderdoc_state = *m_renderdoc_capture_state;
+                if (renderdoc_state.api && renderdoc_state.api->MaskOverlayBits && renderdoc_state.overlay_hidden)
+                {
+                    const uint32_t overlay_bits = renderdoc_state.overlay_bits_saved
+                        ? renderdoc_state.saved_overlay_bits
+                        : static_cast<uint32_t>(eRENDERDOC_Overlay_None);
+                    renderdoc_state.api->MaskOverlayBits(0u, overlay_bits);
+                    renderdoc_state.overlay_hidden = false;
+                }
+                renderdoc_state.enabled = false;
+                renderdoc_state.required = false;
+                renderdoc_state.pending = {};
+            }
+            out_status = "RenderDoc capture disabled.";
+            return true;
+        }
+
+        if (!m_renderdoc_capture_state)
+        {
+            m_renderdoc_capture_state = std::make_unique<RenderDocCaptureState>();
+        }
+
+        auto& renderdoc_state = *m_renderdoc_capture_state;
+        renderdoc_state.enabled = true;
+        renderdoc_state.required = require_available;
+        if (renderdoc_state.available && renderdoc_state.api)
+        {
+            if (renderdoc_state.api->MaskOverlayBits)
+            {
+                if (!renderdoc_state.overlay_bits_saved && renderdoc_state.api->GetOverlayBits)
+                {
+                    renderdoc_state.saved_overlay_bits = renderdoc_state.api->GetOverlayBits();
+                    renderdoc_state.overlay_bits_saved = true;
+                }
+                renderdoc_state.api->MaskOverlayBits(0u, 0u);
+                renderdoc_state.overlay_hidden = true;
+            }
+            out_status = renderdoc_state.status.empty() ? "RenderDoc API ready." : renderdoc_state.status;
+            return true;
+        }
+
+        const bool initialized = InitRenderDocCapture(require_available, out_status);
+        if (!initialized && !require_available)
+        {
+            return true;
+        }
+        return initialized;
+    }
+
+    bool RenderGraph::RequestRenderDocCaptureForCurrentFrame(const std::filesystem::path& capture_path, std::string& out_error)
+    {
+        out_error.clear();
+        if (!m_renderdoc_capture_state || !m_renderdoc_capture_state->enabled)
+        {
+            out_error = "RenderDoc capture is not enabled for this run.";
+            return false;
+        }
+
+        auto& renderdoc_state = *m_renderdoc_capture_state;
+        if (!renderdoc_state.available || !renderdoc_state.api)
+        {
+            out_error = !renderdoc_state.status.empty() ? renderdoc_state.status : "RenderDoc API unavailable.";
+            return false;
+        }
+        if (renderdoc_state.pending.armed)
+        {
+            out_error = "RenderDoc capture is already armed for a frame.";
+            return false;
+        }
+        if (renderdoc_state.api->IsFrameCapturing())
+        {
+            out_error = "RenderDoc is already capturing a frame.";
+            return false;
+        }
+
+        std::error_code fs_error;
+        const std::filesystem::path absolute_path = std::filesystem::absolute(capture_path, fs_error);
+        const std::filesystem::path resolved_path = fs_error ? capture_path : absolute_path;
+        const auto parent_path = resolved_path.parent_path();
+        if (!parent_path.empty())
+        {
+            std::filesystem::create_directories(parent_path, fs_error);
+            if (fs_error)
+            {
+                out_error = "Failed to create RenderDoc output directory: " + parent_path.string();
+                return false;
+            }
+        }
+
+        renderdoc_state.pending = {};
+        renderdoc_state.pending.armed = true;
+        renderdoc_state.pending.frame_index = m_frame_index;
+        renderdoc_state.pending.capture_count_before = renderdoc_state.api->GetNumCaptures();
+        renderdoc_state.pending.requested_path = resolved_path;
+        return true;
+    }
+
+    bool RenderGraph::IsRenderDocCaptureEnabled() const
+    {
+        return m_renderdoc_capture_state && m_renderdoc_capture_state->enabled;
+    }
+
+    unsigned long long RenderGraph::GetCurrentFrameIndex() const
+    {
+        return m_frame_index;
+    }
+
+    bool RenderGraph::IsRenderDocCaptureAvailable() const
+    {
+        return m_renderdoc_capture_state && m_renderdoc_capture_state->available && m_renderdoc_capture_state->api;
+    }
+
+    bool RenderGraph::WasLastRenderDocCaptureSuccessful() const
+    {
+        return m_renderdoc_capture_state && m_renderdoc_capture_state->last_result.success;
+    }
+
+    unsigned long long RenderGraph::GetLastRenderDocCaptureFrameIndex() const
+    {
+        return m_renderdoc_capture_state ? m_renderdoc_capture_state->last_result.frame_index : 0ull;
+    }
+
+    std::string RenderGraph::GetLastRenderDocCapturePath() const
+    {
+        return m_renderdoc_capture_state ? m_renderdoc_capture_state->last_result.capture_path : std::string{};
+    }
+
+    std::string RenderGraph::GetLastRenderDocCaptureError() const
+    {
+        return m_renderdoc_capture_state ? m_renderdoc_capture_state->last_result.error : std::string{};
+    }
+
+    bool RenderGraph::OpenRenderDocCaptureInReplayUI(const std::filesystem::path& capture_path, std::string& out_status)
+    {
+        out_status.clear();
+
+        std::error_code fs_error{};
+        const std::filesystem::path absolute_path = std::filesystem::absolute(capture_path, fs_error);
+        const std::filesystem::path resolved_path = fs_error ? capture_path : absolute_path;
+        if (resolved_path.empty())
+        {
+            out_status = "RenderDoc replay launch failed: capture path is empty.";
+            return false;
+        }
+
+        const bool capture_exists = std::filesystem::exists(resolved_path, fs_error) && !fs_error;
+        if (!capture_exists)
+        {
+            out_status = "RenderDoc replay launch failed: capture file does not exist: " + resolved_path.string();
+            return false;
+        }
+
+        if (m_renderdoc_capture_state && m_renderdoc_capture_state->available && m_renderdoc_capture_state->api)
+        {
+            auto& renderdoc_state = *m_renderdoc_capture_state;
+            if (renderdoc_state.api->LaunchReplayUI)
+            {
+                const std::string command_line = QuoteCommandLineArgument(PathToUtf8String(resolved_path));
+                const uint32_t replay_pid = renderdoc_state.api->LaunchReplayUI(1u, command_line.c_str());
+                if (replay_pid != 0u)
+                {
+                    out_status =
+                        "RenderDoc replay UI launched for capture: " + resolved_path.string() +
+                        " (pid " + std::to_string(replay_pid) + ").";
+                    return true;
+                }
+            }
+        }
+
+        const auto shell_result = reinterpret_cast<intptr_t>(
+            ShellExecuteW(nullptr, L"open", resolved_path.c_str(), nullptr, nullptr, SW_SHOWNORMAL));
+        if (shell_result > 32)
+        {
+            out_status = "RenderDoc capture opened via shell association: " + resolved_path.string();
+            return true;
+        }
+
+        if (m_renderdoc_capture_state && m_renderdoc_capture_state->available && m_renderdoc_capture_state->api)
+        {
+            auto& renderdoc_state = *m_renderdoc_capture_state;
+            if (renderdoc_state.api->ShowReplayUI &&
+                renderdoc_state.api->IsTargetControlConnected &&
+                renderdoc_state.api->IsTargetControlConnected() != 0 &&
+                renderdoc_state.api->ShowReplayUI() != 0)
+            {
+                out_status =
+                    "RenderDoc replay UI was shown, but the capture file could not be opened automatically: " +
+                    resolved_path.string();
+                return true;
+            }
+        }
+
+        out_status = "RenderDoc replay launch failed for capture: " + resolved_path.string();
+        return false;
+    }
+
+    bool RenderGraph::OpenLastRenderDocCaptureInReplayUI(std::string& out_status)
+    {
+        const std::string capture_path = GetLastRenderDocCapturePath();
+        if (capture_path.empty())
+        {
+            out_status = "RenderDoc replay launch failed: there is no completed capture to open.";
+            return false;
+        }
+        return OpenRenderDocCaptureInReplayUI(std::filesystem::path(capture_path), out_status);
     }
 
     void RenderGraph::ShutdownRuntimeServices()
@@ -3352,6 +3871,7 @@ namespace RendererInterface
         m_final_color_output_texture_handle = NULL_HANDLE;
         m_final_color_output_render_target_handle = NULL_HANDLE;
         m_missing_final_color_output_logged = false;
+        ShutdownRenderDocCapture();
         ShutdownGPUProfiler();
         ShutdownDebugUI();
     }
@@ -3555,6 +4075,85 @@ namespace RendererInterface
         return cleanup_result;
     }
 
+    bool PreloadRenderDocRuntime(RenderDeviceType device_type, bool require_available, std::string& out_status)
+    {
+        out_status.clear();
+
+        HMODULE module_handle = GetModuleHandleA("renderdoc.dll");
+        const bool module_loaded_by_app = g_renderdoc_runtime_loaded_by_app;
+        if (device_type == VULKAN)
+        {
+            const std::filesystem::path manifest_path = QueryRenderDocVulkanManifestPath();
+            int implementation_version = 0;
+            const bool has_supported_manifest =
+                QueryRenderDocVulkanImplementationVersion(manifest_path, implementation_version) &&
+                implementation_version >= 43;
+
+            if (has_supported_manifest)
+            {
+                SetEnvironmentVariableW(L"ENABLE_VULKAN_RENDERDOC_CAPTURE", L"1");
+                SetEnvironmentVariableW(L"DISABLE_VULKAN_RENDERDOC_CAPTURE_1_13", nullptr);
+                out_status =
+                    "RenderDoc Vulkan implicit layer enabled before device initialization (implementation " +
+                    std::to_string(implementation_version) + ").";
+                return true;
+            }
+
+            if (module_handle && !module_loaded_by_app)
+            {
+                out_status =
+                    "RenderDoc runtime is already present before Vulkan device initialization, "
+                    "but no registered RenderDoc 1.43+ implicit-layer manifest was found. "
+                    "Continuing under the assumption that RenderDoc was injected externally.";
+                return true;
+            }
+
+            out_status =
+                "RenderDoc runtime must already be injected before Vulkan device initialization. "
+                "Automatic Vulkan implicit-layer activation requires a registered RenderDoc 1.43+ installation.";
+            return false;
+        }
+
+        if (!module_handle)
+        {
+            module_handle = LoadLibraryA("renderdoc.dll");
+            if (module_handle)
+            {
+                g_renderdoc_runtime_loaded_by_app = true;
+            }
+        }
+        if (!module_handle)
+        {
+            const std::filesystem::path installed_module_path = QueryInstalledRenderDocModulePath();
+            if (!installed_module_path.empty())
+            {
+                module_handle = LoadLibraryW(installed_module_path.c_str());
+                if (module_handle)
+                {
+                    g_renderdoc_runtime_loaded_by_app = true;
+                    out_status = "RenderDoc runtime preloaded before device initialization from registered installation.";
+                }
+            }
+        }
+
+        if (!module_handle)
+        {
+            out_status = "RenderDoc runtime unavailable before device initialization: renderdoc.dll was not found.";
+            return false;
+        }
+
+        const auto get_api = reinterpret_cast<pRENDERDOC_GetAPI>(GetProcAddress(module_handle, "RENDERDOC_GetAPI"));
+        if (!get_api)
+        {
+            out_status = "RenderDoc runtime unavailable before device initialization: RENDERDOC_GetAPI entry point was not found.";
+            return false;
+        }
+
+        (void)require_available;
+        out_status = "RenderDoc runtime preloaded before device initialization.";
+        return true;
+    }
+
     void ShutdownWindowing()
     {
         glTFWindow::Get().ShutdownGLFW();
@@ -3637,6 +4236,299 @@ namespace RendererInterface
         ImGui_ImplGlfw_Shutdown();
         ImGui::DestroyContext();
         m_debug_ui_initialized = false;
+    }
+
+    bool RenderGraph::InitRenderDocCapture(bool require_available, std::string& out_status)
+    {
+        if (!m_renderdoc_capture_state)
+        {
+            m_renderdoc_capture_state = std::make_unique<RenderDocCaptureState>();
+        }
+
+        auto& renderdoc_state = *m_renderdoc_capture_state;
+        renderdoc_state.required = require_available;
+        if (renderdoc_state.available && renderdoc_state.api)
+        {
+            out_status = renderdoc_state.status;
+            return true;
+        }
+
+        HMODULE module_handle = GetModuleHandleA("renderdoc.dll");
+        bool owns_module = false;
+        if (!module_handle)
+        {
+            if (RHIConfigSingleton::Instance().GetGraphicsAPIType() == RHIGraphicsAPIType::RHI_GRAPHICS_API_Vulkan)
+            {
+                renderdoc_state.available = false;
+                renderdoc_state.status =
+                    "RenderDoc API unavailable: Vulkan capture requires RenderDoc to be injected before device initialization.";
+                out_status = renderdoc_state.status;
+                return false;
+            }
+
+            module_handle = LoadLibraryA("renderdoc.dll");
+            owns_module = module_handle != nullptr;
+            if (owns_module)
+            {
+                g_renderdoc_runtime_loaded_by_app = true;
+            }
+            if (!module_handle)
+            {
+                const std::filesystem::path installed_module_path = QueryInstalledRenderDocModulePath();
+                if (!installed_module_path.empty())
+                {
+                    module_handle = LoadLibraryW(installed_module_path.c_str());
+                    owns_module = module_handle != nullptr;
+                    if (owns_module)
+                    {
+                        g_renderdoc_runtime_loaded_by_app = true;
+                    }
+                }
+            }
+        }
+        if (!module_handle)
+        {
+            renderdoc_state.available = false;
+            renderdoc_state.status =
+                "RenderDoc API unavailable: renderdoc.dll was not found in the process or DLL search path.";
+            out_status = renderdoc_state.status;
+            return false;
+        }
+
+        const auto get_api = reinterpret_cast<pRENDERDOC_GetAPI>(GetProcAddress(module_handle, "RENDERDOC_GetAPI"));
+        if (!get_api)
+        {
+            if (owns_module)
+            {
+                FreeLibrary(module_handle);
+            }
+            renderdoc_state.available = false;
+            renderdoc_state.status = "RenderDoc API unavailable: RENDERDOC_GetAPI entry point was not found.";
+            out_status = renderdoc_state.status;
+            return false;
+        }
+
+        struct RenderDocApiVersionCandidate
+        {
+            RENDERDOC_Version version;
+            int major;
+            int minor;
+            int patch;
+        };
+
+        constexpr RenderDocApiVersionCandidate k_renderdoc_version_candidates[] = {
+            {eRENDERDOC_API_Version_1_7_0, 1, 7, 0},
+            {eRENDERDOC_API_Version_1_6_0, 1, 6, 0},
+            {eRENDERDOC_API_Version_1_5_0, 1, 5, 0},
+            {eRENDERDOC_API_Version_1_4_2, 1, 4, 2},
+            {eRENDERDOC_API_Version_1_4_1, 1, 4, 1},
+            {eRENDERDOC_API_Version_1_4_0, 1, 4, 0},
+            {eRENDERDOC_API_Version_1_3_0, 1, 3, 0},
+        };
+
+        RENDERDOC_API_1_7_0* renderdoc_api = nullptr;
+        const RenderDocApiVersionCandidate* negotiated_version = nullptr;
+        for (const auto& version_candidate : k_renderdoc_version_candidates)
+        {
+            renderdoc_api = nullptr;
+            if (get_api(version_candidate.version, reinterpret_cast<void**>(&renderdoc_api)) != 0 && renderdoc_api)
+            {
+                negotiated_version = &version_candidate;
+                break;
+            }
+        }
+
+        if (!renderdoc_api || !negotiated_version)
+        {
+            if (owns_module)
+            {
+                FreeLibrary(module_handle);
+            }
+            renderdoc_state.available = false;
+            renderdoc_state.status =
+                "RenderDoc API unavailable: supported API version is older than 1.3.0.";
+            out_status = renderdoc_state.status;
+            return false;
+        }
+
+        renderdoc_state.available = true;
+        renderdoc_state.owns_module = owns_module;
+        renderdoc_state.module_handle = module_handle;
+        renderdoc_state.api = renderdoc_api;
+        int major = 0;
+        int minor = 0;
+        int patch = 0;
+        renderdoc_api->GetAPIVersion(&major, &minor, &patch);
+        renderdoc_state.api_version = major * 10000 + minor * 100 + patch;
+        if (renderdoc_api->MaskOverlayBits)
+        {
+            if (!renderdoc_state.overlay_bits_saved && renderdoc_api->GetOverlayBits)
+            {
+                renderdoc_state.saved_overlay_bits = renderdoc_api->GetOverlayBits();
+                renderdoc_state.overlay_bits_saved = true;
+            }
+            renderdoc_api->MaskOverlayBits(0u, 0u);
+            renderdoc_state.overlay_hidden = true;
+        }
+        renderdoc_state.status = "RenderDoc API ready (" +
+            std::to_string(major) + "." +
+            std::to_string(minor) + "." +
+            std::to_string(patch) + ", negotiated " +
+            std::to_string(negotiated_version->major) + "." +
+            std::to_string(negotiated_version->minor) + "." +
+            std::to_string(negotiated_version->patch) + ").";
+        out_status = renderdoc_state.status;
+        return true;
+    }
+
+    void RenderGraph::BeginRenderDocFrameCapture()
+    {
+        if (!m_renderdoc_capture_state)
+        {
+            return;
+        }
+
+        auto& renderdoc_state = *m_renderdoc_capture_state;
+        if (!renderdoc_state.enabled ||
+            !renderdoc_state.available ||
+            !renderdoc_state.api ||
+            !renderdoc_state.pending.armed ||
+            renderdoc_state.pending.started ||
+            renderdoc_state.pending.frame_index != m_frame_index)
+        {
+            return;
+        }
+
+        renderdoc_state.last_result = {};
+        renderdoc_state.last_result.attempted = true;
+        renderdoc_state.last_result.frame_index = renderdoc_state.pending.frame_index;
+
+        const std::string capture_template = BuildRenderDocCaptureTemplate(renderdoc_state.pending.requested_path);
+        if (capture_template.empty())
+        {
+            renderdoc_state.last_result.error = "Failed to build RenderDoc capture file template.";
+            renderdoc_state.pending = {};
+            return;
+        }
+
+        renderdoc_state.api->SetCaptureFilePathTemplate(capture_template.c_str());
+        const auto window_handle = reinterpret_cast<RENDERDOC_WindowHandle>(m_window.GetHWND());
+        renderdoc_state.api->StartFrameCapture(nullptr, window_handle);
+        if (!renderdoc_state.api->IsFrameCapturing())
+        {
+            renderdoc_state.last_result.error = "RenderDoc failed to start frame capture.";
+            renderdoc_state.pending = {};
+            return;
+        }
+
+        const std::string capture_title = PathToUtf8String(renderdoc_state.pending.requested_path.stem());
+        if (!capture_title.empty() &&
+            renderdoc_state.api_version >= static_cast<int>(eRENDERDOC_API_Version_1_6_0) &&
+            renderdoc_state.api->SetCaptureTitle)
+        {
+            renderdoc_state.api->SetCaptureTitle(capture_title.c_str());
+        }
+
+        renderdoc_state.pending.started = true;
+    }
+
+    void RenderGraph::FinalizeRenderDocFrameCapture()
+    {
+        if (!m_renderdoc_capture_state)
+        {
+            return;
+        }
+
+        auto& renderdoc_state = *m_renderdoc_capture_state;
+        if (!renderdoc_state.pending.armed || renderdoc_state.pending.frame_index != m_frame_index)
+        {
+            return;
+        }
+
+        auto& result = renderdoc_state.last_result;
+        if (!result.attempted)
+        {
+            result = {};
+            result.attempted = true;
+            result.frame_index = renderdoc_state.pending.frame_index;
+        }
+
+        if (!renderdoc_state.pending.started || !renderdoc_state.api)
+        {
+            if (result.error.empty())
+            {
+                result.error = "RenderDoc capture was requested but did not start.";
+            }
+            renderdoc_state.pending = {};
+            return;
+        }
+
+        const auto window_handle = reinterpret_cast<RENDERDOC_WindowHandle>(m_window.GetHWND());
+        if (renderdoc_state.api->EndFrameCapture(nullptr, window_handle) == 0)
+        {
+            result.success = false;
+            if (result.error.empty())
+            {
+                result.error = "RenderDoc failed to finalize frame capture.";
+            }
+            renderdoc_state.pending = {};
+            return;
+        }
+
+        const uint32_t capture_count_after = renderdoc_state.api->GetNumCaptures();
+        if (capture_count_after <= renderdoc_state.pending.capture_count_before)
+        {
+            result.success = false;
+            result.error = "RenderDoc reported success but did not register a new capture file.";
+            renderdoc_state.pending = {};
+            return;
+        }
+
+        result.capture_path = QueryRenderDocCapturePath(renderdoc_state.api, capture_count_after - 1u);
+        result.success = !result.capture_path.empty();
+        if (!result.success)
+        {
+            result.error = "RenderDoc captured the frame but the output path could not be queried.";
+        }
+        else
+        {
+            result.error.clear();
+        }
+
+        renderdoc_state.pending = {};
+    }
+
+    void RenderGraph::ShutdownRenderDocCapture()
+    {
+        if (!m_renderdoc_capture_state)
+        {
+            return;
+        }
+
+        auto& renderdoc_state = *m_renderdoc_capture_state;
+        if (renderdoc_state.api && renderdoc_state.api->MaskOverlayBits && renderdoc_state.overlay_hidden)
+        {
+            const uint32_t overlay_bits = renderdoc_state.overlay_bits_saved
+                ? renderdoc_state.saved_overlay_bits
+                : static_cast<uint32_t>(eRENDERDOC_Overlay_None);
+            renderdoc_state.api->MaskOverlayBits(0u, overlay_bits);
+            renderdoc_state.overlay_hidden = false;
+        }
+        if (renderdoc_state.api && renderdoc_state.api->IsFrameCapturing())
+        {
+            const auto window_handle = reinterpret_cast<RENDERDOC_WindowHandle>(m_window.GetHWND());
+            renderdoc_state.api->EndFrameCapture(nullptr, window_handle);
+        }
+
+        renderdoc_state.pending = {};
+        renderdoc_state.api = nullptr;
+        if (renderdoc_state.module_handle && renderdoc_state.owns_module)
+        {
+            FreeLibrary(renderdoc_state.module_handle);
+        }
+        renderdoc_state.module_handle = nullptr;
+        renderdoc_state.owns_module = false;
+        m_renderdoc_capture_state.reset();
     }
 
     bool RenderGraph::InitGPUProfiler()

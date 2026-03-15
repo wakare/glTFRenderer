@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <deque>
 #include <functional>
+#include <filesystem>
 #include <set>
 #include <string>
 #include <tuple>
@@ -394,7 +395,7 @@ namespace RendererInterface
             std::size_t& cached_execution_node_count;
         };
         
-        RenderGraph(ResourceOperator& allocator, RenderWindow& window);
+        RenderGraph(ResourceOperator& allocator, RenderWindow& window, bool enable_debug_ui = true);
         ~RenderGraph();
         
         RenderGraphNodeHandle CreateRenderGraphNode(const RenderGraphNodeDesc& render_graph_node_desc);
@@ -419,6 +420,17 @@ namespace RendererInterface
         void RegisterDebugUICallback(const RenderGraphDebugUICallback& callback);
         void EnableDebugUI(bool enable);
         void DrawFrameworkDebugUI();
+        bool ConfigureRenderDocCapture(bool enable, bool require_available, std::string& out_status);
+        bool RequestRenderDocCaptureForCurrentFrame(const std::filesystem::path& capture_path, std::string& out_error);
+        unsigned long long GetCurrentFrameIndex() const;
+        bool IsRenderDocCaptureEnabled() const;
+        bool IsRenderDocCaptureAvailable() const;
+        bool WasLastRenderDocCaptureSuccessful() const;
+        unsigned long long GetLastRenderDocCaptureFrameIndex() const;
+        std::string GetLastRenderDocCapturePath() const;
+        std::string GetLastRenderDocCaptureError() const;
+        bool OpenRenderDocCaptureInReplayUI(const std::filesystem::path& capture_path, std::string& out_status);
+        bool OpenLastRenderDocCaptureInReplayUI(std::string& out_status);
         void ShutdownRuntimeServices();
         void SetValidationPolicy(const ValidationPolicy& policy);
         ValidationPolicy GetValidationPolicy() const;
@@ -593,6 +605,10 @@ namespace RendererInterface
         bool BeginGPUProfilerFrame(IRHICommandList& command_list, unsigned slot_index);
         bool WriteGPUProfilerTimestamp(IRHICommandList& command_list, unsigned slot_index, unsigned query_index);
         bool FinalizeGPUProfilerFrame(IRHICommandList& command_list, unsigned slot_index, unsigned query_count, const FrameStats& frame_stats);
+        bool InitRenderDocCapture(bool require_available, std::string& out_status);
+        void BeginRenderDocFrameCapture();
+        void FinalizeRenderDocFrameCapture();
+        void ShutdownRenderDocCapture();
         bool ResolveFinalColorOutput();
         void ExecuteTickAndDebugUI(unsigned long long interval);
         bool SyncWindowSurfaceAndAdvanceFrame(FramePreparationContext& frame_context, unsigned long long interval);
@@ -643,6 +659,8 @@ namespace RendererInterface
         ValidationPolicy m_validation_policy{};
         struct GPUProfilerState;
         std::unique_ptr<GPUProfilerState> m_gpu_profiler_state;
+        struct RenderDocCaptureState;
+        std::unique_ptr<RenderDocCaptureState> m_renderdoc_capture_state;
         FrameStats m_last_frame_stats{};
         FrameTimingBreakdown m_current_frame_timing_breakdown{};
         FrameTimingBreakdown m_last_frame_timing_breakdown{};
@@ -674,6 +692,7 @@ namespace RendererInterface
         std::shared_ptr<RenderGraph>& render_graph,
         std::shared_ptr<ResourceOperator>& resource_operator,
         bool clear_window_handles = false);
+    bool PreloadRenderDocRuntime(RenderDeviceType device_type, bool require_available, std::string& out_status);
     void ShutdownWindowing();
     
     class RendererSceneResourceManager

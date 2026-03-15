@@ -22,6 +22,9 @@ namespace Regression
         unsigned capture_frames{1};
         bool capture_screenshot{true};
         bool capture_perf{true};
+        bool capture_renderdoc{false};
+        unsigned renderdoc_capture_frame_offset{0};
+        bool keep_renderdoc_on_success{true};
     };
 
     struct CaseConfig
@@ -43,6 +46,9 @@ namespace Regression
         bool disable_prepass_animation{true};
         unsigned default_warmup_frames{180};
         unsigned default_capture_frames{1};
+        bool default_capture_renderdoc{false};
+        unsigned default_renderdoc_capture_frame_offset{0};
+        bool default_keep_renderdoc_on_success{true};
         std::vector<CaseConfig> cases{};
     };
 

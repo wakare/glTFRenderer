@@ -81,6 +81,12 @@ function Load-RunResult {
             screenshot_path = Resolve-PathAgainstRoot -RawPath ([string]$caseItem.screenshot_path) -RootDirectory $rootDir
             pass_csv_path = Resolve-PathAgainstRoot -RawPath ([string]$caseItem.pass_csv_path) -RootDirectory $rootDir
             perf_json_path = Resolve-PathAgainstRoot -RawPath ([string]$caseItem.perf_json_path) -RootDirectory $rootDir
+            renderdoc_capture_success = [bool]$caseItem.renderdoc_capture_success
+            renderdoc_capture_retained = [bool]$caseItem.renderdoc_capture_retained
+            renderdoc_capture_keep_on_success = if ($null -ne $caseItem.renderdoc_capture_keep_on_success) { [bool]$caseItem.renderdoc_capture_keep_on_success } else { $true }
+            renderdoc_capture_frame_index = [uint64]$caseItem.renderdoc_capture_frame_index
+            renderdoc_capture_path = Resolve-PathAgainstRoot -RawPath ([string]$caseItem.renderdoc_capture_path) -RootDirectory $rootDir
+            renderdoc_capture_error = [string]$caseItem.renderdoc_capture_error
             error = [string]$caseItem.error
         }
     }
@@ -386,6 +392,7 @@ $caseResults = @()
 $failureCount = 0
 $visualFailureCount = 0
 $perfFailureCount = 0
+$perfSkippedCount = 0
 $missingFailureCount = 0
 
 foreach ($caseId in ($allCaseIds | Sort-Object)) {
@@ -397,6 +404,18 @@ foreach ($caseId in ($allCaseIds | Sort-Object)) {
         baseline_exists = $null -ne $baselineCase
         current_exists = $null -ne $currentCase
         missing_failure = $false
+        renderdoc = [ordered]@{
+            baseline_path = if ($null -ne $baselineCase) { [string]$baselineCase.renderdoc_capture_path } else { "" }
+            baseline_success = if ($null -ne $baselineCase) { [bool]$baselineCase.renderdoc_capture_success } else { $false }
+            baseline_retained = if ($null -ne $baselineCase) { [bool]$baselineCase.renderdoc_capture_retained } else { $false }
+            baseline_frame_index = if ($null -ne $baselineCase) { [uint64]$baselineCase.renderdoc_capture_frame_index } else { 0 }
+            baseline_error = if ($null -ne $baselineCase) { [string]$baselineCase.renderdoc_capture_error } else { "" }
+            current_path = if ($null -ne $currentCase) { [string]$currentCase.renderdoc_capture_path } else { "" }
+            current_success = if ($null -ne $currentCase) { [bool]$currentCase.renderdoc_capture_success } else { $false }
+            current_retained = if ($null -ne $currentCase) { [bool]$currentCase.renderdoc_capture_retained } else { $false }
+            current_frame_index = if ($null -ne $currentCase) { [uint64]$currentCase.renderdoc_capture_frame_index } else { 0 }
+            current_error = if ($null -ne $currentCase) { [string]$currentCase.renderdoc_capture_error } else { "" }
+        }
         visual = $null
         perf = $null
         pass = $true
@@ -468,35 +487,53 @@ foreach ($caseId in ($allCaseIds | Sort-Object)) {
         }
     }
 
-    if (-not $DisablePerfCompare) {
-        $baselinePerf = Load-PerfJson -Path $baselineCase.perf_json_path
-        $currentPerf = Load-PerfJson -Path $currentCase.perf_json_path
+    $skipPerfForRenderDoc = ($null -ne $baselineCase -and [bool]$baselineCase.renderdoc_capture_success) -or
+        ($null -ne $currentCase -and [bool]$currentCase.renderdoc_capture_success)
 
-        if ($null -eq $baselinePerf -or $null -eq $currentPerf) {
+    if (-not $DisablePerfCompare) {
+        if ($skipPerfForRenderDoc) {
             $perf = [ordered]@{
                 compared = $false
-                pass = $false
-                reason = "MissingPerfJson"
+                skipped = $true
+                pass = $true
+                reason = "SkippedForRenderDocCapture"
                 rows = @()
             }
             $caseRow.perf = [PSCustomObject]$perf
-            $caseRow.pass = $false
-            $perfFailureCount++
-            $failureCount++
+            $perfSkippedCount++
         }
         else {
-            $perfResult = Compare-PerfMetrics -BaselinePerf $baselinePerf -CurrentPerf $currentPerf -PerfThresholds $profileData.perf
-            $perf = [ordered]@{
-                compared = $true
-                pass = [bool]$perfResult.success
-                reason = if ($perfResult.success) { "" } else { "PerfThresholdExceeded" }
-                rows = $perfResult.rows
-            }
-            $caseRow.perf = [PSCustomObject]$perf
-            if (-not $perfResult.success) {
+            $baselinePerf = Load-PerfJson -Path $baselineCase.perf_json_path
+            $currentPerf = Load-PerfJson -Path $currentCase.perf_json_path
+
+            if ($null -eq $baselinePerf -or $null -eq $currentPerf) {
+                $perf = [ordered]@{
+                    compared = $false
+                    skipped = $false
+                    pass = $false
+                    reason = "MissingPerfJson"
+                    rows = @()
+                }
+                $caseRow.perf = [PSCustomObject]$perf
                 $caseRow.pass = $false
                 $perfFailureCount++
                 $failureCount++
+            }
+            else {
+                $perfResult = Compare-PerfMetrics -BaselinePerf $baselinePerf -CurrentPerf $currentPerf -PerfThresholds $profileData.perf
+                $perf = [ordered]@{
+                    compared = $true
+                    skipped = $false
+                    pass = [bool]$perfResult.success
+                    reason = if ($perfResult.success) { "" } else { "PerfThresholdExceeded" }
+                    rows = $perfResult.rows
+                }
+                $caseRow.perf = [PSCustomObject]$perf
+                if (-not $perfResult.success) {
+                    $caseRow.pass = $false
+                    $perfFailureCount++
+                    $failureCount++
+                }
             }
         }
     }
@@ -514,6 +551,7 @@ $summaryObject = [ordered]@{
     failure_total = $failureCount
     visual_failure_total = $visualFailureCount
     perf_failure_total = $perfFailureCount
+    perf_skipped_total = $perfSkippedCount
     missing_failure_total = $missingFailureCount
     pass = ($failureCount -eq 0)
     cases = $caseResults
@@ -531,13 +569,13 @@ $md.Add("- Baseline: $Baseline")
 $md.Add("- Current: $Current")
 $md.Add("- Pass: " + ($(if ($summaryObject.pass) { "YES" } else { "NO" })))
 $md.Add("- Case Total: $($summaryObject.case_total)")
-$md.Add("- Failures: $($summaryObject.failure_total) (visual=$visualFailureCount perf=$perfFailureCount missing=$missingFailureCount)")
+$md.Add("- Failures: $($summaryObject.failure_total) (visual=$visualFailureCount perf=$perfFailureCount perf-skipped=$perfSkippedCount missing=$missingFailureCount)")
 $md.Add("")
 $md.Add("| Case | Pass | Visual | Perf | Notes |")
 $md.Add("|---|---|---|---|---|")
 foreach ($case in $caseResults) {
     $visualStatus = if ($null -eq $case.visual) { "N/A" } elseif ($case.visual.pass) { "PASS" } else { "FAIL" }
-    $perfStatus = if ($null -eq $case.perf) { "N/A" } elseif ($case.perf.pass) { "PASS" } else { "FAIL" }
+    $perfStatus = if ($null -eq $case.perf) { "N/A" } elseif ($case.perf.skipped) { "SKIP" } elseif ($case.perf.pass) { "PASS" } else { "FAIL" }
     $notes = @()
     if ($case.visual -and -not $case.visual.pass) {
         $notes += ("visual: " + $case.visual.reason)
@@ -547,7 +585,10 @@ foreach ($case in $caseResults) {
             $notes += ("psnr=" + ("{0:N2}" -f [double]$case.visual.psnr))
         }
     }
-    if ($case.perf -and -not $case.perf.pass) {
+    if ($case.perf -and $case.perf.skipped) {
+        $notes += "perf: skipped-renderdoc"
+    }
+    elseif ($case.perf -and -not $case.perf.pass) {
         $failedMetrics = @($case.perf.rows | Where-Object { -not $_.pass } | ForEach-Object { "$($_.metric)=" + (To-PrettyPct -Value $_.increase_pct) })
         if ($failedMetrics.Count -gt 0) {
             $notes += ("perf: " + ($failedMetrics -join ", "))
@@ -559,6 +600,13 @@ foreach ($case in $caseResults) {
     if ($case.missing_failure) {
         $notes += "missing case"
     }
+    if ($case.renderdoc.current_success -and -not [string]::IsNullOrWhiteSpace($case.renderdoc.current_path)) {
+        $notes += "rdc"
+    } elseif ($case.renderdoc.current_success -and -not $case.renderdoc.current_retained) {
+        $notes += "rdc-pruned"
+    } elseif (-not [string]::IsNullOrWhiteSpace($case.renderdoc.current_error)) {
+        $notes += "rdc-error"
+    }
     $md.Add("| $($case.id) | $(if($case.pass){'PASS'}else{'FAIL'}) | $visualStatus | $perfStatus | $($notes -join '; ') |")
 }
 
@@ -569,6 +617,7 @@ Write-Host "CASES=$($summaryObject.case_total)"
 Write-Host "FAILURES=$($summaryObject.failure_total)"
 Write-Host "VISUAL_FAILURES=$visualFailureCount"
 Write-Host "PERF_FAILURES=$perfFailureCount"
+Write-Host "PERF_SKIPPED=$perfSkippedCount"
 Write-Host "MISSING_FAILURES=$missingFailureCount"
 Write-Host "SUMMARY_JSON=$summaryJsonPath"
 Write-Host "SUMMARY_MD=$summaryMdPath"

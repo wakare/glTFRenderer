@@ -40,6 +40,32 @@ namespace
         return value;
     }
 
+    unsigned long long GetRegressionCaptureEndElapsedFrames(const Regression::CaseConfig& case_config)
+    {
+        return static_cast<unsigned long long>(case_config.capture.warmup_frames) +
+               static_cast<unsigned long long>(case_config.capture.capture_frames);
+    }
+
+    bool ShouldCaptureRegressionRenderDoc(
+        const Regression::CaseConfig& case_config,
+        bool force_renderdoc_capture)
+    {
+        return force_renderdoc_capture || case_config.capture.capture_renderdoc;
+    }
+
+    unsigned long long GetRegressionRenderDocTargetElapsedFrames(
+        const Regression::CaseConfig& case_config,
+        bool force_renderdoc_capture)
+    {
+        const unsigned long long capture_end = GetRegressionCaptureEndElapsedFrames(case_config);
+        if (!ShouldCaptureRegressionRenderDoc(case_config, force_renderdoc_capture))
+        {
+            return capture_end;
+        }
+
+        return capture_end + static_cast<unsigned long long>(case_config.capture.renderdoc_capture_frame_offset);
+    }
+
     const char* ToString(RendererInterface::RenderDeviceType type)
     {
         switch (type)
@@ -599,6 +625,8 @@ bool DemoAppModelViewerFrostedGlass::ConfigureRegressionRunFromArguments(const s
     std::string suite_path_arg{};
     std::string output_root_arg{};
     bool enable_regression = false;
+    bool enable_renderdoc_capture = false;
+    bool renderdoc_required = false;
 
     const std::string suite_prefix = "-regression-suite=";
     const std::string output_prefix = "-regression-output=";
@@ -607,6 +635,16 @@ bool DemoAppModelViewerFrostedGlass::ConfigureRegressionRunFromArguments(const s
         if (argument == "-regression")
         {
             enable_regression = true;
+            continue;
+        }
+        if (argument == "-renderdoc-capture")
+        {
+            enable_renderdoc_capture = true;
+            continue;
+        }
+        if (argument == "-renderdoc-required")
+        {
+            renderdoc_required = true;
             continue;
         }
         if (argument.rfind(suite_prefix, 0) == 0)
@@ -662,14 +700,44 @@ bool DemoAppModelViewerFrostedGlass::ConfigureRegressionRunFromArguments(const s
     }
 
     m_regression_enabled = true;
+    m_regression_force_renderdoc_capture = enable_renderdoc_capture;
+    m_regression_renderdoc_required = renderdoc_required;
     m_regression_finished = false;
     m_regression_case_active = false;
     m_regression_case_index = 0;
     m_regression_case_start_frame = 0;
     m_regression_case_last_elapsed_frames = 0;
+    ResetActiveRegressionRenderDocCaptureState();
     m_regression_case_results.clear();
     m_regression_last_summary_path.clear();
     ResetRegressionPerfAccumulator();
+
+    const bool suite_requests_renderdoc =
+        m_regression_suite.default_capture_renderdoc ||
+        std::any_of(
+            m_regression_suite.cases.begin(),
+            m_regression_suite.cases.end(),
+            [](const Regression::CaseConfig& case_config) { return case_config.capture.capture_renderdoc; });
+    const bool should_enable_renderdoc_runtime = m_regression_force_renderdoc_capture || suite_requests_renderdoc;
+    if (m_render_graph)
+    {
+        std::string renderdoc_status{};
+        if (!m_render_graph->ConfigureRenderDocCapture(
+                should_enable_renderdoc_runtime,
+                m_regression_renderdoc_required,
+                renderdoc_status))
+        {
+            LOG_FORMAT_FLUSH("[Regression] RenderDoc setup failed: %s\n", renderdoc_status.c_str());
+            return false;
+        }
+
+        if (should_enable_renderdoc_runtime)
+        {
+            LOG_FORMAT_FLUSH(
+                "[Regression] RenderDoc capture requested (%s).\n",
+                renderdoc_status.empty() ? "no status" : renderdoc_status.c_str());
+        }
+    }
 
     if (m_regression_suite.disable_debug_ui && m_render_graph)
     {
@@ -691,6 +759,76 @@ bool DemoAppModelViewerFrostedGlass::ConfigureRegressionRunFromArguments(const s
 void DemoAppModelViewerFrostedGlass::ResetRegressionPerfAccumulator()
 {
     m_regression_perf_accumulator = RegressionPerfAccumulator{};
+}
+
+std::string DemoAppModelViewerFrostedGlass::BuildRegressionCasePrefix(unsigned case_index, const std::string& case_id) const
+{
+    std::ostringstream case_prefix_stream;
+    case_prefix_stream << std::setfill('0') << std::setw(3) << case_index << "_" << SanitizeFileName(case_id);
+    return case_prefix_stream.str();
+}
+
+void DemoAppModelViewerFrostedGlass::ResetActiveRegressionRenderDocCaptureState()
+{
+    m_regression_case_renderdoc_requested = false;
+    m_regression_case_renderdoc_frame_index = 0ull;
+    m_regression_case_renderdoc_requested_path.clear();
+    m_regression_case_renderdoc_request_error.clear();
+}
+
+void DemoAppModelViewerFrostedGlass::TryQueueRegressionRenderDocCapture(
+    const Regression::CaseConfig& case_config,
+    unsigned long long elapsed_frames)
+{
+    if (!m_render_graph)
+    {
+        return;
+    }
+
+    const bool should_capture_renderdoc =
+        ShouldCaptureRegressionRenderDoc(case_config, m_regression_force_renderdoc_capture);
+    if (!should_capture_renderdoc || m_regression_case_renderdoc_requested)
+    {
+        return;
+    }
+
+    const unsigned long long target_elapsed_frames =
+        GetRegressionRenderDocTargetElapsedFrames(case_config, m_regression_force_renderdoc_capture);
+    if (target_elapsed_frames == 0ull || (elapsed_frames + 1ull) != target_elapsed_frames)
+    {
+        return;
+    }
+
+    const std::string case_prefix = BuildRegressionCasePrefix(
+        static_cast<unsigned>(m_regression_case_index + 1u),
+        case_config.id);
+    const std::filesystem::path renderdoc_path = m_regression_output_root / "cases" / (case_prefix + ".rdc");
+    const unsigned long long target_frame_index = m_render_graph->GetCurrentFrameIndex();
+
+    std::string request_error{};
+    if (!m_render_graph->RequestRenderDocCaptureForCurrentFrame(renderdoc_path, request_error))
+    {
+        m_regression_case_renderdoc_requested = false;
+        m_regression_case_renderdoc_frame_index = target_frame_index;
+        m_regression_case_renderdoc_requested_path = renderdoc_path;
+        m_regression_case_renderdoc_request_error = request_error;
+        LOG_FORMAT_FLUSH(
+            "[Regression] RenderDoc capture request failed for case '%s': %s\n",
+            case_config.id.c_str(),
+            request_error.c_str());
+        return;
+    }
+
+    m_regression_case_renderdoc_requested = true;
+    m_regression_case_renderdoc_frame_index = target_frame_index;
+    m_regression_case_renderdoc_requested_path = renderdoc_path;
+    m_regression_case_renderdoc_request_error.clear();
+    LOG_FORMAT_FLUSH(
+        "[Regression] RenderDoc capture armed for case '%s' at frame %llu (elapsed=%llu offset=%u).\n",
+        case_config.id.c_str(),
+        static_cast<unsigned long long>(m_regression_case_renderdoc_frame_index),
+        static_cast<unsigned long long>(target_elapsed_frames),
+        case_config.capture.renderdoc_capture_frame_offset);
 }
 
 void DemoAppModelViewerFrostedGlass::AccumulateRegressionPerf(const RendererInterface::RenderGraph::FrameStats& frame_stats)
@@ -793,6 +931,7 @@ bool DemoAppModelViewerFrostedGlass::StartRegressionCase(const RendererInterface
     const auto& case_config = m_regression_suite.cases[m_regression_case_index];
     const std::string case_id = case_config.id;
     ResetRegressionPerfAccumulator();
+    ResetActiveRegressionRenderDocCaptureState();
 
     if (m_regression_suite.disable_panel_input_state_machine)
     {
@@ -887,11 +1026,26 @@ bool DemoAppModelViewerFrostedGlass::CaptureWindowScreenshotPNG(const std::files
     }
 
     HGDIOBJ old_bitmap = SelectObject(memory_dc, dib_bitmap);
-    const BOOL blit_success = BitBlt(memory_dc, 0, 0, width, height, window_dc, 0, 0, SRCCOPY | CAPTUREBLT);
+    BOOL capture_success = FALSE;
+#ifndef PW_RENDERFULLCONTENT
+    constexpr UINT k_print_window_render_full_content = 0x00000002u;
+#else
+    constexpr UINT k_print_window_render_full_content = PW_RENDERFULLCONTENT;
+#endif
+    // Prefer client-area window rendering so regression screenshots are not polluted by overlapping desktop windows.
+    capture_success = PrintWindow(hwnd, memory_dc, PW_CLIENTONLY | k_print_window_render_full_content);
+    if (capture_success != TRUE)
+    {
+        capture_success = PrintWindow(hwnd, memory_dc, PW_CLIENTONLY);
+    }
+    if (capture_success != TRUE)
+    {
+        capture_success = BitBlt(memory_dc, 0, 0, width, height, window_dc, 0, 0, SRCCOPY | CAPTUREBLT);
+    }
     GdiFlush();
 
     std::vector<unsigned char> rgba_data(static_cast<size_t>(width) * static_cast<size_t>(height) * 4u);
-    if (blit_success == TRUE)
+    if (capture_success == TRUE)
     {
         const unsigned char* bgra_data = static_cast<const unsigned char*>(bitmap_bits);
         for (int y = 0; y < height; ++y)
@@ -914,7 +1068,7 @@ bool DemoAppModelViewerFrostedGlass::CaptureWindowScreenshotPNG(const std::files
     DeleteDC(memory_dc);
     ReleaseDC(hwnd, window_dc);
 
-    if (blit_success != TRUE)
+    if (capture_success != TRUE)
     {
         return false;
     }
@@ -1041,19 +1195,22 @@ bool DemoAppModelViewerFrostedGlass::FinalizeRegressionCase(const RendererInterf
     }
 
     const auto& case_config = m_regression_suite.cases[m_regression_case_index];
-    const std::string case_name = SanitizeFileName(case_config.id);
-    std::ostringstream case_prefix_stream;
-    case_prefix_stream << std::setfill('0') << std::setw(3) << (m_regression_case_index + 1u) << "_" << case_name;
-    const std::string case_prefix = case_prefix_stream.str();
+    const std::string case_prefix = BuildRegressionCasePrefix(
+        static_cast<unsigned>(m_regression_case_index + 1u),
+        case_config.id);
 
     const std::filesystem::path case_dir = m_regression_output_root / "cases";
     const std::filesystem::path screenshot_path = case_dir / (case_prefix + ".png");
     const std::filesystem::path pass_csv_path = case_dir / (case_prefix + ".pass.csv");
     const std::filesystem::path perf_json_path = case_dir / (case_prefix + ".perf.json");
+    const std::filesystem::path renderdoc_path = case_dir / (case_prefix + ".rdc");
+    const bool should_capture_renderdoc =
+        ShouldCaptureRegressionRenderDoc(case_config, m_regression_force_renderdoc_capture);
 
     RegressionCaseResult result{};
     result.id = case_config.id;
     result.success = true;
+    result.renderdoc_capture_keep_on_success = case_config.capture.keep_renderdoc_on_success;
 
     if (!WriteRegressionPassCsv(frame_stats, pass_csv_path))
     {
@@ -1088,6 +1245,102 @@ bool DemoAppModelViewerFrostedGlass::FinalizeRegressionCase(const RendererInterf
         }
     }
 
+    if (should_capture_renderdoc)
+    {
+        result.renderdoc_capture_frame_index = m_regression_case_renderdoc_frame_index;
+        result.renderdoc_capture_path = renderdoc_path.string();
+        if (!m_regression_case_renderdoc_request_error.empty())
+        {
+            result.success = false;
+            result.renderdoc_capture_success = false;
+            result.renderdoc_capture_error = m_regression_case_renderdoc_request_error;
+            result.error += "failed_to_arm_renderdoc_capture;";
+        }
+        else if (!m_regression_case_renderdoc_requested || m_regression_case_renderdoc_frame_index == 0ull)
+        {
+            result.success = false;
+            result.renderdoc_capture_success = false;
+            result.renderdoc_capture_error = "RenderDoc capture was requested by the case but was never armed.";
+            result.error += "missing_renderdoc_capture_request;";
+        }
+        else if (!m_render_graph)
+        {
+            result.success = false;
+            result.renderdoc_capture_success = false;
+            result.renderdoc_capture_error = "Render graph is unavailable while finalizing RenderDoc capture.";
+            result.error += "missing_render_graph_for_renderdoc;";
+        }
+        else
+        {
+            const unsigned long long actual_frame_index = m_render_graph->GetLastRenderDocCaptureFrameIndex();
+            const std::string actual_capture_path = m_render_graph->GetLastRenderDocCapturePath();
+            if (actual_frame_index != 0ull)
+            {
+                result.renderdoc_capture_frame_index = actual_frame_index;
+            }
+            if (!actual_capture_path.empty())
+            {
+                result.renderdoc_capture_path = actual_capture_path;
+            }
+
+            if (!m_render_graph->WasLastRenderDocCaptureSuccessful())
+            {
+                result.success = false;
+                result.renderdoc_capture_success = false;
+                result.renderdoc_capture_error = m_render_graph->GetLastRenderDocCaptureError();
+                result.error += "failed_to_capture_renderdoc;";
+            }
+            else if (actual_frame_index != m_regression_case_renderdoc_frame_index)
+            {
+                result.success = false;
+                result.renderdoc_capture_success = false;
+                result.renderdoc_capture_error =
+                    "RenderDoc capture frame mismatch. Expected frame " +
+                    std::to_string(m_regression_case_renderdoc_frame_index) +
+                    ", got " +
+                    std::to_string(actual_frame_index) + ".";
+                result.error += "renderdoc_capture_frame_mismatch;";
+            }
+            else if (result.renderdoc_capture_path.empty())
+            {
+                result.renderdoc_capture_success = false;
+                result.success = false;
+                result.renderdoc_capture_error = "RenderDoc reported success but did not return a capture path.";
+                result.error += "missing_renderdoc_capture_path;";
+            }
+            else
+            {
+                result.renderdoc_capture_success = true;
+                result.renderdoc_capture_retained = true;
+            }
+        }
+    }
+
+    if (result.renderdoc_capture_success &&
+        result.success &&
+        !case_config.capture.keep_renderdoc_on_success &&
+        !result.renderdoc_capture_path.empty())
+    {
+        std::error_code remove_error{};
+        std::error_code exists_error{};
+        const std::filesystem::path retained_capture_path = result.renderdoc_capture_path;
+        const bool removed = std::filesystem::remove(retained_capture_path, remove_error);
+        const bool still_exists = std::filesystem::exists(retained_capture_path, exists_error);
+        if (removed || (!still_exists && !exists_error))
+        {
+            result.renderdoc_capture_retained = false;
+            result.renderdoc_capture_path.clear();
+        }
+        else if (remove_error)
+        {
+            LOG_FORMAT_FLUSH(
+                "[Regression] RenderDoc capture retention cleanup failed for case '%s': %s\n",
+                case_config.id.c_str(),
+                remove_error.message().c_str());
+        }
+    }
+
+    ResetActiveRegressionRenderDocCaptureState();
     m_regression_case_results.push_back(result);
 
     LOG_FORMAT_FLUSH("[Regression] Case %u/%u done: %s (%s)\n",
@@ -1112,16 +1365,30 @@ bool DemoAppModelViewerFrostedGlass::FinalizeRegressionRun()
     summary["render_device"] = ToString(m_render_device_type);
     summary["present_mode"] = ToString(
         m_resource_manager ? m_resource_manager->GetSwapchainPresentMode() : m_swapchain_present_mode_ui);
+    summary["renderdoc_capture_enabled"] = m_render_graph ? m_render_graph->IsRenderDocCaptureEnabled() : false;
+    summary["renderdoc_capture_available"] = m_render_graph ? m_render_graph->IsRenderDocCaptureAvailable() : false;
+    summary["renderdoc_capture_required"] = m_regression_renderdoc_required;
+    summary["renderdoc_capture_forced"] = m_regression_force_renderdoc_capture;
     summary["case_count"] = m_regression_suite.cases.size();
     summary["result_count"] = m_regression_case_results.size();
 
     nlohmann::json case_results = nlohmann::json::array();
     unsigned failed_count = 0u;
+    unsigned renderdoc_capture_success_count = 0u;
+    unsigned renderdoc_capture_retained_count = 0u;
     for (const auto& result : m_regression_case_results)
     {
         if (!result.success)
         {
             failed_count += 1u;
+        }
+        if (result.renderdoc_capture_success)
+        {
+            renderdoc_capture_success_count += 1u;
+        }
+        if (result.renderdoc_capture_retained)
+        {
+            renderdoc_capture_retained_count += 1u;
         }
         nlohmann::json case_item{};
         case_item["id"] = result.id;
@@ -1129,10 +1396,21 @@ bool DemoAppModelViewerFrostedGlass::FinalizeRegressionRun()
         case_item["screenshot_path"] = result.screenshot_path;
         case_item["pass_csv_path"] = result.pass_csv_path;
         case_item["perf_json_path"] = result.perf_json_path;
+        case_item["renderdoc_capture_success"] = result.renderdoc_capture_success;
+        case_item["renderdoc_capture_retained"] = result.renderdoc_capture_retained;
+        case_item["renderdoc_capture_keep_on_success"] = result.renderdoc_capture_keep_on_success;
+        case_item["renderdoc_capture_frame_index"] = result.renderdoc_capture_frame_index;
+        case_item["renderdoc_capture_path"] = result.renderdoc_capture_path;
+        case_item["renderdoc_capture_error"] = result.renderdoc_capture_error;
         case_item["error"] = result.error;
         case_results.push_back(std::move(case_item));
     }
     summary["failed_count"] = failed_count;
+    summary["renderdoc_capture_success_count"] = renderdoc_capture_success_count;
+    summary["renderdoc_capture_retained_count"] = renderdoc_capture_retained_count;
+    summary["success"] =
+        failed_count == 0u &&
+        m_regression_case_results.size() == m_regression_suite.cases.size();
     summary["cases"] = std::move(case_results);
 
     const std::filesystem::path summary_path = m_regression_output_root / "suite_result.json";
@@ -1201,7 +1479,10 @@ bool DemoAppModelViewerFrostedGlass::ExportCurrentRegressionCaseTemplate()
         {"disable_panel_input_state_machine", true},
         {"disable_prepass_animation", true},
         {"default_warmup_frames", 180},
-        {"default_capture_frames", 16}
+        {"default_capture_frames", 16},
+        {"default_capture_renderdoc", false},
+        {"default_renderdoc_capture_frame_offset", 0},
+        {"default_keep_renderdoc_on_success", true}
     };
 
     nlohmann::json case_json{};
@@ -1486,8 +1767,10 @@ void DemoAppModelViewerFrostedGlass::TickRegressionAutomation()
     }
     m_regression_case_last_elapsed_frames = elapsed_frames;
 
-    const unsigned capture_begin = case_config.capture.warmup_frames + 1u;
-    const unsigned capture_end = case_config.capture.warmup_frames + case_config.capture.capture_frames;
+    const unsigned long long capture_begin = static_cast<unsigned long long>(case_config.capture.warmup_frames) + 1ull;
+    const unsigned long long capture_end = GetRegressionCaptureEndElapsedFrames(case_config);
+    const unsigned long long finalize_elapsed_frames =
+        GetRegressionRenderDocTargetElapsedFrames(case_config, m_regression_force_renderdoc_capture);
     if (case_config.capture.capture_perf &&
         elapsed_frames >= capture_begin &&
         elapsed_frames <= capture_end)
@@ -1495,7 +1778,9 @@ void DemoAppModelViewerFrostedGlass::TickRegressionAutomation()
         AccumulateRegressionPerf(frame_stats);
     }
 
-    if (elapsed_frames >= capture_end)
+    TryQueueRegressionRenderDocCapture(case_config, elapsed_frames);
+
+    if (elapsed_frames >= finalize_elapsed_frames)
     {
         FinalizeRegressionCase(frame_stats);
         m_regression_case_index += 1u;
