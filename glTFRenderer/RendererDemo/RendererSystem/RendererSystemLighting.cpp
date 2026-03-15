@@ -3,6 +3,7 @@
 
 #include "RendererSystemLighting.h"
 #include "RenderPassSetupBuilder.h"
+#include "RendererSystemSSAO.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -264,8 +265,10 @@ void RendererSystemLighting::ShadowPassResource::Register(RendererInterface::Ren
 }
 
 RendererSystemLighting::RendererSystemLighting(RendererInterface::ResourceOperator& resource_operator,
-                                               std::shared_ptr<RendererSystemSceneRenderer> scene)
+                                               std::shared_ptr<RendererSystemSceneRenderer> scene,
+                                               std::shared_ptr<RendererSystemSSAO> ssao)
     : m_scene(std::move(scene))
+    , m_ssao(std::move(ssao))
     , m_directional_shadow_render_state(CreateDefaultDirectionalShadowRenderState())
 {
     m_lighting_module = std::make_shared<RendererModuleLighting>(resource_operator);
@@ -397,6 +400,8 @@ bool RendererSystemLighting::Init(RendererInterface::ResourceOperator& resource_
                                   RendererInterface::RenderGraph& graph)
 {
     GLTF_CHECK(m_scene->HasInit());
+    GLTF_CHECK(m_ssao);
+    GLTF_CHECK(m_ssao->HasInit());
     CreateLightingOutput(resource_operator);
     m_directional_shadow_state.CreateFallbackShadowMap(resource_operator);
 
@@ -771,9 +776,11 @@ RendererInterface::RenderGraph::RenderPassSetupInfo RendererSystemLighting::Buil
     const LightingExecutionPlan& execution_plan) const
 {
     const auto scene_outputs = m_scene->GetOutputs();
+    const auto ssao_outputs = m_ssao->GetOutputs();
     std::vector<RendererInterface::RenderTargetHandle> initial_shadow_maps;
     m_directional_shadow_state.CollectLightIndexedShadowMaps(m_lighting_module->GetLightInfos(), initial_shadow_maps);
     GLTF_CHECK(!m_lighting_pass_state.shadow_infos_handles.empty());
+    GLTF_CHECK(ssao_outputs.output != NULL_HANDLE);
     auto builder = RenderFeature::PassBuilder::Compute("Lighting", "Scene Lighting");
     builder.AddModules({m_lighting_module, execution_plan.camera_module})
         .AddShader(RendererInterface::COMPUTE_SHADER, "main", "Resources/Shaders/SceneLighting.hlsl")
@@ -789,6 +796,10 @@ RendererInterface::RenderGraph::RenderPassSetupInfo RendererSystemLighting::Buil
             RenderFeature::MakeSampledRenderTargetBinding(
                 "depthTex",
                 scene_outputs.depth,
+                RendererInterface::RenderTargetTextureBindingDesc::SRV),
+            RenderFeature::MakeSampledRenderTargetBinding(
+                "ssaoTex",
+                ssao_outputs.output,
                 RendererInterface::RenderTargetTextureBindingDesc::SRV),
             RenderFeature::MakeSampledRenderTargetBinding(
                 "bindless_shadowmap_textures",
@@ -812,6 +823,7 @@ RendererInterface::RenderGraph::RenderPassSetupInfo RendererSystemLighting::Buil
 
     std::vector<RendererInterface::RenderGraphNodeHandle> dependency_nodes;
     m_directional_shadow_state.CollectDependencyNodes(dependency_nodes);
+    dependency_nodes.push_back(ssao_outputs.blur_node);
     builder.AddDependencies(dependency_nodes);
 
     return builder.Build();

@@ -5,6 +5,7 @@
 #include "RendererModule/RendererModuleLighting.h"
 #include "RendererSystem/RendererSystemLighting.h"
 #include "RendererSystem/RendererSystemSceneRenderer.h"
+#include "RendererSystem/RendererSystemSSAO.h"
 #include "RendererSystem/RendererSystemToneMap.h"
 #include <memory>
 #include <string>
@@ -56,6 +57,7 @@ protected:
     bool ApplyModelViewerStateSnapshot(const ModelViewerStateSnapshot& snapshot);
 
     std::shared_ptr<RendererSystemSceneRenderer> m_scene;
+    std::shared_ptr<RendererSystemSSAO> m_ssao;
     std::shared_ptr<RendererSystemLighting> m_lighting;
     std::shared_ptr<RendererSystemToneMap> m_tone_map;
 

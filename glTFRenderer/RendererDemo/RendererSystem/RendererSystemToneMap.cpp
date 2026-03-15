@@ -4,16 +4,19 @@
 #include "RendererSystemFrostedGlass.h"
 #include "RendererSystemLighting.h"
 #include "RendererSystemSceneRenderer.h"
+#include "RendererSystemSSAO.h"
 #include <algorithm>
 #include <imgui/imgui.h>
 #include <utility>
 
 RendererSystemToneMap::RendererSystemToneMap(std::shared_ptr<RendererSystemFrostedGlass> frosted,
                                              std::shared_ptr<RendererSystemLighting> lighting,
-                                             std::shared_ptr<RendererSystemSceneRenderer> scene)
+                                             std::shared_ptr<RendererSystemSceneRenderer> scene,
+                                             std::shared_ptr<RendererSystemSSAO> ssao)
     : m_frosted(std::move(frosted))
     , m_lighting(std::move(lighting))
     , m_scene(std::move(scene))
+    , m_ssao(std::move(ssao))
 {
 }
 
@@ -24,6 +27,8 @@ bool RendererSystemToneMap::Init(RendererInterface::ResourceOperator& resource_o
     GLTF_CHECK(m_scene->HasInit());
     GLTF_CHECK(m_lighting);
     GLTF_CHECK(m_lighting->HasInit());
+    GLTF_CHECK(m_ssao);
+    GLTF_CHECK(m_ssao->HasInit());
     if (m_frosted)
     {
         GLTF_CHECK(m_frosted->HasInit());
@@ -71,6 +76,10 @@ RendererInterface::RenderGraph::RenderPassSetupInfo RendererSystemToneMap::Build
             RenderFeature::MakeSampledRenderTargetBinding(
                 "InputVelocityTex",
                 scene_outputs.velocity,
+                RendererInterface::RenderTargetTextureBindingDesc::SRV),
+            RenderFeature::MakeSampledRenderTargetBinding(
+                "InputSSAOTex",
+                m_ssao->GetOutput(),
                 RendererInterface::RenderTargetTextureBindingDesc::SRV),
             RenderFeature::MakeSampledRenderTargetBinding(
                 "Output",
@@ -157,7 +166,7 @@ void RendererSystemToneMap::DrawDebugUI()
     }
 
     int debug_view_mode = static_cast<int>(m_global_params.debug_view_mode);
-    const char* debug_view_modes[] = {"Final", "Velocity"};
+    const char* debug_view_modes[] = {"Final", "Velocity", "SSAO"};
     if (ImGui::Combo("Debug View", &debug_view_mode, debug_view_modes, IM_ARRAYSIZE(debug_view_modes)))
     {
         m_global_params.debug_view_mode = static_cast<unsigned>(debug_view_mode);

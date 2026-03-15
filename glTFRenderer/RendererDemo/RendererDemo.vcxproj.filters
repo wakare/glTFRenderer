@@ -39,6 +39,9 @@
     <ClCompile Include="RendererSystem\RendererSystemToneMap.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="RendererSystem\RendererSystemSSAO.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="SceneRendererUtil\SceneRendererDrawDispatcher.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -71,6 +74,9 @@
     <ClInclude Include="RendererSystem\RendererSystemToneMap.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="RendererSystem\RendererSystemSSAO.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="SceneRendererUtil\SceneRendererDrawDispatcher.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -86,6 +92,7 @@
     <None Include="Resources\Shaders\ModelRenderingShader.hlsl" />
     <None Include="Resources\Shaders\FrostedGlass.hlsl" />
     <None Include="Resources\Shaders\FrostedGlassPostfx.hlsl" />
+    <None Include="Resources\Shaders\SSAO.hlsl" />
     <None Include="Resources\Shaders\ToneMap.hlsl" />
     <None Include="Resources\Shaders\ShaderDeclarationUtil.hlsl" />
     <None Include="Resources\Shaders\DemoShader.hlsl" />

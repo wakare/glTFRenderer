@@ -9,6 +9,7 @@
 #include <vector>
 
 class RendererSceneAABB;
+class RendererSystemSSAO;
 
 class RendererSystemLighting : public RendererSystemBase
 {
@@ -24,7 +25,9 @@ public:
         }
     };
 
-    RendererSystemLighting(RendererInterface::ResourceOperator& resource_operator, std::shared_ptr<RendererSystemSceneRenderer> scene);
+    RendererSystemLighting(RendererInterface::ResourceOperator& resource_operator,
+                           std::shared_ptr<RendererSystemSceneRenderer> scene,
+                           std::shared_ptr<RendererSystemSSAO> ssao);
     
     unsigned AddLight(const LightInfo& light_info);
     bool UpdateLight(unsigned index, const LightInfo& light_info);
@@ -148,6 +151,7 @@ protected:
     bool m_cast_shadow {true};
     
     std::shared_ptr<RendererSystemSceneRenderer> m_scene;
+    std::shared_ptr<RendererSystemSSAO> m_ssao;
     std::shared_ptr<RendererModuleLighting> m_lighting_module;
     RendererInterface::RenderStateDesc m_directional_shadow_render_state{};
     std::optional<RendererInterface::RenderStateDesc> m_pending_directional_shadow_render_state{};

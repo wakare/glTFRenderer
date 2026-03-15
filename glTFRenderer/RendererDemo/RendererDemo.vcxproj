@@ -180,6 +180,7 @@
     <ClCompile Include="RendererSystem\RendererSystemFrostedPanelProducer.cpp" />
     <ClCompile Include="RendererSystem\RendererSystemLighting.cpp" />
     <ClCompile Include="RendererSystem\RendererSystemSceneRenderer.cpp" />
+    <ClCompile Include="RendererSystem\RendererSystemSSAO.cpp" />
     <ClCompile Include="RendererSystem\RendererSystemToneMap.cpp" />
     <None Include="Resources\Shaders\BindlessTextureDefine.hlsl" />
     <None Include="Resources\Shaders\SceneRendererCommon.hlsl" />
@@ -198,6 +199,7 @@
     <None Include="Resources\Shaders\FrostedGlass.hlsl" />
     <None Include="Resources\Shaders\FrostedGlassPostfx.hlsl" />
     <None Include="Resources\Shaders\RendererModule\RendererModuleLighting.hlsl" />
+    <None Include="Resources\Shaders\SSAO.hlsl" />
     <None Include="Resources\Shaders\SceneLighting.hlsl" />
     <None Include="Resources\Shaders\ToneMap.hlsl" />
     <None Include="Resources\Shaders\SceneViewCommon.hlsl" />
@@ -220,6 +222,7 @@
     <ClInclude Include="RendererSystem\RendererSystemFrostedPanelProducer.h" />
     <ClInclude Include="RendererSystem\RendererSystemLighting.h" />
     <ClInclude Include="RendererSystem\RendererSystemSceneRenderer.h" />
+    <ClInclude Include="RendererSystem\RendererSystemSSAO.h" />
     <ClInclude Include="RendererSystem\RendererSystemToneMap.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

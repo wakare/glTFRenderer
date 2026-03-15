@@ -1,5 +1,6 @@
 Texture2D<float4> InputColorTex;
 Texture2D<float4> InputVelocityTex;
+Texture2D<float> InputSSAOTex;
 RWTexture2D<float4> Output;
 
 cbuffer ToneMapGlobalBuffer
@@ -50,6 +51,12 @@ void main(int3 dispatch_thread_id : SV_DispatchThreadID)
             0.5f - 0.5f * velocity.y,
             speed));
         Output[pixel] = float4(debug_color, 1.0f);
+        return;
+    }
+    if (debug_view_mode == 2)
+    {
+        const float ao = saturate(InputSSAOTex.Load(int3(pixel, 0)));
+        Output[pixel] = float4(ao.xxx, 1.0f);
         return;
     }
 

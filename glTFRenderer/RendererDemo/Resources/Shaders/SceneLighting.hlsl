@@ -5,6 +5,7 @@
 Texture2D albedoTex;
 Texture2D normalTex;
 Texture2D depthTex;
+Texture2D<float> ssaoTex;
 
 RWTexture2D<float4> Output;
 
@@ -70,6 +71,7 @@ void main(int3 dispatchThreadID : SV_DispatchThreadID)
     
     float3 normal = normalize(2 * normal_buffer_data.xyz - 1);
     float roughness = normal_buffer_data.w;
+    const float ambient_occlusion = saturate(ssaoTex.Load(int3(dispatchThreadID.xy, 0)));
 
     {
         PixelLightingShadingInfo shading_info;
@@ -83,6 +85,7 @@ void main(int3 dispatchThreadID : SV_DispatchThreadID)
         float3 view = normalize(view_position.xyz - world_position);
     
         float3 final_lighting = GetLighting(shading_info, view);
+        final_lighting += shading_info.albedo * float3(0.07f, 0.075f, 0.08f) * ambient_occlusion;
     
         Output[dispatchThreadID.xy] = float4(final_lighting, 1.0);
     }

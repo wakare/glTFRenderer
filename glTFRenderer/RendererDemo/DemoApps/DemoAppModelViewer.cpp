@@ -144,6 +144,7 @@ bool DemoAppModelViewer::RebuildModelViewerBaseRuntimeObjects()
     m_modules.clear();
     m_systems.clear();
     m_scene.reset();
+    m_ssao.reset();
     m_lighting.reset();
     m_tone_map.reset();
 
@@ -163,7 +164,8 @@ bool DemoAppModelViewer::RebuildModelViewerBaseRuntimeObjects()
         *m_resource_manager,
         camera_desc,
         "glTFResources/Models/Sponza/glTF/Sponza.gltf");
-    m_lighting = std::make_shared<RendererSystemLighting>(*m_resource_manager, m_scene);
+    m_ssao = std::make_shared<RendererSystemSSAO>(m_scene);
+    m_lighting = std::make_shared<RendererSystemLighting>(*m_resource_manager, m_scene, m_ssao);
 
     LightInfo directional_light_info{};
     directional_light_info.type = Directional;
@@ -174,6 +176,7 @@ bool DemoAppModelViewer::RebuildModelViewerBaseRuntimeObjects()
     m_directional_light_index = m_lighting->AddLight(m_directional_light_info);
 
     m_systems.push_back(m_scene);
+    m_systems.push_back(m_ssao);
     m_systems.push_back(m_lighting);
     return true;
 }
@@ -181,7 +184,7 @@ bool DemoAppModelViewer::RebuildModelViewerBaseRuntimeObjects()
 bool DemoAppModelViewer::FinalizeModelViewerRuntimeObjects(
     const std::shared_ptr<RendererSystemFrostedGlass>& tone_map_frosted_input)
 {
-    m_tone_map = std::make_shared<RendererSystemToneMap>(tone_map_frosted_input, m_lighting, m_scene);
+    m_tone_map = std::make_shared<RendererSystemToneMap>(tone_map_frosted_input, m_lighting, m_scene, m_ssao);
     m_systems.push_back(m_tone_map);
     return true;
 }
