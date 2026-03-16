@@ -1,0 +1,61 @@
+{
+  "suite_name": "model_viewer_lighting_a5_ibl_smoke",
+  "global": {
+    "disable_debug_ui": true,
+    "freeze_directional_light": true,
+    "default_warmup_frames": 120,
+    "default_capture_frames": 8,
+    "default_capture_renderdoc": false,
+    "default_renderdoc_capture_frame_offset": 0,
+    "default_keep_renderdoc_on_success": true
+  },
+  "cases": [
+    {
+      "id": "ibl_off_reference",
+      "camera": {
+        "position": [0.0, 1.2, -3.0],
+        "euler_angles": [0.0, 0.0, 0.0]
+      },
+      "logic_pack": "model_viewer_lighting",
+      "logic_args": {
+        "environment_enabled": false,
+        "use_environment_texture": false,
+        "ibl_diffuse_intensity": 0.0,
+        "ibl_specular_intensity": 0.0,
+        "directional_light_speed_radians": 0.0
+      }
+    },
+    {
+      "id": "procedural_ibl_reference",
+      "camera": {
+        "position": [0.0, 1.2, -3.0],
+        "euler_angles": [0.0, 0.0, 0.0]
+      },
+      "logic_pack": "model_viewer_lighting",
+      "logic_args": {
+        "environment_enabled": true,
+        "use_environment_texture": false,
+        "ibl_diffuse_intensity": 1.0,
+        "ibl_specular_intensity": 1.0,
+        "environment_texture_intensity": 1.0,
+        "directional_light_speed_radians": 0.0
+      }
+    },
+    {
+      "id": "env_texture_ibl_reference",
+      "camera": {
+        "position": [0.0, 1.2, -3.0],
+        "euler_angles": [0.0, 0.0, 0.0]
+      },
+      "logic_pack": "model_viewer_lighting",
+      "logic_args": {
+        "environment_enabled": true,
+        "use_environment_texture": true,
+        "ibl_diffuse_intensity": 1.0,
+        "ibl_specular_intensity": 1.0,
+        "environment_texture_intensity": 1.0,
+        "directional_light_speed_radians": 0.0
+      }
+    }
+  ]
+}

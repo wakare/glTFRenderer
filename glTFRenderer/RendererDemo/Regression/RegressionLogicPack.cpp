@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <glm/glm/glm.hpp>
 
 namespace Regression
 {
@@ -32,6 +33,30 @@ namespace Regression
             }
             return false;
         }
+
+        bool ReadFloatVector3Or4(const nlohmann::json& value, glm::fvec4& out_value)
+        {
+            if (!value.is_array() || (value.size() != 3u && value.size() != 4u))
+            {
+                return false;
+            }
+            for (size_t index = 0; index < value.size(); ++index)
+            {
+                if (!value.at(index).is_number())
+                {
+                    return false;
+                }
+            }
+
+            out_value.x = value.at(0).get<float>();
+            out_value.y = value.at(1).get<float>();
+            out_value.z = value.at(2).get<float>();
+            if (value.size() == 4u)
+            {
+                out_value.w = value.at(3).get<float>();
+            }
+            return true;
+        }
     }
 
     bool ApplyLogicPack(const CaseConfig& case_config, const LogicPackContext& context, std::string& out_error)
@@ -41,6 +66,116 @@ namespace Regression
         if (case_config.logic_pack.empty() ||
             case_config.logic_pack == "none")
         {
+            return true;
+        }
+
+        if (case_config.logic_pack == "model_viewer_lighting")
+        {
+            if (!context.lighting)
+            {
+                out_error = "model_viewer_lighting logic pack needs a valid lighting system.";
+                return false;
+            }
+
+            const auto& args = case_config.logic_args;
+            if (!args.is_null() && !args.is_object())
+            {
+                out_error = "logic_args must be an object for model_viewer_lighting logic pack.";
+                return false;
+            }
+
+            auto global_params = context.lighting->GetGlobalParams();
+            if (args.contains("environment_enabled"))
+            {
+                if (!args.at("environment_enabled").is_boolean())
+                {
+                    out_error = "logic_args.environment_enabled must be a boolean.";
+                    return false;
+                }
+                global_params.environment_control.w = args.at("environment_enabled").get<bool>() ? 1.0f : 0.0f;
+            }
+            if (args.contains("use_environment_texture"))
+            {
+                if (!args.at("use_environment_texture").is_boolean())
+                {
+                    out_error = "logic_args.use_environment_texture must be a boolean.";
+                    return false;
+                }
+                global_params.environment_texture_params.z = args.at("use_environment_texture").get<bool>() ? 1.0f : 0.0f;
+            }
+            if (args.contains("ibl_diffuse_intensity"))
+            {
+                if (!args.at("ibl_diffuse_intensity").is_number())
+                {
+                    out_error = "logic_args.ibl_diffuse_intensity must be a number.";
+                    return false;
+                }
+                global_params.environment_control.x = args.at("ibl_diffuse_intensity").get<float>();
+            }
+            if (args.contains("ibl_specular_intensity"))
+            {
+                if (!args.at("ibl_specular_intensity").is_number())
+                {
+                    out_error = "logic_args.ibl_specular_intensity must be a number.";
+                    return false;
+                }
+                global_params.environment_control.y = args.at("ibl_specular_intensity").get<float>();
+            }
+            if (args.contains("ibl_horizon_exponent"))
+            {
+                if (!args.at("ibl_horizon_exponent").is_number())
+                {
+                    out_error = "logic_args.ibl_horizon_exponent must be a number.";
+                    return false;
+                }
+                global_params.environment_control.z = args.at("ibl_horizon_exponent").get<float>();
+            }
+            if (args.contains("environment_texture_intensity"))
+            {
+                if (!args.at("environment_texture_intensity").is_number())
+                {
+                    out_error = "logic_args.environment_texture_intensity must be a number.";
+                    return false;
+                }
+                global_params.environment_texture_params.x = args.at("environment_texture_intensity").get<float>();
+            }
+            if (args.contains("sky_zenith_color"))
+            {
+                if (!ReadFloatVector3Or4(args.at("sky_zenith_color"), global_params.sky_zenith_color))
+                {
+                    out_error = "logic_args.sky_zenith_color must be a 3-element or 4-element number array.";
+                    return false;
+                }
+            }
+            if (args.contains("sky_horizon_color"))
+            {
+                if (!ReadFloatVector3Or4(args.at("sky_horizon_color"), global_params.sky_horizon_color))
+                {
+                    out_error = "logic_args.sky_horizon_color must be a 3-element or 4-element number array.";
+                    return false;
+                }
+            }
+            if (args.contains("ground_color"))
+            {
+                if (!ReadFloatVector3Or4(args.at("ground_color"), global_params.ground_color))
+                {
+                    out_error = "logic_args.ground_color must be a 3-element or 4-element number array.";
+                    return false;
+                }
+            }
+
+            context.lighting->SetGlobalParams(global_params);
+
+            if (args.contains("directional_light_speed_radians") && context.directional_light_speed_radians)
+            {
+                if (!args.at("directional_light_speed_radians").is_number())
+                {
+                    out_error = "logic_args.directional_light_speed_radians must be a number.";
+                    return false;
+                }
+                *context.directional_light_speed_radians = args.at("directional_light_speed_radians").get<float>();
+            }
+
             return true;
         }
 

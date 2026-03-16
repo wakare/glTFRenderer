@@ -98,6 +98,18 @@ Chinese companion:
 - `docs/FeatureNotes/20260228_B9_FixedViewpointScreenshotRegressionPlan.md`
 - `docs/FeatureNotes/20260228_B9_RegressionWorkflow_Runbook.md`
 - `docs/FeatureNotes/20260315_B9_RenderDocFrameCapturePlan.md`
+- `docs/FeatureNotes/20260316_A5_EnvironmentLightingFoundation.md`
+- `docs/FeatureNotes/20260316_A5_EnvironmentLightingFoundation_ZH.md`
+- `docs/FeatureNotes/20260316_A5_EnvironmentTextureInput.md`
+- `docs/FeatureNotes/20260316_A5_EnvironmentTextureInput_ZH.md`
+- `docs/FeatureNotes/20260316_A5_PreintegratedEnvironmentApprox.md`
+- `docs/FeatureNotes/20260316_A5_PreintegratedEnvironmentApprox_ZH.md`
+- `docs/FeatureNotes/20260316_A5_BrdfIntegrationLut.md`
+- `docs/FeatureNotes/20260316_A5_BrdfIntegrationLut_ZH.md`
+- `docs/FeatureNotes/20260316_A5_RoughnessPrefilterLadder.md`
+- `docs/FeatureNotes/20260316_A5_RoughnessPrefilterLadder_ZH.md`
+- `docs/FeatureNotes/20260316_A5_ModelViewerRegressionValidation.md`
+- `docs/FeatureNotes/20260316_A5_ModelViewerRegressionValidation_ZH.md`
 
 Naming convention:
 

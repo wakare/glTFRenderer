@@ -41,6 +41,24 @@ cbuffer LightInfoConstantBuffer
     int light_count;
 };
 StructuredBuffer<LightInfo> g_lightInfos;
+Texture2D<float4> environmentTex;
+Texture2D<float4> environmentIrradianceTex;
+Texture2D<float4> environmentPrefilterTex0;
+Texture2D<float4> environmentPrefilterTex1;
+Texture2D<float4> environmentPrefilterTex2;
+Texture2D<float4> environmentPrefilterTex3;
+Texture2D<float4> environmentBrdfLutTex;
+SamplerState environment_sampler;
+
+cbuffer LightingGlobalBuffer
+{
+    float4 sky_zenith_color;
+    float4 sky_horizon_color;
+    float4 ground_color;
+    float4 environment_control;
+    float4 environment_texture_params;
+    float4 environment_prefilter_roughness;
+};
 
 float ComputeDirectionalShadowDepthBias(uint2 shadowmap_extent, float3 scene_normal, float3 light_direction)
 {
@@ -176,10 +194,147 @@ bool GetLightDistanceVector(uint index, float3 position, out float3 light_dir, o
     return true;
 }
 
-float3 GetSkylighting()
+float3 GetEnvironmentRadiance(float3 sample_direction)
 {
-    //return float3(1.0, 1.0, 1.0);
-    return float3(0.0, 0.0, 0.0);
+    const float3 normalized_direction = normalize(sample_direction);
+    const float horizon_exponent = max(environment_control.z, 0.25f);
+    float3 radiance = 0.0f;
+    if (normalized_direction.y >= 0.0f)
+    {
+        const float sky_t = pow(saturate(normalized_direction.y), horizon_exponent);
+        radiance = lerp(sky_horizon_color.xyz, sky_zenith_color.xyz, sky_t);
+    }
+    else
+    {
+        const float ground_t = pow(saturate(-normalized_direction.y), horizon_exponent);
+        radiance = lerp(sky_horizon_color.xyz, ground_color.xyz, ground_t);
+    }
+
+    if (environment_texture_params.z > 0.5f)
+    {
+        const float2 latlong_uv = float2(
+            atan2(normalized_direction.z, normalized_direction.x) * (0.5f / PI) + 0.5f,
+            acos(clamp(normalized_direction.y, -1.0f, 1.0f)) * ONE_OVER_PI);
+        const float3 sampled_radiance = environmentTex.SampleLevel(environment_sampler, float2(frac(latlong_uv.x), saturate(latlong_uv.y)), 0.0f).rgb;
+        radiance = sampled_radiance * environment_texture_params.x;
+    }
+
+    return radiance;
+}
+
+float3 SampleEnvironmentIrradiance(float3 sample_direction)
+{
+    if (environment_texture_params.z <= 0.5f)
+    {
+        return GetEnvironmentRadiance(sample_direction);
+    }
+
+    const float3 normalized_direction = normalize(sample_direction);
+    const float2 latlong_uv = float2(
+        atan2(normalized_direction.z, normalized_direction.x) * (0.5f / PI) + 0.5f,
+        acos(clamp(normalized_direction.y, -1.0f, 1.0f)) * ONE_OVER_PI);
+    return environmentIrradianceTex.SampleLevel(
+        environment_sampler,
+        float2(frac(latlong_uv.x), saturate(latlong_uv.y)),
+        0.0f).rgb;
+}
+
+float2 GetEnvironmentLatLongUv(float3 sample_direction)
+{
+    const float3 normalized_direction = normalize(sample_direction);
+    return float2(
+        atan2(normalized_direction.z, normalized_direction.x) * (0.5f / PI) + 0.5f,
+        acos(clamp(normalized_direction.y, -1.0f, 1.0f)) * ONE_OVER_PI);
+}
+
+float3 SampleEnvironmentPrefilterLevel(float2 latlong_uv, uint level_index)
+{
+    const float2 wrapped_uv = float2(frac(latlong_uv.x), saturate(latlong_uv.y));
+    if (level_index == 0u)
+    {
+        return environmentPrefilterTex0.SampleLevel(environment_sampler, wrapped_uv, 0.0f).rgb;
+    }
+    if (level_index == 1u)
+    {
+        return environmentPrefilterTex1.SampleLevel(environment_sampler, wrapped_uv, 0.0f).rgb;
+    }
+    if (level_index == 2u)
+    {
+        return environmentPrefilterTex2.SampleLevel(environment_sampler, wrapped_uv, 0.0f).rgb;
+    }
+    return environmentPrefilterTex3.SampleLevel(environment_sampler, wrapped_uv, 0.0f).rgb;
+}
+
+float3 SampleEnvironmentPrefilter(float3 sample_direction, float roughness)
+{
+    if (environment_texture_params.z <= 0.5f)
+    {
+        return GetEnvironmentRadiance(sample_direction);
+    }
+
+    const float clamped_roughness = saturate(roughness);
+    const float2 latlong_uv = GetEnvironmentLatLongUv(sample_direction);
+    const float4 roughness_levels = environment_prefilter_roughness;
+    const float3 sharp_radiance = GetEnvironmentRadiance(sample_direction);
+    const float3 level0 = SampleEnvironmentPrefilterLevel(latlong_uv, 0u);
+    const float3 level1 = SampleEnvironmentPrefilterLevel(latlong_uv, 1u);
+    const float3 level2 = SampleEnvironmentPrefilterLevel(latlong_uv, 2u);
+    const float3 level3 = SampleEnvironmentPrefilterLevel(latlong_uv, 3u);
+
+    if (clamped_roughness <= roughness_levels.x)
+    {
+        const float t = clamped_roughness / max(roughness_levels.x, 1e-4f);
+        return lerp(sharp_radiance, level0, t);
+    }
+    if (clamped_roughness <= roughness_levels.y)
+    {
+        const float t = (clamped_roughness - roughness_levels.x) / max(roughness_levels.y - roughness_levels.x, 1e-4f);
+        return lerp(level0, level1, t);
+    }
+    if (clamped_roughness <= roughness_levels.z)
+    {
+        const float t = (clamped_roughness - roughness_levels.y) / max(roughness_levels.z - roughness_levels.y, 1e-4f);
+        return lerp(level1, level2, t);
+    }
+
+    const float t = (clamped_roughness - roughness_levels.z) / max(roughness_levels.w - roughness_levels.z, 1e-4f);
+    return lerp(level2, level3, saturate(t));
+}
+
+float2 SampleEnvironmentBrdfLut(float ndotv, float roughness)
+{
+    return environmentBrdfLutTex.SampleLevel(
+        environment_sampler,
+        float2(saturate(ndotv), saturate(roughness)),
+        0.0f).rg;
+}
+
+float3 GetEnvironmentDiffuseLighting(PixelLightingShadingInfo shading_info, float ambient_occlusion)
+{
+    if (environment_control.w <= 0.5f)
+    {
+        return 0.0f;
+    }
+
+    const float3 diffuse_color = shading_info.albedo * (1.0f - shading_info.metallic);
+    const float3 environment_irradiance = SampleEnvironmentIrradiance(shading_info.normal);
+    return diffuse_color * environment_irradiance * ambient_occlusion * environment_control.x;
+}
+
+float3 GetEnvironmentSpecularLighting(PixelLightingShadingInfo shading_info, float3 view)
+{
+    if (environment_control.w <= 0.5f)
+    {
+        return 0.0f;
+    }
+
+    const float3 reflection_dir = reflect(-view, shading_info.normal);
+    const float3 f0 = lerp(float3(0.04f, 0.04f, 0.04f), shading_info.albedo, shading_info.metallic);
+    const float NdotV = saturate(dot(shading_info.normal, view));
+    const float2 integrated_brdf = SampleEnvironmentBrdfLut(NdotV, shading_info.roughness);
+    const float3 environment_radiance = SampleEnvironmentPrefilter(reflection_dir, shading_info.roughness);
+    const float3 specular_brdf = f0 * integrated_brdf.x + integrated_brdf.y;
+    return environment_radiance * specular_brdf * environment_control.y;
 }
 
 float3 GetLightingByIndex(uint sample_light_index, PixelLightingShadingInfo shading_info, float3 view)

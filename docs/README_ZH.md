@@ -64,6 +64,30 @@
   - RenderDoc 帧截取接入计划英文版。
 - `docs/FeatureNotes/20260315_B9_RenderDocFrameCapturePlan_ZH.md`
   - RenderDoc 帧截取接入计划中文版。
+- `docs/FeatureNotes/20260316_A5_EnvironmentLightingFoundation.md`
+  - 环境光照基础阶段记录英文版。
+- `docs/FeatureNotes/20260316_A5_EnvironmentLightingFoundation_ZH.md`
+  - 环境光照基础阶段记录中文版。
+- `docs/FeatureNotes/20260316_A5_EnvironmentTextureInput.md`
+  - 环境贴图输入阶段记录英文版。
+- `docs/FeatureNotes/20260316_A5_EnvironmentTextureInput_ZH.md`
+  - 环境贴图输入阶段记录中文版。
+- `docs/FeatureNotes/20260316_A5_PreintegratedEnvironmentApprox.md`
+  - 预积分环境光近似资源阶段记录英文版。
+- `docs/FeatureNotes/20260316_A5_PreintegratedEnvironmentApprox_ZH.md`
+  - 预积分环境光近似资源阶段记录中文版。
+- `docs/FeatureNotes/20260316_A5_BrdfIntegrationLut.md`
+  - BRDF 积分 LUT 阶段记录英文版。
+- `docs/FeatureNotes/20260316_A5_BrdfIntegrationLut_ZH.md`
+  - BRDF 积分 LUT 阶段记录中文版。
+- `docs/FeatureNotes/20260316_A5_RoughnessPrefilterLadder.md`
+  - roughness prefilter 梯度阶段记录英文版。
+- `docs/FeatureNotes/20260316_A5_RoughnessPrefilterLadder_ZH.md`
+  - roughness prefilter 梯度阶段记录中文版。
+- `docs/FeatureNotes/20260316_A5_ModelViewerRegressionValidation.md`
+  - Model Viewer 回归验证阶段记录英文版。
+- `docs/FeatureNotes/20260316_A5_ModelViewerRegressionValidation_ZH.md`
+  - Model Viewer 回归验证阶段记录中文版。
 - `docs/FeatureNotes/*.md`
   - 已归档的 feature 设计、实现和验证记录。
 

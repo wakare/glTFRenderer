@@ -584,7 +584,7 @@ bool DemoAppModelViewerFrostedGlass::RebuildRenderRuntimeObjects()
 
 bool DemoAppModelViewerFrostedGlass::InitInternal(const std::vector<std::string>& arguments)
 {
-    RETURN_IF_FALSE(DemoAppModelViewer::InitInternal(arguments))
+    RETURN_IF_FALSE(RebuildRenderRuntimeObjects())
 
     const bool configured = ConfigureRegressionRunFromArguments(arguments);
     RefreshImportableRegressionCaseList();

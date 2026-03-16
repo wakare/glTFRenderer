@@ -25,6 +25,17 @@ public:
         }
     };
 
+    struct LightingGlobalParams
+    {
+        glm::fvec4 sky_zenith_color{0.18f, 0.27f, 0.42f, 0.0f};
+        glm::fvec4 sky_horizon_color{0.72f, 0.76f, 0.82f, 0.0f};
+        glm::fvec4 ground_color{0.08f, 0.07f, 0.06f, 0.0f};
+        glm::fvec4 environment_control{1.0f, 1.0f, 1.5f, 1.0f};
+        glm::fvec4 environment_texture_params{1.0f, 0.0f, 0.0f, 0.0f};
+        glm::fvec4 environment_prefilter_roughness{0.25f, 0.50f, 0.75f, 1.00f};
+    };
+    static_assert(sizeof(LightingGlobalParams) == 96, "LightingGlobalParams must match HLSL cbuffer layout.");
+
     RendererSystemLighting(RendererInterface::ResourceOperator& resource_operator,
                            std::shared_ptr<RendererSystemSceneRenderer> scene,
                            std::shared_ptr<RendererSystemSSAO> ssao);
@@ -39,6 +50,8 @@ public:
     bool SetDirectionalShadowDepthBias(const RendererInterface::DepthBiasDesc& depth_bias);
     LightingOutputs GetOutputs() const;
     RendererInterface::RenderTargetHandle GetLightingOutput() const;
+    const LightingGlobalParams& GetGlobalParams() const;
+    void SetGlobalParams(const LightingGlobalParams& global_params);
     
     virtual bool Init(RendererInterface::ResourceOperator& resource_operator, RendererInterface::RenderGraph& graph) override;
     virtual bool HasInit() const override;
@@ -135,6 +148,10 @@ protected:
         const LightingExecutionPlan& execution_plan);
     void UpdateDirectionalShadowResources(RendererInterface::ResourceOperator& resource_operator);
     void CreateLightingOutput(RendererInterface::ResourceOperator& resource_operator);
+    void EnsureEnvironmentTexture(RendererInterface::ResourceOperator& resource_operator);
+    void EnsureDerivedEnvironmentTextures(RendererInterface::ResourceOperator& resource_operator);
+    void EnsureEnvironmentBrdfLut(RendererInterface::ResourceOperator& resource_operator);
+    void UploadGlobalParams(RendererInterface::ResourceOperator& resource_operator);
     void CreateLightingPassShadowInfoBuffers(RendererInterface::ResourceOperator& resource_operator);
     ShadowPassResource& CreateDirectionalShadowPassResource(
         RendererInterface::ResourceOperator& resource_operator,
@@ -158,4 +175,12 @@ protected:
 
     DirectionalShadowRuntimeState m_directional_shadow_state{};
     LightingPassRuntimeState m_lighting_pass_state{};
+    RendererInterface::BufferHandle m_lighting_global_params_handle{NULL_HANDLE};
+    RendererInterface::TextureHandle m_environment_texture_handle{NULL_HANDLE};
+    RendererInterface::TextureHandle m_environment_irradiance_texture_handle{NULL_HANDLE};
+    std::vector<RendererInterface::TextureHandle> m_environment_prefilter_texture_handles{};
+    RendererInterface::TextureHandle m_environment_brdf_lut_texture_handle{NULL_HANDLE};
+    LightingGlobalParams m_global_params{};
+    bool m_need_upload_global_params{true};
+    std::string m_environment_texture_uri{"glTFResources/Models/Plane/dawn_4k.png"};
 };

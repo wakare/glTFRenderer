@@ -83,10 +83,12 @@ void main(int3 dispatchThreadID : SV_DispatchThreadID)
         shading_info.backface = false;
     
         float3 view = normalize(view_position.xyz - world_position);
-    
-        float3 final_lighting = GetLighting(shading_info, view);
-        final_lighting += shading_info.albedo * float3(0.07f, 0.075f, 0.08f) * ambient_occlusion;
-    
+
+        const float3 direct_lighting = GetLighting(shading_info, view);
+        const float3 diffuse_indirect = GetEnvironmentDiffuseLighting(shading_info, ambient_occlusion);
+        const float3 specular_indirect = GetEnvironmentSpecularLighting(shading_info, view);
+        const float3 final_lighting = direct_lighting + diffuse_indirect + specular_indirect;
+
         Output[dispatchThreadID.xy] = float4(final_lighting, 1.0);
     }
 }
