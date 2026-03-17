@@ -43,10 +43,7 @@ cbuffer LightInfoConstantBuffer
 StructuredBuffer<LightInfo> g_lightInfos;
 Texture2D<float4> environmentTex;
 Texture2D<float4> environmentIrradianceTex;
-Texture2D<float4> environmentPrefilterTex0;
-Texture2D<float4> environmentPrefilterTex1;
-Texture2D<float4> environmentPrefilterTex2;
-Texture2D<float4> environmentPrefilterTex3;
+Texture2D<float4> environmentPrefilterTex;
 Texture2D<float4> environmentBrdfLutTex;
 SamplerState environment_sampler;
 
@@ -247,22 +244,20 @@ float2 GetEnvironmentLatLongUv(float3 sample_direction)
         acos(clamp(normalized_direction.y, -1.0f, 1.0f)) * ONE_OVER_PI);
 }
 
-float3 SampleEnvironmentPrefilterLevel(float2 latlong_uv, uint level_index)
+float GetEnvironmentPrefilterMipLod(float roughness, float4 roughness_levels)
 {
-    const float2 wrapped_uv = float2(frac(latlong_uv.x), saturate(latlong_uv.y));
-    if (level_index == 0u)
+    if (roughness <= roughness_levels.y)
     {
-        return environmentPrefilterTex0.SampleLevel(environment_sampler, wrapped_uv, 0.0f).rgb;
+        return (roughness - roughness_levels.x) / max(roughness_levels.y - roughness_levels.x, 1e-4f);
     }
-    if (level_index == 1u)
+    if (roughness <= roughness_levels.z)
     {
-        return environmentPrefilterTex1.SampleLevel(environment_sampler, wrapped_uv, 0.0f).rgb;
+        const float t = (roughness - roughness_levels.y) / max(roughness_levels.z - roughness_levels.y, 1e-4f);
+        return 1.0f + t;
     }
-    if (level_index == 2u)
-    {
-        return environmentPrefilterTex2.SampleLevel(environment_sampler, wrapped_uv, 0.0f).rgb;
-    }
-    return environmentPrefilterTex3.SampleLevel(environment_sampler, wrapped_uv, 0.0f).rgb;
+
+    const float t = (roughness - roughness_levels.z) / max(roughness_levels.w - roughness_levels.z, 1e-4f);
+    return 2.0f + saturate(t);
 }
 
 float3 SampleEnvironmentPrefilter(float3 sample_direction, float roughness)
@@ -274,31 +269,20 @@ float3 SampleEnvironmentPrefilter(float3 sample_direction, float roughness)
 
     const float clamped_roughness = saturate(roughness);
     const float2 latlong_uv = GetEnvironmentLatLongUv(sample_direction);
+    const float2 wrapped_uv = float2(frac(latlong_uv.x), saturate(latlong_uv.y));
     const float4 roughness_levels = environment_prefilter_roughness;
-    const float3 sharp_radiance = GetEnvironmentRadiance(sample_direction);
-    const float3 level0 = SampleEnvironmentPrefilterLevel(latlong_uv, 0u);
-    const float3 level1 = SampleEnvironmentPrefilterLevel(latlong_uv, 1u);
-    const float3 level2 = SampleEnvironmentPrefilterLevel(latlong_uv, 2u);
-    const float3 level3 = SampleEnvironmentPrefilterLevel(latlong_uv, 3u);
 
     if (clamped_roughness <= roughness_levels.x)
     {
         const float t = clamped_roughness / max(roughness_levels.x, 1e-4f);
-        return lerp(sharp_radiance, level0, t);
-    }
-    if (clamped_roughness <= roughness_levels.y)
-    {
-        const float t = (clamped_roughness - roughness_levels.x) / max(roughness_levels.y - roughness_levels.x, 1e-4f);
-        return lerp(level0, level1, t);
-    }
-    if (clamped_roughness <= roughness_levels.z)
-    {
-        const float t = (clamped_roughness - roughness_levels.y) / max(roughness_levels.z - roughness_levels.y, 1e-4f);
-        return lerp(level1, level2, t);
+        const float3 sharp_radiance = GetEnvironmentRadiance(sample_direction);
+        const float3 first_prefilter_level =
+            environmentPrefilterTex.SampleLevel(environment_sampler, wrapped_uv, 0.0f).rgb;
+        return lerp(sharp_radiance, first_prefilter_level, t);
     }
 
-    const float t = (clamped_roughness - roughness_levels.z) / max(roughness_levels.w - roughness_levels.z, 1e-4f);
-    return lerp(level2, level3, saturate(t));
+    const float mip_lod = GetEnvironmentPrefilterMipLod(clamped_roughness, roughness_levels);
+    return environmentPrefilterTex.SampleLevel(environment_sampler, wrapped_uv, mip_lod).rgb;
 }
 
 float2 SampleEnvironmentBrdfLut(float ndotv, float roughness)

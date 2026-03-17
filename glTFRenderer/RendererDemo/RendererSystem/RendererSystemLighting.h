@@ -1,4 +1,5 @@
 #pragma once
+#include "EnvironmentLightingResources.h"
 #include "RendererSystemBase.h"
 #include "RenderPassSetupBuilder.h"
 #include "RendererSystemSceneRenderer.h"
@@ -148,9 +149,6 @@ protected:
         const LightingExecutionPlan& execution_plan);
     void UpdateDirectionalShadowResources(RendererInterface::ResourceOperator& resource_operator);
     void CreateLightingOutput(RendererInterface::ResourceOperator& resource_operator);
-    void EnsureEnvironmentTexture(RendererInterface::ResourceOperator& resource_operator);
-    void EnsureDerivedEnvironmentTextures(RendererInterface::ResourceOperator& resource_operator);
-    void EnsureEnvironmentBrdfLut(RendererInterface::ResourceOperator& resource_operator);
     void UploadGlobalParams(RendererInterface::ResourceOperator& resource_operator);
     void CreateLightingPassShadowInfoBuffers(RendererInterface::ResourceOperator& resource_operator);
     ShadowPassResource& CreateDirectionalShadowPassResource(
@@ -176,11 +174,7 @@ protected:
     DirectionalShadowRuntimeState m_directional_shadow_state{};
     LightingPassRuntimeState m_lighting_pass_state{};
     RendererInterface::BufferHandle m_lighting_global_params_handle{NULL_HANDLE};
-    RendererInterface::TextureHandle m_environment_texture_handle{NULL_HANDLE};
-    RendererInterface::TextureHandle m_environment_irradiance_texture_handle{NULL_HANDLE};
-    std::vector<RendererInterface::TextureHandle> m_environment_prefilter_texture_handles{};
-    RendererInterface::TextureHandle m_environment_brdf_lut_texture_handle{NULL_HANDLE};
+    std::shared_ptr<EnvironmentLightingResources> m_environment_lighting_resources{};
     LightingGlobalParams m_global_params{};
     bool m_need_upload_global_params{true};
-    std::string m_environment_texture_uri{"glTFResources/Models/Plane/dawn_4k.png"};
 };

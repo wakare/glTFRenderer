@@ -88,6 +88,14 @@
   - Model Viewer 回归验证阶段记录英文版。
 - `docs/FeatureNotes/20260316_A5_ModelViewerRegressionValidation_ZH.md`
   - Model Viewer 回归验证阶段记录中文版。
+- `docs/FeatureNotes/20260317_A5_IBLHardeningPhase1.md`
+  - IBL 加固阶段 1 记录英文版。
+- `docs/FeatureNotes/20260317_A5_IBLHardeningPhase1_ZH.md`
+  - IBL 加固阶段 1 记录中文版。
+- `docs/FeatureNotes/20260317_A5_IBLHardeningPhase2.md`
+  - IBL 加固阶段 2 记录英文版。
+- `docs/FeatureNotes/20260317_A5_IBLHardeningPhase2_ZH.md`
+  - IBL 加固阶段 2 记录中文版。
 - `docs/FeatureNotes/*.md`
   - 已归档的 feature 设计、实现和验证记录。
 

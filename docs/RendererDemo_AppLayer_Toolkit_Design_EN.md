@@ -106,6 +106,8 @@ Feature-local plans:
 
 The design rule is simple: objectify per-frame execution inputs first, then let setup builders, sync helpers, and dispatch updates consume that object.
 
+When a maintained-path feature or refactor exposes a missing `RendererCore` or `RHICore` capability, the default response should be to widen that framework layer instead of preserving a feature-local workaround just to avoid infrastructure work.
+
 ### 4.4 Pass authoring helpers
 
 `RenderFeature::PassBuilder` currently covers:
@@ -218,3 +220,5 @@ The maintained `RendererDemo` path now has a reusable feature-development patter
 - setup, dispatch, and registration are unified through execution plans and lifecycle helpers
 
 This is no longer a local cleanup. It is now the default writing style for new features on the maintained path.
+
+The same principle applies to framework evolution: if real product work proves that the current renderer or RHI surface is too narrow, extend it and let the feature return to a cleaner shape. Avoid treating “do not touch `RendererCore` / `RHICore`” as a goal by itself.

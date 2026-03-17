@@ -176,6 +176,7 @@
     <ClCompile Include="RendererDemo.cpp" />
     <ClCompile Include="RendererModule\RendererModuleSceneMesh.cpp" />
     <ClCompile Include="RendererSystem\RendererSystemBase.cpp" />
+    <ClCompile Include="RendererSystem\EnvironmentLightingResources.cpp" />
     <ClCompile Include="RendererSystem\RendererSystemFrostedGlass.cpp" />
     <ClCompile Include="RendererSystem\RendererSystemFrostedPanelProducer.cpp" />
     <ClCompile Include="RendererSystem\RendererSystemLighting.cpp" />
@@ -218,6 +219,7 @@
     <ClInclude Include="Regression\RegressionLogicPack.h" />
     <ClInclude Include="Regression\RegressionSuite.h" />
     <ClInclude Include="RendererSystem\RendererSystemBase.h" />
+    <ClInclude Include="RendererSystem\EnvironmentLightingResources.h" />
     <ClInclude Include="RendererSystem\RendererSystemFrostedGlass.h" />
     <ClInclude Include="RendererSystem\RendererSystemFrostedPanelProducer.h" />
     <ClInclude Include="RendererSystem\RendererSystemLighting.h" />

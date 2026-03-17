@@ -27,13 +27,15 @@ bool RHIUtils::UploadTextureData(IRHICommandList& command_list, IRHIMemoryManage
     memory_manager.AllocateTempUploadBufferMemory(device, texture_upload_buffer_desc, m_texture_upload_buffer);
 
     size_t byte_per_pixel = GetBytePerPixelByFormat(dst.GetTextureFormat()); 
+    const size_t src_row_pitch = static_cast<size_t>(upload_info.width) * byte_per_pixel;
+    GLTF_CHECK(upload_info.data_size >= src_row_pitch * upload_info.height);
     std::vector<unsigned char> texture_data; texture_data.resize(mip_copy_total_size);
     unsigned char* texture_data_ptr = texture_data.data();
     for (unsigned h = 0; h < upload_info.height; h++)
     {
         unsigned char* texture_data_offset_ptr = texture_data_ptr + mip_copy_row_pitch * h;
-        unsigned char* src_ptr = upload_info.data.get() + upload_info.width * h * byte_per_pixel;
-        memcpy(texture_data_offset_ptr, src_ptr, mip_copy_row_pitch);
+        unsigned char* src_ptr = upload_info.data.get() + src_row_pitch * h;
+        memcpy(texture_data_offset_ptr, src_ptr, src_row_pitch);
     }
     
     memory_manager.UploadBufferData(device, command_list, *m_texture_upload_buffer, texture_data.data(), 0, mip_copy_total_size);

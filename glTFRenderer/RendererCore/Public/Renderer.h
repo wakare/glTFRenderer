@@ -142,12 +142,20 @@ namespace RendererInterface
         unsigned min_height{1};
     };
     
+    struct TextureMipLevelDesc
+    {
+        unsigned width{0};
+        unsigned height{0};
+        std::vector<char> data;
+    };
+
     struct TextureDesc
     {
         PixelFormat format;
         unsigned width;
         unsigned height;
         std::vector<char> data;
+        std::vector<TextureMipLevelDesc> mip_levels;
         bool generate_mipmaps{false};
     };
 

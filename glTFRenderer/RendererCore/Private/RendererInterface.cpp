@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <iterator>
@@ -1761,6 +1762,9 @@ namespace RendererInterface
     {
         const RHIDataFormat rhi_format = RendererInterfaceRHIConverter::ConvertToRHIFormat(desc.format);
         GLTF_CHECK(rhi_format != RHIDataFormat::UNKNOWN);
+        const bool has_base_data = !desc.data.empty();
+        const bool has_explicit_mip_chain = !desc.mip_levels.empty();
+        GLTF_CHECK(!(has_base_data && has_explicit_mip_chain));
 
         RHITextureClearValue clear_value{};
         clear_value.clear_format = rhi_format;
@@ -1769,17 +1773,66 @@ namespace RendererInterface
         clear_value.clear_color[2] = 0.0f;
         clear_value.clear_color[3] = 0.0f;
 
+        const bool contains_mipmaps = desc.generate_mipmaps || has_explicit_mip_chain;
+
         RHITextureDesc texture_desc(
             "runtime_texture",
             desc.width,
             desc.height,
             rhi_format,
-            static_cast<RHIResourceUsageFlags>(RUF_ALLOW_SRV | RUF_TRANSFER_DST | (desc.generate_mipmaps ? RUF_CONTAINS_MIPMAP : RUF_NONE)),
+            static_cast<RHIResourceUsageFlags>(RUF_ALLOW_SRV | RUF_TRANSFER_DST | (contains_mipmaps ? RUF_CONTAINS_MIPMAP : RUF_NONE)),
             clear_value);
 
         std::shared_ptr<IRHITextureAllocation> texture_allocation = nullptr;
         bool created = false;
-        if (!desc.data.empty())
+        if (has_explicit_mip_chain)
+        {
+            created = m_resource_manager->GetMemoryManager().AllocateTextureMemory(
+                m_resource_manager->GetDevice(),
+                texture_desc,
+                texture_allocation);
+            GLTF_CHECK(created);
+            GLTF_CHECK(texture_allocation && texture_allocation->m_texture);
+            GLTF_CHECK(desc.mip_levels.size() <= texture_allocation->m_texture->GetMipCount());
+
+            const unsigned byte_per_pixel = GetBytePerPixelByFormat(rhi_format);
+            for (std::size_t mip_index = 0; mip_index < desc.mip_levels.size(); ++mip_index)
+            {
+                const auto& mip_desc = desc.mip_levels[mip_index];
+                const unsigned expected_width = (std::max)(1u, desc.width >> static_cast<unsigned>(mip_index));
+                const unsigned expected_height = (std::max)(1u, desc.height >> static_cast<unsigned>(mip_index));
+                GLTF_CHECK(mip_desc.width == expected_width);
+                GLTF_CHECK(mip_desc.height == expected_height);
+
+                const size_t expected_byte_size =
+                    static_cast<size_t>(mip_desc.width) *
+                    static_cast<size_t>(mip_desc.height) *
+                    byte_per_pixel;
+                GLTF_CHECK(mip_desc.data.size() == expected_byte_size);
+
+                std::shared_ptr<unsigned char[]> upload_data(
+                    new unsigned char[expected_byte_size],
+                    std::default_delete<unsigned char[]>());
+                std::memcpy(upload_data.get(), mip_desc.data.data(), expected_byte_size);
+
+                const RHITextureMipUploadInfo upload_info{
+                    upload_data,
+                    expected_byte_size,
+                    0,
+                    0,
+                    mip_desc.width,
+                    mip_desc.height,
+                    static_cast<unsigned>(mip_index)};
+                const bool uploaded = RHIUtilInstanceManager::Instance().UploadTextureData(
+                    m_resource_manager->GetCommandListForRecordPassCommand(),
+                    m_resource_manager->GetMemoryManager(),
+                    m_resource_manager->GetDevice(),
+                    *texture_allocation->m_texture,
+                    upload_info);
+                GLTF_CHECK(uploaded);
+            }
+        }
+        else if (has_base_data)
         {
             const bool has_data = texture_desc.SetTextureData(desc.data.data(), desc.data.size());
             GLTF_CHECK(has_data);

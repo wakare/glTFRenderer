@@ -110,6 +110,10 @@ Chinese companion:
 - `docs/FeatureNotes/20260316_A5_RoughnessPrefilterLadder_ZH.md`
 - `docs/FeatureNotes/20260316_A5_ModelViewerRegressionValidation.md`
 - `docs/FeatureNotes/20260316_A5_ModelViewerRegressionValidation_ZH.md`
+- `docs/FeatureNotes/20260317_A5_IBLHardeningPhase1.md`
+- `docs/FeatureNotes/20260317_A5_IBLHardeningPhase1_ZH.md`
+- `docs/FeatureNotes/20260317_A5_IBLHardeningPhase2.md`
+- `docs/FeatureNotes/20260317_A5_IBLHardeningPhase2_ZH.md`
 
 Naming convention:
 

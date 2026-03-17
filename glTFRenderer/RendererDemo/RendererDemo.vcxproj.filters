@@ -42,6 +42,9 @@
     <ClCompile Include="RendererSystem\RendererSystemSSAO.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="RendererSystem\EnvironmentLightingResources.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="SceneRendererUtil\SceneRendererDrawDispatcher.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -75,6 +78,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="RendererSystem\RendererSystemSSAO.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RendererSystem\EnvironmentLightingResources.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="SceneRendererUtil\SceneRendererDrawDispatcher.h">

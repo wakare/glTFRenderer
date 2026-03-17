@@ -113,6 +113,7 @@ feature-local plan：
 
 - 先把“本帧执行需要的输入数据”对象化
 - 再让 `Build*SetupInfo(...)`、`Sync*Setup(...)`、dispatch 更新等逻辑消费 plan
+- 当业务重构明确暴露 `RendererCore` / `RHICore` 能力缺口时，优先补齐框架接口，而不是为了规避框架演进把问题压回 feature 层做临时绕行
 
 这样做的好处是，`Tick()` 和 `Init()` 会逐步退化成 orchestration，而不是参数拼装场。
 
@@ -277,3 +278,5 @@ feature-local plan：
 - setup / dispatch / register 通过 execution plan 和 lifecycle helper 统一
 
 这套模式已经不只是局部重构，而是当前维护路径里默认推荐的写法。后续新增 feature 或继续拆 `DemoBase`，都应该优先建立在这套工具箱之上，而不是再回到 feature 各写一套生命周期代码。
+
+同样地，如果维护路径上的真实业务需求已经证明框架层接口不足，就应该顺势扩展框架能力，让业务实现回到更自然的形态；不要把“避免改 `RendererCore` / `RHICore`”当成重构目标本身。
