@@ -183,7 +183,7 @@ void RendererSystemSSAO::DrawDebugUI()
     if (m_global_params.debug_output_mode != 0u)
     {
         ImGui::TextUnformatted("Debug output overrides the SSAO signal used by lighting.");
-        ImGui::TextUnformatted("Inspect it with Tone Map > Debug View = SSAO.");
+        ImGui::TextUnformatted("Inspect it with Texture Debug View > Source = SSAO Final.");
     }
 
     if (params_dirty)

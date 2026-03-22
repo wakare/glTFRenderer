@@ -130,6 +130,7 @@ public:
     void ForceResetTemporalHistory();
     unsigned GetEffectivePanelCount() const { return m_global_params.panel_count; }
     RendererInterface::RenderTargetHandle GetOutput() const { return m_composite_outputs.final_output; }
+    RendererInterface::RenderGraphNodeHandle GetOutputNode() const { return m_last_output_node; }
     RendererInterface::RenderTargetHandle GetHalfResPing() const
     {
         return m_postfx_shared_resources.GetPing(PostFxSharedResources::Resolution::Half);
@@ -682,6 +683,7 @@ protected:
     PanelPayloadPath m_panel_payload_path{PanelPayloadPath::RasterPanelGBuffer};
     bool m_panel_payload_compute_fallback_active{false};
     unsigned m_last_expected_registered_pass_count{0};
+    RendererInterface::RenderGraphNodeHandle m_last_output_node{NULL_HANDLE};
     bool m_last_runtime_used_shared_mip_path{true};
     bool m_last_runtime_used_raster_payload{false};
     bool m_last_runtime_used_strict_multilayer{false};

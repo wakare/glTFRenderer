@@ -13,6 +13,7 @@
 #include <iomanip>
 #include <imgui/imgui.h>
 #include <sstream>
+#include <utility>
 #include <windows.h>
 
 namespace
@@ -237,10 +238,20 @@ std::shared_ptr<DemoAppModelViewer::ModelViewerStateSnapshot> DemoAppModelViewer
         snapshot->has_lighting_state = true;
         snapshot->lighting_global_params = m_lighting->GetGlobalParams();
     }
+    if (m_tone_map)
+    {
+        snapshot->has_tone_map_state = true;
+        snapshot->tone_map_global_params = m_tone_map->GetGlobalParams();
+    }
     if (m_ssao)
     {
         snapshot->has_ssao_state = true;
         snapshot->ssao_global_params = m_ssao->GetGlobalParams();
+    }
+    if (m_texture_debug_view)
+    {
+        snapshot->has_texture_debug_state = true;
+        snapshot->texture_debug_state = m_texture_debug_view->GetDebugState();
     }
 
     return snapshot;
@@ -518,6 +529,7 @@ bool DemoAppModelViewer::ApplyRegressionCaseConfig(const Regression::CaseConfig&
     logic_context.directional_light_speed_radians = &m_directional_light_angular_speed_radians;
     logic_context.lighting = m_lighting.get();
     logic_context.ssao = m_ssao.get();
+    logic_context.texture_debug_view = m_texture_debug_view.get();
     if (!Regression::ApplyLogicPack(case_config, logic_context, out_error))
     {
         return false;
@@ -916,9 +928,20 @@ bool DemoAppModelViewer::ApplyModelViewerStateSnapshot(const ModelViewerStateSna
             m_lighting->SetGlobalParams(snapshot.lighting_global_params);
         }
     }
+    if (m_tone_map && snapshot.has_tone_map_state)
+    {
+        m_tone_map->SetGlobalParams(snapshot.tone_map_global_params);
+    }
     if (m_ssao && snapshot.has_ssao_state)
     {
         m_ssao->SetGlobalParams(snapshot.ssao_global_params);
+    }
+    if (m_texture_debug_view && snapshot.has_texture_debug_state)
+    {
+        if (!m_texture_debug_view->SetDebugState(snapshot.texture_debug_state))
+        {
+            return false;
+        }
     }
 
     return true;
@@ -937,6 +960,7 @@ bool DemoAppModelViewer::RebuildModelViewerBaseRuntimeObjects()
     m_ssao.reset();
     m_lighting.reset();
     m_tone_map.reset();
+    m_texture_debug_view.reset();
 
     const unsigned render_width = (std::max)(1u, m_resource_manager->GetCurrentRenderWidth());
     const unsigned render_height = (std::max)(1u, m_resource_manager->GetCurrentRenderHeight());
@@ -974,8 +998,166 @@ bool DemoAppModelViewer::RebuildModelViewerBaseRuntimeObjects()
 bool DemoAppModelViewer::FinalizeModelViewerRuntimeObjects(
     const std::shared_ptr<RendererSystemFrostedGlass>& tone_map_frosted_input)
 {
-    m_tone_map = std::make_shared<RendererSystemToneMap>(tone_map_frosted_input, m_lighting, m_scene, m_ssao);
+    m_tone_map = std::make_shared<RendererSystemToneMap>(tone_map_frosted_input, m_lighting);
+    m_texture_debug_view = std::make_shared<RendererSystemTextureDebugView>(m_tone_map);
+
+    const auto scene = m_scene;
+    const auto ssao = m_ssao;
+    const auto lighting = m_lighting;
+    const auto tone_map = m_tone_map;
+    const auto frosted = tone_map_frosted_input;
+    const auto register_source = [this](RendererSystemTextureDebugView::DebugSourceDesc source_desc) -> bool
+    {
+        return m_texture_debug_view && m_texture_debug_view->RegisterSource(std::move(source_desc));
+    };
+
+    RETURN_IF_FALSE(register_source({
+        .id = "final.tonemapped",
+        .display_name = "Final Tonemapped",
+        .visualization = RendererSystemTextureDebugView::VisualizationMode::Color,
+        .default_scale = 1.0f,
+        .default_bias = 0.0f,
+        .default_apply_tonemap = false,
+        .resolver = [tone_map]()
+        {
+            return RendererSystemTextureDebugView::SourceResolution{
+                .render_target = tone_map ? tone_map->GetOutput() : NULL_HANDLE,
+                .dependency_node = tone_map ? tone_map->GetOutputNode() : NULL_HANDLE
+            };
+        }
+    }));
+    RETURN_IF_FALSE(register_source({
+        .id = "scene.color",
+        .display_name = "Scene Color",
+        .visualization = RendererSystemTextureDebugView::VisualizationMode::Color,
+        .default_scale = 1.0f,
+        .default_bias = 0.0f,
+        .default_apply_tonemap = false,
+        .resolver = [scene]()
+        {
+            const auto outputs = scene ? scene->GetOutputs() : RendererSystemSceneRenderer::BasePassOutputs{};
+            return RendererSystemTextureDebugView::SourceResolution{
+                .render_target = outputs.color,
+                .dependency_node = outputs.node
+            };
+        }
+    }));
+    RETURN_IF_FALSE(register_source({
+        .id = "scene.normal",
+        .display_name = "Scene Normal",
+        .visualization = RendererSystemTextureDebugView::VisualizationMode::Color,
+        .default_scale = 1.0f,
+        .default_bias = 0.0f,
+        .default_apply_tonemap = false,
+        .resolver = [scene]()
+        {
+            const auto outputs = scene ? scene->GetOutputs() : RendererSystemSceneRenderer::BasePassOutputs{};
+            return RendererSystemTextureDebugView::SourceResolution{
+                .render_target = outputs.normal,
+                .dependency_node = outputs.node
+            };
+        }
+    }));
+    RETURN_IF_FALSE(register_source({
+        .id = "scene.velocity",
+        .display_name = "Scene Velocity",
+        .visualization = RendererSystemTextureDebugView::VisualizationMode::Velocity,
+        .default_scale = 32.0f,
+        .default_bias = 0.0f,
+        .default_apply_tonemap = false,
+        .resolver = [scene]()
+        {
+            const auto outputs = scene ? scene->GetOutputs() : RendererSystemSceneRenderer::BasePassOutputs{};
+            return RendererSystemTextureDebugView::SourceResolution{
+                .render_target = outputs.velocity,
+                .dependency_node = outputs.node
+            };
+        }
+    }));
+    RETURN_IF_FALSE(register_source({
+        .id = "scene.depth",
+        .display_name = "Scene Depth",
+        .visualization = RendererSystemTextureDebugView::VisualizationMode::Scalar,
+        .default_scale = -1.0f,
+        .default_bias = 1.0f,
+        .default_apply_tonemap = false,
+        .resolver = [scene]()
+        {
+            const auto outputs = scene ? scene->GetOutputs() : RendererSystemSceneRenderer::BasePassOutputs{};
+            return RendererSystemTextureDebugView::SourceResolution{
+                .render_target = outputs.depth,
+                .dependency_node = outputs.node
+            };
+        }
+    }));
+    RETURN_IF_FALSE(register_source({
+        .id = "ssao.raw",
+        .display_name = "SSAO Raw",
+        .visualization = RendererSystemTextureDebugView::VisualizationMode::Scalar,
+        .default_scale = 1.0f,
+        .default_bias = 0.0f,
+        .default_apply_tonemap = false,
+        .resolver = [ssao]()
+        {
+            const auto outputs = ssao ? ssao->GetOutputs() : RendererSystemSSAO::SSAOOutputs{};
+            return RendererSystemTextureDebugView::SourceResolution{
+                .render_target = outputs.raw_output,
+                .dependency_node = outputs.raw_node
+            };
+        }
+    }));
+    RETURN_IF_FALSE(register_source({
+        .id = "ssao.final",
+        .display_name = "SSAO Final",
+        .visualization = RendererSystemTextureDebugView::VisualizationMode::Scalar,
+        .default_scale = 1.0f,
+        .default_bias = 0.0f,
+        .default_apply_tonemap = false,
+        .resolver = [ssao]()
+        {
+            return RendererSystemTextureDebugView::SourceResolution{
+                .render_target = ssao ? ssao->GetOutput() : NULL_HANDLE,
+                .dependency_node = ssao ? ssao->GetOutputNode() : NULL_HANDLE
+            };
+        }
+    }));
+    RETURN_IF_FALSE(register_source({
+        .id = "lighting.output",
+        .display_name = "Lighting HDR",
+        .visualization = RendererSystemTextureDebugView::VisualizationMode::Color,
+        .default_scale = 1.0f,
+        .default_bias = 0.0f,
+        .default_apply_tonemap = true,
+        .resolver = [lighting]()
+        {
+            const auto outputs = lighting ? lighting->GetOutputs() : RendererSystemLighting::LightingOutputs{};
+            return RendererSystemTextureDebugView::SourceResolution{
+                .render_target = outputs.output,
+                .dependency_node = outputs.node
+            };
+        }
+    }));
+    if (frosted)
+    {
+        RETURN_IF_FALSE(register_source({
+            .id = "frosted.output",
+            .display_name = "Frosted HDR",
+            .visualization = RendererSystemTextureDebugView::VisualizationMode::Color,
+            .default_scale = 1.0f,
+            .default_bias = 0.0f,
+            .default_apply_tonemap = true,
+            .resolver = [frosted]()
+            {
+                return RendererSystemTextureDebugView::SourceResolution{
+                    .render_target = frosted ? frosted->GetOutput() : NULL_HANDLE,
+                    .dependency_node = frosted ? frosted->GetOutputNode() : NULL_HANDLE
+                };
+            }
+        }));
+    }
+
     m_systems.push_back(m_tone_map);
+    m_systems.push_back(m_texture_debug_view);
     return true;
 }
 
@@ -1105,6 +1287,14 @@ bool DemoAppModelViewer::SerializeNonRenderStateSnapshotToJson(
             {"environment_prefilter_roughness", ToJson(model_viewer_snapshot->lighting_global_params.environment_prefilter_roughness)}
         };
     }
+    if (model_viewer_snapshot->has_tone_map_state)
+    {
+        out_snapshot_json["tonemap"] = {
+            {"exposure", model_viewer_snapshot->tone_map_global_params.exposure},
+            {"gamma", model_viewer_snapshot->tone_map_global_params.gamma},
+            {"tone_map_mode", model_viewer_snapshot->tone_map_global_params.tone_map_mode}
+        };
+    }
     if (model_viewer_snapshot->has_ssao_state)
     {
         out_snapshot_json["ssao"] = {
@@ -1120,6 +1310,15 @@ bool DemoAppModelViewer::SerializeNonRenderStateSnapshotToJson(
             {"blur_radius", model_viewer_snapshot->ssao_global_params.blur_radius},
             {"enabled", model_viewer_snapshot->ssao_global_params.enabled != 0u},
             {"debug_output_mode", model_viewer_snapshot->ssao_global_params.debug_output_mode}
+        };
+    }
+    if (model_viewer_snapshot->has_texture_debug_state)
+    {
+        out_snapshot_json["texture_debug"] = {
+            {"source_id", model_viewer_snapshot->texture_debug_state.source_id},
+            {"scale", model_viewer_snapshot->texture_debug_state.scale},
+            {"bias", model_viewer_snapshot->texture_debug_state.bias},
+            {"apply_tonemap", model_viewer_snapshot->texture_debug_state.apply_tonemap}
         };
     }
 
@@ -1296,6 +1495,35 @@ std::shared_ptr<DemoBase::NonRenderStateSnapshot> DemoAppModelViewer::Deserializ
         }
         snapshot->has_lighting_state = true;
     }
+    if (snapshot_json.contains("tonemap"))
+    {
+        const auto& tonemap_json = snapshot_json.at("tonemap");
+        if (!tonemap_json.is_object())
+        {
+            out_error = "snapshot.tonemap must be an object.";
+            return nullptr;
+        }
+        if (!tonemap_json.contains("exposure") || !tonemap_json.at("exposure").is_number())
+        {
+            out_error = "snapshot.tonemap.exposure must be a number.";
+            return nullptr;
+        }
+        if (!tonemap_json.contains("gamma") || !tonemap_json.at("gamma").is_number())
+        {
+            out_error = "snapshot.tonemap.gamma must be a number.";
+            return nullptr;
+        }
+        if (!tonemap_json.contains("tone_map_mode") || !tonemap_json.at("tone_map_mode").is_number_unsigned())
+        {
+            out_error = "snapshot.tonemap.tone_map_mode must be an unsigned number.";
+            return nullptr;
+        }
+
+        snapshot->tone_map_global_params.exposure = tonemap_json.at("exposure").get<float>();
+        snapshot->tone_map_global_params.gamma = tonemap_json.at("gamma").get<float>();
+        snapshot->tone_map_global_params.tone_map_mode = tonemap_json.at("tone_map_mode").get<unsigned>();
+        snapshot->has_tone_map_state = true;
+    }
     if (snapshot_json.contains("ssao"))
     {
         const auto& ssao_json = snapshot_json.at("ssao");
@@ -1381,6 +1609,41 @@ std::shared_ptr<DemoBase::NonRenderStateSnapshot> DemoAppModelViewer::Deserializ
             ? ssao_json.at("debug_output_mode").get<unsigned>()
             : 0u;
         snapshot->has_ssao_state = true;
+    }
+    if (snapshot_json.contains("texture_debug"))
+    {
+        const auto& texture_debug_json = snapshot_json.at("texture_debug");
+        if (!texture_debug_json.is_object())
+        {
+            out_error = "snapshot.texture_debug must be an object.";
+            return nullptr;
+        }
+        if (!texture_debug_json.contains("source_id") || !texture_debug_json.at("source_id").is_string())
+        {
+            out_error = "snapshot.texture_debug.source_id must be a string.";
+            return nullptr;
+        }
+        if (!texture_debug_json.contains("scale") || !texture_debug_json.at("scale").is_number())
+        {
+            out_error = "snapshot.texture_debug.scale must be a number.";
+            return nullptr;
+        }
+        if (!texture_debug_json.contains("bias") || !texture_debug_json.at("bias").is_number())
+        {
+            out_error = "snapshot.texture_debug.bias must be a number.";
+            return nullptr;
+        }
+        if (!texture_debug_json.contains("apply_tonemap") || !texture_debug_json.at("apply_tonemap").is_boolean())
+        {
+            out_error = "snapshot.texture_debug.apply_tonemap must be a boolean.";
+            return nullptr;
+        }
+
+        snapshot->texture_debug_state.source_id = texture_debug_json.at("source_id").get<std::string>();
+        snapshot->texture_debug_state.scale = texture_debug_json.at("scale").get<float>();
+        snapshot->texture_debug_state.bias = texture_debug_json.at("bias").get<float>();
+        snapshot->texture_debug_state.apply_tonemap = texture_debug_json.at("apply_tonemap").get<bool>();
+        snapshot->has_texture_debug_state = true;
     }
 
     return snapshot;

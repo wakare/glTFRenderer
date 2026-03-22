@@ -8,6 +8,7 @@
 #include "RendererSystem/RendererSystemSceneRenderer.h"
 #include "RendererSystem/RendererSystemSSAO.h"
 #include "RendererSystem/RendererSystemToneMap.h"
+#include "RendererSystem/RendererSystemTextureDebugView.h"
 #include <filesystem>
 #include <memory>
 #include <string>
@@ -35,8 +36,12 @@ protected:
         float directional_light_speed_radians{0.25f};
         bool has_lighting_state{false};
         RendererSystemLighting::LightingGlobalParams lighting_global_params{};
+        bool has_tone_map_state{false};
+        RendererSystemToneMap::ToneMapGlobalParams tone_map_global_params{};
         bool has_ssao_state{false};
         RendererSystemSSAO::SSAOGlobalParams ssao_global_params{};
+        bool has_texture_debug_state{false};
+        RendererSystemTextureDebugView::DebugState texture_debug_state{};
     };
 
     virtual bool InitInternal(const std::vector<std::string>& arguments) override;
@@ -119,6 +124,7 @@ protected:
     std::shared_ptr<RendererSystemSSAO> m_ssao;
     std::shared_ptr<RendererSystemLighting> m_lighting;
     std::shared_ptr<RendererSystemToneMap> m_tone_map;
+    std::shared_ptr<RendererSystemTextureDebugView> m_texture_debug_view;
 
     unsigned m_directional_light_index{0};
     LightInfo m_directional_light_info{};

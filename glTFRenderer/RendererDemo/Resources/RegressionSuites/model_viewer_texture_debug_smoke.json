@@ -1,0 +1,58 @@
+{
+  "suite_name": "model_viewer_texture_debug_smoke",
+  "global": {
+    "disable_debug_ui": true,
+    "freeze_directional_light": true,
+    "default_warmup_frames": 60,
+    "default_capture_frames": 4
+  },
+  "cases": [
+    {
+      "id": "scene_normal",
+      "camera": {
+        "position": [0.0, 1.2, -3.0],
+        "euler_angles": [0.0, 0.0, 0.0]
+      },
+      "logic_pack": "none",
+      "logic_args": {
+        "debug_view_source": "scene.normal"
+      }
+    },
+    {
+      "id": "scene_depth",
+      "camera": {
+        "position": [0.0, 1.2, -3.0],
+        "euler_angles": [0.0, 0.0, 0.0]
+      },
+      "logic_pack": "none",
+      "logic_args": {
+        "debug_view_source": "scene.depth",
+        "debug_view_scale": -1.0,
+        "debug_view_bias": 1.0
+      }
+    },
+    {
+      "id": "ssao_final",
+      "camera": {
+        "position": [0.0, 1.2, -3.0],
+        "euler_angles": [0.0, 0.0, 0.0]
+      },
+      "logic_pack": "none",
+      "logic_args": {
+        "debug_view_source": "ssao.final"
+      }
+    },
+    {
+      "id": "lighting_hdr",
+      "camera": {
+        "position": [0.0, 1.2, -3.0],
+        "euler_angles": [0.0, 0.0, 0.0]
+      },
+      "logic_pack": "none",
+      "logic_args": {
+        "debug_view_source": "lighting.output",
+        "debug_view_tonemap": true
+      }
+    }
+  ]
+}

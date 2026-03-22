@@ -3,32 +3,29 @@
 #include "RenderPassSetupBuilder.h"
 #include "RendererSystemFrostedGlass.h"
 #include "RendererSystemLighting.h"
-#include "RendererSystemSceneRenderer.h"
-#include "RendererSystemSSAO.h"
 #include <algorithm>
 #include <imgui/imgui.h>
 #include <utility>
 
 RendererSystemToneMap::RendererSystemToneMap(std::shared_ptr<RendererSystemFrostedGlass> frosted,
-                                             std::shared_ptr<RendererSystemLighting> lighting,
-                                             std::shared_ptr<RendererSystemSceneRenderer> scene,
-                                             std::shared_ptr<RendererSystemSSAO> ssao)
+                                             std::shared_ptr<RendererSystemLighting> lighting)
     : m_frosted(std::move(frosted))
     , m_lighting(std::move(lighting))
-    , m_scene(std::move(scene))
-    , m_ssao(std::move(ssao))
 {
+}
+
+void RendererSystemToneMap::SetGlobalParams(const ToneMapGlobalParams& global_params)
+{
+    m_global_params = global_params;
+    ClampGlobalParams(m_global_params);
+    m_need_upload_params = true;
 }
 
 bool RendererSystemToneMap::Init(RendererInterface::ResourceOperator& resource_operator,
                                  RendererInterface::RenderGraph& graph)
 {
-    GLTF_CHECK(m_scene);
-    GLTF_CHECK(m_scene->HasInit());
     GLTF_CHECK(m_lighting);
     GLTF_CHECK(m_lighting->HasInit());
-    GLTF_CHECK(m_ssao);
-    GLTF_CHECK(m_ssao->HasInit());
     if (m_frosted)
     {
         GLTF_CHECK(m_frosted->HasInit());
@@ -58,28 +55,18 @@ bool RendererSystemToneMap::Init(RendererInterface::ResourceOperator& resource_o
         m_tone_map_pass_node,
         BuildToneMapPassSetupInfo(execution_plan)));
     UploadGlobalParams(resource_operator);
-    graph.RegisterRenderTargetToColorOutput(m_tone_map_output);
     return true;
 }
 
 RendererInterface::RenderGraph::RenderPassSetupInfo RendererSystemToneMap::BuildToneMapPassSetupInfo(
     const ToneMapExecutionPlan& execution_plan) const
 {
-    const auto scene_outputs = m_scene->GetOutputs();
     return RenderFeature::PassBuilder::Compute("Tone Map", "Tone Map Composite")
         .AddShader(RendererInterface::COMPUTE_SHADER, "main", "Resources/Shaders/ToneMap.hlsl")
         .AddSampledRenderTargetBindings({
             RenderFeature::MakeSampledRenderTargetBinding(
                 "InputColorTex",
                 execution_plan.input_color,
-                RendererInterface::RenderTargetTextureBindingDesc::SRV),
-            RenderFeature::MakeSampledRenderTargetBinding(
-                "InputVelocityTex",
-                scene_outputs.velocity,
-                RendererInterface::RenderTargetTextureBindingDesc::SRV),
-            RenderFeature::MakeSampledRenderTargetBinding(
-                "InputSSAOTex",
-                m_ssao->GetOutput(),
                 RendererInterface::RenderTargetTextureBindingDesc::SRV),
             RenderFeature::MakeSampledRenderTargetBinding(
                 "Output",
@@ -132,7 +119,6 @@ bool RendererSystemToneMap::Tick(RendererInterface::ResourceOperator& resource_o
     execution_plan.compute_plan.ApplyDispatch(graph, m_tone_map_pass_node);
     UploadGlobalParams(resource_operator);
     RETURN_IF_FALSE(RenderFeature::RegisterRenderGraphNodeIfValid(graph, m_tone_map_pass_node));
-    graph.RegisterRenderTargetToColorOutput(m_tone_map_output);
     return true;
 }
 
@@ -165,34 +151,18 @@ void RendererSystemToneMap::DrawDebugUI()
         params_dirty = true;
     }
 
-    int debug_view_mode = static_cast<int>(m_global_params.debug_view_mode);
-    const char* debug_view_modes[] = {"Final", "Velocity", "SSAO"};
-    if (ImGui::Combo("Debug View", &debug_view_mode, debug_view_modes, IM_ARRAYSIZE(debug_view_modes)))
-    {
-        m_global_params.debug_view_mode = static_cast<unsigned>(debug_view_mode);
-        params_dirty = true;
-    }
-
-    if (m_global_params.debug_view_mode == 1)
-    {
-        if (ImGui::SliderFloat("Velocity Scale", &m_global_params.debug_velocity_scale, 1.0f, 128.0f, "%.1f"))
-        {
-            params_dirty = true;
-        }
-    }
-
     if (params_dirty)
     {
-        const auto clamp = [](float value, float min_value, float max_value) -> float
-        {
-            return (std::max)(min_value, (std::min)(value, max_value));
-        };
-
-        m_global_params.exposure = clamp(m_global_params.exposure, 0.01f, 8.0f);
-        m_global_params.gamma = clamp(m_global_params.gamma, 1.0f, 3.0f);
-        m_global_params.debug_velocity_scale = clamp(m_global_params.debug_velocity_scale, 0.1f, 256.0f);
+        ClampGlobalParams(m_global_params);
         m_need_upload_params = true;
     }
+}
+
+void RendererSystemToneMap::ClampGlobalParams(ToneMapGlobalParams& global_params)
+{
+    global_params.exposure = std::clamp(global_params.exposure, 0.01f, 8.0f);
+    global_params.gamma = std::clamp(global_params.gamma, 1.0f, 3.0f);
+    global_params.tone_map_mode = (std::min)(global_params.tone_map_mode, 1u);
 }
 
 void RendererSystemToneMap::UploadGlobalParams(RendererInterface::ResourceOperator& resource_operator)

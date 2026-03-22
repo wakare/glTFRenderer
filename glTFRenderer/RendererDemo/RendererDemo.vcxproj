@@ -183,6 +183,7 @@
     <ClCompile Include="RendererSystem\RendererSystemSceneRenderer.cpp" />
     <ClCompile Include="RendererSystem\RendererSystemSSAO.cpp" />
     <ClCompile Include="RendererSystem\RendererSystemToneMap.cpp" />
+    <ClCompile Include="RendererSystem\RendererSystemTextureDebugView.cpp" />
     <None Include="Resources\Shaders\BindlessTextureDefine.hlsl" />
     <None Include="Resources\Shaders\SceneRendererCommon.hlsl" />
     <ClCompile Include="RendererModule\RendererModuleCamera.cpp" />
@@ -203,6 +204,7 @@
     <None Include="Resources\Shaders\SSAO.hlsl" />
     <None Include="Resources\Shaders\SceneLighting.hlsl" />
     <None Include="Resources\Shaders\ToneMap.hlsl" />
+    <None Include="Resources\Shaders\TextureDebugView.hlsl" />
     <None Include="Resources\Shaders\SceneViewCommon.hlsl" />
     <None Include="Resources\Shaders\ModelRenderingShader.hlsl" />
     <None Include="Resources\Shaders\DemoShader.hlsl" />
@@ -226,6 +228,7 @@
     <ClInclude Include="RendererSystem\RendererSystemSceneRenderer.h" />
     <ClInclude Include="RendererSystem\RendererSystemSSAO.h" />
     <ClInclude Include="RendererSystem\RendererSystemToneMap.h" />
+    <ClInclude Include="RendererSystem\RendererSystemTextureDebugView.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

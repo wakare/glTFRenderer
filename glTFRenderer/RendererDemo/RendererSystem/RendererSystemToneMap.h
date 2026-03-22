@@ -6,16 +6,25 @@
 
 class RendererSystemFrostedGlass;
 class RendererSystemLighting;
-class RendererSystemSceneRenderer;
-class RendererSystemSSAO;
 
 class RendererSystemToneMap : public RendererSystemBase
 {
 public:
+    struct ToneMapGlobalParams
+    {
+        float exposure{1.0f};
+        float gamma{2.2f};
+        unsigned tone_map_mode{1}; // 0: Reinhard, 1: ACES
+        float pad0{0.0f};
+    };
+
     RendererSystemToneMap(std::shared_ptr<RendererSystemFrostedGlass> frosted,
-                          std::shared_ptr<RendererSystemLighting> lighting,
-                          std::shared_ptr<RendererSystemSceneRenderer> scene,
-                          std::shared_ptr<RendererSystemSSAO> ssao);
+                          std::shared_ptr<RendererSystemLighting> lighting);
+
+    RendererInterface::RenderTargetHandle GetOutput() const { return m_tone_map_output; }
+    RendererInterface::RenderGraphNodeHandle GetOutputNode() const { return m_tone_map_pass_node; }
+    const ToneMapGlobalParams& GetGlobalParams() const { return m_global_params; }
+    void SetGlobalParams(const ToneMapGlobalParams& global_params);
 
     virtual bool Init(RendererInterface::ResourceOperator& resource_operator, RendererInterface::RenderGraph& graph) override;
     virtual bool HasInit() const override;
@@ -32,27 +41,14 @@ protected:
         RenderFeature::ComputeExecutionPlan compute_plan{};
     };
 
-    struct ToneMapGlobalParams
-    {
-        float exposure{1.0f};
-        float gamma{2.2f};
-        unsigned tone_map_mode{1}; // 0: Reinhard, 1: ACES
-        unsigned debug_view_mode{0}; // 0: Final, 1: Velocity, 2: SSAO
-        float debug_velocity_scale{32.0f};
-        float pad0{0.0f};
-        float pad1{0.0f};
-        float pad2{0.0f};
-    };
-
     RendererInterface::RenderGraph::RenderPassSetupInfo BuildToneMapPassSetupInfo(
         const ToneMapExecutionPlan& execution_plan) const;
     ToneMapExecutionPlan BuildToneMapExecutionPlan(RendererInterface::ResourceOperator& resource_operator) const;
+    static void ClampGlobalParams(ToneMapGlobalParams& global_params);
     void UploadGlobalParams(RendererInterface::ResourceOperator& resource_operator);
 
     std::shared_ptr<RendererSystemFrostedGlass> m_frosted;
     std::shared_ptr<RendererSystemLighting> m_lighting;
-    std::shared_ptr<RendererSystemSceneRenderer> m_scene;
-    std::shared_ptr<RendererSystemSSAO> m_ssao;
 
     RendererInterface::RenderGraphNodeHandle m_tone_map_pass_node{NULL_HANDLE};
     RendererInterface::RenderTargetHandle m_tone_map_output{NULL_HANDLE};

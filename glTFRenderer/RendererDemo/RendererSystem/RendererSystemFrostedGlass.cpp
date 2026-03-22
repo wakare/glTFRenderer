@@ -1824,6 +1824,7 @@ void RendererSystemFrostedGlass::ResetRuntimeResources(RendererInterface::Resour
     m_dispatch_cache_state.Reset();
     m_panel_payload_compute_fallback_active = false;
     m_last_expected_registered_pass_count = 0;
+    m_last_output_node = NULL_HANDLE;
 }
 
 void RendererSystemFrostedGlass::UpdateDirectionalHighlightParams()
@@ -2041,6 +2042,9 @@ void RendererSystemFrostedGlass::UpdateTickRuntimeSummary(const TickRuntimePaths
     }
 
     m_last_expected_registered_pass_count = expected_pass_count;
+    m_last_output_node = runtime_paths.use_strict_multilayer_path
+        ? runtime_paths.active_front_composite_pass
+        : runtime_paths.active_single_composite_pass;
     m_last_runtime_used_shared_mip_path = runtime_paths.use_shared_mip_path;
     m_last_runtime_used_raster_payload = runtime_paths.use_raster_panel_payload;
     m_last_runtime_used_strict_multilayer = runtime_paths.use_strict_multilayer_path;

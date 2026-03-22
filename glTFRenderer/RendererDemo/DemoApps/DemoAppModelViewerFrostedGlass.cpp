@@ -908,6 +908,9 @@ bool DemoAppModelViewerFrostedGlass::ApplyRegressionCaseConfig(const Regression:
     logic_context.enable_panel_input_state_machine = &m_enable_panel_input_state_machine;
     logic_context.enable_frosted_prepass_feeds = &m_enable_frosted_prepass_feeds;
     logic_context.directional_light_speed_radians = &m_directional_light_angular_speed_radians;
+    logic_context.lighting = m_lighting.get();
+    logic_context.ssao = m_ssao.get();
+    logic_context.texture_debug_view = m_texture_debug_view.get();
     if (!Regression::ApplyLogicPack(case_config, logic_context, out_error))
     {
         return false;

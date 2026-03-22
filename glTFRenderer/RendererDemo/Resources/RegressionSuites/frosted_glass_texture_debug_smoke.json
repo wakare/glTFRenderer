@@ -1,0 +1,28 @@
+{
+  "suite_name": "frosted_glass_texture_debug_smoke",
+  "global": {
+    "disable_debug_ui": true,
+    "freeze_directional_light": true,
+    "disable_panel_input_state_machine": true,
+    "disable_prepass_animation": true,
+    "default_warmup_frames": 90,
+    "default_capture_frames": 6
+  },
+  "cases": [
+    {
+      "id": "frosted_hdr",
+      "camera": {
+        "position": [0.0, 1.2, -3.0],
+        "euler_angles": [0.0, 0.0, 0.0]
+      },
+      "logic_pack": "frosted_glass",
+      "logic_args": {
+        "blur_source_mode": "shared_mip",
+        "full_fog_mode": true,
+        "reset_temporal_history": true,
+        "debug_view_source": "frosted.output",
+        "debug_view_tonemap": true
+      }
+    }
+  ]
+}

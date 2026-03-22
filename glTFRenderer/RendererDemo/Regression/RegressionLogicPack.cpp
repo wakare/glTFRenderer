@@ -57,11 +57,98 @@ namespace Regression
             }
             return true;
         }
+
+        bool HasTextureDebugArgs(const nlohmann::json& args)
+        {
+            return args.contains("debug_view_source") ||
+                   args.contains("debug_view_scale") ||
+                   args.contains("debug_view_bias") ||
+                   args.contains("debug_view_tonemap");
+        }
+
+        bool ApplyTextureDebugArgs(const nlohmann::json& args,
+                                   const LogicPackContext& context,
+                                   std::string& out_error)
+        {
+            if (args.is_null() || !HasTextureDebugArgs(args))
+            {
+                return true;
+            }
+            if (!context.texture_debug_view)
+            {
+                out_error = "texture debug arguments need a valid texture debug view system.";
+                return false;
+            }
+
+            if (args.contains("debug_view_source"))
+            {
+                if (!args.at("debug_view_source").is_string())
+                {
+                    out_error = "logic_args.debug_view_source must be a string.";
+                    return false;
+                }
+                if (!context.texture_debug_view->SelectSourceById(
+                        args.at("debug_view_source").get<std::string>(),
+                        true))
+                {
+                    out_error = "logic_args.debug_view_source is invalid.";
+                    return false;
+                }
+            }
+
+            auto debug_state = context.texture_debug_view->GetDebugState();
+            if (args.contains("debug_view_scale"))
+            {
+                if (!args.at("debug_view_scale").is_number())
+                {
+                    out_error = "logic_args.debug_view_scale must be a number.";
+                    return false;
+                }
+                debug_state.scale = args.at("debug_view_scale").get<float>();
+            }
+            if (args.contains("debug_view_bias"))
+            {
+                if (!args.at("debug_view_bias").is_number())
+                {
+                    out_error = "logic_args.debug_view_bias must be a number.";
+                    return false;
+                }
+                debug_state.bias = args.at("debug_view_bias").get<float>();
+            }
+            if (args.contains("debug_view_tonemap"))
+            {
+                if (!args.at("debug_view_tonemap").is_boolean())
+                {
+                    out_error = "logic_args.debug_view_tonemap must be a boolean.";
+                    return false;
+                }
+                debug_state.apply_tonemap = args.at("debug_view_tonemap").get<bool>();
+            }
+
+            if (!context.texture_debug_view->SetDebugState(debug_state))
+            {
+                out_error = "Failed to apply texture debug state.";
+                return false;
+            }
+
+            return true;
+        }
     }
 
     bool ApplyLogicPack(const CaseConfig& case_config, const LogicPackContext& context, std::string& out_error)
     {
         out_error.clear();
+
+        const auto& args = case_config.logic_args;
+        if (!args.is_null() && !args.is_object())
+        {
+            out_error = "logic_args must be an object.";
+            return false;
+        }
+        if (!ApplyTextureDebugArgs(args, context, out_error))
+        {
+            return false;
+        }
 
         if (case_config.logic_pack.empty() ||
             case_config.logic_pack == "none")
@@ -74,13 +161,6 @@ namespace Regression
             if (!context.lighting)
             {
                 out_error = "model_viewer_lighting logic pack needs a valid lighting system.";
-                return false;
-            }
-
-            const auto& args = case_config.logic_args;
-            if (!args.is_null() && !args.is_object())
-            {
-                out_error = "logic_args must be an object for model_viewer_lighting logic pack.";
                 return false;
             }
 
@@ -293,13 +373,6 @@ namespace Regression
         if (!context.frosted_glass)
         {
             out_error = "frosted_glass logic pack needs a valid frosted glass system.";
-            return false;
-        }
-
-        const auto& args = case_config.logic_args;
-        if (!args.is_null() && !args.is_object())
-        {
-            out_error = "logic_args must be an object for frosted_glass logic pack.";
             return false;
         }
 
