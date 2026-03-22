@@ -16,17 +16,17 @@ bool RendererModuleMaterial::AddMaterial(const MaterialBase& material)
     }
     
     MaterialShaderInfo material_shader_info{};
+    material_shader_info.albedo = glm::fvec4(1.0f);
+    material_shader_info.normal = glm::fvec4(0.0f, 0.0f, 1.0f, 1.0f);
+    material_shader_info.metallic_and_roughness = glm::fvec4(0.0f, 1.0f, 1.0f, 0.0f);
     if (material.GetParameter(MaterialBase::MaterialParameterUsage::BASE_COLOR))
     {
         auto base_color_parameter = material.GetParameter(MaterialBase::MaterialParameterUsage::BASE_COLOR);
+        material_shader_info.albedo = base_color_parameter->GetFactor();
         if (base_color_parameter->GetType() == MaterialParameter::MaterialParameterType::TEXTURE)
         {
             material_shader_info.albedo_tex_index = m_material_texture_uris.size();
             m_material_texture_uris.push_back(base_color_parameter->GetTexture());
-        }
-        else
-        {
-            material_shader_info.albedo = base_color_parameter->GetFactor();
         }
     }
 
@@ -47,14 +47,11 @@ bool RendererModuleMaterial::AddMaterial(const MaterialBase& material)
     if (material.HasParameter(MaterialBase::MaterialParameterUsage::METALLIC_ROUGHNESS) && material.GetParameter(MaterialBase::MaterialParameterUsage::METALLIC_ROUGHNESS))
     {
         auto metallic_roughness_parameter = material.GetParameter(MaterialBase::MaterialParameterUsage::METALLIC_ROUGHNESS);
+        material_shader_info.metallic_and_roughness = metallic_roughness_parameter->GetFactor();
         if (metallic_roughness_parameter->GetType() == MaterialParameter::MaterialParameterType::TEXTURE)
         {
             material_shader_info.metallic_roughness_tex_index = m_material_texture_uris.size();
             m_material_texture_uris.push_back(metallic_roughness_parameter->GetTexture());
-        }
-        else
-        {
-            material_shader_info.metallic_and_roughness = metallic_roughness_parameter->GetFactor();
         }
     }
 

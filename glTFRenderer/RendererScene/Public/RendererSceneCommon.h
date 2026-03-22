@@ -17,6 +17,7 @@ public:
 
     MaterialParameter(glm::fvec4 factor);
     MaterialParameter(std::string texture);
+    MaterialParameter(std::string texture, glm::fvec4 factor);
 
     MaterialParameterType GetType() const;
     const std::string& GetTexture() const;

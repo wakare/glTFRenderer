@@ -9,11 +9,15 @@ MaterialParameter::MaterialParameter(glm::fvec4 factor)
 }
 
 MaterialParameter::MaterialParameter(std::string texture)
+    : MaterialParameter(std::move(texture), glm::fvec4(1.0f))
+{
+}
+
+MaterialParameter::MaterialParameter(std::string texture, glm::fvec4 factor)
     : m_type(MaterialParameterType::TEXTURE)
     , m_texture_path(std::move(texture))
-    , m_factor(1.0f)
+    , m_factor(factor)
 {
-    
 }
 
 MaterialParameter::MaterialParameterType MaterialParameter::GetType() const

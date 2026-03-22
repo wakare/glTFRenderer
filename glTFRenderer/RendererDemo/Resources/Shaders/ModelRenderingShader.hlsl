@@ -57,12 +57,13 @@ FSOutput MainFS(VSOutput input)
 {
     FSOutput output;
     
-    output.color = SampleAlbedoTexture(input.vs_material_id, input.uv.xy);
+    const float4 base_color = SampleAlbedoTexture(input.vs_material_id, input.uv.xy);
+    const float2 metallic_roughness = SampleMetallicRoughnessTexture(input.vs_material_id, input.uv.xy);
+    output.color = float4(base_color.xyz, metallic_roughness.x);
     
-    float3 normal = normalize(2 * SampleNormalTexture(input.vs_material_id, input.uv).xyz - 1.0);
-    output.normal = float4(GetWorldNormal(input.world_rotation_matrix, input.normal, input.tangent, normal), 0.0);
-
-    output.normal = normalize(output.normal) * 0.5 + 0.5;
+    const float3 tangent_space_normal = normalize(2 * SampleNormalTexture(input.vs_material_id, input.uv).xyz - 1.0);
+    const float3 world_normal = normalize(GetWorldNormal(input.world_rotation_matrix, input.normal, input.tangent, tangent_space_normal));
+    output.normal = float4(world_normal * 0.5 + 0.5, metallic_roughness.y);
 
     float2 velocity_uv = float2(0.0, 0.0);
     if (abs(input.current_clip_pos.w) > 1e-6 && abs(input.prev_clip_pos.w) > 1e-6)
