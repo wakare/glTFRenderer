@@ -117,13 +117,19 @@ void RendererModuleLighting::UploadAllLightInfos(RendererInterface::ResourceOper
         RendererInterface::BufferUploadDesc light_buffer_upload_desc{};
         light_buffer_upload_desc.data = m_light_infos.data();
         light_buffer_upload_desc.size = m_light_infos.size() * sizeof(LightInfo);
-        resource_operator.UploadFrameBufferedBufferData(m_light_buffer_handles, light_buffer_upload_desc);
+        for (const auto handle : m_light_buffer_handles)
+        {
+            resource_operator.UploadBufferData(handle, light_buffer_upload_desc);
+        }
 
         RendererInterface::BufferUploadDesc light_count_upload_desc{};
         unsigned int light_count = m_light_infos.size();
         light_count_upload_desc.data = &light_count;
         light_count_upload_desc.size = sizeof(unsigned);
-        resource_operator.UploadFrameBufferedBufferData(m_light_count_buffer_handles, light_count_upload_desc);
+        for (const auto handle : m_light_count_buffer_handles)
+        {
+            resource_operator.UploadBufferData(handle, light_count_upload_desc);
+        }
     }
     
     m_need_upload_light_infos = false;
