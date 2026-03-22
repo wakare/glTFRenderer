@@ -150,7 +150,83 @@ HDR 观察示例：
 - 构建：`powershell -ExecutionPolicy Bypass -File .\scripts\Build-RendererDemo-Verify.ps1`
 - 回归 capture：`powershell -ExecutionPolicy Bypass -File .\scripts\Capture-RendererRegression.ps1 -Suite <suite-path> -Backend vk -DemoApp <demo-name>`
 
-## 6. 新增一个调试 Source 的推荐方式
+## 6. 推荐命令模板与结果判读
+
+优先复用官方脚本，而不是临时自己拼命令。
+
+推荐命令模板：
+
+- `DemoAppModelViewer` Vulkan smoke：
+  - `powershell -ExecutionPolicy Bypass -File .\scripts\Capture-RendererRegression.ps1 -Suite glTFRenderer\RendererDemo\Resources\RegressionSuites\model_viewer_texture_debug_smoke.json -Backend vk -DemoApp DemoAppModelViewer`
+- `DemoAppModelViewerFrostedGlass` Vulkan smoke：
+  - `powershell -ExecutionPolicy Bypass -File .\scripts\Capture-RendererRegression.ps1 -Suite glTFRenderer\RendererDemo\Resources\RegressionSuites\frosted_glass_texture_debug_smoke.json -Backend vk -DemoApp DemoAppModelViewerFrostedGlass`
+- ad hoc suite：
+  - `powershell -ExecutionPolicy Bypass -File .\scripts\Capture-RendererRegression.ps1 -Suite <repo-relative-suite.json> -Backend vk -DemoApp <demo-name>`
+
+`Build-RendererDemo-Verify.ps1` 的输出字段：
+
+- `STATUS`
+- `EXITCODE`
+- `WARNINGS`
+- `ERRORS`
+- `TXT`
+- `STD`
+- `ERR`
+- `BIN`
+- `OUTDIR`
+- `INTDIR_BASE`
+
+推荐判读方式：
+
+- `STATUS=BuildSucceeded`：构建通过
+- `STATUS=BuildFailed`：构建失败，先看 `TXT`，再看 `STD` / `ERR`
+- `STATUS=BuildTimeout`：watchdog 超时终止
+
+`Capture-RendererRegression.ps1` 的输出字段：
+
+- `STATUS`
+- `EXITCODE`
+- `BACKEND`
+- `DEMO_APP`
+- `SUITE`
+- `OUTPUT_ROOT`
+- `RUN_DIR`
+- `SUMMARY`
+- `CASES`
+- `RESULTS`
+- `FAILED`
+- `SUITE_SUCCESS`
+- `STDOUT`
+- `STDERR`
+
+推荐判读方式：
+
+- `STATUS=RunSucceeded`：suite 成功，`SUMMARY` 是标准结果入口
+- `STATUS=RunCompletedWithFailures`：runner 正常结束，但至少一个 case 失败
+- `STATUS=RunFailed`：进程或运行前置失败
+- `STATUS=RunTimeout`：watchdog 超时终止
+
+优先读取这些字段：
+
+- `SUMMARY`：`suite_result.json`
+- `RUN_DIR`：本次 suite 输出目录
+- `FAILED`：失败 case 数
+- `CASES` / `RESULTS`：数量一致性检查
+
+定位产物时按这个顺序：
+
+1. 先看 `SUMMARY`
+2. 再看 `RUN_DIR\cases\`
+3. 失败时再看 `STDOUT` / `STDERR`
+
+对外汇报时保持精简，只报告：
+
+- 最终状态
+- warning / error 数
+- case 通过/失败数
+- `SUMMARY` 或关键日志路径
+
+## 7. 新增一个调试 Source 的推荐方式
 
 新增 source 时，按下面顺序做：
 
@@ -172,7 +248,7 @@ HDR 观察示例：
 - `glTFRenderer/RendererDemo/DemoApps/DemoAppModelViewer.cpp`
 - `glTFRenderer/RendererDemo/Regression/RegressionLogicPack.cpp`
 
-## 7. 实现约束与维护规则
+## 8. 实现约束与维护规则
 
 这部分是后续继续扩展时必须保留的约束：
 
@@ -188,7 +264,7 @@ HDR 观察示例：
 - regression warmup 长跑是否会持续分配资源
 - snapshot / JSON 恢复是否可靠
 
-## 8. 已验证内容
+## 9. 已验证内容
 
 截至 `2026-03-22`，这套路径已经完成以下验证：
 

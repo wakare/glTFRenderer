@@ -150,7 +150,83 @@ Recommended entry points:
 - build: `powershell -ExecutionPolicy Bypass -File .\scripts\Build-RendererDemo-Verify.ps1`
 - regression capture: `powershell -ExecutionPolicy Bypass -File .\scripts\Capture-RendererRegression.ps1 -Suite <suite-path> -Backend vk -DemoApp <demo-name>`
 
-## 6. Recommended Way to Add a New Debug Source
+## 6. Recommended Command Templates and Result Reading
+
+Prefer the official wrapper scripts instead of inventing ad hoc command lines.
+
+Recommended command templates:
+
+- `DemoAppModelViewer` Vulkan smoke:
+  - `powershell -ExecutionPolicy Bypass -File .\scripts\Capture-RendererRegression.ps1 -Suite glTFRenderer\RendererDemo\Resources\RegressionSuites\model_viewer_texture_debug_smoke.json -Backend vk -DemoApp DemoAppModelViewer`
+- `DemoAppModelViewerFrostedGlass` Vulkan smoke:
+  - `powershell -ExecutionPolicy Bypass -File .\scripts\Capture-RendererRegression.ps1 -Suite glTFRenderer\RendererDemo\Resources\RegressionSuites\frosted_glass_texture_debug_smoke.json -Backend vk -DemoApp DemoAppModelViewerFrostedGlass`
+- ad hoc suite:
+  - `powershell -ExecutionPolicy Bypass -File .\scripts\Capture-RendererRegression.ps1 -Suite <repo-relative-suite.json> -Backend vk -DemoApp <demo-name>`
+
+`Build-RendererDemo-Verify.ps1` emits:
+
+- `STATUS`
+- `EXITCODE`
+- `WARNINGS`
+- `ERRORS`
+- `TXT`
+- `STD`
+- `ERR`
+- `BIN`
+- `OUTDIR`
+- `INTDIR_BASE`
+
+Recommended interpretation:
+
+- `STATUS=BuildSucceeded`: build passed
+- `STATUS=BuildFailed`: build failed; inspect `TXT` first, then `STD` / `ERR`
+- `STATUS=BuildTimeout`: the watchdog terminated the build
+
+`Capture-RendererRegression.ps1` emits:
+
+- `STATUS`
+- `EXITCODE`
+- `BACKEND`
+- `DEMO_APP`
+- `SUITE`
+- `OUTPUT_ROOT`
+- `RUN_DIR`
+- `SUMMARY`
+- `CASES`
+- `RESULTS`
+- `FAILED`
+- `SUITE_SUCCESS`
+- `STDOUT`
+- `STDERR`
+
+Recommended interpretation:
+
+- `STATUS=RunSucceeded`: suite passed; `SUMMARY` is the canonical result entry
+- `STATUS=RunCompletedWithFailures`: the runner completed, but at least one case failed
+- `STATUS=RunFailed`: process launch or run setup failed before clean suite success
+- `STATUS=RunTimeout`: the watchdog terminated the run
+
+Read these fields first:
+
+- `SUMMARY`: path to `suite_result.json`
+- `RUN_DIR`: output directory for this suite run
+- `FAILED`: failed-case count
+- `CASES` / `RESULTS`: sanity check for expected coverage
+
+When locating artifacts, use this order:
+
+1. inspect `SUMMARY`
+2. inspect `RUN_DIR\cases\`
+3. inspect `STDOUT` / `STDERR` when the run failed
+
+Keep reporting concise and include only:
+
+- final status
+- warning / error counts
+- pass/fail counts
+- `SUMMARY` or key log paths
+
+## 7. Recommended Way to Add a New Debug Source
 
 When adding a source, keep this order:
 
@@ -172,7 +248,7 @@ Primary code entry points:
 - `glTFRenderer/RendererDemo/DemoApps/DemoAppModelViewer.cpp`
 - `glTFRenderer/RendererDemo/Regression/RegressionLogicPack.cpp`
 
-## 7. Implementation Constraints and Maintenance Rules
+## 8. Implementation Constraints and Maintenance Rules
 
 These are the constraints that should stay intact as the module evolves:
 
@@ -188,7 +264,7 @@ These rules directly affect:
 - whether long warmup regression runs keep reallocating resources
 - whether snapshot and JSON restore remain reliable
 
-## 8. Validation Status
+## 9. Validation Status
 
 As of `2026-03-22`, the path has been validated with:
 
