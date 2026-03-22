@@ -431,6 +431,16 @@ namespace RendererInterface
         std::string GetLastRenderDocCaptureError() const;
         bool OpenRenderDocCaptureInReplayUI(const std::filesystem::path& capture_path, std::string& out_status);
         bool OpenLastRenderDocCaptureInReplayUI(std::string& out_status);
+        bool ConfigurePIXCapture(bool enable, bool require_available, std::string& out_status);
+        bool RequestPIXCaptureForCurrentFrame(const std::filesystem::path& capture_path, std::string& out_error);
+        bool IsPIXCaptureEnabled() const;
+        bool IsPIXCaptureAvailable() const;
+        bool WasLastPIXCaptureSuccessful() const;
+        unsigned long long GetLastPIXCaptureFrameIndex() const;
+        std::string GetLastPIXCapturePath() const;
+        std::string GetLastPIXCaptureError() const;
+        bool OpenPIXCaptureInUI(const std::filesystem::path& capture_path, std::string& out_status);
+        bool OpenLastPIXCaptureInUI(std::string& out_status);
         void ShutdownRuntimeServices();
         void SetValidationPolicy(const ValidationPolicy& policy);
         ValidationPolicy GetValidationPolicy() const;
@@ -609,6 +619,10 @@ namespace RendererInterface
         void BeginRenderDocFrameCapture();
         void FinalizeRenderDocFrameCapture();
         void ShutdownRenderDocCapture();
+        bool InitPIXCapture(bool require_available, std::string& out_status);
+        void BeginPIXFrameCapture();
+        void FinalizePIXFrameCapture();
+        void ShutdownPIXCapture();
         bool ResolveFinalColorOutput();
         void ExecuteTickAndDebugUI(unsigned long long interval);
         bool SyncWindowSurfaceAndAdvanceFrame(FramePreparationContext& frame_context, unsigned long long interval);
@@ -661,6 +675,8 @@ namespace RendererInterface
         std::unique_ptr<GPUProfilerState> m_gpu_profiler_state;
         struct RenderDocCaptureState;
         std::unique_ptr<RenderDocCaptureState> m_renderdoc_capture_state;
+        struct PIXCaptureState;
+        std::unique_ptr<PIXCaptureState> m_pix_capture_state;
         FrameStats m_last_frame_stats{};
         FrameTimingBreakdown m_current_frame_timing_breakdown{};
         FrameTimingBreakdown m_last_frame_timing_breakdown{};
@@ -693,6 +709,7 @@ namespace RendererInterface
         std::shared_ptr<ResourceOperator>& resource_operator,
         bool clear_window_handles = false);
     bool PreloadRenderDocRuntime(RenderDeviceType device_type, bool require_available, std::string& out_status);
+    bool PreloadPIXRuntime(RenderDeviceType device_type, bool require_available, std::string& out_status);
     void ShutdownWindowing();
     
     class RendererSceneResourceManager

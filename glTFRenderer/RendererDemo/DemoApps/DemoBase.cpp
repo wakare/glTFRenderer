@@ -194,6 +194,7 @@ void DemoBase::TickFrame(unsigned long long time_interval)
     }
     TickFrameInternal(time_interval);
     PollPendingRenderDocCapture();
+    PollPendingPIXCapture();
     const auto tick_other_end = std::chrono::steady_clock::now();
 
     if (m_resource_manager && m_render_graph)
@@ -408,16 +409,16 @@ void DemoBase::DrawDebugUI()
                 ImGui::TextWrapped("Startup Status: %s", m_renderdoc_startup_status.c_str());
             }
 
-            ImGui::Checkbox("Auto Open Replay UI After Capture", &m_renderdoc_auto_open_after_capture);
-            ImGui::InputText("Capture Name", m_renderdoc_capture_name, IM_ARRAYSIZE(m_renderdoc_capture_name));
-            ImGui::InputText("Capture Dir", m_renderdoc_capture_directory, IM_ARRAYSIZE(m_renderdoc_capture_directory));
+            ImGui::Checkbox("Auto Open Replay UI After Capture##RenderDoc", &m_renderdoc_auto_open_after_capture);
+            ImGui::InputText("Capture Name##RenderDoc", m_renderdoc_capture_name, IM_ARRAYSIZE(m_renderdoc_capture_name));
+            ImGui::InputText("Capture Dir##RenderDoc", m_renderdoc_capture_directory, IM_ARRAYSIZE(m_renderdoc_capture_directory));
 
             const bool disable_capture_button = m_renderdoc_manual_capture_pending;
             if (disable_capture_button)
             {
                 ImGui::BeginDisabled();
             }
-            if (ImGui::Button("Capture Current Frame"))
+            if (ImGui::Button("Capture Current Frame##RenderDoc"))
             {
                 QueueManualRenderDocCapture(m_renderdoc_auto_open_after_capture);
             }
@@ -458,6 +459,68 @@ void DemoBase::DrawDebugUI()
             if (!m_renderdoc_ui_status.empty())
             {
                 ImGui::TextWrapped("RenderDoc Status: %s", m_renderdoc_ui_status.c_str());
+            }
+        }
+
+        if (m_render_graph && ImGui::CollapsingHeader("PIX"))
+        {
+            ImGui::Text("Capture Enabled: %s", m_render_graph->IsPIXCaptureEnabled() ? "Yes" : "No");
+            ImGui::Text("Capture Available: %s", m_render_graph->IsPIXCaptureAvailable() ? "Yes" : "No");
+            if (!m_pix_startup_status.empty())
+            {
+                ImGui::TextWrapped("Startup Status: %s", m_pix_startup_status.c_str());
+            }
+
+            ImGui::Checkbox("Auto Open PIX UI After Capture##PIX", &m_pix_auto_open_after_capture);
+            ImGui::InputText("Capture Name##PIX", m_pix_capture_name, IM_ARRAYSIZE(m_pix_capture_name));
+            ImGui::InputText("Capture Dir##PIX", m_pix_capture_directory, IM_ARRAYSIZE(m_pix_capture_directory));
+
+            const bool disable_capture_button = m_pix_manual_capture_pending;
+            if (disable_capture_button)
+            {
+                ImGui::BeginDisabled();
+            }
+            if (ImGui::Button("Capture Current Frame##PIX"))
+            {
+                QueueManualPIXCapture(m_pix_auto_open_after_capture);
+            }
+            if (disable_capture_button)
+            {
+                ImGui::EndDisabled();
+            }
+
+            const bool has_last_capture =
+                m_render_graph->WasLastPIXCaptureSuccessful() &&
+                !m_render_graph->GetLastPIXCapturePath().empty();
+            ImGui::SameLine();
+            const bool disable_open_last_capture = !has_last_capture;
+            if (disable_open_last_capture)
+            {
+                ImGui::BeginDisabled();
+            }
+            if (ImGui::Button("Open Last Capture In PIX"))
+            {
+                OpenLastPIXCaptureInUI();
+            }
+            if (disable_open_last_capture)
+            {
+                ImGui::EndDisabled();
+            }
+
+            if (m_pix_manual_capture_pending)
+            {
+                ImGui::Text(
+                    "Pending Capture Frame: %llu",
+                    static_cast<unsigned long long>(m_pix_manual_capture_frame_index));
+            }
+
+            if (has_last_capture)
+            {
+                ImGui::TextWrapped("Last Capture: %s", m_render_graph->GetLastPIXCapturePath().c_str());
+            }
+            if (!m_pix_ui_status.empty())
+            {
+                ImGui::TextWrapped("PIX Status: %s", m_pix_ui_status.c_str());
             }
         }
 
@@ -1105,6 +1168,71 @@ void DemoBase::PollPendingRenderDocCapture()
     m_renderdoc_manual_capture_requested_path.clear();
 }
 
+void DemoBase::PollPendingPIXCapture()
+{
+    if (!m_pix_manual_capture_pending)
+    {
+        return;
+    }
+
+    if (!m_render_graph)
+    {
+        m_pix_manual_capture_pending = false;
+        m_pix_manual_capture_auto_open = false;
+        m_pix_manual_capture_frame_index = 0ull;
+        m_pix_manual_capture_requested_path.clear();
+        m_pix_ui_status = "PIX manual capture failed: render graph is unavailable.";
+        return;
+    }
+
+    const unsigned long long captured_frame_index = m_render_graph->GetLastPIXCaptureFrameIndex();
+    if (captured_frame_index == 0ull || captured_frame_index < m_pix_manual_capture_frame_index)
+    {
+        return;
+    }
+
+    const bool capture_success = m_render_graph->WasLastPIXCaptureSuccessful();
+    const std::string capture_error = m_render_graph->GetLastPIXCaptureError();
+    const std::string capture_path = m_render_graph->GetLastPIXCapturePath();
+    if (!capture_success)
+    {
+        m_pix_ui_status =
+            "PIX manual capture failed: " +
+            (capture_error.empty() ? std::string("unknown error.") : capture_error);
+    }
+    else if (captured_frame_index != m_pix_manual_capture_frame_index)
+    {
+        m_pix_ui_status =
+            "PIX manual capture frame mismatch. Expected frame " +
+            std::to_string(m_pix_manual_capture_frame_index) +
+            ", got " + std::to_string(captured_frame_index) + ".";
+    }
+    else
+    {
+        const std::string resolved_capture_path =
+            !capture_path.empty() ? capture_path : m_pix_manual_capture_requested_path.string();
+        m_pix_ui_status = "PIX manual capture completed: " + resolved_capture_path;
+
+        if (m_pix_manual_capture_auto_open)
+        {
+            std::string open_status{};
+            if (m_render_graph->OpenPIXCaptureInUI(std::filesystem::path(resolved_capture_path), open_status))
+            {
+                m_pix_ui_status += " " + open_status;
+            }
+            else
+            {
+                m_pix_ui_status += " Auto-open failed: " + open_status;
+            }
+        }
+    }
+
+    m_pix_manual_capture_pending = false;
+    m_pix_manual_capture_auto_open = false;
+    m_pix_manual_capture_frame_index = 0ull;
+    m_pix_manual_capture_requested_path.clear();
+}
+
 bool DemoBase::PreloadRenderDocForDevice(
     RendererInterface::RenderDeviceType device_type,
     bool log_status,
@@ -1148,6 +1276,49 @@ bool DemoBase::PreloadRenderDocForDevice(
     return true;
 }
 
+bool DemoBase::PreloadPIXForDevice(
+    RendererInterface::RenderDeviceType device_type,
+    bool log_status,
+    std::string& out_error)
+{
+    out_error.clear();
+
+    if (!m_pix_preload_requested)
+    {
+        m_pix_startup_status =
+            "PIX startup preload is disabled. Launch with -pix-ui, -pix-capture, or -pix-required "
+            "to enable manual capture before device initialization.";
+        return true;
+    }
+
+    std::string pix_status{};
+    const bool preload_ok =
+        RendererInterface::PreloadPIXRuntime(device_type, m_pix_required, pix_status);
+    if (!pix_status.empty())
+    {
+        m_pix_startup_status = pix_status;
+        if (log_status)
+        {
+            std::printf("[PIX] %s\n", pix_status.c_str());
+        }
+    }
+
+    if (!preload_ok && m_pix_required)
+    {
+        out_error = !pix_status.empty()
+            ? pix_status
+            : "PIX runtime is required but could not be preloaded before device initialization.";
+        return false;
+    }
+
+    if (!preload_ok && !pix_status.empty())
+    {
+        m_pix_ui_status = pix_status;
+    }
+
+    return true;
+}
+
 bool DemoBase::EnsureRenderDocCaptureConfigured(bool require_available, std::string& out_status)
 {
     out_status.clear();
@@ -1174,6 +1345,32 @@ bool DemoBase::EnsureRenderDocCaptureConfigured(bool require_available, std::str
     return true;
 }
 
+bool DemoBase::EnsurePIXCaptureConfigured(bool require_available, std::string& out_status)
+{
+    out_status.clear();
+    if (!m_render_graph)
+    {
+        out_status = "PIX capture is unavailable because the render graph is not initialized.";
+        return false;
+    }
+
+    if (!m_render_graph->ConfigurePIXCapture(true, require_available, out_status))
+    {
+        return false;
+    }
+
+    if (!m_render_graph->IsPIXCaptureAvailable())
+    {
+        if (out_status.empty())
+        {
+            out_status = "PIX capture is not available for this runtime.";
+        }
+        return false;
+    }
+
+    return true;
+}
+
 std::filesystem::path DemoBase::BuildManualRenderDocCapturePath() const
 {
     const std::string capture_name = m_renderdoc_capture_name;
@@ -1185,6 +1382,19 @@ std::filesystem::path DemoBase::BuildManualRenderDocCapturePath() const
         output_dir = std::filesystem::path("build_logs") / "renderdoc";
     }
     return output_dir / (capture_stem + "_" + BuildTimestampString() + ".rdc");
+}
+
+std::filesystem::path DemoBase::BuildManualPIXCapturePath() const
+{
+    const std::string capture_name = m_pix_capture_name;
+    const std::string capture_stem =
+        capture_name.empty() ? std::string("capture") : SanitizeFileName(capture_name);
+    std::filesystem::path output_dir = std::filesystem::path(m_pix_capture_directory);
+    if (output_dir.empty())
+    {
+        output_dir = std::filesystem::path("build_logs") / "pix";
+    }
+    return output_dir / (capture_stem + "_" + BuildTimestampString() + ".wpix");
 }
 
 bool DemoBase::QueueManualRenderDocCapture(bool auto_open_replay_ui)
@@ -1223,6 +1433,42 @@ bool DemoBase::QueueManualRenderDocCapture(bool auto_open_replay_ui)
     return true;
 }
 
+bool DemoBase::QueueManualPIXCapture(bool auto_open_replay_ui)
+{
+    if (m_pix_manual_capture_pending)
+    {
+        m_pix_ui_status = "PIX manual capture is already pending.";
+        return false;
+    }
+
+    std::string pix_status{};
+    if (!EnsurePIXCaptureConfigured(false, pix_status))
+    {
+        m_pix_ui_status = pix_status;
+        return false;
+    }
+
+    const std::filesystem::path capture_path = BuildManualPIXCapturePath();
+    std::string request_error{};
+    if (!m_render_graph->RequestPIXCaptureForCurrentFrame(capture_path, request_error))
+    {
+        m_pix_ui_status =
+            "PIX manual capture request failed: " +
+            (request_error.empty() ? std::string("unknown error.") : request_error);
+        return false;
+    }
+
+    m_pix_manual_capture_pending = true;
+    m_pix_manual_capture_auto_open = auto_open_replay_ui;
+    m_pix_manual_capture_frame_index = m_render_graph->GetCurrentFrameIndex();
+    m_pix_manual_capture_requested_path = capture_path;
+    m_pix_ui_status =
+        "PIX manual capture armed for frame " +
+        std::to_string(m_pix_manual_capture_frame_index) +
+        ": " + capture_path.string();
+    return true;
+}
+
 bool DemoBase::OpenLastRenderDocCaptureInReplayUI()
 {
     if (!m_render_graph)
@@ -1237,11 +1483,26 @@ bool DemoBase::OpenLastRenderDocCaptureInReplayUI()
     return opened;
 }
 
+bool DemoBase::OpenLastPIXCaptureInUI()
+{
+    if (!m_render_graph)
+    {
+        m_pix_ui_status = "PIX UI launch failed: render graph is unavailable.";
+        return false;
+    }
+
+    std::string open_status{};
+    const bool opened = m_render_graph->OpenLastPIXCaptureInUI(open_status);
+    m_pix_ui_status = open_status;
+    return opened;
+}
+
 bool DemoBase::Init(const std::vector<std::string>& arguments)
 {
     m_launch_arguments = arguments;
     const std::string default_capture_name = SanitizeFileName(GetDemoCommandName());
     std::snprintf(m_renderdoc_capture_name, sizeof(m_renderdoc_capture_name), "%s", default_capture_name.c_str());
+    std::snprintf(m_pix_capture_name, sizeof(m_pix_capture_name), "%s", default_capture_name.c_str());
     m_renderdoc_preload_requested = false;
     m_renderdoc_required = false;
     m_renderdoc_manual_capture_pending = false;
@@ -1250,6 +1511,14 @@ bool DemoBase::Init(const std::vector<std::string>& arguments)
     m_renderdoc_manual_capture_requested_path.clear();
     m_renderdoc_startup_status.clear();
     m_renderdoc_ui_status.clear();
+    m_pix_preload_requested = false;
+    m_pix_required = false;
+    m_pix_manual_capture_pending = false;
+    m_pix_manual_capture_auto_open = false;
+    m_pix_manual_capture_frame_index = 0ull;
+    m_pix_manual_capture_requested_path.clear();
+    m_pix_startup_status.clear();
+    m_pix_ui_status.clear();
     m_startup_snapshot_path.clear();
     const std::string snapshot_prefix = "-snapshot=";
     for (const auto& argument : arguments)
@@ -1301,6 +1570,14 @@ void DemoBase::CleanupWindowBoundRuntimeIfNeeded(bool clear_window_handles)
     m_renderdoc_manual_capture_auto_open = false;
     m_renderdoc_manual_capture_frame_index = 0ull;
     m_renderdoc_manual_capture_requested_path.clear();
+    if (m_pix_manual_capture_pending)
+    {
+        m_pix_ui_status = "PIX manual capture was cancelled because the runtime was recreated or shut down.";
+    }
+    m_pix_manual_capture_pending = false;
+    m_pix_manual_capture_auto_open = false;
+    m_pix_manual_capture_frame_index = 0ull;
+    m_pix_manual_capture_requested_path.clear();
     m_window_runtime_cleaned_up = true;
     m_rhi_switch_requested = false;
     m_rhi_switch_callback_installed = false;
@@ -1361,6 +1638,7 @@ bool DemoBase::InitRenderContext(const std::vector<std::string>& arguments)
     RendererInterface::SwapchainPresentMode swapchain_present_mode = RendererInterface::SwapchainPresentMode::VSYNC;
     bool disable_debug_ui = false;
     bool log_renderdoc_status = false;
+    bool log_pix_status = false;
     
     for (const auto& argument : arguments)
     {
@@ -1407,6 +1685,25 @@ bool DemoBase::InitRenderContext(const std::vector<std::string>& arguments)
             m_renderdoc_preload_requested = true;
             log_renderdoc_status = true;
         }
+
+        if (argument == "-pix-capture")
+        {
+            m_pix_preload_requested = true;
+            log_pix_status = true;
+        }
+
+        if (argument == "-pix-required")
+        {
+            m_pix_preload_requested = true;
+            m_pix_required = true;
+            log_pix_status = true;
+        }
+
+        if (argument == "-pix-ui")
+        {
+            m_pix_preload_requested = true;
+            log_pix_status = true;
+        }
     }
 
     {
@@ -1414,6 +1711,10 @@ bool DemoBase::InitRenderContext(const std::vector<std::string>& arguments)
         const RendererInterface::RenderDeviceType render_device_type =
             bUseDX ? RendererInterface::DX12 : RendererInterface::VULKAN;
         if (!PreloadRenderDocForDevice(render_device_type, log_renderdoc_status, preload_error))
+        {
+            return false;
+        }
+        if (!PreloadPIXForDevice(render_device_type, log_pix_status, preload_error))
         {
             return false;
         }
@@ -1907,6 +2208,14 @@ bool DemoBase::ExecutePendingRHISwitch()
     {
         std::string preload_error{};
         if (!PreloadRenderDocForDevice(m_pending_render_device_type, false, preload_error))
+        {
+            m_rhi_switch_last_error = preload_error;
+            m_rhi_switch_requested = false;
+            m_rhi_switch_in_progress = false;
+            m_rhi_switch_callback_installed = false;
+            return false;
+        }
+        if (!PreloadPIXForDevice(m_pending_render_device_type, false, preload_error))
         {
             m_rhi_switch_last_error = preload_error;
             m_rhi_switch_requested = false;

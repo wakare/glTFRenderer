@@ -29,6 +29,15 @@
 #include "RHIInterface/IRHISwapChain.h"
 #include "RHIInterface/RHIIndexBuffer.h"
 #include <renderdoc/renderdoc_app.h>
+#ifndef USE_PIX
+#define USE_PIX
+#define GLTF_RENDERER_LOCAL_USE_PIX
+#endif
+#include <pix3.h>
+#ifdef GLTF_RENDERER_LOCAL_USE_PIX
+#undef GLTF_RENDERER_LOCAL_USE_PIX
+#undef USE_PIX
+#endif
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_glfw.h>
 
@@ -85,9 +94,37 @@ namespace RendererInterface
         CompletedCapture last_result{};
     };
 
+    struct RenderGraph::PIXCaptureState
+    {
+        struct PendingCapture
+        {
+            bool armed{false};
+            bool started{false};
+            unsigned long long frame_index{0};
+            std::filesystem::path requested_path{};
+        };
+
+        struct CompletedCapture
+        {
+            bool attempted{false};
+            bool success{false};
+            unsigned long long frame_index{0};
+            std::string capture_path{};
+            std::string error{};
+        };
+
+        bool enabled{false};
+        bool required{false};
+        bool available{false};
+        std::string status{};
+        PendingCapture pending{};
+        CompletedCapture last_result{};
+    };
+
     namespace
     {
         bool g_renderdoc_runtime_loaded_by_app = false;
+        bool g_pix_runtime_loaded_by_app = false;
 
         std::string WideStringToUtf8(const std::wstring& value)
         {
@@ -126,6 +163,18 @@ namespace RendererInterface
         std::string PathToUtf8String(const std::filesystem::path& path)
         {
             return WideStringToUtf8(path.wstring());
+        }
+
+        std::string FormatHex32(uint32_t value)
+        {
+            char buffer[16]{};
+            std::snprintf(buffer, sizeof(buffer), "0x%08X", value);
+            return buffer;
+        }
+
+        std::string FormatHRESULT(HRESULT value)
+        {
+            return FormatHex32(static_cast<uint32_t>(value));
         }
 
         std::string QuoteCommandLineArgument(std::string value)
@@ -3486,6 +3535,7 @@ namespace RendererInterface
     void RenderGraph::ExecuteRenderGraphFrame(FramePreparationContext& frame_context, unsigned long long interval)
     {
         BeginRenderDocFrameCapture();
+        BeginPIXFrameCapture();
         const auto planning_begin = std::chrono::steady_clock::now();
         m_resource_allocator.ApplyFrameBufferedRenderTargetAliases();
         if (m_final_color_output_render_target_handle != NULL_HANDLE)
@@ -3645,6 +3695,7 @@ namespace RendererInterface
             const auto submit_end = std::chrono::steady_clock::now();
             m_current_frame_timing_breakdown.submit_command_list_ms = ToMilliseconds(submit_begin, submit_end);
             FinalizeRenderDocFrameCapture();
+            FinalizePIXFrameCapture();
 
             // Clear all nodes at end of frame
             m_render_graph_node_handles.clear();
@@ -3661,6 +3712,7 @@ namespace RendererInterface
         const auto present_end = std::chrono::steady_clock::now();
         m_current_frame_timing_breakdown.present_ms = ToMilliseconds(present_begin, present_end);
         FinalizeRenderDocFrameCapture();
+        FinalizePIXFrameCapture();
 
         // Clear all nodes at end of frame
         m_render_graph_node_handles.clear();
@@ -3771,6 +3823,16 @@ namespace RendererInterface
         if (!renderdoc_state.available || !renderdoc_state.api)
         {
             out_error = !renderdoc_state.status.empty() ? renderdoc_state.status : "RenderDoc API unavailable.";
+            return false;
+        }
+        if (m_pix_capture_state && m_pix_capture_state->pending.armed)
+        {
+            out_error = "PIX capture is already armed for a frame.";
+            return false;
+        }
+        if (m_pix_capture_state && (PIXGetCaptureState() & PIX_CAPTURE_GPU) != 0u)
+        {
+            out_error = "PIX is already capturing a frame.";
             return false;
         }
         if (renderdoc_state.pending.armed)
@@ -3916,6 +3978,171 @@ namespace RendererInterface
         return OpenRenderDocCaptureInReplayUI(std::filesystem::path(capture_path), out_status);
     }
 
+    bool RenderGraph::ConfigurePIXCapture(bool enable, bool require_available, std::string& out_status)
+    {
+        if (!enable)
+        {
+            if (m_pix_capture_state)
+            {
+                auto& pix_state = *m_pix_capture_state;
+                pix_state.enabled = false;
+                pix_state.required = false;
+                pix_state.pending = {};
+            }
+            out_status = "PIX capture disabled.";
+            return true;
+        }
+
+        if (!m_pix_capture_state)
+        {
+            m_pix_capture_state = std::make_unique<PIXCaptureState>();
+        }
+
+        auto& pix_state = *m_pix_capture_state;
+        pix_state.enabled = true;
+        pix_state.required = require_available;
+        if (pix_state.available)
+        {
+            out_status = pix_state.status.empty() ? "PIX GPU capture ready." : pix_state.status;
+            return true;
+        }
+
+        const bool initialized = InitPIXCapture(require_available, out_status);
+        if (!initialized && !require_available)
+        {
+            return true;
+        }
+        return initialized;
+    }
+
+    bool RenderGraph::RequestPIXCaptureForCurrentFrame(const std::filesystem::path& capture_path, std::string& out_error)
+    {
+        out_error.clear();
+        if (!m_pix_capture_state || !m_pix_capture_state->enabled)
+        {
+            out_error = "PIX capture is not enabled for this run.";
+            return false;
+        }
+
+        auto& pix_state = *m_pix_capture_state;
+        if (!pix_state.available)
+        {
+            out_error = !pix_state.status.empty() ? pix_state.status : "PIX capture API unavailable.";
+            return false;
+        }
+        if (m_renderdoc_capture_state && m_renderdoc_capture_state->pending.armed)
+        {
+            out_error = "RenderDoc capture is already armed for a frame.";
+            return false;
+        }
+        if (m_renderdoc_capture_state &&
+            m_renderdoc_capture_state->available &&
+            m_renderdoc_capture_state->api &&
+            m_renderdoc_capture_state->api->IsFrameCapturing())
+        {
+            out_error = "RenderDoc is already capturing a frame.";
+            return false;
+        }
+        if (pix_state.pending.armed)
+        {
+            out_error = "PIX capture is already armed for a frame.";
+            return false;
+        }
+        if ((PIXGetCaptureState() & PIX_CAPTURE_GPU) != 0u)
+        {
+            out_error = "PIX is already capturing a frame.";
+            return false;
+        }
+
+        std::error_code fs_error;
+        const std::filesystem::path absolute_path = std::filesystem::absolute(capture_path, fs_error);
+        const std::filesystem::path resolved_path = fs_error ? capture_path : absolute_path;
+        const auto parent_path = resolved_path.parent_path();
+        if (!parent_path.empty())
+        {
+            std::filesystem::create_directories(parent_path, fs_error);
+            if (fs_error)
+            {
+                out_error = "Failed to create PIX output directory: " + parent_path.string();
+                return false;
+            }
+        }
+
+        pix_state.pending = {};
+        pix_state.pending.armed = true;
+        pix_state.pending.frame_index = m_frame_index;
+        pix_state.pending.requested_path = resolved_path;
+        return true;
+    }
+
+    bool RenderGraph::IsPIXCaptureEnabled() const
+    {
+        return m_pix_capture_state && m_pix_capture_state->enabled;
+    }
+
+    bool RenderGraph::IsPIXCaptureAvailable() const
+    {
+        return m_pix_capture_state && m_pix_capture_state->available;
+    }
+
+    bool RenderGraph::WasLastPIXCaptureSuccessful() const
+    {
+        return m_pix_capture_state && m_pix_capture_state->last_result.success;
+    }
+
+    unsigned long long RenderGraph::GetLastPIXCaptureFrameIndex() const
+    {
+        return m_pix_capture_state ? m_pix_capture_state->last_result.frame_index : 0ull;
+    }
+
+    std::string RenderGraph::GetLastPIXCapturePath() const
+    {
+        return m_pix_capture_state ? m_pix_capture_state->last_result.capture_path : std::string{};
+    }
+
+    std::string RenderGraph::GetLastPIXCaptureError() const
+    {
+        return m_pix_capture_state ? m_pix_capture_state->last_result.error : std::string{};
+    }
+
+    bool RenderGraph::OpenPIXCaptureInUI(const std::filesystem::path& capture_path, std::string& out_status)
+    {
+        std::error_code fs_error;
+        const std::filesystem::path absolute_path = std::filesystem::absolute(capture_path, fs_error);
+        const std::filesystem::path resolved_path = fs_error ? capture_path : absolute_path;
+        if (resolved_path.empty())
+        {
+            out_status = "PIX UI launch failed: capture path is empty.";
+            return false;
+        }
+        if (!std::filesystem::exists(resolved_path, fs_error))
+        {
+            out_status = "PIX UI launch failed: capture file does not exist: " + resolved_path.string();
+            return false;
+        }
+
+        const auto open_result = reinterpret_cast<intptr_t>(PIXOpenCaptureInUI(resolved_path.c_str()));
+        if (open_result > 32)
+        {
+            out_status = "PIX UI launched for capture: " + resolved_path.string();
+            return true;
+        }
+
+        out_status = "PIX UI launch failed for capture: " + resolved_path.string();
+        return false;
+    }
+
+    bool RenderGraph::OpenLastPIXCaptureInUI(std::string& out_status)
+    {
+        const std::string capture_path = GetLastPIXCapturePath();
+        if (capture_path.empty())
+        {
+            out_status = "PIX UI launch failed: there is no completed capture to open.";
+            return false;
+        }
+        return OpenPIXCaptureInUI(std::filesystem::path(capture_path), out_status);
+    }
+
     void RenderGraph::ShutdownRuntimeServices()
     {
         m_tick_callback = nullptr;
@@ -3924,6 +4151,7 @@ namespace RendererInterface
         m_final_color_output_texture_handle = NULL_HANDLE;
         m_final_color_output_render_target_handle = NULL_HANDLE;
         m_missing_final_color_output_logged = false;
+        ShutdownPIXCapture();
         ShutdownRenderDocCapture();
         ShutdownGPUProfiler();
         ShutdownDebugUI();
@@ -4204,6 +4432,46 @@ namespace RendererInterface
 
         (void)require_available;
         out_status = "RenderDoc runtime preloaded before device initialization.";
+        return true;
+    }
+
+    bool PreloadPIXRuntime(RenderDeviceType device_type, bool require_available, std::string& out_status)
+    {
+        (void)require_available;
+        out_status.clear();
+
+        if (device_type != DX12)
+        {
+            out_status = "PIX GPU capture is only supported for DX12 runtimes.";
+            return false;
+        }
+
+        HMODULE module_handle = GetModuleHandleW(L"WinPixGpuCapturer.dll");
+        if (!module_handle)
+        {
+            module_handle = PIXLoadLatestWinPixGpuCapturerLibrary();
+            if (module_handle)
+            {
+                g_pix_runtime_loaded_by_app = true;
+            }
+        }
+
+        if (!module_handle)
+        {
+            const DWORD last_error = GetLastError();
+            out_status =
+                "PIX runtime unavailable before device initialization: failed to load WinPixGpuCapturer.dll";
+            if (last_error != ERROR_SUCCESS)
+            {
+                out_status += " (Win32 " + FormatHex32(last_error) + ")";
+            }
+            out_status += ". Install PIX or launch the app through PIX.";
+            return false;
+        }
+
+        out_status = g_pix_runtime_loaded_by_app
+            ? "PIX GPU capturer preloaded before DX12 device initialization."
+            : "PIX GPU capturer is already present before DX12 device initialization.";
         return true;
     }
 
@@ -4582,6 +4850,171 @@ namespace RendererInterface
         renderdoc_state.module_handle = nullptr;
         renderdoc_state.owns_module = false;
         m_renderdoc_capture_state.reset();
+    }
+
+    bool RenderGraph::InitPIXCapture(bool require_available, std::string& out_status)
+    {
+        if (!m_pix_capture_state)
+        {
+            m_pix_capture_state = std::make_unique<PIXCaptureState>();
+        }
+
+        auto& pix_state = *m_pix_capture_state;
+        pix_state.required = require_available;
+        if (pix_state.available)
+        {
+            out_status = pix_state.status;
+            return true;
+        }
+
+        if (RHIConfigSingleton::Instance().GetGraphicsAPIType() != RHIGraphicsAPIType::RHI_GRAPHICS_API_DX12)
+        {
+            pix_state.available = false;
+            pix_state.status = "PIX GPU capture is unavailable: only DX12 runtimes are supported.";
+            out_status = pix_state.status;
+            return false;
+        }
+
+        HMODULE module_handle = GetModuleHandleW(L"WinPixGpuCapturer.dll");
+        if (!module_handle)
+        {
+            pix_state.available = false;
+            pix_state.status =
+                "PIX GPU capture is unavailable: WinPixGpuCapturer.dll must be loaded before DX12 device initialization.";
+            out_status = pix_state.status;
+            return false;
+        }
+
+        pix_state.available = true;
+        pix_state.status = g_pix_runtime_loaded_by_app
+            ? "PIX GPU capture ready."
+            : "PIX GPU capturer detected in the current process.";
+        out_status = pix_state.status;
+        return true;
+    }
+
+    void RenderGraph::BeginPIXFrameCapture()
+    {
+        if (!m_pix_capture_state)
+        {
+            return;
+        }
+
+        auto& pix_state = *m_pix_capture_state;
+        if (!pix_state.enabled ||
+            !pix_state.available ||
+            !pix_state.pending.armed ||
+            pix_state.pending.started ||
+            pix_state.pending.frame_index != m_frame_index)
+        {
+            return;
+        }
+
+        pix_state.last_result = {};
+        pix_state.last_result.attempted = true;
+        pix_state.last_result.frame_index = pix_state.pending.frame_index;
+
+        if ((PIXGetCaptureState() & PIX_CAPTURE_GPU) != 0u)
+        {
+            pix_state.last_result.error = "PIX is already capturing a frame.";
+            pix_state.pending = {};
+            return;
+        }
+
+        const std::wstring capture_path = pix_state.pending.requested_path.wstring();
+        if (capture_path.empty())
+        {
+            pix_state.last_result.error = "Failed to build PIX capture file path.";
+            pix_state.pending = {};
+            return;
+        }
+
+        PIXCaptureParameters capture_parameters{};
+        capture_parameters.GpuCaptureParameters.FileName = capture_path.c_str();
+        const HRESULT result = PIXBeginCapture(PIX_CAPTURE_GPU, &capture_parameters);
+        if (FAILED(result))
+        {
+            pix_state.last_result.error =
+                "PIX failed to start frame capture (HRESULT " + FormatHRESULT(result) + ").";
+            pix_state.pending = {};
+            return;
+        }
+
+        pix_state.pending.started = true;
+    }
+
+    void RenderGraph::FinalizePIXFrameCapture()
+    {
+        if (!m_pix_capture_state)
+        {
+            return;
+        }
+
+        auto& pix_state = *m_pix_capture_state;
+        if (!pix_state.pending.armed || pix_state.pending.frame_index != m_frame_index)
+        {
+            return;
+        }
+
+        auto& result = pix_state.last_result;
+        if (!result.attempted)
+        {
+            result = {};
+            result.attempted = true;
+            result.frame_index = pix_state.pending.frame_index;
+        }
+
+        if (!pix_state.pending.started)
+        {
+            result.success = false;
+            if (result.error.empty())
+            {
+                result.error = "PIX capture was armed but did not start on the requested frame.";
+            }
+            pix_state.pending = {};
+            return;
+        }
+
+        const HRESULT end_result = PIXEndCapture(FALSE);
+        if (FAILED(end_result))
+        {
+            result.success = false;
+            result.error = "PIX failed to finalize frame capture (HRESULT " + FormatHRESULT(end_result) + ").";
+            pix_state.pending = {};
+            return;
+        }
+
+        result.capture_path = pix_state.pending.requested_path.string();
+        result.success = !result.capture_path.empty() &&
+            std::filesystem::exists(pix_state.pending.requested_path);
+        if (!result.success)
+        {
+            result.error = "PIX reported success but the capture file was not found: " +
+                pix_state.pending.requested_path.string();
+        }
+        else
+        {
+            result.error.clear();
+        }
+
+        pix_state.pending = {};
+    }
+
+    void RenderGraph::ShutdownPIXCapture()
+    {
+        if (!m_pix_capture_state)
+        {
+            return;
+        }
+
+        auto& pix_state = *m_pix_capture_state;
+        if ((PIXGetCaptureState() & PIX_CAPTURE_GPU) != 0u)
+        {
+            PIXEndCapture(FALSE);
+        }
+
+        pix_state.pending = {};
+        m_pix_capture_state.reset();
     }
 
     bool RenderGraph::InitGPUProfiler()

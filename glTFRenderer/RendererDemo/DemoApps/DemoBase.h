@@ -54,13 +54,21 @@ protected:
     void RefreshImportableStateSnapshotList();
     bool DeleteSelectedStateSnapshotJson();
     void PollPendingRenderDocCapture();
+    void PollPendingPIXCapture();
     bool PreloadRenderDocForDevice(RendererInterface::RenderDeviceType device_type,
                                    bool log_status,
                                    std::string& out_error);
+    bool PreloadPIXForDevice(RendererInterface::RenderDeviceType device_type,
+                             bool log_status,
+                             std::string& out_error);
     bool EnsureRenderDocCaptureConfigured(bool require_available, std::string& out_status);
+    bool EnsurePIXCaptureConfigured(bool require_available, std::string& out_status);
     std::filesystem::path BuildManualRenderDocCapturePath() const;
+    std::filesystem::path BuildManualPIXCapturePath() const;
     bool QueueManualRenderDocCapture(bool auto_open_replay_ui);
+    bool QueueManualPIXCapture(bool auto_open_replay_ui);
     bool OpenLastRenderDocCaptureInReplayUI();
+    bool OpenLastPIXCaptureInUI();
     bool CreateRenderRuntimeContext(const RendererInterface::RenderDeviceDesc& device_desc, bool disable_debug_ui);
     bool InitializeRuntimeModulesAndSystems();
     void StartRenderGraphExecution();
@@ -146,6 +154,17 @@ protected:
     std::filesystem::path m_renderdoc_manual_capture_requested_path{};
     std::string m_renderdoc_startup_status{};
     std::string m_renderdoc_ui_status{};
+    char m_pix_capture_name[128]{"capture"};
+    char m_pix_capture_directory[260]{"build_logs/pix"};
+    bool m_pix_preload_requested{false};
+    bool m_pix_required{false};
+    bool m_pix_auto_open_after_capture{false};
+    bool m_pix_manual_capture_pending{false};
+    bool m_pix_manual_capture_auto_open{false};
+    unsigned long long m_pix_manual_capture_frame_index{0};
+    std::filesystem::path m_pix_manual_capture_requested_path{};
+    std::string m_pix_startup_status{};
+    std::string m_pix_ui_status{};
     RendererInterface::SwapchainResizePolicy m_swapchain_resize_policy_ui{};
     bool m_swapchain_resize_policy_ui_initialized{false};
     RendererInterface::SwapchainPresentMode m_swapchain_present_mode_ui{RendererInterface::SwapchainPresentMode::VSYNC};
