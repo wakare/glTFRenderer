@@ -50,6 +50,10 @@ Chinese companion:
   - Practical usage guide for adding demos and render features with the current toolkit.
 - `docs/RendererDemo_AppLayer_Toolkit_Usage_EN.md`
   - English companion of the app-layer toolkit usage guide.
+- `docs/RendererDemo_FrameCapture_Usage.md`
+  - Shared manual RenderDoc and PIX frame-capture usage for `RendererDemo`.
+- `docs/RendererDemo_FrameCapture_Usage_EN.md`
+  - English companion of the frame-capture usage guide.
 - `docs/RDG_Algorithm_Notes.md`
   - RenderGraph algorithm details: access extraction, inferred dependencies, execution plan build/apply, diagnostics.
 - `docs/RDG_Algorithm_Notes_ZH.md`

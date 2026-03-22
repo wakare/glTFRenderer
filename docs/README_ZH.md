@@ -30,6 +30,10 @@
   - 当前应用层封装工具的使用说明。
 - `docs/RendererDemo_AppLayer_Toolkit_Usage_EN.md`
   - 当前应用层封装工具使用说明英文版。
+- `docs/RendererDemo_FrameCapture_Usage.md`
+  - `RendererDemo` 共享 RenderDoc / PIX 手动帧截取使用说明。
+- `docs/RendererDemo_FrameCapture_Usage_EN.md`
+  - `RendererDemo` 共享手动帧截取使用说明英文版。
 - `docs/RDG_Algorithm_Notes.md`
   - RenderGraph 算法与执行计划说明。
 - `docs/RDG_Algorithm_Notes_ZH.md`
