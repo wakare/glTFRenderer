@@ -29,14 +29,24 @@ RendererModuleCamera::RendererModuleCamera(RendererInterface::ResourceOperator& 
     m_camera = std::make_unique<RendererCamera>(camera_desc);
     
     // Create and bind camera view matrix buffer
-    auto camera_transform = m_camera->GetViewProjectionMatrix();
+    const auto view_matrix = m_camera->GetViewMatrix();
+    const auto projection_matrix = m_camera->GetProjectionMatrix();
+    const auto camera_transform = projection_matrix * view_matrix;
     m_prev_view_projection_matrix = camera_transform;
     m_prev_view_projection_initialized = true;
     ViewBuffer view_buffer{};
     view_buffer.view_projection_matrix = camera_transform;
     view_buffer.prev_view_projection_matrix = m_prev_view_projection_matrix;
     view_buffer.inverse_view_projection_matrix = glm::inverse(camera_transform);
+    view_buffer.view_matrix = view_matrix;
+    view_buffer.projection_matrix = projection_matrix;
+    view_buffer.inverse_projection_matrix = glm::inverse(projection_matrix);
     view_buffer.view_position = glm::fvec4(m_camera->GetCameraPosition(), 1.0f);
+    view_buffer.projection_params = glm::fvec4(
+        1.0f / (std::max)(projection_matrix[0][0], 1.0e-6f),
+        1.0f / (std::max)(projection_matrix[1][1], 1.0e-6f),
+        m_camera->GetNearZPlane(),
+        m_camera->GetFarZPlane());
     view_buffer.viewport_width = camera_desc.projection_width;
     view_buffer.viewport_height = camera_desc.projection_height;
     
@@ -282,7 +292,9 @@ bool RendererModuleCamera::ConsumeTemporalHistoryInvalidation()
 
 bool RendererModuleCamera::UploadCameraViewData(RendererInterface::ResourceOperator& resource_operator)
 {
-    const auto camera_transform = m_camera->GetViewProjectionMatrix();
+    const auto view_matrix = m_camera->GetViewMatrix();
+    const auto projection_matrix = m_camera->GetProjectionMatrix();
+    const auto camera_transform = projection_matrix * view_matrix;
     if (!m_prev_view_projection_initialized)
     {
         m_temporal_history_invalidation_pending = true;
@@ -302,7 +314,15 @@ bool RendererModuleCamera::UploadCameraViewData(RendererInterface::ResourceOpera
     view_buffer.view_projection_matrix = camera_transform;
     view_buffer.prev_view_projection_matrix = prev_view_projection;
     view_buffer.inverse_view_projection_matrix = glm::inverse(camera_transform);
+    view_buffer.view_matrix = view_matrix;
+    view_buffer.projection_matrix = projection_matrix;
+    view_buffer.inverse_projection_matrix = glm::inverse(projection_matrix);
     view_buffer.view_position = glm::fvec4(m_camera->GetCameraPosition(), 1.0f);
+    view_buffer.projection_params = glm::fvec4(
+        1.0f / (std::max)(projection_matrix[0][0], 1.0e-6f),
+        1.0f / (std::max)(projection_matrix[1][1], 1.0e-6f),
+        m_camera->GetNearZPlane(),
+        m_camera->GetFarZPlane());
     view_buffer.viewport_width = m_camera->GetProjectionWidth();
     view_buffer.viewport_height = m_camera->GetProjectionHeight();
     

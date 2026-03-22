@@ -13,22 +13,36 @@ RendererSystemSSAO::RendererSystemSSAO(std::shared_ptr<RendererSystemSceneRender
 
 RendererInterface::RenderTargetHandle RendererSystemSSAO::GetOutput() const
 {
-    return m_ssao_output;
+    return GetOutputs().output;
 }
 
 RendererInterface::RenderGraphNodeHandle RendererSystemSSAO::GetOutputNode() const
 {
-    return m_blur_pass_node;
+    return GetOutputs().blur_node;
 }
 
 RendererSystemSSAO::SSAOOutputs RendererSystemSSAO::GetOutputs() const
 {
+    const bool run_blur_passes = ShouldRunBlurPasses();
     return SSAOOutputs{
         .raw_node = m_ssao_pass_node,
-        .blur_node = m_blur_pass_node,
+        .blur_node = run_blur_passes ? m_blur_pass_node : m_ssao_pass_node,
         .raw_output = m_ssao_raw_output,
-        .output = m_ssao_output
+        .output = run_blur_passes ? m_ssao_output : m_ssao_raw_output
     };
+}
+
+const RendererSystemSSAO::SSAOGlobalParams& RendererSystemSSAO::GetGlobalParams() const
+{
+    return m_global_params;
+}
+
+void RendererSystemSSAO::SetGlobalParams(const SSAOGlobalParams& global_params)
+{
+    SSAOGlobalParams clamped_params = global_params;
+    ClampGlobalParams(clamped_params);
+    m_global_params = clamped_params;
+    m_need_upload_params = true;
 }
 
 bool RendererSystemSSAO::Init(RendererInterface::ResourceOperator& resource_operator,
@@ -55,8 +69,13 @@ bool RendererSystemSSAO::Init(RendererInterface::ResourceOperator& resource_oper
     RETURN_IF_FALSE(RenderFeature::CreateRenderGraphNodeIfNeeded(
         resource_operator,
         graph,
+        m_blur_horizontal_pass_node,
+        BuildBlurHorizontalPassSetupInfo(execution_plan)));
+    RETURN_IF_FALSE(RenderFeature::CreateRenderGraphNodeIfNeeded(
+        resource_operator,
+        graph,
         m_blur_pass_node,
-        BuildBlurPassSetupInfo(execution_plan)));
+        BuildBlurVerticalPassSetupInfo(execution_plan)));
 
     UploadGlobalParams(resource_operator);
     return true;
@@ -64,7 +83,10 @@ bool RendererSystemSSAO::Init(RendererInterface::ResourceOperator& resource_oper
 
 bool RendererSystemSSAO::HasInit() const
 {
-    return m_blur_pass_node != NULL_HANDLE && m_ssao_output != NULL_HANDLE;
+    return m_blur_horizontal_pass_node != NULL_HANDLE &&
+        m_blur_pass_node != NULL_HANDLE &&
+        m_ssao_blur_temp_output != NULL_HANDLE &&
+        m_ssao_output != NULL_HANDLE;
 }
 
 bool RendererSystemSSAO::Tick(RendererInterface::ResourceOperator& resource_operator,
@@ -74,13 +96,25 @@ bool RendererSystemSSAO::Tick(RendererInterface::ResourceOperator& resource_oper
     (void)interval;
 
     const SSAOExecutionPlan execution_plan = BuildExecutionPlan();
+    const bool run_blur_passes = ShouldRunBlurPasses();
     execution_plan.compute_plan.ApplyDispatch(graph, m_ssao_pass_node);
-    execution_plan.compute_plan.ApplyDispatch(graph, m_blur_pass_node);
+    if (run_blur_passes)
+    {
+        execution_plan.compute_plan.ApplyDispatch(graph, m_blur_horizontal_pass_node);
+        execution_plan.compute_plan.ApplyDispatch(graph, m_blur_pass_node);
+    }
     UploadGlobalParams(resource_operator);
 
-    RETURN_IF_FALSE(RenderFeature::RegisterRenderGraphNodesIfValid(
-        graph,
-        {m_ssao_pass_node, m_blur_pass_node}));
+    if (run_blur_passes)
+    {
+        RETURN_IF_FALSE(RenderFeature::RegisterRenderGraphNodesIfValid(
+            graph,
+            {m_ssao_pass_node, m_blur_horizontal_pass_node, m_blur_pass_node}));
+    }
+    else
+    {
+        RETURN_IF_FALSE(RenderFeature::RegisterRenderGraphNodeIfValid(graph, m_ssao_pass_node));
+    }
     return true;
 }
 
@@ -88,8 +122,10 @@ void RendererSystemSSAO::ResetRuntimeResources(RendererInterface::ResourceOperat
 {
     (void)resource_operator;
     m_ssao_pass_node = NULL_HANDLE;
+    m_blur_horizontal_pass_node = NULL_HANDLE;
     m_blur_pass_node = NULL_HANDLE;
     m_ssao_raw_output = NULL_HANDLE;
+    m_ssao_blur_temp_output = NULL_HANDLE;
     m_ssao_output = NULL_HANDLE;
     m_ssao_global_params_handle = NULL_HANDLE;
     m_need_upload_params = true;
@@ -105,6 +141,7 @@ void RendererSystemSSAO::OnResize(RendererInterface::ResourceOperator& resource_
 void RendererSystemSSAO::DrawDebugUI()
 {
     bool params_dirty = false;
+    const char* debug_output_modes[] = {"AO", "Valid Sample Ratio"};
 
     bool enabled = m_global_params.enabled != 0u;
     if (ImGui::Checkbox("Enable SSAO", &enabled))
@@ -136,18 +173,22 @@ void RendererSystemSSAO::DrawDebugUI()
         params_dirty = true;
     }
 
+    int debug_output_mode = static_cast<int>(m_global_params.debug_output_mode);
+    if (ImGui::Combo("Debug Output", &debug_output_mode, debug_output_modes, IM_ARRAYSIZE(debug_output_modes)))
+    {
+        m_global_params.debug_output_mode = static_cast<unsigned>(debug_output_mode);
+        params_dirty = true;
+    }
+
+    if (m_global_params.debug_output_mode != 0u)
+    {
+        ImGui::TextUnformatted("Debug output overrides the SSAO signal used by lighting.");
+        ImGui::TextUnformatted("Inspect it with Tone Map > Debug View = SSAO.");
+    }
+
     if (params_dirty)
     {
-        m_global_params.radius_world = std::clamp(m_global_params.radius_world, 0.01f, 4.0f);
-        m_global_params.intensity = std::clamp(m_global_params.intensity, 0.0f, 8.0f);
-        m_global_params.power = std::clamp(m_global_params.power, 0.1f, 8.0f);
-        m_global_params.bias = std::clamp(m_global_params.bias, 0.0001f, 1.0f);
-        m_global_params.thickness = std::clamp(m_global_params.thickness, 0.001f, 2.0f);
-        m_global_params.sample_distribution_power = std::clamp(m_global_params.sample_distribution_power, 0.25f, 8.0f);
-        m_global_params.blur_depth_reject = std::clamp(m_global_params.blur_depth_reject, 0.1f, 128.0f);
-        m_global_params.blur_normal_reject = std::clamp(m_global_params.blur_normal_reject, 0.1f, 256.0f);
-        m_global_params.sample_count = std::clamp(m_global_params.sample_count, 1u, 32u);
-        m_global_params.blur_radius = std::clamp(m_global_params.blur_radius, 0u, 3u);
+        ClampGlobalParams(m_global_params);
         m_need_upload_params = true;
     }
 }
@@ -167,6 +208,11 @@ void RendererSystemSSAO::CreateOutputs(RendererInterface::ResourceOperator& reso
 
     m_ssao_raw_output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
         "SSAO_Raw",
+        RendererInterface::R16_FLOAT,
+        white_clear,
+        usage);
+    m_ssao_blur_temp_output = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget(
+        "SSAO_BlurTemp",
         RendererInterface::R16_FLOAT,
         white_clear,
         usage);
@@ -225,18 +271,53 @@ RendererInterface::RenderGraph::RenderPassSetupInfo RendererSystemSSAO::BuildSSA
         .Build();
 }
 
-RendererInterface::RenderGraph::RenderPassSetupInfo RendererSystemSSAO::BuildBlurPassSetupInfo(
+RendererInterface::RenderGraph::RenderPassSetupInfo RendererSystemSSAO::BuildBlurHorizontalPassSetupInfo(
     const SSAOExecutionPlan& execution_plan) const
 {
     const auto scene_outputs = m_scene->GetOutputs();
-    return RenderFeature::PassBuilder::Compute("SSAO", "SSAO Blur")
+    return RenderFeature::PassBuilder::Compute("SSAO", "SSAO Blur X")
         .AddModule(execution_plan.camera_module)
         .AddDependency(m_ssao_pass_node)
-        .AddShader(RendererInterface::COMPUTE_SHADER, "MainSSAOBlur", "Resources/Shaders/SSAO.hlsl")
+        .AddShader(RendererInterface::COMPUTE_SHADER, "MainSSAOBlurHorizontal", "Resources/Shaders/SSAO.hlsl")
         .AddSampledRenderTargetBindings({
             RenderFeature::MakeSampledRenderTargetBinding(
                 "InputAOTex",
                 m_ssao_raw_output,
+                RendererInterface::RenderTargetTextureBindingDesc::SRV),
+            RenderFeature::MakeSampledRenderTargetBinding(
+                "normalTex",
+                scene_outputs.normal,
+                RendererInterface::RenderTargetTextureBindingDesc::SRV),
+            RenderFeature::MakeSampledRenderTargetBinding(
+                "depthTex",
+                scene_outputs.depth,
+                RendererInterface::RenderTargetTextureBindingDesc::SRV),
+            RenderFeature::MakeSampledRenderTargetBinding(
+                "Output",
+                m_ssao_blur_temp_output,
+                RendererInterface::RenderTargetTextureBindingDesc::UAV)
+        })
+        .AddBuffers({
+            RenderFeature::MakeBufferBinding(
+                "SSAOGlobalBuffer",
+                RenderFeature::MakeConstantBufferBinding(m_ssao_global_params_handle))
+        })
+        .SetDispatch(execution_plan.compute_plan)
+        .Build();
+}
+
+RendererInterface::RenderGraph::RenderPassSetupInfo RendererSystemSSAO::BuildBlurVerticalPassSetupInfo(
+    const SSAOExecutionPlan& execution_plan) const
+{
+    const auto scene_outputs = m_scene->GetOutputs();
+    return RenderFeature::PassBuilder::Compute("SSAO", "SSAO Blur Y")
+        .AddModule(execution_plan.camera_module)
+        .AddDependency(m_blur_horizontal_pass_node)
+        .AddShader(RendererInterface::COMPUTE_SHADER, "MainSSAOBlurVertical", "Resources/Shaders/SSAO.hlsl")
+        .AddSampledRenderTargetBindings({
+            RenderFeature::MakeSampledRenderTargetBinding(
+                "InputAOTex",
+                m_ssao_blur_temp_output,
                 RendererInterface::RenderTargetTextureBindingDesc::SRV),
             RenderFeature::MakeSampledRenderTargetBinding(
                 "normalTex",
@@ -258,6 +339,29 @@ RendererInterface::RenderGraph::RenderPassSetupInfo RendererSystemSSAO::BuildBlu
         })
         .SetDispatch(execution_plan.compute_plan)
         .Build();
+}
+
+void RendererSystemSSAO::ClampGlobalParams(SSAOGlobalParams& global_params)
+{
+    global_params.radius_world = std::clamp(global_params.radius_world, 0.01f, 4.0f);
+    global_params.intensity = std::clamp(global_params.intensity, 0.0f, 8.0f);
+    global_params.power = std::clamp(global_params.power, 0.1f, 8.0f);
+    global_params.bias = std::clamp(global_params.bias, 0.0001f, 1.0f);
+    global_params.thickness = std::clamp(global_params.thickness, 0.001f, 2.0f);
+    global_params.sample_distribution_power = std::clamp(global_params.sample_distribution_power, 0.25f, 8.0f);
+    global_params.blur_depth_reject = std::clamp(global_params.blur_depth_reject, 0.1f, 128.0f);
+    global_params.blur_normal_reject = std::clamp(global_params.blur_normal_reject, 0.1f, 256.0f);
+    global_params.sample_count = std::clamp(global_params.sample_count, 1u, 32u);
+    global_params.blur_radius = std::clamp(global_params.blur_radius, 0u, 3u);
+    global_params.enabled = global_params.enabled != 0u ? 1u : 0u;
+    global_params.debug_output_mode = std::clamp(global_params.debug_output_mode, 0u, 1u);
+}
+
+bool RendererSystemSSAO::ShouldRunBlurPasses() const
+{
+    return m_global_params.enabled != 0u &&
+           m_global_params.blur_radius > 0u &&
+           m_global_params.debug_output_mode == 0u;
 }
 
 void RendererSystemSSAO::UploadGlobalParams(RendererInterface::ResourceOperator& resource_operator)

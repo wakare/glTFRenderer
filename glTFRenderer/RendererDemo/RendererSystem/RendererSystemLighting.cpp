@@ -526,6 +526,7 @@ bool RendererSystemLighting::Tick(RendererInterface::ResourceOperator& resource_
     (void)interval;
     const LightingExecutionPlan execution_plan = BuildLightingExecutionPlan();
     const auto& lights = m_lighting_module->GetLightInfos();
+    const auto ssao_outputs = m_ssao->GetOutputs();
     RETURN_IF_FALSE(SyncLightingTopology(resource_operator, graph, execution_plan));
     QueuePendingDirectionalShadowRenderStateUpdate(graph);
     execution_plan.compute_plan.ApplyDispatch(graph, m_lighting_pass_state.node);
@@ -554,6 +555,10 @@ bool RendererSystemLighting::Tick(RendererInterface::ResourceOperator& resource_
             "g_shadowmap_infos",
             resource_operator.GetFrameBufferedBufferHandle(m_lighting_pass_state.shadow_infos_handles));
     }
+    graph.UpdateNodeRenderTargetTextureBinding(
+        m_lighting_pass_state.node,
+        "ssaoTex",
+        ssao_outputs.output);
 
     std::vector<RendererInterface::RenderGraphNodeHandle> lighting_pass_dependencies;
     std::vector<RendererInterface::RenderTargetHandle> current_shadow_maps;
@@ -580,6 +585,10 @@ bool RendererSystemLighting::Tick(RendererInterface::ResourceOperator& resource_
         }
     }
 
+    if (ssao_outputs.blur_node != NULL_HANDLE)
+    {
+        lighting_pass_dependencies.push_back(ssao_outputs.blur_node);
+    }
     graph.UpdateNodeDependencies(m_lighting_pass_state.node, lighting_pass_dependencies);
     if (!current_shadow_maps.empty())
     {
@@ -1095,6 +1104,10 @@ bool RendererSystemLighting::ShadowPassResource::CalcDirectionalLightShadowMatri
     out_view_buffer.view_projection_matrix = projection_matrix * view_matrix;
     out_view_buffer.prev_view_projection_matrix = out_view_buffer.view_projection_matrix;
     out_view_buffer.inverse_view_projection_matrix = glm::inverse(out_view_buffer.view_projection_matrix);
+    out_view_buffer.view_matrix = view_matrix;
+    out_view_buffer.projection_matrix = projection_matrix;
+    out_view_buffer.inverse_projection_matrix = glm::inverse(projection_matrix);
+    out_view_buffer.projection_params = glm::fvec4(0.0f);
 
     out_shadow_info.view_matrix = view_matrix;
     out_shadow_info.projection_matrix = projection_matrix;

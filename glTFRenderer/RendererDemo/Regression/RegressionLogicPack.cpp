@@ -166,6 +166,111 @@ namespace Regression
 
             context.lighting->SetGlobalParams(global_params);
 
+            if (context.ssao)
+            {
+                auto ssao_global_params = context.ssao->GetGlobalParams();
+                if (args.contains("ssao_enabled"))
+                {
+                    if (!args.at("ssao_enabled").is_boolean())
+                    {
+                        out_error = "logic_args.ssao_enabled must be a boolean.";
+                        return false;
+                    }
+                    ssao_global_params.enabled = args.at("ssao_enabled").get<bool>() ? 1u : 0u;
+                }
+                if (args.contains("ssao_radius_world"))
+                {
+                    if (!args.at("ssao_radius_world").is_number())
+                    {
+                        out_error = "logic_args.ssao_radius_world must be a number.";
+                        return false;
+                    }
+                    ssao_global_params.radius_world = args.at("ssao_radius_world").get<float>();
+                }
+                if (args.contains("ssao_intensity"))
+                {
+                    if (!args.at("ssao_intensity").is_number())
+                    {
+                        out_error = "logic_args.ssao_intensity must be a number.";
+                        return false;
+                    }
+                    ssao_global_params.intensity = args.at("ssao_intensity").get<float>();
+                }
+                if (args.contains("ssao_power"))
+                {
+                    if (!args.at("ssao_power").is_number())
+                    {
+                        out_error = "logic_args.ssao_power must be a number.";
+                        return false;
+                    }
+                    ssao_global_params.power = args.at("ssao_power").get<float>();
+                }
+                if (args.contains("ssao_bias"))
+                {
+                    if (!args.at("ssao_bias").is_number())
+                    {
+                        out_error = "logic_args.ssao_bias must be a number.";
+                        return false;
+                    }
+                    ssao_global_params.bias = args.at("ssao_bias").get<float>();
+                }
+                if (args.contains("ssao_thickness"))
+                {
+                    if (!args.at("ssao_thickness").is_number())
+                    {
+                        out_error = "logic_args.ssao_thickness must be a number.";
+                        return false;
+                    }
+                    ssao_global_params.thickness = args.at("ssao_thickness").get<float>();
+                }
+                if (args.contains("ssao_sample_distribution_power"))
+                {
+                    if (!args.at("ssao_sample_distribution_power").is_number())
+                    {
+                        out_error = "logic_args.ssao_sample_distribution_power must be a number.";
+                        return false;
+                    }
+                    ssao_global_params.sample_distribution_power = args.at("ssao_sample_distribution_power").get<float>();
+                }
+                if (args.contains("ssao_blur_depth_reject"))
+                {
+                    if (!args.at("ssao_blur_depth_reject").is_number())
+                    {
+                        out_error = "logic_args.ssao_blur_depth_reject must be a number.";
+                        return false;
+                    }
+                    ssao_global_params.blur_depth_reject = args.at("ssao_blur_depth_reject").get<float>();
+                }
+                if (args.contains("ssao_blur_normal_reject"))
+                {
+                    if (!args.at("ssao_blur_normal_reject").is_number())
+                    {
+                        out_error = "logic_args.ssao_blur_normal_reject must be a number.";
+                        return false;
+                    }
+                    ssao_global_params.blur_normal_reject = args.at("ssao_blur_normal_reject").get<float>();
+                }
+                if (args.contains("ssao_sample_count"))
+                {
+                    if (!args.at("ssao_sample_count").is_number_unsigned())
+                    {
+                        out_error = "logic_args.ssao_sample_count must be an unsigned number.";
+                        return false;
+                    }
+                    ssao_global_params.sample_count = args.at("ssao_sample_count").get<unsigned>();
+                }
+                if (args.contains("ssao_blur_radius"))
+                {
+                    if (!args.at("ssao_blur_radius").is_number_unsigned())
+                    {
+                        out_error = "logic_args.ssao_blur_radius must be an unsigned number.";
+                        return false;
+                    }
+                    ssao_global_params.blur_radius = args.at("ssao_blur_radius").get<unsigned>();
+                }
+                context.ssao->SetGlobalParams(ssao_global_params);
+            }
+
             if (args.contains("directional_light_speed_radians") && context.directional_light_speed_radians)
             {
                 if (!args.at("directional_light_speed_radians").is_number())

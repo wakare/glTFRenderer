@@ -51,6 +51,48 @@ namespace
         return "Unknown";
     }
 
+    const char* ToString(RendererInterface::RenderPassType type)
+    {
+        switch (type)
+        {
+        case RendererInterface::RenderPassType::GRAPHICS:
+            return "Graphics";
+        case RendererInterface::RenderPassType::COMPUTE:
+            return "Compute";
+        case RendererInterface::RenderPassType::RAY_TRACING:
+            return "RayTracing";
+        }
+
+        return "Unknown";
+    }
+
+    DemoAppModelViewer::RegressionPerfAccumulator::PassAggregate& GetOrCreatePassAggregate(
+        DemoAppModelViewer::RegressionPerfAccumulator& accumulator,
+        const RendererInterface::RenderGraph::RenderPassFrameStats& pass_stat)
+    {
+        auto it = std::find_if(
+            accumulator.pass_aggregates.begin(),
+            accumulator.pass_aggregates.end(),
+            [&](const DemoAppModelViewer::RegressionPerfAccumulator::PassAggregate& aggregate)
+            {
+                return aggregate.group_name == pass_stat.group_name &&
+                    aggregate.pass_name == pass_stat.pass_name &&
+                    aggregate.pass_type == pass_stat.pass_type;
+            });
+
+        if (it != accumulator.pass_aggregates.end())
+        {
+            return *it;
+        }
+
+        accumulator.pass_aggregates.push_back({
+            .group_name = pass_stat.group_name,
+            .pass_name = pass_stat.pass_name,
+            .pass_type = pass_stat.pass_type
+        });
+        return accumulator.pass_aggregates.back();
+    }
+
     std::string SanitizeFileName(std::string value)
     {
         for (char& ch : value)
@@ -195,6 +237,11 @@ std::shared_ptr<DemoAppModelViewer::ModelViewerStateSnapshot> DemoAppModelViewer
         snapshot->has_lighting_state = true;
         snapshot->lighting_global_params = m_lighting->GetGlobalParams();
     }
+    if (m_ssao)
+    {
+        snapshot->has_ssao_state = true;
+        snapshot->ssao_global_params = m_ssao->GetGlobalParams();
+    }
 
     return snapshot;
 }
@@ -229,6 +276,7 @@ bool DemoAppModelViewer::ConfigureRegressionRunFromArguments(const std::vector<s
 
     if (!enable_regression)
     {
+        m_regression_baseline_snapshot.reset();
         return true;
     }
     if (suite_path_arg.empty())
@@ -263,6 +311,13 @@ bool DemoAppModelViewer::ConfigureRegressionRunFromArguments(const std::vector<s
     {
         LOG_FORMAT_FLUSH("[Regression] Failed to create output directory: %s\n",
                          m_regression_output_root.string().c_str());
+        return false;
+    }
+    m_regression_baseline_snapshot = CaptureNonRenderStateSnapshot();
+    if (!m_regression_baseline_snapshot)
+    {
+        LOG_FORMAT_FLUSH("[Regression] Failed to capture baseline state snapshot for suite '%s'.\n",
+                         m_regression_suite.suite_name.c_str());
         return false;
     }
 
@@ -303,6 +358,17 @@ void DemoAppModelViewer::AccumulateRegressionPerf(const RendererInterface::Rende
         m_regression_perf_accumulator.gpu_total_sum_ms += frame_stats.gpu_total_ms;
     }
 
+    for (const auto& pass_stat : frame_stats.pass_stats)
+    {
+        auto& pass_aggregate = GetOrCreatePassAggregate(m_regression_perf_accumulator, pass_stat);
+        pass_aggregate.present_count += 1u;
+        pass_aggregate.executed_count += pass_stat.executed ? 1u : 0u;
+        pass_aggregate.skipped_validation_count += pass_stat.skipped_due_to_validation ? 1u : 0u;
+        pass_aggregate.gpu_valid_count += pass_stat.gpu_time_valid ? 1u : 0u;
+        pass_aggregate.cpu_sum_ms += pass_stat.cpu_time_ms;
+        pass_aggregate.gpu_sum_ms += pass_stat.gpu_time_ms;
+    }
+
     if (m_render_graph)
     {
         const auto& frame_timing = m_render_graph->GetLastFrameTimingBreakdown();
@@ -319,23 +385,32 @@ void DemoAppModelViewer::AccumulateRegressionPerf(const RendererInterface::Rende
 bool DemoAppModelViewer::WriteRegressionPassCsv(const RendererInterface::RenderGraph::FrameStats& frame_stats,
                                                 const std::filesystem::path& file_path) const
 {
+    const unsigned sample_count = m_regression_perf_accumulator.sample_count;
+    if (sample_count == 0u)
+    {
+        return false;
+    }
+
     std::ofstream csv_stream(file_path, std::ios::out | std::ios::trunc);
     if (!csv_stream.is_open())
     {
         return false;
     }
 
-    csv_stream << "frame_index,group,pass,executed,skipped_validation,cpu_ms,gpu_valid,gpu_ms\n";
-    for (const auto& pass_stat : frame_stats.pass_stats)
+    csv_stream << "capture_end_frame_index,sample_count,group,pass,pass_type,present_ratio,executed_ratio,skipped_validation_ratio,cpu_avg_ms,gpu_valid_ratio,gpu_avg_ms\n";
+    for (const auto& pass_aggregate : m_regression_perf_accumulator.pass_aggregates)
     {
         csv_stream << frame_stats.frame_index << ","
-                   << "\"" << pass_stat.group_name << "\","
-                   << "\"" << pass_stat.pass_name << "\","
-                   << (pass_stat.executed ? 1 : 0) << ","
-                   << (pass_stat.skipped_due_to_validation ? 1 : 0) << ","
-                   << std::fixed << std::setprecision(4) << pass_stat.cpu_time_ms << ","
-                   << (pass_stat.gpu_time_valid ? 1 : 0) << ","
-                   << std::fixed << std::setprecision(4) << pass_stat.gpu_time_ms << "\n";
+                   << sample_count << ","
+                   << "\"" << pass_aggregate.group_name << "\","
+                   << "\"" << pass_aggregate.pass_name << "\","
+                   << "\"" << ToString(pass_aggregate.pass_type) << "\","
+                   << std::fixed << std::setprecision(4) << (static_cast<double>(pass_aggregate.present_count) / static_cast<double>(sample_count)) << ","
+                   << std::fixed << std::setprecision(4) << (static_cast<double>(pass_aggregate.executed_count) / static_cast<double>(sample_count)) << ","
+                   << std::fixed << std::setprecision(4) << (static_cast<double>(pass_aggregate.skipped_validation_count) / static_cast<double>(sample_count)) << ","
+                   << std::fixed << std::setprecision(4) << (pass_aggregate.cpu_sum_ms / static_cast<double>(sample_count)) << ","
+                   << std::fixed << std::setprecision(4) << (static_cast<double>(pass_aggregate.gpu_valid_count) / static_cast<double>(sample_count)) << ","
+                   << std::fixed << std::setprecision(4) << (pass_aggregate.gpu_sum_ms / static_cast<double>(sample_count)) << "\n";
     }
 
     return true;
@@ -388,6 +463,26 @@ bool DemoAppModelViewer::WriteRegressionPerfJson(const Regression::CaseConfig& c
         summary["non_pass_cpu_avg_ms"] = nullptr;
     }
 
+    summary["pass_stats_avg"] = nlohmann::json::array();
+    if (m_regression_perf_accumulator.sample_count > 0u)
+    {
+        const double sample_count_double = static_cast<double>(m_regression_perf_accumulator.sample_count);
+        for (const auto& pass_aggregate : m_regression_perf_accumulator.pass_aggregates)
+        {
+            summary["pass_stats_avg"].push_back({
+                {"group", pass_aggregate.group_name},
+                {"pass", pass_aggregate.pass_name},
+                {"pass_type", ToString(pass_aggregate.pass_type)},
+                {"present_ratio", static_cast<double>(pass_aggregate.present_count) / sample_count_double},
+                {"executed_ratio", static_cast<double>(pass_aggregate.executed_count) / sample_count_double},
+                {"skipped_validation_ratio", static_cast<double>(pass_aggregate.skipped_validation_count) / sample_count_double},
+                {"cpu_avg_ms", pass_aggregate.cpu_sum_ms / sample_count_double},
+                {"gpu_valid_ratio", static_cast<double>(pass_aggregate.gpu_valid_count) / sample_count_double},
+                {"gpu_avg_ms", pass_aggregate.gpu_sum_ms / sample_count_double}
+            });
+        }
+    }
+
     std::ofstream json_stream(file_path, std::ios::out | std::ios::trunc);
     if (!json_stream.is_open())
     {
@@ -422,6 +517,7 @@ bool DemoAppModelViewer::ApplyRegressionCaseConfig(const Regression::CaseConfig&
     Regression::LogicPackContext logic_context{};
     logic_context.directional_light_speed_radians = &m_directional_light_angular_speed_radians;
     logic_context.lighting = m_lighting.get();
+    logic_context.ssao = m_ssao.get();
     if (!Regression::ApplyLogicPack(case_config, logic_context, out_error))
     {
         return false;
@@ -442,6 +538,25 @@ bool DemoAppModelViewer::StartRegressionCase(const RendererInterface::RenderGrap
     ResetRegressionPerfAccumulator();
 
     std::string apply_error{};
+    if (!m_regression_baseline_snapshot)
+    {
+        apply_error = "Regression baseline state snapshot is missing.";
+    }
+    else if (!ApplyNonRenderStateSnapshot(m_regression_baseline_snapshot))
+    {
+        apply_error = "Failed to restore regression baseline state snapshot.";
+    }
+    if (!apply_error.empty())
+    {
+        RegressionCaseResult failed{};
+        failed.id = case_id;
+        failed.success = false;
+        failed.error = apply_error;
+        m_regression_case_results.push_back(std::move(failed));
+        LOG_FORMAT_FLUSH("[Regression] Case '%s' failed to start: %s\n", case_id.c_str(), apply_error.c_str());
+        return false;
+    }
+
     if (!ApplyRegressionCaseConfig(case_config, apply_error))
     {
         RegressionCaseResult failed{};
@@ -801,6 +916,10 @@ bool DemoAppModelViewer::ApplyModelViewerStateSnapshot(const ModelViewerStateSna
             m_lighting->SetGlobalParams(snapshot.lighting_global_params);
         }
     }
+    if (m_ssao && snapshot.has_ssao_state)
+    {
+        m_ssao->SetGlobalParams(snapshot.ssao_global_params);
+    }
 
     return true;
 }
@@ -986,6 +1105,23 @@ bool DemoAppModelViewer::SerializeNonRenderStateSnapshotToJson(
             {"environment_prefilter_roughness", ToJson(model_viewer_snapshot->lighting_global_params.environment_prefilter_roughness)}
         };
     }
+    if (model_viewer_snapshot->has_ssao_state)
+    {
+        out_snapshot_json["ssao"] = {
+            {"radius_world", model_viewer_snapshot->ssao_global_params.radius_world},
+            {"intensity", model_viewer_snapshot->ssao_global_params.intensity},
+            {"power", model_viewer_snapshot->ssao_global_params.power},
+            {"bias", model_viewer_snapshot->ssao_global_params.bias},
+            {"thickness", model_viewer_snapshot->ssao_global_params.thickness},
+            {"sample_distribution_power", model_viewer_snapshot->ssao_global_params.sample_distribution_power},
+            {"blur_depth_reject", model_viewer_snapshot->ssao_global_params.blur_depth_reject},
+            {"blur_normal_reject", model_viewer_snapshot->ssao_global_params.blur_normal_reject},
+            {"sample_count", model_viewer_snapshot->ssao_global_params.sample_count},
+            {"blur_radius", model_viewer_snapshot->ssao_global_params.blur_radius},
+            {"enabled", model_viewer_snapshot->ssao_global_params.enabled != 0u},
+            {"debug_output_mode", model_viewer_snapshot->ssao_global_params.debug_output_mode}
+        };
+    }
 
     return true;
 }
@@ -1159,6 +1295,92 @@ std::shared_ptr<DemoBase::NonRenderStateSnapshot> DemoAppModelViewer::Deserializ
             return nullptr;
         }
         snapshot->has_lighting_state = true;
+    }
+    if (snapshot_json.contains("ssao"))
+    {
+        const auto& ssao_json = snapshot_json.at("ssao");
+        if (!ssao_json.is_object())
+        {
+            out_error = "snapshot.ssao must be an object.";
+            return nullptr;
+        }
+        if (!ssao_json.contains("radius_world") || !ssao_json.at("radius_world").is_number())
+        {
+            out_error = "snapshot.ssao.radius_world must be a number.";
+            return nullptr;
+        }
+        if (!ssao_json.contains("intensity") || !ssao_json.at("intensity").is_number())
+        {
+            out_error = "snapshot.ssao.intensity must be a number.";
+            return nullptr;
+        }
+        if (!ssao_json.contains("power") || !ssao_json.at("power").is_number())
+        {
+            out_error = "snapshot.ssao.power must be a number.";
+            return nullptr;
+        }
+        if (!ssao_json.contains("bias") || !ssao_json.at("bias").is_number())
+        {
+            out_error = "snapshot.ssao.bias must be a number.";
+            return nullptr;
+        }
+        if (!ssao_json.contains("thickness") || !ssao_json.at("thickness").is_number())
+        {
+            out_error = "snapshot.ssao.thickness must be a number.";
+            return nullptr;
+        }
+        if (!ssao_json.contains("sample_distribution_power") || !ssao_json.at("sample_distribution_power").is_number())
+        {
+            out_error = "snapshot.ssao.sample_distribution_power must be a number.";
+            return nullptr;
+        }
+        if (!ssao_json.contains("blur_depth_reject") || !ssao_json.at("blur_depth_reject").is_number())
+        {
+            out_error = "snapshot.ssao.blur_depth_reject must be a number.";
+            return nullptr;
+        }
+        if (!ssao_json.contains("blur_normal_reject") || !ssao_json.at("blur_normal_reject").is_number())
+        {
+            out_error = "snapshot.ssao.blur_normal_reject must be a number.";
+            return nullptr;
+        }
+        if (!ssao_json.contains("sample_count") || !ssao_json.at("sample_count").is_number_unsigned())
+        {
+            out_error = "snapshot.ssao.sample_count must be an unsigned number.";
+            return nullptr;
+        }
+        if (!ssao_json.contains("blur_radius") || !ssao_json.at("blur_radius").is_number_unsigned())
+        {
+            out_error = "snapshot.ssao.blur_radius must be an unsigned number.";
+            return nullptr;
+        }
+        if (!ssao_json.contains("enabled") || !ssao_json.at("enabled").is_boolean())
+        {
+            out_error = "snapshot.ssao.enabled must be a boolean.";
+            return nullptr;
+        }
+        if (ssao_json.contains("debug_output_mode") && !ssao_json.at("debug_output_mode").is_number_unsigned())
+        {
+            out_error = "snapshot.ssao.debug_output_mode must be an unsigned number.";
+            return nullptr;
+        }
+
+        snapshot->ssao_global_params.radius_world = ssao_json.at("radius_world").get<float>();
+        snapshot->ssao_global_params.intensity = ssao_json.at("intensity").get<float>();
+        snapshot->ssao_global_params.power = ssao_json.at("power").get<float>();
+        snapshot->ssao_global_params.bias = ssao_json.at("bias").get<float>();
+        snapshot->ssao_global_params.thickness = ssao_json.at("thickness").get<float>();
+        snapshot->ssao_global_params.sample_distribution_power =
+            ssao_json.at("sample_distribution_power").get<float>();
+        snapshot->ssao_global_params.blur_depth_reject = ssao_json.at("blur_depth_reject").get<float>();
+        snapshot->ssao_global_params.blur_normal_reject = ssao_json.at("blur_normal_reject").get<float>();
+        snapshot->ssao_global_params.sample_count = ssao_json.at("sample_count").get<unsigned>();
+        snapshot->ssao_global_params.blur_radius = ssao_json.at("blur_radius").get<unsigned>();
+        snapshot->ssao_global_params.enabled = ssao_json.at("enabled").get<bool>() ? 1u : 0u;
+        snapshot->ssao_global_params.debug_output_mode = ssao_json.contains("debug_output_mode")
+            ? ssao_json.at("debug_output_mode").get<unsigned>()
+            : 0u;
+        snapshot->has_ssao_state = true;
     }
 
     return snapshot;

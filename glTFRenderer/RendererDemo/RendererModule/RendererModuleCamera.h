@@ -10,7 +10,11 @@ struct ViewBuffer
     glm::fmat4x4 view_projection_matrix;
     glm::fmat4x4 prev_view_projection_matrix;
     glm::fmat4x4 inverse_view_projection_matrix;
+    glm::fmat4x4 view_matrix;
+    glm::fmat4x4 projection_matrix;
+    glm::fmat4x4 inverse_projection_matrix;
     glm::fvec4 view_position;
+    glm::fvec4 projection_params;
     
     unsigned viewport_width;
     unsigned viewport_height;

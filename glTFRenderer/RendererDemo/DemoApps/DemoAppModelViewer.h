@@ -35,6 +35,8 @@ protected:
         float directional_light_speed_radians{0.25f};
         bool has_lighting_state{false};
         RendererSystemLighting::LightingGlobalParams lighting_global_params{};
+        bool has_ssao_state{false};
+        RendererSystemSSAO::SSAOGlobalParams ssao_global_params{};
     };
 
     virtual bool InitInternal(const std::vector<std::string>& arguments) override;
@@ -75,6 +77,7 @@ protected:
                                  const RendererInterface::RenderGraph::FrameStats& frame_stats,
                                  const std::filesystem::path& file_path) const;
 
+public:
     struct RegressionCaseResult
     {
         std::string id{};
@@ -87,6 +90,19 @@ protected:
 
     struct RegressionPerfAccumulator
     {
+        struct PassAggregate
+        {
+            std::string group_name{};
+            std::string pass_name{};
+            RendererInterface::RenderPassType pass_type{RendererInterface::RenderPassType::GRAPHICS};
+            unsigned present_count{0};
+            unsigned executed_count{0};
+            unsigned skipped_validation_count{0};
+            unsigned gpu_valid_count{0};
+            double cpu_sum_ms{0.0};
+            double gpu_sum_ms{0.0};
+        };
+
         unsigned sample_count{0};
         unsigned gpu_total_valid_count{0};
         unsigned frame_timing_valid_count{0};
@@ -95,8 +111,10 @@ protected:
         double frame_total_sum_ms{0.0};
         double execute_passes_sum_ms{0.0};
         double non_pass_cpu_sum_ms{0.0};
+        std::vector<PassAggregate> pass_aggregates{};
     };
 
+protected:
     std::shared_ptr<RendererSystemSceneRenderer> m_scene;
     std::shared_ptr<RendererSystemSSAO> m_ssao;
     std::shared_ptr<RendererSystemLighting> m_lighting;
@@ -111,6 +129,7 @@ protected:
     bool m_regression_case_active{false};
     std::filesystem::path m_regression_output_root{};
     Regression::SuiteConfig m_regression_suite{};
+    std::shared_ptr<NonRenderStateSnapshot> m_regression_baseline_snapshot{};
     size_t m_regression_case_index{0};
     unsigned long long m_regression_case_start_frame{0};
     unsigned long long m_regression_case_last_elapsed_frames{0};
