@@ -13,7 +13,7 @@ struct SceneMeshVertexInfo
     float4 position;
     float4 normal;
     float4 tangent;
-    float4 uv;
+    float4 uv; // xy = uv0, zw = uv1
 };
 StructuredBuffer<SceneMeshVertexInfo> mesh_vertex_info;
 

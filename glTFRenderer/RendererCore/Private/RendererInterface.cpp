@@ -1754,12 +1754,13 @@ namespace RendererInterface
 
             for (size_t i = 0; i < mesh.GetVertexBuffer().vertex_count; ++i)
             {
-                SceneMeshVertexInfo vertex_info;
+                SceneMeshVertexInfo vertex_info{};
                 size_t out_data_size = 0;
                 mesh.GetVertexBuffer().GetVertexAttributeDataByIndex(VertexAttributeType::VERTEX_POSITION, i, &vertex_info.position, out_data_size);
                 mesh.GetVertexBuffer().GetVertexAttributeDataByIndex(VertexAttributeType::VERTEX_NORMAL, i, &vertex_info.normal, out_data_size);
                 mesh.GetVertexBuffer().GetVertexAttributeDataByIndex(VertexAttributeType::VERTEX_TANGENT, i, &vertex_info.tangent, out_data_size);
-                mesh.GetVertexBuffer().GetVertexAttributeDataByIndex(VertexAttributeType::VERTEX_TEXCOORD0, i, &vertex_info.uv, out_data_size);
+                mesh.GetVertexBuffer().GetVertexAttributeDataByIndex(VertexAttributeType::VERTEX_TEXCOORD0, i, &vertex_info.uv[0], out_data_size);
+                mesh.GetVertexBuffer().GetVertexAttributeDataByIndex(VertexAttributeType::VERTEX_TEXCOORD1, i, &vertex_info.uv[2], out_data_size);
                 mesh_vertex_infos.push_back(vertex_info);
             }
         
@@ -1787,6 +1788,7 @@ namespace RendererInterface
                         std::vector<float> vertex_normals(vertex_count * 3);
                         std::vector<float> vertex_tangents(vertex_count * 4);
                         std::vector<float> vertex_uvs(vertex_count * 2);
+                        std::vector<float> vertex_uv1s(vertex_count * 2);
 
                         for (size_t i = 0; i < vertex_count; ++i)
                         {
@@ -1820,12 +1822,18 @@ namespace RendererInterface
                             {
                                 LOG_FORMAT_FLUSH("[WARN] Mesh %d has no uv vertex data!\n", mesh->GetID());
                             }
+
+                            if (mesh->GetVertexBuffer().GetVertexAttributeDataByIndex(VertexAttributeType::VERTEX_TEXCOORD1, i, &vertex_uv1s[2 * i], out_data_size))
+                            {
+                                GLTF_CHECK(out_data_size == 2 * sizeof(float));
+                            }
                         }
 
                         data_accessor.AccessMeshData(RendererSceneMeshDataAccessorBase::MeshDataAccessorType::VERTEX_POSITION_FLOAT3, mesh_id, vertex_positions.data(), vertex_count);
                         data_accessor.AccessMeshData(RendererSceneMeshDataAccessorBase::MeshDataAccessorType::VERTEX_NORMAL_FLOAT3, mesh_id, vertex_normals.data(), vertex_count);
                         data_accessor.AccessMeshData(RendererSceneMeshDataAccessorBase::MeshDataAccessorType::VERTEX_TANGENT_FLOAT4, mesh_id, vertex_tangents.data(), vertex_count);
                         data_accessor.AccessMeshData(RendererSceneMeshDataAccessorBase::MeshDataAccessorType::VERTEX_TEXCOORD0_FLOAT2, mesh_id, vertex_uvs.data(), vertex_count);
+                        data_accessor.AccessMeshData(RendererSceneMeshDataAccessorBase::MeshDataAccessorType::VERTEX_TEXCOORD1_FLOAT2, mesh_id, vertex_uv1s.data(), vertex_count);
 
                         auto index = mesh->GetIndexBuffer().data.get();
                         auto index_count = mesh->GetIndexBuffer().index_count;

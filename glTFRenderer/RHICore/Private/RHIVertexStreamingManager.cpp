@@ -41,6 +41,13 @@ bool RHIVertexStreamingManager::Init(const VertexLayoutDeclaration& vertex_layou
                 added = true;
             }
             break;
+        case VertexAttributeType::VERTEX_TEXCOORD1:
+            {
+                GLTF_CHECK(vertex_layout.byte_size == (GetBytePerPixelByFormat(RHIDataFormat::R32G32_FLOAT)));
+                m_vertex_attributes.push_back({INPUT_LAYOUT_UNIQUE_PARAMETER(TEXCOORD), 1, RHIDataFormat::R32G32_FLOAT, vertex_layout_offset, 0, PER_VERTEX, vertex_layout_location});
+                added = true;
+            }
+            break;
         }
             
         if (added)
@@ -82,6 +89,10 @@ void RHIVertexStreamingManager::ConfigShaderMacros(RHIShaderPreDefineMacros& sha
         if (input_layout.semantic_name == INPUT_LAYOUT_UNIQUE_PARAMETER(TEXCOORD))
         {
             shader_macros.AddMacro("HAS_TEXCOORD", "1");
+            if (input_layout.semantic_index == 1)
+            {
+                shader_macros.AddMacro("HAS_TEXCOORD1", "1");
+            }
         }
 
         if (input_layout.semantic_name == INPUT_LAYOUT_UNIQUE_PARAMETER(TANGENT))

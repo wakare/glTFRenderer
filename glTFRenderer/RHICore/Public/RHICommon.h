@@ -1039,6 +1039,7 @@ enum class VertexAttributeType
     VERTEX_NORMAL,
     VERTEX_TANGENT,
     VERTEX_TEXCOORD0,
+    VERTEX_TEXCOORD1,
 
     // Instance
     INSTANCE_MAT_0,

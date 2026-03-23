@@ -47,6 +47,8 @@ RendererSceneMesh::RendererSceneMesh(const glTFLoader& loader, const glTF_Primit
 	// TEXCOORD attribute
 	_process_vertex_attribute(loader, glTF_Attribute_TEXCOORD_0::attribute_type_id, VertexAttributeType::VERTEX_TEXCOORD0,
 		primitive, vertex_buffer_size, m_vertex_layout, vertex_data_in_buffers);
+	_process_vertex_attribute(loader, glTF_Attribute_TEXCOORD_1::attribute_type_id, VertexAttributeType::VERTEX_TEXCOORD1,
+		primitive, vertex_buffer_size, m_vertex_layout, vertex_data_in_buffers);
 
 	m_vertex_buffer_data = std::make_shared<VertexBufferData>();
 	m_vertex_buffer_data->data.reset(new char[vertex_buffer_size]);

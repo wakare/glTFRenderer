@@ -3,7 +3,7 @@
 struct VSOutput
 {
     float4 pos : SV_POSITION;
-    float2 uv : UV;
+    float4 uv : UV;
     uint vs_material_id: MATERIAL_ID;
     float3 normal: NORMAL;
     float4 tangent: TANGENT;
@@ -36,7 +36,7 @@ VSOutput MainVS(uint Vertex_ID : SV_VertexID, uint Instance_ID : SV_InstanceID
     output.prev_clip_pos = mul(prev_view_projection_matrix, world_pos);
     //output.color = float3(1.0, 1.0, 1.0);
     output.vs_material_id = mesh_start_info[instance_input_data.mesh_id].material_index;
-    output.uv = vertex.uv.xy;
+    output.uv = vertex.uv;
     output.tangent = vertex.tangent;
     output.world_rotation_matrix = (float3x3)instance_transform;
     output.normal = normalize(mul(instance_transform, float4(vertex.normal.xyz, 0.0)).xyz);
@@ -61,7 +61,7 @@ FSOutput MainFS(VSOutput input)
     const float2 metallic_roughness = SampleMetallicRoughnessTexture(input.vs_material_id, input.uv.xy);
     output.color = float4(base_color.xyz, metallic_roughness.x);
     
-    const float3 tangent_space_normal = normalize(2 * SampleNormalTexture(input.vs_material_id, input.uv).xyz - 1.0);
+    const float3 tangent_space_normal = normalize(2 * SampleNormalTexture(input.vs_material_id, input.uv.xy).xyz - 1.0);
     const float3 world_normal = normalize(GetWorldNormal(input.world_rotation_matrix, input.normal, input.tangent, tangent_space_normal));
     output.normal = float4(world_normal * 0.5 + 0.5, metallic_roughness.y);
 

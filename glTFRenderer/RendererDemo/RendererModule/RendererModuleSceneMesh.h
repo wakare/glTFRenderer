@@ -18,7 +18,7 @@ struct SceneMeshVertexInfo
     float position[4];
     float normal[4];
     float tangent[4];
-    float uv[4];
+    float uv[4]; // xy = uv0, zw = uv1
 };
 
 struct SceneMeshInstanceRenderResource

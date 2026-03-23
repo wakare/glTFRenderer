@@ -59,6 +59,12 @@ void RendererSceneMeshDataAccessor::AccessMeshData(MeshDataAccessorType type, un
             memcpy(mesh_vertex_infos[vertex_offset + i].uv, float_data + i * 2, 2 * sizeof(float));
         }
         break;
+    case MeshDataAccessorType::VERTEX_TEXCOORD1_FLOAT2:
+        for (size_t i = 0; i < element_size; i++)
+        {
+            memcpy(mesh_vertex_infos[vertex_offset + i].uv + 2, float_data + i * 2, 2 * sizeof(float));
+        }
+        break;
     case MeshDataAccessorType::INDEX_INT:
         {            
             mesh_index_counts[mesh_id] = element_size;

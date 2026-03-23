@@ -691,6 +691,7 @@ namespace RendererInterface
             VERTEX_NORMAL_FLOAT3,
             VERTEX_TANGENT_FLOAT4,
             VERTEX_TEXCOORD0_FLOAT2,
+            VERTEX_TEXCOORD1_FLOAT2,
             INDEX_INT,
             INDEX_HALF,
             INSTANCE_MAT4x4,
