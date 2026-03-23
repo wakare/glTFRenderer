@@ -9,6 +9,7 @@ namespace LightingBaker
     struct BakeAccumulationRunResult;
     struct BakeAccumulatorResumeState;
     struct BakeOutputLayout;
+    struct BakeRayTracingSceneBuildResult;
     struct BakeSceneImportResult;
     struct LightmapAtlasBuildResult;
 
@@ -22,6 +23,7 @@ namespace LightingBaker
         void PrintResolvedJob(const BakeJobConfig& config, const BakeOutputLayout& output_layout) const;
         void PrintImportSummary(const BakeSceneImportResult& import_result) const;
         void PrintAtlasSummary(const LightmapAtlasBuildResult& atlas_result) const;
+        void PrintRayTracingSceneSummary(const BakeRayTracingSceneBuildResult& ray_tracing_scene) const;
         void PrintResumeSummary(const BakeAccumulatorResumeState& resume_state) const;
         void PrintAccumulationSummary(const BakeAccumulationRunResult& run_result) const;
     };

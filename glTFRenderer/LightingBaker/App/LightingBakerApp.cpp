@@ -2,6 +2,7 @@
 
 #include "Bake/Atlas/LightmapAtlasBuilder.h"
 #include "Bake/Post/BakeAccumulator.h"
+#include "Bake/RayTracing/BakeRayTracingScene.h"
 #include "Output/BakeOutputWriter.h"
 #include "Scene/BakeSceneImporter.h"
 
@@ -21,6 +22,7 @@ namespace LightingBaker
         constexpr int kExitAtlasValidationError = 7;
         constexpr int kExitResumeValidationError = 8;
         constexpr int kExitAccumulationError = 9;
+        constexpr int kExitRayTracingSceneError = 10;
 
         unsigned CountErrors(const BakeSceneImportResult& import_result)
         {
@@ -52,6 +54,16 @@ namespace LightingBaker
         unsigned CountWarnings(const LightmapAtlasBuildResult& atlas_result)
         {
             return static_cast<unsigned>(atlas_result.warnings.size());
+        }
+
+        unsigned CountErrors(const BakeRayTracingSceneBuildResult& ray_tracing_scene)
+        {
+            return static_cast<unsigned>(ray_tracing_scene.errors.size());
+        }
+
+        unsigned CountWarnings(const BakeRayTracingSceneBuildResult& ray_tracing_scene)
+        {
+            return static_cast<unsigned>(ray_tracing_scene.warnings.size());
         }
     }
 
@@ -160,6 +172,32 @@ namespace LightingBaker
             return kExitOutputWriteError;
         }
 
+        BakeRayTracingSceneBuilder ray_tracing_scene_builder{};
+        BakeRayTracingSceneBuildResult ray_tracing_scene{};
+        error_message.clear();
+        if (!ray_tracing_scene_builder.BuildScene(import_result, ray_tracing_scene, error_message))
+        {
+            std::wcerr << error_message << L"\n";
+            return kExitRayTracingSceneError;
+        }
+
+        error_message.clear();
+        if (!output_writer.WriteRayTracingSceneSummary(ray_tracing_scene, output_layout, error_message))
+        {
+            std::wcerr << error_message << L"\n";
+            return kExitOutputWriteError;
+        }
+
+        if (ray_tracing_scene.HasValidationErrors())
+        {
+            PrintResolvedJob(config, output_layout);
+            PrintImportSummary(import_result);
+            PrintAtlasSummary(atlas_result);
+            PrintRayTracingSceneSummary(ray_tracing_scene);
+            std::wcerr << L"Ray tracing scene validation failed. See ray tracing scene summary for details.\n";
+            return kExitRayTracingSceneError;
+        }
+
         if (atlas_result.HasValidationErrors())
         {
             if (!config.resume)
@@ -175,6 +213,7 @@ namespace LightingBaker
             PrintResolvedJob(config, output_layout);
             PrintImportSummary(import_result);
             PrintAtlasSummary(atlas_result);
+            PrintRayTracingSceneSummary(ray_tracing_scene);
             std::wcerr << L"Atlas validation failed. See atlas summary for details.\n";
             return kExitAtlasValidationError;
         }
@@ -202,6 +241,7 @@ namespace LightingBaker
             PrintResolvedJob(config, output_layout);
             PrintImportSummary(import_result);
             PrintAtlasSummary(atlas_result);
+            PrintRayTracingSceneSummary(ray_tracing_scene);
             PrintResumeSummary(resume_state);
             std::wcerr << error_message << L"\n";
             return kExitResumeValidationError;
@@ -218,6 +258,7 @@ namespace LightingBaker
             PrintResolvedJob(config, output_layout);
             PrintImportSummary(import_result);
             PrintAtlasSummary(atlas_result);
+            PrintRayTracingSceneSummary(ray_tracing_scene);
             PrintResumeSummary(resume_state);
             std::wcerr << error_message << L"\n";
             return kExitAccumulationError;
@@ -245,17 +286,21 @@ namespace LightingBaker
         PrintResolvedJob(config, output_layout);
         PrintImportSummary(import_result);
         PrintAtlasSummary(atlas_result);
+        PrintRayTracingSceneSummary(ray_tracing_scene);
         PrintResumeSummary(resume_state);
         PrintAccumulationSummary(accumulation_run_result);
 
         const std::filesystem::path import_summary_path = output_layout.debug / L"import_summary.json";
         const std::filesystem::path atlas_summary_path = output_layout.debug / L"atlas_summary.json";
+        const std::filesystem::path ray_tracing_scene_summary_path =
+            output_layout.debug / L"raytracing_scene_summary.json";
         std::wcout
             << L"\nProgressive preview sidecar package updated.\n"
             << L"  manifest: " << output_layout.manifest_path.native() << L"\n"
             << L"  resume metadata: " << output_layout.resume_path.native() << L"\n"
             << L"  import summary: " << import_summary_path.native() << L"\n"
             << L"  atlas summary: " << atlas_summary_path.native() << L"\n"
+            << L"  ray tracing scene summary: " << ray_tracing_scene_summary_path.native() << L"\n"
             << L"  preview integrator: debug hemisphere placeholder\n";
 
         return kExitSuccess;
@@ -301,6 +346,20 @@ namespace LightingBaker
             << L"  overlapped texels: " << atlas_result.overlapped_texel_count << L"\n"
             << L"  warnings: " << CountWarnings(atlas_result) << L"\n"
             << L"  errors: " << CountErrors(atlas_result) << L"\n";
+    }
+
+    void LightingBakerApp::PrintRayTracingSceneSummary(const BakeRayTracingSceneBuildResult& ray_tracing_scene) const
+    {
+        std::wcout
+            << L"\nRay tracing scene summary\n"
+            << L"  geometries: " << ray_tracing_scene.geometry_count << L"\n"
+            << L"  instances: " << ray_tracing_scene.instance_count << L"\n"
+            << L"  vertices: " << ray_tracing_scene.vertex_count << L"\n"
+            << L"  indices: " << ray_tracing_scene.index_count << L"\n"
+            << L"  triangles: " << ray_tracing_scene.triangle_count << L"\n"
+            << L"  skipped primitives: " << ray_tracing_scene.skipped_primitive_count << L"\n"
+            << L"  warnings: " << CountWarnings(ray_tracing_scene) << L"\n"
+            << L"  errors: " << CountErrors(ray_tracing_scene) << L"\n";
     }
 
     void LightingBakerApp::PrintResumeSummary(const BakeAccumulatorResumeState& resume_state) const

@@ -1,6 +1,7 @@
 #include "BakeOutputWriter.h"
 
 #include "Bake/Atlas/LightmapAtlasBuilder.h"
+#include "Bake/RayTracing/BakeRayTracingScene.h"
 #include "Scene/BakeSceneImporter.h"
 
 #include <algorithm>
@@ -27,6 +28,7 @@ namespace LightingBaker
         constexpr const char* kResumeMetadataRelativePath = "cache/resume.json";
         constexpr const char* kImportSummaryRelativePath = "debug/import_summary.json";
         constexpr const char* kAtlasSummaryRelativePath = "debug/atlas_summary.json";
+        constexpr const char* kRayTracingSceneSummaryRelativePath = "debug/raytracing_scene_summary.json";
 
         struct BakeTexelRecordDiskV1
         {
@@ -539,6 +541,62 @@ namespace LightingBaker
         return WriteJsonFile(layout.root / std::filesystem::path(kAtlasSummaryRelativePath), root, out_error);
     }
 
+    bool BakeOutputWriter::WriteRayTracingSceneSummary(const BakeRayTracingSceneBuildResult& ray_tracing_scene,
+                                                       const BakeOutputLayout& layout,
+                                                       std::wstring& out_error) const
+    {
+        nlohmann::json root{};
+        root["schema_version"] = kManifestSchemaVersion;
+        root["geometry_count"] = ray_tracing_scene.geometry_count;
+        root["instance_count"] = ray_tracing_scene.instance_count;
+        root["vertex_count"] = ray_tracing_scene.vertex_count;
+        root["index_count"] = ray_tracing_scene.index_count;
+        root["triangle_count"] = ray_tracing_scene.triangle_count;
+        root["skipped_primitive_count"] = ray_tracing_scene.skipped_primitive_count;
+        root["validation_status"] = ray_tracing_scene.HasValidationErrors() ? "failed" : "passed";
+        root["errors"] = nlohmann::json::array();
+        for (const BakeSceneValidationMessage& message : ray_tracing_scene.errors)
+        {
+            root["errors"].push_back(ToJson(message));
+        }
+
+        root["warnings"] = nlohmann::json::array();
+        for (const BakeSceneValidationMessage& message : ray_tracing_scene.warnings)
+        {
+            root["warnings"].push_back(ToJson(message));
+        }
+
+        root["instances"] = nlohmann::json::array();
+        for (std::size_t geometry_index = 0; geometry_index < ray_tracing_scene.geometries.size(); ++geometry_index)
+        {
+            const BakeRayTracingGeometrySource& geometry = ray_tracing_scene.geometries[geometry_index];
+            const RHIRayTracingInstanceDesc& instance =
+                geometry_index < ray_tracing_scene.instances.size()
+                    ? ray_tracing_scene.instances[geometry_index]
+                    : RHIRayTracingInstanceDesc{};
+            root["instances"].push_back({
+                {"geometry_index", geometry.geometry_index},
+                {"instance_id", instance.instance_id},
+                {"hit_group_index", instance.hit_group_index},
+                {"instance_mask", instance.instance_mask},
+                {"stable_node_key", geometry.stable_node_key},
+                {"primitive_hash", geometry.primitive_hash},
+                {"material_index", geometry.material_index},
+                {"vertex_count", geometry.vertex_count},
+                {"index_count", geometry.index_count},
+                {"triangle_count", geometry.triangle_count},
+                {"opaque", geometry.opaque},
+                {"node_name", geometry.node_name},
+                {"mesh_name", geometry.mesh_name},
+            });
+        }
+
+        return WriteJsonFile(
+            layout.root / std::filesystem::path(kRayTracingSceneSummaryRelativePath),
+            root,
+            out_error);
+    }
+
     bool BakeOutputWriter::RefreshPackageMetadata(const BakeJobConfig& config,
                                                   const BakeOutputLayout& layout,
                                                   const BakeSceneImportResult& import_result,
@@ -746,6 +804,7 @@ namespace LightingBaker
             {"cache_file", kResumeMetadataRelativePath},
             {"import_summary_file", kImportSummaryRelativePath},
             {"atlas_summary_file", kAtlasSummaryRelativePath},
+            {"raytracing_scene_summary_file", kRayTracingSceneSummaryRelativePath},
             {"bootstrap_placeholder_payload", progress_state.bootstrap_placeholder_payload},
             {"atlas_cache_initialized", progress_state.has_accumulation_cache},
         };
@@ -880,6 +939,7 @@ namespace LightingBaker
             {"manifest", "../manifest.json"},
             {"import_summary", "../debug/import_summary.json"},
             {"atlas_summary", "../debug/atlas_summary.json"},
+            {"raytracing_scene_summary", "../debug/raytracing_scene_summary.json"},
             {"texel_records", nlohmann::json::array()},
             {"accumulation", nlohmann::json::array()},
             {"sample_count", nlohmann::json::array()},
