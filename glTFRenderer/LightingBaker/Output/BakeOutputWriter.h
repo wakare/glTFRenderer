@@ -10,6 +10,7 @@
 namespace LightingBaker
 {
     struct BakeSceneImportResult;
+    struct LightmapAtlasBuildResult;
 
     struct BakeOutputLayout
     {
@@ -53,7 +54,10 @@ namespace LightingBaker
                                    std::wstring& out_error) const;
         bool WriteImportSummary(const BakeSceneImportResult& import_result,
                                 const BakeOutputLayout& layout,
-                                   std::wstring& out_error) const;
+                                std::wstring& out_error) const;
+        bool WriteAtlasSummary(const LightmapAtlasBuildResult& atlas_result,
+                               const BakeOutputLayout& layout,
+                               std::wstring& out_error) const;
 
     private:
         bool EnsurePlaceholderAtlas(const BakeOutputLayout& layout,

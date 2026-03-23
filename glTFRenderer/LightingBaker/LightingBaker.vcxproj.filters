@@ -24,6 +24,9 @@
     <ClCompile Include="App\LightingBakerApp.cpp">
       <Filter>App</Filter>
     </ClCompile>
+    <ClCompile Include="Bake\Atlas\LightmapAtlasBuilder.cpp">
+      <Filter>Bake</Filter>
+    </ClCompile>
     <ClCompile Include="LightingBakerMain.cpp">
       <Filter>Root</Filter>
     </ClCompile>

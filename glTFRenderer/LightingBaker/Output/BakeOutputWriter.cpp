@@ -1,5 +1,6 @@
 #include "BakeOutputWriter.h"
 
+#include "Bake/Atlas/LightmapAtlasBuilder.h"
 #include "Scene/BakeSceneImporter.h"
 
 #include <algorithm>
@@ -25,6 +26,7 @@ namespace LightingBaker
         constexpr const char* kDefaultAtlasRelativePath = "atlases/indirect_00.rgba16f.bin";
         constexpr const char* kResumeMetadataRelativePath = "cache/resume.json";
         constexpr const char* kImportSummaryRelativePath = "debug/import_summary.json";
+        constexpr const char* kAtlasSummaryRelativePath = "debug/atlas_summary.json";
 
         std::string ToJsonPathString(const std::filesystem::path& path)
         {
@@ -265,6 +267,57 @@ namespace LightingBaker
         }
 
         return WriteJsonFile(layout.root / std::filesystem::path(kImportSummaryRelativePath), root, out_error);
+    }
+
+    bool BakeOutputWriter::WriteAtlasSummary(const LightmapAtlasBuildResult& atlas_result,
+                                             const BakeOutputLayout& layout,
+                                             std::wstring& out_error) const
+    {
+        nlohmann::json root{};
+        root["schema_version"] = kManifestSchemaVersion;
+        root["atlas_resolution"] = atlas_result.atlas_resolution;
+        root["texel_border"] = atlas_result.texel_border;
+        root["binding_count"] = atlas_result.binding_count;
+        root["texel_record_count"] = atlas_result.texel_record_count;
+        root["overlapped_texel_count"] = atlas_result.overlapped_texel_count;
+        root["validation_status"] = atlas_result.HasValidationErrors() ? "failed" : "passed";
+
+        root["errors"] = nlohmann::json::array();
+        for (const BakeSceneValidationMessage& message : atlas_result.errors)
+        {
+            root["errors"].push_back(ToJson(message));
+        }
+
+        root["warnings"] = nlohmann::json::array();
+        for (const BakeSceneValidationMessage& message : atlas_result.warnings)
+        {
+            root["warnings"].push_back(ToJson(message));
+        }
+
+        root["bindings"] = nlohmann::json::array();
+        for (const LightmapAtlasBindingInfo& binding : atlas_result.bindings)
+        {
+            nlohmann::json binding_json{
+                {"atlas_id", binding.atlas_id},
+                {"node_key", binding.stable_node_key},
+                {"primitive_hash", binding.primitive_hash},
+                {"scale_bias", ToJson(binding.scale_bias)},
+                {"valid_texel_count", binding.valid_texel_count},
+                {"overlap_texel_count", binding.overlap_texel_count},
+                {"has_texel_bounds", binding.has_texel_bounds},
+                {"node_name", binding.node_name},
+                {"mesh_name", binding.mesh_name},
+            };
+            if (binding.has_texel_bounds)
+            {
+                binding_json["texel_min"] = nlohmann::json::array({binding.texel_min.x, binding.texel_min.y});
+                binding_json["texel_max"] = nlohmann::json::array({binding.texel_max.x, binding.texel_max.y});
+            }
+
+            root["bindings"].push_back(std::move(binding_json));
+        }
+
+        return WriteJsonFile(layout.root / std::filesystem::path(kAtlasSummaryRelativePath), root, out_error);
     }
 
     bool BakeOutputWriter::EnsurePlaceholderAtlas(const BakeOutputLayout& layout,

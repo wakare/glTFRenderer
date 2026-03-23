@@ -1,5 +1,6 @@
 #include "LightingBakerApp.h"
 
+#include "Bake/Atlas/LightmapAtlasBuilder.h"
 #include "Output/BakeOutputWriter.h"
 #include "Scene/BakeSceneImporter.h"
 
@@ -15,6 +16,8 @@ namespace LightingBaker
         constexpr int kExitOutputWriteError = 3;
         constexpr int kExitSceneImportError = 4;
         constexpr int kExitSceneValidationError = 5;
+        constexpr int kExitAtlasBuildError = 6;
+        constexpr int kExitAtlasValidationError = 7;
 
         unsigned CountErrors(const BakeSceneImportResult& import_result)
         {
@@ -36,6 +39,16 @@ namespace LightingBaker
             }
 
             return count;
+        }
+
+        unsigned CountErrors(const LightmapAtlasBuildResult& atlas_result)
+        {
+            return static_cast<unsigned>(atlas_result.errors.size());
+        }
+
+        unsigned CountWarnings(const LightmapAtlasBuildResult& atlas_result)
+        {
+            return static_cast<unsigned>(atlas_result.warnings.size());
         }
     }
 
@@ -84,6 +97,62 @@ namespace LightingBaker
         }
 
         error_message.clear();
+        if (!import_success)
+        {
+            if (!output_writer.WriteBootstrapPackage(config, output_layout, import_result, error_message))
+            {
+                std::wcerr << error_message << L"\n";
+                return kExitOutputWriteError;
+            }
+
+            PrintResolvedJob(config, output_layout);
+            PrintImportSummary(import_result);
+            std::wcerr << import_error_message << L"\n";
+            return kExitSceneImportError;
+        }
+
+        if (import_result.HasValidationErrors())
+        {
+            if (!output_writer.WriteBootstrapPackage(config, output_layout, import_result, error_message))
+            {
+                std::wcerr << error_message << L"\n";
+                return kExitOutputWriteError;
+            }
+
+            PrintResolvedJob(config, output_layout);
+            PrintImportSummary(import_result);
+            std::wcerr << L"Scene validation failed. See import summary for details.\n";
+            return kExitSceneValidationError;
+        }
+
+        LightmapAtlasBuilder atlas_builder{};
+        LightmapAtlasBuildSettings atlas_settings{};
+        atlas_settings.atlas_resolution = config.atlas_resolution;
+        LightmapAtlasBuildResult atlas_result{};
+        error_message.clear();
+        if (!atlas_builder.BuildAtlas(import_result, atlas_settings, atlas_result, error_message))
+        {
+            std::wcerr << error_message << L"\n";
+            return kExitAtlasBuildError;
+        }
+
+        error_message.clear();
+        if (!output_writer.WriteAtlasSummary(atlas_result, output_layout, error_message))
+        {
+            std::wcerr << error_message << L"\n";
+            return kExitOutputWriteError;
+        }
+
+        if (atlas_result.HasValidationErrors())
+        {
+            PrintResolvedJob(config, output_layout);
+            PrintImportSummary(import_result);
+            PrintAtlasSummary(atlas_result);
+            std::wcerr << L"Atlas validation failed. See atlas summary for details.\n";
+            return kExitAtlasValidationError;
+        }
+
+        error_message.clear();
         if (!output_writer.WriteBootstrapPackage(config, output_layout, import_result, error_message))
         {
             std::wcerr << error_message << L"\n";
@@ -92,13 +161,16 @@ namespace LightingBaker
 
         PrintResolvedJob(config, output_layout);
         PrintImportSummary(import_result);
+        PrintAtlasSummary(atlas_result);
 
         const std::filesystem::path import_summary_path = output_layout.debug / L"import_summary.json";
+        const std::filesystem::path atlas_summary_path = output_layout.debug / L"atlas_summary.json";
         std::wcout
             << L"\nPhase A scaffold is active. Bootstrap sidecar package written.\n"
             << L"  manifest: " << output_layout.manifest_path.native() << L"\n"
             << L"  resume metadata: " << output_layout.resume_path.native() << L"\n"
             << L"  import summary: " << import_summary_path.native() << L"\n"
+            << L"  atlas summary: " << atlas_summary_path.native() << L"\n"
             << L"\nPlanned pipeline:\n"
             << L"  1. Initialize maintained runtime host\n"
             << L"  2. Import scene via BakeSceneImporter\n"
@@ -106,18 +178,6 @@ namespace LightingBaker
             << L"  4. Build atlas-domain bake records\n"
             << L"  5. Execute path-traced bake passes\n"
             << L"  6. Accumulate progressive results and write sidecar outputs\n";
-
-        if (!import_success)
-        {
-            std::wcerr << import_error_message << L"\n";
-            return kExitSceneImportError;
-        }
-
-        if (import_result.HasValidationErrors())
-        {
-            std::wcerr << L"Scene validation failed. See import summary for details.\n";
-            return kExitSceneValidationError;
-        }
 
         return kExitSuccess;
     }
@@ -149,5 +209,18 @@ namespace LightingBaker
             << L"  valid lightmap primitives: " << import_result.valid_lightmap_primitive_count << L"\n"
             << L"  warnings: " << CountWarnings(import_result) << L"\n"
             << L"  errors: " << CountErrors(import_result) << L"\n";
+    }
+
+    void LightingBakerApp::PrintAtlasSummary(const LightmapAtlasBuildResult& atlas_result) const
+    {
+        std::wcout
+            << L"\nAtlas build summary\n"
+            << L"  atlas resolution: " << atlas_result.atlas_resolution << L"\n"
+            << L"  texel border: " << atlas_result.texel_border << L"\n"
+            << L"  bindings: " << atlas_result.binding_count << L"\n"
+            << L"  texel records: " << atlas_result.texel_record_count << L"\n"
+            << L"  overlapped texels: " << atlas_result.overlapped_texel_count << L"\n"
+            << L"  warnings: " << CountWarnings(atlas_result) << L"\n"
+            << L"  errors: " << CountErrors(atlas_result) << L"\n";
     }
 }

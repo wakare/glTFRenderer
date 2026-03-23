@@ -19,6 +19,20 @@ namespace LightingBaker
         std::string message{};
     };
 
+    struct BakePrimitiveGeometryData
+    {
+        std::vector<glm::fvec3> world_positions{};
+        std::vector<glm::fvec2> uv1_vertices{};
+        std::vector<unsigned> triangle_indices{};
+
+        bool HasGeometry() const
+        {
+            return !world_positions.empty() &&
+                   world_positions.size() == uv1_vertices.size() &&
+                   !triangle_indices.empty();
+        }
+    };
+
     struct BakePrimitiveImportInfo
     {
         unsigned stable_node_key{0xffffffffu};
@@ -39,6 +53,7 @@ namespace LightingBaker
         unsigned uv1_non_finite_vertex_count{0};
         unsigned degenerate_uv_triangle_count{0};
         unsigned degenerate_position_triangle_count{0};
+        BakePrimitiveGeometryData geometry{};
         std::vector<BakeSceneValidationMessage> errors{};
         std::vector<BakeSceneValidationMessage> warnings{};
     };

@@ -191,8 +191,15 @@ namespace LightingBaker
             }
         }
 
+        glm::fvec3 TransformPoint(const glm::fmat4x4& transform, const glm::fvec3& position)
+        {
+            const glm::fvec4 world_position = transform * glm::fvec4(position, 1.0f);
+            return glm::fvec3(world_position.x, world_position.y, world_position.z);
+        }
+
         void ValidatePrimitiveGeometry(const glTFLoader& loader,
                                        const glTF_Primitive& primitive,
+                                       const glm::fmat4x4& world_transform,
                                        BakePrimitiveImportInfo& out_primitive)
         {
             const auto it_position = primitive.attributes.find(glTF_Attribute_POSITION::attribute_type_id);
@@ -262,6 +269,9 @@ namespace LightingBaker
 
             out_primitive.vertex_count = static_cast<unsigned>(position_view.count);
             out_primitive.index_count = static_cast<unsigned>(index_view.count);
+            out_primitive.geometry.world_positions.resize(position_view.count);
+            out_primitive.geometry.uv1_vertices.resize(uv1_view.count);
+            out_primitive.geometry.triangle_indices.resize(index_view.count);
 
             bool uv_bounds_initialized = false;
             glm::fvec2 uv_min{0.0f, 0.0f};
@@ -269,11 +279,21 @@ namespace LightingBaker
             for (std::size_t vertex_index = 0; vertex_index < uv1_view.count; ++vertex_index)
             {
                 glm::fvec2 uv{};
+                glm::fvec3 position{};
                 if (!ReadFloat2(uv1_view, vertex_index, uv))
                 {
                     AddError(out_primitive, "uv1_read", "Failed to read TEXCOORD_1 vertex data.");
                     return;
                 }
+
+                if (!ReadFloat3(position_view, vertex_index, position))
+                {
+                    AddError(out_primitive, "position_read", "Failed to read POSITION vertex data.");
+                    return;
+                }
+
+                out_primitive.geometry.world_positions[vertex_index] = TransformPoint(world_transform, position);
+                out_primitive.geometry.uv1_vertices[vertex_index] = uv;
 
                 if (!std::isfinite(uv.x) || !std::isfinite(uv.y))
                 {
@@ -315,6 +335,10 @@ namespace LightingBaker
                     return;
                 }
 
+                out_primitive.geometry.triangle_indices[triangle_index] = triangle_indices[0];
+                out_primitive.geometry.triangle_indices[triangle_index + 1] = triangle_indices[1];
+                out_primitive.geometry.triangle_indices[triangle_index + 2] = triangle_indices[2];
+
                 if (triangle_indices[0] >= position_view.count ||
                     triangle_indices[1] >= position_view.count ||
                     triangle_indices[2] >= position_view.count)
@@ -323,18 +347,16 @@ namespace LightingBaker
                     return;
                 }
 
-                glm::fvec2 triangle_uv[3]{};
-                glm::fvec3 triangle_positions[3]{};
-                if (!ReadFloat2(uv1_view, triangle_indices[0], triangle_uv[0]) ||
-                    !ReadFloat2(uv1_view, triangle_indices[1], triangle_uv[1]) ||
-                    !ReadFloat2(uv1_view, triangle_indices[2], triangle_uv[2]) ||
-                    !ReadFloat3(position_view, triangle_indices[0], triangle_positions[0]) ||
-                    !ReadFloat3(position_view, triangle_indices[1], triangle_positions[1]) ||
-                    !ReadFloat3(position_view, triangle_indices[2], triangle_positions[2]))
-                {
-                    AddError(out_primitive, "triangle_read", "Failed to read triangle attribute data.");
-                    return;
-                }
+                const glm::fvec2 triangle_uv[3] = {
+                    out_primitive.geometry.uv1_vertices[triangle_indices[0]],
+                    out_primitive.geometry.uv1_vertices[triangle_indices[1]],
+                    out_primitive.geometry.uv1_vertices[triangle_indices[2]],
+                };
+                const glm::fvec3 triangle_positions[3] = {
+                    out_primitive.geometry.world_positions[triangle_indices[0]],
+                    out_primitive.geometry.world_positions[triangle_indices[1]],
+                    out_primitive.geometry.world_positions[triangle_indices[2]],
+                };
 
                 const glm::fvec2 uv_edge_01 = triangle_uv[1] - triangle_uv[0];
                 const glm::fvec2 uv_edge_02 = triangle_uv[2] - triangle_uv[0];
@@ -377,6 +399,7 @@ namespace LightingBaker
 
         void ValidatePrimitive(const glTFLoader& loader,
                                const glTF_Primitive& primitive,
+                               const glm::fmat4x4& world_transform,
                                BakePrimitiveImportInfo& out_primitive)
         {
             out_primitive.has_texcoord0 =
@@ -404,12 +427,13 @@ namespace LightingBaker
                 AddError(out_primitive, "missing_uv1", "Primitive is missing TEXCOORD_1.");
             }
 
-            ValidatePrimitiveGeometry(loader, primitive, out_primitive);
+            ValidatePrimitiveGeometry(loader, primitive, world_transform, out_primitive);
             out_primitive.can_emit_lightmap_binding = out_primitive.errors.empty();
         }
 
         void CollectNodePrimitiveInstances(const glTFLoader& loader,
                                            const glTFHandle& node_handle,
+                                           const glm::fmat4x4& parent_world_transform,
                                            BakeSceneImportResult& out_result)
         {
             const unsigned node_index = static_cast<unsigned>(loader.ResolveIndex(node_handle));
@@ -422,6 +446,7 @@ namespace LightingBaker
             }
 
             const glTF_Element_Node& node = *nodes[node_index];
+            const glm::fmat4x4 world_transform = parent_world_transform * node.transform.GetMatrix();
             for (const glTFHandle& mesh_handle : node.meshes)
             {
                 const unsigned mesh_index = static_cast<unsigned>(loader.ResolveIndex(mesh_handle));
@@ -446,7 +471,7 @@ namespace LightingBaker
                     primitive_info.node_name = ResolveNodeName(node, node_index);
                     primitive_info.mesh_name = ResolveMeshName(mesh, mesh_index);
 
-                    ValidatePrimitive(loader, primitive, primitive_info);
+                    ValidatePrimitive(loader, primitive, world_transform, primitive_info);
                     if (primitive_info.can_emit_lightmap_binding)
                     {
                         ++out_result.valid_lightmap_primitive_count;
@@ -459,7 +484,7 @@ namespace LightingBaker
 
             for (const glTFHandle& child_handle : node.children)
             {
-                CollectNodePrimitiveInstances(loader, child_handle, out_result);
+                CollectNodePrimitiveInstances(loader, child_handle, world_transform, out_result);
             }
         }
     }
@@ -514,7 +539,7 @@ namespace LightingBaker
 
         for (const glTFHandle& root_node_handle : default_scene.root_nodes)
         {
-            CollectNodePrimitiveInstances(loader, root_node_handle, out_result);
+            CollectNodePrimitiveInstances(loader, root_node_handle, glm::fmat4x4(1.0f), out_result);
         }
 
         if (out_result.instance_primitive_count == 0)
