@@ -776,6 +776,10 @@ bool DemoAppModelViewer::FinalizeRegressionRun()
     summary["renderdoc_capture_available"] = false;
     summary["renderdoc_capture_required"] = false;
     summary["renderdoc_capture_forced"] = false;
+    summary["pix_capture_enabled"] = false;
+    summary["pix_capture_available"] = false;
+    summary["pix_capture_required"] = false;
+    summary["pix_capture_forced"] = false;
     summary["case_count"] = m_regression_suite.cases.size();
     summary["result_count"] = m_regression_case_results.size();
 
@@ -800,6 +804,12 @@ bool DemoAppModelViewer::FinalizeRegressionRun()
         case_item["renderdoc_capture_frame_index"] = 0;
         case_item["renderdoc_capture_path"] = "";
         case_item["renderdoc_capture_error"] = "";
+        case_item["pix_capture_success"] = false;
+        case_item["pix_capture_retained"] = false;
+        case_item["pix_capture_keep_on_success"] = true;
+        case_item["pix_capture_frame_index"] = 0;
+        case_item["pix_capture_path"] = "";
+        case_item["pix_capture_error"] = "";
         case_item["error"] = result.error;
         case_results.push_back(std::move(case_item));
     }
@@ -807,6 +817,8 @@ bool DemoAppModelViewer::FinalizeRegressionRun()
     summary["failed_count"] = failed_count;
     summary["renderdoc_capture_success_count"] = 0;
     summary["renderdoc_capture_retained_count"] = 0;
+    summary["pix_capture_success_count"] = 0;
+    summary["pix_capture_retained_count"] = 0;
     summary["success"] =
         failed_count == 0u &&
         m_regression_case_results.size() == m_regression_suite.cases.size();

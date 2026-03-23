@@ -138,7 +138,10 @@ namespace Regression
                 !TryReadUnsigned(global, "default_capture_frames", out_suite.default_capture_frames, out_error) ||
                 !TryReadBool(global, "default_capture_renderdoc", out_suite.default_capture_renderdoc, out_error) ||
                 !TryReadUnsigned(global, "default_renderdoc_capture_frame_offset", out_suite.default_renderdoc_capture_frame_offset, out_error) ||
-                !TryReadBool(global, "default_keep_renderdoc_on_success", out_suite.default_keep_renderdoc_on_success, out_error))
+                !TryReadBool(global, "default_keep_renderdoc_on_success", out_suite.default_keep_renderdoc_on_success, out_error) ||
+                !TryReadBool(global, "default_capture_pix", out_suite.default_capture_pix, out_error) ||
+                !TryReadUnsigned(global, "default_pix_capture_frame_offset", out_suite.default_pix_capture_frame_offset, out_error) ||
+                !TryReadBool(global, "default_keep_pix_on_success", out_suite.default_keep_pix_on_success, out_error))
             {
                 return false;
             }
@@ -174,6 +177,9 @@ namespace Regression
             case_config.capture.capture_renderdoc = out_suite.default_capture_renderdoc;
             case_config.capture.renderdoc_capture_frame_offset = out_suite.default_renderdoc_capture_frame_offset;
             case_config.capture.keep_renderdoc_on_success = out_suite.default_keep_renderdoc_on_success;
+            case_config.capture.capture_pix = out_suite.default_capture_pix;
+            case_config.capture.pix_capture_frame_offset = out_suite.default_pix_capture_frame_offset;
+            case_config.capture.keep_pix_on_success = out_suite.default_keep_pix_on_success;
 
             if (!TryReadString(json_case, "id", case_config.id, out_error))
             {
@@ -195,7 +201,10 @@ namespace Regression
                     !TryReadBool(capture, "capture_perf", case_config.capture.capture_perf, out_error) ||
                     !TryReadBool(capture, "capture_renderdoc", case_config.capture.capture_renderdoc, out_error) ||
                     !TryReadUnsigned(capture, "renderdoc_capture_frame_offset", case_config.capture.renderdoc_capture_frame_offset, out_error) ||
-                    !TryReadBool(capture, "keep_renderdoc_on_success", case_config.capture.keep_renderdoc_on_success, out_error))
+                    !TryReadBool(capture, "keep_renderdoc_on_success", case_config.capture.keep_renderdoc_on_success, out_error) ||
+                    !TryReadBool(capture, "capture_pix", case_config.capture.capture_pix, out_error) ||
+                    !TryReadUnsigned(capture, "pix_capture_frame_offset", case_config.capture.pix_capture_frame_offset, out_error) ||
+                    !TryReadBool(capture, "keep_pix_on_success", case_config.capture.keep_pix_on_success, out_error))
                 {
                     return false;
                 }
@@ -207,7 +216,10 @@ namespace Regression
                 !TryReadBool(json_case, "capture_perf", case_config.capture.capture_perf, out_error) ||
                 !TryReadBool(json_case, "capture_renderdoc", case_config.capture.capture_renderdoc, out_error) ||
                 !TryReadUnsigned(json_case, "renderdoc_capture_frame_offset", case_config.capture.renderdoc_capture_frame_offset, out_error) ||
-                !TryReadBool(json_case, "keep_renderdoc_on_success", case_config.capture.keep_renderdoc_on_success, out_error))
+                !TryReadBool(json_case, "keep_renderdoc_on_success", case_config.capture.keep_renderdoc_on_success, out_error) ||
+                !TryReadBool(json_case, "capture_pix", case_config.capture.capture_pix, out_error) ||
+                !TryReadUnsigned(json_case, "pix_capture_frame_offset", case_config.capture.pix_capture_frame_offset, out_error) ||
+                !TryReadBool(json_case, "keep_pix_on_success", case_config.capture.keep_pix_on_success, out_error))
             {
                 return false;
             }

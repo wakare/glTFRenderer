@@ -11,6 +11,8 @@ param(
     [switch]$SkipBuild,
     [switch]$RenderDocCapture,
     [switch]$RenderDocRequired,
+    [switch]$PIXCapture,
+    [switch]$PIXRequired,
     [int]$BuildTimeoutSec = 900,
     [int]$CaptureTimeoutSec = 900,
     [switch]$DisableVisualCompare,
@@ -256,6 +258,13 @@ $compareScriptPath = Resolve-RepoPath -Path $CompareScript -RepoRoot $repoRoot -
 $profilePath = Resolve-RepoPath -Path $Profile -RepoRoot $repoRoot -RequireExists
 $Backends = Normalize-Backends -Values $Backends
 
+if ($RenderDocCapture -and $PIXCapture) {
+    throw "RenderDoc and PIX capture automation cannot be enabled in the same validation run."
+}
+if (($PIXCapture -or $PIXRequired) -and @($Backends | Where-Object { $_ -ne "dx" }).Count -gt 0) {
+    throw "PIX capture automation is only supported on DX12 validation runs. Use -Backends dx."
+}
+
 New-Item -ItemType Directory -Path $outputBasePath -Force | Out-Null
 
 $stamp = Get-Date -Format "yyyyMMdd_HHmmss"
@@ -324,6 +333,12 @@ if ($buildPassed) {
         if ($RenderDocRequired) {
             $sharedCaptureArgs += "-RenderDocRequired"
         }
+        if ($PIXCapture) {
+            $sharedCaptureArgs += "-PIXCapture"
+        }
+        if ($PIXRequired) {
+            $sharedCaptureArgs += "-PIXRequired"
+        }
 
         $baselineResult = Invoke-ChildScript `
             -ScriptPath $captureScriptPath `
@@ -383,6 +398,11 @@ if ($buildPassed) {
                 renderdoc_success_count = To-Int (Get-ChildValue -Result $baselineResult -Name "RENDERDOC_SUCCESS_COUNT")
                 renderdoc_retained_count = To-Int (Get-ChildValue -Result $baselineResult -Name "RENDERDOC_RETAINED_COUNT")
                 rdc_count = To-Int (Get-ChildValue -Result $baselineResult -Name "RDC_COUNT")
+                pix_enabled = To-Bool (Get-ChildValue -Result $baselineResult -Name "PIX_ENABLED")
+                pix_available = To-Bool (Get-ChildValue -Result $baselineResult -Name "PIX_AVAILABLE")
+                pix_success_count = To-Int (Get-ChildValue -Result $baselineResult -Name "PIX_SUCCESS_COUNT")
+                pix_retained_count = To-Int (Get-ChildValue -Result $baselineResult -Name "PIX_RETAINED_COUNT")
+                wpix_count = To-Int (Get-ChildValue -Result $baselineResult -Name "WPIX_COUNT")
                 stdout = $baselineResult.stdout
                 stderr = $baselineResult.stderr
             }
@@ -397,6 +417,11 @@ if ($buildPassed) {
                 renderdoc_success_count = To-Int (Get-ChildValue -Result $currentResult -Name "RENDERDOC_SUCCESS_COUNT")
                 renderdoc_retained_count = To-Int (Get-ChildValue -Result $currentResult -Name "RENDERDOC_RETAINED_COUNT")
                 rdc_count = To-Int (Get-ChildValue -Result $currentResult -Name "RDC_COUNT")
+                pix_enabled = To-Bool (Get-ChildValue -Result $currentResult -Name "PIX_ENABLED")
+                pix_available = To-Bool (Get-ChildValue -Result $currentResult -Name "PIX_AVAILABLE")
+                pix_success_count = To-Int (Get-ChildValue -Result $currentResult -Name "PIX_SUCCESS_COUNT")
+                pix_retained_count = To-Int (Get-ChildValue -Result $currentResult -Name "PIX_RETAINED_COUNT")
+                wpix_count = To-Int (Get-ChildValue -Result $currentResult -Name "WPIX_COUNT")
                 stdout = $currentResult.stdout
                 stderr = $currentResult.stderr
             }
@@ -430,6 +455,8 @@ $summaryObject = [ordered]@{
     backends = $Backends
     renderdoc_capture = [bool]$RenderDocCapture
     renderdoc_required = [bool]$RenderDocRequired
+    pix_capture = [bool]$PIXCapture
+    pix_required = [bool]$PIXRequired
     build = $buildSummary
     backend_total = $backendResults.Count
     backend_pass_total = $passedBackendCount
@@ -451,6 +478,8 @@ $md.Add("- Suite: $suitePath")
 $md.Add("- Backends: " + ($Backends -join ", "))
 $md.Add("- RenderDoc Capture: " + ($(if ($RenderDocCapture) { "YES" } else { "NO" })))
 $md.Add("- RenderDoc Required: " + ($(if ($RenderDocRequired) { "YES" } else { "NO" })))
+$md.Add("- PIX Capture: " + ($(if ($PIXCapture) { "YES" } else { "NO" })))
+$md.Add("- PIX Required: " + ($(if ($PIXRequired) { "YES" } else { "NO" })))
 $md.Add("- Build: $($buildSummary.status)")
 $md.Add("- Passed Backends: $passedBackendCount/$($backendResults.Count)")
 $md.Add("")
@@ -476,6 +505,24 @@ foreach ($backendResult in $backendResults) {
     if ($renderDocSuccessCount -gt 0 -and $renderDocRetainedCount -eq 0) {
         $notes += "rdc-pruned"
     }
+    $pixSuccessCount =
+        $backendResult.baseline.pix_success_count +
+        $backendResult.current.pix_success_count
+    $pixRetainedCount =
+        $backendResult.baseline.pix_retained_count +
+        $backendResult.current.pix_retained_count
+    if ($pixSuccessCount -eq 0) {
+        $pixSuccessCount = $backendResult.baseline.wpix_count + $backendResult.current.wpix_count
+    }
+    if ($pixRetainedCount -eq 0) {
+        $pixRetainedCount = $backendResult.baseline.wpix_count + $backendResult.current.wpix_count
+    }
+    if ($pixSuccessCount -gt 0) {
+        $notes += "wpix"
+    }
+    if ($pixSuccessCount -gt 0 -and $pixRetainedCount -eq 0) {
+        $notes += "wpix-pruned"
+    }
     if ($backendResult.compare.perf_skipped -gt 0) {
         $notes += "perf-skipped"
     }
@@ -497,6 +544,8 @@ Write-Host "OUTPUT_ROOT=$validationRoot"
 Write-Host "SUMMARY_JSON=$summaryJsonPath"
 Write-Host "SUMMARY_MD=$summaryMdPath"
 Write-Host "BACKENDS=$($Backends -join ',')"
+Write-Host "PIX_CAPTURE=$([bool]$PIXCapture)"
+Write-Host "PIX_REQUIRED=$([bool]$PIXRequired)"
 Write-Host "PASSED_BACKENDS=$passedBackendCount"
 Write-Host "FAILED_BACKENDS=$failedBackendCount"
 foreach ($backendResult in $backendResults) {

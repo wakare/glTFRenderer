@@ -13,12 +13,13 @@ Current coverage:
 
 - shared single-frame RenderDoc capture through `DemoBase`
 - shared single-frame PIX capture through `DemoBase`
-- startup flags, UI workflow, default output locations, and runtime limits
+- `DemoAppModelViewerFrostedGlass` regression entry points for automatic RenderDoc / PIX artifacts
+- startup flags, UI workflow, default output locations, runtime limits, and regression entry points
 
 Out of scope:
 
 - the legacy `glTFApp` runtime path
-- the `DemoAppModelViewerFrostedGlass` regression-specific automatic RenderDoc artifact flow
+- implementation details of the regression compare / reporting pipeline
 - installation guides for the external tools themselves
 
 ## 2. Capability Matrix
@@ -86,7 +87,7 @@ The shared `DemoBase` manual-capture UI currently supports:
 
 Notes:
 
-- demo-specific regression paths may layer extra meaning onto `-renderdoc-capture`; this document covers only the shared `DemoBase` manual UI
+- demo-specific regression paths may layer extra meaning onto `-renderdoc-capture` and `-pix-capture`; the shared `DemoBase` manual UI still treats them as preload / enable flags
 - PIX flags are currently meaningful only on DX12
 
 ## 4. Recommended Command Templates
@@ -116,6 +117,39 @@ Set-Location .\glTFRenderer\x64\Debug
 Set-Location .\glTFRenderer\x64\Debug
 .\RendererDemo.exe DemoTriangleApp -vulkan -renderdoc-ui
 ```
+
+### 4.3 DX12 + PIX regression automation (`DemoAppModelViewerFrostedGlass` only)
+
+Run from the repository root:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\Capture-RendererRegression.ps1 `
+  -Suite glTFRenderer\RendererDemo\Resources\RegressionSuites\frosted_glass_b9_smoke.json `
+  -Backend dx `
+  -DemoApp DemoAppModelViewerFrostedGlass `
+  -PIXCapture
+```
+
+If PIX availability must be treated as required for the run, add `-PIXRequired`.
+
+Relevant suite JSON fields:
+
+- global defaults:
+  - `default_capture_pix`
+  - `default_pix_capture_frame_offset`
+  - `default_keep_pix_on_success`
+- per-case `capture` block:
+  - `capture_pix`
+  - `pix_capture_frame_offset`
+  - `keep_pix_on_success`
+- compatibility fallback: the parser also accepts the same three keys directly on the case root
+
+Constraints for this regression path:
+
+- DX12 only
+- only `DemoAppModelViewerFrostedGlass` currently emits PIX regression artifacts
+- RenderDoc and PIX automation are mutually exclusive per regression run
+- on the shared `DemoBase` manual UI path, `-pix-capture` still means preload / enable, not automatic startup capture
 
 ## 5. Manual Workflow
 
@@ -190,7 +224,8 @@ Constraints that should remain intact:
 
 - PIX supports DX12 only; there is no Vulkan PIX capture path today
 - the shared `DemoBase` UI supports one-frame manual capture only
-- shared PIX capture is not yet wired into the regression-suite artifact flow
+- PIX regression automation is currently implemented only for `DemoAppModelViewerFrostedGlass`, not as a shared `DemoBase` feature
+- RenderDoc and PIX automation are mutually exclusive per regression run
 - in the shared manual UI path, `-pix-capture` and `-renderdoc-capture` mean preload/enable, not automatic startup capture
 
 ## 9. Current Validation Status
@@ -200,5 +235,6 @@ As of `2026-03-23`, this path has the following confirmed status:
 - the `RendererDemo` build path succeeds and the PIX project dependencies are wired correctly
 - the shared `DemoBase` manual PIX UI is connected to the DX12 runtime path
 - manual PIX capture on the current workstation has been confirmed by the user to be functional
+- `Capture-RendererRegression.ps1` and `Validate-RendererRegression.ps1` accept PIX automation flags for DX12 `DemoAppModelViewerFrostedGlass` regression runs
 
-That makes the shared manual capture path usable as the day-to-day GPU debugging entry point for `RendererDemo`, while PIX regression automation remains follow-up work.
+That makes the shared manual capture path usable as the day-to-day GPU debugging entry point for `RendererDemo`, while the frosted-glass regression path now also has a PIX automation entry point under DX12.

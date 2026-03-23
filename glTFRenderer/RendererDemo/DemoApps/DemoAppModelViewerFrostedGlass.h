@@ -37,6 +37,9 @@ protected:
     void ResetActiveRegressionRenderDocCaptureState();
     void TryQueueRegressionRenderDocCapture(const Regression::CaseConfig& case_config,
                                             unsigned long long elapsed_frames);
+    void ResetActiveRegressionPIXCaptureState();
+    void TryQueueRegressionPIXCapture(const Regression::CaseConfig& case_config,
+                                      unsigned long long elapsed_frames);
     bool CaptureWindowScreenshotPNG(const std::filesystem::path& file_path) const;
     bool WriteRegressionPassCsv(const RendererInterface::RenderGraph::FrameStats& frame_stats,
                                 const std::filesystem::path& file_path) const;
@@ -86,6 +89,12 @@ protected:
         unsigned long long renderdoc_capture_frame_index{0};
         std::string renderdoc_capture_path{};
         std::string renderdoc_capture_error{};
+        bool pix_capture_success{false};
+        bool pix_capture_retained{false};
+        bool pix_capture_keep_on_success{true};
+        unsigned long long pix_capture_frame_index{0};
+        std::string pix_capture_path{};
+        std::string pix_capture_error{};
         std::string error{};
     };
 
@@ -119,6 +128,8 @@ protected:
     bool m_regression_enabled{false};
     bool m_regression_force_renderdoc_capture{false};
     bool m_regression_renderdoc_required{false};
+    bool m_regression_force_pix_capture{false};
+    bool m_regression_pix_required{false};
     bool m_regression_finished{false};
     bool m_regression_case_active{false};
     std::filesystem::path m_regression_output_root{};
@@ -130,6 +141,10 @@ protected:
     unsigned long long m_regression_case_renderdoc_frame_index{0};
     std::filesystem::path m_regression_case_renderdoc_requested_path{};
     std::string m_regression_case_renderdoc_request_error{};
+    bool m_regression_case_pix_requested{false};
+    unsigned long long m_regression_case_pix_frame_index{0};
+    std::filesystem::path m_regression_case_pix_requested_path{};
+    std::string m_regression_case_pix_request_error{};
     RegressionPerfAccumulator m_regression_perf_accumulator{};
     std::vector<RegressionCaseResult> m_regression_case_results{};
     std::string m_regression_last_summary_path{};

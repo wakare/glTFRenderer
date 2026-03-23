@@ -9,6 +9,8 @@ param(
     [string]$OutputBase = ".tmp\\regression_capture",
     [switch]$RenderDocCapture,
     [switch]$RenderDocRequired,
+    [switch]$PIXCapture,
+    [switch]$PIXRequired,
     [bool]$DisableDebugUI = $true,
     [bool]$NoAssertDialog = $true,
     [int]$TimeoutSec = 900,
@@ -87,6 +89,13 @@ New-Item -ItemType Directory -Path $invocationRoot -Force | Out-Null
 $stdoutPath = Join-Path $invocationRoot "run.stdout.log"
 $stderrPath = Join-Path $invocationRoot "run.stderr.log"
 
+if ($RenderDocCapture -and $PIXCapture) {
+    throw "RenderDoc and PIX capture automation cannot be enabled in the same run."
+}
+if (($PIXCapture -or $PIXRequired) -and $Backend -ne "dx") {
+    throw "PIX capture automation is only supported on DX12. Use -Backend dx."
+}
+
 $args = New-Object System.Collections.Generic.List[string]
 $args.Add($DemoApp)
 if ($Backend -eq "dx") {
@@ -109,6 +118,12 @@ if ($RenderDocCapture) {
 }
 if ($RenderDocRequired) {
     $args.Add("-renderdoc-required")
+}
+if ($PIXCapture) {
+    $args.Add("-pix-capture")
+}
+if ($PIXRequired) {
+    $args.Add("-pix-required")
 }
 foreach ($extraArg in $ExtraArgs) {
     if (-not [string]::IsNullOrWhiteSpace($extraArg)) {
@@ -141,6 +156,11 @@ $renderDocAvailable = $false
 $renderDocSuccessCount = 0
 $renderDocRetainedCount = 0
 $rdcCount = 0
+$pixEnabled = $false
+$pixAvailable = $false
+$pixSuccessCount = 0
+$pixRetainedCount = 0
+$wpixCount = 0
 
 $summaryCandidates = @(
     Get-ChildItem -LiteralPath $invocationRoot -Recurse -Filter suite_result.json -File -ErrorAction SilentlyContinue |
@@ -183,6 +203,24 @@ if ($summaryCandidates.Count -gt 0) {
     if ($renderDocRetainedCount -eq 0 -and $rdcCount -gt 0) {
         $renderDocRetainedCount = $rdcCount
     }
+    if ($null -ne $summary.pix_capture_enabled) {
+        $pixEnabled = [bool]$summary.pix_capture_enabled
+    }
+    if ($null -ne $summary.pix_capture_available) {
+        $pixAvailable = [bool]$summary.pix_capture_available
+    }
+    if ($null -ne $summary.pix_capture_success_count) {
+        $pixSuccessCount = [int]$summary.pix_capture_success_count
+    }
+    if ($null -ne $summary.pix_capture_retained_count) {
+        $pixRetainedCount = [int]$summary.pix_capture_retained_count
+    }
+    $wpixCount = @(
+        Get-ChildItem -LiteralPath $runDirPath -Recurse -Filter *.wpix -File -ErrorAction SilentlyContinue
+    ).Count
+    if ($pixRetainedCount -eq 0 -and $wpixCount -gt 0) {
+        $pixRetainedCount = $wpixCount
+    }
 }
 
 $status = "RunUnknown"
@@ -216,6 +254,11 @@ Write-Host "RENDERDOC_AVAILABLE=$renderDocAvailable"
 Write-Host "RENDERDOC_SUCCESS_COUNT=$renderDocSuccessCount"
 Write-Host "RENDERDOC_RETAINED_COUNT=$renderDocRetainedCount"
 Write-Host "RDC_COUNT=$rdcCount"
+Write-Host "PIX_ENABLED=$pixEnabled"
+Write-Host "PIX_AVAILABLE=$pixAvailable"
+Write-Host "PIX_SUCCESS_COUNT=$pixSuccessCount"
+Write-Host "PIX_RETAINED_COUNT=$pixRetainedCount"
+Write-Host "WPIX_COUNT=$wpixCount"
 Write-Host "STDOUT=$stdoutPath"
 Write-Host "STDERR=$stderrPath"
 Write-Host "DURATION_MS=$($stopwatch.ElapsedMilliseconds)"

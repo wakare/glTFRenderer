@@ -13,12 +13,13 @@
 
 - `DemoBase` 下共享的 RenderDoc 单帧截取
 - `DemoBase` 下共享的 PIX 单帧截取
-- 启动参数、UI 操作、默认输出目录与运行时限制
+- `DemoAppModelViewerFrostedGlass` 的自动 RenderDoc / PIX regression 入口
+- 启动参数、UI 操作、默认输出目录、运行时限制与 regression 入口
 
 当前不在范围：
 
 - `glTFApp` 旧运行时路径
-- `DemoAppModelViewerFrostedGlass` regression 自动 RenderDoc 工件流的细节
+- regression compare / report 管线的实现细节
 - 外部工具本身的安装教程
 
 ## 2. 能力矩阵
@@ -86,7 +87,7 @@ Set-Location .\glTFRenderer\x64\Debug
 
 说明：
 
-- 在 demo 专属 regression 路径里，`-renderdoc-capture` 可能还有额外语义；本说明只覆盖 `DemoBase` 共享手动 UI。
+- 在 demo 专属 regression 路径里，`-renderdoc-capture` 与 `-pix-capture` 可能还有额外语义；但在共享 `DemoBase` 手动 UI 下，它们仍然只表示 preload / enable。
 - PIX 参数当前只对 DX12 有意义。
 
 ## 4. 推荐命令模板
@@ -116,6 +117,40 @@ Set-Location .\glTFRenderer\x64\Debug
 Set-Location .\glTFRenderer\x64\Debug
 .\RendererDemo.exe DemoTriangleApp -vulkan -renderdoc-ui
 ```
+
+### 4.3 DX12 + PIX regression 自动化（仅 `DemoAppModelViewerFrostedGlass`）
+
+从仓库根目录执行：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\Capture-RendererRegression.ps1 `
+  -Suite glTFRenderer\RendererDemo\Resources\RegressionSuites\frosted_glass_b9_smoke.json `
+  -Backend dx `
+  -DemoApp DemoAppModelViewerFrostedGlass `
+  -PIXCapture
+```
+
+如果希望把 PIX 不可用视为本次运行失败，可再加上 `-PIXRequired`。
+
+相关 suite JSON 字段：
+
+- 全局默认值：
+  - `default_capture_pix`
+  - `default_pix_capture_frame_offset`
+  - `default_keep_pix_on_success`
+- 单 case 的 `capture` 块：
+  - `capture_pix`
+  - `pix_capture_frame_offset`
+  - `keep_pix_on_success`
+- 兼容回退：
+  - parser 也接受把这三个字段直接写在 case 根节点
+
+这条 regression 路径当前有这些限制：
+
+- 只支持 DX12
+- 目前只有 `DemoAppModelViewerFrostedGlass` 会生成 PIX regression 工件
+- RenderDoc 与 PIX 自动化在同一次 regression run 中互斥
+- 在共享 `DemoBase` 手动 UI 路径里，`-pix-capture` 仍然只表示 preload / enable，不代表启动即自动截帧
 
 ## 5. 手动操作流程
 
@@ -190,7 +225,8 @@ Set-Location .\glTFRenderer\x64\Debug
 
 - PIX 只支持 DX12；当前没有 Vulkan PIX capture 路径。
 - 共享 `DemoBase` UI 只支持单帧手动 capture。
-- 共享 PIX capture 还没有接进 regression suite 的自动工件流。
+- PIX regression 自动化目前只在 `DemoAppModelViewerFrostedGlass` 上实现，还不是共享 `DemoBase` 能力。
+- RenderDoc 与 PIX 自动化在同一次 regression run 中互斥。
 - `-pix-capture` 与 `-renderdoc-capture` 在共享手动 UI 下只负责 preload / enable，不代表“启动即自动截帧”。
 
 ## 9. 当前验证状态
@@ -200,5 +236,6 @@ Set-Location .\glTFRenderer\x64\Debug
 - `RendererDemo` 编译链路通过，PIX 相关工程依赖已接通。
 - 共享 `DemoBase` 手动 PIX UI 已接入 DX12 运行时路径。
 - 当前工作站上的手动 PIX capture 已由用户确认可以生效。
+- `Capture-RendererRegression.ps1` 与 `Validate-RendererRegression.ps1` 已支持 DX12 `DemoAppModelViewerFrostedGlass` regression 的 PIX 自动化参数。
 
-这意味着共享手动 capture 入口现在已经能作为 `RendererDemo` 的日常 GPU 调试入口使用；但 PIX 的 regression 自动化仍然是后续项。
+这意味着共享手动 capture 入口已经能作为 `RendererDemo` 的日常 GPU 调试入口使用；同时 frosted-glass regression 路径现在也补上了 DX12 下的 PIX 自动化入口。

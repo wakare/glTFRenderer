@@ -25,6 +25,9 @@ namespace Regression
         bool capture_renderdoc{false};
         unsigned renderdoc_capture_frame_offset{0};
         bool keep_renderdoc_on_success{true};
+        bool capture_pix{false};
+        unsigned pix_capture_frame_offset{0};
+        bool keep_pix_on_success{true};
     };
 
     struct CaseConfig
@@ -49,6 +52,9 @@ namespace Regression
         bool default_capture_renderdoc{false};
         unsigned default_renderdoc_capture_frame_offset{0};
         bool default_keep_renderdoc_on_success{true};
+        bool default_capture_pix{false};
+        unsigned default_pix_capture_frame_offset{0};
+        bool default_keep_pix_on_success{true};
         std::vector<CaseConfig> cases{};
     };
 

@@ -1667,7 +1667,7 @@ bool DemoBase::InitRenderContext(const std::vector<std::string>& arguments)
             disable_debug_ui = true;
         }
 
-        if (argument == "-regression" || argument == "-renderdoc-capture")
+        if (argument == "-renderdoc-capture")
         {
             m_renderdoc_preload_requested = true;
             log_renderdoc_status = true;

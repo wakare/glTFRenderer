@@ -66,6 +66,38 @@ namespace
         return capture_end + static_cast<unsigned long long>(case_config.capture.renderdoc_capture_frame_offset);
     }
 
+    bool ShouldCaptureRegressionPIX(
+        const Regression::CaseConfig& case_config,
+        bool force_pix_capture)
+    {
+        return force_pix_capture || case_config.capture.capture_pix;
+    }
+
+    unsigned long long GetRegressionPIXTargetElapsedFrames(
+        const Regression::CaseConfig& case_config,
+        bool force_pix_capture)
+    {
+        const unsigned long long capture_end = GetRegressionCaptureEndElapsedFrames(case_config);
+        if (!ShouldCaptureRegressionPIX(case_config, force_pix_capture))
+        {
+            return capture_end;
+        }
+
+        return capture_end + static_cast<unsigned long long>(case_config.capture.pix_capture_frame_offset);
+    }
+
+    unsigned long long GetRegressionFinalizeElapsedFrames(
+        const Regression::CaseConfig& case_config,
+        bool force_renderdoc_capture,
+        bool force_pix_capture)
+    {
+        const unsigned long long renderdoc_target =
+            GetRegressionRenderDocTargetElapsedFrames(case_config, force_renderdoc_capture);
+        const unsigned long long pix_target =
+            GetRegressionPIXTargetElapsedFrames(case_config, force_pix_capture);
+        return renderdoc_target > pix_target ? renderdoc_target : pix_target;
+    }
+
     const char* ToString(RendererInterface::RenderDeviceType type)
     {
         switch (type)
@@ -627,6 +659,8 @@ bool DemoAppModelViewerFrostedGlass::ConfigureRegressionRunFromArguments(const s
     bool enable_regression = false;
     bool enable_renderdoc_capture = false;
     bool renderdoc_required = false;
+    bool enable_pix_capture = false;
+    bool pix_required = false;
 
     const std::string suite_prefix = "-regression-suite=";
     const std::string output_prefix = "-regression-output=";
@@ -645,6 +679,16 @@ bool DemoAppModelViewerFrostedGlass::ConfigureRegressionRunFromArguments(const s
         if (argument == "-renderdoc-required")
         {
             renderdoc_required = true;
+            continue;
+        }
+        if (argument == "-pix-capture")
+        {
+            enable_pix_capture = true;
+            continue;
+        }
+        if (argument == "-pix-required")
+        {
+            pix_required = true;
             continue;
         }
         if (argument.rfind(suite_prefix, 0) == 0)
@@ -702,12 +746,15 @@ bool DemoAppModelViewerFrostedGlass::ConfigureRegressionRunFromArguments(const s
     m_regression_enabled = true;
     m_regression_force_renderdoc_capture = enable_renderdoc_capture;
     m_regression_renderdoc_required = renderdoc_required;
+    m_regression_force_pix_capture = enable_pix_capture;
+    m_regression_pix_required = pix_required;
     m_regression_finished = false;
     m_regression_case_active = false;
     m_regression_case_index = 0;
     m_regression_case_start_frame = 0;
     m_regression_case_last_elapsed_frames = 0;
     ResetActiveRegressionRenderDocCaptureState();
+    ResetActiveRegressionPIXCaptureState();
     m_regression_case_results.clear();
     m_regression_last_summary_path.clear();
     ResetRegressionPerfAccumulator();
@@ -718,7 +765,46 @@ bool DemoAppModelViewerFrostedGlass::ConfigureRegressionRunFromArguments(const s
             m_regression_suite.cases.begin(),
             m_regression_suite.cases.end(),
             [](const Regression::CaseConfig& case_config) { return case_config.capture.capture_renderdoc; });
+    const bool suite_requests_pix =
+        m_regression_suite.default_capture_pix ||
+        std::any_of(
+            m_regression_suite.cases.begin(),
+            m_regression_suite.cases.end(),
+            [](const Regression::CaseConfig& case_config) { return case_config.capture.capture_pix; });
     const bool should_enable_renderdoc_runtime = m_regression_force_renderdoc_capture || suite_requests_renderdoc;
+    const bool should_enable_pix_runtime = m_regression_force_pix_capture || suite_requests_pix;
+
+    if (should_enable_renderdoc_runtime && should_enable_pix_runtime)
+    {
+        if (m_regression_force_renderdoc_capture && m_regression_force_pix_capture)
+        {
+            LOG_FORMAT_FLUSH(
+                "[Regression] Both -renderdoc-capture and -pix-capture were requested. Only one GPU capture backend is supported per run.\n");
+            return false;
+        }
+
+        for (const auto& case_config : m_regression_suite.cases)
+        {
+            if (case_config.capture.capture_renderdoc && case_config.capture.capture_pix)
+            {
+                LOG_FORMAT_FLUSH(
+                    "[Regression] Case '%s' requests both RenderDoc and PIX capture. Only one GPU capture backend is supported per run.\n",
+                    case_config.id.c_str());
+                return false;
+            }
+        }
+
+        LOG_FORMAT_FLUSH(
+            "[Regression] Regression automation only supports one GPU capture backend per run. Disable either RenderDoc or PIX capture requests in the suite or command line.\n");
+        return false;
+    }
+
+    if (should_enable_pix_runtime && m_render_device_type != RendererInterface::DX12)
+    {
+        LOG_FORMAT_FLUSH("[Regression] PIX capture automation is only supported on DX12 runtimes.\n");
+        return false;
+    }
+
     if (m_render_graph)
     {
         std::string renderdoc_status{};
@@ -736,6 +822,23 @@ bool DemoAppModelViewerFrostedGlass::ConfigureRegressionRunFromArguments(const s
             LOG_FORMAT_FLUSH(
                 "[Regression] RenderDoc capture requested (%s).\n",
                 renderdoc_status.empty() ? "no status" : renderdoc_status.c_str());
+        }
+
+        std::string pix_status{};
+        if (!m_render_graph->ConfigurePIXCapture(
+                should_enable_pix_runtime,
+                m_regression_pix_required,
+                pix_status))
+        {
+            LOG_FORMAT_FLUSH("[Regression] PIX setup failed: %s\n", pix_status.c_str());
+            return false;
+        }
+
+        if (should_enable_pix_runtime)
+        {
+            LOG_FORMAT_FLUSH(
+                "[Regression] PIX capture requested (%s).\n",
+                pix_status.empty() ? "no status" : pix_status.c_str());
         }
     }
 
@@ -774,6 +877,14 @@ void DemoAppModelViewerFrostedGlass::ResetActiveRegressionRenderDocCaptureState(
     m_regression_case_renderdoc_frame_index = 0ull;
     m_regression_case_renderdoc_requested_path.clear();
     m_regression_case_renderdoc_request_error.clear();
+}
+
+void DemoAppModelViewerFrostedGlass::ResetActiveRegressionPIXCaptureState()
+{
+    m_regression_case_pix_requested = false;
+    m_regression_case_pix_frame_index = 0ull;
+    m_regression_case_pix_requested_path.clear();
+    m_regression_case_pix_request_error.clear();
 }
 
 void DemoAppModelViewerFrostedGlass::TryQueueRegressionRenderDocCapture(
@@ -829,6 +940,61 @@ void DemoAppModelViewerFrostedGlass::TryQueueRegressionRenderDocCapture(
         static_cast<unsigned long long>(m_regression_case_renderdoc_frame_index),
         static_cast<unsigned long long>(target_elapsed_frames),
         case_config.capture.renderdoc_capture_frame_offset);
+}
+
+void DemoAppModelViewerFrostedGlass::TryQueueRegressionPIXCapture(
+    const Regression::CaseConfig& case_config,
+    unsigned long long elapsed_frames)
+{
+    if (!m_render_graph)
+    {
+        return;
+    }
+
+    const bool should_capture_pix =
+        ShouldCaptureRegressionPIX(case_config, m_regression_force_pix_capture);
+    if (!should_capture_pix || m_regression_case_pix_requested)
+    {
+        return;
+    }
+
+    const unsigned long long target_elapsed_frames =
+        GetRegressionPIXTargetElapsedFrames(case_config, m_regression_force_pix_capture);
+    if (target_elapsed_frames == 0ull || (elapsed_frames + 1ull) != target_elapsed_frames)
+    {
+        return;
+    }
+
+    const std::string case_prefix = BuildRegressionCasePrefix(
+        static_cast<unsigned>(m_regression_case_index + 1u),
+        case_config.id);
+    const std::filesystem::path pix_path = m_regression_output_root / "cases" / (case_prefix + ".wpix");
+    const unsigned long long target_frame_index = m_render_graph->GetCurrentFrameIndex();
+
+    std::string request_error{};
+    if (!m_render_graph->RequestPIXCaptureForCurrentFrame(pix_path, request_error))
+    {
+        m_regression_case_pix_requested = false;
+        m_regression_case_pix_frame_index = target_frame_index;
+        m_regression_case_pix_requested_path = pix_path;
+        m_regression_case_pix_request_error = request_error;
+        LOG_FORMAT_FLUSH(
+            "[Regression] PIX capture request failed for case '%s': %s\n",
+            case_config.id.c_str(),
+            request_error.c_str());
+        return;
+    }
+
+    m_regression_case_pix_requested = true;
+    m_regression_case_pix_frame_index = target_frame_index;
+    m_regression_case_pix_requested_path = pix_path;
+    m_regression_case_pix_request_error.clear();
+    LOG_FORMAT_FLUSH(
+        "[Regression] PIX capture armed for case '%s' at frame %llu (elapsed=%llu offset=%u).\n",
+        case_config.id.c_str(),
+        static_cast<unsigned long long>(m_regression_case_pix_frame_index),
+        static_cast<unsigned long long>(target_elapsed_frames),
+        case_config.capture.pix_capture_frame_offset);
 }
 
 void DemoAppModelViewerFrostedGlass::AccumulateRegressionPerf(const RendererInterface::RenderGraph::FrameStats& frame_stats)
@@ -935,6 +1101,7 @@ bool DemoAppModelViewerFrostedGlass::StartRegressionCase(const RendererInterface
     const std::string case_id = case_config.id;
     ResetRegressionPerfAccumulator();
     ResetActiveRegressionRenderDocCaptureState();
+    ResetActiveRegressionPIXCaptureState();
 
     if (m_regression_suite.disable_panel_input_state_machine)
     {
@@ -1207,13 +1374,17 @@ bool DemoAppModelViewerFrostedGlass::FinalizeRegressionCase(const RendererInterf
     const std::filesystem::path pass_csv_path = case_dir / (case_prefix + ".pass.csv");
     const std::filesystem::path perf_json_path = case_dir / (case_prefix + ".perf.json");
     const std::filesystem::path renderdoc_path = case_dir / (case_prefix + ".rdc");
+    const std::filesystem::path pix_path = case_dir / (case_prefix + ".wpix");
     const bool should_capture_renderdoc =
         ShouldCaptureRegressionRenderDoc(case_config, m_regression_force_renderdoc_capture);
+    const bool should_capture_pix =
+        ShouldCaptureRegressionPIX(case_config, m_regression_force_pix_capture);
 
     RegressionCaseResult result{};
     result.id = case_config.id;
     result.success = true;
     result.renderdoc_capture_keep_on_success = case_config.capture.keep_renderdoc_on_success;
+    result.pix_capture_keep_on_success = case_config.capture.keep_pix_on_success;
 
     if (!WriteRegressionPassCsv(frame_stats, pass_csv_path))
     {
@@ -1319,6 +1490,77 @@ bool DemoAppModelViewerFrostedGlass::FinalizeRegressionCase(const RendererInterf
         }
     }
 
+    if (should_capture_pix)
+    {
+        result.pix_capture_frame_index = m_regression_case_pix_frame_index;
+        result.pix_capture_path = pix_path.string();
+        if (!m_regression_case_pix_request_error.empty())
+        {
+            result.success = false;
+            result.pix_capture_success = false;
+            result.pix_capture_error = m_regression_case_pix_request_error;
+            result.error += "failed_to_arm_pix_capture;";
+        }
+        else if (!m_regression_case_pix_requested || m_regression_case_pix_frame_index == 0ull)
+        {
+            result.success = false;
+            result.pix_capture_success = false;
+            result.pix_capture_error = "PIX capture was requested by the case but was never armed.";
+            result.error += "missing_pix_capture_request;";
+        }
+        else if (!m_render_graph)
+        {
+            result.success = false;
+            result.pix_capture_success = false;
+            result.pix_capture_error = "Render graph is unavailable while finalizing PIX capture.";
+            result.error += "missing_render_graph_for_pix;";
+        }
+        else
+        {
+            const unsigned long long actual_frame_index = m_render_graph->GetLastPIXCaptureFrameIndex();
+            const std::string actual_capture_path = m_render_graph->GetLastPIXCapturePath();
+            if (actual_frame_index != 0ull)
+            {
+                result.pix_capture_frame_index = actual_frame_index;
+            }
+            if (!actual_capture_path.empty())
+            {
+                result.pix_capture_path = actual_capture_path;
+            }
+
+            if (!m_render_graph->WasLastPIXCaptureSuccessful())
+            {
+                result.success = false;
+                result.pix_capture_success = false;
+                result.pix_capture_error = m_render_graph->GetLastPIXCaptureError();
+                result.error += "failed_to_capture_pix;";
+            }
+            else if (actual_frame_index != m_regression_case_pix_frame_index)
+            {
+                result.success = false;
+                result.pix_capture_success = false;
+                result.pix_capture_error =
+                    "PIX capture frame mismatch. Expected frame " +
+                    std::to_string(m_regression_case_pix_frame_index) +
+                    ", got " +
+                    std::to_string(actual_frame_index) + ".";
+                result.error += "pix_capture_frame_mismatch;";
+            }
+            else if (result.pix_capture_path.empty())
+            {
+                result.pix_capture_success = false;
+                result.success = false;
+                result.pix_capture_error = "PIX reported success but did not return a capture path.";
+                result.error += "missing_pix_capture_path;";
+            }
+            else
+            {
+                result.pix_capture_success = true;
+                result.pix_capture_retained = true;
+            }
+        }
+    }
+
     if (result.renderdoc_capture_success &&
         result.success &&
         !case_config.capture.keep_renderdoc_on_success &&
@@ -1343,7 +1585,32 @@ bool DemoAppModelViewerFrostedGlass::FinalizeRegressionCase(const RendererInterf
         }
     }
 
+    if (result.pix_capture_success &&
+        result.success &&
+        !case_config.capture.keep_pix_on_success &&
+        !result.pix_capture_path.empty())
+    {
+        std::error_code remove_error{};
+        std::error_code exists_error{};
+        const std::filesystem::path retained_capture_path = result.pix_capture_path;
+        const bool removed = std::filesystem::remove(retained_capture_path, remove_error);
+        const bool still_exists = std::filesystem::exists(retained_capture_path, exists_error);
+        if (removed || (!still_exists && !exists_error))
+        {
+            result.pix_capture_retained = false;
+            result.pix_capture_path.clear();
+        }
+        else if (remove_error)
+        {
+            LOG_FORMAT_FLUSH(
+                "[Regression] PIX capture retention cleanup failed for case '%s': %s\n",
+                case_config.id.c_str(),
+                remove_error.message().c_str());
+        }
+    }
+
     ResetActiveRegressionRenderDocCaptureState();
+    ResetActiveRegressionPIXCaptureState();
     m_regression_case_results.push_back(result);
 
     LOG_FORMAT_FLUSH("[Regression] Case %u/%u done: %s (%s)\n",
@@ -1372,6 +1639,10 @@ bool DemoAppModelViewerFrostedGlass::FinalizeRegressionRun()
     summary["renderdoc_capture_available"] = m_render_graph ? m_render_graph->IsRenderDocCaptureAvailable() : false;
     summary["renderdoc_capture_required"] = m_regression_renderdoc_required;
     summary["renderdoc_capture_forced"] = m_regression_force_renderdoc_capture;
+    summary["pix_capture_enabled"] = m_render_graph ? m_render_graph->IsPIXCaptureEnabled() : false;
+    summary["pix_capture_available"] = m_render_graph ? m_render_graph->IsPIXCaptureAvailable() : false;
+    summary["pix_capture_required"] = m_regression_pix_required;
+    summary["pix_capture_forced"] = m_regression_force_pix_capture;
     summary["case_count"] = m_regression_suite.cases.size();
     summary["result_count"] = m_regression_case_results.size();
 
@@ -1379,6 +1650,8 @@ bool DemoAppModelViewerFrostedGlass::FinalizeRegressionRun()
     unsigned failed_count = 0u;
     unsigned renderdoc_capture_success_count = 0u;
     unsigned renderdoc_capture_retained_count = 0u;
+    unsigned pix_capture_success_count = 0u;
+    unsigned pix_capture_retained_count = 0u;
     for (const auto& result : m_regression_case_results)
     {
         if (!result.success)
@@ -1393,6 +1666,14 @@ bool DemoAppModelViewerFrostedGlass::FinalizeRegressionRun()
         {
             renderdoc_capture_retained_count += 1u;
         }
+        if (result.pix_capture_success)
+        {
+            pix_capture_success_count += 1u;
+        }
+        if (result.pix_capture_retained)
+        {
+            pix_capture_retained_count += 1u;
+        }
         nlohmann::json case_item{};
         case_item["id"] = result.id;
         case_item["success"] = result.success;
@@ -1405,12 +1686,20 @@ bool DemoAppModelViewerFrostedGlass::FinalizeRegressionRun()
         case_item["renderdoc_capture_frame_index"] = result.renderdoc_capture_frame_index;
         case_item["renderdoc_capture_path"] = result.renderdoc_capture_path;
         case_item["renderdoc_capture_error"] = result.renderdoc_capture_error;
+        case_item["pix_capture_success"] = result.pix_capture_success;
+        case_item["pix_capture_retained"] = result.pix_capture_retained;
+        case_item["pix_capture_keep_on_success"] = result.pix_capture_keep_on_success;
+        case_item["pix_capture_frame_index"] = result.pix_capture_frame_index;
+        case_item["pix_capture_path"] = result.pix_capture_path;
+        case_item["pix_capture_error"] = result.pix_capture_error;
         case_item["error"] = result.error;
         case_results.push_back(std::move(case_item));
     }
     summary["failed_count"] = failed_count;
     summary["renderdoc_capture_success_count"] = renderdoc_capture_success_count;
     summary["renderdoc_capture_retained_count"] = renderdoc_capture_retained_count;
+    summary["pix_capture_success_count"] = pix_capture_success_count;
+    summary["pix_capture_retained_count"] = pix_capture_retained_count;
     summary["success"] =
         failed_count == 0u &&
         m_regression_case_results.size() == m_regression_suite.cases.size();
@@ -1773,7 +2062,10 @@ void DemoAppModelViewerFrostedGlass::TickRegressionAutomation()
     const unsigned long long capture_begin = static_cast<unsigned long long>(case_config.capture.warmup_frames) + 1ull;
     const unsigned long long capture_end = GetRegressionCaptureEndElapsedFrames(case_config);
     const unsigned long long finalize_elapsed_frames =
-        GetRegressionRenderDocTargetElapsedFrames(case_config, m_regression_force_renderdoc_capture);
+        GetRegressionFinalizeElapsedFrames(
+            case_config,
+            m_regression_force_renderdoc_capture,
+            m_regression_force_pix_capture);
     if (case_config.capture.capture_perf &&
         elapsed_frames >= capture_begin &&
         elapsed_frames <= capture_end)
@@ -1782,6 +2074,7 @@ void DemoAppModelViewerFrostedGlass::TickRegressionAutomation()
     }
 
     TryQueueRegressionRenderDocCapture(case_config, elapsed_frames);
+    TryQueueRegressionPIXCapture(case_config, elapsed_frames);
 
     if (elapsed_frames >= finalize_elapsed_frames)
     {

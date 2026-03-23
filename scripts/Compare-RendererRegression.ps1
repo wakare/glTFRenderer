@@ -87,6 +87,12 @@ function Load-RunResult {
             renderdoc_capture_frame_index = [uint64]$caseItem.renderdoc_capture_frame_index
             renderdoc_capture_path = Resolve-PathAgainstRoot -RawPath ([string]$caseItem.renderdoc_capture_path) -RootDirectory $rootDir
             renderdoc_capture_error = [string]$caseItem.renderdoc_capture_error
+            pix_capture_success = if ($null -ne $caseItem.pix_capture_success) { [bool]$caseItem.pix_capture_success } else { $false }
+            pix_capture_retained = if ($null -ne $caseItem.pix_capture_retained) { [bool]$caseItem.pix_capture_retained } else { $false }
+            pix_capture_keep_on_success = if ($null -ne $caseItem.pix_capture_keep_on_success) { [bool]$caseItem.pix_capture_keep_on_success } else { $true }
+            pix_capture_frame_index = if ($null -ne $caseItem.pix_capture_frame_index) { [uint64]$caseItem.pix_capture_frame_index } else { 0 }
+            pix_capture_path = Resolve-PathAgainstRoot -RawPath ([string]$caseItem.pix_capture_path) -RootDirectory $rootDir
+            pix_capture_error = [string]$caseItem.pix_capture_error
             error = [string]$caseItem.error
         }
     }
@@ -416,6 +422,18 @@ foreach ($caseId in ($allCaseIds | Sort-Object)) {
             current_frame_index = if ($null -ne $currentCase) { [uint64]$currentCase.renderdoc_capture_frame_index } else { 0 }
             current_error = if ($null -ne $currentCase) { [string]$currentCase.renderdoc_capture_error } else { "" }
         }
+        pix = [ordered]@{
+            baseline_path = if ($null -ne $baselineCase) { [string]$baselineCase.pix_capture_path } else { "" }
+            baseline_success = if ($null -ne $baselineCase) { [bool]$baselineCase.pix_capture_success } else { $false }
+            baseline_retained = if ($null -ne $baselineCase) { [bool]$baselineCase.pix_capture_retained } else { $false }
+            baseline_frame_index = if ($null -ne $baselineCase) { [uint64]$baselineCase.pix_capture_frame_index } else { 0 }
+            baseline_error = if ($null -ne $baselineCase) { [string]$baselineCase.pix_capture_error } else { "" }
+            current_path = if ($null -ne $currentCase) { [string]$currentCase.pix_capture_path } else { "" }
+            current_success = if ($null -ne $currentCase) { [bool]$currentCase.pix_capture_success } else { $false }
+            current_retained = if ($null -ne $currentCase) { [bool]$currentCase.pix_capture_retained } else { $false }
+            current_frame_index = if ($null -ne $currentCase) { [uint64]$currentCase.pix_capture_frame_index } else { 0 }
+            current_error = if ($null -ne $currentCase) { [string]$currentCase.pix_capture_error } else { "" }
+        }
         visual = $null
         perf = $null
         pass = $true
@@ -489,14 +507,26 @@ foreach ($caseId in ($allCaseIds | Sort-Object)) {
 
     $skipPerfForRenderDoc = ($null -ne $baselineCase -and [bool]$baselineCase.renderdoc_capture_success) -or
         ($null -ne $currentCase -and [bool]$currentCase.renderdoc_capture_success)
+    $skipPerfForPIX = ($null -ne $baselineCase -and [bool]$baselineCase.pix_capture_success) -or
+        ($null -ne $currentCase -and [bool]$currentCase.pix_capture_success)
+    $perfSkipReason = ""
+    if ($skipPerfForRenderDoc -and $skipPerfForPIX) {
+        $perfSkipReason = "SkippedForGPUCapture"
+    }
+    elseif ($skipPerfForRenderDoc) {
+        $perfSkipReason = "SkippedForRenderDocCapture"
+    }
+    elseif ($skipPerfForPIX) {
+        $perfSkipReason = "SkippedForPIXCapture"
+    }
 
     if (-not $DisablePerfCompare) {
-        if ($skipPerfForRenderDoc) {
+        if (-not [string]::IsNullOrWhiteSpace($perfSkipReason)) {
             $perf = [ordered]@{
                 compared = $false
                 skipped = $true
                 pass = $true
-                reason = "SkippedForRenderDocCapture"
+                reason = $perfSkipReason
                 rows = @()
             }
             $caseRow.perf = [PSCustomObject]$perf
@@ -586,7 +616,15 @@ foreach ($case in $caseResults) {
         }
     }
     if ($case.perf -and $case.perf.skipped) {
-        $notes += "perf: skipped-renderdoc"
+        if ($case.perf.reason -eq "SkippedForPIXCapture") {
+            $notes += "perf: skipped-pix"
+        }
+        elseif ($case.perf.reason -eq "SkippedForGPUCapture") {
+            $notes += "perf: skipped-gpu-capture"
+        }
+        else {
+            $notes += "perf: skipped-renderdoc"
+        }
     }
     elseif ($case.perf -and -not $case.perf.pass) {
         $failedMetrics = @($case.perf.rows | Where-Object { -not $_.pass } | ForEach-Object { "$($_.metric)=" + (To-PrettyPct -Value $_.increase_pct) })
@@ -606,6 +644,13 @@ foreach ($case in $caseResults) {
         $notes += "rdc-pruned"
     } elseif (-not [string]::IsNullOrWhiteSpace($case.renderdoc.current_error)) {
         $notes += "rdc-error"
+    }
+    if ($case.pix.current_success -and -not [string]::IsNullOrWhiteSpace($case.pix.current_path)) {
+        $notes += "wpix"
+    } elseif ($case.pix.current_success -and -not $case.pix.current_retained) {
+        $notes += "wpix-pruned"
+    } elseif (-not [string]::IsNullOrWhiteSpace($case.pix.current_error)) {
+        $notes += "wpix-error"
     }
     $md.Add("| $($case.id) | $(if($case.pass){'PASS'}else{'FAIL'}) | $visualStatus | $perfStatus | $($notes -join '; ') |")
 }
