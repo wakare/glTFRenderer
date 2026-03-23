@@ -6,6 +6,8 @@
 
 namespace LightingBaker
 {
+    struct BakeOutputLayout;
+
     class LightingBakerApp
     {
     public:
@@ -13,7 +15,6 @@ namespace LightingBaker
 
     private:
         int RunJob(const BakeJobConfig& config);
-        bool EnsureOutputLayout(const BakeJobConfig& config, std::wstring& out_error) const;
-        void PrintResolvedJob(const BakeJobConfig& config) const;
+        void PrintResolvedJob(const BakeJobConfig& config, const BakeOutputLayout& output_layout) const;
     };
 }

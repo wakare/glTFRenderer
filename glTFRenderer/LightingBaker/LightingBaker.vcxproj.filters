@@ -27,6 +27,9 @@
     <ClCompile Include="LightingBakerMain.cpp">
       <Filter>Root</Filter>
     </ClCompile>
+    <ClCompile Include="Output\BakeOutputWriter.cpp">
+      <Filter>Output</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="App\BakeJobConfig.h">

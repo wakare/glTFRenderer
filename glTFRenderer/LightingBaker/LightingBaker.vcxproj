@@ -171,6 +171,7 @@
     <ClCompile Include="App\BakeJobConfig.cpp" />
     <ClCompile Include="App\LightingBakerApp.cpp" />
     <ClCompile Include="LightingBakerMain.cpp" />
+    <ClCompile Include="Output\BakeOutputWriter.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="App\BakeJobConfig.h" />
