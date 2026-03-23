@@ -231,6 +231,7 @@ namespace RendererInterface
             std::vector<RenderTargetTextureBindingDesc> sampled_render_targets;
             std::map<std::string, BufferBindingDesc> buffer_resources;
             std::map<std::string, TextureBindingDesc> texture_resources;
+            std::optional<RayTracingPassDesc> ray_tracing_desc{};
             std::set<std::string> excluded_buffer_bindings;
             std::set<std::string> excluded_texture_bindings;
             std::set<std::string> excluded_render_target_texture_bindings;
@@ -405,6 +406,7 @@ namespace RendererInterface
         bool RegisterRenderGraphNode(RenderGraphNodeHandle render_graph_node_handle);
         bool RemoveRenderGraphNode(RenderGraphNodeHandle render_graph_node_handle);
         bool UpdateComputeDispatch(RenderGraphNodeHandle render_graph_node_handle, unsigned group_size_x, unsigned group_size_y, unsigned group_size_z);
+        bool UpdateRayTracingDispatch(RenderGraphNodeHandle render_graph_node_handle, unsigned dispatch_width, unsigned dispatch_height, unsigned dispatch_depth);
         bool QueueNodeRenderStateUpdate(RenderGraphNodeHandle render_graph_node_handle, const RenderStateDesc& render_state);
         bool UpdateNodeDependencies(RenderGraphNodeHandle render_graph_node_handle, const std::vector<RenderGraphNodeHandle>& dependency_render_graph_nodes);
         bool UpdateNodeBufferBinding(RenderGraphNodeHandle render_graph_node_handle, const std::string& binding_name, BufferHandle buffer_handle);

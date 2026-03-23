@@ -8,6 +8,7 @@ class IRHIDescriptorUpdater;
 class IRHIDevice;
 class IRHISwapChain;
 class IRHIResource;
+class IRHIShaderTable;
 
 class RenderPass
 {
@@ -25,6 +26,8 @@ public:
 
     IRHIPipelineStateObject& GetPipelineStateObject();
     IRHIRootSignature& GetRootSignature();
+    IRHIShaderTable* GetRayTracingShaderTable() const;
+    const RendererInterface::RayTracingPassDesc* GetRayTracingPassDesc() const;
 
     RendererInterface::RenderPassType GetRenderPassType() const;
     RendererInterface::PrimitiveTopology GetPrimitiveTopology() const;

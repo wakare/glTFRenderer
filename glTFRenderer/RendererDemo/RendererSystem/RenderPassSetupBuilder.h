@@ -63,6 +63,16 @@ namespace RenderFeature
             dispatch_command.parameter.dispatch_parameter.group_size_z = group_size_z;
             return dispatch_command;
         }
+
+        RendererInterface::RenderExecuteCommand MakeTraceRays2D(unsigned dispatch_depth = 1) const
+        {
+            RendererInterface::RenderExecuteCommand trace_command{};
+            trace_command.type = RendererInterface::ExecuteCommandType::RAY_TRACING_COMMAND;
+            trace_command.parameter.ray_tracing_dispatch_parameter.dispatch_width = width;
+            trace_command.parameter.ray_tracing_dispatch_parameter.dispatch_height = height;
+            trace_command.parameter.ray_tracing_dispatch_parameter.dispatch_depth = dispatch_depth;
+            return trace_command;
+        }
     };
 
     struct ComputeExecutionPlan
@@ -143,6 +153,45 @@ namespace RenderFeature
         static GraphicsExecutionPlan FromResourceOperator(RendererInterface::ResourceOperator& resource_operator)
         {
             return FromFrameDimensions(FrameDimensions::FromResourceOperator(resource_operator));
+        }
+    };
+
+    struct RayTracingExecutionPlan
+    {
+        FrameDimensions dispatch_dimensions{};
+
+        static RayTracingExecutionPlan FromFrameDimensions(const FrameDimensions& dispatch_dimensions)
+        {
+            return {
+                .dispatch_dimensions = dispatch_dimensions
+            };
+        }
+
+        static RayTracingExecutionPlan FromExtent(unsigned width, unsigned height)
+        {
+            return FromFrameDimensions(FrameDimensions::FromExtent(width, height));
+        }
+
+        static RayTracingExecutionPlan FromResourceOperator(RendererInterface::ResourceOperator& resource_operator)
+        {
+            return FromFrameDimensions(FrameDimensions::FromResourceOperator(resource_operator));
+        }
+
+        RendererInterface::RenderExecuteCommand MakeTraceRays(unsigned dispatch_depth = 1) const
+        {
+            return dispatch_dimensions.MakeTraceRays2D(dispatch_depth);
+        }
+
+        void ApplyDispatch(
+            RendererInterface::RenderGraph& graph,
+            RendererInterface::RenderGraphNodeHandle node_handle,
+            unsigned dispatch_depth = 1) const
+        {
+            graph.UpdateRayTracingDispatch(
+                node_handle,
+                dispatch_dimensions.width,
+                dispatch_dimensions.height,
+                dispatch_depth);
         }
     };
 
@@ -331,6 +380,14 @@ namespace RenderFeature
             group_size_x,
             group_size_y,
             group_size_z);
+    }
+
+    inline RendererInterface::RenderExecuteCommand MakeTraceRays2D(
+        unsigned width,
+        unsigned height,
+        unsigned dispatch_depth = 1)
+    {
+        return FrameDimensions::FromExtent(width, height).MakeTraceRays2D(dispatch_depth);
     }
 
     inline std::pair<unsigned, unsigned> MakeDispatchGroupCount2D(
@@ -615,6 +672,63 @@ namespace RenderFeature
             return SetExecuteCommand(execution_plan.MakeDispatch(group_count_z));
         }
 
+        PassBuilder& SetTraceRays(
+            unsigned width,
+            unsigned height,
+            unsigned dispatch_depth = 1)
+        {
+            return SetExecuteCommand(MakeTraceRays2D(width, height, dispatch_depth));
+        }
+
+        PassBuilder& SetTraceRays(
+            const FrameDimensions& dispatch_dimensions,
+            unsigned dispatch_depth = 1)
+        {
+            return SetExecuteCommand(dispatch_dimensions.MakeTraceRays2D(dispatch_depth));
+        }
+
+        PassBuilder& SetTraceRays(
+            const RayTracingExecutionPlan& execution_plan,
+            unsigned dispatch_depth = 1)
+        {
+            return SetExecuteCommand(execution_plan.MakeTraceRays(dispatch_depth));
+        }
+
+        PassBuilder& SetRayTracingConfig(const RendererInterface::RayTracingConfig& config)
+        {
+            EnsureRayTracingDesc().config = config;
+            return *this;
+        }
+
+        PassBuilder& SetRayTracingExportFunctionNames(const std::vector<std::string>& export_function_names)
+        {
+            EnsureRayTracingDesc().export_function_names = export_function_names;
+            return *this;
+        }
+
+        PassBuilder& AddRayTracingHitGroup(const RendererInterface::RayTracingHitGroupDesc& hit_group_desc)
+        {
+            EnsureRayTracingDesc().hit_group_descs.push_back(hit_group_desc);
+            return *this;
+        }
+
+        PassBuilder& SetRayTracingShaderTable(const std::shared_ptr<IRHIShaderTable>& shader_table)
+        {
+            EnsureRayTracingDesc().shader_table = shader_table;
+            return *this;
+        }
+
+        PassBuilder& AddRayTracingAccelerationStructure(
+            const std::string& binding_name,
+            const std::shared_ptr<IRHIRayTracingAS>& acceleration_structure)
+        {
+            EnsureRayTracingDesc().acceleration_structure_bindings.push_back({
+                .binding_name = binding_name,
+                .acceleration_structure = acceleration_structure
+            });
+            return *this;
+        }
+
         RendererInterface::RenderGraph::RenderPassSetupInfo Build()
         {
             return std::move(m_setup_info);
@@ -629,6 +743,15 @@ namespace RenderFeature
             m_setup_info.render_pass_type = render_pass_type;
             m_setup_info.debug_group = debug_group;
             m_setup_info.debug_name = debug_name;
+        }
+
+        RendererInterface::RayTracingPassDesc& EnsureRayTracingDesc()
+        {
+            if (!m_setup_info.ray_tracing_desc.has_value())
+            {
+                m_setup_info.ray_tracing_desc = RendererInterface::RayTracingPassDesc{};
+            }
+            return m_setup_info.ray_tracing_desc.value();
         }
 
         RendererInterface::RenderGraph::RenderPassSetupInfo m_setup_info{};

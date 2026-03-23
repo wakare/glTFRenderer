@@ -26,6 +26,8 @@
 #include "RHIInterface/IRHIDescriptorManager.h"
 #include "RHIInterface/IRHIDescriptorUpdater.h"
 #include "RHIInterface/IRHIMemoryManager.h"
+#include "RHIInterface/IRHIRayTracingAS.h"
+#include "RHIInterface/IRHIShaderTable.h"
 #include "RHIInterface/IRHISwapChain.h"
 #include "RHIInterface/RHIIndexBuffer.h"
 #include <renderdoc/renderdoc_app.h>
@@ -2913,6 +2915,7 @@ namespace RendererInterface
         RendererInterface::RenderPassDesc render_pass_desc{};
         render_pass_desc.type = setup_info.render_pass_type;
         render_pass_desc.render_state = setup_info.render_state;
+        render_pass_desc.ray_tracing_desc = setup_info.ray_tracing_desc;
 
         if (setup_info.render_pass_type == RendererInterface::RenderPassType::RAY_TRACING &&
             !RHIUtilInstanceManager::Instance().SupportRayTracing(allocator.GetDevice()))
@@ -3192,6 +3195,33 @@ namespace RendererInterface
             command.parameter.dispatch_parameter.group_size_x = group_size_x;
             command.parameter.dispatch_parameter.group_size_y = group_size_y;
             command.parameter.dispatch_parameter.group_size_z = group_size_z;
+            m_execution_plan_state.MarkDirty();
+            return true;
+        }
+
+        return false;
+    }
+
+    bool RenderGraph::UpdateRayTracingDispatch(
+        RenderGraphNodeHandle render_graph_node_handle,
+        unsigned dispatch_width,
+        unsigned dispatch_height,
+        unsigned dispatch_depth)
+    {
+        GLTF_CHECK(render_graph_node_handle.IsValid());
+        GLTF_CHECK(render_graph_node_handle.value < m_render_graph_nodes.size());
+
+        auto& node_desc = m_render_graph_nodes[render_graph_node_handle.value];
+        for (auto& command : node_desc.draw_info.execute_commands)
+        {
+            if (command.type != ExecuteCommandType::RAY_TRACING_COMMAND)
+            {
+                continue;
+            }
+
+            command.parameter.ray_tracing_dispatch_parameter.dispatch_width = dispatch_width;
+            command.parameter.ray_tracing_dispatch_parameter.dispatch_height = dispatch_height;
+            command.parameter.ray_tracing_dispatch_parameter.dispatch_depth = dispatch_depth;
             m_execution_plan_state.MarkDirty();
             return true;
         }
@@ -6247,13 +6277,57 @@ namespace RendererInterface
             }
         }
 
+        if (const auto* ray_tracing_pass_desc = render_pass->GetRayTracingPassDesc())
+        {
+            for (const auto& acceleration_structure_binding : ray_tracing_pass_desc->acceleration_structure_bindings)
+            {
+                if (!render_pass->HasRootSignatureAllocation(acceleration_structure_binding.binding_name))
+                {
+                    continue;
+                }
+                if (!acceleration_structure_binding.acceleration_structure)
+                {
+                    continue;
+                }
+
+                const auto& root_signature_allocations =
+                    render_pass->GetRootSignatureAllocations(acceleration_structure_binding.binding_name);
+                const auto& tlas_descriptor = acceleration_structure_binding.acceleration_structure->GetTLASDescriptorSRV();
+                for (const auto& root_signature_allocation : root_signature_allocations)
+                {
+                    render_pass->GetDescriptorUpdater().BindDescriptor(
+                        command_list,
+                        pipeline_type,
+                        root_signature_allocation,
+                        tlas_descriptor);
+                }
+            }
+        }
+
         render_pass->GetDescriptorUpdater().FinalizeUpdateDescriptors(m_resource_allocator.GetDevice(), command_list, render_pass->GetRootSignature());
 
         if (pipeline_type == RHIPipelineType::Graphics)
         {
             RHIUtilInstanceManager::Instance().BeginRendering(command_list, begin_rendering_info);    
         }
-        
+
+        IRHIShaderTable* ray_tracing_shader_table = nullptr;
+        if (pipeline_type == RHIPipelineType::RayTracing)
+        {
+            ray_tracing_shader_table = render_pass->GetRayTracingShaderTable();
+            if (ray_tracing_shader_table == nullptr)
+            {
+                const char* group_name = render_graph_node_desc.debug_group.empty() ? "<group-empty>" : render_graph_node_desc.debug_group.c_str();
+                const char* pass_name = render_graph_node_desc.debug_name.empty() ? "<pass-empty>" : render_graph_node_desc.debug_name.c_str();
+                LOG_FORMAT_FLUSH(
+                    "[RenderGraph][Validation] Node %u (%s/%s) is missing a ray tracing shader table. Skip execution.\n",
+                    render_graph_node_handle.value,
+                    group_name,
+                    pass_name);
+                return RenderPassExecutionStatus::SKIPPED_INVALID_DRAW_DESC;
+            }
+        }
+
         const auto& draw_info = render_graph_node_desc.draw_info;
         for (const auto& command : draw_info.execute_commands)
         {
@@ -6292,6 +6366,13 @@ namespace RendererInterface
                 RHIUtilInstanceManager::Instance().Dispatch(command_list, command.parameter.dispatch_parameter.group_size_x, command.parameter.dispatch_parameter.group_size_y, command.parameter.dispatch_parameter.group_size_z);
                 break;
             case ExecuteCommandType::RAY_TRACING_COMMAND:
+                GLTF_CHECK(ray_tracing_shader_table != nullptr);
+                RHIUtilInstanceManager::Instance().TraceRay(
+                    command_list,
+                    *ray_tracing_shader_table,
+                    command.parameter.ray_tracing_dispatch_parameter.dispatch_width,
+                    command.parameter.ray_tracing_dispatch_parameter.dispatch_height,
+                    command.parameter.ray_tracing_dispatch_parameter.dispatch_depth);
                 break;
             }    
         }

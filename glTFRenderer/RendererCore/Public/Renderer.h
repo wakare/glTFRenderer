@@ -10,6 +10,9 @@
 
 #include <Windows.h>
 
+class IRHIShaderTable;
+class IRHIRayTracingAS;
+
 namespace RendererInterface
 {
     struct NullHandle_t
@@ -199,6 +202,36 @@ namespace RendererInterface
         RAY_TRACING,
     };
 
+    struct RayTracingConfig
+    {
+        unsigned payload_size{0};
+        unsigned attribute_size{0};
+        unsigned max_recursion_count{1};
+    };
+
+    struct RayTracingHitGroupDesc
+    {
+        std::string export_hit_group_name{};
+        std::string closest_hit_entry_name{};
+        std::string any_hit_entry_name{};
+        std::string intersection_entry_name{};
+    };
+
+    struct RayTracingAccelerationStructureBindingDesc
+    {
+        std::string binding_name{};
+        std::shared_ptr<IRHIRayTracingAS> acceleration_structure{};
+    };
+
+    struct RayTracingPassDesc
+    {
+        RayTracingConfig config{};
+        std::vector<std::string> export_function_names{};
+        std::vector<RayTracingHitGroupDesc> hit_group_descs{};
+        std::vector<RayTracingAccelerationStructureBindingDesc> acceleration_structure_bindings{};
+        std::shared_ptr<IRHIShaderTable> shader_table{};
+    };
+
     enum class RenderPassResourceAccessMode
     {
         READ_ONLY,
@@ -299,6 +332,7 @@ namespace RendererInterface
         RenderPassType type{};
         std::map<ShaderType, ShaderHandle> shaders;
         RenderStateDesc render_state{};
+        std::optional<RayTracingPassDesc> ray_tracing_desc{};
 
         // resource desc
         std::vector<RenderTargetBindingDesc> render_target_bindings;
@@ -458,6 +492,13 @@ namespace RendererInterface
         unsigned group_size_y;
         unsigned group_size_z;
     };
+
+    struct RayTracingDispatchParameter
+    {
+        unsigned dispatch_width;
+        unsigned dispatch_height;
+        unsigned dispatch_depth;
+    };
     
     struct ExecuteCommandParameter
     {
@@ -468,6 +509,7 @@ namespace RendererInterface
             DrawVertexInstanceParameter     draw_vertex_instance_command_parameter;
             DrawIndexedInstanceParameter    draw_indexed_instance_command_parameter;
             DispatchParameter               dispatch_parameter;
+            RayTracingDispatchParameter     ray_tracing_dispatch_parameter;
         };
     };
     

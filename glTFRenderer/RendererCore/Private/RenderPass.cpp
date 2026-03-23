@@ -88,6 +88,27 @@ namespace
         pipeline_state_object.SetDepthBiasDesc(ConvertToRHIDepthBiasDesc(render_pass_desc.render_state.depth_bias));
     }
 
+    IRHIRayTracingPipelineStateObject::RHIRayTracingConfig ConvertToRHIRayTracingConfig(
+        const RendererInterface::RayTracingConfig& config)
+    {
+        return {
+            .payload_size = config.payload_size,
+            .attribute_size = config.attribute_size,
+            .max_recursion_count = config.max_recursion_count
+        };
+    }
+
+    IRHIRayTracingPipelineStateObject::RHIRayTracingHitGroupDesc ConvertToRHIRayTracingHitGroupDesc(
+        const RendererInterface::RayTracingHitGroupDesc& desc)
+    {
+        return {
+            .m_export_hit_group_name = desc.export_hit_group_name,
+            .m_closest_hit_entry_name = desc.closest_hit_entry_name,
+            .m_any_hit_entry_name = desc.any_hit_entry_name,
+            .m_intersection_entry_name = desc.intersection_entry_name
+        };
+    }
+
     const char* ToExecuteCommandTypeName(RendererInterface::ExecuteCommandType type)
     {
         using namespace RendererInterface;
@@ -317,6 +338,20 @@ bool RenderPass::InitRenderPass(ResourceManager& resource_manager)
     m_root_signature->InitRootSignature(resource_manager.GetDevice(), resource_manager.GetMemoryManager().GetDescriptorManager());
 
     ConfigurePipelineStateObject(*m_pipeline_state_object, m_desc);
+    if (m_desc.type == RendererInterface::RenderPassType::RAY_TRACING)
+    {
+        auto* ray_tracing_pipeline_state_object = dynamic_cast<IRHIRayTracingPipelineStateObject*>(m_pipeline_state_object.get());
+        GLTF_CHECK(ray_tracing_pipeline_state_object != nullptr);
+        if (m_desc.ray_tracing_desc.has_value())
+        {
+            ray_tracing_pipeline_state_object->SetConfig(ConvertToRHIRayTracingConfig(m_desc.ray_tracing_desc->config));
+            ray_tracing_pipeline_state_object->SetExportFunctionNames(m_desc.ray_tracing_desc->export_function_names);
+            for (const auto& hit_group_desc : m_desc.ray_tracing_desc->hit_group_descs)
+            {
+                ray_tracing_pipeline_state_object->AddHitGroupDesc(ConvertToRHIRayTracingHitGroupDesc(hit_group_desc));
+            }
+        }
+    }
     
     if (!m_pipeline_state_object->InitPipelineStateObject(resource_manager.GetDevice(),
             *m_root_signature,
@@ -397,6 +432,24 @@ IRHIRootSignature& RenderPass::GetRootSignature()
     return m_root_signature_helper.GetRootSignature();
 }
 
+IRHIShaderTable* RenderPass::GetRayTracingShaderTable() const
+{
+    if (!m_desc.ray_tracing_desc.has_value() || !m_desc.ray_tracing_desc->shader_table)
+    {
+        return nullptr;
+    }
+    return m_desc.ray_tracing_desc->shader_table.get();
+}
+
+const RendererInterface::RayTracingPassDesc* RenderPass::GetRayTracingPassDesc() const
+{
+    if (!m_desc.ray_tracing_desc.has_value())
+    {
+        return nullptr;
+    }
+    return &m_desc.ray_tracing_desc.value();
+}
+
 RendererInterface::RenderPassType RenderPass::GetRenderPassType() const
 {
     return m_desc.type;
@@ -475,11 +528,28 @@ RenderPass::DrawValidationResult RenderPass::ValidateDrawDesc(const RendererInte
         }
         break;
     case RendererInterface::RenderPassType::RAY_TRACING:
+        if (!m_desc.ray_tracing_desc.has_value())
+        {
+            push_error("Ray tracing pass is missing ray tracing pass descriptor.");
+            break;
+        }
+        if (!m_desc.ray_tracing_desc->shader_table)
+        {
+            push_error("Ray tracing pass is missing shader table.");
+        }
         for (const auto& command : draw_desc.execute_commands)
         {
             if (command.type != RendererInterface::ExecuteCommandType::RAY_TRACING_COMMAND)
             {
                 push_error(std::string("Ray tracing pass contains unsupported command type: ") + ToExecuteCommandTypeName(command.type));
+                continue;
+            }
+
+            if (command.parameter.ray_tracing_dispatch_parameter.dispatch_width == 0 ||
+                command.parameter.ray_tracing_dispatch_parameter.dispatch_height == 0 ||
+                command.parameter.ray_tracing_dispatch_parameter.dispatch_depth == 0)
+            {
+                push_error("Ray tracing pass contains zero-sized trace rays dispatch.");
             }
         }
         break;
@@ -607,6 +677,32 @@ RenderPass::DrawValidationResult RenderPass::ValidateDrawDesc(const RendererInte
         if (!IsCompatibleTextureBindingType(*allocation, render_target_texture.second.type == RendererInterface::RenderTargetTextureBindingDesc::SRV))
         {
             push_warning("RenderTarget texture binding '" + render_target_texture.first + "' type mismatch with root signature type " + ToRootParameterTypeName(allocation->type) + ".");
+        }
+    }
+
+    if (m_desc.type == RendererInterface::RenderPassType::RAY_TRACING && m_desc.ray_tracing_desc.has_value())
+    {
+        for (const auto& acceleration_structure_binding : m_desc.ray_tracing_desc->acceleration_structure_bindings)
+        {
+            if (!acceleration_structure_binding.acceleration_structure)
+            {
+                push_error("Ray tracing acceleration structure binding '" + acceleration_structure_binding.binding_name + "' has null TLAS.");
+                continue;
+            }
+
+            const auto* allocation = FindRootSignatureAllocation(acceleration_structure_binding.binding_name);
+            if (allocation == nullptr)
+            {
+                push_warning("Ray tracing acceleration structure binding '" + acceleration_structure_binding.binding_name + "' not found in root signature. Binding will be ignored.");
+                continue;
+            }
+
+            if (allocation->type != RHIRootParameterType::AccelerationStructure)
+            {
+                push_warning(
+                    "Ray tracing acceleration structure binding '" + acceleration_structure_binding.binding_name +
+                    "' type mismatch with root signature type " + ToRootParameterTypeName(allocation->type) + ".");
+            }
         }
     }
 
