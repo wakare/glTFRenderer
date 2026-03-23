@@ -99,7 +99,7 @@ namespace LightingBaker
         error_message.clear();
         if (!import_success)
         {
-            if (!output_writer.WriteBootstrapPackage(config, output_layout, import_result, error_message))
+            if (!output_writer.WriteBootstrapPackage(config, output_layout, import_result, nullptr, error_message))
             {
                 std::wcerr << error_message << L"\n";
                 return kExitOutputWriteError;
@@ -113,7 +113,7 @@ namespace LightingBaker
 
         if (import_result.HasValidationErrors())
         {
-            if (!output_writer.WriteBootstrapPackage(config, output_layout, import_result, error_message))
+            if (!output_writer.WriteBootstrapPackage(config, output_layout, import_result, nullptr, error_message))
             {
                 std::wcerr << error_message << L"\n";
                 return kExitOutputWriteError;
@@ -145,6 +145,13 @@ namespace LightingBaker
 
         if (atlas_result.HasValidationErrors())
         {
+            error_message.clear();
+            if (!output_writer.WriteBootstrapPackage(config, output_layout, import_result, &atlas_result, error_message))
+            {
+                std::wcerr << error_message << L"\n";
+                return kExitOutputWriteError;
+            }
+
             PrintResolvedJob(config, output_layout);
             PrintImportSummary(import_result);
             PrintAtlasSummary(atlas_result);
@@ -153,7 +160,7 @@ namespace LightingBaker
         }
 
         error_message.clear();
-        if (!output_writer.WriteBootstrapPackage(config, output_layout, import_result, error_message))
+        if (!output_writer.WriteBootstrapPackage(config, output_layout, import_result, &atlas_result, error_message))
         {
             std::wcerr << error_message << L"\n";
             return kExitOutputWriteError;

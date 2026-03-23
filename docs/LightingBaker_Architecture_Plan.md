@@ -319,9 +319,10 @@ glTFRenderer/LightingBaker/
     invalid_uv.png
   cache/
     resume.json
-    accum_00.bin
-    sample_count_00.bin
-    variance_00.bin
+    texel_records_00.bin
+    accum_00.rgb32f.bin
+    sample_count_00.r32ui.bin
+    variance_00.r32f.bin
 ```
 
 `manifest.json` 需要至少覆盖：
@@ -334,6 +335,24 @@ glTFRenderer/LightingBaker/
 - primitive 或 instance 到 atlas 的 binding 列表
 - 稳定绑定键，例如 `primitive_hash`，以及可选的实例覆盖键 `node_key`
 - runtime codec 与 decode 参数
+
+`resume.json` 只给 baker 自己使用，应作为 `cache/` 的权威索引入口，至少记录：
+
+- `atlas_inputs`
+- 每个 atlas 的 `texel_record_file`、`texel_record_count`、`texel_record_stride`
+- progressive 缓存文件，例如 `accumulation_file`、`sample_count_file`、`variance_file`
+- 当前 progressive 状态，例如 `completed_samples`
+
+当前已落地的 scaffold 会额外输出：
+
+- `debug/import_summary.json`
+- `debug/atlas_summary.json`
+- `cache/texel_records_00.bin`
+- `cache/accum_00.rgb32f.bin`
+- `cache/sample_count_00.r32ui.bin`
+- `cache/variance_00.r32f.bin`
+
+后续即便 cache 内部格式调整，也应继续由 `resume.json` 提供唯一入口，避免 DXR bake pass 或工具链直接硬编码具体文件名。
 
 ### 6.2 压缩与编码策略
 

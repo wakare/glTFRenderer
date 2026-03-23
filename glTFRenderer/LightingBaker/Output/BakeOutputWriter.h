@@ -42,6 +42,21 @@ namespace LightingBaker
         std::array<float, 4> scale_bias{1.0f, 1.0f, 0.0f, 0.0f};
     };
 
+    struct BakeAtlasCacheDesc
+    {
+        unsigned atlas_id{0};
+        unsigned texel_record_count{0};
+        unsigned texel_record_stride{0};
+        std::string texel_record_file{};
+        std::string texel_record_format{"lightmap_texel_record_v1"};
+        std::string accumulation_file{};
+        std::string accumulation_format{"rgb32f"};
+        std::string sample_count_file{};
+        std::string sample_count_format{"r32ui"};
+        std::string variance_file{};
+        std::string variance_format{"r32f"};
+    };
+
     class BakeOutputWriter
     {
     public:
@@ -51,6 +66,7 @@ namespace LightingBaker
         bool WriteBootstrapPackage(const BakeJobConfig& config,
                                    const BakeOutputLayout& layout,
                                    const BakeSceneImportResult& import_result,
+                                   const LightmapAtlasBuildResult* atlas_result,
                                    std::wstring& out_error) const;
         bool WriteImportSummary(const BakeSceneImportResult& import_result,
                                 const BakeOutputLayout& layout,
@@ -66,6 +82,7 @@ namespace LightingBaker
         bool WriteManifest(const BakeJobConfig& config,
                            const BakeOutputLayout& layout,
                            const BakeSceneImportResult& import_result,
+                           const LightmapAtlasBuildResult* atlas_result,
                            const std::vector<BakePublishedAtlasDesc>& atlas_descs,
                            const std::vector<BakePublishedBindingDesc>& binding_descs,
                            std::wstring& out_error) const;
@@ -73,6 +90,12 @@ namespace LightingBaker
                                  const BakeOutputLayout& layout,
                                  const BakeSceneImportResult& import_result,
                                  const std::vector<BakePublishedAtlasDesc>& atlas_descs,
+                                 const std::vector<BakeAtlasCacheDesc>& atlas_cache_descs,
+                                 const LightmapAtlasBuildResult* atlas_result,
                                  std::wstring& out_error) const;
+        bool WriteAtlasCaches(const BakeOutputLayout& layout,
+                              const LightmapAtlasBuildResult& atlas_result,
+                              const std::vector<BakeAtlasCacheDesc>& atlas_cache_descs,
+                              std::wstring& out_error) const;
     };
 }

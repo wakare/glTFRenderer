@@ -235,9 +235,10 @@ Suggested layout:
     invalid_uv.png
   cache/
     resume.json
-    accum_00.bin
-    sample_count_00.bin
-    variance_00.bin
+    texel_records_00.bin
+    accum_00.rgb32f.bin
+    sample_count_00.r32ui.bin
+    variance_00.r32f.bin
 ```
 
 `manifest.json` should contain at least:
@@ -250,6 +251,24 @@ Suggested layout:
 - primitive or instance to atlas bindings
 - stable binding keys such as `primitive_hash`, plus an optional instance override key `node_key`
 - runtime codec and decode parameters
+
+`resume.json` should remain baker-only and serve as the authoritative index for `cache/`, including at least:
+
+- `atlas_inputs`
+- per-atlas `texel_record_file`, `texel_record_count`, and `texel_record_stride`
+- progressive cache files such as `accumulation_file`, `sample_count_file`, and `variance_file`
+- progressive state such as `completed_samples`
+
+The current scaffold already writes:
+
+- `debug/import_summary.json`
+- `debug/atlas_summary.json`
+- `cache/texel_records_00.bin`
+- `cache/accum_00.rgb32f.bin`
+- `cache/sample_count_00.r32ui.bin`
+- `cache/variance_00.r32f.bin`
+
+Even if the internal cache format changes later, `resume.json` should remain the single entry point so DXR bake passes and tools do not hardcode file names.
 
 ### 6.2 Compression and codec strategy
 
