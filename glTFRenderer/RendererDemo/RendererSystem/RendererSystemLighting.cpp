@@ -907,6 +907,10 @@ RendererInterface::RenderGraph::RenderPassSetupInfo RendererSystemLighting::Buil
                 scene_outputs.normal,
                 RendererInterface::RenderTargetTextureBindingDesc::SRV),
             RenderFeature::MakeSampledRenderTargetBinding(
+                "bakedDiffuseIndirectTex",
+                scene_outputs.baked_diffuse_indirect,
+                RendererInterface::RenderTargetTextureBindingDesc::SRV),
+            RenderFeature::MakeSampledRenderTargetBinding(
                 "depthTex",
                 scene_outputs.depth,
                 RendererInterface::RenderTargetTextureBindingDesc::SRV),

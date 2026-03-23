@@ -7,6 +7,7 @@ void RendererSystemSceneRenderer::BasePassRuntimeState::Reset()
     color = NULL_HANDLE;
     normal = NULL_HANDLE;
     velocity = NULL_HANDLE;
+    baked_diffuse_indirect = NULL_HANDLE;
     depth = NULL_HANDLE;
     node = NULL_HANDLE;
     viewport_dimensions = {};
@@ -46,6 +47,7 @@ RendererSystemSceneRenderer::BasePassOutputs RendererSystemSceneRenderer::GetOut
         .color = m_base_pass_state.color,
         .normal = m_base_pass_state.normal,
         .velocity = m_base_pass_state.velocity,
+        .baked_diffuse_indirect = m_base_pass_state.baked_diffuse_indirect,
         .depth = m_base_pass_state.depth,
         .node = m_base_pass_state.node
     };
@@ -85,6 +87,9 @@ void RendererSystemSceneRenderer::CreateBasePassRenderTargets(RendererInterface:
         static_cast<RendererInterface::ResourceUsage>(RendererInterface::ResourceUsage::RENDER_TARGET | RendererInterface::ResourceUsage::COPY_SRC | RendererInterface::ResourceUsage::SHADER_RESOURCE));
 
     m_base_pass_state.velocity = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget("BasePass_Velocity", RendererInterface::RGBA16_FLOAT, RendererInterface::default_clear_color,
+        static_cast<RendererInterface::ResourceUsage>(RendererInterface::ResourceUsage::RENDER_TARGET | RendererInterface::ResourceUsage::COPY_SRC | RendererInterface::ResourceUsage::SHADER_RESOURCE));
+
+    m_base_pass_state.baked_diffuse_indirect = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget("BasePass_BakedDiffuseIndirect", RendererInterface::RGBA16_FLOAT, RendererInterface::default_clear_color,
         static_cast<RendererInterface::ResourceUsage>(RendererInterface::ResourceUsage::RENDER_TARGET | RendererInterface::ResourceUsage::COPY_SRC | RendererInterface::ResourceUsage::SHADER_RESOURCE));
 
     m_base_pass_state.depth = resource_operator.CreateFrameBufferedWindowRelativeRenderTarget("Depth", RendererInterface::D32, RendererInterface::default_clear_depth,
@@ -145,6 +150,9 @@ RendererInterface::RenderGraph::RenderPassSetupInfo RendererSystemSceneRenderer:
                 RenderFeature::MakeColorRenderTargetBinding(RendererInterface::RGBA8_UNORM, true)),
             RenderFeature::MakeRenderTargetAttachment(
                 execution_plan.outputs.velocity,
+                RenderFeature::MakeColorRenderTargetBinding(RendererInterface::RGBA16_FLOAT, true)),
+            RenderFeature::MakeRenderTargetAttachment(
+                execution_plan.outputs.baked_diffuse_indirect,
                 RenderFeature::MakeColorRenderTargetBinding(RendererInterface::RGBA16_FLOAT, true)),
             RenderFeature::MakeRenderTargetAttachment(
                 execution_plan.outputs.depth,

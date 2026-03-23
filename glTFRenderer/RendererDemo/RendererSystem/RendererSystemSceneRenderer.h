@@ -15,6 +15,7 @@ public:
         RendererInterface::RenderTargetHandle color{NULL_HANDLE};
         RendererInterface::RenderTargetHandle normal{NULL_HANDLE};
         RendererInterface::RenderTargetHandle velocity{NULL_HANDLE};
+        RendererInterface::RenderTargetHandle baked_diffuse_indirect{NULL_HANDLE};
         RendererInterface::RenderTargetHandle depth{NULL_HANDLE};
         RendererInterface::RenderGraphNodeHandle node{NULL_HANDLE};
 
@@ -58,6 +59,7 @@ protected:
         RendererInterface::RenderTargetHandle color{NULL_HANDLE};
         RendererInterface::RenderTargetHandle normal{NULL_HANDLE};
         RendererInterface::RenderTargetHandle velocity{NULL_HANDLE};
+        RendererInterface::RenderTargetHandle baked_diffuse_indirect{NULL_HANDLE};
         RendererInterface::RenderTargetHandle depth{NULL_HANDLE};
         RendererInterface::RenderGraphNodeHandle node{NULL_HANDLE};
         RenderFeature::FrameDimensions viewport_dimensions{};

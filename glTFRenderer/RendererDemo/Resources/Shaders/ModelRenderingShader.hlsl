@@ -5,6 +5,7 @@ struct VSOutput
     float4 pos : SV_POSITION;
     float4 uv : UV;
     uint vs_material_id: MATERIAL_ID;
+    nointerpolation uint lightmap_binding_index : LIGHTMAP_BINDING_INDEX;
     float3 normal: NORMAL;
     float4 tangent: TANGENT;
     float3x3 world_rotation_matrix: WORLD_ROTATION_MATRIX;
@@ -36,6 +37,7 @@ VSOutput MainVS(uint Vertex_ID : SV_VertexID, uint Instance_ID : SV_InstanceID
     output.prev_clip_pos = mul(prev_view_projection_matrix, world_pos);
     //output.color = float3(1.0, 1.0, 1.0);
     output.vs_material_id = mesh_start_info[instance_input_data.mesh_id].material_index;
+    output.lightmap_binding_index = instance_input_data.lightmap_binding_index;
     output.uv = vertex.uv;
     output.tangent = vertex.tangent;
     output.world_rotation_matrix = (float3x3)instance_transform;
@@ -50,6 +52,7 @@ struct FSOutput
     float4 color : SV_TARGET0;
     float4 normal : SV_TARGET1;
     float4 velocity : SV_TARGET2;
+    float4 baked_diffuse_indirect : SV_TARGET3;
 };
 
 #ifdef PIXEL_SHADER
@@ -60,6 +63,9 @@ FSOutput MainFS(VSOutput input)
     const float4 base_color = SampleAlbedoTexture(input.vs_material_id, input.uv.xy);
     const float2 metallic_roughness = SampleMetallicRoughnessTexture(input.vs_material_id, input.uv.xy);
     output.color = float4(base_color.xyz, metallic_roughness.x);
+    const float3 diffuse_color = base_color.xyz * (1.0f - metallic_roughness.x);
+    const float4 lightmap_irradiance = SampleLightmapDiffuseIrradiance(input.lightmap_binding_index, input.uv.zw);
+    output.baked_diffuse_indirect = float4(diffuse_color * lightmap_irradiance.xyz, lightmap_irradiance.w);
     
     const float3 tangent_space_normal = normalize(2 * SampleNormalTexture(input.vs_material_id, input.uv.xy).xyz - 1.0);
     const float3 world_normal = normalize(GetWorldNormal(input.world_rotation_matrix, input.normal, input.tangent, tangent_space_normal));

@@ -4,6 +4,7 @@
 
 Texture2D albedoTex;
 Texture2D normalTex;
+Texture2D bakedDiffuseIndirectTex;
 Texture2D depthTex;
 Texture2D<float> ssaoTex;
 
@@ -72,6 +73,8 @@ void main(int3 dispatchThreadID : SV_DispatchThreadID)
     float3 normal = normalize(2 * normal_buffer_data.xyz - 1);
     float roughness = normal_buffer_data.w;
     const float ambient_occlusion = saturate(ssaoTex.Load(int3(dispatchThreadID.xy, 0)));
+    const float4 baked_diffuse_indirect = bakedDiffuseIndirectTex.Load(int3(dispatchThreadID.xy, 0));
+    const bool has_baked_diffuse_indirect = baked_diffuse_indirect.w > 0.5f;
 
     {
         PixelLightingShadingInfo shading_info;
@@ -85,7 +88,9 @@ void main(int3 dispatchThreadID : SV_DispatchThreadID)
         float3 view = normalize(view_position.xyz - world_position);
 
         const float3 direct_lighting = GetLighting(shading_info, view);
-        const float3 diffuse_indirect = GetEnvironmentDiffuseLighting(shading_info, ambient_occlusion);
+        const float3 diffuse_indirect = has_baked_diffuse_indirect
+            ? baked_diffuse_indirect.xyz
+            : GetEnvironmentDiffuseLighting(shading_info, ambient_occlusion);
         const float3 specular_indirect = GetEnvironmentSpecularLighting(shading_info, view);
         const float3 final_lighting = direct_lighting + diffuse_indirect + specular_indirect;
 
