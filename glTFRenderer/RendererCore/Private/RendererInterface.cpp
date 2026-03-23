@@ -206,6 +206,72 @@ namespace RendererInterface
             return quoted;
         }
 
+        class ScopedEnvironmentVariableOverride
+        {
+        public:
+            ScopedEnvironmentVariableOverride(const wchar_t* name, const wchar_t* value)
+                : m_name(name ? name : L"")
+            {
+                if (m_name.empty())
+                {
+                    return;
+                }
+
+                SetLastError(ERROR_SUCCESS);
+                const DWORD existing_length = GetEnvironmentVariableW(m_name.c_str(), nullptr, 0u);
+                const DWORD query_error = GetLastError();
+                if (existing_length > 0u)
+                {
+                    std::wstring existing_value(existing_length, L'\0');
+                    const DWORD copied_length =
+                        GetEnvironmentVariableW(m_name.c_str(), existing_value.data(), existing_length);
+                    if (copied_length < existing_length)
+                    {
+                        existing_value.resize(copied_length);
+                        m_previous_value = std::move(existing_value);
+                        m_had_previous_value = true;
+                    }
+                }
+                else if (query_error == ERROR_SUCCESS)
+                {
+                    m_previous_value.clear();
+                    m_had_previous_value = true;
+                }
+                else if (query_error == ERROR_ENVVAR_NOT_FOUND)
+                {
+                    m_had_previous_value = false;
+                }
+
+                m_applied = SetEnvironmentVariableW(m_name.c_str(), value) != 0;
+            }
+
+            ScopedEnvironmentVariableOverride(const ScopedEnvironmentVariableOverride&) = delete;
+            ScopedEnvironmentVariableOverride& operator=(const ScopedEnvironmentVariableOverride&) = delete;
+
+            ~ScopedEnvironmentVariableOverride()
+            {
+                if (m_name.empty() || !m_applied)
+                {
+                    return;
+                }
+
+                if (m_had_previous_value)
+                {
+                    SetEnvironmentVariableW(m_name.c_str(), m_previous_value.c_str());
+                }
+                else
+                {
+                    SetEnvironmentVariableW(m_name.c_str(), nullptr);
+                }
+            }
+
+        private:
+            std::wstring m_name{};
+            std::wstring m_previous_value{};
+            bool m_had_previous_value{false};
+            bool m_applied{false};
+        };
+
         std::string BuildRenderDocCaptureTemplate(const std::filesystem::path& capture_path)
         {
             std::filesystem::path template_path = capture_path;
@@ -3923,6 +3989,14 @@ namespace RendererInterface
             return false;
         }
 
+        // Scope the NVIDIA Vulkan replay-layer disables to the qrenderdoc launch only.
+        const ScopedEnvironmentVariableOverride disable_nv_present_layer(
+            L"DISABLE_LAYER_NV_PRESENT_1",
+            L"1");
+        const ScopedEnvironmentVariableOverride disable_nv_optimus_layer(
+            L"DISABLE_LAYER_NV_OPTIMUS_1",
+            L"1");
+
         if (m_renderdoc_capture_state && m_renderdoc_capture_state->available && m_renderdoc_capture_state->api)
         {
             auto& renderdoc_state = *m_renderdoc_capture_state;
@@ -3934,7 +4008,8 @@ namespace RendererInterface
                 {
                     out_status =
                         "RenderDoc replay UI launched for capture: " + resolved_path.string() +
-                        " (pid " + std::to_string(replay_pid) + ").";
+                        " (pid " + std::to_string(replay_pid) +
+                        ", with NVIDIA Vulkan replay layers disabled for this launch).";
                     return true;
                 }
             }

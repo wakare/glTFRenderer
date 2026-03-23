@@ -64,13 +64,20 @@ This means the failure happened in the Vulkan replay environment around QRenderD
 
 ## Final Fix
 
-There was no repository code fix for this issue. The accepted operational workaround was to launch QRenderDoc with NVIDIA's Vulkan present and Optimus layers disabled through their supported environment variables:
+The first accepted workaround was to launch QRenderDoc with NVIDIA's Vulkan present and Optimus layers disabled through their supported environment variables:
 
 ```powershell
 $env:DISABLE_LAYER_NV_PRESENT_1='1'
 $env:DISABLE_LAYER_NV_OPTIMUS_1='1'
 & 'C:\Program Files\RenderDoc\qrenderdoc.exe' 'path\to\capture.rdc'
 ```
+
+Later, `RendererDemo`'s RenderDoc UI launch path was updated to apply the same two environment variables automatically for UI-triggered replay launch in `glTFRenderer/RendererCore/Private/RendererInterface.cpp`, inside `RenderGraph::OpenRenderDocCaptureInReplayUI(...)`.
+
+Scope of the repository-side mitigation:
+
+- It covers the shared `DemoBase` operations that auto-open RenderDoc after capture or open the last capture from the in-app UI.
+- It does not change standalone `qrenderdoc.exe` launches from Explorer, command line shells, or other external tools. Those paths still need the manual environment-variable workaround when the affected NVIDIA layer stack is present.
 
 Supporting evidence gathered during investigation:
 
@@ -81,11 +88,11 @@ Supporting evidence gathered during investigation:
 ## Validation
 
 - Build result:
-  Not applicable. No repo code change was required.
+  `RendererDemo` isolated verify build succeeded after the UI replay-launch mitigation was added.
 - Runtime validation:
   Replaying the same `.rdc` still crashed without the NVIDIA layer-disable environment variables, but replay succeeded when `DISABLE_LAYER_NV_PRESENT_1=1` and `DISABLE_LAYER_NV_OPTIMUS_1=1` were set.
 - User acceptance:
-  The user confirmed that replay opened normally with the environment-variable workaround.
+  The user confirmed that replay opened normally with the environment-variable workaround before the repository-side mitigation was added.
 
 ## Reflection And Prevention
 

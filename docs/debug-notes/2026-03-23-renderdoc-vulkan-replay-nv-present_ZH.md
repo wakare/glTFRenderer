@@ -64,13 +64,20 @@ minidump 指向的是 NVIDIA Vulkan 栈中的 replay 侧访问冲突：
 
 ## Final Fix
 
-这个问题没有对应的仓库代码修复。被接受的最终 workaround 是：在启动 QRenderDoc 时，通过 NVIDIA 自己支持的环境变量禁用 Vulkan present 和 Optimus layers：
+这个问题最先被接受的 workaround 是：在启动 QRenderDoc 时，通过 NVIDIA 自己支持的环境变量禁用 Vulkan present 和 Optimus layers：
 
 ```powershell
 $env:DISABLE_LAYER_NV_PRESENT_1='1'
 $env:DISABLE_LAYER_NV_OPTIMUS_1='1'
 & 'C:\Program Files\RenderDoc\qrenderdoc.exe' 'path\to\capture.rdc'
 ```
+
+之后，`RendererDemo` 的 RenderDoc UI 打开路径已经在 `glTFRenderer/RendererCore/Private/RendererInterface.cpp` 的 `RenderGraph::OpenRenderDocCaptureInReplayUI(...)` 中自动应用这两个环境变量，用于 UI 触发的 replay launch。
+
+这个仓库侧 mitigation 的覆盖范围是：
+
+- 覆盖共享 `DemoBase` 里的“capture 后自动打开 RenderDoc”以及“在应用内 UI 里打开最近一次 capture”操作
+- 不覆盖从资源管理器、命令行或其他外部工具直接启动 `qrenderdoc.exe` 的路径；这些路径在遇到同样的 NVIDIA layer 环境时，仍然需要手动设置环境变量 workaround
 
 排查过程中的支撑证据：
 
@@ -81,11 +88,11 @@ $env:DISABLE_LAYER_NV_OPTIMUS_1='1'
 ## Validation
 
 - Build result:
-  不适用。本次无需修改仓库代码。
+  增加 UI replay-launch mitigation 后，`RendererDemo` 的 isolated verify build 已通过。
 - Runtime validation:
   不设置 NVIDIA layer-disable 环境变量时，打开同一个 `.rdc` 仍会崩溃；设置 `DISABLE_LAYER_NV_PRESENT_1=1` 和 `DISABLE_LAYER_NV_OPTIMUS_1=1` 后，同一个 replay 可以正常打开。
 - User acceptance:
-  用户确认用环境变量 workaround 启动后，replay 可以正常工作。
+  在加入仓库侧 mitigation 之前，用户已经确认手动设置环境变量 workaround 后，replay 可以正常工作。
 
 ## Reflection And Prevention
 
