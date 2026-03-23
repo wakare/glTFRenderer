@@ -391,7 +391,10 @@ RendererInterface::ShaderHandle ResourceManager::CreateShader(const RendererInte
         GLTF_CHECK(false);
     }
     
-    RHIUtilInstanceManager::Instance().ProcessShaderMetaData(*shader);
+    if (!RHIUtilInstanceManager::Instance().ProcessShaderMetaData(*shader))
+    {
+        GLTF_CHECK(false);
+    }
     
     auto shader_handle = RendererInterface::InternalResourceHandleTable::Instance().RegisterShader(shader);
     m_shaders[shader_handle] = shader;

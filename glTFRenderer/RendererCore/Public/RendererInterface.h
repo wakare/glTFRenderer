@@ -396,7 +396,10 @@ namespace RendererInterface
             std::size_t& cached_execution_node_count;
         };
         
-        RenderGraph(ResourceOperator& allocator, RenderWindow& window, bool enable_debug_ui = true);
+        RenderGraph(ResourceOperator& allocator,
+                    RenderWindow& window,
+                    bool enable_debug_ui = true,
+                    bool enable_presentation = true);
         ~RenderGraph();
         
         RenderGraphNodeHandle CreateRenderGraphNode(const RenderGraphNodeDesc& render_graph_node_desc);
@@ -671,6 +674,7 @@ namespace RendererInterface
         RenderGraphTickCallback m_tick_callback;
         RenderGraphDebugUICallback m_debug_ui_callback;
         bool m_debug_ui_enabled{true};
+        bool m_presentation_enabled{true};
         bool m_debug_ui_initialized{false};
         ValidationPolicy m_validation_policy{};
         struct GPUProfilerState;

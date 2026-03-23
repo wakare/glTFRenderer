@@ -2,6 +2,7 @@
 
 #include "Bake/Atlas/LightmapAtlasBuilder.h"
 #include "Bake/Post/BakeAccumulator.h"
+#include "Bake/RayTracing/BakeRayTracingDispatch.h"
 #include "Bake/RayTracing/BakeRayTracingRuntime.h"
 #include "Bake/RayTracing/BakeRayTracingScene.h"
 #include "Output/BakeOutputWriter.h"
@@ -25,6 +26,7 @@ namespace LightingBaker
         constexpr int kExitAccumulationError = 9;
         constexpr int kExitRayTracingSceneError = 10;
         constexpr int kExitRayTracingRuntimeError = 11;
+        constexpr int kExitRayTracingDispatchError = 12;
 
         unsigned CountErrors(const BakeSceneImportResult& import_result)
         {
@@ -76,6 +78,16 @@ namespace LightingBaker
         unsigned CountWarnings(const BakeRayTracingRuntimeBuildResult& ray_tracing_runtime)
         {
             return static_cast<unsigned>(ray_tracing_runtime.warnings.size());
+        }
+
+        unsigned CountErrors(const BakeRayTracingDispatchRunResult& ray_tracing_dispatch)
+        {
+            return static_cast<unsigned>(ray_tracing_dispatch.errors.size());
+        }
+
+        unsigned CountWarnings(const BakeRayTracingDispatchRunResult& ray_tracing_dispatch)
+        {
+            return static_cast<unsigned>(ray_tracing_dispatch.warnings.size());
         }
     }
 
@@ -275,7 +287,6 @@ namespace LightingBaker
             return kExitOutputWriteError;
         }
 
-        ray_tracing_runtime.Shutdown();
         if (!ray_tracing_runtime_success || ray_tracing_runtime.HasValidationErrors())
         {
             PrintResolvedJob(config, output_layout);
@@ -292,22 +303,66 @@ namespace LightingBaker
             {
                 std::wcerr << L"Ray tracing runtime bootstrap failed. See ray tracing runtime summary for details.\n";
             }
+            ray_tracing_runtime.Shutdown();
             return kExitRayTracingRuntimeError;
         }
 
-        BakeAccumulationRunResult accumulation_run_result{};
+        BakeRayTracingDispatchRunner ray_tracing_dispatch_runner{};
+        BakeRayTracingDispatchSettings ray_tracing_dispatch_settings{};
+        BakeRayTracingDispatchRunResult ray_tracing_dispatch{};
         error_message.clear();
-        if (!accumulator.AccumulateDebugHemispherePreview(resume_state,
-                                                         config,
-                                                         atlas_result,
-                                                         accumulation_run_result,
-                                                         error_message))
+        const bool ray_tracing_dispatch_success = ray_tracing_dispatch_runner.RunDispatch(
+            atlas_result,
+            ray_tracing_runtime,
+            ray_tracing_dispatch_settings,
+            ray_tracing_dispatch,
+            error_message);
+        const std::wstring ray_tracing_dispatch_error = error_message;
+
+        error_message.clear();
+        if (!output_writer.WriteRayTracingDispatchSummary(ray_tracing_dispatch, output_layout, error_message))
+        {
+            ray_tracing_runtime.Shutdown();
+            std::wcerr << error_message << L"\n";
+            return kExitOutputWriteError;
+        }
+
+        ray_tracing_runtime.Shutdown();
+        if (!ray_tracing_dispatch_success || ray_tracing_dispatch.HasValidationErrors())
         {
             PrintResolvedJob(config, output_layout);
             PrintImportSummary(import_result);
             PrintAtlasSummary(atlas_result);
             PrintRayTracingSceneSummary(ray_tracing_scene);
             PrintRayTracingRuntimeSummary(ray_tracing_runtime);
+            PrintRayTracingDispatchSummary(ray_tracing_dispatch);
+            PrintResumeSummary(resume_state);
+            if (!ray_tracing_dispatch_error.empty())
+            {
+                std::wcerr << ray_tracing_dispatch_error << L"\n";
+            }
+            else
+            {
+                std::wcerr << L"Ray tracing dispatch bootstrap failed. See ray tracing dispatch summary for details.\n";
+            }
+            return kExitRayTracingDispatchError;
+        }
+
+        BakeAccumulationRunResult accumulation_run_result{};
+        error_message.clear();
+        if (!accumulator.AccumulateRayTracingDispatchOutput(resume_state,
+                                                            config,
+                                                            atlas_result,
+                                                            ray_tracing_dispatch,
+                                                            accumulation_run_result,
+                                                            error_message))
+        {
+            PrintResolvedJob(config, output_layout);
+            PrintImportSummary(import_result);
+            PrintAtlasSummary(atlas_result);
+            PrintRayTracingSceneSummary(ray_tracing_scene);
+            PrintRayTracingRuntimeSummary(ray_tracing_runtime);
+            PrintRayTracingDispatchSummary(ray_tracing_dispatch);
             PrintResumeSummary(resume_state);
             std::wcerr << error_message << L"\n";
             return kExitAccumulationError;
@@ -337,6 +392,7 @@ namespace LightingBaker
         PrintAtlasSummary(atlas_result);
         PrintRayTracingSceneSummary(ray_tracing_scene);
         PrintRayTracingRuntimeSummary(ray_tracing_runtime);
+        PrintRayTracingDispatchSummary(ray_tracing_dispatch);
         PrintResumeSummary(resume_state);
         PrintAccumulationSummary(accumulation_run_result);
 
@@ -346,6 +402,8 @@ namespace LightingBaker
             output_layout.debug / L"raytracing_scene_summary.json";
         const std::filesystem::path ray_tracing_runtime_summary_path =
             output_layout.debug / L"raytracing_runtime_summary.json";
+        const std::filesystem::path ray_tracing_dispatch_summary_path =
+            output_layout.debug / L"raytracing_dispatch_summary.json";
         std::wcout
             << L"\nProgressive preview sidecar package updated.\n"
             << L"  manifest: " << output_layout.manifest_path.native() << L"\n"
@@ -354,7 +412,8 @@ namespace LightingBaker
             << L"  atlas summary: " << atlas_summary_path.native() << L"\n"
             << L"  ray tracing scene summary: " << ray_tracing_scene_summary_path.native() << L"\n"
             << L"  ray tracing runtime summary: " << ray_tracing_runtime_summary_path.native() << L"\n"
-            << L"  preview integrator: debug hemisphere placeholder\n";
+            << L"  ray tracing dispatch summary: " << ray_tracing_dispatch_summary_path.native() << L"\n"
+            << L"  preview integrator: dxr atlas dispatch placeholder\n";
 
         return kExitSuccess;
     }
@@ -436,6 +495,27 @@ namespace LightingBaker
             << (ray_tracing_runtime.acceleration_structure_initialized ? L"true" : L"false") << L"\n"
             << L"  warnings: " << CountWarnings(ray_tracing_runtime) << L"\n"
             << L"  errors: " << CountErrors(ray_tracing_runtime) << L"\n";
+    }
+
+    void LightingBakerApp::PrintRayTracingDispatchSummary(const BakeRayTracingDispatchRunResult& ray_tracing_dispatch) const
+    {
+        std::wcout
+            << L"\nRay tracing dispatch summary\n"
+            << L"  shader resolved: " << (ray_tracing_dispatch.shader_path_resolved ? L"true" : L"false") << L"\n"
+            << L"  dispatch: " << ray_tracing_dispatch.dispatch_width << L"x"
+            << ray_tracing_dispatch.dispatch_height << L"x" << ray_tracing_dispatch.dispatch_depth << L"\n"
+            << L"  output: " << ray_tracing_dispatch.output_width << L"x"
+            << ray_tracing_dispatch.output_height << L"\n"
+            << L"  render pass created: " << (ray_tracing_dispatch.render_pass_created ? L"true" : L"false") << L"\n"
+            << L"  shader table ready: " << (ray_tracing_dispatch.shader_table_initialized ? L"true" : L"false") << L"\n"
+            << L"  frame executed: " << (ray_tracing_dispatch.frame_executed ? L"true" : L"false") << L"\n"
+            << L"  readback buffer allocated: " << (ray_tracing_dispatch.readback_buffer_allocated ? L"true" : L"false") << L"\n"
+            << L"  readback downloaded: " << (ray_tracing_dispatch.readback_downloaded ? L"true" : L"false") << L"\n"
+            << L"  output payload valid: " << (ray_tracing_dispatch.output_payload_valid ? L"true" : L"false") << L"\n"
+            << L"  output row pitch: " << ray_tracing_dispatch.output_row_pitch << L"\n"
+            << L"  executed RT passes: " << ray_tracing_dispatch.frame_stats.executed_ray_tracing_pass_count << L"\n"
+            << L"  warnings: " << CountWarnings(ray_tracing_dispatch) << L"\n"
+            << L"  errors: " << CountErrors(ray_tracing_dispatch) << L"\n";
     }
 
     void LightingBakerApp::PrintResumeSummary(const BakeAccumulatorResumeState& resume_state) const

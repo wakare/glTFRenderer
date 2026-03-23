@@ -1,0 +1,565 @@
+#include "BakeRayTracingDispatch.h"
+
+#include "../../../RendererCore/Private/InternalResourceHandleTable.h"
+
+#include "RenderPass.h"
+#include "RHIResourceFactoryImpl.hpp"
+#include "RHIInterface/IRHIDescriptorManager.h"
+#include "RHIInterface/IRHIMemoryManager.h"
+#include "RHIDX12Impl/DX12Buffer.h"
+#include "RHIDX12Impl/DX12CommandList.h"
+#include "RHIDX12Impl/DX12ConverterUtils.h"
+#include "RHIDX12Impl/DX12Texture.h"
+
+#include <Windows.h>
+
+#include <algorithm>
+#include <array>
+#include <cstdint>
+#include <cstring>
+#include <iostream>
+#include <limits>
+
+namespace LightingBaker
+{
+    namespace
+    {
+        constexpr wchar_t kShaderRelativePathFromOutput[] = L"Resources/Shaders/BakeRayTracingDebug.hlsl";
+        constexpr wchar_t kShaderRelativePathFromRepoRoot[] = L"glTFRenderer/LightingBaker/Resources/Shaders/BakeRayTracingDebug.hlsl";
+        constexpr char kDispatchGroupName[] = "LightingBaker";
+        constexpr char kDispatchPassName[] = "BakeRayTracingDispatch";
+        constexpr std::size_t kOutputChannelCount = 4u;
+
+        BakeSceneValidationMessage MakeMessage(std::string code, std::string message)
+        {
+            BakeSceneValidationMessage result{};
+            result.code = std::move(code);
+            result.message = std::move(message);
+            return result;
+        }
+
+        std::filesystem::path GetExecutableDirectory()
+        {
+            std::array<wchar_t, MAX_PATH> buffer{};
+            const DWORD length = ::GetModuleFileNameW(nullptr, buffer.data(), static_cast<DWORD>(buffer.size()));
+            if (length == 0u || length >= buffer.size())
+            {
+                return {};
+            }
+
+            std::filesystem::path executable_path(buffer.data(), buffer.data() + length);
+            return executable_path.parent_path();
+        }
+
+        std::filesystem::path ResolveDispatchShaderPath()
+        {
+            const std::filesystem::path executable_directory = GetExecutableDirectory();
+            const std::array<std::filesystem::path, 4u> candidates = {
+                std::filesystem::current_path() / std::filesystem::path(kShaderRelativePathFromRepoRoot),
+                std::filesystem::current_path() / std::filesystem::path(kShaderRelativePathFromOutput),
+                executable_directory / std::filesystem::path(kShaderRelativePathFromOutput),
+                executable_directory.parent_path() / std::filesystem::path(kShaderRelativePathFromRepoRoot),
+            };
+
+            for (const std::filesystem::path& candidate : candidates)
+            {
+                if (candidate.empty())
+                {
+                    continue;
+                }
+
+                std::error_code error_code{};
+                if (std::filesystem::exists(candidate, error_code) && !error_code)
+                {
+                    return std::filesystem::absolute(candidate, error_code).lexically_normal();
+                }
+            }
+
+            return {};
+        }
+
+        RendererInterface::RenderExecuteCommand MakeTraceRays(unsigned width, unsigned height, unsigned depth)
+        {
+            RendererInterface::RenderExecuteCommand command{};
+            command.type = RendererInterface::ExecuteCommandType::RAY_TRACING_COMMAND;
+            command.parameter.ray_tracing_dispatch_parameter.dispatch_width = width;
+            command.parameter.ray_tracing_dispatch_parameter.dispatch_height = height;
+            command.parameter.ray_tracing_dispatch_parameter.dispatch_depth = depth;
+            return command;
+        }
+
+        float HalfBitsToFloat(std::uint16_t bits)
+        {
+            const std::uint32_t sign = (static_cast<std::uint32_t>(bits & 0x8000u)) << 16u;
+            const std::uint32_t exponent = (bits >> 10u) & 0x1fu;
+            const std::uint32_t mantissa = bits & 0x03ffu;
+
+            std::uint32_t float_bits = 0u;
+            if (exponent == 0u)
+            {
+                if (mantissa == 0u)
+                {
+                    float_bits = sign;
+                }
+                else
+                {
+                    std::uint32_t normalized_mantissa = mantissa;
+                    int exponent_unbiased = -14;
+                    while ((normalized_mantissa & 0x0400u) == 0u)
+                    {
+                        normalized_mantissa <<= 1u;
+                        --exponent_unbiased;
+                    }
+
+                    normalized_mantissa &= 0x03ffu;
+                    const std::uint32_t exponent_bits = static_cast<std::uint32_t>(exponent_unbiased + 127) << 23u;
+                    float_bits = sign | exponent_bits | (normalized_mantissa << 13u);
+                }
+            }
+            else if (exponent == 0x1fu)
+            {
+                float_bits = sign | 0x7f800000u | (mantissa << 13u);
+            }
+            else
+            {
+                const int exponent_unbiased = static_cast<int>(exponent) - 15 + 127;
+                float_bits = sign |
+                             (static_cast<std::uint32_t>(exponent_unbiased) << 23u) |
+                             (mantissa << 13u);
+            }
+
+            float value = 0.0f;
+            std::memcpy(&value, &float_bits, sizeof(value));
+            return value;
+        }
+
+        bool ReadBackDX12OutputTexture(RendererInterface::ResourceOperator& resource_operator,
+                                       RendererInterface::RenderTargetHandle output_render_target,
+                                       BakeRayTracingDispatchRunResult& out_result,
+                                       std::wstring& out_error)
+        {
+            const auto render_target_allocation =
+                RendererInterface::InternalResourceHandleTable::Instance().GetRenderTarget(output_render_target);
+            if (!render_target_allocation || !render_target_allocation->m_source)
+            {
+                out_result.errors.push_back(MakeMessage(
+                    "rt_dispatch_missing_output_texture",
+                    "Bake ray tracing dispatch could not resolve the output render target texture for readback."));
+                out_error = L"Bake ray tracing dispatch could not resolve the output render target texture for readback.";
+                return false;
+            }
+
+            auto* dx12_texture = dynamic_cast<DX12Texture*>(render_target_allocation->m_source.get());
+            if (dx12_texture == nullptr)
+            {
+                out_result.errors.push_back(MakeMessage(
+                    "rt_dispatch_readback_unsupported_backend",
+                    "Bake ray tracing dispatch readback currently supports DX12 render targets only."));
+                out_error = L"Bake ray tracing dispatch readback currently supports DX12 render targets only.";
+                return false;
+            }
+
+            const RHIMipMapCopyRequirements copy_requirements = dx12_texture->GetCopyReq();
+            if (copy_requirements.row_pitch.empty() || copy_requirements.row_byte_size.empty() || copy_requirements.total_size == 0u)
+            {
+                out_result.errors.push_back(MakeMessage(
+                    "rt_dispatch_missing_copy_requirements",
+                    "Bake ray tracing dispatch output texture is missing copy footprint metadata."));
+                out_error = L"Bake ray tracing dispatch output texture is missing copy footprint metadata.";
+                return false;
+            }
+
+            if (copy_requirements.row_pitch[0] > static_cast<std::size_t>(std::numeric_limits<unsigned>::max()))
+            {
+                out_result.errors.push_back(MakeMessage(
+                    "rt_dispatch_row_pitch_overflow",
+                    "Bake ray tracing dispatch output row pitch exceeded supported summary range."));
+                out_error = L"Bake ray tracing dispatch output row pitch exceeded supported summary range.";
+                return false;
+            }
+
+            const std::size_t pixel_count =
+                static_cast<std::size_t>(out_result.output_width) * static_cast<std::size_t>(out_result.output_height);
+            const std::size_t pixel_stride_bytes = sizeof(std::uint16_t) * kOutputChannelCount;
+            const std::size_t expected_row_byte_size =
+                static_cast<std::size_t>(out_result.output_width) * pixel_stride_bytes;
+            if (copy_requirements.row_byte_size[0] < expected_row_byte_size)
+            {
+                out_result.errors.push_back(MakeMessage(
+                    "rt_dispatch_row_stride_invalid",
+                    "Bake ray tracing dispatch output row footprint is smaller than RGBA16F atlas pixels require."));
+                out_error = L"Bake ray tracing dispatch output row footprint is smaller than RGBA16F atlas pixels require.";
+                return false;
+            }
+
+            IRHIMemoryManager& memory_manager = resource_operator.GetMemoryManager();
+            std::shared_ptr<IRHIBufferAllocation> readback_buffer{};
+            const RHIBufferDesc readback_desc{
+                L"BakeRayTracingDispatchReadback",
+                copy_requirements.total_size,
+                1,
+                1,
+                RHIBufferType::Readback,
+                RHIBufferResourceType::Buffer,
+                RHIResourceStateType::STATE_COPY_DEST,
+                static_cast<RHIResourceUsageFlags>(RUF_TRANSFER_DST | RUF_READBACK),
+            };
+            if (!memory_manager.AllocateBufferMemory(resource_operator.GetDevice(), readback_desc, readback_buffer) ||
+                !readback_buffer || !readback_buffer->m_buffer)
+            {
+                out_result.errors.push_back(MakeMessage(
+                    "rt_dispatch_readback_buffer_failed",
+                    "Failed to allocate a DX12 readback buffer for baker dispatch output."));
+                out_error = L"Failed to allocate a DX12 readback buffer for baker dispatch output.";
+                return false;
+            }
+
+            out_result.readback_buffer_allocated = true;
+
+            IRHICommandList& command_list = resource_operator.GetCommandListForRecordPassCommand();
+            auto* dx12_command_list = dynamic_cast<DX12CommandList*>(&command_list);
+            auto* dx12_readback_buffer = dynamic_cast<DX12Buffer*>(readback_buffer->m_buffer.get());
+            if (dx12_command_list == nullptr || dx12_readback_buffer == nullptr)
+            {
+                out_result.errors.push_back(MakeMessage(
+                    "rt_dispatch_readback_dx12_cast_failed",
+                    "Bake ray tracing dispatch could not resolve DX12 command-list or buffer objects for readback."));
+                out_error = L"Bake ray tracing dispatch could not resolve DX12 command-list or buffer objects for readback.";
+                return false;
+            }
+
+            render_target_allocation->m_source->Transition(command_list, RHIResourceStateType::STATE_COPY_SOURCE);
+            readback_buffer->m_buffer->Transition(command_list, RHIResourceStateType::STATE_COPY_DEST);
+
+            D3D12_TEXTURE_COPY_LOCATION src_location{};
+            src_location.pResource = dx12_texture->GetRawResource();
+            src_location.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+            src_location.SubresourceIndex = 0u;
+
+            D3D12_TEXTURE_COPY_LOCATION dst_location{};
+            dst_location.pResource = dx12_readback_buffer->GetRawBuffer();
+            dst_location.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+            dst_location.PlacedFootprint.Offset = 0u;
+            dst_location.PlacedFootprint.Footprint.Format =
+                DX12ConverterUtils::ConvertToDXGIFormat(render_target_allocation->m_source->GetTextureFormat());
+            dst_location.PlacedFootprint.Footprint.Width = out_result.output_width;
+            dst_location.PlacedFootprint.Footprint.Height = out_result.output_height;
+            dst_location.PlacedFootprint.Footprint.Depth = 1u;
+            dst_location.PlacedFootprint.Footprint.RowPitch = static_cast<UINT>(copy_requirements.row_pitch[0]);
+
+            const D3D12_BOX src_box{
+                0u,
+                0u,
+                0u,
+                static_cast<UINT>(out_result.output_width),
+                static_cast<UINT>(out_result.output_height),
+                1u,
+            };
+            dx12_command_list->GetCommandList()->CopyTextureRegion(&dst_location, 0u, 0u, 0u, &src_location, &src_box);
+            out_result.readback_copy_recorded = true;
+
+            resource_operator.WaitGPUIdle();
+
+            std::vector<std::uint8_t> readback_bytes(copy_requirements.total_size, 0u);
+            if (!memory_manager.DownloadBufferData(*readback_buffer, readback_bytes.data(), readback_bytes.size()))
+            {
+                out_result.errors.push_back(MakeMessage(
+                    "rt_dispatch_readback_download_failed",
+                    "Failed to download baker dispatch output bytes from the DX12 readback buffer."));
+                out_error = L"Failed to download baker dispatch output bytes from the DX12 readback buffer.";
+                return false;
+            }
+
+            out_result.readback_downloaded = true;
+            out_result.output_row_pitch = static_cast<unsigned>(copy_requirements.row_pitch[0]);
+            out_result.output_readback_size = copy_requirements.total_size;
+            out_result.output_rgba.assign(pixel_count * kOutputChannelCount, 0.0f);
+
+            for (unsigned y = 0u; y < out_result.output_height; ++y)
+            {
+                const std::uint8_t* row_begin =
+                    readback_bytes.data() + static_cast<std::size_t>(y) * copy_requirements.row_pitch[0];
+                const std::uint16_t* row_half_words = reinterpret_cast<const std::uint16_t*>(row_begin);
+                for (unsigned x = 0u; x < out_result.output_width; ++x)
+                {
+                    const std::size_t src_offset = static_cast<std::size_t>(x) * kOutputChannelCount;
+                    const std::size_t dst_offset =
+                        (static_cast<std::size_t>(y) * static_cast<std::size_t>(out_result.output_width) +
+                         static_cast<std::size_t>(x)) * kOutputChannelCount;
+                    out_result.output_rgba[dst_offset + 0u] = HalfBitsToFloat(row_half_words[src_offset + 0u]);
+                    out_result.output_rgba[dst_offset + 1u] = HalfBitsToFloat(row_half_words[src_offset + 1u]);
+                    out_result.output_rgba[dst_offset + 2u] = HalfBitsToFloat(row_half_words[src_offset + 2u]);
+                    out_result.output_rgba[dst_offset + 3u] = HalfBitsToFloat(row_half_words[src_offset + 3u]);
+                }
+            }
+
+            out_result.output_payload_valid = true;
+            return true;
+        }
+    }
+
+    bool BakeRayTracingDispatchRunResult::HasErrors() const
+    {
+        return !errors.empty();
+    }
+
+    bool BakeRayTracingDispatchRunResult::HasValidationErrors() const
+    {
+        return HasErrors();
+    }
+
+    bool BakeRayTracingDispatchRunner::RunDispatch(const LightmapAtlasBuildResult& atlas_result,
+                                                   BakeRayTracingRuntimeBuildResult& runtime_result,
+                                                   const BakeRayTracingDispatchSettings& settings,
+                                                   BakeRayTracingDispatchRunResult& out_result,
+                                                   std::wstring& out_error) const
+    {
+        out_result = BakeRayTracingDispatchRunResult{};
+        out_result.atlas_resolution = atlas_result.atlas_resolution;
+        out_result.texel_record_count = atlas_result.texel_record_count;
+        out_error.clear();
+
+        if (!runtime_result.window || !runtime_result.resource_operator || !runtime_result.acceleration_structure_initialized ||
+            !runtime_result.acceleration_structure)
+        {
+            out_result.errors.push_back(MakeMessage(
+                "rt_dispatch_runtime_unavailable",
+                "Ray tracing dispatch requires an initialized baker runtime with a valid TLAS."));
+            out_error = L"Ray tracing dispatch requires an initialized baker runtime with a valid TLAS.";
+            return false;
+        }
+
+        if (atlas_result.HasValidationErrors())
+        {
+            out_result.errors.push_back(MakeMessage(
+                "rt_dispatch_invalid_atlas",
+                "Ray tracing dispatch requires a validation-passed atlas build result."));
+            out_error = L"Ray tracing dispatch requires a validation-passed atlas build result.";
+            return false;
+        }
+
+        if (atlas_result.texel_record_count == 0u)
+        {
+            out_result.errors.push_back(MakeMessage(
+                "rt_dispatch_empty_atlas",
+                "Ray tracing dispatch requires atlas texel coverage to execute."));
+            out_error = L"Ray tracing dispatch requires atlas texel coverage to execute.";
+            return false;
+        }
+
+        const std::filesystem::path shader_path = ResolveDispatchShaderPath();
+        if (shader_path.empty())
+        {
+            out_result.errors.push_back(MakeMessage(
+                "rt_dispatch_missing_shader",
+                "Failed to resolve BakeRayTracingDebug.hlsl from the current workspace or output directory."));
+            out_error = L"Failed to resolve BakeRayTracingDebug.hlsl from the current workspace or output directory.";
+            return false;
+        }
+
+        out_result.shader_path = shader_path;
+        out_result.shader_path_resolved = true;
+
+        out_result.dispatch_width = settings.dispatch_width > 0u ? settings.dispatch_width : atlas_result.atlas_resolution;
+        out_result.dispatch_height = settings.dispatch_height > 0u ? settings.dispatch_height : atlas_result.atlas_resolution;
+        out_result.dispatch_depth = (std::max)(1u, settings.dispatch_depth);
+        out_result.output_width = (std::max)(1u, out_result.dispatch_width);
+        out_result.output_height = (std::max)(1u, out_result.dispatch_height);
+
+        RendererInterface::ResourceOperator& resource_operator = *runtime_result.resource_operator;
+        const auto output_usage = static_cast<RendererInterface::ResourceUsage>(
+            RendererInterface::COPY_SRC |
+            RendererInterface::SHADER_RESOURCE |
+            RendererInterface::UNORDER_ACCESS);
+        const RendererInterface::RenderTargetHandle output_render_target = resource_operator.CreateRenderTarget(
+            "BakeRayTracingDispatchOutput",
+            out_result.output_width,
+            out_result.output_height,
+            RendererInterface::RGBA16_FLOAT,
+            RendererInterface::default_clear_color,
+            output_usage);
+        if (!output_render_target.IsValid())
+        {
+            out_result.errors.push_back(MakeMessage(
+                "rt_dispatch_output_allocation_failed",
+                "Failed to allocate the baker ray tracing output render target."));
+            out_error = L"Failed to allocate the baker ray tracing output render target.";
+            return false;
+        }
+
+        out_result.output_render_target_created = true;
+        std::wcout << L"[LightingBaker][Dispatch] Output render target ready.\n";
+
+        RendererInterface::ShaderDesc shader_desc{};
+        shader_desc.shader_type = RendererInterface::RAY_TRACING_SHADER;
+        shader_desc.shader_file_name = shader_path.string();
+        shader_desc.entry_point.clear();
+        const RendererInterface::ShaderHandle shader_handle = resource_operator.CreateShader(shader_desc);
+        if (!shader_handle.IsValid())
+        {
+            out_result.errors.push_back(MakeMessage(
+                "rt_dispatch_shader_compile_failed",
+                "Failed to compile the baker ray tracing debug shader library."));
+            out_error = L"Failed to compile the baker ray tracing debug shader library.";
+            return false;
+        }
+        std::wcout << L"[LightingBaker][Dispatch] Ray tracing shader ready.\n";
+
+        RendererInterface::RenderPassDesc render_pass_desc{};
+        render_pass_desc.type = RendererInterface::RenderPassType::RAY_TRACING;
+        render_pass_desc.shaders.emplace(RendererInterface::RAY_TRACING_SHADER, shader_handle);
+        render_pass_desc.ray_tracing_desc = RendererInterface::RayTracingPassDesc{};
+        render_pass_desc.ray_tracing_desc->config.payload_size = sizeof(float) * 4u;
+        render_pass_desc.ray_tracing_desc->config.attribute_size = sizeof(float) * 2u;
+        render_pass_desc.ray_tracing_desc->config.max_recursion_count = 1u;
+        render_pass_desc.ray_tracing_desc->export_function_names = {
+            out_result.raygen_entry,
+            out_result.closest_hit_entry,
+            out_result.miss_entry,
+        };
+        render_pass_desc.ray_tracing_desc->hit_group_descs.push_back({
+            out_result.hit_group_export,
+            out_result.closest_hit_entry,
+            "",
+            "",
+        });
+        render_pass_desc.ray_tracing_desc->acceleration_structure_bindings.push_back({
+            out_result.acceleration_structure_binding_name,
+            runtime_result.acceleration_structure,
+        });
+        render_pass_desc.ray_tracing_desc->shader_table = RHIResourceFactory::CreateRHIResource<IRHIShaderTable>();
+        if (!render_pass_desc.ray_tracing_desc->shader_table)
+        {
+            out_result.errors.push_back(MakeMessage(
+                "rt_dispatch_shader_table_allocation_failed",
+                "Failed to allocate an IRHIShaderTable for the baker dispatch pass."));
+            out_error = L"Failed to allocate an IRHIShaderTable for the baker dispatch pass.";
+            return false;
+        }
+
+        const RendererInterface::RenderPassHandle render_pass_handle = resource_operator.CreateRenderPass(render_pass_desc);
+        if (!render_pass_handle.IsValid())
+        {
+            out_result.errors.push_back(MakeMessage(
+                "rt_dispatch_render_pass_failed",
+                "Failed to create the baker ray tracing render pass."));
+            out_error = L"Failed to create the baker ray tracing render pass.";
+            return false;
+        }
+
+        out_result.render_pass_created = true;
+        std::wcout << L"[LightingBaker][Dispatch] Ray tracing render pass ready.\n";
+
+        const std::shared_ptr<RenderPass> render_pass =
+            RendererInterface::InternalResourceHandleTable::Instance().GetRenderPass(render_pass_handle);
+        if (!render_pass)
+        {
+            out_result.errors.push_back(MakeMessage(
+                "rt_dispatch_missing_render_pass",
+                "Bake ray tracing dispatch could not resolve the created render pass resource."));
+            out_error = L"Bake ray tracing dispatch could not resolve the created render pass resource.";
+            return false;
+        }
+
+        std::vector<RHIShaderBindingTable> shader_binding_tables{};
+        auto& shader_binding_table = shader_binding_tables.emplace_back();
+        shader_binding_table.raygen_entry = out_result.raygen_entry;
+        shader_binding_table.miss_entry = out_result.miss_entry;
+        shader_binding_table.hit_group_entry = out_result.hit_group_export;
+
+        IRHICommandList& command_list = resource_operator.GetCommandListForRecordPassCommand();
+        if (!render_pass_desc.ray_tracing_desc->shader_table->InitShaderTable(
+                resource_operator.GetDevice(),
+                command_list,
+                resource_operator.GetMemoryManager(),
+                render_pass->GetPipelineStateObject(),
+                *runtime_result.acceleration_structure,
+                shader_binding_tables))
+        {
+            out_result.errors.push_back(MakeMessage(
+                "rt_dispatch_shader_table_init_failed",
+                "Failed to initialize the baker ray tracing shader table."));
+            out_error = L"Failed to initialize the baker ray tracing shader table.";
+            return false;
+        }
+
+        out_result.shader_table_initialized = true;
+        std::wcout << L"[LightingBaker][Dispatch] Shader table ready.\n";
+
+        RendererInterface::RenderPassDrawDesc draw_desc{};
+        draw_desc.execute_commands.push_back(MakeTraceRays(
+            out_result.dispatch_width,
+            out_result.dispatch_height,
+            out_result.dispatch_depth));
+        RendererInterface::RenderTargetTextureBindingDesc output_binding{};
+        output_binding.name = out_result.output_binding_name;
+        output_binding.render_target_texture.push_back(output_render_target);
+        output_binding.type = RendererInterface::RenderTargetTextureBindingDesc::UAV;
+        draw_desc.render_target_texture_resources.emplace(output_binding.name, output_binding);
+
+        RendererInterface::RenderGraphNodeDesc node_desc{};
+        node_desc.render_pass_handle = render_pass_handle;
+        node_desc.draw_info = std::move(draw_desc);
+        node_desc.debug_group = kDispatchGroupName;
+        node_desc.debug_name = kDispatchPassName;
+
+        RendererInterface::RenderGraph render_graph(resource_operator, *runtime_result.window, false, false);
+        const RendererInterface::RenderGraphNodeHandle render_graph_node_handle = render_graph.CreateRenderGraphNode(node_desc);
+        if (!render_graph_node_handle.IsValid() || !render_graph.RegisterRenderGraphNode(render_graph_node_handle))
+        {
+            out_result.errors.push_back(MakeMessage(
+                "rt_dispatch_graph_registration_failed",
+                "Failed to register the baker ray tracing node into the render graph."));
+            out_error = L"Failed to register the baker ray tracing node into the render graph.";
+            return false;
+        }
+
+        out_result.graph_node_registered = true;
+        LOG_FORMAT_FLUSH("[LightingBaker][Dispatch] Render graph node registered.\n");
+        render_graph.RegisterRenderTargetToColorOutput(output_render_target);
+        render_graph.RegisterTickCallback([window = runtime_result.window, &out_result](unsigned long long)
+        {
+            if (!out_result.close_requested && window)
+            {
+                out_result.close_requested = true;
+                window->RequestClose();
+            }
+        });
+
+        out_result.compile_requested = render_graph.CompileRenderPassAndExecute();
+        if (!out_result.compile_requested)
+        {
+            out_result.errors.push_back(MakeMessage(
+                "rt_dispatch_compile_failed",
+                "Bake ray tracing dispatch failed to bind the render graph to the window tick."));
+            out_error = L"Bake ray tracing dispatch failed to bind the render graph to the window tick.";
+            return false;
+        }
+
+        LOG_FORMAT_FLUSH("[LightingBaker][Dispatch] Render graph armed.\n");
+        out_result.event_loop_entered = true;
+        LOG_FORMAT_FLUSH("[LightingBaker][Dispatch] Entering window event loop.\n");
+        runtime_result.window->EnterWindowEventLoop();
+        resource_operator.WaitGPUIdle();
+        LOG_FORMAT_FLUSH("[LightingBaker][Dispatch] Event loop exited.\n");
+
+        out_result.frame_stats = render_graph.GetLastFrameStats();
+        out_result.window_loop_timing = runtime_result.window->GetLastLoopTiming();
+        out_result.frame_executed = out_result.frame_stats.executed_ray_tracing_pass_count > 0u;
+        if (!out_result.frame_executed)
+        {
+            out_result.errors.push_back(MakeMessage(
+                "rt_dispatch_no_frame_execution",
+                "Bake ray tracing dispatch did not execute a ray tracing pass before the window loop exited."));
+            out_error = L"Bake ray tracing dispatch did not execute a ray tracing pass before the window loop exited.";
+            return false;
+        }
+
+        if (!ReadBackDX12OutputTexture(resource_operator, output_render_target, out_result, out_error))
+        {
+            return false;
+        }
+
+        return true;
+    }
+}

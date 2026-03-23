@@ -2878,11 +2878,15 @@ namespace RendererInterface
         frame_slot_resource_access_snapshot_valid[hazard_slot_index] = 1u;
     }
 
-    RenderGraph::RenderGraph(ResourceOperator& allocator, RenderWindow& window, bool enable_debug_ui)
+    RenderGraph::RenderGraph(ResourceOperator& allocator,
+                             RenderWindow& window,
+                             bool enable_debug_ui,
+                             bool enable_presentation)
         : m_resource_allocator(allocator)
         , m_window(window)
     {
         m_debug_ui_enabled = enable_debug_ui;
+        m_presentation_enabled = enable_presentation;
         m_validation_policy.log_interval_frames = (std::max)(1u, m_validation_policy.log_interval_frames);
         m_validation_policy.cross_frame_hazard_check_interval_frames =
             (std::max)(1u, m_validation_policy.cross_frame_hazard_check_interval_frames);
@@ -3384,16 +3388,21 @@ namespace RendererInterface
 
     bool RenderGraph::CompileRenderPassAndExecute()
     {
+        LOG_FORMAT_FLUSH("[RenderGraph][Compile] Registering window tick callback.\n");
         m_window.RegisterTickCallback([this](unsigned long long interval)
         {
             OnFrameTick(interval);
         });
+        LOG_FORMAT_FLUSH("[RenderGraph][Compile] Window tick callback registered.\n");
 
         return true;
     }
 
     void RenderGraph::OnFrameTick(unsigned long long interval)
     {
+        LOG_FORMAT_FLUSH("[RenderGraph][Tick] Begin frame %llu interval=%llu.\n",
+            static_cast<unsigned long long>(m_frame_index),
+            interval);
         m_current_frame_timing_breakdown = {};
         const auto frame_begin = std::chrono::steady_clock::now();
 
@@ -3401,6 +3410,9 @@ namespace RendererInterface
         const auto prepare_begin = std::chrono::steady_clock::now();
         if (!PrepareFrameForRendering(interval, frame_context))
         {
+            LOG_FORMAT_FLUSH("[RenderGraph][Tick] PrepareFrameForRendering returned false on frame %llu.\n",
+                static_cast<unsigned long long>(m_frame_index));
+            ExecuteTickAndDebugUI(interval);
             const auto prepare_end = std::chrono::steady_clock::now();
             m_current_frame_timing_breakdown.prepare_frame_ms = ToMilliseconds(prepare_begin, prepare_end);
             const auto frame_end = std::chrono::steady_clock::now();
@@ -3413,17 +3425,26 @@ namespace RendererInterface
             m_last_frame_timing_breakdown = m_current_frame_timing_breakdown;
             return;
         }
+        LOG_FORMAT_FLUSH("[RenderGraph][Tick] PrepareFrameForRendering succeeded on frame %llu.\n",
+            static_cast<unsigned long long>(m_frame_index));
         const auto prepare_end = std::chrono::steady_clock::now();
         m_current_frame_timing_breakdown.prepare_frame_ms = ToMilliseconds(prepare_begin, prepare_end);
         m_current_frame_timing_breakdown.frame_index = m_frame_index;
 
         const auto execute_begin = std::chrono::steady_clock::now();
         ExecuteRenderGraphFrame(frame_context, interval);
+        LOG_FORMAT_FLUSH("[RenderGraph][Tick] ExecuteRenderGraphFrame completed on frame %llu.\n",
+            static_cast<unsigned long long>(m_frame_index));
         const auto execute_end = std::chrono::steady_clock::now();
         m_current_frame_timing_breakdown.execute_render_graph_ms = ToMilliseconds(execute_begin, execute_end);
 
         GLTF_CHECK(frame_context.command_list);
-        const bool swapchain_ready = AcquireCurrentFrameSwapchain(frame_context);
+        const bool swapchain_ready = m_presentation_enabled && AcquireCurrentFrameSwapchain(frame_context);
+        if (!m_presentation_enabled)
+        {
+            LOG_FORMAT_FLUSH("[RenderGraph][Tick] Presentation disabled for frame %llu. Submitting offscreen only.\n",
+                static_cast<unsigned long long>(m_frame_index));
+        }
         if (swapchain_ready)
         {
             const auto blit_begin = std::chrono::steady_clock::now();
@@ -3438,6 +3459,8 @@ namespace RendererInterface
 
         const auto finalize_begin = std::chrono::steady_clock::now();
         FinalizeFrameSubmission(frame_context, swapchain_ready);
+        LOG_FORMAT_FLUSH("[RenderGraph][Tick] FinalizeFrameSubmission completed on frame %llu.\n",
+            static_cast<unsigned long long>(m_frame_index));
         const auto finalize_end = std::chrono::steady_clock::now();
         m_current_frame_timing_breakdown.finalize_submission_ms = ToMilliseconds(finalize_begin, finalize_end);
 
@@ -3644,6 +3667,8 @@ namespace RendererInterface
     {
         BeginRenderDocFrameCapture();
         BeginPIXFrameCapture();
+        LOG_FORMAT_FLUSH("[RenderGraph][Execute] Begin frame %llu execution.\n",
+            static_cast<unsigned long long>(m_frame_index));
         const auto planning_begin = std::chrono::steady_clock::now();
         m_resource_allocator.ApplyFrameBufferedRenderTargetAliases();
         if (m_final_color_output_render_target_handle != NULL_HANDLE)
@@ -3665,19 +3690,28 @@ namespace RendererInterface
             m_dependency_diagnostics_state.ShouldUpdate(m_frame_index, hazard_check_interval_frames);
         const bool should_rebuild_execution_plan =
             m_execution_plan_state.ShouldRebuild(active_node_set_changed, should_update_dependency_diagnostics);
+        LOG_FORMAT_FLUSH("[RenderGraph][Execute] Active nodes=%zu rebuild=%d diagnostics=%d.\n",
+            nodes.size(),
+            should_rebuild_execution_plan ? 1 : 0,
+            should_update_dependency_diagnostics ? 1 : 0);
 
         ExecutionPlanBuildResult plan{};
         ExecutionPlanCacheState execution_cache_state = m_execution_plan_state.BuildCacheState();
         std::vector<RenderGraphNodeHandle> diagnostics_cycle_nodes;
         if (should_rebuild_execution_plan)
         {
+            LOG_FORMAT_FLUSH("[RenderGraph][Execute] Rebuilding execution plan.\n");
             plan = BuildExecutionPlan(plan_context);
             diagnostics_cycle_nodes = ApplyExecutionPlanResult(plan_context, plan, execution_cache_state);
             m_execution_plan_state.MarkPlanApplied();
+            LOG_FORMAT_FLUSH("[RenderGraph][Execute] Execution plan rebuilt. cached_order=%zu graph_valid=%d.\n",
+                m_execution_plan_state.cached_execution_order.size(),
+                execution_cache_state.cached_execution_graph_valid ? 1 : 0);
         }
 
         if (should_update_dependency_diagnostics)
         {
+            LOG_FORMAT_FLUSH("[RenderGraph][Execute] Updating dependency diagnostics.\n");
             auto current_frame_resource_access = CollectFrameResourceAccessDiagnostics(nodes, m_render_graph_nodes);
             const unsigned cross_frame_comparison_window_size =
                 GetCrossFrameComparisonWindowSize(frame_context.resource_frame_context);
@@ -3728,19 +3762,26 @@ namespace RendererInterface
 
         const auto planning_end = std::chrono::steady_clock::now();
         m_current_frame_timing_breakdown.execution_planning_ms = ToMilliseconds(planning_begin, planning_end);
+        LOG_FORMAT_FLUSH("[RenderGraph][Execute] Planning finished. execution_order=%zu.\n",
+            m_execution_plan_state.cached_execution_order.size());
 
         GLTF_CHECK(frame_context.command_list);
+        LOG_FORMAT_FLUSH("[RenderGraph][Execute] ExecutePlanAndCollectStats begin. slot=%u.\n",
+            frame_context.profiler_slot_index);
         ExecutePlanAndCollectStats(
             *frame_context.command_list,
             frame_context.resource_frame_context,
             frame_context.profiler_slot_index,
             interval);
+        LOG_FORMAT_FLUSH("[RenderGraph][Execute] ExecutePlanAndCollectStats complete.\n");
 
         const auto collect_unused_begin = std::chrono::steady_clock::now();
+        LOG_FORMAT_FLUSH("[RenderGraph][Execute] CollectUnusedRenderPassDescriptorResources begin.\n");
         CollectUnusedRenderPassDescriptorResources(frame_context.resource_frame_context);
         const auto collect_unused_end = std::chrono::steady_clock::now();
         m_current_frame_timing_breakdown.collect_unused_descriptor_ms =
             ToMilliseconds(collect_unused_begin, collect_unused_end);
+        LOG_FORMAT_FLUSH("[RenderGraph][Execute] CollectUnusedRenderPassDescriptorResources complete.\n");
     }
 
     void RenderGraph::BlitFinalOutputToSwapchain(
@@ -3796,9 +3837,13 @@ namespace RendererInterface
     {
         GLTF_CHECK(frame_context.command_list);
         auto& command_list = *frame_context.command_list;
+        LOG_FORMAT_FLUSH("[RenderGraph][Submit] Begin finalize frame %llu swapchain_ready=%d.\n",
+            static_cast<unsigned long long>(m_frame_index),
+            swapchain_ready ? 1 : 0);
         if (!swapchain_ready)
         {
             const auto submit_begin = std::chrono::steady_clock::now();
+            LOG_FORMAT_FLUSH("[RenderGraph][Submit] Closing command list without presentation.\n");
             CloseCurrentCommandListAndExecute(command_list, {}, false);
             const auto submit_end = std::chrono::steady_clock::now();
             m_current_frame_timing_breakdown.submit_command_list_ms = ToMilliseconds(submit_begin, submit_end);
@@ -3811,14 +3856,18 @@ namespace RendererInterface
         }
 
         const auto render_debug_ui_begin = std::chrono::steady_clock::now();
+        LOG_FORMAT_FLUSH("[RenderGraph][Submit] RenderDebugUI begin.\n");
         GLTF_CHECK(RenderDebugUI(command_list, frame_context.presentation_frame_context));
         const auto render_debug_ui_end = std::chrono::steady_clock::now();
         m_current_frame_timing_breakdown.render_debug_ui_ms = ToMilliseconds(render_debug_ui_begin, render_debug_ui_end);
+        LOG_FORMAT_FLUSH("[RenderGraph][Submit] RenderDebugUI complete.\n");
 
         const auto present_begin = std::chrono::steady_clock::now();
+        LOG_FORMAT_FLUSH("[RenderGraph][Submit] Present begin.\n");
         Present(command_list, frame_context.presentation_frame_context);
         const auto present_end = std::chrono::steady_clock::now();
         m_current_frame_timing_breakdown.present_ms = ToMilliseconds(present_begin, present_end);
+        LOG_FORMAT_FLUSH("[RenderGraph][Submit] Present complete.\n");
         FinalizeRenderDocFrameCapture();
         FinalizePIXFrameCapture();
 
@@ -5301,13 +5350,23 @@ namespace RendererInterface
         submitted_frame_stats.pass_stats.clear();
         submitted_frame_stats.pass_stats.reserve(m_execution_plan_state.cached_execution_order.size());
 
+        LOG_FORMAT_FLUSH("[RenderGraph][Execute] Begin GPU profiler frame. slot=%u.\n", profiler_slot_index);
         GLTF_CHECK(BeginGPUProfilerFrame(command_list, profiler_slot_index));
+        LOG_FORMAT_FLUSH("[RenderGraph][Execute] GPU profiler frame begun.\n");
         const unsigned max_timestamped_pass_count = GetGPUProfilerMaxTimestampedPassCount();
         unsigned timestamped_pass_count = 0;
 
         for (unsigned pass_index = 0; pass_index < m_execution_plan_state.cached_execution_order.size(); ++pass_index)
         {
             auto render_graph_node = m_execution_plan_state.cached_execution_order[pass_index];
+            const auto& node_desc = m_render_graph_nodes[render_graph_node.value];
+            const char* debug_group_name = node_desc.debug_group.empty() ? "<group-empty>" : node_desc.debug_group.c_str();
+            const char* debug_pass_name = node_desc.debug_name.empty() ? "<pass-empty>" : node_desc.debug_name.c_str();
+            LOG_FORMAT_FLUSH("[RenderGraph][Execute] Begin node %u (%s/%s) pass_index=%u.\n",
+                render_graph_node.value,
+                debug_group_name,
+                debug_pass_name,
+                pass_index);
             const bool enable_gpu_timestamp = max_timestamped_pass_count > 0 && pass_index < max_timestamped_pass_count;
             if (enable_gpu_timestamp)
             {
@@ -5320,6 +5379,10 @@ namespace RendererInterface
                 ExecuteRenderGraphNode(command_list, frame_context, render_graph_node, interval);
             const auto pass_end = std::chrono::steady_clock::now();
             const float pass_cpu_ms = std::chrono::duration<float, std::milli>(pass_end - pass_begin).count();
+            LOG_FORMAT_FLUSH("[RenderGraph][Execute] End node %u status=%d cpu_ms=%.3f.\n",
+                render_graph_node.value,
+                static_cast<int>(execution_status),
+                pass_cpu_ms);
 
             if (enable_gpu_timestamp)
             {
@@ -5328,7 +5391,6 @@ namespace RendererInterface
                 ++timestamped_pass_count;
             }
 
-            const auto& node_desc = m_render_graph_nodes[render_graph_node.value];
             std::string group_name = node_desc.debug_group;
             if (group_name.empty())
             {
@@ -5401,7 +5463,10 @@ namespace RendererInterface
         }
 
         m_current_frame_timing_breakdown.execute_passes_ms = submitted_frame_stats.cpu_total_ms;
+        LOG_FORMAT_FLUSH("[RenderGraph][Execute] Finalize GPU profiler frame. timestamps=%u.\n",
+            timestamped_pass_count * 2);
         GLTF_CHECK(FinalizeGPUProfilerFrame(command_list, profiler_slot_index, timestamped_pass_count * 2, submitted_frame_stats));
+        LOG_FORMAT_FLUSH("[RenderGraph][Execute] GPU profiler frame finalized.\n");
         if (!(m_gpu_profiler_state && m_gpu_profiler_state->supported))
         {
             m_last_frame_stats = submitted_frame_stats;
@@ -5846,6 +5911,8 @@ namespace RendererInterface
         GLTF_CHECK(render_graph_node_handle.IsValid());
         GLTF_CHECK(render_graph_node_handle.value < m_render_graph_nodes.size());
         auto& render_graph_node_desc = m_render_graph_nodes[render_graph_node_handle.value];
+        const char* group_name = render_graph_node_desc.debug_group.empty() ? "<group-empty>" : render_graph_node_desc.debug_group.c_str();
+        const char* pass_name = render_graph_node_desc.debug_name.empty() ? "<pass-empty>" : render_graph_node_desc.debug_name.c_str();
         if (render_graph_node_desc.pre_render_callback)
         {
             render_graph_node_desc.pre_render_callback(interval);
@@ -5875,16 +5942,22 @@ namespace RendererInterface
 
         if (!RHIUtilInstanceManager::Instance().SetPipelineState(command_list, render_pass->GetPipelineStateObject()))
         {
-            const char* group_name = render_graph_node_desc.debug_group.empty() ? "<group-empty>" : render_graph_node_desc.debug_group.c_str();
-            const char* pass_name = render_graph_node_desc.debug_name.empty() ? "<pass-empty>" : render_graph_node_desc.debug_name.c_str();
             LOG_FORMAT_FLUSH("[RenderGraph][Validation] Node %u (%s/%s) failed to bind pipeline state. Skip execution.\n",
                              render_graph_node_handle.value,
                              group_name,
                              pass_name);
             return RenderPassExecutionStatus::SKIPPED_INVALID_DRAW_DESC;
         }
+        LOG_FORMAT_FLUSH("[RenderGraph][Node] Node %u (%s/%s) pipeline bound.\n",
+            render_graph_node_handle.value,
+            group_name,
+            pass_name);
         RHIUtilInstanceManager::Instance().SetRootSignature(command_list, render_pass->GetRootSignature(), render_pass->GetPipelineStateObject(), RendererInterfaceRHIConverter::ConvertToRHIPipelineType(render_pass->GetRenderPassType()));
         RHIUtilInstanceManager::Instance().SetPrimitiveTopology(command_list, ConvertToRHIPrimitiveTopology(render_pass->GetPrimitiveTopology()));
+        LOG_FORMAT_FLUSH("[RenderGraph][Node] Node %u (%s/%s) root signature bound.\n",
+            render_graph_node_handle.value,
+            group_name,
+            pass_name);
 
         unsigned default_viewport_width = m_window.GetWidth();
         unsigned default_viewport_height = m_window.GetHeight();
@@ -6304,7 +6377,15 @@ namespace RendererInterface
             }
         }
 
+        LOG_FORMAT_FLUSH("[RenderGraph][Node] Node %u (%s/%s) finalize descriptors begin.\n",
+            render_graph_node_handle.value,
+            group_name,
+            pass_name);
         render_pass->GetDescriptorUpdater().FinalizeUpdateDescriptors(m_resource_allocator.GetDevice(), command_list, render_pass->GetRootSignature());
+        LOG_FORMAT_FLUSH("[RenderGraph][Node] Node %u (%s/%s) finalize descriptors complete.\n",
+            render_graph_node_handle.value,
+            group_name,
+            pass_name);
 
         if (pipeline_type == RHIPipelineType::Graphics)
         {
@@ -6367,12 +6448,23 @@ namespace RendererInterface
                 break;
             case ExecuteCommandType::RAY_TRACING_COMMAND:
                 GLTF_CHECK(ray_tracing_shader_table != nullptr);
+                LOG_FORMAT_FLUSH("[RenderGraph][Node] Node %u (%s/%s) TraceRay begin. dispatch=%ux%ux%u.\n",
+                    render_graph_node_handle.value,
+                    group_name,
+                    pass_name,
+                    command.parameter.ray_tracing_dispatch_parameter.dispatch_width,
+                    command.parameter.ray_tracing_dispatch_parameter.dispatch_height,
+                    command.parameter.ray_tracing_dispatch_parameter.dispatch_depth);
                 RHIUtilInstanceManager::Instance().TraceRay(
                     command_list,
                     *ray_tracing_shader_table,
                     command.parameter.ray_tracing_dispatch_parameter.dispatch_width,
                     command.parameter.ray_tracing_dispatch_parameter.dispatch_height,
                     command.parameter.ray_tracing_dispatch_parameter.dispatch_depth);
+                LOG_FORMAT_FLUSH("[RenderGraph][Node] Node %u (%s/%s) TraceRay complete.\n",
+                    render_graph_node_handle.value,
+                    group_name,
+                    pass_name);
                 break;
             }    
         }
@@ -6400,23 +6492,29 @@ namespace RendererInterface
 
     void RenderGraph::Present(IRHICommandList& command_list, const FrameContextSnapshot& frame_context)
     {
+        LOG_FORMAT_FLUSH("[RenderGraph][Present] Transition swapchain to present.\n");
         m_resource_allocator.GetCurrentSwapchainRT(frame_context).m_source->Transition(command_list, RHIResourceStateType::STATE_PRESENT);
 
         RHIExecuteCommandListContext context;
         context.wait_infos.push_back({&m_resource_allocator.GetCurrentSwapchain().GetAvailableFrameSemaphore(), RHIPipelineStage::COLOR_ATTACHMENT_OUTPUT});
         context.sign_semaphores.push_back(&command_list.GetSemaphore());
         const auto submit_begin = std::chrono::steady_clock::now();
+        LOG_FORMAT_FLUSH("[RenderGraph][Present] CloseCurrentCommandListAndExecute begin.\n");
         CloseCurrentCommandListAndExecute(command_list, context, false);
         const auto submit_end = std::chrono::steady_clock::now();
         m_current_frame_timing_breakdown.submit_command_list_ms = ToMilliseconds(submit_begin, submit_end);
+        LOG_FORMAT_FLUSH("[RenderGraph][Present] CloseCurrentCommandListAndExecute complete.\n");
     
         const auto present_call_begin = std::chrono::steady_clock::now();
+        LOG_FORMAT_FLUSH("[RenderGraph][Present] RHI present begin.\n");
         const bool present_succeeded = RHIUtilInstanceManager::Instance().Present(
             m_resource_allocator.GetCurrentSwapchain(),
             m_resource_allocator.GetCommandQueue(),
             command_list);
         const auto present_call_end = std::chrono::steady_clock::now();
         m_current_frame_timing_breakdown.present_call_ms = ToMilliseconds(present_call_begin, present_call_end);
+        LOG_FORMAT_FLUSH("[RenderGraph][Present] RHI present complete. success=%d.\n",
+            present_succeeded ? 1 : 0);
         if (!present_succeeded)
         {
             m_resource_allocator.NotifySwapchainPresentFailure();

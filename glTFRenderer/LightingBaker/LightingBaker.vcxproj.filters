@@ -16,6 +16,9 @@
     <Filter Include="Root">
       <UniqueIdentifier>{F1F0B6AA-E847-4A83-B83D-B1EF0B34E2BC}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Resources">
+      <UniqueIdentifier>{1A30B3D9-B8EE-47C0-92A0-0DD3952F02BC}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="App\BakeJobConfig.cpp">
@@ -28,6 +31,9 @@
       <Filter>Bake</Filter>
     </ClCompile>
     <ClCompile Include="Bake\Post\BakeAccumulator.cpp">
+      <Filter>Bake</Filter>
+    </ClCompile>
+    <ClCompile Include="Bake\RayTracing\BakeRayTracingDispatch.cpp">
       <Filter>Bake</Filter>
     </ClCompile>
     <ClCompile Include="Bake\RayTracing\BakeRayTracingRuntime.cpp">
@@ -62,6 +68,9 @@
     <ClInclude Include="Bake\Post\BakeAccumulator.h">
       <Filter>Bake</Filter>
     </ClInclude>
+    <ClInclude Include="Bake\RayTracing\BakeRayTracingDispatch.h">
+      <Filter>Bake</Filter>
+    </ClInclude>
     <ClInclude Include="Bake\RayTracing\BakeRayTracingRuntime.h">
       <Filter>Bake</Filter>
     </ClInclude>
@@ -71,5 +80,10 @@
     <ClInclude Include="Output\BakeOutputWriter.h">
       <Filter>Output</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Shaders\BakeRayTracingDebug.hlsl">
+      <Filter>Resources</Filter>
+    </None>
   </ItemGroup>
 </Project>

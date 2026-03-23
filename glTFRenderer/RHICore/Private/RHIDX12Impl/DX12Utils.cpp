@@ -288,13 +288,59 @@ bool DX12Utils::WaitDeviceIdle(IRHIDevice& device)
 
 bool DX12Utils::SetPipelineState(IRHICommandList& command_list, IRHIPipelineStateObject& pipeline_state_object)
 {
-    auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
-    auto* dxPSO = pipeline_state_object.GetPSOType() == RHIPipelineType::Graphics ?
-        dynamic_cast<DX12GraphicsPipelineStateObject&>(pipeline_state_object).GetPipelineStateObject() : dynamic_cast<DX12ComputePipelineStateObject&>(pipeline_state_object).GetPipelineStateObject();
+    switch (pipeline_state_object.GetPSOType())
+    {
+    case RHIPipelineType::Graphics:
+        {
+            auto* dx_command_list = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
+            auto* dx_pso = dynamic_cast<DX12GraphicsPipelineStateObject&>(pipeline_state_object).GetPipelineStateObject();
+            if (!dx_command_list || !dx_pso)
+            {
+                LOG_FORMAT_FLUSH("[DX12Utils][Error] Graphics pipeline bind failed. command_list=%p pipeline=%p\n",
+                    dx_command_list,
+                    dx_pso);
+                return false;
+            }
 
-    dxCommandList->SetPipelineState(dxPSO);
+            dx_command_list->SetPipelineState(dx_pso);
+            return true;
+        }
+    case RHIPipelineType::Compute:
+        {
+            auto* dx_command_list = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
+            auto* dx_pso = dynamic_cast<DX12ComputePipelineStateObject&>(pipeline_state_object).GetPipelineStateObject();
+            if (!dx_command_list || !dx_pso)
+            {
+                LOG_FORMAT_FLUSH("[DX12Utils][Error] Compute pipeline bind failed. command_list=%p pipeline=%p\n",
+                    dx_command_list,
+                    dx_pso);
+                return false;
+            }
 
-    return true;
+            dx_command_list->SetPipelineState(dx_pso);
+            return true;
+        }
+    case RHIPipelineType::RayTracing:
+        {
+            auto* dxr_command_list = dynamic_cast<DX12CommandList&>(command_list).GetDXRCommandList();
+            auto* dx_pso = dynamic_cast<DX12RTPipelineStateObject&>(pipeline_state_object).GetDXRPipelineStateObject();
+            if (!dxr_command_list || !dx_pso)
+            {
+                LOG_FORMAT_FLUSH("[DX12Utils][Error] Ray tracing pipeline bind failed. command_list=%p pipeline=%p\n",
+                    dxr_command_list,
+                    dx_pso);
+                return false;
+            }
+
+            dxr_command_list->SetPipelineState1(dx_pso);
+            return true;
+        }
+    case RHIPipelineType::Unknown:
+    default:
+        LOG_FORMAT_FLUSH("[DX12Utils][Error] Unsupported pipeline type in SetPipelineState. type=%d\n",
+            static_cast<int>(pipeline_state_object.GetPSOType()));
+        return false;
+    }
 }
 
 bool DX12Utils::SetRootSignature(IRHICommandList& command_list, IRHIRootSignature& rootSignature,IRHIPipelineStateObject& pipeline_state_object, RHIPipelineType pipeline_type)
@@ -302,16 +348,32 @@ bool DX12Utils::SetRootSignature(IRHICommandList& command_list, IRHIRootSignatur
     auto* dxCommandList = dynamic_cast<DX12CommandList&>(command_list).GetCommandList();
     auto* dxRootSignature = dynamic_cast<DX12RootSignature&>(rootSignature).GetRootSignature();
 
+    if (!dxCommandList || !dxRootSignature)
+    {
+        LOG_FORMAT_FLUSH("[DX12Utils][Error] Root signature bind failed. command_list=%p root_signature=%p pipeline_type=%d pso_type=%d\n",
+            dxCommandList,
+            dxRootSignature,
+            static_cast<int>(pipeline_type),
+            static_cast<int>(pipeline_state_object.GetPSOType()));
+        return false;
+    }
+
     if (pipeline_type == RHIPipelineType::Graphics)
     {
-        dxCommandList->SetGraphicsRootSignature(dxRootSignature);    
+        dxCommandList->SetGraphicsRootSignature(dxRootSignature);
+        return true;
     }
-    else
+
+    if (pipeline_type == RHIPipelineType::Compute || pipeline_type == RHIPipelineType::RayTracing)
     {
         dxCommandList->SetComputeRootSignature(dxRootSignature);
+        return true;
     }
-    
-    return true;
+
+    LOG_FORMAT_FLUSH("[DX12Utils][Error] Unsupported pipeline type in SetRootSignature. type=%d pso_type=%d\n",
+        static_cast<int>(pipeline_type),
+        static_cast<int>(pipeline_state_object.GetPSOType()));
+    return false;
 }
 
 bool DX12Utils::SetViewport(IRHICommandList& command_list, const RHIViewportDesc& viewport_desc)
@@ -983,29 +1045,33 @@ void DX12Utils::ReportLiveObjects()
 bool DX12Utils::ProcessShaderMetaData(IRHIShader& shader)
 {
     ComPtr<IDxcUtils> utils; DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&utils));
-    ComPtr<ID3D12ShaderReflection> refl;
-
     const auto& shader_bytecode = shader.GetShaderByteCode();
     DxcBuffer shader_bytecode_buffer{};
     shader_bytecode_buffer.Ptr = shader_bytecode.data();
     shader_bytecode_buffer.Size = shader_bytecode.size();
-    utils->CreateReflection(&shader_bytecode_buffer, IID_PPV_ARGS(&refl));
-
-    D3D12_SHADER_DESC sd{};
-    refl->GetDesc(&sd);
-
     auto& shader_meta_data = shader.GetMetaData();
-    
-    for (UINT i = 0; i < sd.BoundResources; ++i)
-    {
-        D3D12_SHADER_INPUT_BIND_DESC bd{};
-        refl->GetResourceBindingDesc(i, &bd);
+    shader_meta_data.root_parameter_infos.clear();
 
-        LOG_FORMAT_FLUSH("[Reflect] Shader %s contains var name:%s\nbinding: %d\nset index:%d\n", shader.GetMainEntry().c_str(), bd.Name,
+    auto append_resource_binding = [&](const D3D12_SHADER_INPUT_BIND_DESC& bd, const char* owner_name) -> bool
+    {
+        const std::string parameter_name = bd.Name != nullptr ? bd.Name : "";
+        for (const auto& existing_parameter : shader_meta_data.root_parameter_infos)
+        {
+            if (existing_parameter.space == bd.Space &&
+                existing_parameter.register_index == bd.BindPoint &&
+                existing_parameter.parameter_info.parameter_name == parameter_name)
+            {
+                return true;
+            }
+        }
+
+        LOG_FORMAT_FLUSH("[Reflect] Shader %s contains var name:%s\nbinding: %d\nset index:%d\n",
+            owner_name != nullptr ? owner_name : shader.GetMainEntry().c_str(),
+            parameter_name.c_str(),
             bd.BindPoint, bd.Space);
 
         RootParameterInfo parameter_info{};
-        parameter_info.parameter_name = bd.Name;
+        parameter_info.parameter_name = parameter_name;
         parameter_info.register_count = bd.BindCount;
         switch (bd.Type) {
         case D3D_SIT_CBUFFER:
@@ -1023,6 +1089,11 @@ bool DX12Utils::ProcessShaderMetaData(IRHIShader& shader)
                 parameter_info.table_parameter_info.is_bindless = true;
             }
             
+            break;
+        case D3D_SIT_RTACCELERATIONSTRUCTURE:
+            parameter_info.is_buffer = false;
+            parameter_info.type = RHIRootParameterType::AccelerationStructure;
+            parameter_info.register_count = bd.BindCount == 0 ? 1u : bd.BindCount;
             break;
         case D3D_SIT_SAMPLER:
             parameter_info.is_buffer = false;
@@ -1052,12 +1123,79 @@ bool DX12Utils::ProcessShaderMetaData(IRHIShader& shader)
             parameter_info.type = RHIRootParameterType::UAV;
             break;
         default:
-            // TODO: No support now
-            GLTF_CHECK(false);
+            LOG_FORMAT_FLUSH("[Reflect][Error] Unsupported DX12 shader resource type %d for binding '%s'.\n",
+                static_cast<int>(bd.Type),
+                parameter_info.parameter_name.c_str());
+            return false;
         }
         shader_meta_data.root_parameter_infos.push_back({parameter_info, bd.Space, bd.BindPoint});
+        return true;
+    };
+
+    if (shader.GetType() == RHIShaderType::RayTracing)
+    {
+        ComPtr<ID3D12LibraryReflection> library_reflection;
+        const HRESULT reflection_result = utils->CreateReflection(&shader_bytecode_buffer, IID_PPV_ARGS(&library_reflection));
+        if (FAILED(reflection_result) || !library_reflection)
+        {
+            LOG_FORMAT_FLUSH("[Reflect][Error] Failed to create DX12 library reflection. hr=0x%08X shader_type=%d entry=%s\n",
+                static_cast<unsigned>(reflection_result),
+                static_cast<int>(shader.GetType()),
+                shader.GetMainEntry().c_str());
+            return false;
+        }
+
+        D3D12_LIBRARY_DESC library_desc{};
+        library_reflection->GetDesc(&library_desc);
+        for (UINT function_index = 0; function_index < library_desc.FunctionCount; ++function_index)
+        {
+            ID3D12FunctionReflection* function_reflection = library_reflection->GetFunctionByIndex(static_cast<INT>(function_index));
+            if (function_reflection == nullptr)
+            {
+                continue;
+            }
+
+            D3D12_FUNCTION_DESC function_desc{};
+            function_reflection->GetDesc(&function_desc);
+            const char* function_name = function_desc.Name != nullptr ? function_desc.Name : shader.GetMainEntry().c_str();
+            for (UINT resource_index = 0; resource_index < function_desc.BoundResources; ++resource_index)
+            {
+                D3D12_SHADER_INPUT_BIND_DESC binding_desc{};
+                function_reflection->GetResourceBindingDesc(resource_index, &binding_desc);
+                if (!append_resource_binding(binding_desc, function_name))
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
-    
+
+    ComPtr<ID3D12ShaderReflection> refl;
+    const HRESULT reflection_result = utils->CreateReflection(&shader_bytecode_buffer, IID_PPV_ARGS(&refl));
+    if (FAILED(reflection_result) || !refl)
+    {
+        LOG_FORMAT_FLUSH("[Reflect][Error] Failed to create DX12 shader reflection. hr=0x%08X shader_type=%d entry=%s\n",
+            static_cast<unsigned>(reflection_result),
+            static_cast<int>(shader.GetType()),
+            shader.GetMainEntry().c_str());
+        return false;
+    }
+
+    D3D12_SHADER_DESC sd{};
+    refl->GetDesc(&sd);
+
+    for (UINT i = 0; i < sd.BoundResources; ++i)
+    {
+        D3D12_SHADER_INPUT_BIND_DESC bd{};
+        refl->GetResourceBindingDesc(i, &bd);
+        if (!append_resource_binding(bd, shader.GetMainEntry().c_str()))
+        {
+            return false;
+        }
+    }
+
     return true;
 }
 

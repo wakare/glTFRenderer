@@ -1,6 +1,7 @@
 #include "BakeOutputWriter.h"
 
 #include "Bake/Atlas/LightmapAtlasBuilder.h"
+#include "Bake/RayTracing/BakeRayTracingDispatch.h"
 #include "Bake/RayTracing/BakeRayTracingRuntime.h"
 #include "Bake/RayTracing/BakeRayTracingScene.h"
 #include "Scene/BakeSceneImporter.h"
@@ -31,6 +32,7 @@ namespace LightingBaker
         constexpr const char* kAtlasSummaryRelativePath = "debug/atlas_summary.json";
         constexpr const char* kRayTracingSceneSummaryRelativePath = "debug/raytracing_scene_summary.json";
         constexpr const char* kRayTracingRuntimeSummaryRelativePath = "debug/raytracing_runtime_summary.json";
+        constexpr const char* kRayTracingDispatchSummaryRelativePath = "debug/raytracing_dispatch_summary.json";
 
         struct BakeTexelRecordDiskV1
         {
@@ -636,6 +638,77 @@ namespace LightingBaker
             out_error);
     }
 
+    bool BakeOutputWriter::WriteRayTracingDispatchSummary(const BakeRayTracingDispatchRunResult& ray_tracing_dispatch,
+                                                          const BakeOutputLayout& layout,
+                                                          std::wstring& out_error) const
+    {
+        nlohmann::json root{};
+        root["schema_version"] = kManifestSchemaVersion;
+        root["shader_file"] = ToJsonPathString(ray_tracing_dispatch.shader_path);
+        root["acceleration_structure_binding"] = ray_tracing_dispatch.acceleration_structure_binding_name;
+        root["output_binding"] = ray_tracing_dispatch.output_binding_name;
+        root["raygen_entry"] = ray_tracing_dispatch.raygen_entry;
+        root["miss_entry"] = ray_tracing_dispatch.miss_entry;
+        root["closest_hit_entry"] = ray_tracing_dispatch.closest_hit_entry;
+        root["hit_group_export"] = ray_tracing_dispatch.hit_group_export;
+        root["atlas_resolution"] = ray_tracing_dispatch.atlas_resolution;
+        root["texel_record_count"] = ray_tracing_dispatch.texel_record_count;
+        root["dispatch_width"] = ray_tracing_dispatch.dispatch_width;
+        root["dispatch_height"] = ray_tracing_dispatch.dispatch_height;
+        root["dispatch_depth"] = ray_tracing_dispatch.dispatch_depth;
+        root["output_width"] = ray_tracing_dispatch.output_width;
+        root["output_height"] = ray_tracing_dispatch.output_height;
+        root["output_row_pitch"] = ray_tracing_dispatch.output_row_pitch;
+        root["output_readback_size"] = ray_tracing_dispatch.output_readback_size;
+        root["shader_path_resolved"] = ray_tracing_dispatch.shader_path_resolved;
+        root["output_render_target_created"] = ray_tracing_dispatch.output_render_target_created;
+        root["render_pass_created"] = ray_tracing_dispatch.render_pass_created;
+        root["shader_table_initialized"] = ray_tracing_dispatch.shader_table_initialized;
+        root["graph_node_registered"] = ray_tracing_dispatch.graph_node_registered;
+        root["compile_requested"] = ray_tracing_dispatch.compile_requested;
+        root["event_loop_entered"] = ray_tracing_dispatch.event_loop_entered;
+        root["close_requested"] = ray_tracing_dispatch.close_requested;
+        root["frame_executed"] = ray_tracing_dispatch.frame_executed;
+        root["readback_buffer_allocated"] = ray_tracing_dispatch.readback_buffer_allocated;
+        root["readback_copy_recorded"] = ray_tracing_dispatch.readback_copy_recorded;
+        root["readback_downloaded"] = ray_tracing_dispatch.readback_downloaded;
+        root["output_payload_valid"] = ray_tracing_dispatch.output_payload_valid;
+        root["frame_stats"] = {
+            {"frame_index", ray_tracing_dispatch.frame_stats.frame_index},
+            {"total_pass_count", ray_tracing_dispatch.frame_stats.total_pass_count},
+            {"executed_pass_count", ray_tracing_dispatch.frame_stats.executed_pass_count},
+            {"ray_tracing_pass_count", ray_tracing_dispatch.frame_stats.ray_tracing_pass_count},
+            {"executed_ray_tracing_pass_count", ray_tracing_dispatch.frame_stats.executed_ray_tracing_pass_count},
+            {"gpu_time_valid", ray_tracing_dispatch.frame_stats.gpu_time_valid},
+            {"gpu_total_ms", ray_tracing_dispatch.frame_stats.gpu_total_ms},
+            {"cpu_total_ms", ray_tracing_dispatch.frame_stats.cpu_total_ms},
+        };
+        root["window_loop_timing"] = {
+            {"valid", ray_tracing_dispatch.window_loop_timing.valid},
+            {"frame_index", ray_tracing_dispatch.window_loop_timing.frame_index},
+            {"loop_total_ms", ray_tracing_dispatch.window_loop_timing.loop_total_ms},
+            {"tick_callback_ms", ray_tracing_dispatch.window_loop_timing.tick_callback_ms},
+            {"poll_events_ms", ray_tracing_dispatch.window_loop_timing.poll_events_ms},
+        };
+        root["validation_status"] = ray_tracing_dispatch.HasValidationErrors() ? "failed" : "passed";
+        root["errors"] = nlohmann::json::array();
+        for (const BakeSceneValidationMessage& message : ray_tracing_dispatch.errors)
+        {
+            root["errors"].push_back(ToJson(message));
+        }
+
+        root["warnings"] = nlohmann::json::array();
+        for (const BakeSceneValidationMessage& message : ray_tracing_dispatch.warnings)
+        {
+            root["warnings"].push_back(ToJson(message));
+        }
+
+        return WriteJsonFile(
+            layout.root / std::filesystem::path(kRayTracingDispatchSummaryRelativePath),
+            root,
+            out_error);
+    }
+
     bool BakeOutputWriter::RefreshPackageMetadata(const BakeJobConfig& config,
                                                   const BakeOutputLayout& layout,
                                                   const BakeSceneImportResult& import_result,
@@ -845,6 +918,7 @@ namespace LightingBaker
             {"atlas_summary_file", kAtlasSummaryRelativePath},
             {"raytracing_scene_summary_file", kRayTracingSceneSummaryRelativePath},
             {"raytracing_runtime_summary_file", kRayTracingRuntimeSummaryRelativePath},
+            {"raytracing_dispatch_summary_file", kRayTracingDispatchSummaryRelativePath},
             {"bootstrap_placeholder_payload", progress_state.bootstrap_placeholder_payload},
             {"atlas_cache_initialized", progress_state.has_accumulation_cache},
         };
@@ -981,6 +1055,7 @@ namespace LightingBaker
             {"atlas_summary", "../debug/atlas_summary.json"},
             {"raytracing_scene_summary", "../debug/raytracing_scene_summary.json"},
             {"raytracing_runtime_summary", "../debug/raytracing_runtime_summary.json"},
+            {"raytracing_dispatch_summary", "../debug/raytracing_dispatch_summary.json"},
             {"texel_records", nlohmann::json::array()},
             {"accumulation", nlohmann::json::array()},
             {"sample_count", nlohmann::json::array()},

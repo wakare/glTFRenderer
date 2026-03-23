@@ -8,6 +8,8 @@
 
 namespace LightingBaker
 {
+    struct BakeRayTracingDispatchRunResult;
+
     struct BakeAccumulatorSettings
     {
         unsigned samples_per_iteration = 1;
@@ -75,6 +77,12 @@ namespace LightingBaker
                                  const BakeJobConfig& config,
                                  const LightmapAtlasBuildResult& atlas_result,
                                  std::wstring& out_error) const;
+        bool AccumulateRayTracingDispatchOutput(const BakeAccumulatorResumeState& resume_state,
+                                               const BakeJobConfig& config,
+                                               const LightmapAtlasBuildResult& atlas_result,
+                                               const BakeRayTracingDispatchRunResult& ray_tracing_dispatch,
+                                               BakeAccumulationRunResult& out_result,
+                                               std::wstring& out_error) const;
         bool AccumulateDebugHemispherePreview(const BakeAccumulatorResumeState& resume_state,
                                               const BakeJobConfig& config,
                                               const LightmapAtlasBuildResult& atlas_result,

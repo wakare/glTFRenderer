@@ -104,6 +104,9 @@
       <AdditionalDependencies>%(AdditionalDependencies);$(_ZVcpkgCurrentInstalledDir)$(_ZVcpkgConfigSubdir)lib\*.lib;RendererCore.lib;glfw3.lib;D3d12.lib;dxgi.lib;dxguid.lib;D3DCompiler.lib;dxcompiler.lib;volkd.lib;RendererCommonLib.lib;RHICore.lib;Shlwapi.lib;RendererScene.lib;</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(_ZVcpkgCurrentInstalledDir)$(_ZVcpkgConfigSubdir)lib;$(_ZVcpkgCurrentInstalledDir)$(_ZVcpkgConfigSubdir)lib\manual-link;$(SolutionDir)$(Platform)\$(Configuration);$(SolutionDir)ThirdParty/libs/$(ConfigurationName);$(VULKAN_SDK)\Lib;</AdditionalLibraryDirectories>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy $(ProjectDir)Resources $(OutDir)Resources\ /s /y</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -122,6 +125,9 @@
       <AdditionalDependencies>%(AdditionalDependencies);$(_ZVcpkgCurrentInstalledDir)$(_ZVcpkgConfigSubdir)lib\*.lib;RendererCore.lib;glfw3.lib;D3d12.lib;dxgi.lib;dxguid.lib;D3DCompiler.lib;dxcompiler.lib;volkd.lib;RendererCommonLib.lib;RHICore.lib;Shlwapi.lib;RendererScene.lib;</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(_ZVcpkgCurrentInstalledDir)$(_ZVcpkgConfigSubdir)lib;$(_ZVcpkgCurrentInstalledDir)$(_ZVcpkgConfigSubdir)lib\manual-link;$(SolutionDir)$(Platform)\$(Configuration);$(SolutionDir)ThirdParty/libs/$(ConfigurationName);$(VULKAN_SDK)\Lib;</AdditionalLibraryDirectories>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy $(ProjectDir)Resources $(OutDir)Resources\ /s /y</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -144,6 +150,9 @@
       <AdditionalDependencies>%(AdditionalDependencies);$(_ZVcpkgCurrentInstalledDir)$(_ZVcpkgConfigSubdir)lib\*.lib;RendererCore.lib;glfw3.lib;D3d12.lib;dxgi.lib;dxguid.lib;D3DCompiler.lib;dxcompiler.lib;volk.lib;RendererCommonLib.lib;RHICore.lib;Shlwapi.lib;RendererScene.lib;</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(_ZVcpkgCurrentInstalledDir)$(_ZVcpkgConfigSubdir)lib;$(_ZVcpkgCurrentInstalledDir)$(_ZVcpkgConfigSubdir)lib\manual-link;$(SolutionDir)$(Platform)\$(Configuration);$(SolutionDir)ThirdParty/libs/$(ConfigurationName);$(VULKAN_SDK)\Lib;</AdditionalLibraryDirectories>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy $(ProjectDir)Resources $(OutDir)Resources\ /s /y</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -166,12 +175,16 @@
       <AdditionalDependencies>%(AdditionalDependencies);$(_ZVcpkgCurrentInstalledDir)$(_ZVcpkgConfigSubdir)lib\*.lib;RendererCore.lib;glfw3.lib;D3d12.lib;dxgi.lib;dxguid.lib;D3DCompiler.lib;dxcompiler.lib;volk.lib;RendererCommonLib.lib;RHICore.lib;Shlwapi.lib;RendererScene.lib;</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(_ZVcpkgCurrentInstalledDir)$(_ZVcpkgConfigSubdir)lib;$(_ZVcpkgCurrentInstalledDir)$(_ZVcpkgConfigSubdir)lib\manual-link;$(SolutionDir)$(Platform)\$(Configuration);$(SolutionDir)ThirdParty/libs/$(ConfigurationName);$(VULKAN_SDK)\Lib;</AdditionalLibraryDirectories>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy $(ProjectDir)Resources $(OutDir)Resources\ /s /y</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="App\BakeJobConfig.cpp" />
     <ClCompile Include="App\LightingBakerApp.cpp" />
     <ClCompile Include="Bake\Atlas\LightmapAtlasBuilder.cpp" />
     <ClCompile Include="Bake\Post\BakeAccumulator.cpp" />
+    <ClCompile Include="Bake\RayTracing\BakeRayTracingDispatch.cpp" />
     <ClCompile Include="Bake\RayTracing\BakeRayTracingRuntime.cpp" />
     <ClCompile Include="Bake\RayTracing\BakeRayTracingScene.cpp" />
     <ClCompile Include="LightingBakerMain.cpp" />
@@ -182,11 +195,15 @@
     <ClInclude Include="App\BakeJobConfig.h" />
     <ClInclude Include="App\LightingBakerApp.h" />
     <ClInclude Include="Bake\Atlas\LightmapAtlasBuilder.h" />
+    <ClInclude Include="Bake\RayTracing\BakeRayTracingDispatch.h" />
     <ClInclude Include="Bake\RayTracing\BakeRayTracingRuntime.h" />
     <ClInclude Include="Output\BakeOutputWriter.h" />
     <ClInclude Include="Scene\BakeSceneImporter.h" />
     <ClInclude Include="Bake\Post\BakeAccumulator.h" />
     <ClInclude Include="Bake\RayTracing\BakeRayTracingScene.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Shaders\BakeRayTracingDebug.hlsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

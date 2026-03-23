@@ -1,6 +1,7 @@
 #include "BakeAccumulator.h"
 
 #include "Bake/Atlas/LightmapAtlasBuilder.h"
+#include "Bake/RayTracing/BakeRayTracingDispatch.h"
 
 #include <algorithm>
 #include <cmath>
@@ -323,6 +324,31 @@ namespace LightingBaker
 
             value = (std::max)(0.0f, (std::min)(value, 65504.0f));
             return FloatToHalfBits(value);
+        }
+
+        float SanitizeRadianceChannel(float value)
+        {
+            if (!std::isfinite(value))
+            {
+                return 0.0f;
+            }
+
+            return value;
+        }
+
+        glm::vec3 LoadDispatchRadiance(const BakeRayTracingDispatchRunResult& ray_tracing_dispatch,
+                                      std::size_t pixel_index)
+        {
+            const std::size_t rgba_offset = pixel_index * 4u;
+            if (rgba_offset + 2u >= ray_tracing_dispatch.output_rgba.size())
+            {
+                return glm::vec3(0.0f, 0.0f, 0.0f);
+            }
+
+            return glm::vec3(
+                SanitizeRadianceChannel(ray_tracing_dispatch.output_rgba[rgba_offset + 0u]),
+                SanitizeRadianceChannel(ray_tracing_dispatch.output_rgba[rgba_offset + 1u]),
+                SanitizeRadianceChannel(ray_tracing_dispatch.output_rgba[rgba_offset + 2u]));
         }
 
         bool WritePublishedAtlas(const std::filesystem::path& file_path,
@@ -654,6 +680,142 @@ namespace LightingBaker
             }
         }
 
+        return true;
+    }
+
+    bool BakeAccumulator::AccumulateRayTracingDispatchOutput(const BakeAccumulatorResumeState& resume_state,
+                                                             const BakeJobConfig& config,
+                                                             const LightmapAtlasBuildResult& atlas_result,
+                                                             const BakeRayTracingDispatchRunResult& ray_tracing_dispatch,
+                                                             BakeAccumulationRunResult& out_result,
+                                                             std::wstring& out_error) const
+    {
+        BakeAccumulationRunResult result{};
+        result.previous_completed_samples = resume_state.completed_samples;
+        result.completed_samples = resume_state.completed_samples;
+        result.target_samples = config.target_samples;
+
+        if (resume_state.atlas_inputs.empty())
+        {
+            out_error = L"Accumulation requires at least one atlas input.";
+            return false;
+        }
+
+        if (!ray_tracing_dispatch.output_payload_valid)
+        {
+            out_error = L"Accumulation requires a valid ray tracing dispatch output payload.";
+            return false;
+        }
+
+        const unsigned remaining_samples =
+            resume_state.completed_samples < config.target_samples
+                ? (config.target_samples - resume_state.completed_samples)
+                : 0u;
+        const unsigned samples_to_add =
+            config.progressive ? (std::min)(config.samples_per_iteration, remaining_samples) : remaining_samples;
+
+        const std::size_t expected_output_value_count =
+            static_cast<std::size_t>(ray_tracing_dispatch.output_width) *
+            static_cast<std::size_t>(ray_tracing_dispatch.output_height) * 4u;
+        if (ray_tracing_dispatch.output_rgba.size() != expected_output_value_count)
+        {
+            out_error = L"Ray tracing dispatch output payload size does not match dispatch dimensions.";
+            return false;
+        }
+
+        for (const BakeAccumulatorAtlasInputState& atlas_input : resume_state.atlas_inputs)
+        {
+            const BakeAccumulatorPublishedAtlasState* published_atlas =
+                FindPublishedAtlas(resume_state, atlas_input.atlas_id);
+            if (published_atlas == nullptr)
+            {
+                out_error = L"Accumulation could not resolve a published atlas path.";
+                return false;
+            }
+
+            BakeAccumulatorAtlasCache atlas_cache{};
+            if (!LoadAtlasCache(resume_state, atlas_input, *published_atlas, atlas_cache, out_error))
+            {
+                return false;
+            }
+
+            if (atlas_cache.width != ray_tracing_dispatch.output_width ||
+                atlas_cache.height != ray_tracing_dispatch.output_height)
+            {
+                out_error = L"Ray tracing dispatch output dimensions do not match the atlas cache dimensions.";
+                return false;
+            }
+
+            if (samples_to_add > 0u)
+            {
+                for (const LightmapAtlasTexelRecord& texel_record : atlas_result.texel_records)
+                {
+                    if (texel_record.atlas_id != atlas_input.atlas_id)
+                    {
+                        continue;
+                    }
+
+                    const std::size_t pixel_index =
+                        static_cast<std::size_t>(texel_record.texel_y) * static_cast<std::size_t>(atlas_cache.width) +
+                        static_cast<std::size_t>(texel_record.texel_x);
+                    if (pixel_index >= atlas_cache.sample_count.size())
+                    {
+                        out_error = L"Atlas texel record referenced a texel outside the cache image.";
+                        return false;
+                    }
+
+                    const glm::vec3 radiance = LoadDispatchRadiance(ray_tracing_dispatch, pixel_index);
+                    const std::size_t accumulation_offset = pixel_index * 3u;
+                    atlas_cache.accumulation[accumulation_offset + 0u] += radiance.x * static_cast<float>(samples_to_add);
+                    atlas_cache.accumulation[accumulation_offset + 1u] += radiance.y * static_cast<float>(samples_to_add);
+                    atlas_cache.accumulation[accumulation_offset + 2u] += radiance.z * static_cast<float>(samples_to_add);
+
+                    const std::uint64_t new_sample_count =
+                        static_cast<std::uint64_t>(atlas_cache.sample_count[pixel_index]) +
+                        static_cast<std::uint64_t>(samples_to_add);
+                    const std::uint64_t clamped_sample_count =
+                        (std::min)(new_sample_count,
+                                   static_cast<std::uint64_t>(std::numeric_limits<std::uint32_t>::max()));
+                    atlas_cache.sample_count[pixel_index] =
+                        static_cast<std::uint32_t>(clamped_sample_count);
+                    atlas_cache.variance[pixel_index] = 0.0f;
+                }
+
+                if (!WriteBinaryVector(atlas_cache.accumulation_path,
+                                       L"accumulation cache file",
+                                       atlas_cache.accumulation,
+                                       out_error) ||
+                    !WriteBinaryVector(atlas_cache.sample_count_path,
+                                       L"sample-count cache file",
+                                       atlas_cache.sample_count,
+                                       out_error) ||
+                    !WriteBinaryVector(atlas_cache.variance_path,
+                                       L"variance cache file",
+                                       atlas_cache.variance,
+                                       out_error))
+                {
+                    return false;
+                }
+
+                result.cache_files_updated = true;
+            }
+
+            if (!WritePublishedAtlas(atlas_cache.published_atlas_path,
+                                     atlas_cache.width,
+                                     atlas_cache.height,
+                                     atlas_cache.accumulation,
+                                     atlas_cache.sample_count,
+                                     out_error))
+            {
+                return false;
+            }
+
+            result.published_atlases_updated = true;
+        }
+
+        result.added_samples = samples_to_add;
+        result.completed_samples = resume_state.completed_samples + samples_to_add;
+        out_result = result;
         return true;
     }
 

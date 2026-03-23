@@ -250,6 +250,9 @@ bool DX12RayTracingAS::InitRayTracingAS(IRHIDevice& device, IRHICommandList& com
             raytracingCommandList->ResourceBarrier(static_cast<UINT>(BLAS_barriers.size()), BLAS_barriers.data());
         }
         raytracingCommandList->BuildRaytracingAccelerationStructure(&topLevelBuildDesc, 0, nullptr);
+        auto tlas_buffer = dynamic_cast<DX12Buffer&>(*m_TLAS->m_buffer).GetRawBuffer();
+        const auto tlas_barrier = CD3DX12_RESOURCE_BARRIER::UAV(tlas_buffer);
+        raytracingCommandList->ResourceBarrier(1, &tlas_barrier);
     };
 
     // Build acceleration structure.
