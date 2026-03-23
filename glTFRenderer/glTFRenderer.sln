@@ -33,6 +33,14 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RendererDemo", "RendererDem
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RendererScene", "RendererScene\RendererScene.vcxproj", "{881E8957-2A9C-49EA-850A-C29DBC27CC9E}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LightingBaker", "LightingBaker\LightingBaker.vcxproj", "{6C8E44F1-3878-42C2-B5A4-2BB7E562C47A}"
+	ProjectSection(ProjectDependencies) = postProject
+		{01210FD4-7E30-4FFF-8698-73EEDEEAB3F2} = {01210FD4-7E30-4FFF-8698-73EEDEEAB3F2}
+		{59079F47-B37C-497B-B48B-574B834D94CF} = {59079F47-B37C-497B-B48B-574B834D94CF}
+		{9665FFB4-13A1-4481-A217-EAF4785B44F3} = {9665FFB4-13A1-4481-A217-EAF4785B44F3}
+		{881E8957-2A9C-49EA-850A-C29DBC27CC9E} = {881E8957-2A9C-49EA-850A-C29DBC27CC9E}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -63,6 +71,10 @@ Global
 		{881E8957-2A9C-49EA-850A-C29DBC27CC9E}.Debug|x64.Build.0 = Debug|x64
 		{881E8957-2A9C-49EA-850A-C29DBC27CC9E}.Release|x64.ActiveCfg = Release|x64
 		{881E8957-2A9C-49EA-850A-C29DBC27CC9E}.Release|x64.Build.0 = Release|x64
+		{6C8E44F1-3878-42C2-B5A4-2BB7E562C47A}.Debug|x64.ActiveCfg = Debug|x64
+		{6C8E44F1-3878-42C2-B5A4-2BB7E562C47A}.Debug|x64.Build.0 = Debug|x64
+		{6C8E44F1-3878-42C2-B5A4-2BB7E562C47A}.Release|x64.ActiveCfg = Release|x64
+		{6C8E44F1-3878-42C2-B5A4-2BB7E562C47A}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

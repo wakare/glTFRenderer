@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="App">
+      <UniqueIdentifier>{38785BEE-371E-40C4-827B-DB49325A1F99}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Scene">
+      <UniqueIdentifier>{22C73A96-B65E-441A-B8E7-D66827571077}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Bake">
+      <UniqueIdentifier>{18D7C3C0-DCAA-4CFB-BD8F-C63E2FE08E64}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Output">
+      <UniqueIdentifier>{77F8D97B-7C65-4BB8-8441-BE4E7D34C3B5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Root">
+      <UniqueIdentifier>{F1F0B6AA-E847-4A83-B83D-B1EF0B34E2BC}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="App\BakeJobConfig.cpp">
+      <Filter>App</Filter>
+    </ClCompile>
+    <ClCompile Include="App\LightingBakerApp.cpp">
+      <Filter>App</Filter>
+    </ClCompile>
+    <ClCompile Include="LightingBakerMain.cpp">
+      <Filter>Root</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="App\BakeJobConfig.h">
+      <Filter>App</Filter>
+    </ClInclude>
+    <ClInclude Include="App\LightingBakerApp.h">
+      <Filter>App</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\BakeSceneImporter.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Bake\Atlas\LightmapAtlasBuilder.h">
+      <Filter>Bake</Filter>
+    </ClInclude>
+    <ClInclude Include="Bake\Post\BakeAccumulator.h">
+      <Filter>Bake</Filter>
+    </ClInclude>
+    <ClInclude Include="Output\BakeOutputWriter.h">
+      <Filter>Output</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
