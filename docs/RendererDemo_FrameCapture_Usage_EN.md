@@ -171,6 +171,14 @@ Constraints for this regression path:
    - `Open Last Capture In Replay UI`
    - `Open Last Capture In PIX`
 
+RenderDoc replay launch note:
+
+- When replay is opened from the shared `DemoBase` UI through `Open Last Capture In Replay UI`, or through RenderDoc auto-open after capture, the runtime now applies these environment variables for that launch:
+  - `DISABLE_LAYER_NV_PRESENT_1=1`
+  - `DISABLE_LAYER_NV_OPTIMUS_1=1`
+- This mitigates `qrenderdoc.exe` crashes on some NVIDIA machines where Vulkan replay layers conflict with RenderDoc replay startup.
+- This automatic mitigation only covers RenderDoc replay launches triggered from the in-app UI. If `qrenderdoc.exe` is started directly from Explorer, command-line shells, or other external tools, the same environment variables still need to be set manually.
+
 ## 6. Default Output and Status Reading
 
 Default output directories are resolved relative to the current working directory.
@@ -227,6 +235,7 @@ Constraints that should remain intact:
 - PIX regression automation is currently implemented only for `DemoAppModelViewerFrostedGlass`, not as a shared `DemoBase` feature
 - RenderDoc and PIX automation are mutually exclusive per regression run
 - in the shared manual UI path, `-pix-capture` and `-renderdoc-capture` mean preload/enable, not automatic startup capture
+- the NVIDIA-layer mitigation for RenderDoc replay currently covers only the shared `DemoBase` UI replay launch path, not externally launched `qrenderdoc.exe`
 
 ## 9. Current Validation Status
 

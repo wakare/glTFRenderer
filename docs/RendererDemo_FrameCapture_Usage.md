@@ -172,6 +172,14 @@ powershell -ExecutionPolicy Bypass -File .\scripts\Capture-RendererRegression.ps
    - `Open Last Capture In Replay UI`
    - `Open Last Capture In PIX`
 
+RenderDoc replay 启动提示：
+
+- 从共享 `DemoBase` UI 触发 `Open Last Capture In Replay UI`，或启用 RenderDoc capture 后使用 auto-open 时，运行时会在本次 launch 上自动设置：
+  - `DISABLE_LAYER_NV_PRESENT_1=1`
+  - `DISABLE_LAYER_NV_OPTIMUS_1=1`
+- 这样可以规避部分 NVIDIA 机器上 `qrenderdoc.exe` 因 Vulkan replay layer 冲突而崩溃的问题。
+- 这个自动设置只覆盖应用内 UI 触发的 RenderDoc replay launch；如果是从资源管理器、命令行或其他外部工具直接启动 `qrenderdoc.exe`，仍需手动设置相同环境变量。
+
 ## 6. 默认输出与状态判读
 
 默认输出目录是相对当前工作目录解析的。
@@ -228,6 +236,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\Capture-RendererRegression.ps
 - PIX regression 自动化目前只在 `DemoAppModelViewerFrostedGlass` 上实现，还不是共享 `DemoBase` 能力。
 - RenderDoc 与 PIX 自动化在同一次 regression run 中互斥。
 - `-pix-capture` 与 `-renderdoc-capture` 在共享手动 UI 下只负责 preload / enable，不代表“启动即自动截帧”。
+- RenderDoc replay 的 NVIDIA layer 规避目前只覆盖共享 `DemoBase` UI 的打开路径，不覆盖外部直接启动的 `qrenderdoc.exe`。
 
 ## 9. 当前验证状态
 
