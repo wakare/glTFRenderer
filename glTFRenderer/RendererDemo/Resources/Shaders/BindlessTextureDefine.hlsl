@@ -3,5 +3,6 @@
 
 #define BINDLESS_TEXTURE_SPACE_MATERIAL     space10
 #define BINDLESS_TEXTURE_SPACE_SHADOW       space11
+#define BINDLESS_TEXTURE_SPACE_LIGHTMAP     space12
 
 #endif

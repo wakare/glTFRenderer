@@ -119,6 +119,7 @@ RendererSystemSceneRenderer::BasePassExecutionPlan RendererSystemSceneRenderer::
 {
     return BasePassExecutionPlan{
         .scene_mesh_module = m_scene_mesh_module,
+        .lightmap_module = m_lightmap_module,
         .camera_module = m_camera_module,
         .outputs = GetOutputs(),
         .graphics_plan = RenderFeature::GraphicsExecutionPlan::FromFrameDimensions(
@@ -132,7 +133,7 @@ RendererInterface::RenderGraph::RenderPassSetupInfo RendererSystemSceneRenderer:
     return RenderFeature::PassBuilder::Graphics("Scene Renderer", "Base Pass")
         .SetRenderState(m_base_pass_render_state)
         .SetViewport(execution_plan.graphics_plan)
-        .AddModules({execution_plan.scene_mesh_module, execution_plan.camera_module})
+        .AddModules({execution_plan.scene_mesh_module, execution_plan.lightmap_module, execution_plan.camera_module})
         .AddShader(RendererInterface::ShaderType::VERTEX_SHADER, "MainVS", "Resources/Shaders/ModelRenderingShader.hlsl")
         .AddShader(RendererInterface::ShaderType::FRAGMENT_SHADER, "MainFS", "Resources/Shaders/ModelRenderingShader.hlsl")
         .AddRenderTargets({
@@ -209,9 +210,11 @@ void RendererSystemSceneRenderer::ResetRuntimeResources(RendererInterface::Resou
         m_camera_module->SetViewportSize(viewport_width, viewport_height);
     }
 
-    m_scene_mesh_module = std::make_shared<RendererModuleSceneMesh>(resource_operator, m_scene_file);
+    m_lightmap_module = std::make_shared<RendererModuleLightmap>(resource_operator, m_scene_file);
+    m_scene_mesh_module = std::make_shared<RendererModuleSceneMesh>(resource_operator, m_scene_file, m_lightmap_module);
     m_modules.clear();
     m_modules.push_back(m_scene_mesh_module);
+    m_modules.push_back(m_lightmap_module);
     m_modules.push_back(m_camera_module);
 
     m_base_pass_state.Reset();

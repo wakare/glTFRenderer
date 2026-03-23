@@ -6,6 +6,7 @@
 #include "RendererSceneCommon.h"
 
 RendererSceneMesh::RendererSceneMesh(const glTFLoader& loader, const glTF_Primitive& primitive)
+    : m_stable_primitive_hash(primitive.Hash())
 {
     size_t vertex_buffer_size = 0;
 	std::vector<char*> vertex_data_in_buffers;
@@ -388,6 +389,7 @@ RendererSceneAABB RendererSceneGraph::GetBounds()
 void RendererSceneGraph::RecursiveInitSceneNodeFromGLTFLoader(const glTFLoader& loader, const glTFHandle& handle,
                                                               RendererSceneNode& scene_node)
 {
+	scene_node.SetStableNodeKey(static_cast<unsigned>(handle.node_index));
 	const auto& node = loader.GetNodes()[loader.ResolveIndex(handle)];
 	scene_node.SetLocalTransform(std::make_shared<RendererSceneNodeTransform>(node->transform.GetMatrix()));
 

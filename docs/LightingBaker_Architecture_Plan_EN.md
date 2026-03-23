@@ -192,8 +192,11 @@ Those are compatibility updates, not feature hosting.
 
 Recommended runtime integration should use a sidecar package instead of rewriting the source glTF in the first stage:
 
-- after loading the scene, `RendererDemo` should look for `<scene>.lmbake/manifest.json`
+- after loading the scene, `RendererDemo` should first look for `<scene_stem>.lmbake/manifest.json`
+- a compatibility fallback may also check `<scene>.lmbake/manifest.json`
 - lightmap binding should be per primitive or per instance, not per material
+- the binding must not rely on runtime-generated `mesh_id` or `node.GetID()` values
+- the more stable key design is `primitive_hash`, plus an optional instance override key `node_key`
 - the runtime should add a dedicated `RendererModuleLightmap` or equivalent module for atlas textures and binding tables
 - geometry or lighting stages should read `UV1 + lightmap_binding_index` and compose `direct_dynamic + baked_diffuse_indirect + specular_indirect`
 - baked diffuse indirect must not be double-counted with the current environment diffuse path
@@ -220,7 +223,7 @@ The baker output should be split into two layers:
 Suggested layout:
 
 ```text
-<scene>.lmbake/
+<scene_stem>.lmbake/
   manifest.json
   atlases/
     indirect_00.master.rgba16f.bin
@@ -245,6 +248,7 @@ Suggested layout:
 - validation hashes for geometry, materials, and UV1
 - atlas list, dimensions, format, and semantic
 - primitive or instance to atlas bindings
+- stable binding keys such as `primitive_hash`, plus an optional instance override key `node_key`
 - runtime codec and decode parameters
 
 ### 6.2 Compression and codec strategy

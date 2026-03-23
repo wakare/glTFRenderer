@@ -2,6 +2,7 @@
 #define SCENE_RENDERER_COMMON_HLSL
 
 #include "RendererModule/RendererModuleMaterial.hlsl"
+#include "RendererModule/RendererModuleLightmap.hlsl"
 
 #ifdef VERTEX_SHADER
 #include "SceneViewCommon.hlsl"
@@ -21,6 +22,8 @@ struct SceneMeshDataOffsetInfo
 {
     uint material_index;
     uint start_vertex_index; // -- vertex info start index
+    uint primitive_hash;
+    uint padding;
 };
 StructuredBuffer<SceneMeshDataOffsetInfo> mesh_start_info;
 
@@ -29,7 +32,8 @@ struct MeshInstanceInputData
     float4x4 instance_transform;
     uint instance_material_id;
     uint mesh_id; // -- mesh start info index
-    uint2 padding;
+    uint stable_node_key;
+    uint lightmap_binding_index;
 };
 StructuredBuffer<MeshInstanceInputData> mesh_instance_input_data;
 

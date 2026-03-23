@@ -250,8 +250,11 @@ glTFRenderer/LightingBaker/
 
 运行时导入策略建议直接按 sidecar package 接入，而不是第一阶段回写原始 glTF：
 
-- `RendererDemo` 在加载 scene 后，尝试查找 `<scene>.lmbake/manifest.json`
+- `RendererDemo` 在加载 scene 后，优先尝试查找 `<scene_stem>.lmbake/manifest.json`
+- 兼容回退可以再查 `<scene>.lmbake/manifest.json`
 - lightmap 绑定应按 primitive 或 instance 建立，不应按 material 建立
+- binding 不能依赖运行时自增 `mesh_id` / `node.GetID()`，应使用稳定 key
+- 当前更稳妥的键设计是：`primitive_hash`，以及可选的实例覆盖键 `node_key`
 - 运行时需要新增 `RendererModuleLightmap` 或等价模块，管理 atlas 纹理和 binding table
 - 几何/光照阶段读取 `UV1 + lightmap_binding_index`，合成 `direct_dynamic + baked_diffuse_indirect + specular_indirect`
 - 已烘焙的 diffuse indirect 应避免与现有 environment diffuse 重复累计
@@ -304,7 +307,7 @@ glTFRenderer/LightingBaker/
 建议目录：
 
 ```text
-<scene>.lmbake/
+<scene_stem>.lmbake/
   manifest.json
   atlases/
     indirect_00.master.rgba16f.bin
@@ -329,6 +332,7 @@ glTFRenderer/LightingBaker/
 - validation hash，例如 geometry / material / UV1 hash
 - atlas 列表、尺寸、格式、语义
 - primitive 或 instance 到 atlas 的 binding 列表
+- 稳定绑定键，例如 `primitive_hash`，以及可选的实例覆盖键 `node_key`
 - runtime codec 与 decode 参数
 
 ### 6.2 压缩与编码策略

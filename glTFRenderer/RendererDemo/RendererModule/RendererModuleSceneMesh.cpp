@@ -4,10 +4,14 @@
 #include <glm/glm/gtc/type_ptr.hpp>
 
 #include "RendererSceneCommon.h"
+#include "RendererModule/RendererModuleLightmap.h"
 
-RendererSceneMeshDataAccessor::RendererSceneMeshDataAccessor(RendererInterface::ResourceOperator& resource_operator, RendererModuleMaterial& material_module)
+RendererSceneMeshDataAccessor::RendererSceneMeshDataAccessor(RendererInterface::ResourceOperator& resource_operator,
+                                                             RendererModuleMaterial& material_module,
+                                                             RendererModuleLightmap* lightmap_module)
     : m_resource_operator(resource_operator)
     , m_material_module(material_module)
+    , m_lightmap_module(lightmap_module)
 {
     
 }
@@ -25,16 +29,30 @@ void RendererSceneMeshDataAccessor::AccessMeshData(MeshDataAccessorType type, un
         SceneMeshDataOffsetInfo mesh_data_offset_info{};
         mesh_data_offset_info.start_vertex_index = mesh_vertex_infos.size();
         mesh_data_offset_info.material_index = 0;
+        mesh_data_offset_info.primitive_hash = RendererUniqueObjectIDInvalid;
 
         start_offset_infos.resize(mesh_id + 1);
         start_offset_infos[mesh_id] = mesh_data_offset_info;
-        mesh_vertex_infos.resize(mesh_vertex_infos.size() + element_size);
     }
 
     auto vertex_offset = start_offset_infos[mesh_id].start_vertex_index;
+    const bool is_vertex_stream =
+        type == MeshDataAccessorType::VERTEX_POSITION_FLOAT3 ||
+        type == MeshDataAccessorType::VERTEX_NORMAL_FLOAT3 ||
+        type == MeshDataAccessorType::VERTEX_TANGENT_FLOAT4 ||
+        type == MeshDataAccessorType::VERTEX_TEXCOORD0_FLOAT2 ||
+        type == MeshDataAccessorType::VERTEX_TEXCOORD1_FLOAT2;
+    if (is_vertex_stream && mesh_vertex_infos.size() < (vertex_offset + element_size))
+    {
+        mesh_vertex_infos.resize(vertex_offset + element_size);
+    }
+
     const float* float_data = static_cast<const float*>(data);
     switch (type)
     {
+    case MeshDataAccessorType::MESH_STABLE_PRIMITIVE_HASH_UINT:
+        start_offset_infos[mesh_id].primitive_hash = *static_cast<const unsigned*>(data);
+        break;
     case MeshDataAccessorType::VERTEX_POSITION_FLOAT3:
         for (size_t i = 0; i < element_size; i++)
         {
@@ -97,6 +115,13 @@ void RendererSceneMeshDataAccessor::AccessMeshData(MeshDataAccessorType type, un
 void RendererSceneMeshDataAccessor::AccessInstanceData(MeshDataAccessorType type, unsigned instance_id,
     unsigned mesh_id, void* data, size_t element_size)
 {
+    if (type == MeshDataAccessorType::INSTANCE_STABLE_NODE_KEY_UINT)
+    {
+        (void)element_size;
+        instance_stable_node_keys[instance_id] = *static_cast<const unsigned*>(data);
+        return;
+    }
+
     RendererInterface::RenderExecuteCommand execute_command;
     execute_command.type = RendererInterface::ExecuteCommandType::DRAW_INDEXED_INSTANCING_COMMAND;
     execute_command.parameter.draw_indexed_instance_command_parameter.index_count_per_instance = mesh_index_counts.at(mesh_id); 
@@ -111,6 +136,14 @@ void RendererSceneMeshDataAccessor::AccessInstanceData(MeshDataAccessorType type
     SceneMeshInstanceRenderResource instance_render_resource{};
     instance_render_resource.m_instance_material_id = 0;
     instance_render_resource.m_mesh_id = mesh_id;
+    instance_render_resource.m_stable_node_key = instance_stable_node_keys.contains(instance_id) ? instance_stable_node_keys.at(instance_id) : RendererUniqueObjectIDInvalid;
+    instance_render_resource.m_lightmap_binding_index = 0;
+    if (m_lightmap_module != nullptr)
+    {
+        const unsigned primitive_hash = start_offset_infos.at(mesh_id).primitive_hash;
+        instance_render_resource.m_lightmap_binding_index =
+            m_lightmap_module->ResolveBindingIndex(instance_render_resource.m_stable_node_key, primitive_hash);
+    }
     
     float* float_data = static_cast<float*>(data);
     instance_render_resource.m_instance_transform = glm::transpose(glm::make_mat4(float_data));
@@ -125,10 +158,12 @@ void RendererSceneMeshDataAccessor::AccessMaterialData(const MaterialBase& mater
 }
 
 RendererModuleSceneMesh::RendererModuleSceneMesh(RendererInterface::ResourceOperator& resource_operator,
-                                                                 const std::string& scene_file)
+                                                                 const std::string& scene_file,
+                                                                 const std::shared_ptr<RendererModuleLightmap>& lightmap_module)
     : m_resource_manager(std::make_unique<RendererInterface::RendererSceneResourceManager>(resource_operator, RendererInterface::RenderSceneDesc{scene_file}))
     , m_module_material( std::make_unique<RendererModuleMaterial>(resource_operator))
-    , m_mesh_data_accessor(resource_operator, *m_module_material)
+    , m_module_lightmap(lightmap_module)
+    , m_mesh_data_accessor(resource_operator, *m_module_material, m_module_lightmap.get())
 {
     m_resource_manager->AccessSceneData(m_mesh_data_accessor);
 

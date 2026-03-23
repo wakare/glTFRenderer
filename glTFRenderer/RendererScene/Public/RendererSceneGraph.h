@@ -30,6 +30,7 @@ public:
     const VertexBufferData& GetVertexBuffer() const {return *m_vertex_buffer_data; }
     const VertexBufferData& GetPositionOnlyBuffer() const {return *m_position_only_data; }
     const IndexBufferData& GetIndexBuffer() const {return *m_index_buffer_data; }
+    unsigned GetStablePrimitiveHash() const { return m_stable_primitive_hash; }
     
 protected:
     VertexLayoutDeclaration m_vertex_layout;
@@ -41,6 +42,7 @@ protected:
     RendererSceneAABB m_box;
 
     std::shared_ptr<MaterialBase> m_material;
+    unsigned m_stable_primitive_hash{RendererUniqueObjectIDInvalid};
 };
 
 class RendererSceneNodeTransform
@@ -93,6 +95,8 @@ public:
     const std::vector<std::shared_ptr<RendererSceneMesh>>& GetMeshes() const;
     const RendererSceneNodeTransform& GetLocalTransform() const;
     glm::fmat4x4 GetAbsoluteTransform();
+    unsigned GetStableNodeKey() const { return m_stable_node_key; }
+    void SetStableNodeKey(unsigned stable_node_key) { m_stable_node_key = stable_node_key; }
 
     void AddChild(std::shared_ptr<RendererSceneNode> child);
     void Traverse(const std::function<bool(RendererSceneNode& node)>& traverse_function);
@@ -109,6 +113,7 @@ protected:
     std::map<RendererUniqueObjectID, std::shared_ptr<RendererSceneNode>> m_children;
 
     std::vector<std::shared_ptr<RendererSceneMesh>> m_meshes;
+    unsigned m_stable_node_key{RendererUniqueObjectIDInvalid};
 };
 
 class RendererSceneGraph

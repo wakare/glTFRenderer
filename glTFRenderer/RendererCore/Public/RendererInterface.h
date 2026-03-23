@@ -687,6 +687,7 @@ namespace RendererInterface
     public:
         enum class MeshDataAccessorType
         {
+            MESH_STABLE_PRIMITIVE_HASH_UINT,
             VERTEX_POSITION_FLOAT3,
             VERTEX_NORMAL_FLOAT3,
             VERTEX_TANGENT_FLOAT4,
@@ -695,6 +696,7 @@ namespace RendererInterface
             INDEX_INT,
             INDEX_HALF,
             INSTANCE_MAT4x4,
+            INSTANCE_STABLE_NODE_KEY_UINT,
         };
 
         virtual bool HasMeshData(unsigned mesh_id) const = 0;

@@ -174,6 +174,7 @@
     <ClCompile Include="DemoApps\DemoBase.cpp" />
     <ClCompile Include="DemoApps\DemoTriangleApp.cpp" />
     <ClCompile Include="RendererDemo.cpp" />
+    <ClCompile Include="RendererModule\RendererModuleLightmap.cpp" />
     <ClCompile Include="RendererModule\RendererModuleSceneMesh.cpp" />
     <ClCompile Include="RendererSystem\RendererSystemBase.cpp" />
     <ClCompile Include="RendererSystem\EnvironmentLightingResources.cpp" />
@@ -201,6 +202,7 @@
     <None Include="Resources\Shaders\FrostedGlass.hlsl" />
     <None Include="Resources\Shaders\FrostedGlassPostfx.hlsl" />
     <None Include="Resources\Shaders\RendererModule\RendererModuleLighting.hlsl" />
+    <None Include="Resources\Shaders\RendererModule\RendererModuleLightmap.hlsl" />
     <None Include="Resources\Shaders\SSAO.hlsl" />
     <None Include="Resources\Shaders\SceneLighting.hlsl" />
     <None Include="Resources\Shaders\ToneMap.hlsl" />
@@ -216,6 +218,7 @@
     <ClInclude Include="DemoApps\DemoTriangleApp.h" />
     <ClInclude Include="RendererModule\RendererModuleCamera.h" />
     <ClInclude Include="RendererModule\RendererModuleLighting.h" />
+    <ClInclude Include="RendererModule\RendererModuleLightmap.h" />
     <ClInclude Include="RendererModule\RendererModuleMaterial.h" />
     <ClInclude Include="RendererModule\RendererModuleSceneMesh.h" />
     <ClInclude Include="Regression\RegressionLogicPack.h" />

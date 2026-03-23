@@ -57,6 +57,9 @@
     <ClCompile Include="Regression\RegressionSuite.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="RendererModule\RendererModuleLightmap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DemoApps\DemoAppModelViewer.h">
@@ -98,6 +101,9 @@
     <ClInclude Include="Regression\RegressionSuite.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="RendererModule\RendererModuleLightmap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\SceneRendererCommon.hlsl" />
@@ -109,5 +115,6 @@
     <None Include="Resources\Shaders\TextureDebugView.hlsl" />
     <None Include="Resources\Shaders\ShaderDeclarationUtil.hlsl" />
     <None Include="Resources\Shaders\DemoShader.hlsl" />
+    <None Include="Resources\Shaders\RendererModule\RendererModuleLightmap.hlsl" />
   </ItemGroup>
 </Project>

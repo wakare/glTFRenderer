@@ -6,11 +6,15 @@
 #include "RendererSceneAABB.h"
 #include "RendererModule/RendererModuleMaterial.h"
 
+class RendererModuleLightmap;
+
 // ----------- must match SceneRendererCommon.hlsl ----------
 struct SceneMeshDataOffsetInfo
 {
     unsigned material_index;
     unsigned start_vertex_index; // -- vertex info start index
+    unsigned primitive_hash;
+    unsigned padding{0};
 };
 
 struct SceneMeshVertexInfo
@@ -26,14 +30,17 @@ struct SceneMeshInstanceRenderResource
     glm::mat4 m_instance_transform;
     unsigned m_instance_material_id;
     unsigned m_mesh_id; // -- mesh start info index
-    unsigned padding[2];
+    unsigned m_stable_node_key;
+    unsigned m_lightmap_binding_index;
 };
 // ----------- must match SceneRendererCommon.hlsl ----------
 
 class RendererSceneMeshDataAccessor : public RendererInterface::RendererSceneMeshDataAccessorBase
 {
 public:
-    RendererSceneMeshDataAccessor(RendererInterface::ResourceOperator& resource_operator, RendererModuleMaterial& material_module);
+    RendererSceneMeshDataAccessor(RendererInterface::ResourceOperator& resource_operator,
+                                  RendererModuleMaterial& material_module,
+                                  RendererModuleLightmap* lightmap_module);
     
     virtual bool HasMeshData(unsigned mesh_id) const override;
     virtual void AccessMeshData(MeshDataAccessorType type, unsigned mesh_id, void* data, size_t element_size) override;
@@ -43,9 +50,11 @@ public:
 
     RendererInterface::ResourceOperator& m_resource_operator;
     RendererModuleMaterial& m_material_module;
+    RendererModuleLightmap* m_lightmap_module{nullptr};
     
     std::map<unsigned, unsigned> mesh_index_counts;
     std::map<unsigned, RendererInterface::IndexedBufferHandle> mesh_index_buffers;
+    std::map<unsigned, unsigned> instance_stable_node_keys;
     
     // mesh data
     std::vector<SceneMeshDataOffsetInfo> start_offset_infos;
@@ -61,7 +70,9 @@ public:
 class RendererModuleSceneMesh : public RendererInterface::RendererModuleBase
 {
 public:
-    RendererModuleSceneMesh(RendererInterface::ResourceOperator& resource_operator, const std::string& scene_file);
+    RendererModuleSceneMesh(RendererInterface::ResourceOperator& resource_operator,
+                            const std::string& scene_file,
+                            const std::shared_ptr<RendererModuleLightmap>& lightmap_module = {});
     virtual bool FinalizeModule(RendererInterface::ResourceOperator& resource_operator) override;
     virtual bool BindDrawCommands(RendererInterface::RenderPassDrawDesc& out_draw_desc) override;
     virtual bool Tick(RendererInterface::ResourceOperator&, unsigned long long interval) override;
@@ -80,5 +91,6 @@ protected:
 
     std::vector<RendererInterface::RenderExecuteCommand> m_draw_commands;
     std::unique_ptr<RendererModuleMaterial> m_module_material;
+    std::shared_ptr<RendererModuleLightmap> m_module_lightmap;
     RendererSceneMeshDataAccessor m_mesh_data_accessor;
 };

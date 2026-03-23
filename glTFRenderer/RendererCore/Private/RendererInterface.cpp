@@ -1783,6 +1783,7 @@ namespace RendererInterface
                     
                     if (!data_accessor.HasMeshData(mesh_id))
                     {
+                        unsigned stable_primitive_hash = mesh->GetStablePrimitiveHash();
                         auto vertex_count = mesh->GetVertexBuffer().vertex_count;
                         std::vector<float> vertex_positions(vertex_count * 3);
                         std::vector<float> vertex_normals(vertex_count * 3);
@@ -1829,6 +1830,7 @@ namespace RendererInterface
                             }
                         }
 
+                        data_accessor.AccessMeshData(RendererSceneMeshDataAccessorBase::MeshDataAccessorType::MESH_STABLE_PRIMITIVE_HASH_UINT, mesh_id, &stable_primitive_hash, 1);
                         data_accessor.AccessMeshData(RendererSceneMeshDataAccessorBase::MeshDataAccessorType::VERTEX_POSITION_FLOAT3, mesh_id, vertex_positions.data(), vertex_count);
                         data_accessor.AccessMeshData(RendererSceneMeshDataAccessorBase::MeshDataAccessorType::VERTEX_NORMAL_FLOAT3, mesh_id, vertex_normals.data(), vertex_count);
                         data_accessor.AccessMeshData(RendererSceneMeshDataAccessorBase::MeshDataAccessorType::VERTEX_TANGENT_FLOAT4, mesh_id, vertex_tangents.data(), vertex_count);
@@ -1842,6 +1844,8 @@ namespace RendererInterface
                         data_accessor.AccessMaterialData(mesh->GetMaterial(), mesh_id);
                     }
                     
+                    unsigned stable_node_key = node.GetStableNodeKey();
+                    data_accessor.AccessInstanceData(RendererSceneMeshDataAccessorBase::MeshDataAccessorType::INSTANCE_STABLE_NODE_KEY_UINT, node.GetID(), mesh_id, &stable_node_key, 1);
                     data_accessor.AccessInstanceData(RendererSceneMeshDataAccessorBase::MeshDataAccessorType::INSTANCE_MAT4x4, node.GetID(), mesh_id, &absolute_transform, 1);
                 }
             }

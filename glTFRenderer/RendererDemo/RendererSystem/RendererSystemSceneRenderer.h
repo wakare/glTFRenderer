@@ -2,6 +2,7 @@
 #include "RendererSystemBase.h"
 #include "RenderPassSetupBuilder.h"
 #include "RendererModule/RendererModuleCamera.h"
+#include "RendererModule/RendererModuleLightmap.h"
 #include "RendererModule/RendererModuleSceneMesh.h"
 #include <optional>
 #include <string>
@@ -46,6 +47,7 @@ protected:
     struct BasePassExecutionPlan
     {
         std::shared_ptr<RendererModuleSceneMesh> scene_mesh_module{};
+        std::shared_ptr<RendererModuleLightmap> lightmap_module{};
         std::shared_ptr<RendererModuleCamera> camera_module{};
         BasePassOutputs outputs{};
         RenderFeature::GraphicsExecutionPlan graphics_plan{};
@@ -76,6 +78,7 @@ protected:
     bool QueuePendingBasePassRenderStateUpdate(RendererInterface::RenderGraph& graph);
 
     std::shared_ptr<RendererModuleSceneMesh> m_scene_mesh_module;
+    std::shared_ptr<RendererModuleLightmap> m_lightmap_module;
     std::shared_ptr<RendererModuleCamera> m_camera_module;
     RendererInterface::RenderStateDesc m_base_pass_render_state{};
     std::optional<RendererInterface::RenderStateDesc> m_pending_base_pass_render_state{};

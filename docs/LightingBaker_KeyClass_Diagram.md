@@ -18,11 +18,12 @@ flowchart LR
     PTPath["LightmapPathTracingPass\nlightmap 路径追踪 / Lightmap path tracing\n- atlas-domain ray generation\n- multi-bounce GI\n- direct light and environment sampling"]
     Accum["BakeAccumulator\n累积与后处理 / Accumulation and post\n- sample accumulation\n- convergence mask and resume state\n- dilation and seam repair"]
     Writer["BakeOutputWriter\n结果导出 / Output writer\n- GPU readback\n- sidecar package and debug outputs\n- manifest and runtime codec payload"]
+    RuntimeLM["RendererModuleLightmap\n运行时导入 / Runtime lightmap import\n- parse sidecar manifest\n- upload atlas textures\n- resolve primitive_hash and optional node_key bindings"]
 
     RenderGraph["RendererCore::RenderGraph\n现代渲染编排 / Maintained orchestration\n- pass scheduling\n- resource lifetime\n- execution and sync"]
     SceneRM["RendererSceneResourceManager\n现代场景接入 / Maintained scene bridge\n- glTF load\n- mesh and material traversal\n- scene bounds"]
     RHIRT["RHICore RT\n底层 RT 能力 / Low-level RT support\n- RT PSO\n- shader table\n- BLAS and TLAS\n- TraceRay"]
-    FrameworkWork["Framework Gaps\n需要补齐 / Required framework work\n- UV1 access path\n- RT command execution\n- TLAS and shader-table binding\n- texture readback\n- lightmap runtime binding path"]
+    FrameworkWork["Framework Gaps\n需要补齐 / Required framework work\n- UV1 access path\n- stable primitive and instance key path\n- RT command execution\n- TLAS and shader-table binding\n- texture readback\n- lightmap runtime binding path"]
 
     BakerApp --> JobConfig
     BakerApp --> SceneImporter
@@ -40,10 +41,12 @@ flowchart LR
     Accum --> Writer
     PTPath --> RenderGraph
     RenderGraph --> RHIRT
+    Writer -. sidecar .-> RuntimeLM
 
     SceneRM -. extend .-> FrameworkWork
     RenderGraph -. extend .-> FrameworkWork
     Writer -. extend .-> FrameworkWork
+    RuntimeLM -. extend .-> FrameworkWork
 ```
 
 ## Key Class Summary / 关键类摘要
@@ -58,6 +61,7 @@ flowchart LR
 | `LightmapPathTracingPass` | 在 atlas 域上做 raygen，而不是在屏幕域上做 camera raygen。 | Runs ray generation in atlas space instead of screen-space camera rays. | `glTFRenderer/LightingBaker/Bake/Passes/` |
 | `BakeAccumulator` | 负责多样本累积、收敛判断、pause / resume 状态、空洞扩张与 seam 修补。 | Owns multi-sample accumulation, convergence checks, pause/resume state, dilation, and seam repair. | `glTFRenderer/LightingBaker/Bake/Post/` |
 | `BakeOutputWriter` | 提供 readback、sidecar 发布包写出、runtime codec 产物和 manifest。 | Provides GPU readback, sidecar package export, runtime codec payloads, and manifests. | `glTFRenderer/LightingBaker/Output/` |
+| `RendererModuleLightmap` | 运行时读取 sidecar manifest，上传 atlas，并以稳定键 `primitive_hash` / `node_key` 建立 lightmap binding。 | Loads the sidecar manifest at runtime, uploads atlas textures, and resolves lightmap bindings through stable `primitive_hash` / `node_key` keys. | `glTFRenderer/RendererDemo/RendererModule/` |
 | `RendererSceneResourceManager` | 当前维护路径中的场景导入桥，后续需要扩展 UV1 导出。 | The maintained scene-ingest bridge; it needs UV1 export extensions. | `glTFRenderer/RendererCore/Public/RendererInterface.h`, `glTFRenderer/RendererCore/Private/RendererInterface.cpp` |
 | `RenderGraph` | 当前维护路径中的现代执行骨架，后续需要补齐 RT command 执行。 | The maintained execution backbone; it needs actual RT command execution. | `glTFRenderer/RendererCore/Public/RendererInterface.h`, `glTFRenderer/RendererCore/Private/RendererInterface.cpp` |
 
