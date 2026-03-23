@@ -6,6 +6,7 @@
 
 namespace LightingBaker
 {
+    struct BakeAccumulationRunResult;
     struct BakeAccumulatorResumeState;
     struct BakeOutputLayout;
     struct BakeSceneImportResult;
@@ -22,5 +23,6 @@ namespace LightingBaker
         void PrintImportSummary(const BakeSceneImportResult& import_result) const;
         void PrintAtlasSummary(const LightmapAtlasBuildResult& atlas_result) const;
         void PrintResumeSummary(const BakeAccumulatorResumeState& resume_state) const;
+        void PrintAccumulationSummary(const BakeAccumulationRunResult& run_result) const;
     };
 }

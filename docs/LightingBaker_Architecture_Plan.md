@@ -352,13 +352,15 @@ glTFRenderer/LightingBaker/
 - `cache/sample_count_00.r32ui.bin`
 - `cache/variance_00.r32f.bin`
 
-当前已落地的第一步是“`--resume` 校验并保留缓存”：
+当前已落地到可运行状态的是“`--resume` 校验 + progressive 继续累积的占位实现”：
 
 - 重新导入场景并重建 atlas texel records
 - 校验 `resume.json`、texel record count、cache 文件尺寸、关键 bake 参数是否一致
-- 校验通过后保留已有 progressive cache，不覆写 `resume.json` 与累积文件
+- `accum` / `sample_count` / `variance` cache 按 atlas 像素域分配，而不是按 valid texel count 分配；这样 cache 文件布局与 published atlas 共享同一分辨率约定
+- 校验通过后，使用 atlas texel 域的 `debug hemisphere` 占位积分器继续追加 sample count，并刷新 `manifest.json`、`resume.json` 与 published atlas
+- 达到 target sample 后不再继续推进 cache，仅保持 metadata 与 published atlas 一致
 
-真正的“从已有 sample count 继续追加累积”属于后续阶段，应在 DXR bake pass 接入后继续完善。
+真正的 DXR atlas-domain path tracing pass 仍属于后续阶段；当前占位积分器只用于验证 progressive bake、cache layout、sidecar package 与 runtime import 这条基础链路。
 
 后续即便 cache 内部格式调整，也应继续由 `resume.json` 提供唯一入口，避免 DXR bake pass 或工具链直接硬编码具体文件名。
 
@@ -424,6 +426,7 @@ glTFRenderer/LightingBaker/
 - 先支持静态 mesh
 - 先实现 direct lighting + environment + diffuse bounce
 - 支持全场景 progressive accumulation / pause / resume
+- 在 DXR bake pass 落地前，先保留 atlas texel 域 `debug hemisphere` 占位积分器，用于验证 cache / package / runtime 合同
 
 验收标准：
 
@@ -469,10 +472,12 @@ glTFRenderer/LightingBaker/
 
 ## 9. 当前结论
 
-从现有代码基础看，`LightingBaker` 完全有条件做成一个独立项目，但真正的第一优先级不是直接写烘焙算法，而是先补三条公共基础设施：
+从现有代码基础看，`LightingBaker` 已经从“纯规划”进入“可运行 scaffold”阶段：独立工程骨架、UV1/lightmap 绑定通路、atlas texel records、sidecar writer、runtime importer、`--resume` 校验，以及 atlas texel 域的 progressive 占位积分器都已经打通。
+
+当前剩余的关键主线缩减为三条：
 
 1. 现代 `RendererCore` 的 RT command 执行链
-2. `RendererScene` 到 `RendererSceneResourceManager` 的 UV1 / lightmap 数据通路
-3. 离线 bake 结果的 texture readback 与写盘
+2. 用真正的 DXR atlas-domain path tracing pass 替换当前 `debug hemisphere` 占位积分器
+3. 补齐 GPU readback 与真实 bake radiance 输出，而不是继续依赖 CPU 占位结果
 
-这三条补齐以后，再把已有 DXR path tracing 初版算法迁到 atlas texel 域，工程风险会显著更可控。
+现在这条 placeholder progressive 管线的价值，不是替代 DXR，而是先把 cache / package / runtime contract 固定住。这样后续迁入已有 DXR path tracing 初版算法时，会更接近“替换求解器”，而不是重写整条链路。

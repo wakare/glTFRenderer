@@ -268,13 +268,15 @@ The current scaffold already writes:
 - `cache/sample_count_00.r32ui.bin`
 - `cache/variance_00.r32f.bin`
 
-The first shipped step is currently "`--resume` validates and preserves cache":
+The current shipped step is now "`--resume` validation plus progressive continuation through a placeholder integrator":
 
 - re-import the scene and rebuild atlas texel records
 - validate `resume.json`, texel record counts, cache file sizes, and key bake parameters
-- preserve the existing progressive cache without rewriting `resume.json` or accumulation payloads once validation passes
+- allocate `accum`, `sample_count`, and `variance` in atlas-pixel space instead of valid-texel count space so cache files share the same resolution contract as the published atlas
+- once validation passes, continue from the previous sample count with an atlas-domain `debug hemisphere` placeholder integrator and refresh `manifest.json`, `resume.json`, and the published atlas
+- stop advancing the cache once the target sample count is reached, while keeping metadata and the published atlas consistent
 
-Actual "continue accumulating from the previous sample count" remains a later stage and should be completed after the DXR bake pass is integrated.
+The real DXR atlas-domain path tracing pass is still a later stage. The current placeholder integrator exists only to validate the progressive bake, cache layout, sidecar package, and runtime import contract end to end.
 
 Even if the internal cache format changes later, `resume.json` should remain the single entry point so DXR bake passes and tools do not hardcode file names.
 
@@ -329,6 +331,7 @@ The key architectural shift is this:
 - support static meshes
 - implement direct light, environment, and diffuse bounces
 - support full-scene progressive accumulation / pause / resume
+- before the DXR bake pass lands, keep an atlas-domain `debug hemisphere` placeholder integrator to validate the cache / package / runtime contract
 
 ### Phase E: Offline export
 
@@ -362,10 +365,12 @@ This is an implementation staging decision, not a long-term capability reduction
 
 ## 9. Current Conclusion
 
-From the current codebase, a standalone `LightingBaker` is feasible. But the first priority is not the baking algorithm itself. The first priority is to close three shared infrastructure gaps:
+From the current codebase, `LightingBaker` has moved beyond pure planning into a runnable scaffold: the standalone project, UV1/lightmap binding path, atlas texel records, sidecar writer, runtime importer, `--resume` validation, and an atlas-domain progressive placeholder integrator are all wired up.
+
+The remaining critical path is now:
 
 1. modern `RendererCore` RT command execution
-2. UV1 / lightmap data flow through `RendererScene` and `RendererSceneResourceManager`
-3. offline texture readback and export
+2. replacing the current `debug hemisphere` placeholder integrator with a real DXR atlas-domain path tracing pass
+3. adding GPU readback and true baked radiance export instead of continuing to rely on CPU placeholder output
 
-Once those are in place, porting the existing DXR/path-tracing prototype into atlas-texel space becomes a much lower-risk step.
+The value of the current placeholder progressive pipeline is not to replace DXR. Its value is to lock down the cache / package / runtime contract first, so porting the existing DXR/path-tracing prototype becomes a solver replacement instead of a full pipeline rewrite.

@@ -204,6 +204,85 @@ namespace LightingBaker
             return disk_record;
         }
 
+        void BuildPackageDescriptors(const BakeJobConfig& config,
+                                     const BakeSceneImportResult& import_result,
+                                     const LightmapAtlasBuildResult* atlas_result,
+                                     std::vector<BakePublishedAtlasDesc>& out_atlas_descs,
+                                     std::vector<BakePublishedBindingDesc>& out_binding_descs,
+                                     std::vector<BakeAtlasCacheDesc>& out_atlas_cache_descs)
+        {
+            out_atlas_descs.clear();
+            out_binding_descs.clear();
+            out_atlas_cache_descs.clear();
+
+            BakePublishedAtlasDesc atlas_desc{};
+            atlas_desc.atlas_id = 0u;
+            atlas_desc.width = atlas_result != nullptr ? atlas_result->atlas_resolution : config.atlas_resolution;
+            atlas_desc.height = atlas_result != nullptr ? atlas_result->atlas_resolution : config.atlas_resolution;
+            atlas_desc.relative_file_path = kDefaultAtlasRelativePath;
+            atlas_desc.format = "rgba16f";
+            atlas_desc.codec = "raw_half";
+            atlas_desc.semantic = "diffuse_irradiance";
+            out_atlas_descs.push_back(std::move(atlas_desc));
+
+            out_atlas_cache_descs.reserve(out_atlas_descs.size());
+            for (const BakePublishedAtlasDesc& published_atlas_desc : out_atlas_descs)
+            {
+                BakeAtlasCacheDesc cache_desc{};
+                cache_desc.atlas_id = published_atlas_desc.atlas_id;
+                cache_desc.texel_record_stride = sizeof(BakeTexelRecordDiskV1);
+                cache_desc.texel_record_file = BuildCacheRelativePath("texel_records", published_atlas_desc.atlas_id, ".bin");
+                cache_desc.accumulation_file = BuildCacheRelativePath("accum", published_atlas_desc.atlas_id, ".rgb32f.bin");
+                cache_desc.sample_count_file = BuildCacheRelativePath("sample_count", published_atlas_desc.atlas_id, ".r32ui.bin");
+                cache_desc.variance_file = BuildCacheRelativePath("variance", published_atlas_desc.atlas_id, ".r32f.bin");
+                if (atlas_result != nullptr)
+                {
+                    for (const LightmapAtlasTexelRecord& texel_record : atlas_result->texel_records)
+                    {
+                        if (texel_record.atlas_id == published_atlas_desc.atlas_id)
+                        {
+                            ++cache_desc.texel_record_count;
+                        }
+                    }
+                }
+
+                out_atlas_cache_descs.push_back(std::move(cache_desc));
+            }
+
+            if (atlas_result != nullptr)
+            {
+                out_binding_descs.reserve(atlas_result->bindings.size());
+                for (const LightmapAtlasBindingInfo& binding : atlas_result->bindings)
+                {
+                    BakePublishedBindingDesc binding_desc{};
+                    binding_desc.atlas_id = binding.atlas_id;
+                    binding_desc.primitive_hash = binding.primitive_hash;
+                    binding_desc.has_node_key = true;
+                    binding_desc.node_key = binding.stable_node_key;
+                    binding_desc.scale_bias = binding.scale_bias;
+                    out_binding_descs.push_back(std::move(binding_desc));
+                }
+            }
+            else
+            {
+                out_binding_descs.reserve(import_result.primitive_instances.size());
+                for (const BakePrimitiveImportInfo& primitive_info : import_result.primitive_instances)
+                {
+                    if (!primitive_info.can_emit_lightmap_binding)
+                    {
+                        continue;
+                    }
+
+                    BakePublishedBindingDesc binding_desc{};
+                    binding_desc.atlas_id = 0u;
+                    binding_desc.primitive_hash = primitive_info.primitive_hash;
+                    binding_desc.has_node_key = true;
+                    binding_desc.node_key = primitive_info.stable_node_key;
+                    out_binding_descs.push_back(std::move(binding_desc));
+                }
+            }
+        }
+
         bool EnsureDirectory(const std::filesystem::path& directory_path, const wchar_t* label, std::wstring& out_error);
 
         bool WriteJsonFile(const std::filesystem::path& file_path, const nlohmann::json& root, std::wstring& out_error)
@@ -303,15 +382,9 @@ namespace LightingBaker
                                                  std::wstring& out_error) const
     {
         std::vector<BakePublishedAtlasDesc> atlas_descs{};
-        BakePublishedAtlasDesc atlas_desc{};
-        atlas_desc.atlas_id = 0u;
-        atlas_desc.width = atlas_result != nullptr ? atlas_result->atlas_resolution : config.atlas_resolution;
-        atlas_desc.height = atlas_result != nullptr ? atlas_result->atlas_resolution : config.atlas_resolution;
-        atlas_desc.relative_file_path = kDefaultAtlasRelativePath;
-        atlas_desc.format = "rgba16f";
-        atlas_desc.codec = "raw_half";
-        atlas_desc.semantic = "diffuse_irradiance";
-        atlas_descs.push_back(std::move(atlas_desc));
+        std::vector<BakeAtlasCacheDesc> atlas_cache_descs{};
+        std::vector<BakePublishedBindingDesc> binding_descs{};
+        BuildPackageDescriptors(config, import_result, atlas_result, atlas_descs, binding_descs, atlas_cache_descs);
 
         for (const BakePublishedAtlasDesc& published_atlas_desc : atlas_descs)
         {
@@ -321,77 +394,30 @@ namespace LightingBaker
             }
         }
 
-        std::vector<BakeAtlasCacheDesc> atlas_cache_descs{};
-        atlas_cache_descs.reserve(atlas_descs.size());
-        for (const BakePublishedAtlasDesc& published_atlas_desc : atlas_descs)
-        {
-            BakeAtlasCacheDesc cache_desc{};
-            cache_desc.atlas_id = published_atlas_desc.atlas_id;
-            cache_desc.texel_record_stride = sizeof(BakeTexelRecordDiskV1);
-            cache_desc.texel_record_file = BuildCacheRelativePath("texel_records", published_atlas_desc.atlas_id, ".bin");
-            cache_desc.accumulation_file = BuildCacheRelativePath("accum", published_atlas_desc.atlas_id, ".rgb32f.bin");
-            cache_desc.sample_count_file = BuildCacheRelativePath("sample_count", published_atlas_desc.atlas_id, ".r32ui.bin");
-            cache_desc.variance_file = BuildCacheRelativePath("variance", published_atlas_desc.atlas_id, ".r32f.bin");
-            if (atlas_result != nullptr)
-            {
-                for (const LightmapAtlasTexelRecord& texel_record : atlas_result->texel_records)
-                {
-                    if (texel_record.atlas_id == published_atlas_desc.atlas_id)
-                    {
-                        ++cache_desc.texel_record_count;
-                    }
-                }
-            }
-
-            atlas_cache_descs.push_back(std::move(cache_desc));
-        }
-
         if (atlas_result != nullptr &&
             !WriteAtlasCaches(layout, *atlas_result, atlas_cache_descs, out_error))
         {
             return false;
         }
 
-        std::vector<BakePublishedBindingDesc> binding_descs{};
-        if (atlas_result != nullptr)
-        {
-            binding_descs.reserve(atlas_result->bindings.size());
-            for (const LightmapAtlasBindingInfo& binding : atlas_result->bindings)
-            {
-                BakePublishedBindingDesc binding_desc{};
-                binding_desc.atlas_id = binding.atlas_id;
-                binding_desc.primitive_hash = binding.primitive_hash;
-                binding_desc.has_node_key = true;
-                binding_desc.node_key = binding.stable_node_key;
-                binding_desc.scale_bias = binding.scale_bias;
-                binding_descs.push_back(std::move(binding_desc));
-            }
-        }
-        else
-        {
-            binding_descs.reserve(import_result.primitive_instances.size());
-            for (const BakePrimitiveImportInfo& primitive_info : import_result.primitive_instances)
-            {
-                if (!primitive_info.can_emit_lightmap_binding)
-                {
-                    continue;
-                }
+        BakePackageProgressState progress_state{};
+        progress_state.completed_samples = 0u;
+        progress_state.has_accumulation_cache = !atlas_cache_descs.empty();
+        progress_state.bootstrap_placeholder_payload = true;
 
-                BakePublishedBindingDesc binding_desc{};
-                binding_desc.atlas_id = 0u;
-                binding_desc.primitive_hash = primitive_info.primitive_hash;
-                binding_desc.has_node_key = true;
-                binding_desc.node_key = primitive_info.stable_node_key;
-                binding_descs.push_back(std::move(binding_desc));
-            }
-        }
-
-        if (!WriteManifest(config, layout, import_result, atlas_result, atlas_descs, binding_descs, out_error))
+        if (!WriteManifest(config, layout, import_result, atlas_result, atlas_descs, binding_descs, progress_state, out_error))
         {
             return false;
         }
 
-        return WriteResumeMetadata(config, layout, import_result, atlas_descs, atlas_cache_descs, atlas_result, out_error);
+        return WriteResumeMetadata(config,
+                                   layout,
+                                   import_result,
+                                   atlas_descs,
+                                   atlas_cache_descs,
+                                   atlas_result,
+                                   progress_state,
+                                   out_error);
     }
 
     bool BakeOutputWriter::WriteImportSummary(const BakeSceneImportResult& import_result,
@@ -513,6 +539,44 @@ namespace LightingBaker
         return WriteJsonFile(layout.root / std::filesystem::path(kAtlasSummaryRelativePath), root, out_error);
     }
 
+    bool BakeOutputWriter::RefreshPackageMetadata(const BakeJobConfig& config,
+                                                  const BakeOutputLayout& layout,
+                                                  const BakeSceneImportResult& import_result,
+                                                  const LightmapAtlasBuildResult& atlas_result,
+                                                  const BakePackageProgressState& progress_state,
+                                                  std::wstring& out_error) const
+    {
+        std::vector<BakePublishedAtlasDesc> atlas_descs{};
+        std::vector<BakePublishedBindingDesc> binding_descs{};
+        std::vector<BakeAtlasCacheDesc> atlas_cache_descs{};
+        BuildPackageDescriptors(config, import_result, &atlas_result, atlas_descs, binding_descs, atlas_cache_descs);
+
+        BakePackageProgressState resolved_progress_state = progress_state;
+        resolved_progress_state.has_accumulation_cache =
+            resolved_progress_state.has_accumulation_cache || !atlas_cache_descs.empty();
+
+        if (!WriteManifest(config,
+                           layout,
+                           import_result,
+                           &atlas_result,
+                           atlas_descs,
+                           binding_descs,
+                           resolved_progress_state,
+                           out_error))
+        {
+            return false;
+        }
+
+        return WriteResumeMetadata(config,
+                                   layout,
+                                   import_result,
+                                   atlas_descs,
+                                   atlas_cache_descs,
+                                   &atlas_result,
+                                   resolved_progress_state,
+                                   out_error);
+    }
+
     bool BakeOutputWriter::WriteAtlasCaches(const BakeOutputLayout& layout,
                                             const LightmapAtlasBuildResult& atlas_result,
                                             const std::vector<BakeAtlasCacheDesc>& atlas_cache_descs,
@@ -559,7 +623,9 @@ namespace LightingBaker
                 return false;
             }
 
-            const std::uint64_t texel_count = static_cast<std::uint64_t>(cache_desc.texel_record_count);
+            const std::uint64_t texel_count =
+                static_cast<std::uint64_t>(atlas_result.atlas_resolution) *
+                static_cast<std::uint64_t>(atlas_result.atlas_resolution);
             const std::filesystem::path accumulation_path = layout.root / std::filesystem::path(cache_desc.accumulation_file);
             if (!WriteZeroBytesFile(accumulation_path,
                                     texel_count * 3ull * sizeof(float),
@@ -655,8 +721,10 @@ namespace LightingBaker
                                          const LightmapAtlasBuildResult* atlas_result,
                                          const std::vector<BakePublishedAtlasDesc>& atlas_descs,
                                          const std::vector<BakePublishedBindingDesc>& binding_descs,
+                                         const BakePackageProgressState& progress_state,
                                          std::wstring& out_error) const
     {
+        const unsigned completed_samples = (std::min)(progress_state.completed_samples, config.target_samples);
         nlohmann::json root{};
         root["schema_version"] = kManifestSchemaVersion;
         root["source_scene"] = ToJsonPathString(config.scene_path);
@@ -678,8 +746,14 @@ namespace LightingBaker
             {"cache_file", kResumeMetadataRelativePath},
             {"import_summary_file", kImportSummaryRelativePath},
             {"atlas_summary_file", kAtlasSummaryRelativePath},
-            {"bootstrap_placeholder_payload", true},
-            {"atlas_cache_initialized", atlas_result != nullptr},
+            {"bootstrap_placeholder_payload", progress_state.bootstrap_placeholder_payload},
+            {"atlas_cache_initialized", progress_state.has_accumulation_cache},
+        };
+        root["progress"] = {
+            {"completed_samples", completed_samples},
+            {"remaining_samples", config.target_samples - completed_samples},
+            {"target_samples", config.target_samples},
+            {"has_accumulation_cache", progress_state.has_accumulation_cache},
         };
         root["scene"] = {
             {"node_count", import_result.node_count},
@@ -738,15 +812,19 @@ namespace LightingBaker
                                                const std::vector<BakePublishedAtlasDesc>& atlas_descs,
                                                const std::vector<BakeAtlasCacheDesc>& atlas_cache_descs,
                                                const LightmapAtlasBuildResult* atlas_result,
+                                               const BakePackageProgressState& progress_state,
                                                std::wstring& out_error) const
     {
         (void)layout;
-        const bool has_accumulation_cache = std::any_of(atlas_cache_descs.begin(),
-                                                        atlas_cache_descs.end(),
-                                                        [](const BakeAtlasCacheDesc& cache_desc)
-                                                        {
-                                                            return cache_desc.texel_record_count > 0u;
-                                                        });
+        const unsigned completed_samples = (std::min)(progress_state.completed_samples, config.target_samples);
+        const bool has_accumulation_cache =
+            progress_state.has_accumulation_cache ||
+            std::any_of(atlas_cache_descs.begin(),
+                        atlas_cache_descs.end(),
+                        [](const BakeAtlasCacheDesc& cache_desc)
+                        {
+                            return cache_desc.texel_record_count > 0u;
+                        });
 
         nlohmann::json cache_root{};
         cache_root["schema_version"] = kManifestSchemaVersion;
@@ -765,7 +843,7 @@ namespace LightingBaker
             {"resume_requested", config.resume},
         };
         cache_root["progress"] = {
-            {"completed_samples", 0u},
+            {"completed_samples", completed_samples},
             {"target_samples", config.target_samples},
             {"has_accumulation_cache", has_accumulation_cache},
         };

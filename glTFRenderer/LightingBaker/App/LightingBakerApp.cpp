@@ -20,6 +20,7 @@ namespace LightingBaker
         constexpr int kExitAtlasBuildError = 6;
         constexpr int kExitAtlasValidationError = 7;
         constexpr int kExitResumeValidationError = 8;
+        constexpr int kExitAccumulationError = 9;
 
         unsigned CountErrors(const BakeSceneImportResult& import_result)
         {
@@ -178,60 +179,84 @@ namespace LightingBaker
             return kExitAtlasValidationError;
         }
 
-        if (config.resume)
+        if (!config.resume)
         {
             error_message.clear();
-            if (!accumulator.ValidateResumeState(resume_state, config, atlas_result, error_message))
+            if (!output_writer.WriteBootstrapPackage(config, output_layout, import_result, &atlas_result, error_message))
             {
-                PrintResolvedJob(config, output_layout);
-                PrintImportSummary(import_result);
-                PrintAtlasSummary(atlas_result);
-                PrintResumeSummary(resume_state);
+                std::wcerr << error_message << L"\n";
+                return kExitOutputWriteError;
+            }
+
+            error_message.clear();
+            if (!accumulator.LoadResumeState(output_layout.resume_path, resume_state, error_message))
+            {
                 std::wcerr << error_message << L"\n";
                 return kExitResumeValidationError;
             }
+        }
 
+        error_message.clear();
+        if (!accumulator.ValidateResumeState(resume_state, config, atlas_result, error_message))
+        {
             PrintResolvedJob(config, output_layout);
             PrintImportSummary(import_result);
             PrintAtlasSummary(atlas_result);
             PrintResumeSummary(resume_state);
-
-            const std::filesystem::path import_summary_path = output_layout.debug / L"import_summary.json";
-            const std::filesystem::path atlas_summary_path = output_layout.debug / L"atlas_summary.json";
-            std::wcout
-                << L"\nResume cache validated. Existing progressive cache preserved.\n"
-                << L"  resume metadata: " << output_layout.resume_path.native() << L"\n"
-                << L"  import summary: " << import_summary_path.native() << L"\n"
-                << L"  atlas summary: " << atlas_summary_path.native() << L"\n";
-            return kExitSuccess;
+            std::wcerr << error_message << L"\n";
+            return kExitResumeValidationError;
         }
 
+        BakeAccumulationRunResult accumulation_run_result{};
         error_message.clear();
-        if (!output_writer.WriteBootstrapPackage(config, output_layout, import_result, &atlas_result, error_message))
+        if (!accumulator.AccumulateDebugHemispherePreview(resume_state,
+                                                         config,
+                                                         atlas_result,
+                                                         accumulation_run_result,
+                                                         error_message))
+        {
+            PrintResolvedJob(config, output_layout);
+            PrintImportSummary(import_result);
+            PrintAtlasSummary(atlas_result);
+            PrintResumeSummary(resume_state);
+            std::wcerr << error_message << L"\n";
+            return kExitAccumulationError;
+        }
+
+        BakePackageProgressState progress_state{};
+        progress_state.completed_samples = accumulation_run_result.completed_samples;
+        progress_state.has_accumulation_cache = true;
+        progress_state.bootstrap_placeholder_payload = false;
+        error_message.clear();
+        if (!output_writer.RefreshPackageMetadata(config,
+                                                 output_layout,
+                                                 import_result,
+                                                 atlas_result,
+                                                 progress_state,
+                                                 error_message))
         {
             std::wcerr << error_message << L"\n";
             return kExitOutputWriteError;
         }
 
+        resume_state.completed_samples = accumulation_run_result.completed_samples;
+        resume_state.has_accumulation_cache = true;
+
         PrintResolvedJob(config, output_layout);
         PrintImportSummary(import_result);
         PrintAtlasSummary(atlas_result);
+        PrintResumeSummary(resume_state);
+        PrintAccumulationSummary(accumulation_run_result);
 
         const std::filesystem::path import_summary_path = output_layout.debug / L"import_summary.json";
         const std::filesystem::path atlas_summary_path = output_layout.debug / L"atlas_summary.json";
         std::wcout
-            << L"\nPhase A scaffold is active. Bootstrap sidecar package written.\n"
+            << L"\nProgressive preview sidecar package updated.\n"
             << L"  manifest: " << output_layout.manifest_path.native() << L"\n"
             << L"  resume metadata: " << output_layout.resume_path.native() << L"\n"
             << L"  import summary: " << import_summary_path.native() << L"\n"
             << L"  atlas summary: " << atlas_summary_path.native() << L"\n"
-            << L"\nPlanned pipeline:\n"
-            << L"  1. Initialize maintained runtime host\n"
-            << L"  2. Import scene via BakeSceneImporter\n"
-            << L"  3. Validate UV1 and atlas layout\n"
-            << L"  4. Build atlas-domain bake records\n"
-            << L"  5. Execute path-traced bake passes\n"
-            << L"  6. Accumulate progressive results and write sidecar outputs\n";
+            << L"  preview integrator: debug hemisphere placeholder\n";
 
         return kExitSuccess;
     }
@@ -288,5 +313,17 @@ namespace LightingBaker
             << L"  target samples: " << resume_state.target_samples << L"\n"
             << L"  atlas inputs: " << resume_state.atlas_inputs.size() << L"\n"
             << L"  has accumulation cache: " << (resume_state.has_accumulation_cache ? L"true" : L"false") << L"\n";
+    }
+
+    void LightingBakerApp::PrintAccumulationSummary(const BakeAccumulationRunResult& run_result) const
+    {
+        std::wcout
+            << L"\nAccumulation summary\n"
+            << L"  previous completed samples: " << run_result.previous_completed_samples << L"\n"
+            << L"  samples added this run: " << run_result.added_samples << L"\n"
+            << L"  completed samples: " << run_result.completed_samples << L"\n"
+            << L"  target samples: " << run_result.target_samples << L"\n"
+            << L"  cache files updated: " << (run_result.cache_files_updated ? L"true" : L"false") << L"\n"
+            << L"  published atlases updated: " << (run_result.published_atlases_updated ? L"true" : L"false") << L"\n";
     }
 }

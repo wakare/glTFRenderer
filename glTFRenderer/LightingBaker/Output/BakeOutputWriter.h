@@ -57,6 +57,13 @@ namespace LightingBaker
         std::string variance_format{"r32f"};
     };
 
+    struct BakePackageProgressState
+    {
+        unsigned completed_samples{0};
+        bool has_accumulation_cache{false};
+        bool bootstrap_placeholder_payload{true};
+    };
+
     class BakeOutputWriter
     {
     public:
@@ -74,6 +81,12 @@ namespace LightingBaker
         bool WriteAtlasSummary(const LightmapAtlasBuildResult& atlas_result,
                                const BakeOutputLayout& layout,
                                std::wstring& out_error) const;
+        bool RefreshPackageMetadata(const BakeJobConfig& config,
+                                    const BakeOutputLayout& layout,
+                                    const BakeSceneImportResult& import_result,
+                                    const LightmapAtlasBuildResult& atlas_result,
+                                    const BakePackageProgressState& progress_state,
+                                    std::wstring& out_error) const;
 
     private:
         bool EnsurePlaceholderAtlas(const BakeOutputLayout& layout,
@@ -85,6 +98,7 @@ namespace LightingBaker
                            const LightmapAtlasBuildResult* atlas_result,
                            const std::vector<BakePublishedAtlasDesc>& atlas_descs,
                            const std::vector<BakePublishedBindingDesc>& binding_descs,
+                           const BakePackageProgressState& progress_state,
                            std::wstring& out_error) const;
         bool WriteResumeMetadata(const BakeJobConfig& config,
                                  const BakeOutputLayout& layout,
@@ -92,6 +106,7 @@ namespace LightingBaker
                                  const std::vector<BakePublishedAtlasDesc>& atlas_descs,
                                  const std::vector<BakeAtlasCacheDesc>& atlas_cache_descs,
                                  const LightmapAtlasBuildResult* atlas_result,
+                                 const BakePackageProgressState& progress_state,
                                  std::wstring& out_error) const;
         bool WriteAtlasCaches(const BakeOutputLayout& layout,
                               const LightmapAtlasBuildResult& atlas_result,
