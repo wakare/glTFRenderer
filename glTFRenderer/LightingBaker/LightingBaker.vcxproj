@@ -73,19 +73,19 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(ProjectDir);$(SolutionDir)RendererCore/Public;$(SolutionDir)RendererCommonLib/Public;$(SolutionDir)RendererScene/Public;$(SolutionDir)RHICore/Public;$(SolutionDir)ThirdParty;</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(ProjectDir);$(SolutionDir)RendererCore/Public;$(SolutionDir)RendererCommonLib/Public;$(SolutionDir)RendererScene/Public;$(SolutionDir)RHICore/Public;$(SolutionDir)ThirdParty;$(VULKAN_SDK)\Include;$(VULKAN_SDK)\Include\Volk;</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(ProjectDir);$(SolutionDir)RendererCore/Public;$(SolutionDir)RendererCommonLib/Public;$(SolutionDir)RendererScene/Public;$(SolutionDir)RHICore/Public;$(SolutionDir)ThirdParty;</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(ProjectDir);$(SolutionDir)RendererCore/Public;$(SolutionDir)RendererCommonLib/Public;$(SolutionDir)RendererScene/Public;$(SolutionDir)RHICore/Public;$(SolutionDir)ThirdParty;$(VULKAN_SDK)\Include;$(VULKAN_SDK)\Include\Volk;</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(ProjectDir);$(SolutionDir)RendererCore/Public;$(SolutionDir)RendererCommonLib/Public;$(SolutionDir)RendererScene/Public;$(SolutionDir)RHICore/Public;$(SolutionDir)ThirdParty;</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(ProjectDir);$(SolutionDir)RendererCore/Public;$(SolutionDir)RendererCommonLib/Public;$(SolutionDir)RendererScene/Public;$(SolutionDir)RHICore/Public;$(SolutionDir)ThirdParty;$(VULKAN_SDK)\Include;$(VULKAN_SDK)\Include\Volk;</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(ProjectDir);$(SolutionDir)RendererCore/Public;$(SolutionDir)RendererCommonLib/Public;$(SolutionDir)RendererScene/Public;$(SolutionDir)RHICore/Public;$(SolutionDir)ThirdParty;</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(ProjectDir);$(SolutionDir)RendererCore/Public;$(SolutionDir)RendererCommonLib/Public;$(SolutionDir)RendererScene/Public;$(SolutionDir)RHICore/Public;$(SolutionDir)ThirdParty;$(VULKAN_SDK)\Include;$(VULKAN_SDK)\Include\Volk;</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -172,6 +172,7 @@
     <ClCompile Include="App\LightingBakerApp.cpp" />
     <ClCompile Include="Bake\Atlas\LightmapAtlasBuilder.cpp" />
     <ClCompile Include="Bake\Post\BakeAccumulator.cpp" />
+    <ClCompile Include="Bake\RayTracing\BakeRayTracingRuntime.cpp" />
     <ClCompile Include="Bake\RayTracing\BakeRayTracingScene.cpp" />
     <ClCompile Include="LightingBakerMain.cpp" />
     <ClCompile Include="Output\BakeOutputWriter.cpp" />
@@ -181,11 +182,20 @@
     <ClInclude Include="App\BakeJobConfig.h" />
     <ClInclude Include="App\LightingBakerApp.h" />
     <ClInclude Include="Bake\Atlas\LightmapAtlasBuilder.h" />
+    <ClInclude Include="Bake\RayTracing\BakeRayTracingRuntime.h" />
     <ClInclude Include="Output\BakeOutputWriter.h" />
     <ClInclude Include="Scene\BakeSceneImporter.h" />
     <ClInclude Include="Bake\Post\BakeAccumulator.h" />
     <ClInclude Include="Bake\RayTracing\BakeRayTracingScene.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <ImportGroup Label="ExtensionTargets" />
+  <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\packages\WinPixEventRuntime.1.0.240308001\build\WinPixEventRuntime.targets" Condition="Exists('..\packages\WinPixEventRuntime.1.0.240308001\build\WinPixEventRuntime.targets')" />
+  </ImportGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\WinPixEventRuntime.1.0.240308001\build\WinPixEventRuntime.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\WinPixEventRuntime.1.0.240308001\build\WinPixEventRuntime.targets'))" />
+  </Target>
 </Project>

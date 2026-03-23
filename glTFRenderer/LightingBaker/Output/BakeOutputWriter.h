@@ -10,6 +10,7 @@
 namespace LightingBaker
 {
     struct BakeSceneImportResult;
+    struct BakeRayTracingRuntimeBuildResult;
     struct LightmapAtlasBuildResult;
     struct BakeRayTracingSceneBuildResult;
 
@@ -85,6 +86,9 @@ namespace LightingBaker
         bool WriteRayTracingSceneSummary(const BakeRayTracingSceneBuildResult& ray_tracing_scene,
                                         const BakeOutputLayout& layout,
                                         std::wstring& out_error) const;
+        bool WriteRayTracingRuntimeSummary(const BakeRayTracingRuntimeBuildResult& ray_tracing_runtime,
+                                          const BakeOutputLayout& layout,
+                                          std::wstring& out_error) const;
         bool RefreshPackageMetadata(const BakeJobConfig& config,
                                     const BakeOutputLayout& layout,
                                     const BakeSceneImportResult& import_result,

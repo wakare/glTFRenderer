@@ -9,6 +9,7 @@ namespace LightingBaker
     struct BakeAccumulationRunResult;
     struct BakeAccumulatorResumeState;
     struct BakeOutputLayout;
+    struct BakeRayTracingRuntimeBuildResult;
     struct BakeRayTracingSceneBuildResult;
     struct BakeSceneImportResult;
     struct LightmapAtlasBuildResult;
@@ -24,6 +25,7 @@ namespace LightingBaker
         void PrintImportSummary(const BakeSceneImportResult& import_result) const;
         void PrintAtlasSummary(const LightmapAtlasBuildResult& atlas_result) const;
         void PrintRayTracingSceneSummary(const BakeRayTracingSceneBuildResult& ray_tracing_scene) const;
+        void PrintRayTracingRuntimeSummary(const BakeRayTracingRuntimeBuildResult& ray_tracing_runtime) const;
         void PrintResumeSummary(const BakeAccumulatorResumeState& resume_state) const;
         void PrintAccumulationSummary(const BakeAccumulationRunResult& run_result) const;
     };

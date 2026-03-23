@@ -30,6 +30,9 @@
     <ClCompile Include="Bake\Post\BakeAccumulator.cpp">
       <Filter>Bake</Filter>
     </ClCompile>
+    <ClCompile Include="Bake\RayTracing\BakeRayTracingRuntime.cpp">
+      <Filter>Bake</Filter>
+    </ClCompile>
     <ClCompile Include="Bake\RayTracing\BakeRayTracingScene.cpp">
       <Filter>Bake</Filter>
     </ClCompile>
@@ -57,6 +60,9 @@
       <Filter>Bake</Filter>
     </ClInclude>
     <ClInclude Include="Bake\Post\BakeAccumulator.h">
+      <Filter>Bake</Filter>
+    </ClInclude>
+    <ClInclude Include="Bake\RayTracing\BakeRayTracingRuntime.h">
       <Filter>Bake</Filter>
     </ClInclude>
     <ClInclude Include="Bake\RayTracing\BakeRayTracingScene.h">

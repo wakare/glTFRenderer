@@ -1,6 +1,7 @@
 #include "BakeOutputWriter.h"
 
 #include "Bake/Atlas/LightmapAtlasBuilder.h"
+#include "Bake/RayTracing/BakeRayTracingRuntime.h"
 #include "Bake/RayTracing/BakeRayTracingScene.h"
 #include "Scene/BakeSceneImporter.h"
 
@@ -29,6 +30,7 @@ namespace LightingBaker
         constexpr const char* kImportSummaryRelativePath = "debug/import_summary.json";
         constexpr const char* kAtlasSummaryRelativePath = "debug/atlas_summary.json";
         constexpr const char* kRayTracingSceneSummaryRelativePath = "debug/raytracing_scene_summary.json";
+        constexpr const char* kRayTracingRuntimeSummaryRelativePath = "debug/raytracing_runtime_summary.json";
 
         struct BakeTexelRecordDiskV1
         {
@@ -597,6 +599,43 @@ namespace LightingBaker
             out_error);
     }
 
+    bool BakeOutputWriter::WriteRayTracingRuntimeSummary(const BakeRayTracingRuntimeBuildResult& ray_tracing_runtime,
+                                                         const BakeOutputLayout& layout,
+                                                         std::wstring& out_error) const
+    {
+        nlohmann::json root{};
+        root["schema_version"] = kManifestSchemaVersion;
+        root["device_type"] = ray_tracing_runtime.device_type == RendererInterface::DX12 ? "DX12" : "VULKAN";
+        root["hidden_window_width"] = ray_tracing_runtime.hidden_window_width;
+        root["hidden_window_height"] = ray_tracing_runtime.hidden_window_height;
+        root["frame_slot_count"] = ray_tracing_runtime.frame_slot_count;
+        root["swapchain_image_count"] = ray_tracing_runtime.swapchain_image_count;
+        root["uploaded_geometry_count"] = ray_tracing_runtime.uploaded_geometry_count;
+        root["uploaded_instance_count"] = ray_tracing_runtime.uploaded_instance_count;
+        root["uploaded_vertex_count"] = ray_tracing_runtime.uploaded_vertex_count;
+        root["uploaded_index_count"] = ray_tracing_runtime.uploaded_index_count;
+        root["window_created"] = ray_tracing_runtime.window_created;
+        root["resource_operator_initialized"] = ray_tracing_runtime.resource_operator_initialized;
+        root["acceleration_structure_initialized"] = ray_tracing_runtime.acceleration_structure_initialized;
+        root["validation_status"] = ray_tracing_runtime.HasValidationErrors() ? "failed" : "passed";
+        root["errors"] = nlohmann::json::array();
+        for (const BakeSceneValidationMessage& message : ray_tracing_runtime.errors)
+        {
+            root["errors"].push_back(ToJson(message));
+        }
+
+        root["warnings"] = nlohmann::json::array();
+        for (const BakeSceneValidationMessage& message : ray_tracing_runtime.warnings)
+        {
+            root["warnings"].push_back(ToJson(message));
+        }
+
+        return WriteJsonFile(
+            layout.root / std::filesystem::path(kRayTracingRuntimeSummaryRelativePath),
+            root,
+            out_error);
+    }
+
     bool BakeOutputWriter::RefreshPackageMetadata(const BakeJobConfig& config,
                                                   const BakeOutputLayout& layout,
                                                   const BakeSceneImportResult& import_result,
@@ -805,6 +844,7 @@ namespace LightingBaker
             {"import_summary_file", kImportSummaryRelativePath},
             {"atlas_summary_file", kAtlasSummaryRelativePath},
             {"raytracing_scene_summary_file", kRayTracingSceneSummaryRelativePath},
+            {"raytracing_runtime_summary_file", kRayTracingRuntimeSummaryRelativePath},
             {"bootstrap_placeholder_payload", progress_state.bootstrap_placeholder_payload},
             {"atlas_cache_initialized", progress_state.has_accumulation_cache},
         };
@@ -940,6 +980,7 @@ namespace LightingBaker
             {"import_summary", "../debug/import_summary.json"},
             {"atlas_summary", "../debug/atlas_summary.json"},
             {"raytracing_scene_summary", "../debug/raytracing_scene_summary.json"},
+            {"raytracing_runtime_summary", "../debug/raytracing_runtime_summary.json"},
             {"texel_records", nlohmann::json::array()},
             {"accumulation", nlohmann::json::array()},
             {"sample_count", nlohmann::json::array()},
