@@ -171,6 +171,7 @@
     <ClCompile Include="App\BakeJobConfig.cpp" />
     <ClCompile Include="App\LightingBakerApp.cpp" />
     <ClCompile Include="Bake\Atlas\LightmapAtlasBuilder.cpp" />
+    <ClCompile Include="Bake\Post\BakeAccumulator.cpp" />
     <ClCompile Include="LightingBakerMain.cpp" />
     <ClCompile Include="Output\BakeOutputWriter.cpp" />
     <ClCompile Include="Scene\BakeSceneImporter.cpp" />

@@ -1,6 +1,7 @@
 #include "LightingBakerApp.h"
 
 #include "Bake/Atlas/LightmapAtlasBuilder.h"
+#include "Bake/Post/BakeAccumulator.h"
 #include "Output/BakeOutputWriter.h"
 #include "Scene/BakeSceneImporter.h"
 
@@ -18,6 +19,7 @@ namespace LightingBaker
         constexpr int kExitSceneValidationError = 5;
         constexpr int kExitAtlasBuildError = 6;
         constexpr int kExitAtlasValidationError = 7;
+        constexpr int kExitResumeValidationError = 8;
 
         unsigned CountErrors(const BakeSceneImportResult& import_result)
         {
@@ -74,12 +76,24 @@ namespace LightingBaker
     {
         BakeOutputWriter output_writer{};
         const BakeOutputLayout output_layout = BakeOutputWriter::BuildLayout(config.output_root);
+        BakeAccumulator accumulator{};
+        BakeAccumulatorResumeState resume_state{};
 
         std::wstring error_message;
         if (!output_writer.EnsureLayout(output_layout, error_message))
         {
             std::wcerr << error_message << L"\n";
             return kExitFilesystemError;
+        }
+
+        if (config.resume)
+        {
+            error_message.clear();
+            if (!accumulator.LoadResumeState(output_layout.resume_path, resume_state, error_message))
+            {
+                std::wcerr << error_message << L"\n";
+                return kExitResumeValidationError;
+            }
         }
 
         BakeSceneImporter scene_importer{};
@@ -99,7 +113,8 @@ namespace LightingBaker
         error_message.clear();
         if (!import_success)
         {
-            if (!output_writer.WriteBootstrapPackage(config, output_layout, import_result, nullptr, error_message))
+            if (!config.resume &&
+                !output_writer.WriteBootstrapPackage(config, output_layout, import_result, nullptr, error_message))
             {
                 std::wcerr << error_message << L"\n";
                 return kExitOutputWriteError;
@@ -113,7 +128,8 @@ namespace LightingBaker
 
         if (import_result.HasValidationErrors())
         {
-            if (!output_writer.WriteBootstrapPackage(config, output_layout, import_result, nullptr, error_message))
+            if (!config.resume &&
+                !output_writer.WriteBootstrapPackage(config, output_layout, import_result, nullptr, error_message))
             {
                 std::wcerr << error_message << L"\n";
                 return kExitOutputWriteError;
@@ -145,11 +161,14 @@ namespace LightingBaker
 
         if (atlas_result.HasValidationErrors())
         {
-            error_message.clear();
-            if (!output_writer.WriteBootstrapPackage(config, output_layout, import_result, &atlas_result, error_message))
+            if (!config.resume)
             {
-                std::wcerr << error_message << L"\n";
-                return kExitOutputWriteError;
+                error_message.clear();
+                if (!output_writer.WriteBootstrapPackage(config, output_layout, import_result, &atlas_result, error_message))
+                {
+                    std::wcerr << error_message << L"\n";
+                    return kExitOutputWriteError;
+                }
             }
 
             PrintResolvedJob(config, output_layout);
@@ -157,6 +176,34 @@ namespace LightingBaker
             PrintAtlasSummary(atlas_result);
             std::wcerr << L"Atlas validation failed. See atlas summary for details.\n";
             return kExitAtlasValidationError;
+        }
+
+        if (config.resume)
+        {
+            error_message.clear();
+            if (!accumulator.ValidateResumeState(resume_state, config, atlas_result, error_message))
+            {
+                PrintResolvedJob(config, output_layout);
+                PrintImportSummary(import_result);
+                PrintAtlasSummary(atlas_result);
+                PrintResumeSummary(resume_state);
+                std::wcerr << error_message << L"\n";
+                return kExitResumeValidationError;
+            }
+
+            PrintResolvedJob(config, output_layout);
+            PrintImportSummary(import_result);
+            PrintAtlasSummary(atlas_result);
+            PrintResumeSummary(resume_state);
+
+            const std::filesystem::path import_summary_path = output_layout.debug / L"import_summary.json";
+            const std::filesystem::path atlas_summary_path = output_layout.debug / L"atlas_summary.json";
+            std::wcout
+                << L"\nResume cache validated. Existing progressive cache preserved.\n"
+                << L"  resume metadata: " << output_layout.resume_path.native() << L"\n"
+                << L"  import summary: " << import_summary_path.native() << L"\n"
+                << L"  atlas summary: " << atlas_summary_path.native() << L"\n";
+            return kExitSuccess;
         }
 
         error_message.clear();
@@ -229,5 +276,17 @@ namespace LightingBaker
             << L"  overlapped texels: " << atlas_result.overlapped_texel_count << L"\n"
             << L"  warnings: " << CountWarnings(atlas_result) << L"\n"
             << L"  errors: " << CountErrors(atlas_result) << L"\n";
+    }
+
+    void LightingBakerApp::PrintResumeSummary(const BakeAccumulatorResumeState& resume_state) const
+    {
+        std::wcout
+            << L"\nResume cache summary\n"
+            << L"  resume metadata: " << resume_state.resume_path.native() << L"\n"
+            << L"  source scene: " << resume_state.source_scene.native() << L"\n"
+            << L"  completed samples: " << resume_state.completed_samples << L"\n"
+            << L"  target samples: " << resume_state.target_samples << L"\n"
+            << L"  atlas inputs: " << resume_state.atlas_inputs.size() << L"\n"
+            << L"  has accumulation cache: " << (resume_state.has_accumulation_cache ? L"true" : L"false") << L"\n";
     }
 }

@@ -268,6 +268,14 @@ The current scaffold already writes:
 - `cache/sample_count_00.r32ui.bin`
 - `cache/variance_00.r32f.bin`
 
+The first shipped step is currently "`--resume` validates and preserves cache":
+
+- re-import the scene and rebuild atlas texel records
+- validate `resume.json`, texel record counts, cache file sizes, and key bake parameters
+- preserve the existing progressive cache without rewriting `resume.json` or accumulation payloads once validation passes
+
+Actual "continue accumulating from the previous sample count" remains a later stage and should be completed after the DXR bake pass is integrated.
+
 Even if the internal cache format changes later, `resume.json` should remain the single entry point so DXR bake passes and tools do not hardcode file names.
 
 ### 6.2 Compression and codec strategy

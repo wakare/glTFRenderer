@@ -352,6 +352,14 @@ glTFRenderer/LightingBaker/
 - `cache/sample_count_00.r32ui.bin`
 - `cache/variance_00.r32f.bin`
 
+当前已落地的第一步是“`--resume` 校验并保留缓存”：
+
+- 重新导入场景并重建 atlas texel records
+- 校验 `resume.json`、texel record count、cache 文件尺寸、关键 bake 参数是否一致
+- 校验通过后保留已有 progressive cache，不覆写 `resume.json` 与累积文件
+
+真正的“从已有 sample count 继续追加累积”属于后续阶段，应在 DXR bake pass 接入后继续完善。
+
 后续即便 cache 内部格式调整，也应继续由 `resume.json` 提供唯一入口，避免 DXR bake pass 或工具链直接硬编码具体文件名。
 
 ### 6.2 压缩与编码策略
