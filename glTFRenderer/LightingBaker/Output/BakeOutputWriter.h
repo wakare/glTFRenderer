@@ -9,6 +9,8 @@
 
 namespace LightingBaker
 {
+    struct BakeSceneImportResult;
+
     struct BakeOutputLayout
     {
         std::filesystem::path root;
@@ -47,6 +49,10 @@ namespace LightingBaker
         bool EnsureLayout(const BakeOutputLayout& layout, std::wstring& out_error) const;
         bool WriteBootstrapPackage(const BakeJobConfig& config,
                                    const BakeOutputLayout& layout,
+                                   const BakeSceneImportResult& import_result,
+                                   std::wstring& out_error) const;
+        bool WriteImportSummary(const BakeSceneImportResult& import_result,
+                                const BakeOutputLayout& layout,
                                    std::wstring& out_error) const;
 
     private:
@@ -55,11 +61,13 @@ namespace LightingBaker
                                     std::wstring& out_error) const;
         bool WriteManifest(const BakeJobConfig& config,
                            const BakeOutputLayout& layout,
+                           const BakeSceneImportResult& import_result,
                            const std::vector<BakePublishedAtlasDesc>& atlas_descs,
                            const std::vector<BakePublishedBindingDesc>& binding_descs,
                            std::wstring& out_error) const;
         bool WriteResumeMetadata(const BakeJobConfig& config,
                                  const BakeOutputLayout& layout,
+                                 const BakeSceneImportResult& import_result,
                                  const std::vector<BakePublishedAtlasDesc>& atlas_descs,
                                  std::wstring& out_error) const;
     };

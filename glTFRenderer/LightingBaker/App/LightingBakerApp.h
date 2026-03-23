@@ -7,6 +7,7 @@
 namespace LightingBaker
 {
     struct BakeOutputLayout;
+    struct BakeSceneImportResult;
 
     class LightingBakerApp
     {
@@ -16,5 +17,6 @@ namespace LightingBaker
     private:
         int RunJob(const BakeJobConfig& config);
         void PrintResolvedJob(const BakeJobConfig& config, const BakeOutputLayout& output_layout) const;
+        void PrintImportSummary(const BakeSceneImportResult& import_result) const;
     };
 }

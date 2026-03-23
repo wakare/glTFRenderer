@@ -1,6 +1,7 @@
 #include "LightingBakerApp.h"
 
 #include "Output/BakeOutputWriter.h"
+#include "Scene/BakeSceneImporter.h"
 
 #include <iostream>
 
@@ -12,6 +13,30 @@ namespace LightingBaker
         constexpr int kExitInvalidArguments = 1;
         constexpr int kExitFilesystemError = 2;
         constexpr int kExitOutputWriteError = 3;
+        constexpr int kExitSceneImportError = 4;
+        constexpr int kExitSceneValidationError = 5;
+
+        unsigned CountErrors(const BakeSceneImportResult& import_result)
+        {
+            unsigned count = static_cast<unsigned>(import_result.errors.size());
+            for (const BakePrimitiveImportInfo& primitive : import_result.primitive_instances)
+            {
+                count += static_cast<unsigned>(primitive.errors.size());
+            }
+
+            return count;
+        }
+
+        unsigned CountWarnings(const BakeSceneImportResult& import_result)
+        {
+            unsigned count = static_cast<unsigned>(import_result.warnings.size());
+            for (const BakePrimitiveImportInfo& primitive : import_result.primitive_instances)
+            {
+                count += static_cast<unsigned>(primitive.warnings.size());
+            }
+
+            return count;
+        }
     }
 
     int LightingBakerApp::Run(int argc, wchar_t* argv[])
@@ -44,18 +69,36 @@ namespace LightingBaker
             return kExitFilesystemError;
         }
 
-        if (!output_writer.WriteBootstrapPackage(config, output_layout, error_message))
+        BakeSceneImporter scene_importer{};
+        BakeSceneImportRequest scene_import_request{};
+        scene_import_request.scene_path = config.scene_path;
+        BakeSceneImportResult import_result{};
+        const bool import_success = scene_importer.ImportScene(scene_import_request, import_result, error_message);
+        const std::wstring import_error_message = error_message;
+
+        error_message.clear();
+        if (!output_writer.WriteImportSummary(import_result, output_layout, error_message))
+        {
+            std::wcerr << error_message << L"\n";
+            return kExitOutputWriteError;
+        }
+
+        error_message.clear();
+        if (!output_writer.WriteBootstrapPackage(config, output_layout, import_result, error_message))
         {
             std::wcerr << error_message << L"\n";
             return kExitOutputWriteError;
         }
 
         PrintResolvedJob(config, output_layout);
+        PrintImportSummary(import_result);
 
+        const std::filesystem::path import_summary_path = output_layout.debug / L"import_summary.json";
         std::wcout
             << L"\nPhase A scaffold is active. Bootstrap sidecar package written.\n"
             << L"  manifest: " << output_layout.manifest_path.native() << L"\n"
             << L"  resume metadata: " << output_layout.resume_path.native() << L"\n"
+            << L"  import summary: " << import_summary_path.native() << L"\n"
             << L"\nPlanned pipeline:\n"
             << L"  1. Initialize maintained runtime host\n"
             << L"  2. Import scene via BakeSceneImporter\n"
@@ -63,6 +106,18 @@ namespace LightingBaker
             << L"  4. Build atlas-domain bake records\n"
             << L"  5. Execute path-traced bake passes\n"
             << L"  6. Accumulate progressive results and write sidecar outputs\n";
+
+        if (!import_success)
+        {
+            std::wcerr << import_error_message << L"\n";
+            return kExitSceneImportError;
+        }
+
+        if (import_result.HasValidationErrors())
+        {
+            std::wcerr << L"Scene validation failed. See import summary for details.\n";
+            return kExitSceneValidationError;
+        }
 
         return kExitSuccess;
     }
@@ -81,5 +136,18 @@ namespace LightingBaker
             << L"  max bounces: " << config.max_bounces << L"\n"
             << L"  progressive: " << (config.progressive ? L"true" : L"false") << L"\n"
             << L"  resume: " << (config.resume ? L"true" : L"false") << L"\n";
+    }
+
+    void LightingBakerApp::PrintImportSummary(const BakeSceneImportResult& import_result) const
+    {
+        std::wcout
+            << L"\nScene import summary\n"
+            << L"  load succeeded: " << (import_result.load_succeeded ? L"true" : L"false") << L"\n"
+            << L"  nodes: " << import_result.node_count << L"\n"
+            << L"  meshes: " << import_result.mesh_count << L"\n"
+            << L"  instance primitives: " << import_result.instance_primitive_count << L"\n"
+            << L"  valid lightmap primitives: " << import_result.valid_lightmap_primitive_count << L"\n"
+            << L"  warnings: " << CountWarnings(import_result) << L"\n"
+            << L"  errors: " << CountErrors(import_result) << L"\n";
     }
 }

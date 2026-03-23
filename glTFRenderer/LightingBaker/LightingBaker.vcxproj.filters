@@ -30,6 +30,9 @@
     <ClCompile Include="Output\BakeOutputWriter.cpp">
       <Filter>Output</Filter>
     </ClCompile>
+    <ClCompile Include="Scene\BakeSceneImporter.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="App\BakeJobConfig.h">

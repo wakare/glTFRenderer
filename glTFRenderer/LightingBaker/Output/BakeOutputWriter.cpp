@@ -1,5 +1,7 @@
 #include "BakeOutputWriter.h"
 
+#include "Scene/BakeSceneImporter.h"
+
 #include <algorithm>
 #include <array>
 #include <cstdint>
@@ -22,6 +24,7 @@ namespace LightingBaker
         constexpr const char* kDefaultProfile = "default";
         constexpr const char* kDefaultAtlasRelativePath = "atlases/indirect_00.rgba16f.bin";
         constexpr const char* kResumeMetadataRelativePath = "cache/resume.json";
+        constexpr const char* kImportSummaryRelativePath = "debug/import_summary.json";
 
         std::string ToJsonPathString(const std::filesystem::path& path)
         {
@@ -42,6 +45,51 @@ namespace LightingBaker
         nlohmann::json ToJson(const std::array<float, 4>& value)
         {
             return nlohmann::json::array({value[0], value[1], value[2], value[3]});
+        }
+
+        nlohmann::json ToJson(const glm::fvec2& value)
+        {
+            return nlohmann::json::array({value.x, value.y});
+        }
+
+        nlohmann::json ToJson(const BakeSceneValidationMessage& value)
+        {
+            return nlohmann::json{
+                {"code", value.code},
+                {"message", value.message},
+            };
+        }
+
+        unsigned CountErrors(const BakeSceneImportResult& import_result)
+        {
+            unsigned count = static_cast<unsigned>(import_result.errors.size());
+            for (const BakePrimitiveImportInfo& primitive : import_result.primitive_instances)
+            {
+                count += static_cast<unsigned>(primitive.errors.size());
+            }
+
+            return count;
+        }
+
+        unsigned CountWarnings(const BakeSceneImportResult& import_result)
+        {
+            unsigned count = static_cast<unsigned>(import_result.warnings.size());
+            for (const BakePrimitiveImportInfo& primitive : import_result.primitive_instances)
+            {
+                count += static_cast<unsigned>(primitive.warnings.size());
+            }
+
+            return count;
+        }
+
+        std::string ResolveValidationStatus(const BakeSceneImportResult& import_result)
+        {
+            if (!import_result.load_succeeded)
+            {
+                return "load_failed";
+            }
+
+            return import_result.HasValidationErrors() ? "failed" : "passed";
         }
 
         bool WriteJsonFile(const std::filesystem::path& file_path, const nlohmann::json& root, std::wstring& out_error)
@@ -99,6 +147,7 @@ namespace LightingBaker
 
     bool BakeOutputWriter::WriteBootstrapPackage(const BakeJobConfig& config,
                                                  const BakeOutputLayout& layout,
+                                                 const BakeSceneImportResult& import_result,
                                                  std::wstring& out_error) const
     {
         std::vector<BakePublishedAtlasDesc> atlas_descs{};
@@ -112,26 +161,110 @@ namespace LightingBaker
         atlas_desc.semantic = "diffuse_irradiance";
         atlas_descs.push_back(std::move(atlas_desc));
 
-        for (const BakePublishedAtlasDesc& atlas_desc : atlas_descs)
+        for (const BakePublishedAtlasDesc& published_atlas_desc : atlas_descs)
         {
-            if (!EnsurePlaceholderAtlas(layout, atlas_desc, out_error))
+            if (!EnsurePlaceholderAtlas(layout, published_atlas_desc, out_error))
             {
                 return false;
             }
         }
 
-        const std::vector<BakePublishedBindingDesc> binding_descs{};
-        if (!WriteManifest(config, layout, atlas_descs, binding_descs, out_error))
+        std::vector<BakePublishedBindingDesc> binding_descs{};
+        binding_descs.reserve(import_result.primitive_instances.size());
+        for (const BakePrimitiveImportInfo& primitive_info : import_result.primitive_instances)
+        {
+            if (!primitive_info.can_emit_lightmap_binding)
+            {
+                continue;
+            }
+
+            BakePublishedBindingDesc binding_desc{};
+            binding_desc.atlas_id = 0u;
+            binding_desc.primitive_hash = primitive_info.primitive_hash;
+            binding_desc.has_node_key = true;
+            binding_desc.node_key = primitive_info.stable_node_key;
+            binding_descs.push_back(std::move(binding_desc));
+        }
+
+        if (!WriteManifest(config, layout, import_result, atlas_descs, binding_descs, out_error))
         {
             return false;
         }
 
-        if (!WriteResumeMetadata(config, layout, atlas_descs, out_error))
+        if (!WriteResumeMetadata(config, layout, import_result, atlas_descs, out_error))
         {
             return false;
         }
 
         return true;
+    }
+
+    bool BakeOutputWriter::WriteImportSummary(const BakeSceneImportResult& import_result,
+                                              const BakeOutputLayout& layout,
+                                              std::wstring& out_error) const
+    {
+        nlohmann::json root{};
+        root["schema_version"] = kManifestSchemaVersion;
+        root["source_scene"] = ToJsonPathString(import_result.scene_path);
+        root["load_succeeded"] = import_result.load_succeeded;
+        root["node_count"] = import_result.node_count;
+        root["mesh_count"] = import_result.mesh_count;
+        root["instance_primitive_count"] = import_result.instance_primitive_count;
+        root["valid_lightmap_primitive_count"] = import_result.valid_lightmap_primitive_count;
+        root["validation_status"] = ResolveValidationStatus(import_result);
+
+        root["errors"] = nlohmann::json::array();
+        for (const BakeSceneValidationMessage& message : import_result.errors)
+        {
+            root["errors"].push_back(ToJson(message));
+        }
+
+        root["warnings"] = nlohmann::json::array();
+        for (const BakeSceneValidationMessage& message : import_result.warnings)
+        {
+            root["warnings"].push_back(ToJson(message));
+        }
+
+        root["primitives"] = nlohmann::json::array();
+        for (const BakePrimitiveImportInfo& primitive : import_result.primitive_instances)
+        {
+            nlohmann::json primitive_json{
+                {"node_key", primitive.stable_node_key},
+                {"primitive_hash", primitive.primitive_hash},
+                {"mesh_index", primitive.mesh_index},
+                {"primitive_index", primitive.primitive_index},
+                {"material_index", primitive.material_index},
+                {"node_name", primitive.node_name},
+                {"mesh_name", primitive.mesh_name},
+                {"vertex_count", primitive.vertex_count},
+                {"index_count", primitive.index_count},
+                {"has_texcoord0", primitive.has_texcoord0},
+                {"has_texcoord1", primitive.has_texcoord1},
+                {"can_emit_lightmap_binding", primitive.can_emit_lightmap_binding},
+                {"uv1_min", ToJson(primitive.uv1_min)},
+                {"uv1_max", ToJson(primitive.uv1_max)},
+                {"uv1_out_of_range_vertex_count", primitive.uv1_out_of_range_vertex_count},
+                {"uv1_non_finite_vertex_count", primitive.uv1_non_finite_vertex_count},
+                {"degenerate_uv_triangle_count", primitive.degenerate_uv_triangle_count},
+                {"degenerate_position_triangle_count", primitive.degenerate_position_triangle_count},
+                {"errors", nlohmann::json::array()},
+                {"warnings", nlohmann::json::array()},
+            };
+
+            for (const BakeSceneValidationMessage& message : primitive.errors)
+            {
+                primitive_json["errors"].push_back(ToJson(message));
+            }
+
+            for (const BakeSceneValidationMessage& message : primitive.warnings)
+            {
+                primitive_json["warnings"].push_back(ToJson(message));
+            }
+
+            root["primitives"].push_back(std::move(primitive_json));
+        }
+
+        return WriteJsonFile(layout.root / std::filesystem::path(kImportSummaryRelativePath), root, out_error);
     }
 
     bool BakeOutputWriter::EnsurePlaceholderAtlas(const BakeOutputLayout& layout,
@@ -194,6 +327,7 @@ namespace LightingBaker
 
     bool BakeOutputWriter::WriteManifest(const BakeJobConfig& config,
                                          const BakeOutputLayout& layout,
+                                         const BakeSceneImportResult& import_result,
                                          const std::vector<BakePublishedAtlasDesc>& atlas_descs,
                                          const std::vector<BakePublishedBindingDesc>& binding_descs,
                                          std::wstring& out_error) const
@@ -217,12 +351,19 @@ namespace LightingBaker
         root["output"] = {
             {"root", ToJsonPathString(layout.root)},
             {"cache_file", kResumeMetadataRelativePath},
+            {"import_summary_file", kImportSummaryRelativePath},
             {"bootstrap_placeholder_payload", true},
         };
+        root["scene"] = {
+            {"node_count", import_result.node_count},
+            {"mesh_count", import_result.mesh_count},
+            {"instance_primitive_count", import_result.instance_primitive_count},
+            {"valid_lightmap_primitive_count", import_result.valid_lightmap_primitive_count},
+        };
         root["validation"] = {
-            {"scene_import", "pending"},
-            {"uv1", "pending"},
-            {"bindings", "pending"},
+            {"status", ResolveValidationStatus(import_result)},
+            {"error_count", CountErrors(import_result)},
+            {"warning_count", CountWarnings(import_result)},
         };
         root["atlases"] = nlohmann::json::array();
         for (const BakePublishedAtlasDesc& atlas_desc : atlas_descs)
@@ -259,6 +400,7 @@ namespace LightingBaker
 
     bool BakeOutputWriter::WriteResumeMetadata(const BakeJobConfig& config,
                                                const BakeOutputLayout& layout,
+                                               const BakeSceneImportResult& import_result,
                                                const std::vector<BakePublishedAtlasDesc>& atlas_descs,
                                                std::wstring& out_error) const
     {
@@ -283,6 +425,13 @@ namespace LightingBaker
             {"target_samples", config.target_samples},
             {"has_accumulation_cache", false},
         };
+        cache_root["scene"] = {
+            {"node_count", import_result.node_count},
+            {"mesh_count", import_result.mesh_count},
+            {"instance_primitive_count", import_result.instance_primitive_count},
+            {"valid_lightmap_primitive_count", import_result.valid_lightmap_primitive_count},
+            {"validation_status", ResolveValidationStatus(import_result)},
+        };
         cache_root["published_atlases"] = nlohmann::json::array();
         for (const BakePublishedAtlasDesc& atlas_desc : atlas_descs)
         {
@@ -295,6 +444,7 @@ namespace LightingBaker
         }
         cache_root["cache_files"] = {
             {"manifest", "../manifest.json"},
+            {"import_summary", "../debug/import_summary.json"},
             {"accumulation", nlohmann::json::array()},
             {"sample_count", nlohmann::json::array()},
             {"variance", nlohmann::json::array()},

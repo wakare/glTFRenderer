@@ -172,6 +172,7 @@
     <ClCompile Include="App\LightingBakerApp.cpp" />
     <ClCompile Include="LightingBakerMain.cpp" />
     <ClCompile Include="Output\BakeOutputWriter.cpp" />
+    <ClCompile Include="Scene\BakeSceneImporter.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="App\BakeJobConfig.h" />
