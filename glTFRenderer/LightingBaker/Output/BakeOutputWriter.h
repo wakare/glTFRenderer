@@ -64,7 +64,7 @@ namespace LightingBaker
     {
         unsigned completed_samples{0};
         bool has_accumulation_cache{false};
-        bool bootstrap_placeholder_payload{true};
+        bool bootstrap_initial_payload{true};
     };
 
     class BakeOutputWriter

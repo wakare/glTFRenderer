@@ -268,15 +268,15 @@ The current scaffold already writes:
 - `cache/sample_count_00.r32ui.bin`
 - `cache/variance_00.r32f.bin`
 
-The current shipped step is now "`--resume` validation plus progressive continuation through a placeholder integrator":
+The current shipped step is now "`--resume` validation plus progressive continuation through DXR atlas-domain diffuse path tracing`":
 
 - re-import the scene and rebuild atlas texel records
 - validate `resume.json`, texel record counts, cache file sizes, and key bake parameters
 - allocate `accum`, `sample_count`, and `variance` in atlas-pixel space instead of valid-texel count space so cache files share the same resolution contract as the published atlas
-- once validation passes, continue from the previous sample count with an atlas-domain `debug hemisphere` placeholder integrator and refresh `manifest.json`, `resume.json`, and the published atlas
+- once validation passes, continue from the previous sample count with an atlas-domain DXR dispatch and refresh `manifest.json`, `resume.json`, and the published atlas
 - stop advancing the cache once the target sample count is reached, while keeping metadata and the published atlas consistent
 
-The real DXR atlas-domain path tracing pass is still a later stage. The current placeholder integrator exists only to validate the progressive bake, cache layout, sidecar package, and runtime import contract end to end.
+The baker no longer depends on the `debug hemisphere` placeholder integrator. The current minimum solver is already runnable DXR atlas-domain diffuse path tracing with factor materials and `baseColorTexture` sampling. Remaining gaps include normal maps, metallic-roughness textures, emissive textures, explicit direct-light sampling, and more advanced importance sampling strategies.
 
 Even if the internal cache format changes later, `resume.json` should remain the single entry point so DXR bake passes and tools do not hardcode file names.
 
@@ -331,7 +331,7 @@ The key architectural shift is this:
 - support static meshes
 - implement direct light, environment, and diffuse bounces
 - support full-scene progressive accumulation / pause / resume
-- before the DXR bake pass lands, keep an atlas-domain `debug hemisphere` placeholder integrator to validate the cache / package / runtime contract
+- the atlas-domain DXR diffuse path tracing pass is now live; the next work is to deepen material support, direct-light evaluation, and sampling strategy quality
 
 ### Phase E: Offline export
 
@@ -365,12 +365,12 @@ This is an implementation staging decision, not a long-term capability reduction
 
 ## 9. Current Conclusion
 
-From the current codebase, `LightingBaker` has moved beyond pure planning into a runnable scaffold: the standalone project, UV1/lightmap binding path, atlas texel records, sidecar writer, runtime importer, `--resume` validation, and an atlas-domain progressive placeholder integrator are all wired up.
+From the current codebase, `LightingBaker` has moved beyond pure planning into a runnable DXR prototype: the standalone project, UV1/lightmap binding path, atlas texel records, sidecar writer, runtime importer, `--resume` validation, and atlas-domain progressive DXR diffuse path tracing are all wired up.
 
 The remaining critical path is now:
 
 1. modern `RendererCore` RT command execution
-2. replacing the current `debug hemisphere` placeholder integrator with a real DXR atlas-domain path tracing pass
-3. adding GPU readback and true baked radiance export instead of continuing to rely on CPU placeholder output
+2. extending the current DXR atlas-domain path tracing pass with broader material and lighting support
+3. continuing to improve GPU readback, published atlas codecs, and final baked radiance export
 
-The value of the current placeholder progressive pipeline is not to replace DXR. Its value is to lock down the cache / package / runtime contract first, so porting the existing DXR/path-tracing prototype becomes a solver replacement instead of a full pipeline rewrite.
+The value of the current progressive pipeline is no longer limited to locking down the cache / package / runtime contract. It is now the live DXR lightmap-baker path that future work will extend with direct lighting, richer material inputs, and runtime-oriented compression.

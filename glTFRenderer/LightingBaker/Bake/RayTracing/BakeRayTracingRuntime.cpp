@@ -46,6 +46,28 @@ namespace LightingBaker
                 static_cast<RHIResourceUsageFlags>(RUF_INDEX_BUFFER | RUF_TRANSFER_DST | RUF_RAY_TRACING)
             };
         }
+
+        template<typename T>
+        bool CreateStructuredSceneBuffer(RendererInterface::ResourceOperator& resource_operator,
+                                         const char* name,
+                                         const std::vector<T>& data,
+                                         RendererInterface::BufferHandle& out_handle)
+        {
+            out_handle = {};
+            if (data.empty())
+            {
+                return false;
+            }
+
+            RendererInterface::BufferDesc buffer_desc{};
+            buffer_desc.name = name;
+            buffer_desc.usage = RendererInterface::USAGE_SRV;
+            buffer_desc.type = RendererInterface::DEFAULT;
+            buffer_desc.size = data.size() * sizeof(T);
+            buffer_desc.data = const_cast<T*>(data.data());
+            out_handle = resource_operator.CreateBuffer(buffer_desc);
+            return out_handle.IsValid();
+        }
     }
 
     bool BakeRayTracingRuntimeBuildResult::HasErrors() const
@@ -61,6 +83,10 @@ namespace LightingBaker
     void BakeRayTracingRuntimeBuildResult::Shutdown()
     {
         acceleration_structure.reset();
+        scene_vertex_buffer_handle = {};
+        scene_index_buffer_handle = {};
+        scene_instance_buffer_handle = {};
+        material_texture_handles.clear();
         vertex_buffers.clear();
         index_buffers.clear();
 
@@ -198,6 +224,10 @@ namespace LightingBaker
         out_result.uploaded_instance_count = scene_desc.instances.size();
         out_result.frame_slot_count = resource_operator.GetFrameSlotCount();
         out_result.swapchain_image_count = resource_operator.GetSwapchainImageCount();
+        out_result.uploaded_shading_vertex_count = ray_tracing_scene.shading_vertex_count;
+        out_result.uploaded_shading_index_count = ray_tracing_scene.shading_index_count;
+        out_result.uploaded_shading_instance_count = ray_tracing_scene.shading_instance_count;
+        out_result.uploaded_material_texture_count = ray_tracing_scene.material_texture_count;
 
         if (scene_desc.geometries.empty() || scene_desc.instances.empty())
         {
@@ -208,6 +238,82 @@ namespace LightingBaker
             resource_operator.WaitGPUIdle();
             return false;
         }
+
+        if (ray_tracing_scene.shading_vertices.empty() ||
+            ray_tracing_scene.shading_indices.empty() ||
+            ray_tracing_scene.shading_instances.empty())
+        {
+            out_result.errors.push_back(MakeMessage(
+                "rt_runtime_shading_scene_empty",
+                "Ray tracing runtime bootstrap requires non-empty shading buffers for the baker hit shader."));
+            out_error = L"Ray tracing runtime bootstrap requires non-empty shading buffers for the baker hit shader.";
+            resource_operator.WaitGPUIdle();
+            return false;
+        }
+
+        if (!CreateStructuredSceneBuffer(resource_operator,
+                                         "LightingBaker_RT_SceneVertices",
+                                         ray_tracing_scene.shading_vertices,
+                                         out_result.scene_vertex_buffer_handle))
+        {
+            out_result.errors.push_back(MakeMessage(
+                "rt_runtime_scene_vertex_buffer_failed",
+                "Failed to allocate the baker shading vertex buffer."));
+            out_error = L"Failed to allocate the baker shading vertex buffer.";
+            resource_operator.WaitGPUIdle();
+            return false;
+        }
+
+        if (!CreateStructuredSceneBuffer(resource_operator,
+                                         "LightingBaker_RT_SceneIndices",
+                                         ray_tracing_scene.shading_indices,
+                                         out_result.scene_index_buffer_handle))
+        {
+            out_result.errors.push_back(MakeMessage(
+                "rt_runtime_scene_index_buffer_failed",
+                "Failed to allocate the baker shading index buffer."));
+            out_error = L"Failed to allocate the baker shading index buffer.";
+            resource_operator.WaitGPUIdle();
+            return false;
+        }
+
+        if (!CreateStructuredSceneBuffer(resource_operator,
+                                         "LightingBaker_RT_SceneInstances",
+                                         ray_tracing_scene.shading_instances,
+                                         out_result.scene_instance_buffer_handle))
+        {
+            out_result.errors.push_back(MakeMessage(
+                "rt_runtime_scene_instance_buffer_failed",
+                "Failed to allocate the baker shading instance buffer."));
+            out_error = L"Failed to allocate the baker shading instance buffer.";
+            resource_operator.WaitGPUIdle();
+            return false;
+        }
+
+        out_result.scene_vertex_buffer_created = true;
+        out_result.scene_index_buffer_created = true;
+        out_result.scene_instance_buffer_created = true;
+
+        out_result.material_texture_handles.clear();
+        out_result.material_texture_handles.reserve(ray_tracing_scene.material_texture_uris.size());
+        for (const std::string& texture_uri : ray_tracing_scene.material_texture_uris)
+        {
+            RendererInterface::TextureFileDesc texture_desc{};
+            texture_desc.uri = texture_uri;
+            const RendererInterface::TextureHandle texture_handle = resource_operator.CreateTexture(texture_desc);
+            if (!texture_handle.IsValid())
+            {
+                out_result.errors.push_back(MakeMessage(
+                    "rt_runtime_material_texture_failed",
+                    "Failed to allocate baker material texture resource."));
+                out_error = L"Failed to allocate a baker material texture resource.";
+                resource_operator.WaitGPUIdle();
+                return false;
+            }
+
+            out_result.material_texture_handles.push_back(texture_handle);
+        }
+        out_result.material_texture_table_created = !out_result.material_texture_handles.empty();
 
         out_result.acceleration_structure = RHIResourceFactory::CreateRHIResource<IRHIRayTracingAS>();
         if (!out_result.acceleration_structure)

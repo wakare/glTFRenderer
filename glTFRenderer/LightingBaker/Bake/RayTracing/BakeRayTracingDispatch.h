@@ -25,6 +25,10 @@ namespace LightingBaker
         std::filesystem::path shader_path{};
         std::string acceleration_structure_binding_name{"g_scene_as"};
         std::string texel_record_binding_name{"g_bake_texel_records"};
+        std::string scene_vertex_binding_name{"g_scene_vertices"};
+        std::string scene_index_binding_name{"g_scene_indices"};
+        std::string scene_instance_binding_name{"g_scene_instances"};
+        std::string material_texture_binding_name{"bindless_bake_material_textures"};
         std::string dispatch_constants_binding_name{"g_bake_dispatch_constants"};
         std::string output_binding_name{"g_bake_output"};
         std::string raygen_entry{"BakeRayGenMain"};
@@ -46,6 +50,10 @@ namespace LightingBaker
         std::size_t output_readback_size{0u};
         bool shader_path_resolved{false};
         bool texel_record_buffer_created{false};
+        bool scene_vertex_buffer_bound{false};
+        bool scene_index_buffer_bound{false};
+        bool scene_instance_buffer_bound{false};
+        bool material_texture_table_bound{false};
         bool dispatch_constants_buffer_created{false};
         bool output_render_target_created{false};
         bool render_pass_created{false};

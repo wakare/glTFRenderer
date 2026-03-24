@@ -381,7 +381,7 @@ namespace LightingBaker
         BakePackageProgressState progress_state{};
         progress_state.completed_samples = accumulation_run_result.completed_samples;
         progress_state.has_accumulation_cache = true;
-        progress_state.bootstrap_placeholder_payload = false;
+        progress_state.bootstrap_initial_payload = false;
         error_message.clear();
         if (!output_writer.RefreshPackageMetadata(config,
                                                  output_layout,
@@ -423,7 +423,7 @@ namespace LightingBaker
             << L"  ray tracing scene summary: " << ray_tracing_scene_summary_path.native() << L"\n"
             << L"  ray tracing runtime summary: " << ray_tracing_runtime_summary_path.native() << L"\n"
             << L"  ray tracing dispatch summary: " << ray_tracing_dispatch_summary_path.native() << L"\n"
-            << L"  preview integrator: dxr atlas dispatch placeholder\n";
+            << L"  preview integrator: dxr atlas diffuse path tracing\n";
 
         return kExitSuccess;
     }
@@ -479,6 +479,10 @@ namespace LightingBaker
             << L"  vertices: " << ray_tracing_scene.vertex_count << L"\n"
             << L"  indices: " << ray_tracing_scene.index_count << L"\n"
             << L"  triangles: " << ray_tracing_scene.triangle_count << L"\n"
+            << L"  shading vertices: " << ray_tracing_scene.shading_vertex_count << L"\n"
+            << L"  shading indices: " << ray_tracing_scene.shading_index_count << L"\n"
+            << L"  shading instances: " << ray_tracing_scene.shading_instance_count << L"\n"
+            << L"  material textures: " << ray_tracing_scene.material_texture_count << L"\n"
             << L"  skipped primitives: " << ray_tracing_scene.skipped_primitive_count << L"\n"
             << L"  warnings: " << CountWarnings(ray_tracing_scene) << L"\n"
             << L"  errors: " << CountErrors(ray_tracing_scene) << L"\n";
@@ -498,11 +502,19 @@ namespace LightingBaker
             << L"  uploaded instances: " << ray_tracing_runtime.uploaded_instance_count << L"\n"
             << L"  uploaded vertices: " << ray_tracing_runtime.uploaded_vertex_count << L"\n"
             << L"  uploaded indices: " << ray_tracing_runtime.uploaded_index_count << L"\n"
+            << L"  uploaded shading vertices: " << ray_tracing_runtime.uploaded_shading_vertex_count << L"\n"
+            << L"  uploaded shading indices: " << ray_tracing_runtime.uploaded_shading_index_count << L"\n"
+            << L"  uploaded shading instances: " << ray_tracing_runtime.uploaded_shading_instance_count << L"\n"
+            << L"  uploaded material textures: " << ray_tracing_runtime.uploaded_material_texture_count << L"\n"
             << L"  window created: " << (ray_tracing_runtime.window_created ? L"true" : L"false") << L"\n"
             << L"  resource operator ready: "
             << (ray_tracing_runtime.resource_operator_initialized ? L"true" : L"false") << L"\n"
             << L"  acceleration structure ready: "
             << (ray_tracing_runtime.acceleration_structure_initialized ? L"true" : L"false") << L"\n"
+            << L"  scene vertex buffer created: " << (ray_tracing_runtime.scene_vertex_buffer_created ? L"true" : L"false") << L"\n"
+            << L"  scene index buffer created: " << (ray_tracing_runtime.scene_index_buffer_created ? L"true" : L"false") << L"\n"
+            << L"  scene instance buffer created: " << (ray_tracing_runtime.scene_instance_buffer_created ? L"true" : L"false") << L"\n"
+            << L"  material texture table created: " << (ray_tracing_runtime.material_texture_table_created ? L"true" : L"false") << L"\n"
             << L"  warnings: " << CountWarnings(ray_tracing_runtime) << L"\n"
             << L"  errors: " << CountErrors(ray_tracing_runtime) << L"\n";
     }
@@ -522,6 +534,10 @@ namespace LightingBaker
             << ray_tracing_dispatch.output_height << L"\n"
             << L"  texel record buffer created: "
             << (ray_tracing_dispatch.texel_record_buffer_created ? L"true" : L"false") << L"\n"
+            << L"  scene vertex buffer bound: " << (ray_tracing_dispatch.scene_vertex_buffer_bound ? L"true" : L"false") << L"\n"
+            << L"  scene index buffer bound: " << (ray_tracing_dispatch.scene_index_buffer_bound ? L"true" : L"false") << L"\n"
+            << L"  scene instance buffer bound: " << (ray_tracing_dispatch.scene_instance_buffer_bound ? L"true" : L"false") << L"\n"
+            << L"  material texture table bound: " << (ray_tracing_dispatch.material_texture_table_bound ? L"true" : L"false") << L"\n"
             << L"  dispatch constants buffer created: "
             << (ray_tracing_dispatch.dispatch_constants_buffer_created ? L"true" : L"false") << L"\n"
             << L"  render pass created: " << (ray_tracing_dispatch.render_pass_created ? L"true" : L"false") << L"\n"

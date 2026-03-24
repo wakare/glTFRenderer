@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include <vector>
 #include <utility>
 
 #include "SceneFileLoader/glTFLoader.h"
@@ -197,12 +198,141 @@ namespace LightingBaker
             return glm::fvec3(world_position.x, world_position.y, world_position.z);
         }
 
+        glm::fvec3 TransformNormal(const glm::fmat4x4& transform, const glm::fvec3& normal)
+        {
+            const glm::fmat3 normal_matrix = glm::transpose(glm::inverse(glm::fmat3(transform)));
+            const glm::fvec3 transformed = normal_matrix * normal;
+            const float transformed_length = glm::length(transformed);
+            if (!std::isfinite(transformed.x) || !std::isfinite(transformed.y) || !std::isfinite(transformed.z) ||
+                transformed_length <= 1e-8f)
+            {
+                return glm::fvec3(0.0f, 0.0f, 0.0f);
+            }
+
+            return transformed / transformed_length;
+        }
+
+        bool ResolveTextureUri(const glTFLoader& loader,
+                               const glTF_TextureInfo_Base& texture_info,
+                               std::string& out_texture_uri,
+                               std::string& out_error)
+        {
+            out_texture_uri.clear();
+            out_error.clear();
+            if (!texture_info.index.IsValid())
+            {
+                out_error = "Texture handle is invalid.";
+                return false;
+            }
+
+            const auto& textures = loader.GetTextures();
+            const unsigned texture_index = static_cast<unsigned>(loader.ResolveIndex(texture_info.index));
+            if (texture_index >= textures.size())
+            {
+                out_error = "Texture index is out of range.";
+                return false;
+            }
+
+            const auto& texture = *textures[texture_index];
+            if (!texture.source.IsValid())
+            {
+                out_error = "Texture source handle is invalid.";
+                return false;
+            }
+
+            const auto& images = loader.GetImages();
+            const unsigned image_index = static_cast<unsigned>(loader.ResolveIndex(texture.source));
+            if (image_index >= images.size())
+            {
+                out_error = "Texture image index is out of range.";
+                return false;
+            }
+
+            const auto& image = *images[image_index];
+            if (image.uri.empty())
+            {
+                out_error = "Embedded or buffer-view-backed images are not supported yet.";
+                return false;
+            }
+
+            const std::filesystem::path texture_path =
+                (std::filesystem::path(loader.GetSceneFileDirectory()) / std::filesystem::path(image.uri)).lexically_normal();
+            out_texture_uri = texture_path.string();
+            return true;
+        }
+
+        void PopulatePrimitiveMaterial(const glTFLoader& loader,
+                                       BakePrimitiveImportInfo& primitive,
+                                       BakeMaterialImportInfo& out_material)
+        {
+            out_material = BakeMaterialImportInfo{};
+            out_material.material_index = primitive.material_index;
+
+            if (primitive.material_index == kInvalidUnsigned)
+            {
+                return;
+            }
+
+            const auto& materials = loader.GetMaterials();
+            if (primitive.material_index >= materials.size() || !materials[primitive.material_index])
+            {
+                return;
+            }
+
+            const glTF_Element_Material& material = *materials[primitive.material_index];
+            out_material.base_color_factor = material.pbr.base_color_factor;
+            out_material.emissive_factor = material.emissive_factor;
+            out_material.metallic_factor = material.pbr.metallic_factor;
+            out_material.roughness_factor = material.pbr.roughness_factor;
+            out_material.double_sided = material.double_sided;
+            out_material.alpha_masked = material.alpha_mode == "MASK";
+            out_material.alpha_blended = material.alpha_mode == "BLEND";
+
+            const auto& base_color_texture = material.pbr.base_color_texture;
+            if (!base_color_texture.index.IsValid())
+            {
+                return;
+            }
+
+            out_material.base_color_texture_texcoord = base_color_texture.texCoord_index;
+            if (base_color_texture.texCoord_index > 1u)
+            {
+                AddWarning(primitive,
+                           "base_color_texture_texcoord",
+                           "baseColorTexture uses TEXCOORD index > 1, which is not supported yet. Falling back to factor-only shading.");
+                return;
+            }
+
+            std::string texture_uri{};
+            std::string texture_error{};
+            if (!ResolveTextureUri(loader, base_color_texture, texture_uri, texture_error))
+            {
+                AddWarning(primitive,
+                           "base_color_texture_source",
+                           "Failed to resolve baseColorTexture for the baker: " + texture_error);
+                return;
+            }
+
+            if (!std::filesystem::exists(texture_uri))
+            {
+                AddWarning(primitive,
+                           "base_color_texture_missing",
+                           "Resolved baseColorTexture file does not exist on disk. Falling back to factor-only shading.");
+                return;
+            }
+
+            out_material.has_base_color_texture = true;
+            out_material.base_color_texture_uri = std::move(texture_uri);
+        }
+
         void ValidatePrimitiveGeometry(const glTFLoader& loader,
                                        const glTF_Primitive& primitive,
                                        const glm::fmat4x4& world_transform,
                                        BakePrimitiveImportInfo& out_primitive)
         {
             const auto it_position = primitive.attributes.find(glTF_Attribute_POSITION::attribute_type_id);
+            const auto it_normal = primitive.attributes.find(glTF_Attribute_NORMAL::attribute_type_id);
+            const auto it_uv0 = primitive.attributes.find(glTF_Attribute_TEXCOORD_0::attribute_type_id);
             const auto it_uv1 = primitive.attributes.find(glTF_Attribute_TEXCOORD_1::attribute_type_id);
             if (it_position == primitive.attributes.end() || it_uv1 == primitive.attributes.end() || !primitive.indices.IsValid())
             {
@@ -210,6 +340,8 @@ namespace LightingBaker
             }
 
             AccessorDataView position_view{};
+            AccessorDataView normal_view{};
+            AccessorDataView uv0_view{};
             AccessorDataView uv1_view{};
             AccessorDataView index_view{};
             std::string accessor_error{};
@@ -227,6 +359,63 @@ namespace LightingBaker
             {
                 AddError(out_primitive, "index_accessor", accessor_error);
                 return;
+            }
+
+            bool use_normal_accessor = false;
+            bool use_uv0_accessor = false;
+            if (it_normal != primitive.attributes.end())
+            {
+                out_primitive.has_normals = true;
+                if (!ResolveAccessorDataView(loader, it_normal->second, normal_view, accessor_error))
+                {
+                    AddWarning(out_primitive,
+                               "normal_accessor",
+                               "Failed to resolve NORMAL accessor. Falling back to generated shading normals.");
+                }
+                else if (normal_view.accessor->component_type != glTFAccessor::glTF_Accessor_Component_Type::EFloat ||
+                         normal_view.accessor->element_type != glTFAccessor::glTF_Accessor_Element_Type::EVec3)
+                {
+                    AddWarning(out_primitive,
+                               "normal_format",
+                               "NORMAL accessor must be float3. Falling back to generated shading normals.");
+                }
+                else if (normal_view.count != position_view.count)
+                {
+                    AddWarning(out_primitive,
+                               "normal_count_mismatch",
+                               "NORMAL count does not match POSITION count. Falling back to generated shading normals.");
+                }
+                else
+                {
+                    use_normal_accessor = true;
+                }
+            }
+
+            if (it_uv0 != primitive.attributes.end())
+            {
+                if (!ResolveAccessorDataView(loader, it_uv0->second, uv0_view, accessor_error))
+                {
+                    AddWarning(out_primitive,
+                               "uv0_accessor",
+                               "Failed to resolve TEXCOORD_0 accessor. Ignoring TEXCOORD_0 for baker shading textures.");
+                }
+                else if (uv0_view.accessor->component_type != glTFAccessor::glTF_Accessor_Component_Type::EFloat ||
+                         uv0_view.accessor->element_type != glTFAccessor::glTF_Accessor_Element_Type::EVec2)
+                {
+                    AddWarning(out_primitive,
+                               "uv0_format",
+                               "TEXCOORD_0 accessor must be float2 for baker shading textures. Ignoring TEXCOORD_0.");
+                }
+                else if (uv0_view.count != position_view.count)
+                {
+                    AddWarning(out_primitive,
+                               "uv0_count_mismatch",
+                               "TEXCOORD_0 count does not match POSITION count. Ignoring TEXCOORD_0 for baker shading textures.");
+                }
+                else
+                {
+                    use_uv0_accessor = true;
+                }
             }
 
             if (position_view.accessor->component_type != glTFAccessor::glTF_Accessor_Component_Type::EFloat ||
@@ -270,8 +459,15 @@ namespace LightingBaker
             out_primitive.vertex_count = static_cast<unsigned>(position_view.count);
             out_primitive.index_count = static_cast<unsigned>(index_view.count);
             out_primitive.geometry.world_positions.resize(position_view.count);
+            out_primitive.geometry.world_normals.resize(position_view.count, glm::fvec3(0.0f, 0.0f, 0.0f));
+            if (use_uv0_accessor)
+            {
+                out_primitive.geometry.uv0_vertices.resize(position_view.count);
+            }
             out_primitive.geometry.uv1_vertices.resize(uv1_view.count);
             out_primitive.geometry.triangle_indices.resize(index_view.count);
+            std::vector<std::uint8_t> normal_valid_mask(position_view.count, 0u);
+            std::vector<glm::fvec3> generated_normal_accum(position_view.count, glm::fvec3(0.0f, 0.0f, 0.0f));
 
             bool uv_bounds_initialized = false;
             glm::fvec2 uv_min{0.0f, 0.0f};
@@ -294,6 +490,35 @@ namespace LightingBaker
 
                 out_primitive.geometry.world_positions[vertex_index] = TransformPoint(world_transform, position);
                 out_primitive.geometry.uv1_vertices[vertex_index] = uv;
+                if (use_uv0_accessor)
+                {
+                    glm::fvec2 uv0{};
+                    if (!ReadFloat2(uv0_view, vertex_index, uv0))
+                    {
+                        AddWarning(out_primitive,
+                                   "uv0_read",
+                                   "Failed to read TEXCOORD_0 vertex data. Ignoring TEXCOORD_0 for baker shading textures.");
+                        use_uv0_accessor = false;
+                        out_primitive.geometry.uv0_vertices.clear();
+                    }
+                    else
+                    {
+                        out_primitive.geometry.uv0_vertices[vertex_index] = uv0;
+                    }
+                }
+                if (use_normal_accessor)
+                {
+                    glm::fvec3 imported_normal{};
+                    if (ReadFloat3(normal_view, vertex_index, imported_normal))
+                    {
+                        const glm::fvec3 world_normal = TransformNormal(world_transform, imported_normal);
+                        if (glm::dot(world_normal, world_normal) > 1e-8f)
+                        {
+                            out_primitive.geometry.world_normals[vertex_index] = world_normal;
+                            normal_valid_mask[vertex_index] = 1u;
+                        }
+                    }
+                }
 
                 if (!std::isfinite(uv.x) || !std::isfinite(uv.y))
                 {
@@ -374,6 +599,27 @@ namespace LightingBaker
                 {
                     ++out_primitive.degenerate_position_triangle_count;
                 }
+                else
+                {
+                    generated_normal_accum[triangle_indices[0]] += normal_cross;
+                    generated_normal_accum[triangle_indices[1]] += normal_cross;
+                    generated_normal_accum[triangle_indices[2]] += normal_cross;
+                }
+            }
+
+            for (std::size_t vertex_index = 0; vertex_index < out_primitive.geometry.world_normals.size(); ++vertex_index)
+            {
+                if (normal_valid_mask[vertex_index] != 0u)
+                {
+                    continue;
+                }
+
+                const glm::fvec3 generated_normal = generated_normal_accum[vertex_index];
+                const float generated_length = glm::length(generated_normal);
+                out_primitive.geometry.world_normals[vertex_index] =
+                    generated_length > 1e-8f
+                        ? (generated_normal / generated_length)
+                        : glm::fvec3(0.0f, 1.0f, 0.0f);
             }
 
             if (out_primitive.uv1_non_finite_vertex_count > 0)
@@ -427,7 +673,27 @@ namespace LightingBaker
                 AddError(out_primitive, "missing_uv1", "Primitive is missing TEXCOORD_1.");
             }
 
+            PopulatePrimitiveMaterial(loader, out_primitive, out_primitive.material);
             ValidatePrimitiveGeometry(loader, primitive, world_transform, out_primitive);
+            if (out_primitive.material.has_base_color_texture)
+            {
+                const bool has_required_texcoord =
+                    out_primitive.material.base_color_texture_texcoord == 0u
+                        ? out_primitive.geometry.uv0_vertices.size() == out_primitive.geometry.world_positions.size()
+                        : out_primitive.geometry.uv1_vertices.size() == out_primitive.geometry.world_positions.size();
+                if (!has_required_texcoord)
+                {
+                    AddWarning(out_primitive,
+                               out_primitive.material.base_color_texture_texcoord == 0u
+                                   ? "base_color_texture_missing_uv0"
+                                   : "base_color_texture_missing_uv1",
+                               out_primitive.material.base_color_texture_texcoord == 0u
+                                   ? "baseColorTexture references TEXCOORD_0, but a valid TEXCOORD_0 stream was not imported. Falling back to factor-only shading."
+                                   : "baseColorTexture references TEXCOORD_1, but a valid TEXCOORD_1 stream was not imported. Falling back to factor-only shading.");
+                    out_primitive.material.has_base_color_texture = false;
+                    out_primitive.material.base_color_texture_uri.clear();
+                }
+            }
             out_primitive.can_emit_lightmap_binding = out_primitive.errors.empty();
         }
 

@@ -22,15 +22,33 @@ namespace LightingBaker
     struct BakePrimitiveGeometryData
     {
         std::vector<glm::fvec3> world_positions{};
+        std::vector<glm::fvec3> world_normals{};
+        std::vector<glm::fvec2> uv0_vertices{};
         std::vector<glm::fvec2> uv1_vertices{};
         std::vector<unsigned> triangle_indices{};
 
         bool HasGeometry() const
         {
             return !world_positions.empty() &&
+                   world_positions.size() == world_normals.size() &&
                    world_positions.size() == uv1_vertices.size() &&
                    !triangle_indices.empty();
         }
+    };
+
+    struct BakeMaterialImportInfo
+    {
+        unsigned material_index{0xffffffffu};
+        glm::fvec4 base_color_factor{1.0f, 1.0f, 1.0f, 1.0f};
+        glm::fvec3 emissive_factor{0.0f, 0.0f, 0.0f};
+        float metallic_factor{1.0f};
+        float roughness_factor{1.0f};
+        unsigned base_color_texture_texcoord{0u};
+        bool has_base_color_texture{false};
+        bool double_sided{false};
+        bool alpha_masked{false};
+        bool alpha_blended{false};
+        std::string base_color_texture_uri{};
     };
 
     struct BakePrimitiveImportInfo
@@ -53,7 +71,9 @@ namespace LightingBaker
         unsigned uv1_non_finite_vertex_count{0};
         unsigned degenerate_uv_triangle_count{0};
         unsigned degenerate_position_triangle_count{0};
+        bool has_normals{false};
         BakePrimitiveGeometryData geometry{};
+        BakeMaterialImportInfo material{};
         std::vector<BakeSceneValidationMessage> errors{};
         std::vector<BakeSceneValidationMessage> warnings{};
     };

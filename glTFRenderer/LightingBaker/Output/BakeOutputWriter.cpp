@@ -409,7 +409,7 @@ namespace LightingBaker
         BakePackageProgressState progress_state{};
         progress_state.completed_samples = 0u;
         progress_state.has_accumulation_cache = !atlas_cache_descs.empty();
-        progress_state.bootstrap_placeholder_payload = true;
+        progress_state.bootstrap_initial_payload = true;
 
         if (!WriteManifest(config, layout, import_result, atlas_result, atlas_descs, binding_descs, progress_state, out_error))
         {
@@ -556,6 +556,10 @@ namespace LightingBaker
         root["vertex_count"] = ray_tracing_scene.vertex_count;
         root["index_count"] = ray_tracing_scene.index_count;
         root["triangle_count"] = ray_tracing_scene.triangle_count;
+        root["shading_vertex_count"] = ray_tracing_scene.shading_vertex_count;
+        root["shading_index_count"] = ray_tracing_scene.shading_index_count;
+        root["shading_instance_count"] = ray_tracing_scene.shading_instance_count;
+        root["material_texture_count"] = ray_tracing_scene.material_texture_count;
         root["skipped_primitive_count"] = ray_tracing_scene.skipped_primitive_count;
         root["validation_status"] = ray_tracing_scene.HasValidationErrors() ? "failed" : "passed";
         root["errors"] = nlohmann::json::array();
@@ -594,6 +598,11 @@ namespace LightingBaker
                 {"mesh_name", geometry.mesh_name},
             });
         }
+        root["material_texture_uris"] = nlohmann::json::array();
+        for (const std::string& texture_uri : ray_tracing_scene.material_texture_uris)
+        {
+            root["material_texture_uris"].push_back(texture_uri);
+        }
 
         return WriteJsonFile(
             layout.root / std::filesystem::path(kRayTracingSceneSummaryRelativePath),
@@ -616,9 +625,17 @@ namespace LightingBaker
         root["uploaded_instance_count"] = ray_tracing_runtime.uploaded_instance_count;
         root["uploaded_vertex_count"] = ray_tracing_runtime.uploaded_vertex_count;
         root["uploaded_index_count"] = ray_tracing_runtime.uploaded_index_count;
+        root["uploaded_shading_vertex_count"] = ray_tracing_runtime.uploaded_shading_vertex_count;
+        root["uploaded_shading_index_count"] = ray_tracing_runtime.uploaded_shading_index_count;
+        root["uploaded_shading_instance_count"] = ray_tracing_runtime.uploaded_shading_instance_count;
+        root["uploaded_material_texture_count"] = ray_tracing_runtime.uploaded_material_texture_count;
         root["window_created"] = ray_tracing_runtime.window_created;
         root["resource_operator_initialized"] = ray_tracing_runtime.resource_operator_initialized;
         root["acceleration_structure_initialized"] = ray_tracing_runtime.acceleration_structure_initialized;
+        root["scene_vertex_buffer_created"] = ray_tracing_runtime.scene_vertex_buffer_created;
+        root["scene_index_buffer_created"] = ray_tracing_runtime.scene_index_buffer_created;
+        root["scene_instance_buffer_created"] = ray_tracing_runtime.scene_instance_buffer_created;
+        root["material_texture_table_created"] = ray_tracing_runtime.material_texture_table_created;
         root["validation_status"] = ray_tracing_runtime.HasValidationErrors() ? "failed" : "passed";
         root["errors"] = nlohmann::json::array();
         for (const BakeSceneValidationMessage& message : ray_tracing_runtime.errors)
@@ -647,6 +664,10 @@ namespace LightingBaker
         root["shader_file"] = ToJsonPathString(ray_tracing_dispatch.shader_path);
         root["acceleration_structure_binding"] = ray_tracing_dispatch.acceleration_structure_binding_name;
         root["texel_record_binding"] = ray_tracing_dispatch.texel_record_binding_name;
+        root["scene_vertex_binding"] = ray_tracing_dispatch.scene_vertex_binding_name;
+        root["scene_index_binding"] = ray_tracing_dispatch.scene_index_binding_name;
+        root["scene_instance_binding"] = ray_tracing_dispatch.scene_instance_binding_name;
+        root["material_texture_binding"] = ray_tracing_dispatch.material_texture_binding_name;
         root["dispatch_constants_binding"] = ray_tracing_dispatch.dispatch_constants_binding_name;
         root["output_binding"] = ray_tracing_dispatch.output_binding_name;
         root["raygen_entry"] = ray_tracing_dispatch.raygen_entry;
@@ -668,6 +689,10 @@ namespace LightingBaker
         root["output_readback_size"] = ray_tracing_dispatch.output_readback_size;
         root["shader_path_resolved"] = ray_tracing_dispatch.shader_path_resolved;
         root["texel_record_buffer_created"] = ray_tracing_dispatch.texel_record_buffer_created;
+        root["scene_vertex_buffer_bound"] = ray_tracing_dispatch.scene_vertex_buffer_bound;
+        root["scene_index_buffer_bound"] = ray_tracing_dispatch.scene_index_buffer_bound;
+        root["scene_instance_buffer_bound"] = ray_tracing_dispatch.scene_instance_buffer_bound;
+        root["material_texture_table_bound"] = ray_tracing_dispatch.material_texture_table_bound;
         root["dispatch_constants_buffer_created"] = ray_tracing_dispatch.dispatch_constants_buffer_created;
         root["output_render_target_created"] = ray_tracing_dispatch.output_render_target_created;
         root["render_pass_created"] = ray_tracing_dispatch.render_pass_created;
@@ -927,7 +952,7 @@ namespace LightingBaker
             {"raytracing_scene_summary_file", kRayTracingSceneSummaryRelativePath},
             {"raytracing_runtime_summary_file", kRayTracingRuntimeSummaryRelativePath},
             {"raytracing_dispatch_summary_file", kRayTracingDispatchSummaryRelativePath},
-            {"bootstrap_placeholder_payload", progress_state.bootstrap_placeholder_payload},
+            {"bootstrap_initial_payload", progress_state.bootstrap_initial_payload},
             {"atlas_cache_initialized", progress_state.has_accumulation_cache},
         };
         root["progress"] = {

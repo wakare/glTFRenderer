@@ -444,6 +444,17 @@ namespace LightingBaker
             return false;
         }
 
+        if (!runtime_result.scene_vertex_buffer_handle.IsValid() ||
+            !runtime_result.scene_index_buffer_handle.IsValid() ||
+            !runtime_result.scene_instance_buffer_handle.IsValid())
+        {
+            out_result.errors.push_back(MakeMessage(
+                "rt_dispatch_runtime_shading_buffers_missing",
+                "Ray tracing dispatch requires shading vertex, index, and instance buffers from the baker runtime."));
+            out_error = L"Ray tracing dispatch requires shading vertex, index, and instance buffers from the baker runtime.";
+            return false;
+        }
+
         if (atlas_result.HasValidationErrors())
         {
             out_result.errors.push_back(MakeMessage(
@@ -606,7 +617,7 @@ namespace LightingBaker
         render_pass_desc.type = RendererInterface::RenderPassType::RAY_TRACING;
         render_pass_desc.shaders.emplace(RendererInterface::RAY_TRACING_SHADER, shader_handle);
         render_pass_desc.ray_tracing_desc = RendererInterface::RayTracingPassDesc{};
-        render_pass_desc.ray_tracing_desc->config.payload_size = sizeof(float) * 4u;
+        render_pass_desc.ray_tracing_desc->config.payload_size = sizeof(float) * 12u;
         render_pass_desc.ray_tracing_desc->config.attribute_size = sizeof(float) * 2u;
         render_pass_desc.ray_tracing_desc->config.max_recursion_count = 1u;
         render_pass_desc.ray_tracing_desc->export_function_names = {
@@ -695,6 +706,39 @@ namespace LightingBaker
         texel_record_binding.count = out_result.dense_texel_record_count;
         texel_record_binding.is_structured_buffer = true;
         draw_desc.buffer_resources.emplace(out_result.texel_record_binding_name, texel_record_binding);
+        out_result.scene_vertex_buffer_bound = true;
+
+        RendererInterface::BufferBindingDesc scene_vertex_binding{};
+        scene_vertex_binding.buffer_handle = runtime_result.scene_vertex_buffer_handle;
+        scene_vertex_binding.binding_type = RendererInterface::BufferBindingDesc::SRV;
+        scene_vertex_binding.stride = sizeof(BakeRayTracingSceneVertexGPU);
+        scene_vertex_binding.count = static_cast<unsigned>(runtime_result.uploaded_shading_vertex_count);
+        scene_vertex_binding.is_structured_buffer = true;
+        draw_desc.buffer_resources.emplace(out_result.scene_vertex_binding_name, scene_vertex_binding);
+
+        out_result.scene_index_buffer_bound = true;
+        RendererInterface::BufferBindingDesc scene_index_binding{};
+        scene_index_binding.buffer_handle = runtime_result.scene_index_buffer_handle;
+        scene_index_binding.binding_type = RendererInterface::BufferBindingDesc::SRV;
+        scene_index_binding.stride = sizeof(std::uint32_t);
+        scene_index_binding.count = static_cast<unsigned>(runtime_result.uploaded_shading_index_count);
+        scene_index_binding.is_structured_buffer = true;
+        draw_desc.buffer_resources.emplace(out_result.scene_index_binding_name, scene_index_binding);
+
+        out_result.scene_instance_buffer_bound = true;
+        RendererInterface::BufferBindingDesc scene_instance_binding{};
+        scene_instance_binding.buffer_handle = runtime_result.scene_instance_buffer_handle;
+        scene_instance_binding.binding_type = RendererInterface::BufferBindingDesc::SRV;
+        scene_instance_binding.stride = sizeof(BakeRayTracingSceneInstanceGPU);
+        scene_instance_binding.count = static_cast<unsigned>(runtime_result.uploaded_shading_instance_count);
+        scene_instance_binding.is_structured_buffer = true;
+        draw_desc.buffer_resources.emplace(out_result.scene_instance_binding_name, scene_instance_binding);
+
+        out_result.material_texture_table_bound = true;
+        RendererInterface::TextureBindingDesc material_texture_binding{};
+        material_texture_binding.type = RendererInterface::TextureBindingDesc::SRV;
+        material_texture_binding.textures = runtime_result.material_texture_handles;
+        draw_desc.texture_resources.emplace(out_result.material_texture_binding_name, material_texture_binding);
 
         RendererInterface::BufferBindingDesc dispatch_constants_binding{};
         dispatch_constants_binding.buffer_handle = dispatch_constants_buffer_handle;
