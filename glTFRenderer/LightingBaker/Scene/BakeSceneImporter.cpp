@@ -261,6 +261,54 @@ namespace LightingBaker
             return true;
         }
 
+        bool ResolveSupportedMaterialTexture(const glTFLoader& loader,
+                                             BakePrimitiveImportInfo& primitive,
+                                             const glTF_TextureInfo_Base& texture_info,
+                                             const char* texture_label,
+                                             unsigned& out_texcoord_index,
+                                             bool& out_has_texture,
+                                             std::string& out_texture_uri)
+        {
+            out_texcoord_index = 0u;
+            out_has_texture = false;
+            out_texture_uri.clear();
+            if (!texture_info.index.IsValid())
+            {
+                return true;
+            }
+
+            out_texcoord_index = texture_info.texCoord_index;
+            if (texture_info.texCoord_index > 1u)
+            {
+                AddWarning(primitive,
+                           std::string(texture_label) + "_texcoord",
+                           std::string(texture_label) + " uses TEXCOORD index > 1, which is not supported yet. Falling back to factor-only shading.");
+                return true;
+            }
+
+            std::string texture_uri{};
+            std::string texture_error{};
+            if (!ResolveTextureUri(loader, texture_info, texture_uri, texture_error))
+            {
+                AddWarning(primitive,
+                           std::string(texture_label) + "_source",
+                           "Failed to resolve " + std::string(texture_label) + " for the baker: " + texture_error);
+                return true;
+            }
+
+            if (!std::filesystem::exists(texture_uri))
+            {
+                AddWarning(primitive,
+                           std::string(texture_label) + "_missing",
+                           "Resolved " + std::string(texture_label) + " file does not exist on disk. Falling back to factor-only shading.");
+                return true;
+            }
+
+            out_has_texture = true;
+            out_texture_uri = std::move(texture_uri);
+            return true;
+        }
+
         void PopulatePrimitiveMaterial(const glTFLoader& loader,
                                        BakePrimitiveImportInfo& primitive,
                                        BakeMaterialImportInfo& out_material)
@@ -287,42 +335,20 @@ namespace LightingBaker
             out_material.double_sided = material.double_sided;
             out_material.alpha_masked = material.alpha_mode == "MASK";
             out_material.alpha_blended = material.alpha_mode == "BLEND";
-
-            const auto& base_color_texture = material.pbr.base_color_texture;
-            if (!base_color_texture.index.IsValid())
-            {
-                return;
-            }
-
-            out_material.base_color_texture_texcoord = base_color_texture.texCoord_index;
-            if (base_color_texture.texCoord_index > 1u)
-            {
-                AddWarning(primitive,
-                           "base_color_texture_texcoord",
-                           "baseColorTexture uses TEXCOORD index > 1, which is not supported yet. Falling back to factor-only shading.");
-                return;
-            }
-
-            std::string texture_uri{};
-            std::string texture_error{};
-            if (!ResolveTextureUri(loader, base_color_texture, texture_uri, texture_error))
-            {
-                AddWarning(primitive,
-                           "base_color_texture_source",
-                           "Failed to resolve baseColorTexture for the baker: " + texture_error);
-                return;
-            }
-
-            if (!std::filesystem::exists(texture_uri))
-            {
-                AddWarning(primitive,
-                           "base_color_texture_missing",
-                           "Resolved baseColorTexture file does not exist on disk. Falling back to factor-only shading.");
-                return;
-            }
-
-            out_material.has_base_color_texture = true;
-            out_material.base_color_texture_uri = std::move(texture_uri);
+            ResolveSupportedMaterialTexture(loader,
+                                            primitive,
+                                            material.pbr.base_color_texture,
+                                            "baseColorTexture",
+                                            out_material.base_color_texture_texcoord,
+                                            out_material.has_base_color_texture,
+                                            out_material.base_color_texture_uri);
+            ResolveSupportedMaterialTexture(loader,
+                                            primitive,
+                                            material.emissive_texture,
+                                            "emissiveTexture",
+                                            out_material.emissive_texture_texcoord,
+                                            out_material.has_emissive_texture,
+                                            out_material.emissive_texture_uri);
         }
 
         void ValidatePrimitiveGeometry(const glTFLoader& loader,
@@ -692,6 +718,25 @@ namespace LightingBaker
                                    : "baseColorTexture references TEXCOORD_1, but a valid TEXCOORD_1 stream was not imported. Falling back to factor-only shading.");
                     out_primitive.material.has_base_color_texture = false;
                     out_primitive.material.base_color_texture_uri.clear();
+                }
+            }
+            if (out_primitive.material.has_emissive_texture)
+            {
+                const bool has_required_texcoord =
+                    out_primitive.material.emissive_texture_texcoord == 0u
+                        ? out_primitive.geometry.uv0_vertices.size() == out_primitive.geometry.world_positions.size()
+                        : out_primitive.geometry.uv1_vertices.size() == out_primitive.geometry.world_positions.size();
+                if (!has_required_texcoord)
+                {
+                    AddWarning(out_primitive,
+                               out_primitive.material.emissive_texture_texcoord == 0u
+                                   ? "emissive_texture_missing_uv0"
+                                   : "emissive_texture_missing_uv1",
+                               out_primitive.material.emissive_texture_texcoord == 0u
+                                   ? "emissiveTexture references TEXCOORD_0, but a valid TEXCOORD_0 stream was not imported. Falling back to factor-only shading."
+                                   : "emissiveTexture references TEXCOORD_1, but a valid TEXCOORD_1 stream was not imported. Falling back to factor-only shading.");
+                    out_primitive.material.has_emissive_texture = false;
+                    out_primitive.material.emissive_texture_uri.clear();
                 }
             }
             out_primitive.can_emit_lightmap_binding = out_primitive.errors.empty();

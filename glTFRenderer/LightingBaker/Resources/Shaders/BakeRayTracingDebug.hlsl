@@ -177,6 +177,29 @@ float3 SampleBaseColor(BakeSceneInstance scene_instance, float2 material_uv)
     return max(sampled_base_color * base_color_factor, 0.0f);
 }
 
+float3 SampleEmissive(BakeSceneInstance scene_instance, float2 material_uv)
+{
+    const float3 emissive_factor = max(scene_instance.emissive_and_roughness.rgb, 0.0f);
+    const uint emissive_texture_index = scene_instance.texture_indices_and_texcoords.z;
+    if (emissive_texture_index == kMaterialTextureInvalidIndex)
+    {
+        return emissive_factor;
+    }
+
+    uint texture_width = 1u;
+    uint texture_height = 1u;
+    bindless_bake_material_textures[emissive_texture_index].GetDimensions(texture_width, texture_height);
+    const float2 clamped_uv = saturate(material_uv);
+    const float2 pixel_coord = min(
+        clamped_uv * float2(texture_width, texture_height),
+        float2(texture_width - 1u, texture_height - 1u));
+    const float3 sampled_emissive =
+        bindless_bake_material_textures[emissive_texture_index]
+            .Load(int3(uint2(pixel_coord), 0))
+            .rgb;
+    return max(sampled_emissive * emissive_factor, 0.0f);
+}
+
 [shader("raygeneration")]
 void BakeRayGenMain()
 {
@@ -336,6 +359,12 @@ void BakeClosestHitMain(inout BakePayload payload, in BuiltInTriangleIntersectio
         vertex2,
         barycentrics,
         scene_instance.texture_indices_and_texcoords.y);
+    const float2 emissive_uv = SelectMaterialTexcoord(
+        vertex0,
+        vertex1,
+        vertex2,
+        barycentrics,
+        scene_instance.texture_indices_and_texcoords.w);
 
     const float3 edge01 = vertex1.world_position.xyz - vertex0.world_position.xyz;
     const float3 edge02 = vertex2.world_position.xyz - vertex0.world_position.xyz;
@@ -359,7 +388,7 @@ void BakeClosestHitMain(inout BakePayload payload, in BuiltInTriangleIntersectio
     }
 
     const float3 base_color = SampleBaseColor(scene_instance, material_uv);
-    const float3 emissive = max(scene_instance.emissive_and_roughness.rgb, 0.0f);
+    const float3 emissive = SampleEmissive(scene_instance, emissive_uv);
     const float3 visible_albedo = (!front_face && !double_sided) ? float3(0.0f, 0.0f, 0.0f) : base_color;
 
     payload.radiance_and_hit = float4(emissive, 1.0f);

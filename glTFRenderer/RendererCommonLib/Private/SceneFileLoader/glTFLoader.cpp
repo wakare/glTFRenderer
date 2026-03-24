@@ -362,12 +362,47 @@ bool glTFLoader::LoadFile(const std::string& file_path)
             GLTF_CHECK(false);
         }
 
-        if (raw_data.contains("normalTexture"))
+		if (raw_data.contains("normalTexture"))
         {
             glTF_PROCESS_TEXTURE_INFO(raw_data, "normalTexture", element->normal_texture)
         }
-        
-        // TODO: handle normal texture, occlusion texture, emissive texture, alpha mode and so on...
+
+        if (raw_data.contains("occlusionTexture"))
+        {
+            glTF_PROCESS_TEXTURE_INFO(raw_data, "occlusionTexture", element->occlusion_texture)
+            glTF_PROCESS_SCALAR(raw_data["occlusionTexture"], "strength", float, element->occlusion_texture.strength)
+        }
+
+        if (raw_data.contains("emissiveTexture"))
+        {
+            glTF_PROCESS_TEXTURE_INFO(raw_data, "emissiveTexture", element->emissive_texture)
+        }
+
+        if (raw_data.contains("emissiveFactor"))
+        {
+            std::vector<float> emissive_data = raw_data["emissiveFactor"].get<std::vector<float>>();
+            if (emissive_data.size() == 3u)
+            {
+                element->emissive_factor = {emissive_data[0], emissive_data[1], emissive_data[2]};
+            }
+            else
+            {
+                GLTF_CHECK(false);
+            }
+        }
+
+        if (raw_data.contains("alphaMode"))
+        {
+            element->alpha_mode = raw_data["alphaMode"].get<std::string>();
+        }
+
+        glTF_PROCESS_SCALAR(raw_data, "alphaCutoff", float, element->alpha_cutoff)
+
+        if (raw_data.contains("doubleSided"))
+        {
+            element->double_sided = raw_data["doubleSided"].get<bool>();
+        }
+
         m_materials.push_back(std::move(element));
     }
 
@@ -506,7 +541,7 @@ bool glTFLoader::LoadFile(const std::string& file_path)
         {
             if (m_scenes[i]->name == scene_name || m_scenes[i]->self_handle.node_name == scene_name)
             {
-                m_default_scene = i;
+                m_default_scene = static_cast<unsigned>(i);
                 find_default_scene = true;
                 break;
             }

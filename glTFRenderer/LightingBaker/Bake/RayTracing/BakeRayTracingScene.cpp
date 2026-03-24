@@ -63,6 +63,19 @@ namespace LightingBaker
 
         const VertexLayoutDeclaration position_only_layout = BuildPositionOnlyLayout();
         std::map<std::string, std::uint32_t> material_texture_index_by_uri{};
+        const auto register_material_texture =
+            [&material_texture_index_by_uri, &out_result](const std::string& texture_uri) -> std::uint32_t
+        {
+            const auto [texture_it, inserted] =
+                material_texture_index_by_uri.emplace(
+                    texture_uri,
+                    static_cast<std::uint32_t>(out_result.material_texture_uris.size()));
+            if (inserted)
+            {
+                out_result.material_texture_uris.push_back(texture_uri);
+            }
+            return texture_it->second;
+        };
 
         for (const BakePrimitiveImportInfo& primitive : import_result.primitive_instances)
         {
@@ -204,15 +217,13 @@ namespace LightingBaker
             std::uint32_t base_color_texture_index = BakeRayTracingSceneTextureInvalidIndex;
             if (primitive.material.has_base_color_texture && !primitive.material.base_color_texture_uri.empty())
             {
-                const auto [texture_it, inserted] =
-                    material_texture_index_by_uri.emplace(
-                        primitive.material.base_color_texture_uri,
-                        static_cast<std::uint32_t>(out_result.material_texture_uris.size()));
-                if (inserted)
-                {
-                    out_result.material_texture_uris.push_back(primitive.material.base_color_texture_uri);
-                }
-                base_color_texture_index = texture_it->second;
+                base_color_texture_index = register_material_texture(primitive.material.base_color_texture_uri);
+            }
+
+            std::uint32_t emissive_texture_index = BakeRayTracingSceneTextureInvalidIndex;
+            if (primitive.material.has_emissive_texture && !primitive.material.emissive_texture_uri.empty())
+            {
+                emissive_texture_index = register_material_texture(primitive.material.emissive_texture_uri);
             }
 
             BakeRayTracingSceneInstanceGPU shading_instance{};
@@ -225,8 +236,8 @@ namespace LightingBaker
             shading_instance.texture_indices_and_texcoords = {
                 base_color_texture_index,
                 primitive.material.base_color_texture_texcoord,
-                BakeRayTracingSceneTextureInvalidIndex,
-                0u,
+                emissive_texture_index,
+                primitive.material.emissive_texture_texcoord,
             };
             shading_instance.base_color = {
                 primitive.material.base_color_factor.x,

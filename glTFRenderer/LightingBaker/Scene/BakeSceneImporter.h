@@ -45,10 +45,13 @@ namespace LightingBaker
         float roughness_factor{1.0f};
         unsigned base_color_texture_texcoord{0u};
         bool has_base_color_texture{false};
+        unsigned emissive_texture_texcoord{0u};
+        bool has_emissive_texture{false};
         bool double_sided{false};
         bool alpha_masked{false};
         bool alpha_blended{false};
         std::string base_color_texture_uri{};
+        std::string emissive_texture_uri{};
     };
 
     struct BakePrimitiveImportInfo
