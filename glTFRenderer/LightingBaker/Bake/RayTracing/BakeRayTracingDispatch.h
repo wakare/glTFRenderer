@@ -15,12 +15,17 @@ namespace LightingBaker
         unsigned dispatch_width{0u};
         unsigned dispatch_height{0u};
         unsigned dispatch_depth{1u};
+        unsigned sample_index{0u};
+        unsigned sample_count{1u};
+        unsigned max_bounces{1u};
     };
 
     struct BakeRayTracingDispatchRunResult
     {
         std::filesystem::path shader_path{};
         std::string acceleration_structure_binding_name{"g_scene_as"};
+        std::string texel_record_binding_name{"g_bake_texel_records"};
+        std::string dispatch_constants_binding_name{"g_bake_dispatch_constants"};
         std::string output_binding_name{"g_bake_output"};
         std::string raygen_entry{"BakeRayGenMain"};
         std::string miss_entry{"BakeMissMain"};
@@ -28,14 +33,20 @@ namespace LightingBaker
         std::string hit_group_export{"BakeHitGroup"};
         unsigned atlas_resolution{0u};
         unsigned texel_record_count{0u};
+        unsigned dense_texel_record_count{0u};
         unsigned dispatch_width{0u};
         unsigned dispatch_height{0u};
         unsigned dispatch_depth{1u};
+        unsigned sample_index{0u};
+        unsigned sample_count{1u};
+        unsigned max_bounces{1u};
         unsigned output_width{0u};
         unsigned output_height{0u};
         unsigned output_row_pitch{0u};
         std::size_t output_readback_size{0u};
         bool shader_path_resolved{false};
+        bool texel_record_buffer_created{false};
+        bool dispatch_constants_buffer_created{false};
         bool output_render_target_created{false};
         bool render_pass_created{false};
         bool shader_table_initialized{false};

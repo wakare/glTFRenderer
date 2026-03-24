@@ -29,6 +29,31 @@ namespace LightingBaker
         constexpr char kDispatchGroupName[] = "LightingBaker";
         constexpr char kDispatchPassName[] = "BakeRayTracingDispatch";
         constexpr std::size_t kOutputChannelCount = 4u;
+        constexpr float kDefaultRayEpsilon = 0.01f;
+        constexpr float kDefaultSkyIntensity = 1.0f;
+        constexpr float kDefaultSkyGroundMix = 0.35f;
+
+        struct BakeRayTracingTexelRecordGPU
+        {
+            std::array<float, 4u> world_position_and_valid{0.0f, 0.0f, 0.0f, 0.0f};
+            std::array<float, 4u> geometric_normal_and_padding{0.0f, 1.0f, 0.0f, 0.0f};
+        };
+
+        static_assert(sizeof(BakeRayTracingTexelRecordGPU) == sizeof(float) * 8u);
+
+        struct BakeRayTracingDispatchConstantsGPU
+        {
+            std::uint32_t atlas_width{0u};
+            std::uint32_t atlas_height{0u};
+            std::uint32_t sample_index{0u};
+            std::uint32_t sample_count{1u};
+            std::uint32_t max_bounces{1u};
+            float ray_epsilon{kDefaultRayEpsilon};
+            float sky_intensity{kDefaultSkyIntensity};
+            float sky_ground_mix{kDefaultSkyGroundMix};
+        };
+
+        static_assert((sizeof(BakeRayTracingDispatchConstantsGPU) % 16u) == 0u);
 
         BakeSceneValidationMessage MakeMessage(std::string code, std::string message)
         {
@@ -86,6 +111,96 @@ namespace LightingBaker
             command.parameter.ray_tracing_dispatch_parameter.dispatch_height = height;
             command.parameter.ray_tracing_dispatch_parameter.dispatch_depth = depth;
             return command;
+        }
+
+        bool BuildDenseAtlasTexelRecords(const LightmapAtlasBuildResult& atlas_result,
+                                        unsigned atlas_width,
+                                        unsigned atlas_height,
+                                        std::vector<BakeRayTracingTexelRecordGPU>& out_records,
+                                        BakeRayTracingDispatchRunResult& out_result,
+                                        std::wstring& out_error)
+        {
+            const std::uint64_t pixel_count_u64 =
+                static_cast<std::uint64_t>(atlas_width) * static_cast<std::uint64_t>(atlas_height);
+            if (pixel_count_u64 == 0u)
+            {
+                out_result.errors.push_back(MakeMessage(
+                    "rt_dispatch_invalid_atlas_extent",
+                    "Bake ray tracing dispatch requires a non-zero atlas extent."));
+                out_error = L"Bake ray tracing dispatch requires a non-zero atlas extent.";
+                return false;
+            }
+
+            if (pixel_count_u64 > static_cast<std::uint64_t>(std::numeric_limits<std::size_t>::max()))
+            {
+                out_result.errors.push_back(MakeMessage(
+                    "rt_dispatch_dense_texel_count_overflow",
+                    "Bake ray tracing dispatch dense atlas texel count exceeded addressable CPU memory range."));
+                out_error = L"Bake ray tracing dispatch dense atlas texel count exceeded addressable CPU memory range.";
+                return false;
+            }
+
+            if (pixel_count_u64 > static_cast<std::uint64_t>(std::numeric_limits<unsigned>::max()))
+            {
+                out_result.errors.push_back(MakeMessage(
+                    "rt_dispatch_dense_texel_count_summary_overflow",
+                    "Bake ray tracing dispatch dense atlas texel count exceeded summary storage range."));
+                out_error = L"Bake ray tracing dispatch dense atlas texel count exceeded summary storage range.";
+                return false;
+            }
+
+            const std::size_t pixel_count = static_cast<std::size_t>(pixel_count_u64);
+            out_records.assign(pixel_count, BakeRayTracingTexelRecordGPU{});
+
+            for (const LightmapAtlasTexelRecord& texel_record : atlas_result.texel_records)
+            {
+                if (texel_record.texel_x >= atlas_width || texel_record.texel_y >= atlas_height)
+                {
+                    out_result.errors.push_back(MakeMessage(
+                        "rt_dispatch_texel_out_of_range",
+                        "Atlas texel record referenced coordinates outside the dispatch atlas extent."));
+                    out_error = L"Atlas texel record referenced coordinates outside the dispatch atlas extent.";
+                    return false;
+                }
+
+                const std::size_t pixel_index =
+                    static_cast<std::size_t>(texel_record.texel_y) * static_cast<std::size_t>(atlas_width) +
+                    static_cast<std::size_t>(texel_record.texel_x);
+                if (pixel_index >= out_records.size())
+                {
+                    out_result.errors.push_back(MakeMessage(
+                        "rt_dispatch_dense_texel_index_invalid",
+                        "Bake ray tracing dispatch dense atlas indexing exceeded the allocated record buffer."));
+                    out_error = L"Bake ray tracing dispatch dense atlas indexing exceeded the allocated record buffer.";
+                    return false;
+                }
+
+                BakeRayTracingTexelRecordGPU& gpu_record = out_records[pixel_index];
+                if (gpu_record.world_position_and_valid[3] > 0.5f)
+                {
+                    out_result.errors.push_back(MakeMessage(
+                        "rt_dispatch_duplicate_texel_record",
+                        "Bake ray tracing dispatch detected duplicate atlas texel ownership while building the dense texel buffer."));
+                    out_error = L"Bake ray tracing dispatch detected duplicate atlas texel ownership while building the dense texel buffer.";
+                    return false;
+                }
+
+                gpu_record.world_position_and_valid = {
+                    texel_record.world_position.x,
+                    texel_record.world_position.y,
+                    texel_record.world_position.z,
+                    1.0f,
+                };
+                gpu_record.geometric_normal_and_padding = {
+                    texel_record.geometric_normal.x,
+                    texel_record.geometric_normal.y,
+                    texel_record.geometric_normal.z,
+                    0.0f,
+                };
+            }
+
+            out_result.dense_texel_record_count = static_cast<unsigned>(pixel_count_u64);
+            return true;
         }
 
         float HalfBitsToFloat(std::uint16_t bits)
@@ -359,14 +474,96 @@ namespace LightingBaker
 
         out_result.shader_path = shader_path;
         out_result.shader_path_resolved = true;
-
         out_result.dispatch_width = settings.dispatch_width > 0u ? settings.dispatch_width : atlas_result.atlas_resolution;
         out_result.dispatch_height = settings.dispatch_height > 0u ? settings.dispatch_height : atlas_result.atlas_resolution;
-        out_result.dispatch_depth = (std::max)(1u, settings.dispatch_depth);
-        out_result.output_width = (std::max)(1u, out_result.dispatch_width);
-        out_result.output_height = (std::max)(1u, out_result.dispatch_height);
+        out_result.dispatch_depth = settings.dispatch_depth;
+        out_result.sample_index = settings.sample_index;
+        out_result.sample_count = settings.sample_count;
+        out_result.max_bounces = (std::max)(1u, settings.max_bounces);
+        out_result.output_width = out_result.dispatch_width;
+        out_result.output_height = out_result.dispatch_height;
+
+        if (out_result.dispatch_width != atlas_result.atlas_resolution ||
+            out_result.dispatch_height != atlas_result.atlas_resolution)
+        {
+            out_result.errors.push_back(MakeMessage(
+                "rt_dispatch_dimension_mismatch",
+                "Bake ray tracing dispatch currently requires atlas-sized dispatch dimensions."));
+            out_error = L"Bake ray tracing dispatch currently requires atlas-sized dispatch dimensions.";
+            return false;
+        }
+
+        if (out_result.dispatch_depth != 1u)
+        {
+            out_result.errors.push_back(MakeMessage(
+                "rt_dispatch_depth_unsupported",
+                "Bake ray tracing dispatch currently supports a dispatch depth of exactly 1."));
+            out_error = L"Bake ray tracing dispatch currently supports a dispatch depth of exactly 1.";
+            return false;
+        }
+
+        std::vector<BakeRayTracingTexelRecordGPU> dense_texel_records{};
+        if (!BuildDenseAtlasTexelRecords(
+                atlas_result,
+                out_result.dispatch_width,
+                out_result.dispatch_height,
+                dense_texel_records,
+                out_result,
+                out_error))
+        {
+            return false;
+        }
 
         RendererInterface::ResourceOperator& resource_operator = *runtime_result.resource_operator;
+        RendererInterface::BufferDesc texel_record_buffer_desc{};
+        texel_record_buffer_desc.name = "BakeRayTracingTexelRecords";
+        texel_record_buffer_desc.usage = RendererInterface::USAGE_SRV;
+        texel_record_buffer_desc.type = RendererInterface::DEFAULT;
+        texel_record_buffer_desc.size =
+            dense_texel_records.size() * sizeof(BakeRayTracingTexelRecordGPU);
+        texel_record_buffer_desc.data = dense_texel_records.data();
+        const RendererInterface::BufferHandle texel_record_buffer_handle =
+            resource_operator.CreateBuffer(texel_record_buffer_desc);
+        if (!texel_record_buffer_handle.IsValid())
+        {
+            out_result.errors.push_back(MakeMessage(
+                "rt_dispatch_texel_record_buffer_failed",
+                "Failed to allocate the dense atlas texel record SRV buffer for baker dispatch."));
+            out_error = L"Failed to allocate the dense atlas texel record SRV buffer for baker dispatch.";
+            return false;
+        }
+
+        out_result.texel_record_buffer_created = true;
+
+        BakeRayTracingDispatchConstantsGPU dispatch_constants{};
+        dispatch_constants.atlas_width = out_result.dispatch_width;
+        dispatch_constants.atlas_height = out_result.dispatch_height;
+        dispatch_constants.sample_index = out_result.sample_index;
+        dispatch_constants.sample_count = out_result.sample_count;
+        dispatch_constants.max_bounces = out_result.max_bounces;
+        dispatch_constants.ray_epsilon = kDefaultRayEpsilon;
+        dispatch_constants.sky_intensity = kDefaultSkyIntensity;
+        dispatch_constants.sky_ground_mix = kDefaultSkyGroundMix;
+
+        RendererInterface::BufferDesc dispatch_constants_desc{};
+        dispatch_constants_desc.name = "BakeRayTracingDispatchConstants";
+        dispatch_constants_desc.usage = RendererInterface::USAGE_CBV;
+        dispatch_constants_desc.type = RendererInterface::DEFAULT;
+        dispatch_constants_desc.size = sizeof(dispatch_constants);
+        dispatch_constants_desc.data = &dispatch_constants;
+        const RendererInterface::BufferHandle dispatch_constants_buffer_handle =
+            resource_operator.CreateBuffer(dispatch_constants_desc);
+        if (!dispatch_constants_buffer_handle.IsValid())
+        {
+            out_result.errors.push_back(MakeMessage(
+                "rt_dispatch_constants_buffer_failed",
+                "Failed to allocate the baker dispatch constants buffer."));
+            out_error = L"Failed to allocate the baker dispatch constants buffer.";
+            return false;
+        }
+
+        out_result.dispatch_constants_buffer_created = true;
+
         const auto output_usage = static_cast<RendererInterface::ResourceUsage>(
             RendererInterface::COPY_SRC |
             RendererInterface::SHADER_RESOURCE |
@@ -491,6 +688,19 @@ namespace LightingBaker
             out_result.dispatch_width,
             out_result.dispatch_height,
             out_result.dispatch_depth));
+        RendererInterface::BufferBindingDesc texel_record_binding{};
+        texel_record_binding.buffer_handle = texel_record_buffer_handle;
+        texel_record_binding.binding_type = RendererInterface::BufferBindingDesc::SRV;
+        texel_record_binding.stride = sizeof(BakeRayTracingTexelRecordGPU);
+        texel_record_binding.count = out_result.dense_texel_record_count;
+        texel_record_binding.is_structured_buffer = true;
+        draw_desc.buffer_resources.emplace(out_result.texel_record_binding_name, texel_record_binding);
+
+        RendererInterface::BufferBindingDesc dispatch_constants_binding{};
+        dispatch_constants_binding.buffer_handle = dispatch_constants_buffer_handle;
+        dispatch_constants_binding.binding_type = RendererInterface::BufferBindingDesc::CBV;
+        draw_desc.buffer_resources.emplace(out_result.dispatch_constants_binding_name, dispatch_constants_binding);
+
         RendererInterface::RenderTargetTextureBindingDesc output_binding{};
         output_binding.name = out_result.output_binding_name;
         output_binding.render_target_texture.push_back(output_render_target);

@@ -309,6 +309,16 @@ namespace LightingBaker
 
         BakeRayTracingDispatchRunner ray_tracing_dispatch_runner{};
         BakeRayTracingDispatchSettings ray_tracing_dispatch_settings{};
+        const unsigned remaining_dispatch_samples =
+            resume_state.completed_samples < config.target_samples
+                ? (config.target_samples - resume_state.completed_samples)
+                : 0u;
+        ray_tracing_dispatch_settings.sample_index = resume_state.completed_samples;
+        ray_tracing_dispatch_settings.sample_count =
+            config.progressive
+                ? (std::min)(config.samples_per_iteration, remaining_dispatch_samples)
+                : remaining_dispatch_samples;
+        ray_tracing_dispatch_settings.max_bounces = config.max_bounces;
         BakeRayTracingDispatchRunResult ray_tracing_dispatch{};
         error_message.clear();
         const bool ray_tracing_dispatch_success = ray_tracing_dispatch_runner.RunDispatch(
@@ -502,10 +512,18 @@ namespace LightingBaker
         std::wcout
             << L"\nRay tracing dispatch summary\n"
             << L"  shader resolved: " << (ray_tracing_dispatch.shader_path_resolved ? L"true" : L"false") << L"\n"
+            << L"  sample index: " << ray_tracing_dispatch.sample_index << L"\n"
+            << L"  sample count: " << ray_tracing_dispatch.sample_count << L"\n"
+            << L"  max bounces: " << ray_tracing_dispatch.max_bounces << L"\n"
             << L"  dispatch: " << ray_tracing_dispatch.dispatch_width << L"x"
             << ray_tracing_dispatch.dispatch_height << L"x" << ray_tracing_dispatch.dispatch_depth << L"\n"
+            << L"  dense texel records: " << ray_tracing_dispatch.dense_texel_record_count << L"\n"
             << L"  output: " << ray_tracing_dispatch.output_width << L"x"
             << ray_tracing_dispatch.output_height << L"\n"
+            << L"  texel record buffer created: "
+            << (ray_tracing_dispatch.texel_record_buffer_created ? L"true" : L"false") << L"\n"
+            << L"  dispatch constants buffer created: "
+            << (ray_tracing_dispatch.dispatch_constants_buffer_created ? L"true" : L"false") << L"\n"
             << L"  render pass created: " << (ray_tracing_dispatch.render_pass_created ? L"true" : L"false") << L"\n"
             << L"  shader table ready: " << (ray_tracing_dispatch.shader_table_initialized ? L"true" : L"false") << L"\n"
             << L"  frame executed: " << (ray_tracing_dispatch.frame_executed ? L"true" : L"false") << L"\n"
