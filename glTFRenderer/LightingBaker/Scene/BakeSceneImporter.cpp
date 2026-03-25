@@ -178,6 +178,26 @@ namespace LightingBaker
             return true;
         }
 
+        bool ReadFloat4(const AccessorDataView& view, std::size_t index, glm::fvec4& out_value)
+        {
+            if (!view.accessor || index >= view.count)
+            {
+                return false;
+            }
+
+            if (view.accessor->component_type != glTFAccessor::glTF_Accessor_Component_Type::EFloat ||
+                view.accessor->element_type != glTFAccessor::glTF_Accessor_Element_Type::EVec4 ||
+                view.stride < sizeof(float) * 4u)
+            {
+                return false;
+            }
+
+            float components[4]{};
+            std::memcpy(components, view.data + index * view.stride, sizeof(components));
+            out_value = glm::fvec4(components[0], components[1], components[2], components[3]);
+            return true;
+        }
+
         bool ReadUnsignedIndex(const AccessorDataView& view, std::size_t index, unsigned& out_value)
         {
             if (!view.accessor || index >= view.count ||
@@ -246,6 +266,13 @@ namespace LightingBaker
             }
 
             return transformed / transformed_length;
+        }
+
+        glm::fvec4 TransformTangent(const glm::fmat4x4& transform, const glm::fvec4& tangent)
+        {
+            const glm::fvec3 transformed_xyz = TransformDirection(transform, glm::fvec3(tangent.x, tangent.y, tangent.z));
+            const float handedness = tangent.w >= 0.0f ? 1.0f : -1.0f;
+            return glm::fvec4(transformed_xyz, handedness);
         }
 
         void ParsePunctualLightRegistry(const std::filesystem::path& scene_path,
@@ -608,6 +635,7 @@ namespace LightingBaker
             out_material.emissive_factor = material.emissive_factor;
             out_material.metallic_factor = material.pbr.metallic_factor;
             out_material.roughness_factor = material.pbr.roughness_factor;
+            out_material.normal_texture_scale = material.normal_texture.scale;
             out_material.alpha_cutoff = glm::clamp(material.alpha_cutoff, 0.0f, 1.0f);
             out_material.double_sided = material.double_sided;
             out_material.alpha_masked = material.alpha_mode == "MASK";
@@ -619,6 +647,13 @@ namespace LightingBaker
                                             out_material.base_color_texture_texcoord,
                                             out_material.has_base_color_texture,
                                             out_material.base_color_texture_uri);
+            ResolveSupportedMaterialTexture(loader,
+                                            primitive,
+                                            material.normal_texture,
+                                            "normalTexture",
+                                            out_material.normal_texture_texcoord,
+                                            out_material.has_normal_texture,
+                                            out_material.normal_texture_uri);
             ResolveSupportedMaterialTexture(loader,
                                             primitive,
                                             material.emissive_texture,
@@ -635,6 +670,7 @@ namespace LightingBaker
         {
             const auto it_position = primitive.attributes.find(glTF_Attribute_POSITION::attribute_type_id);
             const auto it_normal = primitive.attributes.find(glTF_Attribute_NORMAL::attribute_type_id);
+            const auto it_tangent = primitive.attributes.find(glTF_Attribute_TANGENT::attribute_type_id);
             const auto it_uv0 = primitive.attributes.find(glTF_Attribute_TEXCOORD_0::attribute_type_id);
             const auto it_uv1 = primitive.attributes.find(glTF_Attribute_TEXCOORD_1::attribute_type_id);
             if (it_position == primitive.attributes.end() || it_uv1 == primitive.attributes.end() || !primitive.indices.IsValid())
@@ -644,6 +680,7 @@ namespace LightingBaker
 
             AccessorDataView position_view{};
             AccessorDataView normal_view{};
+            AccessorDataView tangent_view{};
             AccessorDataView uv0_view{};
             AccessorDataView uv1_view{};
             AccessorDataView index_view{};
@@ -665,6 +702,7 @@ namespace LightingBaker
             }
 
             bool use_normal_accessor = false;
+            bool use_tangent_accessor = false;
             bool use_uv0_accessor = false;
             if (it_normal != primitive.attributes.end())
             {
@@ -691,6 +729,34 @@ namespace LightingBaker
                 else
                 {
                     use_normal_accessor = true;
+                }
+            }
+
+            if (it_tangent != primitive.attributes.end())
+            {
+                if (!ResolveAccessorDataView(loader, it_tangent->second, tangent_view, accessor_error))
+                {
+                    AddWarning(out_primitive,
+                               "tangent_accessor",
+                               "Failed to resolve TANGENT accessor. Ignoring normalTexture shading.");
+                }
+                else if (tangent_view.accessor->component_type != glTFAccessor::glTF_Accessor_Component_Type::EFloat ||
+                         tangent_view.accessor->element_type != glTFAccessor::glTF_Accessor_Element_Type::EVec4)
+                {
+                    AddWarning(out_primitive,
+                               "tangent_format",
+                               "TANGENT accessor must be float4. Ignoring normalTexture shading.");
+                }
+                else if (tangent_view.count != position_view.count)
+                {
+                    AddWarning(out_primitive,
+                               "tangent_count_mismatch",
+                               "TANGENT count does not match POSITION count. Ignoring normalTexture shading.");
+                }
+                else
+                {
+                    out_primitive.has_tangents = true;
+                    use_tangent_accessor = true;
                 }
             }
 
@@ -763,6 +829,10 @@ namespace LightingBaker
             out_primitive.index_count = static_cast<unsigned>(index_view.count);
             out_primitive.geometry.world_positions.resize(position_view.count);
             out_primitive.geometry.world_normals.resize(position_view.count, glm::fvec3(0.0f, 0.0f, 0.0f));
+            if (use_tangent_accessor)
+            {
+                out_primitive.geometry.world_tangents.resize(position_view.count, glm::fvec4(1.0f, 0.0f, 0.0f, 1.0f));
+            }
             if (use_uv0_accessor)
             {
                 out_primitive.geometry.uv0_vertices.resize(position_view.count);
@@ -820,6 +890,23 @@ namespace LightingBaker
                             out_primitive.geometry.world_normals[vertex_index] = world_normal;
                             normal_valid_mask[vertex_index] = 1u;
                         }
+                    }
+                }
+                if (use_tangent_accessor)
+                {
+                    glm::fvec4 imported_tangent{};
+                    if (!ReadFloat4(tangent_view, vertex_index, imported_tangent))
+                    {
+                        AddWarning(out_primitive,
+                                   "tangent_read",
+                                   "Failed to read TANGENT vertex data. Ignoring normalTexture shading.");
+                        use_tangent_accessor = false;
+                        out_primitive.has_tangents = false;
+                        out_primitive.geometry.world_tangents.clear();
+                    }
+                    else
+                    {
+                        out_primitive.geometry.world_tangents[vertex_index] = TransformTangent(world_transform, imported_tangent);
                     }
                 }
 
@@ -995,6 +1082,33 @@ namespace LightingBaker
                                    : "baseColorTexture references TEXCOORD_1, but a valid TEXCOORD_1 stream was not imported. Falling back to factor-only shading.");
                     out_primitive.material.has_base_color_texture = false;
                     out_primitive.material.base_color_texture_uri.clear();
+                }
+            }
+            if (out_primitive.material.has_normal_texture)
+            {
+                const bool has_required_texcoord =
+                    out_primitive.material.normal_texture_texcoord == 0u
+                        ? out_primitive.geometry.uv0_vertices.size() == out_primitive.geometry.world_positions.size()
+                        : out_primitive.geometry.uv1_vertices.size() == out_primitive.geometry.world_positions.size();
+                if (!has_required_texcoord)
+                {
+                    AddWarning(out_primitive,
+                               out_primitive.material.normal_texture_texcoord == 0u
+                                   ? "normal_texture_missing_uv0"
+                                   : "normal_texture_missing_uv1",
+                               out_primitive.material.normal_texture_texcoord == 0u
+                                   ? "normalTexture references TEXCOORD_0, but a valid TEXCOORD_0 stream was not imported. Falling back to vertex normals."
+                                   : "normalTexture references TEXCOORD_1, but a valid TEXCOORD_1 stream was not imported. Falling back to vertex normals.");
+                    out_primitive.material.has_normal_texture = false;
+                    out_primitive.material.normal_texture_uri.clear();
+                }
+                else if (out_primitive.geometry.world_tangents.size() != out_primitive.geometry.world_positions.size())
+                {
+                    AddWarning(out_primitive,
+                               "normal_texture_missing_tangent",
+                               "normalTexture requires a valid TANGENT stream. Falling back to vertex normals.");
+                    out_primitive.material.has_normal_texture = false;
+                    out_primitive.material.normal_texture_uri.clear();
                 }
             }
             if (out_primitive.material.has_emissive_texture)

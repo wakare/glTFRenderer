@@ -23,6 +23,7 @@ namespace LightingBaker
     {
         std::array<float, 4u> world_position{0.0f, 0.0f, 0.0f, 1.0f};
         std::array<float, 4u> world_normal{0.0f, 1.0f, 0.0f, 0.0f};
+        std::array<float, 4u> world_tangent{1.0f, 0.0f, 0.0f, 1.0f};
         std::array<float, 4u> texcoord0_texcoord1{0.0f, 0.0f, 0.0f, 0.0f};
     };
 
@@ -34,9 +35,14 @@ namespace LightingBaker
             0u,
             BakeRayTracingSceneTextureInvalidIndex,
             0u};
+        std::array<std::uint32_t, 4u> texture_indices_and_texcoords_extra{
+            BakeRayTracingSceneTextureInvalidIndex,
+            0u,
+            BakeRayTracingSceneTextureInvalidIndex,
+            0u};
         std::array<float, 4u> base_color{1.0f, 1.0f, 1.0f, 1.0f};
         std::array<float, 4u> emissive_and_roughness{0.0f, 0.0f, 0.0f, 1.0f};
-        std::array<float, 4u> metallic_and_padding{1.0f, 0.0f, 0.0f, 0.0f};
+        std::array<float, 4u> metallic_alpha_normal_and_padding{1.0f, 0.0f, 1.0f, 0.0f};
     };
 
     struct BakeRayTracingSceneLightGPU
@@ -80,6 +86,7 @@ namespace LightingBaker
         std::size_t spot_light_count{0u};
         std::size_t alpha_masked_instance_count{0u};
         std::size_t alpha_blended_instance_count{0u};
+        std::size_t normal_mapped_instance_count{0u};
         std::size_t fully_transparent_masked_primitive_count{0u};
         std::size_t skipped_primitive_count{0u};
         std::vector<BakeRayTracingGeometrySource> geometries{};

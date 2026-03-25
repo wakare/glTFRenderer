@@ -12,6 +12,7 @@ struct BakeSceneVertex
 {
     float4 world_position;
     float4 world_normal;
+    float4 world_tangent;
     float4 texcoord0_texcoord1;
 };
 
@@ -19,9 +20,10 @@ struct BakeSceneInstance
 {
     uint4 offsets_and_flags;
     uint4 texture_indices_and_texcoords;
+    uint4 texture_indices_and_texcoords_extra;
     float4 base_color;
     float4 emissive_and_roughness;
-    float4 metallic_and_padding;
+    float4 metallic_alpha_normal_and_padding;
 };
 
 struct BakeSceneLight
@@ -360,6 +362,34 @@ float3 SampleEmissive(BakeSceneInstance scene_instance, float2 material_uv)
     return max(sampled_emissive * emissive_factor, 0.0f);
 }
 
+float3 SampleNormalTextureTS(BakeSceneInstance scene_instance, float2 material_uv)
+{
+    const uint normal_texture_index = scene_instance.texture_indices_and_texcoords_extra.x;
+    const float normal_scale = max(scene_instance.metallic_alpha_normal_and_padding.z, 0.0f);
+    const float3 sampled_normal = SampleMaterialTextureRGBA(
+        normal_texture_index,
+        material_uv,
+        float4(0.5f, 0.5f, 1.0f, 1.0f)).xyz;
+    float3 tangent_space_normal = sampled_normal * 2.0f - 1.0f;
+    tangent_space_normal.xy *= normal_scale;
+    return SafeNormalize(tangent_space_normal, float3(0.0f, 0.0f, 1.0f));
+}
+
+void BuildShadingBasisFromTangent(float3 shading_normal, float4 interpolated_tangent, out float3 tangent, out float3 bitangent)
+{
+    tangent = interpolated_tangent.xyz - shading_normal * dot(interpolated_tangent.xyz, shading_normal);
+    const float tangent_length_sq = dot(tangent, tangent);
+    if (tangent_length_sq <= 1e-8f)
+    {
+        BuildOrthonormalBasis(shading_normal, tangent, bitangent);
+        return;
+    }
+
+    tangent *= rsqrt(tangent_length_sq);
+    const float handedness = interpolated_tangent.w >= 0.0f ? 1.0f : -1.0f;
+    bitangent = SafeNormalize(cross(shading_normal, tangent) * handedness, float3(0.0f, 1.0f, 0.0f));
+}
+
 [shader("raygeneration")]
 void BakeRayGenMain()
 {
@@ -515,12 +545,22 @@ void BakeClosestHitMain(inout BakePayload payload, in BuiltInTriangleIntersectio
         vertex1.world_normal.xyz,
         vertex2.world_normal.xyz,
         barycentrics);
+    const float4 interpolated_tangent =
+        vertex0.world_tangent * barycentrics.x +
+        vertex1.world_tangent * barycentrics.y +
+        vertex2.world_tangent * barycentrics.z;
     const float2 material_uv = SelectMaterialTexcoord(
         vertex0,
         vertex1,
         vertex2,
         barycentrics,
         scene_instance.texture_indices_and_texcoords.y);
+    const float2 normal_uv = SelectMaterialTexcoord(
+        vertex0,
+        vertex1,
+        vertex2,
+        barycentrics,
+        scene_instance.texture_indices_and_texcoords_extra.y);
     const float2 emissive_uv = SelectMaterialTexcoord(
         vertex0,
         vertex1,
@@ -547,6 +587,28 @@ void BakeClosestHitMain(inout BakePayload payload, in BuiltInTriangleIntersectio
     if (dot(shading_normal, WorldRayDirection()) > 0.0f)
     {
         shading_normal = -shading_normal;
+    }
+
+    const uint normal_texture_index = scene_instance.texture_indices_and_texcoords_extra.x;
+    if (normal_texture_index != 0xffffffffu)
+    {
+        float3 tangent;
+        float3 bitangent;
+        BuildShadingBasisFromTangent(shading_normal, interpolated_tangent, tangent, bitangent);
+        const float3 tangent_space_normal = SampleNormalTextureTS(scene_instance, normal_uv);
+        const float3 mapped_normal =
+            tangent * tangent_space_normal.x +
+            bitangent * tangent_space_normal.y +
+            shading_normal * tangent_space_normal.z;
+        shading_normal = SafeNormalize(mapped_normal, shading_normal);
+        if (dot(shading_normal, geometric_normal) < 0.0f)
+        {
+            shading_normal = geometric_normal;
+        }
+        if (dot(shading_normal, WorldRayDirection()) > 0.0f)
+        {
+            shading_normal = -shading_normal;
+        }
     }
 
     const float3 base_color = SampleBaseColor(scene_instance, material_uv);
@@ -584,7 +646,7 @@ void BakeAnyHitMain(inout BakePayload payload, in BuiltInTriangleIntersectionAtt
         barycentrics,
         scene_instance.texture_indices_and_texcoords.y);
     const float surface_alpha = SampleBaseAlpha(scene_instance, material_uv);
-    const float alpha_cutoff = saturate(scene_instance.metallic_and_padding.y);
+    const float alpha_cutoff = saturate(scene_instance.metallic_alpha_normal_and_padding.y);
     if (surface_alpha < alpha_cutoff)
     {
         IgnoreHit();

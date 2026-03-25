@@ -476,11 +476,13 @@ namespace LightingBaker
                 {"index_count", primitive.index_count},
                 {"has_texcoord0", primitive.has_texcoord0},
                 {"has_texcoord1", primitive.has_texcoord1},
+                {"has_tangents", primitive.has_tangents},
                 {"double_sided", primitive.material.double_sided},
                 {"alpha_masked", primitive.material.alpha_masked},
                 {"alpha_blended", primitive.material.alpha_blended},
                 {"alpha_cutoff", primitive.material.alpha_cutoff},
                 {"has_base_color_texture", primitive.material.has_base_color_texture},
+                {"has_normal_texture", primitive.material.has_normal_texture},
                 {"has_emissive_texture", primitive.material.has_emissive_texture},
                 {"can_emit_lightmap_binding", primitive.can_emit_lightmap_binding},
                 {"uv1_min", ToJson(primitive.uv1_min)},
@@ -612,6 +614,7 @@ namespace LightingBaker
         root["point_light_count"] = ray_tracing_scene.point_light_count;
         root["spot_light_count"] = ray_tracing_scene.spot_light_count;
         root["material_texture_count"] = ray_tracing_scene.material_texture_count;
+        root["normal_mapped_instance_count"] = ray_tracing_scene.normal_mapped_instance_count;
         root["alpha_masked_instance_count"] = ray_tracing_scene.alpha_masked_instance_count;
         root["alpha_blended_instance_count"] = ray_tracing_scene.alpha_blended_instance_count;
         root["fully_transparent_masked_primitive_count"] =

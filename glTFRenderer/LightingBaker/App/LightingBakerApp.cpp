@@ -492,6 +492,7 @@ namespace LightingBaker
             << L"  point lights: " << ray_tracing_scene.point_light_count << L"\n"
             << L"  spot lights: " << ray_tracing_scene.spot_light_count << L"\n"
             << L"  material textures: " << ray_tracing_scene.material_texture_count << L"\n"
+            << L"  normal-mapped instances: " << ray_tracing_scene.normal_mapped_instance_count << L"\n"
             << L"  alpha-masked instances: " << ray_tracing_scene.alpha_masked_instance_count << L"\n"
             << L"  alpha-blended instances: " << ray_tracing_scene.alpha_blended_instance_count << L"\n"
             << L"  fully transparent masked primitives: "

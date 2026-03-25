@@ -189,6 +189,10 @@ namespace LightingBaker
                     "rt_scene_alpha_blend_fallback",
                     "Alpha-blended materials are currently baked as opaque geometry in the ray tracing scene."));
             }
+            if (primitive.material.has_normal_texture && !primitive.material.normal_texture_uri.empty())
+            {
+                ++out_result.normal_mapped_instance_count;
+            }
 
             if (primitive.geometry.world_normals.size() != primitive.geometry.world_positions.size())
             {
@@ -230,6 +234,10 @@ namespace LightingBaker
             {
                 const glm::fvec3& world_position = primitive.geometry.world_positions[vertex_index];
                 const glm::fvec3& world_normal = primitive.geometry.world_normals[vertex_index];
+                const glm::fvec4 world_tangent =
+                    primitive.geometry.world_tangents.size() == primitive.geometry.world_positions.size()
+                        ? primitive.geometry.world_tangents[vertex_index]
+                        : glm::fvec4(1.0f, 0.0f, 0.0f, 1.0f);
                 const glm::fvec2 texcoord0 =
                     primitive.geometry.uv0_vertices.size() == primitive.geometry.world_positions.size()
                         ? primitive.geometry.uv0_vertices[vertex_index]
@@ -238,6 +246,7 @@ namespace LightingBaker
                 out_result.shading_vertices.push_back({
                     .world_position = {world_position.x, world_position.y, world_position.z, 1.0f},
                     .world_normal = {world_normal.x, world_normal.y, world_normal.z, 0.0f},
+                    .world_tangent = {world_tangent.x, world_tangent.y, world_tangent.z, world_tangent.w},
                     .texcoord0_texcoord1 = {texcoord0.x, texcoord0.y, texcoord1.x, texcoord1.y},
                 });
             }
@@ -258,6 +267,12 @@ namespace LightingBaker
             if (primitive.material.has_emissive_texture && !primitive.material.emissive_texture_uri.empty())
             {
                 emissive_texture_index = register_material_texture(primitive.material.emissive_texture_uri);
+            }
+
+            std::uint32_t normal_texture_index = BakeRayTracingSceneTextureInvalidIndex;
+            if (primitive.material.has_normal_texture && !primitive.material.normal_texture_uri.empty())
+            {
+                normal_texture_index = register_material_texture(primitive.material.normal_texture_uri);
             }
 
             BakeRayTracingSceneInstanceGPU shading_instance{};
@@ -283,6 +298,12 @@ namespace LightingBaker
                 emissive_texture_index,
                 primitive.material.emissive_texture_texcoord,
             };
+            shading_instance.texture_indices_and_texcoords_extra = {
+                normal_texture_index,
+                primitive.material.normal_texture_texcoord,
+                BakeRayTracingSceneTextureInvalidIndex,
+                0u,
+            };
             shading_instance.base_color = {
                 primitive.material.base_color_factor.x,
                 primitive.material.base_color_factor.y,
@@ -295,10 +316,10 @@ namespace LightingBaker
                 primitive.material.emissive_factor.z,
                 primitive.material.roughness_factor,
             };
-            shading_instance.metallic_and_padding = {
+            shading_instance.metallic_alpha_normal_and_padding = {
                 primitive.material.metallic_factor,
                 primitive.material.alpha_cutoff,
-                0.0f,
+                primitive.material.normal_texture_scale,
                 0.0f,
             };
 

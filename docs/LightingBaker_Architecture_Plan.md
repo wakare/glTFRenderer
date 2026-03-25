@@ -360,7 +360,7 @@ glTFRenderer/LightingBaker/
 - 校验通过后，使用 atlas texel 域 DXR dispatch 继续追加 sample count，并刷新 `manifest.json`、`resume.json` 与 published atlas
 - 达到 target sample 后不再继续推进 cache，仅保持 metadata 与 published atlas 一致
 
-当前已经不再依赖 `debug hemisphere` 占位积分器；现阶段的最小求解器已经是可运行的 DXR atlas-domain diffuse path tracing，并已接入 factor 材质、`baseColorTexture`、`emissiveTexture` 以及首版 punctual direct lighting。仍未覆盖的内容包括 normal map、metallic-roughness 贴图、alpha mask 可见性、更高阶的重要性采样策略，以及除 punctual light 之外更完整的光照重要性采样。
+当前已经不再依赖 `debug hemisphere` 占位积分器；现阶段的最小求解器已经是可运行的 DXR atlas-domain diffuse path tracing，并已接入 factor 材质、`baseColorTexture`、`normalTexture`、`emissiveTexture` 以及首版 punctual direct lighting。仍未覆盖的内容包括 metallic-roughness 贴图、alpha mask 的更系统化回归验证、更高阶的重要性采样策略，以及除 punctual light 之外更完整的光照重要性采样。
 
 后续即便 cache 内部格式调整，也应继续由 `resume.json` 提供唯一入口，避免 DXR bake pass 或工具链直接硬编码具体文件名。
 
@@ -426,7 +426,7 @@ glTFRenderer/LightingBaker/
 - 先支持静态 mesh
 - 先实现 direct lighting + environment + diffuse bounce
 - 支持全场景 progressive accumulation / pause / resume
-- 当前 atlas texel 域 DXR diffuse path tracing 已经落地，并已接入 `baseColorTexture` / `emissiveTexture` 与首版 punctual direct lighting；后续继续补 alpha mask、sampling 策略和更完整的 path payload
+- 当前 atlas texel 域 DXR diffuse path tracing 已经落地，并已接入 `baseColorTexture` / `normalTexture` / `emissiveTexture` 与首版 punctual direct lighting；后续继续补 alpha mask、sampling 策略和更完整的 path payload
 
 验收标准：
 
@@ -480,4 +480,4 @@ glTFRenderer/LightingBaker/
 2. 继续扩展当前 DXR atlas-domain path tracing pass 的材质与光照能力
 3. 持续完善 GPU readback、published atlas codec 和最终 bake radiance 输出
 
-现在这条 progressive 管线的价值，已经不只是固定 cache / package / runtime contract，而是作为真正的 DXR lightmap baker 主链继续迭代。后续新增 alpha mask、更完整的 direct-light / importance sampling、更多材质输入和压缩 codec，都会在这条已打通的 atlas-domain 路径上逐步扩展。
+现在这条 progressive 管线的价值，已经不只是固定 cache / package / runtime contract，而是作为真正的 DXR lightmap baker 主链继续迭代。后续新增 metallic-roughness / alpha mask 的更完整材质可见性、更完整的 direct-light / importance sampling 和压缩 codec，都会在这条已打通的 atlas-domain 路径上逐步扩展。

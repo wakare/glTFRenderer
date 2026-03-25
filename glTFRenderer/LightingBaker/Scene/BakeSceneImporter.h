@@ -30,6 +30,7 @@ namespace LightingBaker
     {
         std::vector<glm::fvec3> world_positions{};
         std::vector<glm::fvec3> world_normals{};
+        std::vector<glm::fvec4> world_tangents{};
         std::vector<glm::fvec2> uv0_vertices{};
         std::vector<glm::fvec2> uv1_vertices{};
         std::vector<unsigned> triangle_indices{};
@@ -50,15 +51,19 @@ namespace LightingBaker
         glm::fvec3 emissive_factor{0.0f, 0.0f, 0.0f};
         float metallic_factor{1.0f};
         float roughness_factor{1.0f};
+        float normal_texture_scale{1.0f};
         float alpha_cutoff{0.5f};
         unsigned base_color_texture_texcoord{0u};
         bool has_base_color_texture{false};
+        unsigned normal_texture_texcoord{0u};
+        bool has_normal_texture{false};
         unsigned emissive_texture_texcoord{0u};
         bool has_emissive_texture{false};
         bool double_sided{false};
         bool alpha_masked{false};
         bool alpha_blended{false};
         std::string base_color_texture_uri{};
+        std::string normal_texture_uri{};
         std::string emissive_texture_uri{};
     };
 
@@ -99,6 +104,7 @@ namespace LightingBaker
         unsigned degenerate_uv_triangle_count{0};
         unsigned degenerate_position_triangle_count{0};
         bool has_normals{false};
+        bool has_tangents{false};
         BakePrimitiveGeometryData geometry{};
         BakeMaterialImportInfo material{};
         std::vector<BakeSceneValidationMessage> errors{};
