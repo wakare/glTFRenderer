@@ -26,7 +26,6 @@ namespace LightingBaker
         constexpr const char* kGeneratorName = "LightingBaker";
         constexpr const char* kGeneratorPhase = "phase_a_scaffold";
         constexpr const char* kDefaultProfile = "default";
-        constexpr const char* kDefaultAtlasRelativePath = "atlases/indirect_00.rgba16f.bin";
         constexpr const char* kResumeMetadataRelativePath = "cache/resume.json";
         constexpr const char* kImportSummaryRelativePath = "debug/import_summary.json";
         constexpr const char* kAtlasSummaryRelativePath = "debug/atlas_summary.json";
@@ -195,6 +194,41 @@ namespace LightingBaker
             return stream.str();
         }
 
+        std::string BuildIndexedRelativePath(const char* folder,
+                                             const char* stem,
+                                             unsigned atlas_id,
+                                             const char* suffix)
+        {
+            std::ostringstream stream{};
+            stream << folder << "/" << stem << "_" << std::setw(2) << std::setfill('0') << atlas_id << suffix;
+            return stream.str();
+        }
+
+        std::string BuildAtlasRuntimeRelativePath(unsigned atlas_id)
+        {
+            return BuildIndexedRelativePath("atlases", "indirect", atlas_id, ".rgba16f.bin");
+        }
+
+        std::string BuildAtlasMasterRelativePath(unsigned atlas_id)
+        {
+            return BuildIndexedRelativePath("atlases", "indirect", atlas_id, ".master.rgba16f.bin");
+        }
+
+        std::string BuildAtlasPreviewRelativePath(unsigned atlas_id)
+        {
+            return BuildIndexedRelativePath("atlases", "indirect", atlas_id, ".preview.png");
+        }
+
+        std::string BuildCoverageRelativePath(unsigned atlas_id)
+        {
+            return BuildIndexedRelativePath("debug", "coverage", atlas_id, ".png");
+        }
+
+        std::string BuildChartIdRelativePath(unsigned atlas_id)
+        {
+            return BuildIndexedRelativePath("debug", "chart_id", atlas_id, ".png");
+        }
+
         BakeTexelRecordDiskV1 ToDiskRecord(const LightmapAtlasTexelRecord& texel_record)
         {
             BakeTexelRecordDiskV1 disk_record{};
@@ -230,7 +264,11 @@ namespace LightingBaker
             atlas_desc.atlas_id = 0u;
             atlas_desc.width = atlas_result != nullptr ? atlas_result->atlas_resolution : config.atlas_resolution;
             atlas_desc.height = atlas_result != nullptr ? atlas_result->atlas_resolution : config.atlas_resolution;
-            atlas_desc.relative_file_path = kDefaultAtlasRelativePath;
+            atlas_desc.relative_file_path = BuildAtlasRuntimeRelativePath(atlas_desc.atlas_id);
+            atlas_desc.master_relative_file_path = BuildAtlasMasterRelativePath(atlas_desc.atlas_id);
+            atlas_desc.preview_relative_file_path = BuildAtlasPreviewRelativePath(atlas_desc.atlas_id);
+            atlas_desc.coverage_relative_file_path = BuildCoverageRelativePath(atlas_desc.atlas_id);
+            atlas_desc.chart_id_relative_file_path = BuildChartIdRelativePath(atlas_desc.atlas_id);
             atlas_desc.format = "rgba16f";
             atlas_desc.codec = "raw_half";
             atlas_desc.semantic = "diffuse_irradiance";
@@ -482,6 +520,7 @@ namespace LightingBaker
                 {"alpha_blended", primitive.material.alpha_blended},
                 {"alpha_cutoff", primitive.material.alpha_cutoff},
                 {"has_base_color_texture", primitive.material.has_base_color_texture},
+                {"has_metallic_roughness_texture", primitive.material.has_metallic_roughness_texture},
                 {"has_normal_texture", primitive.material.has_normal_texture},
                 {"has_emissive_texture", primitive.material.has_emissive_texture},
                 {"can_emit_lightmap_binding", primitive.can_emit_lightmap_binding},
@@ -615,6 +654,8 @@ namespace LightingBaker
         root["spot_light_count"] = ray_tracing_scene.spot_light_count;
         root["material_texture_count"] = ray_tracing_scene.material_texture_count;
         root["normal_mapped_instance_count"] = ray_tracing_scene.normal_mapped_instance_count;
+        root["metallic_roughness_textured_instance_count"] =
+            ray_tracing_scene.metallic_roughness_textured_instance_count;
         root["alpha_masked_instance_count"] = ray_tracing_scene.alpha_masked_instance_count;
         root["alpha_blended_instance_count"] = ray_tracing_scene.alpha_blended_instance_count;
         root["fully_transparent_masked_primitive_count"] =
@@ -1080,6 +1121,12 @@ namespace LightingBaker
             root["atlases"].push_back({
                 {"id", atlas_desc.atlas_id},
                 {"file", atlas_desc.relative_file_path},
+                {"master_file", atlas_desc.master_relative_file_path},
+                {"preview_file", atlas_desc.preview_relative_file_path},
+                {"debug_files", {
+                    {"coverage", atlas_desc.coverage_relative_file_path},
+                    {"chart_id", atlas_desc.chart_id_relative_file_path},
+                }},
                 {"width", atlas_desc.width},
                 {"height", atlas_desc.height},
                 {"format", atlas_desc.format},
@@ -1173,6 +1220,10 @@ namespace LightingBaker
             cache_root["published_atlases"].push_back({
                 {"atlas_id", atlas_desc.atlas_id},
                 {"file", atlas_desc.relative_file_path},
+                {"master_file", atlas_desc.master_relative_file_path},
+                {"preview_file", atlas_desc.preview_relative_file_path},
+                {"coverage_file", atlas_desc.coverage_relative_file_path},
+                {"chart_id_file", atlas_desc.chart_id_relative_file_path},
                 {"width", atlas_desc.width},
                 {"height", atlas_desc.height},
             });

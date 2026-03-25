@@ -137,6 +137,7 @@ namespace LightingBaker
         BakeSceneImporter scene_importer{};
         BakeSceneImportRequest scene_import_request{};
         scene_import_request.scene_path = config.scene_path;
+        scene_import_request.material_texture_cache_root = output_layout.cache / L"material_textures";
         BakeSceneImportResult import_result{};
         const bool import_success = scene_importer.ImportScene(scene_import_request, import_result, error_message);
         const std::wstring import_error_message = error_message;
@@ -493,6 +494,8 @@ namespace LightingBaker
             << L"  spot lights: " << ray_tracing_scene.spot_light_count << L"\n"
             << L"  material textures: " << ray_tracing_scene.material_texture_count << L"\n"
             << L"  normal-mapped instances: " << ray_tracing_scene.normal_mapped_instance_count << L"\n"
+            << L"  metallic-roughness-textured instances: "
+            << ray_tracing_scene.metallic_roughness_textured_instance_count << L"\n"
             << L"  alpha-masked instances: " << ray_tracing_scene.alpha_masked_instance_count << L"\n"
             << L"  alpha-blended instances: " << ray_tracing_scene.alpha_blended_instance_count << L"\n"
             << L"  fully transparent masked primitives: "

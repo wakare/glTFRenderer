@@ -1,7 +1,12 @@
 #include "SceneFileLoader/glTFLoader.h"
 
+#include <algorithm>
+#include <cstdint>
+#include <cstring>
 #include <fstream>
 #include <iostream>
+#include <vector>
+
 #include <glm/glm/ext/matrix_transform.hpp>
 #include <glm/glm/gtx/quaternion.hpp>
 
@@ -118,6 +123,130 @@ constexpr hash_t hash_compile_time(const char* str, hash_t last_value = basis)
     return *str ? hash_compile_time(str+1, (*str ^ last_value) * prime) : last_value;  
 }
 
+namespace
+{
+    constexpr std::uint32_t kGlbMagic = 0x46546C67u;
+    constexpr std::uint32_t kGlbVersion2 = 2u;
+    constexpr std::uint32_t kGlbChunkTypeJson = 0x4E4F534Au;
+    constexpr std::uint32_t kGlbChunkTypeBin = 0x004E4942u;
+
+    bool LoadFileBytes(const std::string& file_path, std::vector<std::uint8_t>& out_bytes)
+    {
+        std::ifstream stream(file_path, std::ios::binary | std::ios::ate);
+        if (!stream.is_open())
+        {
+            return false;
+        }
+
+        const std::streamsize file_size = stream.tellg();
+        if (file_size < 0)
+        {
+            return false;
+        }
+
+        out_bytes.resize(static_cast<std::size_t>(file_size));
+        stream.seekg(0, std::ios::beg);
+        if (!out_bytes.empty())
+        {
+            stream.read(reinterpret_cast<char*>(out_bytes.data()), file_size);
+            if (!stream.good() && !stream.eof())
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    std::uint32_t ReadUInt32LE(const std::vector<std::uint8_t>& bytes, std::size_t offset)
+    {
+        GLTF_CHECK(offset + sizeof(std::uint32_t) <= bytes.size());
+        return static_cast<std::uint32_t>(bytes[offset + 0u]) |
+               (static_cast<std::uint32_t>(bytes[offset + 1u]) << 8u) |
+               (static_cast<std::uint32_t>(bytes[offset + 2u]) << 16u) |
+               (static_cast<std::uint32_t>(bytes[offset + 3u]) << 24u);
+    }
+
+    bool IsGlbFile(const std::vector<std::uint8_t>& bytes)
+    {
+        return bytes.size() >= 12u && ReadUInt32LE(bytes, 0u) == kGlbMagic;
+    }
+
+    bool ExtractGlbChunks(const std::vector<std::uint8_t>& bytes,
+                          std::string& out_json_text,
+                          std::vector<std::uint8_t>& out_binary_chunk)
+    {
+        if (!IsGlbFile(bytes))
+        {
+            return false;
+        }
+
+        const std::uint32_t version = ReadUInt32LE(bytes, 4u);
+        if (version != kGlbVersion2)
+        {
+            return false;
+        }
+
+        const std::uint32_t declared_length = ReadUInt32LE(bytes, 8u);
+        if (declared_length > bytes.size())
+        {
+            return false;
+        }
+
+        bool found_json_chunk = false;
+        out_json_text.clear();
+        out_binary_chunk.clear();
+
+        std::size_t chunk_offset = 12u;
+        while (chunk_offset + 8u <= declared_length)
+        {
+            const std::uint32_t chunk_length = ReadUInt32LE(bytes, chunk_offset + 0u);
+            const std::uint32_t chunk_type = ReadUInt32LE(bytes, chunk_offset + 4u);
+            chunk_offset += 8u;
+
+            if (chunk_offset + chunk_length > declared_length)
+            {
+                return false;
+            }
+
+            const std::uint8_t* chunk_data = bytes.data() + chunk_offset;
+            if (chunk_type == kGlbChunkTypeJson)
+            {
+                out_json_text.assign(reinterpret_cast<const char*>(chunk_data), chunk_length);
+                found_json_chunk = true;
+            }
+            else if (chunk_type == kGlbChunkTypeBin)
+            {
+                out_binary_chunk.assign(chunk_data, chunk_data + chunk_length);
+            }
+
+            chunk_offset += chunk_length;
+        }
+
+        return found_json_chunk;
+    }
+
+    bool LoadSceneJsonAndBinaryChunk(const std::string& file_path,
+                                     std::string& out_json_text,
+                                     std::vector<std::uint8_t>& out_binary_chunk)
+    {
+        std::vector<std::uint8_t> file_bytes{};
+        if (!LoadFileBytes(file_path, file_bytes))
+        {
+            return false;
+        }
+
+        if (IsGlbFile(file_bytes))
+        {
+            return ExtractGlbChunks(file_bytes, out_json_text, out_binary_chunk);
+        }
+
+        out_json_text.assign(reinterpret_cast<const char*>(file_bytes.data()), file_bytes.size());
+        out_binary_chunk.clear();
+        return true;
+    }
+}
+
 glTF_Element_Template<EAccessor>::glTF_Accessor_Element_Type ParseAccessorElementType(const std::string& element_type_string)
 {
     glTF_Element_Template<EAccessor>::glTF_Accessor_Element_Type element_type = glTF_Element_Template<EAccessor>::glTF_Accessor_Element_Type::EUnknown;
@@ -164,8 +293,8 @@ glTFLoader::glTFLoader()
 
 bool glTFLoader::LoadFile(const std::string& file_path)
 {
-    std::ifstream glTF_file(file_path);
-    if (glTF_file.bad())
+    std::vector<std::uint8_t> glb_binary_chunk{};
+    if (!LoadSceneJsonAndBinaryChunk(file_path, m_source_json_text, glb_binary_chunk))
     {
         return false;
     }
@@ -185,7 +314,7 @@ bool glTFLoader::LoadFile(const std::string& file_path)
     GLTF_CHECK(last_slash_index != std::string::npos);
     m_scene_file_directory = std::string(file_path.data(), last_slash_index + 1);
     
-    nlohmann::json data = nlohmann::json::parse(glTF_file);
+    nlohmann::json data = nlohmann::json::parse(m_source_json_text);
     decltype(glTFHandle::node_index) handle_index;
 
     std::map<decltype(glTFHandle::node_name), decltype(glTFHandle::node_index)> temporary_handle_resolve_map;
@@ -287,15 +416,15 @@ bool glTFLoader::LoadFile(const std::string& file_path)
         std::unique_ptr<glTF_Element_Image> element = std::make_unique<glTF_Element_Image>();
 
         glTF_PROCESS_NAME_AND_HANDLE(raw_data, handle_name, handle_index, element)
+        glTF_PROCESS_SCALAR(raw_data, "mimeType", std::string, element->mime_type)
 
         if (raw_data.contains("uri"))
         {
             glTF_PROCESS_URI(raw_data, element)
         }
-        else
+        if (raw_data.contains("bufferView"))
         {
-            // TODO: Not support buffer view image now...
-            GLTF_CHECK(false);
+            glTF_PROCESS_HANDLE(raw_data, "bufferView", element->buffer_view)
         }
 
         m_images.push_back(std::move(element));
@@ -411,7 +540,10 @@ bool glTFLoader::LoadFile(const std::string& file_path)
         std::unique_ptr<glTF_Element_Buffer> element = std::make_unique<glTF_Element_Buffer>();
 
         glTF_PROCESS_NAME_AND_HANDLE(raw_data, handle_name, handle_index, element)
-        glTF_PROCESS_URI(raw_data, element)
+        if (raw_data.contains("uri"))
+        {
+            glTF_PROCESS_URI(raw_data, element)
+        }
         glTF_PROCESS_BUFFER_BYTELENGTH(raw_data, element)
         
         m_buffers.push_back(std::move(element));
@@ -493,24 +625,35 @@ bool glTFLoader::LoadFile(const std::string& file_path)
     
     for (const auto& buffer : m_buffers)
     {
-        const std::string uriFilePath = m_scene_file_directory + "\\" + buffer->uri;
-        std::ifstream uriFileStream(uriFilePath, std::ios::binary | std::ios::in | std::ios::ate);
-        if (uriFileStream.bad())
+        if (!buffer->uri.empty())
         {
-            GLTF_CHECK(false);
+            const std::string uriFilePath = m_scene_file_directory + "\\" + buffer->uri;
+            std::ifstream uriFileStream(uriFilePath, std::ios::binary | std::ios::in | std::ios::ate);
+            if (!uriFileStream.is_open())
+            {
+                GLTF_CHECK(false);
+                continue;
+            }
+
+            const size_t fileSize = uriFileStream.tellg();
+            GLTF_CHECK(fileSize == buffer->byte_length);
+            
+            uriFileStream.seekg(0, std::ios::beg);
+            
+            m_buffer_data[buffer->self_handle] = std::make_unique<char[]>(fileSize);
+            memset(m_buffer_data[buffer->self_handle].get(), 0, fileSize);
+            
+            uriFileStream.read(m_buffer_data[buffer->self_handle].get(), fileSize);
+            uriFileStream.close();
             continue;
         }
 
-        const size_t fileSize = uriFileStream.tellg();
-        GLTF_CHECK(fileSize == buffer->byte_length);
-        
-        uriFileStream.seekg(0, std::ios::beg);
-        
-        m_buffer_data[buffer->self_handle] = std::make_unique<char[]>(fileSize);
-        memset(m_buffer_data[buffer->self_handle].get(), 0, fileSize);
-        
-        uriFileStream.read(m_buffer_data[buffer->self_handle].get(), fileSize);
-        uriFileStream.close();
+        GLTF_CHECK(glb_binary_chunk.size() >= buffer->byte_length);
+        m_buffer_data[buffer->self_handle] = std::make_unique<char[]>(buffer->byte_length);
+        if (buffer->byte_length > 0u)
+        {
+            memcpy(m_buffer_data[buffer->self_handle].get(), glb_binary_chunk.data(), buffer->byte_length);
+        }
     }
 
     handle_index = 0;
@@ -564,6 +707,68 @@ bool glTFLoader::LoadFile(const std::string& file_path)
 const std::string& glTFLoader::GetSceneFileDirectory() const
 {
     return m_scene_file_directory;
+}
+
+const std::string& glTFLoader::GetSourceJsonText() const
+{
+    return m_source_json_text;
+}
+
+bool glTFLoader::GetBufferViewData(const glTFHandle& buffer_view_handle,
+                                   const unsigned char*& out_data,
+                                   size_t& out_size) const
+{
+    out_data = nullptr;
+    out_size = 0u;
+
+    if (!buffer_view_handle.IsValid())
+    {
+        return false;
+    }
+
+    const unsigned buffer_view_index = static_cast<unsigned>(ResolveIndex(buffer_view_handle));
+    if (buffer_view_index >= m_bufferViews.size())
+    {
+        return false;
+    }
+
+    return GetBufferViewData(*m_bufferViews[buffer_view_index], out_data, out_size);
+}
+
+bool glTFLoader::GetBufferViewData(const glTF_Element_BufferView& buffer_view,
+                                   const unsigned char*& out_data,
+                                   size_t& out_size) const
+{
+    out_data = nullptr;
+    out_size = 0u;
+
+    if (!buffer_view.buffer.IsValid())
+    {
+        return false;
+    }
+
+    const unsigned buffer_index = static_cast<unsigned>(ResolveIndex(buffer_view.buffer));
+    if (buffer_index >= m_buffers.size())
+    {
+        return false;
+    }
+
+    const glTF_Element_Buffer& buffer = *m_buffers[buffer_index];
+    if (buffer_view.byte_offset > buffer.byte_length ||
+        buffer_view.byte_length > (buffer.byte_length - buffer_view.byte_offset))
+    {
+        return false;
+    }
+
+    const auto buffer_data_it = m_buffer_data.find(buffer.self_handle);
+    if (buffer_data_it == m_buffer_data.end() || !buffer_data_it->second)
+    {
+        return false;
+    }
+
+    out_data = reinterpret_cast<const unsigned char*>(buffer_data_it->second.get()) + buffer_view.byte_offset;
+    out_size = buffer_view.byte_length;
+    return true;
 }
 
 void glTFLoader::Print() const

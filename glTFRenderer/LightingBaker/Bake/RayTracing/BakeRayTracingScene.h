@@ -87,6 +87,7 @@ namespace LightingBaker
         std::size_t alpha_masked_instance_count{0u};
         std::size_t alpha_blended_instance_count{0u};
         std::size_t normal_mapped_instance_count{0u};
+        std::size_t metallic_roughness_textured_instance_count{0u};
         std::size_t fully_transparent_masked_primitive_count{0u};
         std::size_t skipped_primitive_count{0u};
         std::vector<BakeRayTracingGeometrySource> geometries{};

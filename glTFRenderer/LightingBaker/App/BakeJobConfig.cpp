@@ -184,7 +184,7 @@ namespace LightingBaker
         stream
             << L"LightingBaker Phase A Scaffold\n"
             << L"Usage:\n"
-            << L"  LightingBaker.exe --scene <scene.gltf> [options]\n\n"
+            << L"  LightingBaker.exe --scene <scene.gltf|scene.glb> [options]\n\n"
             << L"Options:\n"
             << L"  --output <dir>                 Output root, default: <scene>.lmbake\n"
             << L"  --resolution <n>              Atlas resolution, default: 1024\n"

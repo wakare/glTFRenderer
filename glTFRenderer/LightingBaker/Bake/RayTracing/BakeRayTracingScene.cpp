@@ -193,6 +193,11 @@ namespace LightingBaker
             {
                 ++out_result.normal_mapped_instance_count;
             }
+            if (primitive.material.has_metallic_roughness_texture &&
+                !primitive.material.metallic_roughness_texture_uri.empty())
+            {
+                ++out_result.metallic_roughness_textured_instance_count;
+            }
 
             if (primitive.geometry.world_normals.size() != primitive.geometry.world_positions.size())
             {
@@ -275,6 +280,14 @@ namespace LightingBaker
                 normal_texture_index = register_material_texture(primitive.material.normal_texture_uri);
             }
 
+            std::uint32_t metallic_roughness_texture_index = BakeRayTracingSceneTextureInvalidIndex;
+            if (primitive.material.has_metallic_roughness_texture &&
+                !primitive.material.metallic_roughness_texture_uri.empty())
+            {
+                metallic_roughness_texture_index =
+                    register_material_texture(primitive.material.metallic_roughness_texture_uri);
+            }
+
             BakeRayTracingSceneInstanceGPU shading_instance{};
             std::uint32_t instance_flags = 0u;
             if (primitive.material.double_sided)
@@ -301,8 +314,8 @@ namespace LightingBaker
             shading_instance.texture_indices_and_texcoords_extra = {
                 normal_texture_index,
                 primitive.material.normal_texture_texcoord,
-                BakeRayTracingSceneTextureInvalidIndex,
-                0u,
+                metallic_roughness_texture_index,
+                primitive.material.metallic_roughness_texture_texcoord,
             };
             shading_instance.base_color = {
                 primitive.material.base_color_factor.x,

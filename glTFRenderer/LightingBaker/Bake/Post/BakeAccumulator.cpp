@@ -2,13 +2,18 @@
 
 #include "Bake/Atlas/LightmapAtlasBuilder.h"
 #include "Bake/RayTracing/BakeRayTracingDispatch.h"
+#include "SceneFileLoader/glTFImageIOUtil.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <fstream>
+#include <iomanip>
 #include <limits>
+#include <map>
+#include <sstream>
 #include <system_error>
 #include <vector>
 
@@ -213,6 +218,19 @@ namespace LightingBaker
                                const std::vector<TValue>& values,
                                std::wstring& out_error)
         {
+            const std::filesystem::path parent_path = file_path.parent_path();
+            if (!parent_path.empty())
+            {
+                std::error_code error_code{};
+                std::filesystem::create_directories(parent_path, error_code);
+                if (error_code)
+                {
+                    out_error = std::wstring(L"Failed to create output directory for ") + label + L": " +
+                                parent_path.native();
+                    return false;
+                }
+            }
+
             std::ofstream stream(file_path, std::ios::out | std::ios::trunc | std::ios::binary);
             if (!stream.is_open())
             {
@@ -233,6 +251,67 @@ namespace LightingBaker
             }
 
             return true;
+        }
+
+        bool EnsureParentDirectory(const std::filesystem::path& file_path, std::wstring& out_error)
+        {
+            const std::filesystem::path parent_path = file_path.parent_path();
+            if (parent_path.empty())
+            {
+                return true;
+            }
+
+            std::error_code error_code{};
+            std::filesystem::create_directories(parent_path, error_code);
+            if (error_code)
+            {
+                out_error = L"Failed to create output directory: " + parent_path.native();
+                return false;
+            }
+
+            return true;
+        }
+
+        std::string PathToUtf8String(const std::filesystem::path& path)
+        {
+            const auto utf8_path = path.u8string();
+            return std::string(reinterpret_cast<const char*>(utf8_path.data()), utf8_path.size());
+        }
+
+        std::uint64_t BuildBindingKey(unsigned stable_node_key, unsigned primitive_hash)
+        {
+            return (static_cast<std::uint64_t>(stable_node_key) << 32u) | static_cast<std::uint64_t>(primitive_hash);
+        }
+
+        std::filesystem::path BuildIndexedFileName(const wchar_t* prefix,
+                                                   unsigned atlas_id,
+                                                   const wchar_t* suffix)
+        {
+            std::wostringstream stream{};
+            stream << prefix << std::setw(2) << std::setfill(L'0') << atlas_id << suffix;
+            return std::filesystem::path(stream.str());
+        }
+
+        std::filesystem::path BuildMasterAtlasPath(const BakeAccumulatorResumeState& resume_state, unsigned atlas_id)
+        {
+            return resume_state.package_root / L"atlases" /
+                   BuildIndexedFileName(L"indirect_", atlas_id, L".master.rgba16f.bin");
+        }
+
+        std::filesystem::path BuildPreviewAtlasPath(const BakeAccumulatorResumeState& resume_state, unsigned atlas_id)
+        {
+            return resume_state.package_root / L"atlases" /
+                   BuildIndexedFileName(L"indirect_", atlas_id, L".preview.png");
+        }
+
+        std::filesystem::path BuildCoverageAtlasPath(const BakeAccumulatorResumeState& resume_state, unsigned atlas_id)
+        {
+            return resume_state.package_root / L"debug" / BuildIndexedFileName(L"coverage_", atlas_id, L".png");
+        }
+
+        std::filesystem::path BuildChartIdAtlasPath(const BakeAccumulatorResumeState& resume_state, unsigned atlas_id)
+        {
+            return resume_state.package_root / L"debug" / BuildIndexedFileName(L"chart_id_", atlas_id, L".png");
         }
 
         const BakeAccumulatorPublishedAtlasState* FindPublishedAtlas(const BakeAccumulatorResumeState& resume_state,
@@ -351,18 +430,18 @@ namespace LightingBaker
                 SanitizeRadianceChannel(ray_tracing_dispatch.output_rgba[rgba_offset + 2u]));
         }
 
-        bool WritePublishedAtlas(const std::filesystem::path& file_path,
-                                 unsigned width,
+        bool BuildAtlasHalfWords(unsigned width,
                                  unsigned height,
                                  const std::vector<float>& accumulation,
                                  const std::vector<std::uint32_t>& sample_count,
+                                 std::vector<std::uint16_t>& out_half_words,
                                  std::wstring& out_error)
         {
             const std::size_t pixel_count =
                 static_cast<std::size_t>(width) * static_cast<std::size_t>(height);
             if (accumulation.size() != pixel_count * 3u || sample_count.size() != pixel_count)
             {
-                out_error = L"Published atlas write received mismatched accumulation cache sizes.";
+                out_error = L"Half-float atlas write received mismatched accumulation cache sizes.";
                 return false;
             }
 
@@ -379,7 +458,315 @@ namespace LightingBaker
                 atlas_half_words[atlas_offset + 3u] = PackHalf(spp > 0u ? 1.0f : 0.0f);
             }
 
-            return WriteBinaryVector(file_path, L"published atlas", atlas_half_words, out_error);
+            out_half_words = std::move(atlas_half_words);
+            return true;
+        }
+
+        bool WriteHalfFloatAtlas(const std::filesystem::path& file_path,
+                                 const wchar_t* label,
+                                 unsigned width,
+                                 unsigned height,
+                                 const std::vector<float>& accumulation,
+                                 const std::vector<std::uint32_t>& sample_count,
+                                 std::wstring& out_error)
+        {
+            std::vector<std::uint16_t> atlas_half_words{};
+            if (!BuildAtlasHalfWords(width, height, accumulation, sample_count, atlas_half_words, out_error))
+            {
+                return false;
+            }
+
+            return WriteBinaryVector(file_path, label, atlas_half_words, out_error);
+        }
+
+        bool WritePublishedAtlas(const std::filesystem::path& file_path,
+                                 unsigned width,
+                                 unsigned height,
+                                 const std::vector<float>& accumulation,
+                                 const std::vector<std::uint32_t>& sample_count,
+                                 std::wstring& out_error)
+        {
+            return WriteHalfFloatAtlas(file_path,
+                                       L"published atlas",
+                                       width,
+                                       height,
+                                       accumulation,
+                                       sample_count,
+                                       out_error);
+        }
+
+        std::uint8_t LinearToPreviewByte(float value)
+        {
+            if (!std::isfinite(value))
+            {
+                value = 0.0f;
+            }
+
+            value = (std::max)(0.0f, value);
+            const float mapped = value / (1.0f + value);
+            const float gamma_encoded = std::pow((std::max)(0.0f, (std::min)(mapped, 1.0f)), 1.0f / 2.2f);
+            return static_cast<std::uint8_t>(gamma_encoded * 255.0f + 0.5f);
+        }
+
+        std::array<std::uint8_t, 4> BuildChartColor(unsigned chart_index)
+        {
+            std::uint32_t hash = chart_index + 1u;
+            hash ^= hash >> 16u;
+            hash *= 0x7feb352du;
+            hash ^= hash >> 15u;
+            hash *= 0x846ca68bu;
+            hash ^= hash >> 16u;
+
+            const auto channel_from_shift = [hash](unsigned shift)
+            {
+                return static_cast<std::uint8_t>(80u + ((hash >> shift) & 0xafu));
+            };
+
+            return {channel_from_shift(0u), channel_from_shift(8u), channel_from_shift(16u), 255u};
+        }
+
+        bool WritePngImage(const std::filesystem::path& file_path,
+                           const wchar_t* label,
+                           const std::vector<std::uint8_t>& rgba_data,
+                           unsigned width,
+                           unsigned height,
+                           std::wstring& out_error)
+        {
+            const std::size_t pixel_count =
+                static_cast<std::size_t>(width) * static_cast<std::size_t>(height);
+            if (rgba_data.size() != pixel_count * 4u)
+            {
+                out_error = std::wstring(L"PNG image write received mismatched pixel data for ") + label + L".";
+                return false;
+            }
+
+            if (!EnsureParentDirectory(file_path, out_error))
+            {
+                return false;
+            }
+
+            if (!glTFImageIOUtil::Instance().SaveAsPNG(PathToUtf8String(file_path),
+                                                       rgba_data.data(),
+                                                       static_cast<int>(width),
+                                                       static_cast<int>(height)))
+            {
+                out_error = std::wstring(L"Failed to write ") + label + L": " + file_path.native();
+                return false;
+            }
+
+            return true;
+        }
+
+        bool WritePreviewAtlasPNG(const std::filesystem::path& file_path,
+                                  unsigned width,
+                                  unsigned height,
+                                  const std::vector<float>& accumulation,
+                                  const std::vector<std::uint32_t>& sample_count,
+                                  std::wstring& out_error)
+        {
+            const std::size_t pixel_count =
+                static_cast<std::size_t>(width) * static_cast<std::size_t>(height);
+            if (accumulation.size() != pixel_count * 3u || sample_count.size() != pixel_count)
+            {
+                out_error = L"Preview atlas write received mismatched accumulation cache sizes.";
+                return false;
+            }
+
+            std::vector<std::uint8_t> rgba_data(pixel_count * 4u, 0u);
+            for (std::size_t pixel_index = 0u; pixel_index < pixel_count; ++pixel_index)
+            {
+                const std::uint32_t spp = sample_count[pixel_index];
+                const float inv_spp = spp > 0u ? (1.0f / static_cast<float>(spp)) : 0.0f;
+                const std::size_t accumulation_offset = pixel_index * 3u;
+                const std::size_t rgba_offset = pixel_index * 4u;
+                rgba_data[rgba_offset + 0u] =
+                    LinearToPreviewByte(accumulation[accumulation_offset + 0u] * inv_spp);
+                rgba_data[rgba_offset + 1u] =
+                    LinearToPreviewByte(accumulation[accumulation_offset + 1u] * inv_spp);
+                rgba_data[rgba_offset + 2u] =
+                    LinearToPreviewByte(accumulation[accumulation_offset + 2u] * inv_spp);
+                rgba_data[rgba_offset + 3u] = 255u;
+            }
+
+            return WritePngImage(file_path, L"preview atlas png", rgba_data, width, height, out_error);
+        }
+
+        bool WriteCoverageAtlasPNG(const std::filesystem::path& file_path,
+                                   unsigned atlas_id,
+                                   unsigned width,
+                                   unsigned height,
+                                   const LightmapAtlasBuildResult& atlas_result,
+                                   std::wstring& out_error)
+        {
+            const std::size_t pixel_count =
+                static_cast<std::size_t>(width) * static_cast<std::size_t>(height);
+            std::vector<std::uint8_t> rgba_data(pixel_count * 4u, 0u);
+            for (std::size_t pixel_index = 0u; pixel_index < pixel_count; ++pixel_index)
+            {
+                rgba_data[pixel_index * 4u + 3u] = 255u;
+            }
+
+            for (const LightmapAtlasTexelRecord& texel_record : atlas_result.texel_records)
+            {
+                if (texel_record.atlas_id != atlas_id)
+                {
+                    continue;
+                }
+
+                if (texel_record.texel_x >= width || texel_record.texel_y >= height)
+                {
+                    out_error = L"Coverage atlas write encountered an out-of-range texel record.";
+                    return false;
+                }
+
+                const std::size_t pixel_index =
+                    static_cast<std::size_t>(texel_record.texel_y) * static_cast<std::size_t>(width) +
+                    static_cast<std::size_t>(texel_record.texel_x);
+                const std::size_t rgba_offset = pixel_index * 4u;
+                rgba_data[rgba_offset + 0u] = 255u;
+                rgba_data[rgba_offset + 1u] = 255u;
+                rgba_data[rgba_offset + 2u] = 255u;
+            }
+
+            return WritePngImage(file_path, L"coverage atlas png", rgba_data, width, height, out_error);
+        }
+
+        bool WriteChartIdAtlasPNG(const std::filesystem::path& file_path,
+                                  unsigned atlas_id,
+                                  unsigned width,
+                                  unsigned height,
+                                  const LightmapAtlasBuildResult& atlas_result,
+                                  std::wstring& out_error)
+        {
+            const std::size_t pixel_count =
+                static_cast<std::size_t>(width) * static_cast<std::size_t>(height);
+            const unsigned unassigned_chart = std::numeric_limits<unsigned>::max();
+            const unsigned overlap_chart = std::numeric_limits<unsigned>::max() - 1u;
+
+            std::map<std::uint64_t, unsigned> chart_indices{};
+            unsigned next_chart_index = 0u;
+            for (const LightmapAtlasBindingInfo& binding : atlas_result.bindings)
+            {
+                if (binding.atlas_id != atlas_id)
+                {
+                    continue;
+                }
+
+                const std::uint64_t binding_key = BuildBindingKey(binding.stable_node_key, binding.primitive_hash);
+                const auto insert_result = chart_indices.emplace(binding_key, next_chart_index);
+                if (insert_result.second)
+                {
+                    ++next_chart_index;
+                }
+            }
+
+            std::vector<unsigned> pixel_charts(pixel_count, unassigned_chart);
+            for (const LightmapAtlasTexelRecord& texel_record : atlas_result.texel_records)
+            {
+                if (texel_record.atlas_id != atlas_id)
+                {
+                    continue;
+                }
+
+                if (texel_record.texel_x >= width || texel_record.texel_y >= height)
+                {
+                    out_error = L"Chart-id atlas write encountered an out-of-range texel record.";
+                    return false;
+                }
+
+                const std::uint64_t binding_key =
+                    BuildBindingKey(texel_record.stable_node_key, texel_record.primitive_hash);
+                auto chart_it = chart_indices.find(binding_key);
+                if (chart_it == chart_indices.end())
+                {
+                    const unsigned chart_index = next_chart_index++;
+                    chart_it = chart_indices.emplace(binding_key, chart_index).first;
+                }
+
+                const std::size_t pixel_index =
+                    static_cast<std::size_t>(texel_record.texel_y) * static_cast<std::size_t>(width) +
+                    static_cast<std::size_t>(texel_record.texel_x);
+                if (pixel_charts[pixel_index] == unassigned_chart)
+                {
+                    pixel_charts[pixel_index] = chart_it->second;
+                }
+                else if (pixel_charts[pixel_index] != chart_it->second)
+                {
+                    pixel_charts[pixel_index] = overlap_chart;
+                }
+            }
+
+            std::vector<std::uint8_t> rgba_data(pixel_count * 4u, 0u);
+            for (std::size_t pixel_index = 0u; pixel_index < pixel_count; ++pixel_index)
+            {
+                const std::size_t rgba_offset = pixel_index * 4u;
+                rgba_data[rgba_offset + 3u] = 255u;
+
+                const unsigned chart_index = pixel_charts[pixel_index];
+                if (chart_index == unassigned_chart)
+                {
+                    continue;
+                }
+
+                const std::array<std::uint8_t, 4> color =
+                    chart_index == overlap_chart ? std::array<std::uint8_t, 4>{255u, 0u, 255u, 255u}
+                                                 : BuildChartColor(chart_index);
+                rgba_data[rgba_offset + 0u] = color[0];
+                rgba_data[rgba_offset + 1u] = color[1];
+                rgba_data[rgba_offset + 2u] = color[2];
+                rgba_data[rgba_offset + 3u] = color[3];
+            }
+
+            return WritePngImage(file_path, L"chart-id atlas png", rgba_data, width, height, out_error);
+        }
+
+        bool WriteAtlasArtifacts(const BakeAccumulatorResumeState& resume_state,
+                                 const LightmapAtlasBuildResult& atlas_result,
+                                 const BakeAccumulatorAtlasCache& atlas_cache,
+                                 std::wstring& out_error)
+        {
+            if (!WriteHalfFloatAtlas(BuildMasterAtlasPath(resume_state, atlas_cache.atlas_id),
+                                     L"master atlas",
+                                     atlas_cache.width,
+                                     atlas_cache.height,
+                                     atlas_cache.accumulation,
+                                     atlas_cache.sample_count,
+                                     out_error))
+            {
+                return false;
+            }
+
+            if (!WritePreviewAtlasPNG(BuildPreviewAtlasPath(resume_state, atlas_cache.atlas_id),
+                                      atlas_cache.width,
+                                      atlas_cache.height,
+                                      atlas_cache.accumulation,
+                                      atlas_cache.sample_count,
+                                      out_error))
+            {
+                return false;
+            }
+
+            if (!WriteCoverageAtlasPNG(BuildCoverageAtlasPath(resume_state, atlas_cache.atlas_id),
+                                       atlas_cache.atlas_id,
+                                       atlas_cache.width,
+                                       atlas_cache.height,
+                                       atlas_result,
+                                       out_error))
+            {
+                return false;
+            }
+
+            if (!WriteChartIdAtlasPNG(BuildChartIdAtlasPath(resume_state, atlas_cache.atlas_id),
+                                      atlas_cache.atlas_id,
+                                      atlas_cache.width,
+                                      atlas_cache.height,
+                                      atlas_result,
+                                      out_error))
+            {
+                return false;
+            }
+
+            return true;
         }
 
         bool LoadAtlasCache(const BakeAccumulatorResumeState& resume_state,
@@ -810,6 +1197,11 @@ namespace LightingBaker
                 return false;
             }
 
+            if (!WriteAtlasArtifacts(resume_state, atlas_result, atlas_cache, out_error))
+            {
+                return false;
+            }
+
             result.published_atlases_updated = true;
         }
 
@@ -919,6 +1311,11 @@ namespace LightingBaker
                                      atlas_cache.accumulation,
                                      atlas_cache.sample_count,
                                      out_error))
+            {
+                return false;
+            }
+
+            if (!WriteAtlasArtifacts(resume_state, atlas_result, atlas_cache, out_error))
             {
                 return false;
             }

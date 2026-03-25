@@ -11,6 +11,9 @@ public:
     
     bool LoadFile(const std::string& file_path);
 	const std::string& GetSceneFileDirectory() const;
+    const std::string& GetSourceJsonText() const;
+    bool GetBufferViewData(const glTFHandle& buffer_view_handle, const unsigned char*& out_data, size_t& out_size) const;
+    bool GetBufferViewData(const glTF_Element_BufferView& buffer_view, const unsigned char*& out_data, size_t& out_size) const;
     
     void Print() const;
 
@@ -42,6 +45,7 @@ public:
     
 private:
 	std::string m_scene_file_directory;
+    std::string m_source_json_text;
     
     unsigned m_default_scene {};
     std::vector<std::unique_ptr<glTF_Element_Scene>>            m_scenes;

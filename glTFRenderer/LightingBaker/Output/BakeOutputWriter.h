@@ -31,6 +31,10 @@ namespace LightingBaker
         unsigned width{0};
         unsigned height{0};
         std::string relative_file_path{};
+        std::string master_relative_file_path{};
+        std::string preview_relative_file_path{};
+        std::string coverage_relative_file_path{};
+        std::string chart_id_relative_file_path{};
         std::string format{"rgba16f"};
         std::string codec{"raw_half"};
         std::string semantic{"diffuse_irradiance"};

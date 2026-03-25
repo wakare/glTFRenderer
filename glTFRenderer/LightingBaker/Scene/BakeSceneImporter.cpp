@@ -1,11 +1,14 @@
 #include "BakeSceneImporter.h"
 
+#include <algorithm>
 #include <fstream>
 #include <cmath>
+#include <cctype>
 #include <cstdint>
 #include <cstring>
 #include <limits>
 #include <string>
+#include <system_error>
 #include <vector>
 #include <utility>
 
@@ -275,7 +278,169 @@ namespace LightingBaker
             return glm::fvec4(transformed_xyz, handedness);
         }
 
-        void ParsePunctualLightRegistry(const std::filesystem::path& scene_path,
+        bool StartsWith(const std::string& value, const char* prefix)
+        {
+            const std::size_t prefix_length = std::char_traits<char>::length(prefix);
+            return value.size() >= prefix_length && value.compare(0u, prefix_length, prefix) == 0;
+        }
+
+        std::string ToLowerAscii(std::string value)
+        {
+            std::transform(value.begin(),
+                           value.end(),
+                           value.begin(),
+                           [](unsigned char character)
+                           {
+                               return static_cast<char>(std::tolower(character));
+                           });
+            return value;
+        }
+
+        std::string ResolveEmbeddedImageExtension(const glTF_Element_Image& image)
+        {
+            if (!image.uri.empty())
+            {
+                const std::filesystem::path image_path(image.uri);
+                if (image_path.has_extension())
+                {
+                    return image_path.extension().string();
+                }
+            }
+
+            const std::string mime_type = ToLowerAscii(image.mime_type);
+            if (mime_type == "image/png")
+            {
+                return ".png";
+            }
+            if (mime_type == "image/jpeg" || mime_type == "image/jpg")
+            {
+                return ".jpg";
+            }
+            if (mime_type == "image/webp")
+            {
+                return ".webp";
+            }
+            if (mime_type == "image/bmp")
+            {
+                return ".bmp";
+            }
+            if (mime_type == "image/gif")
+            {
+                return ".gif";
+            }
+            if (mime_type == "image/ktx2")
+            {
+                return ".ktx2";
+            }
+
+            return {};
+        }
+
+        bool EnsureDirectoryExists(const std::filesystem::path& directory_path, std::string& out_error)
+        {
+            out_error.clear();
+            if (directory_path.empty())
+            {
+                out_error = "Material texture cache directory is empty.";
+                return false;
+            }
+
+            std::error_code error_code{};
+            std::filesystem::create_directories(directory_path, error_code);
+            if (error_code)
+            {
+                out_error = "Failed to create material texture cache directory: " + directory_path.string();
+                return false;
+            }
+
+            return true;
+        }
+
+        bool WriteBinaryFile(const std::filesystem::path& file_path,
+                             const unsigned char* data,
+                             std::size_t size,
+                             std::string& out_error)
+        {
+            if (data == nullptr || size == 0u)
+            {
+                out_error = "Embedded image buffer is empty.";
+                return false;
+            }
+
+            if (!EnsureDirectoryExists(file_path.parent_path(), out_error))
+            {
+                return false;
+            }
+
+            std::ofstream stream(file_path, std::ios::out | std::ios::binary | std::ios::trunc);
+            if (!stream.is_open())
+            {
+                out_error = "Failed to open embedded image cache file for write: " + file_path.string();
+                return false;
+            }
+
+            stream.write(reinterpret_cast<const char*>(data), static_cast<std::streamsize>(size));
+            if (!stream.good())
+            {
+                out_error = "Failed to write embedded image cache file: " + file_path.string();
+                return false;
+            }
+
+            return true;
+        }
+
+        bool ResolveEmbeddedImageUri(const glTFLoader& loader,
+                                     const glTF_Element_Image& image,
+                                     unsigned image_index,
+                                     const std::filesystem::path& material_texture_cache_root,
+                                     std::string& out_texture_uri,
+                                     std::string& out_error)
+        {
+            out_texture_uri.clear();
+            out_error.clear();
+
+            if (material_texture_cache_root.empty())
+            {
+                out_error = "Material texture cache root is not configured.";
+                return false;
+            }
+
+            if (!image.buffer_view.IsValid())
+            {
+                out_error = "Buffer-view-backed image is missing a valid bufferView.";
+                return false;
+            }
+
+            const unsigned char* image_data = nullptr;
+            std::size_t image_size = 0u;
+            if (!loader.GetBufferViewData(image.buffer_view, image_data, image_size) ||
+                image_data == nullptr ||
+                image_size == 0u)
+            {
+                out_error = "Failed to read encoded image bytes from the referenced bufferView.";
+                return false;
+            }
+
+            const std::string extension = ResolveEmbeddedImageExtension(image);
+            if (extension.empty())
+            {
+                out_error = "Buffer-view-backed image is missing a supported mimeType.";
+                return false;
+            }
+
+            const std::filesystem::path texture_path =
+                (material_texture_cache_root / std::filesystem::path("embedded_image_" + std::to_string(image_index) + extension))
+                    .lexically_normal();
+            if (!WriteBinaryFile(texture_path, image_data, image_size, out_error))
+            {
+                return false;
+            }
+
+            out_texture_uri = texture_path.string();
+            return true;
+        }
+
+        void ParsePunctualLightRegistry(const glTFLoader& loader,
                                         std::size_t node_count,
                                         ParsedPunctualLightRegistry& out_registry,
                                         BakeSceneImportResult& out_result)
@@ -283,19 +448,19 @@ namespace LightingBaker
             out_registry = ParsedPunctualLightRegistry{};
             out_registry.node_light_indices.assign(node_count, -1);
 
-            std::ifstream stream(scene_path, std::ios::in | std::ios::binary);
-            if (!stream.is_open())
+            const std::string& source_json_text = loader.GetSourceJsonText();
+            if (source_json_text.empty())
             {
                 AddWarning(out_result,
-                           "punctual_lights_scene_open_failed",
-                           "Unable to reopen the glTF file while parsing KHR_lights_punctual. Direct-light import was skipped.");
+                           "punctual_lights_source_unavailable",
+                           "The loader did not preserve source JSON text. Direct-light import was skipped.");
                 return;
             }
 
             nlohmann::json root{};
             try
             {
-                root = nlohmann::json::parse(stream);
+                root = nlohmann::json::parse(source_json_text);
             }
             catch (const std::exception& exception)
             {
@@ -516,6 +681,7 @@ namespace LightingBaker
         }
 
         bool ResolveTextureUri(const glTFLoader& loader,
+                               const std::filesystem::path& material_texture_cache_root,
                                const glTF_TextureInfo_Base& texture_info,
                                std::string& out_texture_uri,
                                std::string& out_error)
@@ -552,19 +718,37 @@ namespace LightingBaker
             }
 
             const auto& image = *images[image_index];
-            if (image.uri.empty())
+            if (!image.uri.empty())
             {
-                out_error = "Embedded or buffer-view-backed images are not supported yet.";
-                return false;
+                if (StartsWith(image.uri, "data:"))
+                {
+                    out_error = "Data URI-backed images are not supported yet.";
+                    return false;
+                }
+
+                const std::filesystem::path texture_path =
+                    (std::filesystem::path(loader.GetSceneFileDirectory()) / std::filesystem::path(image.uri)).lexically_normal();
+                out_texture_uri = texture_path.string();
+                return true;
             }
 
-            const std::filesystem::path texture_path =
-                (std::filesystem::path(loader.GetSceneFileDirectory()) / std::filesystem::path(image.uri)).lexically_normal();
-            out_texture_uri = texture_path.string();
-            return true;
+            if (image.buffer_view.IsValid())
+            {
+                return ResolveEmbeddedImageUri(
+                    loader,
+                    image,
+                    image_index,
+                    material_texture_cache_root,
+                    out_texture_uri,
+                    out_error);
+            }
+
+            out_error = "Image does not provide a URI or buffer view.";
+            return false;
         }
 
         bool ResolveSupportedMaterialTexture(const glTFLoader& loader,
+                                             const std::filesystem::path& material_texture_cache_root,
                                              BakePrimitiveImportInfo& primitive,
                                              const glTF_TextureInfo_Base& texture_info,
                                              const char* texture_label,
@@ -591,7 +775,7 @@ namespace LightingBaker
 
             std::string texture_uri{};
             std::string texture_error{};
-            if (!ResolveTextureUri(loader, texture_info, texture_uri, texture_error))
+            if (!ResolveTextureUri(loader, material_texture_cache_root, texture_info, texture_uri, texture_error))
             {
                 AddWarning(primitive,
                            std::string(texture_label) + "_source",
@@ -613,6 +797,7 @@ namespace LightingBaker
         }
 
         void PopulatePrimitiveMaterial(const glTFLoader& loader,
+                                       const std::filesystem::path& material_texture_cache_root,
                                        BakePrimitiveImportInfo& primitive,
                                        BakeMaterialImportInfo& out_material)
         {
@@ -641,6 +826,7 @@ namespace LightingBaker
             out_material.alpha_masked = material.alpha_mode == "MASK";
             out_material.alpha_blended = material.alpha_mode == "BLEND";
             ResolveSupportedMaterialTexture(loader,
+                                            material_texture_cache_root,
                                             primitive,
                                             material.pbr.base_color_texture,
                                             "baseColorTexture",
@@ -648,6 +834,15 @@ namespace LightingBaker
                                             out_material.has_base_color_texture,
                                             out_material.base_color_texture_uri);
             ResolveSupportedMaterialTexture(loader,
+                                            material_texture_cache_root,
+                                            primitive,
+                                            material.pbr.metallic_roughness_texture,
+                                            "metallicRoughnessTexture",
+                                            out_material.metallic_roughness_texture_texcoord,
+                                            out_material.has_metallic_roughness_texture,
+                                            out_material.metallic_roughness_texture_uri);
+            ResolveSupportedMaterialTexture(loader,
+                                            material_texture_cache_root,
                                             primitive,
                                             material.normal_texture,
                                             "normalTexture",
@@ -655,6 +850,7 @@ namespace LightingBaker
                                             out_material.has_normal_texture,
                                             out_material.normal_texture_uri);
             ResolveSupportedMaterialTexture(loader,
+                                            material_texture_cache_root,
                                             primitive,
                                             material.emissive_texture,
                                             "emissiveTexture",
@@ -1034,6 +1230,7 @@ namespace LightingBaker
         }
 
         void ValidatePrimitive(const glTFLoader& loader,
+                               const std::filesystem::path& material_texture_cache_root,
                                const glTF_Primitive& primitive,
                                const glm::fmat4x4& world_transform,
                                BakePrimitiveImportInfo& out_primitive)
@@ -1063,7 +1260,7 @@ namespace LightingBaker
                 AddError(out_primitive, "missing_uv1", "Primitive is missing TEXCOORD_1.");
             }
 
-            PopulatePrimitiveMaterial(loader, out_primitive, out_primitive.material);
+            PopulatePrimitiveMaterial(loader, material_texture_cache_root, out_primitive, out_primitive.material);
             ValidatePrimitiveGeometry(loader, primitive, world_transform, out_primitive);
             if (out_primitive.material.has_base_color_texture)
             {
@@ -1135,6 +1332,7 @@ namespace LightingBaker
 
         void CollectNodePrimitiveInstances(const glTFLoader& loader,
                                            const ParsedPunctualLightRegistry& light_registry,
+                                           const std::filesystem::path& material_texture_cache_root,
                                            const glTFHandle& node_handle,
                                            const glm::fmat4x4& parent_world_transform,
                                            BakeSceneImportResult& out_result)
@@ -1175,7 +1373,7 @@ namespace LightingBaker
                     primitive_info.node_name = ResolveNodeName(node, node_index);
                     primitive_info.mesh_name = ResolveMeshName(mesh, mesh_index);
 
-                    ValidatePrimitive(loader, primitive, world_transform, primitive_info);
+                    ValidatePrimitive(loader, material_texture_cache_root, primitive, world_transform, primitive_info);
                     if (primitive_info.can_emit_lightmap_binding)
                     {
                         ++out_result.valid_lightmap_primitive_count;
@@ -1188,7 +1386,13 @@ namespace LightingBaker
 
             for (const glTFHandle& child_handle : node.children)
             {
-                CollectNodePrimitiveInstances(loader, light_registry, child_handle, world_transform, out_result);
+                CollectNodePrimitiveInstances(
+                    loader,
+                    light_registry,
+                    material_texture_cache_root,
+                    child_handle,
+                    world_transform,
+                    out_result);
             }
         }
     }
@@ -1236,7 +1440,7 @@ namespace LightingBaker
         out_result.mesh_count = static_cast<unsigned>(loader.GetMeshes().size());
 
         ParsedPunctualLightRegistry light_registry{};
-        ParsePunctualLightRegistry(request.scene_path,
+        ParsePunctualLightRegistry(loader,
                                    loader.GetNodes().size(),
                                    light_registry,
                                    out_result);
@@ -1249,7 +1453,13 @@ namespace LightingBaker
 
         for (const glTFHandle& root_node_handle : default_scene.root_nodes)
         {
-            CollectNodePrimitiveInstances(loader, light_registry, root_node_handle, glm::fmat4x4(1.0f), out_result);
+            CollectNodePrimitiveInstances(
+                loader,
+                light_registry,
+                request.material_texture_cache_root,
+                root_node_handle,
+                glm::fmat4x4(1.0f),
+                out_result);
         }
 
         if (out_result.instance_primitive_count == 0)

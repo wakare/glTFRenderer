@@ -375,6 +375,24 @@ float3 SampleNormalTextureTS(BakeSceneInstance scene_instance, float2 material_u
     return SafeNormalize(tangent_space_normal, float3(0.0f, 0.0f, 1.0f));
 }
 
+// glTF stores roughness in G and metallic in B.
+float2 SampleMetallicRoughness(BakeSceneInstance scene_instance, float2 material_uv)
+{
+    const uint metallic_roughness_texture_index = scene_instance.texture_indices_and_texcoords_extra.z;
+    const float metallic_factor = saturate(scene_instance.metallic_alpha_normal_and_padding.x);
+    const float roughness_factor = saturate(scene_instance.emissive_and_roughness.w);
+    if (metallic_roughness_texture_index == 0xffffffffu)
+    {
+        return float2(metallic_factor, roughness_factor);
+    }
+
+    const float2 sampled_metallic_roughness = SampleMaterialTextureRGBA(
+        metallic_roughness_texture_index,
+        material_uv,
+        float4(1.0f, 1.0f, 1.0f, 1.0f)).bg;
+    return saturate(sampled_metallic_roughness * float2(metallic_factor, roughness_factor));
+}
+
 void BuildShadingBasisFromTangent(float3 shading_normal, float4 interpolated_tangent, out float3 tangent, out float3 bitangent)
 {
     tangent = interpolated_tangent.xyz - shading_normal * dot(interpolated_tangent.xyz, shading_normal);
@@ -567,6 +585,12 @@ void BakeClosestHitMain(inout BakePayload payload, in BuiltInTriangleIntersectio
         vertex2,
         barycentrics,
         scene_instance.texture_indices_and_texcoords.w);
+    const float2 metallic_roughness_uv = SelectMaterialTexcoord(
+        vertex0,
+        vertex1,
+        vertex2,
+        barycentrics,
+        scene_instance.texture_indices_and_texcoords_extra.w);
 
     const float3 edge01 = vertex1.world_position.xyz - vertex0.world_position.xyz;
     const float3 edge02 = vertex2.world_position.xyz - vertex0.world_position.xyz;
@@ -613,11 +637,15 @@ void BakeClosestHitMain(inout BakePayload payload, in BuiltInTriangleIntersectio
 
     const float3 base_color = SampleBaseColor(scene_instance, material_uv);
     const float3 emissive = SampleEmissive(scene_instance, emissive_uv);
-    const float3 visible_albedo = (!front_face && !double_sided) ? float3(0.0f, 0.0f, 0.0f) : base_color;
+    const float2 metallic_roughness = SampleMetallicRoughness(scene_instance, metallic_roughness_uv);
+    const float metallic = saturate(metallic_roughness.x);
+    const float roughness = saturate(metallic_roughness.y);
+    const float3 diffuse_albedo = base_color * (1.0f - metallic);
+    const float3 visible_albedo = (!front_face && !double_sided) ? float3(0.0f, 0.0f, 0.0f) : diffuse_albedo;
 
     payload.radiance_and_hit = float4(emissive, 1.0f);
     payload.normal_and_distance = float4(shading_normal, RayTCurrent());
-    payload.albedo_and_padding = float4(visible_albedo, world_position.x * 0.0f);
+    payload.albedo_and_padding = float4(visible_albedo, roughness);
 }
 
 [shader("anyhit")]

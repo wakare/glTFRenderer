@@ -225,7 +225,7 @@ struct glTF_Primitive
     std::map<glTFAttributeId, glTFHandle> attributes;
     glTFHandle indices;
     glTFHandle material;
-    glTF_Primitive_Mode mode;
+    glTF_Primitive_Mode mode {ETriangles};
 
     unsigned Hash() const
     {
@@ -262,7 +262,8 @@ template<>
 struct glTF_Element_Template<glTF_Element_Type::EImage> : glTF_Element_Base
 {
     std::string uri;
-    // TODO: support load image from buffer view
+    std::string mime_type;
+    glTFHandle buffer_view{};
 };
 
 typedef glTF_Element_Template<glTF_Element_Type::EImage> glTF_Element_Image;
@@ -362,7 +363,7 @@ template<>
 struct glTF_Element_Template<glTF_Element_Type::EBuffer> : glTF_Element_Base
 {
     std::string uri;
-    size_t byte_length;
+    size_t byte_length{0};
 };
 
 typedef glTF_Element_Template<glTF_Element_Type::EBuffer> glTF_Element_Buffer;
@@ -378,9 +379,9 @@ struct glTF_Element_Template<glTF_Element_Type::EBufferView> : glTF_Element_Base
     };
 
     glTFHandle buffer;
-    size_t byte_offset;
-    size_t byte_length;
-    size_t byte_stride;
+    size_t byte_offset{0};
+    size_t byte_length{0};
+    size_t byte_stride{0};
     glTF_BufferView_Target target;
 };
 

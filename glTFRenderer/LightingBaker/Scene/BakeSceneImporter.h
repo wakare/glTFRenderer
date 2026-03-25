@@ -18,6 +18,7 @@ namespace LightingBaker
     struct BakeSceneImportRequest
     {
         std::filesystem::path scene_path;
+        std::filesystem::path material_texture_cache_root{};
     };
 
     struct BakeSceneValidationMessage
@@ -55,6 +56,8 @@ namespace LightingBaker
         float alpha_cutoff{0.5f};
         unsigned base_color_texture_texcoord{0u};
         bool has_base_color_texture{false};
+        unsigned metallic_roughness_texture_texcoord{0u};
+        bool has_metallic_roughness_texture{false};
         unsigned normal_texture_texcoord{0u};
         bool has_normal_texture{false};
         unsigned emissive_texture_texcoord{0u};
@@ -63,6 +66,7 @@ namespace LightingBaker
         bool alpha_masked{false};
         bool alpha_blended{false};
         std::string base_color_texture_uri{};
+        std::string metallic_roughness_texture_uri{};
         std::string normal_texture_uri{};
         std::string emissive_texture_uri{};
     };
