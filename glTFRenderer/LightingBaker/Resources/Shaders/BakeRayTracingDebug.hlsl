@@ -24,10 +24,19 @@ struct BakeSceneInstance
     float4 metallic_and_padding;
 };
 
+struct BakeSceneLight
+{
+    float4 position_and_type;
+    float4 direction_and_range;
+    float4 color_and_intensity;
+    float4 spot_angles;
+};
+
 StructuredBuffer<BakeTexelRecord> g_bake_texel_records : register(t1);
 StructuredBuffer<BakeSceneVertex> g_scene_vertices : register(t2);
 StructuredBuffer<uint> g_scene_indices : register(t3);
 StructuredBuffer<BakeSceneInstance> g_scene_instances : register(t4);
+StructuredBuffer<BakeSceneLight> g_scene_lights : register(t5);
 Texture2D<float4> bindless_bake_material_textures[] : register(t0, BINDLESS_TEXTURE_SPACE_BAKER_MATERIAL);
 RWTexture2D<float4> g_bake_output : register(u0);
 
@@ -38,9 +47,13 @@ cbuffer g_bake_dispatch_constants : register(b0)
     uint sample_index;
     uint sample_count;
     uint max_bounces;
+    uint scene_light_count;
     float ray_epsilon;
     float sky_intensity;
     float sky_ground_mix;
+    float padding0;
+    float padding1;
+    float padding2;
 };
 
 struct [raypayload] BakePayload
@@ -52,7 +65,12 @@ struct [raypayload] BakePayload
 
 static const float kPi = 3.14159265359f;
 static const uint kInstanceFlagDoubleSided = 1u;
+static const uint kInstanceFlagAlphaMasked = 1u << 1u;
 static const uint kMaterialTextureInvalidIndex = 0xffffffffu;
+static const uint kSceneLightTypeDirectional = 0u;
+static const uint kSceneLightTypePoint = 1u;
+static const uint kSceneLightTypeSpot = 2u;
+static const float4 kTracePayloadSentinel = float4(-1.0f, -2.0f, -3.0f, -4.0f);
 
 uint Hash32(uint value)
 {
@@ -110,6 +128,145 @@ float3 EvaluateSkyRadiance(float3 world_direction)
     return lerp(ground, sky, up) * sky_intensity;
 }
 
+float EvaluateRangeAttenuation(float distance_sq, float light_range)
+{
+    if (distance_sq <= 1e-8f)
+    {
+        return 0.0f;
+    }
+
+    if (light_range > 0.0f && distance_sq > light_range * light_range)
+    {
+        return 0.0f;
+    }
+
+    return rcp(distance_sq);
+}
+
+float EvaluateSpotAttenuation(BakeSceneLight light, float3 light_direction)
+{
+    const float outer_cos = saturate(light.spot_angles.y);
+    const float inner_cos = max(light.spot_angles.x, outer_cos);
+    const float3 spot_direction = SafeNormalize(light.direction_and_range.xyz, float3(0.0f, 0.0f, -1.0f));
+    const float cos_theta = dot(spot_direction, light_direction);
+    if (cos_theta <= outer_cos)
+    {
+        return 0.0f;
+    }
+
+    const float angle_falloff = saturate((cos_theta - outer_cos) / max(inner_cos - outer_cos, 1e-4f));
+    return angle_falloff * angle_falloff;
+}
+
+bool TraceShadowVisibility(float3 shadow_origin, float3 shadow_direction, float ray_max_distance)
+{
+    if (ray_max_distance <= ray_epsilon)
+    {
+        return false;
+    }
+
+    RayDesc shadow_ray;
+    shadow_ray.Origin = shadow_origin;
+    shadow_ray.Direction = shadow_direction;
+    shadow_ray.TMin = ray_epsilon;
+    shadow_ray.TMax = ray_max_distance;
+
+    BakePayload shadow_payload;
+    shadow_payload.radiance_and_hit = kTracePayloadSentinel;
+    shadow_payload.normal_and_distance = float4(0.0f, 1.0f, 0.0f, 0.0f);
+    shadow_payload.albedo_and_padding = float4(0.0f, 0.0f, 0.0f, 0.0f);
+
+    TraceRay(
+        g_scene_as,
+        RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH,
+        0xff,
+        0,
+        1,
+        0,
+        shadow_ray,
+        shadow_payload);
+
+    return shadow_payload.radiance_and_hit.a < 0.5f;
+}
+
+float3 EvaluateDirectLighting(float3 hit_position, float3 hit_normal, float3 albedo)
+{
+    if (scene_light_count == 0u)
+    {
+        return float3(0.0f, 0.0f, 0.0f);
+    }
+
+    const float3 lambert_brdf = albedo * rcp(kPi);
+    float3 direct_radiance = float3(0.0f, 0.0f, 0.0f);
+
+    [loop]
+    for (uint light_index = 0u; light_index < scene_light_count; ++light_index)
+    {
+        const BakeSceneLight light = g_scene_lights[light_index];
+        const uint light_type = (uint)(light.position_and_type.w + 0.5f);
+        const float3 light_color = max(light.color_and_intensity.rgb, 0.0f);
+        const float light_intensity = max(light.color_and_intensity.w, 0.0f);
+        if (light_intensity <= 0.0f || all(light_color <= 0.0f))
+        {
+            continue;
+        }
+
+        float3 light_direction = float3(0.0f, 1.0f, 0.0f);
+        float light_attenuation = 1.0f;
+        float shadow_distance = 10000.0f;
+
+        if (light_type == kSceneLightTypeDirectional)
+        {
+            light_direction = SafeNormalize(-light.direction_and_range.xyz, float3(0.0f, 1.0f, 0.0f));
+        }
+        else
+        {
+            const float3 to_light = light.position_and_type.xyz - hit_position;
+            const float distance_sq = dot(to_light, to_light);
+            if (distance_sq <= 1e-8f)
+            {
+                continue;
+            }
+
+            const float distance_to_light = sqrt(distance_sq);
+            light_direction = to_light / distance_to_light;
+            shadow_distance = max(distance_to_light - ray_epsilon, ray_epsilon);
+            light_attenuation = EvaluateRangeAttenuation(distance_sq, light.direction_and_range.w);
+            if (light_attenuation <= 0.0f)
+            {
+                continue;
+            }
+
+            if (light_type == kSceneLightTypeSpot)
+            {
+                const float spot_attenuation = EvaluateSpotAttenuation(light, -light_direction);
+                if (spot_attenuation <= 0.0f)
+                {
+                    continue;
+                }
+
+                light_attenuation *= spot_attenuation;
+            }
+        }
+
+        const float n_dot_l = saturate(dot(hit_normal, light_direction));
+        if (n_dot_l <= 0.0f)
+        {
+            continue;
+        }
+
+        if (!TraceShadowVisibility(hit_position + hit_normal * ray_epsilon, light_direction, shadow_distance))
+        {
+            continue;
+        }
+
+        const float3 incident_radiance = light_color * (light_intensity * light_attenuation);
+        direct_radiance += lambert_brdf * incident_radiance * n_dot_l;
+    }
+
+    return direct_radiance;
+}
+
 uint3 LoadTriangleVertexIndices(uint instance_id, uint primitive_index)
 {
     const BakeSceneInstance scene_instance = g_scene_instances[instance_id];
@@ -154,49 +311,52 @@ float2 SelectMaterialTexcoord(BakeSceneVertex vertex0,
         barycentrics);
 }
 
-float3 SampleBaseColor(BakeSceneInstance scene_instance, float2 material_uv)
+float4 SampleMaterialTextureRGBA(uint texture_index, float2 material_uv, float4 fallback_value)
 {
-    const float3 base_color_factor = max(scene_instance.base_color.rgb, 0.0f);
-    const uint base_color_texture_index = scene_instance.texture_indices_and_texcoords.x;
-    if (base_color_texture_index == kMaterialTextureInvalidIndex)
+    if (texture_index == kMaterialTextureInvalidIndex)
     {
-        return base_color_factor;
+        return fallback_value;
     }
 
     uint texture_width = 1u;
     uint texture_height = 1u;
-    bindless_bake_material_textures[base_color_texture_index].GetDimensions(texture_width, texture_height);
+    bindless_bake_material_textures[texture_index].GetDimensions(texture_width, texture_height);
     const float2 clamped_uv = saturate(material_uv);
     const float2 pixel_coord = min(
         clamped_uv * float2(texture_width, texture_height),
         float2(texture_width - 1u, texture_height - 1u));
-    const float3 sampled_base_color =
-        bindless_bake_material_textures[base_color_texture_index]
-            .Load(int3(uint2(pixel_coord), 0))
-            .rgb;
+    return bindless_bake_material_textures[texture_index].Load(int3(uint2(pixel_coord), 0));
+}
+
+float4 SampleBaseColorRGBA(BakeSceneInstance scene_instance, float2 material_uv)
+{
+    const uint base_color_texture_index = scene_instance.texture_indices_and_texcoords.x;
+    const float4 base_color_factor = max(scene_instance.base_color, 0.0f);
+    const float4 sampled_base_color = SampleMaterialTextureRGBA(
+        base_color_texture_index,
+        material_uv,
+        float4(1.0f, 1.0f, 1.0f, 1.0f));
     return max(sampled_base_color * base_color_factor, 0.0f);
+}
+
+float3 SampleBaseColor(BakeSceneInstance scene_instance, float2 material_uv)
+{
+    return SampleBaseColorRGBA(scene_instance, material_uv).rgb;
+}
+
+float SampleBaseAlpha(BakeSceneInstance scene_instance, float2 material_uv)
+{
+    return saturate(SampleBaseColorRGBA(scene_instance, material_uv).a);
 }
 
 float3 SampleEmissive(BakeSceneInstance scene_instance, float2 material_uv)
 {
     const float3 emissive_factor = max(scene_instance.emissive_and_roughness.rgb, 0.0f);
     const uint emissive_texture_index = scene_instance.texture_indices_and_texcoords.z;
-    if (emissive_texture_index == kMaterialTextureInvalidIndex)
-    {
-        return emissive_factor;
-    }
-
-    uint texture_width = 1u;
-    uint texture_height = 1u;
-    bindless_bake_material_textures[emissive_texture_index].GetDimensions(texture_width, texture_height);
-    const float2 clamped_uv = saturate(material_uv);
-    const float2 pixel_coord = min(
-        clamped_uv * float2(texture_width, texture_height),
-        float2(texture_width - 1u, texture_height - 1u));
-    const float3 sampled_emissive =
-        bindless_bake_material_textures[emissive_texture_index]
-            .Load(int3(uint2(pixel_coord), 0))
-            .rgb;
+    const float3 sampled_emissive = SampleMaterialTextureRGBA(
+        emissive_texture_index,
+        material_uv,
+        float4(1.0f, 1.0f, 1.0f, 1.0f)).rgb;
     return max(sampled_emissive * emissive_factor, 0.0f);
 }
 
@@ -252,13 +412,13 @@ void BakeRayGenMain()
             ray_desc.TMax = 10000.0f;
 
             BakePayload payload;
-            payload.radiance_and_hit = float4(0.0f, 0.0f, 0.0f, 0.0f);
+            payload.radiance_and_hit = kTracePayloadSentinel;
             payload.normal_and_distance = float4(0.0f, 1.0f, 0.0f, 0.0f);
             payload.albedo_and_padding = float4(0.0f, 0.0f, 0.0f, 0.0f);
 
             TraceRay(
                 g_scene_as,
-                RAY_FLAG_FORCE_OPAQUE,
+                RAY_FLAG_NONE,
                 0xff,
                 0,
                 1,
@@ -278,7 +438,10 @@ void BakeRayGenMain()
                 break;
             }
 
+            const float3 hit_position = current_origin + current_direction * hit_distance;
+            const float3 hit_normal = SafeNormalize(payload.normal_and_distance.xyz, -current_direction);
             const float3 albedo = max(payload.albedo_and_padding.rgb, 0.0f);
+            sample_radiance += throughput * EvaluateDirectLighting(hit_position, hit_normal, albedo);
             throughput *= albedo;
             const float throughput_max = max(throughput.r, max(throughput.g, throughput.b));
             if (throughput_max <= 1e-4f || bounce_index + 1u >= max_bounces)
@@ -297,14 +460,13 @@ void BakeRayGenMain()
                 throughput /= rr_probability;
             }
 
-            const float3 hit_normal = SafeNormalize(payload.normal_and_distance.xyz, -current_direction);
             float3 hit_tangent;
             float3 hit_bitangent;
             BuildOrthonormalBasis(hit_normal, hit_tangent, hit_bitangent);
 
             const float2 bounce_sample_uv = float2(Random01(rng_state), Random01(rng_state));
             const float3 bounce_local_direction = SampleCosineHemisphere(bounce_sample_uv);
-            current_origin = current_origin + current_direction * hit_distance + hit_normal * ray_epsilon;
+            current_origin = hit_position + hit_normal * ray_epsilon;
             current_direction = SafeNormalize(
                 bounce_local_direction.x * hit_tangent +
                 bounce_local_direction.y * hit_bitangent +
@@ -394,4 +556,38 @@ void BakeClosestHitMain(inout BakePayload payload, in BuiltInTriangleIntersectio
     payload.radiance_and_hit = float4(emissive, 1.0f);
     payload.normal_and_distance = float4(shading_normal, RayTCurrent());
     payload.albedo_and_padding = float4(visible_albedo, world_position.x * 0.0f);
+}
+
+[shader("anyhit")]
+void BakeAnyHitMain(inout BakePayload payload, in BuiltInTriangleIntersectionAttributes attributes)
+{
+    const uint instance_id = InstanceID();
+    const BakeSceneInstance scene_instance = g_scene_instances[instance_id];
+    if ((scene_instance.offsets_and_flags.w & kInstanceFlagAlphaMasked) == 0u)
+    {
+        return;
+    }
+
+    const uint3 triangle_indices = LoadTriangleVertexIndices(instance_id, PrimitiveIndex());
+    const BakeSceneVertex vertex0 = g_scene_vertices[triangle_indices.x];
+    const BakeSceneVertex vertex1 = g_scene_vertices[triangle_indices.y];
+    const BakeSceneVertex vertex2 = g_scene_vertices[triangle_indices.z];
+
+    const float3 barycentrics = float3(
+        1.0f - attributes.barycentrics.x - attributes.barycentrics.y,
+        attributes.barycentrics.x,
+        attributes.barycentrics.y);
+    const float2 material_uv = SelectMaterialTexcoord(
+        vertex0,
+        vertex1,
+        vertex2,
+        barycentrics,
+        scene_instance.texture_indices_and_texcoords.y);
+    const float surface_alpha = SampleBaseAlpha(scene_instance, material_uv);
+    const float alpha_cutoff = saturate(scene_instance.metallic_and_padding.y);
+    if (surface_alpha < alpha_cutoff)
+    {
+        IgnoreHit();
+    }
+    (void)payload;
 }

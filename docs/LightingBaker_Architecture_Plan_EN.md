@@ -276,7 +276,7 @@ The current shipped step is now "`--resume` validation plus progressive continua
 - once validation passes, continue from the previous sample count with an atlas-domain DXR dispatch and refresh `manifest.json`, `resume.json`, and the published atlas
 - stop advancing the cache once the target sample count is reached, while keeping metadata and the published atlas consistent
 
-The baker no longer depends on the `debug hemisphere` placeholder integrator. The current minimum solver is already runnable DXR atlas-domain diffuse path tracing with factor materials, `baseColorTexture`, and `emissiveTexture` sampling. Remaining gaps include normal maps, metallic-roughness textures, alpha-mask visibility, explicit direct-light sampling, and more advanced importance sampling strategies.
+The baker no longer depends on the `debug hemisphere` placeholder integrator. The current minimum solver is already runnable DXR atlas-domain diffuse path tracing with factor materials, `baseColorTexture`, `emissiveTexture`, and a first-pass punctual direct-lighting path. Remaining gaps include normal maps, metallic-roughness textures, alpha-mask visibility, more advanced importance sampling, and fuller lighting strategies beyond the current punctual-light path.
 
 Even if the internal cache format changes later, `resume.json` should remain the single entry point so DXR bake passes and tools do not hardcode file names.
 
@@ -373,4 +373,4 @@ The remaining critical path is now:
 2. extending the current DXR atlas-domain path tracing pass with broader material and lighting support
 3. continuing to improve GPU readback, published atlas codecs, and final baked radiance export
 
-The value of the current progressive pipeline is no longer limited to locking down the cache / package / runtime contract. It is now the live DXR lightmap-baker path that future work will extend with alpha-mask visibility, direct lighting, richer material inputs, and runtime-oriented compression.
+The value of the current progressive pipeline is no longer limited to locking down the cache / package / runtime contract. It is now the live DXR lightmap-baker path that future work will extend with alpha-mask visibility, fuller direct-light / importance sampling, richer material inputs, and runtime-oriented compression.

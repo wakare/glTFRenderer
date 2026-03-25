@@ -3,6 +3,7 @@
 #include <Windows.h>
 
 #include <algorithm>
+#include <array>
 #include <utility>
 
 #include "RHIResourceFactoryImpl.hpp"
@@ -11,12 +12,37 @@ namespace LightingBaker
 {
     namespace
     {
+        void FlushRecordedCommands(RendererInterface::ResourceOperator& resource_operator)
+        {
+            resource_operator.WaitFrameRenderFinished();
+            resource_operator.WaitGPUIdle();
+        }
+
         BakeSceneValidationMessage MakeMessage(std::string code, std::string message)
         {
             return {
                 .code = std::move(code),
                 .message = std::move(message)
             };
+        }
+
+        RendererInterface::TextureDesc CreateFallbackMaterialTextureDesc()
+        {
+            constexpr std::array<char, 4u> kFallbackMaterialTextureRgba{
+                static_cast<char>(255),
+                static_cast<char>(255),
+                static_cast<char>(255),
+                static_cast<char>(255)
+            };
+
+            RendererInterface::TextureDesc texture_desc{};
+            texture_desc.format = RendererInterface::RGBA8_UNORM;
+            texture_desc.width = 1u;
+            texture_desc.height = 1u;
+            texture_desc.data.assign(
+                kFallbackMaterialTextureRgba.begin(),
+                kFallbackMaterialTextureRgba.end());
+            return texture_desc;
         }
 
         RHIBufferDesc BuildVertexBufferDesc(const BakeRayTracingGeometrySource& geometry_source)
@@ -86,6 +112,7 @@ namespace LightingBaker
         scene_vertex_buffer_handle = {};
         scene_index_buffer_handle = {};
         scene_instance_buffer_handle = {};
+        scene_light_buffer_handle = {};
         material_texture_handles.clear();
         vertex_buffers.clear();
         index_buffers.clear();
@@ -215,7 +242,7 @@ namespace LightingBaker
         if (out_result.HasValidationErrors())
         {
             out_error = L"Ray tracing runtime bootstrap failed while uploading geometry buffers.";
-            resource_operator.WaitGPUIdle();
+            FlushRecordedCommands(resource_operator);
             return false;
         }
 
@@ -235,7 +262,7 @@ namespace LightingBaker
                 "rt_runtime_scene_upload_empty",
                 "Ray tracing runtime bootstrap uploaded an empty scene."));
             out_error = L"Ray tracing runtime bootstrap uploaded an empty scene.";
-            resource_operator.WaitGPUIdle();
+            FlushRecordedCommands(resource_operator);
             return false;
         }
 
@@ -247,7 +274,7 @@ namespace LightingBaker
                 "rt_runtime_shading_scene_empty",
                 "Ray tracing runtime bootstrap requires non-empty shading buffers for the baker hit shader."));
             out_error = L"Ray tracing runtime bootstrap requires non-empty shading buffers for the baker hit shader.";
-            resource_operator.WaitGPUIdle();
+            FlushRecordedCommands(resource_operator);
             return false;
         }
 
@@ -260,7 +287,7 @@ namespace LightingBaker
                 "rt_runtime_scene_vertex_buffer_failed",
                 "Failed to allocate the baker shading vertex buffer."));
             out_error = L"Failed to allocate the baker shading vertex buffer.";
-            resource_operator.WaitGPUIdle();
+            FlushRecordedCommands(resource_operator);
             return false;
         }
 
@@ -273,7 +300,7 @@ namespace LightingBaker
                 "rt_runtime_scene_index_buffer_failed",
                 "Failed to allocate the baker shading index buffer."));
             out_error = L"Failed to allocate the baker shading index buffer.";
-            resource_operator.WaitGPUIdle();
+            FlushRecordedCommands(resource_operator);
             return false;
         }
 
@@ -286,13 +313,39 @@ namespace LightingBaker
                 "rt_runtime_scene_instance_buffer_failed",
                 "Failed to allocate the baker shading instance buffer."));
             out_error = L"Failed to allocate the baker shading instance buffer.";
-            resource_operator.WaitGPUIdle();
+            FlushRecordedCommands(resource_operator);
+            return false;
+        }
+
+        std::vector<BakeRayTracingSceneLightGPU> scene_light_buffer_data = ray_tracing_scene.scene_lights;
+        if (scene_light_buffer_data.empty())
+        {
+            scene_light_buffer_data.push_back(BakeRayTracingSceneLightGPU{
+                .position_and_type = {0.0f, 0.0f, 0.0f, static_cast<float>(BakeRayTracingSceneLightTypePoint)},
+                .direction_and_range = {0.0f, 0.0f, -1.0f, -1.0f},
+                .color_and_intensity = {0.0f, 0.0f, 0.0f, 0.0f},
+                .spot_angles = {1.0f, 0.0f, 0.0f, 0.0f},
+            });
+        }
+
+        if (!CreateStructuredSceneBuffer(resource_operator,
+                                         "LightingBaker_RT_SceneLights",
+                                         scene_light_buffer_data,
+                                         out_result.scene_light_buffer_handle))
+        {
+            out_result.errors.push_back(MakeMessage(
+                "rt_runtime_scene_light_buffer_failed",
+                "Failed to allocate the baker scene light buffer."));
+            out_error = L"Failed to allocate the baker scene light buffer.";
+            FlushRecordedCommands(resource_operator);
             return false;
         }
 
         out_result.scene_vertex_buffer_created = true;
         out_result.scene_index_buffer_created = true;
         out_result.scene_instance_buffer_created = true;
+        out_result.scene_light_buffer_created = !ray_tracing_scene.scene_lights.empty();
+        out_result.uploaded_scene_light_count = ray_tracing_scene.scene_lights.size();
 
         out_result.material_texture_handles.clear();
         out_result.material_texture_handles.reserve(ray_tracing_scene.material_texture_uris.size());
@@ -307,12 +360,30 @@ namespace LightingBaker
                     "rt_runtime_material_texture_failed",
                     "Failed to allocate baker material texture resource."));
                 out_error = L"Failed to allocate a baker material texture resource.";
-                resource_operator.WaitGPUIdle();
+                FlushRecordedCommands(resource_operator);
                 return false;
             }
 
             out_result.material_texture_handles.push_back(texture_handle);
         }
+        if (out_result.material_texture_handles.empty())
+        {
+            const RendererInterface::TextureHandle fallback_texture_handle =
+                resource_operator.CreateTexture(CreateFallbackMaterialTextureDesc());
+            if (!fallback_texture_handle.IsValid())
+            {
+                out_result.errors.push_back(MakeMessage(
+                    "rt_runtime_material_texture_fallback_failed",
+                    "Failed to allocate the baker fallback material texture resource."));
+                out_error = L"Failed to allocate the baker fallback material texture resource.";
+                FlushRecordedCommands(resource_operator);
+                return false;
+            }
+
+            out_result.material_texture_handles.push_back(fallback_texture_handle);
+            out_result.fallback_material_texture_created = true;
+        }
+        out_result.bound_material_texture_count = out_result.material_texture_handles.size();
         out_result.material_texture_table_created = !out_result.material_texture_handles.empty();
 
         out_result.acceleration_structure = RHIResourceFactory::CreateRHIResource<IRHIRayTracingAS>();
@@ -322,7 +393,7 @@ namespace LightingBaker
                 "rt_runtime_as_allocation_failed",
                 "Failed to allocate an acceleration structure object for the baker runtime."));
             out_error = L"Failed to allocate a ray tracing acceleration structure object.";
-            resource_operator.WaitGPUIdle();
+            FlushRecordedCommands(resource_operator);
             return false;
         }
 
@@ -333,12 +404,12 @@ namespace LightingBaker
                 "rt_runtime_as_init_failed",
                 "Failed to build baker ray tracing acceleration structures."));
             out_error = L"Failed to initialize baker ray tracing acceleration structures.";
-            resource_operator.WaitGPUIdle();
+            FlushRecordedCommands(resource_operator);
             return false;
         }
 
         out_result.acceleration_structure_initialized = true;
-        resource_operator.WaitGPUIdle();
+        FlushRecordedCommands(resource_operator);
         return true;
     }
 }

@@ -69,8 +69,8 @@ flowchart LR
 
 - ZH: 当前可运行的最小链路已经覆盖 `BakeSceneImporter -> LightmapAtlasBuilder -> BakeAccumulator -> BakeOutputWriter -> RendererModuleLightmap`。其中 DXR atlas-domain dispatch 已经输出真实 radiance，`BakeAccumulator` 会对 readback 结果做 progressive accumulation，并维持 cache / sidecar package / runtime import 合同。
 - EN: The current runnable minimum path already covers `BakeSceneImporter -> LightmapAtlasBuilder -> BakeAccumulator -> BakeOutputWriter -> RendererModuleLightmap`. The atlas-domain DXR dispatch now outputs real radiance, and `BakeAccumulator` progressively accumulates the readback while preserving the cache / sidecar package / runtime import contract.
-- ZH: 当前 `LightmapPathTracingPass` 已经具备 factor 材质、`baseColorTexture` 和 `emissiveTexture` 的最小 diffuse path tracing 能力，后续继续补 alpha mask、direct lighting 和更高质量采样策略。
-- EN: The current `LightmapPathTracingPass` already supports a minimum diffuse path tracing path with factor materials, `baseColorTexture`, and `emissiveTexture`; the next work is alpha-mask visibility, direct lighting, and higher-quality sampling strategies.
+- ZH: 当前 `LightmapPathTracingPass` 已经具备 factor 材质、`baseColorTexture`、`emissiveTexture` 和首版 punctual direct lighting 的最小 diffuse path tracing 能力，后续继续补 alpha mask 和更高质量采样策略。
+- EN: The current `LightmapPathTracingPass` already supports a minimum diffuse path tracing path with factor materials, `baseColorTexture`, `emissiveTexture`, and a first-pass punctual direct-lighting path; the next work is alpha-mask visibility and higher-quality sampling strategies.
 
 ## Reference Policy / 引用方式
 

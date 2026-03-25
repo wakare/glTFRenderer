@@ -9,6 +9,8 @@
 #include "DX12Utils.h"
 #include "RHIResourceFactoryImpl.hpp"
 
+#include <set>
+
 IDX12PipelineStateObjectCommon::IDX12PipelineStateObjectCommon()
     : m_pipeline_state_object(nullptr)
 {
@@ -292,6 +294,26 @@ bool DX12RTPipelineStateObject::InitPipelineStateObject(IRHIDevice& device, cons
     // Defines the maximum sizes in bytes for the ray payload and attribute structure.
     auto shaderConfig = m_dxr_state_desc.CreateSubobject<CD3DX12_RAYTRACING_SHADER_CONFIG_SUBOBJECT>();
     shaderConfig->Config(m_config.payload_size, m_config.attribute_size);
+    {
+        std::set<std::string> shader_config_exports{};
+        shader_config_exports.insert(m_export_function_names.begin(), m_export_function_names.end());
+        for (const auto& hit_group_desc : m_hit_group_descs)
+        {
+            if (!hit_group_desc.m_export_hit_group_name.empty())
+            {
+                shader_config_exports.insert(hit_group_desc.m_export_hit_group_name);
+            }
+        }
+
+        const auto shader_config_association =
+            m_dxr_state_desc.CreateSubobject<CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
+        shader_config_association->SetSubobjectToAssociate(*shaderConfig);
+        for (const auto& export_name : shader_config_exports)
+        {
+            auto name = to_wide_string(export_name);
+            shader_config_association->AddExport(name.c_str());
+        }
+    }
 
     // Local root signature to be used in a ray gen shader.
     for (const auto& desc : m_local_rs_descs)

@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <limits>
@@ -35,6 +36,21 @@ namespace LightingBaker
                 .byte_size = static_cast<unsigned>(sizeof(glm::fvec3))
             });
             return layout;
+        }
+
+        float EncodeSceneLightType(BakeSceneLightType type)
+        {
+            switch (type)
+            {
+            case BakeSceneLightType::Directional:
+                return static_cast<float>(BakeRayTracingSceneLightTypeDirectional);
+            case BakeSceneLightType::Point:
+                return static_cast<float>(BakeRayTracingSceneLightTypePoint);
+            case BakeSceneLightType::Spot:
+                return static_cast<float>(BakeRayTracingSceneLightTypeSpot);
+            }
+
+            return static_cast<float>(BakeRayTracingSceneLightTypePoint);
         }
     }
 
@@ -115,6 +131,18 @@ namespace LightingBaker
                 continue;
             }
 
+            const float base_alpha = glm::clamp(primitive.material.base_color_factor.w, 0.0f, 1.0f);
+            const bool fully_transparent_factor_masked =
+                primitive.material.alpha_masked &&
+                !primitive.material.has_base_color_texture &&
+                base_alpha < primitive.material.alpha_cutoff;
+            if (fully_transparent_factor_masked)
+            {
+                ++out_result.fully_transparent_masked_primitive_count;
+                ++out_result.skipped_primitive_count;
+                continue;
+            }
+
             BakeRayTracingGeometrySource geometry_source{};
             geometry_source.geometry_index = static_cast<unsigned>(out_result.geometries.size());
             geometry_source.stable_node_key = primitive.stable_node_key;
@@ -123,7 +151,7 @@ namespace LightingBaker
             geometry_source.vertex_count = primitive.geometry.world_positions.size();
             geometry_source.index_count = primitive.geometry.triangle_indices.size();
             geometry_source.triangle_count = primitive.geometry.triangle_indices.size() / 3u;
-            geometry_source.opaque = !primitive.material.alpha_blended;
+            geometry_source.opaque = !primitive.material.alpha_masked;
             geometry_source.node_name = primitive.node_name;
             geometry_source.mesh_name = primitive.mesh_name;
 
@@ -151,9 +179,15 @@ namespace LightingBaker
 
             if (primitive.material.alpha_masked)
             {
+                ++out_result.alpha_masked_instance_count;
+            }
+
+            if (primitive.material.alpha_blended)
+            {
+                ++out_result.alpha_blended_instance_count;
                 out_result.warnings.push_back(MakeMessage(
-                    "rt_scene_alpha_mask_fallback",
-                    "Alpha-masked materials are currently baked as opaque geometry in the ray tracing scene."));
+                    "rt_scene_alpha_blend_fallback",
+                    "Alpha-blended materials are currently baked as opaque geometry in the ray tracing scene."));
             }
 
             if (primitive.geometry.world_normals.size() != primitive.geometry.world_positions.size())
@@ -227,11 +261,21 @@ namespace LightingBaker
             }
 
             BakeRayTracingSceneInstanceGPU shading_instance{};
+            std::uint32_t instance_flags = 0u;
+            if (primitive.material.double_sided)
+            {
+                instance_flags |= BakeRayTracingSceneInstanceFlagDoubleSided;
+            }
+            if (primitive.material.alpha_masked)
+            {
+                instance_flags |= BakeRayTracingSceneInstanceFlagAlphaMasked;
+            }
+
             shading_instance.offsets_and_flags = {
                 static_cast<std::uint32_t>(shading_vertex_offset),
                 static_cast<std::uint32_t>(shading_index_offset),
                 primitive.material.material_index,
-                primitive.material.double_sided ? BakeRayTracingSceneInstanceFlagDoubleSided : 0u,
+                instance_flags,
             };
             shading_instance.texture_indices_and_texcoords = {
                 base_color_texture_index,
@@ -253,7 +297,7 @@ namespace LightingBaker
             };
             shading_instance.metallic_and_padding = {
                 primitive.material.metallic_factor,
-                0.0f,
+                primitive.material.alpha_cutoff,
                 0.0f,
                 0.0f,
             };
@@ -279,6 +323,51 @@ namespace LightingBaker
         out_result.shading_index_count = out_result.shading_indices.size();
         out_result.shading_instance_count = out_result.shading_instances.size();
         out_result.material_texture_count = out_result.material_texture_uris.size();
+
+        out_result.scene_lights.reserve(import_result.punctual_lights.size());
+        for (const BakeSceneLightImportInfo& light : import_result.punctual_lights)
+        {
+            BakeRayTracingSceneLightGPU scene_light{};
+            scene_light.position_and_type = {
+                light.world_position.x,
+                light.world_position.y,
+                light.world_position.z,
+                EncodeSceneLightType(light.type),
+            };
+            scene_light.direction_and_range = {
+                light.world_direction.x,
+                light.world_direction.y,
+                light.world_direction.z,
+                light.range,
+            };
+            scene_light.color_and_intensity = {
+                light.color.x,
+                light.color.y,
+                light.color.z,
+                light.intensity,
+            };
+            scene_light.spot_angles = {
+                std::cos(light.spot_inner_cone_angle),
+                std::cos(light.spot_outer_cone_angle),
+                0.0f,
+                0.0f,
+            };
+            out_result.scene_lights.push_back(scene_light);
+
+            switch (light.type)
+            {
+            case BakeSceneLightType::Directional:
+                ++out_result.directional_light_count;
+                break;
+            case BakeSceneLightType::Point:
+                ++out_result.point_light_count;
+                break;
+            case BakeSceneLightType::Spot:
+                ++out_result.spot_light_count;
+                break;
+            }
+        }
+        out_result.scene_light_count = out_result.scene_lights.size();
 
         if (out_result.geometry_count == 0u)
         {

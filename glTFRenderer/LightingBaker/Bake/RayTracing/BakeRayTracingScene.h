@@ -13,7 +13,11 @@
 namespace LightingBaker
 {
     constexpr unsigned BakeRayTracingSceneInstanceFlagDoubleSided = 1u << 0u;
+    constexpr unsigned BakeRayTracingSceneInstanceFlagAlphaMasked = 1u << 1u;
     constexpr unsigned BakeRayTracingSceneTextureInvalidIndex = 0xffffffffu;
+    constexpr unsigned BakeRayTracingSceneLightTypeDirectional = 0u;
+    constexpr unsigned BakeRayTracingSceneLightTypePoint = 1u;
+    constexpr unsigned BakeRayTracingSceneLightTypeSpot = 2u;
 
     struct BakeRayTracingSceneVertexGPU
     {
@@ -33,6 +37,14 @@ namespace LightingBaker
         std::array<float, 4u> base_color{1.0f, 1.0f, 1.0f, 1.0f};
         std::array<float, 4u> emissive_and_roughness{0.0f, 0.0f, 0.0f, 1.0f};
         std::array<float, 4u> metallic_and_padding{1.0f, 0.0f, 0.0f, 0.0f};
+    };
+
+    struct BakeRayTracingSceneLightGPU
+    {
+        std::array<float, 4u> position_and_type{0.0f, 0.0f, 0.0f, static_cast<float>(BakeRayTracingSceneLightTypePoint)};
+        std::array<float, 4u> direction_and_range{0.0f, 0.0f, -1.0f, -1.0f};
+        std::array<float, 4u> color_and_intensity{1.0f, 1.0f, 1.0f, 1.0f};
+        std::array<float, 4u> spot_angles{1.0f, 0.0f, 0.0f, 0.0f};
     };
 
     struct BakeRayTracingGeometrySource
@@ -62,12 +74,20 @@ namespace LightingBaker
         std::size_t shading_index_count{0u};
         std::size_t shading_instance_count{0u};
         std::size_t material_texture_count{0u};
+        std::size_t scene_light_count{0u};
+        std::size_t directional_light_count{0u};
+        std::size_t point_light_count{0u};
+        std::size_t spot_light_count{0u};
+        std::size_t alpha_masked_instance_count{0u};
+        std::size_t alpha_blended_instance_count{0u};
+        std::size_t fully_transparent_masked_primitive_count{0u};
         std::size_t skipped_primitive_count{0u};
         std::vector<BakeRayTracingGeometrySource> geometries{};
         std::vector<RHIRayTracingInstanceDesc> instances{};
         std::vector<BakeRayTracingSceneVertexGPU> shading_vertices{};
         std::vector<std::uint32_t> shading_indices{};
         std::vector<BakeRayTracingSceneInstanceGPU> shading_instances{};
+        std::vector<BakeRayTracingSceneLightGPU> scene_lights{};
         std::vector<std::string> material_texture_uris{};
         std::vector<BakeSceneValidationMessage> errors{};
         std::vector<BakeSceneValidationMessage> warnings{};

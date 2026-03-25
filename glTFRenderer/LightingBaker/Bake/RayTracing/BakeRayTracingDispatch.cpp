@@ -15,6 +15,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <iostream>
@@ -33,6 +34,12 @@ namespace LightingBaker
         constexpr float kDefaultSkyIntensity = 1.0f;
         constexpr float kDefaultSkyGroundMix = 0.35f;
 
+        void FlushRecordedCommands(RendererInterface::ResourceOperator& resource_operator)
+        {
+            resource_operator.WaitFrameRenderFinished();
+            resource_operator.WaitGPUIdle();
+        }
+
         struct BakeRayTracingTexelRecordGPU
         {
             std::array<float, 4u> world_position_and_valid{0.0f, 0.0f, 0.0f, 0.0f};
@@ -48,9 +55,13 @@ namespace LightingBaker
             std::uint32_t sample_index{0u};
             std::uint32_t sample_count{1u};
             std::uint32_t max_bounces{1u};
+            std::uint32_t scene_light_count{0u};
             float ray_epsilon{kDefaultRayEpsilon};
             float sky_intensity{kDefaultSkyIntensity};
             float sky_ground_mix{kDefaultSkyGroundMix};
+            float padding0{0.0f};
+            float padding1{0.0f};
+            float padding2{0.0f};
         };
 
         static_assert((sizeof(BakeRayTracingDispatchConstantsGPU) % 16u) == 0u);
@@ -79,11 +90,43 @@ namespace LightingBaker
         std::filesystem::path ResolveDispatchShaderPath()
         {
             const std::filesystem::path executable_directory = GetExecutableDirectory();
-            const std::array<std::filesystem::path, 4u> candidates = {
+            const auto find_candidate_in_ancestors =
+                [](std::filesystem::path start_directory, const std::filesystem::path& relative_path)
+            {
+                std::error_code error_code{};
+                start_directory = std::filesystem::absolute(start_directory, error_code);
+                if (error_code)
+                {
+                    return std::filesystem::path{};
+                }
+
+                for (unsigned depth = 0u; depth < 8u; ++depth)
+                {
+                    const std::filesystem::path candidate = start_directory / relative_path;
+                    if (std::filesystem::exists(candidate, error_code) && !error_code)
+                    {
+                        return candidate;
+                    }
+
+                    const std::filesystem::path parent = start_directory.parent_path();
+                    if (parent.empty() || parent == start_directory)
+                    {
+                        break;
+                    }
+
+                    start_directory = parent;
+                }
+
+                return std::filesystem::path{};
+            };
+
+            const std::array<std::filesystem::path, 6u> candidates = {
+                find_candidate_in_ancestors(std::filesystem::current_path(), std::filesystem::path(kShaderRelativePathFromRepoRoot)),
+                find_candidate_in_ancestors(executable_directory, std::filesystem::path(kShaderRelativePathFromRepoRoot)),
                 std::filesystem::current_path() / std::filesystem::path(kShaderRelativePathFromRepoRoot),
+                executable_directory.parent_path() / std::filesystem::path(kShaderRelativePathFromRepoRoot),
                 std::filesystem::current_path() / std::filesystem::path(kShaderRelativePathFromOutput),
                 executable_directory / std::filesystem::path(kShaderRelativePathFromOutput),
-                executable_directory.parent_path() / std::filesystem::path(kShaderRelativePathFromRepoRoot),
             };
 
             for (const std::filesystem::path& candidate : candidates)
@@ -373,7 +416,7 @@ namespace LightingBaker
             dx12_command_list->GetCommandList()->CopyTextureRegion(&dst_location, 0u, 0u, 0u, &src_location, &src_box);
             out_result.readback_copy_recorded = true;
 
-            resource_operator.WaitGPUIdle();
+            FlushRecordedCommands(resource_operator);
 
             std::vector<std::uint8_t> readback_bytes(copy_requirements.total_size, 0u);
             if (!memory_manager.DownloadBufferData(*readback_buffer, readback_bytes.data(), readback_bytes.size()))
@@ -389,6 +432,9 @@ namespace LightingBaker
             out_result.output_row_pitch = static_cast<unsigned>(copy_requirements.row_pitch[0]);
             out_result.output_readback_size = copy_requirements.total_size;
             out_result.output_rgba.assign(pixel_count * kOutputChannelCount, 0.0f);
+            out_result.output_nonzero_rgb_texel_count = 0u;
+            out_result.output_nonzero_alpha_texel_count = 0u;
+            out_result.output_trace_payload_sentinel_texel_count = 0u;
 
             for (unsigned y = 0u; y < out_result.output_height; ++y)
             {
@@ -401,10 +447,37 @@ namespace LightingBaker
                     const std::size_t dst_offset =
                         (static_cast<std::size_t>(y) * static_cast<std::size_t>(out_result.output_width) +
                          static_cast<std::size_t>(x)) * kOutputChannelCount;
-                    out_result.output_rgba[dst_offset + 0u] = HalfBitsToFloat(row_half_words[src_offset + 0u]);
-                    out_result.output_rgba[dst_offset + 1u] = HalfBitsToFloat(row_half_words[src_offset + 1u]);
-                    out_result.output_rgba[dst_offset + 2u] = HalfBitsToFloat(row_half_words[src_offset + 2u]);
-                    out_result.output_rgba[dst_offset + 3u] = HalfBitsToFloat(row_half_words[src_offset + 3u]);
+                    const float output_r = HalfBitsToFloat(row_half_words[src_offset + 0u]);
+                    const float output_g = HalfBitsToFloat(row_half_words[src_offset + 1u]);
+                    const float output_b = HalfBitsToFloat(row_half_words[src_offset + 2u]);
+                    const float output_a = HalfBitsToFloat(row_half_words[src_offset + 3u]);
+                    out_result.output_rgba[dst_offset + 0u] = output_r;
+                    out_result.output_rgba[dst_offset + 1u] = output_g;
+                    out_result.output_rgba[dst_offset + 2u] = output_b;
+                    out_result.output_rgba[dst_offset + 3u] = output_a;
+
+                    const bool nonzero_rgb =
+                        std::abs(output_r) > 1e-6f ||
+                        std::abs(output_g) > 1e-6f ||
+                        std::abs(output_b) > 1e-6f;
+                    if (nonzero_rgb)
+                    {
+                        ++out_result.output_nonzero_rgb_texel_count;
+                    }
+
+                    if (std::abs(output_a) > 1e-6f)
+                    {
+                        ++out_result.output_nonzero_alpha_texel_count;
+                    }
+
+                    const bool trace_payload_sentinel =
+                        output_r <= -0.5f &&
+                        output_g <= -1.5f &&
+                        output_b <= -2.5f;
+                    if (trace_payload_sentinel)
+                    {
+                        ++out_result.output_trace_payload_sentinel_texel_count;
+                    }
                 }
             }
 
@@ -491,6 +564,7 @@ namespace LightingBaker
         out_result.sample_index = settings.sample_index;
         out_result.sample_count = settings.sample_count;
         out_result.max_bounces = (std::max)(1u, settings.max_bounces);
+        out_result.scene_light_count = static_cast<unsigned>(runtime_result.uploaded_scene_light_count);
         out_result.output_width = out_result.dispatch_width;
         out_result.output_height = out_result.dispatch_height;
 
@@ -552,6 +626,7 @@ namespace LightingBaker
         dispatch_constants.sample_index = out_result.sample_index;
         dispatch_constants.sample_count = out_result.sample_count;
         dispatch_constants.max_bounces = out_result.max_bounces;
+        dispatch_constants.scene_light_count = out_result.scene_light_count;
         dispatch_constants.ray_epsilon = kDefaultRayEpsilon;
         dispatch_constants.sky_intensity = kDefaultSkyIntensity;
         dispatch_constants.sky_ground_mix = kDefaultSkyGroundMix;
@@ -577,6 +652,7 @@ namespace LightingBaker
 
         const auto output_usage = static_cast<RendererInterface::ResourceUsage>(
             RendererInterface::COPY_SRC |
+            RendererInterface::COPY_DST |
             RendererInterface::SHADER_RESOURCE |
             RendererInterface::UNORDER_ACCESS);
         const RendererInterface::RenderTargetHandle output_render_target = resource_operator.CreateRenderTarget(
@@ -623,12 +699,13 @@ namespace LightingBaker
         render_pass_desc.ray_tracing_desc->export_function_names = {
             out_result.raygen_entry,
             out_result.closest_hit_entry,
+            out_result.any_hit_entry,
             out_result.miss_entry,
         };
         render_pass_desc.ray_tracing_desc->hit_group_descs.push_back({
             out_result.hit_group_export,
             out_result.closest_hit_entry,
-            "",
+            out_result.any_hit_entry,
             "",
         });
         render_pass_desc.ray_tracing_desc->acceleration_structure_bindings.push_back({
@@ -669,6 +746,25 @@ namespace LightingBaker
             return false;
         }
 
+        out_result.acceleration_structure_root_allocation_found =
+            render_pass->HasRootSignatureAllocation(out_result.acceleration_structure_binding_name);
+        out_result.texel_record_root_allocation_found =
+            render_pass->HasRootSignatureAllocation(out_result.texel_record_binding_name);
+        out_result.scene_vertex_root_allocation_found =
+            render_pass->HasRootSignatureAllocation(out_result.scene_vertex_binding_name);
+        out_result.scene_index_root_allocation_found =
+            render_pass->HasRootSignatureAllocation(out_result.scene_index_binding_name);
+        out_result.scene_instance_root_allocation_found =
+            render_pass->HasRootSignatureAllocation(out_result.scene_instance_binding_name);
+        out_result.scene_light_root_allocation_found =
+            render_pass->HasRootSignatureAllocation(out_result.scene_light_binding_name);
+        out_result.material_texture_root_allocation_found =
+            render_pass->HasRootSignatureAllocation(out_result.material_texture_binding_name);
+        out_result.dispatch_constants_root_allocation_found =
+            render_pass->HasRootSignatureAllocation(out_result.dispatch_constants_binding_name);
+        out_result.output_root_allocation_found =
+            render_pass->HasRootSignatureAllocation(out_result.output_binding_name);
+
         std::vector<RHIShaderBindingTable> shader_binding_tables{};
         auto& shader_binding_table = shader_binding_tables.emplace_back();
         shader_binding_table.raygen_entry = out_result.raygen_entry;
@@ -694,6 +790,11 @@ namespace LightingBaker
         out_result.shader_table_initialized = true;
         std::wcout << L"[LightingBaker][Dispatch] Shader table ready.\n";
 
+        // Dispatch resources are uploaded before the first render-graph frame advances to a new frame slot.
+        // Flush them now so the upcoming ray-tracing pass does not read stale/default GPU contents.
+        FlushRecordedCommands(resource_operator);
+        out_result.pre_dispatch_uploads_flushed = true;
+
         RendererInterface::RenderPassDrawDesc draw_desc{};
         draw_desc.execute_commands.push_back(MakeTraceRays(
             out_result.dispatch_width,
@@ -706,7 +807,6 @@ namespace LightingBaker
         texel_record_binding.count = out_result.dense_texel_record_count;
         texel_record_binding.is_structured_buffer = true;
         draw_desc.buffer_resources.emplace(out_result.texel_record_binding_name, texel_record_binding);
-        out_result.scene_vertex_buffer_bound = true;
 
         RendererInterface::BufferBindingDesc scene_vertex_binding{};
         scene_vertex_binding.buffer_handle = runtime_result.scene_vertex_buffer_handle;
@@ -715,6 +815,7 @@ namespace LightingBaker
         scene_vertex_binding.count = static_cast<unsigned>(runtime_result.uploaded_shading_vertex_count);
         scene_vertex_binding.is_structured_buffer = true;
         draw_desc.buffer_resources.emplace(out_result.scene_vertex_binding_name, scene_vertex_binding);
+        out_result.scene_vertex_buffer_bound = true;
 
         out_result.scene_index_buffer_bound = true;
         RendererInterface::BufferBindingDesc scene_index_binding{};
@@ -733,6 +834,15 @@ namespace LightingBaker
         scene_instance_binding.count = static_cast<unsigned>(runtime_result.uploaded_shading_instance_count);
         scene_instance_binding.is_structured_buffer = true;
         draw_desc.buffer_resources.emplace(out_result.scene_instance_binding_name, scene_instance_binding);
+
+        out_result.scene_light_buffer_bound = true;
+        RendererInterface::BufferBindingDesc scene_light_binding{};
+        scene_light_binding.buffer_handle = runtime_result.scene_light_buffer_handle;
+        scene_light_binding.binding_type = RendererInterface::BufferBindingDesc::SRV;
+        scene_light_binding.stride = sizeof(BakeRayTracingSceneLightGPU);
+        scene_light_binding.count = (std::max)(1u, out_result.scene_light_count);
+        scene_light_binding.is_structured_buffer = true;
+        draw_desc.buffer_resources.emplace(out_result.scene_light_binding_name, scene_light_binding);
 
         out_result.material_texture_table_bound = true;
         RendererInterface::TextureBindingDesc material_texture_binding{};

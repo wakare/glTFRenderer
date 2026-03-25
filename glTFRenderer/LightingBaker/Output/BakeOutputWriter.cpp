@@ -80,6 +80,11 @@ namespace LightingBaker
             return nlohmann::json::array({value.x, value.y});
         }
 
+        nlohmann::json ToJson(const glm::fvec3& value)
+        {
+            return nlohmann::json::array({value.x, value.y, value.z});
+        }
+
         nlohmann::json ToJson(const BakeSceneValidationMessage& value)
         {
             return nlohmann::json{
@@ -438,6 +443,10 @@ namespace LightingBaker
         root["mesh_count"] = import_result.mesh_count;
         root["instance_primitive_count"] = import_result.instance_primitive_count;
         root["valid_lightmap_primitive_count"] = import_result.valid_lightmap_primitive_count;
+        root["punctual_light_count"] = import_result.punctual_light_count;
+        root["directional_light_count"] = import_result.directional_light_count;
+        root["point_light_count"] = import_result.point_light_count;
+        root["spot_light_count"] = import_result.spot_light_count;
         root["validation_status"] = ResolveSceneValidationStatus(import_result);
 
         root["errors"] = nlohmann::json::array();
@@ -467,6 +476,12 @@ namespace LightingBaker
                 {"index_count", primitive.index_count},
                 {"has_texcoord0", primitive.has_texcoord0},
                 {"has_texcoord1", primitive.has_texcoord1},
+                {"double_sided", primitive.material.double_sided},
+                {"alpha_masked", primitive.material.alpha_masked},
+                {"alpha_blended", primitive.material.alpha_blended},
+                {"alpha_cutoff", primitive.material.alpha_cutoff},
+                {"has_base_color_texture", primitive.material.has_base_color_texture},
+                {"has_emissive_texture", primitive.material.has_emissive_texture},
                 {"can_emit_lightmap_binding", primitive.can_emit_lightmap_binding},
                 {"uv1_min", ToJson(primitive.uv1_min)},
                 {"uv1_max", ToJson(primitive.uv1_max)},
@@ -489,6 +504,39 @@ namespace LightingBaker
             }
 
             root["primitives"].push_back(std::move(primitive_json));
+        }
+
+        root["punctual_lights"] = nlohmann::json::array();
+        for (const BakeSceneLightImportInfo& light : import_result.punctual_lights)
+        {
+            std::string light_type = "point";
+            switch (light.type)
+            {
+            case BakeSceneLightType::Directional:
+                light_type = "directional";
+                break;
+            case BakeSceneLightType::Point:
+                light_type = "point";
+                break;
+            case BakeSceneLightType::Spot:
+                light_type = "spot";
+                break;
+            }
+
+            root["punctual_lights"].push_back({
+                {"light_index", light.light_index},
+                {"node_key", light.stable_node_key},
+                {"type", light_type},
+                {"light_name", light.light_name},
+                {"node_name", light.node_name},
+                {"color", ToJson(light.color)},
+                {"intensity", light.intensity},
+                {"range", light.range},
+                {"world_position", ToJson(light.world_position)},
+                {"world_direction", ToJson(light.world_direction)},
+                {"spot_inner_cone_angle", light.spot_inner_cone_angle},
+                {"spot_outer_cone_angle", light.spot_outer_cone_angle},
+            });
         }
 
         return WriteJsonFile(layout.root / std::filesystem::path(kImportSummaryRelativePath), root, out_error);
@@ -559,7 +607,15 @@ namespace LightingBaker
         root["shading_vertex_count"] = ray_tracing_scene.shading_vertex_count;
         root["shading_index_count"] = ray_tracing_scene.shading_index_count;
         root["shading_instance_count"] = ray_tracing_scene.shading_instance_count;
+        root["scene_light_count"] = ray_tracing_scene.scene_light_count;
+        root["directional_light_count"] = ray_tracing_scene.directional_light_count;
+        root["point_light_count"] = ray_tracing_scene.point_light_count;
+        root["spot_light_count"] = ray_tracing_scene.spot_light_count;
         root["material_texture_count"] = ray_tracing_scene.material_texture_count;
+        root["alpha_masked_instance_count"] = ray_tracing_scene.alpha_masked_instance_count;
+        root["alpha_blended_instance_count"] = ray_tracing_scene.alpha_blended_instance_count;
+        root["fully_transparent_masked_primitive_count"] =
+            ray_tracing_scene.fully_transparent_masked_primitive_count;
         root["skipped_primitive_count"] = ray_tracing_scene.skipped_primitive_count;
         root["validation_status"] = ray_tracing_scene.HasValidationErrors() ? "failed" : "passed";
         root["errors"] = nlohmann::json::array();
@@ -604,6 +660,17 @@ namespace LightingBaker
             root["material_texture_uris"].push_back(texture_uri);
         }
 
+        root["scene_lights"] = nlohmann::json::array();
+        for (const BakeRayTracingSceneLightGPU& scene_light : ray_tracing_scene.scene_lights)
+        {
+            root["scene_lights"].push_back({
+                {"position_and_type", ToJson(scene_light.position_and_type)},
+                {"direction_and_range", ToJson(scene_light.direction_and_range)},
+                {"color_and_intensity", ToJson(scene_light.color_and_intensity)},
+                {"spot_angles", ToJson(scene_light.spot_angles)},
+            });
+        }
+
         return WriteJsonFile(
             layout.root / std::filesystem::path(kRayTracingSceneSummaryRelativePath),
             root,
@@ -628,14 +695,18 @@ namespace LightingBaker
         root["uploaded_shading_vertex_count"] = ray_tracing_runtime.uploaded_shading_vertex_count;
         root["uploaded_shading_index_count"] = ray_tracing_runtime.uploaded_shading_index_count;
         root["uploaded_shading_instance_count"] = ray_tracing_runtime.uploaded_shading_instance_count;
+        root["uploaded_scene_light_count"] = ray_tracing_runtime.uploaded_scene_light_count;
         root["uploaded_material_texture_count"] = ray_tracing_runtime.uploaded_material_texture_count;
+        root["bound_material_texture_count"] = ray_tracing_runtime.bound_material_texture_count;
         root["window_created"] = ray_tracing_runtime.window_created;
         root["resource_operator_initialized"] = ray_tracing_runtime.resource_operator_initialized;
         root["acceleration_structure_initialized"] = ray_tracing_runtime.acceleration_structure_initialized;
         root["scene_vertex_buffer_created"] = ray_tracing_runtime.scene_vertex_buffer_created;
         root["scene_index_buffer_created"] = ray_tracing_runtime.scene_index_buffer_created;
         root["scene_instance_buffer_created"] = ray_tracing_runtime.scene_instance_buffer_created;
+        root["scene_light_buffer_created"] = ray_tracing_runtime.scene_light_buffer_created;
         root["material_texture_table_created"] = ray_tracing_runtime.material_texture_table_created;
+        root["fallback_material_texture_created"] = ray_tracing_runtime.fallback_material_texture_created;
         root["validation_status"] = ray_tracing_runtime.HasValidationErrors() ? "failed" : "passed";
         root["errors"] = nlohmann::json::array();
         for (const BakeSceneValidationMessage& message : ray_tracing_runtime.errors)
@@ -667,16 +738,19 @@ namespace LightingBaker
         root["scene_vertex_binding"] = ray_tracing_dispatch.scene_vertex_binding_name;
         root["scene_index_binding"] = ray_tracing_dispatch.scene_index_binding_name;
         root["scene_instance_binding"] = ray_tracing_dispatch.scene_instance_binding_name;
+        root["scene_light_binding"] = ray_tracing_dispatch.scene_light_binding_name;
         root["material_texture_binding"] = ray_tracing_dispatch.material_texture_binding_name;
         root["dispatch_constants_binding"] = ray_tracing_dispatch.dispatch_constants_binding_name;
         root["output_binding"] = ray_tracing_dispatch.output_binding_name;
         root["raygen_entry"] = ray_tracing_dispatch.raygen_entry;
         root["miss_entry"] = ray_tracing_dispatch.miss_entry;
         root["closest_hit_entry"] = ray_tracing_dispatch.closest_hit_entry;
+        root["any_hit_entry"] = ray_tracing_dispatch.any_hit_entry;
         root["hit_group_export"] = ray_tracing_dispatch.hit_group_export;
         root["atlas_resolution"] = ray_tracing_dispatch.atlas_resolution;
         root["texel_record_count"] = ray_tracing_dispatch.texel_record_count;
         root["dense_texel_record_count"] = ray_tracing_dispatch.dense_texel_record_count;
+        root["scene_light_count"] = ray_tracing_dispatch.scene_light_count;
         root["dispatch_width"] = ray_tracing_dispatch.dispatch_width;
         root["dispatch_height"] = ray_tracing_dispatch.dispatch_height;
         root["dispatch_depth"] = ray_tracing_dispatch.dispatch_depth;
@@ -686,17 +760,35 @@ namespace LightingBaker
         root["output_width"] = ray_tracing_dispatch.output_width;
         root["output_height"] = ray_tracing_dispatch.output_height;
         root["output_row_pitch"] = ray_tracing_dispatch.output_row_pitch;
+        root["output_nonzero_rgb_texel_count"] = ray_tracing_dispatch.output_nonzero_rgb_texel_count;
+        root["output_nonzero_alpha_texel_count"] = ray_tracing_dispatch.output_nonzero_alpha_texel_count;
+        root["output_trace_payload_sentinel_texel_count"] =
+            ray_tracing_dispatch.output_trace_payload_sentinel_texel_count;
         root["output_readback_size"] = ray_tracing_dispatch.output_readback_size;
         root["shader_path_resolved"] = ray_tracing_dispatch.shader_path_resolved;
+        root["acceleration_structure_root_allocation_found"] =
+            ray_tracing_dispatch.acceleration_structure_root_allocation_found;
+        root["texel_record_root_allocation_found"] = ray_tracing_dispatch.texel_record_root_allocation_found;
+        root["scene_vertex_root_allocation_found"] = ray_tracing_dispatch.scene_vertex_root_allocation_found;
+        root["scene_index_root_allocation_found"] = ray_tracing_dispatch.scene_index_root_allocation_found;
+        root["scene_instance_root_allocation_found"] = ray_tracing_dispatch.scene_instance_root_allocation_found;
+        root["scene_light_root_allocation_found"] = ray_tracing_dispatch.scene_light_root_allocation_found;
+        root["material_texture_root_allocation_found"] =
+            ray_tracing_dispatch.material_texture_root_allocation_found;
+        root["dispatch_constants_root_allocation_found"] =
+            ray_tracing_dispatch.dispatch_constants_root_allocation_found;
+        root["output_root_allocation_found"] = ray_tracing_dispatch.output_root_allocation_found;
         root["texel_record_buffer_created"] = ray_tracing_dispatch.texel_record_buffer_created;
         root["scene_vertex_buffer_bound"] = ray_tracing_dispatch.scene_vertex_buffer_bound;
         root["scene_index_buffer_bound"] = ray_tracing_dispatch.scene_index_buffer_bound;
         root["scene_instance_buffer_bound"] = ray_tracing_dispatch.scene_instance_buffer_bound;
+        root["scene_light_buffer_bound"] = ray_tracing_dispatch.scene_light_buffer_bound;
         root["material_texture_table_bound"] = ray_tracing_dispatch.material_texture_table_bound;
         root["dispatch_constants_buffer_created"] = ray_tracing_dispatch.dispatch_constants_buffer_created;
         root["output_render_target_created"] = ray_tracing_dispatch.output_render_target_created;
         root["render_pass_created"] = ray_tracing_dispatch.render_pass_created;
         root["shader_table_initialized"] = ray_tracing_dispatch.shader_table_initialized;
+        root["pre_dispatch_uploads_flushed"] = ray_tracing_dispatch.pre_dispatch_uploads_flushed;
         root["graph_node_registered"] = ray_tracing_dispatch.graph_node_registered;
         root["compile_requested"] = ray_tracing_dispatch.compile_requested;
         root["event_loop_entered"] = ray_tracing_dispatch.event_loop_entered;

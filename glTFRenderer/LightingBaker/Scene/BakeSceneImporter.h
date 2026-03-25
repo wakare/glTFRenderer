@@ -8,6 +8,13 @@
 
 namespace LightingBaker
 {
+    enum class BakeSceneLightType : unsigned
+    {
+        Directional = 0u,
+        Point = 1u,
+        Spot = 2u,
+    };
+
     struct BakeSceneImportRequest
     {
         std::filesystem::path scene_path;
@@ -43,6 +50,7 @@ namespace LightingBaker
         glm::fvec3 emissive_factor{0.0f, 0.0f, 0.0f};
         float metallic_factor{1.0f};
         float roughness_factor{1.0f};
+        float alpha_cutoff{0.5f};
         unsigned base_color_texture_texcoord{0u};
         bool has_base_color_texture{false};
         unsigned emissive_texture_texcoord{0u};
@@ -52,6 +60,22 @@ namespace LightingBaker
         bool alpha_blended{false};
         std::string base_color_texture_uri{};
         std::string emissive_texture_uri{};
+    };
+
+    struct BakeSceneLightImportInfo
+    {
+        unsigned light_index{0xffffffffu};
+        unsigned stable_node_key{0xffffffffu};
+        BakeSceneLightType type{BakeSceneLightType::Point};
+        std::string light_name{};
+        std::string node_name{};
+        glm::fvec3 color{1.0f, 1.0f, 1.0f};
+        float intensity{1.0f};
+        float range{-1.0f};
+        glm::fvec3 world_position{0.0f, 0.0f, 0.0f};
+        glm::fvec3 world_direction{0.0f, 0.0f, -1.0f};
+        float spot_inner_cone_angle{0.0f};
+        float spot_outer_cone_angle{0.78539816339f};
     };
 
     struct BakePrimitiveImportInfo
@@ -89,7 +113,12 @@ namespace LightingBaker
         unsigned mesh_count{0};
         unsigned instance_primitive_count{0};
         unsigned valid_lightmap_primitive_count{0};
+        unsigned punctual_light_count{0};
+        unsigned directional_light_count{0};
+        unsigned point_light_count{0};
+        unsigned spot_light_count{0};
         std::vector<BakePrimitiveImportInfo> primitive_instances{};
+        std::vector<BakeSceneLightImportInfo> punctual_lights{};
         std::vector<BakeSceneValidationMessage> errors{};
         std::vector<BakeSceneValidationMessage> warnings{};
 

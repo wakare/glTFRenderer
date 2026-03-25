@@ -1,19 +1,23 @@
 #include "BakeSceneImporter.h"
 
+#include <fstream>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <limits>
 #include <string>
 #include <vector>
 #include <utility>
 
 #include "SceneFileLoader/glTFLoader.h"
+#include "nlohmann_json/single_include/nlohmann/json.hpp"
 
 namespace LightingBaker
 {
     namespace
     {
         constexpr unsigned kInvalidUnsigned = 0xffffffffu;
+        constexpr float kDefaultSpotOuterConeAngle = 0.78539816339f;
         using glTFAccessor = glTF_Element_Template<glTF_Element_Type::EAccessor>;
 
         struct AccessorDataView
@@ -22,6 +26,25 @@ namespace LightingBaker
             const std::uint8_t* data{nullptr};
             std::size_t stride{0};
             std::size_t count{0};
+        };
+
+        struct ParsedPunctualLightDefinition
+        {
+            bool valid{false};
+            unsigned source_light_index{0xffffffffu};
+            BakeSceneLightType type{BakeSceneLightType::Point};
+            std::string name{};
+            glm::fvec3 color{1.0f, 1.0f, 1.0f};
+            float intensity{1.0f};
+            float range{-1.0f};
+            float inner_cone_angle{0.0f};
+            float outer_cone_angle{kDefaultSpotOuterConeAngle};
+        };
+
+        struct ParsedPunctualLightRegistry
+        {
+            std::vector<ParsedPunctualLightDefinition> lights{};
+            std::vector<int> node_light_indices{};
         };
 
         void AddMessage(std::vector<BakeSceneValidationMessage>& out_messages,
@@ -212,6 +235,259 @@ namespace LightingBaker
             return transformed / transformed_length;
         }
 
+        glm::fvec3 TransformDirection(const glm::fmat4x4& transform, const glm::fvec3& direction)
+        {
+            const glm::fvec3 transformed = glm::fmat3(transform) * direction;
+            const float transformed_length = glm::length(transformed);
+            if (!std::isfinite(transformed.x) || !std::isfinite(transformed.y) || !std::isfinite(transformed.z) ||
+                transformed_length <= 1e-8f)
+            {
+                return glm::fvec3(0.0f, 0.0f, -1.0f);
+            }
+
+            return transformed / transformed_length;
+        }
+
+        void ParsePunctualLightRegistry(const std::filesystem::path& scene_path,
+                                        std::size_t node_count,
+                                        ParsedPunctualLightRegistry& out_registry,
+                                        BakeSceneImportResult& out_result)
+        {
+            out_registry = ParsedPunctualLightRegistry{};
+            out_registry.node_light_indices.assign(node_count, -1);
+
+            std::ifstream stream(scene_path, std::ios::in | std::ios::binary);
+            if (!stream.is_open())
+            {
+                AddWarning(out_result,
+                           "punctual_lights_scene_open_failed",
+                           "Unable to reopen the glTF file while parsing KHR_lights_punctual. Direct-light import was skipped.");
+                return;
+            }
+
+            nlohmann::json root{};
+            try
+            {
+                root = nlohmann::json::parse(stream);
+            }
+            catch (const std::exception& exception)
+            {
+                AddWarning(out_result,
+                           "punctual_lights_parse_failed",
+                           std::string("Failed to parse KHR_lights_punctual data. Direct-light import was skipped: ") +
+                               exception.what());
+                return;
+            }
+
+            if (!root.contains("extensions") || !root["extensions"].is_object())
+            {
+                return;
+            }
+
+            const auto extension_it = root["extensions"].find("KHR_lights_punctual");
+            if (extension_it == root["extensions"].end() || !extension_it->is_object())
+            {
+                return;
+            }
+
+            const nlohmann::json& extension_root = *extension_it;
+            const auto lights_it = extension_root.find("lights");
+            if (lights_it == extension_root.end() || !lights_it->is_array())
+            {
+                return;
+            }
+
+            out_registry.lights.resize(lights_it->size());
+            for (std::size_t light_index = 0; light_index < lights_it->size(); ++light_index)
+            {
+                const nlohmann::json& light_json = (*lights_it)[light_index];
+                if (!light_json.is_object())
+                {
+                    AddWarning(out_result,
+                               "punctual_light_invalid_object",
+                               "Encountered a non-object entry in KHR_lights_punctual.lights; it was skipped.");
+                    continue;
+                }
+
+                ParsedPunctualLightDefinition definition{};
+                definition.source_light_index = static_cast<unsigned>(light_index);
+                definition.name = light_json.value("name", "light_" + std::to_string(light_index));
+
+                const std::string type_string = light_json.value("type", std::string{});
+                if (type_string == "directional")
+                {
+                    definition.type = BakeSceneLightType::Directional;
+                }
+                else if (type_string == "point")
+                {
+                    definition.type = BakeSceneLightType::Point;
+                }
+                else if (type_string == "spot")
+                {
+                    definition.type = BakeSceneLightType::Spot;
+                }
+                else
+                {
+                    AddWarning(out_result,
+                               "punctual_light_unsupported_type",
+                               "Encountered an unsupported KHR_lights_punctual light type; it was skipped.");
+                    continue;
+                }
+
+                if (light_json.contains("color") && light_json["color"].is_array() && light_json["color"].size() >= 3u)
+                {
+                    const nlohmann::json& color = light_json["color"];
+                    if (color[0].is_number() && color[1].is_number() && color[2].is_number())
+                    {
+                        definition.color = glm::fvec3(
+                            color[0].get<float>(),
+                            color[1].get<float>(),
+                            color[2].get<float>());
+                    }
+                }
+
+                if (light_json.contains("intensity") && light_json["intensity"].is_number())
+                {
+                    definition.intensity = light_json["intensity"].get<float>();
+                }
+
+                if (light_json.contains("range") && light_json["range"].is_number())
+                {
+                    definition.range = light_json["range"].get<float>();
+                }
+
+                if (definition.type == BakeSceneLightType::Spot &&
+                    light_json.contains("spot") &&
+                    light_json["spot"].is_object())
+                {
+                    const nlohmann::json& spot_json = light_json["spot"];
+                    if (spot_json.contains("innerConeAngle") && spot_json["innerConeAngle"].is_number())
+                    {
+                        definition.inner_cone_angle = spot_json["innerConeAngle"].get<float>();
+                    }
+                    if (spot_json.contains("outerConeAngle") && spot_json["outerConeAngle"].is_number())
+                    {
+                        definition.outer_cone_angle = spot_json["outerConeAngle"].get<float>();
+                    }
+                }
+
+                const bool color_finite =
+                    std::isfinite(definition.color.x) &&
+                    std::isfinite(definition.color.y) &&
+                    std::isfinite(definition.color.z);
+                const bool intensity_finite = std::isfinite(definition.intensity);
+                const bool range_valid = !std::isfinite(definition.range) || definition.range > 0.0f || definition.range < 0.0f;
+                if (!color_finite || !intensity_finite || !range_valid)
+                {
+                    AddWarning(out_result,
+                               "punctual_light_invalid_parameters",
+                               "Encountered a KHR_lights_punctual light with non-finite parameters; it was skipped.");
+                    continue;
+                }
+
+                definition.color = glm::max(definition.color, glm::fvec3(0.0f, 0.0f, 0.0f));
+                definition.intensity = (std::max)(0.0f, definition.intensity);
+                definition.range = (definition.range > 0.0f && std::isfinite(definition.range)) ? definition.range : -1.0f;
+                definition.inner_cone_angle = glm::clamp(definition.inner_cone_angle, 0.0f, kDefaultSpotOuterConeAngle);
+                definition.outer_cone_angle =
+                    glm::clamp(definition.outer_cone_angle, definition.inner_cone_angle, 1.57079632679f);
+                definition.valid = true;
+                out_registry.lights[light_index] = definition;
+            }
+
+            if (!root.contains("nodes") || !root["nodes"].is_array())
+            {
+                return;
+            }
+
+            const nlohmann::json& nodes_json = root["nodes"];
+            const std::size_t parsed_node_count = (std::min)(node_count, nodes_json.size());
+            for (std::size_t node_index = 0; node_index < parsed_node_count; ++node_index)
+            {
+                const nlohmann::json& node_json = nodes_json[node_index];
+                if (!node_json.is_object() || !node_json.contains("extensions") || !node_json["extensions"].is_object())
+                {
+                    continue;
+                }
+
+                const auto node_light_extension_it = node_json["extensions"].find("KHR_lights_punctual");
+                if (node_light_extension_it == node_json["extensions"].end() || !node_light_extension_it->is_object())
+                {
+                    continue;
+                }
+
+                const auto light_reference_it = node_light_extension_it->find("light");
+                if (light_reference_it == node_light_extension_it->end() || !light_reference_it->is_number_unsigned())
+                {
+                    continue;
+                }
+
+                out_registry.node_light_indices[node_index] = static_cast<int>(light_reference_it->get<unsigned>());
+            }
+        }
+
+        void CollectNodePunctualLightInstance(const ParsedPunctualLightRegistry& light_registry,
+                                              const glTF_Element_Node& node,
+                                              unsigned node_index,
+                                              const glm::fmat4x4& world_transform,
+                                              BakeSceneImportResult& out_result)
+        {
+            if (node_index >= light_registry.node_light_indices.size())
+            {
+                return;
+            }
+
+            const int referenced_light_index = light_registry.node_light_indices[node_index];
+            if (referenced_light_index < 0)
+            {
+                return;
+            }
+
+            const std::size_t light_index = static_cast<std::size_t>(referenced_light_index);
+            if (light_index >= light_registry.lights.size())
+            {
+                AddWarning(out_result,
+                           "punctual_light_reference_out_of_range",
+                           "Node referenced a KHR_lights_punctual light index outside the parsed light array.");
+                return;
+            }
+
+            const ParsedPunctualLightDefinition& definition = light_registry.lights[light_index];
+            if (!definition.valid)
+            {
+                return;
+            }
+
+            BakeSceneLightImportInfo light_instance{};
+            light_instance.light_index = definition.source_light_index;
+            light_instance.stable_node_key = node_index;
+            light_instance.type = definition.type;
+            light_instance.light_name = definition.name;
+            light_instance.node_name = ResolveNodeName(node, node_index);
+            light_instance.color = definition.color;
+            light_instance.intensity = definition.intensity;
+            light_instance.range = definition.range;
+            light_instance.world_position = TransformPoint(world_transform, glm::fvec3(0.0f, 0.0f, 0.0f));
+            light_instance.world_direction = TransformDirection(world_transform, glm::fvec3(0.0f, 0.0f, -1.0f));
+            light_instance.spot_inner_cone_angle = definition.inner_cone_angle;
+            light_instance.spot_outer_cone_angle = definition.outer_cone_angle;
+            out_result.punctual_lights.push_back(light_instance);
+            ++out_result.punctual_light_count;
+
+            switch (light_instance.type)
+            {
+            case BakeSceneLightType::Directional:
+                ++out_result.directional_light_count;
+                break;
+            case BakeSceneLightType::Point:
+                ++out_result.point_light_count;
+                break;
+            case BakeSceneLightType::Spot:
+                ++out_result.spot_light_count;
+                break;
+            }
+        }
+
         bool ResolveTextureUri(const glTFLoader& loader,
                                const glTF_TextureInfo_Base& texture_info,
                                std::string& out_texture_uri,
@@ -332,6 +608,7 @@ namespace LightingBaker
             out_material.emissive_factor = material.emissive_factor;
             out_material.metallic_factor = material.pbr.metallic_factor;
             out_material.roughness_factor = material.pbr.roughness_factor;
+            out_material.alpha_cutoff = glm::clamp(material.alpha_cutoff, 0.0f, 1.0f);
             out_material.double_sided = material.double_sided;
             out_material.alpha_masked = material.alpha_mode == "MASK";
             out_material.alpha_blended = material.alpha_mode == "BLEND";
@@ -743,6 +1020,7 @@ namespace LightingBaker
         }
 
         void CollectNodePrimitiveInstances(const glTFLoader& loader,
+                                           const ParsedPunctualLightRegistry& light_registry,
                                            const glTFHandle& node_handle,
                                            const glm::fmat4x4& parent_world_transform,
                                            BakeSceneImportResult& out_result)
@@ -758,6 +1036,7 @@ namespace LightingBaker
 
             const glTF_Element_Node& node = *nodes[node_index];
             const glm::fmat4x4 world_transform = parent_world_transform * node.transform.GetMatrix();
+            CollectNodePunctualLightInstance(light_registry, node, node_index, world_transform, out_result);
             for (const glTFHandle& mesh_handle : node.meshes)
             {
                 const unsigned mesh_index = static_cast<unsigned>(loader.ResolveIndex(mesh_handle));
@@ -795,7 +1074,7 @@ namespace LightingBaker
 
             for (const glTFHandle& child_handle : node.children)
             {
-                CollectNodePrimitiveInstances(loader, child_handle, world_transform, out_result);
+                CollectNodePrimitiveInstances(loader, light_registry, child_handle, world_transform, out_result);
             }
         }
     }
@@ -842,6 +1121,12 @@ namespace LightingBaker
         out_result.node_count = static_cast<unsigned>(loader.GetNodes().size());
         out_result.mesh_count = static_cast<unsigned>(loader.GetMeshes().size());
 
+        ParsedPunctualLightRegistry light_registry{};
+        ParsePunctualLightRegistry(request.scene_path,
+                                   loader.GetNodes().size(),
+                                   light_registry,
+                                   out_result);
+
         const glTF_Element_Scene& default_scene = loader.GetDefaultScene();
         if (default_scene.root_nodes.empty())
         {
@@ -850,7 +1135,7 @@ namespace LightingBaker
 
         for (const glTFHandle& root_node_handle : default_scene.root_nodes)
         {
-            CollectNodePrimitiveInstances(loader, root_node_handle, glm::fmat4x4(1.0f), out_result);
+            CollectNodePrimitiveInstances(loader, light_registry, root_node_handle, glm::fmat4x4(1.0f), out_result);
         }
 
         if (out_result.instance_primitive_count == 0)

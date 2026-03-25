@@ -213,37 +213,35 @@ bool glTFLoader::LoadFile(const std::string& file_path)
         }
         else
         {
-            // Resolve matrix from TRS
-            glm::mat4 matrix = glm::mat4(1.0f);
+            // glTF node local transforms are composed as T * R * S.
+            glm::mat4 translation_matrix = glm::mat4(1.0f);
+            glm::mat4 rotation_matrix = glm::mat4(1.0f);
+            glm::mat4 scale_matrix = glm::mat4(1.0f);
+
+            if (raw_data.contains("translation"))
+            {
+                std::vector<float> translation = raw_data["translation"].get<std::vector<float>>();
+                GLTF_CHECK(translation.size() == 3);
+                translation_matrix = glm::translate(glm::mat4(1.0f), {translation[0], translation[1], translation[2]});
+            }
+
+            if (raw_data.contains("rotation"))
+            {
+                std::vector<float> rotation = raw_data["rotation"].get<std::vector<float>>();
+                GLTF_CHECK(rotation.size() == 4);
+
+                const glm::quat quaternion(rotation[3], rotation[0], rotation[1], rotation[2]);
+                rotation_matrix = glm::toMat4(glm::normalize(quaternion));
+            }
+
             if (raw_data.contains("scale"))
             {
                 std::vector<float> scale = raw_data["scale"].get<std::vector<float>>();
                 GLTF_CHECK(scale.size() == 3);
-                
-                glm::mat4 scaleMatrix = glm::scale(glm::mat4(1.0f), {scale[0], scale[1], scale[2]});
+                scale_matrix = glm::scale(glm::mat4(1.0f), {scale[0], scale[1], scale[2]});
+            }
 
-                matrix *= scaleMatrix;
-            }
-            else if (raw_data.contains("rotation"))
-            {
-                std::vector<float> rotation = raw_data["rotation"].get<std::vector<float>>();
-                GLTF_CHECK(rotation.size() == 4);
-                
-                const glm::quat quaternion = {rotation[0], rotation[1], rotation[2], rotation[3]};
-                const glm::mat4 rotationMatrix = glm::toMat4(quaternion);
-
-                matrix *= rotationMatrix;
-            }
-            else if (raw_data.contains("translation"))
-            {
-                std::vector<float> translation = raw_data["translation"].get<std::vector<float>>();
-                GLTF_CHECK(translation.size() == 3);
-                
-                glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0f), {translation[0], translation[1], translation[2]});
-                matrix *= translationMatrix;
-            }
-            
-            transform = matrix;
+            transform = translation_matrix * rotation_matrix * scale_matrix;
         }
         
         element->transform = transform;
