@@ -18,6 +18,10 @@ namespace LightingBaker
         unsigned sample_index{0u};
         unsigned sample_count{1u};
         unsigned max_bounces{1u};
+        unsigned direct_light_sample_count{1u};
+        unsigned environment_light_sample_count{0u};
+        float sky_intensity{1.0f};
+        float sky_ground_mix{0.35f};
     };
 
     struct BakeRayTracingDispatchRunResult
@@ -29,6 +33,7 @@ namespace LightingBaker
         std::string scene_index_binding_name{"g_scene_indices"};
         std::string scene_instance_binding_name{"g_scene_instances"};
         std::string scene_light_binding_name{"g_scene_lights"};
+        std::string emissive_triangle_binding_name{"g_scene_emissive_triangles"};
         std::string material_texture_binding_name{"bindless_bake_material_textures"};
         std::string dispatch_constants_binding_name{"g_bake_dispatch_constants"};
         std::string output_binding_name{"g_bake_output"};
@@ -41,12 +46,17 @@ namespace LightingBaker
         unsigned texel_record_count{0u};
         unsigned dense_texel_record_count{0u};
         unsigned scene_light_count{0u};
+        unsigned emissive_triangle_count{0u};
         unsigned dispatch_width{0u};
         unsigned dispatch_height{0u};
         unsigned dispatch_depth{1u};
         unsigned sample_index{0u};
         unsigned sample_count{1u};
         unsigned max_bounces{1u};
+        unsigned direct_light_sample_count{1u};
+        unsigned environment_light_sample_count{0u};
+        float sky_intensity{1.0f};
+        float sky_ground_mix{0.35f};
         unsigned output_width{0u};
         unsigned output_height{0u};
         unsigned output_row_pitch{0u};
@@ -54,6 +64,8 @@ namespace LightingBaker
         unsigned output_nonzero_alpha_texel_count{0u};
         unsigned output_trace_payload_sentinel_texel_count{0u};
         std::size_t output_readback_size{0u};
+        double output_rgb_sum{0.0};
+        double output_luminance_sum{0.0};
         bool shader_path_resolved{false};
         bool acceleration_structure_root_allocation_found{false};
         bool texel_record_root_allocation_found{false};
@@ -61,6 +73,7 @@ namespace LightingBaker
         bool scene_index_root_allocation_found{false};
         bool scene_instance_root_allocation_found{false};
         bool scene_light_root_allocation_found{false};
+        bool emissive_triangle_root_allocation_found{false};
         bool material_texture_root_allocation_found{false};
         bool dispatch_constants_root_allocation_found{false};
         bool output_root_allocation_found{false};
@@ -69,6 +82,7 @@ namespace LightingBaker
         bool scene_index_buffer_bound{false};
         bool scene_instance_buffer_bound{false};
         bool scene_light_buffer_bound{false};
+        bool emissive_triangle_buffer_bound{false};
         bool material_texture_table_bound{false};
         bool dispatch_constants_buffer_created{false};
         bool output_render_target_created{false};

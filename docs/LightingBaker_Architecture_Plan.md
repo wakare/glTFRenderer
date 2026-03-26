@@ -360,7 +360,7 @@ glTFRenderer/LightingBaker/
 - 校验通过后，使用 atlas texel 域 DXR dispatch 继续追加 sample count，并刷新 `manifest.json`、`resume.json` 与 published atlas
 - 达到 target sample 后不再继续推进 cache，仅保持 metadata 与 published atlas 一致
 
-当前已经不再依赖 `debug hemisphere` 占位积分器；现阶段的最小求解器已经是可运行的 DXR atlas-domain diffuse path tracing，并已接入 factor 材质、`baseColorTexture`、`normalTexture`、`emissiveTexture` 以及首版 punctual direct lighting。仍未覆盖的内容包括 metallic-roughness 贴图、alpha mask 的更系统化回归验证、更高阶的重要性采样策略，以及除 punctual light 之外更完整的光照重要性采样。
+当前已经不再依赖 `debug hemisphere` 占位积分器；现阶段的最小求解器已经是可运行的 DXR atlas-domain diffuse path tracing，并已接入 factor 材质、`baseColorTexture`、`metallicRoughnessTexture`、`normalTexture`、`emissiveTexture`、alpha-masked 可见性，以及带 `--direct-light-samples` 控制、luminance-weighted light selection 的 punctual direct lighting 采样路径。该路径现已对 point / spot / directional 三类 punctual light 建立回归验证；同一套 next-event estimation 预算现在也接入了 emissive triangle direct sampling，并在 emissive direct samples 与 BSDF continuation hits 之间应用 PDF-based MIS，同时支持用 `--direct-light-samples 0` 显式关闭 NEE，现有回归验证表明 “N bounce + emissive direct sampling” 近似对齐 “N+1 bounce emissive baseline”。同时，sky 环境项已经升级为带 `--environment-light-samples` 控制的 true sky importance sampling，并在 direct environment sampling 与 BSDF miss path 之间应用 PDF-based MIS，现有回归也验证了 “N bounce + environment direct sampling” 对齐 “N+1 bounce baseline”。alpha 路径的正式回归矩阵也已扩展到 `opaque / factor_mask / factor_cutoff_boundary / texture_mask / texture_cutoff_boundary / blend_texture_fallback`。后续重点转向更完整的 BSDF / light MIS，尤其是 punctual / emissive / environment / BSDF 之间的组合，以及运行时导向的压缩 codec。
 
 后续即便 cache 内部格式调整，也应继续由 `resume.json` 提供唯一入口，避免 DXR bake pass 或工具链直接硬编码具体文件名。
 
@@ -426,7 +426,7 @@ glTFRenderer/LightingBaker/
 - 先支持静态 mesh
 - 先实现 direct lighting + environment + diffuse bounce
 - 支持全场景 progressive accumulation / pause / resume
-- 当前 atlas texel 域 DXR diffuse path tracing 已经落地，并已接入 `baseColorTexture` / `normalTexture` / `emissiveTexture` 与首版 punctual direct lighting；后续继续补 alpha mask、sampling 策略和更完整的 path payload
+- 当前 atlas texel 域 DXR diffuse path tracing 已经落地，并已接入 `baseColorTexture` / `normalTexture` / `emissiveTexture`、带回归覆盖的 punctual direct lighting、带 PDF-based MIS 的 emissive triangle direct sampling，以及带 `--environment-light-samples` 控制的 true sky importance sampling；其中 point / spot / directional 基线已打通，`--direct-light-samples 0` 也可显式关闭 NEE，emissive 路径已经建立 “N bounce + emissive direct sampling ≈ N+1 bounce emissive baseline” 的正式回归，sky 环境项也已建立 “N bounce + environment direct sampling ≈ N+1 bounce baseline” 的回归验证，alpha 路径也已形成覆盖 `opaque / factor_mask / factor_cutoff_boundary / texture_mask / texture_cutoff_boundary / blend_texture_fallback` 的正式矩阵；后续继续补更完整的 BSDF / light MIS 与更完整的 path payload
 
 验收标准：
 
@@ -480,4 +480,4 @@ glTFRenderer/LightingBaker/
 2. 继续扩展当前 DXR atlas-domain path tracing pass 的材质与光照能力
 3. 持续完善 GPU readback、published atlas codec 和最终 bake radiance 输出
 
-现在这条 progressive 管线的价值，已经不只是固定 cache / package / runtime contract，而是作为真正的 DXR lightmap baker 主链继续迭代。后续新增 metallic-roughness / alpha mask 的更完整材质可见性、更完整的 direct-light / importance sampling 和压缩 codec，都会在这条已打通的 atlas-domain 路径上逐步扩展。
+现在这条 progressive 管线的价值，已经不只是固定 cache / package / runtime contract，而是作为真正的 DXR lightmap baker 主链继续迭代。当前已经具备可配置、带 luminance-weighted light selection 且经回归验证的 punctual direct-light sampling，并已对 point / spot / directional 三类 punctual light 建立基线覆盖；同一套 `--direct-light-samples` 预算也已经接入 emissive triangle direct sampling，并在 emissive direct samples 与 BSDF continuation hits 之间应用 PDF-based MIS，同时支持用 `0` 显式关闭 NEE，正式回归表明 “N bounce + emissive direct sampling” 已能近似对齐 “N+1 bounce emissive baseline”。sky 环境项也已经具备正式的 `--environment-light-samples` true sky importance sampling、PDF-based MIS 与正式回归，alpha 路径也具备覆盖 `opaque / factor_mask / factor_cutoff_boundary / texture_mask / texture_cutoff_boundary / blend_texture_fallback` 的正式矩阵。后续将围绕更完整的 BSDF / light MIS，以及压缩 codec，在这条已打通的 atlas-domain 路径上持续扩展。

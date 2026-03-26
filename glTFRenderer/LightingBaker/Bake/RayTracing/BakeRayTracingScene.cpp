@@ -19,6 +19,9 @@ namespace LightingBaker
             1.0f, 0.0f, 0.0f, 0.0f,
             0.0f, 1.0f, 0.0f, 0.0f,
             0.0f, 0.0f, 1.0f, 0.0f};
+        constexpr float kSceneLightSelectionWeightEpsilon = 1e-6f;
+        constexpr float kEmissiveTriangleSelectionWeightEpsilon = 1e-6f;
+        constexpr float kTriangleAreaEpsilon = 1e-8f;
 
         BakeSceneValidationMessage MakeMessage(std::string code, std::string message)
         {
@@ -51,6 +54,113 @@ namespace LightingBaker
             }
 
             return static_cast<float>(BakeRayTracingSceneLightTypePoint);
+        }
+
+        float ComputeSceneLightSelectionWeight(const BakeRayTracingSceneLightGPU& scene_light)
+        {
+            const float light_luminance =
+                (std::max)(0.0f,
+                           scene_light.color_and_intensity[0] * 0.2126f +
+                               scene_light.color_and_intensity[1] * 0.7152f +
+                               scene_light.color_and_intensity[2] * 0.0722f);
+            const float light_intensity = (std::max)(0.0f, scene_light.color_and_intensity[3]);
+            return light_luminance * light_intensity;
+        }
+
+        float ComputeLuminance(const glm::fvec3& color)
+        {
+            return (std::max)(0.0f, color.x * 0.2126f + color.y * 0.7152f + color.z * 0.0722f);
+        }
+
+        float ComputeTriangleArea(const BakePrimitiveImportInfo& primitive, std::size_t triangle_index)
+        {
+            const std::size_t base_index = triangle_index * 3u;
+            if (base_index + 2u >= primitive.geometry.triangle_indices.size())
+            {
+                return 0.0f;
+            }
+
+            const unsigned index0 = primitive.geometry.triangle_indices[base_index + 0u];
+            const unsigned index1 = primitive.geometry.triangle_indices[base_index + 1u];
+            const unsigned index2 = primitive.geometry.triangle_indices[base_index + 2u];
+            if (index0 >= primitive.geometry.world_positions.size() ||
+                index1 >= primitive.geometry.world_positions.size() ||
+                index2 >= primitive.geometry.world_positions.size())
+            {
+                return 0.0f;
+            }
+
+            const glm::fvec3 edge01 = primitive.geometry.world_positions[index1] - primitive.geometry.world_positions[index0];
+            const glm::fvec3 edge02 = primitive.geometry.world_positions[index2] - primitive.geometry.world_positions[index0];
+            return 0.5f * glm::length(glm::cross(edge01, edge02));
+        }
+
+        void AssignSceneLightSelectionWeights(std::vector<BakeRayTracingSceneLightGPU>& scene_lights)
+        {
+            if (scene_lights.empty())
+            {
+                return;
+            }
+
+            std::vector<float> selection_weights(scene_lights.size(), 0.0f);
+            float total_weight = 0.0f;
+            for (std::size_t light_index = 0; light_index < scene_lights.size(); ++light_index)
+            {
+                selection_weights[light_index] = ComputeSceneLightSelectionWeight(scene_lights[light_index]);
+                total_weight += selection_weights[light_index];
+            }
+
+            const float uniform_pdf = 1.0f / static_cast<float>(scene_lights.size());
+            float cumulative_pdf = 0.0f;
+            for (std::size_t light_index = 0; light_index < scene_lights.size(); ++light_index)
+            {
+                const float light_pdf =
+                    total_weight > kSceneLightSelectionWeightEpsilon
+                        ? (selection_weights[light_index] / total_weight)
+                        : uniform_pdf;
+                cumulative_pdf += light_pdf;
+                scene_lights[light_index].spot_angles[2] = light_pdf;
+                scene_lights[light_index].spot_angles[3] =
+                    light_index + 1u == scene_lights.size() ? 1.0f : (std::min)(cumulative_pdf, 1.0f);
+            }
+        }
+
+        float ComputeEmissiveTriangleSelectionWeight(const BakeRayTracingSceneEmissiveTriangleGPU& triangle)
+        {
+            const float triangle_area = (std::max)(0.0f, triangle.area_pdf_cdf_luminance[0]);
+            const float emissive_luminance = (std::max)(0.0f, triangle.area_pdf_cdf_luminance[3]);
+            return triangle_area * emissive_luminance;
+        }
+
+        void AssignEmissiveTriangleSelectionWeights(std::vector<BakeRayTracingSceneEmissiveTriangleGPU>& emissive_triangles)
+        {
+            if (emissive_triangles.empty())
+            {
+                return;
+            }
+
+            std::vector<float> selection_weights(emissive_triangles.size(), 0.0f);
+            float total_weight = 0.0f;
+            for (std::size_t triangle_index = 0; triangle_index < emissive_triangles.size(); ++triangle_index)
+            {
+                selection_weights[triangle_index] =
+                    ComputeEmissiveTriangleSelectionWeight(emissive_triangles[triangle_index]);
+                total_weight += selection_weights[triangle_index];
+            }
+
+            const float uniform_pdf = 1.0f / static_cast<float>(emissive_triangles.size());
+            float cumulative_pdf = 0.0f;
+            for (std::size_t triangle_index = 0; triangle_index < emissive_triangles.size(); ++triangle_index)
+            {
+                const float triangle_pdf =
+                    total_weight > kEmissiveTriangleSelectionWeightEpsilon
+                        ? (selection_weights[triangle_index] / total_weight)
+                        : uniform_pdf;
+                cumulative_pdf += triangle_pdf;
+                emissive_triangles[triangle_index].area_pdf_cdf_luminance[1] = triangle_pdf;
+                emissive_triangles[triangle_index].area_pdf_cdf_luminance[2] =
+                    triangle_index + 1u == emissive_triangles.size() ? 1.0f : (std::min)(cumulative_pdf, 1.0f);
+            }
         }
     }
 
@@ -338,10 +448,36 @@ namespace LightingBaker
 
             RHIRayTracingInstanceDesc instance_desc{};
             std::copy(kIdentityTransform.begin(), kIdentityTransform.end(), instance_desc.transform.begin());
-            instance_desc.instance_id = static_cast<std::uint32_t>(out_result.instances.size());
+            const std::uint32_t instance_id = static_cast<std::uint32_t>(out_result.instances.size());
+            instance_desc.instance_id = instance_id;
             instance_desc.instance_mask = 0xFFu;
             instance_desc.hit_group_index = geometry_source.geometry_index;
             instance_desc.geometry_index = geometry_source.geometry_index;
+
+            const float emissive_luminance = ComputeLuminance(primitive.material.emissive_factor);
+            if (emissive_luminance > kEmissiveTriangleSelectionWeightEpsilon)
+            {
+                bool primitive_has_emissive_triangle = false;
+                for (std::size_t triangle_index = 0u; triangle_index < geometry_source.triangle_count; ++triangle_index)
+                {
+                    const float triangle_area = ComputeTriangleArea(primitive, triangle_index);
+                    if (triangle_area <= kTriangleAreaEpsilon)
+                    {
+                        continue;
+                    }
+
+                    primitive_has_emissive_triangle = true;
+                    out_result.emissive_triangles.push_back({
+                        .instance_and_primitive = {instance_id, static_cast<std::uint32_t>(triangle_index), 0u, 0u},
+                        .area_pdf_cdf_luminance = {triangle_area, 0.0f, 0.0f, emissive_luminance},
+                    });
+                }
+
+                if (primitive_has_emissive_triangle)
+                {
+                    ++out_result.emissive_primitive_count;
+                }
+            }
 
             out_result.vertex_count += geometry_source.vertex_count;
             out_result.index_count += geometry_source.index_count;
@@ -357,6 +493,7 @@ namespace LightingBaker
         out_result.shading_index_count = out_result.shading_indices.size();
         out_result.shading_instance_count = out_result.shading_instances.size();
         out_result.material_texture_count = out_result.material_texture_uris.size();
+        out_result.emissive_triangle_count = out_result.emissive_triangles.size();
 
         out_result.scene_lights.reserve(import_result.punctual_lights.size());
         for (const BakeSceneLightImportInfo& light : import_result.punctual_lights)
@@ -402,6 +539,8 @@ namespace LightingBaker
             }
         }
         out_result.scene_light_count = out_result.scene_lights.size();
+        AssignSceneLightSelectionWeights(out_result.scene_lights);
+        AssignEmissiveTriangleSelectionWeights(out_result.emissive_triangles);
 
         if (out_result.geometry_count == 0u)
         {

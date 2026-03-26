@@ -53,6 +53,12 @@ namespace LightingBaker
         std::array<float, 4u> spot_angles{1.0f, 0.0f, 0.0f, 0.0f};
     };
 
+    struct BakeRayTracingSceneEmissiveTriangleGPU
+    {
+        std::array<std::uint32_t, 4u> instance_and_primitive{0u, 0u, 0u, 0u};
+        std::array<float, 4u> area_pdf_cdf_luminance{0.0f, 0.0f, 0.0f, 0.0f};
+    };
+
     struct BakeRayTracingGeometrySource
     {
         unsigned geometry_index{0u};
@@ -81,6 +87,8 @@ namespace LightingBaker
         std::size_t shading_instance_count{0u};
         std::size_t material_texture_count{0u};
         std::size_t scene_light_count{0u};
+        std::size_t emissive_triangle_count{0u};
+        std::size_t emissive_primitive_count{0u};
         std::size_t directional_light_count{0u};
         std::size_t point_light_count{0u};
         std::size_t spot_light_count{0u};
@@ -96,6 +104,7 @@ namespace LightingBaker
         std::vector<std::uint32_t> shading_indices{};
         std::vector<BakeRayTracingSceneInstanceGPU> shading_instances{};
         std::vector<BakeRayTracingSceneLightGPU> scene_lights{};
+        std::vector<BakeRayTracingSceneEmissiveTriangleGPU> emissive_triangles{};
         std::vector<std::string> material_texture_uris{};
         std::vector<BakeSceneValidationMessage> errors{};
         std::vector<BakeSceneValidationMessage> warnings{};

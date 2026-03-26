@@ -37,6 +37,7 @@ namespace LightingBaker
         std::size_t uploaded_shading_index_count{0u};
         std::size_t uploaded_shading_instance_count{0u};
         std::size_t uploaded_scene_light_count{0u};
+        std::size_t uploaded_emissive_triangle_count{0u};
         std::size_t uploaded_material_texture_count{0u};
         std::size_t bound_material_texture_count{0u};
         bool window_created{false};
@@ -46,6 +47,7 @@ namespace LightingBaker
         bool scene_index_buffer_created{false};
         bool scene_instance_buffer_created{false};
         bool scene_light_buffer_created{false};
+        bool emissive_triangle_buffer_created{false};
         bool material_texture_table_created{false};
         bool fallback_material_texture_created{false};
         std::shared_ptr<RendererInterface::RenderWindow> window{};
@@ -55,6 +57,7 @@ namespace LightingBaker
         RendererInterface::BufferHandle scene_index_buffer_handle{};
         RendererInterface::BufferHandle scene_instance_buffer_handle{};
         RendererInterface::BufferHandle scene_light_buffer_handle{};
+        RendererInterface::BufferHandle emissive_triangle_buffer_handle{};
         std::vector<RendererInterface::TextureHandle> material_texture_handles{};
         std::vector<std::shared_ptr<RHIVertexBuffer>> vertex_buffers{};
         std::vector<std::shared_ptr<RHIIndexBuffer>> index_buffers{};

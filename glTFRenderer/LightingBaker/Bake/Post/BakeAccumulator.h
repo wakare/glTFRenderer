@@ -48,6 +48,10 @@ namespace LightingBaker
         unsigned samples_per_iteration{0};
         unsigned target_samples{0};
         unsigned max_bounces{0};
+        unsigned direct_light_samples{1};
+        unsigned environment_light_samples{0};
+        float sky_intensity{BakeJobDefaultSkyIntensity};
+        float sky_ground_mix{BakeJobDefaultSkyGroundMix};
         unsigned completed_samples{0};
         bool progressive{true};
         bool has_accumulation_cache{false};

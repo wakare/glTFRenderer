@@ -1,5 +1,6 @@
 #include "BakeJobConfig.h"
 
+#include <cmath>
 #include <sstream>
 #include <string_view>
 
@@ -19,6 +20,26 @@ namespace LightingBaker
                 }
 
                 out_value = static_cast<unsigned>(converted);
+                return true;
+            }
+            catch (...)
+            {
+                return false;
+            }
+        }
+
+        bool TryParseFloat(std::wstring_view value, float& out_value)
+        {
+            try
+            {
+                std::size_t parsed = 0;
+                const float converted = std::stof(std::wstring(value), &parsed);
+                if (parsed != value.size() || !std::isfinite(converted))
+                {
+                    return false;
+                }
+
+                out_value = converted;
                 return true;
             }
             catch (...)
@@ -142,6 +163,72 @@ namespace LightingBaker
                 continue;
             }
 
+            if (arg == L"--direct-light-samples")
+            {
+                std::wstring value;
+                if (!RequireNextValue(argc, argv, index, value, result.error_message))
+                {
+                    return result;
+                }
+
+                if (!TryParseUnsigned(value, result.config.direct_light_samples))
+                {
+                    result.error_message = L"Invalid --direct-light-samples value: " + value;
+                    return result;
+                }
+                continue;
+            }
+
+            if (arg == L"--environment-light-samples")
+            {
+                std::wstring value;
+                if (!RequireNextValue(argc, argv, index, value, result.error_message))
+                {
+                    return result;
+                }
+
+                if (!TryParseUnsigned(value, result.config.environment_light_samples))
+                {
+                    result.error_message = L"Invalid --environment-light-samples value: " + value;
+                    return result;
+                }
+                continue;
+            }
+
+            if (arg == L"--sky-intensity")
+            {
+                std::wstring value;
+                if (!RequireNextValue(argc, argv, index, value, result.error_message))
+                {
+                    return result;
+                }
+
+                if (!TryParseFloat(value, result.config.sky_intensity) || result.config.sky_intensity < 0.0f)
+                {
+                    result.error_message = L"Invalid --sky-intensity value: " + value;
+                    return result;
+                }
+                continue;
+            }
+
+            if (arg == L"--sky-ground-mix")
+            {
+                std::wstring value;
+                if (!RequireNextValue(argc, argv, index, value, result.error_message))
+                {
+                    return result;
+                }
+
+                if (!TryParseFloat(value, result.config.sky_ground_mix) ||
+                    result.config.sky_ground_mix < 0.0f ||
+                    result.config.sky_ground_mix > 1.0f)
+                {
+                    result.error_message = L"Invalid --sky-ground-mix value: " + value;
+                    return result;
+                }
+                continue;
+            }
+
             if (arg == L"--no-progressive")
             {
                 result.config.progressive = false;
@@ -191,6 +278,10 @@ namespace LightingBaker
             << L"  --samples-per-iteration <n>   Progressive samples per iteration, default: 1\n"
             << L"  --target-samples <n>          Total target samples, default: 256\n"
             << L"  --max-bounces <n>             Maximum diffuse bounces, default: 4\n"
+            << L"  --direct-light-samples <n>    Direct-light samples per shaded hit (0 disables NEE), default: 1\n"
+            << L"  --environment-light-samples <n> Sky importance samples per shaded hit, default: 0\n"
+            << L"  --sky-intensity <f>           Sky radiance scale, default: 1.0\n"
+            << L"  --sky-ground-mix <f>          Horizon-to-ground blend [0,1], default: 0.35\n"
             << L"  --resume                      Resume from existing bake cache\n"
             << L"  --no-progressive              Disable progressive mode for diagnostics\n"
             << L"  --help, -h                    Show this help text\n";

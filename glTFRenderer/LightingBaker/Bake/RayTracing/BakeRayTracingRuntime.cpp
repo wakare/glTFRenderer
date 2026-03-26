@@ -113,6 +113,7 @@ namespace LightingBaker
         scene_index_buffer_handle = {};
         scene_instance_buffer_handle = {};
         scene_light_buffer_handle = {};
+        emissive_triangle_buffer_handle = {};
         material_texture_handles.clear();
         vertex_buffers.clear();
         index_buffers.clear();
@@ -346,6 +347,32 @@ namespace LightingBaker
         out_result.scene_instance_buffer_created = true;
         out_result.scene_light_buffer_created = !ray_tracing_scene.scene_lights.empty();
         out_result.uploaded_scene_light_count = ray_tracing_scene.scene_lights.size();
+
+        std::vector<BakeRayTracingSceneEmissiveTriangleGPU> emissive_triangle_buffer_data =
+            ray_tracing_scene.emissive_triangles;
+        if (emissive_triangle_buffer_data.empty())
+        {
+            emissive_triangle_buffer_data.push_back(BakeRayTracingSceneEmissiveTriangleGPU{
+                .instance_and_primitive = {0u, 0u, 0u, 0u},
+                .area_pdf_cdf_luminance = {0.0f, 0.0f, 1.0f, 0.0f},
+            });
+        }
+
+        if (!CreateStructuredSceneBuffer(resource_operator,
+                                         "LightingBaker_RT_EmissiveTriangles",
+                                         emissive_triangle_buffer_data,
+                                         out_result.emissive_triangle_buffer_handle))
+        {
+            out_result.errors.push_back(MakeMessage(
+                "rt_runtime_emissive_triangle_buffer_failed",
+                "Failed to allocate the baker emissive triangle buffer."));
+            out_error = L"Failed to allocate the baker emissive triangle buffer.";
+            FlushRecordedCommands(resource_operator);
+            return false;
+        }
+
+        out_result.emissive_triangle_buffer_created = !ray_tracing_scene.emissive_triangles.empty();
+        out_result.uploaded_emissive_triangle_count = ray_tracing_scene.emissive_triangles.size();
 
         out_result.material_texture_handles.clear();
         out_result.material_texture_handles.reserve(ray_tracing_scene.material_texture_uris.size());

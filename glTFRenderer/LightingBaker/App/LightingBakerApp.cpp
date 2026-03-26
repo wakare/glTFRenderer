@@ -321,6 +321,10 @@ namespace LightingBaker
                 ? (std::min)(config.samples_per_iteration, remaining_dispatch_samples)
                 : remaining_dispatch_samples;
         ray_tracing_dispatch_settings.max_bounces = config.max_bounces;
+        ray_tracing_dispatch_settings.direct_light_sample_count = config.direct_light_samples;
+        ray_tracing_dispatch_settings.environment_light_sample_count = config.environment_light_samples;
+        ray_tracing_dispatch_settings.sky_intensity = config.sky_intensity;
+        ray_tracing_dispatch_settings.sky_ground_mix = config.sky_ground_mix;
         BakeRayTracingDispatchRunResult ray_tracing_dispatch{};
         error_message.clear();
         const bool ray_tracing_dispatch_success = ray_tracing_dispatch_runner.RunDispatch(
@@ -442,6 +446,10 @@ namespace LightingBaker
             << L"  samples / iteration: " << config.samples_per_iteration << L"\n"
             << L"  target samples: " << config.target_samples << L"\n"
             << L"  max bounces: " << config.max_bounces << L"\n"
+            << L"  direct-light samples: " << config.direct_light_samples << L"\n"
+            << L"  environment-light samples: " << config.environment_light_samples << L"\n"
+            << L"  sky intensity: " << config.sky_intensity << L"\n"
+            << L"  sky ground mix: " << config.sky_ground_mix << L"\n"
             << L"  progressive: " << (config.progressive ? L"true" : L"false") << L"\n"
             << L"  resume: " << (config.resume ? L"true" : L"false") << L"\n";
     }
@@ -489,6 +497,8 @@ namespace LightingBaker
             << L"  shading indices: " << ray_tracing_scene.shading_index_count << L"\n"
             << L"  shading instances: " << ray_tracing_scene.shading_instance_count << L"\n"
             << L"  scene lights: " << ray_tracing_scene.scene_light_count << L"\n"
+            << L"  emissive triangles: " << ray_tracing_scene.emissive_triangle_count << L"\n"
+            << L"  emissive primitives: " << ray_tracing_scene.emissive_primitive_count << L"\n"
             << L"  directional lights: " << ray_tracing_scene.directional_light_count << L"\n"
             << L"  point lights: " << ray_tracing_scene.point_light_count << L"\n"
             << L"  spot lights: " << ray_tracing_scene.spot_light_count << L"\n"
@@ -523,6 +533,7 @@ namespace LightingBaker
             << L"  uploaded shading indices: " << ray_tracing_runtime.uploaded_shading_index_count << L"\n"
             << L"  uploaded shading instances: " << ray_tracing_runtime.uploaded_shading_instance_count << L"\n"
             << L"  uploaded scene lights: " << ray_tracing_runtime.uploaded_scene_light_count << L"\n"
+            << L"  uploaded emissive triangles: " << ray_tracing_runtime.uploaded_emissive_triangle_count << L"\n"
             << L"  uploaded material textures: " << ray_tracing_runtime.uploaded_material_texture_count << L"\n"
             << L"  bound material textures: " << ray_tracing_runtime.bound_material_texture_count << L"\n"
             << L"  window created: " << (ray_tracing_runtime.window_created ? L"true" : L"false") << L"\n"
@@ -534,6 +545,7 @@ namespace LightingBaker
             << L"  scene index buffer created: " << (ray_tracing_runtime.scene_index_buffer_created ? L"true" : L"false") << L"\n"
             << L"  scene instance buffer created: " << (ray_tracing_runtime.scene_instance_buffer_created ? L"true" : L"false") << L"\n"
             << L"  scene light buffer created: " << (ray_tracing_runtime.scene_light_buffer_created ? L"true" : L"false") << L"\n"
+            << L"  emissive triangle buffer created: " << (ray_tracing_runtime.emissive_triangle_buffer_created ? L"true" : L"false") << L"\n"
             << L"  material texture table created: " << (ray_tracing_runtime.material_texture_table_created ? L"true" : L"false") << L"\n"
             << L"  fallback material texture created: " << (ray_tracing_runtime.fallback_material_texture_created ? L"true" : L"false") << L"\n"
             << L"  warnings: " << CountWarnings(ray_tracing_runtime) << L"\n"
@@ -549,10 +561,15 @@ namespace LightingBaker
             << L"  sample index: " << ray_tracing_dispatch.sample_index << L"\n"
             << L"  sample count: " << ray_tracing_dispatch.sample_count << L"\n"
             << L"  max bounces: " << ray_tracing_dispatch.max_bounces << L"\n"
+            << L"  direct-light samples: " << ray_tracing_dispatch.direct_light_sample_count << L"\n"
+            << L"  environment-light samples: " << ray_tracing_dispatch.environment_light_sample_count << L"\n"
+            << L"  sky intensity: " << ray_tracing_dispatch.sky_intensity << L"\n"
+            << L"  sky ground mix: " << ray_tracing_dispatch.sky_ground_mix << L"\n"
             << L"  dispatch: " << ray_tracing_dispatch.dispatch_width << L"x"
             << ray_tracing_dispatch.dispatch_height << L"x" << ray_tracing_dispatch.dispatch_depth << L"\n"
             << L"  dense texel records: " << ray_tracing_dispatch.dense_texel_record_count << L"\n"
             << L"  scene lights: " << ray_tracing_dispatch.scene_light_count << L"\n"
+            << L"  emissive triangles: " << ray_tracing_dispatch.emissive_triangle_count << L"\n"
             << L"  output: " << ray_tracing_dispatch.output_width << L"x"
             << ray_tracing_dispatch.output_height << L"\n"
             << L"  accel-structure root allocation found: "
@@ -567,6 +584,8 @@ namespace LightingBaker
             << (ray_tracing_dispatch.scene_instance_root_allocation_found ? L"true" : L"false") << L"\n"
             << L"  scene-light root allocation found: "
             << (ray_tracing_dispatch.scene_light_root_allocation_found ? L"true" : L"false") << L"\n"
+            << L"  emissive-triangle root allocation found: "
+            << (ray_tracing_dispatch.emissive_triangle_root_allocation_found ? L"true" : L"false") << L"\n"
             << L"  material-texture root allocation found: "
             << (ray_tracing_dispatch.material_texture_root_allocation_found ? L"true" : L"false") << L"\n"
             << L"  dispatch-constants root allocation found: "
@@ -579,6 +598,7 @@ namespace LightingBaker
             << L"  scene index buffer bound: " << (ray_tracing_dispatch.scene_index_buffer_bound ? L"true" : L"false") << L"\n"
             << L"  scene instance buffer bound: " << (ray_tracing_dispatch.scene_instance_buffer_bound ? L"true" : L"false") << L"\n"
             << L"  scene light buffer bound: " << (ray_tracing_dispatch.scene_light_buffer_bound ? L"true" : L"false") << L"\n"
+            << L"  emissive triangle buffer bound: " << (ray_tracing_dispatch.emissive_triangle_buffer_bound ? L"true" : L"false") << L"\n"
             << L"  material texture table bound: " << (ray_tracing_dispatch.material_texture_table_bound ? L"true" : L"false") << L"\n"
             << L"  dispatch constants buffer created: "
             << (ray_tracing_dispatch.dispatch_constants_buffer_created ? L"true" : L"false") << L"\n"
@@ -593,6 +613,8 @@ namespace LightingBaker
             << L"  output row pitch: " << ray_tracing_dispatch.output_row_pitch << L"\n"
             << L"  nonzero rgb texels: " << ray_tracing_dispatch.output_nonzero_rgb_texel_count << L"\n"
             << L"  nonzero alpha texels: " << ray_tracing_dispatch.output_nonzero_alpha_texel_count << L"\n"
+            << L"  output rgb sum: " << ray_tracing_dispatch.output_rgb_sum << L"\n"
+            << L"  output luminance sum: " << ray_tracing_dispatch.output_luminance_sum << L"\n"
             << L"  payload sentinel texels: "
             << ray_tracing_dispatch.output_trace_payload_sentinel_texel_count << L"\n"
             << L"  executed RT passes: " << ray_tracing_dispatch.frame_stats.executed_ray_tracing_pass_count << L"\n"
@@ -608,6 +630,10 @@ namespace LightingBaker
             << L"  source scene: " << resume_state.source_scene.native() << L"\n"
             << L"  completed samples: " << resume_state.completed_samples << L"\n"
             << L"  target samples: " << resume_state.target_samples << L"\n"
+            << L"  direct-light samples: " << resume_state.direct_light_samples << L"\n"
+            << L"  environment-light samples: " << resume_state.environment_light_samples << L"\n"
+            << L"  sky intensity: " << resume_state.sky_intensity << L"\n"
+            << L"  sky ground mix: " << resume_state.sky_ground_mix << L"\n"
             << L"  atlas inputs: " << resume_state.atlas_inputs.size() << L"\n"
             << L"  has accumulation cache: " << (resume_state.has_accumulation_cache ? L"true" : L"false") << L"\n";
     }

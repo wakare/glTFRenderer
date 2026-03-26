@@ -33,6 +33,11 @@ namespace LightingBaker
         constexpr float kDefaultRayEpsilon = 0.01f;
         constexpr float kDefaultSkyIntensity = 1.0f;
         constexpr float kDefaultSkyGroundMix = 0.35f;
+        constexpr std::size_t kEnvironmentImportanceBinCount = 32u;
+        constexpr std::size_t kEnvironmentImportancePackedFloat4Count = kEnvironmentImportanceBinCount / 4u;
+        constexpr float kEnvironmentImportanceFloor = 1e-4f;
+
+        static_assert((kEnvironmentImportanceBinCount % 4u) == 0u);
 
         void FlushRecordedCommands(RendererInterface::ResourceOperator& resource_operator)
         {
@@ -55,13 +60,18 @@ namespace LightingBaker
             std::uint32_t sample_index{0u};
             std::uint32_t sample_count{1u};
             std::uint32_t max_bounces{1u};
+            std::uint32_t direct_light_sample_count{1u};
+            std::uint32_t environment_light_sample_count{0u};
             std::uint32_t scene_light_count{0u};
+            std::uint32_t emissive_triangle_count{0u};
+            std::uint32_t padding_uint0{0u};
+            std::uint32_t padding_uint1{0u};
+            std::uint32_t padding_uint2{0u};
             float ray_epsilon{kDefaultRayEpsilon};
             float sky_intensity{kDefaultSkyIntensity};
             float sky_ground_mix{kDefaultSkyGroundMix};
             float padding0{0.0f};
-            float padding1{0.0f};
-            float padding2{0.0f};
+            std::array<std::array<float, 4u>, kEnvironmentImportancePackedFloat4Count> environment_importance_cdf{};
         };
 
         static_assert((sizeof(BakeRayTracingDispatchConstantsGPU) % 16u) == 0u);
@@ -72,6 +82,78 @@ namespace LightingBaker
             result.code = std::move(code);
             result.message = std::move(message);
             return result;
+        }
+
+        float ComputeSkyLuminanceForDirectionY(float direction_y, float sky_intensity, float sky_ground_mix)
+        {
+            const float up = std::clamp(direction_y * 0.5f + 0.5f, 0.0f, 1.0f);
+            const float horizon = std::clamp(1.0f - std::abs(direction_y), 0.0f, 1.0f);
+
+            const std::array<float, 3u> sky_top = {0.52f, 0.66f, 0.84f};
+            const std::array<float, 3u> sky_bottom = {0.08f, 0.10f, 0.14f};
+            const std::array<float, 3u> horizon_tint = {0.08f, 0.0736f, 0.0624f};
+            const std::array<float, 3u> ground = {
+                sky_ground_mix * 0.06f,
+                sky_ground_mix * 0.05f,
+                sky_ground_mix * 0.04f,
+            };
+
+            std::array<float, 3u> sky{};
+            std::array<float, 3u> radiance{};
+            for (std::size_t channel_index = 0; channel_index < 3u; ++channel_index)
+            {
+                sky[channel_index] =
+                    sky_bottom[channel_index] * (1.0f - up) +
+                    sky_top[channel_index] * up +
+                    horizon_tint[channel_index] * horizon;
+                radiance[channel_index] =
+                    (ground[channel_index] * (1.0f - up) + sky[channel_index] * up) * sky_intensity;
+            }
+
+            return 0.2126f * radiance[0] + 0.7152f * radiance[1] + 0.0722f * radiance[2];
+        }
+
+        void BuildEnvironmentImportanceCdf(float sky_intensity,
+                                           float sky_ground_mix,
+                                           std::array<std::array<float, 4u>, kEnvironmentImportancePackedFloat4Count>& out_cdf)
+        {
+            std::array<float, kEnvironmentImportanceBinCount> cumulative_weights{};
+            const float bin_width = 2.0f / static_cast<float>(kEnvironmentImportanceBinCount);
+            float total_weight = 0.0f;
+            for (std::size_t bin_index = 0; bin_index < kEnvironmentImportanceBinCount; ++bin_index)
+            {
+                const float direction_y = -1.0f + (static_cast<float>(bin_index) + 0.5f) * bin_width;
+                const float bin_weight =
+                    (std::max)(ComputeSkyLuminanceForDirectionY(direction_y, sky_intensity, sky_ground_mix),
+                               kEnvironmentImportanceFloor);
+                total_weight += bin_weight;
+                cumulative_weights[bin_index] = total_weight;
+            }
+
+            if (total_weight <= 0.0f)
+            {
+                for (std::size_t bin_index = 0; bin_index < kEnvironmentImportanceBinCount; ++bin_index)
+                {
+                    cumulative_weights[bin_index] =
+                        static_cast<float>(bin_index + 1u) / static_cast<float>(kEnvironmentImportanceBinCount);
+                }
+            }
+            else
+            {
+                for (std::size_t bin_index = 0; bin_index < kEnvironmentImportanceBinCount; ++bin_index)
+                {
+                    cumulative_weights[bin_index] /= total_weight;
+                }
+            }
+
+            for (std::size_t packed_index = 0; packed_index < kEnvironmentImportancePackedFloat4Count; ++packed_index)
+            {
+                for (std::size_t component_index = 0; component_index < 4u; ++component_index)
+                {
+                    const std::size_t bin_index = packed_index * 4u + component_index;
+                    out_cdf[packed_index][component_index] = cumulative_weights[bin_index];
+                }
+            }
         }
 
         std::filesystem::path GetExecutableDirectory()
@@ -435,6 +517,8 @@ namespace LightingBaker
             out_result.output_nonzero_rgb_texel_count = 0u;
             out_result.output_nonzero_alpha_texel_count = 0u;
             out_result.output_trace_payload_sentinel_texel_count = 0u;
+            out_result.output_rgb_sum = 0.0;
+            out_result.output_luminance_sum = 0.0;
 
             for (unsigned y = 0u; y < out_result.output_height; ++y)
             {
@@ -455,6 +539,15 @@ namespace LightingBaker
                     out_result.output_rgba[dst_offset + 1u] = output_g;
                     out_result.output_rgba[dst_offset + 2u] = output_b;
                     out_result.output_rgba[dst_offset + 3u] = output_a;
+
+                    const double positive_r = static_cast<double>((std::max)(output_r, 0.0f));
+                    const double positive_g = static_cast<double>((std::max)(output_g, 0.0f));
+                    const double positive_b = static_cast<double>((std::max)(output_b, 0.0f));
+                    out_result.output_rgb_sum += positive_r + positive_g + positive_b;
+                    out_result.output_luminance_sum +=
+                        positive_r * 0.2126 +
+                        positive_g * 0.7152 +
+                        positive_b * 0.0722;
 
                     const bool nonzero_rgb =
                         std::abs(output_r) > 1e-6f ||
@@ -519,12 +612,14 @@ namespace LightingBaker
 
         if (!runtime_result.scene_vertex_buffer_handle.IsValid() ||
             !runtime_result.scene_index_buffer_handle.IsValid() ||
-            !runtime_result.scene_instance_buffer_handle.IsValid())
+            !runtime_result.scene_instance_buffer_handle.IsValid() ||
+            !runtime_result.emissive_triangle_buffer_handle.IsValid())
         {
             out_result.errors.push_back(MakeMessage(
                 "rt_dispatch_runtime_shading_buffers_missing",
-                "Ray tracing dispatch requires shading vertex, index, and instance buffers from the baker runtime."));
-            out_error = L"Ray tracing dispatch requires shading vertex, index, and instance buffers from the baker runtime.";
+                "Ray tracing dispatch requires shading vertex, index, instance, and emissive-triangle buffers from the baker runtime."));
+            out_error =
+                L"Ray tracing dispatch requires shading vertex, index, instance, and emissive-triangle buffers from the baker runtime.";
             return false;
         }
 
@@ -564,7 +659,12 @@ namespace LightingBaker
         out_result.sample_index = settings.sample_index;
         out_result.sample_count = settings.sample_count;
         out_result.max_bounces = (std::max)(1u, settings.max_bounces);
+        out_result.direct_light_sample_count = settings.direct_light_sample_count;
+        out_result.environment_light_sample_count = settings.environment_light_sample_count;
+        out_result.sky_intensity = (std::max)(0.0f, settings.sky_intensity);
+        out_result.sky_ground_mix = std::clamp(settings.sky_ground_mix, 0.0f, 1.0f);
         out_result.scene_light_count = static_cast<unsigned>(runtime_result.uploaded_scene_light_count);
+        out_result.emissive_triangle_count = static_cast<unsigned>(runtime_result.uploaded_emissive_triangle_count);
         out_result.output_width = out_result.dispatch_width;
         out_result.output_height = out_result.dispatch_height;
 
@@ -626,10 +726,17 @@ namespace LightingBaker
         dispatch_constants.sample_index = out_result.sample_index;
         dispatch_constants.sample_count = out_result.sample_count;
         dispatch_constants.max_bounces = out_result.max_bounces;
+        dispatch_constants.direct_light_sample_count = out_result.direct_light_sample_count;
+        dispatch_constants.environment_light_sample_count = out_result.environment_light_sample_count;
         dispatch_constants.scene_light_count = out_result.scene_light_count;
+        dispatch_constants.emissive_triangle_count = out_result.emissive_triangle_count;
         dispatch_constants.ray_epsilon = kDefaultRayEpsilon;
-        dispatch_constants.sky_intensity = kDefaultSkyIntensity;
-        dispatch_constants.sky_ground_mix = kDefaultSkyGroundMix;
+        dispatch_constants.sky_intensity = out_result.sky_intensity;
+        dispatch_constants.sky_ground_mix = out_result.sky_ground_mix;
+        BuildEnvironmentImportanceCdf(
+            out_result.sky_intensity,
+            out_result.sky_ground_mix,
+            dispatch_constants.environment_importance_cdf);
 
         RendererInterface::BufferDesc dispatch_constants_desc{};
         dispatch_constants_desc.name = "BakeRayTracingDispatchConstants";
@@ -693,7 +800,7 @@ namespace LightingBaker
         render_pass_desc.type = RendererInterface::RenderPassType::RAY_TRACING;
         render_pass_desc.shaders.emplace(RendererInterface::RAY_TRACING_SHADER, shader_handle);
         render_pass_desc.ray_tracing_desc = RendererInterface::RayTracingPassDesc{};
-        render_pass_desc.ray_tracing_desc->config.payload_size = sizeof(float) * 12u;
+        render_pass_desc.ray_tracing_desc->config.payload_size = sizeof(float) * 16u;
         render_pass_desc.ray_tracing_desc->config.attribute_size = sizeof(float) * 2u;
         render_pass_desc.ray_tracing_desc->config.max_recursion_count = 1u;
         render_pass_desc.ray_tracing_desc->export_function_names = {
@@ -758,6 +865,8 @@ namespace LightingBaker
             render_pass->HasRootSignatureAllocation(out_result.scene_instance_binding_name);
         out_result.scene_light_root_allocation_found =
             render_pass->HasRootSignatureAllocation(out_result.scene_light_binding_name);
+        out_result.emissive_triangle_root_allocation_found =
+            render_pass->HasRootSignatureAllocation(out_result.emissive_triangle_binding_name);
         out_result.material_texture_root_allocation_found =
             render_pass->HasRootSignatureAllocation(out_result.material_texture_binding_name);
         out_result.dispatch_constants_root_allocation_found =
@@ -843,6 +952,15 @@ namespace LightingBaker
         scene_light_binding.count = (std::max)(1u, out_result.scene_light_count);
         scene_light_binding.is_structured_buffer = true;
         draw_desc.buffer_resources.emplace(out_result.scene_light_binding_name, scene_light_binding);
+
+        out_result.emissive_triangle_buffer_bound = true;
+        RendererInterface::BufferBindingDesc emissive_triangle_binding{};
+        emissive_triangle_binding.buffer_handle = runtime_result.emissive_triangle_buffer_handle;
+        emissive_triangle_binding.binding_type = RendererInterface::BufferBindingDesc::SRV;
+        emissive_triangle_binding.stride = sizeof(BakeRayTracingSceneEmissiveTriangleGPU);
+        emissive_triangle_binding.count = (std::max)(1u, out_result.emissive_triangle_count);
+        emissive_triangle_binding.is_structured_buffer = true;
+        draw_desc.buffer_resources.emplace(out_result.emissive_triangle_binding_name, emissive_triangle_binding);
 
         out_result.material_texture_table_bound = true;
         RendererInterface::TextureBindingDesc material_texture_binding{};

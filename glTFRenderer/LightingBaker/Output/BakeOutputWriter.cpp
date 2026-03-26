@@ -649,6 +649,8 @@ namespace LightingBaker
         root["shading_index_count"] = ray_tracing_scene.shading_index_count;
         root["shading_instance_count"] = ray_tracing_scene.shading_instance_count;
         root["scene_light_count"] = ray_tracing_scene.scene_light_count;
+        root["emissive_triangle_count"] = ray_tracing_scene.emissive_triangle_count;
+        root["emissive_primitive_count"] = ray_tracing_scene.emissive_primitive_count;
         root["directional_light_count"] = ray_tracing_scene.directional_light_count;
         root["point_light_count"] = ray_tracing_scene.point_light_count;
         root["spot_light_count"] = ray_tracing_scene.spot_light_count;
@@ -712,6 +714,21 @@ namespace LightingBaker
                 {"direction_and_range", ToJson(scene_light.direction_and_range)},
                 {"color_and_intensity", ToJson(scene_light.color_and_intensity)},
                 {"spot_angles", ToJson(scene_light.spot_angles)},
+                {"selection_pdf", scene_light.spot_angles[2]},
+                {"selection_cdf", scene_light.spot_angles[3]},
+            });
+        }
+
+        root["emissive_triangles"] = nlohmann::json::array();
+        for (const BakeRayTracingSceneEmissiveTriangleGPU& emissive_triangle : ray_tracing_scene.emissive_triangles)
+        {
+            root["emissive_triangles"].push_back({
+                {"instance_id", emissive_triangle.instance_and_primitive[0]},
+                {"primitive_index", emissive_triangle.instance_and_primitive[1]},
+                {"triangle_area", emissive_triangle.area_pdf_cdf_luminance[0]},
+                {"selection_pdf", emissive_triangle.area_pdf_cdf_luminance[1]},
+                {"selection_cdf", emissive_triangle.area_pdf_cdf_luminance[2]},
+                {"emissive_luminance", emissive_triangle.area_pdf_cdf_luminance[3]},
             });
         }
 
@@ -740,6 +757,7 @@ namespace LightingBaker
         root["uploaded_shading_index_count"] = ray_tracing_runtime.uploaded_shading_index_count;
         root["uploaded_shading_instance_count"] = ray_tracing_runtime.uploaded_shading_instance_count;
         root["uploaded_scene_light_count"] = ray_tracing_runtime.uploaded_scene_light_count;
+        root["uploaded_emissive_triangle_count"] = ray_tracing_runtime.uploaded_emissive_triangle_count;
         root["uploaded_material_texture_count"] = ray_tracing_runtime.uploaded_material_texture_count;
         root["bound_material_texture_count"] = ray_tracing_runtime.bound_material_texture_count;
         root["window_created"] = ray_tracing_runtime.window_created;
@@ -749,6 +767,7 @@ namespace LightingBaker
         root["scene_index_buffer_created"] = ray_tracing_runtime.scene_index_buffer_created;
         root["scene_instance_buffer_created"] = ray_tracing_runtime.scene_instance_buffer_created;
         root["scene_light_buffer_created"] = ray_tracing_runtime.scene_light_buffer_created;
+        root["emissive_triangle_buffer_created"] = ray_tracing_runtime.emissive_triangle_buffer_created;
         root["material_texture_table_created"] = ray_tracing_runtime.material_texture_table_created;
         root["fallback_material_texture_created"] = ray_tracing_runtime.fallback_material_texture_created;
         root["validation_status"] = ray_tracing_runtime.HasValidationErrors() ? "failed" : "passed";
@@ -783,6 +802,7 @@ namespace LightingBaker
         root["scene_index_binding"] = ray_tracing_dispatch.scene_index_binding_name;
         root["scene_instance_binding"] = ray_tracing_dispatch.scene_instance_binding_name;
         root["scene_light_binding"] = ray_tracing_dispatch.scene_light_binding_name;
+        root["emissive_triangle_binding"] = ray_tracing_dispatch.emissive_triangle_binding_name;
         root["material_texture_binding"] = ray_tracing_dispatch.material_texture_binding_name;
         root["dispatch_constants_binding"] = ray_tracing_dispatch.dispatch_constants_binding_name;
         root["output_binding"] = ray_tracing_dispatch.output_binding_name;
@@ -795,17 +815,24 @@ namespace LightingBaker
         root["texel_record_count"] = ray_tracing_dispatch.texel_record_count;
         root["dense_texel_record_count"] = ray_tracing_dispatch.dense_texel_record_count;
         root["scene_light_count"] = ray_tracing_dispatch.scene_light_count;
+        root["emissive_triangle_count"] = ray_tracing_dispatch.emissive_triangle_count;
         root["dispatch_width"] = ray_tracing_dispatch.dispatch_width;
         root["dispatch_height"] = ray_tracing_dispatch.dispatch_height;
         root["dispatch_depth"] = ray_tracing_dispatch.dispatch_depth;
         root["sample_index"] = ray_tracing_dispatch.sample_index;
         root["sample_count"] = ray_tracing_dispatch.sample_count;
         root["max_bounces"] = ray_tracing_dispatch.max_bounces;
+        root["direct_light_sample_count"] = ray_tracing_dispatch.direct_light_sample_count;
+        root["environment_light_sample_count"] = ray_tracing_dispatch.environment_light_sample_count;
+        root["sky_intensity"] = ray_tracing_dispatch.sky_intensity;
+        root["sky_ground_mix"] = ray_tracing_dispatch.sky_ground_mix;
         root["output_width"] = ray_tracing_dispatch.output_width;
         root["output_height"] = ray_tracing_dispatch.output_height;
         root["output_row_pitch"] = ray_tracing_dispatch.output_row_pitch;
         root["output_nonzero_rgb_texel_count"] = ray_tracing_dispatch.output_nonzero_rgb_texel_count;
         root["output_nonzero_alpha_texel_count"] = ray_tracing_dispatch.output_nonzero_alpha_texel_count;
+        root["output_rgb_sum"] = ray_tracing_dispatch.output_rgb_sum;
+        root["output_luminance_sum"] = ray_tracing_dispatch.output_luminance_sum;
         root["output_trace_payload_sentinel_texel_count"] =
             ray_tracing_dispatch.output_trace_payload_sentinel_texel_count;
         root["output_readback_size"] = ray_tracing_dispatch.output_readback_size;
@@ -817,6 +844,7 @@ namespace LightingBaker
         root["scene_index_root_allocation_found"] = ray_tracing_dispatch.scene_index_root_allocation_found;
         root["scene_instance_root_allocation_found"] = ray_tracing_dispatch.scene_instance_root_allocation_found;
         root["scene_light_root_allocation_found"] = ray_tracing_dispatch.scene_light_root_allocation_found;
+        root["emissive_triangle_root_allocation_found"] = ray_tracing_dispatch.emissive_triangle_root_allocation_found;
         root["material_texture_root_allocation_found"] =
             ray_tracing_dispatch.material_texture_root_allocation_found;
         root["dispatch_constants_root_allocation_found"] =
@@ -827,6 +855,7 @@ namespace LightingBaker
         root["scene_index_buffer_bound"] = ray_tracing_dispatch.scene_index_buffer_bound;
         root["scene_instance_buffer_bound"] = ray_tracing_dispatch.scene_instance_buffer_bound;
         root["scene_light_buffer_bound"] = ray_tracing_dispatch.scene_light_buffer_bound;
+        root["emissive_triangle_buffer_bound"] = ray_tracing_dispatch.emissive_triangle_buffer_bound;
         root["material_texture_table_bound"] = ray_tracing_dispatch.material_texture_table_bound;
         root["dispatch_constants_buffer_created"] = ray_tracing_dispatch.dispatch_constants_buffer_created;
         root["output_render_target_created"] = ray_tracing_dispatch.output_render_target_created;
@@ -1078,7 +1107,13 @@ namespace LightingBaker
             {"samples_per_iteration", config.samples_per_iteration},
             {"target_spp", config.target_samples},
             {"max_bounces", config.max_bounces},
+            {"direct_light_samples", config.direct_light_samples},
+            {"environment_light_samples", config.environment_light_samples},
             {"progressive", config.progressive},
+        };
+        root["environment"] = {
+            {"sky_intensity", config.sky_intensity},
+            {"sky_ground_mix", config.sky_ground_mix},
         };
         root["output"] = {
             {"root", ToJsonPathString(layout.root)},
@@ -1187,6 +1222,10 @@ namespace LightingBaker
             {"samples_per_iteration", config.samples_per_iteration},
             {"target_samples", config.target_samples},
             {"max_bounces", config.max_bounces},
+            {"direct_light_samples", config.direct_light_samples},
+            {"environment_light_samples", config.environment_light_samples},
+            {"sky_intensity", config.sky_intensity},
+            {"sky_ground_mix", config.sky_ground_mix},
             {"progressive", config.progressive},
             {"resume_requested", config.resume},
         };

@@ -115,6 +115,56 @@ namespace LightingBaker
             return true;
         }
 
+        bool ReadOptionalFloatField(const nlohmann::json& root,
+                                    const char* field_name,
+                                    float& out_value,
+                                    std::wstring& out_error)
+        {
+            const auto field_it = root.find(field_name);
+            if (field_it == root.end())
+            {
+                return true;
+            }
+            if (!field_it->is_number())
+            {
+                out_error = L"Resume metadata field '" + std::wstring(field_name, field_name + std::strlen(field_name)) +
+                            L"' must be a number.";
+                return false;
+            }
+
+            out_value = field_it->get<float>();
+            if (!std::isfinite(out_value))
+            {
+                out_error = L"Resume metadata field '" + std::wstring(field_name, field_name + std::strlen(field_name)) +
+                            L"' must be finite.";
+                return false;
+            }
+
+            return true;
+        }
+
+        bool ReadOptionalUnsignedField(const nlohmann::json& root,
+                                       const char* field_name,
+                                       unsigned& out_value,
+                                       std::wstring& out_error)
+        {
+            const auto field_it = root.find(field_name);
+            if (field_it == root.end())
+            {
+                return true;
+            }
+
+            if (!field_it->is_number_unsigned())
+            {
+                out_error = L"Resume metadata field '" + std::wstring(field_name, field_name + std::strlen(field_name)) +
+                            L"' must be an unsigned integer.";
+                return false;
+            }
+
+            out_value = field_it->get<unsigned>();
+            return true;
+        }
+
         bool ReadPathField(const nlohmann::json& root,
                            const char* field_name,
                            std::filesystem::path& out_path,
@@ -846,7 +896,11 @@ namespace LightingBaker
             !ReadUnsignedField(*job_it, "samples_per_iteration", state.samples_per_iteration, out_error) ||
             !ReadUnsignedField(*job_it, "target_samples", state.target_samples, out_error) ||
             !ReadUnsignedField(*job_it, "max_bounces", state.max_bounces, out_error) ||
-            !ReadBoolField(*job_it, "progressive", state.progressive, out_error))
+            !ReadOptionalUnsignedField(*job_it, "direct_light_samples", state.direct_light_samples, out_error) ||
+            !ReadOptionalUnsignedField(*job_it, "environment_light_samples", state.environment_light_samples, out_error) ||
+            !ReadBoolField(*job_it, "progressive", state.progressive, out_error) ||
+            !ReadOptionalFloatField(*job_it, "sky_intensity", state.sky_intensity, out_error) ||
+            !ReadOptionalFloatField(*job_it, "sky_ground_mix", state.sky_ground_mix, out_error))
         {
             return false;
         }
@@ -957,6 +1011,30 @@ namespace LightingBaker
         if (resume_state.max_bounces != config.max_bounces)
         {
             out_error = L"Resume cache max-bounces does not match the requested job.";
+            return false;
+        }
+
+        if (resume_state.direct_light_samples != config.direct_light_samples)
+        {
+            out_error = L"Resume cache direct-light-samples does not match the requested job.";
+            return false;
+        }
+
+        if (resume_state.environment_light_samples != config.environment_light_samples)
+        {
+            out_error = L"Resume cache environment-light-samples does not match the requested job.";
+            return false;
+        }
+
+        if (std::abs(resume_state.sky_intensity - config.sky_intensity) > 1e-6f)
+        {
+            out_error = L"Resume cache sky-intensity does not match the requested job.";
+            return false;
+        }
+
+        if (std::abs(resume_state.sky_ground_mix - config.sky_ground_mix) > 1e-6f)
+        {
+            out_error = L"Resume cache sky-ground-mix does not match the requested job.";
             return false;
         }
 
